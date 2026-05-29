@@ -3,6 +3,7 @@
    Produced by: pipeline/clightgen.sh
    From source: experiments/toy/toy.c
    clightgen:   The CompCert CompCert AST generator, version 3.15
+   Flags:       -normalize 
    Regenerate:  make regen   (output must be byte-identical)
    ====================================================================== *)
 From Coq Require Import String List ZArith.

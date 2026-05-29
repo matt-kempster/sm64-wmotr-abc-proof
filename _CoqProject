@@ -6,5 +6,8 @@
 -R proofs    SM64.Proofs
 
 generated/toy.v
+generated/shadow.v
+proofs/Frame.v
 proofs/ToyFrame.v
+proofs/ShadowFrame.v
 proofs/ToyReach.v
