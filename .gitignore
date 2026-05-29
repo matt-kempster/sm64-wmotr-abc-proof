@@ -1,0 +1,24 @@
+# Rocq / Coq build artifacts
+*.vo
+*.vok
+*.vos
+*.glob
+*.aux
+.*.aux
+*.cache
+.coqdeps.d
+.lia.cache
+.nia.cache
+CoqMakefile
+CoqMakefile.conf
+
+# clightgen intermediate (preprocessed C); the .v output in generated/ IS committed
+*.i
+
+# opam switch (we keep it global, not in-tree), editor cruft
+_opam/
+*.swp
+.DS_Store
+
+# local Claude Code settings
+.claude/

@@ -1,0 +1,9 @@
+# Rocq logical-path map.
+# Generated Clight ASTs live under SM64.Generated; hand-written proofs under SM64.Proofs.
+# The compcert.* libraries come from the coq-compcert opam package (the active switch).
+
+-R generated SM64.Generated
+-R proofs    SM64.Proofs
+
+generated/toy.v
+proofs/ToyFrame.v
