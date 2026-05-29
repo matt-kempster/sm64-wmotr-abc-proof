@@ -101,6 +101,36 @@ first:
 5. **Soft LOC budget on the spec file** — demoted to a smoke alarm, not a correctness gate:
    if the trusted file suddenly triples, a human looks.
 
+## Worked instance: the R3 invariant Φ is internal; `frame_step` is the audited artifact
+
+The "must press A to fly" temporal proof (R3, see [the-frame.md](the-frame.md)) is proved by
+exhibiting a strengthening invariant Φ on Mario's state ("action ∉ the flying-reachable set").
+A natural worry: must reviewers read and agree with Φ, lest we prove something vacuous? **No.**
+Φ is the *same category* as `reaches`/`writes_global`: a proof-internal tool that **must not
+appear in the final theorem**. The harness lemma (`proofs/FrameTrace.v`,
+`noA_run_not_flying`) takes Φ only as hypotheses — base case `Φ init`, no-A preservation
+`a_pressed i = false → Φ s → step i s s' → Φ s'`, and safety `Φ s → ¬flying s` — and concludes
+`noA_run is → reachable init is s → ¬flying s`, in which **Φ does not occur.** A wrong Φ cannot
+mislead: too strong fails the base case, too weak fails safety, not-an-invariant fails
+preservation. Any wrong Φ = a *failed proof*, never a false theorem.
+
+Two clarifications this pins down:
+
+- **"Top-level `Definition`" is not the trust axis.** A `Definition Φ` referenced only by
+  lemmas is exactly as un-audited as something inlined in a tactic script. The audit surface is
+  *the statement + the closure of definitions it names* — not every `Definition` in the repo.
+  Making Φ a clean named definition is for *our* readability, not a trust cost.
+- **Φ-internalization does not buy non-vacuity.** It guards Φ-being-*wrong*, not the theorem
+  being *empty*. Vacuity is guarded separately (the non-vacuity witness — `FrameTrace.v` ships a
+  concrete control proving flying *is* reachable *with* A, so the no-A hypothesis is doing real
+  work — plus `Print Assumptions` and `Set Printing All`).
+
+So reviewer attention belongs on the statement's vocabulary, where the heavyweight item is
+**`frame_step` itself** — the model. *That* is the definition needing human agreement ("yes,
+this faithfully captures one SM64 frame"), which is why `the-frame.md` grounds it in concrete
+`file:line` and flags the interpreter abstraction as a named, trusted step. Φ is cheap;
+`frame_step` is where model-faithfulness scrutiny lives.
+
 ## Prior art (honestly labeled)
 
 Established and load-bearing: **TCB minimization** (seL4: a small reviewed spec over a huge

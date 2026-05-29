@@ -20,3 +20,4 @@ proofs/ShadowSpec.v
 proofs/Reach.v
 proofs/Havoc.v
 proofs/Flying.v
+proofs/FrameTrace.v
