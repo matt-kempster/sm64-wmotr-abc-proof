@@ -43,7 +43,8 @@ Import ListNotations.
 Local Open Scope Z_scope.
 From compcert Require Import AST Integers Ctypes Cop Clight.
 From SM64.Proofs Require Import Reach.
-From SM64.Generated Require mario mario_actions_airborne mario_actions_moving level_update.
+From SM64.Generated Require mario mario_actions_airborne mario_actions_moving level_update
+  behavior_actions.
 
 (* --- The flying action constants, as read off the generated AST -------------- *)
 
@@ -155,6 +156,18 @@ Proof. reflexivity. Qed.
 Example level_update_flying_sites :
   flying_setters level_update.prog =
     [level_update._set_mario_initial_action].
+Proof. reflexivity. Qed.
+
+(* behavior_actions.c is the WHOLE behavior C layer -- it #includes all ~111
+   behaviors/*.inc.c, so this single TU is every behavior's native code. NO behavior
+   is a flying-setter: not one of them feeds a flying constant into any call. This
+   closes (mechanically, for this TU) the worry behind the frame-model scheduler
+   abstraction in docs/the-frame.md -- that some behavior might flip Mario into a
+   flying action behind execute_mario_action's back. (Was textual-grep only; now
+   kernel-checked.) Cross-TU linkage to mario.c's set_mario_action is still leak #3,
+   but no flying *constant* originates in any behavior. *)
+Example no_behavior_is_a_flying_setter :
+  flying_setters behavior_actions.prog = [].
 Proof. reflexivity. Qed.
 
 (* (B) The four group-transform helpers never assign a flying constant: each only
