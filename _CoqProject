@@ -11,3 +11,4 @@ proofs/Frame.v
 proofs/ToyFrame.v
 proofs/ShadowFrame.v
 proofs/ToyReach.v
+proofs/ShadowSpec.v
