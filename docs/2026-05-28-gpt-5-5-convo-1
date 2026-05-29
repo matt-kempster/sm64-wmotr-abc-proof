@@ -1,0 +1,1352 @@
+ChatGPT
+
+
+
+has anyone ever written any proofs about real codebases? perhaps specifically, Lean proofs? what is the state of the world? deeply explore 
+
+I’ll map this in layers: established “real codebase” verification, what Lean has actually been used for, what counts as production-grade, and what remains mostly research. I’ll cite primary sources where possible.
+
+Preliminary picture: the answer is “yes, but not in the way normal software engineers imagine.” The mature successes are narrow, expensive, and specification-heavy; Lean’s software-verification story is newer but moving fast, especially around Rust.
+
+Thought for 1m 33s
+Yes. People have written serious, machine-checked proofs about real codebases. The state of the world is roughly:
+
+Formal verification works today for carefully scoped, high-value systems. It is not yet a general-purpose replacement for testing on arbitrary production code. Lean is a fast-rising entrant for software verification, but Coq/Rocq, Isabelle/HOL, F*, Dafny, Verus, and domain-specific SMT/model-checking tools have more historical production mileage.
+
+1. What “proofs about real code” can mean
+There are several very different levels of strength.
+
+At the weakest useful level, you prove properties of a model of the system. This is common in TLA+, Alloy, model checking, protocol verification, SMT-based policy checking, and similar tools. These proofs can be extremely useful, but the connection to the actual implementation is partly informal unless there is a refinement proof or generated code path.
+
+Stronger: you prove properties of an implementation written in a verification-aware language: Dafny, F*, Verus, Coq/Rocq, Isabelle/HOL, Lean, etc. Here the executable code and proof live close together, often with specifications, ghost state, invariants, and SMT help.
+
+Stronger still: you prove that an existing C/Rust/assembly codebase refines a formal specification, via a formal semantics for the source language or a translation into the proof assistant.
+
+Strongest: you connect the proof down to machine code / binary semantics / verified compilation, reducing the trusted computing base to the proof assistant kernel, specs, hardware assumptions, and some runtime assumptions.
+
+Most “real codebase” proofs sit somewhere in the middle, not at the absolute strongest end.
+
+2. The canonical non-Lean successes
+The best-known example is seL4, a verified microkernel. The seL4 team proved, in Isabelle/HOL, that the C implementation refines a high-level abstract specification. The original paper describes formal, machine-checked verification from abstract spec down to C; the kernel was about 8,700 lines of C plus 600 lines of assembly, with a proof effort around 200,000 lines of Isabelle script. 
+ The seL4 project now describes machine-checked mathematical proofs for Arm, RISC-V, and Intel architectures, including functional correctness, binary correctness, access-control, and information-flow properties. 
+
+CompCert is the classic verified compiler. It is a realistic C compiler with a machine-checked proof that generated executable code behaves according to the source program semantics; it targets architectures including Arm, PowerPC, RISC-V, and x86. 
+ Notably, CompCert’s site reports a 2026 qualification for ATR 42/72 aircraft avionics, with certification credit under DO-178C/DO-333/DO-330. 
+ That is unusually close to “formal verification used in serious industrial certification.”
+
+HACL*/EverCrypt is a major verified-crypto success. HACL* contains verified implementations of algorithms including Curve25519, Ed25519, AES-GCM, ChaCha20, Poly1305, SHA-2, SHA-3, HMAC, and HKDF; its Low* code is verified for memory safety, functional correctness, and secret independence, then compiled to C. 
+ Project Everest reports deployment of verified software in systems including Windows kernel, Hyper-V, Linux, Firefox, Python, and others. 
+
+There are also substantial Coq/Rocq examples. FSCQ is a file system with a machine-checkable Coq proof about crash recovery; its spec includes crashes and reboots, and the theorems prove recovery behavior under sequences of crashes. 
+ OpenSSL HMAC/SHA-256 was proved in Coq using VST, CompCert, and a cryptographic proof framework: the paper claims a machine-checked connection between source-program implementation proof, verified compilation, and cryptographic-security proof. 
+ Verdi Raft is a verified Coq implementation of the Raft consensus protocol, including a fault-tolerant key-value store. 
+ IronFleet, in Dafny, proved safety and liveness of practical distributed-system implementations, reasoning down to the bytes of UDP packets. 
+
+So the short factual answer is: yes, absolutely, and some of it is production-relevant.
+
+3. Where Lean fits
+Lean’s historical center of gravity has been mathematics, especially mathlib. But software verification in Lean is now an active frontier, with several credible paths.
+
+AWS Cedar: real industrial use, but model-first
+AWS uses Lean in Cedar, its authorization policy language. The Lean blog post says the Cedar team creates executable formal models of core components in Lean and proves key correctness properties with Lean’s proof assistant. 
+ The public cedar-spec repository says it contains the formalization of Cedar plus differential randomized testing infrastructure against the Rust production implementation, and specifically that cedar-lean contains “the Lean formalization of, and proofs about, Cedar.” 
+
+Important nuance: this is not quite “we proved every line of the Rust Cedar implementation correct.” It is closer to: “we built formal Lean models/specifications, proved properties about those, and use differential randomized testing to keep the production Rust implementation aligned.” That is still serious and industrially meaningful. It is a pragmatic verification-guided-development pattern.
+
+Aeneas: Rust-to-Lean, closer to actual code
+Aeneas is one of the most important Lean-adjacent developments for real code. It translates Rust programs into proof-assistant models, including Lean, so one can prove functional correctness beyond Rust’s memory-safety guarantees. Its key move is using Rust’s ownership/borrow discipline to avoid much of the pointer-aliasing memory proof burden; the generated Lean model is pure and functional. 
+
+Microsoft Research says it chose Aeneas for its SymCrypt Rust modernization because it connects to proof assistants like Lean and cleanly separates code from proofs. 
+ A 2026 Aeneas slide deck reports that the SymCrypt Windows library is adopting Rust code verified with Aeneas, that optimized parts of ML-KEM are a first completed target, and that FrodoKEM, SHA3, and AES-GCM are ongoing work. 
+
+This is probably the most important “Lean proofs about real existing code” direction right now: safe Rust → Aeneas → Lean model → functional-correctness proof.
+
+Signal Shot: ambitious, current, not done
+In April 2026, Lean FRO / BAIF / Signal launched Signal Shot, a public effort to verify the Signal protocol and its Rust implementation using Lean. Leonardo de Moura describes it as verifying “not the math on paper” but “the actual code,” with Aeneas translating libsignal Rust into something Lean can reason about. 
+ BAIF states the objective as end-to-end machine-checking of the full protocol stack, continuous verification as the software evolves, and building a reference for how verified software should be shipped. 
+
+This is not yet a completed seL4-style result. It is a high-signal indicator of where the Lean ecosystem is trying to go.
+
+Lean4Lean: Lean proving Lean
+Mario Carneiro’s Lean4Lean project is a verified/external typechecker for Lean 4 written in Lean itself. The paper says it is the first complete Lean 4 typechecker other than the C++ reference implementation, can verify all of mathlib, and has begun proving correctness of parts of the kernel; it also reports finding and fixing a soundness bug as a result of the work. 
+
+This is not an app-code proof. But it matters because proof assistants live or die by trust in their kernel. A verified checker narrows the trusted base and makes Lean more credible for large-scale verified software.
+
+AI-assisted Lean proof engineering
+This is moving quickly but is not solved. GitHub Next’s Lean Squad post reports an agentic workflow that produced over 1,200 machine-checked theorems on three real-world codebases and found real bugs in a drone autopilot. 
+ This should be read as an exploratory result, not as “full formal verification is now push-button.”
+
+The benchmark literature is consistent with that. VeriSoftBench, released in February 2026, contains 500 Lean 4 proof obligations drawn from open-source formal-methods developments and preserves realistic repository context; the authors report that provers tuned for Mathlib-style mathematics transfer poorly to software-verification tasks with project-specific dependencies. 
+ SorryDB similarly draws open Lean tasks from 78 real formalization projects and emphasizes that real projects involve messy dependencies and broader context than competition-math benchmarks. 
+
+4. What a Lean proof about code usually looks like
+A simplified example shape:
+
+def spec (input : Input) : Output := ...
+
+def impl (input : Input) : Output := ...
+
+theorem impl_correct :
+  ∀ input, precondition input → impl input = spec input := by
+  ...
+For real code this becomes much more elaborate:
+
+theorem Code.ntt.spec
+  (f : Array U16) (h : inBounds f) :
+  Code.ntt f ⦃ fun f1 =>
+    toPoly f1 = Spec.ntt (toPoly f) ∧ inBounds f1 ⦄
+That shape is visible in Aeneas/SymCrypt materials: a Lean theorem relates an optimized Rust implementation of an NTT-style operation to a mathematical specification, while also proving bounds invariants. 
+
+The hard parts are not usually “can Lean check a proof?” The hard parts are:
+
+stating the right spec;
+
+modeling the programming language semantics faithfully;
+
+proving loop invariants, data-structure invariants, arithmetic facts, memory-safety facts, and refinement lemmas;
+
+keeping all of this stable as the code changes.
+
+5. The current frontier by domain
+Best targets today:
+
+Cryptography. Specs are mathematical, bugs are costly, functions are often small enough to isolate, and constant-time/security properties justify the proof cost. HACL*, EverCrypt, OpenSSL HMAC, SymCrypt/Aeneas, and Signal Shot all sit here.
+
+Authorization and policy engines. Cedar is a good example. The semantics are crisp: a policy either allows, denies, or errors under a request/schema/entity environment.
+
+Compilers, interpreters, typecheckers. CompCert, CakeML, Lean4Lean, and verified DSL compilers are natural targets because semantics-preservation theorems are well understood.
+
+Consensus protocols and distributed systems. Verdi Raft and IronFleet show this can be done, but proof burden is high because global invariants, liveness, faults, reordering, and persistence are nasty.
+
+File systems and storage. FSCQ showed crash-aware verification is possible, but again the cost is high.
+
+Parsers/serializers/binary formats. These are relatively attractive because the specs are finite, crisp, and security-relevant.
+
+Poor targets today:
+
+Fast-changing product UI, ordinary CRUD web apps, ad hoc business logic, giant dynamic-language systems, code where “correct” means “what product wanted this quarter,” and codebases full of undefined behavior, reflection, plugins, FFI, or undocumented environmental assumptions.
+
+Formal verification thrives when the desired behavior can be stated mathematically.
+
+6. How strong are the guarantees, really?
+A machine-checked proof eliminates an enormous class of bugs, but only relative to assumptions.
+
+Typical assumptions include:
+
+The specification is the right one. A proof that code implements the wrong spec is still useless.
+
+The language semantics are accurate. For C, undefined behavior and compiler behavior are major issues; verified compilers such as CompCert help.
+
+The verified artifact is actually what ships. Wrappers, bindings, build flags, generated code, assembly, FFI, operating-system APIs, and hardware can sit outside the proof.
+
+The proof assistant kernel is sound. This is why small kernels and independent checkers matter; Lean4Lean is relevant here. 
+
+Side channels are explicitly modeled. Functional correctness does not automatically prove constant-time behavior, cache behavior, fault-injection resistance, or speculative-execution safety.
+
+Concurrency and distribution are modeled at the right abstraction level. A proof can miss a bug if the failure model is too weak.
+
+So “formally verified” should never be read as “impossible to have bugs.” It means “this mathematically stated property holds under these assumptions.”
+
+7. My read on Lean specifically
+Lean is not yet the most battle-tested industrial software verifier. If you asked in 2018, the answer would have been: use Coq/Rocq, Isabelle/HOL, F*, Dafny, SPARK, ACL2, TLA+, CBMC, Why3, Frama-C, VST, or a domain-specific tool depending on the target.
+
+In 2026, Lean is becoming unusually attractive because it combines:
+
+a small trusted kernel;
+
+a strong dependent type theory;
+
+a fast-growing math library;
+
+good metaprogramming;
+
+good IDE ergonomics;
+
+strong community momentum;
+
+increasingly capable automation, including tactics like grind;
+
+and rapidly improving AI assistance.
+
+But Lean’s verified-software ecosystem is still maturing. Cedar is real. Aeneas is real. SymCrypt work is real. Signal Shot is real but incomplete. Lean4Lean is strategically important. The missing piece is not “can Lean express this?” It is engineering scale: libraries, automation, workflows, code translation, CI, debugging, proof maintenance, and human proof-engineering talent.
+
+8. The practical bottom line
+For a serious codebase today, I would divide possible strategies like this:
+
+For an existing C/C++ codebase: full proof is usually painful. Use Frama-C, VST/Coq, CBMC, SAW/Cryptol, or targeted proof for small kernels. Consider rewriting critical components in Rust, F*, Dafny, SPARK, or Lean-friendly subsets.
+
+For Rust: Verus is probably the most “Rust-native” verification path; Aeneas + Lean is the most interesting path if you want deep Lean proofs while keeping implementation code in Rust. Aeneas is especially promising for safe, functional-ish Rust.
+
+For crypto/math-heavy code: Lean is becoming very compelling because the mathematical specs can live near mathlib-style foundations.
+
+For protocols: TLA+ is still excellent for design-level reasoning; Lean/Coq/Isabelle are for deeper machine-checked refinement/implementation proofs.
+
+For a startup/product team: do not try to verify everything. Pick a small correctness kernel: authz semantics, money movement invariants, consensus logic, parser, crypto wrapper, serialization, matching engine core, or permission checker.
+
+For Lean specifically: the viable near-term pattern is not “point Lean at my repo and prove it.” It is: isolate a critical component, define a spec in Lean, either implement/model the component in Lean or translate Rust via Aeneas, prove refinement, then keep proofs in CI.
+
+The state of the world is therefore:
+
+Formal verification of real code is no longer a fantasy. It has landmark successes and some production deployments. But it is still specialist engineering. Lean is plausibly becoming one of the central platforms for the next wave, especially where Rust, cryptography, formal math libraries, and AI-assisted proof engineering intersect.
+
+
+I’ll use shadow.c as a concrete extractor/transpiler pilot: identify its data dependencies, write effects, indirect calls if any, and translate a few functions into a small memory/effect IR rather than a full gameplay model.
+
+First concrete finding: shadow.c is a good pilot because it is mostly rendering-side, but it contains exactly the hazards we care about: pointer out-params, globals, external calls, display-list allocation, and two documented “this relies on non-ISO/buggy behavior” cases.
+
+Thought for 56s
+Yes. I looked at src/game/shadow.c and would use it as a small transpiler/effect-analysis pilot, not because it matters for WMotR, but because it has the right kinds of C features in a contained file.
+
+The file defines a shadow subsystem, four shadow-related globals, a local struct Shadow, hardcoded rectangle data, many pure-ish numeric helpers, pointer out-params, display-list allocation, surface queries, and a single main dispatcher create_shadow_below_xyz. The header exposes the shadow types and the globals sMarioOnFlyingCarpet, sSurfaceTypeBelowShadow, gShadowAboveWaterOrLava, and gMarioOnIceOrCarpet. 
+
+Why shadow.c is a good V0 target
+It contains:
+
+pure numeric functions
+pointer out-parameter functions
+local struct mutation
+global writes
+external calls
+switch dispatch
+allocation into display-list memory
+documented undefined / compiler-artifact behavior
+That is enough to test whether the transpiler is serious without drowning in Mario action logic.
+
+It also has no serious first-class function-pointer problem inside this file. The call graph is mostly direct calls plus macro-generated display-list writes.
+
+First transpiler target: an effect IR
+For shadow.c, I would not start by translating full gameplay semantics. I would translate into a small memory/effect IR:
+
+inductive Region where
+| stackLocal    : FuncId → LocalId → Region
+| pointed       : PtrExpr → Nat → Region
+| global        : Symbol → Region
+| displayList   : Region
+| collisionData : Region
+| unknown       : String → Region
+
+structure Effect where
+  reads  : Set Region
+  writes : Set Region
+  calls  : Set FuncId
+  mayUB  : Set String
+Then each function produces:
+
+def effect_functionName : Effect := ...
+def exec_functionName : IRProgram := ...
+The first useful theorem is generic:
+
+theorem preserves_disjoint_region
+  (h : Disjoint targetRegion (effect_f.writes)) :
+  regionBytes targetRegion (exec_f mem) = regionBytes targetRegion mem
+So for shadow.c, a V0 proof could eventually say:
+
+The shadow subsystem does not write gMarioState.action,
+provided the external summaries for collision/display-list helpers are sound.
+That is a nice miniature of the larger “does level load clobber X?” problem.
+
+Worked snippets
+1. scale_shadow_with_distance
+Source behavior: it returns initial, initial * 0.5, or a linear scale depending on distance from floor. 
+
+Transpiled pure expression:
+
+def scale_shadow_with_distance_ir (initial distFromFloor : F32) : F32 :=
+  if distFromFloor <= 0.0 then
+    initial
+  else if distFromFloor >= 600.0 then
+    initial * 0.5
+  else
+    initial * (1.0 - (0.5 * distFromFloor / 600.0))
+Effect summary:
+
+{
+  "function": "scale_shadow_with_distance",
+  "reads": [],
+  "writes": [],
+  "calls": [],
+  "may_ub": []
+}
+V0 theorem:
+
+theorem scale_shadow_with_distance_no_writes :
+  effect_scale_shadow_with_distance.writes = ∅ := by
+  rfl
+This is the easiest kind of function. The transpiler should classify it as Pure.
+
+2. get_texture_coords_9_vertices
+Source writes through two pointer out-params:
+
+*textureX = vertexNum % 3 * 15 - 15;
+*textureY = vertexNum / 3 * 15 - 15;
+The same pattern appears for the four-vertex version. 
+
+Memory IR:
+
+def get_texture_coords_9_vertices_ir
+  (vertexNum : I8) (textureX textureY : Ptr) : IR :=
+  seq
+    (store16 textureX ((vertexNum % 3) * 15 - 15))
+    (store16 textureY ((vertexNum / 3) * 15 - 15))
+Effect summary:
+
+{
+  "function": "get_texture_coords_9_vertices",
+  "reads": [],
+  "writes": [
+    { "kind": "ptr", "base": "textureX", "size": 2 },
+    { "kind": "ptr", "base": "textureY", "size": 2 }
+  ],
+  "calls": [],
+  "may_ub": [
+    "textureX must be writable for 2 bytes",
+    "textureY must be writable for 2 bytes"
+  ]
+}
+Important: do not assume textureX and textureY are distinct unless we prove or require it. For frame preservation, aliasing is fine; the write footprint is still sound. For exact return semantics, aliasing affects the final memory.
+
+3. get_vertex_coords
+This one is a better pointer test:
+
+*xCoord = index % (3 - shadowVertexType) - 1;
+*zCoord = index / (3 - shadowVertexType) - 1;
+
+if (shadowVertexType == SHADOW_WITH_4_VERTS) {
+    if (*xCoord == 0) { *xCoord = 1; }
+    if (*zCoord == 0) { *zCoord = 1; }
+}
+This function reads back through the same out-pointers it just wrote. 
+
+IR sketch:
+
+def get_vertex_coords_ir
+  (index shadowVertexType : I8) (xCoord zCoord : Ptr) : IR :=
+  seq
+    (store8 xCoord (index % (3 - shadowVertexType) - 1))
+    (store8 zCoord (index / (3 - shadowVertexType) - 1))
+    (ifIR (shadowVertexType == SHADOW_WITH_4_VERTS)
+      (seq
+        (ifIR (load8 xCoord == 0) (store8 xCoord 1) skip)
+        (ifIR (load8 zCoord == 0) (store8 zCoord 1) skip))
+      skip)
+Effect summary:
+
+{
+  "function": "get_vertex_coords",
+  "reads": [
+    { "kind": "ptr", "base": "xCoord", "size": 1 },
+    { "kind": "ptr", "base": "zCoord", "size": 1 }
+  ],
+  "writes": [
+    { "kind": "ptr", "base": "xCoord", "size": 1 },
+    { "kind": "ptr", "base": "zCoord", "size": 1 }
+  ],
+  "calls": [],
+  "may_ub": [
+    "xCoord must be writable/readable for 1 byte",
+    "zCoord must be writable/readable for 1 byte",
+    "division/modulo by zero if shadowVertexType == 3"
+  ]
+}
+This is a useful test because it forces the IR to model sequential memory, not just SSA assignments.
+
+4. get_water_level_below_shadow
+This is the first “real” hazard.
+
+The source calls find_water_level, may write gShadowAboveWaterOrLava = TRUE, and has a documented missing return statement that “incidentally” returns waterLevel unless AVOID_UB is enabled. 
+
+IR sketch:
+
+def get_water_level_below_shadow_ir (s : Ptr Shadow) : IR :=
+  let waterLevel ← call find_water_level [load s.parentX, load s.parentZ]
+  ifIR (waterLevel < FLOOR_LOWER_LIMIT_SHADOW)
+    (return 0.0)
+    (ifIR ((load s.parentY >= waterLevel) &&
+           (load s.floorHeight <= waterLevel))
+      (seq
+        (store8 (global gShadowAboveWaterOrLava) TRUE)
+        (return waterLevel))
+      (compilerArtifactReturn "missing return; IDO returns waterLevel incidentally"))
+Effect summary:
+
+{
+  "function": "get_water_level_below_shadow",
+  "reads": [
+    "s->parentX",
+    "s->parentY",
+    "s->parentZ",
+    "s->floorHeight",
+    "collision/water environment via find_water_level"
+  ],
+  "writes": [
+    "gShadowAboveWaterOrLava"
+  ],
+  "calls": [
+    "find_water_level"
+  ],
+  "may_ub": [
+    "missing return in non-AVOID_UB build; target semantics must model IDO artifact or mark as UB"
+  ]
+}
+This is exactly why the transpiler must distinguish:
+
+ISO C semantics
+IDO/N64 matching-binary semantics
+For SM64 proof work, the second is probably what we want.
+
+5. init_shadow
+This is the first serious local-struct mutator.
+
+It writes many fields of struct Shadow *s, calls find_floor_height_and_data, conditionally calls get_water_level_below_shadow, and has a documented use of potentially undefined waterLevel if gShadowAboveWaterOrLava is true without the prior call initializing waterLevel. 
+
+For V0, I would use a coarse but sound footprint:
+
+{
+  "function": "init_shadow",
+  "reads": [
+    "gEnvironmentRegions",
+    "gShadowAboveWaterOrLava",
+    "collision floor environment",
+    "collision water environment"
+  ],
+  "writes": [
+    { "kind": "ptr", "base": "s", "type": "struct Shadow", "mode": "coarse_whole_struct" },
+    "gShadowAboveWaterOrLava"
+  ],
+  "calls": [
+    "find_floor_height_and_data",
+    "get_water_level_below_shadow",
+    "dim_shadow_with_distance",
+    "scale_shadow_with_distance",
+    "atan2_deg",
+    "sqrtf"
+  ],
+  "may_ub": [
+    "potential use of uninitialized waterLevel if called with gShadowAboveWaterOrLava true and gEnvironmentRegions null",
+    "floorGeometry must be valid if non-water branch is taken"
+  ]
+}
+The coarse whole-struct write is deliberate. Field-sensitive writes can come later. For preservation, coarse is safe.
+
+6. create_shadow_below_xyz
+This is the main dispatcher.
+
+It:
+
+calls find_floor;
+
+resets the three shadow globals;
+
+conditionally sets gMarioOnIceOrCarpet and sSurfaceTypeBelowShadow;
+
+switches on shadowType;
+
+calls one of the specific shadow constructors. 
+
+IR skeleton:
+
+def create_shadow_below_xyz_ir
+  (xPos yPos zPos : F32)
+  (shadowScale : I16)
+  (shadowSolidity : U8)
+  (shadowType : I8) : IR :=
+  seq
+    (pfloor ← call find_floor [xPos, yPos, zPos])
+    (store8  (global gShadowAboveWaterOrLava) FALSE)
+    (store8  (global gMarioOnIceOrCarpet) 0)
+    (store8  (global sMarioOnFlyingCarpet) 0)
+    (ifIR (pfloor != NULL)
+      (seq
+        (ifIR (load pfloor.type == SURFACE_ICE)
+          (store8 (global gMarioOnIceOrCarpet) 1)
+          skip)
+        (store16 (global sSurfaceTypeBelowShadow) (load pfloor.type)))
+      skip)
+    (switchIR shadowType [
+      (SHADOW_CIRCLE_9_VERTS, call create_shadow_circle_9_verts [...]),
+      (SHADOW_CIRCLE_4_VERTS, call create_shadow_circle_4_verts [...]),
+      (SHADOW_CIRCLE_4_VERTS_FLAT_UNUSED, call create_shadow_circle_assuming_flat_ground [...]),
+      (SHADOW_SQUARE_PERMANENT, call create_shadow_square [...]),
+      (SHADOW_SQUARE_SCALABLE, call create_shadow_square [...]),
+      (SHADOW_SQUARE_TOGGLABLE, call create_shadow_square [...]),
+      (SHADOW_CIRCLE_PLAYER, call create_shadow_player [...])
+    ] default:
+      call create_shadow_hardcoded_rectangle [...])
+Generated call graph edges from this entry:
+
+{
+  "function": "create_shadow_below_xyz",
+  "direct_calls": [
+    "find_floor",
+    "create_shadow_circle_9_verts",
+    "create_shadow_circle_4_verts",
+    "create_shadow_circle_assuming_flat_ground",
+    "create_shadow_square",
+    "create_shadow_player",
+    "create_shadow_hardcoded_rectangle"
+  ],
+  "indirect_calls": [],
+  "switch_dispatch": {
+    "discriminant": "shadowType",
+    "closed": true
+  }
+}
+This is a clean call-graph tracing test.
+
+7. Other hazards the transpiler should flag
+correct_shadow_solidity_for_animations switches on isLuigi and selects either gMarioObject or gLuigiObject; the comments note that isLuigi == 1 is apparently removed-player evidence and is never used in game. If isLuigi is neither 0 nor 1, player is uninitialized. 
+
+So the transpiler should emit:
+
+{
+  "function": "correct_shadow_solidity_for_animations",
+  "may_ub": [
+    "player may be uninitialized unless isLuigi ∈ {0,1}"
+  ],
+  "precondition_candidate": "isLuigi == 0 || isLuigi == 1"
+}
+create_shadow_hardcoded_rectangle computes an index from shadowType - SHADOW_RECTANGLE_HARDCODED_OFFSET, and the source comment explicitly notes it could be negative or out of bounds in principle. 
+
+The transpiler should emit:
+
+{
+  "function": "create_shadow_hardcoded_rectangle",
+  "may_ub": [
+    "rectangles[idx] out of bounds unless 0 <= idx < 2"
+  ],
+  "precondition_candidate": "shadowType ∈ {50,51}"
+}
+These warnings are good. They mean the transpiler is catching proof obligations instead of silently assuming “normal use.”
+
+The V0 theorem I would try for shadow.c
+Not “exactly simulate all shadow rendering.”
+
+Try this:
+
+Theorem shadow_effect_safety_v0:
+
+For every execution of create_shadow_below_xyz in the generated IR,
+all writes are contained in:
+
+  1. the shadow globals:
+     gShadowAboveWaterOrLava,
+     gMarioOnIceOrCarpet,
+     sMarioOnFlyingCarpet,
+     sSurfaceTypeBelowShadow
+
+  2. stack-local Shadow structs and temporary out-params
+
+  3. display-list allocation memory
+
+  4. pointed output vertex/display-list buffers allocated by alloc_display_list
+
+provided external summaries for:
+  find_floor,
+  find_floor_height_and_data,
+  find_water_level,
+  alloc_display_list,
+  make_vertex,
+  gSP* display-list macros
+are sound.
+Then an immediate corollary:
+
+create_shadow_below_xyz preserves gMarioState.action.
+This is the right kind of miniature proof. It exercises the transpiler’s machinery without depending on game physics.
+
+What this tells us about the larger project
+shadow.c suggests the V0 transpiler needs these features immediately:
+
+field-sensitive struct loads/stores
+coarse whole-struct writes as fallback
+pointer out-params
+global symbols
+switch dispatch
+external-call summaries
+sequential memory semantics
+compiler-artifact / UB warnings
+source-span metadata
+effect footprint generation
+It does not yet need:
+
+function pointer resolution
+level-script bytecode
+behavior-script bytecode
+Mario action semantics
+collision exactness
+object pool semantics
+So yes: this is a good first file. The first legitimate deliverable would be a generated shadow.effects.json plus a tiny Lean/Dafny proof that the generated write footprint preserves arbitrary disjoint regions.
+
+
+These json are suspicious. We would have to autogenerate them. I would want to see how. 
+
+Agreed. The JSON should be an emitted artifact, not something authored. I’ll show a concrete extraction pipeline for shadow.c: what the parser sees, how it converts writes/calls into facts, and what still requires conservative summaries.
+
+I’m going to be stricter than before: the extractor should not emit “claims” about preservation. It should emit a lower-level event program—stores, calls, branches, havoc—and preservation should be computed from that.
+
+Thought for 41s
+Yes. The JSON I showed should be treated as suspicious unless it is emitted mechanically. The right V0 is:
+
+shadow.c
+  → Clang AST / preprocessed AST
+  → generated low-level effect IR
+  → generated call/write events
+  → generic proof: writes outside footprint are preserved
+The extractor should not emit “gMarioState.action is preserved.” It should emit only stores/calls/havocs. Preservation is computed afterward.
+
+1. What the extractor should emit
+For each function, emit an effect program, not a semantic summary.
+
+Example source:
+
+void get_texture_coords_9_vertices(s8 vertexNum, s16 *textureX, s16 *textureY) {
+    *textureX = vertexNum % 3 * 15 - 15;
+    *textureY = vertexNum / 3 * 15 - 15;
+}
+This function appears in shadow.c and writes to two pointer out-params. 
+
+The extractor should emit something like:
+
+{
+  "function": "get_texture_coords_9_vertices",
+  "events": [
+    {
+      "kind": "store",
+      "lhs": {
+        "kind": "deref",
+        "expr": "textureX",
+        "bytes": 2,
+        "ctype": "s16"
+      },
+      "rhs": "vertexNum % 3 * 15 - 15",
+      "source": "src/game/shadow.c:get_texture_coords_9_vertices"
+    },
+    {
+      "kind": "store",
+      "lhs": {
+        "kind": "deref",
+        "expr": "textureY",
+        "bytes": 2,
+        "ctype": "s16"
+      },
+      "rhs": "vertexNum / 3 * 15 - 15",
+      "source": "src/game/shadow.c:get_texture_coords_9_vertices"
+    }
+  ]
+}
+That JSON is not authored. It falls directly out of the AST:
+
+FunctionDecl get_texture_coords_9_vertices
+  CompoundStmt
+    BinaryOperator '='
+      UnaryOperator '*'
+        DeclRefExpr textureX
+    BinaryOperator '='
+      UnaryOperator '*'
+        DeclRefExpr textureY
+The generator sees BinaryOperator '='; classifies the LHS; emits a store.
+
+2. The real extraction rule
+The core rule is simple:
+
+Every AST node that can write memory emits a write event.
+Start with these:
+
+assignment:             lhs = rhs
+compound assignment:    lhs += rhs, lhs -= rhs, ...
+increment/decrement:    lhs++, ++lhs, lhs--, --lhs
+memset/memcpy/bzero:    range write
+function call:          call event + callee write summary
+macro-expanded stores:  whatever the AST expands them into
+unknown call:           havoc
+The dangerous rule is the last one:
+
+If the extractor cannot classify a write, emit havoc(all memory).
+That prevents false preservation proofs.
+
+3. How LHS classification works
+Given an assignment, classify the left-hand side.
+
+Global variable
+gShadowAboveWaterOrLava = FALSE;
+create_shadow_below_xyz resets gShadowAboveWaterOrLava, gMarioOnIceOrCarpet, and sMarioOnFlyingCarpet. 
+
+Generated event:
+
+{
+  "kind": "store",
+  "lhs": {
+    "kind": "global",
+    "symbol": "gShadowAboveWaterOrLava",
+    "bytes": 1,
+    "ctype": "s8"
+  }
+}
+Pointer out-param
+*textureX = ...
+Generated event:
+
+{
+  "kind": "store",
+  "lhs": {
+    "kind": "param_deref",
+    "param": "textureX",
+    "bytes": 2,
+    "ctype": "s16"
+  }
+}
+Struct field through pointer
+s->floorHeight = waterLevel;
+init_shadow writes many fields through struct Shadow *s. 
+
+Generated event:
+
+{
+  "kind": "store",
+  "lhs": {
+    "kind": "field",
+    "base": {
+      "kind": "param_deref",
+      "param": "s",
+      "ctype": "struct Shadow"
+    },
+    "field": "floorHeight",
+    "offset": "generated",
+    "bytes": 4,
+    "ctype": "f32"
+  }
+}
+Local variable
+ret = ...
+Generated event:
+
+{
+  "kind": "store",
+  "lhs": {
+    "kind": "local",
+    "name": "ret",
+    "bytes": 1,
+    "ctype": "s8"
+  }
+}
+Local writes usually do not matter for global preservation, but they matter for sequential semantics.
+
+4. The extractor skeleton
+A real V0 can be built with Clang tooling. The simplest shape is:
+
+from clang import cindex
+from dataclasses import dataclass, asdict
+import json
+
+WRITE_KINDS = {
+    cindex.CursorKind.BINARY_OPERATOR,
+    cindex.CursorKind.COMPOUND_ASSIGNMENT_OPERATOR,
+    cindex.CursorKind.UNARY_OPERATOR,
+    cindex.CursorKind.CALL_EXPR,
+}
+
+def tokens(cursor):
+    return [t.spelling for t in cursor.get_tokens()]
+
+def source_span(cursor):
+    loc = cursor.extent.start
+    end = cursor.extent.end
+    return {
+        "file": str(loc.file),
+        "line_start": loc.line,
+        "col_start": loc.column,
+        "line_end": end.line,
+        "col_end": end.column,
+    }
+
+def strip_parens_and_casts(cur):
+    # Implement by descending through implicit casts / parens in libclang
+    # or by using clang AST JSON where these nodes are explicit.
+    return cur
+
+def sizeof_type(t):
+    try:
+        return t.get_size()
+    except Exception:
+        return None
+
+def classify_lvalue(cur):
+    cur = strip_parens_and_casts(cur)
+
+    if cur.kind == cindex.CursorKind.DECL_REF_EXPR:
+        decl = cur.referenced
+        if decl.semantic_parent.kind == cindex.CursorKind.TRANSLATION_UNIT:
+            return {
+                "kind": "global",
+                "symbol": cur.spelling,
+                "bytes": sizeof_type(cur.type),
+                "ctype": cur.type.spelling,
+            }
+        else:
+            return {
+                "kind": "local",
+                "name": cur.spelling,
+                "bytes": sizeof_type(cur.type),
+                "ctype": cur.type.spelling,
+            }
+
+    if cur.kind == cindex.CursorKind.UNARY_OPERATOR:
+        toks = tokens(cur)
+        if toks and toks[0] == "*":
+            child = list(cur.get_children())[0]
+            return {
+                "kind": "deref",
+                "expr": " ".join(tokens(child)),
+                "bytes": sizeof_type(cur.type),
+                "ctype": cur.type.spelling,
+            }
+
+    if cur.kind == cindex.CursorKind.MEMBER_REF_EXPR:
+        # Need: base expression, field name, offset.
+        # Offset comes from generated layout, not manual data.
+        return {
+            "kind": "field",
+            "field": cur.spelling,
+            "base": "TODO: classify base expression",
+            "offset": "generated_from_layout",
+            "bytes": sizeof_type(cur.type),
+            "ctype": cur.type.spelling,
+        }
+
+    return {
+        "kind": "unknown_lvalue",
+        "expr": " ".join(tokens(cur)),
+        "havoc": "all"
+    }
+
+def extract_call(cur):
+    children = list(cur.get_children())
+    callee = children[0] if children else None
+
+    if callee and callee.kind == cindex.CursorKind.DECL_REF_EXPR:
+        return {
+            "kind": "call",
+            "callee": callee.spelling,
+            "source": source_span(cur),
+        }
+
+    return {
+        "kind": "unknown_call",
+        "callee_expr": " ".join(tokens(callee)) if callee else None,
+        "effect": "havoc_all",
+        "source": source_span(cur),
+    }
+
+def extract_stmt(cur):
+    out = []
+
+    if cur.kind == cindex.CursorKind.BINARY_OPERATOR:
+        toks = tokens(cur)
+        if "=" in toks:
+            children = list(cur.get_children())
+            lhs = children[0]
+            rhs = children[1]
+            out.append({
+                "kind": "store",
+                "lhs": classify_lvalue(lhs),
+                "rhs": " ".join(tokens(rhs)),
+                "source": source_span(cur),
+            })
+
+    elif cur.kind == cindex.CursorKind.CALL_EXPR:
+        out.append(extract_call(cur))
+
+    for child in cur.get_children():
+        out.extend(extract_stmt(child))
+
+    return out
+
+def extract_functions(tu):
+    functions = []
+    for cur in tu.cursor.get_children():
+        if cur.kind == cindex.CursorKind.FUNCTION_DECL and cur.is_definition():
+            body_events = []
+            for child in cur.get_children():
+                body_events.extend(extract_stmt(child))
+
+            functions.append({
+                "function": cur.spelling,
+                "return_type": cur.result_type.spelling,
+                "source": source_span(cur),
+                "events": body_events,
+            })
+    return functions
+
+index = cindex.Index.create()
+tu = index.parse(
+    "src/game/shadow.c",
+    args=[
+        "-Iinclude",
+        "-Isrc",
+        "-DVERSION_US",
+        # plus the real flags from compile_commands.json
+    ],
+)
+
+print(json.dumps(extract_functions(tu), indent=2))
+That is not a complete extractor, but it shows the mechanism. The important point: the JSON is produced by walking AST assignments/calls, not written by us.
+
+5. Field offsets must also be generated
+A subtle point: do not manually encode offsets like Shadow.floorHeight = 12.
+
+Generate layout from the compiler frontend.
+
+Options:
+
+clang -Xclang -fdump-record-layouts
+or, better, use the same compile configuration and emit a layout manifest:
+
+{
+  "struct Shadow": {
+    "sizeof": 44,
+    "fields": {
+      "parentX": { "offset": 0, "bytes": 4 },
+      "parentY": { "offset": 4, "bytes": 4 },
+      "parentZ": { "offset": 8, "bytes": 4 },
+      "floorHeight": { "offset": 12, "bytes": 4 }
+    }
+  }
+}
+For the real SM64 proof, this has to respect the target ABI/layout, not the host machine’s layout. For shadow.c V0, Clang layout is probably fine as a smoke test; for the real ROM-facing project, layout should be generated from the exact target configuration/build artifacts.
+
+6. Calls are also generated, not listed
+For this source:
+
+displayList = create_shadow_circle_9_verts(...);
+inside create_shadow_below_xyz, the AST has a CallExpr with direct callee create_shadow_circle_9_verts. The function also directly calls find_floor, resets shadow globals, reads pfloor->type, switches on shadowType, and calls the relevant shadow constructor. 
+
+Generated event:
+
+{
+  "kind": "call",
+  "callee": "create_shadow_circle_9_verts",
+  "source": {
+    "file": "src/game/shadow.c",
+    "line_start": "generated"
+  }
+}
+Then compute transitive effects by fixed point:
+
+def summarize_function(f):
+    direct_writes = writes_in_body[f]
+    direct_calls = calls_in_body[f]
+
+    summary = direct_writes
+    for callee in direct_calls:
+        if callee in known_functions:
+            summary |= summarize_function(callee)
+        else:
+            summary |= external_summary_or_havoc(callee)
+
+    return summary
+Again, no hand-written call graph.
+
+7. What about macros like gSPDisplayList?
+add_shadow_to_display_list uses display-list macros such as gSPDisplayList, gSPVertex, and gSPEndDisplayList. 
+
+Macros are annoying but not fatal.
+
+There are two reasonable V0 approaches:
+
+Approach A: parse after macro expansion
+Let Clang expand macros and analyze the resulting assignments. The source spans will point into macro expansions, but Clang can retain both expansion and spelling locations.
+
+Approach B: summarize display-list macros
+Treat known display-list macros as writes to the display-list region:
+
+{
+  "kind": "macro_effect",
+  "macro": "gSPDisplayList",
+  "writes": ["display_list_cursor[0]"],
+  "source": "macro expansion location"
+}
+This is technically a manual summary, but it is not a preserved/clobbered variable list. It is a reusable semantics for a macro family.
+
+For shadow.c V0, I would do B first.
+
+8. External calls: conservative by construction
+shadow.c calls external functions like find_floor, find_floor_height_and_data, find_water_level, alloc_display_list, make_vertex, math helpers, and display-list macros. You do not need all their semantics on day one.
+
+The rule should be:
+
+If callee body is not translated and no summary exists:
+    emit Havoc(AllMemory)
+Then no false preservation theorem is possible.
+
+A V0 summary file might say:
+
+{
+  "alloc_display_list": {
+    "writes": ["display_list_arena"],
+    "returns": "fresh_or_null_pointer"
+  },
+  "find_floor": {
+    "writes": ["out_param_4_bytes"],
+    "reads": ["collision_world"],
+    "returns": "floor_height"
+  },
+  "find_water_level": {
+    "writes": [],
+    "reads": ["environment_regions"],
+    "returns": "f32"
+  }
+}
+Those summaries are assumptions, but they are not a hand-wired list of preserved game variables. They are local effects for external functions. Missing summaries become havoc.
+
+9. A generated shadow.c smoke-test output
+For get_vertex_coords, which writes *xCoord and *zCoord, then reads them back in the 4-vertex case, the source has pointer out-params and dereference reads/writes. 
+
+The generated event stream should look like:
+
+{
+  "function": "get_vertex_coords",
+  "events": [
+    {
+      "kind": "store",
+      "lhs": { "kind": "deref", "expr": "xCoord", "bytes": 1, "ctype": "s8" },
+      "rhs": "index % (3 - shadowVertexType) - 1"
+    },
+    {
+      "kind": "store",
+      "lhs": { "kind": "deref", "expr": "zCoord", "bytes": 1, "ctype": "s8" },
+      "rhs": "index / (3 - shadowVertexType) - 1"
+    },
+    {
+      "kind": "branch",
+      "condition": "shadowVertexType == SHADOW_WITH_4_VERTS",
+      "then": [
+        {
+          "kind": "branch",
+          "condition": "* xCoord == 0",
+          "then": [
+            {
+              "kind": "store",
+              "lhs": { "kind": "deref", "expr": "xCoord", "bytes": 1, "ctype": "s8" },
+              "rhs": "1"
+            }
+          ]
+        },
+        {
+          "kind": "branch",
+          "condition": "* zCoord == 0",
+          "then": [
+            {
+              "kind": "store",
+              "lhs": { "kind": "deref", "expr": "zCoord", "bytes": 1, "ctype": "s8" },
+              "rhs": "1"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+The extraction code that emits this is generic:
+
+assignment to *xCoord → store(deref xCoord)
+if statement           → branch(condition, extracted then-body, extracted else-body)
+read from *xCoord      → load(deref xCoord)
+No shadow.c-specific logic.
+
+10. What the proof consumes
+The proof should consume an even lower-level normalized form:
+
+inductive Region
+| Global : String → Region
+| Deref  : String → Nat → Region
+| Local  : String → Region
+| DisplayListArena : Region
+| AllMemory : Region
+
+inductive Event
+| Store : Region → Event
+| Call  : String → Event
+| Havoc : Region → Event
+| Branch : String → List Event → List Event → Event
+
+def writesOf : Event → Set Region
+| .Store r => {r}
+| .Havoc r => {r}
+| .Call f  => summaryWrites f
+| .Branch _ t e => writesOfList t ∪ writesOfList e
+Then the generic theorem is:
+
+theorem preserved_if_not_written :
+  r ∉ writesOfProgram p →
+  readRegion r (exec p mem) = readRegion r mem
+That theorem is independent of SM64. It is the reusable core.
+
+11. What I would build first for shadow.c
+Small concrete milestone:
+
+extract-effects src/game/shadow.c --entry create_shadow_below_xyz
+It emits:
+
+generated/shadow.events.json
+generated/shadow.calls.json
+generated/shadow.layout.json
+generated/shadow.unknowns.json
+The important file is unknowns.json.
+
+For V0, acceptable:
+
+{
+  "unknown_calls": [
+    "find_floor",
+    "find_floor_height_and_data",
+    "find_water_level",
+    "alloc_display_list",
+    "make_vertex"
+  ],
+  "unknown_lvalues": [],
+  "unclassified_writes": []
+}
+Unacceptable:
+
+{
+  "unknown_lvalues": [
+    "*some_weird_expression"
+  ],
+  "unclassified_writes": [
+    "line ..."
+  ]
+}
+The invariant is:
+
+unknown calls are allowed;
+unknown writes are not silently allowed.
+Unknown calls become havoc unless summarized. Unknown LHS classification becomes havoc-all and blocks preservation proofs.
+
+12. Bottom line
+Yes, the JSON was suspicious as hand-authored evidence. The credible setup is:
+
+1. Parse shadow.c with Clang.
+2. Walk the AST.
+3. Emit store/call/branch/havoc events.
+4. Generate layouts from compiler/target layout data.
+5. Treat missing summaries as havoc-all.
+6. Prove preservation from writesOf, not from handwritten lists.
+For shadow.c, this is feasible as a V0. It exercises pointer writes, globals, branches, calls, struct fields, display-list macros, and UB/IDO artifact warnings without needing the whole Mario state machine.
+
+
+Has anyone ever done anything like this before. Do some deep research. I feel we are converging on what I’ll really do
+
+I’ll look for precedents in four buckets: verified legacy C extraction, binary/decompilation validation, automatically generated transition systems/effect summaries, and game/simulation reachability proofs. The useful answer is likely a map of adjacent work, not a single prior project.
+
+Thought for 51s
+Yes. People have done pieces very close to this. I did not find an exact precedent of:
+
+“Take a byte-matching decompilation of a commercial video game, auto-extract a formal transition/effect model, and prove a speedrun/ABC impossibility theorem.”
+
+That specific combination looks novel. But the underlying moves are all precedented.
+
+The closest existing families of work
+1. Software model checkers already translate C into transition systems
+This is the most direct precedent for your “transpiler emits a model” idea.
+
+CBMC translates C/C++ into a bit-precise formula after loop unwinding, then proves or refutes assertions under a bound. The CBMC authors describe it as a bit-precise translation of C with assertions and bounded loops into a formula; satisfiability gives a violating execution, unsatisfiability gives bounded safety. 
+ The CBMC site also says it supports C89/C99/most C11/C17 and checks memory safety, undefined behavior, and user assertions by unwinding loops and passing equations to a decision procedure. 
+
+SMACK does something structurally similar but targets verification IR: it translates LLVM IR into Boogie IVL and verifies assertions, bounded by default with experimental unbounded support. 
+ SeaHorn likewise sits in the LLVM/C verification ecosystem; its distinguishing feature is separating source syntax, operational semantics, and verification semantics. 
+
+So the idea “C source → normalized IR/transition system → proof/search backend” is extremely real. Your twist is making the IR auditable, source-linked, game-specific, byte/memory-aware, and proof-assistant-consumable rather than just feeding an SMT solver.
+
+2. Frama-C already computes effects/frame-ish information
+This is very close to your preserved/clobbered concern.
+
+Frama-C/Eva automatically computes over-approximated value sets for C variables, warns about runtime errors, and computes synthetic per-function information such as inputs, outputs, and information flow. Its manual explicitly says it is context-sensitive/path-sensitive and handles heterogeneous pointer casts, function pointers, and floating-point computations. 
+
+More specifically, recent AutoDeduct work builds on Frama-C and derives contracts automatically. It states that frame conditions are expressed with assigns, and that inferred auxiliary contracts include memory locations assigned to; the paper says the assigns clauses stem from Eva analysis. 
+
+This is the closest prior art to:
+
+“Do not hand-wire preserved variables; derive them from analysis.”
+
+However, Frama-C is still about C source under C semantics. For SM64, you likely want something more concrete/IDO/N64-aware, or at least a custom extractor cross-checked against Frama-C.
+
+3. Foundational C verification exists, but it is heavier than your first target
+The strongest C-verification stack is CompCert + VST. CompCert is a machine-checked verified C compiler whose guarantee is that generated code behaves according to the source semantics; it targets ARM, PowerPC, RISC-V, and x86, not N64 MIPS/IDO. 
+ VST defines Verifiable C, proved sound against CompCert C operational semantics, and connects through CompCert to assembly semantics. 
+
+RefinedC is another relevant system: it is automated and foundational, producing Coq proofs while handling low-level C idioms such as pointer arithmetic, with soundness justified in Iris. 
+ CN is also relevant: it verifies C code for absence of undefined behavior and user-written ownership/functional specs, building on the Cerberus C semantics. 
+
+These are serious precedents for “prove real C.” But they are probably not the right first tool for SM64, because your target is not portable ISO C correctness; it is a specific byte-matching N64 program with compiler artifacts, segmented memory, object pools, and level-script bytecode.
+
+4. Verified decompilation / verified lifting is very close philosophically
+This is the strongest precedent for the “dossier” idea.
+
+FoxDec aims at sound, recompilable C decompilation. Its authors say formal methods are used in control-flow recovery, symbolic execution, and variable analysis, with the goal that extracted C behaves the same as the original binary. 
+
+BIRD is even closer to the transformation-chain architecture we have been converging on. It is a binary IR for formally verified decompilation; the paper description says decompilation should consist of many small translation passes, each raising abstraction level, and that BIRD translation passes must prove their output bisimilar to their input. The effort is formalized in Coq. 
+
+There is also work on formal P-Code semantics. Ghidra uses P-Code as an intermediate representation; the formal-semantics paper says P-Code lacked a formal semantics, had subtle/documentation issues, and that formalizing it uncovered issues in Ghidra/P-Code/documentation. 
+
+This strongly supports your instinct: do not ask people to trust a handwritten model. Build a chain of small transformations with explicit correctness/effect obligations.
+
+5. Byte-equivalent decompilation is a recognized correctness proxy
+Your “binary equals decomp codebase by compilation” idea has an academic analogue. “Evolving Exact Decompilation” argues that byte-equivalent recompilation is a deterministically checkable guarantee that a decompilation reproduces the original binary behavior, including intended and unintended behavior. 
+
+For SM64, the n64decomp situation is much better than normal decompilation because the source is intentionally matched to a known ROM. This is a huge advantage. It does not prove every source-level theorem transfers to ROM behavior by itself, but it gives a concrete bridge.
+
+What I think is genuinely novel here
+The novel part is likely:
+
+Proving a gameplay impossibility theorem about a real commercial game by deriving an overapproximating formal state/effect model from a byte-matching decompilation.
+
+That is not the same as:
+
+verifying a hand-written model of a game rule system;
+
+bounded-symbolically executing C to find bugs;
+
+proving a C library function correct;
+
+formally decompiling a binary;
+
+producing a TAS.
+
+It combines several areas that usually remain separate.
+
+The community target is also nontrivial. Ukikipedia currently frames the A Button Challenge as minimizing A presses and lists WMotR among the remaining unique A-press cases, including shooting from cannons and flying for red coins. 
+ A formal impossibility result there would not be a toy theorem.
+
+The important design lesson from prior work
+Do not build a big bespoke “SM64 State” by hand.
+
+The prior art points toward this architecture:
+
+SM64 C / level data / symbol layout
+  ↓ generated extractor
+low-level event/effect IR
+  ↓ generic semantics
+write/call/dispatch footprint
+  ↓ generic frame theorem
+preservation/clobber facts
+  ↓ abstraction
+WMotR transition system
+  ↓ invariant proof
+0xA impossibility theorem
+That is much closer to CBMC/SMACK/Frama-C/FoxDec/BIRD than to a handwritten model.
+
+What I would borrow from each precedent
+From CBMC: bit-precise, source-derived semantics; counterexample traces; aggressive use of bounded claims for early validation. Do not rely on it as the final proof if the theorem is unbounded. 
+
+From Frama-C/Eva: automatically inferred read/write/dependency information and overapproximation discipline. This is directly relevant to preserved/clobbered variables. 
+
+From AutoDeduct: derive assigns/frame-style facts from analysis instead of hand-writing them. 
+
+From VST/CompCert: the ideal shape of end-to-end soundness, but probably not the immediate implementation path because of N64/IDO mismatch. 
+
+From RefinedC/CN/Cerberus: respect C memory semantics and pointer/object subtleties; do not casually identify C objects with bytes without specifying the model. 
+
+From FoxDec/BIRD/P-Code work: source/binary lifting should be decomposed into small auditable passes with explicit semantics, not one giant magical transpiler. 
+
+What this means for what you should build
+I would now call the thing you are converging on:
+
+A source-derived, byte-aware, overapproximating SM64 effect and transition extractor, with generated proof obligations.
+
+Not a “transpiler” in the full general-purpose sense.
+
+The V0 should not prove WMotR. It should prove the extractor infrastructure on a small file or subsystem.
+
+A good V0:
+
+Input:
+  src/game/shadow.c at pinned commit
+
+Generated:
+  shadow.events
+  shadow.calls
+  shadow.writes
+  shadow.unknowns
+  shadow.layout
+
+Machine-checked theorem:
+  For the generated IR of shadow.c, any byte/region outside writesOf(program)
+  is preserved by execution.
+
+Audit condition:
+  unknown_lvalues = ∅
+  unknown_calls either summarized or treated as havoc
+Then a better V1:
+
+Input:
+  level_script.c + levels/wmotr/script.c + wmotr macro/collision data
+
+Generated:
+  WMotR level-load event program
+
+Theorem:
+  Preserved/clobbered state across WMotR load is derived from writesOf,
+  not manually listed.
+Then V2:
+
+Input:
+  Mario action code + relevant object behavior code
+
+Generated:
+  action/object transition system with source spans
+
+Theorem:
+  No-A invariant excludes flying/cannon-launch states under explicit assumptions.
+Then V3:
+
+WMotR mission abstraction + geometry/object constraints
+
+Theorem:
+  No no-A trace reaches starCollected.
+What I would not do
+I would not try to write a full C-to-Lean transpiler for all of SM64 first. That is too broad.
+
+I would not trust a JSON summary unless it is generated from AST/IR and reproducible.
+
+I would not use Frama-C/CBMC/SeaHorn as the final story without a proof-assistant artifact, because the “world’s first proof” claim benefits from a small, inspectable, machine-checked theorem over a generated model.
+
+I would not model all RDRAM unless the proof needs it. Use byte-addressed memory for load/init/effect preservation; use symbolic abstractions for gameplay reachability.
+
+My updated low-confidence prior
+Framework split:
+
+Extractor / model generator:
+  Rust or OCaml using Clang/libclang/tree-sitter + build/map/layout artifacts
+
+Cross-checkers:
+  Frama-C Eva for effects
+  CBMC for bounded C sanity checks
+  emulator/instrumented decomp traces for regression
+
+Proof artifact:
+  Lean 4 or Coq
+
+Generated IR:
+  byte-memory event language + source spans + writesOf/callsOf
+
+Gameplay proof:
+  invariant over an overapproximating WMotR transition relation
+My current bet:
+
+Lean 4 generated IR + invariant proof:     40%
+Coq generated IR + Iris/VST-adjacent path: 25%
+Dafny/Boogie generated model:              20%
+Frama-C/CBMC as final artifact:            10%
+Binary-level P-Code/BIRD-style route:       5%
+The binary-level route is intellectually clean but too hard for the first version. The best practical route is source-derived extraction from the decomp, with byte-level effect semantics where needed and proof-assistant invariants where the final impossibility theorem lives.
+
+Bottom line
+Yes, the thing you want has serious precedents, but no exact turnkey solution.
+
+The right takeaway is:
+
+You are not inventing formal extraction, frame conditions, transition systems, or verified lifting. Those all exist. The plausible novelty is applying a carefully generated, overapproximating version of those ideas to a byte-matching SM64 decompilation to prove a real gameplay impossibility theorem.
+
+That is a credible research/project direction. The immediate next move is a tiny source-derived effect extractor, not a grand WMotR proof.
+
+
+

@@ -1,0 +1,834 @@
+ChatGPT
+
+
+
+This is a copy of a shared ChatGPT conversation
+
+Report conversation
+If I were to write a C to Lean transpiler targeting a simple subset of C and using Clang, how might that be structured. Think hard, don’t word vomit 
+
+Thought for a couple of seconds
+A sane structure is not “C AST → Lean syntax” directly. Use Clang only as the front-end, then lower into your own tiny verified-ish IR, then print Lean.
+
+C source
+  ↓
+Clang parse/typecheck
+  ↓
+Clang AST visitor
+  ↓
+Your C subset IR
+  ↓
+Normalization/desugaring
+  ↓
+Lean backend
+  ↓
+Lean file + proof/axiom boundary
+1. Define the C subset first
+Be restrictive. For v1:
+
+int/uint/bool
+structs without bitfields
+arrays with fixed size
+pointers only if disciplined
+if/while/for
+local variables
+pure-ish functions
+no goto
+no setjmp
+no volatile
+no undefined behavior tolerated
+no unspecified evaluation-order dependence
+The important move: reject C programs that depend on C weirdness. Your transpiler should be a validator + translator, not a heroic C semantics engine.
+
+2. Use Clang for parsing and semantic facts
+Use LibTooling or a Clang plugin.
+
+Walk:
+
+RecursiveASTVisitor<MyVisitor>
+Extract:
+
+FunctionDecl
+VarDecl
+ParmVarDecl
+RecordDecl
+IntegerLiteral
+DeclRefExpr
+BinaryOperator
+UnaryOperator
+CallExpr
+IfStmt
+WhileStmt
+ForStmt
+ReturnStmt
+CompoundStmt
+But do not emit Lean here. Build your own IR.
+
+3. Lower to a small C-like IR
+Example:
+
+type Ty =
+  | I32 | U32 | Bool
+  | Ptr Ty
+  | Array Nat Ty
+  | Struct Name
+
+type Expr =
+  | Var Name
+  | Int Integer
+  | Bool Bool
+  | Bin Op Expr Expr
+  | Un Op Expr
+  | Call Name [Expr]
+  | Load Expr
+  | Field Expr FieldName
+  | Index Expr Expr
+
+type Stmt =
+  | Let Name Ty Expr?
+  | Assign LValue Expr
+  | If Expr [Stmt] [Stmt]
+  | While Expr [Stmt]
+  | Return Expr
+This IR is where you enforce:
+
+types are supported
+integer widths are known
+lvalues are clean
+no bad casts
+no pointer arithmetic unless explicitly modeled
+no UB-prone constructs
+4. Normalize imperative C before Lean
+Lean is happiest if you don’t emit raw imperative spaghetti.
+
+Lower loops and mutation into one of two targets:
+
+Option A: Lean do notation with StateM
+Good for preserving C shape.
+
+structure State where
+  x : Int
+  y : Int
+
+def f : StateM State Int := do
+  let mut i := 0
+  while i < 10 do
+    i := i + 1
+  return i
+This is operational and easy to generate.
+
+Option B: Pure recursive functions
+Better for verification.
+
+int sum(int n) {
+  int acc = 0;
+  for (int i = 0; i < n; i++) acc += i;
+  return acc;
+}
+becomes roughly:
+
+partial def sum.loop (n i acc : Int) : Int :=
+  if i < n then
+    sum.loop n (i + 1) (acc + i)
+  else
+    acc
+
+def sum (n : Int) : Int :=
+  sum.loop n 0 0
+For serious Lean, avoid partial by emitting a fuel argument or requiring a decreasing measure.
+
+5. Treat memory as a design decision
+This is the central fork.
+
+For a simple useful subset, I’d start with no raw memory model:
+
+C local scalar variables → Lean locals/state fields
+C structs → Lean structures
+C arrays → Lean Array or Vector
+C pointers → rejected, except maybe pointer-to-local lowered as reference-like lvalue
+Later, add a memory model:
+
+structure Mem where
+  bytes : Std.HashMap Addr UInt8
+But once you support arbitrary pointers, you are no longer writing a cute transpiler. You are writing a C semantics.
+
+6. Integer semantics: pick explicitly
+Do not casually map C int to Lean Int.
+
+Choices:
+
+C mathematical subset: require no overflow, emit Lean Int/Nat
+C machine subset: emit UInt32/Int32-style bitvectors
+For a transpiler that preserves execution, use fixed-width types.
+
+For a transpiler meant for reasoning, use Int plus generated preconditions:
+
+requires -2147483648 ≤ x + y ∧ x + y ≤ 2147483647
+7. Backend layout
+Emit one Lean module per C file:
+
+import Std
+
+namespace Transpiled.Foo
+
+structure Point where
+  x : Int
+  y : Int
+
+def add (x y : Int) : Int :=
+  x + y
+
+end Transpiled.Foo
+For unsupported constructs, fail with a source span from Clang.
+
+8. Practical implementation shape
+clang-tool/
+  main.cpp
+  AstToIr.cpp
+  SubsetChecker.cpp
+  TypeLowering.cpp
+  ExprLowering.cpp
+  StmtLowering.cpp
+
+ir/
+  Ir.hpp
+
+lean-backend/
+  PrettyPrinter.cpp
+  NameMangler.cpp
+  LeanSyntax.cpp
+Pipeline:
+
+for each FunctionDecl:
+  if not in subset: diagnostic
+  irFn = lowerFunction(decl)
+  irFn = normalize(irFn)
+  lean = emitLean(irFn)
+9. What I would build first
+Target this subset:
+
+pure functions
+ints/bools
+if/else
+local lets
+return
+simple arithmetic
+no loops initially
+no pointers initially
+Then add, in order:
+
+structs
+arrays
+loops with fuel or partial
+bounded integer semantics
+simple pointer/reference idioms
+The core design principle: Clang understands C; your IR understands your subset; Lean backend should be dumb.
+
+
+A memory access in Clight is not lowered to bytes immediately. The generated Rocq AST still looks like C lvalues—globals, dereference, field selection—but the semantics interprets those through CompCert’s block/offset memory model.
+
+Thought for 17s
+Your example should be typed more like:
+
+struct Object {
+    int timer;
+    int other;
+};
+
+struct Object *gObjects[10];
+
+void setTimer(int i) {
+    gObjects[i]->timer = 0;
+}
+clightgen would emit Rocq/Coq code morally like this:
+
+Definition t_struct_Object :=
+  Tstruct _Object noattr.
+
+Definition f_setTimer := {|
+  fn_return := tvoid;
+  fn_callconv := cc_default;
+  fn_params := ((_i, tint) :: nil);
+  fn_vars := nil;
+  fn_temps := nil;
+
+  fn_body :=
+    Sassign
+      (* left-hand side: gObjects[i]->timer *)
+      (Efield
+        (Ederef
+          (* gObjects[i] *)
+          (Ederef
+            (Ebinop Oadd
+              (Evar _gObjects (tarray (tptr t_struct_Object) 10))
+              (Etempvar _i tint)
+              (tptr (tptr t_struct_Object)))
+            (tptr t_struct_Object))
+          t_struct_Object)
+        _timer
+        tint)
+
+      (* right-hand side: 0 *)
+      (Econst_int (Int.repr 0) tint)
+|}.
+The exact emitted syntax may differ slightly by CompCert version, but this is the conceptual shape.
+
+The C expression:
+
+gObjects[i]->timer = 0;
+is represented approximately as:
+
+gObjects[i]->timer
+=
+(*(gObjects + i))->timer
+=
+(*(*(gObjects + i))).timer
+So there are two memory-relevant steps:
+
+1. Load object pointer from gObjects[i].
+2. Store 0 into that object's timer field.
+In CompCert/Rocq memory semantics, globals and heap objects are not raw machine addresses. They are represented as blocks plus byte offsets.
+
+A pointer value looks like:
+
+Vptr block offset
+So at runtime you might have:
+
+gObjects global symbol ↦ block b_gObjects
+
+gObjects[3] contains pointer:
+  Vptr b_obj17 Ptrofs.zero
+
+timer field of object 17 lives at:
+  block b_obj17, offset field_offset(timer)
+Then executing:
+
+gObjects[3]->timer = 0;
+means roughly:
+
+load pointer-sized value from:
+  b_gObjects + 3 * sizeof(pointer)
+
+suppose it returns:
+  Vptr b_obj17 0
+
+store integer 0 at:
+  b_obj17 + offset_of(timer)
+In VST, you would usually describe the starting memory with separation-logic predicates. Very roughly:
+
+SEP (
+  data_at Ews
+    (tarray (tptr t_struct_Object) 10)
+    object_pointer_values
+    (gv _gObjects);
+
+  data_at Ews
+    t_struct_Object
+    object_i_contents
+    obj_ptr
+)
+Where:
+
+gv _gObjects
+is the address of the global gObjects, and obj_ptr is the pointer stored at gObjects[i].
+
+A spec for setTimer might say:
+
+Definition setTimer_spec :=
+ DECLARE _setTimer
+ WITH i : Z,
+      objects : list val,
+      obj_ptr : val,
+      obj_contents : reptype t_struct_Object,
+      gv : globals
+ PRE [ tint ]
+   PROP (
+     0 <= i < 10;
+     Znth i objects = obj_ptr
+   )
+   PARAMS (Vint (Int.repr i))
+   GLOBALS (gv)
+   SEP (
+     data_at Ews
+       (tarray (tptr t_struct_Object) 10)
+       objects
+       (gv _gObjects);
+
+     data_at Ews
+       t_struct_Object
+       obj_contents
+       obj_ptr
+   )
+ POST [ tvoid ]
+   PROP ()
+   RETURN ()
+   SEP (
+     data_at Ews
+       (tarray (tptr t_struct_Object) 10)
+       objects
+       (gv _gObjects);
+
+     data_at Ews
+       t_struct_Object
+       (object_with_timer obj_contents 0)
+       obj_ptr
+   ).
+That spec says:
+
+Before:
+  gObjects is an array of 10 object pointers.
+  i is in bounds.
+  gObjects[i] = obj_ptr.
+  obj_ptr points to a valid Object struct.
+
+After:
+  same global object array.
+  same object, except timer field is now 0.
+So the memory proof is not “magical symbolic execution of C pointers.” You explicitly give the verifier a memory layout:
+
+this global array exists
+this index is in bounds
+this slot contains this pointer
+this pointer owns a struct Object
+this field can be written
+Then VST/CompCert semantics justify that the generated Clight assignment performs the corresponding load and store.
+
+
+how do you give a "name" to, say, gObjects[10], and manipulate it in proofs later? for example proving that because foobar() is never called, gObjects[10] can never equal QUX
+
+I’ll answer this at two levels: the low-level Clight/VST memory name, and the higher-level abstract state name you actually want for “slot 10 is never QUX.”
+
+Thought for 13s
+You give it two “names,” at two different abstraction levels.
+
+At the Clight level, gObjects[10] is not a name. It is an lvalue expression:
+
+(* morally: gObjects[10] *)
+Definition e_gObjects_10 : expr :=
+  Ederef
+    (Ebinop Oadd
+      (Evar _gObjects (tarray (tptr t_struct_Object) NUM_OBJECTS))
+      (Econst_int (Int.repr 10) tint)
+      (tptr (tptr t_struct_Object)))
+    (tptr t_struct_Object).
+CompCert Clight expressions include Evar, Etempvar, Ederef, Efield, etc.; assignments are statements over such expressions, not expression-level side effects. 
+
+But in proofs, you usually do not want to manipulate that expression directly. You give the memory region a logical name.
+
+For example, suppose C has:
+
+struct Object *gObjects[240];
+
+void foobar(void) {
+    gObjects[10] = QUX;
+}
+In VST-ish proof style, you might describe the whole global array with a Coq variable:
+
+WITH objs : list val,
+     gv : globals
+PRE []
+  PROP (Zlength objs = 240)
+  GLOBALS (gv)
+  SEP (
+    data_at Ews
+      (tarray (tptr t_struct_Object) 240)
+      objs
+      (gv _gObjects)
+  )
+Here:
+
+objs
+is the proof-level name for the contents of the C global array, and:
+
+Znth 10 objs
+is the proof-level name for gObjects[10].
+
+So the assertion:
+
+gObjects[10] is not QUX
+becomes something like:
+
+Znth 10 objs <> gv _QUX
+or, depending on whether QUX is a global object, enum, sentinel pointer, etc.:
+
+Znth 10 objs <> Vptr b_qux Ptrofs.zero
+VST uses predicates such as data_at to describe C memory objects in separation logic; the usual workflow is to run clightgen and then write verification files importing VST’s proof automation. 
+
+Now, the key point:
+
+foobar is never called
+by itself is not enough to prove:
+
+gObjects[10] can never equal QUX
+unless you also prove a frame/no-write fact:
+
+the only code capable of writing QUX into gObjects[10] is foobar
+Otherwise some other code could do:
+
+gObjects[10] = QUX;
+or:
+
+struct Object **p = &gObjects[10];
+*p = QUX;
+or:
+
+memcpy(gObjects + 10, &QUX, sizeof QUX);
+or mutate it through an alias.
+
+The theorem you really want has this shape:
+
+Theorem slot10_never_qux :
+  forall tr objs0 objs_final,
+    initial_state_has_gObjects objs0 ->
+    Znth 10 objs0 <> qux_ptr ->
+
+    execution_of_program prog tr ->
+    starts_with_gObjects tr objs0 ->
+    ends_with_gObjects tr objs_final ->
+
+    foobar_unreachable prog ->
+    only_foobar_writes_qux_to_gObjects10 prog ->
+
+    Znth 10 objs_final <> qux_ptr.
+For your preferred “no SM64 hardcoding” story, you would not hand-write only_foobar_writes_qux_to_gObjects10. You would derive it with a generic analysis over the generated Clight AST.
+
+A plausible pipeline:
+
+generated Clight program
+  ↓
+generic call graph analysis
+  proves foobar unreachable
+  ↓
+generic write-target analysis
+  finds all writes to gObjects[10]
+  ↓
+generic value-flow / assignment analysis
+  proves no reachable write stores QUX there
+  ↓
+theorem
+  slot 10 never equals QUX
+The generated proof artifact might look like:
+
+Definition writes_to_gObjects10 : list write_site :=
+  collect_writes_to_global_array prog _gObjects 10.
+
+Definition reachable_fns : list ident :=
+  reachable_functions prog _main.
+
+Example foobar_unreachable :
+  reachable reachable_call_graph _main _foobar = false.
+Proof.
+  native_compute; reflexivity.
+Qed.
+
+Example no_reachable_qux_write_to_slot10 :
+  no_reachable_write_of_value
+    prog reachable_fns _gObjects 10 qux_ptr = true.
+Proof.
+  native_compute; reflexivity.
+Qed.
+
+Theorem gObjects10_never_qux :
+  semantic_never_equals prog _gObjects 10 qux_ptr.
+Proof.
+  apply no_reachable_write_of_value_sound.
+  exact no_reachable_qux_write_to_slot10.
+Qed.
+The hard part is making collect_writes_to_global_array sound.
+
+For easy C, it handles direct writes:
+
+gObjects[10] = QUX;
+gObjects[i] = QUX;       // maybe if analysis can prove i = 10 or maybe conservatively unknown
+For harder C, it must conservatively handle aliases:
+
+p = &gObjects[10];
+*p = QUX;
+So your analyzer should return one of three results:
+
+Inductive AnalysisResult :=
+| ProvenNoWrite
+| ProvenWriteSites of list write_site
+| UnknownDueToAliasOrIndirectWrite.
+Then your theorem only fires on ProvenNoWrite or on a fully accounted set of reachable write sites.
+
+The important conceptual split is:
+
+Clight name:
+  _gObjects plus an lvalue expression for index 10
+
+Proof name:
+  objs : list val
+  Znth 10 objs
+
+Semantic fact:
+  every reachable store preserves Znth 10 objs <> QUX
+That is the right shape for Mario-land. You want generated facts like “no reachable Clight store can write this value to this abstract location,” not hand-written reasoning about every object slot.
+
+
+
+
+Sources
+
+Someone is saying something about how it’s apparently hard to prove almost anything about loops currently, can you deeply look into this 
+
+I’ll check what “hard to prove loops” means in this ecosystem: VST loop invariants, CompCert/Clight loop semantics, automation limits, and whether the difficulty is fundamental or just workflow.
+
+Thought for 31s
+The claim is basically right if they mean VST-style source verification. It is less true for your proposed “generic analyzer over generated Clight AST” approach.
+
+The distinction matters.
+
+What is hard about loops in VST
+In VST, proving through a loop usually requires supplying a loop invariant manually. The VST manual is explicit: for while (E) C, you use forward-while Q, where Q is the loop invariant; for for loops there are specialized tactics, but still invariant-shaped data is required. The manual says proofs through if, while, and for need extra information such as join postconditions and loop invariants. 
+
+For a while, VST generates four obligations:
+
+1. precondition implies loop invariant
+2. loop condition is safe to evaluate
+3. loop body preserves loop invariant
+4. invariant + loop exit condition implies the post-loop state
+That is directly from the VST manual. 
+
+So for:
+
+for (int i = 0; i < 10; i++) {
+    if (i == 12) bad();
+}
+the obvious human invariant is:
+
+0 <= i <= 10
+Then i == 12 is impossible. But VST generally will not just infer that for you and prove the whole thing automatically. You tell it the invariant, then prove the generated proof obligations.
+
+For SM64-sized code, that is painful because loops often maintain nontrivial state:
+
+object list traversal
+surface list traversal
+collision loops
+input/demo loops
+behavior script interpretation
+area/node graph traversal
+array scans with early exits
+while loops over linked lists
+Each such loop may need a custom invariant describing list shape, object validity, bounds, aliasing, and which globals are preserved.
+
+That is what “loops are hard” usually means.
+
+But your analyzer approach changes the problem
+You are not primarily trying to write one VST proof per SM64 function. You want:
+
+SM64 C
+→ clightgen
+→ Clight AST
+→ generic analyzer
+→ generic soundness proof
+→ generated facts
+In that world, loops become a static-analysis problem, not a hand-VST-invariant problem.
+
+Clight itself represents C loops uniformly. In CompCert Clight, while, do while, and for are derived forms over a primitive Sloop; the Clight docs say the three C loops are replaced by one infinite-loop form Sloop s1 s2, with break and continue handled by continuations. 
+
+So the generated AST does not hide loops. They appear as finite syntax with cycles in the control-flow relation.
+
+What is easy despite loops
+Some facts are still easy.
+
+Direct call graph
+For:
+
+void x(void) {
+    while (1) {
+        y();
+    }
+}
+you can still syntactically collect:
+
+x directly calls y
+No invariant needed.
+
+Conservative reachability
+If your analyzer says:
+
+inside this function, every syntactic statement in a loop body is potentially reachable
+then loops are no problem. You overapproximate.
+
+This is useful for proving positive facts:
+
+x may call y
+this function contains a possible write to gObjects[10]
+this function may call level_trigger_warp
+But it is weak for negative facts.
+
+Call graph non-reachability
+If z has no direct calls, and there are no function-pointer complications, proving:
+
+z does not call x
+is easy even with loops elsewhere. A transitive call-graph search over a finite graph terminates regardless of source loops.
+
+What is hard
+The hard cases are value-sensitive negative facts.
+
+Examples:
+
+for (int i = 0; i < 10; i++) {
+    if (i == 12) bad();
+}
+or:
+
+while (obj != NULL) {
+    if (obj->behavior == QUX) bad();
+    obj = obj->next;
+}
+or:
+
+for (i = 0; i < NUM_OBJECTS; i++) {
+    if (gObjects[i] == QUX) bad();
+}
+To prove bad() unreachable, the analyzer must know something inductive:
+
+i remains in [0, 10]
+obj traverses only this list segment
+gObjects[10] is never QUX
+the loop does not corrupt the object list
+this flag, once false, remains false until exit
+That is the loop-invariant problem in another form. You can move it from “manual VST invariant” into “generic abstract interpreter invariant,” but it does not disappear.
+
+The right approach for Mario-land
+I would not start with VST loop proofs. I would build a certified or certifying Clight analyzer with a deliberately weak but useful abstract domain.
+
+Something like:
+
+Abstract value :=
+  unknown
+  | constant integer
+  | interval [lo, hi]
+  | finite set of enum values
+  | pointer-to-global g
+  | pointer-to-field base field
+  | null/non-null
+Then loops are handled by fixpoint iteration:
+
+enter loop
+  analyze body
+  join result with loop head state
+  repeat until stable
+This is ordinary abstract interpretation.
+
+CompCert already contains infrastructure in this general area: its development includes Kildall-style fixpoint solving and value/alias analyses used for compiler optimizations. The CompCert docs list Kildall for dataflow inequations and ValueAnalysis / ValueDomain for value and alias analysis. 
+
+You probably would not use those modules unchanged for your SM64 theorem, but they show the ecosystem already has the right mathematical machinery.
+
+Example: proving a loop path unreachable
+C:
+
+void f(void) {
+    int i;
+    for (i = 0; i < 10; i++) {
+        if (i == 12) {
+            bad();
+        }
+    }
+}
+A generic interval analyzer proves:
+
+at loop head: i ∈ [0, 10]
+inside body after guard i < 10: i ∈ [0, 9]
+therefore i == 12 is false
+therefore bad() unreachable
+The Rocq theorem shape:
+
+Theorem interval_analyzer_sound :
+  forall prog fn label state,
+    analyze prog fn = Some facts ->
+    facts_say_unreachable facts label = true ->
+    ~ semantically_reaches_label prog fn label.
+Then the generated proof for this file is just:
+
+Example f_never_calls_bad :
+  facts_say_unreachable (analyze example_prog _f) bad_label = true.
+Proof.
+  native_compute; reflexivity.
+Qed.
+
+Theorem f_never_calls_bad_semantic :
+  ~ semantically_reaches_label example_prog _f bad_label.
+Proof.
+  eapply interval_analyzer_sound.
+  exact f_never_calls_bad.
+Qed.
+That is the shape you want.
+
+Where this breaks down
+A simple interval/set analyzer handles:
+
+bounded for loops
+enum-like state machines
+simple counters
+flags
+constant array indices
+some switch dispatch
+some direct global writes
+It struggles with:
+
+pointer aliases
+function pointers
+linked object lists
+floating-point physics
+arrays indexed by values not statically bounded
+writes through unknown pointers
+memcpy/memset-style mutation
+behavior script interpreters
+For those, the analyzer must either become more sophisticated or return:
+
+Unknown
+That is acceptable. The key is to make the analyzer soundly conservative:
+
+Proven unreachable  => actually unreachable
+Unknown             => no theorem
+Never:
+
+Unknown but pretend unreachable
+How this relates to Start-button lower bound
+The full game loop is literally loop-heavy. You do not want to prove:
+
+main game loop terminates with cake ending only after Start
+That is a nightmare.
+
+A better theorem is local and safety-shaped:
+
+Within the title/demo/menu transition code,
+no path reaches transition T unless START_BUTTON appears in buttonPressed
+or some explicitly modeled demo timeout path occurs.
+Loops matter only insofar as they update input state over frames. You would model the outer loop abstractly:
+
+each frame:
+  read_controller_inputs
+  update state
+Then prove an invariant over frames:
+
+if no Start rising edge has occurred so far,
+then title-start transition has not occurred,
+except maybe demo-timeout transition if included.
+That is an inductive invariant. It is not avoidable. But you can make it generic:
+
+a certified state-machine extractor
++ a generic temporal safety checker
++ generated transition relation from Clight
+Bottom line
+The statement “loops are hard” is accurate for manual VST proofs and for semantic negative facts. VST does not remove the need for loop invariants; the manual workflow explicitly requires them. 
+
+For your project, loops are not a fatal blocker, but they force the next design decision:
+
+Do you want manual invariants?
+  Use normal VST.
+
+Do you want zero SM64 hardcoding?
+  Build a generic abstract interpreter / model checker over Clight,
+  prove it sound once, and accept Unknown for loops it cannot analyze.
+I would start with a weak analyzer that handles bounded integer loops and direct calls/writes. That is enough to get real Mario-land proof artifacts without drowning immediately in object-list invariants.
+
+
+
+
+Sources
+
+

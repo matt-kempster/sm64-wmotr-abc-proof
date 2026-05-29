@@ -1,0 +1,3 @@
+[submodule "vendor/sm64"]
+	path = vendor/sm64
+	url = https://github.com/n64decomp/sm64
