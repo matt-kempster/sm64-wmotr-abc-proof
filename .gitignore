@@ -22,3 +22,5 @@ _opam/
 
 # local Claude Code settings
 .claude/
+.CoqMakefile.d
+.*.d
