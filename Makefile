@@ -23,7 +23,9 @@ SM64_CG := -nostdinc -fstruct-passing \
   -DVERSION_US=1 -DF3DEX_GBI_2=1 -DF3DEX_GBI_SHARED=1 -D_FINALROM=1 -DTARGET_N64=1 \
   -DNON_MATCHING=1 -DAVOID_UB=1 -D_LANGUAGE_C=1
 
-GENERATED := generated/toy.v generated/shadow.v
+GENERATED := generated/toy.v generated/shadow.v \
+  generated/mario.v generated/mario_actions_airborne.v \
+  generated/mario_actions_moving.v generated/level_update.v
 
 .PHONY: all generated proofs regen clean
 
@@ -35,6 +37,20 @@ generated/toy.v: experiments/toy/toy.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@
 
 generated/shadow.v: $(SM64)/src/game/shadow.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+# The Mario-action + level TUs that contain every set_mario_action(.., ACT_FLYING..)
+# site (the "must press A to fly" enumeration, R1). One recipe per TU; same flags.
+generated/mario.v: $(SM64)/src/game/mario.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/mario_actions_airborne.v: $(SM64)/src/game/mario_actions_airborne.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/mario_actions_moving.v: $(SM64)/src/game/mario_actions_moving.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/level_update.v: $(SM64)/src/game/level_update.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(SM64_CG)
 
 $(COQMAKEFILE): _CoqProject

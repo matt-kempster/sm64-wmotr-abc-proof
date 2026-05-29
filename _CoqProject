@@ -7,6 +7,10 @@
 
 generated/toy.v
 generated/shadow.v
+generated/mario.v
+generated/mario_actions_airborne.v
+generated/mario_actions_moving.v
+generated/level_update.v
 proofs/Frame.v
 proofs/Escape.v
 proofs/ToyFrame.v
@@ -15,3 +19,4 @@ proofs/ToyReach.v
 proofs/ShadowSpec.v
 proofs/Reach.v
 proofs/Havoc.v
+proofs/Flying.v
