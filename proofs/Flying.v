@@ -200,3 +200,93 @@ Example flying_int_discriminates :
   is_flying_int (Int.repr 277874329) = false  (* the STALE header value 0x10880899 *)
   /\ is_flying_int (Int.repr 0) = false.
 Proof. repeat split; reflexivity. Qed.
+
+(* ======================================================================
+   R2 (faithful form): WHERE the A-gate is NOT.
+   ======================================================================
+   The originally-imagined R2 -- "each ACT_FLYING site locally checks
+   INPUT_A_PRESSED" -- is simply FALSE of the code: every one of the five sites
+   gates on MARIO_WING_CAP and/or pure physics (vel[1]), never on the controller.
+   The A-press lives in a PREDECESSOR action (the jump -> double-jump ->
+   triple-jump sequence), which is exactly why the real obligation is the temporal
+   closure R3, not a local guard.
+
+   We make that precise and machine-checked here. (INPUT_A_PRESSED = 0x0002 is a
+   bit of m->input; a function that never reads m->input cannot branch on the A
+   button.) Four of the five flying-setter functions read NO input at all -- the
+   A-decision provably cannot be made in them. The fifth, act_flying_triple_jump,
+   does read m->input, but ONLY for INPUT_B_PRESSED / INPUT_Z_PRESSED cancels
+   (-> dive / ground-pound); its ACT_FLYING transition is gated on `m->vel[1] <
+   4.0f` (pure physics), not on the controller. So at NO site is the flying
+   transition itself locally input-gated: the A-dependence is necessarily upstream
+   (the jump sequence), i.e. it is the temporal property R3, not a local guard. *)
+
+Fixpoint reads_field_e (fld : ident) (e : expr) : bool :=
+  match e with
+  | Efield e1 f _    => Pos.eqb f fld || reads_field_e fld e1
+  | Ederef e1 _      => reads_field_e fld e1
+  | Eaddrof e1 _     => reads_field_e fld e1
+  | Eunop _ e1 _     => reads_field_e fld e1
+  | Ecast e1 _       => reads_field_e fld e1
+  | Ebinop _ e1 e2 _ => reads_field_e fld e1 || reads_field_e fld e2
+  | _                => false
+  end.
+
+Definition any_reads_field (fld : ident) (es : list expr) : bool :=
+  existsb (reads_field_e fld) es.
+
+Fixpoint reads_field_s (fld : ident) (s : statement) : bool :=
+  match s with
+  | Sassign lhs rhs     => reads_field_e fld lhs || reads_field_e fld rhs
+  | Sset _ e            => reads_field_e fld e
+  | Scall _ ef args     => reads_field_e fld ef || any_reads_field fld args
+  | Sbuiltin _ _ _ args => any_reads_field fld args
+  | Sifthenelse e s1 s2 => reads_field_e fld e || reads_field_s fld s1 || reads_field_s fld s2
+  | Ssequence s1 s2     => reads_field_s fld s1 || reads_field_s fld s2
+  | Sloop s1 s2         => reads_field_s fld s1 || reads_field_s fld s2
+  | Sreturn (Some e)    => reads_field_e fld e
+  | Slabel _ s1         => reads_field_s fld s1
+  | Sswitch e ls        => reads_field_e fld e || reads_field_ls fld ls
+  | _                   => false
+  end
+with reads_field_ls (fld : ident) (ls : labeled_statements) : bool :=
+  match ls with
+  | LSnil           => false
+  | LScons _ s rest => reads_field_s fld s || reads_field_ls fld rest
+  end.
+
+(* `input` has the same string ident in every TU; reuse mario's. *)
+Definition reads_input (f : function) : bool := reads_field_s mario._input (fn_body f).
+
+(* None of the five flying-setter functions reads the controller. The A-gate is
+   provably elsewhere (upstream) -- this is the formal statement of "R2 as
+   originally framed does not hold; the dependence is temporal." *)
+Example set_jump_from_landing_no_input :
+  reads_input mario.f_set_jump_from_landing = false.
+Proof. reflexivity. Qed.
+
+Example set_triple_jump_action_no_input :
+  reads_input mario_actions_moving.f_set_triple_jump_action = false.
+Proof. reflexivity. Qed.
+
+Example act_shot_from_cannon_no_input :
+  reads_input mario_actions_airborne.f_act_shot_from_cannon = false.
+Proof. reflexivity. Qed.
+
+Example set_mario_initial_action_no_input :
+  reads_input level_update.f_set_mario_initial_action = false.
+Proof. reflexivity. Qed.
+
+(* The fifth site DOES read input -- but for B/Z cancels, not the flying gate (its
+   ACT_FLYING transition is `vel[1] < 4.0f`). Recorded honestly rather than
+   overclaimed: a whole-function input read does not mean the flying transition is
+   input-gated. Separating the two needs guard-level path analysis = part of R3. *)
+Example act_flying_triple_jump_reads_input :
+  reads_input mario_actions_airborne.f_act_flying_triple_jump = true.
+Proof. reflexivity. Qed.
+
+(* Positive control: reads_input is not vacuously false -- act_flying consults the
+   controller (for flight steering), so the analysis genuinely detects input reads. *)
+Example act_flying_reads_input :
+  reads_input mario_actions_airborne.f_act_flying = true.
+Proof. reflexivity. Qed.
