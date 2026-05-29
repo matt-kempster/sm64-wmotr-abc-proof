@@ -22,7 +22,7 @@
 From Coq Require Import List PArith.BinPos.
 Import ListNotations.
 From compcert Require Import AST Ctypes Clight.
-From SM64.Proofs Require Import Frame.
+From SM64.Proofs Require Import Frame Escape.
 From SM64.Generated Require Import shadow.
 
 (* --- Half 1: the structural grep ------------------------------------------ *)
@@ -133,4 +133,29 @@ Proof. reflexivity. Qed.
 (* And the honest negative: the sole writer obviously *can* write it. *)
 Example writer_can_write_surface_type :
   cannot_write_g prog _create_shadow_below_xyz _sSurfaceTypeBelowShadow = false.
+Proof. reflexivity. Qed.
+
+(* --- Escape (address-taken) over the whole TU ----------------------------- *)
+
+(* Does ANY global definition of the program take the address of g -- in a
+   function body OR a static initializer? (Whole-TU, so sound within this TU;
+   cross-TU aliasing is leak #3.) *)
+Definition addr_taken_anywhere (p : program) (g : ident) : bool :=
+  existsb (fun idg => globdef_takes_addr (snd idg) g) (prog_defs p).
+
+(* These shadow.c file-statics are SEPARABLE: their address is never produced
+   anywhere in the TU -- no `&g`, no aggregate decay, no Init_addrof. Combined
+   with the havoc frame lemma (next step), this is what lets us discharge leak #1
+   for them: no pointer store anywhere can reach a global whose block no pointer
+   ever names. (Still syntactic + single-TU; cross-TU aliasing is leak #3.) *)
+Example surface_type_addr_never_taken :
+  addr_taken_anywhere prog _sSurfaceTypeBelowShadow = false.
+Proof. reflexivity. Qed.
+
+Example above_water_addr_never_taken :
+  addr_taken_anywhere prog _gShadowAboveWaterOrLava = false.
+Proof. reflexivity. Qed.
+
+Example flying_carpet_addr_never_taken :
+  addr_taken_anywhere prog _sMarioOnFlyingCarpet = false.
 Proof. reflexivity. Qed.

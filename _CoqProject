@@ -8,6 +8,7 @@
 generated/toy.v
 generated/shadow.v
 proofs/Frame.v
+proofs/Escape.v
 proofs/ToyFrame.v
 proofs/ShadowFrame.v
 proofs/ToyReach.v
