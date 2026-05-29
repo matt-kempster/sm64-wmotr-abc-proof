@@ -34,3 +34,21 @@ void set_timer(struct Object *o) {
 void clobber(void) {
     gUnrelated = 7;
 }
+
+/*
+ * A guaranteed entrypoint. This is what makes a CLOSED-WORLD (whole-program)
+ * theorem possible without assuming any aliasing precondition.
+ *
+ * main writes only through a freshly-allocated stack local `obj`, and
+ * deliberately never calls clobber(). So across the whole reachable execution
+ * the only store lands in a block that allocation guarantees is fresh -- hence
+ * distinct from the global gUnrelated's block. Non-aliasing is therefore
+ * DERIVED (from allocation freshness), not assumed. See docs/open-vs-closed
+ * for why the endgame impossibility theorem must be phrased this closed-world
+ * way.
+ */
+int main(void) {
+    struct Object obj;
+    obj.timer = 0;   /* store to a fresh local; gUnrelated is untouched */
+    return 0;
+}
