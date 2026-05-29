@@ -79,13 +79,28 @@ trust-model rule (audit the statement, trust the compiler front-end) made concre
   choke-point ("the only store to the action field lives in `set_mario_action`") is argued
   textually + supported by no-synthesis; promoting it to a semantic store-frame theorem (leak
   #1 for a struct field) is a later rung. Four TUs, not whole-program (leak #3).
-- **R2 — per-site guard classification (tractable, syntactic).** For each site, show the enclosing
-  action requires `INPUT_A_PRESSED` (pins classes 1 & 2 locally). Cannon needs the fire-input +
-  entry checked.
+- **R2 — guard classification. ✅ DONE, but it OVERTURNED its own premise** (`Flying.v`, commit
+  `a274f74`). The imagined R2 ("each site locally checks `INPUT_A_PRESSED`") is **false of the
+  code**: every flying transition gates on `MARIO_WING_CAP` and/or physics (`vel[1]`), never on
+  the controller. Machine-checked via a `reads_input` field-read analysis: 4 of the 5 sites read
+  **no** input at all; the 5th (`act_flying_triple_jump`) reads `m->input` only for `INPUT_B/Z`
+  cancels (dive / ground-pound), while its `ACT_FLYING` step is gated on `vel[1] < 4.0f`. So **at
+  no site is the flying transition itself locally A-gated** — the A-dependence is necessarily
+  *upstream*, in the jump sequence. R2 thus delivers a verified *negative*: it proves the local
+  guard is not the A-press, which is exactly the evidence that R3 (temporal) is unavoidable.
 - **R3 — the temporal closure (the lofty core, research risk).** Reach `ACT_FLYING` ⟹ prior A,
   by induction over the per-frame action loop. This is the hard part and the one we may shelve.
+  The concrete chain to formalize (confirmed in code): `ACT_FLYING` ⟸ `ACT_FLYING_TRIPLE_JUMP`
+  ⟸ a **double-jump landing** (`set_jump_from_landing` case `ACT_DOUBLE_JUMP_LAND` + `MARIO_WING_CAP`,
+  or `set_triple_jump_action` via the double-jump-land cancel) ⟸ `ACT_DOUBLE_JUMP` ⟸ `ACT_JUMP`,
+  and **each jump in that sequence is entered on `INPUT_A_PRESSED`**. Two confirmed complications
+  for R3: (a) `set_triple_jump_action` is reached via a **function pointer**
+  (`common_landing_cancels(m, &sDoubleJumpLandAction, set_triple_jump_action)`, moving.c:1875) =
+  leak #2 on the critical path; (b) the property is genuinely a trace invariant over the action
+  loop, not a one-function spec.
 - **R4 — retire class 3 for our target (per-level).** Prove `levels/wmotr/` has no
   `MARIO_SPAWN_FLYING` warp, so the escape hatch is absent where we actually need the result.
 
-R1–R2 are near-term and reuse `Reach`/`Frame`; R3 is where it gets genuinely hard. Starting point
-when we run the goal: **R1.**
+R1 and R2 are **done and verified** (reflexivity, no `Admitted`, `Print Assumptions` closed).
+R3 is the genuinely hard core — the natural shelve point — now with its chain and obstacles
+mapped. R4 is independent and tractable (a `levels/wmotr/` object-table scan).
