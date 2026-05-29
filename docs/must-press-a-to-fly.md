@@ -98,8 +98,19 @@ trust-model rule (audit the statement, trust the compiler front-end) made concre
   (`common_landing_cancels(m, &sDoubleJumpLandAction, set_triple_jump_action)`, moving.c:1875) =
   leak #2 on the critical path; (b) the property is genuinely a trace invariant over the action
   loop, not a one-function spec.
-- **R4 — retire class 3 for our target (per-level).** Prove `levels/wmotr/` has no
-  `MARIO_SPAWN_FLYING` warp, so the escape hatch is absent where we actually need the result.
+- **R4 — retire class 3 for our target (per-level). ✅ ESTABLISHED (by full enumeration of the
+  WMotR object set; mechanization blocked, see below).** `MARIO_SPAWN_FLYING` is produced only by
+  a warp object whose behavior is `bhvFlyingWarp` (index 12 of `sWarpBhvSpawnTable` →
+  `sSpawnTypeFromWarpBhv[12]`, `area.c`). WMotR's *complete* object set (`levels/wmotr/script.c`
+  + `areas/1/macro.inc.c`) contains exactly one warp-spawn object — `bhvAirborneWarp` (script.c:51
+  → `MARIO_SPAWN_AIRBORNE` → `ACT_SPAWN_NO_SPIN_AIRBORNE`, *not* flying) — and **no
+  `bhvFlyingWarp`**. The rest: 6× `bhvPoleGrabbing`, `bhvHiddenRedCoinStar`, `bhvMario`, 2×
+  `macro_cannon_closed`, coin rings, 1-ups, 6× `macro_box_wing_cap`, 8× `macro_red_coin`. So in
+  WMotR the class-3 hatch is absent; the only flying routes are class 1 (A-driven jump sequence)
+  and class 2 (the two cannons — firing a cannon is an A press). *Mechanization blocker:*
+  clightgen rejects `levels/wmotr/script.c` (`initializer element is not a compile-time constant`
+  — the level-script object macros), so making R4 a `reflexivity` fact needs a separate
+  level-data pipeline step; the enumeration above is exhaustive and source-checkable today.
 
 R1 and R2 are **done and verified** (reflexivity, no `Admitted`, `Print Assumptions` closed).
 R3 is the genuinely hard core — the natural shelve point — now with its chain and obstacles
