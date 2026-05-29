@@ -52,15 +52,33 @@ The relevant input plumbing: an A press shows up as `m->input & INPUT_A_PRESSED`
 `gPlayer1Controller->buttonPressed & A_BUTTON`); the jump actions gate on it. "A-gated" formally
 means the transition's guard is (transitively) conditioned on `INPUT_A_PRESSED`.
 
+## Constant ground-truth (don't trust the header)
+
+`sm64.h` annotates `#define ACT_FLYING … // 0x10880899`, but that comment is **stale**: the
+real macro expansion is **`0x10808899` = 277350553** (verified — it's the constant clightgen
+emits at all three `set_mario_action(m, ACT_FLYING, _)` sites, and the `MARIO_SPAWN_FLYING`
+case carries actionArg 2, matching `level_update.c:339`). `ACT_FLYING_TRIPLE_JUMP = 0x03000894
+= 50333844` (its comment is correct). We read both off the AST, not the header — the
+trust-model rule (audit the statement, trust the compiler front-end) made concrete.
+
 ## Rung plan (value even if the top rung is shelved)
 
-- **R1 — exhaustive setter enumeration (tractable, ~now, syntactic/`reflexivity`).** Enumerate
-  *every* `set_mario_action(_, ACT_FLYING | ACT_FLYING_TRIPLE_JUMP, _)` site in the whole codebase
-  and prove the list is exactly those. This is `Reach.direct_writers` retargeted from "writes
-  global g" to "sets the action to a flying value." Soundness caveat: must also catch indirect
-  writes to `m->action` (it's a struct field via the `m` pointer) — same leak-#1 shape, so the
-  honest version is "these are the only *direct* `set_mario_action` flying sites," with raw
-  `m->action = …` stores checked separately.
+- **R1 — exhaustive setter enumeration. ✅ DONE (`proofs/Flying.v`, commit `d53dedf`,
+  no `Admitted`, `Print Assumptions` = closed under the global context).** `flying_setters p`
+  is `Reach.direct_writers` retargeted from "writes global g" to "feeds a flying action constant
+  into a call" (it walks `Scall`/`Sbuiltin` argument expressions). Machine-checked over the four
+  clightgen'd TUs, the flying-setter functions are *exactly*: `set_jump_from_landing` (mario.c),
+  `act_shot_from_cannon` + `act_flying_triple_jump` (airborne.c), `set_triple_jump_action`
+  (moving.c), `set_mario_initial_action` (level_update.c) — the five sites in the table above.
+  Plus the **no-synthesis** half: the four `set_mario_action_*` group helpers (and
+  `set_mario_action` itself) never *assign* a flying constant (`fabricates_flying = false`), so
+  the setter cannot manufacture a flying action from a non-flying argument — the value written
+  to `m->action` is flying only if a flying constant was passed in at one of the five sites.
+  *Residual (named in the file's SCOPE):* the analysis flags flying *literals* in call args; a
+  flying value arriving via a *computed* argument is dataflow = R3. The `m->action` store
+  choke-point ("the only store to the action field lives in `set_mario_action`") is argued
+  textually + supported by no-synthesis; promoting it to a semantic store-frame theorem (leak
+  #1 for a struct field) is a later rung. Four TUs, not whole-program (leak #3).
 - **R2 — per-site guard classification (tractable, syntactic).** For each site, show the enclosing
   action requires `INPUT_A_PRESSED` (pins classes 1 & 2 locally). Cannon needs the fire-input +
   entry checked.
