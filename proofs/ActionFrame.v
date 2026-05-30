@@ -26,9 +26,11 @@
  *     over a whole statement (the induction that consumes writes_mario_action_s),
  *     nor (c) the interprocedural case (a callee may write the field). Each is a
  *     separate rung; (c) is exactly where Reach.v's callgraph plugs in.
- *   - Abstract over any composite_env / members list: instantiating it on the
- *     real MarioState composite (a concrete corollary, à la Havoc's flying-carpet
- *     instance) is a follow-up.
+ *   - Abstract over any composite_env / members list. The abstract bricks are
+ *     now ALSO instantiated on the real MarioState composite at the bottom of
+ *     this file (store_other_field_preserves_action / store_flags_preserves_action,
+ *     à la Havoc's flying-carpet instance) -- field offsets discharged by
+ *     vm_compute over the real prog_comp_env mario.prog, not asserted by hand.
  *
  * AXIOM STATUS (Print Assumptions, verified): the two pure lemmas
  * (size_chunk_by_value, full_fields_size_disjoint) are "Closed under the global
@@ -43,6 +45,7 @@
  *)
 
 From compcert Require Import Coqlib Errors Maps AST Integers Values Memory Globalenvs Ctypes Cop Clight.
+From SM64.Generated Require mario.
 
 (* ------------------------------------------------------------------ *)
 (* Connector: for a by-value (scalar) access, the memory chunk's size  *)
@@ -112,4 +115,65 @@ Proof.
                 Hfo1 Hft1 Hfo2 Hft2 Hne Ham1 Ham2) as Hd.
   eapply Mem.load_store_other; [ exact Hstore | ].
   destruct Hd as [Hd | Hd]; [ right; right; lia | right; left; lia ].
+Qed.
+
+(* ------------------------------------------------------------------ *)
+(* CONCRETE INSTANCE on the real MarioState composite (the analogue of *)
+(* Havoc.v's flying-carpet corollary). We instantiate the abstract     *)
+(* memory brick on the actual clightgen'd struct layout from mario.v:  *)
+(* MarioState.action sits at byte offset 12 (Full, Mint32), and every  *)
+(* other Full scalar field is disjoint from it. So a store to ANY      *)
+(* other field of a MarioState leaves m->action's bytes untouched.     *)
+(* The field offsets/types/access-modes are discharged by vm_compute   *)
+(* over the real `prog_comp_env mario.prog`, not asserted by hand.      *)
+(* ------------------------------------------------------------------ *)
+Definition mario_ce : composite_env := prog_comp_env mario.prog.
+Definition mario_members : members :=
+  match mario_ce ! mario._MarioState with
+  | Some co => co_members co
+  | None => nil
+  end.
+
+(* General: writing any OTHER Full scalar field f of a MarioState (at  *)
+(* base+ofs) preserves the load of m->action (at base+12).             *)
+Corollary store_other_field_preserves_action :
+  forall m b base f ofs ty chunk v m',
+    field_offset mario_ce f mario_members = OK (ofs, Full) ->
+    field_type f mario_members = OK ty ->
+    access_mode ty = By_value chunk ->
+    f <> mario._action ->
+    Mem.store chunk m b (base + ofs) v = Some m' ->
+    Mem.load Mint32 m' b (base + 12) = Mem.load Mint32 m b (base + 12).
+Proof.
+  intros m b base f ofs ty chunk v m' Hfo Hft Ham Hne Hstore.
+  eapply (store_field_preserves_other_field
+            mario_ce m b base
+            f ofs ty chunk v m'
+            mario._action 12 (Tint I32 Unsigned noattr) Mint32
+            mario_members).
+  - exact Hfo.
+  - exact Hft.
+  - vm_compute; reflexivity.   (* field_offset action = OK (12, Full) *)
+  - vm_compute; reflexivity.   (* field_type   action = OK tuint      *)
+  - exact Hne.
+  - exact Ham.
+  - vm_compute; reflexivity.   (* access_mode tuint = By_value Mint32 *)
+  - exact Hstore.
+Qed.
+
+(* Fully concrete witness: storing MarioState.flags (offset 4) leaves  *)
+(* MarioState.action (offset 12) unchanged. Non-vacuous instance.      *)
+Corollary store_flags_preserves_action :
+  forall m b base v m',
+    Mem.store Mint32 m b (base + 4) v = Some m' ->
+    Mem.load Mint32 m' b (base + 12) = Mem.load Mint32 m b (base + 12).
+Proof.
+  intros m b base v m' Hstore.
+  eapply (store_other_field_preserves_action
+            m b base mario._flags 4 (Tint I32 Unsigned noattr) Mint32 v m').
+  - vm_compute; reflexivity.   (* field_offset flags = OK (4, Full) *)
+  - vm_compute; reflexivity.   (* field_type   flags = OK tuint     *)
+  - vm_compute; reflexivity.   (* access_mode tuint = By_value Mint32 *)
+  - vm_compute; discriminate.  (* flags <> action *)
+  - exact Hstore.
 Qed.
