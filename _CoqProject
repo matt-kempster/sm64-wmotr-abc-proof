@@ -34,3 +34,4 @@ proofs/ActionFrame.v
 proofs/FrameTrace.v
 proofs/FlyingStatement.v
 proofs/FlyingFrame.v
+proofs/ActionValue.v
