@@ -64,6 +64,41 @@ much smaller and is the real audit target.
 3. **Stubbed boundary.** Audio/goddard/libultra correctness rests on the "can't reach Mario state"
    assumption — trusted, listed, ideally spot-checked.
 
+## Progress (2026-05-29)
+
+**Batch 1 done** (`proofs/ActionWriters.v`, builds clean; all 12 lemmas are
+"Closed under the global context" per `Print Assumptions`, same as Flying.v's
+per-TU lemmas — verified via `bash pipeline/assumptions.sh`. We deliberately keep
+the 12 individual lemmas and do NOT bundle them into one `/\` theorem: a bundled
+conjunction reports CompCert's 4 standard float axioms (Flocq) no matter how it's
+proved, because its *type* mentions the prog float constants and Print Assumptions
+traverses the type — so the fully-closed artifact is the lemma list, not a headline
+conjunction.) Added six TUs and re-ran the verified
+`Flying.mario_action_writers` / `flying_action_writers` scans:
+
+| TU | #action writers | flying writers |
+|----|----|----|
+| mario_actions_submerged | 0 | `[]` |
+| mario_actions_stationary | 0 | `[]` |
+| mario_actions_cutscene | 0 | `[]` |
+| mario_actions_object | 0 | `[]` |
+| mario_step | 0 | `[]` |
+| mario_misc | 0 | `[]` |
+
+All six have **zero** direct `MarioState.action` field writers: these TUs change
+Mario's action *only* by calling `set_mario_action`, never by raw-poking the
+field. (Non-vacuity: the same `mario_action_writers` returns the non-empty Flying.v
+sets — mario=3, interaction=2, etc. — so empty here is a real "no writer".)
+Stated as 12 individual closed lemmas (six `*_action_writers_empty` + six
+`no_raw_flying_action_write_*`). Combined with Flying.v's six TUs, the only route
+to a flying action remains `set_mario_action` called with a flying argument (the
+five R1 sites). Still a conjunction of per-TU facts (leak #3 proper
+= Linking) and syntactic-field-write only (leak #1).
+
+Next batch: the broader MARIO-flagged `src/game` set (camera, area, obj_behaviors,
+object_helpers, platform_displacement, paintings, ...) then `src/engine`'s 3
+Mario-touching files (behavior_script, surface_collision, surface_load).
+
 ## Definition of done (for this slice)
 
 Every `src/game` + `src/engine` `.c` either (a) has a `generated/*.v` with its

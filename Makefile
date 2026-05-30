@@ -27,7 +27,10 @@ GENERATED := generated/toy.v generated/shadow.v \
   generated/mario.v generated/mario_actions_airborne.v \
   generated/mario_actions_moving.v generated/level_update.v \
   generated/behavior_actions.v generated/mario_actions_automatic.v \
-  generated/interaction.v
+  generated/interaction.v \
+  generated/mario_actions_submerged.v generated/mario_actions_stationary.v \
+  generated/mario_actions_cutscene.v generated/mario_actions_object.v \
+  generated/mario_step.v generated/mario_misc.v
 
 .PHONY: all generated proofs regen clean
 
@@ -67,6 +70,27 @@ generated/mario_actions_automatic.v: $(SM64)/src/game/mario_actions_automatic.c 
 	$(CLIGHTGEN) $< $@ $(SM64_CG)
 
 generated/interaction.v: $(SM64)/src/game/interaction.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+# Whole-program MarioState.action writer enumeration (leak #3, action field): the
+# remaining Mario-action / Mario-step TUs. We scan every one for direct writers of
+# MarioState.action and prove none writes a flying constant (docs/whole-program-action-writers.md).
+generated/mario_actions_submerged.v: $(SM64)/src/game/mario_actions_submerged.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/mario_actions_stationary.v: $(SM64)/src/game/mario_actions_stationary.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/mario_actions_cutscene.v: $(SM64)/src/game/mario_actions_cutscene.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/mario_actions_object.v: $(SM64)/src/game/mario_actions_object.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/mario_step.v: $(SM64)/src/game/mario_step.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/mario_misc.v: $(SM64)/src/game/mario_misc.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(SM64_CG)
 
 $(COQMAKEFILE): _CoqProject
