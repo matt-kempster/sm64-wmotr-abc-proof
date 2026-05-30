@@ -21,11 +21,16 @@
  *   - It proves the MEMORY-level core at raw integer offsets (Mem.store / a
  *     common base offset), for two `Full` (non-bitfield) scalar fields. This is
  *     the mathematical heart.
- *   - It does NOT yet lift to (a) Clight `assign_loc` with `Ptrofs` offsets
- *     (needs a no-overflow side condition on base+ofs), nor (b) `exec_stmt`
- *     over a whole statement (the induction that consumes writes_mario_action_s),
- *     nor (c) the interprocedural case (a callee may write the field). Each is a
- *     separate rung; (c) is exactly where Reach.v's callgraph plugs in.
+ *   - Rung (a) IS now done: Brick 3 (assign_loc_field_preserves_other_loadv)
+ *     lifts the raw store to a Clight `assign_loc` (By_value) into field f1 vs
+ *     a `Mem.loadv` of field f2, with both addresses computed as
+ *     `Ptrofs.add ofs0 (repr delta)` off a common base pointer. The Ptrofs<->Z
+ *     gap is bridged by two EXPLICIT no-overflow side conditions on the field
+ *     addresses (later rungs discharge them from `field_compatible`).
+ *   - It does NOT yet lift to (b) `exec_stmt` over a whole statement (the
+ *     induction that consumes writes_mario_action_s), nor (c) the
+ *     interprocedural case (a callee may write the field). Each is a separate
+ *     rung; (c) is exactly where Reach.v's callgraph plugs in.
  *   - Abstract over any composite_env / members list. The abstract bricks are
  *     now ALSO instantiated on the real MarioState composite at the bottom of
  *     this file (store_other_field_preserves_action / store_flags_preserves_action,
@@ -118,6 +123,53 @@ Proof.
 Qed.
 
 (* ------------------------------------------------------------------ *)
+(* Brick 3 (Clight level): rung (a). The same non-interference, but for *)
+(* a Clight `assign_loc` (By_value) into field f1 and a `Mem.loadv` of   *)
+(* field f2, with BOTH addresses computed as `Ptrofs.add ofs0 (repr      *)
+(* delta)` off a common base pointer `Vptr b ofs0` -- exactly how Clight *)
+(* evaluates an Efield lvalue. The Ptrofs<->Z gap is bridged by two      *)
+(* EXPLICIT no-overflow side conditions on the two field addresses (the  *)
+(* honest hypotheses the header promised); later rungs discharge them    *)
+(* from `field_compatible` / the enclosing block's size bound.           *)
+(* ------------------------------------------------------------------ *)
+Lemma assign_loc_field_preserves_other_loadv :
+  forall (ce : composite_env) m b ofs0
+         f1 ofs1 ty1 chunk1 v m'
+         f2 ofs2 ty2 chunk2 ms,
+    field_offset ce f1 ms = OK (ofs1, Full) -> field_type f1 ms = OK ty1 ->
+    field_offset ce f2 ms = OK (ofs2, Full) -> field_type f2 ms = OK ty2 ->
+    f1 <> f2 ->
+    access_mode ty1 = By_value chunk1 ->
+    access_mode ty2 = By_value chunk2 ->
+    (* no-overflow side conditions on the two field addresses: *)
+    Ptrofs.unsigned (Ptrofs.add ofs0 (Ptrofs.repr ofs1)) = Ptrofs.unsigned ofs0 + ofs1 ->
+    Ptrofs.unsigned (Ptrofs.add ofs0 (Ptrofs.repr ofs2)) = Ptrofs.unsigned ofs0 + ofs2 ->
+    assign_loc ce ty1 m b (Ptrofs.add ofs0 (Ptrofs.repr ofs1)) Full v m' ->
+    Mem.loadv chunk2 m' (Vptr b (Ptrofs.add ofs0 (Ptrofs.repr ofs2)))
+    = Mem.loadv chunk2 m  (Vptr b (Ptrofs.add ofs0 (Ptrofs.repr ofs2))).
+Proof.
+  intros ce m b ofs0 f1 ofs1 ty1 chunk1 v m' f2 ofs2 ty2 chunk2 ms
+         Hfo1 Hft1 Hfo2 Hft2 Hne Ham1 Ham2 Hov1 Hov2 Hassign.
+  (* inversion yields the By_value store goal + the By_copy goal; the    *)
+  (* latter has access_mode ty1 = By_copy, impossible given Ham1.         *)
+  inversion Hassign; subst.
+  - (* assign_loc_value: use the inversion-introduced chunk directly *)
+    match goal with
+    | Hs : Mem.storev ?ck _ _ _ = Some _,
+      Ha : access_mode ty1 = By_value ?ck |- _ =>
+        unfold Mem.storev in Hs; unfold Mem.loadv;
+        rewrite Hov1 in Hs; rewrite Hov2;
+        eapply (store_field_preserves_other_field
+                  ce m b (Ptrofs.unsigned ofs0)
+                  f1 ofs1 ty1 ck v _
+                  f2 ofs2 ty2 chunk2 ms
+                  Hfo1 Hft1 Hfo2 Hft2 Hne Ha Ham2 Hs)
+    end.
+  - (* assign_loc_copy: By_copy contradicts Ham1 (By_value) *)
+    congruence.
+Qed.
+
+(* ------------------------------------------------------------------ *)
 (* CONCRETE INSTANCE on the real MarioState composite (the analogue of *)
 (* Havoc.v's flying-carpet corollary). We instantiate the abstract     *)
 (* memory brick on the actual clightgen'd struct layout from mario.v:  *)
@@ -176,4 +228,37 @@ Proof.
   - vm_compute; reflexivity.   (* access_mode tuint = By_value Mint32 *)
   - vm_compute; discriminate.  (* flags <> action *)
   - exact Hstore.
+Qed.
+
+(* Clight-level (rung a) instance on MarioState: a `assign_loc` (By_value) *)
+(* into any OTHER Full scalar field f of a MarioState preserves a loadv of *)
+(* m->action, given the two field-address no-overflow side conditions.     *)
+Corollary assign_loc_other_field_preserves_action_loadv :
+  forall m b ofs0 f ofs ty chunk v m',
+    field_offset mario_ce f mario_members = OK (ofs, Full) ->
+    field_type f mario_members = OK ty ->
+    access_mode ty = By_value chunk ->
+    f <> mario._action ->
+    Ptrofs.unsigned (Ptrofs.add ofs0 (Ptrofs.repr ofs)) = Ptrofs.unsigned ofs0 + ofs ->
+    Ptrofs.unsigned (Ptrofs.add ofs0 (Ptrofs.repr 12)) = Ptrofs.unsigned ofs0 + 12 ->
+    assign_loc mario_ce ty m b (Ptrofs.add ofs0 (Ptrofs.repr ofs)) Full v m' ->
+    Mem.loadv Mint32 m' (Vptr b (Ptrofs.add ofs0 (Ptrofs.repr 12)))
+    = Mem.loadv Mint32 m  (Vptr b (Ptrofs.add ofs0 (Ptrofs.repr 12))).
+Proof.
+  intros m b ofs0 f ofs ty chunk v m' Hfo Hft Ham Hne Hov1 Hov2 Hassign.
+  eapply (assign_loc_field_preserves_other_loadv
+            mario_ce m b ofs0
+            f ofs ty chunk v m'
+            mario._action 12 (Tint I32 Unsigned noattr) Mint32
+            mario_members).
+  - exact Hfo.
+  - exact Hft.
+  - vm_compute; reflexivity.   (* field_offset action = OK (12, Full) *)
+  - vm_compute; reflexivity.   (* field_type   action = OK tuint      *)
+  - exact Hne.
+  - exact Ham.
+  - vm_compute; reflexivity.   (* access_mode tuint = By_value Mint32 *)
+  - exact Hov1.
+  - exact Hov2.
+  - exact Hassign.
 Qed.
