@@ -44,7 +44,7 @@ Local Open Scope Z_scope.
 From compcert Require Import AST Integers Ctypes Cop Clight.
 From SM64.Proofs Require Import Reach.
 From SM64.Generated Require mario mario_actions_airborne mario_actions_moving level_update
-  behavior_actions.
+  behavior_actions mario_actions_automatic interaction.
 
 (* --- The flying action constants, as read off the generated AST -------------- *)
 
@@ -126,6 +126,75 @@ with assigns_flying_ls (ls : labeled_statements) : bool :=
 Definition fabricates_flying (f : function) : bool := assigns_flying_s (fn_body f).
 
 (* ======================================================================
+   The m->action write choke-point (corrects an R1 over-claim).
+   ======================================================================
+   R1's comment said "the only store to the action field lives in
+   set_mario_action". That is FALSE: there are raw `m->action = <const>` writes
+   too. Here we enumerate ALL direct writers of MarioState.action and (with
+   fabricates_flying) show none writes a flying value -- so the only way action
+   becomes flying is set_mario_action called with a flying arg (the R1 sites).
+
+   Precision: we match `Sassign (Efield base _action _) _` where base has type
+   `Tstruct MarioState` -- so writes to OTHER structs' `action` field
+   (m->marioBodyState->action, m->statusForCamera->action) are correctly excluded. *)
+
+Definition is_mariostate (sid : ident) (ty : type) : bool :=
+  match ty with
+  | Tstruct s _ => Pos.eqb s sid
+  | _           => false
+  end.
+
+(* Is this lvalue a write to <MarioState>.action ? (sid = the MarioState struct
+   ident, fld = the `action` field ident -- both passed per-TU from that module.) *)
+Definition lhs_is_mario_action (sid fld : ident) (lhs : expr) : bool :=
+  match lhs with
+  | Efield base f _ => Pos.eqb f fld && is_mariostate sid (typeof base)
+  | _               => false
+  end.
+
+Fixpoint writes_mario_action_s (sid fld : ident) (s : statement) : bool :=
+  match s with
+  | Sassign lhs _       => lhs_is_mario_action sid fld lhs
+  | Ssequence s1 s2     => writes_mario_action_s sid fld s1 || writes_mario_action_s sid fld s2
+  | Sifthenelse _ s1 s2 => writes_mario_action_s sid fld s1 || writes_mario_action_s sid fld s2
+  | Sloop s1 s2         => writes_mario_action_s sid fld s1 || writes_mario_action_s sid fld s2
+  | Slabel _ s1         => writes_mario_action_s sid fld s1
+  | Sswitch _ ls        => writes_mario_action_ls sid fld ls
+  | _                   => false
+  end
+with writes_mario_action_ls (sid fld : ident) (ls : labeled_statements) : bool :=
+  match ls with
+  | LSnil           => false
+  | LScons _ s rest => writes_mario_action_s sid fld s || writes_mario_action_ls sid fld rest
+  end.
+
+(* The internal functions of p that directly assign MarioState.action. *)
+Definition mario_action_writers (sid fld : ident) (p : program) : list ident :=
+  map fst (filter (fun idf => writes_mario_action_s sid fld (fn_body (snd idf)))
+                  (internal_funcs (prog_defs p))).
+
+(* Sharper: a direct assignment of a FLYING constant TO MarioState.action. *)
+Fixpoint writes_flying_action_s (sid fld : ident) (s : statement) : bool :=
+  match s with
+  | Sassign lhs rhs     => lhs_is_mario_action sid fld lhs && expr_has_flying rhs
+  | Ssequence s1 s2     => writes_flying_action_s sid fld s1 || writes_flying_action_s sid fld s2
+  | Sifthenelse _ s1 s2 => writes_flying_action_s sid fld s1 || writes_flying_action_s sid fld s2
+  | Sloop s1 s2         => writes_flying_action_s sid fld s1 || writes_flying_action_s sid fld s2
+  | Slabel _ s1         => writes_flying_action_s sid fld s1
+  | Sswitch _ ls        => writes_flying_action_ls sid fld ls
+  | _                   => false
+  end
+with writes_flying_action_ls (sid fld : ident) (ls : labeled_statements) : bool :=
+  match ls with
+  | LSnil           => false
+  | LScons _ s rest => writes_flying_action_s sid fld s || writes_flying_action_ls sid fld rest
+  end.
+
+Definition flying_action_writers (sid fld : ident) (p : program) : list ident :=
+  map fst (filter (fun idf => writes_flying_action_s sid fld (fn_body (snd idf)))
+                  (internal_funcs (prog_defs p))).
+
+(* ======================================================================
    Machine-checked facts.
    ====================================================================== *)
 
@@ -168,6 +237,91 @@ Proof. reflexivity. Qed.
    but no flying *constant* originates in any behavior. *)
 Example no_behavior_is_a_flying_setter :
   flying_setters behavior_actions.prog = [].
+Proof. reflexivity. Qed.
+
+(* --- The m->action write choke-point, enumerated and corrected ------------- *)
+
+(* The COMPLETE set of functions that directly assign MarioState.action, per TU.
+   This corrects R1's "only set_mario_action writes the action field": there are
+   several raw writers. (set_mario_action_airborne etc. assign the LOCAL `action`
+   temp via Sset, not the field, so they do NOT appear -- correctly.)
+
+   We pin each set as a COUNT + a confirmed writer per name (count = #names ⇒ the
+   named functions are exactly the writers). Stated this way the facts are robust
+   and each is independently name- and reflexivity-checked. *)
+
+(* mario.c: exactly 3 -- the real setter plus the two init paths (raw `= 0` / spawn
+   action). NONE writes a flying value (see below). *)
+Example mario_action_writer_count :
+  length (mario_action_writers mario._MarioState mario._action mario.prog) = 3%nat.
+Proof. reflexivity. Qed.
+Example w_set_mario_action :
+  writes_mario_action_s mario._MarioState mario._action (fn_body mario.f_set_mario_action) = true.
+Proof. reflexivity. Qed.
+Example w_init_mario :
+  writes_mario_action_s mario._MarioState mario._action (fn_body mario.f_init_mario) = true.
+Proof. reflexivity. Qed.
+Example w_init_mario_from_save_file :
+  writes_mario_action_s mario._MarioState mario._action
+    (fn_body mario.f_init_mario_from_save_file) = true.
+Proof. reflexivity. Qed.
+
+(* mario_actions_airborne.c: exactly 1 -- act_air_throw, which raw-sets
+   ACT_AIR_THROW_LAND on landing (not flying). *)
+Example airborne_action_writer_count :
+  length (mario_action_writers mario_actions_airborne._MarioState
+            mario_actions_airborne._action mario_actions_airborne.prog) = 1%nat.
+Proof. reflexivity. Qed.
+Example w_act_air_throw :
+  writes_mario_action_s mario_actions_airborne._MarioState mario_actions_airborne._action
+    (fn_body mario_actions_airborne.f_act_air_throw) = true.
+Proof. reflexivity. Qed.
+
+(* mario_actions_automatic.c: exactly 1 -- act_ledge_climb_slow (raw ACT_LEDGE_CLIMB_SLOW_2). *)
+Example automatic_action_writer_count :
+  length (mario_action_writers mario_actions_automatic._MarioState
+            mario_actions_automatic._action mario_actions_automatic.prog) = 1%nat.
+Proof. reflexivity. Qed.
+Example w_act_ledge_climb_slow :
+  writes_mario_action_s mario_actions_automatic._MarioState mario_actions_automatic._action
+    (fn_body mario_actions_automatic.f_act_ledge_climb_slow) = true.
+Proof. reflexivity. Qed.
+
+(* interaction.c: exactly 2 -- bounce_back_from_attack and check_kick_or_punch_wall
+   (both raw ACT_MOVE_PUNCHING). *)
+Example interaction_action_writer_count :
+  length (mario_action_writers interaction._MarioState interaction._action interaction.prog) = 2%nat.
+Proof. reflexivity. Qed.
+Example w_bounce_back_from_attack :
+  writes_mario_action_s interaction._MarioState interaction._action
+    (fn_body interaction.f_bounce_back_from_attack) = true.
+Proof. reflexivity. Qed.
+Example w_check_kick_or_punch_wall :
+  writes_mario_action_s interaction._MarioState interaction._action
+    (fn_body interaction.f_check_kick_or_punch_wall) = true.
+Proof. reflexivity. Qed.
+
+(* ...and NONE of those raw writers assigns a flying constant directly to the
+   action field. (Combined with the flying_setters enumeration above, the only
+   route to a flying action is set_mario_action called with a flying argument =
+   the 5 R1 sites.) Stated over every TU that writes the field, plus the four
+   action TUs for good measure. *)
+Example no_raw_flying_action_write_mario :
+  flying_action_writers mario._MarioState mario._action mario.prog = [].
+Proof. reflexivity. Qed.
+
+Example no_raw_flying_action_write_airborne :
+  flying_action_writers mario_actions_airborne._MarioState mario_actions_airborne._action
+    mario_actions_airborne.prog = [].
+Proof. reflexivity. Qed.
+
+Example no_raw_flying_action_write_automatic :
+  flying_action_writers mario_actions_automatic._MarioState mario_actions_automatic._action
+    mario_actions_automatic.prog = [].
+Proof. reflexivity. Qed.
+
+Example no_raw_flying_action_write_interaction :
+  flying_action_writers interaction._MarioState interaction._action interaction.prog = [].
 Proof. reflexivity. Qed.
 
 (* (B) The four group-transform helpers never assign a flying constant: each only

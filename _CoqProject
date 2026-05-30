@@ -12,6 +12,8 @@ generated/mario_actions_airborne.v
 generated/mario_actions_moving.v
 generated/level_update.v
 generated/behavior_actions.v
+generated/mario_actions_automatic.v
+generated/interaction.v
 proofs/Frame.v
 proofs/Escape.v
 proofs/ToyFrame.v

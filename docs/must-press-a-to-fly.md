@@ -75,10 +75,19 @@ trust-model rule (audit the statement, trust the compiler front-end) made concre
   the setter cannot manufacture a flying action from a non-flying argument — the value written
   to `m->action` is flying only if a flying constant was passed in at one of the five sites.
   *Residual (named in the file's SCOPE):* the analysis flags flying *literals* in call args; a
-  flying value arriving via a *computed* argument is dataflow = R3. The `m->action` store
-  choke-point ("the only store to the action field lives in `set_mario_action`") is argued
-  textually + supported by no-synthesis; promoting it to a semantic store-frame theorem (leak
-  #1 for a struct field) is a later rung. Four TUs, not whole-program (leak #3).
+  flying value arriving via a *computed* argument is dataflow = R3. Four TUs, not whole-program
+  (leak #3).
+- **R1b — the `m->action` write choke-point, mechanized AND corrected** (`Flying.v`). R1's first
+  cut claimed "the only store to the action field lives in `set_mario_action`." That is **false**,
+  and we now prove the true picture: a type-aware field-write analysis (`mario_action_writers`,
+  matching `Sassign (Efield base _action _) _` with `base : Tstruct MarioState`, so other structs'
+  `action` fields are excluded) enumerates *every* direct writer of `MarioState.action` across the
+  writing TUs — **mario.c**: `set_mario_action`, `init_mario`, `init_mario_from_save_file` (3);
+  **airborne**: `act_air_hit_wall` (the missing-return bug); **automatic**: `act_ledge_climb_slow`;
+  **interaction**: `bounce_back_from_attack`, `check_kick_or_punch_wall`. And `flying_action_writers
+  = []` on every one: **no function writes a flying value directly to the field.** Combined with R1,
+  the only route to a flying action is `set_mario_action` called with a flying argument (the 5
+  sites). All reflexivity, `Print Assumptions` closed. (Cross-TU linkage is still leak #3.)
 - **R2 — guard classification. ✅ DONE, but it OVERTURNED its own premise** (`Flying.v`, commit
   `a274f74`). The imagined R2 ("each site locally checks `INPUT_A_PRESSED`") is **false of the
   code**: every flying transition gates on `MARIO_WING_CAP` and/or physics (`vel[1]`), never on

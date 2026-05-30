@@ -26,7 +26,8 @@ SM64_CG := -nostdinc -fstruct-passing \
 GENERATED := generated/toy.v generated/shadow.v \
   generated/mario.v generated/mario_actions_airborne.v \
   generated/mario_actions_moving.v generated/level_update.v \
-  generated/behavior_actions.v
+  generated/behavior_actions.v generated/mario_actions_automatic.v \
+  generated/interaction.v
 
 .PHONY: all generated proofs regen clean
 
@@ -58,6 +59,14 @@ generated/level_update.v: $(SM64)/src/game/level_update.c pipeline/clightgen.sh
 # so this one TU is every behavior's native code. Used to mechanize "no behavior is a
 # flying-setter" (closes leak #3 for the action field, w.r.t. this TU).
 generated/behavior_actions.v: $(SM64)/src/game/behavior_actions.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+# The remaining TUs that contain a direct write to MarioState.action (the choke-point
+# enumeration): mario_actions_automatic.c and interaction.c.
+generated/mario_actions_automatic.v: $(SM64)/src/game/mario_actions_automatic.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/interaction.v: $(SM64)/src/game/interaction.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(SM64_CG)
 
 $(COQMAKEFILE): _CoqProject
