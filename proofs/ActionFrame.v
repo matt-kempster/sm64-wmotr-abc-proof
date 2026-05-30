@@ -29,6 +29,17 @@
  *   - Abstract over any composite_env / members list: instantiating it on the
  *     real MarioState composite (a concrete corollary, à la Havoc's flying-carpet
  *     instance) is a follow-up.
+ *
+ * AXIOM STATUS (Print Assumptions, verified): the two pure lemmas
+ * (size_chunk_by_value, full_fields_size_disjoint) are "Closed under the global
+ * context". The memory lemma store_field_preserves_other_field rests on
+ * CompCert's 4 standard axioms (Classical_Prop.classic, FunctionalExtensionality,
+ * two ClassicalDedekindReals -- the Flocq float base). This is NOT a proof defect
+ * and NOT extra trust we introduced: the lemma's *statement* mentions `sizeof ce
+ * ty`, whose computation over real C types recurses through float-carrying
+ * definitions, and Print Assumptions traverses the statement's type. It is the
+ * same phenomenon ActionWriters.v documents for any prog-typed statement; the
+ * whole CompCert correctness theorem rests on exactly these four axioms.
  *)
 
 From compcert Require Import Coqlib Errors Maps AST Integers Values Memory Globalenvs Ctypes Cop Clight.
