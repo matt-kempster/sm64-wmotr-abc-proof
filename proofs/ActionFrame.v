@@ -38,9 +38,23 @@
  *     aliasing pointer stores -- so the bridge consumes the explicit
  *     stmt_assigns_avoid, which writes_mario_action_s + escape are meant to
  *     DISCHARGE (named, not hidden).
- *   - It does NOT yet lift to (c) the interprocedural case (a callee may write
- *     the field); that is exactly where Reach.v's callgraph plugs in, and is
- *     the remaining rung for the closed-world action-mutation argument.
+ *   - Rung (c) Phase 1+2 IS now done: exec_funcall_reach_unchanged_on lifts the
+ *     statement-level frame ACROSS CALLS, by the mutual exec_stmt/eval_funcall
+ *     induction (CompCert's Combined Scheme exec_stmt_funcall_ind). A call's
+ *     three layers (function_entry2 alloc / body / free_list) each preserve a
+ *     watched byte-set P that lives in blocks valid at entry: the Phase-1 leaves
+ *     (function_entry2_unchanged_on, free_list_unchanged_on) handle the frame
+ *     alloc/free, with function_entry2_fresh proving the callee's locals are
+ *     fresh (so freeing them can't touch P); P-validity is threaded forward via
+ *     Mem.valid_block_unchanged_on (memory only grows). The remaining Phase-3
+ *     content is stated as TWO EXPLICIT global hypotheses (honest boundary, no
+ *     hidden lede): reach_body_avoids (every internal fn body's Sassigns avoid P
+ *     -- to be DERIVED later from the syntactic non-writers + local freshness)
+ *     and reach_ext_preserves (reached externals/builtins preserve P). Payoff:
+ *     exec_stmt_reach_preserves_watched_load -- the watched-load corollary with
+ *     `call_free` GONE. Still open: discharging the two reach_* hypotheses from
+ *     ActionWriters' syntactic scan (Phase 3) and the named leaks (#2 indirect
+ *     calls via Genv.find_funct, #3 whole-program Linking).
  *   - Abstract over any composite_env / members list. The abstract bricks are
  *     now ALSO instantiated on the real MarioState composite at the bottom of
  *     this file (store_other_field_preserves_action / store_flags_preserves_action,
@@ -59,7 +73,7 @@
  * whole CompCert correctness theorem rests on exactly these four axioms.
  *)
 
-From compcert Require Import Coqlib Errors Maps AST Integers Values Memory Globalenvs Ctypes Cop Clight ClightBigstep.
+From compcert Require Import Coqlib Errors Maps AST Integers Values Events Memory Globalenvs Ctypes Cop Clight ClightBigstep.
 From SM64.Generated Require mario.
 
 (* ------------------------------------------------------------------ *)
@@ -575,4 +589,272 @@ Proof.
   - exact Hov1.
   - exact Hov2.
   - exact Hassign.
+Qed.
+
+(* ================================================================== *)
+(* RUNG (c), Phase 1+2: the interprocedural lift.                      *)
+(*                                                                     *)
+(* Rung (b) stopped at `call_free`: an Scall hands control to a callee *)
+(* whose body the single-statement scan cannot see. Rung (c) removes   *)
+(* that wall by recursing into the callee via the MUTUAL induction     *)
+(* exec_stmt / eval_funcall (CompCert's Combined Scheme                 *)
+(* exec_stmt_funcall_ind).                                             *)
+(*                                                                     *)
+(* A function call's memory effect is exactly three layers             *)
+(* (eval_funcall_internal):                                            *)
+(*     function_entry2 ge f vargs m e le1 m1   -- alloc fresh locals    *)
+(*     exec_stmt        e le1 m1 (fn_body f) ... m2 ...  -- run body     *)
+(*     Mem.free_list    m2 (blocks_of_env ge e) = Some m3 -- free them   *)
+(* For a watched location P over blocks VALID in m (e.g. the caller's   *)
+(* Mario block, passed by pointer -- never a callee local):            *)
+(*   - entry only ALLOCATES fresh blocks, so preserves P (any P);       *)
+(*   - free_list frees only the callee's own frame, all fresh hence     *)
+(*     != any P-block, so preserves P;                                  *)
+(*   - the body preserves P by the mutual IH, PROVIDED its Sassigns     *)
+(*     avoid P -- which is supplied by the global hypothesis            *)
+(*     `reach_body_avoids` below (the Phase-3 content, stated here as    *)
+(*     an explicit assumption, not yet discharged from the syntax).     *)
+(* ================================================================== *)
+
+(* ---- Phase 1: the call-boundary leaves (alloc/free, in unchanged_on) ---- *)
+
+(* alloc_variables never touches an already-existing location: every    *)
+(* allocation produces a fresh block, so unchanged_on P holds for ANY P. *)
+Lemma alloc_variables_unchanged_on :
+  forall (P : block -> Z -> Prop) ge vars e0 m e1 m1,
+    alloc_variables ge e0 m vars e1 m1 ->
+    Mem.unchanged_on P m m1.
+Proof.
+  intros P ge vars e0 m e1 m1 H.
+  induction H.
+  - apply Mem.unchanged_on_refl.
+  - eapply Mem.unchanged_on_trans; [ | exact IHalloc_variables ].
+    eapply Mem.alloc_unchanged_on; eauto.
+Qed.
+
+(* function_entry2 (clightgen's default: params as temps) changes memory *)
+(* ONLY by alloc_variables of fn_vars; bind_parameter_temps is pure temp  *)
+(* manipulation. So it preserves any P. *)
+Lemma function_entry2_unchanged_on :
+  forall (P : block -> Z -> Prop) ge f vargs m e le m1,
+    function_entry2 ge f vargs m e le m1 ->
+    Mem.unchanged_on P m m1.
+Proof.
+  intros P ge f vargs m e le m1 H. inv H.
+  eapply alloc_variables_unchanged_on; eauto.
+Qed.
+
+(* Every block allocated by alloc_variables FROM AN EMPTY environment is  *)
+(* fresh w.r.t. the starting memory. (Stated for general e0 with the      *)
+(* invariant that e0's bindings are already valid; the call site uses     *)
+(* empty_env, where the invariant is vacuous.)                            *)
+Lemma alloc_variables_fresh :
+  forall ge vars e0 m e1 m1,
+    alloc_variables ge e0 m vars e1 m1 ->
+    forall id b ty,
+      e1 ! id = Some (b, ty) ->
+      Mem.valid_block m b ->
+      e0 ! id = Some (b, ty).
+Proof.
+  intros ge vars e0 m e1 m1 H. induction H; intros id0 b0 ty0 Hget Hvalid.
+  - exact Hget.
+  - (* alloc m 0 (sizeof ge ty) = (m1, b1); recurse on (set id (b1,ty) e). *)
+    assert (Hvalid1 : Mem.valid_block m1 b0) by (eapply Mem.valid_block_alloc; eauto).
+    specialize (IHalloc_variables id0 b0 ty0 Hget Hvalid1).
+    (* b1 = nextblock m is fresh, so b <> b1 (b is valid in m). *)
+    assert (Hb1 : ~ Mem.valid_block m b1) by (eapply Mem.fresh_block_alloc; eauto).
+    destruct (peq id0 id).
+    + subst id0. rewrite PTree.gss in IHalloc_variables. inv IHalloc_variables.
+      exfalso. apply Hb1; exact Hvalid.
+    + rewrite PTree.gso in IHalloc_variables by auto. exact IHalloc_variables.
+Qed.
+
+(* Hence every block freed at function exit (the callee's frame) is fresh  *)
+(* w.r.t. the entry memory -- the invariant that makes callee-local writes  *)
+(* auto-avoid any caller-visible watched block. *)
+Lemma function_entry2_fresh :
+  forall ge f vargs m e le m1,
+    function_entry2 ge f vargs m e le m1 ->
+    forall b lo hi, In (b, lo, hi) (blocks_of_env ge e) -> ~ Mem.valid_block m b.
+Proof.
+  intros ge f vargs m e le m1 H b lo hi Hin Hvalid. inv H.
+  unfold blocks_of_env in Hin. apply list_in_map_inv in Hin.
+  destruct Hin as [[id [bb ty]] [Heq Hin]].
+  unfold block_of_binding in Heq.
+  apply PTree.elements_complete in Hin.
+  assert (Hbe : bb = b) by congruence.
+  assert (Hempty : empty_env ! id = Some (bb, ty)).
+  { eapply alloc_variables_fresh; [ eauto | exact Hin | rewrite Hbe; exact Hvalid ]. }
+  rewrite PTree.gempty in Hempty. discriminate.
+Qed.
+
+(* free_list, in unchanged_on form: if P touches no freed block at all,    *)
+(* freeing preserves P. (Lift of ToyReach.free_list_load_unchanged.) *)
+Lemma free_list_unchanged_on :
+  forall (P : block -> Z -> Prop) l m m',
+    Mem.free_list m l = Some m' ->
+    (forall b lo hi i, In (b, lo, hi) l -> ~ P b i) ->
+    Mem.unchanged_on P m m'.
+Proof.
+  intros P l. induction l as [| [[b1 lo] hi] l IH]; intros m m' Hfree Hav.
+  - simpl in Hfree. inv Hfree. apply Mem.unchanged_on_refl.
+  - simpl in Hfree.
+    destruct (Mem.free m b1 lo hi) as [m1|] eqn:Hf; try discriminate.
+    eapply Mem.unchanged_on_trans.
+    + eapply Mem.free_unchanged_on; [ exact Hf | ].
+      intros i Hi. eapply Hav. left; reflexivity.
+    + eapply IH; [ exact Hfree | ].
+      intros b lo2 hi2 i Hin. eapply Hav. right; exact Hin.
+Qed.
+
+(* ---- Phase 2: the mutual induction over exec_stmt / eval_funcall ---- *)
+
+(* The deferred Phase-3 content, stated as two explicit global hypotheses *)
+(* about the program (whole-program facts; honest boundary):              *)
+(*   reach_body_avoids: EVERY internal function, however entered, has a    *)
+(*     body whose Sassigns avoid P. (Phase 3 will DERIVE this from the     *)
+(*     syntactic non-writers + local-freshness/escape; here it is given.)  *)
+(*   reach_ext_preserves: every external/builtin call preserves P. (The    *)
+(*     reached externals are math/runtime, not Mario-state writers.)       *)
+Definition reach_body_avoids (P : block -> Z -> Prop) (ge : genv) : Prop :=
+  forall f vargs m e le m1,
+    function_entry2 ge f vargs m e le m1 ->
+    stmt_assigns_avoid P ge e (fn_body f).
+
+Definition reach_ext_preserves (P : block -> Z -> Prop) (ge : genv) : Prop :=
+  forall ef vargs m t vres m',
+    external_call ef ge vargs m t vres m' ->
+    Mem.unchanged_on P m m'.
+
+(* THE rung-(c) meta-theorem (Phase 1+2). With the two global hypotheses,  *)
+(* any execution -- statement OR whole funcall, calls and loops included -- *)
+(* of clightgen code (function_entry2) preserves a watched byte-set P that  *)
+(* lives in blocks valid at the start. The Scall case is discharged by the  *)
+(* eval_funcall IH; the funcall case composes the Phase-1 leaves with the   *)
+(* body IH. P-validity is threaded forward across each sub-execution via    *)
+(* Mem.valid_block_unchanged_on (memory only ever grows).                   *)
+Theorem exec_funcall_reach_unchanged_on :
+  forall (P : block -> Z -> Prop) (ge : genv),
+    reach_body_avoids P ge ->
+    reach_ext_preserves P ge ->
+    (forall e le m s t le' m' out,
+       exec_stmt function_entry2 ge e le m s t le' m' out ->
+       (forall b o, P b o -> Mem.valid_block m b) ->
+       stmt_assigns_avoid P ge e s ->
+       Mem.unchanged_on P m m')
+    /\
+    (forall m fd vargs t m' vres,
+       eval_funcall function_entry2 ge m fd vargs t m' vres ->
+       (forall b o, P b o -> Mem.valid_block m b) ->
+       Mem.unchanged_on P m m').
+Proof.
+  intros P ge Hbody Hext.
+  apply (exec_stmt_funcall_ind function_entry2 ge
+    (fun e le m s t le' m' out =>
+       (forall b o, P b o -> Mem.valid_block m b) ->
+       stmt_assigns_avoid P ge e s ->
+       Mem.unchanged_on P m m')
+    (fun m fd vargs t m' vres =>
+       (forall b o, P b o -> Mem.valid_block m b) ->
+       Mem.unchanged_on P m m')).
+  - (* Sskip *) intros e le m HPval Hav. apply Mem.unchanged_on_refl.
+  - (* Sassign *)
+    intros e le m a1 a2 loc ofs bf v2 v m' Hlv He Hcast Hassign HPval Hav.
+    simpl in Hav. eapply assign_loc_unchanged_on; [ exact Hassign | ].
+    intros i Hi. eapply Hav; eauto.
+  - (* Sset *) intros e le m id a v He HPval Hav. apply Mem.unchanged_on_refl.
+  - (* Scall: discharged by the eval_funcall IH *)
+    intros e le m optid a al tyargs tyres cconv vf vargs f t m' vres
+           Hcf He Hel Hff Htof Hfd IHfun HPval Hav.
+    exact (IHfun HPval).
+  - (* Sbuiltin: external call preserves P by hypothesis *)
+    intros e le m optid ef al tyargs vargs t m' vres Hel Hec HPval Hav.
+    eapply Hext; exact Hec.
+  - (* Sseq_1: s1 normal then s2 *)
+    intros e le m s1 s2 t1 le1 m1 t2 le2 m2 out He1 IH1 He2 IH2 HPval Hav.
+    simpl in Hav. destruct Hav as [Hav1 Hav2].
+    assert (U1 : Mem.unchanged_on P m m1) by (apply IH1; [ exact HPval | exact Hav1 ]).
+    eapply Mem.unchanged_on_trans; [ exact U1 | ].
+    apply IH2; [ | exact Hav2 ].
+    intros b o HP. eapply Mem.valid_block_unchanged_on; [ exact U1 | eapply HPval; exact HP ].
+  - (* Sseq_2: s1 abnormal *)
+    intros e le m s1 s2 t1 le1 m1 out He1 IH1 Hout HPval Hav.
+    simpl in Hav. apply IH1; [ exact HPval | exact (proj1 Hav) ].
+  - (* Sifthenelse *)
+    intros e le m a s1 s2 v1 b t le' m' out He Hbool Hexec IH HPval Hav.
+    simpl in Hav. apply IH; [ exact HPval | ].
+    destruct b; [ exact (proj1 Hav) | exact (proj2 Hav) ].
+  - (* Sreturn_none *) intros e le m HPval Hav. apply Mem.unchanged_on_refl.
+  - (* Sreturn_some *) intros e le m a v He HPval Hav. apply Mem.unchanged_on_refl.
+  - (* Sbreak *) intros e le m HPval Hav. apply Mem.unchanged_on_refl.
+  - (* Scontinue *) intros e le m HPval Hav. apply Mem.unchanged_on_refl.
+  - (* Sloop_stop1: only s1 ran *)
+    intros e le m s1 s2 t le' m' out' out He1 IH1 Hbor HPval Hav.
+    simpl in Hav. apply IH1; [ exact HPval | exact (proj1 Hav) ].
+  - (* Sloop_stop2: s1 then s2 *)
+    intros e le m s1 s2 t1 le1 m1 out1 t2 le2 m2 out2 out
+           He1 IH1 Hnoc He2 IH2 Hbor HPval Hav.
+    simpl in Hav. destruct Hav as [Hav1 Hav2].
+    assert (U1 : Mem.unchanged_on P m m1) by (apply IH1; [ exact HPval | exact Hav1 ]).
+    eapply Mem.unchanged_on_trans; [ exact U1 | ].
+    apply IH2; [ | exact Hav2 ].
+    intros b o HP. eapply Mem.valid_block_unchanged_on; [ exact U1 | eapply HPval; exact HP ].
+  - (* Sloop_loop: s1, s2, then the loop again *)
+    intros e le m s1 s2 t1 le1 m1 out1 t2 le2 m2 t3 le3 m3 out
+           He1 IH1 Hnoc He2 IH2 He3 IH3 HPval Hav.
+    simpl in Hav. destruct Hav as [Hav1 Hav2].
+    assert (U1 : Mem.unchanged_on P m m1) by (apply IH1; [ exact HPval | exact Hav1 ]).
+    assert (HPval1 : forall b o, P b o -> Mem.valid_block m1 b)
+      by (intros b o HP; eapply Mem.valid_block_unchanged_on; [ exact U1 | eapply HPval; exact HP ]).
+    assert (U2 : Mem.unchanged_on P m1 m2) by (apply IH2; [ exact HPval1 | exact Hav2 ]).
+    assert (HPval2 : forall b o, P b o -> Mem.valid_block m2 b)
+      by (intros b o HP; eapply Mem.valid_block_unchanged_on; [ exact U2 | eapply HPval1; exact HP ]).
+    eapply Mem.unchanged_on_trans; [ exact U1 | ].
+    eapply Mem.unchanged_on_trans; [ exact U2 | ].
+    apply IH3; [ exact HPval2 | ]. simpl. split; [ exact Hav1 | exact Hav2 ].
+  - (* Sswitch: reduce to the selected sequence via the structural lemmas *)
+    intros e le m a t v n sl le1 m1 out He Hsw Hexec IH HPval Hav.
+    simpl in Hav. apply IH; [ exact HPval | ].
+    apply seq_of_ls_assigns_avoid. apply select_switch_assigns_avoid. exact Hav.
+  - (* eval_funcall_internal: compose entry (alloc) + body IH + free *)
+    intros m f vargs t e le1 le2 m1 m2 out vres m3
+           Hentry Hbexec IHbody Hout Hfree HPval.
+    assert (Uentry : Mem.unchanged_on P m m1)
+      by (eapply function_entry2_unchanged_on; eauto).
+    assert (HPval1 : forall b o, P b o -> Mem.valid_block m1 b)
+      by (intros b o HP; eapply Mem.valid_block_unchanged_on; [ exact Uentry | eapply HPval; exact HP ]).
+    assert (Ubody : Mem.unchanged_on P m1 m2)
+      by (apply IHbody; [ exact HPval1 | eapply Hbody; exact Hentry ]).
+    assert (Ufree : Mem.unchanged_on P m2 m3).
+    { eapply free_list_unchanged_on; [ exact Hfree | ].
+      intros b lo hi i Hin HP.
+      eapply (function_entry2_fresh _ _ _ _ _ _ _ Hentry b lo hi Hin).
+      eapply HPval; exact HP. }
+    eapply Mem.unchanged_on_trans; [ eapply Mem.unchanged_on_trans; [ exact Uentry | exact Ubody ] | exact Ufree ].
+  - (* eval_funcall_external *)
+    intros m ef targs tres cconv vargs t vres m' Hec HPval.
+    eapply Hext; exact Hec.
+Qed.
+
+(* The interprocedural payoff: the watched-load corollary, now across      *)
+(* calls and loops. Compare exec_stmt_preserves_watched_load (rung b): the  *)
+(* `call_free` precondition is GONE -- replaced by the two global reach_*    *)
+(* hypotheses, which are the whole-program closure of `no reached function   *)
+(* writes the watched bytes`. *)
+Corollary exec_stmt_reach_preserves_watched_load :
+  forall ge e le m s t le' m' out bm aofs,
+    let P := fun b o => b = bm /\ aofs <= o < aofs + size_chunk Mint32 in
+    reach_body_avoids P ge ->
+    reach_ext_preserves P ge ->
+    exec_stmt function_entry2 ge e le m s t le' m' out ->
+    stmt_assigns_avoid P ge e s ->
+    Mem.valid_block m bm ->
+    Mem.load Mint32 m' bm aofs = Mem.load Mint32 m bm aofs.
+Proof.
+  intros ge e le m s t le' m' out bm aofs P Hbody Hext Hexec Hav Hvalid.
+  eapply Mem.load_unchanged_on_1.
+  - eapply (proj1 (exec_funcall_reach_unchanged_on P ge Hbody Hext)); [ exact Hexec | | exact Hav ].
+    intros b o [Hb _]. subst b. exact Hvalid.
+  - exact Hvalid.
+  - intros i Hi. split; [ reflexivity | exact Hi ].
 Qed.
