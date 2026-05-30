@@ -30,4 +30,5 @@ proofs/Reach.v
 proofs/Havoc.v
 proofs/Flying.v
 proofs/ActionWriters.v
+proofs/ActionFrame.v
 proofs/FrameTrace.v
