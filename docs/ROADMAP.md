@@ -134,6 +134,9 @@ These are the soundness gaps we track explicitly (see [trust-model.md](trust-mod
 - [must-press-a-to-fly.md](must-press-a-to-fly.md) — the flight goal, entry-point table, R1–R4.
 - [the-frame.md](the-frame.md) — what one in-game frame is; loop taxonomy; R3 plan.
 - [trust-model.md](trust-model.md) — why we believe the eventual statement; Φ-internal vs the model.
+- [feasibility-and-the-critiques.md](feasibility-and-the-critiques.md) — answers to the standard
+  skeptic objections (the "verify C is hopeless"/random-maze critique; LEM vs decidability;
+  "a compiling proof ≠ a true fact"; "does SM64 leak memory?") + the standing discipline they imply.
 - [pointer-writes-and-block-disjointness.md](pointer-writes-and-block-disjointness.md) — leak #1.
 - [whole-program-and-the-interpreters.md](whole-program-and-the-interpreters.md) — stubbing,
   the dragon, leak #2/#3.
