@@ -220,3 +220,95 @@ Proof.
               Hm1 Hm2 Hm3 Hm4 Hmptr Hact Harg Hnf Hexec) as (Hout & w & Hld & Hwnf).
   unfold action_sat. intros v0 Hv0. rewrite Hld in Hv0. inv Hv0. exact Hwnf.
 Qed.
+
+(* ================================================================== *)
+(* CAPSTONE part A: the per-Sassign VALUE obligation and its lift over *)
+(* a whole statement.                                                   *)
+(*                                                                     *)
+(* The value analogue of ActionFrame's assign_avoids / stmt_assigns_   *)
+(* avoid. Where the avoid version demands EVERY Sassign miss the action *)
+(* cell, the value version allows a Sassign to LAND on the cell as long *)
+(* as the value it stores satisfies Q -- precisely brick 2's disjunct.  *)
+(* (This is the strict upgrade that lets the caller's own raw action     *)
+(* writers through: they store non-flying literals.)                    *)
+(* ================================================================== *)
+
+(* For a single assignment `a1 = a2`: in any state, whatever location    *)
+(* the lvalue names and whatever value the rhs casts to, the write       *)
+(* EITHER avoids the action cell OR lands on it storing a Q-value. The    *)
+(* shape matches exec_stmt's Sassign constructor (eval_lvalue / eval_expr *)
+(* / sem_cast), so it is directly consumable there. *)
+Definition assign_value_ok (Q : int -> Prop) (bm : block) (ge : genv) (e : env)
+                           (a1 a2 : expr) : Prop :=
+  forall le m loc ofs bf v2 v,
+    eval_lvalue ge e le m a1 loc ofs bf ->
+    eval_expr ge e le m a2 v2 ->
+    sem_cast v2 (typeof a2) (typeof a1) m = Some v ->
+    ( (forall i, Ptrofs.unsigned ofs <= i < Ptrofs.unsigned ofs + sizeof ge (typeof a1) ->
+                 ~ action_cell bm loc i)
+      \/ (loc = bm /\ Ptrofs.unsigned ofs = 12 /\ access_mode (typeof a1) = By_value Mint32
+          /\ bf = Full /\ exists w, v = Vint w /\ Q w) ).
+
+(* Structural lift over a whole statement: every Sassign in s is value-ok. *)
+(* (Scall/Sbuiltin map to True -- they are governed by the reach_* call    *)
+(* hypotheses, not by the caller's per-Sassign scan.) *)
+Fixpoint stmt_value_ok (Q : int -> Prop) (bm : block) (ge : genv) (e : env)
+                       (s : statement) : Prop :=
+  match s with
+  | Sassign a1 a2       => assign_value_ok Q bm ge e a1 a2
+  | Ssequence s1 s2     => stmt_value_ok Q bm ge e s1 /\ stmt_value_ok Q bm ge e s2
+  | Sifthenelse _ s1 s2 => stmt_value_ok Q bm ge e s1 /\ stmt_value_ok Q bm ge e s2
+  | Sloop s1 s2         => stmt_value_ok Q bm ge e s1 /\ stmt_value_ok Q bm ge e s2
+  | Slabel _ s1         => stmt_value_ok Q bm ge e s1
+  | Sswitch _ ls        => ls_value_ok Q bm ge e ls
+  | _                   => True
+  end
+with ls_value_ok (Q : int -> Prop) (bm : block) (ge : genv) (e : env)
+                 (ls : labeled_statements) : Prop :=
+  match ls with
+  | LSnil           => True
+  | LScons _ s rest => stmt_value_ok Q bm ge e s /\ ls_value_ok Q bm ge e rest
+  end.
+
+(* select_switch / seq_of_labeled_statement preserve stmt_value_ok -- the   *)
+(* switch case of the induction (mirrors ActionFrame's *_assigns_avoid).     *)
+Lemma ssd_value_ok :
+  forall Q bm ge e sl, ls_value_ok Q bm ge e sl ->
+    ls_value_ok Q bm ge e (select_switch_default sl).
+Proof.
+  induction sl as [| o s rest IH]; simpl; intros H; auto.
+  destruct o as [c|]; simpl.
+  - destruct H as [_ Hrest]. apply IH; exact Hrest.
+  - exact H.
+Qed.
+
+Lemma ssc_value_ok :
+  forall Q bm ge e n sl res,
+    ls_value_ok Q bm ge e sl -> select_switch_case n sl = Some res ->
+    ls_value_ok Q bm ge e res.
+Proof.
+  induction sl as [| o s rest IH]; simpl; intros res Hav Hsel; try discriminate.
+  destruct Hav as [Hs Hrest]. destruct o as [c|]; simpl in Hsel.
+  - destruct (zeq c n).
+    + inv Hsel. simpl. split; [ exact Hs | exact Hrest ].
+    + eapply IH; eauto.
+  - eapply IH; eauto.
+Qed.
+
+Lemma select_switch_value_ok :
+  forall Q bm ge e n sl,
+    ls_value_ok Q bm ge e sl -> ls_value_ok Q bm ge e (select_switch n sl).
+Proof.
+  intros Q bm ge e n sl H. unfold select_switch.
+  destruct (select_switch_case n sl) eqn:E.
+  - eapply ssc_value_ok; eauto.
+  - apply ssd_value_ok; auto.
+Qed.
+
+Lemma seq_of_ls_value_ok :
+  forall Q bm ge e ls,
+    ls_value_ok Q bm ge e ls -> stmt_value_ok Q bm ge e (seq_of_labeled_statement ls).
+Proof.
+  induction ls as [| o s rest IH]; simpl; intros H; auto.
+  destruct H. split; auto.
+Qed.
