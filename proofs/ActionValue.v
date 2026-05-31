@@ -14,13 +14,17 @@
  *       accepts a `switch` prefix (escape_free: cases that only break/fall-through
  *       finish Out_normal, since outcome_switch absorbs Out_break).
  *
- * These are the "pass-through" group setters. moving/airborne additionally remap
- * some actions (always to NON-flying values) -- their non-fabrication spec is the
- * next leaf. Then P4's "Piece A" value-set frame induction.
+ * submerged/cutscene are "pass-through" (return the arg unchanged). moving REMAPS
+ * some actions but only to non-flying CONSTANTS -- its NON-FABRICATION spec
+ * (set_mario_action_moving_nonfabricate: non-flying arg => non-flying result) is
+ * proved via the flows_into dataflow engine + exec_trailing_return (reach the
+ * final-value return through deep nesting). airborne is the same shape (next).
+ * Then the full set_mario_action spec and P4's "Piece A" value-set frame induction.
  *)
 
 From compcert Require Import Coqlib Errors Maps AST Integers Values Events Memory Globalenvs Ctypes Cop Clight ClightBigstep.
 From SM64.Generated Require mario.
+From SM64.Proofs Require Import Flying.
 
 (* ------------------------------------------------------------------ *)
 (* KERNEL: a By_value store of (Vint v) into a scalar field reads back  *)
@@ -410,6 +414,44 @@ Proof.
       congruence end.
 Qed.
 
+(* General version: a body that is a (possibly deeply right-nested) sequence of
+   exit_free statements ending in `return (Etempvar id)` returns the FINAL value
+   of id (le' ! id), at whatever type the Etempvar carries. Handles the setters
+   whose action temp is REASSIGNED (so we want the final value, not the entry
+   value) and whose return is nested under many statements. *)
+Fixpoint trailing_return_id (id : ident) (s : statement) : option type :=
+  match s with
+  | Sreturn (Some (Etempvar j t)) => if Pos.eqb j id then Some t else None
+  | Ssequence s1 s2               => if exit_free s1 then trailing_return_id id s2 else None
+  | _                             => None
+  end.
+
+Lemma exec_trailing_return :
+  forall id s fe ge e le m t le' m' out ty,
+    trailing_return_id id s = Some ty ->
+    exec_stmt fe ge e le m s t le' m' out ->
+    exists w, out = Out_return (Some (w, ty)) /\ le' ! id = Some w.
+Proof.
+  intros id s. induction s; intros fe ge env le m tr le' m' out ty Htr Hexec;
+    simpl in Htr; try discriminate.
+  - (* Ssequence s1 s2: s1 exit_free, return is in s2 *)
+    destruct (exit_free s1) eqn:Hef; try discriminate.
+    inv Hexec.
+    + (* Sseq_1: s1 normal, then s2 *)
+      eapply IHs2; [ exact Htr | eassumption ].
+    + (* Sseq_2: s1 abnormal -- contradicts exit_free s1 *)
+      match goal with HA : exec_stmt _ _ _ _ _ s1 _ _ _ ?o1, Hne : ?o1 <> Out_normal |- _ =>
+        apply (exec_exit_free_normal _ _ _ _ _ _ _ _ _ _ HA) in Hef; congruence end.
+  - (* Sreturn (Some (Etempvar id ty)) *)
+    destruct o as [a|]; try discriminate. destruct a; try discriminate.
+    destruct (Pos.eqb i id) eqn:Hid; try discriminate.
+    apply Pos.eqb_eq in Hid; subst i. inv Htr.
+    inv Hexec.
+    match goal with He : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ => inv He end;
+      try (match goal with Hlv : eval_lvalue _ _ _ _ _ _ _ _ |- _ => solve [ inv Hlv ] end).
+    eexists; split; [ reflexivity | eassumption ].
+Qed.
+
 (* ================================================================== *)
 (* FIRST REAL FUNCTION VALUE-SPEC: set_mario_action_submerged returns  *)
 (* its input action UNCHANGED (the C body only touches m->vel[1] and    *)
@@ -464,4 +506,47 @@ Proof.
                 ltac:(vm_compute; reflexivity) ltac:(vm_compute; reflexivity) Hla1) as Hoeq.
   rewrite Hoeq in Hout. cbn in Hout. destruct Hout as [_ Hcast].
   vm_compute in Hcast. congruence.
+Qed.
+
+(* ================================================================== *)
+(* NON-FABRICATION for a REMAPPING setter: set_mario_action_moving may  *)
+(* reassign the action (to ACT_BEGIN_SLIDING etc.) but ONLY to non-     *)
+(* flying CONSTANTS, so given a non-flying argument it returns a non-    *)
+(* flying value.  Proved via the flows_into engine (action stays non-   *)
+(* flying) + exec_trailing_return (the return reads the final action).  *)
+(* ================================================================== *)
+Lemma set_mario_action_moving_nonfabricate :
+  forall ge m bm a arg t m' res,
+    eval_funcall function_entry2 ge m
+      (Internal mario.f_set_mario_action_moving)
+      (Vptr bm Ptrofs.zero :: Vint a :: Vint arg :: nil) t m' res ->
+    is_flying_int a = false ->
+    forall w, res = Vint w -> is_flying_int w = false.
+Proof.
+  intros ge m bm a arg t m' res H Hnf w Hres. inv H.
+  match goal with H' : function_entry2 _ _ _ _ _ _ _ |- _ => rename H' into Hentry end.
+  match goal with H' : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename H' into Hexec end.
+  match goal with H' : outcome_result_value _ _ _ _ |- _ => rename H' into Hout end.
+  inv Hentry.
+  match goal with Hb : bind_parameter_temps _ _ _ = Some ?le1 |- _ =>
+    assert (Hla1 : le1 ! mario._action = Some (Vint a)) by
+      (vm_compute in Hb; injection Hb as Hb; rewrite <- Hb; vm_compute; reflexivity) end.
+  unfold mario.f_set_mario_action_moving in Hexec; cbn [fn_body] in Hexec.
+  set (g := fun j => Pos.eqb j mario._action).
+  set (P := fun n => negb (is_flying_int n)).
+  (* entry invariant: the only g-temp is _action, holding the non-flying arg *)
+  assert (Hinv : forall j v, g j = true -> le1 ! j = Some (Vint v) -> P v = true).
+  { intros j v Hgj Hjv. unfold g in Hgj. apply Pos.eqb_eq in Hgj. subst j.
+    rewrite Hla1 in Hjv. inv Hjv. unfold P. rewrite Hnf. reflexivity. }
+  pose proof (exec_flows_into P g _ _ _ _ _ _ _ _ _ _ Hexec
+                ltac:(vm_compute; reflexivity) Hinv) as Hfinal.
+  (* the return reads the final action value *)
+  eapply (exec_trailing_return mario._action) in Hexec; [ | vm_compute; reflexivity ].
+  destruct Hexec as [rv [Houteq Hrvlk]].
+  rewrite Houteq in Hout. cbn in Hout. destruct Hout as [_ Hcast].
+  destruct rv as [ | n | | | | ]; vm_compute in Hcast; try discriminate.
+  (* rv = Vint n; Hcast : Some (Vint n) = Some res; Hres : res = Vint w -> w = n *)
+  specialize (Hfinal mario._action n ltac:(unfold g; apply Pos.eqb_refl) Hrvlk).
+  unfold P in Hfinal. apply negb_true_iff in Hfinal.
+  assert (w = n) by congruence. subst w. exact Hfinal.
 Qed.
