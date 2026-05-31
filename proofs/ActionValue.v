@@ -7,12 +7,16 @@
  *
  *   (1) the reusable KERNEL -- writing Vint v into the action field makes the
  *       action load read back Vint v (the write side of the value frame);
- *   (2) the first REAL function value-spec -- set_mario_action_submerged returns
- *       its input action unchanged and does not touch the action field (validates
+ *   (2) REAL function value-specs -- set_mario_action_submerged and
+ *       set_mario_action_cutscene return their input action UNCHANGED (validates
  *       big-step funcall inversion + return-value tracking on actual SM64 code).
+ *       The `_returns_arg` pattern reuses exec_prefix_return_tempvar, which now
+ *       accepts a `switch` prefix (escape_free: cases that only break/fall-through
+ *       finish Out_normal, since outcome_switch absorbs Out_break).
  *
- * If these go through cleanly, P4's "Piece A" induction has its leaf reasoning in
- * hand and we scale to the full set_mario_action spec.
+ * These are the "pass-through" group setters. moving/airborne additionally remap
+ * some actions (always to NON-flying values) -- their non-fabrication spec is the
+ * next leaf. Then P4's "Piece A" value-set frame induction.
  *)
 
 From compcert Require Import Coqlib Errors Maps AST Integers Values Events Memory Globalenvs Ctypes Cop Clight ClightBigstep.
@@ -141,13 +145,90 @@ Proof.
     apply set_free_seq_of_ls. apply set_free_select_switch. exact Hsf.
 Qed.
 
-(* A straight-line statement (only skip/set/assign/call/builtin/seq/if, no
-   return/break/continue/goto/loop/switch) always finishes Out_normal -- used to
-   reach a trailing Sreturn through a function's prefix. *)
+(* escape_free: no return/continue/goto/loop; Sbreak IS allowed (it is absorbed
+   by an enclosing switch). Such a statement executes to Out_normal or Out_break.
+   This is what lets a `switch` whose cases only break/fall-through count as
+   straight-line for the purpose of reaching a trailing Sreturn. *)
+Fixpoint escape_free (s : statement) : bool :=
+  match s with
+  | Sskip | Sset _ _ | Sassign _ _ | Scall _ _ _ | Sbuiltin _ _ _ _ | Sbreak => true
+  | Ssequence s1 s2 | Sifthenelse _ s1 s2 => escape_free s1 && escape_free s2
+  | Sswitch _ ls => escape_free_ls ls
+  | _ => false
+  end
+with escape_free_ls (ls : labeled_statements) : bool :=
+  match ls with
+  | LSnil           => true
+  | LScons _ s rest => escape_free s && escape_free_ls rest
+  end.
+
+Lemma escape_free_ssd :
+  forall sl, escape_free_ls sl = true -> escape_free_ls (select_switch_default sl) = true.
+Proof.
+  induction sl as [| o s rest IH]; simpl; intros H; auto.
+  destruct o as [c|]; auto. apply andb_true_iff in H; destruct H; auto.
+Qed.
+
+Lemma escape_free_ssc :
+  forall n sl res,
+    escape_free_ls sl = true -> select_switch_case n sl = Some res -> escape_free_ls res = true.
+Proof.
+  induction sl as [| o s rest IH]; simpl; intros res H Hsel; try discriminate.
+  apply andb_true_iff in H; destruct H as [Hs Hrest].
+  destruct o as [c|].
+  - destruct (zeq c n).
+    + inv Hsel. simpl. rewrite Hs, Hrest; auto.
+    + eapply IH; eauto.
+  - eapply IH; eauto.
+Qed.
+
+Lemma escape_free_select_switch :
+  forall n sl, escape_free_ls sl = true -> escape_free_ls (select_switch n sl) = true.
+Proof.
+  intros n sl H. unfold select_switch.
+  destruct (select_switch_case n sl) eqn:E.
+  - eapply escape_free_ssc; eauto.
+  - apply escape_free_ssd; auto.
+Qed.
+
+Lemma escape_free_seq_of_ls :
+  forall ls, escape_free_ls ls = true -> escape_free (seq_of_labeled_statement ls) = true.
+Proof.
+  induction ls as [| o s rest IH]; simpl; intros H; auto.
+  apply andb_true_iff in H; destruct H. rewrite H; simpl; auto.
+Qed.
+
+Lemma exec_escape_free :
+  forall fe ge e le m s t le' m' out,
+    exec_stmt fe ge e le m s t le' m' out ->
+    escape_free s = true ->
+    out = Out_normal \/ out = Out_break.
+Proof.
+  intros fe ge e le m s t le' m' out H.
+  induction H; intros Hef; simpl in Hef; try discriminate; try (left; reflexivity).
+  - (* Sseq_1: out = out2 *)
+    apply andb_true_iff in Hef; destruct Hef as [_ He2]. exact (IHexec_stmt2 He2).
+  - (* Sseq_2: out = out1, out1 <> Out_normal *)
+    apply andb_true_iff in Hef; destruct Hef as [He1 _].
+    destruct (IHexec_stmt He1) as [Hn | Hb]; [ congruence | right; exact Hb ].
+  - (* Sifthenelse *)
+    apply andb_true_iff in Hef; destruct Hef as [He1 He2].
+    apply IHexec_stmt; destruct b; assumption.
+  - (* Sbreak *) right; reflexivity.
+  - (* Sswitch: outcome_switch of an inner Normal/Break is Normal *)
+    assert (Hin : out = Out_normal \/ out = Out_break) by
+      (apply IHexec_stmt; apply escape_free_seq_of_ls; apply escape_free_select_switch; exact Hef).
+    left. destruct Hin as [Ho | Ho]; rewrite Ho; reflexivity.
+Qed.
+
+(* A straight-line statement always finishes Out_normal -- used to reach a
+   trailing Sreturn through a function's prefix. A `switch` counts as long as its
+   cases are escape_free (break/fall-through, no return/continue/goto). *)
 Fixpoint exit_free (s : statement) : bool :=
   match s with
   | Sskip | Sset _ _ | Sassign _ _ | Scall _ _ _ | Sbuiltin _ _ _ _ => true
   | Ssequence s1 s2 | Sifthenelse _ s1 s2 => exit_free s1 && exit_free s2
+  | Sswitch _ ls => escape_free_ls ls
   | _ => false
   end.
 
@@ -165,6 +246,11 @@ Proof.
   - (* Sifthenelse *)
     apply andb_true_iff in Hef; destruct Hef as [He1 He2].
     apply IHexec_stmt; destruct b; assumption.
+  - (* Sswitch: inner is escape_free, so its outcome is Normal/Break -> switch Normal *)
+    assert (Hin : out = Out_normal \/ out = Out_break) by
+      (eapply exec_escape_free;
+        [ eassumption | apply escape_free_seq_of_ls; apply escape_free_select_switch; exact Hef ]).
+    destruct Hin as [Ho | Ho]; rewrite Ho; reflexivity.
 Qed.
 
 (* A function whose body is `PREFIX; return (Etempvar id)`, where PREFIX is
@@ -224,6 +310,31 @@ Proof.
   pose proof (exec_prefix_return_tempvar _ _ _ _ _ _ _ _ _ _ _ _ _ Hexec
                 ltac:(vm_compute; reflexivity) ltac:(vm_compute; reflexivity) Hla1) as Hoeq.
   (* outcome_result_value: res = sem_cast (Vint a) tuint tuint = Vint a. *)
+  rewrite Hoeq in Hout. cbn in Hout. destruct Hout as [_ Hcast].
+  vm_compute in Hcast. congruence.
+Qed.
+
+(* Same shape for the cutscene setter (its prefix is a `switch` whose cases only
+   set velocity / call void helpers and break -- handled by the switch-aware
+   exit_free).  Returns the input action unchanged. *)
+Lemma set_mario_action_cutscene_returns_arg :
+  forall ge m bm a arg t m' res,
+    eval_funcall function_entry2 ge m
+      (Internal mario.f_set_mario_action_cutscene)
+      (Vptr bm Ptrofs.zero :: Vint a :: Vint arg :: nil) t m' res ->
+    res = Vint a.
+Proof.
+  intros ge m bm a arg t m' res H. inv H.
+  match goal with H' : function_entry2 _ _ _ _ _ _ _ |- _ => rename H' into Hentry end.
+  match goal with H' : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename H' into Hexec end.
+  match goal with H' : outcome_result_value _ _ _ _ |- _ => rename H' into Hout end.
+  inv Hentry.
+  match goal with Hb : bind_parameter_temps _ _ _ = Some ?le1 |- _ =>
+    assert (Hla1 : le1 ! mario._action = Some (Vint a)) by
+      (vm_compute in Hb; injection Hb as Hb; rewrite <- Hb; vm_compute; reflexivity) end.
+  unfold mario.f_set_mario_action_cutscene in Hexec; cbn [fn_body] in Hexec.
+  pose proof (exec_prefix_return_tempvar _ _ _ _ _ _ _ _ _ _ _ _ _ Hexec
+                ltac:(vm_compute; reflexivity) ltac:(vm_compute; reflexivity) Hla1) as Hoeq.
   rewrite Hoeq in Hout. cbn in Hout. destruct Hout as [_ Hcast].
   vm_compute in Hcast. congruence.
 Qed.
