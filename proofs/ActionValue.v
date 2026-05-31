@@ -587,3 +587,31 @@ Proof.
   unfold P in Hfinal. apply negb_true_iff in Hfinal.
   assert (w = n) by congruence. subst w. exact Hfinal.
 Qed.
+
+(* ================================================================== *)
+(* INTERPROCEDURAL set_mario_action: it routes action through a switch  *)
+(* to set_mario_action_<group>(m, action, arg), then writes m->action.  *)
+(* First brick -- resolve each group-setter call target in the real     *)
+(* program genv (vm_compute over globalenv mario.prog). *)
+(* ================================================================== *)
+Definition sma_ge : genv := globalenv mario.prog.
+
+Lemma find_funct_set_mario_action_moving :
+  exists b, Genv.find_symbol sma_ge mario._set_mario_action_moving = Some b /\
+            Genv.find_funct_ptr sma_ge b = Some (Internal mario.f_set_mario_action_moving).
+Proof. eexists; split; vm_compute; reflexivity. Qed.
+
+Lemma find_funct_set_mario_action_airborne :
+  exists b, Genv.find_symbol sma_ge mario._set_mario_action_airborne = Some b /\
+            Genv.find_funct_ptr sma_ge b = Some (Internal mario.f_set_mario_action_airborne).
+Proof. eexists; split; vm_compute; reflexivity. Qed.
+
+Lemma find_funct_set_mario_action_submerged :
+  exists b, Genv.find_symbol sma_ge mario._set_mario_action_submerged = Some b /\
+            Genv.find_funct_ptr sma_ge b = Some (Internal mario.f_set_mario_action_submerged).
+Proof. eexists; split; vm_compute; reflexivity. Qed.
+
+Lemma find_funct_set_mario_action_cutscene :
+  exists b, Genv.find_symbol sma_ge mario._set_mario_action_cutscene = Some b /\
+            Genv.find_funct_ptr sma_ge b = Some (Internal mario.f_set_mario_action_cutscene).
+Proof. eexists; split; vm_compute; reflexivity. Qed.
