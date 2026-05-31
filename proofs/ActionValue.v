@@ -145,6 +145,133 @@ Proof.
     apply set_free_seq_of_ls. apply set_free_select_switch. exact Hsf.
 Qed.
 
+(* ------------------------------------------------------------------ *)
+(* NON-FABRICATION ENGINE: value-membership dataflow over a SET of      *)
+(* temps (g : ident -> bool).  flows_into P g s = true means every Sset *)
+(* to a g-temp assigns either a literal Econst satisfying P or ANOTHER  *)
+(* g-temp, and no call/builtin targets a g-temp.  Then the invariant    *)
+(* "every g-temp holding a Vint holds a P-value" survives execution.    *)
+(* With g = {the action temp and the ternary feeder temps} and P =      *)
+(* is-non-flying, a setter that never assigns a flying CONSTANT keeps    *)
+(* the action non-flying -- even through clightgen's `t = c?x:y; act=t`. *)
+(* ------------------------------------------------------------------ *)
+Fixpoint flows_into (P : int -> bool) (g : ident -> bool) (s : statement) : bool :=
+  match s with
+  | Sset id e =>
+      if g id then match e with
+                   | Econst_int n _ => P n
+                   | Etempvar j _   => g j
+                   | _              => false
+                   end
+      else true
+  | Scall optid _ _      => match optid with Some j => negb (g j) | None => true end
+  | Sbuiltin optid _ _ _ => match optid with Some j => negb (g j) | None => true end
+  | Ssequence s1 s2 | Sifthenelse _ s1 s2 | Sloop s1 s2
+                         => flows_into P g s1 && flows_into P g s2
+  | Slabel _ s1          => flows_into P g s1
+  | Sswitch _ ls         => flows_into_ls P g ls
+  | Sskip | Sbreak | Scontinue | Sreturn _ | Sassign _ _ | Sgoto _ => true
+  end
+with flows_into_ls (P : int -> bool) (g : ident -> bool) (ls : labeled_statements) : bool :=
+  match ls with
+  | LSnil           => true
+  | LScons _ s rest => flows_into P g s && flows_into_ls P g rest
+  end.
+
+Lemma flows_into_ssd :
+  forall P g sl, flows_into_ls P g sl = true -> flows_into_ls P g (select_switch_default sl) = true.
+Proof.
+  induction sl as [| o s rest IH]; simpl; intros H; auto.
+  destruct o as [c|]; auto. apply andb_true_iff in H; destruct H; auto.
+Qed.
+
+Lemma flows_into_ssc :
+  forall P g n sl res,
+    flows_into_ls P g sl = true -> select_switch_case n sl = Some res -> flows_into_ls P g res = true.
+Proof.
+  induction sl as [| o s rest IH]; simpl; intros res H Hsel; try discriminate.
+  apply andb_true_iff in H; destruct H as [Hs Hrest].
+  destruct o as [c|].
+  - destruct (zeq c n).
+    + inv Hsel. simpl. rewrite Hs, Hrest; auto.
+    + eapply IH; eauto.
+  - eapply IH; eauto.
+Qed.
+
+Lemma flows_into_select_switch :
+  forall P g n sl, flows_into_ls P g sl = true -> flows_into_ls P g (select_switch n sl) = true.
+Proof.
+  intros P g n sl H. unfold select_switch.
+  destruct (select_switch_case n sl) eqn:E.
+  - eapply flows_into_ssc; eauto.
+  - apply flows_into_ssd; auto.
+Qed.
+
+Lemma flows_into_seq_of_ls :
+  forall P g ls, flows_into_ls P g ls = true -> flows_into P g (seq_of_labeled_statement ls) = true.
+Proof.
+  induction ls as [| o s rest IH]; simpl; intros H; auto.
+  apply andb_true_iff in H; destruct H. rewrite H; simpl; auto.
+Qed.
+
+Lemma exec_flows_into :
+  forall (P : int -> bool) (g : ident -> bool) fe ge e le m s t le' m' out,
+    exec_stmt fe ge e le m s t le' m' out ->
+    flows_into P g s = true ->
+    (forall j v, g j = true -> le  ! j = Some (Vint v) -> P v = true) ->
+    (forall j v, g j = true -> le' ! j = Some (Vint v) -> P v = true).
+Proof.
+  intros P g fe ge e le m s t le' m' out H.
+  induction H; intros Hfi Hinv; simpl in Hfi; try exact Hinv; try discriminate.
+  - (* Sset id a v *)
+    intros j v0 Hgj Hjv. destruct (peq j id).
+    + (* j = id: the assigned value is (Vint v0) *)
+      subst j. rewrite PTree.gss in Hjv. inv Hjv.
+      rewrite Hgj in Hfi. destruct a; try discriminate Hfi.
+      * (* Econst_int n: eval is (Vint n) = (Vint v0); P n = Hfi *)
+        match goal with He : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ => inv He end;
+          try (match goal with Hlv : eval_lvalue _ _ _ _ _ _ _ _ |- _ => solve [ inv Hlv ] end).
+        exact Hfi.
+      * (* Etempvar k: eval gives le!k = Some (Vint v0), a g-temp, P by invariant *)
+        match goal with He : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ => inv He end;
+          try (match goal with Hlv : eval_lvalue _ _ _ _ _ _ _ _ |- _ => solve [ inv Hlv ] end).
+        match goal with Hk : _ ! _ = Some (Vint v0) |- _ => eapply Hinv; [ exact Hfi | exact Hk ] end.
+    + (* j <> id: untouched *)
+      rewrite PTree.gso in Hjv by auto. eapply Hinv; eauto.
+  - (* Scall *)
+    intros j v0 Hgj Hjv. destruct optid as [k|]; simpl in Hjv.
+    + destruct (peq j k).
+      * subst k. apply negb_true_iff in Hfi. rewrite Hgj in Hfi; discriminate.
+      * rewrite PTree.gso in Hjv by auto. eapply Hinv; eauto.
+    + eapply Hinv; eauto.
+  - (* Sbuiltin *)
+    intros j v0 Hgj Hjv. destruct optid as [k|]; simpl in Hjv.
+    + destruct (peq j k).
+      * subst k. apply negb_true_iff in Hfi. rewrite Hgj in Hfi; discriminate.
+      * rewrite PTree.gso in Hjv by auto. eapply Hinv; eauto.
+    + eapply Hinv; eauto.
+  - (* Sseq_1 *)
+    apply andb_true_iff in Hfi; destruct Hfi as [Hf1 Hf2].
+    apply (IHexec_stmt2 Hf2). apply (IHexec_stmt1 Hf1). exact Hinv.
+  - (* Sseq_2 *)
+    apply andb_true_iff in Hfi; destruct Hfi as [Hf1 _]. apply (IHexec_stmt Hf1). exact Hinv.
+  - (* Sifthenelse *)
+    apply andb_true_iff in Hfi; destruct Hfi as [Hf1 Hf2].
+    apply IHexec_stmt; [ destruct b; assumption | exact Hinv ].
+  - (* Sloop_stop1 *)
+    apply andb_true_iff in Hfi; destruct Hfi as [Hf1 _]. apply (IHexec_stmt Hf1). exact Hinv.
+  - (* Sloop_stop2 *)
+    apply andb_true_iff in Hfi; destruct Hfi as [Hf1 Hf2].
+    apply (IHexec_stmt2 Hf2). apply (IHexec_stmt1 Hf1). exact Hinv.
+  - (* Sloop_loop *)
+    apply andb_true_iff in Hfi; destruct Hfi as [Hf1 Hf2].
+    apply (IHexec_stmt3 ltac:(simpl; rewrite Hf1, Hf2; reflexivity)).
+    apply (IHexec_stmt2 Hf2). apply (IHexec_stmt1 Hf1). exact Hinv.
+  - (* Sswitch *)
+    apply IHexec_stmt; [ | exact Hinv ].
+    apply flows_into_seq_of_ls. apply flows_into_select_switch. exact Hfi.
+Qed.
+
 (* escape_free: no return/continue/goto/loop; Sbreak IS allowed (it is absorbed
    by an enclosing switch). Such a statement executes to Out_normal or Out_break.
    This is what lets a `switch` whose cases only break/fall-through count as
