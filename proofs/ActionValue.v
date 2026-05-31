@@ -1029,9 +1029,14 @@ Proof.
      so after inv the spurious By_value/By_reference branches carry an
      `access_mode (Tstruct _ _) = ...` hyp that discriminate can kill. *)
   match goal with Hdl : deref_loc _ _ _ _ _ _ |- _ => cbn [typeof] in Hdl; inv Hdl end;
-    try (match goal with Hac : access_mode (Tstruct _ _) = _ |- _ =>
-           cbn [access_mode] in Hac; discriminate end).
-  cbn [typeof] in *.
+    try (match goal with Hac : access_mode (Tstruct _ _) = By_value _ |- _ => discriminate end);
+    try (match goal with Hac : access_mode (Tstruct _ _) = By_reference |- _ => discriminate end).
+  (* reduce `typeof` ONLY in the hyps that mention it -- a blanket `cbn ... in *`
+     HANGS here because the context holds genv terms (sma_ge = globalenv ...). *)
+  repeat match goal with
+  | H : context[typeof (Efield _ _ _)] |- _ => cbn [typeof] in H
+  | H : context[typeof (Ederef _ _)]   |- _ => cbn [typeof] in H
+  end.
   (* pin the composite name id := _MarioState from `typeof a = Tstruct id att` *)
   match goal with Hty : Tstruct _ _ = Tstruct _ _ |- _ => inv Hty end.
   rewrite genv_cenv_sma in *.
