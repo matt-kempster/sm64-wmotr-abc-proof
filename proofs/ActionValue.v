@@ -23,7 +23,8 @@
  * P4's "Piece A" value-set frame induction.
  *)
 
-From compcert Require Import Coqlib Errors Maps AST Integers Values Events Memory Globalenvs Ctypes Cop Clight ClightBigstep.
+From compcert Require Import Coqlib Errors Maps AST Integers Values Events Memory Globalenvs Ctypes Cop Clight ClightBigstep Clightdefs.
+Import Clightdefs.ClightNotations.
 From SM64.Generated Require mario.
 From SM64.Proofs Require Import Flying.
 
@@ -643,3 +644,165 @@ Lemma find_funct_set_mario_action_cutscene :
   exists b, Genv.find_symbol sma_ge mario._set_mario_action_cutscene = Some b /\
             Genv.find_funct_ptr sma_ge b = Some (Internal mario.f_set_mario_action_cutscene).
 Proof. eexists; split; vm_compute; reflexivity. Qed.
+
+(* ------------------------------------------------------------------ *)
+(* Function-pointer evaluation bricks (reused inside each switch case). *)
+(* ------------------------------------------------------------------ *)
+
+(* find_funct on a zero-offset pointer is just find_funct_ptr. *)
+Lemma find_funct_zero :
+  forall (ge : genv) b f,
+    Genv.find_funct_ptr ge b = Some f ->
+    Genv.find_funct ge (Vptr b Ptrofs.zero) = Some f.
+Proof.
+  intros ge b f H. unfold Genv.find_funct.
+  destruct (Ptrofs.eq_dec Ptrofs.zero Ptrofs.zero); congruence.
+Qed.
+
+(* Evaluating a GLOBAL function symbol `Evar id (Tfunction ..)` yields exactly
+   its address Vptr b 0 (function type => By_reference deref). Inversion form:
+   from any eval_expr of it we recover the address from find_symbol. *)
+Lemma eval_Evar_funptr_inv :
+  forall (ge : genv) (e : env) (le : temp_env) (m : mem) id tyargs tyres cc vf b,
+    e ! id = None ->
+    Genv.find_symbol ge id = Some b ->
+    eval_expr ge e le m (Evar id (Tfunction tyargs tyres cc)) vf ->
+    vf = Vptr b Ptrofs.zero.
+Proof.
+  intros ge e le m id tyargs tyres cc vf b He Hsym Hev.
+  inv Hev.
+  match goal with Hlv : eval_lvalue _ _ _ _ _ _ _ _ |- _ =>
+    inv Hlv;
+    [ match goal with Hloc : e ! id = Some _ |- _ => rewrite He in Hloc; discriminate end
+    | match goal with Hfs : Genv.find_symbol _ id = Some ?l |- _ =>
+        assert (l = b) by congruence; subst l end ]
+  end;
+  match goal with Hd : deref_loc _ _ _ _ _ _ |- _ =>
+    inv Hd; simpl in *; try discriminate; reflexivity end.
+Qed.
+
+(* Evaluating the fixed argument list (m, action, actionArg) of every group
+   call yields exactly [Vptr bm 0; Vint a; Vint arg] from the three temps. *)
+Lemma eval_three_args :
+  forall (ge : genv) (e : env) (le : temp_env) (m : mem) bm a arg vargs,
+    le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
+    le ! mario._action = Some (Vint a) ->
+    le ! mario._actionArg = Some (Vint arg) ->
+    eval_exprlist ge e le m
+      ((Etempvar mario._m (tptr (Tstruct mario._MarioState noattr))) ::
+       (Etempvar mario._action tuint) :: (Etempvar mario._actionArg tuint) :: nil)
+      ((tptr (Tstruct mario._MarioState noattr)) :: tuint :: tuint :: nil)
+      vargs ->
+    vargs = (Vptr bm Ptrofs.zero :: Vint a :: Vint arg :: nil).
+Proof.
+  intros ge e le m bm a arg vargs Hm Ha Harg H.
+  repeat (match goal with
+          | He : eval_exprlist _ _ _ _ _ _ _ |- _ => inv He
+          | He : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+              inv He;
+              try (match goal with Hlv : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ =>
+                     solve [ inv Hlv ] end)
+          end).
+  match goal with Ht : le ! mario._m = Some ?v1, Hc : sem_cast ?v1 _ _ _ = Some _ |- _ =>
+    assert (v1 = Vptr bm Ptrofs.zero) by congruence; subst v1 end.
+  match goal with Ht : le ! mario._action = Some ?v2, Hc : sem_cast ?v2 _ _ _ = Some _ |- _ =>
+    assert (v2 = Vint a) by congruence; subst v2 end.
+  match goal with Ht : le ! mario._actionArg = Some ?v3, Hc : sem_cast ?v3 _ _ _ = Some _ |- _ =>
+    assert (v3 = Vint arg) by congruence; subst v3 end.
+  repeat (match goal with Hc : sem_cast _ _ _ _ = Some _ |- _ => vm_compute in Hc; inv Hc end).
+  reflexivity.
+Qed.
+
+(* ------------------------------------------------------------------ *)
+(* ONE SWITCH CASE of set_mario_action: call the group setter, store    *)
+(* its result into the action temp, break. Given a non-flying action     *)
+(* argument and the genv-resolved non-fabricating group setter, the      *)
+(* case leaves _action holding a non-flying Vint and _m unchanged.       *)
+(* ------------------------------------------------------------------ *)
+Definition group_case_body (gsym tk : ident) : statement :=
+  Ssequence
+    (Ssequence
+      (Scall (Some tk)
+        (Evar gsym (Tfunction
+           ((tptr (Tstruct mario._MarioState noattr)) :: tuint :: tuint :: nil)
+           tuint cc_default))
+        ((Etempvar mario._m (tptr (Tstruct mario._MarioState noattr))) ::
+         (Etempvar mario._action tuint) :: (Etempvar mario._actionArg tuint) :: nil))
+      (Sset mario._action (Etempvar tk tuint)))
+    Sbreak.
+
+Lemma exec_group_case :
+  forall (ge : genv) (e : env) (le : temp_env) (m : mem)
+         b gsym gf tk bm a arg t le' m' out,
+    e ! gsym = None ->
+    le ! mario._m         = Some (Vptr bm Ptrofs.zero) ->
+    le ! mario._action    = Some (Vint a) ->
+    le ! mario._actionArg = Some (Vint arg) ->
+    tk <> mario._m ->
+    Genv.find_symbol ge gsym = Some b ->
+    Genv.find_funct_ptr ge b = Some (Internal gf) ->
+    (forall mm bmm aa aarg tt mm' res,
+        eval_funcall function_entry2 ge mm (Internal gf)
+          (Vptr bmm Ptrofs.zero :: Vint aa :: Vint aarg :: nil) tt mm' res ->
+        is_flying_int aa = false ->
+        exists w, res = Vint w /\ is_flying_int w = false) ->
+    is_flying_int a = false ->
+    exec_stmt function_entry2 ge e le m (group_case_body gsym tk) t le' m' out ->
+    out = Out_break /\
+    le' ! mario._m = Some (Vptr bm Ptrofs.zero) /\
+    (exists w, le' ! mario._action = Some (Vint w) /\ is_flying_int w = false).
+Proof.
+  intros ge e le m b gsym gf tk bm a arg t le' m' out
+         Henv Hm Ha Harg Htk Hsym Hfun Hspec Hnf Hexec.
+  unfold group_case_body in Hexec.
+  (* outer Ssequence: (call;set) then break *)
+  inv Hexec;
+    [ | exfalso;
+        match goal with
+        | Hne : ?o1 <> Out_normal, Hab : exec_stmt _ _ _ _ _ _ _ _ _ ?o1 |- _ =>
+            apply Hne; eapply (exec_exit_free_normal _ _ _ _ _ _ _ _ _ _ Hab);
+            vm_compute; reflexivity end ].
+  (* break: out = Out_break, le' = le1, m' = m1 *)
+  match goal with Hbr : exec_stmt _ _ _ _ _ Sbreak _ _ _ _ |- _ => inv Hbr end.
+  (* inner Ssequence: call then set *)
+  match goal with Hcs : exec_stmt _ _ _ _ _ (Ssequence (Scall _ _ _) _) _ _ _ _ |- _ =>
+    inv Hcs;
+    [ | exfalso;
+        match goal with
+        | Hne : ?o1 <> Out_normal, Hab : exec_stmt _ _ _ _ _ _ _ _ _ ?o1 |- _ =>
+            apply Hne; eapply (exec_exit_free_normal _ _ _ _ _ _ _ _ _ _ Hab);
+            vm_compute; reflexivity end ] end.
+  (* Scall *)
+  match goal with Hcall : exec_stmt _ _ _ _ _ (Scall _ _ _) _ _ _ _ |- _ => inv Hcall end.
+  (* resolve the callee to Internal gf via the genv bricks *)
+  match goal with
+  | Hvf : eval_expr _ _ _ _ (Evar gsym _) ?vf, Hff : Genv.find_funct _ ?vf = Some _ |- _ =>
+      pose proof (eval_Evar_funptr_inv _ _ _ _ _ _ _ _ _ _ Henv Hsym Hvf) as Hvfeq;
+      rewrite Hvfeq in Hff; rewrite (find_funct_zero _ _ _ Hfun) in Hff; inv Hff
+  end.
+  (* pin the callee's argument types (classify_fun of the concrete Tfunction) *)
+  match goal with Hcl : classify_fun _ = fun_case_f _ _ _ |- _ => cbn in Hcl; inv Hcl end.
+  (* pin the argument list, then apply the non-fabrication spec to the result *)
+  lazymatch goal with Hargs : eval_exprlist _ _ _ _ _ _ _ |- _ =>
+    pose proof (eval_three_args _ _ _ _ _ _ _ _ Hm Ha Harg Hargs) as Hve end.
+  match goal with Hfc : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+    rewrite Hve in Hfc;
+    destruct (Hspec _ _ _ _ _ _ _ Hfc Hnf) as [w [Hvres Hwnf]] end.
+  (* Sset _action (Etempvar tk): le1 = set _action vres (= Vint w) *)
+  match goal with Hset : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv Hset end.
+  match goal with He : eval_expr _ _ _ _ (Etempvar tk _) ?v |- _ =>
+    inv He;
+    try (match goal with Hlv : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ =>
+           solve [ inv Hlv ] end) end.
+  cbn [set_opttemp] in *.
+  (* finish: out = Out_break, _m preserved, _action = Vint w non-flying *)
+  split; [ reflexivity | split ].
+  - (* le'!_m : through set _action then set tk *)
+    rewrite PTree.gso by (vm_compute; discriminate).
+    rewrite PTree.gso by (intro Hc; apply Htk; symmetry; exact Hc).
+    exact Hm.
+  - (* le'!_action = Some vres, and vres = Vint w *)
+    match goal with Htk' : (PTree.set tk ?vr _) ! tk = Some ?vv |- _ =>
+      rewrite PTree.gss in Htk' end.
+    exists w. rewrite PTree.gss. split; [ congruence | exact Hwnf ].
+Qed.
