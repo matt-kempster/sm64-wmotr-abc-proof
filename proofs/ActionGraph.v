@@ -160,6 +160,20 @@ Proof. reflexivity. Qed.
    CRUCIAL for P4: every flying edge's target is a LITERAL (the value appears
    here), so no flying transition hides behind a computed argument. *)
 
+(* ======================================================================
+   THE FLYING-EDGE ENUMERATION, refined by VALUE (the P1 deliverable).
+   ======================================================================
+   Per TU, the internal functions with a flying out-edge, paired with the flying
+   action VALUE(S) they target. Exactly the 5 R1 sites of Flying.v, now pinned at
+   the level of the action ARGUMENT (2nd positional), not merely "a flying literal
+   occurs somewhere in the args" -- a strictly sharper statement.
+   ACT_FLYING_TRIPLE_JUMP = 50333844, ACT_FLYING = 277350553.
+
+   CRUCIAL for P4: every flying edge's target is a LITERAL (the value appears
+   here), so no flying transition hides behind a computed argument.
+
+   (Edge-list order = prog_defs order, matching Flying.flying_setters.) *)
+
 Example moving_flying_edges :
   flying_edges mario_actions_moving.prog
   = [(mario_actions_moving._set_triple_jump_action, [50333844])].
@@ -167,8 +181,8 @@ Proof. reflexivity. Qed.
 
 Example airborne_flying_edges :
   flying_edges mario_actions_airborne.prog
-  = [(mario_actions_airborne._act_flying_triple_jump, [277350553]);
-     (mario_actions_airborne._act_shot_from_cannon,   [277350553])].
+  = [(mario_actions_airborne._act_shot_from_cannon,   [277350553]);
+     (mario_actions_airborne._act_flying_triple_jump, [277350553])].
 Proof. reflexivity. Qed.
 
 Example mario_flying_edges :
@@ -204,7 +218,9 @@ Proof. reflexivity. Qed.
    Number of setter calls whose action argument is NOT a literal, per TU. These
    are the call sites P4's value-tracking must reason about (a variable could in
    principle carry a flying value). The flying-edge enumeration above shows none
-   of them is CURRENTLY a flying edge -- but only dataflow (P4) makes that sound. *)
+   of them is CURRENTLY a flying edge -- but only dataflow (P4) makes that sound.
+   Order: moving, airborne, submerged, stationary, cutscene, object, automatic,
+   mario, level_update. *)
 
 Example computed_counts_per_tu :
   ( computed_count mario_actions_moving.prog
@@ -216,5 +232,5 @@ Example computed_counts_per_tu :
   , computed_count mario_actions_automatic.prog
   , computed_count mario.prog
   , computed_count level_update.prog )
-  = (16, 24, 8, 9, 1, 0, 3, 5, 0)%nat.
+  = (16, 6, 2, 3, 8, 5, 2, 3, 1)%nat.
 Proof. reflexivity. Qed.
