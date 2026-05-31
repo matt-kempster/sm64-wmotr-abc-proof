@@ -1123,3 +1123,124 @@ Proof.
     by (vm_compute; reflexivity).
   exact Hpres.
 Qed.
+
+(* ================================================================== *)
+(* STAGE 4 CAPSTONE: the whole set_mario_action body.                  *)
+(* body = Ssequence SWITCH REST.  The switch leaves the _action temp   *)
+(* holding a non-flying Vint w and _m preserved (exec_sma_switch).      *)
+(* REST is a right-nested sequence of field writes ending in `return 1`;*)
+(* the ONLY write to action@12 is `m->action = _action` (= Vint w), and *)
+(* every later write is to a disjoint field (preserves load@12).  So    *)
+(* after the body, m->action holds w (non-flying).                      *)
+(* ================================================================== *)
+
+(* Peel one exit_free prefix off a sequence: s1 must run to Out_normal  *)
+(* (it cannot break/return/continue), then s2 runs from the result.     *)
+Lemma exec_seq_exitfree :
+  forall fe ge e le m s1 s2 t le' m' out,
+    exec_stmt fe ge e le m (Ssequence s1 s2) t le' m' out ->
+    exit_free s1 = true ->
+    exists t1 le1 m1 t2,
+      exec_stmt fe ge e le m s1 t1 le1 m1 Out_normal /\
+      exec_stmt fe ge e le1 m1 s2 t2 le' m' out.
+Proof.
+  intros fe ge e le m s1 s2 t le' m' out Hex Hef. inv Hex.
+  - do 4 eexists; split; eassumption.
+  - exfalso.
+    match goal with
+    | Hs1 : exec_stmt _ _ _ _ _ s1 _ _ _ ?o1, Hne : ?o1 <> Out_normal |- _ =>
+        apply (exec_exit_free_normal _ _ _ _ _ _ _ _ _ _ Hs1) in Hef; congruence
+    end.
+Qed.
+
+Lemma set_mario_action_field :
+  forall (e : env) (le : temp_env) m a arg bm t le' m' out,
+    e ! mario._set_mario_action_moving    = None ->
+    e ! mario._set_mario_action_airborne  = None ->
+    e ! mario._set_mario_action_submerged = None ->
+    e ! mario._set_mario_action_cutscene  = None ->
+    le ! mario._m         = Some (Vptr bm Ptrofs.zero) ->
+    le ! mario._action    = Some (Vint a) ->
+    le ! mario._actionArg = Some (Vint arg) ->
+    is_flying_int a = false ->
+    exec_stmt function_entry2 sma_ge e le m (fn_body mario.f_set_mario_action) t le' m' out ->
+    out = Out_return (Some (Vint (Int.repr 1), tint)) /\
+    exists w, Mem.load Mint32 m' bm 12 = Some (Vint w) /\ is_flying_int w = false.
+Proof.
+  intros e le m a arg bm t le' m' out Hmv Hai Hsu Hcu Hm Ha Harg Hnf Hexec.
+  unfold mario.f_set_mario_action in Hexec. cbn [fn_body] in Hexec.
+  (* body = Ssequence SWITCH REST *)
+  inv Hexec.
+  2:{ (* Sseq_2: the switch would have to end abnormally -- impossible *)
+      exfalso.
+      match goal with
+      | Hsw : exec_stmt _ _ _ _ _ (Sswitch _ _) _ _ _ ?o1, Hne : ?o1 <> Out_normal |- _ =>
+          assert (o1 = Out_normal) by
+            (apply (proj1 (exec_sma_switch e le m a arg bm _ _ _ _
+                            Hmv Hai Hsu Hcu Hm Ha Harg Hnf Hsw)));
+          congruence
+      end. }
+  (* Sseq_1: switch ran to Out_normal, then REST *)
+  match goal with Hsw : exec_stmt _ _ _ _ _ (Sswitch _ _) _ _ _ _ |- _ =>
+    rename Hsw into HSW end.
+  match goal with Hr : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _ |- _ =>
+    rename Hr into HREST end.
+  destruct (exec_sma_switch e le m a arg bm _ _ _ _
+              Hmv Hai Hsu Hcu Hm Ha Harg Hnf HSW) as (_ & Hm1 & w & Hact1 & Hnf1).
+  (* peel REST: A_block ; B_block ; C_block ; ACTW ; ARGW ; ASW ; ATW ; return *)
+  destruct (exec_seq_exitfree _ _ _ _ _ _ _ _ _ _ _ HREST ltac:(vm_compute; reflexivity))
+    as (tA & leA & mA & tA2 & HA & H1).
+  destruct (exec_seq_exitfree _ _ _ _ _ _ _ _ _ _ _ H1 ltac:(vm_compute; reflexivity))
+    as (tB & leB & mB & tB2 & HB & H2).
+  destruct (exec_seq_exitfree _ _ _ _ _ _ _ _ _ _ _ H2 ltac:(vm_compute; reflexivity))
+    as (tC & leC & mC & tC2 & HC & H3).
+  destruct (exec_seq_exitfree _ _ _ _ _ _ _ _ _ _ _ H3 ltac:(vm_compute; reflexivity))
+    as (tD & leD & mD & tD2 & HACT & H4).
+  (* _m and _action survive A/B/C (they only touch t'-temps and memory) *)
+  assert (HmC : leC ! mario._m = Some (Vptr bm Ptrofs.zero)).
+  { rewrite (exec_stmt_preserves_temp mario._m _ _ _ _ _ _ _ _ _ _ HC ltac:(vm_compute; reflexivity)).
+    rewrite (exec_stmt_preserves_temp mario._m _ _ _ _ _ _ _ _ _ _ HB ltac:(vm_compute; reflexivity)).
+    rewrite (exec_stmt_preserves_temp mario._m _ _ _ _ _ _ _ _ _ _ HA ltac:(vm_compute; reflexivity)).
+    exact Hm1. }
+  assert (HactC : leC ! mario._action = Some (Vint w)).
+  { rewrite (exec_stmt_preserves_temp mario._action _ _ _ _ _ _ _ _ _ _ HC ltac:(vm_compute; reflexivity)).
+    rewrite (exec_stmt_preserves_temp mario._action _ _ _ _ _ _ _ _ _ _ HB ltac:(vm_compute; reflexivity)).
+    rewrite (exec_stmt_preserves_temp mario._action _ _ _ _ _ _ _ _ _ _ HA ltac:(vm_compute; reflexivity)).
+    exact Hact1. }
+  (* the one write to @12: action = _action = Vint w *)
+  destruct (exec_action_field_write e leC mC bm w _ _ _ _ HmC HactC HACT)
+    as (HleD & _ & HloadD).
+  subst leD.
+  (* ARGW: actionArg@16 -- disjoint, preserves load@12 *)
+  destruct (exec_seq_exitfree _ _ _ _ _ _ _ _ _ _ _ H4 ltac:(vm_compute; reflexivity))
+    as (tE & leE & mE & tE2 & HARGW & H5).
+  destruct (exec_other_field_write e leC mD bm mario._actionArg tuint _ _ _ _ _ _ _
+              HmC ltac:(vm_compute; discriminate) ltac:(vm_compute; reflexivity)
+              ltac:(vm_compute; reflexivity) ltac:(vm_compute; reflexivity)
+              ltac:(vm_compute; reflexivity) HARGW) as (HleE & _ & HloadE).
+  subst leE.
+  (* ASW: actionState@... tushort -- disjoint *)
+  destruct (exec_seq_exitfree _ _ _ _ _ _ _ _ _ _ _ H5 ltac:(vm_compute; reflexivity))
+    as (tF & leF & mF & tF2 & HASW & H6).
+  destruct (exec_other_field_write e leC mE bm mario._actionState tushort _ _ _ _ _ _ _
+              HmC ltac:(vm_compute; discriminate) ltac:(vm_compute; reflexivity)
+              ltac:(vm_compute; reflexivity) ltac:(vm_compute; reflexivity)
+              ltac:(vm_compute; reflexivity) HASW) as (HleF & _ & HloadF).
+  subst leF.
+  (* ATW: actionTimer@... tushort -- disjoint *)
+  destruct (exec_seq_exitfree _ _ _ _ _ _ _ _ _ _ _ H6 ltac:(vm_compute; reflexivity))
+    as (tG & leG & mG & tG2 & HATW & HRET).
+  destruct (exec_other_field_write e leC mF bm mario._actionTimer tushort _ _ _ _ _ _ _
+              HmC ltac:(vm_compute; discriminate) ltac:(vm_compute; reflexivity)
+              ltac:(vm_compute; reflexivity) ltac:(vm_compute; reflexivity)
+              ltac:(vm_compute; reflexivity) HATW) as (HleG & _ & HloadG).
+  (* return 1 *)
+  inv HRET.
+  match goal with He : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ => inv He end;
+    try (match goal with Hl : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+           solve [ inv Hl ] end).
+  split.
+  - reflexivity.
+  - exists w. split; [ | exact Hnf1 ].
+    rewrite HloadG, HloadF, HloadE. exact HloadD.
+Qed.
