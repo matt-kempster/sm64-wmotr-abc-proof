@@ -14,12 +14,13 @@
  *       accepts a `switch` prefix (escape_free: cases that only break/fall-through
  *       finish Out_normal, since outcome_switch absorbs Out_break).
  *
- * submerged/cutscene are "pass-through" (return the arg unchanged). moving REMAPS
- * some actions but only to non-flying CONSTANTS -- its NON-FABRICATION spec
- * (set_mario_action_moving_nonfabricate: non-flying arg => non-flying result) is
+ * ALL FOUR group setters are now specified: submerged/cutscene "pass-through"
+ * (return the arg unchanged); moving/airborne NON-FABRICATING (non-flying arg =>
+ * non-flying result -- they remap the action but only to non-flying CONSTANTS),
  * proved via the flows_into dataflow engine + exec_trailing_return (reach the
- * final-value return through deep nesting). airborne is the same shape (next).
- * Then the full set_mario_action spec and P4's "Piece A" value-set frame induction.
+ * final-value return through deep nesting). Next: the full set_mario_action spec
+ * (it routes action := <group-setter call result>, consuming these four), then
+ * P4's "Piece A" value-set frame induction.
  *)
 
 From compcert Require Import Coqlib Errors Maps AST Integers Values Events Memory Globalenvs Ctypes Cop Clight ClightBigstep.
@@ -546,6 +547,42 @@ Proof.
   rewrite Houteq in Hout. cbn in Hout. destruct Hout as [_ Hcast].
   destruct rv as [ | n | | | | ]; vm_compute in Hcast; try discriminate.
   (* rv = Vint n; Hcast : Some (Vint n) = Some res; Hres : res = Vint w -> w = n *)
+  specialize (Hfinal mario._action n ltac:(unfold g; apply Pos.eqb_refl) Hrvlk).
+  unfold P in Hfinal. apply negb_true_iff in Hfinal.
+  assert (w = n) by congruence. subst w. exact Hfinal.
+Qed.
+
+(* Same non-fabrication for the airborne setter: its 600+-line body reassigns the
+   action exactly once (the squish remap to ACT_JUMP, a non-flying constant) and
+   otherwise only sets velocities in its switch, then returns the action. *)
+Lemma set_mario_action_airborne_nonfabricate :
+  forall ge m bm a arg t m' res,
+    eval_funcall function_entry2 ge m
+      (Internal mario.f_set_mario_action_airborne)
+      (Vptr bm Ptrofs.zero :: Vint a :: Vint arg :: nil) t m' res ->
+    is_flying_int a = false ->
+    forall w, res = Vint w -> is_flying_int w = false.
+Proof.
+  intros ge m bm a arg t m' res H Hnf w Hres. inv H.
+  match goal with H' : function_entry2 _ _ _ _ _ _ _ |- _ => rename H' into Hentry end.
+  match goal with H' : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename H' into Hexec end.
+  match goal with H' : outcome_result_value _ _ _ _ |- _ => rename H' into Hout end.
+  inv Hentry.
+  match goal with Hb : bind_parameter_temps _ _ _ = Some ?le1 |- _ =>
+    assert (Hla1 : le1 ! mario._action = Some (Vint a)) by
+      (vm_compute in Hb; injection Hb as Hb; rewrite <- Hb; vm_compute; reflexivity) end.
+  unfold mario.f_set_mario_action_airborne in Hexec; cbn [fn_body] in Hexec.
+  set (g := fun j => Pos.eqb j mario._action).
+  set (P := fun n => negb (is_flying_int n)).
+  assert (Hinv : forall j v, g j = true -> le1 ! j = Some (Vint v) -> P v = true).
+  { intros j v Hgj Hjv. unfold g in Hgj. apply Pos.eqb_eq in Hgj. subst j.
+    rewrite Hla1 in Hjv. inv Hjv. unfold P. rewrite Hnf. reflexivity. }
+  pose proof (exec_flows_into P g _ _ _ _ _ _ _ _ _ _ Hexec
+                ltac:(vm_compute; reflexivity) Hinv) as Hfinal.
+  eapply (exec_trailing_return mario._action) in Hexec; [ | vm_compute; reflexivity ].
+  destruct Hexec as [rv [Houteq Hrvlk]].
+  rewrite Houteq in Hout. cbn in Hout. destruct Hout as [_ Hcast].
+  destruct rv as [ | n | | | | ]; vm_compute in Hcast; try discriminate.
   specialize (Hfinal mario._action n ltac:(unfold g; apply Pos.eqb_refl) Hrvlk).
   unfold P in Hfinal. apply negb_true_iff in Hfinal.
   assert (w = n) by congruence. subst w. exact Hfinal.
