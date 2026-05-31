@@ -34,7 +34,7 @@
 
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory Globalenvs Ctypes Cop Clight ClightBigstep.
 From SM64.Generated Require mario.
-From SM64.Proofs Require Import Flying ActionFrame.
+From SM64.Proofs Require Import Flying ActionFrame ActionValue.
 
 (* The action cell as a watched byte-set: 4 bytes at (bm, 12). Reuses the exact
    shape rung (c) consumes (b = bm /\ aofs <= o < aofs + size_chunk Mint32). *)
@@ -183,4 +183,40 @@ Corollary store_nonflying_preserves_nonflying :
 Proof.
   intros m bm w m' Hnf Hst.
   eapply store_action_cell_sat; [ exact Hst | exact Hnf ].
+Qed.
+
+(* ================================================================== *)
+(* BRICK 3: the ONE call writer, lifted into the value language.       *)
+(*                                                                     *)
+(* set_mario_action is the single function that writes m->action       *)
+(* through a call (the choke point). ActionValue.set_mario_action_field *)
+(* already proved the genuinely hard fact -- executing its body with a  *)
+(* non-flying action argument leaves m->action holding a NON-FLYING     *)
+(* value (the switch picks a group setter that only downgrades, then    *)
+(* `m->action = _action`). Brick 3 simply restates that existential-    *)
+(* load payoff in the value-aware frame language: the body execution    *)
+(* ESTABLISHES action_sat (non-flying). This is the "permitted writer"  *)
+(* case -- the counterpart, for the one call site, of brick 2's leaf    *)
+(* for raw literal writes. The statement induction's Scall branch will  *)
+(* consume it (after wiring eval_funcall -> body via function_entry2,   *)
+(* which is the assembly step, not this brick).                         *)
+(* ================================================================== *)
+Lemma set_mario_action_body_action_sat :
+  forall (e : env) (le : temp_env) (m : mem) (a arg : int) (t : trace)
+         (le' : temp_env) (m' : mem) (out : outcome) (bm : block),
+    e ! mario._set_mario_action_moving    = None ->
+    e ! mario._set_mario_action_airborne  = None ->
+    e ! mario._set_mario_action_submerged = None ->
+    e ! mario._set_mario_action_cutscene  = None ->
+    is_flying_int a = false ->
+    le ! mario._action    = Some (Vint a) ->
+    le ! mario._actionArg = Some (Vint arg) ->
+    le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
+    exec_stmt function_entry2 sma_ge e le m (fn_body mario.f_set_mario_action) t le' m' out ->
+    action_sat (fun v => is_flying_int v = false) m' bm.
+Proof.
+  intros e le m a arg t le' m' out bm Hm1 Hm2 Hm3 Hm4 Hnf Hact Harg Hmptr Hexec.
+  destruct (set_mario_action_field e le m a arg bm t le' m' out
+              Hm1 Hm2 Hm3 Hm4 Hmptr Hact Harg Hnf Hexec) as (Hout & w & Hld & Hwnf).
+  unfold action_sat. intros v0 Hv0. rewrite Hld in Hv0. inv Hv0. exact Hwnf.
 Qed.
