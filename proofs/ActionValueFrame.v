@@ -410,7 +410,7 @@ Proof.
     end.
   - (* Sbuiltin: external call preserves the cell (and validity) *)
     match goal with
-    | Hec : external_call ?ef ge _ _ _ _ _ |- _ =>
+    | Hec : external_call _ _ _ _ _ _ _ |- _ =>
         split;
         [ eapply external_call_valid_block; [ exact Hec | exact Hvalid ]
         | eapply action_sat_unchanged_on;
