@@ -1068,8 +1068,11 @@ Lemma exec_action_field_write :
     le' = le /\ out = Out_normal /\ Mem.load Mint32 m' bm 12 = Some (Vint w).
 Proof.
   intros e le m bm w t le' m' out Hm Hact Hexec.
-  apply exec_mario_field_store in Hexec; [ | exact Hm ].
+  apply (exec_mario_field_store e le m bm) in Hexec; [ | exact Hm ].
   destruct Hexec as [Hle [Hout [delta [bf [v2 [v [Hfo [Hev [Hcast Hass]]]]]]]]].
+  (* discharge le'=le / out FIRST -- a later `inv` runs `subst` which would
+     consume Hle (le' = le) before we could use it. *)
+  split; [ exact Hle | split; [ exact Hout | ] ].
   vm_compute in Hfo; inv Hfo.            (* delta = 12, bf = Full *)
   inv Hev;
     try (match goal with Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => solve [ inv Hl ] end).
@@ -1077,7 +1080,6 @@ Proof.
   match goal with Hk : _ ! mario._action = Some ?vv |- _ =>
     assert (vv = Vint w) by congruence; subst vv end.
   vm_compute in Hcast; inv Hcast.        (* v = Vint w *)
-  split; [ exact Hle | split; [ exact Hout | ] ].
   erewrite assign_loc_scalar_load_same;
     [ | match goal with Ha : assign_loc _ _ _ _ _ _ _ _ |- _ => exact Ha end ].
   reflexivity.
@@ -1100,10 +1102,10 @@ Lemma exec_other_field_write :
 Proof.
   intros e le m bm fid fty rhs t le' m' out delta chunk
          Hm Hne Hfo Hft Ham Hov Hexec.
-  apply exec_mario_field_store in Hexec; [ | exact Hm ].
+  apply (exec_mario_field_store e le m bm) in Hexec; [ | exact Hm ].
   destruct Hexec as [Hle [Hout [delta' [bf' [v2 [v [Hfo' [Hev [Hcast Hass]]]]]]]]].
-  rewrite Hfo in Hfo'; inv Hfo'.         (* delta' = delta, bf' = Full *)
   split; [ exact Hle | split; [ exact Hout | ] ].
+  rewrite Hfo in Hfo'; inv Hfo'.         (* delta' = delta, bf' = Full *)
   pose proof (assign_loc_other_field_preserves_action_loadv
                 m bm Ptrofs.zero fid delta fty chunk v m'
                 Hfo Hft Ham Hne Hov ltac:(vm_compute; reflexivity) Hass) as Hpres.
