@@ -516,15 +516,15 @@ Qed.
 (* flying value.  Proved via the flows_into engine (action stays non-   *)
 (* flying) + exec_trailing_return (the return reads the final action).  *)
 (* ================================================================== *)
-Lemma set_mario_action_moving_nonfabricate :
+Lemma set_mario_action_moving_result :
   forall ge m bm a arg t m' res,
     eval_funcall function_entry2 ge m
       (Internal mario.f_set_mario_action_moving)
       (Vptr bm Ptrofs.zero :: Vint a :: Vint arg :: nil) t m' res ->
     is_flying_int a = false ->
-    forall w, res = Vint w -> is_flying_int w = false.
+    exists w, res = Vint w /\ is_flying_int w = false.
 Proof.
-  intros ge m bm a arg t m' res H Hnf w Hres. inv H.
+  intros ge m bm a arg t m' res H Hnf. inv H.
   match goal with H' : function_entry2 _ _ _ _ _ _ _ |- _ => rename H' into Hentry end.
   match goal with H' : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename H' into Hexec end.
   match goal with H' : outcome_result_value _ _ _ _ |- _ => rename H' into Hout end.
@@ -546,24 +546,24 @@ Proof.
   destruct Hexec as [rv [Houteq Hrvlk]].
   rewrite Houteq in Hout. cbn in Hout. destruct Hout as [_ Hcast].
   destruct rv as [ | n | | | | ]; vm_compute in Hcast; try discriminate.
-  (* rv = Vint n; Hcast : Some (Vint n) = Some res; Hres : res = Vint w -> w = n *)
+  (* rv = Vint n; Hcast : Some (Vint n) = Some res *)
   specialize (Hfinal mario._action n ltac:(unfold g; apply Pos.eqb_refl) Hrvlk).
   unfold P in Hfinal. apply negb_true_iff in Hfinal.
-  assert (w = n) by congruence. subst w. exact Hfinal.
+  exists n. split; [ congruence | exact Hfinal ].
 Qed.
 
 (* Same non-fabrication for the airborne setter: its 600+-line body reassigns the
    action exactly once (the squish remap to ACT_JUMP, a non-flying constant) and
    otherwise only sets velocities in its switch, then returns the action. *)
-Lemma set_mario_action_airborne_nonfabricate :
+Lemma set_mario_action_airborne_result :
   forall ge m bm a arg t m' res,
     eval_funcall function_entry2 ge m
       (Internal mario.f_set_mario_action_airborne)
       (Vptr bm Ptrofs.zero :: Vint a :: Vint arg :: nil) t m' res ->
     is_flying_int a = false ->
-    forall w, res = Vint w -> is_flying_int w = false.
+    exists w, res = Vint w /\ is_flying_int w = false.
 Proof.
-  intros ge m bm a arg t m' res H Hnf w Hres. inv H.
+  intros ge m bm a arg t m' res H Hnf. inv H.
   match goal with H' : function_entry2 _ _ _ _ _ _ _ |- _ => rename H' into Hentry end.
   match goal with H' : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename H' into Hexec end.
   match goal with H' : outcome_result_value _ _ _ _ |- _ => rename H' into Hout end.
@@ -585,7 +585,35 @@ Proof.
   destruct rv as [ | n | | | | ]; vm_compute in Hcast; try discriminate.
   specialize (Hfinal mario._action n ltac:(unfold g; apply Pos.eqb_refl) Hrvlk).
   unfold P in Hfinal. apply negb_true_iff in Hfinal.
-  assert (w = n) by congruence. subst w. exact Hfinal.
+  exists n. split; [ congruence | exact Hfinal ].
+Qed.
+
+(* Pass-through setters (submerged/cutscene return the arg) cast to the same
+   uniform `_result` shape, so the switch lemma can treat all four uniformly. *)
+Lemma set_mario_action_submerged_result :
+  forall ge m bm a arg t m' res,
+    eval_funcall function_entry2 ge m
+      (Internal mario.f_set_mario_action_submerged)
+      (Vptr bm Ptrofs.zero :: Vint a :: Vint arg :: nil) t m' res ->
+    is_flying_int a = false ->
+    exists w, res = Vint w /\ is_flying_int w = false.
+Proof.
+  intros ge m bm a arg t m' res H Hnf.
+  exists a. split;
+    [ exact (set_mario_action_submerged_returns_arg _ _ _ _ _ _ _ _ H) | exact Hnf ].
+Qed.
+
+Lemma set_mario_action_cutscene_result :
+  forall ge m bm a arg t m' res,
+    eval_funcall function_entry2 ge m
+      (Internal mario.f_set_mario_action_cutscene)
+      (Vptr bm Ptrofs.zero :: Vint a :: Vint arg :: nil) t m' res ->
+    is_flying_int a = false ->
+    exists w, res = Vint w /\ is_flying_int w = false.
+Proof.
+  intros ge m bm a arg t m' res H Hnf.
+  exists a. split;
+    [ exact (set_mario_action_cutscene_returns_arg _ _ _ _ _ _ _ _ H) | exact Hnf ].
 Qed.
 
 (* ================================================================== *)
