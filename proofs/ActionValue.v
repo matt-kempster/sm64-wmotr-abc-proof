@@ -1110,7 +1110,11 @@ Proof.
   apply (exec_mario_field_store e le m bm) in Hexec; [ | exact Hm ].
   destruct Hexec as [Hle [Hout [delta' [bf' [v2 [v [Hfo' [Hev [Hcast Hass]]]]]]]]].
   split; [ exact Hle | split; [ exact Hout | ] ].
-  rewrite Hfo in Hfo'; inv Hfo'.         (* delta' = delta, bf' = Full *)
+  (* delta' = delta, bf' = Full -- subst the EXISTENTIALS (delta'/bf'), keeping
+     the lemma parameter `delta` that the pose-proof below references. *)
+  assert (Edb : delta' = delta /\ bf' = Full)
+    by (rewrite Hfo in Hfo'; inv Hfo'; split; reflexivity).
+  destruct Edb as [Ed Eb]; subst delta' bf'.
   pose proof (assign_loc_other_field_preserves_action_loadv
                 m bm Ptrofs.zero fid delta fty chunk v m'
                 Hfo Hft Ham Hne Hov ltac:(vm_compute; reflexivity) Hass) as Hpres.
