@@ -312,3 +312,171 @@ Proof.
   induction ls as [| o s rest IH]; simpl; intros H; auto.
   destruct H. split; auto.
 Qed.
+
+(* ================================================================== *)
+(* CAPSTONE part B: forward-monotonicity helpers + the induction.      *)
+(* ================================================================== *)
+
+(* assign_loc never invalidates an existing block (it only stores).     *)
+(* Uniform over the three assign_loc kinds, like assign_loc_unchanged_on.*)
+Lemma assign_loc_valid_block :
+  forall ce ty m loc ofs bf v m' b,
+    assign_loc ce ty m loc ofs bf v m' ->
+    Mem.valid_block m b ->
+    Mem.valid_block m' b.
+Proof.
+  intros ce ty m loc ofs bf v m' b Hassign Hvalid. inv Hassign.
+  - match goal with Hs : Mem.storev _ _ _ _ = Some _ |- _ =>
+      unfold Mem.storev in Hs; eapply Mem.store_valid_block_1; eauto end.
+  - match goal with Hsb : Mem.storebytes _ _ _ _ = Some _ |- _ =>
+      eapply Mem.storebytes_valid_block_1; eauto end.
+  - match goal with Hbf : store_bitfield _ _ _ _ _ _ _ _ _ _ |- _ => inv Hbf end.
+    match goal with Hs : Mem.storev _ _ _ _ = Some _ |- _ =>
+      unfold Mem.storev in Hs; eapply Mem.store_valid_block_1; eauto end.
+Qed.
+
+(* unchanged_on the action cell transports action_sat forward (the      *)
+(* externals/avoid route -- the load at 12 is unchanged). *)
+Lemma action_sat_unchanged_on :
+  forall Q m m' bm,
+    Mem.unchanged_on (action_cell bm) m m' ->
+    Mem.valid_block m bm ->
+    action_sat Q m bm ->
+    action_sat Q m' bm.
+Proof.
+  intros Q m m' bm Hu Hvalid Hsat. unfold action_sat. intros v0 Hld. apply Hsat.
+  assert (Heq : Mem.load Mint32 m' bm 12 = Mem.load Mint32 m bm 12).
+  { eapply Mem.load_unchanged_on_1;
+      [ exact Hu | exact Hvalid | intros i Hi; split; [ reflexivity | exact Hi ] ]. }
+  rewrite <- Heq. exact Hld.
+Qed.
+
+(* The honest boundary at the FUNCALL level (the value analogue of      *)
+(* ActionFrame.reach_body_avoids, but stated for whole calls so the     *)
+(* statement induction below can stay non-mutual). Every reached funcall *)
+(* that starts with action_sat holding and bm valid ends the same way.   *)
+(* P4's remaining work DISCHARGES this by a case split: set_mario_action  *)
+(* via brick 3 (given non-flying args = the P3 ActionReach invariant),    *)
+(* every other reached function via brick 1's unchanged_on route. Until   *)
+(* then it is an explicit assumption, not hidden. *)
+Definition reach_value_preserves (Q : int -> Prop) (bm : block) (ge : genv) : Prop :=
+  forall m fd vargs t m' vres,
+    eval_funcall function_entry2 ge m fd vargs t m' vres ->
+    Mem.valid_block m bm ->
+    action_sat Q m bm ->
+    Mem.valid_block m' bm /\ action_sat Q m' bm.
+
+(* THE CAPSTONE: the value-aware statement frame. Executing any clightgen *)
+(* statement (calls and loops included) carries action_sat Q FORWARD,      *)
+(* given (i) the caller's own Sassigns are value-ok (brick 2: each avoids  *)
+(* the cell OR stores a Q-value), (ii) reached funcalls preserve action_sat *)
+(* (reach_value_preserves), (iii) reached externals preserve the cell      *)
+(* (reach_ext_preserves). Compare ActionFrame.exec_funcall_reach_unchanged_*)
+(* on: unchanged_on is replaced by the forward value invariant, so the      *)
+(* legitimate action writes (raw literals + set_mario_action) are no longer *)
+(* fatal -- they are absorbed by the value-ok / reach_value disjuncts.      *)
+Theorem exec_stmt_value_preserves :
+  forall (Q : int -> Prop) (bm : block) (ge : genv),
+    reach_value_preserves Q bm ge ->
+    reach_ext_preserves (action_cell bm) ge ->
+    forall e le m s t le' m' out,
+      exec_stmt function_entry2 ge e le m s t le' m' out ->
+      Mem.valid_block m bm ->
+      action_sat Q m bm ->
+      stmt_value_ok Q bm ge e s ->
+      Mem.valid_block m' bm /\ action_sat Q m' bm.
+Proof.
+  intros Q bm ge Hreach Hext e le m s t le' m' out H.
+  induction H; intros Hvalid Hsat Hok.
+  - (* Sskip *) split; [ exact Hvalid | exact Hsat ].
+  - (* Sassign *)
+    simpl in Hok.
+    match goal with
+    | Hlv : eval_lvalue _ _ _ _ ?a1 ?loc ?ofs ?bf,
+      He  : eval_expr _ _ _ _ ?a2 ?v2,
+      Hc  : sem_cast ?v2 _ _ _ = Some ?v,
+      Has : assign_loc _ _ _ ?loc ?ofs ?bf ?v _ |- _ =>
+        split;
+        [ eapply assign_loc_valid_block; [ exact Has | exact Hvalid ]
+        | eapply assign_loc_action_sat;
+            [ exact Has | exact Hvalid | exact Hsat
+            | exact (Hok _ _ _ _ _ _ _ Hlv He Hc) ] ]
+    end.
+  - (* Sset: no memory effect *) split; [ exact Hvalid | exact Hsat ].
+  - (* Scall: the funcall boundary hypothesis *)
+    match goal with
+    | Hfc : eval_funcall function_entry2 ge _ _ _ _ _ _ |- _ =>
+        exact (Hreach _ _ _ _ _ _ Hfc Hvalid Hsat)
+    end.
+  - (* Sbuiltin: external call preserves the cell (and validity) *)
+    match goal with
+    | Hec : external_call ?ef ge _ _ _ _ _ |- _ =>
+        split;
+        [ eapply external_call_valid_block; [ exact Hec | exact Hvalid ]
+        | eapply action_sat_unchanged_on;
+            [ eapply Hext; exact Hec | exact Hvalid | exact Hsat ] ]
+    end.
+  - (* Sseq_1: s1 normal then s2 *)
+    simpl in Hok;
+    match goal with
+    | IH1 : Mem.valid_block ?m1 bm -> action_sat _ ?m1 bm -> _,
+      IH2 : Mem.valid_block ?m2 bm -> action_sat _ ?m2 bm -> _ -> Mem.valid_block ?mf bm /\ _
+      |- Mem.valid_block ?mf bm /\ _ =>
+        destruct (IH1 Hvalid Hsat (proj1 Hok)) as [Hv1 Hs1];
+        apply (IH2 Hv1 Hs1 (proj2 Hok))
+    end.
+  - (* Sseq_2: s1 abnormal *)
+    simpl in Hok;
+    match goal with
+    | IH : Mem.valid_block ?mx bm -> action_sat _ ?mx bm -> _ |- _ =>
+        apply IH; [ exact Hvalid | exact Hsat | exact (proj1 Hok) ]
+    end.
+  - (* Sifthenelse *)
+    simpl in Hok;
+    match goal with
+    | IH : Mem.valid_block ?mx bm -> action_sat _ ?mx bm -> _ -> Mem.valid_block ?mf bm /\ _
+      |- Mem.valid_block ?mf bm /\ _ =>
+        apply IH;
+          [ exact Hvalid | exact Hsat
+          | destruct b; [ exact (proj1 Hok) | exact (proj2 Hok) ] ]
+    end.
+  - (* Sreturn_none *) split; [ exact Hvalid | exact Hsat ].
+  - (* Sreturn_some *) split; [ exact Hvalid | exact Hsat ].
+  - (* Sbreak *) split; [ exact Hvalid | exact Hsat ].
+  - (* Scontinue *) split; [ exact Hvalid | exact Hsat ].
+  - (* Sloop_stop1: only s1 ran *)
+    simpl in Hok;
+    match goal with
+    | IH : Mem.valid_block ?mx bm -> action_sat _ ?mx bm -> _ |- _ =>
+        apply IH; [ exact Hvalid | exact Hsat | exact (proj1 Hok) ]
+    end.
+  - (* Sloop_stop2: s1 then s2 *)
+    simpl in Hok;
+    match goal with
+    | IH1 : Mem.valid_block ?m1 bm -> action_sat _ ?m1 bm -> _,
+      IH2 : Mem.valid_block ?m2 bm -> action_sat _ ?m2 bm -> _ -> Mem.valid_block ?mf bm /\ _
+      |- Mem.valid_block ?mf bm /\ _ =>
+        destruct (IH1 Hvalid Hsat (proj1 Hok)) as [Hv1 Hs1];
+        apply (IH2 Hv1 Hs1 (proj2 Hok))
+    end.
+  - (* Sloop_loop: s1, s2, then the loop again *)
+    simpl in Hok;
+    match goal with
+    | IH1 : Mem.valid_block ?m1 bm -> action_sat _ ?m1 bm -> _,
+      IH2 : Mem.valid_block ?m2 bm -> action_sat _ ?m2 bm -> _,
+      IH3 : Mem.valid_block ?m3 bm -> action_sat _ ?m3 bm -> _ -> Mem.valid_block ?mf bm /\ _
+      |- Mem.valid_block ?mf bm /\ _ =>
+        destruct (IH1 Hvalid Hsat (proj1 Hok)) as [Hv1 Hs1];
+        destruct (IH2 Hv1 Hs1 (proj2 Hok)) as [Hv2 Hs2];
+        apply (IH3 Hv2 Hs2 (conj (proj1 Hok) (proj2 Hok)))
+    end.
+  - (* Sswitch: reduce to the selected sequence *)
+    simpl in Hok;
+    match goal with
+    | IH : Mem.valid_block ?mx bm -> action_sat _ ?mx bm -> _ -> Mem.valid_block ?mf bm /\ _
+      |- Mem.valid_block ?mf bm /\ _ =>
+        apply IH;
+          [ exact Hvalid | exact Hsat
+          | apply seq_of_ls_value_ok; apply select_switch_value_ok; exact Hok ]
+    end.
+Qed.
