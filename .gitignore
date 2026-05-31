@@ -15,6 +15,9 @@ CoqMakefile.conf
 # clightgen intermediate (preprocessed C); the .v output in generated/ IS committed
 *.i
 
+# check.sh per-sentence timing log (pipeline/check.sh writes this)
+pipeline/_check_time.log
+
 # opam switch (we keep it global, not in-tree), editor cruft
 _opam/
 *.swp
