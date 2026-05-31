@@ -27,6 +27,7 @@ From compcert Require Import Coqlib Errors Maps AST Integers Values Events Memor
 Import Clightdefs.ClightNotations.
 From SM64.Generated Require mario.
 From SM64.Proofs Require Import Flying.
+From SM64.Proofs Require Import ActionFrame.
 
 (* ------------------------------------------------------------------ *)
 (* KERNEL: a By_value store of (Vint v) into a scalar field reads back  *)
@@ -973,4 +974,136 @@ Proof.
     rewrite (sma_select_switch_default nn N64 N128 N192 N256) in Hb.
     cbn [seq_of_labeled_statement] in Hb. inv Hb. cbn [outcome_switch].
     split; [ reflexivity | split; [ exact Hm | exists a; split; [ exact Ha | exact Hnf ] ] ].
+Qed.
+
+(* ================================================================== *)
+(* STAGE 4: the REST of set_mario_action (everything after the switch). *)
+(* It reads/writes several MarioState fields and ends in `return 1`.    *)
+(* The ONE write to the action field (offset 12) is `m->action =        *)
+(* _action`; all other field writes are at disjoint offsets. So after    *)
+(* REST, m->action holds the (non-flying) value of the _action temp.     *)
+(* ================================================================== *)
+
+(* The Clight genv's composite env for mario.prog IS mario_ce (both are    *)
+(* prog_comp_env mario.prog), by a lazy record projection -- cheap.         *)
+Lemma genv_cenv_sma : genv_cenv sma_ge = mario_ce.
+Proof. unfold sma_ge, mario_ce, globalenv. cbn [genv_cenv]. reflexivity. Qed.
+
+(* Bridge: a Clight `Sassign` through the canonical `m->field` lvalue     *)
+(* (Efield (Ederef (Etempvar _m) MarioState) f) reduces to a concrete     *)
+(* assign_loc at byte (bm, delta) of the real MarioState composite,       *)
+(* leaving the temps untouched. delta/bf come from the field table.       *)
+Lemma exec_mario_field_store :
+  forall (e : env) le m bm fid fty rhs t le' m' out,
+    le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
+    exec_stmt function_entry2 sma_ge e le m
+      (Sassign (Efield (Ederef (Etempvar mario._m (tptr (Tstruct mario._MarioState noattr)))
+                  (Tstruct mario._MarioState noattr)) fid fty) rhs) t le' m' out ->
+    le' = le /\ out = Out_normal /\
+    exists delta bf v2 v,
+      field_offset mario_ce fid mario_members = OK (delta, bf) /\
+      eval_expr sma_ge e le m rhs v2 /\
+      sem_cast v2 (typeof rhs) fty m = Some v /\
+      assign_loc mario_ce fty m bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr delta)) bf v m'.
+Proof.
+  intros e le m bm fid fty rhs t le' m' out Hm Hexec.
+  inv Hexec.
+  match goal with Hlv : eval_lvalue _ _ _ _ (Efield _ _ _) _ _ _ |- _ => inv Hlv end;
+    [ | match goal with Hut : typeof _ = Tunion _ _ |- _ => inv Hut end ].
+  (* struct field: the inner Ederef is read as an rvalue (By_copy) *)
+  match goal with Hee : eval_expr _ _ _ _ (Ederef _ _) _ |- _ => inv Hee end.
+  match goal with Hlv2 : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ => inv Hlv2 end.
+  match goal with He : eval_expr _ _ _ _ (Etempvar mario._m _) _ |- _ =>
+    inv He;
+    try (match goal with Hl2 : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ =>
+           solve [ inv Hl2 ] end) end.
+  (* pin the inner _m pointer to (bm, 0): use the inversion hyp (its offset is
+     a variable ofs), NOT the precondition Hm (offset literally Ptrofs.zero) *)
+  match goal with
+  | Hlk : ?T ! mario._m = Some (Vptr ?l ?o) |- _ =>
+      first [ constr_eq o Ptrofs.zero; fail 1
+            | first [ constr_eq l bm | assert (l = bm) by congruence; subst l ];
+              assert (o = Ptrofs.zero) by congruence; subst o ]
+  end.
+  (* the struct base is read By_copy. Reduce typeof IN the deref_loc hyp first,
+     so after inv the spurious By_value/By_reference branches carry an
+     `access_mode (Tstruct _ _) = ...` hyp that discriminate can kill. *)
+  match goal with Hdl : deref_loc _ _ _ _ _ _ |- _ => cbn [typeof] in Hdl; inv Hdl end;
+    try (match goal with Hac : access_mode (Tstruct _ _) = _ |- _ =>
+           cbn [access_mode] in Hac; discriminate end).
+  cbn [typeof] in *.
+  (* pin the composite name id := _MarioState from `typeof a = Tstruct id att` *)
+  match goal with Hty : Tstruct _ _ = Tstruct _ _ |- _ => inv Hty end.
+  rewrite genv_cenv_sma in *.
+  split; [ reflexivity | split; [ reflexivity | ] ].
+  match goal with
+  | Hco : mario_ce ! mario._MarioState = Some ?co,
+    Hfo : field_offset mario_ce fid (co_members ?co) = OK (?delta, ?bf),
+    Hev : eval_expr _ _ _ _ rhs ?v2,
+    Hcast : sem_cast ?v2 _ _ _ = Some ?v,
+    Hass : assign_loc mario_ce fty m _ _ _ ?v _ |- _ =>
+      assert (Hmem : co_members co = mario_members) by
+        (unfold mario_members; rewrite Hco; reflexivity);
+      rewrite Hmem in Hfo;
+      exists delta, bf, v2, v;
+      split; [ exact Hfo | split; [ exact Hev | split; [ exact Hcast | exact Hass ] ] ]
+  end.
+Qed.
+
+(* The action write `m->action = _action`: stores the (non-flying) temp value
+   into the action field, so the field reads back exactly Vint w. *)
+Lemma exec_action_field_write :
+  forall (e : env) le m bm w t le' m' out,
+    le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
+    le ! mario._action = Some (Vint w) ->
+    exec_stmt function_entry2 sma_ge e le m
+      (Sassign (Efield (Ederef (Etempvar mario._m (tptr (Tstruct mario._MarioState noattr)))
+                  (Tstruct mario._MarioState noattr)) mario._action tuint)
+               (Etempvar mario._action tuint)) t le' m' out ->
+    le' = le /\ out = Out_normal /\ Mem.load Mint32 m' bm 12 = Some (Vint w).
+Proof.
+  intros e le m bm w t le' m' out Hm Hact Hexec.
+  apply exec_mario_field_store in Hexec; [ | exact Hm ].
+  destruct Hexec as [Hle [Hout [delta [bf [v2 [v [Hfo [Hev [Hcast Hass]]]]]]]]].
+  vm_compute in Hfo; inv Hfo.            (* delta = 12, bf = Full *)
+  inv Hev;
+    try (match goal with Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => solve [ inv Hl ] end).
+  (* le!_action = Some v2 = Vint w *)
+  match goal with Hk : _ ! mario._action = Some ?vv |- _ =>
+    assert (vv = Vint w) by congruence; subst vv end.
+  vm_compute in Hcast; inv Hcast.        (* v = Vint w *)
+  split; [ exact Hle | split; [ exact Hout | ] ].
+  erewrite assign_loc_scalar_load_same;
+    [ | match goal with Ha : assign_loc _ _ _ _ _ _ _ _ |- _ => exact Ha end ].
+  reflexivity.
+Qed.
+
+(* Any OTHER scalar field write `m->f = rhs` (f <> action) leaves the action
+   field unchanged. Offsets/types/access discharged by vm_compute at call sites. *)
+Lemma exec_other_field_write :
+  forall (e : env) le m bm fid fty rhs t le' m' out delta chunk,
+    le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
+    fid <> mario._action ->
+    field_offset mario_ce fid mario_members = OK (delta, Full) ->
+    field_type fid mario_members = OK fty ->
+    access_mode fty = By_value chunk ->
+    Ptrofs.unsigned (Ptrofs.add Ptrofs.zero (Ptrofs.repr delta)) = 0 + delta ->
+    exec_stmt function_entry2 sma_ge e le m
+      (Sassign (Efield (Ederef (Etempvar mario._m (tptr (Tstruct mario._MarioState noattr)))
+                  (Tstruct mario._MarioState noattr)) fid fty) rhs) t le' m' out ->
+    le' = le /\ out = Out_normal /\ Mem.load Mint32 m' bm 12 = Mem.load Mint32 m bm 12.
+Proof.
+  intros e le m bm fid fty rhs t le' m' out delta chunk
+         Hm Hne Hfo Hft Ham Hov Hexec.
+  apply exec_mario_field_store in Hexec; [ | exact Hm ].
+  destruct Hexec as [Hle [Hout [delta' [bf' [v2 [v [Hfo' [Hev [Hcast Hass]]]]]]]]].
+  rewrite Hfo in Hfo'; inv Hfo'.         (* delta' = delta, bf' = Full *)
+  split; [ exact Hle | split; [ exact Hout | ] ].
+  pose proof (assign_loc_other_field_preserves_action_loadv
+                m bm Ptrofs.zero fid delta fty chunk v m'
+                Hfo Hft Ham Hne Hov ltac:(vm_compute; reflexivity) Hass) as Hpres.
+  unfold Mem.loadv in Hpres.
+  replace (Ptrofs.unsigned (Ptrofs.add Ptrofs.zero (Ptrofs.repr 12))) with 12 in Hpres
+    by (vm_compute; reflexivity).
+  exact Hpres.
 Qed.
