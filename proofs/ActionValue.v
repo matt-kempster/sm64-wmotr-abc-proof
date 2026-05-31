@@ -1080,9 +1080,14 @@ Proof.
   match goal with Hk : _ ! mario._action = Some ?vv |- _ =>
     assert (vv = Vint w) by congruence; subst vv end.
   vm_compute in Hcast; inv Hcast.        (* v = Vint w *)
-  erewrite assign_loc_scalar_load_same;
-    [ | match goal with Ha : assign_loc _ _ _ _ _ _ _ _ |- _ => exact Ha end ].
-  reflexivity.
+  (* forward: the load-after-store gives the offset as Ptrofs.unsigned(...);
+     normalize it to the literal 12 the goal carries (erewrite can't match
+     `12` against `Ptrofs.unsigned (Ptrofs.add Ptrofs.zero (Ptrofs.repr 12))`). *)
+  match goal with Ha : assign_loc _ _ _ _ _ _ _ _ |- _ =>
+    pose proof (assign_loc_scalar_load_same _ _ _ _ _ _ Ha) as Hld end.
+  replace (Ptrofs.unsigned (Ptrofs.add Ptrofs.zero (Ptrofs.repr 12))) with 12 in Hld
+    by (vm_compute; reflexivity).
+  exact Hld.
 Qed.
 
 (* Any OTHER scalar field write `m->f = rhs` (f <> action) leaves the action
