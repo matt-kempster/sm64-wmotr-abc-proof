@@ -49,4 +49,5 @@ proofs/ChaseList.v
 proofs/RootedLvalue.v
 proofs/ValueFrameINV.v
 proofs/ValueFrameStmt.v
+proofs/SetAnimToFrame.v
 proofs/ChaseDischarge.v

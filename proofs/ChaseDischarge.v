@@ -11,7 +11,10 @@
  *
  * SCOREBOARD (mario.c, 14 chase fns):
  *   [x] mario_reset_bodystate     -- DONE (real body; single-Efield chase via bodyState)
- *   [ ] set_mario_animation, set_mario_anim_with_accel, set_anim_to_frame,
+ *   [x] set_anim_to_frame         -- DONE via the GENERIC frame (exec_body_nf_callfree):
+ *       deep chase through animInfo = &m->marioObj->header.gfx.animInfo, word-scalar
+ *       loads (Obstacle 2), and control flow -- all handled by the engine.
+ *   [ ] set_mario_animation, set_mario_anim_with_accel,
  *       set_steep_jump_action, set_mario_action_airborne, set_mario_action_moving,
  *       squish_mario_model, update_mario_info_for_cam, sink_mario_in_quicksand,
  *       mario_update_hitbox_and_cap_model, execute_mario_action, init_mario,
@@ -34,7 +37,7 @@ From Coq Require Import List.
 Import ListNotations.
 From compcert Require Import Maps AST Integers Values Memory Globalenvs Ctypes Cop Clight ClightBigstep.
 From SM64.Generated Require mario.
-From SM64.Proofs Require Import Flying ActionValueFrame MarioMemWF ChaseCount ResetBodystate ValueFrameINV.
+From SM64.Proofs Require Import Flying ActionValueFrame MarioMemWF ChaseCount ResetBodystate ValueFrameINV SetAnimToFrame.
 
 (* ---- #1 / 111 : mario_reset_bodystate (mario.c) ---------------------- *)
 
@@ -55,3 +58,29 @@ Theorem reset_bodystate_preserves_nonflying :
       (fn_body mario.f_mario_reset_bodystate) t le' m' out ->
     action_sat nonflying m' bm.
 Proof. exact mario_reset_bodystate_preserves. Qed.
+
+(* ---- #2 / 111 : set_anim_to_frame (mario.c) ------------------------- *)
+
+(* (a) one of the enumerated 111. *)
+Lemma set_anim_to_frame_is_one_of_the_111 :
+  In mario._set_anim_to_frame (chase_funcs mario.prog).
+Proof. vm_compute. tauto. Qed.
+
+(* (b) its REAL body preserves nonflying. Cleared through the generic statement
+   frame (SetAnimToFrame.set_anim_to_frame_preserves): no bespoke inversion, just
+   the FS of chased fields ([marioObj]) + the tracked store-root temps. The
+   field_loads_off_bm marioObj clause is this body's anti-aliasing assumption
+   (gMarioState->marioObj is a separate allocation), and tmps_off_bm PT_anim is
+   the function-entry condition that the (uninitialised) tracked temps don't alias
+   Mario's block -- both honest hypotheses, no axioms. *)
+Theorem set_anim_to_frame_preserves_nonflying :
+  forall e le m t le' m' out bm,
+    le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
+    Mem.valid_block m bm ->
+    field_loads_off_bm m bm mario._marioObj ->
+    tmps_off_bm PT_anim bm mario._m le ->
+    action_sat nonflying m bm ->
+    exec_stmt function_entry2 mario_ge e le m
+      (fn_body mario.f_set_anim_to_frame) t le' m' out ->
+    action_sat nonflying m' bm.
+Proof. exact set_anim_to_frame_preserves. Qed.
