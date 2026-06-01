@@ -131,3 +131,272 @@ Proof.
   split; [ exact Hinv | ].
   eapply unchanged_bm_preserves_mem_wf; [ exact Hu | exact Hv | exact Hwf ].
 Qed.
+
+(* ================================================================== *)
+(* THE DIRECT-STORE WATCH SET. A direct store `m->fid = rhs` lands IN   *)
+(* bm; to preserve the bundle it must AVOID two regions: the action      *)
+(* cell (so action_sat survives) AND every chased pointer field's load   *)
+(* range (so mem_wf survives). Both are static byte-ranges in bm, so we  *)
+(* fold them into one watched set `watch` and demand the store avoid it. *)
+(* (A direct LITERAL write of m->action -- a raw action writer -- is NOT *)
+(* covered by "avoid"; such functions need the value-store disjunct, a   *)
+(* later stage. The chase functions targeted here write the action field *)
+(* only through the set_mario_action call, handled by the Scall case.)   *)
+(* ================================================================== *)
+
+(* the static byte-range of a chased pointer field's load in bm. *)
+Definition chased_byte (FS : list ident) (bm : block) : block -> Z -> Prop :=
+  fun b o => b = bm /\ exists fid off, In fid FS /\
+             field_offset mario_ce fid mario_members = OK (off, Full) /\
+             off <= o < off + size_chunk Mptr.
+
+Definition watch (FS : list ident) (bm : block) : block -> Z -> Prop :=
+  fun b o => action_cell bm b o \/ chased_byte FS bm b o.
+
+Lemma unchanged_watch_preserves_action_sat :
+  forall FS (Q : int -> Prop) m m' bm,
+    Mem.unchanged_on (watch FS bm) m m' ->
+    Mem.valid_block m bm ->
+    action_sat Q m bm ->
+    action_sat Q m' bm.
+Proof.
+  intros FS Q m m' bm Hu Hv Hsat.
+  eapply action_sat_unchanged_on; [ | exact Hv | exact Hsat ].
+  eapply Mem.unchanged_on_implies; [ exact Hu | ].
+  intros b o Hac _. left. exact Hac.
+Qed.
+
+Lemma unchanged_watch_preserves_mem_wf :
+  forall FS m m' bm,
+    Mem.unchanged_on (watch FS bm) m m' ->
+    Mem.valid_block m bm ->
+    mem_wf FS m bm ->
+    mem_wf FS m' bm.
+Proof.
+  intros FS m m' bm Hu Hv Hwf fid Hin.
+  destruct (Hwf fid Hin) as (off & b & ofs & Hfo & Hbound & Hld & Hboff).
+  exists off, b, ofs.
+  split; [ exact Hfo | split; [ exact Hbound | split; [ | exact Hboff ] ] ].
+  assert (Heq : Mem.load Mptr m' bm off = Mem.load Mptr m bm off).
+  { eapply Mem.load_unchanged_on_1; [ exact Hu | exact Hv | ].
+    intros i Hi. right. split; [ reflexivity | ].
+    exists fid, off. split; [ exact Hin | split; [ exact Hfo | exact Hi ] ]. }
+  rewrite Heq. exact Hld.
+Qed.
+
+(* ================================================================== *)
+(* THE PER-STATEMENT OBLIGATION and the bundle invariant `fr`.          *)
+(* ================================================================== *)
+
+(* The Sset obligation: in any state where the invariant holds, the rhs  *)
+(* evaluates to a value that, if a pointer and the target temp is not _m, *)
+(* points off bm -- so the Sset re-establishes tmps_off_bm. Dischargeable *)
+(* for chase-loads (m->fid, fid in FS) via mem_wf, for scalar sets        *)
+(* (no Vptr), and for off-bm pointer copies via tmps_off_bm.              *)
+Definition set_off_bm_ok (FS : list ident) (bm : block) (e : env)
+                         (id : ident) (a : expr) : Prop :=
+  forall le m v,
+    tmps_off_bm bm mario._m le ->
+    mem_wf FS m bm ->
+    le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
+    eval_expr mario_ge e le m a v ->
+    id <> mario._m ->
+    forall b o, v = Vptr b o -> b <> bm.
+
+(* The whole-statement obligation. Sassign: chase OR avoid-the-watch-set.  *)
+(* Sset: target not _m and the rhs keeps tmps_off_bm. Scall: result temp   *)
+(* (if any) not _m (off-bm-ness of the result comes from the callee, via   *)
+(* reach_frame_preserves). Sbuiltin: unsupported for now (False). Control  *)
+(* flow / sequencing: recurse. Leaves: True. *)
+Fixpoint body_nf_ok (FS : list ident) (bm : block) (e : env) (s : statement) : Prop :=
+  match s with
+  | Sskip | Sbreak | Scontinue | Sreturn _ | Sgoto _ => True
+  | Sassign a1 a2 =>
+      (exists p, p <> mario._m /\ rooted_lv p a1 = true)
+      \/ assign_avoids (watch FS bm) mario_ge e a1
+  | Sset id a => id <> mario._m /\ set_off_bm_ok FS bm e id a
+  | Scall optid a al => match optid with None => True | Some id => id <> mario._m end
+  | Sbuiltin _ _ _ _ => False
+  | Ssequence s1 s2 => body_nf_ok FS bm e s1 /\ body_nf_ok FS bm e s2
+  | Sifthenelse _ s1 s2 => body_nf_ok FS bm e s1 /\ body_nf_ok FS bm e s2
+  | Sloop s1 s2 => body_nf_ok FS bm e s1 /\ body_nf_ok FS bm e s2
+  | Slabel _ s1 => body_nf_ok FS bm e s1
+  | Sswitch _ ls => ls_body_nf_ok FS bm e ls
+  end
+with ls_body_nf_ok (FS : list ident) (bm : block) (e : env)
+                   (ls : labeled_statements) : Prop :=
+  match ls with
+  | LSnil => True
+  | LScons _ s rest => body_nf_ok FS bm e s /\ ls_body_nf_ok FS bm e rest
+  end.
+
+(* switch structural lemmas (mirror ActionValueFrame's *_value_ok). *)
+Lemma ssd_body_nf_ok :
+  forall FS bm e sl, ls_body_nf_ok FS bm e sl ->
+    ls_body_nf_ok FS bm e (select_switch_default sl).
+Proof.
+  induction sl as [| o s rest IH]; simpl; intros H; auto.
+  destruct o as [c|]; simpl.
+  - destruct H as [_ Hrest]. apply IH; exact Hrest.
+  - exact H.
+Qed.
+
+Lemma ssc_body_nf_ok :
+  forall FS bm e n sl res,
+    ls_body_nf_ok FS bm e sl -> select_switch_case n sl = Some res ->
+    ls_body_nf_ok FS bm e res.
+Proof.
+  induction sl as [| o s rest IH]; simpl; intros res Hav Hsel; try discriminate.
+  destruct Hav as [Hs Hrest]. destruct o as [c|]; simpl in Hsel.
+  - destruct (zeq c n).
+    + inv Hsel. simpl. split; [ exact Hs | exact Hrest ].
+    + eapply IH; eauto.
+  - eapply IH; eauto.
+Qed.
+
+Lemma select_switch_body_nf_ok :
+  forall FS bm e n sl,
+    ls_body_nf_ok FS bm e sl -> ls_body_nf_ok FS bm e (select_switch n sl).
+Proof.
+  intros FS bm e n sl H. unfold select_switch.
+  destruct (select_switch_case n sl) eqn:E.
+  - eapply ssc_body_nf_ok; eauto.
+  - apply ssd_body_nf_ok; auto.
+Qed.
+
+Lemma seq_of_ls_body_nf_ok :
+  forall FS bm e ls,
+    ls_body_nf_ok FS bm e ls -> body_nf_ok FS bm e (seq_of_labeled_statement ls).
+Proof.
+  induction ls as [| o s rest IH]; simpl; intros H; auto.
+  destruct H. split; auto.
+Qed.
+
+(* The bundle invariant threaded by the frame. *)
+Definition fr (FS : list ident) (Q : int -> Prop) (bm : block)
+              (m : mem) (le : temp_env) : Prop :=
+  Mem.valid_block m bm /\
+  action_sat Q m bm /\
+  tmps_off_bm bm mario._m le /\
+  mem_wf FS m bm /\
+  le ! mario._m = Some (Vptr bm Ptrofs.zero).
+
+(* The honest call boundary (value analogue of reach_value_preserves, but   *)
+(* carrying mem_wf and the result-off-bm fact too). Any reached funcall that *)
+(* starts with the (valid, action_sat, mem_wf) part of the bundle holding    *)
+(* preserves all three and returns a value off bm. To be discharged later by *)
+(* the whole-program closure; here an explicit assumption, not hidden. *)
+Definition reach_frame_preserves (FS : list ident) (Q : int -> Prop)
+                                 (bm : block) (ge : genv) : Prop :=
+  forall m fd vargs t m' vres,
+    eval_funcall function_entry2 ge m fd vargs t m' vres ->
+    Mem.valid_block m bm ->
+    action_sat Q m bm ->
+    mem_wf FS m bm ->
+    Mem.valid_block m' bm /\ action_sat Q m' bm /\ mem_wf FS m' bm
+    /\ (forall b o, vres = Vptr b o -> b <> bm).
+
+(* ================================================================== *)
+(* THE FRAME. Executing any clightgen statement satisfying body_nf_ok    *)
+(* carries the whole bundle fr forward, given the reach assumption for    *)
+(* calls. Induction over exec_stmt mirroring                              *)
+(* ActionValueFrame.exec_stmt_value_preserves, but threading tmps_off_bm  *)
+(* and mem_wf (and le!_m) alongside validity and action_sat.              *)
+(* ================================================================== *)
+Theorem exec_body_nf :
+  forall (FS : list ident) (Q : int -> Prop) (bm : block),
+    reach_frame_preserves FS Q bm mario_ge ->
+    forall e le m s t le' m' out,
+      exec_stmt function_entry2 mario_ge e le m s t le' m' out ->
+      fr FS Q bm m le ->
+      body_nf_ok FS bm e s ->
+      fr FS Q bm m' le'.
+Proof.
+  intros FS Q bm Hreach e le m s t le' m' out H.
+  induction H; intros Hfr Hok.
+  - (* Sskip *) exact Hfr.
+  - (* Sassign *)
+    destruct Hfr as (Hv & Hsat & Htmps & Hwf & Hmle).
+    simpl in Hok.
+    match goal with
+    | Hlv : eval_lvalue _ _ _ _ ?a1v ?loc ?ofs ?bf,
+      Hass : assign_loc _ _ _ ?loc ?ofs ?bf ?vv ?mm |- _ =>
+      destruct Hok as [ (p & Hpm & Hr) | Havoid ];
+      [ (* chase store: lands off bm *)
+        destruct (rooted_lv_root_value _ _ _ _ p _ _ _ _ Hlv Hr) as (pb & po & Hlk);
+        assert (Hpb : pb <> bm) by (eapply Htmps; [ exact Hpm | exact Hlk ]);
+        assert (Hloc : loc = pb) by (eapply eval_lvalue_rooted; [ exact Hlk | exact Hlv | exact Hr ]);
+        subst loc;
+        assert (Hu : Mem.unchanged_on (fun b _ => b = bm) m mm)
+          by (eapply assign_loc_unchanged_on; [ exact Hass | intros i _; exact Hpb ]);
+        unfold fr; repeat split;
+          [ eapply Mem.valid_block_unchanged_on; [ exact Hu | exact Hv ]
+          | eapply unchanged_bm_preserves_action_sat; [ exact Hu | exact Hv | exact Hsat ]
+          | exact Htmps
+          | eapply unchanged_bm_preserves_mem_wf; [ exact Hu | exact Hv | exact Hwf ]
+          | exact Hmle ]
+      | (* direct/other store: avoids the watch set *)
+        assert (Hu : Mem.unchanged_on (watch FS bm) m mm)
+          by (eapply assign_loc_unchanged_on;
+                [ exact Hass | intros i Hi; eapply (Havoid _ _ _ _ _ Hlv); exact Hi ]);
+        unfold fr; repeat split;
+          [ eapply Mem.valid_block_unchanged_on; [ exact Hu | exact Hv ]
+          | eapply unchanged_watch_preserves_action_sat; [ exact Hu | exact Hv | exact Hsat ]
+          | exact Htmps
+          | eapply unchanged_watch_preserves_mem_wf; [ exact Hu | exact Hv | exact Hwf ]
+          | exact Hmle ] ]
+    end.
+  - (* Sset *)
+    destruct Hfr as (Hv & Hsat & Htmps & Hwf & Hmle).
+    simpl in Hok. destruct Hok as (Hidm & Hset).
+    unfold fr; repeat split.
+    + exact Hv.
+    + exact Hsat.
+    + apply tmps_off_bm_set; [ exact Htmps | ].
+      intros Hne b o Hvp.
+      match goal with He : eval_expr _ _ _ _ ?a0 _ |- _ =>
+        eapply (Hset _ _ _ Htmps Hwf Hmle He Hidm); exact Hvp end.
+    + exact Hwf.
+    + rewrite PTree.gso by congruence; exact Hmle.
+  - (* Scall *)
+    destruct Hfr as (Hv & Hsat & Htmps & Hwf & Hmle).
+    simpl in Hok.
+    match goal with Hfun : eval_funcall function_entry2 mario_ge _ _ _ _ _ _ |- _ =>
+      destruct (Hreach _ _ _ _ _ _ Hfun Hv Hsat Hwf) as (Hv' & Hsat' & Hwf' & Hvres) end.
+    unfold fr. destruct optid as [id|]; cbn [set_opttemp].
+    + repeat split.
+      * exact Hv'.
+      * exact Hsat'.
+      * apply tmps_off_bm_set; [ exact Htmps | intros _ b o Hvp; eapply Hvres; exact Hvp ].
+      * exact Hwf'.
+      * rewrite PTree.gso by congruence; exact Hmle.
+    + repeat split; [ exact Hv' | exact Hsat' | exact Htmps | exact Hwf' | exact Hmle ].
+  - (* Sbuiltin: unsupported (body_nf_ok = False) *)
+    simpl in Hok. destruct Hok.
+  - (* Sseq, s1 normal then s2 *)
+    simpl in Hok; destruct Hok as [Hok1 Hok2].
+    exact (IHexec_stmt2 (IHexec_stmt1 Hfr Hok1) Hok2).
+  - (* Sseq, s1 abnormal *)
+    simpl in Hok; destruct Hok as [Hok1 _].
+    exact (IHexec_stmt Hfr Hok1).
+  - (* Sifthenelse *)
+    simpl in Hok; destruct Hok as [Hok1 Hok2].
+    destruct b; [ exact (IHexec_stmt Hfr Hok1) | exact (IHexec_stmt Hfr Hok2) ].
+  - (* Sreturn_none *) exact Hfr.
+  - (* Sreturn_some *) exact Hfr.
+  - (* Sbreak *) exact Hfr.
+  - (* Scontinue *) exact Hfr.
+  - (* Sloop_stop1 *)
+    simpl in Hok; destruct Hok as [Hok1 _].
+    exact (IHexec_stmt Hfr Hok1).
+  - (* Sloop_stop2 *)
+    simpl in Hok; destruct Hok as [Hok1 Hok2].
+    exact (IHexec_stmt2 (IHexec_stmt1 Hfr Hok1) Hok2).
+  - (* Sloop_loop *)
+    simpl in Hok; destruct Hok as [Hok1 Hok2].
+    exact (IHexec_stmt3 (IHexec_stmt2 (IHexec_stmt1 Hfr Hok1) Hok2) (conj Hok1 Hok2)).
+  - (* Sswitch *)
+    simpl in Hok.
+    exact (IHexec_stmt Hfr
+             (seq_of_ls_body_nf_ok _ _ _ _ (select_switch_body_nf_ok _ _ _ _ _ Hok))).
+Qed.
