@@ -400,3 +400,57 @@ Proof.
     exact (IHexec_stmt Hfr
              (seq_of_ls_body_nf_ok _ _ _ _ (select_switch_body_nf_ok _ _ _ _ _ Hok))).
 Qed.
+
+(* ================================================================== *)
+(* PER-FUNCTION DISCHARGE TOOLKIT. The frame consumes body_nf_ok; these  *)
+(* lemmas discharge its obligations for the statement shapes clightgen    *)
+(* actually emits, so a function's body_nf_ok proof is a short sequence.   *)
+(* ================================================================== *)
+
+(* Discharge the Sset obligation for a CHASE-LOAD `tid = m->fid` where fid *)
+(* is one of the tracked pointer fields FS: the loaded pointer is off-bm   *)
+(* by mem_wf, so the Sset re-establishes tmps_off_bm. Reuses the           *)
+(* exec_field_ptr_load inverter by wrapping the rhs eval back into an Sset. *)
+Lemma set_off_bm_ok_chase_load :
+  forall FS bm e tid fid resty,
+    In fid FS ->
+    set_off_bm_ok FS bm e tid
+      (Efield
+        (Ederef (Etempvar mario._m (tptr (Tstruct mario._MarioState noattr)))
+          (Tstruct mario._MarioState noattr)) fid (tptr resty)).
+Proof.
+  intros FS bm e tid fid resty Hin.
+  unfold set_off_bm_ok. intros le m v Htmps Hwf Hmle Heval Hne b o Hvp.
+  destruct (Hwf fid Hin) as (off & b1 & ofs1 & Hfo & Hbound & Hld & Hboff).
+  assert (Hexec : exec_stmt function_entry2 mario_ge e le m
+            (Sset tid
+              (Efield
+                (Ederef (Etempvar mario._m (tptr (Tstruct mario._MarioState noattr)))
+                  (Tstruct mario._MarioState noattr)) fid (tptr resty)))
+            E0 (PTree.set tid v le) m Out_normal)
+    by (apply exec_Sset; exact Heval).
+  destruct (exec_field_ptr_load e le m tid fid resty E0 (PTree.set tid v le) m
+              Out_normal bm b1 off ofs1 Hmle Hfo Hbound Hld Hexec) as (Hle' & _ & _).
+  assert (Hvv : v = Vptr b1 ofs1).
+  { assert (Hq : (PTree.set tid v le) ! tid
+                 = (PTree.set tid (Vptr b1 ofs1) le) ! tid) by (rewrite Hle'; reflexivity).
+    rewrite !PTree.gss in Hq. congruence. }
+  assert (Hbb : b = b1) by congruence. subst b. exact Hboff.
+Qed.
+
+(* Discharge the Sset obligation for a POINTER COPY `tid = q` where q is    *)
+(* any temp other than the Mario pointer: the value is le!q, off-bm by      *)
+(* tmps_off_bm. (clightgen hoists casts of loaded pointers through such     *)
+(* temp copies.) *)
+Lemma set_off_bm_ok_tempcopy :
+  forall FS bm e tid q ty,
+    q <> mario._m ->
+    set_off_bm_ok FS bm e tid (Etempvar q ty).
+Proof.
+  intros FS bm e tid q ty Hq.
+  unfold set_off_bm_ok. intros le m v Htmps Hwf Hmle Heval Hne b o Hvp.
+  inversion Heval; subst;
+    try (match goal with Hlv : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ =>
+           solve [ inv Hlv ] end);
+    apply (Htmps q b o); [ exact Hq | assumption ].
+Qed.
