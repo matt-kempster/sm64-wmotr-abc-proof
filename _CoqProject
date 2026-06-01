@@ -38,3 +38,4 @@ proofs/ActionValue.v
 proofs/ActionGraph.v
 proofs/ActionValueFrame.v
 proofs/WMotRStatement.v
+proofs/LinkSpike.v

@@ -1,44 +1,79 @@
-(* LinkSpike.v -- DE-RISKING EXPERIMENT, RESULT RECORDED. *** DO NOT add to
- * _CoqProject and DO NOT `vm_compute` the link below: it OOMs the machine. ***
+(* LinkSpike.v -- SYMBOLIC-LINKING SPIKE (de-risking, OOM-free).
  *
- * THE QUESTION (asked 2026-05-31). The real per-frame Mario update is
- * interprocedural across translation units and CYCLIC: execute_mario_action
- * (mario.c) -> mario_execute_<group>_action (mario_actions_*.c) -> act_xxx
- * (same group TU) -> set_mario_action (mario.c). In each clightgen'd TU the other
- * TU's functions are `External`, so the true frame only makes sense in the LINKED
- * program. The plan to "instantiate step with the real loop" rested on:
+ * BACKGROUND. The real per-frame Mario update spans translation units and is
+ * cyclic: execute_mario_action (mario.c) -> mario_execute_<group>_action
+ * (mario_actions_*.c) -> act_xxx (group TU) -> set_mario_action (mario.c). In each
+ * clightgen'd TU the other TU's functions are `External`, so the true frame only
+ * makes sense in the LINKED program.
  *
- *     does CompCert `link` GO THROUGH on two full ~12k/16k-line clightgen'd SM64
- *     TUs, and can we resolve a cross-TU call in the linked genv?
+ * The first attempt -- `vm_compute` the actual link of two full TUs -- OOM'd the
+ * machine (see git history / memory linking-oom): forcing the merged whole-program
+ * AST into normal form is intractable. THE FIX: never compute the link. Keep the
+ * linked program ABSTRACT (a Variable with `link ... = Some lp` as a hypothesis,
+ * so lp is never normalized) and recover cross-TU symbol resolution from CompCert's
+ * linking METATHEORY (link_linkorder + prog_defmap_linkorder + the find_def_symbol
+ * genv bridge). The merged program stays a black box with known properties.
  *
- * THE RESULT: *** computing the link is INTRACTABLE on this hardware. ***
- * `Eval vm_compute`/`vm_compute; reflexivity` over `link mario.prog
- * mario_actions_airborne.prog` exhausted memory and OOM-restarted the machine.
- * Forcing the merged whole-program AST (thousands of globdefs + composite merge +
- * link_prog_check over every shared symbol) into normal form is the killer -- NOT
- * linking as a concept. So: never normalize a real whole-program link.
+ * THIS SPIKE proves the load-bearing fact at the smallest scale: in the linked
+ * program, the cross-TU symbol `act_flying` resolves to AIRBORNE's real Internal
+ * body -- WITHOUT ever computing the link. If this goes through cleanly, the linked-
+ * frame architecture is viable: the same three lemmas resolve every cross-TU call.
  *
- * THE PIVOT (architecture decision). Two OOM-FREE ways to get cross-TU frame
- * reasoning, both of which AVOID computing any linked program:
+ * The ONLY computation here is one single-program defmap lookup (airborne alone),
+ * the same cost as the existing ActionValue.v `find_funct_*` lemmas -- bounded and
+ * safe. Everything about the linked program `lp` is symbolic.
  *
- *  (B) Compositional step (no linking). Prove each group executor preserves
- *      action_sat IN ITS OWN single-TU genv (via
- *      ActionValueFrame.exec_stmt_value_preserves -- already built, no link, no
- *      vm_compute). Define the frame `step` as "some group executor ran"; the
- *      dispatcher's switch routing becomes a named faithfulness hypothesis. Trust
- *      cost: execute_mario_action's switch logic is assumed, not executed.
- *
- *  (S) Symbolic linking (lean on CompCert metatheory, never compute). Parameterize
- *      over an ABSTRACT linked program `lp` with `link mario.prog ... = Some lp` as
- *      a HYPOTHESIS (a Variable + a hypothesis, so `lp` is never normalized). Derive
- *      cross-TU find_symbol/find_funct resolution from CompCert's `link_linkorder`
- *      + the linkorder def-preservation lemmas. More faithful than (B) (the real
- *      dispatcher runs), and still OOM-free because the giant term is opaque.
- *
- * Both defer the same underlying fact -- cross-TU call transfer -- to a hypothesis;
- * (S) discharges it from CompCert's linking theory, (B) from a hand-stated
- * dispatcher spec. Neither ever calls `vm_compute` on a real linked program.
- *
- * This file is kept ONLY as the record of the negative result. It defines nothing
- * and is not built. See docs/r3-action-value-plan.md and memory milestone-status.
+ * No Admitted. NOT in _CoqProject by default (check standalone with check.sh).
  *)
+
+From compcert Require Import Coqlib Maps AST Integers Globalenvs Ctypes Clight Linking.
+From SM64.Generated Require mario mario_actions_airborne.
+
+(* CHEAP single-TU fact (the one bounded computation): airborne's OWN program
+   defines act_flying as an Internal function. One program's defmap lookup. *)
+Lemma airborne_defmap_act_flying :
+  (prog_defmap mario_actions_airborne.prog) ! mario_actions_airborne._act_flying
+    = Some (Gfun (Internal mario_actions_airborne.f_act_flying)).
+Proof. vm_compute. reflexivity. Qed.
+
+Section SymbolicLink.
+  (* The linked program is ABSTRACT -- introduced as a variable, with linking as a
+     hypothesis. It is NEVER computed, so it cannot OOM. *)
+  Variable lp : Clight.program.
+  Hypothesis Hlink : link mario.prog mario_actions_airborne.prog = Some lp.
+
+  (* THE PAYOFF: in the linked genv, the cross-TU symbol act_flying resolves to
+     airborne's real Internal body -- proved purely from the linking metatheory,
+     with lp opaque. *)
+  Theorem linked_resolves_act_flying :
+    exists b,
+      Genv.find_symbol (globalenv lp) mario_actions_airborne._act_flying = Some b /\
+      Genv.find_funct_ptr (globalenv lp) b
+        = Some (Internal mario_actions_airborne.f_act_flying).
+  Proof.
+    (* 1. Linking gives linkorder airborne <= lp (and mario <= lp). *)
+    destruct (link_linkorder _ _ _ Hlink) as [_ LOab].
+    (* 2. linkorder_program = AST linkorder (+ composite preservation); take the
+          AST part. Unfold the (opaque) Clight linker instance to expose it. *)
+    Local Transparent Linker_program.
+    unfold linkorder, Linker_program, linkorder_program in LOab.
+    destruct LOab as [LOast _Hcomp].
+    (* 3. The AST defmap entry transfers up the linkorder (possibly upgraded). *)
+    destruct (prog_defmap_linkorder _ _ _ _ _ _ _ LOast airborne_defmap_act_flying)
+      as (gd' & Hgd' & Hlo).
+    (* 4. An Internal source can only map to the SAME Internal target: invert the
+          two linkorder layers (globdef then fundef). The External-below-Internal
+          case is impossible because the source is already Internal. *)
+    inv Hlo.
+    match goal with H : linkorder_fundef _ _ |- _ => inv H end.
+    (* now gd' = Gfun (Internal f_act_flying); Hgd' is the linked defmap entry. *)
+    (* 5. Bridge defmap -> (find_symbol, find_def) in the linked genv. *)
+    apply (proj1 (find_def_symbol _ _ _)) in Hgd'.
+    destruct Hgd' as (b & Hsym & Hdef).
+    exists b. split.
+    - exact Hsym.
+    - (* find_def -> find_funct_ptr via the iff. *)
+      apply (proj2 (find_funct_ptr_iff _ _ _)). exact Hdef.
+  Qed.
+
+End SymbolicLink.
