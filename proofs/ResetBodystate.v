@@ -400,3 +400,72 @@ Proof.
       eapply flags_store_preserves; [ exact HmF | exact Hv | exact Hs | exact HF ]
   end.
 Qed.
+
+(* ================================================================== *)
+(* SECOND function, the new capability: a body WITH A FUNCTION CALL.    *)
+(* hurt_and_set_mario_action: m->hurtCounter = c; set_mario_action(...);  *)
+(* return. A direct store + ONE call (to the choke-point set_mario_action)*)
+(* + a return. The call is handled by reach_value_preserves -- the callee *)
+(* preservation is an explicit hypothesis (discharged later, recursively),*)
+(* NOT hidden. Closest-to-leaf real call-bearing function in mario.c.     *)
+(* ================================================================== *)
+
+(* generic direct (m->field) store preservation, given the field's byte   *)
+(* range is disjoint from the action cell [12,16). Generalizes            *)
+(* flags_store_preserves to any scalar field at any disjoint offset.      *)
+Lemma direct_store_preserves :
+  forall e le m fid fty rhs t le2 m2 out2 bm off,
+    le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
+    Mem.valid_block m bm ->
+    action_sat nonflying m bm ->
+    field_offset mario_ce fid mario_members = OK (off, Full) ->
+    (Ptrofs.unsigned (Ptrofs.repr off) + sizeof mario_ce fty <= 12
+     \/ 16 <= Ptrofs.unsigned (Ptrofs.repr off)) ->
+    exec_stmt function_entry2 mario_ge e le m
+      (Sassign (Efield (Ederef (Etempvar mario._m (tptr (Tstruct mario._MarioState noattr)))
+                  (Tstruct mario._MarioState noattr)) fid fty) rhs) t le2 m2 out2 ->
+    le2 = le /\ out2 = Out_normal /\ Mem.valid_block m2 bm /\ action_sat nonflying m2 bm.
+Proof.
+  intros e le m fid fty rhs t le2 m2 out2 bm off Hm Hv Hs Hfo Hdisj Hexec.
+  destruct (exec_marioState_field_store _ _ _ _ _ _ _ _ _ _ _ _ Hm Hfo Hexec)
+    as (Hle & Hout & (v & Hass)).
+  split; [ exact Hle | split; [ exact Hout | split ] ].
+  - eapply assign_loc_valid_block; [ exact Hass | exact Hv ].
+  - eapply assign_loc_action_sat_avoid; [ exact Hass | exact Hv | | exact Hs ].
+    intros i Hi Hcell. unfold action_cell in Hcell. destruct Hcell as [_ Hc].
+    cbn [size_chunk] in Hc. destruct Hdisj as [Hd|Hd]; lia.
+Qed.
+
+Lemma hurt_and_set_mario_action_preserves :
+  forall e le m t le' m' out bm,
+    le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
+    Mem.valid_block m bm ->
+    reach_value_preserves nonflying bm mario_ge ->
+    action_sat nonflying m bm ->
+    exec_stmt function_entry2 mario_ge e le m
+      (fn_body mario.f_hurt_and_set_mario_action) t le' m' out ->
+    action_sat nonflying m' bm.
+Proof.
+  intros e le m t le' m' out bm Hm Hvalid Hreach Hsat Hexec.
+  unfold mario.f_hurt_and_set_mario_action in Hexec; cbn [fn_body] in Hexec.
+  (* ---- m->hurtCounter = hurtCounter  (direct store, offset 238) ---- *)
+  inv Hexec; [ | seq2_absurd ].
+  assert (Hfohc : field_offset mario_ce mario._hurtCounter mario_members = OK (238, Full))
+    by (vm_compute; reflexivity).
+  assert (Hdj : Ptrofs.unsigned (Ptrofs.repr 238) + sizeof mario_ce tuchar <= 12
+                \/ 16 <= Ptrofs.unsigned (Ptrofs.repr 238))
+    by (right; vm_compute; intro Hx; discriminate Hx).
+  match goal with HS : exec_stmt _ _ _ _ _
+      (Sassign (Efield (Ederef (Etempvar mario._m _) _) mario._hurtCounter _) _) _ _ _ _ |- _ =>
+    destruct (direct_store_preserves _ _ _ _ _ _ _ _ _ _ _ _ Hm Hvalid Hsat Hfohc Hdj HS)
+      as (_ & _ & Hv1 & Hs1) end.
+  (* ---- t'1 = set_mario_action(m, action, actionArg)  (the CALL) ---- *)
+  match goal with H : exec_stmt _ _ _ _ _ (Ssequence (Scall _ _ _) _) _ _ _ _ |- _ =>
+    inv H; [ | seq2_absurd ] end.
+  match goal with HSc : exec_stmt _ _ _ _ _ (Scall _ _ _) _ _ _ _ |- _ => inv HSc end.
+  match goal with HFun : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+    destruct (Hreach _ _ _ _ _ _ HFun Hv1 Hs1) as (Hv2 & Hs2) end.
+  (* ---- return t'1  (memory unchanged) ---- *)
+  match goal with HRet : exec_stmt _ _ _ _ _ (Sreturn _) _ _ _ _ |- _ => inv HRet end.
+  exact Hs2.
+Qed.
