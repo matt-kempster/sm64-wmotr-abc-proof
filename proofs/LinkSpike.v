@@ -59,7 +59,7 @@ Section SymbolicLink.
     unfold linkorder, Linker_program, linkorder_program in LOab.
     destruct LOab as [LOast _Hcomp].
     (* 3. The AST defmap entry transfers up the linkorder (possibly upgraded). *)
-    destruct (prog_defmap_linkorder _ _ _ _ _ _ _ LOast airborne_defmap_act_flying)
+    destruct (prog_defmap_linkorder _ _ _ _ LOast airborne_defmap_act_flying)
       as (gd' & Hgd' & Hlo).
     (* 4. An Internal source can only map to the SAME Internal target: invert the
           two linkorder layers (globdef then fundef). The External-below-Internal
