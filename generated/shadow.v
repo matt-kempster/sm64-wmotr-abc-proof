@@ -18,11 +18,11 @@ Module Info.
   Definition build_number := "".
   Definition build_tag := "".
   Definition build_branch := "".
-  Definition arch := "x86".
-  Definition model := "64".
-  Definition abi := "standard".
-  Definition bitsize := 64.
-  Definition big_endian := false.
+  Definition arch := "powerpc".
+  Definition model := "ppc32".
+  Definition abi := "eabi".
+  Definition bitsize := 32.
+  Definition big_endian := true.
   Definition source_file := "vendor/sm64/src/game/shadow.c".
   Definition normalized := true.
 End Info.
@@ -39,44 +39,82 @@ Definition _Shadow : ident := $"Shadow".
 Definition _SpawnInfo : ident := $"SpawnInfo".
 Definition _Surface : ident := $"Surface".
 Definition _Waypoint : ident := $"Waypoint".
-Definition __116 : ident := $"_116".
-Definition __118 : ident := $"_118".
-Definition __120 : ident := $"_120".
-Definition __204 : ident := $"_204".
-Definition __206 : ident := $"_206".
-Definition __2146 : ident := $"_2146".
-Definition __665 : ident := $"_665".
-Definition __670 : ident := $"_670".
+Definition __215 : ident := $"_215".
+Definition __217 : ident := $"_217".
+Definition __219 : ident := $"_219".
+Definition __2245 : ident := $"_2245".
+Definition __303 : ident := $"_303".
+Definition __305 : ident := $"_305".
+Definition __764 : ident := $"_764".
+Definition __769 : ident := $"_769".
 Definition ___builtin_ais_annot : ident := $"__builtin_ais_annot".
 Definition ___builtin_annot : ident := $"__builtin_annot".
 Definition ___builtin_annot_intval : ident := $"__builtin_annot_intval".
+Definition ___builtin_atomic_compare_exchange : ident := $"__builtin_atomic_compare_exchange".
+Definition ___builtin_atomic_exchange : ident := $"__builtin_atomic_exchange".
+Definition ___builtin_atomic_load : ident := $"__builtin_atomic_load".
+Definition ___builtin_bsel : ident := $"__builtin_bsel".
 Definition ___builtin_bswap : ident := $"__builtin_bswap".
 Definition ___builtin_bswap16 : ident := $"__builtin_bswap16".
 Definition ___builtin_bswap32 : ident := $"__builtin_bswap32".
 Definition ___builtin_bswap64 : ident := $"__builtin_bswap64".
+Definition ___builtin_call_frame : ident := $"__builtin_call_frame".
 Definition ___builtin_clz : ident := $"__builtin_clz".
 Definition ___builtin_clzl : ident := $"__builtin_clzl".
 Definition ___builtin_clzll : ident := $"__builtin_clzll".
+Definition ___builtin_cmpb : ident := $"__builtin_cmpb".
 Definition ___builtin_ctz : ident := $"__builtin_ctz".
 Definition ___builtin_ctzl : ident := $"__builtin_ctzl".
 Definition ___builtin_ctzll : ident := $"__builtin_ctzll".
+Definition ___builtin_dcbf : ident := $"__builtin_dcbf".
+Definition ___builtin_dcbi : ident := $"__builtin_dcbi".
+Definition ___builtin_dcbtls : ident := $"__builtin_dcbtls".
+Definition ___builtin_dcbz : ident := $"__builtin_dcbz".
 Definition ___builtin_debug : ident := $"__builtin_debug".
+Definition ___builtin_eieio : ident := $"__builtin_eieio".
 Definition ___builtin_expect : ident := $"__builtin_expect".
 Definition ___builtin_fabs : ident := $"__builtin_fabs".
 Definition ___builtin_fabsf : ident := $"__builtin_fabsf".
+Definition ___builtin_fcti : ident := $"__builtin_fcti".
 Definition ___builtin_fmadd : ident := $"__builtin_fmadd".
-Definition ___builtin_fmax : ident := $"__builtin_fmax".
-Definition ___builtin_fmin : ident := $"__builtin_fmin".
 Definition ___builtin_fmsub : ident := $"__builtin_fmsub".
 Definition ___builtin_fnmadd : ident := $"__builtin_fnmadd".
 Definition ___builtin_fnmsub : ident := $"__builtin_fnmsub".
+Definition ___builtin_fres : ident := $"__builtin_fres".
+Definition ___builtin_frsqrte : ident := $"__builtin_frsqrte".
+Definition ___builtin_fsel : ident := $"__builtin_fsel".
 Definition ___builtin_fsqrt : ident := $"__builtin_fsqrt".
+Definition ___builtin_get_spr : ident := $"__builtin_get_spr".
+Definition ___builtin_get_spr64 : ident := $"__builtin_get_spr64".
+Definition ___builtin_icbi : ident := $"__builtin_icbi".
+Definition ___builtin_icbtls : ident := $"__builtin_icbtls".
+Definition ___builtin_isel : ident := $"__builtin_isel".
+Definition ___builtin_isel64 : ident := $"__builtin_isel64".
+Definition ___builtin_isync : ident := $"__builtin_isync".
+Definition ___builtin_lwsync : ident := $"__builtin_lwsync".
+Definition ___builtin_mbar : ident := $"__builtin_mbar".
 Definition ___builtin_membar : ident := $"__builtin_membar".
 Definition ___builtin_memcpy_aligned : ident := $"__builtin_memcpy_aligned".
+Definition ___builtin_mr : ident := $"__builtin_mr".
+Definition ___builtin_mulhd : ident := $"__builtin_mulhd".
+Definition ___builtin_mulhdu : ident := $"__builtin_mulhdu".
+Definition ___builtin_mulhw : ident := $"__builtin_mulhw".
+Definition ___builtin_mulhwu : ident := $"__builtin_mulhwu".
+Definition ___builtin_nop : ident := $"__builtin_nop".
+Definition ___builtin_prefetch : ident := $"__builtin_prefetch".
 Definition ___builtin_read16_reversed : ident := $"__builtin_read16_reversed".
 Definition ___builtin_read32_reversed : ident := $"__builtin_read32_reversed".
+Definition ___builtin_read64_reversed : ident := $"__builtin_read64_reversed".
+Definition ___builtin_return_address : ident := $"__builtin_return_address".
 Definition ___builtin_sel : ident := $"__builtin_sel".
+Definition ___builtin_set_spr : ident := $"__builtin_set_spr".
+Definition ___builtin_set_spr64 : ident := $"__builtin_set_spr64".
 Definition ___builtin_sqrt : ident := $"__builtin_sqrt".
+Definition ___builtin_sync : ident := $"__builtin_sync".
+Definition ___builtin_sync_fetch_and_add : ident := $"__builtin_sync_fetch_and_add".
+Definition ___builtin_trap : ident := $"__builtin_trap".
+Definition ___builtin_uisel : ident := $"__builtin_uisel".
+Definition ___builtin_uisel64 : ident := $"__builtin_uisel64".
 Definition ___builtin_unreachable : ident := $"__builtin_unreachable".
 Definition ___builtin_va_arg : ident := $"__builtin_va_arg".
 Definition ___builtin_va_copy : ident := $"__builtin_va_copy".
@@ -84,6 +122,7 @@ Definition ___builtin_va_end : ident := $"__builtin_va_end".
 Definition ___builtin_va_start : ident := $"__builtin_va_start".
 Definition ___builtin_write16_reversed : ident := $"__builtin_write16_reversed".
 Definition ___builtin_write32_reversed : ident := $"__builtin_write32_reversed".
+Definition ___builtin_write64_reversed : ident := $"__builtin_write64_reversed".
 Definition ___compcert_i64_dtos : ident := $"__compcert_i64_dtos".
 Definition ___compcert_i64_dtou : ident := $"__compcert_i64_dtou".
 Definition ___compcert_i64_sar : ident := $"__compcert_i64_sar".
@@ -103,6 +142,9 @@ Definition ___compcert_va_composite : ident := $"__compcert_va_composite".
 Definition ___compcert_va_float64 : ident := $"__compcert_va_float64".
 Definition ___compcert_va_int32 : ident := $"__compcert_va_int32".
 Definition ___compcert_va_int64 : ident := $"__compcert_va_int64".
+Definition __arg : ident := $"_arg".
+Definition __arg__1 : ident := $"_arg__1".
+Definition __arg__2 : ident := $"_arg__2".
 Definition __g : ident := $"_g".
 Definition __g__1 : ident := $"_g__1".
 Definition __g__2 : ident := $"_g__2".
@@ -451,42 +493,42 @@ Definition v_gCurGraphNodeObject := {|
 |}.
 
 Definition v_dl_shadow_circle := {|
-  gvar_info := (tarray (Tunion __206 noattr) 0);
+  gvar_info := (tarray (Tunion __305 noattr) 0);
   gvar_init := nil;
   gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_dl_shadow_square := {|
-  gvar_info := (tarray (Tunion __206 noattr) 0);
+  gvar_info := (tarray (Tunion __305 noattr) 0);
   gvar_init := nil;
   gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_dl_shadow_9_verts := {|
-  gvar_info := (tarray (Tunion __206 noattr) 0);
+  gvar_info := (tarray (Tunion __305 noattr) 0);
   gvar_init := nil;
   gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_dl_shadow_4_verts := {|
-  gvar_info := (tarray (Tunion __206 noattr) 0);
+  gvar_info := (tarray (Tunion __305 noattr) 0);
   gvar_init := nil;
   gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_dl_shadow_end := {|
-  gvar_info := (tarray (Tunion __206 noattr) 0);
+  gvar_info := (tarray (Tunion __305 noattr) 0);
   gvar_init := nil;
   gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_rectangles := {|
-  gvar_info := (tarray (Tstruct __2146 noattr) 2);
+  gvar_info := (tarray (Tstruct __2245 noattr) 2);
   gvar_init := (Init_float32 (Float32.of_bits (Int.repr 1135869952)) ::
                 Init_float32 (Float32.of_bits (Int.repr 1130758144)) ::
                 Init_int8 (Int.repr 1) :: Init_space 3 ::
@@ -552,7 +594,7 @@ Definition f_rotate_rectangle := {|
             (Efield
               (Efield
                 (Ederef (Etempvar _obj (tptr (Tstruct _Object noattr)))
-                  (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                  (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
               _asS32 (tarray tint 80))
             (Ebinop Oadd (Econst_int (Int.repr 18) tint)
               (Econst_int (Int.repr 1) tint) tint) (tptr tint)) tint))
@@ -572,7 +614,7 @@ Definition f_rotate_rectangle := {|
                   (Efield
                     (Ederef (Etempvar _obj (tptr (Tstruct _Object noattr)))
                       (Tstruct _Object noattr)) _rawData
-                    (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                    (Tunion __764 noattr)) _asS32 (tarray tint 80))
                 (Ebinop Oadd (Econst_int (Int.repr 18) tint)
                   (Econst_int (Int.repr 1) tint) tint) (tptr tint)) tint))
           (Ssequence
@@ -595,7 +637,7 @@ Definition f_rotate_rectangle := {|
             (Efield
               (Efield
                 (Ederef (Etempvar _obj (tptr (Tstruct _Object noattr)))
-                  (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                  (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
               _asS32 (tarray tint 80))
             (Ebinop Oadd (Econst_int (Int.repr 18) tint)
               (Econst_int (Int.repr 1) tint) tint) (tptr tint)) tint))
@@ -613,7 +655,7 @@ Definition f_rotate_rectangle := {|
                   (Efield
                     (Ederef (Etempvar _obj (tptr (Tstruct _Object noattr)))
                       (Tstruct _Object noattr)) _rawData
-                    (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                    (Tunion __764 noattr)) _asS32 (tarray tint 80))
                 (Ebinop Oadd (Econst_int (Int.repr 18) tint)
                   (Econst_int (Int.repr 1) tint) tint) (tptr tint)) tint))
           (Ssequence
@@ -1223,7 +1265,7 @@ Definition f_get_texture_coords_4_vertices := {|
 Definition f_make_shadow_vertex_at_xyz := {|
   fn_return := tvoid;
   fn_callconv := cc_default;
-  fn_params := ((_vertices, (tptr (Tunion __120 noattr))) ::
+  fn_params := ((_vertices, (tptr (Tunion __219 noattr))) ::
                 (_index, tschar) :: (_relX, tfloat) :: (_relY, tfloat) ::
                 (_relZ, tfloat) :: (_alpha, tuchar) ::
                 (_shadowVertexType, tschar) :: nil);
@@ -1303,11 +1345,11 @@ Definition f_make_shadow_vertex_at_xyz := {|
               (Sset _t'5 (Evar _textureY tshort))
               (Scall None
                 (Evar _make_vertex (Tfunction
-                                     ((tptr (Tunion __120 noattr)) :: tint ::
+                                     ((tptr (Tunion __219 noattr)) :: tint ::
                                       tshort :: tshort :: tshort :: tshort ::
                                       tshort :: tuchar :: tuchar :: tuchar ::
                                       tuchar :: nil) tvoid cc_default))
-                ((Etempvar _vertices (tptr (Tunion __120 noattr))) ::
+                ((Etempvar _vertices (tptr (Tunion __219 noattr))) ::
                  (Etempvar _index tschar) :: (Etempvar _vtxX tshort) ::
                  (Etempvar _vtxY tshort) :: (Etempvar _vtxZ tshort) ::
                  (Ebinop Oshl (Etempvar _t'4 tshort)
@@ -1323,38 +1365,42 @@ Definition f_make_shadow_vertex_at_xyz := {|
 Definition f_extrapolate_vertex_y_position := {|
   fn_return := tfloat;
   fn_callconv := cc_default;
-  fn_params := ((_s, (Tstruct _Shadow noattr)) :: (_vtxX, tfloat) ::
+  fn_params := ((_s, (tptr (Tstruct _Shadow noattr))) :: (_vtxX, tfloat) ::
                 (_vtxZ, tfloat) :: nil);
-  fn_vars := ((_s, (Tstruct _Shadow noattr)) :: nil);
+  fn_vars := nil;
   fn_temps := ((_t'4, tfloat) :: (_t'3, tfloat) :: (_t'2, tfloat) ::
                (_t'1, tfloat) :: nil);
   fn_body :=
 (Ssequence
-  (Sassign (Evar _s (Tstruct _Shadow noattr))
-    (Etempvar _s (Tstruct _Shadow noattr)))
+  (Sset _t'1
+    (Efield
+      (Ederef (Etempvar _s (tptr (Tstruct _Shadow noattr)))
+        (Tstruct _Shadow noattr)) _floorNormalX tfloat))
   (Ssequence
-    (Sset _t'1
-      (Efield (Evar _s (Tstruct _Shadow noattr)) _floorNormalX tfloat))
+    (Sset _t'2
+      (Efield
+        (Ederef (Etempvar _s (tptr (Tstruct _Shadow noattr)))
+          (Tstruct _Shadow noattr)) _floorNormalZ tfloat))
     (Ssequence
-      (Sset _t'2
-        (Efield (Evar _s (Tstruct _Shadow noattr)) _floorNormalZ tfloat))
+      (Sset _t'3
+        (Efield
+          (Ederef (Etempvar _s (tptr (Tstruct _Shadow noattr)))
+            (Tstruct _Shadow noattr)) _floorOriginOffset tfloat))
       (Ssequence
-        (Sset _t'3
-          (Efield (Evar _s (Tstruct _Shadow noattr)) _floorOriginOffset
-            tfloat))
-        (Ssequence
-          (Sset _t'4
-            (Efield (Evar _s (Tstruct _Shadow noattr)) _floorNormalY tfloat))
-          (Sreturn (Some (Ebinop Odiv
-                           (Eunop Oneg
+        (Sset _t'4
+          (Efield
+            (Ederef (Etempvar _s (tptr (Tstruct _Shadow noattr)))
+              (Tstruct _Shadow noattr)) _floorNormalY tfloat))
+        (Sreturn (Some (Ebinop Odiv
+                         (Eunop Oneg
+                           (Ebinop Oadd
                              (Ebinop Oadd
-                               (Ebinop Oadd
-                                 (Ebinop Omul (Etempvar _t'1 tfloat)
-                                   (Etempvar _vtxX tfloat) tfloat)
-                                 (Ebinop Omul (Etempvar _t'2 tfloat)
-                                   (Etempvar _vtxZ tfloat) tfloat) tfloat)
-                               (Etempvar _t'3 tfloat) tfloat) tfloat)
-                           (Etempvar _t'4 tfloat) tfloat))))))))
+                               (Ebinop Omul (Etempvar _t'1 tfloat)
+                                 (Etempvar _vtxX tfloat) tfloat)
+                               (Ebinop Omul (Etempvar _t'2 tfloat)
+                                 (Etempvar _vtxZ tfloat) tfloat) tfloat)
+                             (Etempvar _t'3 tfloat) tfloat) tfloat)
+                         (Etempvar _t'4 tfloat) tfloat)))))))
 |}.
 
 Definition f_get_vertex_coords := {|
@@ -1402,13 +1448,13 @@ Definition f_get_vertex_coords := {|
 Definition f_calculate_vertex_xyz := {|
   fn_return := tvoid;
   fn_callconv := cc_default;
-  fn_params := ((_index, tschar) :: (_s, (Tstruct _Shadow noattr)) ::
+  fn_params := ((_index, tschar) :: (_s, (tptr (Tstruct _Shadow noattr))) ::
                 (_xPosVtx, (tptr tfloat)) :: (_yPosVtx, (tptr tfloat)) ::
                 (_zPosVtx, (tptr tfloat)) :: (_shadowVertexType, tschar) ::
                 nil);
-  fn_vars := ((_s, (Tstruct _Shadow noattr)) :: (_xCoordUnit, tschar) ::
-              (_zCoordUnit, tschar) ::
-              (_dummy, (tptr (Tstruct _FloorGeometry noattr))) :: nil);
+  fn_vars := ((_xCoordUnit, tschar) :: (_zCoordUnit, tschar) ::
+              (_dummy, (tptr (Tstruct _FloorGeometry noattr))) ::
+              (__arg, (Tstruct _Shadow noattr)) :: nil);
   fn_temps := ((_tiltedScale, tfloat) :: (_downwardAngle, tfloat) ::
                (_halfScale, tfloat) :: (_halfTiltedScale, tfloat) ::
                (_t'7, tfloat) :: (_t'6, tfloat) :: (_t'5, tfloat) ::
@@ -1421,162 +1467,176 @@ Definition f_calculate_vertex_xyz := {|
                (_t'8, tschar) :: nil);
   fn_body :=
 (Ssequence
-  (Sassign (Evar _s (Tstruct _Shadow noattr))
-    (Etempvar _s (Tstruct _Shadow noattr)))
   (Ssequence
     (Ssequence
-      (Ssequence
-        (Sset _t'22
-          (Efield (Evar _s (Tstruct _Shadow noattr)) _floorTilt tfloat))
-        (Scall (Some _t'1)
-          (Evar _cosf (Tfunction (tfloat :: nil) tfloat cc_default))
-          ((Ebinop Odiv
-             (Ebinop Omul (Etempvar _t'22 tfloat)
-               (Econst_float (Float.of_bits (Int64.repr 4614256656552045848)) tdouble)
-               tdouble)
-             (Econst_float (Float.of_bits (Int64.repr 4640537203540230144)) tdouble)
-             tdouble) :: nil)))
-      (Ssequence
-        (Sset _t'21
-          (Efield (Evar _s (Tstruct _Shadow noattr)) _shadowScale tfloat))
-        (Sset _tiltedScale
-          (Ebinop Omul (Etempvar _t'1 tfloat) (Etempvar _t'21 tfloat) tfloat))))
+      (Sset _t'22
+        (Efield
+          (Ederef (Etempvar _s (tptr (Tstruct _Shadow noattr)))
+            (Tstruct _Shadow noattr)) _floorTilt tfloat))
+      (Scall (Some _t'1)
+        (Evar _cosf (Tfunction (tfloat :: nil) tfloat cc_default))
+        ((Ebinop Odiv
+           (Ebinop Omul (Etempvar _t'22 tfloat)
+             (Econst_float (Float.of_bits (Int64.repr 4614256656552045848)) tdouble)
+             tdouble)
+           (Econst_float (Float.of_bits (Int64.repr 4640537203540230144)) tdouble)
+           tdouble) :: nil)))
     (Ssequence
+      (Sset _t'21
+        (Efield
+          (Ederef (Etempvar _s (tptr (Tstruct _Shadow noattr)))
+            (Tstruct _Shadow noattr)) _shadowScale tfloat))
+      (Sset _tiltedScale
+        (Ebinop Omul (Etempvar _t'1 tfloat) (Etempvar _t'21 tfloat) tfloat))))
+  (Ssequence
+    (Ssequence
+      (Sset _t'20
+        (Efield
+          (Ederef (Etempvar _s (tptr (Tstruct _Shadow noattr)))
+            (Tstruct _Shadow noattr)) _floorDownwardAngle tfloat))
+      (Sset _downwardAngle
+        (Ecast
+          (Ebinop Odiv
+            (Ebinop Omul (Etempvar _t'20 tfloat)
+              (Econst_float (Float.of_bits (Int64.repr 4614256656552045848)) tdouble)
+              tdouble)
+            (Econst_float (Float.of_bits (Int64.repr 4640537203540230144)) tdouble)
+            tdouble) tfloat)))
+    (Ssequence
+      (Scall None
+        (Evar _get_vertex_coords (Tfunction
+                                   (tschar :: tschar :: (tptr tschar) ::
+                                    (tptr tschar) :: nil) tvoid cc_default))
+        ((Etempvar _index tschar) :: (Etempvar _shadowVertexType tschar) ::
+         (Eaddrof (Evar _xCoordUnit tschar) (tptr tschar)) ::
+         (Eaddrof (Evar _zCoordUnit tschar) (tptr tschar)) :: nil))
       (Ssequence
-        (Sset _t'20
-          (Efield (Evar _s (Tstruct _Shadow noattr)) _floorDownwardAngle
-            tfloat))
-        (Sset _downwardAngle
-          (Ecast
-            (Ebinop Odiv
-              (Ebinop Omul (Etempvar _t'20 tfloat)
-                (Econst_float (Float.of_bits (Int64.repr 4614256656552045848)) tdouble)
-                tdouble)
-              (Econst_float (Float.of_bits (Int64.repr 4640537203540230144)) tdouble)
-              tdouble) tfloat)))
-      (Ssequence
-        (Scall None
-          (Evar _get_vertex_coords (Tfunction
-                                     (tschar :: tschar :: (tptr tschar) ::
-                                      (tptr tschar) :: nil) tvoid cc_default))
-          ((Etempvar _index tschar) :: (Etempvar _shadowVertexType tschar) ::
-           (Eaddrof (Evar _xCoordUnit tschar) (tptr tschar)) ::
-           (Eaddrof (Evar _zCoordUnit tschar) (tptr tschar)) :: nil))
+        (Ssequence
+          (Sset _t'18 (Evar _xCoordUnit tschar))
+          (Ssequence
+            (Sset _t'19
+              (Efield
+                (Ederef (Etempvar _s (tptr (Tstruct _Shadow noattr)))
+                  (Tstruct _Shadow noattr)) _shadowScale tfloat))
+            (Sset _halfScale
+              (Ecast
+                (Ebinop Odiv
+                  (Ebinop Omul (Etempvar _t'18 tschar)
+                    (Etempvar _t'19 tfloat) tfloat)
+                  (Econst_float (Float.of_bits (Int64.repr 4611686018427387904)) tdouble)
+                  tdouble) tfloat))))
         (Ssequence
           (Ssequence
-            (Sset _t'18 (Evar _xCoordUnit tschar))
-            (Ssequence
-              (Sset _t'19
-                (Efield (Evar _s (Tstruct _Shadow noattr)) _shadowScale
-                  tfloat))
-              (Sset _halfScale
-                (Ecast
-                  (Ebinop Odiv
-                    (Ebinop Omul (Etempvar _t'18 tschar)
-                      (Etempvar _t'19 tfloat) tfloat)
-                    (Econst_float (Float.of_bits (Int64.repr 4611686018427387904)) tdouble)
-                    tdouble) tfloat))))
+            (Sset _t'17 (Evar _zCoordUnit tschar))
+            (Sset _halfTiltedScale
+              (Ecast
+                (Ebinop Odiv
+                  (Ebinop Omul (Etempvar _t'17 tschar)
+                    (Etempvar _tiltedScale tfloat) tfloat)
+                  (Econst_float (Float.of_bits (Int64.repr 4611686018427387904)) tdouble)
+                  tdouble) tfloat)))
           (Ssequence
             (Ssequence
-              (Sset _t'17 (Evar _zCoordUnit tschar))
-              (Sset _halfTiltedScale
-                (Ecast
-                  (Ebinop Odiv
-                    (Ebinop Omul (Etempvar _t'17 tschar)
-                      (Etempvar _tiltedScale tfloat) tfloat)
-                    (Econst_float (Float.of_bits (Int64.repr 4611686018427387904)) tdouble)
-                    tdouble) tfloat)))
+              (Ssequence
+                (Scall (Some _t'2)
+                  (Evar _sinf (Tfunction (tfloat :: nil) tfloat cc_default))
+                  ((Etempvar _downwardAngle tfloat) :: nil))
+                (Scall (Some _t'3)
+                  (Evar _cosf (Tfunction (tfloat :: nil) tfloat cc_default))
+                  ((Etempvar _downwardAngle tfloat) :: nil)))
+              (Ssequence
+                (Sset _t'16
+                  (Efield
+                    (Ederef (Etempvar _s (tptr (Tstruct _Shadow noattr)))
+                      (Tstruct _Shadow noattr)) _parentX tfloat))
+                (Sassign (Ederef (Etempvar _xPosVtx (tptr tfloat)) tfloat)
+                  (Ebinop Oadd
+                    (Ebinop Oadd
+                      (Ebinop Omul (Etempvar _halfTiltedScale tfloat)
+                        (Etempvar _t'2 tfloat) tfloat)
+                      (Ebinop Omul (Etempvar _halfScale tfloat)
+                        (Etempvar _t'3 tfloat) tfloat) tfloat)
+                    (Etempvar _t'16 tfloat) tfloat))))
             (Ssequence
               (Ssequence
                 (Ssequence
-                  (Scall (Some _t'2)
-                    (Evar _sinf (Tfunction (tfloat :: nil) tfloat cc_default))
-                    ((Etempvar _downwardAngle tfloat) :: nil))
-                  (Scall (Some _t'3)
+                  (Scall (Some _t'4)
                     (Evar _cosf (Tfunction (tfloat :: nil) tfloat cc_default))
+                    ((Etempvar _downwardAngle tfloat) :: nil))
+                  (Scall (Some _t'5)
+                    (Evar _sinf (Tfunction (tfloat :: nil) tfloat cc_default))
                     ((Etempvar _downwardAngle tfloat) :: nil)))
                 (Ssequence
-                  (Sset _t'16
-                    (Efield (Evar _s (Tstruct _Shadow noattr)) _parentX
-                      tfloat))
-                  (Sassign (Ederef (Etempvar _xPosVtx (tptr tfloat)) tfloat)
+                  (Sset _t'15
+                    (Efield
+                      (Ederef (Etempvar _s (tptr (Tstruct _Shadow noattr)))
+                        (Tstruct _Shadow noattr)) _parentZ tfloat))
+                  (Sassign (Ederef (Etempvar _zPosVtx (tptr tfloat)) tfloat)
                     (Ebinop Oadd
-                      (Ebinop Oadd
+                      (Ebinop Osub
                         (Ebinop Omul (Etempvar _halfTiltedScale tfloat)
-                          (Etempvar _t'2 tfloat) tfloat)
+                          (Etempvar _t'4 tfloat) tfloat)
                         (Ebinop Omul (Etempvar _halfScale tfloat)
-                          (Etempvar _t'3 tfloat) tfloat) tfloat)
-                      (Etempvar _t'16 tfloat) tfloat))))
+                          (Etempvar _t'5 tfloat) tfloat) tfloat)
+                      (Etempvar _t'15 tfloat) tfloat))))
               (Ssequence
-                (Ssequence
+                (Sset _t'8 (Evar _gShadowAboveWaterOrLava tschar))
+                (Sifthenelse (Etempvar _t'8 tschar)
                   (Ssequence
-                    (Scall (Some _t'4)
-                      (Evar _cosf (Tfunction (tfloat :: nil) tfloat
-                                    cc_default))
-                      ((Etempvar _downwardAngle tfloat) :: nil))
-                    (Scall (Some _t'5)
-                      (Evar _sinf (Tfunction (tfloat :: nil) tfloat
-                                    cc_default))
-                      ((Etempvar _downwardAngle tfloat) :: nil)))
-                  (Ssequence
-                    (Sset _t'15
-                      (Efield (Evar _s (Tstruct _Shadow noattr)) _parentZ
-                        tfloat))
+                    (Sset _t'14
+                      (Efield
+                        (Ederef (Etempvar _s (tptr (Tstruct _Shadow noattr)))
+                          (Tstruct _Shadow noattr)) _floorHeight tfloat))
                     (Sassign
-                      (Ederef (Etempvar _zPosVtx (tptr tfloat)) tfloat)
-                      (Ebinop Oadd
-                        (Ebinop Osub
-                          (Ebinop Omul (Etempvar _halfTiltedScale tfloat)
-                            (Etempvar _t'4 tfloat) tfloat)
-                          (Ebinop Omul (Etempvar _halfScale tfloat)
-                            (Etempvar _t'5 tfloat) tfloat) tfloat)
-                        (Etempvar _t'15 tfloat) tfloat))))
-                (Ssequence
-                  (Sset _t'8 (Evar _gShadowAboveWaterOrLava tschar))
-                  (Sifthenelse (Etempvar _t'8 tschar)
-                    (Ssequence
-                      (Sset _t'14
-                        (Efield (Evar _s (Tstruct _Shadow noattr))
-                          _floorHeight tfloat))
-                      (Sassign
-                        (Ederef (Etempvar _yPosVtx (tptr tfloat)) tfloat)
-                        (Etempvar _t'14 tfloat)))
-                    (Sswitch (Etempvar _shadowVertexType tschar)
-                      (LScons (Some 0)
+                      (Ederef (Etempvar _yPosVtx (tptr tfloat)) tfloat)
+                      (Etempvar _t'14 tfloat)))
+                  (Sswitch (Etempvar _shadowVertexType tschar)
+                    (LScons (Some 0)
+                      (Ssequence
+                        (Ssequence
+                          (Ssequence
+                            (Sset _t'11
+                              (Ederef (Etempvar _xPosVtx (tptr tfloat))
+                                tfloat))
+                            (Ssequence
+                              (Sset _t'12
+                                (Efield
+                                  (Ederef
+                                    (Etempvar _s (tptr (Tstruct _Shadow noattr)))
+                                    (Tstruct _Shadow noattr)) _parentY
+                                  tfloat))
+                              (Ssequence
+                                (Sset _t'13
+                                  (Ederef (Etempvar _zPosVtx (tptr tfloat))
+                                    tfloat))
+                                (Scall (Some _t'6)
+                                  (Evar _find_floor_height_and_data (Tfunction
+                                                                    (tfloat ::
+                                                                    tfloat ::
+                                                                    tfloat ::
+                                                                    (tptr (tptr (Tstruct _FloorGeometry noattr))) ::
+                                                                    nil)
+                                                                    tfloat
+                                                                    cc_default))
+                                  ((Etempvar _t'11 tfloat) ::
+                                   (Etempvar _t'12 tfloat) ::
+                                   (Etempvar _t'13 tfloat) ::
+                                   (Eaddrof
+                                     (Evar _dummy (tptr (Tstruct _FloorGeometry noattr)))
+                                     (tptr (tptr (Tstruct _FloorGeometry noattr)))) ::
+                                   nil)))))
+                          (Sassign
+                            (Ederef (Etempvar _yPosVtx (tptr tfloat)) tfloat)
+                            (Etempvar _t'6 tfloat)))
+                        Sbreak)
+                      (LScons (Some 1)
                         (Ssequence
                           (Ssequence
                             (Ssequence
-                              (Sset _t'11
-                                (Ederef (Etempvar _xPosVtx (tptr tfloat))
-                                  tfloat))
-                              (Ssequence
-                                (Sset _t'12
-                                  (Efield (Evar _s (Tstruct _Shadow noattr))
-                                    _parentY tfloat))
-                                (Ssequence
-                                  (Sset _t'13
-                                    (Ederef (Etempvar _zPosVtx (tptr tfloat))
-                                      tfloat))
-                                  (Scall (Some _t'6)
-                                    (Evar _find_floor_height_and_data 
-                                    (Tfunction
-                                      (tfloat :: tfloat :: tfloat ::
-                                       (tptr (tptr (Tstruct _FloorGeometry noattr))) ::
-                                       nil) tfloat cc_default))
-                                    ((Etempvar _t'11 tfloat) ::
-                                     (Etempvar _t'12 tfloat) ::
-                                     (Etempvar _t'13 tfloat) ::
-                                     (Eaddrof
-                                       (Evar _dummy (tptr (Tstruct _FloorGeometry noattr)))
-                                       (tptr (tptr (Tstruct _FloorGeometry noattr)))) ::
-                                     nil)))))
-                            (Sassign
-                              (Ederef (Etempvar _yPosVtx (tptr tfloat))
-                                tfloat) (Etempvar _t'6 tfloat)))
-                          Sbreak)
-                        (LScons (Some 1)
-                          (Ssequence
-                            (Ssequence
+                              (Sassign (Evar __arg (Tstruct _Shadow noattr))
+                                (Ederef
+                                  (Etempvar _s (tptr (Tstruct _Shadow noattr)))
+                                  (Tstruct _Shadow noattr)))
                               (Ssequence
                                 (Sset _t'9
                                   (Ederef (Etempvar _xPosVtx (tptr tfloat))
@@ -1588,83 +1648,94 @@ Definition f_calculate_vertex_xyz := {|
                                   (Scall (Some _t'7)
                                     (Evar _extrapolate_vertex_y_position 
                                     (Tfunction
-                                      ((Tstruct _Shadow noattr) :: tfloat ::
-                                       tfloat :: nil) tfloat cc_default))
-                                    ((Evar _s (Tstruct _Shadow noattr)) ::
+                                      ((tptr (Tstruct _Shadow noattr)) ::
+                                       tfloat :: tfloat :: nil) tfloat
+                                      cc_default))
+                                    ((Eaddrof
+                                       (Evar __arg (Tstruct _Shadow noattr))
+                                       (tptr (Tstruct _Shadow noattr))) ::
                                      (Etempvar _t'9 tfloat) ::
-                                     (Etempvar _t'10 tfloat) :: nil))))
-                              (Sassign
-                                (Ederef (Etempvar _yPosVtx (tptr tfloat))
-                                  tfloat) (Etempvar _t'7 tfloat)))
-                            Sbreak)
-                          LSnil)))))))))))))
+                                     (Etempvar _t'10 tfloat) :: nil)))))
+                            (Sassign
+                              (Ederef (Etempvar _yPosVtx (tptr tfloat))
+                                tfloat) (Etempvar _t'7 tfloat)))
+                          Sbreak)
+                        LSnil))))))))))))
 |}.
 
 Definition f_floor_local_tilt := {|
   fn_return := tshort;
   fn_callconv := cc_default;
-  fn_params := ((_s, (Tstruct _Shadow noattr)) :: (_vtxX, tfloat) ::
+  fn_params := ((_s, (tptr (Tstruct _Shadow noattr))) :: (_vtxX, tfloat) ::
                 (_vtxY, tfloat) :: (_vtxZ, tfloat) :: nil);
-  fn_vars := ((_s, (Tstruct _Shadow noattr)) :: nil);
+  fn_vars := nil;
   fn_temps := ((_relX, tfloat) :: (_relY, tfloat) :: (_relZ, tfloat) ::
                (_ret, tfloat) :: (_t'6, tfloat) :: (_t'5, tfloat) ::
                (_t'4, tfloat) :: (_t'3, tfloat) :: (_t'2, tfloat) ::
                (_t'1, tfloat) :: nil);
   fn_body :=
 (Ssequence
-  (Sassign (Evar _s (Tstruct _Shadow noattr))
-    (Etempvar _s (Tstruct _Shadow noattr)))
+  (Ssequence
+    (Sset _t'6
+      (Efield
+        (Ederef (Etempvar _s (tptr (Tstruct _Shadow noattr)))
+          (Tstruct _Shadow noattr)) _parentX tfloat))
+    (Sset _relX
+      (Ebinop Osub (Etempvar _vtxX tfloat) (Etempvar _t'6 tfloat) tfloat)))
   (Ssequence
     (Ssequence
-      (Sset _t'6 (Efield (Evar _s (Tstruct _Shadow noattr)) _parentX tfloat))
-      (Sset _relX
-        (Ebinop Osub (Etempvar _vtxX tfloat) (Etempvar _t'6 tfloat) tfloat)))
+      (Sset _t'5
+        (Efield
+          (Ederef (Etempvar _s (tptr (Tstruct _Shadow noattr)))
+            (Tstruct _Shadow noattr)) _floorHeight tfloat))
+      (Sset _relY
+        (Ebinop Osub (Etempvar _vtxY tfloat) (Etempvar _t'5 tfloat) tfloat)))
     (Ssequence
       (Ssequence
-        (Sset _t'5
-          (Efield (Evar _s (Tstruct _Shadow noattr)) _floorHeight tfloat))
-        (Sset _relY
-          (Ebinop Osub (Etempvar _vtxY tfloat) (Etempvar _t'5 tfloat) tfloat)))
+        (Sset _t'4
+          (Efield
+            (Ederef (Etempvar _s (tptr (Tstruct _Shadow noattr)))
+              (Tstruct _Shadow noattr)) _parentZ tfloat))
+        (Sset _relZ
+          (Ebinop Osub (Etempvar _vtxZ tfloat) (Etempvar _t'4 tfloat) tfloat)))
       (Ssequence
         (Ssequence
-          (Sset _t'4
-            (Efield (Evar _s (Tstruct _Shadow noattr)) _parentZ tfloat))
-          (Sset _relZ
-            (Ebinop Osub (Etempvar _vtxZ tfloat) (Etempvar _t'4 tfloat)
-              tfloat)))
-        (Ssequence
+          (Sset _t'1
+            (Efield
+              (Ederef (Etempvar _s (tptr (Tstruct _Shadow noattr)))
+                (Tstruct _Shadow noattr)) _floorNormalX tfloat))
           (Ssequence
-            (Sset _t'1
-              (Efield (Evar _s (Tstruct _Shadow noattr)) _floorNormalX
-                tfloat))
+            (Sset _t'2
+              (Efield
+                (Ederef (Etempvar _s (tptr (Tstruct _Shadow noattr)))
+                  (Tstruct _Shadow noattr)) _floorNormalY tfloat))
             (Ssequence
-              (Sset _t'2
-                (Efield (Evar _s (Tstruct _Shadow noattr)) _floorNormalY
-                  tfloat))
-              (Ssequence
-                (Sset _t'3
-                  (Efield (Evar _s (Tstruct _Shadow noattr)) _floorNormalZ
-                    tfloat))
-                (Sset _ret
+              (Sset _t'3
+                (Efield
+                  (Ederef (Etempvar _s (tptr (Tstruct _Shadow noattr)))
+                    (Tstruct _Shadow noattr)) _floorNormalZ tfloat))
+              (Sset _ret
+                (Ebinop Oadd
                   (Ebinop Oadd
-                    (Ebinop Oadd
-                      (Ebinop Omul (Etempvar _relX tfloat)
-                        (Etempvar _t'1 tfloat) tfloat)
-                      (Ebinop Omul (Etempvar _relY tfloat)
-                        (Etempvar _t'2 tfloat) tfloat) tfloat)
-                    (Ebinop Omul (Etempvar _relZ tfloat)
-                      (Etempvar _t'3 tfloat) tfloat) tfloat)))))
-          (Sreturn (Some (Etempvar _ret tfloat))))))))
+                    (Ebinop Omul (Etempvar _relX tfloat)
+                      (Etempvar _t'1 tfloat) tfloat)
+                    (Ebinop Omul (Etempvar _relY tfloat)
+                      (Etempvar _t'2 tfloat) tfloat) tfloat)
+                  (Ebinop Omul (Etempvar _relZ tfloat) (Etempvar _t'3 tfloat)
+                    tfloat) tfloat)))))
+        (Sreturn (Some (Etempvar _ret tfloat)))))))
 |}.
 
 Definition f_make_shadow_vertex := {|
   fn_return := tvoid;
   fn_callconv := cc_default;
-  fn_params := ((_vertices, (tptr (Tunion __120 noattr))) ::
-                (_index, tschar) :: (_s, (Tstruct _Shadow noattr)) ::
+  fn_params := ((_vertices, (tptr (Tunion __219 noattr))) ::
+                (_index, tschar) :: (_s, (tptr (Tstruct _Shadow noattr))) ::
                 (_shadowVertexType, tschar) :: nil);
-  fn_vars := ((_s, (Tstruct _Shadow noattr)) :: (_xPosVtx, tfloat) ::
-              (_yPosVtx, tfloat) :: (_zPosVtx, tfloat) :: nil);
+  fn_vars := ((_xPosVtx, tfloat) :: (_yPosVtx, tfloat) ::
+              (_zPosVtx, tfloat) :: (__arg, (Tstruct _Shadow noattr)) ::
+              (__arg__1, (Tstruct _Shadow noattr)) ::
+              (__arg__2, (Tstruct _Shadow noattr)) :: nil);
   fn_temps := ((_relX, tfloat) :: (_relY, tfloat) :: (_relZ, tfloat) ::
                (_solidity, tuchar) :: (_t'4, tshort) :: (_t'3, tint) ::
                (_t'2, tint) :: (_t'1, tfloat) :: (_t'18, tuchar) ::
@@ -1675,45 +1746,53 @@ Definition f_make_shadow_vertex := {|
                (_t'5, tfloat) :: nil);
   fn_body :=
 (Ssequence
-  (Sassign (Evar _s (Tstruct _Shadow noattr))
-    (Etempvar _s (Tstruct _Shadow noattr)))
+  (Ssequence
+    (Sset _t'18
+      (Efield
+        (Ederef (Etempvar _s (tptr (Tstruct _Shadow noattr)))
+          (Tstruct _Shadow noattr)) _solidity tuchar))
+    (Sset _solidity (Ecast (Etempvar _t'18 tuchar) tuchar)))
   (Ssequence
     (Ssequence
-      (Sset _t'18
-        (Efield (Evar _s (Tstruct _Shadow noattr)) _solidity tuchar))
-      (Sset _solidity (Ecast (Etempvar _t'18 tuchar) tuchar)))
+      (Sset _t'17 (Evar _gShadowAboveWaterOrLava tschar))
+      (Sifthenelse (Etempvar _t'17 tschar)
+        (Sset _solidity (Ecast (Econst_int (Int.repr 200) tint) tuchar))
+        Sskip))
     (Ssequence
       (Ssequence
-        (Sset _t'17 (Evar _gShadowAboveWaterOrLava tschar))
-        (Sifthenelse (Etempvar _t'17 tschar)
-          (Sset _solidity (Ecast (Econst_int (Int.repr 200) tint) tuchar))
-          Sskip))
-      (Ssequence
+        (Sassign (Evar __arg__2 (Tstruct _Shadow noattr))
+          (Ederef (Etempvar _s (tptr (Tstruct _Shadow noattr)))
+            (Tstruct _Shadow noattr)))
         (Scall None
           (Evar _calculate_vertex_xyz (Tfunction
                                         (tschar ::
-                                         (Tstruct _Shadow noattr) ::
+                                         (tptr (Tstruct _Shadow noattr)) ::
                                          (tptr tfloat) :: (tptr tfloat) ::
                                          (tptr tfloat) :: tschar :: nil)
                                         tvoid cc_default))
-          ((Etempvar _index tschar) :: (Evar _s (Tstruct _Shadow noattr)) ::
+          ((Etempvar _index tschar) ::
+           (Eaddrof (Evar __arg__2 (Tstruct _Shadow noattr))
+             (tptr (Tstruct _Shadow noattr))) ::
            (Eaddrof (Evar _xPosVtx tfloat) (tptr tfloat)) ::
            (Eaddrof (Evar _yPosVtx tfloat) (tptr tfloat)) ::
            (Eaddrof (Evar _zPosVtx tfloat) (tptr tfloat)) ::
-           (Etempvar _shadowVertexType tschar) :: nil))
+           (Etempvar _shadowVertexType tschar) :: nil)))
+      (Ssequence
         (Ssequence
           (Ssequence
-            (Ssequence
-              (Sifthenelse (Ebinop Oeq (Etempvar _shadowVertexType tschar)
-                             (Econst_int (Int.repr 0) tint) tint)
+            (Sifthenelse (Ebinop Oeq (Etempvar _shadowVertexType tschar)
+                           (Econst_int (Int.repr 0) tint) tint)
+              (Ssequence
+                (Sset _t'16 (Evar _gShadowAboveWaterOrLava tschar))
+                (Sset _t'2
+                  (Ecast (Eunop Onotbool (Etempvar _t'16 tschar) tint) tbool)))
+              (Sset _t'2 (Econst_int (Int.repr 0) tint)))
+            (Sifthenelse (Etempvar _t'2 tint)
+              (Ssequence
                 (Ssequence
-                  (Sset _t'16 (Evar _gShadowAboveWaterOrLava tschar))
-                  (Sset _t'2
-                    (Ecast (Eunop Onotbool (Etempvar _t'16 tschar) tint)
-                      tbool)))
-                (Sset _t'2 (Econst_int (Int.repr 0) tint)))
-              (Sifthenelse (Etempvar _t'2 tint)
-                (Ssequence
+                  (Sassign (Evar __arg__1 (Tstruct _Shadow noattr))
+                    (Ederef (Etempvar _s (tptr (Tstruct _Shadow noattr)))
+                      (Tstruct _Shadow noattr)))
                   (Ssequence
                     (Sset _t'13 (Evar _xPosVtx tfloat))
                     (Ssequence
@@ -1722,105 +1801,114 @@ Definition f_make_shadow_vertex := {|
                         (Sset _t'15 (Evar _zPosVtx tfloat))
                         (Scall (Some _t'4)
                           (Evar _floor_local_tilt (Tfunction
-                                                    ((Tstruct _Shadow noattr) ::
+                                                    ((tptr (Tstruct _Shadow noattr)) ::
                                                      tfloat :: tfloat ::
                                                      tfloat :: nil) tshort
                                                     cc_default))
-                          ((Evar _s (Tstruct _Shadow noattr)) ::
+                          ((Eaddrof (Evar __arg__1 (Tstruct _Shadow noattr))
+                             (tptr (Tstruct _Shadow noattr))) ::
                            (Etempvar _t'13 tfloat) ::
                            (Etempvar _t'14 tfloat) ::
-                           (Etempvar _t'15 tfloat) :: nil)))))
-                  (Sset _t'3
-                    (Ecast
-                      (Ebinop One (Etempvar _t'4 tshort)
-                        (Econst_int (Int.repr 0) tint) tint) tbool)))
-                (Sset _t'3 (Econst_int (Int.repr 0) tint))))
-            (Sifthenelse (Etempvar _t'3 tint)
+                           (Etempvar _t'15 tfloat) :: nil))))))
+                (Sset _t'3
+                  (Ecast
+                    (Ebinop One (Etempvar _t'4 tshort)
+                      (Econst_int (Int.repr 0) tint) tint) tbool)))
+              (Sset _t'3 (Econst_int (Int.repr 0) tint))))
+          (Sifthenelse (Etempvar _t'3 tint)
+            (Ssequence
               (Ssequence
                 (Ssequence
+                  (Sassign (Evar __arg (Tstruct _Shadow noattr))
+                    (Ederef (Etempvar _s (tptr (Tstruct _Shadow noattr)))
+                      (Tstruct _Shadow noattr)))
                   (Ssequence
                     (Sset _t'11 (Evar _xPosVtx tfloat))
                     (Ssequence
                       (Sset _t'12 (Evar _zPosVtx tfloat))
                       (Scall (Some _t'1)
                         (Evar _extrapolate_vertex_y_position (Tfunction
-                                                               ((Tstruct _Shadow noattr) ::
+                                                               ((tptr (Tstruct _Shadow noattr)) ::
                                                                 tfloat ::
                                                                 tfloat ::
                                                                 nil) tfloat
                                                                cc_default))
-                        ((Evar _s (Tstruct _Shadow noattr)) ::
+                        ((Eaddrof (Evar __arg (Tstruct _Shadow noattr))
+                           (tptr (Tstruct _Shadow noattr))) ::
                          (Etempvar _t'11 tfloat) ::
-                         (Etempvar _t'12 tfloat) :: nil))))
-                  (Sassign (Evar _yPosVtx tfloat) (Etempvar _t'1 tfloat)))
-                (Sset _solidity
-                  (Ecast (Econst_int (Int.repr 0) tint) tuchar)))
-              Sskip))
+                         (Etempvar _t'12 tfloat) :: nil)))))
+                (Sassign (Evar _yPosVtx tfloat) (Etempvar _t'1 tfloat)))
+              (Sset _solidity (Ecast (Econst_int (Int.repr 0) tint) tuchar)))
+            Sskip))
+        (Ssequence
+          (Ssequence
+            (Sset _t'9 (Evar _xPosVtx tfloat))
+            (Ssequence
+              (Sset _t'10
+                (Efield
+                  (Ederef (Etempvar _s (tptr (Tstruct _Shadow noattr)))
+                    (Tstruct _Shadow noattr)) _parentX tfloat))
+              (Sset _relX
+                (Ebinop Osub (Etempvar _t'9 tfloat) (Etempvar _t'10 tfloat)
+                  tfloat))))
           (Ssequence
             (Ssequence
-              (Sset _t'9 (Evar _xPosVtx tfloat))
+              (Sset _t'7 (Evar _yPosVtx tfloat))
               (Ssequence
-                (Sset _t'10
-                  (Efield (Evar _s (Tstruct _Shadow noattr)) _parentX tfloat))
-                (Sset _relX
-                  (Ebinop Osub (Etempvar _t'9 tfloat) (Etempvar _t'10 tfloat)
+                (Sset _t'8
+                  (Efield
+                    (Ederef (Etempvar _s (tptr (Tstruct _Shadow noattr)))
+                      (Tstruct _Shadow noattr)) _parentY tfloat))
+                (Sset _relY
+                  (Ebinop Osub (Etempvar _t'7 tfloat) (Etempvar _t'8 tfloat)
                     tfloat))))
             (Ssequence
               (Ssequence
-                (Sset _t'7 (Evar _yPosVtx tfloat))
+                (Sset _t'5 (Evar _zPosVtx tfloat))
                 (Ssequence
-                  (Sset _t'8
-                    (Efield (Evar _s (Tstruct _Shadow noattr)) _parentY
-                      tfloat))
-                  (Sset _relY
-                    (Ebinop Osub (Etempvar _t'7 tfloat)
-                      (Etempvar _t'8 tfloat) tfloat))))
-              (Ssequence
-                (Ssequence
-                  (Sset _t'5 (Evar _zPosVtx tfloat))
-                  (Ssequence
-                    (Sset _t'6
-                      (Efield (Evar _s (Tstruct _Shadow noattr)) _parentZ
-                        tfloat))
-                    (Sset _relZ
-                      (Ebinop Osub (Etempvar _t'5 tfloat)
-                        (Etempvar _t'6 tfloat) tfloat))))
-                (Scall None
-                  (Evar _make_shadow_vertex_at_xyz (Tfunction
-                                                     ((tptr (Tunion __120 noattr)) ::
-                                                      tschar :: tfloat ::
-                                                      tfloat :: tfloat ::
-                                                      tuchar :: tschar ::
-                                                      nil) tvoid cc_default))
-                  ((Etempvar _vertices (tptr (Tunion __120 noattr))) ::
-                   (Etempvar _index tschar) :: (Etempvar _relX tfloat) ::
-                   (Etempvar _relY tfloat) :: (Etempvar _relZ tfloat) ::
-                   (Etempvar _solidity tuchar) ::
-                   (Etempvar _shadowVertexType tschar) :: nil))))))))))
+                  (Sset _t'6
+                    (Efield
+                      (Ederef (Etempvar _s (tptr (Tstruct _Shadow noattr)))
+                        (Tstruct _Shadow noattr)) _parentZ tfloat))
+                  (Sset _relZ
+                    (Ebinop Osub (Etempvar _t'5 tfloat)
+                      (Etempvar _t'6 tfloat) tfloat))))
+              (Scall None
+                (Evar _make_shadow_vertex_at_xyz (Tfunction
+                                                   ((tptr (Tunion __219 noattr)) ::
+                                                    tschar :: tfloat ::
+                                                    tfloat :: tfloat ::
+                                                    tuchar :: tschar :: nil)
+                                                   tvoid cc_default))
+                ((Etempvar _vertices (tptr (Tunion __219 noattr))) ::
+                 (Etempvar _index tschar) :: (Etempvar _relX tfloat) ::
+                 (Etempvar _relY tfloat) :: (Etempvar _relZ tfloat) ::
+                 (Etempvar _solidity tuchar) ::
+                 (Etempvar _shadowVertexType tschar) :: nil)))))))))
 |}.
 
 Definition f_add_shadow_to_display_list := {|
   fn_return := tvoid;
   fn_callconv := cc_default;
-  fn_params := ((_displayListHead, (tptr (Tunion __206 noattr))) ::
-                (_verts, (tptr (Tunion __120 noattr))) ::
+  fn_params := ((_displayListHead, (tptr (Tunion __305 noattr))) ::
+                (_verts, (tptr (Tunion __219 noattr))) ::
                 (_shadowVertexType, tschar) :: (_shadowShape, tschar) :: nil);
   fn_vars := nil;
-  fn_temps := ((__g, (tptr (Tunion __206 noattr))) ::
-               (__g__1, (tptr (Tunion __206 noattr))) ::
-               (__g__2, (tptr (Tunion __206 noattr))) ::
-               (__g__3, (tptr (Tunion __206 noattr))) ::
-               (__g__4, (tptr (Tunion __206 noattr))) ::
-               (__g__5, (tptr (Tunion __206 noattr))) ::
-               (__g__6, (tptr (Tunion __206 noattr))) ::
-               (__g__7, (tptr (Tunion __206 noattr))) ::
-               (_t'7, (tptr (Tunion __206 noattr))) ::
-               (_t'6, (tptr (Tunion __206 noattr))) ::
-               (_t'5, (tptr (Tunion __206 noattr))) ::
-               (_t'4, (tptr (Tunion __206 noattr))) ::
-               (_t'3, (tptr (Tunion __206 noattr))) ::
-               (_t'2, (tptr (Tunion __206 noattr))) ::
-               (_t'1, (tptr (Tunion __206 noattr))) :: nil);
+  fn_temps := ((__g, (tptr (Tunion __305 noattr))) ::
+               (__g__1, (tptr (Tunion __305 noattr))) ::
+               (__g__2, (tptr (Tunion __305 noattr))) ::
+               (__g__3, (tptr (Tunion __305 noattr))) ::
+               (__g__4, (tptr (Tunion __305 noattr))) ::
+               (__g__5, (tptr (Tunion __305 noattr))) ::
+               (__g__6, (tptr (Tunion __305 noattr))) ::
+               (__g__7, (tptr (Tunion __305 noattr))) ::
+               (_t'7, (tptr (Tunion __305 noattr))) ::
+               (_t'6, (tptr (Tunion __305 noattr))) ::
+               (_t'5, (tptr (Tunion __305 noattr))) ::
+               (_t'4, (tptr (Tunion __305 noattr))) ::
+               (_t'3, (tptr (Tunion __305 noattr))) ::
+               (_t'2, (tptr (Tunion __305 noattr))) ::
+               (_t'1, (tptr (Tunion __305 noattr))) :: nil);
   fn_body :=
 (Ssequence
   (Sswitch (Etempvar _shadowShape tschar)
@@ -1829,19 +1917,19 @@ Definition f_add_shadow_to_display_list := {|
         (Ssequence
           (Ssequence
             (Sset _t'1
-              (Etempvar _displayListHead (tptr (Tunion __206 noattr))))
+              (Etempvar _displayListHead (tptr (Tunion __305 noattr))))
             (Sset _displayListHead
-              (Ebinop Oadd (Etempvar _t'1 (tptr (Tunion __206 noattr)))
-                (Econst_int (Int.repr 1) tint) (tptr (Tunion __206 noattr)))))
+              (Ebinop Oadd (Etempvar _t'1 (tptr (Tunion __305 noattr)))
+                (Econst_int (Int.repr 1) tint) (tptr (Tunion __305 noattr)))))
           (Sset __g
-            (Ecast (Etempvar _t'1 (tptr (Tunion __206 noattr)))
-              (tptr (Tunion __206 noattr)))))
+            (Ecast (Etempvar _t'1 (tptr (Tunion __305 noattr)))
+              (tptr (Tunion __305 noattr)))))
         (Ssequence
           (Sassign
             (Efield
               (Efield
-                (Ederef (Etempvar __g (tptr (Tunion __206 noattr)))
-                  (Tunion __206 noattr)) _words (Tstruct __204 noattr)) _w0
+                (Ederef (Etempvar __g (tptr (Tunion __305 noattr)))
+                  (Tunion __305 noattr)) _words (Tstruct __303 noattr)) _w0
               tuint)
             (Ebinop Oor
               (Ebinop Oor
@@ -1874,11 +1962,11 @@ Definition f_add_shadow_to_display_list := {|
             (Sassign
               (Efield
                 (Efield
-                  (Ederef (Etempvar __g (tptr (Tunion __206 noattr)))
-                    (Tunion __206 noattr)) _words (Tstruct __204 noattr)) _w1
+                  (Ederef (Etempvar __g (tptr (Tunion __305 noattr)))
+                    (Tunion __305 noattr)) _words (Tstruct __303 noattr)) _w1
                 tuint)
               (Ecast
-                (Evar _dl_shadow_circle (tarray (Tunion __206 noattr) 0))
+                (Evar _dl_shadow_circle (tarray (Tunion __305 noattr) 0))
                 tuint))
             Sbreak)))
       (LScons (Some 20)
@@ -1886,20 +1974,20 @@ Definition f_add_shadow_to_display_list := {|
           (Ssequence
             (Ssequence
               (Sset _t'2
-                (Etempvar _displayListHead (tptr (Tunion __206 noattr))))
+                (Etempvar _displayListHead (tptr (Tunion __305 noattr))))
               (Sset _displayListHead
-                (Ebinop Oadd (Etempvar _t'2 (tptr (Tunion __206 noattr)))
+                (Ebinop Oadd (Etempvar _t'2 (tptr (Tunion __305 noattr)))
                   (Econst_int (Int.repr 1) tint)
-                  (tptr (Tunion __206 noattr)))))
+                  (tptr (Tunion __305 noattr)))))
             (Sset __g__1
-              (Ecast (Etempvar _t'2 (tptr (Tunion __206 noattr)))
-                (tptr (Tunion __206 noattr)))))
+              (Ecast (Etempvar _t'2 (tptr (Tunion __305 noattr)))
+                (tptr (Tunion __305 noattr)))))
           (Ssequence
             (Sassign
               (Efield
                 (Efield
-                  (Ederef (Etempvar __g__1 (tptr (Tunion __206 noattr)))
-                    (Tunion __206 noattr)) _words (Tstruct __204 noattr)) _w0
+                  (Ederef (Etempvar __g__1 (tptr (Tunion __305 noattr)))
+                    (Tunion __305 noattr)) _words (Tstruct __303 noattr)) _w0
                 tuint)
               (Ebinop Oor
                 (Ebinop Oor
@@ -1933,11 +2021,11 @@ Definition f_add_shadow_to_display_list := {|
               (Sassign
                 (Efield
                   (Efield
-                    (Ederef (Etempvar __g__1 (tptr (Tunion __206 noattr)))
-                      (Tunion __206 noattr)) _words (Tstruct __204 noattr))
+                    (Ederef (Etempvar __g__1 (tptr (Tunion __305 noattr)))
+                      (Tunion __305 noattr)) _words (Tstruct __303 noattr))
                   _w1 tuint)
                 (Ecast
-                  (Evar _dl_shadow_square (tarray (Tunion __206 noattr) 0))
+                  (Evar _dl_shadow_square (tarray (Tunion __305 noattr) 0))
                   tuint))
               Sbreak)))
         LSnil)))
@@ -1948,20 +2036,20 @@ Definition f_add_shadow_to_display_list := {|
           (Ssequence
             (Ssequence
               (Sset _t'3
-                (Etempvar _displayListHead (tptr (Tunion __206 noattr))))
+                (Etempvar _displayListHead (tptr (Tunion __305 noattr))))
               (Sset _displayListHead
-                (Ebinop Oadd (Etempvar _t'3 (tptr (Tunion __206 noattr)))
+                (Ebinop Oadd (Etempvar _t'3 (tptr (Tunion __305 noattr)))
                   (Econst_int (Int.repr 1) tint)
-                  (tptr (Tunion __206 noattr)))))
+                  (tptr (Tunion __305 noattr)))))
             (Sset __g__2
-              (Ecast (Etempvar _t'3 (tptr (Tunion __206 noattr)))
-                (tptr (Tunion __206 noattr)))))
+              (Ecast (Etempvar _t'3 (tptr (Tunion __305 noattr)))
+                (tptr (Tunion __305 noattr)))))
           (Ssequence
             (Sassign
               (Efield
                 (Efield
-                  (Ederef (Etempvar __g__2 (tptr (Tunion __206 noattr)))
-                    (Tunion __206 noattr)) _words (Tstruct __204 noattr)) _w0
+                  (Ederef (Etempvar __g__2 (tptr (Tunion __305 noattr)))
+                    (Tunion __305 noattr)) _words (Tstruct __303 noattr)) _w0
                 tuint)
               (Ebinop Oor
                 (Ebinop Oor
@@ -1998,31 +2086,31 @@ Definition f_add_shadow_to_display_list := {|
               (Sassign
                 (Efield
                   (Efield
-                    (Ederef (Etempvar __g__2 (tptr (Tunion __206 noattr)))
-                      (Tunion __206 noattr)) _words (Tstruct __204 noattr))
+                    (Ederef (Etempvar __g__2 (tptr (Tunion __305 noattr)))
+                      (Tunion __305 noattr)) _words (Tstruct __303 noattr))
                   _w1 tuint)
-                (Ecast (Etempvar _verts (tptr (Tunion __120 noattr))) tuint))
+                (Ecast (Etempvar _verts (tptr (Tunion __219 noattr))) tuint))
               (Ssequence
                 (Ssequence
                   (Ssequence
                     (Sset _t'4
-                      (Etempvar _displayListHead (tptr (Tunion __206 noattr))))
+                      (Etempvar _displayListHead (tptr (Tunion __305 noattr))))
                     (Sset _displayListHead
                       (Ebinop Oadd
-                        (Etempvar _t'4 (tptr (Tunion __206 noattr)))
+                        (Etempvar _t'4 (tptr (Tunion __305 noattr)))
                         (Econst_int (Int.repr 1) tint)
-                        (tptr (Tunion __206 noattr)))))
+                        (tptr (Tunion __305 noattr)))))
                   (Sset __g__3
-                    (Ecast (Etempvar _t'4 (tptr (Tunion __206 noattr)))
-                      (tptr (Tunion __206 noattr)))))
+                    (Ecast (Etempvar _t'4 (tptr (Tunion __305 noattr)))
+                      (tptr (Tunion __305 noattr)))))
                 (Ssequence
                   (Sassign
                     (Efield
                       (Efield
                         (Ederef
-                          (Etempvar __g__3 (tptr (Tunion __206 noattr)))
-                          (Tunion __206 noattr)) _words
-                        (Tstruct __204 noattr)) _w0 tuint)
+                          (Etempvar __g__3 (tptr (Tunion __305 noattr)))
+                          (Tunion __305 noattr)) _words
+                        (Tstruct __303 noattr)) _w0 tuint)
                     (Ebinop Oor
                       (Ebinop Oor
                         (Ecast
@@ -2058,11 +2146,11 @@ Definition f_add_shadow_to_display_list := {|
                       (Efield
                         (Efield
                           (Ederef
-                            (Etempvar __g__3 (tptr (Tunion __206 noattr)))
-                            (Tunion __206 noattr)) _words
-                          (Tstruct __204 noattr)) _w1 tuint)
+                            (Etempvar __g__3 (tptr (Tunion __305 noattr)))
+                            (Tunion __305 noattr)) _words
+                          (Tstruct __303 noattr)) _w1 tuint)
                       (Ecast
-                        (Evar _dl_shadow_9_verts (tarray (Tunion __206 noattr) 0))
+                        (Evar _dl_shadow_9_verts (tarray (Tunion __305 noattr) 0))
                         tuint))
                     Sbreak))))))
         (LScons (Some 1)
@@ -2070,20 +2158,20 @@ Definition f_add_shadow_to_display_list := {|
             (Ssequence
               (Ssequence
                 (Sset _t'5
-                  (Etempvar _displayListHead (tptr (Tunion __206 noattr))))
+                  (Etempvar _displayListHead (tptr (Tunion __305 noattr))))
                 (Sset _displayListHead
-                  (Ebinop Oadd (Etempvar _t'5 (tptr (Tunion __206 noattr)))
+                  (Ebinop Oadd (Etempvar _t'5 (tptr (Tunion __305 noattr)))
                     (Econst_int (Int.repr 1) tint)
-                    (tptr (Tunion __206 noattr)))))
+                    (tptr (Tunion __305 noattr)))))
               (Sset __g__4
-                (Ecast (Etempvar _t'5 (tptr (Tunion __206 noattr)))
-                  (tptr (Tunion __206 noattr)))))
+                (Ecast (Etempvar _t'5 (tptr (Tunion __305 noattr)))
+                  (tptr (Tunion __305 noattr)))))
             (Ssequence
               (Sassign
                 (Efield
                   (Efield
-                    (Ederef (Etempvar __g__4 (tptr (Tunion __206 noattr)))
-                      (Tunion __206 noattr)) _words (Tstruct __204 noattr))
+                    (Ederef (Etempvar __g__4 (tptr (Tunion __305 noattr)))
+                      (Tunion __305 noattr)) _words (Tstruct __303 noattr))
                   _w0 tuint)
                 (Ebinop Oor
                   (Ebinop Oor
@@ -2120,32 +2208,32 @@ Definition f_add_shadow_to_display_list := {|
                 (Sassign
                   (Efield
                     (Efield
-                      (Ederef (Etempvar __g__4 (tptr (Tunion __206 noattr)))
-                        (Tunion __206 noattr)) _words (Tstruct __204 noattr))
+                      (Ederef (Etempvar __g__4 (tptr (Tunion __305 noattr)))
+                        (Tunion __305 noattr)) _words (Tstruct __303 noattr))
                     _w1 tuint)
-                  (Ecast (Etempvar _verts (tptr (Tunion __120 noattr)))
+                  (Ecast (Etempvar _verts (tptr (Tunion __219 noattr)))
                     tuint))
                 (Ssequence
                   (Ssequence
                     (Ssequence
                       (Sset _t'6
-                        (Etempvar _displayListHead (tptr (Tunion __206 noattr))))
+                        (Etempvar _displayListHead (tptr (Tunion __305 noattr))))
                       (Sset _displayListHead
                         (Ebinop Oadd
-                          (Etempvar _t'6 (tptr (Tunion __206 noattr)))
+                          (Etempvar _t'6 (tptr (Tunion __305 noattr)))
                           (Econst_int (Int.repr 1) tint)
-                          (tptr (Tunion __206 noattr)))))
+                          (tptr (Tunion __305 noattr)))))
                     (Sset __g__5
-                      (Ecast (Etempvar _t'6 (tptr (Tunion __206 noattr)))
-                        (tptr (Tunion __206 noattr)))))
+                      (Ecast (Etempvar _t'6 (tptr (Tunion __305 noattr)))
+                        (tptr (Tunion __305 noattr)))))
                   (Ssequence
                     (Sassign
                       (Efield
                         (Efield
                           (Ederef
-                            (Etempvar __g__5 (tptr (Tunion __206 noattr)))
-                            (Tunion __206 noattr)) _words
-                          (Tstruct __204 noattr)) _w0 tuint)
+                            (Etempvar __g__5 (tptr (Tunion __305 noattr)))
+                            (Tunion __305 noattr)) _words
+                          (Tstruct __303 noattr)) _w0 tuint)
                       (Ebinop Oor
                         (Ebinop Oor
                           (Ecast
@@ -2183,11 +2271,11 @@ Definition f_add_shadow_to_display_list := {|
                         (Efield
                           (Efield
                             (Ederef
-                              (Etempvar __g__5 (tptr (Tunion __206 noattr)))
-                              (Tunion __206 noattr)) _words
-                            (Tstruct __204 noattr)) _w1 tuint)
+                              (Etempvar __g__5 (tptr (Tunion __305 noattr)))
+                              (Tunion __305 noattr)) _words
+                            (Tstruct __303 noattr)) _w1 tuint)
                         (Ecast
-                          (Evar _dl_shadow_4_verts (tarray (Tunion __206 noattr) 0))
+                          (Evar _dl_shadow_4_verts (tarray (Tunion __305 noattr) 0))
                           tuint))
                       Sbreak))))))
           LSnil)))
@@ -2196,19 +2284,19 @@ Definition f_add_shadow_to_display_list := {|
         (Ssequence
           (Ssequence
             (Sset _t'7
-              (Etempvar _displayListHead (tptr (Tunion __206 noattr))))
+              (Etempvar _displayListHead (tptr (Tunion __305 noattr))))
             (Sset _displayListHead
-              (Ebinop Oadd (Etempvar _t'7 (tptr (Tunion __206 noattr)))
-                (Econst_int (Int.repr 1) tint) (tptr (Tunion __206 noattr)))))
+              (Ebinop Oadd (Etempvar _t'7 (tptr (Tunion __305 noattr)))
+                (Econst_int (Int.repr 1) tint) (tptr (Tunion __305 noattr)))))
           (Sset __g__6
-            (Ecast (Etempvar _t'7 (tptr (Tunion __206 noattr)))
-              (tptr (Tunion __206 noattr)))))
+            (Ecast (Etempvar _t'7 (tptr (Tunion __305 noattr)))
+              (tptr (Tunion __305 noattr)))))
         (Ssequence
           (Sassign
             (Efield
               (Efield
-                (Ederef (Etempvar __g__6 (tptr (Tunion __206 noattr)))
-                  (Tunion __206 noattr)) _words (Tstruct __204 noattr)) _w0
+                (Ederef (Etempvar __g__6 (tptr (Tunion __305 noattr)))
+                  (Tunion __305 noattr)) _words (Tstruct __303 noattr)) _w0
               tuint)
             (Ebinop Oor
               (Ebinop Oor
@@ -2240,21 +2328,21 @@ Definition f_add_shadow_to_display_list := {|
           (Sassign
             (Efield
               (Efield
-                (Ederef (Etempvar __g__6 (tptr (Tunion __206 noattr)))
-                  (Tunion __206 noattr)) _words (Tstruct __204 noattr)) _w1
+                (Ederef (Etempvar __g__6 (tptr (Tunion __305 noattr)))
+                  (Tunion __305 noattr)) _words (Tstruct __303 noattr)) _w1
               tuint)
-            (Ecast (Evar _dl_shadow_end (tarray (Tunion __206 noattr) 0))
+            (Ecast (Evar _dl_shadow_end (tarray (Tunion __305 noattr) 0))
               tuint))))
       (Ssequence
         (Sset __g__7
-          (Ecast (Etempvar _displayListHead (tptr (Tunion __206 noattr)))
-            (tptr (Tunion __206 noattr))))
+          (Ecast (Etempvar _displayListHead (tptr (Tunion __305 noattr)))
+            (tptr (Tunion __305 noattr))))
         (Ssequence
           (Sassign
             (Efield
               (Efield
-                (Ederef (Etempvar __g__7 (tptr (Tunion __206 noattr)))
-                  (Tunion __206 noattr)) _words (Tstruct __204 noattr)) _w0
+                (Ederef (Etempvar __g__7 (tptr (Tunion __305 noattr)))
+                  (Tunion __305 noattr)) _words (Tstruct __303 noattr)) _w0
               tuint)
             (Ecast
               (Ebinop Oshl
@@ -2267,8 +2355,8 @@ Definition f_add_shadow_to_display_list := {|
           (Sassign
             (Efield
               (Efield
-                (Ederef (Etempvar __g__7 (tptr (Tunion __206 noattr)))
-                  (Tunion __206 noattr)) _words (Tstruct __204 noattr)) _w1
+                (Ederef (Etempvar __g__7 (tptr (Tunion __305 noattr)))
+                  (Tunion __305 noattr)) _words (Tstruct __303 noattr)) _w1
               tuint) (Econst_int (Int.repr 0) tint)))))))
 |}.
 
@@ -2564,14 +2652,15 @@ Definition f_correct_lava_shadow_height := {|
 |}.
 
 Definition f_create_shadow_player := {|
-  fn_return := (tptr (Tunion __206 noattr));
+  fn_return := (tptr (Tunion __305 noattr));
   fn_callconv := cc_default;
   fn_params := ((_xPos, tfloat) :: (_yPos, tfloat) :: (_zPos, tfloat) ::
                 (_shadowScale, tshort) :: (_solidity, tuchar) ::
                 (_isLuigi, tint) :: nil);
-  fn_vars := ((_shadow, (Tstruct _Shadow noattr)) :: nil);
-  fn_temps := ((_verts, (tptr (Tunion __120 noattr))) ::
-               (_displayList, (tptr (Tunion __206 noattr))) ::
+  fn_vars := ((_shadow, (Tstruct _Shadow noattr)) ::
+              (__arg, (Tstruct _Shadow noattr)) :: nil);
+  fn_temps := ((_verts, (tptr (Tunion __219 noattr))) ::
+               (_displayList, (tptr (Tunion __305 noattr))) ::
                (_ret, tschar) :: (_i, tint) :: (_t'7, tint) ::
                (_t'6, (tptr tvoid)) :: (_t'5, (tptr tvoid)) ::
                (_t'4, tschar) :: (_t'3, tschar) :: (_t'2, tschar) ::
@@ -2673,7 +2762,7 @@ Definition f_create_shadow_player := {|
             (Evar _alloc_display_list (Tfunction (tuint :: nil) (tptr tvoid)
                                         cc_default))
             ((Ebinop Omul (Econst_int (Int.repr 9) tint)
-               (Esizeof (Tunion __120 noattr) tulong) tulong) :: nil))
+               (Esizeof (Tunion __219 noattr) tuint) tuint) :: nil))
           (Sset _verts (Etempvar _t'5 (tptr tvoid))))
         (Ssequence
           (Ssequence
@@ -2681,19 +2770,19 @@ Definition f_create_shadow_player := {|
               (Evar _alloc_display_list (Tfunction (tuint :: nil)
                                           (tptr tvoid) cc_default))
               ((Ebinop Omul (Econst_int (Int.repr 5) tint)
-                 (Esizeof (Tunion __206 noattr) tulong) tulong) :: nil))
+                 (Esizeof (Tunion __305 noattr) tuint) tuint) :: nil))
             (Sset _displayList (Etempvar _t'6 (tptr tvoid))))
           (Ssequence
             (Ssequence
               (Sifthenelse (Ebinop Oeq
-                             (Etempvar _verts (tptr (Tunion __120 noattr)))
+                             (Etempvar _verts (tptr (Tunion __219 noattr)))
                              (Ecast (Econst_int (Int.repr 0) tint)
                                (tptr tvoid)) tint)
                 (Sset _t'7 (Econst_int (Int.repr 1) tint))
                 (Sset _t'7
                   (Ecast
                     (Ebinop Oeq
-                      (Etempvar _displayList (tptr (Tunion __206 noattr)))
+                      (Etempvar _displayList (tptr (Tunion __305 noattr)))
                       (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid))
                       tint) tbool)))
               (Sifthenelse (Etempvar _t'7 tint)
@@ -2716,43 +2805,48 @@ Definition f_create_shadow_player := {|
                                      (Econst_int (Int.repr 9) tint) tint)
                         Sskip
                         Sbreak)
-                      (Scall None
-                        (Evar _make_shadow_vertex (Tfunction
-                                                    ((tptr (Tunion __120 noattr)) ::
-                                                     tschar ::
-                                                     (Tstruct _Shadow noattr) ::
-                                                     tschar :: nil) tvoid
-                                                    cc_default))
-                        ((Etempvar _verts (tptr (Tunion __120 noattr))) ::
-                         (Etempvar _i tint) ::
-                         (Evar _shadow (Tstruct _Shadow noattr)) ::
-                         (Econst_int (Int.repr 0) tint) :: nil)))
+                      (Ssequence
+                        (Sassign (Evar __arg (Tstruct _Shadow noattr))
+                          (Evar _shadow (Tstruct _Shadow noattr)))
+                        (Scall None
+                          (Evar _make_shadow_vertex (Tfunction
+                                                      ((tptr (Tunion __219 noattr)) ::
+                                                       tschar ::
+                                                       (tptr (Tstruct _Shadow noattr)) ::
+                                                       tschar :: nil) tvoid
+                                                      cc_default))
+                          ((Etempvar _verts (tptr (Tunion __219 noattr))) ::
+                           (Etempvar _i tint) ::
+                           (Eaddrof (Evar __arg (Tstruct _Shadow noattr))
+                             (tptr (Tstruct _Shadow noattr))) ::
+                           (Econst_int (Int.repr 0) tint) :: nil))))
                     (Sset _i
                       (Ebinop Oadd (Etempvar _i tint)
                         (Econst_int (Int.repr 1) tint) tint))))
                 (Ssequence
                   (Scall None
                     (Evar _add_shadow_to_display_list (Tfunction
-                                                        ((tptr (Tunion __206 noattr)) ::
-                                                         (tptr (Tunion __120 noattr)) ::
+                                                        ((tptr (Tunion __305 noattr)) ::
+                                                         (tptr (Tunion __219 noattr)) ::
                                                          tschar :: tschar ::
                                                          nil) tvoid
                                                         cc_default))
-                    ((Etempvar _displayList (tptr (Tunion __206 noattr))) ::
-                     (Etempvar _verts (tptr (Tunion __120 noattr))) ::
+                    ((Etempvar _displayList (tptr (Tunion __305 noattr))) ::
+                     (Etempvar _verts (tptr (Tunion __219 noattr))) ::
                      (Econst_int (Int.repr 0) tint) ::
                      (Econst_int (Int.repr 10) tint) :: nil))
-                  (Sreturn (Some (Etempvar _displayList (tptr (Tunion __206 noattr))))))))))))))
+                  (Sreturn (Some (Etempvar _displayList (tptr (Tunion __305 noattr))))))))))))))
 |}.
 
 Definition f_create_shadow_circle_9_verts := {|
-  fn_return := (tptr (Tunion __206 noattr));
+  fn_return := (tptr (Tunion __305 noattr));
   fn_callconv := cc_default;
   fn_params := ((_xPos, tfloat) :: (_yPos, tfloat) :: (_zPos, tfloat) ::
                 (_shadowScale, tshort) :: (_solidity, tuchar) :: nil);
-  fn_vars := ((_shadow, (Tstruct _Shadow noattr)) :: nil);
-  fn_temps := ((_verts, (tptr (Tunion __120 noattr))) ::
-               (_displayList, (tptr (Tunion __206 noattr))) :: (_i, tint) ::
+  fn_vars := ((_shadow, (Tstruct _Shadow noattr)) ::
+              (__arg, (Tstruct _Shadow noattr)) :: nil);
+  fn_temps := ((_verts, (tptr (Tunion __219 noattr))) ::
+               (_displayList, (tptr (Tunion __305 noattr))) :: (_i, tint) ::
                (_t'4, tint) :: (_t'3, (tptr tvoid)) ::
                (_t'2, (tptr tvoid)) :: (_t'1, tschar) :: nil);
   fn_body :=
@@ -2777,7 +2871,7 @@ Definition f_create_shadow_circle_9_verts := {|
         (Evar _alloc_display_list (Tfunction (tuint :: nil) (tptr tvoid)
                                     cc_default))
         ((Ebinop Omul (Econst_int (Int.repr 9) tint)
-           (Esizeof (Tunion __120 noattr) tulong) tulong) :: nil))
+           (Esizeof (Tunion __219 noattr) tuint) tuint) :: nil))
       (Sset _verts (Etempvar _t'2 (tptr tvoid))))
     (Ssequence
       (Ssequence
@@ -2785,19 +2879,19 @@ Definition f_create_shadow_circle_9_verts := {|
           (Evar _alloc_display_list (Tfunction (tuint :: nil) (tptr tvoid)
                                       cc_default))
           ((Ebinop Omul (Econst_int (Int.repr 5) tint)
-             (Esizeof (Tunion __206 noattr) tulong) tulong) :: nil))
+             (Esizeof (Tunion __305 noattr) tuint) tuint) :: nil))
         (Sset _displayList (Etempvar _t'3 (tptr tvoid))))
       (Ssequence
         (Ssequence
           (Sifthenelse (Ebinop Oeq
-                         (Etempvar _verts (tptr (Tunion __120 noattr)))
+                         (Etempvar _verts (tptr (Tunion __219 noattr)))
                          (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid))
                          tint)
             (Sset _t'4 (Econst_int (Int.repr 1) tint))
             (Sset _t'4
               (Ecast
                 (Ebinop Oeq
-                  (Etempvar _displayList (tptr (Tunion __206 noattr)))
+                  (Etempvar _displayList (tptr (Tunion __305 noattr)))
                   (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid)) tint)
                 tbool)))
           (Sifthenelse (Etempvar _t'4 tint)
@@ -2812,42 +2906,47 @@ Definition f_create_shadow_circle_9_verts := {|
                                (Econst_int (Int.repr 9) tint) tint)
                   Sskip
                   Sbreak)
-                (Scall None
-                  (Evar _make_shadow_vertex (Tfunction
-                                              ((tptr (Tunion __120 noattr)) ::
-                                               tschar ::
-                                               (Tstruct _Shadow noattr) ::
-                                               tschar :: nil) tvoid
-                                              cc_default))
-                  ((Etempvar _verts (tptr (Tunion __120 noattr))) ::
-                   (Etempvar _i tint) ::
-                   (Evar _shadow (Tstruct _Shadow noattr)) ::
-                   (Econst_int (Int.repr 0) tint) :: nil)))
+                (Ssequence
+                  (Sassign (Evar __arg (Tstruct _Shadow noattr))
+                    (Evar _shadow (Tstruct _Shadow noattr)))
+                  (Scall None
+                    (Evar _make_shadow_vertex (Tfunction
+                                                ((tptr (Tunion __219 noattr)) ::
+                                                 tschar ::
+                                                 (tptr (Tstruct _Shadow noattr)) ::
+                                                 tschar :: nil) tvoid
+                                                cc_default))
+                    ((Etempvar _verts (tptr (Tunion __219 noattr))) ::
+                     (Etempvar _i tint) ::
+                     (Eaddrof (Evar __arg (Tstruct _Shadow noattr))
+                       (tptr (Tstruct _Shadow noattr))) ::
+                     (Econst_int (Int.repr 0) tint) :: nil))))
               (Sset _i
                 (Ebinop Oadd (Etempvar _i tint)
                   (Econst_int (Int.repr 1) tint) tint))))
           (Ssequence
             (Scall None
               (Evar _add_shadow_to_display_list (Tfunction
-                                                  ((tptr (Tunion __206 noattr)) ::
-                                                   (tptr (Tunion __120 noattr)) ::
+                                                  ((tptr (Tunion __305 noattr)) ::
+                                                   (tptr (Tunion __219 noattr)) ::
                                                    tschar :: tschar :: nil)
                                                   tvoid cc_default))
-              ((Etempvar _displayList (tptr (Tunion __206 noattr))) ::
-               (Etempvar _verts (tptr (Tunion __120 noattr))) ::
+              ((Etempvar _displayList (tptr (Tunion __305 noattr))) ::
+               (Etempvar _verts (tptr (Tunion __219 noattr))) ::
                (Econst_int (Int.repr 0) tint) ::
                (Econst_int (Int.repr 10) tint) :: nil))
-            (Sreturn (Some (Etempvar _displayList (tptr (Tunion __206 noattr)))))))))))
+            (Sreturn (Some (Etempvar _displayList (tptr (Tunion __305 noattr)))))))))))
 |}.
 
 Definition f_create_shadow_circle_4_verts := {|
-  fn_return := (tptr (Tunion __206 noattr));
+  fn_return := (tptr (Tunion __305 noattr));
   fn_callconv := cc_default;
   fn_params := ((_xPos, tfloat) :: (_yPos, tfloat) :: (_zPos, tfloat) ::
                 (_shadowScale, tshort) :: (_solidity, tuchar) :: nil);
-  fn_vars := ((_shadow, (Tstruct _Shadow noattr)) :: nil);
-  fn_temps := ((_verts, (tptr (Tunion __120 noattr))) ::
-               (_displayList, (tptr (Tunion __206 noattr))) :: (_i, tint) ::
+  fn_vars := ((_shadow, (Tstruct _Shadow noattr)) ::
+              (__arg, (Tstruct _Shadow noattr)) :: nil);
+  fn_temps := ((_verts, (tptr (Tunion __219 noattr))) ::
+               (_displayList, (tptr (Tunion __305 noattr))) :: (_i, tint) ::
                (_t'4, tint) :: (_t'3, (tptr tvoid)) ::
                (_t'2, (tptr tvoid)) :: (_t'1, tschar) :: nil);
   fn_body :=
@@ -2872,7 +2971,7 @@ Definition f_create_shadow_circle_4_verts := {|
         (Evar _alloc_display_list (Tfunction (tuint :: nil) (tptr tvoid)
                                     cc_default))
         ((Ebinop Omul (Econst_int (Int.repr 4) tint)
-           (Esizeof (Tunion __120 noattr) tulong) tulong) :: nil))
+           (Esizeof (Tunion __219 noattr) tuint) tuint) :: nil))
       (Sset _verts (Etempvar _t'2 (tptr tvoid))))
     (Ssequence
       (Ssequence
@@ -2880,19 +2979,19 @@ Definition f_create_shadow_circle_4_verts := {|
           (Evar _alloc_display_list (Tfunction (tuint :: nil) (tptr tvoid)
                                       cc_default))
           ((Ebinop Omul (Econst_int (Int.repr 5) tint)
-             (Esizeof (Tunion __206 noattr) tulong) tulong) :: nil))
+             (Esizeof (Tunion __305 noattr) tuint) tuint) :: nil))
         (Sset _displayList (Etempvar _t'3 (tptr tvoid))))
       (Ssequence
         (Ssequence
           (Sifthenelse (Ebinop Oeq
-                         (Etempvar _verts (tptr (Tunion __120 noattr)))
+                         (Etempvar _verts (tptr (Tunion __219 noattr)))
                          (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid))
                          tint)
             (Sset _t'4 (Econst_int (Int.repr 1) tint))
             (Sset _t'4
               (Ecast
                 (Ebinop Oeq
-                  (Etempvar _displayList (tptr (Tunion __206 noattr)))
+                  (Etempvar _displayList (tptr (Tunion __305 noattr)))
                   (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid)) tint)
                 tbool)))
           (Sifthenelse (Etempvar _t'4 tint)
@@ -2907,42 +3006,46 @@ Definition f_create_shadow_circle_4_verts := {|
                                (Econst_int (Int.repr 4) tint) tint)
                   Sskip
                   Sbreak)
-                (Scall None
-                  (Evar _make_shadow_vertex (Tfunction
-                                              ((tptr (Tunion __120 noattr)) ::
-                                               tschar ::
-                                               (Tstruct _Shadow noattr) ::
-                                               tschar :: nil) tvoid
-                                              cc_default))
-                  ((Etempvar _verts (tptr (Tunion __120 noattr))) ::
-                   (Etempvar _i tint) ::
-                   (Evar _shadow (Tstruct _Shadow noattr)) ::
-                   (Econst_int (Int.repr 1) tint) :: nil)))
+                (Ssequence
+                  (Sassign (Evar __arg (Tstruct _Shadow noattr))
+                    (Evar _shadow (Tstruct _Shadow noattr)))
+                  (Scall None
+                    (Evar _make_shadow_vertex (Tfunction
+                                                ((tptr (Tunion __219 noattr)) ::
+                                                 tschar ::
+                                                 (tptr (Tstruct _Shadow noattr)) ::
+                                                 tschar :: nil) tvoid
+                                                cc_default))
+                    ((Etempvar _verts (tptr (Tunion __219 noattr))) ::
+                     (Etempvar _i tint) ::
+                     (Eaddrof (Evar __arg (Tstruct _Shadow noattr))
+                       (tptr (Tstruct _Shadow noattr))) ::
+                     (Econst_int (Int.repr 1) tint) :: nil))))
               (Sset _i
                 (Ebinop Oadd (Etempvar _i tint)
                   (Econst_int (Int.repr 1) tint) tint))))
           (Ssequence
             (Scall None
               (Evar _add_shadow_to_display_list (Tfunction
-                                                  ((tptr (Tunion __206 noattr)) ::
-                                                   (tptr (Tunion __120 noattr)) ::
+                                                  ((tptr (Tunion __305 noattr)) ::
+                                                   (tptr (Tunion __219 noattr)) ::
                                                    tschar :: tschar :: nil)
                                                   tvoid cc_default))
-              ((Etempvar _displayList (tptr (Tunion __206 noattr))) ::
-               (Etempvar _verts (tptr (Tunion __120 noattr))) ::
+              ((Etempvar _displayList (tptr (Tunion __305 noattr))) ::
+               (Etempvar _verts (tptr (Tunion __219 noattr))) ::
                (Econst_int (Int.repr 1) tint) ::
                (Econst_int (Int.repr 10) tint) :: nil))
-            (Sreturn (Some (Etempvar _displayList (tptr (Tunion __206 noattr)))))))))))
+            (Sreturn (Some (Etempvar _displayList (tptr (Tunion __305 noattr)))))))))))
 |}.
 
 Definition f_create_shadow_circle_assuming_flat_ground := {|
-  fn_return := (tptr (Tunion __206 noattr));
+  fn_return := (tptr (Tunion __305 noattr));
   fn_callconv := cc_default;
   fn_params := ((_xPos, tfloat) :: (_yPos, tfloat) :: (_zPos, tfloat) ::
                 (_shadowScale, tshort) :: (_solidity, tuchar) :: nil);
   fn_vars := ((_dummy, (tptr (Tstruct _FloorGeometry noattr))) :: nil);
-  fn_temps := ((_verts, (tptr (Tunion __120 noattr))) ::
-               (_displayList, (tptr (Tunion __206 noattr))) ::
+  fn_temps := ((_verts, (tptr (Tunion __219 noattr))) ::
+               (_displayList, (tptr (Tunion __305 noattr))) ::
                (_distBelowFloor, tfloat) :: (_floorHeight, tfloat) ::
                (_radius, tfloat) :: (_t'4, tint) :: (_t'3, (tptr tvoid)) ::
                (_t'2, (tptr tvoid)) :: (_t'1, tfloat) :: nil);
@@ -2980,7 +3083,7 @@ Definition f_create_shadow_circle_assuming_flat_ground := {|
             (Evar _alloc_display_list (Tfunction (tuint :: nil) (tptr tvoid)
                                         cc_default))
             ((Ebinop Omul (Econst_int (Int.repr 4) tint)
-               (Esizeof (Tunion __120 noattr) tulong) tulong) :: nil))
+               (Esizeof (Tunion __219 noattr) tuint) tuint) :: nil))
           (Sset _verts (Etempvar _t'2 (tptr tvoid))))
         (Ssequence
           (Ssequence
@@ -2988,19 +3091,19 @@ Definition f_create_shadow_circle_assuming_flat_ground := {|
               (Evar _alloc_display_list (Tfunction (tuint :: nil)
                                           (tptr tvoid) cc_default))
               ((Ebinop Omul (Econst_int (Int.repr 5) tint)
-                 (Esizeof (Tunion __206 noattr) tulong) tulong) :: nil))
+                 (Esizeof (Tunion __305 noattr) tuint) tuint) :: nil))
             (Sset _displayList (Etempvar _t'3 (tptr tvoid))))
           (Ssequence
             (Ssequence
               (Sifthenelse (Ebinop Oeq
-                             (Etempvar _verts (tptr (Tunion __120 noattr)))
+                             (Etempvar _verts (tptr (Tunion __219 noattr)))
                              (Ecast (Econst_int (Int.repr 0) tint)
                                (tptr tvoid)) tint)
                 (Sset _t'4 (Econst_int (Int.repr 1) tint))
                 (Sset _t'4
                   (Ecast
                     (Ebinop Oeq
-                      (Etempvar _displayList (tptr (Tunion __206 noattr)))
+                      (Etempvar _displayList (tptr (Tunion __305 noattr)))
                       (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid))
                       tint) tbool)))
               (Sifthenelse (Etempvar _t'4 tint)
@@ -3009,12 +3112,12 @@ Definition f_create_shadow_circle_assuming_flat_ground := {|
             (Ssequence
               (Scall None
                 (Evar _make_shadow_vertex_at_xyz (Tfunction
-                                                   ((tptr (Tunion __120 noattr)) ::
+                                                   ((tptr (Tunion __219 noattr)) ::
                                                     tschar :: tfloat ::
                                                     tfloat :: tfloat ::
                                                     tuchar :: tschar :: nil)
                                                    tvoid cc_default))
-                ((Etempvar _verts (tptr (Tunion __120 noattr))) ::
+                ((Etempvar _verts (tptr (Tunion __219 noattr))) ::
                  (Econst_int (Int.repr 0) tint) ::
                  (Eunop Oneg (Etempvar _radius tfloat) tfloat) ::
                  (Etempvar _distBelowFloor tfloat) ::
@@ -3024,12 +3127,12 @@ Definition f_create_shadow_circle_assuming_flat_ground := {|
               (Ssequence
                 (Scall None
                   (Evar _make_shadow_vertex_at_xyz (Tfunction
-                                                     ((tptr (Tunion __120 noattr)) ::
+                                                     ((tptr (Tunion __219 noattr)) ::
                                                       tschar :: tfloat ::
                                                       tfloat :: tfloat ::
                                                       tuchar :: tschar ::
                                                       nil) tvoid cc_default))
-                  ((Etempvar _verts (tptr (Tunion __120 noattr))) ::
+                  ((Etempvar _verts (tptr (Tunion __219 noattr))) ::
                    (Econst_int (Int.repr 1) tint) ::
                    (Etempvar _radius tfloat) ::
                    (Etempvar _distBelowFloor tfloat) ::
@@ -3039,13 +3142,13 @@ Definition f_create_shadow_circle_assuming_flat_ground := {|
                 (Ssequence
                   (Scall None
                     (Evar _make_shadow_vertex_at_xyz (Tfunction
-                                                       ((tptr (Tunion __120 noattr)) ::
+                                                       ((tptr (Tunion __219 noattr)) ::
                                                         tschar :: tfloat ::
                                                         tfloat :: tfloat ::
                                                         tuchar :: tschar ::
                                                         nil) tvoid
                                                        cc_default))
-                    ((Etempvar _verts (tptr (Tunion __120 noattr))) ::
+                    ((Etempvar _verts (tptr (Tunion __219 noattr))) ::
                      (Econst_int (Int.repr 2) tint) ::
                      (Eunop Oneg (Etempvar _radius tfloat) tfloat) ::
                      (Etempvar _distBelowFloor tfloat) ::
@@ -3055,13 +3158,13 @@ Definition f_create_shadow_circle_assuming_flat_ground := {|
                   (Ssequence
                     (Scall None
                       (Evar _make_shadow_vertex_at_xyz (Tfunction
-                                                         ((tptr (Tunion __120 noattr)) ::
+                                                         ((tptr (Tunion __219 noattr)) ::
                                                           tschar :: tfloat ::
                                                           tfloat :: tfloat ::
                                                           tuchar :: tschar ::
                                                           nil) tvoid
                                                          cc_default))
-                      ((Etempvar _verts (tptr (Tunion __120 noattr))) ::
+                      ((Etempvar _verts (tptr (Tunion __219 noattr))) ::
                        (Econst_int (Int.repr 3) tint) ::
                        (Etempvar _radius tfloat) ::
                        (Etempvar _distBelowFloor tfloat) ::
@@ -3071,20 +3174,20 @@ Definition f_create_shadow_circle_assuming_flat_ground := {|
                     (Ssequence
                       (Scall None
                         (Evar _add_shadow_to_display_list (Tfunction
-                                                            ((tptr (Tunion __206 noattr)) ::
-                                                             (tptr (Tunion __120 noattr)) ::
+                                                            ((tptr (Tunion __305 noattr)) ::
+                                                             (tptr (Tunion __219 noattr)) ::
                                                              tschar ::
                                                              tschar :: nil)
                                                             tvoid cc_default))
-                        ((Etempvar _displayList (tptr (Tunion __206 noattr))) ::
-                         (Etempvar _verts (tptr (Tunion __120 noattr))) ::
+                        ((Etempvar _displayList (tptr (Tunion __305 noattr))) ::
+                         (Etempvar _verts (tptr (Tunion __219 noattr))) ::
                          (Econst_int (Int.repr 1) tint) ::
                          (Econst_int (Int.repr 10) tint) :: nil))
-                      (Sreturn (Some (Etempvar _displayList (tptr (Tunion __206 noattr))))))))))))))))
+                      (Sreturn (Some (Etempvar _displayList (tptr (Tunion __305 noattr))))))))))))))))
 |}.
 
 Definition f_create_shadow_rectangle := {|
-  fn_return := (tptr (Tunion __206 noattr));
+  fn_return := (tptr (Tunion __305 noattr));
   fn_callconv := cc_default;
   fn_params := ((_halfWidth, tfloat) :: (_halfLength, tfloat) ::
                 (_relY, tfloat) :: (_solidity, tuchar) :: nil);
@@ -3092,8 +3195,8 @@ Definition f_create_shadow_rectangle := {|
               (_frontRightX, tfloat) :: (_frontRightZ, tfloat) ::
               (_backLeftX, tfloat) :: (_backLeftZ, tfloat) ::
               (_backRightX, tfloat) :: (_backRightZ, tfloat) :: nil);
-  fn_temps := ((_verts, (tptr (Tunion __120 noattr))) ::
-               (_displayList, (tptr (Tunion __206 noattr))) ::
+  fn_temps := ((_verts, (tptr (Tunion __219 noattr))) ::
+               (_displayList, (tptr (Tunion __305 noattr))) ::
                (_t'3, tint) :: (_t'2, (tptr tvoid)) ::
                (_t'1, (tptr tvoid)) :: (_t'11, tfloat) :: (_t'10, tfloat) ::
                (_t'9, tfloat) :: (_t'8, tfloat) :: (_t'7, tfloat) ::
@@ -3105,7 +3208,7 @@ Definition f_create_shadow_rectangle := {|
       (Evar _alloc_display_list (Tfunction (tuint :: nil) (tptr tvoid)
                                   cc_default))
       ((Ebinop Omul (Econst_int (Int.repr 4) tint)
-         (Esizeof (Tunion __120 noattr) tulong) tulong) :: nil))
+         (Esizeof (Tunion __219 noattr) tuint) tuint) :: nil))
     (Sset _verts (Etempvar _t'1 (tptr tvoid))))
   (Ssequence
     (Ssequence
@@ -3113,19 +3216,19 @@ Definition f_create_shadow_rectangle := {|
         (Evar _alloc_display_list (Tfunction (tuint :: nil) (tptr tvoid)
                                     cc_default))
         ((Ebinop Omul (Econst_int (Int.repr 5) tint)
-           (Esizeof (Tunion __206 noattr) tulong) tulong) :: nil))
+           (Esizeof (Tunion __305 noattr) tuint) tuint) :: nil))
       (Sset _displayList (Etempvar _t'2 (tptr tvoid))))
     (Ssequence
       (Ssequence
         (Sifthenelse (Ebinop Oeq
-                       (Etempvar _verts (tptr (Tunion __120 noattr)))
+                       (Etempvar _verts (tptr (Tunion __219 noattr)))
                        (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid))
                        tint)
           (Sset _t'3 (Econst_int (Int.repr 1) tint))
           (Sset _t'3
             (Ecast
               (Ebinop Oeq
-                (Etempvar _displayList (tptr (Tunion __206 noattr)))
+                (Etempvar _displayList (tptr (Tunion __305 noattr)))
                 (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid)) tint)
               tbool)))
         (Sifthenelse (Etempvar _t'3 tint)
@@ -3178,13 +3281,13 @@ Definition f_create_shadow_rectangle := {|
                     (Sset _t'11 (Evar _frontLeftZ tfloat))
                     (Scall None
                       (Evar _make_shadow_vertex_at_xyz (Tfunction
-                                                         ((tptr (Tunion __120 noattr)) ::
+                                                         ((tptr (Tunion __219 noattr)) ::
                                                           tschar :: tfloat ::
                                                           tfloat :: tfloat ::
                                                           tuchar :: tschar ::
                                                           nil) tvoid
                                                          cc_default))
-                      ((Etempvar _verts (tptr (Tunion __120 noattr))) ::
+                      ((Etempvar _verts (tptr (Tunion __219 noattr))) ::
                        (Econst_int (Int.repr 0) tint) ::
                        (Etempvar _t'10 tfloat) :: (Etempvar _relY tfloat) ::
                        (Etempvar _t'11 tfloat) ::
@@ -3197,7 +3300,7 @@ Definition f_create_shadow_rectangle := {|
                       (Sset _t'9 (Evar _frontRightZ tfloat))
                       (Scall None
                         (Evar _make_shadow_vertex_at_xyz (Tfunction
-                                                           ((tptr (Tunion __120 noattr)) ::
+                                                           ((tptr (Tunion __219 noattr)) ::
                                                             tschar ::
                                                             tfloat ::
                                                             tfloat ::
@@ -3205,7 +3308,7 @@ Definition f_create_shadow_rectangle := {|
                                                             tuchar ::
                                                             tschar :: nil)
                                                            tvoid cc_default))
-                        ((Etempvar _verts (tptr (Tunion __120 noattr))) ::
+                        ((Etempvar _verts (tptr (Tunion __219 noattr))) ::
                          (Econst_int (Int.repr 1) tint) ::
                          (Etempvar _t'8 tfloat) :: (Etempvar _relY tfloat) ::
                          (Etempvar _t'9 tfloat) ::
@@ -3218,7 +3321,7 @@ Definition f_create_shadow_rectangle := {|
                         (Sset _t'7 (Evar _backLeftZ tfloat))
                         (Scall None
                           (Evar _make_shadow_vertex_at_xyz (Tfunction
-                                                             ((tptr (Tunion __120 noattr)) ::
+                                                             ((tptr (Tunion __219 noattr)) ::
                                                               tschar ::
                                                               tfloat ::
                                                               tfloat ::
@@ -3227,7 +3330,7 @@ Definition f_create_shadow_rectangle := {|
                                                               tschar :: nil)
                                                              tvoid
                                                              cc_default))
-                          ((Etempvar _verts (tptr (Tunion __120 noattr))) ::
+                          ((Etempvar _verts (tptr (Tunion __219 noattr))) ::
                            (Econst_int (Int.repr 2) tint) ::
                            (Etempvar _t'6 tfloat) ::
                            (Etempvar _relY tfloat) ::
@@ -3241,7 +3344,7 @@ Definition f_create_shadow_rectangle := {|
                           (Sset _t'5 (Evar _backRightZ tfloat))
                           (Scall None
                             (Evar _make_shadow_vertex_at_xyz (Tfunction
-                                                               ((tptr (Tunion __120 noattr)) ::
+                                                               ((tptr (Tunion __219 noattr)) ::
                                                                 tschar ::
                                                                 tfloat ::
                                                                 tfloat ::
@@ -3250,7 +3353,7 @@ Definition f_create_shadow_rectangle := {|
                                                                 tschar ::
                                                                 nil) tvoid
                                                                cc_default))
-                            ((Etempvar _verts (tptr (Tunion __120 noattr))) ::
+                            ((Etempvar _verts (tptr (Tunion __219 noattr))) ::
                              (Econst_int (Int.repr 3) tint) ::
                              (Etempvar _t'4 tfloat) ::
                              (Etempvar _relY tfloat) ::
@@ -3260,17 +3363,17 @@ Definition f_create_shadow_rectangle := {|
                       (Ssequence
                         (Scall None
                           (Evar _add_shadow_to_display_list (Tfunction
-                                                              ((tptr (Tunion __206 noattr)) ::
-                                                               (tptr (Tunion __120 noattr)) ::
+                                                              ((tptr (Tunion __305 noattr)) ::
+                                                               (tptr (Tunion __219 noattr)) ::
                                                                tschar ::
                                                                tschar :: nil)
                                                               tvoid
                                                               cc_default))
-                          ((Etempvar _displayList (tptr (Tunion __206 noattr))) ::
-                           (Etempvar _verts (tptr (Tunion __120 noattr))) ::
+                          ((Etempvar _displayList (tptr (Tunion __305 noattr))) ::
+                           (Etempvar _verts (tptr (Tunion __219 noattr))) ::
                            (Econst_int (Int.repr 1) tint) ::
                            (Econst_int (Int.repr 20) tint) :: nil))
-                        (Sreturn (Some (Etempvar _displayList (tptr (Tunion __206 noattr)))))))))))))))))
+                        (Sreturn (Some (Etempvar _displayList (tptr (Tunion __305 noattr)))))))))))))))))
 |}.
 
 Definition f_get_shadow_height_solidity := {|
@@ -3346,14 +3449,14 @@ Definition f_get_shadow_height_solidity := {|
 |}.
 
 Definition f_create_shadow_square := {|
-  fn_return := (tptr (Tunion __206 noattr));
+  fn_return := (tptr (Tunion __305 noattr));
   fn_callconv := cc_default;
   fn_params := ((_xPos, tfloat) :: (_yPos, tfloat) :: (_zPos, tfloat) ::
                 (_shadowScale, tshort) :: (_solidity, tuchar) ::
                 (_shadowType, tschar) :: nil);
   fn_vars := ((_solidity, tuchar) :: (_shadowHeight, tfloat) :: nil);
   fn_temps := ((_distFromShadow, tfloat) :: (_shadowRadius, tfloat) ::
-               (_t'4, (tptr (Tunion __206 noattr))) :: (_t'3, tfloat) ::
+               (_t'4, (tptr (Tunion __305 noattr))) :: (_t'3, tfloat) ::
                (_t'2, tfloat) :: (_t'1, tint) :: (_t'6, tfloat) ::
                (_t'5, tuchar) :: nil);
   fn_body :=
@@ -3433,17 +3536,17 @@ Definition f_create_shadow_square := {|
               (Evar _create_shadow_rectangle (Tfunction
                                                (tfloat :: tfloat :: tfloat ::
                                                 tuchar :: nil)
-                                               (tptr (Tunion __206 noattr))
+                                               (tptr (Tunion __305 noattr))
                                                cc_default))
               ((Etempvar _shadowRadius tfloat) ::
                (Etempvar _shadowRadius tfloat) ::
                (Eunop Oneg (Etempvar _distFromShadow tfloat) tfloat) ::
                (Etempvar _t'5 tuchar) :: nil)))
-          (Sreturn (Some (Etempvar _t'4 (tptr (Tunion __206 noattr))))))))))
+          (Sreturn (Some (Etempvar _t'4 (tptr (Tunion __305 noattr))))))))))
 |}.
 
 Definition f_create_shadow_hardcoded_rectangle := {|
-  fn_return := (tptr (Tunion __206 noattr));
+  fn_return := (tptr (Tunion __305 noattr));
   fn_callconv := cc_default;
   fn_params := ((_xPos, tfloat) :: (_yPos, tfloat) :: (_zPos, tfloat) ::
                 (_shadowScale, tshort) :: (_solidity, tuchar) ::
@@ -3451,7 +3554,7 @@ Definition f_create_shadow_hardcoded_rectangle := {|
   fn_vars := ((_solidity, tuchar) :: (_shadowHeight, tfloat) :: nil);
   fn_temps := ((_distFromShadow, tfloat) :: (_halfWidth, tfloat) ::
                (_halfLength, tfloat) :: (_idx, tschar) ::
-               (_t'4, (tptr (Tunion __206 noattr))) :: (_t'3, tfloat) ::
+               (_t'4, (tptr (Tunion __305 noattr))) :: (_t'3, tfloat) ::
                (_t'2, tfloat) :: (_t'1, tint) :: (_t'9, tfloat) ::
                (_t'8, tfloat) :: (_t'7, tfloat) :: (_t'6, tschar) ::
                (_t'5, tuchar) :: nil);
@@ -3491,9 +3594,9 @@ Definition f_create_shadow_hardcoded_rectangle := {|
               (Efield
                 (Ederef
                   (Ebinop Oadd
-                    (Evar _rectangles (tarray (Tstruct __2146 noattr) 2))
-                    (Etempvar _idx tschar) (tptr (Tstruct __2146 noattr)))
-                  (Tstruct __2146 noattr)) _scaleWithDistance tschar))
+                    (Evar _rectangles (tarray (Tstruct __2245 noattr) 2))
+                    (Etempvar _idx tschar) (tptr (Tstruct __2245 noattr)))
+                  (Tstruct __2245 noattr)) _scaleWithDistance tschar))
             (Sifthenelse (Ebinop Oeq (Etempvar _t'6 tschar)
                            (Econst_int (Int.repr 1) tint) tint)
               (Ssequence
@@ -3503,10 +3606,10 @@ Definition f_create_shadow_hardcoded_rectangle := {|
                       (Efield
                         (Ederef
                           (Ebinop Oadd
-                            (Evar _rectangles (tarray (Tstruct __2146 noattr) 2))
+                            (Evar _rectangles (tarray (Tstruct __2245 noattr) 2))
                             (Etempvar _idx tschar)
-                            (tptr (Tstruct __2146 noattr)))
-                          (Tstruct __2146 noattr)) _halfWidth tfloat))
+                            (tptr (Tstruct __2245 noattr)))
+                          (Tstruct __2245 noattr)) _halfWidth tfloat))
                     (Scall (Some _t'2)
                       (Evar _scale_shadow_with_distance (Tfunction
                                                           (tfloat ::
@@ -3521,10 +3624,10 @@ Definition f_create_shadow_hardcoded_rectangle := {|
                       (Efield
                         (Ederef
                           (Ebinop Oadd
-                            (Evar _rectangles (tarray (Tstruct __2146 noattr) 2))
+                            (Evar _rectangles (tarray (Tstruct __2245 noattr) 2))
                             (Etempvar _idx tschar)
-                            (tptr (Tstruct __2146 noattr)))
-                          (Tstruct __2146 noattr)) _halfLength tfloat))
+                            (tptr (Tstruct __2245 noattr)))
+                          (Tstruct __2245 noattr)) _halfLength tfloat))
                     (Scall (Some _t'3)
                       (Evar _scale_shadow_with_distance (Tfunction
                                                           (tfloat ::
@@ -3538,18 +3641,18 @@ Definition f_create_shadow_hardcoded_rectangle := {|
                   (Efield
                     (Ederef
                       (Ebinop Oadd
-                        (Evar _rectangles (tarray (Tstruct __2146 noattr) 2))
+                        (Evar _rectangles (tarray (Tstruct __2245 noattr) 2))
                         (Etempvar _idx tschar)
-                        (tptr (Tstruct __2146 noattr)))
-                      (Tstruct __2146 noattr)) _halfWidth tfloat))
+                        (tptr (Tstruct __2245 noattr)))
+                      (Tstruct __2245 noattr)) _halfWidth tfloat))
                 (Sset _halfLength
                   (Efield
                     (Ederef
                       (Ebinop Oadd
-                        (Evar _rectangles (tarray (Tstruct __2146 noattr) 2))
+                        (Evar _rectangles (tarray (Tstruct __2245 noattr) 2))
                         (Etempvar _idx tschar)
-                        (tptr (Tstruct __2146 noattr)))
-                      (Tstruct __2146 noattr)) _halfLength tfloat)))))
+                        (tptr (Tstruct __2245 noattr)))
+                      (Tstruct __2245 noattr)) _halfLength tfloat)))))
           (Ssequence
             (Ssequence
               (Sset _t'5 (Evar _solidity tuchar))
@@ -3557,31 +3660,31 @@ Definition f_create_shadow_hardcoded_rectangle := {|
                 (Evar _create_shadow_rectangle (Tfunction
                                                  (tfloat :: tfloat ::
                                                   tfloat :: tuchar :: nil)
-                                                 (tptr (Tunion __206 noattr))
+                                                 (tptr (Tunion __305 noattr))
                                                  cc_default))
                 ((Etempvar _halfWidth tfloat) ::
                  (Etempvar _halfLength tfloat) ::
                  (Eunop Oneg (Etempvar _distFromShadow tfloat) tfloat) ::
                  (Etempvar _t'5 tuchar) :: nil)))
-            (Sreturn (Some (Etempvar _t'4 (tptr (Tunion __206 noattr)))))))))))
+            (Sreturn (Some (Etempvar _t'4 (tptr (Tunion __305 noattr)))))))))))
 |}.
 
 Definition f_create_shadow_below_xyz := {|
-  fn_return := (tptr (Tunion __206 noattr));
+  fn_return := (tptr (Tunion __305 noattr));
   fn_callconv := cc_default;
   fn_params := ((_xPos, tfloat) :: (_yPos, tfloat) :: (_zPos, tfloat) ::
                 (_shadowScale, tshort) :: (_shadowSolidity, tuchar) ::
                 (_shadowType, tschar) :: nil);
   fn_vars := ((_pfloor, (tptr (Tstruct _Surface noattr))) :: nil);
-  fn_temps := ((_displayList, (tptr (Tunion __206 noattr))) ::
-               (_t'8, (tptr (Tunion __206 noattr))) ::
-               (_t'7, (tptr (Tunion __206 noattr))) ::
-               (_t'6, (tptr (Tunion __206 noattr))) ::
-               (_t'5, (tptr (Tunion __206 noattr))) ::
-               (_t'4, (tptr (Tunion __206 noattr))) ::
-               (_t'3, (tptr (Tunion __206 noattr))) ::
-               (_t'2, (tptr (Tunion __206 noattr))) ::
-               (_t'1, (tptr (Tunion __206 noattr))) :: (_t'13, tshort) ::
+  fn_temps := ((_displayList, (tptr (Tunion __305 noattr))) ::
+               (_t'8, (tptr (Tunion __305 noattr))) ::
+               (_t'7, (tptr (Tunion __305 noattr))) ::
+               (_t'6, (tptr (Tunion __305 noattr))) ::
+               (_t'5, (tptr (Tunion __305 noattr))) ::
+               (_t'4, (tptr (Tunion __305 noattr))) ::
+               (_t'3, (tptr (Tunion __305 noattr))) ::
+               (_t'2, (tptr (Tunion __305 noattr))) ::
+               (_t'1, (tptr (Tunion __305 noattr))) :: (_t'13, tshort) ::
                (_t'12, (tptr (Tstruct _Surface noattr))) ::
                (_t'11, tshort) ::
                (_t'10, (tptr (Tstruct _Surface noattr))) ::
@@ -3654,7 +3757,7 @@ Definition f_create_shadow_below_xyz := {|
                                                                tfloat ::
                                                                tshort ::
                                                                tuchar :: nil)
-                                                              (tptr (Tunion __206 noattr))
+                                                              (tptr (Tunion __305 noattr))
                                                               cc_default))
                         ((Etempvar _xPos tfloat) ::
                          (Etempvar _yPos tfloat) ::
@@ -3662,7 +3765,7 @@ Definition f_create_shadow_below_xyz := {|
                          (Etempvar _shadowScale tshort) ::
                          (Etempvar _shadowSolidity tuchar) :: nil))
                       (Sset _displayList
-                        (Etempvar _t'1 (tptr (Tunion __206 noattr)))))
+                        (Etempvar _t'1 (tptr (Tunion __305 noattr)))))
                     Sbreak)
                   (LScons (Some 1)
                     (Ssequence
@@ -3675,7 +3778,7 @@ Definition f_create_shadow_below_xyz := {|
                                                                  tshort ::
                                                                  tuchar ::
                                                                  nil)
-                                                                (tptr (Tunion __206 noattr))
+                                                                (tptr (Tunion __305 noattr))
                                                                 cc_default))
                           ((Etempvar _xPos tfloat) ::
                            (Etempvar _yPos tfloat) ::
@@ -3683,7 +3786,7 @@ Definition f_create_shadow_below_xyz := {|
                            (Etempvar _shadowScale tshort) ::
                            (Etempvar _shadowSolidity tuchar) :: nil))
                         (Sset _displayList
-                          (Etempvar _t'2 (tptr (Tunion __206 noattr)))))
+                          (Etempvar _t'2 (tptr (Tunion __305 noattr)))))
                       Sbreak)
                     (LScons (Some 2)
                       (Ssequence
@@ -3692,7 +3795,7 @@ Definition f_create_shadow_below_xyz := {|
                             (Evar _create_shadow_circle_assuming_flat_ground 
                             (Tfunction
                               (tfloat :: tfloat :: tfloat :: tshort ::
-                               tuchar :: nil) (tptr (Tunion __206 noattr))
+                               tuchar :: nil) (tptr (Tunion __305 noattr))
                               cc_default))
                             ((Etempvar _xPos tfloat) ::
                              (Etempvar _yPos tfloat) ::
@@ -3700,7 +3803,7 @@ Definition f_create_shadow_below_xyz := {|
                              (Etempvar _shadowScale tshort) ::
                              (Etempvar _shadowSolidity tuchar) :: nil))
                           (Sset _displayList
-                            (Etempvar _t'3 (tptr (Tunion __206 noattr)))))
+                            (Etempvar _t'3 (tptr (Tunion __305 noattr)))))
                         Sbreak)
                       (LScons (Some 10)
                         (Ssequence
@@ -3713,7 +3816,7 @@ Definition f_create_shadow_below_xyz := {|
                                                              tshort ::
                                                              tuchar ::
                                                              tschar :: nil)
-                                                            (tptr (Tunion __206 noattr))
+                                                            (tptr (Tunion __305 noattr))
                                                             cc_default))
                               ((Etempvar _xPos tfloat) ::
                                (Etempvar _yPos tfloat) ::
@@ -3722,7 +3825,7 @@ Definition f_create_shadow_below_xyz := {|
                                (Etempvar _shadowSolidity tuchar) ::
                                (Etempvar _shadowType tschar) :: nil))
                             (Sset _displayList
-                              (Etempvar _t'4 (tptr (Tunion __206 noattr)))))
+                              (Etempvar _t'4 (tptr (Tunion __305 noattr)))))
                           Sbreak)
                         (LScons (Some 11)
                           (Ssequence
@@ -3735,7 +3838,7 @@ Definition f_create_shadow_below_xyz := {|
                                                                tshort ::
                                                                tuchar ::
                                                                tschar :: nil)
-                                                              (tptr (Tunion __206 noattr))
+                                                              (tptr (Tunion __305 noattr))
                                                               cc_default))
                                 ((Etempvar _xPos tfloat) ::
                                  (Etempvar _yPos tfloat) ::
@@ -3744,7 +3847,7 @@ Definition f_create_shadow_below_xyz := {|
                                  (Etempvar _shadowSolidity tuchar) ::
                                  (Etempvar _shadowType tschar) :: nil))
                               (Sset _displayList
-                                (Etempvar _t'5 (tptr (Tunion __206 noattr)))))
+                                (Etempvar _t'5 (tptr (Tunion __305 noattr)))))
                             Sbreak)
                           (LScons (Some 12)
                             (Ssequence
@@ -3758,7 +3861,7 @@ Definition f_create_shadow_below_xyz := {|
                                                                  tuchar ::
                                                                  tschar ::
                                                                  nil)
-                                                                (tptr (Tunion __206 noattr))
+                                                                (tptr (Tunion __305 noattr))
                                                                 cc_default))
                                   ((Etempvar _xPos tfloat) ::
                                    (Etempvar _yPos tfloat) ::
@@ -3767,7 +3870,7 @@ Definition f_create_shadow_below_xyz := {|
                                    (Etempvar _shadowSolidity tuchar) ::
                                    (Etempvar _shadowType tschar) :: nil))
                                 (Sset _displayList
-                                  (Etempvar _t'6 (tptr (Tunion __206 noattr)))))
+                                  (Etempvar _t'6 (tptr (Tunion __305 noattr)))))
                               Sbreak)
                             (LScons (Some 99)
                               (Ssequence
@@ -3781,7 +3884,7 @@ Definition f_create_shadow_below_xyz := {|
                                                                    tuchar ::
                                                                    tint ::
                                                                    nil)
-                                                                  (tptr (Tunion __206 noattr))
+                                                                  (tptr (Tunion __305 noattr))
                                                                   cc_default))
                                     ((Etempvar _xPos tfloat) ::
                                      (Etempvar _yPos tfloat) ::
@@ -3790,7 +3893,7 @@ Definition f_create_shadow_below_xyz := {|
                                      (Etempvar _shadowSolidity tuchar) ::
                                      (Econst_int (Int.repr 0) tint) :: nil))
                                   (Sset _displayList
-                                    (Etempvar _t'7 (tptr (Tunion __206 noattr)))))
+                                    (Etempvar _t'7 (tptr (Tunion __305 noattr)))))
                                 Sbreak)
                               (LScons None
                                 (Ssequence
@@ -3800,7 +3903,7 @@ Definition f_create_shadow_below_xyz := {|
                                       (Tfunction
                                         (tfloat :: tfloat :: tfloat ::
                                          tshort :: tuchar :: tschar :: nil)
-                                        (tptr (Tunion __206 noattr))
+                                        (tptr (Tunion __305 noattr))
                                         cc_default))
                                       ((Etempvar _xPos tfloat) ::
                                        (Etempvar _yPos tfloat) ::
@@ -3809,33 +3912,33 @@ Definition f_create_shadow_below_xyz := {|
                                        (Etempvar _shadowSolidity tuchar) ::
                                        (Etempvar _shadowType tschar) :: nil))
                                     (Sset _displayList
-                                      (Etempvar _t'8 (tptr (Tunion __206 noattr)))))
+                                      (Etempvar _t'8 (tptr (Tunion __305 noattr)))))
                                   Sbreak)
                                 LSnil)))))))))
-              (Sreturn (Some (Etempvar _displayList (tptr (Tunion __206 noattr))))))))))))
+              (Sreturn (Some (Etempvar _displayList (tptr (Tunion __305 noattr))))))))))))
 |}.
 
 Definition composites : list composite_definition :=
-(Composite __116 Struct
+(Composite __215 Struct
    (Member_plain _ob (tarray tshort 3) :: Member_plain _flag tushort ::
     Member_plain _tc (tarray tshort 2) ::
     Member_plain _cn (tarray tuchar 4) :: nil)
    noattr ::
- Composite __118 Struct
+ Composite __217 Struct
    (Member_plain _ob (tarray tshort 3) :: Member_plain _flag tushort ::
     Member_plain _tc (tarray tshort 2) ::
     Member_plain _n (tarray tschar 3) :: Member_plain _a tuchar :: nil)
    noattr ::
- Composite __120 Union
-   (Member_plain _v (Tstruct __116 noattr) ::
-    Member_plain _n (Tstruct __118 noattr) ::
+ Composite __219 Union
+   (Member_plain _v (Tstruct __215 noattr) ::
+    Member_plain _n (Tstruct __217 noattr) ::
     Member_plain _force_structure_alignment tlong :: nil)
    noattr ::
- Composite __204 Struct
+ Composite __303 Struct
    (Member_plain _w0 tuint :: Member_plain _w1 tuint :: nil)
    noattr ::
- Composite __206 Union
-   (Member_plain _words (Tstruct __204 noattr) ::
+ Composite __305 Union
+   (Member_plain _words (Tstruct __303 noattr) ::
     Member_plain _force_structure_alignment tlong :: nil)
    noattr ::
  Composite _Animation Struct
@@ -3876,7 +3979,7 @@ Definition composites : list composite_definition :=
     Member_plain _next (tptr (Tstruct _ObjectNode noattr)) ::
     Member_plain _prev (tptr (Tstruct _ObjectNode noattr)) :: nil)
    noattr ::
- Composite __665 Union
+ Composite __764 Union
    (Member_plain _asU32 (tarray tuint 80) ::
     Member_plain _asS32 (tarray tint 80) ::
     Member_plain _asS16 (tarray (tarray tshort 2) 80) ::
@@ -3901,7 +4004,7 @@ Definition composites : list composite_definition :=
     Member_plain _activeFlags tshort ::
     Member_plain _numCollidedObjs tshort ::
     Member_plain _collidedObjs (tarray (tptr (Tstruct _Object noattr)) 4) ::
-    Member_plain _rawData (Tunion __665 noattr) ::
+    Member_plain _rawData (Tunion __764 noattr) ::
     Member_plain _unused1 tuint ::
     Member_plain _curBhvCommand (tptr tuint) ::
     Member_plain _bhvStackIndex tuint ::
@@ -3921,7 +4024,7 @@ Definition composites : list composite_definition :=
  Composite _Waypoint Struct
    (Member_plain _flags tshort :: Member_plain _pos (tarray tshort 3) :: nil)
    noattr ::
- Composite __670 Struct
+ Composite __769 Struct
    (Member_plain _x tfloat :: Member_plain _y tfloat ::
     Member_plain _z tfloat :: nil)
    noattr ::
@@ -3932,7 +4035,7 @@ Definition composites : list composite_definition :=
     Member_plain _vertex1 (tarray tshort 3) ::
     Member_plain _vertex2 (tarray tshort 3) ::
     Member_plain _vertex3 (tarray tshort 3) ::
-    Member_plain _normal (Tstruct __670 noattr) ::
+    Member_plain _normal (Tstruct __769 noattr) ::
     Member_plain _originOffset tfloat ::
     Member_plain _object (tptr (Tstruct _Object noattr)) :: nil)
    noattr ::
@@ -3959,7 +4062,7 @@ Definition composites : list composite_definition :=
     Member_plain _floorDownwardAngle tfloat ::
     Member_plain _floorTilt tfloat :: Member_plain _solidity tuchar :: nil)
    noattr ::
- Composite __2146 Struct
+ Composite __2245 Struct
    (Member_plain _halfWidth tfloat :: Member_plain _halfLength tfloat ::
     Member_plain _scaleWithDistance tschar :: nil)
    noattr :: nil).
@@ -3979,9 +4082,9 @@ Definition global_definitions : list (ident * globdef fundef type) :=
      ((tptr tvoid) :: nil) tdouble cc_default)) ::
  (___compcert_va_composite,
    Gfun(External (EF_runtime "__compcert_va_composite"
-                   (mksignature (AST.Xptr :: AST.Xlong :: nil) AST.Xptr
-                     cc_default)) ((tptr tvoid) :: tulong :: nil)
-     (tptr tvoid) cc_default)) ::
+                   (mksignature (AST.Xptr :: AST.Xint :: nil) AST.Xptr
+                     cc_default)) ((tptr tvoid) :: tuint :: nil) (tptr tvoid)
+     cc_default)) ::
  (___compcert_i64_dtos,
    Gfun(External (EF_runtime "__compcert_i64_dtos"
                    (mksignature (AST.Xfloat :: nil) AST.Xlong cc_default))
@@ -4049,7 +4152,7 @@ Definition global_definitions : list (ident * globdef fundef type) :=
    Gfun(External (EF_builtin "__builtin_ais_annot"
                    (mksignature (AST.Xptr :: nil) AST.Xvoid
                      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-     ((tptr tschar) :: nil) tvoid
+     ((tptr tuchar) :: nil) tvoid
      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|})) ::
  (___builtin_bswap64,
    Gfun(External (EF_builtin "__builtin_bswap64"
@@ -4074,8 +4177,8 @@ Definition global_definitions : list (ident * globdef fundef type) :=
      (tuint :: nil) tint cc_default)) ::
  (___builtin_clzl,
    Gfun(External (EF_builtin "__builtin_clzl"
-                   (mksignature (AST.Xlong :: nil) AST.Xint cc_default))
-     (tulong :: nil) tint cc_default)) ::
+                   (mksignature (AST.Xint :: nil) AST.Xint cc_default))
+     (tuint :: nil) tint cc_default)) ::
  (___builtin_clzll,
    Gfun(External (EF_builtin "__builtin_clzll"
                    (mksignature (AST.Xlong :: nil) AST.Xint cc_default))
@@ -4086,8 +4189,8 @@ Definition global_definitions : list (ident * globdef fundef type) :=
      (tuint :: nil) tint cc_default)) ::
  (___builtin_ctzl,
    Gfun(External (EF_builtin "__builtin_ctzl"
-                   (mksignature (AST.Xlong :: nil) AST.Xint cc_default))
-     (tulong :: nil) tint cc_default)) ::
+                   (mksignature (AST.Xint :: nil) AST.Xint cc_default))
+     (tuint :: nil) tint cc_default)) ::
  (___builtin_ctzll,
    Gfun(External (EF_builtin "__builtin_ctzll"
                    (mksignature (AST.Xlong :: nil) AST.Xint cc_default))
@@ -4111,9 +4214,9 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (___builtin_memcpy_aligned,
    Gfun(External (EF_builtin "__builtin_memcpy_aligned"
                    (mksignature
-                     (AST.Xptr :: AST.Xptr :: AST.Xlong :: AST.Xlong :: nil)
+                     (AST.Xptr :: AST.Xptr :: AST.Xint :: AST.Xint :: nil)
                      AST.Xvoid cc_default))
-     ((tptr tvoid) :: (tptr tvoid) :: tulong :: tulong :: nil) tvoid
+     ((tptr tvoid) :: (tptr tvoid) :: tuint :: tuint :: nil) tvoid
      cc_default)) ::
  (___builtin_sel,
    Gfun(External (EF_builtin "__builtin_sel"
@@ -4125,12 +4228,12 @@ Definition global_definitions : list (ident * globdef fundef type) :=
    Gfun(External (EF_builtin "__builtin_annot"
                    (mksignature (AST.Xptr :: nil) AST.Xvoid
                      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-     ((tptr tschar) :: nil) tvoid
+     ((tptr tuchar) :: nil) tvoid
      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|})) ::
  (___builtin_annot_intval,
    Gfun(External (EF_builtin "__builtin_annot_intval"
                    (mksignature (AST.Xptr :: AST.Xint :: nil) AST.Xint
-                     cc_default)) ((tptr tschar) :: tint :: nil) tint
+                     cc_default)) ((tptr tuchar) :: tint :: nil) tint
      cc_default)) ::
  (___builtin_membar,
    Gfun(External (EF_builtin "__builtin_membar"
@@ -4160,17 +4263,28 @@ Definition global_definitions : list (ident * globdef fundef type) :=
      cc_default)) ::
  (___builtin_expect,
    Gfun(External (EF_builtin "__builtin_expect"
+                   (mksignature (AST.Xint :: AST.Xint :: nil) AST.Xint
+                     cc_default)) (tint :: tint :: nil) tint cc_default)) ::
+ (___builtin_mulhw,
+   Gfun(External (EF_builtin "__builtin_mulhw"
+                   (mksignature (AST.Xint :: AST.Xint :: nil) AST.Xint
+                     cc_default)) (tint :: tint :: nil) tint cc_default)) ::
+ (___builtin_mulhwu,
+   Gfun(External (EF_builtin "__builtin_mulhwu"
+                   (mksignature (AST.Xint :: AST.Xint :: nil) AST.Xint
+                     cc_default)) (tuint :: tuint :: nil) tuint cc_default)) ::
+ (___builtin_cmpb,
+   Gfun(External (EF_builtin "__builtin_cmpb"
+                   (mksignature (AST.Xint :: AST.Xint :: nil) AST.Xint
+                     cc_default)) (tuint :: tuint :: nil) tuint cc_default)) ::
+ (___builtin_mulhd,
+   Gfun(External (EF_builtin "__builtin_mulhd"
                    (mksignature (AST.Xlong :: AST.Xlong :: nil) AST.Xlong
                      cc_default)) (tlong :: tlong :: nil) tlong cc_default)) ::
- (___builtin_fmax,
-   Gfun(External (EF_builtin "__builtin_fmax"
-                   (mksignature (AST.Xfloat :: AST.Xfloat :: nil) AST.Xfloat
-                     cc_default)) (tdouble :: tdouble :: nil) tdouble
-     cc_default)) ::
- (___builtin_fmin,
-   Gfun(External (EF_builtin "__builtin_fmin"
-                   (mksignature (AST.Xfloat :: AST.Xfloat :: nil) AST.Xfloat
-                     cc_default)) (tdouble :: tdouble :: nil) tdouble
+ (___builtin_mulhdu,
+   Gfun(External (EF_builtin "__builtin_mulhdu"
+                   (mksignature (AST.Xlong :: AST.Xlong :: nil) AST.Xlong
+                     cc_default)) (tulong :: tulong :: nil) tulong
      cc_default)) ::
  (___builtin_fmadd,
    Gfun(External (EF_builtin "__builtin_fmadd"
@@ -4196,6 +4310,24 @@ Definition global_definitions : list (ident * globdef fundef type) :=
                      (AST.Xfloat :: AST.Xfloat :: AST.Xfloat :: nil)
                      AST.Xfloat cc_default))
      (tdouble :: tdouble :: tdouble :: nil) tdouble cc_default)) ::
+ (___builtin_frsqrte,
+   Gfun(External (EF_builtin "__builtin_frsqrte"
+                   (mksignature (AST.Xfloat :: nil) AST.Xfloat cc_default))
+     (tdouble :: nil) tdouble cc_default)) ::
+ (___builtin_fres,
+   Gfun(External (EF_builtin "__builtin_fres"
+                   (mksignature (AST.Xsingle :: nil) AST.Xsingle cc_default))
+     (tfloat :: nil) tfloat cc_default)) ::
+ (___builtin_fsel,
+   Gfun(External (EF_builtin "__builtin_fsel"
+                   (mksignature
+                     (AST.Xfloat :: AST.Xfloat :: AST.Xfloat :: nil)
+                     AST.Xfloat cc_default))
+     (tdouble :: tdouble :: tdouble :: nil) tdouble cc_default)) ::
+ (___builtin_fcti,
+   Gfun(External (EF_builtin "__builtin_fcti"
+                   (mksignature (AST.Xfloat :: nil) AST.Xint cc_default))
+     (tdouble :: nil) tint cc_default)) ::
  (___builtin_read16_reversed,
    Gfun(External (EF_builtin "__builtin_read16_reversed"
                    (mksignature (AST.Xptr :: nil) AST.Xint16unsigned
@@ -4214,6 +4346,147 @@ Definition global_definitions : list (ident * globdef fundef type) :=
    Gfun(External (EF_builtin "__builtin_write32_reversed"
                    (mksignature (AST.Xptr :: AST.Xint :: nil) AST.Xvoid
                      cc_default)) ((tptr tuint) :: tuint :: nil) tvoid
+     cc_default)) ::
+ (___builtin_read64_reversed,
+   Gfun(External (EF_builtin "__builtin_read64_reversed"
+                   (mksignature (AST.Xptr :: nil) AST.Xlong cc_default))
+     ((tptr tulong) :: nil) tulong cc_default)) ::
+ (___builtin_write64_reversed,
+   Gfun(External (EF_builtin "__builtin_write64_reversed"
+                   (mksignature (AST.Xptr :: AST.Xlong :: nil) AST.Xvoid
+                     cc_default)) ((tptr tulong) :: tulong :: nil) tvoid
+     cc_default)) ::
+ (___builtin_eieio,
+   Gfun(External (EF_builtin "__builtin_eieio"
+                   (mksignature nil AST.Xvoid cc_default)) nil tvoid
+     cc_default)) ::
+ (___builtin_sync,
+   Gfun(External (EF_builtin "__builtin_sync"
+                   (mksignature nil AST.Xvoid cc_default)) nil tvoid
+     cc_default)) ::
+ (___builtin_isync,
+   Gfun(External (EF_builtin "__builtin_isync"
+                   (mksignature nil AST.Xvoid cc_default)) nil tvoid
+     cc_default)) ::
+ (___builtin_lwsync,
+   Gfun(External (EF_builtin "__builtin_lwsync"
+                   (mksignature nil AST.Xvoid cc_default)) nil tvoid
+     cc_default)) ::
+ (___builtin_mbar,
+   Gfun(External (EF_builtin "__builtin_mbar"
+                   (mksignature (AST.Xint :: nil) AST.Xvoid cc_default))
+     (tint :: nil) tvoid cc_default)) ::
+ (___builtin_trap,
+   Gfun(External (EF_builtin "__builtin_trap"
+                   (mksignature nil AST.Xvoid cc_default)) nil tvoid
+     cc_default)) ::
+ (___builtin_dcbf,
+   Gfun(External (EF_builtin "__builtin_dcbf"
+                   (mksignature (AST.Xptr :: nil) AST.Xvoid cc_default))
+     ((tptr tvoid) :: nil) tvoid cc_default)) ::
+ (___builtin_dcbi,
+   Gfun(External (EF_builtin "__builtin_dcbi"
+                   (mksignature (AST.Xptr :: nil) AST.Xvoid cc_default))
+     ((tptr tvoid) :: nil) tvoid cc_default)) ::
+ (___builtin_icbi,
+   Gfun(External (EF_builtin "__builtin_icbi"
+                   (mksignature (AST.Xptr :: nil) AST.Xvoid cc_default))
+     ((tptr tvoid) :: nil) tvoid cc_default)) ::
+ (___builtin_prefetch,
+   Gfun(External (EF_builtin "__builtin_prefetch"
+                   (mksignature (AST.Xptr :: AST.Xint :: AST.Xint :: nil)
+                     AST.Xvoid cc_default))
+     ((tptr tvoid) :: tint :: tint :: nil) tvoid cc_default)) ::
+ (___builtin_dcbtls,
+   Gfun(External (EF_builtin "__builtin_dcbtls"
+                   (mksignature (AST.Xptr :: AST.Xint :: nil) AST.Xvoid
+                     cc_default)) ((tptr tvoid) :: tint :: nil) tvoid
+     cc_default)) ::
+ (___builtin_icbtls,
+   Gfun(External (EF_builtin "__builtin_icbtls"
+                   (mksignature (AST.Xptr :: AST.Xint :: nil) AST.Xvoid
+                     cc_default)) ((tptr tvoid) :: tint :: nil) tvoid
+     cc_default)) ::
+ (___builtin_dcbz,
+   Gfun(External (EF_builtin "__builtin_dcbz"
+                   (mksignature (AST.Xptr :: nil) AST.Xvoid cc_default))
+     ((tptr tvoid) :: nil) tvoid cc_default)) ::
+ (___builtin_get_spr,
+   Gfun(External (EF_builtin "__builtin_get_spr"
+                   (mksignature (AST.Xint :: nil) AST.Xint cc_default))
+     (tint :: nil) tuint cc_default)) ::
+ (___builtin_set_spr,
+   Gfun(External (EF_builtin "__builtin_set_spr"
+                   (mksignature (AST.Xint :: AST.Xint :: nil) AST.Xvoid
+                     cc_default)) (tint :: tuint :: nil) tvoid cc_default)) ::
+ (___builtin_get_spr64,
+   Gfun(External (EF_builtin "__builtin_get_spr64"
+                   (mksignature (AST.Xint :: nil) AST.Xlong cc_default))
+     (tint :: nil) tulong cc_default)) ::
+ (___builtin_set_spr64,
+   Gfun(External (EF_builtin "__builtin_set_spr64"
+                   (mksignature (AST.Xint :: AST.Xlong :: nil) AST.Xvoid
+                     cc_default)) (tint :: tulong :: nil) tvoid cc_default)) ::
+ (___builtin_mr,
+   Gfun(External (EF_builtin "__builtin_mr"
+                   (mksignature (AST.Xint :: AST.Xint :: nil) AST.Xvoid
+                     cc_default)) (tint :: tint :: nil) tvoid cc_default)) ::
+ (___builtin_call_frame,
+   Gfun(External (EF_builtin "__builtin_call_frame"
+                   (mksignature nil AST.Xptr cc_default)) nil (tptr tvoid)
+     cc_default)) ::
+ (___builtin_return_address,
+   Gfun(External (EF_builtin "__builtin_return_address"
+                   (mksignature nil AST.Xptr cc_default)) nil (tptr tvoid)
+     cc_default)) ::
+ (___builtin_isel,
+   Gfun(External (EF_builtin "__builtin_isel"
+                   (mksignature (AST.Xbool :: AST.Xint :: AST.Xint :: nil)
+                     AST.Xint cc_default)) (tbool :: tint :: tint :: nil)
+     tint cc_default)) ::
+ (___builtin_uisel,
+   Gfun(External (EF_builtin "__builtin_uisel"
+                   (mksignature (AST.Xbool :: AST.Xint :: AST.Xint :: nil)
+                     AST.Xint cc_default)) (tbool :: tuint :: tuint :: nil)
+     tuint cc_default)) ::
+ (___builtin_isel64,
+   Gfun(External (EF_builtin "__builtin_isel64"
+                   (mksignature (AST.Xbool :: AST.Xlong :: AST.Xlong :: nil)
+                     AST.Xlong cc_default)) (tbool :: tlong :: tlong :: nil)
+     tlong cc_default)) ::
+ (___builtin_uisel64,
+   Gfun(External (EF_builtin "__builtin_uisel64"
+                   (mksignature (AST.Xbool :: AST.Xlong :: AST.Xlong :: nil)
+                     AST.Xlong cc_default))
+     (tbool :: tulong :: tulong :: nil) tulong cc_default)) ::
+ (___builtin_bsel,
+   Gfun(External (EF_builtin "__builtin_bsel"
+                   (mksignature (AST.Xbool :: AST.Xbool :: AST.Xbool :: nil)
+                     AST.Xbool cc_default)) (tbool :: tbool :: tbool :: nil)
+     tbool cc_default)) ::
+ (___builtin_nop,
+   Gfun(External (EF_builtin "__builtin_nop"
+                   (mksignature nil AST.Xvoid cc_default)) nil tvoid
+     cc_default)) ::
+ (___builtin_atomic_exchange,
+   Gfun(External (EF_builtin "__builtin_atomic_exchange"
+                   (mksignature (AST.Xptr :: AST.Xptr :: AST.Xptr :: nil)
+                     AST.Xvoid cc_default))
+     ((tptr tint) :: (tptr tint) :: (tptr tint) :: nil) tvoid cc_default)) ::
+ (___builtin_atomic_load,
+   Gfun(External (EF_builtin "__builtin_atomic_load"
+                   (mksignature (AST.Xptr :: AST.Xptr :: nil) AST.Xvoid
+                     cc_default)) ((tptr tint) :: (tptr tint) :: nil) tvoid
+     cc_default)) ::
+ (___builtin_atomic_compare_exchange,
+   Gfun(External (EF_builtin "__builtin_atomic_compare_exchange"
+                   (mksignature (AST.Xptr :: AST.Xptr :: AST.Xptr :: nil)
+                     AST.Xbool cc_default))
+     ((tptr tint) :: (tptr tint) :: (tptr tint) :: nil) tbool cc_default)) ::
+ (___builtin_sync_fetch_and_add,
+   Gfun(External (EF_builtin "__builtin_sync_fetch_and_add"
+                   (mksignature (AST.Xptr :: AST.Xint :: nil) AST.Xint
+                     cc_default)) ((tptr tint) :: tint :: nil) tint
      cc_default)) ::
  (___builtin_debug,
    Gfun(External (EF_external "__builtin_debug"
@@ -4269,7 +4542,7 @@ Definition global_definitions : list (ident * globdef fundef type) :=
                       AST.Xint8unsigned :: AST.Xint8unsigned ::
                       AST.Xint8unsigned :: AST.Xint8unsigned :: nil)
                      AST.Xvoid cc_default))
-     ((tptr (Tunion __120 noattr)) :: tint :: tshort :: tshort :: tshort ::
+     ((tptr (Tunion __219 noattr)) :: tint :: tshort :: tshort :: tshort ::
       tshort :: tshort :: tuchar :: tuchar :: tuchar :: tuchar :: nil) tvoid
      cc_default)) ::
  (_round_float,
@@ -4349,26 +4622,39 @@ Definition public_idents : list ident :=
  _gCurrAreaIndex :: _alloc_display_list :: _round_float :: _make_vertex ::
  _gFlyingCarpetState :: _find_water_level :: _find_floor ::
  _find_floor_height_and_data :: _atan2s :: _gSineTable :: _sqrtf :: _cosf ::
- _sinf :: ___builtin_debug :: ___builtin_write32_reversed ::
+ _sinf :: ___builtin_debug :: ___builtin_sync_fetch_and_add ::
+ ___builtin_atomic_compare_exchange :: ___builtin_atomic_load ::
+ ___builtin_atomic_exchange :: ___builtin_nop :: ___builtin_bsel ::
+ ___builtin_uisel64 :: ___builtin_isel64 :: ___builtin_uisel ::
+ ___builtin_isel :: ___builtin_return_address :: ___builtin_call_frame ::
+ ___builtin_mr :: ___builtin_set_spr64 :: ___builtin_get_spr64 ::
+ ___builtin_set_spr :: ___builtin_get_spr :: ___builtin_dcbz ::
+ ___builtin_icbtls :: ___builtin_dcbtls :: ___builtin_prefetch ::
+ ___builtin_icbi :: ___builtin_dcbi :: ___builtin_dcbf :: ___builtin_trap ::
+ ___builtin_mbar :: ___builtin_lwsync :: ___builtin_isync ::
+ ___builtin_sync :: ___builtin_eieio :: ___builtin_write64_reversed ::
+ ___builtin_read64_reversed :: ___builtin_write32_reversed ::
  ___builtin_write16_reversed :: ___builtin_read32_reversed ::
- ___builtin_read16_reversed :: ___builtin_fnmsub :: ___builtin_fnmadd ::
- ___builtin_fmsub :: ___builtin_fmadd :: ___builtin_fmin ::
- ___builtin_fmax :: ___builtin_expect :: ___builtin_unreachable ::
- ___builtin_va_end :: ___builtin_va_copy :: ___builtin_va_arg ::
- ___builtin_va_start :: ___builtin_membar :: ___builtin_annot_intval ::
- ___builtin_annot :: ___builtin_sel :: ___builtin_memcpy_aligned ::
- ___builtin_sqrt :: ___builtin_fsqrt :: ___builtin_fabsf ::
- ___builtin_fabs :: ___builtin_ctzll :: ___builtin_ctzl :: ___builtin_ctz ::
- ___builtin_clzll :: ___builtin_clzl :: ___builtin_clz ::
- ___builtin_bswap16 :: ___builtin_bswap32 :: ___builtin_bswap ::
- ___builtin_bswap64 :: ___builtin_ais_annot :: ___compcert_i64_umulh ::
- ___compcert_i64_smulh :: ___compcert_i64_sar :: ___compcert_i64_shr ::
- ___compcert_i64_shl :: ___compcert_i64_umod :: ___compcert_i64_smod ::
- ___compcert_i64_udiv :: ___compcert_i64_sdiv :: ___compcert_i64_utof ::
- ___compcert_i64_stof :: ___compcert_i64_utod :: ___compcert_i64_stod ::
- ___compcert_i64_dtou :: ___compcert_i64_dtos :: ___compcert_va_composite ::
- ___compcert_va_float64 :: ___compcert_va_int64 :: ___compcert_va_int32 ::
- nil).
+ ___builtin_read16_reversed :: ___builtin_fcti :: ___builtin_fsel ::
+ ___builtin_fres :: ___builtin_frsqrte :: ___builtin_fnmsub ::
+ ___builtin_fnmadd :: ___builtin_fmsub :: ___builtin_fmadd ::
+ ___builtin_mulhdu :: ___builtin_mulhd :: ___builtin_cmpb ::
+ ___builtin_mulhwu :: ___builtin_mulhw :: ___builtin_expect ::
+ ___builtin_unreachable :: ___builtin_va_end :: ___builtin_va_copy ::
+ ___builtin_va_arg :: ___builtin_va_start :: ___builtin_membar ::
+ ___builtin_annot_intval :: ___builtin_annot :: ___builtin_sel ::
+ ___builtin_memcpy_aligned :: ___builtin_sqrt :: ___builtin_fsqrt ::
+ ___builtin_fabsf :: ___builtin_fabs :: ___builtin_ctzll ::
+ ___builtin_ctzl :: ___builtin_ctz :: ___builtin_clzll :: ___builtin_clzl ::
+ ___builtin_clz :: ___builtin_bswap16 :: ___builtin_bswap32 ::
+ ___builtin_bswap :: ___builtin_bswap64 :: ___builtin_ais_annot ::
+ ___compcert_i64_umulh :: ___compcert_i64_smulh :: ___compcert_i64_sar ::
+ ___compcert_i64_shr :: ___compcert_i64_shl :: ___compcert_i64_umod ::
+ ___compcert_i64_smod :: ___compcert_i64_udiv :: ___compcert_i64_sdiv ::
+ ___compcert_i64_utof :: ___compcert_i64_stof :: ___compcert_i64_utod ::
+ ___compcert_i64_stod :: ___compcert_i64_dtou :: ___compcert_i64_dtos ::
+ ___compcert_va_composite :: ___compcert_va_float64 ::
+ ___compcert_va_int64 :: ___compcert_va_int32 :: nil).
 
 Definition prog : Clight.program := 
   mkprogram composites global_definitions public_idents _main Logic.I.

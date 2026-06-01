@@ -454,3 +454,11 @@ Proof.
            solve [ inv Hlv ] end);
     apply (Htmps q b o); [ exact Hq | assumption ].
 Qed.
+
+(* NOTE (Obstacle 2, reopened under the faithful ppc/N64 model). A word-sized
+   scalar load `tid = m->flags` (tuint -> Mint32) CAN, under Archi.ptr64=false,
+   yield a Vptr (a 4-byte load can hold a pointer fragment), so set_off_bm_ok is
+   NOT provable for it from mem_wf alone. The clean fix is to restrict tmps_off_bm
+   to chase-rooted temps (flags' temp is never a chase root). The chase-load and
+   pointer-copy Sset dischargers above remain valid; the word-scalar-load case is
+   the remaining open obligation. *)

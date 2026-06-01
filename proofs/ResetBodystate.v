@@ -136,7 +136,7 @@ Lemma exec_bodystate_load :
 Proof.
   intros e le m t le' m' out bm bbs off_bs ofs Hm Hfo Hld Hexec.
   (* pin off_bs to its literal value so all offset arithmetic is concrete *)
-  assert (Hoff : off_bs = 200) by (vm_compute in Hfo; congruence).
+  assert (Hoff : off_bs = 152) by (vm_compute in Hfo; congruence).
   inv Hexec.
   (* Sset: goal is about PTree.set _bodyState v le; H : eval_expr .. (Efield..) v *)
   match goal with Hev : eval_expr _ _ _ _ (Efield _ _ _) ?v |- _ =>
@@ -188,9 +188,11 @@ Proof.
       assert (Hmm : mario_members = co_members co)
         by (unfold mario_members; rewrite Hco; reflexivity);
       rewrite <- Hmm in Hfo2;
-      (* off_bs was already substituted to its literal 200 by inv Hexec's `subst`
-         (it cleared the off_bs = 200 equation), so pin delta against 200 directly. *)
-      assert (Hd1 : delta = 200) by congruence;
+      (* off_bs was already substituted to its literal 152 by inv Hexec's `subst`
+         (it cleared the off_bs = 152 equation), so pin delta against 152 directly.
+         (152 = the ppc32 offset of marioBodyState; it was 200 under x86_64's
+         8-byte pointers -- N64 has 4-byte pointers.) *)
+      assert (Hd1 : delta = 152) by congruence;
       assert (Hd2 : bf = Full) by congruence;
       subst delta bf
   end.
@@ -448,12 +450,12 @@ Lemma hurt_and_set_mario_action_preserves :
 Proof.
   intros e le m t le' m' out bm Hm Hvalid Hreach Hsat Hexec.
   unfold mario.f_hurt_and_set_mario_action in Hexec; cbn [fn_body] in Hexec.
-  (* ---- m->hurtCounter = hurtCounter  (direct store, offset 238) ---- *)
+  (* ---- m->hurtCounter = hurtCounter  (direct store, offset 178 on ppc32) ---- *)
   inv Hexec; [ | seq2_absurd ].
-  assert (Hfohc : field_offset mario_ce mario._hurtCounter mario_members = OK (238, Full))
+  assert (Hfohc : field_offset mario_ce mario._hurtCounter mario_members = OK (178, Full))
     by (vm_compute; reflexivity).
-  assert (Hdj : Ptrofs.unsigned (Ptrofs.repr 238) + sizeof mario_ce tuchar <= 12
-                \/ 16 <= Ptrofs.unsigned (Ptrofs.repr 238))
+  assert (Hdj : Ptrofs.unsigned (Ptrofs.repr 178) + sizeof mario_ce tuchar <= 12
+                \/ 16 <= Ptrofs.unsigned (Ptrofs.repr 178))
     by (right; vm_compute; intro Hx; discriminate Hx).
   match goal with HS : exec_stmt _ _ _ _ _
       (Sassign (Efield (Ederef (Etempvar mario._m _) _) mario._hurtCounter _) _) _ _ _ _ |- _ =>

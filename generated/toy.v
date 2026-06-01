@@ -18,11 +18,11 @@ Module Info.
   Definition build_number := "".
   Definition build_tag := "".
   Definition build_branch := "".
-  Definition arch := "x86".
-  Definition model := "64".
-  Definition abi := "standard".
-  Definition bitsize := 64.
-  Definition big_endian := false.
+  Definition arch := "powerpc".
+  Definition model := "ppc32".
+  Definition abi := "eabi".
+  Definition bitsize := 32.
+  Definition big_endian := true.
   Definition source_file := "experiments/toy/toy.c".
   Definition normalized := true.
 End Info.
@@ -31,33 +31,71 @@ Definition _Object : ident := $"Object".
 Definition ___builtin_ais_annot : ident := $"__builtin_ais_annot".
 Definition ___builtin_annot : ident := $"__builtin_annot".
 Definition ___builtin_annot_intval : ident := $"__builtin_annot_intval".
+Definition ___builtin_atomic_compare_exchange : ident := $"__builtin_atomic_compare_exchange".
+Definition ___builtin_atomic_exchange : ident := $"__builtin_atomic_exchange".
+Definition ___builtin_atomic_load : ident := $"__builtin_atomic_load".
+Definition ___builtin_bsel : ident := $"__builtin_bsel".
 Definition ___builtin_bswap : ident := $"__builtin_bswap".
 Definition ___builtin_bswap16 : ident := $"__builtin_bswap16".
 Definition ___builtin_bswap32 : ident := $"__builtin_bswap32".
 Definition ___builtin_bswap64 : ident := $"__builtin_bswap64".
+Definition ___builtin_call_frame : ident := $"__builtin_call_frame".
 Definition ___builtin_clz : ident := $"__builtin_clz".
 Definition ___builtin_clzl : ident := $"__builtin_clzl".
 Definition ___builtin_clzll : ident := $"__builtin_clzll".
+Definition ___builtin_cmpb : ident := $"__builtin_cmpb".
 Definition ___builtin_ctz : ident := $"__builtin_ctz".
 Definition ___builtin_ctzl : ident := $"__builtin_ctzl".
 Definition ___builtin_ctzll : ident := $"__builtin_ctzll".
+Definition ___builtin_dcbf : ident := $"__builtin_dcbf".
+Definition ___builtin_dcbi : ident := $"__builtin_dcbi".
+Definition ___builtin_dcbtls : ident := $"__builtin_dcbtls".
+Definition ___builtin_dcbz : ident := $"__builtin_dcbz".
 Definition ___builtin_debug : ident := $"__builtin_debug".
+Definition ___builtin_eieio : ident := $"__builtin_eieio".
 Definition ___builtin_expect : ident := $"__builtin_expect".
 Definition ___builtin_fabs : ident := $"__builtin_fabs".
 Definition ___builtin_fabsf : ident := $"__builtin_fabsf".
+Definition ___builtin_fcti : ident := $"__builtin_fcti".
 Definition ___builtin_fmadd : ident := $"__builtin_fmadd".
-Definition ___builtin_fmax : ident := $"__builtin_fmax".
-Definition ___builtin_fmin : ident := $"__builtin_fmin".
 Definition ___builtin_fmsub : ident := $"__builtin_fmsub".
 Definition ___builtin_fnmadd : ident := $"__builtin_fnmadd".
 Definition ___builtin_fnmsub : ident := $"__builtin_fnmsub".
+Definition ___builtin_fres : ident := $"__builtin_fres".
+Definition ___builtin_frsqrte : ident := $"__builtin_frsqrte".
+Definition ___builtin_fsel : ident := $"__builtin_fsel".
 Definition ___builtin_fsqrt : ident := $"__builtin_fsqrt".
+Definition ___builtin_get_spr : ident := $"__builtin_get_spr".
+Definition ___builtin_get_spr64 : ident := $"__builtin_get_spr64".
+Definition ___builtin_icbi : ident := $"__builtin_icbi".
+Definition ___builtin_icbtls : ident := $"__builtin_icbtls".
+Definition ___builtin_isel : ident := $"__builtin_isel".
+Definition ___builtin_isel64 : ident := $"__builtin_isel64".
+Definition ___builtin_isync : ident := $"__builtin_isync".
+Definition ___builtin_lwsync : ident := $"__builtin_lwsync".
+Definition ___builtin_mbar : ident := $"__builtin_mbar".
 Definition ___builtin_membar : ident := $"__builtin_membar".
 Definition ___builtin_memcpy_aligned : ident := $"__builtin_memcpy_aligned".
+Definition ___builtin_mr : ident := $"__builtin_mr".
+Definition ___builtin_mulhd : ident := $"__builtin_mulhd".
+Definition ___builtin_mulhdu : ident := $"__builtin_mulhdu".
+Definition ___builtin_mulhw : ident := $"__builtin_mulhw".
+Definition ___builtin_mulhwu : ident := $"__builtin_mulhwu".
+Definition ___builtin_nop : ident := $"__builtin_nop".
+Definition ___builtin_prefetch : ident := $"__builtin_prefetch".
 Definition ___builtin_read16_reversed : ident := $"__builtin_read16_reversed".
 Definition ___builtin_read32_reversed : ident := $"__builtin_read32_reversed".
+Definition ___builtin_read64_reversed : ident := $"__builtin_read64_reversed".
+Definition ___builtin_return_address : ident := $"__builtin_return_address".
 Definition ___builtin_sel : ident := $"__builtin_sel".
+Definition ___builtin_set_spr : ident := $"__builtin_set_spr".
+Definition ___builtin_set_spr64 : ident := $"__builtin_set_spr64".
 Definition ___builtin_sqrt : ident := $"__builtin_sqrt".
+Definition ___builtin_sync : ident := $"__builtin_sync".
+Definition ___builtin_sync_fetch_and_add : ident := $"__builtin_sync_fetch_and_add".
+Definition ___builtin_trap : ident := $"__builtin_trap".
+Definition ___builtin_uisel : ident := $"__builtin_uisel".
+Definition ___builtin_uisel64 : ident := $"__builtin_uisel64".
 Definition ___builtin_unreachable : ident := $"__builtin_unreachable".
 Definition ___builtin_va_arg : ident := $"__builtin_va_arg".
 Definition ___builtin_va_copy : ident := $"__builtin_va_copy".
@@ -65,6 +103,7 @@ Definition ___builtin_va_end : ident := $"__builtin_va_end".
 Definition ___builtin_va_start : ident := $"__builtin_va_start".
 Definition ___builtin_write16_reversed : ident := $"__builtin_write16_reversed".
 Definition ___builtin_write32_reversed : ident := $"__builtin_write32_reversed".
+Definition ___builtin_write64_reversed : ident := $"__builtin_write64_reversed".
 Definition ___compcert_i64_dtos : ident := $"__compcert_i64_dtos".
 Definition ___compcert_i64_dtou : ident := $"__compcert_i64_dtou".
 Definition ___compcert_i64_sar : ident := $"__compcert_i64_sar".
@@ -96,7 +135,7 @@ Definition _timer : ident := $"timer".
 
 Definition v_gObjects := {|
   gvar_info := (tarray (tptr (Tstruct _Object noattr)) 10);
-  gvar_init := (Init_space 80 :: nil);
+  gvar_init := (Init_space 40 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
@@ -166,9 +205,9 @@ Definition global_definitions : list (ident * globdef fundef type) :=
      ((tptr tvoid) :: nil) tdouble cc_default)) ::
  (___compcert_va_composite,
    Gfun(External (EF_runtime "__compcert_va_composite"
-                   (mksignature (AST.Xptr :: AST.Xlong :: nil) AST.Xptr
-                     cc_default)) ((tptr tvoid) :: tulong :: nil)
-     (tptr tvoid) cc_default)) ::
+                   (mksignature (AST.Xptr :: AST.Xint :: nil) AST.Xptr
+                     cc_default)) ((tptr tvoid) :: tuint :: nil) (tptr tvoid)
+     cc_default)) ::
  (___compcert_i64_dtos,
    Gfun(External (EF_runtime "__compcert_i64_dtos"
                    (mksignature (AST.Xfloat :: nil) AST.Xlong cc_default))
@@ -236,7 +275,7 @@ Definition global_definitions : list (ident * globdef fundef type) :=
    Gfun(External (EF_builtin "__builtin_ais_annot"
                    (mksignature (AST.Xptr :: nil) AST.Xvoid
                      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-     ((tptr tschar) :: nil) tvoid
+     ((tptr tuchar) :: nil) tvoid
      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|})) ::
  (___builtin_bswap64,
    Gfun(External (EF_builtin "__builtin_bswap64"
@@ -261,8 +300,8 @@ Definition global_definitions : list (ident * globdef fundef type) :=
      (tuint :: nil) tint cc_default)) ::
  (___builtin_clzl,
    Gfun(External (EF_builtin "__builtin_clzl"
-                   (mksignature (AST.Xlong :: nil) AST.Xint cc_default))
-     (tulong :: nil) tint cc_default)) ::
+                   (mksignature (AST.Xint :: nil) AST.Xint cc_default))
+     (tuint :: nil) tint cc_default)) ::
  (___builtin_clzll,
    Gfun(External (EF_builtin "__builtin_clzll"
                    (mksignature (AST.Xlong :: nil) AST.Xint cc_default))
@@ -273,8 +312,8 @@ Definition global_definitions : list (ident * globdef fundef type) :=
      (tuint :: nil) tint cc_default)) ::
  (___builtin_ctzl,
    Gfun(External (EF_builtin "__builtin_ctzl"
-                   (mksignature (AST.Xlong :: nil) AST.Xint cc_default))
-     (tulong :: nil) tint cc_default)) ::
+                   (mksignature (AST.Xint :: nil) AST.Xint cc_default))
+     (tuint :: nil) tint cc_default)) ::
  (___builtin_ctzll,
    Gfun(External (EF_builtin "__builtin_ctzll"
                    (mksignature (AST.Xlong :: nil) AST.Xint cc_default))
@@ -298,9 +337,9 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (___builtin_memcpy_aligned,
    Gfun(External (EF_builtin "__builtin_memcpy_aligned"
                    (mksignature
-                     (AST.Xptr :: AST.Xptr :: AST.Xlong :: AST.Xlong :: nil)
+                     (AST.Xptr :: AST.Xptr :: AST.Xint :: AST.Xint :: nil)
                      AST.Xvoid cc_default))
-     ((tptr tvoid) :: (tptr tvoid) :: tulong :: tulong :: nil) tvoid
+     ((tptr tvoid) :: (tptr tvoid) :: tuint :: tuint :: nil) tvoid
      cc_default)) ::
  (___builtin_sel,
    Gfun(External (EF_builtin "__builtin_sel"
@@ -312,12 +351,12 @@ Definition global_definitions : list (ident * globdef fundef type) :=
    Gfun(External (EF_builtin "__builtin_annot"
                    (mksignature (AST.Xptr :: nil) AST.Xvoid
                      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-     ((tptr tschar) :: nil) tvoid
+     ((tptr tuchar) :: nil) tvoid
      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|})) ::
  (___builtin_annot_intval,
    Gfun(External (EF_builtin "__builtin_annot_intval"
                    (mksignature (AST.Xptr :: AST.Xint :: nil) AST.Xint
-                     cc_default)) ((tptr tschar) :: tint :: nil) tint
+                     cc_default)) ((tptr tuchar) :: tint :: nil) tint
      cc_default)) ::
  (___builtin_membar,
    Gfun(External (EF_builtin "__builtin_membar"
@@ -347,17 +386,28 @@ Definition global_definitions : list (ident * globdef fundef type) :=
      cc_default)) ::
  (___builtin_expect,
    Gfun(External (EF_builtin "__builtin_expect"
+                   (mksignature (AST.Xint :: AST.Xint :: nil) AST.Xint
+                     cc_default)) (tint :: tint :: nil) tint cc_default)) ::
+ (___builtin_mulhw,
+   Gfun(External (EF_builtin "__builtin_mulhw"
+                   (mksignature (AST.Xint :: AST.Xint :: nil) AST.Xint
+                     cc_default)) (tint :: tint :: nil) tint cc_default)) ::
+ (___builtin_mulhwu,
+   Gfun(External (EF_builtin "__builtin_mulhwu"
+                   (mksignature (AST.Xint :: AST.Xint :: nil) AST.Xint
+                     cc_default)) (tuint :: tuint :: nil) tuint cc_default)) ::
+ (___builtin_cmpb,
+   Gfun(External (EF_builtin "__builtin_cmpb"
+                   (mksignature (AST.Xint :: AST.Xint :: nil) AST.Xint
+                     cc_default)) (tuint :: tuint :: nil) tuint cc_default)) ::
+ (___builtin_mulhd,
+   Gfun(External (EF_builtin "__builtin_mulhd"
                    (mksignature (AST.Xlong :: AST.Xlong :: nil) AST.Xlong
                      cc_default)) (tlong :: tlong :: nil) tlong cc_default)) ::
- (___builtin_fmax,
-   Gfun(External (EF_builtin "__builtin_fmax"
-                   (mksignature (AST.Xfloat :: AST.Xfloat :: nil) AST.Xfloat
-                     cc_default)) (tdouble :: tdouble :: nil) tdouble
-     cc_default)) ::
- (___builtin_fmin,
-   Gfun(External (EF_builtin "__builtin_fmin"
-                   (mksignature (AST.Xfloat :: AST.Xfloat :: nil) AST.Xfloat
-                     cc_default)) (tdouble :: tdouble :: nil) tdouble
+ (___builtin_mulhdu,
+   Gfun(External (EF_builtin "__builtin_mulhdu"
+                   (mksignature (AST.Xlong :: AST.Xlong :: nil) AST.Xlong
+                     cc_default)) (tulong :: tulong :: nil) tulong
      cc_default)) ::
  (___builtin_fmadd,
    Gfun(External (EF_builtin "__builtin_fmadd"
@@ -383,6 +433,24 @@ Definition global_definitions : list (ident * globdef fundef type) :=
                      (AST.Xfloat :: AST.Xfloat :: AST.Xfloat :: nil)
                      AST.Xfloat cc_default))
      (tdouble :: tdouble :: tdouble :: nil) tdouble cc_default)) ::
+ (___builtin_frsqrte,
+   Gfun(External (EF_builtin "__builtin_frsqrte"
+                   (mksignature (AST.Xfloat :: nil) AST.Xfloat cc_default))
+     (tdouble :: nil) tdouble cc_default)) ::
+ (___builtin_fres,
+   Gfun(External (EF_builtin "__builtin_fres"
+                   (mksignature (AST.Xsingle :: nil) AST.Xsingle cc_default))
+     (tfloat :: nil) tfloat cc_default)) ::
+ (___builtin_fsel,
+   Gfun(External (EF_builtin "__builtin_fsel"
+                   (mksignature
+                     (AST.Xfloat :: AST.Xfloat :: AST.Xfloat :: nil)
+                     AST.Xfloat cc_default))
+     (tdouble :: tdouble :: tdouble :: nil) tdouble cc_default)) ::
+ (___builtin_fcti,
+   Gfun(External (EF_builtin "__builtin_fcti"
+                   (mksignature (AST.Xfloat :: nil) AST.Xint cc_default))
+     (tdouble :: nil) tint cc_default)) ::
  (___builtin_read16_reversed,
    Gfun(External (EF_builtin "__builtin_read16_reversed"
                    (mksignature (AST.Xptr :: nil) AST.Xint16unsigned
@@ -402,6 +470,147 @@ Definition global_definitions : list (ident * globdef fundef type) :=
                    (mksignature (AST.Xptr :: AST.Xint :: nil) AST.Xvoid
                      cc_default)) ((tptr tuint) :: tuint :: nil) tvoid
      cc_default)) ::
+ (___builtin_read64_reversed,
+   Gfun(External (EF_builtin "__builtin_read64_reversed"
+                   (mksignature (AST.Xptr :: nil) AST.Xlong cc_default))
+     ((tptr tulong) :: nil) tulong cc_default)) ::
+ (___builtin_write64_reversed,
+   Gfun(External (EF_builtin "__builtin_write64_reversed"
+                   (mksignature (AST.Xptr :: AST.Xlong :: nil) AST.Xvoid
+                     cc_default)) ((tptr tulong) :: tulong :: nil) tvoid
+     cc_default)) ::
+ (___builtin_eieio,
+   Gfun(External (EF_builtin "__builtin_eieio"
+                   (mksignature nil AST.Xvoid cc_default)) nil tvoid
+     cc_default)) ::
+ (___builtin_sync,
+   Gfun(External (EF_builtin "__builtin_sync"
+                   (mksignature nil AST.Xvoid cc_default)) nil tvoid
+     cc_default)) ::
+ (___builtin_isync,
+   Gfun(External (EF_builtin "__builtin_isync"
+                   (mksignature nil AST.Xvoid cc_default)) nil tvoid
+     cc_default)) ::
+ (___builtin_lwsync,
+   Gfun(External (EF_builtin "__builtin_lwsync"
+                   (mksignature nil AST.Xvoid cc_default)) nil tvoid
+     cc_default)) ::
+ (___builtin_mbar,
+   Gfun(External (EF_builtin "__builtin_mbar"
+                   (mksignature (AST.Xint :: nil) AST.Xvoid cc_default))
+     (tint :: nil) tvoid cc_default)) ::
+ (___builtin_trap,
+   Gfun(External (EF_builtin "__builtin_trap"
+                   (mksignature nil AST.Xvoid cc_default)) nil tvoid
+     cc_default)) ::
+ (___builtin_dcbf,
+   Gfun(External (EF_builtin "__builtin_dcbf"
+                   (mksignature (AST.Xptr :: nil) AST.Xvoid cc_default))
+     ((tptr tvoid) :: nil) tvoid cc_default)) ::
+ (___builtin_dcbi,
+   Gfun(External (EF_builtin "__builtin_dcbi"
+                   (mksignature (AST.Xptr :: nil) AST.Xvoid cc_default))
+     ((tptr tvoid) :: nil) tvoid cc_default)) ::
+ (___builtin_icbi,
+   Gfun(External (EF_builtin "__builtin_icbi"
+                   (mksignature (AST.Xptr :: nil) AST.Xvoid cc_default))
+     ((tptr tvoid) :: nil) tvoid cc_default)) ::
+ (___builtin_prefetch,
+   Gfun(External (EF_builtin "__builtin_prefetch"
+                   (mksignature (AST.Xptr :: AST.Xint :: AST.Xint :: nil)
+                     AST.Xvoid cc_default))
+     ((tptr tvoid) :: tint :: tint :: nil) tvoid cc_default)) ::
+ (___builtin_dcbtls,
+   Gfun(External (EF_builtin "__builtin_dcbtls"
+                   (mksignature (AST.Xptr :: AST.Xint :: nil) AST.Xvoid
+                     cc_default)) ((tptr tvoid) :: tint :: nil) tvoid
+     cc_default)) ::
+ (___builtin_icbtls,
+   Gfun(External (EF_builtin "__builtin_icbtls"
+                   (mksignature (AST.Xptr :: AST.Xint :: nil) AST.Xvoid
+                     cc_default)) ((tptr tvoid) :: tint :: nil) tvoid
+     cc_default)) ::
+ (___builtin_dcbz,
+   Gfun(External (EF_builtin "__builtin_dcbz"
+                   (mksignature (AST.Xptr :: nil) AST.Xvoid cc_default))
+     ((tptr tvoid) :: nil) tvoid cc_default)) ::
+ (___builtin_get_spr,
+   Gfun(External (EF_builtin "__builtin_get_spr"
+                   (mksignature (AST.Xint :: nil) AST.Xint cc_default))
+     (tint :: nil) tuint cc_default)) ::
+ (___builtin_set_spr,
+   Gfun(External (EF_builtin "__builtin_set_spr"
+                   (mksignature (AST.Xint :: AST.Xint :: nil) AST.Xvoid
+                     cc_default)) (tint :: tuint :: nil) tvoid cc_default)) ::
+ (___builtin_get_spr64,
+   Gfun(External (EF_builtin "__builtin_get_spr64"
+                   (mksignature (AST.Xint :: nil) AST.Xlong cc_default))
+     (tint :: nil) tulong cc_default)) ::
+ (___builtin_set_spr64,
+   Gfun(External (EF_builtin "__builtin_set_spr64"
+                   (mksignature (AST.Xint :: AST.Xlong :: nil) AST.Xvoid
+                     cc_default)) (tint :: tulong :: nil) tvoid cc_default)) ::
+ (___builtin_mr,
+   Gfun(External (EF_builtin "__builtin_mr"
+                   (mksignature (AST.Xint :: AST.Xint :: nil) AST.Xvoid
+                     cc_default)) (tint :: tint :: nil) tvoid cc_default)) ::
+ (___builtin_call_frame,
+   Gfun(External (EF_builtin "__builtin_call_frame"
+                   (mksignature nil AST.Xptr cc_default)) nil (tptr tvoid)
+     cc_default)) ::
+ (___builtin_return_address,
+   Gfun(External (EF_builtin "__builtin_return_address"
+                   (mksignature nil AST.Xptr cc_default)) nil (tptr tvoid)
+     cc_default)) ::
+ (___builtin_isel,
+   Gfun(External (EF_builtin "__builtin_isel"
+                   (mksignature (AST.Xbool :: AST.Xint :: AST.Xint :: nil)
+                     AST.Xint cc_default)) (tbool :: tint :: tint :: nil)
+     tint cc_default)) ::
+ (___builtin_uisel,
+   Gfun(External (EF_builtin "__builtin_uisel"
+                   (mksignature (AST.Xbool :: AST.Xint :: AST.Xint :: nil)
+                     AST.Xint cc_default)) (tbool :: tuint :: tuint :: nil)
+     tuint cc_default)) ::
+ (___builtin_isel64,
+   Gfun(External (EF_builtin "__builtin_isel64"
+                   (mksignature (AST.Xbool :: AST.Xlong :: AST.Xlong :: nil)
+                     AST.Xlong cc_default)) (tbool :: tlong :: tlong :: nil)
+     tlong cc_default)) ::
+ (___builtin_uisel64,
+   Gfun(External (EF_builtin "__builtin_uisel64"
+                   (mksignature (AST.Xbool :: AST.Xlong :: AST.Xlong :: nil)
+                     AST.Xlong cc_default))
+     (tbool :: tulong :: tulong :: nil) tulong cc_default)) ::
+ (___builtin_bsel,
+   Gfun(External (EF_builtin "__builtin_bsel"
+                   (mksignature (AST.Xbool :: AST.Xbool :: AST.Xbool :: nil)
+                     AST.Xbool cc_default)) (tbool :: tbool :: tbool :: nil)
+     tbool cc_default)) ::
+ (___builtin_nop,
+   Gfun(External (EF_builtin "__builtin_nop"
+                   (mksignature nil AST.Xvoid cc_default)) nil tvoid
+     cc_default)) ::
+ (___builtin_atomic_exchange,
+   Gfun(External (EF_builtin "__builtin_atomic_exchange"
+                   (mksignature (AST.Xptr :: AST.Xptr :: AST.Xptr :: nil)
+                     AST.Xvoid cc_default))
+     ((tptr tint) :: (tptr tint) :: (tptr tint) :: nil) tvoid cc_default)) ::
+ (___builtin_atomic_load,
+   Gfun(External (EF_builtin "__builtin_atomic_load"
+                   (mksignature (AST.Xptr :: AST.Xptr :: nil) AST.Xvoid
+                     cc_default)) ((tptr tint) :: (tptr tint) :: nil) tvoid
+     cc_default)) ::
+ (___builtin_atomic_compare_exchange,
+   Gfun(External (EF_builtin "__builtin_atomic_compare_exchange"
+                   (mksignature (AST.Xptr :: AST.Xptr :: AST.Xptr :: nil)
+                     AST.Xbool cc_default))
+     ((tptr tint) :: (tptr tint) :: (tptr tint) :: nil) tbool cc_default)) ::
+ (___builtin_sync_fetch_and_add,
+   Gfun(External (EF_builtin "__builtin_sync_fetch_and_add"
+                   (mksignature (AST.Xptr :: AST.Xint :: nil) AST.Xint
+                     cc_default)) ((tptr tint) :: tint :: nil) tint
+     cc_default)) ::
  (___builtin_debug,
    Gfun(External (EF_external "__builtin_debug"
                    (mksignature (AST.Xint :: nil) AST.Xvoid
@@ -415,26 +624,39 @@ Definition global_definitions : list (ident * globdef fundef type) :=
 
 Definition public_idents : list ident :=
 (_main :: _clobber :: _set_timer :: _gUnrelated :: _gObjects ::
- ___builtin_debug :: ___builtin_write32_reversed ::
+ ___builtin_debug :: ___builtin_sync_fetch_and_add ::
+ ___builtin_atomic_compare_exchange :: ___builtin_atomic_load ::
+ ___builtin_atomic_exchange :: ___builtin_nop :: ___builtin_bsel ::
+ ___builtin_uisel64 :: ___builtin_isel64 :: ___builtin_uisel ::
+ ___builtin_isel :: ___builtin_return_address :: ___builtin_call_frame ::
+ ___builtin_mr :: ___builtin_set_spr64 :: ___builtin_get_spr64 ::
+ ___builtin_set_spr :: ___builtin_get_spr :: ___builtin_dcbz ::
+ ___builtin_icbtls :: ___builtin_dcbtls :: ___builtin_prefetch ::
+ ___builtin_icbi :: ___builtin_dcbi :: ___builtin_dcbf :: ___builtin_trap ::
+ ___builtin_mbar :: ___builtin_lwsync :: ___builtin_isync ::
+ ___builtin_sync :: ___builtin_eieio :: ___builtin_write64_reversed ::
+ ___builtin_read64_reversed :: ___builtin_write32_reversed ::
  ___builtin_write16_reversed :: ___builtin_read32_reversed ::
- ___builtin_read16_reversed :: ___builtin_fnmsub :: ___builtin_fnmadd ::
- ___builtin_fmsub :: ___builtin_fmadd :: ___builtin_fmin ::
- ___builtin_fmax :: ___builtin_expect :: ___builtin_unreachable ::
- ___builtin_va_end :: ___builtin_va_copy :: ___builtin_va_arg ::
- ___builtin_va_start :: ___builtin_membar :: ___builtin_annot_intval ::
- ___builtin_annot :: ___builtin_sel :: ___builtin_memcpy_aligned ::
- ___builtin_sqrt :: ___builtin_fsqrt :: ___builtin_fabsf ::
- ___builtin_fabs :: ___builtin_ctzll :: ___builtin_ctzl :: ___builtin_ctz ::
- ___builtin_clzll :: ___builtin_clzl :: ___builtin_clz ::
- ___builtin_bswap16 :: ___builtin_bswap32 :: ___builtin_bswap ::
- ___builtin_bswap64 :: ___builtin_ais_annot :: ___compcert_i64_umulh ::
- ___compcert_i64_smulh :: ___compcert_i64_sar :: ___compcert_i64_shr ::
- ___compcert_i64_shl :: ___compcert_i64_umod :: ___compcert_i64_smod ::
- ___compcert_i64_udiv :: ___compcert_i64_sdiv :: ___compcert_i64_utof ::
- ___compcert_i64_stof :: ___compcert_i64_utod :: ___compcert_i64_stod ::
- ___compcert_i64_dtou :: ___compcert_i64_dtos :: ___compcert_va_composite ::
- ___compcert_va_float64 :: ___compcert_va_int64 :: ___compcert_va_int32 ::
- nil).
+ ___builtin_read16_reversed :: ___builtin_fcti :: ___builtin_fsel ::
+ ___builtin_fres :: ___builtin_frsqrte :: ___builtin_fnmsub ::
+ ___builtin_fnmadd :: ___builtin_fmsub :: ___builtin_fmadd ::
+ ___builtin_mulhdu :: ___builtin_mulhd :: ___builtin_cmpb ::
+ ___builtin_mulhwu :: ___builtin_mulhw :: ___builtin_expect ::
+ ___builtin_unreachable :: ___builtin_va_end :: ___builtin_va_copy ::
+ ___builtin_va_arg :: ___builtin_va_start :: ___builtin_membar ::
+ ___builtin_annot_intval :: ___builtin_annot :: ___builtin_sel ::
+ ___builtin_memcpy_aligned :: ___builtin_sqrt :: ___builtin_fsqrt ::
+ ___builtin_fabsf :: ___builtin_fabs :: ___builtin_ctzll ::
+ ___builtin_ctzl :: ___builtin_ctz :: ___builtin_clzll :: ___builtin_clzl ::
+ ___builtin_clz :: ___builtin_bswap16 :: ___builtin_bswap32 ::
+ ___builtin_bswap :: ___builtin_bswap64 :: ___builtin_ais_annot ::
+ ___compcert_i64_umulh :: ___compcert_i64_smulh :: ___compcert_i64_sar ::
+ ___compcert_i64_shr :: ___compcert_i64_shl :: ___compcert_i64_umod ::
+ ___compcert_i64_smod :: ___compcert_i64_udiv :: ___compcert_i64_sdiv ::
+ ___compcert_i64_utof :: ___compcert_i64_stof :: ___compcert_i64_utod ::
+ ___compcert_i64_stod :: ___compcert_i64_dtou :: ___compcert_i64_dtos ::
+ ___compcert_va_composite :: ___compcert_va_float64 ::
+ ___compcert_va_int64 :: ___compcert_va_int32 :: nil).
 
 Definition prog : Clight.program := 
   mkprogram composites global_definitions public_idents _main Logic.I.

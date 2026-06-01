@@ -279,6 +279,69 @@ Proof.
     apply flows_into_seq_of_ls. apply flows_into_select_switch. exact Hfi.
 Qed.
 
+(* Companion to exec_flows_into: the g-temps STAY Vint. flows_into permits a
+   g-temp to be assigned only an Econst_int (-> Vint) or another g-temp (-> Vint
+   by the invariant); it forbids Scall/Sbuiltin results into g-temps. So if every
+   g-temp starts Vint, every g-temp stays Vint. Needed under Archi.ptr64=false
+   (the ppc/N64 model), where sem_cast of a pointer through a pointer-sized
+   integer type SUCCEEDS, so a return value can no longer be assumed Vint just
+   because the cast typechecks -- we must prove it. *)
+Lemma exec_flows_into_isint :
+  forall (P : int -> bool) (g : ident -> bool) fe ge e le m s t le' m' out,
+    exec_stmt fe ge e le m s t le' m' out ->
+    flows_into P g s = true ->
+    (forall j v, g j = true -> le  ! j = Some v -> exists n, v = Vint n) ->
+    (forall j v, g j = true -> le' ! j = Some v -> exists n, v = Vint n).
+Proof.
+  intros P g fe ge e le m s t le' m' out H.
+  induction H; intros Hfi Hinv; simpl in Hfi; try exact Hinv; try discriminate.
+  - (* Sset id a v *)
+    intros j v0 Hgj Hjv. destruct (peq j id).
+    + subst j. rewrite PTree.gss in Hjv. inv Hjv.
+      rewrite Hgj in Hfi. destruct a; try discriminate Hfi.
+      * (* Econst_int n: eval is (Vint n) *)
+        match goal with He : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ => inv He end;
+          try (match goal with Hlv : eval_lvalue _ _ _ _ _ _ _ _ |- _ => solve [ inv Hlv ] end).
+        eexists; reflexivity.
+      * (* Etempvar k: g-temp, Vint by invariant *)
+        match goal with He : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ => inv He end;
+          try (match goal with Hlv : eval_lvalue _ _ _ _ _ _ _ _ |- _ => solve [ inv Hlv ] end).
+        match goal with Hk : _ ! _ = Some v0 |- _ => eapply Hinv; [ exact Hfi | exact Hk ] end.
+    + rewrite PTree.gso in Hjv by auto. eapply Hinv; eauto.
+  - (* Scall *)
+    intros j v0 Hgj Hjv. destruct optid as [k|]; simpl in Hjv.
+    + destruct (peq j k).
+      * subst k. apply negb_true_iff in Hfi. rewrite Hgj in Hfi; discriminate.
+      * rewrite PTree.gso in Hjv by auto. eapply Hinv; eauto.
+    + eapply Hinv; eauto.
+  - (* Sbuiltin *)
+    intros j v0 Hgj Hjv. destruct optid as [k|]; simpl in Hjv.
+    + destruct (peq j k).
+      * subst k. apply negb_true_iff in Hfi. rewrite Hgj in Hfi; discriminate.
+      * rewrite PTree.gso in Hjv by auto. eapply Hinv; eauto.
+    + eapply Hinv; eauto.
+  - (* Sseq_1 *)
+    apply andb_true_iff in Hfi; destruct Hfi as [Hf1 Hf2].
+    apply (IHexec_stmt2 Hf2). apply (IHexec_stmt1 Hf1). exact Hinv.
+  - (* Sseq_2 *)
+    apply andb_true_iff in Hfi; destruct Hfi as [Hf1 _]. apply (IHexec_stmt Hf1). exact Hinv.
+  - (* Sifthenelse *)
+    apply andb_true_iff in Hfi; destruct Hfi as [Hf1 Hf2].
+    apply IHexec_stmt; [ destruct b; assumption | exact Hinv ].
+  - (* Sloop_stop1 *)
+    apply andb_true_iff in Hfi; destruct Hfi as [Hf1 _]. apply (IHexec_stmt Hf1). exact Hinv.
+  - (* Sloop_stop2 *)
+    apply andb_true_iff in Hfi; destruct Hfi as [Hf1 Hf2].
+    apply (IHexec_stmt2 Hf2). apply (IHexec_stmt1 Hf1). exact Hinv.
+  - (* Sloop_loop *)
+    apply andb_true_iff in Hfi; destruct Hfi as [Hf1 Hf2].
+    apply (IHexec_stmt3 ltac:(simpl; rewrite Hf1, Hf2; reflexivity)).
+    apply (IHexec_stmt2 Hf2). apply (IHexec_stmt1 Hf1). exact Hinv.
+  - (* Sswitch *)
+    apply IHexec_stmt; [ | exact Hinv ].
+    apply flows_into_seq_of_ls. apply flows_into_select_switch. exact Hfi.
+Qed.
+
 (* escape_free: no return/continue/goto/loop; Sbreak IS allowed (it is absorbed
    by an enclosing switch). Such a statement executes to Out_normal or Out_break.
    This is what lets a `switch` whose cases only break/fall-through count as
@@ -543,15 +606,21 @@ Proof.
     rewrite Hla1 in Hjv. inv Hjv. unfold P. rewrite Hnf. reflexivity. }
   pose proof (exec_flows_into P g _ _ _ _ _ _ _ _ _ _ Hexec
                 ltac:(vm_compute; reflexivity) Hinv) as Hfinal.
+  pose proof (exec_flows_into_isint P g _ _ _ _ _ _ _ _ _ _ Hexec
+                ltac:(vm_compute; reflexivity)
+                ltac:(intros j v Hgj Hjv; unfold g in Hgj; apply Pos.eqb_eq in Hgj; subst j;
+                      rewrite Hla1 in Hjv; inv Hjv; eexists; reflexivity)) as HfinalI.
   (* the return reads the final action value *)
   eapply (exec_trailing_return mario._action) in Hexec; [ | vm_compute; reflexivity ].
   destruct Hexec as [rv [Houteq Hrvlk]].
   rewrite Houteq in Hout. cbn in Hout. destruct Hout as [_ Hcast].
-  destruct rv as [ | n | | | | ]; vm_compute in Hcast; try discriminate.
-  (* rv = Vint n; Hcast : Some (Vint n) = Some res *)
-  specialize (Hfinal mario._action n ltac:(unfold g; apply Pos.eqb_refl) Hrvlk).
+  (* rv is Vint (ptr64=false: sem_cast no longer rejects a Vptr return, so we
+     must pin rv to Vint via the stays-Vint invariant) *)
+  destruct (HfinalI mario._action rv ltac:(unfold g; apply Pos.eqb_refl) Hrvlk) as [n0 Hrv].
+  subst rv. vm_compute in Hcast.
+  specialize (Hfinal mario._action n0 ltac:(unfold g; apply Pos.eqb_refl) Hrvlk).
   unfold P in Hfinal. apply negb_true_iff in Hfinal.
-  exists n. split; [ congruence | exact Hfinal ].
+  exists n0. split; [ congruence | exact Hfinal ].
 Qed.
 
 (* Same non-fabrication for the airborne setter: its 600+-line body reassigns the
@@ -581,13 +650,18 @@ Proof.
     rewrite Hla1 in Hjv. inv Hjv. unfold P. rewrite Hnf. reflexivity. }
   pose proof (exec_flows_into P g _ _ _ _ _ _ _ _ _ _ Hexec
                 ltac:(vm_compute; reflexivity) Hinv) as Hfinal.
+  pose proof (exec_flows_into_isint P g _ _ _ _ _ _ _ _ _ _ Hexec
+                ltac:(vm_compute; reflexivity)
+                ltac:(intros j v Hgj Hjv; unfold g in Hgj; apply Pos.eqb_eq in Hgj; subst j;
+                      rewrite Hla1 in Hjv; inv Hjv; eexists; reflexivity)) as HfinalI.
   eapply (exec_trailing_return mario._action) in Hexec; [ | vm_compute; reflexivity ].
   destruct Hexec as [rv [Houteq Hrvlk]].
   rewrite Houteq in Hout. cbn in Hout. destruct Hout as [_ Hcast].
-  destruct rv as [ | n | | | | ]; vm_compute in Hcast; try discriminate.
-  specialize (Hfinal mario._action n ltac:(unfold g; apply Pos.eqb_refl) Hrvlk).
+  destruct (HfinalI mario._action rv ltac:(unfold g; apply Pos.eqb_refl) Hrvlk) as [n0 Hrv].
+  subst rv. vm_compute in Hcast.
+  specialize (Hfinal mario._action n0 ltac:(unfold g; apply Pos.eqb_refl) Hrvlk).
   unfold P in Hfinal. apply negb_true_iff in Hfinal.
-  exists n. split; [ congruence | exact Hfinal ].
+  exists n0. split; [ congruence | exact Hfinal ].
 Qed.
 
 (* Pass-through setters (submerged/cutscene return the arg) cast to the same

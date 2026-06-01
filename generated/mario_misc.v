@@ -18,11 +18,11 @@ Module Info.
   Definition build_number := "".
   Definition build_tag := "".
   Definition build_branch := "".
-  Definition arch := "x86".
-  Definition model := "64".
-  Definition abi := "standard".
-  Definition bitsize := 64.
-  Definition big_endian := false.
+  Definition arch := "powerpc".
+  Definition model := "ppc32".
+  Definition abi := "eabi".
+  Definition bitsize := 32.
+  Definition big_endian := true.
   Definition source_file := "vendor/sm64/src/game/mario_misc.c".
   Definition normalized := true.
 End Info.
@@ -62,59 +62,97 @@ Definition _WarpTransition : ident := $"WarpTransition".
 Definition _WarpTransitionData : ident := $"WarpTransitionData".
 Definition _Waypoint : ident := $"Waypoint".
 Definition _Whirlpool : ident := $"Whirlpool".
-Definition __1093 : ident := $"_1093".
-Definition __218 : ident := $"_218".
-Definition __220 : ident := $"_220".
-Definition __370 : ident := $"_370".
-Definition __411 : ident := $"_411".
-Definition __413 : ident := $"_413".
-Definition __415 : ident := $"_415".
-Definition __417 : ident := $"_417".
-Definition __419 : ident := $"_419".
-Definition __421 : ident := $"_421".
-Definition __423 : ident := $"_423".
-Definition __425 : ident := $"_425".
-Definition __427 : ident := $"_427".
-Definition __429 : ident := $"_429".
-Definition __431 : ident := $"_431".
-Definition __433 : ident := $"_433".
-Definition __435 : ident := $"_435".
-Definition __437 : ident := $"_437".
-Definition __439 : ident := $"_439".
-Definition __448 : ident := $"_448".
-Definition __450 : ident := $"_450".
-Definition __665 : ident := $"_665".
-Definition __670 : ident := $"_670".
+Definition __1192 : ident := $"_1192".
+Definition __317 : ident := $"_317".
+Definition __319 : ident := $"_319".
+Definition __469 : ident := $"_469".
+Definition __510 : ident := $"_510".
+Definition __512 : ident := $"_512".
+Definition __514 : ident := $"_514".
+Definition __516 : ident := $"_516".
+Definition __518 : ident := $"_518".
+Definition __520 : ident := $"_520".
+Definition __522 : ident := $"_522".
+Definition __524 : ident := $"_524".
+Definition __526 : ident := $"_526".
+Definition __528 : ident := $"_528".
+Definition __530 : ident := $"_530".
+Definition __532 : ident := $"_532".
+Definition __534 : ident := $"_534".
+Definition __536 : ident := $"_536".
+Definition __538 : ident := $"_538".
+Definition __547 : ident := $"_547".
+Definition __549 : ident := $"_549".
+Definition __764 : ident := $"_764".
+Definition __769 : ident := $"_769".
 Definition ___builtin_ais_annot : ident := $"__builtin_ais_annot".
 Definition ___builtin_annot : ident := $"__builtin_annot".
 Definition ___builtin_annot_intval : ident := $"__builtin_annot_intval".
+Definition ___builtin_atomic_compare_exchange : ident := $"__builtin_atomic_compare_exchange".
+Definition ___builtin_atomic_exchange : ident := $"__builtin_atomic_exchange".
+Definition ___builtin_atomic_load : ident := $"__builtin_atomic_load".
+Definition ___builtin_bsel : ident := $"__builtin_bsel".
 Definition ___builtin_bswap : ident := $"__builtin_bswap".
 Definition ___builtin_bswap16 : ident := $"__builtin_bswap16".
 Definition ___builtin_bswap32 : ident := $"__builtin_bswap32".
 Definition ___builtin_bswap64 : ident := $"__builtin_bswap64".
+Definition ___builtin_call_frame : ident := $"__builtin_call_frame".
 Definition ___builtin_clz : ident := $"__builtin_clz".
 Definition ___builtin_clzl : ident := $"__builtin_clzl".
 Definition ___builtin_clzll : ident := $"__builtin_clzll".
+Definition ___builtin_cmpb : ident := $"__builtin_cmpb".
 Definition ___builtin_ctz : ident := $"__builtin_ctz".
 Definition ___builtin_ctzl : ident := $"__builtin_ctzl".
 Definition ___builtin_ctzll : ident := $"__builtin_ctzll".
+Definition ___builtin_dcbf : ident := $"__builtin_dcbf".
+Definition ___builtin_dcbi : ident := $"__builtin_dcbi".
+Definition ___builtin_dcbtls : ident := $"__builtin_dcbtls".
+Definition ___builtin_dcbz : ident := $"__builtin_dcbz".
 Definition ___builtin_debug : ident := $"__builtin_debug".
+Definition ___builtin_eieio : ident := $"__builtin_eieio".
 Definition ___builtin_expect : ident := $"__builtin_expect".
 Definition ___builtin_fabs : ident := $"__builtin_fabs".
 Definition ___builtin_fabsf : ident := $"__builtin_fabsf".
+Definition ___builtin_fcti : ident := $"__builtin_fcti".
 Definition ___builtin_fmadd : ident := $"__builtin_fmadd".
-Definition ___builtin_fmax : ident := $"__builtin_fmax".
-Definition ___builtin_fmin : ident := $"__builtin_fmin".
 Definition ___builtin_fmsub : ident := $"__builtin_fmsub".
 Definition ___builtin_fnmadd : ident := $"__builtin_fnmadd".
 Definition ___builtin_fnmsub : ident := $"__builtin_fnmsub".
+Definition ___builtin_fres : ident := $"__builtin_fres".
+Definition ___builtin_frsqrte : ident := $"__builtin_frsqrte".
+Definition ___builtin_fsel : ident := $"__builtin_fsel".
 Definition ___builtin_fsqrt : ident := $"__builtin_fsqrt".
+Definition ___builtin_get_spr : ident := $"__builtin_get_spr".
+Definition ___builtin_get_spr64 : ident := $"__builtin_get_spr64".
+Definition ___builtin_icbi : ident := $"__builtin_icbi".
+Definition ___builtin_icbtls : ident := $"__builtin_icbtls".
+Definition ___builtin_isel : ident := $"__builtin_isel".
+Definition ___builtin_isel64 : ident := $"__builtin_isel64".
+Definition ___builtin_isync : ident := $"__builtin_isync".
+Definition ___builtin_lwsync : ident := $"__builtin_lwsync".
+Definition ___builtin_mbar : ident := $"__builtin_mbar".
 Definition ___builtin_membar : ident := $"__builtin_membar".
 Definition ___builtin_memcpy_aligned : ident := $"__builtin_memcpy_aligned".
+Definition ___builtin_mr : ident := $"__builtin_mr".
+Definition ___builtin_mulhd : ident := $"__builtin_mulhd".
+Definition ___builtin_mulhdu : ident := $"__builtin_mulhdu".
+Definition ___builtin_mulhw : ident := $"__builtin_mulhw".
+Definition ___builtin_mulhwu : ident := $"__builtin_mulhwu".
+Definition ___builtin_nop : ident := $"__builtin_nop".
+Definition ___builtin_prefetch : ident := $"__builtin_prefetch".
 Definition ___builtin_read16_reversed : ident := $"__builtin_read16_reversed".
 Definition ___builtin_read32_reversed : ident := $"__builtin_read32_reversed".
+Definition ___builtin_read64_reversed : ident := $"__builtin_read64_reversed".
+Definition ___builtin_return_address : ident := $"__builtin_return_address".
 Definition ___builtin_sel : ident := $"__builtin_sel".
+Definition ___builtin_set_spr : ident := $"__builtin_set_spr".
+Definition ___builtin_set_spr64 : ident := $"__builtin_set_spr64".
 Definition ___builtin_sqrt : ident := $"__builtin_sqrt".
+Definition ___builtin_sync : ident := $"__builtin_sync".
+Definition ___builtin_sync_fetch_and_add : ident := $"__builtin_sync_fetch_and_add".
+Definition ___builtin_trap : ident := $"__builtin_trap".
+Definition ___builtin_uisel : ident := $"__builtin_uisel".
+Definition ___builtin_uisel64 : ident := $"__builtin_uisel64".
 Definition ___builtin_unreachable : ident := $"__builtin_unreachable".
 Definition ___builtin_va_arg : ident := $"__builtin_va_arg".
 Definition ___builtin_va_copy : ident := $"__builtin_va_copy".
@@ -122,6 +160,7 @@ Definition ___builtin_va_end : ident := $"__builtin_va_end".
 Definition ___builtin_va_start : ident := $"__builtin_va_start".
 Definition ___builtin_write16_reversed : ident := $"__builtin_write16_reversed".
 Definition ___builtin_write32_reversed : ident := $"__builtin_write32_reversed".
+Definition ___builtin_write64_reversed : ident := $"__builtin_write64_reversed".
 Definition ___compcert_i64_dtos : ident := $"__compcert_i64_dtos".
 Definition ___compcert_i64_dtou : ident := $"__compcert_i64_dtou".
 Definition ___compcert_i64_sar : ident := $"__compcert_i64_sar".
@@ -777,26 +816,26 @@ Definition v_gBodyStates := {|
 
 Definition v_gMirrorMario := {|
   gvar_info := (Tstruct _GraphNodeObject noattr);
-  gvar_init := (Init_space 144 :: nil);
+  gvar_init := (Init_space 96 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition f_geo_draw_mario_head_goddard := {|
-  fn_return := (tptr (Tunion __450 noattr));
+  fn_return := (tptr (Tunion __549 noattr));
   fn_callconv := cc_default;
   fn_params := ((_callContext, tint) ::
                 (_node, (tptr (Tstruct _GraphNode noattr))) ::
                 (_c, (tptr (tarray (tarray tfloat 4) 4))) :: nil);
   fn_vars := nil;
-  fn_temps := ((_gfx, (tptr (Tunion __450 noattr))) :: (_sfx, tshort) ::
+  fn_temps := ((_gfx, (tptr (Tunion __549 noattr))) :: (_sfx, tshort) ::
                (_asGenerated, (tptr (Tstruct _GraphNodeGenerated noattr))) ::
                (_transform, (tptr (tarray (tarray tfloat 4) 4))) ::
-               (_t'3, tint) :: (_t'2, (tptr (Tunion __450 noattr))) ::
+               (_t'3, tint) :: (_t'2, (tptr (Tunion __549 noattr))) ::
                (_t'1, tint) :: (_t'9, tuchar) ::
-               (_t'8, (tptr (Tstruct __220 noattr))) ::
+               (_t'8, (tptr (Tstruct __319 noattr))) ::
                (_t'7, (tptr (Tstruct _Controller noattr))) ::
-               (_t'6, (tptr (Tstruct __220 noattr))) ::
+               (_t'6, (tptr (Tstruct __319 noattr))) ::
                (_t'5, (tptr (Tstruct _Controller noattr))) ::
                (_t'4, tuint) :: nil);
   fn_body :=
@@ -824,9 +863,9 @@ Definition f_geo_draw_mario_head_goddard := {|
                         (Ederef
                           (Etempvar _t'7 (tptr (Tstruct _Controller noattr)))
                           (Tstruct _Controller noattr)) _controllerData
-                        (tptr (Tstruct __220 noattr))))
+                        (tptr (Tstruct __319 noattr))))
                     (Sifthenelse (Ebinop One
-                                   (Etempvar _t'8 (tptr (Tstruct __220 noattr)))
+                                   (Etempvar _t'8 (tptr (Tstruct __319 noattr)))
                                    (Ecast (Econst_int (Int.repr 0) tint)
                                      (tptr tvoid)) tint)
                       (Ssequence
@@ -848,12 +887,12 @@ Definition f_geo_draw_mario_head_goddard := {|
                           (Ederef
                             (Etempvar _t'5 (tptr (Tstruct _Controller noattr)))
                             (Tstruct _Controller noattr)) _controllerData
-                          (tptr (Tstruct __220 noattr))))
+                          (tptr (Tstruct __319 noattr))))
                       (Scall None
                         (Evar _gd_copy_p1_contpad (Tfunction
-                                                    ((tptr (Tstruct __220 noattr)) ::
+                                                    ((tptr (Tstruct __319 noattr)) ::
                                                      nil) tvoid cc_default))
-                        ((Etempvar _t'6 (tptr (Tstruct __220 noattr))) ::
+                        ((Etempvar _t'6 (tptr (Tstruct __319 noattr))) ::
                          nil))))
                   Sskip))
               (Ssequence
@@ -867,15 +906,15 @@ Definition f_geo_draw_mario_head_goddard := {|
                         tuint))
                     (Scall (Some _t'2)
                       (Evar _gdm_gettestdl (Tfunction (tint :: nil)
-                                             (tptr (Tunion __450 noattr))
+                                             (tptr (Tunion __549 noattr))
                                              cc_default))
                       ((Etempvar _t'4 tuint) :: nil)))
                   (Sset _gfx
                     (Ecast
                       (Ebinop Oor
-                        (Ecast (Etempvar _t'2 (tptr (Tunion __450 noattr)))
+                        (Ecast (Etempvar _t'2 (tptr (Tunion __549 noattr)))
                           tuint) (Econst_int (Int.repr (-2147483648)) tuint)
-                        tuint) (tptr (Tunion __450 noattr)))))
+                        tuint) (tptr (Tunion __549 noattr)))))
                 (Ssequence
                   (Sassign
                     (Evar _gGoddardVblankCallback (tptr (Tfunction nil tvoid
@@ -892,7 +931,7 @@ Definition f_geo_draw_mario_head_goddard := {|
                                                 tvoid cc_default))
                       ((Etempvar _sfx tshort) :: nil))))))
             Sskip)
-          (Sreturn (Some (Etempvar _gfx (tptr (Tunion __450 noattr))))))))))
+          (Sreturn (Some (Etempvar _gfx (tptr (Tunion __549 noattr))))))))))
 |}.
 
 Definition f_toad_message_faded := {|
@@ -916,7 +955,7 @@ Definition f_toad_message_faded := {|
             (Efield
               (Efield
                 (Ederef (Etempvar _t'7 (tptr (Tstruct _Object noattr)))
-                  (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                  (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
               _asF32 (tarray tfloat 80)) (Econst_int (Int.repr 53) tint)
             (tptr tfloat)) tfloat))
       (Sifthenelse (Ebinop Ogt (Etempvar _t'8 tfloat)
@@ -931,7 +970,7 @@ Definition f_toad_message_faded := {|
                   (Efield
                     (Ederef (Etempvar _t'9 (tptr (Tstruct _Object noattr)))
                       (Tstruct _Object noattr)) _rawData
-                    (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                    (Tunion __764 noattr)) _asS32 (tarray tint 80))
                 (Econst_int (Int.repr 33) tint) (tptr tint)) tint)
             (Econst_int (Int.repr 0) tint)))
         Sskip)))
@@ -945,7 +984,7 @@ Definition f_toad_message_faded := {|
               (Efield
                 (Efield
                   (Ederef (Etempvar _t'3 (tptr (Tstruct _Object noattr)))
-                    (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                    (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
                 _asS32 (tarray tint 80)) (Econst_int (Int.repr 33) tint)
               (tptr tint)) tint))
         (Sifthenelse (Eunop Onotbool (Etempvar _t'4 tint) tint)
@@ -961,7 +1000,7 @@ Definition f_toad_message_faded := {|
                         (Ederef
                           (Etempvar _t'5 (tptr (Tstruct _Object noattr)))
                           (Tstruct _Object noattr)) _rawData
-                        (Tunion __665 noattr)) _asF32 (tarray tfloat 80))
+                        (Tunion __764 noattr)) _asF32 (tarray tfloat 80))
                     (Econst_int (Int.repr 53) tint) (tptr tfloat)) tfloat))
               (Sset _t'1
                 (Ecast
@@ -978,7 +1017,7 @@ Definition f_toad_message_faded := {|
               (Efield
                 (Efield
                   (Ederef (Etempvar _t'2 (tptr (Tstruct _Object noattr)))
-                    (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                    (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
                 _asS32 (tarray tint 80)) (Econst_int (Int.repr 34) tint)
               (tptr tint)) tint) (Econst_int (Int.repr 2) tint)))
       Sskip)))
@@ -1006,7 +1045,7 @@ Definition f_toad_message_opaque := {|
           (Efield
             (Efield
               (Ederef (Etempvar _t'1 (tptr (Tstruct _Object noattr)))
-                (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
             _asF32 (tarray tfloat 80)) (Econst_int (Int.repr 53) tint)
           (tptr tfloat)) tfloat))
     (Sifthenelse (Ebinop Ogt (Etempvar _t'2 tfloat)
@@ -1020,7 +1059,7 @@ Definition f_toad_message_opaque := {|
               (Efield
                 (Efield
                   (Ederef (Etempvar _t'10 (tptr (Tstruct _Object noattr)))
-                    (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                    (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
                 _asS32 (tarray tint 80)) (Econst_int (Int.repr 34) tint)
               (tptr tint)) tint) (Econst_int (Int.repr 3) tint)))
       (Ssequence
@@ -1033,7 +1072,7 @@ Definition f_toad_message_opaque := {|
                   (Efield
                     (Ederef (Etempvar _t'3 (tptr (Tstruct _Object noattr)))
                       (Tstruct _Object noattr)) _rawData
-                    (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                    (Tunion __764 noattr)) _asS32 (tarray tint 80))
                 (Econst_int (Int.repr 33) tint) (tptr tint)) tint))
           (Sifthenelse (Eunop Onotbool (Etempvar _t'4 tint) tint)
             (Ssequence
@@ -1048,7 +1087,7 @@ Definition f_toad_message_opaque := {|
                           (Ederef
                             (Etempvar _t'9 (tptr (Tstruct _Object noattr)))
                             (Tstruct _Object noattr)) _rawData
-                          (Tunion __665 noattr)) _asU32 (tarray tuint 80))
+                          (Tunion __764 noattr)) _asU32 (tarray tuint 80))
                       (Econst_int (Int.repr 66) tint) (tptr tuint)) tuint)
                   (Econst_int (Int.repr 16384) tint)))
               (Ssequence
@@ -1063,7 +1102,7 @@ Definition f_toad_message_opaque := {|
                             (Ederef
                               (Etempvar _t'5 (tptr (Tstruct _Object noattr)))
                               (Tstruct _Object noattr)) _rawData
-                            (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                            (Tunion __764 noattr)) _asS32 (tarray tint 80))
                         (Econst_int (Int.repr 43) tint) (tptr tint)) tint))
                   (Sifthenelse (Ebinop Oand (Etempvar _t'6 tint)
                                  (Ebinop Oshl (Econst_int (Int.repr 1) tint)
@@ -1081,7 +1120,7 @@ Definition f_toad_message_opaque := {|
                                   (Ederef
                                     (Etempvar _t'8 (tptr (Tstruct _Object noattr)))
                                     (Tstruct _Object noattr)) _rawData
-                                  (Tunion __665 noattr)) _asS32
+                                  (Tunion __764 noattr)) _asS32
                                 (tarray tint 80))
                               (Econst_int (Int.repr 43) tint) (tptr tint))
                             tint) (Econst_int (Int.repr 0) tint)))
@@ -1097,7 +1136,7 @@ Definition f_toad_message_opaque := {|
                                     (Ederef
                                       (Etempvar _t'7 (tptr (Tstruct _Object noattr)))
                                       (Tstruct _Object noattr)) _rawData
-                                    (Tunion __665 noattr)) _asS32
+                                    (Tunion __764 noattr)) _asS32
                                   (tarray tint 80))
                                 (Econst_int (Int.repr 34) tint) (tptr tint))
                               tint) (Econst_int (Int.repr 4) tint)))
@@ -1132,7 +1171,7 @@ Definition f_toad_message_talking := {|
             (Efield
               (Efield
                 (Ederef (Etempvar _t'9 (tptr (Tstruct _Object noattr)))
-                  (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                  (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
               _asU32 (tarray tuint 80)) (Econst_int (Int.repr 32) tint)
             (tptr tuint)) tuint))
       (Scall (Some _t'1)
@@ -1154,7 +1193,7 @@ Definition f_toad_message_talking := {|
               (Efield
                 (Efield
                   (Ederef (Etempvar _t'8 (tptr (Tstruct _Object noattr)))
-                    (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                    (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
                 _asS32 (tarray tint 80)) (Econst_int (Int.repr 33) tint)
               (tptr tint)) tint) (Econst_int (Int.repr 1) tint)))
       (Ssequence
@@ -1167,7 +1206,7 @@ Definition f_toad_message_talking := {|
                   (Efield
                     (Ederef (Etempvar _t'7 (tptr (Tstruct _Object noattr)))
                       (Tstruct _Object noattr)) _rawData
-                    (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                    (Tunion __764 noattr)) _asS32 (tarray tint 80))
                 (Econst_int (Int.repr 34) tint) (tptr tint)) tint)
             (Econst_int (Int.repr 3) tint)))
         (Ssequence
@@ -1180,7 +1219,7 @@ Definition f_toad_message_talking := {|
                     (Efield
                       (Ederef (Etempvar _t'2 (tptr (Tstruct _Object noattr)))
                         (Tstruct _Object noattr)) _rawData
-                      (Tunion __665 noattr)) _asU32 (tarray tuint 80))
+                      (Tunion __764 noattr)) _asU32 (tarray tuint 80))
                   (Econst_int (Int.repr 32) tint) (tptr tuint)) tuint))
             (Sswitch (Etempvar _t'3 tuint)
               (LScons (Some 82)
@@ -1196,7 +1235,7 @@ Definition f_toad_message_talking := {|
                               (Ederef
                                 (Etempvar _t'6 (tptr (Tstruct _Object noattr)))
                                 (Tstruct _Object noattr)) _rawData
-                              (Tunion __665 noattr)) _asU32
+                              (Tunion __764 noattr)) _asU32
                             (tarray tuint 80))
                           (Econst_int (Int.repr 32) tint) (tptr tuint))
                         tuint) (Econst_int (Int.repr 154) tint)))
@@ -1220,7 +1259,7 @@ Definition f_toad_message_talking := {|
                                 (Ederef
                                   (Etempvar _t'5 (tptr (Tstruct _Object noattr)))
                                   (Tstruct _Object noattr)) _rawData
-                                (Tunion __665 noattr)) _asU32
+                                (Tunion __764 noattr)) _asU32
                               (tarray tuint 80))
                             (Econst_int (Int.repr 32) tint) (tptr tuint))
                           tuint) (Econst_int (Int.repr 155) tint)))
@@ -1245,7 +1284,7 @@ Definition f_toad_message_talking := {|
                                   (Ederef
                                     (Etempvar _t'4 (tptr (Tstruct _Object noattr)))
                                     (Tstruct _Object noattr)) _rawData
-                                  (Tunion __665 noattr)) _asU32
+                                  (Tunion __764 noattr)) _asU32
                                 (tarray tuint 80))
                               (Econst_int (Int.repr 32) tint) (tptr tuint))
                             tuint) (Econst_int (Int.repr 156) tint)))
@@ -1282,7 +1321,7 @@ Definition f_toad_message_opacifying := {|
               (Efield
                 (Efield
                   (Ederef (Etempvar _t'4 (tptr (Tstruct _Object noattr)))
-                    (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                    (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
                 _asS32 (tarray tint 80)) (Econst_int (Int.repr 61) tint)
               (tptr tint)) tint))
         (Sset _t'1
@@ -1297,7 +1336,7 @@ Definition f_toad_message_opacifying := {|
             (Efield
               (Efield
                 (Ederef (Etempvar _t'3 (tptr (Tstruct _Object noattr)))
-                  (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                  (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
               _asS32 (tarray tint 80)) (Econst_int (Int.repr 61) tint)
             (tptr tint)) tint) (Etempvar _t'1 tint))))
   (Sifthenelse (Ebinop Oeq (Etempvar _t'1 tint)
@@ -1310,7 +1349,7 @@ Definition f_toad_message_opacifying := {|
             (Efield
               (Efield
                 (Ederef (Etempvar _t'2 (tptr (Tstruct _Object noattr)))
-                  (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                  (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
               _asS32 (tarray tint 80)) (Econst_int (Int.repr 34) tint)
             (tptr tint)) tint) (Econst_int (Int.repr 1) tint)))
     Sskip))
@@ -1337,7 +1376,7 @@ Definition f_toad_message_fading := {|
               (Efield
                 (Efield
                   (Ederef (Etempvar _t'4 (tptr (Tstruct _Object noattr)))
-                    (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                    (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
                 _asS32 (tarray tint 80)) (Econst_int (Int.repr 61) tint)
               (tptr tint)) tint))
         (Sset _t'1
@@ -1352,7 +1391,7 @@ Definition f_toad_message_fading := {|
             (Efield
               (Efield
                 (Ederef (Etempvar _t'3 (tptr (Tstruct _Object noattr)))
-                  (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                  (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
               _asS32 (tarray tint 80)) (Econst_int (Int.repr 61) tint)
             (tptr tint)) tint) (Etempvar _t'1 tint))))
   (Sifthenelse (Ebinop Oeq (Etempvar _t'1 tint)
@@ -1365,7 +1404,7 @@ Definition f_toad_message_fading := {|
             (Efield
               (Efield
                 (Ederef (Etempvar _t'2 (tptr (Tstruct _Object noattr)))
-                  (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                  (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
               _asS32 (tarray tint 80)) (Econst_int (Int.repr 34) tint)
             (tptr tint)) tint) (Econst_int (Int.repr 0) tint)))
     Sskip))
@@ -1406,7 +1445,7 @@ Definition f_bhv_toad_message_loop := {|
                   (Efield
                     (Ederef (Etempvar _t'5 (tptr (Tstruct _Object noattr)))
                       (Tstruct _Object noattr)) _rawData
-                    (Tunion __665 noattr)) _asU32 (tarray tuint 80))
+                    (Tunion __764 noattr)) _asU32 (tarray tuint 80))
                 (Econst_int (Int.repr 66) tint) (tptr tuint)) tuint)
             (Econst_int (Int.repr 0) tint)))
         (Ssequence
@@ -1419,7 +1458,7 @@ Definition f_bhv_toad_message_loop := {|
                     (Efield
                       (Ederef (Etempvar _t'3 (tptr (Tstruct _Object noattr)))
                         (Tstruct _Object noattr)) _rawData
-                      (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                      (Tunion __764 noattr)) _asS32 (tarray tint 80))
                   (Econst_int (Int.repr 34) tint) (tptr tint)) tint))
             (Sswitch (Etempvar _t'4 tint)
               (LScons (Some 0)
@@ -1502,7 +1541,7 @@ Definition f_bhv_toad_message_init := {|
                   (Efield
                     (Ederef (Etempvar _t'8 (tptr (Tstruct _Object noattr)))
                       (Tstruct _Object noattr)) _rawData
-                    (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                    (Tunion __764 noattr)) _asS32 (tarray tint 80))
                 (Econst_int (Int.repr 64) tint) (tptr tint)) tint))
           (Sset _dialogID
             (Ebinop Oand
@@ -1568,7 +1607,7 @@ Definition f_bhv_toad_message_init := {|
                           (Ederef
                             (Etempvar _t'7 (tptr (Tstruct _Object noattr)))
                             (Tstruct _Object noattr)) _rawData
-                          (Tunion __665 noattr)) _asU32 (tarray tuint 80))
+                          (Tunion __764 noattr)) _asU32 (tarray tuint 80))
                       (Econst_int (Int.repr 32) tint) (tptr tuint)) tuint)
                   (Etempvar _dialogID tint)))
               (Ssequence
@@ -1583,7 +1622,7 @@ Definition f_bhv_toad_message_init := {|
                             (Ederef
                               (Etempvar _t'6 (tptr (Tstruct _Object noattr)))
                               (Tstruct _Object noattr)) _rawData
-                            (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                            (Tunion __764 noattr)) _asS32 (tarray tint 80))
                         (Econst_int (Int.repr 33) tint) (tptr tint)) tint)
                     (Econst_int (Int.repr 0) tint)))
                 (Ssequence
@@ -1598,7 +1637,7 @@ Definition f_bhv_toad_message_init := {|
                               (Ederef
                                 (Etempvar _t'5 (tptr (Tstruct _Object noattr)))
                                 (Tstruct _Object noattr)) _rawData
-                              (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                              (Tunion __764 noattr)) _asS32 (tarray tint 80))
                           (Econst_int (Int.repr 34) tint) (tptr tint)) tint)
                       (Econst_int (Int.repr 0) tint)))
                   (Ssequence
@@ -1612,7 +1651,7 @@ Definition f_bhv_toad_message_init := {|
                               (Ederef
                                 (Etempvar _t'4 (tptr (Tstruct _Object noattr)))
                                 (Tstruct _Object noattr)) _rawData
-                              (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                              (Tunion __764 noattr)) _asS32 (tarray tint 80))
                           (Econst_int (Int.repr 61) tint) (tptr tint)) tint)
                       (Econst_int (Int.repr 81) tint))))))
             (Ssequence
@@ -1661,7 +1700,7 @@ Definition f_star_door_unlock_spawn_particles := {|
               (Efield
                 (Ederef
                   (Etempvar _sparkleParticle (tptr (Tstruct _Object noattr)))
-                  (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                  (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
               _asF32 (tarray tfloat 80))
             (Ebinop Oadd (Econst_int (Int.repr 6) tint)
               (Econst_int (Int.repr 0) tint) tint) (tptr tfloat)) tfloat))
@@ -1675,7 +1714,7 @@ Definition f_star_door_unlock_spawn_particles := {|
                   (Efield
                     (Ederef (Etempvar _t'10 (tptr (Tstruct _Object noattr)))
                       (Tstruct _Object noattr)) _rawData
-                    (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                    (Tunion __764 noattr)) _asS32 (tarray tint 80))
                 (Econst_int (Int.repr 33) tint) (tptr tint)) tint))
           (Ssequence
             (Sset _t'12
@@ -1697,7 +1736,7 @@ Definition f_star_door_unlock_spawn_particles := {|
                       (Ederef
                         (Etempvar _sparkleParticle (tptr (Tstruct _Object noattr)))
                         (Tstruct _Object noattr)) _rawData
-                      (Tunion __665 noattr)) _asF32 (tarray tfloat 80))
+                      (Tunion __764 noattr)) _asF32 (tarray tfloat 80))
                   (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                     (Econst_int (Int.repr 0) tint) tint) (tptr tfloat))
                 tfloat)
@@ -1714,7 +1753,7 @@ Definition f_star_door_unlock_spawn_particles := {|
                 (Efield
                   (Ederef
                     (Etempvar _sparkleParticle (tptr (Tstruct _Object noattr)))
-                    (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                    (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
                 _asF32 (tarray tfloat 80))
               (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                 (Econst_int (Int.repr 2) tint) tint) (tptr tfloat)) tfloat))
@@ -1728,7 +1767,7 @@ Definition f_star_door_unlock_spawn_particles := {|
                     (Efield
                       (Ederef (Etempvar _t'6 (tptr (Tstruct _Object noattr)))
                         (Tstruct _Object noattr)) _rawData
-                      (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                      (Tunion __764 noattr)) _asS32 (tarray tint 80))
                   (Econst_int (Int.repr 33) tint) (tptr tint)) tint))
             (Ssequence
               (Sset _t'8
@@ -1752,7 +1791,7 @@ Definition f_star_door_unlock_spawn_particles := {|
                         (Ederef
                           (Etempvar _sparkleParticle (tptr (Tstruct _Object noattr)))
                           (Tstruct _Object noattr)) _rawData
-                        (Tunion __665 noattr)) _asF32 (tarray tfloat 80))
+                        (Tunion __764 noattr)) _asF32 (tarray tfloat 80))
                     (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                       (Econst_int (Int.repr 2) tint) tint) (tptr tfloat))
                   tfloat)
@@ -1768,7 +1807,7 @@ Definition f_star_door_unlock_spawn_particles := {|
                 (Efield
                   (Ederef
                     (Etempvar _sparkleParticle (tptr (Tstruct _Object noattr)))
-                    (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                    (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
                 _asF32 (tarray tfloat 80))
               (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                 (Econst_int (Int.repr 1) tint) tint) (tptr tfloat)) tfloat))
@@ -1782,7 +1821,7 @@ Definition f_star_door_unlock_spawn_particles := {|
                     (Efield
                       (Ederef (Etempvar _t'3 (tptr (Tstruct _Object noattr)))
                         (Tstruct _Object noattr)) _rawData
-                      (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                      (Tunion __764 noattr)) _asS32 (tarray tint 80))
                   (Econst_int (Int.repr 33) tint) (tptr tint)) tint))
             (Sassign
               (Ederef
@@ -1792,7 +1831,7 @@ Definition f_star_door_unlock_spawn_particles := {|
                       (Ederef
                         (Etempvar _sparkleParticle (tptr (Tstruct _Object noattr)))
                         (Tstruct _Object noattr)) _rawData
-                      (Tunion __665 noattr)) _asF32 (tarray tfloat 80))
+                      (Tunion __764 noattr)) _asF32 (tarray tfloat 80))
                   (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                     (Econst_int (Int.repr 1) tint) tint) (tptr tfloat))
                 tfloat)
@@ -1832,7 +1871,7 @@ Definition f_bhv_unlock_door_star_init := {|
           (Efield
             (Efield
               (Ederef (Etempvar _t'20 (tptr (Tstruct _Object noattr)))
-                (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
             _asU32 (tarray tuint 80)) (Econst_int (Int.repr 32) tint)
           (tptr tuint)) tuint) (Econst_int (Int.repr 0) tint)))
   (Ssequence
@@ -1844,7 +1883,7 @@ Definition f_bhv_unlock_door_star_init := {|
             (Efield
               (Efield
                 (Ederef (Etempvar _t'19 (tptr (Tstruct _Object noattr)))
-                  (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                  (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
               _asS32 (tarray tint 80)) (Econst_int (Int.repr 33) tint)
             (tptr tint)) tint) (Econst_int (Int.repr 0) tint)))
     (Ssequence
@@ -1856,7 +1895,7 @@ Definition f_bhv_unlock_door_star_init := {|
               (Efield
                 (Efield
                   (Ederef (Etempvar _t'18 (tptr (Tstruct _Object noattr)))
-                    (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                    (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
                 _asS32 (tarray tint 80)) (Econst_int (Int.repr 34) tint)
               (tptr tint)) tint) (Econst_int (Int.repr 4096) tint)))
       (Ssequence
@@ -1874,7 +1913,7 @@ Definition f_bhv_unlock_door_star_init := {|
                         (Ederef
                           (Etempvar _t'13 (tptr (Tstruct _Object noattr)))
                           (Tstruct _Object noattr)) _rawData
-                        (Tunion __665 noattr)) _asF32 (tarray tfloat 80))
+                        (Tunion __764 noattr)) _asF32 (tarray tfloat 80))
                     (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                       (Econst_int (Int.repr 0) tint) tint) (tptr tfloat))
                   tfloat))
@@ -1909,7 +1948,7 @@ Definition f_bhv_unlock_door_star_init := {|
                               (Ederef
                                 (Etempvar _t'12 (tptr (Tstruct _Object noattr)))
                                 (Tstruct _Object noattr)) _rawData
-                              (Tunion __665 noattr)) _asF32
+                              (Tunion __764 noattr)) _asF32
                             (tarray tfloat 80))
                           (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                             (Econst_int (Int.repr 0) tint) tint)
@@ -1934,7 +1973,7 @@ Definition f_bhv_unlock_door_star_init := {|
                           (Ederef
                             (Etempvar _t'10 (tptr (Tstruct _Object noattr)))
                             (Tstruct _Object noattr)) _rawData
-                          (Tunion __665 noattr)) _asF32 (tarray tfloat 80))
+                          (Tunion __764 noattr)) _asF32 (tarray tfloat 80))
                       (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                         (Econst_int (Int.repr 1) tint) tint) (tptr tfloat))
                     tfloat))
@@ -1946,7 +1985,7 @@ Definition f_bhv_unlock_door_star_init := {|
                           (Ederef
                             (Etempvar _t'9 (tptr (Tstruct _Object noattr)))
                             (Tstruct _Object noattr)) _rawData
-                          (Tunion __665 noattr)) _asF32 (tarray tfloat 80))
+                          (Tunion __764 noattr)) _asF32 (tarray tfloat 80))
                       (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                         (Econst_int (Int.repr 1) tint) tint) (tptr tfloat))
                     tfloat)
@@ -1969,7 +2008,7 @@ Definition f_bhv_unlock_door_star_init := {|
                             (Ederef
                               (Etempvar _t'4 (tptr (Tstruct _Object noattr)))
                               (Tstruct _Object noattr)) _rawData
-                            (Tunion __665 noattr)) _asF32 (tarray tfloat 80))
+                            (Tunion __764 noattr)) _asF32 (tarray tfloat 80))
                         (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                           (Econst_int (Int.repr 2) tint) tint) (tptr tfloat))
                       tfloat))
@@ -2009,7 +2048,7 @@ Definition f_bhv_unlock_door_star_init := {|
                                   (Ederef
                                     (Etempvar _t'3 (tptr (Tstruct _Object noattr)))
                                     (Tstruct _Object noattr)) _rawData
-                                  (Tunion __665 noattr)) _asF32
+                                  (Tunion __764 noattr)) _asF32
                                 (tarray tfloat 80))
                               (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                                 (Econst_int (Int.repr 2) tint) tint)
@@ -2030,7 +2069,7 @@ Definition f_bhv_unlock_door_star_init := {|
                           (Ederef
                             (Etempvar _t'2 (tptr (Tstruct _Object noattr)))
                             (Tstruct _Object noattr)) _rawData
-                          (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                          (Tunion __764 noattr)) _asS32 (tarray tint 80))
                       (Ebinop Oadd (Econst_int (Int.repr 15) tint)
                         (Econst_int (Int.repr 1) tint) tint) (tptr tint))
                     tint) (Econst_int (Int.repr 30720) tint)))
@@ -2101,7 +2140,7 @@ Definition f_bhv_unlock_door_star_loop := {|
             (Efield
               (Efield
                 (Ederef (Etempvar _t'55 (tptr (Tstruct _Object noattr)))
-                  (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                  (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
               _asS32 (tarray tint 80))
             (Ebinop Oadd (Econst_int (Int.repr 15) tint)
               (Econst_int (Int.repr 1) tint) tint) (tptr tint)) tint))
@@ -2116,7 +2155,7 @@ Definition f_bhv_unlock_door_star_loop := {|
               (Efield
                 (Efield
                   (Ederef (Etempvar _t'50 (tptr (Tstruct _Object noattr)))
-                    (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                    (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
                 _asS32 (tarray tint 80)) (Econst_int (Int.repr 34) tint)
               (tptr tint)) tint))
         (Sifthenelse (Ebinop Olt (Etempvar _t'51 tint)
@@ -2136,7 +2175,7 @@ Definition f_bhv_unlock_door_star_loop := {|
                           (Ederef
                             (Etempvar _t'53 (tptr (Tstruct _Object noattr)))
                             (Tstruct _Object noattr)) _rawData
-                          (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                          (Tunion __764 noattr)) _asS32 (tarray tint 80))
                       (Econst_int (Int.repr 34) tint) (tptr tint)) tint))
                 (Sassign
                   (Ederef
@@ -2146,7 +2185,7 @@ Definition f_bhv_unlock_door_star_loop := {|
                           (Ederef
                             (Etempvar _t'52 (tptr (Tstruct _Object noattr)))
                             (Tstruct _Object noattr)) _rawData
-                          (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                          (Tunion __764 noattr)) _asS32 (tarray tint 80))
                       (Econst_int (Int.repr 34) tint) (tptr tint)) tint)
                   (Ebinop Oadd (Etempvar _t'54 tint)
                     (Econst_int (Int.repr 96) tint) tint)))))
@@ -2162,7 +2201,7 @@ Definition f_bhv_unlock_door_star_loop := {|
                   (Efield
                     (Ederef (Etempvar _t'8 (tptr (Tstruct _Object noattr)))
                       (Tstruct _Object noattr)) _rawData
-                    (Tunion __665 noattr)) _asU32 (tarray tuint 80))
+                    (Tunion __764 noattr)) _asU32 (tarray tuint 80))
                 (Econst_int (Int.repr 32) tint) (tptr tuint)) tuint))
           (Sswitch (Etempvar _t'9 tuint)
             (LScons (Some 0)
@@ -2182,7 +2221,7 @@ Definition f_bhv_unlock_door_star_loop := {|
                                 (Ederef
                                   (Etempvar _t'48 (tptr (Tstruct _Object noattr)))
                                   (Tstruct _Object noattr)) _rawData
-                                (Tunion __665 noattr)) _asF32
+                                (Tunion __764 noattr)) _asF32
                               (tarray tfloat 80))
                             (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                               (Econst_int (Int.repr 1) tint) tint)
@@ -2195,7 +2234,7 @@ Definition f_bhv_unlock_door_star_loop := {|
                                 (Ederef
                                   (Etempvar _t'47 (tptr (Tstruct _Object noattr)))
                                   (Tstruct _Object noattr)) _rawData
-                                (Tunion __665 noattr)) _asF32
+                                (Tunion __764 noattr)) _asF32
                               (tarray tfloat 80))
                             (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                               (Econst_int (Int.repr 1) tint) tint)
@@ -2219,7 +2258,7 @@ Definition f_bhv_unlock_door_star_loop := {|
                                   (Ederef
                                     (Etempvar _t'43 (tptr (Tstruct _Object noattr)))
                                     (Tstruct _Object noattr)) _rawData
-                                  (Tunion __665 noattr)) _asS32
+                                  (Tunion __764 noattr)) _asS32
                                 (tarray tint 80))
                               (Ebinop Oadd (Econst_int (Int.repr 15) tint)
                                 (Econst_int (Int.repr 1) tint) tint)
@@ -2236,7 +2275,7 @@ Definition f_bhv_unlock_door_star_loop := {|
                                       (Ederef
                                         (Etempvar _t'45 (tptr (Tstruct _Object noattr)))
                                         (Tstruct _Object noattr)) _rawData
-                                      (Tunion __665 noattr)) _asS32
+                                      (Tunion __764 noattr)) _asS32
                                     (tarray tint 80))
                                   (Econst_int (Int.repr 34) tint)
                                   (tptr tint)) tint))
@@ -2248,7 +2287,7 @@ Definition f_bhv_unlock_door_star_loop := {|
                                       (Ederef
                                         (Etempvar _t'42 (tptr (Tstruct _Object noattr)))
                                         (Tstruct _Object noattr)) _rawData
-                                      (Tunion __665 noattr)) _asS32
+                                      (Tunion __764 noattr)) _asS32
                                     (tarray tint 80))
                                   (Ebinop Oadd
                                     (Econst_int (Int.repr 15) tint)
@@ -2272,7 +2311,7 @@ Definition f_bhv_unlock_door_star_loop := {|
                                     (Ederef
                                       (Etempvar _t'40 (tptr (Tstruct _Object noattr)))
                                       (Tstruct _Object noattr)) _rawData
-                                    (Tunion __665 noattr)) _asS32
+                                    (Tunion __764 noattr)) _asS32
                                   (tarray tint 80))
                                 (Econst_int (Int.repr 33) tint) (tptr tint))
                               tint))
@@ -2303,7 +2342,7 @@ Definition f_bhv_unlock_door_star_loop := {|
                                         (Ederef
                                           (Etempvar _t'37 (tptr (Tstruct _Object noattr)))
                                           (Tstruct _Object noattr)) _rawData
-                                        (Tunion __665 noattr)) _asS32
+                                        (Tunion __764 noattr)) _asS32
                                       (tarray tint 80))
                                     (Econst_int (Int.repr 33) tint)
                                     (tptr tint)) tint))
@@ -2323,7 +2362,7 @@ Definition f_bhv_unlock_door_star_loop := {|
                                       (Ederef
                                         (Etempvar _t'36 (tptr (Tstruct _Object noattr)))
                                         (Tstruct _Object noattr)) _rawData
-                                      (Tunion __665 noattr)) _asS32
+                                      (Tunion __764 noattr)) _asS32
                                     (tarray tint 80))
                                   (Econst_int (Int.repr 33) tint)
                                   (tptr tint)) tint) (Etempvar _t'1 tint))))
@@ -2341,7 +2380,7 @@ Definition f_bhv_unlock_door_star_loop := {|
                                         (Ederef
                                           (Etempvar _t'35 (tptr (Tstruct _Object noattr)))
                                           (Tstruct _Object noattr)) _rawData
-                                        (Tunion __665 noattr)) _asS32
+                                        (Tunion __764 noattr)) _asS32
                                       (tarray tint 80))
                                     (Econst_int (Int.repr 33) tint)
                                     (tptr tint)) tint)
@@ -2361,7 +2400,7 @@ Definition f_bhv_unlock_door_star_loop := {|
                                             (Ederef
                                               (Etempvar _t'33 (tptr (Tstruct _Object noattr)))
                                               (Tstruct _Object noattr))
-                                            _rawData (Tunion __665 noattr))
+                                            _rawData (Tunion __764 noattr))
                                           _asU32 (tarray tuint 80))
                                         (Econst_int (Int.repr 32) tint)
                                         (tptr tuint)) tuint))
@@ -2373,7 +2412,7 @@ Definition f_bhv_unlock_door_star_loop := {|
                                             (Ederef
                                               (Etempvar _t'32 (tptr (Tstruct _Object noattr)))
                                               (Tstruct _Object noattr))
-                                            _rawData (Tunion __665 noattr))
+                                            _rawData (Tunion __764 noattr))
                                           _asU32 (tarray tuint 80))
                                         (Econst_int (Int.repr 32) tint)
                                         (tptr tuint)) tuint)
@@ -2398,7 +2437,7 @@ Definition f_bhv_unlock_door_star_loop := {|
                                   (Ederef
                                     (Etempvar _t'28 (tptr (Tstruct _Object noattr)))
                                     (Tstruct _Object noattr)) _rawData
-                                  (Tunion __665 noattr)) _asS32
+                                  (Tunion __764 noattr)) _asS32
                                 (tarray tint 80))
                               (Ebinop Oadd (Econst_int (Int.repr 15) tint)
                                 (Econst_int (Int.repr 1) tint) tint)
@@ -2415,7 +2454,7 @@ Definition f_bhv_unlock_door_star_loop := {|
                                       (Ederef
                                         (Etempvar _t'30 (tptr (Tstruct _Object noattr)))
                                         (Tstruct _Object noattr)) _rawData
-                                      (Tunion __665 noattr)) _asS32
+                                      (Tunion __764 noattr)) _asS32
                                     (tarray tint 80))
                                   (Econst_int (Int.repr 34) tint)
                                   (tptr tint)) tint))
@@ -2427,7 +2466,7 @@ Definition f_bhv_unlock_door_star_loop := {|
                                       (Ederef
                                         (Etempvar _t'27 (tptr (Tstruct _Object noattr)))
                                         (Tstruct _Object noattr)) _rawData
-                                      (Tunion __665 noattr)) _asS32
+                                      (Tunion __764 noattr)) _asS32
                                     (tarray tint 80))
                                   (Ebinop Oadd
                                     (Econst_int (Int.repr 15) tint)
@@ -2450,7 +2489,7 @@ Definition f_bhv_unlock_door_star_loop := {|
                                       (Ederef
                                         (Etempvar _t'25 (tptr (Tstruct _Object noattr)))
                                         (Tstruct _Object noattr)) _rawData
-                                      (Tunion __665 noattr)) _asS32
+                                      (Tunion __764 noattr)) _asS32
                                     (tarray tint 80))
                                   (Econst_int (Int.repr 33) tint)
                                   (tptr tint)) tint))
@@ -2469,7 +2508,7 @@ Definition f_bhv_unlock_door_star_loop := {|
                                     (Ederef
                                       (Etempvar _t'24 (tptr (Tstruct _Object noattr)))
                                       (Tstruct _Object noattr)) _rawData
-                                    (Tunion __665 noattr)) _asS32
+                                    (Tunion __764 noattr)) _asS32
                                   (tarray tint 80))
                                 (Econst_int (Int.repr 33) tint) (tptr tint))
                               tint) (Etempvar _t'2 tint))))
@@ -2532,7 +2571,7 @@ Definition f_bhv_unlock_door_star_loop := {|
                                           (Ederef
                                             (Etempvar _t'22 (tptr (Tstruct _Object noattr)))
                                             (Tstruct _Object noattr))
-                                          _rawData (Tunion __665 noattr))
+                                          _rawData (Tunion __764 noattr))
                                         _asS32 (tarray tint 80))
                                       (Econst_int (Int.repr 33) tint)
                                       (tptr tint)) tint)
@@ -2552,7 +2591,7 @@ Definition f_bhv_unlock_door_star_loop := {|
                                               (Ederef
                                                 (Etempvar _t'20 (tptr (Tstruct _Object noattr)))
                                                 (Tstruct _Object noattr))
-                                              _rawData (Tunion __665 noattr))
+                                              _rawData (Tunion __764 noattr))
                                             _asU32 (tarray tuint 80))
                                           (Econst_int (Int.repr 32) tint)
                                           (tptr tuint)) tuint))
@@ -2564,7 +2603,7 @@ Definition f_bhv_unlock_door_star_loop := {|
                                               (Ederef
                                                 (Etempvar _t'19 (tptr (Tstruct _Object noattr)))
                                                 (Tstruct _Object noattr))
-                                              _rawData (Tunion __665 noattr))
+                                              _rawData (Tunion __764 noattr))
                                             _asU32 (tarray tuint 80))
                                           (Econst_int (Int.repr 32) tint)
                                           (tptr tuint)) tuint)
@@ -2601,7 +2640,7 @@ Definition f_bhv_unlock_door_star_loop := {|
                                         (Ederef
                                           (Etempvar _t'18 (tptr (Tstruct _Object noattr)))
                                           (Tstruct _Object noattr)) _rawData
-                                        (Tunion __665 noattr)) _asS32
+                                        (Tunion __764 noattr)) _asS32
                                       (tarray tint 80))
                                     (Econst_int (Int.repr 33) tint)
                                     (tptr tint)) tint)))
@@ -2616,7 +2655,7 @@ Definition f_bhv_unlock_door_star_loop := {|
                                         (Ederef
                                           (Etempvar _t'17 (tptr (Tstruct _Object noattr)))
                                           (Tstruct _Object noattr)) _rawData
-                                        (Tunion __665 noattr)) _asS32
+                                        (Tunion __764 noattr)) _asS32
                                       (tarray tint 80))
                                     (Econst_int (Int.repr 33) tint)
                                     (tptr tint)) tint)
@@ -2637,7 +2676,7 @@ Definition f_bhv_unlock_door_star_loop := {|
                                           (Ederef
                                             (Etempvar _t'16 (tptr (Tstruct _Object noattr)))
                                             (Tstruct _Object noattr))
-                                          _rawData (Tunion __665 noattr))
+                                          _rawData (Tunion __764 noattr))
                                         _asS32 (tarray tint 80))
                                       (Econst_int (Int.repr 33) tint)
                                       (tptr tint)) tint)
@@ -2657,7 +2696,7 @@ Definition f_bhv_unlock_door_star_loop := {|
                                               (Ederef
                                                 (Etempvar _t'14 (tptr (Tstruct _Object noattr)))
                                                 (Tstruct _Object noattr))
-                                              _rawData (Tunion __665 noattr))
+                                              _rawData (Tunion __764 noattr))
                                             _asU32 (tarray tuint 80))
                                           (Econst_int (Int.repr 32) tint)
                                           (tptr tuint)) tuint))
@@ -2669,7 +2708,7 @@ Definition f_bhv_unlock_door_star_loop := {|
                                               (Ederef
                                                 (Etempvar _t'13 (tptr (Tstruct _Object noattr)))
                                                 (Tstruct _Object noattr))
-                                              _rawData (Tunion __665 noattr))
+                                              _rawData (Tunion __764 noattr))
                                             _asU32 (tarray tuint 80))
                                           (Econst_int (Int.repr 32) tint)
                                           (tptr tuint)) tuint)
@@ -2692,7 +2731,7 @@ Definition f_bhv_unlock_door_star_loop := {|
                                       (Ederef
                                         (Etempvar _t'12 (tptr (Tstruct _Object noattr)))
                                         (Tstruct _Object noattr)) _rawData
-                                      (Tunion __665 noattr)) _asS32
+                                      (Tunion __764 noattr)) _asS32
                                     (tarray tint 80))
                                   (Econst_int (Int.repr 33) tint)
                                   (tptr tint)) tint)))
@@ -2707,7 +2746,7 @@ Definition f_bhv_unlock_door_star_loop := {|
                                       (Ederef
                                         (Etempvar _t'11 (tptr (Tstruct _Object noattr)))
                                         (Tstruct _Object noattr)) _rawData
-                                      (Tunion __665 noattr)) _asS32
+                                      (Tunion __764 noattr)) _asS32
                                     (tarray tint 80))
                                   (Econst_int (Int.repr 33) tint)
                                   (tptr tint)) tint)
@@ -2738,7 +2777,7 @@ Definition f_bhv_unlock_door_star_loop := {|
                   (Efield
                     (Ederef (Etempvar _t'5 (tptr (Tstruct _Object noattr)))
                       (Tstruct _Object noattr)) _rawData
-                    (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                    (Tunion __764 noattr)) _asS32 (tarray tint 80))
                 (Ebinop Oadd (Econst_int (Int.repr 15) tint)
                   (Econst_int (Int.repr 1) tint) tint) (tptr tint)) tint))
           (Sifthenelse (Ebinop Ogt (Etempvar _prevYaw tshort)
@@ -2778,18 +2817,18 @@ Definition f_bhv_unlock_door_star_loop := {|
 |}.
 
 Definition f_make_gfx_mario_alpha := {|
-  fn_return := (tptr (Tunion __450 noattr));
+  fn_return := (tptr (Tunion __549 noattr));
   fn_callconv := cc_default;
   fn_params := ((_node, (tptr (Tstruct _GraphNodeGenerated noattr))) ::
                 (_alpha, tshort) :: nil);
   fn_vars := nil;
-  fn_temps := ((_gfx, (tptr (Tunion __450 noattr))) ::
-               (_gfxHead, (tptr (Tunion __450 noattr))) ::
-               (__g, (tptr (Tunion __450 noattr))) ::
-               (__g__1, (tptr (Tunion __450 noattr))) ::
-               (__g__2, (tptr (Tunion __450 noattr))) ::
-               (_t'4, (tptr (Tunion __450 noattr))) ::
-               (_t'3, (tptr (Tunion __450 noattr))) ::
+  fn_temps := ((_gfx, (tptr (Tunion __549 noattr))) ::
+               (_gfxHead, (tptr (Tunion __549 noattr))) ::
+               (__g, (tptr (Tunion __549 noattr))) ::
+               (__g__1, (tptr (Tunion __549 noattr))) ::
+               (__g__2, (tptr (Tunion __549 noattr))) ::
+               (_t'4, (tptr (Tunion __549 noattr))) ::
+               (_t'3, (tptr (Tunion __549 noattr))) ::
                (_t'2, (tptr tvoid)) :: (_t'1, (tptr tvoid)) ::
                (_t'6, tshort) :: (_t'5, tshort) :: nil);
   fn_body :=
@@ -2829,9 +2868,9 @@ Definition f_make_gfx_mario_alpha := {|
               (Evar _alloc_display_list (Tfunction (tuint :: nil)
                                           (tptr tvoid) cc_default))
               ((Ebinop Omul (Econst_int (Int.repr 2) tint)
-                 (Esizeof (Tunion __450 noattr) tulong) tulong) :: nil))
+                 (Esizeof (Tunion __549 noattr) tuint) tuint) :: nil))
             (Sset _gfxHead (Etempvar _t'1 (tptr tvoid))))
-          (Sset _gfx (Etempvar _gfxHead (tptr (Tunion __450 noattr))))))
+          (Sset _gfx (Etempvar _gfxHead (tptr (Tunion __549 noattr))))))
       (Ssequence
         (Ssequence
           (Sset _t'5
@@ -2863,27 +2902,27 @@ Definition f_make_gfx_mario_alpha := {|
               (Evar _alloc_display_list (Tfunction (tuint :: nil)
                                           (tptr tvoid) cc_default))
               ((Ebinop Omul (Econst_int (Int.repr 3) tint)
-                 (Esizeof (Tunion __450 noattr) tulong) tulong) :: nil))
+                 (Esizeof (Tunion __549 noattr) tuint) tuint) :: nil))
             (Sset _gfxHead (Etempvar _t'2 (tptr tvoid))))
           (Ssequence
-            (Sset _gfx (Etempvar _gfxHead (tptr (Tunion __450 noattr))))
+            (Sset _gfx (Etempvar _gfxHead (tptr (Tunion __549 noattr))))
             (Ssequence
               (Ssequence
                 (Ssequence
-                  (Sset _t'3 (Etempvar _gfx (tptr (Tunion __450 noattr))))
+                  (Sset _t'3 (Etempvar _gfx (tptr (Tunion __549 noattr))))
                   (Sset _gfx
-                    (Ebinop Oadd (Etempvar _t'3 (tptr (Tunion __450 noattr)))
+                    (Ebinop Oadd (Etempvar _t'3 (tptr (Tunion __549 noattr)))
                       (Econst_int (Int.repr 1) tint)
-                      (tptr (Tunion __450 noattr)))))
+                      (tptr (Tunion __549 noattr)))))
                 (Sset __g
-                  (Ecast (Etempvar _t'3 (tptr (Tunion __450 noattr)))
-                    (tptr (Tunion __450 noattr)))))
+                  (Ecast (Etempvar _t'3 (tptr (Tunion __549 noattr)))
+                    (tptr (Tunion __549 noattr)))))
               (Ssequence
                 (Sassign
                   (Efield
                     (Efield
-                      (Ederef (Etempvar __g (tptr (Tunion __450 noattr)))
-                        (Tunion __450 noattr)) _words (Tstruct __448 noattr))
+                      (Ederef (Etempvar __g (tptr (Tunion __549 noattr)))
+                        (Tunion __549 noattr)) _words (Tstruct __547 noattr))
                     _w0 tuint)
                   (Ebinop Oor
                     (Ebinop Oor
@@ -2923,8 +2962,8 @@ Definition f_make_gfx_mario_alpha := {|
                 (Sassign
                   (Efield
                     (Efield
-                      (Ederef (Etempvar __g (tptr (Tunion __450 noattr)))
-                        (Tunion __450 noattr)) _words (Tstruct __448 noattr))
+                      (Ederef (Etempvar __g (tptr (Tunion __549 noattr)))
+                        (Tunion __549 noattr)) _words (Tstruct __547 noattr))
                     _w1 tuint)
                   (Ecast
                     (Ebinop Oshl (Econst_int (Int.repr 3) tint)
@@ -2933,19 +2972,19 @@ Definition f_make_gfx_mario_alpha := {|
       (Ssequence
         (Ssequence
           (Ssequence
-            (Sset _t'4 (Etempvar _gfx (tptr (Tunion __450 noattr))))
+            (Sset _t'4 (Etempvar _gfx (tptr (Tunion __549 noattr))))
             (Sset _gfx
-              (Ebinop Oadd (Etempvar _t'4 (tptr (Tunion __450 noattr)))
-                (Econst_int (Int.repr 1) tint) (tptr (Tunion __450 noattr)))))
+              (Ebinop Oadd (Etempvar _t'4 (tptr (Tunion __549 noattr)))
+                (Econst_int (Int.repr 1) tint) (tptr (Tunion __549 noattr)))))
           (Sset __g__1
-            (Ecast (Etempvar _t'4 (tptr (Tunion __450 noattr)))
-              (tptr (Tunion __450 noattr)))))
+            (Ecast (Etempvar _t'4 (tptr (Tunion __549 noattr)))
+              (tptr (Tunion __549 noattr)))))
         (Ssequence
           (Sassign
             (Efield
               (Efield
-                (Ederef (Etempvar __g__1 (tptr (Tunion __450 noattr)))
-                  (Tunion __450 noattr)) _words (Tstruct __448 noattr)) _w0
+                (Ederef (Etempvar __g__1 (tptr (Tunion __549 noattr)))
+                  (Tunion __549 noattr)) _words (Tstruct __547 noattr)) _w0
               tuint)
             (Ecast
               (Ebinop Oshl
@@ -2958,8 +2997,8 @@ Definition f_make_gfx_mario_alpha := {|
           (Sassign
             (Efield
               (Efield
-                (Ederef (Etempvar __g__1 (tptr (Tunion __450 noattr)))
-                  (Tunion __450 noattr)) _words (Tstruct __448 noattr)) _w1
+                (Ederef (Etempvar __g__1 (tptr (Tunion __549 noattr)))
+                  (Tunion __549 noattr)) _words (Tstruct __547 noattr)) _w1
               tuint)
             (Ecast
               (Ebinop Oor
@@ -3004,14 +3043,14 @@ Definition f_make_gfx_mario_alpha := {|
       (Ssequence
         (Ssequence
           (Sset __g__2
-            (Ecast (Etempvar _gfx (tptr (Tunion __450 noattr)))
-              (tptr (Tunion __450 noattr))))
+            (Ecast (Etempvar _gfx (tptr (Tunion __549 noattr)))
+              (tptr (Tunion __549 noattr))))
           (Ssequence
             (Sassign
               (Efield
                 (Efield
-                  (Ederef (Etempvar __g__2 (tptr (Tunion __450 noattr)))
-                    (Tunion __450 noattr)) _words (Tstruct __448 noattr)) _w0
+                  (Ederef (Etempvar __g__2 (tptr (Tunion __549 noattr)))
+                    (Tunion __549 noattr)) _words (Tstruct __547 noattr)) _w0
                 tuint)
               (Ecast
                 (Ebinop Oshl
@@ -3024,24 +3063,24 @@ Definition f_make_gfx_mario_alpha := {|
             (Sassign
               (Efield
                 (Efield
-                  (Ederef (Etempvar __g__2 (tptr (Tunion __450 noattr)))
-                    (Tunion __450 noattr)) _words (Tstruct __448 noattr)) _w1
+                  (Ederef (Etempvar __g__2 (tptr (Tunion __549 noattr)))
+                    (Tunion __549 noattr)) _words (Tstruct __547 noattr)) _w1
                 tuint) (Econst_int (Int.repr 0) tint))))
-        (Sreturn (Some (Etempvar _gfxHead (tptr (Tunion __450 noattr)))))))))
+        (Sreturn (Some (Etempvar _gfxHead (tptr (Tunion __549 noattr)))))))))
 |}.
 
 Definition f_geo_mirror_mario_set_alpha := {|
-  fn_return := (tptr (Tunion __450 noattr));
+  fn_return := (tptr (Tunion __549 noattr));
   fn_callconv := cc_default;
   fn_params := ((_callContext, tint) ::
                 (_node, (tptr (Tstruct _GraphNode noattr))) ::
                 (_c, (tptr (tarray (tarray tfloat 4) 4))) :: nil);
   fn_vars := ((_filler1, (tarray tuchar 4)) ::
               (_filler2, (tarray tuchar 4)) :: nil);
-  fn_temps := ((_gfx, (tptr (Tunion __450 noattr))) ::
+  fn_temps := ((_gfx, (tptr (Tunion __549 noattr))) ::
                (_asGenerated, (tptr (Tstruct _GraphNodeGenerated noattr))) ::
                (_bodyState, (tptr (Tstruct _MarioBodyState noattr))) ::
-               (_alpha, tshort) :: (_t'2, (tptr (Tunion __450 noattr))) ::
+               (_alpha, tshort) :: (_t'2, (tptr (Tunion __549 noattr))) ::
                (_t'1, tint) :: (_t'5, tuint) :: (_t'4, tshort) ::
                (_t'3, tshort) :: nil);
   fn_body :=
@@ -3093,17 +3132,17 @@ Definition f_geo_mirror_mario_set_alpha := {|
                 (Evar _make_gfx_mario_alpha (Tfunction
                                               ((tptr (Tstruct _GraphNodeGenerated noattr)) ::
                                                tshort :: nil)
-                                              (tptr (Tunion __450 noattr))
+                                              (tptr (Tunion __549 noattr))
                                               cc_default))
                 ((Etempvar _asGenerated (tptr (Tstruct _GraphNodeGenerated noattr))) ::
                  (Etempvar _alpha tshort) :: nil))
-              (Sset _gfx (Etempvar _t'2 (tptr (Tunion __450 noattr))))))
+              (Sset _gfx (Etempvar _t'2 (tptr (Tunion __549 noattr))))))
           Sskip)
-        (Sreturn (Some (Etempvar _gfx (tptr (Tunion __450 noattr)))))))))
+        (Sreturn (Some (Etempvar _gfx (tptr (Tunion __549 noattr)))))))))
 |}.
 
 Definition f_geo_switch_mario_stand_run := {|
-  fn_return := (tptr (Tunion __450 noattr));
+  fn_return := (tptr (Tunion __549 noattr));
   fn_callconv := cc_default;
   fn_params := ((_callContext, tint) ::
                 (_node, (tptr (Tstruct _GraphNode noattr))) ::
@@ -3152,7 +3191,7 @@ Definition f_geo_switch_mario_stand_run := {|
 |}.
 
 Definition f_geo_switch_mario_eyes := {|
-  fn_return := (tptr (Tunion __450 noattr));
+  fn_return := (tptr (Tunion __549 noattr));
   fn_callconv := cc_default;
   fn_params := ((_callContext, tint) ::
                 (_node, (tptr (Tstruct _GraphNode noattr))) ::
@@ -3249,7 +3288,7 @@ Definition f_geo_switch_mario_eyes := {|
 |}.
 
 Definition f_geo_mario_tilt_torso := {|
-  fn_return := (tptr (Tunion __450 noattr));
+  fn_return := (tptr (Tunion __549 noattr));
   fn_callconv := cc_default;
   fn_params := ((_callContext, tint) ::
                 (_node, (tptr (Tstruct _GraphNode noattr))) ::
@@ -3397,7 +3436,7 @@ Definition f_geo_mario_tilt_torso := {|
 |}.
 
 Definition f_geo_mario_head_rotation := {|
-  fn_return := (tptr (Tunion __450 noattr));
+  fn_return := (tptr (Tunion __549 noattr));
   fn_callconv := cc_default;
   fn_params := ((_callContext, tint) ::
                 (_node, (tptr (Tstruct _GraphNode noattr))) ::
@@ -3457,7 +3496,7 @@ Definition f_geo_mario_head_rotation := {|
                       (Ederef
                         (Etempvar _t'7 (tptr (Tstruct _GraphNodeCamera noattr)))
                         (Tstruct _GraphNodeCamera noattr)) _config
-                      (Tunion __1093 noattr)) _camera
+                      (Tunion __1192 noattr)) _camera
                     (tptr (Tstruct _Camera noattr)))))
               (Ssequence
                 (Sset _t'1
@@ -3611,7 +3650,7 @@ Definition f_geo_mario_head_rotation := {|
 |}.
 
 Definition f_geo_switch_mario_hand := {|
-  fn_return := (tptr (Tunion __450 noattr));
+  fn_return := (tptr (Tunion __549 noattr));
   fn_callconv := cc_default;
   fn_params := ((_callContext, tint) ::
                 (_node, (tptr (Tstruct _GraphNode noattr))) ::
@@ -3731,7 +3770,7 @@ Definition v_sMarioAttackAnimCounter := {|
 |}.
 
 Definition f_geo_mario_hand_foot_scaler := {|
-  fn_return := (tptr (Tunion __450 noattr));
+  fn_return := (tptr (Tunion __549 noattr));
   fn_callconv := cc_default;
   fn_params := ((_callContext, tint) ::
                 (_node, (tptr (Tstruct _GraphNode noattr))) ::
@@ -3876,7 +3915,7 @@ Definition f_geo_mario_hand_foot_scaler := {|
 |}.
 
 Definition f_geo_switch_mario_cap_effect := {|
-  fn_return := (tptr (Tunion __450 noattr));
+  fn_return := (tptr (Tunion __549 noattr));
   fn_callconv := cc_default;
   fn_params := ((_callContext, tint) ::
                 (_node, (tptr (Tstruct _GraphNode noattr))) ::
@@ -3922,7 +3961,7 @@ Definition f_geo_switch_mario_cap_effect := {|
 |}.
 
 Definition f_geo_switch_mario_cap_on_off := {|
-  fn_return := (tptr (Tunion __450 noattr));
+  fn_return := (tptr (Tunion __549 noattr));
   fn_callconv := cc_default;
   fn_params := ((_callContext, tint) ::
                 (_node, (tptr (Tstruct _GraphNode noattr))) ::
@@ -4036,7 +4075,7 @@ Definition f_geo_switch_mario_cap_on_off := {|
 |}.
 
 Definition f_geo_mario_rotate_wing_cap_wings := {|
-  fn_return := (tptr (Tunion __450 noattr));
+  fn_return := (tptr (Tunion __549 noattr));
   fn_callconv := cc_default;
   fn_params := ((_callContext, tint) ::
                 (_node, (tptr (Tstruct _GraphNode noattr))) ::
@@ -4166,7 +4205,7 @@ Definition f_geo_mario_rotate_wing_cap_wings := {|
 |}.
 
 Definition f_geo_switch_mario_hand_grab_pos := {|
-  fn_return := (tptr (Tunion __450 noattr));
+  fn_return := (tptr (Tunion __549 noattr));
   fn_callconv := cc_default;
   fn_params := ((_callContext, tint) ::
                 (_b, (tptr (Tstruct _GraphNode noattr))) ::
@@ -4375,7 +4414,7 @@ Definition f_geo_switch_mario_hand_grab_pos := {|
 |}.
 
 Definition f_geo_render_mirror_mario := {|
-  fn_return := (tptr (Tunion __450 noattr));
+  fn_return := (tptr (Tunion __549 noattr));
   fn_callconv := cc_default;
   fn_params := ((_callContext, tint) ::
                 (_node, (tptr (Tstruct _GraphNode noattr))) ::
@@ -4697,20 +4736,20 @@ Definition f_geo_render_mirror_mario := {|
 |}.
 
 Definition f_geo_mirror_mario_backface_culling := {|
-  fn_return := (tptr (Tunion __450 noattr));
+  fn_return := (tptr (Tunion __549 noattr));
   fn_callconv := cc_default;
   fn_params := ((_callContext, tint) ::
                 (_node, (tptr (Tstruct _GraphNode noattr))) ::
                 (_c, (tptr (tarray (tarray tfloat 4) 4))) :: nil);
   fn_vars := nil;
   fn_temps := ((_asGenerated, (tptr (Tstruct _GraphNodeGenerated noattr))) ::
-               (_gfx, (tptr (Tunion __450 noattr))) ::
-               (__g, (tptr (Tunion __450 noattr))) ::
-               (__g__1, (tptr (Tunion __450 noattr))) ::
-               (__g__2, (tptr (Tunion __450 noattr))) ::
-               (__g__3, (tptr (Tunion __450 noattr))) ::
-               (__g__4, (tptr (Tunion __450 noattr))) ::
-               (__g__5, (tptr (Tunion __450 noattr))) :: (_t'2, tint) ::
+               (_gfx, (tptr (Tunion __549 noattr))) ::
+               (__g, (tptr (Tunion __549 noattr))) ::
+               (__g__1, (tptr (Tunion __549 noattr))) ::
+               (__g__2, (tptr (Tunion __549 noattr))) ::
+               (__g__3, (tptr (Tunion __549 noattr))) ::
+               (__g__4, (tptr (Tunion __549 noattr))) ::
+               (__g__5, (tptr (Tunion __549 noattr))) :: (_t'2, tint) ::
                (_t'1, (tptr tvoid)) ::
                (_t'5, (tptr (Tstruct _GraphNodeObject noattr))) ::
                (_t'4, tuint) :: (_t'3, tshort) :: nil);
@@ -4743,7 +4782,7 @@ Definition f_geo_mirror_mario_backface_culling := {|
                 (Evar _alloc_display_list (Tfunction (tuint :: nil)
                                             (tptr tvoid) cc_default))
                 ((Ebinop Omul (Econst_int (Int.repr 3) tint)
-                   (Esizeof (Tunion __450 noattr) tulong) tulong) :: nil))
+                   (Esizeof (Tunion __549 noattr) tuint) tuint) :: nil))
               (Sset _gfx (Etempvar _t'1 (tptr tvoid))))
             (Ssequence
               (Ssequence
@@ -4759,18 +4798,18 @@ Definition f_geo_mirror_mario_backface_culling := {|
                       (Sset __g
                         (Ecast
                           (Ebinop Oadd
-                            (Etempvar _gfx (tptr (Tunion __450 noattr)))
+                            (Etempvar _gfx (tptr (Tunion __549 noattr)))
                             (Econst_int (Int.repr 0) tint)
-                            (tptr (Tunion __450 noattr)))
-                          (tptr (Tunion __450 noattr))))
+                            (tptr (Tunion __549 noattr)))
+                          (tptr (Tunion __549 noattr))))
                       (Ssequence
                         (Sassign
                           (Efield
                             (Efield
                               (Ederef
-                                (Etempvar __g (tptr (Tunion __450 noattr)))
-                                (Tunion __450 noattr)) _words
-                              (Tstruct __448 noattr)) _w0 tuint)
+                                (Etempvar __g (tptr (Tunion __549 noattr)))
+                                (Tunion __549 noattr)) _words
+                              (Tstruct __547 noattr)) _w0 tuint)
                           (Ebinop Oor
                             (Ecast
                               (Ebinop Oshl
@@ -4803,27 +4842,27 @@ Definition f_geo_mirror_mario_backface_culling := {|
                           (Efield
                             (Efield
                               (Ederef
-                                (Etempvar __g (tptr (Tunion __450 noattr)))
-                                (Tunion __450 noattr)) _words
-                              (Tstruct __448 noattr)) _w1 tuint)
+                                (Etempvar __g (tptr (Tunion __549 noattr)))
+                                (Tunion __549 noattr)) _words
+                              (Tstruct __547 noattr)) _w1 tuint)
                           (Ecast (Econst_int (Int.repr 0) tint) tuint))))
                     (Ssequence
                       (Ssequence
                         (Sset __g__1
                           (Ecast
                             (Ebinop Oadd
-                              (Etempvar _gfx (tptr (Tunion __450 noattr)))
+                              (Etempvar _gfx (tptr (Tunion __549 noattr)))
                               (Econst_int (Int.repr 1) tint)
-                              (tptr (Tunion __450 noattr)))
-                            (tptr (Tunion __450 noattr))))
+                              (tptr (Tunion __549 noattr)))
+                            (tptr (Tunion __549 noattr))))
                         (Ssequence
                           (Sassign
                             (Efield
                               (Efield
                                 (Ederef
-                                  (Etempvar __g__1 (tptr (Tunion __450 noattr)))
-                                  (Tunion __450 noattr)) _words
-                                (Tstruct __448 noattr)) _w0 tuint)
+                                  (Etempvar __g__1 (tptr (Tunion __549 noattr)))
+                                  (Tunion __549 noattr)) _words
+                                (Tstruct __547 noattr)) _w0 tuint)
                             (Ebinop Oor
                               (Ecast
                                 (Ebinop Oshl
@@ -4855,26 +4894,26 @@ Definition f_geo_mirror_mario_backface_culling := {|
                             (Efield
                               (Efield
                                 (Ederef
-                                  (Etempvar __g__1 (tptr (Tunion __450 noattr)))
-                                  (Tunion __450 noattr)) _words
-                                (Tstruct __448 noattr)) _w1 tuint)
+                                  (Etempvar __g__1 (tptr (Tunion __549 noattr)))
+                                  (Tunion __549 noattr)) _words
+                                (Tstruct __547 noattr)) _w1 tuint)
                             (Ecast (Econst_int (Int.repr 512) tint) tuint))))
                       (Ssequence
                         (Sset __g__2
                           (Ecast
                             (Ebinop Oadd
-                              (Etempvar _gfx (tptr (Tunion __450 noattr)))
+                              (Etempvar _gfx (tptr (Tunion __549 noattr)))
                               (Econst_int (Int.repr 2) tint)
-                              (tptr (Tunion __450 noattr)))
-                            (tptr (Tunion __450 noattr))))
+                              (tptr (Tunion __549 noattr)))
+                            (tptr (Tunion __549 noattr))))
                         (Ssequence
                           (Sassign
                             (Efield
                               (Efield
                                 (Ederef
-                                  (Etempvar __g__2 (tptr (Tunion __450 noattr)))
-                                  (Tunion __450 noattr)) _words
-                                (Tstruct __448 noattr)) _w0 tuint)
+                                  (Etempvar __g__2 (tptr (Tunion __549 noattr)))
+                                  (Tunion __549 noattr)) _words
+                                (Tstruct __547 noattr)) _w0 tuint)
                             (Ecast
                               (Ebinop Oshl
                                 (Ebinop Oand
@@ -4891,27 +4930,27 @@ Definition f_geo_mirror_mario_backface_culling := {|
                             (Efield
                               (Efield
                                 (Ederef
-                                  (Etempvar __g__2 (tptr (Tunion __450 noattr)))
-                                  (Tunion __450 noattr)) _words
-                                (Tstruct __448 noattr)) _w1 tuint)
+                                  (Etempvar __g__2 (tptr (Tunion __549 noattr)))
+                                  (Tunion __549 noattr)) _words
+                                (Tstruct __547 noattr)) _w1 tuint)
                             (Econst_int (Int.repr 0) tint))))))
                   (Ssequence
                     (Ssequence
                       (Sset __g__3
                         (Ecast
                           (Ebinop Oadd
-                            (Etempvar _gfx (tptr (Tunion __450 noattr)))
+                            (Etempvar _gfx (tptr (Tunion __549 noattr)))
                             (Econst_int (Int.repr 0) tint)
-                            (tptr (Tunion __450 noattr)))
-                          (tptr (Tunion __450 noattr))))
+                            (tptr (Tunion __549 noattr)))
+                          (tptr (Tunion __549 noattr))))
                       (Ssequence
                         (Sassign
                           (Efield
                             (Efield
                               (Ederef
-                                (Etempvar __g__3 (tptr (Tunion __450 noattr)))
-                                (Tunion __450 noattr)) _words
-                              (Tstruct __448 noattr)) _w0 tuint)
+                                (Etempvar __g__3 (tptr (Tunion __549 noattr)))
+                                (Tunion __549 noattr)) _words
+                              (Tstruct __547 noattr)) _w0 tuint)
                           (Ebinop Oor
                             (Ecast
                               (Ebinop Oshl
@@ -4943,27 +4982,27 @@ Definition f_geo_mirror_mario_backface_culling := {|
                           (Efield
                             (Efield
                               (Ederef
-                                (Etempvar __g__3 (tptr (Tunion __450 noattr)))
-                                (Tunion __450 noattr)) _words
-                              (Tstruct __448 noattr)) _w1 tuint)
+                                (Etempvar __g__3 (tptr (Tunion __549 noattr)))
+                                (Tunion __549 noattr)) _words
+                              (Tstruct __547 noattr)) _w1 tuint)
                           (Ecast (Econst_int (Int.repr 0) tint) tuint))))
                     (Ssequence
                       (Ssequence
                         (Sset __g__4
                           (Ecast
                             (Ebinop Oadd
-                              (Etempvar _gfx (tptr (Tunion __450 noattr)))
+                              (Etempvar _gfx (tptr (Tunion __549 noattr)))
                               (Econst_int (Int.repr 1) tint)
-                              (tptr (Tunion __450 noattr)))
-                            (tptr (Tunion __450 noattr))))
+                              (tptr (Tunion __549 noattr)))
+                            (tptr (Tunion __549 noattr))))
                         (Ssequence
                           (Sassign
                             (Efield
                               (Efield
                                 (Ederef
-                                  (Etempvar __g__4 (tptr (Tunion __450 noattr)))
-                                  (Tunion __450 noattr)) _words
-                                (Tstruct __448 noattr)) _w0 tuint)
+                                  (Etempvar __g__4 (tptr (Tunion __549 noattr)))
+                                  (Tunion __549 noattr)) _words
+                                (Tstruct __547 noattr)) _w0 tuint)
                             (Ebinop Oor
                               (Ecast
                                 (Ebinop Oshl
@@ -4995,26 +5034,26 @@ Definition f_geo_mirror_mario_backface_culling := {|
                             (Efield
                               (Efield
                                 (Ederef
-                                  (Etempvar __g__4 (tptr (Tunion __450 noattr)))
-                                  (Tunion __450 noattr)) _words
-                                (Tstruct __448 noattr)) _w1 tuint)
+                                  (Etempvar __g__4 (tptr (Tunion __549 noattr)))
+                                  (Tunion __549 noattr)) _words
+                                (Tstruct __547 noattr)) _w1 tuint)
                             (Ecast (Econst_int (Int.repr 1024) tint) tuint))))
                       (Ssequence
                         (Sset __g__5
                           (Ecast
                             (Ebinop Oadd
-                              (Etempvar _gfx (tptr (Tunion __450 noattr)))
+                              (Etempvar _gfx (tptr (Tunion __549 noattr)))
                               (Econst_int (Int.repr 2) tint)
-                              (tptr (Tunion __450 noattr)))
-                            (tptr (Tunion __450 noattr))))
+                              (tptr (Tunion __549 noattr)))
+                            (tptr (Tunion __549 noattr))))
                         (Ssequence
                           (Sassign
                             (Efield
                               (Efield
                                 (Ederef
-                                  (Etempvar __g__5 (tptr (Tunion __450 noattr)))
-                                  (Tunion __450 noattr)) _words
-                                (Tstruct __448 noattr)) _w0 tuint)
+                                  (Etempvar __g__5 (tptr (Tunion __549 noattr)))
+                                  (Tunion __549 noattr)) _words
+                                (Tstruct __547 noattr)) _w0 tuint)
                             (Ecast
                               (Ebinop Oshl
                                 (Ebinop Oand
@@ -5031,9 +5070,9 @@ Definition f_geo_mirror_mario_backface_culling := {|
                             (Efield
                               (Efield
                                 (Ederef
-                                  (Etempvar __g__5 (tptr (Tunion __450 noattr)))
-                                  (Tunion __450 noattr)) _words
-                                (Tstruct __448 noattr)) _w1 tuint)
+                                  (Etempvar __g__5 (tptr (Tunion __549 noattr)))
+                                  (Tunion __549 noattr)) _words
+                                (Tstruct __547 noattr)) _w1 tuint)
                             (Econst_int (Int.repr 0) tint))))))))
               (Ssequence
                 (Sset _t'3
@@ -5060,39 +5099,39 @@ Definition f_geo_mirror_mario_backface_culling := {|
                     (Ebinop Oshl (Econst_int (Int.repr 1) tint)
                       (Econst_int (Int.repr 8) tint) tint) tint)))))
           Sskip))
-      (Sreturn (Some (Etempvar _gfx (tptr (Tunion __450 noattr))))))))
+      (Sreturn (Some (Etempvar _gfx (tptr (Tunion __549 noattr))))))))
 |}.
 
 Definition composites : list composite_definition :=
-(Composite __218 Struct
+(Composite __317 Struct
    (Member_plain _type tushort :: Member_plain _status tuchar ::
     Member_plain _errnum tuchar :: nil)
    noattr ::
- Composite __220 Struct
+ Composite __319 Struct
    (Member_plain _button tushort :: Member_plain _stick_x tschar ::
     Member_plain _stick_y tschar :: Member_plain _errnum tuchar :: nil)
    noattr ::
- Composite __370 Struct
+ Composite __469 Struct
    (Member_plain _flag tuchar :: Member_plain _v (tarray tuchar 3) :: nil)
    noattr ::
- Composite __411 Struct
+ Composite __510 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _par I32 Unsigned noattr 8 false ::
     Member_bitfield _len I32 Unsigned noattr 16 false ::
     Member_plain _addr tuint :: nil)
    noattr ::
- Composite __413 Struct
+ Composite __512 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _pad I32 Signed noattr 24 false ::
-    Member_plain _tri (Tstruct __370 noattr) :: nil)
+    Member_plain _tri (Tstruct __469 noattr) :: nil)
    noattr ::
- Composite __415 Struct
+ Composite __514 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _pad1 I32 Signed noattr 24 false ::
     Member_bitfield _pad2 I32 Signed noattr 24 false ::
     Member_bitfield _param I8 Unsigned noattr 8 false :: nil)
    noattr ::
- Composite __417 Struct
+ Composite __516 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _pad0 I32 Signed noattr 8 false ::
     Member_bitfield _mw_index I32 Signed noattr 8 false ::
@@ -5100,36 +5139,36 @@ Definition composites : list composite_definition :=
     Member_bitfield _pad1 I32 Signed noattr 8 false ::
     Member_bitfield _base I32 Signed noattr 24 false :: nil)
    noattr ::
- Composite __419 Struct
+ Composite __518 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _pad0 I32 Signed noattr 8 false ::
     Member_bitfield _sft I32 Signed noattr 8 false ::
     Member_bitfield _len I32 Signed noattr 8 false ::
     Member_bitfield _data I32 Unsigned noattr 32 false :: nil)
    noattr ::
- Composite __421 Struct
+ Composite __520 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _pad0 I32 Signed noattr 8 false ::
     Member_bitfield _sft I32 Signed noattr 8 false ::
     Member_bitfield _len I32 Signed noattr 8 false ::
     Member_bitfield _data I32 Unsigned noattr 32 false :: nil)
    noattr ::
- Composite __423 Struct
+ Composite __522 Struct
    (Member_plain _cmd tuchar :: Member_plain _lodscale tuchar ::
     Member_plain _tile tuchar :: Member_plain _on tuchar ::
     Member_plain _s tushort :: Member_plain _t tushort :: nil)
    noattr ::
- Composite __425 Struct
+ Composite __524 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _pad I32 Signed noattr 24 false ::
-    Member_plain _line (Tstruct __370 noattr) :: nil)
+    Member_plain _line (Tstruct __469 noattr) :: nil)
    noattr ::
- Composite __427 Struct
+ Composite __526 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _pad1 I32 Signed noattr 24 false ::
     Member_plain _pad2 tshort :: Member_plain _scale tshort :: nil)
    noattr ::
- Composite __429 Struct
+ Composite __528 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _fmt I32 Unsigned noattr 3 false ::
     Member_bitfield _siz I32 Unsigned noattr 2 false ::
@@ -5137,17 +5176,17 @@ Definition composites : list composite_definition :=
     Member_bitfield _wd I32 Unsigned noattr 12 false ::
     Member_plain _dram tuint :: nil)
    noattr ::
- Composite __431 Struct
+ Composite __530 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _muxs0 I32 Unsigned noattr 24 false ::
     Member_bitfield _muxs1 I32 Unsigned noattr 32 false :: nil)
    noattr ::
- Composite __433 Struct
+ Composite __532 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_plain _pad tuchar :: Member_plain _prim_min_level tuchar ::
-    Member_plain _prim_level tuchar :: Member_plain _color tulong :: nil)
+    Member_plain _prim_level tuchar :: Member_plain _color tuint :: nil)
    noattr ::
- Composite __435 Struct
+ Composite __534 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _x0 I32 Signed noattr 10 false ::
     Member_bitfield _x0frac I32 Signed noattr 2 false ::
@@ -5159,7 +5198,7 @@ Definition composites : list composite_definition :=
     Member_bitfield _y1 I32 Signed noattr 10 false ::
     Member_bitfield _y1frac I32 Signed noattr 2 false :: nil)
    noattr ::
- Composite __437 Struct
+ Composite __536 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _fmt I32 Unsigned noattr 3 false ::
     Member_bitfield _siz I32 Unsigned noattr 2 false ::
@@ -5178,7 +5217,7 @@ Definition composites : list composite_definition :=
     Member_bitfield _masks I32 Unsigned noattr 4 false ::
     Member_bitfield _shifts I32 Unsigned noattr 4 false :: nil)
    noattr ::
- Composite __439 Struct
+ Composite __538 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _sl I32 Unsigned noattr 12 false ::
     Member_bitfield _tl I32 Unsigned noattr 12 false ::
@@ -5187,28 +5226,28 @@ Definition composites : list composite_definition :=
     Member_bitfield _sh I32 Unsigned noattr 12 false ::
     Member_bitfield _th I32 Unsigned noattr 12 false :: nil)
    noattr ::
- Composite __448 Struct
+ Composite __547 Struct
    (Member_plain _w0 tuint :: Member_plain _w1 tuint :: nil)
    noattr ::
- Composite __450 Union
-   (Member_plain _words (Tstruct __448 noattr) ::
-    Member_plain _dma (Tstruct __411 noattr) ::
-    Member_plain _tri (Tstruct __413 noattr) ::
-    Member_plain _line (Tstruct __425 noattr) ::
-    Member_plain _popmtx (Tstruct __415 noattr) ::
-    Member_plain _segment (Tstruct __417 noattr) ::
-    Member_plain _setothermodeH (Tstruct __421 noattr) ::
-    Member_plain _setothermodeL (Tstruct __419 noattr) ::
-    Member_plain _texture (Tstruct __423 noattr) ::
-    Member_plain _perspnorm (Tstruct __427 noattr) ::
-    Member_plain _setimg (Tstruct __429 noattr) ::
-    Member_plain _setcombine (Tstruct __431 noattr) ::
-    Member_plain _setcolor (Tstruct __433 noattr) ::
-    Member_plain _fillrect (Tstruct __435 noattr) ::
-    Member_plain _settile (Tstruct __437 noattr) ::
-    Member_plain _loadtile (Tstruct __439 noattr) ::
-    Member_plain _settilesize (Tstruct __439 noattr) ::
-    Member_plain _loadtlut (Tstruct __439 noattr) ::
+ Composite __549 Union
+   (Member_plain _words (Tstruct __547 noattr) ::
+    Member_plain _dma (Tstruct __510 noattr) ::
+    Member_plain _tri (Tstruct __512 noattr) ::
+    Member_plain _line (Tstruct __524 noattr) ::
+    Member_plain _popmtx (Tstruct __514 noattr) ::
+    Member_plain _segment (Tstruct __516 noattr) ::
+    Member_plain _setothermodeH (Tstruct __520 noattr) ::
+    Member_plain _setothermodeL (Tstruct __518 noattr) ::
+    Member_plain _texture (Tstruct __522 noattr) ::
+    Member_plain _perspnorm (Tstruct __526 noattr) ::
+    Member_plain _setimg (Tstruct __528 noattr) ::
+    Member_plain _setcombine (Tstruct __530 noattr) ::
+    Member_plain _setcolor (Tstruct __532 noattr) ::
+    Member_plain _fillrect (Tstruct __534 noattr) ::
+    Member_plain _settile (Tstruct __536 noattr) ::
+    Member_plain _loadtile (Tstruct __538 noattr) ::
+    Member_plain _settilesize (Tstruct __538 noattr) ::
+    Member_plain _loadtlut (Tstruct __538 noattr) ::
     Member_plain _force_structure_alignment tlong :: nil)
    noattr ::
  Composite _Controller Struct
@@ -5216,8 +5255,8 @@ Definition composites : list composite_definition :=
     Member_plain _stickX tfloat :: Member_plain _stickY tfloat ::
     Member_plain _stickMag tfloat :: Member_plain _buttonDown tushort ::
     Member_plain _buttonPressed tushort ::
-    Member_plain _statusData (tptr (Tstruct __218 noattr)) ::
-    Member_plain _controllerData (tptr (Tstruct __220 noattr)) :: nil)
+    Member_plain _statusData (tptr (Tstruct __317 noattr)) ::
+    Member_plain _controllerData (tptr (Tstruct __319 noattr)) :: nil)
    noattr ::
  Composite _Animation Struct
    (Member_plain _flags tshort :: Member_plain _animYTransDivisor tshort ::
@@ -5257,7 +5296,7 @@ Definition composites : list composite_definition :=
     Member_plain _next (tptr (Tstruct _ObjectNode noattr)) ::
     Member_plain _prev (tptr (Tstruct _ObjectNode noattr)) :: nil)
    noattr ::
- Composite __665 Union
+ Composite __764 Union
    (Member_plain _asU32 (tarray tuint 80) ::
     Member_plain _asS32 (tarray tint 80) ::
     Member_plain _asS16 (tarray (tarray tshort 2) 80) ::
@@ -5282,7 +5321,7 @@ Definition composites : list composite_definition :=
     Member_plain _activeFlags tshort ::
     Member_plain _numCollidedObjs tshort ::
     Member_plain _collidedObjs (tarray (tptr (Tstruct _Object noattr)) 4) ::
-    Member_plain _rawData (Tunion __665 noattr) ::
+    Member_plain _rawData (Tunion __764 noattr) ::
     Member_plain _unused1 tuint ::
     Member_plain _curBhvCommand (tptr tuint) ::
     Member_plain _bhvStackIndex tuint ::
@@ -5302,7 +5341,7 @@ Definition composites : list composite_definition :=
  Composite _Waypoint Struct
    (Member_plain _flags tshort :: Member_plain _pos (tarray tshort 3) :: nil)
    noattr ::
- Composite __670 Struct
+ Composite __769 Struct
    (Member_plain _x tfloat :: Member_plain _y tfloat ::
     Member_plain _z tfloat :: nil)
    noattr ::
@@ -5313,7 +5352,7 @@ Definition composites : list composite_definition :=
     Member_plain _vertex1 (tarray tshort 3) ::
     Member_plain _vertex2 (tarray tshort 3) ::
     Member_plain _vertex3 (tarray tshort 3) ::
-    Member_plain _normal (Tstruct __670 noattr) ::
+    Member_plain _normal (Tstruct __769 noattr) ::
     Member_plain _originOffset tfloat ::
     Member_plain _object (tptr (Tstruct _Object noattr)) :: nil)
    noattr ::
@@ -5393,7 +5432,7 @@ Definition composites : list composite_definition :=
     Member_plain _func
       (tptr (Tfunction
               (tint :: (tptr (Tstruct _GraphNode noattr)) :: (tptr tvoid) ::
-               nil) (tptr (Tunion __450 noattr)) cc_default)) :: nil)
+               nil) (tptr (Tunion __549 noattr)) cc_default)) :: nil)
    noattr ::
  Composite _GraphNodeRoot Struct
    (Member_plain _node (Tstruct _GraphNode noattr) ::
@@ -5408,13 +5447,13 @@ Definition composites : list composite_definition :=
     Member_plain _unused tint :: Member_plain _numCases tshort ::
     Member_plain _selectedCase tshort :: nil)
    noattr ::
- Composite __1093 Union
+ Composite __1192 Union
    (Member_plain _mode tint ::
     Member_plain _camera (tptr (Tstruct _Camera noattr)) :: nil)
    noattr ::
  Composite _GraphNodeCamera Struct
    (Member_plain _fnNode (Tstruct _FnGraphNode noattr) ::
-    Member_plain _config (Tunion __1093 noattr) ::
+    Member_plain _config (Tunion __1192 noattr) ::
     Member_plain _pos (tarray tfloat 3) ::
     Member_plain _focus (tarray tfloat 3) ::
     Member_plain _matrixPtr (tptr (tarray (tarray tfloat 4) 4)) ::
@@ -5542,9 +5581,9 @@ Definition global_definitions : list (ident * globdef fundef type) :=
      ((tptr tvoid) :: nil) tdouble cc_default)) ::
  (___compcert_va_composite,
    Gfun(External (EF_runtime "__compcert_va_composite"
-                   (mksignature (AST.Xptr :: AST.Xlong :: nil) AST.Xptr
-                     cc_default)) ((tptr tvoid) :: tulong :: nil)
-     (tptr tvoid) cc_default)) ::
+                   (mksignature (AST.Xptr :: AST.Xint :: nil) AST.Xptr
+                     cc_default)) ((tptr tvoid) :: tuint :: nil) (tptr tvoid)
+     cc_default)) ::
  (___compcert_i64_dtos,
    Gfun(External (EF_runtime "__compcert_i64_dtos"
                    (mksignature (AST.Xfloat :: nil) AST.Xlong cc_default))
@@ -5612,7 +5651,7 @@ Definition global_definitions : list (ident * globdef fundef type) :=
    Gfun(External (EF_builtin "__builtin_ais_annot"
                    (mksignature (AST.Xptr :: nil) AST.Xvoid
                      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-     ((tptr tschar) :: nil) tvoid
+     ((tptr tuchar) :: nil) tvoid
      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|})) ::
  (___builtin_bswap64,
    Gfun(External (EF_builtin "__builtin_bswap64"
@@ -5637,8 +5676,8 @@ Definition global_definitions : list (ident * globdef fundef type) :=
      (tuint :: nil) tint cc_default)) ::
  (___builtin_clzl,
    Gfun(External (EF_builtin "__builtin_clzl"
-                   (mksignature (AST.Xlong :: nil) AST.Xint cc_default))
-     (tulong :: nil) tint cc_default)) ::
+                   (mksignature (AST.Xint :: nil) AST.Xint cc_default))
+     (tuint :: nil) tint cc_default)) ::
  (___builtin_clzll,
    Gfun(External (EF_builtin "__builtin_clzll"
                    (mksignature (AST.Xlong :: nil) AST.Xint cc_default))
@@ -5649,8 +5688,8 @@ Definition global_definitions : list (ident * globdef fundef type) :=
      (tuint :: nil) tint cc_default)) ::
  (___builtin_ctzl,
    Gfun(External (EF_builtin "__builtin_ctzl"
-                   (mksignature (AST.Xlong :: nil) AST.Xint cc_default))
-     (tulong :: nil) tint cc_default)) ::
+                   (mksignature (AST.Xint :: nil) AST.Xint cc_default))
+     (tuint :: nil) tint cc_default)) ::
  (___builtin_ctzll,
    Gfun(External (EF_builtin "__builtin_ctzll"
                    (mksignature (AST.Xlong :: nil) AST.Xint cc_default))
@@ -5674,9 +5713,9 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (___builtin_memcpy_aligned,
    Gfun(External (EF_builtin "__builtin_memcpy_aligned"
                    (mksignature
-                     (AST.Xptr :: AST.Xptr :: AST.Xlong :: AST.Xlong :: nil)
+                     (AST.Xptr :: AST.Xptr :: AST.Xint :: AST.Xint :: nil)
                      AST.Xvoid cc_default))
-     ((tptr tvoid) :: (tptr tvoid) :: tulong :: tulong :: nil) tvoid
+     ((tptr tvoid) :: (tptr tvoid) :: tuint :: tuint :: nil) tvoid
      cc_default)) ::
  (___builtin_sel,
    Gfun(External (EF_builtin "__builtin_sel"
@@ -5688,12 +5727,12 @@ Definition global_definitions : list (ident * globdef fundef type) :=
    Gfun(External (EF_builtin "__builtin_annot"
                    (mksignature (AST.Xptr :: nil) AST.Xvoid
                      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-     ((tptr tschar) :: nil) tvoid
+     ((tptr tuchar) :: nil) tvoid
      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|})) ::
  (___builtin_annot_intval,
    Gfun(External (EF_builtin "__builtin_annot_intval"
                    (mksignature (AST.Xptr :: AST.Xint :: nil) AST.Xint
-                     cc_default)) ((tptr tschar) :: tint :: nil) tint
+                     cc_default)) ((tptr tuchar) :: tint :: nil) tint
      cc_default)) ::
  (___builtin_membar,
    Gfun(External (EF_builtin "__builtin_membar"
@@ -5723,17 +5762,28 @@ Definition global_definitions : list (ident * globdef fundef type) :=
      cc_default)) ::
  (___builtin_expect,
    Gfun(External (EF_builtin "__builtin_expect"
+                   (mksignature (AST.Xint :: AST.Xint :: nil) AST.Xint
+                     cc_default)) (tint :: tint :: nil) tint cc_default)) ::
+ (___builtin_mulhw,
+   Gfun(External (EF_builtin "__builtin_mulhw"
+                   (mksignature (AST.Xint :: AST.Xint :: nil) AST.Xint
+                     cc_default)) (tint :: tint :: nil) tint cc_default)) ::
+ (___builtin_mulhwu,
+   Gfun(External (EF_builtin "__builtin_mulhwu"
+                   (mksignature (AST.Xint :: AST.Xint :: nil) AST.Xint
+                     cc_default)) (tuint :: tuint :: nil) tuint cc_default)) ::
+ (___builtin_cmpb,
+   Gfun(External (EF_builtin "__builtin_cmpb"
+                   (mksignature (AST.Xint :: AST.Xint :: nil) AST.Xint
+                     cc_default)) (tuint :: tuint :: nil) tuint cc_default)) ::
+ (___builtin_mulhd,
+   Gfun(External (EF_builtin "__builtin_mulhd"
                    (mksignature (AST.Xlong :: AST.Xlong :: nil) AST.Xlong
                      cc_default)) (tlong :: tlong :: nil) tlong cc_default)) ::
- (___builtin_fmax,
-   Gfun(External (EF_builtin "__builtin_fmax"
-                   (mksignature (AST.Xfloat :: AST.Xfloat :: nil) AST.Xfloat
-                     cc_default)) (tdouble :: tdouble :: nil) tdouble
-     cc_default)) ::
- (___builtin_fmin,
-   Gfun(External (EF_builtin "__builtin_fmin"
-                   (mksignature (AST.Xfloat :: AST.Xfloat :: nil) AST.Xfloat
-                     cc_default)) (tdouble :: tdouble :: nil) tdouble
+ (___builtin_mulhdu,
+   Gfun(External (EF_builtin "__builtin_mulhdu"
+                   (mksignature (AST.Xlong :: AST.Xlong :: nil) AST.Xlong
+                     cc_default)) (tulong :: tulong :: nil) tulong
      cc_default)) ::
  (___builtin_fmadd,
    Gfun(External (EF_builtin "__builtin_fmadd"
@@ -5759,6 +5809,24 @@ Definition global_definitions : list (ident * globdef fundef type) :=
                      (AST.Xfloat :: AST.Xfloat :: AST.Xfloat :: nil)
                      AST.Xfloat cc_default))
      (tdouble :: tdouble :: tdouble :: nil) tdouble cc_default)) ::
+ (___builtin_frsqrte,
+   Gfun(External (EF_builtin "__builtin_frsqrte"
+                   (mksignature (AST.Xfloat :: nil) AST.Xfloat cc_default))
+     (tdouble :: nil) tdouble cc_default)) ::
+ (___builtin_fres,
+   Gfun(External (EF_builtin "__builtin_fres"
+                   (mksignature (AST.Xsingle :: nil) AST.Xsingle cc_default))
+     (tfloat :: nil) tfloat cc_default)) ::
+ (___builtin_fsel,
+   Gfun(External (EF_builtin "__builtin_fsel"
+                   (mksignature
+                     (AST.Xfloat :: AST.Xfloat :: AST.Xfloat :: nil)
+                     AST.Xfloat cc_default))
+     (tdouble :: tdouble :: tdouble :: nil) tdouble cc_default)) ::
+ (___builtin_fcti,
+   Gfun(External (EF_builtin "__builtin_fcti"
+                   (mksignature (AST.Xfloat :: nil) AST.Xint cc_default))
+     (tdouble :: nil) tint cc_default)) ::
  (___builtin_read16_reversed,
    Gfun(External (EF_builtin "__builtin_read16_reversed"
                    (mksignature (AST.Xptr :: nil) AST.Xint16unsigned
@@ -5777,6 +5845,147 @@ Definition global_definitions : list (ident * globdef fundef type) :=
    Gfun(External (EF_builtin "__builtin_write32_reversed"
                    (mksignature (AST.Xptr :: AST.Xint :: nil) AST.Xvoid
                      cc_default)) ((tptr tuint) :: tuint :: nil) tvoid
+     cc_default)) ::
+ (___builtin_read64_reversed,
+   Gfun(External (EF_builtin "__builtin_read64_reversed"
+                   (mksignature (AST.Xptr :: nil) AST.Xlong cc_default))
+     ((tptr tulong) :: nil) tulong cc_default)) ::
+ (___builtin_write64_reversed,
+   Gfun(External (EF_builtin "__builtin_write64_reversed"
+                   (mksignature (AST.Xptr :: AST.Xlong :: nil) AST.Xvoid
+                     cc_default)) ((tptr tulong) :: tulong :: nil) tvoid
+     cc_default)) ::
+ (___builtin_eieio,
+   Gfun(External (EF_builtin "__builtin_eieio"
+                   (mksignature nil AST.Xvoid cc_default)) nil tvoid
+     cc_default)) ::
+ (___builtin_sync,
+   Gfun(External (EF_builtin "__builtin_sync"
+                   (mksignature nil AST.Xvoid cc_default)) nil tvoid
+     cc_default)) ::
+ (___builtin_isync,
+   Gfun(External (EF_builtin "__builtin_isync"
+                   (mksignature nil AST.Xvoid cc_default)) nil tvoid
+     cc_default)) ::
+ (___builtin_lwsync,
+   Gfun(External (EF_builtin "__builtin_lwsync"
+                   (mksignature nil AST.Xvoid cc_default)) nil tvoid
+     cc_default)) ::
+ (___builtin_mbar,
+   Gfun(External (EF_builtin "__builtin_mbar"
+                   (mksignature (AST.Xint :: nil) AST.Xvoid cc_default))
+     (tint :: nil) tvoid cc_default)) ::
+ (___builtin_trap,
+   Gfun(External (EF_builtin "__builtin_trap"
+                   (mksignature nil AST.Xvoid cc_default)) nil tvoid
+     cc_default)) ::
+ (___builtin_dcbf,
+   Gfun(External (EF_builtin "__builtin_dcbf"
+                   (mksignature (AST.Xptr :: nil) AST.Xvoid cc_default))
+     ((tptr tvoid) :: nil) tvoid cc_default)) ::
+ (___builtin_dcbi,
+   Gfun(External (EF_builtin "__builtin_dcbi"
+                   (mksignature (AST.Xptr :: nil) AST.Xvoid cc_default))
+     ((tptr tvoid) :: nil) tvoid cc_default)) ::
+ (___builtin_icbi,
+   Gfun(External (EF_builtin "__builtin_icbi"
+                   (mksignature (AST.Xptr :: nil) AST.Xvoid cc_default))
+     ((tptr tvoid) :: nil) tvoid cc_default)) ::
+ (___builtin_prefetch,
+   Gfun(External (EF_builtin "__builtin_prefetch"
+                   (mksignature (AST.Xptr :: AST.Xint :: AST.Xint :: nil)
+                     AST.Xvoid cc_default))
+     ((tptr tvoid) :: tint :: tint :: nil) tvoid cc_default)) ::
+ (___builtin_dcbtls,
+   Gfun(External (EF_builtin "__builtin_dcbtls"
+                   (mksignature (AST.Xptr :: AST.Xint :: nil) AST.Xvoid
+                     cc_default)) ((tptr tvoid) :: tint :: nil) tvoid
+     cc_default)) ::
+ (___builtin_icbtls,
+   Gfun(External (EF_builtin "__builtin_icbtls"
+                   (mksignature (AST.Xptr :: AST.Xint :: nil) AST.Xvoid
+                     cc_default)) ((tptr tvoid) :: tint :: nil) tvoid
+     cc_default)) ::
+ (___builtin_dcbz,
+   Gfun(External (EF_builtin "__builtin_dcbz"
+                   (mksignature (AST.Xptr :: nil) AST.Xvoid cc_default))
+     ((tptr tvoid) :: nil) tvoid cc_default)) ::
+ (___builtin_get_spr,
+   Gfun(External (EF_builtin "__builtin_get_spr"
+                   (mksignature (AST.Xint :: nil) AST.Xint cc_default))
+     (tint :: nil) tuint cc_default)) ::
+ (___builtin_set_spr,
+   Gfun(External (EF_builtin "__builtin_set_spr"
+                   (mksignature (AST.Xint :: AST.Xint :: nil) AST.Xvoid
+                     cc_default)) (tint :: tuint :: nil) tvoid cc_default)) ::
+ (___builtin_get_spr64,
+   Gfun(External (EF_builtin "__builtin_get_spr64"
+                   (mksignature (AST.Xint :: nil) AST.Xlong cc_default))
+     (tint :: nil) tulong cc_default)) ::
+ (___builtin_set_spr64,
+   Gfun(External (EF_builtin "__builtin_set_spr64"
+                   (mksignature (AST.Xint :: AST.Xlong :: nil) AST.Xvoid
+                     cc_default)) (tint :: tulong :: nil) tvoid cc_default)) ::
+ (___builtin_mr,
+   Gfun(External (EF_builtin "__builtin_mr"
+                   (mksignature (AST.Xint :: AST.Xint :: nil) AST.Xvoid
+                     cc_default)) (tint :: tint :: nil) tvoid cc_default)) ::
+ (___builtin_call_frame,
+   Gfun(External (EF_builtin "__builtin_call_frame"
+                   (mksignature nil AST.Xptr cc_default)) nil (tptr tvoid)
+     cc_default)) ::
+ (___builtin_return_address,
+   Gfun(External (EF_builtin "__builtin_return_address"
+                   (mksignature nil AST.Xptr cc_default)) nil (tptr tvoid)
+     cc_default)) ::
+ (___builtin_isel,
+   Gfun(External (EF_builtin "__builtin_isel"
+                   (mksignature (AST.Xbool :: AST.Xint :: AST.Xint :: nil)
+                     AST.Xint cc_default)) (tbool :: tint :: tint :: nil)
+     tint cc_default)) ::
+ (___builtin_uisel,
+   Gfun(External (EF_builtin "__builtin_uisel"
+                   (mksignature (AST.Xbool :: AST.Xint :: AST.Xint :: nil)
+                     AST.Xint cc_default)) (tbool :: tuint :: tuint :: nil)
+     tuint cc_default)) ::
+ (___builtin_isel64,
+   Gfun(External (EF_builtin "__builtin_isel64"
+                   (mksignature (AST.Xbool :: AST.Xlong :: AST.Xlong :: nil)
+                     AST.Xlong cc_default)) (tbool :: tlong :: tlong :: nil)
+     tlong cc_default)) ::
+ (___builtin_uisel64,
+   Gfun(External (EF_builtin "__builtin_uisel64"
+                   (mksignature (AST.Xbool :: AST.Xlong :: AST.Xlong :: nil)
+                     AST.Xlong cc_default))
+     (tbool :: tulong :: tulong :: nil) tulong cc_default)) ::
+ (___builtin_bsel,
+   Gfun(External (EF_builtin "__builtin_bsel"
+                   (mksignature (AST.Xbool :: AST.Xbool :: AST.Xbool :: nil)
+                     AST.Xbool cc_default)) (tbool :: tbool :: tbool :: nil)
+     tbool cc_default)) ::
+ (___builtin_nop,
+   Gfun(External (EF_builtin "__builtin_nop"
+                   (mksignature nil AST.Xvoid cc_default)) nil tvoid
+     cc_default)) ::
+ (___builtin_atomic_exchange,
+   Gfun(External (EF_builtin "__builtin_atomic_exchange"
+                   (mksignature (AST.Xptr :: AST.Xptr :: AST.Xptr :: nil)
+                     AST.Xvoid cc_default))
+     ((tptr tint) :: (tptr tint) :: (tptr tint) :: nil) tvoid cc_default)) ::
+ (___builtin_atomic_load,
+   Gfun(External (EF_builtin "__builtin_atomic_load"
+                   (mksignature (AST.Xptr :: AST.Xptr :: nil) AST.Xvoid
+                     cc_default)) ((tptr tint) :: (tptr tint) :: nil) tvoid
+     cc_default)) ::
+ (___builtin_atomic_compare_exchange,
+   Gfun(External (EF_builtin "__builtin_atomic_compare_exchange"
+                   (mksignature (AST.Xptr :: AST.Xptr :: AST.Xptr :: nil)
+                     AST.Xbool cc_default))
+     ((tptr tint) :: (tptr tint) :: (tptr tint) :: nil) tbool cc_default)) ::
+ (___builtin_sync_fetch_and_add,
+   Gfun(External (EF_builtin "__builtin_sync_fetch_and_add"
+                   (mksignature (AST.Xptr :: AST.Xint :: nil) AST.Xint
+                     cc_default)) ((tptr tint) :: tint :: nil) tint
      cc_default)) ::
  (___builtin_debug,
    Gfun(External (EF_external "__builtin_debug"
@@ -5862,7 +6071,7 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (_gd_copy_p1_contpad,
    Gfun(External (EF_external "gd_copy_p1_contpad"
                    (mksignature (AST.Xptr :: nil) AST.Xvoid cc_default))
-     ((tptr (Tstruct __220 noattr)) :: nil) tvoid cc_default)) ::
+     ((tptr (Tstruct __319 noattr)) :: nil) tvoid cc_default)) ::
  (_gd_sfx_to_play,
    Gfun(External (EF_external "gd_sfx_to_play"
                    (mksignature nil AST.Xint cc_default)) nil tint
@@ -5870,7 +6079,7 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (_gdm_gettestdl,
    Gfun(External (EF_external "gdm_gettestdl"
                    (mksignature (AST.Xint :: nil) AST.Xptr cc_default))
-     (tint :: nil) (tptr (Tunion __450 noattr)) cc_default)) ::
+     (tint :: nil) (tptr (Tunion __549 noattr)) cc_default)) ::
  (_gMarioStates, Gvar v_gMarioStates) ::
  (_gMarioState, Gvar v_gMarioState) ::
  (_spawn_object,
@@ -5970,26 +6179,39 @@ Definition public_idents : list ident :=
  _gWarpTransition :: _gPlayerCameraState :: _geo_remove_child ::
  _geo_add_child :: _init_graph_node_object :: _gVec3fOne :: _gVec3sZero ::
  _gVec3fZero :: _alloc_display_list :: ___builtin_debug ::
- ___builtin_write32_reversed :: ___builtin_write16_reversed ::
- ___builtin_read32_reversed :: ___builtin_read16_reversed ::
- ___builtin_fnmsub :: ___builtin_fnmadd :: ___builtin_fmsub ::
- ___builtin_fmadd :: ___builtin_fmin :: ___builtin_fmax ::
- ___builtin_expect :: ___builtin_unreachable :: ___builtin_va_end ::
- ___builtin_va_copy :: ___builtin_va_arg :: ___builtin_va_start ::
- ___builtin_membar :: ___builtin_annot_intval :: ___builtin_annot ::
- ___builtin_sel :: ___builtin_memcpy_aligned :: ___builtin_sqrt ::
- ___builtin_fsqrt :: ___builtin_fabsf :: ___builtin_fabs ::
- ___builtin_ctzll :: ___builtin_ctzl :: ___builtin_ctz :: ___builtin_clzll ::
- ___builtin_clzl :: ___builtin_clz :: ___builtin_bswap16 ::
- ___builtin_bswap32 :: ___builtin_bswap :: ___builtin_bswap64 ::
- ___builtin_ais_annot :: ___compcert_i64_umulh :: ___compcert_i64_smulh ::
- ___compcert_i64_sar :: ___compcert_i64_shr :: ___compcert_i64_shl ::
- ___compcert_i64_umod :: ___compcert_i64_smod :: ___compcert_i64_udiv ::
- ___compcert_i64_sdiv :: ___compcert_i64_utof :: ___compcert_i64_stof ::
- ___compcert_i64_utod :: ___compcert_i64_stod :: ___compcert_i64_dtou ::
- ___compcert_i64_dtos :: ___compcert_va_composite ::
- ___compcert_va_float64 :: ___compcert_va_int64 :: ___compcert_va_int32 ::
- nil).
+ ___builtin_sync_fetch_and_add :: ___builtin_atomic_compare_exchange ::
+ ___builtin_atomic_load :: ___builtin_atomic_exchange :: ___builtin_nop ::
+ ___builtin_bsel :: ___builtin_uisel64 :: ___builtin_isel64 ::
+ ___builtin_uisel :: ___builtin_isel :: ___builtin_return_address ::
+ ___builtin_call_frame :: ___builtin_mr :: ___builtin_set_spr64 ::
+ ___builtin_get_spr64 :: ___builtin_set_spr :: ___builtin_get_spr ::
+ ___builtin_dcbz :: ___builtin_icbtls :: ___builtin_dcbtls ::
+ ___builtin_prefetch :: ___builtin_icbi :: ___builtin_dcbi ::
+ ___builtin_dcbf :: ___builtin_trap :: ___builtin_mbar ::
+ ___builtin_lwsync :: ___builtin_isync :: ___builtin_sync ::
+ ___builtin_eieio :: ___builtin_write64_reversed ::
+ ___builtin_read64_reversed :: ___builtin_write32_reversed ::
+ ___builtin_write16_reversed :: ___builtin_read32_reversed ::
+ ___builtin_read16_reversed :: ___builtin_fcti :: ___builtin_fsel ::
+ ___builtin_fres :: ___builtin_frsqrte :: ___builtin_fnmsub ::
+ ___builtin_fnmadd :: ___builtin_fmsub :: ___builtin_fmadd ::
+ ___builtin_mulhdu :: ___builtin_mulhd :: ___builtin_cmpb ::
+ ___builtin_mulhwu :: ___builtin_mulhw :: ___builtin_expect ::
+ ___builtin_unreachable :: ___builtin_va_end :: ___builtin_va_copy ::
+ ___builtin_va_arg :: ___builtin_va_start :: ___builtin_membar ::
+ ___builtin_annot_intval :: ___builtin_annot :: ___builtin_sel ::
+ ___builtin_memcpy_aligned :: ___builtin_sqrt :: ___builtin_fsqrt ::
+ ___builtin_fabsf :: ___builtin_fabs :: ___builtin_ctzll ::
+ ___builtin_ctzl :: ___builtin_ctz :: ___builtin_clzll :: ___builtin_clzl ::
+ ___builtin_clz :: ___builtin_bswap16 :: ___builtin_bswap32 ::
+ ___builtin_bswap :: ___builtin_bswap64 :: ___builtin_ais_annot ::
+ ___compcert_i64_umulh :: ___compcert_i64_smulh :: ___compcert_i64_sar ::
+ ___compcert_i64_shr :: ___compcert_i64_shl :: ___compcert_i64_umod ::
+ ___compcert_i64_smod :: ___compcert_i64_udiv :: ___compcert_i64_sdiv ::
+ ___compcert_i64_utof :: ___compcert_i64_stof :: ___compcert_i64_utod ::
+ ___compcert_i64_stod :: ___compcert_i64_dtou :: ___compcert_i64_dtos ::
+ ___compcert_va_composite :: ___compcert_va_float64 ::
+ ___compcert_va_int64 :: ___compcert_va_int32 :: nil).
 
 Definition prog : Clight.program := 
   mkprogram composites global_definitions public_idents _main Logic.I.

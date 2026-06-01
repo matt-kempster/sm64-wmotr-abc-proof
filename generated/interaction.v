@@ -18,11 +18,11 @@ Module Info.
   Definition build_number := "".
   Definition build_tag := "".
   Definition build_branch := "".
-  Definition arch := "x86".
-  Definition model := "64".
-  Definition abi := "standard".
-  Definition bitsize := 64.
-  Definition big_endian := false.
+  Definition arch := "powerpc".
+  Definition model := "ppc32".
+  Definition abi := "eabi".
+  Definition bitsize := 32.
+  Definition big_endian := true.
   Definition source_file := "vendor/sm64/src/game/interaction.c".
   Definition normalized := true.
 End Info.
@@ -55,40 +55,78 @@ Definition _UnusedArea28 : ident := $"UnusedArea28".
 Definition _WarpNode : ident := $"WarpNode".
 Definition _Waypoint : ident := $"Waypoint".
 Definition _Whirlpool : ident := $"Whirlpool".
-Definition __218 : ident := $"_218".
-Definition __220 : ident := $"_220".
-Definition __665 : ident := $"_665".
-Definition __670 : ident := $"_670".
+Definition __317 : ident := $"_317".
+Definition __319 : ident := $"_319".
+Definition __764 : ident := $"_764".
+Definition __769 : ident := $"_769".
 Definition ___builtin_ais_annot : ident := $"__builtin_ais_annot".
 Definition ___builtin_annot : ident := $"__builtin_annot".
 Definition ___builtin_annot_intval : ident := $"__builtin_annot_intval".
+Definition ___builtin_atomic_compare_exchange : ident := $"__builtin_atomic_compare_exchange".
+Definition ___builtin_atomic_exchange : ident := $"__builtin_atomic_exchange".
+Definition ___builtin_atomic_load : ident := $"__builtin_atomic_load".
+Definition ___builtin_bsel : ident := $"__builtin_bsel".
 Definition ___builtin_bswap : ident := $"__builtin_bswap".
 Definition ___builtin_bswap16 : ident := $"__builtin_bswap16".
 Definition ___builtin_bswap32 : ident := $"__builtin_bswap32".
 Definition ___builtin_bswap64 : ident := $"__builtin_bswap64".
+Definition ___builtin_call_frame : ident := $"__builtin_call_frame".
 Definition ___builtin_clz : ident := $"__builtin_clz".
 Definition ___builtin_clzl : ident := $"__builtin_clzl".
 Definition ___builtin_clzll : ident := $"__builtin_clzll".
+Definition ___builtin_cmpb : ident := $"__builtin_cmpb".
 Definition ___builtin_ctz : ident := $"__builtin_ctz".
 Definition ___builtin_ctzl : ident := $"__builtin_ctzl".
 Definition ___builtin_ctzll : ident := $"__builtin_ctzll".
+Definition ___builtin_dcbf : ident := $"__builtin_dcbf".
+Definition ___builtin_dcbi : ident := $"__builtin_dcbi".
+Definition ___builtin_dcbtls : ident := $"__builtin_dcbtls".
+Definition ___builtin_dcbz : ident := $"__builtin_dcbz".
 Definition ___builtin_debug : ident := $"__builtin_debug".
+Definition ___builtin_eieio : ident := $"__builtin_eieio".
 Definition ___builtin_expect : ident := $"__builtin_expect".
 Definition ___builtin_fabs : ident := $"__builtin_fabs".
 Definition ___builtin_fabsf : ident := $"__builtin_fabsf".
+Definition ___builtin_fcti : ident := $"__builtin_fcti".
 Definition ___builtin_fmadd : ident := $"__builtin_fmadd".
-Definition ___builtin_fmax : ident := $"__builtin_fmax".
-Definition ___builtin_fmin : ident := $"__builtin_fmin".
 Definition ___builtin_fmsub : ident := $"__builtin_fmsub".
 Definition ___builtin_fnmadd : ident := $"__builtin_fnmadd".
 Definition ___builtin_fnmsub : ident := $"__builtin_fnmsub".
+Definition ___builtin_fres : ident := $"__builtin_fres".
+Definition ___builtin_frsqrte : ident := $"__builtin_frsqrte".
+Definition ___builtin_fsel : ident := $"__builtin_fsel".
 Definition ___builtin_fsqrt : ident := $"__builtin_fsqrt".
+Definition ___builtin_get_spr : ident := $"__builtin_get_spr".
+Definition ___builtin_get_spr64 : ident := $"__builtin_get_spr64".
+Definition ___builtin_icbi : ident := $"__builtin_icbi".
+Definition ___builtin_icbtls : ident := $"__builtin_icbtls".
+Definition ___builtin_isel : ident := $"__builtin_isel".
+Definition ___builtin_isel64 : ident := $"__builtin_isel64".
+Definition ___builtin_isync : ident := $"__builtin_isync".
+Definition ___builtin_lwsync : ident := $"__builtin_lwsync".
+Definition ___builtin_mbar : ident := $"__builtin_mbar".
 Definition ___builtin_membar : ident := $"__builtin_membar".
 Definition ___builtin_memcpy_aligned : ident := $"__builtin_memcpy_aligned".
+Definition ___builtin_mr : ident := $"__builtin_mr".
+Definition ___builtin_mulhd : ident := $"__builtin_mulhd".
+Definition ___builtin_mulhdu : ident := $"__builtin_mulhdu".
+Definition ___builtin_mulhw : ident := $"__builtin_mulhw".
+Definition ___builtin_mulhwu : ident := $"__builtin_mulhwu".
+Definition ___builtin_nop : ident := $"__builtin_nop".
+Definition ___builtin_prefetch : ident := $"__builtin_prefetch".
 Definition ___builtin_read16_reversed : ident := $"__builtin_read16_reversed".
 Definition ___builtin_read32_reversed : ident := $"__builtin_read32_reversed".
+Definition ___builtin_read64_reversed : ident := $"__builtin_read64_reversed".
+Definition ___builtin_return_address : ident := $"__builtin_return_address".
 Definition ___builtin_sel : ident := $"__builtin_sel".
+Definition ___builtin_set_spr : ident := $"__builtin_set_spr".
+Definition ___builtin_set_spr64 : ident := $"__builtin_set_spr64".
 Definition ___builtin_sqrt : ident := $"__builtin_sqrt".
+Definition ___builtin_sync : ident := $"__builtin_sync".
+Definition ___builtin_sync_fetch_and_add : ident := $"__builtin_sync_fetch_and_add".
+Definition ___builtin_trap : ident := $"__builtin_trap".
+Definition ___builtin_uisel : ident := $"__builtin_uisel".
+Definition ___builtin_uisel64 : ident := $"__builtin_uisel64".
 Definition ___builtin_unreachable : ident := $"__builtin_unreachable".
 Definition ___builtin_va_arg : ident := $"__builtin_va_arg".
 Definition ___builtin_va_copy : ident := $"__builtin_va_copy".
@@ -96,6 +134,7 @@ Definition ___builtin_va_end : ident := $"__builtin_va_end".
 Definition ___builtin_va_start : ident := $"__builtin_va_start".
 Definition ___builtin_write16_reversed : ident := $"__builtin_write16_reversed".
 Definition ___builtin_write32_reversed : ident := $"__builtin_write32_reversed".
+Definition ___builtin_write64_reversed : ident := $"__builtin_write64_reversed".
 Definition ___compcert_i64_dtos : ident := $"__compcert_i64_dtos".
 Definition ___compcert_i64_dtou : ident := $"__compcert_i64_dtou".
 Definition ___compcert_i64_sar : ident := $"__compcert_i64_sar".
@@ -731,67 +770,67 @@ Definition v_sInvulnerable := {|
 
 Definition v_sInteractionHandlers := {|
   gvar_info := (tarray (Tstruct _InteractionHandler noattr) 31);
-  gvar_init := (Init_int32 (Int.repr 16) :: Init_space 4 ::
+  gvar_init := (Init_int32 (Int.repr 16) ::
                 Init_addrof _interact_coin (Ptrofs.repr 0) ::
-                Init_int32 (Int.repr 65536) :: Init_space 4 ::
+                Init_int32 (Int.repr 65536) ::
                 Init_addrof _interact_water_ring (Ptrofs.repr 0) ::
-                Init_int32 (Int.repr 4096) :: Init_space 4 ::
+                Init_int32 (Int.repr 4096) ::
                 Init_addrof _interact_star_or_key (Ptrofs.repr 0) ::
-                Init_int32 (Int.repr 134217728) :: Init_space 4 ::
+                Init_int32 (Int.repr 134217728) ::
                 Init_addrof _interact_bbh_entrance (Ptrofs.repr 0) ::
-                Init_int32 (Int.repr 8192) :: Init_space 4 ::
+                Init_int32 (Int.repr 8192) ::
                 Init_addrof _interact_warp (Ptrofs.repr 0) ::
-                Init_int32 (Int.repr 2048) :: Init_space 4 ::
+                Init_int32 (Int.repr 2048) ::
                 Init_addrof _interact_warp_door (Ptrofs.repr 0) ::
-                Init_int32 (Int.repr 4) :: Init_space 4 ::
+                Init_int32 (Int.repr 4) ::
                 Init_addrof _interact_door (Ptrofs.repr 0) ::
-                Init_int32 (Int.repr 16384) :: Init_space 4 ::
+                Init_int32 (Int.repr 16384) ::
                 Init_addrof _interact_cannon_base (Ptrofs.repr 0) ::
-                Init_int32 (Int.repr 1073741824) :: Init_space 4 ::
+                Init_int32 (Int.repr 1073741824) ::
                 Init_addrof _interact_igloo_barrier (Ptrofs.repr 0) ::
-                Init_int32 (Int.repr 16777216) :: Init_space 4 ::
+                Init_int32 (Int.repr 16777216) ::
                 Init_addrof _interact_tornado (Ptrofs.repr 0) ::
-                Init_int32 (Int.repr 33554432) :: Init_space 4 ::
+                Init_int32 (Int.repr 33554432) ::
                 Init_addrof _interact_whirlpool (Ptrofs.repr 0) ::
-                Init_int32 (Int.repr 1024) :: Init_space 4 ::
+                Init_int32 (Int.repr 1024) ::
                 Init_addrof _interact_strong_wind (Ptrofs.repr 0) ::
-                Init_int32 (Int.repr 262144) :: Init_space 4 ::
+                Init_int32 (Int.repr 262144) ::
                 Init_addrof _interact_flame (Ptrofs.repr 0) ::
-                Init_int32 (Int.repr 268435456) :: Init_space 4 ::
+                Init_int32 (Int.repr 268435456) ::
                 Init_addrof _interact_snufit_bullet (Ptrofs.repr 0) ::
-                Init_int32 (Int.repr 67108864) :: Init_space 4 ::
+                Init_int32 (Int.repr 67108864) ::
                 Init_addrof _interact_clam_or_bubba (Ptrofs.repr 0) ::
-                Init_int32 (Int.repr 131072) :: Init_space 4 ::
+                Init_int32 (Int.repr 131072) ::
                 Init_addrof _interact_bully (Ptrofs.repr 0) ::
-                Init_int32 (Int.repr 536870912) :: Init_space 4 ::
+                Init_int32 (Int.repr 536870912) ::
                 Init_addrof _interact_shock (Ptrofs.repr 0) ::
-                Init_int32 (Int.repr 1048576) :: Init_space 4 ::
+                Init_int32 (Int.repr 1048576) ::
                 Init_addrof _interact_bounce_top (Ptrofs.repr 0) ::
-                Init_int32 (Int.repr 2097152) :: Init_space 4 ::
+                Init_int32 (Int.repr 2097152) ::
                 Init_addrof _interact_mr_blizzard (Ptrofs.repr 0) ::
-                Init_int32 (Int.repr 4194304) :: Init_space 4 ::
+                Init_int32 (Int.repr 4194304) ::
                 Init_addrof _interact_hit_from_below (Ptrofs.repr 0) ::
-                Init_int32 (Int.repr 32768) :: Init_space 4 ::
+                Init_int32 (Int.repr 32768) ::
                 Init_addrof _interact_bounce_top (Ptrofs.repr 0) ::
-                Init_int32 (Int.repr 8) :: Init_space 4 ::
+                Init_int32 (Int.repr 8) ::
                 Init_addrof _interact_damage (Ptrofs.repr 0) ::
-                Init_int32 (Int.repr 64) :: Init_space 4 ::
+                Init_int32 (Int.repr 64) ::
                 Init_addrof _interact_pole (Ptrofs.repr 0) ::
-                Init_int32 (Int.repr 1) :: Init_space 4 ::
+                Init_int32 (Int.repr 1) ::
                 Init_addrof _interact_hoot (Ptrofs.repr 0) ::
-                Init_int32 (Int.repr 512) :: Init_space 4 ::
+                Init_int32 (Int.repr 512) ::
                 Init_addrof _interact_breakable (Ptrofs.repr 0) ::
-                Init_int32 (Int.repr 128) :: Init_space 4 ::
+                Init_int32 (Int.repr 128) ::
                 Init_addrof _interact_bounce_top (Ptrofs.repr 0) ::
-                Init_int32 (Int.repr 524288) :: Init_space 4 ::
+                Init_int32 (Int.repr 524288) ::
                 Init_addrof _interact_koopa_shell (Ptrofs.repr 0) ::
-                Init_int32 (Int.repr 256) :: Init_space 4 ::
+                Init_int32 (Int.repr 256) ::
                 Init_addrof _interact_unknown_08 (Ptrofs.repr 0) ::
-                Init_int32 (Int.repr 32) :: Init_space 4 ::
+                Init_int32 (Int.repr 32) ::
                 Init_addrof _interact_cap (Ptrofs.repr 0) ::
-                Init_int32 (Int.repr 2) :: Init_space 4 ::
+                Init_int32 (Int.repr 2) ::
                 Init_addrof _interact_grabbable (Ptrofs.repr 0) ::
-                Init_int32 (Int.repr 8388608) :: Init_space 4 ::
+                Init_int32 (Int.repr 8388608) ::
                 Init_addrof _interact_text (Ptrofs.repr 0) :: nil);
   gvar_readonly := false;
   gvar_volatile := false
@@ -914,7 +953,7 @@ Definition f_object_facing_mario := {|
             (Efield
               (Efield
                 (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                  (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                  (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
               _asF32 (tarray tfloat 80))
             (Ebinop Oadd (Econst_int (Int.repr 6) tint)
               (Econst_int (Int.repr 0) tint) tint) (tptr tfloat)) tfloat))
@@ -936,7 +975,7 @@ Definition f_object_facing_mario := {|
               (Efield
                 (Efield
                   (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                    (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                    (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
                 _asF32 (tarray tfloat 80))
               (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                 (Econst_int (Int.repr 2) tint) tint) (tptr tfloat)) tfloat))
@@ -958,7 +997,7 @@ Definition f_object_facing_mario := {|
                   (Efield
                     (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
                       (Tstruct _Object noattr)) _rawData
-                    (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                    (Tunion __764 noattr)) _asS32 (tarray tint 80))
                 (Ebinop Oadd (Econst_int (Int.repr 15) tint)
                   (Econst_int (Int.repr 1) tint) tint) (tptr tint)) tint))
           (Sset _dAngle
@@ -999,7 +1038,7 @@ Definition f_mario_obj_angle_to_object := {|
           (Efield
             (Efield
               (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
             _asF32 (tarray tfloat 80))
           (Ebinop Oadd (Econst_int (Int.repr 6) tint)
             (Econst_int (Int.repr 0) tint) tint) (tptr tfloat)) tfloat))
@@ -1021,7 +1060,7 @@ Definition f_mario_obj_angle_to_object := {|
             (Efield
               (Efield
                 (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                  (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                  (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
               _asF32 (tarray tfloat 80))
             (Ebinop Oadd (Econst_int (Int.repr 6) tint)
               (Econst_int (Int.repr 2) tint) tint) (tptr tfloat)) tfloat))
@@ -1353,7 +1392,7 @@ Definition f_determine_interaction := {|
                               (Ederef
                                 (Etempvar _o (tptr (Tstruct _Object noattr)))
                                 (Tstruct _Object noattr)) _rawData
-                              (Tunion __665 noattr)) _asF32
+                              (Tunion __764 noattr)) _asF32
                             (tarray tfloat 80))
                           (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                             (Econst_int (Int.repr 1) tint) tint)
@@ -1383,7 +1422,7 @@ Definition f_determine_interaction := {|
                               (Ederef
                                 (Etempvar _o (tptr (Tstruct _Object noattr)))
                                 (Tstruct _Object noattr)) _rawData
-                              (Tunion __665 noattr)) _asF32
+                              (Tunion __764 noattr)) _asF32
                             (tarray tfloat 80))
                           (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                             (Econst_int (Int.repr 1) tint) tint)
@@ -1444,7 +1483,7 @@ Definition f_attack_object := {|
             (Efield
               (Efield
                 (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                  (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                  (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
               _asS32 (tarray tint 80)) (Econst_int (Int.repr 43) tint)
             (tptr tint)) tint)
         (Ebinop Oadd (Etempvar _attackType tuint)
@@ -1485,7 +1524,7 @@ Definition f_mario_stop_riding_object := {|
               (Efield
                 (Efield
                   (Ederef (Etempvar _t'2 (tptr (Tstruct _Object noattr)))
-                    (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                    (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
                 _asS32 (tarray tint 80)) (Econst_int (Int.repr 43) tint)
               (tptr tint)) tint)
           (Ebinop Oshl (Econst_int (Int.repr 1) tint)
@@ -1639,7 +1678,7 @@ Definition f_mario_drop_held_object := {|
                           (Ederef
                             (Etempvar _t'10 (tptr (Tstruct _Object noattr)))
                             (Tstruct _Object noattr)) _rawData
-                          (Tunion __665 noattr)) _asF32 (tarray tfloat 80))
+                          (Tunion __764 noattr)) _asF32 (tarray tfloat 80))
                       (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                         (Econst_int (Int.repr 0) tint) tint) (tptr tfloat))
                     tfloat) (Etempvar _t'12 tfloat)))))
@@ -1668,7 +1707,7 @@ Definition f_mario_drop_held_object := {|
                           (Ederef
                             (Etempvar _t'8 (tptr (Tstruct _Object noattr)))
                             (Tstruct _Object noattr)) _rawData
-                          (Tunion __665 noattr)) _asF32 (tarray tfloat 80))
+                          (Tunion __764 noattr)) _asF32 (tarray tfloat 80))
                       (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                         (Econst_int (Int.repr 1) tint) tint) (tptr tfloat))
                     tfloat) (Etempvar _t'9 tfloat))))
@@ -1705,7 +1744,7 @@ Definition f_mario_drop_held_object := {|
                               (Ederef
                                 (Etempvar _t'5 (tptr (Tstruct _Object noattr)))
                                 (Tstruct _Object noattr)) _rawData
-                              (Tunion __665 noattr)) _asF32
+                              (Tunion __764 noattr)) _asF32
                             (tarray tfloat 80))
                           (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                             (Econst_int (Int.repr 2) tint) tint)
@@ -1736,7 +1775,7 @@ Definition f_mario_drop_held_object := {|
                               (Ederef
                                 (Etempvar _t'3 (tptr (Tstruct _Object noattr)))
                                 (Tstruct _Object noattr)) _rawData
-                              (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                              (Tunion __764 noattr)) _asS32 (tarray tint 80))
                           (Ebinop Oadd (Econst_int (Int.repr 15) tint)
                             (Econst_int (Int.repr 1) tint) tint) (tptr tint))
                         tint) (Etempvar _t'4 tshort))))
@@ -1862,7 +1901,7 @@ Definition f_mario_throw_held_object := {|
                               (Ederef
                                 (Etempvar _t'13 (tptr (Tstruct _Object noattr)))
                                 (Tstruct _Object noattr)) _rawData
-                              (Tunion __665 noattr)) _asF32
+                              (Tunion __764 noattr)) _asF32
                             (tarray tfloat 80))
                           (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                             (Econst_int (Int.repr 0) tint) tint)
@@ -1902,7 +1941,7 @@ Definition f_mario_throw_held_object := {|
                             (Ederef
                               (Etempvar _t'10 (tptr (Tstruct _Object noattr)))
                               (Tstruct _Object noattr)) _rawData
-                            (Tunion __665 noattr)) _asF32 (tarray tfloat 80))
+                            (Tunion __764 noattr)) _asF32 (tarray tfloat 80))
                         (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                           (Econst_int (Int.repr 1) tint) tint) (tptr tfloat))
                       tfloat) (Etempvar _t'12 tfloat)))))
@@ -1962,7 +2001,7 @@ Definition f_mario_throw_held_object := {|
                                   (Ederef
                                     (Etempvar _t'5 (tptr (Tstruct _Object noattr)))
                                     (Tstruct _Object noattr)) _rawData
-                                  (Tunion __665 noattr)) _asF32
+                                  (Tunion __764 noattr)) _asF32
                                 (tarray tfloat 80))
                               (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                                 (Econst_int (Int.repr 2) tint) tint)
@@ -1997,7 +2036,7 @@ Definition f_mario_throw_held_object := {|
                               (Ederef
                                 (Etempvar _t'3 (tptr (Tstruct _Object noattr)))
                                 (Tstruct _Object noattr)) _rawData
-                              (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                              (Tunion __764 noattr)) _asS32 (tarray tint 80))
                           (Ebinop Oadd (Econst_int (Int.repr 15) tint)
                             (Econst_int (Int.repr 1) tint) tint) (tptr tint))
                         tint) (Etempvar _t'4 tshort))))
@@ -2052,7 +2091,7 @@ Definition f_mario_stop_riding_and_holding := {|
                     (Efield
                       (Ederef (Etempvar _t'4 (tptr (Tstruct _Object noattr)))
                         (Tstruct _Object noattr)) _rawData
-                      (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                      (Tunion __764 noattr)) _asS32 (tarray tint 80))
                   (Econst_int (Int.repr 43) tint) (tptr tint)) tint)
               (Econst_int (Int.repr 0) tint)))
           (Ssequence
@@ -2071,7 +2110,7 @@ Definition f_mario_stop_riding_and_holding := {|
                         (Ederef
                           (Etempvar _t'2 (tptr (Tstruct _Object noattr)))
                           (Tstruct _Object noattr)) _rawData
-                        (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                        (Tunion __764 noattr)) _asS32 (tarray tint 80))
                     (Econst_int (Int.repr 34) tint) (tptr tint)) tint)
                 (Etempvar _t'3 tuint)))))
         Sskip))))
@@ -2213,7 +2252,7 @@ Definition f_mario_blow_off_cap := {|
                           (Ederef
                             (Etempvar _capObject (tptr (Tstruct _Object noattr)))
                             (Tstruct _Object noattr)) _rawData
-                          (Tunion __665 noattr)) _asF32 (tarray tfloat 80))
+                          (Tunion __764 noattr)) _asF32 (tarray tfloat 80))
                       (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                         (Econst_int (Int.repr 1) tint) tint) (tptr tfloat))
                     tfloat))
@@ -2225,7 +2264,7 @@ Definition f_mario_blow_off_cap := {|
                           (Ederef
                             (Etempvar _capObject (tptr (Tstruct _Object noattr)))
                             (Tstruct _Object noattr)) _rawData
-                          (Tunion __665 noattr)) _asF32 (tarray tfloat 80))
+                          (Tunion __764 noattr)) _asF32 (tarray tfloat 80))
                       (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                         (Econst_int (Int.repr 1) tint) tint) (tptr tfloat))
                     tfloat)
@@ -2240,7 +2279,7 @@ Definition f_mario_blow_off_cap := {|
                         (Ederef
                           (Etempvar _capObject (tptr (Tstruct _Object noattr)))
                           (Tstruct _Object noattr)) _rawData
-                        (Tunion __665 noattr)) _asF32 (tarray tfloat 80))
+                        (Tunion __764 noattr)) _asF32 (tarray tfloat 80))
                     (Econst_int (Int.repr 12) tint) (tptr tfloat)) tfloat)
                 (Etempvar _capSpeed tfloat))
               (Ssequence
@@ -2262,7 +2301,7 @@ Definition f_mario_blow_off_cap := {|
                             (Ederef
                               (Etempvar _capObject (tptr (Tstruct _Object noattr)))
                               (Tstruct _Object noattr)) _rawData
-                            (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                            (Tunion __764 noattr)) _asS32 (tarray tint 80))
                         (Ebinop Oadd (Econst_int (Int.repr 15) tint)
                           (Econst_int (Int.repr 1) tint) tint) (tptr tint))
                       tint)
@@ -2287,7 +2326,7 @@ Definition f_mario_blow_off_cap := {|
                                 (Ederef
                                   (Etempvar _capObject (tptr (Tstruct _Object noattr)))
                                   (Tstruct _Object noattr)) _rawData
-                                (Tunion __665 noattr)) _asS32
+                                (Tunion __764 noattr)) _asS32
                               (tarray tint 80))
                             (Ebinop Oadd (Econst_int (Int.repr 15) tint)
                               (Econst_int (Int.repr 1) tint) tint)
@@ -2300,7 +2339,7 @@ Definition f_mario_blow_off_cap := {|
                                 (Ederef
                                   (Etempvar _capObject (tptr (Tstruct _Object noattr)))
                                   (Tstruct _Object noattr)) _rawData
-                                (Tunion __665 noattr)) _asS32
+                                (Tunion __764 noattr)) _asS32
                               (tarray tint 80))
                             (Ebinop Oadd (Econst_int (Int.repr 15) tint)
                               (Econst_int (Int.repr 1) tint) tint)
@@ -2474,7 +2513,7 @@ Definition f_able_to_grab_object := {|
                   (Efield
                     (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
                       (Tstruct _Object noattr)) _rawData
-                    (Tunion __665 noattr)) _asU32 (tarray tuint 80))
+                    (Tunion __764 noattr)) _asU32 (tarray tuint 80))
                 (Econst_int (Int.repr 66) tint) (tptr tuint)) tuint))
           (Sifthenelse (Eunop Onotbool
                          (Ebinop Oand (Etempvar _t'4 tuint)
@@ -2559,7 +2598,7 @@ Definition f_mario_get_collided_object := {|
                       (Ederef
                         (Etempvar _object (tptr (Tstruct _Object noattr)))
                         (Tstruct _Object noattr)) _rawData
-                      (Tunion __665 noattr)) _asU32 (tarray tuint 80))
+                      (Tunion __764 noattr)) _asU32 (tarray tuint 80))
                   (Econst_int (Int.repr 42) tint) (tptr tuint)) tuint))
             (Sifthenelse (Ebinop Oeq (Etempvar _t'1 tuint)
                            (Etempvar _interactType tuint) tint)
@@ -2648,7 +2687,7 @@ Definition f_mario_check_object_grab := {|
                               (Ederef
                                 (Etempvar _t'17 (tptr (Tstruct _Object noattr)))
                                 (Tstruct _Object noattr)) _rawData
-                              (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                              (Tunion __764 noattr)) _asS32 (tarray tint 80))
                           (Ebinop Oadd (Econst_int (Int.repr 15) tint)
                             (Econst_int (Int.repr 1) tint) tint) (tptr tint))
                         tint))
@@ -2683,7 +2722,7 @@ Definition f_mario_check_object_grab := {|
                                   (Ederef
                                     (Etempvar _t'14 (tptr (Tstruct _Object noattr)))
                                     (Tstruct _Object noattr)) _rawData
-                                  (Tunion __665 noattr)) _asS32
+                                  (Tunion __764 noattr)) _asS32
                                 (tarray tint 80))
                               (Ebinop Oadd (Econst_int (Int.repr 15) tint)
                                 (Econst_int (Int.repr 1) tint) tint)
@@ -2944,7 +2983,7 @@ Definition f_bully_knock_back_mario := {|
                         (Ederef
                           (Etempvar _bully (tptr (Tstruct _Object noattr)))
                           (Tstruct _Object noattr)) _rawData
-                        (Tunion __665 noattr)) _asF32 (tarray tfloat 80))
+                        (Tunion __764 noattr)) _asF32 (tarray tfloat 80))
                     (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                       (Econst_int (Int.repr 0) tint) tint) (tptr tfloat))
                   tfloat))
@@ -2957,7 +2996,7 @@ Definition f_bully_knock_back_mario := {|
                           (Ederef
                             (Etempvar _bully (tptr (Tstruct _Object noattr)))
                             (Tstruct _Object noattr)) _rawData
-                          (Tunion __665 noattr)) _asF32 (tarray tfloat 80))
+                          (Tunion __764 noattr)) _asF32 (tarray tfloat 80))
                       (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                         (Econst_int (Int.repr 2) tint) tint) (tptr tfloat))
                     tfloat))
@@ -2970,7 +3009,7 @@ Definition f_bully_knock_back_mario := {|
                             (Ederef
                               (Etempvar _bully (tptr (Tstruct _Object noattr)))
                               (Tstruct _Object noattr)) _rawData
-                            (Tunion __665 noattr)) _asF32 (tarray tfloat 80))
+                            (Tunion __764 noattr)) _asF32 (tarray tfloat 80))
                         (Econst_int (Int.repr 12) tint) (tptr tfloat))
                       tfloat))
                   (Ssequence
@@ -2982,7 +3021,7 @@ Definition f_bully_knock_back_mario := {|
                               (Ederef
                                 (Etempvar _bully (tptr (Tstruct _Object noattr)))
                                 (Tstruct _Object noattr)) _rawData
-                              (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                              (Tunion __764 noattr)) _asS32 (tarray tint 80))
                           (Ebinop Oadd (Econst_int (Int.repr 15) tint)
                             (Econst_int (Int.repr 1) tint) tint) (tptr tint))
                         tint))
@@ -3106,7 +3145,7 @@ Definition f_bully_knock_back_mario := {|
                                   (Ederef
                                     (Etempvar _bully (tptr (Tstruct _Object noattr)))
                                     (Tstruct _Object noattr)) _rawData
-                                  (Tunion __665 noattr)) _asS32
+                                  (Tunion __764 noattr)) _asS32
                                 (tarray tint 80))
                               (Ebinop Oadd (Econst_int (Int.repr 15) tint)
                                 (Econst_int (Int.repr 1) tint) tint)
@@ -3206,7 +3245,7 @@ Definition f_bully_knock_back_mario := {|
                                           (Ederef
                                             (Etempvar _bully (tptr (Tstruct _Object noattr)))
                                             (Tstruct _Object noattr))
-                                          _rawData (Tunion __665 noattr))
+                                          _rawData (Tunion __764 noattr))
                                         _asS32 (tarray tint 80))
                                       (Ebinop Oadd
                                         (Econst_int (Int.repr 15) tint)
@@ -3257,7 +3296,7 @@ Definition f_bully_knock_back_mario := {|
                                               (Ederef
                                                 (Etempvar _bully (tptr (Tstruct _Object noattr)))
                                                 (Tstruct _Object noattr))
-                                              _rawData (Tunion __665 noattr))
+                                              _rawData (Tunion __764 noattr))
                                             _asF32 (tarray tfloat 80))
                                           (Econst_int (Int.repr 12) tint)
                                           (tptr tfloat)) tfloat)
@@ -3277,7 +3316,7 @@ Definition f_bully_knock_back_mario := {|
                                                   (Etempvar _bully (tptr (Tstruct _Object noattr)))
                                                   (Tstruct _Object noattr))
                                                 _rawData
-                                                (Tunion __665 noattr)) _asF32
+                                                (Tunion __764 noattr)) _asF32
                                               (tarray tfloat 80))
                                             (Ebinop Oadd
                                               (Econst_int (Int.repr 6) tint)
@@ -3299,7 +3338,7 @@ Definition f_bully_knock_back_mario := {|
                                                     (Etempvar _bully (tptr (Tstruct _Object noattr)))
                                                     (Tstruct _Object noattr))
                                                   _rawData
-                                                  (Tunion __665 noattr))
+                                                  (Tunion __764 noattr))
                                                 _asF32 (tarray tfloat 80))
                                               (Ebinop Oadd
                                                 (Econst_int (Int.repr 6) tint)
@@ -3425,7 +3464,7 @@ Definition f_bounce_off_object := {|
           (Efield
             (Efield
               (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
             _asF32 (tarray tfloat 80))
           (Ebinop Oadd (Econst_int (Int.repr 6) tint)
             (Econst_int (Int.repr 1) tint) tint) (tptr tfloat)) tfloat))
@@ -3646,7 +3685,7 @@ Definition f_determine_knockback_action := {|
                               (Ederef
                                 (Etempvar _t'12 (tptr (Tstruct _Object noattr)))
                                 (Tstruct _Object noattr)) _rawData
-                              (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                              (Tunion __764 noattr)) _asS32 (tarray tint 80))
                           (Econst_int (Int.repr 62) tint) (tptr tint)) tint))
                     (Sifthenelse (Ebinop Oge (Etempvar _t'13 tint)
                                    (Econst_int (Int.repr 4) tint) tint)
@@ -3668,7 +3707,7 @@ Definition f_determine_knockback_action := {|
                                     (Ederef
                                       (Etempvar _t'14 (tptr (Tstruct _Object noattr)))
                                       (Tstruct _Object noattr)) _rawData
-                                    (Tunion __665 noattr)) _asS32
+                                    (Tunion __764 noattr)) _asS32
                                   (tarray tint 80))
                                 (Econst_int (Int.repr 62) tint) (tptr tint))
                               tint))
@@ -3738,7 +3777,7 @@ Definition f_determine_knockback_action := {|
                                       (Ederef
                                         (Etempvar _t'7 (tptr (Tstruct _Object noattr)))
                                         (Tstruct _Object noattr)) _rawData
-                                      (Tunion __665 noattr)) _asF32
+                                      (Tunion __764 noattr)) _asF32
                                     (tarray tfloat 80))
                                   (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                                     (Econst_int (Int.repr 1) tint) tint)
@@ -3953,7 +3992,7 @@ Definition f_push_mario_out_of_object := {|
               (Efield
                 (Efield
                   (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                    (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                    (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
                 _asF32 (tarray tfloat 80))
               (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                 (Econst_int (Int.repr 0) tint) tint) (tptr tfloat)) tfloat))
@@ -3977,7 +4016,7 @@ Definition f_push_mario_out_of_object := {|
                   (Efield
                     (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
                       (Tstruct _Object noattr)) _rawData
-                    (Tunion __665 noattr)) _asF32 (tarray tfloat 80))
+                    (Tunion __764 noattr)) _asF32 (tarray tfloat 80))
                 (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                   (Econst_int (Int.repr 2) tint) tint) (tptr tfloat)) tfloat))
           (Sset _offsetZ
@@ -4027,7 +4066,7 @@ Definition f_push_mario_out_of_object := {|
                           (Ederef
                             (Etempvar _o (tptr (Tstruct _Object noattr)))
                             (Tstruct _Object noattr)) _rawData
-                          (Tunion __665 noattr)) _asF32 (tarray tfloat 80))
+                          (Tunion __764 noattr)) _asF32 (tarray tfloat 80))
                       (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                         (Econst_int (Int.repr 0) tint) tint) (tptr tfloat))
                     tfloat))
@@ -4053,7 +4092,7 @@ Definition f_push_mario_out_of_object := {|
                             (Ederef
                               (Etempvar _o (tptr (Tstruct _Object noattr)))
                               (Tstruct _Object noattr)) _rawData
-                            (Tunion __665 noattr)) _asF32 (tarray tfloat 80))
+                            (Tunion __764 noattr)) _asF32 (tarray tfloat 80))
                         (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                           (Econst_int (Int.repr 2) tint) tint) (tptr tfloat))
                       tfloat))
@@ -4300,7 +4339,7 @@ Definition f_should_push_or_pull_door := {|
           (Efield
             (Efield
               (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
             _asF32 (tarray tfloat 80))
           (Ebinop Oadd (Econst_int (Int.repr 6) tint)
             (Econst_int (Int.repr 0) tint) tint) (tptr tfloat)) tfloat))
@@ -4322,7 +4361,7 @@ Definition f_should_push_or_pull_door := {|
             (Efield
               (Efield
                 (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                  (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                  (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
               _asF32 (tarray tfloat 80))
             (Ebinop Oadd (Econst_int (Int.repr 6) tint)
               (Econst_int (Int.repr 2) tint) tint) (tptr tfloat)) tfloat))
@@ -4350,7 +4389,7 @@ Definition f_should_push_or_pull_door := {|
                   (Efield
                     (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
                       (Tstruct _Object noattr)) _rawData
-                    (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                    (Tunion __764 noattr)) _asS32 (tarray tint 80))
                 (Ebinop Oadd (Econst_int (Int.repr 15) tint)
                   (Econst_int (Int.repr 1) tint) tint) (tptr tint)) tint))
           (Sset _dYaw
@@ -4395,7 +4434,7 @@ Definition f_take_damage_from_interact_object := {|
           (Efield
             (Efield
               (Ederef (Etempvar _t'4 (tptr (Tstruct _Object noattr)))
-                (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
             _asS32 (tarray tint 80)) (Econst_int (Int.repr 62) tint)
           (tptr tint)) tint)))
   (Ssequence
@@ -4491,7 +4530,7 @@ Definition f_take_damage_and_knock_back := {|
                   (Efield
                     (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
                       (Tstruct _Object noattr)) _rawData
-                    (Tunion __665 noattr)) _asU32 (tarray tuint 80))
+                    (Tunion __764 noattr)) _asU32 (tarray tuint 80))
                 (Econst_int (Int.repr 66) tint) (tptr tuint)) tuint))
           (Sset _t'5
             (Ecast
@@ -4507,7 +4546,7 @@ Definition f_take_damage_and_knock_back := {|
               (Efield
                 (Efield
                   (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                    (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                    (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
                 _asS32 (tarray tint 80)) (Econst_int (Int.repr 43) tint)
               (tptr tint)) tint)
           (Ebinop Oor
@@ -4541,7 +4580,7 @@ Definition f_take_damage_and_knock_back := {|
                           (Ederef
                             (Etempvar _o (tptr (Tstruct _Object noattr)))
                             (Tstruct _Object noattr)) _rawData
-                          (Tunion __665 noattr)) _asU32 (tarray tuint 80))
+                          (Tunion __764 noattr)) _asU32 (tarray tuint 80))
                       (Econst_int (Int.repr 66) tint) (tptr tuint)) tuint))
                 (Sifthenelse (Ebinop Oand (Etempvar _t'9 tuint)
                                (Econst_int (Int.repr 8) tint) tuint)
@@ -4562,7 +4601,7 @@ Definition f_take_damage_and_knock_back := {|
                             (Ederef
                               (Etempvar _o (tptr (Tstruct _Object noattr)))
                               (Tstruct _Object noattr)) _rawData
-                            (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                            (Tunion __764 noattr)) _asS32 (tarray tint 80))
                         (Econst_int (Int.repr 62) tint) (tptr tint)) tint))
                   (Sifthenelse (Ebinop Ogt (Etempvar _t'7 tint)
                                  (Econst_int (Int.repr 0) tint) tint)
@@ -4626,7 +4665,7 @@ Definition f_take_damage_and_knock_back := {|
                                   (Ederef
                                     (Etempvar _o (tptr (Tstruct _Object noattr)))
                                     (Tstruct _Object noattr)) _rawData
-                                  (Tunion __665 noattr)) _asS32
+                                  (Tunion __764 noattr)) _asS32
                                 (tarray tint 80))
                               (Econst_int (Int.repr 62) tint) (tptr tint))
                             tint))
@@ -4769,7 +4808,7 @@ Definition f_interact_coin := {|
             (Efield
               (Efield
                 (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                  (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                  (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
               _asS32 (tarray tint 80)) (Econst_int (Int.repr 62) tint)
             (tptr tint)) tint))
       (Sassign
@@ -4790,7 +4829,7 @@ Definition f_interact_coin := {|
               (Efield
                 (Efield
                   (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                    (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                    (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
                 _asS32 (tarray tint 80)) (Econst_int (Int.repr 62) tint)
               (tptr tint)) tint))
         (Sassign
@@ -4807,7 +4846,7 @@ Definition f_interact_coin := {|
             (Efield
               (Efield
                 (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                  (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                  (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
               _asS32 (tarray tint 80)) (Econst_int (Int.repr 43) tint)
             (tptr tint)) tint)
         (Ebinop Oshl (Econst_int (Int.repr 1) tint)
@@ -4843,7 +4882,7 @@ Definition f_interact_coin := {|
                               (Ederef
                                 (Etempvar _o (tptr (Tstruct _Object noattr)))
                                 (Tstruct _Object noattr)) _rawData
-                              (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                              (Tunion __764 noattr)) _asS32 (tarray tint 80))
                           (Econst_int (Int.repr 62) tint) (tptr tint)) tint))
                     (Sset _t'2
                       (Ecast
@@ -4894,7 +4933,7 @@ Definition f_interact_water_ring := {|
             (Efield
               (Efield
                 (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                  (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                  (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
               _asS32 (tarray tint 80)) (Econst_int (Int.repr 62) tint)
             (tptr tint)) tint))
       (Sassign
@@ -4911,7 +4950,7 @@ Definition f_interact_water_ring := {|
           (Efield
             (Efield
               (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
             _asS32 (tarray tint 80)) (Econst_int (Int.repr 43) tint)
           (tptr tint)) tint)
       (Ebinop Oshl (Econst_int (Int.repr 1) tint)
@@ -4945,7 +4984,7 @@ Definition f_interact_star_or_key := {|
             (Efield
               (Efield
                 (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                  (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                  (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
               _asU32 (tarray tuint 80)) (Econst_int (Int.repr 66) tint)
             (tptr tuint)) tuint))
       (Sset _noExit
@@ -4961,7 +5000,7 @@ Definition f_interact_star_or_key := {|
               (Efield
                 (Efield
                   (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                    (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                    (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
                 _asU32 (tarray tuint 80)) (Econst_int (Int.repr 66) tint)
               (tptr tuint)) tuint))
         (Sset _grandStar
@@ -5087,7 +5126,7 @@ Definition f_interact_star_or_key := {|
                                       (Ederef
                                         (Etempvar _o (tptr (Tstruct _Object noattr)))
                                         (Tstruct _Object noattr)) _rawData
-                                      (Tunion __665 noattr)) _asS32
+                                      (Tunion __764 noattr)) _asS32
                                     (tarray tint 80))
                                   (Econst_int (Int.repr 43) tint)
                                   (tptr tint)) tint)
@@ -5120,7 +5159,7 @@ Definition f_interact_star_or_key := {|
                                               (Ederef
                                                 (Etempvar _o (tptr (Tstruct _Object noattr)))
                                                 (Tstruct _Object noattr))
-                                              _rawData (Tunion __665 noattr))
+                                              _rawData (Tunion __764 noattr))
                                             _asS32 (tarray tint 80))
                                           (Econst_int (Int.repr 64) tint)
                                           (tptr tint)) tint))
@@ -5329,7 +5368,7 @@ Definition f_interact_bbh_entrance := {|
                   (Efield
                     (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
                       (Tstruct _Object noattr)) _rawData
-                    (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                    (Tunion __764 noattr)) _asS32 (tarray tint 80))
                 (Econst_int (Int.repr 43) tint) (tptr tint)) tint)
             (Ebinop Oshl (Econst_int (Int.repr 1) tint)
               (Econst_int (Int.repr 15) tint) tint))
@@ -5405,7 +5444,7 @@ Definition f_interact_warp := {|
           (Efield
             (Efield
               (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
             _asU32 (tarray tuint 80)) (Econst_int (Int.repr 66) tint)
           (tptr tuint)) tuint))
     (Sifthenelse (Ebinop Oand (Etempvar _t'8 tuint)
@@ -5494,7 +5533,7 @@ Definition f_interact_warp := {|
                     (Efield
                       (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
                         (Tstruct _Object noattr)) _rawData
-                      (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                      (Tunion __764 noattr)) _asS32 (tarray tint 80))
                   (Econst_int (Int.repr 43) tint) (tptr tint)) tint)
               (Ebinop Oshl (Econst_int (Int.repr 1) tint)
                 (Econst_int (Int.repr 15) tint) tint))
@@ -5658,7 +5697,7 @@ Definition f_interact_warp_door := {|
               (Efield
                 (Efield
                   (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                    (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                    (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
                 _asS32 (tarray tint 80)) (Econst_int (Int.repr 64) tint)
               (tptr tint)) tint))
         (Sset _warpDoorId
@@ -5895,7 +5934,7 @@ Definition f_get_door_save_file_flag := {|
             (Efield
               (Efield
                 (Ederef (Etempvar _door (tptr (Tstruct _Object noattr)))
-                  (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                  (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
               _asS32 (tarray tint 80)) (Econst_int (Int.repr 64) tint)
             (tptr tint)) tint))
       (Sset _requiredNumStars
@@ -5910,7 +5949,7 @@ Definition f_get_door_save_file_flag := {|
               (Efield
                 (Efield
                   (Ederef (Etempvar _door (tptr (Tstruct _Object noattr)))
-                    (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                    (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
                 _asF32 (tarray tfloat 80))
               (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                 (Econst_int (Int.repr 0) tint) tint) (tptr tfloat)) tfloat))
@@ -5928,7 +5967,7 @@ Definition f_get_door_save_file_flag := {|
                   (Efield
                     (Ederef (Etempvar _door (tptr (Tstruct _Object noattr)))
                       (Tstruct _Object noattr)) _rawData
-                    (Tunion __665 noattr)) _asF32 (tarray tfloat 80))
+                    (Tunion __764 noattr)) _asF32 (tarray tfloat 80))
                 (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                   (Econst_int (Int.repr 1) tint) tint) (tptr tfloat)) tfloat))
           (Sset _isPSSDoor
@@ -6006,7 +6045,7 @@ Definition f_interact_door := {|
           (Efield
             (Efield
               (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
             _asS32 (tarray tint 80)) (Econst_int (Int.repr 64) tint)
           (tptr tint)) tint))
     (Sset _requiredNumStars
@@ -6100,7 +6139,7 @@ Definition f_interact_door := {|
                                     (Ederef
                                       (Etempvar _o (tptr (Tstruct _Object noattr)))
                                       (Tstruct _Object noattr)) _rawData
-                                    (Tunion __665 noattr)) _asU32
+                                    (Tunion __764 noattr)) _asU32
                                   (tarray tuint 80))
                                 (Econst_int (Int.repr 66) tint) (tptr tuint))
                               tuint))
@@ -6305,7 +6344,7 @@ Definition f_interact_cannon_base := {|
                   (Efield
                     (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
                       (Tstruct _Object noattr)) _rawData
-                    (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                    (Tunion __764 noattr)) _asS32 (tarray tint 80))
                 (Econst_int (Int.repr 43) tint) (tptr tint)) tint)
             (Ebinop Oshl (Econst_int (Int.repr 1) tint)
               (Econst_int (Int.repr 15) tint) tint))
@@ -6442,7 +6481,7 @@ Definition f_interact_tornado := {|
                           (Ederef
                             (Etempvar _o (tptr (Tstruct _Object noattr)))
                             (Tstruct _Object noattr)) _rawData
-                          (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                          (Tunion __764 noattr)) _asS32 (tarray tint 80))
                       (Econst_int (Int.repr 43) tint) (tptr tint)) tint)
                   (Ebinop Oshl (Econst_int (Int.repr 1) tint)
                     (Econst_int (Int.repr 15) tint) tint))
@@ -6471,7 +6510,7 @@ Definition f_interact_tornado := {|
                                 (Ederef
                                   (Etempvar _marioObj (tptr (Tstruct _Object noattr)))
                                   (Tstruct _Object noattr)) _rawData
-                                (Tunion __665 noattr)) _asS32
+                                (Tunion __764 noattr)) _asS32
                               (tarray tint 80))
                             (Econst_int (Int.repr 33) tint) (tptr tint))
                           tint) (Econst_int (Int.repr 1024) tint))
@@ -6496,7 +6535,7 @@ Definition f_interact_tornado := {|
                                       (Ederef
                                         (Etempvar _o (tptr (Tstruct _Object noattr)))
                                         (Tstruct _Object noattr)) _rawData
-                                      (Tunion __665 noattr)) _asF32
+                                      (Tunion __764 noattr)) _asF32
                                     (tarray tfloat 80))
                                   (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                                     (Econst_int (Int.repr 1) tint) tint)
@@ -6509,7 +6548,7 @@ Definition f_interact_tornado := {|
                                       (Ederef
                                         (Etempvar _marioObj (tptr (Tstruct _Object noattr)))
                                         (Tstruct _Object noattr)) _rawData
-                                      (Tunion __665 noattr)) _asF32
+                                      (Tunion __764 noattr)) _asF32
                                     (tarray tfloat 80))
                                   (Econst_int (Int.repr 34) tint)
                                   (tptr tfloat)) tfloat)
@@ -6627,7 +6666,7 @@ Definition f_interact_whirlpool := {|
                     (Efield
                       (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
                         (Tstruct _Object noattr)) _rawData
-                      (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                      (Tunion __764 noattr)) _asS32 (tarray tint 80))
                   (Econst_int (Int.repr 43) tint) (tptr tint)) tint)
               (Ebinop Oshl (Econst_int (Int.repr 1) tint)
                 (Econst_int (Int.repr 15) tint) tint))
@@ -6673,7 +6712,7 @@ Definition f_interact_whirlpool := {|
                                   (Ederef
                                     (Etempvar _o (tptr (Tstruct _Object noattr)))
                                     (Tstruct _Object noattr)) _rawData
-                                  (Tunion __665 noattr)) _asF32
+                                  (Tunion __764 noattr)) _asF32
                                 (tarray tfloat 80))
                               (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                                 (Econst_int (Int.repr 1) tint) tint)
@@ -6686,7 +6725,7 @@ Definition f_interact_whirlpool := {|
                                   (Ederef
                                     (Etempvar _marioObj (tptr (Tstruct _Object noattr)))
                                     (Tstruct _Object noattr)) _rawData
-                                  (Tunion __665 noattr)) _asF32
+                                  (Tunion __764 noattr)) _asF32
                                 (tarray tfloat 80))
                               (Econst_int (Int.repr 34) tint) (tptr tfloat))
                             tfloat)
@@ -6787,7 +6826,7 @@ Definition f_interact_strong_wind := {|
                     (Efield
                       (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
                         (Tstruct _Object noattr)) _rawData
-                      (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                      (Tunion __764 noattr)) _asS32 (tarray tint 80))
                   (Econst_int (Int.repr 43) tint) (tptr tint)) tint)
               (Ebinop Oshl (Econst_int (Int.repr 1) tint)
                 (Econst_int (Int.repr 15) tint) tint))
@@ -6815,7 +6854,7 @@ Definition f_interact_strong_wind := {|
                               (Ederef
                                 (Etempvar _o (tptr (Tstruct _Object noattr)))
                                 (Tstruct _Object noattr)) _rawData
-                              (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                              (Tunion __764 noattr)) _asS32 (tarray tint 80))
                           (Ebinop Oadd (Econst_int (Int.repr 15) tint)
                             (Econst_int (Int.repr 1) tint) tint) (tptr tint))
                         tint))
@@ -6989,7 +7028,7 @@ Definition f_interact_flame := {|
                     (Efield
                       (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
                         (Tstruct _Object noattr)) _rawData
-                      (Tunion __665 noattr)) _asU32 (tarray tuint 80))
+                      (Tunion __764 noattr)) _asU32 (tarray tuint 80))
                   (Econst_int (Int.repr 66) tint) (tptr tuint)) tuint))
             (Sset _t'6
               (Ecast
@@ -7006,7 +7045,7 @@ Definition f_interact_flame := {|
                   (Efield
                     (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
                       (Tstruct _Object noattr)) _rawData
-                    (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                    (Tunion __764 noattr)) _asS32 (tarray tint 80))
                 (Econst_int (Int.repr 43) tint) (tptr tint)) tint)
             (Ebinop Oshl (Econst_int (Int.repr 1) tint)
               (Econst_int (Int.repr 15) tint) tint))
@@ -7107,7 +7146,7 @@ Definition f_interact_flame := {|
                               (Ederef
                                 (Etempvar _t'10 (tptr (Tstruct _Object noattr)))
                                 (Tstruct _Object noattr)) _rawData
-                              (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                              (Tunion __764 noattr)) _asS32 (tarray tint 80))
                           (Econst_int (Int.repr 34) tint) (tptr tint)) tint)
                       (Econst_int (Int.repr 0) tint)))
                   (Ssequence
@@ -7255,7 +7294,7 @@ Definition f_interact_snufit_bullet := {|
                     (Efield
                       (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
                         (Tstruct _Object noattr)) _rawData
-                      (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                      (Tunion __764 noattr)) _asS32 (tarray tint 80))
                   (Econst_int (Int.repr 43) tint) (tptr tint)) tint)
               (Ebinop Oor
                 (Ebinop Oshl (Econst_int (Int.repr 1) tint)
@@ -7304,7 +7343,7 @@ Definition f_interact_snufit_bullet := {|
                     (Efield
                       (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
                         (Tstruct _Object noattr)) _rawData
-                      (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                      (Tunion __764 noattr)) _asS32 (tarray tint 80))
                   (Econst_int (Int.repr 43) tint) (tptr tint)) tint)
               (Ebinop Oor
                 (Ebinop Oshl (Econst_int (Int.repr 1) tint)
@@ -7382,7 +7421,7 @@ Definition f_interact_snufit_bullet := {|
                                     (Ederef
                                       (Etempvar _o (tptr (Tstruct _Object noattr)))
                                       (Tstruct _Object noattr)) _rawData
-                                    (Tunion __665 noattr)) _asS32
+                                    (Tunion __764 noattr)) _asS32
                                   (tarray tint 80))
                                 (Econst_int (Int.repr 62) tint) (tptr tint))
                               tint))
@@ -7403,7 +7442,7 @@ Definition f_interact_snufit_bullet := {|
                                     (Ederef
                                       (Etempvar _o (tptr (Tstruct _Object noattr)))
                                       (Tstruct _Object noattr)) _rawData
-                                    (Tunion __665 noattr)) _asS32
+                                    (Tunion __764 noattr)) _asS32
                                   (tarray tint 80))
                                 (Econst_int (Int.repr 62) tint) (tptr tint))
                               tint))
@@ -7427,7 +7466,7 @@ Definition f_interact_snufit_bullet := {|
             (Efield
               (Efield
                 (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                  (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                  (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
               _asU32 (tarray tuint 80)) (Econst_int (Int.repr 66) tint)
             (tptr tuint)) tuint))
       (Sifthenelse (Eunop Onotbool
@@ -7457,7 +7496,7 @@ Definition f_interact_clam_or_bubba := {|
           (Efield
             (Efield
               (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
             _asU32 (tarray tuint 80)) (Econst_int (Int.repr 66) tint)
           (tptr tuint)) tuint))
     (Sifthenelse (Ebinop Oand (Etempvar _t'4 tuint)
@@ -7469,7 +7508,7 @@ Definition f_interact_clam_or_bubba := {|
               (Efield
                 (Efield
                   (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                    (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                    (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
                 _asS32 (tarray tint 80)) (Econst_int (Int.repr 43) tint)
               (tptr tint)) tint)
           (Ebinop Oshl (Econst_int (Int.repr 1) tint)
@@ -7510,7 +7549,7 @@ Definition f_interact_clam_or_bubba := {|
             (Efield
               (Efield
                 (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                  (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                  (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
               _asU32 (tarray tuint 80)) (Econst_int (Int.repr 66) tint)
             (tptr tuint)) tuint))
       (Sifthenelse (Eunop Onotbool
@@ -7623,7 +7662,7 @@ Definition f_interact_bully := {|
                           (Ederef
                             (Etempvar _o (tptr (Tstruct _Object noattr)))
                             (Tstruct _Object noattr)) _rawData
-                          (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                          (Tunion __764 noattr)) _asS32 (tarray tint 80))
                       (Ebinop Oadd (Econst_int (Int.repr 15) tint)
                         (Econst_int (Int.repr 1) tint) tint) (tptr tint))
                     tint) (Etempvar _t'11 tshort)))
@@ -7641,7 +7680,7 @@ Definition f_interact_bully := {|
                             (Ederef
                               (Etempvar _o (tptr (Tstruct _Object noattr)))
                               (Tstruct _Object noattr)) _rawData
-                            (Tunion __665 noattr)) _asF32 (tarray tfloat 80))
+                            (Tunion __764 noattr)) _asF32 (tarray tfloat 80))
                         (Econst_int (Int.repr 12) tint) (tptr tfloat))
                       tfloat)
                     (Ebinop Odiv
@@ -7690,7 +7729,7 @@ Definition f_interact_bully := {|
                           (Ederef
                             (Etempvar _o (tptr (Tstruct _Object noattr)))
                             (Tstruct _Object noattr)) _rawData
-                          (Tunion __665 noattr)) _asU32 (tarray tuint 80))
+                          (Tunion __764 noattr)) _asU32 (tarray tuint 80))
                       (Econst_int (Int.repr 66) tint) (tptr tuint)) tuint))
                 (Sset _t'4
                   (Ecast
@@ -7707,7 +7746,7 @@ Definition f_interact_bully := {|
                       (Efield
                         (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
                           (Tstruct _Object noattr)) _rawData
-                        (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                        (Tunion __764 noattr)) _asS32 (tarray tint 80))
                     (Econst_int (Int.repr 43) tint) (tptr tint)) tint)
                 (Ebinop Oshl (Econst_int (Int.repr 1) tint)
                   (Econst_int (Int.repr 15) tint) tint))
@@ -7879,7 +7918,7 @@ Definition f_interact_shock := {|
                   (Efield
                     (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
                       (Tstruct _Object noattr)) _rawData
-                    (Tunion __665 noattr)) _asU32 (tarray tuint 80))
+                    (Tunion __764 noattr)) _asU32 (tarray tuint 80))
                 (Econst_int (Int.repr 66) tint) (tptr tuint)) tuint))
           (Sset _t'4
             (Ecast
@@ -7914,7 +7953,7 @@ Definition f_interact_shock := {|
                   (Efield
                     (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
                       (Tstruct _Object noattr)) _rawData
-                    (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                    (Tunion __764 noattr)) _asS32 (tarray tint 80))
                 (Econst_int (Int.repr 43) tint) (tptr tint)) tint)
             (Ebinop Oor
               (Ebinop Oshl (Econst_int (Int.repr 1) tint)
@@ -8026,7 +8065,7 @@ Definition f_interact_shock := {|
             (Efield
               (Efield
                 (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                  (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                  (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
               _asU32 (tarray tuint 80)) (Econst_int (Int.repr 66) tint)
             (tptr tuint)) tuint))
       (Sifthenelse (Eunop Onotbool
@@ -8067,7 +8106,7 @@ Definition f_interact_mr_blizzard := {|
             (Efield
               (Efield
                 (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                  (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                  (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
               _asU32 (tarray tuint 80)) (Econst_int (Int.repr 66) tint)
             (tptr tuint)) tuint))
       (Sifthenelse (Eunop Onotbool
@@ -8174,7 +8213,7 @@ Definition f_interact_hit_from_below := {|
                           (Ederef
                             (Etempvar _o (tptr (Tstruct _Object noattr)))
                             (Tstruct _Object noattr)) _rawData
-                          (Tunion __665 noattr)) _asU32 (tarray tuint 80))
+                          (Tunion __764 noattr)) _asU32 (tarray tuint 80))
                       (Econst_int (Int.repr 66) tint) (tptr tuint)) tuint))
                 (Sifthenelse (Ebinop Oand (Etempvar _t'5 tuint)
                                (Econst_int (Int.repr 128) tint) tuint)
@@ -8280,7 +8319,7 @@ Definition f_interact_hit_from_below := {|
               (Efield
                 (Efield
                   (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                    (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                    (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
                 _asU32 (tarray tuint 80)) (Econst_int (Int.repr 66) tint)
               (tptr tuint)) tuint))
         (Sifthenelse (Eunop Onotbool
@@ -8371,7 +8410,7 @@ Definition f_interact_bounce_top := {|
                       (Efield
                         (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
                           (Tstruct _Object noattr)) _rawData
-                        (Tunion __665 noattr)) _asU32 (tarray tuint 80))
+                        (Tunion __764 noattr)) _asU32 (tarray tuint 80))
                     (Econst_int (Int.repr 66) tint) (tptr tuint)) tuint))
               (Sifthenelse (Ebinop Oand (Etempvar _t'5 tuint)
                              (Econst_int (Int.repr 128) tint) tuint)
@@ -8475,7 +8514,7 @@ Definition f_interact_bounce_top := {|
               (Efield
                 (Efield
                   (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                    (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                    (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
                 _asU32 (tarray tuint 80)) (Econst_int (Int.repr 66) tint)
               (tptr tuint)) tuint))
         (Sifthenelse (Eunop Onotbool
@@ -8518,7 +8557,7 @@ Definition f_interact_unknown_08 := {|
               (Efield
                 (Efield
                   (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                    (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                    (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
                 _asS32 (tarray tint 80)) (Econst_int (Int.repr 43) tint)
               (tptr tint)) tint)
           (Ebinop Oor
@@ -8553,7 +8592,7 @@ Definition f_interact_unknown_08 := {|
               (Efield
                 (Efield
                   (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                    (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                    (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
                 _asU32 (tarray tuint 80)) (Econst_int (Int.repr 66) tint)
               (tptr tuint)) tuint))
         (Sifthenelse (Eunop Onotbool
@@ -8594,7 +8633,7 @@ Definition f_interact_damage := {|
             (Efield
               (Efield
                 (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                  (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                  (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
               _asU32 (tarray tuint 80)) (Econst_int (Int.repr 66) tint)
             (tptr tuint)) tuint))
       (Sifthenelse (Eunop Onotbool
@@ -8878,7 +8917,7 @@ Definition f_check_object_grab_mario := {|
                   (Efield
                     (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
                       (Tstruct _Object noattr)) _rawData
-                    (Tunion __665 noattr)) _asU32 (tarray tuint 80))
+                    (Tunion __764 noattr)) _asU32 (tarray tuint 80))
                 (Econst_int (Int.repr 66) tint) (tptr tuint)) tuint))
           (Sset _t'4
             (Ecast
@@ -8910,7 +8949,7 @@ Definition f_check_object_grab_mario := {|
                       (Efield
                         (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
                           (Tstruct _Object noattr)) _rawData
-                        (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                        (Tunion __764 noattr)) _asS32 (tarray tint 80))
                     (Econst_int (Int.repr 43) tint) (tptr tint)) tint)
                 (Ebinop Oor
                   (Ebinop Oshl (Econst_int (Int.repr 1) tint)
@@ -8927,7 +8966,7 @@ Definition f_check_object_grab_mario := {|
                             (Ederef
                               (Etempvar _o (tptr (Tstruct _Object noattr)))
                               (Tstruct _Object noattr)) _rawData
-                            (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                            (Tunion __764 noattr)) _asS32 (tarray tint 80))
                         (Ebinop Oadd (Econst_int (Int.repr 15) tint)
                           (Econst_int (Int.repr 1) tint) tint) (tptr tint))
                       tint))
@@ -9160,7 +9199,7 @@ Definition f_interact_pole := {|
                                       (Ederef
                                         (Etempvar _marioObj (tptr (Tstruct _Object noattr)))
                                         (Tstruct _Object noattr)) _rawData
-                                      (Tunion __665 noattr)) _asS32
+                                      (Tunion __764 noattr)) _asS32
                                     (tarray tint 80))
                                   (Econst_int (Int.repr 32) tint)
                                   (tptr tint)) tint)
@@ -9174,7 +9213,7 @@ Definition f_interact_pole := {|
                                         (Ederef
                                           (Etempvar _marioObj (tptr (Tstruct _Object noattr)))
                                           (Tstruct _Object noattr)) _rawData
-                                        (Tunion __665 noattr)) _asS32
+                                        (Tunion __764 noattr)) _asS32
                                       (tarray tint 80))
                                     (Econst_int (Int.repr 33) tint)
                                     (tptr tint)) tint)
@@ -9200,7 +9239,7 @@ Definition f_interact_pole := {|
                                               (Ederef
                                                 (Etempvar _o (tptr (Tstruct _Object noattr)))
                                                 (Tstruct _Object noattr))
-                                              _rawData (Tunion __665 noattr))
+                                              _rawData (Tunion __764 noattr))
                                             _asF32 (tarray tfloat 80))
                                           (Ebinop Oadd
                                             (Econst_int (Int.repr 6) tint)
@@ -9214,7 +9253,7 @@ Definition f_interact_pole := {|
                                               (Ederef
                                                 (Etempvar _marioObj (tptr (Tstruct _Object noattr)))
                                                 (Tstruct _Object noattr))
-                                              _rawData (Tunion __665 noattr))
+                                              _rawData (Tunion __764 noattr))
                                             _asF32 (tarray tfloat 80))
                                           (Econst_int (Int.repr 34) tint)
                                           (tptr tfloat)) tfloat)
@@ -9253,7 +9292,7 @@ Definition f_interact_pole := {|
                                                   (Etempvar _marioObj (tptr (Tstruct _Object noattr)))
                                                   (Tstruct _Object noattr))
                                                 _rawData
-                                                (Tunion __665 noattr)) _asS32
+                                                (Tunion __764 noattr)) _asS32
                                               (tarray tint 80))
                                             (Econst_int (Int.repr 33) tint)
                                             (tptr tint)) tint)
@@ -9342,7 +9381,7 @@ Definition f_interact_hoot := {|
                           (Ederef
                             (Etempvar _t'5 (tptr (Tstruct _Object noattr)))
                             (Tstruct _Object noattr)) _rawData
-                          (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                          (Tunion __764 noattr)) _asS32 (tarray tint 80))
                       (Econst_int (Int.repr 34) tint) (tptr tint)) tint))
                 (Sset _t'3
                   (Ecast
@@ -9365,7 +9404,7 @@ Definition f_interact_hoot := {|
                     (Efield
                       (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
                         (Tstruct _Object noattr)) _rawData
-                      (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                      (Tunion __764 noattr)) _asS32 (tarray tint 80))
                   (Econst_int (Int.repr 43) tint) (tptr tint)) tint)
               (Econst_int (Int.repr 1) tint))
             (Ssequence
@@ -9462,7 +9501,7 @@ Definition f_interact_cap := {|
                           (Ederef
                             (Etempvar _o (tptr (Tstruct _Object noattr)))
                             (Tstruct _Object noattr)) _rawData
-                          (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                          (Tunion __764 noattr)) _asS32 (tarray tint 80))
                       (Econst_int (Int.repr 43) tint) (tptr tint)) tint)
                   (Ebinop Oshl (Econst_int (Int.repr 1) tint)
                     (Econst_int (Int.repr 15) tint) tint))
@@ -9778,7 +9817,7 @@ Definition f_interact_grabbable := {|
             (Efield
               (Efield
                 (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                  (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                  (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
               _asU32 (tarray tuint 80)) (Econst_int (Int.repr 66) tint)
             (tptr tuint)) tuint))
       (Sifthenelse (Ebinop Oand (Etempvar _t'8 tuint)
@@ -9826,7 +9865,7 @@ Definition f_interact_grabbable := {|
               (Efield
                 (Efield
                   (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                    (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                    (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
                 _asU32 (tarray tuint 80)) (Econst_int (Int.repr 66) tint)
               (tptr tuint)) tuint))
         (Sifthenelse (Ebinop Oand (Etempvar _t'7 tuint)
@@ -9863,7 +9902,7 @@ Definition f_interact_grabbable := {|
                       (Efield
                         (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
                           (Tstruct _Object noattr)) _rawData
-                        (Tunion __665 noattr)) _asU32 (tarray tuint 80))
+                        (Tunion __764 noattr)) _asU32 (tarray tuint 80))
                     (Econst_int (Int.repr 66) tint) (tptr tuint)) tuint))
               (Sifthenelse (Eunop Onotbool
                              (Ebinop Oand (Etempvar _t'5 tuint)
@@ -10048,7 +10087,7 @@ Definition f_check_read_sign := {|
                   (Efield
                     (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
                       (Tstruct _Object noattr)) _rawData
-                    (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                    (Tunion __764 noattr)) _asS32 (tarray tint 80))
                 (Ebinop Oadd (Econst_int (Int.repr 15) tint)
                   (Econst_int (Int.repr 1) tint) tint) (tptr tint)) tint))
           (Ssequence
@@ -10087,7 +10126,7 @@ Definition f_check_read_sign := {|
                           (Ederef
                             (Etempvar _o (tptr (Tstruct _Object noattr)))
                             (Tstruct _Object noattr)) _rawData
-                          (Tunion __665 noattr)) _asF32 (tarray tfloat 80))
+                          (Tunion __764 noattr)) _asF32 (tarray tfloat 80))
                       (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                         (Econst_int (Int.repr 0) tint) tint) (tptr tfloat))
                     tfloat))
@@ -10100,7 +10139,7 @@ Definition f_check_read_sign := {|
                             (Ederef
                               (Etempvar _o (tptr (Tstruct _Object noattr)))
                               (Tstruct _Object noattr)) _rawData
-                            (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                            (Tunion __764 noattr)) _asS32 (tarray tint 80))
                         (Ebinop Oadd (Econst_int (Int.repr 15) tint)
                           (Econst_int (Int.repr 1) tint) tint) (tptr tint))
                       tint))
@@ -10126,7 +10165,7 @@ Definition f_check_read_sign := {|
                             (Ederef
                               (Etempvar _o (tptr (Tstruct _Object noattr)))
                               (Tstruct _Object noattr)) _rawData
-                            (Tunion __665 noattr)) _asF32 (tarray tfloat 80))
+                            (Tunion __764 noattr)) _asF32 (tarray tfloat 80))
                         (Ebinop Oadd (Econst_int (Int.repr 6) tint)
                           (Econst_int (Int.repr 2) tint) tint) (tptr tfloat))
                       tfloat))
@@ -10139,7 +10178,7 @@ Definition f_check_read_sign := {|
                               (Ederef
                                 (Etempvar _o (tptr (Tstruct _Object noattr)))
                                 (Tstruct _Object noattr)) _rawData
-                              (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                              (Tunion __764 noattr)) _asS32 (tarray tint 80))
                           (Ebinop Oadd (Econst_int (Int.repr 15) tint)
                             (Econst_int (Int.repr 1) tint) tint) (tptr tint))
                         tint))
@@ -10175,7 +10214,7 @@ Definition f_check_read_sign := {|
                               (Ederef
                                 (Etempvar _t'11 (tptr (Tstruct _Object noattr)))
                                 (Tstruct _Object noattr)) _rawData
-                              (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                              (Tunion __764 noattr)) _asS32 (tarray tint 80))
                           (Econst_int (Int.repr 32) tint) (tptr tint)) tint)
                       (Etempvar _facingDYaw tshort)))
                   (Ssequence
@@ -10205,7 +10244,7 @@ Definition f_check_read_sign := {|
                                   (Ederef
                                     (Etempvar _t'9 (tptr (Tstruct _Object noattr)))
                                     (Tstruct _Object noattr)) _rawData
-                                  (Tunion __665 noattr)) _asF32
+                                  (Tunion __764 noattr)) _asF32
                                 (tarray tfloat 80))
                               (Econst_int (Int.repr 33) tint) (tptr tfloat))
                             tfloat)
@@ -10238,7 +10277,7 @@ Definition f_check_read_sign := {|
                                     (Ederef
                                       (Etempvar _t'7 (tptr (Tstruct _Object noattr)))
                                       (Tstruct _Object noattr)) _rawData
-                                    (Tunion __665 noattr)) _asF32
+                                    (Tunion __764 noattr)) _asF32
                                   (tarray tfloat 80))
                                 (Econst_int (Int.repr 34) tint)
                                 (tptr tfloat)) tfloat)
@@ -10346,7 +10385,7 @@ Definition f_check_npc_talk := {|
                       (Efield
                         (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
                           (Tstruct _Object noattr)) _rawData
-                        (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                        (Tunion __764 noattr)) _asS32 (tarray tint 80))
                     (Econst_int (Int.repr 43) tint) (tptr tint)) tint)
                 (Ebinop Oshl (Econst_int (Int.repr 1) tint)
                   (Econst_int (Int.repr 15) tint) tint))
@@ -10423,7 +10462,7 @@ Definition f_interact_text := {|
             (Efield
               (Efield
                 (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
-                  (Tstruct _Object noattr)) _rawData (Tunion __665 noattr))
+                  (Tstruct _Object noattr)) _rawData (Tunion __764 noattr))
               _asU32 (tarray tuint 80)) (Econst_int (Int.repr 66) tint)
             (tptr tuint)) tuint))
       (Sifthenelse (Ebinop Oand (Etempvar _t'3 tuint)
@@ -10445,7 +10484,7 @@ Definition f_interact_text := {|
                   (Efield
                     (Ederef (Etempvar _o (tptr (Tstruct _Object noattr)))
                       (Tstruct _Object noattr)) _rawData
-                    (Tunion __665 noattr)) _asU32 (tarray tuint 80))
+                    (Tunion __764 noattr)) _asU32 (tarray tuint 80))
                 (Econst_int (Int.repr 66) tint) (tptr tuint)) tuint))
           (Sifthenelse (Ebinop Oand (Etempvar _t'4 tuint)
                          (Econst_int (Int.repr 16384) tint) tuint)
@@ -10865,9 +10904,9 @@ Definition f_mario_process_interactions := {|
                 (Sifthenelse (Ebinop Olt (Etempvar _i tint)
                                (Ecast
                                  (Ebinop Odiv
-                                   (Esizeof (tarray (Tstruct _InteractionHandler noattr) 31) tulong)
-                                   (Esizeof (Tstruct _InteractionHandler noattr) tulong)
-                                   tulong) tint) tint)
+                                   (Esizeof (tarray (Tstruct _InteractionHandler noattr) 31) tuint)
+                                   (Esizeof (Tstruct _InteractionHandler noattr) tuint)
+                                   tuint) tint) tint)
                   Sskip
                   Sbreak)
                 (Ssequence
@@ -10927,7 +10966,7 @@ Definition f_mario_process_interactions := {|
                                       (Ederef
                                         (Etempvar _object (tptr (Tstruct _Object noattr)))
                                         (Tstruct _Object noattr)) _rawData
-                                      (Tunion __665 noattr)) _asS32
+                                      (Tunion __764 noattr)) _asS32
                                     (tarray tint 80))
                                   (Econst_int (Int.repr 43) tint)
                                   (tptr tint)) tint))
@@ -11312,7 +11351,7 @@ Definition f_pss_end_slide := {|
                         (Ederef
                           (Etempvar _t'3 (tptr (Tstruct _Object noattr)))
                           (Tstruct _Object noattr)) _rawData
-                        (Tunion __665 noattr)) _asS32 (tarray tint 80))
+                        (Tunion __764 noattr)) _asS32 (tarray tint 80))
                     (Econst_int (Int.repr 64) tint) (tptr tint)) tint)
                 (Ebinop Oshl (Econst_int (Int.repr 1) tint)
                   (Econst_int (Int.repr 24) tint) tint)))
@@ -11460,11 +11499,11 @@ Definition f_mario_handle_special_floors := {|
 |}.
 
 Definition composites : list composite_definition :=
-(Composite __218 Struct
+(Composite __317 Struct
    (Member_plain _type tushort :: Member_plain _status tuchar ::
     Member_plain _errnum tuchar :: nil)
    noattr ::
- Composite __220 Struct
+ Composite __319 Struct
    (Member_plain _button tushort :: Member_plain _stick_x tschar ::
     Member_plain _stick_y tschar :: Member_plain _errnum tuchar :: nil)
    noattr ::
@@ -11473,8 +11512,8 @@ Definition composites : list composite_definition :=
     Member_plain _stickX tfloat :: Member_plain _stickY tfloat ::
     Member_plain _stickMag tfloat :: Member_plain _buttonDown tushort ::
     Member_plain _buttonPressed tushort ::
-    Member_plain _statusData (tptr (Tstruct __218 noattr)) ::
-    Member_plain _controllerData (tptr (Tstruct __220 noattr)) :: nil)
+    Member_plain _statusData (tptr (Tstruct __317 noattr)) ::
+    Member_plain _controllerData (tptr (Tstruct __319 noattr)) :: nil)
    noattr ::
  Composite _Animation Struct
    (Member_plain _flags tshort :: Member_plain _animYTransDivisor tshort ::
@@ -11514,7 +11553,7 @@ Definition composites : list composite_definition :=
     Member_plain _next (tptr (Tstruct _ObjectNode noattr)) ::
     Member_plain _prev (tptr (Tstruct _ObjectNode noattr)) :: nil)
    noattr ::
- Composite __665 Union
+ Composite __764 Union
    (Member_plain _asU32 (tarray tuint 80) ::
     Member_plain _asS32 (tarray tint 80) ::
     Member_plain _asS16 (tarray (tarray tshort 2) 80) ::
@@ -11539,7 +11578,7 @@ Definition composites : list composite_definition :=
     Member_plain _activeFlags tshort ::
     Member_plain _numCollidedObjs tshort ::
     Member_plain _collidedObjs (tarray (tptr (Tstruct _Object noattr)) 4) ::
-    Member_plain _rawData (Tunion __665 noattr) ::
+    Member_plain _rawData (Tunion __764 noattr) ::
     Member_plain _unused1 tuint ::
     Member_plain _curBhvCommand (tptr tuint) ::
     Member_plain _bhvStackIndex tuint ::
@@ -11559,7 +11598,7 @@ Definition composites : list composite_definition :=
  Composite _Waypoint Struct
    (Member_plain _flags tshort :: Member_plain _pos (tarray tshort 3) :: nil)
    noattr ::
- Composite __670 Struct
+ Composite __769 Struct
    (Member_plain _x tfloat :: Member_plain _y tfloat ::
     Member_plain _z tfloat :: nil)
    noattr ::
@@ -11570,7 +11609,7 @@ Definition composites : list composite_definition :=
     Member_plain _vertex1 (tarray tshort 3) ::
     Member_plain _vertex2 (tarray tshort 3) ::
     Member_plain _vertex3 (tarray tshort 3) ::
-    Member_plain _normal (Tstruct __670 noattr) ::
+    Member_plain _normal (Tstruct __769 noattr) ::
     Member_plain _originOffset tfloat ::
     Member_plain _object (tptr (Tstruct _Object noattr)) :: nil)
    noattr ::
@@ -11756,9 +11795,9 @@ Definition global_definitions : list (ident * globdef fundef type) :=
      ((tptr tvoid) :: nil) tdouble cc_default)) ::
  (___compcert_va_composite,
    Gfun(External (EF_runtime "__compcert_va_composite"
-                   (mksignature (AST.Xptr :: AST.Xlong :: nil) AST.Xptr
-                     cc_default)) ((tptr tvoid) :: tulong :: nil)
-     (tptr tvoid) cc_default)) ::
+                   (mksignature (AST.Xptr :: AST.Xint :: nil) AST.Xptr
+                     cc_default)) ((tptr tvoid) :: tuint :: nil) (tptr tvoid)
+     cc_default)) ::
  (___compcert_i64_dtos,
    Gfun(External (EF_runtime "__compcert_i64_dtos"
                    (mksignature (AST.Xfloat :: nil) AST.Xlong cc_default))
@@ -11826,7 +11865,7 @@ Definition global_definitions : list (ident * globdef fundef type) :=
    Gfun(External (EF_builtin "__builtin_ais_annot"
                    (mksignature (AST.Xptr :: nil) AST.Xvoid
                      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-     ((tptr tschar) :: nil) tvoid
+     ((tptr tuchar) :: nil) tvoid
      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|})) ::
  (___builtin_bswap64,
    Gfun(External (EF_builtin "__builtin_bswap64"
@@ -11851,8 +11890,8 @@ Definition global_definitions : list (ident * globdef fundef type) :=
      (tuint :: nil) tint cc_default)) ::
  (___builtin_clzl,
    Gfun(External (EF_builtin "__builtin_clzl"
-                   (mksignature (AST.Xlong :: nil) AST.Xint cc_default))
-     (tulong :: nil) tint cc_default)) ::
+                   (mksignature (AST.Xint :: nil) AST.Xint cc_default))
+     (tuint :: nil) tint cc_default)) ::
  (___builtin_clzll,
    Gfun(External (EF_builtin "__builtin_clzll"
                    (mksignature (AST.Xlong :: nil) AST.Xint cc_default))
@@ -11863,8 +11902,8 @@ Definition global_definitions : list (ident * globdef fundef type) :=
      (tuint :: nil) tint cc_default)) ::
  (___builtin_ctzl,
    Gfun(External (EF_builtin "__builtin_ctzl"
-                   (mksignature (AST.Xlong :: nil) AST.Xint cc_default))
-     (tulong :: nil) tint cc_default)) ::
+                   (mksignature (AST.Xint :: nil) AST.Xint cc_default))
+     (tuint :: nil) tint cc_default)) ::
  (___builtin_ctzll,
    Gfun(External (EF_builtin "__builtin_ctzll"
                    (mksignature (AST.Xlong :: nil) AST.Xint cc_default))
@@ -11888,9 +11927,9 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (___builtin_memcpy_aligned,
    Gfun(External (EF_builtin "__builtin_memcpy_aligned"
                    (mksignature
-                     (AST.Xptr :: AST.Xptr :: AST.Xlong :: AST.Xlong :: nil)
+                     (AST.Xptr :: AST.Xptr :: AST.Xint :: AST.Xint :: nil)
                      AST.Xvoid cc_default))
-     ((tptr tvoid) :: (tptr tvoid) :: tulong :: tulong :: nil) tvoid
+     ((tptr tvoid) :: (tptr tvoid) :: tuint :: tuint :: nil) tvoid
      cc_default)) ::
  (___builtin_sel,
    Gfun(External (EF_builtin "__builtin_sel"
@@ -11902,12 +11941,12 @@ Definition global_definitions : list (ident * globdef fundef type) :=
    Gfun(External (EF_builtin "__builtin_annot"
                    (mksignature (AST.Xptr :: nil) AST.Xvoid
                      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-     ((tptr tschar) :: nil) tvoid
+     ((tptr tuchar) :: nil) tvoid
      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|})) ::
  (___builtin_annot_intval,
    Gfun(External (EF_builtin "__builtin_annot_intval"
                    (mksignature (AST.Xptr :: AST.Xint :: nil) AST.Xint
-                     cc_default)) ((tptr tschar) :: tint :: nil) tint
+                     cc_default)) ((tptr tuchar) :: tint :: nil) tint
      cc_default)) ::
  (___builtin_membar,
    Gfun(External (EF_builtin "__builtin_membar"
@@ -11937,17 +11976,28 @@ Definition global_definitions : list (ident * globdef fundef type) :=
      cc_default)) ::
  (___builtin_expect,
    Gfun(External (EF_builtin "__builtin_expect"
+                   (mksignature (AST.Xint :: AST.Xint :: nil) AST.Xint
+                     cc_default)) (tint :: tint :: nil) tint cc_default)) ::
+ (___builtin_mulhw,
+   Gfun(External (EF_builtin "__builtin_mulhw"
+                   (mksignature (AST.Xint :: AST.Xint :: nil) AST.Xint
+                     cc_default)) (tint :: tint :: nil) tint cc_default)) ::
+ (___builtin_mulhwu,
+   Gfun(External (EF_builtin "__builtin_mulhwu"
+                   (mksignature (AST.Xint :: AST.Xint :: nil) AST.Xint
+                     cc_default)) (tuint :: tuint :: nil) tuint cc_default)) ::
+ (___builtin_cmpb,
+   Gfun(External (EF_builtin "__builtin_cmpb"
+                   (mksignature (AST.Xint :: AST.Xint :: nil) AST.Xint
+                     cc_default)) (tuint :: tuint :: nil) tuint cc_default)) ::
+ (___builtin_mulhd,
+   Gfun(External (EF_builtin "__builtin_mulhd"
                    (mksignature (AST.Xlong :: AST.Xlong :: nil) AST.Xlong
                      cc_default)) (tlong :: tlong :: nil) tlong cc_default)) ::
- (___builtin_fmax,
-   Gfun(External (EF_builtin "__builtin_fmax"
-                   (mksignature (AST.Xfloat :: AST.Xfloat :: nil) AST.Xfloat
-                     cc_default)) (tdouble :: tdouble :: nil) tdouble
-     cc_default)) ::
- (___builtin_fmin,
-   Gfun(External (EF_builtin "__builtin_fmin"
-                   (mksignature (AST.Xfloat :: AST.Xfloat :: nil) AST.Xfloat
-                     cc_default)) (tdouble :: tdouble :: nil) tdouble
+ (___builtin_mulhdu,
+   Gfun(External (EF_builtin "__builtin_mulhdu"
+                   (mksignature (AST.Xlong :: AST.Xlong :: nil) AST.Xlong
+                     cc_default)) (tulong :: tulong :: nil) tulong
      cc_default)) ::
  (___builtin_fmadd,
    Gfun(External (EF_builtin "__builtin_fmadd"
@@ -11973,6 +12023,24 @@ Definition global_definitions : list (ident * globdef fundef type) :=
                      (AST.Xfloat :: AST.Xfloat :: AST.Xfloat :: nil)
                      AST.Xfloat cc_default))
      (tdouble :: tdouble :: tdouble :: nil) tdouble cc_default)) ::
+ (___builtin_frsqrte,
+   Gfun(External (EF_builtin "__builtin_frsqrte"
+                   (mksignature (AST.Xfloat :: nil) AST.Xfloat cc_default))
+     (tdouble :: nil) tdouble cc_default)) ::
+ (___builtin_fres,
+   Gfun(External (EF_builtin "__builtin_fres"
+                   (mksignature (AST.Xsingle :: nil) AST.Xsingle cc_default))
+     (tfloat :: nil) tfloat cc_default)) ::
+ (___builtin_fsel,
+   Gfun(External (EF_builtin "__builtin_fsel"
+                   (mksignature
+                     (AST.Xfloat :: AST.Xfloat :: AST.Xfloat :: nil)
+                     AST.Xfloat cc_default))
+     (tdouble :: tdouble :: tdouble :: nil) tdouble cc_default)) ::
+ (___builtin_fcti,
+   Gfun(External (EF_builtin "__builtin_fcti"
+                   (mksignature (AST.Xfloat :: nil) AST.Xint cc_default))
+     (tdouble :: nil) tint cc_default)) ::
  (___builtin_read16_reversed,
    Gfun(External (EF_builtin "__builtin_read16_reversed"
                    (mksignature (AST.Xptr :: nil) AST.Xint16unsigned
@@ -11991,6 +12059,147 @@ Definition global_definitions : list (ident * globdef fundef type) :=
    Gfun(External (EF_builtin "__builtin_write32_reversed"
                    (mksignature (AST.Xptr :: AST.Xint :: nil) AST.Xvoid
                      cc_default)) ((tptr tuint) :: tuint :: nil) tvoid
+     cc_default)) ::
+ (___builtin_read64_reversed,
+   Gfun(External (EF_builtin "__builtin_read64_reversed"
+                   (mksignature (AST.Xptr :: nil) AST.Xlong cc_default))
+     ((tptr tulong) :: nil) tulong cc_default)) ::
+ (___builtin_write64_reversed,
+   Gfun(External (EF_builtin "__builtin_write64_reversed"
+                   (mksignature (AST.Xptr :: AST.Xlong :: nil) AST.Xvoid
+                     cc_default)) ((tptr tulong) :: tulong :: nil) tvoid
+     cc_default)) ::
+ (___builtin_eieio,
+   Gfun(External (EF_builtin "__builtin_eieio"
+                   (mksignature nil AST.Xvoid cc_default)) nil tvoid
+     cc_default)) ::
+ (___builtin_sync,
+   Gfun(External (EF_builtin "__builtin_sync"
+                   (mksignature nil AST.Xvoid cc_default)) nil tvoid
+     cc_default)) ::
+ (___builtin_isync,
+   Gfun(External (EF_builtin "__builtin_isync"
+                   (mksignature nil AST.Xvoid cc_default)) nil tvoid
+     cc_default)) ::
+ (___builtin_lwsync,
+   Gfun(External (EF_builtin "__builtin_lwsync"
+                   (mksignature nil AST.Xvoid cc_default)) nil tvoid
+     cc_default)) ::
+ (___builtin_mbar,
+   Gfun(External (EF_builtin "__builtin_mbar"
+                   (mksignature (AST.Xint :: nil) AST.Xvoid cc_default))
+     (tint :: nil) tvoid cc_default)) ::
+ (___builtin_trap,
+   Gfun(External (EF_builtin "__builtin_trap"
+                   (mksignature nil AST.Xvoid cc_default)) nil tvoid
+     cc_default)) ::
+ (___builtin_dcbf,
+   Gfun(External (EF_builtin "__builtin_dcbf"
+                   (mksignature (AST.Xptr :: nil) AST.Xvoid cc_default))
+     ((tptr tvoid) :: nil) tvoid cc_default)) ::
+ (___builtin_dcbi,
+   Gfun(External (EF_builtin "__builtin_dcbi"
+                   (mksignature (AST.Xptr :: nil) AST.Xvoid cc_default))
+     ((tptr tvoid) :: nil) tvoid cc_default)) ::
+ (___builtin_icbi,
+   Gfun(External (EF_builtin "__builtin_icbi"
+                   (mksignature (AST.Xptr :: nil) AST.Xvoid cc_default))
+     ((tptr tvoid) :: nil) tvoid cc_default)) ::
+ (___builtin_prefetch,
+   Gfun(External (EF_builtin "__builtin_prefetch"
+                   (mksignature (AST.Xptr :: AST.Xint :: AST.Xint :: nil)
+                     AST.Xvoid cc_default))
+     ((tptr tvoid) :: tint :: tint :: nil) tvoid cc_default)) ::
+ (___builtin_dcbtls,
+   Gfun(External (EF_builtin "__builtin_dcbtls"
+                   (mksignature (AST.Xptr :: AST.Xint :: nil) AST.Xvoid
+                     cc_default)) ((tptr tvoid) :: tint :: nil) tvoid
+     cc_default)) ::
+ (___builtin_icbtls,
+   Gfun(External (EF_builtin "__builtin_icbtls"
+                   (mksignature (AST.Xptr :: AST.Xint :: nil) AST.Xvoid
+                     cc_default)) ((tptr tvoid) :: tint :: nil) tvoid
+     cc_default)) ::
+ (___builtin_dcbz,
+   Gfun(External (EF_builtin "__builtin_dcbz"
+                   (mksignature (AST.Xptr :: nil) AST.Xvoid cc_default))
+     ((tptr tvoid) :: nil) tvoid cc_default)) ::
+ (___builtin_get_spr,
+   Gfun(External (EF_builtin "__builtin_get_spr"
+                   (mksignature (AST.Xint :: nil) AST.Xint cc_default))
+     (tint :: nil) tuint cc_default)) ::
+ (___builtin_set_spr,
+   Gfun(External (EF_builtin "__builtin_set_spr"
+                   (mksignature (AST.Xint :: AST.Xint :: nil) AST.Xvoid
+                     cc_default)) (tint :: tuint :: nil) tvoid cc_default)) ::
+ (___builtin_get_spr64,
+   Gfun(External (EF_builtin "__builtin_get_spr64"
+                   (mksignature (AST.Xint :: nil) AST.Xlong cc_default))
+     (tint :: nil) tulong cc_default)) ::
+ (___builtin_set_spr64,
+   Gfun(External (EF_builtin "__builtin_set_spr64"
+                   (mksignature (AST.Xint :: AST.Xlong :: nil) AST.Xvoid
+                     cc_default)) (tint :: tulong :: nil) tvoid cc_default)) ::
+ (___builtin_mr,
+   Gfun(External (EF_builtin "__builtin_mr"
+                   (mksignature (AST.Xint :: AST.Xint :: nil) AST.Xvoid
+                     cc_default)) (tint :: tint :: nil) tvoid cc_default)) ::
+ (___builtin_call_frame,
+   Gfun(External (EF_builtin "__builtin_call_frame"
+                   (mksignature nil AST.Xptr cc_default)) nil (tptr tvoid)
+     cc_default)) ::
+ (___builtin_return_address,
+   Gfun(External (EF_builtin "__builtin_return_address"
+                   (mksignature nil AST.Xptr cc_default)) nil (tptr tvoid)
+     cc_default)) ::
+ (___builtin_isel,
+   Gfun(External (EF_builtin "__builtin_isel"
+                   (mksignature (AST.Xbool :: AST.Xint :: AST.Xint :: nil)
+                     AST.Xint cc_default)) (tbool :: tint :: tint :: nil)
+     tint cc_default)) ::
+ (___builtin_uisel,
+   Gfun(External (EF_builtin "__builtin_uisel"
+                   (mksignature (AST.Xbool :: AST.Xint :: AST.Xint :: nil)
+                     AST.Xint cc_default)) (tbool :: tuint :: tuint :: nil)
+     tuint cc_default)) ::
+ (___builtin_isel64,
+   Gfun(External (EF_builtin "__builtin_isel64"
+                   (mksignature (AST.Xbool :: AST.Xlong :: AST.Xlong :: nil)
+                     AST.Xlong cc_default)) (tbool :: tlong :: tlong :: nil)
+     tlong cc_default)) ::
+ (___builtin_uisel64,
+   Gfun(External (EF_builtin "__builtin_uisel64"
+                   (mksignature (AST.Xbool :: AST.Xlong :: AST.Xlong :: nil)
+                     AST.Xlong cc_default))
+     (tbool :: tulong :: tulong :: nil) tulong cc_default)) ::
+ (___builtin_bsel,
+   Gfun(External (EF_builtin "__builtin_bsel"
+                   (mksignature (AST.Xbool :: AST.Xbool :: AST.Xbool :: nil)
+                     AST.Xbool cc_default)) (tbool :: tbool :: tbool :: nil)
+     tbool cc_default)) ::
+ (___builtin_nop,
+   Gfun(External (EF_builtin "__builtin_nop"
+                   (mksignature nil AST.Xvoid cc_default)) nil tvoid
+     cc_default)) ::
+ (___builtin_atomic_exchange,
+   Gfun(External (EF_builtin "__builtin_atomic_exchange"
+                   (mksignature (AST.Xptr :: AST.Xptr :: AST.Xptr :: nil)
+                     AST.Xvoid cc_default))
+     ((tptr tint) :: (tptr tint) :: (tptr tint) :: nil) tvoid cc_default)) ::
+ (___builtin_atomic_load,
+   Gfun(External (EF_builtin "__builtin_atomic_load"
+                   (mksignature (AST.Xptr :: AST.Xptr :: nil) AST.Xvoid
+                     cc_default)) ((tptr tint) :: (tptr tint) :: nil) tvoid
+     cc_default)) ::
+ (___builtin_atomic_compare_exchange,
+   Gfun(External (EF_builtin "__builtin_atomic_compare_exchange"
+                   (mksignature (AST.Xptr :: AST.Xptr :: AST.Xptr :: nil)
+                     AST.Xbool cc_default))
+     ((tptr tint) :: (tptr tint) :: (tptr tint) :: nil) tbool cc_default)) ::
+ (___builtin_sync_fetch_and_add,
+   Gfun(External (EF_builtin "__builtin_sync_fetch_and_add"
+                   (mksignature (AST.Xptr :: AST.Xint :: nil) AST.Xint
+                     cc_default)) ((tptr tint) :: tint :: nil) tint
      cc_default)) ::
  (___builtin_debug,
    Gfun(External (EF_external "__builtin_debug"
@@ -12303,26 +12512,39 @@ Definition public_idents : list ident :=
  _warp_pipe_seg3_collision_03009AC8 :: _gCurrSaveFileNum ::
  _gCurrCourseNum :: _set_camera_mode :: _set_camera_shake_from_hit ::
  _virtual_to_segmented :: _segmented_to_virtual :: _sqrtf ::
- ___builtin_debug :: ___builtin_write32_reversed ::
+ ___builtin_debug :: ___builtin_sync_fetch_and_add ::
+ ___builtin_atomic_compare_exchange :: ___builtin_atomic_load ::
+ ___builtin_atomic_exchange :: ___builtin_nop :: ___builtin_bsel ::
+ ___builtin_uisel64 :: ___builtin_isel64 :: ___builtin_uisel ::
+ ___builtin_isel :: ___builtin_return_address :: ___builtin_call_frame ::
+ ___builtin_mr :: ___builtin_set_spr64 :: ___builtin_get_spr64 ::
+ ___builtin_set_spr :: ___builtin_get_spr :: ___builtin_dcbz ::
+ ___builtin_icbtls :: ___builtin_dcbtls :: ___builtin_prefetch ::
+ ___builtin_icbi :: ___builtin_dcbi :: ___builtin_dcbf :: ___builtin_trap ::
+ ___builtin_mbar :: ___builtin_lwsync :: ___builtin_isync ::
+ ___builtin_sync :: ___builtin_eieio :: ___builtin_write64_reversed ::
+ ___builtin_read64_reversed :: ___builtin_write32_reversed ::
  ___builtin_write16_reversed :: ___builtin_read32_reversed ::
- ___builtin_read16_reversed :: ___builtin_fnmsub :: ___builtin_fnmadd ::
- ___builtin_fmsub :: ___builtin_fmadd :: ___builtin_fmin ::
- ___builtin_fmax :: ___builtin_expect :: ___builtin_unreachable ::
- ___builtin_va_end :: ___builtin_va_copy :: ___builtin_va_arg ::
- ___builtin_va_start :: ___builtin_membar :: ___builtin_annot_intval ::
- ___builtin_annot :: ___builtin_sel :: ___builtin_memcpy_aligned ::
- ___builtin_sqrt :: ___builtin_fsqrt :: ___builtin_fabsf ::
- ___builtin_fabs :: ___builtin_ctzll :: ___builtin_ctzl :: ___builtin_ctz ::
- ___builtin_clzll :: ___builtin_clzl :: ___builtin_clz ::
- ___builtin_bswap16 :: ___builtin_bswap32 :: ___builtin_bswap ::
- ___builtin_bswap64 :: ___builtin_ais_annot :: ___compcert_i64_umulh ::
- ___compcert_i64_smulh :: ___compcert_i64_sar :: ___compcert_i64_shr ::
- ___compcert_i64_shl :: ___compcert_i64_umod :: ___compcert_i64_smod ::
- ___compcert_i64_udiv :: ___compcert_i64_sdiv :: ___compcert_i64_utof ::
- ___compcert_i64_stof :: ___compcert_i64_utod :: ___compcert_i64_stod ::
- ___compcert_i64_dtou :: ___compcert_i64_dtos :: ___compcert_va_composite ::
- ___compcert_va_float64 :: ___compcert_va_int64 :: ___compcert_va_int32 ::
- nil).
+ ___builtin_read16_reversed :: ___builtin_fcti :: ___builtin_fsel ::
+ ___builtin_fres :: ___builtin_frsqrte :: ___builtin_fnmsub ::
+ ___builtin_fnmadd :: ___builtin_fmsub :: ___builtin_fmadd ::
+ ___builtin_mulhdu :: ___builtin_mulhd :: ___builtin_cmpb ::
+ ___builtin_mulhwu :: ___builtin_mulhw :: ___builtin_expect ::
+ ___builtin_unreachable :: ___builtin_va_end :: ___builtin_va_copy ::
+ ___builtin_va_arg :: ___builtin_va_start :: ___builtin_membar ::
+ ___builtin_annot_intval :: ___builtin_annot :: ___builtin_sel ::
+ ___builtin_memcpy_aligned :: ___builtin_sqrt :: ___builtin_fsqrt ::
+ ___builtin_fabsf :: ___builtin_fabs :: ___builtin_ctzll ::
+ ___builtin_ctzl :: ___builtin_ctz :: ___builtin_clzll :: ___builtin_clzl ::
+ ___builtin_clz :: ___builtin_bswap16 :: ___builtin_bswap32 ::
+ ___builtin_bswap :: ___builtin_bswap64 :: ___builtin_ais_annot ::
+ ___compcert_i64_umulh :: ___compcert_i64_smulh :: ___compcert_i64_sar ::
+ ___compcert_i64_shr :: ___compcert_i64_shl :: ___compcert_i64_umod ::
+ ___compcert_i64_smod :: ___compcert_i64_udiv :: ___compcert_i64_sdiv ::
+ ___compcert_i64_utof :: ___compcert_i64_stof :: ___compcert_i64_utod ::
+ ___compcert_i64_stod :: ___compcert_i64_dtou :: ___compcert_i64_dtos ::
+ ___compcert_va_composite :: ___compcert_va_float64 ::
+ ___compcert_va_int64 :: ___compcert_va_int32 :: nil).
 
 Definition prog : Clight.program := 
   mkprogram composites global_definitions public_idents _main Logic.I.
