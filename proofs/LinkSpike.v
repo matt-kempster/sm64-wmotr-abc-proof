@@ -61,19 +61,23 @@ Section SymbolicLink.
     (* 3. The AST defmap entry transfers up the linkorder (possibly upgraded). *)
     destruct (prog_defmap_linkorder _ _ _ _ LOast airborne_defmap_act_flying)
       as (gd' & Hgd' & Hlo).
+    (* spent: drop LOast/_Hcomp so the only `linkorder _ _` left is Hlo's residue. *)
+    clear LOast _Hcomp.
     (* 4. An Internal source can only map to the SAME Internal target: invert the
           two linkorder layers (globdef then fundef). The External-below-Internal
-          case is impossible because the source is already Internal. *)
+          case is impossible because the source is already Internal. After `inv Hlo`
+          the inner premise has head `linkorder` (the class method), not the
+          syntactic `linkorder_fundef`, so match on `linkorder _ _`. *)
     inv Hlo.
-    match goal with H : linkorder_fundef _ _ |- _ => inv H end.
+    match goal with H : linkorder _ _ |- _ => inv H end.
     (* now gd' = Gfun (Internal f_act_flying); Hgd' is the linked defmap entry. *)
     (* 5. Bridge defmap -> (find_symbol, find_def) in the linked genv. *)
-    apply (proj1 (find_def_symbol _ _ _)) in Hgd'.
+    apply (proj1 (Genv.find_def_symbol _ _ _)) in Hgd'.
     destruct Hgd' as (b & Hsym & Hdef).
     exists b. split.
     - exact Hsym.
     - (* find_def -> find_funct_ptr via the iff. *)
-      apply (proj2 (find_funct_ptr_iff _ _ _)). exact Hdef.
+      apply (proj2 (Genv.find_funct_ptr_iff _ _ _)). exact Hdef.
   Qed.
 
 End SymbolicLink.
