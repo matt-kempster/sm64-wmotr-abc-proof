@@ -1,0 +1,62 @@
+name: build
+
+# Type-check the whole proof tree on every push/PR. A red X here is the
+# backstop against committing a non-compiling .v (the failure mode that the
+# "never batch build with commit" rule guards against locally). Mirrors the
+# pipeline/*.sh drivers exactly: same switch, same `make`.
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+
+# Cancel an in-flight run if a newer commit arrives on the same ref.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      SM64_PROOF_SWITCH: sm64-proof
+      OPAMCOLOR: never
+      OPAMYES: "1"
+      OPAMROOT: ${{ github.workspace }}/.opamroot
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system deps (gmp for zarith -> coq-core)
+        run: sudo apt-get update && sudo apt-get install -y libgmp-dev opam
+
+      # Cache the entire opam root (the sm64-proof switch with coq-compcert is
+      # the expensive part -- many minutes to build from scratch). Key on the
+      # installer + this workflow so a toolchain bump busts the cache.
+      - name: Cache opam root
+        id: opam-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.OPAMROOT }}
+          key: opam-${{ runner.os }}-${{ hashFiles('pipeline/install-toolchain.sh', '.github/workflows/build.yml') }}
+
+      - name: Init opam (first run only)
+        run: opam init --bare --disable-sandboxing --no-setup || true
+
+      - name: Build toolchain switch (cache miss only)
+        if: steps.opam-cache.outputs.cache-hit != 'true'
+        run: bash pipeline/install-toolchain.sh
+
+      # The actual gate: full type-check of generated ASTs + all proofs.
+      # NOTE: deliberately does NOT build proofs/LinkSpike.v's forbidden path
+      #   -- the file is in _CoqProject but only does a bounded single-program
+      #   lookup; it never `link`s a whole program (that OOMs; see LinkSpike.v).
+      - name: Build (full proof tree)
+        run: bash pipeline/build.sh
+
+      # Trust check: the headline theorems must rest only on CompCert's baseline
+      # axioms (no stray Admitted / project axiom sneaking in).
+      - name: Axiom check (headline theorems)
+        run: |
+          bash pipeline/assumptions.sh SM64.Proofs.WMotRStatement wmotr_noA_no_spawn_never_flying
+          bash pipeline/assumptions.sh SM64.Proofs.ActionValueFrame exec_stmt_value_preserves
+          bash pipeline/assumptions.sh SM64.Proofs.LinkSpike linked_resolves_act_flying
