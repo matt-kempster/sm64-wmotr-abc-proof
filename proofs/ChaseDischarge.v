@@ -17,9 +17,12 @@
  *   [x] set_mario_action_moving   -- DONE via the FULL frame (exec_body_nf): CALLS
  *       (reach_frame_preserves), a SWITCH, a direct m->forwardVel store (Obstacle 1),
  *       and a rooted marioObj->rawData[34] store. Conditional on the callee knob.
+ *   [x] update_mario_info_for_cam -- DONE: multi-field FS (marioBodyState +
+ *       statusForCamera), two rooted ->action stores (off-bm), two array-copy calls.
+ *   [x] squish_mario_model        -- DONE: direct m->squishTimer (Obstacle 1) +
+ *       rooted marioObj->scale[i] x3 + vec3f_set calls + nested control flow.
  *   [ ] set_mario_animation, set_mario_anim_with_accel,
- *       set_steep_jump_action, set_mario_action_airborne,
- *       squish_mario_model, update_mario_info_for_cam, sink_mario_in_quicksand,
+ *       set_steep_jump_action, set_mario_action_airborne, sink_mario_in_quicksand,
  *       mario_update_hitbox_and_cap_model, execute_mario_action, init_mario,
  *       init_mario_from_save_file
  *
@@ -40,7 +43,7 @@ From Coq Require Import List.
 Import ListNotations.
 From compcert Require Import Maps AST Integers Values Memory Globalenvs Ctypes Cop Clight ClightBigstep.
 From SM64.Generated Require mario.
-From SM64.Proofs Require Import Flying ActionValueFrame MarioMemWF ChaseCount ResetBodystate ValueFrameINV ValueFrameStmt SetAnimToFrame SetMarioActionMoving.
+From SM64.Proofs Require Import Flying ActionValueFrame MarioMemWF ChaseCount ResetBodystate ValueFrameINV ValueFrameStmt SetAnimToFrame SetMarioActionMoving UpdateMarioInfoForCam SquishMarioModel.
 
 (* ---- #1 / 111 : mario_reset_bodystate (mario.c) ---------------------- *)
 
@@ -115,3 +118,45 @@ Theorem set_mario_action_moving_preserves_nonflying :
       (fn_body mario.f_set_mario_action_moving) t le' m' out ->
     action_sat nonflying m' bm.
 Proof. exact set_mario_action_moving_preserves. Qed.
+
+(* ---- #4 / 111 : update_mario_info_for_cam (mario.c) ----------------- *)
+Lemma update_mario_info_for_cam_is_one_of_the_111 :
+  In mario._update_mario_info_for_cam (chase_funcs mario.prog).
+Proof. vm_compute. tauto. Qed.
+
+(* Multi-field FS: writes the action field of m->marioBodyState and
+   m->statusForCamera (both off-bm), never m->action; two array-copy calls ride
+   the reach knob. *)
+Theorem update_mario_info_for_cam_preserves_nonflying :
+  forall e le m t le' m' out bm,
+    reach_frame_preserves FS_cam nonflying bm mario_ge ->
+    le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
+    Mem.valid_block m bm ->
+    field_loads_off_bm m bm mario._marioBodyState ->
+    field_loads_off_bm m bm mario._statusForCamera ->
+    tmps_off_bm PT_cam bm mario._m le ->
+    action_sat nonflying m bm ->
+    exec_stmt function_entry2 mario_ge e le m
+      (fn_body mario.f_update_mario_info_for_cam) t le' m' out ->
+    action_sat nonflying m' bm.
+Proof. exact update_mario_info_for_cam_preserves. Qed.
+
+(* ---- #5 / 111 : squish_mario_model (mario.c) ------------------------ *)
+Lemma squish_mario_model_is_one_of_the_111 :
+  In mario._squish_mario_model (chase_funcs mario.prog).
+Proof. vm_compute. tauto. Qed.
+
+(* Direct m->squishTimer decrement (Obstacle 1) + rooted marioObj->...scale[i]
+   rescale through three temps + vec3f_set calls; never writes m->action. *)
+Theorem squish_mario_model_preserves_nonflying :
+  forall e le m t le' m' out bm,
+    reach_frame_preserves FS_squish nonflying bm mario_ge ->
+    le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
+    Mem.valid_block m bm ->
+    field_loads_off_bm m bm mario._marioObj ->
+    tmps_off_bm PT_squish bm mario._m le ->
+    action_sat nonflying m bm ->
+    exec_stmt function_entry2 mario_ge e le m
+      (fn_body mario.f_squish_mario_model) t le' m' out ->
+    action_sat nonflying m' bm.
+Proof. exact squish_mario_model_preserves. Qed.

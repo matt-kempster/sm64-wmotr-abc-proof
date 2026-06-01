@@ -51,4 +51,6 @@ proofs/ValueFrameINV.v
 proofs/ValueFrameStmt.v
 proofs/SetAnimToFrame.v
 proofs/SetMarioActionMoving.v
+proofs/UpdateMarioInfoForCam.v
+proofs/SquishMarioModel.v
 proofs/ChaseDischarge.v
