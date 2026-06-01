@@ -16,7 +16,7 @@
  * inverter bricks (ResetBodystate / ArrayStore) and stays axiom-clean.
  *)
 
-From compcert Require Import Coqlib Maps AST Integers Values Memory Globalenvs Ctypes Cop Clight Clightdefs ClightBigstep Events.
+From compcert Require Import Coqlib Errors Maps AST Integers Values Memory Globalenvs Ctypes Cop Clight Clightdefs ClightBigstep Events.
 Import Clightdefs.ClightNotations.
 Local Open Scope clight_scope.
 From SM64.Proofs Require Import Flying ActionFrame ActionValueFrame MarioMemWF ResetBodystate.
@@ -116,4 +116,117 @@ Proof.
   subst le'. apply tmps_off_bm_set; [ exact Hinv | ].
   intros _ b o Heq. injection Heq; intros; subst b o. intro Hcontra.
   apply Hbb. symmetry. exact Hcontra.
+Qed.
+
+(* ================================================================== *)
+(* GENERIC pointer-field-load inverter (the lever for clearing the     *)
+(* chase functions field-by-field). For any pointer field fid of       *)
+(* MarioState, the Sset  tid = m->fid  binds tid to the loaded pointer  *)
+(* (Vptr b ofs). Generalizes exec_bodystate_load over the temp tid, the *)
+(* field fid, its result struct type resty, and the (symbolic) offset   *)
+(* off -- carrying off as a hypothesis from field_offset instead of the *)
+(* hard-coded 200. The offset bound discharges by vm_compute per field. *)
+(* ================================================================== *)
+Lemma exec_field_ptr_load :
+  forall e le m tid fid resty t le' m' out bm b off ofs,
+    le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
+    field_offset mario_ce fid mario_members = OK (off, Full) ->
+    0 <= off <= Ptrofs.max_unsigned ->
+    Mem.load Mptr m bm off = Some (Vptr b ofs) ->
+    exec_stmt function_entry2 mario_ge e le m
+      (Sset tid
+        (Efield
+          (Ederef (Etempvar mario._m (tptr (Tstruct mario._MarioState noattr)))
+            (Tstruct mario._MarioState noattr)) fid (tptr resty))) t le' m' out ->
+    le' = PTree.set tid (Vptr b ofs) le /\ m' = m /\ out = Out_normal.
+Proof.
+  intros e le m tid fid resty t le' m' out bm b off ofs Hm Hfo Hbound Hld Hexec.
+  inv Hexec.
+  match goal with Hev : eval_expr _ _ _ _ (Efield _ _ _) ?v |- _ =>
+    rename Hev into Heval; rename v into vfield end.
+  inv Heval.
+  match goal with Hlv : eval_lvalue _ _ _ _ (Efield _ _ _) _ _ _ |- _ => inv Hlv end;
+    [ | match goal with Hut : typeof _ = Tunion _ _ |- _ => inv Hut end ].
+  match goal with Hee : eval_expr _ _ _ _ (Ederef _ _) _ |- _ => inv Hee end.
+  match goal with Hlv2 : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ => inv Hlv2 end.
+  match goal with He : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+    inv He;
+    try (match goal with Hl2 : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ =>
+           solve [ inv Hl2 ] end) end.
+  match goal with
+  | Hlk : ?T ! mario._m = Some (Vptr ?l ?o) |- _ =>
+      assert (l = bm) by congruence; assert (o = Ptrofs.zero) by congruence; subst l o
+  end.
+  repeat match goal with
+  | Hdl : deref_loc ?ty _ _ _ _ _ |- _ => progress cbn [typeof] in Hdl
+  end.
+  match goal with Hdl : deref_loc (Tstruct _ _) _ _ _ _ _ |- _ =>
+    inv Hdl end;
+    try (match goal with Hac : access_mode (Tstruct _ _) = By_value _ |- _ => discriminate end);
+    try (match goal with Hac : access_mode (Tstruct _ _) = By_reference |- _ => discriminate end).
+  match goal with Ht : typeof (Ederef _ _) = Tstruct _ _ |- _ =>
+    cbn [typeof] in Ht; inv Ht end.
+  rewrite genv_cenv_mario in *.
+  match goal with
+  | Hco : PTree.get mario._MarioState mario_ce = Some ?co,
+    Hfo2 : field_offset mario_ce fid (co_members ?co) = OK (?delta, ?bf) |- _ =>
+      assert (Hmm : mario_members = co_members co)
+        by (unfold mario_members; rewrite Hco; reflexivity);
+      rewrite <- Hmm in Hfo2;
+      assert (Hd1 : delta = off) by congruence;
+      assert (Hd2 : bf = Full) by congruence;
+      subst delta bf
+  end.
+  match goal with Hdl : deref_loc (tptr _) _ _ _ _ _ |- _ =>
+    inv Hdl end;
+    try (match goal with Hac : access_mode (tptr _) = By_reference |- _ => discriminate end);
+    try (match goal with Hac : access_mode (tptr _) = By_copy |- _ => discriminate end).
+  match goal with
+  | Hac : access_mode (tptr _) = By_value ?chunk,
+    Hlv : Mem.loadv ?chunk _ (Vptr _ _) = Some ?v |- _ =>
+      simpl in Hac; inversion Hac; subst chunk;
+      unfold Mem.loadv in Hlv;
+      rewrite Ptrofs.add_zero_l in Hlv;
+      rewrite Ptrofs.unsigned_repr in Hlv by exact Hbound;
+      rewrite Hld in Hlv; inv Hlv
+  end.
+  split; [ reflexivity | split; reflexivity ].
+Qed.
+
+(* A pointer field fid of MarioState loads, in memory m, a pointer into a block
+   OTHER than Mario's block bm. This is the per-field well-formedness clause (the
+   anti-aliasing assumption: marioObj/floor/area/... are separate allocations from
+   gMarioState). One such clause per chased field; mario_mem_wf is the instance
+   for marioBodyState. *)
+Definition field_loads_off_bm (m : mem) (bm : block) (fid : ident) : Prop :=
+  exists off b ofs,
+    field_offset mario_ce fid mario_members = OK (off, Full) /\
+    0 <= off <= Ptrofs.max_unsigned /\
+    Mem.load Mptr m bm off = Some (Vptr b ofs) /\
+    b <> bm.
+
+(* GENERIC ESTABLISHMENT. Any chase-load  tid = m->fid  (tid not the Mario
+   pointer, fid a pointer field that loads off-bm) re-establishes tmps_off_bm.
+   This is tmps_off_bm_set_bodystate generalized over the field -- one lemma now
+   covers every chased pointer field, given its field_loads_off_bm clause. *)
+Lemma tmps_off_bm_set_field :
+  forall bm e le m tid fid resty t le' m' out,
+    tmps_off_bm bm mario._m le ->
+    tid <> mario._m ->
+    le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
+    field_loads_off_bm m bm fid ->
+    exec_stmt function_entry2 mario_ge e le m
+      (Sset tid
+        (Efield
+          (Ederef (Etempvar mario._m (tptr (Tstruct mario._MarioState noattr)))
+            (Tstruct mario._MarioState noattr)) fid (tptr resty))) t le' m' out ->
+    m' = m /\ out = Out_normal /\ tmps_off_bm bm mario._m le'.
+Proof.
+  intros bm e le m tid fid resty t le' m' out Hinv Htid Hm Hwf Hexec.
+  destruct Hwf as (off & b & ofs & Hfo & Hbound & Hld & Hboff).
+  destruct (exec_field_ptr_load e le m tid fid resty t le' m' out bm b off ofs
+              Hm Hfo Hbound Hld Hexec) as (Hle' & Hm' & Hout).
+  split; [ exact Hm' | split; [ exact Hout | ] ].
+  subst le'. apply tmps_off_bm_set; [ exact Hinv | ].
+  intros _ b' o' Heq. injection Heq; intros; subst b' o'. exact Hboff.
 Qed.
