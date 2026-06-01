@@ -53,23 +53,32 @@ Proof.
     | match goal with H : load_bitfield _ _ _ _ _ _ _ _ |- _ => inv H end ].
 Qed.
 
-(* The array-element store inverter, concrete first: m->pos[0]. *)
-Lemma exec_pos0_store :
-  forall e le m rhs t le' m' out bm off,
+(* THE ARRAY-ELEMENT STORE INVERTER (general field + index). A store
+     m->fid[n] = rhs      (fid a tfloat[] field of MarioState, base = param _m)
+   lands its assign_loc in BLOCK bm at the RAW offset
+     Ptrofs.add (Ptrofs.repr off) (Ptrofs.mul (Ptrofs.repr 4) (Ptrofs.of_ints (Int.repr n)))
+   = field_offset(fid) + 4*n (4 = sizeof tfloat). The offset is left in this exact
+   symbolic form (no overflow side-conditions baked in); a consumer simplifies it /
+   bounds it for disjointness from the action cell. Companion to
+   exec_marioState_field_store (scalar field) for the array-element lvalue shape. *)
+Lemma exec_marioState_tfloatarr_store :
+  forall e le m fid sz n rhs t le' m' out bm off,
     le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
-    field_offset mario_ce mario._pos mario_members = OK (off, Full) ->
+    field_offset mario_ce fid mario_members = OK (off, Full) ->
     exec_stmt function_entry2 mario_ge e le m
       (Sassign
         (Ederef
           (Ebinop Oadd
             (Efield (Ederef (Etempvar mario._m (tptr (Tstruct mario._MarioState noattr)))
-                       (Tstruct mario._MarioState noattr)) mario._pos (tarray tfloat 3))
-            (Econst_int (Int.repr 0) tint) (tptr tfloat)) tfloat)
+                       (Tstruct mario._MarioState noattr)) fid (tarray tfloat sz))
+            (Econst_int (Int.repr n) tint) (tptr tfloat)) tfloat)
         rhs) t le' m' out ->
     le' = le /\ out = Out_normal /\
-    exists v, assign_loc mario_ce tfloat m bm (Ptrofs.repr off) Full v m'.
+    exists v, assign_loc mario_ce tfloat m bm
+      (Ptrofs.add (Ptrofs.repr off) (Ptrofs.mul (Ptrofs.repr 4) (Ptrofs.of_ints (Int.repr n))))
+      Full v m'.
 Proof.
-  intros e le m rhs t le' m' out bm off Hm Hfo Hexec.
+  intros e le m fid sz n rhs t le' m' out bm off Hm Hfo Hexec.
   inv Hexec.
   (* outer Ederef lvalue -> eval_expr of the Ebinop = Vptr loc ofs *)
   match goal with Hlv : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ => inv Hlv end.
@@ -119,7 +128,7 @@ Proof.
   (* pin the field offset off via field_offset determinism *)
   match goal with
   | Hco : PTree.get mario._MarioState mario_ce = Some ?co,
-    Hfo2 : field_offset mario_ce mario._pos (co_members ?co) = OK (?delta, ?bf) |- _ =>
+    Hfo2 : field_offset mario_ce fid (co_members ?co) = OK (?delta, ?bf) |- _ =>
       assert (Hmm : mario_members = co_members co)
         by (unfold mario_members; rewrite Hco; reflexivity);
       rewrite <- Hmm in Hfo2;
@@ -133,7 +142,7 @@ Proof.
   match goal with Hsb : sem_binary_operation _ _ _ _ _ _ _ = _ |- _ =>
     cbn [sem_binary_operation typeof] in Hsb;
     unfold sem_add in Hsb;
-    assert (Hca : classify_add (tarray tfloat 3) tint = add_case_pi tfloat Signed) by reflexivity;
+    assert (Hca : classify_add (tarray tfloat sz) tint = add_case_pi tfloat Signed) by reflexivity;
     rewrite Hca in Hsb; clear Hca;
     unfold sem_add_ptr_int in Hsb;
     cbn [sizeof tfloat] in Hsb
@@ -141,12 +150,35 @@ Proof.
   match goal with Hsb : Some (Vptr _ _) = Some (Vptr _ _) |- _ => inv Hsb end.
   match goal with Hass : assign_loc _ ?ty _ _ _ _ _ _ |- _ => cbn [typeof] in Hass end.
   split; [ reflexivity | split; [ reflexivity | ] ].
-  (* offset = add (add zero (repr off)) (mul (repr 4) (ptrofs_of_int Signed 0)) = repr off *)
-  assert (Hpz : Ptrofs.of_ints (Int.repr 0) = Ptrofs.zero).
-  { unfold Ptrofs.of_ints. change (Int.repr 0) with Int.zero.
-    rewrite Int.signed_zero. reflexivity. }
+  (* offset = add (add zero (repr off)) (mul (repr 4) (of_ints (repr n)));
+     drop the leading zero, leave the rest symbolic. *)
   match goal with Hass : assign_loc _ _ _ _ _ _ ?vv _ |- _ =>
-    exists vv;
-    rewrite Hpz, Ptrofs.mul_zero, Ptrofs.add_zero, Ptrofs.add_zero_l in Hass; exact Hass
+    exists vv; rewrite Ptrofs.add_zero_l in Hass; exact Hass
   end.
+Qed.
+
+(* index-0 corollary, with the offset collapsed to the bare field offset. *)
+Corollary exec_pos0_store :
+  forall e le m rhs t le' m' out bm off,
+    le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
+    field_offset mario_ce mario._pos mario_members = OK (off, Full) ->
+    exec_stmt function_entry2 mario_ge e le m
+      (Sassign
+        (Ederef
+          (Ebinop Oadd
+            (Efield (Ederef (Etempvar mario._m (tptr (Tstruct mario._MarioState noattr)))
+                       (Tstruct mario._MarioState noattr)) mario._pos (tarray tfloat 3))
+            (Econst_int (Int.repr 0) tint) (tptr tfloat)) tfloat)
+        rhs) t le' m' out ->
+    le' = le /\ out = Out_normal /\
+    exists v, assign_loc mario_ce tfloat m bm (Ptrofs.repr off) Full v m'.
+Proof.
+  intros e le m rhs t le' m' out bm off Hm Hfo Hexec.
+  destruct (exec_marioState_tfloatarr_store _ _ _ _ _ _ _ _ _ _ _ _ _ Hm Hfo Hexec)
+    as (Hle & Hout & v & Hass).
+  split; [ exact Hle | split; [ exact Hout | exists v ] ].
+  assert (Hpz : Ptrofs.mul (Ptrofs.repr 4) (Ptrofs.of_ints (Int.repr 0)) = Ptrofs.zero).
+  { unfold Ptrofs.of_ints. change (Int.repr 0) with Int.zero.
+    rewrite Int.signed_zero. apply Ptrofs.mul_zero. }
+  rewrite Hpz, Ptrofs.add_zero in Hass. exact Hass.
 Qed.
