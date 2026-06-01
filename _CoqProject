@@ -37,3 +37,4 @@ proofs/FlyingFrame.v
 proofs/ActionValue.v
 proofs/ActionGraph.v
 proofs/ActionValueFrame.v
+proofs/WMotRStatement.v
