@@ -262,3 +262,25 @@ Proof.
   - match goal with Hass : assign_loc _ _ _ _ _ _ _ _ |- _ =>
       eapply store_offblock_preserves_action_sat; [ exact Hass | exact Hv | exact Hpb | exact Hs ] end.
 Qed.
+
+(* SELF-CONTAINED chase-store engine: no le!p hypothesis -- the root pointer is
+   extracted from the execution via RootedLvalue.rooted_lv_root_value. A store
+   whose lvalue is rooted at any non-Mario temp preserves action_sat. This is the
+   form the statement-level frame consumes. *)
+Lemma rooted_store_nf :
+  forall (Q : int -> Prop) e le m p lhs rhs t le' m' out bm,
+    tmps_off_bm bm mario._m le ->
+    p <> mario._m ->
+    rooted_lv p lhs = true ->
+    Mem.valid_block m bm ->
+    action_sat Q m bm ->
+    exec_stmt function_entry2 mario_ge e le m (Sassign lhs rhs) t le' m' out ->
+    le' = le /\ out = Out_normal /\ Mem.valid_block m' bm /\ action_sat Q m' bm.
+Proof.
+  intros Q e le m p lhs rhs t le' m' out bm Htmps Hp Hroot Hv Hsat Hexec.
+  pose proof Hexec as Hc. inv Hc.
+  match goal with Hlv : eval_lvalue _ _ _ _ lhs _ _ _ |- _ =>
+    destruct (rooted_lv_root_value _ _ _ _ p _ _ _ _ Hlv Hroot) as (pb & po & Hlk) end.
+  eapply rooted_store_preserves_tmps;
+    [ exact Htmps | exact Hp | exact Hlk | exact Hroot | exact Hv | exact Hsat | exact Hexec ].
+Qed.

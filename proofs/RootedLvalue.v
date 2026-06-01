@@ -162,3 +162,85 @@ Proof.
   intros ge e le m p pb po a loc ofs bf Hp Hev Hr.
   eapply (proj2 (rooted_block ge e le m p pb po Hp)); eauto.
 Qed.
+
+(* If a pointer-typed add yields a pointer, the LEFT operand was a pointer. *)
+Lemma sem_add_l_implies_l_ptr :
+  forall cenv v1 t1 v2 t2 m blk ofs,
+    is_ptr_or_arr t1 = true ->
+    sem_binary_operation cenv Oadd v1 t1 v2 t2 m = Some (Vptr blk ofs) ->
+    exists b o, v1 = Vptr b o.
+Proof.
+  intros cenv v1 t1 v2 t2 m blk ofs Hptr Hsem.
+  unfold sem_binary_operation, sem_add in Hsem.
+  destruct (classify_add t1 t2) eqn:Hc.
+  - unfold sem_add_ptr_int in Hsem. destruct v1; try (do 2 eexists; reflexivity);
+      destruct v2; try (destruct Archi.ptr64); discriminate.
+  - unfold sem_add_ptr_long in Hsem. destruct v1; try (do 2 eexists; reflexivity);
+      destruct v2; try (destruct Archi.ptr64); discriminate.
+  - exfalso. destruct t1; simpl in Hptr; try discriminate;
+      unfold classify_add in Hc; simpl in Hc; destruct (typeconv t2); discriminate.
+  - exfalso. destruct t1; simpl in Hptr; try discriminate;
+      unfold classify_add in Hc; simpl in Hc; destruct (typeconv t2); discriminate.
+  - exfalso. destruct t1; simpl in Hptr; try discriminate;
+      unfold sem_binarith in Hsem; simpl in Hsem; discriminate.
+Qed.
+
+(* The root temp of a rooted lvalue that evaluates IS a pointer in memory. So a
+   chase store always has le!p = Vptr .. -- the frame needs this to extract the
+   root block. *)
+Lemma rooted_root_exists :
+  forall ge e le m p,
+    (forall a v, eval_expr ge e le m a v -> rooted_rv p a = true ->
+        forall blk ofs, v = Vptr blk ofs -> exists pb po, le ! p = Some (Vptr pb po))
+    /\ (forall a loc ofs bf, eval_lvalue ge e le m a loc ofs bf -> rooted_lv p a = true ->
+        exists pb po, le ! p = Some (Vptr pb po)).
+Proof.
+  intros ge e le m p.
+  apply eval_expr_lvalue_ind; intros.
+  all: try (solve [ simpl in *; discriminate ]).
+  - (* Etempvar *)
+    match goal with Hr : rooted_rv _ (Etempvar _ _) = true |- _ =>
+      simpl in Hr; apply Pos.eqb_eq in Hr; subst end;
+    match goal with H : _ ! p = Some (Vptr _ _) |- _ => do 2 eexists; exact H end.
+  - (* Ebinop Oadd *)
+    match goal with Hr : rooted_rv _ (Ebinop ?op _ _ _) = true |- _ =>
+      simpl in Hr; destruct op; try discriminate Hr;
+      apply andb_true_iff in Hr; destruct Hr as [Hpt Hrv] end.
+    match goal with Hsem : sem_binary_operation _ _ ?v1 _ _ _ _ = Some _, Hv : _ = Vptr _ _ |- _ =>
+      subst; eapply sem_add_l_implies_l_ptr in Hsem; [ | exact Hpt ];
+      destruct Hsem as (b1 & o1 & Hv1) end.
+    match goal with
+    | Hrv' : rooted_rv ?pp ?x = true, IH1 : rooted_rv ?pp ?x = true -> _ |- _ =>
+        specialize (IH1 Hrv'); exact (IH1 b1 o1 Hv1) end.
+  - (* Elvalue *)
+    match goal with Hr : rooted_rv _ ?a0 = true |- _ =>
+      destruct a0;
+        try (match goal with Hlv : eval_lvalue _ _ _ _ _ _ _ _ |- _ => solve [inv Hlv] end);
+        simpl in Hr; try discriminate Hr;
+        apply andb_true_iff in Hr; destruct Hr as [Hagg Hrv] end;
+    match goal with IH0 : rooted_lv _ _ = true -> _ |- _ =>
+      simpl in IH0; apply IH0; exact Hrv end.
+  - (* Ederef P0 *)
+    match goal with Hr : rooted_lv _ _ = true |- _ => simpl in Hr end;
+    match goal with Hrv : rooted_rv ?pp ?x = true, IH : rooted_rv ?pp ?x = true -> _ |- _ =>
+      specialize (IH Hrv); eapply IH; reflexivity end.
+  - (* Efield_struct P0 *)
+    match goal with Hr : rooted_lv _ _ = true |- _ => simpl in Hr end;
+    match goal with Hrv : rooted_rv ?pp ?x = true, IH : rooted_rv ?pp ?x = true -> _ |- _ =>
+      specialize (IH Hrv); eapply IH; reflexivity end.
+  - (* Efield_union P0 *)
+    match goal with Hr : rooted_lv _ _ = true |- _ => simpl in Hr end;
+    match goal with Hrv : rooted_rv ?pp ?x = true, IH : rooted_rv ?pp ?x = true -> _ |- _ =>
+      specialize (IH Hrv); eapply IH; reflexivity end.
+Qed.
+
+(* Usable corollary: an executing chase store has le!p a pointer. *)
+Corollary rooted_lv_root_value :
+  forall ge e le m p a loc ofs bf,
+    eval_lvalue ge e le m a loc ofs bf ->
+    rooted_lv p a = true ->
+    exists pb po, le ! p = Some (Vptr pb po).
+Proof.
+  intros ge e le m p a loc ofs bf Hev Hr.
+  eapply (proj2 (rooted_root_exists ge e le m p)); eauto.
+Qed.
