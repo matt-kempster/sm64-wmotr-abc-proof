@@ -43,3 +43,4 @@ proofs/MarioMemWF.v
 proofs/ResetBodystate.v
 proofs/NoAFlyingSpine.v
 proofs/BucketASpine.v
+proofs/ChaseCount.v
