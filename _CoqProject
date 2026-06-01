@@ -48,4 +48,5 @@ proofs/ArrayStore.v
 proofs/ChaseList.v
 proofs/RootedLvalue.v
 proofs/ValueFrameINV.v
+proofs/ValueFrameStmt.v
 proofs/ChaseDischarge.v
