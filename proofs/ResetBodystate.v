@@ -31,6 +31,7 @@
  *)
 
 From compcert Require Import Coqlib Errors Maps AST Integers Values Memory Globalenvs Ctypes Cop Clight Clightdefs ClightBigstep Events.
+From Coq Require Import Lia.
 Import Clightdefs.ClightNotations.
 Local Open Scope clight_scope.
 From SM64.Generated Require mario.
@@ -121,7 +122,7 @@ Proof. unfold mario_ge, mario_ce. cbn [genv_cenv globalenv]. reflexivity. Qed.
 (* By_copy), pinned to the wf load via the field offset.                 *)
 (* ------------------------------------------------------------------ *)
 Lemma exec_bodystate_load :
-  forall e le m le' m' out bm bbs off_bs ofs,
+  forall e le m t le' m' out bm bbs off_bs ofs,
     le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
     field_offset mario_ce mario._marioBodyState mario_members = OK (off_bs, Full) ->
     Mem.load Mptr m bm off_bs = Some (Vptr bbs ofs) ->
@@ -130,10 +131,10 @@ Lemma exec_bodystate_load :
         (Efield
           (Ederef (Etempvar mario._m (tptr (Tstruct mario._MarioState noattr)))
             (Tstruct mario._MarioState noattr)) mario._marioBodyState
-          (tptr (Tstruct mario._MarioBodyState noattr)))) E0 le' m' out ->
+          (tptr (Tstruct mario._MarioBodyState noattr)))) t le' m' out ->
     le' = PTree.set mario._bodyState (Vptr bbs ofs) le /\ m' = m /\ out = Out_normal.
 Proof.
-  intros e le m le' m' out bm bbs off_bs ofs Hm Hfo Hld Hexec.
+  intros e le m t le' m' out bm bbs off_bs ofs Hm Hfo Hld Hexec.
   (* pin off_bs to its literal value so all offset arithmetic is concrete *)
   assert (Hoff : off_bs = 200) by (vm_compute in Hfo; congruence).
   inv Hexec.
@@ -265,4 +266,56 @@ Proof.
   split; [ reflexivity | split; [ reflexivity | ] ].
   match goal with Hass : assign_loc _ _ _ _ ?o ?bff ?vv _ |- _ =>
     rewrite Ptrofs.add_zero_l in Hass; exists vv; exact Hass end.
+Qed.
+
+(* ================================================================== *)
+(* FORWARD HELPERS for the assembly: one per statement-kind, packaging  *)
+(* {inverter + preservation} so the body proof is a clean SEQUENCE of    *)
+(* applications -- no in-place hyp threading (which ambiguates on stale   *)
+(* action_sat/valid_block).                                              *)
+(* ================================================================== *)
+
+(* one pointer-chase store (through bodyState, an off-bm block) preserves *)
+(* action_sat + valid_block and leaves le unchanged. *)
+Lemma chase_store_preserves :
+  forall e le m fid fty rhs t le2 m2 out2 bm bbs o,
+    le ! mario._bodyState = Some (Vptr bbs o) ->
+    bbs <> bm ->
+    Mem.valid_block m bm ->
+    action_sat nonflying m bm ->
+    exec_stmt function_entry2 mario_ge e le m
+      (Sassign (Efield (Ederef (Etempvar mario._bodyState (tptr (Tstruct mario._MarioBodyState noattr)))
+                  (Tstruct mario._MarioBodyState noattr)) fid fty) rhs) t le2 m2 out2 ->
+    le2 = le /\ out2 = Out_normal /\ Mem.valid_block m2 bm /\ action_sat nonflying m2 bm.
+Proof.
+  intros e le m fid fty rhs t le2 m2 out2 bm bbs o Hbl Hbbs Hv Hs Hexec.
+  destruct (exec_field_store_block _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ Hbl Hexec)
+    as (Hle & Hout & (ofs & bf & v & Hass)).
+  split; [ exact Hle | split; [ exact Hout | split ] ].
+  - eapply assign_loc_valid_block; [ exact Hass | exact Hv ].
+  - eapply store_offblock_preserves_action_sat; [ exact Hass | exact Hv | exact Hbbs | exact Hs ].
+Qed.
+
+(* the direct m->flags store (offset 4) preserves action_sat (action@12). *)
+Lemma flags_store_preserves :
+  forall e le m rhs t le2 m2 out2 bm,
+    le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
+    Mem.valid_block m bm ->
+    action_sat nonflying m bm ->
+    exec_stmt function_entry2 mario_ge e le m
+      (Sassign (Efield (Ederef (Etempvar mario._m (tptr (Tstruct mario._MarioState noattr)))
+                  (Tstruct mario._MarioState noattr)) mario._flags tuint) rhs) t le2 m2 out2 ->
+    action_sat nonflying m2 bm.
+Proof.
+  intros e le m rhs t le2 m2 out2 bm Hm Hv Hs Hexec.
+  assert (Hfo4 : field_offset mario_ce mario._flags mario_members = OK (4, Full))
+    by (vm_compute; reflexivity).
+  destruct (exec_marioState_field_store _ _ _ _ _ _ _ _ _ _ _ _ Hm Hfo4 Hexec)
+    as (_ & _ & (v & Hass)).
+  eapply assign_loc_action_sat_avoid; [ exact Hass | exact Hv | | exact Hs ].
+  intros i Hi Hcell. unfold action_cell in Hcell. destruct Hcell as [_ Hc].
+  cbn [size_chunk] in Hc.
+  assert (Hsz : sizeof mario_ce tuint = 4) by reflexivity. rewrite Hsz in Hi.
+  rewrite !Ptrofs.unsigned_repr in Hi by (split; vm_compute; intro Hx; discriminate Hx).
+  lia.
 Qed.
