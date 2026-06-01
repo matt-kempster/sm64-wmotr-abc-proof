@@ -23,8 +23,16 @@ From SM64.Proofs Require Import Flying ActionFrame ActionValueFrame MarioMemWF R
 
 (* The temp-environment invariant: every temp other than the Mario-pointer id
    `mid` that holds a pointer points to a block distinct from Mario's block bm. *)
-Definition tmps_off_bm (bm : block) (mid : ident) (le : temp_env) : Prop :=
-  forall t b o, t <> mid -> le ! t = Some (Vptr b o) -> b <> bm.
+(* Temp-provenance invariant, gated by a concrete predicate PT picking out the
+   TRACKED pointer temps -- the temps actually used as chase-STORE roots (and the
+   temps used to derive those roots). Only tracked temps are required to point
+   off Mario's block bm. This is the Obstacle-2 fix (faithful ppc/N64 model): a
+   word-sized scalar load `t = m->someInt` CAN yield a Vptr under Archi.ptr64=false,
+   so we cannot prove an arbitrary loaded temp is off-bm -- but such a temp is never
+   a store root, so PT excludes it and its Sset obligation is vacuous. *)
+Definition tmps_off_bm (PT : ident -> bool) (bm : block) (mid : ident)
+                       (le : temp_env) : Prop :=
+  forall t b o, PT t = true -> t <> mid -> le ! t = Some (Vptr b o) -> b <> bm.
 
 (* ENGINE LEMMA (general chase store). A store through ANY tempvar p that points
    to a block blk <> bm preserves action_sat and validity, leaving le unchanged.
@@ -53,8 +61,9 @@ Qed.
    DERIVE blk <> bm, so no explicit per-call distinctness hypothesis is needed.
    le!p = Vptr blk off is read off the execution (the lvalue deref needs it). *)
 Lemma chase_store_preserves_tmps :
-  forall (Q : int -> Prop) ge e le m mid p sid sattr fid fty rhs t le' m' out bm blk off,
-    tmps_off_bm bm mid le ->
+  forall PT (Q : int -> Prop) ge e le m mid p sid sattr fid fty rhs t le' m' out bm blk off,
+    tmps_off_bm PT bm mid le ->
+    PT p = true ->
     p <> mid ->
     le ! p = Some (Vptr blk off) ->
     Mem.valid_block m bm ->
@@ -64,8 +73,8 @@ Lemma chase_store_preserves_tmps :
                   (Tstruct sid sattr)) fid fty) rhs) t le' m' out ->
     le' = le /\ out = Out_normal /\ Mem.valid_block m' bm /\ action_sat Q m' bm.
 Proof.
-  intros Q ge e le m mid p sid sattr fid fty rhs t le' m' out bm blk off Hinv Hp Hlk Hv Hs Hexec.
-  assert (Hblk : blk <> bm) by (eapply Hinv; [ exact Hp | exact Hlk ]).
+  intros PT Q ge e le m mid p sid sattr fid fty rhs t le' m' out bm blk off Hinv Hpt Hp Hlk Hv Hs Hexec.
+  assert (Hblk : blk <> bm) by (eapply Hinv; [ exact Hpt | exact Hp | exact Hlk ]).
   eapply chase_store_preserves_gen; eauto.
 Qed.
 
@@ -74,16 +83,16 @@ Qed.
    that pointer is off-bm. (Scalar v, or v reusing an already-off-bm temp,
    satisfy this vacuously / from the prior invariant.) *)
 Lemma tmps_off_bm_set :
-  forall bm mid le t v,
-    tmps_off_bm bm mid le ->
-    (t <> mid -> forall b o, v = Vptr b o -> b <> bm) ->
-    tmps_off_bm bm mid (PTree.set t v le).
+  forall PT bm mid le t v,
+    tmps_off_bm PT bm mid le ->
+    (PT t = true -> t <> mid -> forall b o, v = Vptr b o -> b <> bm) ->
+    tmps_off_bm PT bm mid (PTree.set t v le).
 Proof.
-  intros bm mid le t v Hinv Hv. unfold tmps_off_bm.
-  intros t' b o Hne Hlk. rewrite PTree.gsspec in Hlk.
+  intros PT bm mid le t v Hinv Hv. unfold tmps_off_bm.
+  intros t' b o Hpt Hne Hlk. rewrite PTree.gsspec in Hlk.
   destruct (peq t' t) as [He|He].
-  - subst t'. injection Hlk; intro Heq; subst v. exact (Hv Hne b o eq_refl).
-  - eapply Hinv; [ exact Hne | exact Hlk ].
+  - subst t'. injection Hlk; intro Heq; subst v. exact (Hv Hpt Hne b o eq_refl).
+  - eapply Hinv; [ exact Hpt | exact Hne | exact Hlk ].
 Qed.
 
 (* _bodyState and _m are distinct temp identifiers. *)
@@ -96,8 +105,8 @@ Proof. vm_compute. discriminate. Qed.
    (gMarioState's block <> gBodyStates' block). This is the canonical point
    where the invariant is (re)created from memory well-formedness. *)
 Lemma tmps_off_bm_set_bodystate :
-  forall bm bbs e le m t le' m' out,
-    tmps_off_bm bm mario._m le ->
+  forall PT bm bbs e le m t le' m' out,
+    tmps_off_bm PT bm mario._m le ->
     le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
     mario_mem_wf m bm bbs ->
     exec_stmt function_entry2 mario_ge e le m
@@ -106,15 +115,15 @@ Lemma tmps_off_bm_set_bodystate :
           (Ederef (Etempvar mario._m (tptr (Tstruct mario._MarioState noattr)))
             (Tstruct mario._MarioState noattr)) mario._marioBodyState
           (tptr (Tstruct mario._MarioBodyState noattr)))) t le' m' out ->
-    m' = m /\ out = Out_normal /\ tmps_off_bm bm mario._m le'.
+    m' = m /\ out = Out_normal /\ tmps_off_bm PT bm mario._m le'.
 Proof.
-  intros bm bbs e le m t le' m' out Hinv Hm Hwf Hexec.
+  intros PT bm bbs e le m t le' m' out Hinv Hm Hwf Hexec.
   destruct Hwf as (Hbb & off_bs & ofs & Hfo & Hld).
   destruct (exec_bodystate_load e le m t le' m' out bm bbs off_bs ofs Hm Hfo Hld Hexec)
     as (Hle' & Hm' & Hout).
   split; [ exact Hm' | split; [ exact Hout | ] ].
   subst le'. apply tmps_off_bm_set; [ exact Hinv | ].
-  intros _ b o Heq. injection Heq; intros; subst b o. intro Hcontra.
+  intros _ _ b o Heq. injection Heq; intros; subst b o. intro Hcontra.
   apply Hbb. symmetry. exact Hcontra.
 Qed.
 
@@ -210,8 +219,8 @@ Definition field_loads_off_bm (m : mem) (bm : block) (fid : ident) : Prop :=
    This is tmps_off_bm_set_bodystate generalized over the field -- one lemma now
    covers every chased pointer field, given its field_loads_off_bm clause. *)
 Lemma tmps_off_bm_set_field :
-  forall bm e le m tid fid resty t le' m' out,
-    tmps_off_bm bm mario._m le ->
+  forall PT bm e le m tid fid resty t le' m' out,
+    tmps_off_bm PT bm mario._m le ->
     tid <> mario._m ->
     le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
     field_loads_off_bm m bm fid ->
@@ -220,15 +229,15 @@ Lemma tmps_off_bm_set_field :
         (Efield
           (Ederef (Etempvar mario._m (tptr (Tstruct mario._MarioState noattr)))
             (Tstruct mario._MarioState noattr)) fid (tptr resty))) t le' m' out ->
-    m' = m /\ out = Out_normal /\ tmps_off_bm bm mario._m le'.
+    m' = m /\ out = Out_normal /\ tmps_off_bm PT bm mario._m le'.
 Proof.
-  intros bm e le m tid fid resty t le' m' out Hinv Htid Hm Hwf Hexec.
+  intros PT bm e le m tid fid resty t le' m' out Hinv Htid Hm Hwf Hexec.
   destruct Hwf as (off & b & ofs & Hfo & Hbound & Hld & Hboff).
   destruct (exec_field_ptr_load e le m tid fid resty t le' m' out bm b off ofs
               Hm Hfo Hbound Hld Hexec) as (Hle' & Hm' & Hout).
   split; [ exact Hm' | split; [ exact Hout | ] ].
   subst le'. apply tmps_off_bm_set; [ exact Hinv | ].
-  intros _ b' o' Heq. injection Heq; intros; subst b' o'. exact Hboff.
+  intros _ _ b' o' Heq. injection Heq; intros; subst b' o'. exact Hboff.
 Qed.
 
 (* ================================================================== *)
@@ -240,8 +249,9 @@ Qed.
 (* (o->header.gfx.pos[i], t->throwMatrix[i][j], ...). *)
 (* ================================================================== *)
 Lemma rooted_store_preserves_tmps :
-  forall (Q : int -> Prop) ge e le m mid p pb po lhs rhs t le' m' out bm,
-    tmps_off_bm bm mid le ->
+  forall PT (Q : int -> Prop) ge e le m mid p pb po lhs rhs t le' m' out bm,
+    tmps_off_bm PT bm mid le ->
+    PT p = true ->
     p <> mid ->
     le ! p = Some (Vptr pb po) ->
     rooted_lv p lhs = true ->
@@ -250,8 +260,8 @@ Lemma rooted_store_preserves_tmps :
     exec_stmt function_entry2 ge e le m (Sassign lhs rhs) t le' m' out ->
     le' = le /\ out = Out_normal /\ Mem.valid_block m' bm /\ action_sat Q m' bm.
 Proof.
-  intros Q ge e le m mid p pb po lhs rhs t le' m' out bm Hinv Hp Hlk Hroot Hv Hs Hexec.
-  assert (Hpb : pb <> bm) by (eapply Hinv; [ exact Hp | exact Hlk ]).
+  intros PT Q ge e le m mid p pb po lhs rhs t le' m' out bm Hinv Hpt Hp Hlk Hroot Hv Hs Hexec.
+  assert (Hpb : pb <> bm) by (eapply Hinv; [ exact Hpt | exact Hp | exact Hlk ]).
   inv Hexec.
   match goal with Hlv : eval_lvalue _ _ _ _ lhs ?loc ?ofs ?bf |- _ =>
     assert (Hloc : loc = pb) by (eapply eval_lvalue_rooted; [ exact Hlk | exact Hlv | exact Hroot ]);
@@ -268,8 +278,9 @@ Qed.
    whose lvalue is rooted at any non-Mario temp preserves action_sat. This is the
    form the statement-level frame consumes. *)
 Lemma rooted_store_nf :
-  forall (Q : int -> Prop) e le m p lhs rhs t le' m' out bm,
-    tmps_off_bm bm mario._m le ->
+  forall PT (Q : int -> Prop) e le m p lhs rhs t le' m' out bm,
+    tmps_off_bm PT bm mario._m le ->
+    PT p = true ->
     p <> mario._m ->
     rooted_lv p lhs = true ->
     Mem.valid_block m bm ->
@@ -277,10 +288,10 @@ Lemma rooted_store_nf :
     exec_stmt function_entry2 mario_ge e le m (Sassign lhs rhs) t le' m' out ->
     le' = le /\ out = Out_normal /\ Mem.valid_block m' bm /\ action_sat Q m' bm.
 Proof.
-  intros Q e le m p lhs rhs t le' m' out bm Htmps Hp Hroot Hv Hsat Hexec.
+  intros PT Q e le m p lhs rhs t le' m' out bm Htmps Hpt Hp Hroot Hv Hsat Hexec.
   pose proof Hexec as Hc. inv Hc.
   match goal with Hlv : eval_lvalue _ _ _ _ lhs _ _ _ |- _ =>
     destruct (rooted_lv_root_value _ _ _ _ p _ _ _ _ Hlv Hroot) as (pb & po & Hlk) end.
   eapply rooted_store_preserves_tmps;
-    [ exact Htmps | exact Hp | exact Hlk | exact Hroot | exact Hv | exact Hsat | exact Hexec ].
+    [ exact Htmps | exact Hpt | exact Hp | exact Hlk | exact Hroot | exact Hv | exact Hsat | exact Hexec ].
 Qed.

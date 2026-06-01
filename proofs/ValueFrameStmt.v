@@ -49,18 +49,19 @@ Definition mem_wf (FS : list ident) (m : mem) (bm : block) : Prop :=
 (* by keeping the full unchanged_on rather than just the load at 12.     *)
 (* ================================================================== *)
 Lemma rooted_store_unchanged_bm :
-  forall ge e le m p lhs rhs t le' m' out bm,
-    tmps_off_bm bm mario._m le ->
+  forall PT ge e le m p lhs rhs t le' m' out bm,
+    tmps_off_bm PT bm mario._m le ->
+    PT p = true ->
     p <> mario._m ->
     rooted_lv p lhs = true ->
     exec_stmt function_entry2 ge e le m (Sassign lhs rhs) t le' m' out ->
     le' = le /\ out = Out_normal /\ Mem.unchanged_on (fun b _ => b = bm) m m'.
 Proof.
-  intros ge e le m p lhs rhs t le' m' out bm Hinv Hp Hroot Hexec.
+  intros PT ge e le m p lhs rhs t le' m' out bm Hinv Hpt Hp Hroot Hexec.
   pose proof Hexec as Hc. inv Hc.
   match goal with Hlv : eval_lvalue _ _ _ _ lhs _ _ _ |- _ =>
     destruct (rooted_lv_root_value _ _ _ _ p _ _ _ _ Hlv Hroot) as (pb & po & Hlk) end.
-  assert (Hpb : pb <> bm) by (eapply Hinv; [ exact Hp | exact Hlk ]).
+  assert (Hpb : pb <> bm) by (eapply Hinv; [ exact Hpt | exact Hp | exact Hlk ]).
   match goal with Hlv : eval_lvalue _ _ _ _ lhs ?loc ?ofs ?bf |- _ =>
     assert (Hloc : loc = pb) by (eapply eval_lvalue_rooted; [ exact Hlk | exact Hlv | exact Hroot ]);
     subst loc end.
@@ -109,8 +110,9 @@ Qed.
 (* mem_wf. This is the Sassign-chase case of the statement induction.    *)
 (* ================================================================== *)
 Lemma chase_store_preserves_bundle :
-  forall FS (Q : int -> Prop) e le m p lhs rhs t le' m' out bm,
-    tmps_off_bm bm mario._m le ->
+  forall PT FS (Q : int -> Prop) e le m p lhs rhs t le' m' out bm,
+    tmps_off_bm PT bm mario._m le ->
+    PT p = true ->
     p <> mario._m ->
     rooted_lv p lhs = true ->
     Mem.valid_block m bm ->
@@ -119,10 +121,10 @@ Lemma chase_store_preserves_bundle :
     exec_stmt function_entry2 mario_ge e le m (Sassign lhs rhs) t le' m' out ->
     le' = le /\ out = Out_normal /\
     Mem.valid_block m' bm /\ action_sat Q m' bm /\
-    tmps_off_bm bm mario._m le' /\ mem_wf FS m' bm.
+    tmps_off_bm PT bm mario._m le' /\ mem_wf FS m' bm.
 Proof.
-  intros FS Q e le m p lhs rhs t le' m' out bm Hinv Hp Hroot Hv Hsat Hwf Hexec.
-  destruct (rooted_store_unchanged_bm _ _ _ _ _ _ _ _ _ _ _ _ Hinv Hp Hroot Hexec)
+  intros PT FS Q e le m p lhs rhs t le' m' out bm Hinv Hpt Hp Hroot Hv Hsat Hwf Hexec.
+  destruct (rooted_store_unchanged_bm _ _ _ _ _ _ _ _ _ _ _ _ _ Hinv Hpt Hp Hroot Hexec)
     as (Hle & Hout & Hu).
   subst le'.
   split; [ reflexivity | split; [ exact Hout | ] ].
@@ -193,10 +195,10 @@ Qed.
 (* points off bm -- so the Sset re-establishes tmps_off_bm. Dischargeable *)
 (* for chase-loads (m->fid, fid in FS) via mem_wf, for scalar sets        *)
 (* (no Vptr), and for off-bm pointer copies via tmps_off_bm.              *)
-Definition set_off_bm_ok (FS : list ident) (bm : block) (e : env)
-                         (id : ident) (a : expr) : Prop :=
+Definition set_off_bm_ok (PT : ident -> bool) (FS : list ident) (bm : block)
+                         (e : env) (id : ident) (a : expr) : Prop :=
   forall le m v,
-    tmps_off_bm bm mario._m le ->
+    tmps_off_bm PT bm mario._m le ->
     mem_wf FS m bm ->
     le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
     eval_expr mario_ge e le m a v ->
@@ -208,32 +210,33 @@ Definition set_off_bm_ok (FS : list ident) (bm : block) (e : env)
 (* (if any) not _m (off-bm-ness of the result comes from the callee, via   *)
 (* reach_frame_preserves). Sbuiltin: unsupported for now (False). Control  *)
 (* flow / sequencing: recurse. Leaves: True. *)
-Fixpoint body_nf_ok (FS : list ident) (bm : block) (e : env) (s : statement) : Prop :=
+Fixpoint body_nf_ok (PT : ident -> bool) (FS : list ident) (bm : block)
+                    (e : env) (s : statement) : Prop :=
   match s with
   | Sskip | Sbreak | Scontinue | Sreturn _ | Sgoto _ => True
   | Sassign a1 a2 =>
-      (exists p, p <> mario._m /\ rooted_lv p a1 = true)
+      (exists p, p <> mario._m /\ PT p = true /\ rooted_lv p a1 = true)
       \/ assign_avoids (watch FS bm) mario_ge e a1
-  | Sset id a => id <> mario._m /\ set_off_bm_ok FS bm e id a
+  | Sset id a => id <> mario._m /\ (PT id = true -> set_off_bm_ok PT FS bm e id a)
   | Scall optid a al => match optid with None => True | Some id => id <> mario._m end
   | Sbuiltin _ _ _ _ => False
-  | Ssequence s1 s2 => body_nf_ok FS bm e s1 /\ body_nf_ok FS bm e s2
-  | Sifthenelse _ s1 s2 => body_nf_ok FS bm e s1 /\ body_nf_ok FS bm e s2
-  | Sloop s1 s2 => body_nf_ok FS bm e s1 /\ body_nf_ok FS bm e s2
-  | Slabel _ s1 => body_nf_ok FS bm e s1
-  | Sswitch _ ls => ls_body_nf_ok FS bm e ls
+  | Ssequence s1 s2 => body_nf_ok PT FS bm e s1 /\ body_nf_ok PT FS bm e s2
+  | Sifthenelse _ s1 s2 => body_nf_ok PT FS bm e s1 /\ body_nf_ok PT FS bm e s2
+  | Sloop s1 s2 => body_nf_ok PT FS bm e s1 /\ body_nf_ok PT FS bm e s2
+  | Slabel _ s1 => body_nf_ok PT FS bm e s1
+  | Sswitch _ ls => ls_body_nf_ok PT FS bm e ls
   end
-with ls_body_nf_ok (FS : list ident) (bm : block) (e : env)
+with ls_body_nf_ok (PT : ident -> bool) (FS : list ident) (bm : block) (e : env)
                    (ls : labeled_statements) : Prop :=
   match ls with
   | LSnil => True
-  | LScons _ s rest => body_nf_ok FS bm e s /\ ls_body_nf_ok FS bm e rest
+  | LScons _ s rest => body_nf_ok PT FS bm e s /\ ls_body_nf_ok PT FS bm e rest
   end.
 
 (* switch structural lemmas (mirror ActionValueFrame's *_value_ok). *)
 Lemma ssd_body_nf_ok :
-  forall FS bm e sl, ls_body_nf_ok FS bm e sl ->
-    ls_body_nf_ok FS bm e (select_switch_default sl).
+  forall PT FS bm e sl, ls_body_nf_ok PT FS bm e sl ->
+    ls_body_nf_ok PT FS bm e (select_switch_default sl).
 Proof.
   induction sl as [| o s rest IH]; simpl; intros H; auto.
   destruct o as [c|]; simpl.
@@ -242,9 +245,9 @@ Proof.
 Qed.
 
 Lemma ssc_body_nf_ok :
-  forall FS bm e n sl res,
-    ls_body_nf_ok FS bm e sl -> select_switch_case n sl = Some res ->
-    ls_body_nf_ok FS bm e res.
+  forall PT FS bm e n sl res,
+    ls_body_nf_ok PT FS bm e sl -> select_switch_case n sl = Some res ->
+    ls_body_nf_ok PT FS bm e res.
 Proof.
   induction sl as [| o s rest IH]; simpl; intros res Hav Hsel; try discriminate.
   destruct Hav as [Hs Hrest]. destruct o as [c|]; simpl in Hsel.
@@ -255,29 +258,29 @@ Proof.
 Qed.
 
 Lemma select_switch_body_nf_ok :
-  forall FS bm e n sl,
-    ls_body_nf_ok FS bm e sl -> ls_body_nf_ok FS bm e (select_switch n sl).
+  forall PT FS bm e n sl,
+    ls_body_nf_ok PT FS bm e sl -> ls_body_nf_ok PT FS bm e (select_switch n sl).
 Proof.
-  intros FS bm e n sl H. unfold select_switch.
+  intros PT FS bm e n sl H. unfold select_switch.
   destruct (select_switch_case n sl) eqn:E.
   - eapply ssc_body_nf_ok; eauto.
   - apply ssd_body_nf_ok; auto.
 Qed.
 
 Lemma seq_of_ls_body_nf_ok :
-  forall FS bm e ls,
-    ls_body_nf_ok FS bm e ls -> body_nf_ok FS bm e (seq_of_labeled_statement ls).
+  forall PT FS bm e ls,
+    ls_body_nf_ok PT FS bm e ls -> body_nf_ok PT FS bm e (seq_of_labeled_statement ls).
 Proof.
   induction ls as [| o s rest IH]; simpl; intros H; auto.
   destruct H. split; auto.
 Qed.
 
 (* The bundle invariant threaded by the frame. *)
-Definition fr (FS : list ident) (Q : int -> Prop) (bm : block)
+Definition fr (PT : ident -> bool) (FS : list ident) (Q : int -> Prop) (bm : block)
               (m : mem) (le : temp_env) : Prop :=
   Mem.valid_block m bm /\
   action_sat Q m bm /\
-  tmps_off_bm bm mario._m le /\
+  tmps_off_bm PT bm mario._m le /\
   mem_wf FS m bm /\
   le ! mario._m = Some (Vptr bm Ptrofs.zero).
 
@@ -304,15 +307,15 @@ Definition reach_frame_preserves (FS : list ident) (Q : int -> Prop)
 (* and mem_wf (and le!_m) alongside validity and action_sat.              *)
 (* ================================================================== *)
 Theorem exec_body_nf :
-  forall (FS : list ident) (Q : int -> Prop) (bm : block),
+  forall (PT : ident -> bool) (FS : list ident) (Q : int -> Prop) (bm : block),
     reach_frame_preserves FS Q bm mario_ge ->
     forall e le m s t le' m' out,
       exec_stmt function_entry2 mario_ge e le m s t le' m' out ->
-      fr FS Q bm m le ->
-      body_nf_ok FS bm e s ->
-      fr FS Q bm m' le'.
+      fr PT FS Q bm m le ->
+      body_nf_ok PT FS bm e s ->
+      fr PT FS Q bm m' le'.
 Proof.
-  intros FS Q bm Hreach e le m s t le' m' out H.
+  intros PT FS Q bm Hreach e le m s t le' m' out H.
   induction H; intros Hfr Hok.
   - (* Sskip *) exact Hfr.
   - (* Sassign *)
@@ -321,10 +324,10 @@ Proof.
     match goal with
     | Hlv : eval_lvalue _ _ _ _ ?a1v ?loc ?ofs ?bf,
       Hass : assign_loc _ _ _ ?loc ?ofs ?bf ?vv ?mm |- _ =>
-      destruct Hok as [ (p & Hpm & Hr) | Havoid ];
+      destruct Hok as [ (p & Hpm & Hpt & Hr) | Havoid ];
       [ (* chase store: lands off bm *)
         destruct (rooted_lv_root_value _ _ _ _ p _ _ _ _ Hlv Hr) as (pb & po & Hlk);
-        assert (Hpb : pb <> bm) by (eapply Htmps; [ exact Hpm | exact Hlk ]);
+        assert (Hpb : pb <> bm) by (eapply Htmps; [ exact Hpt | exact Hpm | exact Hlk ]);
         assert (Hloc : loc = pb) by (eapply eval_lvalue_rooted; [ exact Hlk | exact Hlv | exact Hr ]);
         subst loc;
         assert (Hu : Mem.unchanged_on (fun b _ => b = bm) m mm)
@@ -353,9 +356,9 @@ Proof.
     + exact Hv.
     + exact Hsat.
     + apply tmps_off_bm_set; [ exact Htmps | ].
-      intros Hne b o Hvp.
+      intros Hpt Hne b o Hvp.
       match goal with He : eval_expr _ _ _ _ ?a0 _ |- _ =>
-        eapply (Hset _ _ _ Htmps Hwf Hmle He Hidm); exact Hvp end.
+        eapply (Hset Hpt _ _ _ Htmps Hwf Hmle He Hidm); exact Hvp end.
     + exact Hwf.
     + rewrite PTree.gso by congruence; exact Hmle.
   - (* Scall *)
@@ -367,7 +370,7 @@ Proof.
     + repeat split.
       * exact Hv'.
       * exact Hsat'.
-      * apply tmps_off_bm_set; [ exact Htmps | intros _ b o Hvp; eapply Hvres; exact Hvp ].
+      * apply tmps_off_bm_set; [ exact Htmps | intros _ _ b o Hvp; eapply Hvres; exact Hvp ].
       * exact Hwf'.
       * rewrite PTree.gso by congruence; exact Hmle.
     + repeat split; [ exact Hv' | exact Hsat' | exact Htmps | exact Hwf' | exact Hmle ].
@@ -398,7 +401,103 @@ Proof.
   - (* Sswitch *)
     simpl in Hok.
     exact (IHexec_stmt Hfr
-             (seq_of_ls_body_nf_ok _ _ _ _ (select_switch_body_nf_ok _ _ _ _ _ Hok))).
+             (seq_of_ls_body_nf_ok _ _ _ _ _ (select_switch_body_nf_ok _ _ _ _ _ _ Hok))).
+Qed.
+
+(* ================================================================== *)
+(* CALL-FREE VARIANT. A function whose body issues no calls (and no       *)
+(* loops/switches/builtins -- the straight-line + branch shape clightgen   *)
+(* emits for the simpler chase fns) needs NO reach_frame_preserves         *)
+(* assumption: the honest call boundary is vacuous. body_no_calls is the   *)
+(* decidable guard; the Scall/Sbuiltin/Sloop/Sswitch induction cases are   *)
+(* then unreachable (the guard contradicts them). This lets a call-free    *)
+(* chase fn be discharged UNCONDITIONALLY, exactly like mario_reset_       *)
+(* bodystate's direct proof.                                               *)
+(* ================================================================== *)
+Fixpoint body_no_calls (s : statement) : bool :=
+  match s with
+  | Sskip | Sbreak | Scontinue | Sreturn _ | Sgoto _ | Sassign _ _ | Sset _ _ => true
+  | Ssequence s1 s2 => body_no_calls s1 && body_no_calls s2
+  | Sifthenelse _ s1 s2 => body_no_calls s1 && body_no_calls s2
+  | Slabel _ s1 => body_no_calls s1
+  | Scall _ _ _ | Sbuiltin _ _ _ _ | Sloop _ _ | Sswitch _ _ => false
+  end.
+
+Theorem exec_body_nf_callfree :
+  forall (PT : ident -> bool) (FS : list ident) (Q : int -> Prop) (bm : block)
+         e le m s t le' m' out,
+    exec_stmt function_entry2 mario_ge e le m s t le' m' out ->
+    body_no_calls s = true ->
+    fr PT FS Q bm m le ->
+    body_nf_ok PT FS bm e s ->
+    fr PT FS Q bm m' le'.
+Proof.
+  intros PT FS Q bm e le m s t le' m' out H.
+  induction H; intros Hnc Hfr Hok.
+  - (* Sskip *) exact Hfr.
+  - (* Sassign *)
+    destruct Hfr as (Hv & Hsat & Htmps & Hwf & Hmle).
+    simpl in Hok.
+    match goal with
+    | Hlv : eval_lvalue _ _ _ _ ?a1v ?loc ?ofs ?bf,
+      Hass : assign_loc _ _ _ ?loc ?ofs ?bf ?vv ?mm |- _ =>
+      destruct Hok as [ (p & Hpm & Hpt & Hr) | Havoid ];
+      [ destruct (rooted_lv_root_value _ _ _ _ p _ _ _ _ Hlv Hr) as (pb & po & Hlk);
+        assert (Hpb : pb <> bm) by (eapply Htmps; [ exact Hpt | exact Hpm | exact Hlk ]);
+        assert (Hloc : loc = pb) by (eapply eval_lvalue_rooted; [ exact Hlk | exact Hlv | exact Hr ]);
+        subst loc;
+        assert (Hu : Mem.unchanged_on (fun b _ => b = bm) m mm)
+          by (eapply assign_loc_unchanged_on; [ exact Hass | intros i _; exact Hpb ]);
+        unfold fr; repeat split;
+          [ eapply Mem.valid_block_unchanged_on; [ exact Hu | exact Hv ]
+          | eapply unchanged_bm_preserves_action_sat; [ exact Hu | exact Hv | exact Hsat ]
+          | exact Htmps
+          | eapply unchanged_bm_preserves_mem_wf; [ exact Hu | exact Hv | exact Hwf ]
+          | exact Hmle ]
+      | assert (Hu : Mem.unchanged_on (watch FS bm) m mm)
+          by (eapply assign_loc_unchanged_on;
+                [ exact Hass | intros i Hi; eapply (Havoid _ _ _ _ _ Hlv); exact Hi ]);
+        unfold fr; repeat split;
+          [ eapply Mem.valid_block_unchanged_on; [ exact Hu | exact Hv ]
+          | eapply unchanged_watch_preserves_action_sat; [ exact Hu | exact Hv | exact Hsat ]
+          | exact Htmps
+          | eapply unchanged_watch_preserves_mem_wf; [ exact Hu | exact Hv | exact Hwf ]
+          | exact Hmle ] ]
+    end.
+  - (* Sset *)
+    destruct Hfr as (Hv & Hsat & Htmps & Hwf & Hmle).
+    simpl in Hok. destruct Hok as (Hidm & Hset).
+    unfold fr; repeat split.
+    + exact Hv.
+    + exact Hsat.
+    + apply tmps_off_bm_set; [ exact Htmps | ].
+      intros Hpt Hne b o Hvp.
+      match goal with He : eval_expr _ _ _ _ ?a0 _ |- _ =>
+        eapply (Hset Hpt _ _ _ Htmps Hwf Hmle He Hidm); exact Hvp end.
+    + exact Hwf.
+    + rewrite PTree.gso by congruence; exact Hmle.
+  - (* Scall: ruled out by body_no_calls *) simpl in Hnc; discriminate.
+  - (* Sbuiltin: ruled out *) simpl in Hnc; discriminate.
+  - (* Sseq normal *)
+    simpl in Hnc; apply andb_prop in Hnc; destruct Hnc as [Hnc1 Hnc2].
+    simpl in Hok; destruct Hok as [Hok1 Hok2].
+    exact (IHexec_stmt2 Hnc2 (IHexec_stmt1 Hnc1 Hfr Hok1) Hok2).
+  - (* Sseq abnormal *)
+    simpl in Hnc; apply andb_prop in Hnc; destruct Hnc as [Hnc1 _].
+    simpl in Hok; destruct Hok as [Hok1 _].
+    exact (IHexec_stmt Hnc1 Hfr Hok1).
+  - (* Sifthenelse *)
+    simpl in Hnc; apply andb_prop in Hnc; destruct Hnc as [Hnc1 Hnc2].
+    simpl in Hok; destruct Hok as [Hok1 Hok2].
+    destruct b; [ exact (IHexec_stmt Hnc1 Hfr Hok1) | exact (IHexec_stmt Hnc2 Hfr Hok2) ].
+  - (* Sreturn_none *) exact Hfr.
+  - (* Sreturn_some *) exact Hfr.
+  - (* Sbreak *) exact Hfr.
+  - (* Scontinue *) exact Hfr.
+  - (* Sloop_stop1: ruled out *) simpl in Hnc; discriminate.
+  - (* Sloop_stop2: ruled out *) simpl in Hnc; discriminate.
+  - (* Sloop_loop: ruled out *) simpl in Hnc; discriminate.
+  - (* Sswitch: ruled out *) simpl in Hnc; discriminate.
 Qed.
 
 (* ================================================================== *)
@@ -412,14 +511,14 @@ Qed.
 (* by mem_wf, so the Sset re-establishes tmps_off_bm. Reuses the           *)
 (* exec_field_ptr_load inverter by wrapping the rhs eval back into an Sset. *)
 Lemma set_off_bm_ok_chase_load :
-  forall FS bm e tid fid resty,
+  forall PT FS bm e tid fid resty,
     In fid FS ->
-    set_off_bm_ok FS bm e tid
+    set_off_bm_ok PT FS bm e tid
       (Efield
         (Ederef (Etempvar mario._m (tptr (Tstruct mario._MarioState noattr)))
           (Tstruct mario._MarioState noattr)) fid (tptr resty)).
 Proof.
-  intros FS bm e tid fid resty Hin.
+  intros PT FS bm e tid fid resty Hin.
   unfold set_off_bm_ok. intros le m v Htmps Hwf Hmle Heval Hne b o Hvp.
   destruct (Hwf fid Hin) as (off & b1 & ofs1 & Hfo & Hbound & Hld & Hboff).
   assert (Hexec : exec_stmt function_entry2 mario_ge e le m
@@ -443,22 +542,51 @@ Qed.
 (* tmps_off_bm. (clightgen hoists casts of loaded pointers through such     *)
 (* temp copies.) *)
 Lemma set_off_bm_ok_tempcopy :
-  forall FS bm e tid q ty,
+  forall PT FS bm e tid q ty,
+    PT q = true ->
     q <> mario._m ->
-    set_off_bm_ok FS bm e tid (Etempvar q ty).
+    set_off_bm_ok PT FS bm e tid (Etempvar q ty).
 Proof.
-  intros FS bm e tid q ty Hq.
+  intros PT FS bm e tid q ty Hqpt Hq.
   unfold set_off_bm_ok. intros le m v Htmps Hwf Hmle Heval Hne b o Hvp.
   inversion Heval; subst;
     try (match goal with Hlv : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ =>
            solve [ inv Hlv ] end);
-    apply (Htmps q b o); [ exact Hq | assumption ].
+    apply (Htmps q b o); [ exact Hqpt | exact Hq | assumption ].
 Qed.
 
-(* NOTE (Obstacle 2, reopened under the faithful ppc/N64 model). A word-sized
-   scalar load `tid = m->flags` (tuint -> Mint32) CAN, under Archi.ptr64=false,
-   yield a Vptr (a 4-byte load can hold a pointer fragment), so set_off_bm_ok is
-   NOT provable for it from mem_wf alone. The clean fix is to restrict tmps_off_bm
-   to chase-rooted temps (flags' temp is never a chase root). The chase-load and
-   pointer-copy Sset dischargers above remain valid; the word-scalar-load case is
-   the remaining open obligation. *)
+(* Discharge the Sset obligation for `tid = &(q->...f...)` -- an Eaddrof of an
+   lvalue rooted at a tracked pointer temp q (q off-bm). The address of a field
+   reachable from q lives in q's block, hence off bm. This is how clightgen hoists
+   `animInfo = &m->marioObj->header.gfx.animInfo` (a pointer one struct-step away
+   from a chased object), establishing the inner pointer temp that subsequent
+   stores chase through. *)
+Lemma set_off_bm_ok_addrof_rooted :
+  forall PT FS bm e tid q lv ty,
+    PT q = true ->
+    q <> mario._m ->
+    rooted_lv q lv = true ->
+    set_off_bm_ok PT FS bm e tid (Eaddrof lv ty).
+Proof.
+  intros PT FS bm e tid q lv ty Hqpt Hq Hroot.
+  unfold set_off_bm_ok. intros le m v Htmps Hwf Hmle Heval Hne b o Hvp.
+  rewrite Hvp in Heval. inv Heval;
+    try (match goal with Hl : eval_lvalue _ _ _ _ (Eaddrof _ _) _ _ _ |- _ =>
+           solve [ inv Hl ] end).
+  match goal with Hlv : eval_lvalue _ _ _ _ lv b o _ |- _ =>
+    destruct (rooted_lv_root_value _ _ _ _ q _ _ _ _ Hlv Hroot) as (qb & qo & Hlk);
+    assert (Hqb : qb <> bm) by (eapply Htmps; [ exact Hqpt | exact Hq | exact Hlk ]);
+    assert (Hloc : b = qb) by (eapply eval_lvalue_rooted; [ exact Hlk | exact Hlv | exact Hroot ]);
+    subst b end.
+  exact Hqb.
+Qed.
+
+(* NOTE (Obstacle 2, RESOLVED under the faithful ppc/N64 model). A word-sized
+   scalar load `tid = m->someInt` (e.g. tuint -> Mint32) CAN, under Archi.ptr64
+   = false, yield a Vptr, so set_off_bm_ok is NOT provable for it from mem_wf.
+   The fix (now in place): tmps_off_bm is gated by PT, tracking only the pointer
+   temps actually used as chase-STORE roots (and those used to derive them). A
+   scalar-load temp is never a store root, so PT excludes it and its Sset
+   obligation `PT id = true -> ...` is vacuous (PT id computes to false). The
+   tracked temps are established off-bm by the chase-load / addrof / pointer-copy
+   dischargers above. *)
