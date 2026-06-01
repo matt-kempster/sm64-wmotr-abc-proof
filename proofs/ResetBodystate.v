@@ -211,3 +211,58 @@ Proof.
   end.
   split; [ reflexivity | split; reflexivity ].
 Qed.
+
+(* ------------------------------------------------------------------ *)
+(* THE DIRECT-STORE inverter (third reusable brick). A store            *)
+(*   m->fid = rhs      (fid a scalar field of MarioState, base = param) *)
+(* lands its assign_loc in BLOCK bm at the field's OFFSET off (pinned    *)
+(* via field_offset determinism). Companion to exec_field_store_block    *)
+(* (which keeps only the block, for off-block pointer-chase stores):     *)
+(* here the base IS Mario's block, so we need the OFFSET to argue        *)
+(* disjointness from the action cell. Mirrors exec_bodystate_load's      *)
+(* lvalue inversion; no field deref_loc (the field is the store target,  *)
+(* an lvalue, not a read).                                               *)
+(* ------------------------------------------------------------------ *)
+Lemma exec_marioState_field_store :
+  forall e le m fid fty rhs t le' m' out bm off,
+    le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
+    field_offset mario_ce fid mario_members = OK (off, Full) ->
+    exec_stmt function_entry2 mario_ge e le m
+      (Sassign (Efield (Ederef (Etempvar mario._m (tptr (Tstruct mario._MarioState noattr)))
+                  (Tstruct mario._MarioState noattr)) fid fty) rhs) t le' m' out ->
+    le' = le /\ out = Out_normal /\
+    exists v, assign_loc mario_ce fty m bm (Ptrofs.repr off) Full v m'.
+Proof.
+  intros e le m fid fty rhs t le' m' out bm off Hm Hfo Hexec.
+  inv Hexec.
+  match goal with Hlv : eval_lvalue _ _ _ _ (Efield _ _ _) _ _ _ |- _ => inv Hlv end;
+    [ | match goal with Hut : typeof _ = Tunion _ _ |- _ => inv Hut end ].
+  match goal with Hee : eval_expr _ _ _ _ (Ederef _ _) _ |- _ => inv Hee end.
+  match goal with Hlv2 : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ => inv Hlv2 end.
+  match goal with He : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+    inv He;
+    try (match goal with Hl2 : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ =>
+           solve [ inv Hl2 ] end) end.
+  match goal with Hlk : ?T ! mario._m = Some (Vptr ?l ?o) |- _ =>
+    assert (l = bm) by congruence; assert (o = Ptrofs.zero) by congruence; subst l o end.
+  repeat match goal with Hdl : deref_loc ?ty _ _ _ _ _ |- _ => progress cbn [typeof] in Hdl end.
+  match goal with Hdl : deref_loc (Tstruct _ _) _ _ _ _ _ |- _ => inv Hdl end;
+    try (match goal with Hac : access_mode (Tstruct _ _) = By_value _ |- _ => discriminate end);
+    try (match goal with Hac : access_mode (Tstruct _ _) = By_reference |- _ => discriminate end).
+  match goal with Ht : typeof (Ederef _ _) = Tstruct _ _ |- _ =>
+    cbn [typeof] in Ht; inv Ht end.
+  rewrite genv_cenv_mario in *.
+  match goal with
+  | Hco : PTree.get mario._MarioState mario_ce = Some ?co,
+    Hfo2 : field_offset mario_ce fid (co_members ?co) = OK (?delta, ?bf) |- _ =>
+      assert (Hmm : mario_members = co_members co)
+        by (unfold mario_members; rewrite Hco; reflexivity);
+      rewrite <- Hmm in Hfo2;
+      assert (Hd1 : delta = off) by congruence;
+      assert (Hd2 : bf = Full) by congruence;
+      subst delta bf
+  end.
+  split; [ reflexivity | split; [ reflexivity | ] ].
+  match goal with Hass : assign_loc _ _ _ _ ?o ?bff ?vv _ |- _ =>
+    rewrite Ptrofs.add_zero_l in Hass; exists vv; exact Hass end.
+Qed.
