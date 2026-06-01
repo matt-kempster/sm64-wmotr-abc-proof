@@ -46,3 +46,4 @@ proofs/BucketASpine.v
 proofs/ChaseCount.v
 proofs/ArrayStore.v
 proofs/ChaseList.v
+proofs/ValueFrameINV.v
