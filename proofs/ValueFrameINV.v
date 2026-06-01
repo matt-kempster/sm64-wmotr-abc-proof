@@ -19,7 +19,7 @@
 From compcert Require Import Coqlib Errors Maps AST Integers Values Memory Globalenvs Ctypes Cop Clight Clightdefs ClightBigstep Events.
 Import Clightdefs.ClightNotations.
 Local Open Scope clight_scope.
-From SM64.Proofs Require Import Flying ActionFrame ActionValueFrame MarioMemWF ResetBodystate.
+From SM64.Proofs Require Import Flying ActionFrame ActionValueFrame MarioMemWF ResetBodystate RootedLvalue.
 
 (* The temp-environment invariant: every temp other than the Mario-pointer id
    `mid` that holds a pointer points to a block distinct from Mario's block bm. *)
@@ -229,4 +229,36 @@ Proof.
   split; [ exact Hm' | split; [ exact Hout | ] ].
   subst le'. apply tmps_off_bm_set; [ exact Hinv | ].
   intros _ b' o' Heq. injection Heq; intros; subst b' o'. exact Hboff.
+Qed.
+
+(* ================================================================== *)
+(* THE GENERAL CHASE-STORE ENGINE (any accessor depth). A store whose   *)
+(* lvalue is rooted at a tempvar p (p not the Mario pointer) preserves   *)
+(* action_sat: tmps_off_bm gives p's block <> bm, and RootedLvalue's      *)
+(* rooted_block puts the store in p's block. This subsumes                *)
+(* chase_store_preserves_tmps (single Efield) for ALL nested shapes        *)
+(* (o->header.gfx.pos[i], t->throwMatrix[i][j], ...). *)
+(* ================================================================== *)
+Lemma rooted_store_preserves_tmps :
+  forall (Q : int -> Prop) ge e le m mid p pb po lhs rhs t le' m' out bm,
+    tmps_off_bm bm mid le ->
+    p <> mid ->
+    le ! p = Some (Vptr pb po) ->
+    rooted_lv p lhs = true ->
+    Mem.valid_block m bm ->
+    action_sat Q m bm ->
+    exec_stmt function_entry2 ge e le m (Sassign lhs rhs) t le' m' out ->
+    le' = le /\ out = Out_normal /\ Mem.valid_block m' bm /\ action_sat Q m' bm.
+Proof.
+  intros Q ge e le m mid p pb po lhs rhs t le' m' out bm Hinv Hp Hlk Hroot Hv Hs Hexec.
+  assert (Hpb : pb <> bm) by (eapply Hinv; [ exact Hp | exact Hlk ]).
+  inv Hexec.
+  match goal with Hlv : eval_lvalue _ _ _ _ lhs ?loc ?ofs ?bf |- _ =>
+    assert (Hloc : loc = pb) by (eapply eval_lvalue_rooted; [ exact Hlk | exact Hlv | exact Hroot ]);
+    subst loc end.
+  split; [ reflexivity | split; [ reflexivity | split ] ].
+  - match goal with Hass : assign_loc _ _ _ _ _ _ _ _ |- _ =>
+      eapply assign_loc_valid_block; [ exact Hass | exact Hv ] end.
+  - match goal with Hass : assign_loc _ _ _ _ _ _ _ _ |- _ =>
+      eapply store_offblock_preserves_action_sat; [ exact Hass | exact Hv | exact Hpb | exact Hs ] end.
 Qed.
