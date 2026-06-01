@@ -319,3 +319,84 @@ Proof.
   rewrite !Ptrofs.unsigned_repr in Hi by (split; vm_compute; intro Hx; discriminate Hx).
   lia.
 Qed.
+
+(* ================================================================== *)
+(* THE WORKED EXAMPLE: the FULL real body of mario_reset_bodystate     *)
+(* preserves action_sat nonflying, GIVEN mario_mem_wf. Assembled as a   *)
+(* clean sequence of the forward helpers. This is the Option A prototype *)
+(* the generic temp-provenance capstone will generalize -- the manual   *)
+(* threading here (le!_bodyState off-bm + valid_block + sat, carried     *)
+(* across stores) is exactly the invariant the capstone must thread.    *)
+(* ================================================================== *)
+
+(* the Ssequence-second (abnormal first statement) case is impossible:   *)
+(* our first statements are Sset/Sassign, which yield Out_normal.        *)
+Local Ltac seq2_absurd :=
+  exfalso;
+  match goal with
+  | Hs1 : exec_stmt _ _ _ _ _ _ _ _ _ ?o, Hne2 : ?o <> Out_normal |- _ =>
+      inv Hs1; congruence
+  end.
+
+(* process one pointer-chase store: peel its Ssequence, apply the helper, *)
+(* thread valid_block/action_sat forward, collapse the unchanged le.      *)
+Local Ltac chase_one bm Hbbs :=
+  match goal with
+  | H : exec_stmt _ _ _ _ _
+          (Ssequence (Sassign (Efield (Ederef (Etempvar mario._bodyState _) _) _ _) _) _) _ _ _ _ |- _ =>
+      inv H; [ | seq2_absurd ]
+  end;
+  match goal with
+  | HS : exec_stmt _ _ _ ?lc ?mc
+           (Sassign (Efield (Ederef (Etempvar mario._bodyState _) _) _ _) _) _ ?lc2 _ _,
+    Hbl : ?lc ! mario._bodyState = Some _,
+    Hv : Mem.valid_block ?mc bm,
+    Hs : action_sat nonflying ?mc bm |- _ =>
+      let Hleq := fresh in let Hout := fresh in
+      let Hv2 := fresh "Hv" in let Hs2 := fresh "Hs" in
+      edestruct chase_store_preserves as (Hleq & Hout & Hv2 & Hs2);
+        [ exact Hbl | exact Hbbs | exact Hv | exact Hs | exact HS
+        | subst lc2; clear HS Hv Hs Hout ]
+  end.
+
+Lemma mario_reset_bodystate_preserves :
+  forall e le m t le' m' out bm bbs,
+    le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
+    Mem.valid_block m bm ->
+    mario_mem_wf m bm bbs ->
+    action_sat nonflying m bm ->
+    exec_stmt function_entry2 mario_ge e le m
+      (fn_body mario.f_mario_reset_bodystate) t le' m' out ->
+    action_sat nonflying m' bm.
+Proof.
+  intros e le m t le' m' out bm bbs Hm Hvalid Hwf Hsat Hexec.
+  destruct Hwf as [Hbne (off_bs & ofs0 & Hfo & Hwfld)].
+  assert (Hbbs : bbs <> bm) by (intro HH; apply Hbne; symmetry; exact HH).
+  unfold mario.f_mario_reset_bodystate in Hexec; cbn [fn_body] in Hexec.
+  (* ---- LOAD: bodyState = m->marioBodyState ---- *)
+  inv Hexec; [ | seq2_absurd ].
+  match goal with HL : exec_stmt _ _ _ _ _ (Sset mario._bodyState _) _ _ _ _ |- _ =>
+    destruct (exec_bodystate_load _ _ _ _ _ _ _ _ _ _ _ Hm Hfo Hwfld HL) as (Hl1 & Hm1 & _) end.
+  subst m.   (* load leaves memory unchanged (m1 = m) *)
+  match goal with HR : exec_stmt _ _ _ ?l1 _ _ _ _ _ _ |- _ =>
+    assert (HbodyLe : l1 ! mario._bodyState = Some (Vptr bbs ofs0))
+      by (rewrite Hl1; apply PTree.gss);
+    assert (HmLe : l1 ! mario._m = Some (Vptr bm Ptrofs.zero))
+      by (rewrite Hl1; rewrite PTree.gso by (vm_compute; discriminate); exact Hm);
+    clear Hl1 end.
+  (* ---- the 5 pointer-chase stores through bodyState ---- *)
+  do 5 (chase_one bm Hbbs).
+  (* ---- t'1 = m->flags  (Sset, memory unchanged) ---- *)
+  match goal with H : exec_stmt _ _ _ _ _ (Ssequence (Sset mario._t'1 _) _) _ _ _ _ |- _ =>
+    inv H; [ | seq2_absurd ] end.
+  match goal with HS : exec_stmt _ _ _ _ _ (Sset mario._t'1 _) _ _ _ _ |- _ => inv HS end.
+  (* ---- m->flags = t'1 & ~64  (direct store, offset 4) ---- *)
+  match goal with
+  | HF : exec_stmt _ _ _ ?lf _
+           (Sassign (Efield (Ederef (Etempvar mario._m _) _) mario._flags _) _) _ _ _ _,
+    Hv : Mem.valid_block ?mf bm, Hs : action_sat nonflying ?mf bm |- _ =>
+      assert (HmF : lf ! mario._m = Some (Vptr bm Ptrofs.zero))
+        by (rewrite PTree.gso by (vm_compute; discriminate); exact HmLe);
+      eapply flags_store_preserves; [ exact HmF | exact Hv | exact Hs | exact HF ]
+  end.
+Qed.
