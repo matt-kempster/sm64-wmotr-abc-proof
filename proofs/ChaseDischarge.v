@@ -14,8 +14,11 @@
  *   [x] set_anim_to_frame         -- DONE via the GENERIC frame (exec_body_nf_callfree):
  *       deep chase through animInfo = &m->marioObj->header.gfx.animInfo, word-scalar
  *       loads (Obstacle 2), and control flow -- all handled by the engine.
+ *   [x] set_mario_action_moving   -- DONE via the FULL frame (exec_body_nf): CALLS
+ *       (reach_frame_preserves), a SWITCH, a direct m->forwardVel store (Obstacle 1),
+ *       and a rooted marioObj->rawData[34] store. Conditional on the callee knob.
  *   [ ] set_mario_animation, set_mario_anim_with_accel,
- *       set_steep_jump_action, set_mario_action_airborne, set_mario_action_moving,
+ *       set_steep_jump_action, set_mario_action_airborne,
  *       squish_mario_model, update_mario_info_for_cam, sink_mario_in_quicksand,
  *       mario_update_hitbox_and_cap_model, execute_mario_action, init_mario,
  *       init_mario_from_save_file
@@ -37,7 +40,7 @@ From Coq Require Import List.
 Import ListNotations.
 From compcert Require Import Maps AST Integers Values Memory Globalenvs Ctypes Cop Clight ClightBigstep.
 From SM64.Generated Require mario.
-From SM64.Proofs Require Import Flying ActionValueFrame MarioMemWF ChaseCount ResetBodystate ValueFrameINV SetAnimToFrame.
+From SM64.Proofs Require Import Flying ActionValueFrame MarioMemWF ChaseCount ResetBodystate ValueFrameINV ValueFrameStmt SetAnimToFrame SetMarioActionMoving.
 
 (* ---- #1 / 111 : mario_reset_bodystate (mario.c) ---------------------- *)
 
@@ -84,3 +87,31 @@ Theorem set_anim_to_frame_preserves_nonflying :
       (fn_body mario.f_set_anim_to_frame) t le' m' out ->
     action_sat nonflying m' bm.
 Proof. exact set_anim_to_frame_preserves. Qed.
+
+(* ---- #3 / 111 : set_mario_action_moving (mario.c) ------------------- *)
+
+(* (a) one of the enumerated 111. *)
+Lemma set_mario_action_moving_is_one_of_the_111 :
+  In mario._set_mario_action_moving (chase_funcs mario.prog).
+Proof. vm_compute. tauto. Qed.
+
+(* (b) its REAL body preserves nonflying. Cleared through the FULL frame
+   (exec_body_nf), the first entry with both CALLS and a SWITCH: it calls
+   mario_get_floor_class / mario_facing_downhill (read-only re: the action
+   field -- the reach_frame_preserves hypothesis is the honest callee knob),
+   switches on the action argument, writes m->forwardVel DIRECTLY (Obstacle 1:
+   forwardVel@84 misses the action cell [12,16) and the marioObj load), and
+   writes m->marioObj->rawData[34] through a rooted temp. It only RETURNS the
+   action value, never storing m->action -- so nonflying survives. *)
+Theorem set_mario_action_moving_preserves_nonflying :
+  forall e le m t le' m' out bm,
+    reach_frame_preserves FS_mov nonflying bm mario_ge ->
+    le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
+    Mem.valid_block m bm ->
+    field_loads_off_bm m bm mario._marioObj ->
+    tmps_off_bm PT_mov bm mario._m le ->
+    action_sat nonflying m bm ->
+    exec_stmt function_entry2 mario_ge e le m
+      (fn_body mario.f_set_mario_action_moving) t le' m' out ->
+    action_sat nonflying m' bm.
+Proof. exact set_mario_action_moving_preserves. Qed.

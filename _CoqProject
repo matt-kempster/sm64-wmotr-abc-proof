@@ -50,4 +50,5 @@ proofs/RootedLvalue.v
 proofs/ValueFrameINV.v
 proofs/ValueFrameStmt.v
 proofs/SetAnimToFrame.v
+proofs/SetMarioActionMoving.v
 proofs/ChaseDischarge.v
