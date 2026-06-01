@@ -40,3 +40,4 @@ proofs/ActionValueFrame.v
 proofs/WMotRStatement.v
 proofs/LinkSpike.v
 proofs/MarioMemWF.v
+proofs/ResetBodystate.v
