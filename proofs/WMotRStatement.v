@@ -154,7 +154,7 @@ Section WMotR.
     - (* safety: non-flying excludes flying *)
       exact mem_nonflying_not_flying.
     - (* the combined no-dangerous-frame run *)
-      apply combine_preconditions; assumption.
+      exact (combine_preconditions is HnoA Hnospawn).
     - (* the run itself *)
       exact Hreach.
   Qed.
