@@ -469,3 +469,54 @@ Proof.
   match goal with HRet : exec_stmt _ _ _ _ _ (Sreturn _) _ _ _ _ |- _ => inv HRet end.
   exact Hs2.
 Qed.
+
+(* ================================================================== *)
+(* THIRD function, the new capability: CONTROL FLOW (if/else).          *)
+(* play_mario_action_sound:                                             *)
+(*   t'1 = m->flags;                                                    *)
+(*   if (!(t'1 & 0x10000))                                              *)
+(*     { play_sound_and_spawn_particles(m,..); m->flags |= 0x10000 }    *)
+(*   else { }                                                           *)
+(* The if is handled by inverting Sifthenelse and case-splitting on the *)
+(* branch taken; each branch preserves action_sat (THEN: a reach'd call *)
+(* + a direct flags store; ELSE: Sskip, memory unchanged). Direct store *)
+(* + call reuse the existing helpers; the branch split is the new part. *)
+(* ================================================================== *)
+Lemma play_mario_action_sound_preserves :
+  forall e le m t le' m' out bm,
+    le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
+    Mem.valid_block m bm ->
+    reach_value_preserves nonflying bm mario_ge ->
+    action_sat nonflying m bm ->
+    exec_stmt function_entry2 mario_ge e le m
+      (fn_body mario.f_play_mario_action_sound) t le' m' out ->
+    action_sat nonflying m' bm.
+Proof.
+  intros e le m t le' m' out bm Hm Hvalid Hreach Hsat Hexec.
+  unfold mario.f_play_mario_action_sound in Hexec; cbn [fn_body] in Hexec.
+  (* t'1 = m->flags : memory unchanged *)
+  inv Hexec; [ | seq2_absurd ].
+  match goal with HS : exec_stmt _ _ _ _ _ (Sset mario._t'1 _) _ _ _ _ |- _ => inv HS end.
+  (* the if: invert and case-split on the branch taken *)
+  match goal with H : exec_stmt _ _ _ _ _ (Sifthenelse _ _ _) _ _ _ _ |- _ => inv H end.
+  match goal with H : exec_stmt _ _ _ _ _ (if ?b then _ else _) _ _ _ _ |- _ => destruct b end.
+  - (* THEN: play_sound_and_spawn_particles(...) ; t'2 = m->flags ; m->flags |= 0x10000 *)
+    match goal with H : exec_stmt _ _ _ _ _ (Ssequence (Scall _ _ _) _) _ _ _ _ |- _ =>
+      inv H; [ | seq2_absurd ] end.
+    match goal with HSc : exec_stmt _ _ _ _ _ (Scall _ _ _) _ _ _ _ |- _ => inv HSc end.
+    match goal with HFun : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+      destruct (Hreach _ _ _ _ _ _ HFun Hvalid Hsat) as (Hv2 & Hs2) end.
+    match goal with H : exec_stmt _ _ _ _ _ (Ssequence (Sset mario._t'2 _) _) _ _ _ _ |- _ =>
+      inv H; [ | seq2_absurd ] end.
+    match goal with HS2 : exec_stmt _ _ _ _ _ (Sset mario._t'2 _) _ _ _ _ |- _ => inv HS2 end.
+    match goal with HF : exec_stmt _ _ _ ?lf _
+        (Sassign (Efield (Ederef (Etempvar mario._m _) _) mario._flags _) _) _ _ _ _ |- _ =>
+      assert (HmF : lf ! mario._m = Some (Vptr bm Ptrofs.zero))
+        by (cbn [set_opttemp];
+            rewrite PTree.gso by (vm_compute; discriminate);
+            rewrite PTree.gso by (vm_compute; discriminate); exact Hm);
+      eapply flags_store_preserves; [ exact HmF | exact Hv2 | exact Hs2 | exact HF ] end.
+  - (* ELSE: Sskip, memory unchanged *)
+    match goal with H : exec_stmt _ _ _ _ _ Sskip _ _ _ _ |- _ => inv H end.
+    exact Hsat.
+Qed.
