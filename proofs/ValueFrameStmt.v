@@ -205,18 +205,32 @@ Definition set_off_bm_ok (PT : ident -> bool) (FS : list ident) (bm : block)
     id <> mario._m ->
     forall b o, v = Vptr b o -> b <> bm.
 
-(* The whole-statement obligation. Sassign: chase OR avoid-the-watch-set.  *)
-(* Sset: target not _m and the rhs keeps tmps_off_bm. Scall: result temp   *)
-(* (if any) not _m (off-bm-ness of the result comes from the callee, via   *)
-(* reach_frame_preserves). Sbuiltin: unsupported for now (False). Control  *)
-(* flow / sequencing: recurse. Leaves: True. *)
+(* DIRECT-STORE avoid (Obstacle 1). assign_avoids quantifies `forall le`, which
+   is FALSE for a store m->fid: under an adversarial le where _m aliases bm at a
+   shifted offset, the store could hit the action cell. But the frame MAINTAINS
+   le!_m = Vptr bm 0, so the avoid condition only needs to hold under that. This
+   variant carries it -- then a store m->fid lands at exactly (bm, field_offset),
+   a static cell we check disjoint from the watch set by lia. *)
+Definition assign_avoids_m (P : block -> Z -> Prop) (bm : block) (e : env)
+                           (a1 : expr) : Prop :=
+  forall le m loc ofs bf,
+    le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
+    eval_lvalue mario_ge e le m a1 loc ofs bf ->
+    forall i, Ptrofs.unsigned ofs <= i < Ptrofs.unsigned ofs + sizeof mario_ge (typeof a1) ->
+              ~ P loc i.
+
+(* The whole-statement obligation. Sassign: chase OR avoid-the-watch-set       *)
+(* (knowing _m points to bm). Sset: target not _m and the rhs keeps            *)
+(* tmps_off_bm. Scall: result temp (if any) not _m (off-bm-ness of the result  *)
+(* comes from the callee, via reach_frame_preserves). Sbuiltin: unsupported    *)
+(* (False). Control flow / sequencing: recurse. Leaves: True. *)
 Fixpoint body_nf_ok (PT : ident -> bool) (FS : list ident) (bm : block)
                     (e : env) (s : statement) : Prop :=
   match s with
   | Sskip | Sbreak | Scontinue | Sreturn _ | Sgoto _ => True
   | Sassign a1 a2 =>
       (exists p, p <> mario._m /\ PT p = true /\ rooted_lv p a1 = true)
-      \/ assign_avoids (watch FS bm) mario_ge e a1
+      \/ assign_avoids_m (watch FS bm) bm e a1
   | Sset id a => id <> mario._m /\ (PT id = true -> set_off_bm_ok PT FS bm e id a)
   | Scall optid a al => match optid with None => True | Some id => id <> mario._m end
   | Sbuiltin _ _ _ _ => False
@@ -341,7 +355,7 @@ Proof.
       | (* direct/other store: avoids the watch set *)
         assert (Hu : Mem.unchanged_on (watch FS bm) m mm)
           by (eapply assign_loc_unchanged_on;
-                [ exact Hass | intros i Hi; eapply (Havoid _ _ _ _ _ Hlv); exact Hi ]);
+                [ exact Hass | intros i Hi; eapply (Havoid _ _ _ _ _ Hmle Hlv); exact Hi ]);
         unfold fr; repeat split;
           [ eapply Mem.valid_block_unchanged_on; [ exact Hu | exact Hv ]
           | eapply unchanged_watch_preserves_action_sat; [ exact Hu | exact Hv | exact Hsat ]
@@ -456,7 +470,7 @@ Proof.
           | exact Hmle ]
       | assert (Hu : Mem.unchanged_on (watch FS bm) m mm)
           by (eapply assign_loc_unchanged_on;
-                [ exact Hass | intros i Hi; eapply (Havoid _ _ _ _ _ Hlv); exact Hi ]);
+                [ exact Hass | intros i Hi; eapply (Havoid _ _ _ _ _ Hmle Hlv); exact Hi ]);
         unfold fr; repeat split;
           [ eapply Mem.valid_block_unchanged_on; [ exact Hu | exact Hv ]
           | eapply unchanged_watch_preserves_action_sat; [ exact Hu | exact Hv | exact Hsat ]
@@ -590,3 +604,73 @@ Qed.
    obligation `PT id = true -> ...` is vacuous (PT id computes to false). The
    tracked temps are established off-bm by the chase-load / addrof / pointer-copy
    dischargers above. *)
+
+(* ================================================================== *)
+(* OBSTACLE 1 -- DIRECT-STORE AVOID DISCHARGERS. A direct write to a    *)
+(* MarioState field `m->fid` (or array element `(m->fid)[n]`) lands at  *)
+(* a STATIC cell in bm; with le!_m = Vptr bm 0 (carried by the frame)   *)
+(* the lvalue pins to (bm, field_offset[+n*elt]). assign_avoids_m then  *)
+(* reduces to a byte-range disjointness the caller closes by lia.       *)
+(* ================================================================== *)
+
+(* eval_lvalue of m->fid pins (loc,ofs,bf) = (bm, repr off, Full). The   *)
+(* eval_lvalue-only core of ResetBodystate.exec_marioState_field_store.  *)
+Lemma eval_lvalue_marioState_field :
+  forall e le m fid fty loc ofs bf bm off,
+    le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
+    field_offset mario_ce fid mario_members = OK (off, Full) ->
+    eval_lvalue mario_ge e le m
+      (Efield (Ederef (Etempvar mario._m (tptr (Tstruct mario._MarioState noattr)))
+                (Tstruct mario._MarioState noattr)) fid fty) loc ofs bf ->
+    loc = bm /\ ofs = Ptrofs.repr off /\ bf = Full.
+Proof.
+  intros e le m fid fty loc ofs bf bm off Hm Hfo Hlv.
+  inv Hlv;
+    [ | match goal with Hut : typeof _ = Tunion _ _ |- _ => inv Hut end ].
+  match goal with Hee : eval_expr _ _ _ _ (Ederef _ _) _ |- _ => inv Hee end.
+  match goal with Hlv2 : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ => inv Hlv2 end.
+  match goal with He : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+    inv He;
+    try (match goal with Hl2 : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ =>
+           solve [ inv Hl2 ] end) end.
+  match goal with Hlk : ?T ! mario._m = Some (Vptr ?l ?o) |- _ =>
+    assert (l = bm) by congruence; assert (o = Ptrofs.zero) by congruence; subst l o end.
+  repeat match goal with Hdl : deref_loc ?ty _ _ _ _ _ |- _ => progress cbn [typeof] in Hdl end.
+  match goal with Hdl : deref_loc (Tstruct _ _) _ _ _ _ _ |- _ => inv Hdl end;
+    try (match goal with Hac : access_mode (Tstruct _ _) = By_value _ |- _ => discriminate end);
+    try (match goal with Hac : access_mode (Tstruct _ _) = By_reference |- _ => discriminate end).
+  match goal with Ht : typeof (Ederef _ _) = Tstruct _ _ |- _ =>
+    cbn [typeof] in Ht; inv Ht end.
+  rewrite genv_cenv_mario in *.
+  match goal with
+  | Hco : PTree.get mario._MarioState mario_ce = Some ?co,
+    Hfo2 : field_offset mario_ce fid (co_members ?co) = OK (?delta, ?bf0) |- _ =>
+      assert (Hmm : mario_members = co_members co)
+        by (unfold mario_members; rewrite Hco; reflexivity);
+      rewrite <- Hmm in Hfo2;
+      assert (Hd1 : delta = off) by congruence;
+      assert (Hd2 : bf0 = Full) by congruence;
+      subst delta bf0
+  end.
+  rewrite Ptrofs.add_zero_l. split; [ reflexivity | split; reflexivity ].
+Qed.
+
+(* Discharge assign_avoids_m for a direct scalar field store m->fid: the  *)
+(* written range [off, off + sizeof ty) must avoid the watch set P. The   *)
+(* caller supplies that disjointness (a concrete lia over field offsets). *)
+Lemma assign_avoids_m_field :
+  forall (P : block -> Z -> Prop) bm e fid ty off,
+    field_offset mario_ce fid mario_members = OK (off, Full) ->
+    0 <= off <= Ptrofs.max_unsigned ->
+    (forall i, off <= i < off + sizeof mario_ge ty -> ~ P bm i) ->
+    assign_avoids_m P bm e
+      (Efield (Ederef (Etempvar mario._m (tptr (Tstruct mario._MarioState noattr)))
+                (Tstruct mario._MarioState noattr)) fid ty).
+Proof.
+  intros P bm e fid ty off Hfo Hbound Hdisj.
+  unfold assign_avoids_m. intros le m loc ofs bf Hmle Hlv i Hi.
+  destruct (eval_lvalue_marioState_field e le m fid ty loc ofs bf bm off Hmle Hfo Hlv)
+    as (Hloc & Hofs & _). subst loc ofs.
+  cbn [typeof] in Hi. rewrite Ptrofs.unsigned_repr in Hi by exact Hbound.
+  apply Hdisj. exact Hi.
+Qed.
