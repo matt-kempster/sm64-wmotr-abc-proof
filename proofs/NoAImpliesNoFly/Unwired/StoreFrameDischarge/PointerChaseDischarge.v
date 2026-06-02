@@ -283,3 +283,96 @@ Proof.
   intros bm rest m m' t res (Hv & Hwf) Hsat Hfun.
   exact (reset_bodystate_funcall_preserves_generic bm rest m m' t res Hv Hwf Hsat Hfun).
 Qed.
+
+(* ==================================================================== *)
+(* FUNCALL-LEVEL LIFT (the call-BEARING slice), via the generic           *)
+(* funcall_body_nf_preserves. These three carry calls (switch/array-copy/  *)
+(* vec3f_set), so the interprocedural knob reach_frame_preserves is        *)
+(* threaded (honest, not discharged) -- but the eval_funcall inversion and *)
+(* the entry tmps_off_bm are STILL handled generically, never by hand.     *)
+(* Together with the call-free pair above, every discharged scoreboard fn  *)
+(* now reaches funcall level through the reusable bridges -- no function    *)
+(* keeps a bespoke eval_funcall inversion.                                  *)
+(* ==================================================================== *)
+
+Theorem set_mario_action_moving_funcall_preserves_nonflying :
+  forall bm rest m m' t res,
+    reach_frame_preserves chased_fields_mov nonflying bm mario_ge ->
+    Mem.valid_block m bm ->
+    field_loads_off_bm m bm mario._marioObj ->
+    action_sat nonflying m bm ->
+    eval_funcall function_entry2 mario_ge m (Internal mario.f_set_mario_action_moving)
+      (Vptr bm Ptrofs.zero :: rest) t m' res ->
+    action_sat nonflying m' bm.
+Proof.
+  intros bm rest m m' t res Hreach Hv Hwf Hsat Hfun.
+  eapply (funcall_body_nf_preserves tracked_ptrs_mov chased_fields_mov nonflying bm
+            mario.f_set_mario_action_moving rest m m' t res Hreach).
+  - reflexivity.
+  - exists (Tpointer (Tstruct mario._MarioState noattr) noattr),
+           ((mario._action, Tint I32 Unsigned noattr)
+              :: (mario._actionArg, Tint I32 Unsigned noattr) :: nil).
+    split; [ reflexivity | split ].
+    + intro Hin; simpl in Hin; destruct Hin as [H|[H|[]]]; vm_compute in H; discriminate.
+    + intros t0 Hpt Hin; simpl in Hin; destruct Hin as [H|[H|[]]];
+        subst t0; vm_compute in Hpt; discriminate.
+  - intro e. apply body_nf_ok_dec_sound. vm_compute. reflexivity.
+  - exact Hv.
+  - exact Hsat.
+  - unfold mem_wf, chased_fields_mov. intros fid Hin.
+    cbn [In] in Hin. destruct Hin as [Heq|[]]. subst fid. exact Hwf.
+  - exact Hfun.
+Qed.
+
+Theorem update_mario_info_for_cam_funcall_preserves_nonflying :
+  forall bm rest m m' t res,
+    reach_frame_preserves chased_fields_cam nonflying bm mario_ge ->
+    Mem.valid_block m bm ->
+    field_loads_off_bm m bm mario._marioBodyState ->
+    field_loads_off_bm m bm mario._statusForCamera ->
+    action_sat nonflying m bm ->
+    eval_funcall function_entry2 mario_ge m (Internal mario.f_update_mario_info_for_cam)
+      (Vptr bm Ptrofs.zero :: rest) t m' res ->
+    action_sat nonflying m' bm.
+Proof.
+  intros bm rest m m' t res Hreach Hv Hwf1 Hwf2 Hsat Hfun.
+  eapply (funcall_body_nf_preserves tracked_ptrs_cam chased_fields_cam nonflying bm
+            mario.f_update_mario_info_for_cam rest m m' t res Hreach).
+  - reflexivity.
+  - exists (Tpointer (Tstruct mario._MarioState noattr) noattr), (@nil (ident * type)).
+    split; [ reflexivity | split ].
+    + intro Hin; exact Hin.
+    + intros t0 Hpt Hin; exact Hin.
+  - intro e. apply body_nf_ok_dec_sound. vm_compute. reflexivity.
+  - exact Hv.
+  - exact Hsat.
+  - unfold mem_wf, chased_fields_cam. intros fid Hin.
+    cbn [In] in Hin. destruct Hin as [Heq|[Heq|[]]]; subst fid; [ exact Hwf1 | exact Hwf2 ].
+  - exact Hfun.
+Qed.
+
+Theorem squish_mario_model_funcall_preserves_nonflying :
+  forall bm rest m m' t res,
+    reach_frame_preserves chased_fields_squish nonflying bm mario_ge ->
+    Mem.valid_block m bm ->
+    field_loads_off_bm m bm mario._marioObj ->
+    action_sat nonflying m bm ->
+    eval_funcall function_entry2 mario_ge m (Internal mario.f_squish_mario_model)
+      (Vptr bm Ptrofs.zero :: rest) t m' res ->
+    action_sat nonflying m' bm.
+Proof.
+  intros bm rest m m' t res Hreach Hv Hwf Hsat Hfun.
+  eapply (funcall_body_nf_preserves tracked_ptrs_squish chased_fields_squish nonflying bm
+            mario.f_squish_mario_model rest m m' t res Hreach).
+  - reflexivity.
+  - exists (Tpointer (Tstruct mario._MarioState noattr) noattr), (@nil (ident * type)).
+    split; [ reflexivity | split ].
+    + intro Hin; exact Hin.
+    + intros t0 Hpt Hin; exact Hin.
+  - intro e. apply body_nf_ok_dec_sound. vm_compute. reflexivity.
+  - exact Hv.
+  - exact Hsat.
+  - unfold mem_wf, chased_fields_squish. intros fid Hin.
+    cbn [In] in Hin. destruct Hin as [Heq|[]]. subst fid. exact Hwf.
+  - exact Hfun.
+Qed.
