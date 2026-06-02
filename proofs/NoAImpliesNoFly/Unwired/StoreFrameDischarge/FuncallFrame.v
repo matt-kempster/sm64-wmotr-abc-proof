@@ -138,3 +138,56 @@ Proof.
     rewrite Hbe in Hfree; cbn [Mem.free_list] in Hfree; inv Hfree end.
   unfold frame_bundle in Hfr'. tauto.
 Qed.
+
+(* ================================================================== *)
+(* THE CALL-FREE FUNCALL BRIDGE (no reach assumption). For a body that  *)
+(* issues NO calls, the interprocedural `reach_frame_preserves` knob is   *)
+(* vacuous -- exec_body_nf_callfree needs it nowhere. So the call-free    *)
+(* chase functions (mario_reset_bodystate, set_anim_to_frame, ...) reach  *)
+(* the eval_funcall level UNCONDITIONALLY: a call on Mario's pointer in a  *)
+(* well-formed heap preserves the action invariant, with no honest        *)
+(* premise beyond the heap wf and the (vm_compute'able) body_nf_ok check. *)
+(* This is funcall_body_nf_preserves with the reach hypothesis dropped in  *)
+(* favour of body_no_calls -- the generic replacement for StoreFrameHook's *)
+(* bespoke per-function eval_funcall inversion.                            *)
+(* ================================================================== *)
+Theorem funcall_body_nf_callfree_preserves :
+  forall (PT : ident -> bool) (FS : list ident) (Q : int -> Prop) (bm : block)
+         (f : function) rest m m' t res,
+    fn_vars f = nil ->
+    body_no_calls (fn_body f) = true ->
+    (exists ty rest_formals,
+        fn_params f = (mario._m, ty) :: rest_formals
+        /\ ~ In mario._m (map fst rest_formals)
+        /\ (forall t0, PT t0 = true -> ~ In t0 (map fst rest_formals))) ->
+    (forall e, body_nf_ok PT FS bm e (fn_body f)) ->
+    Mem.valid_block m bm ->
+    action_sat Q m bm ->
+    mem_wf FS m bm ->
+    eval_funcall function_entry2 mario_ge m (Internal f)
+      (Vptr bm Ptrofs.zero :: rest) t m' res ->
+    action_sat Q m' bm.
+Proof.
+  intros PT FS Q bm f rest m m' t res Hvars Hnc
+         (ty & rest_formals & Hparams & Hmnotin & Hptfresh) Hok Hv Hsat Hwf Hfun.
+  inv Hfun.
+  match goal with Hfe : function_entry2 _ _ _ _ _ _ _ |- _ => inv Hfe end.
+  match goal with Hav : alloc_variables _ _ _ _ _ _ |- _ =>
+    rewrite Hvars in Hav; inv Hav end.
+  match goal with Hbp : bind_parameter_temps _ _ _ = Some ?le1 |- _ =>
+    rewrite Hparams in Hbp;
+    assert (Hmle : le1 ! mario._m = Some (Vptr bm Ptrofs.zero)) by
+      (eapply bind_parameter_temps_get_first; [ exact Hbp | exact Hmnotin ]);
+    assert (Htmps : tmps_off_bm PT bm mario._m le1) by
+      (intros t0 b o Hpt Hne Hlk;
+       rewrite (bind_parameter_temps_get_temp _ _ _ _ _ _ _ _ Hbp Hne (Hptfresh t0 Hpt)) in Hlk;
+       exfalso; eapply create_undef_temps_not_ptr; exact Hlk);
+    pose proof (exec_body_nf_callfree PT FS Q bm _ le1 _ _ t _ _ _
+                  ltac:(eassumption) Hnc
+                  (conj Hv (conj Hsat (conj Htmps (conj Hwf Hmle)))) (Hok _)) as Hfr'
+  end.
+  match goal with Hfree : Mem.free_list _ _ = Some _ |- _ =>
+    assert (Hbe : blocks_of_env mario_ge empty_env = nil) by reflexivity;
+    rewrite Hbe in Hfree; cbn [Mem.free_list] in Hfree; inv Hfree end.
+  unfold frame_bundle in Hfr'. tauto.
+Qed.

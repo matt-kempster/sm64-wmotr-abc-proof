@@ -40,11 +40,11 @@
  * that brick + per-field field_loads_off_bm clauses, these discharge mechanically.
  *)
 
-From Coq Require Import List.
+From Coq Require Import List PArith.BinPos.
 Import ListNotations.
 From compcert Require Import Maps AST Integers Values Memory Globalenvs Ctypes Cop Clight ClightBigstep.
 From SM64.Generated Require mario.
-From SM64.Proofs Require Import Flying ActionValueFrame MarioMemoryWF PointerChaseCount ResetBodystate TempProvenanceInvariant StatementFrame SetAnimToFrame SetMarioActionMoving UpdateMarioInfoForCam SquishMarioModel StoreFrameSpine StoreFrameHook.
+From SM64.Proofs Require Import Flying ActionValueFrame MarioMemoryWF PointerChaseCount ResetBodystate TempProvenanceInvariant StatementFrame BodyFrameDecider FuncallFrame SetAnimToFrame SetMarioActionMoving UpdateMarioInfoForCam SquishMarioModel StoreFrameSpine StoreFrameHook.
 
 (* ---- #1 / 111 : mario_reset_bodystate (mario.c) ---------------------- *)
 
@@ -170,3 +170,85 @@ Theorem squish_mario_model_preserves_nonflying :
       (fn_body mario.f_squish_mario_model) t le' m' out ->
     action_sat nonflying m' bm.
 Proof. exact squish_mario_model_preserves. Qed.
+
+(* ==================================================================== *)
+(* FUNCALL-LEVEL LIFT (the call-free slice), via the GENERIC bridge.      *)
+(*                                                                        *)
+(* The (b) entries above are stated at the exec_stmt (body) level and     *)
+(* take the entry-`tmps_off_bm` invariant as a HYPOTHESIS. The genuine     *)
+(* spine currency is the eval_funcall level (a whole CALL preserves        *)
+(* non-flying), with that entry invariant DISCHARGED -- which is what      *)
+(* StoreFrameHook did for mario_reset_bodystate, but by a bespoke          *)
+(* per-function eval_funcall inversion. FuncallFrame.funcall_body_nf_      *)
+(* callfree_preserves does it ONCE and generically for any call-free,      *)
+(* `_m`-first-param, fn_vars-free function whose body passes the decidable  *)
+(* frame check. Below we apply it to the two call-free scoreboard fns, so   *)
+(* their funcall-level preservation now rides the generic engine -- no      *)
+(* hand inversion, and tmps_off_bm is no longer an external premise (every  *)
+(* tracked temp is Vundef at entry).                                        *)
+(* ==================================================================== *)
+
+(* set_anim_to_frame: PT/FS already validated by SetAnimToFrame's body_nf_ok
+   _dec check; the only honest premise left is the field-wf for marioObj. *)
+Theorem set_anim_to_frame_funcall_preserves_nonflying :
+  forall bm rest m m' t res,
+    Mem.valid_block m bm ->
+    field_loads_off_bm m bm mario._marioObj ->
+    action_sat nonflying m bm ->
+    eval_funcall function_entry2 mario_ge m (Internal mario.f_set_anim_to_frame)
+      (Vptr bm Ptrofs.zero :: rest) t m' res ->
+    action_sat nonflying m' bm.
+Proof.
+  intros bm rest m m' t res Hv Hwf Hsat Hfun.
+  eapply (funcall_body_nf_callfree_preserves tracked_ptrs_anim chased_fields_anim
+            nonflying bm mario.f_set_anim_to_frame rest m m' t res).
+  - reflexivity.                                  (* fn_vars = nil *)
+  - reflexivity.                                  (* body_no_calls = true *)
+  - exists (Tpointer (Tstruct mario._MarioState noattr) noattr),
+           ((mario._animFrame, Tint I16 Signed noattr) :: nil).
+    split; [ reflexivity | split ].
+    + (* _m is not the second formal *)
+      intro Hin; simpl in Hin; destruct Hin as [H|[]]; vm_compute in H; discriminate.
+    + (* the tracked temps (_t'6,_animInfo) are not the second formal *)
+      intros t0 Hpt Hin; simpl in Hin; destruct Hin as [H|[]];
+        subst t0; vm_compute in Hpt; discriminate.
+  - intro e. apply body_nf_ok_dec_sound. vm_compute. reflexivity.
+  - exact Hv.
+  - exact Hsat.
+  - unfold mem_wf, chased_fields_anim. intros fid Hin.
+    cbn [In] in Hin. destruct Hin as [Heq|[]]. subst fid. exact Hwf.
+  - exact Hfun.
+Qed.
+
+(* mario_reset_bodystate: re-derived at the funcall level through the SAME
+   generic bridge (cf. StoreFrameHook's bespoke inversion). PT = {_bodyState},
+   FS = [marioBodyState]; the dec check confirms the body. *)
+Definition tracked_ptrs_reset : ident -> bool :=
+  fun id => Pos.eqb id mario._bodyState.
+Definition chased_fields_reset : list ident := [ mario._marioBodyState ].
+
+Theorem reset_bodystate_funcall_preserves_generic :
+  forall bm rest m m' t res,
+    Mem.valid_block m bm ->
+    field_loads_off_bm m bm mario._marioBodyState ->
+    action_sat nonflying m bm ->
+    eval_funcall function_entry2 mario_ge m (Internal mario.f_mario_reset_bodystate)
+      (Vptr bm Ptrofs.zero :: rest) t m' res ->
+    action_sat nonflying m' bm.
+Proof.
+  intros bm rest m m' t res Hv Hwf Hsat Hfun.
+  eapply (funcall_body_nf_callfree_preserves tracked_ptrs_reset chased_fields_reset
+            nonflying bm mario.f_mario_reset_bodystate rest m m' t res).
+  - reflexivity.                                  (* fn_vars = nil *)
+  - reflexivity.                                  (* body_no_calls = true *)
+  - exists (Tpointer (Tstruct mario._MarioState noattr) noattr), (@nil (ident * type)).
+    split; [ reflexivity | split ].
+    + intro Hin; exact Hin.                       (* In _m [] is False *)
+    + intros t0 Hpt Hin; exact Hin.
+  - intro e. apply body_nf_ok_dec_sound. vm_compute. reflexivity.
+  - exact Hv.
+  - exact Hsat.
+  - unfold mem_wf, chased_fields_reset. intros fid Hin.
+    cbn [In] in Hin. destruct Hin as [Heq|[]]. subst fid. exact Hwf.
+  - exact Hfun.
+Qed.
