@@ -1,3 +1,4 @@
+(* spine-root: sub-goal capstone (store-frame discharge over the named handlers). *)
 (* PointerChaseDischarge.v -- TYING THE ENGINE TO THE NAMED 111.
  *
  * This file is the scoreboard: for each function in PointerChaseList's machine-checked

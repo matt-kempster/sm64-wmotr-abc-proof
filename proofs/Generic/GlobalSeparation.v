@@ -1,3 +1,4 @@
+(* kept: reusable separation lemma, currently unwired. *)
 (* GlobalSeparation.v -- the separation / "havoc" rung of the pointer-write story.
  *
  * AddressTaken.v gives the SYNTACTIC fact "the address of g is never produced". This

@@ -1,3 +1,4 @@
+(* kept: M1 pipeline demo. *)
 (* ShadowFrame.v -- Milestone 1: the SAME generic syntactic analysis (Frame.v),
  * now run against a real SM64 translation unit (vendor/sm64/src/game/shadow.c,
  * VERSION=us), not the toy.

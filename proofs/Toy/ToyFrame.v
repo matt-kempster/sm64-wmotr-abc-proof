@@ -1,3 +1,4 @@
+(* kept: M0 pipeline demo. *)
 (* ToyFrame.v -- Milestone 0: the generate -> load -> compute -> check spine,
  * validated on the toy TU.
  *

@@ -1,3 +1,4 @@
+(* spine-root: GOAL-1 capstone (no-A => no-fly). *)
 (* NoAImpliesNoFly.v -- GOAL 1 capstone: a no-A (no-spawn) run never enters ACT_FLYING.
  *
  * ReachableRun.noA_run_not_flying is the proved-but-ABSTRACT harness: S/Inp/step/

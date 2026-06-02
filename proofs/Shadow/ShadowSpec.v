@@ -1,3 +1,4 @@
+(* kept: M1 functional-correctness demo. *)
 (* ShadowSpec.v -- a "real world" functional-correctness theorem about an actual
  * SM64 function, proved against CompCert's Clight execution semantics.
  *

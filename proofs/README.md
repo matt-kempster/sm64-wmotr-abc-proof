@@ -89,6 +89,21 @@ it); this is the interim/brute-force discharge.
 
 ---
 
+## Enforcement: `unused ⇒ unwired` (CI)
+
+`pipeline/check_unwired.py` (a CI step) enforces the idiom mechanically:
+
+1. **Firewall** — no file *outside* an `Unwired/` subtree may `Require` a file
+   *inside* it (innermost boundary, so nesting works). The moment an `Unwired/`
+   file is actually used by the spine, the build fails until it's promoted out.
+2. **No orphans** — every `.v` *not* under an `Unwired/` must be reachable from a
+   file marked as a root, or be marked itself. Markers are header comments:
+   `(* spine-root: <why> *)` (a capstone) or `(* kept: <why> *)` (a standalone
+   result deliberately not load-bearing, e.g. the `Toy/`/`Shadow/` demos and the
+   unwired `Generic/` lemmas). A new lemma left unused in a spine dir is flagged.
+
+Run locally: `python3 pipeline/check_unwired.py`.
+
 ## Recomputing any spine / Unwired split
 
 A spine is `closure(<capstone>)` over the proof-only `Require` edges:

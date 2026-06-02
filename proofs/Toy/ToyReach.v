@@ -1,3 +1,4 @@
+(* kept: M0 pipeline demo. *)
 (* ToyReach.v -- the semantic kernel of the closed-world / entrypoint argument,
  * AND its lift to the actual f_main from generated/toy.v.
  *

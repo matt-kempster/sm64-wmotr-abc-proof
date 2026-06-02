@@ -47,11 +47,18 @@ jobs:
         run: bash pipeline/install-toolchain.sh
 
       # The actual gate: full type-check of generated ASTs + all proofs.
-      # NOTE: deliberately does NOT build proofs/LinkSpike.v's forbidden path
-      #   -- the file is in _CoqProject but only does a bounded single-program
-      #   lookup; it never `link`s a whole program (that OOMs; see LinkSpike.v).
+      # NOTE: deliberately does NOT build the forbidden path in
+      #   proofs/Generic/SymbolicLinking.v -- the file is in _CoqProject but only
+      #   does a bounded single-program lookup; it never `link`s a whole program
+      #   (that OOMs; see SymbolicLinking.v).
       - name: Build (full proof tree)
         run: bash pipeline/build.sh
+
+      # Structure check: enforce 'unused => unwired'. No file outside an Unwired/
+      # subtree may import into it (firewall), and every non-Unwired file must be
+      # reachable from a marked root (spine-root/kept) -- see pipeline/check_unwired.py.
+      - name: Structure check (unused => unwired)
+        run: python3 pipeline/check_unwired.py
 
       # Trust check: the headline theorems must rest only on CompCert's baseline
       # axioms (no stray Admitted / project axiom sneaking in).

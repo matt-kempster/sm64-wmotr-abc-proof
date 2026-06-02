@@ -1,3 +1,4 @@
+(* kept: cross-TU linking spike, currently unwired. *)
 (* SymbolicLinking.v -- SYMBOLIC-LINKING SPIKE (de-risking, OOM-free).
  *
  * BACKGROUND. The real per-frame Mario update spans translation units and is
