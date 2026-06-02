@@ -68,12 +68,24 @@ Definition locally_safe (f : function) : bool :=
    leak is here). Abstract so it cannot smuggle the conclusion. *)
 Variable reach_safe : function -> Prop.
 
+(* ---- the GLOBAL Mario-heap well-formedness carrier ------------------------------- *)
+(* Abstract here (so the section stays program-generic); instantiated concretely at
+   the mario.prog level (BucketAHook) to MarioMemWF.mario_mem_wf + validity. It is the
+   anti-aliasing premise the bridge genuinely needs: WITHOUT it, body_preserves_nonflying
+   is FALSE (a call whose Mario pointer reached the action cell through a chased
+   sub-pointer in a pathological heap could clobber it). Threading it -- rather than
+   dropping it -- is the interface correction the chase work forced. *)
+Variable mario_wf : mem -> block -> Prop.
+
 (* ---- the per-body semantic target ------------------------------------------------ *)
-(* One whole call of f preserves the non-flying invariant on Mario's block bm. *)
+(* One whole call of f, MADE ON MARIO'S OWN POINTER (Vptr bm 0, the realistic calling
+   context) in a well-formed heap, preserves the non-flying invariant on bm. *)
 Definition body_preserves_nonflying (f : function) : Prop :=
-  forall bm m m' vargs t res,
+  forall bm rest m m' t res,
+    mario_wf m bm ->
     action_sat NF m bm ->
-    eval_funcall function_entry2 gw m (Internal f) vargs t m' res ->
+    eval_funcall function_entry2 gw m (Internal f)
+      (Vptr bm Ptrofs.zero :: rest) t m' res ->
     action_sat NF m' bm.
 
 (* ============================================================== *)

@@ -43,7 +43,7 @@ From Coq Require Import List.
 Import ListNotations.
 From compcert Require Import Maps AST Integers Values Memory Globalenvs Ctypes Cop Clight ClightBigstep.
 From SM64.Generated Require mario.
-From SM64.Proofs Require Import Flying ActionValueFrame MarioMemWF ChaseCount ResetBodystate ValueFrameINV ValueFrameStmt SetAnimToFrame SetMarioActionMoving UpdateMarioInfoForCam SquishMarioModel.
+From SM64.Proofs Require Import Flying ActionValueFrame MarioMemWF ChaseCount ResetBodystate ValueFrameINV ValueFrameStmt SetAnimToFrame SetMarioActionMoving UpdateMarioInfoForCam SquishMarioModel BucketASpine BucketAHook.
 
 (* ---- #1 / 111 : mario_reset_bodystate (mario.c) ---------------------- *)
 
@@ -51,6 +51,15 @@ From SM64.Proofs Require Import Flying ActionValueFrame MarioMemWF ChaseCount Re
 Lemma reset_bodystate_is_one_of_the_111 :
   In mario._mario_reset_bodystate (chase_funcs mario.prog).
 Proof. vm_compute. tauto. Qed.
+
+(* (b-spine) THE WIRED FORM: reset_bodystate's bucket-A obligation in the SPINE's
+   own currency (BucketASpine.body_preserves_nonflying, eval_funcall level),
+   discharged from the engine via BucketAHook -- NOT via the abstract
+   store_frame_bridge hypothesis. This is the proof that the chase work actually
+   feeds the no-A no-fly spine, not a parallel island. *)
+Theorem reset_bodystate_discharges_spine_bucketA :
+  BucketASpine.body_preserves_nonflying mario.prog reset_wf mario.f_mario_reset_bodystate.
+Proof. exact reset_bodystate_discharges_bucketA. Qed.
 
 (* (b) its REAL body preserves nonflying (re-exporting the ResetBodystate proof
    as the canonical scoreboard entry). *)

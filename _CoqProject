@@ -53,4 +53,5 @@ proofs/SetAnimToFrame.v
 proofs/SetMarioActionMoving.v
 proofs/UpdateMarioInfoForCam.v
 proofs/SquishMarioModel.v
+proofs/BucketAHook.v
 proofs/ChaseDischarge.v
