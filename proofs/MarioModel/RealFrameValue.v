@@ -152,7 +152,7 @@ Definition marioObj_wf (m : mem) (bm : block) : Prop :=
    a carried fact about real memory, wired up at init. *)
 Definition gMarioState_wf (m : mem) (bm : block) : Prop :=
   exists gb, Genv.find_symbol mario_ge mario._gMarioState = Some gb /\
-             Mem.load Mptr m gb 0 = Some (Vptr bm Ptrofs.zero).
+             Mem.loadv Mptr m (Vptr gb Ptrofs.zero) = Some (Vptr bm Ptrofs.zero).
 
 (* ---- the two concrete field-load eval bricks (the Sset RHS evaluations) ---- *)
 
@@ -663,17 +663,17 @@ Proof.
 Qed.
 
 Lemma eval_marioObj_off_bm :
-  forall e le m bm bobj o,
-    le ! mario._t'48 = Some (Vptr bm Ptrofs.zero) ->
+  forall stid e le m bm bobj o,
+    le ! stid = Some (Vptr bm Ptrofs.zero) ->
     marioObj_wf m bm ->
     eval_expr mario_ge e le m
-      (Efield (Ederef (Etempvar mario._t'48 (tptr (Tstruct mario._MarioState noattr)))
+      (Efield (Ederef (Etempvar stid (tptr (Tstruct mario._MarioState noattr)))
                       (Tstruct mario._MarioState noattr))
               mario._marioObj (tptr (Tstruct mario._Object noattr)))
       (Vptr bobj o) ->
     bobj <> bm.
 Proof.
-  intros e le m bm bobj o Ht48 (off & bobj0 & ofs0w & Hfo & Hload & Hne) Hev.
+  intros stid e le m bm bobj o Ht48 (off & bobj0 & ofs0w & Hfo & Hload & Hne) Hev.
   apply eval_expr_Efield_load in Hev as (loc & ofs & bf & Hlv & Hderef).
   apply eval_lvalue_Efield_inv in Hlv as (o0 & id & att & co & delta & Hbase & Hco & Hofs & Hcase).
   apply eval_expr_Ederef_load in Hbase as (lb & ob & bfb & Hlvb & Hderefb).
@@ -696,4 +696,70 @@ Proof.
       Hlv3 : Mem.loadv ?chunk _ _ = Some (Vptr bobj o) |- _ =>
         cbn in Hac; inv Hac; rewrite Hlv3 in Hload; inv Hload; exact Hne
     end.
+Qed.
+
+(* ================================================================== *)
+(* PER-Sset PROVENANCE ESTABLISHMENT (the temp-defining steps).         *)
+(*                                                                     *)
+(* The body sets the four tracked temps only in two shapes:             *)
+(*   `t = gMarioState`        -> t holds Vptr bm 0   (sset_gms_bm)       *)
+(*   `t = stid->marioObj`     -> t holds an off-bm ptr (sset_marioObj)   *)
+(* Both are proved by APPLYING the eval bricks (no slow inv at mario_ge).*)
+(* These are what the augmented engine uses to re-establish the temp-    *)
+(* provenance invariant across the body's Ssets.                        *)
+(* ================================================================== *)
+
+Lemma eval_expr_Evar_load :
+  forall ge e le m id ty v,
+    eval_expr ge e le m (Evar id ty) v ->
+    exists loc ofs bf, eval_lvalue ge e le m (Evar id ty) loc ofs bf /\ deref_loc ty m loc ofs bf v.
+Proof. intros ge e le m id ty v H; inv H; do 3 eexists; eauto. Qed.
+
+Lemma eval_lvalue_Evar_global_loc :
+  forall ge e le m id ty loc ofs bf,
+    e ! id = None ->
+    eval_lvalue ge e le m (Evar id ty) loc ofs bf ->
+    Genv.find_symbol ge id = Some loc /\ ofs = Ptrofs.zero.
+Proof. intros ge e le m id ty loc ofs bf He H; inv H; [ congruence | auto ]. Qed.
+
+(* `t = gMarioState` makes t hold Vptr bm 0. *)
+Lemma sset_gms_bm :
+  forall tid e le m t le' m' out bm,
+    e ! mario._gMarioState = None ->
+    gMarioState_wf m bm ->
+    exec_stmt function_entry2 mario_ge e le m
+      (Sset tid (Evar mario._gMarioState (tptr (Tstruct mario._MarioState noattr)))) t le' m' out ->
+    le' ! tid = Some (Vptr bm Ptrofs.zero).
+Proof.
+  intros tid e le m t le' m' out bm He (gb & Hsym & Hload) H. inv H.
+  match goal with Hev : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
+    apply eval_expr_Evar_load in Hev as (loc & ofs & bf & Hlv & Hd) end.
+  apply eval_lvalue_Evar_global_loc in Hlv as [Hfs Hofs]; [ | exact He ].
+  assert (loc = gb) by congruence. subst.
+  inv Hd;
+    try (match goal with Hac : access_mode _ = By_reference |- _ => cbn in Hac; discriminate end);
+    try (match goal with Hac : access_mode _ = By_copy |- _ => cbn in Hac; discriminate end);
+    try (match goal with Hlb : load_bitfield _ _ _ _ _ _ _ _ |- _ => inv Hlb end).
+  match goal with
+  | Hac : access_mode _ = By_value ?chunk, Hl : Mem.loadv ?chunk _ _ = _ |- _ =>
+      cbn in Hac; inv Hac; rewrite Hl in Hload; inv Hload
+  end.
+  rewrite PTree.gss; reflexivity.
+Qed.
+
+(* `t = stid->marioObj` (stid = Vptr bm 0) makes t hold an off-bm pointer. *)
+Lemma sset_marioObj_offbm :
+  forall tid stid e le m t le' m' out bm,
+    le ! stid = Some (Vptr bm Ptrofs.zero) ->
+    marioObj_wf m bm ->
+    exec_stmt function_entry2 mario_ge e le m
+      (Sset tid (Efield (Ederef (Etempvar stid (tptr (Tstruct mario._MarioState noattr)))
+                                (Tstruct mario._MarioState noattr))
+                        mario._marioObj (tptr (Tstruct mario._Object noattr)))) t le' m' out ->
+    forall b o, le' ! tid = Some (Vptr b o) -> b <> bm.
+Proof.
+  intros tid stid e le m t le' m' out bm Hstid Hwf H b o Hle'. inv H.
+  rewrite PTree.gss in Hle'. inv Hle'.
+  match goal with Hev : eval_expr _ _ _ _ _ (Vptr b o) |- _ =>
+    eapply eval_marioObj_off_bm; [ exact Hstid | exact Hwf | exact Hev ] end.
 Qed.
