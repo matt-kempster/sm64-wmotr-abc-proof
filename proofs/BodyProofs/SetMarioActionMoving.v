@@ -25,24 +25,24 @@ From SM64.Proofs Require Import Flying FieldNonInterference ActionValueFrame Mar
 (* The one tracked store-root temp: t'7 = m->marioObj (the rawData[34] store
    chases through it). forwardVel is written DIRECTLY into m, so it is handled by
    the avoid disjunct, not by a tracked temp. *)
-Definition PT_mov : ident -> bool := fun id => Pos.eqb id mario._t'7.
-Definition FS_mov : list ident := [ mario._marioObj ].
+Definition tracked_ptrs_mov : ident -> bool := fun id => Pos.eqb id mario._t'7.
+Definition chased_fields_mov : list ident := [ mario._marioObj ].
 
 Theorem set_mario_action_moving_preserves :
   forall e le m t le' m' out bm,
-    reach_frame_preserves FS_mov nonflying bm mario_ge ->
+    reach_frame_preserves chased_fields_mov nonflying bm mario_ge ->
     le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
     Mem.valid_block m bm ->
     field_loads_off_bm m bm mario._marioObj ->
-    tmps_off_bm PT_mov bm mario._m le ->
+    tmps_off_bm tracked_ptrs_mov bm mario._m le ->
     action_sat nonflying m bm ->
     exec_stmt function_entry2 mario_ge e le m
       (fn_body mario.f_set_mario_action_moving) t le' m' out ->
     action_sat nonflying m' bm.
 Proof.
   intros e le m t le' m' out bm Hreach Hm Hv Hwf Htmps Hsat Hexec.
-  assert (Hfr : fr PT_mov FS_mov nonflying bm m le).
-  { unfold fr, FS_mov. repeat split.
+  assert (Hfr : frame_bundle tracked_ptrs_mov chased_fields_mov nonflying bm m le).
+  { unfold frame_bundle, chased_fields_mov. repeat split.
     - exact Hv.
     - exact Hsat.
     - exact Htmps.
@@ -51,9 +51,9 @@ Proof.
     - exact Hm. }
   (* body_nf_ok via the DECIDABLE checker -- a switch, calls, a direct forwardVel
      store and a rooted rawData store, all decided structurally. *)
-  assert (Hok : body_nf_ok PT_mov FS_mov bm e (fn_body mario.f_set_mario_action_moving)).
+  assert (Hok : body_nf_ok tracked_ptrs_mov chased_fields_mov bm e (fn_body mario.f_set_mario_action_moving)).
   { apply body_nf_ok_dec_sound. vm_compute. reflexivity. }
-  pose proof (exec_body_nf PT_mov FS_mov nonflying bm Hreach
+  pose proof (exec_body_nf tracked_ptrs_mov chased_fields_mov nonflying bm Hreach
                 e le m _ t le' m' out Hexec Hfr Hok) as Hfr'.
-  unfold fr in Hfr'. tauto.
+  unfold frame_bundle in Hfr'. tauto.
 Qed.

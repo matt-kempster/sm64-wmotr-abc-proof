@@ -698,26 +698,26 @@ Qed.
 (* First brick -- resolve each group-setter call target in the real     *)
 (* program genv (vm_compute over globalenv mario.prog). *)
 (* ================================================================== *)
-Definition sma_ge : genv := globalenv mario.prog.
+Definition set_mario_action_ge : genv := globalenv mario.prog.
 
 Lemma find_funct_set_mario_action_moving :
-  exists b, Genv.find_symbol sma_ge mario._set_mario_action_moving = Some b /\
-            Genv.find_funct_ptr sma_ge b = Some (Internal mario.f_set_mario_action_moving).
+  exists b, Genv.find_symbol set_mario_action_ge mario._set_mario_action_moving = Some b /\
+            Genv.find_funct_ptr set_mario_action_ge b = Some (Internal mario.f_set_mario_action_moving).
 Proof. eexists; split; vm_compute; reflexivity. Qed.
 
 Lemma find_funct_set_mario_action_airborne :
-  exists b, Genv.find_symbol sma_ge mario._set_mario_action_airborne = Some b /\
-            Genv.find_funct_ptr sma_ge b = Some (Internal mario.f_set_mario_action_airborne).
+  exists b, Genv.find_symbol set_mario_action_ge mario._set_mario_action_airborne = Some b /\
+            Genv.find_funct_ptr set_mario_action_ge b = Some (Internal mario.f_set_mario_action_airborne).
 Proof. eexists; split; vm_compute; reflexivity. Qed.
 
 Lemma find_funct_set_mario_action_submerged :
-  exists b, Genv.find_symbol sma_ge mario._set_mario_action_submerged = Some b /\
-            Genv.find_funct_ptr sma_ge b = Some (Internal mario.f_set_mario_action_submerged).
+  exists b, Genv.find_symbol set_mario_action_ge mario._set_mario_action_submerged = Some b /\
+            Genv.find_funct_ptr set_mario_action_ge b = Some (Internal mario.f_set_mario_action_submerged).
 Proof. eexists; split; vm_compute; reflexivity. Qed.
 
 Lemma find_funct_set_mario_action_cutscene :
-  exists b, Genv.find_symbol sma_ge mario._set_mario_action_cutscene = Some b /\
-            Genv.find_funct_ptr sma_ge b = Some (Internal mario.f_set_mario_action_cutscene).
+  exists b, Genv.find_symbol set_mario_action_ge mario._set_mario_action_cutscene = Some b /\
+            Genv.find_funct_ptr set_mario_action_ge b = Some (Internal mario.f_set_mario_action_cutscene).
 Proof. eexists; split; vm_compute; reflexivity. Qed.
 
 (* ------------------------------------------------------------------ *)
@@ -890,10 +890,10 @@ Qed.
 (* action temp untouched. Either way, a non-flying action argument      *)
 (* leaves _action non-flying after the switch.                          *)
 (* ================================================================== *)
-Definition sma_switch_scrut : expr :=
+Definition set_mario_action_switch_scrut : expr :=
   Ebinop Oand (Etempvar mario._action tuint) (Econst_int (Int.repr 448) tint) tuint.
 
-Definition sma_switch_cases : labeled_statements :=
+Definition set_mario_action_switch_cases : labeled_statements :=
   LScons (Some 64)  (group_case_body mario._set_mario_action_moving    mario._t'1)
  (LScons (Some 128) (group_case_body mario._set_mario_action_airborne  mario._t'2)
  (LScons (Some 192) (group_case_body mario._set_mario_action_submerged mario._t'3)
@@ -902,8 +902,8 @@ Definition sma_switch_cases : labeled_statements :=
 
 (* seq_of (select_switch c cases) for each matched label c: peels to the
    matched group_case_body followed by the rest (group_case_body stays folded). *)
-Lemma sma_seq_64 :
-  seq_of_labeled_statement (select_switch 64 sma_switch_cases)
+Lemma set_mario_action_seq_64 :
+  seq_of_labeled_statement (select_switch 64 set_mario_action_switch_cases)
   = Ssequence (group_case_body mario._set_mario_action_moving mario._t'1)
       (seq_of_labeled_statement
         (LScons (Some 128) (group_case_body mario._set_mario_action_airborne mario._t'2)
@@ -911,35 +911,35 @@ Lemma sma_seq_64 :
         (LScons (Some 256) (group_case_body mario._set_mario_action_cutscene mario._t'4) LSnil)))).
 Proof. reflexivity. Qed.
 
-Lemma sma_seq_128 :
-  seq_of_labeled_statement (select_switch 128 sma_switch_cases)
+Lemma set_mario_action_seq_128 :
+  seq_of_labeled_statement (select_switch 128 set_mario_action_switch_cases)
   = Ssequence (group_case_body mario._set_mario_action_airborne mario._t'2)
       (seq_of_labeled_statement
         (LScons (Some 192) (group_case_body mario._set_mario_action_submerged mario._t'3)
         (LScons (Some 256) (group_case_body mario._set_mario_action_cutscene mario._t'4) LSnil))).
 Proof. reflexivity. Qed.
 
-Lemma sma_seq_192 :
-  seq_of_labeled_statement (select_switch 192 sma_switch_cases)
+Lemma set_mario_action_seq_192 :
+  seq_of_labeled_statement (select_switch 192 set_mario_action_switch_cases)
   = Ssequence (group_case_body mario._set_mario_action_submerged mario._t'3)
       (seq_of_labeled_statement
         (LScons (Some 256) (group_case_body mario._set_mario_action_cutscene mario._t'4) LSnil)).
 Proof. reflexivity. Qed.
 
-Lemma sma_seq_256 :
-  seq_of_labeled_statement (select_switch 256 sma_switch_cases)
+Lemma set_mario_action_seq_256 :
+  seq_of_labeled_statement (select_switch 256 set_mario_action_switch_cases)
   = Ssequence (group_case_body mario._set_mario_action_cutscene mario._t'4)
       (seq_of_labeled_statement LSnil).
 Proof. reflexivity. Qed.
 
 (* No label matches => the default (empty) branch. *)
-Lemma sma_select_switch_default :
+Lemma set_mario_action_select_switch_default :
   forall n, n <> 64 -> n <> 128 -> n <> 192 -> n <> 256 ->
-    select_switch n sma_switch_cases = LSnil.
+    select_switch n set_mario_action_switch_cases = LSnil.
 Proof.
   intros n H1 H2 H3 H4.
-  assert (Hc : select_switch_case n sma_switch_cases = None).
-  { unfold sma_switch_cases; cbn [select_switch_case].
+  assert (Hc : select_switch_case n set_mario_action_switch_cases = None).
+  { unfold set_mario_action_switch_cases; cbn [select_switch_case].
     destruct (zeq 64 n);  [ congruence | ].
     destruct (zeq 128 n); [ congruence | ].
     destruct (zeq 192 n); [ congruence | ].
@@ -957,15 +957,15 @@ Lemma exec_selected_case :
     le ! mario._action    = Some (Vint a) ->
     le ! mario._actionArg = Some (Vint arg) ->
     tk <> mario._m ->
-    Genv.find_symbol sma_ge gsym = Some b ->
-    Genv.find_funct_ptr sma_ge b = Some (Internal gf) ->
+    Genv.find_symbol set_mario_action_ge gsym = Some b ->
+    Genv.find_funct_ptr set_mario_action_ge b = Some (Internal gf) ->
     (forall mm bmm aa aarg tt mm' res,
-        eval_funcall function_entry2 sma_ge mm (Internal gf)
+        eval_funcall function_entry2 set_mario_action_ge mm (Internal gf)
           (Vptr bmm Ptrofs.zero :: Vint aa :: Vint aarg :: nil) tt mm' res ->
         is_flying_int aa = false ->
         exists w, res = Vint w /\ is_flying_int w = false) ->
     is_flying_int a = false ->
-    exec_stmt function_entry2 sma_ge e le m
+    exec_stmt function_entry2 set_mario_action_ge e le m
       (Ssequence (group_case_body gsym tk) rest) t le' m' out ->
     out = Out_break /\
     le' ! mario._m = Some (Vptr bm Ptrofs.zero) /\
@@ -996,7 +996,7 @@ Lemma exec_sma_switch :
     le ! mario._action    = Some (Vint a) ->
     le ! mario._actionArg = Some (Vint arg) ->
     is_flying_int a = false ->
-    exec_stmt function_entry2 sma_ge e le m (Sswitch sma_switch_scrut sma_switch_cases)
+    exec_stmt function_entry2 set_mario_action_ge e le m (Sswitch set_mario_action_switch_scrut set_mario_action_switch_cases)
       t le' m' out ->
     out = Out_normal /\
     le' ! mario._m = Some (Vptr bm Ptrofs.zero) /\
@@ -1004,48 +1004,48 @@ Lemma exec_sma_switch :
 Proof.
   intros e le m a arg bm t le' m' out Hmv Hai Hsu Hcu Hm Ha Harg Hnf Hexec.
   inv Hexec.
-  (* Hbody : exec of seq_of (select_switch n sma_switch_cases); goal out0 = outcome_switch _ *)
+  (* Hbody : exec of seq_of (select_switch n set_mario_action_switch_cases); goal out0 = outcome_switch _ *)
   match goal with Hbody : exec_stmt _ _ _ _ _
-      (seq_of_labeled_statement (select_switch ?n sma_switch_cases)) _ _ _ _ |- _ =>
+      (seq_of_labeled_statement (select_switch ?n set_mario_action_switch_cases)) _ _ _ _ |- _ =>
     rename Hbody into Hb; set (nn := n) in * end.
   destruct (zeq nn 64) as [E|N64];
   [ | destruct (zeq nn 128) as [E|N128];
   [ | destruct (zeq nn 192) as [E|N192];
   [ | destruct (zeq nn 256) as [E|N256] ]]].
   - (* moving *)
-    rewrite E, sma_seq_64 in Hb.
+    rewrite E, set_mario_action_seq_64 in Hb.
     destruct find_funct_set_mario_action_moving as [bb [Hs Hf]].
     pose proof (exec_selected_case _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
                   Hmv Hm Ha Harg (ltac:(vm_compute; discriminate) : mario._t'1 <> mario._m) Hs Hf
-                  (set_mario_action_moving_result sma_ge) Hnf Hb) as HG.
+                  (set_mario_action_moving_result set_mario_action_ge) Hnf Hb) as HG.
     destruct HG as [Hout [Hmm Hact]]. rewrite Hout; cbn [outcome_switch].
     split; [ reflexivity | split; [ exact Hmm | exact Hact ] ].
   - (* airborne *)
-    rewrite E, sma_seq_128 in Hb.
+    rewrite E, set_mario_action_seq_128 in Hb.
     destruct find_funct_set_mario_action_airborne as [bb [Hs Hf]].
     pose proof (exec_selected_case _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
                   Hai Hm Ha Harg (ltac:(vm_compute; discriminate) : mario._t'2 <> mario._m) Hs Hf
-                  (set_mario_action_airborne_result sma_ge) Hnf Hb) as HG.
+                  (set_mario_action_airborne_result set_mario_action_ge) Hnf Hb) as HG.
     destruct HG as [Hout [Hmm Hact]]. rewrite Hout; cbn [outcome_switch].
     split; [ reflexivity | split; [ exact Hmm | exact Hact ] ].
   - (* submerged *)
-    rewrite E, sma_seq_192 in Hb.
+    rewrite E, set_mario_action_seq_192 in Hb.
     destruct find_funct_set_mario_action_submerged as [bb [Hs Hf]].
     pose proof (exec_selected_case _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
                   Hsu Hm Ha Harg (ltac:(vm_compute; discriminate) : mario._t'3 <> mario._m) Hs Hf
-                  (set_mario_action_submerged_result sma_ge) Hnf Hb) as HG.
+                  (set_mario_action_submerged_result set_mario_action_ge) Hnf Hb) as HG.
     destruct HG as [Hout [Hmm Hact]]. rewrite Hout; cbn [outcome_switch].
     split; [ reflexivity | split; [ exact Hmm | exact Hact ] ].
   - (* cutscene *)
-    rewrite E, sma_seq_256 in Hb.
+    rewrite E, set_mario_action_seq_256 in Hb.
     destruct find_funct_set_mario_action_cutscene as [bb [Hs Hf]].
     pose proof (exec_selected_case _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
                   Hcu Hm Ha Harg (ltac:(vm_compute; discriminate) : mario._t'4 <> mario._m) Hs Hf
-                  (set_mario_action_cutscene_result sma_ge) Hnf Hb) as HG.
+                  (set_mario_action_cutscene_result set_mario_action_ge) Hnf Hb) as HG.
     destruct HG as [Hout [Hmm Hact]]. rewrite Hout; cbn [outcome_switch].
     split; [ reflexivity | split; [ exact Hmm | exact Hact ] ].
   - (* default: no case matched, action temp untouched *)
-    rewrite (sma_select_switch_default nn N64 N128 N192 N256) in Hb.
+    rewrite (set_mario_action_select_switch_default nn N64 N128 N192 N256) in Hb.
     cbn [seq_of_labeled_statement] in Hb. inv Hb. cbn [outcome_switch].
     split; [ reflexivity | split; [ exact Hm | exists a; split; [ exact Ha | exact Hnf ] ] ].
 Qed.
@@ -1060,8 +1060,8 @@ Qed.
 
 (* The Clight genv's composite env for mario.prog IS mario_ce (both are    *)
 (* prog_comp_env mario.prog), by a lazy record projection -- cheap.         *)
-Lemma genv_cenv_sma : genv_cenv sma_ge = mario_ce.
-Proof. unfold sma_ge, mario_ce, globalenv. cbn [genv_cenv]. reflexivity. Qed.
+Lemma genv_cenv_sma : genv_cenv set_mario_action_ge = mario_ce.
+Proof. unfold set_mario_action_ge, mario_ce, globalenv. cbn [genv_cenv]. reflexivity. Qed.
 
 (* Bridge: a Clight `Sassign` through the canonical `m->field` lvalue     *)
 (* (Efield (Ederef (Etempvar _m) MarioState) f) reduces to a concrete     *)
@@ -1070,13 +1070,13 @@ Proof. unfold sma_ge, mario_ce, globalenv. cbn [genv_cenv]. reflexivity. Qed.
 Lemma exec_mario_field_store :
   forall (e : env) le m bm fid fty rhs t le' m' out,
     le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
-    exec_stmt function_entry2 sma_ge e le m
+    exec_stmt function_entry2 set_mario_action_ge e le m
       (Sassign (Efield (Ederef (Etempvar mario._m (tptr (Tstruct mario._MarioState noattr)))
                   (Tstruct mario._MarioState noattr)) fid fty) rhs) t le' m' out ->
     le' = le /\ out = Out_normal /\
     exists delta bf v2 v,
       field_offset mario_ce fid mario_members = OK (delta, bf) /\
-      eval_expr sma_ge e le m rhs v2 /\
+      eval_expr set_mario_action_ge e le m rhs v2 /\
       sem_cast v2 (typeof rhs) fty m = Some v /\
       assign_loc mario_ce fty m bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr delta)) bf v m'.
 Proof.
@@ -1106,7 +1106,7 @@ Proof.
     try (match goal with Hac : access_mode (Tstruct _ _) = By_value _ |- _ => discriminate end);
     try (match goal with Hac : access_mode (Tstruct _ _) = By_reference |- _ => discriminate end).
   (* reduce `typeof` ONLY in the hyps that mention it -- a blanket `cbn ... in *`
-     HANGS here because the context holds genv terms (sma_ge = globalenv ...). *)
+     HANGS here because the context holds genv terms (set_mario_action_ge = globalenv ...). *)
   repeat match goal with
   | H : context[typeof (Efield _ _ _)] |- _ => cbn [typeof] in H
   | H : context[typeof (Ederef _ _)]   |- _ => cbn [typeof] in H
@@ -1135,7 +1135,7 @@ Lemma exec_action_field_write :
   forall (e : env) le m bm w t le' m' out,
     le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
     le ! mario._action = Some (Vint w) ->
-    exec_stmt function_entry2 sma_ge e le m
+    exec_stmt function_entry2 set_mario_action_ge e le m
       (Sassign (Efield (Ederef (Etempvar mario._m (tptr (Tstruct mario._MarioState noattr)))
                   (Tstruct mario._MarioState noattr)) mario._action tuint)
                (Etempvar mario._action tuint)) t le' m' out ->
@@ -1174,7 +1174,7 @@ Lemma exec_other_field_write :
     field_type fid mario_members = OK fty ->
     access_mode fty = By_value chunk ->
     Ptrofs.unsigned (Ptrofs.add Ptrofs.zero (Ptrofs.repr delta)) = 0 + delta ->
-    exec_stmt function_entry2 sma_ge e le m
+    exec_stmt function_entry2 set_mario_action_ge e le m
       (Sassign (Efield (Ederef (Etempvar mario._m (tptr (Tstruct mario._MarioState noattr)))
                   (Tstruct mario._MarioState noattr)) fid fty) rhs) t le' m' out ->
     le' = le /\ out = Out_normal /\ Mem.load Mint32 m' bm 12 = Mem.load Mint32 m bm 12.
@@ -1237,7 +1237,7 @@ Lemma set_mario_action_field :
     le ! mario._action    = Some (Vint a) ->
     le ! mario._actionArg = Some (Vint arg) ->
     is_flying_int a = false ->
-    exec_stmt function_entry2 sma_ge e le m (fn_body mario.f_set_mario_action) t le' m' out ->
+    exec_stmt function_entry2 set_mario_action_ge e le m (fn_body mario.f_set_mario_action) t le' m' out ->
     out = Out_return (Some (Vint (Int.repr 1), tint)) /\
     exists w, Mem.load Mint32 m' bm 12 = Some (Vint w) /\ is_flying_int w = false.
 Proof.

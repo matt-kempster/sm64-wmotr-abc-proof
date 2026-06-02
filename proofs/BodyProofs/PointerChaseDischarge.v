@@ -85,7 +85,7 @@ Proof. vm_compute. tauto. Qed.
    frame (SetAnimToFrame.set_anim_to_frame_preserves): no bespoke inversion, just
    the FS of chased fields ([marioObj]) + the tracked store-root temps. The
    field_loads_off_bm marioObj clause is this body's anti-aliasing assumption
-   (gMarioState->marioObj is a separate allocation), and tmps_off_bm PT_anim is
+   (gMarioState->marioObj is a separate allocation), and tmps_off_bm tracked_ptrs_anim is
    the function-entry condition that the (uninitialised) tracked temps don't alias
    Mario's block -- both honest hypotheses, no axioms. *)
 Theorem set_anim_to_frame_preserves_nonflying :
@@ -93,7 +93,7 @@ Theorem set_anim_to_frame_preserves_nonflying :
     le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
     Mem.valid_block m bm ->
     field_loads_off_bm m bm mario._marioObj ->
-    tmps_off_bm PT_anim bm mario._m le ->
+    tmps_off_bm tracked_ptrs_anim bm mario._m le ->
     action_sat nonflying m bm ->
     exec_stmt function_entry2 mario_ge e le m
       (fn_body mario.f_set_anim_to_frame) t le' m' out ->
@@ -117,11 +117,11 @@ Proof. vm_compute. tauto. Qed.
    action value, never storing m->action -- so nonflying survives. *)
 Theorem set_mario_action_moving_preserves_nonflying :
   forall e le m t le' m' out bm,
-    reach_frame_preserves FS_mov nonflying bm mario_ge ->
+    reach_frame_preserves chased_fields_mov nonflying bm mario_ge ->
     le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
     Mem.valid_block m bm ->
     field_loads_off_bm m bm mario._marioObj ->
-    tmps_off_bm PT_mov bm mario._m le ->
+    tmps_off_bm tracked_ptrs_mov bm mario._m le ->
     action_sat nonflying m bm ->
     exec_stmt function_entry2 mario_ge e le m
       (fn_body mario.f_set_mario_action_moving) t le' m' out ->
@@ -138,12 +138,12 @@ Proof. vm_compute. tauto. Qed.
    the reach knob. *)
 Theorem update_mario_info_for_cam_preserves_nonflying :
   forall e le m t le' m' out bm,
-    reach_frame_preserves FS_cam nonflying bm mario_ge ->
+    reach_frame_preserves chased_fields_cam nonflying bm mario_ge ->
     le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
     Mem.valid_block m bm ->
     field_loads_off_bm m bm mario._marioBodyState ->
     field_loads_off_bm m bm mario._statusForCamera ->
-    tmps_off_bm PT_cam bm mario._m le ->
+    tmps_off_bm tracked_ptrs_cam bm mario._m le ->
     action_sat nonflying m bm ->
     exec_stmt function_entry2 mario_ge e le m
       (fn_body mario.f_update_mario_info_for_cam) t le' m' out ->
@@ -159,11 +159,11 @@ Proof. vm_compute. tauto. Qed.
    rescale through three temps + vec3f_set calls; never writes m->action. *)
 Theorem squish_mario_model_preserves_nonflying :
   forall e le m t le' m' out bm,
-    reach_frame_preserves FS_squish nonflying bm mario_ge ->
+    reach_frame_preserves chased_fields_squish nonflying bm mario_ge ->
     le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
     Mem.valid_block m bm ->
     field_loads_off_bm m bm mario._marioObj ->
-    tmps_off_bm PT_squish bm mario._m le ->
+    tmps_off_bm tracked_ptrs_squish bm mario._m le ->
     action_sat nonflying m bm ->
     exec_stmt function_entry2 mario_ge e le m
       (fn_body mario.f_squish_mario_model) t le' m' out ->

@@ -212,7 +212,7 @@ Lemma set_mario_action_body_action_sat :
     le ! mario._action    = Some (Vint a) ->
     le ! mario._actionArg = Some (Vint arg) ->
     le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
-    exec_stmt function_entry2 sma_ge e le m (fn_body mario.f_set_mario_action) t le' m' out ->
+    exec_stmt function_entry2 set_mario_action_ge e le m (fn_body mario.f_set_mario_action) t le' m' out ->
     action_sat (fun v => is_flying_int v = false) m' bm.
 Proof.
   intros e le m a arg t le' m' out bm Hm1 Hm2 Hm3 Hm4 Hnf Hact Harg Hmptr Hexec.

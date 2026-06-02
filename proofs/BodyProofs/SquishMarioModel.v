@@ -15,26 +15,26 @@ From SM64.Generated Require mario.
 From SM64.Proofs Require Import Flying FieldNonInterference ActionValueFrame MarioMemoryWF
   ResetBodystate RootedLvalue TempProvenanceInvariant StatementFrame BodyFrameDecider.
 
-Definition PT_squish : ident -> bool :=
+Definition tracked_ptrs_squish : ident -> bool :=
   fun id => orb (Pos.eqb id mario._t'6)
                 (orb (Pos.eqb id mario._t'9) (Pos.eqb id mario._t'12)).
-Definition FS_squish : list ident := [ mario._marioObj ].
+Definition chased_fields_squish : list ident := [ mario._marioObj ].
 
 Theorem squish_mario_model_preserves :
   forall e le m t le' m' out bm,
-    reach_frame_preserves FS_squish nonflying bm mario_ge ->
+    reach_frame_preserves chased_fields_squish nonflying bm mario_ge ->
     le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
     Mem.valid_block m bm ->
     field_loads_off_bm m bm mario._marioObj ->
-    tmps_off_bm PT_squish bm mario._m le ->
+    tmps_off_bm tracked_ptrs_squish bm mario._m le ->
     action_sat nonflying m bm ->
     exec_stmt function_entry2 mario_ge e le m
       (fn_body mario.f_squish_mario_model) t le' m' out ->
     action_sat nonflying m' bm.
 Proof.
   intros e le m t le' m' out bm Hreach Hm Hv Hwf Htmps Hsat Hexec.
-  assert (Hfr : fr PT_squish FS_squish nonflying bm m le).
-  { unfold fr, FS_squish. repeat split.
+  assert (Hfr : frame_bundle tracked_ptrs_squish chased_fields_squish nonflying bm m le).
+  { unfold frame_bundle, chased_fields_squish. repeat split.
     - exact Hv.
     - exact Hsat.
     - exact Htmps.
@@ -43,9 +43,9 @@ Proof.
     - exact Hm. }
   (* body_nf_ok now via the DECIDABLE checker (direct squishTimer store + rooted
      scale stores + chase-loads all decided structurally). *)
-  assert (Hok : body_nf_ok PT_squish FS_squish bm e (fn_body mario.f_squish_mario_model)).
+  assert (Hok : body_nf_ok tracked_ptrs_squish chased_fields_squish bm e (fn_body mario.f_squish_mario_model)).
   { apply body_nf_ok_dec_sound. vm_compute. reflexivity. }
-  pose proof (exec_body_nf PT_squish FS_squish nonflying bm Hreach
+  pose proof (exec_body_nf tracked_ptrs_squish chased_fields_squish nonflying bm Hreach
                 e le m _ t le' m' out Hexec Hfr Hok) as Hfr'.
-  unfold fr in Hfr'. tauto.
+  unfold frame_bundle in Hfr'. tauto.
 Qed.

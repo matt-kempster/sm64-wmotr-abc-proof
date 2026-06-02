@@ -51,7 +51,7 @@ Let gw : genv := globalenv prog.
 
 (* The non-flying action invariant on Mario's struct block (ActionValueFrame.action_sat
    at the action cell): every action value currently loadable at (bm,12) is non-flying. *)
-Definition NF (v : int) : Prop := is_flying_int v = false.
+Definition nonflying_action (v : int) : Prop := is_flying_int v = false.
 
 (* ---- the LEAF predicate: DECIDABLE local safety (reused from Flying.v) ---------- *)
 (* A body is locally safe if it neither feeds a flying constant into a call
@@ -83,10 +83,10 @@ Variable mario_wf : mem -> block -> Prop.
 Definition body_preserves_nonflying (f : function) : Prop :=
   forall bm rest m m' t res,
     mario_wf m bm ->
-    action_sat NF m bm ->
+    action_sat nonflying_action m bm ->
     eval_funcall function_entry2 gw m (Internal f)
       (Vptr bm Ptrofs.zero :: rest) t m' res ->
-    action_sat NF m' bm.
+    action_sat nonflying_action m' bm.
 
 (* ============================================================== *)
 (*  THE BRIDGE (the one hole). A locally-safe body, under its reach *)

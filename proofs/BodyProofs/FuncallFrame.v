@@ -136,5 +136,5 @@ Proof.
   match goal with Hfree : Mem.free_list _ _ = Some _ |- _ =>
     assert (Hbe : blocks_of_env mario_ge empty_env = nil) by reflexivity;
     rewrite Hbe in Hfree; cbn [Mem.free_list] in Hfree; inv Hfree end.
-  unfold fr in Hfr'. tauto.
+  unfold frame_bundle in Hfr'. tauto.
 Qed.

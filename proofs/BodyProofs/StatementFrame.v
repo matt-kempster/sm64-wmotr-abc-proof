@@ -187,7 +187,7 @@ Proof.
 Qed.
 
 (* ================================================================== *)
-(* THE PER-STATEMENT OBLIGATION and the bundle invariant `fr`.          *)
+(* THE PER-STATEMENT OBLIGATION and the bundle invariant `frame_bundle`.          *)
 (* ================================================================== *)
 
 (* The Sset obligation: in any state where the invariant holds, the rhs  *)
@@ -290,7 +290,7 @@ Proof.
 Qed.
 
 (* The bundle invariant threaded by the frame. *)
-Definition fr (PT : ident -> bool) (FS : list ident) (Q : int -> Prop) (bm : block)
+Definition frame_bundle (PT : ident -> bool) (FS : list ident) (Q : int -> Prop) (bm : block)
               (m : mem) (le : temp_env) : Prop :=
   Mem.valid_block m bm /\
   action_sat Q m bm /\
@@ -315,7 +315,7 @@ Definition reach_frame_preserves (FS : list ident) (Q : int -> Prop)
 
 (* ================================================================== *)
 (* THE FRAME. Executing any clightgen statement satisfying body_nf_ok    *)
-(* carries the whole bundle fr forward, given the reach assumption for    *)
+(* carries the whole bundle frame_bundle forward, given the reach assumption for    *)
 (* calls. Induction over exec_stmt mirroring                              *)
 (* ActionValueFrame.exec_stmt_value_preserves, but threading tmps_off_bm  *)
 (* and mem_wf (and le!_m) alongside validity and action_sat.              *)
@@ -325,9 +325,9 @@ Theorem exec_body_nf :
     reach_frame_preserves FS Q bm mario_ge ->
     forall e le m s t le' m' out,
       exec_stmt function_entry2 mario_ge e le m s t le' m' out ->
-      fr PT FS Q bm m le ->
+      frame_bundle PT FS Q bm m le ->
       body_nf_ok PT FS bm e s ->
-      fr PT FS Q bm m' le'.
+      frame_bundle PT FS Q bm m' le'.
 Proof.
   intros PT FS Q bm Hreach e le m s t le' m' out H.
   induction H; intros Hfr Hok.
@@ -346,7 +346,7 @@ Proof.
         subst loc;
         assert (Hu : Mem.unchanged_on (fun b _ => b = bm) m mm)
           by (eapply assign_loc_unchanged_on; [ exact Hass | intros i _; exact Hpb ]);
-        unfold fr; repeat split;
+        unfold frame_bundle; repeat split;
           [ eapply Mem.valid_block_unchanged_on; [ exact Hu | exact Hv ]
           | eapply unchanged_bm_preserves_action_sat; [ exact Hu | exact Hv | exact Hsat ]
           | exact Htmps
@@ -356,7 +356,7 @@ Proof.
         assert (Hu : Mem.unchanged_on (watch FS bm) m mm)
           by (eapply assign_loc_unchanged_on;
                 [ exact Hass | intros i Hi; eapply (Havoid _ _ _ _ _ Hmle Hlv); exact Hi ]);
-        unfold fr; repeat split;
+        unfold frame_bundle; repeat split;
           [ eapply Mem.valid_block_unchanged_on; [ exact Hu | exact Hv ]
           | eapply unchanged_watch_preserves_action_sat; [ exact Hu | exact Hv | exact Hsat ]
           | exact Htmps
@@ -366,7 +366,7 @@ Proof.
   - (* Sset *)
     destruct Hfr as (Hv & Hsat & Htmps & Hwf & Hmle).
     simpl in Hok. destruct Hok as (Hidm & Hset).
-    unfold fr; repeat split.
+    unfold frame_bundle; repeat split.
     + exact Hv.
     + exact Hsat.
     + apply tmps_off_bm_set; [ exact Htmps | ].
@@ -380,7 +380,7 @@ Proof.
     simpl in Hok.
     match goal with Hfun : eval_funcall function_entry2 mario_ge _ _ _ _ _ _ |- _ =>
       destruct (Hreach _ _ _ _ _ _ Hfun Hv Hsat Hwf) as (Hv' & Hsat' & Hwf' & Hvres) end.
-    unfold fr. destruct optid as [id|]; cbn [set_opttemp].
+    unfold frame_bundle. destruct optid as [id|]; cbn [set_opttemp].
     + repeat split.
       * exact Hv'.
       * exact Hsat'.
@@ -442,9 +442,9 @@ Theorem exec_body_nf_callfree :
          e le m s t le' m' out,
     exec_stmt function_entry2 mario_ge e le m s t le' m' out ->
     body_no_calls s = true ->
-    fr PT FS Q bm m le ->
+    frame_bundle PT FS Q bm m le ->
     body_nf_ok PT FS bm e s ->
-    fr PT FS Q bm m' le'.
+    frame_bundle PT FS Q bm m' le'.
 Proof.
   intros PT FS Q bm e le m s t le' m' out H.
   induction H; intros Hnc Hfr Hok.
@@ -462,7 +462,7 @@ Proof.
         subst loc;
         assert (Hu : Mem.unchanged_on (fun b _ => b = bm) m mm)
           by (eapply assign_loc_unchanged_on; [ exact Hass | intros i _; exact Hpb ]);
-        unfold fr; repeat split;
+        unfold frame_bundle; repeat split;
           [ eapply Mem.valid_block_unchanged_on; [ exact Hu | exact Hv ]
           | eapply unchanged_bm_preserves_action_sat; [ exact Hu | exact Hv | exact Hsat ]
           | exact Htmps
@@ -471,7 +471,7 @@ Proof.
       | assert (Hu : Mem.unchanged_on (watch FS bm) m mm)
           by (eapply assign_loc_unchanged_on;
                 [ exact Hass | intros i Hi; eapply (Havoid _ _ _ _ _ Hmle Hlv); exact Hi ]);
-        unfold fr; repeat split;
+        unfold frame_bundle; repeat split;
           [ eapply Mem.valid_block_unchanged_on; [ exact Hu | exact Hv ]
           | eapply unchanged_watch_preserves_action_sat; [ exact Hu | exact Hv | exact Hsat ]
           | exact Htmps
@@ -481,7 +481,7 @@ Proof.
   - (* Sset *)
     destruct Hfr as (Hv & Hsat & Htmps & Hwf & Hmle).
     simpl in Hok. destruct Hok as (Hidm & Hset).
-    unfold fr; repeat split.
+    unfold frame_bundle; repeat split.
     + exact Hv.
     + exact Hsat.
     + apply tmps_off_bm_set; [ exact Htmps | ].

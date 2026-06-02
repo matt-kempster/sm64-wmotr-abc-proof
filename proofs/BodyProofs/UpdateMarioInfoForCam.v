@@ -19,34 +19,34 @@ From SM64.Proofs Require Import Flying FieldNonInterference ActionValueFrame Mar
   ResetBodystate RootedLvalue TempProvenanceInvariant StatementFrame FuncallFrame BodyFrameDecider.
 
 (* Tracked store-root temps: t'6 = m->marioBodyState, t'4 = m->statusForCamera. *)
-Definition PT_cam : ident -> bool :=
+Definition tracked_ptrs_cam : ident -> bool :=
   fun id => orb (Pos.eqb id mario._t'6) (Pos.eqb id mario._t'4).
-Definition FS_cam : list ident := [ mario._marioBodyState; mario._statusForCamera ].
+Definition chased_fields_cam : list ident := [ mario._marioBodyState; mario._statusForCamera ].
 
 Theorem update_mario_info_for_cam_preserves :
   forall e le m t le' m' out bm,
-    reach_frame_preserves FS_cam nonflying bm mario_ge ->
+    reach_frame_preserves chased_fields_cam nonflying bm mario_ge ->
     le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
     Mem.valid_block m bm ->
     field_loads_off_bm m bm mario._marioBodyState ->
     field_loads_off_bm m bm mario._statusForCamera ->
-    tmps_off_bm PT_cam bm mario._m le ->
+    tmps_off_bm tracked_ptrs_cam bm mario._m le ->
     action_sat nonflying m bm ->
     exec_stmt function_entry2 mario_ge e le m
       (fn_body mario.f_update_mario_info_for_cam) t le' m' out ->
     action_sat nonflying m' bm.
 Proof.
   intros e le m t le' m' out bm Hreach Hm Hv Hwf1 Hwf2 Htmps Hsat Hexec.
-  assert (Hfr : fr PT_cam FS_cam nonflying bm m le).
-  { unfold fr, FS_cam. repeat split.
+  assert (Hfr : frame_bundle tracked_ptrs_cam chased_fields_cam nonflying bm m le).
+  { unfold frame_bundle, chased_fields_cam. repeat split.
     - exact Hv.
     - exact Hsat.
     - exact Htmps.
     - unfold mem_wf. intros fid Hin. cbn [In] in Hin.
       destruct Hin as [Heq | [Heq | []]]; subst fid; [ exact Hwf1 | exact Hwf2 ].
     - exact Hm. }
-  assert (Hok : body_nf_ok PT_cam FS_cam bm e (fn_body mario.f_update_mario_info_for_cam)).
-  { unfold FS_cam, mario.f_update_mario_info_for_cam, fn_body.
+  assert (Hok : body_nf_ok tracked_ptrs_cam chased_fields_cam bm e (fn_body mario.f_update_mario_info_for_cam)).
+  { unfold chased_fields_cam, mario.f_update_mario_info_for_cam, fn_body.
     cbn [body_nf_ok ls_body_nf_ok].
     repeat apply conj.
     all: try solve [ exact I ].
@@ -60,9 +60,9 @@ Proof.
     (* rooted store through t'4 = statusForCamera *)
     all: try solve [ left; exists mario._t'4;
                      split; [ apply Pos.eqb_neq; reflexivity | split; reflexivity ] ]. }
-  pose proof (exec_body_nf PT_cam FS_cam nonflying bm Hreach
+  pose proof (exec_body_nf tracked_ptrs_cam chased_fields_cam nonflying bm Hreach
                 e le m _ t le' m' out Hexec Hfr Hok) as Hfr'.
-  unfold fr in Hfr'. tauto.
+  unfold frame_bundle in Hfr'. tauto.
 Qed.
 
 (* The body_nf_ok obligation as a standalone (bm/e-generic) lemma, so the generic
@@ -70,7 +70,7 @@ Qed.
 (* body_nf_ok now via the DECIDABLE checker -- the hand-written dispatcher is
    replaced by `apply body_nf_ok_dec_sound; vm_compute; reflexivity`. *)
 Lemma umifc_body_nf_ok :
-  forall bm e, body_nf_ok PT_cam FS_cam bm e (fn_body mario.f_update_mario_info_for_cam).
+  forall bm e, body_nf_ok tracked_ptrs_cam chased_fields_cam bm e (fn_body mario.f_update_mario_info_for_cam).
 Proof.
   intros bm e. apply body_nf_ok_dec_sound. vm_compute. reflexivity.
 Qed.
@@ -81,7 +81,7 @@ Qed.
    generic lemma. Demonstrates the bridge on a call-bearing, multi-field function. *)
 Theorem update_mario_info_for_cam_funcall_preserves :
   forall bm rest m m' t res,
-    reach_frame_preserves FS_cam nonflying bm mario_ge ->
+    reach_frame_preserves chased_fields_cam nonflying bm mario_ge ->
     Mem.valid_block m bm ->
     field_loads_off_bm m bm mario._marioBodyState ->
     field_loads_off_bm m bm mario._statusForCamera ->
@@ -91,7 +91,7 @@ Theorem update_mario_info_for_cam_funcall_preserves :
     action_sat nonflying m' bm.
 Proof.
   intros bm rest m m' t res Hreach Hv Hwf1 Hwf2 Hsat Hfun.
-  eapply (funcall_body_nf_preserves PT_cam FS_cam nonflying bm
+  eapply (funcall_body_nf_preserves tracked_ptrs_cam chased_fields_cam nonflying bm
             mario.f_update_mario_info_for_cam rest m m' t res Hreach).
   - reflexivity.
   - exists (tptr (Tstruct mario._MarioState noattr)), (@nil (ident * type)).
@@ -99,7 +99,7 @@ Proof.
   - intro e. apply umifc_body_nf_ok.
   - exact Hv.
   - exact Hsat.
-  - unfold mem_wf, FS_cam. intros fid Hin. cbn [In] in Hin.
+  - unfold mem_wf, chased_fields_cam. intros fid Hin. cbn [In] in Hin.
     destruct Hin as [<- | [<- | []]]; [ exact Hwf1 | exact Hwf2 ].
   - exact Hfun.
 Qed.

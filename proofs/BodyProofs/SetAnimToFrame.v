@@ -27,27 +27,27 @@ From SM64.Proofs Require Import Flying FieldNonInterference ActionValueFrame Mar
    the hoisted inner pointer `animInfo` (= &t'6->header.gfx.animInfo) that every
    store in this body chases through. All OTHER temps (the scalar loads
    animAccel/flags/...) are untracked, so their Sset obligation is vacuous. *)
-Definition PT_anim : ident -> bool :=
+Definition tracked_ptrs_anim : ident -> bool :=
   fun id => orb (Pos.eqb id mario._t'6) (Pos.eqb id mario._animInfo).
 
 (* The single chased pointer field of MarioState this body reads. *)
-Definition FS_anim : list ident := [ mario._marioObj ].
+Definition chased_fields_anim : list ident := [ mario._marioObj ].
 
 Theorem set_anim_to_frame_preserves :
   forall e le m t le' m' out bm,
     le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
     Mem.valid_block m bm ->
     field_loads_off_bm m bm mario._marioObj ->
-    tmps_off_bm PT_anim bm mario._m le ->
+    tmps_off_bm tracked_ptrs_anim bm mario._m le ->
     action_sat nonflying m bm ->
     exec_stmt function_entry2 mario_ge e le m
       (fn_body mario.f_set_anim_to_frame) t le' m' out ->
     action_sat nonflying m' bm.
 Proof.
   intros e le m t le' m' out bm Hm Hv Hwf Htmps Hsat Hexec.
-  (* the frame consumes the bundle fr; assemble it from the hypotheses. *)
-  assert (Hfr : fr PT_anim FS_anim nonflying bm m le).
-  { unfold fr, FS_anim. repeat split.
+  (* the frame consumes the bundle frame_bundle; assemble it from the hypotheses. *)
+  assert (Hfr : frame_bundle tracked_ptrs_anim chased_fields_anim nonflying bm m le).
+  { unfold frame_bundle, chased_fields_anim. repeat split.
     - exact Hv.
     - exact Hsat.
     - exact Htmps.
@@ -58,10 +58,10 @@ Proof.
   assert (Hnc : body_no_calls (fn_body mario.f_set_anim_to_frame) = true)
     by reflexivity.
   (* body_nf_ok: now via the DECIDABLE checker (BodyFrameDecider) -- one reflexivity. *)
-  assert (Hok : body_nf_ok PT_anim FS_anim bm e (fn_body mario.f_set_anim_to_frame)).
+  assert (Hok : body_nf_ok tracked_ptrs_anim chased_fields_anim bm e (fn_body mario.f_set_anim_to_frame)).
   { apply body_nf_ok_dec_sound. vm_compute. reflexivity. }
   (* run the call-free frame; pull action_sat out of the preserved bundle. *)
-  pose proof (exec_body_nf_callfree PT_anim FS_anim nonflying bm
+  pose proof (exec_body_nf_callfree tracked_ptrs_anim chased_fields_anim nonflying bm
                 e le m _ t le' m' out Hexec Hnc Hfr Hok) as Hfr'.
-  unfold fr in Hfr'. tauto.
+  unfold frame_bundle in Hfr'. tauto.
 Qed.
