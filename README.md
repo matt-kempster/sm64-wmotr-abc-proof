@@ -61,10 +61,21 @@ pipeline/        scripts: source -> preprocessed C -> clightgen -> generated/*.v
 experiments/     self-contained inputs not from upstream
   toy/           Milestone-0 toy C file
 generated/       GENERATED Clight ASTs (.v). Committed, never hand-edited.
-proofs/          Rocq analyses + theorems over generated/
+proofs/          Rocq analyses + theorems over generated/, in 6 layered subdirs
+                 (see proofs/README.md for the layering + dependency graph):
+  Generic/         reusable, subject-independent analyses + semantic frame lemmas
+  Milestones/      toy & shadow pipeline demos (not load-bearing for the theorem)
+  MarioModel/      Mario-specific: memory layout, action vocabulary, value engine
+  BodyProofs/      per-handler body-preservation proofs + the frame-check engine
+  Theorems/        assembled top-level statements (the spine)
+  Spikes/          de-risking experiments
 _CoqProject      Rocq logical-path map
 Makefile         top-level: regenerate + build proofs
 ```
+
+> Files and theorems were renamed/reorganized to literal names; older `docs/`
+> conversations predate that. See [`docs/RENAMING.md`](docs/RENAMING.md) for the
+> full old → new map.
 
 ## Toolchain
 
@@ -94,7 +105,7 @@ make                     # clightgen the toy, then build proofs
 ```
 
 This runs `clightgen` on `experiments/toy/toy.c` → `generated/toy.v`, then checks
-`proofs/ToyFrame.v`, which defines a generic syntactic "does function `f` assign to global
+`proofs/Milestones/ToyFrame.v`, which defines a generic syntactic "does function `f` assign to global
 `g`?" analysis over the Clight AST and machine-checks two facts:
 
 - `clobber` **does** write the global `gUnrelated`  (positive control), and
