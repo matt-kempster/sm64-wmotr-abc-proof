@@ -515,3 +515,52 @@ Proof.
   intros bm e le m loc ofs bf v2 v b d Hle Hne Hlv _ _.
   left; intros i _. eapply store2_avoids_action_cell; eauto.
 Qed.
+
+(* ================================================================== *)
+(* THE Sassign CASE of the augmented engine, at the EXECUTION level.    *)
+(* Executing either real store, from a state where its base temp is     *)
+(* off-bm, preserves (valid bm /\ action_sat nonflying). This is the     *)
+(* concrete-execution discharge of the body's two writes -- no `forall   *)
+(* le`: le is the one the real run produced, with _t'49/_t'13 holding     *)
+(* the marioObj pointer. Consumes the geometry/avoidance bricks. *)
+Lemma store1_exec_preserves :
+  forall bm e le m t le' m' out b d,
+    le ! mario._t'49 = Some (Vptr b d) -> b <> bm ->
+    Mem.valid_block m bm -> action_sat nonflying m bm ->
+    exec_stmt function_entry2 mario_ge e le m (Sassign store1_lval store1_rval) t le' m' out ->
+    Mem.valid_block m' bm /\ action_sat nonflying m' bm.
+Proof.
+  intros bm e le m t le' m' out b d Hle Hne Hv Hsat Hexec.
+  inv Hexec.
+  match goal with
+  | Hlv : eval_lvalue _ _ _ _ store1_lval ?loc ?ofs ?bf,
+    Has : assign_loc _ _ _ ?loc ?ofs ?bf _ _ |- _ =>
+      split;
+      [ eapply assign_loc_valid_block; [ exact Has | exact Hv ]
+      | eapply assign_loc_action_sat_avoid;
+          [ exact Has | exact Hv | | exact Hsat ];
+          intros i _; eapply store1_avoids_action_cell;
+          [ exact Hle | exact Hne | exact Hlv ] ]
+  end.
+Qed.
+
+Lemma store2_exec_preserves :
+  forall bm e le m t le' m' out b d,
+    le ! mario._t'13 = Some (Vptr b d) -> b <> bm ->
+    Mem.valid_block m bm -> action_sat nonflying m bm ->
+    exec_stmt function_entry2 mario_ge e le m (Sassign store2_lval store2_rval) t le' m' out ->
+    Mem.valid_block m' bm /\ action_sat nonflying m' bm.
+Proof.
+  intros bm e le m t le' m' out b d Hle Hne Hv Hsat Hexec.
+  inv Hexec.
+  match goal with
+  | Hlv : eval_lvalue _ _ _ _ store2_lval ?loc ?ofs ?bf,
+    Has : assign_loc _ _ _ ?loc ?ofs ?bf _ _ |- _ =>
+      split;
+      [ eapply assign_loc_valid_block; [ exact Has | exact Hv ]
+      | eapply assign_loc_action_sat_avoid;
+          [ exact Has | exact Hv | | exact Hsat ];
+          intros i _; eapply store2_avoids_action_cell;
+          [ exact Hle | exact Hne | exact Hlv ] ]
+  end.
+Qed.
