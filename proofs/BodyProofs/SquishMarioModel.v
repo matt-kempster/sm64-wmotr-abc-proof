@@ -12,8 +12,8 @@ Import ListNotations.
 Import Clightdefs.ClightNotations.
 Local Open Scope clight_scope.
 From SM64.Generated Require mario.
-From SM64.Proofs Require Import Flying ActionFrame ActionValueFrame MarioMemWF
-  ResetBodystate RootedLvalue ValueFrameINV ValueFrameStmt BodyNfDec.
+From SM64.Proofs Require Import Flying FieldNonInterference ActionValueFrame MarioMemoryWF
+  ResetBodystate RootedLvalue TempProvenanceInvariant StatementFrame BodyFrameDecider.
 
 Definition PT_squish : ident -> bool :=
   fun id => orb (Pos.eqb id mario._t'6)

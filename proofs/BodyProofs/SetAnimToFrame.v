@@ -20,8 +20,8 @@ Import ListNotations.
 Import Clightdefs.ClightNotations.
 Local Open Scope clight_scope.
 From SM64.Generated Require mario.
-From SM64.Proofs Require Import Flying ActionFrame ActionValueFrame MarioMemWF
-  ResetBodystate RootedLvalue ValueFrameINV ValueFrameStmt BodyNfDec.
+From SM64.Proofs Require Import Flying FieldNonInterference ActionValueFrame MarioMemoryWF
+  ResetBodystate RootedLvalue TempProvenanceInvariant StatementFrame BodyFrameDecider.
 
 (* The TRACKED pointer temps: the chased-object pointer `t'6` (= m->marioObj) and
    the hoisted inner pointer `animInfo` (= &t'6->header.gfx.animInfo) that every
@@ -57,7 +57,7 @@ Proof.
   (* body_no_calls: straight-line + branches, no Scall/Sloop/Sswitch. *)
   assert (Hnc : body_no_calls (fn_body mario.f_set_anim_to_frame) = true)
     by reflexivity.
-  (* body_nf_ok: now via the DECIDABLE checker (BodyNfDec) -- one reflexivity. *)
+  (* body_nf_ok: now via the DECIDABLE checker (BodyFrameDecider) -- one reflexivity. *)
   assert (Hok : body_nf_ok PT_anim FS_anim bm e (fn_body mario.f_set_anim_to_frame)).
   { apply body_nf_ok_dec_sound. vm_compute. reflexivity. }
   (* run the call-free frame; pull action_sat out of the preserved bundle. *)

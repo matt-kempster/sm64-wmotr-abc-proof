@@ -1,4 +1,4 @@
-(* FrameTrace.v -- the temporal scaffolding for R3 ("you cannot enter ACT_FLYING
+(* ReachableRun.v -- the temporal scaffolding for R3 ("you cannot enter ACT_FLYING
  * without pressing A"). See docs/the-frame.md and docs/trust-model.md.
  *
  * This is the trace-invariant HARNESS, abstract over the eventual frame model:
@@ -91,7 +91,7 @@ End Trace.
      (a) the harness instantiates to a Phi-free safety theorem, and
      (b) without the no-A hypothesis that theorem would be FALSE
          (flying is reachable WITH A) -- so the harness is not vacuous.
-   This is the temporal analogue of the positive controls in Flying.v / Escape.v.
+   This is the temporal analogue of the positive controls in Flying.v / AddressTaken.v.
    ====================================================================== *)
 
 Inductive Act := AGround | AFlying.

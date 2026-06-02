@@ -1,4 +1,4 @@
-(* BucketASpine.v -- the BUCKET A spine: the store-frame side of "no A => no fly".
+(* StoreFrameSpine.v -- the BUCKET A spine: the store-frame side of "no A => no fly".
  *
  * Companion to NoAFlyingSpine.v. There, the whole store-frame argument (every
  * function that does NOT itself fabricate a flying action preserves non-flying) was
@@ -25,7 +25,7 @@
  *
  * WHERE mario_reset_bodystate FITS. It is the FIRST leaf whose bridge instance is
  * being discharged DIRECTLY (ResetBodystate.v: temp-provenance store inverter +
- * MarioMemWF block-distinctness), i.e. the concrete witness that the bridge is real
+ * MarioMemoryWF block-distinctness), i.e. the concrete witness that the bridge is real
  * against genuine SM64 pointer-chase aliasing -- the unit test for the engine before
  * we trust it across the reach set. Here it is simply one more `apply
  * store_frame_bridge; reflexivity` leaf; ResetBodystate.v is the proof that that
@@ -64,13 +64,13 @@ Definition locally_safe (f : function) : bool :=
 (* ---- the residual interprocedural condition (threaded, not assumed away) -------- *)
 (* reach_safe f: across the whole call tree of f, no reached callee fabricates a
    flying action and every set_mario_action call is passed a non-flying argument.
-   Discharged by Reach.v's closure + ActionGraph.v's edge analysis (the computed-arg
+   Discharged by CallgraphReach.v's closure + ActionGraph.v's edge analysis (the computed-arg
    leak is here). Abstract so it cannot smuggle the conclusion. *)
 Variable reach_safe : function -> Prop.
 
 (* ---- the GLOBAL Mario-heap well-formedness carrier ------------------------------- *)
 (* Abstract here (so the section stays program-generic); instantiated concretely at
-   the mario.prog level (BucketAHook) to MarioMemWF.mario_mem_wf + validity. It is the
+   the mario.prog level (StoreFrameHook) to MarioMemoryWF.mario_mem_wf + validity. It is the
    anti-aliasing premise the bridge genuinely needs: WITHOUT it, body_preserves_nonflying
    is FALSE (a call whose Mario pointer reached the action cell through a chased
    sub-pointer in a pathological heap could clobber it). Threading it -- rather than

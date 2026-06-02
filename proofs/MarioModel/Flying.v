@@ -1,7 +1,7 @@
 (* Flying.v -- R1 of "you must press A to enter wing-cap flight (ACT_FLYING)".
  *
  * See docs/must-press-a-to-fly.md. This is the *setter-enumeration* rung: the
- * action-level analogue of Reach.direct_writers. It establishes, by reflexivity
+ * action-level analogue of CallgraphReach.direct_writers. It establishes, by reflexivity
  * over the real clightgen'd ASTs of four SM64 TUs, the structural skeleton of the
  * whole argument:
  *
@@ -42,7 +42,7 @@ From Coq Require Import List ZArith PArith.BinPos.
 Import ListNotations.
 Local Open Scope Z_scope.
 From compcert Require Import AST Integers Ctypes Cop Clight.
-From SM64.Proofs Require Import Reach.
+From SM64.Proofs Require Import CallgraphReach.
 From SM64.Generated Require mario mario_actions_airborne mario_actions_moving level_update
   behavior_actions mario_actions_automatic interaction.
 
@@ -95,7 +95,7 @@ with flying_call_ls (ls : labeled_statements) : bool :=
   end.
 
 (* The internal functions of p that pass a flying constant into some call. This is
-   Reach.direct_writers retargeted from "writes global g" to "feeds a flying action
+   CallgraphReach.direct_writers retargeted from "writes global g" to "feeds a flying action
    constant to a call". *)
 Definition flying_setters (p : program) : list ident :=
   map fst (filter (fun idf => flying_call_s (fn_body (snd idf)))

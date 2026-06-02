@@ -1,4 +1,4 @@
-(* Reach.v -- the whole-program "formal grep + callgraph" skeleton.
+(* CallgraphReach.v -- the whole-program "formal grep + callgraph" skeleton.
  *
  * Two computable analyses over the entire translation unit `prog`:
  *
@@ -22,7 +22,7 @@
 From Coq Require Import List PArith.BinPos.
 Import ListNotations.
 From compcert Require Import AST Ctypes Clight.
-From SM64.Proofs Require Import Frame Escape.
+From SM64.Proofs Require Import Frame AddressTaken.
 From SM64.Generated Require Import shadow.
 
 (* --- Half 1: the structural grep ------------------------------------------ *)
@@ -135,7 +135,7 @@ Example writer_can_write_surface_type :
   cannot_write_g prog _create_shadow_below_xyz _sSurfaceTypeBelowShadow = false.
 Proof. reflexivity. Qed.
 
-(* --- Escape (address-taken) over the whole TU ----------------------------- *)
+(* --- AddressTaken (address-taken) over the whole TU ----------------------------- *)
 
 (* Does ANY global definition of the program take the address of g -- in a
    function body OR a static initializer? (Whole-TU, so sound within this TU;

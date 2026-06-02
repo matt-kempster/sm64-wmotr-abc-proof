@@ -1,10 +1,10 @@
-(* MarioMemWF.v -- the first REAL memory-layout brick: well-formed Mario memory.
+(* MarioMemoryWF.v -- the first REAL memory-layout brick: well-formed Mario memory.
  *
  * MOTIVATION (leaving abstract-land). The value-frame engine (ActionValueFrame)
  * proves a statement preserves "the action field is non-flying" PROVIDED every
  * store either misses the action cell or stores a non-flying value. For a real
  * action body the easy stores are `m->field = c` (same block as the action cell,
- * disjoint OFFSET -- already handled by ActionFrame's field-offset disjointness).
+ * disjoint OFFSET -- already handled by FieldNonInterference's field-offset disjointness).
  * The hard ones are POINTER CHASES: e.g. act_panting's only store is
  *     m->marioBodyState->eyeState = 2
  * a write through a pointer LOADED FROM memory. "This misses the action cell"

@@ -7,7 +7,7 @@
  * non-flying action invariant. The entry `tmps_off_bm` is DISCHARGED here, not
  * assumed: function_entry2 initialises every temp to Vundef (create_undef_temps),
  * so no tracked pointer temp can alias bm at entry. This is the generalisation of
- * BucketAHook over f -- a new chase fn now needs only its body_nf_ok (the
+ * StoreFrameHook over f -- a new chase fn now needs only its body_nf_ok (the
  * dispatcher) + reach + the field wf, never a hand-written eval_funcall inversion.
  *
  * SCOPE (honestly): the premise is body_nf_ok (the frame check), NOT the spine's
@@ -22,8 +22,8 @@ From compcert Require Import Coqlib Maps AST Integers Values Memory Globalenvs
 From Coq Require Import List.
 Import ListNotations.
 From SM64.Generated Require mario.
-From SM64.Proofs Require Import Flying ActionValueFrame MarioMemWF
-  ResetBodystate RootedLvalue ValueFrameINV ValueFrameStmt.
+From SM64.Proofs Require Import Flying ActionValueFrame MarioMemoryWF
+  ResetBodystate RootedLvalue TempProvenanceInvariant StatementFrame.
 
 (* create_undef_temps never yields a pointer: every entry is Vundef (or absent). *)
 Lemma create_undef_temps_not_ptr :

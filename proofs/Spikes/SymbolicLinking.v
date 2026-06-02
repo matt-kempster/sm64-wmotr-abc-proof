@@ -1,4 +1,4 @@
-(* LinkSpike.v -- SYMBOLIC-LINKING SPIKE (de-risking, OOM-free).
+(* SymbolicLinking.v -- SYMBOLIC-LINKING SPIKE (de-risking, OOM-free).
  *
  * BACKGROUND. The real per-frame Mario update spans translation units and is
  * cyclic: execute_mario_action (mario.c) -> mario_execute_<group>_action

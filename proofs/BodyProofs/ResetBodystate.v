@@ -13,9 +13,9 @@
  *   - its body exercises BOTH real aliasing regimes in one function:
  *       * 5 POINTER-CHASE stores through bodyState (= m->marioBodyState):
  *         capState/eyeState/handState/modelState/wingFlutter -- these land in the
- *         gBodyStates block, DISTINCT from Mario's block (the MarioMemWF brick);
+ *         gBodyStates block, DISTINCT from Mario's block (the MarioMemoryWF brick);
  *       * 1 DIRECT store m->flags = ... -- same block as the action cell, disjoint
- *         OFFSET (ActionFrame's field-offset disjointness).
+ *         OFFSET (FieldNonInterference's field-offset disjointness).
  *   So one function is the clean unit test for the temp-provenance + block-
  *   separation mechanism, with nothing else entangled.
  *
@@ -35,7 +35,7 @@ From Coq Require Import Lia.
 Import Clightdefs.ClightNotations.
 Local Open Scope clight_scope.
 From SM64.Generated Require mario.
-From SM64.Proofs Require Import Flying ActionFrame ActionValueFrame MarioMemWF.
+From SM64.Proofs Require Import Flying FieldNonInterference ActionValueFrame MarioMemoryWF.
 
 (* The non-flying predicate, as a Q for action_sat. *)
 Definition nonflying (v : int) : Prop := is_flying_int v = false.
@@ -104,7 +104,7 @@ Proof.
 Qed.
 
 (* ------------------------------------------------------------------ *)
-(* genv_cenv of mario.prog's genv = its composite env (MarioMemWF's     *)
+(* genv_cenv of mario.prog's genv = its composite env (MarioMemoryWF's     *)
 (* mario_ce). Plain reflexivity loops on Genv.globalenv; scope cbn to   *)
 (* the projection (pipeline gotcha).                                    *)
 (* ------------------------------------------------------------------ *)

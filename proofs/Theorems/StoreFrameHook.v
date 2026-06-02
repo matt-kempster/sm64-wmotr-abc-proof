@@ -1,8 +1,8 @@
-(* BucketAHook.v -- WIRING the chase engine into the spine's funcall-level target.
+(* StoreFrameHook.v -- WIRING the chase engine into the spine's funcall-level target.
  *
- * BucketASpine's bucket-A obligation is `body_preserves_nonflying f`, stated at the
+ * StoreFrameSpine's bucket-A obligation is `body_preserves_nonflying f`, stated at the
  * eval_funcall level:  a whole call of f preserves the non-flying action invariant.
- * The chase engine (ResetBodystate / ValueFrameStmt) proves preservation at the
+ * The chase engine (ResetBodystate / StatementFrame) proves preservation at the
  * exec_stmt (body) level, under a `le!_m = Vptr bm 0` entry hypothesis. This file
  * closes the gap for the witness function, mario_reset_bodystate, by inverting
  * eval_funcall -> function_entry2 -> exec_stmt:
@@ -13,7 +13,7 @@
  *   - blocks_of_env empty_env = [], so the trailing free_list is identity.
  *
  * HONEST PREMISES (the interface the spine's bridge must carry, and which the
- * current BucketASpine.body_preserves_nonflying is missing): the Mario heap is
+ * current StoreFrameSpine.body_preserves_nonflying is missing): the Mario heap is
  * well-formed at bm (mario_mem_wf) and the call is on Mario's own pointer
  * (Vptr bm 0 :: nil). The fully-general `forall vargs` form is FALSE without a
  * global heap invariant -- a call whose _m argument aliased bm through a chased
@@ -26,7 +26,7 @@ From compcert Require Import Coqlib Maps AST Integers Values Memory Globalenvs
 From Coq Require Import List.
 Import ListNotations.
 From SM64.Generated Require mario.
-From SM64.Proofs Require Import Flying ActionValueFrame MarioMemWF ResetBodystate BucketASpine.
+From SM64.Proofs Require Import Flying ActionValueFrame MarioMemoryWF ResetBodystate StoreFrameSpine.
 
 (* The spine's body_preserves_nonflying, realised for mario_reset_bodystate:
    proven, not assumed -- the chase work is now wired to the funcall level. *)
@@ -61,21 +61,21 @@ Proof.
     | eassumption ].
 Qed.
 
-(* The concrete Mario-heap well-formedness that instantiates BucketASpine's abstract
+(* The concrete Mario-heap well-formedness that instantiates StoreFrameSpine's abstract
    mario_wf carrier: Mario's block is valid and his pointer fields are off-block. *)
 Definition reset_wf (m : mem) (bm : block) : Prop :=
   Mem.valid_block m bm /\ exists bbs, mario_mem_wf m bm bbs.
 
-(* THE HOOK, fully wired: this DISCHARGES BucketASpine's per-function bucket-A
+(* THE HOOK, fully wired: this DISCHARGES StoreFrameSpine's per-function bucket-A
    obligation `body_preserves_nonflying` for mario_reset_bodystate, at prog = mario.prog
    with mario_wf := reset_wf. No abstract store_frame_bridge hypothesis is used -- the
    preservation comes straight from the chase engine (ResetBodystate) through the
    eval_funcall hook above. The non-nil-argument case is impossible (reset_bodystate
    takes one parameter, so bind_parameter_temps rejects extra args). *)
 Theorem reset_bodystate_discharges_bucketA :
-  BucketASpine.body_preserves_nonflying mario.prog reset_wf mario.f_mario_reset_bodystate.
+  StoreFrameSpine.body_preserves_nonflying mario.prog reset_wf mario.f_mario_reset_bodystate.
 Proof.
-  unfold BucketASpine.body_preserves_nonflying, reset_wf.
+  unfold StoreFrameSpine.body_preserves_nonflying, reset_wf.
   intros bm rest m m' t res (Hv & bbs & Hmwf) Hsat Hfun.
   destruct rest as [| a rest'].
   - exact (reset_bodystate_funcall_preserves_nonflying bm bbs m m' t res Hmwf Hv Hsat Hfun).

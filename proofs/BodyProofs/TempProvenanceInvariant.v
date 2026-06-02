@@ -1,4 +1,4 @@
-(* ValueFrameINV.v -- THE CAPSTONE ENGINE (temp-provenance), built incrementally.
+(* TempProvenanceInvariant.v -- THE CAPSTONE ENGINE (temp-provenance), built incrementally.
  *
  * The wall (why per-function doesn't fold into one lemma yet): a chase store
  * `p->fid = rhs` lands in whatever block the temp p points to. ActionValueFrame's
@@ -19,7 +19,7 @@
 From compcert Require Import Coqlib Errors Maps AST Integers Values Memory Globalenvs Ctypes Cop Clight Clightdefs ClightBigstep Events.
 Import Clightdefs.ClightNotations.
 Local Open Scope clight_scope.
-From SM64.Proofs Require Import Flying ActionFrame ActionValueFrame MarioMemWF ResetBodystate RootedLvalue.
+From SM64.Proofs Require Import Flying FieldNonInterference ActionValueFrame MarioMemoryWF ResetBodystate RootedLvalue.
 
 (* The temp-environment invariant: every temp other than the Mario-pointer id
    `mid` that holds a pointer points to a block distinct from Mario's block bm. *)

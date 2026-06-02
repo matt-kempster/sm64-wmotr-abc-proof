@@ -34,7 +34,7 @@ From Coq Require Import Lia.
 Import Clightdefs.ClightNotations.
 Local Open Scope clight_scope.
 From SM64.Generated Require mario.
-From SM64.Proofs Require Import Flying ActionFrame ActionValueFrame MarioMemWF ResetBodystate.
+From SM64.Proofs Require Import Flying FieldNonInterference ActionValueFrame MarioMemoryWF ResetBodystate.
 
 (* A deref_loc of an ARRAY type yields the pointer unchanged (arrays are
    accessed By_reference). Concrete Tarray, so: the By_value/By_copy cases die

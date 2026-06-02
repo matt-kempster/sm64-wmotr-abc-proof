@@ -1,6 +1,6 @@
-(* BodyNfDec.v -- a DECIDABLE frame check, and its soundness.
+(* BodyFrameDecider.v -- a DECIDABLE frame check, and its soundness.
  *
- * body_nf_ok (ValueFrameStmt) is the per-statement obligation the frame consumes;
+ * body_nf_ok (StatementFrame) is the per-statement obligation the frame consumes;
  * proving it per function is currently a hand-written `all: try solve [...]`
  * dispatcher. This file replaces that with a COMPUTABLE predicate body_nf_ok_dec
  * and proves body_nf_ok_dec PT FS s = true -> body_nf_ok PT FS bm e s. So a
@@ -18,8 +18,8 @@ Import ListNotations.
 Import Clightdefs.ClightNotations.
 Local Open Scope clight_scope.
 From SM64.Generated Require mario.
-From SM64.Proofs Require Import Flying ActionFrame ActionValueFrame MarioMemWF
-  ResetBodystate RootedLvalue ValueFrameINV ValueFrameStmt.
+From SM64.Proofs Require Import Flying FieldNonInterference ActionValueFrame MarioMemoryWF
+  ResetBodystate RootedLvalue TempProvenanceInvariant StatementFrame.
 
 (* root temp of a (possibly nested) chase lvalue. *)
 Fixpoint expr_root (a : expr) : option ident :=

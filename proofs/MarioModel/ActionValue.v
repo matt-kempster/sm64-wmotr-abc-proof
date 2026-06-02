@@ -27,7 +27,7 @@ From compcert Require Import Coqlib Errors Maps AST Integers Values Events Memor
 Import Clightdefs.ClightNotations.
 From SM64.Generated Require mario.
 From SM64.Proofs Require Import Flying.
-From SM64.Proofs Require Import ActionFrame.
+From SM64.Proofs Require Import FieldNonInterference.
 
 (* ------------------------------------------------------------------ *)
 (* KERNEL: a By_value store of (Vint v) into a scalar field reads back  *)

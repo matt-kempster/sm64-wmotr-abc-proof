@@ -1,9 +1,9 @@
-(* ChaseDischarge.v -- TYING THE ENGINE TO THE NAMED 111.
+(* PointerChaseDischarge.v -- TYING THE ENGINE TO THE NAMED 111.
  *
- * This file is the scoreboard: for each function in ChaseList's machine-checked
+ * This file is the scoreboard: for each function in PointerChaseList's machine-checked
  * enumeration of the 111 chase functions, a theorem "executing its REAL body
  * preserves action_sat nonflying" (= Mario's action stays non-flying across the
- * call), discharged with the ValueFrameINV engine + the inverter bricks.
+ * call), discharged with the TempProvenanceInvariant engine + the inverter bricks.
  *
  * Each entry is tied to the enumeration by a machine-checked membership fact
  * `In <fn> (chase_funcs mario.prog)`, so "we proved function F" is provably "F is
@@ -43,7 +43,7 @@ From Coq Require Import List.
 Import ListNotations.
 From compcert Require Import Maps AST Integers Values Memory Globalenvs Ctypes Cop Clight ClightBigstep.
 From SM64.Generated Require mario.
-From SM64.Proofs Require Import Flying ActionValueFrame MarioMemWF ChaseCount ResetBodystate ValueFrameINV ValueFrameStmt SetAnimToFrame SetMarioActionMoving UpdateMarioInfoForCam SquishMarioModel BucketASpine BucketAHook.
+From SM64.Proofs Require Import Flying ActionValueFrame MarioMemoryWF PointerChaseCount ResetBodystate TempProvenanceInvariant StatementFrame SetAnimToFrame SetMarioActionMoving UpdateMarioInfoForCam SquishMarioModel StoreFrameSpine StoreFrameHook.
 
 (* ---- #1 / 111 : mario_reset_bodystate (mario.c) ---------------------- *)
 
@@ -53,12 +53,12 @@ Lemma reset_bodystate_is_one_of_the_111 :
 Proof. vm_compute. tauto. Qed.
 
 (* (b-spine) THE WIRED FORM: reset_bodystate's bucket-A obligation in the SPINE's
-   own currency (BucketASpine.body_preserves_nonflying, eval_funcall level),
-   discharged from the engine via BucketAHook -- NOT via the abstract
+   own currency (StoreFrameSpine.body_preserves_nonflying, eval_funcall level),
+   discharged from the engine via StoreFrameHook -- NOT via the abstract
    store_frame_bridge hypothesis. This is the proof that the chase work actually
    feeds the no-A no-fly spine, not a parallel island. *)
 Theorem reset_bodystate_discharges_spine_bucketA :
-  BucketASpine.body_preserves_nonflying mario.prog reset_wf mario.f_mario_reset_bodystate.
+  StoreFrameSpine.body_preserves_nonflying mario.prog reset_wf mario.f_mario_reset_bodystate.
 Proof. exact reset_bodystate_discharges_bucketA. Qed.
 
 (* (b) its REAL body preserves nonflying (re-exporting the ResetBodystate proof

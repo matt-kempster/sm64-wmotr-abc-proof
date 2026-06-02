@@ -34,7 +34,7 @@
 
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory Globalenvs Ctypes Cop Clight ClightBigstep.
 From SM64.Generated Require mario.
-From SM64.Proofs Require Import Flying ActionFrame ActionValue.
+From SM64.Proofs Require Import Flying FieldNonInterference ActionValue.
 
 (* The action cell as a watched byte-set: 4 bytes at (bm, 12). Reuses the exact
    shape rung (c) consumes (b = bm /\ aofs <= o < aofs + size_chunk Mint32). *)
@@ -225,7 +225,7 @@ Qed.
 (* CAPSTONE part A: the per-Sassign VALUE obligation and its lift over *)
 (* a whole statement.                                                   *)
 (*                                                                     *)
-(* The value analogue of ActionFrame's assign_avoids / stmt_assigns_   *)
+(* The value analogue of FieldNonInterference's assign_avoids / stmt_assigns_   *)
 (* avoid. Where the avoid version demands EVERY Sassign miss the action *)
 (* cell, the value version allows a Sassign to LAND on the cell as long *)
 (* as the value it stores satisfies Q -- precisely brick 2's disjunct.  *)
@@ -271,7 +271,7 @@ with ls_value_ok (Q : int -> Prop) (bm : block) (ge : genv) (e : env)
   end.
 
 (* select_switch / seq_of_labeled_statement preserve stmt_value_ok -- the   *)
-(* switch case of the induction (mirrors ActionFrame's *_assigns_avoid).     *)
+(* switch case of the induction (mirrors FieldNonInterference's *_assigns_avoid).     *)
 Lemma ssd_value_ok :
   forall Q bm ge e sl, ls_value_ok Q bm ge e sl ->
     ls_value_ok Q bm ge e (select_switch_default sl).
@@ -352,7 +352,7 @@ Proof.
 Qed.
 
 (* The honest boundary at the FUNCALL level (the value analogue of      *)
-(* ActionFrame.reach_body_avoids, but stated for whole calls so the     *)
+(* FieldNonInterference.reach_body_avoids, but stated for whole calls so the     *)
 (* statement induction below can stay non-mutual). Every reached funcall *)
 (* that starts with action_sat holding and bm valid ends the same way.   *)
 (* P4's remaining work DISCHARGES this by a case split: set_mario_action  *)
@@ -371,7 +371,7 @@ Definition reach_value_preserves (Q : int -> Prop) (bm : block) (ge : genv) : Pr
 (* given (i) the caller's own Sassigns are value-ok (brick 2: each avoids  *)
 (* the cell OR stores a Q-value), (ii) reached funcalls preserve action_sat *)
 (* (reach_value_preserves), (iii) reached externals preserve the cell      *)
-(* (reach_ext_preserves). Compare ActionFrame.exec_funcall_reach_unchanged_*)
+(* (reach_ext_preserves). Compare FieldNonInterference.exec_funcall_reach_unchanged_*)
 (* on: unchanged_on is replaced by the forward value invariant, so the      *)
 (* legitimate action writes (raw literals + set_mario_action) are no longer *)
 (* fatal -- they are absorbed by the value-ok / reach_value disjuncts.      *)

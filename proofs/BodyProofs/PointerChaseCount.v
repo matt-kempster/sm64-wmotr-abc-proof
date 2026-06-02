@@ -1,11 +1,11 @@
-(* ChaseCount.v -- MEASURING the per-function proof burden.
+(* PointerChaseCount.v -- MEASURING the per-function proof burden.
  *
  * The "no A => no fly" store-frame side splits each handler's stores into:
  *   - DIRECT  (m->field = ..)        : block = the param's block, offset decides;
  *                                      handled wholesale by Flying.v's syntactic
  *                                      enumeration + the generic capstone (cheap).
  *   - POINTER-CHASE (m->ptr->field=..): store through a tempvar loaded from a field;
- *                                      block-distinctness (MarioMemWF) is needed, and
+ *                                      block-distinctness (MarioMemoryWF) is needed, and
  *                                      the generic capstone CANNOT see the temp's
  *                                      provenance -- so these need provenance work.
  *
@@ -21,7 +21,7 @@
 From Coq Require Import List PArith.BinPos.
 Import ListNotations.
 From compcert Require Import AST Ctypes Cop Clight.
-From SM64.Proofs Require Import Reach.
+From SM64.Proofs Require Import CallgraphReach.
 From SM64.Generated Require mario mario_actions_airborne mario_actions_moving
   mario_actions_stationary mario_actions_submerged mario_actions_cutscene
   mario_actions_object mario_actions_automatic.

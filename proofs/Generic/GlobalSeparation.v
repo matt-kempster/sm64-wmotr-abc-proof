@@ -1,6 +1,6 @@
-(* Havoc.v -- the separation / "havoc" rung of the pointer-write story.
+(* GlobalSeparation.v -- the separation / "havoc" rung of the pointer-write story.
  *
- * Escape.v gives the SYNTACTIC fact "the address of g is never produced". This
+ * AddressTaken.v gives the SYNTACTIC fact "the address of g is never produced". This
  * file is about the SEMANTIC payoff: a store that doesn't target g's block
  * leaves g's value untouched -- and, crucially, where the block-distinctness is
  * DERIVED rather than assumed.
@@ -9,7 +9,7 @@
  *
  *  (1) Store to a DIFFERENT GLOBAL g' (g' <> g). Distinctness bg <> bg' is a
  *      THEOREM: CompCert's Genv.global_addresses_distinct says distinct symbols
- *      occupy distinct blocks. Combined with Reach.direct_writers (which globals
+ *      occupy distinct blocks. Combined with CallgraphReach.direct_writers (which globals
  *      are written) this is a complete, assumption-free preservation argument
  *      for direct global writes. PROVED here.
  *
@@ -99,7 +99,7 @@ Qed.
 (* ("no reachable pointer names g's block bg") is made an EXPLICIT hypothesis   *)
 (* b' <> bg. This is the open-world shape; closing leak #1 means PROVING this   *)
 (* hypothesis holds at every store, by induction over execution, from           *)
-(* addr_taken=false (Escape.v). That preservation proof is the next rung.       *)
+(* addr_taken=false (AddressTaken.v). That preservation proof is the next rung.       *)
 (* ========================================================================== *)
 
 Theorem havoc_preserves_separable :

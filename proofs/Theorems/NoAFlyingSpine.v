@@ -42,7 +42,7 @@
  * WHAT IS PROVED HERE: `keeps_nonflying` (the per-frame preservation = the
  * FlyingStatement Phi_preserved_noA hole, with Phi := ~flying) and the run-level
  * `spine_noA_no_spawn_never_flying`, both by pure composition of the holes via
- * FrameTrace's harness. No Admitted.
+ * ReachableRun's harness. No Admitted.
  *
  * HOW THE HOLES GET DISCHARGED (the roadmap each name points at):
  *   chokepoint            <- ActionValueFrame + ResetBodystate (store-frame, bucket A)
@@ -57,7 +57,7 @@ From Coq Require Import List Bool.
 Import ListNotations.
 From compcert Require Import Coqlib Maps AST Integers Values Memory Globalenvs Ctypes Clight.
 From SM64.Generated Require mario.
-From SM64.Proofs Require Import Flying FrameTrace.
+From SM64.Proofs Require Import Flying ReachableRun.
 
 Section Spine.
 
@@ -180,7 +180,7 @@ Qed.
 Definition noA_run_real    (is : list int) : Prop := Forall (fun i => a_pressed i = false) is.
 Definition no_spawn_run    (is : list int) : Prop := Forall (fun i => spawn_flying i = false) is.
 
-(* Fold the two preconditions into FrameTrace's single "no dangerous frame" list
+(* Fold the two preconditions into ReachableRun's single "no dangerous frame" list
    (a frame is dangerous if it presses A OR spawn-flies). *)
 Lemma combine_preconditions :
   forall is,
@@ -200,7 +200,7 @@ Qed.
 (* ================================================================== *)
 (*  THE SPINE THEOREM. A run of no-A, no-spawn frames starting non-      *)
 (*  flying never reaches a flying action -- assembled from the per-frame *)
-(*  preservation via FrameTrace's invariant-induction harness, with the  *)
+(*  preservation via ReachableRun's invariant-induction harness, with the  *)
 (*  invariant taken to be (~ flying_mem) itself.                         *)
 (* ================================================================== *)
 Theorem spine_noA_no_spawn_never_flying :

@@ -19,8 +19,8 @@ Import ListNotations.
 Import Clightdefs.ClightNotations.
 Local Open Scope clight_scope.
 From SM64.Generated Require mario.
-From SM64.Proofs Require Import Flying ActionFrame ActionValueFrame MarioMemWF
-  ResetBodystate RootedLvalue ValueFrameINV ValueFrameStmt BodyNfDec.
+From SM64.Proofs Require Import Flying FieldNonInterference ActionValueFrame MarioMemoryWF
+  ResetBodystate RootedLvalue TempProvenanceInvariant StatementFrame BodyFrameDecider.
 
 (* The one tracked store-root temp: t'7 = m->marioObj (the rawData[34] store
    chases through it). forwardVel is written DIRECTLY into m, so it is handled by

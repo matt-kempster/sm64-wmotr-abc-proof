@@ -44,7 +44,7 @@ From Coq Require Import List ZArith PArith.BinPos.
 Import ListNotations.
 Local Open Scope Z_scope.
 From compcert Require Import AST Integers Ctypes Cop Clight.
-From SM64.Proofs Require Import Reach Flying.
+From SM64.Proofs Require Import CallgraphReach Flying.
 From SM64.Generated Require mario_actions_submerged mario_actions_stationary
   mario_actions_cutscene mario_actions_object mario_step mario_misc.
 

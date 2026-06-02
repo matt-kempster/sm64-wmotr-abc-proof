@@ -30,13 +30,13 @@
  *     mario_update (see real_frames_need_A below, where step_models_real becomes
  *     trivial and is load-bearing).
  *   - Phi (the strengthening invariant) is an abstract Variable, so NO concrete
- *     invariant can smuggle the conclusion (FrameTrace.v's proof-internal-Phi
+ *     invariant can smuggle the conclusion (ReachableRun.v's proof-internal-Phi
  *     discipline). Its two dynamic obligations -- Phi_excludes_flying (R1/R2 shape:
  *     the invariant rules out flying) and Phi_preserved_noA (R3: a no-A frame keeps
  *     it) -- are explicit hypotheses. Discharging them with a concrete Phi over the
  *     jump-chain is the remaining R3 work; THAT is the "proofslop"/admit surface.
  *
- * KNOWN SCOPE / leaks (named, Havoc-style; same as the rest of the development):
+ * KNOWN SCOPE / leaks (named, GlobalSeparation-style; same as the rest of the development):
  *   - mario_update models the Mario-update PORTION of a game tick. That a whole
  *     tick cannot otherwise reach a flying action is the separately-mechanized
  *     no_behavior_is_a_flying_setter (behaviors) + the ActionWriters/Flying
@@ -45,7 +45,7 @@
  *   - indirect calls (set_triple_jump_action via function pointer) = leak #2.
  *
  * This file is a STATEMENT artifact: flying_needs_A and real_frames_need_A are
- * proved (Qed) FROM the named hypotheses via FrameTrace's harness -- so the
+ * proved (Qed) FROM the named hypotheses via ReachableRun's harness -- so the
  * statement is shown to reduce to exactly those honest obligations, with no Phi
  * and no fake definitions in between. No Admitted here; the admits live wherever
  * the three hypotheses get discharged.
@@ -53,7 +53,7 @@
 
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory Globalenvs Ctypes Clight ClightBigstep.
 From SM64.Generated Require mario.
-From SM64.Proofs Require Import Flying FrameTrace.
+From SM64.Proofs Require Import Flying ReachableRun.
 
 Section FlyingStatement.
 
@@ -127,7 +127,7 @@ Hypothesis Phi_preserved_noA :
 (* starting from any state satisfying the invariant, never reaches a   *)
 (* flying action. Conclusion mentions only the grounded flying_mem /   *)
 (* a_pressed_int / step -- no Phi. Proved from the named obligations    *)
-(* via FrameTrace's Phi-isolated harness.                              *)
+(* via ReachableRun's Phi-isolated harness.                              *)
 (* ================================================================== *)
 Theorem flying_needs_A :
   forall (m0 mN : mem) (is : list int),

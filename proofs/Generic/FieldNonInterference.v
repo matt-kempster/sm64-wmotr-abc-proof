@@ -1,4 +1,4 @@
-(* ActionFrame.v -- the SEMANTIC frame lemma: field non-interference.
+(* FieldNonInterference.v -- the SEMANTIC frame lemma: field non-interference.
  *
  * WHY THIS FILE. Everything proved so far about Mario's `action` field
  * (Flying.v's flying_setters / writes_mario_action_s, ActionWriters.v's
@@ -7,7 +7,7 @@
  *
  *     a store to field f1 of a struct leaves a DIFFERENT field f2 unchanged.
  *
- * That is the field-granular analogue of Havoc.v's regime 1 (a store to a
+ * That is the field-granular analogue of GlobalSeparation.v's regime 1 (a store to a
  * different *global* preserves g, via block distinctness). Here the two
  * locations share a block but sit at disjoint byte ranges WITHIN the struct;
  * the disjointness comes from CompCert's `field_offset_no_overlap`.
@@ -31,7 +31,7 @@
  *     non-interference over a WHOLE Clight statement by induction on exec_stmt
  *     (composing via Mem.unchanged_on), with payoff corollary
  *     exec_stmt_preserves_watched_load. Two boundaries are made EXPLICIT, in
- *     the house style of Havoc.v regime 2: `call_free s` (calls -> rung (c))
+ *     the house style of GlobalSeparation.v regime 2: `call_free s` (calls -> rung (c))
  *     and `stmt_assigns_avoid` (every Sassign avoids the watched bytes = the
  *     leak-#1 aliasing side condition). NOTE: writes_mario_action_s=false is
  *     NOT semantically sufficient on its own -- it is `false` on Scall and on
@@ -58,7 +58,7 @@
  *   - Abstract over any composite_env / members list. The abstract bricks are
  *     now ALSO instantiated on the real MarioState composite at the bottom of
  *     this file (store_other_field_preserves_action / store_flags_preserves_action,
- *     à la Havoc's flying-carpet instance) -- field offsets discharged by
+ *     à la GlobalSeparation's flying-carpet instance) -- field offsets discharged by
  *     vm_compute over the real prog_comp_env mario.prog, not asserted by hand.
  *
  * AXIOM STATUS (Print Assumptions, verified): the two pure lemmas
@@ -202,11 +202,11 @@ Qed.
 (*   - call_free s = true : no Scall / Sbuiltin. A call may write the   *)
 (*     field through a callee (set_mario_action!), which the syntactic  *)
 (*     writes_mario_action_s does NOT see (it is `false` on Scall). So  *)
-(*     calls are deferred to rung (c) (Reach.v's callgraph) -- exactly  *)
+(*     calls are deferred to rung (c) (CallgraphReach.v's callgraph) -- exactly  *)
 (*     as the file header states.                                       *)
 (*   - assigns_avoid : every Sassign in s lands OUTSIDE the watched     *)
 (*     bytes, FOR ALL states. This is the leak-#1 (aliasing) boundary,  *)
-(*     made an explicit hypothesis in the house style of Havoc.v's      *)
+(*     made an explicit hypothesis in the house style of GlobalSeparation.v's      *)
 (*     regime 2 (b' <> bg as a hypothesis). For the action field it is  *)
 (*     what writes_mario_action_s=false + the escape/separation rung    *)
 (*     are meant to DISCHARGE; here it is assumed, the obligation named. *)
@@ -499,7 +499,7 @@ Qed.
 
 (* ------------------------------------------------------------------ *)
 (* CONCRETE INSTANCE on the real MarioState composite (the analogue of *)
-(* Havoc.v's flying-carpet corollary). We instantiate the abstract     *)
+(* GlobalSeparation.v's flying-carpet corollary). We instantiate the abstract     *)
 (* memory brick on the actual clightgen'd struct layout from mario.v:  *)
 (* MarioState.action sits at byte offset 12 (Full, Mint32), and every  *)
 (* other Full scalar field is disjoint from it. So a store to ANY      *)

@@ -1,4 +1,4 @@
-(* Escape.v -- the syntactic "address-taken" analysis.
+(* AddressTaken.v -- the syntactic "address-taken" analysis.
  *
  * Companion to Frame.v. Frame.writes_global answers "who DIRECTLY assigns g?".
  * This answers the question that makes the pointer-write leak tractable (see

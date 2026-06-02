@@ -1,6 +1,6 @@
 (* WMotRStatement.v -- tethering the "no A => no flying" theorem to REAL terms.
  *
- * FrameTrace.noA_run_not_flying is the proved-but-ABSTRACT harness: S/Inp/step/
+ * ReachableRun.noA_run_not_flying is the proved-but-ABSTRACT harness: S/Inp/step/
  * flying/a_pressed are all placeholders. This file begins replacing those
  * placeholders with the real game's notions, and -- crucially -- it makes the
  * statement TRUE by carving out the spawn-flying escape hatch.
@@ -45,7 +45,7 @@
  *       ActionValueFrame.exec_stmt_value_preserves + the P3 reach discharge will
  *       prove once `step` is the real loop.
  *
- * So this file converts FrameTrace's fully-abstract harness into a statement whose
+ * So this file converts ReachableRun's fully-abstract harness into a statement whose
  * SAFETY PROPERTY and PRECONDITIONS are real game terms, leaving only the engine
  * frame and its per-frame preservation as the named remaining bridge.
  *
@@ -55,7 +55,7 @@
 From Coq Require Import List Bool.
 Import ListNotations.
 From compcert Require Import Coqlib AST Integers Values Memory.
-From SM64.Proofs Require Import Flying ActionValueFrame FrameTrace.
+From SM64.Proofs Require Import Flying ActionValueFrame ReachableRun.
 
 Section WMotR.
   (* Mario's struct block is fixed; the world state relevant to flight is memory.
@@ -107,7 +107,7 @@ Section WMotR.
       mem_nonflying m'.
 
   (* Combine the two run preconditions into the single "no dangerous frame" flag
-     that the FrameTrace harness consumes (a frame is dangerous if it presses A OR
+     that the ReachableRun harness consumes (a frame is dangerous if it presses A OR
      spawn-flies). *)
   Lemma combine_preconditions :
     forall is,
@@ -130,7 +130,7 @@ Section WMotR.
   (* For the real flying state (the loaded action value) and the two real    *)
   (* preconditions (no A pressed this run, AND no spawn-flying this run), a    *)
   (* run that starts non-flying NEVER reaches a flying state. Proved by        *)
-  (* instantiating FrameTrace's invariant-induction harness with the REAL      *)
+  (* instantiating ReachableRun's invariant-induction harness with the REAL      *)
   (* non-flying invariant; the spawn precondition is what makes the statement   *)
   (* true rather than false.                                                   *)
   (* ====================================================================== *)

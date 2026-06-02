@@ -1,10 +1,10 @@
-(* ValueFrameStmt.v -- THE STATEMENT-LEVEL BUNDLE FRAME (the assembly).
+(* StatementFrame.v -- THE STATEMENT-LEVEL BUNDLE FRAME (the assembly).
  *
  * ActionValueFrame.exec_stmt_value_preserves already threads {valid, action_sat}
  * through a whole statement (calls/loops/switch included), consuming a per-Sassign
  * obligation stmt_value_ok quantified `forall le m`. That obligation is FALSE for
  * chase stores `p->..f = rhs`: under an arbitrary le, p could point INTO Mario's
- * block bm. ValueFrameINV's engine fixed that by threading a temp-provenance
+ * block bm. TempProvenanceInvariant's engine fixed that by threading a temp-provenance
  * invariant tmps_off_bm at RUNTIME -- but that means the invariant must be threaded
  * THROUGH the statement induction, not assumed once. This file does that: a fresh
  * induction over exec_stmt carrying the 4-part bundle
@@ -14,7 +14,7 @@
  *
  * (mem_wf = "the chased pointer fields FS all load off-bm in m" -- what re-creates
  * tmps_off_bm at each chase-LOAD Sset). The chase-store Sassign case drops in from
- * ValueFrameINV.rooted_store_*; the chase-load Sset case from tmps_off_bm_set_field;
+ * TempProvenanceInvariant.rooted_store_*; the chase-load Sset case from tmps_off_bm_set_field;
  * direct stores from the value-ok / offset-disjoint route; control flow & calls
  * structurally (calls via reach-style callee assumptions, exactly as
  * ActionValueFrame.reach_value_preserves).
@@ -30,7 +30,7 @@ From Coq Require Import List Lia.
 Import ListNotations.
 Import Clightdefs.ClightNotations.
 Local Open Scope clight_scope.
-From SM64.Proofs Require Import Flying ActionFrame ActionValueFrame MarioMemWF ResetBodystate RootedLvalue ValueFrameINV.
+From SM64.Proofs Require Import Flying FieldNonInterference ActionValueFrame MarioMemoryWF ResetBodystate RootedLvalue TempProvenanceInvariant.
 
 (* Memory well-formedness for a SET of chased pointer fields: each field in FS
    loads, in m, a pointer into a block other than Mario's block bm. This is what
@@ -45,7 +45,7 @@ Definition mem_wf (FS : list ident) (m : mem) (bm : block) : Prop :=
 (* block, which tmps_off_bm puts off bm. Phrased as Mem.unchanged_on     *)
 (* (fun b _ => b = bm) so it drives BOTH preservation facts (action_sat  *)
 (* at (bm,12); the chased-field loads at (bm,off)) in one stroke.        *)
-(* Generalizes the action_sat-only ValueFrameINV.rooted_store_preserves  *)
+(* Generalizes the action_sat-only TempProvenanceInvariant.rooted_store_preserves  *)
 (* by keeping the full unchanged_on rather than just the load at 12.     *)
 (* ================================================================== *)
 Lemma rooted_store_unchanged_bm :

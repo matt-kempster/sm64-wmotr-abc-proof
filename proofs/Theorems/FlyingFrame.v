@@ -1,6 +1,6 @@
 (* FlyingFrame.v -- wiring rung (c) into the flying invariant's step obligation.
  *
- * Plan-B deliverable: connect ActionFrame's interprocedural frame theorem
+ * Plan-B deliverable: connect FieldNonInterference's interprocedural frame theorem
  * (exec_funcall_reach_unchanged_on, rung c) to FlyingStatement's grounded
  * `flying_mem`, and thereby PIN DOWN exactly what is left of R3 (the
  * Phi_preserved_noA obligation).
@@ -36,7 +36,7 @@
 
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory Globalenvs Ctypes Clight ClightBigstep.
 From SM64.Generated Require mario.
-From SM64.Proofs Require Import Flying ActionFrame FlyingStatement.
+From SM64.Proofs Require Import Flying FieldNonInterference FlyingStatement.
 
 Section FlyingFrame.
 

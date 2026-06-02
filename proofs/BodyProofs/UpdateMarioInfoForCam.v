@@ -15,8 +15,8 @@ Import ListNotations.
 Import Clightdefs.ClightNotations.
 Local Open Scope clight_scope.
 From SM64.Generated Require mario.
-From SM64.Proofs Require Import Flying ActionFrame ActionValueFrame MarioMemWF
-  ResetBodystate RootedLvalue ValueFrameINV ValueFrameStmt FuncallFrame BodyNfDec.
+From SM64.Proofs Require Import Flying FieldNonInterference ActionValueFrame MarioMemoryWF
+  ResetBodystate RootedLvalue TempProvenanceInvariant StatementFrame FuncallFrame BodyFrameDecider.
 
 (* Tracked store-root temps: t'6 = m->marioBodyState, t'4 = m->statusForCamera. *)
 Definition PT_cam : ident -> bool :=
@@ -76,7 +76,7 @@ Proof.
 Qed.
 
 (* FUNCALL-LEVEL preservation via the GENERIC bridge funcall_body_nf_preserves --
-   NO bespoke eval_funcall inversion, unlike BucketAHook. This is the pattern every
+   NO bespoke eval_funcall inversion, unlike StoreFrameHook. This is the pattern every
    chase fn now follows: body_nf_ok (the dispatcher) + reach + field wf, fed to one
    generic lemma. Demonstrates the bridge on a call-bearing, multi-field function. *)
 Theorem update_mario_info_for_cam_funcall_preserves :
