@@ -34,6 +34,7 @@ proofs/Generic/SymbolicLinking.v
 proofs/MarioModel/Flying.v
 proofs/MarioModel/ActionValue.v
 proofs/MarioModel/ActionValueFrame.v
+proofs/MarioModel/RealFrameValue.v
 
 # --- top-level demos ---
 proofs/Toy/ToyFrame.v

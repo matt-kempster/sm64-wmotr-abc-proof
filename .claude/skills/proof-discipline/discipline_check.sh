@@ -7,8 +7,9 @@
 #
 #   1. BUILDS      -- does the tree actually compile? (a real check, not a claim)
 #   2. NO admit    -- any Admitted/Axiom/sorry/Abort vernacular? (= you didn't prove it)
-#   3. AXIOMS      -- does each goal capstone rest ONLY on the 4 standard CompCert
-#                     axioms? (Print Assumptions; a stray axiom/admit = a hole)
+#   3. AXIOMS      -- does each goal capstone rest ONLY on the standard CompCert
+#                     axioms (classical logic + CompCert's external-call model)?
+#                     (Print Assumptions; a stray PROJECT axiom/admit = a hole)
 #   4. HOOKED IN   -- structure check: nothing in the spine depends on Unwired/,
 #                     and no orphan sits outside Unwired/ unmarked.
 #
@@ -32,10 +33,23 @@ if [ "$#" -eq 0 ]; then
   set -- SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFly noA_no_spawn_never_flying
 fi
 
+# The standard, sound axioms a CompCert proof of the REAL program legitimately
+# rests on. TWO groups:
+#   (a) classical logic + functional extensionality (Coq stdlib);
+#   (b) CompCert's abstract external-call model (common/Events.v Parameters/Axioms):
+#       external_functions_sem/properties, inline_assembly_sem/properties. These
+#       appear the moment the capstone references the REAL eval_funcall (the
+#       clightgen'd frame can reach an external/builtin call), so they are a
+#       TETHERING signal, not a hole -- every whole-program CompCert proof rests
+#       on them. They are NOT project Axioms and NOT Admitted lemmas.
 ALLOWED='Classical_Prop.classic
 FunctionalExtensionality.functional_extensionality_dep
 ClassicalDedekindReals.sig_not_dec
-ClassicalDedekindReals.sig_forall_dec'
+ClassicalDedekindReals.sig_forall_dec
+Events.external_functions_sem
+Events.external_functions_properties
+Events.inline_assembly_sem
+Events.inline_assembly_properties'
 
 fail=0
 line() { printf '%s\n' "------------------------------------------------------------"; }
@@ -61,7 +75,7 @@ else
 fi
 
 # 3. AXIOMS of each capstone ---------------------------------------------
-line; echo "[3/4] AXIOM FOOTPRINT (capstones rest only on the 4 CompCert axioms)"
+line; echo "[3/4] AXIOM FOOTPRINT (capstones rest only on the standard CompCert axioms)"
 while [ "$#" -ge 2 ]; do
   mod="$1"; thm="$2"; shift 2
   out=$(bash pipeline/assumptions.sh "$mod" "$thm" 2>&1)
@@ -78,7 +92,7 @@ while [ "$#" -ge 2 ]; do
     echo "$ALLOWED" | grep -qxF "$n" || bad="$bad $n"
   done <<< "$names"
   if [ -z "$bad" ]; then
-    echo "  OK  $mod.$thm -- only the 4 standard CompCert axioms."
+    echo "  OK  $mod.$thm -- only standard CompCert axioms (classical + external-call model)."
   else
     echo "  FAIL  $mod.$thm -- NON-STANDARD axiom(s):$bad"
     echo "        (a project Axiom or an Admitted lemma surfaces here -- it is a hole.)"
