@@ -48,7 +48,7 @@
  *)
 
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
-  Globalenvs Ctypes Clight ClightBigstep.
+  Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep.
 From Coq Require Import List.
 Import ListNotations.
 From SM64.Generated Require mario.
@@ -157,4 +157,75 @@ Proof.
   exact (funcall_value_preserves nonflying bm mario_ge
            mario.f_execute_mario_action (Vptr b_o Ptrofs.zero :: nil) m m' t res
            Hreach Hext eq_refl Hok Hv Hsat Hfun).
+Qed.
+
+(* ================================================================== *)
+(* SHARPENING residual (3): the body's TWO real stores, named.          *)
+(*                                                                     *)
+(* f_execute_mario_action's body contains EXACTLY two Sassigns (53 Sset, *)
+(* 22 Scall, the rest control flow). Both store through gMarioState->     *)
+(* marioObj -- the Mario OBJECT block -- transcribed here LITERALLY from   *)
+(* the clightgen'd AST (generated/mario.v, body lines 98 and 588). This    *)
+(* replaces the vague "the whole body is value-ok" residual with these two  *)
+(* precise, real-AST obligations; body_value_ok_from_stores PROVES (by cbn   *)
+(* over the concrete body) that they are the body's only value content --    *)
+(* a machine-checked census, not a claim. *)
+
+(* store 1: `_t'49->header.gfx.node.flags = _t'52 & ~(1<<4)` (tshort). *)
+Definition store1_lval : expr :=
+  Efield
+    (Efield
+      (Efield
+        (Efield
+          (Ederef (Etempvar mario._t'49 (tptr (Tstruct mario._Object noattr)))
+                  (Tstruct mario._Object noattr))
+          mario._header (Tstruct mario._ObjectNode noattr))
+        mario._gfx (Tstruct mario._GraphNodeObject noattr))
+      mario._node (Tstruct mario._GraphNode noattr))
+    mario._flags tshort.
+Definition store1_rval : expr :=
+  Ebinop Oand (Etempvar mario._t'52 tshort)
+    (Eunop Onotint
+      (Ebinop Oshl (Econst_int (Int.repr 1) tint) (Econst_int (Int.repr 4) tint) tint)
+      tint)
+    tint.
+
+(* store 2: `_t'13->rawData.asS32[43] = 0` (tint). *)
+Definition store2_lval : expr :=
+  Ederef
+    (Ebinop Oadd
+      (Efield
+        (Efield
+          (Ederef (Etempvar mario._t'13 (tptr (Tstruct mario._Object noattr)))
+                  (Tstruct mario._Object noattr))
+          mario._rawData (Tunion mario.__764 noattr))
+        mario._asS32 (tarray tint 80))
+      (Econst_int (Int.repr 43) tint) (tptr tint))
+    tint.
+Definition store2_rval : expr := Econst_int (Int.repr 0) tint.
+
+(* The PRECISE residual (3): the two real body stores are each value-ok.
+   Still over-strong as a bare `forall e` (assign_value_ok quantifies forall
+   le m, admitting an adversarial temp aliasing bm) -- its honest content is the
+   provenance fact that _t'49/_t'13 hold the marioObj pointer (block != bm). But
+   it is now NAMED and LOCALIZED to the two actual stores, the discharge target
+   for the value(+)provenance engine merge. *)
+Definition body_stores_value_ok (bm : block) : Prop :=
+  forall e : env,
+    assign_value_ok nonflying bm mario_ge e store1_lval store1_rval /\
+    assign_value_ok nonflying bm mario_ge e store2_lval store2_rval.
+
+(* THE CENSUS, machine-checked: the two named stores ARE the whole body's
+   value-ok content. cbn unfolds stmt_value_ok over the concrete body to a
+   conjunction of Trues (every Sset/Scall/control node) and exactly these two
+   assign_value_ok leaves. So whoever discharges the two stores discharges the
+   body -- there is no third hidden write. *)
+Lemma body_value_ok_from_stores :
+  forall bm, body_stores_value_ok bm ->
+  forall e, stmt_value_ok nonflying bm mario_ge e (fn_body mario.f_execute_mario_action).
+Proof.
+  intros bm Hs e. destruct (Hs e) as [H1 H2].
+  unfold store1_lval, store1_rval, store2_lval, store2_rval in H1, H2.
+  cbn [stmt_value_ok ls_value_ok].
+  repeat split; try exact I; first [ exact H1 | exact H2 ].
 Qed.
