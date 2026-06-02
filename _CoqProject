@@ -45,31 +45,31 @@ proofs/Shadow/ShadowSpec.v
 proofs/NoAImpliesNoFly/NoAImpliesNoFly.v
 
 # --- GOAL 1 / StoreFrameDischarge sub-goal (capstone PointerChaseDischarge) ---
-proofs/NoAImpliesNoFly/StoreFrameDischarge/BodyFrameDecider.v
-proofs/NoAImpliesNoFly/StoreFrameDischarge/FuncallFrame.v
-proofs/NoAImpliesNoFly/StoreFrameDischarge/MarioMemoryWF.v
-proofs/NoAImpliesNoFly/StoreFrameDischarge/PointerChaseCount.v
-proofs/NoAImpliesNoFly/StoreFrameDischarge/PointerChaseDischarge.v
-proofs/NoAImpliesNoFly/StoreFrameDischarge/ResetBodystate.v
-proofs/NoAImpliesNoFly/StoreFrameDischarge/RootedLvalue.v
-proofs/NoAImpliesNoFly/StoreFrameDischarge/SetAnimToFrame.v
-proofs/NoAImpliesNoFly/StoreFrameDischarge/SetMarioActionMoving.v
-proofs/NoAImpliesNoFly/StoreFrameDischarge/SquishMarioModel.v
-proofs/NoAImpliesNoFly/StoreFrameDischarge/StatementFrame.v
-proofs/NoAImpliesNoFly/StoreFrameDischarge/StoreFrameHook.v
-proofs/NoAImpliesNoFly/StoreFrameDischarge/StoreFrameSpine.v
-proofs/NoAImpliesNoFly/StoreFrameDischarge/TempProvenanceInvariant.v
-proofs/NoAImpliesNoFly/StoreFrameDischarge/UpdateMarioInfoForCam.v
+proofs/NoAImpliesNoFly/Unwired/StoreFrameDischarge/BodyFrameDecider.v
+proofs/NoAImpliesNoFly/Unwired/StoreFrameDischarge/FuncallFrame.v
+proofs/NoAImpliesNoFly/Unwired/StoreFrameDischarge/MarioMemoryWF.v
+proofs/NoAImpliesNoFly/Unwired/StoreFrameDischarge/PointerChaseCount.v
+proofs/NoAImpliesNoFly/Unwired/StoreFrameDischarge/PointerChaseDischarge.v
+proofs/NoAImpliesNoFly/Unwired/StoreFrameDischarge/ResetBodystate.v
+proofs/NoAImpliesNoFly/Unwired/StoreFrameDischarge/RootedLvalue.v
+proofs/NoAImpliesNoFly/Unwired/StoreFrameDischarge/SetAnimToFrame.v
+proofs/NoAImpliesNoFly/Unwired/StoreFrameDischarge/SetMarioActionMoving.v
+proofs/NoAImpliesNoFly/Unwired/StoreFrameDischarge/SquishMarioModel.v
+proofs/NoAImpliesNoFly/Unwired/StoreFrameDischarge/StatementFrame.v
+proofs/NoAImpliesNoFly/Unwired/StoreFrameDischarge/StoreFrameHook.v
+proofs/NoAImpliesNoFly/Unwired/StoreFrameDischarge/StoreFrameSpine.v
+proofs/NoAImpliesNoFly/Unwired/StoreFrameDischarge/TempProvenanceInvariant.v
+proofs/NoAImpliesNoFly/Unwired/StoreFrameDischarge/UpdateMarioInfoForCam.v
 
 # --- GOAL 1 / StoreFrameDischarge Unwired (not wired into PointerChaseDischarge) ---
-proofs/NoAImpliesNoFly/StoreFrameDischarge/Unwired/ArrayStore.v
-proofs/NoAImpliesNoFly/StoreFrameDischarge/Unwired/PointerChaseList.v
+proofs/NoAImpliesNoFly/Unwired/StoreFrameDischarge/Unwired/ArrayStore.v
+proofs/NoAImpliesNoFly/Unwired/StoreFrameDischarge/Unwired/PointerChaseList.v
 
 # --- GOAL 1 / alternate no-A=>no-fly statements (unwired) ---
-proofs/NoAImpliesNoFly/AltStatements/FlyingFrame.v
-proofs/NoAImpliesNoFly/AltStatements/FlyingStatement.v
-proofs/NoAImpliesNoFly/AltStatements/NoAFlyingSpine.v
+proofs/NoAImpliesNoFly/Unwired/AltStatements/FlyingFrame.v
+proofs/NoAImpliesNoFly/Unwired/AltStatements/FlyingStatement.v
+proofs/NoAImpliesNoFly/Unwired/AltStatements/NoAFlyingSpine.v
 
 # --- GOAL 1 / action analyses (unwired) ---
-proofs/NoAImpliesNoFly/ActionAnalyses/ActionGraph.v
-proofs/NoAImpliesNoFly/ActionAnalyses/ActionWriters.v
+proofs/NoAImpliesNoFly/Unwired/ActionAnalyses/ActionGraph.v
+proofs/NoAImpliesNoFly/Unwired/ActionAnalyses/ActionWriters.v

@@ -13,4 +13,5 @@ interim/brute-force discharge.
 - `Unwired/` holds pieces proved but not yet reached from `PointerChaseDischarge`
   (`ArrayStore`, `PointerChaseList`).
 
-This is GOAL 1's `Unwired/` ball, themed; see `../../README.md` for the whole tree.
+This sits under GOAL 1's `Unwired/` (the capstone doesn't reach it); see
+`../../../README.md` for the whole tree.

@@ -16,12 +16,13 @@ proofs/
   Toy/                M0 pipeline demo (ToyFrame, ToyReach)
   Shadow/             M1 pipeline demo (ShadowFrame, ShadowSpec)
   NoAImpliesNoFly/        GOAL 1
-    NoAImpliesNoFly.v       the capstone theorem
-    StoreFrameDischarge/    sub-goal: every reached fn preserves the non-flying action
-      …15 engine + per-handler files (sub-capstone PointerChaseDischarge)…
-      Unwired/              not wired into PointerChaseDischarge (ArrayStore, PointerChaseList)
-    AltStatements/          parallel/earlier no-A⇒no-fly formulations (unwired)
-    ActionAnalyses/         syntactic action analyses, not yet consumed (unwired)
+    NoAImpliesNoFly.v       the capstone theorem (its spine is the shared dirs above)
+    Unwired/                proved but NOT reached from the capstone:
+      StoreFrameDischarge/    sub-goal: every reached fn preserves the non-flying action
+        …15 engine + per-handler files (sub-capstone PointerChaseDischarge)…
+        Unwired/              not wired into PointerChaseDischarge (ArrayStore, PointerChaseList)
+      AltStatements/          parallel/earlier no-A⇒no-fly formulations
+      ActionAnalyses/         syntactic action analyses, not yet consumed
   WMotRRequiresA/         GOAL 2 (not started)
     README.md               the goal + the argument chain it must formalize
     Unwired/                staging for GOAL 2 (empty)
