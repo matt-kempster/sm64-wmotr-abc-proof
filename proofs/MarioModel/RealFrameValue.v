@@ -763,3 +763,85 @@ Proof.
   match goal with Hev : eval_expr _ _ _ _ _ (Vptr b o) |- _ =>
     eapply eval_marioObj_off_bm; [ exact Hstid | exact Hwf | exact Hev ] end.
 Qed.
+
+(* ================================================================== *)
+(* THE AUGMENTED ENGINE (value + temp-provenance), for body_preserves. *)
+(*                                                                     *)
+(* The value engine alone cannot discharge the body (its two stores go  *)
+(* through off-bm temps, which assign_value_ok's `forall le` cannot see).*)
+(* This engine threads, alongside action_sat, a memory invariant        *)
+(* (marioObj_wf, gMarioState_wf) and a temp-provenance invariant, and    *)
+(* dispatches the two stores to the geometry lemmas. Built bottom-up;    *)
+(* the Sassign case (both stores) is below.                             *)
+(* ================================================================== *)
+
+(* a successful loadv witnesses a valid block. *)
+Lemma loadv_valid_block : forall chunk m b o v,
+  Mem.loadv chunk m (Vptr b o) = Some v -> Mem.valid_block m b.
+Proof.
+  intros chunk m b o v H. unfold Mem.loadv in H. apply Mem.load_valid_access in H.
+  destruct H as [Hrp _]. eapply Mem.perm_valid_block.
+  apply (Hrp (Ptrofs.unsigned o)). generalize (size_chunk_pos chunk); lia.
+Qed.
+
+(* a store to block loc leaves a loadv at any OTHER block unchanged. *)
+Lemma assign_loc_off_loadv :
+  forall ce ty m loc ofs bf v m' bp op chunk vv,
+    assign_loc ce ty m loc ofs bf v m' ->
+    bp <> loc -> Mem.valid_block m bp ->
+    Mem.loadv chunk m (Vptr bp op) = Some vv ->
+    Mem.loadv chunk m' (Vptr bp op) = Some vv.
+Proof.
+  intros ce ty m loc ofs bf v m' bp op chunk vv Has Hne Hval Hld.
+  assert (U : Mem.unchanged_on (fun b _ => b = bp) m m')
+    by (eapply assign_loc_unchanged_on; [ exact Has | intros i _ Heq; congruence ]).
+  unfold Mem.loadv in *.
+  erewrite Mem.load_unchanged_on_1; [ exact Hld | exact U | exact Hval | intros i _; reflexivity ].
+Qed.
+
+Section ProvEngine.
+  Variable bm gb : block.
+  Hypothesis Hgb : Genv.find_symbol mario_ge mario._gMarioState = Some gb.
+
+  (* the carried memory invariant: bm valid, action non-flying, and the two
+     Mario pointers well-formed (marioObj off-bm, gMarioState -> bm). *)
+  Definition meminv (m : mem) : Prop :=
+    Mem.valid_block m bm /\ action_sat nonflying m bm /\
+    marioObj_wf m bm /\ gMarioState_wf m bm.
+
+  (* temp-provenance: a temp holds either nothing-relevant or an off-{bm,gb} ptr
+     (the marioObj chase temps), resp. exactly Vptr bm 0 (the gMarioState temps). *)
+  Definition toff (le : temp_env) (t : ident) : Prop :=
+    forall b o, le ! t = Some (Vptr b o) -> b <> bm /\ b <> gb.
+  Definition tat (le : temp_env) (t : ident) : Prop :=
+    forall b o, le ! t = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero.
+
+  (* THE Sassign CASE: a body store (store1 or store2) preserves meminv. Its
+     location is its base temp's block (geometry), which is off {bm,gb} (toff),
+     so the action cell, the marioObj field, and the gMarioState pointer are all
+     left unchanged; action_sat survives via the avoid disjunct. *)
+  Lemma store_preserves_meminv :
+    forall a1 a2 (tid : ident)
+      (Hgeom : forall e le m loc ofs bf,
+         eval_lvalue mario_ge e le m a1 loc ofs bf -> exists d, le ! tid = Some (Vptr loc d)),
+    forall e le m t le' m' out,
+      meminv m -> toff le tid ->
+      exec_stmt function_entry2 mario_ge e le m (Sassign a1 a2) t le' m' out ->
+      meminv m'.
+  Proof.
+    intros a1 a2 tid Hgeom e le m t le' m' out (Hv & Hsat & Hmwf & Hgwf) Hoff Hexec. inv Hexec.
+    match goal with H : eval_lvalue _ _ _ _ a1 _ _ _ |- _ => rename H into Hlv end.
+    match goal with H : assign_loc _ _ _ _ _ _ _ _ |- _ => rename H into Has end.
+    apply Hgeom in Hlv as (d & Htmp). destruct (Hoff _ _ Htmp) as [Hnbm Hngb].
+    split; [ eapply assign_loc_valid_block; [ exact Has | exact Hv ] | ].
+    split; [ eapply assign_loc_action_sat_avoid; [ exact Has | exact Hv | intros i _ [Hb _]; congruence | exact Hsat ] | ].
+    split.
+    - destruct Hmwf as (off & bobj & ofs0 & Hfo & Hldv & Hbobj).
+      exists off, bobj, ofs0. split; [ exact Hfo | ]. split; [ | exact Hbobj ].
+      eapply assign_loc_off_loadv; [ exact Has | exact (not_eq_sym Hnbm) | exact Hv | exact Hldv ].
+    - destruct Hgwf as (gb' & Hsym & Hldv). assert (gb' = gb) by congruence. subst gb'.
+      exists gb. split; [ exact Hsym | ].
+      eapply assign_loc_off_loadv; [ exact Has | exact (not_eq_sym Hngb) | eapply loadv_valid_block; exact Hldv | exact Hldv ].
+  Qed.
+
+End ProvEngine.
