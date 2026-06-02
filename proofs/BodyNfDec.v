@@ -121,8 +121,17 @@ Fixpoint body_nf_ok_dec (PT : ident -> bool) (FS : list ident) (s : statement) :
   | Sifthenelse _ s1 s2 => body_nf_ok_dec PT FS s1 && body_nf_ok_dec PT FS s2
   | Sloop s1 s2 => body_nf_ok_dec PT FS s1 && body_nf_ok_dec PT FS s2
   | Slabel _ s1 => body_nf_ok_dec PT FS s1
-  | Sswitch _ _ => false
+  | Sswitch _ ls => ls_dec PT FS ls
+  end
+with ls_dec (PT : ident -> bool) (FS : list ident) (ls : labeled_statements) : bool :=
+  match ls with
+  | LSnil => true
+  | LScons _ s rest => body_nf_ok_dec PT FS s && ls_dec PT FS rest
   end.
+
+Scheme statement_ind2 := Induction for statement Sort Prop
+  with ls_ind2 := Induction for labeled_statements Sort Prop.
+Combined Scheme stmt_ls_ind from statement_ind2, ls_ind2.
 
 Lemma is_chase_store_sound :
   forall PT a1, is_chase_store PT a1 = true ->
@@ -233,28 +242,61 @@ Proof.
       apply orb_prop in Hforall. destruct Hforall as [Hd|Hd]; apply Z.leb_le in Hd; lia.
 Qed.
 
-(* SOUNDNESS: the decidable check implies the semantic frame obligation. *)
-Lemma body_nf_ok_dec_sound :
-  forall s PT FS bm en, body_nf_ok_dec PT FS s = true -> body_nf_ok PT FS bm en s.
+(* SOUNDNESS (mutual over statement / labeled_statements): the decidable check
+   implies the semantic frame obligation. *)
+Lemma dec_sound_mut :
+  (forall s PT FS bm en, body_nf_ok_dec PT FS s = true -> body_nf_ok PT FS bm en s)
+  /\ (forall sl PT FS bm en, ls_dec PT FS sl = true -> ls_body_nf_ok PT FS bm en sl).
 Proof.
-  induction s; intros PT FS bm en H; cbn [body_nf_ok_dec] in H; cbn [body_nf_ok];
-    try exact I; try discriminate H.
-  - (* Sassign *) apply orb_prop in H. destruct H as [Hcs | Hsd].
+  apply stmt_ls_ind.
+  - (* Sskip *) intros; exact I.
+  - (* Sassign a1 a2 *) intros a1 a2 PT FS bm en H.
+    cbn [body_nf_ok_dec] in H; cbn [body_nf_ok].
+    apply orb_prop in H. destruct H as [Hcs | Hsd].
     + left. apply is_chase_store_sound. exact Hcs.
     + right. apply is_safe_direct_sound. exact Hsd.
-  - (* Sset *)
+  - (* Sset id a *) intros id a PT FS bm en H.
+    cbn [body_nf_ok_dec] in H; cbn [body_nf_ok].
     apply andb_prop in H. destruct H as [Hid Hrest]. split.
     + intro He. rewrite He, Pos.eqb_refl in Hid. discriminate Hid.
     + intro Hpt. apply orb_prop in Hrest. destruct Hrest as [Hn | Hcl].
       * rewrite Hpt in Hn. discriminate Hn.
       * apply is_safe_set_sound. exact Hcl.
-  - (* Scall *) destruct o as [id|]; [ | exact I ].
+  - (* Scall optid a args *) intros optid a args PT FS bm en H.
+    cbn [body_nf_ok_dec] in H; cbn [body_nf_ok].
+    destruct optid as [id|]; [ | exact I ].
     intro He. rewrite He, Pos.eqb_refl in H. discriminate H.
-  - (* Ssequence *) apply andb_prop in H. destruct H as [H1 H2].
-    split; [ apply IHs1; exact H1 | apply IHs2; exact H2 ].
-  - (* Sifthenelse *) apply andb_prop in H. destruct H as [H1 H2].
-    split; [ apply IHs1; exact H1 | apply IHs2; exact H2 ].
-  - (* Sloop *) apply andb_prop in H. destruct H as [H1 H2].
-    split; [ apply IHs1; exact H1 | apply IHs2; exact H2 ].
-  - (* Slabel *) apply IHs; exact H.
+  - (* Sbuiltin *) intros optid ef tyargs args PT FS bm en H.
+    cbn [body_nf_ok_dec] in H. discriminate H.
+  - (* Ssequence s1 s2 *) intros s1 IH1 s2 IH2 PT FS bm en H.
+    cbn [body_nf_ok_dec] in H; cbn [body_nf_ok].
+    apply andb_prop in H. destruct H as [H1 H2].
+    split; [ apply IH1; exact H1 | apply IH2; exact H2 ].
+  - (* Sifthenelse a s1 s2 *) intros a s1 IH1 s2 IH2 PT FS bm en H.
+    cbn [body_nf_ok_dec] in H; cbn [body_nf_ok].
+    apply andb_prop in H. destruct H as [H1 H2].
+    split; [ apply IH1; exact H1 | apply IH2; exact H2 ].
+  - (* Sloop s1 s2 *) intros s1 IH1 s2 IH2 PT FS bm en H.
+    cbn [body_nf_ok_dec] in H; cbn [body_nf_ok].
+    apply andb_prop in H. destruct H as [H1 H2].
+    split; [ apply IH1; exact H1 | apply IH2; exact H2 ].
+  - (* Sbreak *) intros; exact I.
+  - (* Scontinue *) intros; exact I.
+  - (* Sreturn o *) intros; exact I.
+  - (* Sswitch a sl *) intros a sl IHsl PT FS bm en H.
+    cbn [body_nf_ok_dec] in H; cbn [body_nf_ok].
+    apply IHsl. exact H.
+  - (* Slabel lbl s *) intros lbl s IH PT FS bm en H.
+    cbn [body_nf_ok_dec] in H; cbn [body_nf_ok].
+    apply IH. exact H.
+  - (* Sgoto lbl *) intros; exact I.
+  - (* LSnil *) intros; exact I.
+  - (* LScons c s sl *) intros c s IHs sl IHsl PT FS bm en H.
+    cbn [ls_dec] in H; cbn [ls_body_nf_ok].
+    apply andb_prop in H. destruct H as [H1 H2].
+    split; [ apply IHs; exact H1 | apply IHsl; exact H2 ].
 Qed.
+
+Lemma body_nf_ok_dec_sound :
+  forall s PT FS bm en, body_nf_ok_dec PT FS s = true -> body_nf_ok PT FS bm en s.
+Proof. apply (proj1 dec_sound_mut). Qed.

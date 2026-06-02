@@ -20,7 +20,7 @@ Import Clightdefs.ClightNotations.
 Local Open Scope clight_scope.
 From SM64.Generated Require mario.
 From SM64.Proofs Require Import Flying ActionFrame ActionValueFrame MarioMemWF
-  ResetBodystate RootedLvalue ValueFrameINV ValueFrameStmt.
+  ResetBodystate RootedLvalue ValueFrameINV ValueFrameStmt BodyNfDec.
 
 (* The one tracked store-root temp: t'7 = m->marioObj (the rawData[34] store
    chases through it). forwardVel is written DIRECTLY into m, so it is handled by
@@ -49,34 +49,10 @@ Proof.
     - unfold mem_wf. intros fid Hin. cbn [In] in Hin.
       destruct Hin as [Heq | []]. subst fid. exact Hwf.
     - exact Hm. }
+  (* body_nf_ok via the DECIDABLE checker -- a switch, calls, a direct forwardVel
+     store and a rooted rawData store, all decided structurally. *)
   assert (Hok : body_nf_ok PT_mov FS_mov bm e (fn_body mario.f_set_mario_action_moving)).
-  { unfold FS_mov, mario.f_set_mario_action_moving, fn_body.
-    cbn [body_nf_ok ls_body_nf_ok].
-    repeat apply conj.
-    (* True leaves (Sreturn / Sbreak) *)
-    all: try solve [ exact I ].
-    (* id <> _m, OR an untracked temp's vacuous Sset/Scall obligation *)
-    all: try solve [ intro Hx; vm_compute in Hx; discriminate Hx ].
-    (* tracked chase-load  t'7 = m->marioObj *)
-    all: try solve [ intros _; apply set_off_bm_ok_chase_load; cbn [In]; left; reflexivity ].
-    (* rooted array store through t'7 *)
-    all: try solve [ left; exists mario._t'7;
-                     split; [ apply Pos.eqb_neq; reflexivity
-                            | split; reflexivity ] ].
-    (* direct store m->forwardVel: avoid the watch set *)
-    all: right; eapply assign_avoids_m_field;
-      [ vm_compute; reflexivity
-      | vm_compute; split; intro Hc; discriminate Hc
-      | intros i Hi;
-        assert (Hsz : sizeof mario_ge tfloat = 4) by reflexivity;
-        rewrite Hsz in Hi;
-        intro Hw; unfold watch in Hw; destruct Hw as [Hac | Hch];
-        [ destruct Hac as [_ Hr]; change (size_chunk Mint32) with 4 in Hr; lia
-        | destruct Hch as (_ & fid & off & Hin & Hfo & Hrange);
-          cbn [In] in Hin; destruct Hin as [Hfid | Hempty]; [ | exact Hempty ];
-          subst fid;
-          assert (Hoff : off = 136) by (clear - Hfo; vm_compute in Hfo; congruence);
-          rewrite Hoff in Hrange; change (size_chunk Mptr) with 4 in Hrange; lia ] ]. }
+  { apply body_nf_ok_dec_sound. vm_compute. reflexivity. }
   pose proof (exec_body_nf PT_mov FS_mov nonflying bm Hreach
                 e le m _ t le' m' out Hexec Hfr Hok) as Hfr'.
   unfold fr in Hfr'. tauto.
