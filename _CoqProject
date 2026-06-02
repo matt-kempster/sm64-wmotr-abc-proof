@@ -49,6 +49,7 @@ proofs/ChaseList.v
 proofs/RootedLvalue.v
 proofs/ValueFrameINV.v
 proofs/ValueFrameStmt.v
+proofs/FuncallFrame.v
 proofs/SetAnimToFrame.v
 proofs/SetMarioActionMoving.v
 proofs/UpdateMarioInfoForCam.v

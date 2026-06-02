@@ -16,7 +16,7 @@ Import Clightdefs.ClightNotations.
 Local Open Scope clight_scope.
 From SM64.Generated Require mario.
 From SM64.Proofs Require Import Flying ActionFrame ActionValueFrame MarioMemWF
-  ResetBodystate RootedLvalue ValueFrameINV ValueFrameStmt.
+  ResetBodystate RootedLvalue ValueFrameINV ValueFrameStmt FuncallFrame.
 
 (* Tracked store-root temps: t'6 = m->marioBodyState, t'4 = m->statusForCamera. *)
 Definition PT_cam : ident -> bool :=
@@ -63,4 +63,51 @@ Proof.
   pose proof (exec_body_nf PT_cam FS_cam nonflying bm Hreach
                 e le m _ t le' m' out Hexec Hfr Hok) as Hfr'.
   unfold fr in Hfr'. tauto.
+Qed.
+
+(* The body_nf_ok obligation as a standalone (bm/e-generic) lemma, so the generic
+   funcall bridge can consume it. *)
+Lemma umifc_body_nf_ok :
+  forall bm e, body_nf_ok PT_cam FS_cam bm e (fn_body mario.f_update_mario_info_for_cam).
+Proof.
+  intros bm e. unfold FS_cam, mario.f_update_mario_info_for_cam, fn_body.
+  cbn [body_nf_ok ls_body_nf_ok].
+  repeat apply conj.
+  all: try solve [ exact I ].
+  all: try solve [ intro Hx; vm_compute in Hx; discriminate Hx ].
+  all: try solve [ intros _; apply set_off_bm_ok_chase_load;
+                   cbn [In]; solve [ repeat first [ left; reflexivity | right ] ] ].
+  all: try solve [ left; exists mario._t'6;
+                   split; [ apply Pos.eqb_neq; reflexivity | split; reflexivity ] ].
+  all: try solve [ left; exists mario._t'4;
+                   split; [ apply Pos.eqb_neq; reflexivity | split; reflexivity ] ].
+Qed.
+
+(* FUNCALL-LEVEL preservation via the GENERIC bridge funcall_body_nf_preserves --
+   NO bespoke eval_funcall inversion, unlike BucketAHook. This is the pattern every
+   chase fn now follows: body_nf_ok (the dispatcher) + reach + field wf, fed to one
+   generic lemma. Demonstrates the bridge on a call-bearing, multi-field function. *)
+Theorem update_mario_info_for_cam_funcall_preserves :
+  forall bm rest m m' t res,
+    reach_frame_preserves FS_cam nonflying bm mario_ge ->
+    Mem.valid_block m bm ->
+    field_loads_off_bm m bm mario._marioBodyState ->
+    field_loads_off_bm m bm mario._statusForCamera ->
+    action_sat nonflying m bm ->
+    eval_funcall function_entry2 mario_ge m (Internal mario.f_update_mario_info_for_cam)
+      (Vptr bm Ptrofs.zero :: rest) t m' res ->
+    action_sat nonflying m' bm.
+Proof.
+  intros bm rest m m' t res Hreach Hv Hwf1 Hwf2 Hsat Hfun.
+  eapply (funcall_body_nf_preserves PT_cam FS_cam nonflying bm
+            mario.f_update_mario_info_for_cam rest m m' t res Hreach).
+  - reflexivity.
+  - exists (tptr (Tstruct mario._MarioState noattr)), (@nil (ident * type)).
+    split; [ reflexivity | split; [ simpl; tauto | intros t0 _; simpl; tauto ] ].
+  - intro e. apply umifc_body_nf_ok.
+  - exact Hv.
+  - exact Hsat.
+  - unfold mem_wf, FS_cam. intros fid Hin. cbn [In] in Hin.
+    destruct Hin as [<- | [<- | []]]; [ exact Hwf1 | exact Hwf2 ].
+  - exact Hfun.
 Qed.
