@@ -85,6 +85,18 @@ important one is, <i>as currently written, false for the real game</i>. So the t
 load-bearing beam not yet poured. Details below, with nothing rounded up.
 </div>
 
+<div class="lead" style="border-left-color:var(--green)">
+<b>UPDATE — landed (2026-06-02).</b> Two corrections since this was written. (1) The false crux residual
+(<code>reach_value_preserves</code>) has been <b>removed from the capstone</b> — decomposed into a true
+writer-isolation residual + a no-A-conditioned <code>set_mario_action</code> residual + input grounding + an
+abstract <code>NoA</code> predicate (see <a href="reach-value-preserves-explained.html">the crux explainer</a>).
+The theorem no longer reads "IF (false) THEN…". (2) <code>step</code> is the real
+<code>execute_mario_action</code>, but that is a real <i>fragment</i> of a frame, not the whole
+<code>thread5_game_loop</code> iteration — the frame→fragment reduction is itself an (honest, small) assumption,
+justified because Mario's <code>action</code> field is only written inside that subtree or
+<code>level_update.c</code>'s spawn switch.
+</div>
+
 <h2>1. The theorem, line by line (comments stripped)</h2>
 <p>This is <code>proofs/NoAImpliesNoFly/NoAImpliesNoFly.v:193–216</code>, exactly as it compiles,
 with the source comments removed and a plain-English gloss beside each line.</p>

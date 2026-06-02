@@ -84,6 +84,19 @@ currently rests on a false premise. The fix is not to delete it — it's to make
 <code>no-A</code> hypothesis it currently ignores. That fix <i>is</i> the unsolved core of the proof.
 </div>
 
+<div class="lead" style="border-left-color:var(--green)">
+<b>UPDATE — landed (2026-06-02).</b> The false residual has been <b>removed from the capstone.</b> The single
+<code>reach_value_preserves</code> was decomposed (proved gluing lemma <code>reach_value_preserves_noA_split</code>)
+into: <b>(W)</b> <code>reach_nonwriter_unchanged</code> — every reached funcall that is <i>not</i>
+<code>set_mario_action</code> leaves the action cell untouched (TRUE, dischargeable); <b>(writer)</b>
+<code>reach_writer_preserves_noA … NoA</code> — the <code>set_mario_action</code> case, conditioned on a no-A
+memory predicate <code>NoA</code> (TRUE at the real NoA — the isolated crux); plus an <b>input-grounding</b>
+residual tying <code>a_pressed = false</code> to <code>NoA</code>, and the abstract <code>NoA</code> itself
+(the next thing to ground, in the controller bytes). The capstone is axiom-clean and <b>no longer rests on a
+false premise.</b> The walk-through below is <i>why the original bare form was false</i> — i.e. why this
+decomposition was needed.
+</div>
+
 <h2>1. The definition, line by line</h2>
 <p>From <code>proofs/MarioModel/ActionValueFrame.v:362–367</code>, verbatim, with a gloss beside each line.
 The capstone uses it at <code>Q := nonflying</code>, <code>ge := mario_ge</code>.</p>
@@ -185,21 +198,30 @@ then jumping again — each jump is an A press.</td></tr>
 jumping out of a running landing. A press.</td></tr>
 <tr><td class="c">mario_actions_airborne.c:1710
   set_mario_action(m, ACT_FLYING, 0)</td>
-<td class="g"><b>Inside <code>act_flying_triple_jump</code>.</b> You can only be in ACT_FLYING_TRIPLE_JUMP if one of
-the two rows above already fired — i.e. you already jumped.</td></tr>
+<td class="g"><b>Inside <code>act_shot_from_cannon</code> — a SECOND entry into the flying set.</b>
+<code>ACT_SHOT_FROM_CANNON</code> is <i>not</i> itself flying, yet it transitions to <code>ACT_FLYING</code> on
+a <i>later, A-free</i> frame (wing cap + falling). Entering the cannon (automatic.c:743) is A-gated, but the
+flying transition is multi-frame — see the taint-closure note below.</td></tr>
 <tr><td class="c">mario_actions_airborne.c:1934
   set_mario_action(m, ACT_FLYING, 1)</td>
-<td class="g"><b>Also inside <code>act_flying_triple_jump</code>.</b> Same gate — already airborne in the flying
-triple jump.</td></tr>
+<td class="g"><b>Inside <code>act_flying_triple_jump</code> — flying-set-INTERNAL.</b> Fires from
+<code>ACT_FLYING_TRIPLE_JUMP</code> (already flying), so it never enters the set from outside; irrelevant to
+preserving "stay out of the set."</td></tr>
 </table>
 
 <div class="lead">
-<b>The shape of the truth (not yet proved).</b> The wing cap is necessary but never sufficient: <i>every</i>
-gameplay route into a flying action funnels through <code>ACT_FLYING_TRIPLE_JUMP</code>, and you only enter a
-jump action by pressing A. With <code>a_pressed = false</code> for the whole run, Mario never jumps → never
-reaches a *_JUMP_LAND → never reaches ACT_FLYING_TRIPLE_JUMP → <code>set_mario_action</code> is never called
-with a flying argument. The one non-jump route (the spawn at <code>level_update.c:339</code>) is the
-separately-excluded hatch. <span class="keyline">Proving this chain is the actual A-Button-Challenge.</span>
+<b>The shape of the truth — an inductive taint-closure, not a per-frame two-site check.</b> The naive
+"non-flying → flying needs A this frame" is <i>false</i>: the cannon (<code>ACT_SHOT_FROM_CANNON</code>) is a
+non-flying state that goes <code>ACT_FLYING</code> on a later A-free frame. The honest invariant is stronger —
+carry <b>action ∉ T</b>, where <b>T</b> is the no-A reachability closure of the flying set (at least
+<code>{ACT_FLYING, ACT_FLYING_TRIPLE_JUMP, ACT_SHOT_FROM_CANNON, …}</code>). The <code>ReachableRun</code>
+induction then carries the multi-frame part for free, and the only per-frame obligation is: <b>every entry
+into T from outside T is A-gated.</b> Verified for all three in-gameplay entries — <code>→ FLYING_TRIPLE_JUMP</code>
+(mario.c:1050, moving.c:149) and <code>→ SHOT_FROM_CANNON</code> (automatic.c:743) are each under
+<code>if (m->input & INPUT_A_PRESSED)</code>; <code>→ FLYING</code> from spawn (level_update.c:339) is the
+excluded hatch. <code>INPUT_A_PRESSED</code> is set in exactly one place (update_mario_button_inputs), gated on
+the controller's A bit. <span class="keyline">Characterizing T (just those three, or more?) and proving its
+boundary is A-gated is the actual A-Button-Challenge.</span>
 </div>
 
 <h2>4. What it has to become</h2>
@@ -209,8 +231,8 @@ reached function.</p>
 <table class="codetable">
 <tr><td class="c"><span class="com">(* case fd = set_mario_action *)</span></td>
 <td class="g">It <i>does</i> write the action cell — but it writes the value of its <b>second argument</b>. Preservation
-needs: that argument is non-flying. Under a no-A frame it always is (the five sites above are unreachable).
-This is "brick 3" + the no-A / action-reach invariant — <span class="pill p-false">the hard, open core</span></td></tr>
+needs: that argument is non-flying. Under the no-A taint invariant (action ∉ T) it always is, because every
+entry into T is A-gated. This is "brick 3" + the no-A taint-closure — <span class="pill p-false">the hard, open core</span></td></tr>
 <tr><td class="c"><span class="com">(* case fd = anything else *)</span></td>
 <td class="g">It never writes the action cell at all, so <code>action_sat</code> survives by an unchanged-on argument
 ("brick 1"). This case is mechanical and within reach.</td></tr>
@@ -233,10 +255,11 @@ rather than the bare <code>forall fd</code> over every function in the program. 
 <td><span class="pill p-false">no — false</span></td>
 <td><code>set_mario_action(·,ACT_FLYING,·)</code> is a reachable <code>eval_funcall</code> that falsifies the
 <code>forall fd</code>. The statement ignores the no-A hypothesis.</td></tr>
-<tr><td class="mono">the "non-flying" half of the gameplay routes is real &amp; enumerated</td>
+<tr><td class="mono">the flying-set boundary is real &amp; enumerated</td>
 <td><span class="pill p-real">yes</span></td>
-<td>The five flying-action sites are identified in the actual source; all five sit behind an A-driven jump or
-the excluded spawn. Verified by grep, not assumed.</td></tr>
+<td>Every entry into the flying set (and its A-gated pre-state <code>SHOT_FROM_CANNON</code>) is identified in
+the actual source and shown to be under <code>INPUT_A_PRESSED</code>, except the excluded spawn. Verified by
+grep, not assumed.</td></tr>
 <tr><td class="mono">restated to consume no-A</td>
 <td><span class="pill p-open">not done</span></td>
 <td>Needs the conditioned form (funcalls reachable in a no-A frame) + the action-reach invariant.</td></tr>

@@ -245,37 +245,46 @@ Qed.
    block, not bm's marioObj field). No adversarial `forall le`: le and m are
    whatever the real run produces. Discharging it is the augmented-engine work;
    the geometry payoff lemmas below are its store-case bricks. *)
-Definition body_preserves_real (bm : block) : Prop :=
-  reach_value_preserves nonflying bm mario_ge ->
+(* NoA-THREADED (2026-06-02): consumes the no-A-conditioned reach property
+   (reach_value_preserves_noA) and carries the no-A memory predicate NoA forward
+   alongside the other invariants. The bare `reach_value_preserves` it used to
+   take was FALSE (set_mario_action with ACT_FLYING is a reached funcall); the
+   conditioned form is what the per-frame proof actually supplies. Carrying NoA
+   forward is honest content (the controller bytes are not rewritten mid-frame),
+   and discharging it is part of the augmented-engine work, same as before. *)
+Definition body_preserves_real (bm : block) (NoA : mem -> Prop) : Prop :=
+  reach_value_preserves_noA nonflying bm mario_ge NoA ->
   reach_ext_preserves (action_cell bm) mario_ge ->
   forall e le m t le' m' out,
+    NoA m ->
     Mem.valid_block m bm -> action_sat nonflying m bm -> marioObj_wf m bm ->
     exec_stmt function_entry2 mario_ge e le m
       (fn_body mario.f_execute_mario_action) t le' m' out ->
-    Mem.valid_block m' bm /\ action_sat nonflying m' bm /\ marioObj_wf m' bm.
+    NoA m' /\ Mem.valid_block m' bm /\ action_sat nonflying m' bm /\ marioObj_wf m' bm.
 
 (* THE REDUCTION (concrete): a real frame preserves (valid /\ non-flying /\
    marioObj-wf), given the two call/external residuals and the concrete body
    residual. Lifted from the body execution by the trivial entry inversion. *)
 Theorem execute_mario_action_preserves_real :
-  forall (bm : block) m m',
-    reach_value_preserves nonflying bm mario_ge ->
+  forall (bm : block) (NoA : mem -> Prop) m m',
+    reach_value_preserves_noA nonflying bm mario_ge NoA ->
     reach_ext_preserves (action_cell bm) mario_ge ->
-    body_preserves_real bm ->
+    body_preserves_real bm NoA ->
+    NoA m ->
     Mem.valid_block m bm ->
     action_sat nonflying m bm ->
     marioObj_wf m bm ->
     execute_mario_action_step m m' ->
-    Mem.valid_block m' bm /\ action_sat nonflying m' bm /\ marioObj_wf m' bm.
+    NoA m' /\ Mem.valid_block m' bm /\ action_sat nonflying m' bm /\ marioObj_wf m' bm.
 Proof.
-  intros bm m m' Hreach Hext Hbody Hv Hsat Hwf (b_o & t & res & Hfun).
+  intros bm NoA m m' Hreach Hext Hbody HnoA Hv Hsat Hwf (b_o & t & res & Hfun).
   apply (funcall_from_body_preserves
-           (fun mm => Mem.valid_block mm bm /\ action_sat nonflying mm bm /\ marioObj_wf mm bm)
+           (fun mm => NoA mm /\ Mem.valid_block mm bm /\ action_sat nonflying mm bm /\ marioObj_wf mm bm)
            mario_ge mario.f_execute_mario_action (Vptr b_o Ptrofs.zero :: nil) m m' t res
            eq_refl).
-  - intros e le mm tt le' mm' out (Hv1 & Hs1 & Hw1) Hexec.
-    exact (Hbody Hreach Hext e le mm tt le' mm' out Hv1 Hs1 Hw1 Hexec).
-  - exact (conj Hv (conj Hsat Hwf)).
+  - intros e le mm tt le' mm' out (Hn1 & Hv1 & Hs1 & Hw1) Hexec.
+    exact (Hbody Hreach Hext e le mm tt le' mm' out Hn1 Hv1 Hs1 Hw1 Hexec).
+  - exact (conj HnoA (conj Hv (conj Hsat Hwf))).
   - exact Hfun.
 Qed.
 
