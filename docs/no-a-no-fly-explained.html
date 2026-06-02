@@ -6,10 +6,10 @@
 <title>no-A ⇒ no-fly — what the theorem actually says, and what we've actually proved</title>
 <style>
   :root{
-    --bg:#0d1117; --panel:#161b22; --panel2:#1c2430; --ink:#e6edf3; --dim:#9aa7b4;
-    --line:#2b3440; --kw:#ff7b72; --id:#79c0ff; --ty:#d2a8ff; --lit:#a5d6ff;
-    --com:#7d8893; --green:#2ea043; --greenbg:#10361c; --amber:#bb8009; --amberbg:#3a2c05;
-    --red:#da3633; --redbg:#3a1413; --blue:#1f6feb;
+    --bg:#ffffff; --panel:#f6f8fa; --panel2:#eef1f4; --ink:#1f2328; --dim:#59636e;
+    --line:#d8dee4; --kw:#cf222e; --id:#0550ae; --ty:#8250df; --lit:#0a3069;
+    --com:#6e7781; --green:#1a7f37; --greenbg:#dafbe1; --amber:#9a6700; --amberbg:#fff8c5;
+    --red:#cf222e; --redbg:#ffebe9; --blue:#0969da;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);
@@ -37,16 +37,16 @@
   /* status pills */
   .pill{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
     padding:2px 8px;border-radius:999px;vertical-align:middle;}
-  .p-real{background:var(--greenbg);color:#3fb950;border:1px solid #1d572b;}
-  .p-open{background:var(--amberbg);color:#e3a008;border:1px solid #5c4708;}
-  .p-false{background:var(--redbg);color:#f85149;border:1px solid #6e2422;}
+  .p-real{background:var(--greenbg);color:#0f5323;border:1px solid #aceebb;}
+  .p-open{background:var(--amberbg);color:#7d5300;border:1px solid #eac54f;}
+  .p-false{background:var(--redbg);color:#a40e26;border:1px solid #ff9492;}
   /* the dependency diagram */
   .tree{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:24px;margin:22px 0;}
   .node{border-radius:9px;padding:12px 16px;margin:0 auto;max-width:680px;position:relative;}
   .node .nm{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;font-weight:700;}
   .node .ds{font-size:13.5px;margin-top:3px;line-height:1.45;}
-  .n-real{background:var(--greenbg);border:1px solid #1d572b;}
-  .n-open{background:var(--amberbg);border:1px solid #5c4708;}
+  .n-real{background:var(--greenbg);border:1px solid #aceebb;}
+  .n-open{background:var(--amberbg);border:1px solid #eac54f;}
   .n-false{background:var(--redbg);border:1.5px solid var(--red);}
   .connector{width:2px;height:20px;background:var(--line);margin:0 auto;}
   .rests{text-align:center;color:var(--dim);font-size:13px;margin:8px 0 4px;letter-spacing:.05em;text-transform:uppercase;}
@@ -57,9 +57,9 @@
   .sw{width:13px;height:13px;border-radius:3px;display:inline-block;}
   /* verdict callouts */
   .verdict{border-radius:8px;padding:16px 18px;margin:16px 0;}
-  .v-yes{background:var(--greenbg);border:1px solid #1d572b;}
-  .v-no{background:var(--redbg);border:1px solid #6e2422;}
-  .v-mid{background:var(--amberbg);border:1px solid #5c4708;}
+  .v-yes{background:var(--greenbg);border:1px solid #aceebb;}
+  .v-no{background:var(--redbg);border:1px solid #ff9492;}
+  .v-mid{background:var(--amberbg);border:1px solid #eac54f;}
   .verdict b{color:var(--ink);}
   table.score{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;}
   table.score th,table.score td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
