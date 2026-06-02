@@ -61,14 +61,14 @@ pipeline/        scripts: source -> preprocessed C -> clightgen -> generated/*.v
 experiments/     self-contained inputs not from upstream
   toy/           Milestone-0 toy C file
 generated/       GENERATED Clight ASTs (.v). Committed, never hand-edited.
-proofs/          Rocq analyses + theorems over generated/, in 6 layered subdirs
+proofs/          Rocq analyses + theorems over generated/
                  (see proofs/README.md for the layering + dependency graph):
-  Generic/         reusable, subject-independent analyses + semantic frame lemmas
-  Milestones/      toy & shadow pipeline demos (not load-bearing for the theorem)
-  MarioModel/      Mario-specific: memory layout, action vocabulary, value engine
-  BodyProofs/      per-handler body-preservation proofs + the frame-check engine
-  Theorems/        assembled top-level statements (the spine)
-  Spikes/          de-risking experiments
+  Generic/         spine: reusable, subject-independent analyses + frame lemmas
+  MarioModel/      spine: Mario action vocabulary + value-aware frame engine
+  Theorems/        spine: the capstone (WMotRStatement)
+  Unwired/         proved but NOT yet wired into the capstone (still compiled):
+                   discharge engine + 111-handler scoreboard, exploratory
+                   analyses, earlier statements, M0/M1 demos, spikes
 _CoqProject      Rocq logical-path map
 Makefile         top-level: regenerate + build proofs
 ```

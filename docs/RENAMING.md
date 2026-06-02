@@ -18,6 +18,17 @@ still rests on exactly the 4 standard CompCert axioms.
 
 ---
 
+## 0. Later split: spine vs `Unwired/` (also 2026-06-01)
+
+After the reorg below, the tree was split by *load-bearing-ness*: the 9 files in
+the transitive closure of the capstone `wmotr_noA_no_spawn_never_flying` stay in
+the layered spine dirs (`Generic/`, `MarioModel/`, `Theorems/`); the other 28
+moved to a flat **`proofs/Unwired/`** (proved but not yet wired into the capstone;
+still compiled). The old `Milestones/`, `BodyProofs/`, and `Spikes/` dirs were
+emptied and removed — those files now live in `Unwired/`. So a file's *layer* is
+no longer fixed by the tables below; find any file with `find proofs -name '<X>.v'`.
+See `proofs/README.md` for the spine/Unwired breakdown.
+
 ## 1. Directory structure (new)
 
 ```

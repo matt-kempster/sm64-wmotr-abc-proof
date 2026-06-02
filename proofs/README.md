@@ -1,13 +1,22 @@
 # `proofs/` — structure & dependency graph
 
 Hand-written Rocq: generic analyses over the generated Clight ASTs, plus the
-theorems. Files are grouped into **6 layered subdirectories** that mirror the
-`Require` dependency DAG — the directory order below *is* the build/topological
-order (a file only ever depends on files in its own layer or an earlier one).
+theorems. The tree is split into two parts:
+
+- **the active spine** — the 9 files transitively required by the capstone
+  theorem `wmotr_noA_no_spawn_never_flying` (in `Theorems/WMotRStatement.v`).
+  These live in layered subdirectories (`Generic/`, `MarioModel/`, `Theorems/`)
+  whose order is the build/topological order.
+- **`Unwired/`** — everything proved but **not yet wired into the capstone**:
+  the discharge engine + per-handler scoreboard, exploratory analyses, earlier
+  theorem statements, pipeline demos, and spikes. Still listed in `_CoqProject`
+  and compiled by `make`, so nothing bitrots — but it is, by construction, not
+  load-bearing for the current capstone. As pieces get wired in, move them out
+  of `Unwired/` into the appropriate spine layer.
 
 All cross-file imports use `From SM64.Proofs Require Import <Basename>`, which
-resolves by unique basename regardless of subdirectory — so moving a file
-between layers needs no edit to its importers, only to `_CoqProject`.
+resolves by unique basename regardless of subdirectory — so moving a file in or
+out of `Unwired/` needs no edit to its importers, only to `_CoqProject`.
 
 > Renaming history: many files/theorems were renamed to literal names on
 > 2026-06-01. Older `docs/` notes use the previous names — see
@@ -15,142 +24,64 @@ between layers needs no edit to its importers, only to `_CoqProject`.
 
 ---
 
-## Layer 1 — `Generic/` — subject-independent analyses + semantic frame lemmas
+## Active spine (load-bearing for the capstone)
 
-Reusable infrastructure: nothing here mentions Mario. Depends only on CompCert
-(and, for two files, a generated AST used purely as a vehicle).
+The capstone's dependency chain, in build order:
 
-| File | What it does |
-|---|---|
-| `Frame.v` | generic *syntactic* frame analysis: does a function assign to a given global? (`writes_global`) |
-| `AddressTaken.v` | syntactic "address-taken" / escape analysis over the AST |
-| `CallgraphReach.v` | whole-program "formal grep + callgraph" reachability skeleton |
-| `RootedLvalue.v` | a store rooted at temp `p` lands in `p`'s block (general lvalue rooting) |
-| `ReachableRun.v` | temporal scaffolding: reachable runs + the abstract `noA_run ⇒ not flying` harness |
-| `FieldNonInterference.v` | the *semantic* frame lemma: a store to struct field f1 leaves a different field f2 unchanged (over any composite) |
-| `GlobalSeparation.v` | the separation / "havoc" rung: a store to a different global preserves the first (block distinctness) |
+```
+Generic/Frame                 syntactic frame analysis: does f assign to global g? (writes_global)
+Generic/AddressTaken          syntactic address-taken / escape analysis        (<- Frame)
+Generic/CallgraphReach        whole-program callgraph reachability skeleton     (<- Frame, AddressTaken)
+MarioModel/Flying             ACT_FLYING constants, flying setters, writers     (<- CallgraphReach)
+Generic/FieldNonInterference  semantic frame lemma: a store to field f1 leaves field f2 unchanged
+MarioModel/ActionValue        value-level reasoning about the action field      (<- Flying, FieldNonInterference)
+MarioModel/ActionValueFrame   the value-aware frame engine                      (<- ActionValue)
+Generic/ReachableRun          temporal harness: noA_run => not flying
+Theorems/WMotRStatement       THE capstone: no-A, no-spawn => never flying      (<- Flying, ActionValueFrame, ReachableRun)
+```
 
-## Layer 2 — `Milestones/` — pipeline demos (not load-bearing for the theorem)
+`wmotr_noA_no_spawn_never_flying` rests on exactly the 4 standard CompCert
+axioms (verify with `bash pipeline/assumptions.sh
+SM64.Proofs.Theorems.WMotRStatement wmotr_noA_no_spawn_never_flying`).
 
-| File | What it does |
-|---|---|
-| `ToyFrame.v` | M0: the generate → load → compute → check spine on a toy C file |
-| `ToyReach.v` | the semantic kernel of the closed-world / entrypoint argument |
-| `ShadowFrame.v` | M1: the same generic syntactic analysis, on a real SM64 translation unit |
-| `ShadowSpec.v` | a real-world functional-correctness theorem about an actual shadow function |
+## `Unwired/` — proved but not yet wired in (28 files)
 
-## Layer 3 — `MarioModel/` — Mario memory, action vocabulary, value engine
+Grouped by what they are. All compile; none is reachable from the capstone.
 
-| File | What it does |
-|---|---|
-| `MarioMemoryWF.v` | well-formed Mario memory: the static globals occupy distinct blocks |
-| `Flying.v` | R1 "you must press A to fly": `ACT_FLYING` constants, the flying setters, the action writers |
-| `ActionWriters.v` | whole-(game-)program enumeration of `MarioState.action` writers |
-| `ActionGraph.v` | extracts the action *transition graph* from the real handler bodies |
-| `ActionValue.v` | value-level reasoning about the action field (e.g. `set_mario_action` returns its argument) |
-| `ActionValueFrame.v` | the value-aware frame *engine* (`exec_stmt_value_preserves`) |
+**Discharge engine + per-handler "scoreboard"** — the interprocedural store-frame
+machinery and the per-handler body proofs. (Per `docs/`, the 111-handler grind is
+*not* the intended critical path — a single generic store-frame bridge is meant to
+replace it; these are the interim/brute-force discharge.)
+`ResetBodystate`, `SetAnimToFrame`, `SetMarioActionMoving`, `UpdateMarioInfoForCam`,
+`SquishMarioModel`, `ArrayStore`, `BodyFrameDecider`, `FuncallFrame`,
+`TempProvenanceInvariant`, `StatementFrame`, `PointerChaseCount`,
+`PointerChaseList`, `PointerChaseDischarge`, `StoreFrameSpine`, `StoreFrameHook`.
 
-## Layer 4 — `BodyProofs/` — per-handler preservation proofs + the frame engine
+**Earlier / alternate top-level statements** — parallel formulations of the
+"must press A to fly" result, not (yet) the capstone's path:
+`FlyingStatement`, `FlyingFrame`, `NoAFlyingSpine`.
 
-The "scoreboard": each handler body is shown to preserve the non-flying action
-invariant, plus the generic engine that discharges them.
+**Mario-model extras** — analyses proved but not consumed by the capstone:
+`MarioMemoryWF` (block-distinct memory), `ActionWriters` (whole-program action-writer
+enumeration), `ActionGraph` (action transition graph).
 
-| File | What it does |
-|---|---|
-| `ResetBodystate.v` | the first real action-body preservation proof |
-| `SetAnimToFrame.v` | per-handler proof: `set_mario_animation` helper |
-| `SetMarioActionMoving.v` | per-handler proof: `set_mario_action_moving` |
-| `UpdateMarioInfoForCam.v` | per-handler proof: `update_mario_info_for_cam` |
-| `SquishMarioModel.v` | per-handler proof: `squish_mario_model` |
-| `ArrayStore.v` | the array-element store inverter (the last un-cracked lvalue shape) |
-| `BodyFrameDecider.v` | a *decidable* per-body frame check + its soundness |
-| `FuncallFrame.v` | the generic engine → funcall bridge (the `forall f` lemma) |
-| `TempProvenanceInvariant.v` | the capstone temp-provenance engine, built incrementally |
-| `StatementFrame.v` | the statement-level bundle frame (the assembly) |
-| `PointerChaseCount.v` | measures the per-function pointer-chase proof burden |
-| `PointerChaseList.v` | the generated-then-verified named enumeration of chase functions |
-| `PointerChaseDischarge.v` | ties the engine to the named handlers |
+**Generic helpers (unused by capstone)** — `RootedLvalue` (lvalue rooting),
+`GlobalSeparation` (the separation / "havoc" rung).
 
-## Layer 5 — `Theorems/` — assembled top-level statements (the spine)
+**Pipeline demos (M0/M1)** — `ToyFrame`, `ToyReach`, `ShadowFrame`, `ShadowSpec`.
 
-| File | What it does |
-|---|---|
-| `FlyingStatement.v` | the high-level "you must press A to fly" theorem, stated |
-| `FlyingFrame.v` | wires the interprocedural rung into the flying invariant's step obligation |
-| `NoAFlyingSpine.v` | the middle layer of "no A ⇒ no flying" |
-| `StoreFrameSpine.v` | the store-frame side of "no A ⇒ no fly" |
-| `StoreFrameHook.v` | wires the chase engine into the spine's funcall-level target |
-| `WMotRStatement.v` | the capstone: tethers "no A ⇒ no flying" to real terms |
-
-## Layer 6 — `Spikes/` — de-risking experiments
-
-| File | What it does |
-|---|---|
-| `SymbolicLinking.v` | symbolic-linking spike (OOM-free cross-translation-unit calls) |
+**De-risking spike** — `SymbolicLinking` (OOM-free cross-translation-unit calls).
 
 ---
 
-## Dependency graph (proof → proof edges)
+## Recomputing the spine / floating split
 
-```mermaid
-graph TD
-  subgraph Generic
-    Frame; AddressTaken; CallgraphReach; RootedLvalue; ReachableRun; FieldNonInterference; GlobalSeparation
-  end
-  subgraph Milestones
-    ToyFrame; ShadowFrame
-  end
-  subgraph MarioModel
-    Flying; ActionWriters; ActionGraph; ActionValue; ActionValueFrame; MarioMemoryWF
-  end
-  subgraph BodyProofs
-    ResetBodystate; SetAnimToFrame; SetMarioActionMoving; UpdateMarioInfoForCam
-    SquishMarioModel; ArrayStore; BodyFrameDecider; FuncallFrame
-    TempProvenanceInvariant; StatementFrame; PointerChaseCount; PointerChaseList; PointerChaseDischarge
-  end
-  subgraph Theorems
-    FlyingStatement; FlyingFrame; NoAFlyingSpine; StoreFrameSpine; StoreFrameHook; WMotRStatement
-  end
-
-  AddressTaken --> Frame
-  CallgraphReach --> Frame
-  CallgraphReach --> AddressTaken
-  ToyFrame --> Frame
-  ShadowFrame --> Frame
-  Flying --> CallgraphReach
-  ActionWriters --> CallgraphReach
-  ActionWriters --> Flying
-  ActionGraph --> CallgraphReach
-  ActionGraph --> Flying
-  ActionValue --> Flying
-  ActionValue --> FieldNonInterference
-  ActionValueFrame --> ActionValue
-  ResetBodystate --> ActionValueFrame
-  ResetBodystate --> MarioMemoryWF
-  StatementFrame --> TempProvenanceInvariant
-  StatementFrame --> RootedLvalue
-  TempProvenanceInvariant --> ResetBodystate
-  PointerChaseList --> PointerChaseCount
-  PointerChaseDischarge --> StatementFrame
-  PointerChaseDischarge --> StoreFrameSpine
-  PointerChaseDischarge --> StoreFrameHook
-  PointerChaseDischarge --> SetAnimToFrame
-  FlyingStatement --> ReachableRun
-  FlyingStatement --> Flying
-  FlyingFrame --> FlyingStatement
-  NoAFlyingSpine --> ReachableRun
-  StoreFrameSpine --> ActionValueFrame
-  StoreFrameHook --> StoreFrameSpine
-  WMotRStatement --> ReachableRun
-  WMotRStatement --> ActionValueFrame
-```
-
-The complete edge list (authoritative) is the set of `From SM64.Proofs Require
-Import …` lines; regenerate a textual view with:
+The split is `closure(WMotRStatement)` vs. the rest. To recompute (e.g. after
+wiring something in), list each file's proof-deps and take the transitive closure:
 
 ```sh
 for f in $(find proofs -name '*.v' | sort); do
-  echo "$(basename "$f" .v) <- $(grep -hE '^\s*From SM64.Proofs Require' "$f" \
-    | sed -E 's/.*Require (Import )?//; s/\.\s*$//')"
+  echo "$(basename "$f" .v) <- $(grep -hzoE 'From SM64.Proofs Require( Import)?[^.]*\.' "$f" \
+    | tr '\n' ' ' | sed -E 's/From SM64.Proofs Require( Import)?//g; s/\.//g')"
 done
 ```
