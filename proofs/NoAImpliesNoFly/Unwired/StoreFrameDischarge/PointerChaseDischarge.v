@@ -252,3 +252,34 @@ Proof.
     cbn [In] in Hin. destruct Hin as [Heq|[]]. subst fid. exact Hwf.
   - exact Hfun.
 Qed.
+
+(* ==================================================================== *)
+(* FEEDS THE SPINE. The funcall-level results above land in the spine's   *)
+(* OWN currency, StoreFrameSpine.body_preserves_nonflying, with a CONCRETE *)
+(* heap-wf carrier (valid + the chased field loads off-bm) instantiating   *)
+(* StoreFrameSpine's abstract mario_wf. So these are not a parallel island: *)
+(* the generic chase engine discharges the spine's bucket-A obligation,     *)
+(* and -- unlike reset_bodystate_discharges_spine_bucketA, which routes      *)
+(* through StoreFrameHook's bespoke eval_funcall inversion -- entirely       *)
+(* through the reusable bridge. set_anim_to_frame is a NEW spine leaf.       *)
+(* ==================================================================== *)
+
+Theorem set_anim_to_frame_discharges_spine_bucketA :
+  StoreFrameSpine.body_preserves_nonflying mario.prog
+    (fun m bm => Mem.valid_block m bm /\ field_loads_off_bm m bm mario._marioObj)
+    mario.f_set_anim_to_frame.
+Proof.
+  unfold StoreFrameSpine.body_preserves_nonflying.
+  intros bm rest m m' t res (Hv & Hwf) Hsat Hfun.
+  exact (set_anim_to_frame_funcall_preserves_nonflying bm rest m m' t res Hv Hwf Hsat Hfun).
+Qed.
+
+Theorem reset_bodystate_discharges_spine_bucketA_generic :
+  StoreFrameSpine.body_preserves_nonflying mario.prog
+    (fun m bm => Mem.valid_block m bm /\ field_loads_off_bm m bm mario._marioBodyState)
+    mario.f_mario_reset_bodystate.
+Proof.
+  unfold StoreFrameSpine.body_preserves_nonflying.
+  intros bm rest m m' t res (Hv & Hwf) Hsat Hfun.
+  exact (reset_bodystate_funcall_preserves_generic bm rest m m' t res Hv Hwf Hsat Hfun).
+Qed.
