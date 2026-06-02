@@ -145,7 +145,9 @@ Proof. unfold mario_ge, mario_ce. apply genv_cenv_globalenv. Qed.
 Definition marioObj_wf (m : mem) (bm : block) : Prop :=
   exists off bobj ofs,
     field_offset mario_ce mario._marioObj mario_members = OK (off, Full) /\
-    Mem.loadv Mptr m (Vptr bm (Ptrofs.repr off)) = Some (Vptr bobj ofs) /\ bobj <> bm.
+    Mem.loadv Mptr m (Vptr bm (Ptrofs.repr off)) = Some (Vptr bobj ofs) /\
+    bobj <> bm /\
+    (forall gb, Genv.find_symbol mario_ge mario._gMarioState = Some gb -> bobj <> gb).
 
 (* gMarioState is a global POINTER; gMarioState_wf says it points to bm (the
    MarioState struct). So the action cell bm is the block the pointer targets --
@@ -671,9 +673,9 @@ Lemma eval_marioObj_off_bm :
                       (Tstruct mario._MarioState noattr))
               mario._marioObj (tptr (Tstruct mario._Object noattr)))
       (Vptr bobj o) ->
-    bobj <> bm.
+    bobj <> bm /\ (forall gb, Genv.find_symbol mario_ge mario._gMarioState = Some gb -> bobj <> gb).
 Proof.
-  intros stid e le m bm bobj o Ht48 (off & bobj0 & ofs0w & Hfo & Hload & Hne) Hev.
+  intros stid e le m bm bobj o Ht48 (off & bobj0 & ofs0w & Hfo & Hload & Hne & Hng) Hev.
   apply eval_expr_Efield_load in Hev as (loc & ofs & bf & Hlv & Hderef).
   apply eval_lvalue_Efield_inv in Hlv as (o0 & id & att & co & delta & Hbase & Hco & Hofs & Hcase).
   apply eval_expr_Ederef_load in Hbase as (lb & ob & bfb & Hlvb & Hderefb).
@@ -694,7 +696,7 @@ Proof.
     match goal with
     | Hac : access_mode _ = By_value ?chunk,
       Hlv3 : Mem.loadv ?chunk _ _ = Some (Vptr bobj o) |- _ =>
-        cbn in Hac; inv Hac; rewrite Hlv3 in Hload; inv Hload; exact Hne
+        cbn in Hac; inv Hac; rewrite Hlv3 in Hload; inv Hload; split; [ exact Hne | exact Hng ]
     end.
 Qed.
 
@@ -747,21 +749,23 @@ Proof.
   rewrite PTree.gss; reflexivity.
 Qed.
 
-(* `t = stid->marioObj` (stid = Vptr bm 0) makes t hold an off-bm pointer. *)
+(* `t = stid->marioObj` (stid = Vptr bm 0) makes t hold an off-{bm,gb} pointer. *)
 Lemma sset_marioObj_offbm :
-  forall tid stid e le m t le' m' out bm,
+  forall tid stid e le m t le' m' out bm gb,
+    Genv.find_symbol mario_ge mario._gMarioState = Some gb ->
     le ! stid = Some (Vptr bm Ptrofs.zero) ->
     marioObj_wf m bm ->
     exec_stmt function_entry2 mario_ge e le m
       (Sset tid (Efield (Ederef (Etempvar stid (tptr (Tstruct mario._MarioState noattr)))
                                 (Tstruct mario._MarioState noattr))
                         mario._marioObj (tptr (Tstruct mario._Object noattr)))) t le' m' out ->
-    forall b o, le' ! tid = Some (Vptr b o) -> b <> bm.
+    forall b o, le' ! tid = Some (Vptr b o) -> b <> bm /\ b <> gb.
 Proof.
-  intros tid stid e le m t le' m' out bm Hstid Hwf H b o Hle'. inv H.
+  intros tid stid e le m t le' m' out bm gb Hgb Hstid Hwf H b o Hle'. inv H.
   rewrite PTree.gss in Hle'. inv Hle'.
   match goal with Hev : eval_expr _ _ _ _ _ (Vptr b o) |- _ =>
-    eapply eval_marioObj_off_bm; [ exact Hstid | exact Hwf | exact Hev ] end.
+    pose proof (eval_marioObj_off_bm _ _ _ _ _ _ _ Hstid Hwf Hev) as [Hbm Hgbfn] end.
+  split; [ exact Hbm | exact (Hgbfn gb Hgb) ].
 Qed.
 
 (* ================================================================== *)
@@ -836,8 +840,9 @@ Section ProvEngine.
     split; [ eapply assign_loc_valid_block; [ exact Has | exact Hv ] | ].
     split; [ eapply assign_loc_action_sat_avoid; [ exact Has | exact Hv | intros i _ [Hb _]; congruence | exact Hsat ] | ].
     split.
-    - destruct Hmwf as (off & bobj & ofs0 & Hfo & Hldv & Hbobj).
-      exists off, bobj, ofs0. split; [ exact Hfo | ]. split; [ | exact Hbobj ].
+    - destruct Hmwf as (off & bobj & ofs0 & Hfo & Hldv & Hbobj & Hng).
+      exists off, bobj, ofs0. split; [ exact Hfo | ].
+      split; [ | split; [ exact Hbobj | exact Hng ] ].
       eapply assign_loc_off_loadv; [ exact Has | exact (not_eq_sym Hnbm) | exact Hv | exact Hldv ].
     - destruct Hgwf as (gb' & Hsym & Hldv). assert (gb' = gb) by congruence. subst gb'.
       exists gb. split; [ exact Hsym | ].
