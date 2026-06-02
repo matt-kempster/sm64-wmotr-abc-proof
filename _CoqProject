@@ -21,43 +21,55 @@ generated/mario_actions_object.v
 generated/mario_step.v
 generated/mario_misc.v
 
-# --- GOAL 1 (no-A => no-fly) spine: capstone closure (load-bearing) ---
+# --- shared infrastructure (used by GOAL 1; reusable) ---
 proofs/Generic/Frame.v
 proofs/Generic/AddressTaken.v
 proofs/Generic/CallgraphReach.v
-proofs/MarioModel/Flying.v
 proofs/Generic/FieldNonInterference.v
 proofs/Generic/ReachableRun.v
+proofs/Generic/GlobalSeparation.v
+proofs/Generic/SymbolicLinking.v
+
+# --- shared: Mario action vocabulary + value engine ---
+proofs/MarioModel/Flying.v
 proofs/MarioModel/ActionValue.v
 proofs/MarioModel/ActionValueFrame.v
+
+# --- top-level demos ---
+proofs/Toy/ToyFrame.v
+proofs/Toy/ToyReach.v
+proofs/Shadow/ShadowFrame.v
+proofs/Shadow/ShadowSpec.v
+
+# --- GOAL 1 capstone: no-A => no-fly ---
 proofs/NoAImpliesNoFly/NoAImpliesNoFly.v
 
-# --- GOAL 1 Unwired: proved but not yet wired into the no-A=>no-fly capstone; still compiled ---
-proofs/NoAImpliesNoFly/Unwired/ToyFrame.v
-proofs/NoAImpliesNoFly/Unwired/ShadowFrame.v
-proofs/NoAImpliesNoFly/Unwired/ToyReach.v
-proofs/NoAImpliesNoFly/Unwired/ShadowSpec.v
-proofs/NoAImpliesNoFly/Unwired/GlobalSeparation.v
-proofs/NoAImpliesNoFly/Unwired/ActionWriters.v
-proofs/NoAImpliesNoFly/Unwired/FlyingStatement.v
-proofs/NoAImpliesNoFly/Unwired/FlyingFrame.v
-proofs/NoAImpliesNoFly/Unwired/ActionGraph.v
-proofs/NoAImpliesNoFly/Unwired/SymbolicLinking.v
-proofs/NoAImpliesNoFly/Unwired/MarioMemoryWF.v
-proofs/NoAImpliesNoFly/Unwired/ResetBodystate.v
-proofs/NoAImpliesNoFly/Unwired/NoAFlyingSpine.v
-proofs/NoAImpliesNoFly/Unwired/StoreFrameSpine.v
-proofs/NoAImpliesNoFly/Unwired/PointerChaseCount.v
-proofs/NoAImpliesNoFly/Unwired/ArrayStore.v
-proofs/NoAImpliesNoFly/Unwired/PointerChaseList.v
-proofs/NoAImpliesNoFly/Unwired/RootedLvalue.v
-proofs/NoAImpliesNoFly/Unwired/TempProvenanceInvariant.v
-proofs/NoAImpliesNoFly/Unwired/StatementFrame.v
-proofs/NoAImpliesNoFly/Unwired/FuncallFrame.v
-proofs/NoAImpliesNoFly/Unwired/BodyFrameDecider.v
-proofs/NoAImpliesNoFly/Unwired/SetAnimToFrame.v
-proofs/NoAImpliesNoFly/Unwired/SetMarioActionMoving.v
-proofs/NoAImpliesNoFly/Unwired/UpdateMarioInfoForCam.v
-proofs/NoAImpliesNoFly/Unwired/SquishMarioModel.v
-proofs/NoAImpliesNoFly/Unwired/StoreFrameHook.v
-proofs/NoAImpliesNoFly/Unwired/PointerChaseDischarge.v
+# --- GOAL 1 / StoreFrameDischarge sub-goal (capstone PointerChaseDischarge) ---
+proofs/NoAImpliesNoFly/StoreFrameDischarge/BodyFrameDecider.v
+proofs/NoAImpliesNoFly/StoreFrameDischarge/FuncallFrame.v
+proofs/NoAImpliesNoFly/StoreFrameDischarge/MarioMemoryWF.v
+proofs/NoAImpliesNoFly/StoreFrameDischarge/PointerChaseCount.v
+proofs/NoAImpliesNoFly/StoreFrameDischarge/PointerChaseDischarge.v
+proofs/NoAImpliesNoFly/StoreFrameDischarge/ResetBodystate.v
+proofs/NoAImpliesNoFly/StoreFrameDischarge/RootedLvalue.v
+proofs/NoAImpliesNoFly/StoreFrameDischarge/SetAnimToFrame.v
+proofs/NoAImpliesNoFly/StoreFrameDischarge/SetMarioActionMoving.v
+proofs/NoAImpliesNoFly/StoreFrameDischarge/SquishMarioModel.v
+proofs/NoAImpliesNoFly/StoreFrameDischarge/StatementFrame.v
+proofs/NoAImpliesNoFly/StoreFrameDischarge/StoreFrameHook.v
+proofs/NoAImpliesNoFly/StoreFrameDischarge/StoreFrameSpine.v
+proofs/NoAImpliesNoFly/StoreFrameDischarge/TempProvenanceInvariant.v
+proofs/NoAImpliesNoFly/StoreFrameDischarge/UpdateMarioInfoForCam.v
+
+# --- GOAL 1 / StoreFrameDischarge Unwired (not wired into PointerChaseDischarge) ---
+proofs/NoAImpliesNoFly/StoreFrameDischarge/Unwired/ArrayStore.v
+proofs/NoAImpliesNoFly/StoreFrameDischarge/Unwired/PointerChaseList.v
+
+# --- GOAL 1 / alternate no-A=>no-fly statements (unwired) ---
+proofs/NoAImpliesNoFly/AltStatements/FlyingFrame.v
+proofs/NoAImpliesNoFly/AltStatements/FlyingStatement.v
+proofs/NoAImpliesNoFly/AltStatements/NoAFlyingSpine.v
+
+# --- GOAL 1 / action analyses (unwired) ---
+proofs/NoAImpliesNoFly/ActionAnalyses/ActionGraph.v
+proofs/NoAImpliesNoFly/ActionAnalyses/ActionWriters.v

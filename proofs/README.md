@@ -1,7 +1,8 @@
 # `proofs/` — structure & dependency graph
 
 Hand-written Rocq: generic analyses over the generated Clight ASTs, plus the
-theorems. The tree is organized around **two nested goals**, near-term first:
+theorems. Organized around **two nested goals**, near-term first, with the
+*spine + `Unwired/`* idiom applied recursively.
 
 | | Goal | Capstone | Status |
 |---|---|---|---|
@@ -10,86 +11,86 @@ theorems. The tree is organized around **two nested goals**, near-term first:
 
 ```
 proofs/
-  Generic/            shared analyses          ┐ used by both goals
-  MarioModel/         shared action vocabulary ┘
-  NoAImpliesNoFly/        GOAL 1 spine: the no-A⇒no-fly capstone
+  Generic/            shared subject-independent analyses + frame lemmas
+  MarioModel/         shared Mario action vocabulary + value-aware frame engine
+  Toy/                M0 pipeline demo (ToyFrame, ToyReach)
+  Shadow/             M1 pipeline demo (ShadowFrame, ShadowSpec)
+  NoAImpliesNoFly/        GOAL 1
     NoAImpliesNoFly.v       the capstone theorem
-    Unwired/                proved but NOT yet wired into GOAL 1 (still compiled): 28 files
-  WMotRRequiresA/         GOAL 2 spine: the WMotR-ABC-impossibility capstone (not started)
+    StoreFrameDischarge/    sub-goal: every reached fn preserves the non-flying action
+      …15 engine + per-handler files (sub-capstone PointerChaseDischarge)…
+      Unwired/              not wired into PointerChaseDischarge (ArrayStore, PointerChaseList)
+    AltStatements/          parallel/earlier no-A⇒no-fly formulations (unwired)
+    ActionAnalyses/         syntactic action analyses, not yet consumed (unwired)
+  WMotRRequiresA/         GOAL 2 (not started)
     README.md               the goal + the argument chain it must formalize
     Unwired/                staging for GOAL 2 (empty)
 ```
 
-**Spine vs `Unwired/`.** A goal's *spine* is the set of files transitively
-required by its capstone — that's what's load-bearing. Everything else proved
-toward the goal sits in its `Unwired/`: still listed in `_CoqProject` and compiled
-by `make` (so it can't bitrot), but by construction not reachable from the
-capstone. As a piece gets wired in, `git mv` it from `Unwired/` into a spine dir
-and fix its `_CoqProject` path — imports need no edit (basename resolution, below).
+**The idiom.** A goal (or sub-goal) directory holds its *capstone* and the files
+on its spine; everything proved toward it but **not yet reachable from the
+capstone** sits in a sibling `Unwired/`. Everything is in `_CoqProject` and
+compiled by `make`, so nothing bitrots — `Unwired/` just marks "not load-bearing
+(yet)". To wire a piece in: `git mv` it from `Unwired/` up into the spine and fix
+its `_CoqProject` path. Imports never need editing — `From SM64.Proofs Require
+Import <Basename>` resolves by unique basename regardless of subdirectory.
 
-All cross-file imports use `From SM64.Proofs Require Import <Basename>`, which
-resolves by unique basename regardless of subdirectory.
-
-> Renaming history: files/theorems were renamed to literal names on 2026-06-01
-> (incl. `WMotRStatement`→`NoAImpliesNoFly`, since it proves the *smaller* goal).
-> Older `docs/` notes use the previous names — see
-> [`../docs/RENAMING.md`](../docs/RENAMING.md) for the full old → new map.
+> Renaming history (2026-06-01): files/theorems were renamed to literal names,
+> incl. `WMotRStatement`→`NoAImpliesNoFly` (it proves the *smaller* goal). Older
+> `docs/` notes use the previous names — see [`../docs/RENAMING.md`](../docs/RENAMING.md).
 
 ---
 
-## GOAL 1 spine (load-bearing for `noA_no_spawn_never_flying`)
+## GOAL 1 spine — `noA_no_spawn_never_flying` (9 files)
 
-Shared infrastructure + the capstone, in build order:
+The capstone's transitive closure, in build order:
 
 ```
-Generic/Frame                 syntactic frame analysis: does f assign to global g? (writes_global)
-Generic/AddressTaken          syntactic address-taken / escape analysis        (<- Frame)
-Generic/CallgraphReach        whole-program callgraph reachability skeleton     (<- Frame, AddressTaken)
-MarioModel/Flying             ACT_FLYING constants, flying setters, writers     (<- CallgraphReach)
-Generic/FieldNonInterference  semantic frame lemma: a store to field f1 leaves field f2 unchanged
-MarioModel/ActionValue        value-level reasoning about the action field      (<- Flying, FieldNonInterference)
-MarioModel/ActionValueFrame   the value-aware frame engine                      (<- ActionValue)
+Generic/Frame                 syntactic frame analysis: does f assign to global g?
+Generic/AddressTaken          syntactic address-taken / escape analysis      (<- Frame)
+Generic/CallgraphReach        whole-program callgraph reachability            (<- Frame, AddressTaken)
+MarioModel/Flying             ACT_FLYING constants, flying setters, writers   (<- CallgraphReach)
+Generic/FieldNonInterference  store to field f1 leaves field f2 unchanged
+MarioModel/ActionValue        value-level reasoning about the action field    (<- Flying, FieldNonInterference)
+MarioModel/ActionValueFrame   the value-aware frame engine                    (<- ActionValue)
 Generic/ReachableRun          temporal harness: noA_run => not flying
-NoAImpliesNoFly/NoAImpliesNoFly   THE GOAL-1 capstone                           (<- Flying, ActionValueFrame, ReachableRun)
+NoAImpliesNoFly/NoAImpliesNoFly   THE capstone                                (<- Flying, ActionValueFrame, ReachableRun)
 ```
 
-`noA_no_spawn_never_flying` rests on exactly the 4 standard CompCert axioms:
+Rests on exactly the 4 standard CompCert axioms:
 `bash pipeline/assumptions.sh SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFly noA_no_spawn_never_flying`.
 
-## `NoAImpliesNoFly/Unwired/` — proved but not yet wired into GOAL 1 (28 files)
+`Generic/` also holds two **reusable-but-currently-unwired** lemmas, not in the
+spine above: `GlobalSeparation` (the separation / "havoc" rung) and
+`SymbolicLinking` (OOM-free cross-TU linking spike).
 
-Grouped by what they are. All compile; none is reachable from the GOAL-1 capstone.
+## GOAL 1 / `StoreFrameDischarge/` — the discharge sub-goal (15 + 2)
 
-**Discharge engine + per-handler "scoreboard"** — the interprocedural store-frame
-machinery and the per-handler body proofs. (Per `docs/`, the 111-handler grind is
-*not* the intended critical path — a single generic store-frame bridge is meant to
-replace it; these are the interim/brute-force discharge.)
-`ResetBodystate`, `SetAnimToFrame`, `SetMarioActionMoving`, `UpdateMarioInfoForCam`,
-`SquishMarioModel`, `ArrayStore`, `BodyFrameDecider`, `FuncallFrame`,
-`TempProvenanceInvariant`, `StatementFrame`, `PointerChaseCount`,
-`PointerChaseList`, `PointerChaseDischarge`, `StoreFrameSpine`, `StoreFrameHook`.
+Sub-goal: *every reached internal function preserves the non-flying action
+invariant* — the interprocedural store-frame machinery (sub-capstone
+`PointerChaseDischarge`). Per `docs/`, the 111-handler grind is **not** the
+intended critical path (a single generic store-frame bridge is meant to replace
+it); this is the interim/brute-force discharge.
 
-**Earlier / alternate GOAL-1 statements** — parallel formulations of "must press A
-to fly", not (yet) the capstone's path:
-`FlyingStatement`, `FlyingFrame`, `NoAFlyingSpine`.
+- spine: `StatementFrame`, `TempProvenanceInvariant`, `RootedLvalue`,
+  `BodyFrameDecider`, `FuncallFrame`, `MarioMemoryWF`, `ResetBodystate`,
+  `StoreFrameSpine`, `StoreFrameHook`, `PointerChaseCount`, the 4 per-handler
+  proofs (`SetAnimToFrame`, `SetMarioActionMoving`, `SquishMarioModel`,
+  `UpdateMarioInfoForCam`), and `PointerChaseDischarge`.
+- `Unwired/`: `ArrayStore`, `PointerChaseList` (not reached from the sub-capstone).
 
-**Mario-model extras** — analyses proved but not consumed by the capstone:
-`MarioMemoryWF` (block-distinct memory), `ActionWriters` (whole-program action-writer
-enumeration), `ActionGraph` (action transition graph).
+## GOAL 1 / loose categories
 
-**Generic helpers (unused by capstone)** — `RootedLvalue` (lvalue rooting),
-`GlobalSeparation` (the separation / "havoc" rung).
-
-**Pipeline demos (M0/M1)** — `ToyFrame`, `ToyReach`, `ShadowFrame`, `ShadowSpec`.
-
-**De-risking spike** — `SymbolicLinking` (OOM-free cross-translation-unit calls).
+- `AltStatements/` — `FlyingStatement`, `FlyingFrame`, `NoAFlyingSpine`: parallel
+  formulations of "must press A to fly", not on the capstone's path.
+- `ActionAnalyses/` — `ActionWriters`, `ActionGraph`: syntactic action analyses,
+  proved but not yet consumed.
 
 ---
 
-## Recomputing the spine / Unwired split
+## Recomputing any spine / Unwired split
 
-A goal's spine is `closure(<capstone>)` over the proof-only `Require` edges. To
-regenerate a textual dep view (after wiring something in, say):
+A spine is `closure(<capstone>)` over the proof-only `Require` edges:
 
 ```sh
 for f in $(find proofs -name '*.v' | sort); do

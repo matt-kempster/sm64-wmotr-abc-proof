@@ -39,8 +39,20 @@ and the capstone was renamed because its old name was misapplied:
 
 The earlier spine/Unwired split — the 9-file closure of the (then `WMotRStatement`)
 capstone vs. the other 28 — still holds; it's now GOAL 1's spine vs. GOAL 1's
-`Unwired/`. See `proofs/README.md` for the breakdown and `proofs/WMotRRequiresA/README.md`
+floating work. See `proofs/README.md` for the breakdown and `proofs/WMotRRequiresA/README.md`
 for GOAL 2.
+
+GOAL 1's former flat `NoAImpliesNoFly/Unwired/` (28 files) was then themed:
+- `NoAImpliesNoFly/StoreFrameDischarge/` — the discharge sub-goal (15 files,
+  sub-capstone `PointerChaseDischarge`) **with its own `Unwired/`** (`ArrayStore`,
+  `PointerChaseList`). The recursive spine+Unwired idiom.
+- `NoAImpliesNoFly/AltStatements/` — `FlyingStatement`, `FlyingFrame`, `NoAFlyingSpine`.
+- `NoAImpliesNoFly/ActionAnalyses/` — `ActionWriters`, `ActionGraph`.
+- The M0/M1 demos went to **top-level `Toy/`** (`ToyFrame`, `ToyReach`) and
+  **`Shadow/`** (`ShadowFrame`, `ShadowSpec`).
+- `GlobalSeparation` and `SymbolicLinking` moved to top-level **`Generic/`**
+  (reusable, currently unwired). CI's `SymbolicLinking` axiom-check path updated
+  to `SM64.Proofs.Generic.SymbolicLinking`.
 
 ## 1. Directory structure (new)
 

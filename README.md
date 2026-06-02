@@ -65,7 +65,10 @@ proofs/          Rocq analyses + theorems over generated/, organized by two
                  nested goals (see proofs/README.md for the dependency graph):
   Generic/         shared: subject-independent analyses + frame lemmas
   MarioModel/      shared: Mario action vocabulary + value-aware frame engine
-  NoAImpliesNoFly/   GOAL 1 (near-term): no-A => no-fly capstone + its Unwired/
+  Toy/ Shadow/     M0/M1 pipeline demos
+  NoAImpliesNoFly/   GOAL 1 (near-term): no-A => no-fly capstone, with sub-areas
+                     StoreFrameDischarge/ (a sub-goal: spine + Unwired/),
+                     AltStatements/, ActionAnalyses/
   WMotRRequiresA/    GOAL 2 (eventual): WMotR ABC-impossibility; README + empty
                      Unwired/ (builds on GOAL 1; not started)
 _CoqProject      Rocq logical-path map
