@@ -118,41 +118,40 @@ things about. If you must introduce a definition, tie it to the generated AST an
 check it computes to what you expect. Inventing the statement is the deepest form
 of un-tethering.
 
-## One program: don't prove `forall` over what the codebase fixes
+## We don't need `forall` — SM64 is one specific codebase
 
-SM64 is **one specific, fixed program**. A lemma that quantifies over something the
-program already determines is the wrong shape — and the over-generality bites: it
-admits states the real execution never produces, which can make a **TRUE fact
-unprovable** (an adversary instantiates the quantifier with a case the run never
-reaches, and your lemma has to survive it). A universal you wrote, not one the
-problem forced, is a self-inflicted obstacle.
+**We don't need to prove things like "for all," because SM64 is one specific
+codebase.** One program. One memory. One call graph. One set of externals. When you
+catch yourself quantifying over *every* local environment, *every* function, *every*
+external — stop. The program already fixes those. The `forall` isn't rigor; it's a
+phantom you invented, and it will admit cases the real run never produces —
+sometimes making a **TRUE fact unprovable**, because some impossible `le` the
+adversary picks breaks your lemma even though the actual execution never gets there.
 
-Three phantom universals this proof wrote and had to undo:
+Three phantom `forall`s this proof wrote and had to undo:
 
-- **`forall le m`** in a per-`Sassign` value check — admitted a local environment
-  where a temp aliases Mario's block, though the *one* program sets that temp from
-  `gMarioState->marioObj` two statements earlier. The check was outright **false**,
-  so the residual built on it could never be discharged.
-- **`forall fd`** ("every reached funcall preserves …") — SM64's reachable call
-  graph is **finite and enumerable** (`Generic/CallgraphReach.v`). Ranging over all
-  function definitions assumes strictly more than the program forces.
-- **`forall ef`** ("every external preserves …") — the externals actually reached
-  are a **named handful** of math/runtime builtins, not "all externals."
+- **`forall le m`** in a per-`Sassign` check — let a temp alias Mario's block, even
+  though the program sets that temp from `gMarioState->marioObj` two lines up. The
+  check was just **false**, so the residual on top of it could never close.
+- **`forall fd`** ("every reached funcall preserves …") — there's a finite list of
+  functions; enumerate it (`Generic/CallgraphReach.v`).
+- **`forall ef`** ("every external preserves …") — it's a named handful of math
+  builtins, not "all externals."
 
 The fix is always the same: **reason about the actual execution, or enumerate the
-actual finite set.** Don't prove a syntactic `forall le` frame check — prove a fact
-about the runs of the *one* body, where the temps hold the values the *one* program
-puts there (`RealFrameValue.body_preserves_real` replaced the false `forall le`
-`body_stores_value_ok`). Don't quantify over all callees — induct over the callgraph
-you can `vm_compute`. Block distinctness, field offsets, symbol addresses are all
-**concrete** (`vm_compute` over `prog_comp_env mario.prog` / `Genv.find_symbol`),
-never things to hide behind a universal.
+actual finite set.** Not a `forall le` frame check — a fact about the runs of the
+*one* body, where the temps hold the values the *one* program put there
+(`RealFrameValue.body_preserves_real` replaced the false `forall le`
+`body_stores_value_ok`). Not "all callees" — induct over the callgraph you can
+`vm_compute`. Block distinctness, field offsets, symbol addresses are **concrete**
+(`vm_compute` over `prog_comp_env mario.prog` / `Genv.find_symbol`) — never hide them
+behind a universal.
 
-Diagnostic, when a residual looks *true but won't go through*: **is it quantifying
-over a `le` / `fd` / `ef` the fixed program never actually reaches?** If so, the
-universal is the bug, not the proof. Restating it over the concrete execution or the
-finite actual set is itself tethering progress (Steps 2–3) — it usually turns an
-*unprovable* residual into a merely *unproved* one.
+When a residual looks *true but won't go through*, ask: **is it quantifying over a
+`le` / `fd` / `ef` the program never actually reaches?** If so, the `forall` is the
+bug, not the proof. Restate it over the concrete execution or the finite real set —
+that's tethering progress (Steps 2–3), and it usually turns an *unprovable* residual
+into a merely *unproved* one.
 
 ## The mechanical audit — the hygiene gate (passing it ≠ progress)
 
