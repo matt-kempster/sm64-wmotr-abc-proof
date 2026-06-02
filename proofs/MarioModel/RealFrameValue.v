@@ -125,6 +125,17 @@ Definition mario_members : members :=
   | None => nil
   end.
 
+(* The genv's composite env IS prog_comp_env. Proved for ABSTRACT p (a record
+   projection, no materialization), then instantiated -- so it is fast, unlike
+   `reflexivity`/`vm_compute` over genv_cenv mario_ge (which forces the whole
+   composite env). Used to rewrite the eval-produced field offsets onto mario_ce
+   (where field_offset is a cheap targeted lookup). *)
+Lemma genv_cenv_globalenv : forall p, genv_cenv (globalenv p) = prog_comp_env p.
+Proof. reflexivity. Qed.
+
+Lemma cenv_eq : genv_cenv mario_ge = mario_ce.
+Proof. unfold mario_ge, mario_ce. apply genv_cenv_globalenv. Qed.
+
 (* marioObj memory well-formedness: gMarioState->marioObj loads a pointer into a
    block DISTINCT from Mario's own block bm. This is the honest CARRIED invariant
    (the marioObj pointer is wired up at init by render/graph code we don't trace);
@@ -134,7 +145,53 @@ Definition mario_members : members :=
 Definition marioObj_wf (m : mem) (bm : block) : Prop :=
   exists off bobj ofs,
     field_offset mario_ce mario._marioObj mario_members = OK (off, Full) /\
-    Mem.load Mptr m bm off = Some (Vptr bobj ofs) /\ bobj <> bm.
+    Mem.loadv Mptr m (Vptr bm (Ptrofs.repr off)) = Some (Vptr bobj ofs) /\ bobj <> bm.
+
+(* gMarioState is a global POINTER; gMarioState_wf says it points to bm (the
+   MarioState struct). So the action cell bm is the block the pointer targets --
+   a carried fact about real memory, wired up at init. *)
+Definition gMarioState_wf (m : mem) (bm : block) : Prop :=
+  exists gb, Genv.find_symbol mario_ge mario._gMarioState = Some gb /\
+             Mem.load Mptr m gb 0 = Some (Vptr bm Ptrofs.zero).
+
+(* ---- the two concrete field-load eval bricks (the Sset RHS evaluations) ---- *)
+
+(* deref_loc of an aggregate type returns the SAME (block, offset) it was given. *)
+Lemma deref_loc_aggregate_eq :
+  forall ty m b ofs bf loc o,
+    (access_mode ty = By_reference \/ access_mode ty = By_copy) ->
+    deref_loc ty m b ofs bf (Vptr loc o) -> loc = b /\ o = ofs.
+Proof.
+  intros ty m b ofs bf loc o Hmode H; inv H.
+  - destruct Hmode as [Hm|Hm]; congruence.
+  - auto.
+  - auto.
+  - match goal with Hlb : load_bitfield _ _ _ _ _ _ _ _ |- _ => inv Hlb end.
+Qed.
+
+(* `_t'48 = gMarioState` (a pointer-typed global var read) evaluates to Vptr bm 0,
+   given gMarioState_wf and that the symbol isn't shadowed by a local. *)
+Lemma eval_Evar_gMarioState_bm :
+  forall e le m bm,
+    e ! mario._gMarioState = None ->
+    gMarioState_wf m bm ->
+    eval_expr mario_ge e le m
+      (Evar mario._gMarioState (tptr (Tstruct mario._MarioState noattr)))
+      (Vptr bm Ptrofs.zero).
+Proof.
+  intros e le m bm He (gb & Hsym & Hload).
+  eapply eval_Elvalue.
+  - eapply eval_Evar_global; eauto.
+  - eapply deref_loc_value with (chunk := Mptr); [ reflexivity | ].
+    unfold Mem.loadv. exact Hload.
+Qed.
+
+(* NOTE: `_t'49 = _t'48->marioObj` evaluates off-bm (by marioObj_wf) -- the
+   marioObj-load Sset's RHS brick -- is DEFERRED. A direct `inv` over the field
+   eval at the concrete `mario_ge` is pathologically slow (inverting eval_lvalue/
+   deref_loc over the huge genv). The fix is to rebuild it from abstract-ge helper
+   lemmas (the fast pattern the geometry lemmas use) in its own file, so the cost
+   is paid once. Tracked as the next brick for the temp-provenance threading. *)
 
 (* One real per-frame Mario update: a CompCert big-step of the actual
    f_execute_mario_action on an Object pointer. (The input is latched in
