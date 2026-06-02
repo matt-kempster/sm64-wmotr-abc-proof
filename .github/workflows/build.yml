@@ -47,16 +47,26 @@ jobs:
         run: bash pipeline/install-toolchain.sh
 
       # The actual gate: full type-check of generated ASTs + all proofs.
-      # NOTE: deliberately does NOT build proofs/LinkSpike.v's forbidden path
-      #   -- the file is in _CoqProject but only does a bounded single-program
-      #   lookup; it never `link`s a whole program (that OOMs; see LinkSpike.v).
-      - name: Build (full proof tree)
-        run: bash pipeline/build.sh
+      # NOTE: deliberately does NOT build the forbidden path in
+      #   proofs/Generic/SymbolicLinking.v -- the file is in _CoqProject but only
+      #   does a bounded single-program lookup; it never `link`s a whole program
+      #   (that OOMs; see SymbolicLinking.v).
+      # Build the proofs against the COMMITTED generated/*.v. We intentionally do
+      # NOT regenerate (no `make all`): that needs the vendor/sm64 submodule +
+      # clightgen, and we want CI to verify exactly the artifacts in the repo.
+      - name: Build (proofs against committed generated/)
+        run: bash pipeline/build.sh proofs
+
+      # Structure check: enforce 'unused => unwired'. No file outside an Unwired/
+      # subtree may import into it (firewall), and every non-Unwired file must be
+      # reachable from a marked root (spine-root/kept) -- see pipeline/check_unwired.py.
+      - name: Structure check (unused => unwired)
+        run: python3 pipeline/check_unwired.py
 
       # Trust check: the headline theorems must rest only on CompCert's baseline
       # axioms (no stray Admitted / project axiom sneaking in).
       - name: Axiom check (headline theorems)
         run: |
-          bash pipeline/assumptions.sh SM64.Proofs.WMotRStatement wmotr_noA_no_spawn_never_flying
-          bash pipeline/assumptions.sh SM64.Proofs.ActionValueFrame exec_stmt_value_preserves
-          bash pipeline/assumptions.sh SM64.Proofs.LinkSpike linked_resolves_act_flying
+          bash pipeline/assumptions.sh SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFly noA_no_spawn_never_flying
+          bash pipeline/assumptions.sh SM64.Proofs.MarioModel.ActionValueFrame exec_stmt_value_preserves
+          bash pipeline/assumptions.sh SM64.Proofs.Generic.SymbolicLinking linked_resolves_act_flying
