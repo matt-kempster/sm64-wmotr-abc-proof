@@ -51,8 +51,11 @@ jobs:
       #   proofs/Generic/SymbolicLinking.v -- the file is in _CoqProject but only
       #   does a bounded single-program lookup; it never `link`s a whole program
       #   (that OOMs; see SymbolicLinking.v).
-      - name: Build (full proof tree)
-        run: bash pipeline/build.sh
+      # Build the proofs against the COMMITTED generated/*.v. We intentionally do
+      # NOT regenerate (no `make all`): that needs the vendor/sm64 submodule +
+      # clightgen, and we want CI to verify exactly the artifacts in the repo.
+      - name: Build (proofs against committed generated/)
+        run: bash pipeline/build.sh proofs
 
       # Structure check: enforce 'unused => unwired'. No file outside an Unwired/
       # subtree may import into it (firewall), and every non-Unwired file must be

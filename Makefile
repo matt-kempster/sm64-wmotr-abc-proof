@@ -96,7 +96,13 @@ generated/mario_misc.v: $(SM64)/src/game/mario_misc.c pipeline/clightgen.sh
 $(COQMAKEFILE): _CoqProject
 	coq_makefile -f _CoqProject -o $@
 
-proofs: $(COQMAKEFILE) $(GENERATED)
+# Build the Rocq proofs against the COMMITTED generated/*.v (the documented
+# "assumes generated/ exists" contract). Deliberately does NOT depend on
+# $(GENERATED): regenerating needs the vendor/sm64 submodule + clightgen, which
+# CI (and reviewers building the committed artifacts) should not require. Run
+# `make` (all) or `make generated`/`make regen` when you actually want to
+# regenerate from the pinned submodule.
+proofs: $(COQMAKEFILE)
 	$(MAKE) -f $(COQMAKEFILE)
 
 regen:
