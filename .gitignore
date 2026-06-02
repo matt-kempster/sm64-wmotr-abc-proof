@@ -23,7 +23,8 @@ _opam/
 *.swp
 .DS_Store
 
-# local Claude Code settings
-.claude/
+# local Claude Code settings (but track shared skills under .claude/skills/)
+.claude/*
+!.claude/skills/
 .CoqMakefile.d
 .*.d
