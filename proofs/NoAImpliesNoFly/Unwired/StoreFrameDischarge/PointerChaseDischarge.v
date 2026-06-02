@@ -27,17 +27,28 @@
  *       mario_update_hitbox_and_cap_model, execute_mario_action, init_mario,
  *       init_mario_from_save_file
  *
- * THE NEXT BRICK (to clear the rest): the remaining 13 mario.c chase fns chase
- * through m->marioObj into DEEPLY NESTED object-graphics fields, e.g.
- *   (o->header.gfx.pos)[1] = ...      and      (t4->throwMatrix)[3][1] = ...
- * The store's lvalue is rooted at a TEMP (o, t4 -- pointer loads are hoisted to
- * their own Ssets), wrapped in struct-Efield (By_copy) / array-Ederef-Ebinop
- * (By_reference) accessors that all PRESERVE the block. So the store lands in the
- * root temp's block, which is off-bm once the temp is established off-bm. What is
- * missing is a GENERAL "store through an lvalue rooted at temp p lands in p's
- * block" inverter (induction over the field/array accessor chain), generalizing
- * exec_field_store_block (single Efield) and ArrayStore (single m->fld[i]). With
- * that brick + per-field field_loads_off_bm clauses, these discharge mechanically.
+ * ENGINE STATE (the generic bricks now in place):
+ *   - the general "store rooted at temp p lands in p's block" inverter over the
+ *     full accessor chain (struct-Efield / array-Ederef-Ebinop) IS built --
+ *     RootedLvalue.rooted_block + TempProvenanceInvariant.rooted_store_nf;
+ *   - the per-statement frame obligation body_nf_ok is now a DECIDABLE check
+ *     (BodyFrameDecider.body_nf_ok_dec, vm_compute) given the tracked temps PT /
+ *     chased fields FS;
+ *   - the body->funcall lift is GENERIC (FuncallFrame.funcall_body_nf_preserves,
+ *     and funcall_body_nf_callfree_preserves for the call-free fns) -- the entry
+ *     tmps_off_bm and the eval_funcall inversion are discharged once, for all f.
+ * Every discharged scoreboard fn below now reaches the funcall level (and the
+ * spine's body_preserves_nonflying currency) through those reusable bridges.
+ *
+ * WHAT REMAINS (the honest gaps, in increasing depth):
+ *   (i)   the rest of the chase set (the remaining ~9 mario.c chase fns + the
+ *         other-TU handlers): mechanical, each a PT/FS + vm_compute + field-wf;
+ *   (ii)  AUTOMATIC PT/FS: derive the tracked temps / chased fields from the body
+ *         instead of hand-supplying them (BodyFrameDecider's named next step);
+ *   (iii) the INTERPROCEDURAL reach closure: discharge reach_frame_preserves
+ *         (still an honest premise on the call-bearing fns) -- the keystone, which
+ *         needs the value route (calls on Mario's pointer) composed with the avoid
+ *         route (FieldNonInterference, calls on OTHER objects) over the callgraph.
  *)
 
 From Coq Require Import List PArith.BinPos.
