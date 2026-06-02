@@ -16,7 +16,7 @@ Import Clightdefs.ClightNotations.
 Local Open Scope clight_scope.
 From SM64.Generated Require mario.
 From SM64.Proofs Require Import Flying ActionFrame ActionValueFrame MarioMemWF
-  ResetBodystate RootedLvalue ValueFrameINV ValueFrameStmt FuncallFrame.
+  ResetBodystate RootedLvalue ValueFrameINV ValueFrameStmt FuncallFrame BodyNfDec.
 
 (* Tracked store-root temps: t'6 = m->marioBodyState, t'4 = m->statusForCamera. *)
 Definition PT_cam : ident -> bool :=
@@ -67,20 +67,12 @@ Qed.
 
 (* The body_nf_ok obligation as a standalone (bm/e-generic) lemma, so the generic
    funcall bridge can consume it. *)
+(* body_nf_ok now via the DECIDABLE checker -- the hand-written dispatcher is
+   replaced by `apply body_nf_ok_dec_sound; vm_compute; reflexivity`. *)
 Lemma umifc_body_nf_ok :
   forall bm e, body_nf_ok PT_cam FS_cam bm e (fn_body mario.f_update_mario_info_for_cam).
 Proof.
-  intros bm e. unfold FS_cam, mario.f_update_mario_info_for_cam, fn_body.
-  cbn [body_nf_ok ls_body_nf_ok].
-  repeat apply conj.
-  all: try solve [ exact I ].
-  all: try solve [ intro Hx; vm_compute in Hx; discriminate Hx ].
-  all: try solve [ intros _; apply set_off_bm_ok_chase_load;
-                   cbn [In]; solve [ repeat first [ left; reflexivity | right ] ] ].
-  all: try solve [ left; exists mario._t'6;
-                   split; [ apply Pos.eqb_neq; reflexivity | split; reflexivity ] ].
-  all: try solve [ left; exists mario._t'4;
-                   split; [ apply Pos.eqb_neq; reflexivity | split; reflexivity ] ].
+  intros bm e. apply body_nf_ok_dec_sound. vm_compute. reflexivity.
 Qed.
 
 (* FUNCALL-LEVEL preservation via the GENERIC bridge funcall_body_nf_preserves --
