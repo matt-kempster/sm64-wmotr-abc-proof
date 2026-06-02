@@ -186,12 +186,11 @@ Proof.
     unfold Mem.loadv. exact Hload.
 Qed.
 
-(* NOTE: `_t'49 = _t'48->marioObj` evaluates off-bm (by marioObj_wf) -- the
-   marioObj-load Sset's RHS brick -- is DEFERRED. A direct `inv` over the field
-   eval at the concrete `mario_ge` is pathologically slow (inverting eval_lvalue/
-   deref_loc over the huge genv). The fix is to rebuild it from abstract-ge helper
-   lemmas (the fast pattern the geometry lemmas use) in its own file, so the cost
-   is paid once. Tracked as the next brick for the temp-provenance threading. *)
+(* The other field-load brick -- `_t'49 = _t'48->marioObj` evaluates off-bm --
+   is `eval_marioObj_off_bm`, proved near the end of this file (it needs the
+   abstract-ge eval helpers defined in the geometry section). It is built ENTIRELY
+   from abstract-ge helper APPLICATIONS (never a direct `inv` over the concrete
+   mario_ge, which is pathologically slow) -- so it compiles in <1s. *)
 
 (* One real per-frame Mario update: a CompCert big-step of the actual
    f_execute_mario_action on an Object pointer. (The input is latched in
@@ -620,4 +619,81 @@ Proof.
           intros i _; eapply store2_avoids_action_cell;
           [ exact Hle | exact Hne | exact Hlv ] ]
   end.
+Qed.
+
+(* ================================================================== *)
+(* THE marioObj FIELD-LOAD BRICK (fast: abstract-ge helpers only).      *)
+(*                                                                     *)
+(* `_t'49 = _t'48->marioObj` (with _t'48 = Vptr bm 0) evaluates to an    *)
+(* off-bm pointer, by marioObj_wf. The proof NEVER inverts an eval       *)
+(* relation at the concrete mario_ge (that is minutes-slow); it applies  *)
+(* abstract-ge inversion helpers, then matches the eval-produced field   *)
+(* offset onto mario_ce via cenv_eq (a cheap targeted field_offset).     *)
+(* ================================================================== *)
+
+(* split eval_expr of a By_value Efield into its lvalue + the load. *)
+Lemma eval_expr_Efield_load :
+  forall ge e le m a i ty v,
+    eval_expr ge e le m (Efield a i ty) v ->
+    exists loc ofs bf,
+      eval_lvalue ge e le m (Efield a i ty) loc ofs bf /\ deref_loc ty m loc ofs bf v.
+Proof. intros ge e le m a i ty v H; inv H; do 3 eexists; eauto. Qed.
+
+Lemma eval_expr_Ederef_load :
+  forall ge e le m a ty v,
+    eval_expr ge e le m (Ederef a ty) v ->
+    exists loc ofs bf,
+      eval_lvalue ge e le m (Ederef a ty) loc ofs bf /\ deref_loc ty m loc ofs bf v.
+Proof. intros ge e le m a ty v H; inv H; do 3 eexists; eauto. Qed.
+
+(* invert an Efield lvalue into its base eval + the field offset (struct/union). *)
+Lemma eval_lvalue_Efield_inv :
+  forall ge e le m a i ty loc ofs bf,
+    eval_lvalue ge e le m (Efield a i ty) loc ofs bf ->
+    exists o0 id att co delta,
+      eval_expr ge e le m a (Vptr loc o0) /\
+      (genv_cenv ge) ! id = Some co /\
+      ofs = Ptrofs.add o0 (Ptrofs.repr delta) /\
+      ( (typeof a = Tstruct id att /\ field_offset (genv_cenv ge) i (co_members co) = OK (delta, bf))
+        \/ (typeof a = Tunion id att /\ union_field_offset (genv_cenv ge) i (co_members co) = OK (delta, bf)) ).
+Proof.
+  intros ge e le m a i ty loc ofs bf H; inv H.
+  - do 5 eexists; repeat split; try eassumption. left; split; eassumption.
+  - do 5 eexists; repeat split; try eassumption. right; split; eassumption.
+Qed.
+
+Lemma eval_marioObj_off_bm :
+  forall e le m bm bobj o,
+    le ! mario._t'48 = Some (Vptr bm Ptrofs.zero) ->
+    marioObj_wf m bm ->
+    eval_expr mario_ge e le m
+      (Efield (Ederef (Etempvar mario._t'48 (tptr (Tstruct mario._MarioState noattr)))
+                      (Tstruct mario._MarioState noattr))
+              mario._marioObj (tptr (Tstruct mario._Object noattr)))
+      (Vptr bobj o) ->
+    bobj <> bm.
+Proof.
+  intros e le m bm bobj o Ht48 (off & bobj0 & ofs0w & Hfo & Hload & Hne) Hev.
+  apply eval_expr_Efield_load in Hev as (loc & ofs & bf & Hlv & Hderef).
+  apply eval_lvalue_Efield_inv in Hlv as (o0 & id & att & co & delta & Hbase & Hco & Hofs & Hcase).
+  apply eval_expr_Ederef_load in Hbase as (lb & ob & bfb & Hlvb & Hderefb).
+  apply deref_loc_aggregate_eq in Hderefb as [? ?]; [ | right; reflexivity ]. subst lb ob.
+  apply eval_lvalue_Ederef_base in Hlvb.
+  apply eval_expr_Etempvar_val in Hlvb. rewrite Ht48 in Hlvb. inv Hlvb.
+  destruct Hcase as [ (Hty & Hfo2) | (Hty & Hfo2) ]; [ | cbn in Hty; discriminate ].
+  cbn in Hty; inv Hty.
+  rewrite cenv_eq in Hco, Hfo2.
+  assert (Hmm : mario_members = co_members co)
+    by (unfold mario_members; rewrite Hco; reflexivity).
+  rewrite Hmm in Hfo. rewrite Hfo in Hfo2. inv Hfo2.
+  rewrite Ptrofs.add_zero_l in Hderef.
+  inv Hderef;
+    try (match goal with Hac : access_mode _ = By_reference |- _ => cbn in Hac; discriminate end);
+    try (match goal with Hac : access_mode _ = By_copy |- _ => cbn in Hac; discriminate end);
+    try (match goal with Hlb : load_bitfield _ _ _ _ _ _ _ _ |- _ => inv Hlb end);
+    match goal with
+    | Hac : access_mode _ = By_value ?chunk,
+      Hlv3 : Mem.loadv ?chunk _ _ = Some (Vptr bobj o) |- _ =>
+        cbn in Hac; inv Hac; rewrite Hlv3 in Hload; inv Hload; exact Hne
+    end.
 Qed.
