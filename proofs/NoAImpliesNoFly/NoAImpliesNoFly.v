@@ -1,4 +1,4 @@
-(* WMotRStatement.v -- tethering the "no A => no flying" theorem to REAL terms.
+(* NoAImpliesNoFly.v -- GOAL 1 capstone: a no-A (no-spawn) run never enters ACT_FLYING.
  *
  * ReachableRun.noA_run_not_flying is the proved-but-ABSTRACT harness: S/Inp/step/
  * flying/a_pressed are all placeholders. This file begins replacing those
@@ -57,7 +57,7 @@ Import ListNotations.
 From compcert Require Import Coqlib AST Integers Values Memory.
 From SM64.Proofs Require Import Flying ActionValueFrame ReachableRun.
 
-Section WMotR.
+Section NoAImpliesNoFly.
   (* Mario's struct block is fixed; the world state relevant to flight is memory.
      The action field loads at (bm, 12) as Mint32 -- exactly ActionValueFrame's cell. *)
   Variable bm : block.
@@ -134,7 +134,7 @@ Section WMotR.
   (* non-flying invariant; the spawn precondition is what makes the statement   *)
   (* true rather than false.                                                   *)
   (* ====================================================================== *)
-  Theorem wmotr_noA_no_spawn_never_flying :
+  Theorem noA_no_spawn_never_flying :
     forall (init : mem) (is : list Inp) (m : mem),
       mem_nonflying init ->
       noA_run_real is ->
@@ -159,4 +159,4 @@ Section WMotR.
       exact Hreach.
   Qed.
 
-End WMotR.
+End NoAImpliesNoFly.

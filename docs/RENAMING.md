@@ -18,16 +18,29 @@ still rests on exactly the 4 standard CompCert axioms.
 
 ---
 
-## 0. Later split: spine vs `Unwired/` (also 2026-06-01)
+## 0. Later: goal-based reorg + capstone rename (also 2026-06-01)
 
-After the reorg below, the tree was split by *load-bearing-ness*: the 9 files in
-the transitive closure of the capstone `wmotr_noA_no_spawn_never_flying` stay in
-the layered spine dirs (`Generic/`, `MarioModel/`, `Theorems/`); the other 28
-moved to a flat **`proofs/Unwired/`** (proved but not yet wired into the capstone;
-still compiled). The old `Milestones/`, `BodyProofs/`, and `Spikes/` dirs were
-emptied and removed — those files now live in `Unwired/`. So a file's *layer* is
-no longer fixed by the tables below; find any file with `find proofs -name '<X>.v'`.
-See `proofs/README.md` for the spine/Unwired breakdown.
+After the layer reorg below, the tree was reorganized **by the two nested goals**,
+and the capstone was renamed because its old name was misapplied:
+
+- The old capstone `Theorems/WMotRStatement.v` / theorem
+  `wmotr_noA_no_spawn_never_flying` actually proves the *smaller* goal (no-A ⇒
+  no-fly), so it was renamed to **`NoAImpliesNoFly/NoAImpliesNoFly.v`** / theorem
+  **`noA_no_spawn_never_flying`** (Section `WMotR` → `NoAImpliesNoFly` too). New
+  module path: `SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFly`.
+- The single `proofs/Unwired/` became **`proofs/NoAImpliesNoFly/Unwired/`** (GOAL
+  1's staging, 28 files). The old `Milestones/`, `BodyProofs/`, `Spikes/`,
+  `Theorems/` dirs are gone — find any file with `find proofs -name '<X>.v'`.
+- **`proofs/WMotRRequiresA/`** is the new GOAL 2 area (WMotR ABC-impossibility):
+  README + empty `Unwired/`, not started.
+- `Generic/` and `MarioModel/` stay as shared infrastructure (both goals).
+- CI (`.github/workflows/build.yml`) axiom-check module paths were updated to the
+  layered/renamed paths (they had gone stale at the layer reorg).
+
+The earlier spine/Unwired split — the 9-file closure of the (then `WMotRStatement`)
+capstone vs. the other 28 — still holds; it's now GOAL 1's spine vs. GOAL 1's
+`Unwired/`. See `proofs/README.md` for the breakdown and `proofs/WMotRRequiresA/README.md`
+for GOAL 2.
 
 ## 1. Directory structure (new)
 

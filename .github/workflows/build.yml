@@ -57,6 +57,6 @@ jobs:
       # axioms (no stray Admitted / project axiom sneaking in).
       - name: Axiom check (headline theorems)
         run: |
-          bash pipeline/assumptions.sh SM64.Proofs.WMotRStatement wmotr_noA_no_spawn_never_flying
-          bash pipeline/assumptions.sh SM64.Proofs.ActionValueFrame exec_stmt_value_preserves
-          bash pipeline/assumptions.sh SM64.Proofs.LinkSpike linked_resolves_act_flying
+          bash pipeline/assumptions.sh SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFly noA_no_spawn_never_flying
+          bash pipeline/assumptions.sh SM64.Proofs.MarioModel.ActionValueFrame exec_stmt_value_preserves
+          bash pipeline/assumptions.sh SM64.Proofs.NoAImpliesNoFly.Unwired.SymbolicLinking linked_resolves_act_flying

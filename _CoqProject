@@ -21,7 +21,7 @@ generated/mario_actions_object.v
 generated/mario_step.v
 generated/mario_misc.v
 
-# --- active spine: the WMotRStatement capstone closure (load-bearing) ---
+# --- GOAL 1 (no-A => no-fly) spine: capstone closure (load-bearing) ---
 proofs/Generic/Frame.v
 proofs/Generic/AddressTaken.v
 proofs/Generic/CallgraphReach.v
@@ -30,34 +30,34 @@ proofs/Generic/FieldNonInterference.v
 proofs/Generic/ReachableRun.v
 proofs/MarioModel/ActionValue.v
 proofs/MarioModel/ActionValueFrame.v
-proofs/Theorems/WMotRStatement.v
+proofs/NoAImpliesNoFly/NoAImpliesNoFly.v
 
-# --- Unwired: proved but not yet wired into the capstone; still compiled ---
-proofs/Unwired/ToyFrame.v
-proofs/Unwired/ShadowFrame.v
-proofs/Unwired/ToyReach.v
-proofs/Unwired/ShadowSpec.v
-proofs/Unwired/GlobalSeparation.v
-proofs/Unwired/ActionWriters.v
-proofs/Unwired/FlyingStatement.v
-proofs/Unwired/FlyingFrame.v
-proofs/Unwired/ActionGraph.v
-proofs/Unwired/SymbolicLinking.v
-proofs/Unwired/MarioMemoryWF.v
-proofs/Unwired/ResetBodystate.v
-proofs/Unwired/NoAFlyingSpine.v
-proofs/Unwired/StoreFrameSpine.v
-proofs/Unwired/PointerChaseCount.v
-proofs/Unwired/ArrayStore.v
-proofs/Unwired/PointerChaseList.v
-proofs/Unwired/RootedLvalue.v
-proofs/Unwired/TempProvenanceInvariant.v
-proofs/Unwired/StatementFrame.v
-proofs/Unwired/FuncallFrame.v
-proofs/Unwired/BodyFrameDecider.v
-proofs/Unwired/SetAnimToFrame.v
-proofs/Unwired/SetMarioActionMoving.v
-proofs/Unwired/UpdateMarioInfoForCam.v
-proofs/Unwired/SquishMarioModel.v
-proofs/Unwired/StoreFrameHook.v
-proofs/Unwired/PointerChaseDischarge.v
+# --- GOAL 1 Unwired: proved but not yet wired into the no-A=>no-fly capstone; still compiled ---
+proofs/NoAImpliesNoFly/Unwired/ToyFrame.v
+proofs/NoAImpliesNoFly/Unwired/ShadowFrame.v
+proofs/NoAImpliesNoFly/Unwired/ToyReach.v
+proofs/NoAImpliesNoFly/Unwired/ShadowSpec.v
+proofs/NoAImpliesNoFly/Unwired/GlobalSeparation.v
+proofs/NoAImpliesNoFly/Unwired/ActionWriters.v
+proofs/NoAImpliesNoFly/Unwired/FlyingStatement.v
+proofs/NoAImpliesNoFly/Unwired/FlyingFrame.v
+proofs/NoAImpliesNoFly/Unwired/ActionGraph.v
+proofs/NoAImpliesNoFly/Unwired/SymbolicLinking.v
+proofs/NoAImpliesNoFly/Unwired/MarioMemoryWF.v
+proofs/NoAImpliesNoFly/Unwired/ResetBodystate.v
+proofs/NoAImpliesNoFly/Unwired/NoAFlyingSpine.v
+proofs/NoAImpliesNoFly/Unwired/StoreFrameSpine.v
+proofs/NoAImpliesNoFly/Unwired/PointerChaseCount.v
+proofs/NoAImpliesNoFly/Unwired/ArrayStore.v
+proofs/NoAImpliesNoFly/Unwired/PointerChaseList.v
+proofs/NoAImpliesNoFly/Unwired/RootedLvalue.v
+proofs/NoAImpliesNoFly/Unwired/TempProvenanceInvariant.v
+proofs/NoAImpliesNoFly/Unwired/StatementFrame.v
+proofs/NoAImpliesNoFly/Unwired/FuncallFrame.v
+proofs/NoAImpliesNoFly/Unwired/BodyFrameDecider.v
+proofs/NoAImpliesNoFly/Unwired/SetAnimToFrame.v
+proofs/NoAImpliesNoFly/Unwired/SetMarioActionMoving.v
+proofs/NoAImpliesNoFly/Unwired/UpdateMarioInfoForCam.v
+proofs/NoAImpliesNoFly/Unwired/SquishMarioModel.v
+proofs/NoAImpliesNoFly/Unwired/StoreFrameHook.v
+proofs/NoAImpliesNoFly/Unwired/PointerChaseDischarge.v

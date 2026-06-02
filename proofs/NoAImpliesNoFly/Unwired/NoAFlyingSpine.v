@@ -37,7 +37,7 @@
  *     them checks the A button locally: the A-dependence is TEMPORAL (the upstream
  *     jump chain), which is exactly why each site hole is an R3 obligation, not a
  *     local guard -- EXCEPT site 5 (the spawn hatch), which is no-A-reachable and is
- *     instead retired by the explicit no-spawn-flying precondition (WMotRStatement).
+ *     instead retired by the explicit no-spawn-flying precondition (NoAImpliesNoFly).
  *
  * WHAT IS PROVED HERE: `keeps_nonflying` (the per-frame preservation = the
  * FlyingStatement Phi_preserved_noA hole, with Phi := ~flying) and the run-level
@@ -50,7 +50,7 @@
  *                            + ActionValueFrame.set_mario_action_body (passthrough).
  *   no_cannon/ftj/sjfl/stja_without_A  <- R3 temporal closure over the jump chain
  *                            (ActionGraph.v is the syntactic groundwork).
- *   no_spawn_without_flag <- WMotRStatement's spawn precondition (already the design).
+ *   no_spawn_without_flag <- NoAImpliesNoFly's spawn precondition (already the design).
  *)
 
 From Coq Require Import List Bool.
@@ -148,7 +148,7 @@ Hypothesis no_stja_without_A :
 (*  HOLE 5 -- the spawn hatch (BUCKET C, site 5). This site IS reachable *)
 (*  with no A press (Tower of the Wing Cap), so A does NOT block it; the  *)
 (*  no-spawn-flying precondition does. With the spawn flag low this frame *)
-(*  the hatch cannot fire. (This is the design already in WMotRStatement.)*)
+(*  the hatch cannot fire. (This is the design already in NoAImpliesNoFly.)*)
 (* ================================================================== *)
 Hypothesis no_spawn_without_flag :
   forall i m m', spawn_flying i = false -> ~ fired_spawn i m m'.
