@@ -905,4 +905,53 @@ Section ProvEngine.
       + rewrite PTree.gso in Hs by congruence. exact (T13 _ _ Hs).
   Qed.
 
+  (* a call/builtin result temp that is none of the tracked temps. *)
+  Definition optid_untracked (oid : option ident) : Prop :=
+    forall id, oid = Some id ->
+      id <> mario._t'48 /\ id <> mario._t'12 /\ id <> mario._t'49 /\ id <> mario._t'13.
+
+  (* setting an untracked result temp preserves the provenance invariant. *)
+  Lemma tprov_set_opttemp :
+    forall oid v le, optid_untracked oid -> tprov le -> tprov (set_opttemp oid v le).
+  Proof.
+    intros oid v le Hut (T48 & T12 & T49 & T13). destruct oid as [id|]; [ | exact (conj T48 (conj T12 (conj T49 T13))) ].
+    destruct (Hut id eq_refl) as (N48 & N12 & N49 & N13).
+    unfold set_opttemp, tprov. split; [ | split; [ | split ] ];
+      [ unfold tat | unfold tat | unfold toff | unfold toff ];
+      intros bb oo Hs; rewrite PTree.gso in Hs by congruence;
+      first [ exact (T48 _ _ Hs) | exact (T12 _ _ Hs) | exact (T49 _ _ Hs) | exact (T13 _ _ Hs) ].
+  Qed.
+
+  (* the reach residuals: every reached funcall / external preserves meminv.
+     (These are the new named obligations the body's calls/builtins reduce to.) *)
+  Hypothesis reach_meminv :
+    forall m fd vargs t m' vres,
+      eval_funcall function_entry2 mario_ge m fd vargs t m' vres ->
+      meminv m -> meminv m'.
+  Hypothesis ext_meminv :
+    forall ef vargs m t vres m',
+      external_call ef mario_ge vargs m t vres m' ->
+      meminv m -> meminv m'.
+
+  (* the per-statement check: stores are the two body stores; tracked-temp Ssets
+     have their expected RHS; call/builtin result temps are untracked. *)
+  Fixpoint prov_ok (s : statement) : Prop :=
+    match s with
+    | Sassign a1 a2 => (a1 = store1_lval /\ a2 = store1_rval) \/ (a1 = store2_lval /\ a2 = store2_rval)
+    | Sset id a => prov_sset_ok id a
+    | Scall oid _ _ => optid_untracked oid
+    | Sbuiltin oid _ _ _ => optid_untracked oid
+    | Ssequence s1 s2 => prov_ok s1 /\ prov_ok s2
+    | Sifthenelse _ s1 s2 => prov_ok s1 /\ prov_ok s2
+    | Sloop s1 s2 => prov_ok s1 /\ prov_ok s2
+    | Slabel _ s1 => prov_ok s1
+    | Sswitch _ ls => prov_ok_ls ls
+    | _ => True
+    end
+  with prov_ok_ls (ls : labeled_statements) : Prop :=
+    match ls with
+    | LSnil => True
+    | LScons _ s rest => prov_ok s /\ prov_ok_ls rest
+    end.
+
 End ProvEngine.
