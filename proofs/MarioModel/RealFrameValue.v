@@ -666,7 +666,7 @@ Qed.
 
 Lemma eval_marioObj_off_bm :
   forall stid e le m bm bobj o,
-    le ! stid = Some (Vptr bm Ptrofs.zero) ->
+    (forall b o', le ! stid = Some (Vptr b o') -> b = bm /\ o' = Ptrofs.zero) ->
     marioObj_wf m bm ->
     eval_expr mario_ge e le m
       (Efield (Ederef (Etempvar stid (tptr (Tstruct mario._MarioState noattr)))
@@ -681,7 +681,7 @@ Proof.
   apply eval_expr_Ederef_load in Hbase as (lb & ob & bfb & Hlvb & Hderefb).
   apply deref_loc_aggregate_eq in Hderefb as [? ?]; [ | right; reflexivity ]. subst lb ob.
   apply eval_lvalue_Ederef_base in Hlvb.
-  apply eval_expr_Etempvar_val in Hlvb. rewrite Ht48 in Hlvb. inv Hlvb.
+  apply eval_expr_Etempvar_val in Hlvb. destruct (Ht48 _ _ Hlvb) as [Hl Ho]. subst.
   destruct Hcase as [ (Hty & Hfo2) | (Hty & Hfo2) ]; [ | cbn in Hty; discriminate ].
   cbn in Hty; inv Hty.
   rewrite cenv_eq in Hco, Hfo2.
@@ -753,7 +753,7 @@ Qed.
 Lemma sset_marioObj_offbm :
   forall tid stid e le m t le' m' out bm gb,
     Genv.find_symbol mario_ge mario._gMarioState = Some gb ->
-    le ! stid = Some (Vptr bm Ptrofs.zero) ->
+    (forall b o', le ! stid = Some (Vptr b o') -> b = bm /\ o' = Ptrofs.zero) ->
     marioObj_wf m bm ->
     exec_stmt function_entry2 mario_ge e le m
       (Sset tid (Efield (Ederef (Etempvar stid (tptr (Tstruct mario._MarioState noattr)))
@@ -847,6 +847,62 @@ Section ProvEngine.
     - destruct Hgwf as (gb' & Hsym & Hldv). assert (gb' = gb) by congruence. subst gb'.
       exists gb. split; [ exact Hsym | ].
       eapply assign_loc_off_loadv; [ exact Has | exact (not_eq_sym Hngb) | eapply loadv_valid_block; exact Hldv | exact Hldv ].
+  Qed.
+
+  (* the full temp-provenance invariant over the four tracked temps. *)
+  Definition tprov (le : temp_env) : Prop :=
+    tat le mario._t'48 /\ tat le mario._t'12 /\ toff le mario._t'49 /\ toff le mario._t'13.
+
+  (* the two RHS shapes the body uses to set tracked temps. *)
+  Definition gms_expr : expr :=
+    Evar mario._gMarioState (tptr (Tstruct mario._MarioState noattr)).
+  Definition marioObj_expr (stid : ident) : expr :=
+    Efield (Ederef (Etempvar stid (tptr (Tstruct mario._MarioState noattr)))
+                   (Tstruct mario._MarioState noattr))
+           mario._marioObj (tptr (Tstruct mario._Object noattr)).
+
+  (* per-Sset check: each tracked temp, if set here, is set to its expected RHS.
+     For untracked temps all four implications are vacuous. *)
+  Definition prov_sset_ok (id : ident) (a : expr) : Prop :=
+    (id = mario._t'48 -> a = gms_expr) /\
+    (id = mario._t'12 -> a = gms_expr) /\
+    (id = mario._t'49 -> a = marioObj_expr mario._t'48) /\
+    (id = mario._t'13 -> a = marioObj_expr mario._t'12).
+
+  (* THE Sset CASE: memory is untouched (so meminv trivially survives); the
+     provenance invariant is re-established by the sset_* lemmas for a tracked
+     temp, or preserved by PTree.gso for an untracked one. *)
+  Lemma sset_case_preserves :
+    forall e le m id a t le' m' out,
+      e ! mario._gMarioState = None ->
+      meminv m -> tprov le -> prov_sset_ok id a ->
+      exec_stmt function_entry2 mario_ge e le m (Sset id a) t le' m' out ->
+      meminv m' /\ tprov le'.
+  Proof.
+    intros e le m id a t le' m' out He Hmem Htp Hck Hexec.
+    inversion Hexec; subst.
+    split; [ exact Hmem | ].
+    destruct Hmem as (Hv & Hsat & Hmwf & Hgwf).
+    destruct Htp as (T48 & T12 & T49 & T13).
+    destruct Hck as (C48 & C12 & C49 & C13).
+    unfold tprov; split; [ | split; [ | split ] ].
+    (* each tracked temp: re-established here (sset lemma) or preserved (gso) *)
+    - unfold tat. intros bb oo Hs. destruct (Pos.eq_dec id mario._t'48) as [E|N].
+      + subst id. rewrite (C48 eq_refl) in Hexec.
+        rewrite (sset_gms_bm _ _ _ _ _ _ _ _ _ He Hgwf Hexec) in Hs. inv Hs; auto.
+      + rewrite PTree.gso in Hs by congruence. exact (T48 _ _ Hs).
+    - unfold tat. intros bb oo Hs. destruct (Pos.eq_dec id mario._t'12) as [E|N].
+      + subst id. rewrite (C12 eq_refl) in Hexec.
+        rewrite (sset_gms_bm _ _ _ _ _ _ _ _ _ He Hgwf Hexec) in Hs. inv Hs; auto.
+      + rewrite PTree.gso in Hs by congruence. exact (T12 _ _ Hs).
+    - unfold toff. intros bb oo Hs. destruct (Pos.eq_dec id mario._t'49) as [E|N].
+      + subst id. rewrite (C49 eq_refl) in Hexec.
+        eapply sset_marioObj_offbm; [ exact Hgb | exact T48 | exact Hmwf | exact Hexec | exact Hs ].
+      + rewrite PTree.gso in Hs by congruence. exact (T49 _ _ Hs).
+    - unfold toff. intros bb oo Hs. destruct (Pos.eq_dec id mario._t'13) as [E|N].
+      + subst id. rewrite (C13 eq_refl) in Hexec.
+        eapply sset_marioObj_offbm; [ exact Hgb | exact T12 | exact Hmwf | exact Hexec | exact Hs ].
+      + rewrite PTree.gso in Hs by congruence. exact (T13 _ _ Hs).
   Qed.
 
 End ProvEngine.
