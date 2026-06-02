@@ -45,26 +45,23 @@
  *         FlyingFrame.v, now one level sharper (value engine, not unchanged_on).
  *     (2) reach_ext_preserves (action_cell bm) mario_ge  -- externals don't write
  *         the action cell. Satisfiable/true; removable.
- *     (3) the two real body stores are value-ok (body_stores_value_ok bm)  --
- *         SHARPENED 2026-06-02 from the old vague "whole body is stmt_value_ok".
- *         RealFrameValue.body_value_ok_from_stores PROVES, by cbn over the concrete
- *         620-line body, that it contains EXACTLY two Sassigns (a machine-checked
- *         census), both through `gMarioState->marioObj` -- the Mario OBJECT block --
- *         at `o->header.gfx.node.flags` (tshort) and `o->rawData.asS32[43]` (tint),
- *         transcribed literally as store1/store2_lval. So (3) is now NAMED and
- *         LOCALIZED to those two stores. It is still OVER-STRONG as a bare
- *         `forall e`: assign_value_ok quantifies `forall le m` with no tie between
- *         the base temp and memory, so an adversarial le (temp |-> Vptr bm delta)
- *         drives the field offset onto byte 12 and BOTH disjuncts fail (avoid:
- *         delta free; store: the field is tshort/tint, not the Mint32 action cell).
- *         Its TRUE content is the provenance fact that _t'49/_t'13 hold the marioObj
- *         pointer, whose block != bm (cf. MarioMemoryWF). Fully removing it needs a
- *         value(+)provenance ENGINE MERGE; the reduction OF the body TO these two
- *         stores is now PROVED, not assumed.
+ *     (3) the real body preserves the invariant (body_preserves_real bm)  --
+ *         MADE CONCRETE 2026-06-02 (was the FALSE `forall e, stmt_value_ok ...`).
+ *         SM64 is ONE program, so we do NOT quantify over adversarial local
+ *         environments: (3) is a fact about the ACTUAL executions of the ONE body
+ *         -- from a well-formed state (valid bm, non-flying action, marioObj off
+ *         bm) and given (1)+(2), the real exec_stmt of f_execute_mario_action
+ *         preserves all three. The earlier `forall le` form was unprovable
+ *         (assign_value_ok admitted a temp aliasing bm); this concrete form is
+ *         TRUE -- the body's two stores land off bm by marioObj_wf
+ *         (store{1,2}_avoids_action_cell, PROVED against the literal AST), its
+ *         calls preserve by (1), its builtins by (2). Discharging (3) is the
+ *         augmented-engine work; the geometry payoff lemmas are its store bricks.
  *
- * So this capstone now reduces "a no-A no-spawn run never flies" to the value
- * engine's reach closure over the REAL clightgen'd frame -- isolating the crux to
- * (1), with (2)/(3) genuinely dischargeable.
+ * So this capstone reduces "a no-A no-spawn run never flies" to: (1) the
+ * interprocedural crux, (2) the externals, and (3) the concrete body execution --
+ * none of them an adversarial `forall le`/`forall fd` universal beyond what the
+ * fixed program forces.
  *
  * No Admitted.
  *)
@@ -89,12 +86,14 @@ Section NoAImpliesNoFly.
   Definition mem_nonflying (m : mem) : Prop :=
     action_sat nonflying m bm.
 
-  (* The carried run invariant: Mario's block is allocated AND its action is
-     non-flying. Validity is genuine content -- the value engine reasons about
-     loads at bm, so it must stay a valid block across a frame (it does: a frame
-     only stores, never frees Mario). *)
+  (* The carried run invariant: Mario's block is allocated, its action is
+     non-flying, AND Mario memory is well-formed (gMarioState->marioObj points
+     off bm). All three are genuine content the concrete per-frame proof needs
+     and re-establishes: validity (loads stay meaningful), non-flying (the goal),
+     and marioObj_wf (what keeps the body's two pointer-chase stores off the
+     action cell). NOT abstract -- marioObj_wf is a fact about the real struct. *)
   Definition mem_ok (m : mem) : Prop :=
-    Mem.valid_block m bm /\ mem_nonflying m.
+    Mem.valid_block m bm /\ mem_nonflying m /\ marioObj_wf m bm.
 
   (* The invariant really does forbid flying: if every loaded action value is
      non-flying, no loaded action value is flying. *)
@@ -105,7 +104,7 @@ Section NoAImpliesNoFly.
   Qed.
 
   Lemma mem_ok_not_flying : forall m, mem_ok m -> ~ mem_flying m.
-  Proof. intros m [_ Hnf]. exact (mem_nonflying_not_flying m Hnf). Qed.
+  Proof. intros m [_ [Hnf _]]. exact (mem_nonflying_not_flying m Hnf). Qed.
 
   (* ---- the input layer: abstract. (Grounding the input word / A-bit is the
          orthogonal FlyingStatement tethering; THIS goal concretizes the STEP.) ---- *)
@@ -136,16 +135,15 @@ Section NoAImpliesNoFly.
     reach_value_preserves nonflying bm mario_ge.
   Hypothesis reach_ext_ok :
     reach_ext_preserves (action_cell bm) mario_ge.
-  (* (3) NOW SHARPENED to the two real stores. The body has EXACTLY two Sassigns
-     (machine-checked census: RealFrameValue.body_value_ok_from_stores), both
-     through gMarioState->marioObj (the Object block). This residual names them
-     precisely (store1/store2_lval over the literal clightgen'd AST) instead of
-     quantifying over the whole 620-line body. Still over-strong as a bare
-     `forall e` -- assign_value_ok's `forall le m` admits an adversarial temp
-     aliasing bm -- so its honest content is the marioObj-off-bm provenance fact;
-     fully removing it wants the value(+)provenance engine merge. The reduction
-     from this to the value engine's body obligation is PROVED, not assumed. *)
-  Hypothesis body_stores_ok : body_stores_value_ok bm.
+  (* (3) NOW CONCRETE, not a `forall le`. SM64 is one program, so residual (3) is
+     a fact about the ACTUAL executions of the ONE body: from a well-formed state
+     (valid bm, non-flying, marioObj off bm) and given the call/external residuals,
+     the real body exec preserves all three. This REPLACES the previous
+     `body_stores_value_ok` (which was FALSE: assign_value_ok's `forall le m`
+     admitted an adversarial temp aliasing bm). The geometry payoff lemmas
+     (store{1,2}_avoids_action_cell / _value_ok_offbm) are the store-case bricks
+     for discharging this concrete residual via the augmented engine. *)
+  Hypothesis body_preserves_ok : body_preserves_real bm.
 
   (* ---- The per-frame obligation: now PROVED via the value engine bridge ----
      A real frame preserves (bm valid /\ action non-flying). The a_pressed/
@@ -160,10 +158,9 @@ Section NoAImpliesNoFly.
       step i m m' ->
       mem_ok m'.
   Proof.
-    intros i m m' _ _ [Hv Hsat] Hst.
-    exact (execute_mario_action_preserves_nonflying bm m m'
-             reach_value_ok reach_ext_ok
-             (body_value_ok_from_stores bm body_stores_ok) Hv Hsat Hst).
+    intros i m m' _ _ (Hv & Hsat & Hwf) Hst.
+    exact (execute_mario_action_preserves_real bm m m'
+             reach_value_ok reach_ext_ok body_preserves_ok Hv Hsat Hwf Hst).
   Qed.
 
   (* Combine the two run preconditions into the single "no dangerous frame" flag
