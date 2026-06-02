@@ -11,7 +11,7 @@
  * now (switch fns keep their dispatcher), keeping soundness a single induction.
  *)
 
-From compcert Require Import Coqlib Maps AST Integers Values Memory Globalenvs
+From compcert Require Import Coqlib Errors Maps AST Integers Values Memory Globalenvs
   Ctypes Cop Clight Clightdefs ClightBigstep Events.
 From Coq Require Import List Bool.
 Import ListNotations.
@@ -81,10 +81,38 @@ Definition is_tempcopy (PT : ident -> bool) (a : expr) : bool :=
 Definition is_safe_set (PT : ident -> bool) (FS : list ident) (a : expr) : bool :=
   is_chase_load FS a || is_addrof_rooted PT a || is_tempcopy PT a.
 
+(* two byte-ranges [o1,o1+s1) and [o2,o2+s2) are disjoint. *)
+Definition range_disjoint (o1 s1 o2 s2 : Z) : bool :=
+  Z.leb (o1 + s1) o2 || Z.leb (o2 + s2) o1.
+
+(* a DIRECT scalar store `m->fid = rhs` whose written range misses the watch set:
+   the action cell [12,12+|Mint32|) and every chased field's load range
+   [off',off'+|Mptr|). All offsets/sizes computed from mario_ce (no globalenv). *)
+Definition is_safe_direct (FS : list ident) (a1 : expr) : bool :=
+  match a1 with
+  | Efield (Ederef (Etempvar q t1) t2) fid ty =>
+      (if Pos.eq_dec q mario._m then true else false)
+      && (if type_eq t1 (tptr (Tstruct mario._MarioState noattr)) then true else false)
+      && (if type_eq t2 (Tstruct mario._MarioState noattr) then true else false)
+      && match field_offset mario_ce fid mario_members with
+         | OK (off, Full) =>
+             Z.leb 0 off && Z.leb off Ptrofs.max_unsigned
+             && range_disjoint off (Ctypes.sizeof mario_ce ty) 12 (size_chunk Mint32)
+             && forallb (fun fid' =>
+                  match field_offset mario_ce fid' mario_members with
+                  | OK (o2, Full) =>
+                      range_disjoint off (Ctypes.sizeof mario_ce ty) o2 (size_chunk Mptr)
+                  | _ => false
+                  end) FS
+         | _ => false
+         end
+  | _ => false
+  end.
+
 Fixpoint body_nf_ok_dec (PT : ident -> bool) (FS : list ident) (s : statement) : bool :=
   match s with
   | Sskip | Sbreak | Scontinue | Sreturn _ | Sgoto _ => true
-  | Sassign a1 _ => is_chase_store PT a1
+  | Sassign a1 _ => is_chase_store PT a1 || is_safe_direct FS a1
   | Sset id a => negb (Pos.eqb id mario._m) && (negb (PT id) || is_safe_set PT FS a)
   | Scall None _ _ => true
   | Scall (Some id) _ _ => negb (Pos.eqb id mario._m)
@@ -166,13 +194,54 @@ Proof.
   - apply is_tempcopy_sound; exact Htc.
 Qed.
 
+Lemma sizeof_mario : forall ty, sizeof mario_ge ty = Ctypes.sizeof mario_ce ty.
+Proof. intro ty. rewrite genv_cenv_mario. reflexivity. Qed.
+
+Lemma is_safe_direct_sound :
+  forall FS bm e a1, is_safe_direct FS a1 = true -> assign_avoids_m (watch FS bm) bm e a1.
+Proof.
+  intros FS bm e a1 H. unfold is_safe_direct in H.
+  destruct a1; try discriminate H.
+  do 2 (match goal with
+        | H' : context [ match ?x with _ => _ end ] |- _ => destruct x; try discriminate H'
+        end).
+  apply andb_prop in H. destruct H as [H1 Hmatch].
+  apply andb_prop in H1. destruct H1 as [H2 Ht2].
+  apply andb_prop in H2. destruct H2 as [Hq Ht1].
+  destruct (Pos.eq_dec _ mario._m) as [Hqm|]; [ | discriminate Hq ].
+  destruct (type_eq _ (tptr (Tstruct mario._MarioState noattr))) as [Ht1e|]; [ | discriminate Ht1 ].
+  destruct (type_eq _ (Tstruct mario._MarioState noattr)) as [Ht2e|]; [ | discriminate Ht2 ].
+  destruct (field_offset mario_ce _ mario_members) as [[off bf]|] eqn:Hfo;
+    try discriminate Hmatch.
+  destruct bf; try discriminate Hmatch.
+  apply andb_prop in Hmatch. destruct Hmatch as [Hbr Hforall].
+  apply andb_prop in Hbr. destruct Hbr as [Hbnd Hact].
+  apply andb_prop in Hbnd. destruct Hbnd as [Hb0 Hbmax].
+  rewrite Hqm, Ht1e, Ht2e.
+  eapply assign_avoids_m_field; [ exact Hfo | | ].
+  - split; [ apply Z.leb_le; exact Hb0 | apply Z.leb_le; exact Hbmax ].
+  - intros j Hj. rewrite sizeof_mario in Hj. intro Hw.
+    destruct Hw as [Hac | Hch].
+    + destruct Hac as [_ Hr]. change (size_chunk Mint32) with 4 in Hr.
+      unfold range_disjoint in Hact. change (size_chunk Mint32) with 4 in Hact.
+      apply orb_prop in Hact. destruct Hact as [Hd|Hd]; apply Z.leb_le in Hd; lia.
+    + destruct Hch as (_ & fid' & off' & Hin & Hfo' & Hrange).
+      change (size_chunk Mptr) with 4 in Hrange.
+      rewrite forallb_forall in Hforall. specialize (Hforall fid' Hin).
+      rewrite Hfo' in Hforall. unfold range_disjoint in Hforall.
+      change (size_chunk Mptr) with 4 in Hforall.
+      apply orb_prop in Hforall. destruct Hforall as [Hd|Hd]; apply Z.leb_le in Hd; lia.
+Qed.
+
 (* SOUNDNESS: the decidable check implies the semantic frame obligation. *)
 Lemma body_nf_ok_dec_sound :
   forall s PT FS bm en, body_nf_ok_dec PT FS s = true -> body_nf_ok PT FS bm en s.
 Proof.
   induction s; intros PT FS bm en H; cbn [body_nf_ok_dec] in H; cbn [body_nf_ok];
     try exact I; try discriminate H.
-  - (* Sassign *) left. apply is_chase_store_sound. exact H.
+  - (* Sassign *) apply orb_prop in H. destruct H as [Hcs | Hsd].
+    + left. apply is_chase_store_sound. exact Hcs.
+    + right. apply is_safe_direct_sound. exact Hsd.
   - (* Sset *)
     apply andb_prop in H. destruct H as [Hid Hrest]. split.
     + intro He. rewrite He, Pos.eqb_refl in Hid. discriminate Hid.
