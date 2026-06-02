@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>reach_value_preserves — the crux residual, line by line, and why it's false as written</title>
+<style>
+  :root{
+    --bg:#ffffff; --panel:#f6f8fa; --panel2:#eef1f4; --ink:#1f2328; --dim:#59636e;
+    --line:#d8dee4; --kw:#cf222e; --id:#0550ae; --ty:#8250df; --lit:#0a3069;
+    --com:#6e7781; --green:#1a7f37; --greenbg:#dafbe1; --amber:#9a6700; --amberbg:#fff8c5;
+    --red:#cf222e; --redbg:#ffebe9; --blue:#0969da;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:1080px;margin:0 auto;padding:40px 24px 120px;}
+  h1{font-size:30px;line-height:1.2;margin:0 0 6px;}
+  h2{font-size:23px;margin:54px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--line);}
+  h3{font-size:18px;margin:30px 0 8px;color:var(--id);}
+  .sub{color:var(--dim);font-size:17px;margin:0 0 28px;}
+  p{margin:12px 0;}
+  code,pre,.mono{font-family:"SF Mono",ui-monospace,"Cascadia Code",Menlo,Consolas,monospace;}
+  code{background:var(--panel2);padding:1px 5px;border-radius:4px;font-size:13.5px;}
+  a{color:var(--id);}
+  .lead{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--blue);
+    border-radius:8px;padding:18px 20px;margin:22px 0;}
+  .lead.bad{border-left-color:var(--red);}
+  .codetable{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);
+    border-radius:8px;overflow:hidden;margin:16px 0;}
+  .codetable td{vertical-align:top;padding:7px 12px;border-bottom:1px solid var(--line);}
+  .codetable tr:last-child td{border-bottom:none;}
+  .codetable td.c{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13px;
+    white-space:pre-wrap;width:50%;color:var(--ink);border-right:1px solid var(--line);}
+  .codetable td.g{width:50%;color:var(--dim);font-size:14px;}
+  .codetable tr.hot td.c{background:#fff5f5;}
+  .kw{color:var(--kw)} .id{color:var(--id)} .ty{color:var(--ty)} .lit{color:var(--lit)} .com{color:var(--com)}
+  .pill{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    padding:2px 8px;border-radius:999px;vertical-align:middle;}
+  .p-real{background:var(--greenbg);color:#0f5323;border:1px solid #aceebb;}
+  .p-open{background:var(--amberbg);color:#7d5300;border:1px solid #eac54f;}
+  .p-false{background:var(--redbg);color:#a40e26;border:1px solid #ff9492;}
+  /* counterexample flow */
+  .flow{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px;margin:22px 0;}
+  .flowrow{display:flex;align-items:stretch;gap:0;flex-wrap:wrap;justify-content:center;}
+  .fbox{border-radius:9px;padding:11px 15px;max-width:270px;font-size:13.5px;}
+  .fbox .t{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;font-size:13px;margin-bottom:3px;}
+  .f-ok{background:var(--greenbg);border:1px solid #aceebb;}
+  .f-bad{background:var(--redbg);border:1px solid #ff9492;}
+  .f-act{background:var(--amberbg);border:1px solid #eac54f;}
+  .farrow{display:flex;flex-direction:column;justify-content:center;align-items:center;color:var(--dim);
+    font-family:ui-monospace,monospace;font-size:12px;padding:0 14px;min-width:130px;text-align:center;}
+  .farrow .big{font-size:22px;line-height:1;color:var(--red);}
+  @media(max-width:760px){.flowrow{flex-direction:column;align-items:stretch}.fbox{max-width:none}
+    .farrow{flex-direction:row;gap:8px;padding:8px 0}.farrow .big{transform:rotate(90deg)}
+    .codetable td.c,.codetable td.g{display:block;width:100%;border-right:none;}}
+  table.score{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;}
+  table.score th,table.score td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+  table.score th{color:var(--dim);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;}
+  table.score td.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;}
+  .verdict{border-radius:8px;padding:16px 18px;margin:16px 0;}
+  .v-no{background:var(--redbg);border:1px solid #ff9492;}
+  .v-mid{background:var(--amberbg);border:1px solid #eac54f;}
+  .v-yes{background:var(--greenbg);border:1px solid #aceebb;}
+  .verdict b{color:var(--ink);}
+  .keyline{color:var(--ink);font-weight:600;}
+  .foot{margin-top:60px;color:var(--com);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>reach_value_preserves <span class="pill p-false" style="vertical-align:middle">the crux · false as written</span></h1>
+<p class="sub">A line-by-line reading of the one assumption that holds the actual A-Button-Challenge argument —
+why, taken literally, it is <em>false for the real game</em>, and what it has to become to be true.
+Companion to <a href="no-a-no-fly-explained.html">no-a-no-fly-explained.html</a>.</p>
+
+<div class="lead bad">
+<b>The one-sentence version.</b> The capstone reduces "no-A run never flies" to three assumptions; this
+is the load-bearing one. As stated it quantifies over <i>every</i> function in the game and claims none of
+them can turn the action flying — but <code>set_mario_action(m, ACT_FLYING, 2)</code> is a real function call
+that does exactly that. So the assumption is <span class="keyline">simply false</span>, and the theorem
+currently rests on a false premise. The fix is not to delete it — it's to make it consume the
+<code>no-A</code> hypothesis it currently ignores. That fix <i>is</i> the unsolved core of the proof.
+</div>
+
+<h2>1. The definition, line by line</h2>
+<p>From <code>proofs/MarioModel/ActionValueFrame.v:362–367</code>, verbatim, with a gloss beside each line.
+The capstone uses it at <code>Q := nonflying</code>, <code>ge := mario_ge</code>.</p>
+
+<table class="codetable">
+<tr><td class="c"><span class="kw">Definition</span> <span class="id">reach_value_preserves</span>
+  (Q : <span class="ty">int</span>-><span class="ty">Prop</span>) (bm : <span class="ty">block</span>) (ge : <span class="ty">genv</span>) : <span class="ty">Prop</span> :=</td>
+<td class="g">A claim parameterized by a value-property <code>Q</code> (here <code>nonflying</code> = "not a flying
+constant"), Mario's struct block <code>bm</code>, and the global environment <code>ge</code> (here the real
+<code>mario_ge</code>).</td></tr>
+<tr class="hot"><td class="c">  <span class="kw">forall</span> m fd vargs t m' vres,</td>
+<td class="g"><span class="keyline">The fatal quantifier.</span> "For <i>every</i> memory <code>m</code>, <i>every</i>
+function definition <code>fd</code>, <i>every</i> argument list <code>vargs</code>, trace <code>t</code>,
+result memory <code>m'</code>, result value <code>vres</code>." <code>fd</code> ranges over <b>all</b>
+functions — including the ones whose whole job is to change the action.</td></tr>
+<tr><td class="c">    <span class="id">eval_funcall</span> function_entry2 ge m fd vargs t m' vres -></td>
+<td class="g">IF one CompCert big-step call of <code>fd</code> with <code>vargs</code>, starting in memory <code>m</code>,
+produces memory <code>m'</code>…</td></tr>
+<tr><td class="c">    <span class="ty">Mem.valid_block</span> m bm -></td>
+<td class="g">…and Mario's block is allocated in <code>m</code>…</td></tr>
+<tr><td class="c">    <span class="id">action_sat</span> Q m bm -></td>
+<td class="g">…and <i>before</i> the call the action cell holds only <code>Q</code>-values (non-flying)…</td></tr>
+<tr><td class="c">    <span class="ty">Mem.valid_block</span> m' bm /\ <span class="id">action_sat</span> Q m' bm.</td>
+<td class="g">…THEN <i>after</i> the call Mario's block is still allocated <b>and</b> the action cell <i>still</i>
+holds only non-flying values. <span class="keyline">This is the part <code>set_mario_action</code> violates.</span></td></tr>
+</table>
+
+<p>Unfolding the two helper names it leans on:</p>
+<table class="codetable">
+<tr><td class="c"><span class="kw">Definition</span> action_sat (Q:int->Prop) m bm :=
+  <span class="kw">forall</span> v, Mem.load Mint32 m bm 12 = Some (Vint v) -> Q v.</td>
+<td class="g">"Whatever 32-bit value the action cell (offset 12 of Mario's block) loads, it satisfies <code>Q</code>."</td></tr>
+<tr><td class="c"><span class="id">eval_funcall</span> function_entry2 ge m fd vargs t m' vres</td>
+<td class="g">CompCert's big-step judgement: calling <code>fd</code> (entered with the <code>function_entry2</code>
+convention — params bound to temporaries, the clightgen calling style) runs the whole function body to
+completion, transforming memory <code>m</code> into <code>m'</code>. A <i>whole call</i>, callees and loops included.</td></tr>
+</table>
+
+<h2>2. Why it is false — the one-line counterexample</h2>
+<p>Pick <code>fd := f_set_mario_action</code> and <code>vargs := [ &amp;MarioState ; ACT_FLYING ; 2 ]</code>.
+This is a genuine, reachable function in <code>mario_ge</code>. Run it from a perfectly good non-flying state:</p>
+
+<div class="flow">
+  <div class="flowrow">
+    <div class="fbox f-ok">
+      <div class="t">m  (before)</div>
+      action cell @ (bm,12) = ACT_IDLE.<br>
+      <code>action_sat nonflying m bm</code> ✓<br>
+      <code>valid_block m bm</code> ✓
+    </div>
+    <div class="farrow">
+      <div class="big">→</div>
+      eval_funcall<br>f_set_mario_action<br>(m, ACT_FLYING, 2)
+    </div>
+    <div class="fbox f-bad">
+      <div class="t">m'  (after)</div>
+      action cell @ (bm,12) = ACT_FLYING.<br>
+      <code>action_sat nonflying m' bm</code> ✗<br>
+      (ACT_FLYING <i>is</i> flying)
+    </div>
+  </div>
+  <p style="text-align:center;margin:16px 0 0;color:var(--dim);font-size:13.5px">
+    All three hypotheses held; the conclusion <code>action_sat nonflying m' bm</code> fails.
+    So the <code>forall fd</code> statement is <b>false</b> at <code>fd = set_mario_action</code>.</p>
+</div>
+
+<p>This isn't a corner case or a modelling artifact. <code>set_mario_action</code> writing the action field is
+<i>the</i> mechanism by which the action ever changes. The definition says "no reachable call ever makes the
+action flying"; the game obviously contains a call that makes the action flying. The statement is just too strong.</p>
+
+<div class="lead bad">
+<b>Consequence for the capstone.</b> Because this is a <code>Section</code> <code>Hypothesis</code>, the theorem
+<code>noA_no_spawn_never_flying</code> is of the shape <code>reach_value_ok → … → no-fly</code>. With
+<code>reach_value_ok</code> unsatisfiable for the real <code>mario_ge</code>, the theorem is currently
+<span class="mono">(false) → no-fly</span> — vacuously closed, saying nothing yet about real runs. <span class="keyline">This is
+the single biggest reason the proof "isn't done."</span></p>
+</div>
+
+<h2>3. Why it's still the <i>right</i> residual (decompose, don't collapse)</h2>
+<p>The statement is false only because it <b>ignores the no-A hypothesis</b>. The honest theorem is conditioned:
+the run presses no A. The whole point of the A-Button-Challenge is that <i>under no A, the flying writes are
+unreachable</i>. So the residual is correctly <i>located</i> — it's the exact spot where the no-A argument
+has to be spent — it's just currently <i>stated</i> without the condition that makes it true.</p>
+
+<p>Searching the real source, every site that puts Mario into a flying action is one of these five:</p>
+
+<table class="codetable">
+<tr><td class="c">level_update.c:339
+  set_mario_action(m, ACT_FLYING, 2)</td>
+<td class="g"><b>Spawn hatch.</b> Outside <code>execute_mario_action</code>; reached on a MARIO_SPAWN_FLYING warp.
+Excluded by the capstone's <code>no_spawn_flying_run</code> precondition.</td></tr>
+<tr><td class="c">mario.c:1050
+  set_mario_action(m, ACT_FLYING_TRIPLE_JUMP, 0)</td>
+<td class="g"><b>case ACT_DOUBLE_JUMP_LAND + wing cap.</b> You only reach DOUBLE_JUMP_LAND by jumping (twice) and
+then jumping again — each jump is an A press.</td></tr>
+<tr><td class="c">mario_actions_moving.c:149
+  return set_mario_action(m, ACT_FLYING_TRIPLE_JUMP, 0)</td>
+<td class="g"><b><code>set_triple_jump_action</code> + wing cap.</b> The triple-jump dispatch — entered only when
+jumping out of a running landing. A press.</td></tr>
+<tr><td class="c">mario_actions_airborne.c:1710
+  set_mario_action(m, ACT_FLYING, 0)</td>
+<td class="g"><b>Inside <code>act_flying_triple_jump</code>.</b> You can only be in ACT_FLYING_TRIPLE_JUMP if one of
+the two rows above already fired — i.e. you already jumped.</td></tr>
+<tr><td class="c">mario_actions_airborne.c:1934
+  set_mario_action(m, ACT_FLYING, 1)</td>
+<td class="g"><b>Also inside <code>act_flying_triple_jump</code>.</b> Same gate — already airborne in the flying
+triple jump.</td></tr>
+</table>
+
+<div class="lead">
+<b>The shape of the truth (not yet proved).</b> The wing cap is necessary but never sufficient: <i>every</i>
+gameplay route into a flying action funnels through <code>ACT_FLYING_TRIPLE_JUMP</code>, and you only enter a
+jump action by pressing A. With <code>a_pressed = false</code> for the whole run, Mario never jumps → never
+reaches a *_JUMP_LAND → never reaches ACT_FLYING_TRIPLE_JUMP → <code>set_mario_action</code> is never called
+with a flying argument. The one non-jump route (the spawn at <code>level_update.c:339</code>) is the
+separately-excluded hatch. <span class="keyline">Proving this chain is the actual A-Button-Challenge.</span>
+</div>
+
+<h2>4. What it has to become</h2>
+<p>The in-repo comment (ActionValueFrame.v:354–361) already names the discharge plan: a case split over the
+reached function.</p>
+
+<table class="codetable">
+<tr><td class="c"><span class="com">(* case fd = set_mario_action *)</span></td>
+<td class="g">It <i>does</i> write the action cell — but it writes the value of its <b>second argument</b>. Preservation
+needs: that argument is non-flying. Under a no-A frame it always is (the five sites above are unreachable).
+This is "brick 3" + the no-A / action-reach invariant — <span class="pill p-false">the hard, open core</span></td></tr>
+<tr><td class="c"><span class="com">(* case fd = anything else *)</span></td>
+<td class="g">It never writes the action cell at all, so <code>action_sat</code> survives by an unchanged-on argument
+("brick 1"). This case is mechanical and within reach.</td></tr>
+</table>
+
+<p>Concretely, the residual should be restated so it can consume the run's no-A condition — e.g. quantify only
+over funcalls reachable in a no-A frame (enumerate the finite call graph via <code>CallgraphReach</code>),
+rather than the bare <code>forall fd</code> over every function in the program. That restatement turns an
+<i>unprovable</i> assumption into a merely <i>unproved</i> one — which is the whole game (see the
+<code>proof-discipline</code> rule: "SM64 is one codebase, don't prove <code>forall fd</code>").</p>
+
+<h2>5. Honest scoreboard</h2>
+<table class="score">
+<thead><tr><th style="width:44%">Aspect</th><th style="width:16%">Status</th><th>Reading</th></tr></thead>
+<tbody>
+<tr><td class="mono">located at the right spot (where no-A must be spent)</td>
+<td><span class="pill p-real">yes</span></td>
+<td>This residual is exactly the interprocedural boundary the whole argument turns on. Good decomposition.</td></tr>
+<tr><td class="mono">true as currently stated</td>
+<td><span class="pill p-false">no — false</span></td>
+<td><code>set_mario_action(·,ACT_FLYING,·)</code> is a reachable <code>eval_funcall</code> that falsifies the
+<code>forall fd</code>. The statement ignores the no-A hypothesis.</td></tr>
+<tr><td class="mono">the "non-flying" half of the gameplay routes is real &amp; enumerated</td>
+<td><span class="pill p-real">yes</span></td>
+<td>The five flying-action sites are identified in the actual source; all five sit behind an A-driven jump or
+the excluded spawn. Verified by grep, not assumed.</td></tr>
+<tr><td class="mono">restated to consume no-A</td>
+<td><span class="pill p-open">not done</span></td>
+<td>Needs the conditioned form (funcalls reachable in a no-A frame) + the action-reach invariant.</td></tr>
+<tr><td class="mono">discharged for the real program</td>
+<td><span class="pill p-open">not done</span></td>
+<td>The case-split plan exists; the <code>set_mario_action</code> case (argument-is-non-flying under no-A) is
+the genuine A-Button-Challenge and is unproven.</td></tr>
+</tbody>
+</table>
+
+<div class="verdict v-no">
+<b>Bottom line.</b> <code>reach_value_preserves nonflying bm mario_ge</code> is the crux, and right now it's
+<i>false</i> — not subtly, but at the most obvious function in the game. Everything the capstone "proves" sits
+on top of it, so until it's restated to use the no-A hypothesis and then discharged, the no-A ⇒ no-fly result
+is a scaffold around an empty center.
+</div>
+
+<div class="verdict v-mid">
+<b>But it's the right empty center.</b> The residual is correctly placed: it isolates the exact claim the
+A-Button-Challenge is about — "with no A, you can't reach a flying action" — and the source evidence
+(five flying sites, all jump- or spawn-gated) shows that claim is true and has a concrete discharge path
+(case-split: <code>set_mario_action</code> by non-flying argument, everything else by unchanged-on). Pouring
+this beam is the next real work, not more scaffolding.
+</div>
+
+<div class="foot">
+Generated for <code>ActionValueFrame.reach_value_preserves</code>, the crux residual of
+<code>NoAImpliesNoFly.noA_no_spawn_never_flying</code> (GOAL 1).
+Sources: <code>proofs/MarioModel/ActionValueFrame.v:354–367</code>,
+<code>proofs/NoAImpliesNoFly/NoAImpliesNoFly.v:134–135</code>; flying-action sites from
+<code>vendor/sm64/src/game/{level_update,mario,mario_actions_airborne,mario_actions_moving}.c</code>.
+"False as written" means: the <code>forall fd</code> statement has a concrete counterexample
+(<code>set_mario_action</code> with a flying argument) in the real <code>mario_ge</code>; it becomes true only
+once conditioned on the no-A hypothesis. Open directly in Chrome — no server, no dependencies.
+</div>
+
+</div>
+</body>
+</html>
