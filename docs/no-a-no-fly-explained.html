@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>no-A ⇒ no-fly — what the theorem actually says, and what we've actually proved</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2430; --ink:#e6edf3; --dim:#9aa7b4;
+    --line:#2b3440; --kw:#ff7b72; --id:#79c0ff; --ty:#d2a8ff; --lit:#a5d6ff;
+    --com:#7d8893; --green:#2ea043; --greenbg:#10361c; --amber:#bb8009; --amberbg:#3a2c05;
+    --red:#da3633; --redbg:#3a1413; --blue:#1f6feb;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:1080px;margin:0 auto;padding:40px 24px 120px;}
+  h1{font-size:30px;line-height:1.2;margin:0 0 6px;}
+  h2{font-size:23px;margin:54px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--line);}
+  h3{font-size:18px;margin:30px 0 8px;color:var(--id);}
+  .sub{color:var(--dim);font-size:17px;margin:0 0 28px;}
+  p{margin:12px 0;}
+  code,pre,.mono{font-family:"SF Mono",ui-monospace,"Cascadia Code",Menlo,Consolas,monospace;}
+  code{background:var(--panel2);padding:1px 5px;border-radius:4px;font-size:13.5px;}
+  a{color:var(--id);}
+  .lead{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--blue);
+    border-radius:8px;padding:18px 20px;margin:22px 0;}
+  /* code lines with glosses */
+  .codetable{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);
+    border-radius:8px;overflow:hidden;margin:16px 0;}
+  .codetable td{vertical-align:top;padding:7px 12px;border-bottom:1px solid var(--line);}
+  .codetable tr:last-child td{border-bottom:none;}
+  .codetable td.c{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13px;
+    white-space:pre-wrap;width:50%;color:var(--ink);border-right:1px solid var(--line);}
+  .codetable td.g{width:50%;color:var(--dim);font-size:14px;}
+  .kw{color:var(--kw)} .id{color:var(--id)} .ty{color:var(--ty)} .lit{color:var(--lit)} .com{color:var(--com)}
+  /* status pills */
+  .pill{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    padding:2px 8px;border-radius:999px;vertical-align:middle;}
+  .p-real{background:var(--greenbg);color:#3fb950;border:1px solid #1d572b;}
+  .p-open{background:var(--amberbg);color:#e3a008;border:1px solid #5c4708;}
+  .p-false{background:var(--redbg);color:#f85149;border:1px solid #6e2422;}
+  /* the dependency diagram */
+  .tree{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:24px;margin:22px 0;}
+  .node{border-radius:9px;padding:12px 16px;margin:0 auto;max-width:680px;position:relative;}
+  .node .nm{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;font-weight:700;}
+  .node .ds{font-size:13.5px;margin-top:3px;line-height:1.45;}
+  .n-real{background:var(--greenbg);border:1px solid #1d572b;}
+  .n-open{background:var(--amberbg);border:1px solid #5c4708;}
+  .n-false{background:var(--redbg);border:1.5px solid var(--red);}
+  .connector{width:2px;height:20px;background:var(--line);margin:0 auto;}
+  .rests{text-align:center;color:var(--dim);font-size:13px;margin:8px 0 4px;letter-spacing:.05em;text-transform:uppercase;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:6px;}
+  @media(max-width:760px){.row3{grid-template-columns:1fr;} .codetable td.c,.codetable td.g{display:block;width:100%;border-right:none;}}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--dim);margin:14px 0 0;}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .sw{width:13px;height:13px;border-radius:3px;display:inline-block;}
+  /* verdict callouts */
+  .verdict{border-radius:8px;padding:16px 18px;margin:16px 0;}
+  .v-yes{background:var(--greenbg);border:1px solid #1d572b;}
+  .v-no{background:var(--redbg);border:1px solid #6e2422;}
+  .v-mid{background:var(--amberbg);border:1px solid #5c4708;}
+  .verdict b{color:var(--ink);}
+  table.score{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;}
+  table.score th,table.score td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+  table.score th{color:var(--dim);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;}
+  table.score td.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;}
+  .foot{margin-top:60px;color:var(--com);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  .keyline{color:var(--ink);font-weight:600;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>no-A ⇒ no-fly</h1>
+<p class="sub">A line-by-line reading of <code>noA_no_spawn_never_flying</code> — every hypothesis,
+every constituent part — and a straight answer to: <em>have we actually made any progress?</em></p>
+
+<div class="lead">
+<b>The one-sentence answer.</b> Yes — but the progress is in the <i>endpoints</i> (the step
+is now the real game code; "flying" is now the real action value), not in the <i>argument</i>.
+The actual no-A reasoning is still parked entirely inside three assumptions — and the most
+important one is, <i>as currently written, false for the real game</i>. So the theorem today reads
+<span class="mono">IF (something false) THEN no-fly</span>: a finished scaffold with the main
+load-bearing beam not yet poured. Details below, with nothing rounded up.
+</div>
+
+<h2>1. The theorem, line by line (comments stripped)</h2>
+<p>This is <code>proofs/NoAImpliesNoFly/NoAImpliesNoFly.v:193–216</code>, exactly as it compiles,
+with the source comments removed and a plain-English gloss beside each line.</p>
+
+<table class="codetable">
+<tr><td class="c"><span class="kw">Theorem</span> <span class="id">noA_no_spawn_never_flying</span> :</td>
+<td class="g">The capstone. Its name is the claim: a no-A, no-spawn-flying run never flies.</td></tr>
+<tr><td class="c">  <span class="kw">forall</span> (init : <span class="ty">mem</span>) (is : <span class="ty">list</span> Inp) (m : <span class="ty">mem</span>),</td>
+<td class="g">Quantifies over a starting memory <code>init</code>, a list of per-frame inputs <code>is</code> (the run),
+and an ending memory <code>m</code>.</td></tr>
+<tr><td class="c">    <span class="id">mem_ok</span> init -></td>
+<td class="g"><b>Premise 1.</b> The run <i>starts</i> in a good state: Mario's struct is allocated, his
+action is non-flying, and his <code>marioObj</code> pointer points off his own block. (Unfolded below.)</td></tr>
+<tr><td class="c">    <span class="id">noA_run_real</span> is -></td>
+<td class="g"><b>Premise 2.</b> Every frame's input has <code>a_pressed = false</code> — no A press, the whole run.</td></tr>
+<tr><td class="c">    <span class="id">no_spawn_flying_run</span> is -></td>
+<td class="g"><b>Premise 3.</b> No frame fires a <code>MARIO_SPAWN_FLYING</code> warp (the Wing-Cap-tower hatch
+that would set ACT_FLYING with no button). WMotR's object set has none.</td></tr>
+<tr><td class="c">    <span class="id">reachable</span> <span class="ty">mem</span> Inp step init is m -></td>
+<td class="g"><b>Premise 4.</b> <code>m</code> is genuinely reached: fold the real per-frame <code>step</code> over the inputs,
+from <code>init</code>, landing at <code>m</code>.</td></tr>
+<tr><td class="c">    ~ <span class="id">mem_flying</span> m.</td>
+<td class="g"><b>Conclusion.</b> The final memory is <i>not</i> flying — i.e. the action value loaded from
+Mario's struct is never ACT_FLYING / ACT_FLYING_TRIPLE_JUMP.</td></tr>
+<tr><td class="c"><span class="kw">Proof.</span></td><td class="g"></td></tr>
+<tr><td class="c">  <span class="kw">intros</span> init is m Hinit HnoA Hnospawn Hreach.</td>
+<td class="g">Name the four premises.</td></tr>
+<tr><td class="c">  <span class="kw">eapply</span> (<span class="id">noA_run_not_flying</span> <span class="ty">mem</span> Inp</td>
+<td class="g">Hand off to the generic, fully-proved trace harness (§4). It turns "each frame preserves an
+invariant" + "the invariant excludes flying" into "the run never flies."</td></tr>
+<tr><td class="c">            (<span class="kw">fun</span> i => orb (a_pressed i) (spawn_flying i)) step</td>
+<td class="g">A frame is "dangerous" if it presses A <i>or</i> spawn-flies; <code>step</code> is the real frame.</td></tr>
+<tr><td class="c">            <span class="id">mem_flying</span> <span class="id">mem_ok</span> init).</td>
+<td class="g">"flying" := the real <code>mem_flying</code>; the carried invariant Φ := <code>mem_ok</code>.</td></tr>
+<tr><td class="c">  - <span class="kw">exact</span> Hinit.</td>
+<td class="g"><b>Base.</b> Φ holds at the start — that's premise 1 verbatim.</td></tr>
+<tr><td class="c">  - <span class="kw">intros</span> i s s' Hd Hphi Hst.</td>
+<td class="g"><b>Step.</b> Assume a non-dangerous frame from a Φ-state; show Φ survives.</td></tr>
+<tr><td class="c">    <span class="kw">apply</span> orb_false_iff <span class="kw">in</span> Hd. <span class="kw">destruct</span> Hd <span class="kw">as</span> [Ha Hsp].</td>
+<td class="g">"Not dangerous" splits into "didn't press A" and "didn't spawn-fly."</td></tr>
+<tr><td class="c">    <span class="kw">eapply</span> frame_preserves_mem_ok; <span class="kw">eauto</span>.</td>
+<td class="g">Discharge with the per-frame lemma (§5) — the one place the real game code enters.</td></tr>
+<tr><td class="c">  - <span class="kw">exact</span> mem_ok_not_flying.</td>
+<td class="g"><b>Safety.</b> Φ (action non-flying) logically excludes flying. One-line lemma, proved.</td></tr>
+<tr><td class="c">  - <span class="kw">exact</span> (combine_preconditions is HnoA Hnospawn).</td>
+<td class="g">Fold premises 2 and 3 into the single "no dangerous frame" fact the harness wants.</td></tr>
+<tr><td class="c">  - <span class="kw">exact</span> Hreach.</td>
+<td class="g">Feed in the run itself (premise 4).</td></tr>
+<tr><td class="c"><span class="kw">Qed.</span></td><td class="g">Closed — <i>given</i> the three hypotheses the Section assumes (§3). That "given" is the whole story.</td></tr>
+</table>
+
+<h2>2. The dependency picture</h2>
+<p>What rests on what. Green = <b>real &amp; proved</b> (tethered to the clightgen'd AST). Amber =
+<b>true but not yet proved</b> (an honest hole). Red = <b>open <i>and</i> currently false as written</b> — the crux.</p>
+
+<div class="tree">
+  <div class="node n-real">
+    <div class="nm">noA_no_spawn_never_flying <span class="pill p-real">proved (conditionally)</span></div>
+    <div class="ds">no-A &amp; no-spawn run ⇒ never flying. The proof above is airtight — <i>relative to</i> the three assumptions below.</div>
+  </div>
+  <div class="connector"></div>
+  <div class="node n-real">
+    <div class="nm">noA_run_not_flying  ∘  frame_preserves_mem_ok</div>
+    <div class="ds">Generic trace induction (fully proved, no holes) + the per-frame lemma. The per-frame lemma
+    calls <code>execute_mario_action_preserves_real</code>, which is proved but <i>conditional</i> on the three residuals.</div>
+  </div>
+  <div class="connector"></div>
+  <div class="node n-real">
+    <div class="nm">step  =  eval_funcall mario_ge f_execute_mario_action <span class="pill p-real">real</span></div>
+    <div class="ds">The frame is one CompCert big-step of the <i>actual</i> clightgen'd per-frame function over the
+    real Mario global environment. Not a placeholder relation. This is the single biggest real move so far.</div>
+  </div>
+  <div class="connector"></div>
+  <div class="rests">rests on three assumptions (Section hypotheses)</div>
+  <div class="row3">
+    <div class="node n-false">
+      <div class="nm">reach_value_ok <span class="pill p-false">crux · false as stated</span></div>
+      <div class="ds">"Every reached call keeps the action non-flying." But <code>set_mario_action(m,&nbsp;ACT_FLYING,&nbsp;2)</code>
+      <i>is</i> a reachable call that breaks it. True only with the no-A carve-out — which isn't wired in yet.</div>
+    </div>
+    <div class="node n-open">
+      <div class="nm">body_preserves_ok <span class="pill p-open">true · unproved</span></div>
+      <div class="ds">The body's own execution preserves the invariant. True (its 2 stores miss the action cell),
+      but the discharging induction hit a compile-time wall.</div>
+    </div>
+    <div class="node n-open">
+      <div class="nm">reach_ext_ok <span class="pill p-open">true · unproved</span></div>
+      <div class="ds">Externals (math/runtime builtins) don't touch the action cell. True; not yet discharged.</div>
+    </div>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:#2ea043"></span> real &amp; proved</span>
+    <span><span class="sw" style="background:#bb8009"></span> true but unproved (honest hole)</span>
+    <span><span class="sw" style="background:#da3633"></span> open &amp; false as written (the crux)</span>
+  </div>
+</div>
+
+<h2>3. The three hypotheses the whole thing rests on</h2>
+<p>These are <code>Hypothesis</code> declarations inside the <code>Section</code> (lines 134–146). That placement
+matters enormously for reading the result honestly — see the box at the end of this section.</p>
+
+<table class="codetable">
+<tr><td class="c"><span class="kw">Hypothesis</span> reach_value_ok :
+  reach_value_preserves nonflying bm mario_ge.</td>
+<td class="g"><b>(1) The interprocedural crux.</b> Unfolds to:
+<code>forall m fd vargs t m' vres, eval_funcall … ge m fd … m' … -> action_sat nonflying m bm -> action_sat nonflying m' bm</code>.
+I.e. <i>any</i> function reachable in the game preserves "action is non-flying." <span class="pill p-false">false as stated</span>
+<code>set_mario_action</code> with an <code>ACT_FLYING</code> argument is such a function and it does the opposite.</td></tr>
+<tr><td class="c"><span class="kw">Hypothesis</span> reach_ext_ok :
+  reach_ext_preserves (action_cell bm) mario_ge.</td>
+<td class="g"><b>(2) Externals.</b> <code>forall ef …, external_call ef ge … m … m' -> Mem.unchanged_on (action_cell bm) m m'</code>.
+The reached externals are math/runtime builtins, none of which write Mario's action cell. <span class="pill p-open">true, unproved</span></td></tr>
+<tr><td class="c"><span class="kw">Hypothesis</span> body_preserves_ok :
+  body_preserves_real bm.</td>
+<td class="g"><b>(3) The body itself.</b> Given (1) and (2), the real <code>exec_stmt</code> of
+<code>f_execute_mario_action</code>'s body carries <code>valid ∧ non-flying ∧ marioObj_wf</code> forward.
+<span class="pill p-open">true, unproved</span> The body has exactly 2 direct stores; both were proved (against the
+literal AST) to land off the action cell. The remaining work is the structural induction that threads
+this through the whole body.</td></tr>
+</table>
+
+<div class="lead" style="border-left-color:var(--amber)">
+<b>Why <code>Print Assumptions</code> looks clean — and why that is misleading.</b>
+Running the lie-detector on the capstone prints only standard CompCert/Coq axioms
+(<code>classic</code>, <code>functional_extensionality</code>, <code>external_functions_sem</code>, …) and
+<i>none</i> of the three residuals. That is <b>not</b> because they're discharged. It's because they're
+<code>Section</code> hypotheses, so Coq turns them into ordinary <i>premises</i> of the closed theorem
+term. The honest statement of what we've proved is therefore:
+<div style="margin:10px 0 2px;font-family:ui-monospace,Menlo,monospace;font-size:13px;color:var(--ink);">
+∀ bm Inp a_pressed spawn_flying,
+&nbsp;&nbsp;reach_value_ok → reach_ext_ok → body_preserves_ok →
+&nbsp;&nbsp;(noA &amp; no-spawn run ⇒ never flying).
+</div>
+The three arrows on the left are the holes. A clean axiom list measures <i>cleanliness</i>, never <i>tethering</i>.
+</div>
+
+<h2>4. The constituent parts, unfolded</h2>
+<p>Every name the theorem leans on, with its real definition.</p>
+
+<h3>mem_flying / mem_nonflying / mem_ok — the state predicates</h3>
+<table class="codetable">
+<tr><td class="c"><span class="kw">Definition</span> mem_flying (m:mem) :=
+  exists v, Mem.load Mint32 m bm 12 = Some (Vint v)
+            /\ is_flying_int v = true.</td>
+<td class="g"><b>Real.</b> Load 4 bytes at offset 12 of Mario's block (the <code>action</code> field's true offset, read off the
+struct layout) and ask whether that integer is a flying constant. No abstract "flying" predicate.</td></tr>
+<tr><td class="c"><span class="kw">Definition</span> mem_nonflying (m:mem) :=
+  action_sat nonflying m bm.</td>
+<td class="g">Every value the action cell loads satisfies <code>nonflying</code>.</td></tr>
+<tr><td class="c"><span class="kw">Definition</span> mem_ok (m:mem) :=
+  Mem.valid_block m bm
+  /\ mem_nonflying m
+  /\ marioObj_wf m bm.</td>
+<td class="g">The carried invariant: Mario's block allocated, action non-flying (the goal), and
+<code>marioObj</code> well-formed (what keeps the body's pointer-chase stores off the action cell).</td></tr>
+</table>
+
+<h3>is_flying_int — what "flying" means numerically</h3>
+<table class="codetable">
+<tr><td class="c"><span class="kw">Definition</span> ACT_FLYING := Int.repr 277350553. <span class="com">(* 0x10808899 *)</span>
+<span class="kw">Definition</span> ACT_FLYING_TRIPLE_JUMP := Int.repr 50333844.
+<span class="kw">Definition</span> is_flying_int (n:int) :=
+  Int.eq n ACT_FLYING || Int.eq n ACT_FLYING_TRIPLE_JUMP.</td>
+<td class="g">The two action constants that count as flying, taken from the generated headers. "Flying" is a concrete
+number test, not a label we invented.</td></tr>
+</table>
+
+<h3>action_sat / action_cell / nonflying — the watched byte</h3>
+<table class="codetable">
+<tr><td class="c"><span class="kw">Definition</span> action_cell (bm:block) :=
+  fun b o => b = bm /\ 12 <= o < 12 + size_chunk Mint32.</td>
+<td class="g">The 4-byte region [12,16) of Mario's block — the exact bytes the action lives in.</td></tr>
+<tr><td class="c"><span class="kw">Definition</span> action_sat (Q:int->Prop) m bm :=
+  forall v, Mem.load Mint32 m bm 12 = Some (Vint v) -> Q v.</td>
+<td class="g">"Whatever the action cell loads, it satisfies Q." The forward value invariant the whole engine threads.</td></tr>
+<tr><td class="c"><span class="kw">Definition</span> nonflying (v:int) := is_flying_int v = false.</td>
+<td class="g">Q := "not a flying constant."</td></tr>
+</table>
+
+<h3>step / execute_mario_action_step — the real frame</h3>
+<table class="codetable">
+<tr><td class="c"><span class="kw">Definition</span> step (_:Inp) (m m':mem) :=
+  execute_mario_action_step m m'.
+
+<span class="kw">Definition</span> execute_mario_action_step (m m':mem) :=
+  exists b_o t res,
+    eval_funcall function_entry2 mario_ge m
+      (Internal mario.f_execute_mario_action)
+      (Vptr b_o Ptrofs.zero :: nil) t m' res.</td>
+<td class="g"><b>Real.</b> One frame = one CompCert big-step evaluation of the actual generated function
+<code>f_execute_mario_action</code> (called on an Object pointer; it finds Mario via the
+<code>gMarioState</code> global internally), over the real Mario genv. The input doesn't branch the relation —
+preservation holds for any input — which is exactly why the no-A condition must live inside residual (1),
+not here.</td></tr>
+</table>
+
+<h3>marioObj_wf — the anti-aliasing invariant</h3>
+<table class="codetable">
+<tr><td class="c"><span class="kw">Definition</span> marioObj_wf (m:mem) (bm:block) :=
+  exists off bobj ofs,
+    field_offset mario_ce _marioObj mario_members = OK (off,Full)
+    /\ Mem.loadv Mptr m (Vptr bm (Ptrofs.repr off))
+         = Some (Vptr bobj ofs)
+    /\ bobj <> bm
+    /\ (forall gb, find_symbol mario_ge _gMarioState = Some gb
+                   -> bobj <> gb).</td>
+<td class="g"><b>Real.</b> Mario's <code>marioObj</code> field (at its true computed offset) holds a pointer to a block
+<code>bobj</code> that is <i>distinct</i> from Mario's own block and from the <code>gMarioState</code> block.
+This is the concrete fact that makes the body's two <code>marioObj->…</code> stores provably miss the action cell.
+A statement about one field of one struct in real memory — not a <code>forall le</code>.</td></tr>
+</table>
+
+<h3>noA_run_real / no_spawn_flying_run / reachable — the run</h3>
+<table class="codetable">
+<tr><td class="c"><span class="kw">Definition</span> noA_run_real is :=
+  Forall (fun i => a_pressed i = false) is.
+<span class="kw">Definition</span> no_spawn_flying_run is :=
+  Forall (fun i => spawn_flying i = false) is.</td>
+<td class="g">The two run-level preconditions, as ordinary <code>Forall</code> facts over the frame list.
+(The input layer — <code>Inp</code>, <code>a_pressed</code>, <code>spawn_flying</code> — is still abstract;
+grounding it in the real controller word is a separate, orthogonal tethering task.)</td></tr>
+<tr><td class="c"><span class="kw">Inductive</span> reachable : S -> list Inp -> S -> Prop :=
+| reach_nil  : forall s, reachable s [] s
+| reach_cons : forall i is s s' s'',
+    step i s s' -> reachable s' is s''
+    -> reachable s (i::is) s''.</td>
+<td class="g">Fold <code>step</code> over the input list; head = earliest frame. Standard small-step closure.</td></tr>
+</table>
+
+<h3>noA_run_not_flying — the generic harness (fully proved)</h3>
+<table class="codetable">
+<tr><td class="c"><span class="kw">Theorem</span> noA_run_not_flying
+  (flying Phi : S->Prop) (init:S)
+  (Hbase : Phi init)
+  (Hstep : forall i s s', a_pressed i = false
+            -> Phi s -> step i s s' -> Phi s')
+  (Hsafe : forall s, Phi s -> ~ flying s) :
+  forall is s, noA_run is -> reachable init is s
+            -> ~ flying s.</td>
+<td class="g">Pure invariant induction over a trace, no holes. "If Φ holds at start, every no-A frame preserves Φ,
+and Φ excludes flying, then no reachable state flies." The capstone is just this, instantiated with the
+<i>real</i> step, the <i>real</i> flying predicate, and Φ := <code>mem_ok</code>.</td></tr>
+</table>
+
+<h3>frame_preserves_mem_ok / execute_mario_action_preserves_real — the bridge</h3>
+<table class="codetable">
+<tr><td class="c"><span class="kw">Lemma</span> frame_preserves_mem_ok :
+  forall i m m',
+    a_pressed i = false -> spawn_flying i = false
+    -> mem_ok m -> step i m m' -> mem_ok m'.</td>
+<td class="g">The per-frame obligation. <b>Proved</b> — by handing off to
+<code>execute_mario_action_preserves_real</code>, which lifts the body-level preservation through the
+trivial function entry (the function allocates no stack vars). But that lemma takes the three residuals
+as arguments — so this proof is real <i>modulo</i> §3.</td></tr>
+</table>
+
+<h2>5. So — have we made <i>any</i> progress? (the honest scoreboard)</h2>
+
+<p>Yes. Real, checkable progress — concentrated almost entirely in making the <b>statement</b> mean
+something, plus the <b>machinery</b>, rather than in the <b>argument</b>. Here is the ledger with nothing rounded up.</p>
+
+<table class="score">
+<thead><tr><th style="width:42%">Piece</th><th style="width:14%">Status</th><th>What it really means</th></tr></thead>
+<tbody>
+<tr><td class="mono">step = real eval_funcall of f_execute_mario_action</td>
+<td><span class="pill p-real">real</span></td>
+<td>The frame is the genuine clightgen'd game function over the real genv. Was an abstract placeholder
+relation; now it isn't. <span class="keyline">This is the headline win.</span></td></tr>
+<tr><td class="mono">mem_flying = loaded action value vs. real ACT_FLYING constants</td>
+<td><span class="pill p-real">real</span></td>
+<td>"Flying" is now a concrete load + numeric test against generated constants, not an invented predicate.</td></tr>
+<tr><td class="mono">body census: exactly 2 stores, both off the action cell</td>
+<td><span class="pill p-real">real</span></td>
+<td>Machine-checked over the literal 620-line body: its entire write content is two
+<code>marioObj-&gt;…</code> stores, and both were proved (<code>store{1,2}_avoids_action_cell</code>) to miss (bm,12).</td></tr>
+<tr><td class="mono">noA_run_not_flying harness + reduction lemmas</td>
+<td><span class="pill p-real">real</span></td>
+<td>The generic trace induction and the funcall→body bridge are fully proved, no holes.</td></tr>
+<tr><td class="mono">marioObj_wf anti-aliasing invariant</td>
+<td><span class="pill p-real">real</span></td>
+<td>The concrete "Mario's object pointer is off his own block" fact, stated over the real field offset —
+the brick the body's safety actually needs.</td></tr>
+<tr><td class="mono">body_preserves_ok (residual 3)</td>
+<td><span class="pill p-open">open</span></td>
+<td>True, and most of its bricks exist; blocked on a Coq compile-time performance wall in the threading induction.</td></tr>
+<tr><td class="mono">reach_ext_ok (residual 2)</td>
+<td><span class="pill p-open">open</span></td>
+<td>True; the reached externals are a named handful of math builtins. Not yet discharged.</td></tr>
+<tr><td class="mono">reach_value_ok (residual 1 — the crux)</td>
+<td><span class="pill p-false">false&nbsp;as&nbsp;written</span></td>
+<td><span class="keyline">This is where the real ABC argument lives, and it is untouched.</span> As stated it's
+quantified over <i>all</i> reachable functions, so <code>set_mario_action(·,ACT_FLYING,·)</code> falsifies it.
+It only becomes true once restated to consume the no-A condition (the carried-but-currently-unused
+<code>a_pressed=false</code>). None of the MarioModel commits moved this.</td></tr>
+</tbody>
+</table>
+
+<div class="verdict v-yes">
+<b>What genuinely moved.</b> The two <i>endpoints</i> of the theorem are now real SM64 objects: the per-frame
+<code>step</code> is the actual compiled game function, and "flying" is the actual action value. That is real
+tethering — the statement now constrains the real program at its boundary, and the supporting machinery
+(trace harness, entry bridge, store-geometry lemmas, anti-aliasing invariant) is proved and checked.
+</div>
+
+<div class="verdict v-no">
+<b>What did <i>not</i> move — and why "tons of commits" can feel like nothing.</b> The logical heart of the
+A-Button-Challenge result — "with no A press, no reachable call can ever set the flying action" — is
+<i>still entirely an assumption</i> (<code>reach_value_ok</code>), and that assumption is currently written in a
+form that is <b>false for the real game</b>. So as it literally stands today, the capstone is
+<span class="mono">IF (a false thing) THEN no-fly</span> — which says nothing yet about real runs. Until residual
+(1) is re-stated to use the no-A hypothesis and then discharged, we have a correct, well-built
+<i>frame</i> around the claim, with the central beam not yet in place. Much of the MarioModel work built
+real bricks (the value/provenance engine, the store geometry) that feed residual (3), not residual (1) — so
+they're genuine, but they're not the beam.
+</div>
+
+<div class="verdict v-mid">
+<b>The honest headline.</b> We have turned a theorem about a <i>fiction</i> (abstract step, abstract flying)
+into a theorem about the <i>real program at its endpoints</i>, resting on three precisely-named, individually
+attackable assumptions instead of one opaque wish. That is real progress and it is the right shape. But we
+have not yet proved the A-Button-Challenge result, and we are not close on its crux: the one assumption that
+encodes the actual no-A argument is still open <i>and</i> still mis-stated. Next beam to pour:
+re-state <code>reach_value_preserves</code> to consume <code>a_pressed = false</code>, then discharge it over the
+finite real call graph.
+</div>
+
+<div class="foot">
+Generated for <code>NoAImpliesNoFly.noA_no_spawn_never_flying</code>, GOAL 1.
+Sources: <code>proofs/NoAImpliesNoFly/NoAImpliesNoFly.v</code>,
+<code>proofs/MarioModel/{RealFrameValue,ActionValueFrame,Flying}.v</code>,
+<code>proofs/Generic/{ReachableRun,FieldNonInterference}.v</code>.
+"Real/proved" vs. "open" reflects the build at the time of writing; the residuals are
+<code>Section</code> hypotheses, so they are premises of the theorem, not discharged facts. Open this file
+directly in Chrome — no server, no dependencies.
+</div>
+
+</div>
+</body>
+</html>
