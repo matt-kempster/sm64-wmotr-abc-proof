@@ -58,11 +58,34 @@ Definition is_chase_load (FS : list ident) (a : expr) : bool :=
   | _ => false
   end.
 
+(* `tid = &q->...` -- addrof of an lvalue rooted at a tracked temp. *)
+Definition is_addrof_rooted (PT : ident -> bool) (a : expr) : bool :=
+  match a with
+  | Eaddrof lv _ =>
+      match lv_root lv with
+      | Some q => PT q && negb (Pos.eqb q mario._m) && rooted_lv q lv
+      | None => false
+      end
+  | _ => false
+  end.
+
+(* `tid = q` -- copy of a tracked temp. *)
+Definition is_tempcopy (PT : ident -> bool) (a : expr) : bool :=
+  match a with
+  | Etempvar q _ => PT q && negb (Pos.eqb q mario._m)
+  | _ => false
+  end.
+
+(* the rhs of an Sset into a TRACKED temp must keep it off-bm: a chase-load of a
+   tracked pointer field, an addrof inside a tracked block, or a tracked-temp copy. *)
+Definition is_safe_set (PT : ident -> bool) (FS : list ident) (a : expr) : bool :=
+  is_chase_load FS a || is_addrof_rooted PT a || is_tempcopy PT a.
+
 Fixpoint body_nf_ok_dec (PT : ident -> bool) (FS : list ident) (s : statement) : bool :=
   match s with
   | Sskip | Sbreak | Scontinue | Sreturn _ | Sgoto _ => true
   | Sassign a1 _ => is_chase_store PT a1
-  | Sset id a => negb (Pos.eqb id mario._m) && (negb (PT id) || is_chase_load FS a)
+  | Sset id a => negb (Pos.eqb id mario._m) && (negb (PT id) || is_safe_set PT FS a)
   | Scall None _ _ => true
   | Scall (Some id) _ _ => negb (Pos.eqb id mario._m)
   | Sbuiltin _ _ _ _ => false
@@ -107,6 +130,42 @@ Proof.
   apply Pos.eqb_eq in Hxe. subst x. exact Hin.
 Qed.
 
+Lemma is_addrof_rooted_sound :
+  forall PT FS bm e id a, is_addrof_rooted PT a = true -> set_off_bm_ok PT FS bm e id a.
+Proof.
+  intros PT FS bm e id a H. unfold is_addrof_rooted in H.
+  destruct a; try discriminate H.
+  destruct (lv_root _) as [q|]; [ | discriminate H ].
+  apply andb_prop in H. destruct H as [H1 Hroot].
+  apply andb_prop in H1. destruct H1 as [Hpt Hne].
+  eapply set_off_bm_ok_addrof_rooted.
+  - exact Hpt.
+  - intro He. rewrite He, Pos.eqb_refl in Hne. discriminate Hne.
+  - exact Hroot.
+Qed.
+
+Lemma is_tempcopy_sound :
+  forall PT FS bm e id a, is_tempcopy PT a = true -> set_off_bm_ok PT FS bm e id a.
+Proof.
+  intros PT FS bm e id a H. unfold is_tempcopy in H.
+  destruct a; try discriminate H.
+  apply andb_prop in H. destruct H as [Hpt Hne].
+  apply set_off_bm_ok_tempcopy.
+  - exact Hpt.
+  - intro He. rewrite He, Pos.eqb_refl in Hne. discriminate Hne.
+Qed.
+
+Lemma is_safe_set_sound :
+  forall PT FS bm e id a, is_safe_set PT FS a = true -> set_off_bm_ok PT FS bm e id a.
+Proof.
+  intros PT FS bm e id a H. unfold is_safe_set in H.
+  apply orb_prop in H. destruct H as [H | Htc].
+  - apply orb_prop in H. destruct H as [Hcl | Har].
+    + apply is_chase_load_sound; exact Hcl.
+    + apply is_addrof_rooted_sound; exact Har.
+  - apply is_tempcopy_sound; exact Htc.
+Qed.
+
 (* SOUNDNESS: the decidable check implies the semantic frame obligation. *)
 Lemma body_nf_ok_dec_sound :
   forall s PT FS bm en, body_nf_ok_dec PT FS s = true -> body_nf_ok PT FS bm en s.
@@ -119,7 +178,7 @@ Proof.
     + intro He. rewrite He, Pos.eqb_refl in Hid. discriminate Hid.
     + intro Hpt. apply orb_prop in Hrest. destruct Hrest as [Hn | Hcl].
       * rewrite Hpt in Hn. discriminate Hn.
-      * apply is_chase_load_sound. exact Hcl.
+      * apply is_safe_set_sound. exact Hcl.
   - (* Scall *) destruct o as [id|]; [ | exact I ].
     intro He. rewrite He, Pos.eqb_refl in H. discriminate H.
   - (* Ssequence *) apply andb_prop in H. destruct H as [H1 H2].

@@ -21,7 +21,7 @@ Import Clightdefs.ClightNotations.
 Local Open Scope clight_scope.
 From SM64.Generated Require mario.
 From SM64.Proofs Require Import Flying ActionFrame ActionValueFrame MarioMemWF
-  ResetBodystate RootedLvalue ValueFrameINV ValueFrameStmt.
+  ResetBodystate RootedLvalue ValueFrameINV ValueFrameStmt BodyNfDec.
 
 (* The TRACKED pointer temps: the chased-object pointer `t'6` (= m->marioObj) and
    the hoisted inner pointer `animInfo` (= &t'6->header.gfx.animInfo) that every
@@ -57,25 +57,9 @@ Proof.
   (* body_no_calls: straight-line + branches, no Scall/Sloop/Sswitch. *)
   assert (Hnc : body_no_calls (fn_body mario.f_set_anim_to_frame) = true)
     by reflexivity.
-  (* body_nf_ok: discharge each statement obligation. *)
+  (* body_nf_ok: now via the DECIDABLE checker (BodyNfDec) -- one reflexivity. *)
   assert (Hok : body_nf_ok PT_anim FS_anim bm e (fn_body mario.f_set_anim_to_frame)).
-  { unfold FS_anim, mario.f_set_anim_to_frame, fn_body.
-    cbn [body_nf_ok ls_body_nf_ok].
-    repeat apply conj;
-      first
-        [ (* id <> _m, OR an untracked temp's vacuous Sset obligation *)
-          solve [ intro Hx; vm_compute in Hx; discriminate Hx ]
-        | (* tracked chase-load  t'6 = m->marioObj *)
-          solve [ intros _; apply set_off_bm_ok_chase_load;
-                  cbn [In]; left; reflexivity ]
-        | (* tracked addrof  animInfo = &t'6->header.gfx.animInfo *)
-          solve [ intros _;
-                  eapply set_off_bm_ok_addrof_rooted with (q := mario._t'6);
-                  [ reflexivity | apply Pos.eqb_neq; reflexivity | reflexivity ] ]
-        | (* chase store through animInfo (the left disjunct) *)
-          solve [ left; exists mario._animInfo;
-                  split; [ apply Pos.eqb_neq; reflexivity
-                         | split; reflexivity ] ] ]. }
+  { apply body_nf_ok_dec_sound. vm_compute. reflexivity. }
   (* run the call-free frame; pull action_sat out of the preserved bundle. *)
   pose proof (exec_body_nf_callfree PT_anim FS_anim nonflying bm
                 e le m _ t le' m' out Hexec Hnc Hfr Hok) as Hfr'.
