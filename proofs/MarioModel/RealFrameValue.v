@@ -229,3 +229,227 @@ Proof.
   cbn [stmt_value_ok ls_value_ok].
   repeat split; try exact I; first [ exact H1 | exact H2 ].
 Qed.
+
+(* ================================================================== *)
+(* THE PROVENANCE PAYOFF: the two real stores land in their base TEMP's *)
+(* block, so they AVOID the action cell (bm,12) whenever that temp holds *)
+(* an off-bm pointer. This is the brick the value(+)provenance engine    *)
+(* merge consumes -- it discharges assign_value_ok's AVOID disjunct for   *)
+(* the two body stores GIVEN provenance (_t'49/_t'13 hold the marioObj    *)
+(* pointer, block != bm). Proved here against the LITERAL clightgen'd      *)
+(* lvalues; what remains for full discharge is THREADING that provenance   *)
+(* through the body exec (re-established at the `_t = gMarioState->marioObj`*)
+(* Ssets from marioObj memory-wf) -- the engine merge, not these lemmas.   *)
+(* ================================================================== *)
+
+(* ---- eval_lvalue/eval_expr inversion helpers (block-tracking) ---- *)
+
+(* Efield's base evaluates (as an EXPRESSION) to a Vptr at the SAME block:
+   both Efield rules have premise `eval_expr a (Vptr l ofs)` with conclusion
+   block l (only the offset shifts by the field delta). *)
+Lemma eval_lvalue_Efield_base :
+  forall ge e le m a i ty loc ofs bf,
+    eval_lvalue ge e le m (Efield a i ty) loc ofs bf ->
+    exists o0, eval_expr ge e le m a (Vptr loc o0).
+Proof. intros until bf; intro H; inv H; eauto. Qed.
+
+(* Ederef's base evaluates to exactly the Vptr it dereferences. *)
+Lemma eval_lvalue_Ederef_base :
+  forall ge e le m a ty loc ofs bf,
+    eval_lvalue ge e le m (Ederef a ty) loc ofs bf ->
+    eval_expr ge e le m a (Vptr loc ofs).
+Proof. intros until bf; intro H; inv H; auto. Qed.
+
+(* A temp evaluates to exactly its le binding (Etempvar is never an lvalue,
+   so eval_Elvalue cannot fire -- only eval_Etempvar). *)
+Lemma eval_expr_Etempvar_val :
+  forall ge e le m id ty v,
+    eval_expr ge e le m (Etempvar id ty) v -> le ! id = Some v.
+Proof.
+  intros until v; intro H; inv H; auto.
+  match goal with Hlv : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv Hlv end.
+Qed.
+
+(* deref_loc of an AGGREGATE type (struct/union/array: By_copy or
+   By_reference) returns the SAME block it was given -- it hands back the
+   address, it does not chase a stored pointer. (By_value WOULD chase, hence
+   the side condition; the bitfield case yields a Vint, not a Vptr.) *)
+Lemma deref_loc_aggregate_block :
+  forall ty m b ofs bf loc o,
+    (access_mode ty = By_reference \/ access_mode ty = By_copy) ->
+    deref_loc ty m b ofs bf (Vptr loc o) ->
+    loc = b.
+Proof.
+  intros ty m b ofs bf loc o Hmode H; inv H.
+  - destruct Hmode as [Hm|Hm]; congruence.
+  - reflexivity.
+  - reflexivity.
+  - match goal with Hlb : load_bitfield _ _ _ _ _ _ _ _ |- _ => inv Hlb end.
+Qed.
+
+(* Peel one aggregate Efield at the eval_expr layer (used as expression). *)
+Lemma eval_expr_Efield_peel :
+  forall ge e le m a i ty loc o,
+    (access_mode ty = By_reference \/ access_mode ty = By_copy) ->
+    eval_expr ge e le m (Efield a i ty) (Vptr loc o) ->
+    exists o0, eval_expr ge e le m a (Vptr loc o0).
+Proof.
+  intros ge e le m a i ty loc o Hmode H; inv H.
+  match goal with
+  | Hlv : eval_lvalue _ _ _ _ (Efield a i ty) ?b ?of ?bff,
+    Hd  : deref_loc _ _ ?b ?of ?bff (Vptr loc o) |- _ =>
+      cbn [typeof] in Hd;
+      apply deref_loc_aggregate_block in Hd;
+        [ subst; eapply eval_lvalue_Efield_base; exact Hlv | exact Hmode ]
+  end.
+Qed.
+
+(* Peel one aggregate Ederef at the eval_expr layer. *)
+Lemma eval_expr_Ederef_peel :
+  forall ge e le m a ty loc o,
+    (access_mode ty = By_reference \/ access_mode ty = By_copy) ->
+    eval_expr ge e le m (Ederef a ty) (Vptr loc o) ->
+    exists o0, eval_expr ge e le m a (Vptr loc o0).
+Proof.
+  intros ge e le m a ty loc o Hmode H; inv H.
+  match goal with
+  | Hlv : eval_lvalue _ _ _ _ (Ederef a ty) ?b ?of ?bff,
+    Hd  : deref_loc _ _ ?b ?of ?bff (Vptr loc o) |- _ =>
+      cbn [typeof] in Hd;
+      apply deref_loc_aggregate_block in Hd;
+        [ subst; apply eval_lvalue_Ederef_base in Hlv; eauto | exact Hmode ]
+  end.
+Qed.
+
+(* STORE 1 geometry: its location block is whatever _t'49 holds. The chain is
+   Efield(_flags) over three aggregate Efields (_node/_gfx/_header, all
+   Tstruct = By_copy) over Ederef(Object) over Etempvar _t'49. *)
+Lemma store1_loc_is_t49 :
+  forall e le m loc ofs bf,
+    eval_lvalue mario_ge e le m store1_lval loc ofs bf ->
+    exists d, le ! mario._t'49 = Some (Vptr loc d).
+Proof.
+  unfold store1_lval. intros e le m loc ofs bf H.
+  apply eval_lvalue_Efield_base in H as (?&H).
+  apply eval_expr_Efield_peel in H as (?&H); [ | cbn; auto ].
+  apply eval_expr_Efield_peel in H as (?&H); [ | cbn; auto ].
+  apply eval_expr_Efield_peel in H as (?&H); [ | cbn; auto ].
+  apply eval_expr_Ederef_peel in H as (?&H); [ | cbn; auto ].
+  apply eval_expr_Etempvar_val in H. eauto.
+Qed.
+
+(* STORE 1 avoidance: if _t'49 is off bm, store 1 misses the action cell. *)
+Lemma store1_avoids_action_cell :
+  forall bm e le m loc ofs bf b d,
+    le ! mario._t'49 = Some (Vptr b d) -> b <> bm ->
+    eval_lvalue mario_ge e le m store1_lval loc ofs bf ->
+    forall i, ~ action_cell bm loc i.
+Proof.
+  intros bm e le m loc ofs bf b d Hle Hne Hlv i [Hb _].
+  apply store1_loc_is_t49 in Hlv as (d' & Hle').
+  rewrite Hle in Hle'. inv Hle'. congruence.
+Qed.
+
+(* Store 2 adds array indexing: `base[43]` = Ederef(Ebinop Oadd base 43). The
+   pointer arithmetic keeps the pointer operand's BLOCK -- adding an int to a
+   pointer never changes its block. We need this only for base : array, idx :
+   int, the add_case_pi shape. *)
+Lemma sem_add_array_int_block :
+  forall cenv v1 n m loc o,
+    sem_binary_operation cenv Oadd v1 (tarray tint 80) (Vint n) tint m
+      = Some (Vptr loc o) ->
+    exists o1, v1 = Vptr loc o1.
+Proof.
+  intros cenv v1 n m loc o H. cbn in H.
+  destruct v1; try discriminate. inv H. eauto.
+Qed.
+
+(* Clean single-conclusion inversions (each kills the spurious eval_Elvalue
+   branch that inv on a non-lvalue eval_expr would otherwise leave). *)
+Lemma eval_expr_Econst_int_val :
+  forall ge e le m i ty v, eval_expr ge e le m (Econst_int i ty) v -> v = Vint i.
+Proof.
+  intros until v; intro H; inv H; auto.
+  match goal with Hl : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ => inv Hl end.
+Qed.
+
+Lemma eval_expr_Ebinop_inv :
+  forall ge e le m op a1 a2 ty v,
+    eval_expr ge e le m (Ebinop op a1 a2 ty) v ->
+    exists v1 v2,
+      eval_expr ge e le m a1 v1 /\ eval_expr ge e le m a2 v2 /\
+      sem_binary_operation ge op v1 (typeof a1) v2 (typeof a2) m = Some v.
+Proof.
+  intros until v; intro H; inv H.
+  - eauto 7.
+  - match goal with Hl : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => inv Hl end.
+Qed.
+
+(* STORE 2 geometry: its location block is whatever _t'13 holds. Chain:
+   Ederef(Ebinop Oadd (asS32[array] . rawData[union] . (Ederef _t'13)) 43). *)
+Lemma store2_loc_is_t13 :
+  forall e le m loc ofs bf,
+    eval_lvalue mario_ge e le m store2_lval loc ofs bf ->
+    exists d, le ! mario._t'13 = Some (Vptr loc d).
+Proof.
+  unfold store2_lval. intros e le m loc ofs bf H.
+  apply eval_lvalue_Ederef_base in H.
+  apply eval_expr_Ebinop_inv in H as (v1 & v2 & Hb & Hidx & Hsem).
+  apply eval_expr_Econst_int_val in Hidx; subst v2.
+  apply sem_add_array_int_block in Hsem as (?&?); subst v1.
+  apply eval_expr_Efield_peel in Hb as (?&Hb); [ | cbn; auto ].   (* _asS32 : array  *)
+  apply eval_expr_Efield_peel in Hb as (?&Hb); [ | cbn; auto ].   (* _rawData : union *)
+  apply eval_expr_Ederef_peel in Hb as (?&Hb); [ | cbn; auto ].   (* Ederef Object   *)
+  apply eval_expr_Etempvar_val in Hb. eauto.
+Qed.
+
+(* STORE 2 avoidance: if _t'13 is off bm, store 2 misses the action cell. *)
+Lemma store2_avoids_action_cell :
+  forall bm e le m loc ofs bf b d,
+    le ! mario._t'13 = Some (Vptr b d) -> b <> bm ->
+    eval_lvalue mario_ge e le m store2_lval loc ofs bf ->
+    forall i, ~ action_cell bm loc i.
+Proof.
+  intros bm e le m loc ofs bf b d Hle Hne Hlv i [Hb _].
+  apply store2_loc_is_t13 in Hlv as (d' & Hle').
+  rewrite Hle in Hle'. inv Hle'. congruence.
+Qed.
+
+(* ================================================================== *)
+(* ENGINE-PLUGGABLE FORM: each store satisfies assign_value_ok's BODY   *)
+(* (its disjunction) GIVEN the base temp is off-bm. This is EXACTLY the  *)
+(* obligation the value engine discharges at its Sassign case -- the     *)
+(* future value(+)provenance engine supplies `le!_t = Vptr b d, b<>bm`   *)
+(* from its tmps_off_bm invariant, and these lemmas close the goal via    *)
+(* the AVOID disjunct. So the only thing between these and residual (3)    *)
+(* being DISCHARGED is threading that provenance through the body exec.   *)
+(* ================================================================== *)
+Lemma store1_value_ok_offbm :
+  forall bm e le m loc ofs bf v2 v b d,
+    le ! mario._t'49 = Some (Vptr b d) -> b <> bm ->
+    eval_lvalue mario_ge e le m store1_lval loc ofs bf ->
+    eval_expr mario_ge e le m store1_rval v2 ->
+    sem_cast v2 (typeof store1_rval) (typeof store1_lval) m = Some v ->
+    (forall i, Ptrofs.unsigned ofs <= i < Ptrofs.unsigned ofs + sizeof mario_ge (typeof store1_lval) ->
+               ~ action_cell bm loc i)
+    \/ (loc = bm /\ Ptrofs.unsigned ofs = 12 /\ access_mode (typeof store1_lval) = By_value Mint32
+        /\ bf = Full /\ exists w, v = Vint w /\ nonflying w).
+Proof.
+  intros bm e le m loc ofs bf v2 v b d Hle Hne Hlv _ _.
+  left; intros i _. eapply store1_avoids_action_cell; eauto.
+Qed.
+
+Lemma store2_value_ok_offbm :
+  forall bm e le m loc ofs bf v2 v b d,
+    le ! mario._t'13 = Some (Vptr b d) -> b <> bm ->
+    eval_lvalue mario_ge e le m store2_lval loc ofs bf ->
+    eval_expr mario_ge e le m store2_rval v2 ->
+    sem_cast v2 (typeof store2_rval) (typeof store2_lval) m = Some v ->
+    (forall i, Ptrofs.unsigned ofs <= i < Ptrofs.unsigned ofs + sizeof mario_ge (typeof store2_lval) ->
+               ~ action_cell bm loc i)
+    \/ (loc = bm /\ Ptrofs.unsigned ofs = 12 /\ access_mode (typeof store2_lval) = By_value Mint32
+        /\ bf = Full /\ exists w, v = Vint w /\ nonflying w).
+Proof.
+  intros bm e le m loc ofs bf v2 v b d Hle Hne Hlv _ _.
+  left; intros i _. eapply store2_avoids_action_cell; eauto.
+Qed.
