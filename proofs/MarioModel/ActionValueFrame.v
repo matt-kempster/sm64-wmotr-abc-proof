@@ -33,6 +33,7 @@
  *)
 
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory Globalenvs Ctypes Cop Clight ClightBigstep.
+From Coq Require Import Classical_Prop.
 From SM64.Generated Require mario.
 From SM64.Proofs Require Import Flying FieldNonInterference ActionValue.
 
@@ -365,6 +366,80 @@ Definition reach_value_preserves (Q : int -> Prop) (bm : block) (ge : genv) : Pr
     Mem.valid_block m bm ->
     action_sat Q m bm ->
     Mem.valid_block m' bm /\ action_sat Q m' bm.
+
+(* ====================================================================== *)
+(* DECOMPOSING the crux: the writer / non-writer split (no-A conditioned). *)
+(*                                                                        *)
+(* `reach_value_preserves Q bm mario_ge` (above) is, for the REAL Mario    *)
+(* genv, FALSE: set_mario_action(., ACT_FLYING, .) is a reached            *)
+(* eval_funcall that turns the action flying. It is ALSO unconditioned --  *)
+(* it ignores the no-A precondition that is the whole point. We refine it  *)
+(* (decompose, never collapse) along the only real fault line: among ALL   *)
+(* reached funcalls, exactly ONE (set_mario_action) writes the action      *)
+(* cell; every other leaves it untouched.                                  *)
+(*                                                                        *)
+(*   reach_nonwriter_unchanged -- every reached funcall that is NOT the     *)
+(*     designated `writer` leaves the action cell unchanged_on (=> any      *)
+(*     action_sat Q survives, via action_sat_unchanged_on). TRUE; its       *)
+(*     discharge is per-function offset-avoidance over the call graph.      *)
+(*   reach_writer_preserves_noA -- the writer case, conditioned on a no-A   *)
+(*     memory predicate `NoA`. TRUE at the real NoA (a no-A frame calls      *)
+(*     set_mario_action only with a non-flying argument -- the taint-       *)
+(*     closure crux); NON-VACUOUS because NoA pins it to the real no-A runs. *)
+(*                                                                        *)
+(* The two compose to the no-A-CONDITIONED reach property below, which is   *)
+(* what the per-frame proof can actually supply (the frame carries          *)
+(* a_pressed=false). This is how the FALSE unconditional residual leaves    *)
+(* the capstone. NoA itself becomes the next thing to GROUND (in the real   *)
+(* controller bytes) -- the same honest move as grounding the abstract     *)
+(* `step` into the real eval_funcall.                                      *)
+(* ====================================================================== *)
+
+Definition reach_value_preserves_noA
+    (Q : int -> Prop) (bm : block) (ge : genv) (NoA : mem -> Prop) : Prop :=
+  forall m fd vargs t m' vres,
+    NoA m ->
+    eval_funcall function_entry2 ge m fd vargs t m' vres ->
+    Mem.valid_block m bm ->
+    action_sat Q m bm ->
+    Mem.valid_block m' bm /\ action_sat Q m' bm.
+
+Definition reach_nonwriter_unchanged
+    (bm : block) (ge : genv) (writer : Clight.fundef -> Prop) : Prop :=
+  forall m fd vargs t m' vres,
+    eval_funcall function_entry2 ge m fd vargs t m' vres ->
+    ~ writer fd ->
+    Mem.valid_block m bm ->
+    Mem.valid_block m' bm /\ Mem.unchanged_on (action_cell bm) m m'.
+
+Definition reach_writer_preserves_noA
+    (Q : int -> Prop) (bm : block) (ge : genv)
+    (writer : Clight.fundef -> Prop) (NoA : mem -> Prop) : Prop :=
+  forall m fd vargs t m' vres,
+    NoA m ->
+    eval_funcall function_entry2 ge m fd vargs t m' vres ->
+    writer fd ->
+    Mem.valid_block m bm ->
+    action_sat Q m bm ->
+    Mem.valid_block m' bm /\ action_sat Q m' bm.
+
+(* THE GLUE (proved): writer-isolation + the conditioned writer case give    *)
+(* the conditioned reach property. A clean case split on `writer fd`         *)
+(* (classical, already in the capstone's axiom footprint); the non-writer    *)
+(* branch closes by action_sat_unchanged_on. *)
+Lemma reach_value_preserves_noA_split :
+  forall Q bm ge writer NoA,
+    reach_nonwriter_unchanged bm ge writer ->
+    reach_writer_preserves_noA Q bm ge writer NoA ->
+    reach_value_preserves_noA Q bm ge NoA.
+Proof.
+  intros Q bm ge writer NoA Hnw Hw m fd vargs t m' vres HnoA Hev Hv Hsat.
+  destruct (classic (writer fd)) as [Hwr | Hnwr].
+  - eapply Hw; eauto.
+  - destruct (Hnw m fd vargs t m' vres Hev Hnwr Hv) as [Hv' Hunch].
+    split; [ exact Hv' | ].
+    eapply action_sat_unchanged_on; [ exact Hunch | exact Hv | exact Hsat ].
+Qed.
 
 (* THE CAPSTONE: the value-aware statement frame. Executing any clightgen *)
 (* statement (calls and loops included) carries action_sat Q FORWARD,      *)

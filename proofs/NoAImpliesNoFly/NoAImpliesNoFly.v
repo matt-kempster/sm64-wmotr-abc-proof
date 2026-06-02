@@ -129,21 +129,47 @@ Section NoAImpliesNoFly.
   Definition no_spawn_flying_run (is : list Inp) : Prop :=
     Forall (fun i => spawn_flying i = false) is.
 
-  (* ---- The value engine's reach residuals over the REAL Mario genv ----
-     These are the honest scoreboard the capstone now rests on (see header). *)
-  Hypothesis reach_value_ok :
-    reach_value_preserves nonflying bm mario_ge.
+  (* ---- The NO-A memory predicate + the reach residuals over the REAL genv ----
+     The honest scoreboard the capstone now rests on. `NoA m` says "this frame's
+     memory has Mario's A button unpressed". It is left ABSTRACT here; the next
+     tethering step is to GROUND it in the real controller bytes -- exactly the
+     move that turned the once-abstract `step` into the real eval_funcall. Every
+     residual below is TRUE at the real NoA, and none is an adversarial universal. *)
+  Variable NoA : mem -> Prop.
+
+  (* The designated action writer: among reached funcalls, only set_mario_action
+     writes Mario's action cell. A REAL object -- the clightgen'd f_set_mario_action
+     -- not a placeholder. *)
+  Definition writer_set_mario_action (fd : Clight.fundef) : Prop :=
+    fd = Ctypes.Internal mario.f_set_mario_action.
+
+  (* (1) THE CRUX, now DECOMPOSED -- this REPLACES the single FALSE residual
+     `reach_value_preserves nonflying bm mario_ge` (set_mario_action with an
+     ACT_FLYING argument is a reached eval_funcall that falsified it). The fault
+     line is real: among ALL reached funcalls exactly one writes the action cell.
+     (1a) every reached funcall that is NOT set_mario_action leaves the action
+          cell unchanged -- TRUE; discharge = per-function offset-avoidance over
+          the call graph. *)
+  Hypothesis reach_nonwriter_ok :
+    reach_nonwriter_unchanged bm mario_ge writer_set_mario_action.
+  (* (1b) a reached set_mario_action call, in a NO-A frame, preserves non-flying
+          -- TRUE at the real NoA (no-A => its action argument is non-flying, the
+          taint-closure crux). The entire no-A argument is now isolated HERE. *)
+  Hypothesis reach_writer_ok :
+    reach_writer_preserves_noA nonflying bm mario_ge writer_set_mario_action NoA.
+  (* (2) externals don't write the action cell. *)
   Hypothesis reach_ext_ok :
     reach_ext_preserves (action_cell bm) mario_ge.
-  (* (3) NOW CONCRETE, not a `forall le`. SM64 is one program, so residual (3) is
-     a fact about the ACTUAL executions of the ONE body: from a well-formed state
-     (valid bm, non-flying, marioObj off bm) and given the call/external residuals,
-     the real body exec preserves all three. This REPLACES the previous
-     `body_stores_value_ok` (which was FALSE: assign_value_ok's `forall le m`
-     admitted an adversarial temp aliasing bm). The geometry payoff lemmas
-     (store{1,2}_avoids_action_cell / _value_ok_offbm) are the store-case bricks
-     for discharging this concrete residual via the augmented engine. *)
-  Hypothesis body_preserves_ok : body_preserves_real bm.
+  (* (3) the real body preserves the invariants (now NoA-threaded). The concrete
+     fact about the ACTUAL executions of the ONE body (no `forall le`); the
+     geometry payoff lemmas are its store-case bricks, discharged via the
+     augmented engine. *)
+  Hypothesis body_preserves_ok : body_preserves_real bm NoA.
+  (* INPUT GROUNDING: a no-A frame's starting memory satisfies NoA. The named
+     residual that ties the abstract a_pressed flag to the real frame memory;
+     it and NoA's grounding are the remaining input-layer gap. *)
+  Hypothesis input_grounds_noA :
+    forall i m m', a_pressed i = false -> step i m m' -> NoA m.
 
   (* ---- The per-frame obligation: now PROVED via the value engine bridge ----
      A real frame preserves (bm valid /\ action non-flying). The a_pressed/
@@ -158,9 +184,15 @@ Section NoAImpliesNoFly.
       step i m m' ->
       mem_ok m'.
   Proof.
-    intros i m m' _ _ (Hv & Hsat & Hwf) Hst.
-    exact (execute_mario_action_preserves_real bm m m'
-             reach_value_ok reach_ext_ok body_preserves_ok Hv Hsat Hwf Hst).
+    intros i m m' Ha _ (Hv & Hsat & Hwf) Hst.
+    assert (HnoA : NoA m) by (eapply input_grounds_noA; eassumption).
+    pose proof (reach_value_preserves_noA_split nonflying bm mario_ge
+                  writer_set_mario_action NoA reach_nonwriter_ok reach_writer_ok)
+      as Hreach.
+    destruct (execute_mario_action_preserves_real bm NoA m m'
+                Hreach reach_ext_ok body_preserves_ok HnoA Hv Hsat Hwf Hst)
+      as (_ & Hv' & Hs' & Hw').
+    exact (conj Hv' (conj Hs' Hw')).
   Qed.
 
   (* Combine the two run preconditions into the single "no dangerous frame" flag
