@@ -61,10 +61,23 @@ pipeline/        scripts: source -> preprocessed C -> clightgen -> generated/*.v
 experiments/     self-contained inputs not from upstream
   toy/           Milestone-0 toy C file
 generated/       GENERATED Clight ASTs (.v). Committed, never hand-edited.
-proofs/          Rocq analyses + theorems over generated/
+proofs/          Rocq analyses + theorems over generated/, organized by two
+                 nested goals (see proofs/README.md for the dependency graph):
+  Generic/         shared: subject-independent analyses + frame lemmas
+  MarioModel/      shared: Mario action vocabulary + value-aware frame engine
+  Toy/ Shadow/     M0/M1 pipeline demos
+  NoAImpliesNoFly/   GOAL 1 (near-term): no-A => no-fly capstone, with sub-areas
+                     StoreFrameDischarge/ (a sub-goal: spine + Unwired/),
+                     AltStatements/, ActionAnalyses/
+  WMotRRequiresA/    GOAL 2 (eventual): WMotR ABC-impossibility; README + empty
+                     Unwired/ (builds on GOAL 1; not started)
 _CoqProject      Rocq logical-path map
 Makefile         top-level: regenerate + build proofs
 ```
+
+> Files and theorems were renamed/reorganized to literal names; older `docs/`
+> conversations predate that. See [`docs/RENAMING.md`](docs/RENAMING.md) for the
+> full old → new map.
 
 ## Toolchain
 
@@ -94,7 +107,7 @@ make                     # clightgen the toy, then build proofs
 ```
 
 This runs `clightgen` on `experiments/toy/toy.c` → `generated/toy.v`, then checks
-`proofs/ToyFrame.v`, which defines a generic syntactic "does function `f` assign to global
+`proofs/Milestones/ToyFrame.v`, which defines a generic syntactic "does function `f` assign to global
 `g`?" analysis over the Clight AST and machine-checks two facts:
 
 - `clobber` **does** write the global `gUnrelated`  (positive control), and
