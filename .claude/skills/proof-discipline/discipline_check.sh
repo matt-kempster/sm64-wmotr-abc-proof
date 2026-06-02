@@ -99,8 +99,10 @@ echo "     is NOT progress on the theorem until that hypothesis is itself proved
 
 line
 if [ "$fail" -eq 0 ]; then
-  echo "VERDICT: clean. (Mechanical checks only -- still confirm the STATEMENT is the"
-  echo "right one and non-vacuous; see SKILL.md 'Did you prove the right thing?'.)"
+  echo "VERDICT: clean -- but clean is the FLOOR, not progress. This says the tree is"
+  echo "hygienic and hooked in; it does NOT say the bottom line moved. Progress = a"
+  echo "residual above proved for, or sharpened toward, the REAL program (tethering)."
+  echo "See SKILL.md 'Did you advance the bottom line?'."
 else
   echo "VERDICT: FAIL -- fix the holes above before claiming the proof advanced."
 fi
