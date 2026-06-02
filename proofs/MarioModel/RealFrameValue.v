@@ -47,7 +47,7 @@
  * No Admitted.
  *)
 
-From compcert Require Import Coqlib Maps AST Integers Values Events Memory
+From compcert Require Import Coqlib Errors Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep.
 From Coq Require Import List.
 Import ListNotations.
@@ -115,6 +115,27 @@ Definition mario_ge : genv := globalenv mario.prog.
 (* The non-flying action predicate (Q for the value engine). *)
 Definition nonflying (v : int) : Prop := is_flying_int v = false.
 
+(* ---- Concrete genv layout: SM64 is ONE program, so these are facts, not
+   universals. The MarioState composite + the marioObj field offset come
+   straight from the clightgen'd composite env. ---- *)
+Definition mario_ce : composite_env := prog_comp_env mario.prog.
+Definition mario_members : members :=
+  match mario_ce ! mario._MarioState with
+  | Some co => co_members co
+  | None => nil
+  end.
+
+(* marioObj memory well-formedness: gMarioState->marioObj loads a pointer into a
+   block DISTINCT from Mario's own block bm. This is the honest CARRIED invariant
+   (the marioObj pointer is wired up at init by render/graph code we don't trace);
+   it is exactly what makes the body's two pointer-chase stores land off the
+   action cell. NOT a `forall le` -- a concrete fact about one field of one
+   struct in the real memory. *)
+Definition marioObj_wf (m : mem) (bm : block) : Prop :=
+  exists off bobj ofs,
+    field_offset mario_ce mario._marioObj mario_members = OK (off, Full) /\
+    Mem.load Mptr m bm off = Some (Vptr bobj ofs) /\ bobj <> bm.
+
 (* One real per-frame Mario update: a CompCert big-step of the actual
    f_execute_mario_action on an Object pointer. (The input is latched in
    memory; the value-engine preservation below holds for ANY input -- the
@@ -125,38 +146,79 @@ Definition execute_mario_action_step (m m' : mem) : Prop :=
       (Internal mario.f_execute_mario_action)
       (Vptr b_o Ptrofs.zero :: nil) t m' res.
 
-(* THE REDUCTION: a real frame preserves (valid bm /\ non-flying action),
-   GIVEN exactly the value engine's three named residuals over mario_ge:
-     - reach_value_preserves nonflying bm mario_ge   (THE interprocedural crux)
-     - reach_ext_preserves (action_cell bm) mario_ge
-     - the body-local per-Sassign value-ok of execute_mario_action's own body
-       (the action writes proper happen in CALLEES, governed by
-       reach_value_preserves, not here). HONEST SCOPE: this body residual is
-       OVER-STRONG as a bare `forall e, stmt_value_ok ...`. The body has exactly
-       two Sassigns and BOTH store through gMarioState->marioObj -- the Mario
-       Object block -- (`...->header.gfx.node.flags`, tshort; and
-       `...->rawData.asS32[43]`, tint). Since assign_value_ok quantifies
-       `forall le m` with no link between the base temp and memory, an adversarial
-       le (temp |-> Vptr bm delta) drives the field offset onto byte 12 and both
-       disjuncts fail. Its TRUE content is the memory-wf fact that marioObj's block
-       != bm -- the StoreFrameDischarge tmps_off_bm invariant. So the bridge here
-       needs no param-shape for the ENTRY inversion, but fully removing this body
-       residual wants a value(+)provenance engine merge. *)
-Theorem execute_mario_action_preserves_nonflying :
+(* ENTRY LIFT (concrete, no `forall le`): a whole eval_funcall of a no-stack-var
+   function preserves whatever its BODY's exec_stmt preserves. Same trivial entry
+   inversion as funcall_value_preserves (fn_vars=nil -> empty_env, free_list of
+   nil is identity), but it delegates to a body-EXECUTION predicate instead of a
+   `forall le` syntactic check. *)
+Theorem funcall_from_body_preserves :
+  forall (P : mem -> Prop) (ge : genv) (f : function) vargs m m' t res,
+    fn_vars f = nil ->
+    (forall e le mm tt le' mm' out,
+       P mm ->
+       exec_stmt function_entry2 ge e le mm (fn_body f) tt le' mm' out ->
+       P mm') ->
+    P m ->
+    eval_funcall function_entry2 ge m (Internal f) vargs t m' res ->
+    P m'.
+Proof.
+  intros P ge f vargs m m' t res Hvars Hbody HP Hfun.
+  inv Hfun.
+  match goal with Hfe : function_entry2 _ _ _ _ _ _ _ |- _ => inv Hfe end.
+  match goal with Hav : alloc_variables _ _ _ _ _ _ |- _ =>
+    rewrite Hvars in Hav; inv Hav end.
+  match goal with
+  | Hexec : exec_stmt function_entry2 ge empty_env _ _ (fn_body f) _ _ _ _ |- _ =>
+      assert (HP2 : P _) by (eapply Hbody; [ exact HP | exact Hexec ])
+  end.
+  match goal with Hfree : Mem.free_list _ _ = Some _ |- _ =>
+    assert (Hbe : blocks_of_env ge empty_env = nil) by reflexivity;
+    rewrite Hbe in Hfree; cbn [Mem.free_list] in Hfree; inv Hfree end.
+  exact HP2.
+Qed.
+
+(* THE CONCRETE RESIDUAL (replaces the false `forall le` stmt_value_ok). SM64 is
+   ONE program: this is a fact about the ACTUAL executions of the ONE body, from
+   states that are well-formed (valid bm, non-flying action, marioObj off-bm),
+   GIVEN the (separately-named) call/external residuals. It is TRUE -- the body's
+   own two stores land off bm by marioObj_wf (store{1,2}_avoids_action_cell), its
+   calls preserve by reach_value, its builtins by reach_ext -- and it carries the
+   invariants forward (including marioObj_wf, since the two stores hit the Object
+   block, not bm's marioObj field). No adversarial `forall le`: le and m are
+   whatever the real run produces. Discharging it is the augmented-engine work;
+   the geometry payoff lemmas below are its store-case bricks. *)
+Definition body_preserves_real (bm : block) : Prop :=
+  reach_value_preserves nonflying bm mario_ge ->
+  reach_ext_preserves (action_cell bm) mario_ge ->
+  forall e le m t le' m' out,
+    Mem.valid_block m bm -> action_sat nonflying m bm -> marioObj_wf m bm ->
+    exec_stmt function_entry2 mario_ge e le m
+      (fn_body mario.f_execute_mario_action) t le' m' out ->
+    Mem.valid_block m' bm /\ action_sat nonflying m' bm /\ marioObj_wf m' bm.
+
+(* THE REDUCTION (concrete): a real frame preserves (valid /\ non-flying /\
+   marioObj-wf), given the two call/external residuals and the concrete body
+   residual. Lifted from the body execution by the trivial entry inversion. *)
+Theorem execute_mario_action_preserves_real :
   forall (bm : block) m m',
     reach_value_preserves nonflying bm mario_ge ->
     reach_ext_preserves (action_cell bm) mario_ge ->
-    (forall e, stmt_value_ok nonflying bm mario_ge e
-                 (fn_body mario.f_execute_mario_action)) ->
+    body_preserves_real bm ->
     Mem.valid_block m bm ->
     action_sat nonflying m bm ->
+    marioObj_wf m bm ->
     execute_mario_action_step m m' ->
-    Mem.valid_block m' bm /\ action_sat nonflying m' bm.
+    Mem.valid_block m' bm /\ action_sat nonflying m' bm /\ marioObj_wf m' bm.
 Proof.
-  intros bm m m' Hreach Hext Hok Hv Hsat (b_o & t & res & Hfun).
-  exact (funcall_value_preserves nonflying bm mario_ge
-           mario.f_execute_mario_action (Vptr b_o Ptrofs.zero :: nil) m m' t res
-           Hreach Hext eq_refl Hok Hv Hsat Hfun).
+  intros bm m m' Hreach Hext Hbody Hv Hsat Hwf (b_o & t & res & Hfun).
+  apply (funcall_from_body_preserves
+           (fun mm => Mem.valid_block mm bm /\ action_sat nonflying mm bm /\ marioObj_wf mm bm)
+           mario_ge mario.f_execute_mario_action (Vptr b_o Ptrofs.zero :: nil) m m' t res
+           eq_refl).
+  - intros e le mm tt le' mm' out (Hv1 & Hs1 & Hw1) Hexec.
+    exact (Hbody Hreach Hext e le mm tt le' mm' out Hv1 Hs1 Hw1 Hexec).
+  - exact (conj Hv (conj Hsat Hwf)).
+  - exact Hfun.
 Qed.
 
 (* ================================================================== *)
