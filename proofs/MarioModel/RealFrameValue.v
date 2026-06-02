@@ -27,7 +27,12 @@
  *     interprocedural reach closure over the REAL genv:
  *       reach_value_preserves nonflying bm mario_ge   (THE CRUX)
  *       reach_ext_preserves (action_cell bm) mario_ge
- *     plus the decidable, body-local `stmt_value_ok` of execute_mario_action.
+ *     plus the body-local `stmt_value_ok` of execute_mario_action. NB (audited
+ *     2026-06-02): that last one is NOT the "decidable" win it looks like -- the
+ *     body's two Sassigns store through gMarioState->marioObj (the Object block),
+ *     and assign_value_ok's `forall le m` is over-strong (an adversarial temp can
+ *     alias bm). Its honest content is the marioObj-off-bm memory invariant, so it
+ *     wants a value(+)provenance engine merge. See execute_mario_action_step below.
  *
  * THE CRUX, named honestly. `reach_value_preserves nonflying bm mario_ge`
  * (every reached funcall preserves the non-flying action) is the interprocedural
@@ -125,11 +130,18 @@ Definition execute_mario_action_step (m m' : mem) : Prop :=
      - reach_value_preserves nonflying bm mario_ge   (THE interprocedural crux)
      - reach_ext_preserves (action_cell bm) mario_ge
      - the body-local per-Sassign value-ok of execute_mario_action's own body
-       (decidable; the body's direct writes avoid the action cell or store a
-       non-flying value -- the action writes happen in CALLEES, governed by
-       reach_value_preserves, not here).
-   No param-shape, no temp invariant, no gMarioState well-formedness: the
-   value invariant is about the cell (bm,12) alone. *)
+       (the action writes proper happen in CALLEES, governed by
+       reach_value_preserves, not here). HONEST SCOPE: this body residual is
+       OVER-STRONG as a bare `forall e, stmt_value_ok ...`. The body has exactly
+       two Sassigns and BOTH store through gMarioState->marioObj -- the Mario
+       Object block -- (`...->header.gfx.node.flags`, tshort; and
+       `...->rawData.asS32[43]`, tint). Since assign_value_ok quantifies
+       `forall le m` with no link between the base temp and memory, an adversarial
+       le (temp |-> Vptr bm delta) drives the field offset onto byte 12 and both
+       disjuncts fail. Its TRUE content is the memory-wf fact that marioObj's block
+       != bm -- the StoreFrameDischarge tmps_off_bm invariant. So the bridge here
+       needs no param-shape for the ENTRY inversion, but fully removing this body
+       residual wants a value(+)provenance engine merge. *)
 Theorem execute_mario_action_preserves_nonflying :
   forall (bm : block) m m',
     reach_value_preserves nonflying bm mario_ge ->
