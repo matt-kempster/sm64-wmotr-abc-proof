@@ -1305,9 +1305,31 @@ Theorem exec_funcall_reach_value_reached :
     (forall e le m id a v,
        MWF m -> eval_expr ge e le m a v -> TI le -> C (Sset id a) ->
        TI (PTree.set id v le)) ->
-    (forall optid a al v le, C (Scall optid a al) -> TI le -> TI (set_opttemp optid v le)) ->
+    (* TI preserved when a call/builtin RESULT is stored into optid. NO LONGER a
+       `forall v` phantom: the result v is constrained to be a non-bm pointer (or
+       non-pointer) -- exactly what the engine threads from the actual callee's
+       return value at the Scall/Sbuiltin cases (Hret_call / Hret_builtin below).
+       This is what lets a pointer-tracking TI survive set_opttemp: the only way a
+       call result could break "no temp points into bm" is by returning a bm ptr,
+       which the reached callees never do. *)
+    (forall optid a al v le,
+       C (Scall optid a al) -> TI le ->
+       (forall b o, v = Vptr b o -> b <> bm) -> TI (set_opttemp optid v le)) ->
     (forall optid ef tyargs al v le,
-       C (Sbuiltin optid ef tyargs al) -> TI le -> TI (set_opttemp optid v le)) ->
+       C (Sbuiltin optid ef tyargs al) -> TI le ->
+       (forall b o, v = Vptr b o -> b <> bm) -> TI (set_opttemp optid v le)) ->
+    (* the RETURN-PROVENANCE bridges that supply the above. A reached funcall's
+       result is never a pointer into bm (the reached callees return scalars /
+       off-bm values, never Mario's block); an external/builtin result likewise.
+       These replace the discarded `forall v` quantifier with the real fact about
+       the actual return value -- precise + per-callee dischargeable. *)
+    (forall fd m0 vargs0 t0 m0' vres0,
+       Reached_fd fd ->
+       eval_funcall function_entry2 ge m0 fd vargs0 t0 m0' vres0 ->
+       forall b o, vres0 = Vptr b o -> b <> bm) ->
+    (forall ef vargs0 m0 t0 vres0 m0',
+       external_call ef ge vargs0 m0 t0 vres0 m0' ->
+       forall b o, vres0 = Vptr b o -> b <> bm) ->
     (* NEW: the call-target-reached bridge. Under TI+C a reached call resolves to
        a Reached callee -- the semantic shadow of the decidable callgraph closure. *)
     (forall e le m optid a al vf fd,
@@ -1340,6 +1362,7 @@ Theorem exec_funcall_reach_value_reached :
     reach_value_preserves_reached Q bm ge NoA MWF Reached_fd.
 Proof.
   intros Q bm ge NoA MWF writer Reached_fd TI C Hbody Hassign Hcallmarg HTI_set HTI_optc HTI_optb
+         Hret_call Hret_builtin
          Hcall_reached Hw Hext Hmwf_ext Hmwf_unch Hnoaexec Hnoaentry HCseq HCif HCloop HCsw.
   assert (MAIN :
     (forall e le m s t le' m' out,
@@ -1378,7 +1401,9 @@ Proof.
       assert (Hreached : Reached_fd f) by (eapply Hcall_reached; [ exact HTI | exact HC | exact He | exact Hff ]).
       destruct (IHfun Hreached HnoA HMWF Hv Hsat Hmarg) as (Hv' & Hsat' & HMWF').
       split; [ exact Hv' | split; [ exact Hsat' | split; [ exact HMWF' |
-        eapply HTI_optc; [ exact HC | exact HTI ] ] ] ].
+        eapply HTI_optc;
+          [ exact HC | exact HTI
+          | exact (Hret_call f m vargs t m' vres Hreached Hfd) ] ] ] ].
     - (* Sbuiltin *)
       intros e le m optid ef al tyargs vargs t m' vres Hel Hec HnoA HMWF Hv Hsat HTI HC.
       split;
@@ -1387,7 +1412,9 @@ Proof.
         [ eapply action_sat_unchanged_on; [ eapply Hext; exact Hec | exact Hv | exact Hsat ]
         | split;
           [ eapply Hmwf_ext; [ exact Hec | exact Hv | exact HMWF ]
-          | eapply HTI_optb; [ exact HC | exact HTI ] ] ] ].
+          | eapply HTI_optb;
+              [ exact HC | exact HTI
+              | exact (Hret_builtin ef vargs m t vres m' Hec) ] ] ] ].
     - (* Sseq_1 *)
       intros e le m s1 s2 t1 le1 m1 t2 le2 m2 out He1 IH1 He2 IH2 HnoA HMWF Hv Hsat HTI HC.
       destruct (HCseq _ _ HC) as [HC1 HC2].
