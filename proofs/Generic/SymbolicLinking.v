@@ -28,7 +28,10 @@
  *)
 
 From compcert Require Import Coqlib Maps AST Integers Globalenvs Ctypes Clight Linking.
-From SM64.Generated Require mario mario_actions_airborne.
+From SM64.Generated Require mario
+  mario_actions_airborne mario_actions_moving mario_actions_stationary
+  mario_actions_submerged mario_actions_cutscene mario_actions_automatic
+  mario_actions_object.
 
 (* CHEAP single-TU fact (the one bounded computation): airborne's OWN program
    defines act_flying as an Internal function. One program's defmap lookup. *)
@@ -201,3 +204,84 @@ Section AirborneRealSymbols.
   Proof. eapply linked_resolves_internal; [ exact Hlink | exact airborne_defmap_shot_from_cannon ]. Qed.
 
 End AirborneRealSymbols.
+
+(* ====================================================================== *)
+(* THE FULL DISPATCH-RESOLUTION LAYER.                                     *)
+(*                                                                        *)
+(* execute_mario_action switches on the action group and calls one of the *)
+(* SEVEN mario_execute_<group>_action dispatchers -- every one an          *)
+(* underspecified External in mario.prog. Over the eventual N-way linked   *)
+(* program lp (mario + the 7 action TUs + step/interaction), each resolves *)
+(* to its real Internal body. Parameterized by per-member `linkorder       *)
+(* <group>.prog lp` -- exactly what `link_list`'s link_linkorder chain      *)
+(* yields for each member -- so this layer is independent of the precise    *)
+(* link association/order. lp stays abstract; the only computations are     *)
+(* per-TU defmap lookups.                                                  *)
+(* ====================================================================== *)
+Section AllDispatchers.
+  Variable lp : Clight.program.
+  Hypothesis LO_air : linkorder mario_actions_airborne.prog lp.
+  Hypothesis LO_mov : linkorder mario_actions_moving.prog lp.
+  Hypothesis LO_sta : linkorder mario_actions_stationary.prog lp.
+  Hypothesis LO_sub : linkorder mario_actions_submerged.prog lp.
+  Hypothesis LO_cut : linkorder mario_actions_cutscene.prog lp.
+  Hypothesis LO_aut : linkorder mario_actions_automatic.prog lp.
+  Hypothesis LO_obj : linkorder mario_actions_object.prog lp.
+
+  Theorem resolves_dispatch_airborne :
+    exists b,
+      Genv.find_symbol (globalenv lp)
+        mario_actions_airborne._mario_execute_airborne_action = Some b /\
+      Genv.find_funct_ptr (globalenv lp) b
+        = Some (Internal mario_actions_airborne.f_mario_execute_airborne_action).
+  Proof. eapply linkorder_resolves_internal; [ exact LO_air | vm_compute; reflexivity ]. Qed.
+
+  Theorem resolves_dispatch_moving :
+    exists b,
+      Genv.find_symbol (globalenv lp)
+        mario_actions_moving._mario_execute_moving_action = Some b /\
+      Genv.find_funct_ptr (globalenv lp) b
+        = Some (Internal mario_actions_moving.f_mario_execute_moving_action).
+  Proof. eapply linkorder_resolves_internal; [ exact LO_mov | vm_compute; reflexivity ]. Qed.
+
+  Theorem resolves_dispatch_stationary :
+    exists b,
+      Genv.find_symbol (globalenv lp)
+        mario_actions_stationary._mario_execute_stationary_action = Some b /\
+      Genv.find_funct_ptr (globalenv lp) b
+        = Some (Internal mario_actions_stationary.f_mario_execute_stationary_action).
+  Proof. eapply linkorder_resolves_internal; [ exact LO_sta | vm_compute; reflexivity ]. Qed.
+
+  Theorem resolves_dispatch_submerged :
+    exists b,
+      Genv.find_symbol (globalenv lp)
+        mario_actions_submerged._mario_execute_submerged_action = Some b /\
+      Genv.find_funct_ptr (globalenv lp) b
+        = Some (Internal mario_actions_submerged.f_mario_execute_submerged_action).
+  Proof. eapply linkorder_resolves_internal; [ exact LO_sub | vm_compute; reflexivity ]. Qed.
+
+  Theorem resolves_dispatch_cutscene :
+    exists b,
+      Genv.find_symbol (globalenv lp)
+        mario_actions_cutscene._mario_execute_cutscene_action = Some b /\
+      Genv.find_funct_ptr (globalenv lp) b
+        = Some (Internal mario_actions_cutscene.f_mario_execute_cutscene_action).
+  Proof. eapply linkorder_resolves_internal; [ exact LO_cut | vm_compute; reflexivity ]. Qed.
+
+  Theorem resolves_dispatch_automatic :
+    exists b,
+      Genv.find_symbol (globalenv lp)
+        mario_actions_automatic._mario_execute_automatic_action = Some b /\
+      Genv.find_funct_ptr (globalenv lp) b
+        = Some (Internal mario_actions_automatic.f_mario_execute_automatic_action).
+  Proof. eapply linkorder_resolves_internal; [ exact LO_aut | vm_compute; reflexivity ]. Qed.
+
+  Theorem resolves_dispatch_object :
+    exists b,
+      Genv.find_symbol (globalenv lp)
+        mario_actions_object._mario_execute_object_action = Some b /\
+      Genv.find_funct_ptr (globalenv lp) b
+        = Some (Internal mario_actions_object.f_mario_execute_object_action).
+  Proof. eapply linkorder_resolves_internal; [ exact LO_obj | vm_compute; reflexivity ]. Qed.
+
+End AllDispatchers.
