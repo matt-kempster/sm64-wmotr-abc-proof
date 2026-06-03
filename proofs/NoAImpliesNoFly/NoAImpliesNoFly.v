@@ -201,7 +201,7 @@ Fixpoint store_root (a : expr) : option ident :=
 Definition field_safe_for_action (f : ident) (fty : type) : bool :=
   match field_offset mario_ce f mario_members with
   | OK (d, Full) =>
-      ((d + sizeof mario_ce fty <=? 12) || (16 <=? d)) && (d <? Ptrofs.modulus)
+      (0 <=? d) && ((d + sizeof mario_ce fty <=? 12) || (16 <=? d)) && (d <? Ptrofs.modulus)
   | _ => false
   end.
 
@@ -642,12 +642,94 @@ Section NoAImpliesNoFly.
      field_offset f, base (bm,0) by TI) whose census-certified offset range
      (field_safe_for_action) misses the action cell. Pure struct-layout arithmetic
      over the real mario_ce; isolated here, discharged just below. *)
-  Hypothesis m_direct_avoids :
+  Lemma m_direct_avoids :
     forall e le m a1 loc ofs bf,
       eval_lvalue mario_ge e le m a1 loc ofs bf ->
       TI le -> is_m_direct_field a1 = true -> loc = bm ->
       forall i, Ptrofs.unsigned ofs <= i < Ptrofs.unsigned ofs + sizeof mario_ge (typeof a1) ->
                 ~ (12 <= i < 12 + size_chunk Mint32).
+  Proof.
+    intros e le m a1 loc ofs bf Hlval Hti Hmd Hloc i Hi Hcell. subst loc.
+    (* peel a1 = Efield (Ederef (Etempvar _m (Tpointer (Tstruct _MarioState _) _))
+                              (Tstruct _MarioState _)) fld fty *)
+    destruct a1 as [ | | | | | | | | | | | ad fld fty | | ]; try discriminate Hmd.
+    unfold is_m_direct_field in Hmd.
+    destruct ad as [ | | | | | | adp adty | | | | | | | ]; try discriminate Hmd.
+    destruct adp as [ | | | | | tmp mty | | | | | | | | ]; try discriminate Hmd.
+    destruct mty as [ | | | | mtsub mtattr | | | | ]; try discriminate Hmd.
+    destruct mtsub as [ | | | | | | | sid sattr | ]; try discriminate Hmd.
+    destruct adty as [ | | | | | | | sid' sattr' | ]; try discriminate Hmd.
+    (* Hmd: tmp=?_m && sid=?_MarioState && sid'=?_MarioState && field_safe_for_action fld fty *)
+    apply andb_true_iff in Hmd; destruct Hmd as [Hmd Hfsafe].
+    apply andb_true_iff in Hmd; destruct Hmd as [Hmd Hsid'].
+    apply andb_true_iff in Hmd; destruct Hmd as [Htmp Hsid].
+    apply Pos.eqb_eq in Htmp, Hsid, Hsid'. subst tmp sid sid'.
+    (* extract the census offset facts *)
+    unfold field_safe_for_action in Hfsafe.
+    destruct (field_offset mario_ce fld mario_members) as [[d [|]]|] eqn:Hfo_ce;
+      try discriminate Hfsafe.
+    apply andb_true_iff in Hfsafe; destruct Hfsafe as [Hfsafe Hdmod].
+    apply andb_true_iff in Hfsafe; destruct Hfsafe as [Hd0 Hdisj].
+    apply Z.leb_le in Hd0. apply Z.ltb_lt in Hdmod.
+    (* le!_m = (bm, 0): block via RootedLvalue (loc = root temp's block) + TI for
+       the offset. Done BEFORE inverting Hlval so bm is never subst-eliminated. *)
+    match goal with
+    | Hlval : eval_lvalue _ _ _ _ ?a1 bm ofs bf |- _ =>
+        assert (Hrt : rooted_lv mario._m a1 = true) by reflexivity;
+        destruct (rooted_lv_root_value mario_ge e le m mario._m a1 bm ofs bf Hlval Hrt)
+          as (pb & po & Hm);
+        pose proof (eval_lvalue_rooted mario_ge e le m mario._m pb po a1 bm ofs bf
+                      Hm Hlval Hrt) as Hpb
+    end.
+    subst pb. destruct (Hti mario._m bm po Hm eq_refl) as [_ Hpo]. subst po.
+    (* invert the Efield for the field offset (delta = d by determinism) *)
+    inv Hlval; [ | match goal with H : typeof _ = Tunion _ _ |- _ =>
+                       cbn in H; discriminate H end ].
+    match goal with H : typeof _ = Tstruct _ _ |- _ => cbn in H; inv H end.
+    match goal with
+    | Hco : (genv_cenv mario_ge) ! _ = Some ?co,
+      Hfo : field_offset (genv_cenv mario_ge) fld (co_members ?co) = OK (?delta, ?bff) |- _ =>
+        rewrite cenv_eq in Hco, Hfo;
+        assert (Hcm : co_members co = mario_members)
+          by (unfold mario_members; rewrite Hco; reflexivity);
+        rewrite Hcm in Hfo; rewrite Hfo in Hfo_ce; inv Hfo_ce
+    end.
+    (* the Efield base offset ofs0 is 0: it is the deref of le!_m = (bm,0).
+       `ofs0` is the base-offset variable introduced by `inv Hlval` above. *)
+    assert (Hofs0 : ofs0 = Ptrofs.zero).
+    { match goal with
+      | Hee : eval_expr _ _ _ _ (Ederef (Etempvar _ _) _) (Vptr _ ofs0) |- _ => inv Hee
+      end.
+      match goal with
+      | Hlv2 : eval_lvalue _ _ _ _ (Ederef (Etempvar _ _) _) _ _ _ |- _ => inv Hlv2
+      end.
+      (* eval_expr is mutually inductive: inv produces the real eval_Etempvar branch
+         AND a bogus eval_Elvalue branch with an impossible eval_lvalue (Etempvar _ _)
+         hyp.  The latter has no constructor -- inv it away. *)
+      match goal with
+      | Hetv : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ => inv Hetv
+      end.
+      all: try (match goal with
+                | H : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => solve [ inv H ]
+                end).
+      (* real branch: deref of the aggregate gives Vptr bm ofs0 = Vptr loc ofs, and
+         le!_m pins loc = bm, ofs = 0 (via Hm); congruence closes ofs0 = 0. *)
+      match goal with
+      | Hdl : deref_loc ?ty _ _ _ _ _ |- _ =>
+          pose proof (deref_loc_aggregate_inv ty _ _ _ _ _
+                        (eq_refl : is_aggregate ty = true) Hdl) as Hveq
+      end.
+      congruence. }
+    subst ofs0.
+    (* ofs = repr d ; range [d, d + sizeof fty) disjoint from [12,16) *)
+    rewrite Ptrofs.add_zero_l in Hi.
+    rewrite Ptrofs.unsigned_repr in Hi by (unfold Ptrofs.max_unsigned; lia).
+    (* reduce typeof (Efield ..) to fty, then sizeof (genv_cenv mario_ge) = mario_ce *)
+    cbn [typeof] in Hi. rewrite cenv_eq in Hi.
+    change (size_chunk Mint32) with 4 in Hcell. apply orb_true_iff in Hdisj.
+    destruct Hdisj as [Hle | Hge];
+      [ apply Z.leb_le in Hle | apply Z.leb_le in Hge ]; lia.
+  Qed.
   Lemma assign_avoids_action_cell :
     forall e le m a1 a2 loc ofs bf,
       eval_lvalue mario_ge e le m a1 loc ofs bf ->
