@@ -146,6 +146,18 @@ Section NoAImpliesNoFly.
      residual below is TRUE at the real NoA, and none is an adversarial universal. *)
   Variable NoA : mem -> Prop.
 
+  (* Reachability gating. `Reached_id`/`Reached_fd` carve out the FINITE set of
+     functions the frame actually reaches (execute_mario_action + its 17
+     writer-free callees; docs/reachable-internal-graph.md). Gating the value
+     engine by these is what ESCAPES the `forall f` phantom: the body leaf below
+     fires only for ACTUALLY-reached callees, so it is enumerable (case-split the
+     17 + vm_compute) rather than a per-function census asserted for every
+     conceivable f. Concretely Reached_id := membership in reached_ids and
+     Reached_fd := being the Internal of one of those; abstract here, the
+     downstream discharge instantiates them. *)
+  Variable Reached_id : ident -> Prop.
+  Variable Reached_fd : Clight.fundef -> Prop.
+
   (* The designated action writer: among reached funcalls, only set_mario_action
      writes Mario's action cell. A REAL object -- the clightgen'd f_set_mario_action
      -- not a placeholder. *)
@@ -171,11 +183,15 @@ Section NoAImpliesNoFly.
      actual call args under a marg_ok guard, never an adversarial `forall le`. *)
   Variable TI : temp_env -> Prop.
   Variable C  : statement -> Prop.
-  (* (1a) marg-gated body leaf: a reached non-writer entered with marg_ok args has
-          entry-temp-invariant TI and its body passes census C. EXECUTION-RELATIVE
-          (the entry le is the one the marg call args produced), not forall-le. *)
+  (* (1a) REACHED + marg-gated body leaf: an ACTUALLY-REACHED non-writer entered
+          with marg_ok args has entry-temp-invariant TI and its body passes census
+          C. The `Reached_fd (Internal f)` premise is what kills the forall-f
+          phantom -- this is no longer a claim about every conceivable function,
+          only the finite reached set, dischargeable by enumeration. EXECUTION-
+          RELATIVE (the entry le is the one the marg call args produced). *)
   Hypothesis reach_value_body_marg :
     forall f vargs m e le m1,
+      Reached_fd (Ctypes.Internal f) ->
       function_entry2 mario_ge f vargs m e le m1 ->
       ~ writer_set_mario_action (Ctypes.Internal f) ->
       marg_ok bm vargs ->
@@ -213,13 +229,32 @@ Section NoAImpliesNoFly.
   Hypothesis reach_C_loop : forall s1 s2, C (Sloop s1 s2) -> C s1 /\ C s2.
   Hypothesis reach_C_sw   :
     forall a ls n, C (Sswitch a ls) -> C (seq_of_labeled_statement (select_switch n ls)).
-  (* (1b) PHANTOM via forall-vargs. set_mario_action under NoA does NOT preserve
-          non-flying for arbitrary vargs (vargs=[..,ACT_FLYING,..] with NoA holding
-          breaks it). Real content = TAINT CLOSURE (no-A => the ACTUAL calls have
-          non-flying args; A-gated). The A-gates live in EXTERNAL TUs, so this is not
-          fully expressible at single-TU scope -- it needs linking. *)
+  (* (1a''''') THE CALL-TARGET-REACHED BRIDGE (value engine). Under TI+C, a reached
+          call resolves to a Reached callee -- the semantic image of the decidable
+          callgraph closure (CallgraphReach.reaches; the static-graph half is
+          machine-checked in Unwired/ReachScratch over the real mario.prog). This
+          is what threads reachability through the reached callees' OWN calls; its
+          discharge is the isolated genv resolution (Evar id -> find_symbol id ->
+          fd at id), NOT a forall over functions. *)
+  Hypothesis reach_call_reached :
+    forall e le m optid a al vf fd,
+      TI le -> C (Scall optid a al) ->
+      eval_expr mario_ge e le m a vf -> Genv.find_funct mario_ge vf = Some fd ->
+      Reached_fd fd.
+  (* (1b) THE WRITER CASE, now REACHED-gated. set_mario_action is the sole internal
+          action writer, and it is statically UNREACHABLE from execute_mario_action
+          (machine-checked: Unwired/ReachScratch emA_reaches_no_internal_action_
+          writer). So once Reached_fd is the concrete reached set, `Reached_fd fd /\
+          writer_set_mario_action fd` is contradictory and this leaf is discharged
+          BY VACUITY -- the forall-vargs phantom of the old writer leaf is gone, and
+          the cross-TU A-gated dispatch is governed by the EXTERNAL residual (3). *)
   Hypothesis reach_writer_ok :
-    reach_writer_preserves_wf nonflying bm mario_ge writer_set_mario_action NoA MWF.
+    forall m fd vargs t m' vres,
+      Reached_fd fd -> NoA m -> MWF m ->
+      eval_funcall function_entry2 mario_ge m fd vargs t m' vres ->
+      writer_set_mario_action fd ->
+      Mem.valid_block m bm -> action_sat nonflying m bm ->
+      Mem.valid_block m' bm /\ action_sat nonflying m' bm /\ MWF m'.
   (* (1c) reached externals don't write the action cell. NB: these "externals"
           INCLUDE the cross-TU action handlers (the mario_execute_ / act_ family) --
           so this is a STRONG assumption that currently holds the real crux, to be
@@ -272,6 +307,22 @@ Section NoAImpliesNoFly.
     forall e le mm a1 a2 tt le' mm' out,
       NoA mm -> prov_ok (Sassign a1 a2) -> MWF mm ->
       exec_stmt function_entry2 mario_ge e le mm (Sassign a1 a2) tt le' mm' out -> MWF mm'.
+  (* (4c) THE BODY'S CALL TARGETS ARE REACHED. The call-target-reached bridge for
+     execute_mario_action's OWN body: each censused call (reach_chk) resolves to a
+     Reached callee. Together with body_reach_chk this threads Reached_fd from the
+     frame root to the value engine -- the body-engine analogue of
+     reach_call_reached. Discharge: per-call genv resolution over the finite body. *)
+  Hypothesis body_calls_reached :
+    forall oid a al e le mm vf fd,
+      reach_chk Reached_id (Scall oid a al) ->
+      eval_expr mario_ge e le mm a vf ->
+      Genv.find_funct mario_ge vf = Some fd -> Reached_fd fd.
+  (* (4d) execute_mario_action's body passes the syntactic call-target census:
+     every direct call in it targets `Evar id` with `Reached_id id`. A decidable
+     vm_compute fact once Reached_id is the concrete reached set (the closure base
+     Unwired/ReachScratch.emA_callees_are_reached_or_external machine-checks). *)
+  Hypothesis body_reach_chk :
+    reach_chk Reached_id (fn_body mario.f_execute_mario_action).
   (* (5) the real body preserves the invariant: now PROVED, not assumed. The old
      `body_preserves_real bm NoA` hypothesis is GONE -- the body is discharged by
      RealFrameValue.execute_mario_action_preserves_real (the census-backed
@@ -305,19 +356,20 @@ Section NoAImpliesNoFly.
        load `_t = _m->field` re-establishes the entry-temp provenance TI (closing
        the once-unsatisfiable forall-m reach_TI_set). The body engine supplies
        marg_ok at the real call sites. *)
-    pose proof (exec_funcall_reach_value_wf nonflying bm mario_ge NoA MWF
-                  writer_set_mario_action TI C
+    pose proof (exec_funcall_reach_value_reached nonflying bm mario_ge NoA MWF
+                  writer_set_mario_action Reached_fd TI C
                   reach_value_body_marg reach_assign_marg reach_call_marg
                   reach_TI_set reach_TI_optc reach_TI_optb
-                  reach_writer_ok reach_ext_action_cell Hmwf_ext Hmwf_unch
-                  noA_exec_ok noA_entry_ok
+                  reach_call_reached reach_writer_ok reach_ext_action_cell
+                  Hmwf_ext Hmwf_unch noA_exec_ok noA_entry_ok
                   reach_C_seq reach_C_if reach_C_loop reach_C_sw)
       as Hreach.
-    destruct (execute_mario_action_preserves_real_wf bm NoA MWF m m'
+    destruct (execute_mario_action_preserves_real_reached bm NoA MWF
+                Reached_id Reached_fd m m'
                 Hreach reach_rest_ok ext_meminv_ok
                 (fun e le mm a1 a2 tt le' mm' out HnoA' _ Hexec =>
                    noA_exec_ok e le mm (Sassign a1 a2) tt le' mm' out Hexec HnoA')
-                store_mwf
+                store_mwf body_calls_reached body_reach_chk
                 HnoA HMWF Hv Hsat Hwf Hgwf Hst)
       as (_ & Hv' & Hs' & Hw' & Hgw' & HMWF').
     exact (conj Hv' (conj Hs' (conj Hw' (conj Hgw' HMWF')))).

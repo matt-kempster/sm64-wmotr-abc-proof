@@ -1714,6 +1714,181 @@ Section ProvEngine.
              | apply pgms_seq_of; apply pgms_select_switch; exact Hg ].
   Qed.
 
+  (* ================================================================== *)
+  (* THE REACHABILITY-ROOTED BODY ENGINE.                                 *)
+  (*                                                                     *)
+  (* As exec_body_prov_wf, but the reach hypothesis is Reached_fd-gated   *)
+  (* (reach_meminv_reached) and the body's Scall leaf SUPPLIES Reached_fd *)
+  (* of the resolved callee from a syntactic call-target census reach_chk *)
+  (* (every Scall targets `Evar id` with `Reached_id id`) via the bridge  *)
+  (* body_call_reached. This is what lets the capstone consume the        *)
+  (* reachability-rooted VALUE engine ActionValueFrame.exec_funcall_      *)
+  (* reach_value_reached, whose body leaf only fires for ACTUALLY-reached *)
+  (* callees -- escaping the forall-f phantom. Reached_id stays abstract  *)
+  (* here; the capstone instantiates it as membership-in-the-17 and       *)
+  (* discharges reach_chk(body) by vm_compute + body_call_reached by genv *)
+  (* resolution (Evar id -> find_symbol id -> fd at id is reached).       *)
+  (* ================================================================== *)
+  Variable Reached_id : ident -> Prop.
+  Variable Reached_fd : Clight.fundef -> Prop.
+
+  (* syntactic census: every direct call in s targets `Evar id` with a
+     reached id; indirect (non-Evar) calls are forbidden (False). *)
+  Fixpoint reach_chk (s : statement) : Prop :=
+    match s with
+    | Scall _ (Evar id _) _ => Reached_id id
+    | Scall _ _ _           => False
+    | Ssequence s1 s2       => reach_chk s1 /\ reach_chk s2
+    | Sifthenelse _ s1 s2   => reach_chk s1 /\ reach_chk s2
+    | Sloop s1 s2           => reach_chk s1 /\ reach_chk s2
+    | Slabel _ s1           => reach_chk s1
+    | Sswitch _ ls          => reach_chk_ls ls
+    | _                     => True
+    end
+  with reach_chk_ls (ls : labeled_statements) : Prop :=
+    match ls with
+    | LSnil           => True
+    | LScons _ s rest => reach_chk s /\ reach_chk_ls rest
+    end.
+
+  (* switch preservation for reach_chk (mirror of pgms_ssd/ssc/seq_of/select). *)
+  Lemma reach_ssd : forall sl, reach_chk_ls sl -> reach_chk_ls (select_switch_default sl).
+  Proof.
+    clear Hgb.
+    induction sl as [| o s rest IH]; simpl; intros H; auto.
+    destruct o as [c|]; simpl; [ destruct H as [_ Hr]; apply IH; exact Hr | exact H ].
+  Qed.
+
+  Lemma reach_ssc : forall n sl res,
+    reach_chk_ls sl -> select_switch_case n sl = Some res -> reach_chk_ls res.
+  Proof.
+    clear Hgb.
+    induction sl as [| o s rest IH]; simpl; intros res Hav Hsel; try discriminate.
+    destruct Hav as [Hs Hr]. destruct o as [c|]; simpl in Hsel.
+    - destruct (zeq c n).
+      + inv Hsel. simpl. split; [ exact Hs | exact Hr ].
+      + exact (IH res Hr Hsel).
+    - exact (IH res Hr Hsel).
+  Qed.
+
+  Lemma reach_seq_of : forall ls, reach_chk_ls ls -> reach_chk (seq_of_labeled_statement ls).
+  Proof.
+    clear Hgb.
+    induction ls as [| o s rest IH]; simpl; intros H; auto. destruct H. split; auto.
+  Qed.
+
+  Lemma reach_select_switch : forall n sl,
+    reach_chk_ls sl -> reach_chk_ls (select_switch n sl).
+  Proof.
+    clear Hgb.
+    intros n sl H. unfold select_switch.
+    destruct (select_switch_case n sl) eqn:E.
+    - exact (reach_ssc n sl l H E).
+    - apply reach_ssd; exact H.
+  Qed.
+
+  Hypothesis reach_meminv_reached :
+    forall m fd vargs t m' vres,
+      Reached_fd fd ->
+      NoA m -> meminv m -> MWF m -> marg_ok bm vargs ->
+      eval_funcall function_entry2 mario_ge m fd vargs t m' vres ->
+      NoA m' /\ meminv m' /\ MWF m'.
+  (* the call-target-reached bridge: a censused call's resolved callee is
+     Reached. (Discharged downstream per call site: Evar id with id reached,
+     resolve id -> fd through the genv.) *)
+  Hypothesis body_call_reached :
+    forall oid a al e le m vf fd,
+      reach_chk (Scall oid a al) ->
+      eval_expr mario_ge e le m a vf ->
+      Genv.find_funct mario_ge vf = Some fd ->
+      Reached_fd fd.
+
+  Theorem exec_body_prov_reached :
+    forall e le m s t le' m' out,
+      e ! mario._gMarioState = None ->
+      exec_stmt function_entry2 mario_ge e le m s t le' m' out ->
+      NoA m -> meminv m -> tprov le -> Pgms bm le -> MWF m ->
+      prov_ok s -> pgms_chk s -> reach_chk s ->
+      NoA m' /\ meminv m' /\ tprov le' /\ Pgms bm le' /\ MWF m'.
+  Proof.
+    intros e le m s t le' m' out He H Hno Hmem Htp Hpg Hmwf Hck Hpck Hrck.
+    apply (body_check_generic mario_ge e
+             (fun mm ll => NoA mm /\ meminv mm /\ tprov ll /\ Pgms bm ll /\ MWF mm)
+             (fun ss => prov_ok ss /\ pgms_chk ss /\ reach_chk ss))
+      with (le := le) (m := m) (s := s) (t := t) (le' := le') (m' := m') (out := out);
+      try exact H;
+      try (split; [ exact Hno | split; [ exact Hmem | split; [ exact Htp
+            | split; [ exact Hpg | exact Hmwf ] ] ] ]);
+      try (split; [ exact Hck | split; [ exact Hpck | exact Hrck ] ]).
+    - (* Sassign leaf *)
+      intros le0 m0 a1 a2 t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0 & Hmwf0) (Hck0 & _ & _) Hexec.
+      assert (Hle : le0' = le0) by (inversion Hexec; reflexivity). subst le0'.
+      assert (Hno0' : NoA m0') by (eapply noA_store_pres; [ exact Hno0 | exact Hck0 | exact Hexec ]).
+      assert (Hmwf0' : MWF m0') by (eapply store_mwf; [ exact Hno0 | exact Hck0 | exact Hmwf0 | exact Hexec ]).
+      split; [ exact Hno0' | ].
+      split; [ | split; [ exact Htp0 | split; [ exact Hpg0 | exact Hmwf0' ] ] ].
+      cbn [prov_ok] in Hck0.
+      destruct Htp0 as (T48 & T12 & T49 & T13).
+      destruct Hck0 as [ [Ha1 Ha2] | [Ha1 Ha2] ]; subst.
+      + eapply (store_preserves_meminv store1_lval store1_rval mario._t'49 store1_loc_is_t49);
+          [ exact Hmem0 | exact T49 | exact Hexec ].
+      + eapply (store_preserves_meminv store2_lval store2_rval mario._t'13 store2_loc_is_t13);
+          [ exact Hmem0 | exact T13 | exact Hexec ].
+    - (* Sset leaf *)
+      intros le0 m0 id a t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0 & Hmwf0) (Hck0 & Hpck0 & _) Hexec.
+      cbn [prov_ok] in Hck0. cbn [pgms_chk] in Hpck0.
+      assert (Hm : m0' = m0) by (inversion Hexec; reflexivity).
+      pose proof Hmem0 as Hmemcopy. destruct Hmemcopy as (_ & _ & _ & Hgwf0).
+      destruct (sset_case_preserves e le0 m0 id a t0 le0' m0' out0 He Hmem0 Htp0 Hck0 Hexec)
+        as (Hmem0' & Htp0').
+      split; [ rewrite Hm; exact Hno0 | ].
+      split; [ exact Hmem0' | split; [ exact Htp0' | split ] ].
+      + eapply pgms_sset_preserves; [ exact He | exact Hgwf0 | exact Hpg0 | exact Hpck0 | exact Hexec ].
+      + rewrite Hm; exact Hmwf0.
+    - (* Scall leaf -- supplies marg_ok AND Reached_fd to reach_meminv_reached *)
+      intros le0 m0 oid a al t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0 & Hmwf0) (Hck0 & Hpck0 & Hrck0) Hexec.
+      cbn [prov_ok] in Hck0. cbn [pgms_chk] in Hpck0.
+      destruct Hpck0 as (Hres & Hargs).
+      inversion Hexec; subst.
+      match goal with He0 : eval_expr _ _ _ _ a ?vf |- _ =>
+        match goal with Hff : Genv.find_funct _ vf = Some ?fd |- _ =>
+          assert (Hrf : Reached_fd fd)
+            by (eapply body_call_reached; [ exact Hrck0 | exact He0 | exact Hff ]) end end.
+      match goal with Hel : eval_exprlist _ _ _ _ al _ ?vargs |- _ =>
+        assert (Hmarg : marg_ok bm vargs)
+          by (eapply call_arg0_marg_sound; [ exact Hpg0 | exact Hargs | exact Hel ]) end.
+      match goal with Hf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+        destruct (reach_meminv_reached _ _ _ _ _ _ Hrf Hno0 Hmem0 Hmwf0 Hmarg Hf)
+          as (Hno0' & Hmem0' & Hmwf0') end.
+      split; [ exact Hno0' | split; [ exact Hmem0' | split; [ | split ] ] ].
+      + apply tprov_set_opttemp; [ exact Hck0 | exact Htp0 ].
+      + apply pgms_set_opttemp; [ exact Hres | exact Hpg0 ].
+      + exact Hmwf0'.
+    - (* Sbuiltin leaf *)
+      intros le0 m0 oid ef tyl al t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0 & Hmwf0) (Hck0 & Hpck0 & _) Hexec.
+      cbn [prov_ok] in Hck0. cbn [pgms_chk] in Hpck0.
+      inversion Hexec; subst.
+      match goal with Hec : external_call _ _ _ _ _ _ _ |- _ =>
+        destruct (ext_mwf _ _ _ _ _ _ Hno0 Hmem0 Hmwf0 Hec) as (Hno0' & Hmem0' & Hmwf0') end.
+      split; [ exact Hno0' | split; [ exact Hmem0' | split; [ | split ] ] ].
+      + apply tprov_set_opttemp; [ exact Hck0 | exact Htp0 ].
+      + apply pgms_set_opttemp; [ exact Hpck0 | exact Hpg0 ].
+      + exact Hmwf0'.
+    - (* Hseq *) intros s1 s2 Hd; destruct Hd as (Hp & Hg & Hr);
+        cbn [prov_ok pgms_chk reach_chk] in Hp, Hg, Hr; tauto.
+    - (* Hif *) intros a s1 s2 Hd; destruct Hd as (Hp & Hg & Hr);
+        cbn [prov_ok pgms_chk reach_chk] in Hp, Hg, Hr; tauto.
+    - (* Hloop *) intros s1 s2 Hd; destruct Hd as (Hp & Hg & Hr);
+        cbn [prov_ok pgms_chk reach_chk] in Hp, Hg, Hr; tauto.
+    - (* Hlabel *) intros l s0 Hd; destruct Hd as (Hp & Hg & Hr);
+        cbn [prov_ok pgms_chk reach_chk] in Hp, Hg, Hr; tauto.
+    - (* Hsw *) intros a ls n Hd; destruct Hd as (Hp & Hg & Hr);
+        cbn [prov_ok pgms_chk reach_chk] in Hp, Hg, Hr.
+      split; [ apply seq_of_prov_ok; apply select_switch_prov_ok; exact Hp
+             | split; [ apply pgms_seq_of; apply pgms_select_switch; exact Hg
+                      | apply reach_seq_of; apply reach_select_switch; exact Hr ] ].
+  Qed.
+
 End ProvEngine.
 
 (* ================================================================== *)
@@ -2228,6 +2403,94 @@ Proof.
       | exact Hmf
       | exact execute_mario_action_body_prov_ok
       | exact execute_mario_action_body_pgms_ok
+      | ].
+    unfold meminv in Hmem'. destruct Hmem' as (Hvv' & Hss' & Hmw' & Hgw').
+    exact (conj Hn' (conj Hvv' (conj Hss' (conj Hmw' (conj Hgw' Hmf'))))). }
+  exact HPm'.
+Qed.
+
+(* ================================================================== *)
+(* THE REACHABILITY-ROOTED whole-frame value preservation.              *)
+(*                                                                     *)
+(* As execute_mario_action_preserves_real_wf, but built on the         *)
+(* reachability-rooted value engine: the reach hypothesis is           *)
+(* Reached_fd-gated, so its body leaf only concerns ACTUALLY-reached    *)
+(* callees (no forall-f phantom). The body's calls are certified to hit *)
+(* reached functions by reach_chk(body) (a vm_compute fact downstream)  *)
+(* and resolved to Reached_fd via body_call_reached.                    *)
+(* ================================================================== *)
+Lemma reach_meminv_reached_build :
+  forall bm NoA MWF (Reached_fd : Clight.fundef -> Prop),
+    reach_value_preserves_reached nonflying bm mario_ge NoA MWF Reached_fd ->
+    reach_rest_marg bm NoA ->
+    forall m fd vargs t m' vres,
+      Reached_fd fd ->
+      NoA m -> meminv bm m -> MWF m -> marg_ok bm vargs ->
+      eval_funcall function_entry2 mario_ge m fd vargs t m' vres ->
+      NoA m' /\ meminv bm m' /\ MWF m'.
+Proof.
+  intros bm NoA MWF Reached_fd Hval Hrest m fd vargs t m' vres Hrf Hno Hmem HMWF Hmarg Hev.
+  unfold meminv in Hmem. destruct Hmem as (Hv & Hsat & Hmwf & Hgwf).
+  destruct (Hval m fd vargs t m' vres Hrf Hno HMWF Hmarg Hev Hv Hsat) as (Hv' & Hsat' & HMWF').
+  destruct (Hrest m fd vargs t m' vres Hno Hmarg Hev Hmwf Hgwf) as (Hno' & Hmwf' & Hgwf').
+  split; [ exact Hno' | split; [ unfold meminv; repeat split; assumption | exact HMWF' ] ].
+Qed.
+
+Theorem execute_mario_action_preserves_real_reached :
+  forall (bm : block) (NoA MWF : mem -> Prop)
+         (Reached_id : ident -> Prop) (Reached_fd : Clight.fundef -> Prop) m m',
+    reach_value_preserves_reached nonflying bm mario_ge NoA MWF Reached_fd ->
+    reach_rest_marg bm NoA ->
+    (forall ef vargs mm tt vres mm',
+        NoA mm -> meminv bm mm -> MWF mm ->
+        external_call ef mario_ge vargs mm tt vres mm' ->
+        NoA mm' /\ meminv bm mm' /\ MWF mm') ->
+    (forall e le mm a1 a2 tt le' mm' out,
+        NoA mm -> prov_ok (Sassign a1 a2) ->
+        exec_stmt function_entry2 mario_ge e le mm (Sassign a1 a2) tt le' mm' out -> NoA mm') ->
+    (forall e le mm a1 a2 tt le' mm' out,
+        NoA mm -> prov_ok (Sassign a1 a2) -> MWF mm ->
+        exec_stmt function_entry2 mario_ge e le mm (Sassign a1 a2) tt le' mm' out -> MWF mm') ->
+    (forall oid a al e le mm vf fd,
+        reach_chk Reached_id (Scall oid a al) ->
+        eval_expr mario_ge e le mm a vf ->
+        Genv.find_funct mario_ge vf = Some fd -> Reached_fd fd) ->
+    reach_chk Reached_id (fn_body mario.f_execute_mario_action) ->
+    NoA m -> MWF m ->
+    Mem.valid_block m bm -> action_sat nonflying m bm ->
+    marioObj_wf m bm -> gMarioState_wf m bm ->
+    execute_mario_action_step m m' ->
+    NoA m' /\ Mem.valid_block m' bm /\ action_sat nonflying m' bm /\
+    marioObj_wf m' bm /\ gMarioState_wf m' bm /\ MWF m'.
+Proof.
+  intros bm NoA MWF Reached_id Reached_fd m m' Hval Hrest Hext Hstore Hstoremwf Hbcr Hbodyrck
+         HnoA HMWF Hv Hsat Hmwf Hgwf (b_o & t & res & Hfun).
+  pose proof Hgwf as Hgwf2. destruct Hgwf2 as (gb & Hgb & Hload).
+  pose proof (reach_meminv_reached_build bm NoA MWF Reached_fd Hval Hrest) as Hreachmem.
+  assert (HPm' :
+    NoA m' /\ Mem.valid_block m' bm /\ action_sat nonflying m' bm /\
+    marioObj_wf m' bm /\ gMarioState_wf m' bm /\ MWF m').
+  { eapply (funcall_from_body_preserves_entry
+              (fun mm => NoA mm /\ Mem.valid_block mm bm /\ action_sat nonflying mm bm /\
+                         marioObj_wf mm bm /\ gMarioState_wf mm bm /\ MWF mm)
+              mario_ge mario.f_execute_mario_action (Vptr b_o Ptrofs.zero :: nil)
+              m m' t res eq_refl);
+      [ | exact (conj HnoA (conj Hv (conj Hsat (conj Hmwf (conj Hgwf HMWF))))) | exact Hfun ].
+    intros le mm tt le' mm' out Hbind (Hn & Hvv & Hss & Hmw & Hgw & Hmf) Hexec.
+    edestruct (exec_body_prov_reached bm gb Hgb NoA Hstore MWF Hext Hstoremwf
+                 Reached_id Reached_fd Hreachmem Hbcr
+                 empty_env le mm (fn_body mario.f_execute_mario_action) tt le' mm' out)
+      as (Hn' & Hmem' & _ & _ & Hmf');
+      [ apply PTree.gempty
+      | exact Hexec
+      | exact Hn
+      | exact (conj Hvv (conj Hss (conj Hmw Hgw)))
+      | eapply tprov_entry; exact Hbind
+      | eapply pgms_entry; exact Hbind
+      | exact Hmf
+      | exact execute_mario_action_body_prov_ok
+      | exact execute_mario_action_body_pgms_ok
+      | exact Hbodyrck
       | ].
     unfold meminv in Hmem'. destruct Hmem' as (Hvv' & Hss' & Hmw' & Hgw').
     exact (conj Hn' (conj Hvv' (conj Hss' (conj Hmw' (conj Hgw' Hmf'))))). }
