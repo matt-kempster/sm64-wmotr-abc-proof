@@ -27,7 +27,7 @@
  * No Admitted. NOT in _CoqProject by default (check standalone with check.sh).
  *)
 
-From compcert Require Import Coqlib Maps AST Integers Globalenvs Ctypes Clight Linking.
+From compcert Require Import Coqlib Maps AST Integers Values Globalenvs Ctypes Clight Linking.
 From SM64.Generated Require mario
   mario_actions_airborne mario_actions_moving mario_actions_stationary
   mario_actions_submerged mario_actions_cutscene mario_actions_automatic
@@ -129,6 +129,28 @@ Proof.
   exists b. split.
   - exact Hsym.
   - apply (proj2 (Genv.find_funct_ptr_iff _ _ _)). exact Hdef.
+Qed.
+
+(* THE ENGINE INTERFACE FORM. The value engine's Scall case evaluates the callee
+   expression `Evar f_id` to a function pointer `Vptr b Ptrofs.zero` and resolves it
+   with `Genv.find_funct (globalenv lp) (Vptr b 0)`. find_funct at a zero offset IS
+   find_funct_ptr, so the resolution lifts directly to the shape the engine consumes
+   -- this is exactly what routes a dispatcher Scall to the Internal/funcall-IH case
+   (NOT eval_funcall_external + the false Hext) once the engine is re-rooted at lp. *)
+Lemma linkorder_resolves_funct :
+  forall (lp q : Clight.program) (id : ident) (f : Clight.function),
+    linkorder q lp ->
+    (prog_defmap q) ! id = Some (Gfun (Internal f)) ->
+    exists b,
+      Genv.find_symbol (globalenv lp) id = Some b /\
+      Genv.find_funct (globalenv lp) (Vptr b Ptrofs.zero) = Some (Internal f).
+Proof.
+  intros lp q id f LOq Hdm.
+  destruct (linkorder_resolves_internal lp q id f LOq Hdm) as (b & Hsym & Hfp).
+  exists b. split; [ exact Hsym | ].
+  unfold Genv.find_funct.
+  destruct (Ptrofs.eq_dec Ptrofs.zero Ptrofs.zero) as [_ | Hne];
+    [ exact Hfp | exfalso; apply Hne; reflexivity ].
 Qed.
 
 (* 2-way corollary (the airborne group's minimal closed link), via link_linkorder. *)
