@@ -413,4 +413,103 @@ Section ReRoot.
     Qed.
   End ProvEngineLp.
 
+  (* ================================================================== *)
+  (* THE RE-ROOTED FRAME WRAPPER -- the capstone-facing piece.            *)
+  (*                                                                    *)
+  (* execute_mario_action_step_lp is one real per-frame Mario update over *)
+  (* the LINKED genv: a big-step eval_funcall of f_execute_mario_action at *)
+  (* globalenv lp. Because the genv is lp, every dispatcher Scall inside    *)
+  (* the body (and its callees) resolves to a REAL Internal body and is     *)
+  (* traversed by the engine's funcall-IH -- the flying logic is now IN     *)
+  (* SCOPE, not hidden behind an underspecified external. The wrapper       *)
+  (* reduces a frame's NoA + memory-invariant preservation to the no-A      *)
+  (* reach/ext/store residuals OVER lp (the analog of                       *)
+  (* execute_mario_action_preserves_real, threaded). This is what the       *)
+  (* capstone will consume in place of the mario_ge frame, retiring the     *)
+  (* FALSE reach_ext_action_cell.                                           *)
+  (* ================================================================== *)
+  Definition execute_mario_action_step_lp (m m' : mem) : Prop :=
+    exists (b_o : block) (t : trace) (res : val),
+      eval_funcall function_entry2 lp_ge m
+        (Internal mario.f_execute_mario_action)
+        (Vptr b_o Ptrofs.zero :: nil) t m' res.
+
+  (* the "rest" reach residual over lp_ge: every reached funcall preserves NoA
+     and the two Mario-pointer invariants. (The value half -- valid + action_sat
+     -- is the separate reach_value_preserves_noA at lp_ge.) *)
+  Definition reach_rest_noA_lp (bm : block) (NoA : mem -> Prop) : Prop :=
+    forall m fd vargs t m' vres,
+      NoA m ->
+      eval_funcall function_entry2 lp_ge m fd vargs t m' vres ->
+      marioObj_wf_lp m bm -> gMarioState_wf_lp m bm ->
+      NoA m' /\ marioObj_wf_lp m' bm /\ gMarioState_wf_lp m' bm.
+
+  Lemma reach_meminv_noA_build_lp :
+    forall bm NoA,
+      reach_value_preserves_noA nonflying bm lp_ge NoA ->
+      reach_rest_noA_lp bm NoA ->
+      forall m fd vargs t m' vres,
+        NoA m -> meminv_lp bm m ->
+        eval_funcall function_entry2 lp_ge m fd vargs t m' vres ->
+        NoA m' /\ meminv_lp bm m'.
+  Proof.
+    intros bm NoA Hval Hrest m fd vargs t m' vres Hno Hmem Hev.
+    unfold meminv_lp in Hmem. destruct Hmem as (Hv & Hsat & Hmwf & Hgwf).
+    destruct (Hval m fd vargs t m' vres Hno Hev Hv Hsat) as (Hv' & Hsat').
+    destruct (Hrest m fd vargs t m' vres Hno Hev Hmwf Hgwf) as (Hno' & Hmwf' & Hgwf').
+    split; [ exact Hno' | unfold meminv_lp; repeat split; assumption ].
+  Qed.
+
+  (* THE REDUCTION (re-rooted): a real frame over lp preserves NoA and the full
+     memory invariant, reduced to the no-A reach/ext/store residuals over lp. The
+     body is discharged by exec_body_prov_noA_lp; the entry facts (e = empty_env,
+     tprov vacuous via the reused ge-free tprov_entry, body census via the ge-free
+     execute_mario_action_body_prov_ok) and the gb from gMarioState_wf_lp are
+     supplied here. funcall_from_body_preserves_entry is genv-parametric. *)
+  Theorem execute_mario_action_preserves_real_lp :
+    forall (bm : block) (NoA : mem -> Prop) m m',
+      reach_value_preserves_noA nonflying bm lp_ge NoA ->
+      reach_rest_noA_lp bm NoA ->
+      (forall ef vargs mm tt vres mm',
+          NoA mm -> meminv_lp bm mm ->
+          external_call ef lp_ge vargs mm tt vres mm' -> NoA mm' /\ meminv_lp bm mm') ->
+      (forall e le mm a1 a2 tt le' mm' out,
+          NoA mm -> prov_ok (Sassign a1 a2) ->
+          exec_stmt function_entry2 lp_ge e le mm (Sassign a1 a2) tt le' mm' out -> NoA mm') ->
+      NoA m ->
+      Mem.valid_block m bm -> action_sat nonflying m bm ->
+      marioObj_wf_lp m bm -> gMarioState_wf_lp m bm ->
+      execute_mario_action_step_lp m m' ->
+      NoA m' /\ Mem.valid_block m' bm /\ action_sat nonflying m' bm /\
+      marioObj_wf_lp m' bm /\ gMarioState_wf_lp m' bm.
+  Proof.
+    intros bm NoA m m' Hval Hrest Hext Hstore HnoA Hv Hsat Hmwf Hgwf
+           (b_o & t & res & Hfun).
+    pose proof Hgwf as Hgwf2. destruct Hgwf2 as (gb & Hgb & Hload).
+    pose proof (reach_meminv_noA_build_lp bm NoA Hval Hrest) as Hreachmem.
+    assert (HPm' :
+      NoA m' /\ Mem.valid_block m' bm /\ action_sat nonflying m' bm /\
+      marioObj_wf_lp m' bm /\ gMarioState_wf_lp m' bm).
+    { eapply (funcall_from_body_preserves_entry
+                (fun mm => NoA mm /\ Mem.valid_block mm bm /\ action_sat nonflying mm bm /\
+                           marioObj_wf_lp mm bm /\ gMarioState_wf_lp mm bm)
+                lp_ge mario.f_execute_mario_action (Vptr b_o Ptrofs.zero :: nil)
+                m m' t res eq_refl);
+        [ | exact (conj HnoA (conj Hv (conj Hsat (conj Hmwf Hgwf)))) | exact Hfun ].
+      intros le mm tt le' mm' out Hbind (Hn & Hvv & Hss & Hmw & Hgw) Hexec.
+      edestruct (exec_body_prov_noA_lp bm gb Hgb NoA Hreachmem Hext Hstore
+                   empty_env le mm (fn_body mario.f_execute_mario_action) tt le' mm' out)
+        as (Hn' & Hmem' & _);
+        [ apply PTree.gempty
+        | exact Hexec
+        | exact Hn
+        | exact (conj Hvv (conj Hss (conj Hmw Hgw)))
+        | eapply tprov_entry; exact Hbind
+        | exact execute_mario_action_body_prov_ok
+        | ].
+      unfold meminv_lp in Hmem'. destruct Hmem' as (Hvv' & Hss' & Hmw' & Hgw').
+      exact (conj Hn' (conj Hvv' (conj Hss' (conj Hmw' Hgw')))). }
+    exact HPm'.
+  Qed.
+
 End ReRoot.
