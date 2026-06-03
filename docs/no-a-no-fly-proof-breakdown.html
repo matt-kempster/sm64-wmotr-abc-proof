@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>no-A ⇒ no-fly — the proof from scratch (current breakdown)</title>
+<style>
+  :root{
+    --bg:#ffffff; --panel:#f6f8fa; --panel2:#eef1f4; --ink:#1f2328; --dim:#59636e;
+    --line:#d8dee4; --kw:#cf222e; --id:#0550ae; --ty:#8250df; --lit:#0a3069;
+    --com:#6e7781; --green:#1a7f37; --greenbg:#dafbe1; --amber:#9a6700; --amberbg:#fff8c5;
+    --red:#cf222e; --redbg:#ffebe9; --blue:#0969da;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:1080px;margin:0 auto;padding:40px 24px 120px;}
+  h1{font-size:30px;line-height:1.2;margin:0 0 6px;}
+  h2{font-size:23px;margin:54px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--line);}
+  h3{font-size:18px;margin:30px 0 8px;color:var(--id);}
+  .sub{color:var(--dim);font-size:17px;margin:0 0 28px;}
+  p{margin:12px 0;}
+  code,pre,.mono{font-family:"SF Mono",ui-monospace,"Cascadia Code",Menlo,Consolas,monospace;}
+  code{background:var(--panel2);padding:1px 5px;border-radius:4px;font-size:13.5px;}
+  pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;
+    overflow-x:auto;font-size:13px;}
+  a{color:var(--id);}
+  .lead{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--blue);
+    border-radius:8px;padding:18px 20px;margin:22px 0;}
+  .codetable{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);
+    border-radius:8px;overflow:hidden;margin:16px 0;}
+  .codetable td{vertical-align:top;padding:7px 12px;border-bottom:1px solid var(--line);}
+  .codetable tr:last-child td{border-bottom:none;}
+  .codetable td.c{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13px;
+    white-space:pre-wrap;width:48%;color:var(--ink);border-right:1px solid var(--line);}
+  .codetable td.g{width:52%;color:var(--dim);font-size:14px;}
+  .kw{color:var(--kw)} .id{color:var(--id)} .ty{color:var(--ty)} .lit{color:var(--lit)} .com{color:var(--com)}
+  .pill{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    padding:2px 8px;border-radius:999px;vertical-align:middle;}
+  .p-real{background:var(--greenbg);color:#0f5323;border:1px solid #aceebb;}
+  .p-open{background:var(--amberbg);color:#7d5300;border:1px solid #eac54f;}
+  .p-false{background:var(--redbg);color:#a40e26;border:1px solid #ff9492;}
+  .tree{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:24px;margin:22px 0;}
+  .node{border-radius:9px;padding:12px 16px;margin:0 auto;max-width:720px;position:relative;}
+  .node .nm{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;font-weight:700;}
+  .node .ds{font-size:13.5px;margin-top:3px;line-height:1.45;}
+  .n-real{background:var(--greenbg);border:1px solid #aceebb;}
+  .n-open{background:var(--amberbg);border:1px solid #eac54f;}
+  .n-false{background:var(--redbg);border:1.5px solid var(--red);}
+  .connector{width:2px;height:20px;background:var(--line);margin:0 auto;}
+  .rests{text-align:center;color:var(--dim);font-size:13px;margin:8px 0 4px;letter-spacing:.05em;text-transform:uppercase;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:6px;}
+  @media(max-width:760px){.row2,.row3{grid-template-columns:1fr;} .codetable td.c,.codetable td.g{display:block;width:100%;border-right:none;}}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--dim);margin:14px 0 0;}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .sw{width:13px;height:13px;border-radius:3px;display:inline-block;}
+  .verdict{border-radius:8px;padding:16px 18px;margin:16px 0;}
+  .v-yes{background:var(--greenbg);border:1px solid #aceebb;}
+  .v-no{background:var(--redbg);border:1px solid #ff9492;}
+  .v-mid{background:var(--amberbg);border:1px solid #eac54f;}
+  .verdict b{color:var(--ink);}
+  table.score{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;}
+  table.score th,table.score td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+  table.score th{color:var(--dim);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;}
+  table.score td.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;}
+  .foot{margin-top:60px;color:var(--com);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  .keyline{color:var(--ink);font-weight:600;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>no-A ⇒ no-fly: the proof from scratch</h1>
+<p class="sub">A ground-up tour of the GOAL-1 capstone <code>noA_no_spawn_never_flying</code> as it
+stands today — what it claims, how it is built out of a value-flow engine over the real game code,
+which pieces are genuinely proved, and the one honest phantom that remains. Nothing rounded up.
+Snapshot: commit <code>8ac2823</code> (2026-06-03).</p>
+
+<div class="lead">
+<b>The one-paragraph status.</b> The theorem's <i>endpoints</i> are real: <code>step</code> is the
+mechanically-generated Clight of SM64's <code>execute_mario_action</code>, and "flying" is the real
+32-bit <code>action</code> field loaded at the real offset of the real <code>MarioState</code>. The
+<i>argument</i> reduces "no reached function writes a flying action" to a finite, machine-checked
+set of <b>17</b> functions the frame actually reaches, proved <i>closed under calls</i>, whose bodies
+are certified by a decidable census. The aliasing reasoning that the census rests on was, until this
+week, propped up by a <span class="p-false pill">false</span> invariant; that has been corrected to a
+<span class="p-real pill">true</span> one. What is left is one named block-distinctness brick
+(<code>store_root_offbm</code>) plus the cross-translation-unit linking residuals — all explicit
+hypotheses, none hidden.
+</div>
+
+<h2>1. What is being claimed</h2>
+<p>The A Button Challenge asks whether Mario can ever <em>fly</em> without the A button. GOAL 1 proves
+the contrapositive half of one direction: a run in which A is never pressed (and no flying-spawn warp
+fires) never reaches a flying action. "Flying" is not a hand-written predicate — it is the actual
+integer in Mario's <code>action</code> cell:</p>
+
+<table class="codetable">
+<tr><td class="c"><span class="id">mem_flying</span> m :=<br>&nbsp;&nbsp;∃ v, <span class="id">Mem.load</span> Mint32 m bm 12 = Some (Vint v)<br>&nbsp;&nbsp;&nbsp;&nbsp;∧ <span class="id">is_flying_int</span> v = true</td>
+<td class="g">Mario's struct lives in block <code>bm</code>; his <code>action</code> field is the 4 bytes at
+offset <b>12</b> (computed by <code>vm_compute</code> over the real composite environment, not asserted).
+<code>is_flying_int</code> tests the action against the real ACT_FLYING / ACT_FLYING_TRIPLE_JUMP /
+ACT_SHOT_FROM_CANNON constants. So "fly" means the real game would report a flying action.</td></tr>
+</table>
+
+<p>The capstone (<code>proofs/NoAImpliesNoFly/NoAImpliesNoFly.v</code>) folds the real per-frame
+<code>step</code> over a list of inputs and concludes Mario is never flying:</p>
+
+<table class="codetable">
+<tr><td class="c"><span class="kw">Theorem</span> <span class="id">noA_no_spawn_never_flying</span> :</td>
+<td class="g">The claim is its name.</td></tr>
+<tr><td class="c">&nbsp;∀ init is m,</td><td class="g">a start memory, a run (list of per-frame inputs), an end memory.</td></tr>
+<tr><td class="c">&nbsp;&nbsp;<span class="id">mem_ok</span> init →</td><td class="g">starts good: Mario allocated, non-flying, and memory well-formed (<code>MWF</code>).</td></tr>
+<tr><td class="c">&nbsp;&nbsp;<span class="id">noA_run_real</span> is →</td><td class="g">every frame has <code>a_pressed = false</code>.</td></tr>
+<tr><td class="c">&nbsp;&nbsp;<span class="id">no_spawn_flying_run</span> is →</td><td class="g">no frame fires a MARIO_SPAWN_FLYING warp (WMotR's level has none).</td></tr>
+<tr><td class="c">&nbsp;&nbsp;<span class="id">reachable</span> step init is m →</td><td class="g"><code>m</code> is reached by folding the <b>real</b> <code>execute_mario_action</code> step.</td></tr>
+<tr><td class="c">&nbsp;&nbsp;¬ <span class="id">mem_flying</span> m</td><td class="g">conclusion: the end memory is not flying.</td></tr>
+</table>
+
+<p class="sub" style="margin-top:8px;font-size:14px"><code>step</code> is a real <i>fragment</i> of a frame
+(<code>execute_mario_action</code>, not the whole <code>thread5_game_loop</code> iteration); the
+frame→fragment reduction is an honest small assumption, justified because Mario's <code>action</code> is
+only written inside that subtree or <code>level_update.c</code>'s spawn switch. See
+<a href="theorem-scope.md">theorem-scope</a>.</p>
+
+<h2>2. The shape of the argument</h2>
+<p>One frame either keeps Mario non-flying or it does not. The proof never reasons about "the run" directly;
+it shows <b>each single frame preserves non-flying</b>, then induct over the list. A frame is one big-step
+<code>eval_funcall</code> of <code>execute_mario_action</code>, which calls other functions, which call
+others. So the real content is: <b>across that whole call tree, the only thing that can land a flying value
+in the action cell is the designated writer <code>set_mario_action</code> — and under no-A it is never asked
+to write a flying value.</b></p>
+
+<div class="tree">
+<div class="node n-real"><div class="nm">noA_no_spawn_never_flying <span class="p-real pill">real endpoints</span></div>
+<div class="ds">per-frame preservation, inducted over the run</div></div>
+<div class="connector"></div>
+<div class="rests">is proved by feeding leaves to</div>
+<div class="node n-real"><div class="nm">exec_funcall_reach_value_reached &nbsp;(the value engine)</div>
+<div class="ds">A mutual induction over <code>eval_funcall</code> / <code>exec_stmt</code> that threads four invariants
+through every reached call: <code>NoA</code> (no A), <code>MWF</code> (memory well-formed), the temp-provenance
+invariant <b>TI′</b>, and the body census <b>C</b>. It reduces "the action cell stays non-flying" to a handful
+of per-construct <i>leaves</i>.</div></div>
+<div class="connector"></div>
+<div class="rests">whose leaves split into</div>
+<div class="row3">
+  <div class="node n-real"><div class="nm">the 17-function body leaf</div><div class="ds">every reached internal's body is census-clean — <span class="p-real pill">proved</span></div></div>
+  <div class="node n-open"><div class="nm">the store-aliasing core</div><div class="ds">direct field stores proved; chase stores rest on one brick — <span class="p-open pill">1 residual</span></div></div>
+  <div class="node n-open"><div class="nm">the linking / NoA residuals</div><div class="ds">cross-TU dispatch + grounding <code>NoA</code> in the input bytes — <span class="p-open pill">open</span></div></div>
+</div>
+<div class="legend">
+  <span><span class="sw" style="background:var(--greenbg);border:1px solid #aceebb"></span> proved for the real program</span>
+  <span><span class="sw" style="background:var(--amberbg);border:1px solid #eac54f"></span> assumed, with a concrete discharge path</span>
+  <span><span class="sw" style="background:var(--redbg);border:1px solid #ff9492"></span> false as written</span>
+</div>
+</div>
+
+<h2>3. The ~61 → 17 reduction (now sound)</h2>
+<p><code>mario.c</code> has ~61 internal functions other than <code>set_mario_action</code>. The frame does
+not reach all of them. <code>reached_funcs</code> is the explicit list of the <b>17</b> that
+<code>execute_mario_action</code> can actually call (transitively, minus the writer). Two machine-checked
+facts make restricting attention to those 17 <i>sound</i>:</p>
+
+<table class="codetable">
+<tr><td class="c"><span class="id">reached_fd_reach_chk</span> : every reached body's<br>direct calls all target a <span class="id">reached_id</span><br>(no indirect/function-pointer calls)</td>
+<td class="g"><b>Static call-graph closure.</b> <code>vm_compute</code> over the 17 real bodies: the reached set is
+<i>closed under direct calls</i>. This is what lets the engine's "the callee is reached" leaf
+(<code>reach_call_reached</code>) fire only for reached targets instead of asserting the false
+"<i>every</i> call resolves to a reached function".</td></tr>
+<tr><td class="c"><span class="id">reached_funcs_no_action_store</span><br><span class="id">reached_funcs_marg_arg_chk</span><br><span class="id">reached_funcs_sset_chk</span></td>
+<td class="g"><b>Body census</b> (<code>= true</code> on all 17, by computation): no body names Mario's action field
+as a store target; every call's Mario argument is a temp; no <code>Sset</code> can install a misaligned Mario
+pointer. These are the conjuncts of <b>C</b> (below).</td></tr>
+</table>
+<p>The exempt 17th (<code>vec3f_find_ceil</code>, whose first parameter is a <code>float*</code> not a
+<code>MarioState*</code>) writes no memory directly; its only effect is the external <code>find_ceil</code>
+call, and its whole-funcall preservation is proved separately (<code>reach_vec3f_preserves</code>).</p>
+
+<h2>4. The body census C and the temp invariant TI′</h2>
+<p>The engine carries two facts that the body leaf must re-establish. <b>C</b> is a decidable, four-conjunct
+census of a statement; <b>TI′</b> is a provenance invariant on the temporaries.</p>
+
+<table class="codetable">
+<tr><td class="c"><span class="id">C</span> s := <span class="id">no_action_store</span> s = true<br>&nbsp;∧ <span class="id">reach_chk</span> reached_id s<br>&nbsp;∧ <span class="id">marg_arg_chk</span> s = true<br>&nbsp;∧ <span class="id">sset_chk</span> s = true</td>
+<td class="g"><b>(1)</b> no <code>Sassign</code> targets Mario's <code>action</code> field (store-shape census);
+<b>(2)</b> every direct call targets a reached id, no indirect calls (closure);
+<b>(3)</b> every non-exempt call's argument 0 is an <code>Etempvar</code> (makes the marg-arg bridge sound);
+<b>(4)</b> every <code>Sset</code> source is a shape that can never produce a misaligned Mario pointer
+(rejects <code>&amp;m-&gt;field</code> and pointer arithmetic; accepts loads/temps/scalars/casts). All four
+<code>= true</code> on the 17.</td></tr>
+<tr><td class="c"><span class="id">TI′</span> le := ∀ t b o,<br>&nbsp;le!t = Some (Vptr b o) → b = bm →<br>&nbsp;o = Ptrofs.zero</td>
+<td class="g"><b>Every temporary that holds a pointer into Mario's block holds it at offset 0</b> — no temp ever
+holds a <i>misaligned</i> Mario pointer. Established at function entry (only the parameter <code>_m</code> is a
+pointer, and it is <code>(bm,0)</code>); preserved across <code>Sset</code> by the census (4).</td></tr>
+</table>
+
+<div class="verdict v-yes">
+<b>This week's correction.</b> TI′ replaced a <span class="p-false pill">false</span> predecessor.
+The old invariant was "<i>only</i> <code>_m</code> may hold a Mario pointer." That is simply untrue of the
+real code: <code>mario_update_hitbox_and_cap_model</code> reloads the global <code>gMarioState</code>
+(= <code>Vptr bm 0</code>) into ordinary temporaries. So non-<code>_m</code> temps <i>do</i> hold Mario
+pointers — but always <i>aligned</i> (offset 0). TI′ ("aligned, if Mario") is the true invariant, and it is
+exactly what the direct-store argument needs. With it, the once-false <code>reach_TI_set</code> (TI is
+preserved by a censused <code>Sset</code>) became <span class="p-real pill">true as written</span>.
+</div>
+
+<h2>5. The store-aliasing core</h2>
+<p>The body leaf's hardest job: show that a censused body's stores cannot hit Mario's action cell
+<code>(bm, [12,16))</code>. Every store falls into one of three shapes, and <code>assign_avoids_action_cell</code>
+dispatches on them:</p>
+
+<div class="tree">
+<div class="row3">
+  <div class="node n-real"><div class="nm">Evar g — a global/local</div>
+  <div class="ds">Store block ≠ bm because <code>bm</code> is a runtime block distinct from every program variable
+  (<code>bm_not_var</code>). <span class="p-real pill">proved</span> (modulo that runtime fact).</div></div>
+  <div class="node n-real"><div class="nm">m-&gt;f — a direct field of Mario</div>
+  <div class="ds">Block <code>bm</code>, offset = <code>field_offset f</code>; by TI′ the base is <code>(bm,0)</code> and the
+  census certifies the offset range misses <code>[12,16)</code>. <span class="p-real pill">proved</span>
+  (<code>m_direct_avoids</code>, pure layout arithmetic).</div></div>
+  <div class="node n-open"><div class="nm">chase stores — p-&gt;...[i]</div>
+  <div class="ds">Through a chased pointer (<code>marioObj</code>, <code>marioBodyState</code>, a matrix). Safe because that
+  pointer points <i>off</i> Mario's block. <span class="p-open pill">store_root_offbm</span></div></div>
+</div>
+</div>
+
+<p>The third shape is the one honest gap on this path. The off-<code>_m</code> store roots in the 17 bodies are
+chase pointers — <code>m-&gt;marioObj</code> (an <code>Object*</code>), <code>m-&gt;marioBodyState</code>, a
+4&times;4 matrix — and a store like <code>marioObj-&gt;header.gfx.scale[i]</code> uses a <i>dynamic</i> index, so
+no static offset bounds it. It is safe only because the chased pointer lands off <code>bm</code>, which is a
+heap fact (block-distinctness) the abstract <code>MWF</code> is meant to supply:</p>
+
+<table class="codetable">
+<tr><td class="c"><span class="kw">Hypothesis</span> <span class="id">store_root_offbm</span> :<br>&nbsp;∀ e le m a1 loc ofs bf t,<br>&nbsp;&nbsp;eval_lvalue … a1 loc ofs bf → MWF m → TI′ le →<br>&nbsp;&nbsp;store_root a1 = Some t → t ≠ _m →<br>&nbsp;&nbsp;rooted_lv t a1 = true → loc ≠ bm</td>
+<td class="g"><b>The MarioMemWF block-distinctness brick.</b> True for the real program (verified: no reached body
+roots a store at a <code>gMarioState</code>-reloaded <code>(bm,0)</code> temp). But, as a standalone
+<code>∀ le</code> statement, it is refutable by an adversarial <code>le</code> that puts <code>(bm,0)</code> in a
+store-root temp — a state the real run never produces, but this form does not forbid. Its full discharge needs
+<i>execution-relative provenance</i>: a correlated <code>temp_env → mem</code> invariant proving the chase temps
+are off-<code>bm</code> from <code>MWF</code>. That is the documented next step.</td></tr>
+</table>
+
+<div class="verdict v-mid">
+<b>Why it was not simply eliminated.</b> Two routes were explored. (a) A <i>static cumulative-offset</i> census
+discharges the direct field stores with no provenance at all (the MarioBodyState fields sit at offsets 4–8, Object
+<code>hitboxHeight</code> at 508 — all clear of <code>[12,16)</code>) — but it cannot touch the dynamically-indexed
+array stores, and generalizing the census to look up arbitrary large composites (<code>Object</code>) inside a
+<code>vm_compute</code> blows the build past its time limit. (b) The principled fix is to thread a correlated
+invariant through the engine so the store leaf knows the chase temps are off-<code>bm</code>; the engine currently
+threads <code>TI′ : temp_env → Prop</code> and <code>MWF : mem → Prop</code> <i>separately</i>, so the needed
+correlation is not yet expressible. Both are real work, deferred honestly rather than papered over.
+</div>
+
+<h2>6. The honest scoreboard</h2>
+<p>Everything the capstone still <i>assumes</i>. The capstone itself is <span class="p-real pill">axiom-clean</span>
+(only the 10 standard CompCert axioms — classical logic, functional extensionality, the external-call model) and
+contains <b>no</b> <code>admit</code> / <code>sorry</code>. "Axiom-clean" means no hidden holes; it does
+<i>not</i> mean the assumptions below are discharged. They are surfaced as explicit <code>Hypothesis</code>es —
+the real scoreboard.</p>
+
+<table class="score">
+<thead><tr><th>Assumption</th><th>What it says</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td class="mono">reach_TI_set</td><td>a censused <code>Sset</code> preserves TI′ (no misaligned Mario ptr installed)</td><td><span class="p-real pill">true (fixed this week)</span></td></tr>
+<tr><td class="mono">reach_call_marg</td><td>a reached call's Mario argument is aligned (<code>marg_ok</code>)</td><td><span class="p-real pill">true</span></td></tr>
+<tr><td class="mono">store_root_offbm</td><td>a chase store's block ≠ <code>bm</code> (the array/nested stores)</td><td><span class="p-open pill">brick / forall-le</span></td></tr>
+<tr><td class="mono">bm_not_var</td><td>no program variable evaluates to Mario's runtime block</td><td><span class="p-open pill">runtime fact</span></td></tr>
+<tr><td class="mono">MWF_preserved_assign, store_mwf</td><td>a censused store keeps memory well-formed</td><td><span class="p-open pill">MWF brick</span></td></tr>
+<tr><td class="mono">reach_call_reached, body_calls_reached</td><td>a reached <code>Evar id</code> call resolves to a reached fundef</td><td><span class="p-open pill">genv resolution</span></td></tr>
+<tr><td class="mono">reach_ret_call_nonvoid, reach_ret_builtin</td><td>a reached call/builtin never returns a Mario pointer</td><td><span class="p-open pill">return provenance</span></td></tr>
+<tr><td class="mono">reach_ext_action_cell, Hmwf_ext, Hmwf_unch, find_ceil_external</td><td>the named external math builtins don't touch the action cell</td><td><span class="p-open pill">externals</span></td></tr>
+<tr><td class="mono">reach_rest_ok, ext_meminv_ok</td><td>the cross-TU dispatch (action handlers in other .c files) preserves the cell</td><td><span class="p-open pill">linking crux</span></td></tr>
+<tr><td class="mono">noA_exec_ok, noA_entry_ok, input_grounds_noA</td><td>grounds the abstract <code>NoA</code> predicate in the real controller bytes</td><td><span class="p-open pill">NoA grounding</span></td></tr>
+<tr><td class="mono">MWF (Variable), NoA (Variable)</td><td>the memory-wellformedness and no-A predicates, left abstract here</td><td><span class="p-open pill">abstract</span></td></tr>
+</tbody>
+</table>
+
+<h3>What is genuinely proved (Lemmas, on the spine)</h3>
+<ul>
+<li><b>The 17-function reduction is sound</b> — static call-graph closure (<code>reached_fd_reach_chk</code>) + the four census facts, all by <code>vm_compute</code> over the real clightgen'd bodies.</li>
+<li><b>The body leaf</b> (<code>reach_value_body_marg</code>): every reached internal's entry establishes TI′ and its body satisfies C.</li>
+<li><b>The value engine</b> (<code>exec_funcall_reach_value_reached</code>): the mutual induction threading NoA/MWF/TI′/C and isolating the single writer.</li>
+<li><b>The direct-store aliasing</b> (<code>assign_avoids_action_cell</code> for Evar + <code>m_direct_avoids</code>): global stores miss <code>bm</code>; Mario-field stores miss the action offset by layout.</li>
+<li><b>TI′ preservation lemmas</b> (<code>entry_TI_singleparam</code>, <code>reach_TI_optc/optb</code>, <code>reach_C_*</code>) and the exempt-callee leaf (<code>reach_vec3f_preserves</code>).</li>
+</ul>
+
+<h2>7. Verdict</h2>
+<div class="verdict v-mid">
+<b>Have we made real progress, and where exactly is the frontier?</b> Yes. The endpoints are the real game;
+the ~61→17 reduction is sound and its decidable core is proved; the body census is machine-checked; and the
+provenance invariant that the whole store argument rests on has gone from <i>false</i> to <i>true</i>. The
+frontier is now a single, named, well-understood residual on the store path — <code>store_root_offbm</code>,
+the block-distinctness fact that the array/nested chase stores point off Mario's block — plus the standing
+cross-translation-unit linking and <code>NoA</code>-grounding residuals. The capstone reads
+<span class="mono">IF (a precise, true-for-the-real-program, not-yet-discharged set of bricks) THEN no-fly</span>,
+no longer <span class="mono">IF (something false) THEN …</span>. The next concrete step is to thread a
+correlated temp/memory invariant through the value engine so <code>store_root_offbm</code> can be proved from
+<code>MWF</code> rather than assumed.
+</div>
+
+<p class="foot">Generated 2026-06-03 from <code>proofs/NoAImpliesNoFly/NoAImpliesNoFly.v</code> at commit
+<code>8ac2823</code>. Companion reads: <a href="no-a-no-fly-explained.html">no-A ⇒ no-fly, line by line</a> ·
+<a href="reach-value-preserves-explained.html">the value-preservation crux</a> ·
+<a href="reach-residuals-map.md">the residuals map</a> · <a href="theorem-scope.md">theorem scope</a>.
+Verify any claim here with <code>bash pipeline/assumptions.sh SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFly
+noA_no_spawn_never_flying</code> and <code>bash .claude/skills/proof-discipline/discipline_check.sh</code>.</p>
+
+</div>
+</body>
+</html>
