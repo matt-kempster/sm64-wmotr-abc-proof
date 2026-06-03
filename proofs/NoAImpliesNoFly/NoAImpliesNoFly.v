@@ -108,6 +108,32 @@ Definition reached_id (id : ident) : Prop :=
   (existsb (Pos.eqb id) reached_ids
    || match func_of mario.prog id with Some _ => false | None => true end) = true.
 
+(* The reached functions as fundefs (the 17 writer-free internals), and the
+   fundef-level gate: a funcall is reached iff it is one of these OR an external
+   (externals governed by the external residual). The sole action writer
+   set_mario_action is NOT among the 17 -- see writer_leaf_vacuous below. *)
+Definition reached_funcs : list Clight.fundef :=
+  [ Ctypes.Internal mario.f_debug_print_speed_action_normal
+  ; Ctypes.Internal mario.f_mario_floor_is_slippery
+  ; Ctypes.Internal mario.f_mario_get_floor_class
+  ; Ctypes.Internal mario.f_mario_get_terrain_sound_addend
+  ; Ctypes.Internal mario.f_mario_reset_bodystate
+  ; Ctypes.Internal mario.f_mario_update_hitbox_and_cap_model
+  ; Ctypes.Internal mario.f_set_submerged_cam_preset_and_spawn_bubbles
+  ; Ctypes.Internal mario.f_sink_mario_in_quicksand
+  ; Ctypes.Internal mario.f_squish_mario_model
+  ; Ctypes.Internal mario.f_update_and_return_cap_flags
+  ; Ctypes.Internal mario.f_update_mario_button_inputs
+  ; Ctypes.Internal mario.f_update_mario_geometry_inputs
+  ; Ctypes.Internal mario.f_update_mario_health
+  ; Ctypes.Internal mario.f_update_mario_info_for_cam
+  ; Ctypes.Internal mario.f_update_mario_inputs
+  ; Ctypes.Internal mario.f_update_mario_joystick_inputs
+  ; Ctypes.Internal mario.f_vec3f_find_ceil ].
+
+Definition reached_fd (fd : Clight.fundef) : Prop :=
+  In fd reached_funcs \/ (exists ef tl ty cc, fd = External ef tl ty cc).
+
 Section NoAImpliesNoFly.
   (* Mario's struct block is fixed; the action field loads at (bm, 12) as Mint32 --
      exactly the value engine's watched cell. *)
@@ -181,16 +207,15 @@ Section NoAImpliesNoFly.
      residual below is TRUE at the real NoA, and none is an adversarial universal. *)
   Variable NoA : mem -> Prop.
 
-  (* Reachability gating. `Reached_id`/`Reached_fd` carve out the FINITE set of
+  (* Reachability gating. `Reached_id`/`reached_fd` carve out the FINITE set of
      functions the frame actually reaches (execute_mario_action + its 17
      writer-free callees; docs/reachable-internal-graph.md). Gating the value
      engine by these is what ESCAPES the `forall f` phantom: the body leaf below
      fires only for ACTUALLY-reached callees, so it is enumerable (case-split the
      17 + vm_compute) rather than a per-function census asserted for every
      conceivable f. Concretely Reached_id := membership in reached_ids and
-     Reached_fd := being the Internal of one of those; Reached_id is now the
-     CONCRETE reached_id (the real reached set), Reached_fd still abstract. *)
-  Variable Reached_fd : Clight.fundef -> Prop.
+     Reached_id and reached_fd are now BOTH concrete (reached_id / reached_fd),
+     the real reached set. *)
 
   (* The designated action writer: among reached funcalls, only set_mario_action
      writes Mario's action cell. A REAL object -- the clightgen'd f_set_mario_action
@@ -219,13 +244,13 @@ Section NoAImpliesNoFly.
   Variable C  : statement -> Prop.
   (* (1a) REACHED + marg-gated body leaf: an ACTUALLY-REACHED non-writer entered
           with marg_ok args has entry-temp-invariant TI and its body passes census
-          C. The `Reached_fd (Internal f)` premise is what kills the forall-f
+          C. The `reached_fd (Internal f)` premise is what kills the forall-f
           phantom -- this is no longer a claim about every conceivable function,
           only the finite reached set, dischargeable by enumeration. EXECUTION-
           RELATIVE (the entry le is the one the marg call args produced). *)
   Hypothesis reach_value_body_marg :
     forall f vargs m e le m1,
-      Reached_fd (Ctypes.Internal f) ->
+      reached_fd (Ctypes.Internal f) ->
       function_entry2 mario_ge f vargs m e le m1 ->
       ~ writer_set_mario_action (Ctypes.Internal f) ->
       marg_ok bm vargs ->
@@ -274,21 +299,33 @@ Section NoAImpliesNoFly.
     forall e le m optid a al vf fd,
       TI le -> C (Scall optid a al) ->
       eval_expr mario_ge e le m a vf -> Genv.find_funct mario_ge vf = Some fd ->
-      Reached_fd fd.
-  (* (1b) THE WRITER CASE, now REACHED-gated. set_mario_action is the sole internal
-          action writer, and it is statically UNREACHABLE from execute_mario_action
-          (machine-checked: Unwired/ReachScratch emA_reaches_no_internal_action_
-          writer). So once Reached_fd is the concrete reached set, `Reached_fd fd /\
-          writer_set_mario_action fd` is contradictory and this leaf is discharged
-          BY VACUITY -- the forall-vargs phantom of the old writer leaf is gone, and
-          the cross-TU A-gated dispatch is governed by the EXTERNAL residual (3). *)
-  Hypothesis reach_writer_ok :
+      reached_fd fd.
+  (* (1b) THE WRITER CASE, now REACHED-gated -- DISCHARGED BY VACUITY (no longer a
+          residual). set_mario_action is the sole internal action writer, and it is
+          NOT among the 17 reached funcs (reached_funcs), so `reached_fd
+          (Internal f_set_mario_action)` is FALSE: this leaf never fires. The
+          forall-vargs phantom of the old writer leaf is gone; the cross-TU A-gated
+          dispatch is governed by the EXTERNAL residual (3). *)
+  Lemma reach_writer_ok :
     forall m fd vargs t m' vres,
-      Reached_fd fd -> NoA m -> MWF m ->
+      reached_fd fd -> NoA m -> MWF m ->
       eval_funcall function_entry2 mario_ge m fd vargs t m' vres ->
       writer_set_mario_action fd ->
       Mem.valid_block m bm -> action_sat nonflying m bm ->
       Mem.valid_block m' bm /\ action_sat nonflying m' bm /\ MWF m'.
+  Proof.
+    intros m fd vargs t m' vres Hrf _ _ _ Hwr _ _.
+    unfold writer_set_mario_action in Hwr. subst fd.
+    exfalso. destruct Hrf as [Hin | (ef & tl & ty & cc & Hext)].
+    - revert Hin. unfold reached_funcs. intro H.
+      repeat (destruct H as [H | H]);
+        [ apply (f_equal (fun fd => match fd with
+                                    | Ctypes.Internal f => fn_body f
+                                    | _ => Sskip end)) in H;
+          vm_compute in H; discriminate H ..
+        | contradiction ].
+    - discriminate Hext.
+  Qed.
   (* (1c) reached externals don't write the action cell. NB: these "externals"
           INCLUDE the cross-TU action handlers (the mario_execute_ / act_ family) --
           so this is a STRONG assumption that currently holds the real crux, to be
@@ -343,14 +380,14 @@ Section NoAImpliesNoFly.
       exec_stmt function_entry2 mario_ge e le mm (Sassign a1 a2) tt le' mm' out -> MWF mm'.
   (* (4c) THE BODY'S CALL TARGETS ARE REACHED. The call-target-reached bridge for
      execute_mario_action's OWN body: each censused call (reach_chk) resolves to a
-     Reached callee. Together with body_reach_chk this threads Reached_fd from the
+     Reached callee. Together with body_reach_chk this threads reached_fd from the
      frame root to the value engine -- the body-engine analogue of
      reach_call_reached. Discharge: per-call genv resolution over the finite body. *)
   Hypothesis body_calls_reached :
     forall oid a al e le mm vf fd,
       reach_chk reached_id (Scall oid a al) ->
       eval_expr mario_ge e le mm a vf ->
-      Genv.find_funct mario_ge vf = Some fd -> Reached_fd fd.
+      Genv.find_funct mario_ge vf = Some fd -> reached_fd fd.
   (* (4d) execute_mario_action's body passes the syntactic call-target census:
      every direct call in it targets `Evar id` with `reached_id id`. NO LONGER a
      residual -- DISCHARGED here by computation over the REAL clightgen'd body
@@ -396,7 +433,7 @@ Section NoAImpliesNoFly.
        the once-unsatisfiable forall-m reach_TI_set). The body engine supplies
        marg_ok at the real call sites. *)
     pose proof (exec_funcall_reach_value_reached nonflying bm mario_ge NoA MWF
-                  writer_set_mario_action Reached_fd TI C
+                  writer_set_mario_action reached_fd TI C
                   reach_value_body_marg reach_assign_marg reach_call_marg
                   reach_TI_set reach_TI_optc reach_TI_optb
                   reach_call_reached reach_writer_ok reach_ext_action_cell
@@ -404,7 +441,7 @@ Section NoAImpliesNoFly.
                   reach_C_seq reach_C_if reach_C_loop reach_C_sw)
       as Hreach.
     destruct (execute_mario_action_preserves_real_reached bm NoA MWF
-                reached_id Reached_fd m m'
+                reached_id reached_fd m m'
                 Hreach reach_rest_ok ext_meminv_ok
                 (fun e le mm a1 a2 tt le' mm' out HnoA' _ Hexec =>
                    noA_exec_ok e le mm (Sassign a1 a2) tt le' mm' out Hexec HnoA')
