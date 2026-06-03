@@ -143,20 +143,32 @@ Section NoAImpliesNoFly.
   Definition writer_set_mario_action (fd : Clight.fundef) : Prop :=
     fd = Ctypes.Internal mario.f_set_mario_action.
 
-  (* (1) THE CRUX, now DECOMPOSED -- this REPLACES the single FALSE residual
-     `reach_value_preserves nonflying bm mario_ge` (set_mario_action with an
-     ACT_FLYING argument is a reached eval_funcall that falsified it). The fault
-     line is real: among ALL reached funcalls exactly one writes the action cell.
-     (1a) every reached funcall that is NOT set_mario_action leaves the action
-          cell unchanged -- TRUE; discharge = per-function offset-avoidance over
-          the call graph. *)
-  Hypothesis reach_nonwriter_ok :
-    reach_nonwriter_unchanged bm mario_ge writer_set_mario_action.
+  (* (1) THE CRUX, now DECOMPOSED via the SOUND value engine
+     (ActionValueFrame.exec_funcall_reach_value_noA). This REPLACES the FALSE
+     residual `reach_nonwriter_unchanged` -- which classified WHOLE funcalls and
+     was therefore UNSATISFIABLE for transitive writers (act_walking is not
+     set_mario_action yet CALLS it, so its whole-funcall changes the cell). The
+     sound split is over a function's OWN DIRECT body Sassigns; the engine's
+     mutual induction carries transitivity through the Scall -> funcall IH.
+     (1a) every reached NON-set_mario_action body's direct Sassigns are value-ok
+          -- each avoids the action cell or stores a non-flying value. TRUE;
+          discharge = per-function offset/literal analysis over the call graph
+          (the L1 fan-out). This talks about a function's direct body ONLY, never
+          its transitive effects -- that is exactly what makes it satisfiable. *)
+  Hypothesis reach_value_body_nonwriter :
+    forall f vargs m e le m1,
+      function_entry2 mario_ge f vargs m e le m1 ->
+      ~ writer_set_mario_action (Ctypes.Internal f) ->
+      stmt_value_ok nonflying bm mario_ge e (fn_body f).
   (* (1b) a reached set_mario_action call, in a NO-A frame, preserves non-flying
           -- TRUE at the real NoA (no-A => its action argument is non-flying, the
           taint-closure crux). The entire no-A argument is now isolated HERE. *)
   Hypothesis reach_writer_ok :
     reach_writer_preserves_noA nonflying bm mario_ge writer_set_mario_action NoA.
+  (* (1c) reached externals don't write the action cell (SM64 externals are
+          math/memcpy-class, not action writers). *)
+  Hypothesis reach_ext_action_cell :
+    reach_ext_preserves (action_cell bm) mario_ge.
   (* (2) every reached funcall ALSO preserves NoA and the two Mario-pointer
      invariants (marioObj off bm, gMarioState -> bm); together with (1) this is
      the engine's full no-A-conditioned reach. A call-graph fact about the
@@ -168,12 +180,18 @@ Section NoAImpliesNoFly.
     forall ef vargs mm tt vres mm',
       NoA mm -> meminv bm mm ->
       external_call ef mario_ge vargs mm tt vres mm' -> NoA mm' /\ meminv bm mm'.
-  (* (4) the body's two off-bm pointer-chase stores leave the controller bytes
-     (which NoA reads) alone -- they hit the Mario OBJECT block, not the input. *)
-  Hypothesis noA_store_ok :
-    forall e le mm a1 a2 tt le' mm' out,
-      NoA mm -> prov_ok (Sassign a1 a2) ->
-      exec_stmt function_entry2 mario_ge e le mm (Sassign a1 a2) tt le' mm' out -> NoA mm'.
+  (* (4) NoA (Mario's A-button unpressed) is preserved by any reached statement
+     execution and by function entry -- the frame writes no controller-input
+     bytes (action/object writes hit OTHER blocks), and entry only allocates
+     fresh blocks. Generalizes the old Sassign-only noA_store_ok; the value
+     engine needs the statement+entry form to thread NoA to each reached
+     set_mario_action call (where the no-A taint-closure gate fires). *)
+  Hypothesis noA_exec_ok :
+    forall e le mm s tt le' mm' out,
+      exec_stmt function_entry2 mario_ge e le mm s tt le' mm' out -> NoA mm -> NoA mm'.
+  Hypothesis noA_entry_ok :
+    forall f vargs mm e le mm1,
+      function_entry2 mario_ge f vargs mm e le mm1 -> NoA mm -> NoA mm1.
   (* (5) the real body preserves the invariant: now PROVED, not assumed. The old
      `body_preserves_real bm NoA` hypothesis is GONE -- the body is discharged by
      RealFrameValue.execute_mario_action_preserves_real (the census-backed
@@ -200,11 +218,18 @@ Section NoAImpliesNoFly.
   Proof.
     intros i m m' Ha _ (Hv & Hsat & Hwf & Hgwf) Hst.
     assert (HnoA : NoA m) by (eapply input_grounds_noA; eassumption).
-    pose proof (reach_value_preserves_noA_split nonflying bm mario_ge
-                  writer_set_mario_action NoA reach_nonwriter_ok reach_writer_ok)
+    (* the SOUND value engine: leaf-A (non-writer direct bodies) + the no-A
+       writer case + ext + NoA-propagation -> the action stays non-flying across
+       every reached funcall. Retires the false reach_nonwriter_unchanged. *)
+    pose proof (exec_funcall_reach_value_noA nonflying bm mario_ge NoA
+                  writer_set_mario_action
+                  reach_value_body_nonwriter reach_writer_ok
+                  reach_ext_action_cell noA_exec_ok noA_entry_ok)
       as Hreach.
     destruct (execute_mario_action_preserves_real bm NoA m m'
-                Hreach reach_rest_ok ext_meminv_ok noA_store_ok
+                Hreach reach_rest_ok ext_meminv_ok
+                (fun e le mm a1 a2 tt le' mm' out HnoA' _ Hexec =>
+                   noA_exec_ok e le mm (Sassign a1 a2) tt le' mm' out Hexec HnoA')
                 HnoA Hv Hsat Hwf Hgwf Hst)
       as (_ & Hv' & Hs' & Hw' & Hgw').
     exact (conj Hv' (conj Hs' (conj Hw' Hgw'))).

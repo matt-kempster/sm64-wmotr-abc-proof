@@ -404,6 +404,17 @@ Definition reach_value_preserves_noA
     action_sat Q m bm ->
     Mem.valid_block m' bm /\ action_sat Q m' bm.
 
+(* WARNING -- FALSE for the real Mario genv (see exec_funcall_reach_value_noA
+   below, which RETIRES it). This classifies WHOLE funcalls writer/non-writer,
+   but "writes the action cell" is TRANSITIVE: act_walking is not set_mario_action
+   yet it CALLS set_mario_action, so a whole-funcall of act_walking DOES change
+   the cell -- unchanged_on fails. So in the regime the capstone consumes this
+   (the direct callees of execute_mario_action, which transitively write) the
+   hypothesis is UNSATISFIABLE, making any reach property built on it vacuous.
+   The sound fix classifies DIRECT BODY Sassigns and lets the mutual induction
+   handle transitivity (Scall -> funcall IH). Kept only because
+   reach_value_preserves_noA_split (above) still references it as a true
+   implication; the spine no longer uses that split. *)
 Definition reach_nonwriter_unchanged
     (bm : block) (ge : genv) (writer : Clight.fundef -> Prop) : Prop :=
   forall m fd vargs t m' vres,
@@ -554,4 +565,155 @@ Proof.
           [ exact Hvalid | exact Hsat
           | apply seq_of_ls_value_ok; apply select_switch_value_ok; exact Hok ]
     end.
+Qed.
+
+(* ====================================================================== *)
+(* THE SOUND eval_funcall VALUE ENGINE (retires reach_nonwriter_unchanged).*)
+(*                                                                        *)
+(* reach_nonwriter_unchanged (above) is FALSE for the real Mario genv,     *)
+(* because "writes the action cell" is a TRANSITIVE property: a funcall of  *)
+(* a non-set_mario_action function that CALLS set_mario_action does change   *)
+(* the cell, so classifying WHOLE funcalls is unsound as a discharge path.   *)
+(*                                                                          *)
+(* The fix: the value-twin of FieldNonInterference.exec_funcall_reach_-      *)
+(* unchanged_on. Carry (valid /\ action_sat Q) instead of unchanged_on, by   *)
+(* the SAME mutual induction (exec_stmt_funcall_ind), so transitivity is     *)
+(* handled by the Scall -> funcall IH. The per-function leaf is now about a   *)
+(* function's OWN direct Sassigns (stmt_value_ok), never its transitive       *)
+(* effects. The single writer (set_mario_action) is the one funcall whose     *)
+(* body's direct Sassign stores its argument; it is isolated in a no-A-        *)
+(* conditioned funcall hypothesis (reach_writer_preserves_noA). NoA is         *)
+(* threaded only to gate that one writer: its sole structural needs are        *)
+(* "NoA survives a statement" and "NoA survives function entry" (both TRUE --   *)
+(* the frame writes no controller-input bytes; entry only allocs fresh blocks). *)
+(* Output: reach_value_preserves_noA, with NO unsatisfiable premise.           *)
+(* ====================================================================== *)
+Theorem exec_funcall_reach_value_noA :
+  forall (Q : int -> Prop) (bm : block) (ge : genv)
+         (NoA : mem -> Prop) (writer : Clight.fundef -> Prop),
+    (* leaf A (aliasing): every reached NON-writer body's direct Sassigns are
+       value-ok (each avoids the action cell or stores a Q-value). No NoA. *)
+    (forall f vargs m e le m1,
+       function_entry2 ge f vargs m e le m1 ->
+       ~ writer (Internal f) ->
+       stmt_value_ok Q bm ge e (fn_body f)) ->
+    (* leaf B (the crux): the one writer funcall, under NoA, preserves action_sat. *)
+    reach_writer_preserves_noA Q bm ge writer NoA ->
+    (* externals don't touch the action cell. *)
+    reach_ext_preserves (action_cell bm) ge ->
+    (* NoA survives any statement execution and any function entry. *)
+    (forall e le m s t le' m' out,
+       exec_stmt function_entry2 ge e le m s t le' m' out -> NoA m -> NoA m') ->
+    (forall f vargs m e le m1,
+       function_entry2 ge f vargs m e le m1 -> NoA m -> NoA m1) ->
+    reach_value_preserves_noA Q bm ge NoA.
+Proof.
+  intros Q bm ge NoA writer Hnw Hw Hext Hnoaexec Hnoaentry.
+  assert (MAIN :
+    (forall e le m s t le' m' out,
+       exec_stmt function_entry2 ge e le m s t le' m' out ->
+       NoA m -> Mem.valid_block m bm -> action_sat Q m bm ->
+       stmt_value_ok Q bm ge e s ->
+       Mem.valid_block m' bm /\ action_sat Q m' bm)
+    /\
+    (forall m fd vargs t m' vres,
+       eval_funcall function_entry2 ge m fd vargs t m' vres ->
+       NoA m -> Mem.valid_block m bm -> action_sat Q m bm ->
+       Mem.valid_block m' bm /\ action_sat Q m' bm)).
+  { apply (exec_stmt_funcall_ind function_entry2 ge
+      (fun e le m s t le' m' out =>
+         NoA m -> Mem.valid_block m bm -> action_sat Q m bm ->
+         stmt_value_ok Q bm ge e s ->
+         Mem.valid_block m' bm /\ action_sat Q m' bm)
+      (fun m fd vargs t m' vres =>
+         NoA m -> Mem.valid_block m bm -> action_sat Q m bm ->
+         Mem.valid_block m' bm /\ action_sat Q m' bm)).
+    - (* Sskip *) intros e le m HnoA Hv Hsat _. split; [ exact Hv | exact Hsat ].
+    - (* Sassign *)
+      intros e le m a1 a2 loc ofs bf v2 v m' Hlv He Hcast Hassign HnoA Hv Hsat Hok.
+      simpl in Hok. split;
+      [ eapply assign_loc_valid_block; [ exact Hassign | exact Hv ]
+      | eapply assign_loc_action_sat;
+          [ exact Hassign | exact Hv | exact Hsat
+          | exact (Hok _ _ _ _ _ _ _ Hlv He Hcast) ] ].
+    - (* Sset *) intros e le m id a v He HnoA Hv Hsat _. split; [ exact Hv | exact Hsat ].
+    - (* Scall: funcall IH *)
+      intros e le m optid a al tyargs tyres cconv vf vargs f t m' vres
+             Hcf He Hel Hff Htof Hfd IHfun HnoA Hv Hsat _.
+      exact (IHfun HnoA Hv Hsat).
+    - (* Sbuiltin: external preserves the cell + validity *)
+      intros e le m optid ef al tyargs vargs t m' vres Hel Hec HnoA Hv Hsat _.
+      split;
+      [ eapply external_call_valid_block; [ exact Hec | exact Hv ]
+      | eapply action_sat_unchanged_on; [ eapply Hext; exact Hec | exact Hv | exact Hsat ] ].
+    - (* Sseq_1 *)
+      intros e le m s1 s2 t1 le1 m1 t2 le2 m2 out He1 IH1 He2 IH2 HnoA Hv Hsat Hok.
+      simpl in Hok. destruct Hok as [Hok1 Hok2].
+      destruct (IH1 HnoA Hv Hsat Hok1) as [Hv1 Hsat1].
+      apply (IH2 (Hnoaexec _ _ _ _ _ _ _ _ He1 HnoA) Hv1 Hsat1 Hok2).
+    - (* Sseq_2 *)
+      intros e le m s1 s2 t1 le1 m1 out He1 IH1 Hout HnoA Hv Hsat Hok.
+      simpl in Hok. apply (IH1 HnoA Hv Hsat (proj1 Hok)).
+    - (* Sifthenelse *)
+      intros e le m a s1 s2 v1 b t le' m' out He Hbool Hexec IH HnoA Hv Hsat Hok.
+      simpl in Hok. apply (IH HnoA Hv Hsat).
+      destruct b; [ exact (proj1 Hok) | exact (proj2 Hok) ].
+    - (* Sreturn_none *) intros e le m HnoA Hv Hsat _. split; [ exact Hv | exact Hsat ].
+    - (* Sreturn_some *) intros e le m a v He HnoA Hv Hsat _. split; [ exact Hv | exact Hsat ].
+    - (* Sbreak *) intros e le m HnoA Hv Hsat _. split; [ exact Hv | exact Hsat ].
+    - (* Scontinue *) intros e le m HnoA Hv Hsat _. split; [ exact Hv | exact Hsat ].
+    - (* Sloop_stop1 *)
+      intros e le m s1 s2 t le' m' out' out He1 IH1 Hbor HnoA Hv Hsat Hok.
+      simpl in Hok. apply (IH1 HnoA Hv Hsat (proj1 Hok)).
+    - (* Sloop_stop2 *)
+      intros e le m s1 s2 t1 le1 m1 out1 t2 le2 m2 out2 out
+             He1 IH1 Hnoc He2 IH2 Hbor HnoA Hv Hsat Hok.
+      simpl in Hok. destruct Hok as [Hok1 Hok2].
+      destruct (IH1 HnoA Hv Hsat Hok1) as [Hv1 Hsat1].
+      apply (IH2 (Hnoaexec _ _ _ _ _ _ _ _ He1 HnoA) Hv1 Hsat1 Hok2).
+    - (* Sloop_loop *)
+      intros e le m s1 s2 t1 le1 m1 out1 t2 le2 m2 t3 le3 m3 out
+             He1 IH1 Hnoc He2 IH2 He3 IH3 HnoA Hv Hsat Hok.
+      simpl in Hok. destruct Hok as [Hok1 Hok2].
+      destruct (IH1 HnoA Hv Hsat Hok1) as [Hv1 Hsat1].
+      pose proof (Hnoaexec _ _ _ _ _ _ _ _ He1 HnoA) as HnoA1.
+      destruct (IH2 HnoA1 Hv1 Hsat1 Hok2) as [Hv2 Hsat2].
+      pose proof (Hnoaexec _ _ _ _ _ _ _ _ He2 HnoA1) as HnoA2.
+      apply (IH3 HnoA2 Hv2 Hsat2). simpl. split; [ exact Hok1 | exact Hok2 ].
+    - (* Sswitch *)
+      intros e le m a t v n sl le1 m1 out He Hsw Hexec IH HnoA Hv Hsat Hok.
+      simpl in Hok. apply (IH HnoA Hv Hsat).
+      apply seq_of_ls_value_ok. apply select_switch_value_ok. exact Hok.
+    - (* eval_funcall_internal: writer-split *)
+      intros m f vargs t e le1 le2 m1 m2 out vres m3
+             Hentry Hbexec IHbody Hout Hfree HnoA Hv Hsat.
+      destruct (classic (writer (Internal f))) as [Hwr | Hnwr].
+      + (* writer: rebuild the funcall, apply the no-A writer hypothesis *)
+        eapply Hw;
+          [ exact HnoA
+          | eapply eval_funcall_internal; [ exact Hentry | exact Hbexec | exact Hout | exact Hfree ]
+          | exact Hwr | exact Hv | exact Hsat ].
+      + (* non-writer: entry (unchanged) + body IH + free (fresh) *)
+        assert (Uentry : Mem.unchanged_on (action_cell bm) m m1)
+          by (eapply function_entry2_unchanged_on; eauto).
+        assert (Hv1 : Mem.valid_block m1 bm)
+          by (eapply Mem.valid_block_unchanged_on; [ exact Uentry | exact Hv ]).
+        assert (Hsat1 : action_sat Q m1 bm)
+          by (eapply action_sat_unchanged_on; [ exact Uentry | exact Hv | exact Hsat ]).
+        assert (HnoA1 : NoA m1) by (eapply Hnoaentry; [ exact Hentry | exact HnoA ]).
+        destruct (IHbody HnoA1 Hv1 Hsat1 (Hnw _ _ _ _ _ _ Hentry Hnwr)) as [Hv2 Hsat2].
+        assert (Ufree : Mem.unchanged_on (action_cell bm) m2 m3).
+        { eapply free_list_unchanged_on; [ exact Hfree | ].
+          intros b lo hi i Hin Hac. destruct Hac as [Hb _]. subst b.
+          exact (function_entry2_fresh _ _ _ _ _ _ _ Hentry bm lo hi Hin Hv). }
+        split;
+        [ eapply Mem.valid_block_unchanged_on; [ exact Ufree | exact Hv2 ]
+        | eapply action_sat_unchanged_on; [ exact Ufree | exact Hv2 | exact Hsat2 ] ].
+    - (* eval_funcall_external *)
+      intros m ef targs tres cconv vargs t vres m' Hec HnoA Hv Hsat.
+      split;
+      [ eapply external_call_valid_block; [ exact Hec | exact Hv ]
+      | eapply action_sat_unchanged_on; [ eapply Hext; exact Hec | exact Hv | exact Hsat ] ]. }
+  intros m fd vargs t m' vres HnoA Hev Hv Hsat.
+  exact (proj2 MAIN m fd vargs t m' vres Hev HnoA Hv Hsat).
 Qed.
