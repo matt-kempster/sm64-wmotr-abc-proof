@@ -37,6 +37,9 @@ proofs/MarioModel/ActionValue.v
 proofs/MarioModel/ActionValueFrame.v
 proofs/MarioModel/RealFrameValue.v
 
+# --- GOAL 1 / re-rooting the frame over the linked program (work in progress) ---
+proofs/MarioModel/Unwired/RealFrameLinked.v
+
 # --- top-level demos ---
 proofs/Toy/ToyFrame.v
 proofs/Toy/ToyReach.v
