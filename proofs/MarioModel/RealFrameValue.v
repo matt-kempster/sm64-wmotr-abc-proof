@@ -204,17 +204,34 @@ Definition execute_mario_action_step (m m' : mem) : Prop :=
       (Internal mario.f_execute_mario_action)
       (Vptr b_o Ptrofs.zero :: nil) t m' res.
 
-(* ENTRY LIFT (concrete, no `forall le`): a whole eval_funcall of a no-stack-var
-   function preserves whatever its BODY's exec_stmt preserves. Same trivial entry
-   inversion as funcall_value_preserves (fn_vars=nil -> empty_env, free_list of
-   nil is identity), but it delegates to a body-EXECUTION predicate instead of a
-   `forall le` syntactic check. *)
-Theorem funcall_from_body_preserves :
+(* a non-parameter temp keeps its base value through bind_parameter_temps:
+   the only keys bind_parameter_temps writes are the formal parameters. *)
+Lemma bind_parameter_temps_other :
+  forall params vargs base le id,
+    bind_parameter_temps params vargs base = Some le ->
+    ~ In id (var_names params) ->
+    le ! id = base ! id.
+Proof.
+  induction params as [|[p ty] ps IH]; intros vargs base le id Hbind Hnin; simpl in *.
+  - destruct vargs; inv Hbind; reflexivity.
+  - destruct vargs as [|v vs]; [ discriminate | ].
+    apply Decidable.not_or in Hnin. destruct Hnin as (Hne & Hnin').
+    erewrite IH; [ | exact Hbind | exact Hnin' ].
+    rewrite PTree.gso; [ reflexivity | congruence ].
+Qed.
+
+(* ENTRY LIFT (concrete, no adversarial `forall le`): a whole eval_funcall of a
+   no-stack-var function preserves whatever its BODY's exec_stmt preserves --
+   AND it hands the body predicate the function-entry temp binding, so the
+   caller can establish entry facts (e.g. tprov, vacuous at create_undef_temps).
+   Trivial entry inversion: fn_vars=nil -> empty_env, free_list of nil is id. *)
+Theorem funcall_from_body_preserves_entry :
   forall (P : mem -> Prop) (ge : genv) (f : function) vargs m m' t res,
     fn_vars f = nil ->
-    (forall e le mm tt le' mm' out,
+    (forall le mm tt le' mm' out,
+       bind_parameter_temps (fn_params f) vargs (create_undef_temps (fn_temps f)) = Some le ->
        P mm ->
-       exec_stmt function_entry2 ge e le mm (fn_body f) tt le' mm' out ->
+       exec_stmt function_entry2 ge empty_env le mm (fn_body f) tt le' mm' out ->
        P mm') ->
     P m ->
     eval_funcall function_entry2 ge m (Internal f) vargs t m' res ->
@@ -226,66 +243,14 @@ Proof.
   match goal with Hav : alloc_variables _ _ _ _ _ _ |- _ =>
     rewrite Hvars in Hav; inv Hav end.
   match goal with
-  | Hexec : exec_stmt function_entry2 ge empty_env _ _ (fn_body f) _ _ _ _ |- _ =>
-      assert (HP2 : P _) by (eapply Hbody; [ exact HP | exact Hexec ])
+  | Hexec : exec_stmt function_entry2 ge empty_env ?le _ (fn_body f) _ _ _ _,
+    Hbind : bind_parameter_temps _ _ _ = Some ?le |- _ =>
+      assert (HP2 : P _) by (eapply Hbody; [ exact Hbind | exact HP | exact Hexec ])
   end.
   match goal with Hfree : Mem.free_list _ _ = Some _ |- _ =>
     assert (Hbe : blocks_of_env ge empty_env = nil) by reflexivity;
     rewrite Hbe in Hfree; cbn [Mem.free_list] in Hfree; inv Hfree end.
   exact HP2.
-Qed.
-
-(* THE CONCRETE RESIDUAL (replaces the false `forall le` stmt_value_ok). SM64 is
-   ONE program: this is a fact about the ACTUAL executions of the ONE body, from
-   states that are well-formed (valid bm, non-flying action, marioObj off-bm),
-   GIVEN the (separately-named) call/external residuals. It is TRUE -- the body's
-   own two stores land off bm by marioObj_wf (store{1,2}_avoids_action_cell), its
-   calls preserve by reach_value, its builtins by reach_ext -- and it carries the
-   invariants forward (including marioObj_wf, since the two stores hit the Object
-   block, not bm's marioObj field). No adversarial `forall le`: le and m are
-   whatever the real run produces. Discharging it is the augmented-engine work;
-   the geometry payoff lemmas below are its store-case bricks. *)
-(* NoA-THREADED (2026-06-02): consumes the no-A-conditioned reach property
-   (reach_value_preserves_noA) and carries the no-A memory predicate NoA forward
-   alongside the other invariants. The bare `reach_value_preserves` it used to
-   take was FALSE (set_mario_action with ACT_FLYING is a reached funcall); the
-   conditioned form is what the per-frame proof actually supplies. Carrying NoA
-   forward is honest content (the controller bytes are not rewritten mid-frame),
-   and discharging it is part of the augmented-engine work, same as before. *)
-Definition body_preserves_real (bm : block) (NoA : mem -> Prop) : Prop :=
-  reach_value_preserves_noA nonflying bm mario_ge NoA ->
-  reach_ext_preserves (action_cell bm) mario_ge ->
-  forall e le m t le' m' out,
-    NoA m ->
-    Mem.valid_block m bm -> action_sat nonflying m bm -> marioObj_wf m bm ->
-    exec_stmt function_entry2 mario_ge e le m
-      (fn_body mario.f_execute_mario_action) t le' m' out ->
-    NoA m' /\ Mem.valid_block m' bm /\ action_sat nonflying m' bm /\ marioObj_wf m' bm.
-
-(* THE REDUCTION (concrete): a real frame preserves (valid /\ non-flying /\
-   marioObj-wf), given the two call/external residuals and the concrete body
-   residual. Lifted from the body execution by the trivial entry inversion. *)
-Theorem execute_mario_action_preserves_real :
-  forall (bm : block) (NoA : mem -> Prop) m m',
-    reach_value_preserves_noA nonflying bm mario_ge NoA ->
-    reach_ext_preserves (action_cell bm) mario_ge ->
-    body_preserves_real bm NoA ->
-    NoA m ->
-    Mem.valid_block m bm ->
-    action_sat nonflying m bm ->
-    marioObj_wf m bm ->
-    execute_mario_action_step m m' ->
-    NoA m' /\ Mem.valid_block m' bm /\ action_sat nonflying m' bm /\ marioObj_wf m' bm.
-Proof.
-  intros bm NoA m m' Hreach Hext Hbody HnoA Hv Hsat Hwf (b_o & t & res & Hfun).
-  apply (funcall_from_body_preserves
-           (fun mm => NoA mm /\ Mem.valid_block mm bm /\ action_sat nonflying mm bm /\ marioObj_wf mm bm)
-           mario_ge mario.f_execute_mario_action (Vptr b_o Ptrofs.zero :: nil) m m' t res
-           eq_refl).
-  - intros e le mm tt le' mm' out (Hn1 & Hv1 & Hs1 & Hw1) Hexec.
-    exact (Hbody Hreach Hext e le mm tt le' mm' out Hn1 Hv1 Hs1 Hw1 Hexec).
-  - exact (conj HnoA (conj Hv (conj Hsat Hwf))).
-  - exact Hfun.
 Qed.
 
 (* ================================================================== *)
@@ -931,17 +896,6 @@ Section ProvEngine.
       first [ exact (T48 _ _ Hs) | exact (T12 _ _ Hs) | exact (T49 _ _ Hs) | exact (T13 _ _ Hs) ].
   Qed.
 
-  (* the reach residuals: every reached funcall / external preserves meminv.
-     (These are the new named obligations the body's calls/builtins reduce to.) *)
-  Hypothesis reach_meminv :
-    forall m fd vargs t m' vres,
-      eval_funcall function_entry2 mario_ge m fd vargs t m' vres ->
-      meminv m -> meminv m'.
-  Hypothesis ext_meminv :
-    forall ef vargs m t vres m',
-      external_call ef mario_ge vargs m t vres m' ->
-      meminv m -> meminv m'.
-
   (* the per-statement check: stores are the two body stores; tracked-temp Ssets
      have their expected RHS; call/builtin result temps are untracked. *)
   Fixpoint prov_ok (s : statement) : Prop :=
@@ -970,7 +924,7 @@ Section ProvEngine.
   (* ================================================================== *)
   Lemma ssd_prov_ok : forall sl, prov_ok_ls sl -> prov_ok_ls (select_switch_default sl).
   Proof.
-    clear Hgb reach_meminv ext_meminv.
+    clear Hgb.
     induction sl as [| o s rest IH]; simpl; intros H; auto.
     destruct o as [c|]; simpl; [ destruct H as [_ Hr]; apply IH; exact Hr | exact H ].
   Qed.
@@ -978,7 +932,7 @@ Section ProvEngine.
   Lemma ssc_prov_ok : forall n sl res,
     prov_ok_ls sl -> select_switch_case n sl = Some res -> prov_ok_ls res.
   Proof.
-    clear Hgb reach_meminv ext_meminv.
+    clear Hgb.
     induction sl as [| o s rest IH]; simpl; intros res Hav Hsel; try discriminate.
     destruct Hav as [Hs Hr]. destruct o as [c|]; simpl in Hsel.
     - destruct (zeq c n).
@@ -989,14 +943,14 @@ Section ProvEngine.
 
   Lemma seq_of_prov_ok : forall ls, prov_ok_ls ls -> prov_ok (seq_of_labeled_statement ls).
   Proof.
-    clear Hgb reach_meminv ext_meminv.
+    clear Hgb.
     induction ls as [| o s rest IH]; simpl; intros H; auto. destruct H. split; auto.
   Qed.
 
   Lemma select_switch_prov_ok : forall n sl,
     prov_ok_ls sl -> prov_ok_ls (select_switch n sl).
   Proof.
-    clear Hgb reach_meminv ext_meminv.
+    clear Hgb.
     intros n sl H. unfold select_switch.
     destruct (select_switch_case n sl) eqn:E.
     - exact (ssc_prov_ok n sl l H E).
@@ -1028,7 +982,7 @@ Section ProvEngine.
       forall le m s t le' m' out,
         exec_stmt function_entry2 ge e le m s t le' m' out -> P m le -> prov_ok s -> P m' le'.
   Proof.
-    clear Hgb reach_meminv ext_meminv.
+    clear Hgb.
     intros ge e P HA HS HC HB le m s t le' m' out H.
     induction H; intros HP Hck; cbn [prov_ok prov_ok_ls] in Hck;
       repeat match goal with
@@ -1057,28 +1011,60 @@ Section ProvEngine.
   Qed.
 
   (* ================================================================== *)
-  (* INSTANTIATION: the real engine over mario_ge with P = meminv /\ tprov. *)
-  (* The four leaf facts are discharged by the committed per-case lemmas. *)
+  (* THE NO-A-THREADED REACH RESIDUALS. The unconditional `meminv m ->     *)
+  (* meminv m'` for every reached funcall is FALSE: set_mario_action with   *)
+  (* an ACT_FLYING argument is a reached eval_funcall that breaks action_sat.*)
+  (* So the engine carries the no-A predicate NoA in its invariant and uses *)
+  (* the NO-A-CONDITIONED form -- the one a no-A frame can actually supply.  *)
+  (* The capstone builds reach_meminv_noA from the sharp action-cell        *)
+  (* decomposition (reach_nonwriter + reach_writer_noA, preserving valid +   *)
+  (* action_sat) PLUS the struct/NoA reach pieces; see reach_meminv_noA_build*)
+  (* below. NoA is threaded only so it is available at each reached call --   *)
+  (* the capstone discards the output NoA m'.                                *)
   (* ================================================================== *)
-  Theorem exec_body_prov :
+  Variable NoA : mem -> Prop.
+
+  Hypothesis reach_meminv_noA :
+    forall m fd vargs t m' vres,
+      NoA m -> meminv m ->
+      eval_funcall function_entry2 mario_ge m fd vargs t m' vres ->
+      NoA m' /\ meminv m'.
+  Hypothesis ext_meminv_noA :
+    forall ef vargs m t vres m',
+      NoA m -> meminv m ->
+      external_call ef mario_ge vargs m t vres m' ->
+      NoA m' /\ meminv m'.
+  (* the body's two off-bm stores (store1/store2, certified by the census)
+     leave the controller bytes NoA reads alone. *)
+  Hypothesis noA_store_pres :
+    forall e le m a1 a2 t le' m' out,
+      NoA m -> prov_ok (Sassign a1 a2) ->
+      exec_stmt function_entry2 mario_ge e le m (Sassign a1 a2) t le' m' out ->
+      NoA m'.
+
+  (* ================================================================== *)
+  (* THE ENGINE over mario_ge with P = NoA /\ meminv /\ tprov. Same        *)
+  (* body_prov_generic instantiation as before, now carrying NoA; the leaf  *)
+  (* facts are the committed per-case lemmas + the NoA-conditioned reach.   *)
+  (* ================================================================== *)
+  Theorem exec_body_prov_noA :
     forall e le m s t le' m' out,
       e ! mario._gMarioState = None ->
       exec_stmt function_entry2 mario_ge e le m s t le' m' out ->
-      meminv m -> tprov le -> prov_ok s ->
-      meminv m' /\ tprov le'.
+      NoA m -> meminv m -> tprov le -> prov_ok s ->
+      NoA m' /\ meminv m' /\ tprov le'.
   Proof.
-    intros e le m s t le' m' out He H Hmem Htp Hck.
-    apply (body_prov_generic mario_ge e (fun mm ll => meminv mm /\ tprov ll))
+    intros e le m s t le' m' out He H Hno Hmem Htp Hck.
+    apply (body_prov_generic mario_ge e (fun mm ll => NoA mm /\ meminv mm /\ tprov ll))
       with (le := le) (m := m) (s := s) (t := t) (le' := le') (m' := m') (out := out);
-      try assumption; try (split; assumption).
+      try assumption; try (split; [ exact Hno | split; assumption ]).
     - (* Sassign leaf *)
-      clear He reach_meminv ext_meminv Hmem Htp Hck H le m s t le' m' out.
-      intros le0 m0 a1 a2 t0 le0' m0' out0 [Hmem0 Htp0] Hck' Hexec.
-      cbn [prov_ok] in Hck'.
-      (* Sassign leaves the temp env unchanged: le0' = le0 *)
-      assert (Hle : le0' = le0) by (inversion Hexec; reflexivity).
-      subst le0'.
+      clear He reach_meminv_noA ext_meminv_noA Hmem Htp Hck H Hno le m s t le' m' out.
+      intros le0 m0 a1 a2 t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0) Hck' Hexec.
+      assert (Hle : le0' = le0) by (inversion Hexec; reflexivity). subst le0'.
+      split; [ eapply noA_store_pres; [ exact Hno0 | exact Hck' | exact Hexec ] | ].
       split; [ | exact Htp0 ].
+      cbn [prov_ok] in Hck'.
       destruct Htp0 as (T48 & T12 & T49 & T13).
       destruct Hck' as [ [Ha1 Ha2] | [Ha1 Ha2] ]; subst.
       + eapply (store_preserves_meminv store1_lval store1_rval mario._t'49 store1_loc_is_t49);
@@ -1086,22 +1072,28 @@ Section ProvEngine.
       + eapply (store_preserves_meminv store2_lval store2_rval mario._t'13 store2_loc_is_t13);
           [ exact Hmem0 | exact T13 | exact Hexec ].
     - (* Sset leaf *)
-      clear reach_meminv ext_meminv Hmem Htp Hck H le m s t le' m' out.
-      intros le0 m0 id a t0 le0' m0' out0 [Hmem0 Htp0] Hck' Hexec.
+      clear reach_meminv_noA ext_meminv_noA noA_store_pres Hmem Htp Hck H Hno le m s t le' m' out.
+      intros le0 m0 id a t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0) Hck' Hexec.
       cbn [prov_ok] in Hck'.
+      assert (Hm : m0' = m0) by (inversion Hexec; reflexivity).
+      split; [ rewrite Hm; exact Hno0 | ].
       eapply sset_case_preserves; [ exact He | exact Hmem0 | exact Htp0 | exact Hck' | exact Hexec ].
     - (* Scall leaf *)
-      clear He ext_meminv Hgb Hmem Htp Hck H le m s t le' m' out.
-      intros le0 m0 oid a al t0 le0' m0' out0 [Hmem0 Htp0] Hck' Hexec.
+      clear He ext_meminv_noA noA_store_pres Hgb Hmem Htp Hck H Hno le m s t le' m' out.
+      intros le0 m0 oid a al t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0) Hck' Hexec.
+      cbn [prov_ok] in Hck'.
       inversion Hexec; subst.
-      split; [ eapply reach_meminv; [ eassumption | exact Hmem0 ]
-             | apply tprov_set_opttemp; assumption ].
+      match goal with Hf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+        destruct (reach_meminv_noA _ _ _ _ _ _ Hno0 Hmem0 Hf) as (Hno0' & Hmem0') end.
+      split; [ exact Hno0' | split; [ exact Hmem0' | apply tprov_set_opttemp; assumption ] ].
     - (* Sbuiltin leaf *)
-      clear He reach_meminv Hgb Hmem Htp Hck H le m s t le' m' out.
-      intros le0 m0 oid ef tyl al t0 le0' m0' out0 [Hmem0 Htp0] Hck' Hexec.
+      clear He reach_meminv_noA noA_store_pres Hgb Hmem Htp Hck H Hno le m s t le' m' out.
+      intros le0 m0 oid ef tyl al t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0) Hck' Hexec.
+      cbn [prov_ok] in Hck'.
       inversion Hexec; subst.
-      split; [ eapply ext_meminv; [ eassumption | exact Hmem0 ]
-             | apply tprov_set_opttemp; assumption ].
+      match goal with Hec : external_call _ _ _ _ _ _ _ |- _ =>
+        destruct (ext_meminv_noA _ _ _ _ _ _ Hno0 Hmem0 Hec) as (Hno0' & Hmem0') end.
+      split; [ exact Hno0' | split; [ exact Hmem0' | apply tprov_set_opttemp; assumption ] ].
   Qed.
 
 End ProvEngine.
@@ -1140,4 +1132,114 @@ Proof.
                | idtac ]
      | |- forall _, _ => intro
      end).
+Qed.
+
+(* ================================================================== *)
+(* WIRING exec_body_prov_noA TO THE REAL FRAME.                         *)
+(*                                                                     *)
+(* The engine's single reach obligation (reach_meminv_noA: every reached *)
+(* funcall, in a no-A state, preserves NoA AND the full meminv) is BUILT  *)
+(* from the sharp action-cell decomposition the capstone already isolates *)
+(* (reach_value_preserves_noA = valid + action_sat, no-A-conditioned)     *)
+(* PLUS the remaining struct/NoA reach piece below. This keeps the no-A    *)
+(* crux (set_mario_action's argument) isolated where it was, rather than   *)
+(* lumping it into one broad assumption.                                    *)
+(* ================================================================== *)
+
+(* every reached funcall preserves NoA and the two Mario-pointer invariants
+   (marioObj off bm, gMarioState -> bm). The value part (valid + action_sat)
+   is the SEPARATE reach_value_preserves_noA; together they give full meminv. *)
+Definition reach_rest_noA (bm : block) (NoA : mem -> Prop) : Prop :=
+  forall m fd vargs t m' vres,
+    NoA m ->
+    eval_funcall function_entry2 mario_ge m fd vargs t m' vres ->
+    marioObj_wf m bm -> gMarioState_wf m bm ->
+    NoA m' /\ marioObj_wf m' bm /\ gMarioState_wf m' bm.
+
+Lemma reach_meminv_noA_build :
+  forall bm NoA,
+    reach_value_preserves_noA nonflying bm mario_ge NoA ->
+    reach_rest_noA bm NoA ->
+    forall m fd vargs t m' vres,
+      NoA m -> meminv bm m ->
+      eval_funcall function_entry2 mario_ge m fd vargs t m' vres ->
+      NoA m' /\ meminv bm m'.
+Proof.
+  intros bm NoA Hval Hrest m fd vargs t m' vres Hno Hmem Hev.
+  unfold meminv in Hmem. destruct Hmem as (Hv & Hsat & Hmwf & Hgwf).
+  destruct (Hval m fd vargs t m' vres Hno Hev Hv Hsat) as (Hv' & Hsat').
+  destruct (Hrest m fd vargs t m' vres Hno Hev Hmwf Hgwf) as (Hno' & Hmwf' & Hgwf').
+  split; [ exact Hno' | unfold meminv; repeat split; assumption ].
+Qed.
+
+(* tprov holds at function entry, VACUOUSLY: the four tracked temps are not
+   parameters, so they keep their create_undef_temps value (Vundef), which is
+   not a Vptr -- the tat/toff implications are vacuously true. *)
+Lemma tprov_entry :
+  forall bm gb vargs le,
+    bind_parameter_temps (fn_params mario.f_execute_mario_action) vargs
+       (create_undef_temps (fn_temps mario.f_execute_mario_action)) = Some le ->
+    tprov bm gb le.
+Proof.
+  intros bm gb vargs le Hbind.
+  assert (Hother : forall id, ~ In id (var_names (fn_params mario.f_execute_mario_action)) ->
+            le ! id = (create_undef_temps (fn_temps mario.f_execute_mario_action)) ! id)
+    by (intros id Hnin; eapply bind_parameter_temps_other; [ exact Hbind | exact Hnin ]).
+  unfold tprov, tat, toff;
+  split; [ | split; [ | split ] ];
+    intros b o Hlk;
+    rewrite Hother in Hlk by (vm_compute; intuition discriminate);
+    vm_compute in Hlk; discriminate Hlk.
+Qed.
+
+(* THE REDUCTION (concrete, fully PROVED): a real frame preserves NoA and the
+   full memory invariant. body_preserves_real is no longer ASSUMED -- the body
+   is discharged by exec_body_prov_noA over the census, with the entry facts
+   (e = empty_env, tprov vacuous) established here and the gb/Hgb the engine
+   needs extracted from gMarioState_wf. The only remaining premises are the
+   no-A-conditioned reach/ext/store residuals about the REACHED call graph. *)
+Theorem execute_mario_action_preserves_real :
+  forall (bm : block) (NoA : mem -> Prop) m m',
+    reach_value_preserves_noA nonflying bm mario_ge NoA ->
+    reach_rest_noA bm NoA ->
+    (forall ef vargs mm tt vres mm',
+        NoA mm -> meminv bm mm ->
+        external_call ef mario_ge vargs mm tt vres mm' -> NoA mm' /\ meminv bm mm') ->
+    (forall e le mm a1 a2 tt le' mm' out,
+        NoA mm -> prov_ok (Sassign a1 a2) ->
+        exec_stmt function_entry2 mario_ge e le mm (Sassign a1 a2) tt le' mm' out -> NoA mm') ->
+    NoA m ->
+    Mem.valid_block m bm -> action_sat nonflying m bm ->
+    marioObj_wf m bm -> gMarioState_wf m bm ->
+    execute_mario_action_step m m' ->
+    NoA m' /\ Mem.valid_block m' bm /\ action_sat nonflying m' bm /\
+    marioObj_wf m' bm /\ gMarioState_wf m' bm.
+Proof.
+  intros bm NoA m m' Hval Hrest Hext Hstore HnoA Hv Hsat Hmwf Hgwf
+         (b_o & t & res & Hfun).
+  pose proof Hgwf as Hgwf2. destruct Hgwf2 as (gb & Hgb & Hload).
+  pose proof (reach_meminv_noA_build bm NoA Hval Hrest) as Hreachmem.
+  assert (HPm' :
+    NoA m' /\ Mem.valid_block m' bm /\ action_sat nonflying m' bm /\
+    marioObj_wf m' bm /\ gMarioState_wf m' bm).
+  { eapply (funcall_from_body_preserves_entry
+              (fun mm => NoA mm /\ Mem.valid_block mm bm /\ action_sat nonflying mm bm /\
+                         marioObj_wf mm bm /\ gMarioState_wf mm bm)
+              mario_ge mario.f_execute_mario_action (Vptr b_o Ptrofs.zero :: nil)
+              m m' t res eq_refl);
+      [ | exact (conj HnoA (conj Hv (conj Hsat (conj Hmwf Hgwf)))) | exact Hfun ].
+    intros le mm tt le' mm' out Hbind (Hn & Hvv & Hss & Hmw & Hgw) Hexec.
+    edestruct (exec_body_prov_noA bm gb Hgb NoA Hreachmem Hext Hstore
+                 empty_env le mm (fn_body mario.f_execute_mario_action) tt le' mm' out)
+      as (Hn' & Hmem' & _);
+      [ apply PTree.gempty
+      | exact Hexec
+      | exact Hn
+      | exact (conj Hvv (conj Hss (conj Hmw Hgw)))
+      | eapply tprov_entry; exact Hbind
+      | exact execute_mario_action_body_prov_ok
+      | ].
+    unfold meminv in Hmem'. destruct Hmem' as (Hvv' & Hss' & Hmw' & Hgw').
+    exact (conj Hn' (conj Hvv' (conj Hss' (conj Hmw' Hgw')))). }
+  exact HPm'.
 Qed.
