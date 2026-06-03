@@ -963,4 +963,145 @@ Section ProvEngine.
     | LScons _ s rest => prov_ok s /\ prov_ok_ls rest
     end.
 
+  (* ================================================================== *)
+  (* Switch-case helpers: select_switch / seq_of_labeled_statement      *)
+  (* preserve prov_ok (genv-free, structural). Mirrors the analogous     *)
+  (* *_value_ok lemmas in ActionValueFrame.                              *)
+  (* ================================================================== *)
+  Lemma ssd_prov_ok : forall sl, prov_ok_ls sl -> prov_ok_ls (select_switch_default sl).
+  Proof.
+    clear Hgb reach_meminv ext_meminv.
+    induction sl as [| o s rest IH]; simpl; intros H; auto.
+    destruct o as [c|]; simpl; [ destruct H as [_ Hr]; apply IH; exact Hr | exact H ].
+  Qed.
+
+  Lemma ssc_prov_ok : forall n sl res,
+    prov_ok_ls sl -> select_switch_case n sl = Some res -> prov_ok_ls res.
+  Proof.
+    clear Hgb reach_meminv ext_meminv.
+    induction sl as [| o s rest IH]; simpl; intros res Hav Hsel; try discriminate.
+    destruct Hav as [Hs Hr]. destruct o as [c|]; simpl in Hsel.
+    - destruct (zeq c n).
+      + inv Hsel. simpl. split; [ exact Hs | exact Hr ].
+      + exact (IH res Hr Hsel).
+    - exact (IH res Hr Hsel).
+  Qed.
+
+  Lemma seq_of_prov_ok : forall ls, prov_ok_ls ls -> prov_ok (seq_of_labeled_statement ls).
+  Proof.
+    clear Hgb reach_meminv ext_meminv.
+    induction ls as [| o s rest IH]; simpl; intros H; auto. destruct H. split; auto.
+  Qed.
+
+  Lemma select_switch_prov_ok : forall n sl,
+    prov_ok_ls sl -> prov_ok_ls (select_switch n sl).
+  Proof.
+    clear Hgb reach_meminv ext_meminv.
+    intros n sl H. unfold select_switch.
+    destruct (select_switch_case n sl) eqn:E.
+    - exact (ssc_prov_ok n sl l H E).
+    - apply ssd_prov_ok; exact H.
+  Qed.
+
+  (* ================================================================== *)
+  (* THE GENERIC ENGINE: the structural exec_stmt induction run over an   *)
+  (* ABSTRACT ge / e / P. This is the performance win -- the induction    *)
+  (* never hauls the concrete mario_ge / meminv around, so its 16 cases   *)
+  (* are trivial. The leaf cases (Sassign/Sset/Scall/Sbuiltin) are        *)
+  (* delegated to abstract per-case hypotheses; the structural cases      *)
+  (* thread P via the induction hypotheses, decomposing prov_ok.          *)
+  (* ================================================================== *)
+  Lemma body_prov_generic :
+    forall (ge : genv) (e : env) (P : mem -> temp_env -> Prop),
+      (forall le m a1 a2 t le' m' out,
+         P m le -> prov_ok (Sassign a1 a2) ->
+         exec_stmt function_entry2 ge e le m (Sassign a1 a2) t le' m' out -> P m' le') ->
+      (forall le m id a t le' m' out,
+         P m le -> prov_ok (Sset id a) ->
+         exec_stmt function_entry2 ge e le m (Sset id a) t le' m' out -> P m' le') ->
+      (forall le m oid a al t le' m' out,
+         P m le -> prov_ok (Scall oid a al) ->
+         exec_stmt function_entry2 ge e le m (Scall oid a al) t le' m' out -> P m' le') ->
+      (forall le m oid ef tyl al t le' m' out,
+         P m le -> prov_ok (Sbuiltin oid ef tyl al) ->
+         exec_stmt function_entry2 ge e le m (Sbuiltin oid ef tyl al) t le' m' out -> P m' le') ->
+      forall le m s t le' m' out,
+        exec_stmt function_entry2 ge e le m s t le' m' out -> P m le -> prov_ok s -> P m' le'.
+  Proof.
+    clear Hgb reach_meminv ext_meminv.
+    intros ge e P HA HS HC HB le m s t le' m' out H.
+    induction H; intros HP Hck; cbn [prov_ok prov_ok_ls] in Hck;
+      repeat match goal with
+             | IH : (forall _ _ _ _ _ _ _ _, P _ _ -> _) -> _ |- _ =>
+                 specialize (IH HA HS HC HB)
+             end.
+    - (* Sskip *) exact HP.
+    - (* Sassign *) eapply HA; [ exact HP | cbn [prov_ok]; exact Hck | solve [ econstructor; eauto ] ].
+    - (* Sset *) eapply HS; [ exact HP | cbn [prov_ok]; exact Hck | solve [ econstructor; eauto ] ].
+    - (* Scall *) eapply HC; [ exact HP | cbn [prov_ok]; exact Hck | solve [ econstructor; eauto ] ].
+    - (* Sbuiltin *) eapply HB; [ exact HP | cbn [prov_ok]; exact Hck | solve [ econstructor; eauto ] ].
+    - (* Sseq normal *) destruct Hck as [Hck1 Hck2]. apply IHexec_stmt2; [ apply IHexec_stmt1; assumption | exact Hck2 ].
+    - (* Sseq abnormal *) destruct Hck as [Hck1 _]. apply IHexec_stmt; [ exact HP | exact Hck1 ].
+    - (* Sifthenelse *) destruct Hck as [Hck1 Hck2]. apply IHexec_stmt; [ exact HP | destruct b; assumption ].
+    - (* Sreturn none *) exact HP.
+    - (* Sreturn some *) exact HP.
+    - (* Sbreak *) exact HP.
+    - (* Scontinue *) exact HP.
+    - (* Sloop stop1 *) destruct Hck as [Hck1 _]. apply IHexec_stmt; [ exact HP | exact Hck1 ].
+    - (* Sloop stop2 *) destruct Hck as [Hck1 Hck2].
+      apply IHexec_stmt2; [ apply IHexec_stmt1; assumption | exact Hck2 ].
+    - (* Sloop loop *) destruct Hck as [Hck1 Hck2].
+      apply IHexec_stmt3; [ apply IHexec_stmt2; [ apply IHexec_stmt1; assumption | exact Hck2 ]
+                          | cbn [prov_ok]; split; assumption ].
+    - (* Sswitch *) apply IHexec_stmt; [ exact HP | apply seq_of_prov_ok; apply select_switch_prov_ok; exact Hck ].
+  Qed.
+
+  (* ================================================================== *)
+  (* INSTANTIATION: the real engine over mario_ge with P = meminv /\ tprov. *)
+  (* The four leaf facts are discharged by the committed per-case lemmas. *)
+  (* ================================================================== *)
+  Theorem exec_body_prov :
+    forall e le m s t le' m' out,
+      e ! mario._gMarioState = None ->
+      exec_stmt function_entry2 mario_ge e le m s t le' m' out ->
+      meminv m -> tprov le -> prov_ok s ->
+      meminv m' /\ tprov le'.
+  Proof.
+    intros e le m s t le' m' out He H Hmem Htp Hck.
+    apply (body_prov_generic mario_ge e (fun mm ll => meminv mm /\ tprov ll))
+      with (le := le) (m := m) (s := s) (t := t) (le' := le') (m' := m') (out := out);
+      try assumption; try (split; assumption).
+    - (* Sassign leaf *)
+      clear He reach_meminv ext_meminv Hmem Htp Hck H le m s t le' m' out.
+      intros le0 m0 a1 a2 t0 le0' m0' out0 [Hmem0 Htp0] Hck' Hexec.
+      cbn [prov_ok] in Hck'.
+      (* Sassign leaves the temp env unchanged: le0' = le0 *)
+      assert (Hle : le0' = le0) by (inversion Hexec; reflexivity).
+      subst le0'.
+      split; [ | exact Htp0 ].
+      destruct Htp0 as (T48 & T12 & T49 & T13).
+      destruct Hck' as [ [Ha1 Ha2] | [Ha1 Ha2] ]; subst.
+      + eapply (store_preserves_meminv store1_lval store1_rval mario._t'49 store1_loc_is_t49);
+          [ exact Hmem0 | exact T49 | exact Hexec ].
+      + eapply (store_preserves_meminv store2_lval store2_rval mario._t'13 store2_loc_is_t13);
+          [ exact Hmem0 | exact T13 | exact Hexec ].
+    - (* Sset leaf *)
+      clear reach_meminv ext_meminv Hmem Htp Hck H le m s t le' m' out.
+      intros le0 m0 id a t0 le0' m0' out0 [Hmem0 Htp0] Hck' Hexec.
+      cbn [prov_ok] in Hck'.
+      eapply sset_case_preserves; [ exact He | exact Hmem0 | exact Htp0 | exact Hck' | exact Hexec ].
+    - (* Scall leaf *)
+      clear He ext_meminv Hgb Hmem Htp Hck H le m s t le' m' out.
+      intros le0 m0 oid a al t0 le0' m0' out0 [Hmem0 Htp0] Hck' Hexec.
+      inversion Hexec; subst.
+      split; [ eapply reach_meminv; [ eassumption | exact Hmem0 ]
+             | apply tprov_set_opttemp; assumption ].
+    - (* Sbuiltin leaf *)
+      clear He reach_meminv Hgb Hmem Htp Hck H le m s t le' m' out.
+      intros le0 m0 oid ef tyl al t0 le0' m0' out0 [Hmem0 Htp0] Hck' Hexec.
+      inversion Hexec; subst.
+      split; [ eapply ext_meminv; [ eassumption | exact Hmem0 ]
+             | apply tprov_set_opttemp; assumption ].
+  Qed.
+
 End ProvEngine.
