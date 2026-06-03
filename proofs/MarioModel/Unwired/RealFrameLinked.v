@@ -580,4 +580,123 @@ Section ReRoot.
     - rewrite PTree.gso in Hs by congruence. exact (HP tt Hin bm o Hs eq_refl).
   Qed.
 
+  (* ---- THE MARG/MWF/REACHED BODY ENGINE over lp_ge. ---- *)
+  Section ReachedLp.
+    Variable bm gb : block.
+    Hypothesis Hgb_lp : Genv.find_symbol lp_ge mario._gMarioState = Some gb.
+    Variable NoA MWF : mem -> Prop.
+    Variable Reached_id : ident -> Prop.
+    Variable Reached_fd : Clight.fundef -> Prop.
+
+    Hypothesis noA_store_pres_lp :
+      forall e le m a1 a2 t le' m' out,
+        NoA m -> prov_ok (Sassign a1 a2) ->
+        exec_stmt function_entry2 lp_ge e le m (Sassign a1 a2) t le' m' out -> NoA m'.
+    Hypothesis store_mwf_lp :
+      forall e le m a1 a2 t le' m' out,
+        NoA m -> prov_ok (Sassign a1 a2) -> MWF m ->
+        exec_stmt function_entry2 lp_ge e le m (Sassign a1 a2) t le' m' out -> MWF m'.
+    Hypothesis ext_mwf_lp :
+      forall ef vargs m t vres m',
+        NoA m -> meminv_lp bm m -> MWF m ->
+        external_call ef lp_ge vargs m t vres m' ->
+        NoA m' /\ meminv_lp bm m' /\ MWF m'.
+    Hypothesis reach_meminv_reached_lp :
+      forall m fd vargs t m' vres,
+        Reached_fd fd -> NoA m -> meminv_lp bm m -> MWF m -> marg_ok bm vargs ->
+        eval_funcall function_entry2 lp_ge m fd vargs t m' vres ->
+        NoA m' /\ meminv_lp bm m' /\ MWF m'.
+    Hypothesis body_call_reached_lp :
+      forall oid a al e le mm vf fd,
+        reach_chk Reached_id (Scall oid a al) ->
+        eval_expr lp_ge e le mm a vf ->
+        Genv.find_funct lp_ge vf = Some fd -> Reached_fd fd.
+
+    Theorem exec_body_prov_reached_lp :
+      forall e le m s t le' m' out,
+        e ! mario._gMarioState = None ->
+        exec_stmt function_entry2 lp_ge e le m s t le' m' out ->
+        NoA m -> meminv_lp bm m -> tprov bm gb le -> Pgms bm le -> MWF m ->
+        prov_ok s -> pgms_chk s -> reach_chk Reached_id s ->
+        NoA m' /\ meminv_lp bm m' /\ tprov bm gb le' /\ Pgms bm le' /\ MWF m'.
+    Proof.
+      intros e le m s t le' m' out He H Hno Hmem Htp Hpg Hmwf Hck Hpck Hrck.
+      apply (body_check_generic lp_ge e
+               (fun mm ll => NoA mm /\ meminv_lp bm mm /\ tprov bm gb ll /\ Pgms bm ll /\ MWF mm)
+               (fun ss => prov_ok ss /\ pgms_chk ss /\ reach_chk Reached_id ss))
+        with (le := le) (m := m) (s := s) (t := t) (le' := le') (m' := m') (out := out);
+        try exact H;
+        try (split; [ exact Hno | split; [ exact Hmem | split; [ exact Htp
+              | split; [ exact Hpg | exact Hmwf ] ] ] ]);
+        try (split; [ exact Hck | split; [ exact Hpck | exact Hrck ] ]).
+      - (* Sassign leaf *)
+        intros le0 m0 a1 a2 t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0 & Hmwf0) (Hck0 & _ & _) Hexec.
+        assert (Hle : le0' = le0) by (inversion Hexec; reflexivity). subst le0'.
+        assert (Hno0' : NoA m0') by (eapply noA_store_pres_lp; [ exact Hno0 | exact Hck0 | exact Hexec ]).
+        assert (Hmwf0' : MWF m0') by (eapply store_mwf_lp; [ exact Hno0 | exact Hck0 | exact Hmwf0 | exact Hexec ]).
+        split; [ exact Hno0' | ].
+        split; [ | split; [ exact Htp0 | split; [ exact Hpg0 | exact Hmwf0' ] ] ].
+        cbn [prov_ok] in Hck0.
+        destruct Htp0 as (T48 & T12 & T49 & T13).
+        destruct Hck0 as [ [Ha1 Ha2] | [Ha1 Ha2] ]; subst.
+        + eapply (store_preserves_meminv_lp bm gb Hgb_lp store1_lval store1_rval mario._t'49 store1_loc_is_t49_lp);
+            [ exact Hmem0 | exact T49 | exact Hexec ].
+        + eapply (store_preserves_meminv_lp bm gb Hgb_lp store2_lval store2_rval mario._t'13 store2_loc_is_t13_lp);
+            [ exact Hmem0 | exact T13 | exact Hexec ].
+      - (* Sset leaf *)
+        intros le0 m0 id a t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0 & Hmwf0) (Hck0 & Hpck0 & _) Hexec.
+        cbn [prov_ok] in Hck0. cbn [pgms_chk] in Hpck0.
+        assert (Hm : m0' = m0) by (inversion Hexec; reflexivity).
+        pose proof Hmem0 as Hmemcopy. destruct Hmemcopy as (_ & _ & _ & Hgwf0).
+        destruct (sset_case_preserves_lp bm gb Hgb_lp e le0 m0 id a t0 le0' m0' out0 He Hmem0 Htp0 Hck0 Hexec)
+          as (Hmem0' & Htp0').
+        split; [ rewrite Hm; exact Hno0 | ].
+        split; [ exact Hmem0' | split; [ exact Htp0' | split ] ].
+        + eapply pgms_sset_preserves_lp; [ exact He | exact Hgwf0 | exact Hpg0 | exact Hpck0 | exact Hexec ].
+        + rewrite Hm; exact Hmwf0.
+      - (* Scall leaf *)
+        intros le0 m0 oid a al t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0 & Hmwf0) (Hck0 & Hpck0 & Hrck0) Hexec.
+        cbn [prov_ok] in Hck0. cbn [pgms_chk] in Hpck0.
+        destruct Hpck0 as (Hres & Hargs).
+        inversion Hexec; subst.
+        match goal with He0 : eval_expr _ _ _ _ a ?vf |- _ =>
+          match goal with Hff : Genv.find_funct _ vf = Some ?fd |- _ =>
+            assert (Hrf : Reached_fd fd)
+              by (eapply body_call_reached_lp; [ exact Hrck0 | exact He0 | exact Hff ]) end end.
+        match goal with Hel : eval_exprlist _ _ _ _ al _ ?vargs |- _ =>
+          assert (Hmarg : marg_ok bm vargs)
+            by (eapply call_arg0_marg_sound_lp; [ exact Hpg0 | exact Hargs | exact Hel ]) end.
+        match goal with Hf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+          destruct (reach_meminv_reached_lp _ _ _ _ _ _ Hrf Hno0 Hmem0 Hmwf0 Hmarg Hf)
+            as (Hno0' & Hmem0' & Hmwf0') end.
+        split; [ exact Hno0' | split; [ exact Hmem0' | split; [ | split ] ] ].
+        + apply tprov_set_opttemp; [ exact Hck0 | exact Htp0 ].
+        + apply pgms_set_opttemp; [ exact Hres | exact Hpg0 ].
+        + exact Hmwf0'.
+      - (* Sbuiltin leaf *)
+        intros le0 m0 oid ef tyl al t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0 & Hmwf0) (Hck0 & Hpck0 & _) Hexec.
+        cbn [prov_ok] in Hck0. cbn [pgms_chk] in Hpck0.
+        inversion Hexec; subst.
+        match goal with Hec : external_call _ _ _ _ _ _ _ |- _ =>
+          destruct (ext_mwf_lp _ _ _ _ _ _ Hno0 Hmem0 Hmwf0 Hec) as (Hno0' & Hmem0' & Hmwf0') end.
+        split; [ exact Hno0' | split; [ exact Hmem0' | split; [ | split ] ] ].
+        + apply tprov_set_opttemp; [ exact Hck0 | exact Htp0 ].
+        + apply pgms_set_opttemp; [ exact Hpck0 | exact Hpg0 ].
+        + exact Hmwf0'.
+      - (* Hseq *) intros s1 s2 Hd; destruct Hd as (Hp & Hg & Hr);
+          cbn [prov_ok pgms_chk reach_chk] in Hp, Hg, Hr; tauto.
+      - (* Hif *) intros a s1 s2 Hd; destruct Hd as (Hp & Hg & Hr);
+          cbn [prov_ok pgms_chk reach_chk] in Hp, Hg, Hr; tauto.
+      - (* Hloop *) intros s1 s2 Hd; destruct Hd as (Hp & Hg & Hr);
+          cbn [prov_ok pgms_chk reach_chk] in Hp, Hg, Hr; tauto.
+      - (* Hlabel *) intros l s0 Hd; destruct Hd as (Hp & Hg & Hr);
+          cbn [prov_ok pgms_chk reach_chk] in Hp, Hg, Hr; tauto.
+      - (* Hsw *) intros a ls n Hd; destruct Hd as (Hp & Hg & Hr);
+          cbn [prov_ok pgms_chk reach_chk] in Hp, Hg, Hr.
+        split; [ apply seq_of_prov_ok; apply select_switch_prov_ok; exact Hp
+               | split; [ apply pgms_seq_of; apply pgms_select_switch; exact Hg
+                        | apply reach_seq_of; apply reach_select_switch; exact Hr ] ].
+    Qed.
+  End ReachedLp.
+
 End ReRoot.
