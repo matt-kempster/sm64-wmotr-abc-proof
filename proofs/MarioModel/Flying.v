@@ -44,7 +44,9 @@ Local Open Scope Z_scope.
 From compcert Require Import AST Integers Ctypes Cop Clight.
 From SM64.Proofs Require Import CallgraphReach.
 From SM64.Generated Require mario mario_actions_airborne mario_actions_moving level_update
-  behavior_actions mario_actions_automatic interaction.
+  behavior_actions mario_actions_automatic interaction
+  mario_actions_stationary mario_actions_submerged mario_actions_cutscene
+  mario_actions_object mario_step.
 
 (* --- The flying action constants, as read off the generated AST -------------- *)
 
@@ -237,6 +239,56 @@ Proof. reflexivity. Qed.
    but no flying *constant* originates in any behavior. *)
 Example no_behavior_is_a_flying_setter :
   flying_setters behavior_actions.prog = [].
+Proof. reflexivity. Qed.
+
+(* COMPLETING THE WRITE-SITE CLOSURE over the rest of the LINKED program (2026-06-03).
+   The five remaining action/step TUs that execute_mario_action reaches through the
+   group dispatchers -- stationary, submerged, cutscene, object, and the physics step
+   mario_step -- contain NO flying-setter: not one feeds a flying constant into any
+   call. Combined with the four non-empty TUs above (mario, airborne, moving,
+   level_update) this makes the flying_setters enumeration EXHAUSTIVE across every TU
+   linked into the per-frame Mario update: exactly FIVE functions in the whole linked
+   program can introduce a flying action value -- set_jump_from_landing,
+   act_shot_from_cannon, act_flying_triple_jump, set_triple_jump_action,
+   set_mario_initial_action -- each via a set_mario_action-style call. Per-TU
+   reflexivity, lp never built. *)
+Example stationary_no_flying_setter :
+  flying_setters mario_actions_stationary.prog = [].
+Proof. reflexivity. Qed.
+Example submerged_no_flying_setter :
+  flying_setters mario_actions_submerged.prog = [].
+Proof. reflexivity. Qed.
+Example cutscene_no_flying_setter :
+  flying_setters mario_actions_cutscene.prog = [].
+Proof. reflexivity. Qed.
+Example object_no_flying_setter :
+  flying_setters mario_actions_object.prog = [].
+Proof. reflexivity. Qed.
+Example mario_step_no_flying_setter :
+  flying_setters mario_step.prog = [].
+Proof. reflexivity. Qed.
+
+(* ...and none of those five TUs raw-writes a flying constant to MarioState.action
+   either (the field-write choke-point, completed across the linked program). *)
+Example stationary_no_raw_flying_write :
+  flying_action_writers mario_actions_stationary._MarioState
+    mario_actions_stationary._action mario_actions_stationary.prog = [].
+Proof. reflexivity. Qed.
+Example submerged_no_raw_flying_write :
+  flying_action_writers mario_actions_submerged._MarioState
+    mario_actions_submerged._action mario_actions_submerged.prog = [].
+Proof. reflexivity. Qed.
+Example cutscene_no_raw_flying_write :
+  flying_action_writers mario_actions_cutscene._MarioState
+    mario_actions_cutscene._action mario_actions_cutscene.prog = [].
+Proof. reflexivity. Qed.
+Example object_no_raw_flying_write :
+  flying_action_writers mario_actions_object._MarioState
+    mario_actions_object._action mario_actions_object.prog = [].
+Proof. reflexivity. Qed.
+Example mario_step_no_raw_flying_write :
+  flying_action_writers mario_step._MarioState
+    mario_step._action mario_step.prog = [].
 Proof. reflexivity. Qed.
 
 (* --- The m->action write choke-point, enumerated and corrected ------------- *)
