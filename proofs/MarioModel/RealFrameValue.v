@@ -1105,3 +1105,39 @@ Section ProvEngine.
   Qed.
 
 End ProvEngine.
+
+(* ================================================================== *)
+(* THE CENSUS (machine-checked, genv-free): the prov_ok per-statement   *)
+(* check holds over the ACTUAL clightgen'd body of f_execute_mario_action.*)
+(* This is what makes exec_body_prov applicable to the REAL body -- it    *)
+(* certifies, by cbn over the concrete AST, that the body's only value    *)
+(* content is store1/store2 (both off-bm), that the four tracked temps    *)
+(* _t'48/_t'12/_t'49/_t'13 are set only to their expected provenance RHS,  *)
+(* and that no call/builtin result temp collides with a tracked temp.      *)
+(* prov_ok is genv-free, so this is fast and carries no section data.       *)
+Lemma execute_mario_action_body_prov_ok :
+  prov_ok (fn_body mario.f_execute_mario_action).
+Proof.
+  (* unfold only the recursive STRUCTURE of the check; leave the per-leaf
+     predicates (prov_sset_ok / optid_untracked / the store exprs) folded so
+     cbn cannot re-fold mid-term -- the match arms below unfold them on demand. *)
+  cbn [prov_ok prov_ok_ls fn_body mario.f_execute_mario_action Swhile].
+  repeat
+    (match goal with
+     | |- True => exact I
+     | |- _ /\ _ => split
+     | |- prov_sset_ok _ _ => unfold prov_sset_ok, gms_expr, marioObj_expr
+     | |- optid_untracked _ => unfold optid_untracked
+     | |- _ \/ _ =>
+         unfold store1_lval, store1_rval, store2_lval, store2_rval;
+         first [ left; split; reflexivity | right; split; reflexivity ]
+     | |- _ <> _ => let H := fresh in intro H; vm_compute in H; discriminate H
+     | |- ?a = ?b => reflexivity
+     | |- _ -> _ =>
+         let H := fresh in intro H;
+         first [ (vm_compute in H; discriminate H)
+               | (injection H as H; subst)
+               | idtac ]
+     | |- forall _, _ => intro
+     end).
+Qed.
