@@ -258,6 +258,35 @@ Proof.
   - apply no_action_store_ssd; exact H.
 Qed.
 
+(* create_undef_temps initializes every temp to Vundef, so a temp read from it is
+   never a pointer -- the fact that makes non-parameter temps vacuous for TI at
+   function entry. *)
+Lemma create_undef_temps_Vundef :
+  forall l t v, (create_undef_temps l) ! t = Some v -> v = Vundef.
+Proof.
+  induction l as [|[id ty] l IH]; intros t v Hget; simpl in Hget.
+  - rewrite PTree.gempty in Hget. discriminate.
+  - destruct (peq t id).
+    + subst. rewrite PTree.gss in Hget. inv Hget. reflexivity.
+    + rewrite PTree.gso in Hget by assumption. exact (IH t v Hget).
+Qed.
+
+(* Param-shape classifier over the REACHED internals: every reached internal has
+   exactly ONE parameter (the Mario pointer _m, covered by marg_ok) EXCEPT
+   vec3f_find_ceil, which has a 2nd pointer param (_ceil, an output arg). Computed
+   by injection + reflexivity over the concrete reached_funcs list. This is what
+   reduces the entry-temp discharge to "marg_ok covers arg0" for 16 of 17. *)
+Lemma reached_internal_param_shape :
+  forall f, In (Ctypes.Internal f) reached_funcs ->
+    length (fn_params f) = 1%nat \/ f = mario.f_vec3f_find_ceil.
+Proof.
+  intros f Hin. unfold reached_funcs in Hin; simpl in Hin.
+  repeat (destruct Hin as [Hin | Hin];
+    [ injection Hin as Hin; subst f;
+      solve [ left; reflexivity | right; reflexivity ] | ]).
+  contradiction.
+Qed.
+
 Section NoAImpliesNoFly.
   (* Mario's struct block is fixed; the action field loads at (bm, 12) as Mint32 --
      exactly the value engine's watched cell. *)
@@ -379,20 +408,66 @@ Section NoAImpliesNoFly.
   Let TI : temp_env -> Prop :=
     fun le => forall t b o, le ! t = Some (Vptr b o) -> b = bm -> o = Ptrofs.zero.
   Let C : statement -> Prop := fun s => no_action_store s = true.
-  (* (1a-TI) REACHED + marg-gated body leaf, TI HALF (the residual that remains).
-          An ACTUALLY-REACHED non-writer entered with marg_ok args has entry-temp-
-          invariant TI. The `reached_fd (Internal f)` premise kills the forall-f
-          phantom -- only the finite reached set, dischargeable by enumeration.
-          EXECUTION-RELATIVE (the entry le is the one the marg call args produced).
-          This is the pointer-PROVENANCE half; the action-write-freedom half (the
-          C-conjunct) is now PROVED below from the census, not assumed. *)
-  Hypothesis reach_value_body_TI :
+  (* ENTRY-TEMP INVARIANT for a SINGLE-parameter function: at function_entry2 the
+     temp env is `bind_parameter_temps params vargs (create_undef_temps temps)`.
+     With exactly one parameter, vargs = [v0] (bind requires matching length), the
+     sole param temp holds v0 (constrained by marg_ok), and every other temp is
+     Vundef (create_undef_temps) -- never a pointer. So TI(entry) holds. This is
+     the execution-relative discharge of the entry-temp provenance for the 16
+     single-(pointer-)param reached internals. *)
+  Lemma entry_TI_singleparam :
+    forall f vargs m e le m1,
+      length (fn_params f) = 1%nat ->
+      function_entry2 mario_ge f vargs m e le m1 ->
+      marg_ok bm vargs ->
+      TI le.
+  Proof.
+    intros f vargs m e le m1 Hlen Hentry Hmarg.
+    inv Hentry.
+    match goal with H : bind_parameter_temps _ _ _ = Some le |- _ =>
+      rename H into Hbind end.
+    destruct (fn_params f) as [|[p ty] [|q qs]] eqn:Hpar; simpl in Hlen;
+      try discriminate.
+    simpl in Hbind.
+    destruct vargs as [|v0 [|v1 vs]]; try discriminate Hbind.
+    simpl in Hbind. inv Hbind.
+    unfold TI. intros t b o Hget Hb. subst b.
+    destruct (peq t p).
+    - subst t. rewrite PTree.gss in Hget. inv Hget.
+      simpl in Hmarg. exact (Hmarg eq_refl).
+    - rewrite PTree.gso in Hget by assumption.
+      apply create_undef_temps_Vundef in Hget. discriminate.
+  Qed.
+  (* The ONE narrow residual the entry discharge cannot reach: vec3f_find_ceil's
+     SECOND pointer parameter `_ceil` (arg2, an output Surface** ) is not covered
+     by marg_ok (which guards arg0 only). Its off-bm-ness is a call-site fact (the
+     caller passes the address of a stack local). DISCHARGE PATH: strengthen
+     marg_ok to all pointer args, or a per-call-site argument; isolated here so the
+     other 16 are fully discharged. *)
+  Hypothesis reach_vec3f_ceil_offbm :
+    forall vargs m e le m1,
+      function_entry2 mario_ge mario.f_vec3f_find_ceil vargs m e le m1 ->
+      marg_ok bm vargs -> TI le.
+  (* (1a-TI) REACHED body leaf, TI HALF -- now PROVED for 16 of the 17 reached
+          internals (entry_TI_singleparam) and reduced to the single narrow
+          residual reach_vec3f_ceil_offbm for the 17th. The `reached_fd` premise
+          confines it to the finite reached set; EXECUTION-RELATIVE (the entry le is
+          the one the marg call args produced). The action-write-freedom half (the
+          C-conjunct) is PROVED from the census. *)
+  Lemma reach_value_body_TI :
     forall f vargs m e le m1,
       reached_fd (Ctypes.Internal f) ->
       function_entry2 mario_ge f vargs m e le m1 ->
       ~ writer_set_mario_action (Ctypes.Internal f) ->
       marg_ok bm vargs ->
       TI le.
+  Proof.
+    intros f vargs m e le m1 Hrf Hentry Hnw Hmarg.
+    destruct Hrf as [Hin | (ef & tl & ty & cc & Hext)]; [| discriminate Hext].
+    destruct (reached_internal_param_shape f Hin) as [Hlen | Hvec].
+    - exact (entry_TI_singleparam f vargs m e le m1 Hlen Hentry Hmarg).
+    - subst f. exact (reach_vec3f_ceil_offbm vargs m e le m1 Hentry Hmarg).
+  Qed.
   (* (1a) the FULL body leaf the value engine consumes: TI le /\ C (fn_body f).
           The C-conjunct -- "f's body NAMES MarioState's action field as a store
           target NOWHERE" -- is DISCHARGED by the machine-checked census
