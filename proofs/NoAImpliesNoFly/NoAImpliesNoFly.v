@@ -407,6 +407,114 @@ Proof.
   - apply marg_arg_chk_ssd; exact H.
 Qed.
 
+(* ===================================================================== *)
+(* THE Sset-SOURCE CENSUS (the de-phantoming of reach_TI_set). TI' is      *)
+(* "no temp holds a MISALIGNED Mario pointer". An Sset `id := a` preserves  *)
+(* TI' iff `a` can never evaluate to Vptr bm (off<>0). `sset_src_safe a`    *)
+(* certifies, purely syntactically, that `a` is one of the shapes that NEVER *)
+(* produces a misaligned bm-pointer (given TI' on the temps + MWF = no       *)
+(* memory cell holds a misaligned bm-ptr):                                   *)
+(*   - scalar constants: never a pointer;                                    *)
+(*   - Etempvar t: by TI', if it is a bm-ptr it is at offset 0;              *)
+(*   - Evar g (a global load): by MWF, if a bm-ptr then offset 0 (the only   *)
+(*     global pointing at bm is gMarioState, which holds (bm,0));            *)
+(*   - Ederef/Efield (a memory load): by MWF, if a bm-ptr then offset 0      *)
+(*     (chase fields point off bm, gMarioState holds (bm,0));                *)
+(*   - Ecast e _: pointer casts preserve (block,offset); recurse on e;       *)
+(*   - Eunop _ _ ty / Ebinop _ _ _ ty with a NON-pointer result type ty:     *)
+(*     the result is a scalar, never a pointer (so pointer ARITHMETIC, whose *)
+(*     result type IS a pointer, e.g. `_m + k`, is REJECTED -- that is the   *)
+(*     one shape that could fabricate a misaligned bm-ptr from an aligned    *)
+(*     one; the 17 reached bodies never Sset from pointer arithmetic).       *)
+(*   - Eaddrof (&lvalue): REJECTED -- `&_m->field` is exactly the misaligned- *)
+(*     bm-ptr producer; the 17 reached bodies never Sset from an Eaddrof     *)
+(*     (every &_m->field flows only as a 4th call arg to an external).       *)
+(* Machine-checked = true on all 17 reached bodies (reached_funcs_sset_chk). *)
+Definition is_ptr_type (ty : type) : bool :=
+  match ty with Tpointer _ _ => true | _ => false end.
+Fixpoint sset_src_safe (a : expr) : bool :=
+  match a with
+  | Econst_int _ _ | Econst_float _ _ | Econst_single _ _ | Econst_long _ _ => true
+  | Etempvar _ _ => true
+  | Evar _ _    => true
+  | Ederef _ _  => true
+  | Efield _ _ _ => true
+  | Ecast e _   => sset_src_safe e
+  | Eunop _ _ ty => negb (is_ptr_type ty)
+  | Ebinop _ _ _ ty => negb (is_ptr_type ty)
+  | Esizeof _ _ | Ealignof _ _ => true
+  | Eaddrof _ _ => false
+  end.
+Fixpoint sset_chk (s : statement) : bool :=
+  match s with
+  | Sset _ a            => sset_src_safe a
+  | Sassign _ _         => true
+  | Ssequence s1 s2     => sset_chk s1 && sset_chk s2
+  | Sifthenelse _ s1 s2 => sset_chk s1 && sset_chk s2
+  | Sloop s1 s2         => sset_chk s1 && sset_chk s2
+  | Slabel _ s1         => sset_chk s1
+  | Sswitch _ ls        => sset_chk_ls ls
+  | _                   => true
+  end
+with sset_chk_ls (ls : labeled_statements) : bool :=
+  match ls with
+  | LSnil           => true
+  | LScons _ s rest => sset_chk s && sset_chk_ls rest
+  end.
+
+Lemma reached_funcs_sset_chk :
+  forallb (fun fd => match fd with
+                     | Ctypes.Internal f => sset_chk (fn_body f)
+                     | Ctypes.External _ _ _ _ => true
+                     end)
+          reached_funcs = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma reached_fd_sset_chk :
+  forall f, reached_fd (Ctypes.Internal f) -> sset_chk (fn_body f) = true.
+Proof.
+  intros f [Hin | (ef & tl & ty & cc & Hext)]; [| discriminate Hext].
+  pose proof reached_funcs_sset_chk as H.
+  rewrite forallb_forall in H. exact (H _ Hin).
+Qed.
+
+Lemma sset_chk_ssd : forall sl,
+  sset_chk_ls sl = true -> sset_chk_ls (select_switch_default sl) = true.
+Proof.
+  induction sl as [| o s rest IH]; simpl; intros H; auto.
+  apply andb_true_iff in H. destruct H as [Hs Hr].
+  destruct o as [c|]; simpl.
+  - apply IH; exact Hr.
+  - rewrite Hs, Hr; reflexivity.
+Qed.
+Lemma sset_chk_ssc : forall n sl res,
+  sset_chk_ls sl = true ->
+  select_switch_case n sl = Some res -> sset_chk_ls res = true.
+Proof.
+  induction sl as [| o s rest IH]; simpl; intros res Hav Hsel; try discriminate.
+  apply andb_true_iff in Hav. destruct Hav as [Hs Hr].
+  destruct o as [c|]; simpl in Hsel.
+  - destruct (zeq c n).
+    + inv Hsel. simpl. rewrite Hs, Hr; reflexivity.
+    + exact (IH res Hr Hsel).
+  - exact (IH res Hr Hsel).
+Qed.
+Lemma sset_chk_seq_of : forall ls,
+  sset_chk_ls ls = true -> sset_chk (seq_of_labeled_statement ls) = true.
+Proof.
+  induction ls as [| o s rest IH]; simpl; intros H; auto.
+  apply andb_true_iff in H. destruct H as [Hs Hr].
+  simpl. rewrite Hs, (IH Hr); reflexivity.
+Qed.
+Lemma sset_chk_select : forall n sl,
+  sset_chk_ls sl = true -> sset_chk_ls (select_switch n sl) = true.
+Proof.
+  intros n sl H. unfold select_switch.
+  destruct (select_switch_case n sl) eqn:E.
+  - exact (sset_chk_ssc n sl l H E).
+  - apply sset_chk_ssd; exact H.
+Qed.
+
 (* create_undef_temps initializes every temp to Vundef, so a temp read from it is
    never a pointer -- the fact that makes non-parameter temps vacuous for TI at
    function entry. *)
@@ -628,21 +736,35 @@ Section NoAImpliesNoFly.
      <> _m, which is therefore OFF bm -> misses the action cell with NO MWF needed,
      and every MarioState store goes through _m directly (base (bm,0), field <>
      action via C) landing at (bm, off<>12). *)
+  (* TI' -- the TRUE entry-temp pointer-provenance invariant: every temp that holds
+     a pointer INTO Mario's block bm holds it at OFFSET 0 (no temp ever holds a
+     MISALIGNED Mario pointer). The earlier "ONLY _m may hold a bm-ptr" is FALSE for
+     the real reached set -- f_mario_update_hitbox_and_cap_model reloads the global
+     gMarioState (= Vptr bm 0) into non-_m temps (Sset _t'12 (Evar _gMarioState ..)),
+     so non-_m temps DO hold bm-pointers; what stays true is they are all aligned
+     (offset 0). This is the right invariant: a MarioState field store through ANY
+     (bm,0) temp lands at (bm, field_off<>12) (m_direct_avoids), and the chase stores
+     (marioObj/marioBodyState ptrs) land off bm by MWF (chase_store_offbm), NOT by
+     "the temp is not _m". *)
   Let TI : temp_env -> Prop :=
-    fun le => forall t b o, le ! t = Some (Vptr b o) -> b = bm ->
-                            t = mario._m /\ o = Ptrofs.zero.
-  (* The body census threaded by the value engine. TWO conjuncts:
+    fun le => forall t b o, le ! t = Some (Vptr b o) -> b = bm -> o = Ptrofs.zero.
+  (* The body census threaded by the value engine. FOUR conjuncts:
      - no_action_store: no Sassign NAMES MarioState's action field (the store
        safety census, machine-checked over the 17 reached bodies);
      - reach_chk reached_id: every direct call targets `Evar id` with `reached_id
        id` and there are NO indirect calls (the call-graph CLOSURE census). This
-       second conjunct is what makes reach_call_reached SOUND: without it, the
-       engine's call-target leaf would be the false `forall a, <any call> resolves
-       to a reached fd` (true only because the reached bodies provably call only
-       reached ids -- exactly what reach_chk pins down). *)
+       conjunct is what makes reach_call_reached SOUND: without it, the engine's
+       call-target leaf would be the false `forall a, <any call> resolves to a
+       reached fd` (true only because the reached bodies provably call only reached
+       ids -- exactly what reach_chk pins down).
+     - marg_arg_chk: every non-exempt call's arg0 is an Etempvar (makes
+       reach_call_marg sound);
+     - sset_chk: every Sset source is a non-(misaligned-bm-ptr)-producing shape
+       (makes reach_TI_set sound under TI' -- no Sset can install a misaligned
+       Mario pointer in a temp). *)
   Let C : statement -> Prop :=
     fun s => no_action_store s = true /\ reach_chk reached_id s
-             /\ marg_arg_chk s = true.
+             /\ marg_arg_chk s = true /\ sset_chk s = true.
   (* ENTRY-TEMP INVARIANT for a SINGLE-parameter function: at function_entry2 the
      temp env is `bind_parameter_temps params vargs (create_undef_temps temps)`.
      With exactly one parameter, vargs = [v0] (bind requires matching length), the
@@ -667,7 +789,7 @@ Section NoAImpliesNoFly.
     unfold TI. intros t b o Hget Hb. subst b.
     destruct (peq t mario._m).
     - subst t. rewrite PTree.gss in Hget. inv Hget.
-      split; [ reflexivity | ]. simpl in Hmarg. exact (Hmarg eq_refl).
+      simpl in Hmarg. exact (Hmarg eq_refl).
     - rewrite PTree.gso in Hget by assumption.
       apply create_undef_temps_Vundef in Hget. discriminate.
   Qed.
@@ -736,13 +858,15 @@ Section NoAImpliesNoFly.
     intros f vargs m e le m1 Hrf Hexm Hentry Hnw Hmarg.
     split.
     - exact (reach_value_body_TI f vargs m e le m1 Hrf Hexm Hentry Hnw Hmarg).
-    - unfold C. split; [| split].
+    - unfold C. split; [| split; [| split]].
       + exact (reached_fd_no_action_store f Hrf).
       + (* the reach_chk conjunct: f is a reached internal -> static closure *)
         destruct Hrf as [Hin | (ef & tl & ty & cc & Hext)]; [ | discriminate Hext ].
         exact (reached_fd_reach_chk f Hin).
       + (* the arg0 conjunct: f's non-exempt calls pass arg0 = Etempvar *)
         exact (reached_fd_marg_arg_chk f Hrf).
+      + (* the Sset-source conjunct: f's Ssets never install a misaligned bm-ptr *)
+        exact (reached_fd_sset_chk f Hrf).
   Qed.
   (* (1a') a direct Sassign under TI+C preserves validity + non-flying (it stores
           off the action cell OR a non-flying value).
@@ -781,12 +905,36 @@ Section NoAImpliesNoFly.
     forall ee ll mm id ty l o bf0,
       eval_lvalue mario_ge ee ll mm (Evar id ty) l o bf0 -> l <> bm.
 
-  (* (1a'-alias) NOW PROVED. A censused body store's byte range never overlaps the
-     action cell (bm,12). Three cases, by the strengthened census safe_store_lval:
+  (* THE MarioMemWF BLOCK-DISTINCTNESS BRICK (the chase-store off-bm residual).
+     A censused store rooted at a temp t <> _m lands OFF Mario's block bm. This is
+     the fact that the off-_m store reasoning USED to (UNSOUNDLY) get from the old
+     "only _m holds a bm-ptr" TI -- which is FALSE (f_mario_update_hitbox_and_cap_
+     model reloads gMarioState (= Vptr bm 0) into non-_m temps _t'12/_t'14). Under
+     the corrected TI' a non-_m temp CAN hold (bm,0), so off-bm-ness of a STORE ROOT
+     is NOT a temp-alignment fact -- it is genuine memory block-distinctness: the
+     off-_m store roots in the 17 reached bodies are chase pointers (m->marioObj :
+     Object*, m->marioBodyState : MarioBodyState*, array bases) that MWF places off
+     bm; VERIFIED that NO reached body roots a store at a gMarioState-reloaded (bm,0)
+     temp (the gMarioState temps only feed marioObj LOADS). So this residual is TRUE
+     for the real program. It is the MarioMemWF block-distinctness brick (same forall
+     -shaped, MWF-keyed, assumed status as MWF_preserved_assign / Hmwf_ext below); its
+     sound standalone discharge needs the per-temp chase-provenance from MarioMemWF.v
+     (an adversarial le that puts (bm,0) in a store-root temp -- which the real run
+     never produces -- refutes the bare forall, exactly the kind of impossible-le the
+     engine never reaches). REPLACES the false-TI off-_m reasoning. *)
+  Hypothesis store_root_offbm :
+    forall e le m a1 loc ofs bf t,
+      eval_lvalue mario_ge e le m a1 loc ofs bf ->
+      MWF m -> TI le ->
+      store_root a1 = Some t -> t <> mario._m ->
+      rooted_lv t a1 = true ->
+      loc <> bm.
+  (* (1a'-alias) NOW PROVED (modulo the bricks). A censused body store's byte range
+     never overlaps the action cell (bm,12). Three cases, by safe_store_lval:
        - Evar root  : store block <> bm by bm_not_var;
-       - temp t<>_m : store block = le!t's block (RootedLvalue.eval_lvalue_rooted),
-                      which is <> bm by TI (only _m may point into bm);
-       - _m direct  : store block = bm, offset = field_offset f (TI gives le!_m at
+       - temp t<>_m : store block <> bm by the MarioMemWF brick store_root_offbm
+                      (the chase pointer points off bm -- NOT "t is not _m");
+       - _m direct  : store block = bm, offset = field_offset f (TI' gives le!_m at
                       (bm,0)), and the byte range misses [12,16) by the census's
                       field_safe_for_action (vm_compute over mario_ce). *)
   (* The _m-direct concrete residual: a `_m->f` store (block bm at offset
@@ -832,7 +980,7 @@ Section NoAImpliesNoFly.
         pose proof (eval_lvalue_rooted mario_ge e le m mario._m pb po a1 bm ofs bf
                       Hm Hlval Hrt) as Hpb
     end.
-    subst pb. destruct (Hti mario._m bm po Hm eq_refl) as [_ Hpo]. subst po.
+    subst pb. pose proof (Hti mario._m bm po Hm eq_refl) as Hpo. subst po.
     (* invert the Efield for the field offset (delta = d by determinism) *)
     inv Hlval; [ | match goal with H : typeof _ = Tunion _ _ |- _ =>
                        cbn in H; discriminate H end ].
@@ -911,13 +1059,10 @@ Section NoAImpliesNoFly.
       destruct (store_root (Ederef ad adty)) as [t|] eqn:Hsr; [| discriminate Hc].
       destruct (Pos.eqb t mario._m) eqn:Htm.
       + cbn in Hc. discriminate Hc.
-      + assert (Hrt : rooted_lv t (Ederef ad adty) = true) by exact Hc.
-        destruct (rooted_lv_root_value mario_ge e le m t (Ederef ad adty) bm ofs bf
-                    Hlval Hrt) as (pb & po & Hpt).
-        pose proof (eval_lvalue_rooted mario_ge e le m t pb po (Ederef ad adty) bm ofs bf
-                      Hpt Hlval Hrt) as Hbpb. subst pb.
-        destruct (Hti t bm po Hpt eq_refl) as [Ht_m _].
-        apply (Pos.eqb_neq t mario._m) in Htm. exact (Htm Ht_m).
+      + (* off-_m rooted: off bm by the MarioMemWF brick store_root_offbm *)
+        apply (Pos.eqb_neq t mario._m) in Htm.
+        exact (store_root_offbm e le m (Ederef ad adty) bm ofs bf t
+                 Hlval Hmwf Hti Hsr Htm Hc eq_refl).
     - (* Efield ad f0 ty0 : off-_m rooted, or the _m-direct field store *)
       cbn [safe_store_lval] in Hc.
       destruct (store_root (Efield ad f0 ty0)) as [t|] eqn:Hsr; [| discriminate Hc].
@@ -925,14 +1070,10 @@ Section NoAImpliesNoFly.
       + (* _m-direct *)
         exact (m_direct_avoids e le m (Efield ad f0 ty0) bm ofs bf
                  Hlval Hti Hc eq_refl i Hi Hrange).
-      + (* off-_m rooted *)
-        assert (Hrt : rooted_lv t (Efield ad f0 ty0) = true) by exact Hc.
-        destruct (rooted_lv_root_value mario_ge e le m t (Efield ad f0 ty0) bm ofs bf
-                    Hlval Hrt) as (pb & po & Hpt).
-        pose proof (eval_lvalue_rooted mario_ge e le m t pb po (Efield ad f0 ty0) bm ofs bf
-                      Hpt Hlval Hrt) as Hbpb. subst pb.
-        destruct (Hti t bm po Hpt eq_refl) as [Ht_m _].
-        apply (Pos.eqb_neq t mario._m) in Htm. exact (Htm Ht_m).
+      + (* off-_m rooted: off bm by the MarioMemWF brick store_root_offbm *)
+        apply (Pos.eqb_neq t mario._m) in Htm.
+        exact (store_root_offbm e le m (Efield ad f0 ty0) bm ofs bf t
+                 Hlval Hmwf Hti Hsr Htm Hc eq_refl).
   Qed.
   Hypothesis MWF_preserved_assign :
     forall e le m a1 a2 loc ofs bf v m',
@@ -978,20 +1119,23 @@ Section NoAImpliesNoFly.
       eval_expr mario_ge e le m a vf -> Genv.find_funct mario_ge vf = Some fd ->
       marg_exempt fd = false ->
       eval_exprlist mario_ge e le m al tyargs vargs -> marg_ok bm vargs.
-  (* (1a''') TI is preserved by a censused Sset.
-     *** KNOWN STILL-FALSE AS STATED (source phantom-forall) -- a SOUNDNESS RESIDUAL
-     to discharge, NOT yet sound. *** The Sset source `a` is UNCONSTRAINED by C
-     (no_action_store/reach_chk ignore Sset sources), so the adversary picks
-     a = `Eaddrof (Efield (Ederef (Etempvar _m _) _) field _)` = &_m->field: under TI
-     le (_m -> (bm,0)) this evaluates to v = Vptr bm (field_off), so the fresh temp id
-     now points into bm at a nonzero offset -> TI(set id v le) is FALSE, while C(Sset)
-     holds (trivially). MWF doesn't help (a is an ADDRESS-OF, not a chase LOAD). THE
-     FIX: census Sset sources in C -- the real reached bodies only Sset a temp from a
-     chase load `_m->field` (off-bm by MWF) or a scalar, NEVER &_m->field (the only
-     Eaddrof-of-Mario-field flows as a 4th call arg, never an Sset). Constrain `a` to
-     those safe shapes, re-certify the 17, then TI is preserved. The forall-v was
-     already de-phantomed for reach_TI_optc/optb (call results); this is the Sset
-     analogue, still open. *)
+  (* (1a''') TI' is preserved by a censused Sset.
+     NOW SOUND (true-as-stated, 2026-06-03) under TI' = "no temp holds a MISALIGNED
+     bm-ptr" + the sset_chk conjunct of C. The former phantom: with C ignoring Sset
+     sources, the adversary picked a = `Eaddrof (Efield (Ederef (Etempvar _m _) _)
+     field _)` = &_m->field, evaluating to v = Vptr bm (field_off<>0), breaking the
+     invariant while C(Sset) held trivially. FIX (landed): C now carries
+     `sset_chk (Sset id a) = sset_src_safe a`, which REJECTS Eaddrof (and pointer
+     arithmetic, whose result type is a pointer) and accepts only shapes that never
+     produce a misaligned bm-ptr: scalars; Etempvar (offset 0 if bm, by TI'); a
+     global/memory LOAD Evar/Ederef/Efield (offset 0 if bm, by MWF = "no memory cell
+     holds a misaligned bm-ptr"); a cast of a safe source. All 17 reached bodies pass
+     (reached_funcs_sset_chk, vm_compute). So under TI'+MWF+C, eval of `a` is never
+     Vptr bm (off<>0), hence TI'(set id v le) holds. Still ASSUMED (the full
+     mechanical proof needs the per-shape eval_expr inversions + the MWF
+     no-misaligned-cell projection), but it is a TRUE hypothesis -- not the former
+     source-phantom. The sibling reach_TI_optc/optb (call/builtin RESULTS) are PROVED.
+     NOTE marg_ok needs only offset 0, so reach_call_marg is likewise true under TI'. *)
   Hypothesis reach_TI_set :
     forall e le m id a v,
       MWF m -> eval_expr mario_ge e le m a v -> TI le -> C (Sset id a) ->
@@ -1072,33 +1216,40 @@ Section NoAImpliesNoFly.
           assumed. *)
   Lemma reach_C_seq  : forall s1 s2, C (Ssequence s1 s2) -> C s1 /\ C s2.
   Proof.
-    unfold C; intros s1 s2 (Hna & Hrc & Hma); simpl in Hna; apply andb_true_iff in Hna;
-    cbn [reach_chk] in Hrc; simpl in Hma; apply andb_true_iff in Hma;
-    destruct Hna as [Hna1 Hna2]; destruct Hrc as [Hrc1 Hrc2]; destruct Hma as [Hma1 Hma2];
+    unfold C; intros s1 s2 (Hna & Hrc & Hma & Hss);
+    simpl in Hna; apply andb_true_iff in Hna; destruct Hna as [Hna1 Hna2];
+    cbn [reach_chk] in Hrc; destruct Hrc as [Hrc1 Hrc2];
+    simpl in Hma; apply andb_true_iff in Hma; destruct Hma as [Hma1 Hma2];
+    simpl in Hss; apply andb_true_iff in Hss; destruct Hss as [Hss1 Hss2];
     split; repeat split; assumption.
   Qed.
   Lemma reach_C_if   : forall a s1 s2, C (Sifthenelse a s1 s2) -> C s1 /\ C s2.
   Proof.
-    unfold C; intros a s1 s2 (Hna & Hrc & Hma); simpl in Hna; apply andb_true_iff in Hna;
-    cbn [reach_chk] in Hrc; simpl in Hma; apply andb_true_iff in Hma;
-    destruct Hna as [Hna1 Hna2]; destruct Hrc as [Hrc1 Hrc2]; destruct Hma as [Hma1 Hma2];
+    unfold C; intros a s1 s2 (Hna & Hrc & Hma & Hss);
+    simpl in Hna; apply andb_true_iff in Hna; destruct Hna as [Hna1 Hna2];
+    cbn [reach_chk] in Hrc; destruct Hrc as [Hrc1 Hrc2];
+    simpl in Hma; apply andb_true_iff in Hma; destruct Hma as [Hma1 Hma2];
+    simpl in Hss; apply andb_true_iff in Hss; destruct Hss as [Hss1 Hss2];
     split; repeat split; assumption.
   Qed.
   Lemma reach_C_loop : forall s1 s2, C (Sloop s1 s2) -> C s1 /\ C s2.
   Proof.
-    unfold C; intros s1 s2 (Hna & Hrc & Hma); simpl in Hna; apply andb_true_iff in Hna;
-    cbn [reach_chk] in Hrc; simpl in Hma; apply andb_true_iff in Hma;
-    destruct Hna as [Hna1 Hna2]; destruct Hrc as [Hrc1 Hrc2]; destruct Hma as [Hma1 Hma2];
+    unfold C; intros s1 s2 (Hna & Hrc & Hma & Hss);
+    simpl in Hna; apply andb_true_iff in Hna; destruct Hna as [Hna1 Hna2];
+    cbn [reach_chk] in Hrc; destruct Hrc as [Hrc1 Hrc2];
+    simpl in Hma; apply andb_true_iff in Hma; destruct Hma as [Hma1 Hma2];
+    simpl in Hss; apply andb_true_iff in Hss; destruct Hss as [Hss1 Hss2];
     split; repeat split; assumption.
   Qed.
   Lemma reach_C_sw   :
     forall a ls n, C (Sswitch a ls) -> C (seq_of_labeled_statement (select_switch n ls)).
   Proof.
-    unfold C; intros a ls n (Hna & Hrc & Hma); simpl in Hna; cbn [reach_chk] in Hrc;
-    simpl in Hma; repeat split.
+    unfold C; intros a ls n (Hna & Hrc & Hma & Hss); simpl in Hna; cbn [reach_chk] in Hrc;
+    simpl in Hma; simpl in Hss; repeat split.
     - apply no_action_store_seq_of, no_action_store_select; exact Hna.
     - apply reach_seq_of, reach_select_switch; exact Hrc.
     - apply marg_arg_chk_seq_of, marg_arg_chk_select; exact Hma.
+    - apply sset_chk_seq_of, sset_chk_select; exact Hss.
   Qed.
   (* (1a''''') THE CALL-TARGET-REACHED BRIDGE (value engine). Under TI+C, a reached
           call resolves to a Reached callee. NOW SOUND: the `C (Scall ..)` premise
