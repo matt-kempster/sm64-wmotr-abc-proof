@@ -143,26 +143,39 @@ Section NoAImpliesNoFly.
   Definition writer_set_mario_action (fd : Clight.fundef) : Prop :=
     fd = Ctypes.Internal mario.f_set_mario_action.
 
-  (* (1) THE CRUX, now DECOMPOSED via the SOUND value engine
-     (ActionValueFrame.exec_funcall_reach_value_noA). This REPLACES the FALSE
-     residual `reach_nonwriter_unchanged` -- which classified WHOLE funcalls and
-     was therefore UNSATISFIABLE for transitive writers (act_walking is not
-     set_mario_action yet CALLS it, so its whole-funcall changes the cell). The
-     sound split is over a function's OWN DIRECT body Sassigns; the engine's
-     mutual induction carries transitivity through the Scall -> funcall IH.
-     (1a) every reached NON-set_mario_action body's direct Sassigns are value-ok
-          -- each avoids the action cell or stores a non-flying value. TRUE;
-          discharge = per-function offset/literal analysis over the call graph
-          (the L1 fan-out). This talks about a function's direct body ONLY, never
-          its transitive effects -- that is exactly what makes it satisfiable. *)
+  (* (1) THE CRUX -- the action-value preservation. The mutual-induction value
+     engine (ActionValueFrame.exec_funcall_reach_value_noA) correctly handles
+     TRANSITIVITY (retiring the FALSE whole-funcall reach_nonwriter_unchanged),
+     but reduces the crux to (1a)+(1b) below -- and BOTH of those are still
+     PHANTOM-PRONE and currently FALSE/vacuous as stated. THIS IS THE UNDISCHARGED
+     HEART OF THE THEOREM, not a mechanical cleanup. See docs/reach-residuals-map.md.
+
+     (1a) reach_value_body_nonwriter -- PHANTOM (forall le). stmt_value_ok hides a
+          `forall le m` inside assign_value_ok: it claims a body's Sassigns are safe
+          for EVERY local env. But an adversarial le can give a Mario-field-write's
+          base temp the offset (12 - field_offset), landing the write on the action
+          cell (bm,12), and give the rhs temp a flying Vint -- defeating both the
+          avoid and the store-nonflying disjuncts. SM64 never produces that le (the
+          base temp is loaded from gMarioState, so it is Vptr bm 0), but the forall
+          admits it -> FALSE as stated. The HONEST form is execution-relative, with
+          a temp-provenance invariant (like RealFrameValue.tprov / exec_body_prov_noA,
+          which already discharged the ONE body this way). Discharging this = extend
+          that provenance discipline across the reachable call graph + the cross-call
+          argument-provenance. NOT a forall-le syntactic check. *)
   Hypothesis reach_value_body_nonwriter :
     forall f vargs m e le m1,
       function_entry2 mario_ge f vargs m e le m1 ->
       ~ writer_set_mario_action (Ctypes.Internal f) ->
       stmt_value_ok nonflying bm mario_ge e (fn_body f).
-  (* (1b) a reached set_mario_action call, in a NO-A frame, preserves non-flying
-          -- TRUE at the real NoA (no-A => its action argument is non-flying, the
-          taint-closure crux). The entire no-A argument is now isolated HERE. *)
+  (* (1b) reach_writer_ok -- PHANTOM (forall vargs). It claims set_mario_action,
+          under NoA, preserves non-flying for EVERY argument list. But vargs is
+          independent of NoA(memory): pick vargs = [.., Vint ACT_FLYING, ..] and the
+          call writes a flying action while NoA still holds -> FALSE as stated. The
+          real content is the TAINT CLOSURE: in the actual no-A frame, set_mario_action
+          is only CALLED with a non-flying argument (you only reach a flying-class
+          action if A was pressed on an earlier frame). That is an inductive property
+          of the actual execution, NOT a forall-vargs funcall property. This is the
+          mathematical core of the ABC impossibility. *)
   Hypothesis reach_writer_ok :
     reach_writer_preserves_noA nonflying bm mario_ge writer_set_mario_action NoA.
   (* (1c) reached externals don't write the action cell (SM64 externals are
