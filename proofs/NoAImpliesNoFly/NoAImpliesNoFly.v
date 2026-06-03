@@ -365,13 +365,19 @@ Section NoAImpliesNoFly.
      reach_value_body_nonwriter -- each speaks about the actual entry temp env /
      actual call args under a marg_ok guard, never an adversarial `forall le`.
 
-     TI stays ABSTRACT (the provenance residual, reach_value_body_TI below). C is
-     now CONCRETE: the decidable MarioState-action store census `no_action_store`,
-     machine-checked = true on all 17 reached bodies (reached_fd_no_action_store).
-     So the body leaf's C-conjunct -- "this reached non-writer never NAMES Mario's
-     action field as a store target" -- is DISCHARGED, not assumed; only the
-     TI-conjunct (the temp-provenance invariant) remains a residual. *)
-  Variable TI : temp_env -> Prop.
+     TI and C are now BOTH CONCRETE. C = the decidable MarioState-action store
+     census `no_action_store` (machine-checked = true on all 17 reached bodies).
+     TI = the entry-temp pointer-provenance invariant "every temp that holds a
+     pointer into Mario's block bm holds it at offset 0" -- the execution-relative
+     replacement for the forall-le phantom. Under TI a `_m->field` store
+     (base = (bm,0), field <> action via C) lands at (bm, off<>12), off the action
+     cell; and a call/builtin result (never a bm pointer, via the return-provenance
+     bridge) cannot introduce a misaligned bm pointer (reach_TI_optc/optb, PROVED
+     below). What TI does NOT by itself give: that CHASE temps (`_t = _m->bodyState`)
+     point OFF bm -- that is an MWF memory fact, re-established at the chase-load
+     Sset (reach_TI_set, still assumed pending concrete MWF). *)
+  Let TI : temp_env -> Prop :=
+    fun le => forall t b o, le ! t = Some (Vptr b o) -> b = bm -> o = Ptrofs.zero.
   Let C : statement -> Prop := fun s => no_action_store s = true.
   (* (1a-TI) REACHED + marg-gated body leaf, TI HALF (the residual that remains).
           An ACTUALLY-REACHED non-writer entered with marg_ok args has entry-temp-
@@ -430,16 +436,36 @@ Section NoAImpliesNoFly.
       TI (PTree.set id v le).
   (* TI preserved when a call/builtin RESULT lands in optid -- NO LONGER forall-v:
      the result v is constrained to be a non-bm pointer (supplied by the engine
-     from the actual callee's return value). Removing the forall-v phantom is what
-     makes a pointer-tracking TI satisfiable here. *)
-  Hypothesis reach_TI_optc :
+     from the actual callee's return value). Now PROVED, not assumed: setting any
+     temp to a non-bm pointer cannot break "every bm-pointer temp is at offset 0".*)
+  Lemma reach_TI_optc :
     forall optid a al v le,
       C (Scall optid a al) -> TI le ->
       (forall b o, v = Vptr b o -> b <> bm) -> TI (set_opttemp optid v le).
-  Hypothesis reach_TI_optb :
+  Proof.
+    unfold TI. intros optid a al v le _ Hti Hv t b o Hset Hb. subst b.
+    destruct optid as [id|]; simpl in Hset.
+    - destruct (peq t id).
+      + subst t. rewrite PTree.gss in Hset.
+        assert (Hveq : v = Vptr bm o) by congruence.
+        exfalso. exact (Hv bm o Hveq eq_refl).
+      + rewrite PTree.gso in Hset by assumption. exact (Hti t bm o Hset eq_refl).
+    - exact (Hti t bm o Hset eq_refl).
+  Qed.
+  Lemma reach_TI_optb :
     forall optid ef tyargs al v le,
       C (Sbuiltin optid ef tyargs al) -> TI le ->
       (forall b o, v = Vptr b o -> b <> bm) -> TI (set_opttemp optid v le).
+  Proof.
+    unfold TI. intros optid ef tyargs al v le _ Hti Hv t b o Hset Hb. subst b.
+    destruct optid as [id|]; simpl in Hset.
+    - destruct (peq t id).
+      + subst t. rewrite PTree.gss in Hset.
+        assert (Hveq : v = Vptr bm o) by congruence.
+        exfalso. exact (Hv bm o Hveq eq_refl).
+      + rewrite PTree.gso in Hset by assumption. exact (Hti t bm o Hset eq_refl).
+    - exact (Hti t bm o Hset eq_refl).
+  Qed.
   (* (1a-ret) RETURN PROVENANCE: a reached funcall's result is never a pointer
      into Mario's block bm (the reached callees return scalars / off-bm values),
      and likewise for external/builtin results. These supply the non-bm-ptr fact
