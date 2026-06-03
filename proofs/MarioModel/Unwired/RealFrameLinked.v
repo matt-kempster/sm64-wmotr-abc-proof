@@ -24,6 +24,13 @@ From compcert Require Import Coqlib Errors Maps AST Integers Values Memory Globa
   Ctypes Cop Clightdefs Clight Linking.
 From SM64.Generated Require mario.
 From SM64.Proofs Require Import SymbolicLinking.
+(* RealFrameValue is on the spine (non-Unwired); importing it here is firewall-OK
+   (Unwired may consume non-Unwired). We reuse ONLY its genv-PARAMETRIC eval
+   inversion helpers (eval_expr_Efield_load, eval_lvalue_Efield_inv,
+   eval_expr_Ederef_load, eval_lvalue_Ederef_base, eval_expr_Etempvar_val,
+   deref_loc_aggregate_eq) -- each is stated `forall ge`, so it threads at lp_ge
+   verbatim. The mario_ge-specific wrappers there are NOT used. *)
+From SM64.Proofs Require Import RealFrameValue.
 
 Section ReRoot.
   (* The linked program -- ABSTRACT. The only thing we know is that mario.prog
@@ -68,6 +75,92 @@ Section ReRoot.
     - eapply eval_Evar_global; eauto.
     - eapply deref_loc_value with (chunk := Mptr); [ reflexivity | ].
       unfold Mem.loadv. exact Hload.
+  Qed.
+
+  (* The marioObj pointer-chase invariant, re-rooted at lp_ge: the off-bm guard
+     (no aliasing with gMarioState's block) is restated over lp_ge's symbol. The
+     field offset is computed in mario.prog's OWN cenv (a concrete lookup); linking
+     preserves it (action_offset_lp / linkorder_field_offset_agree). *)
+  Definition marioObj_wf_lp (m : mem) (bm : block) : Prop :=
+    exists off bobj ofs,
+      field_offset (prog_comp_env mario.prog) mario._marioObj mario_state_members
+        = Errors.OK (off, Full) /\
+      Mem.loadv Mptr m (Vptr bm (Ptrofs.repr off)) = Some (Vptr bobj ofs) /\
+      bobj <> bm /\
+      (forall gb, Genv.find_symbol lp_ge mario._gMarioState = Some gb -> bobj <> gb).
+
+  (* mario.prog defines the MarioState composite. NB: we must NOT `vm_compute` the
+     lookup itself -- it reduces to Some <the full MarioState composite record,
+     members + consistency proofs>, whose readback OOMs. Instead compute only a
+     BOOLEAN (readback stays `true`, the composite is discarded on the VM stack),
+     then case-split the lookup as an OPAQUE term. *)
+  Lemma mario_MarioState_isSome :
+    match (prog_comp_env mario.prog) ! mario._MarioState with
+    | Some _ => true | None => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma mario_defines_MarioState :
+    exists co, (prog_comp_env mario.prog) ! mario._MarioState = Some co.
+  Proof.
+    pose proof mario_MarioState_isSome as H.
+    destruct ((prog_comp_env mario.prog) ! mario._MarioState) as [co|].
+    - exists co; reflexivity.
+    - cbn in H; discriminate H.
+  Qed.
+
+  (* THE SECOND RE-ROOTED EVAL BRICK: the marioObj field load evaluates off bm
+     over lp_ge -- the brick that CONSUMES the offset interface. Identical to
+     RealFrameValue.eval_marioObj_off_bm except the two `rewrite cenv_eq` steps
+     (false at lp_ge, where genv_cenv = the MERGED env) are replaced by:
+       - linkorder_comp_env_extends : pin co to mario's MarioState composite, and
+       - linkorder_field_offset_agree : move the offset onto mario.prog's cenv.
+     Everything else threads via the genv-parametric inversion helpers. *)
+  Lemma eval_marioObj_off_bm_lp :
+    forall stid e le m bm bobj o,
+      (forall b o', le ! stid = Some (Vptr b o') -> b = bm /\ o' = Ptrofs.zero) ->
+      marioObj_wf_lp m bm ->
+      eval_expr lp_ge e le m
+        (Efield (Ederef (Etempvar stid (tptr (Tstruct mario._MarioState noattr)))
+                        (Tstruct mario._MarioState noattr))
+                mario._marioObj (tptr (Tstruct mario._Object noattr)))
+        (Vptr bobj o) ->
+      bobj <> bm /\ (forall gb, Genv.find_symbol lp_ge mario._gMarioState = Some gb -> bobj <> gb).
+  Proof.
+    intros stid e le m bm bobj o Ht48 (off & bobj0 & ofs0w & Hfo & Hload & Hne & Hng) Hev.
+    apply eval_expr_Efield_load in Hev as (loc & ofs & bf & Hlv & Hderef).
+    apply eval_lvalue_Efield_inv in Hlv as (o0 & id & att & co & delta & Hbase & Hco & Hofs & Hcase).
+    apply eval_expr_Ederef_load in Hbase as (lb & ob & bfb & Hlvb & Hderefb).
+    apply deref_loc_aggregate_eq in Hderefb as [? ?]; [ | right; reflexivity ]. subst lb ob.
+    apply eval_lvalue_Ederef_base in Hlvb.
+    apply eval_expr_Etempvar_val in Hlvb. destruct (Ht48 _ _ Hlvb) as [Hl Ho]. subst.
+    destruct Hcase as [ (Hty & Hfo2) | (Hty & Hfo2) ]; [ | cbn in Hty; discriminate ].
+    cbn in Hty; inv Hty.
+    (* Hco : (genv_cenv lp_ge) ! _MarioState = Some co (genv_cenv lp_ge convertibly
+       = prog_comp_env lp). Pin co to mario's composite via composite preservation. *)
+    change (genv_cenv lp_ge) with (prog_comp_env lp) in Hco, Hfo2.
+    destruct mario_defines_MarioState as (co0 & Hmar).
+    pose proof (linkorder_comp_env_extends lp mario.prog mario._MarioState co0 LO_mario Hmar)
+      as Hext_lp.
+    assert (co = co0) by congruence. subst co0.
+    (* now Hmar : (prog_comp_env mario.prog) ! _MarioState = Some co. *)
+    assert (Hmm : mario_state_members = co_members co)
+      by (unfold mario_state_members; rewrite Hmar; reflexivity).
+    (* Move Hfo2's offset off the merged env onto mario.prog's cenv. *)
+    rewrite (linkorder_field_offset_agree lp mario.prog mario._marioObj (co_members co)
+               LO_mario) in Hfo2;
+      [ | rewrite <- Hmm; exact mario_state_members_complete ].
+    (* now Hfo2 : field_offset (prog_comp_env mario.prog) _marioObj (co_members co) = OK(delta,bf) *)
+    rewrite Hmm in Hfo. rewrite Hfo in Hfo2. inv Hfo2.
+    rewrite Ptrofs.add_zero_l in Hderef.
+    inv Hderef;
+      try (match goal with Hac : access_mode _ = By_reference |- _ => cbn in Hac; discriminate end);
+      try (match goal with Hac : access_mode _ = By_copy |- _ => cbn in Hac; discriminate end);
+      try (match goal with Hlb : load_bitfield _ _ _ _ _ _ _ _ |- _ => inv Hlb end);
+      match goal with
+      | Hac : access_mode _ = By_value ?chunk,
+        Hlv3 : Mem.loadv ?chunk _ _ = Some (Vptr bobj o) |- _ =>
+          cbn in Hac; inv Hac; rewrite Hlv3 in Hload; inv Hload; split; [ exact Hne | exact Hng ]
+      end.
   Qed.
 
   (* Offset faithfulness, packaged for this section: over lp_ge the action cell
