@@ -68,7 +68,7 @@
 
 From Coq Require Import List Bool.
 Import ListNotations.
-From compcert Require Import Coqlib AST Integers Values Memory Globalenvs Clight ClightBigstep.
+From compcert Require Import Coqlib AST Integers Values Memory Globalenvs Events Clight ClightBigstep.
 From SM64.Generated Require mario.
 From SM64.Proofs Require Import Flying FieldNonInterference ActionValueFrame
   ReachableRun RealFrameValue.
@@ -93,7 +93,7 @@ Section NoAImpliesNoFly.
      and marioObj_wf (what keeps the body's two pointer-chase stores off the
      action cell). NOT abstract -- marioObj_wf is a fact about the real struct. *)
   Definition mem_ok (m : mem) : Prop :=
-    Mem.valid_block m bm /\ mem_nonflying m /\ marioObj_wf m bm.
+    Mem.valid_block m bm /\ mem_nonflying m /\ marioObj_wf m bm /\ gMarioState_wf m bm.
 
   (* The invariant really does forbid flying: if every loaded action value is
      non-flying, no loaded action value is flying. *)
@@ -157,14 +157,28 @@ Section NoAImpliesNoFly.
           taint-closure crux). The entire no-A argument is now isolated HERE. *)
   Hypothesis reach_writer_ok :
     reach_writer_preserves_noA nonflying bm mario_ge writer_set_mario_action NoA.
-  (* (2) externals don't write the action cell. *)
-  Hypothesis reach_ext_ok :
-    reach_ext_preserves (action_cell bm) mario_ge.
-  (* (3) the real body preserves the invariants (now NoA-threaded). The concrete
-     fact about the ACTUAL executions of the ONE body (no `forall le`); the
-     geometry payoff lemmas are its store-case bricks, discharged via the
-     augmented engine. *)
-  Hypothesis body_preserves_ok : body_preserves_real bm NoA.
+  (* (2) every reached funcall ALSO preserves NoA and the two Mario-pointer
+     invariants (marioObj off bm, gMarioState -> bm); together with (1) this is
+     the engine's full no-A-conditioned reach. A call-graph fact about the
+     REACHED functions, the next discharge target (per-function offset analysis).*)
+  Hypothesis reach_rest_ok : reach_rest_noA bm NoA.
+  (* (3) every reached external, in a no-A state, preserves NoA and the full
+     memory invariant (SM64 externals are memcpy/bzero-class). *)
+  Hypothesis ext_meminv_ok :
+    forall ef vargs mm tt vres mm',
+      NoA mm -> meminv bm mm ->
+      external_call ef mario_ge vargs mm tt vres mm' -> NoA mm' /\ meminv bm mm'.
+  (* (4) the body's two off-bm pointer-chase stores leave the controller bytes
+     (which NoA reads) alone -- they hit the Mario OBJECT block, not the input. *)
+  Hypothesis noA_store_ok :
+    forall e le mm a1 a2 tt le' mm' out,
+      NoA mm -> prov_ok (Sassign a1 a2) ->
+      exec_stmt function_entry2 mario_ge e le mm (Sassign a1 a2) tt le' mm' out -> NoA mm'.
+  (* (5) the real body preserves the invariant: now PROVED, not assumed. The old
+     `body_preserves_real bm NoA` hypothesis is GONE -- the body is discharged by
+     RealFrameValue.execute_mario_action_preserves_real (the census-backed
+     exec_body_prov_noA engine + entry bookkeeping). Only the REACHED-call-graph
+     residuals (1)-(4) remain. *)
   (* INPUT GROUNDING: a no-A frame's starting memory satisfies NoA. The named
      residual that ties the abstract a_pressed flag to the real frame memory;
      it and NoA's grounding are the remaining input-layer gap. *)
@@ -184,15 +198,16 @@ Section NoAImpliesNoFly.
       step i m m' ->
       mem_ok m'.
   Proof.
-    intros i m m' Ha _ (Hv & Hsat & Hwf) Hst.
+    intros i m m' Ha _ (Hv & Hsat & Hwf & Hgwf) Hst.
     assert (HnoA : NoA m) by (eapply input_grounds_noA; eassumption).
     pose proof (reach_value_preserves_noA_split nonflying bm mario_ge
                   writer_set_mario_action NoA reach_nonwriter_ok reach_writer_ok)
       as Hreach.
     destruct (execute_mario_action_preserves_real bm NoA m m'
-                Hreach reach_ext_ok body_preserves_ok HnoA Hv Hsat Hwf Hst)
-      as (_ & Hv' & Hs' & Hw').
-    exact (conj Hv' (conj Hs' Hw')).
+                Hreach reach_rest_ok ext_meminv_ok noA_store_ok
+                HnoA Hv Hsat Hwf Hgwf Hst)
+      as (_ & Hv' & Hs' & Hw' & Hgw').
+    exact (conj Hv' (conj Hs' (conj Hw' Hgw'))).
   Qed.
 
   (* Combine the two run preconditions into the single "no dangerous frame" flag
