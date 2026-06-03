@@ -838,3 +838,189 @@ Proof.
   intros m fd vargs t m' vres HnoA Hev Hv Hsat.
   exact (proj2 MAIN m fd vargs t m' vres Hev HnoA Hv Hsat).
 Qed.
+
+(* ====================================================================== *)
+(* THE MARG-CARRYING VALUE ENGINE -- the type-forced successor of           *)
+(* exec_funcall_reach_value_noA.                                            *)
+(*                                                                        *)
+(* Same 16-case mutual induction, but the funcall motive carries an arg-    *)
+(* provenance precondition `marg_ok bm vargs`, and the statement motive     *)
+(* carries a temp-invariant `TI : temp_env -> Prop` (the call-arg temps are *)
+(* (bm,0)) + a per-body census `C : statement -> Prop`. The Scall case now   *)
+(* SUPPLIES marg_ok to the callee from TI + the call-arg census (Hcallmarg) *)
+(* -- so the per-non-writer-body leaf (Hbody) is the SATISFIABLE marg-gated  *)
+(* census, NOT the forall-le phantom stmt_value_ok. The leaf facts (Hbody,  *)
+(* Hassign, Hcallmarg, the HTI preservation facts) are the sharp            *)
+(* EXECUTION-RELATIVE residuals                                             *)
+(* that replace reach_value_body_nonwriter: each speaks about the actual     *)
+(* entry temp env / actual call args, never an adversarial `forall le`.      *)
+(* Output: reach_value_preserves_marg, the marg-gated reach property the     *)
+(* body engine consumes (supplying marg_ok at execute_mario_action's call    *)
+(* sites via its gMarioState-loaded arg temps).                             *)
+(* ====================================================================== *)
+Definition reach_value_preserves_marg
+    (Q : int -> Prop) (bm : block) (ge : genv) (NoA : mem -> Prop) : Prop :=
+  forall m fd vargs t m' vres,
+    NoA m -> marg_ok bm vargs ->
+    eval_funcall function_entry2 ge m fd vargs t m' vres ->
+    Mem.valid_block m bm ->
+    action_sat Q m bm ->
+    Mem.valid_block m' bm /\ action_sat Q m' bm.
+
+Theorem exec_funcall_reach_value_marg :
+  forall (Q : int -> Prop) (bm : block) (ge : genv)
+         (NoA : mem -> Prop) (writer : Clight.fundef -> Prop)
+         (TI : temp_env -> Prop) (C : statement -> Prop),
+    (* leaf A (marg-gated, execution-relative): every reached NON-writer body,
+       entered with marg_ok args, gives entry-temp-invariant TI + census C. *)
+    (forall f vargs m e le m1,
+       function_entry2 ge f vargs m e le m1 ->
+       ~ writer (Internal f) -> marg_ok bm vargs ->
+       TI le /\ C (fn_body f)) ->
+    (* the marg-gated store leaf: a direct Sassign under TI+census preserves
+       validity + action_sat (it stores off the cell OR a Q-value). *)
+    (forall e le m a1 a2 loc ofs bf v2 v m',
+       eval_lvalue ge e le m a1 loc ofs bf ->
+       eval_expr ge e le m a2 v2 ->
+       sem_cast v2 (typeof a2) (typeof a1) m = Some v ->
+       assign_loc ge (typeof a1) m loc ofs bf v m' ->
+       TI le -> C (Sassign a1 a2) ->
+       Mem.valid_block m bm -> action_sat Q m bm ->
+       Mem.valid_block m' bm /\ action_sat Q m' bm) ->
+    (* the call-arg census: under TI, a reached call's args are marg_ok. *)
+    (forall e le m optid a al tyargs vargs,
+       TI le -> C (Scall optid a al) ->
+       eval_exprlist ge e le m al tyargs vargs -> marg_ok bm vargs) ->
+    (* TI is preserved by a censused Sset and by a censused call/builtin result. *)
+    (forall e le m id a v,
+       eval_expr ge e le m a v -> TI le -> C (Sset id a) -> TI (PTree.set id v le)) ->
+    (forall optid a al v le, C (Scall optid a al) -> TI le -> TI (set_opttemp optid v le)) ->
+    (forall optid ef tyargs al v le,
+       C (Sbuiltin optid ef tyargs al) -> TI le -> TI (set_opttemp optid v le)) ->
+    (* leaf B (the crux): the one writer funcall, under NoA, preserves action_sat. *)
+    reach_writer_preserves_noA Q bm ge writer NoA ->
+    (* externals don't touch the action cell. *)
+    reach_ext_preserves (action_cell bm) ge ->
+    (* NoA survives any statement execution and any function entry. *)
+    (forall e le m s t le' m' out,
+       exec_stmt function_entry2 ge e le m s t le' m' out -> NoA m -> NoA m') ->
+    (forall f vargs m e le m1,
+       function_entry2 ge f vargs m e le m1 -> NoA m -> NoA m1) ->
+    (* the census distributes over the compound forms. *)
+    (forall s1 s2, C (Ssequence s1 s2) -> C s1 /\ C s2) ->
+    (forall a s1 s2, C (Sifthenelse a s1 s2) -> C s1 /\ C s2) ->
+    (forall s1 s2, C (Sloop s1 s2) -> C s1 /\ C s2) ->
+    (forall a ls n, C (Sswitch a ls) -> C (seq_of_labeled_statement (select_switch n ls))) ->
+    reach_value_preserves_marg Q bm ge NoA.
+Proof.
+  intros Q bm ge NoA writer TI C Hbody Hassign Hcallmarg HTI_set HTI_optc HTI_optb
+         Hw Hext Hnoaexec Hnoaentry HCseq HCif HCloop HCsw.
+  assert (MAIN :
+    (forall e le m s t le' m' out,
+       exec_stmt function_entry2 ge e le m s t le' m' out ->
+       NoA m -> Mem.valid_block m bm -> action_sat Q m bm -> TI le -> C s ->
+       Mem.valid_block m' bm /\ action_sat Q m' bm /\ TI le')
+    /\
+    (forall m fd vargs t m' vres,
+       eval_funcall function_entry2 ge m fd vargs t m' vres ->
+       NoA m -> Mem.valid_block m bm -> action_sat Q m bm -> marg_ok bm vargs ->
+       Mem.valid_block m' bm /\ action_sat Q m' bm)).
+  { apply (exec_stmt_funcall_ind function_entry2 ge
+      (fun e le m s t le' m' out =>
+         NoA m -> Mem.valid_block m bm -> action_sat Q m bm -> TI le -> C s ->
+         Mem.valid_block m' bm /\ action_sat Q m' bm /\ TI le')
+      (fun m fd vargs t m' vres =>
+         NoA m -> Mem.valid_block m bm -> action_sat Q m bm -> marg_ok bm vargs ->
+         Mem.valid_block m' bm /\ action_sat Q m' bm)).
+    - (* Sskip *) intros e le m HnoA Hv Hsat HTI _. split; [ exact Hv | split; [ exact Hsat | exact HTI ] ].
+    - (* Sassign *)
+      intros e le m a1 a2 loc ofs bf v2 v m' Hlv He Hcast Hal HnoA Hv Hsat HTI HC.
+      destruct (Hassign e le m a1 a2 loc ofs bf v2 v m' Hlv He Hcast Hal HTI HC Hv Hsat) as [Hv' Hsat'].
+      split; [ exact Hv' | split; [ exact Hsat' | exact HTI ] ].
+    - (* Sset *)
+      intros e le m id a v He HnoA Hv Hsat HTI HC.
+      split; [ exact Hv | split; [ exact Hsat | eapply HTI_set; [ exact He | exact HTI | exact HC ] ] ].
+    - (* Scall: funcall IH, marg supplied from TI + call census *)
+      intros e le m optid a al tyargs tyres cconv vf vargs f t m' vres
+             Hcf He Hel Hff Htof Hfd IHfun HnoA Hv Hsat HTI HC.
+      assert (Hmarg : marg_ok bm vargs) by (eapply Hcallmarg; [ exact HTI | exact HC | exact Hel ]).
+      destruct (IHfun HnoA Hv Hsat Hmarg) as [Hv' Hsat'].
+      split; [ exact Hv' | split; [ exact Hsat' | eapply HTI_optc; [ exact HC | exact HTI ] ] ].
+    - (* Sbuiltin *)
+      intros e le m optid ef al tyargs vargs t m' vres Hel Hec HnoA Hv Hsat HTI HC.
+      split;
+      [ eapply external_call_valid_block; [ exact Hec | exact Hv ]
+      | split;
+        [ eapply action_sat_unchanged_on; [ eapply Hext; exact Hec | exact Hv | exact Hsat ]
+        | eapply HTI_optb; [ exact HC | exact HTI ] ] ].
+    - (* Sseq_1 *)
+      intros e le m s1 s2 t1 le1 m1 t2 le2 m2 out He1 IH1 He2 IH2 HnoA Hv Hsat HTI HC.
+      destruct (HCseq _ _ HC) as [HC1 HC2].
+      destruct (IH1 HnoA Hv Hsat HTI HC1) as [Hv1 [Hsat1 HTI1]].
+      apply (IH2 (Hnoaexec _ _ _ _ _ _ _ _ He1 HnoA) Hv1 Hsat1 HTI1 HC2).
+    - (* Sseq_2 *)
+      intros e le m s1 s2 t1 le1 m1 out He1 IH1 Hout HnoA Hv Hsat HTI HC.
+      destruct (HCseq _ _ HC) as [HC1 _]. apply (IH1 HnoA Hv Hsat HTI HC1).
+    - (* Sifthenelse *)
+      intros e le m a s1 s2 v1 b t le' m' out He Hbool Hexec IH HnoA Hv Hsat HTI HC.
+      destruct (HCif _ _ _ HC) as [HC1 HC2]. apply (IH HnoA Hv Hsat HTI).
+      destruct b; [ exact HC1 | exact HC2 ].
+    - (* Sreturn_none *) intros e le m HnoA Hv Hsat HTI _. split; [ exact Hv | split; [ exact Hsat | exact HTI ] ].
+    - (* Sreturn_some *) intros e le m a v He HnoA Hv Hsat HTI _. split; [ exact Hv | split; [ exact Hsat | exact HTI ] ].
+    - (* Sbreak *) intros e le m HnoA Hv Hsat HTI _. split; [ exact Hv | split; [ exact Hsat | exact HTI ] ].
+    - (* Scontinue *) intros e le m HnoA Hv Hsat HTI _. split; [ exact Hv | split; [ exact Hsat | exact HTI ] ].
+    - (* Sloop_stop1 *)
+      intros e le m s1 s2 t le' m' out' out He1 IH1 Hbor HnoA Hv Hsat HTI HC.
+      destruct (HCloop _ _ HC) as [HC1 _]. apply (IH1 HnoA Hv Hsat HTI HC1).
+    - (* Sloop_stop2 *)
+      intros e le m s1 s2 t1 le1 m1 out1 t2 le2 m2 out2 out
+             He1 IH1 Hnoc He2 IH2 Hbor HnoA Hv Hsat HTI HC.
+      destruct (HCloop _ _ HC) as [HC1 HC2].
+      destruct (IH1 HnoA Hv Hsat HTI HC1) as [Hv1 [Hsat1 HTI1]].
+      apply (IH2 (Hnoaexec _ _ _ _ _ _ _ _ He1 HnoA) Hv1 Hsat1 HTI1 HC2).
+    - (* Sloop_loop *)
+      intros e le m s1 s2 t1 le1 m1 out1 t2 le2 m2 t3 le3 m3 out
+             He1 IH1 Hnoc He2 IH2 He3 IH3 HnoA Hv Hsat HTI HC.
+      destruct (HCloop _ _ HC) as [HC1 HC2].
+      destruct (IH1 HnoA Hv Hsat HTI HC1) as [Hv1 [Hsat1 HTI1]].
+      pose proof (Hnoaexec _ _ _ _ _ _ _ _ He1 HnoA) as HnoA1.
+      destruct (IH2 HnoA1 Hv1 Hsat1 HTI1 HC2) as [Hv2 [Hsat2 HTI2]].
+      pose proof (Hnoaexec _ _ _ _ _ _ _ _ He2 HnoA1) as HnoA2.
+      apply (IH3 HnoA2 Hv2 Hsat2 HTI2 HC).
+    - (* Sswitch *)
+      intros e le m a t v n sl le1 m1 out He Hsa Hexec IH HnoA Hv Hsat HTI HC.
+      apply (IH HnoA Hv Hsat HTI). exact (HCsw _ _ n HC).
+    - (* eval_funcall_internal: writer-split *)
+      intros m f vargs t e le1 le2 m1 m2 out vres m3
+             Hentry Hbexec IHbody Hout Hfree HnoA Hv Hsat Hmarg.
+      destruct (classic (writer (Internal f))) as [Hwr | Hnwr].
+      + (* writer: rebuild the funcall, apply the no-A writer hypothesis *)
+        eapply Hw;
+          [ exact HnoA
+          | eapply eval_funcall_internal; [ exact Hentry | exact Hbexec | exact Hout | exact Hfree ]
+          | exact Hwr | exact Hv | exact Hsat ].
+      + (* non-writer: entry (unchanged) + body IH + free (fresh) *)
+        assert (Uentry : Mem.unchanged_on (action_cell bm) m m1)
+          by (eapply function_entry2_unchanged_on; eauto).
+        assert (Hv1 : Mem.valid_block m1 bm)
+          by (eapply Mem.valid_block_unchanged_on; [ exact Uentry | exact Hv ]).
+        assert (Hsat1 : action_sat Q m1 bm)
+          by (eapply action_sat_unchanged_on; [ exact Uentry | exact Hv | exact Hsat ]).
+        assert (HnoA1 : NoA m1) by (eapply Hnoaentry; [ exact Hentry | exact HnoA ]).
+        destruct (Hbody f vargs m e le1 m1 Hentry Hnwr Hmarg) as [HTI1 HC1].
+        destruct (IHbody HnoA1 Hv1 Hsat1 HTI1 HC1) as [Hv2 [Hsat2 _]].
+        assert (Ufree : Mem.unchanged_on (action_cell bm) m2 m3).
+        { eapply free_list_unchanged_on; [ exact Hfree | ].
+          intros b lo hi i Hin Hac. destruct Hac as [Hb _]. subst b.
+          exact (function_entry2_fresh _ _ _ _ _ _ _ Hentry bm lo hi Hin Hv). }
+        split;
+        [ eapply Mem.valid_block_unchanged_on; [ exact Ufree | exact Hv2 ]
+        | eapply action_sat_unchanged_on; [ exact Ufree | exact Hv2 | exact Hsat2 ] ].
+    - (* eval_funcall_external *)
+      intros m ef targs tres cconv vargs t vres m' Hec HnoA Hv Hsat Hmarg.
+      split;
+      [ eapply external_call_valid_block; [ exact Hec | exact Hv ]
+      | eapply action_sat_unchanged_on; [ eapply Hext; exact Hec | exact Hv | exact Hsat ] ]. }
+  intros m fd vargs t m' vres HnoA Hmarg Hev Hv Hsat.
+  exact (proj2 MAIN m fd vargs t m' vres Hev HnoA Hv Hsat Hmarg).
+Qed.
