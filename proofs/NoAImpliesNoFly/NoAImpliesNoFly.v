@@ -78,6 +78,14 @@ Section NoAImpliesNoFly.
      exactly the value engine's watched cell. *)
   Variable bm : block.
 
+  (* Mario-memory well-formedness: the abstract invariant the WF value engine
+     threads ALONGSIDE action_sat. It is what makes the per-Sset chase load
+     `_t = _m->field` land OFF bm -- the fact that re-establishes the entry-temp
+     provenance TI after a load, closing the once-unsatisfiable `forall m`
+     reach_TI_set. Concretely MWF = "the Mario chase fields point off bm"
+     (MarioMemWF block-distinctness); abstract here, discharged downstream. *)
+  Variable MWF : mem -> Prop.
+
   (* ---- REAL flying / non-flying, by the loaded action value (no placeholder) ---- *)
 
   Definition mem_flying (m : mem) : Prop :=
@@ -93,7 +101,8 @@ Section NoAImpliesNoFly.
      and marioObj_wf (what keeps the body's two pointer-chase stores off the
      action cell). NOT abstract -- marioObj_wf is a fact about the real struct. *)
   Definition mem_ok (m : mem) : Prop :=
-    Mem.valid_block m bm /\ mem_nonflying m /\ marioObj_wf m bm /\ gMarioState_wf m bm.
+    Mem.valid_block m bm /\ mem_nonflying m /\ marioObj_wf m bm /\ gMarioState_wf m bm
+    /\ MWF m.
 
   (* The invariant really does forbid flying: if every loaded action value is
      non-flying, no loaded action value is flying. *)
@@ -179,9 +188,9 @@ Section NoAImpliesNoFly.
       eval_expr mario_ge e le m a2 v2 ->
       sem_cast v2 (typeof a2) (typeof a1) m = Some v ->
       assign_loc mario_ge (typeof a1) m loc ofs bf v m' ->
-      TI le -> C (Sassign a1 a2) ->
+      TI le -> C (Sassign a1 a2) -> MWF m ->
       Mem.valid_block m bm -> action_sat nonflying m bm ->
-      Mem.valid_block m' bm /\ action_sat nonflying m' bm.
+      Mem.valid_block m' bm /\ action_sat nonflying m' bm /\ MWF m'.
   (* (1a'') under TI, a reached call's evaluated args are marg_ok (the Mario arg
            temp is (bm,0)-or-off-bm) -- the call-site bridge that THREADS marg. *)
   Hypothesis reach_call_marg :
@@ -191,7 +200,8 @@ Section NoAImpliesNoFly.
   (* (1a''') TI is preserved by a censused Sset and by a censused call/builtin result. *)
   Hypothesis reach_TI_set :
     forall e le m id a v,
-      eval_expr mario_ge e le m a v -> TI le -> C (Sset id a) -> TI (PTree.set id v le).
+      MWF m -> eval_expr mario_ge e le m a v -> TI le -> C (Sset id a) ->
+      TI (PTree.set id v le).
   Hypothesis reach_TI_optc :
     forall optid a al v le, C (Scall optid a al) -> TI le -> TI (set_opttemp optid v le).
   Hypothesis reach_TI_optb :
@@ -209,13 +219,27 @@ Section NoAImpliesNoFly.
           non-flying args; A-gated). The A-gates live in EXTERNAL TUs, so this is not
           fully expressible at single-TU scope -- it needs linking. *)
   Hypothesis reach_writer_ok :
-    reach_writer_preserves_noA nonflying bm mario_ge writer_set_mario_action NoA.
+    reach_writer_preserves_wf nonflying bm mario_ge writer_set_mario_action NoA MWF.
   (* (1c) reached externals don't write the action cell. NB: these "externals"
           INCLUDE the cross-TU action handlers (the mario_execute_ / act_ family) --
           so this is a STRONG assumption that currently holds the real crux, to be
           discharged by linking, not a mere math/memcpy boundary. *)
   Hypothesis reach_ext_action_cell :
     reach_ext_preserves (action_cell bm) mario_ge.
+  (* (1d) the WF invariant survives the operations the value engine threads it
+          through, beyond the action cell. A reached external preserves MWF
+          (externals are memcpy/bzero-class -- they don't scramble the chase
+          fields' provenance), and MWF survives anything that leaves bm's cells
+          unchanged (function entry's fresh-block allocation + frame free). Both
+          are exactly the bm-local facts the WF engine demands at its entry/free
+          and Sbuiltin leaves; concrete content = the chase fields stay off bm. *)
+  Hypothesis Hmwf_ext :
+    forall ef vargs m t vres m',
+      external_call ef mario_ge vargs m t vres m' ->
+      Mem.valid_block m bm -> MWF m -> MWF m'.
+  Hypothesis Hmwf_unch :
+    forall m m', Mem.unchanged_on (fun b _ => b = bm) m m' ->
+                 Mem.valid_block m bm -> MWF m -> MWF m'.
   (* (2) every reached funcall ALSO preserves NoA and the two Mario-pointer
      invariants (marioObj off bm, gMarioState -> bm); together with (1) this is
      the engine's full no-A-conditioned reach. A call-graph fact about the
@@ -225,8 +249,9 @@ Section NoAImpliesNoFly.
      memory invariant (SM64 externals are memcpy/bzero-class). *)
   Hypothesis ext_meminv_ok :
     forall ef vargs mm tt vres mm',
-      NoA mm -> meminv bm mm ->
-      external_call ef mario_ge vargs mm tt vres mm' -> NoA mm' /\ meminv bm mm'.
+      NoA mm -> meminv bm mm -> MWF mm ->
+      external_call ef mario_ge vargs mm tt vres mm' ->
+      NoA mm' /\ meminv bm mm' /\ MWF mm'.
   (* (4) NoA (Mario's A-button unpressed) is preserved by any reached statement
      execution and by function entry -- the frame writes no controller-input
      bytes (action/object writes hit OTHER blocks), and entry only allocates
@@ -239,6 +264,14 @@ Section NoAImpliesNoFly.
   Hypothesis noA_entry_ok :
     forall f vargs mm e le mm1,
       function_entry2 mario_ge f vargs mm e le mm1 -> NoA mm -> NoA mm1.
+  (* (4b) execute_mario_action's OWN body stores (the 2 census'd Sassigns through
+     `_bodyState->field`) preserve MWF -- they hit the chase fields, not the
+     provenance-defining cells of bm. The body-engine counterpart of the noA
+     store-propagation closure; concrete content = MarioMemWF block-distinctness. *)
+  Hypothesis store_mwf :
+    forall e le mm a1 a2 tt le' mm' out,
+      NoA mm -> prov_ok (Sassign a1 a2) -> MWF mm ->
+      exec_stmt function_entry2 mario_ge e le mm (Sassign a1 a2) tt le' mm' out -> MWF mm'.
   (* (5) the real body preserves the invariant: now PROVED, not assumed. The old
      `body_preserves_real bm NoA` hypothesis is GONE -- the body is discharged by
      RealFrameValue.execute_mario_action_preserves_real (the census-backed
@@ -263,26 +296,31 @@ Section NoAImpliesNoFly.
       step i m m' ->
       mem_ok m'.
   Proof.
-    intros i m m' Ha _ (Hv & Hsat & Hwf & Hgwf) Hst.
+    intros i m m' Ha _ (Hv & Hsat & Hwf & Hgwf & HMWF) Hst.
     assert (HnoA : NoA m) by (eapply input_grounds_noA; eassumption).
-    (* the SOUND MARG value engine: marg-gated leaf-A (non-writer direct bodies
+    (* the SOUND MARG+WF value engine: marg-gated leaf-A (non-writer direct bodies
        under TI+C) + the no-A writer case + ext + NoA-propagation -> the action
        stays non-flying across every reached funcall WHOSE Mario arg is marg_ok.
-       The body engine supplies marg_ok at the real call sites. *)
-    pose proof (exec_funcall_reach_value_marg nonflying bm mario_ge NoA
+       The WF invariant MWF is threaded ALONGSIDE action_sat so the per-Sset chase
+       load `_t = _m->field` re-establishes the entry-temp provenance TI (closing
+       the once-unsatisfiable forall-m reach_TI_set). The body engine supplies
+       marg_ok at the real call sites. *)
+    pose proof (exec_funcall_reach_value_wf nonflying bm mario_ge NoA MWF
                   writer_set_mario_action TI C
                   reach_value_body_marg reach_assign_marg reach_call_marg
                   reach_TI_set reach_TI_optc reach_TI_optb
-                  reach_writer_ok reach_ext_action_cell noA_exec_ok noA_entry_ok
+                  reach_writer_ok reach_ext_action_cell Hmwf_ext Hmwf_unch
+                  noA_exec_ok noA_entry_ok
                   reach_C_seq reach_C_if reach_C_loop reach_C_sw)
       as Hreach.
-    destruct (execute_mario_action_preserves_real_marg bm NoA m m'
+    destruct (execute_mario_action_preserves_real_wf bm NoA MWF m m'
                 Hreach reach_rest_ok ext_meminv_ok
                 (fun e le mm a1 a2 tt le' mm' out HnoA' _ Hexec =>
                    noA_exec_ok e le mm (Sassign a1 a2) tt le' mm' out Hexec HnoA')
-                HnoA Hv Hsat Hwf Hgwf Hst)
-      as (_ & Hv' & Hs' & Hw' & Hgw').
-    exact (conj Hv' (conj Hs' (conj Hw' Hgw'))).
+                store_mwf
+                HnoA HMWF Hv Hsat Hwf Hgwf Hst)
+      as (_ & Hv' & Hs' & Hw' & Hgw' & HMWF').
+    exact (conj Hv' (conj Hs' (conj Hw' (conj Hgw' HMWF')))).
   Qed.
 
   (* Combine the two run preconditions into the single "no dangerous frame" flag
