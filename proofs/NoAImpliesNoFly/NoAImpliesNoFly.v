@@ -135,6 +135,53 @@ Definition reached_fd (fd : Clight.fundef) : Prop :=
   In fd reached_funcs \/ (exists ef tl ty cc, fd = External ef tl ty cc).
 
 (* ===================================================================== *)
+(* THE CALL-ARG0 CENSUS. reach_call_marg concludes marg_ok bm vargs for a       *)
+(* call into a NON-marg-exempt callee. Without constraining the arg exprs that  *)
+(* is FALSE (al = [&_m->field] -> vargs head = Vptr bm off<>0). This census     *)
+(* pins arg0 to a marg-safe shape (Etempvar -> by TI any bm-ptr temp is _m at   *)
+(* 0 -> marg_ok) for every call whose target is a NON-vec3f reached internal    *)
+(* (= the non-exempt callees). vec3f's call (arg0 = _m->pos, a bm-interior      *)
+(* Efield) and external calls are NOT constrained -- they are marg_exempt, so   *)
+(* reach_call_marg's `marg_exempt fd = false` premise is vacuous there.         *)
+Definition marg_safe_arg0 (al : list expr) : bool :=
+  match al with Etempvar _ _ :: _ => true | _ => false end.
+Definition call_needs_marg (id : ident) : bool :=
+  existsb (Pos.eqb id) reached_ids && negb (Pos.eqb id mario._vec3f_find_ceil).
+Fixpoint marg_arg_chk (s : statement) : bool :=
+  match s with
+  | Scall _ (Evar id _) al => if call_needs_marg id then marg_safe_arg0 al else true
+  | Ssequence s1 s2     => marg_arg_chk s1 && marg_arg_chk s2
+  | Sifthenelse _ s1 s2 => marg_arg_chk s1 && marg_arg_chk s2
+  | Sloop s1 s2         => marg_arg_chk s1 && marg_arg_chk s2
+  | Slabel _ s1         => marg_arg_chk s1
+  | Sswitch _ ls        => marg_arg_chk_ls ls
+  | _                   => true
+  end
+with marg_arg_chk_ls (ls : labeled_statements) : bool :=
+  match ls with
+  | LSnil           => true
+  | LScons _ s rest => marg_arg_chk s && marg_arg_chk_ls rest
+  end.
+
+(* Machine-check: every reached body passes the arg0 census (every non-exempt
+   call passes arg0 = Etempvar). The static half of reach_call_marg's soundness. *)
+Lemma reached_funcs_marg_arg_chk :
+  forallb (fun fd => match fd with
+                     | Ctypes.Internal f => marg_arg_chk (fn_body f)
+                     | Ctypes.External _ _ _ _ => true
+                     end)
+          reached_funcs = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma reached_fd_marg_arg_chk :
+  forall f, reached_fd (Ctypes.Internal f) -> marg_arg_chk (fn_body f) = true.
+Proof.
+  intros f [Hin | (ef & tl & ty & cc & Hext)]; [| discriminate Hext].
+  pose proof reached_funcs_marg_arg_chk as H.
+  rewrite forallb_forall in H. exact (H _ Hin).
+Qed.
+
+(* ===================================================================== *)
 (* THE ACTION-FIELD STORE CENSUS (decidable, machine-checked over the     *)
 (* REAL clightgen'd bodies). `no_action_store s` is true iff NO Sassign    *)
 (* anywhere in s NAMES *MarioState's* `action` field as its store target,  *)
@@ -319,6 +366,45 @@ Proof.
   destruct (select_switch_case n sl) eqn:E.
   - exact (no_action_store_ssc n sl l H E).
   - apply no_action_store_ssd; exact H.
+Qed.
+
+(* The same switch-selection distribution lemmas for the arg0 census marg_arg_chk
+   (mirror of the no_action_store_ssd/ssc/seq_of/select chain). *)
+Lemma marg_arg_chk_ssd : forall sl,
+  marg_arg_chk_ls sl = true -> marg_arg_chk_ls (select_switch_default sl) = true.
+Proof.
+  induction sl as [| o s rest IH]; simpl; intros H; auto.
+  apply andb_true_iff in H. destruct H as [Hs Hr].
+  destruct o as [c|]; simpl.
+  - apply IH; exact Hr.
+  - rewrite Hs, Hr; reflexivity.
+Qed.
+Lemma marg_arg_chk_ssc : forall n sl res,
+  marg_arg_chk_ls sl = true ->
+  select_switch_case n sl = Some res -> marg_arg_chk_ls res = true.
+Proof.
+  induction sl as [| o s rest IH]; simpl; intros res Hav Hsel; try discriminate.
+  apply andb_true_iff in Hav. destruct Hav as [Hs Hr].
+  destruct o as [c|]; simpl in Hsel.
+  - destruct (zeq c n).
+    + inv Hsel. simpl. rewrite Hs, Hr; reflexivity.
+    + exact (IH res Hr Hsel).
+  - exact (IH res Hr Hsel).
+Qed.
+Lemma marg_arg_chk_seq_of : forall ls,
+  marg_arg_chk_ls ls = true -> marg_arg_chk (seq_of_labeled_statement ls) = true.
+Proof.
+  induction ls as [| o s rest IH]; simpl; intros H; auto.
+  apply andb_true_iff in H. destruct H as [Hs Hr].
+  simpl. rewrite Hs, (IH Hr); reflexivity.
+Qed.
+Lemma marg_arg_chk_select : forall n sl,
+  marg_arg_chk_ls sl = true -> marg_arg_chk_ls (select_switch n sl) = true.
+Proof.
+  intros n sl H. unfold select_switch.
+  destruct (select_switch_case n sl) eqn:E.
+  - exact (marg_arg_chk_ssc n sl l H E).
+  - apply marg_arg_chk_ssd; exact H.
 Qed.
 
 (* create_undef_temps initializes every temp to Vundef, so a temp read from it is
@@ -555,7 +641,8 @@ Section NoAImpliesNoFly.
        to a reached fd` (true only because the reached bodies provably call only
        reached ids -- exactly what reach_chk pins down). *)
   Let C : statement -> Prop :=
-    fun s => no_action_store s = true /\ reach_chk reached_id s.
+    fun s => no_action_store s = true /\ reach_chk reached_id s
+             /\ marg_arg_chk s = true.
   (* ENTRY-TEMP INVARIANT for a SINGLE-parameter function: at function_entry2 the
      temp env is `bind_parameter_temps params vargs (create_undef_temps temps)`.
      With exactly one parameter, vargs = [v0] (bind requires matching length), the
@@ -649,11 +736,13 @@ Section NoAImpliesNoFly.
     intros f vargs m e le m1 Hrf Hexm Hentry Hnw Hmarg.
     split.
     - exact (reach_value_body_TI f vargs m e le m1 Hrf Hexm Hentry Hnw Hmarg).
-    - unfold C. split.
+    - unfold C. split; [| split].
       + exact (reached_fd_no_action_store f Hrf).
       + (* the reach_chk conjunct: f is a reached internal -> static closure *)
         destruct Hrf as [Hin | (ef & tl & ty & cc & Hext)]; [ | discriminate Hext ].
         exact (reached_fd_reach_chk f Hin).
+      + (* the arg0 conjunct: f's non-exempt calls pass arg0 = Etempvar *)
+        exact (reached_fd_marg_arg_chk f Hrf).
   Qed.
   (* (1a') a direct Sassign under TI+C preserves validity + non-flying (it stores
           off the action cell OR a non-flying value).
@@ -870,18 +959,19 @@ Section NoAImpliesNoFly.
   Qed.
   (* (1a'') under TI, a reached call into a NON-marg-exempt callee (first param a
      MarioState pointer) has marg_ok args -- the call-site bridge that THREADS marg.
-     The marg_exempt guard (2026-06-03) removed the external/vec3f source of
-     falseness (those receive interior bm-pointers).
-     *** KNOWN STILL-FALSE AS STATED (arg phantom-forall) -- a SOUNDNESS RESIDUAL to
-     discharge, NOT yet sound. *** The args `al` are UNCONSTRAINED by C (no_action_store
-     and reach_chk both ignore call-arg expressions). So the adversary picks a
-     non-exempt reached fd and `al = [&_m->field]`: eval_exprlist gives vargs head =
-     Vptr bm (field_off<>0), making marg_ok FALSE while C(Scall) still holds. THE FIX
-     (the documented NEXT TARGET): add an arg0-shape census to C for Scall -- arg0
-     must be Etempvar/const (-> marg_ok via TI: any bm-ptr temp is _m at 0) UNLESS the
-     target is vec3f/external (marg_exempt; vec3f's arg0 = _m->pos IS a bm-interior
-     Efield, so the census must permit it only for the exempt target). Re-certify the
-     17 bodies pass (vm_compute), then prove marg_ok by eval_exprlist inversion + TI. *)
+     NOW SOUND (true-as-stated, 2026-06-03): the marg_exempt guard removed the
+     external/vec3f axis, and C now carries the marg_arg_chk conjunct which pins
+     arg0 for non-exempt-target calls. Truth, by cases on the call target id (forced
+     to `Evar id` with reached_id id by the reach_chk conjunct):
+     - call_needs_marg id = true (id a non-vec3f reached internal): marg_arg_chk gives
+       arg0 = Etempvar t -> eval_exprlist head = sem_cast(le!t); if it is Vptr bm o
+       then TI gives t=_m, o=0 -> marg_ok; else marg_ok is vacuous.
+     - call_needs_marg id = false (id = vec3f or external): the resolved fd is
+       marg_exempt, so the premise `marg_exempt fd = false` is CONTRADICTORY -> vacuous.
+     Still ASSUMED (the full mechanical proof needs the genv resolution id->fd for the
+     vacuity case + an eval_exprlist/sem_cast inversion for the main case), but it is
+     a TRUE hypothesis, not the former arg-phantom. reached_funcs_marg_arg_chk
+     machine-checks the static half (all 17 bodies pass the arg0 census). *)
   Hypothesis reach_call_marg :
     forall e le m optid a al tyargs vargs vf fd,
       TI le -> C (Scall optid a al) ->
@@ -982,28 +1072,33 @@ Section NoAImpliesNoFly.
           assumed. *)
   Lemma reach_C_seq  : forall s1 s2, C (Ssequence s1 s2) -> C s1 /\ C s2.
   Proof.
-    unfold C; intros s1 s2 [Hna Hrc]; simpl in Hna; apply andb_true_iff in Hna;
-    cbn [reach_chk] in Hrc; destruct Hna as [Hna1 Hna2]; destruct Hrc as [Hrc1 Hrc2];
-    split; split; assumption.
+    unfold C; intros s1 s2 (Hna & Hrc & Hma); simpl in Hna; apply andb_true_iff in Hna;
+    cbn [reach_chk] in Hrc; simpl in Hma; apply andb_true_iff in Hma;
+    destruct Hna as [Hna1 Hna2]; destruct Hrc as [Hrc1 Hrc2]; destruct Hma as [Hma1 Hma2];
+    split; repeat split; assumption.
   Qed.
   Lemma reach_C_if   : forall a s1 s2, C (Sifthenelse a s1 s2) -> C s1 /\ C s2.
   Proof.
-    unfold C; intros a s1 s2 [Hna Hrc]; simpl in Hna; apply andb_true_iff in Hna;
-    cbn [reach_chk] in Hrc; destruct Hna as [Hna1 Hna2]; destruct Hrc as [Hrc1 Hrc2];
-    split; split; assumption.
+    unfold C; intros a s1 s2 (Hna & Hrc & Hma); simpl in Hna; apply andb_true_iff in Hna;
+    cbn [reach_chk] in Hrc; simpl in Hma; apply andb_true_iff in Hma;
+    destruct Hna as [Hna1 Hna2]; destruct Hrc as [Hrc1 Hrc2]; destruct Hma as [Hma1 Hma2];
+    split; repeat split; assumption.
   Qed.
   Lemma reach_C_loop : forall s1 s2, C (Sloop s1 s2) -> C s1 /\ C s2.
   Proof.
-    unfold C; intros s1 s2 [Hna Hrc]; simpl in Hna; apply andb_true_iff in Hna;
-    cbn [reach_chk] in Hrc; destruct Hna as [Hna1 Hna2]; destruct Hrc as [Hrc1 Hrc2];
-    split; split; assumption.
+    unfold C; intros s1 s2 (Hna & Hrc & Hma); simpl in Hna; apply andb_true_iff in Hna;
+    cbn [reach_chk] in Hrc; simpl in Hma; apply andb_true_iff in Hma;
+    destruct Hna as [Hna1 Hna2]; destruct Hrc as [Hrc1 Hrc2]; destruct Hma as [Hma1 Hma2];
+    split; repeat split; assumption.
   Qed.
   Lemma reach_C_sw   :
     forall a ls n, C (Sswitch a ls) -> C (seq_of_labeled_statement (select_switch n ls)).
   Proof.
-    unfold C; intros a ls n [Hna Hrc]; simpl in Hna; cbn [reach_chk] in Hrc; split.
+    unfold C; intros a ls n (Hna & Hrc & Hma); simpl in Hna; cbn [reach_chk] in Hrc;
+    simpl in Hma; repeat split.
     - apply no_action_store_seq_of, no_action_store_select; exact Hna.
     - apply reach_seq_of, reach_select_switch; exact Hrc.
+    - apply marg_arg_chk_seq_of, marg_arg_chk_select; exact Hma.
   Qed.
   (* (1a''''') THE CALL-TARGET-REACHED BRIDGE (value engine). Under TI+C, a reached
           call resolves to a Reached callee. NOW SOUND: the `C (Scall ..)` premise
