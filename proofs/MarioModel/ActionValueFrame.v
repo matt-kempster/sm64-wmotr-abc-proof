@@ -315,6 +315,54 @@ Proof.
 Qed.
 
 (* ================================================================== *)
+(* AVOIDANCE => VALUE-OK: the bridge from the (proven) pure-aliasing     *)
+(* avoidance language to the value language. A Sassign whose lvalue      *)
+(* AVOIDS the action cell is value-ok (it takes the LEFT disjunct of     *)
+(* assign_value_ok). Hence any body that never writes the action cell is *)
+(* value-ok, and leaf-A (reach_value_body_nonwriter) reduces to          *)
+(* stmt_assigns_avoid (action_cell bm) ge e (fn_body f) -- the SAME      *)
+(* reach_body_avoids-shaped obligation MarioMemWF discharges by block/   *)
+(* offset distinctness. This is what makes leaf-A the L1 aliasing fan-out *)
+(* (no value reasoning needed for the non-set_mario_action bodies, which *)
+(* by the set_mario_action choke point never raw-write the action cell). *)
+(* ================================================================== *)
+Lemma assign_avoids_value_ok :
+  forall Q bm ge e a1 a2,
+    assign_avoids (action_cell bm) ge e a1 ->
+    assign_value_ok Q bm ge e a1 a2.
+Proof.
+  intros Q bm ge e a1 a2 Hav le m loc ofs bf v2 v Hlv He Hcast.
+  left. intros i Hi. eapply Hav; [ exact Hlv | exact Hi ].
+Qed.
+
+Scheme statement_ind2 := Induction for statement Sort Prop
+  with ls_ind2 := Induction for labeled_statements Sort Prop.
+Combined Scheme stmt_ls_ind from statement_ind2, ls_ind2.
+
+Lemma stmt_assigns_avoid_value_ok :
+  forall Q bm ge e,
+    (forall s, stmt_assigns_avoid (action_cell bm) ge e s -> stmt_value_ok Q bm ge e s)
+    /\ (forall ls, ls_assigns_avoid (action_cell bm) ge e ls -> ls_value_ok Q bm ge e ls).
+Proof.
+  intros Q bm ge e.
+  apply stmt_ls_ind; intros; simpl in *;
+    repeat match goal with
+           | [ H : _ /\ _ |- _ ] => destruct H
+           | [ |- _ /\ _ ] => split
+           | [ |- True ] => exact I
+           end;
+    auto using assign_avoids_value_ok.
+Qed.
+
+(* The per-body corollary the capstone's leaf-A discharge will consume:    *)
+(* a function body that avoids the action cell is value-ok. *)
+Corollary body_avoids_value_ok :
+  forall Q bm ge e s,
+    stmt_assigns_avoid (action_cell bm) ge e s ->
+    stmt_value_ok Q bm ge e s.
+Proof. intros Q bm ge e s. apply (proj1 (stmt_assigns_avoid_value_ok Q bm ge e)). Qed.
+
+(* ================================================================== *)
 (* CAPSTONE part B: forward-monotonicity helpers + the induction.      *)
 (* ================================================================== *)
 
