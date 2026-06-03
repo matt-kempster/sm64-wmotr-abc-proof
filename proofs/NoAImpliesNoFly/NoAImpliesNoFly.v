@@ -171,9 +171,54 @@ Definition lval_names_action (a : expr) : bool :=
   | _               => false
   end.
 
+(* ---- STRENGTHENED store-safety census (the de-phantoming of the store leaf) ----
+   The weak `negb (lval_names_action lv)` rules out only the syntactic
+   `_m->action` store; it does NOT bound an adversarial `*(_m + 12) = ...`. The
+   strengthened census classifies a store lvalue by its BLOCK-PRESERVING ROOT, so
+   that `C (Sassign a1 _)` syntactically pins a1 to a shape whose store block/offset
+   provably avoids the action cell (bm,12). It is machine-checked = true on all 17
+   reached bodies (re-certified by the same vm_compute), which IS the proof that
+   every real store is one of the three safe shapes. *)
+
+(* eval_lvalue of `a` lands in the SAME block as the value of this root expression:
+   field selection, pointer-arith `Oadd`, and deref all preserve the pointer's
+   block. Strip them to the root. *)
+Fixpoint lval_base (a : expr) : expr :=
+  match a with
+  | Efield base _ _              => lval_base base
+  | Ederef (Ebinop Oadd p _ _) _ => lval_base p
+  | Ederef base _                => lval_base base
+  | Ebinop Oadd p _ _            => lval_base p
+  | _                            => a
+  end.
+
+(* A DIRECT MarioState field store `_m->f` with f <> action (the only shape whose
+   store block IS bm: by TI _m = (bm,0), so off = field_offset f, disjoint from
+   [12,16) for f <> action by struct non-overlap). *)
+Definition is_m_direct_field (a : expr) : bool :=
+  match a with
+  | Efield (Ederef (Etempvar t _) _) f _ =>
+      Pos.eqb t mario._m && negb (Pos.eqb f mario._action)
+  | _ => false
+  end.
+
+(* SAFE iff the store's block-preserving root is:
+   - a program variable `Evar _`         -> block <> bm (bm is a runtime block,
+                                             distinct from every mario_ge variable);
+   - a temp `Etempvar t` with t <> _m     -> by TI, le!t is not a bm-pointer, block
+                                             <> bm, safe at any offset;
+   - the temp `_m`                        -> only as a direct non-action field store
+                                             (is_m_direct_field). *)
+Definition safe_store_lval (a : expr) : bool :=
+  match lval_base a with
+  | Evar _ _     => true
+  | Etempvar t _ => if Pos.eqb t mario._m then is_m_direct_field a else true
+  | _            => false
+  end.
+
 Fixpoint no_action_store (s : statement) : bool :=
   match s with
-  | Sassign lv _        => negb (lval_names_action lv)
+  | Sassign lv _        => safe_store_lval lv
   | Ssequence s1 s2     => no_action_store s1 && no_action_store s2
   | Sifthenelse _ s1 s2 => no_action_store s1 && no_action_store s2
   | Sloop s1 s2         => no_action_store s1 && no_action_store s2
