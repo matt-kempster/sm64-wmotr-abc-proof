@@ -512,4 +512,72 @@ Section ReRoot.
     exact HPm'.
   Qed.
 
+  (* ================================================================== *)
+  (* TOWARD THE _REACHED VARIANT (the one the capstone consumes).         *)
+  (*                                                                    *)
+  (* The capstone uses the marg/MWF/reached-gated wrapper                 *)
+  (* execute_mario_action_preserves_real_reached, not the basic one above. *)
+  (* The marg-gating is ESSENTIAL and orthogonal to the genv: the          *)
+  (* forall-vargs reach is FALSE for a misaligned Mario arg, so the basic   *)
+  (* _lp wrapper, while a complete template, would re-introduce vacuity if   *)
+  (* consumed. These two bricks are the only remaining genv-dependent pieces *)
+  (* of the marg/Pgms layer; everything else (Pgms, gms_arg_temps, marg_ok,  *)
+  (* call_arg0_marg, reach_chk, pgms_chk, the switch helpers) is genv-free   *)
+  (* and reused from RealFrameValue. *)
+  (* ================================================================== *)
+
+  (* the call-arg census is SOUND over lp: if Pgms holds and arg0 passes the
+     per-call census, the first vararg satisfies marg_ok. Statement over lp_ge;
+     proof is generic inversion (reused sem_cast_ptr_result_inv / sem_or_never_ptr),
+     so it threads verbatim. *)
+  Lemma call_arg0_marg_sound_lp :
+    forall bm e le m al tyargs vargs,
+      Pgms bm le -> call_arg0_marg al ->
+      eval_exprlist lp_ge e le m al tyargs vargs ->
+      marg_ok bm vargs.
+  Proof.
+    intros bm e le m al tyargs vargs HP Hc Hel.
+    destruct al as [| a0 rest]; [ inv Hel; exact I | ].
+    inv Hel.
+    match goal with H : eval_expr _ _ _ _ a0 ?v |- _ => rename H into Hev; rename v into v0 end.
+    match goal with H : sem_cast _ _ _ _ = Some ?v |- _ => rename H into Hcast; rename v into v0' end.
+    unfold marg_ok. destruct v0' as [| | | | | b o]; auto. intro Hbm; subst b.
+    pose proof (sem_cast_ptr_result_inv _ _ _ _ _ _ Hcast) as Hsrc. subst v0.
+    destruct a0 as [ ci cty | cf cfty | csg csgty | clg clgty | vx vxty | et ety
+                   | dr drty | ad adty | uo ua uty | bop b1 b2 bty | cst cstty
+                   | ef efld efty | sz1 sz2 | ag1 ag2 ];
+      cbn in Hc; try contradiction.
+    - inv Hev; match goal with H : eval_lvalue _ _ _ _ _ _ _ _ |- _ => inv H end.
+    - destruct ety; try contradiction.
+      assert (Hget : le ! et = Some (Vptr bm o))
+        by (inv Hev; [ assumption
+                     | match goal with H : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv H end ]).
+      exact (HP et Hc bm o Hget eq_refl).
+    - destruct bop; try contradiction.
+      inv Hev; [ exfalso; eapply sem_or_never_ptr; eauto
+               | match goal with H : eval_lvalue _ _ _ _ _ _ _ _ |- _ => inv H end ].
+  Qed.
+
+  (* a tracked call-arg temp Sset preserves Pgms, over lp_ge. Consumes
+     sset_gms_bm_lp; the rest (Pgms, gms_arg_temps, gms_expr) is genv-free. *)
+  Lemma pgms_sset_preserves_lp :
+    forall bm e le m id a t le' m' out,
+      e ! mario._gMarioState = None ->
+      gMarioState_wf_lp m bm ->
+      Pgms bm le -> (In id gms_arg_temps -> a = gms_expr) ->
+      exec_stmt function_entry2 lp_ge e le m (Sset id a) t le' m' out ->
+      Pgms bm le'.
+  Proof.
+    intros bm e le m id a t le' m' out He Hgwf HP Hck Hexec.
+    assert (Hle' : exists v, le' = PTree.set id v le)
+      by (inversion Hexec; subst; eauto).
+    destruct Hle' as (v & ->).
+    unfold Pgms. intros tt Hin b o Hs Hb. subst b.
+    destruct (Pos.eq_dec tt id) as [E|N].
+    - subst tt. specialize (Hck Hin). subst a. unfold gms_expr in Hexec.
+      pose proof (sset_gms_bm_lp bm id e le m t (PTree.set id v le) m' out He Hgwf Hexec) as Hbm0.
+      rewrite Hbm0 in Hs. congruence.
+    - rewrite PTree.gso in Hs by congruence. exact (HP tt Hin bm o Hs eq_refl).
+  Qed.
+
 End ReRoot.
