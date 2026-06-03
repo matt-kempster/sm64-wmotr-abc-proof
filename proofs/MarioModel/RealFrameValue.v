@@ -1280,6 +1280,155 @@ Section ProvEngine.
 End ProvEngine.
 
 (* ================================================================== *)
+(* PER-FUNCTION FIELD-STORE CENSUS + the provenance body lemma.         *)
+(*                                                                     *)
+(* This INSTANTIATES body_check_generic for the class of mario.c        *)
+(* functions whose every store goes through the Mario pointer temp mid  *)
+(* (the pure Mario-field setters among the ~61 non-writers). The leaf    *)
+(* census `body_field_chk mid ge` is execution-relative discharge: it    *)
+(* replaces assign_value_ok's PHANTOM `forall le` with the concrete fact *)
+(* that mid holds (bm,0) -- threaded from the entry. Discharging the     *)
+(* per-frame value preservation for such an f reduces to (a) this        *)
+(* genv-free syntactic census (vm_compute per function), (b) the entry   *)
+(* provenance `le!mid = Vptr bm 0` (the cross-call obligation), and (c)   *)
+(* the reach assumption for its callees. The Sassign leaf is exactly      *)
+(* marioField_store_preserves_action_sat.                                *)
+(* ================================================================== *)
+
+(* one Sassign lvalue is `mid->field` at an offset disjoint from the     *)
+(* action cell [12,16). The only genv use is sizeof of the field type    *)
+(* (env-free for a scalar). *)
+Definition field_store_chk (mid : ident) (ge : genv) (a1 : expr) : Prop :=
+  exists fld ty delta,
+    a1 = Efield (Ederef (Etempvar mid (tptr (Tstruct mario._MarioState noattr)))
+                        (Tstruct mario._MarioState noattr)) fld ty /\
+    field_offset mario_ce fld mario_members = OK (delta, Full) /\
+    Ptrofs.unsigned (Ptrofs.repr delta) = delta /\
+    (delta + sizeof ge ty <= 12 \/ 16 <= delta).
+
+Fixpoint body_field_chk (mid : ident) (ge : genv) (s : statement) : Prop :=
+  match s with
+  | Sassign a1 a2       => field_store_chk mid ge a1
+  | Sset id _           => id <> mid
+  | Scall oid _ _       => forall id, oid = Some id -> id <> mid
+  | Sbuiltin oid _ _ _  => forall id, oid = Some id -> id <> mid
+  | Ssequence s1 s2     => body_field_chk mid ge s1 /\ body_field_chk mid ge s2
+  | Sifthenelse _ s1 s2 => body_field_chk mid ge s1 /\ body_field_chk mid ge s2
+  | Sloop s1 s2         => body_field_chk mid ge s1 /\ body_field_chk mid ge s2
+  | Slabel _ s1         => body_field_chk mid ge s1
+  | Sswitch _ ls        => body_field_chk_ls mid ge ls
+  | _                   => True
+  end
+with body_field_chk_ls (mid : ident) (ge : genv) (ls : labeled_statements) : Prop :=
+  match ls with
+  | LSnil           => True
+  | LScons _ s rest => body_field_chk mid ge s /\ body_field_chk_ls mid ge rest
+  end.
+
+(* switch preservation (mirror of ssd/ssc/seq_of/select_switch_prov_ok). *)
+Lemma bfc_ssd : forall mid ge sl, body_field_chk_ls mid ge sl ->
+  body_field_chk_ls mid ge (select_switch_default sl).
+Proof.
+  induction sl as [| o s rest IH]; simpl; intros H; auto.
+  destruct o as [c|]; simpl; [ destruct H as [_ Hr]; apply IH; exact Hr | exact H ].
+Qed.
+
+Lemma bfc_ssc : forall mid ge n sl res,
+  body_field_chk_ls mid ge sl -> select_switch_case n sl = Some res ->
+  body_field_chk_ls mid ge res.
+Proof.
+  induction sl as [| o s rest IH]; simpl; intros res Hav Hsel; try discriminate.
+  destruct Hav as [Hs Hr]. destruct o as [c|]; simpl in Hsel.
+  - destruct (zeq c n).
+    + inv Hsel. simpl. split; [ exact Hs | exact Hr ].
+    + exact (IH res Hr Hsel).
+  - exact (IH res Hr Hsel).
+Qed.
+
+Lemma bfc_seq_of : forall mid ge ls, body_field_chk_ls mid ge ls ->
+  body_field_chk mid ge (seq_of_labeled_statement ls).
+Proof.
+  induction ls as [| o s rest IH]; simpl; intros H; auto. destruct H. split; auto.
+Qed.
+
+Lemma bfc_select_switch : forall mid ge n sl,
+  body_field_chk_ls mid ge sl -> body_field_chk_ls mid ge (select_switch n sl).
+Proof.
+  intros mid ge n sl H. unfold select_switch.
+  destruct (select_switch_case n sl) eqn:E.
+  - exact (bfc_ssc mid ge n sl l H E).
+  - apply bfc_ssd; exact H.
+Qed.
+
+(* THE PER-FUNCTION BODY LEMMA. Execution-relative: given the Mario temp  *)
+(* mid pinned to (bm,0) at the start, the census body_field_chk, and the  *)
+(* reach assumption for callees, the body preserves valid + action_sat    *)
+(* nonflying AND keeps mid pinned. No `forall le` phantom: le!mid is the   *)
+(* value the execution put there (threaded from the entry argument).       *)
+Theorem body_field_preserves :
+  forall (bm : block) (mid : ident) (e : env) le m s t le' m' out,
+    (forall mm fd vargs tt mm' vres,
+       eval_funcall function_entry2 mario_ge mm fd vargs tt mm' vres ->
+       Mem.valid_block mm bm -> action_sat nonflying mm bm ->
+       Mem.valid_block mm' bm /\ action_sat nonflying mm' bm) ->
+    reach_ext_preserves (action_cell bm) mario_ge ->
+    exec_stmt function_entry2 mario_ge e le m s t le' m' out ->
+    Mem.valid_block m bm -> action_sat nonflying m bm ->
+    le ! mid = Some (Vptr bm Ptrofs.zero) ->
+    body_field_chk mid mario_ge s ->
+    Mem.valid_block m' bm /\ action_sat nonflying m' bm
+    /\ le' ! mid = Some (Vptr bm Ptrofs.zero).
+Proof.
+  intros bm mid e le m s t le' m' out Hreach Hext Hexec Hv Hsat Hprov Hck.
+  eapply (body_check_generic mario_ge e
+            (fun mm ll => Mem.valid_block mm bm /\ action_sat nonflying mm bm
+                          /\ ll ! mid = Some (Vptr bm Ptrofs.zero))
+            (body_field_chk mid mario_ge)).
+  - (* Sassign leaf *)
+    intros le0 m0 a1 a2 t0 le0' m0' out0 (Hv0 & Hsat0 & Hprov0) Hck0 Hexec0.
+    destruct Hck0 as (fld & ty & delta & -> & Hfo & Hrepr & Hdisj).
+    destruct (marioField_store_preserves_action_sat
+                _ _ _ _ _ _ _ _ _ _ _ _ _ Hprov0 Hfo Hrepr Hdisj Hv0 Hsat0 Hexec0)
+      as (Hv0' & Hsat0').
+    assert (Hle0' : le0' = le0) by (inversion Hexec0; reflexivity).
+    split; [ exact Hv0' | split; [ exact Hsat0' | rewrite Hle0'; exact Hprov0 ] ].
+  - (* Sset leaf *)
+    intros le0 m0 id a t0 le0' m0' out0 (Hv0 & Hsat0 & Hprov0) Hne Hexec0.
+    inv Hexec0.
+    split; [ exact Hv0 | split; [ exact Hsat0 | ] ].
+    rewrite PTree.gso by congruence. exact Hprov0.
+  - (* Scall leaf *)
+    intros le0 m0 oid a al t0 le0' m0' out0 (Hv0 & Hsat0 & Hprov0) Hut Hexec0.
+    inv Hexec0.
+    match goal with Hf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+      destruct (Hreach _ _ _ _ _ _ Hf Hv0 Hsat0) as (Hv0' & Hsat0') end.
+    split; [ exact Hv0' | split; [ exact Hsat0' | ] ].
+    destruct oid as [rid|];
+      [ specialize (Hut rid eq_refl); cbn [set_opttemp];
+        rewrite PTree.gso by congruence; exact Hprov0
+      | exact Hprov0 ].
+  - (* Sbuiltin leaf *)
+    intros le0 m0 oid ef tyl al t0 le0' m0' out0 (Hv0 & Hsat0 & Hprov0) Hut Hexec0.
+    inv Hexec0.
+    match goal with Hec : external_call _ _ _ _ _ _ _ |- _ =>
+      split; [ eapply external_call_valid_block; [ exact Hec | exact Hv0 ]
+             | split; [ eapply action_sat_unchanged_on;
+                          [ eapply Hext; exact Hec | exact Hv0 | exact Hsat0 ] | ] ] end.
+    destruct oid as [rid|];
+      [ specialize (Hut rid eq_refl); cbn [set_opttemp];
+        rewrite PTree.gso by congruence; exact Hprov0
+      | exact Hprov0 ].
+  - (* Hseq *) intros s1 s2 H; exact H.
+  - (* Hif *)  intros a s1 s2 H; exact H.
+  - (* Hloop *) intros s1 s2 H; exact H.
+  - (* Hlabel *) intros l s0 H; exact H.
+  - (* Hsw *) intros a ls n H; apply bfc_seq_of, bfc_select_switch; exact H.
+  - exact Hexec.
+  - split; [ exact Hv | split; [ exact Hsat | exact Hprov ] ].
+  - exact Hck.
+Qed.
+
+(* ================================================================== *)
 (* THE CENSUS (machine-checked, genv-free): the prov_ok per-statement   *)
 (* check holds over the ACTUAL clightgen'd body of f_execute_mario_action.*)
 (* This is what makes exec_body_prov applicable to the REAL body -- it    *)
