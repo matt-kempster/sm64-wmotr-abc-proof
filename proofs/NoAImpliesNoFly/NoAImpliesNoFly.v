@@ -545,7 +545,17 @@ Section NoAImpliesNoFly.
   Let TI : temp_env -> Prop :=
     fun le => forall t b o, le ! t = Some (Vptr b o) -> b = bm ->
                             t = mario._m /\ o = Ptrofs.zero.
-  Let C : statement -> Prop := fun s => no_action_store s = true.
+  (* The body census threaded by the value engine. TWO conjuncts:
+     - no_action_store: no Sassign NAMES MarioState's action field (the store
+       safety census, machine-checked over the 17 reached bodies);
+     - reach_chk reached_id: every direct call targets `Evar id` with `reached_id
+       id` and there are NO indirect calls (the call-graph CLOSURE census). This
+       second conjunct is what makes reach_call_reached SOUND: without it, the
+       engine's call-target leaf would be the false `forall a, <any call> resolves
+       to a reached fd` (true only because the reached bodies provably call only
+       reached ids -- exactly what reach_chk pins down). *)
+  Let C : statement -> Prop :=
+    fun s => no_action_store s = true /\ reach_chk reached_id s.
   (* ENTRY-TEMP INVARIANT for a SINGLE-parameter function: at function_entry2 the
      temp env is `bind_parameter_temps params vargs (create_undef_temps temps)`.
      With exactly one parameter, vargs = [v0] (bind requires matching length), the
@@ -610,6 +620,23 @@ Section NoAImpliesNoFly.
           reached_fd_no_action_store (vm_compute over all 17 reached bodies); only
           the TI-conjunct is assumed (reach_value_body_TI). So this leaf rests on
           strictly LESS than the old monolithic reach_value_body_marg. *)
+  (* THE STATIC CALL-GRAPH CLOSURE: each of the 17 reached bodies passes the
+     call-target census reach_chk -- i.e. every direct call in a reached body
+     targets `Evar id` with `reached_id id` (a reached internal OR an external),
+     and there are NO indirect (function-pointer) calls. Machine-checked by
+     vm_compute over the REAL clightgen'd bodies. This is the decidable heart of
+     soundly restricting the ~61 internals to the 17 the frame actually reaches:
+     the reached set is CLOSED under direct calls. *)
+  Lemma reached_fd_reach_chk :
+    forall f, In (Ctypes.Internal f) reached_funcs -> reach_chk reached_id (fn_body f).
+  Proof.
+    intros f Hin. unfold reached_funcs in Hin; simpl in Hin.
+    repeat (destruct Hin as [Hin | Hin];
+      [ injection Hin as Hin; subst f;
+        vm_compute; repeat split; first [ reflexivity | exact I ] | ]).
+    contradiction.
+  Qed.
+
   Lemma reach_value_body_marg :
     forall f vargs m e le m1,
       reached_fd (Ctypes.Internal f) ->
@@ -622,7 +649,11 @@ Section NoAImpliesNoFly.
     intros f vargs m e le m1 Hrf Hexm Hentry Hnw Hmarg.
     split.
     - exact (reach_value_body_TI f vargs m e le m1 Hrf Hexm Hentry Hnw Hmarg).
-    - unfold C. exact (reached_fd_no_action_store f Hrf).
+    - unfold C. split.
+      + exact (reached_fd_no_action_store f Hrf).
+      + (* the reach_chk conjunct: f is a reached internal -> static closure *)
+        destruct Hrf as [Hin | (ef & tl & ty & cc & Hext)]; [ | discriminate Hext ].
+        exact (reached_fd_reach_chk f Hin).
   Qed.
   (* (1a') a direct Sassign under TI+C preserves validity + non-flying (it stores
           off the action cell OR a non-flying value).
@@ -769,7 +800,7 @@ Section NoAImpliesNoFly.
                 ~ action_cell bm loc i.
   Proof.
     intros e le m a1 a2 loc ofs bf Hlval Hti Hc Hmwf Hvalid i Hi [Hloc Hrange].
-    subst loc. unfold C in Hc. simpl in Hc.
+    subst loc. unfold C in Hc. destruct Hc as [Hc _]. simpl in Hc.
     (* eval_lvalue forces a1 in {Evar, Ederef, Efield}. *)
     destruct a1 as
       [ i0 t0 | f0c t0 | s0 t0 | l0 t0
@@ -931,24 +962,42 @@ Section NoAImpliesNoFly.
           PROVED from the `no_action_store` Fixpoint (&& / switch-selection), not
           assumed. *)
   Lemma reach_C_seq  : forall s1 s2, C (Ssequence s1 s2) -> C s1 /\ C s2.
-  Proof. unfold C; intros s1 s2 H; simpl in H; apply andb_true_iff in H; exact H. Qed.
+  Proof.
+    unfold C; intros s1 s2 [Hna Hrc]; simpl in Hna; apply andb_true_iff in Hna;
+    cbn [reach_chk] in Hrc; destruct Hna as [Hna1 Hna2]; destruct Hrc as [Hrc1 Hrc2];
+    split; split; assumption.
+  Qed.
   Lemma reach_C_if   : forall a s1 s2, C (Sifthenelse a s1 s2) -> C s1 /\ C s2.
-  Proof. unfold C; intros a s1 s2 H; simpl in H; apply andb_true_iff in H; exact H. Qed.
+  Proof.
+    unfold C; intros a s1 s2 [Hna Hrc]; simpl in Hna; apply andb_true_iff in Hna;
+    cbn [reach_chk] in Hrc; destruct Hna as [Hna1 Hna2]; destruct Hrc as [Hrc1 Hrc2];
+    split; split; assumption.
+  Qed.
   Lemma reach_C_loop : forall s1 s2, C (Sloop s1 s2) -> C s1 /\ C s2.
-  Proof. unfold C; intros s1 s2 H; simpl in H; apply andb_true_iff in H; exact H. Qed.
+  Proof.
+    unfold C; intros s1 s2 [Hna Hrc]; simpl in Hna; apply andb_true_iff in Hna;
+    cbn [reach_chk] in Hrc; destruct Hna as [Hna1 Hna2]; destruct Hrc as [Hrc1 Hrc2];
+    split; split; assumption.
+  Qed.
   Lemma reach_C_sw   :
     forall a ls n, C (Sswitch a ls) -> C (seq_of_labeled_statement (select_switch n ls)).
   Proof.
-    unfold C; intros a ls n H; simpl in H.
-    apply no_action_store_seq_of, no_action_store_select; exact H.
+    unfold C; intros a ls n [Hna Hrc]; simpl in Hna; cbn [reach_chk] in Hrc; split.
+    - apply no_action_store_seq_of, no_action_store_select; exact Hna.
+    - apply reach_seq_of, reach_select_switch; exact Hrc.
   Qed.
   (* (1a''''') THE CALL-TARGET-REACHED BRIDGE (value engine). Under TI+C, a reached
-          call resolves to a Reached callee -- the semantic image of the decidable
-          callgraph closure (CallgraphReach.reaches; the static-graph half is
-          machine-checked in Unwired/ReachScratch over the real mario.prog). This
-          is what threads reachability through the reached callees' OWN calls; its
-          discharge is the isolated genv resolution (Evar id -> find_symbol id ->
-          fd at id), NOT a forall over functions. *)
+          call resolves to a Reached callee. NOW SOUND: the `C (Scall ..)` premise
+          carries the reach_chk conjunct (since C = no_action_store /\ reach_chk
+          reached_id), so it forces a = `Evar id` with `reached_id id` -- WITHOUT
+          this, the premise would be the trivially-true no_action_store and the
+          conclusion `forall a, <any call> resolves to a reached fd` would be FALSE
+          (e.g. a = Evar of one of the ~44 non-reached internals). The reach_chk
+          conjunct is established at the body leaf (reached_fd_reach_chk: the static
+          closure -- each reached body calls only reached ids) and threaded by
+          reach_C_*. What remains ASSUMED is purely the isolated genv resolution
+          (Evar id with reached_id id -> find_symbol id -> the def at id is reached),
+          NOT a forall over functions; same honest residual as body_calls_reached. *)
   Hypothesis reach_call_reached :
     forall e le m optid a al vf fd,
       TI le -> C (Scall optid a al) ->
