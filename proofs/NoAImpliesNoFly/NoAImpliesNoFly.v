@@ -287,6 +287,47 @@ Proof.
   contradiction.
 Qed.
 
+(* A function returning void yields Vundef: eval_funcall's outcome_result_value
+   forces v = Vundef when the return type is Tvoid (the Out_return (Some _) branch
+   needs ty <> Tvoid, impossible here). So a void-returning callee's result is
+   never a pointer -- the clean half of the return-provenance obligation. *)
+Lemma eval_funcall_tvoid_Vundef :
+  forall f m0 vargs0 t0 m0' vres0,
+    fn_return f = Tvoid ->
+    eval_funcall function_entry2 mario_ge m0 (Ctypes.Internal f) vargs0 t0 m0' vres0 ->
+    vres0 = Vundef.
+Proof.
+  intros f m0 vargs0 t0 m0' vres0 Hret Hev.
+  inv Hev.
+  match goal with H : outcome_result_value ?oo _ vres0 _ |- _ =>
+    rename H into Hor; rewrite Hret in Hor; unfold outcome_result_value in Hor;
+    destruct oo as [ | | | [[v' t']|] ] end; try contradiction.
+  - exact Hor.
+  - destruct Hor as [Hne _]; exfalso; apply Hne; reflexivity.
+  - exact Hor.
+Qed.
+
+(* Return-type classifier over the reached internals: each reached internal either
+   returns Tvoid (the 12 effectful ones -> Vundef result, clean) or is one of the 5
+   value-returning ones (mario_floor_is_slippery/get_floor_class/get_terrain_sound_
+   addend/update_and_return_cap_flags : int-class; vec3f_find_ceil : float). The
+   latter need actual return-VALUE analysis (32-bit cast_case_pointer caveat). *)
+Lemma reached_internal_return_shape :
+  forall fd, In fd reached_funcs ->
+    (exists f, fd = Ctypes.Internal f /\ fn_return f = Tvoid) \/
+    In fd [ Ctypes.Internal mario.f_mario_floor_is_slippery
+          ; Ctypes.Internal mario.f_mario_get_floor_class
+          ; Ctypes.Internal mario.f_mario_get_terrain_sound_addend
+          ; Ctypes.Internal mario.f_update_and_return_cap_flags
+          ; Ctypes.Internal mario.f_vec3f_find_ceil ].
+Proof.
+  intros fd Hin. unfold reached_funcs in Hin; simpl in Hin.
+  repeat (destruct Hin as [Hin | Hin];
+    [ subst fd; solve [ left; eexists; split; reflexivity
+                      | right; simpl; tauto ] | ]).
+  contradiction.
+Qed.
+
 Section NoAImpliesNoFly.
   (* Mario's struct block is fixed; the action field loads at (bm, 12) as Mint32 --
      exactly the value engine's watched cell. *)
@@ -541,19 +582,41 @@ Section NoAImpliesNoFly.
       + rewrite PTree.gso in Hset by assumption. exact (Hti t bm o Hset eq_refl).
     - exact (Hti t bm o Hset eq_refl).
   Qed.
-  (* (1a-ret) RETURN PROVENANCE: a reached funcall's result is never a pointer
-     into Mario's block bm (the reached callees return scalars / off-bm values),
-     and likewise for external/builtin results. These supply the non-bm-ptr fact
-     the refined reach_TI_optc/optb consume -- the precise replacement for the old
-     `forall v` quantifier. DISCHARGE: per-callee over the 17 -- the 12 tvoid
-     returns force vres = Vundef (clean); the tuint/tint/tfloat returns need the
-     actual return-VALUE analysis (in the 32-bit model `cast_case_pointer` makes a
-     ptr->uint cast the identity, so the return TYPE alone does not bound it). *)
-  Hypothesis reach_ret_call :
+  (* (1a-ret) RETURN PROVENANCE. The narrow residual: only the 5 VALUE-returning
+     reached internals + reached externals can a-priori return a pointer; for those
+     the result is still never a pointer into bm (they return floor classes / a
+     terrain addend / cap flags / a found-ceiling height / external scalars --
+     off-bm values). The 12 tvoid internals are DISCHARGED below (Vundef). *)
+  Hypothesis reach_ret_call_nonvoid :
+    forall fd m0 vargs0 t0 m0' vres0,
+      (In fd [ Ctypes.Internal mario.f_mario_floor_is_slippery
+             ; Ctypes.Internal mario.f_mario_get_floor_class
+             ; Ctypes.Internal mario.f_mario_get_terrain_sound_addend
+             ; Ctypes.Internal mario.f_update_and_return_cap_flags
+             ; Ctypes.Internal mario.f_vec3f_find_ceil ]
+       \/ (exists ef tl ty cc, fd = External ef tl ty cc)) ->
+      eval_funcall function_entry2 mario_ge m0 fd vargs0 t0 m0' vres0 ->
+      forall b o, vres0 = Vptr b o -> b <> bm.
+  (* a reached funcall's result is never a pointer into bm -- now PROVED for the 12
+     tvoid reached internals (their result is Vundef), reducing the residual to the
+     5 value-returners + externals (reach_ret_call_nonvoid). *)
+  Lemma reach_ret_call :
     forall fd m0 vargs0 t0 m0' vres0,
       reached_fd fd ->
       eval_funcall function_entry2 mario_ge m0 fd vargs0 t0 m0' vres0 ->
       forall b o, vres0 = Vptr b o -> b <> bm.
+  Proof.
+    intros fd m0 vargs0 t0 m0' vres0 Hrf Hev b o Hvres Hb.
+    destruct Hrf as [Hin | Hext].
+    - destruct (reached_internal_return_shape fd Hin) as [(f & Hfd & Htv) | Hnv].
+      + subst fd. assert (Hvu : vres0 = Vundef)
+          by (eapply eval_funcall_tvoid_Vundef; [ exact Htv | exact Hev ]).
+        rewrite Hvu in Hvres. discriminate Hvres.
+      + exact (reach_ret_call_nonvoid fd m0 vargs0 t0 m0' vres0
+                 (or_introl Hnv) Hev b o Hvres Hb).
+    - exact (reach_ret_call_nonvoid fd m0 vargs0 t0 m0' vres0
+               (or_intror Hext) Hev b o Hvres Hb).
+  Qed.
   Hypothesis reach_ret_builtin :
     forall ef vargs0 m0 t0 vres0 m0',
       external_call ef mario_ge vargs0 m0 t0 vres0 m0' ->
