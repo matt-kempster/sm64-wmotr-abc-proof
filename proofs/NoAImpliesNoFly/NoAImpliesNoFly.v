@@ -278,12 +278,12 @@ Qed.
    reduces the entry-temp discharge to "marg_ok covers arg0" for 16 of 17. *)
 Lemma reached_internal_param_shape :
   forall f, In (Ctypes.Internal f) reached_funcs ->
-    length (fn_params f) = 1%nat \/ f = mario.f_vec3f_find_ceil.
+    (exists ty, fn_params f = (mario._m, ty) :: nil) \/ f = mario.f_vec3f_find_ceil.
 Proof.
   intros f Hin. unfold reached_funcs in Hin; simpl in Hin.
   repeat (destruct Hin as [Hin | Hin];
     [ injection Hin as Hin; subst f;
-      solve [ left; reflexivity | right; reflexivity ] | ]).
+      solve [ left; eexists; reflexivity | right; reflexivity ] | ]).
   contradiction.
 Qed.
 
@@ -437,17 +437,21 @@ Section NoAImpliesNoFly.
 
      TI and C are now BOTH CONCRETE. C = the decidable MarioState-action store
      census `no_action_store` (machine-checked = true on all 17 reached bodies).
-     TI = the entry-temp pointer-provenance invariant "every temp that holds a
-     pointer into Mario's block bm holds it at offset 0" -- the execution-relative
-     replacement for the forall-le phantom. Under TI a `_m->field` store
-     (base = (bm,0), field <> action via C) lands at (bm, off<>12), off the action
-     cell; and a call/builtin result (never a bm pointer, via the return-provenance
-     bridge) cannot introduce a misaligned bm pointer (reach_TI_optc/optb, PROVED
-     below). What TI does NOT by itself give: that CHASE temps (`_t = _m->bodyState`)
-     point OFF bm -- that is an MWF memory fact, re-established at the chase-load
-     Sset (reach_TI_set, still assumed pending concrete MWF). *)
+     TI = the entry-temp pointer-provenance invariant "the ONLY temp that may hold
+     a pointer into Mario's block bm is the parameter _m, and it holds it at offset
+     0" -- the execution-relative replacement for the forall-le phantom. This is
+     the SOUND invariant (the weaker `every bm-ptr temp at offset 0` would make the
+     store leaf FALSE: an adversarial chase temp = (bm,0) could store a flying value
+     to a cross-struct field at offset 12). It is the right invariant because
+     (machine-inspected over the 17 reached bodies) NO body copies _m into another
+     temp and NO body takes Eaddrof-of-a-Mario-field into a temp, so the only temp
+     ever pointing into bm is _m; every cross-struct chase store goes through a temp
+     <> _m, which is therefore OFF bm -> misses the action cell with NO MWF needed,
+     and every MarioState store goes through _m directly (base (bm,0), field <>
+     action via C) landing at (bm, off<>12). *)
   Let TI : temp_env -> Prop :=
-    fun le => forall t b o, le ! t = Some (Vptr b o) -> b = bm -> o = Ptrofs.zero.
+    fun le => forall t b o, le ! t = Some (Vptr b o) -> b = bm ->
+                            t = mario._m /\ o = Ptrofs.zero.
   Let C : statement -> Prop := fun s => no_action_store s = true.
   (* ENTRY-TEMP INVARIANT for a SINGLE-parameter function: at function_entry2 the
      temp env is `bind_parameter_temps params vargs (create_undef_temps temps)`.
@@ -457,25 +461,23 @@ Section NoAImpliesNoFly.
      the execution-relative discharge of the entry-temp provenance for the 16
      single-(pointer-)param reached internals. *)
   Lemma entry_TI_singleparam :
-    forall f vargs m e le m1,
-      length (fn_params f) = 1%nat ->
+    forall f vargs m e le m1 ty,
+      fn_params f = (mario._m, ty) :: nil ->
       function_entry2 mario_ge f vargs m e le m1 ->
       marg_ok bm vargs ->
       TI le.
   Proof.
-    intros f vargs m e le m1 Hlen Hentry Hmarg.
+    intros f vargs m e le m1 ty Hpar Hentry Hmarg.
     inv Hentry.
     match goal with H : bind_parameter_temps _ _ _ = Some le |- _ =>
       rename H into Hbind end.
-    destruct (fn_params f) as [|[p ty] [|q qs]] eqn:Hpar; simpl in Hlen;
-      try discriminate.
-    simpl in Hbind.
+    rewrite Hpar in Hbind. simpl in Hbind.
     destruct vargs as [|v0 [|v1 vs]]; try discriminate Hbind.
     simpl in Hbind. inv Hbind.
     unfold TI. intros t b o Hget Hb. subst b.
-    destruct (peq t p).
+    destruct (peq t mario._m).
     - subst t. rewrite PTree.gss in Hget. inv Hget.
-      simpl in Hmarg. exact (Hmarg eq_refl).
+      split; [ reflexivity | ]. simpl in Hmarg. exact (Hmarg eq_refl).
     - rewrite PTree.gso in Hget by assumption.
       apply create_undef_temps_Vundef in Hget. discriminate.
   Qed.
@@ -505,8 +507,8 @@ Section NoAImpliesNoFly.
   Proof.
     intros f vargs m e le m1 Hrf Hentry Hnw Hmarg.
     destruct Hrf as [Hin | (ef & tl & ty & cc & Hext)]; [| discriminate Hext].
-    destruct (reached_internal_param_shape f Hin) as [Hlen | Hvec].
-    - exact (entry_TI_singleparam f vargs m e le m1 Hlen Hentry Hmarg).
+    destruct (reached_internal_param_shape f Hin) as [(ty & Hpar) | Hvec].
+    - exact (entry_TI_singleparam f vargs m e le m1 ty Hpar Hentry Hmarg).
     - subst f. exact (reach_vec3f_ceil_offbm vargs m e le m1 Hentry Hmarg).
   Qed.
   (* (1a) the FULL body leaf the value engine consumes: TI le /\ C (fn_body f).
