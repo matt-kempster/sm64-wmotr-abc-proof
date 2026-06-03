@@ -699,4 +699,101 @@ Section ReRoot.
     Qed.
   End ReachedLp.
 
+  (* ---- the marg-gated "rest" residual + meminv build over lp_ge. ---- *)
+  Definition reach_rest_marg_lp (bm : block) (NoA : mem -> Prop) : Prop :=
+    forall m fd vargs t m' vres,
+      NoA m -> marg_ok bm vargs ->
+      eval_funcall function_entry2 lp_ge m fd vargs t m' vres ->
+      marioObj_wf_lp m bm -> gMarioState_wf_lp m bm ->
+      NoA m' /\ marioObj_wf_lp m' bm /\ gMarioState_wf_lp m' bm.
+
+  Lemma reach_meminv_reached_build_lp :
+    forall bm NoA MWF (Reached_fd : Clight.fundef -> Prop),
+      reach_value_preserves_reached nonflying bm lp_ge NoA MWF Reached_fd ->
+      reach_rest_marg_lp bm NoA ->
+      forall m fd vargs t m' vres,
+        Reached_fd fd ->
+        NoA m -> meminv_lp bm m -> MWF m -> marg_ok bm vargs ->
+        eval_funcall function_entry2 lp_ge m fd vargs t m' vres ->
+        NoA m' /\ meminv_lp bm m' /\ MWF m'.
+  Proof.
+    intros bm NoA MWF Reached_fd Hval Hrest m fd vargs t m' vres Hrf Hno Hmem HMWF Hmarg Hev.
+    unfold meminv_lp in Hmem. destruct Hmem as (Hv & Hsat & Hmwf & Hgwf).
+    destruct (Hval m fd vargs t m' vres Hrf Hno HMWF (fun _ => Hmarg) Hev Hv Hsat) as (Hv' & Hsat' & HMWF').
+    destruct (Hrest m fd vargs t m' vres Hno Hmarg Hev Hmwf Hgwf) as (Hno' & Hmwf' & Hgwf').
+    split; [ exact Hno' | split; [ unfold meminv_lp; repeat split; assumption | exact HMWF' ] ].
+  Qed.
+
+  (* ================================================================== *)
+  (* THE CAPSTONE-FACING RE-ROOTED WRAPPER (the _reached variant).        *)
+  (* This is the exact analog of                                          *)
+  (* RealFrameValue.execute_mario_action_preserves_real_reached -- the     *)
+  (* theorem the capstone consumes -- now over globalenv lp. Its reach      *)
+  (* residuals (reach_value_preserves_reached, reach_rest_marg_lp, the      *)
+  (* ext/store/body_call residuals) all range over the LINKED genv, so the  *)
+  (* dispatcher Scalls resolve to real Internal bodies and the residuals    *)
+  (* are SATISFIABLE -- no false reach_ext_action_cell anywhere. This is    *)
+  (* what NoAImpliesNoFly will consume in place of the mario_ge wrapper.    *)
+  (* ================================================================== *)
+  Theorem execute_mario_action_preserves_real_reached_lp :
+    forall (bm : block) (NoA MWF : mem -> Prop)
+           (Reached_id : ident -> Prop) (Reached_fd : Clight.fundef -> Prop) m m',
+      reach_value_preserves_reached nonflying bm lp_ge NoA MWF Reached_fd ->
+      reach_rest_marg_lp bm NoA ->
+      (forall ef vargs mm tt vres mm',
+          NoA mm -> meminv_lp bm mm -> MWF mm ->
+          external_call ef lp_ge vargs mm tt vres mm' ->
+          NoA mm' /\ meminv_lp bm mm' /\ MWF mm') ->
+      (forall e le mm a1 a2 tt le' mm' out,
+          NoA mm -> prov_ok (Sassign a1 a2) ->
+          exec_stmt function_entry2 lp_ge e le mm (Sassign a1 a2) tt le' mm' out -> NoA mm') ->
+      (forall e le mm a1 a2 tt le' mm' out,
+          NoA mm -> prov_ok (Sassign a1 a2) -> MWF mm ->
+          exec_stmt function_entry2 lp_ge e le mm (Sassign a1 a2) tt le' mm' out -> MWF mm') ->
+      (forall oid a al e le mm vf fd,
+          reach_chk Reached_id (Scall oid a al) ->
+          eval_expr lp_ge e le mm a vf ->
+          Genv.find_funct lp_ge vf = Some fd -> Reached_fd fd) ->
+      reach_chk Reached_id (fn_body mario.f_execute_mario_action) ->
+      NoA m -> MWF m ->
+      Mem.valid_block m bm -> action_sat nonflying m bm ->
+      marioObj_wf_lp m bm -> gMarioState_wf_lp m bm ->
+      execute_mario_action_step_lp m m' ->
+      NoA m' /\ Mem.valid_block m' bm /\ action_sat nonflying m' bm /\
+      marioObj_wf_lp m' bm /\ gMarioState_wf_lp m' bm /\ MWF m'.
+  Proof.
+    intros bm NoA MWF Reached_id Reached_fd m m' Hval Hrest Hext Hstore Hstoremwf Hbcr Hbodyrck
+           HnoA HMWF Hv Hsat Hmwf Hgwf (b_o & t & res & Hfun).
+    pose proof Hgwf as Hgwf2. destruct Hgwf2 as (gb & Hgb & Hload).
+    pose proof (reach_meminv_reached_build_lp bm NoA MWF Reached_fd Hval Hrest) as Hreachmem.
+    assert (HPm' :
+      NoA m' /\ Mem.valid_block m' bm /\ action_sat nonflying m' bm /\
+      marioObj_wf_lp m' bm /\ gMarioState_wf_lp m' bm /\ MWF m').
+    { eapply (funcall_from_body_preserves_entry
+                (fun mm => NoA mm /\ Mem.valid_block mm bm /\ action_sat nonflying mm bm /\
+                           marioObj_wf_lp mm bm /\ gMarioState_wf_lp mm bm /\ MWF mm)
+                lp_ge mario.f_execute_mario_action (Vptr b_o Ptrofs.zero :: nil)
+                m m' t res eq_refl);
+        [ | exact (conj HnoA (conj Hv (conj Hsat (conj Hmwf (conj Hgwf HMWF))))) | exact Hfun ].
+      intros le mm tt le' mm' out Hbind (Hn & Hvv & Hss & Hmw & Hgw & Hmf) Hexec.
+      edestruct (exec_body_prov_reached_lp bm gb Hgb NoA MWF Reached_id Reached_fd
+                   Hstore Hstoremwf Hext Hreachmem Hbcr
+                   empty_env le mm (fn_body mario.f_execute_mario_action) tt le' mm' out)
+        as (Hn' & Hmem' & _ & _ & Hmf');
+        [ apply PTree.gempty
+        | exact Hexec
+        | exact Hn
+        | exact (conj Hvv (conj Hss (conj Hmw Hgw)))
+        | eapply tprov_entry; exact Hbind
+        | eapply pgms_entry; exact Hbind
+        | exact Hmf
+        | exact execute_mario_action_body_prov_ok
+        | exact execute_mario_action_body_pgms_ok
+        | exact Hbodyrck
+        | ].
+      unfold meminv_lp in Hmem'. destruct Hmem' as (Hvv' & Hss' & Hmw' & Hgw').
+      exact (conj Hn' (conj Hvv' (conj Hss' (conj Hmw' (conj Hgw' Hmf'))))). }
+    exact HPm'.
+  Qed.
+
 End ReRoot.
