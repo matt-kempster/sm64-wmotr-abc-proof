@@ -68,10 +68,10 @@
 
 From Coq Require Import List Bool PArith.BinPos.
 Import ListNotations.
-From compcert Require Import Coqlib Maps AST Integers Values Memory Globalenvs Events Ctypes Cop Clight ClightBigstep.
+From compcert Require Import Coqlib Errors Maps AST Integers Values Memory Globalenvs Events Ctypes Cop Clight ClightBigstep.
 From SM64.Generated Require mario.
 From SM64.Proofs Require Import Flying FieldNonInterference ActionValueFrame
-  ReachableRun RealFrameValue CallgraphReach.
+  ReachableRun RealFrameValue CallgraphReach RootedLvalue.
 
 (* ===================================================================== *)
 (* THE CONCRETE REACHED SET (no longer abstract). execute_mario_action +  *)
@@ -180,40 +180,58 @@ Definition lval_names_action (a : expr) : bool :=
    reached bodies (re-certified by the same vm_compute), which IS the proof that
    every real store is one of the three safe shapes. *)
 
-(* eval_lvalue of `a` lands in the SAME block as the value of this root expression:
-   field selection, pointer-arith `Oadd`, and deref all preserve the pointer's
-   block. Strip them to the root. *)
-Fixpoint lval_base (a : expr) : expr :=
+(* The candidate ROOT temp of a store lvalue: strip the (block-preserving) field /
+   deref / pointer-arith accessors down to the innermost Etempvar. (rooted_lv below
+   then CERTIFIES, with access-mode guards, that the chain genuinely keeps that
+   temp's block; here we only need the candidate identity.) *)
+Fixpoint store_root (a : expr) : option ident :=
   match a with
-  | Efield base _ _              => lval_base base
-  | Ederef (Ebinop Oadd p _ _) _ => lval_base p
-  | Ederef base _                => lval_base base
-  | Ebinop Oadd p _ _            => lval_base p
-  | _                            => a
+  | Etempvar t _       => Some t
+  | Efield a' _ _      => store_root a'
+  | Ederef a' _        => store_root a'
+  | Ebinop Oadd a' _ _ => store_root a'
+  | _                  => None
   end.
 
-(* A DIRECT MarioState field store `_m->f` with f <> action (the only shape whose
-   store block IS bm: by TI _m = (bm,0), so off = field_offset f, disjoint from
-   [12,16) for f <> action by struct non-overlap). *)
-Definition is_m_direct_field (a : expr) : bool :=
-  match a with
-  | Efield (Ederef (Etempvar t _) _) f _ =>
-      Pos.eqb t mario._m && negb (Pos.eqb f mario._action)
+(* The store offset of `_m->f` (= field_offset mario_ce f) writes the byte range
+   [d, d + sizeof fty); SAFE iff that range misses the action cell [12,16). Computed
+   over the REAL composite env mario_ce (vm_compute), per actual field -- so action
+   (offset 12) is auto-excluded (12+4 </= 12, 16 </= 12). The `d < Ptrofs.modulus`
+   guard lets the proof read Ptrofs.unsigned (Ptrofs.repr d) = d. *)
+Definition field_safe_for_action (f : ident) (fty : type) : bool :=
+  match field_offset mario_ce f mario_members with
+  | OK (d, Full) =>
+      ((d + sizeof mario_ce fty <=? 12) || (16 <=? d)) && (d <? Ptrofs.modulus)
   | _ => false
   end.
 
-(* SAFE iff the store's block-preserving root is:
-   - a program variable `Evar _`         -> block <> bm (bm is a runtime block,
-                                             distinct from every mario_ge variable);
-   - a temp `Etempvar t` with t <> _m     -> by TI, le!t is not a bm-pointer, block
-                                             <> bm, safe at any offset;
-   - the temp `_m`                        -> only as a direct non-action field store
-                                             (is_m_direct_field). *)
+(* A DIRECT MarioState field store `_m->f` (deref/struct types pinned to MarioState
+   so co_members = mario_members) whose offset range avoids the action cell. The
+   only accepted shape whose store block IS bm: by TI le!_m = (bm,0). *)
+Definition is_m_direct_field (a : expr) : bool :=
+  match a with
+  | Efield (Ederef (Etempvar t (Tpointer (Tstruct sid _) _)) (Tstruct sid' _)) f fty =>
+      Pos.eqb t mario._m && Pos.eqb sid mario._MarioState
+      && Pos.eqb sid' mario._MarioState && field_safe_for_action f fty
+  | _ => false
+  end.
+
+(* SAFE iff the store lvalue is:
+   - a bare program variable `Evar _`     -> store block <> bm (bm is a runtime
+                                             block, distinct from every mario_ge
+                                             variable: bm_not_var);
+   - rooted at a temp t <> _m, genuinely (rooted_lv t a) -> by RootedLvalue the
+                                             store block is le!t's block, which by
+                                             TI is <> bm (t <> _m). Safe at any off;
+   - the temp _m, as a direct non-action field store (is_m_direct_field). *)
 Definition safe_store_lval (a : expr) : bool :=
-  match lval_base a with
-  | Evar _ _     => true
-  | Etempvar t _ => if Pos.eqb t mario._m then is_m_direct_field a else true
-  | _            => false
+  match a with
+  | Evar _ _ => true
+  | _ =>
+      match store_root a with
+      | Some t => if Pos.eqb t mario._m then is_m_direct_field a else rooted_lv t a
+      | None   => false
+      end
   end.
 
 Fixpoint no_action_store (s : statement) : bool :=
@@ -601,12 +619,88 @@ Section NoAImpliesNoFly.
        well-formed (its chase-invariant cells are themselves off the written
        range). Separated out because MWF is the abstract chase invariant, threaded
        by the engine; its preservation is the MarioMemWF block-distinctness brick. *)
-  Hypothesis assign_avoids_action_cell :
+  (* The ONE genuinely-abstract runtime fact bm rests on for store safety: no
+     mario_ge program variable (local stack slot or global) ever evaluates to
+     Mario's block bm. TRUE because bm is a cross-TU runtime block (gMarioState is
+     uninitialized, so Mario's MarioState is not a mario.prog variable -- see the
+     header), distinct from every block in `e` and every Genv.find_symbol. NOT a
+     phantom: it is a property of the real runtime memory, the natural successor of
+     the bm/globals separation. *)
+  Hypothesis bm_not_var :
+    forall ee ll mm id ty l o bf0,
+      eval_lvalue mario_ge ee ll mm (Evar id ty) l o bf0 -> l <> bm.
+
+  (* (1a'-alias) NOW PROVED. A censused body store's byte range never overlaps the
+     action cell (bm,12). Three cases, by the strengthened census safe_store_lval:
+       - Evar root  : store block <> bm by bm_not_var;
+       - temp t<>_m : store block = le!t's block (RootedLvalue.eval_lvalue_rooted),
+                      which is <> bm by TI (only _m may point into bm);
+       - _m direct  : store block = bm, offset = field_offset f (TI gives le!_m at
+                      (bm,0)), and the byte range misses [12,16) by the census's
+                      field_safe_for_action (vm_compute over mario_ce). *)
+  (* The _m-direct concrete residual: a `_m->f` store (block bm at offset
+     field_offset f, base (bm,0) by TI) whose census-certified offset range
+     (field_safe_for_action) misses the action cell. Pure struct-layout arithmetic
+     over the real mario_ce; isolated here, discharged just below. *)
+  Hypothesis m_direct_avoids :
+    forall e le m a1 loc ofs bf,
+      eval_lvalue mario_ge e le m a1 loc ofs bf ->
+      TI le -> is_m_direct_field a1 = true -> loc = bm ->
+      forall i, Ptrofs.unsigned ofs <= i < Ptrofs.unsigned ofs + sizeof mario_ge (typeof a1) ->
+                ~ (12 <= i < 12 + size_chunk Mint32).
+  Lemma assign_avoids_action_cell :
     forall e le m a1 a2 loc ofs bf,
       eval_lvalue mario_ge e le m a1 loc ofs bf ->
       TI le -> C (Sassign a1 a2) -> MWF m -> Mem.valid_block m bm ->
       forall i, Ptrofs.unsigned ofs <= i < Ptrofs.unsigned ofs + sizeof mario_ge (typeof a1) ->
                 ~ action_cell bm loc i.
+  Proof.
+    intros e le m a1 a2 loc ofs bf Hlval Hti Hc Hmwf Hvalid i Hi [Hloc Hrange].
+    subst loc. unfold C in Hc. simpl in Hc.
+    (* eval_lvalue forces a1 in {Evar, Ederef, Efield}. *)
+    destruct a1 as
+      [ i0 t0 | f0c t0 | s0 t0 | l0 t0
+      | id0 ty0
+      | tv0 ty0
+      | ad adty
+      | ad2 adty2
+      | uop ua uty
+      | bop ba bb bty
+      | ca cty
+      | ad f0 ty0
+      | szty1 szty2
+      | alty1 alty2 ];
+      try solve [ exfalso; inv Hlval ].
+    - (* Evar: bm_not_var *)
+      exact (bm_not_var e le m id0 ty0 bm ofs bf Hlval eq_refl).
+    - (* Ederef ad adty : only the off-_m rooted branch can pass the census *)
+      cbn [safe_store_lval] in Hc.
+      destruct (store_root (Ederef ad adty)) as [t|] eqn:Hsr; [| discriminate Hc].
+      destruct (Pos.eqb t mario._m) eqn:Htm.
+      + cbn in Hc. discriminate Hc.
+      + assert (Hrt : rooted_lv t (Ederef ad adty) = true) by exact Hc.
+        destruct (rooted_lv_root_value mario_ge e le m t (Ederef ad adty) bm ofs bf
+                    Hlval Hrt) as (pb & po & Hpt).
+        pose proof (eval_lvalue_rooted mario_ge e le m t pb po (Ederef ad adty) bm ofs bf
+                      Hpt Hlval Hrt) as Hbpb. subst pb.
+        destruct (Hti t bm po Hpt eq_refl) as [Ht_m _].
+        apply (Pos.eqb_neq t mario._m) in Htm. exact (Htm Ht_m).
+    - (* Efield ad f0 ty0 : off-_m rooted, or the _m-direct field store *)
+      cbn [safe_store_lval] in Hc.
+      destruct (store_root (Efield ad f0 ty0)) as [t|] eqn:Hsr; [| discriminate Hc].
+      destruct (Pos.eqb t mario._m) eqn:Htm.
+      + (* _m-direct *)
+        exact (m_direct_avoids e le m (Efield ad f0 ty0) bm ofs bf
+                 Hlval Hti Hc eq_refl i Hi Hrange).
+      + (* off-_m rooted *)
+        assert (Hrt : rooted_lv t (Efield ad f0 ty0) = true) by exact Hc.
+        destruct (rooted_lv_root_value mario_ge e le m t (Efield ad f0 ty0) bm ofs bf
+                    Hlval Hrt) as (pb & po & Hpt).
+        pose proof (eval_lvalue_rooted mario_ge e le m t pb po (Efield ad f0 ty0) bm ofs bf
+                      Hpt Hlval Hrt) as Hbpb. subst pb.
+        destruct (Hti t bm po Hpt eq_refl) as [Ht_m _].
+        apply (Pos.eqb_neq t mario._m) in Htm. exact (Htm Ht_m).
+  Qed.
   Hypothesis MWF_preserved_assign :
     forall e le m a1 a2 loc ofs bf v m',
       eval_lvalue mario_ge e le m a1 loc ofs bf ->
@@ -627,6 +721,7 @@ Section NoAImpliesNoFly.
     split; [| split].
     - eapply assign_loc_valid_block; eauto.
     - eapply assign_loc_action_sat_avoid; eauto.
+      eapply assign_avoids_action_cell; eauto.
     - eapply MWF_preserved_assign; eauto.
   Qed.
   (* (1a'') under TI, a reached call's evaluated args are marg_ok (the Mario arg
