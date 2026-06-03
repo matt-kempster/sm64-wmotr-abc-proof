@@ -20,8 +20,8 @@
 (* spine. NOTHING here is consumed by the capstone yet.                     *)
 (* ====================================================================== *)
 
-From compcert Require Import Coqlib Errors Maps AST Integers Values Memory Globalenvs
-  Ctypes Cop Clightdefs Clight Linking.
+From compcert Require Import Coqlib Errors Maps AST Integers Values Events Memory
+  Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking.
 From SM64.Generated Require mario.
 From SM64.Proofs Require Import SymbolicLinking.
 (* RealFrameValue is on the spine (non-Unwired); importing it here is firewall-OK
@@ -30,7 +30,8 @@ From SM64.Proofs Require Import SymbolicLinking.
    eval_expr_Ederef_load, eval_lvalue_Ederef_base, eval_expr_Etempvar_val,
    deref_loc_aggregate_eq) -- each is stated `forall ge`, so it threads at lp_ge
    verbatim. The mario_ge-specific wrappers there are NOT used. *)
-From SM64.Proofs Require Import RealFrameValue.
+From SM64.Proofs Require Import Flying ActionValue FieldNonInterference
+  ActionValueFrame RealFrameValue.
 
 Section ReRoot.
   (* The linked program -- ABSTRACT. The only thing we know is that mario.prog
@@ -170,5 +171,52 @@ Section ReRoot.
     field_offset (prog_comp_env lp) mario._action mario_state_members
       = Errors.OK (12, Full).
   Proof. apply linking_preserves_action_offset; exact LO_mario. Qed.
+
+  (* ---- THE BODY-CENSUS CORE, re-rooted: the Sassign case. ---- *)
+  (* The body of f_execute_mario_action writes memory only through Object-pointer
+     temps (off bm,gb). RealFrameValue.store_preserves_meminv proves each such
+     store preserves the memory invariant; its only mario_ge dependencies are the
+     statement's genv and the wf predicates -- the assign_loc machinery it calls
+     (assign_loc_action_sat_avoid / assign_loc_off_loadv / assign_loc_valid_block)
+     is genv-FREE. So it threads at lp_ge with meminv_lp. The temp-provenance
+     predicates toff/tat are ge-free -- we reuse RealFrameValue's verbatim. *)
+  Section ProvEngineLp.
+    Variable bm gb : block.
+    Hypothesis Hgb_lp : Genv.find_symbol lp_ge mario._gMarioState = Some gb.
+
+    (* the carried memory invariant, re-rooted at lp_ge (uses the _lp wf preds). *)
+    Definition meminv_lp (m : mem) : Prop :=
+      Mem.valid_block m bm /\ action_sat nonflying m bm /\
+      marioObj_wf_lp m bm /\ gMarioState_wf_lp m bm.
+
+    (* THE Sassign CASE over lp_ge: a body store (base temp off {bm,gb}) preserves
+       meminv_lp. Same proof as RealFrameValue.store_preserves_meminv, threaded. *)
+    Lemma store_preserves_meminv_lp :
+      forall a1 a2 (tid : ident)
+        (Hgeom : forall e le m loc ofs bf,
+           eval_lvalue lp_ge e le m a1 loc ofs bf -> exists d, le ! tid = Some (Vptr loc d)),
+      forall e le m t le' m' out,
+        meminv_lp m -> RealFrameValue.toff bm gb le tid ->
+        exec_stmt function_entry2 lp_ge e le m (Sassign a1 a2) t le' m' out ->
+        meminv_lp m'.
+    Proof.
+      intros a1 a2 tid Hgeom e le m t le' m' out (Hv & Hsat & Hmwf & Hgwf) Hoff Hexec. inv Hexec.
+      match goal with H : eval_lvalue _ _ _ _ a1 _ _ _ |- _ => rename H into Hlv end.
+      match goal with H : assign_loc _ _ _ _ _ _ _ _ |- _ => rename H into Has end.
+      apply Hgeom in Hlv as (d & Htmp). destruct (Hoff _ _ Htmp) as [Hnbm Hngb].
+      split; [ eapply assign_loc_valid_block; [ exact Has | exact Hv ] | ].
+      split; [ eapply assign_loc_action_sat_avoid;
+                 [ exact Has | exact Hv | intros i _ [Hb _]; congruence | exact Hsat ] | ].
+      split.
+      - destruct Hmwf as (off & bobj & ofs0 & Hfo & Hldv & Hbobj & Hng).
+        exists off, bobj, ofs0. split; [ exact Hfo | ].
+        split; [ | split; [ exact Hbobj | exact Hng ] ].
+        eapply assign_loc_off_loadv; [ exact Has | exact (not_eq_sym Hnbm) | exact Hv | exact Hldv ].
+      - destruct Hgwf as (gb' & Hsym & Hldv). assert (gb' = gb) by congruence. subst gb'.
+        exists gb. split; [ exact Hsym | ].
+        eapply assign_loc_off_loadv;
+          [ exact Has | exact (not_eq_sym Hngb) | eapply loadv_valid_block; exact Hldv | exact Hldv ].
+    Qed.
+  End ProvEngineLp.
 
 End ReRoot.
