@@ -500,6 +500,79 @@ Proof.
     eapply action_sat_unchanged_on; [ exact Hunch | exact Hv | exact Hsat ].
 Qed.
 
+(* ====================================================================== *)
+(* ARG-PROVENANCE -- the TYPE-FORCED fix for the leaf-A phantom.           *)
+(*                                                                        *)
+(* reach_value_preserves_noA (above) quantifies `forall vargs`, so it is   *)
+(* FALSE for a misaligned Mario arg: Vptr bm (12-delta) handed to a NON-   *)
+(* writer makes an `m->field` store land on the action cell (bm,12). Hence *)
+(* ANY leaf strong enough to prove reach_value_preserves_noA is itself     *)
+(* false-for-misaligned-vargs -- the phantom is TYPE-FORCED, not an        *)
+(* accident of leaf-A's shape, so no isolated swap of leaf-A discharges it.*)
+(* The honest output must carry an arg-provenance precondition, threaded   *)
+(* from execute_mario_action (which loads gMarioState => Vptr bm 0) across *)
+(* every reached call. generated/mario.v shows the threading is UNIFORM:   *)
+(* every reached call is `Sset t (Evar gMarioState); Scall .. (Etempvar t)`*)
+(* so the Mario arg is always a temp freshly loaded from the global.       *)
+(*                                                                        *)
+(* This section builds the bottom brick of that re-typing: the predicate   *)
+(* marg_ok + the genv-light bridge deriving it at a call site whose Mario   *)
+(* arg temp is known (bm,0)-or-off-bm. NOT yet consumed by the capstone --  *)
+(* the consumer chain (reach_meminv_noA in RealFrameValue, the body census  *)
+(* prov_ok's call-arg case, and the value engine motives) must be re-typed  *)
+(* to carry marg_ok before this brick replaces reach_value_body_nonwriter.  *)
+(* ====================================================================== *)
+
+(* the call's first argument, if it points into bm, is aligned at offset 0.
+   (Mario is always passed as arg0 among the reached funcalls.) *)
+Definition marg_ok (bm : block) (vargs : list val) : Prop :=
+  match vargs with
+  | Vptr b o :: _ => b = bm -> o = Ptrofs.zero
+  | _ => True
+  end.
+
+(* one temp's no-misalignment provenance: if it holds a pointer INTO bm, that
+   pointer is (bm,0). The clean SEMANTIC invariant (no per-temp hardwiring) that
+   generalises RealFrameValue.tat over all the gMarioState-loaded arg temps. *)
+Definition tat0 (bm : block) (le : temp_env) (t : ident) : Prop :=
+  forall b o, le ! t = Some (Vptr b o) -> b = bm -> o = Ptrofs.zero.
+
+(* sem_cast of a genuine pointer to a pointer type is the identity: cast_case_
+   pointer returns Some v for ANY Vptr, independent of Archi.ptr64. The ptr64
+   hazard is Vint-inference, which never bites a real Vptr argument. *)
+Lemma sem_cast_ptr_ptr_id :
+  forall b o pty1 a1 pty2 a2 m,
+    sem_cast (Vptr b o) (Tpointer pty1 a1) (Tpointer pty2 a2) m = Some (Vptr b o).
+Proof.
+  intros. reflexivity.
+Qed.
+
+(* the bridge: at a call whose first argument is a pointer-typed temp known to be
+   (bm,0)-or-off-bm, the resulting vargs satisfy marg_ok. Pure eval_exprlist /
+   eval_Etempvar / sem_cast reasoning -- genv-cenv is never forced. *)
+Lemma eval_exprlist_temp_marg_ok :
+  forall ge e le m t pty1 a1 pty2 a2 rest tyl vargs bm,
+    tat0 bm le t ->
+    eval_exprlist ge e le m
+      (Etempvar t (Tpointer pty1 a1) :: rest) (Tpointer pty2 a2 :: tyl) vargs ->
+    marg_ok bm vargs.
+Proof.
+  intros ge e le m t pty1 a1 pty2 a2 rest tyl vargs bm Hat Hel.
+  inv Hel.
+  match goal with H : eval_expr _ _ _ _ (Etempvar _ _) ?v |- _ =>
+    rename H into Heval; rename v into v1 end.
+  match goal with H : sem_cast _ _ _ _ = Some ?v |- _ =>
+    rename H into Hcast; rename v into v1' end.
+  assert (Hget : le ! t = Some v1).
+  { inv Heval; [ assumption
+               | match goal with H : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv H end ]. }
+  (* marg_ok only constrains a Vptr head; case on the cast result v1' *)
+  unfold marg_ok. destruct v1' as [| | | | | b o]; auto. intro Hbm; subst b.
+  (* a Vptr out of sem_cast from a pointer type forces v1 to be that same Vptr *)
+  destruct v1 as [| | | | | b1 o1]; cbn in Hcast; try discriminate.
+  inv Hcast. exact (Hat bm o Hget eq_refl).
+Qed.
+
 (* THE CAPSTONE: the value-aware statement frame. Executing any clightgen *)
 (* statement (calls and loops included) carries action_sat Q FORWARD,      *)
 (* given (i) the caller's own Sassigns are value-ok (brick 2: each avoids  *)
