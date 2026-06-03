@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The open hypothesis surface — everything GOAL 1 still assumes</title>
+<style>
+  :root{
+    --bg:#ffffff; --panel:#f6f8fa; --panel2:#eef1f4; --ink:#1f2328; --dim:#59636e;
+    --line:#d8dee4; --kw:#cf222e; --id:#0550ae; --ty:#8250df; --lit:#0a3069;
+    --com:#6e7781; --green:#1a7f37; --greenbg:#dafbe1; --amber:#9a6700; --amberbg:#fff8c5;
+    --red:#cf222e; --redbg:#ffebe9; --blue:#0969da;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:1080px;margin:0 auto;padding:40px 24px 120px;}
+  h1{font-size:30px;line-height:1.2;margin:0 0 6px;}
+  h2{font-size:23px;margin:54px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--line);}
+  h3{font-size:18px;margin:30px 0 8px;color:var(--id);}
+  .sub{color:var(--dim);font-size:17px;margin:0 0 28px;}
+  p{margin:12px 0;}
+  code,pre,.mono{font-family:"SF Mono",ui-monospace,"Cascadia Code",Menlo,Consolas,monospace;}
+  code{background:var(--panel2);padding:1px 5px;border-radius:4px;font-size:13.5px;}
+  pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;
+    overflow-x:auto;font-size:13px;}
+  a{color:var(--id);}
+  .lead{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--blue);
+    border-radius:8px;padding:18px 20px;margin:22px 0;}
+  .kw{color:var(--kw)} .id{color:var(--id)} .ty{color:var(--ty)} .lit{color:var(--lit)} .com{color:var(--com)}
+  .pill{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    padding:2px 8px;border-radius:999px;vertical-align:middle;}
+  .p-real{background:var(--greenbg);color:#0f5323;border:1px solid #aceebb;}
+  .p-open{background:var(--amberbg);color:#7d5300;border:1px solid #eac54f;}
+  .p-false{background:var(--redbg);color:#a40e26;border:1px solid #ff9492;}
+  .p-trust{background:#ddf4ff;color:#0a3069;border:1px solid #80ccff;}
+  .tree{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:24px;margin:22px 0;}
+  .node{border-radius:9px;padding:12px 16px;margin:0 auto;max-width:760px;position:relative;}
+  .node .nm{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;font-weight:700;}
+  .node .ds{font-size:13.5px;margin-top:3px;line-height:1.45;}
+  .n-real{background:var(--greenbg);border:1px solid #aceebb;}
+  .n-open{background:var(--amberbg);border:1px solid #eac54f;}
+  .n-false{background:var(--redbg);border:1.5px solid var(--red);}
+  .n-trust{background:#ddf4ff;border:1px solid #80ccff;}
+  .connector{width:2px;height:20px;background:var(--line);margin:0 auto;}
+  .rests{text-align:center;color:var(--dim);font-size:13px;margin:8px 0 4px;letter-spacing:.05em;text-transform:uppercase;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:6px;}
+  @media(max-width:760px){.row2,.row3{grid-template-columns:1fr;}}
+  .score{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;}
+  .score th,.score td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  .score th{background:var(--panel2);font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--dim);}
+  .score td.m{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;}
+  .verdict{border-radius:8px;padding:16px 18px;margin:16px 0;}
+  .v-yes{background:var(--greenbg);border:1px solid #aceebb;}
+  .v-no{background:var(--redbg);border:1px solid #ff9492;}
+  .v-warn{background:var(--amberbg);border:1px solid #eac54f;}
+  ul,ol{margin:12px 0;padding-left:22px;} li{margin:6px 0;}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--dim);margin:14px 0 0;}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .sw{width:13px;height:13px;border-radius:3px;display:inline-block;}
+  .hyp{border:1px solid var(--line);border-left:4px solid var(--amber);border-radius:8px;
+    padding:14px 18px;margin:18px 0;background:var(--panel);}
+  .hyp.green{border-left-color:var(--green);}
+  .hyp.blue{border-left-color:var(--blue);}
+  .hyp .hname{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:15px;font-weight:700;}
+  .hyp .meta{font-size:13px;color:var(--dim);margin:2px 0 8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>The open hypothesis surface — everything GOAL&nbsp;1 still assumes</h1>
+<p class="sub">The complete, unelided inventory of what
+<code>noA_no_spawn_never_flying_real</code> — the live, grounded GOAL-1 capstone — rests on,
+as of 2026-06-03 (commit <code>0df38d0</code>). If an assumption is not on this page,
+the capstone does not make it.</p>
+
+<div class="lead">
+<strong>How to read this page.</strong> This proof has <em>zero</em>
+<code>Admitted</code>/<code>Axiom</code>/<code>sorry</code> in its source — every gap is surfaced
+as an explicit section <code>Variable</code> or <code>Hypothesis</code> on the capstone, and
+<code>Print Assumptions</code> on both capstone theorems returns <strong>exactly 7 standard
+axioms</strong> (verified 2026-06-03, reproduced verbatim in §2). So the entire remaining
+distance to an unconditional theorem is enumerable, and this page enumerates it:
+<strong>7 axioms</strong> (the trust floor, never to be proved) ·
+<strong>1 link hypothesis + 5 abstract objects</strong> awaiting concrete witnesses ·
+<strong>7 engine hypotheses</strong> awaiting proofs (one of which — the crux — decomposes
+into <strong>20 named sub-leaves</strong> via the already-proved discharge mechanism) ·
+<strong>4 per-run preconditions</strong> in the statement itself ·
+<strong>5 extra-logical trust-base items</strong> no formal system can discharge.
+Nothing is elided; the scoreboard in §8 lists every row.</div>
+
+<div class="legend">
+  <span><span class="sw" style="background:#dafbe1;border:1px solid #aceebb"></span> proved / discharged</span>
+  <span><span class="sw" style="background:#fff8c5;border:1px solid #eac54f"></span> open — true/satisfiable, to be proved</span>
+  <span><span class="sw" style="background:#ffebe9;border:1px solid #ff9492"></span> flagged — needs restatement before it can be proved</span>
+  <span><span class="sw" style="background:#ddf4ff;border:1px solid #80ccff"></span> trust base — outside the formal system</span>
+</div>
+
+<h2>1 · The theorem and its dependency tree</h2>
+
+<p>The live capstone (<code>proofs/NoAImpliesNoFly/NoAImpliesNoFlyLinked.v</code>, Section
+<code>NoARealInput</code>), verbatim:</p>
+
+<pre><span class="kw">Theorem</span> <span class="id">noA_no_spawn_never_flying_real</span> :
+  <span class="kw">forall</span> (init : <span class="ty">mem</span>) (is : <span class="ty">list mem</span>) (m : <span class="ty">mem</span>),
+    mem_ok_lp lp bm MWF init -&gt;                          <span class="com">(* P1: well-formed start, action ∉ T *)</span>
+    Forall (<span class="kw">fun</span> i =&gt; a_pressed_real bm i = <span class="lit">false</span>) is -&gt;  <span class="com">(* P2: the A_BUTTON bit is never set *)</span>
+    Forall (<span class="kw">fun</span> i =&gt; spawn_flying i = <span class="lit">false</span>) is -&gt;       <span class="com">(* P3: no flying spawn-warp *)</span>
+    reachable mem mem step_real init is m -&gt;             <span class="com">(* P4: m reached by real frames *)</span>
+    ~ mem_flying_lp bm m.                                <span class="com">(* Mario's action is never flying *)</span></pre>
+
+<p>where <code>step_real i m m' := i = m ∧ execute_mario_action_step_lp lp m m'</code> — one
+big-step <code>eval_funcall</code> of the real, clightgen'd
+<code>f_execute_mario_action</code> over the linked genv — and
+<code>a_pressed_real</code> literally chases <code>gMarioState-&gt;controller-&gt;buttonPressed</code>
+(offsets 156, 18) and tests bit <code>0x8000</code>. There is no abstract input model left:
+<em>an input is the pre-frame memory</em>, and the input→invariant bridge
+(<code>input_grounds_noA_real</code>) is a <strong>proved lemma</strong>, not an assumption.</p>
+
+<div class="tree">
+  <div class="node n-open"><div class="nm">noA_no_spawn_never_flying_real</div>
+    <div class="ds">the grounded capstone — <strong>conditionally proved</strong>: every link below
+    is <code>Qed</code>; the amber boxes are what remains assumed.</div></div>
+  <div class="connector"></div>
+  <div class="rests">proved spine it consumes (all Qed, standard axioms only)</div>
+  <div class="row3">
+    <div class="node n-real"><div class="nm">execute_mario_action_preserves_real_reached_lp</div>
+      <div class="ds">the frame wrapper over <code>lp</code> (RealFrameLinked.v): one real frame preserves
+      validity + <code>action_sat</code> + both pointer-chase invariants + MWF, given the §4 residuals.</div></div>
+    <div class="node n-real"><div class="nm">Taint.v + AGates.v</div>
+      <div class="ds">T-edge census (exactly 6 feeders, 0 raw T-writes, the gate census) +
+      the semantic gate lemmas <code>input_a_gate_takes_else_lp</code> / <code>ctl_a_gate_takes_else_lp</code>.</div></div>
+    <div class="node n-real"><div class="nm">run induction + grounding</div>
+      <div class="ds"><code>ReachableRun.noA_run_not_flying</code> (the inductive run argument) and
+      <code>a_pressed_real_grounds_ctl</code> (A-silent input ⇒ <code>ctl_a_clear</code>), both proved.</div></div>
+  </div>
+  <div class="connector"></div>
+  <div class="rests">rests on (the complete open surface)</div>
+  <div class="row3">
+    <div class="node n-open"><div class="nm">§3 · witnesses</div>
+      <div class="ds">1 link hypothesis (<code>LO_mario</code> / the not-yet-exhibited
+      <code>link … = Some lp</code>) + 4 abstract objects to instantiate
+      (<code>MWF</code>, <code>reached_id</code>, <code>reached_fd</code>, <code>spawn_flying</code>).</div></div>
+    <div class="node n-open"><div class="nm">§4 · 7 hypotheses</div>
+      <div class="ds"><code>Hreach_val</code> (the crux), <code>Hrest</code>, <code>Hext</code>,
+      <code>Hstore</code>, <code>Hstoremwf</code>, <code>Hbcr</code>, <code>Hbodyrck</code> —
+      each stated verbatim below with its discharge path.</div></div>
+    <div class="node n-trust"><div class="nm">§2 axioms · §7 trust base</div>
+      <div class="ds">7 standard CompCert/classical axioms; clightgen fidelity, decomp fidelity,
+      the ppc32 model, statement-meaning, frame scope.</div></div>
+  </div>
+</div>
+
+<p>The abstract parent theorem <code>noA_no_spawn_never_flying_lp</code> (Section
+<code>NoAImpliesNoFlyLinked</code>) carries five <em>additional</em> assumptions —
+<code>Inp</code>, <code>a_pressed</code>, <code>step_lp</code>/<code>step_lp_real</code>, an abstract
+<code>NoA</code>, and the assumed bridge <code>input_grounds_noA</code> — all five of which the
+grounded section <strong>discharges by instantiation</strong> (Inp := mem, a_pressed :=
+<code>a_pressed_real</code>, NoA := <code>ctl_a_clear</code>, the bridge proved). They are listed
+here for completeness but are <span class="pill p-real">closed</span>; the grounded theorem is the
+binding root, and its surface is what follows.</p>
+
+<h2>2 · Layer 0 — the axiom floor (7 axioms, verbatim)</h2>
+
+<p>Output of <code>Print Assumptions noA_no_spawn_never_flying_real</code> (identical for
+<code>…_lp</code>), 2026-06-03. These are never proved; they are the trust floor of every
+whole-program CompCert proof.</p>
+
+<pre>Classical_Prop.classic : forall P : Prop, P \/ ~ P
+FunctionalExtensionality.functional_extensionality_dep
+  : forall (A : Type) (B : A -&gt; Type) (f g : forall x : A, B x),
+    (forall x : A, f x = g x) -&gt; f = g
+Axioms.proof_irr : ClassicalFacts.proof_irrelevance
+ClassicalDedekindReals.sig_not_dec : forall P : Prop, {~ ~ P} + {~ P}
+ClassicalDedekindReals.sig_forall_dec
+  : forall P : nat -&gt; Prop, (forall n, {P n} + {~ P n}) -&gt;
+    {n : nat | ~ P n} + {forall n : nat, P n}
+Events.external_functions_sem : String.string -&gt; AST.signature -&gt; Events.extcall_sem
+Events.inline_assembly_sem    : String.string -&gt; AST.signature -&gt; Events.extcall_sem</pre>
+
+<ul>
+<li>The first five are classical logic / extensionality / proof irrelevance — Coq-stdlib and
+CompCert-library standards (the Dedekind pair enters through CompCert's use of <code>R</code>;
+<code>proof_irr</code> through composite-env/linkorder metatheory).</li>
+<li>The last two are CompCert's <em>abstract external-call model</em>: the semantics of
+external functions is a parameter. They appear because the frame can reach external calls —
+a <strong>tethering signal</strong> (the proof touches the real <code>eval_funcall</code>),
+not a hole. Note what they do <em>not</em> give: no purity of externals — that is why
+<code>Hext</code> in §4 cannot be derived from them (flagged there).</li>
+</ul>
+
+<h2>3 · Layer 1 — abstract objects awaiting concrete witnesses</h2>
+
+<div class="hyp">
+<div class="hname">lp : Clight.program&nbsp;&nbsp;+&nbsp;&nbsp;LO_mario : linkorder mario.prog lp
+  &nbsp;<span class="pill p-open">witness not exhibited</span></div>
+<div class="meta">the linked program — the single biggest structural assumption</div>
+<p>Every theorem on this page is of the form “for any program <code>lp</code> that
+<code>mario.prog</code> link-embeds into, …”. <strong>No concrete witness
+<code>link mario.prog (mario_step, mario_actions_*, interaction, …) = Some lp</code> has been
+exhibited yet.</strong> Until it is, the capstone constrains every <em>possible</em> linked
+SM64 — which is meaningful (the residuals range over <code>lp</code>'s real genv) but not yet
+pinned to <em>the</em> game. Discharge path: the <code>SymbolicLinking.v</code> template
+(exhibit linkability TU-pair-wise via CompCert's <code>link_prog</code> conditions
+<em>without normalizing</em> the result — the <code>vm_compute</code> route OOMs). Note Phase B
+will additionally need <code>linkorder tu.prog lp</code> for the other 11 TUs — all corollaries
+of the same witness.</p>
+</div>
+
+<div class="hyp green">
+<div class="hname">bm : block&nbsp;&nbsp;<span class="pill p-real">no obligation</span></div>
+<div class="meta">Mario's MarioState block — universally quantified, pinned per-run</div>
+<p>Not an assumption to discharge: the theorem holds <em>for every</em> block <code>bm</code>
+satisfying the init precondition, and P1's <code>gMarioState_wf_lp</code> conjunct pins
+<code>bm</code> to whatever the in-memory <code>gMarioState</code> pointer designates.
+<code>gMarioState</code> is an <em>uninitialized</em> global (<code>gvar_init = nil</code>),
+so Mario's struct is a runtime block — <code>bm</code> abstract-but-pinned is the
+<em>correct</em> formulation, not a gap.</p>
+</div>
+
+<div class="hyp">
+<div class="hname">MWF : mem -&gt; Prop&nbsp;&nbsp;<span class="pill p-open">to instantiate</span></div>
+<div class="meta">the auxiliary memory well-formedness invariant — a strong-enough one must be exhibited</div>
+<p>A free parameter today. The theorem is only as strong as the <code>MWF</code> for which the
+§4 hypotheses can actually be proved — the trivial <code>MWF := True</code> satisfies its own
+preservation clauses but is too weak to discharge <code>Hstore</code>/<code>Hreach_val</code>'s
+aliasing leaves. The intended witness is the <code>MarioMemWF</code>-style block-distinctness
+geometry (static globals ≠ <code>bm</code>, Object blocks ≠ <code>bm</code>), <strong>now
+necessarily extended with controller-block distinctness</strong>: <code>NoA_real</code> reads
+the controller block <code>bc</code> through <code>(bm,156)</code>, so the stores the engine
+certifies must be known to avoid <code>bc</code> too — a new, MWF-shaped obligation discovered
+when the invariant was grounded.</p>
+</div>
+
+<div class="hyp">
+<div class="hname">reached_id : ident -&gt; Prop&nbsp;&nbsp;·&nbsp;&nbsp;reached_fd : Clight.fundef -&gt; Prop
+  &nbsp;<span class="pill p-open">to instantiate</span></div>
+<div class="meta">the concrete reached call-graph closure over lp — not yet computed</div>
+<p>The capstone is parametric over which identifiers/fundefs count as “reached”; <code>Hbcr</code>
+and <code>Hbodyrck</code> (§4) constrain the choice. The concrete instantiation must be the
+finite call-graph closure of <code>execute_mario_action</code> <em>over the linked program</em>.
+What exists today: the <code>mario.prog</code>-internal slice — exactly <strong>17</strong>
+writer-free functions (<code>docs/reachable-internal-graph.md</code>, 0 indirect calls). What
+does not exist yet: the closure through the 7 dispatchers into the action TUs (the
+<code>act_*</code> handlers and their callees, including the one censused indirect call through
+<code>common_landing_cancels</code>'s function-pointer parameter). Computing and certifying that
+list is Phase-B work.</p>
+</div>
+
+<div class="hyp blue">
+<div class="hname">spawn_flying : mem -&gt; bool&nbsp;&nbsp;<span class="pill p-trust">permanent modeling variable</span></div>
+<div class="meta">the spawn-warp exclusion bit — models code outside the frame</div>
+<p>The sixth and last T-feeder, <code>set_mario_initial_action</code>
+(<code>level_update.c</code> — the spawn/warp path writing <code>ACT_FLYING</code> for the
+flying-spawn warps), is <em>not inside</em> <code>execute_mario_action</code>; it runs in the
+level script. The capstone excludes it by the P3 precondition through this abstract bit. It
+stays a modeling variable until the step relation models more of the game loop than the
+action frame (see §7, frame scope). It does <strong>not</strong> weaken the no-A claim — it
+is the formal rendering of “and you don't take a flying-spawn warp”, which the ABC route
+(WMotR) satisfies.</p>
+</div>
+
+<h2>4 · Layer 2 — the seven engine hypotheses (verbatim, with discharge paths)</h2>
+
+<p>These are the <code>Hypothesis</code> declarations of Section <code>NoARealInput</code> —
+the complete list; the capstone proof consumes exactly these seven plus
+<code>LO_mario</code>. Throughout: <code>NoA_real m := ctl_a_clear m bm</code> (the controller
+A-bit is clear), <code>not_tainted v := is_tainted v = false</code> with
+T&nbsp;=&nbsp;{<code>ACT_FLYING</code>&nbsp;0x10808899, <code>ACT_FLYING_TRIPLE_JUMP</code>&nbsp;0x03000894,
+<code>ACT_SHOT_FROM_CANNON</code>&nbsp;0x00880898}, and <code>lp_ge lp := globalenv lp</code>.</p>
+
+<div class="hyp">
+<div class="hname">H1 · Hreach_val&nbsp;&nbsp;<span class="pill p-open">THE CRUX — Phase B</span></div>
+<div class="meta">the value engine's per-funcall contract at the concrete invariant</div>
+<pre>reach_value_preserves_reached not_tainted bm (lp_ge lp) NoA_real MWF reached_fd
+<span class="com">(* unfolds to: *)</span>
+<span class="kw">forall</span> m fd vargs t m' vres,
+  reached_fd fd -&gt; NoA_real m -&gt; MWF m -&gt;
+  (marg_exempt fd = <span class="lit">false</span> -&gt; marg_ok bm vargs) -&gt;
+  eval_funcall function_entry2 (lp_ge lp) m fd vargs t m' vres -&gt;
+  Mem.valid_block m bm -&gt; action_sat not_tainted m bm -&gt;
+  Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.</pre>
+<p><strong>Plain terms:</strong> every <em>reached</em> function of the linked program, called
+with Mario's pointer well-formed (<code>marg_ok</code>: arg0 into <code>bm</code> ⇒ offset 0),
+in a memory where the controller A-bit is clear and the action is outside T, returns with the
+action <em>still outside T</em>. This is where the actual SM64 content lives — that under no-A,
+no handler body ever writes a tainted action. It is <strong>satisfiable</strong> precisely
+because the invariant is T (the cannon edge is inside T) and the A-entries are gated
+(Taint.v/AGates.v). Discharge mechanism: the proved
+<code>exec_funcall_reach_value_reached</code> at <code>ge := lp_ge lp</code> — which reduces
+this single hypothesis to the <strong>20 leaves of §5</strong>.</p>
+</div>
+
+<div class="hyp" style="border-left-color:var(--red)">
+<div class="hname">H2 · Hrest&nbsp;&nbsp;<span class="pill p-false">flagged: forall-fd phantom</span></div>
+<div class="meta">the “rest” residual: NoA + the two pointer-chase invariants survive funcalls</div>
+<pre>reach_rest_marg_lp lp bm NoA_real
+<span class="com">(* unfolds to: *)</span>
+<span class="kw">forall</span> m fd vargs t m' vres,
+  NoA_real m -&gt; marg_ok bm vargs -&gt;
+  eval_funcall function_entry2 (lp_ge lp) m fd vargs t m' vres -&gt;
+  marioObj_wf_lp lp m bm -&gt; gMarioState_wf_lp lp m bm -&gt;
+  NoA_real m' /\ marioObj_wf_lp lp m' bm /\ gMarioState_wf_lp lp m' bm.</pre>
+<p><strong>Plain terms:</strong> any function call (with marg-shaped args) preserves the clear
+A-bit, the <code>gMarioState → bm</code> pointer cell, and the <code>bm-&gt;marioObj</code>
+pointer cell. <strong>Honest flag:</strong> as stated this quantifies over <em>every</em>
+<code>fd</code> in the universe, not just reached ones — the proof-discipline
+“phantom <code>forall</code>” pattern (an adversarial fundef could write anything). Its
+discharge therefore goes through a <em>restatement</em> sharpened to
+<code>reached_fd</code>-gated form (exactly the surgery already performed on the retired
+<code>reach_value</code> phantom), followed by the same census walk as H1. This is a known,
+planned capstone edit, not a surprise — recorded here so the page stays honest about it.</p>
+</div>
+
+<div class="hyp blue">
+<div class="hname">H3 · Hext&nbsp;&nbsp;<span class="pill p-trust">not derivable from CompCert's axioms</span></div>
+<div class="meta">genuine externals preserve everything</div>
+<pre><span class="kw">forall</span> ef vargs mm tt vres mm',
+  NoA_real mm -&gt; meminv_lp lp not_tainted bm mm -&gt; MWF mm -&gt;
+  external_call ef (lp_ge lp) vargs mm tt vres mm' -&gt;
+  NoA_real mm' /\ meminv_lp lp not_tainted bm mm' /\ MWF mm'.
+<span class="com">(* meminv_lp = valid_block bm /\ action_sat not_tainted /\ marioObj_wf /\ gMarioState_wf *)</span></pre>
+<p><strong>Plain terms:</strong> the <em>genuinely external</em> functions the linked frame can
+reach (math/runtime: trig-table lookups, <code>sqrtf</code>, …) do not write Mario's action,
+his pointer cells, or the controller A-bit. Over <code>lp</code> this ranges over real
+externals only — the action dispatchers are Internal — so it is <em>true of the game</em>.
+<strong>But it is not provable from CompCert's axioms:</strong>
+<code>external_functions_sem</code> is an abstract parameter whose properties
+(<code>ec_readonly</code> etc.) do not bound writes to writable memory. So H3 either
+(a)&nbsp;remains a quarantined modeling assumption — “the math externals are pure”, stated
+per-named-external, or (b)&nbsp;is eliminated by linking those bodies too (the trig tables are
+data + lookup code). Until then it sits on the blue (trust) side of the ledger, not the amber
+one.</p>
+</div>
+
+<div class="hyp">
+<div class="hname">H4 · Hstore&nbsp;&nbsp;<span class="pill p-open">needs controller-block geometry</span></div>
+<div class="meta">the root body's two censused stores preserve the clear A-bit</div>
+<pre><span class="kw">forall</span> e le mm a1 a2 tt le' mm' out,
+  NoA_real mm -&gt; RealFrameValue.prov_ok (Sassign a1 a2) -&gt;
+  exec_stmt function_entry2 (lp_ge lp) e le mm (Sassign a1 a2) tt le' mm' out -&gt;
+  NoA_real mm'.</pre>
+<p><strong>Plain terms:</strong> <code>prov_ok</code> pins <code>Sassign a1 a2</code> to one of
+the <strong>exactly two</strong> stores in <code>f_execute_mario_action</code>'s own body (both
+through the <code>marioObj</code> Object pointer — <code>vm_compute</code>'d census). The claim:
+those two stores never touch the controller's <code>buttonPressed</code> halfword. True by
+block distinctness (the Object block ≠ the controller block), but proving it needs the
+<code>bc</code>-distinctness geometry that the chosen <code>MWF</code> (§3) must carry — the
+concrete new obligation that grounding <code>NoA</code> surfaced.</p>
+</div>
+
+<div class="hyp">
+<div class="hname">H5 · Hstoremwf&nbsp;&nbsp;<span class="pill p-open">depends on the MWF witness</span></div>
+<div class="meta">the same two stores preserve MWF</div>
+<pre><span class="kw">forall</span> e le mm a1 a2 tt le' mm' out,
+  NoA_real mm -&gt; RealFrameValue.prov_ok (Sassign a1 a2) -&gt; MWF mm -&gt;
+  exec_stmt function_entry2 (lp_ge lp) e le mm (Sassign a1 a2) tt le' mm' out -&gt;
+  MWF mm'.</pre>
+<p><strong>Plain terms:</strong> the root body's two Object-pointer stores keep the memory
+well-formedness invariant intact. Cannot be attacked until <code>MWF</code> is instantiated
+(§3); for the intended block-distinctness MWF this is the standard
+store-off-the-watched-blocks argument already proved once at <code>mario_ge</code>
+(<code>store_preserves_meminv</code> family) — re-derivation over <code>lp_ge</code>, mechanical.</p>
+</div>
+
+<div class="hyp">
+<div class="hname">H6 · Hbcr&nbsp;&nbsp;<span class="pill p-open">per-id resolution over lp</span></div>
+<div class="meta">the syntactic→semantic call bridge: censused calls resolve to reached fundefs</div>
+<pre><span class="kw">forall</span> oid a al e le mm vf fd,
+  RealFrameValue.reach_chk reached_id (Scall oid a al) -&gt;
+  eval_expr (lp_ge lp) e le mm a vf -&gt;
+  Genv.find_funct (lp_ge lp) vf = Some fd -&gt; reached_fd fd.</pre>
+<p><strong>Plain terms:</strong> if the syntactic census approves a call site (a direct
+<code>Evar id</code> call with <code>id ∈ reached_id</code>; indirect calls are censused
+<code>False</code>), then whatever fundef the semantics actually resolves at that site is in
+<code>reached_fd</code>. Discharge: once <code>reached_id</code>/<code>reached_fd</code> are
+concrete finite sets (§3), this is per-identifier symbol resolution over the abstract
+<code>lp</code> — exactly what <code>SymbolicLinking.v</code> already provides
+(<code>linkorder_resolves_funct</code>, <code>resolves_dispatch_{1..7}</code>), iterated over
+the reached list.</p>
+</div>
+
+<div class="hyp">
+<div class="hname">H7 · Hbodyrck&nbsp;&nbsp;<span class="pill p-open">decidable once reached_id is concrete</span></div>
+<div class="meta">the root body passes the call census</div>
+<pre>RealFrameValue.reach_chk reached_id (fn_body mario.f_execute_mario_action)</pre>
+<p><strong>Plain terms:</strong> every call in <code>execute_mario_action</code>'s body is a
+direct call to a reached identifier. The body is concrete generated AST; with a concrete
+<code>reached_id</code> this is a <code>vm_compute</code>/<code>reflexivity</code>-class
+computation. (No instance has been proved yet at any scope — it awaits the §3 instantiation,
+but it is the cheapest row on this page.)</p>
+</div>
+
+<h2>5 · Layer 3 — what the crux opens into: the 20 leaves of the discharge mechanism</h2>
+
+<p>H1 is not attacked monolithically. The theorem
+<code>ActionValueFrame.exec_funcall_reach_value_reached</code> — <strong>already proved</strong>,
+ge-generic, axiom-clean — concludes exactly H1's statement from 20 named premises, at the
+instantiation <code>Q := not_tainted</code>, <code>NoA := ctl_a_clear</code>,
+<code>ge := lp_ge lp</code>, <code>writer :=</code> the <code>set_mario_action</code> family,
+plus a to-be-chosen temp-invariant <code>TI</code> and body census <code>C</code>. These 20 are
+therefore <em>sub-obligations of H1</em>, not additional capstone assumptions — listed in full
+so nothing hides inside “the crux”:</p>
+
+<table class="score">
+<tr><th>#</th><th>leaf (name in the proof)</th><th>what it demands</th><th>status / attack</th></tr>
+<tr><td>1</td><td class="m">Hbody (leaf&nbsp;A)</td><td>each reached non-writer, entered marg-ok, has entry-temp-invariant TI and its body passes census C</td><td><span class="pill p-open">open</span> per-function census over the linked reached set; bricks exist (<code>body_check_generic</code>, ~4/17 whole-body lemmas at mario scope)</td></tr>
+<tr><td>2</td><td class="m">Hassign (store leaf)</td><td>a TI+C-certified store preserves validity, <code>action_sat</code>, MWF</td><td><span class="pill p-open">open</span> block-distinctness geometry (the MarioMemWF brick, re-rooted)</td></tr>
+<tr><td>3</td><td class="m">Hcallmarg</td><td>censused calls into non-exempt callees pass marg-ok args (Mario's ptr at offset 0)</td><td><span class="pill p-open">open</span> call-arg census; <code>call_arg0_marg_sound_lp</code> brick exists</td></tr>
+<tr><td>4</td><td class="m">Hexempt (leaf&nbsp;A-exempt)</td><td>marg-exempt internal callees (<code>vec3f_find_ceil</code>-style, interior-pointer params) preserve directly</td><td><span class="pill p-open">open</span> focused per-function leaf (vec3f writes only its output cell)</td></tr>
+<tr><td>5</td><td class="m">HTI_set</td><td>TI survives a censused <code>Sset</code></td><td><span class="pill p-open">open</span> fixed by choosing TI = the proved temp-provenance invariant (toff/tat family)</td></tr>
+<tr><td>6</td><td class="m">HTI_optc</td><td>TI survives storing a call result (given the result is no bm-pointer)</td><td><span class="pill p-open">open</span> same TI choice; the non-bm premise is leaf 8's job</td></tr>
+<tr><td>7</td><td class="m">HTI_optb</td><td>TI survives storing a builtin result (same shape)</td><td><span class="pill p-open">open</span> same</td></tr>
+<tr><td>8</td><td class="m">Hret_call</td><td>no reached funcall returns a pointer into bm</td><td><span class="pill p-open">open</span> per-callee return-type/census check (reached callees return scalars/off-bm)</td></tr>
+<tr><td>9</td><td class="m">Hret_builtin</td><td>no external/builtin returns a pointer into bm</td><td><span class="pill p-trust">trust-adjacent</span> same external-model caveat as H3</td></tr>
+<tr><td>10</td><td class="m">Hcall_reached</td><td>under TI+C a call resolves to a reached fundef</td><td><span class="pill p-open">open</span> same resolution work as H6, inside bodies</td></tr>
+<tr><td>11</td><td class="m">Hw (leaf&nbsp;B, the writer)</td><td>a <em>reached</em> writer call preserves <code>action_sat not_tainted</code></td><td><span class="pill p-open">open</span> <strong>this is the A-gating payoff</strong>: T-handlers are dispatched only when action ∈ T (dispatch-switch, killed by action∉T); the 6 T-feeders are A-gated — killed by <code>input_a_gate_takes_else_lp</code> / <code>ctl_a_gate_takes_else_lp</code> at the Taint.v-pinned sites; non-T writes preserve <code>not_tainted</code> by value</td></tr>
+<tr><td>12</td><td class="m">Hext (action cell)</td><td><code>reach_ext_preserves (action_cell bm) (lp_ge lp)</code> — externals don't write the action cell</td><td><span class="pill p-trust">trust-adjacent</span> the H3 caveat; satisfiable over lp (genuine externals only)</td></tr>
+<tr><td>13</td><td class="m">Hmwf_ext</td><td>externals preserve MWF</td><td><span class="pill p-trust">trust-adjacent</span> ditto</td></tr>
+<tr><td>14</td><td class="m">Hmwf_unch</td><td>MWF closed under bm-unchanged memories</td><td><span class="pill p-open">open</span> a design constraint on the MWF witness (block-distinctness MWFs satisfy it)</td></tr>
+<tr><td>15</td><td class="m">Hnoaexec</td><td>every executed statement preserves NoA (= <code>ctl_a_clear</code>)</td><td><span class="pill p-false">flagged</span> as stated it is a forall-s phantom; restate over censused reached bodies — census says zero <code>buttonPressed</code> stores in reach, then bc-distinctness for the off-controller stores. Mid-frame note: <code>update_mario_inputs</code> zeroes <code>m-&gt;input</code> and the sole bit-1 input write is the censused gated one, which is what threads <code>input_a_clear</code> to the in-body gates</td></tr>
+<tr><td>16</td><td class="m">Hnoaentry</td><td>function entry (param binding) preserves NoA</td><td><span class="pill p-open">open</span> easy: <code>function_entry2</code> allocates fresh blocks, writes nothing on bc</td></tr>
+<tr><td>17</td><td class="m">HCseq</td><td>census C distributes over <code>Ssequence</code></td><td><span class="pill p-real">free</span> structural, holds for any syntactic census by construction</td></tr>
+<tr><td>18</td><td class="m">HCif</td><td>census C distributes over <code>Sifthenelse</code></td><td><span class="pill p-real">free</span> structural</td></tr>
+<tr><td>19</td><td class="m">HCloop</td><td>census C distributes over <code>Sloop</code></td><td><span class="pill p-real">free</span> structural</td></tr>
+<tr><td>20</td><td class="m">HCsw</td><td>census C closed under switch-case selection</td><td><span class="pill p-real">free</span> structural (the select-switch lemmas exist)</td></tr>
+</table>
+
+<p>For orientation, the finite real surface these leaves walk: within <code>mario.prog</code>,
+<code>execute_mario_action</code> reaches exactly <strong>17 internal writer-free functions</strong>
+(0 indirect calls); the linked closure adds the 7 dispatchers, the <code>act_*</code> handlers,
+and their callees across the 12 TUs — including the <em>one</em> indirect call that matters
+(<code>common_landing_cancels</code> invoking its <code>setAPressAction</code> function-pointer
+parameter; Taint.v proves the only T-feeder ever escaping into it is
+<code>set_triple_jump_action</code>, passed exclusively by <code>act_double_jump_land</code>,
+and that the invoking site is itself A-gated). The complete T-entry surface the
+gating must kill, machine-checked: 6 feeders —
+<code>set_jump_from_landing</code>&nbsp;(mario, →FTJ),
+<code>set_triple_jump_action</code>&nbsp;(moving, →FTJ),
+<code>act_shot_from_cannon</code> + <code>act_flying_triple_jump</code>&nbsp;(airborne, →FLYING,
+both T-internal: dispatched only when action already ∈ T),
+<code>act_in_cannon</code>&nbsp;(automatic, →SHOT_FROM_CANNON, gated in-body),
+<code>set_mario_initial_action</code>&nbsp;(level_update, outside the frame, excluded by P3) —
+and <strong>zero</strong> raw T-constant stores in any TU.</p>
+
+<h2>6 · Per-run preconditions (the statement's own hypotheses)</h2>
+
+<p>Not lemmas to prove — they are the “if” of the theorem, audited here so the statement's
+meaning is on the table:</p>
+
+<table class="score">
+<tr><th>#</th><th>precondition</th><th>meaning</th><th>honesty notes</th></tr>
+<tr><td>P1</td><td class="m">mem_ok_lp lp bm MWF init</td><td>the run starts well-formed: <code>bm</code> valid ∧ <code>action_sat not_tainted</code> ∧ <code>marioObj_wf_lp</code> ∧ <code>gMarioState_wf_lp</code> ∧ <code>MWF init</code></td><td><strong>Honestly stronger than “not flying”:</strong> the start must be outside all of T — on the ground, not mid-cannon-shot. Eventually worth a satisfiability witness (one concrete init memory) so P1 is demonstrably non-vacuous; today it is plainly satisfiable by construction of the invariants.</td></tr>
+<tr><td>P2</td><td class="m">Forall (a_pressed_real bm · = false) is</td><td>at every frame boundary the controller's A_BUTTON bit (0x8000 of <code>buttonPressed</code>, chased through offsets 156→18) is clear; unreadable controller counts as <em>pressed</em> (pessimistic)</td><td>this is the grounded “never presses A” — a memory bit, no abstract input model</td></tr>
+<tr><td>P3</td><td class="m">Forall (spawn_flying · = false) is</td><td>no flying spawn-warp during the run</td><td>see §3 (<code>spawn_flying</code>) — models <code>set_mario_initial_action</code>, outside the frame</td></tr>
+<tr><td>P4</td><td class="m">reachable mem mem step_real init is m</td><td><code>m</code> is reached from <code>init</code> by the inputs <code>is</code>, each step one real <code>eval_funcall</code> of <code>f_execute_mario_action</code> over <code>lp</code></td><td>the frame-scope caveat lives here — see §7</td></tr>
+</table>
+
+<h2>7 · The extra-logical trust base (no formal system can discharge these)</h2>
+
+<table class="score">
+<tr><th>#</th><th>item</th><th>what is trusted</th></tr>
+<tr><td>T1</td><td><strong>clightgen fidelity</strong></td><td>the <code>generated/*.v</code> ASTs are what CompCert's clightgen mechanically produced from the decomp C sources, never edited (the PIPELINE rule; CI-guarded by regeneration, but the generator itself is trusted — standard CompCert TCB)</td></tr>
+<tr><td>T2</td><td><strong>decomp fidelity</strong></td><td>the SM64 decompilation's C is behaviorally the N64 game. Outside any proof; the decomp's matching-ROM build is the evidence</td></tr>
+<tr><td>T3</td><td><strong>the ppc32/N64 model</strong></td><td>CompCert's 32-bit big-endian PowerPC parameterization (<code>ptr64 = false</code>) as a stand-in for the N64's MIPS — field offsets (action@12, controller@156, buttonPressed@18, input@2) are computed in <em>this</em> model and match the console's ABI</td></tr>
+<tr><td>T4</td><td><strong>statement-means-reality</strong></td><td>that <code>mem_flying_lp bm m</code> (“the 4 bytes at <code>(bm,12)</code> load a value in the flying set”) <em>is</em> “Mario is flying”, and <code>ctl_a_clear</code> <em>is</em> “A is not pressed”. Short, declarative, human-audited — the de Bruijn residue (docs/trust-model.md)</td></tr>
+<tr><td>T5</td><td><strong>frame scope</strong></td><td>the step relation models <code>execute_mario_action</code> only. The rest of the game loop (interaction outside the frame, object behaviors, camera, the level script — where <code>set_mario_initial_action</code> lives) is not yet inside the step; P3 excludes its one T-feeder by assumption. Widening the step to the full game loop is future work, as is all of GOAL&nbsp;2 (<code>WMotRRequiresA/</code>, not started)</td></tr>
+</table>
+
+<h2>8 · The full scoreboard — every assumption, one row each</h2>
+
+<p>The completeness contract of this page: the capstone's cone contains <em>exactly</em> the
+rows below (axioms verified by <code>Print Assumptions</code>; variables/hypotheses read off
+Section <code>NoARealInput</code>; sub-leaves are H1's decomposition, indented conceptually
+under it).</p>
+
+<table class="score">
+<tr><th>layer</th><th>item</th><th>kind</th><th>status</th><th>discharge path</th></tr>
+<tr><td>0</td><td class="m">classic · functional_extensionality_dep · proof_irr · sig_not_dec · sig_forall_dec</td><td>axiom ×5</td><td><span class="pill p-trust">floor</span></td><td>never — standard classical/CompCert-lib axioms</td></tr>
+<tr><td>0</td><td class="m">external_functions_sem · inline_assembly_sem</td><td>axiom ×2</td><td><span class="pill p-trust">floor</span></td><td>never — CompCert's abstract external-call model</td></tr>
+<tr><td>1</td><td class="m">lp + LO_mario</td><td>variable + hypothesis</td><td><span class="pill p-open">open</span></td><td>exhibit <code>link … = Some lp</code> symbolically (no normalization)</td></tr>
+<tr><td>1</td><td class="m">bm</td><td>variable</td><td><span class="pill p-real">no obligation</span></td><td>— (universally quantified, pinned by P1)</td></tr>
+<tr><td>1</td><td class="m">MWF</td><td>variable</td><td><span class="pill p-open">open</span></td><td>instantiate: MarioMemWF block-distinctness + NEW controller-block (bc) distinctness</td></tr>
+<tr><td>1</td><td class="m">reached_id · reached_fd</td><td>variable ×2</td><td><span class="pill p-open">open</span></td><td>compute the linked call-graph closure (mario slice of 17 done; dispatcher/handler closure pending)</td></tr>
+<tr><td>1</td><td class="m">spawn_flying</td><td>variable</td><td><span class="pill p-trust">modeling</span></td><td>stays abstract until the step models the level script (T5)</td></tr>
+<tr><td>2</td><td class="m">H1 Hreach_val</td><td>hypothesis</td><td><span class="pill p-open">open — the crux</span></td><td>via proved <code>exec_funcall_reach_value_reached</code> → the 20 leaves (§5)</td></tr>
+<tr><td>2</td><td class="m">H2 Hrest</td><td>hypothesis</td><td><span class="pill p-false">flagged</span></td><td>restate reached-gated (forall-fd phantom), then census-walk like H1</td></tr>
+<tr><td>2</td><td class="m">H3 Hext</td><td>hypothesis</td><td><span class="pill p-trust">trust-adjacent</span></td><td>quarantine as per-named-external purity assumptions, or link the bodies</td></tr>
+<tr><td>2</td><td class="m">H4 Hstore</td><td>hypothesis</td><td><span class="pill p-open">open</span></td><td>2 censused root stores miss bc — controller-block distinctness via MWF</td></tr>
+<tr><td>2</td><td class="m">H5 Hstoremwf</td><td>hypothesis</td><td><span class="pill p-open">open</span></td><td>same 2 stores preserve the instantiated MWF (mechanical re-derivation)</td></tr>
+<tr><td>2</td><td class="m">H6 Hbcr</td><td>hypothesis</td><td><span class="pill p-open">open</span></td><td>per-reached-id <code>find_funct</code> resolution over abstract lp (SymbolicLinking)</td></tr>
+<tr><td>2</td><td class="m">H7 Hbodyrck</td><td>hypothesis</td><td><span class="pill p-open">open</span></td><td>reflexivity once reached_id is concrete</td></tr>
+<tr><td>3</td><td class="m">leaves 1–20 under H1</td><td>sub-obligations</td><td>17 <span class="pill p-open">open</span> / 3 <span class="pill p-real">free</span>; #9,12,13 <span class="pill p-trust">trust-adjacent</span>; #15 <span class="pill p-false">flagged</span></td><td>§5 table, row by row</td></tr>
+<tr><td>—</td><td class="m">P1–P4</td><td>preconditions</td><td><span class="pill p-real">part of the statement</span></td><td>audit meaning (§6); eventually a P1 satisfiability witness</td></tr>
+<tr><td>—</td><td class="m">T1–T5</td><td>trust base</td><td><span class="pill p-trust">extra-logical</span></td><td>§7 — minimized, never formally discharged</td></tr>
+</table>
+
+<div class="verdict v-warn"><strong>Honest bottom line.</strong> What is <em>proved</em>: the
+entire inductive skeleton — run induction, the real frame over the linked program, the taint
+invariant's carry, the input grounding, the gate semantics, and the complete machine-checked
+T-entry census — all <code>Qed</code>, resting on exactly the 7 standard axioms. What is
+<em>assumed</em>: one link witness, three instantiations (MWF, the reached sets), and seven
+engine hypotheses whose entire content reduces to one crux —
+<strong>H1, “no reached handler writes a tainted action under no-A”</strong> — for which the
+discharge mechanism is already proved and the 20 remaining leaves are concrete, finite, and
+named above. Two residuals (H2, leaf 15) are flagged as needing restatement before they are
+provable — they quantify over phantoms — and two (H3, leaves 12/13) will end as quarantined
+purity assumptions about named math externals unless their bodies are linked. Nothing else
+stands between the current tree and the unconditional theorem.</div>
+
+</div>
+</body>
+</html>
