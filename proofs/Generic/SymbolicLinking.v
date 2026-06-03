@@ -393,3 +393,51 @@ Proof.
              mario_state_members Hlo mario_state_members_complete).
   exact mario_action_offset_concrete.
 Qed.
+
+(* ====================================================================== *)
+(* RE-ROOTING INTERFACE, PART 3: SYMBOL PRESERVATION.                      *)
+(*                                                                        *)
+(* The THIRD and last thing the frame engine reads from its genv: symbol  *)
+(* addresses (find_symbol gMarioState -- the root of the Mario pointer     *)
+(* chase the eval bricks evaluate). Every symbol a TU q DEFINES survives    *)
+(* into lp's genv (with SOME block; the carried *_wf invariants abstract    *)
+(* the exact block, so identity isn't needed -- existence is). Same AST     *)
+(* metatheory as the funcall primitive, stopping at find_symbol. With this, *)
+(* all three genv-consumed quantities -- funcalls (part 1), field offsets   *)
+(* (part 2), symbols (part 3) -- are proved preserved by linking, lp        *)
+(* abstract: the complete interface a re-rooted engine needs from lp.       *)
+(* ====================================================================== *)
+
+Lemma linkorder_resolves_symbol :
+  forall (lp q : Clight.program) (id : ident) (gd : globdef (Ctypes.fundef Clight.function) type),
+    linkorder q lp ->
+    (prog_defmap q) ! id = Some gd ->
+    exists b, Genv.find_symbol (globalenv lp) id = Some b.
+Proof.
+  intros lp q id gd LOq Hdm.
+  Local Transparent Linker_program.
+  unfold linkorder, Linker_program, linkorder_program in LOq.
+  destruct LOq as [LOast _Hcomp].
+  destruct (prog_defmap_linkorder _ _ _ _ LOast Hdm) as (gd' & Hgd' & _Hlo).
+  apply (proj1 (Genv.find_def_symbol _ _ _)) in Hgd'.
+  destruct Hgd' as (b & Hsym & _). exists b. exact Hsym.
+Qed.
+
+(* Concrete: gMarioState (a defined, uninitialized gvar in mario.c -- the global
+   pointer the eval bricks read) resolves to SOME block in any lp >= mario.prog.
+   So the re-rooted gMarioState_wf invariant is satisfiable over globalenv lp. *)
+Lemma mario_defines_gMarioState :
+  exists gd, (prog_defmap mario.prog) ! mario._gMarioState = Some gd.
+Proof.
+  destruct ((prog_defmap mario.prog) ! mario._gMarioState) as [gd|] eqn:E.
+  - exists gd; reflexivity.
+  - vm_compute in E; discriminate E.
+Qed.
+
+Lemma linking_resolves_gMarioState :
+  forall lp, linkorder mario.prog lp ->
+    exists b, Genv.find_symbol (globalenv lp) mario._gMarioState = Some b.
+Proof.
+  intros lp Hlo. destruct mario_defines_gMarioState as (gd & Hgd).
+  eapply linkorder_resolves_symbol; eauto.
+Qed.
