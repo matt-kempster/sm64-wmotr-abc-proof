@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>De-vacuuming GOAL 1 — the linking + A-gating roadmap</title>
+<style>
+  :root{
+    --bg:#ffffff; --panel:#f6f8fa; --panel2:#eef1f4; --ink:#1f2328; --dim:#59636e;
+    --line:#d8dee4; --kw:#cf222e; --id:#0550ae; --ty:#8250df; --lit:#0a3069;
+    --com:#6e7781; --green:#1a7f37; --greenbg:#dafbe1; --amber:#9a6700; --amberbg:#fff8c5;
+    --red:#cf222e; --redbg:#ffebe9; --blue:#0969da;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:1080px;margin:0 auto;padding:40px 24px 120px;}
+  h1{font-size:30px;line-height:1.2;margin:0 0 6px;}
+  h2{font-size:23px;margin:54px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--line);}
+  h3{font-size:18px;margin:30px 0 8px;color:var(--id);}
+  .sub{color:var(--dim);font-size:17px;margin:0 0 28px;}
+  p{margin:12px 0;}
+  code,pre,.mono{font-family:"SF Mono",ui-monospace,"Cascadia Code",Menlo,Consolas,monospace;}
+  code{background:var(--panel2);padding:1px 5px;border-radius:4px;font-size:13.5px;}
+  pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;
+    overflow-x:auto;font-size:13px;}
+  a{color:var(--id);}
+  .lead{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--blue);
+    border-radius:8px;padding:18px 20px;margin:22px 0;}
+  .kw{color:var(--kw)} .id{color:var(--id)} .ty{color:var(--ty)} .lit{color:var(--lit)} .com{color:var(--com)}
+  .pill{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    padding:2px 8px;border-radius:999px;vertical-align:middle;}
+  .p-real{background:var(--greenbg);color:#0f5323;border:1px solid #aceebb;}
+  .p-open{background:var(--amberbg);color:#7d5300;border:1px solid #eac54f;}
+  .p-false{background:var(--redbg);color:#a40e26;border:1px solid #ff9492;}
+  .tree{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:24px;margin:22px 0;}
+  .node{border-radius:9px;padding:12px 16px;margin:0 auto;max-width:760px;position:relative;}
+  .node .nm{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;font-weight:700;}
+  .node .ds{font-size:13.5px;margin-top:3px;line-height:1.45;}
+  .n-real{background:var(--greenbg);border:1px solid #aceebb;}
+  .n-open{background:var(--amberbg);border:1px solid #eac54f;}
+  .n-false{background:var(--redbg);border:1.5px solid var(--red);}
+  .connector{width:2px;height:20px;background:var(--line);margin:0 auto;}
+  .rests{text-align:center;color:var(--dim);font-size:13px;margin:8px 0 4px;letter-spacing:.05em;text-transform:uppercase;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:6px;}
+  @media(max-width:760px){.row2,.row3{grid-template-columns:1fr;}}
+  .score{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;}
+  .score th,.score td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  .score th{background:var(--panel2);font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--dim);}
+  .score td.m{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;}
+  .verdict{border-radius:8px;padding:16px 18px;margin:16px 0;}
+  .v-yes{background:var(--greenbg);border:1px solid #aceebb;}
+  .v-no{background:var(--redbg);border:1px solid #ff9492;}
+  .v-warn{background:var(--amberbg);border:1px solid #eac54f;}
+  ul{margin:12px 0;padding-left:22px;} li{margin:6px 0;}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--dim);margin:14px 0 0;}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .sw{width:13px;height:13px;border-radius:3px;display:inline-block;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>De-vacuuming GOAL&nbsp;1: the linking&nbsp;+&nbsp;A-gating roadmap</h1>
+<p class="sub">How <code>noA_no_spawn_never_flying</code> goes from <em>vacuously true</em> to a real
+theorem about the SM64 binary — the two phases, their costs, and what is already built.</p>
+
+<div class="lead">
+<strong>The situation in one paragraph.</strong> The GOAL-1 capstone is currently
+<strong>vacuously true</strong>: it assumes <code>reach_ext_action_cell</code>, which says
+<em>every external call leaves Mario's <code>action</code> field byte-unchanged</em> — and at the
+single-TU scope (<code>mario_ge = globalenv mario.prog</code>) the per-action dispatchers
+<code>mario_execute_*_action</code> are <em>underspecified</em> <code>External</code>s whose semantics
+admits writing a flying value. So the hypothesis is <strong>false</strong>, and a theorem resting on a
+false premise proves nothing. The fix is not to <em>prove</em> that hypothesis (it cannot be) but to
+<strong>replace</strong> it: link the action translation units so the handlers become real
+<code>Internal</code> bodies the value engine traverses, then prove — over real code — that under
+no-A no handler ever writes a flying action.</p>
+
+<div class="legend">
+  <span><span class="sw" style="background:#dafbe1;border:1px solid #aceebb"></span> proved / verified</span>
+  <span><span class="sw" style="background:#fff8c5;border:1px solid #eac54f"></span> open, true, dischargeable</span>
+  <span><span class="sw" style="background:#ffebe9;border:1px solid #ff9492"></span> false as stated</span>
+</div>
+
+<h2>1 · Why the capstone is vacuous today</h2>
+
+<p>The value engine's external case routes <em>every</em> external call through the one
+hypothesis (<code>ActionValueFrame.v:833</code>):</p>
+
+<pre><span class="com">(* eval_funcall_external — fires for any External callee *)</span>
+... eapply <span class="id">action_sat_unchanged_on</span>; [ eapply <span class="id">Hext</span>; exact Hec | ... ]
+<span class="com">(* Hext := reach_ext_action_cell : reach_ext_preserves (action_cell bm) mario_ge *)</span>
+<span class="com">(* reach_ext_preserves P ge := forall ef .., external_call ef ge .. m .. m' -> unchanged_on P m m' *)</span></pre>
+
+<p>And <code>mario.prog</code> declares the dispatcher as an underspecified external:</p>
+
+<pre>(<span class="id">_mario_execute_airborne_action</span>,
+  <span class="ty">Gfun</span>(<span class="ty">External</span> (<span class="id">EF_external</span> <span class="lit">"mario_execute_airborne_action"</span> ..) ..))</pre>
+
+<p>Instantiate <code>ef</code> at that dispatcher and pick the (allowed) behavior that writes
+<code>ACT_FLYING</code> to the cell: <code>reach_ext_action_cell</code> is refuted. The whole call graph where
+jumping, swimming and flying live sits behind this one false assumption. <code>Print Assumptions</code>
+stays clean because it detects <code>Admitted</code>/<code>Axiom</code>, not false <code>Prop</code> hypotheses.</p>
+
+<div class="tree">
+  <div class="node n-false"><div class="nm">noA_no_spawn_never_flying</div>
+    <div class="ds">the capstone — today <strong>vacuously</strong> true</div></div>
+  <div class="connector"></div>
+  <div class="rests">rests on</div>
+  <div class="node n-false"><div class="nm">reach_ext_action_cell&nbsp;<span class="pill p-false">false</span></div>
+    <div class="ds">"every external (incl. the action dispatchers) leaves <code>action</code> unchanged" —
+    refuted by the underspecified dispatcher externals.</div></div>
+</div>
+
+<h2>2 · The fix: link the action TUs, re-root over <code>lp</code></h2>
+
+<p>Linking moves the dispatchers out of the underspecified-external bucket. Over the linked program
+<code>lp = link(mario, mario_step, mario_actions_*, interaction)</code>:</p>
+<ul>
+<li>the dispatchers and <code>act_*</code> handlers are <strong>Internal</strong> — the engine's
+<code>Scall</code>→funcall path traverses their <em>real bodies</em>;</li>
+<li><code>reach_ext_preserves (action_cell bm) (globalenv lp)</code> now ranges only over <em>genuine</em>
+math/runtime externals (<code>find_ceil</code>, math builtins, <code>memcpy</code>) — where unchanged-on is
+<strong>true</strong>;</li>
+<li>the action-writing logic is proven down to <code>set_mario_action</code>'s no-A guard.</li>
+</ul>
+
+<p><strong>OOM discipline (non-negotiable).</strong> The first linking attempt <code>vm_compute</code>'d the
+merged program and OOM'd. The template (<code>SymbolicLinking.v</code>) keeps <code>lp</code>
+<strong>abstract</strong> — a <code>link … = Some lp</code> hypothesis, never normalized — and resolves every
+cross-TU symbol through CompCert linking metatheory (<code>prog_defmap_linkorder</code> +
+<code>find_def_symbol</code>). The only computations are per-TU defmap lookups. Never
+<code>vm_compute</code> <code>lp</code>'s defmap or composite env.</p>
+
+<h2>3 · What is already built <span class="pill p-real">verified</span></h2>
+
+<p>Foundations that the re-rooting will consume (all <code>Qed</code>-clean, OOM-free, standard-axiom
+footprint). They are real but <strong>not yet consumed by the capstone</strong> (Unwired).</p>
+
+<table class="score">
+<tr><th>Artifact</th><th>What it gives</th><th>Where</th></tr>
+<tr><td class="m">linkorder_resolves_internal</td><td>any TU <code>q</code> with <code>linkorder q lp</code> contributes its <code>Internal</code> defs to <code>globalenv lp</code>; <code>lp</code> opaque. The reusable N-way primitive.</td><td class="m">SymbolicLinking.v</td></tr>
+<tr><td class="m">linkorder_resolves_funct</td><td><code>find_funct (globalenv lp) (Vptr b 0) = Some (Internal f)</code> — the exact shape the engine's <code>Scall</code> consumes.</td><td class="m">SymbolicLinking.v</td></tr>
+<tr><td class="m">resolves_dispatch_{1..7}</td><td>all 7 <code>mario_execute_*_action</code> dispatchers resolve to real <code>Internal</code> bodies over abstract <code>lp</code>.</td><td class="m">SymbolicLinking.v</td></tr>
+<tr><td class="m">flying write-site closure</td><td>across <em>all 12 linked TUs</em>: exactly <strong>5</strong> flying-setter functions, <strong>0</strong> raw flying field-writes. The finite real write set.</td><td class="m">Flying.v <span class="pill p-real">spine</span></td></tr>
+</table>
+
+<p>The 5 flying sites (the complete enumeration): <code>set_jump_from_landing</code> (mario),
+<code>act_shot_from_cannon</code> + <code>act_flying_triple_jump</code> (airborne),
+<code>set_triple_jump_action</code> (moving), <code>set_mario_initial_action</code> (level_update — the spawn
+warp, already excluded by the capstone's <code>no_spawn_flying_run</code> precondition).</p>
+
+<h2>4 · Phase A — re-root over <code>lp</code> ⇒ <em>non-vacuity</em></h2>
+
+<p>This is the structurally mechanical (but large) half. The <em>generic</em> value engine
+<code>exec_funcall_reach_value_marg</code> is already parametric over <code>ge</code>. The work is that the
+<strong>frame wrapper</strong> <code>execute_mario_action_preserves_real_reached</code>
+(<code>RealFrameValue.v:2439</code>) is threaded through <code>mario_ge</code> everywhere:</p>
+
+<pre><span class="com">(* every supporting lemma is mario_ge-specific *)</span>
+reach_meminv_reached_build  exec_body_prov_reached
+execute_mario_action_body_prov_ok / _pgms_ok  funcall_from_body_preserves_entry</pre>
+
+<p>So Phase A = <strong>re-derive RealFrameValue's ~2400-line census / meminv / entry infrastructure
+over <code>globalenv lp</code></strong>, and redefine <code>step</code> as the <code>eval_funcall</code> of
+<code>f_execute_mario_action</code> in <code>lp</code>. Substantial, but bounded and mostly mechanical:
+the censuses are decidable, the engine is generic.</p>
+
+<div class="verdict v-warn"><strong>The payoff is non-vacuity — even before any A-gating.</strong>
+Once re-rooted, <em>every</em> residual the capstone rests on is <strong>true</strong>: <code>reach_ext</code>
+over <code>lp</code> (genuine externals only), the decidable body censuses over <code>lp</code>'s reached set,
+the link-existence fact, and the writer residual (now a true-but-hard A-gating, not a falsehood). The
+theorem flips from <em>meaningless</em> to <em>conditionally true on real, satisfiable residuals</em>.
+This is the single most valuable milestone.</div>
+
+<h2>5 · Phase B — the A-gated write-site closure (where flight lives)</h2>
+
+<p>The remaining content: prove the writer residual
+<code>reach_writer_preserves_noA</code> over <code>lp</code> — under no-A, <code>set_mario_action</code> is
+never called with a flying argument. <code>ActionGraph.v</code> already sizes this into two parts.</p>
+
+<div class="row2">
+  <div class="node n-open"><div class="nm">B1 · control-reachability</div>
+    <div class="ds">The 5 flying out-edges are <strong>literal</strong> constants
+    (<code>ACT_FLYING=277350553</code>, <code>ACT_FLYING_TRIPLE_JUMP=50333844</code>) — pinned. Prove
+    they are unreachable under no-A. This is the <strong>temporal, cross-frame</strong> taint closure:
+    triple-jump flight needs consecutive A-jumps over <em>prior</em> frames, so a within-frame input
+    check is provably insufficient (4/5 sites read no input in-frame). The WMotR argument proper.</div></div>
+  <div class="node n-open"><div class="nm">B2 · dataflow</div>
+    <div class="ds">~46 setter calls pass a <em>computed</em> (variable) action argument
+    (<code>computed_count</code>: moving 16, cutscene 8, airborne 6, object 5, stationary 3, mario 3,
+    submerged 2, automatic 2, level_update 1). Rule out any carrying a flying value. The value engine
+    tracks the real value semantically (<code>action_sat</code>), so re-rooting may <em>subsume</em> B2 —
+    to be confirmed once the engine runs over <code>lp</code>.</div></div>
+</div>
+
+<h2>6 · Residual scoreboard</h2>
+
+<table class="score">
+<tr><th>Residual</th><th>Today (<code>mario_ge</code>)</th><th>After Phase A (<code>lp</code>)</th></tr>
+<tr><td class="m">reach_ext_action_cell</td><td><span class="pill p-false">false</span> (dispatchers external)</td><td><span class="pill p-open">true</span> (genuine externals only)</td></tr>
+<tr><td class="m">body censuses (reached set)</td><td>17 internal funcs <span class="pill p-real">done</span></td><td>expanded over linked TUs — decidable, real</td></tr>
+<tr><td class="m">reach_writer_preserves_noA</td><td>writer unreached (vacuous)</td><td><span class="pill p-open">the A-gating</span> — Phase B</td></tr>
+<tr><td class="m">link … = Some lp</td><td>—</td><td>true; exhibit without normalizing <code>lp</code></td></tr>
+</table>
+
+<h2>7 · Recommended order</h2>
+<ol>
+<li><strong>Phase A first.</strong> It is the bounded milestone that earns non-vacuity and
+<em>consumes</em> the resolution layer already built. Until it lands, any A-gating proof stays Unwired.</li>
+<li><strong>Then Phase B1</strong> (the temporal taint closure) — promoting the
+<code>ActionGraph</code>/<code>ActionWriters</code> analyses into the inductive run invariant.</li>
+<li><strong>B2 likely falls out</strong> of the re-rooted value engine; confirm rather than assume.</li>
+</ol>
+
+<div class="verdict v-no"><strong>Honest status.</strong> <code>reach_ext_action_cell</code> still stands in
+the capstone — the theorem is not yet meaningful. What this roadmap buys is a checkable path:
+the linking foundation and the complete finite write-site set are <em>built and verified</em>; the
+remaining work is Phase A's re-rooting (large, mechanical) and Phase B's A-gating (the genuine WMotR
+research). Neither can be faked or one-shot; both are now decomposed into concrete, real-program steps.</div>
+
+</div>
+</body>
+</html>
