@@ -66,12 +66,47 @@
  * No Admitted.
  *)
 
-From Coq Require Import List Bool.
+From Coq Require Import List Bool PArith.BinPos.
 Import ListNotations.
 From compcert Require Import Coqlib Maps AST Integers Values Memory Globalenvs Events Ctypes Cop Clight ClightBigstep.
 From SM64.Generated Require mario.
 From SM64.Proofs Require Import Flying FieldNonInterference ActionValueFrame
-  ReachableRun RealFrameValue.
+  ReachableRun RealFrameValue CallgraphReach.
+
+(* ===================================================================== *)
+(* THE CONCRETE REACHED SET (no longer abstract). execute_mario_action +  *)
+(* its 17 writer-free reachable internal callees, computed from the real  *)
+(* clightgen'd static call graph (docs/reachable-internal-graph.md; the   *)
+(* sole action writer set_mario_action is NOT among them, machine-checked *)
+(* in Unwired/ReachScratch). `reached_id` is the call-target gate the      *)
+(* body-engine census reach_chk uses: a direct call is OK iff its target   *)
+(* is a reached internal function OR an external symbol (externals handled *)
+(* by the external residual). Decidable, so reach_chk(real body) closes by *)
+(* computation. *)
+(* ===================================================================== *)
+Definition reached_ids : list ident :=
+  [ mario._execute_mario_action
+  ; mario._debug_print_speed_action_normal
+  ; mario._mario_floor_is_slippery
+  ; mario._mario_get_floor_class
+  ; mario._mario_get_terrain_sound_addend
+  ; mario._mario_reset_bodystate
+  ; mario._mario_update_hitbox_and_cap_model
+  ; mario._set_submerged_cam_preset_and_spawn_bubbles
+  ; mario._sink_mario_in_quicksand
+  ; mario._squish_mario_model
+  ; mario._update_and_return_cap_flags
+  ; mario._update_mario_button_inputs
+  ; mario._update_mario_geometry_inputs
+  ; mario._update_mario_health
+  ; mario._update_mario_info_for_cam
+  ; mario._update_mario_inputs
+  ; mario._update_mario_joystick_inputs
+  ; mario._vec3f_find_ceil ].
+
+Definition reached_id (id : ident) : Prop :=
+  (existsb (Pos.eqb id) reached_ids
+   || match func_of mario.prog id with Some _ => false | None => true end) = true.
 
 Section NoAImpliesNoFly.
   (* Mario's struct block is fixed; the action field loads at (bm, 12) as Mint32 --
@@ -153,9 +188,8 @@ Section NoAImpliesNoFly.
      fires only for ACTUALLY-reached callees, so it is enumerable (case-split the
      17 + vm_compute) rather than a per-function census asserted for every
      conceivable f. Concretely Reached_id := membership in reached_ids and
-     Reached_fd := being the Internal of one of those; abstract here, the
-     downstream discharge instantiates them. *)
-  Variable Reached_id : ident -> Prop.
+     Reached_fd := being the Internal of one of those; Reached_id is now the
+     CONCRETE reached_id (the real reached set), Reached_fd still abstract. *)
   Variable Reached_fd : Clight.fundef -> Prop.
 
   (* The designated action writer: among reached funcalls, only set_mario_action
@@ -314,15 +348,20 @@ Section NoAImpliesNoFly.
      reach_call_reached. Discharge: per-call genv resolution over the finite body. *)
   Hypothesis body_calls_reached :
     forall oid a al e le mm vf fd,
-      reach_chk Reached_id (Scall oid a al) ->
+      reach_chk reached_id (Scall oid a al) ->
       eval_expr mario_ge e le mm a vf ->
       Genv.find_funct mario_ge vf = Some fd -> Reached_fd fd.
   (* (4d) execute_mario_action's body passes the syntactic call-target census:
-     every direct call in it targets `Evar id` with `Reached_id id`. A decidable
-     vm_compute fact once Reached_id is the concrete reached set (the closure base
-     Unwired/ReachScratch.emA_callees_are_reached_or_external machine-checks). *)
-  Hypothesis body_reach_chk :
-    reach_chk Reached_id (fn_body mario.f_execute_mario_action).
+     every direct call in it targets `Evar id` with `reached_id id`. NO LONGER a
+     residual -- DISCHARGED here by computation over the REAL clightgen'd body
+     (the closure base Unwired/ReachScratch.emA_callees_are_reached_or_external
+     is the machine-checked decidable core). *)
+  Lemma body_reach_chk :
+    reach_chk reached_id (fn_body mario.f_execute_mario_action).
+  Proof.
+    cbn [reach_chk reach_chk_ls fn_body mario.f_execute_mario_action Swhile];
+      unfold reached_id; repeat split; reflexivity.
+  Qed.
   (* (5) the real body preserves the invariant: now PROVED, not assumed. The old
      `body_preserves_real bm NoA` hypothesis is GONE -- the body is discharged by
      RealFrameValue.execute_mario_action_preserves_real (the census-backed
@@ -365,7 +404,7 @@ Section NoAImpliesNoFly.
                   reach_C_seq reach_C_if reach_C_loop reach_C_sw)
       as Hreach.
     destruct (execute_mario_action_preserves_real_reached bm NoA MWF
-                Reached_id Reached_fd m m'
+                reached_id Reached_fd m m'
                 Hreach reach_rest_ok ext_meminv_ok
                 (fun e le mm a1 a2 tt le' mm' out HnoA' _ Hexec =>
                    noA_exec_ok e le mm (Sassign a1 a2) tt le' mm' out Hexec HnoA')
