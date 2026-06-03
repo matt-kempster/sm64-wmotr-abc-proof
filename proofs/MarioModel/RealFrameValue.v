@@ -894,6 +894,128 @@ Proof.
   erewrite Mem.load_unchanged_on_1; [ exact Hld | exact U | exact Hval | intros i _; reflexivity ].
 Qed.
 
+(* ================================================================== *)
+(* CONSUMPTION FOUNDATION for the marg-carrying value engine: supplying  *)
+(* marg_ok at execute_mario_action's call sites.                         *)
+(*                                                                      *)
+(* The body has 22 reached Scalls. 17 pass a gMarioState-loaded Mario    *)
+(* pointer temp (=> (bm,0)); the other 5 (play_sound x2, spawn_wind x2,  *)
+(* play_infinite_stairs) pass a NON-pointer arg0 (an int Econst/Ebinop)  *)
+(* or no args -- for those marg_ok is vacuous, but PROVING it needs that *)
+(* the arg0 value is not a misaligned bm-pointer. Under ptr64=false      *)
+(* sem_cast keeps a Vptr even targeting tint, so this rests on the       *)
+(* SOURCE value being a Vint -- hence the two non-ptr lemmas below.       *)
+(* ================================================================== *)
+
+(* sem_cast of a Vint never yields a pointer (its result is int/long/    *)
+(* float/single/undef across every classify_cast case). *)
+Lemma sem_cast_vint_not_ptr :
+  forall n ty1 ty2 m v b o, sem_cast (Vint n) ty1 ty2 m = Some v -> v <> Vptr b o.
+Proof.
+  intros n ty1 ty2 m v b o Hc.
+  unfold sem_cast in Hc.
+  destruct (classify_cast ty1 ty2) eqn:E; cbn in Hc;
+    repeat (match goal with
+            | H : (if ?x then _ else _) = Some _ |- _ => destruct x eqn:?
+            | H : match ?x with _ => _ end = Some _ |- _ => destruct x eqn:?
+            | H : Some _ = Some _ |- _ => inversion H; clear H; subst
+            | H : None = Some _ |- _ => discriminate
+            end); try discriminate; intro Hbad; discriminate Hbad.
+Qed.
+
+(* a logical/shift/comparison binop (anything but Oadd/Osub, which alone *)
+(* can do pointer arithmetic) never produces a pointer value. *)
+(* sem_or (the only int-binop appearing at a non-pointer call arg0 -- play_sound's
+   first argument) never produces a pointer: sem_binarith yields int/long only. *)
+Lemma sem_or_never_ptr :
+  forall cenv v1 v2 ty1 ty2 m v b o,
+    sem_binary_operation cenv Oor v1 v2 ty1 ty2 m = Some v -> v <> Vptr b o.
+Proof.
+  intros cenv v1 v2 ty1 ty2 m v b o Hs.
+  cbn in Hs. unfold sem_or, sem_binarith in Hs.
+  repeat (match goal with
+          | H : match ?x with _ => _ end = Some _ |- _ => destruct x eqn:?
+          | H : (if ?x then _ else _) = Some _ |- _ => destruct x eqn:?
+          | H : Some _ = Some _ |- _ => inversion H; clear H; subst
+          | H : None = Some _ |- _ => discriminate
+          end); try discriminate; intro Hbad; discriminate Hbad.
+Qed.
+
+(* sem_cast yields a pointer ONLY from the identical pointer (cast_case_pointer);
+   no other classify_cast case produces a Vptr. *)
+Lemma sem_cast_ptr_result_inv :
+  forall v ty1 ty2 m b o, sem_cast v ty1 ty2 m = Some (Vptr b o) -> v = Vptr b o.
+Proof.
+  intros v ty1 ty2 m b o Hc. unfold sem_cast in Hc.
+  destruct (classify_cast ty1 ty2) eqn:E; destruct v; cbn in Hc;
+    repeat (match goal with
+            | H : (if ?x then _ else _) = Some _ |- _ => destruct x eqn:?
+            | H : match ?x with _ => _ end = Some _ |- _ => destruct x eqn:?
+            | H : Some _ = Some _ |- _ => inversion H; clear H; subst
+            | H : None = Some _ |- _ => discriminate
+            end); try discriminate; try reflexivity.
+Qed.
+
+(* The 17 gMarioState-loaded temps passed as the Mario-pointer argument at
+   execute_mario_action's internal call sites (the rest of the 22 reached calls
+   pass an int / no arg). gms_arg_temps + Pgms is the bounded call-arg-temp
+   tracking that supplies marg_ok to the marg engine -- NO heap invariant. *)
+Definition gms_arg_temps : list ident :=
+  mario._t'27 :: mario._t'28 :: mario._t'29 :: mario._t'30 :: mario._t'31 ::
+  mario._t'32 :: mario._t'35 :: mario._t'36 :: mario._t'37 :: mario._t'38 ::
+  mario._t'39 :: mario._t'40 :: mario._t'41 :: mario._t'44 :: mario._t'45 ::
+  mario._t'46 :: mario._t'47 :: nil.
+
+Definition Pgms (bm : block) (le : temp_env) : Prop :=
+  forall t, In t gms_arg_temps ->
+    forall b o, le ! t = Some (Vptr b o) -> b = bm -> o = Ptrofs.zero.
+
+(* per-call census: arg0 is a tracked Mario temp, an int constant, an Oor, or the
+   call takes no args. All 22 reached call sites fit (vm_compute discharges it). *)
+Definition call_arg0_marg (al : list expr) : Prop :=
+  match al with
+  | nil => True
+  | Etempvar t (Tpointer _ _) :: _ => In t gms_arg_temps
+  | Econst_int _ _ :: _ => True
+  | Ebinop Oor _ _ _ :: _ => True
+  | _ => False
+  end.
+
+(* THE BRIDGE: under Pgms, a censused call's evaluated args are marg_ok. The only
+   way the head can be a bm-pointer is a tracked Mario temp -> (bm,0) via Pgms;
+   the int/Oor/empty shapes can't produce a bm-pointer at all. *)
+Lemma call_arg0_marg_sound :
+  forall bm e le m al tyargs vargs,
+    Pgms bm le -> call_arg0_marg al ->
+    eval_exprlist mario_ge e le m al tyargs vargs ->
+    marg_ok bm vargs.
+Proof.
+  intros bm e le m al tyargs vargs HP Hc Hel.
+  destruct al as [| a0 rest]; [ inv Hel; exact I | ].
+  inv Hel.
+  match goal with H : eval_expr _ _ _ _ a0 ?v |- _ => rename H into Hev; rename v into v0 end.
+  match goal with H : sem_cast _ _ _ _ = Some ?v |- _ => rename H into Hcast; rename v into v0' end.
+  unfold marg_ok. destruct v0' as [| | | | | b o]; auto. intro Hbm; subst b.
+  pose proof (sem_cast_ptr_result_inv _ _ _ _ _ _ Hcast) as Hsrc. subst v0.
+  destruct a0 as [ ci cty | cf cfty | csg csgty | clg clgty | vx vxty | et ety
+                 | dr drty | ad adty | uo ua uty | bop b1 b2 bty | cst cstty
+                 | ef efld efty | sz1 sz2 | ag1 ag2 ];
+    cbn in Hc; try contradiction.
+  - (* Econst_int : eval is Vint, contradicting v0 = Vptr *)
+    inv Hev; match goal with H : eval_lvalue _ _ _ _ _ _ _ _ |- _ => inv H end.
+  - (* Etempvar et ety : ety must be a pointer (else census False); le!et = Vptr bm o *)
+    destruct ety; try contradiction.
+    assert (Hget : le ! et = Some (Vptr bm o))
+      by (inv Hev; [ assumption
+                   | match goal with H : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv H end ]).
+    exact (HP et Hc bm o Hget eq_refl).
+  - (* Ebinop : op must be Oor (census); sem_or never yields a pointer *)
+    destruct bop; try contradiction.
+    inv Hev; [ exfalso; eapply sem_or_never_ptr; eauto
+             | match goal with H : eval_lvalue _ _ _ _ _ _ _ _ |- _ => inv H end ].
+Qed.
+
+
 Section ProvEngine.
   Variable bm gb : block.
   Hypothesis Hgb : Genv.find_symbol mario_ge mario._gMarioState = Some gb.
@@ -1278,127 +1400,6 @@ Section ProvEngine.
   Qed.
 
 End ProvEngine.
-
-(* ================================================================== *)
-(* CONSUMPTION FOUNDATION for the marg-carrying value engine: supplying  *)
-(* marg_ok at execute_mario_action's call sites.                         *)
-(*                                                                      *)
-(* The body has 22 reached Scalls. 17 pass a gMarioState-loaded Mario    *)
-(* pointer temp (=> (bm,0)); the other 5 (play_sound x2, spawn_wind x2,  *)
-(* play_infinite_stairs) pass a NON-pointer arg0 (an int Econst/Ebinop)  *)
-(* or no args -- for those marg_ok is vacuous, but PROVING it needs that *)
-(* the arg0 value is not a misaligned bm-pointer. Under ptr64=false      *)
-(* sem_cast keeps a Vptr even targeting tint, so this rests on the       *)
-(* SOURCE value being a Vint -- hence the two non-ptr lemmas below.       *)
-(* ================================================================== *)
-
-(* sem_cast of a Vint never yields a pointer (its result is int/long/    *)
-(* float/single/undef across every classify_cast case). *)
-Lemma sem_cast_vint_not_ptr :
-  forall n ty1 ty2 m v b o, sem_cast (Vint n) ty1 ty2 m = Some v -> v <> Vptr b o.
-Proof.
-  intros n ty1 ty2 m v b o Hc.
-  unfold sem_cast in Hc.
-  destruct (classify_cast ty1 ty2) eqn:E; cbn in Hc;
-    repeat (match goal with
-            | H : (if ?x then _ else _) = Some _ |- _ => destruct x eqn:?
-            | H : match ?x with _ => _ end = Some _ |- _ => destruct x eqn:?
-            | H : Some _ = Some _ |- _ => inversion H; clear H; subst
-            | H : None = Some _ |- _ => discriminate
-            end); try discriminate; intro Hbad; discriminate Hbad.
-Qed.
-
-(* a logical/shift/comparison binop (anything but Oadd/Osub, which alone *)
-(* can do pointer arithmetic) never produces a pointer value. *)
-(* sem_or (the only int-binop appearing at a non-pointer call arg0 -- play_sound's
-   first argument) never produces a pointer: sem_binarith yields int/long only. *)
-Lemma sem_or_never_ptr :
-  forall cenv v1 v2 ty1 ty2 m v b o,
-    sem_binary_operation cenv Oor v1 v2 ty1 ty2 m = Some v -> v <> Vptr b o.
-Proof.
-  intros cenv v1 v2 ty1 ty2 m v b o Hs.
-  cbn in Hs. unfold sem_or, sem_binarith in Hs.
-  repeat (match goal with
-          | H : match ?x with _ => _ end = Some _ |- _ => destruct x eqn:?
-          | H : (if ?x then _ else _) = Some _ |- _ => destruct x eqn:?
-          | H : Some _ = Some _ |- _ => inversion H; clear H; subst
-          | H : None = Some _ |- _ => discriminate
-          end); try discriminate; intro Hbad; discriminate Hbad.
-Qed.
-
-(* sem_cast yields a pointer ONLY from the identical pointer (cast_case_pointer);
-   no other classify_cast case produces a Vptr. *)
-Lemma sem_cast_ptr_result_inv :
-  forall v ty1 ty2 m b o, sem_cast v ty1 ty2 m = Some (Vptr b o) -> v = Vptr b o.
-Proof.
-  intros v ty1 ty2 m b o Hc. unfold sem_cast in Hc.
-  destruct (classify_cast ty1 ty2) eqn:E; destruct v; cbn in Hc;
-    repeat (match goal with
-            | H : (if ?x then _ else _) = Some _ |- _ => destruct x eqn:?
-            | H : match ?x with _ => _ end = Some _ |- _ => destruct x eqn:?
-            | H : Some _ = Some _ |- _ => inversion H; clear H; subst
-            | H : None = Some _ |- _ => discriminate
-            end); try discriminate; try reflexivity.
-Qed.
-
-(* The 17 gMarioState-loaded temps passed as the Mario-pointer argument at
-   execute_mario_action's internal call sites (the rest of the 22 reached calls
-   pass an int / no arg). gms_arg_temps + Pgms is the bounded call-arg-temp
-   tracking that supplies marg_ok to the marg engine -- NO heap invariant. *)
-Definition gms_arg_temps : list ident :=
-  mario._t'27 :: mario._t'28 :: mario._t'29 :: mario._t'30 :: mario._t'31 ::
-  mario._t'32 :: mario._t'35 :: mario._t'36 :: mario._t'37 :: mario._t'38 ::
-  mario._t'39 :: mario._t'40 :: mario._t'41 :: mario._t'44 :: mario._t'45 ::
-  mario._t'46 :: mario._t'47 :: nil.
-
-Definition Pgms (bm : block) (le : temp_env) : Prop :=
-  forall t, In t gms_arg_temps ->
-    forall b o, le ! t = Some (Vptr b o) -> b = bm -> o = Ptrofs.zero.
-
-(* per-call census: arg0 is a tracked Mario temp, an int constant, an Oor, or the
-   call takes no args. All 22 reached call sites fit (vm_compute discharges it). *)
-Definition call_arg0_marg (al : list expr) : Prop :=
-  match al with
-  | nil => True
-  | Etempvar t (Tpointer _ _) :: _ => In t gms_arg_temps
-  | Econst_int _ _ :: _ => True
-  | Ebinop Oor _ _ _ :: _ => True
-  | _ => False
-  end.
-
-(* THE BRIDGE: under Pgms, a censused call's evaluated args are marg_ok. The only
-   way the head can be a bm-pointer is a tracked Mario temp -> (bm,0) via Pgms;
-   the int/Oor/empty shapes can't produce a bm-pointer at all. *)
-Lemma call_arg0_marg_sound :
-  forall bm e le m al tyargs vargs,
-    Pgms bm le -> call_arg0_marg al ->
-    eval_exprlist mario_ge e le m al tyargs vargs ->
-    marg_ok bm vargs.
-Proof.
-  intros bm e le m al tyargs vargs HP Hc Hel.
-  destruct al as [| a0 rest]; [ inv Hel; exact I | ].
-  inv Hel.
-  match goal with H : eval_expr _ _ _ _ a0 ?v |- _ => rename H into Hev; rename v into v0 end.
-  match goal with H : sem_cast _ _ _ _ = Some ?v |- _ => rename H into Hcast; rename v into v0' end.
-  unfold marg_ok. destruct v0' as [| | | | | b o]; auto. intro Hbm; subst b.
-  pose proof (sem_cast_ptr_result_inv _ _ _ _ _ _ Hcast) as Hsrc. subst v0.
-  destruct a0 as [ ci cty | cf cfty | csg csgty | clg clgty | vx vxty | et ety
-                 | dr drty | ad adty | uo ua uty | bop b1 b2 bty | cst cstty
-                 | ef efld efty | sz1 sz2 | ag1 ag2 ];
-    cbn in Hc; try contradiction.
-  - (* Econst_int : eval is Vint, contradicting v0 = Vptr *)
-    inv Hev; match goal with H : eval_lvalue _ _ _ _ _ _ _ _ |- _ => inv H end.
-  - (* Etempvar et ety : ety must be a pointer (else census False); le!et = Vptr bm o *)
-    destruct ety; try contradiction.
-    assert (Hget : le ! et = Some (Vptr bm o))
-      by (inv Hev; [ assumption
-                   | match goal with H : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv H end ]).
-    exact (HP et Hc bm o Hget eq_refl).
-  - (* Ebinop : op must be Oor (census); sem_or never yields a pointer *)
-    destruct bop; try contradiction.
-    inv Hev; [ exfalso; eapply sem_or_never_ptr; eauto
-             | match goal with H : eval_lvalue _ _ _ _ _ _ _ _ |- _ => inv H end ].
-Qed.
 
 (* ================================================================== *)
 (* PER-FUNCTION FIELD-STORE CENSUS + the provenance body lemma.         *)
