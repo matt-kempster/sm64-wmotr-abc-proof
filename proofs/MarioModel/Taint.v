@@ -533,3 +533,227 @@ Example the_one_a_unsafe_input_write :
   = ( [(mario._update_mario_button_inputs, 1%nat)]
     , [], [], [], [], [], [], [], [], [], [], [] ).
 Proof. reflexivity. Qed.
+
+(* ====================================================================== *)
+(* (5) THE A-GATES, LOCATED SYNTACTICALLY.                                 *)
+(*                                                                        *)
+(* clightgen compiles `if (m->input & INPUT_A_PRESSED) { ... }` into the   *)
+(* CANONICAL GATE SHAPE                                                    *)
+(*                                                                        *)
+(*   Ssequence (Sset t (m->input)) (Sifthenelse (t & 2) THEN ELSE)         *)
+(*                                                                        *)
+(* and `if (m->controller->buttonPressed & A_BUTTON)` into the two-load    *)
+(* variant with mask 0x8000. The census below walks each gate body         *)
+(* counting "dangerous" statements OUTSIDE a gate's THEN branch -- zero    *)
+(* means every dangerous site is A-gated. The SEMANTIC half (under the     *)
+(* A-clear memory invariant the gate provably takes ELSE) lives in         *)
+(* AGates.v; this census pins WHERE those lemmas apply.                    *)
+(* ====================================================================== *)
+
+Definition is_mario_state_ptr (mptr : ident) (e : expr) : bool :=
+  match e with
+  | Etempvar id (Tpointer (Tstruct sid _) _) =>
+      Pos.eqb id mptr && Pos.eqb sid mario._MarioState
+  | _ => false
+  end.
+
+Definition is_input_load (mptr : ident) (e : expr) : bool :=
+  match e with
+  | Efield (Ederef base (Tstruct sid _)) fld (Tint I16 Unsigned _) =>
+      is_mario_state_ptr mptr base && Pos.eqb sid mario._MarioState
+        && Pos.eqb fld mario._input
+  | _ => false
+  end.
+
+Definition is_a_guard (t : ident) (g : expr) : bool :=
+  match g with
+  | Ebinop Oand (Etempvar t' _) (Econst_int c _) _ =>
+      Pos.eqb t' t && Z.eqb (Int.unsigned c) 2
+  | _ => false
+  end.
+
+(* dangerous-statement detectors (leaves of the walk) *)
+Definition tainted_feed (s : statement) : bool :=
+  match s with
+  | Scall _ ef args =>
+      match is_setter_callee ef, args with
+      | Some _, _ :: Econst_int c _ :: _ => is_tainted c
+      | _, _ => false
+      end
+  | _ => false
+  end.
+
+Definition calls_target (target : ident) (s : statement) : bool :=
+  match s with
+  | Scall _ ef _ =>
+      match ef with Evar id _ => Pos.eqb id target | _ => false end
+  | _ => false
+  end.
+
+Definition indirect_call (s : statement) : bool :=
+  match s with
+  | Scall _ ef _ =>
+      match ef with Evar _ _ => false | _ => true end
+  | _ => false
+  end.
+
+(* count `danger` statements NOT under an input-A-gate's THEN branch. *)
+Fixpoint ungated (mptr : ident) (danger : statement -> bool) (s : statement) : nat :=
+  match s with
+  | Ssequence (Sset t e) (Sifthenelse g s1 s2) =>
+      if is_input_load mptr e && is_a_guard t g
+      then ungated mptr danger s2
+      else ((if danger (Sset t e) then 1 else 0)
+            + (ungated mptr danger s1 + ungated mptr danger s2))%nat
+  | Ssequence s1 s2     => (ungated mptr danger s1 + ungated mptr danger s2)%nat
+  | Sifthenelse _ s1 s2 => (ungated mptr danger s1 + ungated mptr danger s2)%nat
+  | Sloop s1 s2         => (ungated mptr danger s1 + ungated mptr danger s2)%nat
+  | Slabel _ s1         => ungated mptr danger s1
+  | Sswitch _ ls        => ungated_ls mptr danger ls
+  | _                   => if danger s then 1%nat else 0%nat
+  end
+with ungated_ls (mptr : ident) (danger : statement -> bool) (ls : labeled_statements) : nat :=
+  match ls with
+  | LSnil           => 0%nat
+  | LScons _ s rest => (ungated mptr danger s + ungated_ls mptr danger rest)%nat
+  end.
+
+(* per-TU rollup: functions with at least one UNGATED tainted feed. *)
+Definition ungated_tainted_feeders (mptr : ident) (p : program) : list ident :=
+  map fst (filter
+             (fun idf =>
+                match ungated mptr tainted_feed (fn_body (snd idf)) with
+                | O => false | _ => true end)
+             (internal_funcs (prog_defs p))).
+
+(* --- THE HEADLINE: act_in_cannon's ACT_SHOT_FROM_CANNON feed is A-GATED --
+   the automatic TU has NO ungated tainted feed. The remaining ungated
+   feeders are exactly the functions whose gate lives ELSEWHERE:
+   set_jump_from_landing / set_triple_jump_action (gated at their callers,
+   below), act_shot_from_cannon / act_flying_triple_jump (dispatched only
+   when the action is ALREADY in T -- the invariant kills them), and
+   set_mario_initial_action (outside the frame; no_spawn_flying_run). --- *)
+Example ungated_tainted_feeders_per_tu :
+  ( ungated_tainted_feeders mario._m mario.prog
+  , ungated_tainted_feeders mario._m mario_actions_moving.prog
+  , ungated_tainted_feeders mario._m mario_actions_airborne.prog
+  , ungated_tainted_feeders mario._m mario_actions_automatic.prog
+  , ungated_tainted_feeders mario._m level_update.prog
+  , ungated_tainted_feeders mario._m mario_actions_stationary.prog
+  , ungated_tainted_feeders mario._m mario_actions_submerged.prog
+  , ungated_tainted_feeders mario._m mario_actions_cutscene.prog
+  , ungated_tainted_feeders mario._m mario_actions_object.prog
+  , ungated_tainted_feeders mario._m mario_step.prog
+  , ungated_tainted_feeders mario._m interaction.prog
+  , ungated_tainted_feeders mario._m behavior_actions.prog )
+  = ( [mario._set_jump_from_landing]
+    , [mario_actions_moving._set_triple_jump_action]
+    , [mario_actions_airborne._act_shot_from_cannon;
+       mario_actions_airborne._act_flying_triple_jump]
+    , []                                   (* <- the cannon fire is GATED *)
+    , [level_update._set_mario_initial_action]
+    , [], [], [], [], [], [], [] ).
+Proof. reflexivity. Qed.
+
+(* --- the three direct call sites of set_jump_from_landing are ALL gated --- *)
+Example sjfl_call_sites_gated :
+  ( ungated mario._m (calls_target mario._set_jump_from_landing)
+      (fn_body mario_actions_stationary.f_check_common_landing_cancels)
+  , ungated mario._m (calls_target mario._set_jump_from_landing)
+      (fn_body mario_actions_moving.f_act_walking)
+  , ungated mario._m (calls_target mario._set_jump_from_landing)
+      (fn_body mario_actions_moving.f_act_decelerating) )
+  = (0%nat, 0%nat, 0%nat).
+Proof. reflexivity. Qed.
+
+(* --- the ONE indirect call in common_landing_cancels (the funptr sink of
+   set_triple_jump_action) is gated -- and it IS detected when not exempted
+   (positive control below). --- *)
+Example clc_indirect_call_gated :
+  ungated mario._m indirect_call
+    (fn_body mario_actions_moving.f_common_landing_cancels) = 0%nat.
+Proof. reflexivity. Qed.
+
+(* --- POSITIVE CONTROLS: the walker detects real danger; the gate exemption
+   does real work. act_shot_from_cannon's flying feed is NOT input-gated
+   (it is physics-gated -- which is WHY T must contain the cannon), and
+   act_in_cannon's feed counts as ungated under a WRONG mario-pointer ident
+   (the gate pattern genuinely matched on _m). --- *)
+Example walker_positive_controls :
+  ( ungated mario._m tainted_feed
+      (fn_body mario_actions_airborne.f_act_shot_from_cannon)
+  , ungated mario._gMarioState tainted_feed
+      (fn_body mario_actions_automatic.f_act_in_cannon)
+  , ungated mario._m tainted_feed
+      (fn_body mario_actions_automatic.f_act_in_cannon) )
+  = (1%nat, 1%nat, 0%nat).
+Proof. reflexivity. Qed.
+
+(* ====================================================================== *)
+(* (6) The CONTROLLER A-gate in update_mario_button_inputs: the single     *)
+(*     bit-1-setting input write sits under                                *)
+(*     `if (m->controller->buttonPressed & 0x8000)`.                       *)
+(* ====================================================================== *)
+
+Definition is_controller_load (mptr : ident) (e : expr) : bool :=
+  match e with
+  | Efield (Ederef base (Tstruct sid _)) fld (Tpointer (Tstruct cid _) _) =>
+      is_mario_state_ptr mptr base && Pos.eqb sid mario._MarioState
+        && Pos.eqb fld mario._controller && Pos.eqb cid mario._Controller
+  | _ => false
+  end.
+
+Definition is_buttonPressed_load (t1 : ident) (e : expr) : bool :=
+  match e with
+  | Efield (Ederef (Etempvar id (Tpointer (Tstruct cid _) _)) (Tstruct cid' _))
+           fld (Tint I16 Unsigned _) =>
+      Pos.eqb id t1 && Pos.eqb cid mario._Controller
+        && Pos.eqb cid' mario._Controller && Pos.eqb fld mario._buttonPressed
+  | _ => false
+  end.
+
+Definition is_a_button_guard (t : ident) (g : expr) : bool :=
+  match g with
+  | Ebinop Oand (Etempvar t' _) (Econst_int c _) _ =>
+      Pos.eqb t' t && Z.eqb (Int.unsigned c) 32768
+  | _ => false
+  end.
+
+Definition a_unsafe_input_write (s : statement) : bool :=
+  match s with
+  | Sassign lhs rhs =>
+      lhs_is_mario_action mario._MarioState mario._input lhs && negb (rhs_a_clear rhs)
+  | _ => false
+  end.
+
+Fixpoint ungated_ctl (mptr : ident) (danger : statement -> bool) (s : statement) : nat :=
+  match s with
+  | Ssequence (Sset t1 e1) (Ssequence (Sset t2 e2) (Sifthenelse g s1 s2)) =>
+      if is_controller_load mptr e1 && is_buttonPressed_load t1 e2
+         && is_a_button_guard t2 g
+      then ungated_ctl mptr danger s2
+      else ((if danger (Sset t1 e1) then 1 else 0)
+            + ((if danger (Sset t2 e2) then 1 else 0)
+               + (ungated_ctl mptr danger s1 + ungated_ctl mptr danger s2)))%nat
+  | Ssequence s1 s2     => (ungated_ctl mptr danger s1 + ungated_ctl mptr danger s2)%nat
+  | Sifthenelse _ s1 s2 => (ungated_ctl mptr danger s1 + ungated_ctl mptr danger s2)%nat
+  | Sloop s1 s2         => (ungated_ctl mptr danger s1 + ungated_ctl mptr danger s2)%nat
+  | Slabel _ s1         => ungated_ctl mptr danger s1
+  | Sswitch _ ls        => ungated_ctl_ls mptr danger ls
+  | _                   => if danger s then 1%nat else 0%nat
+  end
+with ungated_ctl_ls (mptr : ident) (danger : statement -> bool) (ls : labeled_statements) : nat :=
+  match ls with
+  | LSnil           => 0%nat
+  | LScons _ s rest => (ungated_ctl mptr danger s + ungated_ctl_ls mptr danger rest)%nat
+  end.
+
+(* THE INPUT-DATAFLOW GATE: the one A-setting write is controller-gated; a
+   wrong mario-pointer ident breaks the match (positive control). *)
+Example umbi_a_write_controller_gated :
+  ( ungated_ctl mario._m a_unsafe_input_write
+      (fn_body mario.f_update_mario_button_inputs)
+  , ungated_ctl mario._gMarioState a_unsafe_input_write
+      (fn_body mario.f_update_mario_button_inputs) )
+  = (0%nat, 1%nat).
+Proof. reflexivity. Qed.
