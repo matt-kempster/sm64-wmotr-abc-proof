@@ -134,6 +134,130 @@ Definition reached_funcs : list Clight.fundef :=
 Definition reached_fd (fd : Clight.fundef) : Prop :=
   In fd reached_funcs \/ (exists ef tl ty cc, fd = External ef tl ty cc).
 
+(* ===================================================================== *)
+(* THE ACTION-FIELD STORE CENSUS (decidable, machine-checked over the     *)
+(* REAL clightgen'd bodies). `no_action_store s` is true iff NO Sassign    *)
+(* anywhere in s NAMES *MarioState's* `action` field as its store target,  *)
+(* i.e. the body never contains a store of the syntactic shape             *)
+(*   Sassign (Efield base _action _) _   with  typeof base = struct        *)
+(*   MarioState.                                                           *)
+(* The struct-type guard is ESSENTIAL: clightgen interns identifiers by    *)
+(* name, so the `_action` ident is SHARED by every struct with an "action" *)
+(* field -- MarioState.action (offset 12 of bm, the real action cell) but  *)
+(* ALSO MarioBodyState.action and PlayerCameraState.action, which live in  *)
+(* DIFFERENT structs / blocks (e.g. update_mario_info_for_cam writes those *)
+(* two, not Mario's). Gating on `typeof base = Tstruct _MarioState` makes   *)
+(* the census specific to the genuine action cell.                         *)
+(* This is the syntactic backbone of the body leaf's C-conjunct: the part  *)
+(* of "this function does not write a flying action value" that is         *)
+(* decidable purely from the AST, with NO genv / provenance reasoning. The *)
+(* residual safety of the non-action stores (Efield to OTHER MarioState    *)
+(* fields -- offset <> 12; `*p = v` chase stores; global `Evar g` stores)  *)
+(* -- namely that they miss the (bm,12) action CELL -- is a field-offset / *)
+(* provenance fact handled by TI in reach_assign_marg, NOT here. clightgen *)
+(* emits every `((MarioState* )m)->action = v` write as exactly the shape   *)
+(* above, so this census's `= true` certifies the function names Mario's   *)
+(* action field as a store target NOWHERE in its body.                     *)
+(* ===================================================================== *)
+Definition type_is_mariostate (ty : type) : bool :=
+  match ty with
+  | Tstruct id _ => Pos.eqb id mario._MarioState
+  | _            => false
+  end.
+
+Definition lval_names_action (a : expr) : bool :=
+  match a with
+  | Efield base f _ => Pos.eqb f mario._action && type_is_mariostate (typeof base)
+  | _               => false
+  end.
+
+Fixpoint no_action_store (s : statement) : bool :=
+  match s with
+  | Sassign lv _        => negb (lval_names_action lv)
+  | Ssequence s1 s2     => no_action_store s1 && no_action_store s2
+  | Sifthenelse _ s1 s2 => no_action_store s1 && no_action_store s2
+  | Sloop s1 s2         => no_action_store s1 && no_action_store s2
+  | Slabel _ s1         => no_action_store s1
+  | Sswitch _ ls        => no_action_store_ls ls
+  | _                   => true
+  end
+with no_action_store_ls (ls : labeled_statements) : bool :=
+  match ls with
+  | LSnil           => true
+  | LScons _ s rest => no_action_store s && no_action_store_ls rest
+  end.
+
+(* MACHINE-CHECKED CENSUS: every one of the 17 reached internals' REAL bodies
+   names the action field as a store target NOWHERE. Discharged by one
+   computation over the clightgen'd ASTs. This is the concrete content of
+   "none of the reachable non-set_mario_action internals writes Mario's action
+   field" -- the literal claim, certified for the internal reached set. *)
+Lemma reached_funcs_no_action_store :
+  forallb (fun fd => match fd with
+                     | Ctypes.Internal f => no_action_store (fn_body f)
+                     | Ctypes.External _ _ _ _ => true
+                     end)
+          reached_funcs = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* Lifted to the reached-fd gate: a reached INTERNAL function's body passes the
+   census. (Externals are governed by the external residual, not this census.) *)
+Lemma reached_fd_no_action_store :
+  forall f, reached_fd (Ctypes.Internal f) -> no_action_store (fn_body f) = true.
+Proof.
+  intros f [Hin | (ef & tl & ty & cc & Hext)]; [| discriminate Hext].
+  pose proof reached_funcs_no_action_store as H.
+  rewrite forallb_forall in H.
+  exact (H _ Hin).
+Qed.
+
+(* The census distributes over CompCert's switch selection (select_switch /
+   seq_of_labeled_statement) -- the bool analogues of RealFrameValue.reach_ssd /
+   reach_ssc / reach_seq_of / reach_select_switch. Needed to discharge the
+   engine's switch census leaf (reach_C_sw) for the concrete census C below. *)
+Lemma no_action_store_ssd : forall sl,
+  no_action_store_ls sl = true ->
+  no_action_store_ls (select_switch_default sl) = true.
+Proof.
+  induction sl as [| o s rest IH]; simpl; intros H; auto.
+  apply andb_true_iff in H. destruct H as [Hs Hr].
+  destruct o as [c|]; simpl.
+  - apply IH; exact Hr.
+  - rewrite Hs, Hr; reflexivity.
+Qed.
+
+Lemma no_action_store_ssc : forall n sl res,
+  no_action_store_ls sl = true ->
+  select_switch_case n sl = Some res -> no_action_store_ls res = true.
+Proof.
+  induction sl as [| o s rest IH]; simpl; intros res Hav Hsel; try discriminate.
+  apply andb_true_iff in Hav. destruct Hav as [Hs Hr].
+  destruct o as [c|]; simpl in Hsel.
+  - destruct (zeq c n).
+    + inv Hsel. simpl. rewrite Hs, Hr; reflexivity.
+    + exact (IH res Hr Hsel).
+  - exact (IH res Hr Hsel).
+Qed.
+
+Lemma no_action_store_seq_of : forall ls,
+  no_action_store_ls ls = true ->
+  no_action_store (seq_of_labeled_statement ls) = true.
+Proof.
+  induction ls as [| o s rest IH]; simpl; intros H; auto.
+  apply andb_true_iff in H. destruct H as [Hs Hr].
+  simpl. rewrite Hs, (IH Hr); reflexivity.
+Qed.
+
+Lemma no_action_store_select : forall n sl,
+  no_action_store_ls sl = true ->
+  no_action_store_ls (select_switch n sl) = true.
+Proof.
+  intros n sl H. unfold select_switch.
+  destruct (select_switch_case n sl) eqn:E.
+  - exact (no_action_store_ssc n sl l H E).
+  - apply no_action_store_ssd; exact H.
+Qed.
+
 Section NoAImpliesNoFly.
   (* Mario's struct block is fixed; the action field loads at (bm, 12) as Mint32 --
      exactly the value engine's watched cell. *)
@@ -236,25 +360,52 @@ Section NoAImpliesNoFly.
      (mario.c, 62 internal funcs). The 571 action handlers / interaction table are
      EXTERNAL here, governed by (3), NOT by (1).
 
-     TI/C: the (abstract) entry-temp invariant and per-body census of the REACHED
+     TI/C: the entry-temp invariant and per-body census of the REACHED
      functions. The marg leaf residuals (1a)-(1d) replace the FALSE phantom
      reach_value_body_nonwriter -- each speaks about the actual entry temp env /
-     actual call args under a marg_ok guard, never an adversarial `forall le`. *)
+     actual call args under a marg_ok guard, never an adversarial `forall le`.
+
+     TI stays ABSTRACT (the provenance residual, reach_value_body_TI below). C is
+     now CONCRETE: the decidable MarioState-action store census `no_action_store`,
+     machine-checked = true on all 17 reached bodies (reached_fd_no_action_store).
+     So the body leaf's C-conjunct -- "this reached non-writer never NAMES Mario's
+     action field as a store target" -- is DISCHARGED, not assumed; only the
+     TI-conjunct (the temp-provenance invariant) remains a residual. *)
   Variable TI : temp_env -> Prop.
-  Variable C  : statement -> Prop.
-  (* (1a) REACHED + marg-gated body leaf: an ACTUALLY-REACHED non-writer entered
-          with marg_ok args has entry-temp-invariant TI and its body passes census
-          C. The `reached_fd (Internal f)` premise is what kills the forall-f
-          phantom -- this is no longer a claim about every conceivable function,
-          only the finite reached set, dischargeable by enumeration. EXECUTION-
-          RELATIVE (the entry le is the one the marg call args produced). *)
-  Hypothesis reach_value_body_marg :
+  Let C : statement -> Prop := fun s => no_action_store s = true.
+  (* (1a-TI) REACHED + marg-gated body leaf, TI HALF (the residual that remains).
+          An ACTUALLY-REACHED non-writer entered with marg_ok args has entry-temp-
+          invariant TI. The `reached_fd (Internal f)` premise kills the forall-f
+          phantom -- only the finite reached set, dischargeable by enumeration.
+          EXECUTION-RELATIVE (the entry le is the one the marg call args produced).
+          This is the pointer-PROVENANCE half; the action-write-freedom half (the
+          C-conjunct) is now PROVED below from the census, not assumed. *)
+  Hypothesis reach_value_body_TI :
+    forall f vargs m e le m1,
+      reached_fd (Ctypes.Internal f) ->
+      function_entry2 mario_ge f vargs m e le m1 ->
+      ~ writer_set_mario_action (Ctypes.Internal f) ->
+      marg_ok bm vargs ->
+      TI le.
+  (* (1a) the FULL body leaf the value engine consumes: TI le /\ C (fn_body f).
+          The C-conjunct -- "f's body NAMES MarioState's action field as a store
+          target NOWHERE" -- is DISCHARGED by the machine-checked census
+          reached_fd_no_action_store (vm_compute over all 17 reached bodies); only
+          the TI-conjunct is assumed (reach_value_body_TI). So this leaf rests on
+          strictly LESS than the old monolithic reach_value_body_marg. *)
+  Lemma reach_value_body_marg :
     forall f vargs m e le m1,
       reached_fd (Ctypes.Internal f) ->
       function_entry2 mario_ge f vargs m e le m1 ->
       ~ writer_set_mario_action (Ctypes.Internal f) ->
       marg_ok bm vargs ->
       TI le /\ C (fn_body f).
+  Proof.
+    intros f vargs m e le m1 Hrf Hentry Hnw Hmarg.
+    split.
+    - exact (reach_value_body_TI f vargs m e le m1 Hrf Hentry Hnw Hmarg).
+    - unfold C. exact (reached_fd_no_action_store f Hrf).
+  Qed.
   (* (1a') a direct Sassign under TI+C preserves validity + non-flying (it stores
           off the action cell OR a non-flying value). *)
   Hypothesis reach_assign_marg :
@@ -282,12 +433,21 @@ Section NoAImpliesNoFly.
   Hypothesis reach_TI_optb :
     forall optid ef tyargs al v le,
       C (Sbuiltin optid ef tyargs al) -> TI le -> TI (set_opttemp optid v le).
-  (* (1a'''') the census C distributes over the compound statement forms. *)
-  Hypothesis reach_C_seq  : forall s1 s2, C (Ssequence s1 s2) -> C s1 /\ C s2.
-  Hypothesis reach_C_if   : forall a s1 s2, C (Sifthenelse a s1 s2) -> C s1 /\ C s2.
-  Hypothesis reach_C_loop : forall s1 s2, C (Sloop s1 s2) -> C s1 /\ C s2.
-  Hypothesis reach_C_sw   :
+  (* (1a'''') the census C distributes over the compound statement forms -- now
+          PROVED from the `no_action_store` Fixpoint (&& / switch-selection), not
+          assumed. *)
+  Lemma reach_C_seq  : forall s1 s2, C (Ssequence s1 s2) -> C s1 /\ C s2.
+  Proof. unfold C; intros s1 s2 H; simpl in H; apply andb_true_iff in H; exact H. Qed.
+  Lemma reach_C_if   : forall a s1 s2, C (Sifthenelse a s1 s2) -> C s1 /\ C s2.
+  Proof. unfold C; intros a s1 s2 H; simpl in H; apply andb_true_iff in H; exact H. Qed.
+  Lemma reach_C_loop : forall s1 s2, C (Sloop s1 s2) -> C s1 /\ C s2.
+  Proof. unfold C; intros s1 s2 H; simpl in H; apply andb_true_iff in H; exact H. Qed.
+  Lemma reach_C_sw   :
     forall a ls n, C (Sswitch a ls) -> C (seq_of_labeled_statement (select_switch n ls)).
+  Proof.
+    unfold C; intros a ls n H; simpl in H.
+    apply no_action_store_seq_of, no_action_store_select; exact H.
+  Qed.
   (* (1a''''') THE CALL-TARGET-REACHED BRIDGE (value engine). Under TI+C, a reached
           call resolves to a Reached callee -- the semantic image of the decidable
           callgraph closure (CallgraphReach.reaches; the static-graph half is
