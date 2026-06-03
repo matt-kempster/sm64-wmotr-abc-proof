@@ -531,8 +531,43 @@ Section NoAImpliesNoFly.
     - unfold C. exact (reached_fd_no_action_store f Hrf).
   Qed.
   (* (1a') a direct Sassign under TI+C preserves validity + non-flying (it stores
-          off the action cell OR a non-flying value). *)
-  Hypothesis reach_assign_marg :
+          off the action cell OR a non-flying value).
+
+     This was the single load-bearing store-safety leaf. It is now REFINED: the
+     CompCert-metatheory glue (validity + the load-after-disjoint-store reasoning
+     behind action_sat) is PROVED below from ActionValueFrame's bricks
+     (assign_loc_valid_block, assign_loc_action_sat_avoid). What remains assumed
+     are the two GENUINE residuals, each sharper and separately dischargeable:
+
+       (1a'-alias)  THE ALIASING CORE -- a censused body store's byte range never
+       overlaps Mario's action cell (bm,12). This is bm-relative pointer
+       provenance: a MarioState field store goes through _m (TI) at a CONCRETE
+       non-action field offset (vm_compute over mario_ce, INDEPENDENT of the
+       abstract bm); a chase store lands off bm (MWF: gMarioState's chase fields
+       point off bm); a global/local store lands off bm because bm is a RUNTIME
+       block distinct from mario_ge's globals. (Why bm must stay abstract: in the
+       generated AST v_gMarioState has gvar_init = nil and type `tptr MarioState`
+       -- gMarioState is an UNINITIALIZED pointer, so Mario's MarioState object is
+       NOT a static global of mario.prog. bm is genuinely a cross-TU runtime block;
+       it CANNOT be a Genv.find_symbol of mario_ge, and the faithful model is
+       abstract bm characterized by distinctness, not a concrete block.)
+
+       (1a'-mwf)  MWF PRESERVATION -- a censused body store keeps Mario-memory
+       well-formed (its chase-invariant cells are themselves off the written
+       range). Separated out because MWF is the abstract chase invariant, threaded
+       by the engine; its preservation is the MarioMemWF block-distinctness brick. *)
+  Hypothesis assign_avoids_action_cell :
+    forall e le m a1 a2 loc ofs bf,
+      eval_lvalue mario_ge e le m a1 loc ofs bf ->
+      TI le -> C (Sassign a1 a2) -> MWF m -> Mem.valid_block m bm ->
+      forall i, Ptrofs.unsigned ofs <= i < Ptrofs.unsigned ofs + sizeof mario_ge (typeof a1) ->
+                ~ action_cell bm loc i.
+  Hypothesis MWF_preserved_assign :
+    forall e le m a1 a2 loc ofs bf v m',
+      eval_lvalue mario_ge e le m a1 loc ofs bf ->
+      assign_loc mario_ge (typeof a1) m loc ofs bf v m' ->
+      TI le -> C (Sassign a1 a2) -> MWF m -> Mem.valid_block m bm -> MWF m'.
+  Lemma reach_assign_marg :
     forall e le m a1 a2 loc ofs bf v2 v m',
       eval_lvalue mario_ge e le m a1 loc ofs bf ->
       eval_expr mario_ge e le m a2 v2 ->
@@ -541,6 +576,14 @@ Section NoAImpliesNoFly.
       TI le -> C (Sassign a1 a2) -> MWF m ->
       Mem.valid_block m bm -> action_sat nonflying m bm ->
       Mem.valid_block m' bm /\ action_sat nonflying m' bm /\ MWF m'.
+  Proof.
+    intros e le m a1 a2 loc ofs bf v2 v m'
+           Hlval Hexpr Hcast Hassign Hti Hc Hmwf Hvalid Hsat.
+    split; [| split].
+    - eapply assign_loc_valid_block; eauto.
+    - eapply assign_loc_action_sat_avoid; eauto.
+    - eapply MWF_preserved_assign; eauto.
+  Qed.
   (* (1a'') under TI, a reached call's evaluated args are marg_ok (the Mario arg
            temp is (bm,0)-or-off-bm) -- the call-site bridge that THREADS marg. *)
   Hypothesis reach_call_marg :
