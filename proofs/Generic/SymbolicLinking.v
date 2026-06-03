@@ -307,3 +307,89 @@ Section AllDispatchers.
   Proof. eapply linkorder_resolves_internal; [ exact LO_obj | vm_compute; reflexivity ]. Qed.
 
 End AllDispatchers.
+
+(* ====================================================================== *)
+(* RE-ROOTING INTERFACE, PART 2: COMPOSITE-ENV PRESERVATION.               *)
+(*                                                                        *)
+(* Part 1 (above) is FUNCALL resolution: a dispatcher Scall over          *)
+(* globalenv lp hits the real Internal body (linkorder_resolves_funct).    *)
+(* Part 2 is the OTHER thing the frame engine consumes from its genv: the  *)
+(* COMPOSITE ENVIRONMENT, used to compute field offsets (RealFrameValue's   *)
+(* cenv_eq rewrites genv_cenv mario_ge -> mario_ce, where field_offset is   *)
+(* a cheap lookup giving action@12, marioObj@..). Over globalenv lp the     *)
+(* composite env is the MERGED prog_comp_env lp -- NOT mario_ce -- so       *)
+(* cenv_eq's *equality* is FALSE at lp. What IS true, and is all the engine *)
+(* actually needs, is that the field OFFSETS agree: linking never moves     *)
+(* Mario's fields. That is exactly CompCert's field_offset_stable applied   *)
+(* to the composite-preservation conjunct that linkorder_program carries.   *)
+(* This is the soundness crux of re-rooting: if linking could relocate the  *)
+(* action cell, the whole no-fly argument would be about the wrong byte.    *)
+(* lp stays ABSTRACT; the only computation is over mario.prog's OWN cenv.   *)
+(* ====================================================================== *)
+
+(* The composite-preservation half of linkorder_program (Clight programs):
+   every composite a TU q defines is present, VERBATIM, in any lp >= q. This
+   is the second conjunct of linkorder_program -- exposed by unfolding the
+   (opaque) Clight Linker instance, exactly as the resolution primitive does
+   for the AST half. *)
+Lemma linkorder_comp_env_extends :
+  forall (lp q : Clight.program) id co,
+    linkorder q lp ->
+    (prog_comp_env q) ! id = Some co ->
+    (prog_comp_env lp) ! id = Some co.
+Proof.
+  intros lp q id co LOq Hco.
+  Local Transparent Linker_program.
+  unfold linkorder, Linker_program, linkorder_program in LOq.
+  destruct LOq as [_ Hext]. apply Hext. exact Hco.
+Qed.
+
+(* THE FIELD-OFFSET AGREEMENT (generic, reusable for every linked TU): for any
+   members list complete in q's own composite env, the offset computed in the
+   merged genv lp EQUALS the one computed in q's cenv. Pure CompCert metatheory
+   (field_offset_stable) fed by composite preservation -- lp opaque. This is the
+   lemma that lets a re-rooted engine keep using mario_ce's cheap concrete
+   offsets even though its genv is now globalenv lp. *)
+Lemma linkorder_field_offset_agree :
+  forall (lp q : Clight.program) f ms,
+    linkorder q lp ->
+    complete_members (prog_comp_env q) ms = true ->
+    field_offset (prog_comp_env lp) f ms = field_offset (prog_comp_env q) f ms.
+Proof.
+  intros lp q f ms LOq Hcomp.
+  eapply field_offset_stable; [ | exact Hcomp ].
+  intros id co Hco. eapply linkorder_comp_env_extends; eauto.
+Qed.
+
+(* --- The concrete headline, instantiated at Mario's action field. --- *)
+
+(* Mario's MarioState members, straight from mario.c's OWN composite env. *)
+Definition mario_state_members : members :=
+  match (prog_comp_env mario.prog) ! mario._MarioState with
+  | Some co => co_members co
+  | None => nil
+  end.
+
+Lemma mario_state_members_complete :
+  complete_members (prog_comp_env mario.prog) mario_state_members = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma mario_action_offset_concrete :
+  field_offset (prog_comp_env mario.prog) mario._action mario_state_members
+    = Errors.OK (12, Full).
+Proof. vm_compute. reflexivity. Qed.
+
+(* HEADLINE: linking the action TUs does NOT move Mario's action field. Over
+   ANY linked program lp >= mario.prog, the action cell stays at byte offset 12 --
+   the very cell mem_flying / the no-fly theorem reads. Re-rooting the engine at
+   globalenv lp is therefore offset-faithful: it still reasons about offset 12. *)
+Lemma linking_preserves_action_offset :
+  forall lp, linkorder mario.prog lp ->
+    field_offset (prog_comp_env lp) mario._action mario_state_members
+      = Errors.OK (12, Full).
+Proof.
+  intros lp Hlo.
+  rewrite (linkorder_field_offset_agree lp mario.prog mario._action
+             mario_state_members Hlo mario_state_members_complete).
+  exact mario_action_offset_concrete.
+Qed.
