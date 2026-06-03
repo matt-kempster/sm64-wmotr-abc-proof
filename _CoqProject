@@ -45,6 +45,9 @@ proofs/Shadow/ShadowSpec.v
 # --- GOAL 1 capstone: no-A => no-fly ---
 proofs/NoAImpliesNoFly/NoAImpliesNoFly.v
 
+# --- GOAL 1 / reachability-rooted discharge scaffolding (Unwired feasibility) ---
+proofs/NoAImpliesNoFly/Unwired/ReachScratch.v
+
 # --- GOAL 1 / StoreFrameDischarge sub-goal (capstone PointerChaseDischarge) ---
 proofs/NoAImpliesNoFly/Unwired/StoreFrameDischarge/BodyFrameDecider.v
 proofs/NoAImpliesNoFly/Unwired/StoreFrameDischarge/FuncallFrame.v
