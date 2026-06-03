@@ -37,8 +37,8 @@ proofs/MarioModel/ActionValue.v
 proofs/MarioModel/ActionValueFrame.v
 proofs/MarioModel/RealFrameValue.v
 
-# --- GOAL 1 / re-rooting the frame over the linked program (work in progress) ---
-proofs/MarioModel/Unwired/RealFrameLinked.v
+# --- GOAL 1 / the frame re-rooted over the linked program lp (SPINE) ---
+proofs/MarioModel/RealFrameLinked.v
 
 # --- top-level demos ---
 proofs/Toy/ToyFrame.v
@@ -46,8 +46,11 @@ proofs/Toy/ToyReach.v
 proofs/Shadow/ShadowFrame.v
 proofs/Shadow/ShadowSpec.v
 
-# --- GOAL 1 capstone: no-A => no-fly ---
-proofs/NoAImpliesNoFly/NoAImpliesNoFly.v
+# --- GOAL 1 capstone: no-A => no-fly (NON-VACUOUS, over the linked program lp) ---
+proofs/NoAImpliesNoFly/NoAImpliesNoFlyLinked.v
+
+# --- GOAL 1 / the superseded VACUOUS mario_ge capstone (kept for history) ---
+proofs/NoAImpliesNoFly/Unwired/NoAImpliesNoFlyVacuous.v
 
 # --- GOAL 1 / reachability-rooted discharge scaffolding (Unwired feasibility) ---
 proofs/NoAImpliesNoFly/Unwired/ReachScratch.v

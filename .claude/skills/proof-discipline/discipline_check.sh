@@ -30,12 +30,17 @@ source pipeline/env.sh >/dev/null 2>&1 || true
 
 # default capstone(s): "Module.Logical.Path theorem"
 if [ "$#" -eq 0 ]; then
-  set -- SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFly noA_no_spawn_never_flying
+  set -- SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFlyLinked noA_no_spawn_never_flying_lp
 fi
 
 # The standard, sound axioms a CompCert proof of the REAL program legitimately
 # rests on. TWO groups:
-#   (a) classical logic + functional extensionality (Coq stdlib);
+#   (a) classical logic + functional extensionality + proof irrelevance (Coq
+#       stdlib / CompCert lib/Axioms.v). proof_irr surfaces the moment the
+#       capstone touches Ctypes composite-env / linkorder metatheory (composite
+#       records carry proof-irrelevant well-formedness proofs; field_offset_stable
+#       and linkorder reasoning use it). It is a standard sound CompCert axiom,
+#       used pervasively in CompCert's own memory model -- NOT a project Axiom.
 #   (b) CompCert's abstract external-call model (common/Events.v Parameters/Axioms):
 #       external_functions_sem/properties, inline_assembly_sem/properties. These
 #       appear the moment the capstone references the REAL eval_funcall (the
@@ -44,6 +49,7 @@ fi
 #       on them. They are NOT project Axioms and NOT Admitted lemmas.
 ALLOWED='Classical_Prop.classic
 FunctionalExtensionality.functional_extensionality_dep
+Axioms.proof_irr
 ClassicalDedekindReals.sig_not_dec
 ClassicalDedekindReals.sig_forall_dec
 Events.external_functions_sem
