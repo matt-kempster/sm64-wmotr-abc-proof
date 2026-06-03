@@ -42,6 +42,10 @@ proofs/MarioModel/RealFrameValue.v
 # --- GOAL 1 / the frame re-rooted over the linked program lp (SPINE) ---
 proofs/MarioModel/RealFrameLinked.v
 
+# --- GOAL 1 / the semantic A-gates over lp (kept; consumed by the Phase-B
+#     Hreach_val discharge) ---
+proofs/MarioModel/AGates.v
+
 # --- top-level demos ---
 proofs/Toy/ToyFrame.v
 proofs/Toy/ToyReach.v
