@@ -549,6 +549,75 @@ Proof.
 Qed.
 
 (* ================================================================== *)
+(* GENERIC MARIO-FIELD GEOMETRY (the provenance workhorse).            *)
+(*                                                                     *)
+(* store1_loc_is_t49 / store2_loc_is_t13 pin the LOCATION of the two   *)
+(* hardwired body stores to their base temp's block. To discharge the   *)
+(* per-function leaf for the OTHER ~61 mario.c functions we need the     *)
+(* SAME-BLOCK, OFFSET-pinned fact: an `m->field` lvalue, with the Mario  *)
+(* pointer temp `mid` pinned to (bm,0) by the execution, lands at        *)
+(* EXACTLY (bm, repr delta) where delta is the field's real offset in    *)
+(* the clightgen'd MarioState composite. No `forall le`: `mid` holds the *)
+(* value the real run put there. The offset is matched onto mario_ce via *)
+(* cenv_eq (cheap field_offset) -- genv_cenv mario_ge is NEVER forced.   *)
+(* ================================================================== *)
+
+(* Deref of the Mario pointer temp, pinned: `*mid : MarioState` with mid *)
+(* holding (bm,0) evaluates (By_copy, returns the address) to (bm,0).    *)
+Lemma eval_deref_mid_pinned :
+  forall e le m bm mid v,
+    le ! mid = Some (Vptr bm Ptrofs.zero) ->
+    eval_expr mario_ge e le m
+      (Ederef (Etempvar mid (tptr (Tstruct mario._MarioState noattr)))
+              (Tstruct mario._MarioState noattr)) v ->
+    v = Vptr bm Ptrofs.zero.
+Proof.
+  intros e le m bm mid v Hle H. inv H.
+  match goal with
+  | Hlv : eval_lvalue _ _ _ _ (Ederef _ _) ?loc ?o ?bf,
+    Hd  : deref_loc _ _ ?loc ?o ?bf v |- _ =>
+      inv Hlv;
+      match goal with
+      | Hb : eval_expr _ _ _ _ (Etempvar _ _) (Vptr ?l ?o1) |- _ =>
+          apply eval_expr_Etempvar_val in Hb; rewrite Hle in Hb; inv Hb
+      end;
+      inv Hd;
+      try (cbn in *; congruence);
+      try reflexivity;
+      match goal with Hlb : load_bitfield _ _ _ _ _ _ _ _ |- _ => inv Hlb end
+  end.
+Qed.
+
+Lemma marioField_geom :
+  forall e le m bm mid fld ty loc ofs bf delta,
+    le ! mid = Some (Vptr bm Ptrofs.zero) ->
+    field_offset mario_ce fld mario_members = OK (delta, Full) ->
+    eval_lvalue mario_ge e le m
+      (Efield (Ederef (Etempvar mid (tptr (Tstruct mario._MarioState noattr)))
+                      (Tstruct mario._MarioState noattr)) fld ty) loc ofs bf ->
+    loc = bm /\ ofs = Ptrofs.repr delta /\ bf = Full.
+Proof.
+  intros e le m bm mid fld ty loc ofs bf delta Hle Hfo Hlv.
+  inv Hlv.
+  2:{ (* union branch: typeof base is a struct, not a union *)
+      match goal with Htyp : typeof _ = Tunion _ _ |- _ => cbn in Htyp; discriminate Htyp end. }
+  (* struct branch *)
+  match goal with
+  | Hbase : eval_expr _ _ _ _ _ (Vptr ?l ?o0),
+    Htyp  : typeof _ = Tstruct ?id ?att,
+    Hco   : (genv_cenv mario_ge) ! ?id = Some ?co,
+    Hfo2  : field_offset _ fld (co_members ?co) = OK (?delta0, ?bf0) |- _ =>
+      cbn in Htyp; inv Htyp;
+      apply (eval_deref_mid_pinned e le m bm mid) in Hbase; [ | exact Hle ];
+      inv Hbase;
+      rewrite cenv_eq in Hco, Hfo2;
+      unfold mario_members in Hfo; rewrite Hco in Hfo;
+      rewrite Hfo in Hfo2; inv Hfo2
+  end.
+  rewrite Ptrofs.add_zero_l. repeat split; reflexivity.
+Qed.
+
+(* ================================================================== *)
 (* THE Sassign CASE of the augmented engine, at the EXECUTION level.    *)
 (* Executing either real store, from a state where its base temp is     *)
 (* off-bm, preserves (valid bm /\ action_sat nonflying). This is the     *)
@@ -595,6 +664,54 @@ Proof.
           intros i _; eapply store2_avoids_action_cell;
           [ exact Hle | exact Hne | exact Hlv ] ]
   end.
+Qed.
+
+(* ================================================================== *)
+(* GENERIC SAME-BLOCK STORE PRESERVATION (the offset-distinct twin of   *)
+(* store1/store2_exec_preserves).                                      *)
+(*                                                                     *)
+(* store1/store2_exec_preserves use BLOCK distinctness (the marioObj    *)
+(* pointer is off bm). The other ~61 mario.c functions write Mario's     *)
+(* OWN fields through `m` (= bm): block distinctness is unavailable, so   *)
+(* we use OFFSET distinctness -- a write to any field != action lands at  *)
+(* delta != 12 and leaves the action cell's load untouched. Pins the     *)
+(* location via marioField_geom, then reuses FieldNonInterference's        *)
+(* assign_loc_other_field_preserves_action_loadv (which packages the      *)
+(* field-offset disjointness from the real composite). No `forall le`:    *)
+(* `mid` holds (bm,0) because the execution loaded it from gMarioState.   *)
+(* The caller supplies the per-field facts (offset, type, access-mode,    *)
+(* != action, repr round-trip) by vm_compute over mario_ce.               *)
+(* ================================================================== *)
+Lemma marioField_store_preserves_action_sat :
+  forall bm e le m t le' m' out mid fld ty rval delta,
+    le ! mid = Some (Vptr bm Ptrofs.zero) ->
+    field_offset mario_ce fld mario_members = OK (delta, Full) ->
+    Ptrofs.unsigned (Ptrofs.repr delta) = delta ->
+    delta + sizeof mario_ge ty <= 12 \/ 16 <= delta ->
+    Mem.valid_block m bm -> action_sat nonflying m bm ->
+    exec_stmt function_entry2 mario_ge e le m
+      (Sassign (Efield (Ederef (Etempvar mid (tptr (Tstruct mario._MarioState noattr)))
+                               (Tstruct mario._MarioState noattr)) fld ty) rval)
+      t le' m' out ->
+    Mem.valid_block m' bm /\ action_sat nonflying m' bm.
+Proof.
+  intros bm e le m t le' m' out mid fld ty rval delta
+         Hle Hfo Hrepr Hdisj Hv Hsat Hexec.
+  inv Hexec.
+  match goal with H : eval_lvalue _ _ _ _ _ _ _ _ |- _ => rename H into Hlv end.
+  match goal with H : assign_loc _ _ _ _ _ _ _ _ |- _ => rename H into Hassign end.
+  destruct (marioField_geom _ _ _ bm mid fld ty _ _ _ delta Hle Hfo Hlv)
+    as (-> & -> & ->).
+  split.
+  - eapply assign_loc_valid_block; [ exact Hassign | exact Hv ].
+  - eapply assign_loc_action_sat_avoid; [ exact Hassign | exact Hv | | exact Hsat ].
+    (* avoid: a write of any field at delta, range [delta, delta + sizeof ty), *)
+    (* disjoint from the action cell [12,16). Pure offset arithmetic -- no      *)
+    (* genv forcing (sizeof of a scalar field is env-free).                     *)
+    intros i Hi Hac.
+    cbn [typeof] in Hi. rewrite Hrepr in Hi.
+    destruct Hac as [_ [Hlo Hhi]]. cbn in Hhi.
+    destruct Hdisj as [Hd|Hd]; lia.
 Qed.
 
 (* ================================================================== *)
