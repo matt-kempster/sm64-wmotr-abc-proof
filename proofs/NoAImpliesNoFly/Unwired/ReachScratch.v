@@ -80,3 +80,23 @@ Example emA_callees_are_reached_or_external :
                      end)
           (callees f_execute_mario_action) = true.
 Proof. reflexivity. Qed.
+
+(* ---- FEASIBILITY TEST: discharge reach_chk over the REAL body ---- *)
+From SM64.Proofs Require Import RealFrameValue.
+
+(* concrete reached-or-external gate: a call target is OK iff it is a reached
+   internal function OR an external symbol (externals handled by the ext leaf). *)
+Definition reached_or_ext (id : ident) : bool :=
+  existsb (Pos.eqb id) reached_ids
+  || (match func_of prog id with Some _ => false | None => true end).
+
+Definition RID (id : ident) : Prop := reached_or_ext id = true.
+
+(* the body's syntactic call-target census closes: every direct call in
+   execute_mario_action's body targets a reached-or-external id. *)
+Example body_reach_chk_concrete :
+  reach_chk RID (fn_body f_execute_mario_action).
+Proof.
+  cbn [reach_chk reach_chk_ls fn_body f_execute_mario_action Swhile]; unfold RID;
+    repeat split; reflexivity.
+Qed.
