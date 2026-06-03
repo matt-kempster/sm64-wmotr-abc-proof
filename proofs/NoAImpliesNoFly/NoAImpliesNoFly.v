@@ -350,6 +350,36 @@ Proof.
   contradiction.
 Qed.
 
+(* The marg-EXEMPT reached internal is UNIQUELY vec3f_find_ceil. marg_exempt is
+   true exactly when the first param is not a MarioState pointer; among the 17
+   reached internals only vec3f has a non-MarioState first param (a float ptr). By
+   vm_compute over the concrete list -- this PINS the param type (the existential
+   ty in reached_internal_param_shape is too weak to derive marg_exempt = false). *)
+Lemma reached_marg_exempt_is_vec3f :
+  forall f, In (Ctypes.Internal f) reached_funcs ->
+    marg_exempt (Ctypes.Internal f) = true -> f = mario.f_vec3f_find_ceil.
+Proof.
+  intros f Hin Hexm. unfold reached_funcs in Hin; simpl in Hin.
+  repeat (destruct Hin as [Hin | Hin];
+    [ injection Hin as Hin; subst f;
+      solve [ reflexivity | vm_compute in Hexm; discriminate Hexm ] | ]).
+  contradiction.
+Qed.
+
+(* A statement census tailored to vec3f_find_ceil's body: NO Sassign (vec3f writes
+   no memory directly), Ssets/returns/sequences free, and its sole Scall targets the
+   EXTERNAL find_ceil (a = Evar _find_ceil). Everything else is rejected. This is the
+   `chk` we feed body_check_generic to drive vec3f's body exec_stmt; the body
+   satisfies it by cbn (vec3f_chk_body), and it lets the Scall leaf identify the
+   callee as find_ceil and route through the external residuals. *)
+Fixpoint vec3f_chk (s : statement) : Prop :=
+  match s with
+  | Sskip | Sset _ _ | Sbreak | Scontinue | Sreturn _ => True
+  | Scall _ (Evar id _) _ => id = mario._find_ceil
+  | Ssequence s1 s2 => vec3f_chk s1 /\ vec3f_chk s2
+  | _ => False
+  end.
+
 (* A function returning void yields Vundef: eval_funcall's outcome_result_value
    forces v = Vundef when the return type is Tvoid (the Out_return (Some _) branch
    needs ty <> Tvoid, impossible here). So a void-returning callee's result is
@@ -544,22 +574,12 @@ Section NoAImpliesNoFly.
     - rewrite PTree.gso in Hget by assumption.
       apply create_undef_temps_Vundef in Hget. discriminate.
   Qed.
-  (* The focused leaf for the marg-EXEMPT reached internal callee(s) -- i.e.
-     vec3f_find_ceil, whose first param is a float pointer (not a MarioState ptr) and
-     which receives INTERIOR bm-pointers (_pos = _m->pos, _ceil = &_m->ceil). TI /
-     marg_ok cannot describe those, so vec3f is NOT routed through the marg->TI->body
-     path; instead this says its whole funcall preserves validity, action_sat and
-     MWF directly. TRUE: vec3f writes only the ceil output (at ceil_ofs <> 12) and
-     reads pos -- it never stores a flying value to (bm,12). DISCHARGE PATH (the
-     goal's hard core): a TYPED interior-pointer provenance for vec3f's body, reusing
-     assign_avoids_action_cell's (bm,field)<>(bm,12) struct-non-overlap. This
-     REPLACES the false reach_vec3f_ceil_offbm (which wrongly concluded TI le). *)
-  Hypothesis reach_vec3f_preserves :
-    forall f vargs m t m' vres,
-      reached_fd (Ctypes.Internal f) -> marg_exempt (Ctypes.Internal f) = true ->
-      eval_funcall function_entry2 mario_ge m (Ctypes.Internal f) vargs t m' vres ->
-      NoA m -> MWF m -> Mem.valid_block m bm -> action_sat nonflying m bm ->
-      Mem.valid_block m' bm /\ action_sat nonflying m' bm /\ MWF m'.
+  (* The focused leaf for the marg-EXEMPT reached internal callee -- i.e.
+     vec3f_find_ceil -- is now PROVED (Lemma reach_vec3f_preserves) further down,
+     AFTER the external residuals it consumes (reach_ext_action_cell / Hmwf_ext /
+     Hmwf_unch). vec3f writes no memory directly (its body has no Sassign); its only
+     memory effect is the external find_ceil call, so its whole-funcall preservation
+     reduces to the external residuals plus alloc/free framing. *)
   (* (1a-TI) REACHED body leaf, TI HALF -- now PROVED for 16 of the 17 reached
           internals (entry_TI_singleparam) and reduced to the single narrow
           residual reach_vec3f_ceil_offbm for the 17th. The `reached_fd` premise
@@ -980,6 +1000,138 @@ Section NoAImpliesNoFly.
   Hypothesis Hmwf_unch :
     forall m m', Mem.unchanged_on (fun b _ => b = bm) m m' ->
                  Mem.valid_block m bm -> MWF m -> MWF m'.
+
+  (* The ONE narrow genv fact reach_vec3f_preserves needs: vec3f's sole call,
+     `Evar _find_ceil`, resolves to an EXTERNAL fundef. TRUE and vm_compute-decidable
+     (find_ceil = External (EF_external "find_ceil" ..) in mario.prog, generated/
+     mario.v). Keeping it as a focused hypothesis avoids forcing the whole genv inline
+     ([[coq-genv-perf-gotcha]]); the eval_funcall->external_call->preservation plumbing
+     below is PROVED, so only this decidable symbol fact is assumed. *)
+  Hypothesis find_ceil_external :
+    forall e le m t1 vf fd,
+      eval_expr mario_ge e le m (Evar mario._find_ceil t1) vf ->
+      Genv.find_funct mario_ge vf = Some fd ->
+      exists ef tl ty cc, fd = Ctypes.External ef tl ty cc.
+
+  (* vec3f_find_ceil's BODY preserves validity / action_sat / MWF. Its body has NO
+     Sassign (it writes no memory directly); the two Ssets are temp loads, and the
+     sole Scall is the EXTERNAL find_ceil. So body_check_generic with the vec3f_chk
+     census reduces every leaf to: Sassign/Sbuiltin VACUOUS, Sset = no mem change,
+     Scall = the external residuals (reach_ext_action_cell / Hmwf_ext). *)
+  Lemma vec3f_body_preserves :
+    forall e le1 m1 t le2 m2 out,
+      exec_stmt function_entry2 mario_ge e le1 m1
+        (fn_body mario.f_vec3f_find_ceil) t le2 m2 out ->
+      Mem.valid_block m1 bm -> action_sat nonflying m1 bm -> MWF m1 ->
+      Mem.valid_block m2 bm /\ action_sat nonflying m2 bm /\ MWF m2.
+  Proof.
+    intros e le1 m1 t le2 m2 out Hexec Hv1 Hsat1 Hmwf1.
+    change (Mem.valid_block m2 bm /\ action_sat nonflying m2 bm /\ MWF m2)
+      with ((fun (mm : mem) (_ : temp_env) =>
+               Mem.valid_block mm bm /\ action_sat nonflying mm bm /\ MWF mm) m2 le2).
+    eapply (body_check_generic mario_ge e
+              (fun (mm : mem) (_ : temp_env) =>
+                 Mem.valid_block mm bm /\ action_sat nonflying mm bm /\ MWF mm)
+              vec3f_chk).
+    - (* Sassign leaf -- VACUOUS (vec3f_chk forbids Sassign) *)
+      intros le0 m0 a1 a2 t0 le0' m0' out0 _ Hck _. cbn in Hck. contradiction.
+    - (* Sset leaf -- no memory change *)
+      intros le0 m0 id a t0 le0' m0' out0 HP0 _ Hex.
+      assert (Hm : m0' = m0) by (inversion Hex; reflexivity). subst m0'. exact HP0.
+    - (* Scall leaf -- the sole call is the EXTERNAL find_ceil *)
+      intros le0 m0 oid a al t0 le0' m0' out0 HP0 Hck Hex.
+      destruct HP0 as (Hv0 & Hsat0 & Hmwf0).
+      destruct a; try (cbn in Hck; contradiction).
+      cbn in Hck. subst.
+      inversion Hex; subst.
+      match goal with
+        He0 : eval_expr _ _ _ _ (Evar _ _) ?vf,
+        Hff : Genv.find_funct _ ?vf = Some ?fd |- _ =>
+        destruct (find_ceil_external _ _ _ _ _ _ He0 Hff)
+          as (ef0 & tl0 & ty0 & cc0 & Hfdext); subst fd
+      end.
+      match goal with
+        Hfun : eval_funcall _ _ _ (Ctypes.External _ _ _ _) _ _ _ _ |- _ => inv Hfun
+      end.
+      match goal with Hec : external_call _ _ _ _ _ _ _ |- _ =>
+        split;
+        [ eapply external_call_valid_block; [ exact Hec | exact Hv0 ]
+        | split;
+          [ eapply action_sat_unchanged_on;
+            [ eapply reach_ext_action_cell; exact Hec | exact Hv0 | exact Hsat0 ]
+          | eapply Hmwf_ext; [ exact Hec | exact Hv0 | exact Hmwf0 ] ] ]
+      end.
+    - (* Sbuiltin leaf -- VACUOUS (vec3f has no builtins) *)
+      intros le0 m0 oid ef tyl al t0 le0' m0' out0 _ Hck _. cbn in Hck. contradiction.
+    - (* Hseq *) intros s1 s2 H; cbn in H; exact H.
+    - (* Hif *) intros a s1 s2 H; cbn in H; contradiction.
+    - (* Hloop *) intros s1 s2 H; cbn in H; contradiction.
+    - (* Hlabel *) intros l s0 H; cbn in H; contradiction.
+    - (* Hsw *) intros a ls n H; cbn in H; contradiction.
+    - exact Hexec.
+    - split; [ exact Hv1 | split; [ exact Hsat1 | exact Hmwf1 ] ].
+    - cbn. repeat split; first [ reflexivity | exact I ].
+  Qed.
+
+  (* THE marg-EXEMPT reached internal leaf -- PROVED (was a Hypothesis). The only
+     marg-exempt reached internal is vec3f_find_ceil (reached_marg_exempt_is_vec3f);
+     its whole funcall preserves validity / action_sat / MWF: entry allocs the
+     local _filler (fresh block, frames bm untouched), the body has no direct store
+     and only the external find_ceil call (vec3f_body_preserves), and the frame free
+     leaves bm's cells alone. This is the engine's Hexempt leaf, now discharged in
+     terms of the external residuals + alloc/free framing -- no new broad assumption. *)
+  Lemma reach_vec3f_preserves :
+    forall f vargs m t m' vres,
+      reached_fd (Ctypes.Internal f) -> marg_exempt (Ctypes.Internal f) = true ->
+      eval_funcall function_entry2 mario_ge m (Ctypes.Internal f) vargs t m' vres ->
+      NoA m -> MWF m -> Mem.valid_block m bm -> action_sat nonflying m bm ->
+      Mem.valid_block m' bm /\ action_sat nonflying m' bm /\ MWF m'.
+  Proof.
+    intros f vargs m t m' vres Hrf Hexm Hev HnoA Hmwf Hv Hsat.
+    assert (Hf : f = mario.f_vec3f_find_ceil).
+    { destruct Hrf as [Hin | (ef0 & tl0 & ty0 & cc0 & Hext)];
+      [ exact (reached_marg_exempt_is_vec3f f Hin Hexm) | discriminate Hext ]. }
+    subst f.
+    inv Hev.
+    match goal with H : function_entry2 _ _ _ _ _ _ _ |- _ => rename H into Hentry end.
+    match goal with H : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename H into Hbexec end.
+    match goal with H : Mem.free_list _ _ = Some _ |- _ => rename H into Hfree end.
+    (* entry framing: alloc of _filler leaves bm's cells unchanged *)
+    assert (Uentry_ac : Mem.unchanged_on (action_cell bm) m _)
+      by (eapply function_entry2_unchanged_on; exact Hentry).
+    assert (Uentry_bm : Mem.unchanged_on (fun b _ => b = bm) m _)
+      by (eapply function_entry2_unchanged_on; exact Hentry).
+    match goal with Hentry : function_entry2 _ _ _ _ ?ev ?le1 ?m1 |- _ =>
+      assert (Hv1 : Mem.valid_block m1 bm)
+        by (eapply Mem.valid_block_unchanged_on; [ exact Uentry_ac | exact Hv ]);
+      assert (Hsat1 : action_sat nonflying m1 bm)
+        by (eapply action_sat_unchanged_on; [ exact Uentry_ac | exact Hv | exact Hsat ]);
+      assert (HMWF1 : MWF m1)
+        by (eapply Hmwf_unch; [ exact Uentry_bm | exact Hv | exact Hmwf ])
+    end.
+    (* body framing *)
+    match goal with Hbexec : exec_stmt _ _ _ _ ?m1 _ _ _ ?m2 _ |- _ =>
+      destruct (vec3f_body_preserves _ _ _ _ _ _ _ Hbexec Hv1 Hsat1 HMWF1)
+        as (Hv2 & Hsat2 & HMWF2)
+    end.
+    (* free framing: the freed frame blocks are fresh w.r.t. m, hence <> bm *)
+    match goal with Hfree : Mem.free_list ?mb _ = Some _ |- _ =>
+    assert (Ufree_ac : Mem.unchanged_on (action_cell bm) mb m');
+    [ eapply free_list_unchanged_on; [ exact Hfree | ];
+      intros b lo hi i Hin Hac; destruct Hac as [Hb _]; subst b;
+      exact (function_entry2_fresh _ _ _ _ _ _ _ Hentry bm lo hi Hin Hv) | ];
+    assert (Ufree_bm : Mem.unchanged_on (fun b _ => b = bm) mb m');
+    [ eapply free_list_unchanged_on; [ exact Hfree | ];
+      intros b lo hi i Hin Hb; subst b;
+      exact (function_entry2_fresh _ _ _ _ _ _ _ Hentry bm lo hi Hin Hv) | ]
+    end.
+    split;
+    [ eapply Mem.valid_block_unchanged_on; [ exact Ufree_ac | exact Hv2 ]
+    | split;
+      [ eapply action_sat_unchanged_on; [ exact Ufree_ac | exact Hv2 | exact Hsat2 ]
+      | eapply Hmwf_unch; [ exact Ufree_bm | exact Hv2 | exact HMWF2 ] ] ].
+  Qed.
+
   (* (2) every reached funcall ALSO preserves NoA and the two Mario-pointer
      invariants (marioObj off bm, gMarioState -> bm); together with (1) this is
      the engine's full no-A-conditioned reach. A call-graph fact about the
