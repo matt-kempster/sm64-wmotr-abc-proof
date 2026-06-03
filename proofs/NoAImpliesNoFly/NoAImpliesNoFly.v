@@ -428,11 +428,35 @@ Section NoAImpliesNoFly.
     forall e le m id a v,
       MWF m -> eval_expr mario_ge e le m a v -> TI le -> C (Sset id a) ->
       TI (PTree.set id v le).
+  (* TI preserved when a call/builtin RESULT lands in optid -- NO LONGER forall-v:
+     the result v is constrained to be a non-bm pointer (supplied by the engine
+     from the actual callee's return value). Removing the forall-v phantom is what
+     makes a pointer-tracking TI satisfiable here. *)
   Hypothesis reach_TI_optc :
-    forall optid a al v le, C (Scall optid a al) -> TI le -> TI (set_opttemp optid v le).
+    forall optid a al v le,
+      C (Scall optid a al) -> TI le ->
+      (forall b o, v = Vptr b o -> b <> bm) -> TI (set_opttemp optid v le).
   Hypothesis reach_TI_optb :
     forall optid ef tyargs al v le,
-      C (Sbuiltin optid ef tyargs al) -> TI le -> TI (set_opttemp optid v le).
+      C (Sbuiltin optid ef tyargs al) -> TI le ->
+      (forall b o, v = Vptr b o -> b <> bm) -> TI (set_opttemp optid v le).
+  (* (1a-ret) RETURN PROVENANCE: a reached funcall's result is never a pointer
+     into Mario's block bm (the reached callees return scalars / off-bm values),
+     and likewise for external/builtin results. These supply the non-bm-ptr fact
+     the refined reach_TI_optc/optb consume -- the precise replacement for the old
+     `forall v` quantifier. DISCHARGE: per-callee over the 17 -- the 12 tvoid
+     returns force vres = Vundef (clean); the tuint/tint/tfloat returns need the
+     actual return-VALUE analysis (in the 32-bit model `cast_case_pointer` makes a
+     ptr->uint cast the identity, so the return TYPE alone does not bound it). *)
+  Hypothesis reach_ret_call :
+    forall fd m0 vargs0 t0 m0' vres0,
+      reached_fd fd ->
+      eval_funcall function_entry2 mario_ge m0 fd vargs0 t0 m0' vres0 ->
+      forall b o, vres0 = Vptr b o -> b <> bm.
+  Hypothesis reach_ret_builtin :
+    forall ef vargs0 m0 t0 vres0 m0',
+      external_call ef mario_ge vargs0 m0 t0 vres0 m0' ->
+      forall b o, vres0 = Vptr b o -> b <> bm.
   (* (1a'''') the census C distributes over the compound statement forms -- now
           PROVED from the `no_action_store` Fixpoint (&& / switch-selection), not
           assumed. *)
@@ -596,6 +620,7 @@ Section NoAImpliesNoFly.
                   writer_set_mario_action reached_fd TI C
                   reach_value_body_marg reach_assign_marg reach_call_marg
                   reach_TI_set reach_TI_optc reach_TI_optb
+                  reach_ret_call reach_ret_builtin
                   reach_call_reached reach_writer_ok reach_ext_action_cell
                   Hmwf_ext Hmwf_unch noA_exec_ok noA_entry_ok
                   reach_C_seq reach_C_if reach_C_loop reach_C_sw)
