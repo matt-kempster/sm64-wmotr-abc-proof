@@ -29,6 +29,7 @@ proofs/Generic/FieldNonInterference.v
 proofs/Generic/ReachableRun.v
 proofs/Generic/GlobalSeparation.v
 proofs/Generic/SymbolicLinking.v
+proofs/Generic/RootedLvalue.v
 
 # --- shared: Mario action vocabulary + value engine ---
 proofs/MarioModel/Flying.v
@@ -55,7 +56,6 @@ proofs/NoAImpliesNoFly/Unwired/StoreFrameDischarge/MarioMemoryWF.v
 proofs/NoAImpliesNoFly/Unwired/StoreFrameDischarge/PointerChaseCount.v
 proofs/NoAImpliesNoFly/Unwired/StoreFrameDischarge/PointerChaseDischarge.v
 proofs/NoAImpliesNoFly/Unwired/StoreFrameDischarge/ResetBodystate.v
-proofs/NoAImpliesNoFly/Unwired/StoreFrameDischarge/RootedLvalue.v
 proofs/NoAImpliesNoFly/Unwired/StoreFrameDischarge/SetAnimToFrame.v
 proofs/NoAImpliesNoFly/Unwired/StoreFrameDischarge/SetMarioActionMoving.v
 proofs/NoAImpliesNoFly/Unwired/StoreFrameDischarge/SquishMarioModel.v
