@@ -68,7 +68,7 @@
 
 From Coq Require Import List Bool.
 Import ListNotations.
-From compcert Require Import Coqlib AST Integers Values Memory Globalenvs Events Clight ClightBigstep.
+From compcert Require Import Coqlib Maps AST Integers Values Memory Globalenvs Events Ctypes Cop Clight ClightBigstep.
 From SM64.Generated Require mario.
 From SM64.Proofs Require Import Flying FieldNonInterference ActionValueFrame
   ReachableRun RealFrameValue.
@@ -144,22 +144,65 @@ Section NoAImpliesNoFly.
     fd = Ctypes.Internal mario.f_set_mario_action.
 
   (* (1) THE CRUX -- action-value preservation across reached funcalls. The value
-     engine (ActionValueFrame.exec_funcall_reach_value_noA) handles TRANSITIVITY
-     soundly, reducing it to (1a)+(1b) -- but BOTH are PHANTOM / vacuous as stated.
+     engine is now ActionValueFrame.exec_funcall_reach_value_MARG, the type-forced
+     successor of the noA engine: its OUTPUT (reach_value_preserves_marg) carries a
+     `marg_ok bm vargs` precondition, so it is SATISFIABLE -- the forall-vargs
+     reach_value_preserves_noA is FALSE for a misaligned Mario arg (Vptr bm (12-d)
+     to a non-writer aims an `m->field` store at the action cell). The body engine
+     (execute_mario_action_preserves_real_marg) SUPPLIES marg_ok at execute_mario_
+     action's own call sites from its Pgms census; the residuals below cover the
+     REACHED callees via an abstract entry-temp invariant TI + per-body census C.
      SCOPE (docs/theorem-scope.md): mario_ge = globalenv mario.prog is ONE TU
      (mario.c, 62 internal funcs). The 571 action handlers / interaction table are
      EXTERNAL here, governed by (3), NOT by (1).
-     (1a) PHANTOM via forall-le. stmt_value_ok hides `forall le m`: an adversarial le
-          can aim a Mario-field write at the action cell (bm,12) with a flying rhs.
-          SM64 never produces that le (base temps load from gMarioState => Vptr bm 0),
-          but the forall admits it. Honest fix = execution-relative provenance (like
-          RealFrameValue.tprov, which discharged the ONE body), over mario.prog's ~61
-          internal non-set_mario_action functions. *)
-  Hypothesis reach_value_body_nonwriter :
+
+     TI/C: the (abstract) entry-temp invariant and per-body census of the REACHED
+     functions. The marg leaf residuals (1a)-(1d) replace the FALSE phantom
+     reach_value_body_nonwriter -- each speaks about the actual entry temp env /
+     actual call args under a marg_ok guard, never an adversarial `forall le`. *)
+  Variable TI : temp_env -> Prop.
+  Variable C  : statement -> Prop.
+  (* (1a) marg-gated body leaf: a reached non-writer entered with marg_ok args has
+          entry-temp-invariant TI and its body passes census C. EXECUTION-RELATIVE
+          (the entry le is the one the marg call args produced), not forall-le. *)
+  Hypothesis reach_value_body_marg :
     forall f vargs m e le m1,
       function_entry2 mario_ge f vargs m e le m1 ->
       ~ writer_set_mario_action (Ctypes.Internal f) ->
-      stmt_value_ok nonflying bm mario_ge e (fn_body f).
+      marg_ok bm vargs ->
+      TI le /\ C (fn_body f).
+  (* (1a') a direct Sassign under TI+C preserves validity + non-flying (it stores
+          off the action cell OR a non-flying value). *)
+  Hypothesis reach_assign_marg :
+    forall e le m a1 a2 loc ofs bf v2 v m',
+      eval_lvalue mario_ge e le m a1 loc ofs bf ->
+      eval_expr mario_ge e le m a2 v2 ->
+      sem_cast v2 (typeof a2) (typeof a1) m = Some v ->
+      assign_loc mario_ge (typeof a1) m loc ofs bf v m' ->
+      TI le -> C (Sassign a1 a2) ->
+      Mem.valid_block m bm -> action_sat nonflying m bm ->
+      Mem.valid_block m' bm /\ action_sat nonflying m' bm.
+  (* (1a'') under TI, a reached call's evaluated args are marg_ok (the Mario arg
+           temp is (bm,0)-or-off-bm) -- the call-site bridge that THREADS marg. *)
+  Hypothesis reach_call_marg :
+    forall e le m optid a al tyargs vargs,
+      TI le -> C (Scall optid a al) ->
+      eval_exprlist mario_ge e le m al tyargs vargs -> marg_ok bm vargs.
+  (* (1a''') TI is preserved by a censused Sset and by a censused call/builtin result. *)
+  Hypothesis reach_TI_set :
+    forall e le m id a v,
+      eval_expr mario_ge e le m a v -> TI le -> C (Sset id a) -> TI (PTree.set id v le).
+  Hypothesis reach_TI_optc :
+    forall optid a al v le, C (Scall optid a al) -> TI le -> TI (set_opttemp optid v le).
+  Hypothesis reach_TI_optb :
+    forall optid ef tyargs al v le,
+      C (Sbuiltin optid ef tyargs al) -> TI le -> TI (set_opttemp optid v le).
+  (* (1a'''') the census C distributes over the compound statement forms. *)
+  Hypothesis reach_C_seq  : forall s1 s2, C (Ssequence s1 s2) -> C s1 /\ C s2.
+  Hypothesis reach_C_if   : forall a s1 s2, C (Sifthenelse a s1 s2) -> C s1 /\ C s2.
+  Hypothesis reach_C_loop : forall s1 s2, C (Sloop s1 s2) -> C s1 /\ C s2.
+  Hypothesis reach_C_sw   :
+    forall a ls n, C (Sswitch a ls) -> C (seq_of_labeled_statement (select_switch n ls)).
   (* (1b) PHANTOM via forall-vargs. set_mario_action under NoA does NOT preserve
           non-flying for arbitrary vargs (vargs=[..,ACT_FLYING,..] with NoA holding
           breaks it). Real content = TAINT CLOSURE (no-A => the ACTUAL calls have
@@ -177,7 +220,7 @@ Section NoAImpliesNoFly.
      invariants (marioObj off bm, gMarioState -> bm); together with (1) this is
      the engine's full no-A-conditioned reach. A call-graph fact about the
      REACHED functions, the next discharge target (per-function offset analysis).*)
-  Hypothesis reach_rest_ok : reach_rest_noA bm NoA.
+  Hypothesis reach_rest_ok : reach_rest_marg bm NoA.
   (* (3) every reached external, in a no-A state, preserves NoA and the full
      memory invariant (SM64 externals are memcpy/bzero-class). *)
   Hypothesis ext_meminv_ok :
@@ -222,15 +265,18 @@ Section NoAImpliesNoFly.
   Proof.
     intros i m m' Ha _ (Hv & Hsat & Hwf & Hgwf) Hst.
     assert (HnoA : NoA m) by (eapply input_grounds_noA; eassumption).
-    (* the SOUND value engine: leaf-A (non-writer direct bodies) + the no-A
-       writer case + ext + NoA-propagation -> the action stays non-flying across
-       every reached funcall. Retires the false reach_nonwriter_unchanged. *)
-    pose proof (exec_funcall_reach_value_noA nonflying bm mario_ge NoA
-                  writer_set_mario_action
-                  reach_value_body_nonwriter reach_writer_ok
-                  reach_ext_action_cell noA_exec_ok noA_entry_ok)
+    (* the SOUND MARG value engine: marg-gated leaf-A (non-writer direct bodies
+       under TI+C) + the no-A writer case + ext + NoA-propagation -> the action
+       stays non-flying across every reached funcall WHOSE Mario arg is marg_ok.
+       The body engine supplies marg_ok at the real call sites. *)
+    pose proof (exec_funcall_reach_value_marg nonflying bm mario_ge NoA
+                  writer_set_mario_action TI C
+                  reach_value_body_marg reach_assign_marg reach_call_marg
+                  reach_TI_set reach_TI_optc reach_TI_optb
+                  reach_writer_ok reach_ext_action_cell noA_exec_ok noA_entry_ok
+                  reach_C_seq reach_C_if reach_C_loop reach_C_sw)
       as Hreach.
-    destruct (execute_mario_action_preserves_real bm NoA m m'
+    destruct (execute_mario_action_preserves_real_marg bm NoA m m'
                 Hreach reach_rest_ok ext_meminv_ok
                 (fun e le mm a1 a2 tt le' mm' out HnoA' _ Hexec =>
                    noA_exec_ok e le mm (Sassign a1 a2) tt le' mm' out Hexec HnoA')
