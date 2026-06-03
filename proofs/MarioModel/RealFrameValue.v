@@ -1598,6 +1598,122 @@ Section ProvEngine.
              | apply pgms_seq_of; apply pgms_select_switch; exact Hg ].
   Qed.
 
+  (* ================================================================== *)
+  (* THE MWF-CARRYING BODY ENGINE. Same as exec_body_prov_marg but ALSO   *)
+  (* carries an abstract Mario-memory-WF invariant MWF, so the body can     *)
+  (* SUPPLY MWF at each of its call sites to the wf-typed reach hypothesis   *)
+  (* (reach_meminv_wf). This is what lets the capstone consume the wf value  *)
+  (* engine ActionValueFrame.exec_funcall_reach_value_wf, whose HTI_set leaf *)
+  (* needs MWF to discharge the reached callees' chase-pointer loads. MWF is *)
+  (* memory-only: preserved by the body's off-bm stores (store_mwf), by      *)
+  (* reached calls (reach_meminv_wf), by builtins (ext_mwf), and trivially    *)
+  (* by the value-free Ssets.                                                 *)
+  (* ================================================================== *)
+  Variable MWF : mem -> Prop.
+  Hypothesis reach_meminv_wf :
+    forall m fd vargs t m' vres,
+      NoA m -> meminv m -> MWF m -> marg_ok bm vargs ->
+      eval_funcall function_entry2 mario_ge m fd vargs t m' vres ->
+      NoA m' /\ meminv m' /\ MWF m'.
+  Hypothesis ext_mwf :
+    forall ef vargs m t vres m',
+      NoA m -> meminv m -> MWF m ->
+      external_call ef mario_ge vargs m t vres m' ->
+      NoA m' /\ meminv m' /\ MWF m'.
+  Hypothesis store_mwf :
+    forall e le m a1 a2 t le' m' out,
+      NoA m -> prov_ok (Sassign a1 a2) -> MWF m ->
+      exec_stmt function_entry2 mario_ge e le m (Sassign a1 a2) t le' m' out ->
+      MWF m'.
+
+  Theorem exec_body_prov_wf :
+    forall e le m s t le' m' out,
+      e ! mario._gMarioState = None ->
+      exec_stmt function_entry2 mario_ge e le m s t le' m' out ->
+      NoA m -> meminv m -> tprov le -> Pgms bm le -> MWF m ->
+      prov_ok s -> pgms_chk s ->
+      NoA m' /\ meminv m' /\ tprov le' /\ Pgms bm le' /\ MWF m'.
+  Proof.
+    intros e le m s t le' m' out He H Hno Hmem Htp Hpg Hmwf Hck Hpck.
+    apply (body_check_generic mario_ge e
+             (fun mm ll => NoA mm /\ meminv mm /\ tprov ll /\ Pgms bm ll /\ MWF mm)
+             (fun ss => prov_ok ss /\ pgms_chk ss))
+      with (le := le) (m := m) (s := s) (t := t) (le' := le') (m' := m') (out := out);
+      try exact H;
+      try (split; [ exact Hno | split; [ exact Hmem | split; [ exact Htp
+            | split; [ exact Hpg | exact Hmwf ] ] ] ]);
+      try (split; [ exact Hck | exact Hpck ]).
+    - (* Sassign leaf *)
+      clear He reach_meminv_marg reach_meminv_noA reach_meminv_wf ext_meminv_noA ext_mwf
+            Hmem Htp Hpg Hmwf Hck Hpck H Hno le m s t le' m' out.
+      intros le0 m0 a1 a2 t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0 & Hmwf0) (Hck0 & _) Hexec.
+      assert (Hle : le0' = le0) by (inversion Hexec; reflexivity). subst le0'.
+      assert (Hno0' : NoA m0') by (eapply noA_store_pres; [ exact Hno0 | exact Hck0 | exact Hexec ]).
+      assert (Hmwf0' : MWF m0') by (eapply store_mwf; [ exact Hno0 | exact Hck0 | exact Hmwf0 | exact Hexec ]).
+      split; [ exact Hno0' | ].
+      split; [ | split; [ exact Htp0 | split; [ exact Hpg0 | exact Hmwf0' ] ] ].
+      cbn [prov_ok] in Hck0.
+      destruct Htp0 as (T48 & T12 & T49 & T13).
+      destruct Hck0 as [ [Ha1 Ha2] | [Ha1 Ha2] ]; subst.
+      + eapply (store_preserves_meminv store1_lval store1_rval mario._t'49 store1_loc_is_t49);
+          [ exact Hmem0 | exact T49 | exact Hexec ].
+      + eapply (store_preserves_meminv store2_lval store2_rval mario._t'13 store2_loc_is_t13);
+          [ exact Hmem0 | exact T13 | exact Hexec ].
+    - (* Sset leaf *)
+      clear reach_meminv_marg reach_meminv_noA reach_meminv_wf ext_meminv_noA ext_mwf
+            noA_store_pres store_mwf Hmem Htp Hpg Hmwf Hck Hpck H Hno le m s t le' m' out.
+      intros le0 m0 id a t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0 & Hmwf0) (Hck0 & Hpck0) Hexec.
+      cbn [prov_ok] in Hck0. cbn [pgms_chk] in Hpck0.
+      assert (Hm : m0' = m0) by (inversion Hexec; reflexivity).
+      pose proof Hmem0 as Hmemcopy. destruct Hmemcopy as (_ & _ & _ & Hgwf0).
+      destruct (sset_case_preserves e le0 m0 id a t0 le0' m0' out0 He Hmem0 Htp0 Hck0 Hexec)
+        as (Hmem0' & Htp0').
+      split; [ rewrite Hm; exact Hno0 | ].
+      split; [ exact Hmem0' | split; [ exact Htp0' | split ] ].
+      + eapply pgms_sset_preserves; [ exact He | exact Hgwf0 | exact Hpg0 | exact Hpck0 | exact Hexec ].
+      + rewrite Hm; exact Hmwf0.
+    - (* Scall leaf -- supplies marg_ok to reach_meminv_wf *)
+      clear reach_meminv_marg reach_meminv_noA ext_meminv_noA ext_mwf noA_store_pres store_mwf
+            Hmem Htp Hpg Hmwf Hck Hpck H Hno le m s t le' m' out.
+      intros le0 m0 oid a al t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0 & Hmwf0) (Hck0 & Hpck0) Hexec.
+      cbn [prov_ok] in Hck0. cbn [pgms_chk] in Hpck0.
+      destruct Hpck0 as (Hres & Hargs).
+      inversion Hexec; subst.
+      match goal with Hel : eval_exprlist _ _ _ _ al _ ?vargs |- _ =>
+        assert (Hmarg : marg_ok bm vargs)
+          by (eapply call_arg0_marg_sound; [ exact Hpg0 | exact Hargs | exact Hel ]) end.
+      match goal with Hf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+        destruct (reach_meminv_wf _ _ _ _ _ _ Hno0 Hmem0 Hmwf0 Hmarg Hf) as (Hno0' & Hmem0' & Hmwf0') end.
+      split; [ exact Hno0' | split; [ exact Hmem0' | split; [ | split ] ] ].
+      + apply tprov_set_opttemp; [ exact Hck0 | exact Htp0 ].
+      + apply pgms_set_opttemp; [ exact Hres | exact Hpg0 ].
+      + exact Hmwf0'.
+    - (* Sbuiltin leaf *)
+      clear He reach_meminv_marg reach_meminv_noA reach_meminv_wf noA_store_pres store_mwf
+            Hmem Htp Hpg Hmwf Hck Hpck H Hno le m s t le' m' out.
+      intros le0 m0 oid ef tyl al t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0 & Hmwf0) (Hck0 & Hpck0) Hexec.
+      cbn [prov_ok] in Hck0. cbn [pgms_chk] in Hpck0.
+      inversion Hexec; subst.
+      match goal with Hec : external_call _ _ _ _ _ _ _ |- _ =>
+        destruct (ext_mwf _ _ _ _ _ _ Hno0 Hmem0 Hmwf0 Hec) as (Hno0' & Hmem0' & Hmwf0') end.
+      split; [ exact Hno0' | split; [ exact Hmem0' | split; [ | split ] ] ].
+      + apply tprov_set_opttemp; [ exact Hck0 | exact Htp0 ].
+      + apply pgms_set_opttemp; [ exact Hpck0 | exact Hpg0 ].
+      + exact Hmwf0'.
+    - (* Hseq *) intros s1 s2 Hd; destruct Hd as [Hp Hg];
+        cbn [prov_ok pgms_chk] in Hp, Hg; tauto.
+    - (* Hif *) intros a s1 s2 Hd; destruct Hd as [Hp Hg];
+        cbn [prov_ok pgms_chk] in Hp, Hg; tauto.
+    - (* Hloop *) intros s1 s2 Hd; destruct Hd as [Hp Hg];
+        cbn [prov_ok pgms_chk] in Hp, Hg; tauto.
+    - (* Hlabel *) intros l s0 Hd; destruct Hd as [Hp Hg];
+        cbn [prov_ok pgms_chk] in Hp, Hg; tauto.
+    - (* Hsw *) intros a ls n Hd; destruct Hd as [Hp Hg];
+        cbn [prov_ok pgms_chk] in Hp, Hg.
+      split; [ apply seq_of_prov_ok; apply select_switch_prov_ok; exact Hp
+             | apply pgms_seq_of; apply pgms_select_switch; exact Hg ].
+  Qed.
+
 End ProvEngine.
 
 (* ================================================================== *)
@@ -2039,5 +2155,81 @@ Proof.
       | ].
     unfold meminv in Hmem'. destruct Hmem' as (Hvv' & Hss' & Hmw' & Hgw').
     exact (conj Hn' (conj Hvv' (conj Hss' (conj Hmw' Hgw')))). }
+  exact HPm'.
+Qed.
+
+(* ================================================================== *)
+(* THE WF WIRING -- the successor of the marg wiring, consuming the wf  *)
+(* value engine (ActionValueFrame.exec_funcall_reach_value_wf) so the    *)
+(* reached callees' chase-pointer-load residual (HTI_set) gains its MWF   *)
+(* precondition. MWF is threaded through the body engine exec_body_prov_wf *)
+(* and supplied at execute_mario_action's call sites.                     *)
+(* ================================================================== *)
+
+Lemma reach_meminv_wf_build :
+  forall bm NoA MWF,
+    reach_value_preserves_wf nonflying bm mario_ge NoA MWF ->
+    reach_rest_marg bm NoA ->
+    forall m fd vargs t m' vres,
+      NoA m -> meminv bm m -> MWF m -> marg_ok bm vargs ->
+      eval_funcall function_entry2 mario_ge m fd vargs t m' vres ->
+      NoA m' /\ meminv bm m' /\ MWF m'.
+Proof.
+  intros bm NoA MWF Hval Hrest m fd vargs t m' vres Hno Hmem HMWF Hmarg Hev.
+  unfold meminv in Hmem. destruct Hmem as (Hv & Hsat & Hmwf & Hgwf).
+  destruct (Hval m fd vargs t m' vres Hno HMWF Hmarg Hev Hv Hsat) as (Hv' & Hsat' & HMWF').
+  destruct (Hrest m fd vargs t m' vres Hno Hmarg Hev Hmwf Hgwf) as (Hno' & Hmwf' & Hgwf').
+  split; [ exact Hno' | split; [ unfold meminv; repeat split; assumption | exact HMWF' ] ].
+Qed.
+
+Theorem execute_mario_action_preserves_real_wf :
+  forall (bm : block) (NoA MWF : mem -> Prop) m m',
+    reach_value_preserves_wf nonflying bm mario_ge NoA MWF ->
+    reach_rest_marg bm NoA ->
+    (forall ef vargs mm tt vres mm',
+        NoA mm -> meminv bm mm -> MWF mm ->
+        external_call ef mario_ge vargs mm tt vres mm' -> NoA mm' /\ meminv bm mm' /\ MWF mm') ->
+    (forall e le mm a1 a2 tt le' mm' out,
+        NoA mm -> prov_ok (Sassign a1 a2) ->
+        exec_stmt function_entry2 mario_ge e le mm (Sassign a1 a2) tt le' mm' out -> NoA mm') ->
+    (forall e le mm a1 a2 tt le' mm' out,
+        NoA mm -> prov_ok (Sassign a1 a2) -> MWF mm ->
+        exec_stmt function_entry2 mario_ge e le mm (Sassign a1 a2) tt le' mm' out -> MWF mm') ->
+    NoA m -> MWF m ->
+    Mem.valid_block m bm -> action_sat nonflying m bm ->
+    marioObj_wf m bm -> gMarioState_wf m bm ->
+    execute_mario_action_step m m' ->
+    NoA m' /\ Mem.valid_block m' bm /\ action_sat nonflying m' bm /\
+    marioObj_wf m' bm /\ gMarioState_wf m' bm /\ MWF m'.
+Proof.
+  intros bm NoA MWF m m' Hval Hrest Hext Hstore Hstoremwf HnoA HMWF Hv Hsat Hmwf Hgwf
+         (b_o & t & res & Hfun).
+  pose proof Hgwf as Hgwf2. destruct Hgwf2 as (gb & Hgb & Hload).
+  pose proof (reach_meminv_wf_build bm NoA MWF Hval Hrest) as Hreachmem.
+  assert (HPm' :
+    NoA m' /\ Mem.valid_block m' bm /\ action_sat nonflying m' bm /\
+    marioObj_wf m' bm /\ gMarioState_wf m' bm /\ MWF m').
+  { eapply (funcall_from_body_preserves_entry
+              (fun mm => NoA mm /\ Mem.valid_block mm bm /\ action_sat nonflying mm bm /\
+                         marioObj_wf mm bm /\ gMarioState_wf mm bm /\ MWF mm)
+              mario_ge mario.f_execute_mario_action (Vptr b_o Ptrofs.zero :: nil)
+              m m' t res eq_refl);
+      [ | exact (conj HnoA (conj Hv (conj Hsat (conj Hmwf (conj Hgwf HMWF))))) | exact Hfun ].
+    intros le mm tt le' mm' out Hbind (Hn & Hvv & Hss & Hmw & Hgw & Hmf) Hexec.
+    edestruct (exec_body_prov_wf bm gb Hgb NoA Hstore MWF Hreachmem Hext Hstoremwf
+                 empty_env le mm (fn_body mario.f_execute_mario_action) tt le' mm' out)
+      as (Hn' & Hmem' & _ & _ & Hmf');
+      [ apply PTree.gempty
+      | exact Hexec
+      | exact Hn
+      | exact (conj Hvv (conj Hss (conj Hmw Hgw)))
+      | eapply tprov_entry; exact Hbind
+      | eapply pgms_entry; exact Hbind
+      | exact Hmf
+      | exact execute_mario_action_body_prov_ok
+      | exact execute_mario_action_body_pgms_ok
+      | ].
+    unfold meminv in Hmem'. destruct Hmem' as (Hvv' & Hss' & Hmw' & Hgw').
+    exact (conj Hn' (conj Hvv' (conj Hss' (conj Hmw' (conj Hgw' Hmf'))))). }
   exact HPm'.
 Qed.
