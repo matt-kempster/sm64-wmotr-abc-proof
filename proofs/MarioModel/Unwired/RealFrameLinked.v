@@ -302,6 +302,115 @@ Section ReRoot.
           eapply sset_marioObj_offbm_lp; [ exact T12 | exact Hmwf | exact Hexec | exact Hs ].
         + rewrite PTree.gso in Hs by congruence. exact (T13 _ _ Hs).
     Qed.
+
+    (* ---- store geometry, threaded: the two body stores go through the
+       Object-pointer temps _t'49 / _t'13. Proofs are all genv-PARAMETRIC peel
+       helpers (eval_lvalue_Efield_base, eval_expr_Efield_peel, ...), so they
+       thread at lp_ge verbatim. These are the Hgeom inputs to store_preserves. *)
+    Lemma store1_loc_is_t49_lp :
+      forall e le m loc ofs bf,
+        eval_lvalue lp_ge e le m store1_lval loc ofs bf ->
+        exists d, le ! mario._t'49 = Some (Vptr loc d).
+    Proof.
+      unfold store1_lval. intros e le m loc ofs bf H.
+      apply eval_lvalue_Efield_base in H as (?&H).
+      apply eval_expr_Efield_peel in H as (?&H); [ | cbn; auto ].
+      apply eval_expr_Efield_peel in H as (?&H); [ | cbn; auto ].
+      apply eval_expr_Efield_peel in H as (?&H); [ | cbn; auto ].
+      apply eval_expr_Ederef_peel in H as (?&H); [ | cbn; auto ].
+      apply eval_expr_Etempvar_val in H. eauto.
+    Qed.
+
+    Lemma store2_loc_is_t13_lp :
+      forall e le m loc ofs bf,
+        eval_lvalue lp_ge e le m store2_lval loc ofs bf ->
+        exists d, le ! mario._t'13 = Some (Vptr loc d).
+    Proof.
+      unfold store2_lval. intros e le m loc ofs bf H.
+      apply eval_lvalue_Ederef_base in H.
+      apply eval_expr_Ebinop_inv in H as (v1 & v2 & Hb & Hidx & Hsem).
+      apply eval_expr_Econst_int_val in Hidx; subst v2.
+      apply sem_add_array_int_block in Hsem as (?&?); subst v1.
+      apply eval_expr_Efield_peel in Hb as (?&Hb); [ | cbn; auto ].
+      apply eval_expr_Efield_peel in Hb as (?&Hb); [ | cbn; auto ].
+      apply eval_expr_Ederef_peel in Hb as (?&Hb); [ | cbn; auto ].
+      apply eval_expr_Etempvar_val in Hb. eauto.
+    Qed.
+
+    (* ---- THE NO-A-THREADED REACH RESIDUALS, re-rooted at lp_ge. These are the
+       analog of RealFrameValue's reach_meminv_noA / ext_meminv_noA / noA_store_pres,
+       now over globalenv lp. KEY POINT OF THE WHOLE RE-ROOTING: in
+       reach_meminv_noA_lp the eval_funcall ranges over the LINKED genv, so a
+       dispatcher Scall (mario_execute_*_action) resolves to its REAL Internal body
+       and is traversed -- it is NO LONGER an underspecified external bouncing off
+       the false reach_ext_action_cell. The residual is now SATISFIABLE for the
+       real linked program (to be discharged in Phase B by the A-gating closure). *)
+    Variable NoA : mem -> Prop.
+    Hypothesis reach_meminv_noA_lp :
+      forall m fd vargs t m' vres,
+        NoA m -> meminv_lp m ->
+        eval_funcall function_entry2 lp_ge m fd vargs t m' vres ->
+        NoA m' /\ meminv_lp m'.
+    Hypothesis ext_meminv_noA_lp :
+      forall ef vargs m t vres m',
+        NoA m -> meminv_lp m ->
+        external_call ef lp_ge vargs m t vres m' ->
+        NoA m' /\ meminv_lp m'.
+    Hypothesis noA_store_pres_lp :
+      forall e le m a1 a2 t le' m' out,
+        NoA m -> prov_ok (Sassign a1 a2) ->
+        exec_stmt function_entry2 lp_ge e le m (Sassign a1 a2) t le' m' out ->
+        NoA m'.
+
+    (* THE RE-ROOTED BODY CENSUS: the body of f_execute_mario_action preserves
+       NoA /\ meminv_lp /\ tprov over lp_ge. Same body_prov_generic assembly as
+       RealFrameValue.exec_body_prov_noA, now at lp_ge with the _lp leaves. The
+       generic engine is forall-ge, so it applies directly. *)
+    Theorem exec_body_prov_noA_lp :
+      forall e le m s t le' m' out,
+        e ! mario._gMarioState = None ->
+        exec_stmt function_entry2 lp_ge e le m s t le' m' out ->
+        NoA m -> meminv_lp m -> tprov bm gb le -> prov_ok s ->
+        NoA m' /\ meminv_lp m' /\ tprov bm gb le'.
+    Proof.
+      intros e le m s t le' m' out He H Hno Hmem Htp Hck.
+      apply (body_prov_generic lp_ge e
+               (fun mm ll => NoA mm /\ meminv_lp mm /\ tprov bm gb ll))
+        with (le := le) (m := m) (s := s) (t := t) (le' := le') (m' := m') (out := out);
+        try assumption; try (split; [ exact Hno | split; assumption ]).
+      - (* Sassign leaf *)
+        intros le0 m0 a1 a2 t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0) Hck' Hexec.
+        assert (Hle : le0' = le0) by (inversion Hexec; reflexivity). subst le0'.
+        split; [ eapply noA_store_pres_lp; [ exact Hno0 | exact Hck' | exact Hexec ] | ].
+        split; [ | exact Htp0 ].
+        cbn [prov_ok] in Hck'.
+        destruct Htp0 as (T48 & T12 & T49 & T13).
+        destruct Hck' as [ [Ha1 Ha2] | [Ha1 Ha2] ]; subst.
+        + eapply (store_preserves_meminv_lp store1_lval store1_rval mario._t'49 store1_loc_is_t49_lp);
+            [ exact Hmem0 | exact T49 | exact Hexec ].
+        + eapply (store_preserves_meminv_lp store2_lval store2_rval mario._t'13 store2_loc_is_t13_lp);
+            [ exact Hmem0 | exact T13 | exact Hexec ].
+      - (* Sset leaf *)
+        intros le0 m0 id a t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0) Hck' Hexec.
+        cbn [prov_ok] in Hck'.
+        assert (Hm : m0' = m0) by (inversion Hexec; reflexivity).
+        split; [ rewrite Hm; exact Hno0 | ].
+        eapply sset_case_preserves_lp; [ exact He | exact Hmem0 | exact Htp0 | exact Hck' | exact Hexec ].
+      - (* Scall leaf *)
+        intros le0 m0 oid a al t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0) Hck' Hexec.
+        cbn [prov_ok] in Hck'.
+        inversion Hexec; subst.
+        match goal with Hf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+          destruct (reach_meminv_noA_lp _ _ _ _ _ _ Hno0 Hmem0 Hf) as (Hno0' & Hmem0') end.
+        split; [ exact Hno0' | split; [ exact Hmem0' | apply tprov_set_opttemp; assumption ] ].
+      - (* Sbuiltin leaf *)
+        intros le0 m0 oid ef tyl al t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0) Hck' Hexec.
+        cbn [prov_ok] in Hck'.
+        inversion Hexec; subst.
+        match goal with Hec : external_call _ _ _ _ _ _ _ |- _ =>
+          destruct (ext_meminv_noA_lp _ _ _ _ _ _ Hno0 Hmem0 Hec) as (Hno0' & Hmem0') end.
+        split; [ exact Hno0' | split; [ exact Hmem0' | apply tprov_set_opttemp; assumption ] ].
+    Qed.
   End ProvEngineLp.
 
 End ReRoot.
