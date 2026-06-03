@@ -870,19 +870,38 @@ Section NoAImpliesNoFly.
   Qed.
   (* (1a'') under TI, a reached call into a NON-marg-exempt callee (first param a
      MarioState pointer) has marg_ok args -- the call-site bridge that THREADS marg.
-     Now correctly GUARDED (2026-06-03): the engine only asserts this where the
-     callee's body is analysed via the marg->TI path; external + vec3f callees
-     (which receive interior bm-pointers and would FALSIFY an unguarded marg_ok) are
-     marg_exempt and excluded. TRUE as stated, still ASSUMED -- dischargeable via TI
-     + an arg0-shape census (the non-exempt helper calls pass arg0 = _m / aligned
-     temp / non-pointer; only vec3f/external calls use &_m->field-style arg0). *)
+     The marg_exempt guard (2026-06-03) removed the external/vec3f source of
+     falseness (those receive interior bm-pointers).
+     *** KNOWN STILL-FALSE AS STATED (arg phantom-forall) -- a SOUNDNESS RESIDUAL to
+     discharge, NOT yet sound. *** The args `al` are UNCONSTRAINED by C (no_action_store
+     and reach_chk both ignore call-arg expressions). So the adversary picks a
+     non-exempt reached fd and `al = [&_m->field]`: eval_exprlist gives vargs head =
+     Vptr bm (field_off<>0), making marg_ok FALSE while C(Scall) still holds. THE FIX
+     (the documented NEXT TARGET): add an arg0-shape census to C for Scall -- arg0
+     must be Etempvar/const (-> marg_ok via TI: any bm-ptr temp is _m at 0) UNLESS the
+     target is vec3f/external (marg_exempt; vec3f's arg0 = _m->pos IS a bm-interior
+     Efield, so the census must permit it only for the exempt target). Re-certify the
+     17 bodies pass (vm_compute), then prove marg_ok by eval_exprlist inversion + TI. *)
   Hypothesis reach_call_marg :
     forall e le m optid a al tyargs vargs vf fd,
       TI le -> C (Scall optid a al) ->
       eval_expr mario_ge e le m a vf -> Genv.find_funct mario_ge vf = Some fd ->
       marg_exempt fd = false ->
       eval_exprlist mario_ge e le m al tyargs vargs -> marg_ok bm vargs.
-  (* (1a''') TI is preserved by a censused Sset and by a censused call/builtin result. *)
+  (* (1a''') TI is preserved by a censused Sset.
+     *** KNOWN STILL-FALSE AS STATED (source phantom-forall) -- a SOUNDNESS RESIDUAL
+     to discharge, NOT yet sound. *** The Sset source `a` is UNCONSTRAINED by C
+     (no_action_store/reach_chk ignore Sset sources), so the adversary picks
+     a = `Eaddrof (Efield (Ederef (Etempvar _m _) _) field _)` = &_m->field: under TI
+     le (_m -> (bm,0)) this evaluates to v = Vptr bm (field_off), so the fresh temp id
+     now points into bm at a nonzero offset -> TI(set id v le) is FALSE, while C(Sset)
+     holds (trivially). MWF doesn't help (a is an ADDRESS-OF, not a chase LOAD). THE
+     FIX: census Sset sources in C -- the real reached bodies only Sset a temp from a
+     chase load `_m->field` (off-bm by MWF) or a scalar, NEVER &_m->field (the only
+     Eaddrof-of-Mario-field flows as a 4th call arg, never an Sset). Constrain `a` to
+     those safe shapes, re-certify the 17, then TI is preserved. The forall-v was
+     already de-phantomed for reach_TI_optc/optb (call results); this is the Sset
+     analogue, still open. *)
   Hypothesis reach_TI_set :
     forall e le m id a v,
       MWF m -> eval_expr mario_ge e le m a v -> TI le -> C (Sset id a) ->
