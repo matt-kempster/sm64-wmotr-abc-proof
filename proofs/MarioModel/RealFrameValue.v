@@ -1332,6 +1332,18 @@ Section ProvEngine.
       NoA m -> meminv m ->
       eval_funcall function_entry2 mario_ge m fd vargs t m' vres ->
       NoA m' /\ meminv m'.
+  (* THE MARG-GATED reach hypothesis -- the type-forced successor of
+     reach_meminv_noA. It is SATISFIABLE for the real genv (the forall-vargs
+     reach_meminv_noA is FALSE for a misaligned Mario arg): the marg_ok bm vargs
+     premise restricts to calls whose Mario pointer arg, if it points into bm, is
+     (bm,0). exec_body_prov_marg SUPPLIES marg_ok at each Scall from Pgms + the
+     per-call census, so the whole-body engine never invokes this on a
+     misaligned arg. *)
+  Hypothesis reach_meminv_marg :
+    forall m fd vargs t m' vres,
+      NoA m -> meminv m -> marg_ok bm vargs ->
+      eval_funcall function_entry2 mario_ge m fd vargs t m' vres ->
+      NoA m' /\ meminv m'.
   Hypothesis ext_meminv_noA :
     forall ef vargs m t vres m',
       NoA m -> meminv m ->
@@ -1397,6 +1409,193 @@ Section ProvEngine.
       match goal with Hec : external_call _ _ _ _ _ _ _ |- _ =>
         destruct (ext_meminv_noA _ _ _ _ _ _ Hno0 Hmem0 Hec) as (Hno0' & Hmem0') end.
       split; [ exact Hno0' | split; [ exact Hmem0' | apply tprov_set_opttemp; assumption ] ].
+  Qed.
+
+  (* ================================================================== *)
+  (* THE MARG-CARRYING BODY ENGINE. exec_body_prov_noA discharges the      *)
+  (* body's own meminv preservation but its reach hypothesis               *)
+  (* (reach_meminv_noA) is forall-vargs -- FALSE for a misaligned Mario     *)
+  (* arg. The fix mirrors the ActionValueFrame marg engine: carry, beside   *)
+  (* meminv/tprov, the call-arg-temp invariant Pgms (every gMarioState-     *)
+  (* loaded arg temp that points into bm is (bm,0)), and SUPPLY marg_ok at   *)
+  (* each Scall from Pgms + the per-call census call_arg0_marg. The reach    *)
+  (* hypothesis is then the SATISFIABLE marg-gated reach_meminv_marg.        *)
+  (* ================================================================== *)
+
+  (* the per-statement census for Pgms: a gMarioState-loaded arg temp is set
+     only from gMarioState (=> (bm,0)); a call/builtin result temp is never an
+     arg temp; a reached call's args fit the call_arg0_marg shape. *)
+  Fixpoint pgms_chk (s : statement) : Prop :=
+    match s with
+    | Sset id a           => In id gms_arg_temps -> a = gms_expr
+    | Scall oid _ al      => (forall id, oid = Some id -> ~ In id gms_arg_temps)
+                             /\ call_arg0_marg al
+    | Sbuiltin oid _ _ _  => forall id, oid = Some id -> ~ In id gms_arg_temps
+    | Ssequence s1 s2     => pgms_chk s1 /\ pgms_chk s2
+    | Sifthenelse _ s1 s2 => pgms_chk s1 /\ pgms_chk s2
+    | Sloop s1 s2         => pgms_chk s1 /\ pgms_chk s2
+    | Slabel _ s1         => pgms_chk s1
+    | Sswitch _ ls        => pgms_chk_ls ls
+    | _                   => True
+    end
+  with pgms_chk_ls (ls : labeled_statements) : Prop :=
+    match ls with
+    | LSnil           => True
+    | LScons _ s rest => pgms_chk s /\ pgms_chk_ls rest
+    end.
+
+  (* switch preservation for pgms_chk (mirror ssd/ssc/seq_of/select_switch_prov_ok). *)
+  Lemma pgms_ssd : forall sl, pgms_chk_ls sl -> pgms_chk_ls (select_switch_default sl).
+  Proof.
+    clear Hgb.
+    induction sl as [| o s rest IH]; simpl; intros H; auto.
+    destruct o as [c|]; simpl; [ destruct H as [_ Hr]; apply IH; exact Hr | exact H ].
+  Qed.
+
+  Lemma pgms_ssc : forall n sl res,
+    pgms_chk_ls sl -> select_switch_case n sl = Some res -> pgms_chk_ls res.
+  Proof.
+    clear Hgb.
+    induction sl as [| o s rest IH]; simpl; intros res Hav Hsel; try discriminate.
+    destruct Hav as [Hs Hr]. destruct o as [c|]; simpl in Hsel.
+    - destruct (zeq c n).
+      + inv Hsel. simpl. split; [ exact Hs | exact Hr ].
+      + exact (IH res Hr Hsel).
+    - exact (IH res Hr Hsel).
+  Qed.
+
+  Lemma pgms_seq_of : forall ls, pgms_chk_ls ls -> pgms_chk (seq_of_labeled_statement ls).
+  Proof.
+    clear Hgb.
+    induction ls as [| o s rest IH]; simpl; intros H; auto. destruct H. split; auto.
+  Qed.
+
+  Lemma pgms_select_switch : forall n sl,
+    pgms_chk_ls sl -> pgms_chk_ls (select_switch n sl).
+  Proof.
+    clear Hgb.
+    intros n sl H. unfold select_switch.
+    destruct (select_switch_case n sl) eqn:E.
+    - exact (pgms_ssc n sl l H E).
+    - apply pgms_ssd; exact H.
+  Qed.
+
+  (* setting a non-arg-temp result preserves Pgms. *)
+  Lemma pgms_set_opttemp :
+    forall oid v le,
+      (forall id, oid = Some id -> ~ In id gms_arg_temps) ->
+      Pgms bm le -> Pgms bm (set_opttemp oid v le).
+  Proof.
+    intros oid v le Hut HP. destruct oid as [id|]; [ | exact HP ].
+    unfold Pgms. intros t Hin b o Hs Hb.
+    unfold set_opttemp in Hs. destruct (Pos.eq_dec t id) as [E|N].
+    - subst t. exfalso. exact (Hut id eq_refl Hin).
+    - rewrite PTree.gso in Hs by congruence. exact (HP t Hin b o Hs Hb).
+  Qed.
+
+  (* an Sset preserves Pgms: an arg temp is set (census) from gMarioState =>
+     (bm,0); any other temp is preserved by gso. *)
+  Lemma pgms_sset_preserves :
+    forall e le m id a t le' m' out,
+      e ! mario._gMarioState = None ->
+      gMarioState_wf m bm ->
+      Pgms bm le -> (In id gms_arg_temps -> a = gms_expr) ->
+      exec_stmt function_entry2 mario_ge e le m (Sset id a) t le' m' out ->
+      Pgms bm le'.
+  Proof.
+    intros e le m id a t le' m' out He Hgwf HP Hck Hexec.
+    assert (Hle' : exists v, le' = PTree.set id v le)
+      by (inversion Hexec; subst; eauto).
+    destruct Hle' as (v & ->).
+    unfold Pgms. intros tt Hin b o Hs Hb. subst b.
+    destruct (Pos.eq_dec tt id) as [E|N].
+    - subst tt. specialize (Hck Hin). subst a. unfold gms_expr in Hexec.
+      pose proof (sset_gms_bm id e le m t (PTree.set id v le) m' out bm He Hgwf Hexec) as Hbm0.
+      rewrite Hbm0 in Hs. congruence.
+    - rewrite PTree.gso in Hs by congruence. exact (HP tt Hin bm o Hs eq_refl).
+  Qed.
+
+  (* ================================================================== *)
+  (* THE ENGINE over mario_ge with P = NoA /\ meminv /\ tprov /\ Pgms and  *)
+  (* census = prov_ok /\ pgms_chk. body_check_generic instantiation; the    *)
+  (* Scall leaf supplies marg_ok to the marg reach via call_arg0_marg_sound. *)
+  (* ================================================================== *)
+  Theorem exec_body_prov_marg :
+    forall e le m s t le' m' out,
+      e ! mario._gMarioState = None ->
+      exec_stmt function_entry2 mario_ge e le m s t le' m' out ->
+      NoA m -> meminv m -> tprov le -> Pgms bm le ->
+      prov_ok s -> pgms_chk s ->
+      NoA m' /\ meminv m' /\ tprov le' /\ Pgms bm le'.
+  Proof.
+    intros e le m s t le' m' out He H Hno Hmem Htp Hpg Hck Hpck.
+    apply (body_check_generic mario_ge e
+             (fun mm ll => NoA mm /\ meminv mm /\ tprov ll /\ Pgms bm ll)
+             (fun ss => prov_ok ss /\ pgms_chk ss))
+      with (le := le) (m := m) (s := s) (t := t) (le' := le') (m' := m') (out := out);
+      try exact H;
+      try (split; [ exact Hno | split; [ exact Hmem | split; [ exact Htp | exact Hpg ] ] ]);
+      try (split; [ exact Hck | exact Hpck ]).
+    - (* Sassign leaf *)
+      clear He reach_meminv_marg reach_meminv_noA ext_meminv_noA Hmem Htp Hpg Hck Hpck H Hno le m s t le' m' out.
+      intros le0 m0 a1 a2 t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0) (Hck0 & _) Hexec.
+      assert (Hle : le0' = le0) by (inversion Hexec; reflexivity). subst le0'.
+      split; [ eapply noA_store_pres; [ exact Hno0 | exact Hck0 | exact Hexec ] | ].
+      split; [ | split; [ exact Htp0 | exact Hpg0 ] ].
+      cbn [prov_ok] in Hck0.
+      destruct Htp0 as (T48 & T12 & T49 & T13).
+      destruct Hck0 as [ [Ha1 Ha2] | [Ha1 Ha2] ]; subst.
+      + eapply (store_preserves_meminv store1_lval store1_rval mario._t'49 store1_loc_is_t49);
+          [ exact Hmem0 | exact T49 | exact Hexec ].
+      + eapply (store_preserves_meminv store2_lval store2_rval mario._t'13 store2_loc_is_t13);
+          [ exact Hmem0 | exact T13 | exact Hexec ].
+    - (* Sset leaf *)
+      clear reach_meminv_marg reach_meminv_noA ext_meminv_noA noA_store_pres Hmem Htp Hpg Hck Hpck H Hno le m s t le' m' out.
+      intros le0 m0 id a t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0) (Hck0 & Hpck0) Hexec.
+      cbn [prov_ok] in Hck0. cbn [pgms_chk] in Hpck0.
+      assert (Hm : m0' = m0) by (inversion Hexec; reflexivity).
+      pose proof Hmem0 as Hmemcopy. destruct Hmemcopy as (_ & _ & _ & Hgwf0).
+      destruct (sset_case_preserves e le0 m0 id a t0 le0' m0' out0 He Hmem0 Htp0 Hck0 Hexec)
+        as (Hmem0' & Htp0').
+      split; [ rewrite Hm; exact Hno0 | ].
+      split; [ exact Hmem0' | split; [ exact Htp0' | ] ].
+      eapply pgms_sset_preserves; [ exact He | exact Hgwf0 | exact Hpg0 | exact Hpck0 | exact Hexec ].
+    - (* Scall leaf -- supplies marg_ok to reach_meminv_marg *)
+      clear reach_meminv_noA ext_meminv_noA noA_store_pres Hmem Htp Hpg Hck Hpck H Hno le m s t le' m' out.
+      intros le0 m0 oid a al t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0) (Hck0 & Hpck0) Hexec.
+      cbn [prov_ok] in Hck0. cbn [pgms_chk] in Hpck0.
+      destruct Hpck0 as (Hres & Hargs).
+      inversion Hexec; subst.
+      match goal with Hel : eval_exprlist _ _ _ _ al _ ?vargs |- _ =>
+        assert (Hmarg : marg_ok bm vargs)
+          by (eapply call_arg0_marg_sound; [ exact Hpg0 | exact Hargs | exact Hel ]) end.
+      match goal with Hf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+        destruct (reach_meminv_marg _ _ _ _ _ _ Hno0 Hmem0 Hmarg Hf) as (Hno0' & Hmem0') end.
+      split; [ exact Hno0' | split; [ exact Hmem0' | split ] ].
+      + apply tprov_set_opttemp; [ exact Hck0 | exact Htp0 ].
+      + apply pgms_set_opttemp; [ exact Hres | exact Hpg0 ].
+    - (* Sbuiltin leaf *)
+      clear He reach_meminv_marg reach_meminv_noA noA_store_pres Hmem Htp Hpg Hck Hpck H Hno le m s t le' m' out.
+      intros le0 m0 oid ef tyl al t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0) (Hck0 & Hpck0) Hexec.
+      cbn [prov_ok] in Hck0. cbn [pgms_chk] in Hpck0.
+      inversion Hexec; subst.
+      match goal with Hec : external_call _ _ _ _ _ _ _ |- _ =>
+        destruct (ext_meminv_noA _ _ _ _ _ _ Hno0 Hmem0 Hec) as (Hno0' & Hmem0') end.
+      split; [ exact Hno0' | split; [ exact Hmem0' | split ] ].
+      + apply tprov_set_opttemp; [ exact Hck0 | exact Htp0 ].
+      + apply pgms_set_opttemp; [ exact Hpck0 | exact Hpg0 ].
+    - (* Hseq *) intros s1 s2 Hd; destruct Hd as [Hp Hg];
+        cbn [prov_ok pgms_chk] in Hp, Hg; tauto.
+    - (* Hif *) intros a s1 s2 Hd; destruct Hd as [Hp Hg];
+        cbn [prov_ok pgms_chk] in Hp, Hg; tauto.
+    - (* Hloop *) intros s1 s2 Hd; destruct Hd as [Hp Hg];
+        cbn [prov_ok pgms_chk] in Hp, Hg; tauto.
+    - (* Hlabel *) intros l s0 Hd; destruct Hd as [Hp Hg];
+        cbn [prov_ok pgms_chk] in Hp, Hg; tauto.
+    - (* Hsw *) intros a ls n Hd; destruct Hd as [Hp Hg];
+        cbn [prov_ok pgms_chk] in Hp, Hg.
+      split; [ apply seq_of_prov_ok; apply select_switch_prov_ok; exact Hp
+             | apply pgms_seq_of; apply pgms_select_switch; exact Hg ].
   Qed.
 
 End ProvEngine.
@@ -1690,6 +1889,153 @@ Proof.
       | exact (conj Hvv (conj Hss (conj Hmw Hgw)))
       | eapply tprov_entry; exact Hbind
       | exact execute_mario_action_body_prov_ok
+      | ].
+    unfold meminv in Hmem'. destruct Hmem' as (Hvv' & Hss' & Hmw' & Hgw').
+    exact (conj Hn' (conj Hvv' (conj Hss' (conj Hmw' Hgw')))). }
+  exact HPm'.
+Qed.
+
+(* ================================================================== *)
+(* THE MARG WIRING -- the type-forced successor of the no-A wiring.      *)
+(*                                                                     *)
+(* exec_body_prov_marg threads, beside NoA/meminv/tprov, the call-arg-   *)
+(* temp invariant Pgms, and supplies marg_ok at each Scall. Below: the   *)
+(* genv-free Pgms census of the real body, the marg reach BUILD, the     *)
+(* vacuous Pgms entry fact, and the fully-wired marg frame reduction --   *)
+(* which consumes the SATISFIABLE marg-gated reach residuals instead of   *)
+(* the forall-vargs ones the no-A wiring used.                           *)
+(* ================================================================== *)
+
+(* THE Pgms CENSUS (machine-checked, genv-free): pgms_chk holds over the
+   ACTUAL clightgen'd body. Certifies, by cbn over the concrete AST, that every
+   gMarioState-loaded arg temp (the 17 in gms_arg_temps) is set only from
+   gMarioState, that no call/builtin result temp collides with an arg temp, and
+   that every reached call's first argument fits the call_arg0_marg shape. *)
+Lemma execute_mario_action_body_pgms_ok :
+  pgms_chk (fn_body mario.f_execute_mario_action).
+Proof.
+  cbn [pgms_chk pgms_chk_ls fn_body mario.f_execute_mario_action Swhile].
+  repeat
+    (match goal with
+     | |- True => exact I
+     | |- _ /\ _ => split
+     | |- call_arg0_marg _ =>
+         vm_compute; first [ exact I | repeat (first [ (left; reflexivity) | right ]) ]
+     | |- In _ _ -> _ =>
+         let H := fresh in intro H;
+         first [ (unfold gms_expr; reflexivity)
+               | (exfalso; vm_compute in H;
+                  repeat (destruct H as [H|H]); solve [ discriminate | contradiction ]) ]
+     | |- Some _ = Some _ -> _ =>
+         let H := fresh in intro H; injection H as H; subst
+     | |- None = Some _ -> _ =>
+         let H := fresh in intro H; discriminate H
+     | |- ~ In _ _ =>
+         let H := fresh in intro H; vm_compute in H;
+         repeat (destruct H as [H|H]); solve [ discriminate | contradiction ]
+     | |- forall _, _ => intro
+     end).
+Qed.
+
+(* every reached funcall, entered with a marg_ok Mario arg, preserves NoA and the
+   two Mario-pointer invariants. The value part (valid + action_sat) is the
+   SEPARATE reach_value_preserves_marg; together they give full meminv. This is
+   the marg-gated successor of reach_rest_noA -- the misalignment hazard threatens
+   marioObj_wf/gMarioState_wf exactly as it threatens action_sat, so the rest
+   residual must carry marg_ok too. *)
+Definition reach_rest_marg (bm : block) (NoA : mem -> Prop) : Prop :=
+  forall m fd vargs t m' vres,
+    NoA m -> marg_ok bm vargs ->
+    eval_funcall function_entry2 mario_ge m fd vargs t m' vres ->
+    marioObj_wf m bm -> gMarioState_wf m bm ->
+    NoA m' /\ marioObj_wf m' bm /\ gMarioState_wf m' bm.
+
+Lemma reach_meminv_marg_build :
+  forall bm NoA,
+    reach_value_preserves_marg nonflying bm mario_ge NoA ->
+    reach_rest_marg bm NoA ->
+    forall m fd vargs t m' vres,
+      NoA m -> meminv bm m -> marg_ok bm vargs ->
+      eval_funcall function_entry2 mario_ge m fd vargs t m' vres ->
+      NoA m' /\ meminv bm m'.
+Proof.
+  intros bm NoA Hval Hrest m fd vargs t m' vres Hno Hmem Hmarg Hev.
+  unfold meminv in Hmem. destruct Hmem as (Hv & Hsat & Hmwf & Hgwf).
+  destruct (Hval m fd vargs t m' vres Hno Hmarg Hev Hv Hsat) as (Hv' & Hsat').
+  destruct (Hrest m fd vargs t m' vres Hno Hmarg Hev Hmwf Hgwf) as (Hno' & Hmwf' & Hgwf').
+  split; [ exact Hno' | unfold meminv; repeat split; assumption ].
+Qed.
+
+(* Pgms holds at function entry, VACUOUSLY: the 17 arg temps are not parameters,
+   so they keep their create_undef_temps value (Vundef), which is not a Vptr --
+   the Pgms implication is vacuously true. *)
+Lemma pgms_entry :
+  forall bm vargs le,
+    bind_parameter_temps (fn_params mario.f_execute_mario_action) vargs
+       (create_undef_temps (fn_temps mario.f_execute_mario_action)) = Some le ->
+    Pgms bm le.
+Proof.
+  intros bm vargs le Hbind.
+  assert (Hother : forall id, ~ In id (var_names (fn_params mario.f_execute_mario_action)) ->
+            le ! id = (create_undef_temps (fn_temps mario.f_execute_mario_action)) ! id)
+    by (intros id Hnin; eapply bind_parameter_temps_other; [ exact Hbind | exact Hnin ]).
+  unfold Pgms. intros t Hin b o Hlk Hb.
+  vm_compute in Hin.
+  repeat (destruct Hin as [Hin | Hin]; [ subst t;
+            rewrite Hother in Hlk by (vm_compute; intuition discriminate);
+            vm_compute in Hlk; discriminate Hlk | ]).
+  contradiction.
+Qed.
+
+(* THE MARG FRAME REDUCTION (concrete, fully PROVED): a real frame preserves NoA
+   and the full memory invariant, consuming the SATISFIABLE marg-gated reach
+   residuals. Identical to execute_mario_action_preserves_real except the value /
+   rest reach hypotheses carry marg_ok, and the body is discharged by
+   exec_body_prov_marg over the prov_ok AND pgms_chk censuses, supplying marg_ok
+   at every call site from the (vacuous-at-entry, threaded-through-the-body) Pgms
+   invariant. This RETIRES the forall-vargs reach_value_preserves_noA path. *)
+Theorem execute_mario_action_preserves_real_marg :
+  forall (bm : block) (NoA : mem -> Prop) m m',
+    reach_value_preserves_marg nonflying bm mario_ge NoA ->
+    reach_rest_marg bm NoA ->
+    (forall ef vargs mm tt vres mm',
+        NoA mm -> meminv bm mm ->
+        external_call ef mario_ge vargs mm tt vres mm' -> NoA mm' /\ meminv bm mm') ->
+    (forall e le mm a1 a2 tt le' mm' out,
+        NoA mm -> prov_ok (Sassign a1 a2) ->
+        exec_stmt function_entry2 mario_ge e le mm (Sassign a1 a2) tt le' mm' out -> NoA mm') ->
+    NoA m ->
+    Mem.valid_block m bm -> action_sat nonflying m bm ->
+    marioObj_wf m bm -> gMarioState_wf m bm ->
+    execute_mario_action_step m m' ->
+    NoA m' /\ Mem.valid_block m' bm /\ action_sat nonflying m' bm /\
+    marioObj_wf m' bm /\ gMarioState_wf m' bm.
+Proof.
+  intros bm NoA m m' Hval Hrest Hext Hstore HnoA Hv Hsat Hmwf Hgwf
+         (b_o & t & res & Hfun).
+  pose proof Hgwf as Hgwf2. destruct Hgwf2 as (gb & Hgb & Hload).
+  pose proof (reach_meminv_marg_build bm NoA Hval Hrest) as Hreachmem.
+  assert (HPm' :
+    NoA m' /\ Mem.valid_block m' bm /\ action_sat nonflying m' bm /\
+    marioObj_wf m' bm /\ gMarioState_wf m' bm).
+  { eapply (funcall_from_body_preserves_entry
+              (fun mm => NoA mm /\ Mem.valid_block mm bm /\ action_sat nonflying mm bm /\
+                         marioObj_wf mm bm /\ gMarioState_wf mm bm)
+              mario_ge mario.f_execute_mario_action (Vptr b_o Ptrofs.zero :: nil)
+              m m' t res eq_refl);
+      [ | exact (conj HnoA (conj Hv (conj Hsat (conj Hmwf Hgwf)))) | exact Hfun ].
+    intros le mm tt le' mm' out Hbind (Hn & Hvv & Hss & Hmw & Hgw) Hexec.
+    edestruct (exec_body_prov_marg bm gb Hgb NoA Hreachmem Hext Hstore
+                 empty_env le mm (fn_body mario.f_execute_mario_action) tt le' mm' out)
+      as (Hn' & Hmem' & _ & _);
+      [ apply PTree.gempty
+      | exact Hexec
+      | exact Hn
+      | exact (conj Hvv (conj Hss (conj Hmw Hgw)))
+      | eapply tprov_entry; exact Hbind
+      | eapply pgms_entry; exact Hbind
+      | exact execute_mario_action_body_prov_ok
+      | exact execute_mario_action_body_pgms_ok
       | ].
     unfold meminv in Hmem'. destruct Hmem' as (Hvv' & Hss' & Hmw' & Hgw').
     exact (conj Hn' (conj Hvv' (conj Hss' (conj Hmw' Hgw')))). }
