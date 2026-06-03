@@ -1128,6 +1128,70 @@ Section ProvEngine.
   Qed.
 
   (* ================================================================== *)
+  (* THE CHECK-PARAMETERIZED GENERIC ENGINE. body_prov_generic bakes in    *)
+  (* the body-specific `prov_ok` Fixpoint (its leaf cases scan for the two  *)
+  (* hardwired stores). To discharge the per-function value leaf for the    *)
+  (* OTHER ~61 mario.c functions we need the SAME structural induction but  *)
+  (* over an ARBITRARY per-statement check `chk` -- so a different function *)
+  (* can supply a different leaf census (e.g. every Sassign is an m->field   *)
+  (* store at a disjoint offset). The check is required only to DISTRIBUTE    *)
+  (* over the compound forms (Ssequence/Sifthenelse/Sloop/Slabel/Sswitch);  *)
+  (* the leaf facts carry the actual P-preservation. Abstract ge/e/P/chk,   *)
+  (* so the 16-case induction stays trivial (no genv forcing).              *)
+  (* ================================================================== *)
+  Lemma body_check_generic :
+    forall (ge : genv) (e : env) (P : mem -> temp_env -> Prop) (chk : statement -> Prop),
+      (forall le m a1 a2 t le' m' out,
+         P m le -> chk (Sassign a1 a2) ->
+         exec_stmt function_entry2 ge e le m (Sassign a1 a2) t le' m' out -> P m' le') ->
+      (forall le m id a t le' m' out,
+         P m le -> chk (Sset id a) ->
+         exec_stmt function_entry2 ge e le m (Sset id a) t le' m' out -> P m' le') ->
+      (forall le m oid a al t le' m' out,
+         P m le -> chk (Scall oid a al) ->
+         exec_stmt function_entry2 ge e le m (Scall oid a al) t le' m' out -> P m' le') ->
+      (forall le m oid ef tyl al t le' m' out,
+         P m le -> chk (Sbuiltin oid ef tyl al) ->
+         exec_stmt function_entry2 ge e le m (Sbuiltin oid ef tyl al) t le' m' out -> P m' le') ->
+      (forall s1 s2, chk (Ssequence s1 s2) -> chk s1 /\ chk s2) ->
+      (forall a s1 s2, chk (Sifthenelse a s1 s2) -> chk s1 /\ chk s2) ->
+      (forall s1 s2, chk (Sloop s1 s2) -> chk s1 /\ chk s2) ->
+      (forall l s, chk (Slabel l s) -> chk s) ->
+      (forall a ls n, chk (Sswitch a ls) ->
+                      chk (seq_of_labeled_statement (select_switch n ls))) ->
+      forall le m s t le' m' out,
+        exec_stmt function_entry2 ge e le m s t le' m' out -> P m le -> chk s -> P m' le'.
+  Proof.
+    clear Hgb.
+    intros ge e P chk HA HS HC HB Hseq Hif Hloop Hlabel Hsw le m s t le' m' out H.
+    induction H; intros HP Hck;
+      repeat match goal with
+             | IH : (forall _ _ _ _ _ _ _ _, P _ _ -> _) -> _ |- _ =>
+                 specialize (IH HA HS HC HB)
+             end.
+    - (* Sskip *) exact HP.
+    - (* Sassign *) eapply HA; [ exact HP | exact Hck | solve [ econstructor; eauto ] ].
+    - (* Sset *) eapply HS; [ exact HP | exact Hck | solve [ econstructor; eauto ] ].
+    - (* Scall *) eapply HC; [ exact HP | exact Hck | solve [ econstructor; eauto ] ].
+    - (* Sbuiltin *) eapply HB; [ exact HP | exact Hck | solve [ econstructor; eauto ] ].
+    - (* Sseq normal *) destruct (Hseq _ _ Hck) as [Hck1 Hck2].
+      exact (IHexec_stmt2 (IHexec_stmt1 HP Hck1) Hck2).
+    - (* Sseq abnormal *) destruct (Hseq _ _ Hck) as [Hck1 _]. exact (IHexec_stmt HP Hck1).
+    - (* Sifthenelse *) destruct (Hif _ _ _ Hck) as [Hck1 Hck2].
+      destruct b; [ exact (IHexec_stmt HP Hck1) | exact (IHexec_stmt HP Hck2) ].
+    - (* Sreturn none *) exact HP.
+    - (* Sreturn some *) exact HP.
+    - (* Sbreak *) exact HP.
+    - (* Scontinue *) exact HP.
+    - (* Sloop stop1 *) destruct (Hloop _ _ Hck) as [Hck1 _]. exact (IHexec_stmt HP Hck1).
+    - (* Sloop stop2 *) destruct (Hloop _ _ Hck) as [Hck1 Hck2].
+      exact (IHexec_stmt2 (IHexec_stmt1 HP Hck1) Hck2).
+    - (* Sloop loop *) destruct (Hloop _ _ Hck) as [Hck1 Hck2].
+      exact (IHexec_stmt3 (IHexec_stmt2 (IHexec_stmt1 HP Hck1) Hck2) Hck).
+    - (* Sswitch *) exact (IHexec_stmt HP (Hsw _ _ _ Hck)).
+  Qed.
+
+  (* ================================================================== *)
   (* THE NO-A-THREADED REACH RESIDUALS. The unconditional `meminv m ->     *)
   (* meminv m'` for every reached funcall is FALSE: set_mario_action with   *)
   (* an ACT_FLYING argument is a reached eval_funcall that breaks action_sat.*)
