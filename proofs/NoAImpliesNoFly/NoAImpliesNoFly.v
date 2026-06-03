@@ -544,22 +544,22 @@ Section NoAImpliesNoFly.
     - rewrite PTree.gso in Hget by assumption.
       apply create_undef_temps_Vundef in Hget. discriminate.
   Qed.
-  (* vec3f_find_ceil's entry-temp invariant.
-     !! KNOWN-FALSE AS STATED (2026-06-03): TI le is FALSE for vec3f's entry. Its
-     params are _pos (a float pointer), _height (a float), _ceil (a Surface output
-     pointer), and the real call passes _pos = _m->pos (Vptr bm pos_ofs) and
-     _ceil = &_m->ceil (Vptr bm ceil_ofs) -- BOTH interior bm-pointers, which TI
-     ("only _m points into bm, at offset 0") forbids. So TI cannot hold here
-     regardless of marg_ok. FIX (designed): stop routing vec3f through TI; handle
-     its funcall by a focused direct-preservation leaf (vec3f writes only the ceil
-     output at ceil_ofs <> 12 and reads pos, so it preserves action_sat). Then
-     DELETE this hypothesis. The eventual discharge needs a TYPED interior-pointer
-     provenance (TI generalized) -- the goal's real hard core. See memory
-     marg-discharge. *)
-  Hypothesis reach_vec3f_ceil_offbm :
-    forall vargs m e le m1,
-      function_entry2 mario_ge mario.f_vec3f_find_ceil vargs m e le m1 ->
-      marg_ok bm vargs -> TI le.
+  (* The focused leaf for the marg-EXEMPT reached internal callee(s) -- i.e.
+     vec3f_find_ceil, whose first param is a float pointer (not a MarioState ptr) and
+     which receives INTERIOR bm-pointers (_pos = _m->pos, _ceil = &_m->ceil). TI /
+     marg_ok cannot describe those, so vec3f is NOT routed through the marg->TI->body
+     path; instead this says its whole funcall preserves validity, action_sat and
+     MWF directly. TRUE: vec3f writes only the ceil output (at ceil_ofs <> 12) and
+     reads pos -- it never stores a flying value to (bm,12). DISCHARGE PATH (the
+     goal's hard core): a TYPED interior-pointer provenance for vec3f's body, reusing
+     assign_avoids_action_cell's (bm,field)<>(bm,12) struct-non-overlap. This
+     REPLACES the false reach_vec3f_ceil_offbm (which wrongly concluded TI le). *)
+  Hypothesis reach_vec3f_preserves :
+    forall f vargs m t m' vres,
+      reached_fd (Ctypes.Internal f) -> marg_exempt (Ctypes.Internal f) = true ->
+      eval_funcall function_entry2 mario_ge m (Ctypes.Internal f) vargs t m' vres ->
+      NoA m -> MWF m -> Mem.valid_block m bm -> action_sat nonflying m bm ->
+      Mem.valid_block m' bm /\ action_sat nonflying m' bm /\ MWF m'.
   (* (1a-TI) REACHED body leaf, TI HALF -- now PROVED for 16 of the 17 reached
           internals (entry_TI_singleparam) and reduced to the single narrow
           residual reach_vec3f_ceil_offbm for the 17th. The `reached_fd` premise
@@ -569,16 +569,20 @@ Section NoAImpliesNoFly.
   Lemma reach_value_body_TI :
     forall f vargs m e le m1,
       reached_fd (Ctypes.Internal f) ->
+      marg_exempt (Ctypes.Internal f) = false ->
       function_entry2 mario_ge f vargs m e le m1 ->
       ~ writer_set_mario_action (Ctypes.Internal f) ->
       marg_ok bm vargs ->
       TI le.
   Proof.
-    intros f vargs m e le m1 Hrf Hentry Hnw Hmarg.
+    intros f vargs m e le m1 Hrf Hexm Hentry Hnw Hmarg.
     destruct Hrf as [Hin | (ef & tl & ty & cc & Hext)]; [| discriminate Hext].
     destruct (reached_internal_param_shape f Hin) as [(ty & Hpar) | Hvec].
     - exact (entry_TI_singleparam f vargs m e le m1 ty Hpar Hentry Hmarg).
-    - subst f. exact (reach_vec3f_ceil_offbm vargs m e le m1 Hentry Hmarg).
+    - (* vec3f is marg-EXEMPT (first param a float pointer, not a MarioState ptr), so the
+         marg_exempt = false premise is contradictory here -- vec3f is handled by
+         the focused leaf reach_vec3f_preserves, never via TI. *)
+      subst f. vm_compute in Hexm. discriminate Hexm.
   Qed.
   (* (1a) the FULL body leaf the value engine consumes: TI le /\ C (fn_body f).
           The C-conjunct -- "f's body NAMES MarioState's action field as a store
@@ -589,14 +593,15 @@ Section NoAImpliesNoFly.
   Lemma reach_value_body_marg :
     forall f vargs m e le m1,
       reached_fd (Ctypes.Internal f) ->
+      marg_exempt (Ctypes.Internal f) = false ->
       function_entry2 mario_ge f vargs m e le m1 ->
       ~ writer_set_mario_action (Ctypes.Internal f) ->
       marg_ok bm vargs ->
       TI le /\ C (fn_body f).
   Proof.
-    intros f vargs m e le m1 Hrf Hentry Hnw Hmarg.
+    intros f vargs m e le m1 Hrf Hexm Hentry Hnw Hmarg.
     split.
-    - exact (reach_value_body_TI f vargs m e le m1 Hrf Hentry Hnw Hmarg).
+    - exact (reach_value_body_TI f vargs m e le m1 Hrf Hexm Hentry Hnw Hmarg).
     - unfold C. exact (reached_fd_no_action_store f Hrf).
   Qed.
   (* (1a') a direct Sassign under TI+C preserves validity + non-flying (it stores
@@ -812,23 +817,19 @@ Section NoAImpliesNoFly.
       eapply assign_avoids_action_cell; eauto.
     - eapply MWF_preserved_assign; eauto.
   Qed.
-  (* (1a'') under TI, a reached call's evaluated args are marg_ok (the Mario arg
-           temp is (bm,0)-or-off-bm) -- the call-site bridge that THREADS marg.
-     !! KNOWN-FALSE AS STATED (2026-06-03): NOT every reached call's arg0 is
-     marg_ok. update_mario_geometry_inputs calls EXTERNAL f32_find_wall_collision
-     with arg0 = &_m->pos[0] = Vptr bm pos_ofs (pos_ofs <> 0), and INTERNAL
-     vec3f_find_ceil with arg0 = _m->pos (Vptr bm pos_ofs) -- both misaligned
-     bm-pointers. The value engine asserts marg_ok at every Scall before the
-     internal/external split, so this Hypothesis is FALSE and the capstone
-     presently rests on it (a soundness defect). FIX (designed, not yet applied):
-     guard the engine motive so external + vec3f callees skip marg_ok (key on
-     whether the callee's first param has MarioState-pointer type), handle vec3f
-     via a focused direct-preservation leaf, then this becomes the TRUE
-     `~ marg_exempt fd -> marg_ok bm vargs`. See the memory note
-     marg-discharge / reach-residuals-map. *)
+  (* (1a'') under TI, a reached call into a NON-marg-exempt callee (first param a
+     MarioState pointer) has marg_ok args -- the call-site bridge that THREADS marg.
+     Now correctly GUARDED (2026-06-03): the engine only asserts this where the
+     callee's body is analysed via the marg->TI path; external + vec3f callees
+     (which receive interior bm-pointers and would FALSIFY an unguarded marg_ok) are
+     marg_exempt and excluded. TRUE as stated, still ASSUMED -- dischargeable via TI
+     + an arg0-shape census (the non-exempt helper calls pass arg0 = _m / aligned
+     temp / non-pointer; only vec3f/external calls use &_m->field-style arg0). *)
   Hypothesis reach_call_marg :
-    forall e le m optid a al tyargs vargs,
+    forall e le m optid a al tyargs vargs vf fd,
       TI le -> C (Scall optid a al) ->
+      eval_expr mario_ge e le m a vf -> Genv.find_funct mario_ge vf = Some fd ->
+      marg_exempt fd = false ->
       eval_exprlist mario_ge e le m al tyargs vargs -> marg_ok bm vargs.
   (* (1a''') TI is preserved by a censused Sset and by a censused call/builtin result. *)
   Hypothesis reach_TI_set :
@@ -1068,6 +1069,7 @@ Section NoAImpliesNoFly.
     pose proof (exec_funcall_reach_value_reached nonflying bm mario_ge NoA MWF
                   writer_set_mario_action reached_fd TI C
                   reach_value_body_marg reach_assign_marg reach_call_marg
+                  reach_vec3f_preserves
                   reach_TI_set reach_TI_optc reach_TI_optb
                   reach_ret_call reach_ret_builtin
                   reach_call_reached reach_writer_ok reach_ext_action_cell

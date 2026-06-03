@@ -2431,7 +2431,7 @@ Lemma reach_meminv_reached_build :
 Proof.
   intros bm NoA MWF Reached_fd Hval Hrest m fd vargs t m' vres Hrf Hno Hmem HMWF Hmarg Hev.
   unfold meminv in Hmem. destruct Hmem as (Hv & Hsat & Hmwf & Hgwf).
-  destruct (Hval m fd vargs t m' vres Hrf Hno HMWF Hmarg Hev Hv Hsat) as (Hv' & Hsat' & HMWF').
+  destruct (Hval m fd vargs t m' vres Hrf Hno HMWF (fun _ => Hmarg) Hev Hv Hsat) as (Hv' & Hsat' & HMWF').
   destruct (Hrest m fd vargs t m' vres Hno Hmarg Hev Hmwf Hgwf) as (Hno' & Hmwf' & Hgwf').
   split; [ exact Hno' | split; [ unfold meminv; repeat split; assumption | exact HMWF' ] ].
 Qed.

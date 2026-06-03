@@ -1266,11 +1266,28 @@ Qed.
 (* is itself Reached -- the semantic image of the decidable callgraph      *)
 (* closure (CallgraphReach.reaches), discharged per-call-site downstream.  *)
 (* ====================================================================== *)
+(* A callee is "marg-exempt" when marg_ok (arg0 aligned-into-bm) is NOT the right
+   precondition for analysing it: externals (handled by the ext residual, never
+   recursed into), and internal callees whose FIRST parameter is not a MarioState
+   pointer (e.g. vec3f_find_ceil, whose _pos/_ceil legitimately receive INTERIOR
+   bm-pointers -- TI/marg_ok cannot express those). Exempt internal callees are
+   discharged by a focused direct-preservation leaf instead of the marg->TI->body
+   path. Keying on the param TYPE (not fundef identity) keeps it decidable. *)
+Definition marg_exempt (fd : Clight.fundef) : bool :=
+  match fd with
+  | Ctypes.External _ _ _ _ => true
+  | Ctypes.Internal f =>
+      match fn_params f with
+      | (_, Tpointer (Tstruct sid _) _) :: _ => negb (Pos.eqb sid mario._MarioState)
+      | _ => true
+      end
+  end.
+
 Definition reach_value_preserves_reached
     (Q : int -> Prop) (bm : block) (ge : genv) (NoA MWF : mem -> Prop)
     (Reached_fd : Clight.fundef -> Prop) : Prop :=
   forall m fd vargs t m' vres,
-    Reached_fd fd -> NoA m -> MWF m -> marg_ok bm vargs ->
+    Reached_fd fd -> NoA m -> MWF m -> (marg_exempt fd = false -> marg_ok bm vargs) ->
     eval_funcall function_entry2 ge m fd vargs t m' vres ->
     Mem.valid_block m bm -> action_sat Q m bm ->
     Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m'.
@@ -1284,7 +1301,7 @@ Theorem exec_funcall_reach_value_reached :
        has entry-temp-invariant TI and its body passes census C. Now ENUMERABLE
        (Reached_fd is finite), not a `forall f` phantom. *)
     (forall f vargs m e le m1,
-       Reached_fd (Internal f) ->
+       Reached_fd (Internal f) -> marg_exempt (Internal f) = false ->
        function_entry2 ge f vargs m e le m1 ->
        ~ writer (Internal f) -> marg_ok bm vargs ->
        TI le /\ C (fn_body f)) ->
@@ -1297,10 +1314,24 @@ Theorem exec_funcall_reach_value_reached :
        TI le -> C (Sassign a1 a2) -> MWF m ->
        Mem.valid_block m bm -> action_sat Q m bm ->
        Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m') ->
-    (* the call-arg census (unchanged). *)
-    (forall e le m optid a al tyargs vargs,
+    (* the call-arg census, now NON-EXEMPT-gated: a reached call into a
+       NON-marg-exempt callee (first param a MarioState pointer) has marg_ok args.
+       Exempt callees (externals, vec3f) don't need it -- and indeed don't satisfy
+       it (they receive interior bm-pointers). *)
+    (forall e le m optid a al tyargs vargs vf fd,
        TI le -> C (Scall optid a al) ->
+       eval_expr ge e le m a vf -> Genv.find_funct ge vf = Some fd ->
+       marg_exempt fd = false ->
        eval_exprlist ge e le m al tyargs vargs -> marg_ok bm vargs) ->
+    (* leaf A-exempt: a reached marg-EXEMPT internal callee (vec3f_find_ceil --
+       interior-pointer params) preserves validity, action_sat and MWF directly,
+       without the marg_ok/TI path. TRUE (vec3f writes only its ceil output at a
+       non-action offset and reads pos); discharged later by typed body analysis. *)
+    (forall f vargs m t m' vres,
+       Reached_fd (Internal f) -> marg_exempt (Internal f) = true ->
+       eval_funcall function_entry2 ge m (Internal f) vargs t m' vres ->
+       NoA m -> MWF m -> Mem.valid_block m bm -> action_sat Q m bm ->
+       Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m') ->
     (* TI preserved by a censused Sset, MWF-gated (unchanged). *)
     (forall e le m id a v,
        MWF m -> eval_expr ge e le m a v -> TI le -> C (Sset id a) ->
@@ -1361,7 +1392,7 @@ Theorem exec_funcall_reach_value_reached :
     (forall a ls n, C (Sswitch a ls) -> C (seq_of_labeled_statement (select_switch n ls))) ->
     reach_value_preserves_reached Q bm ge NoA MWF Reached_fd.
 Proof.
-  intros Q bm ge NoA MWF writer Reached_fd TI C Hbody Hassign Hcallmarg HTI_set HTI_optc HTI_optb
+  intros Q bm ge NoA MWF writer Reached_fd TI C Hbody Hassign Hcallmarg Hexempt HTI_set HTI_optc HTI_optb
          Hret_call Hret_builtin
          Hcall_reached Hw Hext Hmwf_ext Hmwf_unch Hnoaexec Hnoaentry HCseq HCif HCloop HCsw.
   assert (MAIN :
@@ -1373,7 +1404,8 @@ Proof.
     (forall m fd vargs t m' vres,
        eval_funcall function_entry2 ge m fd vargs t m' vres ->
        Reached_fd fd ->
-       NoA m -> MWF m -> Mem.valid_block m bm -> action_sat Q m bm -> marg_ok bm vargs ->
+       NoA m -> MWF m -> Mem.valid_block m bm -> action_sat Q m bm ->
+       (marg_exempt fd = false -> marg_ok bm vargs) ->
        Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m')).
   { apply (exec_stmt_funcall_ind function_entry2 ge
       (fun e le m s t le' m' out =>
@@ -1381,7 +1413,8 @@ Proof.
          Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m' /\ TI le')
       (fun m fd vargs t m' vres =>
          Reached_fd fd ->
-         NoA m -> MWF m -> Mem.valid_block m bm -> action_sat Q m bm -> marg_ok bm vargs ->
+         NoA m -> MWF m -> Mem.valid_block m bm -> action_sat Q m bm ->
+         (marg_exempt fd = false -> marg_ok bm vargs) ->
          Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m')).
     - (* Sskip *) intros e le m HnoA HMWF Hv Hsat HTI _.
       split; [ exact Hv | split; [ exact Hsat | split; [ exact HMWF | exact HTI ] ] ].
@@ -1397,7 +1430,9 @@ Proof.
     - (* Scall: derive Reached_fd of the callee from TI+C, then funcall IH *)
       intros e le m optid a al tyargs tyres cconv vf vargs f t m' vres
              Hcf He Hel Hff Htof Hfd IHfun HnoA HMWF Hv Hsat HTI HC.
-      assert (Hmarg : marg_ok bm vargs) by (eapply Hcallmarg; [ exact HTI | exact HC | exact Hel ]).
+      assert (Hmarg : marg_exempt f = false -> marg_ok bm vargs)
+        by (intro Hne; eapply Hcallmarg;
+            [ exact HTI | exact HC | exact He | exact Hff | exact Hne | exact Hel ]).
       assert (Hreached : Reached_fd f) by (eapply Hcall_reached; [ exact HTI | exact HC | exact He | exact Hff ]).
       destruct (IHfun Hreached HnoA HMWF Hv Hsat Hmarg) as (Hv' & Hsat' & HMWF').
       split; [ exact Hv' | split; [ exact Hsat' | split; [ exact HMWF' |
@@ -1465,7 +1500,15 @@ Proof.
           [ exact Hreached | exact HnoA | exact HMWF
           | eapply eval_funcall_internal; [ exact Hentry | exact Hbexec | exact Hout | exact Hfree ]
           | exact Hwr | exact Hv | exact Hsat ].
-      + (* non-writer: entry (unchanged) + body IH + free (fresh) *)
+      + (* non-writer: split on marg-exemption of the callee *)
+        destruct (marg_exempt (Internal f)) eqn:Hexm.
+        * (* marg-exempt internal callee (vec3f): focused direct preservation *)
+          eapply Hexempt;
+            [ exact Hreached | exact Hexm
+            | eapply eval_funcall_internal; [ exact Hentry | exact Hbexec | exact Hout | exact Hfree ]
+            | exact HnoA | exact HMWF | exact Hv | exact Hsat ].
+        * (* non-exempt: marg_ok available -> leaf A + body IH + free *)
+        assert (Hmarg' : marg_ok bm vargs) by (apply Hmarg; reflexivity).
         assert (Uentry_ac : Mem.unchanged_on (action_cell bm) m m1)
           by (eapply function_entry2_unchanged_on; eauto).
         assert (Uentry_bm : Mem.unchanged_on (fun b _ => b = bm) m m1)
@@ -1477,7 +1520,7 @@ Proof.
         assert (HMWF1 : MWF m1)
           by (eapply Hmwf_unch; [ exact Uentry_bm | exact Hv | exact HMWF ]).
         assert (HnoA1 : NoA m1) by (eapply Hnoaentry; [ exact Hentry | exact HnoA ]).
-        destruct (Hbody f vargs m e le1 m1 Hreached Hentry Hnwr Hmarg) as [HTI1 HC1].
+        destruct (Hbody f vargs m e le1 m1 Hreached Hexm Hentry Hnwr Hmarg') as [HTI1 HC1].
         destruct (IHbody HnoA1 HMWF1 Hv1 Hsat1 HTI1 HC1) as (Hv2 & Hsat2 & HMWF2 & _).
         assert (Ufree_ac : Mem.unchanged_on (action_cell bm) m2 m3).
         { eapply free_list_unchanged_on; [ exact Hfree | ].
