@@ -1,23 +1,24 @@
 (* ====================================================================== *)
-(* RE-ROOTING THE FRAME OVER THE LINKED PROGRAM (work in progress).        *)
+(* THE FRAME RE-ROOTED OVER THE LINKED PROGRAM (SPINE).                    *)
 (*                                                                        *)
 (* RealFrameValue.v threads `mario_ge = globalenv mario.prog` through the  *)
 (* whole frame: over that single-TU genv the action dispatchers            *)
 (* (mario_execute_*_action) are underspecified Externals, which is why the *)
-(* capstone must assume the FALSE reach_ext_action_cell. The fix is to      *)
-(* re-root the frame over `globalenv lp` for a LINKED program lp (lp kept   *)
+(* old capstone had to assume the FALSE reach_ext_action_cell. This file    *)
+(* re-roots the frame over `globalenv lp` for a LINKED program lp (lp kept  *)
 (* ABSTRACT -- a linkorder hypothesis, never vm_compute'd, so no OOM).      *)
 (* Over globalenv lp those dispatcher Scalls resolve to real Internal       *)
 (* bodies (SymbolicLinking.linkorder_resolves_funct) and the engine         *)
 (* TRAVERSES them instead of bouncing off the external bucket.             *)
 (*                                                                        *)
-(* This file is the staging area for that re-derivation. It re-states the   *)
-(* frame's genv-facing predicates over an abstract `lp_ge := globalenv lp`  *)
-(* and re-proves the eval bricks, consuming the three-part genv interface   *)
-(* proved in SymbolicLinking.v (funcall resolution / field-offset agreement *)
-(* / symbol preservation). It lives under Unwired/ until the full wrapper   *)
-(* is re-rooted and can replace RealFrameValue's mario_ge wrapper on the    *)
-(* spine. NOTHING here is consumed by the capstone yet.                     *)
+(* It re-states the frame's genv-facing predicates over an abstract         *)
+(* `lp_ge := globalenv lp`, re-proves the eval bricks (consuming the        *)
+(* three-part genv interface of SymbolicLinking.v: funcall resolution /     *)
+(* field-offset agreement / symbol preservation), and exports the           *)
+(* capstone-facing wrapper execute_mario_action_preserves_real_reached_lp,  *)
+(* generic over the carried action-value predicate Qv. CONSUMED BY the      *)
+(* live GOAL-1 capstone NoAImpliesNoFly/NoAImpliesNoFlyLinked.v at          *)
+(* Qv := Taint.not_tainted.                                                 *)
 (* ====================================================================== *)
 
 From compcert Require Import Coqlib Errors Maps AST Integers Values Events Memory
@@ -39,6 +40,15 @@ Section ReRoot.
      this via the SymbolicLinking interface; lp's defmap/cenv are never forced. *)
   Variable lp : Clight.program.
   Hypothesis LO_mario : linkorder mario.prog lp.
+
+  (* The carried action-value predicate (the Q of action_sat). The whole frame
+     engine is value-generic -- nothing below unfolds it -- so the wrapper
+     exports generalize over Qv. The capstone instantiates
+     Qv := Taint.not_tainted: the inductive invariant must exclude the whole
+     no-A taint set T (not just the flying set F), because act_shot_from_cannon
+     writes ACT_FLYING on a later, A-free frame -- carrying merely "not flying"
+     makes the per-funcall residual unsatisfiable at the cannon. See Taint.v. *)
+  Variable Qv : int -> Prop.
 
   Definition lp_ge : genv := globalenv lp.
 
@@ -186,7 +196,7 @@ Section ReRoot.
 
     (* the carried memory invariant, re-rooted at lp_ge (uses the _lp wf preds). *)
     Definition meminv_lp (m : mem) : Prop :=
-      Mem.valid_block m bm /\ action_sat nonflying m bm /\
+      Mem.valid_block m bm /\ action_sat Qv m bm /\
       marioObj_wf_lp m bm /\ gMarioState_wf_lp m bm.
 
     (* THE Sassign CASE over lp_ge: a body store (base temp off {bm,gb}) preserves
@@ -446,7 +456,7 @@ Section ReRoot.
 
   Lemma reach_meminv_noA_build_lp :
     forall bm NoA,
-      reach_value_preserves_noA nonflying bm lp_ge NoA ->
+      reach_value_preserves_noA Qv bm lp_ge NoA ->
       reach_rest_noA_lp bm NoA ->
       forall m fd vargs t m' vres,
         NoA m -> meminv_lp bm m ->
@@ -468,7 +478,7 @@ Section ReRoot.
      supplied here. funcall_from_body_preserves_entry is genv-parametric. *)
   Theorem execute_mario_action_preserves_real_lp :
     forall (bm : block) (NoA : mem -> Prop) m m',
-      reach_value_preserves_noA nonflying bm lp_ge NoA ->
+      reach_value_preserves_noA Qv bm lp_ge NoA ->
       reach_rest_noA_lp bm NoA ->
       (forall ef vargs mm tt vres mm',
           NoA mm -> meminv_lp bm mm ->
@@ -477,10 +487,10 @@ Section ReRoot.
           NoA mm -> prov_ok (Sassign a1 a2) ->
           exec_stmt function_entry2 lp_ge e le mm (Sassign a1 a2) tt le' mm' out -> NoA mm') ->
       NoA m ->
-      Mem.valid_block m bm -> action_sat nonflying m bm ->
+      Mem.valid_block m bm -> action_sat Qv m bm ->
       marioObj_wf_lp m bm -> gMarioState_wf_lp m bm ->
       execute_mario_action_step_lp m m' ->
-      NoA m' /\ Mem.valid_block m' bm /\ action_sat nonflying m' bm /\
+      NoA m' /\ Mem.valid_block m' bm /\ action_sat Qv m' bm /\
       marioObj_wf_lp m' bm /\ gMarioState_wf_lp m' bm.
   Proof.
     intros bm NoA m m' Hval Hrest Hext Hstore HnoA Hv Hsat Hmwf Hgwf
@@ -488,10 +498,10 @@ Section ReRoot.
     pose proof Hgwf as Hgwf2. destruct Hgwf2 as (gb & Hgb & Hload).
     pose proof (reach_meminv_noA_build_lp bm NoA Hval Hrest) as Hreachmem.
     assert (HPm' :
-      NoA m' /\ Mem.valid_block m' bm /\ action_sat nonflying m' bm /\
+      NoA m' /\ Mem.valid_block m' bm /\ action_sat Qv m' bm /\
       marioObj_wf_lp m' bm /\ gMarioState_wf_lp m' bm).
     { eapply (funcall_from_body_preserves_entry
-                (fun mm => NoA mm /\ Mem.valid_block mm bm /\ action_sat nonflying mm bm /\
+                (fun mm => NoA mm /\ Mem.valid_block mm bm /\ action_sat Qv mm bm /\
                            marioObj_wf_lp mm bm /\ gMarioState_wf_lp mm bm)
                 lp_ge mario.f_execute_mario_action (Vptr b_o Ptrofs.zero :: nil)
                 m m' t res eq_refl);
@@ -709,7 +719,7 @@ Section ReRoot.
 
   Lemma reach_meminv_reached_build_lp :
     forall bm NoA MWF (Reached_fd : Clight.fundef -> Prop),
-      reach_value_preserves_reached nonflying bm lp_ge NoA MWF Reached_fd ->
+      reach_value_preserves_reached Qv bm lp_ge NoA MWF Reached_fd ->
       reach_rest_marg_lp bm NoA ->
       forall m fd vargs t m' vres,
         Reached_fd fd ->
@@ -738,7 +748,7 @@ Section ReRoot.
   Theorem execute_mario_action_preserves_real_reached_lp :
     forall (bm : block) (NoA MWF : mem -> Prop)
            (Reached_id : ident -> Prop) (Reached_fd : Clight.fundef -> Prop) m m',
-      reach_value_preserves_reached nonflying bm lp_ge NoA MWF Reached_fd ->
+      reach_value_preserves_reached Qv bm lp_ge NoA MWF Reached_fd ->
       reach_rest_marg_lp bm NoA ->
       (forall ef vargs mm tt vres mm',
           NoA mm -> meminv_lp bm mm -> MWF mm ->
@@ -756,10 +766,10 @@ Section ReRoot.
           Genv.find_funct lp_ge vf = Some fd -> Reached_fd fd) ->
       reach_chk Reached_id (fn_body mario.f_execute_mario_action) ->
       NoA m -> MWF m ->
-      Mem.valid_block m bm -> action_sat nonflying m bm ->
+      Mem.valid_block m bm -> action_sat Qv m bm ->
       marioObj_wf_lp m bm -> gMarioState_wf_lp m bm ->
       execute_mario_action_step_lp m m' ->
-      NoA m' /\ Mem.valid_block m' bm /\ action_sat nonflying m' bm /\
+      NoA m' /\ Mem.valid_block m' bm /\ action_sat Qv m' bm /\
       marioObj_wf_lp m' bm /\ gMarioState_wf_lp m' bm /\ MWF m'.
   Proof.
     intros bm NoA MWF Reached_id Reached_fd m m' Hval Hrest Hext Hstore Hstoremwf Hbcr Hbodyrck
@@ -767,10 +777,10 @@ Section ReRoot.
     pose proof Hgwf as Hgwf2. destruct Hgwf2 as (gb & Hgb & Hload).
     pose proof (reach_meminv_reached_build_lp bm NoA MWF Reached_fd Hval Hrest) as Hreachmem.
     assert (HPm' :
-      NoA m' /\ Mem.valid_block m' bm /\ action_sat nonflying m' bm /\
+      NoA m' /\ Mem.valid_block m' bm /\ action_sat Qv m' bm /\
       marioObj_wf_lp m' bm /\ gMarioState_wf_lp m' bm /\ MWF m').
     { eapply (funcall_from_body_preserves_entry
-                (fun mm => NoA mm /\ Mem.valid_block mm bm /\ action_sat nonflying mm bm /\
+                (fun mm => NoA mm /\ Mem.valid_block mm bm /\ action_sat Qv mm bm /\
                            marioObj_wf_lp mm bm /\ gMarioState_wf_lp mm bm /\ MWF mm)
                 lp_ge mario.f_execute_mario_action (Vptr b_o Ptrofs.zero :: nil)
                 m m' t res eq_refl);
