@@ -7,11 +7,25 @@ body itself**:
 
 | # | residual (capstone) | informal meaning |
 |---|---|---|
-| 1 | `reach_nonwriter_ok` + `reach_writer_ok` → `reach_value_preserves_noA` | across any reached funcall, in a no-A frame, the action cell stays **non-flying** |
+| 1a | `reach_value_body_nonwriter` | every reached **non-set_mario_action** body's **own direct** Sassigns are value-ok (avoid the action cell, or store a non-flying value) |
+| 1b | `reach_writer_ok` (`reach_writer_preserves_noA`) | a reached `set_mario_action`, in a no-A frame, preserves **non-flying** (the taint-closure crux) |
+| 1c | `reach_ext_action_cell` | reached externals don't write the action cell |
 | 2 | `reach_rest_ok` (`reach_rest_noA`) | reached funcalls preserve `NoA`, `marioObj_wf`, `gMarioState_wf` |
 | 3 | `ext_meminv_ok` | reached **externals** preserve `NoA` + full `meminv` |
-| 4 | `noA_store_ok` | the body's two off-bm stores preserve `NoA` |
+| 4 | `noA_exec_ok` + `noA_entry_ok` | `NoA` survives any reached statement execution and any function entry |
 | 5 | `input_grounds_noA` | a no-A frame's start memory satisfies `NoA` (input layer) |
+
+> **2026-06-02 — the FALSE `reach_nonwriter_unchanged` was RETIRED.** Residual 1
+> used to be `reach_nonwriter_ok` + `reach_writer_ok` glued by
+> `reach_value_preserves_noA_split`. But `reach_nonwriter_unchanged` ("every
+> reached funcall that is *not literally* `set_mario_action` leaves the action
+> cell `unchanged_on`") is **false / unsatisfiable** for the real genv: writing
+> the action cell is **transitive** (`act_walking` is not `set_mario_action` yet
+> *calls* it). So that premise was vacuous. It is replaced by the sound
+> `eval_funcall` value engine `ActionValueFrame.exec_funcall_reach_value_noA`
+> (the value-twin of `exec_funcall_reach_unchanged_on`), which classifies a
+> function's **own direct** Sassigns and lets the mutual induction carry
+> transitivity through `Scall → funcall IH`. Residual 1 is now 1a/1b/1c above.
 
 These split into **two layers** that want different tools.
 
@@ -51,7 +65,10 @@ reduce to aliasing — this is the actual ABC content.
 
 **Engine — ALREADY PROVED:** `ActionValueFrame.exec_stmt_value_preserves`
 carries `action_sat` forward where each `Sassign` either *avoids* the cell **or**
-*stores a Q-value* (non-flying). (Needs an `eval_funcall` twin for full reach.)
+*stores a Q-value* (non-flying). Its `eval_funcall` twin now also exists and is
+proved: `ActionValueFrame.exec_funcall_reach_value_noA` (2026-06-02) — the mutual
+induction reducing `reach_value_preserves_noA` to the per-direct-body leaf
+(residual 1a) + the writer case (1b), retiring the false `reach_nonwriter_unchanged`.
 
 **Write-side enumeration — ALREADY MACHINE-CHECKED in `Flying.v`** (`reflexivity`
 `Example`s). The **only** route to a flying action value is
