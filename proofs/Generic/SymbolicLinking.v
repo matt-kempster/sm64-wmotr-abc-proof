@@ -82,3 +82,122 @@ Section SymbolicLink.
   Qed.
 
 End SymbolicLink.
+
+(* ====================================================================== *)
+(* FROM SPIKE TO THE REAL DISPATCH CHAIN.                                  *)
+(*                                                                        *)
+(* The spike above resolved ONE toy symbol (act_flying). Generalize the    *)
+(* exact same metatheory script to a reusable lemma, then instantiate it   *)
+(* for the REAL symbols the GOAL-1 discharge needs: the airborne action    *)
+(* DISPATCHER (mario_execute_airborne_action -- the underspecified         *)
+(* External that execute_mario_action calls, the one the FALSE             *)
+(* reach_ext_action_cell currently papers over) and the two airborne       *)
+(* FLYING write-site handlers (act_flying_triple_jump, act_shot_from_      *)
+(* cannon). Resolving them to real Internal bodies is the foundation for    *)
+(* moving them out of the false unchanged_on external bucket and into the   *)
+(* engine's Internal-body traversal. lp stays ABSTRACT throughout (no      *)
+(* OOM); the only computations are per-TU (airborne-alone) defmap lookups.  *)
+(* ====================================================================== *)
+
+(* THE REUSABLE PRIMITIVE: any TU q with linkorder q lp contributes its Internal
+   defs to lp's genv, resolved purely by linking metatheory with lp OPAQUE. Stated
+   over `linkorder q lp` (not a fixed 2-way link) so it scales to the eventual
+   N-way link of all action TUs -- each member TU is linkorder <= the full link.
+   The single bounded computation is the per-TU defmap lookup the caller supplies
+   as Hdm (a q-alone lookup, never anything about lp). *)
+Lemma linkorder_resolves_internal :
+  forall (lp q : Clight.program) (id : ident) (f : Clight.function),
+    linkorder q lp ->
+    (prog_defmap q) ! id = Some (Gfun (Internal f)) ->
+    exists b,
+      Genv.find_symbol (globalenv lp) id = Some b /\
+      Genv.find_funct_ptr (globalenv lp) b = Some (Internal f).
+Proof.
+  intros lp q id f LOq Hdm.
+  Local Transparent Linker_program.
+  unfold linkorder, Linker_program, linkorder_program in LOq.
+  destruct LOq as [LOast _Hcomp].
+  destruct (prog_defmap_linkorder _ _ _ _ LOast Hdm) as (gd' & Hgd' & Hlo).
+  clear LOast _Hcomp.
+  inv Hlo.
+  match goal with H : linkorder _ _ |- _ => inv H end.
+  apply (proj1 (Genv.find_def_symbol _ _ _)) in Hgd'.
+  destruct Hgd' as (b & Hsym & Hdef).
+  exists b. split.
+  - exact Hsym.
+  - apply (proj2 (Genv.find_funct_ptr_iff _ _ _)). exact Hdef.
+Qed.
+
+(* 2-way corollary (the airborne group's minimal closed link), via link_linkorder. *)
+Lemma linked_resolves_internal :
+  forall (lp q : Clight.program) (id : ident) (f : Clight.function),
+    link mario.prog q = Some lp ->
+    (prog_defmap q) ! id = Some (Gfun (Internal f)) ->
+    exists b,
+      Genv.find_symbol (globalenv lp) id = Some b /\
+      Genv.find_funct_ptr (globalenv lp) b = Some (Internal f).
+Proof.
+  intros lp q id f Hlink Hdm.
+  destruct (link_linkorder _ _ _ Hlink) as [_ LOq].
+  eapply linkorder_resolves_internal; eauto.
+Qed.
+
+(* The bounded per-TU (airborne-alone) defmap facts for the REAL symbols. *)
+Lemma airborne_defmap_execute :
+  (prog_defmap mario_actions_airborne.prog)
+    ! mario_actions_airborne._mario_execute_airborne_action
+    = Some (Gfun (Internal mario_actions_airborne.f_mario_execute_airborne_action)).
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma airborne_defmap_flying_triple_jump :
+  (prog_defmap mario_actions_airborne.prog)
+    ! mario_actions_airborne._act_flying_triple_jump
+    = Some (Gfun (Internal mario_actions_airborne.f_act_flying_triple_jump)).
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma airborne_defmap_shot_from_cannon :
+  (prog_defmap mario_actions_airborne.prog)
+    ! mario_actions_airborne._act_shot_from_cannon
+    = Some (Gfun (Internal mario_actions_airborne.f_act_shot_from_cannon)).
+Proof. vm_compute. reflexivity. Qed.
+
+Section AirborneRealSymbols.
+  (* The linked program of mario.c (caller) + airborne (the called group). The
+     dependency is genuinely CYCLIC -- mario.execute calls airborne.dispatcher,
+     airborne.act_* call back into mario.set_mario_action -- so this 2-TU link is
+     the minimal closed unit for the airborne group, and BOTH directions resolve. *)
+  Variable lp : Clight.program.
+  Hypothesis Hlink : link mario.prog mario_actions_airborne.prog = Some lp.
+
+  (* The airborne DISPATCHER -- the symbol execute_mario_action invokes, an
+     underspecified External in mario.prog -- resolves in the linked genv to its
+     REAL Internal body. This is the resolution that lets the value engine TRAVERSE
+     the dispatcher instead of assuming the (false) unchanged_on for it. *)
+  Theorem linked_resolves_execute_airborne :
+    exists b,
+      Genv.find_symbol (globalenv lp)
+        mario_actions_airborne._mario_execute_airborne_action = Some b /\
+      Genv.find_funct_ptr (globalenv lp) b
+        = Some (Internal mario_actions_airborne.f_mario_execute_airborne_action).
+  Proof. eapply linked_resolves_internal; [ exact Hlink | exact airborne_defmap_execute ]. Qed.
+
+  (* The two airborne FLYING write-site handlers resolve to their real bodies --
+     the functions in which ACT_FLYING_TRIPLE_JUMP / ACT_SHOT_FROM_CANNON are set
+     (the leaf-B A-gating obligations land here, over real code). *)
+  Theorem linked_resolves_flying_triple_jump :
+    exists b,
+      Genv.find_symbol (globalenv lp)
+        mario_actions_airborne._act_flying_triple_jump = Some b /\
+      Genv.find_funct_ptr (globalenv lp) b
+        = Some (Internal mario_actions_airborne.f_act_flying_triple_jump).
+  Proof. eapply linked_resolves_internal; [ exact Hlink | exact airborne_defmap_flying_triple_jump ]. Qed.
+
+  Theorem linked_resolves_shot_from_cannon :
+    exists b,
+      Genv.find_symbol (globalenv lp)
+        mario_actions_airborne._act_shot_from_cannon = Some b /\
+      Genv.find_funct_ptr (globalenv lp) b
+        = Some (Internal mario_actions_airborne.f_act_shot_from_cannon).
+  Proof. eapply linked_resolves_internal; [ exact Hlink | exact airborne_defmap_shot_from_cannon ]. Qed.
+
+End AirborneRealSymbols.
