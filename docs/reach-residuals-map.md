@@ -1,5 +1,12 @@
 # The reach_* residuals — inventory & discharge map
 
+> **SCOPE CORRECTION (2026-06-02).** Earlier text below sizes the reachable graph
+> at "~600 functions". That is **wrong**: the capstone's `mario_ge` is
+> `globalenv mario.prog` — the **mario.c TU alone (62 internal functions)**, not a
+> linked whole program. Cross-TU handlers (where 3 of the 5 flying sites live) are
+> *external* and assumed via `reach_ext_action_cell`. See **`docs/theorem-scope.md`**
+> for the corrected picture and the Job-A (in scope) / Job-B (needs linking) split.
+
 After `body_preserves_real` was discharged (the `execute_mario_action` body is
 now proved), the GOAL-1 capstone `noA_no_spawn_never_flying` rests on these
 residual hypotheses, **all about the reached call graph, none about the frame
