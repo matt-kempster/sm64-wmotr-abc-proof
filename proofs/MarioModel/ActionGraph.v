@@ -1,4 +1,7 @@
 (* ActionGraph.v -- P1 of the R3 action-value plan (docs/r3-action-value-plan.md).
+ * PROMOTED onto the spine 2026-06-03: Taint.v consumes the setter-family edge
+ * extraction to enumerate the no-A taint set's entry edges, and the capstone
+ * consumes Taint.v.
  *
  * The SYNTACTIC, decidable half of "no flight without A": extract the action
  * TRANSITION GRAPH from the real clightgen'd handler bodies. Nodes are action

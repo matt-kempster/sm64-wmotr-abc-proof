@@ -33,6 +33,8 @@ proofs/Generic/RootedLvalue.v
 
 # --- shared: Mario action vocabulary + value engine ---
 proofs/MarioModel/Flying.v
+proofs/MarioModel/ActionGraph.v
+proofs/MarioModel/Taint.v
 proofs/MarioModel/ActionValue.v
 proofs/MarioModel/ActionValueFrame.v
 proofs/MarioModel/RealFrameValue.v
@@ -80,6 +82,5 @@ proofs/NoAImpliesNoFly/Unwired/AltStatements/FlyingFrame.v
 proofs/NoAImpliesNoFly/Unwired/AltStatements/FlyingStatement.v
 proofs/NoAImpliesNoFly/Unwired/AltStatements/NoAFlyingSpine.v
 
-# --- GOAL 1 / action analyses (unwired) ---
-proofs/NoAImpliesNoFly/Unwired/ActionAnalyses/ActionGraph.v
+# --- GOAL 1 / action analyses (unwired; ActionGraph.v promoted to MarioModel/) ---
 proofs/NoAImpliesNoFly/Unwired/ActionAnalyses/ActionWriters.v

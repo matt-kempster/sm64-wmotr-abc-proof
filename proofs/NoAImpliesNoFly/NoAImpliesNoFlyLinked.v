@@ -20,11 +20,17 @@
 (* genuine math/runtime externals, where unchanged_on IS true). So this    *)
 (* theorem is NON-VACUOUS -- the A button is provably load-bearing.        *)
 (*                                                                        *)
-(* It is staged here under Unwired/ because it consumes RealFrameLinked    *)
-(* (also Unwired/); promotion = git mv both onto the spine and retire the  *)
-(* vacuous mario_ge capstone. The reach residuals below are a COARSER but  *)
-(* HONEST decomposition: reach_value_preserves_reached over lp_ge is the    *)
-(* value engine's per-funcall contract (dischargeable by                   *)
+(* THE CARRIED INVARIANT IS THE TAINT SET T (2026-06-03): the run carries   *)
+(* `action notin T` (Taint.not_tainted, T = F + {ACT_SHOT_FROM_CANNON}),    *)
+(* not merely "not flying" -- the cannon writes ACT_FLYING on a later,      *)
+(* A-free frame, so the F-only invariant is not inductive and its           *)
+(* per-funcall residual is unsatisfiable. T's entry edges are finite and    *)
+(* A-gated (machine-checked enumeration in Taint.v); the no-fly conclusion  *)
+(* follows from T >= F (not_tainted_not_flying).                            *)
+(*                                                                        *)
+(* The reach residuals below are a COARSER but HONEST decomposition:        *)
+(* reach_value_preserves_reached over lp_ge at not_tainted is the value     *)
+(* engine's per-funcall contract (dischargeable by                         *)
 (* ActionValueFrame.exec_funcall_reach_value_reached at lp_ge -- the        *)
 (* Phase-B A-gating work), NOT the conclusion, and NOT false.              *)
 (* ====================================================================== *)
@@ -33,7 +39,7 @@ From compcert Require Import Coqlib Maps AST Integers Values Events Memory Globa
   Ctypes Clight ClightBigstep Linking.
 From Coq Require Import List. Import ListNotations.
 From SM64.Generated Require mario.
-From SM64.Proofs Require Import Flying ActionValue ActionValueFrame ReachableRun
+From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame ReachableRun
   RealFrameValue RealFrameLinked.
 
 Section NoAImpliesNoFlyLinked.
@@ -44,25 +50,35 @@ Section NoAImpliesNoFlyLinked.
   Variable bm : block.
   Variable MWF : mem -> Prop.
 
-  (* ---- REAL flying / non-flying, by the loaded action value (offset 12 -- which
-     linking does NOT move; RealFrameLinked.linking_preserves_action_offset). ---- *)
+  (* ---- REAL flying, by the loaded action value (offset 12 -- which linking
+     does NOT move; RealFrameLinked.linking_preserves_action_offset). ---- *)
   Definition mem_flying_lp (m : mem) : Prop :=
     exists v, Mem.load Mint32 m bm 12 = Some (Vint v) /\ is_flying_int v = true.
 
-  Definition mem_nonflying_lp (m : mem) : Prop := action_sat nonflying m bm.
+  (* THE CARRIED INVARIANT IS THE TAINT SET, NOT THE FLYING SET. Carrying
+     merely "action is not flying" is NOT inductive: ACT_SHOT_FROM_CANNON is
+     non-flying, yet its handler writes ACT_FLYING on a later, A-FREE frame
+     (wing cap + pure physics) -- so the per-funcall residual over "nonflying"
+     would be unsatisfiable at the cannon. We carry `action notin T` for the
+     no-A taint closure T = F + {ACT_SHOT_FROM_CANNON} (Taint.is_tainted,
+     entry edges machine-checked in Taint.v), which IS inductively A-gated.
+     Since T contains F, the no-fly conclusion is free (not_tainted_not_flying).
+     The price is an (honest) stronger init condition: the run starts with
+     Mario's action outside T -- standing on the ground, not mid-cannon-shot. *)
+  Definition mem_nontainted_lp (m : mem) : Prop := action_sat not_tainted m bm.
 
   Definition mem_ok_lp (m : mem) : Prop :=
-    Mem.valid_block m bm /\ mem_nonflying_lp m /\
+    Mem.valid_block m bm /\ mem_nontainted_lp m /\
     marioObj_wf_lp lp m bm /\ gMarioState_wf_lp lp m bm /\ MWF m.
 
-  Lemma mem_nonflying_not_flying_lp : forall m, mem_nonflying_lp m -> ~ mem_flying_lp m.
+  Lemma mem_nontainted_not_flying_lp : forall m, mem_nontainted_lp m -> ~ mem_flying_lp m.
   Proof.
-    intros m Hnf [v [Hld Hfly]]. specialize (Hnf v Hld).
-    unfold nonflying in Hnf. congruence.
+    intros m Hnt [v [Hld Hfly]]. specialize (Hnt v Hld).
+    apply not_tainted_not_flying in Hnt. congruence.
   Qed.
 
   Lemma mem_ok_not_flying_lp : forall m, mem_ok_lp m -> ~ mem_flying_lp m.
-  Proof. intros m [_ [Hnf _]]. exact (mem_nonflying_not_flying_lp m Hnf). Qed.
+  Proof. intros m [_ [Hnt _]]. exact (mem_nontainted_not_flying_lp m Hnt). Qed.
 
   (* ---- input layer (abstract, as in the spine capstone) ---- *)
   Variable Inp : Type.
@@ -87,16 +103,20 @@ Section NoAImpliesNoFlyLinked.
   (* ---- THE REACH RESIDUALS, ALL OVER THE LINKED GENV lp. None is the false
      reach_ext_action_cell; each ranges over lp and is satisfiable. ---- *)
 
-  (* the value-engine per-funcall contract over lp (dischargeable by the ge-generic
-     exec_funcall_reach_value_reached at lp_ge -- Phase B / the A-gating). *)
+  (* the value-engine per-funcall contract over lp, AT THE TAINT PREDICATE
+     (dischargeable by the ge-generic exec_funcall_reach_value_reached at
+     lp_ge -- Phase B / the A-gating). With Q := not_tainted this is the
+     SATISFIABLE form: the T-internal flying writers (act_shot_from_cannon,
+     act_flying_triple_jump) are dispatched only when the action is already
+     in T, and the sole T-entry edges are A-gated (Taint.v). *)
   Hypothesis Hreach_val :
-    reach_value_preserves_reached nonflying bm (lp_ge lp) NoA MWF reached_fd.
+    reach_value_preserves_reached not_tainted bm (lp_ge lp) NoA MWF reached_fd.
   Hypothesis Hrest : reach_rest_marg_lp lp bm NoA.
   Hypothesis Hext :
     forall ef vargs mm tt vres mm',
-      NoA mm -> meminv_lp lp bm mm -> MWF mm ->
+      NoA mm -> meminv_lp lp not_tainted bm mm -> MWF mm ->
       external_call ef (lp_ge lp) vargs mm tt vres mm' ->
-      NoA mm' /\ meminv_lp lp bm mm' /\ MWF mm'.
+      NoA mm' /\ meminv_lp lp not_tainted bm mm' /\ MWF mm'.
   Hypothesis Hstore :
     forall e le mm a1 a2 tt le' mm' out,
       NoA mm -> RealFrameValue.prov_ok (Sassign a1 a2) ->
@@ -127,7 +147,7 @@ Section NoAImpliesNoFlyLinked.
   Proof.
     intros i m m' Ha _ (Hv & Hsat & Hwf & Hgwf & HMWF) Hst.
     assert (HnoA : NoA m) by (eapply input_grounds_noA; eassumption).
-    destruct (execute_mario_action_preserves_real_reached_lp lp LO_mario bm NoA MWF reached_id reached_fd m m'
+    destruct (execute_mario_action_preserves_real_reached_lp lp LO_mario not_tainted bm NoA MWF reached_id reached_fd m m'
                 Hreach_val Hrest Hext Hstore Hstoremwf Hbcr Hbodyrck
                 HnoA HMWF Hv Hsat Hwf Hgwf Hst)
       as (_ & Hv' & Hs' & Hw' & Hgw' & HMWF').
