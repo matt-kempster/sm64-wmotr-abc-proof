@@ -1,4 +1,8 @@
-(* spine-root: GOAL-1 capstone (no-A => no-fly). *)
+(* kept: the SUPERSEDED, VACUOUS GOAL-1 capstone (no-A => no-fly over mario.prog
+   alone). It rests on the FALSE hypothesis reach_ext_action_cell -- over the
+   single TU the action dispatchers are underspecified Externals -- so it is
+   vacuously true. Demoted out of the spine; the live capstone is now
+   ../NoAImpliesNoFlyLinked.v over the linked program lp. Retained for history. *)
 (* NoAImpliesNoFly.v -- GOAL 1 capstone: a no-A (no-spawn) run never enters ACT_FLYING.
  *
  * THE STEP IS NOW THE REAL CLIGHTGEN'D FRAME (this session's tethering move).
