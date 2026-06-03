@@ -544,12 +544,18 @@ Section NoAImpliesNoFly.
     - rewrite PTree.gso in Hget by assumption.
       apply create_undef_temps_Vundef in Hget. discriminate.
   Qed.
-  (* The ONE narrow residual the entry discharge cannot reach: vec3f_find_ceil's
-     SECOND pointer parameter `_ceil` (arg2, an output Surface** ) is not covered
-     by marg_ok (which guards arg0 only). Its off-bm-ness is a call-site fact (the
-     caller passes the address of a stack local). DISCHARGE PATH: strengthen
-     marg_ok to all pointer args, or a per-call-site argument; isolated here so the
-     other 16 are fully discharged. *)
+  (* vec3f_find_ceil's entry-temp invariant.
+     !! KNOWN-FALSE AS STATED (2026-06-03): TI le is FALSE for vec3f's entry. Its
+     params are _pos (a float pointer), _height (a float), _ceil (a Surface output
+     pointer), and the real call passes _pos = _m->pos (Vptr bm pos_ofs) and
+     _ceil = &_m->ceil (Vptr bm ceil_ofs) -- BOTH interior bm-pointers, which TI
+     ("only _m points into bm, at offset 0") forbids. So TI cannot hold here
+     regardless of marg_ok. FIX (designed): stop routing vec3f through TI; handle
+     its funcall by a focused direct-preservation leaf (vec3f writes only the ceil
+     output at ceil_ofs <> 12 and reads pos, so it preserves action_sat). Then
+     DELETE this hypothesis. The eventual discharge needs a TYPED interior-pointer
+     provenance (TI generalized) -- the goal's real hard core. See memory
+     marg-discharge. *)
   Hypothesis reach_vec3f_ceil_offbm :
     forall vargs m e le m1,
       function_entry2 mario_ge mario.f_vec3f_find_ceil vargs m e le m1 ->
@@ -807,7 +813,19 @@ Section NoAImpliesNoFly.
     - eapply MWF_preserved_assign; eauto.
   Qed.
   (* (1a'') under TI, a reached call's evaluated args are marg_ok (the Mario arg
-           temp is (bm,0)-or-off-bm) -- the call-site bridge that THREADS marg. *)
+           temp is (bm,0)-or-off-bm) -- the call-site bridge that THREADS marg.
+     !! KNOWN-FALSE AS STATED (2026-06-03): NOT every reached call's arg0 is
+     marg_ok. update_mario_geometry_inputs calls EXTERNAL f32_find_wall_collision
+     with arg0 = &_m->pos[0] = Vptr bm pos_ofs (pos_ofs <> 0), and INTERNAL
+     vec3f_find_ceil with arg0 = _m->pos (Vptr bm pos_ofs) -- both misaligned
+     bm-pointers. The value engine asserts marg_ok at every Scall before the
+     internal/external split, so this Hypothesis is FALSE and the capstone
+     presently rests on it (a soundness defect). FIX (designed, not yet applied):
+     guard the engine motive so external + vec3f callees skip marg_ok (key on
+     whether the callee's first param has MarioState-pointer type), handle vec3f
+     via a focused direct-preservation leaf, then this becomes the TRUE
+     `~ marg_exempt fd -> marg_ok bm vargs`. See the memory note
+     marg-discharge / reach-residuals-map. *)
   Hypothesis reach_call_marg :
     forall e le m optid a al tyargs vargs,
       TI le -> C (Scall optid a al) ->
