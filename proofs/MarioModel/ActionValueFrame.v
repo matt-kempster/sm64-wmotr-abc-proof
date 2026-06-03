@@ -1249,3 +1249,229 @@ Proof.
   intros m fd vargs t m' vres HnoA HMWF Hmarg Hev Hv Hsat.
   exact (proj2 MAIN m fd vargs t m' vres Hev HnoA HMWF Hv Hsat Hmarg).
 Qed.
+
+(* ====================================================================== *)
+(* REACHABILITY-ROOTED value engine.                                      *)
+(*                                                                        *)
+(* Same marg+wf 16-case induction, but the funcall motive now carries a   *)
+(* `Reached_fd fd` premise. This escapes the `forall f` phantom in the    *)
+(* body leaf: the body leaf only fires for fd ACTUALLY reached, so it is   *)
+(* discharged by ENUMERATING the finite reached set (case-split + vm_      *)
+(* compute the census) rather than asserting a per-function census for     *)
+(* every conceivable f. The writer leaf is likewise Reached-gated, so when *)
+(* the sole action-writer is statically unreachable (machine-checked over  *)
+(* mario.prog) it is discharged BY VACUITY. The bridge from the statement  *)
+(* level (TI/C) to the funcall-level Reached requirement is the single new *)
+(* hypothesis `Hcall_reached`: under TI+C a reached call's resolved callee *)
+(* is itself Reached -- the semantic image of the decidable callgraph      *)
+(* closure (CallgraphReach.reaches), discharged per-call-site downstream.  *)
+(* ====================================================================== *)
+Definition reach_value_preserves_reached
+    (Q : int -> Prop) (bm : block) (ge : genv) (NoA MWF : mem -> Prop)
+    (Reached_fd : Clight.fundef -> Prop) : Prop :=
+  forall m fd vargs t m' vres,
+    Reached_fd fd -> NoA m -> MWF m -> marg_ok bm vargs ->
+    eval_funcall function_entry2 ge m fd vargs t m' vres ->
+    Mem.valid_block m bm -> action_sat Q m bm ->
+    Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m'.
+
+Theorem exec_funcall_reach_value_reached :
+  forall (Q : int -> Prop) (bm : block) (ge : genv)
+         (NoA MWF : mem -> Prop) (writer : Clight.fundef -> Prop)
+         (Reached_fd : Clight.fundef -> Prop)
+         (TI : temp_env -> Prop) (C : statement -> Prop),
+    (* leaf A (reached + marg-gated): a REACHED non-writer entered with marg args
+       has entry-temp-invariant TI and its body passes census C. Now ENUMERABLE
+       (Reached_fd is finite), not a `forall f` phantom. *)
+    (forall f vargs m e le m1,
+       Reached_fd (Internal f) ->
+       function_entry2 ge f vargs m e le m1 ->
+       ~ writer (Internal f) -> marg_ok bm vargs ->
+       TI le /\ C (fn_body f)) ->
+    (* the store leaf (unchanged from the wf engine). *)
+    (forall e le m a1 a2 loc ofs bf v2 v m',
+       eval_lvalue ge e le m a1 loc ofs bf ->
+       eval_expr ge e le m a2 v2 ->
+       sem_cast v2 (typeof a2) (typeof a1) m = Some v ->
+       assign_loc ge (typeof a1) m loc ofs bf v m' ->
+       TI le -> C (Sassign a1 a2) -> MWF m ->
+       Mem.valid_block m bm -> action_sat Q m bm ->
+       Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m') ->
+    (* the call-arg census (unchanged). *)
+    (forall e le m optid a al tyargs vargs,
+       TI le -> C (Scall optid a al) ->
+       eval_exprlist ge e le m al tyargs vargs -> marg_ok bm vargs) ->
+    (* TI preserved by a censused Sset, MWF-gated (unchanged). *)
+    (forall e le m id a v,
+       MWF m -> eval_expr ge e le m a v -> TI le -> C (Sset id a) ->
+       TI (PTree.set id v le)) ->
+    (forall optid a al v le, C (Scall optid a al) -> TI le -> TI (set_opttemp optid v le)) ->
+    (forall optid ef tyargs al v le,
+       C (Sbuiltin optid ef tyargs al) -> TI le -> TI (set_opttemp optid v le)) ->
+    (* NEW: the call-target-reached bridge. Under TI+C a reached call resolves to
+       a Reached callee -- the semantic shadow of the decidable callgraph closure. *)
+    (forall e le m optid a al vf fd,
+       TI le -> C (Scall optid a al) ->
+       eval_expr ge e le m a vf -> Genv.find_funct ge vf = Some fd ->
+       Reached_fd fd) ->
+    (* leaf B (the writer), Reached-gated: dischargeable by vacuity when the sole
+       action-writer is statically unreachable. *)
+    (forall m fd vargs t m' vres,
+       Reached_fd fd -> NoA m -> MWF m ->
+       eval_funcall function_entry2 ge m fd vargs t m' vres ->
+       writer fd ->
+       Mem.valid_block m bm -> action_sat Q m bm ->
+       Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m') ->
+    (* externals don't touch the action cell, and preserve MWF (unchanged). *)
+    reach_ext_preserves (action_cell bm) ge ->
+    (forall ef vargs m t vres m',
+       external_call ef ge vargs m t vres m' ->
+       Mem.valid_block m bm -> MWF m -> MWF m') ->
+    (forall m m', Mem.unchanged_on (fun b _ => b = bm) m m' ->
+                  Mem.valid_block m bm -> MWF m -> MWF m') ->
+    (forall e le m s t le' m' out,
+       exec_stmt function_entry2 ge e le m s t le' m' out -> NoA m -> NoA m') ->
+    (forall f vargs m e le m1,
+       function_entry2 ge f vargs m e le m1 -> NoA m -> NoA m1) ->
+    (forall s1 s2, C (Ssequence s1 s2) -> C s1 /\ C s2) ->
+    (forall a s1 s2, C (Sifthenelse a s1 s2) -> C s1 /\ C s2) ->
+    (forall s1 s2, C (Sloop s1 s2) -> C s1 /\ C s2) ->
+    (forall a ls n, C (Sswitch a ls) -> C (seq_of_labeled_statement (select_switch n ls))) ->
+    reach_value_preserves_reached Q bm ge NoA MWF Reached_fd.
+Proof.
+  intros Q bm ge NoA MWF writer Reached_fd TI C Hbody Hassign Hcallmarg HTI_set HTI_optc HTI_optb
+         Hcall_reached Hw Hext Hmwf_ext Hmwf_unch Hnoaexec Hnoaentry HCseq HCif HCloop HCsw.
+  assert (MAIN :
+    (forall e le m s t le' m' out,
+       exec_stmt function_entry2 ge e le m s t le' m' out ->
+       NoA m -> MWF m -> Mem.valid_block m bm -> action_sat Q m bm -> TI le -> C s ->
+       Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m' /\ TI le')
+    /\
+    (forall m fd vargs t m' vres,
+       eval_funcall function_entry2 ge m fd vargs t m' vres ->
+       Reached_fd fd ->
+       NoA m -> MWF m -> Mem.valid_block m bm -> action_sat Q m bm -> marg_ok bm vargs ->
+       Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m')).
+  { apply (exec_stmt_funcall_ind function_entry2 ge
+      (fun e le m s t le' m' out =>
+         NoA m -> MWF m -> Mem.valid_block m bm -> action_sat Q m bm -> TI le -> C s ->
+         Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m' /\ TI le')
+      (fun m fd vargs t m' vres =>
+         Reached_fd fd ->
+         NoA m -> MWF m -> Mem.valid_block m bm -> action_sat Q m bm -> marg_ok bm vargs ->
+         Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m')).
+    - (* Sskip *) intros e le m HnoA HMWF Hv Hsat HTI _.
+      split; [ exact Hv | split; [ exact Hsat | split; [ exact HMWF | exact HTI ] ] ].
+    - (* Sassign *)
+      intros e le m a1 a2 loc ofs bf v2 v m' Hlv He Hcast Hal HnoA HMWF Hv Hsat HTI HC.
+      destruct (Hassign e le m a1 a2 loc ofs bf v2 v m' Hlv He Hcast Hal HTI HC HMWF Hv Hsat)
+        as (Hv' & Hsat' & HMWF').
+      split; [ exact Hv' | split; [ exact Hsat' | split; [ exact HMWF' | exact HTI ] ] ].
+    - (* Sset *)
+      intros e le m id a v He HnoA HMWF Hv Hsat HTI HC.
+      split; [ exact Hv | split; [ exact Hsat | split; [ exact HMWF |
+        eapply HTI_set; [ exact HMWF | exact He | exact HTI | exact HC ] ] ] ].
+    - (* Scall: derive Reached_fd of the callee from TI+C, then funcall IH *)
+      intros e le m optid a al tyargs tyres cconv vf vargs f t m' vres
+             Hcf He Hel Hff Htof Hfd IHfun HnoA HMWF Hv Hsat HTI HC.
+      assert (Hmarg : marg_ok bm vargs) by (eapply Hcallmarg; [ exact HTI | exact HC | exact Hel ]).
+      assert (Hreached : Reached_fd f) by (eapply Hcall_reached; [ exact HTI | exact HC | exact He | exact Hff ]).
+      destruct (IHfun Hreached HnoA HMWF Hv Hsat Hmarg) as (Hv' & Hsat' & HMWF').
+      split; [ exact Hv' | split; [ exact Hsat' | split; [ exact HMWF' |
+        eapply HTI_optc; [ exact HC | exact HTI ] ] ] ].
+    - (* Sbuiltin *)
+      intros e le m optid ef al tyargs vargs t m' vres Hel Hec HnoA HMWF Hv Hsat HTI HC.
+      split;
+      [ eapply external_call_valid_block; [ exact Hec | exact Hv ]
+      | split;
+        [ eapply action_sat_unchanged_on; [ eapply Hext; exact Hec | exact Hv | exact Hsat ]
+        | split;
+          [ eapply Hmwf_ext; [ exact Hec | exact Hv | exact HMWF ]
+          | eapply HTI_optb; [ exact HC | exact HTI ] ] ] ].
+    - (* Sseq_1 *)
+      intros e le m s1 s2 t1 le1 m1 t2 le2 m2 out He1 IH1 He2 IH2 HnoA HMWF Hv Hsat HTI HC.
+      destruct (HCseq _ _ HC) as [HC1 HC2].
+      destruct (IH1 HnoA HMWF Hv Hsat HTI HC1) as (Hv1 & Hsat1 & HMWF1 & HTI1).
+      apply (IH2 (Hnoaexec _ _ _ _ _ _ _ _ He1 HnoA) HMWF1 Hv1 Hsat1 HTI1 HC2).
+    - (* Sseq_2 *)
+      intros e le m s1 s2 t1 le1 m1 out He1 IH1 Hout HnoA HMWF Hv Hsat HTI HC.
+      destruct (HCseq _ _ HC) as [HC1 _]. apply (IH1 HnoA HMWF Hv Hsat HTI HC1).
+    - (* Sifthenelse *)
+      intros e le m a s1 s2 v1 b t le' m' out He Hbool Hexec IH HnoA HMWF Hv Hsat HTI HC.
+      destruct (HCif _ _ _ HC) as [HC1 HC2]. apply (IH HnoA HMWF Hv Hsat HTI).
+      destruct b; [ exact HC1 | exact HC2 ].
+    - (* Sreturn_none *) intros e le m HnoA HMWF Hv Hsat HTI _.
+      split; [ exact Hv | split; [ exact Hsat | split; [ exact HMWF | exact HTI ] ] ].
+    - (* Sreturn_some *) intros e le m a v He HnoA HMWF Hv Hsat HTI _.
+      split; [ exact Hv | split; [ exact Hsat | split; [ exact HMWF | exact HTI ] ] ].
+    - (* Sbreak *) intros e le m HnoA HMWF Hv Hsat HTI _.
+      split; [ exact Hv | split; [ exact Hsat | split; [ exact HMWF | exact HTI ] ] ].
+    - (* Scontinue *) intros e le m HnoA HMWF Hv Hsat HTI _.
+      split; [ exact Hv | split; [ exact Hsat | split; [ exact HMWF | exact HTI ] ] ].
+    - (* Sloop_stop1 *)
+      intros e le m s1 s2 t le' m' out' out He1 IH1 Hbor HnoA HMWF Hv Hsat HTI HC.
+      destruct (HCloop _ _ HC) as [HC1 _]. apply (IH1 HnoA HMWF Hv Hsat HTI HC1).
+    - (* Sloop_stop2 *)
+      intros e le m s1 s2 t1 le1 m1 out1 t2 le2 m2 out2 out
+             He1 IH1 Hnoc He2 IH2 Hbor HnoA HMWF Hv Hsat HTI HC.
+      destruct (HCloop _ _ HC) as [HC1 HC2].
+      destruct (IH1 HnoA HMWF Hv Hsat HTI HC1) as (Hv1 & Hsat1 & HMWF1 & HTI1).
+      apply (IH2 (Hnoaexec _ _ _ _ _ _ _ _ He1 HnoA) HMWF1 Hv1 Hsat1 HTI1 HC2).
+    - (* Sloop_loop *)
+      intros e le m s1 s2 t1 le1 m1 out1 t2 le2 m2 t3 le3 m3 out
+             He1 IH1 Hnoc He2 IH2 He3 IH3 HnoA HMWF Hv Hsat HTI HC.
+      destruct (HCloop _ _ HC) as [HC1 HC2].
+      destruct (IH1 HnoA HMWF Hv Hsat HTI HC1) as (Hv1 & Hsat1 & HMWF1 & HTI1).
+      pose proof (Hnoaexec _ _ _ _ _ _ _ _ He1 HnoA) as HnoA1.
+      destruct (IH2 HnoA1 HMWF1 Hv1 Hsat1 HTI1 HC2) as (Hv2 & Hsat2 & HMWF2 & HTI2).
+      pose proof (Hnoaexec _ _ _ _ _ _ _ _ He2 HnoA1) as HnoA2.
+      apply (IH3 HnoA2 HMWF2 Hv2 Hsat2 HTI2 HC).
+    - (* Sswitch *)
+      intros e le m a t v n sl le1 m1 out He Hsa Hexec IH HnoA HMWF Hv Hsat HTI HC.
+      apply (IH HnoA HMWF Hv Hsat HTI). exact (HCsw _ _ n HC).
+    - (* eval_funcall_internal: writer-split, now Reached-gated *)
+      intros m f vargs t e le1 le2 m1 m2 out vres m3
+             Hentry Hbexec IHbody Hout Hfree Hreached HnoA HMWF Hv Hsat Hmarg.
+      destruct (classic (writer (Internal f))) as [Hwr | Hnwr].
+      + (* writer: rebuild the funcall, apply the Reached+no-A+wf writer hypothesis *)
+        eapply Hw;
+          [ exact Hreached | exact HnoA | exact HMWF
+          | eapply eval_funcall_internal; [ exact Hentry | exact Hbexec | exact Hout | exact Hfree ]
+          | exact Hwr | exact Hv | exact Hsat ].
+      + (* non-writer: entry (unchanged) + body IH + free (fresh) *)
+        assert (Uentry_ac : Mem.unchanged_on (action_cell bm) m m1)
+          by (eapply function_entry2_unchanged_on; eauto).
+        assert (Uentry_bm : Mem.unchanged_on (fun b _ => b = bm) m m1)
+          by (eapply function_entry2_unchanged_on; eauto).
+        assert (Hv1 : Mem.valid_block m1 bm)
+          by (eapply Mem.valid_block_unchanged_on; [ exact Uentry_ac | exact Hv ]).
+        assert (Hsat1 : action_sat Q m1 bm)
+          by (eapply action_sat_unchanged_on; [ exact Uentry_ac | exact Hv | exact Hsat ]).
+        assert (HMWF1 : MWF m1)
+          by (eapply Hmwf_unch; [ exact Uentry_bm | exact Hv | exact HMWF ]).
+        assert (HnoA1 : NoA m1) by (eapply Hnoaentry; [ exact Hentry | exact HnoA ]).
+        destruct (Hbody f vargs m e le1 m1 Hreached Hentry Hnwr Hmarg) as [HTI1 HC1].
+        destruct (IHbody HnoA1 HMWF1 Hv1 Hsat1 HTI1 HC1) as (Hv2 & Hsat2 & HMWF2 & _).
+        assert (Ufree_ac : Mem.unchanged_on (action_cell bm) m2 m3).
+        { eapply free_list_unchanged_on; [ exact Hfree | ].
+          intros b lo hi i Hin Hac. destruct Hac as [Hb _]. subst b.
+          exact (function_entry2_fresh _ _ _ _ _ _ _ Hentry bm lo hi Hin Hv). }
+        assert (Ufree_bm : Mem.unchanged_on (fun b _ => b = bm) m2 m3).
+        { eapply free_list_unchanged_on; [ exact Hfree | ].
+          intros b lo hi i Hin Hb. subst b.
+          exact (function_entry2_fresh _ _ _ _ _ _ _ Hentry bm lo hi Hin Hv). }
+        split;
+        [ eapply Mem.valid_block_unchanged_on; [ exact Ufree_ac | exact Hv2 ]
+        | split;
+          [ eapply action_sat_unchanged_on; [ exact Ufree_ac | exact Hv2 | exact Hsat2 ]
+          | eapply Hmwf_unch; [ exact Ufree_bm | exact Hv2 | exact HMWF2 ] ] ].
+    - (* eval_funcall_external *)
+      intros m ef targs tres cconv vargs t vres m' Hec Hreached HnoA HMWF Hv Hsat Hmarg.
+      split;
+      [ eapply external_call_valid_block; [ exact Hec | exact Hv ]
+      | split;
+        [ eapply action_sat_unchanged_on; [ eapply Hext; exact Hec | exact Hv | exact Hsat ]
+        | eapply Hmwf_ext; [ exact Hec | exact Hv | exact HMWF ] ] ]. }
+  intros m fd vargs t m' vres Hreached HnoA HMWF Hmarg Hev Hv Hsat.
+  exact (proj2 MAIN m fd vargs t m' vres Hev Hreached HnoA HMWF Hv Hsat Hmarg).
+Qed.
