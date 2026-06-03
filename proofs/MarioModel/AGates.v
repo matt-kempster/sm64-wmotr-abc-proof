@@ -1,10 +1,13 @@
-(* kept: the SEMANTIC A-gates -- branch-selection lemmas for the canonical
+(* The SEMANTIC A-gates -- branch-selection lemmas for the canonical
    clightgen'd gate shapes whose locations Taint.v's census pins down. Under
    the A-clear memory invariant, each gate PROVABLY takes its else branch, so
-   no entry into the taint set T executes. Consumed by the Phase-B discharge
-   of the capstone residual Hreach_val (reach_value_preserves_reached
-   not_tainted over lp_ge): when the per-body walk reaches a gate, these
-   lemmas kill the THEN branch. The wiring step is that discharge. *)
+   no entry into the taint set T executes. SPINE-CONSUMED: the grounded
+   capstone (NoAImpliesNoFlyLinked.noA_no_spawn_never_flying_real) uses
+   ctl_a_clear / a_pressed_real / a_pressed_real_grounds_ctl as its concrete
+   no-A input model. The gate THEOREMS below are consumed by the Phase-B
+   discharge of the capstone residual Hreach_val (reach_value_preserves_
+   reached not_tainted over lp_ge): when the per-body walk reaches a gate,
+   they kill the THEN branch. *)
 (* ====================================================================== *)
 (* THE SEMANTIC A-GATES, over the linked program.                          *)
 (*                                                                        *)
@@ -101,6 +104,35 @@ Definition ctl_a_clear (m : mem) (bm : block) : Prop :=
     Mem.load Mint16unsigned m bc
       (Ptrofs.unsigned (Ptrofs.add oc (Ptrofs.repr 18))) = Some (Vint v) ->
     Int.and v (Int.repr 32768) = Int.zero.
+
+(* THE CONCRETE "did the player press A this frame" reading of a memory:
+   chase Mario's controller pointer and test buttonPressed & A_BUTTON --
+   the boolean the grounded capstone uses as its per-frame input.
+   PESSIMISTIC: an unreadable controller counts as PRESSED, so the no-A
+   run hypothesis can only get stronger, never silently vacuous. *)
+Definition a_pressed_real (bm : block) (m : mem) : bool :=
+  match Mem.load Mptr m bm 156 with
+  | Some (Vptr bc oc) =>
+      match Mem.load Mint16unsigned m bc
+              (Ptrofs.unsigned (Ptrofs.add oc (Ptrofs.repr 18))) with
+      | Some (Vint v) => negb (Int.eq (Int.and v (Int.repr 32768)) Int.zero)
+      | _ => true
+      end
+  | _ => true
+  end.
+
+(* the input grounding: an A-silent frame start satisfies the concrete
+   controller invariant. This is what discharges the capstone's
+   input_grounds_noA residual at the grounded instantiation. *)
+Lemma a_pressed_real_grounds_ctl :
+  forall bm m, a_pressed_real bm m = false -> ctl_a_clear m bm.
+Proof.
+  intros bm m Ha bc oc v Hl1 Hl2.
+  unfold a_pressed_real in Ha. rewrite Hl1, Hl2 in Ha.
+  destruct (Int.eq (Int.and v (Int.repr 32768)) Int.zero) eqn:E; cbn in Ha.
+  - apply Int.same_if_eq in E. exact E.
+  - discriminate Ha.
+Qed.
 
 Section AGatesLp.
   Variable lp : Clight.program.

@@ -28,9 +28,11 @@ cd "$(dirname "$0")/../../.." || exit 2
 # shellcheck disable=SC1091
 source pipeline/env.sh >/dev/null 2>&1 || true
 
-# default capstone(s): "Module.Logical.Path theorem"
+# default capstone(s): "Module.Logical.Path theorem" -- the abstract lp capstone
+# AND its grounded instantiation (concrete no-A input model; AGates/Taint).
 if [ "$#" -eq 0 ]; then
-  set -- SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFlyLinked noA_no_spawn_never_flying_lp
+  set -- SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFlyLinked noA_no_spawn_never_flying_lp \
+         SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFlyLinked noA_no_spawn_never_flying_real
 fi
 
 # The standard, sound axioms a CompCert proof of the REAL program legitimately
