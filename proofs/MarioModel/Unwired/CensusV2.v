@@ -2284,3 +2284,95 @@ Proof.
              bc_muhacm_globals_novars Hmarg).
   - exact chk_mario_update_hitbox_and_cap_model.
 Qed.
+
+(* ====================================================================== *)
+(* THE Hbody DISPATCHER (engine-v2 leaf A, assembled).                     *)
+(*                                                                         *)
+(* censused_body enumerates the 15 frame-reached mario.prog internal       *)
+(* bodies the census covers -- exactly the 17 of                            *)
+(* docs/reachable-internal-graph.md MINUS                                   *)
+(*   - update_mario_button_inputs (BRIDGED: its controller A-gate needs    *)
+(*     the 2-deep memory-dependent chain that a temp-only TI cannot        *)
+(*     carry; discharged whole-funcall by                                   *)
+(*     AGates.umbi_funcall_marg_preserves_lp), and                          *)
+(*   - vec3f_find_ceil (EXEMPT: first param is f32[3], not MarioState ptr) *)
+(*                                                                         *)
+(* body_TI_C_dispatch is the exact shape of the v2 engine's Hbody leaf at  *)
+(*   I  := body_census                                                      *)
+(*   TI := TI_of Q bm SafeB                                                 *)
+(*   C  := fun bc s => chk bc s = true                                      *)
+(* -- the consumer derives `censused_body f` from its concrete Reached_fd  *)
+(* (minus the writer/bridged/exempt cases the other leaves own) and gets   *)
+(* the census index + entry invariant + body census in one step.           *)
+(* ====================================================================== *)
+
+Definition censused_body (f : Clight.function) : Prop :=
+  f = mario.f_mario_get_floor_class \/
+  f = mario.f_mario_get_terrain_sound_addend \/
+  f = mario.f_mario_floor_is_slippery \/
+  f = mario.f_debug_print_speed_action_normal \/
+  f = mario.f_update_and_return_cap_flags \/
+  f = mario.f_set_submerged_cam_preset_and_spawn_bubbles \/
+  f = mario.f_update_mario_health \/
+  f = mario.f_update_mario_joystick_inputs \/
+  f = mario.f_update_mario_inputs \/
+  f = mario.f_update_mario_geometry_inputs \/
+  f = mario.f_mario_reset_bodystate \/
+  f = mario.f_update_mario_info_for_cam \/
+  f = mario.f_squish_mario_model \/
+  f = mario.f_sink_mario_in_quicksand \/
+  f = mario.f_mario_update_hitbox_and_cap_model.
+
+Theorem body_TI_C_dispatch :
+  forall (Q : int -> Prop) bm (SafeB : block -> Prop) ge f vargs m e le m1,
+    censused_body f ->
+    function_entry2 ge f vargs m e le m1 ->
+    marg_ok bm vargs ->
+    exists bc, TI_of Q bm SafeB bc e le /\ chk bc (fn_body f) = true.
+Proof.
+  intros Q bm SafeB ge f vargs m e le m1 HC Hentry Hmarg.
+  destruct HC as
+    [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | ->]]]]]]]]]]]]]].
+  - exists bc_m0.
+    exact (body_TI_C_mario_get_floor_class Q bm SafeB ge vargs m e le m1 Hentry Hmarg).
+  - exists bc_m0.
+    exact (body_TI_C_mario_get_terrain_sound_addend Q bm SafeB ge vargs m e le m1 Hentry Hmarg).
+  - exists bc_m0.
+    exact (body_TI_C_mario_floor_is_slippery Q bm SafeB ge vargs m e le m1 Hentry Hmarg).
+  - exists bc_m0.
+    exact (body_TI_C_debug_print_speed_action_normal Q bm SafeB ge vargs m e le m1 Hentry Hmarg).
+  - exists bc_m0.
+    exact (body_TI_C_update_and_return_cap_flags Q bm SafeB ge vargs m e le m1 Hentry Hmarg).
+  - exists bc_m0.
+    exact (body_TI_C_set_submerged_cam_preset_and_spawn_bubbles Q bm SafeB ge vargs m e le m1 Hentry Hmarg).
+  - exists bc_m0.
+    exact (body_TI_C_update_mario_health Q bm SafeB ge vargs m e le m1 Hentry Hmarg).
+  - exists bc_umji.
+    exact (body_TI_C_update_mario_joystick_inputs Q bm SafeB ge vargs m e le m1 Hentry Hmarg).
+  - exists bc_umi.
+    exact (body_TI_C_update_mario_inputs Q bm SafeB ge vargs m e le m1 Hentry Hmarg).
+  - exists bc_ugeo.
+    exact (body_TI_C_update_mario_geometry_inputs Q bm SafeB ge vargs m e le m1 Hentry Hmarg).
+  - exists bc_mrb.
+    exact (body_TI_C_mario_reset_bodystate Q bm SafeB ge vargs m e le m1 Hentry Hmarg).
+  - exists bc_umifc.
+    exact (body_TI_C_update_mario_info_for_cam Q bm SafeB ge vargs m e le m1 Hentry Hmarg).
+  - exists bc_squish.
+    exact (body_TI_C_squish_mario_model Q bm SafeB ge vargs m e le m1 Hentry Hmarg).
+  - exists bc_smq.
+    exact (body_TI_C_sink_mario_in_quicksand Q bm SafeB ge vargs m e le m1 Hentry Hmarg).
+  - exists bc_muhacm.
+    exact (body_TI_C_mario_update_hitbox_and_cap_model Q bm SafeB ge vargs m e le m1 Hentry Hmarg).
+Qed.
+
+(* every censused body takes MarioState* first: the dispatcher serves      *)
+(* exactly Hbody's marg_exempt = false case (so the consumer's marg        *)
+(* premise is available, never vacuous).                                    *)
+Lemma censused_body_nonexempt :
+  forall f, censused_body f -> marg_exempt (Internal f) = false.
+Proof.
+  intros f HC.
+  destruct HC as
+    [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | ->]]]]]]]]]]]]]];
+    reflexivity.
+Qed.
