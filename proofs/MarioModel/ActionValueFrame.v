@@ -1690,8 +1690,19 @@ Theorem exec_funcall_reach_value_v2 :
     (forall ef vargs m t vres m',
        external_call ef ge vargs m t vres m' ->
        Mem.valid_block m bm -> MWF m -> MWF m') ->
-    (forall m m', Mem.unchanged_on (fun b _ => b = bm) m m' ->
-                  Mem.valid_block m bm -> MWF m -> MWF m') ->
+    (* Hmwf_entry / Hmwf_free: MWF crosses function entry and exit by the
+       PRECISE operations that happen there -- entry allocates fresh
+       Vundef-filled blocks and writes NO existing memory; exit frees the
+       entry-allocated blocks, which only KILLS loads (a load that still
+       succeeds after a free has its old value). The v1 engines instead
+       demanded blunt unchanged-on-bm stability across entry/free --
+       UNSATISFIABLE for an MWF carrying off-bm rows (the controller
+       chase): an adversarial m' respecting only bm may corrupt the
+       controller block. Load-CONDITIONAL MWF rows survive both leaves
+       below for free; neither leaf admits a value-changing store. *)
+    (forall f vargs m e le m1,
+       function_entry2 ge f vargs m e le m1 -> MWF m -> MWF m1) ->
+    (forall m2 m3 l, Mem.free_list m2 l = Some m3 -> MWF m2 -> MWF m3) ->
     (* Hmwf_noa: NoA is a PROJECTION of the carried run invariant. The v1
        engines instead demanded blunt forall-statement NoA-stability leaves
        (exec_stmt/entry preserve NoA) -- but those are FALSE for the real
@@ -1733,7 +1744,7 @@ Proof.
   intros Q bm ge NoA MWF writer W bridged Reached_fd I TI C
          Hbody Hbridged Hassign Hcallmarg Hexempt HTI_set HTI_optc HTI_optb
          Hret_call Hret_builtin Hcall_reached Hcallwriter Hw
-         Hext Hmwf_ext Hmwf_unch Hmwf_noa HCseq1 HCseq2 HCif HCloop HCsw.
+         Hext Hmwf_ext Hmwf_entry Hmwf_free Hmwf_noa HCseq1 HCseq2 HCif HCloop HCsw.
   assert (MAIN :
     (forall e le m s t le' m' out,
        exec_stmt function_entry2 ge e le m s t le' m' out ->
@@ -1860,14 +1871,12 @@ Proof.
         * assert (Hmarg' : marg_ok bm vargs) by (apply Hmarg; reflexivity).
           assert (Uentry_ac : Mem.unchanged_on (action_cell bm) m m1)
             by (eapply function_entry2_unchanged_on; eauto).
-          assert (Uentry_bm : Mem.unchanged_on (fun b _ => b = bm) m m1)
-            by (eapply function_entry2_unchanged_on; eauto).
           assert (Hv1 : Mem.valid_block m1 bm)
             by (eapply Mem.valid_block_unchanged_on; [ exact Uentry_ac | exact Hv ]).
           assert (Hsat1 : action_sat Q m1 bm)
             by (eapply action_sat_unchanged_on; [ exact Uentry_ac | exact Hv | exact Hsat ]).
           assert (HMWF1 : MWF m1)
-            by (eapply Hmwf_unch; [ exact Uentry_bm | exact Hv | exact HMWF ]).
+            by (eapply Hmwf_entry; [ exact Hentry | exact HMWF ]).
           assert (HnoA1 : NoA m1) by (apply Hmwf_noa; exact HMWF1).
           destruct (Hbody f vargs m e le1 m1 Hreached Hexm Hentry Hnwr Hnbr Hmarg')
             as (ci & HTI1 & HC1).
@@ -1876,15 +1885,11 @@ Proof.
           { eapply free_list_unchanged_on; [ exact Hfree | ].
             intros b lo hi i Hin Hac. destruct Hac as [Hb _]. subst b.
             exact (function_entry2_fresh _ _ _ _ _ _ _ Hentry bm lo hi Hin Hv). }
-          assert (Ufree_bm : Mem.unchanged_on (fun b _ => b = bm) m2 m3).
-          { eapply free_list_unchanged_on; [ exact Hfree | ].
-            intros b lo hi i Hin Hb. subst b.
-            exact (function_entry2_fresh _ _ _ _ _ _ _ Hentry bm lo hi Hin Hv). }
           split;
           [ eapply Mem.valid_block_unchanged_on; [ exact Ufree_ac | exact Hv2 ]
           | split;
             [ eapply action_sat_unchanged_on; [ exact Ufree_ac | exact Hv2 | exact Hsat2 ]
-            | eapply Hmwf_unch; [ exact Ufree_bm | exact Hv2 | exact HMWF2 ] ] ].
+            | eapply Hmwf_free; [ exact Hfree | exact HMWF2 ] ] ].
     - (* eval_funcall_external *)
       intros m ef targs tres cconv vargs t vres m' Hec Hreached HnoA HMWF Hv Hsat Hmarg _.
       split;

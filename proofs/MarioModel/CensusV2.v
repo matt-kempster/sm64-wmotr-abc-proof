@@ -82,8 +82,8 @@ Definition mem_id (t : ident) (l : list ident) : bool :=
    form cannot supply.  Entry seeds the Vundef disjunct; the action load
    seeds the Vint one (HactVint: the action cell never holds a pointer).
    The GMS row pins gMarioState-loaded temps to (bm,0) exactly like the
-   mptr row (HPgms: the gMarioState cell holds Vptr bm 0 -- the existing
-   gMarioState_wf_lp shape).  The CHASE row sends a chase temp's Vptr value
+   mptr row (HPgms, CONDITIONAL: if the gMarioState cell holds a pointer
+   it is (bm,0) -- the load evidence comes from the Sset execution).  The CHASE row sends a chase temp's Vptr value
    into SafeB -- an abstract block predicate the consumer instantiates
    ("not bm, not the controller block, MWF tolerates stores there");
    seeded at the canonical chase loads (HchaseRoot / HchaseStep). *)
@@ -1213,12 +1213,16 @@ Section CensusLeavesLp.
       (* HactVint: the action cell never holds a pointer *)
       (forall mm, MWF mm -> forall av, Mem.load Mint32 mm bm 12 = Some av ->
          av = Vundef \/ exists vi, av = Vint vi) ->
-      (* HPgms: the gMarioState cell holds exactly Vptr bm 0 *)
-      (forall mm, MWF mm ->
-         exists gb,
-           Genv.find_symbol (lp_ge lp) mario._gMarioState = Some gb /\
-           Mem.loadv Mptr mm (Vptr gb Ptrofs.zero)
-             = Some (Vptr bm Ptrofs.zero)) ->
+      (* HPgms: IF the gMarioState cell holds a pointer THEN it is (bm,0).
+         CONDITIONAL on the load, not "exists gb, the load succeeds": a
+         positive row would make MWF jointly unsatisfiable with the
+         engine's free leaf (an adversarial free_list kills the load).
+         The Sset execution supplies the load evidence, so the
+         conditional form is all this proof ever needed. *)
+      (forall mm gb b o, MWF mm ->
+         Genv.find_symbol (lp_ge lp) mario._gMarioState = Some gb ->
+         Mem.loadv Mptr mm (Vptr gb Ptrofs.zero) = Some (Vptr b o) ->
+         b = bm /\ o = Ptrofs.zero) ->
       (* HchaseRoot: the tabled MarioState chase cells hold SafeB pointers *)
       (forall fld delta mm b' o',
          mem_id fld chase_root_fields = true ->
@@ -1320,13 +1324,12 @@ Section CensusLeavesLp.
           | Hac : access_mode _ = By_value _ |- _ =>
               cbn [typeof access_mode] in Hac; inv Hac
           end.
-          destruct (HPgms _ HMWF) as (gb & Hfs & Hldgb).
           match goal with
           | Hfs2 : Genv.find_symbol _ mario._gMarioState = Some ?l,
             Hldv : Mem.loadv Mptr _ (Vptr ?l Ptrofs.zero)
                      = Some (Vptr b o) |- _ =>
-              assert (Egb : gb = l) by congruence; subst gb;
-              rewrite Hldgb in Hldv; inv Hldv; auto
+              destruct (HPgms _ _ _ _ HMWF Hfs2 Hldv) as [Eb Eo];
+              subst b o; auto
           end.
       + rewrite PTree.gso in Hlk by exact NE.
         exact (Hgms t Hmem b o Hlk).
