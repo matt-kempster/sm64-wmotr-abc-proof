@@ -1732,11 +1732,16 @@ Section ProvEngine.
   Variable Reached_id : ident -> Prop.
   Variable Reached_fd : Clight.fundef -> Prop.
 
-  (* syntactic census: every direct call in s targets `Evar id` with a
-     reached id; indirect (non-Evar) calls are forbidden (False). *)
+  (* syntactic census: every direct call in s targets a FUNCTION-TYPED
+     `Evar id` with a reached id; indirect (non-Evar) calls are forbidden
+     (False). The Tfunction pin is what lets a consumer with a concrete
+     Reached_fd resolve the callee per symbol: at an empty env the eval is
+     forced through eval_Evar_global + deref_loc_reference (By_reference),
+     so vf IS the global's zero-offset function pointer -- a By_value-typed
+     Evar could instead LOAD an arbitrary (adversarial) function pointer. *)
   Fixpoint reach_chk (s : statement) : Prop :=
     match s with
-    | Scall _ (Evar id _) _ => Reached_id id
+    | Scall _ (Evar id (Tfunction _ _ _)) _ => Reached_id id
     | Scall _ _ _           => False
     | Ssequence s1 s2       => reach_chk s1 /\ reach_chk s2
     | Sifthenelse _ s1 s2   => reach_chk s1 /\ reach_chk s2

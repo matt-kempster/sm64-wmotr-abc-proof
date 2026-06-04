@@ -131,9 +131,9 @@ Section NoAImpliesNoFlyLinked.
       NoA mm -> RealFrameValue.prov_ok (Sassign a1 a2) -> MWF mm ->
       exec_stmt function_entry2 (lp_ge lp) e le mm (Sassign a1 a2) tt le' mm' out -> MWF mm'.
   Hypothesis Hbcr :
-    forall oid a al e le mm vf fd,
+    forall oid a al le mm vf fd,
       RealFrameValue.reach_chk reached_id (Scall oid a al) ->
-      eval_expr (lp_ge lp) e le mm a vf ->
+      eval_expr (lp_ge lp) empty_env le mm a vf ->
       Genv.find_funct (lp_ge lp) vf = Some fd -> reached_fd fd.
   Hypothesis Hbodyrck :
     RealFrameValue.reach_chk reached_id (fn_body mario.f_execute_mario_action).
@@ -276,9 +276,9 @@ Section NoARealInput.
       exec_stmt function_entry2 (lp_ge lp) e le mm (Sassign a1 a2) tt le' mm' out ->
       MWF mm'.
   Hypothesis Hbcr :
-    forall oid a al e le mm vf fd,
+    forall oid a al le mm vf fd,
       RealFrameValue.reach_chk reached_id (Scall oid a al) ->
-      eval_expr (lp_ge lp) e le mm a vf ->
+      eval_expr (lp_ge lp) empty_env le mm a vf ->
       Genv.find_funct (lp_ge lp) vf = Some fd -> reached_fd fd.
   Hypothesis Hbodyrck :
     RealFrameValue.reach_chk reached_id (fn_body mario.f_execute_mario_action).
