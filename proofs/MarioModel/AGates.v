@@ -46,6 +46,9 @@ From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
 From SM64.Generated Require mario.
 From SM64.Generated Require mario_actions_airborne.
+From SM64.Generated Require mario_actions_automatic.
+From SM64.Generated Require mario_actions_stationary.
+From SM64.Generated Require mario_actions_moving.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
   ActionValueFrame RealFrameValue RealFrameLinked.
 
@@ -899,3 +902,440 @@ Section DispatchKillLp.
   Qed.
 
 End DispatchKillLp.
+
+(* ====================================================================== *)
+(* THE CANNON-FIRE KILL (act_in_cannon's gated fire).                      *)
+(*                                                                        *)
+(* act_in_cannon fires the cannon -- set_mario_action(m, 0x880898, 0),     *)
+(* THE edge that forces the taint set to strictly contain the flying set   *)
+(* -- only inside the canonical input A-gate `if (m->input & 2)`. Under    *)
+(* input_a_clear the gate provably takes ELSE (input_a_gate_takes_else_lp) *)
+(* and the censuses pin: the function body contains exactly ONE tainted    *)
+(* feed, it lives in this gate's THEN, and the executed ELSE has none.     *)
+(* The cannon never fires on an A-silent frame.                            *)
+(*                                                                        *)
+(* The gate is located by a generic FINDER over the generated AST (the     *)
+(* first canonical input gate whose THEN contains the danger), reusable    *)
+(* for the remaining gated feeders (set_jump_from_landing's callers,       *)
+(* common_landing_cancels' indirect site).                                 *)
+(* ====================================================================== *)
+
+(* ---- generic danger walkers (any statement-level boolean detector). ---- *)
+
+Fixpoint has_danger (danger : statement -> bool) (s : statement) : bool :=
+  danger s ||
+  match s with
+  | Ssequence s1 s2 => has_danger danger s1 || has_danger danger s2
+  | Sifthenelse _ s1 s2 => has_danger danger s1 || has_danger danger s2
+  | Sloop s1 s2 => has_danger danger s1 || has_danger danger s2
+  | Slabel _ s1 => has_danger danger s1
+  | Sswitch _ ls => has_danger_ls danger ls
+  | _ => false
+  end
+with has_danger_ls (danger : statement -> bool) (ls : labeled_statements) : bool :=
+  match ls with
+  | LSnil => false
+  | LScons _ s rest => has_danger danger s || has_danger_ls danger rest
+  end.
+
+Fixpoint count_danger (danger : statement -> bool) (s : statement) : nat :=
+  ((if danger s then 1 else 0) +
+   match s with
+   | Ssequence s1 s2 => count_danger danger s1 + count_danger danger s2
+   | Sifthenelse _ s1 s2 => count_danger danger s1 + count_danger danger s2
+   | Sloop s1 s2 => count_danger danger s1 + count_danger danger s2
+   | Slabel _ s1 => count_danger danger s1
+   | Sswitch _ ls => count_danger_ls danger ls
+   | _ => 0
+   end)%nat
+with count_danger_ls (danger : statement -> bool) (ls : labeled_statements) : nat :=
+  match ls with
+  | LSnil => 0%nat
+  | LScons _ s rest => (count_danger danger s + count_danger_ls danger rest)%nat
+  end.
+
+(* ---- the gate finder: first canonical input A-gate (Taint.v's detectors:
+   `Sset t (m->input); if (t & 2)`) whose THEN satisfies sel. ---- *)
+
+Fixpoint find_input_gate (mptr : ident) (sel : statement -> bool) (s : statement)
+  : option statement :=
+  match s with
+  | Ssequence (Sset t e) (Sifthenelse g s1 s2) =>
+      if is_input_load mptr e && is_a_guard t g && sel s1 then Some s
+      else match find_input_gate mptr sel s1 with
+           | Some g' => Some g'
+           | None => find_input_gate mptr sel s2
+           end
+  | Ssequence s1 s2 =>
+      match find_input_gate mptr sel s1 with
+      | Some g' => Some g'
+      | None => find_input_gate mptr sel s2
+      end
+  | Sifthenelse _ s1 s2 =>
+      match find_input_gate mptr sel s1 with
+      | Some g' => Some g'
+      | None => find_input_gate mptr sel s2
+      end
+  | Sloop s1 s2 =>
+      match find_input_gate mptr sel s1 with
+      | Some g' => Some g'
+      | None => find_input_gate mptr sel s2
+      end
+  | Slabel _ s1 => find_input_gate mptr sel s1
+  | Sswitch _ ls => find_input_gate_ls mptr sel ls
+  | _ => None
+  end
+with find_input_gate_ls (mptr : ident) (sel : statement -> bool) (ls : labeled_statements)
+  : option statement :=
+  match ls with
+  | LSnil => None
+  | LScons _ s rest =>
+      match find_input_gate mptr sel s with
+      | Some g' => Some g'
+      | None => find_input_gate_ls mptr sel rest
+      end
+  end.
+
+(* ---- the cannon-fire gate, BY PROJECTION from the generated AST. ---- *)
+
+Definition cannon_fire_gate : statement :=
+  match find_input_gate mario_actions_automatic._m (has_danger tainted_feed)
+          (fn_body mario_actions_automatic.f_act_in_cannon) with
+  | Some g => g
+  | None => Sskip
+  end.
+
+Definition cannon_fire_gate_temp : ident :=
+  match cannon_fire_gate with Ssequence (Sset t _) _ => t | _ => 1%positive end.
+Definition cannon_fire_gate_then : statement :=
+  match cannon_fire_gate with Ssequence _ (Sifthenelse _ s1 _) => s1 | _ => Sbreak end.
+Definition cannon_fire_gate_else : statement :=
+  match cannon_fire_gate with Ssequence _ (Sifthenelse _ _ s2) => s2 | _ => Sbreak end.
+
+(* shape pin: the found gate IS the canonical input A-gate shape the gate
+   lemma quantifies over. *)
+Example cannon_fire_gate_canonical :
+  cannon_fire_gate =
+  Ssequence
+    (Sset cannon_fire_gate_temp
+       (Efield (Ederef (Etempvar mario_actions_automatic._m
+                          (tptr (Tstruct mario._MarioState noattr)))
+                  (Tstruct mario._MarioState noattr))
+          mario._input tushort))
+    (Sifthenelse (Ebinop Oand (Etempvar cannon_fire_gate_temp tushort)
+                    (Econst_int (Int.repr 2) tint) tint)
+       cannon_fire_gate_then cannon_fire_gate_else).
+Proof. vm_compute. reflexivity. Qed.
+
+(* THE PINNING CENSUS: act_in_cannon's body contains exactly ONE tainted
+   feed (the fire), it lives in this gate's THEN, and the ELSE has none.
+   (Taint.v's automatic-TU census already shows there is no other tainted
+   feed anywhere in the TU, and no ungated one.) *)
+Example cannon_fire_unique_and_gated :
+  ( count_danger tainted_feed (fn_body mario_actions_automatic.f_act_in_cannon)
+  , count_danger tainted_feed cannon_fire_gate_then
+  , count_danger tainted_feed cannon_fire_gate_else )
+  = (1%nat, 1%nat, 0%nat).
+Proof. vm_compute. reflexivity. Qed.
+
+Example cannon_fire_gate_else_clean :
+  count_danger tainted_feed cannon_fire_gate_else = 0%nat.
+Proof. vm_compute. reflexivity. Qed.
+
+Section CannonKillLp.
+  Variable lp : Clight.program.
+  Hypothesis LO_mario : linkorder mario.prog lp.
+
+  (* ================================================================== *)
+  (* THE CANNON-FIRE KILL: on an A-silent frame (input_a_clear), any      *)
+  (* execution of the fire gate takes ELSE -- which contains NO tainted   *)
+  (* feed. The unique set_mario_action(m, ACT_SHOT_FROM_CANNON, 0) in     *)
+  (* act_in_cannon (the THEN) never executes: the cannon never fires      *)
+  (* without A.                                                           *)
+  (* ================================================================== *)
+  Theorem act_in_cannon_fire_dead_lp :
+    forall e le m bm tr le' m' out,
+      le ! mario_actions_automatic._m = Some (Vptr bm Ptrofs.zero) ->
+      input_a_clear m bm ->
+      exec_stmt function_entry2 (lp_ge lp) e le m cannon_fire_gate tr le' m' out ->
+      exists vi,
+        Mem.load Mint16unsigned m bm 2 = Some (Vint vi) /\
+        Int.and vi (Int.repr 2) = Int.zero /\
+        count_danger tainted_feed cannon_fire_gate_else = 0%nat /\
+        exec_stmt function_entry2 (lp_ge lp) e
+          (PTree.set cannon_fire_gate_temp (Vint vi) le) m
+          cannon_fire_gate_else tr le' m' out.
+  Proof.
+    intros e le m bm tr le' m' out Hle Hclear Hexec.
+    rewrite cannon_fire_gate_canonical in Hexec.
+    destruct (input_a_gate_takes_else_lp lp LO_mario
+                mario_actions_automatic._m cannon_fire_gate_temp
+                cannon_fire_gate_then cannon_fire_gate_else
+                e le m bm tr le' m' out Hle Hclear Hexec)
+      as (vi & Hload & Hand & Helse).
+    exists vi.
+    split; [ exact Hload | ].
+    split; [ exact Hand | ].
+    split; [ exact cannon_fire_gate_else_clean | ].
+    exact Helse.
+  Qed.
+
+End CannonKillLp.
+
+(* ====================================================================== *)
+(* THE REMAINING GATED-FEEDER KILLS.                                       *)
+(*                                                                        *)
+(* Taint.v's census pins the complete in-frame T-feed surface beyond the   *)
+(* cannon fire and the dispatcher-killed T-internal handlers:              *)
+(*   - set_jump_from_landing (the FTJ feeder) is called from exactly 3     *)
+(*     sites: check_common_landing_cancels (stationary), act_walking and   *)
+(*     act_decelerating (moving) -- each under an input A-gate;             *)
+(*   - set_triple_jump_action escapes as a funptr only into                *)
+(*     common_landing_cancels' setAPressAction parameter, whose single     *)
+(*     indirect call sits under an input A-gate.                           *)
+(* Each site below: gate PROJECTED from the generated AST, shape pinned    *)
+(* by reflexivity, census (the body's unique danger lives in THEN; ELSE    *)
+(* clean), and the kill -- under input_a_clear the gate takes ELSE.        *)
+(* ====================================================================== *)
+
+(* ---- shared projections. ---- *)
+Definition gate_of (mptr : ident) (danger : statement -> bool) (body : statement)
+  : statement :=
+  match find_input_gate mptr (has_danger danger) body with
+  | Some g => g
+  | None => Sskip
+  end.
+Definition gate_temp (g : statement) : ident :=
+  match g with Ssequence (Sset t _) _ => t | _ => 1%positive end.
+Definition gate_then (g : statement) : statement :=
+  match g with Ssequence _ (Sifthenelse _ s1 _) => s1 | _ => Sbreak end.
+Definition gate_else (g : statement) : statement :=
+  match g with Ssequence _ (Sifthenelse _ _ s2) => s2 | _ => Sbreak end.
+
+Definition sjfl_danger : statement -> bool :=
+  calls_target mario._set_jump_from_landing.
+
+(* ---- site 1: check_common_landing_cancels (stationary) -> sjfl. ---- *)
+Definition cclc_gate : statement :=
+  gate_of mario_actions_stationary._m sjfl_danger
+    (fn_body mario_actions_stationary.f_check_common_landing_cancels).
+
+Example cclc_gate_canonical :
+  cclc_gate =
+  Ssequence
+    (Sset (gate_temp cclc_gate)
+       (Efield (Ederef (Etempvar mario_actions_stationary._m
+                          (tptr (Tstruct mario._MarioState noattr)))
+                  (Tstruct mario._MarioState noattr))
+          mario._input tushort))
+    (Sifthenelse (Ebinop Oand (Etempvar (gate_temp cclc_gate) tushort)
+                    (Econst_int (Int.repr 2) tint) tint)
+       (gate_then cclc_gate) (gate_else cclc_gate)).
+Proof. vm_compute. reflexivity. Qed.
+
+Example cclc_census :
+  ( count_danger sjfl_danger
+      (fn_body mario_actions_stationary.f_check_common_landing_cancels)
+  , count_danger sjfl_danger (gate_then cclc_gate)
+  , count_danger sjfl_danger (gate_else cclc_gate) )
+  = (1%nat, 1%nat, 0%nat).
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- site 2: act_walking (moving) -> sjfl. ---- *)
+Definition walking_gate : statement :=
+  gate_of mario_actions_moving._m sjfl_danger
+    (fn_body mario_actions_moving.f_act_walking).
+
+Example walking_gate_canonical :
+  walking_gate =
+  Ssequence
+    (Sset (gate_temp walking_gate)
+       (Efield (Ederef (Etempvar mario_actions_moving._m
+                          (tptr (Tstruct mario._MarioState noattr)))
+                  (Tstruct mario._MarioState noattr))
+          mario._input tushort))
+    (Sifthenelse (Ebinop Oand (Etempvar (gate_temp walking_gate) tushort)
+                    (Econst_int (Int.repr 2) tint) tint)
+       (gate_then walking_gate) (gate_else walking_gate)).
+Proof. vm_compute. reflexivity. Qed.
+
+Example walking_census :
+  ( count_danger sjfl_danger (fn_body mario_actions_moving.f_act_walking)
+  , count_danger sjfl_danger (gate_then walking_gate)
+  , count_danger sjfl_danger (gate_else walking_gate) )
+  = (1%nat, 1%nat, 0%nat).
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- site 3: act_decelerating (moving) -> sjfl. ---- *)
+Definition decel_gate : statement :=
+  gate_of mario_actions_moving._m sjfl_danger
+    (fn_body mario_actions_moving.f_act_decelerating).
+
+Example decel_gate_canonical :
+  decel_gate =
+  Ssequence
+    (Sset (gate_temp decel_gate)
+       (Efield (Ederef (Etempvar mario_actions_moving._m
+                          (tptr (Tstruct mario._MarioState noattr)))
+                  (Tstruct mario._MarioState noattr))
+          mario._input tushort))
+    (Sifthenelse (Ebinop Oand (Etempvar (gate_temp decel_gate) tushort)
+                    (Econst_int (Int.repr 2) tint) tint)
+       (gate_then decel_gate) (gate_else decel_gate)).
+Proof. vm_compute. reflexivity. Qed.
+
+Example decel_census :
+  ( count_danger sjfl_danger (fn_body mario_actions_moving.f_act_decelerating)
+  , count_danger sjfl_danger (gate_then decel_gate)
+  , count_danger sjfl_danger (gate_else decel_gate) )
+  = (1%nat, 1%nat, 0%nat).
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- site 4: common_landing_cancels (moving) -- the ONE indirect call
+   (the escaped set_triple_jump_action's unique sink). ---- *)
+Definition clc_gate : statement :=
+  gate_of mario_actions_moving._m indirect_call
+    (fn_body mario_actions_moving.f_common_landing_cancels).
+
+Example clc_gate_canonical :
+  clc_gate =
+  Ssequence
+    (Sset (gate_temp clc_gate)
+       (Efield (Ederef (Etempvar mario_actions_moving._m
+                          (tptr (Tstruct mario._MarioState noattr)))
+                  (Tstruct mario._MarioState noattr))
+          mario._input tushort))
+    (Sifthenelse (Ebinop Oand (Etempvar (gate_temp clc_gate) tushort)
+                    (Econst_int (Int.repr 2) tint) tint)
+       (gate_then clc_gate) (gate_else clc_gate)).
+Proof. vm_compute. reflexivity. Qed.
+
+Example clc_census :
+  ( count_danger indirect_call (fn_body mario_actions_moving.f_common_landing_cancels)
+  , count_danger indirect_call (gate_then clc_gate)
+  , count_danger indirect_call (gate_else clc_gate) )
+  = (1%nat, 1%nat, 0%nat).
+Proof. vm_compute. reflexivity. Qed.
+
+Section GatedFeederKillsLp.
+  Variable lp : Clight.program.
+  Hypothesis LO_mario : linkorder mario.prog lp.
+
+  (* generic: any projected gate that pins to the canonical shape (each
+     site's *_gate_canonical Example) takes ELSE under input_a_clear. *)
+  Lemma projected_gate_takes_else_lp :
+    forall mptr g,
+      g = Ssequence
+            (Sset (gate_temp g)
+               (Efield (Ederef (Etempvar mptr (tptr (Tstruct mario._MarioState noattr)))
+                          (Tstruct mario._MarioState noattr))
+                  mario._input tushort))
+            (Sifthenelse (Ebinop Oand (Etempvar (gate_temp g) tushort)
+                            (Econst_int (Int.repr 2) tint) tint)
+               (gate_then g) (gate_else g)) ->
+      forall e le m bm tr le' m' out,
+        le ! mptr = Some (Vptr bm Ptrofs.zero) ->
+        input_a_clear m bm ->
+        exec_stmt function_entry2 (lp_ge lp) e le m g tr le' m' out ->
+        exists vi,
+          Mem.load Mint16unsigned m bm 2 = Some (Vint vi) /\
+          Int.and vi (Int.repr 2) = Int.zero /\
+          exec_stmt function_entry2 (lp_ge lp) e
+            (PTree.set (gate_temp g) (Vint vi) le) m
+            (gate_else g) tr le' m' out.
+  Proof.
+    intros mptr g Hshape e le m bm tr le' m' out Hle Hclear Hexec.
+    rewrite Hshape in Hexec.
+    exact (input_a_gate_takes_else_lp lp LO_mario mptr (gate_temp g)
+             (gate_then g) (gate_else g) e le m bm tr le' m' out Hle Hclear Hexec).
+  Qed.
+
+  (* the four kills: on an A-silent frame each feeder gate takes its ELSE,
+     which contains NO danger (the per-site census) -- the feeder call /
+     indirect setter call never executes. *)
+
+  Theorem cclc_sjfl_call_dead_lp :
+    forall e le m bm tr le' m' out,
+      le ! mario_actions_stationary._m = Some (Vptr bm Ptrofs.zero) ->
+      input_a_clear m bm ->
+      exec_stmt function_entry2 (lp_ge lp) e le m cclc_gate tr le' m' out ->
+      exists vi,
+        Mem.load Mint16unsigned m bm 2 = Some (Vint vi) /\
+        Int.and vi (Int.repr 2) = Int.zero /\
+        count_danger sjfl_danger (gate_else cclc_gate) = 0%nat /\
+        exec_stmt function_entry2 (lp_ge lp) e
+          (PTree.set (gate_temp cclc_gate) (Vint vi) le) m
+          (gate_else cclc_gate) tr le' m' out.
+  Proof.
+    intros e le m bm tr le' m' out Hle Hclear Hexec.
+    destruct (projected_gate_takes_else_lp mario_actions_stationary._m cclc_gate
+                cclc_gate_canonical e le m bm tr le' m' out Hle Hclear Hexec)
+      as (vi & Hload & Hand & Helse).
+    exists vi. split; [ exact Hload | ]. split; [ exact Hand | ].
+    split; [ vm_compute; reflexivity | ]. exact Helse.
+  Qed.
+
+  Theorem act_walking_sjfl_call_dead_lp :
+    forall e le m bm tr le' m' out,
+      le ! mario_actions_moving._m = Some (Vptr bm Ptrofs.zero) ->
+      input_a_clear m bm ->
+      exec_stmt function_entry2 (lp_ge lp) e le m walking_gate tr le' m' out ->
+      exists vi,
+        Mem.load Mint16unsigned m bm 2 = Some (Vint vi) /\
+        Int.and vi (Int.repr 2) = Int.zero /\
+        count_danger sjfl_danger (gate_else walking_gate) = 0%nat /\
+        exec_stmt function_entry2 (lp_ge lp) e
+          (PTree.set (gate_temp walking_gate) (Vint vi) le) m
+          (gate_else walking_gate) tr le' m' out.
+  Proof.
+    intros e le m bm tr le' m' out Hle Hclear Hexec.
+    destruct (projected_gate_takes_else_lp mario_actions_moving._m walking_gate
+                walking_gate_canonical e le m bm tr le' m' out Hle Hclear Hexec)
+      as (vi & Hload & Hand & Helse).
+    exists vi. split; [ exact Hload | ]. split; [ exact Hand | ].
+    split; [ vm_compute; reflexivity | ]. exact Helse.
+  Qed.
+
+  Theorem act_decelerating_sjfl_call_dead_lp :
+    forall e le m bm tr le' m' out,
+      le ! mario_actions_moving._m = Some (Vptr bm Ptrofs.zero) ->
+      input_a_clear m bm ->
+      exec_stmt function_entry2 (lp_ge lp) e le m decel_gate tr le' m' out ->
+      exists vi,
+        Mem.load Mint16unsigned m bm 2 = Some (Vint vi) /\
+        Int.and vi (Int.repr 2) = Int.zero /\
+        count_danger sjfl_danger (gate_else decel_gate) = 0%nat /\
+        exec_stmt function_entry2 (lp_ge lp) e
+          (PTree.set (gate_temp decel_gate) (Vint vi) le) m
+          (gate_else decel_gate) tr le' m' out.
+  Proof.
+    intros e le m bm tr le' m' out Hle Hclear Hexec.
+    destruct (projected_gate_takes_else_lp mario_actions_moving._m decel_gate
+                decel_gate_canonical e le m bm tr le' m' out Hle Hclear Hexec)
+      as (vi & Hload & Hand & Helse).
+    exists vi. split; [ exact Hload | ]. split; [ exact Hand | ].
+    split; [ vm_compute; reflexivity | ]. exact Helse.
+  Qed.
+
+  Theorem clc_indirect_call_dead_lp :
+    forall e le m bm tr le' m' out,
+      le ! mario_actions_moving._m = Some (Vptr bm Ptrofs.zero) ->
+      input_a_clear m bm ->
+      exec_stmt function_entry2 (lp_ge lp) e le m clc_gate tr le' m' out ->
+      exists vi,
+        Mem.load Mint16unsigned m bm 2 = Some (Vint vi) /\
+        Int.and vi (Int.repr 2) = Int.zero /\
+        count_danger indirect_call (gate_else clc_gate) = 0%nat /\
+        exec_stmt function_entry2 (lp_ge lp) e
+          (PTree.set (gate_temp clc_gate) (Vint vi) le) m
+          (gate_else clc_gate) tr le' m' out.
+  Proof.
+    intros e le m bm tr le' m' out Hle Hclear Hexec.
+    destruct (projected_gate_takes_else_lp mario_actions_moving._m clc_gate
+                clc_gate_canonical e le m bm tr le' m' out Hle Hclear Hexec)
+      as (vi & Hload & Hand & Helse).
+    exists vi. split; [ exact Hload | ]. split; [ exact Hand | ].
+    split; [ vm_compute; reflexivity | ]. exact Helse.
+  Qed.
+
+End GatedFeederKillsLp.
