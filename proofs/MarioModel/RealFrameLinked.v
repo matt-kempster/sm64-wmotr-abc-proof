@@ -616,22 +616,27 @@ Section ReRoot.
         Reached_fd fd -> NoA m -> meminv_lp bm m -> MWF m -> marg_ok bm vargs ->
         eval_funcall function_entry2 lp_ge m fd vargs t m' vres ->
         NoA m' /\ meminv_lp bm m' /\ MWF m'.
+    (* the call-resolution hypothesis is stated at the EMPTY env -- the only
+       env the root-body walk ever runs in (fn_vars = nil). Quantifying an
+       arbitrary e here would be a forall-e phantom: an adversarial local
+       binding could alias a censused callee ident to ANY function pointer,
+       making the hypothesis unsatisfiable for a CONCRETE Reached_fd. *)
     Hypothesis body_call_reached_lp :
-      forall oid a al e le mm vf fd,
+      forall oid a al le mm vf fd,
         reach_chk Reached_id (Scall oid a al) ->
-        eval_expr lp_ge e le mm a vf ->
+        eval_expr lp_ge empty_env le mm a vf ->
         Genv.find_funct lp_ge vf = Some fd -> Reached_fd fd.
 
     Theorem exec_body_prov_reached_lp :
-      forall e le m s t le' m' out,
-        e ! mario._gMarioState = None ->
-        exec_stmt function_entry2 lp_ge e le m s t le' m' out ->
+      forall le m s t le' m' out,
+        exec_stmt function_entry2 lp_ge empty_env le m s t le' m' out ->
         NoA m -> meminv_lp bm m -> tprov bm gb le -> Pgms bm le -> MWF m ->
         prov_ok s -> pgms_chk s -> reach_chk Reached_id s ->
         NoA m' /\ meminv_lp bm m' /\ tprov bm gb le' /\ Pgms bm le' /\ MWF m'.
     Proof.
-      intros e le m s t le' m' out He H Hno Hmem Htp Hpg Hmwf Hck Hpck Hrck.
-      apply (body_check_generic lp_ge e
+      intros le m s t le' m' out H Hno Hmem Htp Hpg Hmwf Hck Hpck Hrck.
+      assert (He : empty_env ! mario._gMarioState = None) by apply PTree.gempty.
+      apply (body_check_generic lp_ge empty_env
                (fun mm ll => NoA mm /\ meminv_lp bm mm /\ tprov bm gb ll /\ Pgms bm ll /\ MWF mm)
                (fun ss => prov_ok ss /\ pgms_chk ss /\ reach_chk Reached_id ss))
         with (le := le) (m := m) (s := s) (t := t) (le' := le') (m' := m') (out := out);
@@ -658,7 +663,7 @@ Section ReRoot.
         cbn [prov_ok] in Hck0. cbn [pgms_chk] in Hpck0.
         assert (Hm : m0' = m0) by (inversion Hexec; reflexivity).
         pose proof Hmem0 as Hmemcopy. destruct Hmemcopy as (_ & _ & _ & Hgwf0).
-        destruct (sset_case_preserves_lp bm gb Hgb_lp e le0 m0 id a t0 le0' m0' out0 He Hmem0 Htp0 Hck0 Hexec)
+        destruct (sset_case_preserves_lp bm gb Hgb_lp empty_env le0 m0 id a t0 le0' m0' out0 He Hmem0 Htp0 Hck0 Hexec)
           as (Hmem0' & Htp0').
         split; [ rewrite Hm; exact Hno0 | ].
         split; [ exact Hmem0' | split; [ exact Htp0' | split ] ].
@@ -760,9 +765,9 @@ Section ReRoot.
       (forall e le mm a1 a2 tt le' mm' out,
           NoA mm -> prov_ok (Sassign a1 a2) -> MWF mm ->
           exec_stmt function_entry2 lp_ge e le mm (Sassign a1 a2) tt le' mm' out -> MWF mm') ->
-      (forall oid a al e le mm vf fd,
+      (forall oid a al le mm vf fd,
           reach_chk Reached_id (Scall oid a al) ->
-          eval_expr lp_ge e le mm a vf ->
+          eval_expr lp_ge empty_env le mm a vf ->
           Genv.find_funct lp_ge vf = Some fd -> Reached_fd fd) ->
       reach_chk Reached_id (fn_body mario.f_execute_mario_action) ->
       NoA m -> MWF m ->
@@ -788,10 +793,9 @@ Section ReRoot.
       intros le mm tt le' mm' out Hbind (Hn & Hvv & Hss & Hmw & Hgw & Hmf) Hexec.
       edestruct (exec_body_prov_reached_lp bm gb Hgb NoA MWF Reached_id Reached_fd
                    Hstore Hstoremwf Hext Hreachmem Hbcr
-                   empty_env le mm (fn_body mario.f_execute_mario_action) tt le' mm' out)
+                   le mm (fn_body mario.f_execute_mario_action) tt le' mm' out)
         as (Hn' & Hmem' & _ & _ & Hmf');
-        [ apply PTree.gempty
-        | exact Hexec
+        [ exact Hexec
         | exact Hn
         | exact (conj Hvv (conj Hss (conj Hmw Hgw)))
         | eapply tprov_entry; exact Hbind
