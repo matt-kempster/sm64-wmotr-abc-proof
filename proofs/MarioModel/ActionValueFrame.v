@@ -523,19 +523,27 @@ Qed.
 (* to carry marg_ok before this brick replaces reach_value_body_nonwriter.  *)
 (* ====================================================================== *)
 
-(* the call's first argument, if it points into bm, is aligned at offset 0.
-   (Mario is always passed as arg0 among the reached funcalls.) *)
+(* the call's first argument, if it is a pointer at all, is EXACTLY (bm,0).
+   (Mario is always passed as arg0 among the reached funcalls; the call census
+   shows every reached ptr-headed call passes a gMarioState-loaded temp, and
+   those loads yield (bm,0) exactly.) EXACT, not conditional (b=bm -> o=0):
+   the conditional form admits a PHANTOM off-bm execution of the callee's
+   real stores, which is fatal for any carried invariant that lives at a
+   block other than bm (e.g. ctl_a_clear at the controller block: a
+   misaligned phantom store can set the A bit). The exact form makes the
+   phantom case vacuous everywhere. *)
 Definition marg_ok (bm : block) (vargs : list val) : Prop :=
   match vargs with
-  | Vptr b o :: _ => b = bm -> o = Ptrofs.zero
+  | Vptr b o :: _ => b = bm /\ o = Ptrofs.zero
   | _ => True
   end.
 
-(* one temp's no-misalignment provenance: if it holds a pointer INTO bm, that
-   pointer is (bm,0). The clean SEMANTIC invariant (no per-temp hardwiring) that
-   generalises RealFrameValue.tat over all the gMarioState-loaded arg temps. *)
+(* one temp's EXACT provenance: if it holds a pointer at all, that pointer is
+   (bm,0). The clean SEMANTIC invariant (no per-temp hardwiring) that
+   generalises RealFrameValue.tat over all the gMarioState-loaded arg temps.
+   Exact, not conditional -- see marg_ok above. *)
 Definition tat0 (bm : block) (le : temp_env) (t : ident) : Prop :=
-  forall b o, le ! t = Some (Vptr b o) -> b = bm -> o = Ptrofs.zero.
+  forall b o, le ! t = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero.
 
 (* sem_cast of a genuine pointer to a pointer type is the identity: cast_case_
    pointer returns Some v for ANY Vptr, independent of Archi.ptr64. The ptr64
@@ -567,10 +575,10 @@ Proof.
   { inv Heval; [ assumption
                | match goal with H : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv H end ]. }
   (* marg_ok only constrains a Vptr head; case on the cast result v1' *)
-  unfold marg_ok. destruct v1' as [| | | | | b o]; auto. intro Hbm; subst b.
+  unfold marg_ok. destruct v1' as [| | | | | b o]; auto.
   (* a Vptr out of sem_cast from a pointer type forces v1 to be that same Vptr *)
   destruct v1 as [| | | | | b1 o1]; cbn in Hcast; try discriminate.
-  inv Hcast. exact (Hat bm o Hget eq_refl).
+  inv Hcast. exact (Hat b o Hget).
 Qed.
 
 (* THE CAPSTONE: the value-aware statement frame. Executing any clightgen *)

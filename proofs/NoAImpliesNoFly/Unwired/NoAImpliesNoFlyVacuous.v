@@ -793,7 +793,7 @@ Section NoAImpliesNoFly.
     unfold TI. intros t b o Hget Hb. subst b.
     destruct (peq t mario._m).
     - subst t. rewrite PTree.gss in Hget. inv Hget.
-      simpl in Hmarg. exact (Hmarg eq_refl).
+      simpl in Hmarg. exact (proj2 Hmarg).
     - rewrite PTree.gso in Hget by assumption.
       apply create_undef_temps_Vundef in Hget. discriminate.
   Qed.
