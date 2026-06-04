@@ -1485,3 +1485,371 @@ Section InputWriteKillLp.
   Qed.
 
 End InputWriteKillLp.
+
+(* ====================================================================== *)
+(* THE UMBI PRESERVATION WALK: the WHOLE body of                           *)
+(* f_update_mario_button_inputs preserves input_a_clear under ctl_a_clear. *)
+(*                                                                         *)
+(* Gate 1 (the unique INPUT_A_PRESSED-setting write) provably takes ELSE   *)
+(* (ctl_a_gate_takes_else_lp).  Gates 2-5 OR in 128/8192/16384/32768 --    *)
+(* all INPUT_A-clear constants -- through the canonical                    *)
+(* `t = m->input; m->input = t | K` idiom, so bit 1 stays clear whichever  *)
+(* branch runs (no branch analysis needed past gate 1).  The               *)
+(* framesSinceA/framesSinceB stores land at offsets 40/41, disjoint from   *)
+(* input's [2,4).  This is the SOURCE half of mid-frame input_a_clear      *)
+(* threading: with update_mario_inputs' zeroing it establishes the         *)
+(* precondition of the five input-gate kills.                              *)
+(* ====================================================================== *)
+
+Lemma mario_framesSinceA_offset_concrete :
+  field_offset (prog_comp_env mario.prog) mario._framesSinceA mario_state_members
+    = OK (40, Full).
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma mario_framesSinceB_offset_concrete :
+  field_offset (prog_comp_env mario.prog) mario._framesSinceB mario_state_members
+    = OK (41, Full).
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma ptrofs_max_unsigned_ge : 4294967295 <= Ptrofs.max_unsigned.
+Proof. vm_compute. intro HX; discriminate HX. Qed.
+
+(* bit-1 arithmetic: zero_ext-16 and OR-with-a-clear-constant keep the
+   INPUT_A_PRESSED bit clear. *)
+Lemma and2_zero_ext16 :
+  forall y, Int.and (Int.zero_ext 16 y) (Int.repr 2) = Int.and y (Int.repr 2).
+Proof.
+  intro y. rewrite Int.zero_ext_and by lia. rewrite Int.and_assoc.
+  assert (E : Int.eq (Int.and (Int.repr (two_p 16 - 1)) (Int.repr 2)) (Int.repr 2)
+              = true) by (vm_compute; reflexivity).
+  apply Int.same_if_eq in E. rewrite E. reflexivity.
+Qed.
+
+Lemma and2_or_clear :
+  forall a b,
+    Int.and a (Int.repr 2) = Int.zero ->
+    Int.and b (Int.repr 2) = Int.zero ->
+    Int.and (Int.or a b) (Int.repr 2) = Int.zero.
+Proof.
+  intros a b Ha Hb.
+  rewrite Int.and_commut, Int.and_or_distrib.
+  rewrite (Int.and_commut (Int.repr 2) a), (Int.and_commut (Int.repr 2) b).
+  rewrite Ha, Hb. apply Int.or_zero.
+Qed.
+
+(* concrete-ident disequality (the temps vs _m). *)
+Ltac ident_neq := let HX := fresh "HX" in intro HX; vm_compute in HX; discriminate HX.
+
+Section UmbiPreservesLp.
+  Variable lp : Clight.program.
+  Hypothesis LO_mario : linkorder mario.prog lp.
+
+  (* ---- generic big-step inversion bricks ---- *)
+
+  Lemma exec_seq_cases :
+    forall e le m s1 s2 tr le' m' out,
+      exec_stmt function_entry2 (lp_ge lp) e le m (Ssequence s1 s2) tr le' m' out ->
+      (exists tr1 le1 m1 tr2,
+          exec_stmt function_entry2 (lp_ge lp) e le m s1 tr1 le1 m1 Out_normal /\
+          exec_stmt function_entry2 (lp_ge lp) e le1 m1 s2 tr2 le' m' out)
+      \/ (exec_stmt function_entry2 (lp_ge lp) e le m s1 tr le' m' out /\
+          out <> Out_normal).
+  Proof.
+    intros e le m s1 s2 tr le' m' out H; inv H.
+    - left; do 4 eexists; split; eassumption.
+    - right; split; assumption.
+  Qed.
+
+  Lemma exec_set_inv :
+    forall e le m t a tr le' m' out,
+      exec_stmt function_entry2 (lp_ge lp) e le m (Sset t a) tr le' m' out ->
+      exists v, eval_expr (lp_ge lp) e le m a v /\
+                le' = PTree.set t v le /\ m' = m /\ out = Out_normal.
+  Proof. intros e le m t a tr le' m' out H; inv H. eexists; repeat split; eauto. Qed.
+
+  Lemma exec_if_inv :
+    forall e le m c s1 s2 tr le' m' out,
+      exec_stmt function_entry2 (lp_ge lp) e le m (Sifthenelse c s1 s2) tr le' m' out ->
+      exists b,
+        exec_stmt function_entry2 (lp_ge lp) e le m (if b : bool then s1 else s2)
+          tr le' m' out.
+  Proof. intros e le m c s1 s2 tr le' m' out H; inv H; eexists; eassumption. Qed.
+
+  Lemma exec_skip_inv :
+    forall e le m tr le' m' out,
+      exec_stmt function_entry2 (lp_ge lp) e le m Sskip tr le' m' out ->
+      le' = le /\ m' = m /\ out = Out_normal.
+  Proof. intros e le m tr le' m' out H; inv H; auto. Qed.
+
+  (* ---- the m->FIELD lvalue pin (generic over the MarioState field) ---- *)
+  Lemma eval_mario_field_lvalue_lp :
+    forall stid fld fldty delta e le m bm loc ofs bf,
+      eval_lvalue (lp_ge lp) e le m
+        (Efield (Ederef (Etempvar stid (tptr (Tstruct mario._MarioState noattr)))
+                        (Tstruct mario._MarioState noattr)) fld fldty) loc ofs bf ->
+      le ! stid = Some (Vptr bm Ptrofs.zero) ->
+      field_offset (prog_comp_env mario.prog) fld mario_state_members
+        = OK (delta, Full) ->
+      loc = bm /\ ofs = Ptrofs.repr delta /\ bf = Full.
+  Proof.
+    intros stid fld fldty delta e le m bm loc ofs bf Hlv Hle Hfo.
+    apply eval_lvalue_Efield_inv in Hlv
+      as (o0 & id & att & co & delta' & Hbase & Hco & Hofs & Hcase).
+    apply eval_expr_Ederef_load in Hbase as (lb & ob & bfb & Hlvb & Hderefb).
+    apply deref_loc_aggregate_eq in Hderefb as [? ?]; [ | right; reflexivity ].
+    subst lb ob.
+    apply eval_lvalue_Ederef_base in Hlvb.
+    apply eval_expr_Etempvar_val in Hlvb.
+    rewrite Hle in Hlvb. inv Hlvb.
+    (* NB: targeted `discriminate Hty`, NEVER bare `discriminate` here -- the
+       argless form scans ALL hypotheses and lazily forces Hfo's
+       field_offset-over-the-concrete-cenv (minutes-slow, the genv perf wall). *)
+    destruct Hcase as [ (Hty & Hfo2) | (Hty & Hfo2) ]; [ | cbn [typeof] in Hty; discriminate Hty ].
+    cbn [typeof] in Hty; inv Hty.
+    change (genv_cenv (lp_ge lp)) with (prog_comp_env lp) in Hco, Hfo2.
+    destruct (RealFrameLinked.mario_defines_MarioState) as (co0 & Hmar).
+    pose proof (linkorder_comp_env_extends lp mario.prog mario._MarioState co0
+                  LO_mario Hmar) as Hext_lp.
+    assert (co = co0) by congruence. subst co0.
+    assert (Hmm : mario_state_members = co_members co)
+      by (unfold mario_state_members; rewrite Hmar; reflexivity).
+    rewrite (linkorder_field_offset_agree lp mario.prog fld (co_members co)
+               LO_mario) in Hfo2;
+      [ | rewrite <- Hmm; exact mario_state_members_complete ].
+    rewrite <- Hmm in Hfo2. rewrite Hfo in Hfo2. inv Hfo2.
+    try rewrite Ptrofs.add_zero_l in *.
+    repeat split; congruence.
+  Qed.
+
+  (* the `t | K` rhs forces the temp to hold a Vint and pins the result
+     (mirror of guard_temp_vint at Oor). *)
+  Lemma or_temp_vint :
+    forall t (k : Z) e le m v1,
+      eval_expr (lp_ge lp) e le m
+        (Ebinop Oor (Etempvar t tushort) (Econst_int (Int.repr k) tint) tint) v1 ->
+      exists vi, le ! t = Some (Vint vi) /\ v1 = Vint (Int.or vi (Int.repr k)).
+  Proof.
+    intros t k e le m v1 Hev.
+    inv Hev.
+    - match goal with H : eval_expr _ _ _ _ (Etempvar _ _) ?vv |- _ =>
+        apply eval_expr_Etempvar_val in H; rename H into Hlet end.
+      match goal with H : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ => inv H end.
+      + match goal with H : sem_binary_operation _ _ _ _ _ _ _ = Some v1 |- _ =>
+          unfold sem_binary_operation, sem_or, sem_binarith, sem_cast in H;
+          match goal with HH : le ! t = Some ?va |- _ =>
+            destruct va;
+            cbn [classify_binarith binarith_type classify_cast cast_int_int] in H;
+            try discriminate H end;
+          inv H end.
+        eexists; split; [ exact Hlet | reflexivity ].
+      + match goal with H : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ => inv H end.
+    - match goal with H : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => inv H end.
+  Qed.
+
+  (* ---- the statement-level preservation contract and its combinators ---- *)
+
+  Definition input_clear_contract (s : statement) : Prop :=
+    forall e le m bm tr le' m' out,
+      le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
+      input_a_clear m bm ->
+      exec_stmt function_entry2 (lp_ge lp) e le m s tr le' m' out ->
+      input_a_clear m' bm /\
+      le' ! mario._m = Some (Vptr bm Ptrofs.zero) /\
+      out = Out_normal.
+
+  Lemma contract_skip : input_clear_contract Sskip.
+  Proof.
+    intros e le m bm tr le' m' out Hle Hinp Hex.
+    apply exec_skip_inv in Hex as (-> & -> & ->).
+    split; [ exact Hinp | split; [ exact Hle | reflexivity ] ].
+  Qed.
+
+  Lemma contract_set :
+    forall t a, t <> mario._m -> input_clear_contract (Sset t a).
+  Proof.
+    intros t a Hne e le m bm tr le' m' out Hle Hinp Hex.
+    apply exec_set_inv in Hex as (v & _ & -> & -> & ->).
+    split; [ exact Hinp | split; [ | reflexivity ] ].
+    rewrite PTree.gso by congruence. exact Hle.
+  Qed.
+
+  Lemma contract_seq :
+    forall s1 s2,
+      input_clear_contract s1 -> input_clear_contract s2 ->
+      input_clear_contract (Ssequence s1 s2).
+  Proof.
+    intros s1 s2 H1 H2 e le m bm tr le' m' out Hle Hinp Hex.
+    apply exec_seq_cases in Hex
+      as [ (tr1 & le1 & m1 & tr2 & Ha & Hb) | (Ha & Hnn) ].
+    - destruct (H1 _ _ _ _ _ _ _ _ Hle Hinp Ha) as (Hinp1 & Hle1 & _).
+      exact (H2 _ _ _ _ _ _ _ _ Hle1 Hinp1 Hb).
+    - destruct (H1 _ _ _ _ _ _ _ _ Hle Hinp Ha) as (_ & _ & Ho). congruence.
+  Qed.
+
+  Lemma contract_if :
+    forall c s1 s2,
+      input_clear_contract s1 -> input_clear_contract s2 ->
+      input_clear_contract (Sifthenelse c s1 s2).
+  Proof.
+    intros c s1 s2 H1 H2 e le m bm tr le' m' out Hle Hinp Hex.
+    apply exec_if_inv in Hex as (b & Hb).
+    destruct b; [ exact (H1 _ _ _ _ _ _ _ _ Hle Hinp Hb)
+                | exact (H2 _ _ _ _ _ _ _ _ Hle Hinp Hb) ].
+  Qed.
+
+  (* THE OR-UPDATE BRICK: `t = m->input; m->input = t | K` with K&2 = 0
+     keeps INPUT_A_PRESSED clear (gates 2-5's THEN arms). *)
+  Lemma contract_or_update :
+    forall t k,
+      t <> mario._m ->
+      Int.and (Int.repr k) (Int.repr 2) = Int.zero ->
+      input_clear_contract
+        (Ssequence
+           (Sset t (Efield (Ederef (Etempvar mario._m
+                              (tptr (Tstruct mario._MarioState noattr)))
+                             (Tstruct mario._MarioState noattr))
+                      mario._input tushort))
+           (Sassign (Efield (Ederef (Etempvar mario._m
+                               (tptr (Tstruct mario._MarioState noattr)))
+                              (Tstruct mario._MarioState noattr))
+                       mario._input tushort)
+              (Ebinop Oor (Etempvar t tushort)
+                 (Econst_int (Int.repr k) tint) tint))).
+  Proof.
+    intros t k Hne Hk e le m bm tr le' m' out Hle Hinp Hex.
+    apply exec_seq_cases in Hex
+      as [ (tr1 & le1 & m1 & tr2 & Ha & Hb) | (Ha & Hnn) ].
+    2: { apply exec_set_inv in Ha as (v & _ & _ & _ & Ho). congruence. }
+    apply exec_set_inv in Ha as (v & Hevset & -> & -> & _).
+    inv Hb.
+    (* rhs: t | K, forcing t = Vint vi *)
+    match goal with H : eval_expr _ _ _ _ (Ebinop Oor _ _ _) _ |- _ =>
+      apply or_temp_vint in H as (vi & Hlet & ->) end.
+    rewrite PTree.gss in Hlet. inv Hlet.
+    (* the Sset's load was the input cell: bit 1 clear by the invariant *)
+    pose proof (eval_input_load_bm_lp lp LO_mario _ _ _ _ _ _ Hle Hevset) as Hld.
+    pose proof (Hinp _ Hld) as Hvi2.
+    (* lhs lvalue: (bm, 2, Full) *)
+    match goal with H : eval_lvalue _ _ _ _ (Efield _ mario._input _) _ _ _ |- _ =>
+      eapply eval_mario_field_lvalue_lp with (delta := 2) (bm := bm) in H;
+      [ destruct H as (-> & -> & ->)
+      | rewrite PTree.gso by congruence; exact Hle
+      | exact mario_input_offset_concrete ] end.
+    (* the cast to tushort: zero_ext 16 *)
+    match goal with H : sem_cast _ _ _ _ = Some _ |- _ =>
+      cbn [typeof] in H;
+      unfold sem_cast in H; cbn [classify_cast cast_int_int] in H; inv H end.
+    (* the store *)
+    match goal with H : assign_loc _ _ _ _ _ _ _ _ |- _ => inv H end;
+      try (match goal with Hac : access_mode _ = By_copy |- _ =>
+             cbn in Hac; discriminate Hac end).
+    match goal with Hac : access_mode _ = By_value _ |- _ => cbn in Hac; inv Hac end.
+    match goal with H : Mem.storev _ _ _ _ = Some _ |- _ =>
+      unfold Mem.storev in H;
+      change (Ptrofs.unsigned (Ptrofs.repr 2)) with 2 in H;
+      rename H into Hst end.
+    split; [ | split ].
+    - (* input_a_clear m' bm *)
+      intros w Hw.
+      pose proof (Mem.load_store_same _ _ _ _ _ _ Hst) as Hsame.
+      cbn [Val.load_result] in Hsame.
+      rewrite Hw in Hsame. inv Hsame.
+      rewrite !and2_zero_ext16. apply and2_or_clear; assumption.
+    - rewrite PTree.gso by congruence. exact Hle.
+    - reflexivity.
+  Qed.
+
+  (* THE OFF-INPUT STORE BRICK: a store to a tuchar MarioState field at
+     offset >= 4 cannot touch input's [2,4) (framesSinceA/framesSinceB). *)
+  Lemma contract_assign_high :
+    forall fld delta rhs,
+      field_offset (prog_comp_env mario.prog) fld mario_state_members
+        = OK (delta, Full) ->
+      4 <= delta <= Ptrofs.max_unsigned ->
+      input_clear_contract
+        (Sassign (Efield (Ederef (Etempvar mario._m
+                            (tptr (Tstruct mario._MarioState noattr)))
+                           (Tstruct mario._MarioState noattr)) fld tuchar) rhs).
+  Proof.
+    intros fld delta rhs Hfo Hrange e le m bm tr le' m' out Hle Hinp Hex.
+    inv Hex.
+    match goal with H : eval_lvalue _ _ _ _ (Efield _ fld _) _ _ _ |- _ =>
+      eapply eval_mario_field_lvalue_lp with (delta := delta) (bm := bm) in H;
+      [ destruct H as (-> & -> & ->) | exact Hle | exact Hfo ] end.
+    match goal with H : assign_loc _ _ _ _ _ _ _ _ |- _ => inv H end;
+      try (match goal with Hac : access_mode _ = By_copy |- _ =>
+             cbn in Hac; discriminate Hac end).
+    match goal with Hac : access_mode _ = By_value _ |- _ => cbn in Hac; inv Hac end.
+    match goal with H : Mem.storev _ _ _ _ = Some _ |- _ =>
+      unfold Mem.storev in H;
+      rewrite Ptrofs.unsigned_repr in H by lia;
+      rename H into Hst end.
+    split; [ | split; [ exact Hle | reflexivity ] ].
+    intros w Hw.
+    assert (Heq : Mem.load Mint16unsigned m' bm 2 = Mem.load Mint16unsigned m bm 2).
+    { eapply Mem.load_store_other;
+      [ exact Hst | right; left; cbn [size_chunk]; lia ]. }
+    rewrite Heq in Hw. exact (Hinp _ Hw).
+  Qed.
+
+  (* syntax-directed assembly: or-updates first (they are Ssequences too),
+     then the generic combinators, then the two frames-field stores. *)
+  Ltac solve_contract :=
+    lazymatch goal with
+    | |- input_clear_contract (Ssequence (Sset _ _) (Sassign _ (Ebinop Oor _ _ _))) =>
+        apply contract_or_update;
+        [ ident_neq | apply Int.same_if_eq; vm_compute; reflexivity ]
+    | |- input_clear_contract (Ssequence _ _) =>
+        apply contract_seq; [ solve_contract | solve_contract ]
+    | |- input_clear_contract (Sifthenelse _ _ _) =>
+        apply contract_if; [ solve_contract | solve_contract ]
+    | |- input_clear_contract (Sset _ _) => apply contract_set; ident_neq
+    | |- input_clear_contract Sskip => apply contract_skip
+    | |- input_clear_contract (Sassign _ _) =>
+        first
+          [ apply (contract_assign_high mario._framesSinceA 40);
+            [ exact mario_framesSinceA_offset_concrete
+            | pose proof ptrofs_max_unsigned_ge; lia ]
+          | apply (contract_assign_high mario._framesSinceB 41);
+            [ exact mario_framesSinceB_offset_concrete
+            | pose proof ptrofs_max_unsigned_ge; lia ] ]
+    end.
+
+  (* ================================================================== *)
+  (* THE BRIDGE: the whole update_mario_button_inputs body preserves     *)
+  (* input_a_clear on an A-silent frame.                                  *)
+  (* ================================================================== *)
+  Theorem umbi_body_preserves_input_a_clear_lp :
+    forall e le m bm tr le' m' out,
+      le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
+      ctl_a_clear m bm ->
+      input_a_clear m bm ->
+      exec_stmt function_entry2 (lp_ge lp) e le m
+        (fn_body mario.f_update_mario_button_inputs) tr le' m' out ->
+      input_a_clear m' bm.
+  Proof.
+    intros e le m bm tr le' m' out Hle Hctl Hinp Hexec.
+    cbn [fn_body mario.f_update_mario_button_inputs] in Hexec.
+    apply exec_seq_cases in Hexec
+      as [ (tr1 & le1 & m1 & tr2 & Hg1 & Hrest) | (Hg1 & Hnn) ].
+    2: { (* gate 1 alone with a non-normal outcome: impossible (ELSE = Sskip) *)
+      destruct (ctl_a_gate_takes_else_lp lp LO_mario _ _ _ _ _ _ _ _ _ _ _ _ _
+                  Hle Hctl Hg1) as (bc & oc & vi & _ & _ & _ & Hskip).
+      apply exec_skip_inv in Hskip as (_ & _ & Ho). congruence. }
+    (* gate 1 takes ELSE = Sskip: memory unchanged, two temps set *)
+    destruct (ctl_a_gate_takes_else_lp lp LO_mario _ _ _ _ _ _ _ _ _ _ _ _ _
+                Hle Hctl Hg1) as (bc & oc & vi & _ & _ & _ & Hskip).
+    apply exec_skip_inv in Hskip as (Hle1eq & Hm1 & _). subst le1 m1.
+    assert (Hle1 : (PTree.set mario._t'21 (Vint vi)
+                      (PTree.set mario._t'20 (Vptr bc oc) le)) ! mario._m
+                   = Some (Vptr bm Ptrofs.zero)).
+    { rewrite PTree.gso by ident_neq. rewrite PTree.gso by ident_neq. exact Hle. }
+    (* the rest of the body is contract-shaped: assemble and apply *)
+    match type of Hrest with
+    | exec_stmt _ _ _ _ _ ?S _ _ _ _ =>
+        assert (HC : input_clear_contract S) by solve_contract;
+        exact (proj1 (HC _ _ _ _ _ _ _ _ Hle1 Hinp Hrest))
+    end.
+  Qed.
+
+End UmbiPreservesLp.
