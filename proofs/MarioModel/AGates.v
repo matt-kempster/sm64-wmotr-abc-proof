@@ -1853,3 +1853,25 @@ Section UmbiPreservesLp.
   Qed.
 
 End UmbiPreservesLp.
+
+(* ====================================================================== *)
+(* THE HCif-v2 GUARD BRICK: at any census-marked A-gate `if (t & mask)`,   *)
+(* once TI pins the gate temp's value as mask-clear, the guard evaluates   *)
+(* to FALSE -- the exact fact engine v2's semantic HCif leaf needs to      *)
+(* exempt the THEN branch from census (guard_temp_vint + bool_val_and_zero *)
+(* composed; the per-site kills witness the canonical shapes).             *)
+(* ====================================================================== *)
+Lemma gate_guard_false_lp :
+  forall lp t (mask : Z) e le m v1 b vi,
+    le ! t = Some (Vint vi) ->
+    Int.and vi (Int.repr mask) = Int.zero ->
+    eval_expr (lp_ge lp) e le m
+      (Ebinop Oand (Etempvar t tushort) (Econst_int (Int.repr mask) tint) tint) v1 ->
+    bool_val v1 tint m = Some b ->
+    b = false.
+Proof.
+  intros lp t mask e le m v1 b vi Hle Hclear Hev Hbv.
+  destruct (guard_temp_vint lp t mask e le m v1 Hev) as (vi' & Hle' & ->).
+  assert (vi' = vi) by congruence. subst vi'.
+  exact (bool_val_and_zero vi mask m b Hclear Hbv).
+Qed.
