@@ -134,10 +134,13 @@ Section V2Consumer.
   Hypothesis HactVint : forall mm, MWF mm -> forall av,
       Mem.load Mint32 mm bm 12 = Some av ->
       av = Vundef \/ exists vi, av = Vint vi.
-  Hypothesis HPgms : forall mm, MWF mm ->
-      exists gb, Genv.find_symbol (lp_ge lp) mario._gMarioState = Some gb /\
-                 Mem.loadv Mptr mm (Vptr gb Ptrofs.zero)
-                   = Some (Vptr bm Ptrofs.zero).
+  (* CONDITIONAL on the load (the Sset execution supplies the evidence):
+     a positive "the load succeeds" row would make MWF jointly
+     unsatisfiable with Hmwf_free (an adversarial free kills the load). *)
+  Hypothesis HPgms : forall mm gb b o, MWF mm ->
+      Genv.find_symbol (lp_ge lp) mario._gMarioState = Some gb ->
+      Mem.loadv Mptr mm (Vptr gb Ptrofs.zero) = Some (Vptr b o) ->
+      b = bm /\ o = Ptrofs.zero.
   Hypothesis HchaseRoot : forall fld delta mm b' o',
       mem_id fld chase_root_fields = true ->
       field_offset (prog_comp_env mario.prog) fld mario_state_members
@@ -211,9 +214,16 @@ Section V2Consumer.
   Hypothesis Hmwf_ext : forall ef vargs m t vres m',
       external_call ef (lp_ge lp) vargs m t vres m' ->
       Mem.valid_block m bm -> MWF m -> MWF m'.
-  Hypothesis Hmwf_unch : forall m m',
-      Mem.unchanged_on (fun b (_ : Z) => b = bm) m m' ->
-      Mem.valid_block m bm -> MWF m -> MWF m'.
+  (* MWF crosses function entry/exit by the PRECISE operations there:
+     entry allocates fresh Vundef blocks (writes no existing memory);
+     exit frees them (free only KILLS loads, never changes a surviving
+     load's value). Load-CONDITIONAL MWF rows satisfy both for free; a
+     blunt unchanged-on-bm leaf would be UNSATISFIABLE for the intended
+     MWF (its controller-chase rows live off bm). *)
+  Hypothesis Hmwf_entry : forall f vargs m e le m1,
+      function_entry2 (lp_ge lp) f vargs m e le m1 -> MWF m -> MWF m1.
+  Hypothesis Hmwf_free : forall m2 m3 l,
+      Mem.free_list m2 l = Some m3 -> MWF m2 -> MWF m3.
 
   (* NoA is a PROJECTION of the carried run invariant: at the capstone's
      instantiation (NoA := ctl_a_clear, MWF carrying it) this IS Hmwf_ctl.
@@ -816,8 +826,10 @@ Section V2Consumer.
         exact Hext_action.
       - (* Hmwf_ext *)
         exact Hmwf_ext.
-      - (* Hmwf_unch *)
-        exact Hmwf_unch.
+      - (* Hmwf_entry *)
+        exact Hmwf_entry.
+      - (* Hmwf_free *)
+        exact Hmwf_free.
       - (* Hmwf_noa *)
         exact Hmwf_noa.
       - (* HCseq1 *)
