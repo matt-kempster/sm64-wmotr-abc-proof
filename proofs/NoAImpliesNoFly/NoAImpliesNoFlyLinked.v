@@ -339,7 +339,8 @@ End NoARealInput.
 (*     symbols' lp resolutions. Hrest_pres at the 7 dispatch handlers is   *)
 (*     THE REMAINING CRUX -- exactly where the A-gating taint closure      *)
 (*     (Taint.v census + AGates.v kills) gets consumed next;               *)
-(*   - return-value non-aliasing + NoA stability + external facts.         *)
+(*   - return-value non-aliasing + external facts (NoA needs no own        *)
+(*     stability hypotheses: it is a projection of MWF via Hmwf_ctl).      *)
 (* ====================================================================== *)
 
 Section NoARealInputV2.
@@ -443,13 +444,11 @@ Section NoARealInputV2.
       Mem.unchanged_on (fun b (_ : Z) => b = bm) m m' ->
       Mem.valid_block m bm -> MWF m -> MWF m'.
 
-  (* NoA stability *)
-  Hypothesis Hnoa_exec : forall e le m s t le' m' out,
-      exec_stmt function_entry2 (lp_ge lp) e le m s t le' m' out ->
-      NoA_real bm m -> NoA_real bm m'.
-  Hypothesis Hnoa_entry : forall f vargs m e le m1,
-      function_entry2 (lp_ge lp) f vargs m e le m1 ->
-      NoA_real bm m -> NoA_real bm m1.
+  (* NO separate NoA-stability hypotheses: NoA_real bm = ctl_a_clear is a
+     PROJECTION of MWF (Hmwf_ctl), and the engine derives every mid-walk
+     NoA fact from the threaded MWF. A forall-stmt NoA-stability leaf
+     would be FALSE for the real lp (an adversarial Sassign through the
+     controller chase sets the A bit) -- so it must not appear here. *)
 
   (* ---- the wrapper residuals that are NOT engine-shaped (the root body's
      own provenance stores + the external meminv preservation), same shapes
@@ -492,7 +491,7 @@ Section NoARealInputV2.
                 Hmwf_inp Hmwf_ctl HactVint HPgms HchaseRoot HchaseStep
                 HSafeNotBm Hmwf_window Hmwf_input Hmwf_glob Hmwf_chase
                 Hmwf_umbi WL_exempt Hrest_pres Hret_call Hret_ext
-                Hext_action Hmwf_ext Hmwf_unch Hnoa_exec Hnoa_entry)
+                Hext_action Hmwf_ext Hmwf_unch Hmwf_ctl)
              Hrest Hext Hstore Hstoremwf
              (root_call_resolves lp LO_mario)
              root_body_reach_chk).

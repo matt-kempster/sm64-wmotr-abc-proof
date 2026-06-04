@@ -1692,10 +1692,16 @@ Theorem exec_funcall_reach_value_v2 :
        Mem.valid_block m bm -> MWF m -> MWF m') ->
     (forall m m', Mem.unchanged_on (fun b _ => b = bm) m m' ->
                   Mem.valid_block m bm -> MWF m -> MWF m') ->
-    (forall e le m s t le' m' out,
-       exec_stmt function_entry2 ge e le m s t le' m' out -> NoA m -> NoA m') ->
-    (forall f vargs m e le m1,
-       function_entry2 ge f vargs m e le m1 -> NoA m -> NoA m1) ->
+    (* Hmwf_noa: NoA is a PROJECTION of the carried run invariant. The v1
+       engines instead demanded blunt forall-statement NoA-stability leaves
+       (exec_stmt/entry preserve NoA) -- but those are FALSE for the real
+       linked program (an adversarial Sassign through the controller chase
+       can set the A bit; exec_stmt quantifies over arbitrary syntax, not
+       just program statements). Every site where this induction needs a
+       mid-walk NoA fact already has the threaded MWF available, and the
+       intended MWF carries ctl_a_clear -- so the consumer supplies the
+       projection and the false leaves disappear. *)
+    (forall m, MWF m -> NoA m) ->
     (* HCseq V2, split semantically: the head census is unconditional, but
        the TAIL census is owed only when the head actually completed
        Out_normal. This is what lets a census accept a switch suffix whose
@@ -1727,7 +1733,7 @@ Proof.
   intros Q bm ge NoA MWF writer W bridged Reached_fd I TI C
          Hbody Hbridged Hassign Hcallmarg Hexempt HTI_set HTI_optc HTI_optb
          Hret_call Hret_builtin Hcall_reached Hcallwriter Hw
-         Hext Hmwf_ext Hmwf_unch Hnoaexec Hnoaentry HCseq1 HCseq2 HCif HCloop HCsw.
+         Hext Hmwf_ext Hmwf_unch Hmwf_noa HCseq1 HCseq2 HCif HCloop HCsw.
   assert (MAIN :
     (forall e le m s t le' m' out,
        exec_stmt function_entry2 ge e le m s t le' m' out ->
@@ -1795,7 +1801,7 @@ Proof.
       pose proof (HCseq1 _ _ _ HC) as HC1.
       pose proof (HCseq2 _ _ _ _ _ _ _ _ _ HC He1) as HC2.
       destruct (IH1 HnoA HMWF Hv Hsat i HTI HC1) as (Hv1 & Hsat1 & HMWF1 & HTI1).
-      apply (IH2 (Hnoaexec _ _ _ _ _ _ _ _ He1 HnoA) HMWF1 Hv1 Hsat1 i HTI1 HC2).
+      apply (IH2 (Hmwf_noa _ HMWF1) HMWF1 Hv1 Hsat1 i HTI1 HC2).
     - (* Sseq_2: only the head ran -- only the head census is needed *)
       intros e le m s1 s2 t1 le1 m1 out He1 IH1 Hout HnoA HMWF Hv Hsat i HTI HC.
       apply (IH1 HnoA HMWF Hv Hsat i HTI (HCseq1 _ _ _ HC)).
@@ -1819,15 +1825,15 @@ Proof.
              He1 IH1 Hnoc He2 IH2 Hbor HnoA HMWF Hv Hsat i HTI HC.
       destruct (HCloop _ _ _ HC) as [HC1 HC2].
       destruct (IH1 HnoA HMWF Hv Hsat i HTI HC1) as (Hv1 & Hsat1 & HMWF1 & HTI1).
-      apply (IH2 (Hnoaexec _ _ _ _ _ _ _ _ He1 HnoA) HMWF1 Hv1 Hsat1 i HTI1 HC2).
+      apply (IH2 (Hmwf_noa _ HMWF1) HMWF1 Hv1 Hsat1 i HTI1 HC2).
     - (* Sloop_loop *)
       intros e le m s1 s2 t1 le1 m1 out1 t2 le2 m2 t3 le3 m3 out
              He1 IH1 Hnoc He2 IH2 He3 IH3 HnoA HMWF Hv Hsat i HTI HC.
       destruct (HCloop _ _ _ HC) as [HC1 HC2].
       destruct (IH1 HnoA HMWF Hv Hsat i HTI HC1) as (Hv1 & Hsat1 & HMWF1 & HTI1).
-      pose proof (Hnoaexec _ _ _ _ _ _ _ _ He1 HnoA) as HnoA1.
+      pose proof (Hmwf_noa _ HMWF1) as HnoA1.
       destruct (IH2 HnoA1 HMWF1 Hv1 Hsat1 i HTI1 HC2) as (Hv2 & Hsat2 & HMWF2 & HTI2).
-      pose proof (Hnoaexec _ _ _ _ _ _ _ _ He2 HnoA1) as HnoA2.
+      pose proof (Hmwf_noa _ HMWF2) as HnoA2.
       apply (IH3 HnoA2 HMWF2 Hv2 Hsat2 i HTI2 HC).
     - (* Sswitch: HCsw v2 -- semantic case census *)
       intros e le m a t v n sl le1 m1 out He Hsa Hexec IH HnoA HMWF Hv Hsat i HTI HC.
@@ -1862,7 +1868,7 @@ Proof.
             by (eapply action_sat_unchanged_on; [ exact Uentry_ac | exact Hv | exact Hsat ]).
           assert (HMWF1 : MWF m1)
             by (eapply Hmwf_unch; [ exact Uentry_bm | exact Hv | exact HMWF ]).
-          assert (HnoA1 : NoA m1) by (eapply Hnoaentry; [ exact Hentry | exact HnoA ]).
+          assert (HnoA1 : NoA m1) by (apply Hmwf_noa; exact HMWF1).
           destruct (Hbody f vargs m e le1 m1 Hreached Hexm Hentry Hnwr Hnbr Hmarg')
             as (ci & HTI1 & HC1).
           destruct (IHbody HnoA1 HMWF1 Hv1 Hsat1 ci HTI1 HC1) as (Hv2 & Hsat2 & HMWF2 & _).
