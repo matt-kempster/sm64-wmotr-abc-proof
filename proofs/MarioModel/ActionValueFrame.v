@@ -1597,17 +1597,25 @@ Theorem exec_funcall_reach_value_v2 :
          (W : list val -> Prop)
          (bridged : Clight.fundef -> Prop)
          (Reached_fd : Clight.fundef -> Prop)
-         (TI : temp_env -> Prop) (C : statement -> Prop),
+         (I : Type)
+         (TI : I -> temp_env -> Prop) (C : I -> statement -> Prop),
     (* leaf A: as in v1, but BRIDGED callees are also excluded from the
        census walk -- a bridged function (e.g. update_mario_button_inputs,
        whose controller A-gate needs a 2-deep memory-dependent provenance
        chain that a temp-only TI cannot carry) is discharged by a direct
-       whole-funcall lemma (Hbridged below) instead. *)
+       whole-funcall lemma (Hbridged below) instead.
+       TI and C carry a PER-BODY census index i (chosen here, per callee):
+       clightgen REUSES temp idents across functions (_t'N is the same
+       positive in every body), so a single global gate-temp table would
+       collide -- a gate temp in one body is legitimately Sset from
+       arbitrary sources in another. Indexing makes each body's table
+       local, so HTI_set's re-establishment obligations never cross
+       function boundaries. *)
     (forall f vargs m e le m1,
        Reached_fd (Internal f) -> marg_exempt (Internal f) = false ->
        function_entry2 ge f vargs m e le m1 ->
        ~ writer (Internal f) -> ~ bridged (Internal f) -> marg_ok bm vargs ->
-       TI le /\ C (fn_body f)) ->
+       exists i, TI i le /\ C i (fn_body f)) ->
     (* the BRIDGED leaf: reached internal functions with their own direct
        preservation lemma (the umbi body walk lifted to funcall level).
        Gets the marg fact -- the walk needs arg0 = Vptr bm 0. *)
@@ -1617,18 +1625,18 @@ Theorem exec_funcall_reach_value_v2 :
        eval_funcall function_entry2 ge m (Internal f) vargs t m' vres ->
        NoA m -> MWF m -> Mem.valid_block m bm -> action_sat Q m bm ->
        Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m') ->
-    (* the store leaf: unchanged. *)
-    (forall e le m a1 a2 loc ofs bf v2 v m',
+    (* the store leaf: per-index. *)
+    (forall i e le m a1 a2 loc ofs bf v2 v m',
        eval_lvalue ge e le m a1 loc ofs bf ->
        eval_expr ge e le m a2 v2 ->
        sem_cast v2 (typeof a2) (typeof a1) m = Some v ->
        assign_loc ge (typeof a1) m loc ofs bf v m' ->
-       TI le -> C (Sassign a1 a2) -> MWF m ->
+       TI i le -> C i (Sassign a1 a2) -> MWF m ->
        Mem.valid_block m bm -> action_sat Q m bm ->
        Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m') ->
-    (* the call-arg census: unchanged. *)
-    (forall e le m optid a al tyargs vargs vf fd,
-       TI le -> C (Scall optid a al) ->
+    (* the call-arg census: per-index. *)
+    (forall i e le m optid a al tyargs vargs vf fd,
+       TI i le -> C i (Scall optid a al) ->
        eval_expr ge e le m a vf -> Genv.find_funct ge vf = Some fd ->
        marg_exempt fd = false ->
        eval_exprlist ge e le m al tyargs vargs -> marg_ok bm vargs) ->
@@ -1640,15 +1648,15 @@ Theorem exec_funcall_reach_value_v2 :
        Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m') ->
     (* HTI_set V2: now ALSO gets action_sat, so a census-marked dispatch
        temp (`t = m->action`) can be recorded in TI as holding a Q-value. *)
-    (forall e le m id a v,
+    (forall i e le m id a v,
        MWF m -> action_sat Q m bm -> eval_expr ge e le m a v ->
-       TI le -> C (Sset id a) -> TI (PTree.set id v le)) ->
-    (forall optid a al v le,
-       C (Scall optid a al) -> TI le ->
-       (forall b o, v = Vptr b o -> b <> bm) -> TI (set_opttemp optid v le)) ->
-    (forall optid ef tyargs al v le,
-       C (Sbuiltin optid ef tyargs al) -> TI le ->
-       (forall b o, v = Vptr b o -> b <> bm) -> TI (set_opttemp optid v le)) ->
+       TI i le -> C i (Sset id a) -> TI i (PTree.set id v le)) ->
+    (forall i optid a al v le,
+       C i (Scall optid a al) -> TI i le ->
+       (forall b o, v = Vptr b o -> b <> bm) -> TI i (set_opttemp optid v le)) ->
+    (forall i optid ef tyargs al v le,
+       C i (Sbuiltin optid ef tyargs al) -> TI i le ->
+       (forall b o, v = Vptr b o -> b <> bm) -> TI i (set_opttemp optid v le)) ->
     (forall fd m0 vargs0 t0 m0' vres0,
        Reached_fd fd ->
        eval_funcall function_entry2 ge m0 fd vargs0 t0 m0' vres0 ->
@@ -1656,16 +1664,16 @@ Theorem exec_funcall_reach_value_v2 :
     (forall ef vargs0 m0 t0 vres0 m0',
        external_call ef ge vargs0 m0 t0 vres0 m0' ->
        forall b o, vres0 = Vptr b o -> b <> bm) ->
-    (forall e le m optid a al vf fd,
-       TI le -> C (Scall optid a al) ->
+    (forall i e le m optid a al vf fd,
+       TI i le -> C i (Scall optid a al) ->
        eval_expr ge e le m a vf -> Genv.find_funct ge vf = Some fd ->
        Reached_fd fd) ->
     (* NEW (Hcallwriter): the call-site bridge for the writer. TI+C pin the
        actual evaluated argument list of every censused call that resolves
        to the writer -- the lp discharge enumerates the (now gate-killed)
        writer call sites and reads off their literal action arguments. *)
-    (forall e le m optid a al tyargs vargs vf fd,
-       TI le -> C (Scall optid a al) ->
+    (forall i e le m optid a al tyargs vargs vf fd,
+       TI i le -> C i (Scall optid a al) ->
        eval_expr ge e le m a vf -> Genv.find_funct ge vf = Some fd ->
        writer fd ->
        eval_exprlist ge e le m al tyargs vargs -> W vargs) ->
@@ -1692,36 +1700,37 @@ Theorem exec_funcall_reach_value_v2 :
        break-terminated head arm is followed by textually-present but
        semantically-dead T arms (ends_in_break_not_normal refutes the
        Out_normal premise at the discharge). *)
-    (forall s1 s2, C (Ssequence s1 s2) -> C s1) ->
-    (forall e le m s1 s2 t1 le1 m1,
-       C (Ssequence s1 s2) ->
+    (forall i s1 s2, C i (Ssequence s1 s2) -> C i s1) ->
+    (forall i e le m s1 s2 t1 le1 m1,
+       C i (Ssequence s1 s2) ->
        exec_stmt function_entry2 ge e le m s1 t1 le1 m1 Out_normal ->
-       C s2) ->
+       C i s2) ->
     (* HCif V2: the branch census obligation is SEMANTIC -- it sees the
        actual guard value, the boolean taken, TI and the carried memory
        facts, so a gate-killed THEN branch never has to pass census. *)
-    (forall e le m a s1 s2 v1 b,
-       C (Sifthenelse a s1 s2) -> MWF m -> action_sat Q m bm -> TI le ->
+    (forall i e le m a s1 s2 v1 b,
+       C i (Sifthenelse a s1 s2) -> MWF m -> action_sat Q m bm -> TI i le ->
        eval_expr ge e le m a v1 -> bool_val v1 (typeof a) m = Some b ->
-       C (if b then s1 else s2)) ->
-    (forall s1 s2, C (Sloop s1 s2) -> C s1 /\ C s2) ->
+       C i (if b then s1 else s2)) ->
+    (forall i s1 s2, C i (Sloop s1 s2) -> C i s1 /\ C i s2) ->
     (* HCsw V2: semantic -- sees the scrutinee value and TI, so the
        airborne dispatch only owes census on its non-T suffixes. *)
-    (forall e le m a ls v n,
-       C (Sswitch a ls) -> MWF m -> action_sat Q m bm -> TI le ->
+    (forall i e le m a ls v n,
+       C i (Sswitch a ls) -> MWF m -> action_sat Q m bm -> TI i le ->
        eval_expr ge e le m a v -> sem_switch_arg v (typeof a) = Some n ->
-       C (seq_of_labeled_statement (select_switch n ls))) ->
+       C i (seq_of_labeled_statement (select_switch n ls))) ->
     reach_value_preserves_v2 Q bm ge NoA MWF writer W Reached_fd.
 Proof.
-  intros Q bm ge NoA MWF writer W bridged Reached_fd TI C
+  intros Q bm ge NoA MWF writer W bridged Reached_fd I TI C
          Hbody Hbridged Hassign Hcallmarg Hexempt HTI_set HTI_optc HTI_optb
          Hret_call Hret_builtin Hcall_reached Hcallwriter Hw
          Hext Hmwf_ext Hmwf_unch Hnoaexec Hnoaentry HCseq1 HCseq2 HCif HCloop HCsw.
   assert (MAIN :
     (forall e le m s t le' m' out,
        exec_stmt function_entry2 ge e le m s t le' m' out ->
-       NoA m -> MWF m -> Mem.valid_block m bm -> action_sat Q m bm -> TI le -> C s ->
-       Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m' /\ TI le')
+       NoA m -> MWF m -> Mem.valid_block m bm -> action_sat Q m bm ->
+       forall i, TI i le -> C i s ->
+       Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m' /\ TI i le')
     /\
     (forall m fd vargs t m' vres,
        eval_funcall function_entry2 ge m fd vargs t m' vres ->
@@ -1732,28 +1741,29 @@ Proof.
        Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m')).
   { apply (exec_stmt_funcall_ind function_entry2 ge
       (fun e le m s t le' m' out =>
-         NoA m -> MWF m -> Mem.valid_block m bm -> action_sat Q m bm -> TI le -> C s ->
-         Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m' /\ TI le')
+         NoA m -> MWF m -> Mem.valid_block m bm -> action_sat Q m bm ->
+         forall i, TI i le -> C i s ->
+         Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m' /\ TI i le')
       (fun m fd vargs t m' vres =>
          Reached_fd fd ->
          NoA m -> MWF m -> Mem.valid_block m bm -> action_sat Q m bm ->
          (marg_exempt fd = false -> marg_ok bm vargs) ->
          (writer fd -> W vargs) ->
          Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m')).
-    - (* Sskip *) intros e le m HnoA HMWF Hv Hsat HTI _.
+    - (* Sskip *) intros e le m HnoA HMWF Hv Hsat i HTI _.
       split; [ exact Hv | split; [ exact Hsat | split; [ exact HMWF | exact HTI ] ] ].
     - (* Sassign *)
-      intros e le m a1 a2 loc ofs bf v2 v m' Hlv He Hcast Hal HnoA HMWF Hv Hsat HTI HC.
-      destruct (Hassign e le m a1 a2 loc ofs bf v2 v m' Hlv He Hcast Hal HTI HC HMWF Hv Hsat)
+      intros e le m a1 a2 loc ofs bf v2 v m' Hlv He Hcast Hal HnoA HMWF Hv Hsat i HTI HC.
+      destruct (Hassign i e le m a1 a2 loc ofs bf v2 v m' Hlv He Hcast Hal HTI HC HMWF Hv Hsat)
         as (Hv' & Hsat' & HMWF').
       split; [ exact Hv' | split; [ exact Hsat' | split; [ exact HMWF' | exact HTI ] ] ].
     - (* Sset: HTI_set v2 also receives action_sat *)
-      intros e le m id a v He HnoA HMWF Hv Hsat HTI HC.
+      intros e le m id a v He HnoA HMWF Hv Hsat i HTI HC.
       split; [ exact Hv | split; [ exact Hsat | split; [ exact HMWF |
         eapply HTI_set; [ exact HMWF | exact Hsat | exact He | exact HTI | exact HC ] ] ] ].
     - (* Scall: derive Reached_fd + the writer-args bridge, then funcall IH *)
       intros e le m optid a al tyargs tyres cconv vf vargs f t m' vres
-             Hcf He Hel Hff Htof Hfd IHfun HnoA HMWF Hv Hsat HTI HC.
+             Hcf He Hel Hff Htof Hfd IHfun HnoA HMWF Hv Hsat i HTI HC.
       assert (Hmarg : marg_exempt f = false -> marg_ok bm vargs)
         by (intro Hne; eapply Hcallmarg;
             [ exact HTI | exact HC | exact He | exact Hff | exact Hne | exact Hel ]).
@@ -1767,7 +1777,7 @@ Proof.
           [ exact HC | exact HTI
           | exact (Hret_call f m vargs t m' vres Hreached Hfd) ] ] ] ].
     - (* Sbuiltin *)
-      intros e le m optid ef al tyargs vargs t m' vres Hel Hec HnoA HMWF Hv Hsat HTI HC.
+      intros e le m optid ef al tyargs vargs t m' vres Hel Hec HnoA HMWF Hv Hsat i HTI HC.
       split;
       [ eapply external_call_valid_block; [ exact Hec | exact Hv ]
       | split;
@@ -1778,47 +1788,47 @@ Proof.
               [ exact HC | exact HTI
               | exact (Hret_builtin ef vargs m t vres m' Hec) ] ] ] ].
     - (* Sseq_1: the tail census comes from HCseq2 + the head's Out_normal run *)
-      intros e le m s1 s2 t1 le1 m1 t2 le2 m2 out He1 IH1 He2 IH2 HnoA HMWF Hv Hsat HTI HC.
-      pose proof (HCseq1 _ _ HC) as HC1.
-      pose proof (HCseq2 _ _ _ _ _ _ _ _ HC He1) as HC2.
-      destruct (IH1 HnoA HMWF Hv Hsat HTI HC1) as (Hv1 & Hsat1 & HMWF1 & HTI1).
-      apply (IH2 (Hnoaexec _ _ _ _ _ _ _ _ He1 HnoA) HMWF1 Hv1 Hsat1 HTI1 HC2).
+      intros e le m s1 s2 t1 le1 m1 t2 le2 m2 out He1 IH1 He2 IH2 HnoA HMWF Hv Hsat i HTI HC.
+      pose proof (HCseq1 _ _ _ HC) as HC1.
+      pose proof (HCseq2 _ _ _ _ _ _ _ _ _ HC He1) as HC2.
+      destruct (IH1 HnoA HMWF Hv Hsat i HTI HC1) as (Hv1 & Hsat1 & HMWF1 & HTI1).
+      apply (IH2 (Hnoaexec _ _ _ _ _ _ _ _ He1 HnoA) HMWF1 Hv1 Hsat1 i HTI1 HC2).
     - (* Sseq_2: only the head ran -- only the head census is needed *)
-      intros e le m s1 s2 t1 le1 m1 out He1 IH1 Hout HnoA HMWF Hv Hsat HTI HC.
-      apply (IH1 HnoA HMWF Hv Hsat HTI (HCseq1 _ _ HC)).
+      intros e le m s1 s2 t1 le1 m1 out He1 IH1 Hout HnoA HMWF Hv Hsat i HTI HC.
+      apply (IH1 HnoA HMWF Hv Hsat i HTI (HCseq1 _ _ _ HC)).
     - (* Sifthenelse: HCif v2 -- semantic branch census *)
-      intros e le m a s1 s2 v1 b t le' m' out He Hbool Hexec IH HnoA HMWF Hv Hsat HTI HC.
-      apply (IH HnoA HMWF Hv Hsat HTI).
+      intros e le m a s1 s2 v1 b t le' m' out He Hbool Hexec IH HnoA HMWF Hv Hsat i HTI HC.
+      apply (IH HnoA HMWF Hv Hsat i HTI).
       eapply HCif; [ exact HC | exact HMWF | exact Hsat | exact HTI | exact He | exact Hbool ].
-    - (* Sreturn_none *) intros e le m HnoA HMWF Hv Hsat HTI _.
+    - (* Sreturn_none *) intros e le m HnoA HMWF Hv Hsat i HTI _.
       split; [ exact Hv | split; [ exact Hsat | split; [ exact HMWF | exact HTI ] ] ].
-    - (* Sreturn_some *) intros e le m a v He HnoA HMWF Hv Hsat HTI _.
+    - (* Sreturn_some *) intros e le m a v He HnoA HMWF Hv Hsat i HTI _.
       split; [ exact Hv | split; [ exact Hsat | split; [ exact HMWF | exact HTI ] ] ].
-    - (* Sbreak *) intros e le m HnoA HMWF Hv Hsat HTI _.
+    - (* Sbreak *) intros e le m HnoA HMWF Hv Hsat i HTI _.
       split; [ exact Hv | split; [ exact Hsat | split; [ exact HMWF | exact HTI ] ] ].
-    - (* Scontinue *) intros e le m HnoA HMWF Hv Hsat HTI _.
+    - (* Scontinue *) intros e le m HnoA HMWF Hv Hsat i HTI _.
       split; [ exact Hv | split; [ exact Hsat | split; [ exact HMWF | exact HTI ] ] ].
     - (* Sloop_stop1 *)
-      intros e le m s1 s2 t le' m' out' out He1 IH1 Hbor HnoA HMWF Hv Hsat HTI HC.
-      destruct (HCloop _ _ HC) as [HC1 _]. apply (IH1 HnoA HMWF Hv Hsat HTI HC1).
+      intros e le m s1 s2 t le' m' out' out He1 IH1 Hbor HnoA HMWF Hv Hsat i HTI HC.
+      destruct (HCloop _ _ _ HC) as [HC1 _]. apply (IH1 HnoA HMWF Hv Hsat i HTI HC1).
     - (* Sloop_stop2 *)
       intros e le m s1 s2 t1 le1 m1 out1 t2 le2 m2 out2 out
-             He1 IH1 Hnoc He2 IH2 Hbor HnoA HMWF Hv Hsat HTI HC.
-      destruct (HCloop _ _ HC) as [HC1 HC2].
-      destruct (IH1 HnoA HMWF Hv Hsat HTI HC1) as (Hv1 & Hsat1 & HMWF1 & HTI1).
-      apply (IH2 (Hnoaexec _ _ _ _ _ _ _ _ He1 HnoA) HMWF1 Hv1 Hsat1 HTI1 HC2).
+             He1 IH1 Hnoc He2 IH2 Hbor HnoA HMWF Hv Hsat i HTI HC.
+      destruct (HCloop _ _ _ HC) as [HC1 HC2].
+      destruct (IH1 HnoA HMWF Hv Hsat i HTI HC1) as (Hv1 & Hsat1 & HMWF1 & HTI1).
+      apply (IH2 (Hnoaexec _ _ _ _ _ _ _ _ He1 HnoA) HMWF1 Hv1 Hsat1 i HTI1 HC2).
     - (* Sloop_loop *)
       intros e le m s1 s2 t1 le1 m1 out1 t2 le2 m2 t3 le3 m3 out
-             He1 IH1 Hnoc He2 IH2 He3 IH3 HnoA HMWF Hv Hsat HTI HC.
-      destruct (HCloop _ _ HC) as [HC1 HC2].
-      destruct (IH1 HnoA HMWF Hv Hsat HTI HC1) as (Hv1 & Hsat1 & HMWF1 & HTI1).
+             He1 IH1 Hnoc He2 IH2 He3 IH3 HnoA HMWF Hv Hsat i HTI HC.
+      destruct (HCloop _ _ _ HC) as [HC1 HC2].
+      destruct (IH1 HnoA HMWF Hv Hsat i HTI HC1) as (Hv1 & Hsat1 & HMWF1 & HTI1).
       pose proof (Hnoaexec _ _ _ _ _ _ _ _ He1 HnoA) as HnoA1.
-      destruct (IH2 HnoA1 HMWF1 Hv1 Hsat1 HTI1 HC2) as (Hv2 & Hsat2 & HMWF2 & HTI2).
+      destruct (IH2 HnoA1 HMWF1 Hv1 Hsat1 i HTI1 HC2) as (Hv2 & Hsat2 & HMWF2 & HTI2).
       pose proof (Hnoaexec _ _ _ _ _ _ _ _ He2 HnoA1) as HnoA2.
-      apply (IH3 HnoA2 HMWF2 Hv2 Hsat2 HTI2 HC).
+      apply (IH3 HnoA2 HMWF2 Hv2 Hsat2 i HTI2 HC).
     - (* Sswitch: HCsw v2 -- semantic case census *)
-      intros e le m a t v n sl le1 m1 out He Hsa Hexec IH HnoA HMWF Hv Hsat HTI HC.
-      apply (IH HnoA HMWF Hv Hsat HTI).
+      intros e le m a t v n sl le1 m1 out He Hsa Hexec IH HnoA HMWF Hv Hsat i HTI HC.
+      apply (IH HnoA HMWF Hv Hsat i HTI).
       eapply HCsw; [ exact HC | exact HMWF | exact Hsat | exact HTI | exact He | exact Hsa ].
     - (* eval_funcall_internal: bridged-split, then writer-split *)
       intros m f vargs t e le1 le2 m1 m2 out vres m3
@@ -1850,8 +1860,9 @@ Proof.
           assert (HMWF1 : MWF m1)
             by (eapply Hmwf_unch; [ exact Uentry_bm | exact Hv | exact HMWF ]).
           assert (HnoA1 : NoA m1) by (eapply Hnoaentry; [ exact Hentry | exact HnoA ]).
-          destruct (Hbody f vargs m e le1 m1 Hreached Hexm Hentry Hnwr Hnbr Hmarg') as [HTI1 HC1].
-          destruct (IHbody HnoA1 HMWF1 Hv1 Hsat1 HTI1 HC1) as (Hv2 & Hsat2 & HMWF2 & _).
+          destruct (Hbody f vargs m e le1 m1 Hreached Hexm Hentry Hnwr Hnbr Hmarg')
+            as (ci & HTI1 & HC1).
+          destruct (IHbody HnoA1 HMWF1 Hv1 Hsat1 ci HTI1 HC1) as (Hv2 & Hsat2 & HMWF2 & _).
           assert (Ufree_ac : Mem.unchanged_on (action_cell bm) m2 m3).
           { eapply free_list_unchanged_on; [ exact Hfree | ].
             intros b lo hi i Hin Hac. destruct Hac as [Hb _]. subst b.
