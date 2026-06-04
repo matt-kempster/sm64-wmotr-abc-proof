@@ -32,13 +32,22 @@
 (* geometry (input@2, controller@156, buttonPressed@18) is computed in      *)
 (* mario.prog's OWN cenv and transferred to lp by linking metatheory --      *)
 (* the same trust path as action@12.                                        *)
+(*                                                                        *)
+(* It also proves the third, VALUE-driven gate -- THE DISPATCH KILL (end    *)
+(* of file): the airborne action dispatcher's `Sset t (m->action);          *)
+(* Sswitch t` under the carried invariant action_sat not_tainted provably   *)
+(* never selects the T-labeled case arms, so the bodies of act_flying,      *)
+(* act_flying_triple_jump and act_shot_from_cannon are DEAD CODE under      *)
+(* no-A. This is the invariant-aware switch rule (the restatement of the    *)
+(* H1 engine leaf HCsw) at the one switch where all three T labels live.    *)
 (* ====================================================================== *)
 
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
 From SM64.Generated Require mario.
+From SM64.Generated Require mario_actions_airborne.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
-  RealFrameValue RealFrameLinked.
+  ActionValueFrame RealFrameValue RealFrameLinked.
 
 (* ====================================================================== *)
 (* Field geometry: concrete offsets in mario.prog's cenv (vm_compute).     *)
@@ -444,3 +453,449 @@ Section AGatesLp.
   Qed.
 
 End AGatesLp.
+
+(* ====================================================================== *)
+(* THE DISPATCH KILL (the airborne action switch).                        *)
+(*                                                                        *)
+(* mario_execute_airborne_action dispatches `switch (m->action)`; the     *)
+(* clightgen'd shape is the value-gate sibling of the A-gates above:      *)
+(*                                                                        *)
+(*   Sset _t'46 (m->action); Sswitch (Etempvar _t'46) CASES               *)
+(*                                                                        *)
+(* All three T labels live in this one switch:                            *)
+(*   277350553 (ACT_FLYING)             -> act_flying                      *)
+(*   50333844  (ACT_FLYING_TRIPLE_JUMP) -> act_flying_triple_jump          *)
+(*   8915096   (ACT_SHOT_FROM_CANNON)   -> act_shot_from_cannon            *)
+(*                                                                        *)
+(* Under the carried run invariant action_sat not_tainted, the loaded     *)
+(* selector provably avoids all three labels, CompCert's select_switch    *)
+(* lands on a non-T arm (or no arm at all -- the switch has no default),  *)
+(* and -- because every arm ends in Sbreak -- the fall-through tail is     *)
+(* dead too: the WHOLE switch execution is the execution of ONE arm that  *)
+(* calls none of the three handlers. act_flying's body is dead code.      *)
+(*                                                                        *)
+(* This is the invariant-aware switch rule (the engine-v2 restatement of  *)
+(* H1's leaf HCsw, docs/open-hypothesis-surface.html SS5 #20), proved at   *)
+(* the dispatcher it matters for. PIPELINE: the dispatch statement and    *)
+(* the case list are PROJECTED from the generated AST, never hand-written; *)
+(* the censuses over them are reflexivity facts with positive controls.   *)
+(* ====================================================================== *)
+
+(* ---- the dispatcher fragment, BY PROJECTION from the generated AST.
+   The body is Sseq(cancel-check, Sseq(far-fall-sound, Sseq(DISPATCH, return))):
+   we project the third element and pin its shape by reflexivity below. ---- *)
+Definition third_seq (s : statement) : statement :=
+  match s with
+  | Ssequence _ (Ssequence _ (Ssequence d _)) => d
+  | _ => Sskip
+  end.
+
+Definition airborne_dispatch_stmt : statement :=
+  third_seq (fn_body mario_actions_airborne.f_mario_execute_airborne_action).
+
+Definition airborne_cases : labeled_statements :=
+  match airborne_dispatch_stmt with
+  | Ssequence _ (Sswitch _ ls) => ls
+  | _ => LSnil
+  end.
+
+(* shape pin: the projected fragment IS the canonical value-gate shape.
+   (mario.* and mario_actions_airborne.* idents agree -- clightgen derives
+   them from the source strings -- so the brick vocabulary applies as-is.) *)
+Example airborne_dispatch_shape :
+  airborne_dispatch_stmt =
+  Ssequence
+    (Sset mario_actions_airborne._t'46
+       (Efield (Ederef (Etempvar mario_actions_airborne._m
+                          (tptr (Tstruct mario._MarioState noattr)))
+                  (Tstruct mario._MarioState noattr))
+          mario._action tuint))
+    (Sswitch (Etempvar mario_actions_airborne._t'46 tuint) airborne_cases).
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- the T labels and the per-arm checks (booleans over the literal AST). ---- *)
+
+Definition is_T_label (c : Z) : bool :=
+  Z.eqb c 277350553 || Z.eqb c 50333844 || Z.eqb c 8915096.
+
+Definition is_T_handler (i : ident) : bool :=
+  Pos.eqb i mario_actions_airborne._act_flying
+  || Pos.eqb i mario_actions_airborne._act_flying_triple_jump
+  || Pos.eqb i mario_actions_airborne._act_shot_from_cannon.
+
+(* does a statement contain ANY call to a T handler? (indirect calls count
+   as dangerous -- conservative; the dispatcher has none). *)
+Fixpoint calls_T_handler (s : statement) : bool :=
+  match s with
+  | Scall _ (Evar f _) _ => is_T_handler f
+  | Scall _ _ _ => true
+  | Ssequence s1 s2 => calls_T_handler s1 || calls_T_handler s2
+  | Sifthenelse _ s1 s2 => calls_T_handler s1 || calls_T_handler s2
+  | Sloop s1 s2 => calls_T_handler s1 || calls_T_handler s2
+  | Slabel _ s1 => calls_T_handler s1
+  | Sswitch _ ls => calls_T_handler_ls ls
+  | _ => false
+  end
+with calls_T_handler_ls (ls : labeled_statements) : bool :=
+  match ls with
+  | LSnil => false
+  | LScons _ s rest => calls_T_handler s || calls_T_handler_ls rest
+  end.
+
+(* an arm that ends in Sbreak: its big-step outcome is never Out_normal,
+   so the switch's textual fall-through tail is provably dead. *)
+Definition ends_in_break (s : statement) : bool :=
+  match s with
+  | Ssequence _ Sbreak => true
+  | Sbreak => true
+  | _ => false
+  end.
+
+Definition arm_ok (s : statement) : bool :=
+  negb (calls_T_handler s) && ends_in_break s.
+
+(* C fall-through: a `case X:` with an EMPTY arm (Sskip) falls into the next
+   case (the dispatcher really has one: case 42010778 falls into the
+   act_riding_shell_air arm at 8456347). Semantically a leading Sskip arm is
+   a no-op -- exec_seq_drop_skips below -- so the right per-selection check is
+   on the suffix AFTER dropping leading skips: the first REAL arm must pass
+   arm_ok (and a skipped Sskip trivially calls no T handler). *)
+Fixpoint drop_skips (sl : labeled_statements) : labeled_statements :=
+  match sl with
+  | LScons o s rest => match s with Sskip => drop_skips rest | _ => sl end
+  | LSnil => LSnil
+  end.
+
+Definition head_arm_ok (ok : statement -> bool) (sl : labeled_statements) : bool :=
+  match sl with LSnil => true | LScons _ s _ => ok s end.
+
+(* the per-selection check: after the skips, the first real arm is ok
+   (no arm at all -- all skips / ran off the end -- is fine: nothing runs). *)
+Definition suffix_ok (sl : labeled_statements) : bool :=
+  head_arm_ok arm_ok (drop_skips sl).
+
+Lemma suffix_ok_LSnil : suffix_ok LSnil = true.
+Proof. reflexivity. Qed.
+
+(* the case census: every suffix a non-T selector can land on passes ok.
+   (T-labeled positions are exempt -- a not_tainted selector cannot match
+   them; None-labeled (default) positions are always selectable, so always
+   checked.) *)
+Fixpoint nonT_suffixes_ok (ok : labeled_statements -> bool) (sl : labeled_statements) : bool :=
+  match sl with
+  | LSnil => true
+  | LScons None s rest => ok (LScons None s rest) && nonT_suffixes_ok ok rest
+  | LScons (Some c) s rest =>
+      (if is_T_label c then true else ok (LScons (Some c) s rest))
+      && nonT_suffixes_ok ok rest
+  end.
+
+(* ---- the reflexivity censuses over the REAL case list. ---- *)
+
+(* every suffix of the airborne dispatch selectable by a non-T selector
+   resolves (through the skips) to an arm that calls no T handler and ends
+   in Sbreak. *)
+Example airborne_nonT_suffixes_ok : nonT_suffixes_ok suffix_ok airborne_cases = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* POSITIVE CONTROL 1: the walker is not blind -- selecting a T label lands
+   on an arm that DOES call its T handler. *)
+Example airborne_T_arms_do_call :
+  ( head_arm_ok calls_T_handler (select_switch 277350553 airborne_cases)
+  , head_arm_ok calls_T_handler (select_switch 50333844 airborne_cases)
+  , head_arm_ok calls_T_handler (select_switch 8915096 airborne_cases) )
+  = (true, true, true).
+Proof. vm_compute. reflexivity. Qed.
+
+(* POSITIVE CONTROL 2: the census is not vacuous -- it really checks the
+   non-T suffixes (an always-false ok fails it). *)
+Example airborne_census_not_vacuous :
+  nonT_suffixes_ok (fun _ => false) airborne_cases = false.
+Proof. vm_compute. reflexivity. Qed.
+
+(* POSITIVE CONTROL 3: the fall-through machinery is load-bearing -- the
+   head-only check FAILS at the real Sskip case (42010778) and the
+   skip-dropping suffix check passes it. *)
+Example airborne_fallthrough_case :
+  ( head_arm_ok arm_ok (select_switch 42010778 airborne_cases)
+  , suffix_ok (select_switch 42010778 airborne_cases) )
+  = (false, true).
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- the generic selection lemmas (CompCert select_switch vs the census).
+   Reusable for every dispatcher; nothing airborne-specific below. ---- *)
+
+Lemma select_switch_case_nonT_ok :
+  forall (ok : labeled_statements -> bool) n sl sl',
+    nonT_suffixes_ok ok sl = true -> is_T_label n = false ->
+    select_switch_case n sl = Some sl' ->
+    ok sl' = true.
+Proof.
+  intros ok n sl; induction sl as [| o s rest IH]; cbn; intros sl' Hc Hn Hsel.
+  - discriminate.
+  - destruct o as [c|].
+    + apply andb_prop in Hc as [Hc1 Hc2].
+      destruct (zeq c n) as [e|ne].
+      * inv Hsel. rewrite Hn in Hc1. exact Hc1.
+      * apply IH; assumption.
+    + apply andb_prop in Hc as [Hc1 Hc2]. apply IH; assumption.
+Qed.
+
+Lemma select_switch_default_nonT_ok :
+  forall (ok : labeled_statements -> bool) sl,
+    nonT_suffixes_ok ok sl = true -> ok LSnil = true ->
+    ok (select_switch_default sl) = true.
+Proof.
+  intros ok sl; induction sl as [| o s rest IH]; cbn; intros Hc Hnil.
+  - exact Hnil.
+  - destruct o as [c|]; apply andb_prop in Hc as [Hc1 Hc2].
+    + apply IH; assumption.
+    + exact Hc1.
+Qed.
+
+Lemma select_switch_nonT_ok :
+  forall (ok : labeled_statements -> bool) n sl,
+    nonT_suffixes_ok ok sl = true -> is_T_label n = false -> ok LSnil = true ->
+    ok (select_switch n sl) = true.
+Proof.
+  intros ok n sl Hc Hn Hnil. unfold select_switch.
+  destruct (select_switch_case n sl) eqn:E.
+  - eapply select_switch_case_nonT_ok; eauto.
+  - apply select_switch_default_nonT_ok; assumption.
+Qed.
+
+(* ---- not_tainted excludes the three labels (int -> Z bridge). ---- *)
+
+Lemma int_eq_false_unsigned_neq :
+  forall v (k : Z),
+    Int.eq v (Int.repr k) = false -> Z.eqb (Int.unsigned v) k = false.
+Proof.
+  intros v k He. apply Z.eqb_neq. intros Hk.
+  rewrite <- Hk in He. rewrite Int.repr_unsigned in He.
+  rewrite Int.eq_true in He. discriminate.
+Qed.
+
+Lemma not_tainted_not_T_label :
+  forall v, not_tainted v -> is_T_label (Int.unsigned v) = false.
+Proof.
+  intros v Hnt.
+  unfold not_tainted, is_tainted, is_flying_int in Hnt.
+  apply orb_false_iff in Hnt as [Hfl Hcan].
+  apply orb_false_iff in Hfl as [Hf Hftj].
+  unfold is_T_label.
+  rewrite (int_eq_false_unsigned_neq v 277350553 Hf).
+  rewrite (int_eq_false_unsigned_neq v 50333844 Hftj).
+  rewrite (int_eq_false_unsigned_neq v 8915096 Hcan).
+  reflexivity.
+Qed.
+
+Section DispatchKillLp.
+  Variable lp : Clight.program.
+  Hypothesis LO_mario : linkorder mario.prog lp.
+
+  (* the action-load inversion brick: the value-gate's Sset RHS loads the
+     real action cell (offset 12, pinned in mario.prog's cenv, transferred
+     to lp by linking metatheory -- the same trust path as the A-gates'). *)
+  Lemma eval_action_load_bm_lp :
+    forall stid e le m bm v,
+      le ! stid = Some (Vptr bm Ptrofs.zero) ->
+      eval_expr (lp_ge lp) e le m
+        (Efield (Ederef (Etempvar stid (tptr (Tstruct mario._MarioState noattr)))
+                        (Tstruct mario._MarioState noattr))
+                mario._action tuint) v ->
+      Mem.load Mint32 m bm 12 = Some v.
+  Proof.
+    intros stid e le m bm v Hle Hev.
+    apply eval_expr_Efield_load in Hev as (loc & ofs & bf & Hlv & Hderef).
+    apply eval_lvalue_Efield_inv in Hlv as (o0 & id & att & co & delta & Hbase & Hco & Hofs & Hcase).
+    apply eval_expr_Ederef_load in Hbase as (lb & ob & bfb & Hlvb & Hderefb).
+    apply deref_loc_aggregate_eq in Hderefb as [? ?]; [ | right; reflexivity ]. subst lb ob.
+    apply eval_lvalue_Ederef_base in Hlvb.
+    apply eval_expr_Etempvar_val in Hlvb.
+    rewrite Hle in Hlvb. inv Hlvb.
+    destruct Hcase as [ (Hty & Hfo2) | (Hty & Hfo2) ]; [ | cbn in Hty; discriminate ].
+    cbn in Hty; inv Hty.
+    change (genv_cenv (lp_ge lp)) with (prog_comp_env lp) in Hco, Hfo2.
+    destruct (RealFrameLinked.mario_defines_MarioState) as (co0 & Hmar).
+    pose proof (linkorder_comp_env_extends lp mario.prog mario._MarioState co0 LO_mario Hmar)
+      as Hext_lp.
+    assert (co = co0) by congruence. subst co0.
+    assert (Hmm : mario_state_members = co_members co)
+      by (unfold mario_state_members; rewrite Hmar; reflexivity).
+    rewrite (linkorder_field_offset_agree lp mario.prog mario._action (co_members co)
+               LO_mario) in Hfo2;
+      [ | rewrite <- Hmm; exact mario_state_members_complete ].
+    rewrite <- Hmm in Hfo2. rewrite mario_action_offset_concrete in Hfo2. inv Hfo2.
+    rewrite Ptrofs.add_zero_l in Hderef.
+    inv Hderef;
+      try (match goal with Hac : access_mode _ = By_reference |- _ => cbn in Hac; discriminate end);
+      try (match goal with Hac : access_mode _ = By_copy |- _ => cbn in Hac; discriminate end);
+      match goal with
+      | Hac : access_mode _ = By_value ?chunk, Hlv3 : Mem.loadv ?chunk _ _ = Some v |- _ =>
+          cbn in Hac; inv Hac;
+          change (Ptrofs.unsigned (Ptrofs.repr 12)) with 12 in Hlv3; exact Hlv3
+      end.
+  Qed.
+
+  (* a break-terminated arm never finishes Out_normal, so the textual
+     fall-through tail after the selected arm is dead. *)
+  Lemma ends_in_break_not_normal :
+    forall e le m s t le' m' out,
+      ends_in_break s = true ->
+      exec_stmt function_entry2 (lp_ge lp) e le m s t le' m' out ->
+      out <> Out_normal.
+  Proof.
+    intros e le m s t le' m' out Hb Hexec.
+    destruct s; try discriminate Hb.
+    - (* Ssequence _ Sbreak *)
+      destruct s2; try discriminate Hb.
+      inv Hexec.
+      + match goal with H : exec_stmt _ _ _ _ _ Sbreak _ _ _ _ |- _ => inv H end.
+        discriminate.
+      + assumption.
+    - (* Sbreak *)
+      inv Hexec. discriminate.
+  Qed.
+
+  (* leading Sskip arms (C fall-through labels) are semantic no-ops: the
+     execution of a case suffix IS the execution of the suffix with the
+     skips dropped. *)
+  Lemma exec_seq_drop_skips :
+    forall sl e le m t le' m' out,
+      exec_stmt function_entry2 (lp_ge lp) e le m
+        (seq_of_labeled_statement sl) t le' m' out ->
+      exec_stmt function_entry2 (lp_ge lp) e le m
+        (seq_of_labeled_statement (drop_skips sl)) t le' m' out.
+  Proof.
+    induction sl as [| o s rest IH]; intros e le m t le' m' out Hexec.
+    - exact Hexec.
+    - destruct s; try exact Hexec.
+      (* s = Sskip *)
+      cbn in Hexec |- *.
+      inv Hexec.
+      + match goal with H : exec_stmt _ _ _ _ _ Sskip _ _ _ _ |- _ => inv H end.
+        apply IH. assumption.
+      + match goal with H : exec_stmt _ _ _ _ _ Sskip _ _ _ _ |- _ => inv H end.
+        match goal with H : Out_normal <> Out_normal |- _ =>
+          contradiction H; reflexivity end.
+  Qed.
+
+  (* ================================================================== *)
+  (* THE DISPATCH KILL, selection form: under action_sat not_tainted the *)
+  (* airborne dispatch executes the switch at a selector OUTSIDE T, and   *)
+  (* the selected case suffix passes suffix_ok (through the skips, its    *)
+  (* first real arm calls no T handler and ends in Sbreak). The           *)
+  (* engine-facing dead-case rule.                                        *)
+  (* ================================================================== *)
+  Theorem airborne_dispatch_kill_lp :
+    forall e le m bm tr le' m' out,
+      le ! mario_actions_airborne._m = Some (Vptr bm Ptrofs.zero) ->
+      action_sat not_tainted m bm ->
+      exec_stmt function_entry2 (lp_ge lp) e le m airborne_dispatch_stmt tr le' m' out ->
+      exists v out1,
+        Mem.load Mint32 m bm 12 = Some (Vint v) /\
+        not_tainted v /\
+        is_T_label (Int.unsigned v) = false /\
+        suffix_ok (select_switch (Int.unsigned v) airborne_cases) = true /\
+        out = outcome_switch out1 /\
+        exec_stmt function_entry2 (lp_ge lp) e
+          (PTree.set mario_actions_airborne._t'46 (Vint v) le) m
+          (seq_of_labeled_statement (select_switch (Int.unsigned v) airborne_cases))
+          tr le' m' out1.
+  Proof.
+    intros e le m bm tr le' m' out Hle Hsat Hexec.
+    rewrite airborne_dispatch_shape in Hexec.
+    inv Hexec.
+    2: { match goal with H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H end.
+         match goal with H : Out_normal <> Out_normal |- _ =>
+           contradiction H; reflexivity end. }
+    match goal with H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H end.
+    match goal with H : eval_expr _ _ _ _ (Efield _ _ _) ?vv |- _ =>
+      pose proof (eval_action_load_bm_lp _ _ _ _ _ vv Hle H) as Hload end.
+    match goal with H : exec_stmt _ _ _ _ _ (Sswitch _ _) _ _ _ _ |- _ => inv H end.
+    match goal with H : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+      apply eval_expr_Etempvar_val in H; rename H into Hlet end.
+    rewrite PTree.gss in Hlet.
+    match goal with H : sem_switch_arg ?vv _ = Some _ |- _ =>
+      unfold sem_switch_arg in H; cbn [classify_switch typeof] in H;
+      destruct vv; try discriminate H; inv H end.
+    inv Hlet.
+    pose proof (Hsat _ Hload) as Hnt.
+    pose proof (not_tainted_not_T_label _ Hnt) as Hlab.
+    pose proof (select_switch_nonT_ok suffix_ok (Int.unsigned i) airborne_cases
+                  airborne_nonT_suffixes_ok Hlab suffix_ok_LSnil) as Hok.
+    eexists i, _.
+    split; [ exact Hload | ].
+    split; [ exact Hnt | ].
+    split; [ exact Hlab | ].
+    split; [ exact Hok | ].
+    split; [ reflexivity | ].
+    match goal with H : exec_stmt _ _ _ _ _ (seq_of_labeled_statement _) _ _ _ _ |- _ =>
+      exact H end.
+  Qed.
+
+  (* ================================================================== *)
+  (* THE DISPATCH KILL, headline form: every execution of the airborne   *)
+  (* dispatch under no-A either runs NO real arm (no label matched -- the *)
+  (* switch has no default -- or only empty fall-through labels), or      *)
+  (* executes EXACTLY ONE real arm -- and that arm contains no call to    *)
+  (* act_flying / act_flying_triple_jump / act_shot_from_cannon. Their    *)
+  (* case arms -- the only sites invoking them in the dispatcher -- are    *)
+  (* never entered: dead code under no-A.                                 *)
+  (* ================================================================== *)
+  Corollary airborne_dispatch_no_T_entry_lp :
+    forall e le m bm tr le' m' out,
+      le ! mario_actions_airborne._m = Some (Vptr bm Ptrofs.zero) ->
+      action_sat not_tainted m bm ->
+      exec_stmt function_entry2 (lp_ge lp) e le m airborne_dispatch_stmt tr le' m' out ->
+      exists v,
+        Mem.load Mint32 m bm 12 = Some (Vint v) /\
+        not_tainted v /\
+        ( (* nothing real runs: the switch is a no-op *)
+          ( drop_skips (select_switch (Int.unsigned v) airborne_cases) = LSnil /\
+            le' = PTree.set mario_actions_airborne._t'46 (Vint v) le /\ m' = m )
+          \/
+          (* exactly one real arm runs, and it calls NO T handler *)
+          exists o s_arm ls_tail out1,
+            drop_skips (select_switch (Int.unsigned v) airborne_cases)
+              = LScons o s_arm ls_tail /\
+            calls_T_handler s_arm = false /\
+            out1 <> Out_normal /\
+            out = outcome_switch out1 /\
+            exec_stmt function_entry2 (lp_ge lp) e
+              (PTree.set mario_actions_airborne._t'46 (Vint v) le) m
+              s_arm tr le' m' out1 ).
+  Proof.
+    intros e le m bm tr le' m' out Hle Hsat Hexec.
+    destruct (airborne_dispatch_kill_lp e le m bm tr le' m' out Hle Hsat Hexec)
+      as (v & out1 & Hload & Hnt & Hlab & Hok & Hout & Hrun).
+    exists v. split; [ exact Hload | ]. split; [ exact Hnt | ].
+    apply exec_seq_drop_skips in Hrun.
+    unfold suffix_ok in Hok.
+    destruct (drop_skips (select_switch (Int.unsigned v) airborne_cases))
+      as [| o s_arm ls_tail] eqn:Esel.
+    - (* LSnil: seq_of = Sskip *)
+      left. cbn in Hrun. inv Hrun. auto.
+    - (* LScons: Ssequence s_arm (fall-through tail) *)
+      right.
+      cbn in Hok. unfold arm_ok in Hok.
+      apply andb_prop in Hok as [HnoT Hbrk].
+      apply negb_true_iff in HnoT.
+      cbn in Hrun.
+      inv Hrun.
+      + (* Sseq_1: the arm finished Out_normal -- impossible, it ends in Sbreak *)
+        match goal with H : exec_stmt _ _ _ _ _ s_arm _ _ _ Out_normal |- _ =>
+          pose proof (ends_in_break_not_normal _ _ _ _ _ _ _ _ Hbrk H) as Hcontra end.
+        contradiction Hcontra; reflexivity.
+      + (* Sseq_2: only the arm ran; the tail is dead *)
+        exists o, s_arm, ls_tail, out1.
+        split; [ reflexivity | ].
+        split; [ exact HnoT | ].
+        split; [ assumption | ].
+        (* inv's global subst consumed Hout (out := outcome_switch out1),
+           so the outcome conjunct is now reflexive. *)
+        split; [ reflexivity | ].
+        assumption.
+  Qed.
+
+End DispatchKillLp.
