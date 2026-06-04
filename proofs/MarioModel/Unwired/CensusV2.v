@@ -305,6 +305,63 @@ Definition safe_mfield_store (mptr : ident) (a1 : expr) : bool :=
   | _ => false
   end.
 
+(* ---- store class I: the m->input A-clear write.  The clightgen idiom is
+   `t = m->input; m->input = t | C` (or `m->input = 0`).  The or-temp is
+   REQUIRED to be a TABLED GATE temp: the census's Sset rule then forces
+   its only definition to be the canonical m->input load, and TI carries
+   its bit-1-clear fact -- so the stored value provably keeps
+   INPUT_A_PRESSED clear, and input_a_clear survives its own cell's
+   update.  C itself must have bit 1 clear (checked by computation). ---- *)
+Definition input_rhs_aclear (bc : body_census) (rhs : expr) : bool :=
+  match rhs with
+  | Econst_int c ty =>
+      proj_sumbool (type_eq ty tint)
+      && Int.eq (Int.and c (Int.repr 2)) Int.zero
+  | Ebinop Oor (Etempvar t ty1) (Econst_int c ty2) ty3 =>
+      mem_id t (bc_gates bc)
+      && proj_sumbool (type_eq ty1 tushort)
+      && proj_sumbool (type_eq ty2 tint)
+      && proj_sumbool (type_eq ty3 tint)
+      && Int.eq (Int.and c (Int.repr 2)) Int.zero
+  | _ => false
+  end.
+
+Definition input_store_ok (bc : body_census) (a1 a2 : expr) : bool :=
+  is_input_load_x (bc_mptr bc) a1 && input_rhs_aclear bc a2.
+
+Lemma input_rhs_aclear_shape :
+  forall bc rhs, input_rhs_aclear bc rhs = true ->
+    (exists c, rhs = Econst_int c tint /\
+       Int.and c (Int.repr 2) = Int.zero) \/
+    (exists t c,
+       rhs = Ebinop Oor (Etempvar t tushort) (Econst_int c tint) tint /\
+       mem_id t (bc_gates bc) = true /\
+       Int.and c (Int.repr 2) = Int.zero).
+Proof.
+  intros bc rhs H.
+  destruct rhs as [ c cty | | | | | | | | | op e1 e2 bty | | | | ];
+    try discriminate H.
+  - (* Econst_int *)
+    unfold input_rhs_aclear in H.
+    apply andb_true_iff in H as [Hty Hc].
+    apply proj_sumbool_true in Hty. apply Int.same_if_eq in Hc. subst.
+    left. eexists. split; [ reflexivity | assumption ].
+  - (* Ebinop *)
+    destruct op; try discriminate H.
+    destruct e1 as [ | | | | | t1 t1ty | | | | | | | | ];
+      try discriminate H.
+    destruct e2 as [ c2 c2ty | | | | | | | | | | | | | ];
+      try discriminate H.
+    unfold input_rhs_aclear in H.
+    repeat (apply andb_true_iff in H; destruct H as [H ?]).
+    repeat match goal with
+           | Hp : proj_sumbool _ = true |- _ => apply proj_sumbool_true in Hp
+           | Hp : Int.eq _ Int.zero = true |- _ => apply Int.same_if_eq in Hp
+           end.
+    subst. right. do 2 eexists.
+    split; [ reflexivity | split; assumption ].
+Qed.
+
 Lemma safe_mfield_store_shape :
   forall mptr a1, safe_mfield_store mptr a1 = true ->
     exists fld fty,
@@ -351,7 +408,8 @@ Fixpoint chk (bc : body_census) (s : statement) : bool :=
   | Slabel _ s1 => chk bc s1
   | Sswitch a ls =>
       if disp_switch bc a then chk_disp_ls bc ls else chk_all_ls bc ls
-  | Sassign a1 _ => safe_mfield_store (bc_mptr bc) a1
+  | Sassign a1 a2 =>
+      safe_mfield_store (bc_mptr bc) a1 || input_store_ok bc a1 a2
   | Scall optid a al =>
       call_optid_ok bc optid
       && (call_head_is_mptr bc al || call_callee_exempt a)
@@ -801,6 +859,10 @@ Section CensusLeavesLp.
          MWF mm ->
          store_window_ok delta (size_chunk ch) = true ->
          Mem.store ch mm bm delta vv = Some mm' -> MWF mm') ->
+      (forall mm mm' vv,
+         MWF mm ->
+         Int.and vv (Int.repr 2) = Int.zero ->
+         Mem.store Mint16unsigned mm bm 2 (Vint vv) = Some mm' -> MWF mm') ->
       eval_lvalue (lp_ge lp) e le m a1 loc ofs bf ->
       eval_expr (lp_ge lp) e le m a2 v2 ->
       sem_cast v2 (typeof a2) (typeof a1) m = Some v ->
@@ -811,8 +873,70 @@ Section CensusLeavesLp.
       Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m'.
   Proof.
     intros Q MWF bm bc e le m a1 a2 loc ofs bf v2 v m'
-           HMWFstore Hlv Hev2 Hcast Has HTI HC HMWF Hvb Hsat.
-    change (safe_mfield_store (bc_mptr bc) a1 = true) in HC.
+           HMWFstore HMWFinp Hlv Hev2 Hcast Has HTI HC HMWF Hvb Hsat.
+    change ((safe_mfield_store (bc_mptr bc) a1
+             || input_store_ok bc a1 a2) = true) in HC.
+    apply orb_true_iff in HC as [HC | HCI].
+    2:{ (* ---- class I: the m->input A-clear write ---- *)
+      apply andb_true_iff in HCI as [Hsh Hrhs].
+      pose proof (is_input_load_x_shape _ _ Hsh) as Hshape. subst a1.
+      assert (Hfo : field_offset (prog_comp_env mario.prog) mario._input
+                      mario_state_members = OK (2, Full))
+        by (vm_compute; reflexivity).
+      assert (Hpin : exists pb po, le ! (bc_mptr bc) = Some (Vptr pb po)).
+      { pose proof Hlv as Hlv0.
+        apply eval_lvalue_Efield_base in Hlv0 as (o0 & Hbase).
+        apply eval_expr_Ederef_load in Hbase
+          as (lb & ob & bfb & Hlvb & Hderefb).
+        apply eval_lvalue_Ederef_base in Hlvb.
+        apply eval_expr_Etempvar_val in Hlvb. eauto. }
+      destruct Hpin as (pb & po & Hple).
+      destruct HTI as (Hm & Hgate & _).
+      destruct (Hm _ _ Hple) as [E1 E2]. subst pb po.
+      destruct (mfield_lvalue_geom_lp _ _ _ _ _ _ _ _ _ _ _ _ Hple Hfo Hlv)
+        as (Hloc & Hofs & Hbf). subst loc ofs bf.
+      rewrite Ptrofs.add_zero_l in Has.
+      cbn [typeof] in Has.
+      (* the written value has bit 1 clear *)
+      assert (Hv : exists vv, v = Vint vv /\
+                              Int.and vv (Int.repr 2) = Int.zero).
+      { destruct (input_rhs_aclear_shape _ _ Hrhs)
+          as [ (c & Hr & Hc) | (t & c & Hr & Hmemg & Hc) ]; subst a2.
+        - (* constant write *)
+          inv Hev2.
+          2:{ match goal with
+              Hl : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+                inv Hl end. }
+          cbn in Hcast. inv Hcast.
+          eexists. split; [ reflexivity | ].
+          rewrite and2_zero_ext16. exact Hc.
+        - (* gate-temp or-update *)
+          rewrite <- (Int.repr_unsigned c) in Hev2.
+          apply or_temp_vint in Hev2 as (vi & Hlet & ->).
+          pose proof (Hgate _ Hmemg _ Hlet) as Hvi.
+          cbn in Hcast. inv Hcast.
+          eexists. split; [ reflexivity | ].
+          rewrite and2_zero_ext16.
+          apply and2_or_clear;
+            [ exact Hvi | rewrite Int.repr_unsigned; exact Hc ]. }
+      destruct Hv as (vv & Hveq & Hvbit). subst v.
+      inv Has;
+        try (match goal with Hac2 : access_mode tushort = _ |- _ =>
+               cbn in Hac2; discriminate Hac2 end).
+      match goal with
+      | Hsv0 : Mem.storev _ _ _ _ = Some m',
+        Hac2 : access_mode tushort = By_value _ |- _ =>
+          cbn in Hac2; injection Hac2 as <-;
+          unfold Mem.storev in Hsv0;
+          change (Ptrofs.unsigned (Ptrofs.repr 2)) with 2 in Hsv0;
+          rename Hsv0 into Hsv
+      end.
+      split; [ eauto using Mem.store_valid_block_1 | split ].
+      - intros av Hload.
+        rewrite (Mem.load_store_other _ _ _ _ _ _ Hsv) in Hload;
+          [ exact (Hsat av Hload) | right; cbn [size_chunk]; lia ].
+      - exact (HMWFinp _ _ _ HMWF Hvbit Hsv). }
+    (* ---- class F: the window-checked m->field store ---- *)
     destruct (safe_mfield_store_shape _ _ HC) as (fld & fty & Hshape & Hgeo).
     subst a1.
     destruct (mfield_geom_chk_sound _ _ Hgeo) as (delta & ch & Hfo & Hac & Hwin).
@@ -965,6 +1089,35 @@ Lemma params_mario_get_terrain_sound_addend :
   = (bc_mptr bc_m0, tptr tyMS) :: nil.
 Proof. reflexivity. Qed.
 
+(* input-writing bodies: their or-update temps are TABLED as gate rows --
+   the census then forces each one's only definition to be the canonical
+   m->input load, so TI carries its bit-1-clear fact into the write. *)
+Definition bc_umji : body_census :=
+  {| bc_mptr := mario._m; bc_gates := mario._t'4 :: nil; bc_disp := nil |}.
+
+Definition bc_ugeo : body_census :=
+  {| bc_mptr := mario._m;
+     bc_gates := mario._t'29 :: mario._t'21 :: mario._t'20
+                 :: mario._t'17 :: mario._t'14 :: nil;
+     bc_disp := nil |}.
+
+Lemma bc_umji_gates_disjoint : mem_id (bc_mptr bc_umji) (bc_gates bc_umji) = false.
+Proof. reflexivity. Qed.
+Lemma bc_umji_disp_disjoint : mem_id (bc_mptr bc_umji) (bc_disp bc_umji) = false.
+Proof. reflexivity. Qed.
+Lemma bc_ugeo_gates_disjoint : mem_id (bc_mptr bc_ugeo) (bc_gates bc_ugeo) = false.
+Proof. reflexivity. Qed.
+Lemma bc_ugeo_disp_disjoint : mem_id (bc_mptr bc_ugeo) (bc_disp bc_ugeo) = false.
+Proof. reflexivity. Qed.
+
+Lemma chk_update_mario_joystick_inputs :
+  chk bc_umji (fn_body mario.f_update_mario_joystick_inputs) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma chk_update_mario_geometry_inputs :
+  chk bc_ugeo (fn_body mario.f_update_mario_geometry_inputs) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* class-F storers: every store is a window-checked m->field write
    (capTimer/flags, particleFlags, health/healCounter/hurtCounter). *)
 Lemma chk_update_and_return_cap_flags :
@@ -1001,6 +1154,16 @@ Proof. reflexivity. Qed.
 Lemma params_update_mario_health :
   fn_params mario.f_update_mario_health
   = (bc_mptr bc_m0, tptr tyMS) :: nil.
+Proof. reflexivity. Qed.
+
+Lemma params_update_mario_joystick_inputs :
+  fn_params mario.f_update_mario_joystick_inputs
+  = (bc_mptr bc_umji, tptr tyMS) :: nil.
+Proof. reflexivity. Qed.
+
+Lemma params_update_mario_geometry_inputs :
+  fn_params mario.f_update_mario_geometry_inputs
+  = (bc_mptr bc_ugeo, tptr tyMS) :: nil.
 Proof. reflexivity. Qed.
 
 (* The per-body Hbody bricks: exactly the engine leaf's conclusion shape
@@ -1110,4 +1273,34 @@ Proof.
              params_update_mario_health bc_m0_gates_disjoint
              bc_m0_disp_disjoint Hmarg).
   - exact chk_update_mario_health.
+Qed.
+
+Lemma body_TI_C_update_mario_joystick_inputs :
+  forall (Q : int -> Prop) bm ge vargs m e le m1,
+    function_entry2 ge mario.f_update_mario_joystick_inputs vargs m e le m1 ->
+    marg_ok bm vargs ->
+    TI_of Q bm bc_umji le /\
+    chk bc_umji (fn_body mario.f_update_mario_joystick_inputs) = true.
+Proof.
+  intros Q bm ge vargs m e le m1 Hentry Hmarg.
+  split.
+  - exact (entry_TI_v2 Q bm bc_umji ge _ vargs m e le m1 Hentry
+             params_update_mario_joystick_inputs bc_umji_gates_disjoint
+             bc_umji_disp_disjoint Hmarg).
+  - exact chk_update_mario_joystick_inputs.
+Qed.
+
+Lemma body_TI_C_update_mario_geometry_inputs :
+  forall (Q : int -> Prop) bm ge vargs m e le m1,
+    function_entry2 ge mario.f_update_mario_geometry_inputs vargs m e le m1 ->
+    marg_ok bm vargs ->
+    TI_of Q bm bc_ugeo le /\
+    chk bc_ugeo (fn_body mario.f_update_mario_geometry_inputs) = true.
+Proof.
+  intros Q bm ge vargs m e le m1 Hentry Hmarg.
+  split.
+  - exact (entry_TI_v2 Q bm bc_ugeo ge _ vargs m e le m1 Hentry
+             params_update_mario_geometry_inputs bc_ugeo_gates_disjoint
+             bc_ugeo_disp_disjoint Hmarg).
+  - exact chk_update_mario_geometry_inputs.
 Qed.
