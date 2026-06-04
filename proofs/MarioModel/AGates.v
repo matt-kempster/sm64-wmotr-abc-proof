@@ -1923,6 +1923,55 @@ Section UmbiPreservesLp.
     exact (conj Hinp' Hu).
   Qed.
 
+  (* ================================================================== *)
+  (* THE MARG-SHAPED WRAPPER: the engine-v2 Hbridged memory side, with     *)
+  (* the leaf's OWN premise shape. marg_ok is now EXACT (b = bm /\ o = 0), *)
+  (* so the only argument shapes it admits are a non-pointer -- refuted by  *)
+  (* the body's very first controller deref (efield_base_vptr) -- and the   *)
+  (* Mario pointer (bm,0) itself, which the funcall lift above handles.     *)
+  (* No off-bm walk exists because no off-bm execution exists.              *)
+  (* ================================================================== *)
+  Theorem umbi_funcall_marg_preserves_lp :
+    forall m vargs t m' vres bm,
+      marg_ok bm vargs ->
+      ctl_a_clear m bm ->
+      input_a_clear m bm ->
+      eval_funcall function_entry2 (lp_ge lp) m
+        (Internal mario.f_update_mario_button_inputs) vargs t m' vres ->
+      input_a_clear m' bm /\
+      Mem.unchanged_on (fun b o => ~ umbi_footprint bm b o) m m'.
+  Proof.
+    intros m vargs t m' vres bm Hmarg Hctl Hinp Hev.
+    (* peel a COPY of the funcall to learn the vargs shape the body forces *)
+    pose proof Hev as Hev0.
+    inv Hev0.
+    match goal with Hfe : function_entry2 _ _ _ _ _ _ _ |- _ => inv Hfe end.
+    match goal with Hbp : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hbp into Hbind end.
+    (* the singleton param list forces vargs = v0 :: nil *)
+    destruct vargs as [| v0 [| v1 vs ]];
+      cbn [bind_parameter_temps fn_params mario.f_update_mario_button_inputs]
+        in Hbind;
+      try discriminate Hbind.
+    inv Hbind.
+    (* the body's first controller deref forces v0 to be a pointer *)
+    match goal with
+      Hbx : exec_stmt _ _ _ _ _ (fn_body mario.f_update_mario_button_inputs)
+              _ _ _ _ |- _ =>
+        cbn [fn_body mario.f_update_mario_button_inputs] in Hbx;
+        apply exec_seq_cases in Hbx
+          as [ (? & ? & ? & ? & Hg1 & _) | (Hg1 & _) ];
+        apply exec_seq_cases in Hg1
+          as [ (? & ? & ? & ? & Hs1 & _) | (Hs1 & _) ];
+        apply exec_set_inv in Hs1 as (? & Hevf & _);
+        destruct (efield_base_vptr lp _ _ _ _ _ _ _ _ Hevf) as (pb & po & Hgm);
+        rewrite PTree.gss in Hgm; inv Hgm
+    end.
+    (* marg exactness pins the pointer at (bm,0); the funcall lift finishes *)
+    all: cbn in Hmarg; destruct Hmarg as [-> ->];
+      exact (umbi_funcall_preserves_lp _ _ _ _ _ _ eq_refl Hctl Hinp Hev).
+  Qed.
+
 End UmbiPreservesLp.
 
 (* ====================================================================== *)
