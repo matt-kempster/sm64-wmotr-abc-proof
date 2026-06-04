@@ -455,6 +455,244 @@ Section V2Consumer.
       exists b. split; [ exact Hsym | exact Hff ].
   Qed.
 
+  (* ---------------- the ROOT call-resolution layer ---------------- *)
+  (* execute_mario_action's own body walk (RealFrameLinked's
+     exec_body_prov_reached_lp) consumes a per-call resolution residual
+     (Hbcr) keyed by the v1 reach_chk census. Here both are DISCHARGED for
+     the concrete reach set: the root's 20 callee idents resolve into
+     reached_v2 -- the 8 censused internals by linkorder, the rest onto the
+     named rest surface. *)
+
+  Definition root_called_ids : list ident :=
+    mario._mario_reset_bodystate ::
+    mario._update_mario_inputs ::
+    mario._mario_handle_special_floors ::
+    mario._mario_process_interactions ::
+    mario._mario_execute_stationary_action ::
+    mario._mario_execute_moving_action ::
+    mario._mario_execute_airborne_action ::
+    mario._mario_execute_submerged_action ::
+    mario._mario_execute_cutscene_action ::
+    mario._mario_execute_automatic_action ::
+    mario._mario_execute_object_action ::
+    mario._sink_mario_in_quicksand ::
+    mario._squish_mario_model ::
+    mario._set_submerged_cam_preset_and_spawn_bubbles ::
+    mario._update_mario_health ::
+    mario._update_mario_info_for_cam ::
+    mario._mario_update_hitbox_and_cap_model ::
+    mario._spawn_wind_particles ::
+    mario._play_sound ::
+    mario._play_infinite_stairs_music :: nil.
+
+  Definition root_RID (fid : ident) : Prop :=
+    mem_id fid root_called_ids = true.
+
+  (* the root body's call census closes at this id set (computed against
+     the generated AST) *)
+  Lemma root_body_reach_chk :
+    RealFrameValue.reach_chk root_RID (fn_body mario.f_execute_mario_action).
+  Proof.
+    cbn [RealFrameValue.reach_chk RealFrameValue.reach_chk_ls
+         fn_body mario.f_execute_mario_action];
+      unfold root_RID; repeat split; reflexivity.
+  Qed.
+
+  Lemma resolve_mrb :
+    exists b,
+      Genv.find_symbol (lp_ge lp) mario._mario_reset_bodystate = Some b /\
+      Genv.find_funct (lp_ge lp) (Vptr b Ptrofs.zero)
+        = Some (Internal mario.f_mario_reset_bodystate).
+  Proof.
+    apply (linkorder_resolves_funct lp mario.prog _ _ LO_mario).
+    vm_compute. reflexivity.
+  Qed.
+
+  Lemma resolve_umi :
+    exists b,
+      Genv.find_symbol (lp_ge lp) mario._update_mario_inputs = Some b /\
+      Genv.find_funct (lp_ge lp) (Vptr b Ptrofs.zero)
+        = Some (Internal mario.f_update_mario_inputs).
+  Proof.
+    apply (linkorder_resolves_funct lp mario.prog _ _ LO_mario).
+    vm_compute. reflexivity.
+  Qed.
+
+  Lemma resolve_smq :
+    exists b,
+      Genv.find_symbol (lp_ge lp) mario._sink_mario_in_quicksand = Some b /\
+      Genv.find_funct (lp_ge lp) (Vptr b Ptrofs.zero)
+        = Some (Internal mario.f_sink_mario_in_quicksand).
+  Proof.
+    apply (linkorder_resolves_funct lp mario.prog _ _ LO_mario).
+    vm_compute. reflexivity.
+  Qed.
+
+  Lemma resolve_squish :
+    exists b,
+      Genv.find_symbol (lp_ge lp) mario._squish_mario_model = Some b /\
+      Genv.find_funct (lp_ge lp) (Vptr b Ptrofs.zero)
+        = Some (Internal mario.f_squish_mario_model).
+  Proof.
+    apply (linkorder_resolves_funct lp mario.prog _ _ LO_mario).
+    vm_compute. reflexivity.
+  Qed.
+
+  Lemma resolve_sscpasb :
+    exists b,
+      Genv.find_symbol (lp_ge lp)
+        mario._set_submerged_cam_preset_and_spawn_bubbles = Some b /\
+      Genv.find_funct (lp_ge lp) (Vptr b Ptrofs.zero)
+        = Some (Internal mario.f_set_submerged_cam_preset_and_spawn_bubbles).
+  Proof.
+    apply (linkorder_resolves_funct lp mario.prog _ _ LO_mario).
+    vm_compute. reflexivity.
+  Qed.
+
+  Lemma resolve_umh :
+    exists b,
+      Genv.find_symbol (lp_ge lp) mario._update_mario_health = Some b /\
+      Genv.find_funct (lp_ge lp) (Vptr b Ptrofs.zero)
+        = Some (Internal mario.f_update_mario_health).
+  Proof.
+    apply (linkorder_resolves_funct lp mario.prog _ _ LO_mario).
+    vm_compute. reflexivity.
+  Qed.
+
+  Lemma resolve_umifc :
+    exists b,
+      Genv.find_symbol (lp_ge lp) mario._update_mario_info_for_cam = Some b /\
+      Genv.find_funct (lp_ge lp) (Vptr b Ptrofs.zero)
+        = Some (Internal mario.f_update_mario_info_for_cam).
+  Proof.
+    apply (linkorder_resolves_funct lp mario.prog _ _ LO_mario).
+    vm_compute. reflexivity.
+  Qed.
+
+  Lemma resolve_muhacm :
+    exists b,
+      Genv.find_symbol (lp_ge lp) mario._mario_update_hitbox_and_cap_model
+        = Some b /\
+      Genv.find_funct (lp_ge lp) (Vptr b Ptrofs.zero)
+        = Some (Internal mario.f_mario_update_hitbox_and_cap_model).
+  Proof.
+    apply (linkorder_resolves_funct lp mario.prog _ _ LO_mario).
+    vm_compute. reflexivity.
+  Qed.
+
+  (* THE Hbcr DISCHARGE: every root-census call resolves into reached_v2.
+     Exactly the shape of the capstone's (empty-env-sharpened) Hbcr. *)
+  Lemma root_call_resolves :
+    forall oid a al le mm vf fd,
+      RealFrameValue.reach_chk root_RID (Scall oid a al) ->
+      eval_expr (lp_ge lp) empty_env le mm a vf ->
+      Genv.find_funct (lp_ge lp) vf = Some fd ->
+      reached_v2 fd.
+  Proof.
+    intros oid a al le mm vf fd Hrc Hevf Hff.
+    cbn [RealFrameValue.reach_chk] in Hrc.
+    destruct a; try contradiction.
+    destruct t; try contradiction.
+    destruct (eval_Evar_funct_empty _ _ _ _ _ _ _ Hevf)
+      as (b & Hsym & Evf). subst vf.
+    unfold root_RID, mem_id, root_called_ids in Hrc; cbn [existsb] in Hrc.
+    repeat (apply orb_true_iff in Hrc; destruct Hrc as [Hrc | Hrc]);
+      try discriminate Hrc; apply Pos.eqb_eq in Hrc; subst i.
+    - (* mario_reset_bodystate: censused slot 11 *)
+      destruct resolve_mrb as (b' & Hsym' & Hff').
+      assert (b' = b) by congruence. subst b'.
+      assert (Efd : fd = Internal mario.f_mario_reset_bodystate) by congruence.
+      subst fd. left. eexists. split; [ reflexivity | ].
+      unfold censused_body. do 10 right. left. reflexivity.
+    - (* update_mario_inputs: censused slot 9 *)
+      destruct resolve_umi as (b' & Hsym' & Hff').
+      assert (b' = b) by congruence. subst b'.
+      assert (Efd : fd = Internal mario.f_update_mario_inputs) by congruence.
+      subst fd. left. eexists. split; [ reflexivity | ].
+      unfold censused_body. do 8 right. left. reflexivity.
+    - (* mario_handle_special_floors: rest *)
+      right. right. exists mario._mario_handle_special_floors.
+      split; [ right; left; reflexivity | ].
+      exists b. split; [ exact Hsym | exact Hff ].
+    - (* mario_process_interactions: rest *)
+      right. right. exists mario._mario_process_interactions.
+      split; [ right; left; reflexivity | ].
+      exists b. split; [ exact Hsym | exact Hff ].
+    - (* the 7 dispatch handlers: rest *)
+      right. right. exists mario._mario_execute_stationary_action.
+      split; [ right; left; reflexivity | ].
+      exists b. split; [ exact Hsym | exact Hff ].
+    - right. right. exists mario._mario_execute_moving_action.
+      split; [ right; left; reflexivity | ].
+      exists b. split; [ exact Hsym | exact Hff ].
+    - right. right. exists mario._mario_execute_airborne_action.
+      split; [ right; left; reflexivity | ].
+      exists b. split; [ exact Hsym | exact Hff ].
+    - right. right. exists mario._mario_execute_submerged_action.
+      split; [ right; left; reflexivity | ].
+      exists b. split; [ exact Hsym | exact Hff ].
+    - right. right. exists mario._mario_execute_cutscene_action.
+      split; [ right; left; reflexivity | ].
+      exists b. split; [ exact Hsym | exact Hff ].
+    - right. right. exists mario._mario_execute_automatic_action.
+      split; [ right; left; reflexivity | ].
+      exists b. split; [ exact Hsym | exact Hff ].
+    - right. right. exists mario._mario_execute_object_action.
+      split; [ right; left; reflexivity | ].
+      exists b. split; [ exact Hsym | exact Hff ].
+    - (* sink_mario_in_quicksand: censused slot 14 *)
+      destruct resolve_smq as (b' & Hsym' & Hff').
+      assert (b' = b) by congruence. subst b'.
+      assert (Efd : fd = Internal mario.f_sink_mario_in_quicksand) by congruence.
+      subst fd. left. eexists. split; [ reflexivity | ].
+      unfold censused_body. do 13 right. left. reflexivity.
+    - (* squish_mario_model: censused slot 13 *)
+      destruct resolve_squish as (b' & Hsym' & Hff').
+      assert (b' = b) by congruence. subst b'.
+      assert (Efd : fd = Internal mario.f_squish_mario_model) by congruence.
+      subst fd. left. eexists. split; [ reflexivity | ].
+      unfold censused_body. do 12 right. left. reflexivity.
+    - (* set_submerged_cam_preset_and_spawn_bubbles: censused slot 6 *)
+      destruct resolve_sscpasb as (b' & Hsym' & Hff').
+      assert (b' = b) by congruence. subst b'.
+      assert (Efd : fd
+                    = Internal mario.f_set_submerged_cam_preset_and_spawn_bubbles)
+        by congruence.
+      subst fd. left. eexists. split; [ reflexivity | ].
+      unfold censused_body. do 5 right. left. reflexivity.
+    - (* update_mario_health: censused slot 7 *)
+      destruct resolve_umh as (b' & Hsym' & Hff').
+      assert (b' = b) by congruence. subst b'.
+      assert (Efd : fd = Internal mario.f_update_mario_health) by congruence.
+      subst fd. left. eexists. split; [ reflexivity | ].
+      unfold censused_body. do 6 right. left. reflexivity.
+    - (* update_mario_info_for_cam: censused slot 12 *)
+      destruct resolve_umifc as (b' & Hsym' & Hff').
+      assert (b' = b) by congruence. subst b'.
+      assert (Efd : fd = Internal mario.f_update_mario_info_for_cam) by congruence.
+      subst fd. left. eexists. split; [ reflexivity | ].
+      unfold censused_body. do 11 right. left. reflexivity.
+    - (* mario_update_hitbox_and_cap_model: censused slot 15 (last) *)
+      destruct resolve_muhacm as (b' & Hsym' & Hff').
+      assert (b' = b) by congruence. subst b'.
+      assert (Efd : fd = Internal mario.f_mario_update_hitbox_and_cap_model)
+        by congruence.
+      subst fd. left. eexists. split; [ reflexivity | ].
+      unfold censused_body. do 14 right. reflexivity.
+    - (* spawn_wind_particles: rest *)
+      right. right. exists mario._spawn_wind_particles.
+      split; [ right; left; reflexivity | ].
+      exists b. split; [ exact Hsym | exact Hff ].
+    - (* play_sound: rest via the exempt whitelist *)
+      right. right. exists mario._play_sound.
+      split; [ left; reflexivity | ].
+      exists b. split; [ exact Hsym | exact Hff ].
+    - (* play_infinite_stairs_music: rest *)
+      right. right. exists mario._play_infinite_stairs_music.
+      split; [ right; left; reflexivity | ].
+      exists b. split; [ exact Hsym | exact Hff ].
+  Qed.
+
   (* ---------------- the writer refutation bricks ---------------- *)
 
   (* every censused body has exactly 1 parameter; set_mario_action has 3 *)
