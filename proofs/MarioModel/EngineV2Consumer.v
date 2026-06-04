@@ -186,15 +186,21 @@ Section V2Consumer.
       Genv.find_funct (lp_ge lp) vf = Some fd ->
       marg_exempt fd = true.
 
-  (* per-symbol: the rest surface preserves the carried facts. THIS is the
+  (* per-symbol: the rest surface preserves the carried facts -- but ONLY
+     where lp resolves the symbol to an INTERNAL body. A rest symbol that
+     lp keeps External (math/runtime: sqrtf, play_sound, find_floor ...)
+     carries NO obligation here: the engine's External path already goes
+     through Hext_action/Hmwf_ext/Hret_ext generically. (Stating this
+     leaf over all fundefs was a phantom: both engine leaves that consume
+     it -- Hbridged/Hexempt -- are Internal-shaped.) THIS is the
      remaining crux at this scope: for the 7 dispatch handlers +
      interactions + special floors it is exactly where the A-gating taint
      closure (Taint.v + AGates.v kills) gets consumed; for the exempt
      whitelist it is per-symbol frame reasoning (vec3 family etc.). *)
-  Hypothesis Hrest_pres : forall m fd vargs t m' vres,
-      rest_fd fd ->
-      (marg_exempt fd = false -> marg_ok bm vargs) ->
-      eval_funcall function_entry2 (lp_ge lp) m fd vargs t m' vres ->
+  Hypothesis Hrest_pres : forall m f vargs t m' vres,
+      rest_fd (Internal f) ->
+      (marg_exempt (Internal f) = false -> marg_ok bm vargs) ->
+      eval_funcall function_entry2 (lp_ge lp) m (Internal f) vargs t m' vres ->
       NoA m -> MWF m -> Mem.valid_block m bm -> action_sat not_tainted m bm ->
       Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
 
@@ -768,7 +774,7 @@ Section V2Consumer.
           * eapply action_sat_unchanged_on;
               [ exact Hac | exact Hv0 | exact Hsat0 ].
           * eapply Hmwf_umbi; [ exact Hmwf0 | exact Hunch | exact Hinp' ].
-        + exact (Hrest_pres m0 (Internal f) vargs0 t0 m0' vres0
+        + exact (Hrest_pres m0 f vargs0 t0 m0' vres0
                    Hrest Hmargc Hevf Hno0 Hmwf0 Hv0 Hsat0).
       - (* Hassign: the censused store leaf *)
         intros bc e le m0 a1 a2 loc ofs bf v2 v m0'
@@ -790,7 +796,7 @@ Section V2Consumer.
           rewrite (censused_body_nonexempt _ HC0) in Hex. discriminate Hex.
         + exfalso. injection Eumbi as Eumbi. subst f.
           vm_compute in Hex. discriminate Hex.
-        + apply (Hrest_pres m0 (Internal f) vargs0 t0 m0' vres0
+        + apply (Hrest_pres m0 f vargs0 t0 m0' vres0
                    Hrest); try assumption.
           intro HF. rewrite Hex in HF. discriminate HF.
       - (* HTI_set *)
