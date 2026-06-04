@@ -47,9 +47,10 @@ Local Open Scope Z_scope.
 (* ====================================================================== *)
 
 Record body_census : Type := {
-  bc_mptr  : ident;        (* the body's MarioState* parameter *)
-  bc_gates : list ident;   (* THIS body's input-A-gate temps *)
-  bc_disp  : list ident    (* THIS body's action-dispatch temps *)
+  bc_mptr    : ident;       (* the body's MarioState* parameter *)
+  bc_gates   : list ident;  (* THIS body's input-A-gate temps *)
+  bc_disp    : list ident;  (* THIS body's action-dispatch temps *)
+  bc_globals : list ident   (* the globals THIS body stores (class G) *)
 }.
 
 Definition mem_id (t : ident) (l : list ident) : bool :=
@@ -63,16 +64,21 @@ Definition mem_id (t : ident) (l : list ident) : bool :=
    non-pointer branch is vacuous, so entry seeding from the exact marg must
    tolerate a (semantically impossible, body-refuted) non-pointer arg.  Every
    consumer extracts a Vptr from the execution first (the body's own deref),
-   then pins it here -- so nothing is lost. *)
+   then pins it here -- so nothing is lost.
+   The 4th row is the ENV row (the engine threads e through TI): the body's
+   stored globals are not shadowed by locals.  e is constant per body, so
+   this row carries no re-establishment obligations -- it is seeded at entry
+   (alloc_variables domain) and passed through verbatim. *)
 Definition TI_of (Q : int -> Prop) (bm : block) (bc : body_census)
-    (le : temp_env) : Prop :=
+    (e : env) (le : temp_env) : Prop :=
   (forall b o, le ! (bc_mptr bc) = Some (Vptr b o) ->
      b = bm /\ o = Ptrofs.zero) /\
   (forall t, mem_id t (bc_gates bc) = true ->
      forall vi, le ! t = Some (Vint vi) ->
        Int.and vi (Int.repr 2) = Int.zero) /\
   (forall t, mem_id t (bc_disp bc) = true ->
-     forall vi, le ! t = Some (Vint vi) -> Q vi).
+     forall vi, le ! t = Some (Vint vi) -> Q vi) /\
+  (forall gid, mem_id gid (bc_globals bc) = true -> e ! gid = None).
 
 (* ====================================================================== *)
 (* Shape detectors -- EXACT (type_eq-pinned) so the AGates eval bricks      *)
@@ -329,6 +335,43 @@ Definition input_rhs_aclear (bc : body_census) (rhs : expr) : bool :=
 Definition input_store_ok (bc : body_census) (a1 a2 : expr) : bool :=
   is_input_load_x (bc_mptr bc) a1 && input_rhs_aclear bc a2.
 
+(* ---- store class G: a direct write to a whitelisted off-Mario GLOBAL.
+   The body's bc_globals row of TI refutes local shadowing (the env row);
+   the per-symbol residual (HG at the discharge) says the lp block behind
+   the symbol is not bm and that MWF tolerates stores there -- provable
+   once bm is grounded as gMarioStates' block (distinct global symbols get
+   distinct blocks).  The rvalue is unconstrained. ---- *)
+Definition stored_globals : list ident :=
+  mario._gCameraMovementFlags :: nil.
+
+Definition global_store_ok (bc : body_census) (a1 : expr) : bool :=
+  match a1 with
+  | Evar gid gty =>
+      mem_id gid (bc_globals bc)
+      && mem_id gid stored_globals
+      && match access_mode gty with By_value _ => true | _ => false end
+  | _ => false
+  end.
+
+Lemma global_store_ok_shape :
+  forall bc a1, global_store_ok bc a1 = true ->
+    exists gid gty ch,
+      a1 = Evar gid gty /\
+      mem_id gid (bc_globals bc) = true /\
+      mem_id gid stored_globals = true /\
+      access_mode gty = By_value ch.
+Proof.
+  intros bc a1 H.
+  destruct a1 as [ | | | | gid gty | | | | | | | | | ]; try discriminate H.
+  unfold global_store_ok in H.
+  repeat (apply andb_true_iff in H; destruct H as [H ?]).
+  match goal with
+  | Ha : (match access_mode gty with _ => _ end) = true |- _ =>
+      destruct (access_mode gty) as [ch| | |] eqn:Hac; try discriminate Ha
+  end.
+  exists gid, gty, ch. auto.
+Qed.
+
 Lemma input_rhs_aclear_shape :
   forall bc rhs, input_rhs_aclear bc rhs = true ->
     (exists c, rhs = Econst_int c tint /\
@@ -410,6 +453,7 @@ Fixpoint chk (bc : body_census) (s : statement) : bool :=
       if disp_switch bc a then chk_disp_ls bc ls else chk_all_ls bc ls
   | Sassign a1 a2 =>
       safe_mfield_store (bc_mptr bc) a1 || input_store_ok bc a1 a2
+      || global_store_ok bc a1
   | Scall optid a al =>
       call_optid_ok bc optid
       && (call_head_is_mptr bc al || call_callee_exempt a)
@@ -613,7 +657,7 @@ Section CensusLeavesLp.
   Lemma chk_if :
     forall Q bm bc e le m a s1 s2 v1 b,
       chk bc (Sifthenelse a s1 s2) = true ->
-      TI_of Q bm bc le ->
+      TI_of Q bm bc e le ->
       eval_expr (lp_ge lp) e le m a v1 ->
       bool_val v1 (typeof a) m = Some b ->
       chk bc (if b then s1 else s2) = true.
@@ -628,7 +672,7 @@ Section CensusLeavesLp.
       destruct (input_guard_temp a) as [t|] eqn:Hgt; [ | discriminate Hg ].
       pose proof (input_guard_temp_shape _ _ Hgt) as Hshape. subst a.
       destruct (guard_temp_vint lp _ _ _ _ _ _ Hev) as (vi & Hlet & Hv1).
-      destruct HTI as (_ & Hgate & _).
+      destruct HTI as (_ & Hgate & _ & _).
       pose proof (Hgate t Hg vi Hlet) as Hclear.
       subst v1. cbn [typeof] in Hbv.
       pose proof (bool_val_and_zero _ _ _ _ Hclear Hbv) as Hb. subst b.
@@ -644,7 +688,7 @@ Section CensusLeavesLp.
   Lemma chk_sw :
     forall bm bc e le m a ls v n,
       chk bc (Sswitch a ls) = true ->
-      TI_of not_tainted bm bc le ->
+      TI_of not_tainted bm bc e le ->
       eval_expr (lp_ge lp) e le m a v ->
       sem_switch_arg v (typeof a) = Some n ->
       chk bc (seq_of_labeled_statement (select_switch n ls)) = true.
@@ -662,7 +706,7 @@ Section CensusLeavesLp.
       cbn [typeof] in Hsa.
       unfold sem_switch_arg in Hsa; cbn [classify_switch] in Hsa.
       destruct v; try discriminate Hsa. inv Hsa.
-      destruct HTI as (_ & _ & Hdisp).
+      destruct HTI as (_ & _ & Hdisp & _).
       pose proof (Hdisp t Hd i Hev) as Hnt.
       apply chk_seq_of, (chk_disp_select bc _ _ HC).
       exact (not_tainted_not_T_label _ Hnt).
@@ -680,9 +724,9 @@ Section CensusLeavesLp.
       input_a_clear m bm ->
       action_sat Q m bm ->
       eval_expr (lp_ge lp) e le m a v ->
-      TI_of Q bm bc le ->
+      TI_of Q bm bc e le ->
       chk bc (Sset id a) = true ->
-      TI_of Q bm bc (PTree.set id v le).
+      TI_of Q bm bc e (PTree.set id v le).
   Proof.
     intros Q bm bc e le m id a v Hinp Hsat Hev HTI HC.
     change ((negb (Pos.eqb id (bc_mptr bc))
@@ -692,8 +736,8 @@ Section CensusLeavesLp.
                  || is_action_load_x (bc_mptr bc) a)) = true) in HC.
     apply andb_true_iff in HC as [HC Hdisp_rule].
     apply andb_true_iff in HC as [Hnm Hgate_rule].
-    destruct HTI as (Hm & Hgate & Hdisp).
-    split; [ | split ].
+    destruct HTI as (Hm & Hgate & Hdisp & Hglob).
+    split; [ | split; [ | split ] ]; [ | | | exact Hglob ].
     - (* the Mario param: never assigned (census) *)
       intros b o Hlk.
       rewrite PTree.gso in Hlk
@@ -731,12 +775,12 @@ Section CensusLeavesLp.
      pure gso.  (The engine's non-bm-pointer fact about the result value
      is not even needed.) ---- *)
   Lemma chk_ti_optc :
-    forall Q bm bc optid a al v le,
+    forall Q bm bc e optid a al v le,
       chk bc (Scall optid a al) = true ->
-      TI_of Q bm bc le ->
-      TI_of Q bm bc (set_opttemp optid v le).
+      TI_of Q bm bc e le ->
+      TI_of Q bm bc e (set_opttemp optid v le).
   Proof.
-    intros Q bm bc optid a al v le HC HTI.
+    intros Q bm bc e optid a al v le HC HTI.
     change ((call_optid_ok bc optid
              && (call_head_is_mptr bc al || call_callee_exempt a)) = true)
       in HC.
@@ -747,8 +791,8 @@ Section CensusLeavesLp.
              && negb (mem_id rid (bc_disp bc))) = true) in Hopt.
     apply andb_true_iff in Hopt as [Hopt Hrd].
     apply andb_true_iff in Hopt as [Hrm Hrg].
-    destruct HTI as (Hm & Hg & Hd).
-    split; [ | split ].
+    destruct HTI as (Hm & Hg & Hd & Hgl).
+    split; [ | split; [ | split ] ]; [ | | | exact Hgl ].
     - intros b o Hlk.
       rewrite PTree.gso in Hlk
         by (intro E; subst rid; rewrite Pos.eqb_refl in Hrm; discriminate Hrm).
@@ -770,7 +814,7 @@ Section CensusLeavesLp.
      says the callee IS exempt, contradicting the premise. ---- *)
   Lemma chk_call_marg :
     forall Q bm bc e le m optid a al tyargs vargs vf fd,
-      TI_of Q bm bc le ->
+      TI_of Q bm bc e le ->
       chk bc (Scall optid a al) = true ->
       eval_expr (lp_ge lp) e le m a vf ->
       Genv.find_funct (lp_ge lp) vf = Some fd ->
@@ -798,7 +842,7 @@ Section CensusLeavesLp.
           apply eval_expr_Etempvar_val in Hv1;
           destruct v2 as [ | | | | | b o ]; try exact I;
           apply sem_cast_vptr_inv in Hcast; subst v1;
-          destruct HTI as (Hm & _ & _);
+          destruct HTI as (Hm & _ & _ & _);
           exact (Hm _ _ Hv1)
       end.
     - (* class E: the callee is whitelisted-exempt *)
@@ -863,19 +907,55 @@ Section CensusLeavesLp.
          MWF mm ->
          Int.and vv (Int.repr 2) = Int.zero ->
          Mem.store Mint16unsigned mm bm 2 (Vint vv) = Some mm' -> MWF mm') ->
+      (forall gid, mem_id gid stored_globals = true ->
+         forall bg, Genv.find_symbol (lp_ge lp) gid = Some bg ->
+           bg <> bm /\
+           (forall mm mm' ch0 (d : Z) vv,
+              MWF mm -> Mem.store ch0 mm bg d vv = Some mm' -> MWF mm')) ->
       eval_lvalue (lp_ge lp) e le m a1 loc ofs bf ->
       eval_expr (lp_ge lp) e le m a2 v2 ->
       sem_cast v2 (typeof a2) (typeof a1) m = Some v ->
       assign_loc (lp_ge lp) (typeof a1) m loc ofs bf v m' ->
-      TI_of Q bm bc le ->
+      TI_of Q bm bc e le ->
       chk bc (Sassign a1 a2) = true ->
       MWF m -> Mem.valid_block m bm -> action_sat Q m bm ->
       Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m'.
   Proof.
     intros Q MWF bm bc e le m a1 a2 loc ofs bf v2 v m'
-           HMWFstore HMWFinp Hlv Hev2 Hcast Has HTI HC HMWF Hvb Hsat.
-    change ((safe_mfield_store (bc_mptr bc) a1
-             || input_store_ok bc a1 a2) = true) in HC.
+           HMWFstore HMWFinp HG Hlv Hev2 Hcast Has HTI HC HMWF Hvb Hsat.
+    change (((safe_mfield_store (bc_mptr bc) a1
+              || input_store_ok bc a1 a2)
+             || global_store_ok bc a1) = true) in HC.
+    apply orb_true_iff in HC as [HC | HCG].
+    2:{ (* ---- class G: whitelisted off-Mario global store ---- *)
+      destruct (global_store_ok_shape _ _ HCG)
+        as (gid & gty & ch & Hshape & Hbcg & Hsg & Hac).
+      subst a1.
+      destruct HTI as (_ & _ & _ & Hglob).
+      inv Hlv.
+      - (* eval_Evar_local: refuted by the env row *)
+        match goal with Hl : e ! gid = Some _ |- _ =>
+          rewrite (Hglob gid Hbcg) in Hl; discriminate Hl end.
+      - (* eval_Evar_global *)
+        match goal with Hfs : Genv.find_symbol _ gid = Some ?bg0 |- _ =>
+          destruct (HG gid Hsg _ Hfs) as [Hne HMWFg] end.
+        cbn [typeof] in Has.
+        inv Has;
+          try (match goal with Hac2 : access_mode gty = _ |- _ =>
+                 rewrite Hac in Hac2; discriminate Hac2 end).
+        match goal with
+        | Hsv0 : Mem.storev _ _ _ _ = Some m',
+          Hac2 : access_mode gty = By_value _ |- _ =>
+            rewrite Hac in Hac2; injection Hac2 as <-;
+            unfold Mem.storev in Hsv0
+        end.
+        match goal with Hsv : Mem.store _ _ _ _ _ = Some m' |- _ =>
+        split; [ eauto using Mem.store_valid_block_1 | split ];
+        [ intros av Hload;
+          rewrite (Mem.load_store_other _ _ _ _ _ _ Hsv) in Hload;
+          [ exact (Hsat av Hload) | left; exact (not_eq_sym Hne) ]
+        | exact (HMWFg _ _ _ _ _ HMWF Hsv) ]
+        end. }
     apply orb_true_iff in HC as [HC | HCI].
     2:{ (* ---- class I: the m->input A-clear write ---- *)
       apply andb_true_iff in HCI as [Hsh Hrhs].
@@ -891,7 +971,7 @@ Section CensusLeavesLp.
         apply eval_lvalue_Ederef_base in Hlvb.
         apply eval_expr_Etempvar_val in Hlvb. eauto. }
       destruct Hpin as (pb & po & Hple).
-      destruct HTI as (Hm & Hgate & _).
+      destruct HTI as (Hm & Hgate & _ & _).
       destruct (Hm _ _ Hple) as [E1 E2]. subst pb po.
       destruct (mfield_lvalue_geom_lp _ _ _ _ _ _ _ _ _ _ _ _ Hple Hfo Hlv)
         as (Hloc & Hofs & Hbf). subst loc ofs bf.
@@ -949,7 +1029,7 @@ Section CensusLeavesLp.
       apply eval_lvalue_Ederef_base in Hlvb.
       apply eval_expr_Etempvar_val in Hlvb. eauto. }
     destruct Hpin as (pb & po & Hple).
-    destruct HTI as (Hm & _ & _).
+    destruct HTI as (Hm & _ & _ & _).
     destruct (Hm _ _ Hple) as [E1 E2]. subst pb po.
     destruct (mfield_lvalue_geom_lp _ _ _ _ _ _ _ _ _ _ _ _ Hple Hfo Hlv)
       as (Hloc & Hofs & Hbf). subst loc ofs bf.
@@ -1010,6 +1090,37 @@ Proof.
     + rewrite PTree.gso in H by exact NE. eauto.
 Qed.
 
+(* membership reflection + the alloc_variables domain fact, for the env row *)
+Lemma mem_id_false_notin :
+  forall t l, mem_id t l = false -> ~ In t l.
+Proof.
+  intros t l H Hin. induction l as [| a l IH]; [ exact Hin | ].
+  cbn in H. apply orb_false_iff in H as [Ha Hl].
+  destruct Hin as [E | Hin].
+  - subst a. rewrite Pos.eqb_refl in Ha. discriminate Ha.
+  - exact (IH Hl Hin).
+Qed.
+
+Lemma alloc_variables_notin_none :
+  forall ge vars e0 m e m',
+    alloc_variables ge e0 m vars e m' ->
+    forall id, e0 ! id = None -> ~ In id (var_names vars) -> e ! id = None.
+Proof.
+  induction 1; intros id0 He0 Hnin.
+  - exact He0.
+  - apply IHalloc_variables.
+    + rewrite PTree.gso;
+        [ exact He0 | intro E; subst id0; apply Hnin; left; reflexivity ].
+    + intro Hin. apply Hnin. right. exact Hin.
+Qed.
+
+(* the trivial env-row side condition for bodies that store no globals *)
+Lemma nil_globals_novars :
+  forall bc f, bc_globals bc = nil ->
+    forall gid, mem_id gid (bc_globals bc) = true ->
+    mem_id gid (var_names (fn_vars f)) = false.
+Proof. intros bc f Hn gid Hg. rewrite Hn in Hg. discriminate Hg. Qed.
+
 Lemma entry_TI_v2 :
   forall (Q : int -> Prop) (bm : block) (bc : body_census)
          ge f vargs m e le m1,
@@ -1017,16 +1128,18 @@ Lemma entry_TI_v2 :
     fn_params f = (bc_mptr bc, tptr tyMS) :: nil ->
     mem_id (bc_mptr bc) (bc_gates bc) = false ->
     mem_id (bc_mptr bc) (bc_disp bc) = false ->
+    (forall gid, mem_id gid (bc_globals bc) = true ->
+       mem_id gid (var_names (fn_vars f)) = false) ->
     marg_ok bm vargs ->
-    TI_of Q bm bc le.
+    TI_of Q bm bc e le.
 Proof.
-  intros Q bm bc ge f vargs m e le m1 Hentry Hparams Hng Hnd Hmarg.
+  intros Q bm bc ge f vargs m e le m1 Hentry Hparams Hng Hnd Hnvars Hmarg.
   inv Hentry.
   match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
     rewrite Hparams in Hb;
     destruct vargs as [| v0 [| v1 vs ]]; cbn in Hb; try discriminate Hb;
     inv Hb end.
-  split; [ | split ].
+  split; [ | split; [ | split ] ].
   - (* the mptr row: exact marg *)
     intros b o Hlk. rewrite PTree.gss in Hlk. inv Hlk.
     exact Hmarg.
@@ -1042,6 +1155,12 @@ Proof.
     + subst t. rewrite Hmem in Hnd. discriminate Hnd.
     + rewrite PTree.gso in Hlk by exact NE.
       apply create_undef_temps_Vundef in Hlk. discriminate Hlk.
+  - (* env row: stored globals are not this body's locals *)
+    intros gid Hg.
+    match goal with Hav : alloc_variables _ empty_env _ _ _ _ |- _ =>
+      refine (alloc_variables_notin_none _ _ _ _ _ _ Hav gid _ _) end.
+    + apply PTree.gempty.
+    + apply mem_id_false_notin. exact (Hnvars gid Hg).
 Qed.
 
 (* ====================================================================== *)
@@ -1053,7 +1172,8 @@ Qed.
 (* ====================================================================== *)
 
 Definition bc_m0 : body_census :=
-  {| bc_mptr := mario._m; bc_gates := nil; bc_disp := nil |}.
+  {| bc_mptr := mario._m; bc_gates := nil; bc_disp := nil;
+     bc_globals := nil |}.
 
 Lemma bc_m0_gates_disjoint : mem_id (bc_mptr bc_m0) (bc_gates bc_m0) = false.
 Proof. reflexivity. Qed.
@@ -1093,13 +1213,14 @@ Proof. reflexivity. Qed.
    the census then forces each one's only definition to be the canonical
    m->input load, so TI carries its bit-1-clear fact into the write. *)
 Definition bc_umji : body_census :=
-  {| bc_mptr := mario._m; bc_gates := mario._t'4 :: nil; bc_disp := nil |}.
+  {| bc_mptr := mario._m; bc_gates := mario._t'4 :: nil; bc_disp := nil;
+     bc_globals := nil |}.
 
 Definition bc_ugeo : body_census :=
   {| bc_mptr := mario._m;
      bc_gates := mario._t'29 :: mario._t'21 :: mario._t'20
                  :: mario._t'17 :: mario._t'14 :: nil;
-     bc_disp := nil |}.
+     bc_disp := nil; bc_globals := nil |}.
 
 Lemma bc_umji_gates_disjoint : mem_id (bc_mptr bc_umji) (bc_gates bc_umji) = false.
 Proof. reflexivity. Qed.
@@ -1109,6 +1230,34 @@ Lemma bc_ugeo_gates_disjoint : mem_id (bc_mptr bc_ugeo) (bc_gates bc_ugeo) = fal
 Proof. reflexivity. Qed.
 Lemma bc_ugeo_disp_disjoint : mem_id (bc_mptr bc_ugeo) (bc_disp bc_ugeo) = false.
 Proof. reflexivity. Qed.
+
+(* umi additionally stores the gCameraMovementFlags GLOBAL (class G), so
+   its census tables the global in bc_globals -- TI's env row then refutes
+   local shadowing at the store. *)
+Definition bc_umi : body_census :=
+  {| bc_mptr := mario._m;
+     bc_gates := mario._t'13 :: mario._t'9 :: mario._t'7 :: nil;
+     bc_disp := nil;
+     bc_globals := mario._gCameraMovementFlags :: nil |}.
+
+Lemma bc_umi_gates_disjoint : mem_id (bc_mptr bc_umi) (bc_gates bc_umi) = false.
+Proof. reflexivity. Qed.
+Lemma bc_umi_disp_disjoint : mem_id (bc_mptr bc_umi) (bc_disp bc_umi) = false.
+Proof. reflexivity. Qed.
+
+Lemma bc_umi_globals_novars :
+  forall gid, mem_id gid (bc_globals bc_umi) = true ->
+    mem_id gid (var_names (fn_vars mario.f_update_mario_inputs)) = false.
+Proof.
+  intros gid Hg.
+  change ((Pos.eqb gid mario._gCameraMovementFlags || false) = true) in Hg.
+  rewrite orb_false_r in Hg. apply Pos.eqb_eq in Hg. subst gid.
+  reflexivity.
+Qed.
+
+Lemma chk_update_mario_inputs :
+  chk bc_umi (fn_body mario.f_update_mario_inputs) = true.
+Proof. vm_compute. reflexivity. Qed.
 
 Lemma chk_update_mario_joystick_inputs :
   chk bc_umji (fn_body mario.f_update_mario_joystick_inputs) = true.
@@ -1161,6 +1310,11 @@ Lemma params_update_mario_joystick_inputs :
   = (bc_mptr bc_umji, tptr tyMS) :: nil.
 Proof. reflexivity. Qed.
 
+Lemma params_update_mario_inputs :
+  fn_params mario.f_update_mario_inputs
+  = (bc_mptr bc_umi, tptr tyMS) :: nil.
+Proof. reflexivity. Qed.
+
 Lemma params_update_mario_geometry_inputs :
   fn_params mario.f_update_mario_geometry_inputs
   = (bc_mptr bc_ugeo, tptr tyMS) :: nil.
@@ -1172,14 +1326,14 @@ Lemma body_TI_C_mario_get_floor_class :
   forall (Q : int -> Prop) bm ge vargs m e le m1,
     function_entry2 ge mario.f_mario_get_floor_class vargs m e le m1 ->
     marg_ok bm vargs ->
-    TI_of Q bm bc_m0 le /\
+    TI_of Q bm bc_m0 e le /\
     chk bc_m0 (fn_body mario.f_mario_get_floor_class) = true.
 Proof.
   intros Q bm ge vargs m e le m1 Hentry Hmarg.
   split.
   - exact (entry_TI_v2 Q bm bc_m0 ge _ vargs m e le m1 Hentry
              params_mario_get_floor_class bc_m0_gates_disjoint
-             bc_m0_disp_disjoint Hmarg).
+             bc_m0_disp_disjoint (nil_globals_novars bc_m0 _ eq_refl) Hmarg).
   - exact chk_mario_get_floor_class.
 Qed.
 
@@ -1187,14 +1341,14 @@ Lemma body_TI_C_mario_get_terrain_sound_addend :
   forall (Q : int -> Prop) bm ge vargs m e le m1,
     function_entry2 ge mario.f_mario_get_terrain_sound_addend vargs m e le m1 ->
     marg_ok bm vargs ->
-    TI_of Q bm bc_m0 le /\
+    TI_of Q bm bc_m0 e le /\
     chk bc_m0 (fn_body mario.f_mario_get_terrain_sound_addend) = true.
 Proof.
   intros Q bm ge vargs m e le m1 Hentry Hmarg.
   split.
   - exact (entry_TI_v2 Q bm bc_m0 ge _ vargs m e le m1 Hentry
              params_mario_get_terrain_sound_addend bc_m0_gates_disjoint
-             bc_m0_disp_disjoint Hmarg).
+             bc_m0_disp_disjoint (nil_globals_novars bc_m0 _ eq_refl) Hmarg).
   - exact chk_mario_get_terrain_sound_addend.
 Qed.
 
@@ -1202,14 +1356,14 @@ Lemma body_TI_C_mario_floor_is_slippery :
   forall (Q : int -> Prop) bm ge vargs m e le m1,
     function_entry2 ge mario.f_mario_floor_is_slippery vargs m e le m1 ->
     marg_ok bm vargs ->
-    TI_of Q bm bc_m0 le /\
+    TI_of Q bm bc_m0 e le /\
     chk bc_m0 (fn_body mario.f_mario_floor_is_slippery) = true.
 Proof.
   intros Q bm ge vargs m e le m1 Hentry Hmarg.
   split.
   - exact (entry_TI_v2 Q bm bc_m0 ge _ vargs m e le m1 Hentry
              params_mario_floor_is_slippery bc_m0_gates_disjoint
-             bc_m0_disp_disjoint Hmarg).
+             bc_m0_disp_disjoint (nil_globals_novars bc_m0 _ eq_refl) Hmarg).
   - exact chk_mario_floor_is_slippery.
 Qed.
 
@@ -1217,14 +1371,14 @@ Lemma body_TI_C_debug_print_speed_action_normal :
   forall (Q : int -> Prop) bm ge vargs m e le m1,
     function_entry2 ge mario.f_debug_print_speed_action_normal vargs m e le m1 ->
     marg_ok bm vargs ->
-    TI_of Q bm bc_m0 le /\
+    TI_of Q bm bc_m0 e le /\
     chk bc_m0 (fn_body mario.f_debug_print_speed_action_normal) = true.
 Proof.
   intros Q bm ge vargs m e le m1 Hentry Hmarg.
   split.
   - exact (entry_TI_v2 Q bm bc_m0 ge _ vargs m e le m1 Hentry
              params_debug_print_speed_action_normal bc_m0_gates_disjoint
-             bc_m0_disp_disjoint Hmarg).
+             bc_m0_disp_disjoint (nil_globals_novars bc_m0 _ eq_refl) Hmarg).
   - exact chk_debug_print_speed_action_normal.
 Qed.
 
@@ -1232,14 +1386,14 @@ Lemma body_TI_C_update_and_return_cap_flags :
   forall (Q : int -> Prop) bm ge vargs m e le m1,
     function_entry2 ge mario.f_update_and_return_cap_flags vargs m e le m1 ->
     marg_ok bm vargs ->
-    TI_of Q bm bc_m0 le /\
+    TI_of Q bm bc_m0 e le /\
     chk bc_m0 (fn_body mario.f_update_and_return_cap_flags) = true.
 Proof.
   intros Q bm ge vargs m e le m1 Hentry Hmarg.
   split.
   - exact (entry_TI_v2 Q bm bc_m0 ge _ vargs m e le m1 Hentry
              params_update_and_return_cap_flags bc_m0_gates_disjoint
-             bc_m0_disp_disjoint Hmarg).
+             bc_m0_disp_disjoint (nil_globals_novars bc_m0 _ eq_refl) Hmarg).
   - exact chk_update_and_return_cap_flags.
 Qed.
 
@@ -1248,7 +1402,7 @@ Lemma body_TI_C_set_submerged_cam_preset_and_spawn_bubbles :
     function_entry2 ge mario.f_set_submerged_cam_preset_and_spawn_bubbles
       vargs m e le m1 ->
     marg_ok bm vargs ->
-    TI_of Q bm bc_m0 le /\
+    TI_of Q bm bc_m0 e le /\
     chk bc_m0 (fn_body mario.f_set_submerged_cam_preset_and_spawn_bubbles)
       = true.
 Proof.
@@ -1256,7 +1410,8 @@ Proof.
   split.
   - exact (entry_TI_v2 Q bm bc_m0 ge _ vargs m e le m1 Hentry
              params_set_submerged_cam_preset_and_spawn_bubbles
-             bc_m0_gates_disjoint bc_m0_disp_disjoint Hmarg).
+             bc_m0_gates_disjoint bc_m0_disp_disjoint
+             (nil_globals_novars bc_m0 _ eq_refl) Hmarg).
   - exact chk_set_submerged_cam_preset_and_spawn_bubbles.
 Qed.
 
@@ -1264,14 +1419,14 @@ Lemma body_TI_C_update_mario_health :
   forall (Q : int -> Prop) bm ge vargs m e le m1,
     function_entry2 ge mario.f_update_mario_health vargs m e le m1 ->
     marg_ok bm vargs ->
-    TI_of Q bm bc_m0 le /\
+    TI_of Q bm bc_m0 e le /\
     chk bc_m0 (fn_body mario.f_update_mario_health) = true.
 Proof.
   intros Q bm ge vargs m e le m1 Hentry Hmarg.
   split.
   - exact (entry_TI_v2 Q bm bc_m0 ge _ vargs m e le m1 Hentry
              params_update_mario_health bc_m0_gates_disjoint
-             bc_m0_disp_disjoint Hmarg).
+             bc_m0_disp_disjoint (nil_globals_novars bc_m0 _ eq_refl) Hmarg).
   - exact chk_update_mario_health.
 Qed.
 
@@ -1279,28 +1434,43 @@ Lemma body_TI_C_update_mario_joystick_inputs :
   forall (Q : int -> Prop) bm ge vargs m e le m1,
     function_entry2 ge mario.f_update_mario_joystick_inputs vargs m e le m1 ->
     marg_ok bm vargs ->
-    TI_of Q bm bc_umji le /\
+    TI_of Q bm bc_umji e le /\
     chk bc_umji (fn_body mario.f_update_mario_joystick_inputs) = true.
 Proof.
   intros Q bm ge vargs m e le m1 Hentry Hmarg.
   split.
   - exact (entry_TI_v2 Q bm bc_umji ge _ vargs m e le m1 Hentry
              params_update_mario_joystick_inputs bc_umji_gates_disjoint
-             bc_umji_disp_disjoint Hmarg).
+             bc_umji_disp_disjoint (nil_globals_novars bc_umji _ eq_refl) Hmarg).
   - exact chk_update_mario_joystick_inputs.
+Qed.
+
+Lemma body_TI_C_update_mario_inputs :
+  forall (Q : int -> Prop) bm ge vargs m e le m1,
+    function_entry2 ge mario.f_update_mario_inputs vargs m e le m1 ->
+    marg_ok bm vargs ->
+    TI_of Q bm bc_umi e le /\
+    chk bc_umi (fn_body mario.f_update_mario_inputs) = true.
+Proof.
+  intros Q bm ge vargs m e le m1 Hentry Hmarg.
+  split.
+  - exact (entry_TI_v2 Q bm bc_umi ge _ vargs m e le m1 Hentry
+             params_update_mario_inputs bc_umi_gates_disjoint
+             bc_umi_disp_disjoint bc_umi_globals_novars Hmarg).
+  - exact chk_update_mario_inputs.
 Qed.
 
 Lemma body_TI_C_update_mario_geometry_inputs :
   forall (Q : int -> Prop) bm ge vargs m e le m1,
     function_entry2 ge mario.f_update_mario_geometry_inputs vargs m e le m1 ->
     marg_ok bm vargs ->
-    TI_of Q bm bc_ugeo le /\
+    TI_of Q bm bc_ugeo e le /\
     chk bc_ugeo (fn_body mario.f_update_mario_geometry_inputs) = true.
 Proof.
   intros Q bm ge vargs m e le m1 Hentry Hmarg.
   split.
   - exact (entry_TI_v2 Q bm bc_ugeo ge _ vargs m e le m1 Hentry
              params_update_mario_geometry_inputs bc_ugeo_gates_disjoint
-             bc_ugeo_disp_disjoint Hmarg).
+             bc_ugeo_disp_disjoint (nil_globals_novars bc_ugeo _ eq_refl) Hmarg).
   - exact chk_update_mario_geometry_inputs.
 Qed.

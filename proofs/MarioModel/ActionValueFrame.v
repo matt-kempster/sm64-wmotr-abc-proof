@@ -1598,7 +1598,7 @@ Theorem exec_funcall_reach_value_v2 :
          (bridged : Clight.fundef -> Prop)
          (Reached_fd : Clight.fundef -> Prop)
          (I : Type)
-         (TI : I -> temp_env -> Prop) (C : I -> statement -> Prop),
+         (TI : I -> env -> temp_env -> Prop) (C : I -> statement -> Prop),
     (* leaf A: as in v1, but BRIDGED callees are also excluded from the
        census walk -- a bridged function (e.g. update_mario_button_inputs,
        whose controller A-gate needs a 2-deep memory-dependent provenance
@@ -1615,7 +1615,7 @@ Theorem exec_funcall_reach_value_v2 :
        Reached_fd (Internal f) -> marg_exempt (Internal f) = false ->
        function_entry2 ge f vargs m e le m1 ->
        ~ writer (Internal f) -> ~ bridged (Internal f) -> marg_ok bm vargs ->
-       exists i, TI i le /\ C i (fn_body f)) ->
+       exists i, TI i e le /\ C i (fn_body f)) ->
     (* the BRIDGED leaf: reached internal functions with their own direct
        preservation lemma (the umbi body walk lifted to funcall level).
        Gets the marg fact -- the walk needs arg0 = Vptr bm 0. *)
@@ -1631,12 +1631,12 @@ Theorem exec_funcall_reach_value_v2 :
        eval_expr ge e le m a2 v2 ->
        sem_cast v2 (typeof a2) (typeof a1) m = Some v ->
        assign_loc ge (typeof a1) m loc ofs bf v m' ->
-       TI i le -> C i (Sassign a1 a2) -> MWF m ->
+       TI i e le -> C i (Sassign a1 a2) -> MWF m ->
        Mem.valid_block m bm -> action_sat Q m bm ->
        Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m') ->
     (* the call-arg census: per-index. *)
     (forall i e le m optid a al tyargs vargs vf fd,
-       TI i le -> C i (Scall optid a al) ->
+       TI i e le -> C i (Scall optid a al) ->
        eval_expr ge e le m a vf -> Genv.find_funct ge vf = Some fd ->
        marg_exempt fd = false ->
        eval_exprlist ge e le m al tyargs vargs -> marg_ok bm vargs) ->
@@ -1650,13 +1650,15 @@ Theorem exec_funcall_reach_value_v2 :
        temp (`t = m->action`) can be recorded in TI as holding a Q-value. *)
     (forall i e le m id a v,
        MWF m -> action_sat Q m bm -> eval_expr ge e le m a v ->
-       TI i le -> C i (Sset id a) -> TI i (PTree.set id v le)) ->
-    (forall i optid a al v le,
-       C i (Scall optid a al) -> TI i le ->
-       (forall b o, v = Vptr b o -> b <> bm) -> TI i (set_opttemp optid v le)) ->
-    (forall i optid ef tyargs al v le,
-       C i (Sbuiltin optid ef tyargs al) -> TI i le ->
-       (forall b o, v = Vptr b o -> b <> bm) -> TI i (set_opttemp optid v le)) ->
+       TI i e le -> C i (Sset id a) -> TI i e (PTree.set id v le)) ->
+    (forall i e optid a al v le,
+       C i (Scall optid a al) -> TI i e le ->
+       (forall b o, v = Vptr b o -> b <> bm) ->
+       TI i e (set_opttemp optid v le)) ->
+    (forall i e optid ef tyargs al v le,
+       C i (Sbuiltin optid ef tyargs al) -> TI i e le ->
+       (forall b o, v = Vptr b o -> b <> bm) ->
+       TI i e (set_opttemp optid v le)) ->
     (forall fd m0 vargs0 t0 m0' vres0,
        Reached_fd fd ->
        eval_funcall function_entry2 ge m0 fd vargs0 t0 m0' vres0 ->
@@ -1665,7 +1667,7 @@ Theorem exec_funcall_reach_value_v2 :
        external_call ef ge vargs0 m0 t0 vres0 m0' ->
        forall b o, vres0 = Vptr b o -> b <> bm) ->
     (forall i e le m optid a al vf fd,
-       TI i le -> C i (Scall optid a al) ->
+       TI i e le -> C i (Scall optid a al) ->
        eval_expr ge e le m a vf -> Genv.find_funct ge vf = Some fd ->
        Reached_fd fd) ->
     (* NEW (Hcallwriter): the call-site bridge for the writer. TI+C pin the
@@ -1673,7 +1675,7 @@ Theorem exec_funcall_reach_value_v2 :
        to the writer -- the lp discharge enumerates the (now gate-killed)
        writer call sites and reads off their literal action arguments. *)
     (forall i e le m optid a al tyargs vargs vf fd,
-       TI i le -> C i (Scall optid a al) ->
+       TI i e le -> C i (Scall optid a al) ->
        eval_expr ge e le m a vf -> Genv.find_funct ge vf = Some fd ->
        writer fd ->
        eval_exprlist ge e le m al tyargs vargs -> W vargs) ->
@@ -1709,14 +1711,15 @@ Theorem exec_funcall_reach_value_v2 :
        actual guard value, the boolean taken, TI and the carried memory
        facts, so a gate-killed THEN branch never has to pass census. *)
     (forall i e le m a s1 s2 v1 b,
-       C i (Sifthenelse a s1 s2) -> MWF m -> action_sat Q m bm -> TI i le ->
+       C i (Sifthenelse a s1 s2) -> MWF m -> action_sat Q m bm ->
+       TI i e le ->
        eval_expr ge e le m a v1 -> bool_val v1 (typeof a) m = Some b ->
        C i (if b then s1 else s2)) ->
     (forall i s1 s2, C i (Sloop s1 s2) -> C i s1 /\ C i s2) ->
     (* HCsw V2: semantic -- sees the scrutinee value and TI, so the
        airborne dispatch only owes census on its non-T suffixes. *)
     (forall i e le m a ls v n,
-       C i (Sswitch a ls) -> MWF m -> action_sat Q m bm -> TI i le ->
+       C i (Sswitch a ls) -> MWF m -> action_sat Q m bm -> TI i e le ->
        eval_expr ge e le m a v -> sem_switch_arg v (typeof a) = Some n ->
        C i (seq_of_labeled_statement (select_switch n ls))) ->
     reach_value_preserves_v2 Q bm ge NoA MWF writer W Reached_fd.
@@ -1729,8 +1732,8 @@ Proof.
     (forall e le m s t le' m' out,
        exec_stmt function_entry2 ge e le m s t le' m' out ->
        NoA m -> MWF m -> Mem.valid_block m bm -> action_sat Q m bm ->
-       forall i, TI i le -> C i s ->
-       Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m' /\ TI i le')
+       forall i, TI i e le -> C i s ->
+       Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m' /\ TI i e le')
     /\
     (forall m fd vargs t m' vres,
        eval_funcall function_entry2 ge m fd vargs t m' vres ->
@@ -1742,8 +1745,8 @@ Proof.
   { apply (exec_stmt_funcall_ind function_entry2 ge
       (fun e le m s t le' m' out =>
          NoA m -> MWF m -> Mem.valid_block m bm -> action_sat Q m bm ->
-         forall i, TI i le -> C i s ->
-         Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m' /\ TI i le')
+         forall i, TI i e le -> C i s ->
+         Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m' /\ TI i e le')
       (fun m fd vargs t m' vres =>
          Reached_fd fd ->
          NoA m -> MWF m -> Mem.valid_block m bm -> action_sat Q m bm ->
