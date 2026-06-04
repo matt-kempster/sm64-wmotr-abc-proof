@@ -1587,14 +1587,28 @@ Theorem exec_funcall_reach_value_v2 :
   forall (Q : int -> Prop) (bm : block) (ge : genv)
          (NoA MWF : mem -> Prop) (writer : Clight.fundef -> Prop)
          (W : list val -> Prop)
+         (bridged : Clight.fundef -> Prop)
          (Reached_fd : Clight.fundef -> Prop)
          (TI : temp_env -> Prop) (C : statement -> Prop),
-    (* leaf A: unchanged from v1. *)
+    (* leaf A: as in v1, but BRIDGED callees are also excluded from the
+       census walk -- a bridged function (e.g. update_mario_button_inputs,
+       whose controller A-gate needs a 2-deep memory-dependent provenance
+       chain that a temp-only TI cannot carry) is discharged by a direct
+       whole-funcall lemma (Hbridged below) instead. *)
     (forall f vargs m e le m1,
        Reached_fd (Internal f) -> marg_exempt (Internal f) = false ->
        function_entry2 ge f vargs m e le m1 ->
-       ~ writer (Internal f) -> marg_ok bm vargs ->
+       ~ writer (Internal f) -> ~ bridged (Internal f) -> marg_ok bm vargs ->
        TI le /\ C (fn_body f)) ->
+    (* the BRIDGED leaf: reached internal functions with their own direct
+       preservation lemma (the umbi body walk lifted to funcall level).
+       Gets the marg fact -- the walk needs arg0 = Vptr bm 0. *)
+    (forall f vargs m t m' vres,
+       Reached_fd (Internal f) -> bridged (Internal f) ->
+       (marg_exempt (Internal f) = false -> marg_ok bm vargs) ->
+       eval_funcall function_entry2 ge m (Internal f) vargs t m' vres ->
+       NoA m -> MWF m -> Mem.valid_block m bm -> action_sat Q m bm ->
+       Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m') ->
     (* the store leaf: unchanged. *)
     (forall e le m a1 a2 loc ofs bf v2 v m',
        eval_lvalue ge e le m a1 loc ofs bf ->
@@ -1664,7 +1678,17 @@ Theorem exec_funcall_reach_value_v2 :
        exec_stmt function_entry2 ge e le m s t le' m' out -> NoA m -> NoA m') ->
     (forall f vargs m e le m1,
        function_entry2 ge f vargs m e le m1 -> NoA m -> NoA m1) ->
-    (forall s1 s2, C (Ssequence s1 s2) -> C s1 /\ C s2) ->
+    (* HCseq V2, split semantically: the head census is unconditional, but
+       the TAIL census is owed only when the head actually completed
+       Out_normal. This is what lets a census accept a switch suffix whose
+       break-terminated head arm is followed by textually-present but
+       semantically-dead T arms (ends_in_break_not_normal refutes the
+       Out_normal premise at the discharge). *)
+    (forall s1 s2, C (Ssequence s1 s2) -> C s1) ->
+    (forall e le m s1 s2 t1 le1 m1,
+       C (Ssequence s1 s2) ->
+       exec_stmt function_entry2 ge e le m s1 t1 le1 m1 Out_normal ->
+       C s2) ->
     (* HCif V2: the branch census obligation is SEMANTIC -- it sees the
        actual guard value, the boolean taken, TI and the carried memory
        facts, so a gate-killed THEN branch never has to pass census. *)
@@ -1681,10 +1705,10 @@ Theorem exec_funcall_reach_value_v2 :
        C (seq_of_labeled_statement (select_switch n ls))) ->
     reach_value_preserves_v2 Q bm ge NoA MWF writer W Reached_fd.
 Proof.
-  intros Q bm ge NoA MWF writer W Reached_fd TI C
-         Hbody Hassign Hcallmarg Hexempt HTI_set HTI_optc HTI_optb
+  intros Q bm ge NoA MWF writer W bridged Reached_fd TI C
+         Hbody Hbridged Hassign Hcallmarg Hexempt HTI_set HTI_optc HTI_optb
          Hret_call Hret_builtin Hcall_reached Hcallwriter Hw
-         Hext Hmwf_ext Hmwf_unch Hnoaexec Hnoaentry HCseq HCif HCloop HCsw.
+         Hext Hmwf_ext Hmwf_unch Hnoaexec Hnoaentry HCseq1 HCseq2 HCif HCloop HCsw.
   assert (MAIN :
     (forall e le m s t le' m' out,
        exec_stmt function_entry2 ge e le m s t le' m' out ->
@@ -1745,14 +1769,15 @@ Proof.
           | eapply HTI_optb;
               [ exact HC | exact HTI
               | exact (Hret_builtin ef vargs m t vres m' Hec) ] ] ] ].
-    - (* Sseq_1 *)
+    - (* Sseq_1: the tail census comes from HCseq2 + the head's Out_normal run *)
       intros e le m s1 s2 t1 le1 m1 t2 le2 m2 out He1 IH1 He2 IH2 HnoA HMWF Hv Hsat HTI HC.
-      destruct (HCseq _ _ HC) as [HC1 HC2].
+      pose proof (HCseq1 _ _ HC) as HC1.
+      pose proof (HCseq2 _ _ _ _ _ _ _ _ HC He1) as HC2.
       destruct (IH1 HnoA HMWF Hv Hsat HTI HC1) as (Hv1 & Hsat1 & HMWF1 & HTI1).
       apply (IH2 (Hnoaexec _ _ _ _ _ _ _ _ He1 HnoA) HMWF1 Hv1 Hsat1 HTI1 HC2).
-    - (* Sseq_2 *)
+    - (* Sseq_2: only the head ran -- only the head census is needed *)
       intros e le m s1 s2 t1 le1 m1 out He1 IH1 Hout HnoA HMWF Hv Hsat HTI HC.
-      destruct (HCseq _ _ HC) as [HC1 _]. apply (IH1 HnoA HMWF Hv Hsat HTI HC1).
+      apply (IH1 HnoA HMWF Hv Hsat HTI (HCseq1 _ _ HC)).
     - (* Sifthenelse: HCif v2 -- semantic branch census *)
       intros e le m a s1 s2 v1 b t le' m' out He Hbool Hexec IH HnoA HMWF Hv Hsat HTI HC.
       apply (IH HnoA HMWF Hv Hsat HTI).
@@ -1787,9 +1812,14 @@ Proof.
       intros e le m a t v n sl le1 m1 out He Hsa Hexec IH HnoA HMWF Hv Hsat HTI HC.
       apply (IH HnoA HMWF Hv Hsat HTI).
       eapply HCsw; [ exact HC | exact HMWF | exact Hsat | exact HTI | exact He | exact Hsa ].
-    - (* eval_funcall_internal: writer-split, with W vargs at the writer leaf *)
+    - (* eval_funcall_internal: bridged-split, then writer-split *)
       intros m f vargs t e le1 le2 m1 m2 out vres m3
              Hentry Hbexec IHbody Hout Hfree Hreached HnoA HMWF Hv Hsat Hmarg Hwargs.
+      destruct (classic (bridged (Internal f))) as [Hbr | Hnbr].
+      { eapply Hbridged;
+          [ exact Hreached | exact Hbr | exact Hmarg
+          | eapply eval_funcall_internal; [ exact Hentry | exact Hbexec | exact Hout | exact Hfree ]
+          | exact HnoA | exact HMWF | exact Hv | exact Hsat ]. }
       destruct (classic (writer (Internal f))) as [Hwr | Hnwr].
       + eapply Hw;
           [ exact Hreached | exact HnoA | exact HMWF | exact (Hwargs Hwr)
@@ -1812,7 +1842,7 @@ Proof.
           assert (HMWF1 : MWF m1)
             by (eapply Hmwf_unch; [ exact Uentry_bm | exact Hv | exact HMWF ]).
           assert (HnoA1 : NoA m1) by (eapply Hnoaentry; [ exact Hentry | exact HnoA ]).
-          destruct (Hbody f vargs m e le1 m1 Hreached Hexm Hentry Hnwr Hmarg') as [HTI1 HC1].
+          destruct (Hbody f vargs m e le1 m1 Hreached Hexm Hentry Hnwr Hnbr Hmarg') as [HTI1 HC1].
           destruct (IHbody HnoA1 HMWF1 Hv1 Hsat1 HTI1 HC1) as (Hv2 & Hsat2 & HMWF2 & _).
           assert (Ufree_ac : Mem.unchanged_on (action_cell bm) m2 m3).
           { eapply free_list_unchanged_on; [ exact Hfree | ].
