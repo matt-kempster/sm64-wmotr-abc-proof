@@ -416,15 +416,18 @@ Section NoARealInputV2.
       Genv.find_funct (lp_ge lp) vf = Some fd ->
       marg_exempt fd = true.
 
-  (* per-symbol: the rest surface preserves the carried facts. THE
-     REMAINING CRUX at this scope: at the 7 dispatch handlers +
-     interactions + special floors this is exactly where the A-gating
-     taint closure (Taint.v + AGates.v kills) gets consumed; at the
-     exempt whitelist it is per-symbol frame reasoning (vec3 family). *)
-  Hypothesis Hrest_pres : forall m fd vargs t m' vres,
-      rest_fd lp fd ->
-      (marg_exempt fd = false -> marg_ok bm vargs) ->
-      eval_funcall function_entry2 (lp_ge lp) m fd vargs t m' vres ->
+  (* per-symbol: the rest surface preserves the carried facts -- ONLY
+     where lp resolves the symbol to an INTERNAL body (a rest symbol lp
+     keeps External carries no obligation here: the engine's External
+     path goes through Hext_action/Hmwf_ext generically). THE REMAINING
+     CRUX at this scope: at the 7 dispatch handlers + interactions +
+     special floors this is exactly where the A-gating taint closure
+     (Taint.v + AGates.v kills) gets consumed; at the exempt whitelist
+     it is per-symbol frame reasoning (vec3 family). *)
+  Hypothesis Hrest_pres : forall m f vargs t m' vres,
+      rest_fd lp (Internal f) ->
+      (marg_exempt (Internal f) = false -> marg_ok bm vargs) ->
+      eval_funcall function_entry2 (lp_ge lp) m (Internal f) vargs t m' vres ->
       NoA_real bm m -> MWF m -> Mem.valid_block m bm ->
       action_sat not_tainted m bm ->
       Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
@@ -579,10 +582,10 @@ Section NoARealInputMWF.
       eval_expr (lp_ge lp) e le m (Evar fid fty) vf ->
       Genv.find_funct (lp_ge lp) vf = Some fd ->
       marg_exempt fd = true.
-  Hypothesis Hrest_pres : forall m fd vargs t m' vres,
-      rest_fd lp fd ->
-      (marg_exempt fd = false -> marg_ok bm vargs) ->
-      eval_funcall function_entry2 (lp_ge lp) m fd vargs t m' vres ->
+  Hypothesis Hrest_pres : forall m f vargs t m' vres,
+      rest_fd lp (Internal f) ->
+      (marg_exempt (Internal f) = false -> marg_ok bm vargs) ->
+      eval_funcall function_entry2 (lp_ge lp) m (Internal f) vargs t m' vres ->
       NoA_real bm m -> MWF m -> Mem.valid_block m bm ->
       action_sat not_tainted m bm ->
       Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
