@@ -1875,6 +1875,54 @@ Section UmbiPreservesLp.
     end.
   Qed.
 
+  (* ================================================================== *)
+  (* THE FUNCALL LIFT: a whole eval_funcall of update_mario_button_inputs *)
+  (* with the Mario argument (bm,0) preserves input_a_clear and leaves    *)
+  (* everything outside the footprint untouched. fn_vars = nil (the       *)
+  (* clightgen-normalised shape) makes the entry allocation and the exit   *)
+  (* free_list memory-identities, and bind_parameter_temps pins le!_m to   *)
+  (* the argument -- exactly the walk's precondition. This is the bm-      *)
+  (* rooted case of the engine-v2 Hbridged discharge (marg_ok's off-bm     *)
+  (* case is a separate, gate-free walk: every store lands off bm).        *)
+  (* ================================================================== *)
+  Theorem umbi_funcall_preserves_lp :
+    forall m vargs t m' vres bm,
+      vargs = Vptr bm Ptrofs.zero :: nil ->
+      ctl_a_clear m bm ->
+      input_a_clear m bm ->
+      eval_funcall function_entry2 (lp_ge lp) m
+        (Internal mario.f_update_mario_button_inputs) vargs t m' vres ->
+      input_a_clear m' bm /\
+      Mem.unchanged_on (fun b o => ~ umbi_footprint bm b o) m m'.
+  Proof.
+    intros m vargs t m' vres bm Hargs Hctl Hinp Hev. subst vargs.
+    inv Hev.
+    (* entry: fn_vars = nil -> e = empty_env, memory untouched *)
+    match goal with Hfe : function_entry2 _ _ _ _ _ _ _ |- _ => inv Hfe end.
+    assert (Hvars : fn_vars mario.f_update_mario_button_inputs = nil)
+      by reflexivity.
+    match goal with Hav : alloc_variables _ _ _ _ _ _ |- _ =>
+      rewrite Hvars in Hav; inv Hav end.
+    (* params: bind_parameter_temps pins _m to the Mario pointer *)
+    match goal with Hbp : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      cbn [bind_parameter_temps fn_params mario.f_update_mario_button_inputs]
+        in Hbp;
+      inv Hbp end.
+    (* run the walk over the body *)
+    match goal with
+    | Hexec : exec_stmt function_entry2 (lp_ge lp) _ ?le _ _ _ _ _ _ |- _ =>
+        assert (Hle1 : le ! mario._m = Some (Vptr bm Ptrofs.zero))
+          by (apply PTree.gss);
+        destruct (umbi_body_preserves_input_a_clear_lp
+                    _ _ _ _ _ _ _ _ Hle1 Hctl Hinp Hexec) as [Hinp' Hu]
+    end.
+    (* free_list of the empty env: the result memory IS the body's *)
+    match goal with Hfree : Mem.free_list _ _ = Some _ |- _ =>
+      assert (Hbe : blocks_of_env (lp_ge lp) empty_env = nil) by reflexivity;
+      rewrite Hbe in Hfree; cbn [Mem.free_list] in Hfree; inv Hfree end.
+    exact (conj Hinp' Hu).
+  Qed.
+
 End UmbiPreservesLp.
 
 (* ====================================================================== *)
