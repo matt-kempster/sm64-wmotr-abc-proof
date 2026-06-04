@@ -551,7 +551,7 @@ Section ReRoot.
     inv Hel.
     match goal with H : eval_expr _ _ _ _ a0 ?v |- _ => rename H into Hev; rename v into v0 end.
     match goal with H : sem_cast _ _ _ _ = Some ?v |- _ => rename H into Hcast; rename v into v0' end.
-    unfold marg_ok. destruct v0' as [| | | | | b o]; auto. intro Hbm; subst b.
+    unfold marg_ok. destruct v0' as [| | | | | b o]; auto.
     pose proof (sem_cast_ptr_result_inv _ _ _ _ _ _ Hcast) as Hsrc. subst v0.
     destruct a0 as [ ci cty | cf cfty | csg csgty | clg clgty | vx vxty | et ety
                    | dr drty | ad adty | uo ua uty | bop b1 b2 bty | cst cstty
@@ -559,10 +559,10 @@ Section ReRoot.
       cbn in Hc; try contradiction.
     - inv Hev; match goal with H : eval_lvalue _ _ _ _ _ _ _ _ |- _ => inv H end.
     - destruct ety; try contradiction.
-      assert (Hget : le ! et = Some (Vptr bm o))
+      assert (Hget : le ! et = Some (Vptr b o))
         by (inv Hev; [ assumption
                      | match goal with H : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv H end ]).
-      exact (HP et Hc bm o Hget eq_refl).
+      exact (HP et Hc b o Hget).
     - destruct bop; try contradiction.
       inv Hev; [ exfalso; eapply sem_or_never_ptr; eauto
                | match goal with H : eval_lvalue _ _ _ _ _ _ _ _ |- _ => inv H end ].
@@ -582,12 +582,12 @@ Section ReRoot.
     assert (Hle' : exists v, le' = PTree.set id v le)
       by (inversion Hexec; subst; eauto).
     destruct Hle' as (v & ->).
-    unfold Pgms. intros tt Hin b o Hs Hb. subst b.
+    unfold Pgms. intros tt Hin b o Hs.
     destruct (Pos.eq_dec tt id) as [E|N].
     - subst tt. specialize (Hck Hin). subst a. unfold gms_expr in Hexec.
       pose proof (sset_gms_bm_lp bm id e le m t (PTree.set id v le) m' out He Hgwf Hexec) as Hbm0.
-      rewrite Hbm0 in Hs. congruence.
-    - rewrite PTree.gso in Hs by congruence. exact (HP tt Hin bm o Hs eq_refl).
+      rewrite Hbm0 in Hs. inv Hs. split; reflexivity.
+    - rewrite PTree.gso in Hs by congruence. exact (HP tt Hin b o Hs).
   Qed.
 
   (* ---- THE MARG/MWF/REACHED BODY ENGINE over lp_ge. ---- *)

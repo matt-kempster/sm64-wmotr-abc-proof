@@ -968,7 +968,7 @@ Definition gms_arg_temps : list ident :=
 
 Definition Pgms (bm : block) (le : temp_env) : Prop :=
   forall t, In t gms_arg_temps ->
-    forall b o, le ! t = Some (Vptr b o) -> b = bm -> o = Ptrofs.zero.
+    forall b o, le ! t = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero.
 
 (* per-call census: arg0 is a tracked Mario temp, an int constant, an Oor, or the
    call takes no args. All 22 reached call sites fit (vm_compute discharges it). *)
@@ -995,7 +995,7 @@ Proof.
   inv Hel.
   match goal with H : eval_expr _ _ _ _ a0 ?v |- _ => rename H into Hev; rename v into v0 end.
   match goal with H : sem_cast _ _ _ _ = Some ?v |- _ => rename H into Hcast; rename v into v0' end.
-  unfold marg_ok. destruct v0' as [| | | | | b o]; auto. intro Hbm; subst b.
+  unfold marg_ok. destruct v0' as [| | | | | b o]; auto.
   pose proof (sem_cast_ptr_result_inv _ _ _ _ _ _ Hcast) as Hsrc. subst v0.
   destruct a0 as [ ci cty | cf cfty | csg csgty | clg clgty | vx vxty | et ety
                  | dr drty | ad adty | uo ua uty | bop b1 b2 bty | cst cstty
@@ -1003,12 +1003,12 @@ Proof.
     cbn in Hc; try contradiction.
   - (* Econst_int : eval is Vint, contradicting v0 = Vptr *)
     inv Hev; match goal with H : eval_lvalue _ _ _ _ _ _ _ _ |- _ => inv H end.
-  - (* Etempvar et ety : ety must be a pointer (else census False); le!et = Vptr bm o *)
+  - (* Etempvar et ety : ety must be a pointer (else census False); le!et = Vptr b o *)
     destruct ety; try contradiction.
-    assert (Hget : le ! et = Some (Vptr bm o))
+    assert (Hget : le ! et = Some (Vptr b o))
       by (inv Hev; [ assumption
                    | match goal with H : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv H end ]).
-    exact (HP et Hc bm o Hget eq_refl).
+    exact (HP et Hc b o Hget).
   - (* Ebinop : op must be Oor (census); sem_or never yields a pointer *)
     destruct bop; try contradiction.
     inv Hev; [ exfalso; eapply sem_or_never_ptr; eauto
@@ -1487,10 +1487,10 @@ Section ProvEngine.
       Pgms bm le -> Pgms bm (set_opttemp oid v le).
   Proof.
     intros oid v le Hut HP. destruct oid as [id|]; [ | exact HP ].
-    unfold Pgms. intros t Hin b o Hs Hb.
+    unfold Pgms. intros t Hin b o Hs.
     unfold set_opttemp in Hs. destruct (Pos.eq_dec t id) as [E|N].
     - subst t. exfalso. exact (Hut id eq_refl Hin).
-    - rewrite PTree.gso in Hs by congruence. exact (HP t Hin b o Hs Hb).
+    - rewrite PTree.gso in Hs by congruence. exact (HP t Hin b o Hs).
   Qed.
 
   (* an Sset preserves Pgms: an arg temp is set (census) from gMarioState =>
@@ -1507,12 +1507,12 @@ Section ProvEngine.
     assert (Hle' : exists v, le' = PTree.set id v le)
       by (inversion Hexec; subst; eauto).
     destruct Hle' as (v & ->).
-    unfold Pgms. intros tt Hin b o Hs Hb. subst b.
+    unfold Pgms. intros tt Hin b o Hs.
     destruct (Pos.eq_dec tt id) as [E|N].
     - subst tt. specialize (Hck Hin). subst a. unfold gms_expr in Hexec.
       pose proof (sset_gms_bm id e le m t (PTree.set id v le) m' out bm He Hgwf Hexec) as Hbm0.
-      rewrite Hbm0 in Hs. congruence.
-    - rewrite PTree.gso in Hs by congruence. exact (HP tt Hin bm o Hs eq_refl).
+      rewrite Hbm0 in Hs. inv Hs. split; reflexivity.
+    - rewrite PTree.gso in Hs by congruence. exact (HP tt Hin b o Hs).
   Qed.
 
   (* ================================================================== *)
@@ -2270,7 +2270,7 @@ Proof.
   assert (Hother : forall id, ~ In id (var_names (fn_params mario.f_execute_mario_action)) ->
             le ! id = (create_undef_temps (fn_temps mario.f_execute_mario_action)) ! id)
     by (intros id Hnin; eapply bind_parameter_temps_other; [ exact Hbind | exact Hnin ]).
-  unfold Pgms. intros t Hin b o Hlk Hb.
+  unfold Pgms. intros t Hin b o Hlk.
   vm_compute in Hin.
   repeat (destruct Hin as [Hin | Hin]; [ subst t;
             rewrite Hother in Hlk by (vm_compute; intuition discriminate);
