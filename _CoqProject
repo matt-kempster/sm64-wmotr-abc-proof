@@ -46,10 +46,10 @@ proofs/MarioModel/RealFrameLinked.v
 #     consumed by the grounded capstone; gate theorems feed Phase B) ---
 proofs/MarioModel/AGates.v
 
-# --- GOAL 1 / engine-v2 per-body census + leaf discharges (Unwired staging:
-#     consumed by nothing yet; promotes when the v2 consumer assembly lands) ---
-proofs/MarioModel/Unwired/CensusV2.v
-proofs/MarioModel/Unwired/EngineV2Consumer.v
+# --- GOAL 1 / engine-v2 per-body census + consumer assembly (SPINE:
+#     consumed by the v2 grounded capstone in NoAImpliesNoFlyLinked) ---
+proofs/MarioModel/CensusV2.v
+proofs/MarioModel/EngineV2Consumer.v
 
 # --- top-level demos ---
 proofs/Toy/ToyFrame.v

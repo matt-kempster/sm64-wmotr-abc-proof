@@ -1,5 +1,5 @@
 (* ====================================================================== *)
-(* ENGINE-V2 CONSUMER (Unwired STAGING).                                   *)
+(* ENGINE-V2 CONSUMER (SPINE: consumed by the v2 grounded capstone).       *)
 (*                                                                         *)
 (* Instantiates the invariant-aware census engine                          *)
 (* (ActionValueFrame.exec_funcall_reach_value_v2) over the linked          *)
@@ -46,10 +46,11 @@
 (*  - return-value and NoA-stability facts (Hret_call/ext, Hnoa_exec/      *)
 (*    entry).                                                              *)
 (*                                                                         *)
-(* NOTHING on the capstone consumes this file yet. The wiring step:        *)
-(* NoAImpliesNoFlyLinked instantiates its reached_fd := reached_v2 and     *)
-(* its Hreach_val := reach_value_preserves_reached_v2, swapping the        *)
-(* monolithic per-funcall residual for the surface above.                  *)
+(* WIRED: NoAImpliesNoFlyLinked's v2 grounded capstone instantiates        *)
+(* reached_id := root_RID, reached_fd := reached_v2, Hbcr :=               *)
+(* root_call_resolves, Hbodyrck := root_body_reach_chk and Hreach_val :=   *)
+(* reach_value_preserves_reached_v2, swapping the monolithic per-funcall   *)
+(* residual for the surface above.                                         *)
 (* ====================================================================== *)
 
 From Coq Require Import ZArith List Lia Classical.
@@ -58,7 +59,7 @@ From compcert Require Import Coqlib Maps AST Integers Values Events Memory
 From SM64.Generated Require mario.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
   ActionValueFrame RealFrameValue RealFrameLinked AGates.
-From SM64.Proofs Require Import MarioModel.Unwired.CensusV2.
+From SM64.Proofs Require Import CensusV2.
 
 Import ListNotations.
 Local Open Scope Z_scope.
