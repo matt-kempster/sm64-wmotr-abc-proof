@@ -40,7 +40,8 @@ From compcert Require Import Coqlib Maps AST Integers Values Events Memory Globa
 From Coq Require Import List. Import ListNotations.
 From SM64.Generated Require mario.
 From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame ReachableRun
-  RealFrameValue RealFrameLinked AGates.
+  RealFrameValue RealFrameLinked AGates SymbolicLinking FieldNonInterference.
+From SM64.Proofs Require Import CensusV2 EngineV2Consumer.
 
 Section NoAImpliesNoFlyLinked.
   (* The linked program -- ABSTRACT, never computed (no OOM). *)
@@ -306,3 +307,195 @@ Section NoARealInput.
   Qed.
 
 End NoARealInput.
+
+(* ====================================================================== *)
+(* THE V2 GROUNDED CAPSTONE: the reached set made CONCRETE.                *)
+(*                                                                        *)
+(* Above, reached_id / reached_fd / Hreach_val / Hbcr / Hbodyrck are       *)
+(* abstract: the engine contract Hreach_val is one MONOLITHIC residual     *)
+(* over an unspecified reached set. Here they are real:                    *)
+(*   - reached_id := EngineV2Consumer.root_RID -- the 20 callee idents     *)
+(*     of the REAL f_execute_mario_action body (generated AST);            *)
+(*   - reached_fd := EngineV2Consumer.reached_v2 lp -- the 15 censused     *)
+(*     mario.c bodies + the bridged update_mario_button_inputs + the       *)
+(*     NAMED per-symbol rest surface (7 dispatch handlers, interactions,   *)
+(*     special floors, the exempt whitelist, 2 externals);                 *)
+(*   - Hbodyrck := root_body_reach_chk (PROVED: reflexivity over the       *)
+(*     generated root body);                                               *)
+(*   - Hbcr := root_call_resolves (PROVED: every Tfunction-pinned Evar     *)
+(*     callee the root reaches at empty_env resolves into reached_v2,      *)
+(*     by per-symbol linkorder resolution);                                *)
+(*   - Hreach_val := reach_value_preserves_reached_v2 (PROVED from the     *)
+(*     engine: the 15-body census walk, the store/call/TI leaves, the     *)
+(*     gate kill, the dispatch kill, the umbi bridge, the REFUTED writer   *)
+(*     leaf, and the call-resolution closure are all DISCHARGED).          *)
+(*                                                                        *)
+(* What the monolithic engine residual DECOMPOSES INTO is this section's   *)
+(* hypothesis surface -- each named, satisfiable, per-cell/per-symbol:     *)
+(*   - MWF projections + per-cell store stability (discharged when MWF is  *)
+(*     instantiated concretely -- a definition, not a proof debt);         *)
+(*   - the SafeB chase closure (HchaseRoot/HchaseStep/HSafeNotBm);         *)
+(*   - WL_exempt + Hrest_pres: PER-SYMBOL facts about the named callee     *)
+(*     symbols' lp resolutions. Hrest_pres at the 7 dispatch handlers is   *)
+(*     THE REMAINING CRUX -- exactly where the A-gating taint closure      *)
+(*     (Taint.v census + AGates.v kills) gets consumed next;               *)
+(*   - return-value non-aliasing + NoA stability + external facts.         *)
+(* ====================================================================== *)
+
+Section NoARealInputV2.
+  Variable lp : Clight.program.
+  Hypothesis LO_mario : linkorder mario.prog lp.
+
+  Variable bm : block.
+  Variable SafeB : block -> Prop.
+  Variable MWF : mem -> Prop.
+
+  (* the spawn-exclusion input bit stays abstract (warp/level script). *)
+  Variable spawn_flying : mem -> bool.
+
+  (* ---- the engine-v2 residual surface (EngineV2Consumer's hypotheses,
+     at the CONCRETE invariant NoA_real bm = the controller A-bit is clear).
+     Each is named, satisfiable, and per-cell/per-symbol dischargeable. ---- *)
+
+  (* MWF projections: the run invariant contains the two A-clear cells *)
+  Hypothesis Hmwf_inp : forall m, MWF m -> input_a_clear m bm.
+  Hypothesis Hmwf_ctl : forall m, MWF m -> ctl_a_clear m bm.
+
+  (* the SafeB chase closure *)
+  Hypothesis HactVint : forall mm, MWF mm -> forall av,
+      Mem.load Mint32 mm bm 12 = Some av ->
+      av = Vundef \/ exists vi, av = Vint vi.
+  Hypothesis HPgms : forall mm, MWF mm ->
+      exists gb, Genv.find_symbol (lp_ge lp) mario._gMarioState = Some gb /\
+                 Mem.loadv Mptr mm (Vptr gb Ptrofs.zero)
+                   = Some (Vptr bm Ptrofs.zero).
+  Hypothesis HchaseRoot : forall fld delta mm b' o',
+      mem_id fld chase_root_fields = true ->
+      field_offset (prog_comp_env mario.prog) fld mario_state_members
+        = Errors.OK (delta, Full) ->
+      MWF mm ->
+      Mem.loadv Mptr mm (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr delta)))
+        = Some (Vptr b' o') ->
+      SafeB b'.
+  Hypothesis HchaseStep : forall mm b ofs b' o',
+      MWF mm -> SafeB b ->
+      Mem.loadv Mptr mm (Vptr b ofs) = Some (Vptr b' o') -> SafeB b'.
+  Hypothesis HSafeNotBm : forall bsafe, SafeB bsafe -> bsafe <> bm.
+
+  (* per-cell store stability of MWF *)
+  Hypothesis Hmwf_window : forall mm mm' ch (delta : Z) vv,
+      MWF mm -> store_window_ok delta (size_chunk ch) = true ->
+      Mem.store ch mm bm delta vv = Some mm' -> MWF mm'.
+  Hypothesis Hmwf_input : forall mm mm' vv,
+      MWF mm -> Int.and vv (Int.repr 2) = Int.zero ->
+      Mem.store Mint16unsigned mm bm 2 (Vint vv) = Some mm' -> MWF mm'.
+  Hypothesis Hmwf_glob : forall gid, mem_id gid stored_globals = true ->
+      forall bg, Genv.find_symbol (lp_ge lp) gid = Some bg ->
+        bg <> bm /\
+        (forall mm mm' ch0 (d : Z) vv,
+            MWF mm -> Mem.store ch0 mm bg d vv = Some mm' -> MWF mm').
+  Hypothesis Hmwf_chase : forall mm ch bsafe (d : Z) vv mm',
+      MWF mm -> SafeB bsafe ->
+      (forall bb oo, vv <> Vptr bb oo) ->
+      Mem.store ch mm bsafe d vv = Some mm' -> MWF mm'.
+  Hypothesis Hmwf_umbi : forall mm mm',
+      MWF mm ->
+      Mem.unchanged_on (fun b o => ~ umbi_footprint bm b o) mm mm' ->
+      input_a_clear mm' bm -> MWF mm'.
+
+  (* per-symbol: the whitelisted callee symbols resolve to marg-exempt
+     definitions (their first param is not a MarioState ptr) *)
+  Hypothesis WL_exempt : forall e le m fid fty vf fd,
+      mem_id fid exempt_callees = true ->
+      eval_expr (lp_ge lp) e le m (Evar fid fty) vf ->
+      Genv.find_funct (lp_ge lp) vf = Some fd ->
+      marg_exempt fd = true.
+
+  (* per-symbol: the rest surface preserves the carried facts. THE
+     REMAINING CRUX at this scope: at the 7 dispatch handlers +
+     interactions + special floors this is exactly where the A-gating
+     taint closure (Taint.v + AGates.v kills) gets consumed; at the
+     exempt whitelist it is per-symbol frame reasoning (vec3 family). *)
+  Hypothesis Hrest_pres : forall m fd vargs t m' vres,
+      rest_fd lp fd ->
+      (marg_exempt fd = false -> marg_ok bm vargs) ->
+      eval_funcall function_entry2 (lp_ge lp) m fd vargs t m' vres ->
+      NoA_real bm m -> MWF m -> Mem.valid_block m bm ->
+      action_sat not_tainted m bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
+
+  (* return values never alias Mario's block *)
+  Hypothesis Hret_call : forall fd m0 vargs0 t0 m0' vres0,
+      reached_v2 lp fd ->
+      eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m0' vres0 ->
+      forall b o, vres0 = Vptr b o -> b <> bm.
+  Hypothesis Hret_ext : forall ef vargs0 m0 t0 vres0 m0',
+      external_call ef (lp_ge lp) vargs0 m0 t0 vres0 m0' ->
+      forall b o, vres0 = Vptr b o -> b <> bm.
+
+  (* externals: the action cell + MWF survive external calls *)
+  Hypothesis Hext_action :
+    FieldNonInterference.reach_ext_preserves (action_cell bm) (lp_ge lp).
+  Hypothesis Hmwf_ext : forall ef vargs m t vres m',
+      external_call ef (lp_ge lp) vargs m t vres m' ->
+      Mem.valid_block m bm -> MWF m -> MWF m'.
+  Hypothesis Hmwf_unch : forall m m',
+      Mem.unchanged_on (fun b (_ : Z) => b = bm) m m' ->
+      Mem.valid_block m bm -> MWF m -> MWF m'.
+
+  (* NoA stability *)
+  Hypothesis Hnoa_exec : forall e le m s t le' m' out,
+      exec_stmt function_entry2 (lp_ge lp) e le m s t le' m' out ->
+      NoA_real bm m -> NoA_real bm m'.
+  Hypothesis Hnoa_entry : forall f vargs m e le m1,
+      function_entry2 (lp_ge lp) f vargs m e le m1 ->
+      NoA_real bm m -> NoA_real bm m1.
+
+  (* ---- the wrapper residuals that are NOT engine-shaped (the root body's
+     own provenance stores + the external meminv preservation), same shapes
+     as the abstract section's. ---- *)
+  Hypothesis Hrest : reach_rest_marg_lp lp bm (NoA_real bm).
+  Hypothesis Hext :
+    forall ef vargs mm tt vres mm',
+      NoA_real bm mm -> meminv_lp lp not_tainted bm mm -> MWF mm ->
+      external_call ef (lp_ge lp) vargs mm tt vres mm' ->
+      NoA_real bm mm' /\ meminv_lp lp not_tainted bm mm' /\ MWF mm'.
+  Hypothesis Hstore :
+    forall e le mm a1 a2 tt le' mm' out,
+      NoA_real bm mm -> RealFrameValue.prov_ok (Sassign a1 a2) ->
+      exec_stmt function_entry2 (lp_ge lp) e le mm (Sassign a1 a2) tt le' mm' out ->
+      NoA_real bm mm'.
+  Hypothesis Hstoremwf :
+    forall e le mm a1 a2 tt le' mm' out,
+      NoA_real bm mm -> RealFrameValue.prov_ok (Sassign a1 a2) -> MWF mm ->
+      exec_stmt function_entry2 (lp_ge lp) e le mm (Sassign a1 a2) tt le' mm' out ->
+      MWF mm'.
+
+  (* ==================================================================== *)
+  (* THE V2 GROUNDED THEOREM: same conclusion as noA_no_spawn_never_       *)
+  (* flying_real, but the reached set is CONCRETE and the engine contract  *)
+  (* is PROVED -- the monolithic Hreach_val residual is GONE, replaced by  *)
+  (* the per-cell/per-symbol surface above.                                *)
+  (* ==================================================================== *)
+  Theorem noA_no_spawn_never_flying_real_v2 :
+    forall (init : mem) (is : list mem) (m : mem),
+      mem_ok_lp lp bm MWF init ->
+      Forall (fun i => a_pressed_real bm i = false) is ->
+      Forall (fun i => spawn_flying i = false) is ->
+      reachable mem mem (step_real lp) init is m ->
+      ~ mem_flying_lp bm m.
+  Proof.
+    exact (noA_no_spawn_never_flying_real lp LO_mario bm MWF spawn_flying
+             root_RID (reached_v2 lp)
+             (reach_value_preserves_reached_v2 lp LO_mario bm SafeB
+                (NoA_real bm) MWF
+                Hmwf_inp Hmwf_ctl HactVint HPgms HchaseRoot HchaseStep
+                HSafeNotBm Hmwf_window Hmwf_input Hmwf_glob Hmwf_chase
+                Hmwf_umbi WL_exempt Hrest_pres Hret_call Hret_ext
+                Hext_action Hmwf_ext Hmwf_unch Hnoa_exec Hnoa_entry)
+             Hrest Hext Hstore Hstoremwf
+             (root_call_resolves lp LO_mario)
+             root_body_reach_chk).
+  Qed.
+
+End NoARealInputV2.

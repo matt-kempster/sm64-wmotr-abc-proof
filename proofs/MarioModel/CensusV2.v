@@ -26,10 +26,12 @@
 (*  - the Ssequence rule is break-aware: the tail census may be waived      *)
 (*    when the head provably never completes normally (dispatch arms end    *)
 (*    in break; the textually-following dead arms never run);               *)
-(*  - Sassign / Scall / Sbuiltin are STRICT placeholders (false) in this    *)
-(*    first cut: only store-free, call-free fragments pass. Widening these   *)
-(*    rules (store classes + call classes) is the next brick; keeping them   *)
-(*    false is sound -- bodies simply do not pass census yet.               *)
+(*  - Sassign passes the store classes of store_class (window stores to     *)
+(*    bm, the A-clear input store, whitelisted globals, non-pointer SafeB   *)
+(*    chase stores); Scall requires a TABLED callee (an Evar at Tfunction   *)
+(*    type whose ident is on mptr_callees with the Mario-ptr head arg, or   *)
+(*    on exempt_callees) and an optid off the body's temp tables;           *)
+(*    Sbuiltin stays false (no censused body uses builtins).                *)
 (* ====================================================================== *)
 
 From Coq Require Import ZArith List Lia.
