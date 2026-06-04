@@ -22,7 +22,14 @@
 (*    the engine's Hbridged (its footprint misses the action cell);        *)
 (*  - the WRITER leaf is REFUTED, not assumed: no censused/bridged-umbi    *)
 (*    body IS set_mario_action (record inequalities), so at this scope     *)
-(*    the engine never owes a writer obligation (W := True).               *)
+(*    the engine never owes a writer obligation (W := True);               *)
+(*  - the CALL-RESOLUTION closure (call_resolves_v2): the census tables    *)
+(*    every callee ident, all censused bodies have fn_vars = nil (so the   *)
+(*    engine's TI carries e = empty_env and callee Evars evaluate          *)
+(*    globally), and the 8 mario.prog-internal class-M callees resolve     *)
+(*    by linkorder to the censused/bridged bodies (per-symbol defmap       *)
+(*    computes); the 2 MarioState*-taking externals + the exempt           *)
+(*    whitelist land on the named rest surface.                            *)
 (*                                                                         *)
 (* THE RESIDUAL SURFACE (the section hypotheses below) -- each NAMED,      *)
 (* satisfiable, and per-cell/per-symbol dischargeable:                     *)
@@ -36,9 +43,6 @@
 (*    callee symbols resolve to in lp (the handlers' preservation is the   *)
 (*    REMAINING CRUX -- it is where the A-gating taint closure of          *)
 (*    Taint.v/AGates.v gets consumed next);                                *)
-(*  - Hcall_resolves: censused calls resolve into reached_v2 (the          *)
-(*    census's callee idents are not yet tabled -- the mcallee census      *)
-(*    extension discharges this);                                          *)
 (*  - return-value and NoA-stability facts (Hret_call/ext, Hnoa_exec/      *)
 (*    entry).                                                              *)
 (*                                                                         *)
@@ -92,11 +96,18 @@ Section V2Consumer.
     mario._spawn_wind_particles ::
     mario._play_infinite_stairs_music :: nil.
 
+  (* the two class-M callees that are mario.prog EXTERNALS (their bodies
+     live in TUs not yet linkorder-pinned): their lp resolutions are
+     per-symbol rest residuals, like the handlers *)
+  Definition mptr_external_callees : list ident :=
+    mario._stub_mario_step_1 :: mario._level_trigger_warp :: nil.
+
   (* the not-yet-walked reach surface, keyed per symbol *)
   Definition rest_fd (fd : Clight.fundef) : Prop :=
     exists fid,
       (mem_id fid exempt_callees = true \/
-       mem_id fid root_residual_callees = true) /\
+       mem_id fid root_residual_callees = true \/
+       mem_id fid mptr_external_callees = true) /\
       resolves_lp fid fd.
 
   Definition bridged_fd (fd : Clight.fundef) : Prop :=
@@ -183,17 +194,6 @@ Section V2Consumer.
       NoA m -> MWF m -> Mem.valid_block m bm -> action_sat not_tainted m bm ->
       Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
 
-  (* censused calls resolve into the reach set. Dischargeable once the
-     census tables class-M callee idents (the mcallee extension): class-M
-     callees are linkorder-pinned mario.c internals (censused or umbi),
-     class-E callees resolve into rest_fd by definition. *)
-  Hypothesis Hcall_resolves : forall bc e le m optid a al vf fd,
-      TI_of not_tainted bm SafeB bc e le ->
-      chk bc (Scall optid a al) = true ->
-      eval_expr (lp_ge lp) e le m a vf ->
-      Genv.find_funct (lp_ge lp) vf = Some fd ->
-      reached_v2 fd.
-
   (* return values never alias Mario's block *)
   Hypothesis Hret_call : forall fd m0 vargs0 t0 m0' vres0,
       reached_v2 fd ->
@@ -220,6 +220,240 @@ Section V2Consumer.
       NoA m -> NoA m'.
   Hypothesis Hnoa_entry : forall f vargs m e le m1,
       function_entry2 (lp_ge lp) f vargs m e le m1 -> NoA m -> NoA m1.
+
+  (* ---------------- the empty-env bricks ---------------- *)
+
+  (* every censused body has fn_vars = nil (checked against the generated
+     AST), so its entry environment is exactly empty_env -- this is what
+     forces every censused callee Evar through eval_Evar_global and makes
+     the call resolution per-symbol decidable. *)
+  Lemma censused_body_novars :
+    forall f, censused_body f -> fn_vars f = nil.
+  Proof.
+    intros f HC.
+    destruct HC as
+      [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | ->]]]]]]]]]]]]]];
+      reflexivity.
+  Qed.
+
+  Lemma entry_novars_empty_env :
+    forall ge f vargs m e le m1,
+      function_entry2 ge f vargs m e le m1 -> fn_vars f = nil ->
+      e = empty_env.
+  Proof.
+    intros ge f vargs m e le m1 Hentry Hnil. inv Hentry.
+    match goal with
+    | Ha : alloc_variables _ _ _ (fn_vars f) _ _ |- _ =>
+        rewrite Hnil in Ha; inv Ha
+    end.
+    reflexivity.
+  Qed.
+
+  (* a function-typed Evar at the empty env evaluates to its global's
+     zero-offset function pointer (local case refuted by PTree.gempty;
+     Tfunction's access mode is By_reference) *)
+  Lemma eval_Evar_funct_empty :
+    forall le m fid tyl rty cc vf,
+      eval_expr (lp_ge lp) empty_env le m (Evar fid (Tfunction tyl rty cc)) vf ->
+      exists b, Genv.find_symbol (lp_ge lp) fid = Some b /\
+                vf = Vptr b Ptrofs.zero.
+  Proof.
+    intros le m fid tyl rty cc vf Hev.
+    inv Hev.
+    match goal with
+    | Hl : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ => inv Hl
+    end.
+    - (* local: refuted at the empty env *)
+      match goal with
+      | He : empty_env ! _ = Some _ |- _ =>
+          rewrite PTree.gempty in He; discriminate He
+      end.
+    - (* global: deref at By_reference hands back the pointer *)
+      match goal with
+      | Hd : deref_loc _ _ _ _ _ _ |- _ => inv Hd
+      end;
+        try (match goal with
+             | Hac : access_mode _ = _ |- _ => cbn in Hac; discriminate Hac
+             end).
+      eexists. split; [ eassumption | reflexivity ].
+  Qed.
+
+  (* ---------------- the per-symbol resolutions ---------------- *)
+  (* linkorder pins every mario.prog-internal class-M callee to its real
+     body in lp; each defmap lookup is a bounded mario.prog-only compute. *)
+
+  Lemma resolve_umbi :
+    exists b,
+      Genv.find_symbol (lp_ge lp) mario._update_mario_button_inputs = Some b /\
+      Genv.find_funct (lp_ge lp) (Vptr b Ptrofs.zero)
+        = Some (Internal mario.f_update_mario_button_inputs).
+  Proof.
+    apply (linkorder_resolves_funct lp mario.prog _ _ LO_mario).
+    vm_compute. reflexivity.
+  Qed.
+
+  Lemma resolve_umji :
+    exists b,
+      Genv.find_symbol (lp_ge lp) mario._update_mario_joystick_inputs = Some b /\
+      Genv.find_funct (lp_ge lp) (Vptr b Ptrofs.zero)
+        = Some (Internal mario.f_update_mario_joystick_inputs).
+  Proof.
+    apply (linkorder_resolves_funct lp mario.prog _ _ LO_mario).
+    vm_compute. reflexivity.
+  Qed.
+
+  Lemma resolve_ugeo :
+    exists b,
+      Genv.find_symbol (lp_ge lp) mario._update_mario_geometry_inputs = Some b /\
+      Genv.find_funct (lp_ge lp) (Vptr b Ptrofs.zero)
+        = Some (Internal mario.f_update_mario_geometry_inputs).
+  Proof.
+    apply (linkorder_resolves_funct lp mario.prog _ _ LO_mario).
+    vm_compute. reflexivity.
+  Qed.
+
+  Lemma resolve_dpsan :
+    exists b,
+      Genv.find_symbol (lp_ge lp) mario._debug_print_speed_action_normal = Some b /\
+      Genv.find_funct (lp_ge lp) (Vptr b Ptrofs.zero)
+        = Some (Internal mario.f_debug_print_speed_action_normal).
+  Proof.
+    apply (linkorder_resolves_funct lp mario.prog _ _ LO_mario).
+    vm_compute. reflexivity.
+  Qed.
+
+  Lemma resolve_mgtsa :
+    exists b,
+      Genv.find_symbol (lp_ge lp) mario._mario_get_terrain_sound_addend = Some b /\
+      Genv.find_funct (lp_ge lp) (Vptr b Ptrofs.zero)
+        = Some (Internal mario.f_mario_get_terrain_sound_addend).
+  Proof.
+    apply (linkorder_resolves_funct lp mario.prog _ _ LO_mario).
+    vm_compute. reflexivity.
+  Qed.
+
+  Lemma resolve_mfis :
+    exists b,
+      Genv.find_symbol (lp_ge lp) mario._mario_floor_is_slippery = Some b /\
+      Genv.find_funct (lp_ge lp) (Vptr b Ptrofs.zero)
+        = Some (Internal mario.f_mario_floor_is_slippery).
+  Proof.
+    apply (linkorder_resolves_funct lp mario.prog _ _ LO_mario).
+    vm_compute. reflexivity.
+  Qed.
+
+  Lemma resolve_mgfc :
+    exists b,
+      Genv.find_symbol (lp_ge lp) mario._mario_get_floor_class = Some b /\
+      Genv.find_funct (lp_ge lp) (Vptr b Ptrofs.zero)
+        = Some (Internal mario.f_mario_get_floor_class).
+  Proof.
+    apply (linkorder_resolves_funct lp mario.prog _ _ LO_mario).
+    vm_compute. reflexivity.
+  Qed.
+
+  Lemma resolve_uarcf :
+    exists b,
+      Genv.find_symbol (lp_ge lp) mario._update_and_return_cap_flags = Some b /\
+      Genv.find_funct (lp_ge lp) (Vptr b Ptrofs.zero)
+        = Some (Internal mario.f_update_and_return_cap_flags).
+  Proof.
+    apply (linkorder_resolves_funct lp mario.prog _ _ LO_mario).
+    vm_compute. reflexivity.
+  Qed.
+
+  (* ---------------- THE CALL-RESOLUTION CLOSURE (proved) ---------------- *)
+  (* every censused call resolves into reached_v2: class-M callees are
+     whitelist-tabled function Evars -- the 8 mario.prog internals resolve
+     (linkorder) to censused/bridged bodies, the 2 externals land on the
+     rest surface; class-E callees land on the rest surface by
+     construction. Uses the e = empty_env strengthening of the engine's TI
+     (all censused bodies have fn_vars = nil). *)
+  Lemma call_resolves_v2 :
+    forall bc le m optid a al vf fd,
+      chk bc (Scall optid a al) = true ->
+      eval_expr (lp_ge lp) empty_env le m a vf ->
+      Genv.find_funct (lp_ge lp) vf = Some fd ->
+      reached_v2 fd.
+  Proof.
+    intros bc le m optid a al vf fd HC Hevf Hff.
+    change ((call_optid_ok bc optid
+             && (call_head_is_mptr bc al && callee_in_mptr a
+                 || call_callee_exempt a)) = true) in HC.
+    apply andb_true_iff in HC as [_ HC].
+    apply orb_true_iff in HC as [HM | HE].
+    - (* class M *)
+      apply andb_true_iff in HM as [_ HMc].
+      destruct (callee_in_mptr_shape _ HMc)
+        as (fid & tyl & rty & cc & Ea & Hfid). subst a.
+      destruct (eval_Evar_funct_empty _ _ _ _ _ _ _ Hevf)
+        as (b & Hsym & Evf). subst vf.
+      unfold mem_id, mptr_callees in Hfid; cbn [existsb] in Hfid.
+      repeat (apply orb_true_iff in Hfid; destruct Hfid as [Hfid | Hfid]);
+        try discriminate Hfid; apply Pos.eqb_eq in Hfid; subst fid.
+      + (* umbi: the bridged body *)
+        destruct resolve_umbi as (b' & Hsym' & Hff').
+        assert (b = b') by congruence. subst b'.
+        right. left. congruence.
+      + (* umji *)
+        destruct resolve_umji as (b' & Hsym' & Hff').
+        assert (b = b') by congruence. subst b'.
+        assert (Efd : fd = Internal mario.f_update_mario_joystick_inputs) by congruence.
+        subst fd. left. eexists. split; [ reflexivity | ].
+        unfold censused_body. do 7 right. left. reflexivity.
+      + (* ugeo *)
+        destruct resolve_ugeo as (b' & Hsym' & Hff').
+        assert (b = b') by congruence. subst b'.
+        assert (Efd : fd = Internal mario.f_update_mario_geometry_inputs) by congruence.
+        subst fd. left. eexists. split; [ reflexivity | ].
+        unfold censused_body. do 9 right. left. reflexivity.
+      + (* dpsan *)
+        destruct resolve_dpsan as (b' & Hsym' & Hff').
+        assert (b = b') by congruence. subst b'.
+        assert (Efd : fd = Internal mario.f_debug_print_speed_action_normal) by congruence.
+        subst fd. left. eexists. split; [ reflexivity | ].
+        unfold censused_body. do 3 right. left. reflexivity.
+      + (* mgtsa *)
+        destruct resolve_mgtsa as (b' & Hsym' & Hff').
+        assert (b = b') by congruence. subst b'.
+        assert (Efd : fd = Internal mario.f_mario_get_terrain_sound_addend) by congruence.
+        subst fd. left. eexists. split; [ reflexivity | ].
+        unfold censused_body. do 1 right. left. reflexivity.
+      + (* mfis *)
+        destruct resolve_mfis as (b' & Hsym' & Hff').
+        assert (b = b') by congruence. subst b'.
+        assert (Efd : fd = Internal mario.f_mario_floor_is_slippery) by congruence.
+        subst fd. left. eexists. split; [ reflexivity | ].
+        unfold censused_body. do 2 right. left. reflexivity.
+      + (* mgfc *)
+        destruct resolve_mgfc as (b' & Hsym' & Hff').
+        assert (b = b') by congruence. subst b'.
+        assert (Efd : fd = Internal mario.f_mario_get_floor_class) by congruence.
+        subst fd. left. eexists. split; [ reflexivity | ].
+        unfold censused_body. left. reflexivity.
+      + (* uarcf *)
+        destruct resolve_uarcf as (b' & Hsym' & Hff').
+        assert (b = b') by congruence. subst b'.
+        assert (Efd : fd = Internal mario.f_update_and_return_cap_flags) by congruence.
+        subst fd. left. eexists. split; [ reflexivity | ].
+        unfold censused_body. do 4 right. left. reflexivity.
+      + (* stub_mario_step_1: rest *)
+        right. right. exists mario._stub_mario_step_1.
+        split; [ right; right; reflexivity | ].
+        exists b. split; [ exact Hsym | exact Hff ].
+      + (* level_trigger_warp: rest *)
+        right. right. exists mario._level_trigger_warp.
+        split; [ right; right; reflexivity | ].
+        exists b. split; [ exact Hsym | exact Hff ].
+    - (* class E: the exempt whitelist *)
+      destruct (call_callee_exempt_shape _ HE)
+        as (fid & tyl & rty & cc & Ea & Hfid). subst a.
+      destruct (eval_Evar_funct_empty _ _ _ _ _ _ _ Hevf)
+        as (b & Hsym & Evf). subst vf.
+      right. right. exists fid.
+      split; [ left; exact Hfid | ].
+      exists b. split; [ exact Hsym | exact Hff ].
+  Qed.
 
   (* ---------------- the writer refutation bricks ---------------- *)
 
@@ -251,16 +485,22 @@ Section V2Consumer.
                     writer_fd (fun _ => True) reached_v2).
     { apply (exec_funcall_reach_value_v2 not_tainted bm (lp_ge lp) NoA MWF
                writer_fd (fun _ => True) bridged_fd reached_v2
-               body_census (TI_of not_tainted bm SafeB)
+               body_census
+               (fun bc e le => TI_of not_tainted bm SafeB bc e le
+                               /\ e = empty_env)
                (fun bc s => chk bc s = true)).
-      - (* Hbody: censused dispatch *)
+      - (* Hbody: censused dispatch + the empty-env fact at entry *)
         intros f vargs0 m0 e le m1 Hr _ Hentry _ Hnb Hmarg0.
         assert (HC : censused_body f).
         { destruct Hr as [(f0 & Ef & HC0) | Hb].
           - injection Ef as Ef. subst f0. exact HC0.
           - exfalso. exact (Hnb Hb). }
-        exact (body_TI_C_dispatch not_tainted bm SafeB (lp_ge lp)
-                 f vargs0 m0 e le m1 HC Hentry Hmarg0).
+        destruct (body_TI_C_dispatch not_tainted bm SafeB (lp_ge lp)
+                    f vargs0 m0 e le m1 HC Hentry Hmarg0)
+          as (bc & HTI & HCk).
+        exists bc. split; [ split; [ exact HTI | ] | exact HCk ].
+        exact (entry_novars_empty_env _ _ _ _ _ _ _ Hentry
+                 (censused_body_novars _ HC)).
       - (* Hbridged: umbi (proved) / rest (residual) *)
         intros f vargs0 m0 t0 m0' vres0 _ Hb Hmargc Hevf Hno0 Hmwf0 Hv0 Hsat0.
         destruct Hb as [Eumbi | Hrest].
@@ -283,14 +523,14 @@ Section V2Consumer.
                    Hrest Hmargc Hevf Hno0 Hmwf0 Hv0 Hsat0).
       - (* Hassign: the censused store leaf *)
         intros bc e le m0 a1 a2 loc ofs bf v2 v m0'
-               Hlv Hev2 Hcast Has HTI HC Hmwf0 Hv0 Hsat0.
+               Hlv Hev2 Hcast Has [HTI _] HC Hmwf0 Hv0 Hsat0.
         exact (chk_assign lp LO_mario not_tainted MWF bm SafeB bc e le m0
                  a1 a2 loc ofs bf v2 v m0'
                  Hmwf_window Hmwf_input Hmwf_glob HSafeNotBm Hmwf_chase
                  Hlv Hev2 Hcast Has HTI HC Hmwf0 Hv0 Hsat0).
       - (* Hcallmarg *)
         intros bc e le m0 optid a al tyargs vargs0 vf fd0
-               HTI HC Hevf Hff Hnex Hargs.
+               [HTI _] HC Hevf Hff Hnex Hargs.
         exact (chk_call_marg lp WL_exempt not_tainted bm SafeB bc e le m0
                  optid a al tyargs vargs0 vf fd0 HTI HC Hevf Hff Hnex Hargs).
       - (* Hexempt: censused/umbi are non-exempt (compute); rest is the
@@ -305,12 +545,14 @@ Section V2Consumer.
                    Hrest); try assumption.
           intro HF. rewrite Hex in HF. discriminate HF.
       - (* HTI_set *)
-        intros bc e le m0 id a v Hmwf0 Hsat0 Hev0 HTI HC.
+        intros bc e le m0 id a v Hmwf0 Hsat0 Hev0 [HTI Hee] HC.
+        split; [ | exact Hee ].
         exact (chk_ti_set lp LO_mario not_tainted MWF bm SafeB bc e le m0
                  id a v HactVint HPgms HchaseRoot HchaseStep
                  Hmwf0 (Hmwf_inp _ Hmwf0) Hsat0 Hev0 HTI HC).
       - (* HTI_optc *)
-        intros bc e optid a al v le HC HTI _.
+        intros bc e optid a al v le HC [HTI Hee] _.
+        split; [ | exact Hee ].
         exact (chk_ti_optc not_tainted bm SafeB bc e optid a al v le HC HTI).
       - (* HTI_optb: censused bodies have no builtins *)
         intros bc e optid ef tyargs al v le HC _ _.
@@ -319,9 +561,10 @@ Section V2Consumer.
         exact Hret_call.
       - (* Hret_builtin *)
         exact Hret_ext.
-      - (* Hcall_reached *)
-        intros bc e le m0 optid a al vf fd0 HTI HC Hevf Hff.
-        exact (Hcall_resolves bc e le m0 optid a al vf fd0 HTI HC Hevf Hff).
+      - (* Hcall_reached: PROVED -- the per-symbol resolution closure *)
+        intros bc e le m0 optid a al vf fd0 [_ Hee] HC Hevf Hff.
+        subst e.
+        exact (call_resolves_v2 bc le m0 optid a al vf fd0 HC Hevf Hff).
       - (* Hcallwriter: W := True *)
         intros. exact I.
       - (* Hw: REFUTED -- the pinned internals are not the writer record *)
@@ -346,13 +589,13 @@ Section V2Consumer.
         intros bc e le m0 s1 s2 t1 le1 m1 HC Hex1.
         exact (chk_seq2 lp bc e le m0 s1 s2 t1 le1 m1 HC Hex1).
       - (* HCif: the gate kill *)
-        intros bc e le m0 a s1 s2 v1 b HC _ _ HTI Hev0 Hbv.
+        intros bc e le m0 a s1 s2 v1 b HC _ _ [HTI _] Hev0 Hbv.
         exact (chk_if lp not_tainted bm SafeB bc e le m0 a s1 s2 v1 b
                  HC HTI Hev0 Hbv).
       - (* HCloop *)
         exact chk_loop.
       - (* HCsw: the dispatch kill *)
-        intros bc e le m0 a ls v n HC _ _ HTI Hev0 Hsa.
+        intros bc e le m0 a ls v n HC _ _ [HTI _] Hev0 Hsa.
         exact (chk_sw lp bm SafeB bc e le m0 a ls v n HC HTI Hev0 Hsa). }
     intros m fd vargs t m' vres Hrf HnoA HMWF Hmarg Hev Hv Hsat.
     exact (HV2 m fd vargs t m' vres Hrf HnoA HMWF Hmarg (fun _ => I)

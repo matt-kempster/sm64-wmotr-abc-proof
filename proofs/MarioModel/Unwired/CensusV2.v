@@ -574,14 +574,36 @@ Qed.
 (* a non-mptr head argument.                                                *)
 (* ====================================================================== *)
 
+(* NB (satisfiability): _level_trigger_warp and _stub_mario_step_1 are NOT
+   on this list -- both take MarioState* as their FIRST param (their mario.prog
+   External declarations carry tptr (Tstruct _MarioState)), so whitelisting
+   them would make the consumer's WL_exempt residual UNSATISFIABLE once lp
+   resolves them to their real Internal bodies. Their call sites pass the
+   census via class M instead (their head argument IS the Mario param). *)
 Definition exempt_callees : list ident :=
   mario._sqrtf :: mario._atan2s :: mario._print_text_fmt_int ::
   mario._set_camera_mode :: mario._vec3f_set :: mario._stop_cap_music ::
   mario._fadeout_cap_music :: mario._f32_find_wall_collision ::
   mario._find_floor :: mario._vec3f_copy :: mario._vec3f_find_ceil ::
   mario._find_ceil :: mario._find_poison_gas_level ::
-  mario._find_water_level :: mario._level_trigger_warp ::
-  mario._play_sound :: mario._vec3s_copy :: mario._stub_mario_step_1 :: nil.
+  mario._find_water_level ::
+  mario._play_sound :: mario._vec3s_copy :: nil.
+
+(* the class-M callee whitelist: every callee ident a censused body calls
+   WITH ITS MARIO PARAM as the head argument. The first eight are mario.prog
+   INTERNALS (linkorder pins their lp resolution to the censused/bridged
+   bodies); the last two are mario.prog Externals taking MarioState* (their
+   lp resolutions are per-symbol residuals on the consumer's rest surface). *)
+Definition mptr_callees : list ident :=
+  mario._update_mario_button_inputs ::
+  mario._update_mario_joystick_inputs ::
+  mario._update_mario_geometry_inputs ::
+  mario._debug_print_speed_action_normal ::
+  mario._mario_get_terrain_sound_addend ::
+  mario._mario_floor_is_slippery ::
+  mario._mario_get_floor_class ::
+  mario._update_and_return_cap_flags ::
+  mario._stub_mario_step_1 :: mario._level_trigger_warp :: nil.
 
 Definition call_optid_ok (bc : body_census) (optid : option ident) : bool :=
   match optid with
@@ -601,11 +623,43 @@ Definition call_head_is_mptr (bc : body_census) (al : list expr) : bool :=
   | _ => false
   end.
 
-Definition call_callee_exempt (a : expr) : bool :=
+(* both callee checks pin the callee to a FUNCTION-typed Evar of a TABLED
+   ident: with the body's empty env (fn_vars = nil) the eval is forced
+   through eval_Evar_global + deref_loc_reference, so the consumer can
+   resolve the call per symbol (Hcall_resolves). *)
+Definition callee_in_mptr (a : expr) : bool :=
   match a with
-  | Evar fid _ => mem_id fid exempt_callees
+  | Evar fid (Tfunction _ _ _) => mem_id fid mptr_callees
   | _ => false
   end.
+
+Definition call_callee_exempt (a : expr) : bool :=
+  match a with
+  | Evar fid (Tfunction _ _ _) => mem_id fid exempt_callees
+  | _ => false
+  end.
+
+Lemma callee_in_mptr_shape :
+  forall a, callee_in_mptr a = true ->
+    exists fid tyl rty cc,
+      a = Evar fid (Tfunction tyl rty cc) /\
+      mem_id fid mptr_callees = true.
+Proof.
+  intros a H. destruct a; try discriminate H.
+  destruct t; try discriminate H.
+  do 4 eexists. split; [ reflexivity | exact H ].
+Qed.
+
+Lemma call_callee_exempt_shape :
+  forall a, call_callee_exempt a = true ->
+    exists fid tyl rty cc,
+      a = Evar fid (Tfunction tyl rty cc) /\
+      mem_id fid exempt_callees = true.
+Proof.
+  intros a H. destruct a; try discriminate H.
+  destruct t; try discriminate H.
+  do 4 eexists. split; [ reflexivity | exact H ].
+Qed.
 
 (* ====================================================================== *)
 (* The store census, class F: a direct `m->field` store whose byte window  *)
@@ -844,7 +898,8 @@ Fixpoint chk (bc : body_census) (s : statement) : bool :=
       || global_store_ok bc a1 || chase_store_ok bc a1 a2
   | Scall optid a al =>
       call_optid_ok bc optid
-      && (call_head_is_mptr bc al || call_callee_exempt a)
+      && (call_head_is_mptr bc al && callee_in_mptr a
+          || call_callee_exempt a)
   | Sbuiltin _ _ _ _ => false
   | Sgoto _ => false
   end
@@ -1342,7 +1397,8 @@ Section CensusLeavesLp.
   Proof.
     intros Q bm SafeB bc e optid a al v le HC HTI.
     change ((call_optid_ok bc optid
-             && (call_head_is_mptr bc al || call_callee_exempt a)) = true)
+             && (call_head_is_mptr bc al && callee_in_mptr a
+                 || call_callee_exempt a)) = true)
       in HC.
     apply andb_true_iff in HC as [Hopt _].
     destruct optid as [rid|]; cbn [set_opttemp]; [ | exact HTI ].
@@ -1397,11 +1453,13 @@ Section CensusLeavesLp.
     intros Q bm SafeB bc e le m optid a al tyargs vargs vf fd
            HTI HC Hevf Hff Hnex Hargs.
     change ((call_optid_ok bc optid
-             && (call_head_is_mptr bc al || call_callee_exempt a)) = true)
+             && (call_head_is_mptr bc al && callee_in_mptr a
+                 || call_callee_exempt a)) = true)
       in HC.
     apply andb_true_iff in HC as [_ HC].
     apply orb_true_iff in HC as [HM | HE].
     - (* class M: head = Etempvar mptr *)
+      apply andb_true_iff in HM as [HM _].
       unfold call_head_is_mptr in HM.
       destruct al as [| a0 al']; [ discriminate HM | ].
       destruct a0; try discriminate HM.
@@ -1420,6 +1478,7 @@ Section CensusLeavesLp.
     - (* class E: the callee is whitelisted-exempt *)
       unfold call_callee_exempt in HE.
       destruct a; try discriminate HE.
+      destruct t; try discriminate HE.
       rewrite (WL_exempt _ _ _ _ _ _ _ HE Hevf Hff) in Hnex.
       discriminate Hnex.
   Qed.
