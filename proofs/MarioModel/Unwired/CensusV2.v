@@ -200,6 +200,54 @@ Definition disp_switch (bc : body_census) (a : expr) : bool :=
   end.
 
 (* ====================================================================== *)
+(* The call census.  A censused call owes three things:                    *)
+(*  - its result temp (if any) is NOT tabled (else TI breaks);             *)
+(*  - marg: EITHER the head argument is the body's own Mario param          *)
+(*    (class M -- TI pins its value to (bm,0), so the callee's marg_ok      *)
+(*    follows), OR the callee ident is on the exempt whitelist (class E --  *)
+(*    the lp definition behind that symbol is marg_exempt: its first        *)
+(*    param is not MarioState*, so no marg obligation exists.  Per-symbol,  *)
+(*    this is a RESIDUAL the consumer carries: provable via linkorder for   *)
+(*    mario.prog-internal callees (e.g. vec3f_find_ceil), and from the      *)
+(*    callee TU's generated AST once that TU enters the pipeline (e.g.      *)
+(*    find_floor's first param is f32).                                     *)
+(* The whitelist below is exactly the callee set appearing in the 17       *)
+(* frame-reached internal bodies (docs/reachable-internal-graph.md) with    *)
+(* a non-mptr head argument.                                                *)
+(* ====================================================================== *)
+
+Definition exempt_callees : list ident :=
+  mario._sqrtf :: mario._atan2s :: mario._print_text_fmt_int ::
+  mario._set_camera_mode :: mario._vec3f_set :: mario._stop_cap_music ::
+  mario._fadeout_cap_music :: mario._f32_find_wall_collision ::
+  mario._find_floor :: mario._vec3f_copy :: mario._vec3f_find_ceil ::
+  mario._find_ceil :: mario._find_poison_gas_level ::
+  mario._find_water_level :: mario._level_trigger_warp ::
+  mario._play_sound :: mario._vec3s_copy :: mario._stub_mario_step_1 :: nil.
+
+Definition call_optid_ok (bc : body_census) (optid : option ident) : bool :=
+  match optid with
+  | None => true
+  | Some rid =>
+      negb (Pos.eqb rid (bc_mptr bc))
+      && negb (mem_id rid (bc_gates bc))
+      && negb (mem_id rid (bc_disp bc))
+  end.
+
+Definition call_head_is_mptr (bc : body_census) (al : list expr) : bool :=
+  match al with
+  | Etempvar p pty :: _ =>
+      Pos.eqb p (bc_mptr bc) && proj_sumbool (type_eq pty (tptr tyMS))
+  | _ => false
+  end.
+
+Definition call_callee_exempt (a : expr) : bool :=
+  match a with
+  | Evar fid _ => mem_id fid exempt_callees
+  | _ => false
+  end.
+
+(* ====================================================================== *)
 (* The census.                                                             *)
 (*                                                                         *)
 (* chk_ls    : the SELECTED-SUFFIX check -- mirrors chk over the            *)
@@ -228,7 +276,9 @@ Fixpoint chk (bc : body_census) (s : statement) : bool :=
   | Sswitch a ls =>
       if disp_switch bc a then chk_disp_ls bc ls else chk_all_ls bc ls
   | Sassign _ _ => false       (* first cut: store classes are the next brick *)
-  | Scall _ _ _ => false       (* first cut: call classes are the next brick *)
+  | Scall optid a al =>
+      call_optid_ok bc optid
+      && (call_head_is_mptr bc al || call_callee_exempt a)
   | Sbuiltin _ _ _ _ => false
   | Sgoto _ => false
   end
@@ -373,9 +423,39 @@ Proof.
   intros bc s1 s2 H. cbn in H. apply andb_true_iff in H. exact H.
 Qed.
 
+(* sem_cast never CONSTRUCTS a pointer: a Vptr output is the input passed
+   through identically (cast_case_pointer / cast_case_void / composites).
+   This is what lets class-M call heads transfer TI's (bm,0) pin through
+   the call-site cast regardless of the (unknown) signature type. *)
+Lemma sem_cast_vptr_inv :
+  forall v1 ty1 ty2 m b o,
+    sem_cast v1 ty1 ty2 m = Some (Vptr b o) -> v1 = Vptr b o.
+Proof.
+  intros v1 ty1 ty2 m b o H.
+  unfold sem_cast in H.
+  destruct (classify_cast ty1 ty2); destruct v1; try discriminate H;
+    repeat match type of H with
+           | (if ?c then _ else _) = _ => destruct c; try discriminate H
+           | (match ?x with _ => _ end) = _ => destruct x; try discriminate H
+           end;
+    inv H; reflexivity.
+Qed.
+
 Section CensusLeavesLp.
   Variable lp : Clight.program.
   Hypothesis LO_mario : linkorder mario.prog lp.
+
+  (* The exempt-callee whitelist RESIDUAL: each whitelisted symbol's lp
+     definition is marg_exempt -- its first param is not a MarioState
+     pointer.  Per symbol: provable from linkorder for mario.prog
+     internals; from the callee TU's generated AST for cross-TU symbols,
+     once that TU enters the pipeline. *)
+  Hypothesis WL_exempt :
+    forall e le m fid fty vf fd,
+      mem_id fid exempt_callees = true ->
+      eval_expr (lp_ge lp) e le m (Evar fid fty) vf ->
+      Genv.find_funct (lp_ge lp) vf = Some fd ->
+      marg_exempt fd = true.
 
   (* ---- HCseq2: the tail census, given the head actually completed
      Out_normal -- a break-ended head refutes the premise. ---- *)
@@ -513,6 +593,87 @@ Section CensusLeavesLp.
         exact (Hdisp t Hmem vi Hlk).
   Qed.
 
+  (* ---- HTI_optc: a censused call's result temp is untabled, so TI is
+     pure gso.  (The engine's non-bm-pointer fact about the result value
+     is not even needed.) ---- *)
+  Lemma chk_ti_optc :
+    forall Q bm bc optid a al v le,
+      chk bc (Scall optid a al) = true ->
+      TI_of Q bm bc le ->
+      TI_of Q bm bc (set_opttemp optid v le).
+  Proof.
+    intros Q bm bc optid a al v le HC HTI.
+    change ((call_optid_ok bc optid
+             && (call_head_is_mptr bc al || call_callee_exempt a)) = true)
+      in HC.
+    apply andb_true_iff in HC as [Hopt _].
+    destruct optid as [rid|]; cbn [set_opttemp]; [ | exact HTI ].
+    change ((negb (Pos.eqb rid (bc_mptr bc))
+             && negb (mem_id rid (bc_gates bc))
+             && negb (mem_id rid (bc_disp bc))) = true) in Hopt.
+    apply andb_true_iff in Hopt as [Hopt Hrd].
+    apply andb_true_iff in Hopt as [Hrm Hrg].
+    destruct HTI as (Hm & Hg & Hd).
+    split; [ | split ].
+    - intros b o Hlk.
+      rewrite PTree.gso in Hlk
+        by (intro E; subst rid; rewrite Pos.eqb_refl in Hrm; discriminate Hrm).
+      exact (Hm b o Hlk).
+    - intros t Hmem vi Hlk.
+      rewrite PTree.gso in Hlk
+        by (intro E; subst t; rewrite Hmem in Hrg; discriminate Hrg).
+      exact (Hg t Hmem vi Hlk).
+    - intros t Hmem vi Hlk.
+      rewrite PTree.gso in Hlk
+        by (intro E; subst t; rewrite Hmem in Hrd; discriminate Hrd).
+      exact (Hd t Hmem vi Hlk).
+  Qed.
+
+  (* ---- Hcallmarg: a censused call's evaluated args satisfy the EXACT
+     marg_ok whenever the callee is non-exempt.  Class M: the head is the
+     body's Mario param -- its value pins to (bm,0) via TI, and sem_cast
+     passes pointers through identically.  Class E: the whitelist residual
+     says the callee IS exempt, contradicting the premise. ---- *)
+  Lemma chk_call_marg :
+    forall Q bm bc e le m optid a al tyargs vargs vf fd,
+      TI_of Q bm bc le ->
+      chk bc (Scall optid a al) = true ->
+      eval_expr (lp_ge lp) e le m a vf ->
+      Genv.find_funct (lp_ge lp) vf = Some fd ->
+      marg_exempt fd = false ->
+      eval_exprlist (lp_ge lp) e le m al tyargs vargs ->
+      marg_ok bm vargs.
+  Proof.
+    intros Q bm bc e le m optid a al tyargs vargs vf fd
+           HTI HC Hevf Hff Hnex Hargs.
+    change ((call_optid_ok bc optid
+             && (call_head_is_mptr bc al || call_callee_exempt a)) = true)
+      in HC.
+    apply andb_true_iff in HC as [_ HC].
+    apply orb_true_iff in HC as [HM | HE].
+    - (* class M: head = Etempvar mptr *)
+      unfold call_head_is_mptr in HM.
+      destruct al as [| a0 al']; [ discriminate HM | ].
+      destruct a0; try discriminate HM.
+      apply andb_true_iff in HM as [Hp Hty].
+      apply Pos.eqb_eq in Hp. apply proj_sumbool_true in Hty. subst.
+      inv Hargs.
+      match goal with
+        Hv1 : eval_expr _ _ _ _ (Etempvar _ _) ?v1,
+        Hcast : sem_cast ?v1 _ _ _ = Some ?v2 |- _ =>
+          apply eval_expr_Etempvar_val in Hv1;
+          destruct v2 as [ | | | | | b o ]; try exact I;
+          apply sem_cast_vptr_inv in Hcast; subst v1;
+          destruct HTI as (Hm & _ & _);
+          exact (Hm _ _ Hv1)
+      end.
+    - (* class E: the callee is whitelisted-exempt *)
+      unfold call_callee_exempt in HE.
+      destruct a; try discriminate HE.
+      rewrite (WL_exempt _ _ _ _ _ _ _ HE Hevf Hff) in Hnex.
+      discriminate Hnex.
+  Qed.
+
 End CensusLeavesLp.
 
 (* ====================================================================== *)
@@ -591,12 +752,32 @@ Lemma chk_mario_get_terrain_sound_addend :
   chk bc_m0 (fn_body mario.f_mario_get_terrain_sound_addend) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* call-bearing pure readers: their calls pass the call census (class M:
+   head = _m, e.g. mario_get_floor_class(m); class E: whitelisted exempt
+   callees, e.g. sqrtf/atan2s/print_text_fmt_int). *)
+Lemma chk_mario_floor_is_slippery :
+  chk bc_m0 (fn_body mario.f_mario_floor_is_slippery) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma chk_debug_print_speed_action_normal :
+  chk bc_m0 (fn_body mario.f_debug_print_speed_action_normal) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 Lemma params_mario_get_floor_class :
   fn_params mario.f_mario_get_floor_class = (bc_mptr bc_m0, tptr tyMS) :: nil.
 Proof. reflexivity. Qed.
 
 Lemma params_mario_get_terrain_sound_addend :
   fn_params mario.f_mario_get_terrain_sound_addend
+  = (bc_mptr bc_m0, tptr tyMS) :: nil.
+Proof. reflexivity. Qed.
+
+Lemma params_mario_floor_is_slippery :
+  fn_params mario.f_mario_floor_is_slippery = (bc_mptr bc_m0, tptr tyMS) :: nil.
+Proof. reflexivity. Qed.
+
+Lemma params_debug_print_speed_action_normal :
+  fn_params mario.f_debug_print_speed_action_normal
   = (bc_mptr bc_m0, tptr tyMS) :: nil.
 Proof. reflexivity. Qed.
 
@@ -630,4 +811,34 @@ Proof.
              params_mario_get_terrain_sound_addend bc_m0_gates_disjoint
              bc_m0_disp_disjoint Hmarg).
   - exact chk_mario_get_terrain_sound_addend.
+Qed.
+
+Lemma body_TI_C_mario_floor_is_slippery :
+  forall (Q : int -> Prop) bm ge vargs m e le m1,
+    function_entry2 ge mario.f_mario_floor_is_slippery vargs m e le m1 ->
+    marg_ok bm vargs ->
+    TI_of Q bm bc_m0 le /\
+    chk bc_m0 (fn_body mario.f_mario_floor_is_slippery) = true.
+Proof.
+  intros Q bm ge vargs m e le m1 Hentry Hmarg.
+  split.
+  - exact (entry_TI_v2 Q bm bc_m0 ge _ vargs m e le m1 Hentry
+             params_mario_floor_is_slippery bc_m0_gates_disjoint
+             bc_m0_disp_disjoint Hmarg).
+  - exact chk_mario_floor_is_slippery.
+Qed.
+
+Lemma body_TI_C_debug_print_speed_action_normal :
+  forall (Q : int -> Prop) bm ge vargs m e le m1,
+    function_entry2 ge mario.f_debug_print_speed_action_normal vargs m e le m1 ->
+    marg_ok bm vargs ->
+    TI_of Q bm bc_m0 le /\
+    chk bc_m0 (fn_body mario.f_debug_print_speed_action_normal) = true.
+Proof.
+  intros Q bm ge vargs m e le m1 Hentry Hmarg.
+  split.
+  - exact (entry_TI_v2 Q bm bc_m0 ge _ vargs m e le m1 Hentry
+             params_debug_print_speed_action_normal bc_m0_gates_disjoint
+             bc_m0_disp_disjoint Hmarg).
+  - exact chk_debug_print_speed_action_normal.
 Qed.
