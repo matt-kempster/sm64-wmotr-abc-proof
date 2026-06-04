@@ -43,8 +43,8 @@
 (*    callee symbols resolve to in lp (the handlers' preservation is the   *)
 (*    REMAINING CRUX -- it is where the A-gating taint closure of          *)
 (*    Taint.v/AGates.v gets consumed next);                                *)
-(*  - return-value and NoA-stability facts (Hret_call/ext, Hnoa_exec/      *)
-(*    entry).                                                              *)
+(*  - return-value facts (Hret_call/ext) + the NoA-from-MWF projection     *)
+(*    (Hmwf_noa -- at the capstone this IS Hmwf_ctl).                      *)
 (*                                                                         *)
 (* WIRED: NoAImpliesNoFlyLinked's v2 grounded capstone instantiates        *)
 (* reached_id := root_RID, reached_fd := reached_v2, Hbcr :=               *)
@@ -215,12 +215,12 @@ Section V2Consumer.
       Mem.unchanged_on (fun b (_ : Z) => b = bm) m m' ->
       Mem.valid_block m bm -> MWF m -> MWF m'.
 
-  (* NoA stability (the capstone already carries the equivalent) *)
-  Hypothesis Hnoa_exec : forall e le m s t le' m' out,
-      exec_stmt function_entry2 (lp_ge lp) e le m s t le' m' out ->
-      NoA m -> NoA m'.
-  Hypothesis Hnoa_entry : forall f vargs m e le m1,
-      function_entry2 (lp_ge lp) f vargs m e le m1 -> NoA m -> NoA m1.
+  (* NoA is a PROJECTION of the carried run invariant: at the capstone's
+     instantiation (NoA := ctl_a_clear, MWF carrying it) this IS Hmwf_ctl.
+     The engine derives every mid-walk NoA fact from the threaded MWF --
+     a blunt forall-stmt NoA-stability leaf would be FALSE for the real lp
+     (an adversarial Sassign through the controller chase sets the A bit). *)
+  Hypothesis Hmwf_noa : forall m, MWF m -> NoA m.
 
   (* ---------------- the empty-env bricks ---------------- *)
 
@@ -818,10 +818,8 @@ Section V2Consumer.
         exact Hmwf_ext.
       - (* Hmwf_unch *)
         exact Hmwf_unch.
-      - (* Hnoaexec *)
-        exact Hnoa_exec.
-      - (* Hnoaentry *)
-        exact Hnoa_entry.
+      - (* Hmwf_noa *)
+        exact Hmwf_noa.
       - (* HCseq1 *)
         intros bc s1 s2 HC. exact (chk_seq1 bc s1 s2 HC).
       - (* HCseq2 *)
