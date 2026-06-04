@@ -53,12 +53,31 @@ Section MWFReal.
      separate brick -- the rows below only need its closure shape). *)
   Variable SafeB : block -> Prop.
 
+  (* block-distinctness side conditions: the controller, the gms global
+     and the censused stored globals are pairwise apart from Mario's
+     block / each other / SafeB. Each is per-symbol satisfiable. *)
+  Hypothesis Hbc_bm : bc <> bm.
+  Hypothesis HSafeB_not_bm : forall b, SafeB b -> b <> bm.
+  Hypothesis HSafeB_not_bc : ~ SafeB bc.
+  Hypothesis Hgms_blk : forall gb,
+      Genv.find_symbol (lp_ge lp) mario._gMarioState = Some gb ->
+      gb <> bm /\ gb <> bc /\ ~ SafeB gb.
+  Hypothesis Hglob_blk : forall gid bg,
+      mem_id gid stored_globals = true ->
+      Genv.find_symbol (lp_ge lp) gid = Some bg ->
+      bg <> bm /\ bg <> bc /\ ~ SafeB bg.
+
   (* ---------------- the invariant ---------------- *)
 
   Definition MWF_real (m : mem) : Prop :=
     (* R0: validity (positive, monotone-safe -- NEVER add positive
-       LOAD facts here). *)
-    (Mem.valid_block m bm /\ Mem.valid_block m bc)
+       LOAD facts here). Covers every block the rows read: without
+       e.g. bc's validity, an adversary ALLOCATES it fresh with bad
+       content under Hmwf_umbi's unchanged_on premise. *)
+    (Mem.valid_block m bm /\ Mem.valid_block m bc
+     /\ (forall gb, Genv.find_symbol (lp_ge lp) mario._gMarioState = Some gb ->
+            Mem.valid_block m gb)
+     /\ (forall b, SafeB b -> Mem.valid_block m b))
     (* R1: the input A-bit is clear (conditional). *)
     /\ input_a_clear m bm
     (* R2: the controller pointer cell, IF a pointer, is (bc, oc0). *)
@@ -104,7 +123,7 @@ Section MWFReal.
   Proof. intros m M. exact (proj1 (proj1 M)). Qed.
 
   Lemma mwf_real_valid_bc : forall m, MWF_real m -> Mem.valid_block m bc.
-  Proof. intros m M. exact (proj2 (proj1 M)). Qed.
+  Proof. intros m M. exact (proj1 (proj2 (proj1 M))). Qed.
 
   (* Hmwf_inp *)
   Lemma mwf_real_inp : forall m, MWF_real m -> input_a_clear m bm.
@@ -155,6 +174,373 @@ Section MWFReal.
   Proof.
     intros m b ofs b' o' (_ & _ & _ & _ & _ & _ & _ & R7) Hs Hld.
     exact (R7 _ _ _ _ Hs Hld).
+  Qed.
+
+  (* ---------------- the row-transfer core ----------------
+     Every "MWF_real survives operation X" lemma below reduces to:
+     (a) validity monotonicity, (b) load transfer on the PINNED row
+     cells (the bm windows / the controller block / the gms cell),
+     (c) R1 and R7 re-established directly (each operation has its own
+     argument: same-cell stored value, footprint, ptr-store refutation,
+     or full transfer). *)
+
+  (* the three tabled chase-root cells, as literals (vm_compute over the
+     generated composite layout) *)
+  Lemma chase_root_offsets : forall fld delta,
+      mem_id fld chase_root_fields = true ->
+      field_offset (prog_comp_env mario.prog) fld mario_state_members
+        = OK (delta, Full) ->
+      delta = 136 \/ delta = 148 \/ delta = 152.
+  Proof.
+    intros fld delta Hmem Hfo.
+    change ((Pos.eqb fld mario._marioObj
+             || (Pos.eqb fld mario._marioBodyState
+                 || (Pos.eqb fld mario._statusForCamera || false)))%bool = true)
+      in Hmem.
+    repeat (apply orb_true_iff in Hmem; destruct Hmem as [Hm | Hmem]);
+      try discriminate Hmem; apply Pos.eqb_eq in Hm; subst fld.
+    - assert (E : field_offset (prog_comp_env mario.prog) mario._marioObj
+                    mario_state_members = OK (136, Full))
+        by (vm_compute; reflexivity).
+      rewrite E in Hfo. inv Hfo. auto.
+    - assert (E : field_offset (prog_comp_env mario.prog) mario._marioBodyState
+                    mario_state_members = OK (152, Full))
+        by (vm_compute; reflexivity).
+      rewrite E in Hfo. inv Hfo. auto.
+    - assert (E : field_offset (prog_comp_env mario.prog) mario._statusForCamera
+                    mario_state_members = OK (148, Full))
+        by (vm_compute; reflexivity).
+      rewrite E in Hfo. inv Hfo. auto.
+  Qed.
+
+  Definition bm_row_cell (ofs sz : Z) : Prop :=
+    (12 <= ofs /\ ofs + sz <= 16)
+    \/ (136 <= ofs /\ ofs + sz <= 140)
+    \/ (148 <= ofs /\ ofs + sz <= 160).
+
+  Lemma MWF_real_transfer : forall m m',
+      (forall b, Mem.valid_block m b -> Mem.valid_block m' b) ->
+      input_a_clear m' bm ->
+      (forall ch b ofs v,
+          (b = bm /\ bm_row_cell ofs (size_chunk ch))
+          \/ b = bc
+          \/ Genv.find_symbol (lp_ge lp) mario._gMarioState = Some b ->
+          Mem.load ch m' b ofs = Some v -> Mem.load ch m b ofs = Some v) ->
+      (forall b ofs b' o', SafeB b ->
+          Mem.loadv Mptr m' (Vptr b ofs) = Some (Vptr b' o') -> SafeB b') ->
+      MWF_real m -> MWF_real m'.
+  Proof.
+    intros m m' Hval Hinp' Htr Hsafe'
+           ((Vbm & Vbc & Vgms & Vsafe) & _ & R2 & R3 & R4 & R5 & R6 & R7).
+    split;
+      [ | split; [ exact Hinp'
+        | split; [ | split; [ | split; [ | split; [ | split; [ | exact Hsafe' ]]]]]]].
+    - (* R0 *)
+      split; [ exact (Hval _ Vbm) | split; [ exact (Hval _ Vbc) | split ] ].
+      + intros gb Hfs. exact (Hval _ (Vgms _ Hfs)).
+      + intros b Hb. exact (Hval _ (Vsafe _ Hb)).
+    - (* R2 *)
+      intros b' o' Hld. apply R2.
+      apply (Htr Mptr bm 156 (Vptr b' o')); [ | exact Hld ].
+      left. split; [ reflexivity | ]. right. right.
+      change (size_chunk Mptr) with 4. lia.
+    - (* R3 *)
+      intros v Hld. apply R3.
+      apply (Htr _ bc _ (Vint v)); [ right; left; reflexivity | exact Hld ].
+    - (* R4 *)
+      intros av Hld. apply R4.
+      apply (Htr Mint32 bm 12 av); [ | exact Hld ].
+      left. split; [ reflexivity | ]. left.
+      change (size_chunk Mint32) with 4. lia.
+    - (* R5 *)
+      intros gb b o Hfs Hld. eapply R5; [ exact Hfs | ].
+      change (Mem.loadv Mptr m' (Vptr gb Ptrofs.zero))
+        with (Mem.load Mptr m' gb 0) in Hld.
+      change (Mem.loadv Mptr m (Vptr gb Ptrofs.zero))
+        with (Mem.load Mptr m gb 0).
+      apply (Htr Mptr gb 0 (Vptr b o)); [ right; right; exact Hfs | exact Hld ].
+    - (* R6 *)
+      intros fld delta b' o' Hmem Hfo Hld.
+      eapply R6; [ exact Hmem | exact Hfo | ].
+      destruct (chase_root_offsets _ _ Hmem Hfo) as [E | [E | E]]; subst delta.
+      + change (Mem.loadv Mptr m'
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 136))))
+          with (Mem.load Mptr m' bm 136) in Hld.
+        change (Mem.loadv Mptr m
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 136))))
+          with (Mem.load Mptr m bm 136).
+        apply (Htr Mptr bm 136 (Vptr b' o')); [ | exact Hld ].
+        left. split; [ reflexivity | ]. right. left.
+        change (size_chunk Mptr) with 4. lia.
+      + change (Mem.loadv Mptr m'
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 148))))
+          with (Mem.load Mptr m' bm 148) in Hld.
+        change (Mem.loadv Mptr m
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 148))))
+          with (Mem.load Mptr m bm 148).
+        apply (Htr Mptr bm 148 (Vptr b' o')); [ | exact Hld ].
+        left. split; [ reflexivity | ]. right. right.
+        change (size_chunk Mptr) with 4. lia.
+      + change (Mem.loadv Mptr m'
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 152))))
+          with (Mem.load Mptr m' bm 152) in Hld.
+        change (Mem.loadv Mptr m
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 152))))
+          with (Mem.load Mptr m bm 152).
+        apply (Htr Mptr bm 152 (Vptr b' o')); [ | exact Hld ].
+        left. split; [ reflexivity | ]. right. right.
+        change (size_chunk Mptr) with 4. lia.
+  Qed.
+
+  (* ---------------- Hmwf_window ---------------- *)
+  Lemma mwf_real_window : forall mm mm' ch (delta : Z) vv,
+      MWF_real mm -> store_window_ok delta (size_chunk ch) = true ->
+      Mem.store ch mm bm delta vv = Some mm' -> MWF_real mm'.
+  Proof.
+    intros mm mm' ch delta vv M Hwin Hst.
+    unfold store_window_ok in Hwin.
+    apply andb_true_iff in Hwin as [Hwin Hw148].
+    apply andb_true_iff in Hwin as [Hwin Hw136].
+    apply andb_true_iff in Hwin as [Hwin Hw12].
+    apply andb_true_iff in Hwin as [_ Hw2].
+    assert (W2 : delta + size_chunk ch <= 2 \/ 4 <= delta)
+      by (apply orb_true_iff in Hw2 as [h|h]; apply Z.leb_le in h; auto).
+    assert (W12 : delta + size_chunk ch <= 12 \/ 16 <= delta)
+      by (apply orb_true_iff in Hw12 as [h|h]; apply Z.leb_le in h; auto).
+    assert (W136 : delta + size_chunk ch <= 136 \/ 140 <= delta)
+      by (apply orb_true_iff in Hw136 as [h|h]; apply Z.leb_le in h; auto).
+    assert (W148 : delta + size_chunk ch <= 148 \/ 160 <= delta)
+      by (apply orb_true_iff in Hw148 as [h|h]; apply Z.leb_le in h; auto).
+    pose proof M as (_ & R1 & _).
+    apply (MWF_real_transfer mm mm'); [ .. | exact M ].
+    - intros b Hv. eapply Mem.store_valid_block_1; eauto.
+    - (* R1: the [2,4) cell is window-excluded *)
+      intros v Hld. apply R1.
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other; [ exact Hst | right ].
+      change (size_chunk Mint16unsigned) with 2. lia.
+    - (* the pinned row cells *)
+      intros ch0 b ofs v Hrow Hld.
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other; [ exact Hst | ].
+      destruct Hrow as [ [Eb Hcell] | [ Eb | Hfs ] ].
+      + subst b. right. unfold bm_row_cell in Hcell. lia.
+      + subst b. left. exact Hbc_bm.
+      + left. exact (proj1 (Hgms_blk _ Hfs)).
+    - (* R7: SafeB blocks are not bm *)
+      intros b ofs b' o' Hs Hld.
+      destruct M as (_ & _ & _ & _ & _ & _ & _ & R7).
+      apply (R7 b ofs b' o' Hs).
+      cbn in Hld |- *. rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other;
+        [ exact Hst | left; exact (HSafeB_not_bm _ Hs) ].
+  Qed.
+
+  (* ---------------- Hmwf_input ---------------- *)
+  Lemma mwf_real_input : forall mm mm' vv,
+      MWF_real mm -> Int.and vv (Int.repr 2) = Int.zero ->
+      Mem.store Mint16unsigned mm bm 2 (Vint vv) = Some mm' -> MWF_real mm'.
+  Proof.
+    intros mm mm' vv M Hclr Hst.
+    apply (MWF_real_transfer mm mm'); [ .. | exact M ].
+    - intros b Hv. eapply Mem.store_valid_block_1; eauto.
+    - (* R1: the stored value itself is A-clear (zero_ext keeps bit 1) *)
+      intros v Hld.
+      rewrite (Mem.load_store_same _ _ _ _ _ _ Hst) in Hld.
+      cbn in Hld. injection Hld as <-.
+      rewrite and2_zero_ext16. exact Hclr.
+    - (* the pinned row cells: all disjoint from [2,4) *)
+      intros ch0 b ofs v Hrow Hld.
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other; [ exact Hst | ].
+      destruct Hrow as [ [Eb Hcell] | [ Eb | Hfs ] ].
+      + subst b. right. unfold bm_row_cell in Hcell.
+        change (size_chunk Mint16unsigned) with 2. lia.
+      + subst b. left. exact Hbc_bm.
+      + left. exact (proj1 (Hgms_blk _ Hfs)).
+    - (* R7 *)
+      intros b ofs b' o' Hs Hld.
+      destruct M as (_ & _ & _ & _ & _ & _ & _ & R7).
+      apply (R7 b ofs b' o' Hs).
+      cbn in Hld |- *. rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other;
+        [ exact Hst | left; exact (HSafeB_not_bm _ Hs) ].
+  Qed.
+
+  (* ---------------- Hmwf_glob ---------------- *)
+
+  Lemma stored_globals_not_gms :
+    mem_id mario._gMarioState stored_globals = false.
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma mwf_real_glob : forall gid, mem_id gid stored_globals = true ->
+      forall bg, Genv.find_symbol (lp_ge lp) gid = Some bg ->
+        bg <> bm /\
+        (forall mm mm' ch0 (d : Z) vv,
+            MWF_real mm -> Mem.store ch0 mm bg d vv = Some mm' -> MWF_real mm').
+  Proof.
+    intros gid Hgid bg Hfs.
+    destruct (Hglob_blk _ _ Hgid Hfs) as (Hbm & Hbc & Hsafe).
+    split; [ exact Hbm | ].
+    intros mm mm' ch0 d vv M Hst.
+    assert (Hgms_ne : forall gb,
+        Genv.find_symbol (lp_ge lp) mario._gMarioState = Some gb -> bg <> gb).
+    { intros gb Hfs2.
+      eapply Genv.global_addresses_distinct; [ | exact Hfs | exact Hfs2 ].
+      intro E. subst gid. rewrite stored_globals_not_gms in Hgid.
+      discriminate Hgid. }
+    apply (MWF_real_transfer mm mm'); [ .. | exact M ].
+    - intros b Hv. eapply Mem.store_valid_block_1; eauto.
+    - intros v Hld. pose proof M as (_ & R1 & _). apply R1.
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other; [ exact Hst | left; congruence ].
+    - intros ch1 b ofs v Hrow Hld.
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other; [ exact Hst | left ].
+      destruct Hrow as [ [Eb _] | [ Eb | Hfs2 ] ].
+      + subst b. congruence.
+      + subst b. congruence.
+      + intro E. exact (Hgms_ne _ Hfs2 (eq_sym E)).
+    - intros b ofs b' o' Hs Hld.
+      pose proof M as (_ & _ & _ & _ & _ & _ & _ & R7).
+      apply (R7 b ofs b' o' Hs).
+      cbn in Hld |- *. rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other; [ exact Hst | left ].
+      intro E. subst b. exact (Hsafe Hs).
+  Qed.
+
+  (* ---------------- Hmwf_chase ---------------- *)
+  Lemma mwf_real_chase : forall mm ch bsafe (d : Z) vv mm',
+      MWF_real mm -> SafeB bsafe ->
+      (forall bb oo, vv <> Vptr bb oo) ->
+      Mem.store ch mm bsafe d vv = Some mm' -> MWF_real mm'.
+  Proof.
+    intros mm ch bsafe d vv mm' M Hsb Hnoptr Hst.
+    assert (Hsbm : bsafe <> bm) by exact (HSafeB_not_bm _ Hsb).
+    apply (MWF_real_transfer mm mm'); [ .. | exact M ].
+    - intros b Hv. eapply Mem.store_valid_block_1; eauto.
+    - intros v Hld. pose proof M as (_ & R1 & _). apply R1.
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other; [ exact Hst | left; congruence ].
+    - intros ch1 b ofs v Hrow Hld.
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other; [ exact Hst | left ].
+      destruct Hrow as [ [Eb _] | [ Eb | Hfs2 ] ].
+      + subst b. congruence.
+      + subst b. intro E. subst bsafe. exact (HSafeB_not_bc Hsb).
+      + intro E. subst b. exact (proj2 (proj2 (Hgms_blk _ Hfs2)) Hsb).
+    - (* R7: a non-pointer store cannot forge a chase pointer *)
+      intros b ofs b' o' Hs Hld.
+      pose proof M as (_ & _ & _ & _ & _ & _ & _ & R7).
+      cbn in Hld.
+      destruct (Mem.load_pointer_store _ _ _ _ _ _ _ _ _ _ _ Hst Hld)
+        as [ (Evv & _) | Hdis ].
+      + exfalso. exact (Hnoptr _ _ Evv).
+      + apply (R7 b ofs b' o' Hs). cbn.
+        rewrite <- Hld. symmetry.
+        eapply Mem.load_store_other; [ exact Hst | exact Hdis ].
+  Qed.
+
+  (* ---------------- Hmwf_umbi ---------------- *)
+  Lemma mwf_real_umbi : forall mm mm',
+      MWF_real mm ->
+      Mem.unchanged_on (fun b o => ~ umbi_footprint bm b o) mm mm' ->
+      input_a_clear mm' bm -> MWF_real mm'.
+  Proof.
+    intros mm mm' M Hunch Hinp'.
+    pose proof M as ((Vbm & Vbc & Vgms & Vsafe) & _).
+    apply (MWF_real_transfer mm mm'); [ .. | exact M ].
+    - intros b Hv. eapply Mem.valid_block_unchanged_on; eauto.
+    - exact Hinp'.
+    - intros ch b ofs v Hrow Hld.
+      assert (Vb : Mem.valid_block mm b).
+      { destruct Hrow as [ [Eb _] | [ Eb | Hfs ] ];
+          [ subst b; exact Vbm | subst b; exact Vbc | exact (Vgms _ Hfs) ]. }
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_unchanged_on_1; [ exact Hunch | exact Vb | ].
+      intros i Hi. unfold umbi_footprint.
+      destruct Hrow as [ [Eb Hcell] | [ Eb | Hfs ] ].
+      + subst b. intros [_ Hor]. unfold bm_row_cell in Hcell. lia.
+      + subst b. intros [E _]. exact (Hbc_bm E).
+      + intros [E _]. exact (proj1 (Hgms_blk _ Hfs) E).
+    - intros b ofs b' o' Hs Hld.
+      pose proof M as (_ & _ & _ & _ & _ & _ & _ & R7).
+      apply (R7 b ofs b' o' Hs). cbn in Hld |- *.
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_unchanged_on_1; [ exact Hunch | exact (Vsafe _ Hs) | ].
+      intros i _ [E _]. exact (HSafeB_not_bm _ Hs E).
+  Qed.
+
+  (* ---------------- Hmwf_entry ---------------- *)
+  Lemma mwf_real_entry : forall f vargs m e le m1,
+      function_entry2 (lp_ge lp) f vargs m e le m1 ->
+      MWF_real m -> MWF_real m1.
+  Proof.
+    intros f vargs m e le m1 Hentry M.
+    pose proof M as ((Vbm & Vbc & Vgms & Vsafe) & _).
+    assert (Hunch : Mem.unchanged_on (fun b _ => Mem.valid_block m b) m m1)
+      by (eapply FieldNonInterference.function_entry2_unchanged_on; eauto).
+    apply (MWF_real_transfer m m1); [ .. | exact M ].
+    - intros b Hv. eapply Mem.valid_block_unchanged_on; eauto.
+    - intros v Hld. pose proof M as (_ & R1 & _). apply R1.
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_unchanged_on_1;
+        [ exact Hunch | exact Vbm | intros; exact Vbm ].
+    - intros ch b ofs v Hrow Hld.
+      assert (Vb : Mem.valid_block m b).
+      { destruct Hrow as [ [Eb _] | [ Eb | Hfs ] ];
+          [ subst b; exact Vbm | subst b; exact Vbc | exact (Vgms _ Hfs) ]. }
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_unchanged_on_1;
+        [ exact Hunch | exact Vb | intros; exact Vb ].
+    - intros b ofs b' o' Hs Hld.
+      pose proof M as (_ & _ & _ & _ & _ & _ & _ & R7).
+      apply (R7 b ofs b' o' Hs). cbn in Hld |- *.
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_unchanged_on_1;
+        [ exact Hunch | exact (Vsafe _ Hs) | intros; exact (Vsafe _ Hs) ].
+  Qed.
+
+  (* ---------------- Hmwf_free ---------------- *)
+
+  Lemma free_list_load_2 : forall l m m',
+      Mem.free_list m l = Some m' ->
+      forall ch b ofs v, Mem.load ch m' b ofs = Some v ->
+                         Mem.load ch m b ofs = Some v.
+  Proof.
+    induction l as [ | [[b0 lo] hi] l IH ]; intros m m' Hfl ch b ofs v Hld.
+    - cbn in Hfl. inv Hfl. exact Hld.
+    - cbn in Hfl.
+      destruct (Mem.free m b0 lo hi) as [m2|] eqn:E; [ | discriminate ].
+      eapply Mem.load_free_2; [ exact E | ].
+      eapply IH; [ exact Hfl | exact Hld ].
+  Qed.
+
+  Lemma free_list_valid_1 : forall l m m',
+      Mem.free_list m l = Some m' ->
+      forall b, Mem.valid_block m b -> Mem.valid_block m' b.
+  Proof.
+    induction l as [ | [[b0 lo] hi] l IH ]; intros m m' Hfl b Hv.
+    - cbn in Hfl. inv Hfl. exact Hv.
+    - cbn in Hfl.
+      destruct (Mem.free m b0 lo hi) as [m2|] eqn:E; [ | discriminate ].
+      eapply IH; [ exact Hfl | ].
+      eapply Mem.valid_block_free_1; eauto.
+  Qed.
+
+  Lemma mwf_real_free : forall m2 m3 l,
+      Mem.free_list m2 l = Some m3 -> MWF_real m2 -> MWF_real m3.
+  Proof.
+    intros m2 m3 l Hfl M.
+    apply (MWF_real_transfer m2 m3); [ .. | exact M ].
+    - intros b Hv. eapply free_list_valid_1; eauto.
+    - intros v Hld. pose proof M as (_ & R1 & _). apply R1.
+      eapply free_list_load_2; eauto.
+    - intros ch b ofs v _ Hld. eapply free_list_load_2; eauto.
+    - intros b ofs b' o' Hs Hld.
+      pose proof M as (_ & _ & _ & _ & _ & _ & _ & R7).
+      apply (R7 b ofs b' o' Hs). cbn in Hld |- *.
+      eapply free_list_load_2; eauto.
   Qed.
 
 End MWFReal.
