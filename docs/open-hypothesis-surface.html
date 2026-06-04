@@ -416,16 +416,16 @@ so nothing hides inside “the crux”:</p>
 <tr><td>8</td><td class="m">Hret_call</td><td>no reached funcall returns a pointer into bm</td><td><span class="pill p-open">open</span> per-callee return-type/census check (reached callees return scalars/off-bm)</td></tr>
 <tr><td>9</td><td class="m">Hret_builtin</td><td>no external/builtin returns a pointer into bm</td><td><span class="pill p-trust">trust-adjacent</span> same external-model caveat as H3</td></tr>
 <tr><td>10</td><td class="m">Hcall_reached</td><td>under TI+C a call resolves to a reached fundef</td><td><span class="pill p-open">open</span> same resolution work as H6, inside bodies</td></tr>
-<tr><td>11</td><td class="m">Hw (leaf&nbsp;B, the writer)</td><td>a <em>reached</em> writer call preserves <code>action_sat not_tainted</code></td><td><span class="pill p-open">open</span> <strong>this is the A-gating payoff</strong>: T-handlers are dispatched only when action ∈ T (dispatch-switch, killed by action∉T); the 6 T-feeders are A-gated — killed by <code>input_a_gate_takes_else_lp</code> / <code>ctl_a_gate_takes_else_lp</code> at the Taint.v-pinned sites; non-T writes preserve <code>not_tainted</code> by value</td></tr>
+<tr><td>11</td><td class="m">Hw (leaf&nbsp;B, the writer)</td><td>a <em>reached</em> writer call preserves <code>action_sat not_tainted</code> — <strong>for ANY vargs</strong></td><td><span class="pill p-false">flagged</span> over lp the writer IS reached (handlers call <code>set_mario_action</code>), and nothing constrains the action argument — the forall-vargs phantom: instantiated at <code>ACT_FLYING</code> it is false. Rescued by making #18/#20 invariant-aware so the engine never walks the dead gated/dispatched call sites, then restating #11 value-aware for the live ones (gated, or passing non-tainted values). <strong>This is the A-gating payoff</strong>, delivered at the traversal level, not here</td></tr>
 <tr><td>12</td><td class="m">Hext (action cell)</td><td><code>reach_ext_preserves (action_cell bm) (lp_ge lp)</code> — externals don't write the action cell</td><td><span class="pill p-trust">trust-adjacent</span> the H3 caveat; satisfiable over lp (genuine externals only)</td></tr>
 <tr><td>13</td><td class="m">Hmwf_ext</td><td>externals preserve MWF</td><td><span class="pill p-trust">trust-adjacent</span> ditto</td></tr>
 <tr><td>14</td><td class="m">Hmwf_unch</td><td>MWF closed under bm-unchanged memories</td><td><span class="pill p-open">open</span> a design constraint on the MWF witness (block-distinctness MWFs satisfy it)</td></tr>
 <tr><td>15</td><td class="m">Hnoaexec</td><td>every executed statement preserves NoA (= <code>ctl_a_clear</code>)</td><td><span class="pill p-false">flagged</span> as stated it is a forall-s phantom; restate over censused reached bodies — census says zero <code>buttonPressed</code> stores in reach, then bc-distinctness for the off-controller stores. Mid-frame note: <code>update_mario_inputs</code> zeroes <code>m-&gt;input</code> and the sole bit-1 input write is the censused gated one, which is what threads <code>input_a_clear</code> to the in-body gates</td></tr>
 <tr><td>16</td><td class="m">Hnoaentry</td><td>function entry (param binding) preserves NoA</td><td><span class="pill p-open">open</span> easy: <code>function_entry2</code> allocates fresh blocks, writes nothing on bc</td></tr>
 <tr><td>17</td><td class="m">HCseq</td><td>census C distributes over <code>Ssequence</code></td><td><span class="pill p-real">free</span> structural, holds for any syntactic census by construction</td></tr>
-<tr><td>18</td><td class="m">HCif</td><td>census C distributes over <code>Sifthenelse</code></td><td><span class="pill p-real">free</span> structural</td></tr>
+<tr><td>18</td><td class="m">HCif</td><td>census C distributes over <code>Sifthenelse</code> — <strong>into BOTH branches</strong></td><td><span class="pill p-false">flagged</span> free only for a census blind to A-gates — which then fails leaf 1 on any gated body (the gated feeder call is in the THEN text). Must become invariant-aware: at an A-gate, census only the ELSE that <code>input_a_gate_takes_else_lp</code>/<code>ctl_a_gate_takes_else_lp</code> prove is executed (engine v2)</td></tr>
 <tr><td>19</td><td class="m">HCloop</td><td>census C distributes over <code>Sloop</code></td><td><span class="pill p-real">free</span> structural</td></tr>
-<tr><td>20</td><td class="m">HCsw</td><td>census C closed under switch-case selection</td><td><span class="pill p-real">free</span> structural (the select-switch lemmas exist)</td></tr>
+<tr><td>20</td><td class="m">HCsw</td><td>census C closed under switch-case selection — <strong>for ANY selector n</strong></td><td><span class="pill p-false">flagged</span> same disease as #18: quantifying over every n discards the carried <code>action_sat</code> exactly where it pays — the dispatch switches. Must become invariant-aware: census only the cases a <code>not_tainted</code> selector can reach (the <em>dispatch kill</em>: the T-labeled arms, incl. <code>act_flying</code>'s, are dead). This restatement is what rescues leaf 11 and shrinks leaf 1</td></tr>
 </table>
 
 <p>For orientation, the finite real surface these leaves walk: within <code>mario.prog</code>,
@@ -492,7 +492,7 @@ under it).</p>
 <tr><td>2</td><td class="m">H5 Hstoremwf</td><td>hypothesis</td><td><span class="pill p-open">open</span></td><td>same 2 stores preserve the instantiated MWF (mechanical re-derivation)</td></tr>
 <tr><td>2</td><td class="m">H6 Hbcr</td><td>hypothesis</td><td><span class="pill p-open">open</span></td><td>per-reached-id <code>find_funct</code> resolution over abstract lp (SymbolicLinking)</td></tr>
 <tr><td>2</td><td class="m">H7 Hbodyrck</td><td>hypothesis</td><td><span class="pill p-open">open</span></td><td>reflexivity once reached_id is concrete</td></tr>
-<tr><td>3</td><td class="m">leaves 1–20 under H1</td><td>sub-obligations</td><td>17 <span class="pill p-open">open</span> / 3 <span class="pill p-real">free</span>; #9,12,13 <span class="pill p-trust">trust-adjacent</span>; #15 <span class="pill p-false">flagged</span></td><td>§5 table, row by row</td></tr>
+<tr><td>3</td><td class="m">leaves 1–20 under H1</td><td>sub-obligations</td><td>11 <span class="pill p-open">open</span> / 2 <span class="pill p-real">free</span> (#17,19) / 4 <span class="pill p-false">flagged</span> (#11,15,18,20 — phantoms needing invariant-aware restatement) / 3 <span class="pill p-trust">trust-adjacent</span> (#9,12,13)</td><td>§5 table, row by row; the #18/#20 restatements are the gate/dispatch kills (engine v2)</td></tr>
 <tr><td>—</td><td class="m">P1–P4</td><td>preconditions</td><td><span class="pill p-real">part of the statement</span></td><td>audit meaning (§6); eventually a P1 satisfiability witness</td></tr>
 <tr><td>—</td><td class="m">T1–T5</td><td>trust base</td><td><span class="pill p-trust">extra-logical</span></td><td>§7 — minimized, never formally discharged</td></tr>
 </table>
@@ -505,10 +505,13 @@ T-entry census — all <code>Qed</code>, resting on exactly the 7 standard axiom
 engine hypotheses whose entire content reduces to one crux —
 <strong>H1, “no reached handler writes a tainted action under no-A”</strong> — for which the
 discharge mechanism is already proved and the 20 remaining leaves are concrete, finite, and
-named above. Two residuals (H2, leaf 15) are flagged as needing restatement before they are
-provable — they quantify over phantoms — and two (H3, leaves 12/13) will end as quarantined
-purity assumptions about named math externals unless their bodies are linked. Nothing else
-stands between the current tree and the unconditional theorem.</div>
+named above. Five residuals (H2 and leaves 11/15/18/20) are flagged as needing restatement
+before they are provable — they quantify over phantoms (any fundef / any vargs / any branch /
+any selector), discarding the carried invariant exactly where it pays; the #18/#20
+restatements are the gate and dispatch kills, and they are what rescue #11. Two items (H3,
+leaves 12/13) will end as quarantined purity assumptions about named math externals unless
+their bodies are linked. Nothing else stands between the current tree and the unconditional
+theorem.</div>
 
 </div>
 </body>
