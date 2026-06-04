@@ -49,6 +49,7 @@ proofs/MarioModel/AGates.v
 # --- GOAL 1 / engine-v2 per-body census + leaf discharges (Unwired staging:
 #     consumed by nothing yet; promotes when the v2 consumer assembly lands) ---
 proofs/MarioModel/Unwired/CensusV2.v
+proofs/MarioModel/Unwired/EngineV2Consumer.v
 
 # --- top-level demos ---
 proofs/Toy/ToyFrame.v
