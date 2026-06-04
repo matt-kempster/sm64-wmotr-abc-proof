@@ -1339,3 +1339,149 @@ Section GatedFeederKillsLp.
   Qed.
 
 End GatedFeederKillsLp.
+
+(* ====================================================================== *)
+(* THE INPUT-WRITE KILL (update_mario_button_inputs' controller gate).     *)
+(*                                                                        *)
+(* Taint.v's input census: across ALL 12 TUs there is exactly ONE          *)
+(* INPUT_A_PRESSED-setting write to m->input (a_unsafe_input_write) -- the *)
+(* `m->input |= INPUT_A_PRESSED` in update_mario_button_inputs -- and it   *)
+(* sits under the canonical controller A-gate                              *)
+(* `if (m->controller->buttonPressed & A_BUTTON)`. Under ctl_a_clear (the  *)
+(* capstone's frame-boundary no-A invariant) the gate provably takes ELSE: *)
+(* the A-pressed bit is NEVER set in m->input on an A-silent frame. This   *)
+(* is the source half of the mid-frame input_a_clear threading that the    *)
+(* five feeder kills above consume.                                        *)
+(* ====================================================================== *)
+
+(* ---- the ctl-gate finder (the 3-deep canonical shape, Taint.v's
+   detectors), mirroring find_input_gate. ---- *)
+Fixpoint find_ctl_gate (mptr : ident) (sel : statement -> bool) (s : statement)
+  : option statement :=
+  match s with
+  | Ssequence (Sset t1 e1) (Ssequence (Sset t2 e2) (Sifthenelse g s1 s2)) =>
+      if is_controller_load mptr e1 && is_buttonPressed_load t1 e2
+         && is_a_button_guard t2 g && sel s1
+      then Some s
+      else match find_ctl_gate mptr sel s1 with
+           | Some g' => Some g'
+           | None => find_ctl_gate mptr sel s2
+           end
+  | Ssequence s1 s2 =>
+      match find_ctl_gate mptr sel s1 with
+      | Some g' => Some g'
+      | None => find_ctl_gate mptr sel s2
+      end
+  | Sifthenelse _ s1 s2 =>
+      match find_ctl_gate mptr sel s1 with
+      | Some g' => Some g'
+      | None => find_ctl_gate mptr sel s2
+      end
+  | Sloop s1 s2 =>
+      match find_ctl_gate mptr sel s1 with
+      | Some g' => Some g'
+      | None => find_ctl_gate mptr sel s2
+      end
+  | Slabel _ s1 => find_ctl_gate mptr sel s1
+  | Sswitch _ ls => find_ctl_gate_ls mptr sel ls
+  | _ => None
+  end
+with find_ctl_gate_ls (mptr : ident) (sel : statement -> bool) (ls : labeled_statements)
+  : option statement :=
+  match ls with
+  | LSnil => None
+  | LScons _ s rest =>
+      match find_ctl_gate mptr sel s with
+      | Some g' => Some g'
+      | None => find_ctl_gate_ls mptr sel rest
+      end
+  end.
+
+(* ---- projections for the 3-deep ctl-gate shape. ---- *)
+Definition ctl_gate_t1 (g : statement) : ident :=
+  match g with Ssequence (Sset t1 _) _ => t1 | _ => 1%positive end.
+Definition ctl_gate_t2 (g : statement) : ident :=
+  match g with Ssequence _ (Ssequence (Sset t2 _) _) => t2 | _ => 1%positive end.
+Definition ctl_gate_then (g : statement) : statement :=
+  match g with Ssequence _ (Ssequence _ (Sifthenelse _ s1 _)) => s1 | _ => Sbreak end.
+Definition ctl_gate_else (g : statement) : statement :=
+  match g with Ssequence _ (Ssequence _ (Sifthenelse _ _ s2)) => s2 | _ => Sbreak end.
+
+(* ---- the umbi gate, BY PROJECTION from the generated AST. ---- *)
+Definition umbi_a_gate : statement :=
+  match find_ctl_gate mario._m (has_danger a_unsafe_input_write)
+          (fn_body mario.f_update_mario_button_inputs) with
+  | Some g => g
+  | None => Sskip
+  end.
+
+Example umbi_a_gate_canonical :
+  umbi_a_gate =
+  Ssequence
+    (Sset (ctl_gate_t1 umbi_a_gate)
+       (Efield (Ederef (Etempvar mario._m (tptr (Tstruct mario._MarioState noattr)))
+                  (Tstruct mario._MarioState noattr))
+          mario._controller (tptr (Tstruct mario._Controller noattr))))
+    (Ssequence
+       (Sset (ctl_gate_t2 umbi_a_gate)
+          (Efield (Ederef (Etempvar (ctl_gate_t1 umbi_a_gate)
+                             (tptr (Tstruct mario._Controller noattr)))
+                     (Tstruct mario._Controller noattr))
+             mario._buttonPressed tushort))
+       (Sifthenelse (Ebinop Oand (Etempvar (ctl_gate_t2 umbi_a_gate) tushort)
+                       (Econst_int (Int.repr 32768) tint) tint)
+          (ctl_gate_then umbi_a_gate) (ctl_gate_else umbi_a_gate))).
+Proof. vm_compute. reflexivity. Qed.
+
+(* THE PINNING CENSUS: umbi's body holds exactly ONE A-unsafe input write,
+   it lives in this gate's THEN, the ELSE has none. (Taint.v's
+   input_writer_map shows there is NO other a_unsafe_input_write in ANY of
+   the 12 TUs.) *)
+Example umbi_a_write_unique_and_gated :
+  ( count_danger a_unsafe_input_write (fn_body mario.f_update_mario_button_inputs)
+  , count_danger a_unsafe_input_write (ctl_gate_then umbi_a_gate)
+  , count_danger a_unsafe_input_write (ctl_gate_else umbi_a_gate) )
+  = (1%nat, 1%nat, 0%nat).
+Proof. vm_compute. reflexivity. Qed.
+
+Section InputWriteKillLp.
+  Variable lp : Clight.program.
+  Hypothesis LO_mario : linkorder mario.prog lp.
+
+  (* ================================================================== *)
+  (* THE INPUT-WRITE KILL: on an A-silent frame (ctl_a_clear -- the        *)
+  (* capstone's grounded NoA), the unique INPUT_A_PRESSED-setting write    *)
+  (* in the whole linked program never executes.                           *)
+  (* ================================================================== *)
+  Theorem umbi_a_write_dead_lp :
+    forall e le m bm tr le' m' out,
+      le ! mario._m = Some (Vptr bm Ptrofs.zero) ->
+      ctl_a_clear m bm ->
+      exec_stmt function_entry2 (lp_ge lp) e le m umbi_a_gate tr le' m' out ->
+      exists bc oc vi,
+        Mem.load Mptr m bm 156 = Some (Vptr bc oc) /\
+        Mem.load Mint16unsigned m bc
+          (Ptrofs.unsigned (Ptrofs.add oc (Ptrofs.repr 18))) = Some (Vint vi) /\
+        Int.and vi (Int.repr 32768) = Int.zero /\
+        count_danger a_unsafe_input_write (ctl_gate_else umbi_a_gate) = 0%nat /\
+        exec_stmt function_entry2 (lp_ge lp) e
+          (PTree.set (ctl_gate_t2 umbi_a_gate) (Vint vi)
+             (PTree.set (ctl_gate_t1 umbi_a_gate) (Vptr bc oc) le)) m
+          (ctl_gate_else umbi_a_gate) tr le' m' out.
+  Proof.
+    intros e le m bm tr le' m' out Hle Hclear Hexec.
+    rewrite umbi_a_gate_canonical in Hexec.
+    destruct (ctl_a_gate_takes_else_lp lp LO_mario mario._m
+                (ctl_gate_t1 umbi_a_gate) (ctl_gate_t2 umbi_a_gate)
+                (ctl_gate_then umbi_a_gate) (ctl_gate_else umbi_a_gate)
+                e le m bm tr le' m' out Hle Hclear Hexec)
+      as (bc & oc & vi & Hldctl & Hldbp & Hand & Helse).
+    exists bc, oc, vi.
+    split; [ exact Hldctl | ].
+    split; [ exact Hldbp | ].
+    split; [ exact Hand | ].
+    split; [ vm_compute; reflexivity | ].
+    exact Helse.
+  Qed.
+
+End InputWriteKillLp.
