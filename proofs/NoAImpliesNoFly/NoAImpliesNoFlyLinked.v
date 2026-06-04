@@ -42,6 +42,7 @@ From SM64.Generated Require mario.
 From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame ReachableRun
   RealFrameValue RealFrameLinked AGates SymbolicLinking FieldNonInterference.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer.
+From SM64.Proofs Require Import MWFReal.
 
 Section NoAImpliesNoFlyLinked.
   (* The linked program -- ABSTRACT, never computed (no OOM). *)
@@ -507,3 +508,145 @@ Section NoARealInputV2.
   Qed.
 
 End NoARealInputV2.
+
+(* ====================================================================== *)
+(* THE MWF-GROUNDED CAPSTONE: the run invariant made CONCRETE.             *)
+(*                                                                        *)
+(* Above, MWF is an abstract Variable carried through the run, with 14     *)
+(* stability/projection hypotheses about it (Hmwf_inp/ctl, HactVint,       *)
+(* HPgms, HchaseRoot/Step, HSafeNotBm, Hmwf_window/input/glob/chase/       *)
+(* umbi/entry/free). Here MWF is a DEFINITION --                           *)
+(* MWFReal.MWF_real lp bm bc oc0 SafeB: eight rows over the REAL layout    *)
+(* (input halfword @2, action word @12, controller ptr @156, controller    *)
+(* button halfword @+18, chase roots @136/148/152, gMarioState's cell),    *)
+(* every load row CONDITIONAL -- and ALL 14 of those hypotheses are        *)
+(* PROVED (the MWFReal.mwf_real lemmas).                                   *)
+(*                                                                        *)
+(* What remains is exactly the part a definition cannot supply:            *)
+(*   - FIVE block-distinctness facts (bc <> bm, SafeB vs bm/bc,            *)
+(*     gMarioState's block, the stored_globals blocks): static-layout      *)
+(*     facts about the run's concrete blocks, per-symbol dischargeable     *)
+(*     at initialization (globals get distinct genv blocks; bm/bc are      *)
+(*     runtime struct blocks the globals point INTO, never equal to a      *)
+(*     genv symbol block);                                                 *)
+(*   - the per-symbol callee surface: WL_exempt + Hrest_pres (THE          *)
+(*     REMAINING CRUX -- the 7 dispatch handlers, where the A-gating       *)
+(*     taint closure gets consumed), return non-aliasing (Hret_call/       *)
+(*     Hret_ext), externals (Hext_action, Hmwf_ext), and the wrapper       *)
+(*     residuals (Hrest/Hext/Hstore/Hstoremwf).                            *)
+(*                                                                        *)
+(* The 24-hypothesis surface above becomes 15 here, and the initial        *)
+(* condition mem_ok_lp lp bm (MWF_real ...) init is now a CHECKABLE        *)
+(* property of one concrete memory, not a promise about an abstract        *)
+(* invariant.                                                              *)
+(* ====================================================================== *)
+
+Section NoARealInputMWF.
+  Variable lp : Clight.program.
+  Hypothesis LO_mario : linkorder mario.prog lp.
+
+  Variable bm : block.    (* Mario's MarioState block *)
+  Variable bc : block.    (* the controller struct's block *)
+  Variable oc0 : ptrofs.  (* the controller struct's offset within bc *)
+  Variable SafeB : block -> Prop.  (* blocks the pointer chase can reach *)
+
+  (* the spawn-exclusion input bit stays abstract (warp/level script). *)
+  Variable spawn_flying : mem -> bool.
+
+  Notation MWF := (MWF_real lp bm bc oc0 SafeB).
+
+  (* ---- block-distinctness residuals: static-layout facts about the
+     run's concrete blocks (bm is a runtime block -- gMarioState has
+     gvar_init nil -- and bc is the controller block row R2 points to;
+     genv symbol blocks are distinct from both). Satisfiable, and
+     per-symbol dischargeable from the run's initialization. ---- *)
+  Hypothesis Hbc_bm : bc <> bm.
+  Hypothesis HSafeB_not_bm : forall b, SafeB b -> b <> bm.
+  Hypothesis HSafeB_not_bc : ~ SafeB bc.
+  Hypothesis Hgms_blk : forall gb,
+      Genv.find_symbol (lp_ge lp) mario._gMarioState = Some gb ->
+      gb <> bm /\ gb <> bc /\ ~ SafeB gb.
+  Hypothesis Hglob_blk : forall gid bg,
+      mem_id gid stored_globals = true ->
+      Genv.find_symbol (lp_ge lp) gid = Some bg ->
+      bg <> bm /\ bg <> bc /\ ~ SafeB bg.
+
+  (* ---- the surviving per-symbol residuals, now stated at the CONCRETE
+     invariant MWF_real (same shapes as the v2 section's; see the
+     comments there). ---- *)
+  Hypothesis WL_exempt : forall e le m fid fty vf fd,
+      mem_id fid exempt_callees = true ->
+      eval_expr (lp_ge lp) e le m (Evar fid fty) vf ->
+      Genv.find_funct (lp_ge lp) vf = Some fd ->
+      marg_exempt fd = true.
+  Hypothesis Hrest_pres : forall m fd vargs t m' vres,
+      rest_fd lp fd ->
+      (marg_exempt fd = false -> marg_ok bm vargs) ->
+      eval_funcall function_entry2 (lp_ge lp) m fd vargs t m' vres ->
+      NoA_real bm m -> MWF m -> Mem.valid_block m bm ->
+      action_sat not_tainted m bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
+  Hypothesis Hret_call : forall fd m0 vargs0 t0 m0' vres0,
+      reached_v2 lp fd ->
+      eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m0' vres0 ->
+      forall b o, vres0 = Vptr b o -> b <> bm.
+  Hypothesis Hret_ext : forall ef vargs0 m0 t0 vres0 m0',
+      external_call ef (lp_ge lp) vargs0 m0 t0 vres0 m0' ->
+      forall b o, vres0 = Vptr b o -> b <> bm.
+  Hypothesis Hext_action :
+    FieldNonInterference.reach_ext_preserves (action_cell bm) (lp_ge lp).
+  Hypothesis Hmwf_ext : forall ef vargs m t vres m',
+      external_call ef (lp_ge lp) vargs m t vres m' ->
+      Mem.valid_block m bm -> MWF m -> MWF m'.
+  Hypothesis Hrest : reach_rest_marg_lp lp bm (NoA_real bm).
+  Hypothesis Hext :
+    forall ef vargs mm tt vres mm',
+      NoA_real bm mm -> meminv_lp lp not_tainted bm mm -> MWF mm ->
+      external_call ef (lp_ge lp) vargs mm tt vres mm' ->
+      NoA_real bm mm' /\ meminv_lp lp not_tainted bm mm' /\ MWF mm'.
+  Hypothesis Hstore :
+    forall e le mm a1 a2 tt le' mm' out,
+      NoA_real bm mm -> RealFrameValue.prov_ok (Sassign a1 a2) ->
+      exec_stmt function_entry2 (lp_ge lp) e le mm (Sassign a1 a2) tt le' mm' out ->
+      NoA_real bm mm'.
+  Hypothesis Hstoremwf :
+    forall e le mm a1 a2 tt le' mm' out,
+      NoA_real bm mm -> RealFrameValue.prov_ok (Sassign a1 a2) -> MWF mm ->
+      exec_stmt function_entry2 (lp_ge lp) e le mm (Sassign a1 a2) tt le' mm' out ->
+      MWF mm'.
+
+  (* ==================================================================== *)
+  (* THE MWF-GROUNDED THEOREM: same conclusion as the v2 capstone, but    *)
+  (* the carried invariant is the concrete MWF_real -- its 14 projection/ *)
+  (* stability hypotheses are PROVED, not assumed.                        *)
+  (* ==================================================================== *)
+  Theorem noA_no_spawn_never_flying_real_mwf :
+    forall (init : mem) (is : list mem) (m : mem),
+      mem_ok_lp lp bm MWF init ->
+      Forall (fun i => a_pressed_real bm i = false) is ->
+      Forall (fun i => spawn_flying i = false) is ->
+      reachable mem mem (step_real lp) init is m ->
+      ~ mem_flying_lp bm m.
+  Proof.
+    exact (noA_no_spawn_never_flying_real_v2 lp LO_mario bm SafeB
+             (MWF_real lp bm bc oc0 SafeB) spawn_flying
+             (mwf_real_inp lp bm bc oc0 SafeB)
+             (mwf_real_ctl lp bm bc oc0 SafeB)
+             (mwf_real_act_vint lp bm bc oc0 SafeB)
+             (mwf_real_pgms lp bm bc oc0 SafeB)
+             (mwf_real_chase_root lp bm bc oc0 SafeB)
+             (mwf_real_chase_step lp bm bc oc0 SafeB)
+             HSafeB_not_bm
+             (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm Hgms_blk)
+             (mwf_real_input lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm Hgms_blk)
+             (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+             (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                HSafeB_not_bc Hgms_blk)
+             (mwf_real_umbi lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm Hgms_blk)
+             WL_exempt Hrest_pres Hret_call Hret_ext Hext_action Hmwf_ext
+             (mwf_real_entry lp bm bc oc0 SafeB Hbc_bm)
+             (mwf_real_free lp bm bc oc0 SafeB Hbc_bm)
+             Hrest Hext Hstore Hstoremwf).
+  Qed.
+
+End NoARealInputMWF.

@@ -51,9 +51,9 @@ proofs/MarioModel/AGates.v
 proofs/MarioModel/CensusV2.v
 proofs/MarioModel/EngineV2Consumer.v
 
-# --- GOAL 1 / concrete MWF (Unwired staging: definition + projection
-#     discharges; store/entry/free/umbi discharges + capstone wiring next) ---
-proofs/MarioModel/Unwired/MWFReal.v
+# --- GOAL 1 / concrete MWF run invariant (SPINE: MWF_real + all per-leaf
+#     discharges; consumed by the MWF-grounded capstone in NoAImpliesNoFlyLinked) ---
+proofs/MarioModel/MWFReal.v
 
 # --- top-level demos ---
 proofs/Toy/ToyFrame.v

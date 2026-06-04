@@ -29,13 +29,16 @@ cd "$(dirname "$0")/../../.." || exit 2
 source pipeline/env.sh >/dev/null 2>&1 || true
 
 # default capstone(s): "Module.Logical.Path theorem" -- the abstract lp capstone,
-# its grounded instantiation (concrete no-A input model; AGates/Taint), AND the
+# its grounded instantiation (concrete no-A input model; AGates/Taint), the
 # v2 grounded capstone (concrete reached set; engine contract PROVED via
-# EngineV2Consumer -- the sharpest of the three).
+# EngineV2Consumer), AND the MWF-grounded capstone (concrete run invariant
+# MWF_real; all 14 MWF projection/stability hypotheses PROVED via MWFReal --
+# the sharpest of the four).
 if [ "$#" -eq 0 ]; then
   set -- SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFlyLinked noA_no_spawn_never_flying_lp \
          SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFlyLinked noA_no_spawn_never_flying_real \
-         SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFlyLinked noA_no_spawn_never_flying_real_v2
+         SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFlyLinked noA_no_spawn_never_flying_real_v2 \
+         SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFlyLinked noA_no_spawn_never_flying_real_mwf
 fi
 
 # The standard, sound axioms a CompCert proof of the REAL program legitimately
