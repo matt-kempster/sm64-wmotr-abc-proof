@@ -248,6 +248,82 @@ Definition call_callee_exempt (a : expr) : bool :=
   end.
 
 (* ====================================================================== *)
+(* The store census, class F: a direct `m->field` store whose byte window  *)
+(* avoids ALL the protected cells --                                       *)
+(*   [2,4)     m->input      (input_a_clear's cell)                        *)
+(*   [12,16)   m->action     (action_sat's cell)                           *)
+(*   [156,160) m->controller (ctl_a_clear's chase root)                    *)
+(* The offset is computed in mario.prog's OWN cenv (cheap, concrete) and   *)
+(* transferred to lp by linkorder (linkorder_field_offset_agree).  The     *)
+(* bounds conjunct makes Ptrofs.unsigned (Ptrofs.repr delta) = delta.      *)
+(* The rvalue is UNCONSTRAINED: whatever is written lands outside every    *)
+(* protected window.  (m->input or-updates and off-bm stores are LATER     *)
+(* classes.)                                                               *)
+(* ====================================================================== *)
+
+Definition store_window_ok (delta sz : Z) : bool :=
+  (0 <? sz) && (0 <=? delta) && (delta + sz <=? Ptrofs.max_unsigned)
+  && ((delta + sz <=? 2) || (4 <=? delta))
+  && ((delta + sz <=? 12) || (16 <=? delta))
+  && ((delta + sz <=? 156) || (160 <=? delta)).
+
+(* the per-field geometry check, isolated so its soundness lemma has
+   stable binder names. *)
+Definition mfield_geom_chk (fld : ident) (fty : type) : bool :=
+  match field_offset (prog_comp_env mario.prog) fld mario_state_members with
+  | OK (delta, Full) =>
+      match access_mode fty with
+      | By_value ch => store_window_ok delta (size_chunk ch)
+      | _ => false
+      end
+  | _ => false
+  end.
+
+Lemma mfield_geom_chk_sound :
+  forall fld fty, mfield_geom_chk fld fty = true ->
+    exists delta ch,
+      field_offset (prog_comp_env mario.prog) fld mario_state_members
+        = OK (delta, Full) /\
+      access_mode fty = By_value ch /\
+      store_window_ok delta (size_chunk ch) = true.
+Proof.
+  intros fld fty H. unfold mfield_geom_chk in H.
+  destruct (field_offset (prog_comp_env mario.prog) fld mario_state_members)
+    as [[delta bf]|] eqn:Hfo; try discriminate H.
+  destruct bf; try discriminate H.
+  destruct (access_mode fty) as [ch| | |] eqn:Hac; try discriminate H.
+  exists delta, ch. auto.
+Qed.
+
+Definition safe_mfield_store (mptr : ident) (a1 : expr) : bool :=
+  match a1 with
+  | Efield (Ederef (Etempvar p pty) sty) fld fty =>
+      Pos.eqb p mptr
+      && proj_sumbool (type_eq pty (tptr tyMS))
+      && proj_sumbool (type_eq sty tyMS)
+      && mfield_geom_chk fld fty
+  | _ => false
+  end.
+
+Lemma safe_mfield_store_shape :
+  forall mptr a1, safe_mfield_store mptr a1 = true ->
+    exists fld fty,
+      a1 = Efield (Ederef (Etempvar mptr (tptr tyMS)) tyMS) fld fty /\
+      mfield_geom_chk fld fty = true.
+Proof.
+  intros mptr a1 H. destruct a1; try discriminate H.
+  destruct a1; try discriminate H.
+  destruct a1; try discriminate H.
+  unfold safe_mfield_store in H.
+  repeat (apply andb_true_iff in H; destruct H as [H ?]).
+  repeat match goal with
+         | Hp : Pos.eqb _ _ = true |- _ => apply Pos.eqb_eq in Hp
+         | Hp : proj_sumbool _ = true |- _ => apply proj_sumbool_true in Hp
+         end.
+  subst. do 2 eexists. split; [ reflexivity | assumption ].
+Qed.
+
+(* ====================================================================== *)
 (* The census.                                                             *)
 (*                                                                         *)
 (* chk_ls    : the SELECTED-SUFFIX check -- mirrors chk over the            *)
@@ -275,7 +351,7 @@ Fixpoint chk (bc : body_census) (s : statement) : bool :=
   | Slabel _ s1 => chk bc s1
   | Sswitch a ls =>
       if disp_switch bc a then chk_disp_ls bc ls else chk_all_ls bc ls
-  | Sassign _ _ => false       (* first cut: store classes are the next brick *)
+  | Sassign a1 _ => safe_mfield_store (bc_mptr bc) a1
   | Scall optid a al =>
       call_optid_ok bc optid
       && (call_head_is_mptr bc al || call_callee_exempt a)
@@ -674,6 +750,123 @@ Section CensusLeavesLp.
       discriminate Hnex.
   Qed.
 
+  (* ---- the m->field lvalue geometry over lp: the store target is the
+     temp's block at temp-offset + the mario.prog-computed field offset.
+     Mirrors eval_marioObj_off_bm_lp's first half (the genv-parametric
+     inversion helpers + the two linkorder transfer bricks). ---- *)
+  Lemma mfield_lvalue_geom_lp :
+    forall e le m mid fld fty loc ofs bf delta b o,
+      le ! mid = Some (Vptr b o) ->
+      field_offset (prog_comp_env mario.prog) fld mario_state_members
+        = OK (delta, Full) ->
+      eval_lvalue (lp_ge lp) e le m
+        (Efield (Ederef (Etempvar mid (tptr tyMS)) tyMS) fld fty) loc ofs bf ->
+      loc = b /\ ofs = Ptrofs.add o (Ptrofs.repr delta) /\ bf = Full.
+  Proof.
+    intros e le m mid fld fty loc ofs bf delta b o Hle Hfo Hlv.
+    apply eval_lvalue_Efield_inv in Hlv
+      as (o0 & id & att & co & delta' & Hbase & Hco & Hofs & Hcase).
+    apply eval_expr_Ederef_load in Hbase
+      as (lb & ob & bfb & Hlvb & Hderefb).
+    apply deref_loc_aggregate_eq in Hderefb as [? ?];
+      [ | right; reflexivity ]. subst lb ob.
+    apply eval_lvalue_Ederef_base in Hlvb.
+    apply eval_expr_Etempvar_val in Hlvb.
+    rewrite Hle in Hlvb. inv Hlvb.
+    destruct Hcase as [ (Hty & Hfo2) | (Hty & Hfo2) ];
+      [ | cbn in Hty; discriminate ].
+    cbn in Hty; inv Hty.
+    change (genv_cenv (lp_ge lp)) with (prog_comp_env lp) in Hco, Hfo2.
+    destruct mario_defines_MarioState as (co0 & Hmar).
+    pose proof (linkorder_comp_env_extends lp mario.prog mario._MarioState
+                  co0 LO_mario Hmar) as Hext_lp.
+    assert (co = co0) by congruence. subst co0.
+    assert (Hmm : mario_state_members = co_members co)
+      by (unfold mario_state_members; rewrite Hmar; reflexivity).
+    rewrite (linkorder_field_offset_agree lp mario.prog fld (co_members co)
+               LO_mario) in Hfo2;
+      [ | rewrite <- Hmm; exact mario_state_members_complete ].
+    rewrite Hmm in Hfo. rewrite Hfo in Hfo2. inv Hfo2.
+    auto.
+  Qed.
+
+  (* ---- Hassign (class F): a censused m->field store preserves valid,
+     action_sat, and -- via the caller-supplied window-closure -- MWF.
+     The TI mptr row pins the base to (bm,0); the census window keeps the
+     written bytes off the action cell entirely. ---- *)
+  Lemma chk_assign :
+    forall (Q : int -> Prop) (MWF : mem -> Prop) bm bc
+           e le m a1 a2 loc ofs bf v2 v m',
+      (forall mm mm' ch (delta : Z) vv,
+         MWF mm ->
+         store_window_ok delta (size_chunk ch) = true ->
+         Mem.store ch mm bm delta vv = Some mm' -> MWF mm') ->
+      eval_lvalue (lp_ge lp) e le m a1 loc ofs bf ->
+      eval_expr (lp_ge lp) e le m a2 v2 ->
+      sem_cast v2 (typeof a2) (typeof a1) m = Some v ->
+      assign_loc (lp_ge lp) (typeof a1) m loc ofs bf v m' ->
+      TI_of Q bm bc le ->
+      chk bc (Sassign a1 a2) = true ->
+      MWF m -> Mem.valid_block m bm -> action_sat Q m bm ->
+      Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m'.
+  Proof.
+    intros Q MWF bm bc e le m a1 a2 loc ofs bf v2 v m'
+           HMWFstore Hlv Hev2 Hcast Has HTI HC HMWF Hvb Hsat.
+    change (safe_mfield_store (bc_mptr bc) a1 = true) in HC.
+    destruct (safe_mfield_store_shape _ _ HC) as (fld & fty & Hshape & Hgeo).
+    subst a1.
+    destruct (mfield_geom_chk_sound _ _ Hgeo) as (delta & ch & Hfo & Hac & Hwin).
+    (* the base temp holds a pointer (the lvalue derivation derefs it) *)
+    assert (Hpin : exists pb po, le ! (bc_mptr bc) = Some (Vptr pb po)).
+    { pose proof Hlv as Hlv0.
+      apply eval_lvalue_Efield_base in Hlv0 as (o0 & Hbase).
+      apply eval_expr_Ederef_load in Hbase
+        as (lb & ob & bfb & Hlvb & Hderefb).
+      apply eval_lvalue_Ederef_base in Hlvb.
+      apply eval_expr_Etempvar_val in Hlvb. eauto. }
+    destruct Hpin as (pb & po & Hple).
+    destruct HTI as (Hm & _ & _).
+    destruct (Hm _ _ Hple) as [E1 E2]. subst pb po.
+    destruct (mfield_lvalue_geom_lp _ _ _ _ _ _ _ _ _ _ _ _ Hple Hfo Hlv)
+      as (Hloc & Hofs & Hbf). subst loc ofs bf.
+    rewrite Ptrofs.add_zero_l in Has.
+    (* the store itself *)
+    cbn [typeof] in Has. inv Has;
+      try (match goal with Hac2 : access_mode fty = _ |- _ =>
+             rewrite Hac in Hac2; discriminate Hac2 end).
+    match goal with
+    | Hsv : Mem.storev _ _ _ _ = Some m',
+      Hac2 : access_mode fty = By_value ?ch2 |- _ =>
+        rewrite Hac in Hac2; injection Hac2 as <-;
+        unfold Mem.storev in Hsv;
+        rewrite Ptrofs.unsigned_repr in Hsv
+    end.
+    2:{ (* delta in range, from the census bounds *)
+        unfold store_window_ok in Hwin.
+        repeat (apply andb_true_iff in Hwin; destruct Hwin as [Hwin ?]).
+        match goal with
+        | Hb1 : (0 <=? delta) = true, Hb2 : (delta + _ <=? _) = true,
+          Hb3 : (0 <? _) = true |- _ =>
+            apply Z.leb_le in Hb1; apply Z.leb_le in Hb2;
+            apply Z.ltb_lt in Hb3; lia
+        end. }
+    match goal with Hsv : Mem.store _ _ _ _ _ = Some m' |- _ =>
+    split; [ eauto using Mem.store_valid_block_1 | split ];
+    [ (* action_sat: the window misses [12,16) *)
+      intros av Hload;
+      rewrite (Mem.load_store_other _ _ _ _ _ _ Hsv) in Hload;
+      [ exact (Hsat av Hload) | right ]
+    | exact (HMWFstore _ _ _ _ _ HMWF Hwin Hsv) ]
+    end.
+    unfold store_window_ok in Hwin.
+    repeat (apply andb_true_iff in Hwin; destruct Hwin as [Hwin ?]).
+    match goal with
+    | Hb : ((delta + _ <=? 12) || (16 <=? delta))%bool = true |- _ =>
+        apply orb_true_iff in Hb as [Hb | Hb]; apply Z.leb_le in Hb;
+        cbn [size_chunk]; lia
+    end.
+  Qed.
+
 End CensusLeavesLp.
 
 (* ====================================================================== *)
@@ -772,12 +965,41 @@ Lemma params_mario_get_terrain_sound_addend :
   = (bc_mptr bc_m0, tptr tyMS) :: nil.
 Proof. reflexivity. Qed.
 
+(* class-F storers: every store is a window-checked m->field write
+   (capTimer/flags, particleFlags, health/healCounter/hurtCounter). *)
+Lemma chk_update_and_return_cap_flags :
+  chk bc_m0 (fn_body mario.f_update_and_return_cap_flags) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma chk_set_submerged_cam_preset_and_spawn_bubbles :
+  chk bc_m0 (fn_body mario.f_set_submerged_cam_preset_and_spawn_bubbles) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma chk_update_mario_health :
+  chk bc_m0 (fn_body mario.f_update_mario_health) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 Lemma params_mario_floor_is_slippery :
   fn_params mario.f_mario_floor_is_slippery = (bc_mptr bc_m0, tptr tyMS) :: nil.
 Proof. reflexivity. Qed.
 
 Lemma params_debug_print_speed_action_normal :
   fn_params mario.f_debug_print_speed_action_normal
+  = (bc_mptr bc_m0, tptr tyMS) :: nil.
+Proof. reflexivity. Qed.
+
+Lemma params_update_and_return_cap_flags :
+  fn_params mario.f_update_and_return_cap_flags
+  = (bc_mptr bc_m0, tptr tyMS) :: nil.
+Proof. reflexivity. Qed.
+
+Lemma params_set_submerged_cam_preset_and_spawn_bubbles :
+  fn_params mario.f_set_submerged_cam_preset_and_spawn_bubbles
+  = (bc_mptr bc_m0, tptr tyMS) :: nil.
+Proof. reflexivity. Qed.
+
+Lemma params_update_mario_health :
+  fn_params mario.f_update_mario_health
   = (bc_mptr bc_m0, tptr tyMS) :: nil.
 Proof. reflexivity. Qed.
 
@@ -841,4 +1063,51 @@ Proof.
              params_debug_print_speed_action_normal bc_m0_gates_disjoint
              bc_m0_disp_disjoint Hmarg).
   - exact chk_debug_print_speed_action_normal.
+Qed.
+
+Lemma body_TI_C_update_and_return_cap_flags :
+  forall (Q : int -> Prop) bm ge vargs m e le m1,
+    function_entry2 ge mario.f_update_and_return_cap_flags vargs m e le m1 ->
+    marg_ok bm vargs ->
+    TI_of Q bm bc_m0 le /\
+    chk bc_m0 (fn_body mario.f_update_and_return_cap_flags) = true.
+Proof.
+  intros Q bm ge vargs m e le m1 Hentry Hmarg.
+  split.
+  - exact (entry_TI_v2 Q bm bc_m0 ge _ vargs m e le m1 Hentry
+             params_update_and_return_cap_flags bc_m0_gates_disjoint
+             bc_m0_disp_disjoint Hmarg).
+  - exact chk_update_and_return_cap_flags.
+Qed.
+
+Lemma body_TI_C_set_submerged_cam_preset_and_spawn_bubbles :
+  forall (Q : int -> Prop) bm ge vargs m e le m1,
+    function_entry2 ge mario.f_set_submerged_cam_preset_and_spawn_bubbles
+      vargs m e le m1 ->
+    marg_ok bm vargs ->
+    TI_of Q bm bc_m0 le /\
+    chk bc_m0 (fn_body mario.f_set_submerged_cam_preset_and_spawn_bubbles)
+      = true.
+Proof.
+  intros Q bm ge vargs m e le m1 Hentry Hmarg.
+  split.
+  - exact (entry_TI_v2 Q bm bc_m0 ge _ vargs m e le m1 Hentry
+             params_set_submerged_cam_preset_and_spawn_bubbles
+             bc_m0_gates_disjoint bc_m0_disp_disjoint Hmarg).
+  - exact chk_set_submerged_cam_preset_and_spawn_bubbles.
+Qed.
+
+Lemma body_TI_C_update_mario_health :
+  forall (Q : int -> Prop) bm ge vargs m e le m1,
+    function_entry2 ge mario.f_update_mario_health vargs m e le m1 ->
+    marg_ok bm vargs ->
+    TI_of Q bm bc_m0 le /\
+    chk bc_m0 (fn_body mario.f_update_mario_health) = true.
+Proof.
+  intros Q bm ge vargs m e le m1 Hentry Hmarg.
+  split.
+  - exact (entry_TI_v2 Q bm bc_m0 ge _ vargs m e le m1 Hentry
+             params_update_mario_health bc_m0_gates_disjoint
+             bc_m0_disp_disjoint Hmarg).
+  - exact chk_update_mario_health.
 Qed.
