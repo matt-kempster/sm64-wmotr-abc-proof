@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>sm64-wmotr-abc-proof — progress since 8am, 2026-06-04</title>
+<style>
+  :root {
+    --bg:#0f1117; --panel:#171a23; --panel2:#1d2130; --fg:#d7dae3; --dim:#8a90a3;
+    --green:#4ade80; --red:#f87171; --amber:#fbbf24; --blue:#60a5fa; --purple:#c084fc;
+  }
+  body { background:var(--bg); color:var(--fg); font:15px/1.5 -apple-system,'Segoe UI',Roboto,sans-serif; margin:0; padding:32px; }
+  .wrap { max-width:1060px; margin:0 auto; }
+  h1 { font-size:24px; margin:0 0 4px; }
+  h2 { font-size:18px; margin:36px 0 12px; border-bottom:1px solid #2a2f40; padding-bottom:6px; }
+  .sub { color:var(--dim); margin-bottom:24px; }
+  code, .mono { font-family:ui-monospace,'Cascadia Code',Menlo,monospace; font-size:13px; }
+  .cards { display:flex; gap:14px; flex-wrap:wrap; margin:20px 0; }
+  .card { background:var(--panel); border:1px solid #262b3b; border-radius:10px; padding:14px 20px; min-width:130px; }
+  .card .num { font-size:26px; font-weight:700; }
+  .card .lbl { color:var(--dim); font-size:12px; text-transform:uppercase; letter-spacing:.05em; }
+  .g { color:var(--green); } .r { color:var(--red); } .a { color:var(--amber); } .b { color:var(--blue); } .p { color:var(--purple); }
+  table { border-collapse:collapse; width:100%; }
+  th, td { text-align:left; padding:6px 10px; border-bottom:1px solid #232838; vertical-align:top; }
+  th { color:var(--dim); font-size:12px; text-transform:uppercase; letter-spacing:.05em; }
+  tr:hover td { background:var(--panel2); }
+  .bar { height:14px; border-radius:3px; background:var(--green); display:inline-block; vertical-align:middle; }
+  .bar.neg { background:var(--red); }
+  .phase { border-left:3px solid var(--blue); background:var(--panel); border-radius:0 10px 10px 0; padding:12px 18px; margin:12px 0; }
+  .phase h3 { margin:0 0 6px; font-size:15px; }
+  .phase .t { color:var(--dim); font-size:12px; }
+  .swap { display:grid; grid-template-columns:1fr 46px 1fr; gap:0; align-items:stretch; margin:16px 0; }
+  .col { background:var(--panel); border:1px solid #262b3b; border-radius:10px; padding:16px 20px; }
+  .col h3 { margin:0 0 10px; font-size:14px; }
+  .arrow { display:flex; align-items:center; justify-content:center; color:var(--dim); font-size:26px; }
+  ul { margin:8px 0; padding-left:22px; } li { margin:4px 0; }
+  .tag { display:inline-block; font-size:11px; padding:1px 8px; border-radius:10px; margin-right:6px; font-weight:600; }
+  .tag.proved { background:#103524; color:var(--green); }
+  .tag.assumed { background:#3a2a10; color:var(--amber); }
+  .tag.false { background:#3a1515; color:var(--red); }
+  .tag.crux { background:#2a1540; color:var(--purple); }
+  .small { font-size:13px; color:var(--dim); }
+  .hl { background:var(--panel2); border-radius:6px; padding:2px 6px; }
+</style>
+</head>
+<body><div class="wrap">
+
+<h1>no-A ⇒ no-fly: today’s autonomous run</h1>
+<div class="sub mono">git diff c65dc56..9647271 &nbsp;·&nbsp; 2026-06-04 08:55 → 18:00 &nbsp;·&nbsp; everything built via pipeline, audited, pushed</div>
+
+<div class="cards">
+  <div class="card"><div class="num">29</div><div class="lbl">commits</div></div>
+  <div class="card"><div class="num g">+5,647</div><div class="lbl">lines added</div></div>
+  <div class="card"><div class="num r">−60</div><div class="lbl">removed</div></div>
+  <div class="card"><div class="num">12</div><div class="lbl">files touched</div></div>
+  <div class="card"><div class="num g">3 / 3</div><div class="lbl">capstones axiom-clean</div></div>
+  <div class="card"><div class="num r">2</div><div class="lbl">false hyps caught &amp; fixed</div></div>
+</div>
+
+<h2>The headline: the capstone swap</h2>
+<p>This morning the sharpest theorem (<span class="mono">noA_no_spawn_never_flying_real</span>) rested on one
+<b>monolithic assumed contract</b> over an <b>abstract</b> reached set. Tonight there is a new sharpest capstone,
+<span class="mono hl">noA_no_spawn_never_flying_real_v2</span>, where that contract is <b>proved</b> and the reached set is
+<b>concrete generated-AST data</b>.</p>
+
+<div class="swap">
+  <div class="col">
+    <h3>8am — assumed</h3>
+    <ul class="small">
+      <li><span class="tag assumed">ASSUMED</span><span class="mono">Hreach_val</span> — “every reached funcall preserves the invariants” (the whole engine, one opaque hypothesis)</li>
+      <li><span class="tag assumed">ASSUMED</span><span class="mono">Hbcr</span> — call-site resolution into the reached set</li>
+      <li><span class="tag assumed">ASSUMED</span><span class="mono">Hbodyrck</span> — the root body’s reach census</li>
+      <li><span class="mono">reached_fd</span> — an <b>abstract</b> predicate; says nothing about SM64</li>
+      <li>3 known phantom-∀ slots flagged in the H1 leaves (the morning’s doc commit)</li>
+    </ul>
+  </div>
+  <div class="arrow">⟶</div>
+  <div class="col">
+    <h3>6pm — proved / concrete</h3>
+    <ul class="small">
+      <li><span class="tag proved">PROVED</span><span class="mono">reach_value_preserves_reached_v2</span> — census walk over the 15 real bodies, store/call/TI leaves, gate kill, dispatch kill, umbi bridge, <b>refuted</b> writer leaf, call-resolution closure</li>
+      <li><span class="tag proved">PROVED</span><span class="mono">root_call_resolves</span> (20 cases) + <span class="mono">root_body_reach_chk</span></li>
+      <li><span class="mono">reached_v2</span> — <b>concrete</b>: 15 censused mario.c bodies + bridged <span class="mono">update_mario_button_inputs</span> + a <b>named per-symbol</b> rest surface</li>
+      <li>All three phantom slots retired (per-body TI/C, W-vargs writer, semantic if/switch)</li>
+    </ul>
+  </div>
+</div>
+
+<p class="small">All three capstones (<span class="mono">_lp</span>, <span class="mono">_real</span>, <span class="mono">_real_v2</span>) rest on only the standard CompCert axioms; firewall + orphan checks clean; the new capstone was added to the discipline audit defaults.</p>
+
+<h2>Two vacuity bugs caught by the swap — and fixed the same hour</h2>
+<p class="small">Making the residuals concrete exposed two hypotheses that were green-buildable but <b>false/unsatisfiable in the intended model</b> — exactly the la-la-land failure mode the proof discipline exists to catch:</p>
+<ul>
+  <li><span class="tag false">WAS FALSE</span><b><span class="mono">Hnoa_exec</span></b> — “<i>every</i> exec_stmt preserves no-A” quantified over arbitrary statement <i>syntax</i>; an adversarial assignment through the controller chase sets the A bit. <b>Fix:</b> NoA is now derived from the carried invariant MWF via one projection leaf (at the capstone it’s literally the existing <span class="mono">Hmwf_ctl</span>). Surface shrank by 2. <span class="mono small">(880416a)</span></li>
+  <li><span class="tag false">WAS UNSAT</span><b><span class="mono">Hmwf_unch</span> + positive <span class="mono">HPgms</span></b> — “unchanged-on-bm preserves MWF” can’t hold for an MWF carrying off-bm controller rows, and a positive “the gMarioState load <i>succeeds</i>” row dies under free. <b>Fix:</b> precise <span class="mono">Hmwf_entry</span>/<span class="mono">Hmwf_free</span> leaves (entry = pure alloc, free only kills loads) + load-conditional HPgms. <span class="mono small">(1ed03ff)</span></li>
+</ul>
+
+<h2>How the day unfolded</h2>
+
+<div class="phase"><span class="t">08:55 – 10:32</span><h3>① The six A-gate kills + engine-v2 skeleton</h3>
+<span class="small">Proved <b>dead-code kills</b> for every entry into the taint set under the no-A invariant: the airborne <b>dispatch kill</b> (act_flying’s switch arm), the <b>cannon-fire</b> + 4 gated feeder sites, the unique <b>INPUT_A_PRESSED write</b>, and the full <span class="mono">update_mario_button_inputs</span> preservation walk. Then the invariant-aware engine v2 retiring the forall-vargs / forall-case / both-branches phantoms.</span></div>
+
+<div class="phase"><span class="t">12:26 – 13:01</span><h3>② Bridges &amp; exactness</h3>
+<span class="small"><span class="mono">marg_ok</span> strengthened from conditional to <b>exact</b> (b = bm ∧ o = 0) — a phantom-∀ in disguise; umbi walk lifted to a funcall-level, marg-shaped bridge with a write-footprint bound.</span></div>
+
+<div class="phase"><span class="t">13:18 – 16:14</span><h3>③ CensusV2: 15/17 reached bodies pass a machine-checked census</h3>
+<span class="small">Per-body census index (clightgen reuses temp idents — global tables collide), TI temp-table invariant, and store/call census classes (window stores, the A-clear input store, globals, chase-temp stores, tabled callees). Built up 2/17 → 4 → 7 → 9 → 10 → <b>15/17</b> (the other 2 are bridged/exempt by design). +2,442-line new file.</span></div>
+
+<div class="phase"><span class="t">16:25 – 17:24</span><h3>④ Consumer assembly: the contract becomes a theorem</h3>
+<span class="small">Hbody dispatcher over the 15 bodies; the <b>call-resolution closure proved</b> (every censused callee resolves per-symbol through linkorder; a WL_exempt vacuity fixed); a forall-env phantom removed from the spine residual; the root layer (<span class="mono">root_RID</span>, 20-case <span class="mono">root_call_resolves</span>).</span></div>
+
+<div class="phase"><span class="t">17:33 – 18:00</span><h3>⑤ CAPSTONE SWAP + repairs + next brick staged</h3>
+<span class="small">CensusV2 + EngineV2Consumer <b>promoted out of Unwired/</b> and consumed by the new v2 grounded capstone; the two satisfiability repairs above; <span class="mono">MWF_real</span> (the concrete run invariant, R0 validity + 7 load-conditional rows) staged with 6 projection discharges proved.</span></div>
+
+<h2>Where the change landed</h2>
+<table>
+  <tr><th>file</th><th style="width:46%">insertions / deletions</th><th class="small">+</th><th class="small">−</th></tr>
+  <tr><td class="mono">proofs/MarioModel/CensusV2.v <span class="tag proved">NEW · SPINE</span></td><td><span class="bar" style="width:100%"></span></td><td class="g">2442</td><td class="r">0</td></tr>
+  <tr><td class="mono">proofs/MarioModel/AGates.v</td><td><span class="bar" style="width:63.5%"></span></td><td class="g">1552</td><td class="r">1</td></tr>
+  <tr><td class="mono">proofs/MarioModel/EngineV2Consumer.v <span class="tag proved">NEW · SPINE</span></td><td><span class="bar" style="width:35%"></span></td><td class="g">854</td><td class="r">0</td></tr>
+  <tr><td class="mono">proofs/MarioModel/ActionValueFrame.v</td><td><span class="bar" style="width:14.9%"></span><span class="bar neg" style="width:0.4%"></span></td><td class="g">364</td><td class="r">9</td></tr>
+  <tr><td class="mono">proofs/NoAImpliesNoFly/NoAImpliesNoFlyLinked.v</td><td><span class="bar" style="width:8.4%"></span><span class="bar neg" style="width:0.2%"></span></td><td class="g">206</td><td class="r">5</td></tr>
+  <tr><td class="mono">proofs/MarioModel/Unwired/MWFReal.v <span class="tag assumed">NEW · STAGING</span></td><td><span class="bar" style="width:6.6%"></span></td><td class="g">160</td><td class="r">0</td></tr>
+  <tr><td class="mono">proofs/MarioModel/RealFrameLinked.v</td><td><span class="bar" style="width:0.9%"></span><span class="bar neg" style="width:0.8%"></span></td><td class="g">23</td><td class="r">19</td></tr>
+  <tr><td class="mono">proofs/MarioModel/RealFrameValue.v</td><td><span class="bar" style="width:0.8%"></span><span class="bar neg" style="width:0.6%"></span></td><td class="g">19</td><td class="r">14</td></tr>
+  <tr><td class="mono">docs / _CoqProject / discipline_check.sh / misc</td><td><span class="bar" style="width:1.1%"></span><span class="bar neg" style="width:0.5%"></span></td><td class="g">27</td><td class="r">12</td></tr>
+</table>
+
+<h2>What the v2 capstone still assumes (the honest scoreboard)</h2>
+<table>
+  <tr><th>residual</th><th>what it says</th><th>status / path</th></tr>
+  <tr><td class="mono">Hrest_pres</td><td>the named rest symbols (7 dispatch handlers, interactions, special floors, exempt whitelist, 2 externals) preserve the invariants per-funcall</td><td><span class="tag crux">THE CRUX</span> where the A-gating kills get consumed next; handlers need actions-TU linkorder pins</td></tr>
+  <tr><td class="mono">Hmwf_* (~10)</td><td>MWF projections + per-cell store stability + entry/free/umbi crossings</td><td><span class="tag assumed">DYING</span> killed when <span class="mono">MWF_real</span> wires in — definition + 6 projections already proved (task #17, design fully written out)</td></tr>
+  <tr><td class="mono">WL_exempt</td><td>exempt whitelist symbols resolve marg-exempt in lp</td><td><span class="tag assumed">per-symbol</span> needs the same TU pins</td></tr>
+  <tr><td class="mono">Hret_call / Hret_ext / Hext_action / Hmwf_ext</td><td>return values never alias Mario’s block; genuine externals don’t touch the action cell / MWF</td><td><span class="tag assumed">named</span> external contract (CompCert externals are axiomatized)</td></tr>
+  <tr><td class="mono">Hrest / Hext / Hstore / Hstoremwf</td><td>wrapper-level: root-body provenance stores + external meminv</td><td><span class="tag assumed">unchanged</span> from the previous capstone</td></tr>
+</table>
+
+<p class="small" style="margin-top:26px">All 29 commits pushed to <span class="mono">master</span>. Verification at every step:
+<span class="mono">pipeline/build.sh</span> · <span class="mono">check_unwired.py</span> (firewall + orphans) ·
+<span class="mono">discipline_check.sh</span> (Print Assumptions on all three capstones) — final state green.</p>
+
+</div></body>
+</html>
