@@ -59,9 +59,15 @@ Definition mem_id (t : ident) (l : list ident) : bool :=
 (* The temp-table invariant.                                               *)
 (* ====================================================================== *)
 
+(* The mptr fact is Vptr-CONDITIONAL (not "the value IS (bm,0)"): marg_ok's
+   non-pointer branch is vacuous, so entry seeding from the exact marg must
+   tolerate a (semantically impossible, body-refuted) non-pointer arg.  Every
+   consumer extracts a Vptr from the execution first (the body's own deref),
+   then pins it here -- so nothing is lost. *)
 Definition TI_of (Q : int -> Prop) (bm : block) (bc : body_census)
     (le : temp_env) : Prop :=
-  (forall v, le ! (bc_mptr bc) = Some v -> v = Vptr bm Ptrofs.zero) /\
+  (forall b o, le ! (bc_mptr bc) = Some (Vptr b o) ->
+     b = bm /\ o = Ptrofs.zero) /\
   (forall t, mem_id t (bc_gates bc) = true ->
      forall vi, le ! t = Some (Vint vi) ->
        Int.and vi (Int.repr 2) = Int.zero) /\
@@ -475,10 +481,10 @@ Section CensusLeavesLp.
     destruct HTI as (Hm & Hgate & Hdisp).
     split; [ | split ].
     - (* the Mario param: never assigned (census) *)
-      intros vv Hlk.
+      intros b o Hlk.
       rewrite PTree.gso in Hlk
         by (intro E; subst id; rewrite Pos.eqb_refl in Hnm; discriminate Hnm).
-      exact (Hm vv Hlk).
+      exact (Hm b o Hlk).
     - (* gate temps *)
       intros t Hmem vi Hlk.
       destruct (Pos.eq_dec t id) as [E|NE].
@@ -486,7 +492,7 @@ Section CensusLeavesLp.
         rewrite Hmem in Hgate_rule. cbn [negb orb] in Hgate_rule.
         pose proof (is_input_load_x_shape _ _ Hgate_rule) as Hshape. subst a.
         destruct (efield_base_vptr lp _ _ _ _ _ _ _ _ Hev) as (pb & po & Hpm).
-        pose proof (Hm _ Hpm) as Hbm. inv Hbm.
+        destruct (Hm _ _ Hpm) as [E1 E2]. subst pb po.
         pose proof (eval_input_load_bm_lp lp LO_mario _ _ _ _ _ _ Hpm Hev)
           as Hload.
         exact (Hinp vi Hload).
@@ -499,7 +505,7 @@ Section CensusLeavesLp.
         rewrite Hmem in Hdisp_rule. cbn [negb orb] in Hdisp_rule.
         pose proof (is_action_load_x_shape _ _ Hdisp_rule) as Hshape. subst a.
         destruct (efield_base_vptr lp _ _ _ _ _ _ _ _ Hev) as (pb & po & Hpm).
-        pose proof (Hm _ Hpm) as Hbm. inv Hbm.
+        destruct (Hm _ _ Hpm) as [E1 E2]. subst pb po.
         pose proof (eval_action_load_bm_lp lp LO_mario _ _ _ _ _ _ Hpm Hev)
           as Hload.
         exact (Hsat vi Hload).
@@ -508,3 +514,120 @@ Section CensusLeavesLp.
   Qed.
 
 End CensusLeavesLp.
+
+(* ====================================================================== *)
+(* Entry seeding: function_entry2 + the EXACT marg_ok establish TI_of for *)
+(* a single-MarioState*-param body.  Gate/dispatch temps are Vundef at     *)
+(* entry (create_undef_temps), so their Vint-conditional facts hold        *)
+(* vacuously; the mptr row comes straight from marg_ok's exact (bm,0).     *)
+(* ====================================================================== *)
+
+Lemma create_undef_temps_Vundef :
+  forall l t v, (create_undef_temps l) ! t = Some v -> v = Vundef.
+Proof.
+  induction l as [| [id ty] l IH]; cbn; intros t v H.
+  - rewrite PTree.gempty in H. discriminate.
+  - destruct (Pos.eq_dec t id) as [E|NE].
+    + subst t. rewrite PTree.gss in H. congruence.
+    + rewrite PTree.gso in H by exact NE. eauto.
+Qed.
+
+Lemma entry_TI_v2 :
+  forall (Q : int -> Prop) (bm : block) (bc : body_census)
+         ge f vargs m e le m1,
+    function_entry2 ge f vargs m e le m1 ->
+    fn_params f = (bc_mptr bc, tptr tyMS) :: nil ->
+    mem_id (bc_mptr bc) (bc_gates bc) = false ->
+    mem_id (bc_mptr bc) (bc_disp bc) = false ->
+    marg_ok bm vargs ->
+    TI_of Q bm bc le.
+Proof.
+  intros Q bm bc ge f vargs m e le m1 Hentry Hparams Hng Hnd Hmarg.
+  inv Hentry.
+  match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+    rewrite Hparams in Hb;
+    destruct vargs as [| v0 [| v1 vs ]]; cbn in Hb; try discriminate Hb;
+    inv Hb end.
+  split; [ | split ].
+  - (* the mptr row: exact marg *)
+    intros b o Hlk. rewrite PTree.gss in Hlk. inv Hlk.
+    exact Hmarg.
+  - (* gate temps: Vundef at entry *)
+    intros t Hmem vi Hlk.
+    destruct (Pos.eq_dec t (bc_mptr bc)) as [E|NE].
+    + subst t. rewrite Hmem in Hng. discriminate Hng.
+    + rewrite PTree.gso in Hlk by exact NE.
+      apply create_undef_temps_Vundef in Hlk. discriminate Hlk.
+  - (* dispatch temps: Vundef at entry *)
+    intros t Hmem vi Hlk.
+    destruct (Pos.eq_dec t (bc_mptr bc)) as [E|NE].
+    + subst t. rewrite Hmem in Hnd. discriminate Hnd.
+    + rewrite PTree.gso in Hlk by exact NE.
+      apply create_undef_temps_Vundef in Hlk. discriminate Hlk.
+Qed.
+
+(* ====================================================================== *)
+(* The first REAL per-body census instances -- checked by computation      *)
+(* over the generated AST (PIPELINE-not-bespoke).  bc_m0 is the trivial    *)
+(* table (the _m param row only; no gate/dispatch temps).  The two         *)
+(* call-free, store-free pure readers among the 17 reached internals       *)
+(* (docs/reachable-internal-graph.md) pass the strict census as-is.        *)
+(* ====================================================================== *)
+
+Definition bc_m0 : body_census :=
+  {| bc_mptr := mario._m; bc_gates := nil; bc_disp := nil |}.
+
+Lemma bc_m0_gates_disjoint : mem_id (bc_mptr bc_m0) (bc_gates bc_m0) = false.
+Proof. reflexivity. Qed.
+
+Lemma bc_m0_disp_disjoint : mem_id (bc_mptr bc_m0) (bc_disp bc_m0) = false.
+Proof. reflexivity. Qed.
+
+Lemma chk_mario_get_floor_class :
+  chk bc_m0 (fn_body mario.f_mario_get_floor_class) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma chk_mario_get_terrain_sound_addend :
+  chk bc_m0 (fn_body mario.f_mario_get_terrain_sound_addend) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma params_mario_get_floor_class :
+  fn_params mario.f_mario_get_floor_class = (bc_mptr bc_m0, tptr tyMS) :: nil.
+Proof. reflexivity. Qed.
+
+Lemma params_mario_get_terrain_sound_addend :
+  fn_params mario.f_mario_get_terrain_sound_addend
+  = (bc_mptr bc_m0, tptr tyMS) :: nil.
+Proof. reflexivity. Qed.
+
+(* The per-body Hbody bricks: exactly the engine leaf's conclusion shape
+   (an index whose table is seeded and whose body passes census). *)
+Lemma body_TI_C_mario_get_floor_class :
+  forall (Q : int -> Prop) bm ge vargs m e le m1,
+    function_entry2 ge mario.f_mario_get_floor_class vargs m e le m1 ->
+    marg_ok bm vargs ->
+    TI_of Q bm bc_m0 le /\
+    chk bc_m0 (fn_body mario.f_mario_get_floor_class) = true.
+Proof.
+  intros Q bm ge vargs m e le m1 Hentry Hmarg.
+  split.
+  - exact (entry_TI_v2 Q bm bc_m0 ge _ vargs m e le m1 Hentry
+             params_mario_get_floor_class bc_m0_gates_disjoint
+             bc_m0_disp_disjoint Hmarg).
+  - exact chk_mario_get_floor_class.
+Qed.
+
+Lemma body_TI_C_mario_get_terrain_sound_addend :
+  forall (Q : int -> Prop) bm ge vargs m e le m1,
+    function_entry2 ge mario.f_mario_get_terrain_sound_addend vargs m e le m1 ->
+    marg_ok bm vargs ->
+    TI_of Q bm bc_m0 le /\
+    chk bc_m0 (fn_body mario.f_mario_get_terrain_sound_addend) = true.
+Proof.
+  intros Q bm ge vargs m e le m1 Hentry Hmarg.
+  split.
+  - exact (entry_TI_v2 Q bm bc_m0 ge _ vargs m e le m1 Hentry
+             params_mario_get_terrain_sound_addend bc_m0_gates_disjoint
+             bc_m0_disp_disjoint Hmarg).
+  - exact chk_mario_get_terrain_sound_addend.
+Qed.
