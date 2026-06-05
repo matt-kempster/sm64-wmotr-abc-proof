@@ -47,7 +47,7 @@ From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame Reacha
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer.
 From SM64.Proofs Require Import MWFReal RestSurface AirborneSurface
   DispatchKit CutsceneSurface AutomaticSurface StationarySurface
-  MovingSurface ObjectSurface SubmergedSurface FloorsSurface.
+  MovingSurface ObjectSurface SubmergedSurface FloorsSurface WarpSurface.
 
 Section NoAImpliesNoFlyLinked.
   (* The linked program -- ABSTRACT, never computed (no OOM). *)
@@ -691,8 +691,8 @@ Section NoARealInputMWF.
      generic walker walk_pres: the body has NO store at all, only reads +
      branches + five leaf calls): PROVED from per-leaf residuals keyed by
      the 4-id census floors_int_ids -- its fifth leaf, level_trigger_warp,
-     is the SAME level_update body as Hpres_warp below (SHARED, not a new
-     residual). *)
+     is the SAME level_update body as the warp surface below (SHARED, not
+     a new residual). *)
   Hypothesis Hpres_floors_callees : forall fid f,
       mem_id fid floors_int_ids = true ->
       (prog_defmap interaction.prog) ! fid = Some (Gfun (Internal f)) ->
@@ -701,8 +701,17 @@ Section NoARealInputMWF.
       interaction.f_mario_process_interactions.
   Hypothesis Hpres_wind : body_pres lp (NoA_real bm) MWF bm
       behavior_actions.f_spawn_wind_particles.
-  Hypothesis Hpres_warp : body_pres lp (NoA_real bm) MWF bm
-      level_update.f_level_trigger_warp.
+  (* the warp trigger is WALKED (WarpSurface.warp_pres: its 33 stores are
+     all window- or stored_globals-class; its one internal callee,
+     music_changed_through_warp, is store-free and walked too): what
+     remains is the marg-free call_pres_ext row for each of its FIVE
+     named external leaves (play_transition / play_sound / fadeout_music /
+     area_get_warp_node / get_current_background_music) -- link-time
+     facts about helpers that never touch Mario's block or the watched
+     cells. *)
+  Hypothesis Hpres_warp_ext : forall fid,
+      mem_id fid warp_ext_ids = true ->
+      call_pres_ext lp bm (NoA_real bm) MWF fid.
   Hypothesis Hret_call : forall fd m0 vargs0 t0 m0' vres0,
       reached_v2 lp fd ->
       eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m0' vres0 ->
@@ -813,8 +822,23 @@ Section NoARealInputMWF.
                    (mwf_real_ctl lp bm bc oc0 SafeB)
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                       Hgms_blk)
-                   Hpres_floors_callees Hpres_warp)
-                Hpres_inter Hpres_wind Hpres_warp)
+                   (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+                   Hpres_floors_callees
+                   (warp_pres lp LO_mario LO_lvl bm (NoA_real bm)
+                      (MWF_real lp bm bc oc0 SafeB)
+                      (mwf_real_ctl lp bm bc oc0 SafeB)
+                      (mwf_real_window lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm Hgms_blk)
+                      (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+                      Hpres_warp_ext))
+                Hpres_inter Hpres_wind
+                (warp_pres lp LO_mario LO_lvl bm (NoA_real bm)
+                   (MWF_real lp bm bc oc0 SafeB)
+                   (mwf_real_ctl lp bm bc oc0 SafeB)
+                   (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                      Hgms_blk)
+                   (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+                   Hpres_warp_ext))
              Hret_call Hret_ext Hext_action Hmwf_ext
              (mwf_real_entry lp bm bc oc0 SafeB Hbc_bm)
              (mwf_real_free lp bm bc oc0 SafeB Hbc_bm)

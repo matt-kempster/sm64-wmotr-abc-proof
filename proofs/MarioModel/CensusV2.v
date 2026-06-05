@@ -37,7 +37,7 @@
 From Coq Require Import ZArith List Lia.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
-From SM64.Generated Require mario.
+From SM64.Generated Require mario level_update.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
   ActionValueFrame RealFrameValue RealFrameLinked AGates.
 
@@ -757,7 +757,15 @@ Definition input_store_ok (bc : body_census) (a1 a2 : expr) : bool :=
    once bm is grounded as gMarioStates' block (distinct global symbols get
    distinct blocks).  The rvalue is unconstrained. ---- *)
 Definition stored_globals : list ident :=
-  mario._gCameraMovementFlags :: nil.
+  mario._gCameraMovementFlags ::
+  (* the level_update warp-delay statics + saved-course global: the warp
+     trigger writes all five (WarpSurface); each is a static data symbol
+     whose block is bm/bc/SafeB-disjoint per Hglob_blk. *)
+  level_update._sDelayedWarpOp ::
+  level_update._sDelayedWarpArg ::
+  level_update._sDelayedWarpTimer ::
+  level_update._sSourceWarpNodeId ::
+  level_update._gSavedCourseNum :: nil.
 
 Definition global_store_ok (bc : body_census) (a1 : expr) : bool :=
   match a1 with
