@@ -701,6 +701,11 @@ Section NoARealInputMWF.
   Hypothesis Hpres_obj_ext : forall fid,
       mem_id fid obj_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
+  (* perform_ground_step (fn_vars <> nil: the walker cannot enter it
+     yet) -- the named internal blocker consumed by sgs_row inside the
+     B3 leaf discharge; dischargeable by an object-pool-aware walk *)
+  Hypothesis Hcp_pgs :
+    call_pres lp bm (NoA_real bm) MWF mario_step._perform_ground_step.
   (* the special-floors body is WALKED (FloorsSurface.floors_pres via the
      generic walker walk_pres: the body has NO store at all, only reads +
      branches + five leaf calls): PROVED from per-leaf residuals keyed by
@@ -830,7 +835,7 @@ Section NoARealInputMWF.
                    (mwf_real_ctl lp bm bc oc0 SafeB)
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                       Hgms_blk Hgtimer_blk)
-                   (object_callees_pres lp LO_mario LO_stp LO_int bm
+                   (object_callees_pres lp LO_mario LO_stp LO_int LO_obj bm
                       (NoA_real bm)
                       (MWF_real lp bm bc oc0 SafeB)
                       (mwf_real_ctl lp bm bc oc0 SafeB)
@@ -850,13 +855,17 @@ Section NoARealInputMWF.
                       (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm
                          HSafeB_not_bm HSafeB_not_bc Hgms_blk
                          Hgtimer_blk)
+                      (Hpres_obj_ext mario._play_sound eq_refl)
                       (Hpres_obj_ext mario._vec3s_set eq_refl)
+                      (Hpres_obj_ext mario_step._vec3f_copy eq_refl)
                       (Hpres_obj_ext mario._set_camera_mode eq_refl)
                       (Hpres_obj_ext interaction._segmented_to_virtual
                          eq_refl)
                       (Hpres_obj_ext interaction._stop_shell_music eq_refl)
                       (Hpres_obj_ext interaction._obj_set_held_state
                          eq_refl)
+                      (Hpres_obj_ext mario._load_patchable_table eq_refl)
+                      Hcp_pgs
                       Hpres_obj_callees)
                    Hpres_qsand)
                 (floors_pres lp LO_mario LO_int LO_lvl bm (NoA_real bm)
