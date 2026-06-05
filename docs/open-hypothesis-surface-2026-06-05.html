@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The open hypothesis surface, v2 — where GOAL 1 stands on 2026-06-05</title>
+<style>
+  :root{
+    --bg:#ffffff; --panel:#f6f8fa; --panel2:#eef1f4; --ink:#1f2328; --dim:#59636e;
+    --line:#d8dee4; --kw:#cf222e; --id:#0550ae; --ty:#8250df; --lit:#0a3069;
+    --com:#6e7781; --green:#1a7f37; --greenbg:#dafbe1; --amber:#9a6700; --amberbg:#fff8c5;
+    --red:#cf222e; --redbg:#ffebe9; --blue:#0969da;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:1080px;margin:0 auto;padding:40px 24px 120px;}
+  h1{font-size:30px;line-height:1.2;margin:0 0 6px;}
+  h2{font-size:23px;margin:54px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--line);}
+  h3{font-size:18px;margin:30px 0 8px;color:var(--id);}
+  .sub{color:var(--dim);font-size:17px;margin:0 0 28px;}
+  p{margin:12px 0;}
+  code,pre,.mono{font-family:"SF Mono",ui-monospace,"Cascadia Code",Menlo,Consolas,monospace;}
+  code{background:var(--panel2);padding:1px 5px;border-radius:4px;font-size:13.5px;}
+  pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;
+    overflow-x:auto;font-size:13px;}
+  a{color:var(--id);}
+  .lead{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--blue);
+    border-radius:8px;padding:18px 20px;margin:22px 0;}
+  .kw{color:var(--kw)} .id{color:var(--id)} .ty{color:var(--ty)} .lit{color:var(--lit)} .com{color:var(--com)}
+  .pill{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    padding:2px 8px;border-radius:999px;vertical-align:middle;}
+  .p-real{background:var(--greenbg);color:#0f5323;border:1px solid #aceebb;}
+  .p-open{background:var(--amberbg);color:#7d5300;border:1px solid #eac54f;}
+  .p-false{background:var(--redbg);color:#a40e26;border:1px solid #ff9492;}
+  .p-trust{background:#ddf4ff;color:#0a3069;border:1px solid #80ccff;}
+  .p-gone{background:#dafbe1;color:#0f5323;border:1px solid #aceebb;text-decoration:none;}
+  .score{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;}
+  .score th,.score td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  .score th{background:var(--panel2);font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--dim);}
+  .score td.m{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;}
+  .verdict{border-radius:8px;padding:16px 18px;margin:16px 0;}
+  .v-yes{background:var(--greenbg);border:1px solid #aceebb;}
+  .v-no{background:var(--redbg);border:1px solid #ff9492;}
+  .v-warn{background:var(--amberbg);border:1px solid #eac54f;}
+  ul,ol{margin:12px 0;padding-left:22px;} li{margin:6px 0;}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--dim);margin:14px 0 0;}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .sw{width:13px;height:13px;border-radius:3px;display:inline-block;}
+  .hyp{border:1px solid var(--line);border-left:4px solid var(--amber);border-radius:8px;
+    padding:14px 18px;margin:18px 0;background:var(--panel);}
+  .hyp.green{border-left-color:var(--green);}
+  .hyp.blue{border-left-color:var(--blue);}
+  .hyp.red{border-left-color:var(--red);}
+  .hyp .hname{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:15px;font-weight:700;}
+  .hyp .meta{font-size:13px;color:var(--dim);margin:2px 0 8px;}
+  .phase{border:1px solid var(--line);border-radius:10px;padding:16px 20px;margin:16px 0;background:var(--panel);}
+  .phase .ph{font-weight:700;font-size:16px;}
+  .phase .pd{font-size:14px;color:var(--dim);margin-top:2px;}
+  del{color:var(--dim);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>The open hypothesis surface, v2 — where GOAL&nbsp;1 stands on 2026-06-05</h1>
+<p class="sub">The complete inventory of what
+<code>noA_no_spawn_never_flying_real_mwf</code> — the live, MWF-grounded GOAL-1 capstone —
+rests on as of 2026-06-05 (commit <code>f0f51fa</code>), <strong>the diff against the
+2026-06-03 surface</strong> documented in
+<a href="open-hypothesis-surface.html">open-hypothesis-surface.html</a>, and the roadmap
+to the finished theorem. If an assumption is not on this page, the capstone does not
+make it.</p>
+
+<div class="lead">
+<strong>The two-day headline.</strong> The 2026-06-03 page's center of gravity was
+<strong>H1 <code>Hreach_val</code> — “THE CRUX”</strong> — one monolithic per-funcall
+hypothesis hiding 20 sub-leaves, 4 of them <em>flagged as unprovable as stated</em>
+(phantom <code>forall</code>s), over an <em>abstract</em> invariant <code>MWF</code> and
+<em>abstract</em> reached sets. <strong>That hypothesis no longer exists.</strong> The
+invariant-aware engine v2 was built and its contract <em>proved</em>; the reached set is a
+concrete computed census; <code>MWF</code> is a <em>definition</em>
+(<code>MWF_real</code>: nine rows over the real memory layout) whose 14 stability
+obligations are all <code>Qed</code>; all <strong>seven dispatch handlers have been walked
+through their real 400–1500-line bodies</strong>; and 4 of the 5 flagged phantoms are
+resolved by proof (the dispatch kills, the A-gate kills, the value-aware writer keystone).
+What remains is no longer one opaque crux but a <strong>flat, finite, per-symbol
+surface</strong>: ~234 leaf-callee bodies in eight named censuses, 3 named single bodies,
+10 named externals, 12 link-order pins, 6 block-distinctness statics, and the same 4
+wrapper rows (one still honestly flagged). Same axiom floor (7 standard axioms), same
+zero-<code>Admitted</code> discipline, audit-clean at <code>f0f51fa</code>.</div>
+
+<div class="legend">
+  <span><span class="sw" style="background:#dafbe1;border:1px solid #aceebb"></span> proved / discharged</span>
+  <span><span class="sw" style="background:#fff8c5;border:1px solid #eac54f"></span> open — true/satisfiable, to be proved</span>
+  <span><span class="sw" style="background:#ffebe9;border:1px solid #ff9492"></span> flagged — needs restatement before it can be proved</span>
+  <span><span class="sw" style="background:#ddf4ff;border:1px solid #80ccff"></span> trust base — outside the formal system</span>
+</div>
+
+<h2>1 · The theorem today, and what changed about its <em>shape</em></h2>
+
+<p>The live capstone (<code>proofs/NoAImpliesNoFly/NoAImpliesNoFlyLinked.v</code>, Section
+<code>NoARealInputMWF</code>) — same conclusion as before, sharper carried invariant:</p>
+
+<pre><span class="kw">Theorem</span> <span class="id">noA_no_spawn_never_flying_real_mwf</span> :
+  <span class="kw">forall</span> (init : <span class="ty">mem</span>) (is : <span class="ty">list mem</span>) (m : <span class="ty">mem</span>),
+    mem_ok_lp lp bm (MWF_real lp bm bc oc0 SafeB) init -&gt;  <span class="com">(* P1: CONCRETE, checkable *)</span>
+    Forall (<span class="kw">fun</span> i =&gt; a_pressed_real bm i = <span class="lit">false</span>) is -&gt;    <span class="com">(* P2: A-bit never set *)</span>
+    Forall (<span class="kw">fun</span> i =&gt; spawn_flying i = <span class="lit">false</span>) is -&gt;         <span class="com">(* P3: no flying spawn-warp *)</span>
+    reachable mem mem (step_real lp) init is m -&gt;           <span class="com">(* P4: real frames over lp *)</span>
+    ~ mem_flying_lp bm m.</pre>
+
+<p>Four capstone theorems now nest, each consuming the previous, each <code>Qed</code>:
+the abstract-input <code>…_lp</code>, the grounded <code>…_real</code> (the 06-03 page's
+root), the engine-v2 <code>…_real_v2</code> (concrete reached set, proved engine
+contract), and the binding root <code>…_real_mwf</code> (concrete invariant). The key
+structural change: <strong><code>MWF</code> is no longer a free variable the theorem is
+“only as strong as”</strong> — it is <code>MWFReal.MWF_real lp bm bc oc0 SafeB</code>,
+nine rows over the real clightgen'd layout (input halfword @2, action word @12,
+controller pointer @156, controller button halfword @+18, chase-root cells @136/148/152,
+<code>gMarioState</code>'s cell, SafeB load-closure, <code>gGlobalTimer</code>'s cell),
+every load row conditional, and the start condition <code>mem_ok_lp … init</code> is a
+checkable property of one concrete memory.</p>
+
+<p>The run machinery the capstone consumes — run induction, input grounding
+(<code>input_grounds_noA</code> <em>proved</em>), the real frame wrapper over
+<code>lp</code>, the taint invariant (action ∉ T = {FLYING, FLYING_TRIPLE_JUMP,
+SHOT_FROM_CANNON}), the complete T-entry census (6 feeders, 0 raw stores), the gate
+semantics, the six per-site A-gate kills, the seven dispatcher walks, the
+<code>set_mario_action</code> writer keystone — is all <code>Qed</code> on the spine,
+resting on the §2 floor.</p>
+
+<h2>2 · Layer 0 — the axiom floor (unchanged: the same 7)</h2>
+
+<pre>Classical_Prop.classic                          <span class="com">(* classical logic *)</span>
+FunctionalExtensionality.functional_extensionality_dep
+Axioms.proof_irr                                <span class="com">(* CompCert linking metatheory *)</span>
+ClassicalDedekindReals.sig_not_dec
+ClassicalDedekindReals.sig_forall_dec
+Events.external_functions_sem                   <span class="com">(* CompCert's abstract external-call model *)</span>
+Events.inline_assembly_sem</pre>
+
+<p>Identical to the 06-03 page (§2 there): five classical/extensionality standards plus
+CompCert's abstract external-call model. Re-verified by the discipline audit at
+<code>f0f51fa</code> (2026-06-05): all four capstones rest on exactly these, zero
+<code>Admitted</code>/<code>Axiom</code> in the tree, structure firewall clean.</p>
+
+<h2>3 · The complete current open surface — every hypothesis of the live section</h2>
+
+<p>Section <code>NoARealInputMWF</code> declares <strong>6 variables and 41 hypotheses</strong>;
+the capstone proof consumes exactly these. They fall into seven classes. Nothing is
+elided — class sizes are exact, and the per-id censuses are named, finite,
+<code>vm_compute</code>-checked lists.</p>
+
+<div class="hyp blue">
+<div class="hname">Variables: lp · bm · bc · oc0 · SafeB · spawn_flying</div>
+<div class="meta">what is still abstract — and why that is the right shape</div>
+<p><code>lp</code> (the linked program) awaits its witness (§3.2). <code>bm</code>
+(Mario's struct block), <code>bc</code>/<code>oc0</code> (the controller struct's
+block/offset), and <code>SafeB</code> (the set of blocks the pointer chase can reach) are
+<em>universally quantified and pinned per-run</em> by P1's pointer-cell rows —
+<code>gMarioState</code> has <code>gvar_init = nil</code>, so these are runtime blocks; a
+specific block number would be <em>wrong</em>, not stronger. <code>spawn_flying</code>
+remains the permanent modeling variable for the level-script T-feeder outside the frame
+(unchanged from 06-03 §3). <strong>Gone from this list since 06-03:</strong>
+<code>MWF</code>, <code>reached_id</code>, <code>reached_fd</code> — all three
+instantiated concretely.</p>
+</div>
+
+<div class="hyp">
+<div class="hname">3.1 · Six block-distinctness statics&nbsp;&nbsp;<span class="pill p-open">open — per-symbol, init-time</span></div>
+<div class="meta">Hbc_bm · HSafeB_not_bm · HSafeB_not_bc · Hgms_blk · Hglob_blk · Hgtimer_blk</div>
+<pre>Hbc_bm        : bc &lt;&gt; bm
+HSafeB_not_bm : forall b, SafeB b -&gt; b &lt;&gt; bm
+HSafeB_not_bc : ~ SafeB bc
+Hgms_blk      : find_symbol _gMarioState  = Some gb -&gt; gb&lt;&gt;bm /\ gb&lt;&gt;bc /\ ~SafeB gb
+Hglob_blk     : gid ∈ stored_globals -&gt; find_symbol gid = Some bg -&gt; (ditto)
+Hgtimer_blk   : find_symbol _gGlobalTimer = Some gb -&gt; (ditto)</pre>
+<p>Static-layout facts: genv symbol blocks are distinct from the runtime struct blocks the
+globals point <em>into</em>, and the chase set avoids Mario's and the controller's blocks.
+These replace the 06-03 page's open-ended “instantiate MWF with block-distinctness
+geometry” item — the geometry is now <em>these six named lines</em>, dischargeable from
+the run's initialization (globals get distinct genv blocks at <code>Genv.init_mem</code>;
+<code>SafeB</code> is chosen per-run as the chase closure).</p>
+</div>
+
+<div class="hyp">
+<div class="hname">3.2 · The link surface&nbsp;&nbsp;<span class="pill p-open">open — one witness, 13 corollaries</span></div>
+<div class="meta">LO_mario + LO_sta/mov/air/sub/cut/aut/obj/int/beh/lvl/stp (12 linkorder pins) + Hrest_ext_only</div>
+<p>Twelve <code>linkorder TU.prog lp</code> pins (the 06-03 page predicted exactly this:
+“Phase B will additionally need <code>linkorder tu.prog lp</code> for the other 11 TUs —
+all corollaries of the same witness”), plus the negative pin
+<code>Hrest_ext_only</code> (the exempt whitelist + the music helper resolve to
+<em>External</em> in <code>lp</code>, i.e. no other TU smuggles in an Internal body).
+All 13 fall out of one symbolic link witness
+<code>link mario.prog … = Some lp</code> (the <code>SymbolicLinking.v</code> template —
+never normalize the result; the <code>vm_compute</code> route OOMs).</p>
+</div>
+
+<div class="hyp">
+<div class="hname">3.3 · THE working surface: eight per-TU leaf-callee censuses&nbsp;&nbsp;<span class="pill p-open">open — ~234 finite, named leaf bodies</span></div>
+<div class="meta">Hpres_sta/mov/air/sub/cut/aut/obj/floors_callees — the shape every row shares:</div>
+<pre><span class="kw">Hypothesis</span> Hpres_air_callees : <span class="kw">forall</span> fid f,
+    mem_id fid airborne_callee_ids = <span class="lit">true</span> -&gt;
+    (prog_defmap mario_actions_airborne.prog) ! fid = Some (Gfun (Internal f)) -&gt;
+    body_pres lp (NoA_real bm) MWF bm f.</pre>
+<p>This is what the 06-03 crux <em>decomposed into</em>. Each dispatcher's whole-body
+residual is <strong>proved</strong> (the seven dispatcher walks + DispatchKit); what
+remains is its callee census — every <code>fid</code> a <em>named identifier</em>, every
+body THE real clightgen'd AST pinned by <code>prog_defmap</code>:
+<strong>stationary 37 · moving 39 · airborne 43 · submerged 33 · cutscene 51 ·
+automatic 17 · object 10 (was 11 — <code>check_common_object_cancels</code>' whole tree
+is discharged) · floors 4</strong>. The three T handlers are <em>not</em> in any census —
+they are dead code under the proved dispatch kills. Heavy sharing: tiny act bodies
+dominate, common helpers (<code>set_mario_action</code> family,
+<code>set_mario_animation</code>, the step functions) appear behind many leaves, and the
+generic walkers (<code>walk_pres</code>, <code>wwalk_pres</code> + the chase/act/window
+store bricks) discharge a leaf in tens of lines. The
+<code>set_mario_action</code> <strong>keystone is already proved</strong> — the row every
+act leaf needs first.</p>
+</div>
+
+<div class="hyp">
+<div class="hname">3.4 · Three named single bodies + one whitelist&nbsp;&nbsp;<span class="pill p-open">open</span></div>
+<div class="meta">Hpres_qsand · Hpres_inter · Hpres_wind · WL_exempt</div>
+<ul>
+<li><code>Hpres_qsand</code> — <code>mario_update_quicksand</code> (mario_step TU), the one
+out-of-TU prologue helper three dispatchers share.</li>
+<li><code>Hpres_inter</code> — <code>mario_process_interactions</code>: the one body with an
+indirect call through the <code>sInteractionHandlers</code> <em>const table</em>; needs the
+const-table resolution row (a finite 32-entry table read).</li>
+<li><code>Hpres_wind</code> — <code>spawn_wind_particles</code> (behavior_actions TU): writes
+through the object <em>pool</em>; needs the pool blocks inside <code>SafeB</code>.</li>
+<li><code>WL_exempt</code> — the marg-exempt whitelist (<code>vec3f</code>-style
+interior-pointer helpers) resolves to exempt fundefs: per-symbol resolution, same kit as
+§3.2.</li>
+</ul>
+</div>
+
+<div class="hyp blue">
+<div class="hname">3.5 · Ten named externals&nbsp;&nbsp;<span class="pill p-trust">trust-adjacent (the H3 caveat, now itemized)</span></div>
+<div class="meta">Hpres_obj_ext (5 ids) · Hpres_warp_ext (5 ids) · Hext_action · Hmwf_ext · Hret_ext · Hext</div>
+<p>The object-family externals (<code>vec3s_set</code>, <code>set_camera_mode</code>,
+<code>segmented_to_virtual</code>, <code>stop_shell_music</code>,
+<code>obj_set_held_state</code>) and the warp-trigger externals
+(<code>play_transition</code>, <code>play_sound</code>, <code>fadeout_music</code>,
+<code>area_get_warp_node</code>, <code>get_current_background_music</code>) — each a
+named <code>call_pres_ext</code> row: “this helper, which is External in every generated
+TU (verified), does not write Mario's block or the watched cells.” Plus the four generic
+external rows (<code>Hext</code>/<code>Hext_action</code>/<code>Hmwf_ext</code>/<code>Hret_ext</code>).
+The 06-03 page's H3 verdict stands: CompCert's external-call axioms cannot bound writes
+to writable memory, so these end as <em>quarantined per-named-external purity
+assumptions</em> — or get eliminated by linking those bodies too. Progress since 06-03:
+the blanket claim is now itemized per symbol, which is exactly the quarantine shape.</p>
+</div>
+
+<div class="hyp">
+<div class="hname">3.6 · Two return-value rows&nbsp;&nbsp;<span class="pill p-open">open (Hret_call) / trust-adjacent (Hret_ext)</span></div>
+<div class="meta">no reached call returns a pointer into bm</div>
+<pre>Hret_call : reached_v2 lp fd -&gt; eval_funcall … fd … vres -&gt; vres = Vptr b o -&gt; b &lt;&gt; bm</pre>
+<p>The 06-03 leaves #8/#9, unchanged in content, now stated over the <em>concrete</em>
+<code>reached_v2</code>. Discharge: the reached bodies return scalars or chase pointers
+(SafeB ∌ bm) — the walker's return-value arm already tracks this per body; it falls out
+of the §3.3 grind.</p>
+</div>
+
+<div class="hyp red">
+<div class="hname">3.7 · The four wrapper rows&nbsp;&nbsp;<span class="pill p-open">3 open</span> <span class="pill p-false">1 still flagged</span></div>
+<div class="meta">Hrest (flagged) · Hstore · Hstoremwf · (Hext counted in 3.5)</div>
+<p><code>Hrest : reach_rest_marg_lp lp bm (NoA_real bm)</code> — <strong>the one surviving
+phantom</strong>: it still quantifies over <em>every</em> <code>fd</code> (06-03's H2 flag,
+verbatim). Plan unchanged: restate reached-gated, then it follows from the same census
+walk. <code>Hstore</code>/<code>Hstoremwf</code> — the root body's two censused
+Object-pointer stores preserve <code>NoA_real</code>/MWF. <em>Newly attackable:</em> the
+06-03 page said these “cannot be attacked until MWF is instantiated” — it now is, and
+<code>MWF_real</code>'s chase rows + the six statics are precisely the geometry they
+need.</p>
+</div>
+
+<h2>4 · The diff — every 06-03 row, and what happened to it</h2>
+
+<p>The completeness contract of the diff: every row of the old page's §8 scoreboard
+appears below with its fate. <span class="pill p-gone">eliminated</span> = no longer
+assumed by the live capstone (proved, instantiated, or decomposed into named finite
+rows already counted in §3).</p>
+
+<table class="score">
+<tr><th>06-03 surface item</th><th>fate</th><th>what happened (the specific thing that got more real)</th></tr>
+<tr><td class="m">7 axioms</td><td><span class="pill p-trust">unchanged</span></td><td>same floor, re-verified at <code>f0f51fa</code></td></tr>
+<tr><td class="m">lp + LO_mario</td><td><span class="pill p-open">sharpened</span></td><td>still the one un-exhibited witness — but its consumption is now explicit: 12 LO_* pins + the negative pin (§3.2), each a corollary of the single witness</td></tr>
+<tr><td class="m">bm</td><td><span class="pill p-real">unchanged</span></td><td>no obligation (pinned per-run by P1)</td></tr>
+<tr><td class="m">MWF (abstract variable)</td><td><span class="pill p-gone">eliminated</span></td><td><strong>instantiated</strong>: <code>MWF_real</code>, 9 concrete rows over the real layout; its 14 v2-section stability/projection hypotheses ALL PROVED (<code>MWFReal.v</code>); residue = the 6 statics of §3.1 + the new pinned-per-run variables bc/oc0/SafeB</td></tr>
+<tr><td class="m">reached_id · reached_fd</td><td><span class="pill p-gone">eliminated</span></td><td><strong>instantiated</strong>: concrete <code>root_RID</code>/<code>reached_v2</code> computed from the real call graph (CensusV2.v)</td></tr>
+<tr><td class="m">spawn_flying</td><td><span class="pill p-trust">unchanged</span></td><td>permanent modeling variable (level script outside the frame)</td></tr>
+<tr><td class="m">H1 Hreach_val — “THE CRUX”</td><td><span class="pill p-gone">eliminated</span></td><td><strong>the engine-v2 contract is PROVED</strong> (<code>EngineV2Consumer</code>, promoted to spine; capstone swap commit <code>2dbc110</code>): the per-funcall preservation now <em>follows</em> from the §3.3 censuses instead of being assumed</td></tr>
+<tr><td class="m">H2 Hrest</td><td><span class="pill p-false">still flagged</span></td><td>the one survivor of the five 06-03 flags — see §3.7</td></tr>
+<tr><td class="m">H3 Hext</td><td><span class="pill p-trust">itemized</span></td><td>same trust verdict, now split into 10 named external symbols + 4 generic rows (§3.5) — the quarantine shape the old page prescribed</td></tr>
+<tr><td class="m">H4 Hstore · H5 Hstoremwf</td><td><span class="pill p-open">unblocked</span></td><td>unchanged statements; the blocker (“needs the MWF witness / bc geometry”) is gone — <code>MWF_real</code> + Hbc_bm supply it</td></tr>
+<tr><td class="m">H6 Hbcr (call resolution)</td><td><span class="pill p-gone">eliminated</span></td><td>PROVED — censused callee-tabling + per-symbol resolution (<code>Hcall_resolves</code> discharge)</td></tr>
+<tr><td class="m">H7 Hbodyrck (root census)</td><td><span class="pill p-gone">eliminated</span></td><td>PROVED — <code>vm_compute</code> over the real root body once the reached set went concrete</td></tr>
+<tr><td class="m">leaf #1 Hbody (per-function census)</td><td><span class="pill p-open">transformed</span></td><td>became §3.3 — the per-TU censuses; the 7 dispatcher whole-body walks are PROVED, so the obligation is now per-LEAF, with the walker toolkit built</td></tr>
+<tr><td class="m">leaf #2 Hassign (certified stores)</td><td><span class="pill p-gone">eliminated</span></td><td>PROVED — the window/global/indexed/action/chase/root-store bricks + <code>MWF_real</code> store rows</td></tr>
+<tr><td class="m">leaf #3 Hcallmarg</td><td><span class="pill p-gone">eliminated</span></td><td>PROVED — marg EXACTNESS (arg0 = <code>(bm,0)</code> threaded through every censused call)</td></tr>
+<tr><td class="m">leaf #4 Hexempt</td><td><span class="pill p-open">narrowed</span></td><td>now <code>WL_exempt</code> (§3.4): per-symbol whitelist resolution, no semantic content left</td></tr>
+<tr><td class="m">leaves #5–7 (TI rows)</td><td><span class="pill p-gone">eliminated</span></td><td>PROVED — TI := the temp-provenance invariant (TAT), all three Sset/call/builtin rows</td></tr>
+<tr><td class="m">leaf #8 Hret_call</td><td><span class="pill p-open">unchanged</span></td><td>§3.6, now over concrete <code>reached_v2</code></td></tr>
+<tr><td class="m">leaf #9 Hret_builtin</td><td><span class="pill p-trust">unchanged</span></td><td>= <code>Hret_ext</code> (§3.5–3.6)</td></tr>
+<tr><td class="m">leaf #10 Hcall_reached</td><td><span class="pill p-gone">eliminated</span></td><td>PROVED — same resolution kit as H6</td></tr>
+<tr><td class="m">leaf #11 Hw — forall-vargs writer phantom <span class="pill p-false">was flagged</span></td><td><span class="pill p-gone">eliminated</span></td><td><strong>the ActWriter keystone</strong>: <code>smact_pres</code> — the real <code>set_mario_action</code> body walked value-aware (the wact census tracks the actual stored action values; T-values never reach it under no-A) + the 4 sub-setters; the exact payoff the old page predicted</td></tr>
+<tr><td class="m">leaves #12–13 (ext action/MWF)</td><td><span class="pill p-trust">unchanged</span></td><td>= <code>Hext_action</code>/<code>Hmwf_ext</code> (§3.5)</td></tr>
+<tr><td class="m">leaf #14 Hmwf_unch</td><td><span class="pill p-gone">eliminated</span></td><td>moot — MWF is concrete; its stability is proved row by row, not assumed</td></tr>
+<tr><td class="m">leaf #15 Hnoaexec — forall-s phantom <span class="pill p-false">was flagged</span></td><td><span class="pill p-gone">eliminated</span></td><td>resolved by the census walks + <code>MWF_real</code>'s R1/R3 input rows + the umbi bridge (<code>update_mario_button_inputs</code> under <code>ctl_a_clear</code> leaves the A-bit clear)</td></tr>
+<tr><td class="m">leaf #16 Hnoaentry</td><td><span class="pill p-gone">eliminated</span></td><td>PROVED — <code>function_entry2</code> allocates fresh blocks</td></tr>
+<tr><td class="m">leaves #17/#19 (census structure)</td><td><span class="pill p-gone">eliminated</span></td><td>consumed by the engine-v2 induction</td></tr>
+<tr><td class="m">leaf #18 HCif — A-gate phantom <span class="pill p-false">was flagged</span></td><td><span class="pill p-gone">eliminated</span></td><td><strong>the six-site kill set</strong> (AGates.v): dispatch no-T-entry, cannon fire, the 3 sjfl callers, the clc indirect site, the umbi input write — every A-gated THEN branch proved dead under <code>ctl_a_clear</code></td></tr>
+<tr><td class="m">leaf #20 HCsw — dispatch-selector phantom <span class="pill p-false">was flagged</span></td><td><span class="pill p-gone">eliminated</span></td><td>the invariant-aware switch rule consumed at <strong>all seven</strong> dispatchers (the 06-03 page had it proved at one); the three T handlers are dead code in every census</td></tr>
+<tr><td class="m">P1–P4 preconditions</td><td><span class="pill p-real">sharpened</span></td><td>same statement; P1 is now <em>checkable</em> (concrete <code>MWF_real</code>) — the satisfiability-witness TODO stands</td></tr>
+<tr><td class="m">T1–T5 trust base</td><td><span class="pill p-trust">unchanged</span></td><td>clightgen fidelity · decomp fidelity · ppc32/N64 model · statement-meaning · frame scope</td></tr>
+</table>
+
+<p><strong>Scorecard of the diff:</strong> of the old page's 12 layer-1/2 rows, 5 are
+eliminated outright, 3 sharpened/unblocked, 2 unchanged-by-design, 2 trust-side. Of the
+20 crux sub-leaves, <strong>13 eliminated</strong> (proved or moot), 2 transformed into
+the present working surface, 2 open, 3 trust-adjacent. Of the <strong>5 flagged
+phantoms, 4 are resolved by proof</strong> — only <code>Hrest</code>'s forall-fd remains,
+with a known mechanical restatement. The price of all this: the surface moved from “few
+big vague rows” to “many small exact rows” — 41 hypotheses, but every one per-symbol,
+finite, and about a named generated-AST object. That trade is the proof-discipline
+definition of progress (refine, never collapse).</p>
+
+<h2>5 · Roadmap — from here to the unconditional theorem</h2>
+
+<div class="phase"><div class="ph">Phase L — the leaf grind (the bulk; fully tooled; in progress <em>now</em>)</div>
+<div class="pd">empties §3.3 + §3.4 + §3.6-open · no new machinery needed for ~90% of it</div>
+<ul>
+<li><strong>In flight (B4/B3):</strong> the <code>set_mario_animation</code> row (chase-step
+walker arm + pointer-chase store + the N64 dead-mask store proved dead-code) → the
+<code>animated_stationary_ground_step</code> row → <strong>six object leaves discharge at
+once</strong> (dive_picking_up, stomach_slide, placing_down, throwing, heavy_throw,
+releasing_bowser): object census 10 → 4.</li>
+<li>Iterate per census, smallest first (floors 4, automatic 17 …), always via the generic
+walkers; every slice must shrink a spine census (the standing rule). Shared helpers
+collapse many leaves at once — the <code>set_mario_action</code> keystone alone unblocks
+every action-setting leaf.</li>
+<li>Known lumps with named plans: <code>perform_ground_step</code> (<code>fn_vars ≠ nil</code>
+— the walker needs a vars-aware entry), <code>Hpres_inter</code> (const-table row),
+<code>Hpres_wind</code> (object-pool blocks into SafeB), <code>Hret_call</code> (falls out
+of the walks' return arm).</li></ul></div>
+
+<div class="phase"><div class="ph">Phase R — kill the last phantom</div>
+<div class="pd">restate <code>Hrest</code> reached-gated, walk it with the same engine — deletes the only red row (§3.7)</div></div>
+
+<div class="phase"><div class="ph">Phase S — the root's two stores</div>
+<div class="pd">discharge <code>Hstore</code>/<code>Hstoremwf</code> against <code>MWF_real</code>'s chase rows + <code>Hbc_bm</code> — now unblocked, mechanical</div></div>
+
+<div class="phase"><div class="ph">Phase W — the link witness</div>
+<div class="pd">exhibit <code>link mario.prog … = Some lp</code> symbolically (SymbolicLinking template, never normalize) → the 12 LO_* pins, <code>Hrest_ext_only</code>, <code>WL_exempt</code>, and §3.1's symbol-block facts become corollaries/computations · plus one concrete <code>init</code> memory witnessing P1's satisfiability (non-vacuity exhibit)</div></div>
+
+<div class="phase"><div class="ph">Phase X — the external ledger</div>
+<div class="pd">quarantine §3.5 as per-named-external purity rows on the blue (trust) side — or link those bodies and delete them · this is a <em>decision</em>, not a difficulty</div></div>
+
+<div class="phase"><div class="ph">End state of GOAL 1</div>
+<div class="pd">capstone surface = 7 axioms + T1–T5 trust base + the named-external purity ledger + P1–P4 · everything amber on this page proved · then GOAL 2 (<code>WMotRRequiresA/</code>, untouched) begins</div></div>
+
+<h2>6 · Honest bottom line</h2>
+
+<div class="verdict v-warn"><strong>What is proved</strong> (all <code>Qed</code>, 7
+standard axioms, audit-clean): the four nested capstones; the run induction and input
+grounding; the real frame over the linked program; the concrete <code>MWF_real</code>
+invariant with all 14 stability obligations; the engine-v2 per-funcall contract that
+<em>replaced</em> the old crux hypothesis; the complete T-entry census and all six A-gate
+kills; all seven dispatcher body walks; the <code>set_mario_action</code> writer keystone
+and its first consumed leaf tree. <strong>What is assumed</strong>: the 41 rows of §3 —
+one link witness (13 rows), six init-time statics, ~234 censused leaf bodies + 3 named
+bodies + 1 whitelist, ten named externals + 4 generic external rows (the permanent
+trust-ledger candidates), two return rows, and three wrapper rows of which exactly one
+(<code>Hrest</code>) still needs restatement before proof. <strong>What changed since
+06-03</strong>: the crux and 13 of its 20 leaves are gone, all three abstract
+instantiations landed, and 4 of 5 flagged phantoms are resolved — the remaining distance
+is wide but <em>shallow</em>: a finite grind with built tools, not an open research
+question. The honest caveats are unchanged: the external-call ledger will end as named
+trust assumptions unless those bodies are linked; the frame models
+<code>execute_mario_action</code>, not the whole game loop (T5); and GOAL 2 has not
+started.</div>
+
+<p style="color:var(--dim);font-size:13px">Predecessor: <a href="open-hypothesis-surface.html">open-hypothesis-surface.html</a> (2026-06-03, commit 0df38d0) · this page: 2026-06-05, commit f0f51fa (B4 act-writer slice in flight, uncommitted) · sources: <code>NoAImpliesNoFlyLinked.v</code> Section <code>NoARealInputMWF</code> (the 41 hypotheses read off the section verbatim), <code>MWFReal.v</code>, <code>RestSurface.v</code>, the seven <code>*Surface.v</code> dispatcher files, <code>ActWriterSurface.v</code>, <code>Taint.v</code>/<code>AGates.v</code>, <code>discipline_check.sh</code> output at f0f51fa.</p>
+
+</div>
+</body>
+</html>

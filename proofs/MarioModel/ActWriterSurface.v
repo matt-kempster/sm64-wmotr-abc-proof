@@ -553,6 +553,49 @@ Definition root_rhs_ok (cact : list ident) (a2 : expr) : bool :=
 Definition root_store_chk (cact : list ident) (a1 a2 : expr) : bool :=
   chase_root_chk a1 && root_rhs_ok cact a2.
 
+(* the chase-STEP Sset source: a POINTER field loaded through a censused
+   chase temp (`targetAnim = m->animList->bufTarget`).  The loaded value
+   is SafeB-if-a-pointer by MWF R7 (SafeB is load-closed). *)
+Definition chase_step_chk (cact : list ident) (a : expr) : bool :=
+  match a with
+  | Efield (Ederef (Etempvar t1 (Tpointer _ _)) (Tstruct _ _)) _
+      (Tpointer _ _) => mem_id t1 cact
+  | _ => false
+  end.
+
+(* a chase store of a CENSUSED POINTER temp (`o->..curAnim = targetAnim`):
+   the stored value is SafeB-if-a-pointer by the chase invariant; the MWF
+   chase-ptr row absorbs the store. *)
+Definition chase_ptr_store_chk (cact : list ident) (a1 a2 : expr) : bool :=
+  match chain_root_l a1, typeof a1, a2 with
+  | Some ct, Tpointer _ _, Etempvar r (Tpointer _ _) =>
+      mem_id ct cact && mem_id r cact
+  | _, _, _ => false
+  end.
+
+(* the N64 segmented-pointer MASK store: `anim->values = cast-to-void-ptr
+   of ((cast-to-u8-ptr of anim + off) & 0x1FFFFFFF)`.  In CompCert's
+   semantics the Oand of a POINTER and an integer has NO value
+   (sem_binarith refuses Vptr), while the store target forces the SAME
+   base temp to BE a pointer -- so the statement can never execute.  The
+   walker accepts it as DEAD CODE: the exec-derivation case discharges
+   by contradiction. *)
+Definition dead_mask_chk (a1 a2 : expr) : bool :=
+  match chain_root_l a1, a2 with
+  | Some q,
+    Ecast
+      (Ebinop Oand
+         (Ecast
+            (Ebinop Oadd
+               (Ecast (Etempvar q' (Tpointer _ _)) (Tpointer _ _))
+               (Ecast (Etempvar _ _) (Tint I32 Unsigned _))
+               (Tpointer _ _))
+            (Tint I32 Unsigned _))
+         (Econst_int _ (Tint I32 Signed _)) (Tint I32 Unsigned _))
+      (Tpointer _ _) => Pos.eqb q q'
+  | _, _ => false
+  end.
+
 (* the non-pointer SOURCES for the fused pair arm: reading the
    gGlobalTimer global (its cell is non-Vptr by the MWF sglob row), or
    any By_value sub-word load (the decode cannot produce a pointer). *)
@@ -953,7 +996,8 @@ Fixpoint wwalk_chk (rt : bool) (wact ids wids cact xids sids : list ident)
   | Sset id a =>
       negb (Pos.eqb id mario_actions_airborne._m)
       && (negb (mem_id id wact) || wsrc_chk wact a)
-      && (negb (mem_id id cact) || chase_root_chk a)
+      && (negb (mem_id id cact)
+          || chase_root_chk a || chase_step_chk cact a)
   | Sassign a1 a2 =>
       safe_mfield_store mario_actions_airborne._m a1
       || glob_store_chk a1
@@ -962,6 +1006,8 @@ Fixpoint wwalk_chk (rt : bool) (wact ids wids cact xids sids : list ident)
       || act_store_chk wact a1 a2
       || chase_store_chk wact cact a1 a2
       || root_store_chk cact a1 a2
+      || chase_ptr_store_chk cact a1 a2
+      || dead_mask_chk a1 a2
   | Scall optid a al =>
       match a with
       | Evar fid fty =>
@@ -1149,6 +1195,16 @@ Section ActWriterWalk.
       Genv.find_symbol (lp_ge lp) interaction._gGlobalTimer = Some gb ->
       Mem.load Mint32 m gb 0 = Some v ->
       forall bb oo, v <> Vptr bb oo.
+  (* SafeB is load-closed (MWF R7): instantiated by mwf_real_chase_step *)
+  Hypothesis HchaseStep : forall m b ofs b' o',
+      MWF m -> SafeB b ->
+      Mem.loadv Mptr m (Vptr b ofs) = Some (Vptr b' o') ->
+      SafeB b'.
+  (* a SafeB-IF-POINTER store into a SafeB block: mwf_real_chase_ptr *)
+  Hypothesis HMWF_chase_safe : forall mm ch bsafe (d : Z) vv mm',
+      MWF mm -> SafeB bsafe ->
+      (forall bb oo, vv = Vptr bb oo -> SafeB bb) ->
+      Mem.store ch mm bsafe d vv = Some mm' -> MWF mm'.
 
   (* the act-temp invariant the walk threads through le *)
   Definition act_inv (wact : list ident) (le : temp_env) : Prop :=
@@ -1224,6 +1280,70 @@ Section ActWriterWalk.
       end.
     (* (the bitfield ctor is auto-killed: load_bitfield yields a Vint,
        ours is a Vptr) *)
+  Qed.
+
+  (* ================================================================== *)
+  (* The chase-STEP Sset brick: evaluating `t1->fld` (a POINTER field    *)
+  (* through a censused chase temp) forces a Mptr load from t1's SafeB  *)
+  (* block; R7 (HchaseStep) pins any pointer it yields into SafeB.      *)
+  (* ================================================================== *)
+  Lemma chase_step_set_sound :
+    forall cact a e le m v,
+      chase_step_chk cact a = true ->
+      chase_inv cact le ->
+      MWF m ->
+      eval_expr (lp_ge lp) e le m a v ->
+      forall b o, v = Vptr b o -> SafeB b.
+  Proof.
+    intros cact a e le m v Hck Hch HM Hev b o ->.
+    unfold chase_step_chk in Hck.
+    destruct a as [ | | | | | | | | | | | af fld fty | | ];
+      try discriminate Hck.
+    destruct af as [ | | | | | | ad ady | | | | | | | ];
+      try discriminate Hck.
+    destruct ad as [ | | | | | t1 t1ty | | | | | | | | ];
+      try discriminate Hck.
+    destruct t1ty; try discriminate Hck.
+    destruct ady; try discriminate Hck.
+    destruct fty; try discriminate Hck.
+    (* split the Efield rvalue into lvalue + load *)
+    destruct (eval_expr_Efield_load _ _ _ _ _ _ _ _ Hev)
+      as (loc & ofs & bf & Hlv & Hd).
+    (* the lvalue's block is the BASE pointer's block *)
+    destruct (eval_lvalue_Efield_inv _ _ _ _ _ _ _ _ _ _ Hlv)
+      as (o0 & sid2 & att2 & co & delta & Hbase & _ & _ & _).
+    (* the base Ederef: a struct-typed deref passes the pointer through *)
+    destruct (eval_expr_Ederef_load _ _ _ _ _ _ _ Hbase)
+      as (l2 & o2 & bf2 & Hlv2 & Hd2).
+    apply eval_lvalue_Ederef_base in Hlv2.
+    apply eval_expr_Etempvar_val in Hlv2.
+    pose proof (Hch _ Hck _ _ Hlv2) as Hsafe.
+    assert (Eloc : loc = l2).
+    { cbn [typeof] in Hd2.
+      refine (proj1 (deref_loc_aggregate_eq _ _ _ _ _ _ _ _ Hd2)).
+      right; reflexivity. }
+    subst loc.
+    (* the field load: By_value Mptr from the SafeB block *)
+    cbn [typeof] in Hd. inv Hd.
+    - match goal with
+      | Hac : access_mode _ = By_value _ |- _ =>
+          cbn [access_mode] in Hac; injection Hac as <-
+      end.
+      match goal with
+      | Hld : Mem.loadv Mptr _ _ = Some (Vptr _ _) |- _ =>
+          exact (HchaseStep _ _ _ _ _ HM Hsafe Hld)
+      end.
+    - match goal with
+      | Hac : access_mode _ = By_reference |- _ =>
+          cbn [access_mode] in Hac; discriminate Hac
+      end.
+    - match goal with
+      | Hac : access_mode _ = By_copy |- _ =>
+          cbn [access_mode] in Hac; discriminate Hac
+      end.
+    - match goal with
+      | Hlb : load_bitfield _ _ _ _ _ _ _ _ |- _ => inv Hlb
+      end.
   Qed.
 
   (* ================================================================== *)
@@ -1362,6 +1482,260 @@ Section ActWriterWalk.
               intros bb oo E; discriminate E
             | split; reflexivity ] ]
       end.
+  Qed.
+
+  (* ================================================================== *)
+  (* The chase POINTER-store brick: the rhs is a CENSUSED chase temp    *)
+  (* (SafeB-if-a-pointer by the chase invariant), stored through a      *)
+  (* chased lvalue (SafeB block).  The MWF chase-ptr row absorbs it.    *)
+  (* ================================================================== *)
+  Lemma chase_ptr_assign_pres :
+    forall cact a1 a2 e le m0 tr le' m' out,
+      chase_ptr_store_chk cact a1 a2 = true ->
+      chase_inv cact le ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0 (Sassign a1 a2)
+        tr le' m' out ->
+      MWF m0 -> Mem.valid_block m0 bm -> action_sat not_tainted m0 bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\
+      le' = le /\ out = Out_normal.
+  Proof.
+    intros cact a1 a2 e le m0 tr le' m' out Hck Hch Hexec HM HV HS.
+    unfold chase_ptr_store_chk in Hck.
+    destruct (chain_root_l a1) as [ct|] eqn:Hcr; [ | discriminate Hck ].
+    destruct (typeof a1) eqn:Hty1; try discriminate Hck.
+    destruct a2 as [ | | | | | r rty | | | | | | | | ];
+      try discriminate Hck.
+    destruct rty; try discriminate Hck.
+    apply andb_prop in Hck as [Hctm Hrm].
+    inv Hexec.
+    (* the store target's block is the chase temp's SafeB block *)
+    match goal with
+    | Hlv : eval_lvalue _ _ _ _ a1 _ _ _ |- _ =>
+        destruct (chain_root_l_block _ _ _ _ _ _ _ _ _ Hcr Hlv)
+          as (o0 & Hlet)
+    end.
+    pose proof (Hch _ Hctm _ _ Hlet) as Hsafe.
+    pose proof (HSafeNotBm _ Hsafe) as Hneq.
+    (* the rhs temp's value -- hence the stored value -- is SafeB when
+       it is a pointer (sem_cast never CONSTRUCTS a pointer) *)
+    match goal with
+    | Hev2 : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+        apply eval_expr_Etempvar_val in Hev2
+    end.
+    match goal with
+    | Hcast0 : sem_cast ?v2 _ _ _ = Some ?vw,
+      Hler : _ ! _ = Some ?v2 |- _ =>
+        assert (Hsp : forall bb oo, vw = Vptr bb oo -> SafeB bb)
+          by (intros bb oo Evw; rewrite Evw in Hcast0;
+              apply sem_cast_vptr_inv in Hcast0;
+              rewrite Hcast0 in Hler;
+              exact (Hch _ Hrm _ _ Hler))
+    end.
+    (* the store lands in the SafeB block *)
+    match goal with
+    | Has : assign_loc _ _ _ _ _ _ _ m' |- _ => inv Has
+    end.
+    - (* By_value *)
+      match goal with
+      | Hsv0 : Mem.storev _ _ _ _ = Some m' |- _ =>
+          unfold Mem.storev in Hsv0
+      end.
+      match goal with
+      | Hsv : Mem.store _ _ _ _ _ = Some m' |- _ =>
+          split; [ eauto using Mem.store_valid_block_1 | split ];
+          [ intros av Hload;
+            rewrite (Mem.load_store_other _ _ _ _ _ _ Hsv) in Hload;
+            [ exact (HS av Hload) | left; exact (not_eq_sym Hneq) ]
+          | split;
+            [ exact (HMWF_chase_safe _ _ _ _ _ _ HM Hsafe Hsp Hsv)
+            | split; reflexivity ] ]
+      end.
+    - (* By_copy: refuted -- the target's type is a POINTER (By_value) *)
+      match goal with
+      | Hac : access_mode (typeof a1) = By_copy |- _ =>
+          rewrite Hty1 in Hac; cbn [access_mode] in Hac;
+          discriminate Hac
+      end.
+    - (* bitfield: store_bitfield writes a Vint into the SafeB block *)
+      match goal with
+      | Hsb : store_bitfield _ _ _ _ _ _ _ _ _ _ |- _ => inv Hsb
+      end.
+      match goal with
+      | Hsv0 : Mem.storev _ _ _ (Vint _) = Some m' |- _ =>
+          unfold Mem.storev in Hsv0
+      end.
+      match goal with
+      | Hsv : Mem.store _ _ _ _ (Vint _) = Some m' |- _ =>
+          split; [ eauto using Mem.store_valid_block_1 | split ];
+          [ intros av Hload;
+            rewrite (Mem.load_store_other _ _ _ _ _ _ Hsv) in Hload;
+            [ exact (HS av Hload) | left; exact (not_eq_sym Hneq) ]
+          | split;
+            [ refine (HMWF_chase _ _ _ _ _ _ HM Hsafe _ Hsv);
+              intros bb oo E; discriminate E
+            | split; reflexivity ] ]
+      end.
+  Qed.
+
+  (* ================================================================== *)
+  (* The dead-mask brick: the N64 segmented-pointer mask store cannot   *)
+  (* EXECUTE -- the lvalue forces the base temp to hold a Vptr, and     *)
+  (* sem_binarith refuses Oand on a Vptr.  Pure contradiction.          *)
+  (* ================================================================== *)
+  Lemma dead_mask_dead :
+    forall a1 a2 e le m0 tr le' m' out,
+      dead_mask_chk a1 a2 = true ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0 (Sassign a1 a2)
+        tr le' m' out ->
+      False.
+  Proof.
+    intros a1 a2 e le m0 tr le' m' out Hck Hexec.
+    unfold dead_mask_chk in Hck.
+    destruct (chain_root_l a1) as [q|] eqn:Hcr; [ | discriminate Hck ].
+    (* peel the rhs shape in the chk's examination order *)
+    destruct a2 as [ | | | | | | | | | | c cty | | | ];
+      try discriminate Hck.
+    destruct c as [ | | | | | | | | | ob cL cR oty | | | | ];
+      try discriminate Hck.
+    destruct ob; try discriminate Hck.
+    destruct cL as [ | | | | | | | | | | d dty | | | ];
+      try discriminate Hck.
+    destruct d as [ | | | | | | | | | db dL dR aty | | | | ];
+      try discriminate Hck.
+    destruct db; try discriminate Hck.
+    destruct dL as [ | | | | | | | | | | tq pty | | | ];
+      try discriminate Hck.
+    destruct tq as [ | | | | | q' qty | | | | | | | | ];
+      try discriminate Hck.
+    destruct qty; try discriminate Hck.
+    destruct pty; try discriminate Hck.
+    destruct dR as [ | | | | | | | | | | tr2 ity | | | ];
+      try discriminate Hck.
+    destruct tr2 as [ | | | | | r' rty' | | | | | | | | ];
+      try discriminate Hck.
+    destruct ity as [ | szi sgi atti | | | | | | | ];
+      try discriminate Hck.
+    destruct szi; try discriminate Hck.
+    destruct sgi; try discriminate Hck.
+    destruct aty; try discriminate Hck.
+    destruct dty as [ | szd sgd attd | | | | | | | ];
+      try discriminate Hck.
+    destruct szd; try discriminate Hck.
+    destruct sgd; try discriminate Hck.
+    destruct cR as [ c2 sty | | | | | | | | | | | | | ];
+      try discriminate Hck.
+    destruct sty as [ | szs sgs2 atts | | | | | | | ];
+      try discriminate Hck.
+    destruct szs; try discriminate Hck.
+    destruct sgs2; try discriminate Hck.
+    destruct oty as [ | szo sgo atto | | | | | | | ];
+      try discriminate Hck.
+    destruct szo; try discriminate Hck.
+    destruct sgo; try discriminate Hck.
+    destruct cty; try discriminate Hck.
+    pose proof (proj1 (Pos.eqb_eq _ _) Hck) as Eqq; subst q'.
+    inv Hexec.
+    (* the lvalue pins le!q to a Vptr *)
+    match goal with
+    | Hlv : eval_lvalue _ _ _ _ a1 _ _ _ |- _ =>
+        destruct (chain_root_l_block _ _ _ _ _ _ _ _ _ Hcr Hlv)
+          as (o0 & Hlet)
+    end.
+    (* unwind the rhs evaluation down to the Oand *)
+    match goal with
+    | Hev : eval_expr _ _ _ _ (Ecast (Ebinop Oand _ _ _) _) _ |- _ =>
+        inv Hev;
+        try match goal with
+            | Hl : eval_lvalue _ _ _ _ (Ecast _ _) _ _ _ |- _ => inv Hl
+            end
+    end.
+    match goal with
+    | Hev : eval_expr _ _ _ _ (Ebinop Oand _ _ _) _ |- _ =>
+        inv Hev;
+        try match goal with
+            | Hl : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ =>
+                inv Hl
+            end
+    end.
+    (* the right operand: an integer literal *)
+    match goal with
+    | Hev : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+        inv Hev;
+        try match goal with
+            | Hl : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+                inv Hl
+            end
+    end.
+    (* the left operand: cast of the Oadd *)
+    match goal with
+    | Hev : eval_expr _ _ _ _ (Ecast (Ebinop Oadd _ _ _) _) _ |- _ =>
+        inv Hev;
+        try match goal with
+            | Hl : eval_lvalue _ _ _ _ (Ecast _ _) _ _ _ |- _ => inv Hl
+            end
+    end.
+    match goal with
+    | Hev : eval_expr _ _ _ _ (Ebinop Oadd _ _ _) _ |- _ =>
+        inv Hev;
+        try match goal with
+            | Hl : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ =>
+                inv Hl
+            end
+    end.
+    (* the base: the SAME temp q, cast ptr->ptr keeps the Vptr *)
+    match goal with
+    | Hev : eval_expr _ _ _ _ (Ecast (Etempvar _ _) (Tpointer _ _)) _
+      |- _ =>
+        inv Hev;
+        try match goal with
+            | Hl : eval_lvalue _ _ _ _ (Ecast _ _) _ _ _ |- _ => inv Hl
+            end
+    end.
+    match goal with
+    | Hev : eval_expr _ _ _ _ (Etempvar q _) _ |- _ =>
+        apply eval_expr_Etempvar_val in Hev;
+        rewrite Hlet in Hev; injection Hev as <-
+    end.
+    match goal with
+    | Hc : sem_cast (Vptr _ _) (typeof (Etempvar _ _)) _ _ = Some _
+      |- _ => cbn in Hc; injection Hc as <-
+    end.
+    (* the Oadd: pointer + int is a Vptr (or no value at all) *)
+    match goal with
+    | Hadd : sem_binary_operation _ Oadd (Vptr _ _) _ ?vr _ _ = Some _
+      |- _ =>
+        cbn [sem_binary_operation typeof classify_add sem_add] in Hadd;
+        destruct vr; cbn [sem_add_ptr_int] in Hadd;
+        try discriminate Hadd;
+        injection Hadd as <-
+    end.
+    (* Archi.ptr64 is Global Opaque: case-split it (the repo idiom).
+       ptr64 = true: the ptr->uint cast itself refuses the Vptr.
+       ptr64 = false: the cast is cast_case_pointer (keeps the Vptr)
+       and then the Oand's sem_binarith refuses it. *)
+    destruct Archi.ptr64 eqn:Hp64.
+    { match goal with
+      | Hc : sem_cast (Vptr _ _) (typeof (Ebinop Oadd _ _ _)) _ _
+             = Some _ |- _ =>
+          unfold sem_cast in Hc; cbn [typeof classify_cast] in Hc;
+          rewrite Hp64 in Hc; cbn in Hc; discriminate Hc
+      end. }
+    match goal with
+    | Hc : sem_cast (Vptr _ _) (typeof (Ebinop Oadd _ _ _)) _ _ = Some _
+      |- _ =>
+        unfold sem_cast in Hc; cbn [typeof classify_cast] in Hc;
+        rewrite Hp64 in Hc; cbn in Hc; injection Hc as <-
+    end.
+    (* the Oand on a Vptr: sem_binarith refuses -- contradiction *)
+    match goal with
+    | Hand : sem_binary_operation _ Oand (Vptr _ _) _ (Vint _) _ _
+             = Some _ |- _ =>
+        unfold sem_binary_operation, sem_and, sem_binarith in Hand;
+        cbn [typeof classify_binarith binarith_type] in Hand;
+        unfold sem_cast in Hand; cbn [classify_cast] in Hand;
+        repeat (rewrite Hp64 in Hand; cbn in Hand);
+        discriminate Hand
+    end.
   Qed.
 
   (* ================================================================== *)
@@ -2165,6 +2539,16 @@ Section ActWriterWalk.
                       (Sassign a1 a2) E0 le m' Out_normal)
         by (econstructor; eauto).
       apply orb_true_iff in Hchk.
+      destruct Hchk as [Hchk | Hdm].
+      2:{ exfalso. exact (dead_mask_dead a1 a2 _ _ _ _ _ _ _ Hdm Hex). }
+      apply orb_true_iff in Hchk.
+      destruct Hchk as [Hchk | Hcpt].
+      2:{ destruct (chase_ptr_assign_pres _ a1 a2 _ _ _ _ _ _ _ Hcpt Hch
+                      Hex HM HV HS)
+            as (HV' & HS' & HM' & _ & _).
+          exact (conj HV' (conj HS' (conj HM' (conj (HNoA_of_MWF _ HM')
+                   (conj Htat (conj Hact (conj Hch I))))))). }
+      apply orb_true_iff in Hchk.
       destruct Hchk as [Hchk | Hrs].
       2:{ destruct (root_assign_pres _ a1 a2 _ _ _ _ _ _ _ Hrs Htat Hch
                       Hex HM HV HS)
@@ -2278,9 +2662,15 @@ Section ActWriterWalk.
         destruct (Pos.eq_dec t id) as [-> | Hne].
         * rewrite PTree.gss in Hg. injection Hg as ->.
           rewrite Hmem in Hcc. cbn [negb orb] in Hcc.
+          apply orb_true_iff in Hcc. destruct Hcc as [Hcc | Hcs].
+          { match goal with
+            | Hev : eval_expr _ _ _ _ a _ |- _ =>
+                exact (chase_root_set_sound _ _ _ _ _ Hcc Htat HM Hev
+                         _ _ eq_refl)
+            end. }
           match goal with
           | Hev : eval_expr _ _ _ _ a _ |- _ =>
-              exact (chase_root_set_sound _ _ _ _ _ Hcc Htat HM Hev
+              exact (chase_step_set_sound _ _ _ _ _ _ Hcs Hch HM Hev
                        _ _ eq_refl)
           end.
         * rewrite PTree.gso in Hg by exact Hne.
@@ -3027,6 +3417,14 @@ Section ActWriterRows.
       Genv.find_symbol (lp_ge lp) interaction._gGlobalTimer = Some gb ->
       Mem.load Mint32 m gb 0 = Some v ->
       forall bb oo, v <> Vptr bb oo.
+  Hypothesis HchaseStep : forall m b ofs b' o',
+      MWF m -> SafeB b ->
+      Mem.loadv Mptr m (Vptr b ofs) = Some (Vptr b' o') ->
+      SafeB b'.
+  Hypothesis HMWF_chase_safe : forall mm ch bsafe (d : Z) vv mm',
+      MWF mm -> SafeB bsafe ->
+      (forall bb oo, vv = Vptr bb oo -> SafeB bb) ->
+      Mem.store ch mm bsafe d vv = Some mm' -> MWF mm'.
 
   (* ---- the funcall->body entry for a PLAIN walked leaf (rt = false,
      no act census): any param list with Mario's pointer at the head. *)
@@ -3107,7 +3505,7 @@ Section ActWriterRows.
     (* the walk *)
     destruct (wwalk_pres lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
-                HMWF_root HMWF_sglob
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 false nil ids wids nil xids sids Hcp Hcpa Hcpx Hcps
                 _ _ _ _ _ _ _ _ Hbody eq_refl Hchk Htat0 Hact0 Hch0
                 HN HM HV HS)
@@ -3206,7 +3604,7 @@ Section ActWriterRows.
     (* the walk *)
     destruct (wwalk_pres lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
-                HMWF_root HMWF_sglob
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 false nil ids wids cact xids sids Hcp Hcpa Hcpx Hcps
                 _ _ _ _ _ _ _ _ Hbody eq_refl Hchk Htat0 Hact0 Hch0
                 HN HM HV HS)
@@ -3279,7 +3677,7 @@ Section ActWriterRows.
     (* the walk *)
     destruct (wwalk_pres lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
-                HMWF_root HMWF_sglob
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 false nil ids wids nil xids sids Hcp Hcpa Hcpx Hcps
                 _ _ _ _ _ _ _ _ Hbody eq_refl Hchk Htat0 Hact0 Hch0
                 HN HM HV HS)
@@ -3369,7 +3767,7 @@ Section ActWriterRows.
     (* the walk *)
     destruct (wwalk_pres lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
-                HMWF_root HMWF_sglob
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 false nil ids wids nil xids sids Hcp Hcpa Hcpx Hcps
                 _ _ _ _ _ _ _ _ Hbody eq_refl Hchk Htat0 Hact0 Hch0
                 HN HM HV HS)
@@ -3490,7 +3888,7 @@ Section ActWriterRows.
     (* the walk *)
     destruct (wwalk_pres lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
-                HMWF_root HMWF_sglob
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 true wact ids wids cact xids sids Hcp Hcpa Hcpx Hcps
                 _ _ _ _ _ _ _ _ Hbody eq_refl Hchk Htat0 Hact0 Hch0
                 HN HM HV HS)

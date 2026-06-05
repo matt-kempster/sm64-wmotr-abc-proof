@@ -846,6 +846,10 @@ Section NoARealInputMWF.
                       (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm
                          HSafeB_not_bm Hgms_blk Hgtimer_blk)
                       (mwf_real_sglob lp bm bc oc0 SafeB)
+                      (mwf_real_chase_step lp bm bc oc0 SafeB)
+                      (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm HSafeB_not_bc Hgms_blk
+                         Hgtimer_blk)
                       (Hpres_obj_ext mario._vec3s_set eq_refl)
                       (Hpres_obj_ext mario._set_camera_mode eq_refl)
                       (Hpres_obj_ext interaction._segmented_to_virtual
