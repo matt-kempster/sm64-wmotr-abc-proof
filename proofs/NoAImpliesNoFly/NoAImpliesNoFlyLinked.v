@@ -47,7 +47,7 @@ From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame Reacha
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer.
 From SM64.Proofs Require Import MWFReal RestSurface AirborneSurface
   DispatchKit CutsceneSurface AutomaticSurface StationarySurface
-  MovingSurface ObjectSurface.
+  MovingSurface ObjectSurface SubmergedSurface.
 
 Section NoAImpliesNoFlyLinked.
   (* The linked program -- ABSTRACT, never computed (no OOM). *)
@@ -646,8 +646,18 @@ Section NoARealInputMWF.
       (prog_defmap mario_actions_airborne.prog) ! fid
         = Some (Gfun (Internal f)) ->
       body_pres lp (NoA_real bm) MWF bm f.
-  Hypothesis Hpres_sub : body_pres lp (NoA_real bm) MWF bm
-      mario_actions_submerged.f_mario_execute_submerged_action.
+  (* the submerged dispatcher is WALKED (SubmergedSurface.submerged_pres
+     over the generic DispatchKit; the quicksandDepth store is killed by
+     the window census, and the two headAngle chase-pair stores -- the
+     ONLY dispatcher stores through a chased pointer -- by the MWF chase
+     rows: the root load at bm@152 lands in SafeB, SafeB is bm-disjoint):
+     PROVED from per-leaf-callee residuals keyed by the 33-id census
+     submerged_callee_ids. *)
+  Hypothesis Hpres_sub_callees : forall fid f,
+      mem_id fid submerged_callee_ids = true ->
+      (prog_defmap mario_actions_submerged.prog) ! fid
+        = Some (Gfun (Internal f)) ->
+      body_pres lp (NoA_real bm) MWF bm f.
   (* the cutscene dispatcher is WALKED (CutsceneSurface.cutscene_pres
      over the generic DispatchKit): its whole-body residual is PROVED
      from per-leaf-callee residuals keyed by the 51-id census
@@ -762,7 +772,16 @@ Section NoARealInputMWF.
                    (MWF_real lp bm bc oc0 SafeB)
                    (mwf_real_ctl lp bm bc oc0 SafeB)
                    Hpres_air_callees)
-                Hpres_sub
+                (submerged_pres lp LO_mario LO_sub bm (NoA_real bm)
+                   (MWF_real lp bm bc oc0 SafeB) SafeB
+                   (mwf_real_ctl lp bm bc oc0 SafeB)
+                   (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                      Hgms_blk)
+                   HSafeB_not_bm
+                   (mwf_real_chase_root lp bm bc oc0 SafeB)
+                   (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                      HSafeB_not_bc Hgms_blk)
+                   Hpres_sub_callees)
                 (cutscene_pres lp LO_mario LO_cut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
                    (mwf_real_ctl lp bm bc oc0 SafeB)

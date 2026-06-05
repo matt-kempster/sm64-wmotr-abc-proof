@@ -68,6 +68,7 @@ proofs/MarioModel/AutomaticSurface.v
 proofs/MarioModel/StationarySurface.v
 proofs/MarioModel/MovingSurface.v
 proofs/MarioModel/ObjectSurface.v
+proofs/MarioModel/SubmergedSurface.v
 
 # --- GOAL 1 / concrete MWF run invariant (SPINE: MWF_real + all per-leaf
 #     discharges; consumed by the MWF-grounded capstone in NoAImpliesNoFlyLinked) ---
