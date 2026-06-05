@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anatomy of a tiny lemma — proving `return 0.0f;` can't make Mario fly</title>
+<style>
+  :root{
+    --bg:#ffffff; --panel:#f6f8fa; --panel2:#eef1f4; --ink:#1f2328; --dim:#59636e;
+    --line:#d8dee4; --kw:#cf222e; --id:#0550ae; --ty:#8250df; --lit:#0a3069;
+    --com:#6e7781; --green:#1a7f37; --greenbg:#dafbe1; --amber:#9a6700; --amberbg:#fff8c5;
+    --blue:#0969da;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:980px;margin:0 auto;padding:40px 24px 120px;}
+  h1{font-size:29px;line-height:1.25;margin:0 0 6px;}
+  h2{font-size:22px;margin:50px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--line);}
+  .sub{color:var(--dim);font-size:17px;margin:0 0 28px;}
+  p{margin:12px 0;}
+  code,pre{font-family:"SF Mono",ui-monospace,"Cascadia Code",Menlo,Consolas,monospace;}
+  code{background:var(--panel2);padding:1px 5px;border-radius:4px;font-size:13.5px;}
+  pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;
+    overflow-x:auto;font-size:13px;line-height:1.5;}
+  a{color:var(--id);}
+  .lead{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--blue);
+    border-radius:8px;padding:18px 20px;margin:22px 0;}
+  .kw{color:var(--kw)} .id{color:var(--id)} .ty{color:var(--ty)} .lit{color:var(--lit)} .com{color:var(--com)}
+  .step{border:1px solid var(--line);border-left:4px solid var(--green);border-radius:8px;
+    padding:14px 18px;margin:14px 0;background:var(--panel);}
+  .step .sn{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14.5px;font-weight:700;}
+  .step .sm{font-size:13px;color:var(--dim);margin:2px 0 8px;}
+  .chain{background:var(--panel);border:1px solid var(--line);border-radius:8px;
+    padding:14px 18px;margin:14px 0;font-size:14.5px;line-height:2;}
+  .chain code{font-size:13px;}
+  .arr{color:var(--dim);padding:0 4px;}
+  ul,ol{margin:12px 0;padding-left:22px;} li{margin:6px 0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Anatomy of a tiny lemma: proving <code>return 0.0f;</code> can't make Mario fly</h1>
+<p class="sub">A walkthrough of <code>gayvfj_row</code> — the preservation lemma for
+<code>get_additive_y_vel_for_jumps</code>, quite possibly the least important function in
+Super Mario 64 — and why the no-A-press impossibility proof was not allowed to skip it.
+(2026-06-05; artifacts in <code>proofs/MarioModel/ActWriterSurface.v</code>, the body in
+<code>generated/mario_step.v:497</code>.)</p>
+
+<div class="lead">
+<strong>The one-sentence version.</strong> Somewhere inside the proof that Mario can never
+enter a flying action without an A-press, there is a five-artifact, ~25-line proof that a
+vestigial function whose entire body is <code>return 0.0f;</code> does not write to
+memory. Nothing about the theorem allowed us to <em>assume</em> that. This page uses it as
+a microscope slide: the same five-artifact pattern, at its absolute smallest, is the unit
+of work being repeated for every one of the ~234 functions still on the open surface.</div>
+
+<h2>1 · The function</h2>
+
+<p>In the SM64 decompilation (<code>src/game/mario_step.c</code>):</p>
+
+<pre><span class="com">// The decomp notes this always returns zero; it is widely read as a
+// leftover hook for cut content (the beta trampoline is the usual
+// suspect). It shipped in the final game anyway.</span>
+<span class="ty">static f32</span> <span class="id">get_additive_y_vel_for_jumps</span>(<span class="ty">void</span>) {
+    <span class="kw">return</span> <span class="lit">0.0f</span>;
+}</pre>
+
+<p>Its one caller is real jump physics, though:
+<code>set_mario_y_vel_based_on_fspeed</code> computes Mario's initial jump velocity as</p>
+
+<pre>m-&gt;vel[1] = initialVelY + <span class="id">get_additive_y_vel_for_jumps</span>() + m-&gt;forwardVel * multiplier;</pre>
+
+<p>so this ghost of a cut feature sits in the middle of the expression that launches every
+jump in the game. What the proof actually reasons about is not the C but the mechanically
+<code>clightgen</code>'d AST (<code>generated/mario_step.v:497</code>), verbatim:</p>
+
+<pre><span class="kw">Definition</span> <span class="id">f_get_additive_y_vel_for_jumps</span> := {|
+  fn_return := <span class="ty">tfloat</span>;
+  fn_callconv := cc_default;
+  fn_params := <span class="lit">nil</span>;
+  fn_vars := <span class="lit">nil</span>;
+  fn_temps := <span class="lit">nil</span>;
+  fn_body :=
+    (Sreturn (Some (Econst_single (Float32.of_bits (Int.repr <span class="lit">0</span>)) <span class="ty">tfloat</span>)))
+|}.</pre>
+
+<p>One statement. No parameters, no locals, no temporaries. The float literal is even
+spelled the honest way — <code>Float32.of_bits (Int.repr 0)</code>, the IEEE-754 bit
+pattern, because that is what clightgen emits.</p>
+
+<h2>2 · What we proved</h2>
+
+<p>The lemma (<code>ActWriterSurface.v:4025</code>):</p>
+
+<pre><span class="kw">Lemma</span> <span class="id">gayvfj_row</span> :
+  call_pres lp bm NoA MWF mario._get_additive_y_vel_for_jumps.</pre>
+
+<p>where <code>call_pres</code> unfolds to a statement about <em>every big-step execution</em>
+of whatever fundef the linked program resolves that identifier to:</p>
+
+<pre><span class="kw">forall</span> fd m0 vargs t m1 vres,
+  eval_funcall function_entry2 (lp_ge lp) m0 fd vargs t m1 vres -&gt;  <span class="com">(* a real call runs *)</span>
+  resolves_lp lp mario._get_additive_y_vel_for_jumps fd -&gt;          <span class="com">(* of THIS symbol *)</span>
+  marg_ok bm vargs -&gt;                                               <span class="com">(* Mario-arg shape (vacuous: nullary) *)</span>
+  NoA m0 -&gt; MWF m0 -&gt; Mem.valid_block m0 bm -&gt;
+  action_sat not_tainted m0 bm -&gt;                                   <span class="com">(* action ∉ {flying…} before *)</span>
+  Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\
+  MWF m1 /\ NoA m1.                                                 <span class="com">(* …and after *)</span></pre>
+
+<p>In plain terms: <em>if Mario's action is not in the tainted set (FLYING,
+FLYING_TRIPLE_JUMP, SHOT_FROM_CANNON), the controller's A-bit is clear, and memory is
+well-formed, then after any actual call to this function all of that is still true.</em>
+For a function that provably never touches memory, this is the weakest interesting thing
+one could say — and it still has to be <em>said</em>, formally, because the theorem's
+induction demands it.</p>
+
+<h2>3 · Why we proved it</h2>
+
+<p><strong>Proximally:</strong> it was demanded by the callee census one level up. The
+live capstone rests on per-dispatcher callee censuses; chasing one chain from the top:</p>
+
+<div class="chain">
+<code>noA_no_spawn_never_flying_real_mwf</code> <span class="arr">→ (engine v2: every <em>reached</em> funcall must preserve the invariant) →</span>
+the action-handler leaf censuses <span class="arr">→</span>
+<code>set_mario_action</code> <span class="arr">(the writer keystone — every action change in the game funnels through here) →</span>
+<code>set_mario_action_airborne</code> <span class="arr">(its airborne sub-setter: jump setup) →</span>
+<code>set_mario_y_vel_based_on_fspeed</code> <span class="arr">(the jump-velocity formula) →</span>
+<code>get_additive_y_vel_for_jumps</code> <span class="arr">(…the ghost)</span>
+</div>
+
+<p>The walker lemma for <code>set_mario_y_vel_based_on_fspeed</code> certifies its body
+statement-by-statement, and when it reaches the call statement it needs a
+<code>call_pres</code> fact for the callee. Its callee census is
+<code>smyv_ids = [_get_additive_y_vel_for_jumps]</code>; <code>gayvfj_row</code> is the
+row that feeds it. No row, no <code>smyv_row</code>; no <code>smyv_row</code>, no
+airborne sub-setter; no sub-setter, no <code>set_mario_action</code> keystone; no
+keystone, no capstone.</p>
+
+<p><strong>Distally:</strong> the theorem quantifies over <em>executions</em>, not over
+our beliefs about functions. The conclusion has the shape “for every memory reachable by
+real frames, the action cell is not flying” — and the only way an induction over real
+executions goes through is if <em>every function the execution can enter</em> carries the
+invariant across itself. There is no rule of inference that says “this one is obviously
+harmless.” A human can see <code>return 0.0f;</code> and move on; the proof checker
+cannot, and <em>should</em> not — the whole value of the exercise is that “obviously”
+gets replaced by a checkable artifact. Put differently: the proof's trust base is the
+clightgen pipeline and CompCert's semantics, <strong>not anyone's ability to eyeball C
+code</strong>. The day someone asks “but how do you <em>know</em> no helper function
+sneaks a store into the action word?”, the answer is: because there is a lemma like this
+one for every helper on every reachable path, and the kernel checked all of them.</p>
+
+<p>There is also a subtler distal reason this function could not be waved off: it is
+called <em>during jump setup</em>, i.e. exactly when the action word is being rewritten
+by the writer family. The invariant is at its most exposed right there — the walker is
+mid-way through certifying a body that <em>does</em> store to Mario's struct. An
+unaudited callee at that point could break the action-value tracking even without
+writing the action cell itself (e.g. by clobbering the controller's button halfword and
+un-grounding the A-gate argument). So the row really is load-bearing; it just happens to
+be trivially true <em>for this body</em>.</p>
+
+<h2>4 · How the proof works — the five artifacts</h2>
+
+<p>The pattern is two-layered: <strong>syntactic facts established by computation</strong>
+(<code>vm_compute</code> over the generated AST — fast, no human reasoning) and one
+<strong>semantic lemma</strong> that consumes them through a generic, proved-once walker
+theorem.</p>
+
+<div class="step"><div class="sn">① gayvfj_pin — the defmap pin</div>
+<div class="sm">“the identifier resolves to THE generated body” · proof: <code>vm_compute. reflexivity.</code></div>
+<pre>(prog_defmap mario_step.prog) ! mario._get_additive_y_vel_for_jumps
+  = Some (Gfun (Internal mario_step.f_get_additive_y_vel_for_jumps)).</pre>
+<p>This is the PIPELINE tether: every later step reasons about
+<code>f_get_additive_y_vel_for_jumps</code> <em>the clightgen output</em>, pinned by
+computing over the whole translation unit's definition map. Combined with the link-order
+hypothesis <code>linkorder mario_step.prog lp</code>, it also pins what the <em>linked</em>
+program resolves the symbol to — so the lemma is about the game, not about a copy we
+wrote down.</p></div>
+
+<div class="step"><div class="sn">② gayvfj_vars + ③ gayvfj_params — the shape pins</div>
+<div class="sm">“no stack locals, no parameters” · proofs: <code>vm_compute. reflexivity.</code></div>
+<pre>fn_vars   f = nil      fn_params f = nil</pre>
+<p><code>fn_vars = nil</code> means function entry allocates no stack blocks (so entry
+itself cannot disturb memory accounting), and <code>fn_params = nil</code> makes the
+Mario-argument precondition <code>marg_ok</code> vacuous — this is a <em>nullary</em>
+leaf, the simplest entry shape the framework supports
+(<code>call_pres_of_wwalk0</code>).</p></div>
+
+<div class="step"><div class="sn">④ gayvfj_walk — the walk</div>
+<div class="sm">“the body passes the store/call census with ZERO allowances” · proof: <code>vm_compute. reflexivity.</code></div>
+<pre>wwalk_chk false nil nil nil nil nil nil
+  (fn_body mario_step.f_get_additive_y_vel_for_jumps) = true.</pre>
+<p><code>wwalk_chk</code> is a boolean function that recurses over a statement AST and
+approves only statements it has a semantic brick for: censused window stores, censused
+calls, harmless <code>Sset</code>s, returns. All seven censuses here are <code>nil</code>
+— the body must contain <em>nothing</em> that needs an allowance. It is one
+<code>Sreturn (Some literal)</code>; the walker's return rule for a plain helper
+(<code>rt = false</code>) accepts any returned expression, because expression evaluation
+in Clight is pure with respect to memory and <code>call_pres</code> promises nothing
+about the returned value.</p></div>
+
+<div class="step"><div class="sn">⑤ gayvfj_row — the semantic row</div>
+<div class="sm">the only “real” proof, and it is 10 lines of plumbing</div>
+<pre><span class="kw">Lemma</span> gayvfj_row : call_pres lp bm NoA MWF mario._get_additive_y_vel_for_jumps.
+<span class="kw">Proof</span>.
+  <span class="kw">apply</span> (call_pres_of_wwalk0 mario_step.prog
+           mario._get_additive_y_vel_for_jumps
+           mario_step.f_get_additive_y_vel_for_jumps nil nil nil nil
+           LO_mario_step gayvfj_pin gayvfj_vars gayvfj_params).
+  - <span class="kw">intros</span> fid' H. <span class="kw">discriminate</span> H.   <span class="com">(* no internal callees *)</span>
+  - <span class="kw">intros</span> fid' H. <span class="kw">discriminate</span> H.   <span class="com">(* no writer callees *)</span>
+  - <span class="kw">intros</span> fid' H. <span class="kw">discriminate</span> H.   <span class="com">(* no external callees *)</span>
+  - <span class="kw">intros</span> fid' H. <span class="kw">discriminate</span> H.   <span class="com">(* no act-writer callees *)</span>
+  - <span class="kw">exact</span> gayvfj_walk.
+<span class="kw">Qed</span>.</pre>
+<p>All the actual semantic work lives in two <em>generic, proved-once</em> theorems this
+applies: <code>call_pres_of_wwalk0</code>, the funcall→body bridge (inverts the big-step
+<code>eval_funcall</code> for an Internal fundef: entry allocates the — empty — locals,
+binds the — empty — parameters, runs the body, frees the — empty — block list), and
+<code>wwalk_pres</code>, the walker soundness theorem: an induction over the
+<code>exec_stmt</code> derivation showing that every statement the boolean walk approved
+preserves <code>valid_block bm ∧ action_sat ∧ MWF ∧ NoA</code>. For this body the
+induction visits exactly one case — <code>Sreturn</code> — whose proof obligation is
+“evaluating the return expression doesn't change memory,” which holds by the shape of
+Clight's semantics. The four <code>discriminate</code> bullets dispatch the per-callee
+obligations for the four empty censuses: membership in <code>nil</code> is a
+contradiction.</p></div>
+
+<p>Then the row gets <em>consumed</em> — <code>smyv_ids_rows</code> keys it into the
+callee table for <code>set_mario_y_vel_based_on_fspeed</code>, whose own row feeds the
+airborne action-setter. This step matters for hygiene: the repo's CI treats a proved but
+unconsumed lemma as staging (<code>check_unwired</code>), so “we proved a thing about the
+ghost function” only counts because something on the capstone's path <em>uses</em> it.</p>
+
+<h2>5 · Extra notes</h2>
+
+<ul>
+<li><strong>Cost accounting.</strong> Five artifacts, ~25 lines, four of them
+one-liner <code>vm_compute</code>s. That is the marginal cost of a trivial leaf in this
+framework — the design goal of the walker architecture. The expensive things were built
+once: the walker soundness induction (~1500 lines with its store bricks) and the entry
+bridges. The ~234 leaf bodies still open on the capstone surface each cost roughly this
+much <em>plus</em> whatever allowances their bodies actually need (a window store here, a
+chase-pointer store there) — this function is the pattern at allowance-zero.</li>
+<li><strong>Why a <em>float</em> function shows up in an integer-action proof at
+all:</strong> nothing about the action word involves <code>vel[1]</code> — but
+reachability, not relevance, is what obligates a row. The call cone of the action
+dispatch is the boundary of the proof, and jump physics is squarely inside it.</li>
+<li><strong>The N64 flavor.</strong> Even here the platform model matters a little: the
+return literal elaborates through CompCert's 32-bit big-endian PowerPC parameterization
+(the repo's N64 stand-in), and <code>tfloat</code> is IEEE-754 single — the proof's
+<code>Float32.of_bits</code> is the same bit pattern the console would load.</li>
+<li><strong>The game-history footnote.</strong> The decomp community reads this function
+as a leftover hook for cut content (the beta trampoline is the perennial suspect): a
+constant-zero additive term someone once meant to make non-zero. Nintendo shipped the
+hook; thirty years later it became five lemmas in an impossibility proof.</li>
+</ul>
+
+<div class="lead"><strong>The takeaway.</strong> “Machine-checked” means the proof does
+not contain the sentence “and the other functions obviously don't matter.” It contains,
+instead, a <code>gayvfj_row</code> for every single one of them. This page is what the
+smallest of those looks like; the open-surface page
+(<a href="open-hypothesis-surface-2026-06-05.html">open-hypothesis-surface-2026-06-05.html</a>)
+counts the ones still to go.</div>
+
+</div>
+</body>
+</html>

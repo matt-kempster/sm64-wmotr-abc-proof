@@ -886,6 +886,42 @@ Section MWFReal.
         eapply Mem.load_store_other; [ exact Hst | exact Hdis ].
   Qed.
 
+  (* the chase-PTR store row: a store of a SafeB-IF-POINTER value into a
+     SafeB block (sma stores targetAnim -- a chased SafeB pointer -- into
+     o->...curAnim).  Same skeleton as mwf_real_chase; only R7's
+     same-cell case changes: the stored pointer IS SafeB by premise. *)
+  Lemma mwf_real_chase_ptr : forall mm ch bsafe (d : Z) vv mm',
+      MWF_real mm -> SafeB bsafe ->
+      (forall bb oo, vv = Vptr bb oo -> SafeB bb) ->
+      Mem.store ch mm bsafe d vv = Some mm' -> MWF_real mm'.
+  Proof.
+    intros mm ch bsafe d vv mm' M Hsb Hsafe Hst.
+    assert (Hsbm : bsafe <> bm) by exact (HSafeB_not_bm _ Hsb).
+    apply (MWF_real_transfer mm mm'); [ .. | exact M ].
+    - intros b Hv. eapply Mem.store_valid_block_1; eauto.
+    - intros v Hld. pose proof M as (_ & R1 & _). apply R1.
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other; [ exact Hst | left; congruence ].
+    - intros ch1 b ofs v Hrow Hld.
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other; [ exact Hst | left ].
+      destruct Hrow as [ [Eb _] | [ Eb | [ Hfs2 | Hfs2 ] ] ].
+      + subst b. congruence.
+      + subst b. intro E. subst bsafe. exact (HSafeB_not_bc Hsb).
+      + intro E. subst b. exact (proj2 (proj2 (Hgms_blk _ Hfs2)) Hsb).
+      + intro E. subst b. exact (proj2 (proj2 (Hgtimer_blk _ Hfs2)) Hsb).
+    - (* R7: the stored pointer, when loaded back, is SafeB by premise *)
+      intros b ofs b' o' Hs Hld.
+      pose proof M as (_ & _ & _ & _ & _ & _ & _ & R7 & _).
+      cbn in Hld.
+      destruct (Mem.load_pointer_store _ _ _ _ _ _ _ _ _ _ _ Hst Hld)
+        as [ (Evv & _) | Hdis ].
+      + exact (Hsafe _ _ Evv).
+      + apply (R7 b ofs b' o' Hs). cbn.
+        rewrite <- Hld. symmetry.
+        eapply Mem.load_store_other; [ exact Hst | exact Hdis ].
+  Qed.
+
   (* ---------------- Hmwf_umbi ---------------- *)
   Lemma mwf_real_umbi : forall mm mm',
       MWF_real mm ->

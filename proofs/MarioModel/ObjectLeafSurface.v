@@ -126,7 +126,8 @@ Definition obj_ext_ids : list ident :=
   mario._vec3s_set :: mario._set_camera_mode
     :: interaction._segmented_to_virtual
     :: interaction._stop_shell_music
-    :: interaction._obj_set_held_state :: nil.
+    :: interaction._obj_set_held_state
+    :: mario._load_patchable_table :: nil.
 
 (* ====================================================================== *)
 (* Pins (vm_compute over the generated TUs).                              *)
@@ -461,6 +462,46 @@ Proof. vm_compute. reflexivity. Qed.
 (* The rows.                                                              *)
 (* ====================================================================== *)
 
+(* ---- set_mario_animation (B4): FOUR chase temps (the marioObj root
+   _o, the animList roots _t'13/_t'12, and the chase-STEP temp
+   _targetAnim = t'13->bufTarget), plus the EXTERNAL
+   load_patchable_table callee.  Its two `(anim + off) & 0x1FFFFFFF`
+   segmented-pointer mask stores are DEAD CODE in CompCert's semantics
+   (the dead-mask walker arm discharges them by contradiction). ---- *)
+Definition sma_cact : list ident :=
+  mario._o :: mario._t'13 :: mario._t'12 :: mario._targetAnim :: nil.
+Definition sma_xids : list ident :=
+  mario._load_patchable_table :: nil.
+
+Example sma_pin :
+  (prog_defmap mario.prog) ! mario._set_mario_animation
+  = Some (Gfun (Internal mario.f_set_mario_animation)).
+Proof. vm_compute. reflexivity. Qed.
+
+Example sma_vars : fn_vars mario.f_set_mario_animation = nil.
+Proof. vm_compute. reflexivity. Qed.
+
+Example sma_params_ok :
+  match fn_params mario.f_set_mario_animation with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example sma_nonparam :
+  forallb (fun t' => negb (mem_id t'
+             (map fst (fn_params mario.f_set_mario_animation))))
+    sma_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example sma_walk :
+  wwalk_chk false nil nil nil sma_cact sma_xids nil
+    (fn_body mario.f_set_mario_animation) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 Section ObjectLeafRows.
   Variable lp : Clight.program.
   Hypothesis LO_mario : linkorder mario.prog lp.
@@ -512,6 +553,16 @@ Section ObjectLeafRows.
       Genv.find_symbol (lp_ge lp) interaction._gGlobalTimer = Some gb ->
       Mem.load Mint32 m gb 0 = Some v ->
       forall bb oo, v <> Vptr bb oo.
+  (* SafeB is load-closed (MWF R7): instantiated by mwf_real_chase_step *)
+  Hypothesis HchaseStep : forall m b ofs b' o',
+      MWF m -> SafeB b ->
+      Mem.loadv Mptr m (Vptr b ofs) = Some (Vptr b' o') ->
+      SafeB b'.
+  (* a SafeB-IF-POINTER store into a SafeB block: mwf_real_chase_ptr *)
+  Hypothesis HMWF_chase_safe : forall mm ch bsafe (d : Z) vv mm',
+      MWF mm -> SafeB bsafe ->
+      (forall bb oo, vv = Vptr bb oo -> SafeB bb) ->
+      Mem.store ch mm bsafe d vv = Some mm' -> MWF mm'.
 
   (* ---- the NAMED per-symbol residuals this surface still rests on ---- *)
 
@@ -530,6 +581,8 @@ Section ObjectLeafRows.
     call_pres_ext lp bm NoA MWF interaction._stop_shell_music.
   Hypothesis Hcpx_oshs :
     call_pres_ext lp bm NoA MWF interaction._obj_set_held_state.
+  Hypothesis Hcpx_lpt :
+    call_pres_ext lp bm NoA MWF mario._load_patchable_table.
 
   (* internal, deferred to later slices (named blockers in the header) *)
   Hypothesis Hcp_pgs :
@@ -539,7 +592,7 @@ Section ObjectLeafRows.
   Let Hsmact : call_pres_act lp bm NoA MWF mario._set_mario_action :=
     smact_pres lp LO_mario LO_mario_step bm NoA MWF HNoA_of_MWF
       HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-      HMWF_chase HMWF_root HMWF_sglob.
+      HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe.
 
   Lemma obj_sids_rows : forall fid, mem_id fid obj_sids = true ->
       call_pres_act lp bm NoA MWF fid.
@@ -555,7 +608,7 @@ Section ObjectLeafRows.
   Proof.
     apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase HMWF_root HMWF_sglob mario.prog mario._play_sound_if_no_flag
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe mario.prog mario._play_sound_if_no_flag
              mario.f_play_sound_if_no_flag nil nil psinf_xids nil
              LO_mario psinf_pin psinf_vars psinf_params_ok).
     - intros fid' H. discriminate H.
@@ -573,7 +626,7 @@ Section ObjectLeafRows.
   Proof.
     apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase HMWF_root HMWF_sglob mario.prog mario._is_anim_at_end
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe mario.prog mario._is_anim_at_end
              mario.f_is_anim_at_end nil nil nil nil
              LO_mario iaae_pin iaae_vars iaae_params_ok).
     - intros fid' H. discriminate H.
@@ -589,7 +642,7 @@ Section ObjectLeafRows.
   Proof.
     apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase HMWF_root HMWF_sglob mario.prog mario._check_common_action_exits
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe mario.prog mario._check_common_action_exits
              mario.f_check_common_action_exits nil nil nil obj_sids
              LO_mario ccae_pin ccae_vars ccae_params_ok).
     - intros fid' H. discriminate H.
@@ -605,7 +658,7 @@ Section ObjectLeafRows.
   Proof.
     apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase HMWF_root HMWF_sglob mario.prog mario._set_water_plunge_action
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe mario.prog mario._set_water_plunge_action
              mario.f_set_water_plunge_action nil nil swpa_xids obj_sids
              LO_mario swpa_pin swpa_vars swpa_params_ok).
     - intros fid' H. discriminate H.
@@ -627,7 +680,7 @@ Section ObjectLeafRows.
   Proof.
     apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase HMWF_root HMWF_sglob mario_step.prog
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe mario_step.prog
              mario_step._mario_update_moving_sand
              mario_step.f_mario_update_moving_sand nil nil nil nil
              LO_mario_step mums_pin mums_vars mums_params_ok).
@@ -643,7 +696,7 @@ Section ObjectLeafRows.
   Proof.
     apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase HMWF_root HMWF_sglob mario_step.prog
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe mario_step.prog
              mario_step._mario_update_windy_ground
              mario_step.f_mario_update_windy_ground nil nil nil nil
              LO_mario_step muwg_pin muwg_vars muwg_params_ok).
@@ -667,7 +720,7 @@ Section ObjectLeafRows.
   Proof.
     apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase HMWF_root HMWF_sglob interaction.prog
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe interaction.prog
              interaction._mario_drop_held_object
              interaction.f_mario_drop_held_object
              nil nil mdho_cact mdho_xids nil
@@ -691,7 +744,7 @@ Section ObjectLeafRows.
   Proof.
     apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase HMWF_root HMWF_sglob interaction.prog
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe interaction.prog
              interaction._mario_throw_held_object
              interaction.f_mario_throw_held_object
              nil nil mtho_cact mdho_xids nil
@@ -715,7 +768,7 @@ Section ObjectLeafRows.
   Proof.
     apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase HMWF_root HMWF_sglob interaction.prog
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe interaction.prog
              interaction._mario_stop_riding_object
              interaction.f_mario_stop_riding_object
              nil nil msro_cact msro_xids nil
@@ -735,7 +788,7 @@ Section ObjectLeafRows.
   Proof.
     apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase HMWF_root HMWF_sglob interaction.prog
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe interaction.prog
              interaction._mario_grab_used_object
              interaction.f_mario_grab_used_object
              nil nil mguo_cact mguo_xids nil
@@ -767,7 +820,7 @@ Section ObjectLeafRows.
   Proof.
     apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase HMWF_root HMWF_sglob interaction.prog
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe interaction.prog
              interaction._mario_stop_riding_and_holding
              interaction.f_mario_stop_riding_and_holding
              msrah_ids nil msrah_cact nil nil
@@ -806,7 +859,7 @@ Section ObjectLeafRows.
   Proof.
     apply (call_pres_act_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase HMWF_root HMWF_sglob mario.prog _ mario.f_drop_and_set_mario_action
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe mario.prog _ mario.f_drop_and_set_mario_action
              dasma_wact dasma_ids dasma_wids nil nil nil
              LO_mario dasma_pin dasma_vars dasma_params dasma_ret
              eq_refl eq_refl eq_refl eq_refl eq_refl eq_refl).
@@ -815,6 +868,35 @@ Section ObjectLeafRows.
     - intros fid' H. discriminate H.
     - intros fid' H. discriminate H.
     - exact dasma_walk.
+  Qed.
+
+  (* ---- set_mario_animation (B4): the chase-step Sset arm, the
+     curAnim pointer-chase store, and the two dead mask stores; the
+     one callee is the EXTERNAL load_patchable_table. ---- *)
+  Lemma sma_xids_rows : forall fid, mem_id fid sma_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sma_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_lpt | ].
+    discriminate H.
+  Qed.
+
+  Lemma sma_row :
+    call_pres lp bm NoA MWF mario._set_mario_animation.
+  Proof.
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._set_mario_animation
+             mario.f_set_mario_animation
+             nil nil sma_cact sma_xids nil
+             LO_mario sma_pin sma_vars sma_params_ok sma_nonparam).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sma_xids_rows.
+    - intros fid' H. discriminate H.
+    - exact sma_walk.
   Qed.
 
   (* ---- stationary_ground_step (the only deferred callee is
@@ -827,7 +909,7 @@ Section ObjectLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid;
         exact (msfv_row lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                  HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-                 HMWF_chase HMWF_root HMWF_sglob) | ].
+                 HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe) | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact mums_row | ].
     apply orb_true_iff in H as [Hm | H];
@@ -853,7 +935,7 @@ Section ObjectLeafRows.
   Proof.
     apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase HMWF_root HMWF_sglob mario_step.prog
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe mario_step.prog
              mario_step._stationary_ground_step
              mario_step.f_stationary_ground_step sgs_ids nil sgs_xids nil
              LO_mario_step sgs_pin sgs_vars sgs_params_ok).
@@ -895,7 +977,7 @@ Section ObjectLeafRows.
   Proof.
     apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase HMWF_root HMWF_sglob
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              mario_actions_object.f_check_common_object_cancels
              ccoc_ids nil nil ccoc_sids ccoc_vars ccoc_params_ok).
     - exact ccoc_ids_rows.
