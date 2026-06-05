@@ -51,6 +51,10 @@ proofs/MarioModel/AGates.v
 proofs/MarioModel/CensusV2.v
 proofs/MarioModel/EngineV2Consumer.v
 
+# --- GOAL 1 / the rest surface decomposed per symbol (SPINE: 11 TU pins +
+#     negative pin reduce Hrest_pres to 11 per-real-body residuals) ---
+proofs/MarioModel/RestSurface.v
+
 # --- GOAL 1 / concrete MWF run invariant (SPINE: MWF_real + all per-leaf
 #     discharges; consumed by the MWF-grounded capstone in NoAImpliesNoFlyLinked) ---
 proofs/MarioModel/MWFReal.v
