@@ -118,3 +118,6 @@ proofs/NoAImpliesNoFly/Unwired/AltStatements/NoAFlyingSpine.v
 
 # --- GOAL 1 / action analyses (unwired; ActionGraph.v promoted to MarioModel/) ---
 proofs/NoAImpliesNoFly/Unwired/ActionAnalyses/ActionWriters.v
+
+# --- GOAL 1 / act-writer keystone (STAGING: promotes with the first act-leaf family) ---
+proofs/MarioModel/Unwired/ActWriterSurface.v

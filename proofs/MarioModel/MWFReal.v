@@ -336,6 +336,105 @@ Section MWFReal.
         [ exact Hst | left; exact (HSafeB_not_bm _ Hs) ].
   Qed.
 
+  (* ---------------- the ACTION-CELL store row ----------------
+     The one store the window deliberately excludes: writing the action
+     field itself (bm, [12,16)).  MWF_real survives ANY non-pointer
+     value there: R4 is re-established from the stored value (Vint
+     stays Vint, everything else decodes to Vundef; a Vptr would
+     SURVIVE a Mint32 round-trip on ptr64=false, hence the premise),
+     and every other row's cell is disjoint from [12,16).  The taint
+     side (the stored value being untainted) is NOT this lemma's job:
+     action_sat is the separately-carried fact, updated by
+     load_store_same at the consumer (the act-writer surface). *)
+  Lemma mwf_real_act_store : forall mm mm' vv,
+      MWF_real mm ->
+      (forall bb oo, vv <> Vptr bb oo) ->
+      Mem.store Mint32 mm bm 12 vv = Some mm' -> MWF_real mm'.
+  Proof.
+    intros mm mm' vv M Hnoptr Hst.
+    destruct M as ((Vbm & Vbc & Vgms & Vsafe) & R1 & R2 & R3 & R4 & R5 & R6 & R7).
+    split; [ | split; [ | split; [ | split; [ | split; [ | split; [ | split ]]]]]].
+    - (* R0: validity is store-stable *)
+      split; [ eapply Mem.store_valid_block_1; eauto | ].
+      split; [ eapply Mem.store_valid_block_1; eauto | ].
+      split.
+      + intros gb Hfs. eapply Mem.store_valid_block_1;
+          [ exact Hst | exact (Vgms _ Hfs) ].
+      + intros b Hb. eapply Mem.store_valid_block_1;
+          [ exact Hst | exact (Vsafe _ Hb) ].
+    - (* R1: [2,4) ends before the store's [12,16) *)
+      intros v Hld. apply R1.
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other; [ exact Hst | right; left ].
+      change (size_chunk Mint16unsigned) with 2. lia.
+    - (* R2: the store's [12,16) ends before [156,160) *)
+      intros b' o' Hld. apply R2.
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other; [ exact Hst | right; right ].
+      change (size_chunk Mint32) with 4. lia.
+    - (* R3: bc is not bm *)
+      intros v Hld. apply R3.
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other; [ exact Hst | left; exact Hbc_bm ].
+    - (* R4: THE stored cell -- re-established from the stored value *)
+      intros av Hld.
+      rewrite (Mem.load_store_same _ _ _ _ _ _ Hst) in Hld.
+      injection Hld as <-.
+      destruct vv as [ | vi | | | | bb oo ].
+      + left; reflexivity.
+      + right; eexists; reflexivity.
+      + left; reflexivity.
+      + left; reflexivity.
+      + left; reflexivity.
+      + exfalso; exact (Hnoptr bb oo eq_refl).
+    - (* R5: the gMarioState block is not bm *)
+      intros gb b o Hfs Hld. eapply R5; [ exact Hfs | ].
+      change (Mem.loadv Mptr mm' (Vptr gb Ptrofs.zero))
+        with (Mem.load Mptr mm' gb 0) in Hld.
+      change (Mem.loadv Mptr mm (Vptr gb Ptrofs.zero))
+        with (Mem.load Mptr mm gb 0).
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other;
+        [ exact Hst | left; exact (proj1 (Hgms_blk _ Hfs)) ].
+    - (* R6: chase roots live at 136/148/152, past the store's end *)
+      intros fld delta b' o' Hmem Hfo Hld.
+      eapply R6; [ exact Hmem | exact Hfo | ].
+      destruct (chase_root_offsets _ _ Hmem Hfo) as [E | [E | E]]; subst delta.
+      + change (Mem.loadv Mptr mm'
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 136))))
+          with (Mem.load Mptr mm' bm 136) in Hld.
+        change (Mem.loadv Mptr mm
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 136))))
+          with (Mem.load Mptr mm bm 136).
+        rewrite <- Hld. symmetry.
+        eapply Mem.load_store_other; [ exact Hst | right; right ].
+        change (size_chunk Mint32) with 4. lia.
+      + change (Mem.loadv Mptr mm'
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 148))))
+          with (Mem.load Mptr mm' bm 148) in Hld.
+        change (Mem.loadv Mptr mm
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 148))))
+          with (Mem.load Mptr mm bm 148).
+        rewrite <- Hld. symmetry.
+        eapply Mem.load_store_other; [ exact Hst | right; right ].
+        change (size_chunk Mint32) with 4. lia.
+      + change (Mem.loadv Mptr mm'
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 152))))
+          with (Mem.load Mptr mm' bm 152) in Hld.
+        change (Mem.loadv Mptr mm
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 152))))
+          with (Mem.load Mptr mm bm 152).
+        rewrite <- Hld. symmetry.
+        eapply Mem.load_store_other; [ exact Hst | right; right ].
+        change (size_chunk Mint32) with 4. lia.
+    - (* R7: SafeB blocks are not bm *)
+      intros b ofs b' o' Hs Hld.
+      apply (R7 b ofs b' o' Hs).
+      cbn in Hld |- *. rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other;
+        [ exact Hst | left; exact (HSafeB_not_bm _ Hs) ].
+  Qed.
+
   (* ---------------- Hmwf_input ---------------- *)
   Lemma mwf_real_input : forall mm mm' vv,
       MWF_real mm -> Int.and vv (Int.repr 2) = Int.zero ->
