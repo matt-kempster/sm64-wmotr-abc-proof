@@ -267,10 +267,14 @@ Definition chain_root_l (a : expr) : option ident :=
   | _ => None
   end.
 
-(* the canonical chase ROOT loads: the three MarioState pointer fields the
-   frame-reached bodies chase-store through. *)
+(* the canonical chase ROOT loads: the MarioState pointer fields the
+   frame-reached bodies chase-store through.  heldObj/usedObj/riddenObj
+   (the held-object trio, interaction.prog) and animList (the anim DMA
+   table, set_mario_animation) joined for the object-family leaves. *)
 Definition chase_root_fields : list ident :=
-  mario._marioObj :: mario._marioBodyState :: mario._statusForCamera :: nil.
+  mario._marioObj :: mario._marioBodyState :: mario._statusForCamera
+    :: mario._heldObj :: mario._usedObj :: mario._riddenObj
+    :: mario._animList :: nil.
 
 (* `t = gMarioState` -- a By_value load of the global Mario pointer.  The
    bc_globals membership requirement puts the symbol under TI's env row, so
@@ -362,7 +366,7 @@ Proof.
   do 4 eexists; eauto.
 Qed.
 
-(* the three root fields all have a concrete (vm-checked) MarioState offset *)
+(* the seven root fields all have a concrete (vm-checked) MarioState offset *)
 Lemma chase_root_field_offset :
   forall fld, mem_id fld chase_root_fields = true ->
     exists delta,
@@ -372,13 +376,22 @@ Proof.
   intros fld H.
   change ((Pos.eqb fld mario._marioObj
            || (Pos.eqb fld mario._marioBodyState
-               || (Pos.eqb fld mario._statusForCamera || false)))%bool = true)
+               || (Pos.eqb fld mario._statusForCamera
+                   || (Pos.eqb fld mario._heldObj
+                       || (Pos.eqb fld mario._usedObj
+                           || (Pos.eqb fld mario._riddenObj
+                               || (Pos.eqb fld mario._animList
+                                   || false)))))))%bool = true)
     in H.
   repeat (apply orb_true_iff in H; destruct H as [H | H]);
     try discriminate H; apply Pos.eqb_eq in H; subst fld.
   - exists 136. vm_compute. reflexivity.
   - exists 152. vm_compute. reflexivity.
   - exists 148. vm_compute. reflexivity.
+  - exists 124. vm_compute. reflexivity.
+  - exists 128. vm_compute. reflexivity.
+  - exists 132. vm_compute. reflexivity.
+  - exists 160. vm_compute. reflexivity.
 Qed.
 
 Lemma is_ptr_ty_access :
@@ -668,11 +681,16 @@ Qed.
 (* avoids ALL the protected cells --                                       *)
 (*   [2,4)     m->input           (input_a_clear's cell)                   *)
 (*   [12,16)   m->action          (action_sat's cell)                      *)
+(*   [124,128) m->heldObj         (chase root)                             *)
+(*   [128,132) m->usedObj         (chase root)                             *)
+(*   [132,136) m->riddenObj       (chase root)                             *)
 (*   [136,140) m->marioObj        (chase root)                             *)
 (*   [148,152) m->statusForCamera (chase root)                             *)
 (*   [152,156) m->marioBodyState  (chase root)                             *)
 (*   [156,160) m->controller      (ctl_a_clear's chase root)               *)
-(* The last three are contiguous: one [148,160) window conjunct.           *)
+(*   [160,164) m->animList        (chase root)                             *)
+(* heldObj..marioObj are contiguous: one [124,140) window conjunct;        *)
+(* statusForCamera..animList likewise: one [148,164) window conjunct.      *)
 (* The offset is computed in mario.prog's OWN cenv (cheap, concrete) and   *)
 (* transferred to lp by linkorder (linkorder_field_offset_agree).  The     *)
 (* bounds conjunct makes Ptrofs.unsigned (Ptrofs.repr delta) = delta.      *)
@@ -685,8 +703,8 @@ Definition store_window_ok (delta sz : Z) : bool :=
   (0 <? sz) && (0 <=? delta) && (delta + sz <=? Ptrofs.max_unsigned)
   && ((delta + sz <=? 2) || (4 <=? delta))
   && ((delta + sz <=? 12) || (16 <=? delta))
-  && ((delta + sz <=? 136) || (140 <=? delta))
-  && ((delta + sz <=? 148) || (160 <=? delta)).
+  && ((delta + sz <=? 124) || (140 <=? delta))
+  && ((delta + sz <=? 148) || (164 <=? delta)).
 
 (* the per-field geometry check, isolated so its soundness lemma has
    stable binder names. *)

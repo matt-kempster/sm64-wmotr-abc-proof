@@ -184,18 +184,24 @@ Section MWFReal.
      argument: same-cell stored value, footprint, ptr-store refutation,
      or full transfer). *)
 
-  (* the three tabled chase-root cells, as literals (vm_compute over the
+  (* the seven tabled chase-root cells, as literals (vm_compute over the
      generated composite layout) *)
   Lemma chase_root_offsets : forall fld delta,
       mem_id fld chase_root_fields = true ->
       field_offset (prog_comp_env mario.prog) fld mario_state_members
         = OK (delta, Full) ->
-      delta = 136 \/ delta = 148 \/ delta = 152.
+      delta = 136 \/ delta = 148 \/ delta = 152
+      \/ delta = 124 \/ delta = 128 \/ delta = 132 \/ delta = 160.
   Proof.
     intros fld delta Hmem Hfo.
     change ((Pos.eqb fld mario._marioObj
              || (Pos.eqb fld mario._marioBodyState
-                 || (Pos.eqb fld mario._statusForCamera || false)))%bool = true)
+                 || (Pos.eqb fld mario._statusForCamera
+                     || (Pos.eqb fld mario._heldObj
+                         || (Pos.eqb fld mario._usedObj
+                             || (Pos.eqb fld mario._riddenObj
+                                 || (Pos.eqb fld mario._animList
+                                     || false)))))))%bool = true)
       in Hmem.
     repeat (apply orb_true_iff in Hmem; destruct Hmem as [Hm | Hmem]);
       try discriminate Hmem; apply Pos.eqb_eq in Hm; subst fld.
@@ -206,17 +212,33 @@ Section MWFReal.
     - assert (E : field_offset (prog_comp_env mario.prog) mario._marioBodyState
                     mario_state_members = OK (152, Full))
         by (vm_compute; reflexivity).
-      rewrite E in Hfo. inv Hfo. auto.
+      rewrite E in Hfo. inv Hfo. auto 7.
     - assert (E : field_offset (prog_comp_env mario.prog) mario._statusForCamera
                     mario_state_members = OK (148, Full))
         by (vm_compute; reflexivity).
       rewrite E in Hfo. inv Hfo. auto.
+    - assert (E : field_offset (prog_comp_env mario.prog) mario._heldObj
+                    mario_state_members = OK (124, Full))
+        by (vm_compute; reflexivity).
+      rewrite E in Hfo. inv Hfo. auto 7.
+    - assert (E : field_offset (prog_comp_env mario.prog) mario._usedObj
+                    mario_state_members = OK (128, Full))
+        by (vm_compute; reflexivity).
+      rewrite E in Hfo. inv Hfo. auto 8.
+    - assert (E : field_offset (prog_comp_env mario.prog) mario._riddenObj
+                    mario_state_members = OK (132, Full))
+        by (vm_compute; reflexivity).
+      rewrite E in Hfo. inv Hfo. auto 9.
+    - assert (E : field_offset (prog_comp_env mario.prog) mario._animList
+                    mario_state_members = OK (160, Full))
+        by (vm_compute; reflexivity).
+      rewrite E in Hfo. inv Hfo. auto 9.
   Qed.
 
   Definition bm_row_cell (ofs sz : Z) : Prop :=
     (12 <= ofs /\ ofs + sz <= 16)
-    \/ (136 <= ofs /\ ofs + sz <= 140)
-    \/ (148 <= ofs /\ ofs + sz <= 160).
+    \/ (124 <= ofs /\ ofs + sz <= 140)
+    \/ (148 <= ofs /\ ofs + sz <= 164).
 
   Lemma MWF_real_transfer : forall m m',
       (forall b, Mem.valid_block m b -> Mem.valid_block m' b) ->
@@ -262,7 +284,8 @@ Section MWFReal.
     - (* R6 *)
       intros fld delta b' o' Hmem Hfo Hld.
       eapply R6; [ exact Hmem | exact Hfo | ].
-      destruct (chase_root_offsets _ _ Hmem Hfo) as [E | [E | E]]; subst delta.
+      destruct (chase_root_offsets _ _ Hmem Hfo)
+        as [E | [E | [E | [E | [E | [E | E]]]]]]; subst delta.
       + change (Mem.loadv Mptr m'
                   (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 136))))
           with (Mem.load Mptr m' bm 136) in Hld.
@@ -290,6 +313,42 @@ Section MWFReal.
         apply (Htr Mptr bm 152 (Vptr b' o')); [ | exact Hld ].
         left. split; [ reflexivity | ]. right. right.
         change (size_chunk Mptr) with 4. lia.
+      + change (Mem.loadv Mptr m'
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 124))))
+          with (Mem.load Mptr m' bm 124) in Hld.
+        change (Mem.loadv Mptr m
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 124))))
+          with (Mem.load Mptr m bm 124).
+        apply (Htr Mptr bm 124 (Vptr b' o')); [ | exact Hld ].
+        left. split; [ reflexivity | ]. right. left.
+        change (size_chunk Mptr) with 4. lia.
+      + change (Mem.loadv Mptr m'
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 128))))
+          with (Mem.load Mptr m' bm 128) in Hld.
+        change (Mem.loadv Mptr m
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 128))))
+          with (Mem.load Mptr m bm 128).
+        apply (Htr Mptr bm 128 (Vptr b' o')); [ | exact Hld ].
+        left. split; [ reflexivity | ]. right. left.
+        change (size_chunk Mptr) with 4. lia.
+      + change (Mem.loadv Mptr m'
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 132))))
+          with (Mem.load Mptr m' bm 132) in Hld.
+        change (Mem.loadv Mptr m
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 132))))
+          with (Mem.load Mptr m bm 132).
+        apply (Htr Mptr bm 132 (Vptr b' o')); [ | exact Hld ].
+        left. split; [ reflexivity | ]. right. left.
+        change (size_chunk Mptr) with 4. lia.
+      + change (Mem.loadv Mptr m'
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 160))))
+          with (Mem.load Mptr m' bm 160) in Hld.
+        change (Mem.loadv Mptr m
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 160))))
+          with (Mem.load Mptr m bm 160).
+        apply (Htr Mptr bm 160 (Vptr b' o')); [ | exact Hld ].
+        left. split; [ reflexivity | ]. right. right.
+        change (size_chunk Mptr) with 4. lia.
   Qed.
 
   (* ---------------- Hmwf_window ---------------- *)
@@ -307,9 +366,9 @@ Section MWFReal.
       by (apply orb_true_iff in Hw2 as [h|h]; apply Z.leb_le in h; auto).
     assert (W12 : delta + size_chunk ch <= 12 \/ 16 <= delta)
       by (apply orb_true_iff in Hw12 as [h|h]; apply Z.leb_le in h; auto).
-    assert (W136 : delta + size_chunk ch <= 136 \/ 140 <= delta)
+    assert (W136 : delta + size_chunk ch <= 124 \/ 140 <= delta)
       by (apply orb_true_iff in Hw136 as [h|h]; apply Z.leb_le in h; auto).
-    assert (W148 : delta + size_chunk ch <= 148 \/ 160 <= delta)
+    assert (W148 : delta + size_chunk ch <= 148 \/ 164 <= delta)
       by (apply orb_true_iff in Hw148 as [h|h]; apply Z.leb_le in h; auto).
     pose proof M as (_ & R1 & _).
     apply (MWF_real_transfer mm mm'); [ .. | exact M ].
@@ -396,10 +455,11 @@ Section MWFReal.
       rewrite <- Hld. symmetry.
       eapply Mem.load_store_other;
         [ exact Hst | left; exact (proj1 (Hgms_blk _ Hfs)) ].
-    - (* R6: chase roots live at 136/148/152, past the store's end *)
+    - (* R6: chase roots live at 124..136/148..160, past the store's end *)
       intros fld delta b' o' Hmem Hfo Hld.
       eapply R6; [ exact Hmem | exact Hfo | ].
-      destruct (chase_root_offsets _ _ Hmem Hfo) as [E | [E | E]]; subst delta.
+      destruct (chase_root_offsets _ _ Hmem Hfo)
+        as [E | [E | [E | [E | [E | [E | E]]]]]]; subst delta.
       + change (Mem.loadv Mptr mm'
                   (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 136))))
           with (Mem.load Mptr mm' bm 136) in Hld.
@@ -427,6 +487,224 @@ Section MWFReal.
         rewrite <- Hld. symmetry.
         eapply Mem.load_store_other; [ exact Hst | right; right ].
         change (size_chunk Mint32) with 4. lia.
+      + change (Mem.loadv Mptr mm'
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 124))))
+          with (Mem.load Mptr mm' bm 124) in Hld.
+        change (Mem.loadv Mptr mm
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 124))))
+          with (Mem.load Mptr mm bm 124).
+        rewrite <- Hld. symmetry.
+        eapply Mem.load_store_other; [ exact Hst | right; right ].
+        change (size_chunk Mint32) with 4. lia.
+      + change (Mem.loadv Mptr mm'
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 128))))
+          with (Mem.load Mptr mm' bm 128) in Hld.
+        change (Mem.loadv Mptr mm
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 128))))
+          with (Mem.load Mptr mm bm 128).
+        rewrite <- Hld. symmetry.
+        eapply Mem.load_store_other; [ exact Hst | right; right ].
+        change (size_chunk Mint32) with 4. lia.
+      + change (Mem.loadv Mptr mm'
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 132))))
+          with (Mem.load Mptr mm' bm 132) in Hld.
+        change (Mem.loadv Mptr mm
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 132))))
+          with (Mem.load Mptr mm bm 132).
+        rewrite <- Hld. symmetry.
+        eapply Mem.load_store_other; [ exact Hst | right; right ].
+        change (size_chunk Mint32) with 4. lia.
+      + change (Mem.loadv Mptr mm'
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 160))))
+          with (Mem.load Mptr mm' bm 160) in Hld.
+        change (Mem.loadv Mptr mm
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 160))))
+          with (Mem.load Mptr mm bm 160).
+        rewrite <- Hld. symmetry.
+        eapply Mem.load_store_other; [ exact Hst | right; right ].
+        change (size_chunk Mint32) with 4. lia.
+    - (* R7: SafeB blocks are not bm *)
+      intros b ofs b' o' Hs Hld.
+      apply (R7 b ofs b' o' Hs).
+      cbn in Hld |- *. rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other;
+        [ exact Hst | left; exact (HSafeB_not_bm _ Hs) ].
+  Qed.
+
+  (* ---------------- the chase-ROOT-cell store row ----------------
+     The object-family helpers write the tabled root cells THEMSELVES
+     (mario_grab_used_object: m->heldObj = m->usedObj; the drop/throw
+     helpers: m->heldObj = NULL).  MWF_real survives storing any value
+     that is SafeB-if-a-pointer into a root cell: R6 on the stored
+     cell is re-established from the premise (a Vptr survives the
+     Mptr round-trip on ptr64=false; everything else decodes away
+     from Vptr), every OTHER root cell is >= 4 bytes apart (the 7
+     root literals are 4-separated), and the low cells ([2,4) input,
+     [12,16) action) end before 124. *)
+  Lemma mwf_real_root_store : forall mm mm' fld delta vv,
+      mem_id fld chase_root_fields = true ->
+      field_offset (prog_comp_env mario.prog) fld mario_state_members
+        = OK (delta, Full) ->
+      (forall bb oo, vv = Vptr bb oo -> SafeB bb) ->
+      MWF_real mm ->
+      Mem.store Mptr mm bm delta vv = Some mm' -> MWF_real mm'.
+  Proof.
+    intros mm mm' fld delta vv Hmem Hfo Hsafe M Hst.
+    pose proof (chase_root_offsets _ _ Hmem Hfo) as Hd7.
+    destruct M as ((Vbm & Vbc & Vgms & Vsafe) & R1 & R2 & R3 & R4 & R5 & R6 & R7).
+    split; [ | split; [ | split; [ | split; [ | split; [ | split; [ | split ]]]]]].
+    - (* R0: validity is store-stable *)
+      split; [ eapply Mem.store_valid_block_1; eauto | ].
+      split; [ eapply Mem.store_valid_block_1; eauto | ].
+      split.
+      + intros gb Hfs. eapply Mem.store_valid_block_1;
+          [ exact Hst | exact (Vgms _ Hfs) ].
+      + intros b Hb. eapply Mem.store_valid_block_1;
+          [ exact Hst | exact (Vsafe _ Hb) ].
+    - (* R1: [2,4) ends before every root cell *)
+      intros v Hld. apply R1.
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other; [ exact Hst | right; left ].
+      change (size_chunk Mint16unsigned) with 2. lia.
+    - (* R2: [156,160) is 4-separated from every root cell *)
+      intros b' o' Hld. apply R2.
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other; [ exact Hst | right ].
+      change (size_chunk Mptr) with 4. lia.
+    - (* R3: bc is not bm *)
+      intros v Hld. apply R3.
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other; [ exact Hst | left; exact Hbc_bm ].
+    - (* R4: [12,16) ends before every root cell *)
+      intros av Hld. apply R4.
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other; [ exact Hst | right; left ].
+      change (size_chunk Mint32) with 4. lia.
+    - (* R5: the gMarioState block is not bm *)
+      intros gb b o Hfs Hld. eapply R5; [ exact Hfs | ].
+      change (Mem.loadv Mptr mm' (Vptr gb Ptrofs.zero))
+        with (Mem.load Mptr mm' gb 0) in Hld.
+      change (Mem.loadv Mptr mm (Vptr gb Ptrofs.zero))
+        with (Mem.load Mptr mm gb 0).
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other;
+        [ exact Hst | left; exact (proj1 (Hgms_blk _ Hfs)) ].
+    - (* R6: the stored cell via the premise; other roots 4-separated *)
+      intros fld' delta' b' o' Hmem' Hfo' Hld.
+      destruct (chase_root_offsets _ _ Hmem' Hfo')
+        as [E | [E | [E | [E | [E | [E | E]]]]]]; subst delta'.
+      + change (Mem.loadv Mptr mm'
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 136))))
+          with (Mem.load Mptr mm' bm 136) in Hld.
+        destruct (Z.eq_dec delta 136) as [-> | Hne].
+        * rewrite (Mem.load_store_same _ _ _ _ _ _ Hst) in Hld.
+          injection Hld as E.
+          destruct vv as [ | vi | vl | vf | vs | bb oo ]; try discriminate E.
+          injection E as E1 E2; subst.
+          exact (Hsafe _ _ eq_refl).
+        * eapply R6; [ exact Hmem' | exact Hfo' | ].
+          change (Mem.loadv Mptr mm
+                    (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 136))))
+            with (Mem.load Mptr mm bm 136).
+          rewrite <- Hld. symmetry.
+          eapply Mem.load_store_other; [ exact Hst | right ].
+          change (size_chunk Mptr) with 4. lia.
+      + change (Mem.loadv Mptr mm'
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 148))))
+          with (Mem.load Mptr mm' bm 148) in Hld.
+        destruct (Z.eq_dec delta 148) as [-> | Hne].
+        * rewrite (Mem.load_store_same _ _ _ _ _ _ Hst) in Hld.
+          injection Hld as E.
+          destruct vv as [ | vi | vl | vf | vs | bb oo ]; try discriminate E.
+          injection E as E1 E2; subst.
+          exact (Hsafe _ _ eq_refl).
+        * eapply R6; [ exact Hmem' | exact Hfo' | ].
+          change (Mem.loadv Mptr mm
+                    (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 148))))
+            with (Mem.load Mptr mm bm 148).
+          rewrite <- Hld. symmetry.
+          eapply Mem.load_store_other; [ exact Hst | right ].
+          change (size_chunk Mptr) with 4. lia.
+      + change (Mem.loadv Mptr mm'
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 152))))
+          with (Mem.load Mptr mm' bm 152) in Hld.
+        destruct (Z.eq_dec delta 152) as [-> | Hne].
+        * rewrite (Mem.load_store_same _ _ _ _ _ _ Hst) in Hld.
+          injection Hld as E.
+          destruct vv as [ | vi | vl | vf | vs | bb oo ]; try discriminate E.
+          injection E as E1 E2; subst.
+          exact (Hsafe _ _ eq_refl).
+        * eapply R6; [ exact Hmem' | exact Hfo' | ].
+          change (Mem.loadv Mptr mm
+                    (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 152))))
+            with (Mem.load Mptr mm bm 152).
+          rewrite <- Hld. symmetry.
+          eapply Mem.load_store_other; [ exact Hst | right ].
+          change (size_chunk Mptr) with 4. lia.
+      + change (Mem.loadv Mptr mm'
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 124))))
+          with (Mem.load Mptr mm' bm 124) in Hld.
+        destruct (Z.eq_dec delta 124) as [-> | Hne].
+        * rewrite (Mem.load_store_same _ _ _ _ _ _ Hst) in Hld.
+          injection Hld as E.
+          destruct vv as [ | vi | vl | vf | vs | bb oo ]; try discriminate E.
+          injection E as E1 E2; subst.
+          exact (Hsafe _ _ eq_refl).
+        * eapply R6; [ exact Hmem' | exact Hfo' | ].
+          change (Mem.loadv Mptr mm
+                    (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 124))))
+            with (Mem.load Mptr mm bm 124).
+          rewrite <- Hld. symmetry.
+          eapply Mem.load_store_other; [ exact Hst | right ].
+          change (size_chunk Mptr) with 4. lia.
+      + change (Mem.loadv Mptr mm'
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 128))))
+          with (Mem.load Mptr mm' bm 128) in Hld.
+        destruct (Z.eq_dec delta 128) as [-> | Hne].
+        * rewrite (Mem.load_store_same _ _ _ _ _ _ Hst) in Hld.
+          injection Hld as E.
+          destruct vv as [ | vi | vl | vf | vs | bb oo ]; try discriminate E.
+          injection E as E1 E2; subst.
+          exact (Hsafe _ _ eq_refl).
+        * eapply R6; [ exact Hmem' | exact Hfo' | ].
+          change (Mem.loadv Mptr mm
+                    (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 128))))
+            with (Mem.load Mptr mm bm 128).
+          rewrite <- Hld. symmetry.
+          eapply Mem.load_store_other; [ exact Hst | right ].
+          change (size_chunk Mptr) with 4. lia.
+      + change (Mem.loadv Mptr mm'
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 132))))
+          with (Mem.load Mptr mm' bm 132) in Hld.
+        destruct (Z.eq_dec delta 132) as [-> | Hne].
+        * rewrite (Mem.load_store_same _ _ _ _ _ _ Hst) in Hld.
+          injection Hld as E.
+          destruct vv as [ | vi | vl | vf | vs | bb oo ]; try discriminate E.
+          injection E as E1 E2; subst.
+          exact (Hsafe _ _ eq_refl).
+        * eapply R6; [ exact Hmem' | exact Hfo' | ].
+          change (Mem.loadv Mptr mm
+                    (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 132))))
+            with (Mem.load Mptr mm bm 132).
+          rewrite <- Hld. symmetry.
+          eapply Mem.load_store_other; [ exact Hst | right ].
+          change (size_chunk Mptr) with 4. lia.
+      + change (Mem.loadv Mptr mm'
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 160))))
+          with (Mem.load Mptr mm' bm 160) in Hld.
+        destruct (Z.eq_dec delta 160) as [-> | Hne].
+        * rewrite (Mem.load_store_same _ _ _ _ _ _ Hst) in Hld.
+          injection Hld as E.
+          destruct vv as [ | vi | vl | vf | vs | bb oo ]; try discriminate E.
+          injection E as E1 E2; subst.
+          exact (Hsafe _ _ eq_refl).
+        * eapply R6; [ exact Hmem' | exact Hfo' | ].
+          change (Mem.loadv Mptr mm
+                    (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 160))))
+            with (Mem.load Mptr mm bm 160).
+          rewrite <- Hld. symmetry.
+          eapply Mem.load_store_other; [ exact Hst | right ].
+          change (size_chunk Mptr) with 4. lia.
     - (* R7: SafeB blocks are not bm *)
       intros b ofs b' o' Hs Hld.
       apply (R7 b ofs b' o' Hs).
