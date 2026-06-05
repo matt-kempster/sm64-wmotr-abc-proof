@@ -365,13 +365,22 @@ Proof.
   intros fld Hmem.
   change ((Pos.eqb fld mario._marioObj
            || (Pos.eqb fld mario._marioBodyState
-               || (Pos.eqb fld mario._statusForCamera || false)))%bool
+               || (Pos.eqb fld mario._statusForCamera
+                   || (Pos.eqb fld mario._heldObj
+                       || (Pos.eqb fld mario._usedObj
+                           || (Pos.eqb fld mario._riddenObj
+                               || (Pos.eqb fld mario._animList
+                                   || false)))))))%bool
           = true) in Hmem.
   repeat (apply orb_true_iff in Hmem; destruct Hmem as [Hm | Hmem]);
     try discriminate Hmem; apply Pos.eqb_eq in Hm; subst fld.
   - exists 136. vm_compute. reflexivity.
   - exists 152. vm_compute. reflexivity.
   - exists 148. vm_compute. reflexivity.
+  - exists 124. vm_compute. reflexivity.
+  - exists 128. vm_compute. reflexivity.
+  - exists 132. vm_compute. reflexivity.
+  - exists 160. vm_compute. reflexivity.
 Qed.
 
 (* the written value must be provably non-Vptr: a non-pointer scalar
