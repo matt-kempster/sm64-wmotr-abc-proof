@@ -45,7 +45,9 @@ From SM64.Generated Require mario mario_actions_stationary
 From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame ReachableRun
   RealFrameValue RealFrameLinked AGates SymbolicLinking FieldNonInterference.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer.
-From SM64.Proofs Require Import MWFReal RestSurface AirborneSurface.
+From SM64.Proofs Require Import MWFReal RestSurface AirborneSurface
+  DispatchKit CutsceneSurface AutomaticSurface StationarySurface
+  MovingSurface ObjectSurface.
 
 Section NoAImpliesNoFlyLinked.
   (* The linked program -- ABSTRACT, never computed (no OOM). *)
@@ -611,10 +613,29 @@ Section NoARealInputMWF.
       mem_id fid exempt_callees = true \/
       fid = mario._play_infinite_stairs_music ->
       ~ resolves_lp lp fid (Internal f).
-  Hypothesis Hpres_sta : body_pres lp (NoA_real bm) MWF bm
-      mario_actions_stationary.f_mario_execute_stationary_action.
-  Hypothesis Hpres_mov : body_pres lp (NoA_real bm) MWF bm
-      mario_actions_moving.f_mario_execute_moving_action.
+  (* the stationary dispatcher is WALKED (StationarySurface.stationary_pres
+     over the generic DispatchKit; the particleFlags epilogue store is
+     killed by the window census): PROVED from per-leaf-callee residuals
+     keyed by the 37-id census stationary_callee_ids, plus the shared
+     quicksand body below. *)
+  Hypothesis Hpres_sta_callees : forall fid f,
+      mem_id fid stationary_callee_ids = true ->
+      (prog_defmap mario_actions_stationary.prog) ! fid
+        = Some (Gfun (Internal f)) ->
+      body_pres lp (NoA_real bm) MWF bm f.
+  (* mario_update_quicksand (mario_step.prog, pinned by LO_stp): the ONE
+     out-of-TU helper the stationary/moving/object prologues call. *)
+  Hypothesis Hpres_qsand : body_pres lp (NoA_real bm) MWF bm
+      mario_step.f_mario_update_quicksand.
+  (* the moving dispatcher is WALKED (MovingSurface.moving_pres; its
+     two-store particleFlags epilogue is killed by the window census):
+     PROVED from per-leaf-callee residuals keyed by the 39-id census
+     moving_callee_ids, plus the shared quicksand body. *)
+  Hypothesis Hpres_mov_callees : forall fid f,
+      mem_id fid moving_callee_ids = true ->
+      (prog_defmap mario_actions_moving.prog) ! fid
+        = Some (Gfun (Internal f)) ->
+      body_pres lp (NoA_real bm) MWF bm f.
   (* the airborne dispatcher is WALKED (AirborneSurface.airborne_pres):
      its whole-628-line-body residual is PROVED from per-leaf-callee
      residuals keyed by the 43-id census airborne_callee_ids (41 non-T
@@ -627,12 +648,35 @@ Section NoARealInputMWF.
       body_pres lp (NoA_real bm) MWF bm f.
   Hypothesis Hpres_sub : body_pres lp (NoA_real bm) MWF bm
       mario_actions_submerged.f_mario_execute_submerged_action.
-  Hypothesis Hpres_cut : body_pres lp (NoA_real bm) MWF bm
-      mario_actions_cutscene.f_mario_execute_cutscene_action.
-  Hypothesis Hpres_aut : body_pres lp (NoA_real bm) MWF bm
-      mario_actions_automatic.f_mario_execute_automatic_action.
-  Hypothesis Hpres_obj : body_pres lp (NoA_real bm) MWF bm
-      mario_actions_object.f_mario_execute_object_action.
+  (* the cutscene dispatcher is WALKED (CutsceneSurface.cutscene_pres
+     over the generic DispatchKit): its whole-body residual is PROVED
+     from per-leaf-callee residuals keyed by the 51-id census
+     cutscene_callee_ids (the prologue helper + the 50 act handlers;
+     the particleFlags epilogue store is killed by the window census).
+     Discharge proceeds id by id. *)
+  Hypothesis Hpres_cut_callees : forall fid f,
+      mem_id fid cutscene_callee_ids = true ->
+      (prog_defmap mario_actions_cutscene.prog) ! fid
+        = Some (Gfun (Internal f)) ->
+      body_pres lp (NoA_real bm) MWF bm f.
+  (* the automatic dispatcher is WALKED (AutomaticSurface.automatic_pres
+     over the generic DispatchKit; the quicksandDepth store is killed by
+     the window census): PROVED from per-leaf-callee residuals keyed by
+     the 17-id census automatic_callee_ids.  act_in_cannon's leaf is
+     where the cannon-fire kill gets consumed. *)
+  Hypothesis Hpres_aut_callees : forall fid f,
+      mem_id fid automatic_callee_ids = true ->
+      (prog_defmap mario_actions_automatic.prog) ! fid
+        = Some (Gfun (Internal f)) ->
+      body_pres lp (NoA_real bm) MWF bm f.
+  (* the object dispatcher is WALKED (ObjectSurface.object_pres): PROVED
+     from per-leaf-callee residuals keyed by the 11-id census
+     object_callee_ids, plus the shared quicksand body. *)
+  Hypothesis Hpres_obj_callees : forall fid f,
+      mem_id fid object_callee_ids = true ->
+      (prog_defmap mario_actions_object.prog) ! fid
+        = Some (Gfun (Internal f)) ->
+      body_pres lp (NoA_real bm) MWF bm f.
   Hypothesis Hpres_floors : body_pres lp (NoA_real bm) MWF bm
       interaction.f_mario_handle_special_floors.
   Hypothesis Hpres_inter : body_pres lp (NoA_real bm) MWF bm
@@ -702,13 +746,42 @@ Section NoARealInputMWF.
              (rest_pres_decompose lp LO_sta LO_mov LO_air LO_sub LO_cut
                 LO_aut LO_obj LO_int LO_beh LO_lvl LO_stp Hrest_ext_only
                 (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) bm
-                Hpres_sta Hpres_mov
+                (stationary_pres lp LO_mario LO_sta LO_stp bm (NoA_real bm)
+                   (MWF_real lp bm bc oc0 SafeB)
+                   (mwf_real_ctl lp bm bc oc0 SafeB)
+                   (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                      Hgms_blk)
+                   Hpres_sta_callees Hpres_qsand)
+                (moving_pres lp LO_mario LO_mov LO_stp bm (NoA_real bm)
+                   (MWF_real lp bm bc oc0 SafeB)
+                   (mwf_real_ctl lp bm bc oc0 SafeB)
+                   (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                      Hgms_blk)
+                   Hpres_mov_callees Hpres_qsand)
                 (airborne_pres lp LO_mario LO_air bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
                    (mwf_real_ctl lp bm bc oc0 SafeB)
                    Hpres_air_callees)
-                Hpres_sub Hpres_cut Hpres_aut
-                Hpres_obj Hpres_floors Hpres_inter Hpres_wind Hpres_warp)
+                Hpres_sub
+                (cutscene_pres lp LO_mario LO_cut bm (NoA_real bm)
+                   (MWF_real lp bm bc oc0 SafeB)
+                   (mwf_real_ctl lp bm bc oc0 SafeB)
+                   (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                      Hgms_blk)
+                   Hpres_cut_callees)
+                (automatic_pres lp LO_mario LO_aut bm (NoA_real bm)
+                   (MWF_real lp bm bc oc0 SafeB)
+                   (mwf_real_ctl lp bm bc oc0 SafeB)
+                   (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                      Hgms_blk)
+                   Hpres_aut_callees)
+                (object_pres lp LO_mario LO_obj LO_stp bm (NoA_real bm)
+                   (MWF_real lp bm bc oc0 SafeB)
+                   (mwf_real_ctl lp bm bc oc0 SafeB)
+                   (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                      Hgms_blk)
+                   Hpres_obj_callees Hpres_qsand)
+                Hpres_floors Hpres_inter Hpres_wind Hpres_warp)
              Hret_call Hret_ext Hext_action Hmwf_ext
              (mwf_real_entry lp bm bc oc0 SafeB Hbc_bm)
              (mwf_real_free lp bm bc oc0 SafeB Hbc_bm)

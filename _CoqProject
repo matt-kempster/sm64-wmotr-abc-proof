@@ -59,6 +59,16 @@ proofs/MarioModel/RestSurface.v
 #     per-leaf-callee residuals via the dispatch kill; 43-id census) ---
 proofs/MarioModel/AirborneSurface.v
 
+# --- GOAL 1 / the dispatch kit (SPINE: the airborne walk made generic --
+#     value-gate kill + dispatch walk + epilogue walker, for the other six
+#     handler TUs) and its per-handler instantiations ---
+proofs/MarioModel/DispatchKit.v
+proofs/MarioModel/CutsceneSurface.v
+proofs/MarioModel/AutomaticSurface.v
+proofs/MarioModel/StationarySurface.v
+proofs/MarioModel/MovingSurface.v
+proofs/MarioModel/ObjectSurface.v
+
 # --- GOAL 1 / concrete MWF run invariant (SPINE: MWF_real + all per-leaf
 #     discharges; consumed by the MWF-grounded capstone in NoAImpliesNoFlyLinked) ---
 proofs/MarioModel/MWFReal.v
