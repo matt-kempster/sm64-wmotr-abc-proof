@@ -38,11 +38,14 @@
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory Globalenvs
   Ctypes Clight ClightBigstep Linking.
 From Coq Require Import List. Import ListNotations.
-From SM64.Generated Require mario.
+From SM64.Generated Require mario mario_actions_stationary
+  mario_actions_moving mario_actions_airborne mario_actions_submerged
+  mario_actions_cutscene mario_actions_automatic mario_actions_object
+  interaction behavior_actions level_update mario_step.
 From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame ReachableRun
   RealFrameValue RealFrameLinked AGates SymbolicLinking FieldNonInterference.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer.
-From SM64.Proofs Require Import MWFReal.
+From SM64.Proofs Require Import MWFReal RestSurface.
 
 Section NoAImpliesNoFlyLinked.
   (* The linked program -- ABSTRACT, never computed (no OOM). *)
@@ -423,7 +426,8 @@ Section NoARealInputV2.
      CRUX at this scope: at the 7 dispatch handlers + interactions +
      special floors this is exactly where the A-gating taint closure
      (Taint.v + AGates.v kills) gets consumed; at the exempt whitelist
-     it is per-symbol frame reasoning (vec3 family). *)
+     it is per-symbol frame reasoning (vec3 family). The MWF-grounded
+     section below decomposes this per symbol via RestSurface.v. *)
   Hypothesis Hrest_pres : forall m f vargs t m' vres,
       rest_fd lp (Internal f) ->
       (marg_exempt (Internal f) = false -> marg_ok bm vargs) ->
@@ -582,13 +586,53 @@ Section NoARealInputMWF.
       eval_expr (lp_ge lp) e le m (Evar fid fty) vf ->
       Genv.find_funct (lp_ge lp) vf = Some fd ->
       marg_exempt fd = true.
-  Hypothesis Hrest_pres : forall m f vargs t m' vres,
-      rest_fd lp (Internal f) ->
-      (marg_exempt (Internal f) = false -> marg_ok bm vargs) ->
-      eval_funcall function_entry2 (lp_ge lp) m (Internal f) vargs t m' vres ->
-      NoA_real bm m -> MWF m -> Mem.valid_block m bm ->
-      action_sat not_tainted m bm ->
-      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
+  (* ---- the rest surface, decomposed PER SYMBOL (RestSurface.v).
+     ELEVEN per-TU linkorder pins (LO_mario's class, link-time facts)
+     + the negative pin (the exempt whitelist + the music helper stay
+     External in lp) pin every rest symbol's Internal resolution to THE
+     real generated body -- so the v2 section's whole-surface Hrest_pres
+     residual becomes 11 named per-real-body preservation residuals (the
+     stub is PROVED). Each survivor is a statement about ONE clightgen'd
+     AST object: THE REMAINING CRUX, where the A-gating taint closure
+     (Taint.v + AGates.v kills) gets consumed by the engine-v2 census
+     walk over that TU. ---- *)
+  Hypothesis LO_sta : linkorder mario_actions_stationary.prog lp.
+  Hypothesis LO_mov : linkorder mario_actions_moving.prog lp.
+  Hypothesis LO_air : linkorder mario_actions_airborne.prog lp.
+  Hypothesis LO_sub : linkorder mario_actions_submerged.prog lp.
+  Hypothesis LO_cut : linkorder mario_actions_cutscene.prog lp.
+  Hypothesis LO_aut : linkorder mario_actions_automatic.prog lp.
+  Hypothesis LO_obj : linkorder mario_actions_object.prog lp.
+  Hypothesis LO_int : linkorder interaction.prog lp.
+  Hypothesis LO_beh : linkorder behavior_actions.prog lp.
+  Hypothesis LO_lvl : linkorder level_update.prog lp.
+  Hypothesis LO_stp : linkorder mario_step.prog lp.
+  Hypothesis Hrest_ext_only : forall fid f,
+      mem_id fid exempt_callees = true \/
+      fid = mario._play_infinite_stairs_music ->
+      ~ resolves_lp lp fid (Internal f).
+  Hypothesis Hpres_sta : body_pres lp (NoA_real bm) MWF bm
+      mario_actions_stationary.f_mario_execute_stationary_action.
+  Hypothesis Hpres_mov : body_pres lp (NoA_real bm) MWF bm
+      mario_actions_moving.f_mario_execute_moving_action.
+  Hypothesis Hpres_air : body_pres lp (NoA_real bm) MWF bm
+      mario_actions_airborne.f_mario_execute_airborne_action.
+  Hypothesis Hpres_sub : body_pres lp (NoA_real bm) MWF bm
+      mario_actions_submerged.f_mario_execute_submerged_action.
+  Hypothesis Hpres_cut : body_pres lp (NoA_real bm) MWF bm
+      mario_actions_cutscene.f_mario_execute_cutscene_action.
+  Hypothesis Hpres_aut : body_pres lp (NoA_real bm) MWF bm
+      mario_actions_automatic.f_mario_execute_automatic_action.
+  Hypothesis Hpres_obj : body_pres lp (NoA_real bm) MWF bm
+      mario_actions_object.f_mario_execute_object_action.
+  Hypothesis Hpres_floors : body_pres lp (NoA_real bm) MWF bm
+      interaction.f_mario_handle_special_floors.
+  Hypothesis Hpres_inter : body_pres lp (NoA_real bm) MWF bm
+      interaction.f_mario_process_interactions.
+  Hypothesis Hpres_wind : body_pres lp (NoA_real bm) MWF bm
+      behavior_actions.f_spawn_wind_particles.
+  Hypothesis Hpres_warp : body_pres lp (NoA_real bm) MWF bm
+      level_update.f_level_trigger_warp.
   Hypothesis Hret_call : forall fd m0 vargs0 t0 m0' vres0,
       reached_v2 lp fd ->
       eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m0' vres0 ->
@@ -646,7 +690,13 @@ Section NoARealInputMWF.
              (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                 HSafeB_not_bc Hgms_blk)
              (mwf_real_umbi lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm Hgms_blk)
-             WL_exempt Hrest_pres Hret_call Hret_ext Hext_action Hmwf_ext
+             WL_exempt
+             (rest_pres_decompose lp LO_sta LO_mov LO_air LO_sub LO_cut
+                LO_aut LO_obj LO_int LO_beh LO_lvl LO_stp Hrest_ext_only
+                (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) bm
+                Hpres_sta Hpres_mov Hpres_air Hpres_sub Hpres_cut Hpres_aut
+                Hpres_obj Hpres_floors Hpres_inter Hpres_wind Hpres_warp)
+             Hret_call Hret_ext Hext_action Hmwf_ext
              (mwf_real_entry lp bm bc oc0 SafeB Hbc_bm)
              (mwf_real_free lp bm bc oc0 SafeB Hbc_bm)
              Hrest Hext Hstore Hstoremwf).
