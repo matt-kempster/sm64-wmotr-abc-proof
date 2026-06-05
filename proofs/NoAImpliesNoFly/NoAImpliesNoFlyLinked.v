@@ -45,7 +45,7 @@ From SM64.Generated Require mario mario_actions_stationary
 From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame ReachableRun
   RealFrameValue RealFrameLinked AGates SymbolicLinking FieldNonInterference.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer.
-From SM64.Proofs Require Import MWFReal RestSurface.
+From SM64.Proofs Require Import MWFReal RestSurface AirborneSurface.
 
 Section NoAImpliesNoFlyLinked.
   (* The linked program -- ABSTRACT, never computed (no OOM). *)
@@ -615,8 +615,16 @@ Section NoARealInputMWF.
       mario_actions_stationary.f_mario_execute_stationary_action.
   Hypothesis Hpres_mov : body_pres lp (NoA_real bm) MWF bm
       mario_actions_moving.f_mario_execute_moving_action.
-  Hypothesis Hpres_air : body_pres lp (NoA_real bm) MWF bm
-      mario_actions_airborne.f_mario_execute_airborne_action.
+  (* the airborne dispatcher is WALKED (AirborneSurface.airborne_pres):
+     its whole-628-line-body residual is PROVED from per-leaf-callee
+     residuals keyed by the 43-id census airborne_callee_ids (41 non-T
+     act handlers + the 2 prologue helpers; the 3 T handlers are dead
+     code under the dispatch kill). Discharge proceeds id by id. *)
+  Hypothesis Hpres_air_callees : forall fid f,
+      mem_id fid airborne_callee_ids = true ->
+      (prog_defmap mario_actions_airborne.prog) ! fid
+        = Some (Gfun (Internal f)) ->
+      body_pres lp (NoA_real bm) MWF bm f.
   Hypothesis Hpres_sub : body_pres lp (NoA_real bm) MWF bm
       mario_actions_submerged.f_mario_execute_submerged_action.
   Hypothesis Hpres_cut : body_pres lp (NoA_real bm) MWF bm
@@ -694,7 +702,12 @@ Section NoARealInputMWF.
              (rest_pres_decompose lp LO_sta LO_mov LO_air LO_sub LO_cut
                 LO_aut LO_obj LO_int LO_beh LO_lvl LO_stp Hrest_ext_only
                 (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) bm
-                Hpres_sta Hpres_mov Hpres_air Hpres_sub Hpres_cut Hpres_aut
+                Hpres_sta Hpres_mov
+                (airborne_pres lp LO_mario LO_air bm (NoA_real bm)
+                   (MWF_real lp bm bc oc0 SafeB)
+                   (mwf_real_ctl lp bm bc oc0 SafeB)
+                   Hpres_air_callees)
+                Hpres_sub Hpres_cut Hpres_aut
                 Hpres_obj Hpres_floors Hpres_inter Hpres_wind Hpres_warp)
              Hret_call Hret_ext Hext_action Hmwf_ext
              (mwf_real_entry lp bm bc oc0 SafeB Hbc_bm)
