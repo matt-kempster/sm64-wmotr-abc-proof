@@ -580,6 +580,9 @@ Section NoARealInputMWF.
       mem_id gid stored_globals = true ->
       Genv.find_symbol (lp_ge lp) gid = Some bg ->
       bg <> bm /\ bg <> bc /\ ~ SafeB bg.
+  Hypothesis Hgtimer_blk : forall gb,
+      Genv.find_symbol (lp_ge lp) interaction._gGlobalTimer = Some gb ->
+      gb <> bm /\ gb <> bc /\ ~ SafeB gb.
 
   (* ---- the surviving per-symbol residuals, now stated at the CONCRETE
      invariant MWF_real (same shapes as the v2 section's; see the
@@ -683,12 +686,13 @@ Section NoARealInputMWF.
   (* the object dispatcher is WALKED (ObjectSurface.object_pres) and its
      FIRST leaf is DISCHARGED (ObjectLeafSurface.ccoc_pres: the whole
      check_common_object_cancels helper tree -- set_water_plunge_action +
-     drop_and_set_mario_action + the set_mario_action keystone -- is
-     proved): the census is the 10 REMAINING leaves.  The discharged
-     leaf's tree surfaces three deeper named residuals: the object-family
-     external rows (obj_ext_ids, the warp_ext_ids model class) and
-     mario_stop_riding_and_holding (interaction.prog; its usedObj chase
-     stores need the widened chase-root census, next slice). *)
+     drop_and_set_mario_action + the set_mario_action keystone + the FIVE
+     interaction-TU object helpers behind mario_stop_riding_and_holding
+     (msrah/msro/mdho/mtho/mguo, the B2b slice) -- is proved): the census
+     is the 10 REMAINING leaves.  The discharged leaf's tree surfaces
+     only the object-family EXTERNAL rows (obj_ext_ids, the warp_ext_ids
+     model class: vec3s_set / set_camera_mode / segmented_to_virtual /
+     stop_shell_music / obj_set_held_state). *)
   Hypothesis Hpres_obj_callees : forall fid f,
       mem_id fid object_callee_ids_rest = true ->
       (prog_defmap mario_actions_object.prog) ! fid
@@ -697,9 +701,6 @@ Section NoARealInputMWF.
   Hypothesis Hpres_obj_ext : forall fid,
       mem_id fid obj_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
-  Hypothesis Hcp_msrah :
-    call_pres lp bm (NoA_real bm) MWF
-      interaction._mario_stop_riding_and_holding.
   (* the special-floors body is WALKED (FloorsSurface.floors_pres via the
      generic walker walk_pres: the body has NO store at all, only reads +
      branches + five leaf calls): PROVED from per-leaf residuals keyed by
@@ -776,12 +777,12 @@ Section NoARealInputMWF.
              (mwf_real_chase_root lp bm bc oc0 SafeB)
              (mwf_real_chase_step lp bm bc oc0 SafeB)
              HSafeB_not_bm
-             (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm Hgms_blk)
-             (mwf_real_input lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm Hgms_blk)
+             (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm Hgms_blk Hgtimer_blk)
+             (mwf_real_input lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm Hgms_blk Hgtimer_blk)
              (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
              (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                HSafeB_not_bc Hgms_blk)
-             (mwf_real_umbi lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm Hgms_blk)
+                HSafeB_not_bc Hgms_blk Hgtimer_blk)
+             (mwf_real_umbi lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm Hgms_blk Hgtimer_blk)
              WL_exempt
              (rest_pres_decompose lp LO_sta LO_mov LO_air LO_sub LO_cut
                 LO_aut LO_obj LO_int LO_beh LO_lvl LO_stp Hrest_ext_only
@@ -790,13 +791,13 @@ Section NoARealInputMWF.
                    (MWF_real lp bm bc oc0 SafeB)
                    (mwf_real_ctl lp bm bc oc0 SafeB)
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                      Hgms_blk)
+                      Hgms_blk Hgtimer_blk)
                    Hpres_sta_callees Hpres_qsand)
                 (moving_pres lp LO_mario LO_mov LO_stp bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
                    (mwf_real_ctl lp bm bc oc0 SafeB)
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                      Hgms_blk)
+                      Hgms_blk Hgtimer_blk)
                    Hpres_mov_callees Hpres_qsand)
                 (airborne_pres lp LO_mario LO_air bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
@@ -806,58 +807,66 @@ Section NoARealInputMWF.
                    (MWF_real lp bm bc oc0 SafeB) SafeB
                    (mwf_real_ctl lp bm bc oc0 SafeB)
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                      Hgms_blk)
+                      Hgms_blk Hgtimer_blk)
                    HSafeB_not_bm
                    (mwf_real_chase_root lp bm bc oc0 SafeB)
                    (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                      HSafeB_not_bc Hgms_blk)
+                      HSafeB_not_bc Hgms_blk Hgtimer_blk)
                    Hpres_sub_callees)
                 (cutscene_pres lp LO_mario LO_cut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
                    (mwf_real_ctl lp bm bc oc0 SafeB)
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                      Hgms_blk)
+                      Hgms_blk Hgtimer_blk)
                    Hpres_cut_callees)
                 (automatic_pres lp LO_mario LO_aut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
                    (mwf_real_ctl lp bm bc oc0 SafeB)
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                      Hgms_blk)
+                      Hgms_blk Hgtimer_blk)
                    Hpres_aut_callees)
                 (object_pres lp LO_mario LO_obj LO_stp bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
                    (mwf_real_ctl lp bm bc oc0 SafeB)
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                      Hgms_blk)
-                   (object_callees_pres lp LO_mario LO_stp bm (NoA_real bm)
+                      Hgms_blk Hgtimer_blk)
+                   (object_callees_pres lp LO_mario LO_stp LO_int bm
+                      (NoA_real bm)
                       (MWF_real lp bm bc oc0 SafeB)
                       (mwf_real_ctl lp bm bc oc0 SafeB)
                       (mwf_real_window lp bm bc oc0 SafeB Hbc_bm
-                         HSafeB_not_bm Hgms_blk)
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk)
                       (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
                       (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm
-                         HSafeB_not_bm Hgms_blk)
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk)
                       SafeB HSafeB_not_bm
                       (mwf_real_chase_root lp bm bc oc0 SafeB)
                       (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm
-                         HSafeB_not_bm HSafeB_not_bc Hgms_blk)
+                         HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk)
+                      (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk)
+                      (mwf_real_sglob lp bm bc oc0 SafeB)
                       (Hpres_obj_ext mario._vec3s_set eq_refl)
                       (Hpres_obj_ext mario._set_camera_mode eq_refl)
-                      Hcp_msrah
+                      (Hpres_obj_ext interaction._segmented_to_virtual
+                         eq_refl)
+                      (Hpres_obj_ext interaction._stop_shell_music eq_refl)
+                      (Hpres_obj_ext interaction._obj_set_held_state
+                         eq_refl)
                       Hpres_obj_callees)
                    Hpres_qsand)
                 (floors_pres lp LO_mario LO_int LO_lvl bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
                    (mwf_real_ctl lp bm bc oc0 SafeB)
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                      Hgms_blk)
+                      Hgms_blk Hgtimer_blk)
                    (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
                    Hpres_floors_callees
                    (warp_pres lp LO_mario LO_lvl bm (NoA_real bm)
                       (MWF_real lp bm bc oc0 SafeB)
                       (mwf_real_ctl lp bm bc oc0 SafeB)
                       (mwf_real_window lp bm bc oc0 SafeB Hbc_bm
-                         HSafeB_not_bm Hgms_blk)
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk)
                       (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
                       Hpres_warp_ext))
                 Hpres_inter Hpres_wind
@@ -865,7 +874,7 @@ Section NoARealInputMWF.
                    (MWF_real lp bm bc oc0 SafeB)
                    (mwf_real_ctl lp bm bc oc0 SafeB)
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                      Hgms_blk)
+                      Hgms_blk Hgtimer_blk)
                    (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
                    Hpres_warp_ext))
              Hret_call Hret_ext Hext_action Hmwf_ext

@@ -16,13 +16,20 @@
 (*                                       deferred callee is               *)
 (*                                       perform_ground_step)             *)
 (*                                                                        *)
+(* PLUS (2026-06-05, the B2b slice): the FIVE interaction-TU object       *)
+(* helpers behind mario_stop_riding_and_holding, walked via the root-     *)
+(* store / fused-pair / Oshl walker arms:                                 *)
+(*   mario_stop_riding_and_holding, mario_stop_riding_object,             *)
+(*   mario_drop_held_object, mario_throw_held_object,                     *)
+(*   mario_grab_used_object                                               *)
+(* -- this DELETES the Hcp_msrah residual.                                *)
+(*                                                                        *)
 (* Named residual hypotheses (per-symbol, satisfiable, dischargeable):    *)
 (*   Hcpx_* : call_pres_ext rows for the EXTERNAL callees (play_sound,    *)
-(*            vec3s_set, vec3f_copy, set_camera_mode) -- same model class *)
-(*            as the capstone's warp_ext ids.                             *)
-(*   Hcp_msrah : mario_stop_riding_and_holding (interaction.prog;        *)
-(*            chase-stores through m->usedObj -- needs the usedObj        *)
-(*            chase-root census, next slice).                             *)
+(*            vec3s_set, vec3f_copy, set_camera_mode, + the interaction   *)
+(*            trio segmented_to_virtual / stop_shell_music /              *)
+(*            obj_set_held_state) -- same model class as the capstone's   *)
+(*            warp_ext ids.                                               *)
 (*   Hcp_pgs : perform_ground_step (mario_step.prog; fn_vars <> nil --    *)
 (*            local vec3f array -- + the quarter-step surface regime).    *)
 (* ====================================================================== *)
@@ -60,6 +67,30 @@ Definition dasma_ids : list ident :=
   interaction._mario_stop_riding_and_holding :: nil.
 Definition dasma_wids : list ident := mario._set_mario_action :: nil.
 
+(* the FIVE interaction-TU object helpers (probe-derived censuses):
+   chase temps loaded from the heldObj/usedObj/riddenObj root cells,
+   external callees segmented_to_virtual / obj_set_held_state /
+   stop_shell_music *)
+Definition msrah_ids : list ident :=
+  interaction._mario_drop_held_object
+    :: interaction._mario_stop_riding_object :: nil.
+Definition msrah_cact : list ident :=
+  interaction._t'4 :: interaction._t'2 :: nil.
+Definition msro_cact : list ident := interaction._t'2 :: nil.
+Definition msro_xids : list ident := interaction._stop_shell_music :: nil.
+Definition mdho_cact : list ident :=
+  interaction._t'10 :: interaction._t'8 :: interaction._t'5
+    :: interaction._t'3 :: nil.
+Definition mdho_xids : list ident :=
+  interaction._segmented_to_virtual :: interaction._obj_set_held_state
+    :: interaction._stop_shell_music :: nil.
+Definition mtho_cact : list ident :=
+  interaction._t'13 :: interaction._t'10 :: interaction._t'5
+    :: interaction._t'3 :: nil.
+Definition mguo_cact : list ident := interaction._t'3 :: nil.
+Definition mguo_xids : list ident :=
+  interaction._obj_set_held_state :: nil.
+
 (* sgs: msfv + the two sand/wind updaters + perform_ground_step, plus the
    two math-util externals copying gfx pos/angle through chase pointers *)
 Definition sgs_ids : list ident :=
@@ -92,7 +123,10 @@ Definition object_callee_ids_rest : list ident :=
 (* the object family's EXTERNAL leaf rows (the warp_ext_ids model class);
    grows as further leaves discharge *)
 Definition obj_ext_ids : list ident :=
-  mario._vec3s_set :: mario._set_camera_mode :: nil.
+  mario._vec3s_set :: mario._set_camera_mode
+    :: interaction._segmented_to_virtual
+    :: interaction._stop_shell_music
+    :: interaction._obj_set_held_state :: nil.
 
 (* ====================================================================== *)
 (* Pins (vm_compute over the generated TUs).                              *)
@@ -284,6 +318,145 @@ Example ccoc_walk_not_vacuous :
     (fn_body mario_actions_object.f_check_common_object_cancels) = false.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- the five interaction-TU object helpers ---- *)
+
+Example msrah_pin :
+  (prog_defmap interaction.prog)
+    ! interaction._mario_stop_riding_and_holding
+  = Some (Gfun (Internal interaction.f_mario_stop_riding_and_holding)).
+Proof. vm_compute. reflexivity. Qed.
+Example msrah_vars :
+  fn_vars interaction.f_mario_stop_riding_and_holding = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example msrah_params_ok :
+  match fn_params interaction.f_mario_stop_riding_and_holding with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example msrah_nonparam :
+  forallb (fun t' => negb (mem_id t'
+      (map fst (fn_params interaction.f_mario_stop_riding_and_holding))))
+    msrah_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example msrah_walk :
+  wwalk_chk false nil msrah_ids nil msrah_cact nil nil
+    (fn_body interaction.f_mario_stop_riding_and_holding) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example msro_pin :
+  (prog_defmap interaction.prog) ! interaction._mario_stop_riding_object
+  = Some (Gfun (Internal interaction.f_mario_stop_riding_object)).
+Proof. vm_compute. reflexivity. Qed.
+Example msro_vars :
+  fn_vars interaction.f_mario_stop_riding_object = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example msro_params_ok :
+  match fn_params interaction.f_mario_stop_riding_object with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example msro_nonparam :
+  forallb (fun t' => negb (mem_id t'
+      (map fst (fn_params interaction.f_mario_stop_riding_object))))
+    msro_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example msro_walk :
+  wwalk_chk false nil nil nil msro_cact msro_xids nil
+    (fn_body interaction.f_mario_stop_riding_object) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example mdho_pin :
+  (prog_defmap interaction.prog) ! interaction._mario_drop_held_object
+  = Some (Gfun (Internal interaction.f_mario_drop_held_object)).
+Proof. vm_compute. reflexivity. Qed.
+Example mdho_vars :
+  fn_vars interaction.f_mario_drop_held_object = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example mdho_params_ok :
+  match fn_params interaction.f_mario_drop_held_object with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mdho_nonparam :
+  forallb (fun t' => negb (mem_id t'
+      (map fst (fn_params interaction.f_mario_drop_held_object))))
+    mdho_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mdho_walk :
+  wwalk_chk false nil nil nil mdho_cact mdho_xids nil
+    (fn_body interaction.f_mario_drop_held_object) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example mtho_pin :
+  (prog_defmap interaction.prog) ! interaction._mario_throw_held_object
+  = Some (Gfun (Internal interaction.f_mario_throw_held_object)).
+Proof. vm_compute. reflexivity. Qed.
+Example mtho_vars :
+  fn_vars interaction.f_mario_throw_held_object = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example mtho_params_ok :
+  match fn_params interaction.f_mario_throw_held_object with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mtho_nonparam :
+  forallb (fun t' => negb (mem_id t'
+      (map fst (fn_params interaction.f_mario_throw_held_object))))
+    mtho_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mtho_walk :
+  wwalk_chk false nil nil nil mtho_cact mdho_xids nil
+    (fn_body interaction.f_mario_throw_held_object) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example mguo_pin :
+  (prog_defmap interaction.prog) ! interaction._mario_grab_used_object
+  = Some (Gfun (Internal interaction.f_mario_grab_used_object)).
+Proof. vm_compute. reflexivity. Qed.
+Example mguo_vars :
+  fn_vars interaction.f_mario_grab_used_object = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example mguo_params_ok :
+  match fn_params interaction.f_mario_grab_used_object with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mguo_nonparam :
+  forallb (fun t' => negb (mem_id t'
+      (map fst (fn_params interaction.f_mario_grab_used_object))))
+    mguo_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mguo_walk :
+  wwalk_chk false nil nil nil mguo_cact mguo_xids nil
+    (fn_body interaction.f_mario_grab_used_object) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* POSITIVE CONTROL: the chase census bites -- empty cact fails *)
+Example msrah_walk_not_vacuous :
+  wwalk_chk false nil msrah_ids nil nil nil nil
+    (fn_body interaction.f_mario_stop_riding_and_holding) = false.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ====================================================================== *)
 (* The rows.                                                              *)
 (* ====================================================================== *)
@@ -292,6 +465,7 @@ Section ObjectLeafRows.
   Variable lp : Clight.program.
   Hypothesis LO_mario : linkorder mario.prog lp.
   Hypothesis LO_mario_step : linkorder mario_step.prog lp.
+  Hypothesis LO_int : linkorder interaction.prog lp.
 
   Variable bm : block.
   Variable NoA MWF : mem -> Prop.
@@ -326,6 +500,18 @@ Section ObjectLeafRows.
       MWF mm -> SafeB bsafe ->
       (forall bb oo, vv <> Vptr bb oo) ->
       Mem.store ch mm bsafe d vv = Some mm' -> MWF mm'.
+  Hypothesis HMWF_root : forall mm mm' fld (delta : Z) vv,
+      mem_id fld chase_root_fields = true ->
+      field_offset (prog_comp_env mario.prog) fld mario_state_members
+        = OK (delta, Full) ->
+      (forall bb oo, vv = Vptr bb oo -> SafeB bb) ->
+      MWF mm ->
+      Mem.store Mptr mm bm delta vv = Some mm' -> MWF mm'.
+  Hypothesis HMWF_sglob : forall m gb v,
+      MWF m ->
+      Genv.find_symbol (lp_ge lp) interaction._gGlobalTimer = Some gb ->
+      Mem.load Mint32 m gb 0 = Some v ->
+      forall bb oo, v <> Vptr bb oo.
 
   (* ---- the NAMED per-symbol residuals this surface still rests on ---- *)
 
@@ -338,10 +524,14 @@ Section ObjectLeafRows.
     call_pres_ext lp bm NoA MWF mario_step._vec3f_copy.
   Hypothesis Hcpx_scm :
     call_pres_ext lp bm NoA MWF mario._set_camera_mode.
+  Hypothesis Hcpx_s2v :
+    call_pres_ext lp bm NoA MWF interaction._segmented_to_virtual.
+  Hypothesis Hcpx_ssm :
+    call_pres_ext lp bm NoA MWF interaction._stop_shell_music.
+  Hypothesis Hcpx_oshs :
+    call_pres_ext lp bm NoA MWF interaction._obj_set_held_state.
 
   (* internal, deferred to later slices (named blockers in the header) *)
-  Hypothesis Hcp_msrah :
-    call_pres lp bm NoA MWF interaction._mario_stop_riding_and_holding.
   Hypothesis Hcp_pgs :
     call_pres lp bm NoA MWF mario_step._perform_ground_step.
 
@@ -349,7 +539,7 @@ Section ObjectLeafRows.
   Let Hsmact : call_pres_act lp bm NoA MWF mario._set_mario_action :=
     smact_pres lp LO_mario LO_mario_step bm NoA MWF HNoA_of_MWF
       HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-      HMWF_chase.
+      HMWF_chase HMWF_root HMWF_sglob.
 
   Lemma obj_sids_rows : forall fid, mem_id fid obj_sids = true ->
       call_pres_act lp bm NoA MWF fid.
@@ -365,7 +555,7 @@ Section ObjectLeafRows.
   Proof.
     apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase mario.prog mario._play_sound_if_no_flag
+             HMWF_chase HMWF_root HMWF_sglob mario.prog mario._play_sound_if_no_flag
              mario.f_play_sound_if_no_flag nil nil psinf_xids nil
              LO_mario psinf_pin psinf_vars psinf_params_ok).
     - intros fid' H. discriminate H.
@@ -383,7 +573,7 @@ Section ObjectLeafRows.
   Proof.
     apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase mario.prog mario._is_anim_at_end
+             HMWF_chase HMWF_root HMWF_sglob mario.prog mario._is_anim_at_end
              mario.f_is_anim_at_end nil nil nil nil
              LO_mario iaae_pin iaae_vars iaae_params_ok).
     - intros fid' H. discriminate H.
@@ -399,7 +589,7 @@ Section ObjectLeafRows.
   Proof.
     apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase mario.prog mario._check_common_action_exits
+             HMWF_chase HMWF_root HMWF_sglob mario.prog mario._check_common_action_exits
              mario.f_check_common_action_exits nil nil nil obj_sids
              LO_mario ccae_pin ccae_vars ccae_params_ok).
     - intros fid' H. discriminate H.
@@ -415,7 +605,7 @@ Section ObjectLeafRows.
   Proof.
     apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase mario.prog mario._set_water_plunge_action
+             HMWF_chase HMWF_root HMWF_sglob mario.prog mario._set_water_plunge_action
              mario.f_set_water_plunge_action nil nil swpa_xids obj_sids
              LO_mario swpa_pin swpa_vars swpa_params_ok).
     - intros fid' H. discriminate H.
@@ -437,7 +627,7 @@ Section ObjectLeafRows.
   Proof.
     apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase mario_step.prog
+             HMWF_chase HMWF_root HMWF_sglob mario_step.prog
              mario_step._mario_update_moving_sand
              mario_step.f_mario_update_moving_sand nil nil nil nil
              LO_mario_step mums_pin mums_vars mums_params_ok).
@@ -453,7 +643,7 @@ Section ObjectLeafRows.
   Proof.
     apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase mario_step.prog
+             HMWF_chase HMWF_root HMWF_sglob mario_step.prog
              mario_step._mario_update_windy_ground
              mario_step.f_mario_update_windy_ground nil nil nil nil
              LO_mario_step muwg_pin muwg_vars muwg_params_ok).
@@ -462,6 +652,131 @@ Section ObjectLeafRows.
     - intros fid' H. discriminate H.
     - intros fid' H. discriminate H.
     - exact muwg_walk.
+  Qed.
+
+  (* ==================================================================
+     The FIVE interaction-TU object helpers (the B2b slice): chase
+     stores through heldObj/usedObj/riddenObj (the cact censuses), root
+     stores BACK into those cells (the HMWF_root row), the fused
+     gGlobalTimer / sub-word pairs, and the Oshl rhs class.  Together
+     they DELETE the Hcp_msrah residual.
+     ================================================================== *)
+
+  Lemma mdho_row :
+    call_pres lp bm NoA MWF interaction._mario_drop_held_object.
+  Proof.
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob interaction.prog
+             interaction._mario_drop_held_object
+             interaction.f_mario_drop_held_object
+             nil nil mdho_cact mdho_xids nil
+             LO_int mdho_pin mdho_vars mdho_params_ok mdho_nonparam).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold mdho_xids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_s2v | ].
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_oshs | ].
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_ssm | ].
+      discriminate H.
+    - intros fid' H. discriminate H.
+    - exact mdho_walk.
+  Qed.
+
+  Lemma mtho_row :
+    call_pres lp bm NoA MWF interaction._mario_throw_held_object.
+  Proof.
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob interaction.prog
+             interaction._mario_throw_held_object
+             interaction.f_mario_throw_held_object
+             nil nil mtho_cact mdho_xids nil
+             LO_int mtho_pin mtho_vars mtho_params_ok mtho_nonparam).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold mdho_xids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_s2v | ].
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_oshs | ].
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_ssm | ].
+      discriminate H.
+    - intros fid' H. discriminate H.
+    - exact mtho_walk.
+  Qed.
+
+  Lemma msro_row :
+    call_pres lp bm NoA MWF interaction._mario_stop_riding_object.
+  Proof.
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob interaction.prog
+             interaction._mario_stop_riding_object
+             interaction.f_mario_stop_riding_object
+             nil nil msro_cact msro_xids nil
+             LO_int msro_pin msro_vars msro_params_ok msro_nonparam).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold msro_xids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_ssm | ].
+      discriminate H.
+    - intros fid' H. discriminate H.
+    - exact msro_walk.
+  Qed.
+
+  Lemma mguo_row :
+    call_pres lp bm NoA MWF interaction._mario_grab_used_object.
+  Proof.
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob interaction.prog
+             interaction._mario_grab_used_object
+             interaction.f_mario_grab_used_object
+             nil nil mguo_cact mguo_xids nil
+             LO_int mguo_pin mguo_vars mguo_params_ok mguo_nonparam).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold mguo_xids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_oshs | ].
+      discriminate H.
+    - intros fid' H. discriminate H.
+    - exact mguo_walk.
+  Qed.
+
+  Lemma msrah_ids_rows : forall fid, mem_id fid msrah_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold msrah_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mdho_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact msro_row | ].
+    discriminate H.
+  Qed.
+
+  (* the former Hcp_msrah residual, now a PROVED row *)
+  Lemma msrah_row :
+    call_pres lp bm NoA MWF interaction._mario_stop_riding_and_holding.
+  Proof.
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob interaction.prog
+             interaction._mario_stop_riding_and_holding
+             interaction.f_mario_stop_riding_and_holding
+             msrah_ids nil msrah_cact nil nil
+             LO_int msrah_pin msrah_vars msrah_params_ok msrah_nonparam).
+    - exact msrah_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact msrah_walk.
   Qed.
 
   (* ---- drop_and_set_mario_action: the SECOND act writer.  Same
@@ -473,7 +788,7 @@ Section ObjectLeafRows.
   Proof.
     intros fid H. unfold dasma_ids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_msrah | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact msrah_row | ].
     discriminate H.
   Qed.
 
@@ -491,7 +806,7 @@ Section ObjectLeafRows.
   Proof.
     apply (call_pres_act_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase mario.prog _ mario.f_drop_and_set_mario_action
+             HMWF_chase HMWF_root HMWF_sglob mario.prog _ mario.f_drop_and_set_mario_action
              dasma_wact dasma_ids dasma_wids nil nil nil
              LO_mario dasma_pin dasma_vars dasma_params dasma_ret
              eq_refl eq_refl eq_refl eq_refl eq_refl eq_refl).
@@ -512,7 +827,7 @@ Section ObjectLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid;
         exact (msfv_row lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                  HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-                 HMWF_chase) | ].
+                 HMWF_chase HMWF_root HMWF_sglob) | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact mums_row | ].
     apply orb_true_iff in H as [Hm | H];
@@ -538,7 +853,7 @@ Section ObjectLeafRows.
   Proof.
     apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase mario_step.prog
+             HMWF_chase HMWF_root HMWF_sglob mario_step.prog
              mario_step._stationary_ground_step
              mario_step.f_stationary_ground_step sgs_ids nil sgs_xids nil
              LO_mario_step sgs_pin sgs_vars sgs_params_ok).
@@ -580,7 +895,7 @@ Section ObjectLeafRows.
   Proof.
     apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase
+             HMWF_chase HMWF_root HMWF_sglob
              mario_actions_object.f_check_common_object_cancels
              ccoc_ids nil nil ccoc_sids ccoc_vars ccoc_params_ok).
     - exact ccoc_ids_rows.
