@@ -47,7 +47,8 @@ From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame Reacha
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer.
 From SM64.Proofs Require Import MWFReal RestSurface AirborneSurface
   DispatchKit CutsceneSurface AutomaticSurface StationarySurface
-  MovingSurface ObjectSurface SubmergedSurface FloorsSurface WarpSurface.
+  MovingSurface ObjectSurface SubmergedSurface FloorsSurface WarpSurface
+  ActWriterSurface ObjectLeafSurface.
 
 Section NoAImpliesNoFlyLinked.
   (* The linked program -- ABSTRACT, never computed (no OOM). *)
@@ -679,14 +680,26 @@ Section NoARealInputMWF.
       (prog_defmap mario_actions_automatic.prog) ! fid
         = Some (Gfun (Internal f)) ->
       body_pres lp (NoA_real bm) MWF bm f.
-  (* the object dispatcher is WALKED (ObjectSurface.object_pres): PROVED
-     from per-leaf-callee residuals keyed by the 11-id census
-     object_callee_ids, plus the shared quicksand body. *)
+  (* the object dispatcher is WALKED (ObjectSurface.object_pres) and its
+     FIRST leaf is DISCHARGED (ObjectLeafSurface.ccoc_pres: the whole
+     check_common_object_cancels helper tree -- set_water_plunge_action +
+     drop_and_set_mario_action + the set_mario_action keystone -- is
+     proved): the census is the 10 REMAINING leaves.  The discharged
+     leaf's tree surfaces three deeper named residuals: the object-family
+     external rows (obj_ext_ids, the warp_ext_ids model class) and
+     mario_stop_riding_and_holding (interaction.prog; its usedObj chase
+     stores need the widened chase-root census, next slice). *)
   Hypothesis Hpres_obj_callees : forall fid f,
-      mem_id fid object_callee_ids = true ->
+      mem_id fid object_callee_ids_rest = true ->
       (prog_defmap mario_actions_object.prog) ! fid
         = Some (Gfun (Internal f)) ->
       body_pres lp (NoA_real bm) MWF bm f.
+  Hypothesis Hpres_obj_ext : forall fid,
+      mem_id fid obj_ext_ids = true ->
+      call_pres_ext lp bm (NoA_real bm) MWF fid.
+  Hypothesis Hcp_msrah :
+    call_pres lp bm (NoA_real bm) MWF
+      interaction._mario_stop_riding_and_holding.
   (* the special-floors body is WALKED (FloorsSurface.floors_pres via the
      generic walker walk_pres: the body has NO store at all, only reads +
      branches + five leaf calls): PROVED from per-leaf residuals keyed by
@@ -816,7 +829,23 @@ Section NoARealInputMWF.
                    (mwf_real_ctl lp bm bc oc0 SafeB)
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                       Hgms_blk)
-                   Hpres_obj_callees Hpres_qsand)
+                   (object_callees_pres lp LO_mario LO_stp bm (NoA_real bm)
+                      (MWF_real lp bm bc oc0 SafeB)
+                      (mwf_real_ctl lp bm bc oc0 SafeB)
+                      (mwf_real_window lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm Hgms_blk)
+                      (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+                      (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm Hgms_blk)
+                      SafeB HSafeB_not_bm
+                      (mwf_real_chase_root lp bm bc oc0 SafeB)
+                      (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm HSafeB_not_bc Hgms_blk)
+                      (Hpres_obj_ext mario._vec3s_set eq_refl)
+                      (Hpres_obj_ext mario._set_camera_mode eq_refl)
+                      Hcp_msrah
+                      Hpres_obj_callees)
+                   Hpres_qsand)
                 (floors_pres lp LO_mario LO_int LO_lvl bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
                    (mwf_real_ctl lp bm bc oc0 SafeB)

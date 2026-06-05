@@ -1,6 +1,7 @@
 (* ====================================================================== *)
-(* THE ACT-WRITER KEYSTONE (STAGING -- Unwired until an act-leaf family   *)
-(* consumes it): set_mario_action and its four sub-setters, walked.       *)
+(* THE ACT-WRITER KEYSTONE (SPINE: consumed by the object-family leaf     *)
+(* rows in ObjectLeafSurface, which the capstone consumes):               *)
+(* set_mario_action and its four sub-setters, walked.                     *)
 (*                                                                        *)
 (* Every one of the ~200 act-leaf bodies calls                            *)
 (*   set_mario_action(m, CONSTANT, _)                                     *)
@@ -2123,7 +2124,7 @@ Proof. vm_compute. reflexivity. Qed.
 Example smas_params :
   fn_params mario.f_set_mario_action_submerged = writer_params.
 Proof. vm_compute. reflexivity. Qed.
-Example smas_ret : fn_return mario.f_set_mario_action_submerged = tuint.
+Example smas_ret : i32_ty (fn_return mario.f_set_mario_action_submerged) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Example smac_vars : fn_vars mario.f_set_mario_action_cutscene = nil.
@@ -2131,14 +2132,14 @@ Proof. vm_compute. reflexivity. Qed.
 Example smac_params :
   fn_params mario.f_set_mario_action_cutscene = writer_params.
 Proof. vm_compute. reflexivity. Qed.
-Example smac_ret : fn_return mario.f_set_mario_action_cutscene = tuint.
+Example smac_ret : i32_ty (fn_return mario.f_set_mario_action_cutscene) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Example smact_vars : fn_vars mario.f_set_mario_action = nil.
 Proof. vm_compute. reflexivity. Qed.
 Example smact_params : fn_params mario.f_set_mario_action = writer_params.
 Proof. vm_compute. reflexivity. Qed.
-Example smact_ret : fn_return mario.f_set_mario_action = tuint.
+Example smact_ret : i32_ty (fn_return mario.f_set_mario_action) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Example msfv_vars : fn_vars mario.f_mario_set_forward_vel = nil.
@@ -2199,7 +2200,7 @@ Proof. vm_compute. reflexivity. Qed.
 Example smam_params :
   fn_params mario.f_set_mario_action_moving = writer_params.
 Proof. vm_compute. reflexivity. Qed.
-Example smam_ret : fn_return mario.f_set_mario_action_moving = tuint.
+Example smam_ret : i32_ty (fn_return mario.f_set_mario_action_moving) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Example smam_walk :
@@ -2322,7 +2323,7 @@ Proof. vm_compute. reflexivity. Qed.
 Example smaa_params :
   fn_params mario.f_set_mario_action_airborne = writer_params.
 Proof. vm_compute. reflexivity. Qed.
-Example smaa_ret : fn_return mario.f_set_mario_action_airborne = tuint.
+Example smaa_ret : i32_ty (fn_return mario.f_set_mario_action_airborne) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Example smaa_walk :
@@ -2637,7 +2638,7 @@ Section ActWriterRows.
       (prog_defmap TU) ! fid = Some (Gfun (Internal f)) ->
       fn_vars f = nil ->
       fn_params f = writer_params ->
-      fn_return f = tuint ->
+      i32_ty (fn_return f) = true ->
       mem_id mario._action wact = true ->
       mem_id mario_actions_airborne._m wact = false ->
       mem_id mario._actionArg wact = false ->
@@ -2744,9 +2745,11 @@ Section ActWriterRows.
                 _ _ _ _ _ _ _ _ Hbody eq_refl Hchk Htat0 Hact0 Hch0
                 HN HM HV HS)
       as (HV' & HS' & HM' & HN' & _ & _ & _ & Hret').
-    (* the return value: fn_return = tuint forces a censused return *)
-    rewrite Hret in Hout.
-    unfold outcome_result_value, tuint in Hout.
+    (* the return value: an I32 fn_return forces a censused return *)
+    destruct (fn_return f) as [ | rsz rsg raa | | | | | | | ] eqn:Eret;
+      try discriminate Hret.
+    destruct rsz; try discriminate Hret.
+    unfold outcome_result_value in Hout.
     match type of Hret' with
     | wret_ok _ ?oo => destruct oo as [ | | | ov ]
     end.
@@ -2757,8 +2760,7 @@ Section ActWriterRows.
       destruct Hout as [_ Hcast].
       destruct (Hret' eq_refl) as [Huv Hi32'].
       exact (conj HV' (conj HS' (conj HM' (conj HN'
-               (sem_cast_i32_untainted _ _ _ _ _ Hi32'
-                  (eq_refl : i32_ty (Tint I32 Unsigned noattr) = true)
+               (sem_cast_i32_untainted _ _ _ _ _ Hi32' Hret
                   Huv Hcast))))).
   Qed.
 
