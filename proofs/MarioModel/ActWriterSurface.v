@@ -27,7 +27,7 @@ From Coq Require Import ZArith Lia List.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
 From SM64.Generated Require mario mario_step mario_actions_airborne
-  interaction.
+  interaction mario_actions_object.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
   ActionValueFrame RealFrameValue RealFrameLinked AGates.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface
@@ -69,6 +69,22 @@ Definition call_pres_act (lp : Clight.program) (bm : block)
     action_sat not_tainted m0 bm ->
     Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\
     MWF m1 /\ NoA m1 /\ untainted_scalar vres0.
+
+(* the THIRD-position writer residual shape (the asgs class): Mario's
+   pointer first, anything second, an UNTAINTED scalar action third.
+   No return-value claim -- nothing consumes the result. *)
+Definition call_pres_act3 (lp : Clight.program) (bm : block)
+    (NoA MWF : mem -> Prop) (fid : ident) : Prop :=
+  forall fd m0 v0 v1 aval rest t0 m1 vres0,
+    eval_funcall function_entry2 (lp_ge lp) m0 fd
+      (v0 :: v1 :: aval :: rest) t0 m1 vres0 ->
+    resolves_lp lp fid fd ->
+    marg_ok bm (v0 :: v1 :: aval :: rest) ->
+    untainted_scalar aval ->
+    NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+    action_sat not_tainted m0 bm ->
+    Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\
+    MWF m1 /\ NoA m1.
 
 (* I32 int types: the casts between them are value-neutral on Vint
    (ptr64=false makes them the pointer-neutral class), so a censused
@@ -970,18 +986,33 @@ Definition wsrc_chk (wact : list ident) (a : expr) : bool :=
 (* the act-writer call with a CONSTANT action argument: the leaf pattern
    `set_mario_action(m, ACT_X, _)` -- the untainted-scalar premise of the
    call_pres_act row is met by the vm-checked constant itself. *)
-Definition smact_call_chk (sids : list ident) (fid : ident)
+Definition smact_call_chk (wact sids : list ident) (fid : ident)
     (tys : list type) (args : list expr) : bool :=
   mem_id fid sids
   && match tys, args with
      | ty2 :: _, Econst_int c ity :: _ =>
          wact_const c && i32_ty ty2 && i32_ty ity
+     | ty2 :: _, Etempvar q qty :: _ =>
+         mem_id q wact && i32_ty ty2 && i32_ty qty
+     | _, _ => false
+     end.
+
+(* the THIRD-position act-writer call (the asgs class): BOTH value args
+   are vm-checked constants -- the animation (any I32 const) and the
+   UNTAINTED action third. *)
+Definition act3_call_chk (tids : list ident) (fid : ident)
+    (tys : list type) (args : list expr) : bool :=
+  mem_id fid tids
+  && match tys, args with
+     | ty2 :: ty3 :: _, Econst_int _ i2 :: Econst_int c ity :: _ =>
+         i32_ty ty2 && i32_ty i2 && wact_const c && i32_ty ty3
+         && i32_ty ity
      | _, _ => false
      end.
 
 (* xids = external (or otherwise marg-free) censused callees: the
    call_pres_ext row has NO marg premise, so ANY argument list fits. *)
-Fixpoint wwalk_chk (rt : bool) (wact ids wids cact xids sids : list ident)
+Fixpoint wwalk_chk (rt : bool) (wact ids wids cact xids sids tids : list ident)
     (s : statement) : bool :=
   match s with
   | Sskip | Sbreak | Scontinue => true
@@ -1049,9 +1080,11 @@ Fixpoint wwalk_chk (rt : bool) (wact ids wids cact xids sids : list ident)
                                  | _, _ => false
                                  end
                             else mem_id fid ids
-                                 || smact_call_chk sids fid tys args
+                                 || smact_call_chk wact sids fid tys args
+                                 || act3_call_chk tids fid tys args
                         | None => mem_id fid ids
-                                  || smact_call_chk sids fid tys args
+                                  || smact_call_chk wact sids fid tys args
+                                  || act3_call_chk tids fid tys args
                         end
                  | _, _ => false
                  end)
@@ -1059,33 +1092,33 @@ Fixpoint wwalk_chk (rt : bool) (wact ids wids cact xids sids : list ident)
       end
   | Ssequence s1 s2 =>
       npsrc_pair_chk wact cact s1 s2
-      || (wwalk_chk rt wact ids wids cact xids sids s1
-          && wwalk_chk rt wact ids wids cact xids sids s2)
+      || (wwalk_chk rt wact ids wids cact xids sids tids s1
+          && wwalk_chk rt wact ids wids cact xids sids tids s2)
   | Sifthenelse _ s1 s2 =>
-      wwalk_chk rt wact ids wids cact xids sids s1
-      && wwalk_chk rt wact ids wids cact xids sids s2
+      wwalk_chk rt wact ids wids cact xids sids tids s1
+      && wwalk_chk rt wact ids wids cact xids sids tids s2
   | Sloop s1 s2 =>
-      wwalk_chk rt wact ids wids cact xids sids s1
-      && wwalk_chk rt wact ids wids cact xids sids s2
-  | Sswitch _ sl => wwalk_chk_ls rt wact ids wids cact xids sids sl
+      wwalk_chk rt wact ids wids cact xids sids tids s1
+      && wwalk_chk rt wact ids wids cact xids sids tids s2
+  | Sswitch _ sl => wwalk_chk_ls rt wact ids wids cact xids sids tids sl
   | _ => false
   end
-with wwalk_chk_ls (rt : bool) (wact ids wids cact xids sids : list ident)
+with wwalk_chk_ls (rt : bool) (wact ids wids cact xids sids tids : list ident)
     (sl : labeled_statements) : bool :=
   match sl with
   | LSnil => true
   | LScons _ s sl' =>
-      wwalk_chk rt wact ids wids cact xids sids s
-      && wwalk_chk_ls rt wact ids wids cact xids sids sl'
+      wwalk_chk rt wact ids wids cact xids sids tids s
+      && wwalk_chk_ls rt wact ids wids cact xids sids tids sl'
   end.
 
 (* ---- the switch-selection transfer (mirror of walk_chk's) ---- *)
 
-Lemma wwalk_chk_ls_seq : forall rt wact ids wids cact xids sids sl,
-    wwalk_chk_ls rt wact ids wids cact xids sids sl = true ->
-    wwalk_chk rt wact ids wids cact xids sids (seq_of_labeled_statement sl) = true.
+Lemma wwalk_chk_ls_seq : forall rt wact ids wids cact xids sids tids sl,
+    wwalk_chk_ls rt wact ids wids cact xids sids tids sl = true ->
+    wwalk_chk rt wact ids wids cact xids sids tids (seq_of_labeled_statement sl) = true.
 Proof.
-  intros rt wact ids wids cact xids sids sl;
+  intros rt wact ids wids cact xids sids tids sl;
     induction sl as [| o s sl0 IH]; intros H.
   - reflexivity.
   - cbn in H. apply andb_prop in H as [H1 H2].
@@ -1093,12 +1126,12 @@ Proof.
     rewrite H1, (IH H2). reflexivity.
 Qed.
 
-Lemma wwalk_chk_ls_case : forall rt wact ids wids cact xids sids n sl sl',
-    wwalk_chk_ls rt wact ids wids cact xids sids sl = true ->
+Lemma wwalk_chk_ls_case : forall rt wact ids wids cact xids sids tids n sl sl',
+    wwalk_chk_ls rt wact ids wids cact xids sids tids sl = true ->
     select_switch_case n sl = Some sl' ->
-    wwalk_chk_ls rt wact ids wids cact xids sids sl' = true.
+    wwalk_chk_ls rt wact ids wids cact xids sids tids sl' = true.
 Proof.
-  intros rt wact ids wids cact xids sids n sl;
+  intros rt wact ids wids cact xids sids tids n sl;
     induction sl as [| o s sl0 IH]; intros sl' H Hsel.
   - discriminate Hsel.
   - cbn in H. apply andb_prop in H as [H1 H2].
@@ -1109,12 +1142,12 @@ Proof.
     + exact (IH sl' H2 Hsel).
 Qed.
 
-Lemma wwalk_chk_ls_default : forall rt wact ids wids cact xids sids sl,
-    wwalk_chk_ls rt wact ids wids cact xids sids sl = true ->
-    wwalk_chk_ls rt wact ids wids cact xids sids (select_switch_default sl)
+Lemma wwalk_chk_ls_default : forall rt wact ids wids cact xids sids tids sl,
+    wwalk_chk_ls rt wact ids wids cact xids sids tids sl = true ->
+    wwalk_chk_ls rt wact ids wids cact xids sids tids (select_switch_default sl)
     = true.
 Proof.
-  intros rt wact ids wids cact xids sids sl;
+  intros rt wact ids wids cact xids sids tids sl;
     induction sl as [| o s sl0 IH]; intros H.
   - exact H.
   - cbn in H. apply andb_prop in H as [H1 H2].
@@ -1123,16 +1156,16 @@ Proof.
     + rewrite H1, H2. reflexivity.
 Qed.
 
-Lemma wwalk_chk_select : forall rt wact ids wids cact xids sids n sl,
-    wwalk_chk_ls rt wact ids wids cact xids sids sl = true ->
-    wwalk_chk rt wact ids wids cact xids sids
+Lemma wwalk_chk_select : forall rt wact ids wids cact xids sids tids n sl,
+    wwalk_chk_ls rt wact ids wids cact xids sids tids sl = true ->
+    wwalk_chk rt wact ids wids cact xids sids tids
       (seq_of_labeled_statement (select_switch n sl)) = true.
 Proof.
-  intros rt wact ids wids cact xids sids n sl H. apply wwalk_chk_ls_seq.
+  intros rt wact ids wids cact xids sids tids n sl H. apply wwalk_chk_ls_seq.
   unfold select_switch.
   destruct (select_switch_case n sl) eqn:E.
-  - exact (wwalk_chk_ls_case _ _ _ _ _ _ _ _ _ _ H E).
-  - exact (wwalk_chk_ls_default _ _ _ _ _ _ _ _ H).
+  - exact (wwalk_chk_ls_case _ _ _ _ _ _ _ _ _ _ _ H E).
+  - exact (wwalk_chk_ls_default _ _ _ _ _ _ _ _ _ H).
 Qed.
 
 (* ====================================================================== *)
@@ -2498,11 +2531,187 @@ Section ActWriterWalk.
     eexists; reflexivity.
   Qed.
 
+  (* the act-writer call whose ACTION argument is a censused act TEMP
+     (asgs's own set_mario_action(m, endAction, 0) call): act_inv
+     supplies untainted_scalar for the temp's value and the I32 cast
+     preserves it (Vundef dies at the cast).  The result (if any) does
+     NOT feed the act tracking. *)
+  Lemma kit_scallt_pres :
+    forall optid fid ty2 tys rty cc q qty args le0 m0 tr le1 m1 out0,
+      exec_stmt function_entry2 (lp_ge lp) empty_env le0 m0
+        (Scall optid
+           (Evar fid (Tfunction (tyMSp :: ty2 :: tys) rty cc))
+           (Etempvar mario_actions_airborne._m tyMSp
+              :: Etempvar q qty :: args))
+        tr le1 m1 out0 ->
+      call_pres_act lp bm NoA MWF fid ->
+      i32_ty ty2 = true -> i32_ty qty = true ->
+      (forall b o, le0 ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      (forall x, le0 ! q = Some x -> untainted_scalar x) ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\
+      MWF m1 /\ NoA m1 /\ out0 = Out_normal /\
+      exists vr, le1 = set_opttemp optid vr le0.
+  Proof.
+    intros optid fid ty2 tys rty cc q qty args le0 m0 tr le1 m1 out0
+           Hexec Hcpa Hty2 Hqty Htat Hq HN HM HV HS.
+    inv Hexec.
+    match goal with
+    | Hc : classify_fun _ = fun_case_f _ _ _ |- _ =>
+        cbn in Hc; injection Hc as Hc1 Hc2 Hc3; subst
+    end.
+    match goal with
+    | Hv : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
+        apply eval_Evar_funct_empty in Hv; destruct Hv as (b & Hsym & ->)
+    end.
+    match goal with
+    | Hff : Genv.find_funct _ (Vptr b Ptrofs.zero) = Some ?fd |- _ =>
+        assert (Hres : resolves_lp lp fid fd) by (exists b; split; assumption)
+    end.
+    (* peel the head: Mario's pointer through the identity cast *)
+    match goal with
+    | Ha : eval_exprlist _ _ _ _ (_ :: _) _ _ |- _ => inv Ha
+    end.
+    match goal with
+    | Hv : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+        apply eval_expr_Etempvar_val in Hv; rename Hv into Hv1
+    end.
+    match goal with
+    | Hc : sem_cast _ _ _ _ = Some _ |- _ =>
+        apply sem_cast_ptr_ptr_id in Hc; subst
+    end.
+    (* peel the second arg: the censused act temp at the I32 cast *)
+    match goal with
+    | Ha : eval_exprlist _ _ _ _ (_ :: _) _ _ |- _ => inv Ha
+    end.
+    match goal with
+    | Hv : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+        apply eval_expr_Etempvar_val in Hv; rename Hv into Hv2
+    end.
+    match goal with
+    | Hc : sem_cast _ _ _ _ = Some _ |- _ =>
+        pose proof (sem_cast_i32_untainted _ _ _ _ _ Hqty Hty2
+                      (Hq _ Hv2) Hc) as Hu
+    end.
+    (* the marg fact *)
+    match goal with
+    | Hv1' : le0 ! _ = Some ?vv,
+      Hevf : eval_funcall _ _ _ _ (?vv :: ?vrest) _ _ _ |- _ =>
+        assert (Hmarg : marg_ok bm (vv :: vrest))
+          by (destruct vv; cbn; try exact I; exact (Htat _ _ Hv1'))
+    end.
+    match goal with
+    | Hevf : eval_funcall _ _ _ _ (_ :: _) _ _ _ |- _ =>
+        destruct (Hcpa _ _ _ _ _ _ _ _ Hevf Hres Hmarg Hu HN HM HV HS)
+          as (HV' & HS' & HM' & HN' & _)
+    end.
+    refine (conj HV' (conj HS' (conj HM' (conj HN' (conj eq_refl _))))).
+    eexists; reflexivity.
+  Qed.
+
+  (* the THIRD-position act-writer call brick (the asgs class): both
+     value arguments are vm-checked constants -- the animation constant
+     is value-irrelevant, the action constant meets the act3 row's
+     untainted-scalar premise.  No result joins the act tracking. *)
+  Lemma kit_scall3_pres :
+    forall optid fid ty2 ty3 tys rty cc c2 i2 c3 ity args
+           le0 m0 tr le1 m1 out0,
+      exec_stmt function_entry2 (lp_ge lp) empty_env le0 m0
+        (Scall optid
+           (Evar fid (Tfunction (tyMSp :: ty2 :: ty3 :: tys) rty cc))
+           (Etempvar mario_actions_airborne._m tyMSp
+              :: Econst_int c2 i2 :: Econst_int c3 ity :: args))
+        tr le1 m1 out0 ->
+      call_pres_act3 lp bm NoA MWF fid ->
+      wact_const c3 = true -> i32_ty ty3 = true -> i32_ty ity = true ->
+      (forall b o, le0 ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\
+      MWF m1 /\ NoA m1 /\ out0 = Out_normal /\
+      exists vr, le1 = set_opttemp optid vr le0.
+  Proof.
+    intros optid fid ty2 ty3 tys rty cc c2 i2 c3 ity args
+           le0 m0 tr le1 m1 out0 Hexec Hcp3 Hc3 Hty3 Hity Htat
+           HN HM HV HS.
+    inv Hexec.
+    match goal with
+    | Hc : classify_fun _ = fun_case_f _ _ _ |- _ =>
+        cbn in Hc; injection Hc as Hcf1 Hcf2 Hcf3; subst
+    end.
+    match goal with
+    | Hv : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
+        apply eval_Evar_funct_empty in Hv; destruct Hv as (b & Hsym & ->)
+    end.
+    match goal with
+    | Hff : Genv.find_funct _ (Vptr b Ptrofs.zero) = Some ?fd |- _ =>
+        assert (Hres : resolves_lp lp fid fd) by (exists b; split; assumption)
+    end.
+    (* peel the head: Mario's pointer through the identity cast *)
+    match goal with
+    | Ha : eval_exprlist _ _ _ _ (_ :: _) _ _ |- _ => inv Ha
+    end.
+    match goal with
+    | Hv : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+        apply eval_expr_Etempvar_val in Hv; rename Hv into Hv1
+    end.
+    match goal with
+    | Hc : sem_cast _ _ _ _ = Some _ |- _ =>
+        apply sem_cast_ptr_ptr_id in Hc; subst
+    end.
+    (* peel the second arg: the animation constant (value-irrelevant) *)
+    match goal with
+    | Ha : eval_exprlist _ _ _ _ (_ :: _) _ _ |- _ => inv Ha
+    end.
+    match goal with
+    | Hev1 : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+        inv Hev1;
+        try (match goal with
+             | Hlv : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+                 inv Hlv
+             end)
+    end.
+    (* peel the third arg: the untainted action constant *)
+    match goal with
+    | Ha : eval_exprlist _ _ _ _ (_ :: _) _ _ |- _ => inv Ha
+    end.
+    match goal with
+    | Hev1 : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+        inv Hev1;
+        try (match goal with
+             | Hlv : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+                 inv Hlv
+             end)
+    end.
+    match goal with
+    | Hcast : sem_cast (Vint c3) _ _ _ = Some _ |- _ =>
+        pose proof (sem_cast_i32_neutral _ _ _ _ _ Hity Hty3 Hcast) as ->
+    end.
+    pose proof (wact_const_sound _ Hc3) as Hu.
+    (* the marg fact *)
+    match goal with
+    | Hv1' : le0 ! _ = Some ?vv,
+      Hevf : eval_funcall _ _ _ _ (?vv :: ?vrest) _ _ _ |- _ =>
+        assert (Hmarg : marg_ok bm (vv :: vrest))
+          by (destruct vv; cbn; try exact I; exact (Htat _ _ Hv1'))
+    end.
+    match goal with
+    | Hevf : eval_funcall _ _ _ _ (_ :: _) _ _ _ |- _ =>
+        destruct (Hcp3 _ _ _ _ _ _ _ _ _ Hevf Hres Hmarg Hu HN HM HV HS)
+          as (HV' & HS' & HM' & HN')
+    end.
+    refine (conj HV' (conj HS' (conj HM' (conj HN' (conj eq_refl _))))).
+    eexists; reflexivity.
+  Qed.
+
   (* ================================================================== *)
   (* THE WRITER WALK.                                                   *)
   (* ================================================================== *)
   Lemma wwalk_pres :
-    forall (rt : bool) (wact ids wids cact xids sids : list ident),
+    forall (rt : bool) (wact ids wids cact xids sids tids : list ident),
       (forall fid, mem_id fid ids = true -> call_pres lp bm NoA MWF fid) ->
       (forall fid, mem_id fid wids = true ->
                    call_pres_act lp bm NoA MWF fid) ->
@@ -2510,10 +2719,12 @@ Section ActWriterWalk.
                    call_pres_ext lp bm NoA MWF fid) ->
       (forall fid, mem_id fid sids = true ->
                    call_pres_act lp bm NoA MWF fid) ->
+      (forall fid, mem_id fid tids = true ->
+                   call_pres_act3 lp bm NoA MWF fid) ->
       forall s e le m0 tr le' m' out,
         exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
         e = empty_env ->
-        wwalk_chk rt wact ids wids cact xids sids s = true ->
+        wwalk_chk rt wact ids wids cact xids sids tids s = true ->
         (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
                      b = bm /\ o = Ptrofs.zero) ->
         act_inv wact le ->
@@ -2526,7 +2737,7 @@ Section ActWriterWalk.
                      b = bm /\ o = Ptrofs.zero) /\
         act_inv wact le' /\ chase_inv cact le' /\ wret_ok rt out.
   Proof.
-    intros rt wact ids wids cact xids sids Hcp Hcpa Hcpx Hcps
+    intros rt wact ids wids cact xids sids tids Hcp Hcpa Hcpx Hcps Hcp3
            s e le m0 tr le' m' out Hexec.
     induction Hexec; intros He Hchk Htat Hact Hch HN HM HV HS.
     - (* Sskip *)
@@ -2818,6 +3029,56 @@ Section ActWriterWalk.
         * (* plain censused call, or the smact-const leaf pattern --
              either way the result does NOT land in an act temp *)
           apply orb_true_iff in Hbr.
+          destruct Hbr as [Hbr | Ha3].
+          2:{ (* the act3 leaf call (the asgs class): both value args
+                 vm-checked constants, result discarded from wact *)
+            unfold act3_call_chk in Ha3.
+            apply andb_prop in Ha3 as [Hf3 Ha3].
+            destruct tys as [| ty2 tys2]; try discriminate Ha3.
+            destruct tys2 as [| ty3 tys3]; try discriminate Ha3.
+            destruct args as [| a2 args2]; try discriminate Ha3.
+            destruct a2 as [ c2 i2 | | | | | | | | | | | | | ];
+              try discriminate Ha3.
+            destruct args2 as [| a3 args3]; try discriminate Ha3.
+            destruct a3 as [ c3 ity | | | | | | | | | | | | | ];
+              try discriminate Ha3.
+            apply andb_prop in Ha3 as [Ha3 Hity].
+            apply andb_prop in Ha3 as [Ha3 Hty3].
+            apply andb_prop in Ha3 as [Ha3 Hc3].
+            apply andb_prop in Ha3 as [Hty2 Hi2].
+            assert (Hex : exec_stmt function_entry2 (lp_ge lp) empty_env
+                            le m
+                            (Scall (Some t')
+                               (Evar cid (Tfunction
+                                            (tyMSp :: ty2 :: ty3 :: tys3)
+                                            res cc))
+                               (Etempvar mario_actions_airborne._m tyMSp
+                                  :: Econst_int c2 i2
+                                  :: Econst_int c3 ity :: args3))
+                            t (set_opttemp (Some t') vres le) m'
+                            Out_normal)
+              by (econstructor; eauto).
+            destruct (kit_scall3_pres _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+                        Hex (Hcp3 _ Hf3) Hc3 Hty3 Hity Htat HN HM HV HS)
+              as (HV' & HS' & HM' & HN' & _ & _).
+            refine (conj HV' (conj HS' (conj HM' (conj HN'
+                     (conj _ (conj _ (conj _ I))))))).
+            { intros b o Hg. cbn [set_opttemp] in Hg.
+              rewrite PTree.gso in Hg
+                by (intro EE; rewrite <- EE in Hopt; cbn in Hopt;
+                    discriminate Hopt).
+              exact (Htat _ _ Hg). }
+            { intros t0 Hmem x Hg. cbn [set_opttemp] in Hg.
+              rewrite PTree.gso in Hg
+                by (intro EE; rewrite EE in Hmem; rewrite Hmem in Hmw;
+                    discriminate Hmw).
+              exact (Hact _ Hmem _ Hg). }
+            { intros t0 Hmem b o Hg. cbn [set_opttemp] in Hg.
+              rewrite PTree.gso in Hg
+                by (intro EE; rewrite EE in Hmem; rewrite Hmem in Hnc;
+                    discriminate Hnc).
+              exact (Hch _ Hmem _ _ Hg). } }
+          apply orb_true_iff in Hbr.
           destruct Hbr as [Hbr | Hsm].
           { (* plain censused call *)
             assert (Hex : exec_stmt function_entry2 (lp_ge lp) empty_env
@@ -2855,8 +3116,43 @@ Section ActWriterWalk.
           apply andb_prop in Hsm as [Hfs Hsm].
           destruct tys as [| ty2 tys']; try discriminate Hsm.
           destruct args as [| a2 args']; try discriminate Hsm.
-          destruct a2 as [ c2 ity | | | | | | | | | | | | | ];
+          destruct a2 as [ c2 ity | | | | | q qty | | | | | | | | ];
             try discriminate Hsm.
+          2:{ (* the temp-arg form: the action comes from a censused
+                 act temp (asgs's own smact(m, endAction, 0) call) *)
+            apply andb_prop in Hsm as [Hsm Hqty].
+            apply andb_prop in Hsm as [Hq Hty2].
+            assert (Hex : exec_stmt function_entry2 (lp_ge lp) empty_env
+                            le m
+                            (Scall (Some t')
+                               (Evar cid (Tfunction (tyMSp :: ty2 :: tys')
+                                            res cc))
+                               (Etempvar mario_actions_airborne._m tyMSp
+                                  :: Etempvar q qty :: args'))
+                            t (set_opttemp (Some t') vres le) m'
+                            Out_normal)
+              by (econstructor; eauto).
+            destruct (kit_scallt_pres _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ Hex
+                        (Hcps _ Hfs) Hty2 Hqty Htat
+                        (fun x Hx => Hact _ Hq x Hx) HN HM HV HS)
+              as (HV' & HS' & HM' & HN' & _ & _).
+            refine (conj HV' (conj HS' (conj HM' (conj HN'
+                     (conj _ (conj _ (conj _ I))))))).
+            { intros b o Hg. cbn [set_opttemp] in Hg.
+              rewrite PTree.gso in Hg
+                by (intro EE; rewrite <- EE in Hopt; cbn in Hopt;
+                    discriminate Hopt).
+              exact (Htat _ _ Hg). }
+            { intros t0 Hmem x Hg. cbn [set_opttemp] in Hg.
+              rewrite PTree.gso in Hg
+                by (intro EE; rewrite EE in Hmem; rewrite Hmem in Hmw;
+                    discriminate Hmw).
+              exact (Hact _ Hmem _ Hg). }
+            { intros t0 Hmem b o Hg. cbn [set_opttemp] in Hg.
+              rewrite PTree.gso in Hg
+                by (intro EE; rewrite EE in Hmem; rewrite Hmem in Hnc;
+                    discriminate Hnc).
+              exact (Hch _ Hmem _ _ Hg). } }
           apply andb_prop in Hsm as [Hsm Hity].
           apply andb_prop in Hsm as [Hc2 Hty2].
           assert (Hex : exec_stmt function_entry2 (lp_ge lp) empty_env le m
@@ -2889,6 +3185,44 @@ Section ActWriterWalk.
             exact (Hch _ Hmem _ _ Hg). }
       + (* a result-less call: plain censused, or smact-const *)
         apply orb_true_iff in Hbr.
+        destruct Hbr as [Hbr | Ha3].
+        2:{ (* the act3 leaf call, result-less *)
+          unfold act3_call_chk in Ha3.
+          apply andb_prop in Ha3 as [Hf3 Ha3].
+          destruct tys as [| ty2 tys2]; try discriminate Ha3.
+          destruct tys2 as [| ty3 tys3]; try discriminate Ha3.
+          destruct args as [| a2 args2]; try discriminate Ha3.
+          destruct a2 as [ c2 i2 | | | | | | | | | | | | | ];
+            try discriminate Ha3.
+          destruct args2 as [| a3 args3]; try discriminate Ha3.
+          destruct a3 as [ c3 ity | | | | | | | | | | | | | ];
+            try discriminate Ha3.
+          apply andb_prop in Ha3 as [Ha3 Hity].
+          apply andb_prop in Ha3 as [Ha3 Hty3].
+          apply andb_prop in Ha3 as [Ha3 Hc3].
+          apply andb_prop in Ha3 as [Hty2 Hi2].
+          assert (Hex : exec_stmt function_entry2 (lp_ge lp) empty_env
+                          le m
+                          (Scall None
+                             (Evar cid (Tfunction
+                                          (tyMSp :: ty2 :: ty3 :: tys3)
+                                          res cc))
+                             (Etempvar mario_actions_airborne._m tyMSp
+                                :: Econst_int c2 i2
+                                :: Econst_int c3 ity :: args3))
+                          t (set_opttemp None vres le) m' Out_normal)
+            by (econstructor; eauto).
+          destruct (kit_scall3_pres _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+                      Hex (Hcp3 _ Hf3) Hc3 Hty3 Hity Htat HN HM HV HS)
+            as (HV' & HS' & HM' & HN' & _ & _).
+          refine (conj HV' (conj HS' (conj HM' (conj HN'
+                   (conj _ (conj _ (conj _ I))))))).
+          { intros b o Hg. cbn [set_opttemp] in Hg. exact (Htat _ _ Hg). }
+          { intros t0 Hmem x Hg. cbn [set_opttemp] in Hg.
+            exact (Hact _ Hmem _ Hg). }
+          { intros t0 Hmem b o Hg. cbn [set_opttemp] in Hg.
+            exact (Hch _ Hmem _ _ Hg). } }
+        apply orb_true_iff in Hbr.
         destruct Hbr as [Hbr | Hsm].
         { (* plain censused call *)
           assert (Hex : exec_stmt function_entry2 (lp_ge lp) empty_env le m
@@ -2914,8 +3248,31 @@ Section ActWriterWalk.
         apply andb_prop in Hsm as [Hfs Hsm].
         destruct tys as [| ty2 tys']; try discriminate Hsm.
         destruct args as [| a2 args']; try discriminate Hsm.
-        destruct a2 as [ c2 ity | | | | | | | | | | | | | ];
+        destruct a2 as [ c2 ity | | | | | q qty | | | | | | | | ];
           try discriminate Hsm.
+        2:{ (* the temp-arg form, result-less *)
+          apply andb_prop in Hsm as [Hsm Hqty].
+          apply andb_prop in Hsm as [Hq Hty2].
+          assert (Hex : exec_stmt function_entry2 (lp_ge lp) empty_env
+                          le m
+                          (Scall None
+                             (Evar cid (Tfunction (tyMSp :: ty2 :: tys')
+                                          res cc))
+                             (Etempvar mario_actions_airborne._m tyMSp
+                                :: Etempvar q qty :: args'))
+                          t (set_opttemp None vres le) m' Out_normal)
+            by (econstructor; eauto).
+          destruct (kit_scallt_pres _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ Hex
+                      (Hcps _ Hfs) Hty2 Hqty Htat
+                      (fun x Hx => Hact _ Hq x Hx) HN HM HV HS)
+            as (HV' & HS' & HM' & HN' & _ & _).
+          refine (conj HV' (conj HS' (conj HM' (conj HN'
+                   (conj _ (conj _ (conj _ I))))))).
+          { intros b o Hg. cbn [set_opttemp] in Hg. exact (Htat _ _ Hg). }
+          { intros t0 Hmem x Hg. cbn [set_opttemp] in Hg.
+            exact (Hact _ Hmem _ Hg). }
+          { intros t0 Hmem b o Hg. cbn [set_opttemp] in Hg.
+            exact (Hch _ Hmem _ _ Hg). } }
         apply andb_prop in Hsm as [Hsm Hity].
         apply andb_prop in Hsm as [Hc2 Hty2].
         assert (Hex : exec_stmt function_entry2 (lp_ge lp) empty_env le m
@@ -3045,7 +3402,7 @@ Section ActWriterWalk.
         cbn [wwalk_chk]; exact Hchk2.
     - (* Sswitch *)
       cbn [wwalk_chk] in Hchk.
-      destruct (IHHexec He (wwalk_chk_select _ _ _ _ _ _ _ n _ Hchk)
+      destruct (IHHexec He (wwalk_chk_select _ _ _ _ _ _ _ _ n _ Hchk)
                   Htat Hact Hch HN HM HV HS)
         as (HV1 & HS1 & HM1 & HN1 & Htat1 & Hact1 & Hch1 & Hret1).
       refine (conj HV1 (conj HS1 (conj HM1 (conj HN1
@@ -3122,6 +3479,13 @@ Definition writer_params : list (ident * type) :=
   (mario_actions_airborne._m, tyMSp)
     :: (mario._action, tuint) :: (mario._actionArg, tuint) :: nil.
 
+(* the asgs-class param triple: Mario's pointer, the animation, the
+   UNTAINTED action THIRD (the act3 row's seed). *)
+Definition act3_params : list (ident * type) :=
+  (mario_actions_airborne._m, tyMSp)
+    :: (mario_actions_object._animation, tint)
+    :: (mario_actions_object._endAction, tuint) :: nil.
+
 (* ---- defmap pins: each walked body is Internal in mario.prog ---- *)
 Example smas_pin :
   (prog_defmap mario.prog) ! mario._set_mario_action_submerged
@@ -3182,28 +3546,28 @@ Proof. vm_compute. reflexivity. Qed.
 
 (* ---- the walks (the heavy vm pins over the real bodies) ---- *)
 Example smas_walk :
-  wwalk_chk true wact_sub nil nil nil nil nil
+  wwalk_chk true wact_sub nil nil nil nil nil nil
     (fn_body mario.f_set_mario_action_submerged) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Example smac_walk :
-  wwalk_chk true wact_sub smac_ids nil nil nil nil
+  wwalk_chk true wact_sub smac_ids nil nil nil nil nil
     (fn_body mario.f_set_mario_action_cutscene) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Example smact_walk :
-  wwalk_chk true wact_smact nil smact_wids nil nil nil
+  wwalk_chk true wact_smact nil smact_wids nil nil nil nil
     (fn_body mario.f_set_mario_action) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* POSITIVE CONTROL: the writer census bites -- an empty wids fails *)
 Example smact_walk_not_vacuous :
-  wwalk_chk true wact_smact nil nil nil nil nil
+  wwalk_chk true wact_smact nil nil nil nil nil nil
     (fn_body mario.f_set_mario_action) = false.
 Proof. vm_compute. reflexivity. Qed.
 
 Example msfv_walk :
-  wwalk_chk false nil nil nil nil nil nil
+  wwalk_chk false nil nil nil nil nil nil nil
     (fn_body mario.f_mario_set_forward_vel) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -3229,13 +3593,13 @@ Example smam_ret : i32_ty (fn_return mario.f_set_mario_action_moving) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Example smam_walk :
-  wwalk_chk true wact_sub mov_ids nil mov_cact nil nil
+  wwalk_chk true wact_sub mov_ids nil mov_cact nil nil nil
     (fn_body mario.f_set_mario_action_moving) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* POSITIVE CONTROL: the chase census bites -- an empty cact fails *)
 Example smam_walk_not_vacuous :
-  wwalk_chk true wact_sub mov_ids nil nil nil nil
+  wwalk_chk true wact_sub mov_ids nil nil nil nil nil
     (fn_body mario.f_set_mario_action_moving) = false.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -3257,7 +3621,7 @@ Example mgfc_params_ok :
 Proof. vm_compute. reflexivity. Qed.
 
 Example mgfc_walk :
-  wwalk_chk false nil nil nil nil nil nil
+  wwalk_chk false nil nil nil nil nil nil nil
     (fn_body mario.f_mario_get_floor_class) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -3279,7 +3643,7 @@ Example mfd_params_ok :
 Proof. vm_compute. reflexivity. Qed.
 
 Example mfd_walk :
-  wwalk_chk false nil nil nil nil nil nil
+  wwalk_chk false nil nil nil nil nil nil nil
     (fn_body mario.f_mario_facing_downhill) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -3312,7 +3676,7 @@ Example gayvfj_params :
 Proof. vm_compute. reflexivity. Qed.
 
 Example gayvfj_walk :
-  wwalk_chk false nil nil nil nil nil nil
+  wwalk_chk false nil nil nil nil nil nil nil
     (fn_body mario_step.f_get_additive_y_vel_for_jumps) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -3334,7 +3698,7 @@ Example smyv_params_ok :
 Proof. vm_compute. reflexivity. Qed.
 
 Example smyv_walk :
-  wwalk_chk false nil smyv_ids nil nil nil nil
+  wwalk_chk false nil smyv_ids nil nil nil nil nil
     (fn_body mario.f_set_mario_y_vel_based_on_fspeed) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -3352,13 +3716,13 @@ Example smaa_ret : i32_ty (fn_return mario.f_set_mario_action_airborne) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Example smaa_walk :
-  wwalk_chk true wact_air air_ids nil air_cact nil nil
+  wwalk_chk true wact_air air_ids nil air_cact nil nil nil
     (fn_body mario.f_set_mario_action_airborne) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* POSITIVE CONTROL: the chase census bites -- an empty cact fails *)
 Example smaa_walk_not_vacuous :
-  wwalk_chk true wact_air air_ids nil nil nil nil
+  wwalk_chk true wact_air air_ids nil nil nil nil nil
     (fn_body mario.f_set_mario_action_airborne) = false.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -3449,7 +3813,7 @@ Section ActWriterRows.
                     call_pres_ext lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
-      wwalk_chk false nil ids wids nil xids sids (fn_body f) = true ->
+      wwalk_chk false nil ids wids nil xids sids nil (fn_body f) = true ->
       call_pres lp bm NoA MWF fid.
   Proof.
     intros TU fid f ids wids xids sids LOtu Hdm Hvars Hps
@@ -3502,12 +3866,15 @@ Section ActWriterRows.
     change (blocks_of_env (lp_ge lp) empty_env)
       with (@nil (block * Z * Z)) in Hfree.
     cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    assert (Hcpt0 : forall fid', mem_id fid' nil = true ->
+                    call_pres_act3 lp bm NoA MWF fid')
+      by (intros fid' HH; discriminate HH).
     (* the walk *)
     destruct (wwalk_pres lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-                false nil ids wids nil xids sids Hcp Hcpa Hcpx Hcps
-                _ _ _ _ _ _ _ _ Hbody eq_refl Hchk Htat0 Hact0 Hch0
+                false nil ids wids nil xids sids nil Hcp Hcpa Hcpx Hcps
+                Hcpt0 _ _ _ _ _ _ _ _ Hbody eq_refl Hchk Htat0 Hact0 Hch0
                 HN HM HV HS)
       as (HV' & HS' & HM' & HN' & _ & _ & _ & _).
     exact (conj HV' (conj HS' (conj HM' HN'))).
@@ -3539,7 +3906,7 @@ Section ActWriterRows.
                     call_pres_ext lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
-      wwalk_chk false nil ids wids cact xids sids (fn_body f) = true ->
+      wwalk_chk false nil ids wids cact xids sids nil (fn_body f) = true ->
       call_pres lp bm NoA MWF fid.
   Proof.
     intros TU fid f ids wids cact xids sids LOtu Hdm Hvars Hps Hnpc
@@ -3601,12 +3968,15 @@ Section ActWriterRows.
     change (blocks_of_env (lp_ge lp) empty_env)
       with (@nil (block * Z * Z)) in Hfree.
     cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    assert (Hcpt0 : forall fid', mem_id fid' nil = true ->
+                    call_pres_act3 lp bm NoA MWF fid')
+      by (intros fid' HH; discriminate HH).
     (* the walk *)
     destruct (wwalk_pres lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-                false nil ids wids cact xids sids Hcp Hcpa Hcpx Hcps
-                _ _ _ _ _ _ _ _ Hbody eq_refl Hchk Htat0 Hact0 Hch0
+                false nil ids wids cact xids sids nil Hcp Hcpa Hcpx Hcps
+                Hcpt0 _ _ _ _ _ _ _ _ Hbody eq_refl Hchk Htat0 Hact0 Hch0
                 HN HM HV HS)
       as (HV' & HS' & HM' & HN' & _ & _ & _ & _).
     exact (conj HV' (conj HS' (conj HM' HN'))).
@@ -3629,7 +3999,7 @@ Section ActWriterRows.
                     call_pres_ext lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
-      wwalk_chk false nil ids wids nil xids sids (fn_body f) = true ->
+      wwalk_chk false nil ids wids nil xids sids nil (fn_body f) = true ->
       call_pres lp bm NoA MWF fid.
   Proof.
     intros TU fid f ids wids xids sids LOtu Hdm Hvars Hparams
@@ -3674,12 +4044,15 @@ Section ActWriterRows.
     change (blocks_of_env (lp_ge lp) empty_env)
       with (@nil (block * Z * Z)) in Hfree.
     cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    assert (Hcpt0 : forall fid', mem_id fid' nil = true ->
+                    call_pres_act3 lp bm NoA MWF fid')
+      by (intros fid' HH; discriminate HH).
     (* the walk *)
     destruct (wwalk_pres lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-                false nil ids wids nil xids sids Hcp Hcpa Hcpx Hcps
-                _ _ _ _ _ _ _ _ Hbody eq_refl Hchk Htat0 Hact0 Hch0
+                false nil ids wids nil xids sids nil Hcp Hcpa Hcpx Hcps
+                Hcpt0 _ _ _ _ _ _ _ _ Hbody eq_refl Hchk Htat0 Hact0 Hch0
                 HN HM HV HS)
       as (HV' & HS' & HM' & HN' & _ & _ & _ & _).
     exact (conj HV' (conj HS' (conj HM' HN'))).
@@ -3692,7 +4065,7 @@ Section ActWriterRows.
      body, not a resolution.  The marg premise is unlocked by computing
      marg_exempt = false from the Mario-head parameter shape. *)
   Lemma body_pres_of_wwalk :
-    forall (f : Clight.function) (ids wids xids sids : list ident),
+    forall (f : Clight.function) (ids wids xids sids tids : list ident),
       fn_vars f = nil ->
       match fn_params f with
       | (i, ty) :: ps =>
@@ -3709,10 +4082,12 @@ Section ActWriterRows.
                     call_pres_ext lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
-      wwalk_chk false nil ids wids nil xids sids (fn_body f) = true ->
+      (forall fid', mem_id fid' tids = true ->
+                    call_pres_act3 lp bm NoA MWF fid') ->
+      wwalk_chk false nil ids wids nil xids sids tids (fn_body f) = true ->
       body_pres lp NoA MWF bm f.
   Proof.
-    intros f ids wids xids sids Hvars Hps Hcp Hcpa Hcpx Hcps Hchk
+    intros f ids wids xids sids tids Hvars Hps Hcp Hcpa Hcpx Hcps Hcp3t Hchk
            m0 vargs0 t0 m1 vres0 Hmargf Hevf HN HM HV HS.
     inv Hevf.
     match goal with
@@ -3768,8 +4143,8 @@ Section ActWriterRows.
     destruct (wwalk_pres lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-                false nil ids wids nil xids sids Hcp Hcpa Hcpx Hcps
-                _ _ _ _ _ _ _ _ Hbody eq_refl Hchk Htat0 Hact0 Hch0
+                false nil ids wids nil xids sids tids Hcp Hcpa Hcpx Hcps
+                Hcp3t _ _ _ _ _ _ _ _ Hbody eq_refl Hchk Htat0 Hact0 Hch0
                 HN HM HV HS)
       as (HV' & HS' & HM' & _).
     exact (conj HV' (conj HS' HM')).
@@ -3800,7 +4175,7 @@ Section ActWriterRows.
                     call_pres_ext lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
-      wwalk_chk true wact ids wids cact xids sids (fn_body f) = true ->
+      wwalk_chk true wact ids wids cact xids sids nil (fn_body f) = true ->
       call_pres_act lp bm NoA MWF fid.
   Proof.
     intros TU fid f wact ids wids cact xids sids LOtu Hdm Hvars Hparams
@@ -3885,12 +4260,15 @@ Section ActWriterRows.
     change (blocks_of_env (lp_ge lp) empty_env)
       with (@nil (block * Z * Z)) in Hfree.
     cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    assert (Hcpt0 : forall fid', mem_id fid' nil = true ->
+                    call_pres_act3 lp bm NoA MWF fid')
+      by (intros fid' HH; discriminate HH).
     (* the walk *)
     destruct (wwalk_pres lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-                true wact ids wids cact xids sids Hcp Hcpa Hcpx Hcps
-                _ _ _ _ _ _ _ _ Hbody eq_refl Hchk Htat0 Hact0 Hch0
+                true wact ids wids cact xids sids nil Hcp Hcpa Hcpx Hcps
+                Hcpt0 _ _ _ _ _ _ _ _ Hbody eq_refl Hchk Htat0 Hact0 Hch0
                 HN HM HV HS)
       as (HV' & HS' & HM' & HN' & _ & _ & _ & Hret').
     (* the return value: an I32 fn_return forces a censused return *)
@@ -3910,6 +4288,129 @@ Section ActWriterRows.
       exact (conj HV' (conj HS' (conj HM' (conj HN'
                (sem_cast_i32_untainted _ _ _ _ _ Hi32' Hret
                   Huv Hcast))))).
+  Qed.
+
+  (* ---- the funcall->body entry for the THIRD-position writer (the
+     asgs class, void return / rt = false): Mario's pointer first, the
+     animation second, the UNTAINTED action THIRD seeding the act
+     census. *)
+  Lemma call_pres_act3_of_wwalk :
+    forall (TU : Clight.program) (fid : ident) (f : Clight.function)
+           (wact ids wids cact xids sids : list ident),
+      linkorder TU lp ->
+      (prog_defmap TU) ! fid = Some (Gfun (Internal f)) ->
+      fn_vars f = nil ->
+      fn_params f = act3_params ->
+      mem_id mario_actions_object._endAction wact = true ->
+      mem_id mario_actions_airborne._m wact = false ->
+      mem_id mario_actions_object._animation wact = false ->
+      mem_id mario_actions_airborne._m cact = false ->
+      mem_id mario_actions_object._animation cact = false ->
+      mem_id mario_actions_object._endAction cact = false ->
+      (forall fid', mem_id fid' ids = true ->
+                    call_pres lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' wids = true ->
+                    call_pres_act lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' xids = true ->
+                    call_pres_ext lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' sids = true ->
+                    call_pres_act lp bm NoA MWF fid') ->
+      wwalk_chk false wact ids wids cact xids sids nil (fn_body f) = true ->
+      call_pres_act3 lp bm NoA MWF fid.
+  Proof.
+    intros TU fid f wact ids wids cact xids sids LOtu Hdm Hvars Hparams
+           Hwa Hwm Hwanim Hcm Hcanim Hcend Hcp Hcpa Hcpx Hcps Hchk
+           fd m0 v0 v1 aval rest t0 m1 vres0 Hevf Hres Hmarg Hu HN HM HV HS.
+    pose proof (resolve_pin_fd lp _ _ _ _ LOtu Hdm Hres) as ->.
+    inv Hevf.
+    match goal with
+    | He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry
+    end.
+    match goal with
+    | Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody
+    end.
+    match goal with
+    | Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfree
+    end.
+    inv Hentry.
+    match goal with
+    | Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+        rewrite Hvars in Ha; inv Ha
+    end.
+    match goal with
+    | Hb : bind_parameter_temps _ _ _ = Some _ |- _ => rename Hb into Hbind
+    end.
+    rewrite Hparams in Hbind. unfold act3_params in Hbind.
+    cbn [bind_parameter_temps] in Hbind.
+    destruct rest as [| vx restx ];
+      cbn [bind_parameter_temps] in Hbind; [ | discriminate Hbind ].
+    injection Hbind as <-.
+    set (base := create_undef_temps (fn_temps f)) in *.
+    (* the entry env facts *)
+    assert (Htat0 : forall b o,
+               (PTree.set mario_actions_object._endAction aval
+                  (PTree.set mario_actions_object._animation v1
+                     (PTree.set mario_actions_airborne._m v0 base)))
+                 ! mario_actions_airborne._m = Some (Vptr b o) ->
+               b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg.
+      rewrite PTree.gso in Hg
+        by (intro EE; vm_compute in EE; discriminate EE).
+      rewrite PTree.gso in Hg
+        by (intro EE; vm_compute in EE; discriminate EE).
+      rewrite PTree.gss in Hg. injection Hg as ->.
+      cbn in Hmarg. exact Hmarg. }
+    assert (Hact0 : act_inv wact
+               (PTree.set mario_actions_object._endAction aval
+                  (PTree.set mario_actions_object._animation v1
+                     (PTree.set mario_actions_airborne._m v0 base)))).
+    { intros t' Hmem' x Hg'.
+      destruct (Pos.eq_dec t' mario_actions_object._endAction)
+        as [-> | Hne1].
+      { rewrite PTree.gss in Hg'. injection Hg' as <-. exact Hu. }
+      rewrite PTree.gso in Hg' by exact Hne1.
+      destruct (Pos.eq_dec t' mario_actions_object._animation)
+        as [-> | Hne2].
+      { rewrite Hmem' in Hwanim. discriminate Hwanim. }
+      rewrite PTree.gso in Hg' by exact Hne2.
+      destruct (Pos.eq_dec t' mario_actions_airborne._m) as [-> | Hne3].
+      { rewrite Hmem' in Hwm. discriminate Hwm. }
+      rewrite PTree.gso in Hg' by exact Hne3.
+      left. exact (create_undef_temps_val _ _ _ Hg'). }
+    assert (Hch0 : chase_inv SafeB cact
+               (PTree.set mario_actions_object._endAction aval
+                  (PTree.set mario_actions_object._animation v1
+                     (PTree.set mario_actions_airborne._m v0 base)))).
+    { intros t' Hmem' b o Hg'.
+      destruct (Pos.eq_dec t' mario_actions_object._endAction)
+        as [-> | Hne1].
+      { rewrite Hmem' in Hcend. discriminate Hcend. }
+      rewrite PTree.gso in Hg' by exact Hne1.
+      destruct (Pos.eq_dec t' mario_actions_object._animation)
+        as [-> | Hne2].
+      { rewrite Hmem' in Hcanim. discriminate Hcanim. }
+      rewrite PTree.gso in Hg' by exact Hne2.
+      destruct (Pos.eq_dec t' mario_actions_airborne._m) as [-> | Hne3].
+      { rewrite Hmem' in Hcm. discriminate Hcm. }
+      rewrite PTree.gso in Hg' by exact Hne3.
+      pose proof (create_undef_temps_val _ _ _ Hg') as EE.
+      discriminate EE. }
+    (* the free list at the empty env *)
+    change (blocks_of_env (lp_ge lp) empty_env)
+      with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    assert (Hcpt0 : forall fid', mem_id fid' nil = true ->
+                    call_pres_act3 lp bm NoA MWF fid')
+      by (intros fid' HH; discriminate HH).
+    (* the walk *)
+    destruct (wwalk_pres lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+                false wact ids wids cact xids sids nil Hcp Hcpa Hcpx Hcps
+                Hcpt0 _ _ _ _ _ _ _ _ Hbody eq_refl Hchk Htat0 Hact0 Hch0
+                HN HM HV HS)
+      as (HV' & HS' & HM' & HN' & _ & _ & _ & _).
+    exact (conj HV' (conj HS' (conj HM' HN'))).
   Qed.
 
   (* ---- the helper row: mario_set_forward_vel (PROVED -- its only

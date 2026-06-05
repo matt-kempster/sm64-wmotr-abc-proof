@@ -111,14 +111,8 @@ Definition ccoc_sids : list ident :=
 Definition object_callee_ids_rest : list ident :=
   mario_actions_object._act_punching
     :: mario_actions_object._act_picking_up
-    :: mario_actions_object._act_dive_picking_up
-    :: mario_actions_object._act_stomach_slide_stop
-    :: mario_actions_object._act_placing_down
-    :: mario_actions_object._act_throwing
-    :: mario_actions_object._act_heavy_throw
     :: mario_actions_object._act_picking_up_bowser
-    :: mario_actions_object._act_holding_bowser
-    :: mario_actions_object._act_releasing_bowser :: nil.
+    :: mario_actions_object._act_holding_bowser :: nil.
 
 (* the object family's EXTERNAL leaf rows (the warp_ext_ids model class);
    grows as further leaves discharge *)
@@ -127,7 +121,8 @@ Definition obj_ext_ids : list ident :=
     :: interaction._segmented_to_virtual
     :: interaction._stop_shell_music
     :: interaction._obj_set_held_state
-    :: mario._load_patchable_table :: nil.
+    :: mario._load_patchable_table
+    :: mario._play_sound :: mario_step._vec3f_copy :: nil.
 
 (* ====================================================================== *)
 (* Pins (vm_compute over the generated TUs).                              *)
@@ -149,7 +144,7 @@ Example psinf_params_ok :
   end = true.
 Proof. vm_compute. reflexivity. Qed.
 Example psinf_walk :
-  wwalk_chk false nil nil nil nil psinf_xids nil
+  wwalk_chk false nil nil nil nil psinf_xids nil nil
     (fn_body mario.f_play_sound_if_no_flag) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -169,7 +164,7 @@ Example iaae_params_ok :
   end = true.
 Proof. vm_compute. reflexivity. Qed.
 Example iaae_walk :
-  wwalk_chk false nil nil nil nil nil nil
+  wwalk_chk false nil nil nil nil nil nil nil
     (fn_body mario.f_is_anim_at_end) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -189,7 +184,7 @@ Example ccae_params_ok :
   end = true.
 Proof. vm_compute. reflexivity. Qed.
 Example ccae_walk :
-  wwalk_chk false nil nil nil nil nil obj_sids
+  wwalk_chk false nil nil nil nil nil obj_sids nil
     (fn_body mario.f_check_common_action_exits) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -209,7 +204,7 @@ Example swpa_params_ok :
   end = true.
 Proof. vm_compute. reflexivity. Qed.
 Example swpa_walk :
-  wwalk_chk false nil nil nil nil swpa_xids obj_sids
+  wwalk_chk false nil nil nil nil swpa_xids obj_sids nil
     (fn_body mario.f_set_water_plunge_action) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -229,7 +224,7 @@ Example mums_params_ok :
   end = true.
 Proof. vm_compute. reflexivity. Qed.
 Example mums_walk :
-  wwalk_chk false nil nil nil nil nil nil
+  wwalk_chk false nil nil nil nil nil nil nil
     (fn_body mario_step.f_mario_update_moving_sand) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -249,7 +244,7 @@ Example muwg_params_ok :
   end = true.
 Proof. vm_compute. reflexivity. Qed.
 Example muwg_walk :
-  wwalk_chk false nil nil nil nil nil nil
+  wwalk_chk false nil nil nil nil nil nil nil
     (fn_body mario_step.f_mario_update_windy_ground) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -266,7 +261,7 @@ Example dasma_ret :
   i32_ty (fn_return mario.f_drop_and_set_mario_action) = true.
 Proof. vm_compute. reflexivity. Qed.
 Example dasma_walk :
-  wwalk_chk true dasma_wact dasma_ids dasma_wids nil nil nil
+  wwalk_chk true dasma_wact dasma_ids dasma_wids nil nil nil nil
     (fn_body mario.f_drop_and_set_mario_action) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -286,7 +281,7 @@ Example sgs_params_ok :
   end = true.
 Proof. vm_compute. reflexivity. Qed.
 Example sgs_walk :
-  wwalk_chk false nil sgs_ids nil nil sgs_xids nil
+  wwalk_chk false nil sgs_ids nil nil sgs_xids nil nil
     (fn_body mario_step.f_stationary_ground_step) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -309,13 +304,13 @@ Example ccoc_params_ok :
   end = true.
 Proof. vm_compute. reflexivity. Qed.
 Example ccoc_walk :
-  wwalk_chk false nil ccoc_ids nil nil nil ccoc_sids
+  wwalk_chk false nil ccoc_ids nil nil nil ccoc_sids nil
     (fn_body mario_actions_object.f_check_common_object_cancels) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* POSITIVE CONTROL: the leaf census bites -- empty sids fails *)
 Example ccoc_walk_not_vacuous :
-  wwalk_chk false nil ccoc_ids nil nil nil nil
+  wwalk_chk false nil ccoc_ids nil nil nil nil nil
     (fn_body mario_actions_object.f_check_common_object_cancels) = false.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -344,7 +339,7 @@ Example msrah_nonparam :
     msrah_cact = true.
 Proof. vm_compute. reflexivity. Qed.
 Example msrah_walk :
-  wwalk_chk false nil msrah_ids nil msrah_cact nil nil
+  wwalk_chk false nil msrah_ids nil msrah_cact nil nil nil
     (fn_body interaction.f_mario_stop_riding_and_holding) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -370,7 +365,7 @@ Example msro_nonparam :
     msro_cact = true.
 Proof. vm_compute. reflexivity. Qed.
 Example msro_walk :
-  wwalk_chk false nil nil nil msro_cact msro_xids nil
+  wwalk_chk false nil nil nil msro_cact msro_xids nil nil
     (fn_body interaction.f_mario_stop_riding_object) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -396,7 +391,7 @@ Example mdho_nonparam :
     mdho_cact = true.
 Proof. vm_compute. reflexivity. Qed.
 Example mdho_walk :
-  wwalk_chk false nil nil nil mdho_cact mdho_xids nil
+  wwalk_chk false nil nil nil mdho_cact mdho_xids nil nil
     (fn_body interaction.f_mario_drop_held_object) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -422,7 +417,7 @@ Example mtho_nonparam :
     mtho_cact = true.
 Proof. vm_compute. reflexivity. Qed.
 Example mtho_walk :
-  wwalk_chk false nil nil nil mtho_cact mdho_xids nil
+  wwalk_chk false nil nil nil mtho_cact mdho_xids nil nil
     (fn_body interaction.f_mario_throw_held_object) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -448,13 +443,13 @@ Example mguo_nonparam :
     mguo_cact = true.
 Proof. vm_compute. reflexivity. Qed.
 Example mguo_walk :
-  wwalk_chk false nil nil nil mguo_cact mguo_xids nil
+  wwalk_chk false nil nil nil mguo_cact mguo_xids nil nil
     (fn_body interaction.f_mario_grab_used_object) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* POSITIVE CONTROL: the chase census bites -- empty cact fails *)
 Example msrah_walk_not_vacuous :
-  wwalk_chk false nil msrah_ids nil nil nil nil
+  wwalk_chk false nil msrah_ids nil nil nil nil nil
     (fn_body interaction.f_mario_stop_riding_and_holding) = false.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -498,8 +493,176 @@ Example sma_nonparam :
 Proof. vm_compute. reflexivity. Qed.
 
 Example sma_walk :
-  wwalk_chk false nil nil nil sma_cact sma_xids nil
+  wwalk_chk false nil nil nil sma_cact sma_xids nil nil
     (fn_body mario.f_set_mario_animation) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ====================================================================== *)
+(* B3: asgs (the act3-class helper) + the SIX object leaves it unlocks.   *)
+(* ====================================================================== *)
+
+(* asgs: sgs(m); sma(m, animation); t'1 := iaae(m);
+   if (t'1) smact(m, endAction, 0).  The action is PARAM 3 (act3). *)
+Definition asgs_wact : list ident := mario_actions_object._endAction :: nil.
+Definition asgs_ids : list ident :=
+  mario_step._stationary_ground_step :: mario._set_mario_animation
+    :: mario._is_anim_at_end :: nil.
+
+Example asgs_pin :
+  (prog_defmap mario_actions_object.prog)
+    ! mario_actions_object._animated_stationary_ground_step
+  = Some (Gfun (Internal
+           mario_actions_object.f_animated_stationary_ground_step)).
+Proof. vm_compute. reflexivity. Qed.
+Example asgs_vars :
+  fn_vars mario_actions_object.f_animated_stationary_ground_step = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example asgs_params :
+  fn_params mario_actions_object.f_animated_stationary_ground_step
+  = act3_params.
+Proof. vm_compute. reflexivity. Qed.
+Example asgs_walk :
+  wwalk_chk false asgs_wact asgs_ids nil nil nil obj_sids nil
+    (fn_body mario_actions_object.f_animated_stationary_ground_step) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* the six leaves share ONE census (the walker only needs supersets):
+   held-object helpers + play_sound_if_no_flag plain, dasma/smact
+   writer-consts, and the asgs act3 call *)
+Definition obj_leaf_ids : list ident :=
+  interaction._mario_drop_held_object
+    :: interaction._mario_throw_held_object
+    :: mario._play_sound_if_no_flag :: nil.
+Definition obj_leaf_sids : list ident :=
+  mario._drop_and_set_mario_action :: mario._set_mario_action :: nil.
+Definition obj_leaf_tids : list ident :=
+  mario_actions_object._animated_stationary_ground_step :: nil.
+
+Example adpu_pin :
+  (prog_defmap mario_actions_object.prog)
+    ! mario_actions_object._act_dive_picking_up
+  = Some (Gfun (Internal mario_actions_object.f_act_dive_picking_up)).
+Proof. vm_compute. reflexivity. Qed.
+Example adpu_vars : fn_vars mario_actions_object.f_act_dive_picking_up = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example adpu_params_ok :
+  match fn_params mario_actions_object.f_act_dive_picking_up with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example adpu_walk :
+  wwalk_chk false nil obj_leaf_ids nil nil nil obj_leaf_sids obj_leaf_tids
+    (fn_body mario_actions_object.f_act_dive_picking_up) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example asss_pin :
+  (prog_defmap mario_actions_object.prog)
+    ! mario_actions_object._act_stomach_slide_stop
+  = Some (Gfun (Internal mario_actions_object.f_act_stomach_slide_stop)).
+Proof. vm_compute. reflexivity. Qed.
+Example asss_vars :
+  fn_vars mario_actions_object.f_act_stomach_slide_stop = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example asss_params_ok :
+  match fn_params mario_actions_object.f_act_stomach_slide_stop with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example asss_walk :
+  wwalk_chk false nil obj_leaf_ids nil nil nil obj_leaf_sids obj_leaf_tids
+    (fn_body mario_actions_object.f_act_stomach_slide_stop) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example apd_pin :
+  (prog_defmap mario_actions_object.prog)
+    ! mario_actions_object._act_placing_down
+  = Some (Gfun (Internal mario_actions_object.f_act_placing_down)).
+Proof. vm_compute. reflexivity. Qed.
+Example apd_vars : fn_vars mario_actions_object.f_act_placing_down = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example apd_params_ok :
+  match fn_params mario_actions_object.f_act_placing_down with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example apd_walk :
+  wwalk_chk false nil obj_leaf_ids nil nil nil obj_leaf_sids obj_leaf_tids
+    (fn_body mario_actions_object.f_act_placing_down) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example ath_pin :
+  (prog_defmap mario_actions_object.prog)
+    ! mario_actions_object._act_throwing
+  = Some (Gfun (Internal mario_actions_object.f_act_throwing)).
+Proof. vm_compute. reflexivity. Qed.
+Example ath_vars : fn_vars mario_actions_object.f_act_throwing = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example ath_params_ok :
+  match fn_params mario_actions_object.f_act_throwing with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example ath_walk :
+  wwalk_chk false nil obj_leaf_ids nil nil nil obj_leaf_sids obj_leaf_tids
+    (fn_body mario_actions_object.f_act_throwing) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example aht_pin :
+  (prog_defmap mario_actions_object.prog)
+    ! mario_actions_object._act_heavy_throw
+  = Some (Gfun (Internal mario_actions_object.f_act_heavy_throw)).
+Proof. vm_compute. reflexivity. Qed.
+Example aht_vars : fn_vars mario_actions_object.f_act_heavy_throw = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example aht_params_ok :
+  match fn_params mario_actions_object.f_act_heavy_throw with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example aht_walk :
+  wwalk_chk false nil obj_leaf_ids nil nil nil obj_leaf_sids obj_leaf_tids
+    (fn_body mario_actions_object.f_act_heavy_throw) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example arb_pin :
+  (prog_defmap mario_actions_object.prog)
+    ! mario_actions_object._act_releasing_bowser
+  = Some (Gfun (Internal mario_actions_object.f_act_releasing_bowser)).
+Proof. vm_compute. reflexivity. Qed.
+Example arb_vars : fn_vars mario_actions_object.f_act_releasing_bowser = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example arb_params_ok :
+  match fn_params mario_actions_object.f_act_releasing_bowser with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example arb_walk :
+  wwalk_chk false nil obj_leaf_ids nil nil nil obj_leaf_sids obj_leaf_tids
+    (fn_body mario_actions_object.f_act_releasing_bowser) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Section ObjectLeafRows.
@@ -507,6 +670,7 @@ Section ObjectLeafRows.
   Hypothesis LO_mario : linkorder mario.prog lp.
   Hypothesis LO_mario_step : linkorder mario_step.prog lp.
   Hypothesis LO_int : linkorder interaction.prog lp.
+  Hypothesis LO_obj : linkorder mario_actions_object.prog lp.
 
   Variable bm : block.
   Variable NoA MWF : mem -> Prop.
@@ -979,17 +1143,189 @@ Section ObjectLeafRows.
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              mario_actions_object.f_check_common_object_cancels
-             ccoc_ids nil nil ccoc_sids ccoc_vars ccoc_params_ok).
+             ccoc_ids nil nil ccoc_sids nil ccoc_vars ccoc_params_ok).
     - exact ccoc_ids_rows.
     - intros fid' H. discriminate H.
     - intros fid' H. discriminate H.
     - exact ccoc_sids_rows.
+    - intros fid' H. discriminate H.
     - exact ccoc_walk.
   Qed.
 
   (* ==================================================================
+     B3: the asgs act3 row, then the six leaves that consume it.
+     ================================================================== *)
+  Lemma asgs_ids_rows : forall fid, mem_id fid asgs_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold asgs_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sgs_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sma_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact iaae_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma asgs_row :
+    call_pres_act3 lp bm NoA MWF
+      mario_actions_object._animated_stationary_ground_step.
+  Proof.
+    apply (call_pres_act3_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_object.prog _
+             mario_actions_object.f_animated_stationary_ground_step
+             asgs_wact asgs_ids nil nil nil obj_sids
+             LO_obj asgs_pin asgs_vars asgs_params
+             eq_refl eq_refl eq_refl eq_refl eq_refl eq_refl).
+    - exact asgs_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact obj_sids_rows.
+    - exact asgs_walk.
+  Qed.
+
+  (* the shared six-leaf row bundles *)
+  Lemma obj_leaf_ids_rows : forall fid, mem_id fid obj_leaf_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold obj_leaf_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mdho_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mtho_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact psinf_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma obj_leaf_sids_rows : forall fid, mem_id fid obj_leaf_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold obj_leaf_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact dasma_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | ].
+    discriminate H.
+  Qed.
+
+  Lemma obj_leaf_tids_rows : forall fid, mem_id fid obj_leaf_tids = true ->
+      call_pres_act3 lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold obj_leaf_tids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact asgs_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma adpu_pres :
+    body_pres lp NoA MWF bm mario_actions_object.f_act_dive_picking_up.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_object.f_act_dive_picking_up
+             obj_leaf_ids nil nil obj_leaf_sids obj_leaf_tids
+             adpu_vars adpu_params_ok).
+    - exact obj_leaf_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact obj_leaf_sids_rows.
+    - exact obj_leaf_tids_rows.
+    - exact adpu_walk.
+  Qed.
+
+  Lemma asss_pres :
+    body_pres lp NoA MWF bm mario_actions_object.f_act_stomach_slide_stop.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_object.f_act_stomach_slide_stop
+             obj_leaf_ids nil nil obj_leaf_sids obj_leaf_tids
+             asss_vars asss_params_ok).
+    - exact obj_leaf_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact obj_leaf_sids_rows.
+    - exact obj_leaf_tids_rows.
+    - exact asss_walk.
+  Qed.
+
+  Lemma apd_pres :
+    body_pres lp NoA MWF bm mario_actions_object.f_act_placing_down.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_object.f_act_placing_down
+             obj_leaf_ids nil nil obj_leaf_sids obj_leaf_tids
+             apd_vars apd_params_ok).
+    - exact obj_leaf_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact obj_leaf_sids_rows.
+    - exact obj_leaf_tids_rows.
+    - exact apd_walk.
+  Qed.
+
+  Lemma ath_pres :
+    body_pres lp NoA MWF bm mario_actions_object.f_act_throwing.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_object.f_act_throwing
+             obj_leaf_ids nil nil obj_leaf_sids obj_leaf_tids
+             ath_vars ath_params_ok).
+    - exact obj_leaf_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact obj_leaf_sids_rows.
+    - exact obj_leaf_tids_rows.
+    - exact ath_walk.
+  Qed.
+
+  Lemma aht_pres :
+    body_pres lp NoA MWF bm mario_actions_object.f_act_heavy_throw.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_object.f_act_heavy_throw
+             obj_leaf_ids nil nil obj_leaf_sids obj_leaf_tids
+             aht_vars aht_params_ok).
+    - exact obj_leaf_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact obj_leaf_sids_rows.
+    - exact obj_leaf_tids_rows.
+    - exact aht_walk.
+  Qed.
+
+  Lemma arb_pres :
+    body_pres lp NoA MWF bm mario_actions_object.f_act_releasing_bowser.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_object.f_act_releasing_bowser
+             obj_leaf_ids nil nil obj_leaf_sids obj_leaf_tids
+             arb_vars arb_params_ok).
+    - exact obj_leaf_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact obj_leaf_sids_rows.
+    - exact obj_leaf_tids_rows.
+    - exact arb_walk.
+  Qed.
+
+  (* ==================================================================
      THE CAPSTONE REDUCTION: the 11-id object census collapses to the
-     10 undischarged leaves.  This is what NoAImpliesNoFlyLinked
+     4 undischarged leaves (ccoc + the six B3 leaves peel off).  This is what NoAImpliesNoFlyLinked
      consumes in place of the old 11-id hypothesis.
      ================================================================== *)
   Lemma object_callees_pres :
@@ -1007,11 +1343,39 @@ Section ObjectLeafRows.
     intros Hrest fid f H Hdm.
     unfold object_callee_ids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H].
-    - apply Pos.eqb_eq in Hm. subst fid.
-      rewrite ccoc_pin in Hdm. injection Hdm as <-.
-      exact ccoc_pres.
-    - apply (Hrest fid f); [ | exact Hdm ].
-      unfold object_callee_ids_rest. cbn [mem_id existsb]. exact H.
+    { apply Pos.eqb_eq in Hm. subst fid.
+      rewrite ccoc_pin in Hdm. injection Hdm as <-. exact ccoc_pres. }
+    apply orb_true_iff in H as [Hm | H].
+    { apply Pos.eqb_eq in Hm. subst fid.
+      apply (Hrest mario_actions_object._act_punching f); [ vm_compute; reflexivity | exact Hdm ]. }
+    apply orb_true_iff in H as [Hm | H].
+    { apply Pos.eqb_eq in Hm. subst fid.
+      apply (Hrest mario_actions_object._act_picking_up f); [ vm_compute; reflexivity | exact Hdm ]. }
+    apply orb_true_iff in H as [Hm | H].
+    { apply Pos.eqb_eq in Hm. subst fid.
+      rewrite adpu_pin in Hdm. injection Hdm as <-. exact adpu_pres. }
+    apply orb_true_iff in H as [Hm | H].
+    { apply Pos.eqb_eq in Hm. subst fid.
+      rewrite asss_pin in Hdm. injection Hdm as <-. exact asss_pres. }
+    apply orb_true_iff in H as [Hm | H].
+    { apply Pos.eqb_eq in Hm. subst fid.
+      rewrite apd_pin in Hdm. injection Hdm as <-. exact apd_pres. }
+    apply orb_true_iff in H as [Hm | H].
+    { apply Pos.eqb_eq in Hm. subst fid.
+      rewrite ath_pin in Hdm. injection Hdm as <-. exact ath_pres. }
+    apply orb_true_iff in H as [Hm | H].
+    { apply Pos.eqb_eq in Hm. subst fid.
+      rewrite aht_pin in Hdm. injection Hdm as <-. exact aht_pres. }
+    apply orb_true_iff in H as [Hm | H].
+    { apply Pos.eqb_eq in Hm. subst fid.
+      apply (Hrest mario_actions_object._act_picking_up_bowser f); [ vm_compute; reflexivity | exact Hdm ]. }
+    apply orb_true_iff in H as [Hm | H].
+    { apply Pos.eqb_eq in Hm. subst fid.
+      apply (Hrest mario_actions_object._act_holding_bowser f); [ vm_compute; reflexivity | exact Hdm ]. }
+    apply orb_true_iff in H as [Hm | H].
+    { apply Pos.eqb_eq in Hm. subst fid.
+      rewrite arb_pin in Hdm. injection Hdm as <-. exact arb_pres. }
+    discriminate H.
   Qed.
 
 End ObjectLeafRows.
