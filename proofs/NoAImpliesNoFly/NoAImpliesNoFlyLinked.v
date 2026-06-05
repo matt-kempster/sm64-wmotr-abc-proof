@@ -47,7 +47,7 @@ From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame Reacha
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer.
 From SM64.Proofs Require Import MWFReal RestSurface AirborneSurface
   DispatchKit CutsceneSurface AutomaticSurface StationarySurface
-  MovingSurface ObjectSurface SubmergedSurface.
+  MovingSurface ObjectSurface SubmergedSurface FloorsSurface.
 
 Section NoAImpliesNoFlyLinked.
   (* The linked program -- ABSTRACT, never computed (no OOM). *)
@@ -687,8 +687,16 @@ Section NoARealInputMWF.
       (prog_defmap mario_actions_object.prog) ! fid
         = Some (Gfun (Internal f)) ->
       body_pres lp (NoA_real bm) MWF bm f.
-  Hypothesis Hpres_floors : body_pres lp (NoA_real bm) MWF bm
-      interaction.f_mario_handle_special_floors.
+  (* the special-floors body is WALKED (FloorsSurface.floors_pres via the
+     generic walker walk_pres: the body has NO store at all, only reads +
+     branches + five leaf calls): PROVED from per-leaf residuals keyed by
+     the 4-id census floors_int_ids -- its fifth leaf, level_trigger_warp,
+     is the SAME level_update body as Hpres_warp below (SHARED, not a new
+     residual). *)
+  Hypothesis Hpres_floors_callees : forall fid f,
+      mem_id fid floors_int_ids = true ->
+      (prog_defmap interaction.prog) ! fid = Some (Gfun (Internal f)) ->
+      body_pres lp (NoA_real bm) MWF bm f.
   Hypothesis Hpres_inter : body_pres lp (NoA_real bm) MWF bm
       interaction.f_mario_process_interactions.
   Hypothesis Hpres_wind : body_pres lp (NoA_real bm) MWF bm
@@ -800,7 +808,13 @@ Section NoARealInputMWF.
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                       Hgms_blk)
                    Hpres_obj_callees Hpres_qsand)
-                Hpres_floors Hpres_inter Hpres_wind Hpres_warp)
+                (floors_pres lp LO_mario LO_int LO_lvl bm (NoA_real bm)
+                   (MWF_real lp bm bc oc0 SafeB)
+                   (mwf_real_ctl lp bm bc oc0 SafeB)
+                   (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                      Hgms_blk)
+                   Hpres_floors_callees Hpres_warp)
+                Hpres_inter Hpres_wind Hpres_warp)
              Hret_call Hret_ext Hext_action Hmwf_ext
              (mwf_real_entry lp bm bc oc0 SafeB Hbc_bm)
              (mwf_real_free lp bm bc oc0 SafeB Hbc_bm)
