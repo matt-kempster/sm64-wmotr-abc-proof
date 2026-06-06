@@ -48,7 +48,7 @@ From SM64.Proofs Require Import CensusV2 EngineV2Consumer.
 From SM64.Proofs Require Import MWFReal RestSurface AirborneSurface
   DispatchKit CutsceneSurface AutomaticSurface StationarySurface
   MovingSurface ObjectSurface SubmergedSurface FloorsSurface WarpSurface
-  ActWriterSurface ObjectLeafSurface FloorsLeafSurface.
+  ActWriterSurface ObjectLeafSurface FloorsLeafSurface AutomaticLeafSurface.
 
 Section NoAImpliesNoFlyLinked.
   (* The linked program -- ABSTRACT, never computed (no OOM). *)
@@ -676,10 +676,13 @@ Section NoARealInputMWF.
   (* the automatic dispatcher is WALKED (AutomaticSurface.automatic_pres
      over the generic DispatchKit; the quicksandDepth store is killed by
      the window census): PROVED from per-leaf-callee residuals keyed by
-     the 17-id census automatic_callee_ids.  act_in_cannon's leaf is
-     where the cannon-fire kill gets consumed. *)
-  Hypothesis Hpres_aut_callees : forall fid f,
-      mem_id fid automatic_callee_ids = true ->
+     the 17-id census automatic_callee_ids.  The leaves are being walked
+     incrementally (AutomaticLeafSurface, the object-family rest-split
+     pattern): check_common_automatic_cancels is DONE, so only the
+     remaining 16 (automatic_rest_ids) survive here.  act_in_cannon's
+     leaf is where the cannon-fire kill gets consumed (still in rest). *)
+  Hypothesis Hpres_aut_rest : forall fid f,
+      mem_id fid automatic_rest_ids = true ->
       (prog_defmap mario_actions_automatic.prog) ! fid
         = Some (Gfun (Internal f)) ->
       body_pres lp (NoA_real bm) MWF bm f.
@@ -854,7 +857,28 @@ Section NoARealInputMWF.
                    (mwf_real_ctl lp bm bc oc0 SafeB)
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                       Hgms_blk Hgtimer_blk)
-                   Hpres_aut_callees)
+                   (automatic_leaf_callees_pres lp LO_mario LO_stp bm
+                      (NoA_real bm)
+                      (MWF_real lp bm bc oc0 SafeB)
+                      (mwf_real_ctl lp bm bc oc0 SafeB)
+                      (mwf_real_window lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk)
+                      (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+                      (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk)
+                      SafeB HSafeB_not_bm
+                      (mwf_real_chase_root lp bm bc oc0 SafeB)
+                      (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk)
+                      (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk)
+                      (mwf_real_sglob lp bm bc oc0 SafeB)
+                      (mwf_real_chase_step lp bm bc oc0 SafeB)
+                      (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk)
+                      (Hpres_obj_ext mario._vec3s_set eq_refl)
+                      (Hpres_obj_ext mario._set_camera_mode eq_refl)
+                      Hpres_aut_rest))
                 (object_pres lp LO_mario LO_obj LO_stp bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
                    (mwf_real_ctl lp bm bc oc0 SafeB)
