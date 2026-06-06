@@ -76,6 +76,13 @@ proofs/MarioModel/WarpSurface.v
 #     discharges; consumed by the MWF-grounded capstone in NoAImpliesNoFlyLinked) ---
 proofs/MarioModel/MWFReal.v
 
+# --- GOAL 1 / the local-vars walker arc, FOUNDATIONAL FRAME LAYER (SPINE:
+#     stack-frame frame lemmas -- entry alloc_variables / exit free_list /
+#     local store all preserve the carried run facts on watched-disjoint
+#     blocks. Consumed by ActWriterSurface's call_pres_of_lwalk to walk a
+#     function with fn_vars <> nil. Pure frame lemmas, no engine dep. ---
+proofs/MarioModel/LocalVarsSurface.v
+
 # --- GOAL 1 / the act-writer keystone + the first leaf family (SPINE:
 #     set_mario_action's call_pres_act row, residual-free, consumed by the
 #     object-family leaf rows; ccoc discharged shrinks the capstone's
@@ -91,12 +98,6 @@ proofs/MarioModel/FloorsLeafSurface.v
 # --- GOAL 1 / the automatic leaf family (SPINE: automatic_leaf_callees_pres
 #     SHRINKS the capstone's automatic census via incremental rest-split) ---
 proofs/MarioModel/AutomaticLeafSurface.v
-
-# --- GOAL 1 / the local-vars walker arc, FOUNDATIONAL LAYER (Unwired: the
-#     stack-frame frame lemmas -- entry alloc_variables / exit free_list /
-#     local store all preserve carried run facts. Consumed once the engine is
-#     generalized from e=empty_env; wiring target = perform_water_step) ---
-proofs/MarioModel/Unwired/LocalVarsSurface.v
 
 # --- top-level demos ---
 proofs/Toy/ToyFrame.v

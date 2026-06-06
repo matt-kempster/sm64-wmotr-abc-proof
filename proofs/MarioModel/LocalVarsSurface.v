@@ -1,9 +1,11 @@
 (* ====================================================================== *)
-(* THE LOCAL-VARS WALKER ARC (task #32) -- FOUNDATIONAL LAYER.             *)
+(* THE LOCAL-VARS WALKER ARC (task #32) -- FOUNDATIONAL FRAME LAYER.       *)
 (*                                                                        *)
-(* The walker engine wwalk_pres (ActWriterSurface) hardcodes e=empty_env, *)
-(* so it cannot walk a function with fn_vars<>nil (a stack-allocated      *)
-(* local).  That blocks ~every remaining act-leaf in every family:        *)
+(* The walker engine wwalk_pres (ActWriterSurface) is now e-parametric,   *)
+(* so it CAN walk a function with fn_vars<>nil (a stack-allocated local)   *)
+(* once it is handed the entry env e_loc + the carried run facts at the   *)
+(* post-alloc memory.  This file supplies that frame layer.  It unblocks   *)
+(* ~every remaining act-leaf in every family:                             *)
 (* perform_water_step / perform_water_full_step (submerged: _filler/      *)
 (* _nextPos/_step arrays), set_pole_position (aut pole), let_go_of_ledge  *)
 (* (aut ledge), update_hang_moving, act_tornado_twirling.                 *)
@@ -16,10 +18,12 @@
 (*                                                                        *)
 (* This file proves that frame layer: alloc / alloc_variables (entry),     *)
 (* store-to-local, and free / free_list (exit) all preserve the carried    *)
-(* run facts.  It is the brick the generalized engine (next step) consumes *)
-(* at the entry and exit of a local-var funcall.  Until that engine lands  *)
-(* this file is Unwired; the wiring target is body_pres for                *)
-(* perform_water_step -> the submerged leaf harvest (B10).                 *)
+(* run facts.  SPINE: consumed by ActWriterSurface.call_pres_of_lwalk,     *)
+(* which composes entry alloc_variables + the e-parametric writer-walk     *)
+(* engine + exit free_list into a call_pres for a function with            *)
+(* fn_vars <> nil.  The abstract MWF frame rows below are discharged from   *)
+(* MWFReal (mwf_real_entry / mwf_real_free / MWF_real_transfer) at the      *)
+(* capstone.  Wiring target = the aut ledge/pole + submerged leaves.        *)
 (* ====================================================================== *)
 
 From Coq Require Import ZArith List.
@@ -215,6 +219,28 @@ Section LocalVarsArc.
           exists ty1. exact Hset.
       + right. intro Hvm. apply Hnv1.
         eapply Mem.valid_block_alloc; eauto.
+  Qed.
+
+  (* env-side freshness: alloc_variables only BINDS the var idents; any ident
+     NOT among the function's locals keeps its prior binding.  From empty_env
+     that means e'!g = None for every g disjoint from (map fst vars) -- this is
+     what discharges the engine's census-keyed `e!g = None` premises for the
+     stack-frame env (census idents are global, never local). *)
+  Lemma alloc_variables_unbound :
+    forall ge m vars e e' m',
+      alloc_variables ge e m vars e' m' ->
+      forall g, ~ In g (map fst vars) -> e' ! g = e ! g.
+  Proof.
+    intros ge m vars e e' m' Hav.
+    induction Hav as [ e0 m0
+                     | e0 m0 id ty vars0 m1 b1 m2 e2 Halloc Hrest IH ];
+      intros g Hnin.
+    - reflexivity.
+    - cbn [map fst] in Hnin.
+      assert (Hni0 : ~ In g (map fst vars0))
+        by (intro Hin; apply Hnin; right; exact Hin).
+      rewrite (IH g Hni0).
+      apply PTree.gso. intro Heq. apply Hnin. rewrite Heq. apply in_eq.
   Qed.
 
   Lemma alloc_variables_local_blk :

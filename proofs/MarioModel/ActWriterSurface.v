@@ -31,7 +31,7 @@ From SM64.Generated Require mario mario_step mario_actions_airborne
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
   ActionValueFrame RealFrameValue RealFrameLinked AGates.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface
-  AirborneSurface DispatchKit FloorsSurface.
+  AirborneSurface DispatchKit FloorsSurface LocalVarsSurface.
 
 Import ListNotations.
 
@@ -3854,6 +3854,158 @@ Section ActWriterRows.
       MWF mm -> SafeB bsafe ->
       (forall bb oo, vv = Vptr bb oo -> SafeB bb) ->
       Mem.store ch mm bsafe d vv = Some mm' -> MWF mm'.
+
+  (* ---- the stack-frame MWF rows for the local-vars arc (discharged from
+     MWFReal: mwf_real_entry covers the WHOLE function_entry2, mwf_real_free
+     covers free_list, both via MWF_real_transfer; the two valid-set rows are
+     direct projections of MWF_real's R0 conjunct). ---- *)
+  Hypothesis HMWF_alloc : forall m lo hi m' b,
+      Mem.alloc m lo hi = (m', b) -> MWF m -> MWF m'.
+  Hypothesis HMWF_freeb : forall m b lo hi m',
+      local_blk lp bm SafeB b -> Mem.free m b lo hi = Some m' -> MWF m -> MWF m'.
+  Hypothesis HSafe_valid : forall m b, MWF m -> SafeB b -> Mem.valid_block m b.
+  Hypothesis HGlob_valid : forall m gid bg,
+      MWF m -> Genv.find_symbol (lp_ge lp) gid = Some bg -> Mem.valid_block m bg.
+
+  (* ---- the funcall->body entry for a PLAIN walked leaf WITH STACK LOCALS
+     (fn_vars f <> nil): the entry alloc_variables builds e_loc binding each
+     local to a FRESH (watched-disjoint) block, the e-parametric engine walks
+     the body over e_loc, and the exit free_list frees those local blocks --
+     all preserving the carried run facts.  The local idents must be disjoint
+     from every census + the read globals (so the engine's e!g=None premises
+     hold for e_loc); that is a finite vm_compute check per leaf. *)
+  Lemma call_pres_of_lwalk :
+    forall (TU : Clight.program) (fid : ident) (f : Clight.function)
+           (ids wids xids sids : list ident),
+      linkorder TU lp ->
+      (prog_defmap TU) ! fid = Some (Gfun (Internal f)) ->
+      match fn_params f with
+      | (i, ty) :: ps =>
+          Pos.eqb i mario_actions_airborne._m
+          && proj_sumbool (type_eq ty tyMSp)
+          && negb (mem_id mario_actions_airborne._m (map fst ps))
+      | nil => false
+      end = true ->
+      (forall g, mem_id g stored_globals = true ->
+                 ~ In g (map fst (fn_vars f))) ->
+      (forall g, mem_id g ids = true -> ~ In g (map fst (fn_vars f))) ->
+      (forall g, mem_id g wids = true -> ~ In g (map fst (fn_vars f))) ->
+      (forall g, mem_id g xids = true -> ~ In g (map fst (fn_vars f))) ->
+      (forall g, mem_id g sids = true -> ~ In g (map fst (fn_vars f))) ->
+      ~ In interaction._gGlobalTimer (map fst (fn_vars f)) ->
+      (forall fid', mem_id fid' ids = true ->
+                    call_pres lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' wids = true ->
+                    call_pres_act lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' xids = true ->
+                    call_pres_ext lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' sids = true ->
+                    call_pres_act lp bm NoA MWF fid') ->
+      wwalk_chk false nil ids wids nil xids sids nil (fn_body f) = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros TU fid f ids wids xids sids LOtu Hdm Hps
+           Hdg Hdi Hdw Hdx Hds Hdgt
+           Hcp Hcpa Hcpx Hcps Hchk
+           fd m0 vargs0 t0 mF vres0 Hevf Hres Hmarg HN HM HV HS.
+    pose proof (resolve_pin_fd lp _ _ _ _ LOtu Hdm Hres) as ->.
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      rename Ha into Halloc end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    (* name the body env e_loc *)
+    match goal with
+    | Hb : exec_stmt _ _ ?E _ _ _ _ _ _ _ |- _ => set (eloc := E) in *
+    end.
+    (* carried at the post-alloc memory (alloc only adds fresh blocks) *)
+    assert (Hc0 : carried bm NoA MWF m0)
+      by (split; [ exact HV
+         | split; [ exact HS | split; [ exact HM | exact HN ] ] ]).
+    pose proof (alloc_variables_carried bm NoA MWF HMWF_alloc HNoA_of_MWF
+                  _ _ _ _ _ _ Halloc Hc0) as Hca.
+    destruct Hca as (HVa & HSa & HMa & HNa).
+    (* param check + bind: _m holds Mario's pinned pointer *)
+    destruct (fn_params f) as [| [i ty] ps ] eqn:Eps;
+      [ discriminate Hps | ].
+    apply andb_prop in Hps as [Hps Hnm].
+    apply andb_prop in Hps as [Hi Hty].
+    apply Pos.eqb_eq in Hi. subst i.
+    destruct (type_eq ty tyMSp); [ subst ty | discriminate Hty ].
+    apply negb_true_iff in Hnm.
+    destruct vargs0 as [| v0 vrest];
+      cbn [bind_parameter_temps] in Hbind; [ discriminate Hbind | ].
+    match goal with
+    | Hbind' : bind_parameter_temps _ _ _ = Some ?le1 |- _ =>
+        assert (Htat0 : forall b o,
+                   le1 ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero)
+          by (intros b o Hg;
+              rewrite (bind_params_other _ _ _ _ _ Hbind' Hnm) in Hg;
+              rewrite PTree.gss in Hg; injection Hg as ->;
+              cbn in Hmarg; exact Hmarg);
+        assert (Hact0 : act_inv nil le1)
+          by (intros t' Hmem' x Hg'; discriminate Hmem');
+        assert (Hch0 : chase_inv SafeB nil le1)
+          by (intros t' Hmem' b o Hg'; discriminate Hmem')
+    end.
+    (* the empty tids census + the seven e_loc-unbound premises *)
+    assert (Hcpt0 : forall fid', mem_id fid' nil = true ->
+                    call_pres_act3 lp bm NoA MWF fid')
+      by (intros fid' HH; discriminate HH).
+    assert (Hub_g : forall g, mem_id g stored_globals = true ->
+                    eloc ! g = None)
+      by (intros g Hg;
+          rewrite (alloc_variables_unbound (lp_ge lp) m0 (fn_vars f)
+                     empty_env _ _ Halloc g (Hdg g Hg)); apply PTree.gempty).
+    assert (Hub_i : forall g, mem_id g ids = true -> eloc ! g = None)
+      by (intros g Hg;
+          rewrite (alloc_variables_unbound (lp_ge lp) m0 (fn_vars f)
+                     empty_env _ _ Halloc g (Hdi g Hg)); apply PTree.gempty).
+    assert (Hub_w : forall g, mem_id g wids = true -> eloc ! g = None)
+      by (intros g Hg;
+          rewrite (alloc_variables_unbound (lp_ge lp) m0 (fn_vars f)
+                     empty_env _ _ Halloc g (Hdw g Hg)); apply PTree.gempty).
+    assert (Hub_x : forall g, mem_id g xids = true -> eloc ! g = None)
+      by (intros g Hg;
+          rewrite (alloc_variables_unbound (lp_ge lp) m0 (fn_vars f)
+                     empty_env _ _ Halloc g (Hdx g Hg)); apply PTree.gempty).
+    assert (Hub_s : forall g, mem_id g sids = true -> eloc ! g = None)
+      by (intros g Hg;
+          rewrite (alloc_variables_unbound (lp_ge lp) m0 (fn_vars f)
+                     empty_env _ _ Halloc g (Hds g Hg)); apply PTree.gempty).
+    assert (Hub_t : forall g, mem_id g (@nil ident) = true -> eloc ! g = None)
+      by (intros g HH; discriminate HH).
+    assert (Hub_gt : eloc ! interaction._gGlobalTimer = None)
+      by (rewrite (alloc_variables_unbound (lp_ge lp) m0 (fn_vars f)
+                     empty_env _ _ Halloc interaction._gGlobalTimer Hdgt);
+          apply PTree.gempty).
+    (* the walk over e_loc *)
+    destruct (wwalk_pres lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+                false nil ids wids nil xids sids nil Hcp Hcpa Hcpx Hcps
+                Hcpt0 _ _ _ _ _ _ _ _ Hbody
+                Hub_g Hub_i Hub_w Hub_x Hub_s Hub_t Hub_gt
+                Hchk Htat0 Hact0 Hch0 HNa HMa HVa HSa)
+      as (HVb & HSb & HMb & HNb & _ & _ & _ & _).
+    (* the exit free_list frees only the (watched-disjoint) local blocks *)
+    pose proof (blocks_of_env_local_blk lp bm SafeB m0 (fn_vars f) eloc _
+                  Halloc HV (fun b Hb => HSafe_valid m0 b HM Hb)
+                  (fun gid bg Hfs => HGlob_valid m0 gid bg HM Hfs)) as Hforall.
+    pose proof (free_list_carried lp bm NoA MWF SafeB HMWF_freeb HNoA_of_MWF
+                  (blocks_of_env (lp_ge lp) eloc) _ mF
+                  Hforall Hfree (conj HVb (conj HSb (conj HMb HNb)))) as Hcf.
+    destruct Hcf as (HVf & HSf & HMf & HNf).
+    exact (conj HVf (conj HSf (conj HMf HNf))).
+  Qed.
 
   (* ---- the funcall->body entry for a PLAIN walked leaf (rt = false,
      no act census): any param list with Mario's pointer at the head. *)
