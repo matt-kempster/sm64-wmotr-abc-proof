@@ -50,7 +50,6 @@ Definition automatic_rest_ids : list ident :=
   mario_actions_automatic._act_top_of_pole ::
   mario_actions_automatic._act_hang_moving ::
   mario_actions_automatic._act_ledge_climb_slow ::
-  mario_actions_automatic._act_ledge_climb_fast ::
   mario_actions_automatic._act_in_cannon ::
   mario_actions_automatic._act_tornado_twirling :: nil.
 
@@ -352,6 +351,104 @@ Proof. vm_compute. reflexivity. Qed.
 Example alcd_walk :
   wwalk_chk false nil alcd_ids nil nil nil nil alcd_tids
     (fn_body mario_actions_automatic.f_act_ledge_climb_down) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ====================================================================== *)
+(* THE LEDGE-CLIMB FAST cluster (B9 slice 6): act_ledge_climb_fast WALKED. *)
+(* Reuses the act3 helper update_ledge_climb (Hulc), let_go_of_ledge       *)
+(* (Hlgl) and play_sound_if_no_flag (Hpsinf).  NEW helper rows here:        *)
+(*   update_ledge_climb_camera (CHASE-STORE leaf: writes through            *)
+(*     m->statusForCamera = an indexed camera-pos store, cact chain handled *)
+(*     by chase_store_chk + window stores to actionTimer/flags); +          *)
+(*   play_mario_landing_sound -> play_sound_and_spawn_particles -> the      *)
+(*     audio external play_sound.                                           *)
+(* act_ledge_climb_fast itself reads m->marioObj (cact=[_t'2]) to gate the  *)
+(* landing-sound call.  No direct action store -> NO engine change.         *)
+(* Census 11 -> 10.                                                         *)
+(* ====================================================================== *)
+
+(* ---- censuses ---- *)
+Definition ulcc_cact : list ident :=
+  mario_actions_automatic._t'9 :: mario_actions_automatic._t'5
+    :: mario_actions_automatic._t'3 :: nil.
+Definition psasp_xids : list ident := mario._play_sound :: nil.
+Definition pmls_ids : list ident :=
+  mario._play_sound_and_spawn_particles :: nil.
+Definition alcf_ids : list ident :=
+  mario_actions_automatic._let_go_of_ledge
+    :: mario._play_sound_if_no_flag
+    :: mario._play_mario_landing_sound
+    :: mario_actions_automatic._update_ledge_climb_camera :: nil.
+Definition alcf_cact : list ident := mario_actions_automatic._t'2 :: nil.
+Definition alcf_tids : list ident :=
+  mario_actions_automatic._update_ledge_climb :: nil.
+
+(* ---- pins ---- *)
+Example ulcc_pin :
+  (prog_defmap mario_actions_automatic.prog)
+    ! mario_actions_automatic._update_ledge_climb_camera
+  = Some (Gfun (Internal mario_actions_automatic.f_update_ledge_climb_camera)).
+Proof. vm_compute. reflexivity. Qed.
+Example psasp_pin :
+  (prog_defmap mario.prog) ! mario._play_sound_and_spawn_particles
+  = Some (Gfun (Internal mario.f_play_sound_and_spawn_particles)).
+Proof. vm_compute. reflexivity. Qed.
+Example pmls_pin :
+  (prog_defmap mario.prog) ! mario._play_mario_landing_sound
+  = Some (Gfun (Internal mario.f_play_mario_landing_sound)).
+Proof. vm_compute. reflexivity. Qed.
+Example alcf_pin :
+  (prog_defmap mario_actions_automatic.prog)
+    ! mario_actions_automatic._act_ledge_climb_fast
+  = Some (Gfun (Internal mario_actions_automatic.f_act_ledge_climb_fast)).
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- shapes ---- *)
+Example ulcc_vars :
+  fn_vars mario_actions_automatic.f_update_ledge_climb_camera = nil.
+Proof. reflexivity. Qed.
+Example psasp_vars : fn_vars mario.f_play_sound_and_spawn_particles = nil.
+Proof. reflexivity. Qed.
+Example pmls_vars : fn_vars mario.f_play_mario_landing_sound = nil.
+Proof. reflexivity. Qed.
+Example alcf_vars : fn_vars mario_actions_automatic.f_act_ledge_climb_fast = nil.
+Proof. reflexivity. Qed.
+Example ulcc_params_ok :
+  aut_pok mario_actions_automatic.f_update_ledge_climb_camera = true.
+Proof. vm_compute. reflexivity. Qed.
+Example psasp_params_ok : aut_pok mario.f_play_sound_and_spawn_particles = true.
+Proof. vm_compute. reflexivity. Qed.
+Example pmls_params_ok : aut_pok mario.f_play_mario_landing_sound = true.
+Proof. vm_compute. reflexivity. Qed.
+Example alcf_params_ok : aut_pok mario_actions_automatic.f_act_ledge_climb_fast = true.
+Proof. vm_compute. reflexivity. Qed.
+Example ulcc_nonparam :
+  forallb (fun t' => negb (mem_id t'
+    (map fst (fn_params mario_actions_automatic.f_update_ledge_climb_camera))))
+    ulcc_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example alcf_nonparam_c :
+  forallb (fun t' => negb (mem_id t'
+    (map fst (fn_params mario_actions_automatic.f_act_ledge_climb_fast))))
+    alcf_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- walks ---- *)
+Example ulcc_walk :
+  wwalk_chk false nil nil nil ulcc_cact nil nil nil
+    (fn_body mario_actions_automatic.f_update_ledge_climb_camera) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example psasp_walk :
+  wwalk_chk false nil nil nil nil psasp_xids nil nil
+    (fn_body mario.f_play_sound_and_spawn_particles) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example pmls_walk :
+  wwalk_chk false nil pmls_ids nil nil nil nil nil
+    (fn_body mario.f_play_mario_landing_sound) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example alcf_walk :
+  wwalk_chk false nil alcf_ids nil alcf_cact nil nil alcf_tids
+    (fn_body mario_actions_automatic.f_act_ledge_climb_fast) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* ====================================================================== *)
@@ -912,6 +1009,119 @@ Section AutomaticLeafRows.
     - exact alcd_walk.
   Qed.
 
+  (* ---- the LEDGE-CLIMB FAST cluster rows (chase-store camera + sound) ---- *)
+  (* update_ledge_climb_camera: a CHASE-STORE leaf -- writes through
+     m->statusForCamera (a tabled chase root); cact=[_t'9;_t'5;_t'3]. *)
+  Lemma Hulcc :
+    call_pres lp bm NoA MWF mario_actions_automatic._update_ledge_climb_camera.
+  Proof.
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_automatic.prog
+             mario_actions_automatic._update_ledge_climb_camera
+             mario_actions_automatic.f_update_ledge_climb_camera
+             nil nil ulcc_cact nil nil
+             LO_aut ulcc_pin ulcc_vars ulcc_params_ok ulcc_nonparam).
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - exact ulcc_walk.
+  Qed.
+
+  (* the sound chain: play_mario_landing_sound -> play_sound_and_spawn_
+     particles -> the audio external play_sound *)
+  Lemma psasp_xids_rows :
+    forall fid, mem_id fid psasp_xids = true -> call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold psasp_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | ].
+    discriminate H.
+  Qed.
+  Lemma Hpsasp :
+    call_pres lp bm NoA MWF mario._play_sound_and_spawn_particles.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._play_sound_and_spawn_particles
+             mario.f_play_sound_and_spawn_particles
+             nil nil psasp_xids nil
+             LO_mario psasp_pin psasp_vars psasp_params_ok).
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - exact psasp_xids_rows.
+    - intros fid' H; discriminate H.
+    - exact psasp_walk.
+  Qed.
+  Lemma pmls_ids_rows :
+    forall fid, mem_id fid pmls_ids = true -> call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold pmls_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hpsasp | ].
+    discriminate H.
+  Qed.
+  Lemma Hpmls :
+    call_pres lp bm NoA MWF mario._play_mario_landing_sound.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._play_mario_landing_sound
+             mario.f_play_mario_landing_sound
+             pmls_ids nil nil nil
+             LO_mario pmls_pin pmls_vars pmls_params_ok).
+    - exact pmls_ids_rows.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - exact pmls_walk.
+  Qed.
+
+  (* the act_ledge_climb_fast leaf: ids=[lgl;psinf;pmls;ulcc],
+     cact=[_t'2] (marioObj gate read), tids=[update_ledge_climb] *)
+  Lemma alcf_ids_rows :
+    forall fid, mem_id fid alcf_ids = true -> call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold alcf_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hlgl | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hpsinf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hpmls | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hulcc | ].
+    discriminate H.
+  Qed.
+  Lemma alcf_tids_rows :
+    forall fid, mem_id fid alcf_tids = true -> call_pres_act3 lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold alcf_tids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hulc | ].
+    discriminate H.
+  Qed.
+  Lemma act_ledge_climb_fast_pres :
+    body_pres lp NoA MWF bm mario_actions_automatic.f_act_ledge_climb_fast.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_automatic.f_act_ledge_climb_fast
+             alcf_ids nil alcf_cact nil nil alcf_tids
+             alcf_vars alcf_params_ok alcf_nonparam_c).
+    - exact alcf_ids_rows.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - exact alcf_tids_rows.
+    - exact alcf_walk.
+  Qed.
+
   (* ================================================================== *)
   (* THE PAYOFF: ccac + the hang pair + act_ledge_grab + act_ledge_climb_  *)
   (* down PROVED; the remaining 11 deferred to the (smaller) rest residual. *)
@@ -973,10 +1183,11 @@ Section AutomaticLeafRows.
     { apply Pos.eqb_eq in Hm. subst fid.
       rewrite alcd_pin in Hdm. injection Hdm as <-.
       exact act_ledge_climb_down_pres. }
-    (* 14: act_ledge_climb_fast -- rest *)
+    (* 14: act_ledge_climb_fast -- WALKED (act3 + chase-store camera/sound) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
-      refine (Hpres_aut_rest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite alcf_pin in Hdm. injection Hdm as <-.
+      exact act_ledge_climb_fast_pres. }
     (* 15: act_grabbed -- WALKED (wact mechanism) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
