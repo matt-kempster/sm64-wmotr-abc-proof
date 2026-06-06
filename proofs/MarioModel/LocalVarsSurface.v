@@ -458,4 +458,100 @@ Section LocalVarsArc.
       end ].
   Qed.
 
+  (* ---- the TYPE-TOLERANT block-pin: the engine learns the local binding
+     from alloc_variables (at the DECLARED fn_var type), but the body's
+     Evar annotation is whatever clightgen wrote.  In CompCert these
+     coincide, but rather than thread that equality we pin the block from
+     ANY env type: eval_Evar_local forces e!id=Some(l, annotation), and
+     determinism with the carried binding e!id=Some(b, tyenv) gives l=b. *)
+  Lemma eval_lvalue_Evar_local_pin' :
+    forall e le m id tya b tyenv l of bf,
+      e ! id = Some (b, tyenv) ->
+      eval_lvalue (lp_ge lp) e le m (Evar id tya) l of bf ->
+      l = b /\ bf = Full.
+  Proof.
+    intros e le m id tya b tyenv l of bf He Hev.
+    inversion Hev; subst.
+    - split; [ congruence | reflexivity ].
+    - split; [ congruence | reflexivity ].
+  Qed.
+
+  (* The TYPE-TOLERANT indexed-local store brick: identical to
+     local_idx_assign_pres, but the carried env binding e!lid may be at any
+     type tyenv (the store target block is pinned from the binding, and the
+     array deref uses the Evar ANNOTATION type, not the binding type). This
+     is what the e-parametric engine consumes: its Hlocal premise supplies
+     the binding at the declared type, which need not be re-matched against
+     each Evar occurrence's annotation. *)
+  Lemma local_idx_assign_pres' :
+    forall e lid ety sz attr idxN itya ety2 a2 le m0 tr le' m' out lblk tyenv ch,
+      e ! lid = Some (lblk, tyenv) ->
+      local_blk lblk ->
+      access_mode ety2 = By_value ch ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0
+        (Sassign (Ederef (Ebinop Oadd (Evar lid (Tarray ety sz attr))
+                            (Econst_int idxN tint) itya) ety2) a2)
+        tr le' m' out ->
+      carried m0 ->
+      carried m' /\ le' = le /\ out = Out_normal.
+  Proof.
+    intros e lid ety sz attr idxN itya ety2 a2 le m0 tr le' m' out lblk tyenv ch
+           Hlid Hlb Hacc Hexec Hc.
+    inv Hexec.
+    match goal with
+    | Hlv : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ => inv Hlv
+    end.
+    match goal with
+    | Hp : eval_expr _ _ _ _ (Ebinop _ _ _ _) _ |- _ => inv Hp
+    end.
+    2:{ match goal with
+        | Hlv2 : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => inv Hlv2
+        end. }
+    match goal with
+    | Hi : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+        inv Hi;
+        try (match goal with
+             | Hlv3 : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+                 inv Hlv3
+             end)
+    end.
+    match goal with
+    | Ha : eval_expr _ _ _ _ (Evar _ _) _ |- _ => inv Ha
+    end.
+    match goal with
+    | Hev : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ =>
+        destruct (eval_lvalue_Evar_local_pin' _ _ _ _ _ _ _ _ _ _ Hlid Hev)
+          as [-> ->]
+    end.
+    match goal with
+    | Hd : deref_loc (typeof _) _ _ _ _ _ |- _ => cbn [typeof] in Hd
+    end.
+    match goal with
+    | Hd : deref_loc (Tarray _ _ _) _ _ _ _ _ |- _ =>
+        inv Hd;
+        try (match goal with
+             | Har : access_mode (Tarray _ _ _) = _ |- _ =>
+                 cbn in Har; discriminate Har
+             end)
+    end.
+    match goal with
+    | Hsem : sem_binary_operation _ Oadd _ _ _ _ _ = Some (Vptr ?l2 _) |- _ =>
+        cbn in Hsem; injection Hsem as Hbl Hof; subst l2
+    end.
+    match goal with
+    | Has : assign_loc _ (typeof _) _ _ _ _ _ m' |- _ =>
+        cbn [typeof] in Has; inv Has
+    end;
+    [ split; [ | split; reflexivity ];
+      match goal with
+      | Hstv : Mem.storev _ _ (Vptr lblk _) _ = Some m' |- _ =>
+          unfold Mem.storev in Hstv;
+          eapply localstore_carried; [ exact Hlb | exact Hstv | exact Hc ]
+      end
+    | match goal with
+      | Hco : access_mode ety2 = By_copy |- _ =>
+          rewrite Hacc in Hco; discriminate Hco
+      end ].
+  Qed.
+
 End LocalVarsArc.

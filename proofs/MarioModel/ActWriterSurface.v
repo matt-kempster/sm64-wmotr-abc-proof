@@ -458,6 +458,51 @@ Proof.
 Qed.
 
 (* ====================================================================== *)
+(* The INDEXED LOCAL store: a write into a stack-allocated array local,    *)
+(* `_nextPos[i] = ...` (gen mario_actions_automatic.f_update_hang_moving:  *)
+(* Sassign (Ederef (Ebinop Oadd (Evar lid (Tarray ..)) (Econst_int i tint) *)
+(* ..) ety2) rhs).  The base is a fn_vars local (an Evar, NOT through _m), *)
+(* so it is watched-disjoint (local_blk) and the store leaves every        *)
+(* watched cell untouched.  Census `lids` lists the function's local       *)
+(* array vars; the engine dispatches this Sassign to local_idx_assign_pres.*)
+(* ====================================================================== *)
+Definition local_idx_store_chk (lids : list ident) (a1 : expr) : bool :=
+  match a1 with
+  | Ederef (Ebinop Oadd (Evar lid (Tarray _ _ _)) (Econst_int _ cty) _) ety2 =>
+      mem_id lid lids
+      && proj_sumbool (type_eq cty tint)
+      && match access_mode ety2 with By_value _ => true | _ => false end
+  | _ => false
+  end.
+
+Lemma local_idx_store_chk_shape : forall lids a1,
+    local_idx_store_chk lids a1 = true ->
+    exists lid ety sz attr idxN itya ety2 ch,
+      a1 = Ederef (Ebinop Oadd (Evar lid (Tarray ety sz attr))
+                     (Econst_int idxN tint) itya) ety2
+      /\ mem_id lid lids = true
+      /\ access_mode ety2 = By_value ch.
+Proof.
+  intros lids a1 H.
+  destruct a1 as [ | | | | | | inner ety2 | | | | | | | ]; try discriminate H.
+  destruct inner as [ | | | | | | | | | op e1 e2 bty | | | | ]; try discriminate H.
+  destruct op; try discriminate H.
+  destruct e1 as [ | | | | lid vty | | | | | | | | | ]; try discriminate H.
+  destruct vty as [ | | | | | ety sz attr | | | ]; try discriminate H.
+  destruct e2 as [ idxN cty | | | | | | | | | | | | | ]; try discriminate H.
+  cbn [local_idx_store_chk] in H.
+  apply andb_prop in H as [H Hacc].
+  apply andb_prop in H as [Hmem Hcty].
+  destruct (type_eq cty tint) as [Hc | Hc]; [ subst cty | discriminate Hcty ].
+  destruct (access_mode ety2) as [ch | | | ] eqn:Eam; try discriminate Hacc.
+  exists lid, ety, sz, attr, idxN, bty, ety2, ch.
+  refine (conj _ (conj _ _)).
+  - reflexivity.
+  - exact Hmem.
+  - exact Eam.
+Qed.
+
+(* ====================================================================== *)
 (* The CHASE store: a write THROUGH a censused chase temp (a pointer      *)
 (* loaded from one of Mario's three tabled chase-root fields).  The       *)
 (* chain brick (CensusV2.chain_root_l_block) pins the written block to    *)
@@ -2909,6 +2954,44 @@ Section ActWriterWalk.
   Lemma empty_env_unbound :
     forall (l : list ident) g, mem_id g l = true -> empty_env ! g = None.
   Proof. intros l g _. apply PTree.gempty. Qed.
+
+  (* ---- the Tier-2 new-content brick: a single indexed-local store
+     `(Evar lid (Tarray ..))[i] = rhs` preserves the carried run facts.
+     Hls supplies the MWF localstore frame row (the HMWF_localstore witness,
+     discharged at the capstone from MWFReal: a store to a watched-disjoint
+     stack block leaves every watched cell untouched); Hlocal binds each
+     censused local-array id to a watched-disjoint (local_blk) block.  This
+     is what the engine's new Sassign case dispatches to. *)
+  Lemma wwalk_local_store_pres :
+    forall (lids : list ident) (e : env),
+      (forall m ch b d v m',
+          local_blk lp bm SafeB b ->
+          Mem.store ch m b d v = Some m' -> MWF m -> MWF m') ->
+      (forall lid, mem_id lid lids = true ->
+         exists lblk tyenv,
+           e ! lid = Some (lblk, tyenv) /\ local_blk lp bm SafeB lblk) ->
+      forall a1 a2 le m0 tr le' m' out,
+        local_idx_store_chk lids a1 = true ->
+        exec_stmt function_entry2 (lp_ge lp) e le m0
+          (Sassign a1 a2) tr le' m' out ->
+        Mem.valid_block m0 bm -> action_sat not_tainted m0 bm ->
+        MWF m0 -> NoA m0 ->
+        Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\
+        MWF m' /\ NoA m' /\ le' = le /\ out = Out_normal.
+  Proof.
+    intros lids e Hls Hlocal a1 a2 le m0 tr le' m' out Hchk Hexec HV HS HM HN.
+    destruct (local_idx_store_chk_shape _ _ Hchk)
+      as (lid & ety & sz & attr & idxN & itya & ety2 & ch & -> & Hmem & Hacc).
+    destruct (Hlocal lid Hmem) as (lblk & tyenv & Hbind & Hlb).
+    assert (Hc0 : carried bm NoA MWF m0).
+    { hnf. exact (conj HV (conj HS (conj HM HN))). }
+    destruct (local_idx_assign_pres' lp bm NoA MWF SafeB Hls HNoA_of_MWF
+                e lid ety sz attr idxN itya ety2 a2 le m0 tr le' m' out
+                lblk tyenv ch Hbind Hlb Hacc Hexec Hc0)
+      as (Hc' & Hle & Hout).
+    hnf in Hc'. destruct Hc' as (HV' & HS' & HM' & HN').
+    exact (conj HV' (conj HS' (conj HM' (conj HN' (conj Hle Hout))))).
+  Qed.
 
   Lemma wwalk_pres :
     forall (rt : bool) (wact ids wids cact xids sids tids : list ident),
