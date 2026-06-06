@@ -52,7 +52,6 @@ Definition automatic_rest_ids : list ident :=
   mario_actions_automatic._act_ledge_climb_slow ::
   mario_actions_automatic._act_ledge_climb_down ::
   mario_actions_automatic._act_ledge_climb_fast ::
-  mario_actions_automatic._act_grabbed ::
   mario_actions_automatic._act_in_cannon ::
   mario_actions_automatic._act_tornado_twirling :: nil.
 
@@ -75,6 +74,15 @@ Definition shang_ids : list ident :=
     :: mario_actions_automatic._update_hang_stationary
     :: mario._is_anim_at_end :: mario._play_sound_if_no_flag :: nil.
 Definition hang_sids : list ident := mario._set_mario_action :: nil.
+(* act_grabbed: action arg to set_mario_action is the TEMP _t'1, set from
+   ACT_THROWN_FORWARD/BACKWARD (untainted const) -> the wact mechanism.
+   Deep chase cact = the four marioObj/usedObj loads. *)
+Definition grabbed_wact : list ident := mario_actions_automatic._t'1 :: nil.
+Definition grabbed_ids : list ident := mario._set_mario_animation :: nil.
+Definition grabbed_cact : list ident :=
+  mario_actions_automatic._t'3 :: mario_actions_automatic._t'9
+    :: mario_actions_automatic._t'7 :: mario_actions_automatic._t'6 :: nil.
+Definition grabbed_xids : list ident := mario._vec3f_copy :: nil.
 
 (* ---- pins ---- *)
 Example ccac_pin :
@@ -164,6 +172,28 @@ Proof. vm_compute. reflexivity. Qed.
 Example shang_walk :
   wwalk_chk false nil shang_ids nil nil nil hang_sids nil
     (fn_body mario_actions_automatic.f_act_start_hanging) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* act_grabbed pins/shapes/walk (wact mechanism) *)
+Example grabbed_pin :
+  (prog_defmap mario_actions_automatic.prog) ! mario_actions_automatic._act_grabbed
+  = Some (Gfun (Internal mario_actions_automatic.f_act_grabbed)).
+Proof. vm_compute. reflexivity. Qed.
+Example grabbed_vars : fn_vars mario_actions_automatic.f_act_grabbed = nil.
+Proof. reflexivity. Qed.
+Example grabbed_params_ok : aut_pok mario_actions_automatic.f_act_grabbed = true.
+Proof. vm_compute. reflexivity. Qed.
+Example grabbed_nonparam_c :
+  forallb (fun t' => negb (mem_id t'
+    (map fst (fn_params mario_actions_automatic.f_act_grabbed)))) grabbed_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example grabbed_nonparam_w :
+  forallb (fun t' => negb (mem_id t'
+    (map fst (fn_params mario_actions_automatic.f_act_grabbed)))) grabbed_wact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example grabbed_walk :
+  wwalk_chk false grabbed_wact grabbed_ids nil grabbed_cact grabbed_xids hang_sids nil
+    (fn_body mario_actions_automatic.f_act_grabbed) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* ====================================================================== *)
@@ -358,6 +388,22 @@ Section AutomaticLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | ].
     discriminate H.
   Qed.
+  Lemma grabbed_ids_rows :
+    forall fid, mem_id fid grabbed_ids = true -> call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold grabbed_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsma | ].
+    discriminate H.
+  Qed.
+  Lemma grabbed_xids_rows :
+    forall fid, mem_id fid grabbed_xids = true -> call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold grabbed_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_v3f | ].
+    discriminate H.
+  Qed.
 
   (* ---- the leaves ---- *)
   Lemma ccac_pres :
@@ -406,6 +452,23 @@ Section AutomaticLeafRows.
     - intros fid' H. discriminate H.
     - exact shang_walk.
   Qed.
+  (* act_grabbed: the wact-mechanism leaf (untainted temp action arg _t'1) *)
+  Lemma act_grabbed_pres :
+    body_pres lp NoA MWF bm mario_actions_automatic.f_act_grabbed.
+  Proof.
+    apply (body_pres_of_wwalk_wact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_automatic.f_act_grabbed
+             grabbed_wact grabbed_ids nil grabbed_cact grabbed_xids hang_sids nil
+             grabbed_vars grabbed_params_ok grabbed_nonparam_c grabbed_nonparam_w).
+    - exact grabbed_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact grabbed_xids_rows.
+    - exact hang_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact grabbed_walk.
+  Qed.
 
   (* ================================================================== *)
   (* THE PAYOFF: ccac + the hang pair PROVED; the remaining 14 deferred   *)
@@ -451,7 +514,7 @@ Section AutomaticLeafRows.
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
       rewrite hang_pin in Hdm. injection Hdm as <-. exact act_hanging_pres. }
-    (* 10..17: hang_moving + ledge + grabbed + cannon + tornado -- rest *)
+    (* 10..14: hang_moving + ledge x4 -- rest *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
       refine (Hpres_aut_rest _ f _ Hdm); vm_compute; reflexivity. }
@@ -467,9 +530,11 @@ Section AutomaticLeafRows.
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
       refine (Hpres_aut_rest _ f _ Hdm); vm_compute; reflexivity. }
+    (* 15: act_grabbed -- WALKED (wact mechanism) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
-      refine (Hpres_aut_rest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite grabbed_pin in Hdm. injection Hdm as <-. exact act_grabbed_pres. }
+    (* 16..17: cannon + tornado -- rest *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
       refine (Hpres_aut_rest _ f _ Hdm); vm_compute; reflexivity. }
