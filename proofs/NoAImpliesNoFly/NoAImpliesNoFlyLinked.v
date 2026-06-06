@@ -857,7 +857,7 @@ Section NoARealInputMWF.
                    (mwf_real_ctl lp bm bc oc0 SafeB)
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                       Hgms_blk Hgtimer_blk)
-                   (automatic_leaf_callees_pres lp LO_mario LO_stp bm
+                   (automatic_leaf_callees_pres lp LO_mario LO_stp LO_aut bm
                       (NoA_real bm)
                       (MWF_real lp bm bc oc0 SafeB)
                       (mwf_real_ctl lp bm bc oc0 SafeB)
@@ -878,6 +878,9 @@ Section NoARealInputMWF.
                          HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk)
                       (Hpres_obj_ext mario._vec3s_set eq_refl)
                       (Hpres_obj_ext mario._set_camera_mode eq_refl)
+                      (Hpres_obj_ext mario._load_patchable_table eq_refl)
+                      (Hpres_obj_ext mario_step._vec3f_copy eq_refl)
+                      (Hpres_obj_ext mario._play_sound eq_refl)
                       Hpres_aut_rest))
                 (object_pres lp LO_mario LO_obj LO_stp bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
