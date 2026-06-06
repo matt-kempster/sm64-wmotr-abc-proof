@@ -471,7 +471,8 @@ Proof.
                        || (Pos.eqb fld mario._usedObj
                            || (Pos.eqb fld mario._riddenObj
                                || (Pos.eqb fld mario._animList
-                                   || false)))))))%bool
+                                   || (Pos.eqb fld mario._interactObj
+                                       || false))))))))%bool
           = true) in Hmem.
   repeat (apply orb_true_iff in Hmem; destruct Hmem as [Hm | Hmem]);
     try discriminate Hmem; apply Pos.eqb_eq in Hm; subst fld.
@@ -482,6 +483,7 @@ Proof.
   - exists 128. vm_compute. reflexivity.
   - exists 132. vm_compute. reflexivity.
   - exists 160. vm_compute. reflexivity.
+  - exists 120. vm_compute. reflexivity.
 Qed.
 
 (* the root offsets sit past the action cell and inside ptrofs range:
@@ -500,7 +502,8 @@ Proof.
                        || (Pos.eqb fld mario._usedObj
                            || (Pos.eqb fld mario._riddenObj
                                || (Pos.eqb fld mario._animList
-                                   || false)))))))%bool
+                                   || (Pos.eqb fld mario._interactObj
+                                       || false))))))))%bool
           = true) in Hmem.
   repeat (apply orb_true_iff in Hmem; destruct Hmem as [Hm | Hmem]);
     try discriminate Hmem; apply Pos.eqb_eq in Hm; subst fld.
@@ -530,6 +533,10 @@ Proof.
     rewrite E in Hfo. inv Hfo. lia.
   - assert (E : field_offset (prog_comp_env mario.prog) mario._animList
                   mario_state_members = OK (160, Full))
+      by (vm_compute; reflexivity).
+    rewrite E in Hfo. inv Hfo. lia.
+  - assert (E : field_offset (prog_comp_env mario.prog) mario._interactObj
+                  mario_state_members = OK (120, Full))
       by (vm_compute; reflexivity).
     rewrite E in Hfo. inv Hfo. lia.
 Qed.

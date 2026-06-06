@@ -274,7 +274,7 @@ Definition chain_root_l (a : expr) : option ident :=
 Definition chase_root_fields : list ident :=
   mario._marioObj :: mario._marioBodyState :: mario._statusForCamera
     :: mario._heldObj :: mario._usedObj :: mario._riddenObj
-    :: mario._animList :: nil.
+    :: mario._animList :: mario._interactObj :: nil.
 
 (* `t = gMarioState` -- a By_value load of the global Mario pointer.  The
    bc_globals membership requirement puts the symbol under TI's env row, so
@@ -366,7 +366,7 @@ Proof.
   do 4 eexists; eauto.
 Qed.
 
-(* the seven root fields all have a concrete (vm-checked) MarioState offset *)
+(* the eight root fields all have a concrete (vm-checked) MarioState offset *)
 Lemma chase_root_field_offset :
   forall fld, mem_id fld chase_root_fields = true ->
     exists delta,
@@ -381,7 +381,8 @@ Proof.
                        || (Pos.eqb fld mario._usedObj
                            || (Pos.eqb fld mario._riddenObj
                                || (Pos.eqb fld mario._animList
-                                   || false)))))))%bool = true)
+                                   || (Pos.eqb fld mario._interactObj
+                                       || false))))))))%bool = true)
     in H.
   repeat (apply orb_true_iff in H; destruct H as [H | H]);
     try discriminate H; apply Pos.eqb_eq in H; subst fld.
@@ -392,6 +393,7 @@ Proof.
   - exists 128. vm_compute. reflexivity.
   - exists 132. vm_compute. reflexivity.
   - exists 160. vm_compute. reflexivity.
+  - exists 120. vm_compute. reflexivity.
 Qed.
 
 Lemma is_ptr_ty_access :
@@ -703,7 +705,7 @@ Definition store_window_ok (delta sz : Z) : bool :=
   (0 <? sz) && (0 <=? delta) && (delta + sz <=? Ptrofs.max_unsigned)
   && ((delta + sz <=? 2) || (4 <=? delta))
   && ((delta + sz <=? 12) || (16 <=? delta))
-  && ((delta + sz <=? 124) || (140 <=? delta))
+  && ((delta + sz <=? 120) || (140 <=? delta))
   && ((delta + sz <=? 148) || (164 <=? delta)).
 
 (* the per-field geometry check, isolated so its soundness lemma has
