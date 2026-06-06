@@ -64,9 +64,16 @@ jobs:
         run: python3 pipeline/check_unwired.py
 
       # Trust check: the headline theorems must rest only on CompCert's baseline
-      # axioms (no stray Admitted / project axiom sneaking in).
+      # axioms (no stray Admitted / project axiom sneaking in). The capstone
+      # list mirrors discipline_check.sh's default: the LIVE GOAL-1 capstones
+      # are the four NoAImpliesNoFlyLinked theorems over the linked program lp
+      # (the old NoAImpliesNoFly.NoAImpliesNoFly capstone was demoted to
+      # Unwired/NoAImpliesNoFlyVacuous.v in the 2026-06-03 re-root).
       - name: Axiom check (headline theorems)
         run: |
-          bash pipeline/assumptions.sh SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFly noA_no_spawn_never_flying
+          bash pipeline/assumptions.sh SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFlyLinked noA_no_spawn_never_flying_lp
+          bash pipeline/assumptions.sh SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFlyLinked noA_no_spawn_never_flying_real
+          bash pipeline/assumptions.sh SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFlyLinked noA_no_spawn_never_flying_real_v2
+          bash pipeline/assumptions.sh SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFlyLinked noA_no_spawn_never_flying_real_mwf
           bash pipeline/assumptions.sh SM64.Proofs.MarioModel.ActionValueFrame exec_stmt_value_preserves
           bash pipeline/assumptions.sh SM64.Proofs.Generic.SymbolicLinking linked_resolves_act_flying
