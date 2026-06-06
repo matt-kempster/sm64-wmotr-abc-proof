@@ -688,8 +688,9 @@ Section NoARealInputMWF.
      check_common_object_cancels helper tree -- set_water_plunge_action +
      drop_and_set_mario_action + the set_mario_action keystone + the FIVE
      interaction-TU object helpers behind mario_stop_riding_and_holding
-     (msrah/msro/mdho/mtho/mguo, the B2b slice) -- is proved): the census
-     is the 10 REMAINING leaves.  The discharged leaf's tree surfaces
+     (msrah/msro/mdho/mtho/mguo, the B2b slice) -- is proved; the six B3
+     leaves and the three B5 grab leaves peel off too): the census
+     is the ONE remaining leaf (act_punching).  The discharged trees surface
      only the object-family EXTERNAL rows (obj_ext_ids, the warp_ext_ids
      model class: vec3s_set / set_camera_mode / segmented_to_virtual /
      stop_shell_music / obj_set_held_state). *)
@@ -865,6 +866,8 @@ Section NoARealInputMWF.
                       (Hpres_obj_ext interaction._obj_set_held_state
                          eq_refl)
                       (Hpres_obj_ext mario._load_patchable_table eq_refl)
+                      (Hpres_obj_ext mario_actions_object._approach_s32
+                         eq_refl)
                       Hcp_pgs
                       Hpres_obj_callees)
                    Hpres_qsand)
