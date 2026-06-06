@@ -3855,17 +3855,17 @@ Section ActWriterRows.
       (forall bb oo, vv = Vptr bb oo -> SafeB bb) ->
       Mem.store ch mm bsafe d vv = Some mm' -> MWF mm'.
 
-  (* ---- the stack-frame MWF rows for the local-vars arc (discharged from
-     MWFReal: mwf_real_entry covers the WHOLE function_entry2, mwf_real_free
-     covers free_list, both via MWF_real_transfer; the two valid-set rows are
-     direct projections of MWF_real's R0 conjunct). ---- *)
+  (* ---- the stack-frame MWF rows for the local-vars arc (Tier-1: a leaf
+     whose stack locals are written ONLY by external out-param calls, never
+     directly stored into).  Both discharge from MWFReal at the capstone:
+     HMWF_alloc <- mwf_real entry-alloc (MWF_real_transfer), HMWF_free <-
+     mwf_real_free (free_list preserves MWF_real unconditionally).  No
+     globals-valid / SafeB-valid rows are needed: the Tier-1 exit only uses
+     that the freed stack blocks miss bm. ---- *)
   Hypothesis HMWF_alloc : forall m lo hi m' b,
       Mem.alloc m lo hi = (m', b) -> MWF m -> MWF m'.
-  Hypothesis HMWF_freeb : forall m b lo hi m',
-      local_blk lp bm SafeB b -> Mem.free m b lo hi = Some m' -> MWF m -> MWF m'.
-  Hypothesis HSafe_valid : forall m b, MWF m -> SafeB b -> Mem.valid_block m b.
-  Hypothesis HGlob_valid : forall m gid bg,
-      MWF m -> Genv.find_symbol (lp_ge lp) gid = Some bg -> Mem.valid_block m bg.
+  Hypothesis HMWF_free : forall m l m',
+      Mem.free_list m l = Some m' -> MWF m -> MWF m'.
 
   (* ---- the funcall->body entry for a PLAIN walked leaf WITH STACK LOCALS
      (fn_vars f <> nil): the entry alloc_variables builds e_loc binding each
@@ -3996,11 +3996,11 @@ Section ActWriterRows.
                 Hub_g Hub_i Hub_w Hub_x Hub_s Hub_t Hub_gt
                 Hchk Htat0 Hact0 Hch0 HNa HMa HVa HSa)
       as (HVb & HSb & HMb & HNb & _ & _ & _ & _).
-    (* the exit free_list frees only the (watched-disjoint) local blocks *)
-    pose proof (blocks_of_env_local_blk lp bm SafeB m0 (fn_vars f) eloc _
-                  Halloc HV (fun b Hb => HSafe_valid m0 b HM Hb)
-                  (fun gid bg Hfs => HGlob_valid m0 gid bg HM Hfs)) as Hforall.
-    pose proof (free_list_carried lp bm NoA MWF SafeB HMWF_freeb HNoA_of_MWF
+    (* the exit free_list frees only the FRESH local blocks -- each misses bm,
+       so it leaves bm's window/action cell (and MWF unconditionally) intact *)
+    pose proof (blocks_of_env_bm lp bm m0 (fn_vars f) eloc _ Halloc HV)
+      as Hforall.
+    pose proof (free_list_carried_bm bm NoA MWF HMWF_free HNoA_of_MWF
                   (blocks_of_env (lp_ge lp) eloc) _ mF
                   Hforall Hfree (conj HVb (conj HSb (conj HMb HNb)))) as Hcf.
     destruct Hcf as (HVf & HSf & HMf & HNf).

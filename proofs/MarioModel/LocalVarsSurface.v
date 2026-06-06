@@ -55,6 +55,12 @@ Section LocalVarsArc.
       local_blk b -> Mem.free m b lo hi = Some m' -> MWF m -> MWF m'.
   Hypothesis HMWF_localstore : forall m ch b d v m',
       local_blk b -> Mem.store ch m b d v = Some m' -> MWF m -> MWF m'.
+  (* the whole-stack-frame free row: free_list preserves MWF UNCONDITIONALLY
+     (freeing only weakens loads + leaves nextblock) -- discharged directly by
+     MWFReal.mwf_real_free.  Used by the Tier-1 exit, which needs nothing about
+     the freed blocks beyond <> bm (for action_sat). *)
+  Hypothesis HMWF_free : forall m l m',
+      Mem.free_list m l = Some m' -> MWF m -> MWF m'.
 
   (* ================================================================== *)
   (* action_sat / valid_block frame: any memory op that leaves the load  *)
@@ -189,6 +195,46 @@ Section LocalVarsArc.
       eapply freeb_carried; eauto.
   Qed.
 
+  (* ---- the TIER-1 exit: a function with stack locals but NO direct store
+     into them (the locals are only written by external out-param calls, e.g.
+     find_floor(&floor)).  Its exit free_list needs NOTHING about the freed
+     blocks beyond <> bm: MWF survives free_list UNCONDITIONALLY (HMWF_free),
+     valid_block bm and action_sat survive because the freed blocks miss bm. *)
+  Lemma free_list_action_sat : forall (Q : int -> Prop) l m m',
+      Forall (fun blh => fst (fst blh) <> bm) l ->
+      Mem.free_list m l = Some m' -> action_sat Q m bm -> action_sat Q m' bm.
+  Proof.
+    induction l as [ | [[b lo] hi] rest IH ]; intros m m' Hall Hfl Hs.
+    - cbn [Mem.free_list] in Hfl. injection Hfl as <-. exact Hs.
+    - cbn [Mem.free_list] in Hfl.
+      destruct (Mem.free m b lo hi) as [ m1 | ] eqn:Hf; [ | discriminate Hfl ].
+      inversion Hall as [ | x xs Hhd Htl ]; subst. cbn in Hhd.
+      apply (IH m1 m'); [ exact Htl | exact Hfl | ].
+      eapply free_action_sat; [ exact Hf | exact Hhd | exact Hs ].
+  Qed.
+
+  Lemma free_list_valid_bm : forall l m m',
+      Mem.free_list m l = Some m' ->
+      Mem.valid_block m bm -> Mem.valid_block m' bm.
+  Proof.
+    induction l as [ | [[b lo] hi] rest IH ]; intros m m' Hfl Hv.
+    - cbn [Mem.free_list] in Hfl. injection Hfl as <-. exact Hv.
+    - cbn [Mem.free_list] in Hfl.
+      destruct (Mem.free m b lo hi) as [ m1 | ] eqn:Hf; [ | discriminate Hfl ].
+      eapply IH; [ exact Hfl | exact (free_valid _ _ _ _ _ Hf Hv) ].
+  Qed.
+
+  Lemma free_list_carried_bm : forall l m m',
+      Forall (fun blh => fst (fst blh) <> bm) l ->
+      Mem.free_list m l = Some m' -> carried m -> carried m'.
+  Proof.
+    intros l m m' Hall Hfl (Hv & Hs & Hm & Hn).
+    split; [ eapply free_list_valid_bm; eauto | ].
+    split; [ eapply free_list_action_sat; eauto | ].
+    assert (Hm' : MWF m') by (eapply HMWF_free; eauto).
+    split; [ exact Hm' | apply HNoA_of_MWF; exact Hm' ].
+  Qed.
+
   (* ================================================================== *)
   (* FRESHNESS -> local_blk: every block alloc_variables binds from the   *)
   (* EMPTY env is fresh w.r.t. the entry memory m, hence watched-disjoint *)
@@ -282,6 +328,27 @@ Section LocalVarsArc.
     subst x. cbn [block_of_binding fst].
     apply PTree.elements_complete in Hin.
     eapply alloc_variables_local_blk; eauto.
+  Qed.
+
+  (* the TIER-1 version: the freed stack blocks merely miss bm (they are fresh
+     >= nextblock m, and bm is valid in m).  Needs ONLY bm validity -- no SafeB,
+     no globals.  This is what the Tier-1 exit (free_list_carried_bm) consumes. *)
+  Lemma blocks_of_env_bm :
+    forall m vars e' m',
+      alloc_variables (lp_ge lp) empty_env m vars e' m' ->
+      Mem.valid_block m bm ->
+      Forall (fun blh => fst (fst blh) <> bm) (blocks_of_env (lp_ge lp) e').
+  Proof.
+    intros m vars e' m' Hav Hbm.
+    apply Forall_forall. intros x Hx.
+    unfold blocks_of_env in Hx.
+    apply in_map_iff in Hx. destruct Hx as [[id [b ty]] [Heq Hin]].
+    subst x. cbn [block_of_binding fst].
+    apply PTree.elements_complete in Hin.
+    destruct (alloc_variables_not_valid _ _ _ _ _ _ Hav _ _ _ Hin)
+      as [ [ty0 He0] | Hnv ].
+    - rewrite PTree.gempty in He0. discriminate He0.
+    - intro Heq. apply Hnv. rewrite Heq. exact Hbm.
   Qed.
 
   (* ================================================================== *)

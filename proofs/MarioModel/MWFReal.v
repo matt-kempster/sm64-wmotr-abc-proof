@@ -1067,4 +1067,33 @@ Section MWFReal.
       eapply free_list_load_2; eauto.
   Qed.
 
+  (* ---------------- Hmwf_alloc (the local-vars entry brick) ----------------
+     a single Mem.alloc preserves MWF_real: it only adds a fresh block, so every
+     watched cell's load is unchanged and every valid block stays valid.
+     Discharges ActWriterSurface's HMWF_alloc (consumed per-var by
+     alloc_variables_carried at a local-var funcall entry). *)
+  Lemma mwf_real_alloc : forall m lo hi m' b,
+      Mem.alloc m lo hi = (m', b) -> MWF_real m -> MWF_real m'.
+  Proof.
+    intros m lo hi m' b Ha M.
+    pose proof M as ((Vbm & Vbc & Vgms & Vsafe & Vgt) & _).
+    apply (MWF_real_transfer m m'); [ .. | exact M ].
+    - intros bb Hv. eapply Mem.valid_block_alloc; eauto.
+    - intros v Hld. pose proof M as (_ & R1 & _). apply R1.
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_alloc_unchanged; [ exact Ha | exact Vbm ].
+    - intros ch bb ofs v Hrow Hld.
+      assert (Vb : Mem.valid_block m bb).
+      { destruct Hrow as [ [Eb _] | [ Eb | [ Hfs | Hfs ] ] ];
+          [ subst bb; exact Vbm | subst bb; exact Vbc
+            | exact (Vgms _ Hfs) | exact (Vgt _ Hfs) ]. }
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_alloc_unchanged; [ exact Ha | exact Vb ].
+    - intros bb ofs b' o' Hs Hld.
+      pose proof M as (_ & _ & _ & _ & _ & _ & _ & R7 & _).
+      apply (R7 bb ofs b' o' Hs). cbn in Hld |- *.
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_alloc_unchanged; [ exact Ha | exact (Vsafe _ Hs) ].
+  Qed.
+
 End MWFReal.
