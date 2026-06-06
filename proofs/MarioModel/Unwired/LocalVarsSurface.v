@@ -185,4 +185,77 @@ Section LocalVarsArc.
       eapply freeb_carried; eauto.
   Qed.
 
+  (* ================================================================== *)
+  (* FRESHNESS -> local_blk: every block alloc_variables binds from the   *)
+  (* EMPTY env is fresh w.r.t. the entry memory m, hence watched-disjoint *)
+  (* (bm / SafeB / globals are all valid in m).  This is what makes the   *)
+  (* entry env's blocks consumable by the local-store brick and the exit  *)
+  (* free_list.                                                           *)
+  (* ================================================================== *)
+
+  (* every block in the resulting env is either inherited from the start
+     env or fresh (invalid) w.r.t. the start memory. *)
+  Lemma alloc_variables_not_valid :
+    forall ge e m vars e' m',
+      alloc_variables ge e m vars e' m' ->
+      forall id b ty, e' ! id = Some (b, ty) ->
+        (exists ty0, e ! id = Some (b, ty0)) \/ ~ Mem.valid_block m b.
+  Proof.
+    intros ge e m vars e' m' Hav.
+    induction Hav as [ e0 m0
+                     | e0 m0 id0 ty0 vars0 m1 b1 m2 e2 Halloc Hrest IH ];
+      intros id b ty He'.
+    - left. exists ty. exact He'.
+    - destruct (IH _ _ _ He') as [ [ty1 Hset] | Hnv1 ].
+      + destruct (Pos.eq_dec id id0) as [ -> | Hne ].
+        * right. rewrite PTree.gss in Hset.
+          injection Hset as Eb Ety. subst b.
+          exact (Mem.fresh_block_alloc _ _ _ _ _ Halloc).
+        * left. rewrite PTree.gso in Hset by exact Hne.
+          exists ty1. exact Hset.
+      + right. intro Hvm. apply Hnv1.
+        eapply Mem.valid_block_alloc; eauto.
+  Qed.
+
+  Lemma alloc_variables_local_blk :
+    forall m vars e' m',
+      alloc_variables (lp_ge lp) empty_env m vars e' m' ->
+      Mem.valid_block m bm ->
+      (forall b, SafeB b -> Mem.valid_block m b) ->
+      (forall gid bg, Genv.find_symbol (lp_ge lp) gid = Some bg ->
+                      Mem.valid_block m bg) ->
+      forall id b ty, e' ! id = Some (b, ty) -> local_blk b.
+  Proof.
+    intros m vars e' m' Hav Hbm HSv HGv id b ty He'.
+    destruct (alloc_variables_not_valid _ _ _ _ _ _ Hav _ _ _ He')
+      as [ [ty0 He0] | Hnv ].
+    - rewrite PTree.gempty in He0. discriminate He0.
+    - split; [ | split ].
+      + intro Heq. apply Hnv. rewrite Heq. exact Hbm.
+      + intro HS. apply Hnv. exact (HSv _ HS).
+      + intros gid bg Hsym Heq. apply Hnv. rewrite Heq.
+        exact (HGv _ _ Hsym).
+  Qed.
+
+  (* the exit obligation, assembled: every block free_list will free is a
+     local_blk -- so free_list_carried applies at function exit. *)
+  Lemma blocks_of_env_local_blk :
+    forall m vars e' m',
+      alloc_variables (lp_ge lp) empty_env m vars e' m' ->
+      Mem.valid_block m bm ->
+      (forall b, SafeB b -> Mem.valid_block m b) ->
+      (forall gid bg, Genv.find_symbol (lp_ge lp) gid = Some bg ->
+                      Mem.valid_block m bg) ->
+      Forall (fun blh => local_blk (fst (fst blh)))
+             (blocks_of_env (lp_ge lp) e').
+  Proof.
+    intros m vars e' m' Hav Hbm HSv HGv.
+    apply Forall_forall. intros x Hx.
+    unfold blocks_of_env in Hx.
+    apply in_map_iff in Hx. destruct Hx as [[id [b ty]] [Heq Hin]].
+    subst x. cbn [block_of_binding fst].
+    apply PTree.elements_complete in Hin.
+    eapply alloc_variables_local_blk; eauto.
+  Qed.
+
 End LocalVarsArc.
