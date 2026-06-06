@@ -118,7 +118,8 @@ Definition obj_ext_ids : list ident :=
     :: mario._play_sound :: mario_step._vec3f_copy
     :: mario_actions_object._approach_s32
     :: interaction._atan2s
-    :: interaction._virtual_to_segmented :: nil.
+    :: interaction._virtual_to_segmented
+    :: mario._find_floor :: nil.
 
 (* ====================================================================== *)
 (* Pins (vm_compute over the generated TUs).                              *)
