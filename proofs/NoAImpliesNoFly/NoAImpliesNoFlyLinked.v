@@ -48,7 +48,7 @@ From SM64.Proofs Require Import CensusV2 EngineV2Consumer.
 From SM64.Proofs Require Import MWFReal RestSurface AirborneSurface
   DispatchKit CutsceneSurface AutomaticSurface StationarySurface
   MovingSurface ObjectSurface SubmergedSurface FloorsSurface WarpSurface
-  ActWriterSurface ObjectLeafSurface.
+  ActWriterSurface ObjectLeafSurface FloorsLeafSurface.
 
 Section NoAImpliesNoFlyLinked.
   (* The linked program -- ABSTRACT, never computed (no OOM). *)
@@ -701,16 +701,19 @@ Section NoARealInputMWF.
      an object-pool-aware walk *)
   Hypothesis Hcp_pgs :
     call_pres lp bm (NoA_real bm) MWF mario_step._perform_ground_step.
-  (* the special-floors body is WALKED (FloorsSurface.floors_pres via the
-     generic walker walk_pres: the body has NO store at all, only reads +
-     branches + five leaf calls): PROVED from per-leaf residuals keyed by
-     the 4-id census floors_int_ids -- its fifth leaf, level_trigger_warp,
-     is the SAME level_update body as the warp surface below (SHARED, not
-     a new residual). *)
-  Hypothesis Hpres_floors_callees : forall fid f,
-      mem_id fid floors_int_ids = true ->
-      (prog_defmap interaction.prog) ! fid = Some (Gfun (Internal f)) ->
-      body_pres lp (NoA_real bm) MWF bm f.
+  (* the special-floors LEAF CENSUS is FULLY DISCHARGED
+     (FloorsLeafSurface.floors_callees_pres): check_death_barrier /
+     pss_begin_slide / pss_end_slide / check_lava_boost are all WALKED,
+     their callee trees bottoming out in the act-writer keystone, the
+     walked update_mario_sound_and_camera / level_control_timer /
+     level_trigger_warp bodies (the latter SHARED with the warp surface
+     below), and the shared obj_ext rows.  What remains is the marg-free
+     call_pres_ext row for the TWO floors-only external leaves
+     (raise_background_noise / spawn_default_star) -- the same model
+     class as warp_ext_ids. *)
+  Hypothesis Hpres_floors_ext : forall fid,
+      mem_id fid floors_ext_ids = true ->
+      call_pres_ext lp bm (NoA_real bm) MWF fid.
   Hypothesis Hpres_inter : body_pres lp (NoA_real bm) MWF bm
       interaction.f_mario_process_interactions.
   Hypothesis Hpres_wind : body_pres lp (NoA_real bm) MWF bm
@@ -873,7 +876,45 @@ Section NoARealInputMWF.
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                       Hgms_blk Hgtimer_blk)
                    (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
-                   Hpres_floors_callees
+                   (floors_callees_pres lp LO_mario LO_stp LO_int LO_lvl bm
+                      (NoA_real bm)
+                      (MWF_real lp bm bc oc0 SafeB)
+                      (mwf_real_ctl lp bm bc oc0 SafeB)
+                      (mwf_real_window lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk)
+                      (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+                      (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk)
+                      SafeB HSafeB_not_bm
+                      (mwf_real_chase_root lp bm bc oc0 SafeB)
+                      (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk)
+                      (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk)
+                      (mwf_real_sglob lp bm bc oc0 SafeB)
+                      (mwf_real_chase_step lp bm bc oc0 SafeB)
+                      (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm HSafeB_not_bc Hgms_blk
+                         Hgtimer_blk)
+                      (Hpres_obj_ext mario._play_sound eq_refl)
+                      (Hpres_obj_ext mario._set_camera_mode eq_refl)
+                      (Hpres_obj_ext interaction._segmented_to_virtual
+                         eq_refl)
+                      (Hpres_obj_ext interaction._stop_shell_music eq_refl)
+                      (Hpres_obj_ext interaction._obj_set_held_state
+                         eq_refl)
+                      (Hpres_floors_ext mario._raise_background_noise
+                         eq_refl)
+                      (Hpres_floors_ext interaction._spawn_default_star
+                         eq_refl)
+                      (warp_pres lp LO_mario LO_lvl bm (NoA_real bm)
+                         (MWF_real lp bm bc oc0 SafeB)
+                         (mwf_real_ctl lp bm bc oc0 SafeB)
+                         (mwf_real_window lp bm bc oc0 SafeB Hbc_bm
+                            HSafeB_not_bm Hgms_blk Hgtimer_blk)
+                         (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm
+                            Hglob_blk)
+                         Hpres_warp_ext))
                    (warp_pres lp LO_mario LO_lvl bm (NoA_real bm)
                       (MWF_real lp bm bc oc0 SafeB)
                       (mwf_real_ctl lp bm bc oc0 SafeB)

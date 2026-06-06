@@ -785,7 +785,12 @@ Definition stored_globals : list ident :=
   level_update._sDelayedWarpArg ::
   level_update._sDelayedWarpTimer ::
   level_update._sSourceWarpNodeId ::
-  level_update._gSavedCourseNum :: nil.
+  level_update._gSavedCourseNum ::
+  (* the special-floors statics (B7): the PSS slide flag (interaction),
+     and the HUD timer pair written by level_control_timer. *)
+  interaction._sPSSSlideStarted ::
+  level_update._sTimerRunning ::
+  level_update._gHudDisplay :: nil.
 
 Definition global_store_ok (bc : body_census) (a1 : expr) : bool :=
   match a1 with
