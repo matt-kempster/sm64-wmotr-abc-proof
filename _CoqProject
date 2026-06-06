@@ -92,6 +92,12 @@ proofs/MarioModel/FloorsLeafSurface.v
 #     SHRINKS the capstone's automatic census via incremental rest-split) ---
 proofs/MarioModel/AutomaticLeafSurface.v
 
+# --- GOAL 1 / the local-vars walker arc, FOUNDATIONAL LAYER (Unwired: the
+#     stack-frame frame lemmas -- entry alloc_variables / exit free_list /
+#     local store all preserve carried run facts. Consumed once the engine is
+#     generalized from e=empty_env; wiring target = perform_water_step) ---
+proofs/MarioModel/Unwired/LocalVarsSurface.v
+
 # --- top-level demos ---
 proofs/Toy/ToyFrame.v
 proofs/Toy/ToyReach.v
