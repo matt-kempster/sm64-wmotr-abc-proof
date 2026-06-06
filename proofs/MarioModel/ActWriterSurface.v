@@ -2000,7 +2000,7 @@ Section ActWriterWalk.
   Lemma npsrc_pair_pres :
     forall wact cact s1 s2 e le m0 tr1 le1 m1 tr2 le' m' out,
       npsrc_pair_chk wact cact s1 s2 = true ->
-      e = empty_env ->
+      e ! interaction._gGlobalTimer = None ->
       (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
                    b = bm /\ o = Ptrofs.zero) ->
       act_inv wact le -> chase_inv cact le ->
@@ -2015,7 +2015,7 @@ Section ActWriterWalk.
       act_inv wact le' /\ chase_inv cact le' /\ out = Out_normal.
   Proof.
     intros wact0 cact s1 s2 e le m0 tr1 le1 m1 tr2 le' m' out
-           Hck He Htat Hact Hch Hx1 Hx2 HM HV HS.
+           Hck He_gt Htat Hact Hch Hx1 Hx2 HM HV HS.
     unfold npsrc_pair_chk in Hck.
     destruct s1 as [ | a1x a2x | t a | | | | | | | | | | | ];
       try discriminate Hck.
@@ -2029,7 +2029,6 @@ Section ActWriterWalk.
     apply andb_prop in Hck as [Hck Htnw].
     apply andb_prop in Hck as [Hqt Htnm].
     apply Pos.eqb_eq in Hqt. subst q.
-    subst e.
     inv Hx1.
     (* the temp's value is non-Vptr by provenance *)
     match goal with
@@ -2049,10 +2048,10 @@ Section ActWriterWalk.
         match goal with
         | Hlv : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ => inv Hlv
         end.
-        + (* local: empty_env has nothing *)
+        + (* local: e does not bind the gGlobalTimer ident *)
           match goal with
-          | Hl : empty_env ! _ = Some _ |- _ =>
-              cbn in Hl; discriminate Hl
+          | Hl : e ! _ = Some _ |- _ =>
+              rewrite He_gt in Hl; discriminate Hl
           end.
         + (* global: a Mint32 load of the gGlobalTimer cell *)
           match goal with
@@ -2233,11 +2232,43 @@ Section ActWriterWalk.
     end.
   Qed.
 
+  (* the function-name resolution, generalized from the empty env to any e
+     in which the callee fid is NOT a local (He_fid).  empty_env satisfies
+     that via PTree.gempty; a real local env satisfies it because no callee
+     ident is a stack-allocated local.  Refutes eval_Evar_local via He_fid;
+     the global case is unchanged from eval_Evar_funct_empty. *)
+  Lemma eval_Evar_funct :
+    forall e le m fid tyl rty cc vf,
+      e ! fid = None ->
+      eval_expr (lp_ge lp) e le m (Evar fid (Tfunction tyl rty cc)) vf ->
+      exists b, Genv.find_symbol (lp_ge lp) fid = Some b /\
+                vf = Vptr b Ptrofs.zero.
+  Proof.
+    intros e le m fid tyl rty cc vf He Hev.
+    inv Hev.
+    match goal with
+    | Hl : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ => inv Hl
+    end.
+    - (* local: refuted -- the callee is not a local in e *)
+      match goal with
+      | Hb : e ! _ = Some _ |- _ => rewrite He in Hb; discriminate Hb
+      end.
+    - (* global: deref at By_reference hands back the pointer *)
+      match goal with
+      | Hd : deref_loc _ _ _ _ _ _ |- _ => inv Hd
+      end;
+        try (match goal with
+             | Hac : access_mode _ = _ |- _ => cbn in Hac; discriminate Hac
+             end).
+      eexists. split; [ eassumption | reflexivity ].
+  Qed.
+
   (* n-ary Mario-head call at the empty env: the TAIL is arbitrary
      (marg_ok constrains only the head; eval_exprlist is pure). *)
   Lemma kit_scalln_pres :
-    forall optid fid tys rty cc args le0 m0 tr le1 m1 out0,
-      exec_stmt function_entry2 (lp_ge lp) empty_env le0 m0
+    forall optid fid tys rty cc args e le0 m0 tr le1 m1 out0,
+      e ! fid = None ->
+      exec_stmt function_entry2 (lp_ge lp) e le0 m0
         (Scall optid (Evar fid (Tfunction (tyMSp :: tys) rty cc))
            (Etempvar mario_actions_airborne._m tyMSp :: args))
         tr le1 m1 out0 ->
@@ -2250,7 +2281,7 @@ Section ActWriterWalk.
       MWF m1 /\ NoA m1 /\ out0 = Out_normal /\
       exists vr, le1 = set_opttemp optid vr le0.
   Proof.
-    intros optid fid tys rty cc args le0 m0 tr le1 m1 out0 Hexec Hcp Htat
+    intros optid fid tys rty cc args e le0 m0 tr le1 m1 out0 He_fid Hexec Hcp Htat
            HN HM HV HS.
     inv Hexec.
     match goal with
@@ -2259,7 +2290,8 @@ Section ActWriterWalk.
     end.
     match goal with
     | Hv : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
-        apply eval_Evar_funct_empty in Hv; destruct Hv as (b & Hsym & ->)
+        apply (eval_Evar_funct _ _ _ _ _ _ _ _ He_fid) in Hv;
+        destruct Hv as (b & Hsym & ->)
     end.
     match goal with
     | Hff : Genv.find_funct _ (Vptr b Ptrofs.zero) = Some ?fd |- _ =>
@@ -2294,8 +2326,9 @@ Section ActWriterWalk.
   (* the NULLARY censused call: no arguments at all, marg_ok nil is
      trivially true (smyvbof's get_additive_y_vel_for_jumps() pattern). *)
   Lemma kit_scall0_pres :
-    forall optid fid rty cc le0 m0 tr le1 m1 out0,
-      exec_stmt function_entry2 (lp_ge lp) empty_env le0 m0
+    forall optid fid rty cc e le0 m0 tr le1 m1 out0,
+      e ! fid = None ->
+      exec_stmt function_entry2 (lp_ge lp) e le0 m0
         (Scall optid (Evar fid (Tfunction nil rty cc)) nil)
         tr le1 m1 out0 ->
       call_pres lp bm NoA MWF fid ->
@@ -2305,7 +2338,7 @@ Section ActWriterWalk.
       MWF m1 /\ NoA m1 /\ out0 = Out_normal /\
       exists vr, le1 = set_opttemp optid vr le0.
   Proof.
-    intros optid fid rty cc le0 m0 tr le1 m1 out0 Hexec Hcp HN HM HV HS.
+    intros optid fid rty cc e le0 m0 tr le1 m1 out0 He_fid Hexec Hcp HN HM HV HS.
     inv Hexec.
     match goal with
     | Hc : classify_fun _ = fun_case_f _ _ _ |- _ =>
@@ -2313,7 +2346,8 @@ Section ActWriterWalk.
     end.
     match goal with
     | Hv : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
-        apply eval_Evar_funct_empty in Hv; destruct Hv as (b & Hsym & ->)
+        apply (eval_Evar_funct _ _ _ _ _ _ _ _ He_fid) in Hv;
+        destruct Hv as (b & Hsym & ->)
     end.
     match goal with
     | Hff : Genv.find_funct _ (Vptr b Ptrofs.zero) = Some ?fd |- _ =>
@@ -2336,8 +2370,9 @@ Section ActWriterWalk.
      the row's untainted-scalar premise), and the row's vres post feeds
      the caller's act tracking. *)
   Lemma kit_scallw_pres :
-    forall t fid ty2 tys rty cc q qty args le0 m0 tr le1 m1 out0,
-      exec_stmt function_entry2 (lp_ge lp) empty_env le0 m0
+    forall t fid ty2 tys rty cc q qty args e le0 m0 tr le1 m1 out0,
+      e ! fid = None ->
+      exec_stmt function_entry2 (lp_ge lp) e le0 m0
         (Scall (Some t)
            (Evar fid (Tfunction (tyMSp :: ty2 :: tys) rty cc))
            (Etempvar mario_actions_airborne._m tyMSp
@@ -2355,8 +2390,8 @@ Section ActWriterWalk.
       (forall x, le1 ! t = Some x -> untainted_scalar x) /\
       (forall t0, t0 <> t -> le1 ! t0 = le0 ! t0).
   Proof.
-    intros t fid ty2 tys rty cc q qty args le0 m0 tr le1 m1 out0
-           Hexec Hcpa Hty2 Hqty Htat Hq HN HM HV HS.
+    intros t fid ty2 tys rty cc q qty args e le0 m0 tr le1 m1 out0
+           He_fid Hexec Hcpa Hty2 Hqty Htat Hq HN HM HV HS.
     inv Hexec.
     match goal with
     | Hc : classify_fun _ = fun_case_f _ _ _ |- _ =>
@@ -2364,7 +2399,8 @@ Section ActWriterWalk.
     end.
     match goal with
     | Hv : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
-        apply eval_Evar_funct_empty in Hv; destruct Hv as (b & Hsym & ->)
+        apply (eval_Evar_funct _ _ _ _ _ _ _ _ He_fid) in Hv;
+        destruct Hv as (b & Hsym & ->)
     end.
     match goal with
     | Hff : Genv.find_funct _ (Vptr b Ptrofs.zero) = Some ?fd |- _ =>
@@ -2420,8 +2456,9 @@ Section ActWriterWalk.
      (SOUND_X, m->marioObj->header.gfx.cameraToObject) pattern) and we
      never invert the exprlist. *)
   Lemma kit_scallx_pres :
-    forall optid fid targs tres tcc al le0 m0 tr le1 m1 out0,
-      exec_stmt function_entry2 (lp_ge lp) empty_env le0 m0
+    forall optid fid targs tres tcc al e le0 m0 tr le1 m1 out0,
+      e ! fid = None ->
+      exec_stmt function_entry2 (lp_ge lp) e le0 m0
         (Scall optid (Evar fid (Tfunction targs tres tcc)) al)
         tr le1 m1 out0 ->
       call_pres_ext lp bm NoA MWF fid ->
@@ -2431,7 +2468,7 @@ Section ActWriterWalk.
       MWF m1 /\ NoA m1 /\ out0 = Out_normal /\
       exists vr, le1 = set_opttemp optid vr le0.
   Proof.
-    intros optid fid targs tres tcc al le0 m0 tr le1 m1 out0 Hexec Hcpe
+    intros optid fid targs tres tcc al e le0 m0 tr le1 m1 out0 He_fid Hexec Hcpe
            HN HM HV HS.
     inv Hexec.
     match goal with
@@ -2440,7 +2477,8 @@ Section ActWriterWalk.
     end.
     match goal with
     | Hv : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
-        apply eval_Evar_funct_empty in Hv; destruct Hv as (b & Hsym & ->)
+        apply (eval_Evar_funct _ _ _ _ _ _ _ _ He_fid) in Hv;
+        destruct Hv as (b & Hsym & ->)
     end.
     match goal with
     | Hff : Genv.find_funct _ (Vptr b Ptrofs.zero) = Some ?fd |- _ =>
@@ -2461,8 +2499,9 @@ Section ActWriterWalk.
      any) does NOT feed the act tracking (the caller's census keeps the
      destination temp out of wact). *)
   Lemma kit_scallc_pres :
-    forall optid fid ty2 tys rty cc c ity args le0 m0 tr le1 m1 out0,
-      exec_stmt function_entry2 (lp_ge lp) empty_env le0 m0
+    forall optid fid ty2 tys rty cc c ity args e le0 m0 tr le1 m1 out0,
+      e ! fid = None ->
+      exec_stmt function_entry2 (lp_ge lp) e le0 m0
         (Scall optid
            (Evar fid (Tfunction (tyMSp :: ty2 :: tys) rty cc))
            (Etempvar mario_actions_airborne._m tyMSp
@@ -2478,8 +2517,8 @@ Section ActWriterWalk.
       MWF m1 /\ NoA m1 /\ out0 = Out_normal /\
       exists vr, le1 = set_opttemp optid vr le0.
   Proof.
-    intros optid fid ty2 tys rty cc c ity args le0 m0 tr le1 m1 out0
-           Hexec Hcpa Hc2 Hty2 Hity Htat HN HM HV HS.
+    intros optid fid ty2 tys rty cc c ity args e le0 m0 tr le1 m1 out0
+           He_fid Hexec Hcpa Hc2 Hty2 Hity Htat HN HM HV HS.
     inv Hexec.
     match goal with
     | Hc : classify_fun _ = fun_case_f _ _ _ |- _ =>
@@ -2487,7 +2526,8 @@ Section ActWriterWalk.
     end.
     match goal with
     | Hv : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
-        apply eval_Evar_funct_empty in Hv; destruct Hv as (b & Hsym & ->)
+        apply (eval_Evar_funct _ _ _ _ _ _ _ _ He_fid) in Hv;
+        destruct Hv as (b & Hsym & ->)
     end.
     match goal with
     | Hff : Genv.find_funct _ (Vptr b Ptrofs.zero) = Some ?fd |- _ =>
@@ -2544,8 +2584,9 @@ Section ActWriterWalk.
      preserves it (Vundef dies at the cast).  The result (if any) does
      NOT feed the act tracking. *)
   Lemma kit_scallt_pres :
-    forall optid fid ty2 tys rty cc q qty args le0 m0 tr le1 m1 out0,
-      exec_stmt function_entry2 (lp_ge lp) empty_env le0 m0
+    forall optid fid ty2 tys rty cc q qty args e le0 m0 tr le1 m1 out0,
+      e ! fid = None ->
+      exec_stmt function_entry2 (lp_ge lp) e le0 m0
         (Scall optid
            (Evar fid (Tfunction (tyMSp :: ty2 :: tys) rty cc))
            (Etempvar mario_actions_airborne._m tyMSp
@@ -2562,8 +2603,8 @@ Section ActWriterWalk.
       MWF m1 /\ NoA m1 /\ out0 = Out_normal /\
       exists vr, le1 = set_opttemp optid vr le0.
   Proof.
-    intros optid fid ty2 tys rty cc q qty args le0 m0 tr le1 m1 out0
-           Hexec Hcpa Hty2 Hqty Htat Hq HN HM HV HS.
+    intros optid fid ty2 tys rty cc q qty args e le0 m0 tr le1 m1 out0
+           He_fid Hexec Hcpa Hty2 Hqty Htat Hq HN HM HV HS.
     inv Hexec.
     match goal with
     | Hc : classify_fun _ = fun_case_f _ _ _ |- _ =>
@@ -2571,7 +2612,8 @@ Section ActWriterWalk.
     end.
     match goal with
     | Hv : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
-        apply eval_Evar_funct_empty in Hv; destruct Hv as (b & Hsym & ->)
+        apply (eval_Evar_funct _ _ _ _ _ _ _ _ He_fid) in Hv;
+        destruct Hv as (b & Hsym & ->)
     end.
     match goal with
     | Hff : Genv.find_funct _ (Vptr b Ptrofs.zero) = Some ?fd |- _ =>
@@ -2624,8 +2666,9 @@ Section ActWriterWalk.
      untainted-scalar premise.  No result joins the act tracking. *)
   Lemma kit_scall3_pres :
     forall optid fid ty2 ty3 tys rty cc c2 i2 c3 ity args
-           le0 m0 tr le1 m1 out0,
-      exec_stmt function_entry2 (lp_ge lp) empty_env le0 m0
+           e le0 m0 tr le1 m1 out0,
+      e ! fid = None ->
+      exec_stmt function_entry2 (lp_ge lp) e le0 m0
         (Scall optid
            (Evar fid (Tfunction (tyMSp :: ty2 :: ty3 :: tys) rty cc))
            (Etempvar mario_actions_airborne._m tyMSp
@@ -2642,7 +2685,7 @@ Section ActWriterWalk.
       exists vr, le1 = set_opttemp optid vr le0.
   Proof.
     intros optid fid ty2 ty3 tys rty cc c2 i2 c3 ity args
-           le0 m0 tr le1 m1 out0 Hexec Hcp3 Hc3 Hty3 Hity Htat
+           e le0 m0 tr le1 m1 out0 He_fid Hexec Hcp3 Hc3 Hty3 Hity Htat
            HN HM HV HS.
     inv Hexec.
     match goal with
@@ -2651,7 +2694,8 @@ Section ActWriterWalk.
     end.
     match goal with
     | Hv : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
-        apply eval_Evar_funct_empty in Hv; destruct Hv as (b & Hsym & ->)
+        apply (eval_Evar_funct _ _ _ _ _ _ _ _ He_fid) in Hv;
+        destruct Hv as (b & Hsym & ->)
     end.
     match goal with
     | Hff : Genv.find_funct _ (Vptr b Ptrofs.zero) = Some ?fd |- _ =>
@@ -2717,6 +2761,14 @@ Section ActWriterWalk.
   (* ================================================================== *)
   (* THE WRITER WALK.                                                   *)
   (* ================================================================== *)
+
+  (* empty_env discharges every env-unbound premise of the engine
+     vacuously: nothing is bound, so e!g = None for ANY ident.  The 8
+     fn_vars=nil consumers below feed this for all 7 env premises. *)
+  Lemma empty_env_unbound :
+    forall (l : list ident) g, mem_id g l = true -> empty_env ! g = None.
+  Proof. intros l g _. apply PTree.gempty. Qed.
+
   Lemma wwalk_pres :
     forall (rt : bool) (wact ids wids cact xids sids tids : list ident),
       (forall fid, mem_id fid ids = true -> call_pres lp bm NoA MWF fid) ->
@@ -2730,7 +2782,13 @@ Section ActWriterWalk.
                    call_pres_act3 lp bm NoA MWF fid) ->
       forall s e le m0 tr le' m' out,
         exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
-        e = empty_env ->
+        (forall g, mem_id g stored_globals = true -> e ! g = None) ->
+        (forall g, mem_id g ids = true -> e ! g = None) ->
+        (forall g, mem_id g wids = true -> e ! g = None) ->
+        (forall g, mem_id g xids = true -> e ! g = None) ->
+        (forall g, mem_id g sids = true -> e ! g = None) ->
+        (forall g, mem_id g tids = true -> e ! g = None) ->
+        e ! interaction._gGlobalTimer = None ->
         wwalk_chk rt wact ids wids cact xids sids tids s = true ->
         (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
                      b = bm /\ o = Ptrofs.zero) ->
@@ -2746,14 +2804,14 @@ Section ActWriterWalk.
   Proof.
     intros rt wact ids wids cact xids sids tids Hcp Hcpa Hcpx Hcps Hcp3
            s e le m0 tr le' m' out Hexec.
-    induction Hexec; intros He Hchk Htat Hact Hch HN HM HV HS.
+    induction Hexec; intros He Hubi Hubw Hubx Hubs Hubt Hubgt Hchk Htat Hact Hch
+                            HN HM HV HS.
     - (* Sskip *)
       exact (conj HV (conj HS (conj HM (conj HN
                (conj Htat (conj Hact (conj Hch I))))))).
     - (* Sassign: window / global / indexed-window / action-store bricks *)
       cbn [wwalk_chk] in Hchk.
-      subst e.
-      assert (Hex : exec_stmt function_entry2 (lp_ge lp) empty_env le m
+      assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
                       (Sassign a1 a2) E0 le m' Out_normal)
         by (econstructor; eauto).
       apply orb_true_iff in Hchk.
@@ -2804,7 +2862,7 @@ Section ActWriterWalk.
           exact (conj HV' (conj HS' (conj HM' (conj (HNoA_of_MWF _ HM')
                    (conj Htat (conj Hact (conj Hch I))))))).
         * destruct (glob_assign_pres lp bm MWF HMWF_glob
-                      a1 a2 _ _ _ _ _ _ _ Hgs empty_env_glob_unbound Hex HM HV HS)
+                      a1 a2 _ _ _ _ _ _ _ Hgs He Hex HM HV HS)
             as (HV' & HS' & HM' & _ & _).
           exact (conj HV' (conj HS' (conj HM' (conj (HNoA_of_MWF _ HM')
                    (conj Htat (conj Hact (conj Hch I))))))).
@@ -2895,7 +2953,6 @@ Section ActWriterWalk.
           exact (Hch _ Hmem _ _ Hg).
     - (* Scall: censused Mario-head call (plain, into an act temp, an
          EXTERNAL any-arg callee, or the smact-const leaf pattern) *)
-      subst e.
       destruct a as [ ci cty | cf cty | cs cty | cl cty | cid fty | tv tvy
                     | da dy | ar ay | u1 u2 u3 | b1 b2 b3 b4 | c1 c2
                     | f1 f2 f3 | s1' s2' | g1 g2 ];
@@ -2912,12 +2969,12 @@ Section ActWriterWalk.
                         | ar1 ar2 ar3 | params res cc | st1 st2
                         | un1 un2 ];
           try discriminate Htf.
-        assert (Hex : exec_stmt function_entry2 (lp_ge lp) empty_env le m
+        assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
                         (Scall optid (Evar cid (Tfunction params res cc))
                            al)
                         t (set_opttemp optid vres le) m' Out_normal)
           by (econstructor; eauto).
-        destruct (kit_scallx_pres _ _ _ _ _ _ _ _ _ _ _ _ Hex
+        destruct (kit_scallx_pres _ _ _ _ _ _ _ _ _ _ _ _ _ (Hubx _ Hfx) Hex
                     (Hcpx _ Hfx) HN HM HV HS)
           as (HV' & HS' & HM' & HN' & _ & _).
         refine (conj HV' (conj HS' (conj HM' (conj HN'
@@ -2950,11 +3007,11 @@ Section ActWriterWalk.
       { (* the censused NULLARY call *)
         destruct al as [| a1 args]; [ | discriminate Hchk ].
         apply andb_prop in Hchk as [How Hfid].
-        assert (Hex : exec_stmt function_entry2 (lp_ge lp) empty_env le m
+        assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
                         (Scall optid (Evar cid (Tfunction nil res cc)) nil)
                         t (set_opttemp optid vres le) m' Out_normal)
           by (econstructor; eauto).
-        destruct (kit_scall0_pres _ _ _ _ _ _ _ _ _ _ Hex (Hcp _ Hfid)
+        destruct (kit_scall0_pres _ _ _ _ _ _ _ _ _ _ _ (Hubi _ Hfid) Hex (Hcp _ Hfid)
                     HN HM HV HS)
           as (HV' & HS' & HM' & HN' & _ & _).
         refine (conj HV' (conj HS' (conj HM' (conj HN'
@@ -3004,7 +3061,7 @@ Section ActWriterWalk.
             try discriminate Hbr.
           apply andb_prop in Hbr as [Hbr Hqty].
           apply andb_prop in Hbr as [Hq Hty2].
-          assert (Hex : exec_stmt function_entry2 (lp_ge lp) empty_env le m
+          assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
                           (Scall (Some t')
                              (Evar cid (Tfunction (tyMSp :: ty2 :: tys')
                                           res cc))
@@ -3012,7 +3069,7 @@ Section ActWriterWalk.
                                 :: Etempvar q qty :: args'))
                           t (set_opttemp (Some t') vres le) m' Out_normal)
             by (econstructor; eauto).
-          destruct (kit_scallw_pres _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ Hex
+          destruct (kit_scallw_pres _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (Hubw _ Hfw) Hex
                       (Hcpa _ Hfw) Hty2 Hqty Htat
                       (fun x Hx => Hact _ Hq x Hx) HN HM HV HS)
             as (HV' & HS' & HM' & HN' & _ & Hnew & Hold).
@@ -3053,7 +3110,7 @@ Section ActWriterWalk.
             apply andb_prop in Ha3 as [Ha3 Hty3].
             apply andb_prop in Ha3 as [Ha3 Hc3].
             apply andb_prop in Ha3 as [Hty2 Hi2].
-            assert (Hex : exec_stmt function_entry2 (lp_ge lp) empty_env
+            assert (Hex : exec_stmt function_entry2 (lp_ge lp) e
                             le m
                             (Scall (Some t')
                                (Evar cid (Tfunction
@@ -3066,7 +3123,7 @@ Section ActWriterWalk.
                             Out_normal)
               by (econstructor; eauto).
             destruct (kit_scall3_pres _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-                        Hex (Hcp3 _ Hf3) Hc3 Hty3 Hity Htat HN HM HV HS)
+                        _ (Hubt _ Hf3) Hex (Hcp3 _ Hf3) Hc3 Hty3 Hity Htat HN HM HV HS)
               as (HV' & HS' & HM' & HN' & _ & _).
             refine (conj HV' (conj HS' (conj HM' (conj HN'
                      (conj _ (conj _ (conj _ I))))))).
@@ -3088,7 +3145,7 @@ Section ActWriterWalk.
           apply orb_true_iff in Hbr.
           destruct Hbr as [Hbr | Hsm].
           { (* plain censused call *)
-            assert (Hex : exec_stmt function_entry2 (lp_ge lp) empty_env
+            assert (Hex : exec_stmt function_entry2 (lp_ge lp) e
                             le m
                             (Scall (Some t')
                                (Evar cid (Tfunction (tyMSp :: tys) res cc))
@@ -3098,7 +3155,7 @@ Section ActWriterWalk.
                             Out_normal)
               by (econstructor; eauto).
             destruct (kit_scalln_pres
-                        _ _ _ _ _ _ _ _ _ _ _ _ Hex (Hcp _ Hbr) Htat
+                        _ _ _ _ _ _ _ _ _ _ _ _ _ (Hubi _ Hbr) Hex (Hcp _ Hbr) Htat
                         HN HM HV HS)
               as (HV' & HS' & HM' & HN' & _ & _).
             refine (conj HV' (conj HS' (conj HM' (conj HN'
@@ -3129,7 +3186,7 @@ Section ActWriterWalk.
                  act temp (asgs's own smact(m, endAction, 0) call) *)
             apply andb_prop in Hsm as [Hsm Hqty].
             apply andb_prop in Hsm as [Hq Hty2].
-            assert (Hex : exec_stmt function_entry2 (lp_ge lp) empty_env
+            assert (Hex : exec_stmt function_entry2 (lp_ge lp) e
                             le m
                             (Scall (Some t')
                                (Evar cid (Tfunction (tyMSp :: ty2 :: tys')
@@ -3139,7 +3196,7 @@ Section ActWriterWalk.
                             t (set_opttemp (Some t') vres le) m'
                             Out_normal)
               by (econstructor; eauto).
-            destruct (kit_scallt_pres _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ Hex
+            destruct (kit_scallt_pres _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (Hubs _ Hfs) Hex
                         (Hcps _ Hfs) Hty2 Hqty Htat
                         (fun x Hx => Hact _ Hq x Hx) HN HM HV HS)
               as (HV' & HS' & HM' & HN' & _ & _).
@@ -3162,7 +3219,7 @@ Section ActWriterWalk.
               exact (Hch _ Hmem _ _ Hg). } }
           apply andb_prop in Hsm as [Hsm Hity].
           apply andb_prop in Hsm as [Hc2 Hty2].
-          assert (Hex : exec_stmt function_entry2 (lp_ge lp) empty_env le m
+          assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
                           (Scall (Some t')
                              (Evar cid (Tfunction (tyMSp :: ty2 :: tys')
                                           res cc))
@@ -3170,7 +3227,7 @@ Section ActWriterWalk.
                                 :: Econst_int c2 ity :: args'))
                           t (set_opttemp (Some t') vres le) m' Out_normal)
             by (econstructor; eauto).
-          destruct (kit_scallc_pres _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ Hex
+          destruct (kit_scallc_pres _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (Hubs _ Hfs) Hex
                       (Hcps _ Hfs) Hc2 Hty2 Hity Htat HN HM HV HS)
             as (HV' & HS' & HM' & HN' & _ & _).
           refine (conj HV' (conj HS' (conj HM' (conj HN'
@@ -3208,7 +3265,7 @@ Section ActWriterWalk.
           apply andb_prop in Ha3 as [Ha3 Hty3].
           apply andb_prop in Ha3 as [Ha3 Hc3].
           apply andb_prop in Ha3 as [Hty2 Hi2].
-          assert (Hex : exec_stmt function_entry2 (lp_ge lp) empty_env
+          assert (Hex : exec_stmt function_entry2 (lp_ge lp) e
                           le m
                           (Scall None
                              (Evar cid (Tfunction
@@ -3220,7 +3277,7 @@ Section ActWriterWalk.
                           t (set_opttemp None vres le) m' Out_normal)
             by (econstructor; eauto).
           destruct (kit_scall3_pres _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-                      Hex (Hcp3 _ Hf3) Hc3 Hty3 Hity Htat HN HM HV HS)
+                      _ (Hubt _ Hf3) Hex (Hcp3 _ Hf3) Hc3 Hty3 Hity Htat HN HM HV HS)
             as (HV' & HS' & HM' & HN' & _ & _).
           refine (conj HV' (conj HS' (conj HM' (conj HN'
                    (conj _ (conj _ (conj _ I))))))).
@@ -3232,7 +3289,7 @@ Section ActWriterWalk.
         apply orb_true_iff in Hbr.
         destruct Hbr as [Hbr | Hsm].
         { (* plain censused call *)
-          assert (Hex : exec_stmt function_entry2 (lp_ge lp) empty_env le m
+          assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
                           (Scall None
                              (Evar cid (Tfunction (tyMSp :: tys) res cc))
                              (Etempvar mario_actions_airborne._m tyMSp
@@ -3240,7 +3297,7 @@ Section ActWriterWalk.
                           t (set_opttemp None vres le) m' Out_normal)
             by (econstructor; eauto).
           destruct (kit_scalln_pres
-                      _ _ _ _ _ _ _ _ _ _ _ _ Hex (Hcp _ Hbr) Htat
+                      _ _ _ _ _ _ _ _ _ _ _ _ _ (Hubi _ Hbr) Hex (Hcp _ Hbr) Htat
                       HN HM HV HS)
             as (HV' & HS' & HM' & HN' & _ & _).
           refine (conj HV' (conj HS' (conj HM' (conj HN'
@@ -3260,7 +3317,7 @@ Section ActWriterWalk.
         2:{ (* the temp-arg form, result-less *)
           apply andb_prop in Hsm as [Hsm Hqty].
           apply andb_prop in Hsm as [Hq Hty2].
-          assert (Hex : exec_stmt function_entry2 (lp_ge lp) empty_env
+          assert (Hex : exec_stmt function_entry2 (lp_ge lp) e
                           le m
                           (Scall None
                              (Evar cid (Tfunction (tyMSp :: ty2 :: tys')
@@ -3269,7 +3326,7 @@ Section ActWriterWalk.
                                 :: Etempvar q qty :: args'))
                           t (set_opttemp None vres le) m' Out_normal)
             by (econstructor; eauto).
-          destruct (kit_scallt_pres _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ Hex
+          destruct (kit_scallt_pres _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (Hubs _ Hfs) Hex
                       (Hcps _ Hfs) Hty2 Hqty Htat
                       (fun x Hx => Hact _ Hq x Hx) HN HM HV HS)
             as (HV' & HS' & HM' & HN' & _ & _).
@@ -3282,7 +3339,7 @@ Section ActWriterWalk.
             exact (Hch _ Hmem _ _ Hg). } }
         apply andb_prop in Hsm as [Hsm Hity].
         apply andb_prop in Hsm as [Hc2 Hty2].
-        assert (Hex : exec_stmt function_entry2 (lp_ge lp) empty_env le m
+        assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
                         (Scall None
                            (Evar cid (Tfunction (tyMSp :: ty2 :: tys')
                                         res cc))
@@ -3290,7 +3347,7 @@ Section ActWriterWalk.
                               :: Econst_int c2 ity :: args'))
                         t (set_opttemp None vres le) m' Out_normal)
           by (econstructor; eauto).
-        destruct (kit_scallc_pres _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ Hex
+        destruct (kit_scallc_pres _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (Hubs _ Hfs) Hex
                     (Hcps _ Hfs) Hc2 Hty2 Hity Htat HN HM HV HS)
           as (HV' & HS' & HM' & HN' & _ & _).
         refine (conj HV' (conj HS' (conj HM' (conj HN'
@@ -3310,15 +3367,15 @@ Section ActWriterWalk.
         | Hx1 : exec_stmt _ _ _ _ _ s1 _ _ _ Out_normal,
           Hx2 : exec_stmt _ _ _ _ _ s2 _ _ _ _ |- _ =>
             destruct (npsrc_pair_pres _ _ _ _ _ _ _ _ _ _ _ _ _ _
-                        Hpair He Htat Hact Hch Hx1 Hx2 HM HV HS)
+                        Hpair Hubgt Htat Hact Hch Hx1 Hx2 HM HV HS)
               as (HV' & HS' & HM' & Htat' & Hact' & Hch' & ->)
         end.
         exact (conj HV' (conj HS' (conj HM' (conj (HNoA_of_MWF _ HM')
                  (conj Htat' (conj Hact' (conj Hch' I))))))). }
       apply andb_prop in Hchk as [H1 H2].
-      destruct (IHHexec1 He H1 Htat Hact Hch HN HM HV HS)
+      destruct (IHHexec1 He Hubi Hubw Hubx Hubs Hubt Hubgt H1 Htat Hact Hch HN HM HV HS)
         as (HV1 & HS1 & HM1 & HN1 & Htat1 & Hact1 & Hch1 & _).
-      exact (IHHexec2 He H2 Htat1 Hact1 Hch1 HN1 HM1 HV1 HS1).
+      exact (IHHexec2 He Hubi Hubw Hubx Hubs Hubt Hubgt H2 Htat1 Hact1 Hch1 HN1 HM1 HV1 HS1).
     - (* Sseq_2 *)
       cbn [wwalk_chk] in Hchk.
       apply orb_true_iff in Hchk. destruct Hchk as [Hpair | Hchk].
@@ -3333,7 +3390,7 @@ Section ActWriterWalk.
         | Hne : Out_normal <> Out_normal |- _ => exact (Hne eq_refl)
         end. }
       apply andb_prop in Hchk as [H1 _].
-      exact (IHHexec He H1 Htat Hact Hch HN HM HV HS).
+      exact (IHHexec He Hubi Hubw Hubx Hubs Hubt Hubgt H1 Htat Hact Hch HN HM HV HS).
     - (* Sifthenelse *)
       cbn [wwalk_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
       apply IHHexec; try assumption.
@@ -3375,7 +3432,7 @@ Section ActWriterWalk.
                (conj Htat (conj Hact (conj Hch I))))))).
     - (* Sloop stop1 *)
       cbn [wwalk_chk] in Hchk. apply andb_prop in Hchk as [H1 _].
-      destruct (IHHexec He H1 Htat Hact Hch HN HM HV HS)
+      destruct (IHHexec He Hubi Hubw Hubx Hubs Hubt Hubgt H1 Htat Hact Hch HN HM HV HS)
         as (HV1 & HS1 & HM1 & HN1 & Htat1 & Hact1 & Hch1 & Hret1).
       refine (conj HV1 (conj HS1 (conj HM1 (conj HN1
                (conj Htat1 (conj Hact1 (conj Hch1 _))))))).
@@ -3386,9 +3443,9 @@ Section ActWriterWalk.
       + exact Hret1.
     - (* Sloop stop2 *)
       cbn [wwalk_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
-      destruct (IHHexec1 He H1 Htat Hact Hch HN HM HV HS)
+      destruct (IHHexec1 He Hubi Hubw Hubx Hubs Hubt Hubgt H1 Htat Hact Hch HN HM HV HS)
         as (HV1 & HS1 & HM1 & HN1 & Htat1 & Hact1 & Hch1 & _).
-      destruct (IHHexec2 He H2 Htat1 Hact1 Hch1 HN1 HM1 HV1 HS1)
+      destruct (IHHexec2 He Hubi Hubw Hubx Hubs Hubt Hubgt H2 Htat1 Hact1 Hch1 HN1 HM1 HV1 HS1)
         as (HV2 & HS2 & HM2 & HN2 & Htat2 & Hact2 & Hch2 & Hret2).
       refine (conj HV2 (conj HS2 (conj HM2 (conj HN2
                (conj Htat2 (conj Hact2 (conj Hch2 _))))))).
@@ -3401,15 +3458,16 @@ Section ActWriterWalk.
       cbn [wwalk_chk] in Hchk.
       pose proof Hchk as Hchk2.
       apply andb_prop in Hchk as [H1 H2].
-      destruct (IHHexec1 He H1 Htat Hact Hch HN HM HV HS)
+      destruct (IHHexec1 He Hubi Hubw Hubx Hubs Hubt Hubgt H1 Htat Hact Hch HN HM HV HS)
         as (HV1 & HS1 & HM1 & HN1 & Htat1 & Hact1 & Hch1 & _).
-      destruct (IHHexec2 He H2 Htat1 Hact1 Hch1 HN1 HM1 HV1 HS1)
+      destruct (IHHexec2 He Hubi Hubw Hubx Hubs Hubt Hubgt H2 Htat1 Hact1 Hch1 HN1 HM1 HV1 HS1)
         as (HV2 & HS2 & HM2 & HN2 & Htat2 & Hact2 & Hch2 & _).
       apply IHHexec3; try assumption;
         cbn [wwalk_chk]; exact Hchk2.
     - (* Sswitch *)
       cbn [wwalk_chk] in Hchk.
-      destruct (IHHexec He (wwalk_chk_select _ _ _ _ _ _ _ _ n _ Hchk)
+      destruct (IHHexec He Hubi Hubw Hubx Hubs Hubt Hubgt
+                  (wwalk_chk_select _ _ _ _ _ _ _ _ n _ Hchk)
                   Htat Hact Hch HN HM HV HS)
         as (HV1 & HS1 & HM1 & HN1 & Htat1 & Hact1 & Hch1 & Hret1).
       refine (conj HV1 (conj HS1 (conj HM1 (conj HN1
@@ -3881,7 +3939,9 @@ Section ActWriterRows.
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 false nil ids wids nil xids sids nil Hcp Hcpa Hcpx Hcps
-                Hcpt0 _ _ _ _ _ _ _ _ Hbody eq_refl Hchk Htat0 Hact0 Hch0
+                Hcpt0 _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
                 HN HM HV HS)
       as (HV' & HS' & HM' & HN' & _ & _ & _ & _).
     exact (conj HV' (conj HS' (conj HM' HN'))).
@@ -3983,7 +4043,9 @@ Section ActWriterRows.
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 false nil ids wids cact xids sids nil Hcp Hcpa Hcpx Hcps
-                Hcpt0 _ _ _ _ _ _ _ _ Hbody eq_refl Hchk Htat0 Hact0 Hch0
+                Hcpt0 _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
                 HN HM HV HS)
       as (HV' & HS' & HM' & HN' & _ & _ & _ & _).
     exact (conj HV' (conj HS' (conj HM' HN'))).
@@ -4098,7 +4160,9 @@ Section ActWriterRows.
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 false wact ids wids cact xids sids nil Hcp Hcpa Hcpx Hcps
-                Hcpt0 _ _ _ _ _ _ _ _ Hbody eq_refl Hchk Htat0 Hact0 Hch0
+                Hcpt0 _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
                 HN HM HV HS)
       as (HV' & HS' & HM' & HN' & _ & _ & _ & _).
     exact (conj HV' (conj HS' (conj HM' HN'))).
@@ -4174,7 +4238,9 @@ Section ActWriterRows.
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 false nil ids wids nil xids sids nil Hcp Hcpa Hcpx Hcps
-                Hcpt0 _ _ _ _ _ _ _ _ Hbody eq_refl Hchk Htat0 Hact0 Hch0
+                Hcpt0 _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
                 HN HM HV HS)
       as (HV' & HS' & HM' & HN' & _ & _ & _ & _).
     exact (conj HV' (conj HS' (conj HM' HN'))).
@@ -4266,7 +4332,9 @@ Section ActWriterRows.
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 false nil ids wids nil xids sids tids Hcp Hcpa Hcpx Hcps
-                Hcp3t _ _ _ _ _ _ _ _ Hbody eq_refl Hchk Htat0 Hact0 Hch0
+                Hcp3t _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
                 HN HM HV HS)
       as (HV' & HS' & HM' & _).
     exact (conj HV' (conj HS' HM')).
@@ -4369,7 +4437,9 @@ Section ActWriterRows.
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 false nil ids wids cact xids sids tids Hcp Hcpa Hcpx Hcps
-                Hcp3t _ _ _ _ _ _ _ _ Hbody eq_refl Hchk Htat0 Hact0 Hch0
+                Hcp3t _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
                 HN HM HV HS)
       as (HV' & HS' & HM' & _).
     exact (conj HV' (conj HS' HM')).
@@ -4484,7 +4554,9 @@ Section ActWriterRows.
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 false wact ids wids cact xids sids tids Hcp Hcpa Hcpx Hcps
-                Hcp3t _ _ _ _ _ _ _ _ Hbody eq_refl Hchk Htat0 Hact0 Hch0
+                Hcp3t _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
                 HN HM HV HS)
       as (HV' & HS' & HM' & _).
     exact (conj HV' (conj HS' HM')).
@@ -4608,7 +4680,9 @@ Section ActWriterRows.
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 true wact ids wids cact xids sids nil Hcp Hcpa Hcpx Hcps
-                Hcpt0 _ _ _ _ _ _ _ _ Hbody eq_refl Hchk Htat0 Hact0 Hch0
+                Hcpt0 _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
                 HN HM HV HS)
       as (HV' & HS' & HM' & HN' & _ & _ & _ & Hret').
     (* the return value: an I32 fn_return forces a censused return *)
@@ -4747,7 +4821,9 @@ Section ActWriterRows.
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 false wact ids wids cact xids sids nil Hcp Hcpa Hcpx Hcps
-                Hcpt0 _ _ _ _ _ _ _ _ Hbody eq_refl Hchk Htat0 Hact0 Hch0
+                Hcpt0 _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
                 HN HM HV HS)
       as (HV' & HS' & HM' & HN' & _ & _ & _ & _).
     exact (conj HV' (conj HS' (conj HM' HN'))).
