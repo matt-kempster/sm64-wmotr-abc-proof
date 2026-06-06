@@ -2804,7 +2804,7 @@ Section ActWriterWalk.
           exact (conj HV' (conj HS' (conj HM' (conj (HNoA_of_MWF _ HM')
                    (conj Htat (conj Hact (conj Hch I))))))).
         * destruct (glob_assign_pres lp bm MWF HMWF_glob
-                      a1 a2 _ _ _ _ _ _ Hgs Hex HM HV HS)
+                      a1 a2 _ _ _ _ _ _ _ Hgs empty_env_glob_unbound Hex HM HV HS)
             as (HV' & HS' & HM' & _ & _).
           exact (conj HV' (conj HS' (conj HM' (conj (HNoA_of_MWF _ HM')
                    (conj Htat (conj Hact (conj Hch I))))))).

@@ -269,16 +269,28 @@ Section FloorsSurface.
   (* stored_globals symbol at the empty env (CensusV2 store class G,   *)
   (* restated against exec_stmt).                                       *)
   (* ================================================================== *)
+  (* empty_env shadows no global -- the vacuous instance of He_unbound, for
+     the existing walkers that still run at the empty env. *)
+  Lemma empty_env_glob_unbound :
+    forall g, mem_id g stored_globals = true -> empty_env ! g = None.
+  Proof. intros g _. apply PTree.gempty. Qed.
+
+  (* Generalized from empty_env to an ARBITRARY env e in which no censused
+     global is shadowed by a local (He_unbound).  empty_env satisfies that
+     vacuously (PTree.gempty); the local-vars walker (perform_water_step
+     etc.) supplies a real e whose locals _nextPos/_step never collide with
+     a stored_globals ident.  The store still lands in the global block. *)
   Lemma glob_assign_pres :
-    forall a1 a2 le m0 tr le' m' out,
+    forall a1 a2 e le m0 tr le' m' out,
       glob_store_chk a1 = true ->
-      exec_stmt function_entry2 (lp_ge lp) empty_env le m0 (Sassign a1 a2)
+      (forall g, mem_id g stored_globals = true -> e ! g = None) ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0 (Sassign a1 a2)
         tr le' m' out ->
       MWF m0 -> Mem.valid_block m0 bm -> action_sat not_tainted m0 bm ->
       Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\
       le' = le /\ out = Out_normal.
   Proof.
-    intros a1 a2 le m0 tr le' m' out Hgs Hexec HM HV HS.
+    intros a1 a2 e le m0 tr le' m' out Hgs He_unbound Hexec HM HV HS.
     destruct a1 as [ ci cty | cf cty | cs cty | cl cty | gid gty | tv tvy
                    | da dy | ar ay | u1 u2 u3 | b1 b2 b3 b4 | c1 c2
                    | f1 f2 f3 | s1' s2' | g1 g2 ];
@@ -309,8 +321,8 @@ Section FloorsSurface.
       | Hlv2 : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ => inv Hlv2
       end.
       { match goal with
-        | He : empty_env ! _ = Some _ |- _ =>
-            rewrite PTree.gempty in He; discriminate He
+        | He : e ! _ = Some _ |- _ =>
+            rewrite (He_unbound _ Hgid) in He; discriminate He
         end. }
       match goal with
       | Hsym0 : Genv.find_symbol _ _ = Some ?bg0 |- _ =>
@@ -363,8 +375,8 @@ Section FloorsSurface.
     | Hlv : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ => inv Hlv
     end.
     { match goal with
-      | He : empty_env ! _ = Some _ |- _ =>
-          rewrite PTree.gempty in He; discriminate He
+      | He : e ! _ = Some _ |- _ =>
+          rewrite (He_unbound _ Hgid) in He; discriminate He
       end. }
     match goal with
     | Hsym0 : Genv.find_symbol _ _ = Some ?bg0 |- _ => rename Hsym0 into Hsym
@@ -433,7 +445,8 @@ Section FloorsSurface.
           as (HV' & HS' & HM' & _ & _).
         exact (conj HV' (conj HS' (conj HM'
                  (conj (HNoA_of_MWF _ HM') Htat)))).
-      + destruct (glob_assign_pres a1 a2 _ _ _ _ _ _ Hgs Hex HM HV HS)
+      + destruct (glob_assign_pres a1 a2 _ _ _ _ _ _ _ Hgs
+                    empty_env_glob_unbound Hex HM HV HS)
           as (HV' & HS' & HM' & _ & _).
         exact (conj HV' (conj HS' (conj HM'
                  (conj (HNoA_of_MWF _ HM') Htat)))).
