@@ -49,6 +49,12 @@ Definition glob_store_chk (a1 : expr) : bool :=
   | Evar gid gty =>
       mem_id gid stored_globals
       && match access_mode gty with By_value _ => true | _ => false end
+  | Efield (Evar gid (Tstruct sid att)) fld fty =>
+      (* a field of a censused global STRUCT (gHudDisplay.flags/.timer):
+         the store lands in the SAME global block at the field offset,
+         and the HMWF_glob row is offset-irrelevant *)
+      mem_id gid stored_globals
+      && match access_mode fty with By_value _ => true | _ => false end
   | _ => false
   end.
 
@@ -277,6 +283,76 @@ Section FloorsSurface.
                    | da dy | ar ay | u1 u2 u3 | b1 b2 b3 b4 | c1 c2
                    | f1 f2 f3 | s1' s2' | g1 g2 ];
       try discriminate Hgs.
+    2:{ (* the Efield-of-global-struct case: the store lands in the SAME
+           global block (at the field offset); every fact below is
+           block-level, so the offset is irrelevant *)
+      destruct f1 as [ | | | | gid gty | | | | | | | | | ];
+        try discriminate Hgs.
+      destruct gty as [ | | | | | | | sid att | ]; try discriminate Hgs.
+      cbn [glob_store_chk] in Hgs.
+      apply andb_prop in Hgs as [Hgid Hacc].
+      destruct (access_mode f3) as [ch | | | ] eqn:Hac;
+        try discriminate Hacc.
+      inv Hexec.
+      (* the lvalue: Efield over the global struct (union refuted) *)
+      match goal with
+      | Hlv : eval_lvalue _ _ _ _ (Efield _ _ _) _ _ _ |- _ => inv Hlv
+      end.
+      2:{ match goal with
+          | Ht : typeof _ = Tunion _ _ |- _ => cbn in Ht; discriminate Ht
+          end. }
+      (* the base: the global symbol by reference (By_copy deref) *)
+      match goal with
+      | Hev : eval_expr _ _ _ _ (Evar _ _) _ |- _ => inv Hev
+      end.
+      match goal with
+      | Hlv2 : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ => inv Hlv2
+      end.
+      { match goal with
+        | He : empty_env ! _ = Some _ |- _ =>
+            rewrite PTree.gempty in He; discriminate He
+        end. }
+      match goal with
+      | Hsym0 : Genv.find_symbol _ _ = Some ?bg0 |- _ =>
+          rename Hsym0 into Hsym
+      end.
+      match goal with
+      | Hd : deref_loc _ _ _ _ _ _ |- _ =>
+          cbn [typeof] in Hd;
+          inv Hd;
+          try (match goal with
+               | Hac2 : access_mode (Tstruct _ _) = _ |- _ =>
+                   cbn in Hac2; discriminate Hac2
+               end)
+      end.
+      destruct (HMWF_glob _ Hgid _ Hsym) as [Hne Hrow].
+      (* the store: any chunk at the global's block *)
+      match goal with
+      | Has : assign_loc _ _ _ _ _ _ _ m' |- _ =>
+          cbn [typeof] in Has;
+          inv Has;
+          try (match goal with
+               | Hac2 : access_mode f3 = _ |- _ =>
+                   rewrite Hac in Hac2; discriminate Hac2
+               end)
+      end.
+      (* two goals survive: the By_value store and the bitfield store
+         (the field_offset bf is abstract here); both bottom out in a
+         Mem.storev at the global's block, which is all the rows need *)
+      2: match goal with
+         | Hsb : store_bitfield _ _ _ _ _ _ _ _ _ _ |- _ => inv Hsb
+         end.
+      all: match goal with
+           | Hstv : Mem.storev _ _ _ _ = Some _ |- _ =>
+               unfold Mem.storev in Hstv; rename Hstv into Hst
+           end.
+      all: split; [ eauto using Mem.store_valid_block_1 | ].
+      all: split;
+        [ intros av Hload;
+          rewrite (Mem.load_store_other _ _ _ _ _ _ Hst) in Hload;
+          [ exact (HS av Hload) | left; exact (not_eq_sym Hne) ] | ].
+      all: split; [ exact (Hrow _ _ _ _ _ HM Hst) | ].
+      all: split; reflexivity. }
     cbn [glob_store_chk] in Hgs.
     apply andb_prop in Hgs as [Hgid Hacc].
     destruct (access_mode gty) as [ch | | | ] eqn:Hac; try discriminate Hacc.
@@ -312,7 +388,7 @@ Section FloorsSurface.
     split.
     { intros av Hload.
       rewrite (Mem.load_store_other _ _ _ _ _ _ Hst) in Hload;
-        [ exact (HS av Hload) | left; exact (not_eq_sym Hne) ]. }
+        [ exact (HS av Hload) | left; exact (not_eq_sym Hne) ] . }
     split; [ exact (Hrow _ _ _ _ _ HM Hst) | ].
     split; reflexivity.
   Qed.
