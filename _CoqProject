@@ -88,6 +88,10 @@ proofs/MarioModel/ObjectLeafSurface.v
 #     umsc + the marg-free level_control_timer walked) ---
 proofs/MarioModel/FloorsLeafSurface.v
 
+# --- GOAL 1 / the automatic leaf family (SPINE: automatic_leaf_callees_pres
+#     SHRINKS the capstone's automatic census via incremental rest-split) ---
+proofs/MarioModel/AutomaticLeafSurface.v
+
 # --- top-level demos ---
 proofs/Toy/ToyFrame.v
 proofs/Toy/ToyReach.v
