@@ -30,7 +30,8 @@
 From Coq Require Import ZArith Lia List.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
-From SM64.Generated Require mario mario_step mario_actions_automatic.
+From SM64.Generated Require mario mario_step mario_actions_automatic
+  mario_actions_object.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
   ActionValueFrame RealFrameValue RealFrameLinked AGates.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface
@@ -49,7 +50,6 @@ Definition automatic_rest_ids : list ident :=
   mario_actions_automatic._act_top_of_pole ::
   mario_actions_automatic._act_hang_moving ::
   mario_actions_automatic._act_ledge_climb_slow ::
-  mario_actions_automatic._act_ledge_climb_down ::
   mario_actions_automatic._act_ledge_climb_fast ::
   mario_actions_automatic._act_in_cannon ::
   mario_actions_automatic._act_tornado_twirling :: nil.
@@ -277,6 +277,81 @@ Proof. vm_compute. reflexivity. Qed.
 Example alg_walk :
   wwalk_chk false nil alg_ids nil nil nil alg_sids nil
     (fn_body mario_actions_automatic.f_act_ledge_grab) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ====================================================================== *)
+(* THE LEDGE-CLIMB CLUSTER (B9 slice 5): act_ledge_climb_down WALKED via    *)
+(* the EXISTING act3 path -- update_ledge_climb's action is in 3rd-param     *)
+(* position (set_mario_action(m,_animation?,_endAction... no: m,_endAction,  *)
+(* 0)), matching call_pres_act3 exactly (the asgs_row pattern).  No engine   *)
+(* change: the caller's tids/act3_call_chk machinery checks the untainted    *)
+(* constant action at each climb call site.  climb_up_ledge + the ledge      *)
+(* cluster's stop_and_set_height_to_floor are reused.  Census 12 -> 11.      *)
+(* ====================================================================== *)
+
+(* ---- censuses ---- *)
+Definition cul_ids : list ident := mario._set_mario_animation :: nil.
+Definition cul_xids : list ident := mario_step._vec3f_copy :: nil.
+Definition ulc_wact : list ident := mario_actions_object._endAction :: nil.
+Definition ulc_ids : list ident :=
+  mario_step._stop_and_set_height_to_floor
+    :: mario._set_mario_animation
+    :: mario._is_anim_at_end
+    :: mario_actions_automatic._climb_up_ledge :: nil.
+Definition ulc_sids : list ident := mario._set_mario_action :: nil.
+Definition alcd_ids : list ident :=
+  mario_actions_automatic._let_go_of_ledge
+    :: mario._play_sound_if_no_flag :: nil.
+Definition alcd_tids : list ident :=
+  mario_actions_automatic._update_ledge_climb :: nil.
+
+(* ---- pins ---- *)
+Example cul_pin :
+  (prog_defmap mario_actions_automatic.prog)
+    ! mario_actions_automatic._climb_up_ledge
+  = Some (Gfun (Internal mario_actions_automatic.f_climb_up_ledge)).
+Proof. vm_compute. reflexivity. Qed.
+Example ulc_pin :
+  (prog_defmap mario_actions_automatic.prog)
+    ! mario_actions_automatic._update_ledge_climb
+  = Some (Gfun (Internal mario_actions_automatic.f_update_ledge_climb)).
+Proof. vm_compute. reflexivity. Qed.
+Example alcd_pin :
+  (prog_defmap mario_actions_automatic.prog)
+    ! mario_actions_automatic._act_ledge_climb_down
+  = Some (Gfun (Internal mario_actions_automatic.f_act_ledge_climb_down)).
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- shapes ---- *)
+Example cul_vars : fn_vars mario_actions_automatic.f_climb_up_ledge = nil.
+Proof. reflexivity. Qed.
+Example ulc_vars : fn_vars mario_actions_automatic.f_update_ledge_climb = nil.
+Proof. reflexivity. Qed.
+Example alcd_vars :
+  fn_vars mario_actions_automatic.f_act_ledge_climb_down = nil.
+Proof. reflexivity. Qed.
+Example cul_params_ok :
+  aut_pok mario_actions_automatic.f_climb_up_ledge = true.
+Proof. vm_compute. reflexivity. Qed.
+Example ulc_params :
+  fn_params mario_actions_automatic.f_update_ledge_climb = act3_params.
+Proof. vm_compute. reflexivity. Qed.
+Example alcd_params_ok :
+  aut_pok mario_actions_automatic.f_act_ledge_climb_down = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- walks ---- *)
+Example cul_walk :
+  wwalk_chk false nil cul_ids nil nil cul_xids nil nil
+    (fn_body mario_actions_automatic.f_climb_up_ledge) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example ulc_walk :
+  wwalk_chk false ulc_wact ulc_ids nil nil nil ulc_sids nil
+    (fn_body mario_actions_automatic.f_update_ledge_climb) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example alcd_walk :
+  wwalk_chk false nil alcd_ids nil nil nil nil alcd_tids
+    (fn_body mario_actions_automatic.f_act_ledge_climb_down) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* ====================================================================== *)
@@ -727,9 +802,119 @@ Section AutomaticLeafRows.
     - exact alg_walk.
   Qed.
 
+  (* ---- the LEDGE-CLIMB cluster rows (the act3 path) ---- *)
+  Lemma cul_ids_rows :
+    forall fid, mem_id fid cul_ids = true -> call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold cul_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsma | ].
+    discriminate H.
+  Qed.
+  Lemma cul_xids_rows :
+    forall fid, mem_id fid cul_xids = true -> call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold cul_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_v3f | ].
+    discriminate H.
+  Qed.
+  Lemma Hcul : call_pres lp bm NoA MWF mario_actions_automatic._climb_up_ledge.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_automatic.prog
+             mario_actions_automatic._climb_up_ledge
+             mario_actions_automatic.f_climb_up_ledge
+             cul_ids nil cul_xids nil
+             LO_aut cul_pin cul_vars cul_params_ok).
+    - exact cul_ids_rows.
+    - intros fid' H; discriminate H.
+    - exact cul_xids_rows.
+    - intros fid' H; discriminate H.
+    - exact cul_walk.
+  Qed.
+
+  Lemma ulc_ids_rows :
+    forall fid, mem_id fid ulc_ids = true -> call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold ulc_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsasthf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsma | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hiaae | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcul | ].
+    discriminate H.
+  Qed.
+  Lemma ulc_sids_rows :
+    forall fid, mem_id fid ulc_sids = true -> call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold ulc_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | ].
+    discriminate H.
+  Qed.
+  (* update_ledge_climb: the 3rd-position action writer (call_pres_act3) *)
+  Lemma Hulc :
+    call_pres_act3 lp bm NoA MWF mario_actions_automatic._update_ledge_climb.
+  Proof.
+    apply (call_pres_act3_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_automatic.prog _
+             mario_actions_automatic.f_update_ledge_climb
+             ulc_wact ulc_ids nil nil nil ulc_sids
+             LO_aut ulc_pin ulc_vars ulc_params
+             eq_refl eq_refl eq_refl eq_refl eq_refl eq_refl).
+    - exact ulc_ids_rows.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - exact ulc_sids_rows.
+    - exact ulc_walk.
+  Qed.
+
+  (* the act_ledge_climb_down leaf: ids=[lgl,psinf], tids=[update_ledge_climb] *)
+  Lemma alcd_ids_rows :
+    forall fid, mem_id fid alcd_ids = true -> call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold alcd_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hlgl | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hpsinf | ].
+    discriminate H.
+  Qed.
+  Lemma alcd_tids_rows :
+    forall fid, mem_id fid alcd_tids = true -> call_pres_act3 lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold alcd_tids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hulc | ].
+    discriminate H.
+  Qed.
+  Lemma act_ledge_climb_down_pres :
+    body_pres lp NoA MWF bm mario_actions_automatic.f_act_ledge_climb_down.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_automatic.f_act_ledge_climb_down
+             alcd_ids nil nil nil alcd_tids alcd_vars alcd_params_ok).
+    - exact alcd_ids_rows.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - exact alcd_tids_rows.
+    - exact alcd_walk.
+  Qed.
+
   (* ================================================================== *)
-  (* THE PAYOFF: ccac + the hang pair + act_ledge_grab PROVED; the         *)
-  (* remaining 12 deferred to the (smaller) rest residual.                 *)
+  (* THE PAYOFF: ccac + the hang pair + act_ledge_grab + act_ledge_climb_  *)
+  (* down PROVED; the remaining 11 deferred to the (smaller) rest residual. *)
   (* ================================================================== *)
   Lemma automatic_leaf_callees_pres :
     forall fid f,
@@ -779,13 +964,16 @@ Section AutomaticLeafRows.
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
       rewrite alg_pin in Hdm. injection Hdm as <-. exact act_ledge_grab_pres. }
-    (* 12..14: ledge climb slow/down/fast -- rest *)
+    (* 12: act_ledge_climb_slow -- rest *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
       refine (Hpres_aut_rest _ f _ Hdm); vm_compute; reflexivity. }
+    (* 13: act_ledge_climb_down -- WALKED (act3 path: update_ledge_climb) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
-      refine (Hpres_aut_rest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite alcd_pin in Hdm. injection Hdm as <-.
+      exact act_ledge_climb_down_pres. }
+    (* 14: act_ledge_climb_fast -- rest *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
       refine (Hpres_aut_rest _ f _ Hdm); vm_compute; reflexivity. }
