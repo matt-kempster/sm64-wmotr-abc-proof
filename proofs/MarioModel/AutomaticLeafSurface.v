@@ -49,7 +49,6 @@ Definition automatic_rest_ids : list ident :=
   mario_actions_automatic._act_top_of_pole_transition ::
   mario_actions_automatic._act_top_of_pole ::
   mario_actions_automatic._act_hang_moving ::
-  mario_actions_automatic._act_ledge_climb_slow ::
   mario_actions_automatic._act_in_cannon ::
   mario_actions_automatic._act_tornado_twirling :: nil.
 
@@ -449,6 +448,65 @@ Proof. vm_compute. reflexivity. Qed.
 Example alcf_walk :
   wwalk_chk false nil alcf_ids nil alcf_cact nil nil alcf_tids
     (fn_body mario_actions_automatic.f_act_ledge_climb_fast) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ====================================================================== *)
+(* THE LEDGE-CLIMB SLOW cluster (B9 slice 7): act_ledge_climb_slow WALKED. *)
+(* Reuses Hlgl / Hcul / Hpsinf / Hulc / Hulcc; ONE new helper row         *)
+(* check_common_action_exits (Hccae, sids=[set_mario_action], the four    *)
+(* smact-const exits -- mirrors ObjectLeafSurface.ccae_row).  The body has *)
+(* a DIRECT inline action store m->action = 1357 (ACT_LEDGE_CLIMB_SLOW_1,  *)
+(* statically untainted) -- discharged by the NEW const_act_store_chk      *)
+(* walker arm in ActWriterSurface (const_act_assign_pres).  cact=[_t'4]    *)
+(* (the marioObj gate read for the animFrame==17 branch).  Census 10 -> 9. *)
+(* ====================================================================== *)
+
+(* ---- censuses ---- *)
+Definition cs_ids : list ident :=
+  mario_actions_automatic._let_go_of_ledge
+    :: mario_actions_automatic._climb_up_ledge
+    :: mario._check_common_action_exits
+    :: mario._play_sound_if_no_flag
+    :: mario_actions_automatic._update_ledge_climb_camera :: nil.
+Definition cs_cact : list ident := mario_actions_automatic._t'4 :: nil.
+Definition cs_tids : list ident :=
+  mario_actions_automatic._update_ledge_climb :: nil.
+
+(* ---- pins ---- *)
+Example ccae_pin :
+  (prog_defmap mario.prog) ! mario._check_common_action_exits
+  = Some (Gfun (Internal mario.f_check_common_action_exits)).
+Proof. vm_compute. reflexivity. Qed.
+Example cs_pin :
+  (prog_defmap mario_actions_automatic.prog)
+    ! mario_actions_automatic._act_ledge_climb_slow
+  = Some (Gfun (Internal mario_actions_automatic.f_act_ledge_climb_slow)).
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- shapes ---- *)
+Example ccae_vars : fn_vars mario.f_check_common_action_exits = nil.
+Proof. reflexivity. Qed.
+Example cs_vars : fn_vars mario_actions_automatic.f_act_ledge_climb_slow = nil.
+Proof. reflexivity. Qed.
+Example ccae_params_ok : aut_pok mario.f_check_common_action_exits = true.
+Proof. vm_compute. reflexivity. Qed.
+Example cs_params_ok :
+  aut_pok mario_actions_automatic.f_act_ledge_climb_slow = true.
+Proof. vm_compute. reflexivity. Qed.
+Example cs_nonparam_c :
+  forallb (fun t' => negb (mem_id t'
+    (map fst (fn_params mario_actions_automatic.f_act_ledge_climb_slow))))
+    cs_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- walks (ccae sids reuses lgl_sids = [set_mario_action]) ---- *)
+Example ccae_walk :
+  wwalk_chk false nil nil nil nil nil lgl_sids nil
+    (fn_body mario.f_check_common_action_exits) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example cs_walk :
+  wwalk_chk false nil cs_ids nil cs_cact nil nil cs_tids
+    (fn_body mario_actions_automatic.f_act_ledge_climb_slow) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* ====================================================================== *)
@@ -1122,6 +1180,69 @@ Section AutomaticLeafRows.
     - exact alcf_walk.
   Qed.
 
+  (* ---- the LEDGE-CLIMB SLOW cluster rows (const-action-store leaf) ---- *)
+  (* check_common_action_exits: the four smact-const exits (sids reuses
+     lgl_sids = [set_mario_action]); mirrors ObjectLeafSurface.ccae_row. *)
+  Lemma Hccae : call_pres lp bm NoA MWF mario._check_common_action_exits.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._check_common_action_exits
+             mario.f_check_common_action_exits
+             nil nil nil lgl_sids
+             LO_mario ccae_pin ccae_vars ccae_params_ok).
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - exact lgl_sids_rows.
+    - exact ccae_walk.
+  Qed.
+
+  (* the act_ledge_climb_slow leaf: ids=[lgl;cul;ccae;psinf;ulcc],
+     cact=[_t'4] (marioObj gate read), tids=[update_ledge_climb]; the
+     m->action=1357 inline store rides the const_act_store_chk arm. *)
+  Lemma cs_ids_rows :
+    forall fid, mem_id fid cs_ids = true -> call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold cs_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hlgl | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcul | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hccae | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hpsinf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hulcc | ].
+    discriminate H.
+  Qed.
+  Lemma cs_tids_rows :
+    forall fid, mem_id fid cs_tids = true -> call_pres_act3 lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold cs_tids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hulc | ].
+    discriminate H.
+  Qed.
+  Lemma act_ledge_climb_slow_pres :
+    body_pres lp NoA MWF bm mario_actions_automatic.f_act_ledge_climb_slow.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_automatic.f_act_ledge_climb_slow
+             cs_ids nil cs_cact nil nil cs_tids
+             cs_vars cs_params_ok cs_nonparam_c).
+    - exact cs_ids_rows.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - exact cs_tids_rows.
+    - exact cs_walk.
+  Qed.
+
   (* ================================================================== *)
   (* THE PAYOFF: ccac + the hang pair + act_ledge_grab + act_ledge_climb_  *)
   (* down PROVED; the remaining 11 deferred to the (smaller) rest residual. *)
@@ -1174,10 +1295,11 @@ Section AutomaticLeafRows.
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
       rewrite alg_pin in Hdm. injection Hdm as <-. exact act_ledge_grab_pres. }
-    (* 12: act_ledge_climb_slow -- rest *)
+    (* 12: act_ledge_climb_slow -- WALKED (const-action-store arm) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
-      refine (Hpres_aut_rest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite cs_pin in Hdm. injection Hdm as <-.
+      exact act_ledge_climb_slow_pres. }
     (* 13: act_ledge_climb_down -- WALKED (act3 path: update_ledge_climb) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.

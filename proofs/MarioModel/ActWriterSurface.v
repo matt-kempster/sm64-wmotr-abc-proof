@@ -412,6 +412,51 @@ Proof.
   exists fty, rty, t. repeat split; assumption.
 Qed.
 
+(* the INLINE constant action store `m->action = <untainted const>`: the
+   ledge-climb leaves write a stationary action constant DIRECTLY (no temp
+   staging).  Same protected cell (bm,12) as act_store_chk; the difference
+   is only the RHS -- a statically untainted Econst_int rather than a
+   censused act temp.  wact_const c witnesses c is not in the tainted set. *)
+Definition const_act_store_chk (a1 a2 : expr) : bool :=
+  match a1, a2 with
+  | Efield (Ederef (Etempvar p pty) sty) fld fty, Econst_int c rty =>
+      Pos.eqb p mario_actions_airborne._m
+      && proj_sumbool (type_eq pty (tptr tyMS))
+      && proj_sumbool (type_eq sty tyMS)
+      && Pos.eqb fld mario._action
+      && i32_ty fty && i32_ty rty
+      && wact_const c
+  | _, _ => false
+  end.
+
+Lemma const_act_store_chk_shape : forall a1 a2,
+    const_act_store_chk a1 a2 = true ->
+    exists fty c rty,
+      a1 = Efield (Ederef (Etempvar mario_actions_airborne._m (tptr tyMS))
+                     tyMS) mario._action fty /\
+      a2 = Econst_int c rty /\
+      i32_ty fty = true /\ i32_ty rty = true /\ wact_const c = true.
+Proof.
+  intros a1 a2 H.
+  destruct a1 as [ | | | | | | | | | | | ab fld fty | | ];
+    try discriminate H.
+  destruct ab as [ | | | | | | bb sty | | | | | | | ]; try discriminate H.
+  destruct bb as [ | | | | | p pty | | | | | | | | ]; try discriminate H.
+  destruct a2 as [ c rty | | | | | | | | | | | | | ]; try discriminate H.
+  cbn [const_act_store_chk] in H.
+  apply andb_prop in H as [H Hwc].
+  apply andb_prop in H as [H Hrty].
+  apply andb_prop in H as [H Hfty].
+  apply andb_prop in H as [H Hfld].
+  apply andb_prop in H as [H Hsty].
+  apply andb_prop in H as [Hp Hpty].
+  apply Pos.eqb_eq in Hp. subst p.
+  apply Pos.eqb_eq in Hfld. subst fld.
+  destruct (type_eq pty (tptr tyMS)); [ subst pty | discriminate Hpty ].
+  destruct (type_eq sty tyMS); [ subst sty | discriminate Hsty ].
+  exists fty, c, rty. repeat split; assumption.
+Qed.
+
 (* ====================================================================== *)
 (* The CHASE store: a write THROUGH a censused chase temp (a pointer      *)
 (* loaded from one of Mario's three tabled chase-root fields).  The       *)
@@ -1042,6 +1087,7 @@ Fixpoint wwalk_chk (rt : bool) (wact ids wids cact xids sids tids : list ident)
       || idx_mfield_store mario_actions_airborne._m a1
       || idx16_mfield_store mario_actions_airborne._m a1
       || act_store_chk wact a1 a2
+      || const_act_store_chk a1 a2
       || chase_store_chk wact cact a1 a2
       || root_store_chk cact a1 a2
       || chase_ptr_store_chk cact a1 a2
@@ -2232,6 +2278,101 @@ Section ActWriterWalk.
     end.
   Qed.
 
+  (* ================================================================== *)
+  (* The CONSTANT action-store brick: m->action := <untainted const>.   *)
+  (* The inline twin of act_assign_pres -- the RHS is a statically       *)
+  (* untainted Econst_int (the ledge-climb-slow stationary action 1357)  *)
+  (* rather than a censused act temp.  Same protected cell (bm,12); MWF  *)
+  (* survives (the value is Vint, never a pointer) and action_sat is     *)
+  (* re-established by the constant's wact_const witness.                *)
+  (* ================================================================== *)
+  Lemma const_act_assign_pres :
+    forall a1 a2 e le m0 tr le' m' out,
+      const_act_store_chk a1 a2 = true ->
+      (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0 (Sassign a1 a2)
+        tr le' m' out ->
+      MWF m0 -> Mem.valid_block m0 bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\
+      le' = le /\ out = Out_normal.
+  Proof.
+    intros a1 a2 e le m0 tr le' m' out Hck Htat Hexec HM HV.
+    destruct (const_act_store_chk_shape _ _ Hck)
+      as (fty & c & rty & -> & -> & Hfty & Hrty & Hwc).
+    destruct fty as [ | szf sgf af | | | | | | | ]; try discriminate Hfty.
+    destruct szf; try discriminate Hfty.
+    destruct rty as [ | szr sgr ar | | | | | | | ]; try discriminate Hrty.
+    destruct szr; try discriminate Hrty.
+    inv Hexec.
+    (* the base temp holds Mario's pointer *)
+    match goal with
+    | Hlv0 : eval_lvalue _ _ _ _ (Efield _ _ _) _ _ _ |- _ =>
+        pose proof Hlv0 as Hpin;
+        apply eval_lvalue_Efield_base in Hpin;
+        destruct Hpin as (oo0 & Hbase);
+        apply eval_expr_Ederef_load in Hbase;
+        destruct Hbase as (lb & ob & bfb & Hlvb & _);
+        apply eval_lvalue_Ederef_base in Hlvb;
+        apply eval_expr_Etempvar_val in Hlvb
+    end.
+    destruct (Htat _ _ Hlvb) as [E1 E2]. subst lb ob.
+    (* the lvalue geometry: Mario's block at the action offset 12 *)
+    match goal with
+    | Hlv0 : eval_lvalue _ _ _ _ (Efield _ _ _) ?loc ?ofs ?bf |- _ =>
+        destruct (mfield_lvalue_geom_lp lp LO_mario _ _ _ _ _ _
+                    loc ofs bf _ _ _ Hlvb act_field_off Hlv0)
+          as (E3 & E4 & E5);
+        subst loc ofs bf
+    end.
+    (* the RHS: a statically untainted constant *)
+    match goal with
+    | Hev : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+        inv Hev;
+        try (match goal with
+             | Hlv : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+                 inv Hlv
+             end)
+    end.
+    assert (Hnt : not_tainted c).
+    { unfold wact_const in Hwc. unfold not_tainted.
+      destruct (is_tainted c); [ discriminate Hwc | reflexivity ]. }
+    (* the cast: I32-to-I32, a Vint survives verbatim *)
+    match goal with
+    | Hc : sem_cast _ _ _ _ = Some _ |- _ =>
+        cbn [typeof] in Hc; rename Hc into Hcast
+    end.
+    pose proof (sem_cast_i32_neutral _ _ _ _ _ Hrty Hfty Hcast) as ->.
+    (* the assign: a By_value Mint32 store at (bm,12) *)
+    match goal with
+    | Has : assign_loc _ _ _ _ _ _ _ m' |- _ =>
+        rewrite Ptrofs.add_zero_l in Has;
+        cbn [typeof] in Has;
+        inv Has
+    end.
+    match goal with
+    | Hac : access_mode _ = By_value _ |- _ =>
+        cbn in Hac; injection Hac as <-
+    end.
+    match goal with
+    | Hsv : Mem.storev _ _ _ _ = Some m' |- _ =>
+        unfold Mem.storev in Hsv;
+        change (Ptrofs.unsigned (Ptrofs.repr 12)) with 12 in Hsv
+    end.
+    match goal with
+    | Hsv : Mem.store _ _ _ _ _ = Some m' |- _ =>
+        split; [ exact (Mem.store_valid_block_1 _ _ _ _ _ _ Hsv _ HV) | ];
+        split;
+        [ intros av Hload;
+          rewrite (Mem.load_store_same _ _ _ _ _ _ Hsv) in Hload;
+          cbn in Hload; injection Hload as <-; exact Hnt
+        | split;
+          [ refine (HMWF_act _ _ _ HM _ Hsv);
+            intros bb oo EE; discriminate EE
+          | split; reflexivity ] ]
+    end.
+  Qed.
+
   (* the function-name resolution, generalized from the empty env to any e
      in which the callee fid is NOT a local (He_fid).  empty_env satisfies
      that via PTree.gempty; a real local env satisfies it because no callee
@@ -2835,6 +2976,13 @@ Section ActWriterWalk.
       destruct Hchk as [Hchk | Hcs].
       2:{ destruct (chase_assign_pres _ _ a1 a2 _ _ _ _ _ _ _ Hcs Hact Hch
                       Hex HM HV HS)
+            as (HV' & HS' & HM' & _ & _).
+          exact (conj HV' (conj HS' (conj HM' (conj (HNoA_of_MWF _ HM')
+                   (conj Htat (conj Hact (conj Hch I))))))). }
+      apply orb_true_iff in Hchk.
+      destruct Hchk as [Hchk | Hcac].
+      2:{ destruct (const_act_assign_pres a1 a2 _ _ _ _ _ _ _ Hcac Htat
+                      Hex HM HV)
             as (HV' & HS' & HM' & _ & _).
           exact (conj HV' (conj HS' (conj HM' (conj (HNoA_of_MWF _ HM')
                    (conj Htat (conj Hact (conj Hch I))))))). }
