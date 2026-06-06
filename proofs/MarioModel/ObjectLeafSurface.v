@@ -109,10 +109,7 @@ Definition ccoc_sids : list ident :=
 
 (* the capstone's object census MINUS the discharged leaf *)
 Definition object_callee_ids_rest : list ident :=
-  mario_actions_object._act_punching
-    :: mario_actions_object._act_picking_up
-    :: mario_actions_object._act_picking_up_bowser
-    :: mario_actions_object._act_holding_bowser :: nil.
+  mario_actions_object._act_punching :: nil.
 
 (* the object family's EXTERNAL leaf rows (the warp_ext_ids model class);
    grows as further leaves discharge *)
@@ -122,7 +119,8 @@ Definition obj_ext_ids : list ident :=
     :: interaction._stop_shell_music
     :: interaction._obj_set_held_state
     :: mario._load_patchable_table
-    :: mario._play_sound :: mario_step._vec3f_copy :: nil.
+    :: mario._play_sound :: mario_step._vec3f_copy
+    :: mario_actions_object._approach_s32 :: nil.
 
 (* ====================================================================== *)
 (* Pins (vm_compute over the generated TUs).                              *)
@@ -665,6 +663,118 @@ Example arb_walk :
     (fn_body mario_actions_object.f_act_releasing_bowser) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ====================================================================== *)
+(* B5: the three grab-family leaves (chase censuses through the          *)
+(* marioObj / marioBodyState roots; approach_s32 is EXTERNAL in lp).     *)
+(* ====================================================================== *)
+
+Definition apub_ids : list ident :=
+  interaction._mario_grab_used_object
+    :: mario_step._stationary_ground_step
+    :: mario._set_mario_animation :: mario._is_anim_at_end :: nil.
+Definition apub_xids : list ident := mario._play_sound :: nil.
+Definition apub_cact : list ident :=
+  mario_actions_object._t'4 :: mario_actions_object._t'3 :: nil.
+
+Example apub_pin :
+  (prog_defmap mario_actions_object.prog)
+    ! mario_actions_object._act_picking_up_bowser
+  = Some (Gfun (Internal mario_actions_object.f_act_picking_up_bowser)).
+Proof. vm_compute. reflexivity. Qed.
+Example apub_vars :
+  fn_vars mario_actions_object.f_act_picking_up_bowser = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example apub_params_ok :
+  match fn_params mario_actions_object.f_act_picking_up_bowser with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example apub_nonparam :
+  forallb (fun t' => negb (mem_id t'
+             (map fst (fn_params
+                mario_actions_object.f_act_picking_up_bowser))))
+    apub_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example apub_walk :
+  wwalk_chk false nil apub_ids nil apub_cact apub_xids obj_leaf_sids nil
+    (fn_body mario_actions_object.f_act_picking_up_bowser) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Definition ahb_ids : list ident :=
+  mario._set_mario_animation :: mario_step._stationary_ground_step :: nil.
+Definition ahb_xids : list ident :=
+  mario._play_sound :: mario_actions_object._approach_s32 :: nil.
+Definition ahb_cact : list ident :=
+  mario_actions_object._t'35 :: mario_actions_object._t'34
+    :: mario_actions_object._t'16 :: mario_actions_object._t'13
+    :: mario_actions_object._t'11 :: mario_actions_object._t'9 :: nil.
+
+Example ahb_pin :
+  (prog_defmap mario_actions_object.prog)
+    ! mario_actions_object._act_holding_bowser
+  = Some (Gfun (Internal mario_actions_object.f_act_holding_bowser)).
+Proof. vm_compute. reflexivity. Qed.
+Example ahb_vars :
+  fn_vars mario_actions_object.f_act_holding_bowser = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example ahb_params_ok :
+  match fn_params mario_actions_object.f_act_holding_bowser with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example ahb_nonparam :
+  forallb (fun t' => negb (mem_id t'
+             (map fst (fn_params
+                mario_actions_object.f_act_holding_bowser))))
+    ahb_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example ahb_walk :
+  wwalk_chk false nil ahb_ids nil ahb_cact ahb_xids obj_leaf_sids nil
+    (fn_body mario_actions_object.f_act_holding_bowser) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Definition apu_ids : list ident :=
+  mario._is_anim_at_end :: interaction._mario_grab_used_object
+    :: mario._play_sound_if_no_flag :: mario._set_mario_animation
+    :: mario_step._stationary_ground_step :: nil.
+Definition apu_cact : list ident :=
+  mario_actions_object._t'11 :: mario_actions_object._t'10 :: nil.
+
+Example apu_pin :
+  (prog_defmap mario_actions_object.prog)
+    ! mario_actions_object._act_picking_up
+  = Some (Gfun (Internal mario_actions_object.f_act_picking_up)).
+Proof. vm_compute. reflexivity. Qed.
+Example apu_vars :
+  fn_vars mario_actions_object.f_act_picking_up = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example apu_params_ok :
+  match fn_params mario_actions_object.f_act_picking_up with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example apu_nonparam :
+  forallb (fun t' => negb (mem_id t'
+             (map fst (fn_params mario_actions_object.f_act_picking_up))))
+    apu_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example apu_walk :
+  wwalk_chk false nil apu_ids nil apu_cact nil obj_leaf_sids nil
+    (fn_body mario_actions_object.f_act_picking_up) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 Section ObjectLeafRows.
   Variable lp : Clight.program.
   Hypothesis LO_mario : linkorder mario.prog lp.
@@ -747,6 +857,8 @@ Section ObjectLeafRows.
     call_pres_ext lp bm NoA MWF interaction._obj_set_held_state.
   Hypothesis Hcpx_lpt :
     call_pres_ext lp bm NoA MWF mario._load_patchable_table.
+  Hypothesis Hcpx_as32 :
+    call_pres_ext lp bm NoA MWF mario_actions_object._approach_s32.
 
   (* internal, deferred to later slices (named blockers in the header) *)
   Hypothesis Hcp_pgs :
@@ -1324,9 +1436,117 @@ Section ObjectLeafRows.
   Qed.
 
   (* ==================================================================
+     B5: the three grab-family leaves.  All fn_vars = nil, all chase
+     roots tabled, approach_s32 EXTERNAL in lp -- the existing cact
+     walker closes them with no new machinery.
+     ================================================================== *)
+  Lemma apub_ids_rows : forall fid, mem_id fid apub_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold apub_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mguo_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sgs_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sma_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact iaae_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma apub_pres :
+    body_pres lp NoA MWF bm mario_actions_object.f_act_picking_up_bowser.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_object.f_act_picking_up_bowser
+             apub_ids nil apub_cact apub_xids obj_leaf_sids nil
+             apub_vars apub_params_ok apub_nonparam).
+    - exact apub_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold apub_xids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_psound | ].
+      discriminate H.
+    - exact obj_leaf_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact apub_walk.
+  Qed.
+
+  Lemma ahb_ids_rows : forall fid, mem_id fid ahb_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold ahb_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sma_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sgs_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma ahb_pres :
+    body_pres lp NoA MWF bm mario_actions_object.f_act_holding_bowser.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_object.f_act_holding_bowser
+             ahb_ids nil ahb_cact ahb_xids obj_leaf_sids nil
+             ahb_vars ahb_params_ok ahb_nonparam).
+    - exact ahb_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold ahb_xids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_psound | ].
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_as32 | ].
+      discriminate H.
+    - exact obj_leaf_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact ahb_walk.
+  Qed.
+
+  Lemma apu_ids_rows : forall fid, mem_id fid apu_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold apu_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact iaae_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mguo_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact psinf_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sma_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sgs_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma apu_pres :
+    body_pres lp NoA MWF bm mario_actions_object.f_act_picking_up.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_object.f_act_picking_up
+             apu_ids nil apu_cact nil obj_leaf_sids nil
+             apu_vars apu_params_ok apu_nonparam).
+    - exact apu_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact obj_leaf_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact apu_walk.
+  Qed.
+
+  (* ==================================================================
      THE CAPSTONE REDUCTION: the 11-id object census collapses to the
-     4 undischarged leaves (ccoc + the six B3 leaves peel off).  This is what NoAImpliesNoFlyLinked
-     consumes in place of the old 11-id hypothesis.
+     ONE undischarged leaf (act_punching; ccoc + the six B3 leaves +
+     the three B5 grab leaves peel off).  This is what
+     NoAImpliesNoFlyLinked consumes in place of the old 11-id hypothesis.
      ================================================================== *)
   Lemma object_callees_pres :
     (forall fid f,
@@ -1350,7 +1570,7 @@ Section ObjectLeafRows.
       apply (Hrest mario_actions_object._act_punching f); [ vm_compute; reflexivity | exact Hdm ]. }
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
-      apply (Hrest mario_actions_object._act_picking_up f); [ vm_compute; reflexivity | exact Hdm ]. }
+      rewrite apu_pin in Hdm. injection Hdm as <-. exact apu_pres. }
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
       rewrite adpu_pin in Hdm. injection Hdm as <-. exact adpu_pres. }
@@ -1368,10 +1588,10 @@ Section ObjectLeafRows.
       rewrite aht_pin in Hdm. injection Hdm as <-. exact aht_pres. }
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
-      apply (Hrest mario_actions_object._act_picking_up_bowser f); [ vm_compute; reflexivity | exact Hdm ]. }
+      rewrite apub_pin in Hdm. injection Hdm as <-. exact apub_pres. }
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
-      apply (Hrest mario_actions_object._act_holding_bowser f); [ vm_compute; reflexivity | exact Hdm ]. }
+      rewrite ahb_pin in Hdm. injection Hdm as <-. exact ahb_pres. }
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
       rewrite arb_pin in Hdm. injection Hdm as <-. exact arb_pres. }
