@@ -628,9 +628,9 @@ Section NoARealInputMWF.
         = Some (Gfun (Internal f)) ->
       body_pres lp (NoA_real bm) MWF bm f.
   (* mario_update_quicksand (mario_step.prog, pinned by LO_stp): the ONE
-     out-of-TU helper the stationary/moving/object prologues call. *)
-  Hypothesis Hpres_qsand : body_pres lp (NoA_real bm) MWF bm
-      mario_step.f_mario_update_quicksand.
+     out-of-TU helper the stationary/moving/object prologues call --
+     WALKED (FloorsLeafSurface.qsand_pres); the proved Let is below,
+     after the ext rows it consumes. *)
   (* the moving dispatcher is WALKED (MovingSurface.moving_pres; its
      two-store particleFlags epilogue is killed by the window census):
      PROVED from per-leaf-callee residuals keyed by the 39-id census
@@ -714,6 +714,33 @@ Section NoARealInputMWF.
   Hypothesis Hpres_floors_ext : forall fid,
       mem_id fid floors_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
+  (* mario_update_quicksand, WALKED (FloorsLeafSurface.qsand_pres: umsc
+     + the act-writer pair + m-> field stores), consuming only ext rows
+     already on the surface: NO residual of its own. *)
+  Let Hpres_qsand : body_pres lp (NoA_real bm) MWF bm
+      mario_step.f_mario_update_quicksand :=
+    qsand_pres lp LO_mario LO_stp LO_int bm (NoA_real bm) MWF
+      (mwf_real_ctl lp bm bc oc0 SafeB)
+      (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+         Hgms_blk Hgtimer_blk)
+      (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+      (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+         Hgms_blk Hgtimer_blk)
+      SafeB HSafeB_not_bm
+      (mwf_real_chase_root lp bm bc oc0 SafeB)
+      (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+         HSafeB_not_bc Hgms_blk Hgtimer_blk)
+      (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+         Hgms_blk Hgtimer_blk)
+      (mwf_real_sglob lp bm bc oc0 SafeB)
+      (mwf_real_chase_step lp bm bc oc0 SafeB)
+      (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+         HSafeB_not_bc Hgms_blk Hgtimer_blk)
+      (Hpres_obj_ext mario._set_camera_mode eq_refl)
+      (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
+      (Hpres_obj_ext interaction._stop_shell_music eq_refl)
+      (Hpres_obj_ext interaction._obj_set_held_state eq_refl)
+      (Hpres_floors_ext mario._raise_background_noise eq_refl).
   Hypothesis Hpres_inter : body_pres lp (NoA_real bm) MWF bm
       interaction.f_mario_process_interactions.
   Hypothesis Hpres_wind : body_pres lp (NoA_real bm) MWF bm

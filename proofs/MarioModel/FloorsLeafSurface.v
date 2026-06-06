@@ -104,6 +104,12 @@ Example lct_pin :
   (prog_defmap level_update.prog) ! level_update._level_control_timer
   = Some (Gfun (Internal level_update.f_level_control_timer)).
 Proof. vm_compute. reflexivity. Qed.
+(* the BONUS leaf: the capstone's shared sta/mov quicksand body, whose
+   census is exactly clb's machinery (umsc + the act-writer pair) *)
+Example qsand_pin :
+  (prog_defmap mario_step.prog) ! mario_step._mario_update_quicksand
+  = Some (Gfun (Internal mario_step.f_mario_update_quicksand)).
+Proof. vm_compute. reflexivity. Qed.
 
 (* ====================================================================== *)
 (* Shapes: fn_vars = nil + the Mario-head parameter pin per body.         *)
@@ -118,6 +124,8 @@ Proof. reflexivity. Qed.
 Example clb_vars : fn_vars interaction.f_check_lava_boost = nil.
 Proof. reflexivity. Qed.
 Example umsc_vars : fn_vars mario.f_update_mario_sound_and_camera = nil.
+Proof. reflexivity. Qed.
+Example qsand_vars : fn_vars mario_step.f_mario_update_quicksand = nil.
 Proof. reflexivity. Qed.
 
 Example cdb_params_ok :
@@ -165,6 +173,15 @@ Example umsc_params_ok :
   | nil => false
   end = true.
 Proof. vm_compute. reflexivity. Qed.
+Example qsand_params_ok :
+  match fn_params mario_step.f_mario_update_quicksand with
+  | (i, ty) :: ps =>
+      (Pos.eqb i mario_actions_airborne._m
+       && proj_sumbool (type_eq ty tyMSp)
+       && negb (mem_id mario_actions_airborne._m (map fst ps)))%bool
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
 
 (* the pes chase temp is a non-param (undef at entry) *)
 Example pes_nonparam :
@@ -201,6 +218,11 @@ Proof. vm_compute. reflexivity. Qed.
    an EMPTY callee census -- its stores are all stored_globals-class *)
 Example lct_walk :
   walk_chk nil nil (fn_body level_update.f_level_control_timer) = true.
+Proof. vm_compute. reflexivity. Qed.
+(* quicksand: umsc (ids) + the act-writer pair (sids) + m-> field stores *)
+Example qsand_walk :
+  wwalk_chk false nil clb_ids nil nil nil floors_leaf_sids nil
+    (fn_body mario_step.f_mario_update_quicksand) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* ====================================================================== *)
@@ -506,6 +528,32 @@ Section FloorsLeafRows.
     - exact floors_leaf_sids_rows.
     - intros fid' H. discriminate H.
     - exact clb_walk.
+  Qed.
+
+  (* ================================================================== *)
+  (* BONUS LEAF: mario_update_quicksand (mario_step.prog) -- the        *)
+  (* capstone's Hpres_qsand body, SHARED by the stationary and moving   *)
+  (* dispatchers.  Census = exactly check_lava_boost's machinery        *)
+  (* (umsc + the act-writer pair); stores are m-> field stores.         *)
+  (* ================================================================== *)
+  Lemma qsand_pres :
+    body_pres lp NoA MWF bm mario_step.f_mario_update_quicksand.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_step.f_mario_update_quicksand
+             clb_ids nil nil floors_leaf_sids nil
+             qsand_vars qsand_params_ok).
+    - intros fid' H. unfold clb_ids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Humsc | ].
+      discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact floors_leaf_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact qsand_walk.
   Qed.
 
   (* ================================================================== *)
