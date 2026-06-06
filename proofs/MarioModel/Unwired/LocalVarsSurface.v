@@ -23,8 +23,8 @@
 (* ====================================================================== *)
 
 From Coq Require Import ZArith List.
-From compcert Require Import Coqlib Maps AST Integers Values Memory
-  Globalenvs Ctypes Clight.
+From compcert Require Import Coqlib Maps AST Integers Values Events Memory
+  Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep.
 From SM64.Proofs Require Import SymbolicLinking ActionValueFrame RealFrameLinked Taint.
 
 Import ListNotations.
@@ -256,6 +256,113 @@ Section LocalVarsArc.
     subst x. cbn [block_of_binding fst].
     apply PTree.elements_complete in Hin.
     eapply alloc_variables_local_blk; eauto.
+  Qed.
+
+  (* ================================================================== *)
+  (* THE LOCAL-ARRAY STORE BRICK -- the one genuinely-new semantic       *)
+  (* content of the arc.  A store into nextPos[i] / step[i] / etc., i.e. *)
+  (* an indexed store whose base is a stack-allocated array Evar:         *)
+  (*   Sassign (Ederef (Ebinop Oadd (Evar lid (Tarray ..)) (idx) ..) t) r *)
+  (* preserves carried, because the local block is watched-disjoint       *)
+  (* (local_blk lblk) -- so the underlying Mem.store hits neither bm's    *)
+  (* action cell, a global, nor a SafeB chase block.  The generalized     *)
+  (* walker engine (next step) dispatches local Sassigns here.            *)
+  (* ================================================================== *)
+
+  (* eval_lvalue of an Evar whose id is BOUND in the local env resolves to
+     that env block (the eval_Evar_global branch is refuted by the binding);
+     the bitfield is always Full.  Pins the store base for the brick below. *)
+  Lemma eval_lvalue_Evar_local_pin :
+    forall e le m id ty b l of bf,
+      e ! id = Some (b, ty) ->
+      eval_lvalue (lp_ge lp) e le m (Evar id ty) l of bf ->
+      l = b /\ bf = Full.
+  Proof.
+    intros e le m id ty b l of bf He Hev.
+    inversion Hev; subst.
+    - split; [ congruence | reflexivity ].
+    - split; [ congruence | reflexivity ].
+  Qed.
+
+  Lemma local_idx_assign_pres :
+    forall e lid ety sz attr idxN itya ety2 a2 le m0 tr le' m' out lblk ch,
+      e ! lid = Some (lblk, Tarray ety sz attr) ->
+      local_blk lblk ->
+      access_mode ety2 = By_value ch ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0
+        (Sassign (Ederef (Ebinop Oadd (Evar lid (Tarray ety sz attr))
+                            (Econst_int idxN tint) itya) ety2) a2)
+        tr le' m' out ->
+      carried m0 ->
+      carried m' /\ le' = le /\ out = Out_normal.
+  Proof.
+    intros e lid ety sz attr idxN itya ety2 a2 le m0 tr le' m' out lblk ch
+           Hlid Hlb Hacc Hexec Hc.
+    inv Hexec.
+    (* the Ederef lvalue: store address = value of the Ebinop *)
+    match goal with
+    | Hlv : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ => inv Hlv
+    end.
+    (* the Ebinop pointer add (its lvalue branch is impossible) *)
+    match goal with
+    | Hp : eval_expr _ _ _ _ (Ebinop _ _ _ _) _ |- _ => inv Hp
+    end.
+    2:{ match goal with
+        | Hlv2 : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => inv Hlv2
+        end. }
+    (* the index literal: v2 = Vint idxN *)
+    match goal with
+    | Hi : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+        inv Hi;
+        try (match goal with
+             | Hlv3 : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+                 inv Hlv3
+             end)
+    end.
+    (* the local array base: eval_Elvalue -> eval_lvalue (Evar) + deref_loc *)
+    match goal with
+    | Ha : eval_expr _ _ _ _ (Evar _ _) _ |- _ => inv Ha
+    end.
+    (* pin the base block = lblk (the local binding) and bitfield = Full *)
+    match goal with
+    | Hev : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ =>
+        destruct (eval_lvalue_Evar_local_pin _ _ _ _ _ _ _ _ _ Hlid Hev)
+          as [-> ->]
+    end.
+    (* the array deref is By_reference -> base value = Vptr lblk _ *)
+    match goal with
+    | Hd : deref_loc (typeof _) _ _ _ _ _ |- _ => cbn [typeof] in Hd
+    end.
+    match goal with
+    | Hd : deref_loc (Tarray _ _ _) _ _ _ _ _ |- _ =>
+        inv Hd;
+        try (match goal with
+             | Har : access_mode (Tarray _ _ _) = _ |- _ =>
+                 cbn in Har; discriminate Har
+             end)
+    end.
+    (* the pointer add preserves the block: store target = lblk *)
+    match goal with
+    | Hsem : sem_binary_operation _ Oadd _ _ _ _ _ = Some (Vptr ?l2 _) |- _ =>
+        cbn in Hsem; injection Hsem as Hbl Hof; subst l2
+    end.
+    (* the store into the (now pinned) local block *)
+    match goal with
+    | Has : assign_loc _ (typeof _) _ _ _ _ _ m' |- _ =>
+        cbn [typeof] in Has; inv Has
+    end;
+    [ (* By_value: the real store, on local block lblk *)
+      split; [ | split; reflexivity ];
+      match goal with
+      | Hstv : Mem.storev _ _ (Vptr lblk _) _ = Some m' |- _ =>
+          unfold Mem.storev in Hstv;
+          eapply localstore_carried; [ exact Hlb | exact Hstv | exact Hc ]
+      end
+    | (* By_copy: refuted -- the deref type is By_value *)
+      match goal with
+      | Hco : access_mode ety2 = By_copy |- _ =>
+          rewrite Hacc in Hco; discriminate Hco
+      end ].
   Qed.
 
 End LocalVarsArc.
