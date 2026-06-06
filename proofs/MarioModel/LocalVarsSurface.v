@@ -29,7 +29,7 @@
 From Coq Require Import ZArith List.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep.
-From SM64.Proofs Require Import SymbolicLinking ActionValueFrame RealFrameLinked Taint.
+From SM64.Proofs Require Import SymbolicLinking ActionValueFrame RealFrameLinked Taint CensusV2.
 
 Import ListNotations.
 
@@ -474,6 +474,67 @@ Section LocalVarsArc.
     inversion Hev; subst.
     - split; [ congruence | reflexivity ].
     - split; [ congruence | reflexivity ].
+  Qed.
+
+  (* ================================================================== *)
+  (* The Hlocal CONSTRUCTOR for the Tier-2 producer: every censused local  *)
+  (* array id is BOUND by the entry alloc_variables (to a fresh, hence     *)
+  (* watched-disjoint, block).  Packages binding-existence + local_blk     *)
+  (* into the exact premise wwalk_pres's lids case consumes.               *)
+  (* ================================================================== *)
+
+  (* alloc_variables only ADDS bindings: a Some binding in the start env,
+     or membership in the var list, survives to the result env. *)
+  Lemma alloc_variables_set_some :
+    forall ge e m vars e' m',
+      alloc_variables ge e m vars e' m' ->
+      forall id,
+        ((exists b ty, e ! id = Some (b, ty)) \/ In id (map fst vars)) ->
+        exists b ty, e' ! id = Some (b, ty).
+  Proof.
+    intros ge e m vars e' m' Hav.
+    induction Hav as [ e0 m0
+                     | e0 m0 id0 ty0 vars0 m1 b1 m2 e2 Halloc Hrest IH ];
+      intros id Hor.
+    - destruct Hor as [ Hsome | Hin ].
+      + exact Hsome.
+      + destruct Hin.
+    - apply IH.
+      destruct Hor as [ (b & ty & He0) | Hin ].
+      + left. destruct (Pos.eq_dec id id0) as [ -> | Hne ].
+        * exists b1, ty0. apply PTree.gss.
+        * exists b, ty. rewrite PTree.gso by exact Hne. exact He0.
+      + cbn [map fst] in Hin. destruct Hin as [ -> | Hin' ].
+        * left. exists b1, ty0. apply PTree.gss.
+        * right. exact Hin'.
+  Qed.
+
+  Lemma alloc_variables_in_bound :
+    forall ge e m vars e' m',
+      alloc_variables ge e m vars e' m' ->
+      forall id, In id (map fst vars) ->
+        exists b ty, e' ! id = Some (b, ty).
+  Proof.
+    intros ge e m vars e' m' Hav id Hin.
+    eapply alloc_variables_set_some; eauto.
+  Qed.
+
+  Lemma alloc_variables_hlocal :
+    forall m vars e' m' (lids : list ident),
+      alloc_variables (lp_ge lp) empty_env m vars e' m' ->
+      Mem.valid_block m bm ->
+      (forall b, SafeB b -> Mem.valid_block m b) ->
+      (forall gid bg, Genv.find_symbol (lp_ge lp) gid = Some bg ->
+                      Mem.valid_block m bg) ->
+      (forall lid, mem_id lid lids = true -> In lid (map fst vars)) ->
+      forall lid, mem_id lid lids = true ->
+        exists lblk tyenv, e' ! lid = Some (lblk, tyenv) /\ local_blk lblk.
+  Proof.
+    intros m vars e' m' lids Hav Hbm HSv HGv Hsub lid Hmem.
+    destruct (alloc_variables_in_bound _ _ _ _ _ _ Hav lid (Hsub lid Hmem))
+      as (b & ty & Hbind).
+    exists b, ty. split; [ exact Hbind | ].
+    eapply alloc_variables_local_blk; eauto.
   Qed.
 
   (* The TYPE-TOLERANT indexed-local store brick: identical to
