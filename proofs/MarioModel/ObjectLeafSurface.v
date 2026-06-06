@@ -107,10 +107,6 @@ Definition ccoc_ids : list ident := mario._set_water_plunge_action :: nil.
 Definition ccoc_sids : list ident :=
   mario._drop_and_set_mario_action :: nil.
 
-(* the capstone's object census MINUS the discharged leaf *)
-Definition object_callee_ids_rest : list ident :=
-  mario_actions_object._act_punching :: nil.
-
 (* the object family's EXTERNAL leaf rows (the warp_ext_ids model class);
    grows as further leaves discharge *)
 Definition obj_ext_ids : list ident :=
@@ -120,7 +116,9 @@ Definition obj_ext_ids : list ident :=
     :: interaction._obj_set_held_state
     :: mario._load_patchable_table
     :: mario._play_sound :: mario_step._vec3f_copy
-    :: mario_actions_object._approach_s32 :: nil.
+    :: mario_actions_object._approach_s32
+    :: interaction._atan2s
+    :: interaction._virtual_to_segmented :: nil.
 
 (* ====================================================================== *)
 (* Pins (vm_compute over the generated TUs).                              *)
@@ -775,6 +773,219 @@ Example apu_walk :
     (fn_body mario_actions_object.f_act_picking_up) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ====================================================================== *)
+(* B6: the punching subtree -- the LAST object leaf.  mcog's fused pair  *)
+(* (m->usedObj = m->interactObj) consumes the interactObj census row;    *)
+(* mcog/mups carry LOCAL untainted action consts through wact temps      *)
+(* (the wact entry).                                                     *)
+(* ====================================================================== *)
+
+(* is_anim_past_end: pure reader *)
+Example ipae_pin :
+  (prog_defmap mario.prog) ! mario._is_anim_past_end
+  = Some (Gfun (Internal mario.f_is_anim_past_end)).
+Proof. vm_compute. reflexivity. Qed.
+Example ipae_vars : fn_vars mario.f_is_anim_past_end = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example ipae_params_ok :
+  match fn_params mario.f_is_anim_past_end with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example ipae_walk :
+  wwalk_chk false nil nil nil nil nil nil nil
+    (fn_body mario.f_is_anim_past_end) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* mario_obj_angle_to_object: reader + atan2s (external) *)
+Definition moato_xids : list ident := interaction._atan2s :: nil.
+Example moato_pin :
+  (prog_defmap interaction.prog) ! interaction._mario_obj_angle_to_object
+  = Some (Gfun (Internal interaction.f_mario_obj_angle_to_object)).
+Proof. vm_compute. reflexivity. Qed.
+Example moato_vars :
+  fn_vars interaction.f_mario_obj_angle_to_object = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example moato_params_ok :
+  match fn_params interaction.f_mario_obj_angle_to_object with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example moato_walk :
+  wwalk_chk false nil nil nil nil moato_xids nil nil
+    (fn_body interaction.f_mario_obj_angle_to_object) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* play_sound_and_spawn_particles: m->particleFlags |= ... only *)
+Definition psasp_xids : list ident := mario._play_sound :: nil.
+Example psasp_pin :
+  (prog_defmap mario.prog) ! mario._play_sound_and_spawn_particles
+  = Some (Gfun (Internal mario.f_play_sound_and_spawn_particles)).
+Proof. vm_compute. reflexivity. Qed.
+Example psasp_vars :
+  fn_vars mario.f_play_sound_and_spawn_particles = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example psasp_params_ok :
+  match fn_params mario.f_play_sound_and_spawn_particles with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example psasp_walk :
+  wwalk_chk false nil nil nil nil psasp_xids nil nil
+    (fn_body mario.f_play_sound_and_spawn_particles) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* play_mario_action_sound: one flags |= store + the psasp call *)
+Definition pmas_ids : list ident :=
+  mario._play_sound_and_spawn_particles :: nil.
+Example pmas_pin :
+  (prog_defmap mario.prog) ! mario._play_mario_action_sound
+  = Some (Gfun (Internal mario.f_play_mario_action_sound)).
+Proof. vm_compute. reflexivity. Qed.
+Example pmas_vars : fn_vars mario.f_play_mario_action_sound = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example pmas_params_ok :
+  match fn_params mario.f_play_mario_action_sound with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example pmas_walk :
+  wwalk_chk false nil pmas_ids nil nil nil nil nil
+    (fn_body mario.f_play_mario_action_sound) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* mario_check_object_grab: the fused pair (usedObj <- interactObj),
+   the faceAngle[1] idx16 store, and a TEMP-carried untainted action *)
+Definition mcog_ids : list ident :=
+  interaction._mario_obj_angle_to_object :: nil.
+Definition mcog_cact : list ident :=
+  interaction._t'13 :: interaction._t'10 :: nil.
+Definition mcog_wact : list ident := interaction._t'5 :: nil.
+Definition mcog_xids : list ident :=
+  interaction._virtual_to_segmented :: nil.
+Example mcog_pin :
+  (prog_defmap interaction.prog) ! interaction._mario_check_object_grab
+  = Some (Gfun (Internal interaction.f_mario_check_object_grab)).
+Proof. vm_compute. reflexivity. Qed.
+Example mcog_vars : fn_vars interaction.f_mario_check_object_grab = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example mcog_params_ok :
+  match fn_params interaction.f_mario_check_object_grab with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mcog_nonparam :
+  forallb (fun t' => negb (mem_id t'
+             (map fst (fn_params interaction.f_mario_check_object_grab))))
+    mcog_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mcog_nonparamw :
+  forallb (fun t' => negb (mem_id t'
+             (map fst (fn_params interaction.f_mario_check_object_grab))))
+    mcog_wact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mcog_walk :
+  wwalk_chk false mcog_wact mcog_ids nil mcog_cact mcog_xids
+    obj_leaf_sids nil
+    (fn_body interaction.f_mario_check_object_grab) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* mario_update_punch_sequence: the big sequencer; endAction /
+   crouchEndAction carry untainted consts into the smact calls *)
+Definition mups_ids : list ident :=
+  mario._is_anim_at_end :: mario._is_anim_past_end
+    :: interaction._mario_check_object_grab
+    :: mario._play_mario_action_sound
+    :: mario._set_mario_animation :: nil.
+Definition mups_cact : list ident :=
+  mario_actions_object._t'31 :: mario_actions_object._t'21
+    :: mario_actions_object._t'15 :: nil.
+Definition mups_wact : list ident :=
+  mario_actions_object._endAction
+    :: mario_actions_object._crouchEndAction :: nil.
+Definition mups_xids : list ident := mario._play_sound :: nil.
+Example mups_pin :
+  (prog_defmap mario_actions_object.prog)
+    ! mario_actions_object._mario_update_punch_sequence
+  = Some (Gfun (Internal
+            mario_actions_object.f_mario_update_punch_sequence)).
+Proof. vm_compute. reflexivity. Qed.
+Example mups_vars :
+  fn_vars mario_actions_object.f_mario_update_punch_sequence = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example mups_params_ok :
+  match fn_params mario_actions_object.f_mario_update_punch_sequence with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mups_nonparam :
+  forallb (fun t' => negb (mem_id t'
+             (map fst (fn_params
+                mario_actions_object.f_mario_update_punch_sequence))))
+    mups_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mups_nonparamw :
+  forallb (fun t' => negb (mem_id t'
+             (map fst (fn_params
+                mario_actions_object.f_mario_update_punch_sequence))))
+    mups_wact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mups_walk :
+  wwalk_chk false mups_wact mups_ids nil mups_cact mups_xids
+    obj_leaf_sids nil
+    (fn_body mario_actions_object.f_mario_update_punch_sequence) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* act_punching itself *)
+Definition apun_ids : list ident :=
+  mario._check_common_action_exits :: mario._mario_set_forward_vel
+    :: mario_actions_object._mario_update_punch_sequence
+    :: mario_step._perform_ground_step :: nil.
+Example apun_pin :
+  (prog_defmap mario_actions_object.prog)
+    ! mario_actions_object._act_punching
+  = Some (Gfun (Internal mario_actions_object.f_act_punching)).
+Proof. vm_compute. reflexivity. Qed.
+Example apun_vars : fn_vars mario_actions_object.f_act_punching = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example apun_params_ok :
+  match fn_params mario_actions_object.f_act_punching with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example apun_walk :
+  wwalk_chk false nil apun_ids nil nil nil obj_leaf_sids nil
+    (fn_body mario_actions_object.f_act_punching) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 Section ObjectLeafRows.
   Variable lp : Clight.program.
   Hypothesis LO_mario : linkorder mario.prog lp.
@@ -859,6 +1070,10 @@ Section ObjectLeafRows.
     call_pres_ext lp bm NoA MWF mario._load_patchable_table.
   Hypothesis Hcpx_as32 :
     call_pres_ext lp bm NoA MWF mario_actions_object._approach_s32.
+  Hypothesis Hcpx_atan2s :
+    call_pres_ext lp bm NoA MWF interaction._atan2s.
+  Hypothesis Hcpx_v2seg :
+    call_pres_ext lp bm NoA MWF interaction._virtual_to_segmented.
 
   (* internal, deferred to later slices (named blockers in the header) *)
   Hypothesis Hcp_pgs :
@@ -1543,31 +1758,207 @@ Section ObjectLeafRows.
   Qed.
 
   (* ==================================================================
-     THE CAPSTONE REDUCTION: the 11-id object census collapses to the
-     ONE undischarged leaf (act_punching; ccoc + the six B3 leaves +
-     the three B5 grab leaves peel off).  This is what
+     B6: the punching subtree -- the LAST leaf.  ipae/moato/psasp/pmas
+     walk plainly; mcog and mups carry local untainted action consts
+     through wact temps (the wact entry); apun consumes the whole tree
+     plus the ccae row and Hcp_pgs.
+     ================================================================== *)
+  Lemma ipae_row : call_pres lp bm NoA MWF mario._is_anim_past_end.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._is_anim_past_end
+             mario.f_is_anim_past_end nil nil nil nil
+             LO_mario ipae_pin ipae_vars ipae_params_ok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact ipae_walk.
+  Qed.
+
+  Lemma moato_row :
+    call_pres lp bm NoA MWF interaction._mario_obj_angle_to_object.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             interaction.prog interaction._mario_obj_angle_to_object
+             interaction.f_mario_obj_angle_to_object
+             nil nil moato_xids nil
+             LO_int moato_pin moato_vars moato_params_ok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold moato_xids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_atan2s | ].
+      discriminate H.
+    - intros fid' H. discriminate H.
+    - exact moato_walk.
+  Qed.
+
+  Lemma psasp_row :
+    call_pres lp bm NoA MWF mario._play_sound_and_spawn_particles.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._play_sound_and_spawn_particles
+             mario.f_play_sound_and_spawn_particles
+             nil nil psasp_xids nil
+             LO_mario psasp_pin psasp_vars psasp_params_ok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold psasp_xids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_psound | ].
+      discriminate H.
+    - intros fid' H. discriminate H.
+    - exact psasp_walk.
+  Qed.
+
+  Lemma pmas_row :
+    call_pres lp bm NoA MWF mario._play_mario_action_sound.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._play_mario_action_sound
+             mario.f_play_mario_action_sound
+             pmas_ids nil nil nil
+             LO_mario pmas_pin pmas_vars pmas_params_ok).
+    - intros fid' H. unfold pmas_ids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact psasp_row | ].
+      discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact pmas_walk.
+  Qed.
+
+  Lemma mcog_row :
+    call_pres lp bm NoA MWF interaction._mario_check_object_grab.
+  Proof.
+    apply (call_pres_of_wwalk_wact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             interaction.prog interaction._mario_check_object_grab
+             interaction.f_mario_check_object_grab
+             mcog_wact mcog_ids nil mcog_cact mcog_xids obj_leaf_sids
+             LO_int mcog_pin mcog_vars mcog_params_ok mcog_nonparam
+             mcog_nonparamw).
+    - intros fid' H. unfold mcog_ids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact moato_row | ].
+      discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold mcog_xids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_v2seg | ].
+      discriminate H.
+    - exact obj_leaf_sids_rows.
+    - exact mcog_walk.
+  Qed.
+
+  Lemma mups_ids_rows : forall fid, mem_id fid mups_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mups_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact iaae_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact ipae_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mcog_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact pmas_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sma_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma mups_row :
+    call_pres lp bm NoA MWF
+      mario_actions_object._mario_update_punch_sequence.
+  Proof.
+    apply (call_pres_of_wwalk_wact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_object.prog
+             mario_actions_object._mario_update_punch_sequence
+             mario_actions_object.f_mario_update_punch_sequence
+             mups_wact mups_ids nil mups_cact mups_xids obj_leaf_sids
+             LO_obj mups_pin mups_vars mups_params_ok mups_nonparam
+             mups_nonparamw).
+    - exact mups_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold mups_xids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_psound | ].
+      discriminate H.
+    - exact obj_leaf_sids_rows.
+    - exact mups_walk.
+  Qed.
+
+  Lemma apun_ids_rows : forall fid, mem_id fid apun_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold apun_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact ccae_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        exact (msfv_row lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+                 HMWF_chase HMWF_root HMWF_sglob HchaseStep
+                 HMWF_chase_safe) | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mups_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pgs | ].
+    discriminate H.
+  Qed.
+
+  Lemma apun_pres :
+    body_pres lp NoA MWF bm mario_actions_object.f_act_punching.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_object.f_act_punching
+             apun_ids nil nil obj_leaf_sids nil
+             apun_vars apun_params_ok).
+    - exact apun_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact obj_leaf_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact apun_walk.
+  Qed.
+
+  (* ==================================================================
+     THE CAPSTONE REDUCTION: the 11-id object census is FULLY DISCHARGED
+     (ccoc + the six B3 leaves + the three B5 grab leaves + the B6
+     punching subtree).  No residual census remains: this is what
      NoAImpliesNoFlyLinked consumes in place of the old 11-id hypothesis.
      ================================================================== *)
   Lemma object_callees_pres :
-    (forall fid f,
-        mem_id fid object_callee_ids_rest = true ->
-        (prog_defmap mario_actions_object.prog) ! fid
-          = Some (Gfun (Internal f)) ->
-        body_pres lp NoA MWF bm f) ->
     forall fid f,
       mem_id fid object_callee_ids = true ->
       (prog_defmap mario_actions_object.prog) ! fid
         = Some (Gfun (Internal f)) ->
       body_pres lp NoA MWF bm f.
   Proof.
-    intros Hrest fid f H Hdm.
+    intros fid f H Hdm.
     unfold object_callee_ids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
       rewrite ccoc_pin in Hdm. injection Hdm as <-. exact ccoc_pres. }
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
-      apply (Hrest mario_actions_object._act_punching f); [ vm_compute; reflexivity | exact Hdm ]. }
+      rewrite apun_pin in Hdm. injection Hdm as <-. exact apun_pres. }
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
       rewrite apu_pin in Hdm. injection Hdm as <-. exact apu_pres. }

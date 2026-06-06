@@ -684,27 +684,21 @@ Section NoARealInputMWF.
         = Some (Gfun (Internal f)) ->
       body_pres lp (NoA_real bm) MWF bm f.
   (* the object dispatcher is WALKED (ObjectSurface.object_pres) and its
-     FIRST leaf is DISCHARGED (ObjectLeafSurface.ccoc_pres: the whole
-     check_common_object_cancels helper tree -- set_water_plunge_action +
-     drop_and_set_mario_action + the set_mario_action keystone + the FIVE
-     interaction-TU object helpers behind mario_stop_riding_and_holding
-     (msrah/msro/mdho/mtho/mguo, the B2b slice) -- is proved; the six B3
-     leaves and the three B5 grab leaves peel off too): the census
-     is the ONE remaining leaf (act_punching).  The discharged trees surface
-     only the object-family EXTERNAL rows (obj_ext_ids, the warp_ext_ids
-     model class: vec3s_set / set_camera_mode / segmented_to_virtual /
-     stop_shell_music / obj_set_held_state). *)
-  Hypothesis Hpres_obj_callees : forall fid f,
-      mem_id fid object_callee_ids_rest = true ->
-      (prog_defmap mario_actions_object.prog) ! fid
-        = Some (Gfun (Internal f)) ->
-      body_pres lp (NoA_real bm) MWF bm f.
+     leaf census is FULLY DISCHARGED (ObjectLeafSurface.object_callees_pres
+     with NO residual premise: ccoc + the six B3 leaves + the three B5
+     grab leaves + the B6 punching subtree -- mups / mario_check_object_grab
+     / play_mario_action_sound / play_sound_and_spawn_particles /
+     check_common_action_exits / is_anim_past_end / mario_obj_angle_to_object
+     -- all walked).  The discharged trees surface only the object-family
+     EXTERNAL rows (obj_ext_ids, the warp_ext_ids model class) and the
+     named internal Hcp_pgs blocker below. *)
   Hypothesis Hpres_obj_ext : forall fid,
       mem_id fid obj_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
   (* perform_ground_step (fn_vars <> nil: the walker cannot enter it
      yet) -- the named internal blocker consumed by sgs_row inside the
-     B3 leaf discharge; dischargeable by an object-pool-aware walk *)
+     B3 leaf discharge and by act_punching directly; dischargeable by
+     an object-pool-aware walk *)
   Hypothesis Hcp_pgs :
     call_pres lp bm (NoA_real bm) MWF mario_step._perform_ground_step.
   (* the special-floors body is WALKED (FloorsSurface.floors_pres via the
@@ -868,8 +862,10 @@ Section NoARealInputMWF.
                       (Hpres_obj_ext mario._load_patchable_table eq_refl)
                       (Hpres_obj_ext mario_actions_object._approach_s32
                          eq_refl)
-                      Hcp_pgs
-                      Hpres_obj_callees)
+                      (Hpres_obj_ext interaction._atan2s eq_refl)
+                      (Hpres_obj_ext interaction._virtual_to_segmented
+                         eq_refl)
+                      Hcp_pgs)
                    Hpres_qsand)
                 (floors_pres lp LO_mario LO_int LO_lvl bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
