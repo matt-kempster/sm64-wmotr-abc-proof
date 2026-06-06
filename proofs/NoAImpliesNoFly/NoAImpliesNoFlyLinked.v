@@ -881,6 +881,12 @@ Section NoARealInputMWF.
                       (Hpres_obj_ext mario._load_patchable_table eq_refl)
                       (Hpres_obj_ext mario_step._vec3f_copy eq_refl)
                       (Hpres_obj_ext mario._play_sound eq_refl)
+                      (* ledge cluster: find_floor ext + the local-vars-arc
+                         stack-frame MWF bricks (alloc/free preserve MWF_real) *)
+                      (Hpres_obj_ext mario._find_floor eq_refl)
+                      (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
+                      (fun m l m' Hf HM =>
+                         mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
                       Hpres_aut_rest))
                 (object_pres lp LO_mario LO_obj LO_stp bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
