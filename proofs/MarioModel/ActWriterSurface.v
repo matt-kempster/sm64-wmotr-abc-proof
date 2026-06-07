@@ -31,7 +31,7 @@ From SM64.Generated Require mario mario_step mario_actions_airborne
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
   ActionValueFrame RealFrameValue RealFrameLinked AGates.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface
-  AirborneSurface DispatchKit FloorsSurface LocalVarsSurface.
+  AirborneSurface DispatchKit FloorsSurface LocalVarsSurface OutParamSurface.
 
 Import ListNotations.
 
@@ -1115,7 +1115,7 @@ Definition act3_call_chk (tids : list ident) (fid : ident)
    (local_idx_store_chk).  The unprimed wrapper instantiates lids := nil,
    so every existing producer/walk (which writes `wwalk_chk ...`) is
    UNCHANGED: with lids=nil the new disjunct is identically false. *)
-Fixpoint wwalk_chk' (lids : list ident) (rt : bool)
+Fixpoint wwalk_chk' (lids oc_pids : list ident) (rt : bool)
     (wact ids wids cact xids sids tids : list ident)
     (s : statement) : bool :=
   match s with
@@ -1159,6 +1159,11 @@ Fixpoint wwalk_chk' (lids : list ident) (rt : bool)
                   | None => true
                   end
                && is_tfun fty)
+              || ((match optid with
+                   | Some t => negb (mem_id t wact)
+                   | None => true
+                   end
+                   && oc_call_chk lids oc_pids fid fty al)
               || match fty, al with
                  | Tfunction nil rty cc, nil =>
                      (* a censused NULLARY call: marg_ok nil is trivial,
@@ -1193,30 +1198,30 @@ Fixpoint wwalk_chk' (lids : list ident) (rt : bool)
                                   || act3_call_chk tids fid tys args
                         end
                  | _, _ => false
-                 end)
+                 end))
       | _ => false
       end
   | Ssequence s1 s2 =>
       npsrc_pair_chk wact cact s1 s2
-      || (wwalk_chk' lids rt wact ids wids cact xids sids tids s1
-          && wwalk_chk' lids rt wact ids wids cact xids sids tids s2)
+      || (wwalk_chk' lids oc_pids rt wact ids wids cact xids sids tids s1
+          && wwalk_chk' lids oc_pids rt wact ids wids cact xids sids tids s2)
   | Sifthenelse _ s1 s2 =>
-      wwalk_chk' lids rt wact ids wids cact xids sids tids s1
-      && wwalk_chk' lids rt wact ids wids cact xids sids tids s2
+      wwalk_chk' lids oc_pids rt wact ids wids cact xids sids tids s1
+      && wwalk_chk' lids oc_pids rt wact ids wids cact xids sids tids s2
   | Sloop s1 s2 =>
-      wwalk_chk' lids rt wact ids wids cact xids sids tids s1
-      && wwalk_chk' lids rt wact ids wids cact xids sids tids s2
-  | Sswitch _ sl => wwalk_chk_ls' lids rt wact ids wids cact xids sids tids sl
+      wwalk_chk' lids oc_pids rt wact ids wids cact xids sids tids s1
+      && wwalk_chk' lids oc_pids rt wact ids wids cact xids sids tids s2
+  | Sswitch _ sl => wwalk_chk_ls' lids oc_pids rt wact ids wids cact xids sids tids sl
   | _ => false
   end
-with wwalk_chk_ls' (lids : list ident) (rt : bool)
+with wwalk_chk_ls' (lids oc_pids : list ident) (rt : bool)
     (wact ids wids cact xids sids tids : list ident)
     (sl : labeled_statements) : bool :=
   match sl with
   | LSnil => true
   | LScons _ s sl' =>
-      wwalk_chk' lids rt wact ids wids cact xids sids tids s
-      && wwalk_chk_ls' lids rt wact ids wids cact xids sids tids sl'
+      wwalk_chk' lids oc_pids rt wact ids wids cact xids sids tids s
+      && wwalk_chk_ls' lids oc_pids rt wact ids wids cact xids sids tids sl'
   end.
 
 (* the lids = nil WRAPPERS -- the producer-facing names.  Keeping these
@@ -1225,18 +1230,18 @@ with wwalk_chk_ls' (lids : list ident) (rt : bool)
    disjunct vanishes. *)
 Definition wwalk_chk (rt : bool) (wact ids wids cact xids sids tids : list ident)
     (s : statement) : bool :=
-  wwalk_chk' nil rt wact ids wids cact xids sids tids s.
+  wwalk_chk' nil nil rt wact ids wids cact xids sids tids s.
 Definition wwalk_chk_ls (rt : bool) (wact ids wids cact xids sids tids : list ident)
     (sl : labeled_statements) : bool :=
-  wwalk_chk_ls' nil rt wact ids wids cact xids sids tids sl.
+  wwalk_chk_ls' nil nil rt wact ids wids cact xids sids tids sl.
 
 (* ---- the switch-selection transfer (mirror of walk_chk's) ---- *)
 
-Lemma wwalk_chk_ls_seq' : forall lids rt wact ids wids cact xids sids tids sl,
-    wwalk_chk_ls' lids rt wact ids wids cact xids sids tids sl = true ->
-    wwalk_chk' lids rt wact ids wids cact xids sids tids (seq_of_labeled_statement sl) = true.
+Lemma wwalk_chk_ls_seq' : forall lids oc_pids rt wact ids wids cact xids sids tids sl,
+    wwalk_chk_ls' lids oc_pids rt wact ids wids cact xids sids tids sl = true ->
+    wwalk_chk' lids oc_pids rt wact ids wids cact xids sids tids (seq_of_labeled_statement sl) = true.
 Proof.
-  intros lids rt wact ids wids cact xids sids tids sl;
+  intros lids oc_pids rt wact ids wids cact xids sids tids sl;
     induction sl as [| o s sl0 IH]; intros H.
   - reflexivity.
   - cbn in H. apply andb_prop in H as [H1 H2].
@@ -1244,12 +1249,12 @@ Proof.
     rewrite H1, (IH H2). reflexivity.
 Qed.
 
-Lemma wwalk_chk_ls_case' : forall lids rt wact ids wids cact xids sids tids n sl sl',
-    wwalk_chk_ls' lids rt wact ids wids cact xids sids tids sl = true ->
+Lemma wwalk_chk_ls_case' : forall lids oc_pids rt wact ids wids cact xids sids tids n sl sl',
+    wwalk_chk_ls' lids oc_pids rt wact ids wids cact xids sids tids sl = true ->
     select_switch_case n sl = Some sl' ->
-    wwalk_chk_ls' lids rt wact ids wids cact xids sids tids sl' = true.
+    wwalk_chk_ls' lids oc_pids rt wact ids wids cact xids sids tids sl' = true.
 Proof.
-  intros lids rt wact ids wids cact xids sids tids n sl;
+  intros lids oc_pids rt wact ids wids cact xids sids tids n sl;
     induction sl as [| o s sl0 IH]; intros sl' H Hsel.
   - discriminate Hsel.
   - cbn in H. apply andb_prop in H as [H1 H2].
@@ -1260,12 +1265,12 @@ Proof.
     + exact (IH sl' H2 Hsel).
 Qed.
 
-Lemma wwalk_chk_ls_default' : forall lids rt wact ids wids cact xids sids tids sl,
-    wwalk_chk_ls' lids rt wact ids wids cact xids sids tids sl = true ->
-    wwalk_chk_ls' lids rt wact ids wids cact xids sids tids (select_switch_default sl)
+Lemma wwalk_chk_ls_default' : forall lids oc_pids rt wact ids wids cact xids sids tids sl,
+    wwalk_chk_ls' lids oc_pids rt wact ids wids cact xids sids tids sl = true ->
+    wwalk_chk_ls' lids oc_pids rt wact ids wids cact xids sids tids (select_switch_default sl)
     = true.
 Proof.
-  intros lids rt wact ids wids cact xids sids tids sl;
+  intros lids oc_pids rt wact ids wids cact xids sids tids sl;
     induction sl as [| o s sl0 IH]; intros H.
   - exact H.
   - cbn in H. apply andb_prop in H as [H1 H2].
@@ -1274,16 +1279,16 @@ Proof.
     + rewrite H1, H2. reflexivity.
 Qed.
 
-Lemma wwalk_chk_select' : forall lids rt wact ids wids cact xids sids tids n sl,
-    wwalk_chk_ls' lids rt wact ids wids cact xids sids tids sl = true ->
-    wwalk_chk' lids rt wact ids wids cact xids sids tids
+Lemma wwalk_chk_select' : forall lids oc_pids rt wact ids wids cact xids sids tids n sl,
+    wwalk_chk_ls' lids oc_pids rt wact ids wids cact xids sids tids sl = true ->
+    wwalk_chk' lids oc_pids rt wact ids wids cact xids sids tids
       (seq_of_labeled_statement (select_switch n sl)) = true.
 Proof.
-  intros lids rt wact ids wids cact xids sids tids n sl H. apply wwalk_chk_ls_seq'.
+  intros lids oc_pids rt wact ids wids cact xids sids tids n sl H. apply wwalk_chk_ls_seq'.
   unfold select_switch.
   destruct (select_switch_case n sl) eqn:E.
-  - exact (wwalk_chk_ls_case' _ _ _ _ _ _ _ _ _ _ _ _ H E).
-  - exact (wwalk_chk_ls_default' _ _ _ _ _ _ _ _ _ _ H).
+  - exact (wwalk_chk_ls_case' _ _ _ _ _ _ _ _ _ _ _ _ _ H E).
+  - exact (wwalk_chk_ls_default' _ _ _ _ _ _ _ _ _ _ _ H).
 Qed.
 
 (* ====================================================================== *)
@@ -2991,6 +2996,16 @@ Section ActWriterWalk.
       exists lblk tyenv, e ! lid = Some (lblk, tyenv) /\ local_blk lp bm SafeB lblk.
   Proof. intros e lid H. discriminate H. Qed.
 
+  (* the trivial oc-arm dischargers for the nil oc_pids producers (every
+     producer that does NOT pass an out-param census): mem_id _ nil = false. *)
+  Lemma hcp_oc_nil : forall fid,
+      mem_id fid (@nil ident) = true -> call_pres_ext_oc lp bm NoA MWF SafeB fid.
+  Proof. intros fid H. discriminate H. Qed.
+
+  Lemma hub_oc_nil : forall (e : env) g,
+      mem_id g (@nil ident) = true -> e ! g = None.
+  Proof. intros e g H. discriminate H. Qed.
+
   (* ---- the Tier-2 new-content brick: a single indexed-local store
      `(Evar lid (Tarray ..))[i] = rhs` preserves the carried run facts.
      Hls supplies the MWF localstore frame row (the HMWF_localstore witness,
@@ -3034,7 +3049,7 @@ Section ActWriterWalk.
   Qed.
 
   Lemma wwalk_pres :
-    forall (rt : bool) (wact ids wids cact xids sids tids lids : list ident),
+    forall (rt : bool) (wact ids wids cact xids sids tids lids oc_pids : list ident),
       (forall fid, mem_id fid ids = true -> call_pres lp bm NoA MWF fid) ->
       (forall fid, mem_id fid wids = true ->
                    call_pres_act lp bm NoA MWF fid) ->
@@ -3044,6 +3059,8 @@ Section ActWriterWalk.
                    call_pres_act lp bm NoA MWF fid) ->
       (forall fid, mem_id fid tids = true ->
                    call_pres_act3 lp bm NoA MWF fid) ->
+      (forall fid, mem_id fid oc_pids = true ->
+                   call_pres_ext_oc lp bm NoA MWF SafeB fid) ->
       forall s e le m0 tr le' m' out,
         (lids <> nil ->
          forall m ch b d v m',
@@ -3059,8 +3076,9 @@ Section ActWriterWalk.
         (forall g, mem_id g xids = true -> e ! g = None) ->
         (forall g, mem_id g sids = true -> e ! g = None) ->
         (forall g, mem_id g tids = true -> e ! g = None) ->
+        (forall g, mem_id g oc_pids = true -> e ! g = None) ->
         e ! interaction._gGlobalTimer = None ->
-        wwalk_chk' lids rt wact ids wids cact xids sids tids s = true ->
+        wwalk_chk' lids oc_pids rt wact ids wids cact xids sids tids s = true ->
         (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
                      b = bm /\ o = Ptrofs.zero) ->
         act_inv wact le ->
@@ -3073,9 +3091,11 @@ Section ActWriterWalk.
                      b = bm /\ o = Ptrofs.zero) /\
         act_inv wact le' /\ chase_inv cact le' /\ wret_ok rt out.
   Proof.
-    intros rt wact ids wids cact xids sids tids lids Hcp Hcpa Hcpx Hcps Hcp3
+    intros rt wact ids wids cact xids sids tids lids oc_pids
+           Hcp Hcpa Hcpx Hcps Hcp3 Hcp_oc
            s e le m0 tr le' m' out Hls Hlocal Hexec.
-    induction Hexec; intros He Hubi Hubw Hubx Hubs Hubt Hubgt Hchk Htat Hact Hch
+    induction Hexec; intros He Hubi Hubw Hubx Hubs Hubt Hoc_none Hubgt
+                            Hchk Htat Hact Hch
                             HN HM HV HS.
     - (* Sskip *)
       exact (conj HV (conj HS (conj HM (conj HN
@@ -3262,6 +3282,46 @@ Section ActWriterWalk.
         destruct (kit_scallx_pres _ _ _ _ _ _ _ _ _ _ _ _ _ (Hubx _ Hfx) Hex
                     (Hcpx _ Hfx) HN HM HV HS)
           as (HV' & HS' & HM' & HN' & _ & _).
+        refine (conj HV' (conj HS' (conj HM' (conj HN'
+                 (conj _ (conj _ (conj _ I))))))).
+        { intros b o Hg. destruct optid as [t'|];
+            cbn [set_opttemp] in Hg.
+          - rewrite PTree.gso in Hg
+              by (intro EE; rewrite <- EE in Hopt; cbn in Hopt;
+                  discriminate Hopt).
+            exact (Htat _ _ Hg).
+          - exact (Htat _ _ Hg). }
+        { intros t0 Hmem x Hg. destruct optid as [t'|];
+            cbn [set_opttemp] in Hg.
+          - rewrite PTree.gso in Hg
+              by (intro EE; rewrite EE in Hmem; rewrite Hmem in How;
+                  discriminate How).
+            exact (Hact _ Hmem _ Hg).
+          - exact (Hact _ Hmem _ Hg). }
+        { intros t0 Hmem b o Hg. destruct optid as [t'|];
+            cbn [set_opttemp] in Hg.
+          - rewrite PTree.gso in Hg
+              by (intro EE; rewrite EE in Hmem; rewrite Hmem in Hnc;
+                  discriminate Hnc).
+            exact (Hch _ Hmem _ _ Hg).
+          - exact (Hch _ Hmem _ _ Hg). } }
+      apply orb_true_iff in Hchk.
+      destruct Hchk as [Hoc | Hchk].
+      { (* the OUT-PARAM (oc) call: fid in oc_pids, last arg = &caller-local;
+           the honest refinement of the phantom call_pres_ext.  carried is
+           preserved by oc_call_chk_pres (out-param target is a watched-
+           disjoint stack block); the act/chase/TAT temp invariants survive
+           because the result temp is not in _m / wact / cact. *)
+        apply andb_prop in Hoc as [How Hoc].
+        assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
+                        (Scall optid (Evar cid fty) al)
+                        t (set_opttemp optid vres le) m' Out_normal)
+          by (econstructor; eauto).
+        destruct (oc_call_chk_pres lp bm NoA MWF SafeB lids oc_pids optid cid
+                    fty al e le m t (set_opttemp optid vres le) m' Out_normal
+                    Hcp_oc Hoc_none Hlocal Hoc Hex
+                    (conj HV (conj HS (conj HM HN))))
+          as [(HV' & HS' & HM' & HN') _].
         refine (conj HV' (conj HS' (conj HM' (conj HN'
                  (conj _ (conj _ (conj _ I))))))).
         { intros b o Hg. destruct optid as [t'|];
@@ -3658,9 +3718,9 @@ Section ActWriterWalk.
         exact (conj HV' (conj HS' (conj HM' (conj (HNoA_of_MWF _ HM')
                  (conj Htat' (conj Hact' (conj Hch' I))))))). }
       apply andb_prop in Hchk as [H1 H2].
-      destruct (IHHexec1 Hlocal He Hubi Hubw Hubx Hubs Hubt Hubgt H1 Htat Hact Hch HN HM HV HS)
+      destruct (IHHexec1 Hlocal He Hubi Hubw Hubx Hubs Hubt Hoc_none Hubgt H1 Htat Hact Hch HN HM HV HS)
         as (HV1 & HS1 & HM1 & HN1 & Htat1 & Hact1 & Hch1 & _).
-      exact (IHHexec2 Hlocal He Hubi Hubw Hubx Hubs Hubt Hubgt H2 Htat1 Hact1 Hch1 HN1 HM1 HV1 HS1).
+      exact (IHHexec2 Hlocal He Hubi Hubw Hubx Hubs Hubt Hoc_none Hubgt H2 Htat1 Hact1 Hch1 HN1 HM1 HV1 HS1).
     - (* Sseq_2 *)
       cbn [wwalk_chk'] in Hchk.
       apply orb_true_iff in Hchk. destruct Hchk as [Hpair | Hchk].
@@ -3675,7 +3735,7 @@ Section ActWriterWalk.
         | Hne : Out_normal <> Out_normal |- _ => exact (Hne eq_refl)
         end. }
       apply andb_prop in Hchk as [H1 _].
-      exact (IHHexec Hlocal He Hubi Hubw Hubx Hubs Hubt Hubgt H1 Htat Hact Hch HN HM HV HS).
+      exact (IHHexec Hlocal He Hubi Hubw Hubx Hubs Hubt Hoc_none Hubgt H1 Htat Hact Hch HN HM HV HS).
     - (* Sifthenelse *)
       cbn [wwalk_chk'] in Hchk. apply andb_prop in Hchk as [H1 H2].
       apply IHHexec; try assumption.
@@ -3717,7 +3777,7 @@ Section ActWriterWalk.
                (conj Htat (conj Hact (conj Hch I))))))).
     - (* Sloop stop1 *)
       cbn [wwalk_chk'] in Hchk. apply andb_prop in Hchk as [H1 _].
-      destruct (IHHexec Hlocal He Hubi Hubw Hubx Hubs Hubt Hubgt H1 Htat Hact Hch HN HM HV HS)
+      destruct (IHHexec Hlocal He Hubi Hubw Hubx Hubs Hubt Hoc_none Hubgt H1 Htat Hact Hch HN HM HV HS)
         as (HV1 & HS1 & HM1 & HN1 & Htat1 & Hact1 & Hch1 & Hret1).
       refine (conj HV1 (conj HS1 (conj HM1 (conj HN1
                (conj Htat1 (conj Hact1 (conj Hch1 _))))))).
@@ -3728,9 +3788,9 @@ Section ActWriterWalk.
       + exact Hret1.
     - (* Sloop stop2 *)
       cbn [wwalk_chk'] in Hchk. apply andb_prop in Hchk as [H1 H2].
-      destruct (IHHexec1 Hlocal He Hubi Hubw Hubx Hubs Hubt Hubgt H1 Htat Hact Hch HN HM HV HS)
+      destruct (IHHexec1 Hlocal He Hubi Hubw Hubx Hubs Hubt Hoc_none Hubgt H1 Htat Hact Hch HN HM HV HS)
         as (HV1 & HS1 & HM1 & HN1 & Htat1 & Hact1 & Hch1 & _).
-      destruct (IHHexec2 Hlocal He Hubi Hubw Hubx Hubs Hubt Hubgt H2 Htat1 Hact1 Hch1 HN1 HM1 HV1 HS1)
+      destruct (IHHexec2 Hlocal He Hubi Hubw Hubx Hubs Hubt Hoc_none Hubgt H2 Htat1 Hact1 Hch1 HN1 HM1 HV1 HS1)
         as (HV2 & HS2 & HM2 & HN2 & Htat2 & Hact2 & Hch2 & Hret2).
       refine (conj HV2 (conj HS2 (conj HM2 (conj HN2
                (conj Htat2 (conj Hact2 (conj Hch2 _))))))).
@@ -3743,16 +3803,16 @@ Section ActWriterWalk.
       cbn [wwalk_chk'] in Hchk.
       pose proof Hchk as Hchk2.
       apply andb_prop in Hchk as [H1 H2].
-      destruct (IHHexec1 Hlocal He Hubi Hubw Hubx Hubs Hubt Hubgt H1 Htat Hact Hch HN HM HV HS)
+      destruct (IHHexec1 Hlocal He Hubi Hubw Hubx Hubs Hubt Hoc_none Hubgt H1 Htat Hact Hch HN HM HV HS)
         as (HV1 & HS1 & HM1 & HN1 & Htat1 & Hact1 & Hch1 & _).
-      destruct (IHHexec2 Hlocal He Hubi Hubw Hubx Hubs Hubt Hubgt H2 Htat1 Hact1 Hch1 HN1 HM1 HV1 HS1)
+      destruct (IHHexec2 Hlocal He Hubi Hubw Hubx Hubs Hubt Hoc_none Hubgt H2 Htat1 Hact1 Hch1 HN1 HM1 HV1 HS1)
         as (HV2 & HS2 & HM2 & HN2 & Htat2 & Hact2 & Hch2 & _).
       apply IHHexec3; try assumption;
         cbn [wwalk_chk']; exact Hchk2.
     - (* Sswitch *)
       cbn [wwalk_chk'] in Hchk.
-      destruct (IHHexec Hlocal He Hubi Hubw Hubx Hubs Hubt Hubgt
-                  (wwalk_chk_select' _ _ _ _ _ _ _ _ _ n _ Hchk)
+      destruct (IHHexec Hlocal He Hubi Hubw Hubx Hubs Hubt Hoc_none Hubgt
+                  (wwalk_chk_select' _ _ _ _ _ _ _ _ _ _ n _ Hchk)
                   Htat Hact Hch HN HM HV HS)
         as (HV1 & HS1 & HM1 & HN1 & Htat1 & Hact1 & Hch1 & Hret1).
       refine (conj HV1 (conj HS1 (conj HM1 (conj HN1
@@ -3802,10 +3862,11 @@ Section ActWriterWalk.
     intros rt wact ids wids cact xids sids tids Hcp Hcpa Hcpx Hcps Hcp3
            s e le m0 tr le' m' out Hexec He Hubi Hubw Hubx Hubs Hubt Hubgt
            Hchk Htat Hact Hch HN HM HV HS.
-    exact (wwalk_pres rt wact ids wids cact xids sids tids nil
-             Hcp Hcpa Hcpx Hcps Hcp3 s e le m0 tr le' m' out
+    exact (wwalk_pres rt wact ids wids cact xids sids tids nil nil
+             Hcp Hcpa Hcpx Hcps Hcp3 hcp_oc_nil s e le m0 tr le' m' out
              hls_nil (hlocal_nil e) Hexec
-             He Hubi Hubw Hubx Hubs Hubt Hubgt Hchk Htat Hact Hch HN HM HV HS).
+             He Hubi Hubw Hubx Hubs Hubt (hub_oc_nil e) Hubgt
+             Hchk Htat Hact Hch HN HM HV HS).
   Qed.
 
 End ActWriterWalk.
@@ -4352,7 +4413,7 @@ Section ActWriterRows.
      Hlsub pins lids <= the function's own fn_vars. *)
   Lemma call_pres_of_lwalk2 :
     forall (TU : Clight.program) (fid : ident) (f : Clight.function)
-           (ids wids xids sids lids : list ident),
+           (ids wids xids sids lids oc_pids : list ident),
       linkorder TU lp ->
       (prog_defmap TU) ! fid = Some (Gfun (Internal f)) ->
       match fn_params f with
@@ -4368,6 +4429,7 @@ Section ActWriterRows.
       (forall g, mem_id g wids = true -> ~ In g (map fst (fn_vars f))) ->
       (forall g, mem_id g xids = true -> ~ In g (map fst (fn_vars f))) ->
       (forall g, mem_id g sids = true -> ~ In g (map fst (fn_vars f))) ->
+      (forall g, mem_id g oc_pids = true -> ~ In g (map fst (fn_vars f))) ->
       ~ In interaction._gGlobalTimer (map fst (fn_vars f)) ->
       (forall lid, mem_id lid lids = true -> In lid (map fst (fn_vars f))) ->
       (forall m, MWF m -> forall b, SafeB b -> Mem.valid_block m b) ->
@@ -4383,12 +4445,14 @@ Section ActWriterRows.
                     call_pres_ext lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
-      wwalk_chk' lids false nil ids wids nil xids sids nil (fn_body f) = true ->
+      (forall fid', mem_id fid' oc_pids = true ->
+                    call_pres_ext_oc lp bm NoA MWF SafeB fid') ->
+      wwalk_chk' lids oc_pids false nil ids wids nil xids sids nil (fn_body f) = true ->
       call_pres lp bm NoA MWF fid.
   Proof.
-    intros TU fid f ids wids xids sids lids LOtu Hdm Hps
-           Hdg Hdi Hdw Hdx Hds Hdgt Hlsub HSafeValid HGlobValid Hls_real
-           Hcp Hcpa Hcpx Hcps Hchk
+    intros TU fid f ids wids xids sids lids oc_pids LOtu Hdm Hps
+           Hdg Hdi Hdw Hdx Hds Hdoc Hdgt Hlsub HSafeValid HGlobValid Hls_real
+           Hcp Hcpa Hcpx Hcps Hcpoc Hchk
            fd m0 vargs0 t0 mF vres0 Hevf Hres Hmarg HN HM HV HS.
     pose proof (resolve_pin_fd lp _ _ _ _ LOtu Hdm Hres) as ->.
     inv Hevf.
@@ -4463,6 +4527,10 @@ Section ActWriterRows.
       by (intros g Hg;
           rewrite (alloc_variables_unbound (lp_ge lp) m0 (fn_vars f)
                      empty_env _ _ Halloc g (Hds g Hg)); apply PTree.gempty).
+    assert (Hub_oc : forall g, mem_id g oc_pids = true -> eloc ! g = None)
+      by (intros g Hg;
+          rewrite (alloc_variables_unbound (lp_ge lp) m0 (fn_vars f)
+                     empty_env _ _ Halloc g (Hdoc g Hg)); apply PTree.gempty).
     assert (Hub_t : forall g, mem_id g (@nil ident) = true -> eloc ! g = None)
       by (intros g HH; discriminate HH).
     assert (Hub_gt : eloc ! interaction._gGlobalTimer = None)
@@ -4472,10 +4540,10 @@ Section ActWriterRows.
     destruct (wwalk_pres lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-                false nil ids wids nil xids sids nil lids Hcp Hcpa Hcpx Hcps
-                Hcpt0 _ _ _ _ _ _ _ _
+                false nil ids wids nil xids sids nil lids oc_pids
+                Hcp Hcpa Hcpx Hcps Hcpt0 Hcpoc _ _ _ _ _ _ _ _
                 (fun _ => Hls_real) Hlocal Hbody
-                Hub_g Hub_i Hub_w Hub_x Hub_s Hub_t Hub_gt
+                Hub_g Hub_i Hub_w Hub_x Hub_s Hub_t Hub_oc Hub_gt
                 Hchk Htat0 Hact0 Hch0 HNa HMa HVa HSa)
       as (HVb & HSb & HMb & HNb & _ & _ & _ & _).
     pose proof (blocks_of_env_bm lp bm m0 (fn_vars f) eloc _ Halloc HV)
