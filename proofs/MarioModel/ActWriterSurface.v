@@ -900,6 +900,168 @@ Section ActWriterBricks.
     split; reflexivity.
   Qed.
 
+  (* ====================================================================== *)
+  (* WINDOW-ARG RECOGNIZER (the validation that OutParamSurface's faithful  *)
+  (* call_pres_ext_wc / args_all_window gate is SATISFIED by the real       *)
+  (* window-out-param call shape -- &m->pos[i] in f32_find_wall_collision   *)
+  (* (set_pole_position).  The arg `&m->pos[i]` is the SAME indexed-window   *)
+  (* address the engine's idx_mfield_store stores INTO (idx_geom_chk pins    *)
+  (* offset 60+4i inside the store_window_ok geometry, disjoint from the     *)
+  (* action cell @12).  Here we evaluate it as an RVALUE pointer and feed    *)
+  (* the gate.  This makes call_pres_ext_wc demonstrably NON-VACUOUS on the  *)
+  (* generated AST (PIPELINE-not-bespoke).                                   *)
+  (* ====================================================================== *)
+
+  (* one window-address argument `&m->pos[idx]` (mid pinned to bm@0)
+     evaluates to a safe-window pointer of bm. *)
+  Lemma window_addr_val :
+    forall e le m mid fld idx pattr v,
+      le ! mid = Some (Vptr bm Ptrofs.zero) ->
+      idx_geom_chk fld idx 4 Mfloat32 = true ->
+      eval_expr (lp_ge lp) e le m
+        (Ebinop Oadd
+          (Efield (Ederef (Etempvar mid (tptr tyMS)) tyMS) fld (tarray tfloat 3))
+          (Econst_int idx tint) (Tpointer tfloat pattr)) v ->
+      exists o, v = Vptr bm o /\ store_window_ok (Ptrofs.unsigned o) 4 = true.
+  Proof.
+    intros e le m mid fld idx pattr v Hmid Hg Hev.
+    destruct (idx_geom_chk_sound _ _ _ _ Hg)
+      as (delta & Hfo & Hdel0 & Hidx0 & Hwin).
+    inv Hev.
+    2:{ match goal with
+        | Hlv2 : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => inv Hlv2
+        end. }
+    match goal with
+    | Hi : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+        inv Hi;
+        try (match goal with
+             | Hlv3 : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ => inv Hlv3
+             end)
+    end.
+    match goal with
+    | Ha : eval_expr _ _ _ _ (Efield _ _ _) _ |- _ => inv Ha
+    end.
+    match goal with
+    | Hd : deref_loc (typeof _) _ _ _ _ _ |- _ => cbn [typeof] in Hd
+    end.
+    match goal with
+    | Hd : deref_loc (tarray tfloat 3) _ _ _ _ _ |- _ =>
+        inv Hd;
+        try (match goal with
+             | Hacc : access_mode (tarray tfloat 3) = _ |- _ =>
+                 cbn in Hacc; discriminate Hacc
+             end);
+        try (match goal with
+             | Hlb : load_bitfield (tarray tfloat 3) _ _ _ _ _ _ _ |- _ => inv Hlb
+             end)
+    end.
+    match goal with
+    | Hflv : eval_lvalue _ _ _ _ (Efield _ _ _) ?lf ?of ?bff |- _ =>
+        destruct (mfield_lvalue_geom_lp lp LO_mario _ _ _ _ _ _
+                    lf of bff _ _ _ Hmid Hfo Hflv) as (E3 & E4 & _);
+        subst lf of
+    end.
+    match goal with
+    | Hsem : sem_binary_operation _ Oadd _ _ _ _ _ = Some _ |- _ =>
+        cbn in Hsem; injection Hsem as Ev
+    end.
+    assert (Hbounds : 0 <= delta + 4 * Int.signed idx /\
+                      delta + 4 * Int.signed idx + 4 <= Ptrofs.max_unsigned).
+    { unfold store_window_ok in Hwin.
+      change (size_chunk Mfloat32) with 4 in Hwin.
+      repeat (apply andb_true_iff in Hwin; destruct Hwin as [Hwin ?]).
+      match goal with
+      | Hb1 : (0 <=? delta + 4 * Int.signed idx)%Z = true,
+        Hb2 : (delta + 4 * Int.signed idx + _ <=? _)%Z = true |- _ =>
+          apply Z.leb_le in Hb1; apply Z.leb_le in Hb2; lia
+      end. }
+    destruct Hbounds as [Hb0 Hb1].
+    eexists. split; [ exact (eq_sym Ev) | ].
+    assert (Eofs : Ptrofs.unsigned
+                     (Ptrofs.add (Ptrofs.add Ptrofs.zero (Ptrofs.repr delta))
+                        (Ptrofs.mul (Ptrofs.repr 4) (Ptrofs.of_ints idx)))
+                   = delta + 4 * Int.signed idx).
+    { rewrite Ptrofs.add_zero_l.
+      unfold Ptrofs.of_ints, Ptrofs.mul.
+      rewrite (Ptrofs.unsigned_repr 4) by lia.
+      rewrite (Ptrofs.unsigned_repr (Int.signed idx)) by lia.
+      unfold Ptrofs.add.
+      rewrite (Ptrofs.unsigned_repr delta) by lia.
+      rewrite (Ptrofs.unsigned_repr (4 * Int.signed idx)) by lia.
+      apply Ptrofs.unsigned_repr. lia. }
+    rewrite Eofs. exact Hwin.
+  Qed.
+
+  Local Notation Wexpr mid idx pa :=
+    (Ebinop Oadd
+       (Efield (Ederef (Etempvar mid (tptr tyMS)) tyMS) mario._pos
+          (tarray tfloat 3))
+       (Econst_int idx tint) (Tpointer tfloat pa)).
+
+  (* the REAL f32_find_wall_collision call arg list in set_pole_position:
+     three window-address pointers (&m->pos[0..2]) + two float thresholds.
+     Satisfies the args_all_window gate -- so call_pres_ext_wc is the right,
+     SATISFIABLE, faithful spec for this call site (replacing the phantom
+     call_pres_ext, which the adversary breaks by aiming an out-param at the
+     action cell). *)
+  Lemma fwc_args_window :
+    forall e le m mid idx0 idx1 idx2 pa0 pa1 pa2 c1 c2 vargs,
+      le ! mid = Some (Vptr bm Ptrofs.zero) ->
+      idx_geom_chk mario._pos idx0 4 Mfloat32 = true ->
+      idx_geom_chk mario._pos idx1 4 Mfloat32 = true ->
+      idx_geom_chk mario._pos idx2 4 Mfloat32 = true ->
+      eval_exprlist (lp_ge lp) e le m
+        (Wexpr mid idx0 pa0 :: Wexpr mid idx1 pa1 :: Wexpr mid idx2 pa2 ::
+         Econst_single c1 tfloat :: Econst_single c2 tfloat :: nil)
+        (tptr tfloat :: tptr tfloat :: tptr tfloat :: tfloat :: tfloat :: nil)
+        vargs ->
+      args_all_window bm vargs.
+  Proof.
+    intros e le m mid idx0 idx1 idx2 pa0 pa1 pa2 c1 c2 vargs
+           Hmid Hg0 Hg1 Hg2 Hev.
+    repeat match goal with
+    | H : eval_exprlist _ _ _ _ (_ :: _) _ _ |- _ => inv H
+    end.
+    match goal with
+    | H : eval_exprlist _ _ _ _ nil _ _ |- _ => inv H
+    end.
+    match goal with
+    | Hpe0 : eval_expr _ _ _ _ (Wexpr mid idx0 pa0) ?w0,
+      Hc0 : sem_cast ?w0 _ _ _ = Some _ |- _ =>
+        destruct (window_addr_val _ _ _ _ _ _ _ _ Hmid Hg0 Hpe0) as (o0 & -> & Hw0);
+        cbn in Hc0; injection Hc0 as <-
+    end.
+    match goal with
+    | Hpe1 : eval_expr _ _ _ _ (Wexpr mid idx1 pa1) ?w1,
+      Hc1 : sem_cast ?w1 _ _ _ = Some _ |- _ =>
+        destruct (window_addr_val _ _ _ _ _ _ _ _ Hmid Hg1 Hpe1) as (o1 & -> & Hw1);
+        cbn in Hc1; injection Hc1 as <-
+    end.
+    match goal with
+    | Hpe2 : eval_expr _ _ _ _ (Wexpr mid idx2 pa2) ?w2,
+      Hc2 : sem_cast ?w2 _ _ _ = Some _ |- _ =>
+        destruct (window_addr_val _ _ _ _ _ _ _ _ Hmid Hg2 Hpe2) as (o2 & -> & Hw2);
+        cbn in Hc2; injection Hc2 as <-
+    end.
+    repeat match goal with
+    | Hpe : eval_expr _ _ _ _ (Econst_single _ _) _ |- _ =>
+        inv Hpe;
+        try (match goal with
+             | Hlv : eval_lvalue _ _ _ _ (Econst_single _ _) _ _ _ |- _ => inv Hlv
+             end)
+    end.
+    repeat match goal with
+    | Hcs : sem_cast (Vsingle _) _ _ _ = Some _ |- _ =>
+        cbn in Hcs; injection Hcs as <-
+    end.
+    intros b ofs HIn.
+    cbn [In] in HIn.
+    repeat (destruct HIn as [HIn | HIn]).
+    all: try (injection HIn as <- <-; split; [ reflexivity | assumption ]).
+    all: try discriminate HIn.
+    all: try (destruct HIn).
+  Qed.
+
   (* the tshort twin (Vec3s elements, stride 2, Mint16signed) *)
   Lemma idx16_assign_pres :
     forall a1 a2 e le m0 tr le' m' out,
