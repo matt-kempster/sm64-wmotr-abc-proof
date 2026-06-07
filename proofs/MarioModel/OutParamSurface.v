@@ -291,6 +291,36 @@ Section OutParamArc.
     split; [ reflexivity | exact Hloc ].
   Qed.
 
+  (* THE ENGINE-CALLABLE oc-call unit: a 4-arg out-param call whose last arg is
+     &(a stack local lid) -- with lid's locality supplied by the walker's
+     local-safe env binding (e!lid = Some(b, ..) /\ local_blk b) -- preserves
+     carried, consuming call_pres_ext_oc fid.  This is EXACTLY the unit the
+     wwalk_pres Scall oc-case will call (oc_scall_pres composed with the
+     &_local recognizer oc_last_addrof); the find_floor / find_ceil shape. *)
+  Lemma oc_call_pres :
+    forall optid fid a1 a2 a3 lid sz attr b rty cc e le0 m0 tr le1 m1 out0,
+      e ! fid = None ->
+      call_pres_ext_oc fid ->
+      e ! lid = Some (b, tptr (Tstruct sz attr)) ->
+      local_blk lp bm SafeB b ->
+      exec_stmt function_entry2 (lp_ge lp) e le0 m0
+        (Scall optid
+           (Evar fid (Tfunction (tfloat :: tfloat :: tfloat ::
+                       tptr (tptr (Tstruct sz attr)) :: nil) rty cc))
+           (a1 :: a2 :: a3 ::
+            Eaddrof (Evar lid (tptr (Tstruct sz attr)))
+              (tptr (tptr (Tstruct sz attr))) :: nil))
+        tr le1 m1 out0 ->
+      carried bm NoA MWF m0 ->
+      carried bm NoA MWF m1 /\ out0 = Out_normal.
+  Proof.
+    intros optid fid a1 a2 a3 lid sz attr b rty cc e le0 m0 tr le1 m1 out0
+           Hfn Hoc Hlid Hloc Hexec Hc.
+    eapply oc_scall_pres; [ exact Hfn | exact Hoc | | exact Hexec | exact Hc ].
+    intros vargs Hvl.
+    eapply oc_last_addrof; [ exact Hlid | exact Hloc | exact Hvl ].
+  Qed.
+
   Lemma vec3f_find_ceil_oc : call_pres_ext_oc mario._vec3f_find_ceil.
   Proof.
     intros fd m0 vargs0 t0 m1 vres0 Hevf Hres Hlal HN HM HV HS.
