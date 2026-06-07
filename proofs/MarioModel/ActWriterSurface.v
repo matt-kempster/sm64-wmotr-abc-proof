@@ -1989,6 +1989,65 @@ Section ActWriterWalk.
   Qed.
 
   (* ================================================================== *)
+  (* SC-ARM VALIDATION (the sc analogue of fwc_args_window): the REAL   *)
+  (* vec3f_copy / vec3s_set OBJECT call sites in set_pole_position /     *)
+  (* act_tornado_twirling pass `chase->header.gfx.<field>` (an Efield    *)
+  (* chain rooted at a CENSUSED chase temp -- m->marioObj etc., which    *)
+  (* chase_inv pins into SafeB) as their dst (write target).  The Efield *)
+  (* chain only adds field offsets, so the dst address stays in the      *)
+  (* chase temp's SafeB block (chain_root_l_block).  Hence the FIRST arg *)
+  (* lands in SafeB: arg0_safe holds, and call_pres_ext_sc is SATISFIABLE*)
+  (* on the generated AST (non-vacuous, PIPELINE-tethered).             *)
+  (* ================================================================== *)
+  Lemma fsc_arg0_safe :
+    forall cact e le m cid a' fld ety n ety2 attr args tys vargs,
+      mem_id cid cact = true ->
+      chain_root_e a' = Some cid ->
+      chase_inv cact le ->
+      eval_exprlist (lp_ge lp) e le m
+        (Efield a' fld (tarray ety n) :: args)
+        (Tpointer ety2 attr :: tys) vargs ->
+      arg0_safe SafeB vargs.
+  Proof.
+    intros cact e le m cid a' fld ety n ety2 attr args tys vargs
+           Hcid Hcr Hch Hvl.
+    inv Hvl.
+    (* the dst rvalue: an array-typed field decays to its address
+       (By_reference deref), so v1 = Vptr loc lofs *)
+    match goal with
+    | Ha : eval_expr _ _ _ _ (Efield _ _ _) _ |- _ => inv Ha
+    end.
+    match goal with
+    | Hd : deref_loc (typeof _) _ _ _ _ _ |- _ => cbn [typeof] in Hd
+    end.
+    match goal with
+    | Hd : deref_loc (tarray ety n) _ _ _ _ _ |- _ =>
+        inv Hd;
+        try (match goal with
+             | Hacc : access_mode (tarray _ _) = _ |- _ =>
+                 cbn in Hacc; discriminate Hacc
+             end);
+        try (match goal with
+             | Hlb : load_bitfield (tarray _ _) _ _ _ _ _ _ _ |- _ => inv Hlb
+             end)
+    end.
+    (* the chain brick pins the dst block to cid's (SafeB) block *)
+    match goal with
+    | Hlv : eval_lvalue _ _ _ _ (Efield _ _ _) ?loc ?lofs ?bf |- _ =>
+        assert (Hcrl : chain_root_l (Efield a' fld (tarray ety n)) = Some cid)
+          by (cbn; exact Hcr);
+        destruct (chain_root_l_block _ _ _ _ _ _ _ _ _ Hcrl Hlv) as (o0 & Hlet)
+    end.
+    pose proof (Hch _ Hcid _ _ Hlet) as Hsafe.
+    (* the array->pointer argument cast keeps the Vptr block *)
+    match goal with
+    | Hcast : sem_cast (Vptr _ _) _ _ _ = Some _ |- _ =>
+        cbn in Hcast; injection Hcast as <-
+    end.
+    red. do 3 eexists. split; [ reflexivity | exact Hsafe ].
+  Qed.
+
+  (* ================================================================== *)
   (* The chase POINTER-store brick: the rhs is a CENSUSED chase temp    *)
   (* (SafeB-if-a-pointer by the chase invariant), stored through a      *)
   (* chased lvalue (SafeB block).  The MWF chase-ptr row absorbs it.    *)
