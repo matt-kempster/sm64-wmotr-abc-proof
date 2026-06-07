@@ -139,8 +139,8 @@ Section OutParamArc.
     forall optid fid tyl rty cc args e le0 m0 tr le1 m1 out0,
       e ! fid = None ->
       call_pres_ext_oc fid ->
-      (forall ty vargs, eval_exprlist (lp_ge lp) e le0 m0 args ty vargs ->
-                        last_arg_local vargs) ->
+      (forall vargs, eval_exprlist (lp_ge lp) e le0 m0 args tyl vargs ->
+                     last_arg_local vargs) ->
       exec_stmt function_entry2 (lp_ge lp) e le0 m0
         (Scall optid (Evar fid (Tfunction tyl rty cc)) args)
         tr le1 m1 out0 ->
@@ -150,6 +150,11 @@ Section OutParamArc.
     intros optid fid tyl rty cc args e le0 m0 tr le1 m1 out0
            He Hoc Hlast Hexec Hc.
     inv Hexec.
+    (* the call site's declared typelist IS tyl (classify_fun of the Evar). *)
+    match goal with
+    | Hcf : classify_fun _ = fun_case_f _ _ _ |- _ =>
+        cbn in Hcf; injection Hcf as E1 E2 E3; subst
+    end.
     match goal with
     | Hv : eval_expr _ _ _ _ (Evar _ _) ?vf |- _ =>
         destruct (eval_Evar_funct _ _ _ _ _ _ _ _ He Hv) as (bf & Hsym & ->)
@@ -160,7 +165,7 @@ Section OutParamArc.
     end.
     match goal with
     | Hvl : eval_exprlist _ _ _ _ _ _ ?vargs |- _ =>
-        pose proof (Hlast _ vargs Hvl) as Hll
+        pose proof (Hlast vargs Hvl) as Hll
     end.
     destruct Hc as (HV & HS & HM & HN).
     match goal with
@@ -170,6 +175,144 @@ Section OutParamArc.
     end.
     split; [ | reflexivity ].
     split; [ exact HV' | split; [ exact HS' | split; [ exact HM' | exact HN' ] ] ].
+  Qed.
+
+  (* ====================================================================== *)
+  (* END-TO-END VALIDATION: vec3f_find_ceil (mario.prog, store-free) ITSELF *)
+  (* satisfies call_pres_ext_oc -- it FORWARDS its own `ceil` param         *)
+  (* (locality threaded from its own out-param hypothesis) straight to      *)
+  (* find_ceil.  This is the forwarding-helper pattern the pole's           *)
+  (* set_pole_position and the hang's perform_hanging_step instantiate.     *)
+  (* ====================================================================== *)
+  Hypothesis LO_mario : linkorder mario.prog lp.
+  Hypothesis Hoc_find_ceil : call_pres_ext_oc mario._find_ceil.
+
+  Example vfc_pin :
+    (prog_defmap mario.prog) ! mario._vec3f_find_ceil
+    = Some (Gfun (Internal mario.f_vec3f_find_ceil)).
+  Proof. vm_compute. reflexivity. Qed.
+
+  (* the body, store-free, only changes memory at the find_ceil call.  Every
+     abnormal Ssequence branch is refuted: its leading statement (Sset / Scall)
+     always yields Out_normal, contradicting the Out_normal<>x side condition. *)
+  Ltac crush_all :=
+    repeat match goal with
+    | H : ?x <> ?x |- _ => destruct (H eq_refl)
+    | H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H
+    | H : exec_stmt _ _ _ _ _ (Sreturn _) _ _ _ _ |- _ => inv H
+    | H : exec_stmt _ _ _ _ _ (Scall _ _ _) _ _ _ _ |- _ => inv H
+    | H : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _ |- _ => inv H
+    end.
+
+  (* the eval_exprlist last-arg extractor for a 4-arg call whose LAST arg is a
+     tempvar holding a watched-disjoint pointer (the find_ceil shape). *)
+  Lemma oc_last_tempvar :
+    forall e le m a1 a2 a3 tid sz attr t1 t2 t3 b ofs vargs,
+      le ! tid = Some (Vptr b ofs) ->
+      local_blk lp bm SafeB b ->
+      eval_exprlist (lp_ge lp) e le m
+        (a1 :: a2 :: a3 :: Etempvar tid (tptr (tptr (Tstruct sz attr))) :: nil)
+        (t1 :: t2 :: t3 :: tptr (tptr (Tstruct sz attr)) :: nil) vargs ->
+      last_arg_local vargs.
+  Proof.
+    intros e le m a1 a2 a3 tid sz attr t1 t2 t3 b ofs vargs Htid Hloc Hvl.
+    repeat match goal with
+    | H : eval_exprlist _ _ _ _ (_ :: _) _ _ |- _ => inv H
+    end.
+    match goal with
+    | H : eval_exprlist _ _ _ _ nil _ _ |- _ => inv H
+    end.
+    (* the 4th eval_expr (Etempvar): the impossible eval_lvalue branch is refuted *)
+    match goal with
+    | He : eval_expr _ _ _ _ (Etempvar tid _) _ |- _ => inv He
+    end;
+    try (match goal with
+         | Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv Hl
+         end).
+    match goal with
+    | Hg : le ! tid = Some _ |- _ => rewrite Htid in Hg; injection Hg as <-
+    end.
+    match goal with
+    | Hcast : sem_cast (Vptr b ofs) _ _ _ = Some _ |- _ =>
+        cbn in Hcast; injection Hcast as <-
+    end.
+    unfold last_arg_local. cbn [last_val]. exists b, ofs.
+    split; [ reflexivity | exact Hloc ].
+  Qed.
+
+  Lemma vec3f_find_ceil_oc : call_pres_ext_oc mario._vec3f_find_ceil.
+  Proof.
+    intros fd m0 vargs0 t0 m1 vres0 Hevf Hres Hlal HN HM HV HS.
+    pose proof (resolve_pin_fd mario.prog _ _ _ LO_mario vfc_pin Hres) as ->.
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      rename Ha into Halloc end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    unfold mario.f_vec3f_find_ceil in Hbody, Hbind, Halloc.
+    cbn [fn_body fn_params fn_temps fn_vars] in Hbody, Hbind, Halloc.
+    (* name the body env + post-alloc memory *)
+    match goal with H : alloc_variables _ _ _ _ ?E ?ME |- _ =>
+      set (eloc := E) in *; set (me := ME) in * end.
+    (* carried at the post-alloc memory *)
+    assert (Hc0 : carried bm NoA MWF m0)
+      by (split; [ exact HV | split; [ exact HS | split; [ exact HM | exact HN ] ] ]).
+    pose proof (alloc_variables_carried bm NoA MWF HMWF_alloc HNoA_of_MWF
+                  _ _ _ _ _ _ Halloc Hc0) as Hce.
+    destruct Hce as (HVe & HSe & HMe & HNe).
+    (* the ceil param is bound to v3, the local out-param pointer *)
+    destruct vargs0 as [| v1 [| v2 [| v3 vrest ]]];
+      cbn [bind_parameter_temps] in Hbind; try discriminate Hbind.
+    destruct vrest; [ | cbn [bind_parameter_temps] in Hbind; discriminate Hbind ].
+    injection Hbind as Hle_init.
+    unfold last_arg_local in Hlal; cbn [last_val] in Hlal.
+    destruct Hlal as (bc & oc & Hv3 & Hlocbc). injection Hv3 as Hv3eq. subst v3.
+    assert (Hfc_none : eloc ! mario._find_ceil = None).
+    { rewrite (alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc
+                 mario._find_ceil)
+        by (cbn; intros [HH | HH]; [ vm_compute in HH; discriminate HH | exact HH ]).
+      apply PTree.gempty. }
+    (* walk the body: 2 Ssets (mem-neutral) + the find_ceil Scall + Sreturn *)
+    inv Hbody; [ | crush_all ].
+    match goal with Hret : exec_stmt _ _ _ _ _ (Sreturn _) _ _ _ _ |- _ =>
+      inv Hret end.
+    match goal with HA : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ Out_normal |- _ =>
+      inv HA; [ | crush_all ] end.
+    match goal with Hs2 : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv Hs2 end.
+    match goal with HR : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ Out_normal |- _ =>
+      inv HR; [ | crush_all ] end.
+    match goal with Hs3 : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv Hs3 end.
+    (* Hcall : exec_stmt .. (Scall (Some _t'1) (Evar _find_ceil ..) al) .. *)
+    lazymatch goal with
+    | Hcall : exec_stmt _ _ _ ?LEC _ (Scall _ (Evar _ _) _) _ _ _ _ |- _ =>
+        rename Hcall into Hcall0;
+        remember LEC as LEC0 eqn:HLEC
+    end.
+    assert (Hceil : LEC0 ! mario._ceil = Some (Vptr bc oc)).
+    { subst LEC0.
+      rewrite ! PTree.gso by (intro EE; vm_compute in EE; discriminate EE).
+      apply PTree.gss. }
+    subst LEC0.
+    destruct (oc_scall_pres _ _ _ _ _ _ _ _ _ _ _ _ _
+                Hfc_none Hoc_find_ceil
+                ltac:(intros vargs Hvl;
+                      eapply oc_last_tempvar;
+                      [ exact Hceil | exact Hlocbc | exact Hvl ])
+                Hcall0 (conj HVe (conj HSe (conj HMe HNe))))
+      as (Hcar2 & _).
+    (* exit: free the fresh stack locals *)
+    pose proof (blocks_of_env_bm lp bm m0 _ eloc _ Halloc HV) as Hforall.
+    pose proof (free_list_carried_bm bm NoA MWF HMWF_free HNoA_of_MWF
+                  (blocks_of_env (lp_ge lp) eloc) _ m1 Hforall Hfree Hcar2)
+      as (HVf & HSf & HMf & HNf).
+    exact (conj HVf (conj HSf (conj HMf HNf))).
   Qed.
 
 End OutParamArc.
