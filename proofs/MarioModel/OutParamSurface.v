@@ -248,8 +248,8 @@ Section OutParamArc.
      walker's local-safe invariant), not from a temp -- so no temp-provenance
      tracking is needed for the DIRECT callers. *)
   Lemma oc_last_addrof :
-    forall e le m a1 a2 a3 lid sz attr t1 t2 t3 b vargs,
-      e ! lid = Some (b, tptr (Tstruct sz attr)) ->
+    forall e le m a1 a2 a3 lid sz attr tyenv t1 t2 t3 b vargs,
+      e ! lid = Some (b, tyenv) ->
       local_blk lp bm SafeB b ->
       eval_exprlist (lp_ge lp) e le m
         (a1 :: a2 :: a3 ::
@@ -258,7 +258,7 @@ Section OutParamArc.
         (t1 :: t2 :: t3 :: tptr (tptr (Tstruct sz attr)) :: nil) vargs ->
       last_arg_local vargs.
   Proof.
-    intros e le m a1 a2 a3 lid sz attr t1 t2 t3 b vargs Hlid Hloc Hvl.
+    intros e le m a1 a2 a3 lid sz attr tyenv t1 t2 t3 b vargs Hlid Hloc Hvl.
     repeat match goal with
     | H : eval_exprlist _ _ _ _ (_ :: _) _ _ |- _ => inv H
     end.
@@ -298,14 +298,15 @@ Section OutParamArc.
      wwalk_pres Scall oc-case will call (oc_scall_pres composed with the
      &_local recognizer oc_last_addrof); the find_floor / find_ceil shape. *)
   Lemma oc_call_pres :
-    forall optid fid a1 a2 a3 lid sz attr b rty cc e le0 m0 tr le1 m1 out0,
+    forall optid fid a1 a2 a3 ty1 ty2 ty3 lid sz attr tyenv b rty cc
+           e le0 m0 tr le1 m1 out0,
       e ! fid = None ->
       call_pres_ext_oc fid ->
-      e ! lid = Some (b, tptr (Tstruct sz attr)) ->
+      e ! lid = Some (b, tyenv) ->
       local_blk lp bm SafeB b ->
       exec_stmt function_entry2 (lp_ge lp) e le0 m0
         (Scall optid
-           (Evar fid (Tfunction (tfloat :: tfloat :: tfloat ::
+           (Evar fid (Tfunction (ty1 :: ty2 :: ty3 ::
                        tptr (tptr (Tstruct sz attr)) :: nil) rty cc))
            (a1 :: a2 :: a3 ::
             Eaddrof (Evar lid (tptr (Tstruct sz attr)))
@@ -314,11 +315,104 @@ Section OutParamArc.
       carried bm NoA MWF m0 ->
       carried bm NoA MWF m1 /\ out0 = Out_normal.
   Proof.
-    intros optid fid a1 a2 a3 lid sz attr b rty cc e le0 m0 tr le1 m1 out0
+    intros optid fid a1 a2 a3 ty1 ty2 ty3 lid sz attr tyenv b rty cc
+           e le0 m0 tr le1 m1 out0
            Hfn Hoc Hlid Hloc Hexec Hc.
     eapply oc_scall_pres; [ exact Hfn | exact Hoc | | exact Hexec | exact Hc ].
     intros vargs Hvl.
     eapply oc_last_addrof; [ exact Hlid | exact Hloc | exact Hvl ].
+  Qed.
+
+  (* ---- THE SYNTACTIC RECOGNIZER for the wwalk engine's Scall oc-arm.
+     A 4-arg call whose function id is in oc_pids and whose last arg is
+     &(a local lid in lids), at the canonical Surface-out-param types. ---- *)
+  Definition oc_call_chk (lids oc_pids : list ident) (fid : ident)
+      (fty : type) (al : list expr) : bool :=
+    mem_id fid oc_pids
+    && match fty, al with
+       | Tfunction (_ :: _ :: _ :: ty4 :: nil) _ _,
+         _ :: _ :: _ :: alast :: nil =>
+           match alast with
+           | Eaddrof (Evar lid (Tpointer (Tstruct sz attr) pa1)) aoty =>
+               mem_id lid lids
+               && proj_sumbool (type_eq (Tpointer (Tstruct sz attr) pa1)
+                                         (tptr (Tstruct sz attr)))
+               && proj_sumbool (type_eq aoty (tptr (tptr (Tstruct sz attr))))
+               && proj_sumbool (type_eq ty4 (tptr (tptr (Tstruct sz attr))))
+           | _ => false
+           end
+       | _, _ => false
+       end.
+
+  Lemma oc_call_chk_decode :
+    forall lids oc_pids fid fty al,
+      oc_call_chk lids oc_pids fid fty al = true ->
+      mem_id fid oc_pids = true /\
+      exists a1 a2 a3 lid sz attr ty1 ty2 ty3 rty cc,
+        mem_id lid lids = true /\
+        fty = Tfunction (ty1 :: ty2 :: ty3 ::
+                         tptr (tptr (Tstruct sz attr)) :: nil) rty cc /\
+        al = a1 :: a2 :: a3 ::
+             Eaddrof (Evar lid (tptr (Tstruct sz attr)))
+               (tptr (tptr (Tstruct sz attr))) :: nil.
+  Proof.
+    intros lids oc_pids fid fty al Hchk.
+    unfold oc_call_chk in Hchk.
+    apply andb_true_iff in Hchk as [Hfid Hchk].
+    split; [ exact Hfid | ].
+    destruct fty as [ | | | | | | tyl rty cc | | ]; try discriminate Hchk.
+    destruct tyl as [|ty1 [|ty2 [|ty3 [|ty4 [|t5 tyl']]]]]; try discriminate Hchk.
+    destruct al as [|a1 [|a2 [|a3 [|elast [|e5 al']]]]]; try discriminate Hchk.
+    destruct elast as [ | | | | | | | einner aoty | | | | | | ];
+      try discriminate Hchk.
+    destruct einner as [ | | | | lid evty | | | | | | | | | ];
+      try discriminate Hchk.
+    destruct evty as [ | | | | sbase pa1 | | | | ]; try discriminate Hchk.
+    destruct sbase as [ | | | | | | | sz attr | ]; try discriminate Hchk.
+    apply andb_true_iff in Hchk as [Hchk Hty4].
+    apply andb_true_iff in Hchk as [Hchk Haoty].
+    apply andb_true_iff in Hchk as [Hlid Hpa1].
+    destruct (type_eq (Tpointer (Tstruct sz attr) pa1) (tptr (Tstruct sz attr)))
+      as [Hev | ]; [ | discriminate Hpa1 ].
+    destruct (type_eq aoty (tptr (tptr (Tstruct sz attr))))
+      as [Hao | ]; [ | discriminate Haoty ].
+    destruct (type_eq ty4 (tptr (tptr (Tstruct sz attr))))
+      as [H4 | ]; [ | discriminate Hty4 ].
+    exists a1, a2, a3, lid, sz, attr, ty1, ty2, ty3, rty, cc.
+    rewrite H4, Hev, Hao.
+    split; [ exact Hlid | split; reflexivity ].
+  Qed.
+
+  (* THE ENGINE-CALLABLE oc-call unit, recognizer-gated: exactly what the
+     wwalk_pres Scall oc-arm invokes -- decode oc_call_chk, then oc_call_pres
+     with the lid's locality drawn from the walker's local-safe invariant. *)
+  Lemma oc_call_chk_pres :
+    forall lids oc_pids optid fid fty al e le0 m0 tr le1 m1 out0,
+      (forall g, mem_id g oc_pids = true -> call_pres_ext_oc g) ->
+      (forall g, mem_id g oc_pids = true -> e ! g = None) ->
+      (forall l, mem_id l lids = true ->
+         exists lblk tyenv, e ! l = Some (lblk, tyenv) /\
+                            local_blk lp bm SafeB lblk) ->
+      oc_call_chk lids oc_pids fid fty al = true ->
+      exec_stmt function_entry2 (lp_ge lp) e le0 m0
+        (Scall optid (Evar fid fty) al) tr le1 m1 out0 ->
+      carried bm NoA MWF m0 ->
+      carried bm NoA MWF m1 /\ out0 = Out_normal.
+  Proof.
+    intros lids oc_pids optid fid fty al e le0 m0 tr le1 m1 out0
+           Hcp_oc Hnone Hlocal Hchk Hexec Hc.
+    destruct (oc_call_chk_decode _ _ _ _ _ Hchk)
+      as (Hfid & a1 & a2 & a3 & lid & sz & attr & ty1 & ty2 & ty3 & rty & cc
+          & Hlidmem & Hfty & Hal).
+    subst fty al.
+    destruct (Hlocal lid Hlidmem) as (lblk & tyenv & Hbind & Hloc).
+    eapply oc_call_pres;
+      [ exact (Hnone fid Hfid)
+      | exact (Hcp_oc fid Hfid)
+      | exact Hbind
+      | exact Hloc
+      | exact Hexec
+      | exact Hc ].
   Qed.
 
   Lemma vec3f_find_ceil_oc : call_pres_ext_oc mario._vec3f_find_ceil.
