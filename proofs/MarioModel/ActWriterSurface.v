@@ -1212,6 +1212,178 @@ Section ActWriterBricks.
 End ActWriterBricks.
 
 (* ====================================================================== *)
+(* WINDOW-OUT-PARAM call recognizer (the engine-callable wc unit).         *)
+(* The f32_find_wall_collision(&m->pos[0..2], c1, c2) call shape: three     *)
+(* indexed-window out-ptr args (the SAME &m->pos[i] the idx_mfield_store    *)
+(* arm stores into, safe-window geometry) + two float thresholds.  This is  *)
+(* the syntactic recognizer the wwalk wc-arm will gate on; wc_call_chk_pres *)
+(* is the unit it invokes (mirror of oc_call_chk_pres).                     *)
+(* ====================================================================== *)
+
+(* one window-address arg: &m->pos[idx], idx a safe-window cell of bm. *)
+Definition win_addr_chk (a : expr) : bool :=
+  match a with
+  | Ebinop Oadd
+      (Efield (Ederef (Etempvar p pty) sty) fld aty)
+      (Econst_int idx ity) (Tpointer ety pattr) =>
+      Pos.eqb p mario_actions_airborne._m
+      && proj_sumbool (type_eq pty (tptr tyMS))
+      && proj_sumbool (type_eq sty tyMS)
+      && Pos.eqb fld mario._pos
+      && proj_sumbool (type_eq aty (tarray tfloat 3))
+      && proj_sumbool (type_eq ity tint)
+      && proj_sumbool (type_eq ety tfloat)
+      && idx_geom_chk fld idx 4 Mfloat32
+  | _ => false
+  end.
+
+Lemma win_addr_chk_shape : forall a,
+    win_addr_chk a = true ->
+    exists idx pattr,
+      a = Ebinop Oadd
+            (Efield (Ederef (Etempvar mario_actions_airborne._m (tptr tyMS)) tyMS)
+               mario._pos (tarray tfloat 3))
+            (Econst_int idx tint) (Tpointer tfloat pattr) /\
+      idx_geom_chk mario._pos idx 4 Mfloat32 = true.
+Proof.
+  intros a H. unfold win_addr_chk in H.
+  destruct a as [ | | | | | | | | | op b1 b2 bty | | | | ]; try discriminate H.
+  destruct op; try discriminate H.
+  destruct b1 as [ | | | | | | | | | | | b1a fld aty | | ]; try discriminate H.
+  destruct b1a as [ | | | | | | bb sty | | | | | | | ]; try discriminate H.
+  destruct bb as [ | | | | | p pty | | | | | | | | ]; try discriminate H.
+  destruct b2 as [ idx ity | | | | | | | | | | | | | ]; try discriminate H.
+  destruct bty as [ | | | | ety pattr | | | | ]; try discriminate H.
+  apply andb_prop in H as [H Hg].
+  apply andb_prop in H as [H Hety].
+  apply andb_prop in H as [H Hity].
+  apply andb_prop in H as [H Haty].
+  apply andb_prop in H as [H Hfld].
+  apply andb_prop in H as [H Hsty].
+  apply andb_prop in H as [Hp Hpty].
+  apply Pos.eqb_eq in Hp. subst p.
+  apply Pos.eqb_eq in Hfld. subst fld.
+  destruct (type_eq pty (tptr tyMS)); [ subst pty | discriminate Hpty ].
+  destruct (type_eq sty tyMS); [ subst sty | discriminate Hsty ].
+  destruct (type_eq aty (tarray tfloat 3)); [ subst aty | discriminate Haty ].
+  destruct (type_eq ity tint); [ subst ity | discriminate Hity ].
+  destruct (type_eq ety tfloat); [ subst ety | discriminate Hety ].
+  exists idx, pattr. split; [ reflexivity | exact Hg ].
+Qed.
+
+(* the f32_find_wall_collision call recognizer: fid in wc_pids, 3 window
+   out-ptrs + 2 float-const thresholds, at the canonical signature. *)
+Definition wc_call_chk (wc_pids : list ident) (fid : ident)
+    (fty : type) (al : list expr) : bool :=
+  mem_id fid wc_pids
+  && match fty, al with
+     | Tfunction (tp1 :: tp2 :: tp3 :: t4 :: t5 :: nil) _ _,
+       w0 :: w1 :: w2 :: a4 :: a5 :: nil =>
+         win_addr_chk w0 && win_addr_chk w1 && win_addr_chk w2
+         && proj_sumbool (type_eq tp1 (tptr tfloat))
+         && proj_sumbool (type_eq tp2 (tptr tfloat))
+         && proj_sumbool (type_eq tp3 (tptr tfloat))
+         && proj_sumbool (type_eq t4 tfloat)
+         && proj_sumbool (type_eq t5 tfloat)
+         && match a4, a5 with
+            | Econst_single _ tc4, Econst_single _ tc5 =>
+                proj_sumbool (type_eq tc4 tfloat) && proj_sumbool (type_eq tc5 tfloat)
+            | _, _ => false
+            end
+     | _, _ => false
+     end.
+
+Lemma wc_call_chk_decode : forall wc_pids fid fty al,
+    wc_call_chk wc_pids fid fty al = true ->
+    mem_id fid wc_pids = true /\
+    exists i0 i1 i2 p0 p1 p2 c1 c2 rty cc,
+      fty = Tfunction (tptr tfloat :: tptr tfloat :: tptr tfloat ::
+                       tfloat :: tfloat :: nil) rty cc /\
+      al = (Ebinop Oadd
+              (Efield (Ederef (Etempvar mario_actions_airborne._m (tptr tyMS)) tyMS)
+                 mario._pos (tarray tfloat 3)) (Econst_int i0 tint) (Tpointer tfloat p0)) ::
+           (Ebinop Oadd
+              (Efield (Ederef (Etempvar mario_actions_airborne._m (tptr tyMS)) tyMS)
+                 mario._pos (tarray tfloat 3)) (Econst_int i1 tint) (Tpointer tfloat p1)) ::
+           (Ebinop Oadd
+              (Efield (Ederef (Etempvar mario_actions_airborne._m (tptr tyMS)) tyMS)
+                 mario._pos (tarray tfloat 3)) (Econst_int i2 tint) (Tpointer tfloat p2)) ::
+           Econst_single c1 tfloat :: Econst_single c2 tfloat :: nil /\
+      idx_geom_chk mario._pos i0 4 Mfloat32 = true /\
+      idx_geom_chk mario._pos i1 4 Mfloat32 = true /\
+      idx_geom_chk mario._pos i2 4 Mfloat32 = true.
+Proof.
+  intros wc_pids fid fty al H.
+  unfold wc_call_chk in H.
+  apply andb_true_iff in H as [Hfid H].
+  split; [ exact Hfid | ].
+  destruct fty as [ | | | | | | tyl rty cc | | ]; try discriminate H.
+  destruct tyl as [|tp1 [|tp2 [|tp3 [|t4 [|t5 [|t6 tyl']]]]]]; try discriminate H.
+  destruct al as [|w0 [|w1 [|w2 [|a4 [|a5 [|a6 al']]]]]]; try discriminate H.
+  apply andb_prop in H as [H Hlast].
+  apply andb_prop in H as [H Ht5].
+  apply andb_prop in H as [H Ht4].
+  apply andb_prop in H as [H Htp3].
+  apply andb_prop in H as [H Htp2].
+  apply andb_prop in H as [H Htp1].
+  apply andb_prop in H as [H Hw2].
+  apply andb_prop in H as [Hw0 Hw1].
+  destruct (win_addr_chk_shape _ Hw0) as (i0 & p0 & -> & Hg0).
+  destruct (win_addr_chk_shape _ Hw1) as (i1 & p1 & -> & Hg1).
+  destruct (win_addr_chk_shape _ Hw2) as (i2 & p2 & -> & Hg2).
+  destruct (type_eq tp1 (tptr tfloat)); [ subst tp1 | discriminate Htp1 ].
+  destruct (type_eq tp2 (tptr tfloat)); [ subst tp2 | discriminate Htp2 ].
+  destruct (type_eq tp3 (tptr tfloat)); [ subst tp3 | discriminate Htp3 ].
+  destruct (type_eq t4 tfloat); [ subst t4 | discriminate Ht4 ].
+  destruct (type_eq t5 tfloat); [ subst t5 | discriminate Ht5 ].
+  destruct a4 as [ | | sc4 tc4 | | | | | | | | | | | ]; try discriminate Hlast.
+  destruct a5 as [ | | sc5 tc5 | | | | | | | | | | | ]; try discriminate Hlast.
+  apply andb_prop in Hlast as [Htc4 Htc5].
+  destruct (type_eq tc4 tfloat); [ subst tc4 | discriminate Htc4 ].
+  destruct (type_eq tc5 tfloat); [ subst tc5 | discriminate Htc5 ].
+  exists i0, i1, i2, p0, p1, p2, sc4, sc5, rty, cc.
+  split; [ reflexivity | ]. split; [ reflexivity | ].
+  split; [ exact Hg0 | split; [ exact Hg1 | exact Hg2 ] ].
+Qed.
+
+Section WCUnit.
+  Variable lp : Clight.program.
+  Hypothesis LO_mario : linkorder mario.prog lp.
+  Variable bm : block.
+  Variable NoA MWF : mem -> Prop.
+
+  (* the engine-callable wc unit (mirror of oc_call_chk_pres): mid=_m pinned
+     to bm@0 from the walker's marg invariant (Htat); consume wc_scall_pres
+     with the gate discharged by fwc_args_window. *)
+  Lemma wc_call_chk_pres :
+    forall wc_pids optid fid fty al e le0 m0 tr le1 m1 out0,
+      (forall g, mem_id g wc_pids = true -> call_pres_ext_wc lp bm NoA MWF g) ->
+      (forall g, mem_id g wc_pids = true -> e ! g = None) ->
+      le0 ! mario_actions_airborne._m = Some (Vptr bm Ptrofs.zero) ->
+      wc_call_chk wc_pids fid fty al = true ->
+      exec_stmt function_entry2 (lp_ge lp) e le0 m0
+        (Scall optid (Evar fid fty) al) tr le1 m1 out0 ->
+      carried bm NoA MWF m0 ->
+      carried bm NoA MWF m1 /\ out0 = Out_normal.
+  Proof.
+    intros wc_pids optid fid fty al e le0 m0 tr le1 m1 out0
+           Hcp_wc Hnone Hmid Hchk Hexec Hc.
+    destruct (wc_call_chk_decode _ _ _ _ Hchk)
+      as (Hfid & i0 & i1 & i2 & p0 & p1 & p2 & c1 & c2 & rty & cc
+          & Hfty & Hal & Hg0 & Hg1 & Hg2).
+    subst fty al.
+    eapply wc_scall_pres;
+      [ exact (Hnone fid Hfid)
+      | exact (Hcp_wc fid Hfid)
+      | | exact Hexec
+      | exact Hc ].
+    intros vargs Hvl.
+    eapply fwc_args_window;
+      [ exact LO_mario | exact Hmid | exact Hg0 | exact Hg1 | exact Hg2 | exact Hvl ].
+  Qed.
+End WCUnit.
+
+(* ====================================================================== *)
 (* The WRITER WALKER: like the generic walker, but additionally tracks a  *)
 (* censused set of "act temps" (wact) whose values stay untainted-scalar. *)
 (* Rules: an act temp may only be Sset from an untainted I32 constant;    *)
