@@ -490,4 +490,91 @@ Section OutParamArc.
     exact (conj HVf (conj HSf (conj HMf HNf))).
   Qed.
 
+  (* ====================================================================== *)
+  (* THE WINDOW-OUT-PARAM ARC (the f32_find_wall_collision / vec3f_copy /    *)
+  (* vec3s_set class).  Unlike find_floor / find_ceil (which write a Surface *)
+  (* POINTER through a single LAST out-param -- handled by the oc arm above  *)
+  (* with a local_blk gate), these writers take INTERIOR pointers into       *)
+  (* Mario's FLOAT window (e.g. f32_find_wall_collision(&m->pos[0],          *)
+  (* &m->pos[1], &m->pos[2], c1, c2) in set_pole_position) and write FLOATS  *)
+  (* there.  `call_pres_ext f32_find_wall_collision` (forall vargs) is again *)
+  (* PHANTOM-FALSE: the adversary aims an out-param at the action cell @12   *)
+  (* and the written float's bit-pattern lands a TAINTED action value (the   *)
+  (* unconditional call_pres_ext carries action_sat not_tainted, which an    *)
+  (* arbitrary 4-byte write to @12 breaks).  THE HONEST GATE (this arc):     *)
+  (* every POINTER arg targets a SAFE WINDOW of bm -- the SAME               *)
+  (* store_window_ok geometry the engine's safe_mfield_store uses (clears    *)
+  (* the action cell @12 and the chase/body watched cells).  TRUE in the     *)
+  (* real program, where these out-params are always &m-><float field> (pos  *)
+  (* @60 etc.).  This is the faithful replacement for the phantom            *)
+  (* call_pres_ext vec3f_copy / vec3s_set ALREADY load-bearing on the        *)
+  (* capstone (the Hpres_obj_ext rows in NoAImpliesNoFlyLinked).             *)
+  (* ====================================================================== *)
+
+  (* the window gate: every POINTER argument targets a watched-disjoint
+     safe-window cell of bm (store_window_ok over a 4-byte write clears the
+     action cell @12 and the chase/body watched cells).  Non-pointer args
+     (the float thresholds) impose nothing -- they are not Vptr. *)
+  Definition args_all_window (vargs : list val) : Prop :=
+    forall b ofs, In (Vptr b ofs) vargs ->
+      b = bm /\ store_window_ok (Ptrofs.unsigned ofs) 4 = true.
+
+  (* the ARG-AWARE external residual (the honest refinement of the phantom
+     call_pres_ext for the WINDOW writers): preserves the carried run facts
+     PROVIDED every pointer arg targets a safe window of bm. *)
+  Definition call_pres_ext_wc (fid : ident) : Prop :=
+    forall fd m0 vargs0 t0 m1 vres0,
+      eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m1 vres0 ->
+      resolves_lp fid fd ->
+      args_all_window vargs0 ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\
+      MWF m1 /\ NoA m1.
+
+  (* THE CALL-SITE BRICK: a Scall to a window-writer whose every pointer arg
+     evaluates to a safe-window cell of bm preserves carried.  This is what
+     the wwalk engine's future wc-arm consumes at each f32_find_wall_collision
+     / vec3f_copy / vec3s_set call site.  (Structure mirrors oc_scall_pres.) *)
+  Lemma wc_scall_pres :
+    forall optid fid tyl rty cc args e le0 m0 tr le1 m1 out0,
+      e ! fid = None ->
+      call_pres_ext_wc fid ->
+      (forall vargs, eval_exprlist (lp_ge lp) e le0 m0 args tyl vargs ->
+                     args_all_window vargs) ->
+      exec_stmt function_entry2 (lp_ge lp) e le0 m0
+        (Scall optid (Evar fid (Tfunction tyl rty cc)) args)
+        tr le1 m1 out0 ->
+      carried bm NoA MWF m0 ->
+      carried bm NoA MWF m1 /\ out0 = Out_normal.
+  Proof.
+    intros optid fid tyl rty cc args e le0 m0 tr le1 m1 out0
+           He Hwc Hwin Hexec Hc.
+    inv Hexec.
+    match goal with
+    | Hcf : classify_fun _ = fun_case_f _ _ _ |- _ =>
+        cbn in Hcf; injection Hcf as E1 E2 E3; subst
+    end.
+    match goal with
+    | Hv : eval_expr _ _ _ _ (Evar _ _) ?vf |- _ =>
+        destruct (eval_Evar_funct _ _ _ _ _ _ _ _ He Hv) as (bf & Hsym & ->)
+    end.
+    match goal with
+    | Hff : Genv.find_funct _ (Vptr bf Ptrofs.zero) = Some ?fd |- _ =>
+        assert (Hres : resolves_lp fid fd) by (exists bf; split; assumption)
+    end.
+    match goal with
+    | Hvl : eval_exprlist _ _ _ _ _ _ ?vargs |- _ =>
+        pose proof (Hwin vargs Hvl) as Hww
+    end.
+    destruct Hc as (HV & HS & HM & HN).
+    match goal with
+    | Hevf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+        destruct (Hwc _ _ _ _ _ _ Hevf Hres Hww HN HM HV HS)
+          as (HV' & HS' & HM' & HN')
+    end.
+    split; [ | reflexivity ].
+    split; [ exact HV' | split; [ exact HS' | split; [ exact HM' | exact HN' ] ] ].
+  Qed.
+
 End OutParamArc.
