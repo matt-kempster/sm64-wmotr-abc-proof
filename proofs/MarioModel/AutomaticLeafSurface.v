@@ -44,7 +44,6 @@ Import ListNotations.
 (* the leaves NOT yet walked: every slice moves ids out of here *)
 Definition automatic_rest_ids : list ident :=
   mario_actions_automatic._act_holding_pole ::
-  mario_actions_automatic._act_grab_pole_slow ::
   mario_actions_automatic._act_grab_pole_fast ::
   mario_actions_automatic._act_climbing_pole ::
   mario_actions_automatic._act_top_of_pole_transition ::
@@ -282,6 +281,65 @@ Proof. vm_compute. reflexivity. Qed.
 Example alg_walk :
   wwalk_chk false nil alg_ids nil nil nil alg_sids nil
     (fn_body mario_actions_automatic.f_act_ledge_grab) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ====================================================================== *)
+(* B10: POLE-CLUSTER SCAFFOLD -- act_grab_pole_slow WALKED (rest-split).    *)
+(* fn_vars=nil, ZERO stores: 6 calls -- play_sound_if_no_flag /             *)
+(* set_pole_position / set_mario_animation / is_anim_at_end /               *)
+(* set_mario_action(untainted const) / add_tree_leaf_particles.            *)
+(* set_pole_position (the 730-line SHARED pole helper: out-param            *)
+(* find_floor/vec3f_find_ceil + _filler local + chase stores) is NAMED as   *)
+(* the residual Hcp_spp (twin of Hcp_pgs).  add_tree_leaf_particles is      *)
+(* walked here (its sole ext callee is segmented_to_virtual).  Census       *)
+(* 9 -> 8; the Hcp_spp / Hcpx_stv / Hatlp scaffold is reused by the other   *)
+(* five pole leaves later.                                                  *)
+(* ====================================================================== *)
+
+(* ---- censuses ---- *)
+Definition atlp_xids : list ident := interaction._segmented_to_virtual :: nil.
+Definition agps_ids : list ident :=
+  mario._play_sound_if_no_flag
+    :: mario_actions_automatic._set_pole_position
+    :: mario._set_mario_animation
+    :: mario._is_anim_at_end
+    :: mario_actions_automatic._add_tree_leaf_particles :: nil.
+Definition agps_sids : list ident := mario._set_mario_action :: nil.
+
+(* ---- pins ---- *)
+Example atlp_pin :
+  (prog_defmap mario_actions_automatic.prog)
+    ! mario_actions_automatic._add_tree_leaf_particles
+  = Some (Gfun (Internal mario_actions_automatic.f_add_tree_leaf_particles)).
+Proof. vm_compute. reflexivity. Qed.
+Example agps_pin :
+  (prog_defmap mario_actions_automatic.prog)
+    ! mario_actions_automatic._act_grab_pole_slow
+  = Some (Gfun (Internal mario_actions_automatic.f_act_grab_pole_slow)).
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- shapes ---- *)
+Example atlp_vars :
+  fn_vars mario_actions_automatic.f_add_tree_leaf_particles = nil.
+Proof. reflexivity. Qed.
+Example agps_vars :
+  fn_vars mario_actions_automatic.f_act_grab_pole_slow = nil.
+Proof. reflexivity. Qed.
+Example atlp_params_ok :
+  aut_pok mario_actions_automatic.f_add_tree_leaf_particles = true.
+Proof. vm_compute. reflexivity. Qed.
+Example agps_params_ok :
+  aut_pok mario_actions_automatic.f_act_grab_pole_slow = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- walks ---- *)
+Example atlp_walk :
+  wwalk_chk false nil nil nil nil atlp_xids nil nil
+    (fn_body mario_actions_automatic.f_add_tree_leaf_particles) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example agps_walk :
+  wwalk_chk false nil agps_ids nil nil nil agps_sids nil
+    (fn_body mario_actions_automatic.f_act_grab_pole_slow) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* ====================================================================== *)
@@ -622,6 +680,18 @@ Section AutomaticLeafRows.
     forall m ch b (d : Z) v m',
       local_blk lp bm SafeB b ->
       Mem.store ch m b d v = Some m' -> MWF m -> MWF m'.
+
+  (* B10 pole-cluster scaffold:
+     - Hcpx_stv: segmented_to_virtual (obj_ext_ids ext row, SHARED with the
+       object family -- it is an address translation, writes no memory). *)
+  Hypothesis Hcpx_stv :
+    call_pres_ext lp bm NoA MWF interaction._segmented_to_virtual.
+  (* - Hcp_spp: set_pole_position, the 730-line SHARED pole helper, NAMED as
+       a precise internal residual (its body does out-param find_floor /
+       vec3f_find_ceil calls + a _filler local + chase stores; dischargeable
+       via the out-param + Tier-2 arcs).  Twin of Hcp_pgs. *)
+  Hypothesis Hcp_spp :
+    call_pres lp bm NoA MWF mario_actions_automatic._set_pole_position.
 
   (* the shrinking residual: the leaves not yet walked *)
   Hypothesis Hpres_aut_rest : forall fid f,
@@ -970,6 +1040,72 @@ Section AutomaticLeafRows.
     - exact sasthf_walk.
   Qed.
 
+  (* ---- B10: add_tree_leaf_particles + act_grab_pole_slow (rest-split) ---- *)
+  Lemma atlp_xids_rows :
+    forall fid, mem_id fid atlp_xids = true -> call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold atlp_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_stv | ].
+    discriminate H.
+  Qed.
+  Lemma Hatlp :
+    call_pres lp bm NoA MWF mario_actions_automatic._add_tree_leaf_particles.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_automatic.prog
+             mario_actions_automatic._add_tree_leaf_particles
+             mario_actions_automatic.f_add_tree_leaf_particles
+             nil nil atlp_xids nil
+             LO_aut atlp_pin atlp_vars atlp_params_ok).
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - exact atlp_xids_rows.
+    - intros fid' H; discriminate H.
+    - exact atlp_walk.
+  Qed.
+  Lemma agps_ids_rows :
+    forall fid, mem_id fid agps_ids = true -> call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold agps_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hpsinf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_spp | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsma | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hiaae | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hatlp | ].
+    discriminate H.
+  Qed.
+  Lemma agps_sids_rows :
+    forall fid, mem_id fid agps_sids = true -> call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold agps_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | ].
+    discriminate H.
+  Qed.
+  Lemma Hagps :
+    body_pres lp NoA MWF bm mario_actions_automatic.f_act_grab_pole_slow.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_automatic.f_act_grab_pole_slow
+             agps_ids nil nil agps_sids nil agps_vars agps_params_ok).
+    - exact agps_ids_rows.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - exact agps_sids_rows.
+    - intros fid' H; discriminate H.
+    - exact agps_walk.
+  Qed.
+
   (* the act_ledge_grab leaf: ids = the cluster, sids = set_mario_action *)
   Lemma alg_ids_rows :
     forall fid, mem_id fid alg_ids = true -> call_pres lp bm NoA MWF fid.
@@ -1314,13 +1450,15 @@ Section AutomaticLeafRows.
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
       rewrite ccac_pin in Hdm. injection Hdm as <-. exact ccac_pres. }
-    (* 2..7: pole leaves -- rest *)
+    (* 2: act_holding_pole -- rest *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
       refine (Hpres_aut_rest _ f _ Hdm); vm_compute; reflexivity. }
+    (* 3: act_grab_pole_slow -- WALKED (B10 rest-split; set_pole_position = Hcp_spp) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
-      refine (Hpres_aut_rest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite agps_pin in Hdm. injection Hdm as <-. exact Hagps. }
+    (* 4..7: pole leaves -- rest *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
       refine (Hpres_aut_rest _ f _ Hdm); vm_compute; reflexivity. }
