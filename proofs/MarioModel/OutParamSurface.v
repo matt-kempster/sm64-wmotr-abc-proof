@@ -577,4 +577,86 @@ Section OutParamArc.
     split; [ exact HV' | split; [ exact HS' | split; [ exact HM' | exact HN' ] ] ].
   Qed.
 
+  (* ====================================================================== *)
+  (* THE SAFE-CHASE-TARGET ARC (the SECOND face of vec3f_copy / vec3s_set). *)
+  (* In set_pole_position / act_tornado_twirling these writers do NOT aim   *)
+  (* at Mario's window -- they write INTO the marioObj graphics node:       *)
+  (*   vec3f_copy(m->marioObj->header.gfx.pos, m->pos)      [dst=Object]    *)
+  (*   vec3s_set (m->marioObj->header.gfx.angle, ...)       [dst=Object]    *)
+  (* The dst pointer chases through m->marioObj into the OBJECT POOL -- a    *)
+  (* SafeB block, DISJOINT from bm (HSafeNotBm).  So neither the window     *)
+  (* gate (args_all_window, which demands b=bm) nor the oc gate (a local    *)
+  (* stack block) fits: the faithful gate is `the dst (first) pointer arg   *)
+  (* lands in a SafeB block`.  A write confined to SafeB preserves carried  *)
+  (* (action@12 lives in bm<>SafeB; NoA/valid bm survive; MWF survives via  *)
+  (* the chase-safe frame).  This is the OTHER honest replacement for the   *)
+  (* phantom call_pres_ext vec3f_copy / vec3s_set on the capstone -- the    *)
+  (* one the wc arm does NOT cover (its sites in set_pole_position write the *)
+  (* Object, not bm).  Mirror of the oc / wc spec + brick. *)
+  (* ====================================================================== *)
+
+  (* the safe-chase gate: the FIRST argument (the write destination of the
+     copy/set writers) is a pointer into a SafeB block.  The remaining args
+     (a read-only src pointer for vec3f_copy, or scalar shorts for vec3s_set)
+     are unconstrained -- the external writes only through the dst. *)
+  Definition arg0_safe (vargs : list val) : Prop :=
+    exists b ofs rest, vargs = Vptr b ofs :: rest /\ SafeB b.
+
+  (* the ARG-AWARE external residual for the OBJECT writers: preserves the
+     carried run facts PROVIDED the dst arg lands in a SafeB block. *)
+  Definition call_pres_ext_sc (fid : ident) : Prop :=
+    forall fd m0 vargs0 t0 m1 vres0,
+      eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m1 vres0 ->
+      resolves_lp fid fd ->
+      arg0_safe vargs0 ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\
+      MWF m1 /\ NoA m1.
+
+  (* THE CALL-SITE BRICK: a Scall to an object-writer whose dst arg evaluates
+     to a SafeB cell preserves carried.  This is what the wwalk engine's
+     future sc-arm consumes at each vec3f_copy / vec3s_set OBJECT call site.
+     (Structure mirrors wc_scall_pres / oc_scall_pres exactly.) *)
+  Lemma sc_scall_pres :
+    forall optid fid tyl rty cc args e le0 m0 tr le1 m1 out0,
+      e ! fid = None ->
+      call_pres_ext_sc fid ->
+      (forall vargs, eval_exprlist (lp_ge lp) e le0 m0 args tyl vargs ->
+                     arg0_safe vargs) ->
+      exec_stmt function_entry2 (lp_ge lp) e le0 m0
+        (Scall optid (Evar fid (Tfunction tyl rty cc)) args)
+        tr le1 m1 out0 ->
+      carried bm NoA MWF m0 ->
+      carried bm NoA MWF m1 /\ out0 = Out_normal.
+  Proof.
+    intros optid fid tyl rty cc args e le0 m0 tr le1 m1 out0
+           He Hsc Hsafe Hexec Hc.
+    inv Hexec.
+    match goal with
+    | Hcf : classify_fun _ = fun_case_f _ _ _ |- _ =>
+        cbn in Hcf; injection Hcf as E1 E2 E3; subst
+    end.
+    match goal with
+    | Hv : eval_expr _ _ _ _ (Evar _ _) ?vf |- _ =>
+        destruct (eval_Evar_funct _ _ _ _ _ _ _ _ He Hv) as (bf & Hsym & ->)
+    end.
+    match goal with
+    | Hff : Genv.find_funct _ (Vptr bf Ptrofs.zero) = Some ?fd |- _ =>
+        assert (Hres : resolves_lp fid fd) by (exists bf; split; assumption)
+    end.
+    match goal with
+    | Hvl : eval_exprlist _ _ _ _ _ _ ?vargs |- _ =>
+        pose proof (Hsafe vargs Hvl) as Hsa
+    end.
+    destruct Hc as (HV & HS & HM & HN).
+    match goal with
+    | Hevf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+        destruct (Hsc _ _ _ _ _ _ Hevf Hres Hsa HN HM HV HS)
+          as (HV' & HS' & HM' & HN')
+    end.
+    split; [ | reflexivity ].
+    split; [ exact HV' | split; [ exact HS' | split; [ exact HM' | exact HN' ] ] ].
+  Qed.
+
 End OutParamArc.
