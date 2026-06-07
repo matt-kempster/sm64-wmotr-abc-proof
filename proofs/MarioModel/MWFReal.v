@@ -140,6 +140,13 @@ Section MWFReal.
   Lemma mwf_real_valid_bc : forall m, MWF_real m -> Mem.valid_block m bc.
   Proof. intros m M. exact (proj1 (proj2 (proj1 M))). Qed.
 
+  (* R0's SafeB-validity conjunct: every chase-reachable block is valid.
+     Feeds the local-vars / out-param arc (alloc_variables_hlocal needs
+     SafeB blocks valid to prove a fresh local is SafeB-disjoint). *)
+  Lemma mwf_real_safe_valid :
+    forall m, MWF_real m -> forall b, SafeB b -> Mem.valid_block m b.
+  Proof. intros m M. exact (proj1 (proj2 (proj2 (proj2 (proj1 M))))). Qed.
+
   (* Hmwf_inp *)
   Lemma mwf_real_inp : forall m, MWF_real m -> input_a_clear m bm.
   Proof. intros m M. exact (proj1 (proj2 M)). Qed.

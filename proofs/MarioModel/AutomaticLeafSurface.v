@@ -37,6 +37,7 @@ From SM64.Proofs Require Import SymbolicLinking Flying Taint
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface
   AirborneSurface DispatchKit FloorsSurface AutomaticSurface.
 From SM64.Proofs Require Import ActWriterSurface ObjectLeafSurface.
+From SM64.Proofs Require Import LocalVarsSurface OutParamSurface.
 
 Import ListNotations.
 
@@ -207,9 +208,15 @@ Proof. vm_compute. reflexivity. Qed.
 (* ====================================================================== *)
 
 (* ---- censuses ---- *)
-Definition lgl_xids : list ident := mario._find_floor :: nil.
+(* OUT-PARAM ARC (find_floor): the local _floor and the out-param-writer
+   find_floor.  Replaces the phantom-false `call_pres_ext find_floor` (xids)
+   with the faithful gated `call_pres_ext_oc find_floor` (oc_pids), the
+   out-param &_floor being a stack local (lids). *)
+Definition lgl_lids : list ident := mario_actions_automatic._floor :: nil.
+Definition lgl_oc_pids : list ident := mario._find_floor :: nil.
 Definition lgl_sids : list ident := mario._set_mario_action :: nil.
-Definition ffhrp_xids : list ident := mario._find_floor :: nil.
+Definition ffhrp_lids : list ident := mario._floor :: nil.
+Definition ffhrp_oc_pids : list ident := mario._find_floor :: nil.
 Definition sasthf_ids : list ident := mario._mario_set_forward_vel :: nil.
 Definition sasthf_xids : list ident :=
   mario_step._vec3f_copy :: mario._vec3s_set :: nil.
@@ -261,11 +268,11 @@ Proof. vm_compute. reflexivity. Qed.
 
 (* ---- walks ---- *)
 Example lgl_walk :
-  wwalk_chk false nil nil nil nil lgl_xids lgl_sids nil
+  wwalk_chk' lgl_lids lgl_oc_pids false nil nil nil nil nil lgl_sids nil
     (fn_body mario_actions_automatic.f_let_go_of_ledge) = true.
 Proof. vm_compute. reflexivity. Qed.
 Example ffhrp_walk :
-  wwalk_chk false nil nil nil nil ffhrp_xids nil nil
+  wwalk_chk' ffhrp_lids ffhrp_oc_pids false nil nil nil nil nil nil nil
     (fn_body mario.f_find_floor_height_relative_polar) = true.
 Proof. vm_compute. reflexivity. Qed.
 Example sasthf_walk :
@@ -585,10 +592,14 @@ Section AutomaticLeafRows.
   Hypothesis Hcpx_psound :
     call_pres_ext lp bm NoA MWF mario._play_sound.
   (* find_floor: a genuine external in lp (surface collision, not in any
-     generated TU).  Same model class as the obj/floors ext rows.  Used by
-     the two Tier-1 ledge helpers as a write-only out-param (&_floor). *)
-  Hypothesis Hcpx_find_floor :
-    call_pres_ext lp bm NoA MWF mario._find_floor.
+     generated TU).  It is a write-only OUT-PARAM writer: the two Tier-1
+     ledge helpers call it as find_floor(x,y,z,&_floor) with the Surface*
+     out-param pointing at a caller STACK LOCAL.  The honest, faithful spec
+     is `call_pres_ext_oc` (GATED on the out-param being a local_blk) -- NOT
+     the phantom-false `call_pres_ext` (which would allow &(action cell) as
+     the out-param, a vargs the real program never produces). *)
+  Hypothesis Hocp_find_floor :
+    call_pres_ext_oc lp bm NoA MWF SafeB mario._find_floor.
 
   (* the stack-frame MWF rows for the local-vars arc (Tier-1 leaves with
      fn_vars = [_floor]).  Discharge at the capstone from MWFReal:
@@ -597,6 +608,20 @@ Section AutomaticLeafRows.
       Mem.alloc m lo hi = (m', b) -> MWF m -> MWF m'.
   Hypothesis HMWF_free : forall m l m',
       Mem.free_list m l = Some m' -> MWF m -> MWF m'.
+
+  (* the local-store validity + preservation helpers for the out-param arc:
+     SafeB/global blocks are valid under MWF (R0), and a store into a
+     watched-disjoint stack block (local_blk) preserves MWF.  Discharged at
+     the capstone from MWF_real's R0 + mwf_real_local_store. *)
+  Hypothesis HSafeValid :
+    forall m, MWF m -> forall b, SafeB b -> Mem.valid_block m b.
+  Hypothesis HGlobValid :
+    forall m, MWF m -> forall gid bg,
+        Genv.find_symbol (lp_ge lp) gid = Some bg -> Mem.valid_block m bg.
+  Hypothesis Hls_real :
+    forall m ch b (d : Z) v m',
+      local_blk lp bm SafeB b ->
+      Mem.store ch m b d v = Some m' -> MWF m -> MWF m'.
 
   (* the shrinking residual: the leaves not yet walked *)
   Hypothesis Hpres_aut_rest : forall fid f,
@@ -802,20 +827,22 @@ Section AutomaticLeafRows.
       HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase HMWF_root HMWF_sglob
       HchaseStep HMWF_chase_safe.
 
-  Lemma lgl_xids_rows :
-    forall fid, mem_id fid lgl_xids = true -> call_pres_ext lp bm NoA MWF fid.
+  Lemma lgl_oc_rows :
+    forall fid, mem_id fid lgl_oc_pids = true ->
+                call_pres_ext_oc lp bm NoA MWF SafeB fid.
   Proof.
-    intros fid H. unfold lgl_xids in H. cbn [mem_id existsb] in H.
+    intros fid H. unfold lgl_oc_pids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_find_floor | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hocp_find_floor | ].
     discriminate H.
   Qed.
-  Lemma ffhrp_xids_rows :
-    forall fid, mem_id fid ffhrp_xids = true -> call_pres_ext lp bm NoA MWF fid.
+  Lemma ffhrp_oc_rows :
+    forall fid, mem_id fid ffhrp_oc_pids = true ->
+                call_pres_ext_oc lp bm NoA MWF SafeB fid.
   Proof.
-    intros fid H. unfold ffhrp_xids in H. cbn [mem_id existsb] in H.
+    intros fid H. unfold ffhrp_oc_pids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_find_floor | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hocp_find_floor | ].
     discriminate H.
   Qed.
   Lemma lgl_sids_rows :
@@ -849,54 +876,81 @@ Section AutomaticLeafRows.
   Lemma Hlgl :
     call_pres lp bm NoA MWF mario_actions_automatic._let_go_of_ledge.
   Proof.
-    apply (call_pres_of_lwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (call_pres_of_lwalk2 lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              HMWF_alloc HMWF_free
              mario_actions_automatic.prog
              mario_actions_automatic._let_go_of_ledge
              mario_actions_automatic.f_let_go_of_ledge
-             nil nil lgl_xids lgl_sids
+             nil nil nil lgl_sids lgl_lids lgl_oc_pids
              LO_aut lgl_pin lgl_params_ok).
-    - intros g Hg Hin; vm_compute in Hin;
+    - (* Hdg: stored_globals disjoint from fn_vars=[_floor] *)
+      intros g Hg Hin; vm_compute in Hin;
         destruct Hin as [Heq | []]; subst g; vm_compute in Hg; discriminate.
-    - intros g HH; discriminate HH.
-    - intros g HH; discriminate HH.
-    - intros g Hg Hin; vm_compute in Hin;
+    - intros g HH; discriminate HH.   (* Hdi: ids=nil *)
+    - intros g HH; discriminate HH.   (* Hdw: wids=nil *)
+    - intros g HH; discriminate HH.   (* Hdx: xids=nil *)
+    - (* Hds: sids=lgl_sids disjoint from fn_vars *)
+      intros g Hg Hin; vm_compute in Hin;
         destruct Hin as [Heq | []]; subst g; vm_compute in Hg; discriminate.
-    - intros g Hg Hin; vm_compute in Hin;
+    - (* Hdoc: oc_pids=[find_floor] disjoint from fn_vars *)
+      intros g Hg Hin; vm_compute in Hin;
         destruct Hin as [Heq | []]; subst g; vm_compute in Hg; discriminate.
-    - vm_compute; intro Hin; destruct Hin as [Heq | []]; discriminate Heq.
-    - intros fid' H; discriminate H.
-    - intros fid' H; discriminate H.
-    - exact lgl_xids_rows.
-    - exact lgl_sids_rows.
-    - exact lgl_walk.
+    - (* Hdgt: gGlobalTimer not a local *)
+      vm_compute; intro Hin; destruct Hin as [Heq | []]; discriminate Heq.
+    - (* Hlsub: lids=[_floor] subset of fn_vars *)
+      intros lid Hl; unfold lgl_lids in Hl; cbn [mem_id existsb] in Hl;
+        apply orb_true_iff in Hl as [Hm | Hf];
+        [ apply Pos.eqb_eq in Hm; subst lid; vm_compute; left; reflexivity
+        | discriminate Hf ].
+    - exact HSafeValid.
+    - exact HGlobValid.
+    - exact Hls_real.
+    - intros fid' H; discriminate H.   (* Hcp: ids=nil *)
+    - intros fid' H; discriminate H.   (* Hcpa: wids=nil *)
+    - intros fid' H; discriminate H.   (* Hcpx: xids=nil *)
+    - exact lgl_sids_rows.             (* Hcps: sids *)
+    - exact lgl_oc_rows.               (* Hcpoc: oc_pids *)
+    - exact lgl_walk.                  (* Hchk *)
   Qed.
   Lemma Hffhrp :
     call_pres lp bm NoA MWF mario._find_floor_height_relative_polar.
   Proof.
-    apply (call_pres_of_lwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (call_pres_of_lwalk2 lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              HMWF_alloc HMWF_free
              mario.prog mario._find_floor_height_relative_polar
              mario.f_find_floor_height_relative_polar
-             nil nil ffhrp_xids nil
+             nil nil nil nil ffhrp_lids ffhrp_oc_pids
              LO_mario ffhrp_pin ffhrp_params_ok).
-    - intros g Hg Hin; vm_compute in Hin;
+    - (* Hdg: stored_globals disjoint *)
+      intros g Hg Hin; vm_compute in Hin;
         destruct Hin as [Heq | []]; subst g; vm_compute in Hg; discriminate.
-    - intros g HH; discriminate HH.
-    - intros g HH; discriminate HH.
-    - intros g Hg Hin; vm_compute in Hin;
+    - intros g HH; discriminate HH.   (* Hdi: ids=nil *)
+    - intros g HH; discriminate HH.   (* Hdw: wids=nil *)
+    - intros g HH; discriminate HH.   (* Hdx: xids=nil *)
+    - intros g HH; discriminate HH.   (* Hds: sids=nil *)
+    - (* Hdoc: oc_pids=[find_floor] disjoint from fn_vars *)
+      intros g Hg Hin; vm_compute in Hin;
         destruct Hin as [Heq | []]; subst g; vm_compute in Hg; discriminate.
-    - intros g HH; discriminate HH.
-    - vm_compute; intro Hin; destruct Hin as [Heq | []]; discriminate Heq.
-    - intros fid' H; discriminate H.
-    - intros fid' H; discriminate H.
-    - exact ffhrp_xids_rows.
-    - intros fid' H; discriminate H.
-    - exact ffhrp_walk.
+    - (* Hdgt: gGlobalTimer not a local *)
+      vm_compute; intro Hin; destruct Hin as [Heq | []]; discriminate Heq.
+    - (* Hlsub: lids=[_floor] subset of fn_vars *)
+      intros lid Hl; unfold ffhrp_lids in Hl; cbn [mem_id existsb] in Hl;
+        apply orb_true_iff in Hl as [Hm | Hf];
+        [ apply Pos.eqb_eq in Hm; subst lid; vm_compute; left; reflexivity
+        | discriminate Hf ].
+    - exact HSafeValid.
+    - exact HGlobValid.
+    - exact Hls_real.
+    - intros fid' H; discriminate H.   (* Hcp: ids=nil *)
+    - intros fid' H; discriminate H.   (* Hcpa: wids=nil *)
+    - intros fid' H; discriminate H.   (* Hcpx: xids=nil *)
+    - intros fid' H; discriminate H.   (* Hcps: sids=nil *)
+    - exact ffhrp_oc_rows.             (* Hcpoc: oc_pids *)
+    - exact ffhrp_walk.                (* Hchk *)
   Qed.
   (* the wwalk helper (fn_vars = nil, in mario_step) *)
   Lemma Hsasthf :

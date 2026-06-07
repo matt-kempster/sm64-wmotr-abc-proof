@@ -118,8 +118,13 @@ Definition obj_ext_ids : list ident :=
     :: mario._play_sound :: mario_step._vec3f_copy
     :: mario_actions_object._approach_s32
     :: interaction._atan2s
-    :: interaction._virtual_to_segmented
-    :: mario._find_floor :: nil.
+    :: interaction._virtual_to_segmented :: nil.
+(* NOTE: find_floor was REMOVED from obj_ext_ids.  It is an out-param
+   WRITER, so the phantom-false `call_pres_ext find_floor` (which would
+   allow &(action cell) as the out-param) is no longer a capstone
+   residual; its only consumer (the ledge cluster lgl/ffhrp in
+   AutomaticLeafSurface) now uses the faithful gated `call_pres_ext_oc`
+   via the out-param arc (call_pres_of_lwalk2). *)
 
 (* ====================================================================== *)
 (* Pins (vm_compute over the generated TUs).                              *)
