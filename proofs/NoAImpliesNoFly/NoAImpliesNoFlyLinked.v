@@ -726,6 +726,13 @@ Section NoARealInputMWF.
      an object-pool-aware walk *)
   Hypothesis Hcp_pgs :
     call_pres lp bm (NoA_real bm) MWF mario_step._perform_ground_step.
+  (* set_pole_position (B10 pole-cluster scaffold): the 730-line shared pole
+     helper -- out-param find_floor/vec3f_find_ceil + a _filler stack local +
+     chase stores.  NAMED as a precise internal residual (twin of Hcp_pgs);
+     dischargeable via the out-param arc + the Tier-2 local-store arc.  The
+     six pole act handlers all reduce to it. *)
+  Hypothesis Hcp_spp :
+    call_pres lp bm (NoA_real bm) MWF mario_actions_automatic._set_pole_position.
   (* the special-floors LEAF CENSUS is FULLY DISCHARGED
      (FloorsLeafSurface.floors_callees_pres): check_death_barrier /
      pss_begin_slide / pss_end_slide / check_lava_boost are all WALKED,
@@ -932,6 +939,10 @@ Section NoARealInputMWF.
                       (mwf_real_safe_valid lp bm bc oc0 SafeB)
                       Hglob_valid
                       aut_local_store
+                      (* B10 pole scaffold: segmented_to_virtual (obj_ext)
+                         + set_pole_position named residual *)
+                      (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
+                      Hcp_spp
                       Hpres_aut_rest))
                 (object_pres lp LO_mario LO_obj LO_stp bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
