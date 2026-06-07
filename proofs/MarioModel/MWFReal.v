@@ -962,6 +962,49 @@ Section MWFReal.
         eapply Mem.load_store_other; [ exact Hst | exact Hdis ].
   Qed.
 
+  (* the LOCAL-STORE row: a store into a fully watched-disjoint block b0 (a
+     function stack local: b0 <> bm, b0 <> bc, ~SafeB b0, b0 distinct from
+     every find_symbol global) preserves MWF_real.  Every MWF_real row reads
+     bm / bc / gMarioState / gGlobalTimer / a SafeB block -- all <> b0 -- so
+     each load is store_other and the row transfers unchanged.  This is the
+     Hls_real brick the wwalk engine's Tier-2 indexed-local-store AND the
+     out-param (oc) arm consume; the b0 <> bc premise is supplied at the
+     capstone from local_blk's global clause + bc's symbol grounding (bc is
+     the static controller block). *)
+  Lemma mwf_real_local_store : forall mm ch b0 (d : Z) vv mm',
+      MWF_real mm ->
+      b0 <> bm -> b0 <> bc -> ~ SafeB b0 ->
+      (forall gid bg, Genv.find_symbol (lp_ge lp) gid = Some bg -> b0 <> bg) ->
+      Mem.store ch mm b0 d vv = Some mm' -> MWF_real mm'.
+  Proof.
+    intros mm ch b0 d vv mm' M Hbm Hbc HnS Hglob Hst.
+    apply (MWF_real_transfer mm mm'); [ .. | exact M ].
+    - (* R0 validity is monotone under store *)
+      intros b Hv. eapply Mem.store_valid_block_1; eauto.
+    - (* R1 input_a_clear: bm's input cell is untouched (b0 <> bm) *)
+      intros v Hld. pose proof M as (_ & R1 & _). apply R1.
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other; [ exact Hst | left; congruence ].
+    - (* the watched cells (bm / bc / gMarioState / gGlobalTimer) are all
+         in blocks <> b0, so their loads transfer unchanged *)
+      intros ch1 b ofs v Hrow Hld.
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other; [ exact Hst | left ].
+      destruct Hrow as [ [Eb _] | [ Eb | [ Hfs2 | Hfs2 ] ] ].
+      + subst b. congruence.
+      + subst b. congruence.
+      + apply not_eq_sym. exact (Hglob _ _ Hfs2).
+      + apply not_eq_sym. exact (Hglob _ _ Hfs2).
+    - (* R7: SafeB blocks are <> b0 (b0 is not SafeB), so their loads are
+         unchanged and SafeB-closure transfers *)
+      intros b ofs b' o' Hs Hld.
+      pose proof M as (_ & _ & _ & _ & _ & _ & _ & R7 & _).
+      apply (R7 b ofs b' o' Hs). cbn in Hld |- *.
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other; [ exact Hst | left ].
+      intro E. subst b. exact (HnS Hs).
+  Qed.
+
   (* ---------------- Hmwf_umbi ---------------- *)
   Lemma mwf_real_umbi : forall mm mm',
       MWF_real mm ->
