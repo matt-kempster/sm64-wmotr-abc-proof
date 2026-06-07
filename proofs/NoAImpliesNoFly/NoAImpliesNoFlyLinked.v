@@ -48,7 +48,8 @@ From SM64.Proofs Require Import CensusV2 EngineV2Consumer.
 From SM64.Proofs Require Import MWFReal RestSurface AirborneSurface
   DispatchKit CutsceneSurface AutomaticSurface StationarySurface
   MovingSurface ObjectSurface SubmergedSurface FloorsSurface WarpSurface
-  ActWriterSurface ObjectLeafSurface FloorsLeafSurface AutomaticLeafSurface.
+  ActWriterSurface ObjectLeafSurface FloorsLeafSurface AutomaticLeafSurface
+  LocalVarsSurface OutParamSurface.
 
 Section NoAImpliesNoFlyLinked.
   (* The linked program -- ABSTRACT, never computed (no OOM). *)
@@ -584,6 +585,27 @@ Section NoARealInputMWF.
       Genv.find_symbol (lp_ge lp) interaction._gGlobalTimer = Some gb ->
       gb <> bm /\ gb <> bc /\ ~ SafeB gb.
 
+  (* ---- the OUT-PARAM ARC residuals (find_floor phantom -> honest swap).
+     Two TRUE, standard-CompCert, per-symbol-dischargeable facts that let
+     the ledge cluster's find_floor out-param call use the FAITHFUL gated
+     spec `call_pres_ext_oc` instead of the phantom-false `call_pres_ext`:
+       - Hbc_sym: the controller struct bc IS a static global (gControllers)
+         -- so an out-param landing in a local is bc-disjoint via local_blk's
+         global clause.  (Grounds the b<>bc premise of mwf_real_local_store.)
+       - Hglob_valid: every genv symbol block is valid in any MWF memory
+         (globals come from init_mem and validity is monotone) -- needed to
+         prove a fresh stack local is disjoint from every global block. ---- *)
+  Hypothesis Hbc_sym :
+    exists gid, Genv.find_symbol (lp_ge lp) gid = Some bc.
+  Hypothesis Hglob_valid :
+    forall m, MWF m -> forall gid bg,
+        Genv.find_symbol (lp_ge lp) gid = Some bg -> Mem.valid_block m bg.
+  (* find_floor as a faithful OUT-PARAM writer: carried-preservation GATED
+     on the out-param being a caller stack local (local_blk).  TRUE in the
+     intended model; replaces the FALSE `call_pres_ext find_floor`. *)
+  Hypothesis Hocp_find_floor :
+    call_pres_ext_oc lp bm (NoA_real bm) MWF SafeB mario._find_floor.
+
   (* ---- the surviving per-symbol residuals, now stated at the CONCRETE
      invariant MWF_real (same shapes as the v2 section's; see the
      comments there). ---- *)
@@ -788,6 +810,23 @@ Section NoARealInputMWF.
       exec_stmt function_entry2 (lp_ge lp) e le mm (Sassign a1 a2) tt le' mm' out ->
       MWF mm'.
 
+  (* the out-param arc's local-store MWF brick, GROUNDED at MWF_real:
+     a store into a watched-disjoint stack block (local_blk) preserves
+     MWF_real.  The b<>bc obligation of mwf_real_local_store is discharged
+     from local_blk's global clause + Hbc_sym (bc is the gControllers
+     global).  This is the `Hls_real` the ledge cluster consumes. *)
+  Lemma aut_local_store :
+    forall m ch b (d : Z) v m',
+      local_blk lp bm SafeB b ->
+      Mem.store ch m b d v = Some m' -> MWF m -> MWF m'.
+  Proof.
+    intros m ch b d v m' Hlb Hst HM.
+    destruct Hlb as (Hbm & HnS & Hglob).
+    destruct Hbc_sym as (gidc & Hfindc).
+    pose proof (Hglob _ _ Hfindc) as Hbc.
+    eapply mwf_real_local_store; eauto.
+  Qed.
+
   (* ==================================================================== *)
   (* THE MWF-GROUNDED THEOREM: same conclusion as the v2 capstone, but    *)
   (* the carried invariant is the concrete MWF_real -- its 14 projection/ *)
@@ -881,12 +920,18 @@ Section NoARealInputMWF.
                       (Hpres_obj_ext mario._load_patchable_table eq_refl)
                       (Hpres_obj_ext mario_step._vec3f_copy eq_refl)
                       (Hpres_obj_ext mario._play_sound eq_refl)
-                      (* ledge cluster: find_floor ext + the local-vars-arc
-                         stack-frame MWF bricks (alloc/free preserve MWF_real) *)
-                      (Hpres_obj_ext mario._find_floor eq_refl)
+                      (* ledge cluster: find_floor as a FAITHFUL out-param
+                         writer (call_pres_ext_oc, gated on local out-param)
+                         + the local-vars-arc stack-frame MWF bricks
+                         (alloc/free/local-store preserve MWF_real, and the
+                         SafeB/global validity projections) *)
+                      Hocp_find_floor
                       (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
                       (fun m l m' Hf HM =>
                          mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
+                      (mwf_real_safe_valid lp bm bc oc0 SafeB)
+                      Hglob_valid
+                      aut_local_store
                       Hpres_aut_rest))
                 (object_pres lp LO_mario LO_obj LO_stp bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
