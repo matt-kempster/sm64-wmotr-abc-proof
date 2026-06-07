@@ -240,6 +240,57 @@ Section OutParamArc.
     split; [ reflexivity | exact Hloc ].
   Qed.
 
+  (* the eval_exprlist last-arg extractor for a 4-arg call whose LAST arg is
+     the ADDRESS-OF a watched-disjoint stack local (the DIRECT find_floor /
+     find_ceil shape -- e.g. find_floor(x,y,z,&_floor) in
+     find_floor_height_relative_polar / let_go_of_ledge / perform_hanging_step).
+     Locality comes straight from the env binding e!lid (a local_blk under the
+     walker's local-safe invariant), not from a temp -- so no temp-provenance
+     tracking is needed for the DIRECT callers. *)
+  Lemma oc_last_addrof :
+    forall e le m a1 a2 a3 lid sz attr t1 t2 t3 b vargs,
+      e ! lid = Some (b, tptr (Tstruct sz attr)) ->
+      local_blk lp bm SafeB b ->
+      eval_exprlist (lp_ge lp) e le m
+        (a1 :: a2 :: a3 ::
+          Eaddrof (Evar lid (tptr (Tstruct sz attr)))
+            (tptr (tptr (Tstruct sz attr))) :: nil)
+        (t1 :: t2 :: t3 :: tptr (tptr (Tstruct sz attr)) :: nil) vargs ->
+      last_arg_local vargs.
+  Proof.
+    intros e le m a1 a2 a3 lid sz attr t1 t2 t3 b vargs Hlid Hloc Hvl.
+    repeat match goal with
+    | H : eval_exprlist _ _ _ _ (_ :: _) _ _ |- _ => inv H
+    end.
+    match goal with
+    | H : eval_exprlist _ _ _ _ nil _ _ |- _ => inv H
+    end.
+    (* the 4th eval_expr (Eaddrof (Evar lid ..)): refute the impossible
+       eval_lvalue (Eaddrof ..) branch, then the inner Evar is LOCAL. *)
+    match goal with
+    | He : eval_expr _ _ _ _ (Eaddrof _ _) _ |- _ => inv He
+    end;
+    try (match goal with
+         | Hl : eval_lvalue _ _ _ _ (Eaddrof _ _) _ _ _ |- _ => inv Hl
+         end).
+    match goal with
+    | Hl : eval_lvalue _ _ _ _ (Evar lid _) _ _ _ |- _ => inv Hl
+    end;
+    [ | match goal with
+        | Hn : e ! lid = None |- _ => rewrite Hlid in Hn; discriminate Hn
+        end ].
+    (* the inv'd Evar-local output block (loc) equals b (Hlid); the shared
+       metavar ?loc selects the inv hyp, not Hlid. *)
+    match goal with
+    | He : e ! lid = Some (?loc, _),
+      Hc : sem_cast (Vptr ?loc Ptrofs.zero) _ _ _ = Some _ |- _ =>
+        assert (loc = b) by congruence; subst loc;
+        cbn in Hc; injection Hc as <-
+    end.
+    unfold last_arg_local. cbn [last_val]. exists b, Ptrofs.zero.
+    split; [ reflexivity | exact Hloc ].
+  Qed.
+
   Lemma vec3f_find_ceil_oc : call_pres_ext_oc mario._vec3f_find_ceil.
   Proof.
     intros fd m0 vargs0 t0 m1 vres0 Hevf Hres Hlal HN HM HV HS.
