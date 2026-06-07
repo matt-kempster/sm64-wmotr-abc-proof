@@ -83,6 +83,12 @@ proofs/MarioModel/MWFReal.v
 #     function with fn_vars <> nil. Pure frame lemmas, no engine dep. ---
 proofs/MarioModel/LocalVarsSurface.v
 
+# --- GOAL 1 / the out-param-aliasing surface (kept: reusable brick for the
+#     pointer-writing helpers find_ceil/find_floor; the honest arg-aware
+#     refinement of the phantom call_pres_ext.  Not yet load-bearing --
+#     wiring = a pids arm in the wwalk engine). ---
+proofs/MarioModel/OutParamSurface.v
+
 # --- GOAL 1 / the act-writer keystone + the first leaf family (SPINE:
 #     set_mario_action's call_pres_act row, residual-free, consumed by the
 #     object-family leaf rows; ccoc discharged shrinks the capstone's
