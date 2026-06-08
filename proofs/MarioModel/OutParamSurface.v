@@ -770,4 +770,162 @@ Section OutParamArc.
     split; [ exact HV' | split; [ exact HS' | split; [ exact HM' | exact HN' ] ] ].
   Qed.
 
+  (* ====================================================================== *)
+  (* THE MULTI-POINTER OUT-PARAM ARC (oc2): the honest gate for an INTERNAL  *)
+  (* helper that writes through BOTH an OBJECT pointer (its 1st arg, a chase *)
+  (* into m->marioObj -> SafeB) AND a stack-local OUT-PARAM (its last arg).  *)
+  (*                                                                        *)
+  (* The canonical case is `find_mario_anim_flags_and_translation(obj, yaw, *)
+  (* translation)` (mario.v:1782), the sole non-trivial callee of           *)
+  (* return_mario_anim_y_translation (the top_of_pole residual Hrmayt_real). *)
+  (* It calls geo_update_animation_frame(&obj->animInfo, NULL) -- writing    *)
+  (* THROUGH obj -- AND writes *translation.  So neither the single-arg oc   *)
+  (* gate (last_arg_local alone: PHANTOM-FALSE, admits obj=&action-cell) nor *)
+  (* the single-arg sc gate (arg0_safe alone: admits translation=&action-    *)
+  (* cell) is sound.  The faithful gate is the CONJUNCTION: arg0 lands in    *)
+  (* SafeB AND the last arg is a watched-disjoint stack local.  Under it the *)
+  (* every write stays in SafeB or a local (both disjoint from bm), so       *)
+  (* carried survives -- a precise, per-symbol, TRUE-in-model residual       *)
+  (* (discipline Step 2 refinement), not the phantom forall.  The SAME gate  *)
+  (* serves perform_hanging_step (writes through m AND nextPos) for the      *)
+  (* hang/tornado Tier-2 leaves.                                             *)
+  (* ====================================================================== *)
+
+  (* the conjoined multi-pointer gate *)
+  Definition oc2_gate (vargs : list val) : Prop :=
+    arg0_safe vargs /\ last_arg_local vargs.
+
+  (* the ARG-AWARE residual for the multi-pointer internal helpers *)
+  Definition call_pres_ext_oc2 (fid : ident) : Prop :=
+    forall fd m0 vargs0 t0 m1 vres0,
+      eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m1 vres0 ->
+      resolves_lp fid fd ->
+      oc2_gate vargs0 ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\
+      MWF m1 /\ NoA m1.
+
+  (* THE CALL-SITE BRICK: a Scall to a multi-pointer helper whose arg0 lands
+     in SafeB AND whose last arg is a stack local preserves carried.
+     (Structure mirrors oc_scall_pres / sc_scall_pres exactly.) *)
+  Lemma oc2_scall_pres :
+    forall optid fid tyl rty cc args e le0 m0 tr le1 m1 out0,
+      e ! fid = None ->
+      call_pres_ext_oc2 fid ->
+      (forall vargs, eval_exprlist (lp_ge lp) e le0 m0 args tyl vargs ->
+                     oc2_gate vargs) ->
+      exec_stmt function_entry2 (lp_ge lp) e le0 m0
+        (Scall optid (Evar fid (Tfunction tyl rty cc)) args)
+        tr le1 m1 out0 ->
+      carried bm NoA MWF m0 ->
+      carried bm NoA MWF m1 /\ out0 = Out_normal.
+  Proof.
+    intros optid fid tyl rty cc args e le0 m0 tr le1 m1 out0
+           He Hoc2 Hgate Hexec Hc.
+    inv Hexec.
+    match goal with
+    | Hcf : classify_fun _ = fun_case_f _ _ _ |- _ =>
+        cbn in Hcf; injection Hcf as E1 E2 E3; subst
+    end.
+    match goal with
+    | Hv : eval_expr _ _ _ _ (Evar _ _) ?vf |- _ =>
+        destruct (eval_Evar_funct _ _ _ _ _ _ _ _ He Hv) as (bf & Hsym & ->)
+    end.
+    match goal with
+    | Hff : Genv.find_funct _ (Vptr bf Ptrofs.zero) = Some ?fd |- _ =>
+        assert (Hres : resolves_lp fid fd) by (exists bf; split; assumption)
+    end.
+    match goal with
+    | Hvl : eval_exprlist _ _ _ _ _ _ ?vargs |- _ =>
+        pose proof (Hgate vargs Hvl) as Hga
+    end.
+    destruct Hc as (HV & HS & HM & HN).
+    match goal with
+    | Hevf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+        destruct (Hoc2 _ _ _ _ _ _ Hevf Hres Hga HN HM HV HS)
+          as (HV' & HS' & HM' & HN')
+    end.
+    split; [ | reflexivity ].
+    split; [ exact HV' | split; [ exact HS' | split; [ exact HM' | exact HN' ] ] ].
+  Qed.
+
+  (* the combined eval_exprlist extractor for the canonical 3-arg multi-
+     pointer shape: arg0 a chase TEMP holding a SafeB pointer, arg1 a scalar
+     (ignored), arg2 a BARE ARRAY Evar of a watched-disjoint stack local
+     (decays By_reference to its base address).  This is exactly the
+     find_mario_anim_flags_and_translation(_t'2, 0, _translation) call site
+     in return_mario_anim_y_translation.  It feeds oc2_scall_pres's gate. *)
+  Lemma oc2_extract :
+    forall e le m cid sz attr c lid ety n aattr tyenv b ofs lb vargs,
+      le ! cid = Some (Vptr b ofs) ->
+      SafeB b ->
+      e ! lid = Some (lb, tyenv) ->
+      local_blk lp bm SafeB lb ->
+      eval_exprlist (lp_ge lp) e le m
+        (Etempvar cid (tptr (Tstruct sz attr))
+          :: Econst_int c tint
+          :: Evar lid (Tarray ety n aattr) :: nil)
+        (tptr (Tstruct sz attr) :: tint :: tptr ety :: nil) vargs ->
+      oc2_gate vargs.
+  Proof.
+    intros e le m cid sz attr c lid ety n aattr tyenv b ofs lb vargs
+           Hcid Hsafe Hlid Hloc Hvl.
+    (* arg0: the chase tempvar -> Vptr b ofs (SafeB) *)
+    inv Hvl.
+    match goal with
+    | He : eval_expr _ _ _ _ (Etempvar cid _) _ |- _ => inv He
+    end;
+      try (match goal with
+           | Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv Hl
+           end).
+    match goal with
+    | Hg : le ! cid = Some _ |- _ => rewrite Hcid in Hg; injection Hg as <-
+    end.
+    match goal with
+    | Hc0 : sem_cast (Vptr b ofs) _ _ _ = Some _ |- _ =>
+        cbn in Hc0; injection Hc0 as <-
+    end.
+    (* arg1: the scalar const -- step past it (value irrelevant to the gate) *)
+    match goal with
+    | Hvl1 : eval_exprlist _ _ _ _ (Econst_int _ _ :: _) _ _ |- _ => inv Hvl1
+    end.
+    (* arg2: the bare array Evar -> Vptr lb 0 (local_blk) *)
+    match goal with
+    | Hvl2 : eval_exprlist _ _ _ _ (Evar _ _ :: _) _ _ |- _ => inv Hvl2
+    end.
+    match goal with
+    | Hvl3 : eval_exprlist _ _ _ _ nil _ _ |- _ => inv Hvl3
+    end.
+    match goal with
+    | He2 : eval_expr _ _ _ _ (Evar lid _) _ |- _ => inv He2
+    end.
+    match goal with
+    | Hlv : eval_lvalue _ _ _ _ (Evar lid _) _ _ _ |- _ => inv Hlv
+    end;
+      [ | match goal with
+          | He : e ! lid = None |- _ => rewrite Hlid in He; discriminate He
+          end ].
+    match goal with
+    | Hd : deref_loc (typeof _) _ _ _ _ _ |- _ => cbn [typeof] in Hd
+    end.
+    match goal with
+    | Hg : e ! lid = Some (?l, _), Hd : deref_loc (Tarray _ _ _) _ ?l _ _ _ |- _ =>
+        assert (Hl : l = lb) by congruence; subst l; inv Hd;
+        try (match goal with
+             | Hacc : access_mode (Tarray _ _ _) = _ |- _ =>
+                 cbn in Hacc; discriminate Hacc
+             end)
+    end.
+    match goal with
+    | Hc2 : sem_cast (Vptr lb _) _ _ _ = Some _ |- _ =>
+        cbn in Hc2; injection Hc2 as <-
+    end.
+    (* assemble oc2_gate = arg0_safe /\ last_arg_local *)
+    split.
+    - red. do 3 eexists. split; [ reflexivity | exact Hsafe ].
+    - red. cbn [last_val]. exists lb, Ptrofs.zero.
+      split; [ reflexivity | exact Hloc ].
+  Qed.
+
 End OutParamArc.
