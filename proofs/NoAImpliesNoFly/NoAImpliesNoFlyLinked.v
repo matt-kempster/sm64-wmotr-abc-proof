@@ -754,13 +754,18 @@ Section NoARealInputMWF.
      the set_mario_action keystone.  The six pole act handlers reduce to it. *)
   (* B11 top-of-pole pair: return_mario_anim_y_translation is the SOLE shared
      helper for act_top_of_pole + act_top_of_pole_transition, both now WALKED
-     (AutomaticLeafSurface, automatic_rest_ids 6 -> 4).  It calls the INTERNAL
-     out-param writer find_mario_anim_flags_and_translation (writes the caller's
-     stack-local _translation + marioObj->animInfo), so its call_pres awaits the
-     internal-out-param generalization -- a precise, true-in-model, dischargeable
-     residual that REPLACES the two whole leaf bodies formerly in Hpres_aut_rest. *)
-  Hypothesis Hrmayt_real :
-    call_pres lp bm (NoA_real bm) MWF mario._return_mario_anim_y_translation.
+     (AutomaticLeafSurface, automatic_rest_ids 6 -> 4).  Its OWN body is now
+     WALKED too (AutomaticLeafSurface.Hrmayt): one chase-root marioObj load +
+     the out-param Scall + a read/return.  That walk REDUCES it to the gated
+     preservation of its SOLE out-param helper, the INTERNAL multi-pointer
+     writer find_mario_anim_flags_and_translation (writes its 1st arg
+     obj->animInfo via geo_update + the caller's stack-local out-param).  The
+     residual is now the oc2-GATED (arg0 cond-safe /\ last-arg local)
+     call_pres_ext_oc2 -- a strictly DEEPER, precise, true-in-model,
+     dischargeable residual (decompose, not collapse). *)
+  Hypothesis Hoc2famft_real :
+    call_pres_ext_oc2 lp bm (NoA_real bm) MWF SafeB
+      mario._find_mario_anim_flags_and_translation.
   (* B11 act_hang_moving: update_hang_moving is the SOLE shared helper gating the
      act_hang_moving leaf, now WALKED (AutomaticLeafSurface, automatic_rest_ids
      4 -> 3).  It is a SINGLE-PARAM (m only) hang-physics helper with a local
@@ -990,8 +995,9 @@ Section NoARealInputMWF.
                          obj_ext_ids audio/translation externals. *)
                       (Hpres_obj_ext mario._set_sound_moving_speed eq_refl)
                       (Hpres_obj_ext interaction._virtual_to_segmented eq_refl)
-                      (* B11: the SOLE top-of-pole helper residual *)
-                      Hrmayt_real
+                      (* B11: the SOLE top-of-pole helper residual, now the
+                         oc2-gated leaf find_mario_anim_flags_and_translation *)
+                      Hoc2famft_real
                       (* B11: the SOLE act_hang_moving helper residual *)
                       Huhm_real
                       Hpres_aut_rest))

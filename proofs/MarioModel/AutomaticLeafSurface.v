@@ -983,15 +983,166 @@ Section AutomaticLeafRows.
   (* B11 top-of-pole pair: return_mario_anim_y_translation is the SOLE shared
      helper gating BOTH act_top_of_pole and act_top_of_pole_transition (each
      calls it as return_mario_anim_y_translation(m), feeding set_pole_position).
-     It calls the INTERNAL out-param writer find_mario_anim_flags_and_translation
-     (writes the caller's stack-local _translation array + marioObj->animInfo via
-     geo_update_animation_frame), so its call_pres needs the INTERNAL-OUT-PARAM
-     generalization (a call_pres_oc-style gated walk, not yet built).  ASSUMED
-     here as a precise, true-in-model, dischargeable residual: this REDUCES the
-     two whole leaf bodies to this ONE helper (decompose, not collapse), shrinking
-     automatic_rest_ids 6 -> 4.  See [[pole-rest-blockers]]. *)
-  Hypothesis Hrmayt :
+     Its whole body is now WALKED (Lemma Hrmayt below): one chase-root load
+     (_t'2 = m->marioObj, SafeB), the find_mario_anim_flags_and_translation
+     call (the multi-pointer out-param helper), a translation[1] read, a return.
+     It REDUCES to the SINGLE residual Hoc2_famft -- the honest, true-in-model,
+     gated (arg0 SafeB-if-ptr AND last arg a stack local) spec for that helper
+     (writes marioObj->animInfo via geo_update_animation_frame + *translation).
+     decompose, not collapse: the deeper residual is one call-graph level closer
+     to the leaves.  See [[internal-helper-multiptr-gate]], [[pole-rest-blockers]]. *)
+  Hypothesis Hoc2_famft :
+    call_pres_ext_oc2 lp bm NoA MWF SafeB
+      mario._find_mario_anim_flags_and_translation.
+
+  (* the abnormal-Ssequence branch killer (crush_all is section-local to
+     OutParamArc, so re-declare it here). *)
+  Ltac crush_all_r :=
+    repeat match goal with
+    | H : ?x <> ?x |- _ => destruct (H eq_refl)
+    | H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H
+    | H : exec_stmt _ _ _ _ _ (Sreturn _) _ _ _ _ |- _ => inv H
+    | H : exec_stmt _ _ _ _ _ (Scall _ _ _) _ _ _ _ |- _ => inv H
+    | H : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _ |- _ => inv H
+    end.
+
+  Lemma rmayt_pin :
+    (prog_defmap mario.prog) ! mario._return_mario_anim_y_translation
+    = Some (Gfun (Internal mario.f_return_mario_anim_y_translation)).
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma Hrmayt :
     call_pres lp bm NoA MWF mario._return_mario_anim_y_translation.
+  Proof.
+    apply (call_pres_of_body lp bm NoA MWF HNoA_of_MWF mario.prog
+             _ mario.f_return_mario_anim_y_translation LO_mario rmayt_pin).
+    intros m0 vargs0 t0 mF vres0 Hmargf Hevf HN HM HV HS.
+    assert (Hmarg : marg_ok bm vargs0)
+      by (apply Hmargf; vm_compute; reflexivity).
+    (* ---- entry: alloc the _translation local, bind the _m param ---- *)
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      rename Ha into Halloc end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    unfold mario.f_return_mario_anim_y_translation in Hbody, Hbind, Halloc.
+    cbn [fn_body fn_params fn_temps fn_vars] in Hbody, Hbind, Halloc.
+    match goal with H : alloc_variables _ _ _ _ ?E ?ME |- _ =>
+      set (eloc := E) in *; set (me := ME) in * end.
+    assert (Hc0 : carried bm NoA MWF m0)
+      by (split; [ exact HV | split; [ exact HS | split; [ exact HM | exact HN ] ] ]).
+    pose proof (alloc_variables_carried bm NoA MWF HMWF_alloc HNoA_of_MWF
+                  _ _ _ _ _ _ Halloc Hc0) as Hce.
+    destruct Hce as (HVe & HSe & HMe & HNe).
+    (* the _translation local is a watched-disjoint stack block *)
+    pose proof (alloc_variables_hlocal lp bm SafeB m0 _ eloc _
+                  (mario._translation :: nil) Halloc HV
+                  (HSafeValid m0 HM) (HGlobValid m0 HM)
+                  ltac:(intros lid Hm; unfold mem_id in Hm; cbn [existsb] in Hm;
+                        apply Bool.orb_true_iff in Hm; destruct Hm as [He | Hf];
+                        [ apply Pos.eqb_eq in He; subst lid; cbn [map fst]; apply in_eq
+                        | discriminate Hf ]))
+      as Hlocal_fn.
+    destruct (Hlocal_fn mario._translation eq_refl)
+      as (tb & tty & Hetrans & Htloc).
+    (* the _m param is bound to v1 = (bm,0) by marg *)
+    destruct vargs0 as [| v1 vrest];
+      cbn [bind_parameter_temps] in Hbind; [ discriminate Hbind | ].
+    destruct vrest; [ | cbn [bind_parameter_temps] in Hbind; discriminate Hbind ].
+    injection Hbind as Hle_init.
+    (* le1 ! _m = Some v1 (the marg-pinned Mario pointer) *)
+    assert (Hmeq : le1 ! mario_actions_airborne._m = Some v1)
+      by (rewrite <- Hle_init; apply PTree.gss).
+    assert (Htat : forall b o,
+               le1 ! mario_actions_airborne._m = Some (Vptr b o) ->
+               b = bm /\ o = Ptrofs.zero)
+      by (intros b o Hg; rewrite Hmeq in Hg; injection Hg as Hv1;
+          rewrite Hv1 in Hmarg; cbn in Hmarg; exact Hmarg).
+    (* famft is a global, unbound in the entry env *)
+    assert (Hfamft_none :
+              eloc ! mario._find_mario_anim_flags_and_translation = None).
+    { rewrite (alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc
+                 mario._find_mario_anim_flags_and_translation)
+        by (cbn; intros [HH | []]; vm_compute in HH; discriminate HH).
+      apply PTree.gempty. }
+    (* ---- walk the body: A = (Sset _t'2 chase ; Scall famft) ; B = (Sset _t'1 read ; Sreturn) ---- *)
+    inv Hbody; [ | crush_all_r ].
+    match goal with
+    | HA : exec_stmt _ _ _ _ _ (Ssequence (Sset _ _) (Scall _ _ _)) _ _ _ Out_normal |- _ =>
+        inv HA; [ | crush_all_r ]
+    end.
+    (* the chase-root Sset: le -> set _t'2 v2, mem unchanged; v2 is SafeB-if-ptr *)
+    match goal with
+    | HA1 : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv HA1
+    end.
+    assert (Hchk :
+      chase_root_chk
+        (Efield
+           (Ederef (Etempvar mario._m (tptr (Tstruct mario._MarioState noattr)))
+              (Tstruct mario._MarioState noattr)) mario._marioObj
+           (tptr (Tstruct mario._Object noattr))) = true)
+      by (vm_compute; reflexivity).
+    match goal with
+    | H : eval_expr _ _ _ _ (Efield _ _ _) _ |- _ => rename H into HevalE
+    end.
+    pose proof (chase_root_set_sound lp LO_mario bm MWF
+                  HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm
+                  HchaseRoot HMWF_root
+                  _ eloc _ me _ Hchk Htat HMe HevalE) as Hsafe_t2.
+    (* the famft Scall: carried preserved (multi-ptr out-param gate).
+       Prove the gate as a standalone Hgate with the call's envs/args matched
+       CONCRETELY from HA2 -- this pins le0 (so `rewrite PTree.gss` in the
+       arg0-cond proof works) and lets the forward `destruct` resolve the
+       oc2_scall_pres evars from Hgate's own type. *)
+    match goal with
+    | H : exec_stmt _ _ _ _ _ (Scall _ _ _) _ _ _ _ |- _ => rename H into HA2
+    end.
+    match type of HA2 with
+    | exec_stmt _ _ ?E ?L ?M
+        (Scall _ (Evar _ (Tfunction ?TYL _ _)) ?ARGS) _ _ _ _ =>
+        assert (Hgate : forall vargs,
+                  eval_exprlist (lp_ge lp) E L M ARGS TYL vargs ->
+                  oc2_gate lp bm SafeB vargs)
+          by (intros vargs Hvl;
+              eapply (oc2_extract lp bm SafeB E L M
+                        mario._t'2 _ _ _ mario._translation _ _ _ tty tb vargs);
+              [ intros bb oo Hg; rewrite PTree.gss in Hg;
+                injection Hg as Hv; exact (Hsafe_t2 bb oo Hv)
+              | exact Hetrans | exact Htloc | exact Hvl ])
+    end.
+    destruct (oc2_scall_pres lp bm NoA MWF SafeB
+                None mario._find_mario_anim_flags_and_translation
+                _ _ _ _ _ _ _ _ _ _ _
+                Hfamft_none Hoc2_famft Hgate
+                HA2 (conj HVe (conj HSe (conj HMe HNe))))
+      as (Hcar2 & _).
+    (* B = (Sset _t'1 read ; Sreturn) -- neither touches memory *)
+    match goal with
+    | HB : exec_stmt _ _ _ _ _ (Ssequence (Sset _ _) (Sreturn _)) _ _ _ _ |- _ =>
+        inv HB; [ | crush_all_r ]
+    end.
+    match goal with
+    | HB1 : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv HB1
+    end.
+    match goal with
+    | HB2 : exec_stmt _ _ _ _ _ (Sreturn _) _ _ _ _ |- _ => inv HB2
+    end.
+    (* ---- exit: free the _translation stack block ---- *)
+    destruct Hcar2 as (HVb & HSb & HMb & HNb).
+    pose proof (blocks_of_env_bm lp bm m0 _ eloc _ Halloc HV) as Hforall.
+    pose proof (free_list_carried_bm bm NoA MWF HMWF_free HNoA_of_MWF
+                  (blocks_of_env (lp_ge lp) eloc) _ mF Hforall Hfree
+                  (conj HVb (conj HSb (conj HMb HNb))))
+      as (HVf & HSf & HMf & HNf).
+    exact (conj HVf (conj HSf HMf)).
+  Qed.
 
   (* B11 act_hang_moving: update_hang_moving is the SOLE hard helper gating the
      leaf (act_hang_moving calls it as update_hang_moving(m), branching on its
