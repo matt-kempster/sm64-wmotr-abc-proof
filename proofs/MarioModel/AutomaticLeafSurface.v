@@ -44,7 +44,6 @@ Import ListNotations.
 (* the leaves NOT yet walked: every slice moves ids out of here *)
 Definition automatic_rest_ids : list ident :=
   mario_actions_automatic._act_climbing_pole ::
-  mario_actions_automatic._act_hang_moving ::
   mario_actions_automatic._act_in_cannon ::
   mario_actions_automatic._act_tornado_twirling :: nil.
 
@@ -121,6 +120,20 @@ Definition atopt_ids : list ident :=
     :: mario_actions_automatic._set_pole_position :: nil.
 Definition atopt_cact : list ident :=
   mario_actions_automatic._marioObj :: nil.
+
+(* B11 act_hang_moving: ONE window store (m->actionArg = Oxor(t,1) -- actionArg
+   is at offset 28, OUTSIDE the protected action cell [12,16), so a value-blind
+   window store); two marioObj LOADS (read-only, into non-cact temps -> no chase
+   store, cact = nil); callees set_mario_action x4 (const action 2nd arg, sids)/
+   set_mario_animation x2 (Hsma)/play_sound (ext, Hcpx_psound)/is_anim_past_end
+   (Hiape, pure reader)/update_hang_moving (Huhm -- the SOLE hard residual, a
+   single-param hang-physics helper, true-in-model under marg).  Decompose, not
+   collapse: the whole leaf body reduces to Huhm.  automatic_rest_ids 4 -> 3. *)
+Definition ahm_ids : list ident :=
+  mario._set_mario_animation
+    :: mario._is_anim_past_end
+    :: mario_actions_automatic._update_hang_moving :: nil.
+Definition ahm_xids : list ident := mario._play_sound :: nil.
 
 (* ---- pins ---- *)
 Example ccac_pin :
@@ -471,6 +484,21 @@ Example iapf_walk :
     (fn_body mario.f_is_anim_past_frame) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- is_anim_past_end: pure anim reader (sibling of is_anim_past_frame),
+   all-nil census ---- *)
+Example iape_pin :
+  (prog_defmap mario.prog) ! mario._is_anim_past_end
+  = Some (Gfun (Internal mario.f_is_anim_past_end)).
+Proof. vm_compute. reflexivity. Qed.
+Example iape_vars : fn_vars mario.f_is_anim_past_end = nil.
+Proof. reflexivity. Qed.
+Example iape_params_ok : aut_pok mario.f_is_anim_past_end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example iape_walk :
+  wwalk_chk false nil nil nil nil nil nil nil
+    (fn_body mario.f_is_anim_past_end) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ---- play_climbing_sounds: ids=[is_anim_past_frame], xids=[play_sound,
    segmented_to_virtual], no stores ---- *)
 Example pcs_pin :
@@ -553,6 +581,23 @@ Proof. vm_compute. reflexivity. Qed.
 Example atopt_walk :
   wwalk_chk false nil atopt_ids nil atopt_cact nil hang_sids nil
     (fn_body mario_actions_automatic.f_act_top_of_pole_transition) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- B11 act_hang_moving (cact = nil: marioObj loads are read-only) ---- *)
+Example ahm_pin :
+  (prog_defmap mario_actions_automatic.prog)
+    ! mario_actions_automatic._act_hang_moving
+  = Some (Gfun (Internal mario_actions_automatic.f_act_hang_moving)).
+Proof. vm_compute. reflexivity. Qed.
+Example ahm_vars :
+  fn_vars mario_actions_automatic.f_act_hang_moving = nil.
+Proof. reflexivity. Qed.
+Example ahm_params_ok :
+  aut_pok mario_actions_automatic.f_act_hang_moving = true.
+Proof. vm_compute. reflexivity. Qed.
+Example ahm_walk :
+  wwalk_chk false nil ahm_ids nil nil ahm_xids hang_sids nil
+    (fn_body mario_actions_automatic.f_act_hang_moving) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* ====================================================================== *)
@@ -948,6 +993,19 @@ Section AutomaticLeafRows.
   Hypothesis Hrmayt :
     call_pres lp bm NoA MWF mario._return_mario_anim_y_translation.
 
+  (* B11 act_hang_moving: update_hang_moving is the SOLE hard helper gating the
+     leaf (act_hang_moving calls it as update_hang_moving(m), branching on its
+     i32 result).  It is a SINGLE-PARAM (m only) hang-physics helper with a
+     local _nextPos array (the Tier-2 indexed-local-store case), so its
+     preservation depends ONLY on the marg-pinned m=bm and its own internals --
+     a precise, true-in-model, dischargeable residual (the Tier-2 consumer,
+     [[tier2-engine-plan]]), NOT a phantom-forall (contrast
+     set_mario_anim_with_accel, whose UNPINNED 3rd arg makes its call_pres
+     false).  ASSUMING it REDUCES the whole act_hang_moving body to this ONE
+     helper (decompose, not collapse), shrinking automatic_rest_ids 4 -> 3. *)
+  Hypothesis Huhm :
+    call_pres lp bm NoA MWF mario_actions_automatic._update_hang_moving.
+
   (* the shrinking residual: the leaves not yet walked *)
   Hypothesis Hpres_aut_rest : forall fid f,
       mem_id fid automatic_rest_ids = true ->
@@ -1037,6 +1095,20 @@ Section AutomaticLeafRows.
     - intros fid' H; discriminate H.
     - intros fid' H; discriminate H.
     - exact iapf_walk.
+  Qed.
+  Lemma Hiape : call_pres lp bm NoA MWF mario._is_anim_past_end.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._is_anim_past_end mario.f_is_anim_past_end
+             nil nil nil nil
+             LO_mario iape_pin iape_vars iape_params_ok).
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - exact iape_walk.
   Qed.
   Lemma pcs_ids_rows :
     forall fid, mem_id fid pcs_ids = true -> call_pres lp bm NoA MWF fid.
@@ -1602,6 +1674,46 @@ Section AutomaticLeafRows.
     - exact atopt_walk.
   Qed.
 
+  (* ---- B11 act_hang_moving rows ---- *)
+  Lemma ahm_ids_rows :
+    forall fid, mem_id fid ahm_ids = true -> call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold ahm_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsma | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hiape | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Huhm | ].
+    discriminate H.
+  Qed.
+  Lemma ahm_xids_rows :
+    forall fid, mem_id fid ahm_xids = true -> call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold ahm_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | ].
+    discriminate H.
+  Qed.
+  Lemma act_hang_moving_pres :
+    body_pres lp NoA MWF bm mario_actions_automatic.f_act_hang_moving.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_automatic.f_act_hang_moving
+             ahm_ids nil ahm_xids hang_sids nil ahm_vars ahm_params_ok).
+    - exact ahm_ids_rows.
+    - intros fid' H; discriminate H.
+    - exact ahm_xids_rows.
+    - intros fid' H'. unfold hang_sids in H'. cbn [mem_id existsb] in H'.
+      apply orb_true_iff in H' as [Hm | H'];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hsmact | ].
+      discriminate H'.
+    - intros fid' H; discriminate H.
+    - exact ahm_walk.
+  Qed.
+
   Lemma agps_ids_rows :
     forall fid, mem_id fid agps_ids = true -> call_pres lp bm NoA MWF fid.
   Proof.
@@ -2041,10 +2153,11 @@ Section AutomaticLeafRows.
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
       rewrite hang_pin in Hdm. injection Hdm as <-. exact act_hanging_pres. }
-    (* 10: act_hang_moving -- rest *)
+    (* 10: act_hang_moving -- WALKED (B11; reduces to Huhm) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
-      refine (Hpres_aut_rest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite ahm_pin in Hdm. injection Hdm as <-.
+      exact act_hang_moving_pres. }
     (* 11: act_ledge_grab -- WALKED (local-vars arc: call_pres_of_lwalk) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.

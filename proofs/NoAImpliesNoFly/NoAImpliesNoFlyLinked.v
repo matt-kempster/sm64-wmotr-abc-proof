@@ -761,6 +761,15 @@ Section NoARealInputMWF.
      residual that REPLACES the two whole leaf bodies formerly in Hpres_aut_rest. *)
   Hypothesis Hrmayt_real :
     call_pres lp bm (NoA_real bm) MWF mario._return_mario_anim_y_translation.
+  (* B11 act_hang_moving: update_hang_moving is the SOLE shared helper gating the
+     act_hang_moving leaf, now WALKED (AutomaticLeafSurface, automatic_rest_ids
+     4 -> 3).  It is a SINGLE-PARAM (m only) hang-physics helper with a local
+     _nextPos array (the Tier-2 indexed-local-store case), so its preservation
+     depends only on the marg-pinned m=bm + its own internals -- a precise,
+     true-in-model, dischargeable residual that REPLACES the whole act_hang_moving
+     body formerly in Hpres_aut_rest (decompose, not collapse). *)
+  Hypothesis Huhm_real :
+    call_pres lp bm (NoA_real bm) MWF mario_actions_automatic._update_hang_moving.
   (* the special-floors LEAF CENSUS is FULLY DISCHARGED
      (FloorsLeafSurface.floors_callees_pres): check_death_barrier /
      pss_begin_slide / pss_end_slide / check_lava_boost are all WALKED,
@@ -983,6 +992,8 @@ Section NoARealInputMWF.
                       (Hpres_obj_ext interaction._virtual_to_segmented eq_refl)
                       (* B11: the SOLE top-of-pole helper residual *)
                       Hrmayt_real
+                      (* B11: the SOLE act_hang_moving helper residual *)
+                      Huhm_real
                       Hpres_aut_rest))
                 (object_pres lp LO_mario LO_obj LO_stp bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
