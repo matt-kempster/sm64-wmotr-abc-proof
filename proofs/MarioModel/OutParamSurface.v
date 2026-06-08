@@ -1080,4 +1080,108 @@ Section OutParamArc.
       split; [ reflexivity | exact Hloc ].
   Qed.
 
+  (* ====================================================================== *)
+  (* THE marg-AND-oc GATE (the INTERNAL twin of oc2).  oc2 gates arg0 on     *)
+  (* SafeB (a chased Object pointer); this gates arg0 on MARG -- arg0 is the  *)
+  (* Mario state pointer itself = (bm, 0).  Needed for INTERNAL helpers that  *)
+  (* take (m, .., outlocal) and write through BOTH m (Mario fields, marg-safe *)
+  (* at non-action offsets) AND the last out-param (a caller stack local):    *)
+  (* the canonical case is perform_hanging_step(m, nextPos), which directly   *)
+  (* stores nextPos[1] = m->ceilHeight-78 and passes nextPos to               *)
+  (* resolve_and_return_wall_collisions (which mutates it).  A marg-ONLY      *)
+  (* call_pres (DispatchKit) is PHANTOM-FALSE for it (the unconstrained       *)
+  (* nextPos could alias bm's action cell); a last-arg-local-ONLY oc is also  *)
+  (* phantom-false (unconstrained arg0=m could be anywhere).  The conjoined   *)
+  (* gate is the honest one.  Reusable: update_hang_moving's perform_hanging_ *)
+  (* step call site AND (later) the act_tornado_twirling helper.             *)
+  (* Mirror of call_pres_ext_oc2 / body_pres_oc2 / oc2_scall_pres, arg0       *)
+  (* SafeB-cond -> marg=(bm,0).                                               *)
+  (* ====================================================================== *)
+  Definition arg0_marg (vargs : list val) : Prop :=
+    match vargs with
+    | v0 :: _ => v0 = Vptr bm Ptrofs.zero
+    | nil => True
+    end.
+
+  Definition mo_gate (vargs : list val) : Prop :=
+    arg0_marg vargs /\ last_arg_local vargs.
+
+  (* the ARG-AWARE residual for marg-AND-local-out-param internal helpers *)
+  Definition call_pres_mo (fid : ident) : Prop :=
+    forall fd m0 vargs0 t0 m1 vres0,
+      eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m1 vres0 ->
+      resolves_lp fid fd ->
+      mo_gate vargs0 ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\
+      MWF m1 /\ NoA m1.
+
+  Definition body_pres_mo (f : Clight.function) : Prop :=
+    forall m vargs t m' vres,
+      mo_gate vargs ->
+      eval_funcall function_entry2 (lp_ge lp) m (Internal f) vargs t m' vres ->
+      NoA m -> MWF m -> Mem.valid_block m bm -> action_sat not_tainted m bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
+
+  Lemma call_pres_mo_of_body :
+    forall (TU : Clight.program) (fid : ident) (f : Clight.function),
+      linkorder TU lp ->
+      (prog_defmap TU) ! fid = Some (Gfun (Internal f)) ->
+      body_pres_mo f ->
+      call_pres_mo fid.
+  Proof.
+    intros TU fid f LOtu Hdm Hbp fd m0 vargs0 t0 m1 vres0
+           Hevf Hres Hgate HN HM HV HS.
+    pose proof (resolve_pin_fd TU fid f fd LOtu Hdm Hres) as ->.
+    destruct (Hbp m0 vargs0 t0 m1 vres0 Hgate Hevf HN HM HV HS)
+      as (HV' & HS' & HM').
+    repeat split;
+      [ exact HV' | exact HS' | exact HM' | exact (HNoA_of_MWF _ HM') ].
+  Qed.
+
+  (* THE CALL-SITE BRICK: a Scall to a marg-and-local helper (arg0 = Mario
+     (bm,0), last arg = stack local) preserves carried.  Verbatim mirror of
+     oc2_scall_pres (the gate's internal shape is opaque to the proof). *)
+  Lemma mo_scall_pres :
+    forall optid fid tyl rty cc args e le0 m0 tr le1 m1 out0,
+      e ! fid = None ->
+      call_pres_mo fid ->
+      (forall vargs, eval_exprlist (lp_ge lp) e le0 m0 args tyl vargs ->
+                     mo_gate vargs) ->
+      exec_stmt function_entry2 (lp_ge lp) e le0 m0
+        (Scall optid (Evar fid (Tfunction tyl rty cc)) args)
+        tr le1 m1 out0 ->
+      carried bm NoA MWF m0 ->
+      carried bm NoA MWF m1 /\ out0 = Out_normal.
+  Proof.
+    intros optid fid tyl rty cc args e le0 m0 tr le1 m1 out0
+           He Hmo Hgate Hexec Hc.
+    inv Hexec.
+    match goal with
+    | Hcf : classify_fun _ = fun_case_f _ _ _ |- _ =>
+        cbn in Hcf; injection Hcf as E1 E2 E3; subst
+    end.
+    match goal with
+    | Hv : eval_expr _ _ _ _ (Evar _ _) ?vf |- _ =>
+        destruct (eval_Evar_funct _ _ _ _ _ _ _ _ He Hv) as (bf & Hsym & ->)
+    end.
+    match goal with
+    | Hff : Genv.find_funct _ (Vptr bf Ptrofs.zero) = Some ?fd |- _ =>
+        assert (Hres : resolves_lp fid fd) by (exists bf; split; assumption)
+    end.
+    match goal with
+    | Hvl : eval_exprlist _ _ _ _ _ _ ?vargs |- _ =>
+        pose proof (Hgate vargs Hvl) as Hga
+    end.
+    destruct Hc as (HV & HS & HM & HN).
+    match goal with
+    | Hevf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+        destruct (Hmo _ _ _ _ _ _ Hevf Hres Hga HN HM HV HS)
+          as (HV' & HS' & HM' & HN')
+    end.
+    split; [ | reflexivity ].
+    split; [ exact HV' | split; [ exact HS' | split; [ exact HM' | exact HN' ] ] ].
+  Qed.
+
 End OutParamArc.
