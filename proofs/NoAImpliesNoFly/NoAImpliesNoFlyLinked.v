@@ -605,6 +605,26 @@ Section NoARealInputMWF.
      intended model; replaces the FALSE `call_pres_ext find_floor`. *)
   Hypothesis Hocp_find_floor :
     call_pres_ext_oc lp bm (NoA_real bm) MWF SafeB mario._find_floor.
+  (* the SHARED pole/tornado/hang external residuals -- the HONEST gated
+     refinements that let set_pole_position's body be WALKED (replacing the old
+     opaque Hcp_spp whole-function residual).  Each is GATED on the real call
+     shape (true in the intended model; the walker verifies the gate at every
+     call site) and per-symbol dischargeable, exactly like Hocp_find_floor:
+       - vec3f_find_ceil: out-param writer (call into &_ceil stack local);
+       - f32_find_wall_collision: window writer (collision arg targets bm);
+       - vec3f_copy / vec3s_set: object writers (dst chases m->marioObj->SafeB). *)
+  Hypothesis Hocp_find_ceil :
+    call_pres_ext_oc lp bm (NoA_real bm) MWF SafeB
+      mario_actions_automatic._vec3f_find_ceil.
+  Hypothesis Hwcp_fwc :
+    call_pres_ext_wc lp bm (NoA_real bm) MWF
+      mario_actions_automatic._f32_find_wall_collision.
+  Hypothesis Hscp_v3f :
+    call_pres_ext_sc lp bm (NoA_real bm) MWF SafeB
+      mario_actions_automatic._vec3f_copy.
+  Hypothesis Hscp_v3s :
+    call_pres_ext_sc lp bm (NoA_real bm) MWF SafeB
+      mario_actions_automatic._vec3s_set.
 
   (* ---- the surviving per-symbol residuals, now stated at the CONCRETE
      invariant MWF_real (same shapes as the v2 section's; see the
@@ -727,12 +747,11 @@ Section NoARealInputMWF.
   Hypothesis Hcp_pgs :
     call_pres lp bm (NoA_real bm) MWF mario_step._perform_ground_step.
   (* set_pole_position (B10 pole-cluster scaffold): the 730-line shared pole
-     helper -- out-param find_floor/vec3f_find_ceil + a _filler stack local +
-     chase stores.  NAMED as a precise internal residual (twin of Hcp_pgs);
-     dischargeable via the out-param arc + the Tier-2 local-store arc.  The
-     six pole act handlers all reduce to it. *)
-  Hypothesis Hcp_spp :
-    call_pres lp bm (NoA_real bm) MWF mario_actions_automatic._set_pole_position.
+     helper is NO LONGER an opaque residual -- it is now PROVED by walking the
+     whole body (AutomaticLeafSurface.Hcp_spp via call_pres_of_lwalk3), resting
+     instead on the four gated leaf-external residuals above (Hocp_find_ceil /
+     Hwcp_fwc / Hscp_v3f / Hscp_v3s) + the already-present Hocp_find_floor and
+     the set_mario_action keystone.  The six pole act handlers reduce to it. *)
   (* the special-floors LEAF CENSUS is FULLY DISCHARGED
      (FloorsLeafSurface.floors_callees_pres): check_death_barrier /
      pss_begin_slide / pss_end_slide / check_lava_boost are all WALKED,
@@ -933,16 +952,21 @@ Section NoARealInputMWF.
                          (alloc/free/local-store preserve MWF_real, and the
                          SafeB/global validity projections) *)
                       Hocp_find_floor
+                      (* the four SHARED gated leaf-external residuals that
+                         set_pole_position's WALK reduces to (oc/wc/sc) *)
+                      Hocp_find_ceil
+                      Hwcp_fwc
+                      Hscp_v3f
+                      Hscp_v3s
                       (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
                       (fun m l m' Hf HM =>
                          mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
                       (mwf_real_safe_valid lp bm bc oc0 SafeB)
                       Hglob_valid
                       aut_local_store
-                      (* B10 pole scaffold: segmented_to_virtual (obj_ext)
-                         + set_pole_position named residual *)
+                      (* B10 pole scaffold: segmented_to_virtual (obj_ext).
+                         set_pole_position is now WALKED, not assumed. *)
                       (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
-                      Hcp_spp
                       Hpres_aut_rest))
                 (object_pres lp LO_mario LO_obj LO_stp bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
