@@ -967,6 +967,11 @@ Section NoARealInputMWF.
                       (* B10 pole scaffold: segmented_to_virtual (obj_ext).
                          set_pole_position is now WALKED, not assumed. *)
                       (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
+                      (* act_holding_pole externals (now WALKED, not in rest):
+                         set_sound_moving_speed + virtual_to_segmented, both
+                         obj_ext_ids audio/translation externals. *)
+                      (Hpres_obj_ext mario._set_sound_moving_speed eq_refl)
+                      (Hpres_obj_ext interaction._virtual_to_segmented eq_refl)
                       Hpres_aut_rest))
                 (object_pres lp LO_mario LO_obj LO_stp bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
