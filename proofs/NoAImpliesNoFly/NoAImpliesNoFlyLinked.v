@@ -752,6 +752,15 @@ Section NoARealInputMWF.
      instead on the four gated leaf-external residuals above (Hocp_find_ceil /
      Hwcp_fwc / Hscp_v3f / Hscp_v3s) + the already-present Hocp_find_floor and
      the set_mario_action keystone.  The six pole act handlers reduce to it. *)
+  (* B11 top-of-pole pair: return_mario_anim_y_translation is the SOLE shared
+     helper for act_top_of_pole + act_top_of_pole_transition, both now WALKED
+     (AutomaticLeafSurface, automatic_rest_ids 6 -> 4).  It calls the INTERNAL
+     out-param writer find_mario_anim_flags_and_translation (writes the caller's
+     stack-local _translation + marioObj->animInfo), so its call_pres awaits the
+     internal-out-param generalization -- a precise, true-in-model, dischargeable
+     residual that REPLACES the two whole leaf bodies formerly in Hpres_aut_rest. *)
+  Hypothesis Hrmayt_real :
+    call_pres lp bm (NoA_real bm) MWF mario._return_mario_anim_y_translation.
   (* the special-floors LEAF CENSUS is FULLY DISCHARGED
      (FloorsLeafSurface.floors_callees_pres): check_death_barrier /
      pss_begin_slide / pss_end_slide / check_lava_boost are all WALKED,
@@ -972,6 +981,8 @@ Section NoARealInputMWF.
                          obj_ext_ids audio/translation externals. *)
                       (Hpres_obj_ext mario._set_sound_moving_speed eq_refl)
                       (Hpres_obj_ext interaction._virtual_to_segmented eq_refl)
+                      (* B11: the SOLE top-of-pole helper residual *)
+                      Hrmayt_real
                       Hpres_aut_rest))
                 (object_pres lp LO_mario LO_obj LO_stp bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
