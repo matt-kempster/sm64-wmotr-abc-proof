@@ -267,11 +267,11 @@ Proof. vm_compute. reflexivity. Qed.
 
 (* ---- walks ---- *)
 Example lgl_walk :
-  wwalk_chk' lgl_lids lgl_oc_pids nil false nil nil nil nil nil lgl_sids nil
+  wwalk_chk' lgl_lids lgl_oc_pids nil nil false nil nil nil nil nil lgl_sids nil
     (fn_body mario_actions_automatic.f_let_go_of_ledge) = true.
 Proof. vm_compute. reflexivity. Qed.
 Example ffhrp_walk :
-  wwalk_chk' ffhrp_lids ffhrp_oc_pids nil false nil nil nil nil nil nil nil
+  wwalk_chk' ffhrp_lids ffhrp_oc_pids nil nil false nil nil nil nil nil nil nil
     (fn_body mario.f_find_floor_height_relative_polar) = true.
 Proof. vm_compute. reflexivity. Qed.
 Example sasthf_walk :
@@ -953,7 +953,7 @@ Section AutomaticLeafRows.
              mario_actions_automatic.prog
              mario_actions_automatic._let_go_of_ledge
              mario_actions_automatic.f_let_go_of_ledge
-             nil nil nil lgl_sids lgl_lids lgl_oc_pids nil
+             nil nil nil lgl_sids lgl_lids lgl_oc_pids nil nil
              LO_aut lgl_pin lgl_params_ok).
     - (* Hdg: stored_globals disjoint from fn_vars=[_floor] *)
       intros g Hg Hin; vm_compute in Hin;
@@ -968,6 +968,7 @@ Section AutomaticLeafRows.
       intros g Hg Hin; vm_compute in Hin;
         destruct Hin as [Heq | []]; subst g; vm_compute in Hg; discriminate.
     - intros g HH; discriminate HH.   (* Hdwc: wc_pids=nil *)
+    - intros g HH; discriminate HH.   (* Hdsc: sc_pids=nil *)
     - (* Hdgt: gGlobalTimer not a local *)
       vm_compute; intro Hin; destruct Hin as [Heq | []]; discriminate Heq.
     - (* Hlsub: lids=[_floor] subset of fn_vars *)
@@ -984,6 +985,7 @@ Section AutomaticLeafRows.
     - exact lgl_sids_rows.             (* Hcps: sids *)
     - exact lgl_oc_rows.               (* Hcpoc: oc_pids *)
     - intros fid' H; discriminate H.   (* Hcpwc: wc_pids=nil *)
+    - intros fid' H; discriminate H.   (* Hcpsc: sc_pids=nil *)
     - exact lgl_walk.                  (* Hchk *)
   Qed.
   Lemma Hffhrp :
@@ -995,7 +997,7 @@ Section AutomaticLeafRows.
              HMWF_alloc HMWF_free
              mario.prog mario._find_floor_height_relative_polar
              mario.f_find_floor_height_relative_polar
-             nil nil nil nil ffhrp_lids ffhrp_oc_pids nil
+             nil nil nil nil ffhrp_lids ffhrp_oc_pids nil nil
              LO_mario ffhrp_pin ffhrp_params_ok).
     - (* Hdg: stored_globals disjoint *)
       intros g Hg Hin; vm_compute in Hin;
@@ -1008,6 +1010,7 @@ Section AutomaticLeafRows.
       intros g Hg Hin; vm_compute in Hin;
         destruct Hin as [Heq | []]; subst g; vm_compute in Hg; discriminate.
     - intros g HH; discriminate HH.   (* Hdwc: wc_pids=nil *)
+    - intros g HH; discriminate HH.   (* Hdsc: sc_pids=nil *)
     - (* Hdgt: gGlobalTimer not a local *)
       vm_compute; intro Hin; destruct Hin as [Heq | []]; discriminate Heq.
     - (* Hlsub: lids=[_floor] subset of fn_vars *)
@@ -1024,6 +1027,7 @@ Section AutomaticLeafRows.
     - intros fid' H; discriminate H.   (* Hcps: sids=nil *)
     - exact ffhrp_oc_rows.             (* Hcpoc: oc_pids *)
     - intros fid' H; discriminate H.   (* Hcpwc: wc_pids=nil *)
+    - intros fid' H; discriminate H.   (* Hcpsc: sc_pids=nil *)
     - exact ffhrp_walk.                (* Hchk *)
   Qed.
   (* the wwalk helper (fn_vars = nil, in mario_step) *)
