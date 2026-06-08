@@ -815,6 +815,89 @@ Section OutParamArc.
   Qed.
 
   (* ====================================================================== *)
+  (* THE LOCAL-OUT-PARAM-WRITER ARC (ol): the honest gate for an EXTERNAL    *)
+  (* that writes FLOATS through an INTERIOR pointer arg that is a STACK      *)
+  (* LOCAL (local_blk), and whose pointer arg is NOT the LAST one (so the    *)
+  (* oc/last_arg_local arm does not fit) and is NOT a bm-window (so the wc   *)
+  (* args_all_window arm does not fit either).                              *)
+  (*                                                                        *)
+  (* The canonical case is `resolve_and_return_wall_collisions(nextPos,     *)
+  (* 1.0f, 1.0f)` in perform_hanging_step (mario_actions_automatic.v:2918): *)
+  (* its first arg is `nextPos` (the stack-local out-param the mo-gate pins *)
+  (* as local_blk), the other two are FLOAT CONSTANTS (not pointers).  A    *)
+  (* phantom-false `call_pres_ext` (forall vargs) would let the adversary   *)
+  (* aim nextPos at the action cell @12; the honest gate is that EVERY      *)
+  (* pointer arg lands in a local_blk (disjoint from bm and from the chase/ *)
+  (* object structure MWF tracks), so the external write preserves carried. *)
+  (* Position-INDEPENDENT (like args_all_window), so it does not care which *)
+  (* arg slot the pointer occupies.  Mirror of the wc arc, local_blk gate.  *)
+  (* ====================================================================== *)
+
+  (* the local gate: every POINTER argument is a stack-local block.  The
+     non-pointer args (the float thresholds) impose nothing. *)
+  Definition args_all_local (vargs : list val) : Prop :=
+    forall b ofs, In (Vptr b ofs) vargs -> local_blk lp bm SafeB b.
+
+  (* the ARG-AWARE external residual (the honest refinement of the phantom
+     call_pres_ext for the LOCAL-out-param writers): preserves the carried
+     run facts PROVIDED every pointer arg lands in a local_blk. *)
+  Definition call_pres_ext_ol (fid : ident) : Prop :=
+    forall fd m0 vargs0 t0 m1 vres0,
+      eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m1 vres0 ->
+      resolves_lp fid fd ->
+      args_all_local vargs0 ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\
+      MWF m1 /\ NoA m1.
+
+  (* THE CALL-SITE BRICK: a Scall to a local-out-param writer whose every
+     pointer arg evaluates to a local_blk cell preserves carried.  This is
+     what the perform_hanging_step body walk consumes at the
+     resolve_and_return_wall_collisions call site.  (Structure mirrors
+     wc_scall_pres / oc_scall_pres exactly.) *)
+  Lemma ol_scall_pres :
+    forall optid fid tyl rty cc args e le0 m0 tr le1 m1 out0,
+      e ! fid = None ->
+      call_pres_ext_ol fid ->
+      (forall vargs, eval_exprlist (lp_ge lp) e le0 m0 args tyl vargs ->
+                     args_all_local vargs) ->
+      exec_stmt function_entry2 (lp_ge lp) e le0 m0
+        (Scall optid (Evar fid (Tfunction tyl rty cc)) args)
+        tr le1 m1 out0 ->
+      carried bm NoA MWF m0 ->
+      carried bm NoA MWF m1 /\ out0 = Out_normal.
+  Proof.
+    intros optid fid tyl rty cc args e le0 m0 tr le1 m1 out0
+           He Hol Hloc Hexec Hc.
+    inv Hexec.
+    match goal with
+    | Hcf : classify_fun _ = fun_case_f _ _ _ |- _ =>
+        cbn in Hcf; injection Hcf as E1 E2 E3; subst
+    end.
+    match goal with
+    | Hv : eval_expr _ _ _ _ (Evar _ _) ?vf |- _ =>
+        destruct (eval_Evar_funct _ _ _ _ _ _ _ _ He Hv) as (bf & Hsym & ->)
+    end.
+    match goal with
+    | Hff : Genv.find_funct _ (Vptr bf Ptrofs.zero) = Some ?fd |- _ =>
+        assert (Hres : resolves_lp fid fd) by (exists bf; split; assumption)
+    end.
+    match goal with
+    | Hvl : eval_exprlist _ _ _ _ _ _ ?vargs |- _ =>
+        pose proof (Hloc vargs Hvl) as Hla
+    end.
+    destruct Hc as (HV & HS & HM & HN).
+    match goal with
+    | Hevf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+        destruct (Hol _ _ _ _ _ _ Hevf Hres Hla HN HM HV HS)
+          as (HV' & HS' & HM' & HN')
+    end.
+    split; [ | reflexivity ].
+    split; [ exact HV' | split; [ exact HS' | split; [ exact HM' | exact HN' ] ] ].
+  Qed.
+
+  (* ====================================================================== *)
   (* geo_update_animation_frame's out-param: its dst arg is                  *)
   (* `&obj->header.gfx.animInfo` -- three AGGREGATE Efields over the         *)
   (* Ederef of the _obj temp.  Each aggregate Efield/Ederef hands back the   *)
