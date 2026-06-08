@@ -38,6 +38,7 @@ From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface
   AirborneSurface DispatchKit FloorsSurface AutomaticSurface.
 From SM64.Proofs Require Import ActWriterSurface ObjectLeafSurface.
 From SM64.Proofs Require Import LocalVarsSurface OutParamSurface.
+From SM64.Proofs Require Import RealFrameValue.
 
 Import ListNotations.
 
@@ -1005,6 +1006,175 @@ Section AutomaticLeafRows.
     | H : exec_stmt _ _ _ _ _ (Scall _ _ _) _ _ _ _ |- _ => inv H
     | H : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _ |- _ => inv H
     end.
+
+  (* ====================================================================== *)
+  (* famft_body_pres_oc2: WALK find_mario_anim_flags_and_translation's body  *)
+  (* under the oc2 gate (obj=SafeB-if-ptr, translation=stack local).  This   *)
+  (* DISCHARGES the Hoc2_famft hypothesis (and capstone Hoc2famft_real) into  *)
+  (* THREE honest terminal EXTERNAL residuals (all EF_external in mario.prog):*)
+  (*   - geo_update_animation_frame: writes through &obj->..animInfo (obj in  *)
+  (*     SafeB by the gate)            -> call_pres_ext_sc (arg0_safe);        *)
+  (*   - retrieve_animation_index: writes through &animIndex (own fn_var      *)
+  (*     stack local)                  -> call_pres_ext_oc (last_arg_local);   *)
+  (*   - segmented_to_virtual: pure address translation, no Mem write         *)
+  (*                                    -> call_pres_ext (unconditional).      *)
+  (* The body's own stores are the animIndex fn_var (Sassign Evar) and the    *)
+  (* *(translation+i) out-param (Sassign Ederef), both into watched-disjoint  *)
+  (* stack locals (block <> bm) -> Hls_real / localstore_carried.  decompose, *)
+  (* not collapse: one oc2 internal residual -> 3 leaf externals one          *)
+  (* call-graph level down.  Staged as a standalone lemma (the 3 externals as *)
+  (* its own premises) so the section signature is unperturbed until the swap.*)
+  (* ====================================================================== *)
+  Lemma famft_pin :
+    (prog_defmap mario.prog) ! mario._find_mario_anim_flags_and_translation
+    = Some (Gfun (Internal mario.f_find_mario_anim_flags_and_translation)).
+  Proof. vm_compute. reflexivity. Qed.
+
+  (* store brick 1: a direct Sassign into a watched-disjoint local Evar
+     (the `animIndex = t'2` fn_var store) preserves carried.  Value-blind:
+     localstore_carried only needs the target block <> bm. *)
+  Lemma evar_store_carried :
+    forall e lid pty a le m0 tr le' m' out lblk tyenv ch,
+      e ! lid = Some (lblk, tyenv) ->
+      local_blk lp bm SafeB lblk ->
+      access_mode pty = By_value ch ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0
+        (Sassign (Evar lid pty) a) tr le' m' out ->
+      carried bm NoA MWF m0 ->
+      carried bm NoA MWF m' /\ out = Out_normal.
+  Proof.
+    intros e lid pty a le m0 tr le' m' out lblk tyenv ch
+           Hlid Hlb Hacc Hexec Hc.
+    inv Hexec.
+    match goal with
+    | Hev : eval_lvalue _ _ _ _ (Evar _ _) ?l ?of ?bf |- _ =>
+        assert (Hpin : l = lblk /\ bf = Full)
+          by (eapply eval_lvalue_Evar_local_pin'; [ exact Hlid | exact Hev ]);
+        destruct Hpin as [-> ->]
+    end.
+    match goal with
+    | Has : assign_loc _ (typeof _) _ _ _ _ _ m' |- _ =>
+        cbn [typeof] in Has; inv Has
+    end;
+    [ split; [ | reflexivity ];
+      match goal with
+      | Hstv : Mem.storev _ _ (Vptr lblk _) _ = Some m' |- _ =>
+          unfold Mem.storev in Hstv;
+          eapply localstore_carried;
+            first [ exact Hls_real | exact HNoA_of_MWF
+                  | exact Hlb | exact Hstv | exact Hc ]
+      end
+    | match goal with
+      | Hco : access_mode pty = By_copy |- _ =>
+          rewrite Hacc in Hco; discriminate Hco
+      end ].
+  Qed.
+
+  (* store brick 2: an indexed Sassign through a POINTER tempvar holding a
+     watched-disjoint local block (the `*(translation+i) = short` out-param
+     store) preserves carried.  Twin of local_idx_assign_pres' but the base
+     is a bare pointer Etempvar (rvalue, no deref_loc), not an array Evar. *)
+  Lemma tempptr_idx_store_carried :
+    forall e tid ety idxN ity ety2 a2 le m0 tr le' m' out b ofs ch,
+      le ! tid = Some (Vptr b ofs) ->
+      local_blk lp bm SafeB b ->
+      access_mode ety2 = By_value ch ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0
+        (Sassign (Ederef (Ebinop Oadd (Etempvar tid (tptr ety))
+                            (Econst_int idxN tint) ity) ety2) a2)
+        tr le' m' out ->
+      carried bm NoA MWF m0 ->
+      carried bm NoA MWF m' /\ out = Out_normal.
+  Proof.
+    intros e tid ety idxN ity ety2 a2 le m0 tr le' m' out b ofs ch
+           Htid Hlb Hacc Hexec Hc.
+    inv Hexec.
+    match goal with
+    | Hlv : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ => inv Hlv
+    end.
+    match goal with
+    | Hp : eval_expr _ _ _ _ (Ebinop _ _ _ _) _ |- _ => inv Hp
+    end.
+    2:{ match goal with
+        | Hlv2 : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => inv Hlv2
+        end. }
+    match goal with
+    | Hi : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+        inv Hi;
+        try (match goal with
+             | Hlv3 : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ => inv Hlv3
+             end)
+    end.
+    (* derive the base value WITHOUT inv (inv would subst the tid variable):
+       apply eval_expr_Etempvar_val, then pin v1 = Vptr b ofs via Htid. *)
+    match goal with
+    | Hb : eval_expr _ _ _ _ (Etempvar tid _) ?vb |- _ =>
+        apply eval_expr_Etempvar_val in Hb;
+        rewrite Htid in Hb; injection Hb as Hvb; subst vb
+    end.
+    match goal with
+    | Hsem : sem_binary_operation _ Oadd _ _ _ _ _ = Some (Vptr ?l2 _) |- _ =>
+        cbn in Hsem; injection Hsem as Hbl Hof; subst l2
+    end.
+    match goal with
+    | Has : assign_loc _ (typeof _) _ _ _ _ _ m' |- _ =>
+        cbn [typeof] in Has; inv Has
+    end;
+    [ split; [ | reflexivity ];
+      match goal with
+      | Hstv : Mem.storev _ _ (Vptr b _) _ = Some m' |- _ =>
+          unfold Mem.storev in Hstv;
+          eapply localstore_carried;
+            first [ exact Hls_real | exact HNoA_of_MWF
+                  | exact Hlb | exact Hstv | exact Hc ]
+      end
+    | match goal with
+      | Hco : access_mode ety2 = By_copy |- _ =>
+          rewrite Hacc in Hco; discriminate Hco
+      end ].
+  Qed.
+
+  (* ---- famft_body_pres_oc2 (the body walk that CONSUMES famft_geo_arg0_block
+     + evar_store_carried + tempptr_idx_store_carried) is the NEXT step.  Its
+     statement is:
+       call_pres_ext_sc lp .. mario._geo_update_animation_frame ->
+       call_pres_ext_oc lp .. mario._retrieve_animation_index ->
+       call_pres_ext    lp .. mario._segmented_to_virtual ->
+       body_pres_oc2 lp bm NoA MWF SafeB
+         mario.f_find_mario_anim_flags_and_translation.
+     Lifted by OutParamSurface.call_pres_ext_oc2_of_body + famft_pin it
+     DISCHARGES Hoc2_famft into THREE honest terminal EXTERNAL residuals (all
+     EF_external in mario.prog), the decompose-not-collapse move for the
+     remaining top_of_pole dependency.
+
+     VERIFIED so far (this brick set, green):
+       - the entry plumbing (alloc _animIndex fn_var via alloc_variables_hlocal;
+         bind _obj/_yaw/_translation; extract oc2 gate: Hcond = arg0_cond_safe
+         [v_obj;..] -> SafeB-if-ptr, Hlast -> v_trans = Vptr tlb tlo with
+         local_blk tlb) -- mirrors Hrmayt's entry below;
+       - famft_geo_arg0_block (OutParamSurface): &obj->header.gfx.animInfo lands
+         in _obj's block -> feeds sc_scall_pres's arg0_safe at the geo call;
+       - evar_store_carried: the `animIndex = t'2` fn_var store (local Evar);
+       - tempptr_idx_store_carried: the `*(translation+i) = short` out-param
+         store (pointer Etempvar base, index Econst).
+
+     REMAINING for the walk (mechanical leaf-threading, me -> m2, then free_list):
+       block B  geo_update_animation_frame -> sc_scall_pres (gate: at the geo
+                call leG!_obj = v_obj by 2x PTree.gso from Hobj1; then
+                famft_geo_arg0_block + Hcond give arg0 in SafeB);
+       blocks C,D segmented_to_virtual -> kit_scallx_pres (ActWriterSurface, plain
+                call_pres_ext, no gate);
+       block C  animIndex store         -> evar_store_carried (Heai + Hailoc);
+       blocks G,H,I retrieve_animation_index -> oc_scall_pres (gate: last arg
+                = Eaddrof(Evar _animIndex) is local -- needs a 2-ARG addrof-ptr
+                oc extractor `Eaddrof (Evar lid (tptr ety)) (tptr (tptr ety))`,
+                a twin of OutParamSurface.oc_last_addrof but 2-elt + ptr (not
+                Tstruct) element type -- the ONE missing brick);
+       blocks H,J,K *(translation+{1,0,2}) stores -> tempptr_idx_store_carried
+                (Htrans1 le!_translation = v_trans, Hvtrans, Htloc);
+       remaining Ssets preserve carried (mem unchanged); exit free_list via
+       free_list_carried_bm (blocks_of_env_bm).  Then call_pres_ext_oc2_of_body
+       lifts to call_pres_ext_oc2 and replaces Hoc2_famft. ---- *)
 
   Lemma rmayt_pin :
     (prog_defmap mario.prog) ! mario._return_mario_anim_y_translation
