@@ -615,4 +615,77 @@ Section LocalVarsArc.
       end ].
   Qed.
 
+  (* ================================================================== *)
+  (* The TEMPVAR-POINTER indexed-store twin of local_idx_assign_pres'.   *)
+  (* Here the store target's base is a POINTER VALUE held in a temp      *)
+  (* (le!q = Vptr lblk ofs, local_blk lblk) -- e.g. the out-param        *)
+  (* `nextPos` of perform_hanging_step, written as nextPos[idx] = <float>*)
+  (* (Sassign (Ederef (Ebinop Oadd (Etempvar nextPos) idx)) rhs).  No    *)
+  (* array-decay deref_loc step (Etempvar reads the temp directly), so   *)
+  (* it is SIMPLER than the Evar version.  localstore_carried needs only *)
+  (* local_blk of the (offset-shifted) block -- the stored value is      *)
+  (* unconstrained (a local block is fully watched-disjoint).            *)
+  (* ================================================================== *)
+  Lemma local_ptr_idx_assign_pres :
+    forall e q idxN itya ety2 a2 le m0 tr le' m' out lblk ofs ch,
+      le ! q = Some (Vptr lblk ofs) ->
+      local_blk lblk ->
+      access_mode ety2 = By_value ch ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0
+        (Sassign (Ederef (Ebinop Oadd (Etempvar q (tptr tfloat))
+                            (Econst_int idxN tint) itya) ety2) a2)
+        tr le' m' out ->
+      carried m0 ->
+      carried m' /\ le' = le /\ out = Out_normal.
+  Proof.
+    intros e q idxN itya ety2 a2 le m0 tr le' m' out lblk ofs ch
+           Hq Hlb Hacc Hexec Hc.
+    inv Hexec.
+    match goal with
+    | Hlv : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ => inv Hlv
+    end.
+    match goal with
+    | Hp : eval_expr _ _ _ _ (Ebinop _ _ _ _) _ |- _ => inv Hp
+    end.
+    2:{ match goal with
+        | Hlv2 : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => inv Hlv2
+        end. }
+    (* the index: Econst_int -> Vint *)
+    match goal with
+    | Hi : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+        inv Hi;
+        try (match goal with
+             | Hlv3 : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+                 inv Hlv3
+             end)
+    end.
+    (* the base: Etempvar q -> read le!q = Vptr lblk ofs.  (inv Hexec
+       substituted le -> le', so match the env by a shared metavar.) *)
+    match goal with
+    | Ha : eval_expr _ _ ?L _ (Etempvar ?Q _) ?V,
+      Hq0 : ?L ! ?Q = Some (Vptr ?lb ?of) |- _ =>
+        apply RealFrameValue.eval_expr_Etempvar_val in Ha;
+        rewrite Hq0 in Ha; injection Ha as Hv; subst V
+    end.
+    (* sem_add (Vptr lblk ofs) (Vint idxN): block is preserved *)
+    match goal with
+    | Hsem : sem_binary_operation _ Oadd _ _ _ _ _ = Some (Vptr ?l2 _) |- _ =>
+        cbn in Hsem; injection Hsem as Hbl Hof; subst l2
+    end.
+    match goal with
+    | Has : assign_loc _ (typeof _) _ _ _ _ _ m' |- _ =>
+        cbn [typeof] in Has; inv Has
+    end;
+    [ split; [ | split; reflexivity ];
+      match goal with
+      | Hstv : Mem.storev _ _ (Vptr lblk _) _ = Some m' |- _ =>
+          unfold Mem.storev in Hstv;
+          eapply localstore_carried; [ exact Hlb | exact Hstv | exact Hc ]
+      end
+    | match goal with
+      | Hco : access_mode ety2 = By_copy |- _ =>
+          rewrite Hacc in Hco; discriminate Hco
+      end ].
+  Qed.
+
 End LocalVarsArc.
