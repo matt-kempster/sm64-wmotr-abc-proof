@@ -898,6 +898,86 @@ Section OutParamArc.
   Qed.
 
   (* ====================================================================== *)
+  (* THE DST-WINDOW-WRITER ARC (w1): the honest gate for an EXTERNAL that    *)
+  (* writes through its FIRST (dst) pointer arg into a SAFE WINDOW of bm,    *)
+  (* while a LATER pointer arg is a read-only SOURCE in a different block    *)
+  (* (so neither the wc args_all_window gate -- which demands EVERY pointer  *)
+  (* be a bm-window -- nor the sc arg0_safe gate -- a SafeB dst -- fits).    *)
+  (*                                                                        *)
+  (* The canonical case is `vec3f_copy(&m->pos, nextPos)` in                *)
+  (* perform_hanging_step: dst = &m->pos (a 12-byte float window of bm,      *)
+  (* action-cell @12 clear), src = nextPos (the local out-param, read-only). *)
+  (* vec3f_copy writes ONLY through its dst, so the honest gate is that the  *)
+  (* FIRST pointer arg is a safe 12-byte bm-window; the source arg is        *)
+  (* unconstrained.  Mirror of the sc arc, window dst instead of SafeB dst.  *)
+  (* ====================================================================== *)
+
+  (* the dst-window gate: the FIRST argument (the write destination) is a
+     12-byte safe window of bm (a 3-float vec write clears the action cell
+     @12 and the watched cells).  The remaining args (the read-only src,
+     scalars) are unconstrained -- the external writes only through dst. *)
+  Definition arg0_window (vargs : list val) : Prop :=
+    exists ofs rest, vargs = Vptr bm ofs :: rest /\
+      store_window_ok (Ptrofs.unsigned ofs) 12 = true.
+
+  (* the ARG-AWARE external residual for the DST-WINDOW writers: preserves
+     the carried run facts PROVIDED the dst arg lands in a safe bm-window. *)
+  Definition call_pres_ext_w1 (fid : ident) : Prop :=
+    forall fd m0 vargs0 t0 m1 vres0,
+      eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m1 vres0 ->
+      resolves_lp fid fd ->
+      arg0_window vargs0 ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\
+      MWF m1 /\ NoA m1.
+
+  (* THE CALL-SITE BRICK: a Scall to a dst-window writer whose dst arg
+     evaluates to a safe bm-window preserves carried.  Consumed by the
+     perform_hanging_step body walk at its vec3f_copy(&m->pos, nextPos)
+     call site.  (Structure mirrors sc_scall_pres / wc_scall_pres.) *)
+  Lemma w1_scall_pres :
+    forall optid fid tyl rty cc args e le0 m0 tr le1 m1 out0,
+      e ! fid = None ->
+      call_pres_ext_w1 fid ->
+      (forall vargs, eval_exprlist (lp_ge lp) e le0 m0 args tyl vargs ->
+                     arg0_window vargs) ->
+      exec_stmt function_entry2 (lp_ge lp) e le0 m0
+        (Scall optid (Evar fid (Tfunction tyl rty cc)) args)
+        tr le1 m1 out0 ->
+      carried bm NoA MWF m0 ->
+      carried bm NoA MWF m1 /\ out0 = Out_normal.
+  Proof.
+    intros optid fid tyl rty cc args e le0 m0 tr le1 m1 out0
+           He Hw1 Hwin Hexec Hc.
+    inv Hexec.
+    match goal with
+    | Hcf : classify_fun _ = fun_case_f _ _ _ |- _ =>
+        cbn in Hcf; injection Hcf as E1 E2 E3; subst
+    end.
+    match goal with
+    | Hv : eval_expr _ _ _ _ (Evar _ _) ?vf |- _ =>
+        destruct (eval_Evar_funct _ _ _ _ _ _ _ _ He Hv) as (bf & Hsym & ->)
+    end.
+    match goal with
+    | Hff : Genv.find_funct _ (Vptr bf Ptrofs.zero) = Some ?fd |- _ =>
+        assert (Hres : resolves_lp fid fd) by (exists bf; split; assumption)
+    end.
+    match goal with
+    | Hvl : eval_exprlist _ _ _ _ _ _ ?vargs |- _ =>
+        pose proof (Hwin vargs Hvl) as Hww
+    end.
+    destruct Hc as (HV & HS & HM & HN).
+    match goal with
+    | Hevf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+        destruct (Hw1 _ _ _ _ _ _ Hevf Hres Hww HN HM HV HS)
+          as (HV' & HS' & HM' & HN')
+    end.
+    split; [ | reflexivity ].
+    split; [ exact HV' | split; [ exact HS' | split; [ exact HM' | exact HN' ] ] ].
+  Qed.
+
+  (* ====================================================================== *)
   (* geo_update_animation_frame's out-param: its dst arg is                  *)
   (* `&obj->header.gfx.animInfo` -- three AGGREGATE Efields over the         *)
   (* Ederef of the _obj temp.  Each aggregate Efield/Ederef hands back the   *)
