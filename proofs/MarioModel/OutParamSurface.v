@@ -291,6 +291,50 @@ Section OutParamArc.
     split; [ reflexivity | exact Hloc ].
   Qed.
 
+  (* the 2-ARG twin of oc_last_addrof: last arg is &(a stack-local POINTER var)
+     -- Eaddrof (Evar lid (tptr ety)) (tptr (tptr ety)) -- with a SCALAR-pointer
+     element type ety (not a Tstruct).  This is the retrieve_animation_index
+     out-param shape: retrieve_animation_index(animFrame, &animIndex) in
+     find_mario_anim_flags_and_translation.  Feeds oc_scall_pres's gate for the
+     famft body walk.  Mirror of oc_last_addrof but 2-elt list + tptr-ety. *)
+  Lemma oc_last_addrof_ptr2 :
+    forall e le m a1 lid ety tyenv t1 b vargs,
+      e ! lid = Some (b, tyenv) ->
+      local_blk lp bm SafeB b ->
+      eval_exprlist (lp_ge lp) e le m
+        (a1 :: Eaddrof (Evar lid (tptr ety)) (tptr (tptr ety)) :: nil)
+        (t1 :: tptr (tptr ety) :: nil) vargs ->
+      last_arg_local vargs.
+  Proof.
+    intros e le m a1 lid ety tyenv t1 b vargs Hlid Hloc Hvl.
+    repeat match goal with
+    | H : eval_exprlist _ _ _ _ (_ :: _) _ _ |- _ => inv H
+    end.
+    match goal with
+    | H : eval_exprlist _ _ _ _ nil _ _ |- _ => inv H
+    end.
+    match goal with
+    | He : eval_expr _ _ _ _ (Eaddrof _ _) _ |- _ => inv He
+    end;
+    try (match goal with
+         | Hl : eval_lvalue _ _ _ _ (Eaddrof _ _) _ _ _ |- _ => inv Hl
+         end).
+    match goal with
+    | Hl : eval_lvalue _ _ _ _ (Evar lid _) _ _ _ |- _ => inv Hl
+    end;
+    [ | match goal with
+        | Hn : e ! lid = None |- _ => rewrite Hlid in Hn; discriminate Hn
+        end ].
+    match goal with
+    | He : e ! lid = Some (?loc, _),
+      Hc : sem_cast (Vptr ?loc Ptrofs.zero) _ _ _ = Some _ |- _ =>
+        assert (loc = b) by congruence; subst loc;
+        cbn in Hc; injection Hc as <-
+    end.
+    unfold last_arg_local. cbn [last_val]. exists b, Ptrofs.zero.
+    split; [ reflexivity | exact Hloc ].
+  Qed.
+
   (* THE ENGINE-CALLABLE oc-call unit: a 4-arg out-param call whose last arg is
      &(a stack local lid) -- with lid's locality supplied by the walker's
      local-safe env binding (e!lid = Some(b, ..) /\ local_blk b) -- preserves
