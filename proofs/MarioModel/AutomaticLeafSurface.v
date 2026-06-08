@@ -1015,6 +1015,9 @@ Section AutomaticLeafRows.
     | H : exec_stmt _ _ _ _ _ (Sassign _ _) _ _ _ _ |- _ => inv H
     | H : exec_stmt _ _ _ _ _ (Scall _ _ _) _ _ _ _ |- _ => inv H
     | H : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _ |- _ => inv H
+    | H : exec_stmt _ _ _ _ _ Sskip _ _ _ _ |- _ => inv H
+    | H : exec_stmt _ _ _ _ _ (Sifthenelse _ _ _) _ _ _ _ |- _ => inv H
+    | H : exec_stmt _ _ _ _ _ (if ?b then _ else _) _ _ _ _ |- _ => destruct b
     end.
 
   (* ====================================================================== *)
@@ -1542,18 +1545,634 @@ Section AutomaticLeafRows.
     exact (conj HVf (conj HSf HMf)).
   Qed.
 
+  (* ====================================================================== *)
+  (* B11 update_hang_moving: WALKED.  This DISCHARGES the old opaque Huhm    *)
+  (* whole-helper Hypothesis into TWO honest leaf-callee residuals one       *)
+  (* call-graph level down (decompose, not collapse):                        *)
+  (*   - approach_s32 : a pure-math integer-clamp EF_external (no Mem write)  *)
+  (*                    -> call_pres_ext (Hcpx_approach);                     *)
+  (*   - perform_hanging_step : the INTERNAL hang-physics helper, called as   *)
+  (*     perform_hanging_step(m, nextPos) with arg0 = Mario (bm,0) AND the    *)
+  (*     last arg = the caller's _nextPos stack local.  Its body DIRECTLY     *)
+  (*     stores nextPos[1], so a marg-only call_pres is phantom-FALSE; the    *)
+  (*     honest residual is the marg-AND-local gate call_pres_mo (Hcp_php).   *)
+  (* update_hang_moving's own writers are all marg-pinned Mario-field stores  *)
+  (* (forwardVel/slideYaw/slideVelX/slideVelZ direct, faceAngle[1] idx16,     *)
+  (* vel[0..2] idx), watched-disjoint _nextPos[0..2] local stores, and the    *)
+  (* two graphics OBJECT writers vec3f_copy/vec3s_set chasing m->marioObj     *)
+  (* into the SafeB object pool (Hscp_v3f / Hscp_v3s).  Same decompose shape  *)
+  (* as famft / set_pole_position. *)
+  (* ====================================================================== *)
+  Hypothesis Hcpx_approach :
+    call_pres_ext lp bm NoA MWF mario_actions_automatic._approach_s32.
+  Hypothesis Hcp_php :
+    call_pres_mo lp bm NoA MWF SafeB mario_actions_automatic._perform_hanging_step.
+
+  (* ---- memory split: peel the body's back HALF into a separate Qed ----
+     update_hang_moving's body walk is the biggest single proof term in the repo;
+     its monolithic Qed peaks ~7.3GB RSS (over the 6.5GB WSL guardrail).  The back
+     half -- the 3 m->vel[i] indexed stores, the 3 nextPos[i] local stores, and
+     the perform_hanging_step / vec3f_copy / vec3s_set object-writer TAIL -- form a
+     clean right-nested suffix starting at top-level block 7 (the first m->vel
+     store, drop_blocks 7).  Proving that suffix in its own lemma (uhm_tail_pres)
+     lets Coq free that term before uhm_body_pres's Qed, so peak ~= max(prefix,
+     suffix) instead of the whole walk.  Pure refactor: same bricks, same
+     assumptions -- only the Qed boundary moved. *)
+  Fixpoint drop_blocks (n : nat) (s : statement) : statement :=
+    match n, s with
+    | S k, Ssequence _ r => drop_blocks k r
+    | _, _ => s
+    end.
+
+  (* NB: keep this SYMBOLIC (no Eval) -- pre-reducing with vm_compute would turn
+     the ident CONSTANTS (_perform_hanging_step, _marioObj, _t'5, ...) into raw
+     positives, breaking the by-name pattern matching in the tail walk.  The
+     helper reduces it in-place with the same cbn the body uses. *)
+  Definition uhm_tail : statement :=
+    drop_blocks 3 mario_actions_automatic.f_update_hang_moving.(fn_body).
+
+  Lemma uhm_pin :
+    (prog_defmap mario_actions_automatic.prog)
+      ! mario_actions_automatic._update_hang_moving
+    = Some (Gfun (Internal mario_actions_automatic.f_update_hang_moving)).
+  Proof. vm_compute. reflexivity. Qed.
+
+  (* An Sifthenelse whose BOTH branches preserve carried preserves carried --
+     non-branching (returns a single goal), unlike `inv H; destruct b` which
+     leaves two goals the surrounding linear walk cannot absorb.  Used for the
+     forwardVel clamp (then = m->forwardVel = maxSpeed store, else = Sskip). *)
+  Lemma sif_carried :
+    forall e le m c s1 s2 t le' m' out,
+      (forall t2 le2 m2 out2,
+         exec_stmt function_entry2 (lp_ge lp) e le m s1 t2 le2 m2 out2 ->
+         carried bm NoA MWF m -> carried bm NoA MWF m2 /\ le2 = le) ->
+      (forall t2 le2 m2 out2,
+         exec_stmt function_entry2 (lp_ge lp) e le m s2 t2 le2 m2 out2 ->
+         carried bm NoA MWF m -> carried bm NoA MWF m2 /\ le2 = le) ->
+      exec_stmt function_entry2 (lp_ge lp) e le m (Sifthenelse c s1 s2)
+        t le' m' out ->
+      carried bm NoA MWF m -> carried bm NoA MWF m' /\ le' = le.
+  Proof.
+    intros e le m c s1 s2 t le' m' out Hthen Helse Hex Hc.
+    inv Hex.
+    lazymatch goal with
+    | Hb : exec_stmt _ _ _ _ _ (if ?bb then _ else _) _ _ _ _ |- _ =>
+        destruct bb;
+        [ exact (Hthen _ _ _ _ Hb Hc) | exact (Helse _ _ _ _ Hb Hc) ]
+    end.
+  Qed.
+
+  (* gate extractor for the perform_hanging_step(m, nextPos) Scall: arg0 is the
+     Mario pointer temp (marg, (bm,0)) and the last arg is the _nextPos array
+     local (By_reference array decay -> Vptr npb 0, local_blk).  Establishes
+     mo_gate so mo_scall_pres can fire. *)
+  Lemma php_mo_gate :
+    forall e le m v1 npb npty vargs,
+      le ! mario_actions_automatic._m = Some v1 ->
+      (forall b o, le ! mario_actions_automatic._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      e ! mario_actions_automatic._nextPos = Some (npb, npty) ->
+      local_blk lp bm SafeB npb ->
+      eval_exprlist (lp_ge lp) e le m
+        (Etempvar mario_actions_automatic._m
+           (tptr (Tstruct mario_actions_automatic._MarioState noattr))
+          :: Evar mario_actions_automatic._nextPos (tarray tfloat 3) :: nil)
+        (tptr (Tstruct mario_actions_automatic._MarioState noattr)
+          :: tptr tfloat :: nil) vargs ->
+      mo_gate lp bm SafeB vargs.
+  Proof.
+    intros e le m v1 npb npty vargs Hmval Hmarg Henp Hnploc Hvl.
+    (* peel the two-arg list *)
+    inv Hvl.
+    match goal with H : eval_exprlist _ _ _ _ (_ :: nil) _ _ |- _ => inv H end.
+    match goal with H : eval_exprlist _ _ _ _ nil _ _ |- _ => inv H end.
+    (* arg0 = Etempvar _m -> its eval value v0 (le!_m = Some v0); the cast to
+       (tptr MarioState) keeps a Vptr a Vptr, and Hmarg pins it to (bm,0). *)
+    match goal with
+    | He : eval_expr _ _ _ _ (Etempvar _ _) ?v0 |- _ =>
+        apply eval_expr_Etempvar_val in He
+    end.
+    match goal with
+    | He : le ! mario_actions_automatic._m = Some ?v0,
+      Hc : sem_cast ?v0 _ _ _ = Some ?vc |- _ =>
+        assert (Hv0 : forall b o, vc = Vptr b o -> b = bm /\ o = Ptrofs.zero)
+          by (intros b o Heqvc; rewrite Heqvc in Hc; cbn in Hc;
+              destruct v0 as [| ? | ? | ? | ? | b1 o1 ]; cbn in Hc;
+              try discriminate Hc;
+              injection Hc as Hb Ho; subst b1 o1; exact (Hmarg b o He))
+    end.
+    (* arg1 = Evar _nextPos (array) -> By_reference Vptr npb 0 *)
+    match goal with
+    | He : eval_expr _ _ _ _ (Evar _ _) ?v1 |- _ => inv He
+    end.
+    match goal with
+    | Hlv : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ => inv Hlv
+    end;
+    [ | match goal with
+        | Hn : e ! mario_actions_automatic._nextPos = None |- _ =>
+            rewrite Henp in Hn; discriminate Hn
+        end ].
+    match goal with
+    | He : e ! mario_actions_automatic._nextPos = Some (?loc, _) |- _ =>
+        assert (loc = npb) by congruence; subst loc
+    end.
+    match goal with
+    | Hd : deref_loc _ _ npb _ _ _ |- _ =>
+        cbn [typeof] in Hd; inv Hd;
+        try (match goal with
+             | Hac : access_mode _ = By_value _ |- _ =>
+                 cbn in Hac; discriminate Hac
+             end);
+        try (match goal with
+             | Hac : access_mode _ = By_copy |- _ =>
+                 cbn in Hac; discriminate Hac
+             end);
+        try (match goal with
+             | Hlb : load_bitfield _ _ _ _ _ _ _ _ |- _ => inv Hlb
+             end)
+    end.
+    match goal with
+    | Hc : sem_cast (Vptr npb _) _ _ _ = Some _ |- _ =>
+        cbn in Hc; injection Hc as <-
+    end.
+    (* mo_gate = arg0_marg /\ last_arg_local *)
+    split.
+    - cbn [arg0_marg]. exact Hv0.
+    - red. cbn [last_val]. exists npb, Ptrofs.zero.
+      split; [ reflexivity | exact Hnploc ].
+  Qed.
+
+  (* the two graphics object-writers are SHARED obj-family sc rows *)
+  Lemma uhm_sc_rows :
+    forall fid,
+      mem_id fid (mario_actions_automatic._vec3f_copy
+                  :: mario_actions_automatic._vec3s_set :: nil) = true ->
+      call_pres_ext_sc lp bm NoA MWF SafeB fid.
+  Proof.
+    intros fid H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hscp_v3f | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hscp_v3s | ].
+    discriminate H.
+  Qed.
+
+  (* The split-off TAIL: php(m,nextPos) ; vec3f_copy(obj,m->pos) ;
+     vec3s_set(obj,..) ; return.  Quantifies the env/temp facts the three arms
+     need (marg over le!_m, nextPos local, the callee globals unbound) so it is
+     env-agnostic; uhm_body_pres supplies them at the cut point.  Separate Qed =
+     its (heavy) proof term is freed before uhm_body_pres's Qed. *)
+  Lemma uhm_tail_pres :
+    forall E le m v1 npb npty t le' m' out,
+      E ! mario_actions_automatic._nextPos = Some (npb, npty) ->
+      local_blk lp bm SafeB npb ->
+      E ! mario_actions_automatic._approach_s32 = None ->
+      E ! mario_actions_automatic._perform_hanging_step = None ->
+      (forall g,
+          mem_id g (mario_actions_automatic._vec3f_copy
+                    :: mario_actions_automatic._vec3s_set :: nil) = true ->
+          E ! g = None) ->
+      le ! mario_actions_automatic._m = Some v1 ->
+      (forall b o, le ! mario_actions_automatic._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      carried bm NoA MWF m ->
+      exec_stmt function_entry2 (lp_ge lp) E le m uhm_tail t le' m' out ->
+      carried bm NoA MWF m'.
+  Proof.
+    intros E le m v1 npb npty t le' m' out
+           Henp Hnploc Happ_none Hphp_none Hsc_none Hmeq Hmarg_fact Hcar Hexec.
+    unfold uhm_tail, mario_actions_automatic.f_update_hang_moving in Hexec.
+    cbn [drop_blocks fn_body fn_params fn_temps fn_vars] in Hexec.
+    (* PHASE 1: peel the tail's Ssequences / Ssets / the final Sreturn *)
+    repeat first
+      [ match goal with
+        | H : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _ |- _ =>
+            inv H; [ | crush_all_r ]
+        end
+      | match goal with
+        | H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H
+        | H : exec_stmt _ _ _ _ _ (Sreturn _) _ _ _ _ |- _ => inv H
+        end ].
+    (* PHASE 2: thread carried through php, vec3f_copy, vec3s_set.
+       NB `try subst Lo`: here the calls are the leading statements, so each
+       call's output env is abstract (the Scall is never inv'd) and has no
+       equation to subst -- unlike in uhm_body_pres where a prefix precedes them.*)
+    repeat
+      lazymatch goal with
+      (* nextPos[i] local store -- watched-disjoint stack block (SPECIFIC: must
+         precede the generic Sassign arm below) *)
+      | Hc : carried bm NoA MWF ?mc,
+        H : exec_stmt _ _ _ ?Le ?mc
+              (Sassign (Ederef (Ebinop Oadd
+                          (Evar mario_actions_automatic._nextPos _) _ _)
+                          ?ety2) _)
+              _ ?Lo ?mn _ |- _ =>
+          destruct (local_idx_assign_pres' lp bm NoA MWF SafeB Hls_real
+                      HNoA_of_MWF E mario_actions_automatic._nextPos
+                      _ _ _ _ _ ety2 _ Le mc _ Lo mn _ npb npty _
+                      Henp Hnploc ltac:(cbn; reflexivity) H Hc) as (Hc' & Hleq' & _);
+          clear Hc H; rename Hc' into Hc; subst Lo
+      (* m->vel[i] indexed float field store (GENERIC Sassign).  Capture le'=le
+         and subst Lo: a bare vel[i]=const store has NO preceding Sset to rebuild
+         a concrete tower, so the next store's marg gate would hit the opaque
+         post-store env -- keep the chain concrete on the param le. *)
+      | Hc : carried bm NoA MWF ?mc,
+        H : exec_stmt _ _ _ ?Le ?mc (Sassign ?a1 _) _ ?Lo ?mn _ |- _ =>
+          destruct Hc as (HVc & HSc & HMc & HNc);
+          first
+            [ destruct (idx_assign_pres lp LO_mario bm MWF HMWF_window
+                          a1 _ _ Le mc _ _ _ _
+                          ltac:(vm_compute; reflexivity)
+                          ltac:(intros b o Hg;
+                                repeat (rewrite PTree.gso in Hg
+                                          by (vm_compute; discriminate));
+                                exact (Hmarg_fact b o Hg))
+                          H HMc HVc HSc) as (HV' & HS' & HM' & Hleq & _)
+            | destruct (idx16_assign_pres lp LO_mario bm MWF HMWF_window
+                          a1 _ _ Le mc _ _ _ _
+                          ltac:(vm_compute; reflexivity)
+                          ltac:(intros b o Hg;
+                                repeat (rewrite PTree.gso in Hg
+                                          by (vm_compute; discriminate));
+                                exact (Hmarg_fact b o Hg))
+                          H HMc HVc HSc) as (HV' & HS' & HM' & Hleq & _)
+            | destruct (epi_assign_pres lp LO_mario bm MWF HMWF_window
+                          a1 _ _ Le mc _ _ _ _
+                          ltac:(vm_compute; reflexivity)
+                          ltac:(intros b o Hg;
+                                repeat (rewrite PTree.gso in Hg
+                                          by (vm_compute; discriminate));
+                                exact (Hmarg_fact b o Hg))
+                          H HMc HVc HSc) as (HV' & HS' & HM' & Hleq & _) ];
+          assert (Hc' : carried bm NoA MWF mn)
+            by (split; [ exact HV' | split; [ exact HS'
+                       | split; [ exact HM' | exact (HNoA_of_MWF _ HM') ] ] ]);
+          clear Hc HVc HSc HMc HNc H HV' HS' HM'; rename Hc' into Hc; subst Lo
+      (* approach_s32(..): pure-math external, write-free (block3 leaf) *)
+      | Hc : carried bm NoA MWF ?mc,
+        H : exec_stmt _ _ _ _ ?mc
+              (Scall _ (Evar mario_actions_automatic._approach_s32 _) _)
+              _ ?Lo ?mn _ |- _ =>
+          destruct (stv_scall_pres _ mario_actions_automatic._approach_s32
+                      _ _ _ _ _ _ _ _ _ _ _
+                      Happ_none Hcpx_approach H Hc) as (Hc' & _);
+          destruct (call_le_form _ _ _ _ _ _ _ _ _ _ H) as (? & Hle_);
+          cbn [set_opttemp] in Hle_;
+          clear Hc H; rename Hc' into Hc; subst Lo
+      (* perform_hanging_step(m, nextPos): the marg-AND-local internal helper *)
+      | Hc : carried bm NoA MWF ?mc,
+        H : exec_stmt _ _ ?E ?Le ?mc
+              (Scall _ (Evar mario_actions_automatic._perform_hanging_step _)
+                 _) _ ?Lo ?mn _ |- _ =>
+          destruct (mo_scall_pres lp bm NoA MWF SafeB _
+                      mario_actions_automatic._perform_hanging_step _ _ _ _
+                      E Le mc _ Lo mn _ Hphp_none Hcp_php
+                      ltac:(intros vargs Hvl;
+                            eapply (php_mo_gate E Le mc);
+                            [ repeat (rewrite PTree.gso by (vm_compute; discriminate));
+                              exact Hmeq
+                            | intros b o Hg;
+                              repeat (rewrite PTree.gso in Hg
+                                        by (vm_compute; discriminate));
+                              exact (Hmarg_fact b o Hg)
+                            | exact Henp | exact Hnploc | exact Hvl ])
+                      H Hc) as (Hc' & _);
+          destruct (call_le_form _ _ _ _ _ _ _ _ _ _ H) as (? & Hle_);
+          cbn [set_opttemp] in Hle_;
+          clear Hc H; rename Hc' into Hc; subst Lo
+      (* vec3f_copy(marioObj->gfx.pos, m->pos): sc object writer (cact = _t'5) *)
+      | Hc : carried bm NoA MWF ?mc,
+        H : exec_stmt _ _ ?E ?Le ?mc
+              (Scall _ (Evar mario_actions_automatic._vec3f_copy ?cfty) ?cal)
+              _ ?Lo ?mn _,
+        Hev5 : eval_expr _ _ ?Lev ?mc
+                 (Efield (Ederef (Etempvar mario_actions_automatic._m ?pty) ?sty)
+                    mario_actions_automatic._marioObj ?fty) ?v5 |- _ =>
+          destruct Hc as (HVc & HSc & HMc & HNc);
+          pose proof (chase_root_set_sound lp LO_mario bm MWF HMWF_window
+                        HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_root
+                        (Efield (Ederef (Etempvar mario_actions_automatic._m pty) sty)
+                           mario_actions_automatic._marioObj fty)
+                        E Lev mc v5 ltac:(vm_compute; reflexivity)
+                        ltac:(intros b o Hg;
+                              repeat (rewrite PTree.gso in Hg
+                                        by (vm_compute; discriminate));
+                              exact (Hmarg_fact b o Hg))
+                        HMc Hev5) as Hsafe5;
+          assert (Hchinv : chase_inv SafeB
+                    (mario_actions_automatic._t'5 :: nil) Le)
+            by (intros tt Htt b o Hget; cbn [mem_id existsb] in Htt;
+                apply orb_true_iff in Htt as [E5 | F]; [ | discriminate F ];
+                apply Pos.eqb_eq in E5; subst tt;
+                rewrite PTree.gss in Hget; injection Hget as Hget;
+                exact (Hsafe5 b o Hget));
+          assert (Hc'' : carried bm NoA MWF mc)
+            by (split; [ exact HVc | split; [ exact HSc
+                       | split; [ exact HMc | exact HNc ] ] ]);
+          destruct (sc_call_chk_pres lp bm NoA MWF SafeB
+                      (mario_actions_automatic._vec3f_copy
+                       :: mario_actions_automatic._vec3s_set :: nil)
+                      (mario_actions_automatic._t'5 :: nil)
+                      None mario_actions_automatic._vec3f_copy cfty cal
+                      E Le mc _ Lo mn _ uhm_sc_rows Hsc_none Hchinv
+                      ltac:(vm_compute; reflexivity) H Hc'') as (Hc' & _);
+          destruct (call_le_form _ _ _ _ _ _ _ _ _ _ H) as (? & Hle_);
+          cbn [set_opttemp] in Hle_;
+          clear Hc'' HVc HSc HMc HNc H Hev5 Hsafe5 Hchinv;
+          rename Hc' into Hc; subst Lo
+      (* vec3s_set(marioObj->gfx.angle, ..): sc object writer (cact = _t'3) *)
+      | Hc : carried bm NoA MWF ?mc,
+        H : exec_stmt _ _ ?E ?Le ?mc
+              (Scall _ (Evar mario_actions_automatic._vec3s_set ?cfty) ?cal)
+              _ ?Lo ?mn _,
+        Hev3 : eval_expr _ _ ?Lev ?mc
+                 (Efield (Ederef (Etempvar mario_actions_automatic._m ?pty) ?sty)
+                    mario_actions_automatic._marioObj ?fty) ?v3 |- _ =>
+          destruct Hc as (HVc & HSc & HMc & HNc);
+          pose proof (chase_root_set_sound lp LO_mario bm MWF HMWF_window
+                        HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_root
+                        (Efield (Ederef (Etempvar mario_actions_automatic._m pty) sty)
+                           mario_actions_automatic._marioObj fty)
+                        E Lev mc v3 ltac:(vm_compute; reflexivity)
+                        ltac:(intros b o Hg;
+                              repeat (rewrite PTree.gso in Hg
+                                        by (vm_compute; discriminate));
+                              exact (Hmarg_fact b o Hg))
+                        HMc Hev3) as Hsafe3;
+          assert (Hchinv : chase_inv SafeB
+                    (mario_actions_automatic._t'3 :: nil) Le)
+            by (intros tt Htt b o Hget; cbn [mem_id existsb] in Htt;
+                apply orb_true_iff in Htt as [E3 | F]; [ | discriminate F ];
+                apply Pos.eqb_eq in E3; subst tt;
+                repeat (rewrite PTree.gso in Hget by (vm_compute; discriminate));
+                rewrite PTree.gss in Hget; injection Hget as Hget;
+                exact (Hsafe3 b o Hget));
+          assert (Hc'' : carried bm NoA MWF mc)
+            by (split; [ exact HVc | split; [ exact HSc
+                       | split; [ exact HMc | exact HNc ] ] ]);
+          destruct (sc_call_chk_pres lp bm NoA MWF SafeB
+                      (mario_actions_automatic._vec3f_copy
+                       :: mario_actions_automatic._vec3s_set :: nil)
+                      (mario_actions_automatic._t'3 :: nil)
+                      None mario_actions_automatic._vec3s_set cfty cal
+                      E Le mc _ Lo mn _ uhm_sc_rows Hsc_none Hchinv
+                      ltac:(vm_compute; reflexivity) H Hc'') as (Hc' & _);
+          destruct (call_le_form _ _ _ _ _ _ _ _ _ _ H) as (? & Hle_);
+          cbn [set_opttemp] in Hle_;
+          clear Hc'' HVc HSc HMc HNc H Hev3 Hsafe3 Hchinv;
+          rename Hc' into Hc; subst Lo
+      end.
+    (* all leaves threaded; the tail's residual carried is exactly Hcar *)
+    exact Hcar.
+  Qed.
+
+  Lemma uhm_body_pres :
+    body_pres lp NoA MWF bm mario_actions_automatic.f_update_hang_moving.
+  Proof.
+    intros m0 vargs0 t0 mF vres0 Hmargf Hevf HN HM HV HS.
+    assert (Hmarg : marg_ok bm vargs0)
+      by (apply Hmargf; vm_compute; reflexivity).
+    (* ---- entry: alloc _nextPos, bind _m ---- *)
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      rename Ha into Halloc end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    unfold mario_actions_automatic.f_update_hang_moving in Hbody, Hbind, Halloc.
+    cbn [fn_body fn_params fn_temps fn_vars] in Hbody, Hbind, Halloc.
+    match goal with H : alloc_variables _ _ _ _ ?E ?ME |- _ =>
+      set (eloc := E) in *; set (me := ME) in * end.
+    assert (Hc0 : carried bm NoA MWF m0)
+      by (split; [ exact HV | split; [ exact HS
+                 | split; [ exact HM | exact HN ] ] ]).
+    pose proof (alloc_variables_carried bm NoA MWF HMWF_alloc HNoA_of_MWF
+                  _ _ _ _ _ _ Halloc Hc0) as Hce.
+    destruct Hce as (HVe & HSe & HMe & HNe).
+    (* _nextPos fn_var is a watched-disjoint stack block *)
+    pose proof (alloc_variables_hlocal lp bm SafeB m0 _ eloc _
+                  (mario_actions_automatic._nextPos :: nil) Halloc HV
+                  (HSafeValid m0 HM) (HGlobValid m0 HM)
+                  ltac:(intros lid Hm; unfold mem_id in Hm; cbn [existsb] in Hm;
+                        apply Bool.orb_true_iff in Hm; destruct Hm as [He | Hf];
+                        [ apply Pos.eqb_eq in He; subst lid; cbn [map fst];
+                          apply in_eq
+                        | discriminate Hf ]))
+      as Hlocal_fn.
+    destruct (Hlocal_fn mario_actions_automatic._nextPos eq_refl)
+      as (npb & npty & Henp & Hnploc).
+    (* bind the _m param *)
+    destruct vargs0 as [| v1 vrest];
+      cbn [bind_parameter_temps] in Hbind; [ discriminate Hbind | ].
+    destruct vrest; [ | cbn [bind_parameter_temps] in Hbind; discriminate Hbind ].
+    injection Hbind as Hle_init.
+    assert (Hmeq : le1 ! mario_actions_automatic._m = Some v1)
+      by (rewrite <- Hle_init; apply PTree.gss).
+    assert (Hmarg_fact : forall b o,
+               le1 ! mario_actions_automatic._m = Some (Vptr b o) ->
+               b = bm /\ o = Ptrofs.zero)
+      by (intros b o Hg; rewrite Hmeq in Hg; injection Hg as Hv1;
+          rewrite Hv1 in Hmarg; cbn in Hmarg; exact Hmarg).
+    (* the four globals are unbound in the entry env *)
+    assert (Happ_none :
+              eloc ! mario_actions_automatic._approach_s32 = None).
+    { rewrite (alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc
+                 mario_actions_automatic._approach_s32)
+        by (cbn; intros [HH | []]; vm_compute in HH; discriminate HH).
+      apply PTree.gempty. }
+    assert (Hv3f_none :
+              eloc ! mario_actions_automatic._vec3f_copy = None).
+    { rewrite (alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc
+                 mario_actions_automatic._vec3f_copy)
+        by (cbn; intros [HH | []]; vm_compute in HH; discriminate HH).
+      apply PTree.gempty. }
+    assert (Hv3s_none :
+              eloc ! mario_actions_automatic._vec3s_set = None).
+    { rewrite (alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc
+                 mario_actions_automatic._vec3s_set)
+        by (cbn; intros [HH | []]; vm_compute in HH; discriminate HH).
+      apply PTree.gempty. }
+    assert (Hphp_none :
+              eloc ! mario_actions_automatic._perform_hanging_step = None).
+    { rewrite (alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc
+                 mario_actions_automatic._perform_hanging_step)
+        by (cbn; intros [HH | []]; vm_compute in HH; discriminate HH).
+      apply PTree.gempty. }
+    (* sc rows + e!fid=None bundle for the two object writers *)
+    assert (Hsc_none : forall g,
+               mem_id g (mario_actions_automatic._vec3f_copy
+                         :: mario_actions_automatic._vec3s_set :: nil) = true ->
+               eloc ! g = None).
+    { intros g Hg; cbn [mem_id existsb] in Hg;
+        apply orb_true_iff in Hg as [Eg | Hg];
+        [ apply Pos.eqb_eq in Eg; subst g; exact Hv3f_none | ];
+        apply orb_true_iff in Hg as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst g; exact Hv3s_none | discriminate F ]. }
+    assert (Hcar : carried bm NoA MWF me)
+      by (split; [ exact HVe | split; [ exact HSe
+                 | split; [ exact HMe | exact HNe ] ] ]).
+    clear Hc0 HVe HSe HMe HNe.
+    (* ---- PHASE 1: peel the body to the mem-changing leaves, but STOP at the
+       split-off suffix (the Ssequence whose head block is the first m->vel[i]
+       store); that whole back half -- vel[0..2], nextPos[0..2], and the
+       perform_hanging_step/vec3f/vec3s tail -- goes to uhm_tail_pres so its proof
+       term is freed before this Qed.  (_vel is absent from blocks 0..6, which
+       touch only forwardVel/slideYaw/slideVelX/slideVelZ.) ---- *)
+    repeat first
+      [ match goal with
+        | H : exec_stmt _ _ _ _ _ (Ssequence ?s1 _) _ _ _ _ |- _ =>
+            lazymatch s1 with
+            | context[mario_actions_automatic._approach_s32] => fail
+            | _ => inv H; [ | crush_all_r ]
+            end
+        end
+      | match goal with
+        | H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H
+        | H : exec_stmt _ _ _ _ _ (Sreturn _) _ _ _ _ |- _ => inv H
+        end ].
+    (* ---- PHASE 2: thread carried along the PREFIX leaf chain (the php/vec3f/
+       vec3s tail is handled by uhm_tail_pres, below) ---- *)
+    repeat
+      match goal with
+      (* approach_s32(..): pure-math external, write-free *)
+      | Hc : carried bm NoA MWF ?mc,
+        H : exec_stmt _ _ _ _ ?mc
+              (Scall _ (Evar mario_actions_automatic._approach_s32 _) _)
+              _ ?Lo ?mn _ |- _ =>
+          destruct (stv_scall_pres _ mario_actions_automatic._approach_s32
+                      _ _ _ _ _ _ _ _ _ _ _
+                      Happ_none Hcpx_approach H Hc) as (Hc' & _);
+          destruct (call_le_form _ _ _ _ _ _ _ _ _ _ H) as (? & Hle_);
+          cbn [set_opttemp] in Hle_;
+          clear Hc H; rename Hc' into Hc; subst Lo
+      (* nextPos[i] local store *)
+      | Hc : carried bm NoA MWF ?mc,
+        H : exec_stmt _ _ _ ?Le ?mc
+              (Sassign (Ederef (Ebinop Oadd
+                          (Evar mario_actions_automatic._nextPos _) _ _) _) _)
+              _ ?Lo ?mn _ |- _ =>
+          destruct (local_idx_assign_pres' lp bm NoA MWF SafeB Hls_real
+                      HNoA_of_MWF eloc mario_actions_automatic._nextPos
+                      _ _ _ _ _ _ _ Le mc _ Lo mn _ npb npty _
+                      Henp Hnploc ltac:(cbn; reflexivity) H Hc) as (Hc' & _ & _);
+          clear Hc H; rename Hc' into Hc; subst Lo
+      (* m->vel[i] indexed float field store *)
+      | Hc : carried bm NoA MWF ?mc,
+        H : exec_stmt _ _ _ ?Le ?mc (Sassign ?a1 _) _ ?Lo ?mn _ |- _ =>
+          destruct Hc as (HVc & HSc & HMc & HNc);
+          first
+            [ destruct (idx_assign_pres lp LO_mario bm MWF HMWF_window
+                          a1 _ _ Le mc _ _ _ _
+                          ltac:(vm_compute; reflexivity)
+                          ltac:(intros b o Hg;
+                                repeat (rewrite PTree.gso in Hg
+                                          by (vm_compute; discriminate));
+                                exact (Hmarg_fact b o Hg))
+                          H HMc HVc HSc) as (HV' & HS' & HM' & Hleq & _)
+            | destruct (idx16_assign_pres lp LO_mario bm MWF HMWF_window
+                          a1 _ _ Le mc _ _ _ _
+                          ltac:(vm_compute; reflexivity)
+                          ltac:(intros b o Hg;
+                                repeat (rewrite PTree.gso in Hg
+                                          by (vm_compute; discriminate));
+                                exact (Hmarg_fact b o Hg))
+                          H HMc HVc HSc) as (HV' & HS' & HM' & Hleq & _)
+            | destruct (epi_assign_pres lp LO_mario bm MWF HMWF_window
+                          a1 _ _ Le mc _ _ _ _
+                          ltac:(vm_compute; reflexivity)
+                          ltac:(intros b o Hg;
+                                repeat (rewrite PTree.gso in Hg
+                                          by (vm_compute; discriminate));
+                                exact (Hmarg_fact b o Hg))
+                          H HMc HVc HSc) as (HV' & HS' & HM' & Hleq & _) ];
+          assert (Hc' : carried bm NoA MWF mn)
+            by (split; [ exact HV' | split; [ exact HS'
+                       | split; [ exact HM' | exact (HNoA_of_MWF _ HM') ] ] ]);
+          clear Hc HVc HSc HMc HNc H HV' HS' HM'; rename Hc' into Hc; subst Lo
+      end.
+    (* the forwardVel clamp Sifthenelse (block2): both branches preserve carried
+       (then = m->forwardVel = maxSpeed store, else = Sskip).  Threaded
+       NON-branching via sif_carried, explicitly (outside the backtracking match)
+       so a sub-proof error surfaces instead of being swallowed. *)
+    lazymatch goal with
+    | Hc : carried bm NoA MWF ?mc,
+      H : exec_stmt _ _ ?Een ?Le ?mc (Sifthenelse ?cc ?s1 ?s2)
+            _ ?Lo ?mn _ |- _ =>
+        assert (Hcle : carried bm NoA MWF mn /\ Lo = Le);
+        [ eapply (sif_carried Een Le mc cc s1 s2);
+          [ (* then: m->forwardVel = maxSpeed store -- preserves carried AND le *)
+            intros tcl lecl mcl ocl Hbcl Hc0cl;
+            lazymatch type of Hbcl with
+            | exec_stmt _ _ _ ?Le2 ?M2 (Sassign ?a1 _) _ _ _ _ =>
+                destruct Hc0cl as (HVc & HSc & HMc & HNc);
+                destruct (epi_assign_pres lp LO_mario bm MWF HMWF_window
+                            a1 _ _ Le2 M2 _ _ _ _
+                            ltac:(vm_compute; reflexivity)
+                            ltac:(intros b o Hg;
+                                  repeat (rewrite PTree.gso in Hg
+                                            by (vm_compute; discriminate));
+                                  exact (Hmarg_fact b o Hg))
+                            Hbcl HMc HVc HSc) as (HV' & HS' & HM' & Hle_eq & _);
+                split;
+                [ split; [ exact HV' | split; [ exact HS'
+                         | split; [ exact HM' | exact (HNoA_of_MWF _ HM') ] ] ]
+                | exact Hle_eq ]
+            end
+          | (* else: Sskip -- preserves carried AND le trivially *)
+            intros tcl lecl mcl ocl Hbcl Hc0cl; inv Hbcl;
+            split; [ exact Hc0cl | reflexivity ]
+          | exact H
+          | exact Hc ]
+        | destruct Hcle as (Hc' & HloEq); subst Lo;
+          clear Hc H; rename Hc' into Hc ]
+    end.
+    (* ---- discharge the php/vec3f/vec3s TAIL via its own (separately-Qed'd)
+       lemma; carried advances from the prefix's final memory to the body's.
+       lek!_m and its marg fact transfer from the entry env le1 by stripping the
+       prefix temps (none alias _m). ---- *)
+    lazymatch goal with
+    | Htail : exec_stmt _ _ ?E ?lek ?mpre (Ssequence _ _) _ ?lf ?mbody ?o |- _ =>
+        assert (Hmeqk : lek ! mario_actions_automatic._m = Some v1)
+          by (repeat (rewrite PTree.gso by (vm_compute; discriminate)); exact Hmeq);
+        assert (Hmargk : forall b oo,
+                   lek ! mario_actions_automatic._m = Some (Vptr b oo) ->
+                   b = bm /\ oo = Ptrofs.zero)
+          by (intros b oo Hg; rewrite Hmeqk in Hg; injection Hg as Hg;
+              apply (Hmarg_fact b oo); rewrite Hmeq, Hg; reflexivity);
+        pose proof (uhm_tail_pres E lek mpre v1 npb npty _ lf mbody o
+                      Henp Hnploc Happ_none Hphp_none Hsc_none Hmeqk Hmargk Hcar Htail)
+          as Hfin;
+        clear Hcar Htail Hmeqk Hmargk; rename Hfin into Hcar
+    end.
+    (* ---- exit: free the _nextPos stack block ---- *)
+    destruct Hcar as (HVb & HSb & HMb & HNb).
+    pose proof (blocks_of_env_bm lp bm m0 _ eloc _ Halloc HV) as Hforall.
+    pose proof (free_list_carried_bm bm NoA MWF HMWF_free HNoA_of_MWF
+                  (blocks_of_env (lp_ge lp) eloc) _ mF Hforall Hfree
+                  (conj HVb (conj HSb (conj HMb HNb))))
+      as (HVf & HSf & HMf & HNf).
+    exact (conj HVf (conj HSf HMf)).
+  Qed.
+
   (* B11 act_hang_moving: update_hang_moving is the SOLE hard helper gating the
      leaf (act_hang_moving calls it as update_hang_moving(m), branching on its
-     i32 result).  It is a SINGLE-PARAM (m only) hang-physics helper with a
-     local _nextPos array (the Tier-2 indexed-local-store case), so its
-     preservation depends ONLY on the marg-pinned m=bm and its own internals --
-     a precise, true-in-model, dischargeable residual (the Tier-2 consumer,
-     [[tier2-engine-plan]]), NOT a phantom-forall (contrast
-     set_mario_anim_with_accel, whose UNPINNED 3rd arg makes its call_pres
-     false).  ASSUMING it REDUCES the whole act_hang_moving body to this ONE
-     helper (decompose, not collapse), shrinking automatic_rest_ids 4 -> 3. *)
-  Hypothesis Huhm :
+     i32 result).  Now WALKED (Lemma Huhm below) -- decompose, not collapse:
+     the whole helper body reduces to Hcpx_approach + Hcp_php (its two leaf
+     callees) + the existing chase/field/sc rows. *)
+  Lemma Huhm :
     call_pres lp bm NoA MWF mario_actions_automatic._update_hang_moving.
+  Proof.
+    apply (call_pres_of_body lp bm NoA MWF HNoA_of_MWF
+             mario_actions_automatic.prog _
+             mario_actions_automatic.f_update_hang_moving LO_aut uhm_pin).
+    exact uhm_body_pres.
+  Qed.
 
   (* the shrinking residual: the leaves not yet walked *)
   Hypothesis Hpres_aut_rest : forall fid f,
