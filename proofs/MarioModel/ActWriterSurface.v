@@ -173,6 +173,89 @@ Proof.
     injection Hs as Hs; discriminate Hs.
 Qed.
 
+Lemma sem_shr_nonptr : forall v1 t1 v2 t2 v,
+    sem_shr v1 t1 v2 t2 = Some v ->
+    forall bb oo, v <> Vptr bb oo.
+Proof.
+  intros v1 t1 v2 t2 v Hs bb oo ->.
+  unfold sem_shr, sem_shift in Hs.
+  destruct (classify_shift t1 t2);
+    destruct v1; try discriminate Hs;
+    destruct v2; try discriminate Hs;
+    repeat match goal with
+           | H : (if ?b then _ else _) = Some _ |- _ =>
+               destruct b; try discriminate H
+           end;
+    injection Hs as Hs; discriminate Hs.
+Qed.
+
+(* ALL the sem_binarith-based integer/bitwise binops yield Vint/Vlong/Vfloat/
+   Vsingle (or None) -- NEVER a Vptr (a pointer operand makes them STUCK).
+   So a chase store whose i32 RHS is one of these is provably non-aliasing,
+   exactly like the already-handled Oshl.  (Oadd/Osub are EXCLUDED: they do
+   pointer arithmetic and CAN yield a Vptr.) *)
+Lemma sem_binarith_nonptr :
+  forall si sl sf ss v1 t1 v2 t2 m v,
+    (forall sg n1 n2 r, si sg n1 n2 = Some r -> forall b o, r <> Vptr b o) ->
+    (forall sg n1 n2 r, sl sg n1 n2 = Some r -> forall b o, r <> Vptr b o) ->
+    (forall n1 n2 r, sf n1 n2 = Some r -> forall b o, r <> Vptr b o) ->
+    (forall n1 n2 r, ss n1 n2 = Some r -> forall b o, r <> Vptr b o) ->
+    sem_binarith si sl sf ss v1 t1 v2 t2 m = Some v ->
+    forall b o, v <> Vptr b o.
+Proof.
+  intros si sl sf ss v1 t1 v2 t2 m v Hi Hl Hf Hs H b o ->.
+  unfold sem_binarith in H. cbv zeta in H.
+  destruct (sem_cast v1 t1 (binarith_type (classify_binarith t1 t2)) m)
+    as [v1'|]; try discriminate H.
+  destruct (sem_cast v2 t2 (binarith_type (classify_binarith t1 t2)) m)
+    as [v2'|]; try discriminate H.
+  destruct (classify_binarith t1 t2); destruct v1'; destruct v2';
+    try discriminate H;
+    first [ exact (Hi _ _ _ _ H b o eq_refl)
+          | exact (Hl _ _ _ _ H b o eq_refl)
+          | exact (Hf _ _ _ H b o eq_refl)
+          | exact (Hs _ _ _ H b o eq_refl) ].
+Qed.
+
+(* the per-op combinators are all `Some (Vint/Vlong/Vfloat/Vsingle ..)` or
+   `None` (div/mod guard zero; and/or/xor have None float arms) -- never a
+   Vptr.  ONE tactic discharges every combinator obligation. *)
+Ltac comb_nonptr :=
+  intros; cbn beta iota in *;
+  repeat (match goal with
+          | H : (if ?c then _ else _) = Some _ |- _ => destruct c
+          | H : (match ?s with _ => _ end) = Some _ |- _ => destruct s
+          end; cbn beta iota in *);
+  match goal with
+  | H : _ = Some _ |- _ =>
+      solve [ discriminate H | injection H as <-; discriminate ]
+  end.
+
+Lemma sem_mul_nonptr : forall v1 t1 v2 t2 m v,
+    sem_mul v1 t1 v2 t2 m = Some v -> forall b o, v <> Vptr b o.
+Proof. intros v1 t1 v2 t2 m v H. unfold sem_mul in H.
+  eapply sem_binarith_nonptr; [ | | | | exact H ]; comb_nonptr. Qed.
+Lemma sem_div_nonptr : forall v1 t1 v2 t2 m v,
+    sem_div v1 t1 v2 t2 m = Some v -> forall b o, v <> Vptr b o.
+Proof. intros v1 t1 v2 t2 m v H. unfold sem_div in H.
+  eapply sem_binarith_nonptr; [ | | | | exact H ]; comb_nonptr. Qed.
+Lemma sem_mod_nonptr : forall v1 t1 v2 t2 m v,
+    sem_mod v1 t1 v2 t2 m = Some v -> forall b o, v <> Vptr b o.
+Proof. intros v1 t1 v2 t2 m v H. unfold sem_mod in H.
+  eapply sem_binarith_nonptr; [ | | | | exact H ]; comb_nonptr. Qed.
+Lemma sem_and_nonptr : forall v1 t1 v2 t2 m v,
+    sem_and v1 t1 v2 t2 m = Some v -> forall b o, v <> Vptr b o.
+Proof. intros v1 t1 v2 t2 m v H. unfold sem_and in H.
+  eapply sem_binarith_nonptr; [ | | | | exact H ]; comb_nonptr. Qed.
+Lemma sem_or_nonptr : forall v1 t1 v2 t2 m v,
+    sem_or v1 t1 v2 t2 m = Some v -> forall b o, v <> Vptr b o.
+Proof. intros v1 t1 v2 t2 m v H. unfold sem_or in H.
+  eapply sem_binarith_nonptr; [ | | | | exact H ]; comb_nonptr. Qed.
+Lemma sem_xor_nonptr : forall v1 t1 v2 t2 m v,
+    sem_xor v1 t1 v2 t2 m = Some v -> forall b o, v <> Vptr b o.
+Proof. intros v1 t1 v2 t2 m v H. unfold sem_xor in H.
+  eapply sem_binarith_nonptr; [ | | | | exact H ]; comb_nonptr. Qed.
+
 (* sub-word By_value loads: decode_val's sub-word cases are Vint/Vundef *)
 Definition subword_chunk (ch : memory_chunk) : bool :=
   match ch with
@@ -641,7 +724,19 @@ Definition wchase_rhs_ok (wact : list ident) (ty : type) (a2 : expr)
   || (i32_ty ty && match a2 with
                    | Econst_int _ _ => true
                    | Etempvar q _ => mem_id q wact
+                   (* the pointer-STUCK binops: each is sem_shl / sem_shr /
+                      sem_binarith, which yield Vint/Vlong/Vfloat/Vsingle or
+                      get STUCK (None) on a pointer operand -- so the stored
+                      value is provably never a Vptr.  Oadd/Osub are EXCLUDED
+                      (they do pointer arithmetic and CAN mint a Vptr). *)
                    | Ebinop Oshl _ _ _ => true
+                   | Ebinop Oshr _ _ _ => true
+                   | Ebinop Omul _ _ _ => true
+                   | Ebinop Odiv _ _ _ => true
+                   | Ebinop Omod _ _ _ => true
+                   | Ebinop Oand _ _ _ => true
+                   | Ebinop Oor  _ _ _ => true
+                   | Ebinop Oxor _ _ _ => true
                    | _ => false
                    end).
 
@@ -1983,27 +2078,37 @@ Section ActWriterWalk.
             | Hcast0 : sem_cast (Vint _) _ _ _ = Some _ |- _ =>
                 exact (sem_cast_vint_nonptr _ _ _ _ _ Hcast0)
             end.
-        + (* an Oshl rhs: shifts only produce Vint/Vlong, and the cast
-             cannot mint a pointer from a non-pointer *)
-          destruct op2; try discriminate Ha2.
-          match goal with
-          | Hev2 : eval_expr _ _ _ _ (Ebinop _ _ _ _) _ |- _ =>
-              inv Hev2;
-              try (match goal with
-                   | Hlv : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _
-                     |- _ => inv Hlv
-                   end)
-          end.
-          match goal with
-          | Hsem : sem_binary_operation _ Oshl _ _ _ _ _ = Some _ |- _ =>
-              cbn [sem_binary_operation] in Hsem
-          end.
-          match goal with
-          | Hcast0 : sem_cast ?vv _ _ _ = Some _,
-            Hshl : sem_shl _ _ _ _ = Some ?vv |- _ =>
-              exact (sem_cast_nonptr_pres _ _ _ _ _ Hcast0
-                       (sem_shl_nonptr _ _ _ _ _ Hshl))
-          end. }
+        + (* a pointer-STUCK binop rhs (Oshl/Oshr/Omul/Odiv/Omod/Oand/Oor/
+             Oxor): each yields Vint/Vlong/Vfloat/Vsingle (or gets stuck),
+             never a Vptr, and the cast cannot mint a pointer from a
+             non-pointer.  Oadd/Osub were already rejected by wchase_rhs_ok. *)
+          destruct op2; try discriminate Ha2;
+            (match goal with
+             | Hev2 : eval_expr _ _ _ _ (Ebinop _ _ _ _) _ |- _ =>
+                 inv Hev2;
+                 try (match goal with
+                      | Hlv : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _
+                        |- _ => inv Hlv
+                      end)
+             end);
+            (match goal with
+             | Hsem : sem_binary_operation _ _ _ _ _ _ _ = Some _ |- _ =>
+                 cbn [sem_binary_operation] in Hsem
+             end);
+            (match goal with
+             | Hcast0 : sem_cast ?vv _ _ _ = Some _,
+               Hsem : _ = Some ?vv |- _ =>
+                 exact (sem_cast_nonptr_pres _ _ _ _ _ Hcast0
+                          ltac:(first
+                            [ exact (sem_shl_nonptr _ _ _ _ _ Hsem)
+                            | exact (sem_shr_nonptr _ _ _ _ _ Hsem)
+                            | exact (sem_mul_nonptr _ _ _ _ _ _ Hsem)
+                            | exact (sem_div_nonptr _ _ _ _ _ _ Hsem)
+                            | exact (sem_mod_nonptr _ _ _ _ _ _ Hsem)
+                            | exact (sem_and_nonptr _ _ _ _ _ _ Hsem)
+                            | exact (sem_or_nonptr  _ _ _ _ _ _ Hsem)
+                            | exact (sem_xor_nonptr _ _ _ _ _ _ Hsem) ]))
+             end). }
     (* the store lands in the SafeB block *)
     match goal with
     | Has : assign_loc _ _ _ _ _ _ _ m' |- _ => inv Has

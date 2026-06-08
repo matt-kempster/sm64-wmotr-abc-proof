@@ -44,7 +44,6 @@ Import ListNotations.
 (* the leaves NOT yet walked: every slice moves ids out of here *)
 Definition automatic_rest_ids : list ident :=
   mario_actions_automatic._act_holding_pole ::
-  mario_actions_automatic._act_grab_pole_fast ::
   mario_actions_automatic._act_climbing_pole ::
   mario_actions_automatic._act_top_of_pole_transition ::
   mario_actions_automatic._act_top_of_pole ::
@@ -384,6 +383,36 @@ Proof. vm_compute. reflexivity. Qed.
 Example agps_walk :
   wwalk_chk false nil agps_ids nil nil nil agps_sids nil
     (fn_body mario_actions_automatic.f_act_grab_pole_slow) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- act_grab_pole_fast: SAME callee census as agps (set_pole_position,
+   set_mario_animation, is_anim_at_end, play_sound_if_no_flag,
+   add_tree_leaf_particles, set_mario_action), but the body chases
+   m->marioObj into a local _marioObj temp and stores a COMPUTED integer
+   `(_t'4 * 8) / 10` into marioObj->rawData.asS32[33].  That arithmetic RHS
+   (Ebinop Omul/Odiv) rides the chase-store arm's new pointer-stuck-binop
+   recognizer (wchase_rhs_ok).  cact = [_marioObj]. *)
+Definition agpf_cact : list ident :=
+  mario_actions_automatic._marioObj :: nil.
+Example agpf_pin :
+  (prog_defmap mario_actions_automatic.prog)
+    ! mario_actions_automatic._act_grab_pole_fast
+  = Some (Gfun (Internal mario_actions_automatic.f_act_grab_pole_fast)).
+Proof. vm_compute. reflexivity. Qed.
+Example agpf_vars :
+  fn_vars mario_actions_automatic.f_act_grab_pole_fast = nil.
+Proof. reflexivity. Qed.
+Example agpf_params_ok :
+  aut_pok mario_actions_automatic.f_act_grab_pole_fast = true.
+Proof. vm_compute. reflexivity. Qed.
+Example agpf_nonparam_c :
+  forallb (fun t' => negb (mem_id t'
+    (map fst (fn_params mario_actions_automatic.f_act_grab_pole_fast))))
+    agpf_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example agpf_walk :
+  wwalk_chk false nil agps_ids nil agpf_cact nil agps_sids nil
+    (fn_body mario_actions_automatic.f_act_grab_pole_fast) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* ====================================================================== *)
@@ -1282,6 +1311,25 @@ Section AutomaticLeafRows.
     - exact agps_walk.
   Qed.
 
+  (* act_grab_pole_fast: same callee rows as agps, plus the cact chase
+     ([_marioObj]) carrying the computed-i32 store into marioObj->rawData. *)
+  Lemma act_grab_pole_fast_pres :
+    body_pres lp NoA MWF bm mario_actions_automatic.f_act_grab_pole_fast.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_automatic.f_act_grab_pole_fast
+             agps_ids nil agpf_cact nil agps_sids nil
+             agpf_vars agpf_params_ok agpf_nonparam_c).
+    - exact agps_ids_rows.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - exact agps_sids_rows.
+    - intros fid' H; discriminate H.
+    - exact agpf_walk.
+  Qed.
+
   (* the act_ledge_grab leaf: ids = the cluster, sids = set_mario_action *)
   Lemma alg_ids_rows :
     forall fid, mem_id fid alg_ids = true -> call_pres lp bm NoA MWF fid.
@@ -1634,10 +1682,12 @@ Section AutomaticLeafRows.
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
       rewrite agps_pin in Hdm. injection Hdm as <-. exact Hagps. }
-    (* 4..7: pole leaves -- rest *)
+    (* 4: act_grab_pole_fast -- WALKED (chase-store arm + arithmetic-i32 RHS) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
-      refine (Hpres_aut_rest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite agpf_pin in Hdm. injection Hdm as <-.
+      exact act_grab_pole_fast_pres. }
+    (* 5..7: pole leaves -- rest *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
       refine (Hpres_aut_rest _ f _ Hdm); vm_compute; reflexivity. }
