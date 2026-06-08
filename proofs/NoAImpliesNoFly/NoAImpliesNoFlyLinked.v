@@ -760,12 +760,27 @@ Section NoARealInputMWF.
      preservation of its SOLE out-param helper, the INTERNAL multi-pointer
      writer find_mario_anim_flags_and_translation (writes its 1st arg
      obj->animInfo via geo_update + the caller's stack-local out-param).  The
-     residual is now the oc2-GATED (arg0 cond-safe /\ last-arg local)
-     call_pres_ext_oc2 -- a strictly DEEPER, precise, true-in-model,
-     dischargeable residual (decompose, not collapse). *)
-  Hypothesis Hoc2famft_real :
-    call_pres_ext_oc2 lp bm (NoA_real bm) MWF SafeB
-      mario._find_mario_anim_flags_and_translation.
+     residual was the oc2-GATED (arg0 cond-safe /\ last-arg local)
+     call_pres_ext_oc2.  That internal body is now ITSELF WALKED
+     (AutomaticLeafSurface.famft_body_pres_oc2 + Lemma Hoc2_famft): its only
+     memory writers are the obj->animInfo write by geo_update_animation_frame
+     (arg0 in obj's SafeB block) and the *(translation+i) out-param writes fed
+     by retrieve_animation_index (&animIndex, the fn's own stack local) plus two
+     write-free segmented_to_virtual calls.  So the single oc2 residual
+     DECOMPOSES into two strictly DEEPER, true-in-model terminal EXTERNAL
+     residuals one call-graph level down (segmented_to_virtual is already wired
+     via Hpres_obj_ext _segmented_to_virtual):
+       - geo_update_animation_frame: writes through its arg0 &obj->..animInfo
+         (obj is the cond-safe arg0)  -> call_pres_ext_sc (arg0_safe);
+       - retrieve_animation_index: writes through its last arg &animIndex (a
+         local stack block)            -> call_pres_ext_oc (last_arg_local).
+     decompose, not collapse. *)
+  Hypothesis Hscp_geo_real :
+    call_pres_ext_sc lp bm (NoA_real bm) MWF SafeB
+      mario._geo_update_animation_frame.
+  Hypothesis Hocp_rai_real :
+    call_pres_ext_oc lp bm (NoA_real bm) MWF SafeB
+      mario._retrieve_animation_index.
   (* B11 act_hang_moving: update_hang_moving is the SOLE shared helper gating the
      act_hang_moving leaf, now WALKED (AutomaticLeafSurface, automatic_rest_ids
      4 -> 3).  It is a SINGLE-PARAM (m only) hang-physics helper with a local
@@ -995,9 +1010,12 @@ Section NoARealInputMWF.
                          obj_ext_ids audio/translation externals. *)
                       (Hpres_obj_ext mario._set_sound_moving_speed eq_refl)
                       (Hpres_obj_ext interaction._virtual_to_segmented eq_refl)
-                      (* B11: the SOLE top-of-pole helper residual, now the
-                         oc2-gated leaf find_mario_anim_flags_and_translation *)
-                      Hoc2famft_real
+                      (* B11: find_mario_anim_flags_and_translation is now WALKED
+                         (famft_body_pres_oc2); its oc2 residual decomposed into
+                         these two terminal EXTERNAL writers (geo_update via arg0
+                         SafeB, retrieve_animation_index via &animIndex local). *)
+                      Hscp_geo_real
+                      Hocp_rai_real
                       (* B11: the SOLE act_hang_moving helper residual *)
                       Huhm_real
                       Hpres_aut_rest))

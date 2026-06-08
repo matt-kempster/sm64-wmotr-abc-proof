@@ -987,14 +987,23 @@ Section AutomaticLeafRows.
      Its whole body is now WALKED (Lemma Hrmayt below): one chase-root load
      (_t'2 = m->marioObj, SafeB), the find_mario_anim_flags_and_translation
      call (the multi-pointer out-param helper), a translation[1] read, a return.
-     It REDUCES to the SINGLE residual Hoc2_famft -- the honest, true-in-model,
-     gated (arg0 SafeB-if-ptr AND last arg a stack local) spec for that helper
-     (writes marioObj->animInfo via geo_update_animation_frame + *translation).
-     decompose, not collapse: the deeper residual is one call-graph level closer
-     to the leaves.  See [[internal-helper-multiptr-gate]], [[pole-rest-blockers]]. *)
-  Hypothesis Hoc2_famft :
-    call_pres_ext_oc2 lp bm NoA MWF SafeB
-      mario._find_mario_anim_flags_and_translation.
+     It REDUCES to find_mario_anim_flags_and_translation's preservation -- and
+     THAT internal helper is now ITSELF WALKED (Lemma famft_body_pres_oc2 +
+     Lemma Hoc2_famft below).  Its body's only memory writers are THREE genuine
+     EF_external callees in mario.prog (verified Gfun(External ..)), so the walk
+     DECOMPOSES the oc2 internal residual into TWO honest terminal-external
+     residuals (segmented_to_virtual reuses the existing Hcpx_stv obj-ext row):
+       - Hscp_geo : geo_update_animation_frame writes THROUGH obj->animInfo
+         (obj = SafeB-if-ptr by the oc2 arg0 gate)  -> call_pres_ext_sc; and
+       - Hocp_rai : retrieve_animation_index writes THROUGH &animIndex (this
+         helper's own stack-local fn_var)            -> call_pres_ext_oc.
+     decompose, not collapse: famft's whole-body residual is replaced by two
+     gated leaf-external residuals one call-graph level down -- the SAME shape
+     as the existing Hocp_find_floor / Hscp_v3f leaves. *)
+  Hypothesis Hscp_geo :
+    call_pres_ext_sc lp bm NoA MWF SafeB mario._geo_update_animation_frame.
+  Hypothesis Hocp_rai :
+    call_pres_ext_oc lp bm NoA MWF SafeB mario._retrieve_animation_index.
 
   (* the abnormal-Ssequence branch killer (crush_all is section-local to
      OutParamArc, so re-declare it here). *)
@@ -1003,6 +1012,7 @@ Section AutomaticLeafRows.
     | H : ?x <> ?x |- _ => destruct (H eq_refl)
     | H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H
     | H : exec_stmt _ _ _ _ _ (Sreturn _) _ _ _ _ |- _ => inv H
+    | H : exec_stmt _ _ _ _ _ (Sassign _ _) _ _ _ _ |- _ => inv H
     | H : exec_stmt _ _ _ _ _ (Scall _ _ _) _ _ _ _ |- _ => inv H
     | H : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _ |- _ => inv H
     end.
@@ -1134,47 +1144,265 @@ Section AutomaticLeafRows.
       end ].
   Qed.
 
-  (* ---- famft_body_pres_oc2 (the body walk that CONSUMES famft_geo_arg0_block
-     + evar_store_carried + tempptr_idx_store_carried) is the NEXT step.  Its
-     statement is:
-       call_pres_ext_sc lp .. mario._geo_update_animation_frame ->
-       call_pres_ext_oc lp .. mario._retrieve_animation_index ->
-       call_pres_ext    lp .. mario._segmented_to_virtual ->
-       body_pres_oc2 lp bm NoA MWF SafeB
-         mario.f_find_mario_anim_flags_and_translation.
-     Lifted by OutParamSurface.call_pres_ext_oc2_of_body + famft_pin it
-     DISCHARGES Hoc2_famft into THREE honest terminal EXTERNAL residuals (all
-     EF_external in mario.prog), the decompose-not-collapse move for the
-     remaining top_of_pole dependency.
+  (* plain external Scall (no out-param gate) preserves carried -- the
+     segmented_to_virtual call sites (pure segment->virtual address
+     translation, write-free).  Wraps ActWriterSurface.kit_scallx_pres,
+     bundling carried in/out. *)
+  Lemma stv_scall_pres :
+    forall optid fid targs tres tcc al e le0 m0 tr le1 m1 out0,
+      e ! fid = None ->
+      call_pres_ext lp bm NoA MWF fid ->
+      exec_stmt function_entry2 (lp_ge lp) e le0 m0
+        (Scall optid (Evar fid (Tfunction targs tres tcc)) al) tr le1 m1 out0 ->
+      carried bm NoA MWF m0 ->
+      carried bm NoA MWF m1 /\ out0 = Out_normal.
+  Proof.
+    intros optid fid targs tres tcc al e le0 m0 tr le1 m1 out0
+           He Hext Hexec (HV & HS & HM & HN).
+    destruct (kit_scallx_pres lp bm NoA MWF optid fid targs tres tcc al
+                e le0 m0 tr le1 m1 out0 He Hexec Hext HN HM HV HS)
+      as (HV' & HS' & HM' & HN' & Hout & _).
+    split; [ split; [ exact HV' | split; [ exact HS'
+           | split; [ exact HM' | exact HN' ] ] ] | exact Hout ].
+  Qed.
 
-     VERIFIED so far (this brick set, green):
-       - the entry plumbing (alloc _animIndex fn_var via alloc_variables_hlocal;
-         bind _obj/_yaw/_translation; extract oc2 gate: Hcond = arg0_cond_safe
-         [v_obj;..] -> SafeB-if-ptr, Hlast -> v_trans = Vptr tlb tlo with
-         local_blk tlb) -- mirrors Hrmayt's entry below;
-       - famft_geo_arg0_block (OutParamSurface): &obj->header.gfx.animInfo lands
-         in _obj's block -> feeds sc_scall_pres's arg0_safe at the geo call;
-       - evar_store_carried: the `animIndex = t'2` fn_var store (local Evar);
-       - tempptr_idx_store_carried: the `*(translation+i) = short` out-param
-         store (pointer Etempvar base, index Econst).
+  (* env-shape recovery for a Scall leaf: the *scall_pres bricks discard the
+     output temp-env relationship, leaving it an OPAQUE variable.  This recovers
+     `le1 = set_opttemp optid vres le0` from the leaf itself so the env chain
+     stays CONCRETE (a tower of PTree.set over the entry env le1) -- without it,
+     the *(translation+i) out-param stores (which need le ! _translation by
+     gso-peel) hit an opaque post-call env and cannot resolve. *)
+  Lemma call_le_form :
+    forall optid a al e le0 m0 tr le1 m1 out0,
+      exec_stmt function_entry2 (lp_ge lp) e le0 m0
+        (Scall optid a al) tr le1 m1 out0 ->
+      exists vr, le1 = set_opttemp optid vr le0.
+  Proof. intros. inv H. eexists; reflexivity. Qed.
 
-     REMAINING for the walk (mechanical leaf-threading, me -> m2, then free_list):
-       block B  geo_update_animation_frame -> sc_scall_pres (gate: at the geo
-                call leG!_obj = v_obj by 2x PTree.gso from Hobj1; then
-                famft_geo_arg0_block + Hcond give arg0 in SafeB);
-       blocks C,D segmented_to_virtual -> kit_scallx_pres (ActWriterSurface, plain
-                call_pres_ext, no gate);
-       block C  animIndex store         -> evar_store_carried (Heai + Hailoc);
-       blocks G,H,I retrieve_animation_index -> oc_scall_pres (gate: last arg
-                = Eaddrof(Evar _animIndex) is local -- needs a 2-ARG addrof-ptr
-                oc extractor `Eaddrof (Evar lid (tptr ety)) (tptr (tptr ety))`,
-                a twin of OutParamSurface.oc_last_addrof but 2-elt + ptr (not
-                Tstruct) element type -- the ONE missing brick);
-       blocks H,J,K *(translation+{1,0,2}) stores -> tempptr_idx_store_carried
-                (Htrans1 le!_translation = v_trans, Hvtrans, Htloc);
-       remaining Ssets preserve carried (mem unchanged); exit free_list via
-       free_list_carried_bm (blocks_of_env_bm).  Then call_pres_ext_oc2_of_body
-       lifts to call_pres_ext_oc2 and replaces Hoc2_famft. ---- *)
+  (* env-shape recovery for an Sassign leaf: a store leaves the temp-env
+     UNCHANGED (exec_Sassign concludes with output env = input env), but the
+     store bricks discard that, leaving the post-store env an OPAQUE seq-boundary
+     variable.  This recovers le1 = le0 so the chain stays concrete past stores
+     (the _animIndex store would otherwise sever the tower above the params). *)
+  Lemma assign_le_eq :
+    forall a1 a2 e le0 m0 tr le1 m1 out0,
+      exec_stmt function_entry2 (lp_ge lp) e le0 m0
+        (Sassign a1 a2) tr le1 m1 out0 ->
+      le1 = le0.
+  Proof. intros. inv H. reflexivity. Qed.
+
+  (* ====================================================================== *)
+  (* famft_body_pres_oc2: WALK find_mario_anim_flags_and_translation's body  *)
+  (* under the oc2 gate.  Its only memory writers are 6 external Scalls (1   *)
+  (* geo_update_animation_frame, 2 segmented_to_virtual, 3 retrieve_anim..)  *)
+  (* and 4 watched-disjoint local stores (1 animIndex fn_var, 3 *translation *)
+  (* out-param).  PHASE 1 peels the whole nested-Ssequence body, inverting   *)
+  (* every Sset/Sreturn (memory-neutral) and killing the abnormal branches,  *)
+  (* leaving the 10 mem-changing leaves as a linear chain me -> ... -> m2.    *)
+  (* PHASE 2 threads `carried` along that chain (each leaf matched by INPUT   *)
+  (* mem against the running carried hyp -> order is automatic): the geo call *)
+  (* via sc_scall_pres (its dst &obj->animInfo lands in _obj's block, SafeB   *)
+  (* by the oc2 arg0 gate -- famft_geo_arg0_block + Hcond), the seg2v calls   *)
+  (* via stv_scall_pres (plain, Hcpx_stv), the retrieve calls via            *)
+  (* oc_scall_pres (last arg &animIndex local -- oc_last_addrof_ptr2 + Heai), *)
+  (* the animIndex store via evar_store_carried, the *translation stores via  *)
+  (* tempptr_idx_store_carried (le!_translation = v_trans by gso-peel of      *)
+  (* Htrans1, local_blk by the oc2 last-arg gate).  Exit: free_list the       *)
+  (* _animIndex stack block (free_list_carried_bm + blocks_of_env_bm).        *)
+  (* decompose, not collapse: famft's oc2 internal residual is now reduced    *)
+  (* to Hscp_geo (sc) + Hocp_rai (oc) [+ existing Hcpx_stv], terminal         *)
+  (* EF_external residuals one call-graph level down. *)
+  (* ====================================================================== *)
+  Lemma famft_body_pres_oc2 :
+    body_pres_oc2 lp bm NoA MWF SafeB
+      mario.f_find_mario_anim_flags_and_translation.
+  Proof.
+    intros m vargs t mF vres Hgate Hevf HN HM HV HS.
+    destruct Hgate as (Hcond & Hlast).
+    (* ---- entry: alloc _animIndex, bind _obj/_yaw/_translation ---- *)
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      rename Ha into Halloc end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    unfold mario.f_find_mario_anim_flags_and_translation in Hbody, Hbind, Halloc.
+    cbn [fn_body fn_params fn_temps fn_vars] in Hbody, Hbind, Halloc.
+    match goal with H : alloc_variables _ _ _ _ ?E ?ME |- _ =>
+      set (eloc := E) in *; set (me := ME) in * end.
+    assert (Hc0 : carried bm NoA MWF m)
+      by (split; [ exact HV | split; [ exact HS
+                 | split; [ exact HM | exact HN ] ] ]).
+    pose proof (alloc_variables_carried bm NoA MWF HMWF_alloc HNoA_of_MWF
+                  _ _ _ _ _ _ Halloc Hc0) as Hce.
+    destruct Hce as (HVe & HSe & HMe & HNe).
+    (* the _animIndex fn_var is a watched-disjoint stack block *)
+    pose proof (alloc_variables_hlocal lp bm SafeB m _ eloc _
+                  (mario._animIndex :: nil) Halloc HV
+                  (HSafeValid m HM) (HGlobValid m HM)
+                  ltac:(intros lid Hm; unfold mem_id in Hm; cbn [existsb] in Hm;
+                        apply Bool.orb_true_iff in Hm; destruct Hm as [He | Hf];
+                        [ apply Pos.eqb_eq in He; subst lid; cbn [map fst];
+                          apply in_eq
+                        | discriminate Hf ]))
+      as Hlocal_fn.
+    destruct (Hlocal_fn mario._animIndex eq_refl) as (aib & aity & Heai & Hailoc).
+    (* bind the 3 params: _obj, _yaw, _translation *)
+    destruct vargs as [| v_obj vr1];
+      cbn [bind_parameter_temps] in Hbind; [ discriminate Hbind | ].
+    destruct vr1 as [| v_yaw vr2];
+      cbn [bind_parameter_temps] in Hbind; [ discriminate Hbind | ].
+    destruct vr2 as [| v_trans vr3];
+      cbn [bind_parameter_temps] in Hbind; [ discriminate Hbind | ].
+    destruct vr3; [ | cbn [bind_parameter_temps] in Hbind; discriminate Hbind ].
+    injection Hbind as Hle_init.
+    assert (Hobj1 : le1 ! mario._obj = Some v_obj)
+      by (rewrite <- Hle_init;
+          repeat (rewrite PTree.gso by (vm_compute; discriminate));
+          apply PTree.gss).
+    assert (Htrans1 : le1 ! mario._translation = Some v_trans)
+      by (rewrite <- Hle_init; apply PTree.gss).
+    (* oc2 gate: last arg local => v_trans = Vptr tlb tlo with local_blk tlb *)
+    cbn [last_val] in Hlast.
+    destruct Hlast as (tlb & tlo & Hvtr & Htlloc).
+    injection Hvtr as Hvtr; subst v_trans.
+    (* the 3 external callees are globals, unbound in the entry env *)
+    assert (Hgeo_none : eloc ! mario._geo_update_animation_frame = None).
+    { rewrite (alloc_variables_unbound (lp_ge lp) m _ empty_env _ _ Halloc
+                 mario._geo_update_animation_frame)
+        by (cbn; intros [HH | []]; vm_compute in HH; discriminate HH).
+      apply PTree.gempty. }
+    assert (Hstv_none : eloc ! mario._segmented_to_virtual = None).
+    { rewrite (alloc_variables_unbound (lp_ge lp) m _ empty_env _ _ Halloc
+                 mario._segmented_to_virtual)
+        by (cbn; intros [HH | []]; vm_compute in HH; discriminate HH).
+      apply PTree.gempty. }
+    assert (Hrai_none : eloc ! mario._retrieve_animation_index = None).
+    { rewrite (alloc_variables_unbound (lp_ge lp) m _ empty_env _ _ Halloc
+                 mario._retrieve_animation_index)
+        by (cbn; intros [HH | []]; vm_compute in HH; discriminate HH).
+      apply PTree.gempty. }
+    assert (Hcar : carried bm NoA MWF me)
+      by (split; [ exact HVe | split; [ exact HSe
+                 | split; [ exact HMe | exact HNe ] ] ]).
+    clear Hc0 HVe HSe HMe HNe.
+    (* ---- PHASE 1: peel the body to the 10 mem-changing leaves ---- *)
+    repeat first
+      [ match goal with
+        | H : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _ |- _ =>
+            inv H; [ | crush_all_r ]
+        end
+      | match goal with
+        | H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H
+        | H : exec_stmt _ _ _ _ _ (Sreturn _) _ _ _ _ |- _ => inv H
+        end ].
+    (* ---- PHASE 2: thread carried along the leaf chain (input-mem matched) ---- *)
+    repeat
+      match goal with
+      (* geo_update_animation_frame: dst &obj->animInfo in _obj's block (SafeB) *)
+      | Hc : carried bm NoA MWF ?mc,
+        H : exec_stmt _ _ ?E ?L ?mc
+              (Scall _ (Evar mario._geo_update_animation_frame
+                          (Tfunction ?TYL _ _)) ?ARGS) _ ?Lo ?mn _ |- _ =>
+          let Hg := fresh "Hgate_geo" in
+          assert (Hg : forall vargs,
+                    eval_exprlist (lp_ge lp) E L mc ARGS TYL vargs ->
+                    arg0_safe SafeB vargs);
+          [ intros vargs Hvl; inv Hvl;
+            match goal with
+            | Hexpr : eval_expr _ _ _ _ (Eaddrof _ _) ?v0,
+              Hcast : sem_cast ?v0 _ _ _ = Some ?vh |- arg0_safe _ (?vh :: ?rest) =>
+                destruct (famft_geo_arg0_block lp E L mc v0 Hexpr)
+                  as (gloc & go & goo & Hgv0 & Hgobj);
+                rewrite Hgv0 in Hcast; cbn in Hcast; injection Hcast as Hcast;
+                assert (Hgo : L ! mario._obj = Some v_obj)
+                  by (repeat (rewrite PTree.gso by (vm_compute; discriminate));
+                      apply PTree.gss);
+                rewrite Hgobj in Hgo; injection Hgo as Hgoeq;
+                exists gloc, go, rest; split;
+                  [ rewrite Hcast; reflexivity
+                  | exact (Hcond gloc goo (eq_sym Hgoeq)) ]
+            end
+          | destruct (sc_scall_pres lp bm NoA MWF SafeB _
+                        mario._geo_update_animation_frame TYL _ _ ARGS E L mc
+                        _ Lo mn _ Hgeo_none Hscp_geo Hg H Hc) as (Hc' & _);
+            destruct (call_le_form _ _ _ _ _ _ _ _ _ _ H) as (? & Hle_);
+            cbn [set_opttemp] in Hle_;
+            clear Hc H Hg; rename Hc' into Hc; subst Lo ]
+      (* segmented_to_virtual: plain external, write-free *)
+      | Hc : carried bm NoA MWF ?mc,
+        H : exec_stmt _ _ _ _ ?mc
+              (Scall _ (Evar mario._segmented_to_virtual _) _) _ ?Lo ?mn _ |- _ =>
+          destruct (stv_scall_pres _ _ _ _ _ _ _ _ _ _ _ _ _
+                      Hstv_none Hcpx_stv H Hc) as (Hc' & _);
+          destruct (call_le_form _ _ _ _ _ _ _ _ _ _ H) as (? & Hle_);
+          cbn [set_opttemp] in Hle_;
+          clear Hc H; rename Hc' into Hc; subst Lo
+      (* retrieve_animation_index: last arg &animIndex (local) *)
+      | Hc : carried bm NoA MWF ?mc,
+        H : exec_stmt _ _ ?E ?L ?mc
+              (Scall _ (Evar mario._retrieve_animation_index
+                          (Tfunction ?TYL _ _)) ?ARGS) _ ?Lo ?mn _ |- _ =>
+          let Hg := fresh "Hgate_rai" in
+          assert (Hg : forall vargs,
+                    eval_exprlist (lp_ge lp) E L mc ARGS TYL vargs ->
+                    last_arg_local lp bm SafeB vargs)
+            by (intros vargs Hvl;
+                eapply oc_last_addrof_ptr2; [ exact Heai | exact Hailoc | exact Hvl ]);
+          destruct (oc_scall_pres lp bm NoA MWF SafeB _
+                      mario._retrieve_animation_index TYL _ _ ARGS E L mc
+                      _ Lo mn _ Hrai_none Hocp_rai Hg H Hc) as (Hc' & _);
+          destruct (call_le_form _ _ _ _ _ _ _ _ _ _ H) as (? & Hle_);
+          cbn [set_opttemp] in Hle_;
+          clear Hc H Hg; rename Hc' into Hc; subst Lo
+      (* animIndex fn_var store (local Evar) *)
+      | Hc : carried bm NoA MWF ?mc,
+        H : exec_stmt _ _ _ _ ?mc
+              (Sassign (Evar mario._animIndex ?pty) _) _ ?Lo ?mn _ |- _ =>
+          destruct (evar_store_carried _ mario._animIndex pty _ _ _ _ _ _ _
+                      aib aity _ Heai Hailoc eq_refl H Hc) as (Hc' & _);
+          pose proof (assign_le_eq _ _ _ _ _ _ _ _ _ H) as Hle_;
+          clear Hc H; rename Hc' into Hc; subst Lo
+      (* *(translation+i) out-param store (local pointer Etempvar base) *)
+      | Hc : carried bm NoA MWF ?mc,
+        H : exec_stmt _ _ ?E ?L ?mc
+              (Sassign (Ederef (Ebinop Oadd (Etempvar mario._translation _)
+                                 _ _) _) _) _ ?Lo ?mn _ |- _ =>
+          destruct (tempptr_idx_store_carried E mario._translation tshort _
+                      (tptr tshort) tshort _ L _ _ _ _ _ tlb tlo _
+                      ltac:(repeat (rewrite PTree.gso by (vm_compute; discriminate));
+                            apply PTree.gss)
+                      Htlloc eq_refl H Hc) as (Hc' & _);
+          pose proof (assign_le_eq _ _ _ _ _ _ _ _ _ H) as Hle_;
+          clear Hc H; rename Hc' into Hc; subst Lo
+      end.
+    (* ---- exit: free the _animIndex stack block ---- *)
+    destruct Hcar as (HVb & HSb & HMb & HNb).
+    pose proof (blocks_of_env_bm lp bm m _ eloc _ Halloc HV) as Hforall.
+    pose proof (free_list_carried_bm bm NoA MWF HMWF_free HNoA_of_MWF
+                  (blocks_of_env (lp_ge lp) eloc) _ mF Hforall Hfree
+                  (conj HVb (conj HSb (conj HMb HNb))))
+      as (HVf & HSf & HMf & HNf).
+    exact (conj HVf (conj HSf HMf)).
+  Qed.
+
+  (* THE DISCHARGE: lift the per-body walk to the oc2 residual via the
+     producer + the prog_defmap pin -- Hoc2_famft is now PROVED (no longer a
+     Hypothesis), resting on Hscp_geo / Hocp_rai / Hcpx_stv. *)
+  Lemma Hoc2_famft :
+    call_pres_ext_oc2 lp bm NoA MWF SafeB
+      mario._find_mario_anim_flags_and_translation.
+  Proof.
+    exact (call_pres_ext_oc2_of_body lp bm NoA MWF SafeB HNoA_of_MWF
+             mario.prog _ mario.f_find_mario_anim_flags_and_translation
+             LO_mario famft_pin famft_body_pres_oc2).
+  Qed.
 
   Lemma rmayt_pin :
     (prog_defmap mario.prog) ! mario._return_mario_anim_y_translation
