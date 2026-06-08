@@ -38,7 +38,7 @@ From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking.
 From SM64.Generated Require mario mario_actions_airborne.
 From SM64.Proofs Require Import SymbolicLinking ActionValueFrame RealFrameLinked
-  Taint CensusV2 LocalVarsSurface.
+  RealFrameValue Taint CensusV2 LocalVarsSurface.
 
 Import ListNotations.
 
@@ -768,6 +768,65 @@ Section OutParamArc.
     end.
     split; [ | reflexivity ].
     split; [ exact HV' | split; [ exact HS' | split; [ exact HM' | exact HN' ] ] ].
+  Qed.
+
+  (* ====================================================================== *)
+  (* geo_update_animation_frame's out-param: its dst arg is                  *)
+  (* `&obj->header.gfx.animInfo` -- three AGGREGATE Efields over the         *)
+  (* Ederef of the _obj temp.  Each aggregate Efield/Ederef hands back the   *)
+  (* SAME block (it is an address computation, not a load), so the dst's     *)
+  (* block is EXACTLY _obj's pointer block.  Under the oc2 gate _obj is      *)
+  (* SafeB-conditional, so this dst lands in SafeB -> feeds sc_scall_pres's  *)
+  (* arg0_safe at the geo_update call site in                               *)
+  (* find_mario_anim_flags_and_translation.  (The one NEW derivation the     *)
+  (* Hoc2famft_real body walk needs; the rest is existing bricks.)          *)
+  (* ====================================================================== *)
+  Lemma famft_geo_arg0_block :
+    forall e le m v,
+      eval_expr (lp_ge lp) e le m
+        (Eaddrof
+          (Efield
+            (Efield
+              (Efield
+                (Ederef
+                  (Etempvar mario._obj (tptr (Tstruct mario._Object noattr)))
+                  (Tstruct mario._Object noattr))
+                mario._header (Tstruct mario._ObjectNode noattr))
+              mario._gfx (Tstruct mario._GraphNodeObject noattr))
+            mario._animInfo (Tstruct mario._AnimInfo noattr))
+          (tptr (Tstruct mario._AnimInfo noattr))) v ->
+      exists loc o oo,
+        v = Vptr loc o /\ le ! mario._obj = Some (Vptr loc oo).
+  Proof.
+    intros e le m v Hev.
+    (* inv keeps the (impossible) eval_Elvalue case of eval_expr (Eaddrof ..);
+       its bogus eval_lvalue (Eaddrof ..) hyp has no constructor -> inv closes it. *)
+    inv Hev;
+      [ | match goal with
+          | H : eval_lvalue _ _ _ _ (Eaddrof _ _) _ _ _ |- _ => inv H
+          end ].
+    (* peel _animInfo (outermost Efield lvalue) -> eval_expr (.gfx) (Vptr loc _) *)
+    match goal with
+    | Hlv : eval_lvalue _ _ _ _ (Efield _ _ _) _ _ _ |- _ =>
+        apply eval_lvalue_Efield_base in Hlv; destruct Hlv as (o3 & HE3)
+    end.
+    (* peel _gfx, then _header (both aggregate structs -> By_copy) *)
+    destruct (eval_expr_Efield_peel _ _ _ _ _ _ _ _ _
+                (or_intror (eq_refl :
+                   access_mode (Tstruct mario._GraphNodeObject noattr) = By_copy))
+                HE3) as (o2 & HE2).
+    destruct (eval_expr_Efield_peel _ _ _ _ _ _ _ _ _
+                (or_intror (eq_refl :
+                   access_mode (Tstruct mario._ObjectNode noattr) = By_copy))
+                HE2) as (o1 & HE1).
+    (* peel the Ederef(Object) over Etempvar _obj (struct -> By_copy) *)
+    destruct (eval_expr_Ederef_peel _ _ _ _ _ _ _ _
+                (or_intror (eq_refl :
+                   access_mode (Tstruct mario._Object noattr) = By_copy))
+                HE1) as (o0 & HE0).
+    (* HE0 : eval_expr (Etempvar _obj) (Vptr loc o0) -> read its le binding *)
+    apply eval_expr_Etempvar_val in HE0.
+    do 3 eexists; split; [ reflexivity | exact HE0 ].
   Qed.
 
   (* ====================================================================== *)
