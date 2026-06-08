@@ -1568,6 +1568,485 @@ Section AutomaticLeafRows.
   Hypothesis Hcp_php :
     call_pres_mo lp bm NoA MWF SafeB mario_actions_automatic._perform_hanging_step.
 
+  (* ====================================================================== *)
+  (* STAGE 1 (additive, no new hyps): the perform_hanging_step body         *)
+  (* RECOGNIZER + its validation on the real generated AST.  php_chk        *)
+  (* accepts exactly the body's leaf vocabulary so the exec-derivation      *)
+  (* induction (php_walk_pres, below) can reject Sbuiltin/Sloop/Sswitch.    *)
+  (* ====================================================================== *)
+  Definition php_call_chk (fid : ident) (fty : type) (al : list expr) : bool :=
+    oc_call_chk
+      (mario_actions_automatic._floor :: mario_actions_automatic._ceil :: nil)
+      (mario_actions_automatic._find_floor
+         :: mario_actions_automatic._vec3f_find_ceil :: nil) fid fty al
+    || (Pos.eqb fid mario_actions_automatic._resolve_and_return_wall_collisions
+        && proj_sumbool
+             (type_eq fty
+                (Tfunction (tptr tfloat :: tfloat :: tfloat :: nil)
+                   (tptr (Tstruct mario_actions_automatic._Surface noattr))
+                   cc_default))
+        && match al with
+           | Etempvar q tq :: Econst_single _ _ :: Econst_single _ _ :: nil =>
+               Pos.eqb q mario_actions_automatic._nextPos
+               && proj_sumbool (type_eq tq (tptr tfloat))
+           | _ => false
+           end)
+    || (Pos.eqb fid mario_actions_automatic._vec3f_copy
+        && proj_sumbool
+             (type_eq fty
+                (Tfunction (tptr tfloat :: tptr tfloat :: nil) (tptr tvoid)
+                   cc_default))
+        && match al with
+           | Efield (Ederef (Etempvar mp tmp) tsm) fld tfa :: Etempvar q tq :: nil =>
+               Pos.eqb mp mario_actions_automatic._m
+               && Pos.eqb fld mario_actions_automatic._pos
+               && Pos.eqb q mario_actions_automatic._nextPos
+               && proj_sumbool
+                    (type_eq tmp
+                       (tptr (Tstruct mario_actions_automatic._MarioState noattr)))
+               && proj_sumbool
+                    (type_eq tsm
+                       (Tstruct mario_actions_automatic._MarioState noattr))
+               && proj_sumbool (type_eq tfa (tarray tfloat 3))
+           | _ => false
+           end).
+
+  (* the per-leaf Sassign recognizer: a marg Mario-field store (value-blind)
+     OR the nextPos[1] indexed local-out-param store. *)
+  Definition php_assign_chk (a1 : expr) : bool :=
+    safe_mfield_store mario_actions_automatic._m a1
+    || match a1 with
+       | Ederef (Ebinop Oadd (Etempvar q tq) (Econst_int _ tci) _) ety =>
+           Pos.eqb q mario_actions_automatic._nextPos
+           && proj_sumbool (type_eq tq (tptr tfloat))
+           && proj_sumbool (type_eq tci tint)
+           && proj_sumbool (type_eq ety tfloat)
+       | _ => false
+       end.
+
+  Definition php_optid_ok (optid : option ident) : bool :=
+    match optid with
+    | Some id => negb (Pos.eqb id mario_actions_automatic._m)
+                 && negb (Pos.eqb id mario_actions_automatic._nextPos)
+    | None => true
+    end.
+
+  Fixpoint php_chk (s : statement) : bool :=
+    match s with
+    | Sskip | Sbreak | Scontinue => true
+    | Sreturn _ => true
+    | Ssequence s1 s2 => php_chk s1 && php_chk s2
+    | Sifthenelse _ s1 s2 => php_chk s1 && php_chk s2
+    | Sset id _ => php_optid_ok (Some id)
+    | Sassign a1 _ => php_assign_chk a1
+    | Scall optid (Evar fid fty) al => php_optid_ok optid && php_call_chk fid fty al
+    | _ => false
+    end.
+
+  Lemma php_pin :
+    (prog_defmap mario_actions_automatic.prog)
+      ! mario_actions_automatic._perform_hanging_step
+    = Some (Gfun (Internal mario_actions_automatic.f_perform_hanging_step)).
+  Proof. vm_compute. reflexivity. Qed.
+
+  (* NON-VACUITY: the recognizer accepts the REAL generated body. *)
+  Lemma php_chk_body :
+    php_chk (fn_body mario_actions_automatic.f_perform_hanging_step) = true.
+  Proof. vm_compute. reflexivity. Qed.
+
+  (* ====================================================================== *)
+  (* STAGE 2: the w1 (dst-window) gate construction for the vec3f_copy call *)
+  (* site -- the bare m->pos array field, as an RVALUE, decays By_reference *)
+  (* to its base address Vptr bm 60, a safe 12-byte window (action cell @12 *)
+  (* clear).  Mirror of window_addr_val but for the whole-array decay.      *)
+  (* ====================================================================== *)
+  Lemma pos_window_val :
+    forall e le m v,
+      (forall b o, le ! mario_actions_automatic._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      eval_expr (lp_ge lp) e le m
+        (Efield
+           (Ederef (Etempvar mario_actions_automatic._m
+                      (tptr (Tstruct mario_actions_automatic._MarioState noattr)))
+              (Tstruct mario_actions_automatic._MarioState noattr))
+           mario_actions_automatic._pos (tarray tfloat 3)) v ->
+      exists o, v = Vptr bm o /\ store_window_ok (Ptrofs.unsigned o) 12 = true.
+  Proof.
+    intros e le m v Htat Hev.
+    assert (Hfo : field_offset (prog_comp_env mario.prog)
+                    mario_actions_automatic._pos mario_state_members
+                  = OK (60, Full)) by (vm_compute; reflexivity).
+    assert (Hwin : store_window_ok 60 12 = true) by (vm_compute; reflexivity).
+    inv Hev.
+    match goal with
+    | Hd : deref_loc (typeof _) _ _ _ _ _ |- _ => cbn [typeof] in Hd
+    end.
+    match goal with
+    | Hd : deref_loc (tarray tfloat 3) _ _ _ _ _ |- _ =>
+        inv Hd;
+        try (match goal with Hacc : access_mode (tarray tfloat 3) = _ |- _ =>
+               cbn in Hacc; discriminate Hacc end);
+        try (match goal with Hlb : load_bitfield (tarray tfloat 3) _ _ _ _ _ _ _ |- _ =>
+               inv Hlb end)
+    end.
+    match goal with
+    | Hflv : eval_lvalue _ _ _ _ (Efield _ _ _) ?lf ?of ?bff |- _ =>
+        pose proof Hflv as Hpin;
+        apply eval_lvalue_Efield_base in Hpin;
+        destruct Hpin as (oo0 & Hbase);
+        apply eval_expr_Ederef_load in Hbase;
+        destruct Hbase as (lb & ob & bfb & Hlvb & _);
+        apply eval_lvalue_Ederef_base in Hlvb;
+        apply eval_expr_Etempvar_val in Hlvb;
+        destruct (Htat _ _ Hlvb) as [E1 E2]; subst lb ob;
+        destruct (mfield_lvalue_geom_lp lp LO_mario _ _ _ _ _ _
+                    lf of bff _ _ _ Hlvb Hfo Hflv) as (E3 & E4 & _);
+        subst lf of
+    end.
+    eexists. split; [ reflexivity | ].
+    rewrite Ptrofs.add_zero_l.
+    rewrite Ptrofs.unsigned_repr by (vm_compute; split; discriminate).
+    exact Hwin.
+  Qed.
+
+  (* a single-constant always evaluates to its Vsingle value (mirror of
+     eval_expr_Etempvar_val): used in the resolve gate to refute that a
+     float-constant argument could be a pointer.  Proving it as a lemma
+     avoids inverting eval_expr inline (which spawns a spurious eval_lvalue
+     case that would leak extra goals into the gate). *)
+  Lemma eval_Econst_single_val : forall e le m c ty v,
+    eval_expr (lp_ge lp) e le m (Econst_single c ty) v -> v = Vsingle c.
+  Proof.
+    intros e le m c ty v H; inv H; auto.
+    match goal with
+    | Hlv : eval_lvalue _ _ _ _ (Econst_single _ _) _ _ _ |- _ => inv Hlv
+    end.
+  Qed.
+
+  (* ---- STAGE 3 decode helpers + the exec-derivation WALKER ---- *)
+  Hypothesis Hocp_resolve :
+    call_pres_ext_ol lp bm NoA MWF SafeB
+      mario_actions_automatic._resolve_and_return_wall_collisions.
+  Hypothesis Hw1cp_v3f :
+    call_pres_ext_w1 lp bm NoA MWF mario_actions_automatic._vec3f_copy.
+
+  Lemma php_assign_decode :
+    forall a1, php_assign_chk a1 = true ->
+      safe_mfield_store mario_actions_automatic._m a1 = true \/
+      exists idxN ity,
+        a1 = Ederef (Ebinop Oadd
+                       (Etempvar mario_actions_automatic._nextPos (tptr tfloat))
+                       (Econst_int idxN tint) ity) tfloat.
+  Proof.
+    intros a1 H. unfold php_assign_chk in H.
+    apply orb_true_iff in H as [Hsf | Hns]; [ left; exact Hsf | right ].
+    destruct a1 as [ | | | | | | ed ety | | | | | | | ]; try discriminate Hns.
+    destruct ed as [ | | | | | | | | | bop e1 e2 bty | | | | ]; try discriminate Hns.
+    destruct bop; try discriminate Hns.
+    destruct e1 as [ | | | | | q tq | | | | | | | | ]; try discriminate Hns.
+    destruct e2 as [ idxN tci | | | | | | | | | | | | | ]; try discriminate Hns.
+    apply andb_true_iff in Hns as [Hns Hety].
+    apply andb_true_iff in Hns as [Hns Htci].
+    apply andb_true_iff in Hns as [Hq Htq].
+    apply Pos.eqb_eq in Hq; subst q.
+    destruct (type_eq tq (tptr tfloat)) as [Eq1 | ]; [ | discriminate Htq ].
+    destruct (type_eq tci tint) as [Eq2 | ]; [ | discriminate Htci ].
+    destruct (type_eq ety tfloat) as [Eq3 | ]; [ | discriminate Hety ].
+    subst tq tci ety. exists idxN, bty. reflexivity.
+  Qed.
+
+  Lemma php_call_decode :
+    forall fid fty al, php_call_chk fid fty al = true ->
+      oc_call_chk
+        (mario_actions_automatic._floor :: mario_actions_automatic._ceil :: nil)
+        (mario_actions_automatic._find_floor
+           :: mario_actions_automatic._vec3f_find_ceil :: nil) fid fty al = true
+      \/ (fid = mario_actions_automatic._resolve_and_return_wall_collisions /\
+          fty = Tfunction (tptr tfloat :: tfloat :: tfloat :: nil)
+                  (tptr (Tstruct mario_actions_automatic._Surface noattr)) cc_default /\
+          exists c1 t1 c2 t2,
+            al = Etempvar mario_actions_automatic._nextPos (tptr tfloat)
+                 :: Econst_single c1 t1 :: Econst_single c2 t2 :: nil)
+      \/ (fid = mario_actions_automatic._vec3f_copy /\
+          fty = Tfunction (tptr tfloat :: tptr tfloat :: nil) (tptr tvoid) cc_default /\
+          exists q tq,
+            al = Efield
+                   (Ederef (Etempvar mario_actions_automatic._m
+                              (tptr (Tstruct mario_actions_automatic._MarioState noattr)))
+                      (Tstruct mario_actions_automatic._MarioState noattr))
+                   mario_actions_automatic._pos (tarray tfloat 3)
+                 :: Etempvar q tq :: nil).
+  Proof.
+    intros fid fty al H. unfold php_call_chk in H.
+    apply orb_true_iff in H as [H | Hv3f].
+    apply orb_true_iff in H as [Hoc | Hres].
+    - left; exact Hoc.
+    - right; left.
+      apply andb_true_iff in Hres as [Hr12 Hres].
+      apply andb_true_iff in Hr12 as [Hfid Hfty].
+      apply Pos.eqb_eq in Hfid.
+      destruct (type_eq fty
+                  (Tfunction (tptr tfloat :: tfloat :: tfloat :: nil)
+                     (tptr (Tstruct mario_actions_automatic._Surface noattr))
+                     cc_default)) as [Efty | ]; [ | discriminate Hfty ].
+      split; [ exact Hfid | ]. split; [ exact Efty | ].
+      destruct al as [ | a0 al0 ]; try discriminate Hres.
+      destruct a0 as [ | | | | | q tq | | | | | | | | ]; try discriminate Hres.
+      destruct al0 as [ | a1 al1 ]; try discriminate Hres.
+      destruct a1 as [ | | c1 t1 | | | | | | | | | | | ]; try discriminate Hres.
+      destruct al1 as [ | a2 al2 ]; try discriminate Hres.
+      destruct a2 as [ | | c2 t2 | | | | | | | | | | | ]; try discriminate Hres.
+      destruct al2; try discriminate Hres.
+      apply andb_true_iff in Hres as [Hq Htq].
+      apply Pos.eqb_eq in Hq; subst q.
+      destruct (type_eq tq (tptr tfloat)) as [Eq | ]; [ subst tq | discriminate Htq ].
+      exists c1, t1, c2, t2. reflexivity.
+    - right; right.
+      apply andb_true_iff in Hv3f as [Hv12 Hv3f].
+      apply andb_true_iff in Hv12 as [Hfid Hfty].
+      apply Pos.eqb_eq in Hfid.
+      destruct (type_eq fty
+                  (Tfunction (tptr tfloat :: tptr tfloat :: nil) (tptr tvoid)
+                     cc_default)) as [Efty | ]; [ | discriminate Hfty ].
+      split; [ exact Hfid | ]. split; [ exact Efty | ].
+      destruct al as [ | a0 al0 ]; try discriminate Hv3f.
+      destruct a0 as [ | | | | | | | | | | | inner efd eft2 | | ]; try discriminate Hv3f.
+      destruct inner as [ | | | | | | edb edt | | | | | | | ]; try discriminate Hv3f.
+      destruct edb as [ | | | | | mp tmp | | | | | | | | ]; try discriminate Hv3f.
+      destruct al0 as [ | a1 al1 ]; try discriminate Hv3f.
+      destruct a1 as [ | | | | | q tq | | | | | | | | ]; try discriminate Hv3f.
+      destruct al1; try discriminate Hv3f.
+      apply andb_true_iff in Hv3f as [Hv3f Htfa].
+      apply andb_true_iff in Hv3f as [Hv3f Htsm].
+      apply andb_true_iff in Hv3f as [Hv3f Htmp].
+      apply andb_true_iff in Hv3f as [Hv3f _].
+      apply andb_true_iff in Hv3f as [Hmp Hfld].
+      apply Pos.eqb_eq in Hmp; subst mp.
+      apply Pos.eqb_eq in Hfld; subst efd.
+      destruct (type_eq tmp (tptr (Tstruct mario_actions_automatic._MarioState noattr)))
+        as [E1 | ]; [ subst tmp | discriminate Htmp ].
+      destruct (type_eq edt (Tstruct mario_actions_automatic._MarioState noattr))
+        as [E2 | ]; [ subst edt | discriminate Htsm ].
+      destruct (type_eq eft2 (tarray tfloat 3))
+        as [E3 | ]; [ subst eft2 | discriminate Htfa ].
+      exists q, tq. reflexivity.
+  Qed.
+
+  (* ====================================================================== *)
+  (* THE WALKER: any php_chk-passing statement, executed under the mo-gate  *)
+  (* env (le!_m = (bm,0), le!_nextPos = a local, the _floor/_ceil fn_vars   *)
+  (* local, the 4 callees unbound), preserves carried -- WHATEVER its       *)
+  (* outcome.  Induction over the EXEC DERIVATION absorbs the 6 early-return *)
+  (* guards uniformly (each Sreturn/Sif is a base/IH case).                  *)
+  (* ====================================================================== *)
+  Lemma php_walk_pres :
+    forall npb npo,
+      local_blk lp bm SafeB npb ->
+      forall s e le m0 tr le' m' out,
+        exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
+        php_chk s = true ->
+        e ! mario_actions_automatic._resolve_and_return_wall_collisions = None ->
+        e ! mario_actions_automatic._find_floor = None ->
+        e ! mario_actions_automatic._vec3f_find_ceil = None ->
+        e ! mario_actions_automatic._vec3f_copy = None ->
+        (forall l, mem_id l (mario_actions_automatic._floor
+                             :: mario_actions_automatic._ceil :: nil) = true ->
+           exists lblk tyenv, e ! l = Some (lblk, tyenv) /\
+                              local_blk lp bm SafeB lblk) ->
+        le ! mario_actions_automatic._m = Some (Vptr bm Ptrofs.zero) ->
+        le ! mario_actions_automatic._nextPos = Some (Vptr npb npo) ->
+        carried bm NoA MWF m0 ->
+        carried bm NoA MWF m' /\
+        le' ! mario_actions_automatic._m = Some (Vptr bm Ptrofs.zero) /\
+        le' ! mario_actions_automatic._nextPos = Some (Vptr npb npo).
+  Proof.
+    intros npb npo Hnploc s e le m0 tr le' m' out Hexec.
+    induction Hexec; intros Hchk Hrn Hff Hvfc Hvc Hlids Hm Hnp Hc.
+    - (* Sskip *) exact (conj Hc (conj Hm Hnp)).
+    - (* Sassign a1 a2 *)
+      cbn [php_chk] in Hchk.
+      assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
+                      (Sassign a1 a2) E0 le m' Out_normal)
+        by (econstructor; eauto).
+      destruct (php_assign_decode _ Hchk) as [Hsf | (idxN & ity & ->)].
+      + (* marg Mario-field store: value-blind epi *)
+        destruct Hc as (HV & HS & HM & HN).
+        assert (Htatm : forall b o,
+                  le ! mario_actions_automatic._m = Some (Vptr b o) ->
+                  b = bm /\ o = Ptrofs.zero)
+          by (intros b o Hg; rewrite Hm in Hg; injection Hg as <- <-;
+              split; reflexivity).
+        destruct (epi_assign_pres lp LO_mario bm MWF HMWF_window
+                    a1 a2 _ _ _ _ _ _ _ Hsf Htatm Hex HM HV HS)
+          as (HV' & HS' & HM' & _ & _).
+        exact (conj (conj HV' (conj HS' (conj HM' (HNoA_of_MWF _ HM'))))
+                 (conj Hm Hnp)).
+      + (* nextPos[i] indexed local-out-param store *)
+        destruct (local_ptr_idx_assign_pres lp bm NoA MWF SafeB Hls_real
+                    HNoA_of_MWF e mario_actions_automatic._nextPos idxN ity tfloat
+                    a2 le m _ _ m' _ npb npo Mfloat32
+                    Hnp Hnploc eq_refl Hex Hc) as (Hc' & _ & _).
+        exact (conj Hc' (conj Hm Hnp)).
+    - (* Sset id a: id <> _m, _nextPos (php_optid_ok) *)
+      cbn [php_chk php_optid_ok] in Hchk.
+      apply andb_true_iff in Hchk as [Hnm Hnnp].
+      apply negb_true_iff in Hnm; apply negb_true_iff in Hnnp.
+      refine (conj Hc (conj _ _)).
+      + rewrite PTree.gso by (intro EE; subst id; rewrite Pos.eqb_refl in Hnm;
+                              discriminate Hnm).
+        exact Hm.
+      + rewrite PTree.gso by (intro EE; subst id; rewrite Pos.eqb_refl in Hnnp;
+                              discriminate Hnnp).
+        exact Hnp.
+    - (* Scall optid a tyargs el vargs *)
+      cbn [php_chk] in Hchk.
+      destruct a as [ | | | | fid fty | | | | | | | | | ]; try discriminate Hchk.
+      (* a = Evar fid fty *)
+      apply andb_true_iff in Hchk as [Hopt Hcc].
+      assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
+                      (Scall optid (Evar fid fty) al) t (set_opttemp optid vres le)
+                      m' Out_normal)
+        by (econstructor; eauto).
+      (* le' = set_opttemp optid vres le; optid avoids _m,_nextPos via Hopt *)
+      assert (HmL : (set_opttemp optid vres le) ! mario_actions_automatic._m
+                    = Some (Vptr bm Ptrofs.zero) /\
+                    (set_opttemp optid vres le) ! mario_actions_automatic._nextPos
+                    = Some (Vptr npb npo)).
+      { cbn [php_optid_ok] in Hopt.
+        destruct optid as [oid | ]; cbn [set_opttemp].
+        - apply andb_true_iff in Hopt as [Hom Honp].
+          apply negb_true_iff in Hom; apply negb_true_iff in Honp.
+          split.
+          + rewrite PTree.gso by (intro EE; subst oid;
+              rewrite Pos.eqb_refl in Hom; discriminate Hom). exact Hm.
+          + rewrite PTree.gso by (intro EE; subst oid;
+              rewrite Pos.eqb_refl in Honp; discriminate Honp). exact Hnp.
+        - split; [ exact Hm | exact Hnp ]. }
+      destruct (php_call_decode _ _ _ Hcc)
+        as [Hoc | [ (Hfeq & Hftyeq & c1 & t1 & c2 & t2 & ->)
+                  | (Hfeq & Hftyeq & q & tq & ->) ]].
+      + (* oc: find_floor / vec3f_find_ceil *)
+        assert (Hcp_oc : forall g,
+                  mem_id g (mario_actions_automatic._find_floor
+                            :: mario_actions_automatic._vec3f_find_ceil :: nil)
+                    = true -> call_pres_ext_oc lp bm NoA MWF SafeB g).
+        { intros g Hg. cbn [mem_id existsb] in Hg.
+          apply orb_true_iff in Hg as [Eg | Hg];
+            [ apply Pos.eqb_eq in Eg; subst g; exact Hocp_find_floor | ].
+          apply orb_true_iff in Hg as [Eg | F];
+            [ apply Pos.eqb_eq in Eg; subst g; exact Hocp_find_ceil
+            | discriminate F ]. }
+        assert (Hnone : forall g,
+                  mem_id g (mario_actions_automatic._find_floor
+                            :: mario_actions_automatic._vec3f_find_ceil :: nil)
+                    = true -> e ! g = None).
+        { intros g Hg. cbn [mem_id existsb] in Hg.
+          apply orb_true_iff in Hg as [Eg | Hg];
+            [ apply Pos.eqb_eq in Eg; subst g; exact Hff | ].
+          apply orb_true_iff in Hg as [Eg | F];
+            [ apply Pos.eqb_eq in Eg; subst g; exact Hvfc | discriminate F ]. }
+        destruct (oc_call_chk_pres lp bm NoA MWF SafeB
+                    (mario_actions_automatic._floor
+                       :: mario_actions_automatic._ceil :: nil)
+                    (mario_actions_automatic._find_floor
+                       :: mario_actions_automatic._vec3f_find_ceil :: nil)
+                    optid fid fty al e le m _ _ m' _
+                    Hcp_oc Hnone Hlids Hoc Hex Hc) as (Hc' & _).
+        exact (conj Hc' (conj (proj1 HmL) (proj2 HmL))).
+      + (* ol: resolve_and_return_wall_collisions(nextPos, 1.0f, 1.0f) *)
+        subst fid fty.
+        assert (Hgate : forall vargs,
+            eval_exprlist (lp_ge lp) e le m
+              (Etempvar mario_actions_automatic._nextPos (tptr tfloat)
+               :: Econst_single c1 t1 :: Econst_single c2 t2 :: nil)
+              (tptr tfloat :: tfloat :: tfloat :: nil) vargs ->
+            args_all_local lp bm SafeB vargs).
+        { intros vargs0 Hvl.
+          inversion Hvl as [ | a1 bl1 ty1 tyl1 v1a v2a vl1 Hev_a Hsc_a Htl1 ];
+            subst; clear Hvl.
+          inversion Htl1 as [ | a2 bl2 ty2 tyl2 v1b v2b vl2 Hev_b Hsc_b Htl2 ];
+            subst; clear Htl1.
+          inversion Htl2 as [ | a3 bl3 ty3 tyl3 v1c v2c vl3 Hev_c Hsc_c Htl3 ];
+            subst; clear Htl2.
+          inversion Htl3; subst; clear Htl3.
+          apply RealFrameValue.eval_expr_Etempvar_val in Hev_a;
+            rewrite Hnp in Hev_a; injection Hev_a as <-.
+          apply eval_Econst_single_val in Hev_b; subst v1b.
+          apply eval_Econst_single_val in Hev_c; subst v1c.
+          intros bb oo Hin; cbn in Hin.
+          destruct Hin as [E | [E | [E | []]]]; subst;
+          [ apply RealFrameValue.sem_cast_ptr_result_inv in Hsc_a;
+            injection Hsc_a as <- <-; exact Hnploc
+          | apply RealFrameValue.sem_cast_ptr_result_inv in Hsc_b; discriminate Hsc_b
+          | apply RealFrameValue.sem_cast_ptr_result_inv in Hsc_c; discriminate Hsc_c ]. }
+        destruct (ol_scall_pres lp bm NoA MWF SafeB optid
+                    mario_actions_automatic._resolve_and_return_wall_collisions
+                    (tptr tfloat :: tfloat :: tfloat :: nil)
+                    (tptr (Tstruct mario_actions_automatic._Surface noattr)) cc_default
+                    (Etempvar mario_actions_automatic._nextPos (tptr tfloat)
+                     :: Econst_single c1 t1 :: Econst_single c2 t2 :: nil)
+                    e le m _ _ m' _ Hrn Hocp_resolve Hgate
+                    Hex Hc) as (Hc' & _).
+        exact (conj Hc' (conj (proj1 HmL) (proj2 HmL))).
+      + (* w1: vec3f_copy(&m->pos, nextPos), dst = m->pos window *)
+        subst fid fty.
+        assert (Hgate : forall vargs,
+            eval_exprlist (lp_ge lp) e le m
+              (Efield
+                 (Ederef (Etempvar mario_actions_automatic._m
+                            (tptr (Tstruct mario_actions_automatic._MarioState noattr)))
+                    (Tstruct mario_actions_automatic._MarioState noattr))
+                 mario_actions_automatic._pos (tarray tfloat 3)
+               :: Etempvar q tq :: nil)
+              (tptr tfloat :: tptr tfloat :: nil) vargs ->
+            arg0_window bm vargs).
+        { intros vargs0 Hvl.
+          inversion Hvl as [ | a1 bl1 ty1 tyl1 v1a v2a vl1 Hev_a Hsc_a Htl1 ];
+            subst; clear Hvl.
+          assert (Htatm : forall b o,
+              le ! mario_actions_automatic._m = Some (Vptr b o) ->
+              b = bm /\ o = Ptrofs.zero)
+            by (intros b o Hg; rewrite Hm in Hg; injection Hg as <- <-;
+                split; reflexivity).
+          destruct (pos_window_val _ _ _ _ Htatm Hev_a) as (o0 & Ev0 & Hwin0).
+          subst v1a. cbn in Hsc_a. injection Hsc_a as <-.
+          red. exists o0, vl1. split; [ reflexivity | exact Hwin0 ]. }
+        destruct (w1_scall_pres lp bm NoA MWF optid mario_actions_automatic._vec3f_copy
+                    (tptr tfloat :: tptr tfloat :: nil) (tptr tvoid) cc_default
+                    (Efield
+                       (Ederef (Etempvar mario_actions_automatic._m
+                                  (tptr (Tstruct mario_actions_automatic._MarioState noattr)))
+                          (Tstruct mario_actions_automatic._MarioState noattr))
+                       mario_actions_automatic._pos (tarray tfloat 3)
+                     :: Etempvar q tq :: nil)
+                    e le m _ _ m' _ Hvc Hw1cp_v3f Hgate
+                    Hex Hc) as (Hc' & _).
+        exact (conj Hc' (conj (proj1 HmL) (proj2 HmL))).
+    - (* Sbuiltin: rejected *)
+      cbn [php_chk] in Hchk. discriminate Hchk.
+    - (* Sseq_1 *)
+      cbn [php_chk] in Hchk. apply andb_true_iff in Hchk as [H1 H2].
+      destruct (IHHexec1 H1 Hrn Hff Hvfc Hvc Hlids Hm Hnp Hc)
+        as (Hc1 & Hm1 & Hnp1).
+      exact (IHHexec2 H2 Hrn Hff Hvfc Hvc Hlids Hm1 Hnp1 Hc1).
+    - (* Sseq_2 *)
+      cbn [php_chk] in Hchk. apply andb_true_iff in Hchk as [H1 _].
+      exact (IHHexec H1 Hrn Hff Hvfc Hvc Hlids Hm Hnp Hc).
+    - (* Sifthenelse *)
+      cbn [php_chk] in Hchk. apply andb_true_iff in Hchk as [H1 H2].
+      apply IHHexec; try assumption.
+      destruct b; assumption.
+    - (* Sreturn None *) exact (conj Hc (conj Hm Hnp)).
+    - (* Sreturn (Some _) *) exact (conj Hc (conj Hm Hnp)).
+    - (* Sbreak *) exact (conj Hc (conj Hm Hnp)).
+    - (* Scontinue *) exact (conj Hc (conj Hm Hnp)).
+    - (* Sloop stop1 *) cbn [php_chk] in Hchk. discriminate Hchk.
+    - (* Sloop stop2 *) cbn [php_chk] in Hchk. discriminate Hchk.
+    - (* Sloop loop *) cbn [php_chk] in Hchk. discriminate Hchk.
+    - (* Sswitch: rejected *)
+      cbn [php_chk] in Hchk. discriminate Hchk.
+  Qed.
+
   (* ---- memory split: peel the body's back HALF into a separate Qed ----
      update_hang_moving's body walk is the biggest single proof term in the repo;
      its monolithic Qed peaks ~7.3GB RSS (over the 6.5GB WSL guardrail).  The back
