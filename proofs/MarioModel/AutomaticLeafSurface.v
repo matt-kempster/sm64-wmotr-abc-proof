@@ -283,6 +283,50 @@ Example alg_walk :
     (fn_body mario_actions_automatic.f_act_ledge_grab) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- set_pole_position census: the 730-line SHARED pole helper, now fully
+   recognized once the oc arm accepts vec3f_find_ceil's 3-arg out-param shape
+   (the localizer pinned that as the single gap).  Feeds Hspp below. ---- *)
+Definition spp_lids : list ident :=
+  mario_actions_automatic._floor :: mario_actions_automatic._ceil :: nil.
+Definition spp_oc_pids : list ident :=
+  mario_actions_automatic._find_floor
+  :: mario_actions_automatic._vec3f_find_ceil :: nil.
+Definition spp_wc_pids : list ident :=
+  mario_actions_automatic._f32_find_wall_collision :: nil.
+Definition spp_sc_pids : list ident :=
+  mario_actions_automatic._vec3f_copy
+  :: mario_actions_automatic._vec3s_set :: nil.
+Definition spp_sids : list ident :=
+  mario_actions_automatic._set_mario_action :: nil.
+Definition spp_cact : list ident :=
+  mario_actions_automatic._marioObj
+  :: mario_actions_automatic._t'37 :: mario_actions_automatic._t'34
+  :: mario_actions_automatic._t'32 :: mario_actions_automatic._t'29
+  :: mario_actions_automatic._t'26 :: mario_actions_automatic._t'19
+  :: mario_actions_automatic._t'17 :: mario_actions_automatic._t'14
+  :: mario_actions_automatic._t'11 :: mario_actions_automatic._t'9
+  :: mario_actions_automatic._t'6  :: mario_actions_automatic._t'5 :: nil.
+Example spp_walk :
+  wwalk_chk' spp_lids spp_oc_pids spp_wc_pids spp_sc_pids false
+    nil nil nil spp_cact nil spp_sids nil
+    (fn_body mario_actions_automatic.f_set_pole_position) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example spp_pin :
+  (prog_defmap mario_actions_automatic.prog)
+    ! mario_actions_automatic._set_pole_position
+  = Some (Gfun (Internal mario_actions_automatic.f_set_pole_position)).
+Proof. vm_compute. reflexivity. Qed.
+Example spp_params_ok :
+  aut_pok mario_actions_automatic.f_set_pole_position = true.
+Proof. vm_compute. reflexivity. Qed.
+(* the chase-temp census is param-disjoint (every cact temp is a non-param,
+   so Vundef at entry -> chase_inv holds vacuously). *)
+Example spp_npc :
+  forallb (fun t' => negb (mem_id t'
+             (map fst (fn_params mario_actions_automatic.f_set_pole_position))))
+    spp_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ====================================================================== *)
 (* B10: POLE-CLUSTER SCAFFOLD -- act_grab_pole_slow WALKED (rest-split).    *)
 (* fn_vars=nil, ZERO stores: 6 calls -- play_sound_if_no_flag /             *)
@@ -658,6 +702,23 @@ Section AutomaticLeafRows.
      the out-param, a vargs the real program never produces). *)
   Hypothesis Hocp_find_floor :
     call_pres_ext_oc lp bm NoA MWF SafeB mario._find_floor.
+  (* the SHARED pole/tornado/hang external residuals -- the HONEST gated
+     refinements of the phantom call_pres_ext rows, consumed by Hcp_spp (the
+     set_pole_position walk) and reused by every pole/tornado leaf:
+       - vec3f_find_ceil: a write-only OUT-PARAM writer (sibling of find_floor;
+         called as vec3f_find_ceil(pos,&_ceil)) -> call_pres_ext_oc;
+       - f32_find_wall_collision: a WINDOW writer (its collision-data arg targets
+         a safe window of bm) -> call_pres_ext_wc;
+       - vec3f_copy / vec3s_set: OBJECT writers whose dst chases m->marioObj into
+         the SafeB object pool -> call_pres_ext_sc. *)
+  Hypothesis Hocp_find_ceil :
+    call_pres_ext_oc lp bm NoA MWF SafeB mario_actions_automatic._vec3f_find_ceil.
+  Hypothesis Hwcp_fwc :
+    call_pres_ext_wc lp bm NoA MWF mario_actions_automatic._f32_find_wall_collision.
+  Hypothesis Hscp_v3f :
+    call_pres_ext_sc lp bm NoA MWF SafeB mario_actions_automatic._vec3f_copy.
+  Hypothesis Hscp_v3s :
+    call_pres_ext_sc lp bm NoA MWF SafeB mario_actions_automatic._vec3s_set.
 
   (* the stack-frame MWF rows for the local-vars arc (Tier-1 leaves with
      fn_vars = [_floor]).  Discharge at the capstone from MWFReal:
@@ -686,12 +747,13 @@ Section AutomaticLeafRows.
        object family -- it is an address translation, writes no memory). *)
   Hypothesis Hcpx_stv :
     call_pres_ext lp bm NoA MWF interaction._segmented_to_virtual.
-  (* - Hcp_spp: set_pole_position, the 730-line SHARED pole helper, NAMED as
-       a precise internal residual (its body does out-param find_floor /
-       vec3f_find_ceil calls + a _filler local + chase stores; dischargeable
-       via the out-param + Tier-2 arcs).  Twin of Hcp_pgs. *)
-  Hypothesis Hcp_spp :
-    call_pres lp bm NoA MWF mario_actions_automatic._set_pole_position.
+  (* - Hcp_spp: set_pole_position, the 730-line SHARED pole helper, is no
+       longer ASSUMED -- it is now PROVED below (Lemma Hcp_spp) by WALKING the
+       whole body via call_pres_of_lwalk3 (the lids+cact producer), resting on
+       the gated leaf-external residuals Hocp_find_floor / Hocp_find_ceil (oc),
+       Hwcp_fwc (wc), Hscp_v3f / Hscp_v3s (sc) + Hsmact (set_mario_action).
+       The opaque whole-function residual is decomposed into those precise,
+       true-in-model, dischargeable leaf residuals. *)
 
   (* the shrinking residual: the leaves not yet walked *)
   Hypothesis Hpres_aut_rest : forall fid f,
@@ -1074,6 +1136,112 @@ Section AutomaticLeafRows.
     - intros fid' H; discriminate H.
     - exact atlp_walk.
   Qed.
+
+  (* ---- set_pole_position: the 730-line SHARED pole helper, WALKED.  This
+     DISCHARGES the old Hcp_spp residual (was an opaque whole-function
+     Hypothesis) by walking the entire body via call_pres_of_lwalk3 (the
+     lids+cact producer): out-param writers find_floor/vec3f_find_ceil into the
+     _floor/_ceil stack locals (oc), window writer f32_find_wall_collision (wc),
+     object writers vec3f_copy/vec3s_set chasing m->marioObj into SafeB (sc),
+     set_mario_action (sids/Hsmact), chase temps (cact) + stack out-param
+     locals (lids).  The single opaque assumption decomposes into the precise,
+     true-in-model, dischargeable gated-external residuals. ---- *)
+  Lemma spp_oc_rows :
+    forall fid, mem_id fid spp_oc_pids = true ->
+                call_pres_ext_oc lp bm NoA MWF SafeB fid.
+  Proof.
+    intros fid H. unfold spp_oc_pids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hocp_find_floor | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hocp_find_ceil | ].
+    discriminate H.
+  Qed.
+  Lemma spp_wc_rows :
+    forall fid, mem_id fid spp_wc_pids = true ->
+                call_pres_ext_wc lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold spp_wc_pids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hwcp_fwc | ].
+    discriminate H.
+  Qed.
+  Lemma spp_sc_rows :
+    forall fid, mem_id fid spp_sc_pids = true ->
+                call_pres_ext_sc lp bm NoA MWF SafeB fid.
+  Proof.
+    intros fid H. unfold spp_sc_pids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hscp_v3f | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hscp_v3s | ].
+    discriminate H.
+  Qed.
+  Lemma spp_sids_rows :
+    forall fid, mem_id fid spp_sids = true -> call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold spp_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | ].
+    discriminate H.
+  Qed.
+  Lemma Hcp_spp :
+    call_pres lp bm NoA MWF mario_actions_automatic._set_pole_position.
+  Proof.
+    apply (call_pres_of_lwalk3 lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             HMWF_alloc HMWF_free
+             mario_actions_automatic.prog
+             mario_actions_automatic._set_pole_position
+             mario_actions_automatic.f_set_pole_position
+             nil nil spp_cact nil spp_sids spp_lids spp_oc_pids spp_wc_pids
+             spp_sc_pids
+             LO_aut spp_pin spp_params_ok spp_npc).
+    - (* Hdg: stored_globals disjoint from fn_vars=[_filler;_floor;_ceil] *)
+      intros g Hg Hin; vm_compute in Hin;
+        repeat (destruct Hin as [Heq | Hin];
+                [ subst g; vm_compute in Hg; discriminate | ]); exact Hin.
+    - intros g HH; discriminate HH.   (* Hdi: ids=nil *)
+    - intros g HH; discriminate HH.   (* Hdw: wids=nil *)
+    - intros g HH; discriminate HH.   (* Hdx: xids=nil *)
+    - (* Hds: sids disjoint from fn_vars *)
+      intros g Hg Hin; vm_compute in Hin;
+        repeat (destruct Hin as [Heq | Hin];
+                [ subst g; vm_compute in Hg; discriminate | ]); exact Hin.
+    - (* Hdoc: oc_pids disjoint from fn_vars *)
+      intros g Hg Hin; vm_compute in Hin;
+        repeat (destruct Hin as [Heq | Hin];
+                [ subst g; vm_compute in Hg; discriminate | ]); exact Hin.
+    - (* Hdwc: wc_pids disjoint from fn_vars *)
+      intros g Hg Hin; vm_compute in Hin;
+        repeat (destruct Hin as [Heq | Hin];
+                [ subst g; vm_compute in Hg; discriminate | ]); exact Hin.
+    - (* Hdsc: sc_pids disjoint from fn_vars *)
+      intros g Hg Hin; vm_compute in Hin;
+        repeat (destruct Hin as [Heq | Hin];
+                [ subst g; vm_compute in Hg; discriminate | ]); exact Hin.
+    - (* Hdgt: gGlobalTimer not a local *)
+      vm_compute; intro Hin;
+        repeat (destruct Hin as [Heq | Hin]; [ discriminate Heq | ]); exact Hin.
+    - (* Hlsub: lids=[_floor;_ceil] subset of fn_vars *)
+      intros lid Hl; unfold spp_lids in Hl; cbn [mem_id existsb] in Hl;
+        repeat (apply orb_true_iff in Hl as [Hm | Hl];
+                [ apply Pos.eqb_eq in Hm; subst lid; vm_compute; auto 10 | ]);
+        discriminate Hl.
+    - exact HSafeValid.
+    - exact HGlobValid.
+    - exact Hls_real.
+    - intros fid' H; discriminate H.   (* Hcp: ids=nil *)
+    - intros fid' H; discriminate H.   (* Hcpa: wids=nil *)
+    - intros fid' H; discriminate H.   (* Hcpx: xids=nil *)
+    - exact spp_sids_rows.             (* Hcps: sids *)
+    - exact spp_oc_rows.               (* Hcpoc: oc_pids *)
+    - exact spp_wc_rows.               (* Hcpwc: wc_pids *)
+    - exact spp_sc_rows.               (* Hcpsc: sc_pids *)
+    - exact spp_walk.                  (* Hchk *)
+  Qed.
+
   Lemma agps_ids_rows :
     forall fid, mem_id fid agps_ids = true -> call_pres lp bm NoA MWF fid.
   Proof.

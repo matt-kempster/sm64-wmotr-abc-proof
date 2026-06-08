@@ -323,64 +323,170 @@ Section OutParamArc.
     eapply oc_last_addrof; [ exact Hlid | exact Hloc | exact Hvl ].
   Qed.
 
+  (* the 3-arg twin of oc_last_addrof (vec3f_find_ceil's shape: pos, height,
+     &ceil).  The proof peels the eval_exprlist generically, so it is the same
+     as the 4-arg version with one fewer arg. *)
+  Lemma oc_last_addrof3 :
+    forall e le m a1 a2 lid sz attr tyenv t1 t2 b vargs,
+      e ! lid = Some (b, tyenv) ->
+      local_blk lp bm SafeB b ->
+      eval_exprlist (lp_ge lp) e le m
+        (a1 :: a2 ::
+          Eaddrof (Evar lid (tptr (Tstruct sz attr)))
+            (tptr (tptr (Tstruct sz attr))) :: nil)
+        (t1 :: t2 :: tptr (tptr (Tstruct sz attr)) :: nil) vargs ->
+      last_arg_local vargs.
+  Proof.
+    intros e le m a1 a2 lid sz attr tyenv t1 t2 b vargs Hlid Hloc Hvl.
+    repeat match goal with
+    | H : eval_exprlist _ _ _ _ (_ :: _) _ _ |- _ => inv H
+    end.
+    match goal with
+    | H : eval_exprlist _ _ _ _ nil _ _ |- _ => inv H
+    end.
+    match goal with
+    | He : eval_expr _ _ _ _ (Eaddrof _ _) _ |- _ => inv He
+    end;
+    try (match goal with
+         | Hl : eval_lvalue _ _ _ _ (Eaddrof _ _) _ _ _ |- _ => inv Hl
+         end).
+    match goal with
+    | Hl : eval_lvalue _ _ _ _ (Evar lid _) _ _ _ |- _ => inv Hl
+    end;
+    [ | match goal with
+        | Hn : e ! lid = None |- _ => rewrite Hlid in Hn; discriminate Hn
+        end ].
+    match goal with
+    | He : e ! lid = Some (?loc, _),
+      Hc : sem_cast (Vptr ?loc Ptrofs.zero) _ _ _ = Some _ |- _ =>
+        assert (loc = b) by congruence; subst loc;
+        cbn in Hc; injection Hc as <-
+    end.
+    unfold last_arg_local. cbn [last_val]. exists b, Ptrofs.zero.
+    split; [ reflexivity | exact Hloc ].
+  Qed.
+
+  Lemma oc_call_pres3 :
+    forall optid fid a1 a2 ty1 ty2 lid sz attr tyenv b rty cc
+           e le0 m0 tr le1 m1 out0,
+      e ! fid = None ->
+      call_pres_ext_oc fid ->
+      e ! lid = Some (b, tyenv) ->
+      local_blk lp bm SafeB b ->
+      exec_stmt function_entry2 (lp_ge lp) e le0 m0
+        (Scall optid
+           (Evar fid (Tfunction (ty1 :: ty2 ::
+                       tptr (tptr (Tstruct sz attr)) :: nil) rty cc))
+           (a1 :: a2 ::
+            Eaddrof (Evar lid (tptr (Tstruct sz attr)))
+              (tptr (tptr (Tstruct sz attr))) :: nil))
+        tr le1 m1 out0 ->
+      carried bm NoA MWF m0 ->
+      carried bm NoA MWF m1 /\ out0 = Out_normal.
+  Proof.
+    intros optid fid a1 a2 ty1 ty2 lid sz attr tyenv b rty cc
+           e le0 m0 tr le1 m1 out0
+           Hfn Hoc Hlid Hloc Hexec Hc.
+    eapply oc_scall_pres; [ exact Hfn | exact Hoc | | exact Hexec | exact Hc ].
+    intros vargs Hvl.
+    eapply oc_last_addrof3; [ exact Hlid | exact Hloc | exact Hvl ].
+  Qed.
+
   (* ---- THE SYNTACTIC RECOGNIZER for the wwalk engine's Scall oc-arm.
      A 4-arg call whose function id is in oc_pids and whose last arg is
      &(a local lid in lids), at the canonical Surface-out-param types. ---- *)
+  (* the out-param last-arg shape check, factored so the recognizer accepts
+     BOTH find_floor's 4-arg form AND vec3f_find_ceil's 3-arg form (the only
+     thing that varies is the prefix arity; the out-param is always the last
+     arg = address of a local Surface pointer). *)
+  Definition oc_last_ok (lids : list ident) (tylast : type) (alast : expr)
+      : bool :=
+    match alast with
+    | Eaddrof (Evar lid (Tpointer (Tstruct sz attr) pa1)) aoty =>
+        mem_id lid lids
+        && proj_sumbool (type_eq (Tpointer (Tstruct sz attr) pa1)
+                                  (tptr (Tstruct sz attr)))
+        && proj_sumbool (type_eq aoty (tptr (tptr (Tstruct sz attr))))
+        && proj_sumbool (type_eq tylast (tptr (tptr (Tstruct sz attr))))
+    | _ => false
+    end.
+
   Definition oc_call_chk (lids oc_pids : list ident) (fid : ident)
       (fty : type) (al : list expr) : bool :=
     mem_id fid oc_pids
     && match fty, al with
        | Tfunction (_ :: _ :: _ :: ty4 :: nil) _ _,
-         _ :: _ :: _ :: alast :: nil =>
-           match alast with
-           | Eaddrof (Evar lid (Tpointer (Tstruct sz attr) pa1)) aoty =>
-               mem_id lid lids
-               && proj_sumbool (type_eq (Tpointer (Tstruct sz attr) pa1)
-                                         (tptr (Tstruct sz attr)))
-               && proj_sumbool (type_eq aoty (tptr (tptr (Tstruct sz attr))))
-               && proj_sumbool (type_eq ty4 (tptr (tptr (Tstruct sz attr))))
-           | _ => false
-           end
+         _ :: _ :: _ :: alast :: nil => oc_last_ok lids ty4 alast
+       | Tfunction (_ :: _ :: ty3 :: nil) _ _,
+         _ :: _ :: alast :: nil => oc_last_ok lids ty3 alast
        | _, _ => false
        end.
+
+  Lemma oc_last_ok_decode :
+    forall lids tylast alast,
+      oc_last_ok lids tylast alast = true ->
+      exists lid sz attr,
+        mem_id lid lids = true /\
+        tylast = tptr (tptr (Tstruct sz attr)) /\
+        alast = Eaddrof (Evar lid (tptr (Tstruct sz attr)))
+                  (tptr (tptr (Tstruct sz attr))).
+  Proof.
+    intros lids tylast alast H. unfold oc_last_ok in H.
+    destruct alast as [ | | | | | | | einner aoty | | | | | | ];
+      try discriminate H.
+    destruct einner as [ | | | | lid evty | | | | | | | | | ];
+      try discriminate H.
+    destruct evty as [ | | | | sbase pa1 | | | | ]; try discriminate H.
+    destruct sbase as [ | | | | | | | sz attr | ]; try discriminate H.
+    apply andb_true_iff in H as [H Htyl].
+    apply andb_true_iff in H as [H Haoty].
+    apply andb_true_iff in H as [Hlid Hpa1].
+    destruct (type_eq (Tpointer (Tstruct sz attr) pa1) (tptr (Tstruct sz attr)))
+      as [Hev | ]; [ | discriminate Hpa1 ].
+    destruct (type_eq aoty (tptr (tptr (Tstruct sz attr))))
+      as [Hao | ]; [ | discriminate Haoty ].
+    destruct (type_eq tylast (tptr (tptr (Tstruct sz attr))))
+      as [Ht | ]; [ | discriminate Htyl ].
+    exists lid, sz, attr. rewrite Ht, Hev, Hao.
+    split; [ exact Hlid | split; reflexivity ].
+  Qed.
 
   Lemma oc_call_chk_decode :
     forall lids oc_pids fid fty al,
       oc_call_chk lids oc_pids fid fty al = true ->
       mem_id fid oc_pids = true /\
-      exists a1 a2 a3 lid sz attr ty1 ty2 ty3 rty cc,
-        mem_id lid lids = true /\
-        fty = Tfunction (ty1 :: ty2 :: ty3 ::
-                         tptr (tptr (Tstruct sz attr)) :: nil) rty cc /\
-        al = a1 :: a2 :: a3 ::
-             Eaddrof (Evar lid (tptr (Tstruct sz attr)))
-               (tptr (tptr (Tstruct sz attr))) :: nil.
+      ( (exists a1 a2 a3 lid sz attr ty1 ty2 ty3 rty cc,
+           mem_id lid lids = true /\
+           fty = Tfunction (ty1 :: ty2 :: ty3 ::
+                            tptr (tptr (Tstruct sz attr)) :: nil) rty cc /\
+           al = a1 :: a2 :: a3 ::
+                Eaddrof (Evar lid (tptr (Tstruct sz attr)))
+                  (tptr (tptr (Tstruct sz attr))) :: nil)
+        \/
+        (exists a1 a2 lid sz attr ty1 ty2 rty cc,
+           mem_id lid lids = true /\
+           fty = Tfunction (ty1 :: ty2 ::
+                            tptr (tptr (Tstruct sz attr)) :: nil) rty cc /\
+           al = a1 :: a2 ::
+                Eaddrof (Evar lid (tptr (Tstruct sz attr)))
+                  (tptr (tptr (Tstruct sz attr))) :: nil) ).
   Proof.
     intros lids oc_pids fid fty al Hchk.
     unfold oc_call_chk in Hchk.
     apply andb_true_iff in Hchk as [Hfid Hchk].
     split; [ exact Hfid | ].
     destruct fty as [ | | | | | | tyl rty cc | | ]; try discriminate Hchk.
-    destruct tyl as [|ty1 [|ty2 [|ty3 [|ty4 [|t5 tyl']]]]]; try discriminate Hchk.
-    destruct al as [|a1 [|a2 [|a3 [|elast [|e5 al']]]]]; try discriminate Hchk.
-    destruct elast as [ | | | | | | | einner aoty | | | | | | ];
-      try discriminate Hchk.
-    destruct einner as [ | | | | lid evty | | | | | | | | | ];
-      try discriminate Hchk.
-    destruct evty as [ | | | | sbase pa1 | | | | ]; try discriminate Hchk.
-    destruct sbase as [ | | | | | | | sz attr | ]; try discriminate Hchk.
-    apply andb_true_iff in Hchk as [Hchk Hty4].
-    apply andb_true_iff in Hchk as [Hchk Haoty].
-    apply andb_true_iff in Hchk as [Hlid Hpa1].
-    destruct (type_eq (Tpointer (Tstruct sz attr) pa1) (tptr (Tstruct sz attr)))
-      as [Hev | ]; [ | discriminate Hpa1 ].
-    destruct (type_eq aoty (tptr (tptr (Tstruct sz attr))))
-      as [Hao | ]; [ | discriminate Haoty ].
-    destruct (type_eq ty4 (tptr (tptr (Tstruct sz attr))))
-      as [H4 | ]; [ | discriminate Hty4 ].
-    exists a1, a2, a3, lid, sz, attr, ty1, ty2, ty3, rty, cc.
-    rewrite H4, Hev, Hao.
-    split; [ exact Hlid | split; reflexivity ].
+    destruct tyl as [|ty1 [|ty2 [|ty3 [|ty4 [|ty5 tyl']]]]]; try discriminate Hchk.
+    - (* tyl = ty1::ty2::ty3::nil (3 args): vec3f_find_ceil shape *)
+      destruct al as [|a1 [|a2 [|a3 [|a4 al']]]]; try discriminate Hchk.
+      destruct (oc_last_ok_decode _ _ _ Hchk) as (lid & sz & attr & Hlid & Ht & Ha).
+      right. exists a1, a2, lid, sz, attr, ty1, ty2, rty, cc.
+      subst ty3 a3. split; [ exact Hlid | split; reflexivity ].
+    - (* tyl = ty1::ty2::ty3::ty4::nil (4 args): find_floor shape *)
+      destruct al as [|a1 [|a2 [|a3 [|a4 [|a5 al']]]]]; try discriminate Hchk.
+      destruct (oc_last_ok_decode _ _ _ Hchk) as (lid & sz & attr & Hlid & Ht & Ha).
+      left. exists a1, a2, a3, lid, sz, attr, ty1, ty2, ty3, rty, cc.
+      subst ty4 a4. split; [ exact Hlid | split; reflexivity ].
   Qed.
 
   (* THE ENGINE-CALLABLE oc-call unit, recognizer-gated: exactly what the
@@ -401,18 +507,23 @@ Section OutParamArc.
   Proof.
     intros lids oc_pids optid fid fty al e le0 m0 tr le1 m1 out0
            Hcp_oc Hnone Hlocal Hchk Hexec Hc.
-    destruct (oc_call_chk_decode _ _ _ _ _ Hchk)
-      as (Hfid & a1 & a2 & a3 & lid & sz & attr & ty1 & ty2 & ty3 & rty & cc
+    destruct (oc_call_chk_decode _ _ _ _ _ Hchk) as (Hfid & [Hsh | Hsh]).
+    - (* 4-arg find_floor shape *)
+      destruct Hsh as (a1 & a2 & a3 & lid & sz & attr & ty1 & ty2 & ty3 & rty & cc
           & Hlidmem & Hfty & Hal).
-    subst fty al.
-    destruct (Hlocal lid Hlidmem) as (lblk & tyenv & Hbind & Hloc).
-    eapply oc_call_pres;
-      [ exact (Hnone fid Hfid)
-      | exact (Hcp_oc fid Hfid)
-      | exact Hbind
-      | exact Hloc
-      | exact Hexec
-      | exact Hc ].
+      subst fty al.
+      destruct (Hlocal lid Hlidmem) as (lblk & tyenv & Hbind & Hloc).
+      eapply oc_call_pres;
+        [ exact (Hnone fid Hfid) | exact (Hcp_oc fid Hfid)
+        | exact Hbind | exact Hloc | exact Hexec | exact Hc ].
+    - (* 3-arg vec3f_find_ceil shape *)
+      destruct Hsh as (a1 & a2 & lid & sz & attr & ty1 & ty2 & rty & cc
+          & Hlidmem & Hfty & Hal).
+      subst fty al.
+      destruct (Hlocal lid Hlidmem) as (lblk & tyenv & Hbind & Hloc).
+      eapply oc_call_pres3;
+        [ exact (Hnone fid Hfid) | exact (Hcp_oc fid Hfid)
+        | exact Hbind | exact Hloc | exact Hexec | exact Hc ].
   Qed.
 
   Lemma vec3f_find_ceil_oc : call_pres_ext_oc mario._vec3f_find_ceil.
