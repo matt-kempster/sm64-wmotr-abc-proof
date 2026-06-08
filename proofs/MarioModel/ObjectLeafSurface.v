@@ -118,7 +118,11 @@ Definition obj_ext_ids : list ident :=
     :: mario._play_sound :: mario_step._vec3f_copy
     :: mario_actions_object._approach_s32
     :: interaction._atan2s
-    :: interaction._virtual_to_segmented :: nil.
+    :: interaction._virtual_to_segmented
+    (* B10 pole cluster: set_sound_moving_speed is a pure AUDIO external
+       (sets the moving-sound speed register), writes no Mario state --
+       same model class as play_sound. *)
+    :: mario._set_sound_moving_speed :: nil.
 (* NOTE: find_floor was REMOVED from obj_ext_ids.  It is an out-param
    WRITER, so the phantom-false `call_pres_ext find_floor` (which would
    allow &(action cell) as the out-param) is no longer a capstone

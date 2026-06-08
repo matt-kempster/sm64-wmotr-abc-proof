@@ -256,6 +256,22 @@ Lemma sem_xor_nonptr : forall v1 t1 v2 t2 m v,
 Proof. intros v1 t1 v2 t2 m v H. unfold sem_xor in H.
   eapply sem_binarith_nonptr; [ | | | | exact H ]; comb_nonptr. Qed.
 
+(* Oadd / Osub are pointer-CAPABLE in general (pointer arithmetic mints a
+   Vptr), so they are accepted ONLY when the static operand types are both
+   NUMERIC -- i.e. classify_add/sub = the *_default case, where sem_add/sem_sub
+   degenerate to sem_binarith and the result is provably never a Vptr.  The
+   checker (wchase_rhs_ok) supplies the classify = default equation. *)
+Lemma sem_add_default_nonptr : forall cenv v1 t1 v2 t2 m v,
+    classify_add t1 t2 = add_default ->
+    sem_add cenv v1 t1 v2 t2 m = Some v -> forall b o, v <> Vptr b o.
+Proof. intros cenv v1 t1 v2 t2 m v Hc H. unfold sem_add in H. rewrite Hc in H.
+  eapply sem_binarith_nonptr; [ | | | | exact H ]; comb_nonptr. Qed.
+Lemma sem_sub_default_nonptr : forall cenv v1 t1 v2 t2 m v,
+    classify_sub t1 t2 = sub_default ->
+    sem_sub cenv v1 t1 v2 t2 m = Some v -> forall b o, v <> Vptr b o.
+Proof. intros cenv v1 t1 v2 t2 m v Hc H. unfold sem_sub in H. rewrite Hc in H.
+  eapply sem_binarith_nonptr; [ | | | | exact H ]; comb_nonptr. Qed.
+
 (* sub-word By_value loads: decode_val's sub-word cases are Vint/Vundef *)
 Definition subword_chunk (ch : memory_chunk) : bool :=
   match ch with
@@ -737,6 +753,16 @@ Definition wchase_rhs_ok (wact : list ident) (ty : type) (a2 : expr)
                    | Ebinop Oand _ _ _ => true
                    | Ebinop Oor  _ _ _ => true
                    | Ebinop Oxor _ _ _ => true
+                   (* Oadd/Osub only when BOTH operands are numeric (the
+                      classify = default case): then sem_add/sem_sub degenerate
+                      to sem_binarith -> never a Vptr.  A pointer operand would
+                      flip classify to a ptr-arith case (excluded). *)
+                   | Ebinop Oadd a b _ =>
+                       match classify_add (typeof a) (typeof b) with
+                       | add_default => true | _ => false end
+                   | Ebinop Osub a b _ =>
+                       match classify_sub (typeof a) (typeof b) with
+                       | sub_default => true | _ => false end
                    | _ => false
                    end).
 
@@ -2078,10 +2104,12 @@ Section ActWriterWalk.
             | Hcast0 : sem_cast (Vint _) _ _ _ = Some _ |- _ =>
                 exact (sem_cast_vint_nonptr _ _ _ _ _ Hcast0)
             end.
-        + (* a pointer-STUCK binop rhs (Oshl/Oshr/Omul/Odiv/Omod/Oand/Oor/
-             Oxor): each yields Vint/Vlong/Vfloat/Vsingle (or gets stuck),
-             never a Vptr, and the cast cannot mint a pointer from a
-             non-pointer.  Oadd/Osub were already rejected by wchase_rhs_ok. *)
+        + (* a non-pointer binop rhs.  The 8 pointer-STUCK ops (Oshl/Oshr/
+             Omul/Odiv/Omod/Oand/Oor/Oxor) yield Vint/Vlong/Vfloat/Vsingle or
+             get stuck -- never a Vptr.  Oadd/Osub are accepted only when the
+             checker proved classify = default (both operands numeric), where
+             they degenerate to sem_binarith; the gate equation comes from Ha2.
+             The cast cannot mint a pointer from a non-pointer. *)
           destruct op2; try discriminate Ha2;
             (match goal with
              | Hev2 : eval_expr _ _ _ _ (Ebinop _ _ _ _) _ |- _ =>
@@ -2107,7 +2135,15 @@ Section ActWriterWalk.
                             | exact (sem_mod_nonptr _ _ _ _ _ _ Hsem)
                             | exact (sem_and_nonptr _ _ _ _ _ _ Hsem)
                             | exact (sem_or_nonptr  _ _ _ _ _ _ Hsem)
-                            | exact (sem_xor_nonptr _ _ _ _ _ _ Hsem) ]))
+                            | exact (sem_xor_nonptr _ _ _ _ _ _ Hsem)
+                            | (destruct (classify_add (typeof aa2) (typeof ab2))
+                                 eqn:Eca; try discriminate Ha2;
+                               exact (sem_add_default_nonptr _ _ _ _ _ _ _ Eca
+                                        Hsem))
+                            | (destruct (classify_sub (typeof aa2) (typeof ab2))
+                                 eqn:Ecs; try discriminate Ha2;
+                               exact (sem_sub_default_nonptr _ _ _ _ _ _ _ Ecs
+                                        Hsem)) ]))
              end). }
     (* the store lands in the SafeB block *)
     match goal with
