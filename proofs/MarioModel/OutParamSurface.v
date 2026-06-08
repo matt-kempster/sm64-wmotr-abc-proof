@@ -791,9 +791,22 @@ Section OutParamArc.
   (* hang/tornado Tier-2 leaves.                                             *)
   (* ====================================================================== *)
 
+  (* the CONDITIONAL arg0 gate: arg0, IF it is a pointer, lands in SafeB.
+     (Weaker than arg0_safe -- it does NOT assert arg0 is a Vptr.)  This is
+     the form a BARE chase TEMP supports: chase_root_set_sound / chase_inv
+     only pin the temp's pointer values to SafeB, never that it holds one.
+     It is still SOUND as the spec gate: the spec is conditioned on
+     eval_funcall existing, and the helper derefs arg0 internally, forcing a
+     genuine pointer there -- so the Vint case never produces a real run. *)
+  Definition arg0_cond_safe (vargs : list val) : Prop :=
+    match vargs with
+    | v0 :: _ => forall b ofs, v0 = Vptr b ofs -> SafeB b
+    | nil => True
+    end.
+
   (* the conjoined multi-pointer gate *)
   Definition oc2_gate (vargs : list val) : Prop :=
-    arg0_safe vargs /\ last_arg_local vargs.
+    arg0_cond_safe vargs /\ last_arg_local vargs.
 
   (* the ARG-AWARE residual for the multi-pointer internal helpers *)
   Definition call_pres_ext_oc2 (fid : ident) : Prop :=
@@ -857,9 +870,8 @@ Section OutParamArc.
      find_mario_anim_flags_and_translation(_t'2, 0, _translation) call site
      in return_mario_anim_y_translation.  It feeds oc2_scall_pres's gate. *)
   Lemma oc2_extract :
-    forall e le m cid sz attr c lid ety n aattr tyenv b ofs lb vargs,
-      le ! cid = Some (Vptr b ofs) ->
-      SafeB b ->
+    forall e le m cid sz attr c lid ety n aattr tyenv lb vargs,
+      (forall b o, le ! cid = Some (Vptr b o) -> SafeB b) ->
       e ! lid = Some (lb, tyenv) ->
       local_blk lp bm SafeB lb ->
       eval_exprlist (lp_ge lp) e le m
@@ -869,9 +881,11 @@ Section OutParamArc.
         (tptr (Tstruct sz attr) :: tint :: tptr ety :: nil) vargs ->
       oc2_gate vargs.
   Proof.
-    intros e le m cid sz attr c lid ety n aattr tyenv b ofs lb vargs
-           Hcid Hsafe Hlid Hloc Hvl.
-    (* arg0: the chase tempvar -> Vptr b ofs (SafeB) *)
+    intros e le m cid sz attr c lid ety n aattr tyenv lb vargs
+           Hcond Hlid Hloc Hvl.
+    (* arg0: the chase tempvar -> value vc (le!cid = Some vc).  Process it
+       NOW, while its cast is the ONLY sem_cast hyp (no ambiguity with arg1/2),
+       producing the conditional-safe fact about the head value hd. *)
     inv Hvl.
     match goal with
     | He : eval_expr _ _ _ _ (Etempvar cid _) _ |- _ => inv He
@@ -880,11 +894,13 @@ Section OutParamArc.
            | Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv Hl
            end).
     match goal with
-    | Hg : le ! cid = Some _ |- _ => rewrite Hcid in Hg; injection Hg as <-
-    end.
-    match goal with
-    | Hc0 : sem_cast (Vptr b ofs) _ _ _ = Some _ |- _ =>
-        cbn in Hc0; injection Hc0 as <-
+    | Hg : le ! cid = Some ?vc, Hc0 : sem_cast ?vc _ _ _ = Some ?hd |- _ =>
+        assert (Hhead : forall bb oo, hd = Vptr bb oo -> SafeB bb);
+        [ intros bb oo Hhd; rewrite Hhd in Hc0;
+          destruct vc as [ | iv | lv | fv | sv | bv ov ];
+          cbn in Hc0; try discriminate Hc0;
+          injection Hc0 as <- <-; exact (Hcond _ _ Hg)
+        | clear Hc0 Hg ]
     end.
     (* arg1: the scalar const -- step past it (value irrelevant to the gate) *)
     match goal with
@@ -921,9 +937,10 @@ Section OutParamArc.
     | Hc2 : sem_cast (Vptr lb _) _ _ _ = Some _ |- _ =>
         cbn in Hc2; injection Hc2 as <-
     end.
-    (* assemble oc2_gate = arg0_safe /\ last_arg_local *)
+    (* assemble oc2_gate = arg0_cond_safe /\ last_arg_local *)
     split.
-    - red. do 3 eexists. split; [ reflexivity | exact Hsafe ].
+    - (* arg0_cond_safe vargs: vargs = hd :: _, which is exactly Hhead *)
+      exact Hhead.
     - red. cbn [last_val]. exists lb, Ptrofs.zero.
       split; [ reflexivity | exact Hloc ].
   Qed.
