@@ -819,6 +819,38 @@ Section OutParamArc.
       Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\
       MWF m1 /\ NoA m1.
 
+  (* ====================================================================== *)
+  (* THE oc2-GATED INTERNAL BODY-WALK PRODUCER.  To DISCHARGE an oc2 residual *)
+  (* (Hoc2famft_real = call_pres_ext_oc2 find_mario_anim_flags_and_translation), *)
+  (* we must WALK that INTERNAL helper's body under the oc2 gate (obj=SafeB-  *)
+  (* cond, translation=local), exactly as set_pole_position was walked under *)
+  (* marg (call_pres_of_body, DispatchKit).  This reduction lemma turns the  *)
+  (* ext_oc2 obligation into a per-body obligation body_pres_oc2 (the actual *)
+  (* walk).  Mirror of DispatchKit.call_pres_of_body but oc2-gated.          *)
+  (* ====================================================================== *)
+  Definition body_pres_oc2 (f : Clight.function) : Prop :=
+    forall m vargs t m' vres,
+      oc2_gate vargs ->
+      eval_funcall function_entry2 (lp_ge lp) m (Internal f) vargs t m' vres ->
+      NoA m -> MWF m -> Mem.valid_block m bm -> action_sat not_tainted m bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
+
+  Lemma call_pres_ext_oc2_of_body :
+    forall (TU : Clight.program) (fid : ident) (f : Clight.function),
+      linkorder TU lp ->
+      (prog_defmap TU) ! fid = Some (Gfun (Internal f)) ->
+      body_pres_oc2 f ->
+      call_pres_ext_oc2 fid.
+  Proof.
+    intros TU fid f LOtu Hdm Hbp fd m0 vargs0 t0 m1 vres0
+           Hevf Hres Hgate HN HM HV HS.
+    pose proof (resolve_pin_fd TU fid f fd LOtu Hdm Hres) as ->.
+    destruct (Hbp m0 vargs0 t0 m1 vres0 Hgate Hevf HN HM HV HS)
+      as (HV' & HS' & HM').
+    repeat split;
+      [ exact HV' | exact HS' | exact HM' | exact (HNoA_of_MWF _ HM') ].
+  Qed.
+
   (* THE CALL-SITE BRICK: a Scall to a multi-pointer helper whose arg0 lands
      in SafeB AND whose last arg is a stack local preserves carried.
      (Structure mirrors oc_scall_pres / sc_scall_pres exactly.) *)
