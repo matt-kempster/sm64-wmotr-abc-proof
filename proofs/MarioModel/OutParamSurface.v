@@ -1097,9 +1097,13 @@ Section OutParamArc.
   (* Mirror of call_pres_ext_oc2 / body_pres_oc2 / oc2_scall_pres, arg0       *)
   (* SafeB-cond -> marg=(bm,0).                                               *)
   (* ====================================================================== *)
+  (* CONDITIONAL (mirrors marg_ok): the caller's body_pres only knows
+     marg_ok bm vargs (arg0 is (bm,0) IF it is a pointer at all), never that
+     arg0 IS a pointer -- the callee's own body forces that.  So arg0_marg must
+     be the conditional form, or the gate is unprovable at the call site. *)
   Definition arg0_marg (vargs : list val) : Prop :=
     match vargs with
-    | v0 :: _ => v0 = Vptr bm Ptrofs.zero
+    | v0 :: _ => forall b o, v0 = Vptr b o -> b = bm /\ o = Ptrofs.zero
     | nil => True
     end.
 

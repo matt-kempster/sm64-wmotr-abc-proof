@@ -782,14 +782,25 @@ Section NoARealInputMWF.
     call_pres_ext_oc lp bm (NoA_real bm) MWF SafeB
       mario._retrieve_animation_index.
   (* B11 act_hang_moving: update_hang_moving is the SOLE shared helper gating the
-     act_hang_moving leaf, now WALKED (AutomaticLeafSurface, automatic_rest_ids
-     4 -> 3).  It is a SINGLE-PARAM (m only) hang-physics helper with a local
-     _nextPos array (the Tier-2 indexed-local-store case), so its preservation
-     depends only on the marg-pinned m=bm + its own internals -- a precise,
-     true-in-model, dischargeable residual that REPLACES the whole act_hang_moving
-     body formerly in Hpres_aut_rest (decompose, not collapse). *)
-  Hypothesis Huhm_real :
-    call_pres lp bm (NoA_real bm) MWF mario_actions_automatic._update_hang_moving.
+     act_hang_moving leaf.  Its WHOLE BODY is now WALKED (AutomaticLeafSurface.
+     uhm_body_pres / Huhm) -- the forwardVel/slideYaw/slideVel* direct Mario-field
+     stores, faceAngle[1]/vel[0..2] indexed stores, and the _nextPos[0..2] local
+     stores are all discharged in-body.  The old opaque whole-helper residual
+     Huhm_real is therefore DECOMPOSED (not collapsed) into update_hang_moving's
+     two honest leaf callees one call-graph level down:
+       - approach_s32 : a pure-math integer-clamp EF_external (no Mem write)
+                        -> call_pres_ext (Hcpx_approach_real);
+       - perform_hanging_step : the internal hang-physics helper, called as
+         perform_hanging_step(m, nextPos) with arg0 = Mario (bm,0) AND the last
+         arg = the caller's _nextPos stack local; its body directly stores
+         nextPos[1], so a marg-only call_pres is phantom-FALSE -- the honest
+         residual is the marg-AND-local gate call_pres_mo (Hcp_php_real). *)
+  Hypothesis Hcpx_approach_real :
+    call_pres_ext lp bm (NoA_real bm) MWF
+      mario_actions_automatic._approach_s32.
+  Hypothesis Hcp_php_real :
+    call_pres_mo lp bm (NoA_real bm) MWF SafeB
+      mario_actions_automatic._perform_hanging_step.
   (* the special-floors LEAF CENSUS is FULLY DISCHARGED
      (FloorsLeafSurface.floors_callees_pres): check_death_barrier /
      pss_begin_slide / pss_end_slide / check_lava_boost are all WALKED,
@@ -1016,8 +1027,10 @@ Section NoARealInputMWF.
                          SafeB, retrieve_animation_index via &animIndex local). *)
                       Hscp_geo_real
                       Hocp_rai_real
-                      (* B11: the SOLE act_hang_moving helper residual *)
-                      Huhm_real
+                      (* B11: update_hang_moving WALKED; its two honest leaf
+                         callees (approach_s32 ext + perform_hanging_step mo) *)
+                      Hcpx_approach_real
+                      Hcp_php_real
                       Hpres_aut_rest))
                 (object_pres lp LO_mario LO_obj LO_stp bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
