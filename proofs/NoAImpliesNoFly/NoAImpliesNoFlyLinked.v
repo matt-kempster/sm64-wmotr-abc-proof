@@ -798,9 +798,27 @@ Section NoARealInputMWF.
   Hypothesis Hcpx_approach_real :
     call_pres_ext lp bm (NoA_real bm) MWF
       mario_actions_automatic._approach_s32.
-  Hypothesis Hcp_php_real :
-    call_pres_mo lp bm (NoA_real bm) MWF SafeB
-      mario_actions_automatic._perform_hanging_step.
+  (* perform_hanging_step is now WALKED, not assumed: its whole body is
+     proved to preserve under the marg-AND-local gate
+     (AutomaticLeafSurface.Hcp_php via call_pres_mo_of_body).  The old opaque
+     whole-helper residual Hcp_php_real is therefore DECOMPOSED (not collapsed)
+     into the body's two honest gated-external leaf callees one call-graph
+     level down -- each a RESOLUTION-AWARE call_pres_ext_* over the body that
+     fid resolves to IN lp (so dischargeable later by walking that body):
+       - resolve_and_return_wall_collisions(nextPos, 1.0f, 1.0f): writes
+         through its FIRST arg = the caller's _nextPos stack local, so the
+         honest gate is args_all_local (call_pres_ext_ol).  [Resolves to the
+         INTERNAL f_resolve_and_return_wall_collisions in mario.prog under
+         linkorder -- a future body walk, like find_floor/set_pole_position.]
+       - vec3f_copy(&m->pos, nextPos): writes ONLY through its dst = &m->pos,
+         a 12-byte safe bm-window (action cell @12 clear), src = nextPos local,
+         so the honest gate is arg0_window (call_pres_ext_w1). *)
+  Hypothesis Hocp_resolve_real :
+    call_pres_ext_ol lp bm (NoA_real bm) MWF SafeB
+      mario_actions_automatic._resolve_and_return_wall_collisions.
+  Hypothesis Hw1cp_v3f_real :
+    call_pres_ext_w1 lp bm (NoA_real bm) MWF
+      mario_actions_automatic._vec3f_copy.
   (* the special-floors LEAF CENSUS is FULLY DISCHARGED
      (FloorsLeafSurface.floors_callees_pres): check_death_barrier /
      pss_begin_slide / pss_end_slide / check_lava_boost are all WALKED,
@@ -1028,9 +1046,13 @@ Section NoARealInputMWF.
                       Hscp_geo_real
                       Hocp_rai_real
                       (* B11: update_hang_moving WALKED; its two honest leaf
-                         callees (approach_s32 ext + perform_hanging_step mo) *)
+                         callees (approach_s32 ext + perform_hanging_step mo).
+                         perform_hanging_step is itself now WALKED -- its two
+                         gated-external leaf callees (resolve via ol, vec3f_copy
+                         via w1) take its place here. *)
                       Hcpx_approach_real
-                      Hcp_php_real
+                      Hocp_resolve_real
+                      Hw1cp_v3f_real
                       Hpres_aut_rest))
                 (object_pres lp LO_mario LO_obj LO_stp bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
