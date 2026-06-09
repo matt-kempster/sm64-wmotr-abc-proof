@@ -897,6 +897,38 @@ Section OutParamArc.
     split; [ exact HV' | split; [ exact HS' | split; [ exact HM' | exact HN' ] ] ].
   Qed.
 
+  (* The body-level reduction for the ol arc: turns the call_pres_ext_ol
+     obligation into a per-body obligation body_pres_ol (the actual walk).
+     Used to DISCHARGE call_pres_ext_ol for an INTERNAL out-param writer all
+     of whose pointer args are local blocks -- e.g.
+     resolve_and_return_wall_collisions, which under args_all_local writes
+     only into local blocks (the collisionData fn_var + the pos[] param ptr,
+     itself local under the gate) and calls find_wall_collisions(&local).
+     Mirror of call_pres_ext_oc2_of_body / call_pres_mo_of_body, args_all_local
+     gated. *)
+  Definition body_pres_ol (f : Clight.function) : Prop :=
+    forall m vargs t m' vres,
+      args_all_local vargs ->
+      eval_funcall function_entry2 (lp_ge lp) m (Internal f) vargs t m' vres ->
+      NoA m -> MWF m -> Mem.valid_block m bm -> action_sat not_tainted m bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
+
+  Lemma call_pres_ext_ol_of_body :
+    forall (TU : Clight.program) (fid : ident) (f : Clight.function),
+      linkorder TU lp ->
+      (prog_defmap TU) ! fid = Some (Gfun (Internal f)) ->
+      body_pres_ol f ->
+      call_pres_ext_ol fid.
+  Proof.
+    intros TU fid f LOtu Hdm Hbp fd m0 vargs0 t0 m1 vres0
+           Hevf Hres Hgate HN HM HV HS.
+    pose proof (resolve_pin_fd TU fid f fd LOtu Hdm Hres) as ->.
+    destruct (Hbp m0 vargs0 t0 m1 vres0 Hgate Hevf HN HM HV HS)
+      as (HV' & HS' & HM').
+    repeat split;
+      [ exact HV' | exact HS' | exact HM' | exact (HNoA_of_MWF _ HM') ].
+  Qed.
+
   (* ====================================================================== *)
   (* THE DST-WINDOW-WRITER ARC (w1): the honest gate for an EXTERNAL that    *)
   (* writes through its FIRST (dst) pointer arg into a SAFE WINDOW of bm,    *)
