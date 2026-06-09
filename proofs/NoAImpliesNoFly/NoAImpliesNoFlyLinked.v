@@ -807,15 +807,23 @@ Section NoARealInputMWF.
      fid resolves to IN lp (so dischargeable later by walking that body):
        - resolve_and_return_wall_collisions(nextPos, 1.0f, 1.0f): writes
          through its FIRST arg = the caller's _nextPos stack local, so the
-         honest gate is args_all_local (call_pres_ext_ol).  [Resolves to the
-         INTERNAL f_resolve_and_return_wall_collisions in mario.prog under
-         linkorder -- a future body walk, like find_floor/set_pole_position.]
+         honest gate is args_all_local (call_pres_ext_ol).  Its INTERNAL
+         mario.prog body is now ITSELF WALKED (AutomaticLeafSurface.
+         Hocp_resolve via rwc_walk_pres + call_pres_ext_ol_of_body): all its
+         stores hit the stack-local _collisionData struct or go through the
+         gate-local _pos param ptr.  The old internal residual
+         Hocp_resolve_real is therefore replaced by the body's SOLE callee,
+         find_wall_collisions(&collisionData) -- a genuine EF_external in
+         EVERY TU (no internal body anywhere in generated/), called with its
+         one pointer arg = &(stack-local struct), hence the same
+         args_all_local gate.  This is the honest terminal external-call-model
+         boundary, not a future walk.
        - vec3f_copy(&m->pos, nextPos): writes ONLY through its dst = &m->pos,
          a 12-byte safe bm-window (action cell @12 clear), src = nextPos local,
          so the honest gate is arg0_window (call_pres_ext_w1). *)
-  Hypothesis Hocp_resolve_real :
+  Hypothesis Holcp_fwc_real :
     call_pres_ext_ol lp bm (NoA_real bm) MWF SafeB
-      mario_actions_automatic._resolve_and_return_wall_collisions.
+      mario._find_wall_collisions.
   Hypothesis Hw1cp_v3f_real :
     call_pres_ext_w1 lp bm (NoA_real bm) MWF
       mario_actions_automatic._vec3f_copy.
@@ -1047,11 +1055,12 @@ Section NoARealInputMWF.
                       Hocp_rai_real
                       (* B11: update_hang_moving WALKED; its two honest leaf
                          callees (approach_s32 ext + perform_hanging_step mo).
-                         perform_hanging_step is itself now WALKED -- its two
-                         gated-external leaf callees (resolve via ol, vec3f_copy
-                         via w1) take its place here. *)
+                         perform_hanging_step is itself now WALKED, and so is
+                         its resolve_and_return_wall_collisions leaf -- what
+                         remains here is resolve's SOLE terminal external
+                         find_wall_collisions (ol) + vec3f_copy (w1). *)
                       Hcpx_approach_real
-                      Hocp_resolve_real
+                      Holcp_fwc_real
                       Hw1cp_v3f_real
                       Hpres_aut_rest))
                 (object_pres lp LO_mario LO_obj LO_stp bm (NoA_real bm)

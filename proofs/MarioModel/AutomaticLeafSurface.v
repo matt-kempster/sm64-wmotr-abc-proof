@@ -1724,12 +1724,488 @@ Section AutomaticLeafRows.
     end.
   Qed.
 
-  (* ---- STAGE 3 decode helpers + the exec-derivation WALKER ---- *)
-  Hypothesis Hocp_resolve :
-    call_pres_ext_ol lp bm NoA MWF SafeB
-      mario_actions_automatic._resolve_and_return_wall_collisions.
+  (* ====================================================================== *)
+  (* resolve_and_return_wall_collisions: WALKED, not assumed.               *)
+  (* Hocp_resolve used to be a section Hypothesis (the ol residual that the *)
+  (* perform_hanging_step discharge introduced); it is now the PROVED Lemma *)
+  (* Hocp_resolve below.  resolve resolves IN lp to the INTERNAL body       *)
+  (* f_resolve_and_return_wall_collisions (mario.prog, generated/mario.v:   *)
+  (* 3270), so the residual is dischargeable by walking that body under the *)
+  (* args_all_local gate.  Census of the body's writers: 5 stores into the  *)
+  (* LOCAL fn_var struct _collisionData (Efield of a local Evar); 3 stores  *)
+  (* through the _pos param pointer (local-if-pointer under the gate); the  *)
+  (* rest is Ssets, one store-free Sifthenelse, a Sreturn, and ONE call     *)
+  (* find_wall_collisions(&_collisionData).  find_wall_collisions has NO    *)
+  (* internal body in ANY TU (EF_external everywhere: mario.v:12235,        *)
+  (* mario_actions_moving.v:13675) -> the walk bottoms out in exactly ONE   *)
+  (* honest terminal-external leaf, ol-gated on its sole pointer arg =      *)
+  (* &(stack-local collisionData).  Decompose, not collapse: the opaque     *)
+  (* internal whole-body residual is replaced by a walked body + 1 gated    *)
+  (* terminal external one call-graph level down.                           *)
+  (* ====================================================================== *)
+  Hypothesis Holcp_fwc :
+    call_pres_ext_ol lp bm NoA MWF SafeB mario._find_wall_collisions.
   Hypothesis Hw1cp_v3f :
     call_pres_ext_w1 lp bm NoA MWF mario_actions_automatic._vec3f_copy.
+
+  (* ---- the resolve-body RECOGNIZER (the real AST's leaf vocabulary) ---- *)
+  Definition rwc_call_chk (fid : ident) (fty : type) (al : list expr) : bool :=
+    Pos.eqb fid mario._find_wall_collisions
+    && proj_sumbool
+         (type_eq fty
+            (Tfunction (tptr (Tstruct mario._WallCollisionData noattr) :: nil)
+               tint cc_default))
+    && match al with
+       | Eaddrof (Evar cd cdt) tya :: nil =>
+           Pos.eqb cd mario._collisionData
+           && proj_sumbool
+                (type_eq cdt (Tstruct mario._WallCollisionData noattr))
+           && proj_sumbool
+                (type_eq tya (tptr (Tstruct mario._WallCollisionData noattr)))
+       | _ => false
+       end.
+
+  (* per-leaf Sassign recognizer: a field store into the LOCAL collisionData
+     struct, OR a pos[i] indexed store through the param pointer. *)
+  Definition rwc_assign_chk (a1 : expr) : bool :=
+    match a1 with
+    | Efield (Evar cd cdt) fld fty =>
+        Pos.eqb cd mario._collisionData
+        && proj_sumbool (type_eq cdt (Tstruct mario._WallCollisionData noattr))
+        && proj_sumbool (type_eq fty tfloat)
+    | Ederef (Ebinop Oadd (Etempvar q tq) (Econst_int _ tci) _) ety =>
+        Pos.eqb q mario._pos
+        && proj_sumbool (type_eq tq (tptr tfloat))
+        && proj_sumbool (type_eq tci tint)
+        && proj_sumbool (type_eq ety tfloat)
+    | _ => false
+    end.
+
+  Definition rwc_optid_ok (optid : option ident) : bool :=
+    match optid with
+    | Some id => negb (Pos.eqb id mario._pos)
+    | None => true
+    end.
+
+  Fixpoint rwc_chk (s : statement) : bool :=
+    match s with
+    | Sskip | Sbreak | Scontinue => true
+    | Sreturn _ => true
+    | Ssequence s1 s2 => rwc_chk s1 && rwc_chk s2
+    | Sifthenelse _ s1 s2 => rwc_chk s1 && rwc_chk s2
+    | Sset id _ => rwc_optid_ok (Some id)
+    | Sassign a1 _ => rwc_assign_chk a1
+    | Scall optid (Evar fid fty) al =>
+        rwc_optid_ok optid && rwc_call_chk fid fty al
+    | _ => false
+    end.
+
+  (* the prog_defmap pin: resolve lives INTERNAL in mario.prog.  Keyed by the
+     automatic-TU ident alias (idents are string-hashed, so it is the same
+     positive as mario._resolve_and_return_wall_collisions). *)
+  Lemma rwc_pin :
+    (prog_defmap mario.prog)
+      ! mario_actions_automatic._resolve_and_return_wall_collisions
+    = Some (Gfun (Internal mario.f_resolve_and_return_wall_collisions)).
+  Proof. vm_compute. reflexivity. Qed.
+
+  (* NON-VACUITY: the recognizer accepts the REAL generated body. *)
+  Lemma rwc_chk_body :
+    rwc_chk (fn_body mario.f_resolve_and_return_wall_collisions) = true.
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma rwc_assign_decode :
+    forall a1, rwc_assign_chk a1 = true ->
+      (exists fld,
+          a1 = Efield (Evar mario._collisionData
+                         (Tstruct mario._WallCollisionData noattr)) fld tfloat)
+      \/
+      (exists idxN ity,
+          a1 = Ederef (Ebinop Oadd (Etempvar mario._pos (tptr tfloat))
+                         (Econst_int idxN tint) ity) tfloat).
+  Proof.
+    intros a1 H. unfold rwc_assign_chk in H.
+    destruct a1 as [ | | | | | | ed ety | | | | | base fld fty | | ];
+      try discriminate H.
+    - (* Ederef: the pos[i] arm *)
+      right.
+      destruct ed as [ | | | | | | | | | bop e1 e2 bty | | | | ];
+        try discriminate H.
+      destruct bop; try discriminate H.
+      destruct e1 as [ | | | | | q tq | | | | | | | | ]; try discriminate H.
+      destruct e2 as [ idxN tci | | | | | | | | | | | | | ];
+        try discriminate H.
+      apply andb_true_iff in H as [H Hety].
+      apply andb_true_iff in H as [H Htci].
+      apply andb_true_iff in H as [Hq Htq].
+      apply Pos.eqb_eq in Hq; subst q.
+      destruct (type_eq tq (tptr tfloat)) as [-> | ]; [ | discriminate Htq ].
+      destruct (type_eq tci tint) as [-> | ]; [ | discriminate Htci ].
+      destruct (type_eq ety tfloat) as [-> | ]; [ | discriminate Hety ].
+      exists idxN, bty. reflexivity.
+    - (* Efield: the collisionData.fld arm *)
+      left.
+      destruct base as [ | | | | cd cdt | | | | | | | | | ];
+        try discriminate H.
+      apply andb_true_iff in H as [H Hfty].
+      apply andb_true_iff in H as [Hcd Hcdt].
+      apply Pos.eqb_eq in Hcd; subst cd.
+      destruct (type_eq cdt (Tstruct mario._WallCollisionData noattr))
+        as [-> | ]; [ | discriminate Hcdt ].
+      destruct (type_eq fty tfloat) as [-> | ]; [ | discriminate Hfty ].
+      exists fld. reflexivity.
+  Qed.
+
+  Lemma rwc_call_decode :
+    forall fid fty al, rwc_call_chk fid fty al = true ->
+      fid = mario._find_wall_collisions /\
+      fty = Tfunction (tptr (Tstruct mario._WallCollisionData noattr) :: nil)
+              tint cc_default /\
+      al = Eaddrof (Evar mario._collisionData
+                      (Tstruct mario._WallCollisionData noattr))
+             (tptr (Tstruct mario._WallCollisionData noattr)) :: nil.
+  Proof.
+    intros fid fty al H. unfold rwc_call_chk in H.
+    apply andb_true_iff in H as [H Hal].
+    apply andb_true_iff in H as [Hfid Hfty].
+    apply Pos.eqb_eq in Hfid.
+    destruct (type_eq fty
+                (Tfunction
+                   (tptr (Tstruct mario._WallCollisionData noattr) :: nil)
+                   tint cc_default)) as [Efty | ]; [ | discriminate Hfty ].
+    split; [ exact Hfid | ]. split; [ exact Efty | ].
+    destruct al as [ | a0 al0 ]; try discriminate Hal.
+    destruct a0 as [ | | | | | | | ae tya | | | | | | ];
+      try discriminate Hal.
+    destruct ae as [ | | | | cd cdt | | | | | | | | | ];
+      try discriminate Hal.
+    destruct al0; try discriminate Hal.
+    apply andb_true_iff in Hal as [Hal Htya].
+    apply andb_true_iff in Hal as [Hcd Hcdt].
+    apply Pos.eqb_eq in Hcd; subst cd.
+    destruct (type_eq cdt (Tstruct mario._WallCollisionData noattr))
+      as [-> | ]; [ | discriminate Hcdt ].
+    destruct (type_eq tya (tptr (Tstruct mario._WallCollisionData noattr)))
+      as [-> | ]; [ | discriminate Htya ].
+    reflexivity.
+  Qed.
+
+  (* base-pointer extraction: an EXECUTED q[i] indexed store forces le!q to
+     hold a POINTER.  On ptr64=false an int base would make sem_add yield a
+     Vint, never the Vptr the Ederef lvalue evaluation produced -- so the
+     derivation itself pins the temp to some Vptr.  This is what lets the
+     walker thread only the CONDITIONAL locality fact for the _pos param
+     (the args_all_local gate constrains _pos only IF it is a pointer,
+     unlike the mo-gate's unconditional last_arg_local binding). *)
+  Lemma idx_base_ptr_of_exec :
+    forall e q idxN itya ety2 a2 le m0 tr le' m' out,
+      exec_stmt function_entry2 (lp_ge lp) e le m0
+        (Sassign (Ederef (Ebinop Oadd (Etempvar q (tptr tfloat))
+                            (Econst_int idxN tint) itya) ety2) a2)
+        tr le' m' out ->
+      exists lb oo, le ! q = Some (Vptr lb oo).
+  Proof.
+    intros e q idxN itya ety2 a2 le m0 tr le' m' out Hexec.
+    inv Hexec.
+    match goal with
+    | Hlv : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ => inv Hlv
+    end.
+    match goal with
+    | Hp : eval_expr _ _ _ _ (Ebinop _ _ _ _) _ |- _ => inv Hp
+    end.
+    2:{ match goal with
+        | Hlv2 : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => inv Hlv2
+        end. }
+    match goal with
+    | Hi : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+        inv Hi;
+        try (match goal with
+             | Hlv3 : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+                 inv Hlv3
+             end)
+    end.
+    match goal with
+    | Ha : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+        apply RealFrameValue.eval_expr_Etempvar_val in Ha
+    end.
+    match goal with
+    | Hsem : sem_binary_operation _ _ ?V _ _ _ _ = Some (Vptr _ _),
+      Hq : _ ! _ = Some ?V |- _ =>
+        destruct V; cbn in Hsem;
+        [ discriminate Hsem
+        | destruct Archi.ptr64; discriminate Hsem
+        | discriminate Hsem
+        | discriminate Hsem
+        | discriminate Hsem
+        | eexists; eexists; exact Hq ]
+    end.
+  Qed.
+
+  (* the CONDITIONAL twin of local_ptr_idx_assign_pres: locality of the base
+     temp is assumed only IF it holds a pointer (the gate's honest shape for
+     a pointer PARAM), and the executed derivation supplies the pointer. *)
+  Lemma local_ptr_idx_assign_pres_cond :
+    forall e q idxN itya ety2 a2 le m0 tr le' m' out ch,
+      (forall b o, le ! q = Some (Vptr b o) -> local_blk lp bm SafeB b) ->
+      access_mode ety2 = By_value ch ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0
+        (Sassign (Ederef (Ebinop Oadd (Etempvar q (tptr tfloat))
+                            (Econst_int idxN tint) itya) ety2) a2)
+        tr le' m' out ->
+      carried bm NoA MWF m0 ->
+      carried bm NoA MWF m' /\ le' = le /\ out = Out_normal.
+  Proof.
+    intros e q idxN itya ety2 a2 le m0 tr le' m' out ch Hcond Hacc Hexec Hc.
+    destruct (idx_base_ptr_of_exec _ _ _ _ _ _ _ _ _ _ _ _ Hexec)
+      as (lb & oo & Hq).
+    exact (local_ptr_idx_assign_pres lp bm NoA MWF SafeB Hls_real HNoA_of_MWF
+             _ _ _ _ _ _ _ _ _ _ _ _ lb oo _
+             Hq (Hcond _ _ Hq) Hacc Hexec Hc).
+  Qed.
+
+  (* ====================================================================== *)
+  (* THE rwc WALKER: any rwc_chk-passing statement, executed under the      *)
+  (* resolve entry env (e!_collisionData = a local stack block, _pos local- *)
+  (* if-pointer, find_wall_collisions unbound), preserves carried.          *)
+  (* ====================================================================== *)
+  Lemma rwc_walk_pres :
+    forall lcd tycd,
+      local_blk lp bm SafeB lcd ->
+      forall s e le m0 tr le' m' out,
+        exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
+        rwc_chk s = true ->
+        e ! mario._find_wall_collisions = None ->
+        e ! mario._collisionData = Some (lcd, tycd) ->
+        (forall b o, le ! mario._pos = Some (Vptr b o) ->
+                     local_blk lp bm SafeB b) ->
+        carried bm NoA MWF m0 ->
+        carried bm NoA MWF m' /\
+        (forall b o, le' ! mario._pos = Some (Vptr b o) ->
+                     local_blk lp bm SafeB b).
+  Proof.
+    intros lcd tycd Hlcd s e le m0 tr le' m' out Hexec.
+    induction Hexec; intros Hchk Hfwc Hcd Hpos Hc.
+    - (* Sskip *) exact (conj Hc Hpos).
+    - (* Sassign a1 a2 *)
+      cbn [rwc_chk] in Hchk.
+      assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
+                      (Sassign a1 a2) E0 le m' Out_normal)
+        by (econstructor; eauto).
+      destruct (rwc_assign_decode _ Hchk)
+        as [ (fld & ->) | (idxN & ity & ->) ].
+      + (* collisionData.fld = a2 : store into the local struct *)
+        destruct (local_field_assign_pres lp bm NoA MWF SafeB Hls_real
+                    HNoA_of_MWF e mario._collisionData
+                    mario._WallCollisionData noattr tycd fld tfloat
+                    a2 le m _ _ m' _ lcd Mfloat32
+                    Hcd Hlcd eq_refl Hex Hc) as (Hc' & _ & _).
+        exact (conj Hc' Hpos).
+      + (* pos[i] = a2 : store through the conditionally-local param ptr *)
+        destruct (local_ptr_idx_assign_pres_cond e mario._pos idxN ity tfloat
+                    a2 le m _ _ m' _ Mfloat32 Hpos eq_refl Hex Hc)
+          as (Hc' & _ & _).
+        exact (conj Hc' Hpos).
+    - (* Sset id a: id <> _pos (rwc_optid_ok) *)
+      cbn [rwc_chk rwc_optid_ok] in Hchk.
+      apply negb_true_iff in Hchk.
+      refine (conj Hc _).
+      intros b o Hg.
+      rewrite PTree.gso in Hg
+        by (intro EE; subst id; rewrite Pos.eqb_refl in Hchk;
+            discriminate Hchk).
+      exact (Hpos b o Hg).
+    - (* Scall optid a al *)
+      cbn [rwc_chk] in Hchk.
+      destruct a as [ | | | | fid fty | | | | | | | | | ];
+        try discriminate Hchk.
+      apply andb_true_iff in Hchk as [Hopt Hcc].
+      assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
+                      (Scall optid (Evar fid fty) al) t
+                      (set_opttemp optid vres le) m' Out_normal)
+        by (econstructor; eauto).
+      assert (HposL : forall b o,
+                 (set_opttemp optid vres le) ! mario._pos = Some (Vptr b o) ->
+                 local_blk lp bm SafeB b).
+      { cbn [rwc_optid_ok] in Hopt.
+        destruct optid as [oid | ]; cbn [set_opttemp].
+        - apply negb_true_iff in Hopt.
+          intros b o Hg.
+          rewrite PTree.gso in Hg
+            by (intro EE; subst oid; rewrite Pos.eqb_refl in Hopt;
+                discriminate Hopt).
+          exact (Hpos b o Hg).
+        - exact Hpos. }
+      destruct (rwc_call_decode _ _ _ Hcc) as (-> & -> & ->).
+      assert (Hgate : forall vargs,
+          eval_exprlist (lp_ge lp) e le m
+            (Eaddrof (Evar mario._collisionData
+                        (Tstruct mario._WallCollisionData noattr))
+               (tptr (Tstruct mario._WallCollisionData noattr)) :: nil)
+            (tptr (Tstruct mario._WallCollisionData noattr) :: nil) vargs ->
+          args_all_local lp bm SafeB vargs).
+      { intros vargs0 Hvl.
+        inversion Hvl as [ | a1 bl1 ty1 tyl1 v1a v2a vl1 Hev_a Hsc_a Htl1 ];
+          subst; clear Hvl.
+        inversion Htl1; subst; clear Htl1.
+        intros bb oo Hin; cbn in Hin.
+        destruct Hin as [E | []]; subst v2a.
+        apply RealFrameValue.sem_cast_ptr_result_inv in Hsc_a; subst v1a.
+        inv Hev_a;
+          [ | match goal with
+              | Hlv : eval_lvalue _ _ _ _ (Eaddrof _ _) _ _ _ |- _ =>
+                  inv Hlv
+              end ].
+        match goal with
+        | Hlv : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ => inv Hlv
+        end;
+        [ match goal with
+          | Hb : e ! mario._collisionData = Some _ |- _ =>
+              rewrite Hcd in Hb; injection Hb as <- _; exact Hlcd
+          end
+        | match goal with
+          | Hn : e ! mario._collisionData = None |- _ =>
+              rewrite Hcd in Hn; discriminate Hn
+          end ]. }
+      destruct (ol_scall_pres lp bm NoA MWF SafeB optid
+                  mario._find_wall_collisions
+                  (tptr (Tstruct mario._WallCollisionData noattr) :: nil)
+                  tint cc_default
+                  (Eaddrof (Evar mario._collisionData
+                              (Tstruct mario._WallCollisionData noattr))
+                     (tptr (Tstruct mario._WallCollisionData noattr)) :: nil)
+                  e le m _ _ m' _ Hfwc Holcp_fwc Hgate Hex Hc) as (Hc' & _).
+      exact (conj Hc' HposL).
+    - (* Sbuiltin: rejected *)
+      cbn [rwc_chk] in Hchk. discriminate Hchk.
+    - (* Sseq_1 *)
+      cbn [rwc_chk] in Hchk. apply andb_true_iff in Hchk as [H1 H2].
+      destruct (IHHexec1 H1 Hfwc Hcd Hpos Hc) as (Hc1 & Hpos1).
+      exact (IHHexec2 H2 Hfwc Hcd Hpos1 Hc1).
+    - (* Sseq_2 *)
+      cbn [rwc_chk] in Hchk. apply andb_true_iff in Hchk as [H1 _].
+      exact (IHHexec H1 Hfwc Hcd Hpos Hc).
+    - (* Sifthenelse *)
+      cbn [rwc_chk] in Hchk. apply andb_true_iff in Hchk as [H1 H2].
+      apply IHHexec; try assumption.
+      destruct b; assumption.
+    - (* Sreturn None *) exact (conj Hc Hpos).
+    - (* Sreturn (Some _) *) exact (conj Hc Hpos).
+    - (* Sbreak *) exact (conj Hc Hpos).
+    - (* Scontinue *) exact (conj Hc Hpos).
+    - (* Sloop stop1 *) cbn [rwc_chk] in Hchk. discriminate Hchk.
+    - (* Sloop stop2 *) cbn [rwc_chk] in Hchk. discriminate Hchk.
+    - (* Sloop loop *) cbn [rwc_chk] in Hchk. discriminate Hchk.
+    - (* Sswitch: rejected *)
+      cbn [rwc_chk] in Hchk. discriminate Hchk.
+  Qed.
+
+  (* ====================================================================== *)
+  (* THE ENTRY LEMMA: resolve's whole body preserves carried under the      *)
+  (* args_all_local gate.  function_entry2 allocs the ONE fn_var            *)
+  (* _collisionData (alloc_variables_hlocal -> local stack block) and binds *)
+  (* _pos/_offset/_radius; the gate gives _pos's conditional locality; the  *)
+  (* walker walks the body; free_list at exit.                              *)
+  (* ====================================================================== *)
+  Lemma rwc_body_pres_ol :
+    body_pres_ol lp bm NoA MWF SafeB
+      mario.f_resolve_and_return_wall_collisions.
+  Proof.
+    intros m0 vargs0 t0 mF vres0 Hgate Hevf HN HM HV HS.
+    (* ---- entry ---- *)
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      rename Ha into Halloc end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    unfold mario.f_resolve_and_return_wall_collisions in Hbind, Halloc.
+    cbn [fn_params fn_temps fn_vars] in Hbind, Halloc.
+    match goal with H : alloc_variables _ _ _ _ ?E ?ME |- _ =>
+      set (eloc := E) in *; set (me := ME) in * end.
+    assert (Hc0 : carried bm NoA MWF m0)
+      by (split; [ exact HV | split; [ exact HS
+                 | split; [ exact HM | exact HN ] ] ]).
+    pose proof (alloc_variables_carried bm NoA MWF HMWF_alloc HNoA_of_MWF
+                  _ _ _ _ _ _ Halloc Hc0) as Hcar.
+    (* the _collisionData fn_var is a watched-disjoint stack block *)
+    assert (Hcdx : exists lblk tyenv,
+               eloc ! mario._collisionData = Some (lblk, tyenv) /\
+               local_blk lp bm SafeB lblk).
+    { apply (alloc_variables_hlocal lp bm SafeB m0 _ eloc _
+               (mario._collisionData :: nil)
+               Halloc HV (HSafeValid m0 HM) (HGlobValid m0 HM)
+               ltac:(intros lid Hmem; unfold mem_id in Hmem;
+                     cbn [existsb] in Hmem;
+                     apply Bool.orb_true_iff in Hmem;
+                     destruct Hmem as [He | Hf];
+                     [ apply Pos.eqb_eq in He; subst lid; cbn [map fst];
+                       apply in_eq
+                     | discriminate Hf ])).
+      vm_compute. reflexivity. }
+    destruct Hcdx as (lcd & tycd & Hcd & Hlcd).
+    (* bind the 3 params _pos / _offset / _radius *)
+    destruct vargs0 as [| v_pos vr1];
+      cbn [bind_parameter_temps] in Hbind; [ discriminate Hbind | ].
+    destruct vr1 as [| v_off vr2];
+      cbn [bind_parameter_temps] in Hbind; [ discriminate Hbind | ].
+    destruct vr2 as [| v_rad vr3];
+      cbn [bind_parameter_temps] in Hbind; [ discriminate Hbind | ].
+    destruct vr3; [ | cbn [bind_parameter_temps] in Hbind;
+                      discriminate Hbind ].
+    injection Hbind as Hle_init.
+    assert (Hposeq : le1 ! mario._pos = Some v_pos)
+      by (rewrite <- Hle_init;
+          rewrite PTree.gso by (vm_compute; discriminate);
+          rewrite PTree.gso by (vm_compute; discriminate);
+          apply PTree.gss).
+    (* _pos's CONDITIONAL locality from the args_all_local gate *)
+    unfold args_all_local in Hgate.
+    assert (Hposc : forall b o, le1 ! mario._pos = Some (Vptr b o) ->
+                    local_blk lp bm SafeB b).
+    { intros b o Hg. rewrite Hposeq in Hg. injection Hg as Hg.
+      apply (Hgate b o). rewrite Hg. apply in_eq. }
+    (* the callee is an unbound global in the entry env *)
+    assert (Hfwc : eloc ! mario._find_wall_collisions = None).
+    { rewrite (alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc
+                 mario._find_wall_collisions)
+        by (cbn; intros [HH | []]; vm_compute in HH; discriminate HH).
+      apply PTree.gempty. }
+    (* ---- WALK the body ---- *)
+    destruct (rwc_walk_pres lcd tycd Hlcd _ _ _ _ _ _ _ _
+                Hbody rwc_chk_body Hfwc Hcd Hposc Hcar)
+      as (Hcarr & _).
+    (* ---- exit: free the fn_var stack block ---- *)
+    destruct Hcarr as (HVb & HSb & HMb & HNb).
+    pose proof (blocks_of_env_bm lp bm m0 _ eloc _ Halloc HV) as Hforall.
+    pose proof (free_list_carried_bm bm NoA MWF HMWF_free HNoA_of_MWF
+                  (blocks_of_env (lp_ge lp) eloc) _ mF Hforall Hfree
+                  (conj HVb (conj HSb (conj HMb HNb))))
+      as (HVf & HSf & HMf & HNf).
+    exact (conj HVf (conj HSf HMf)).
+  Qed.
+
+  (* THE DISCHARGE: lift the per-body walk to the ol residual via the
+     producer + the prog_defmap pin.  Hocp_resolve is now PROVED (was a
+     Hypothesis), resting on the ONE terminal-external row Holcp_fwc.
+     php_walk_pres below consumes it verbatim. *)
+  Lemma Hocp_resolve :
+    call_pres_ext_ol lp bm NoA MWF SafeB
+      mario_actions_automatic._resolve_and_return_wall_collisions.
+  Proof.
+    eapply call_pres_ext_ol_of_body.
+    - exact HNoA_of_MWF.
+    - exact LO_mario.
+    - exact rwc_pin.
+    - exact rwc_body_pres_ol.
+  Qed.
+
+  (* ---- STAGE 3 decode helpers + the exec-derivation WALKER (php) ---- *)
 
   Lemma php_assign_decode :
     forall a1, php_assign_chk a1 = true ->
