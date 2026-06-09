@@ -688,4 +688,101 @@ Section LocalVarsArc.
       end ].
   Qed.
 
+  (* eval_expr of a local-bound Evar of STRUCT type (access By_reference)
+     decays to its env block: value = Vptr lblk _.  Pins the Efield base block
+     for the field store brick. *)
+  Lemma eval_expr_Evar_local_block :
+    forall e le m lid sid sattr l ofs b tyenv,
+      e ! lid = Some (b, tyenv) ->
+      eval_expr (lp_ge lp) e le m (Evar lid (Tstruct sid sattr)) (Vptr l ofs) ->
+      l = b.
+  Proof.
+    intros e le m lid sid sattr l ofs b tyenv He Hev.
+    inv Hev.
+    match goal with
+    | Hlv : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ =>
+        destruct (eval_lvalue_Evar_local_pin' _ _ _ _ _ _ _ _ _ _ He Hlv)
+          as [Hb Hbf]; subst
+    end.
+    (* the struct deref is By_reference -> value block = lvalue block = b;
+       the By_value / By_copy branches are refuted (access_mode Tstruct =
+       By_reference), the bitfield branch by bf = Full *)
+    match goal with
+    | Hd : deref_loc (typeof _) _ _ _ _ _ |- _ => cbn [typeof] in Hd
+    end.
+    match goal with
+    | Hd : deref_loc (Tstruct _ _) _ _ _ _ (Vptr _ _) |- _ => inv Hd
+    end;
+    try (match goal with
+         | Har : access_mode (Tstruct _ _) = _ |- _ =>
+             cbn in Har; discriminate Har
+         end);
+    congruence.
+  Qed.
+
+  (* ---- store into a FIELD of a LOCAL struct Evar ----
+     e.g. `collisionData.x = ..` (5 such) in resolve_and_return_wall_collisions,
+     where _collisionData is a fn_var (Tstruct WallCollisionData).  The base
+     Evar is bound in the local env, so eval_expr decays it By_reference to its
+     local block; the Efield offset keeps the block; the By_value store hits the
+     local block -> carried preserved.  Twin of local_idx_assign_pres, Efield
+     instead of Ederef(Ebinop Oadd ..). *)
+  Lemma local_field_assign_pres :
+    forall e lid sid sattr tyenv fld fty a2 le m0 tr le' m' out lblk ch,
+      e ! lid = Some (lblk, tyenv) ->
+      local_blk lblk ->
+      access_mode fty = By_value ch ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0
+        (Sassign (Efield (Evar lid (Tstruct sid sattr)) fld fty) a2)
+        tr le' m' out ->
+      carried m0 ->
+      carried m' /\ le' = le /\ out = Out_normal.
+  Proof.
+    intros e lid sid sattr tyenv fld fty a2 le m0 tr le' m' out lblk ch
+           Hlid Hlb Hacc Hexec Hc.
+    inv Hexec.
+    (* the Efield lvalue: struct branch (union refuted by typeof = Tstruct) *)
+    match goal with
+    | Hlv : eval_lvalue _ _ _ _ (Efield _ _ _) _ _ _ |- _ => inv Hlv
+    end;
+    [ | match goal with
+        | Htu : typeof (Evar _ _) = Tunion _ _ |- _ =>
+            cbn in Htu; discriminate Htu
+        end ].
+    (* pin the base block = lblk via the aggregate-Evar decay lemma *)
+    match goal with
+    | Ha : eval_expr _ _ _ _ (Evar _ _) (Vptr _ _) |- _ =>
+        pose proof (eval_expr_Evar_local_block _ _ _ _ _ _ _ _ _ _ Hlid Ha) as ->
+    end.
+    (* the store into the (now pinned) local block lblk.  By_value and the
+       bitfield case both bottom out in a storev into lblk (-> localstore_
+       carried); the By_copy case is refuted by Hacc (access_mode = By_value). *)
+    match goal with
+    | Has : assign_loc _ (typeof _) _ _ _ _ _ m' |- _ =>
+        cbn [typeof] in Has; inv Has
+    end;
+    [ (* By_value *)
+      split; [ | split; reflexivity ];
+      match goal with
+      | Hstv : Mem.storev _ _ (Vptr lblk _) _ = Some m' |- _ =>
+          unfold Mem.storev in Hstv;
+          eapply localstore_carried; [ exact Hlb | exact Hstv | exact Hc ]
+      end
+    | (* By_copy: refuted *)
+      match goal with
+      | Hco : access_mode fty = By_copy |- _ =>
+          rewrite Hacc in Hco; discriminate Hco
+      end
+    | (* bitfield: still a storev into lblk *)
+      match goal with
+      | Hsb : store_bitfield _ _ _ _ _ _ (Vptr lblk _) _ _ _ |- _ => inv Hsb
+      end;
+      split; [ | split; reflexivity ];
+      match goal with
+      | Hstv : Mem.storev _ _ (Vptr lblk _) _ = Some m' |- _ =>
+          unfold Mem.storev in Hstv;
+          eapply localstore_carried; [ exact Hlb | exact Hstv | exact Hc ]
+      end ].
+  Qed.
+
 End LocalVarsArc.
