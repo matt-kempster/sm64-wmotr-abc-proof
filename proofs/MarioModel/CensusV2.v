@@ -2474,75 +2474,9 @@ Proof.
     reflexivity.
 Qed.
 
-(* ====================================================================== *)
-(* sargs STAGING (step 1 of the signature-derived scalar-arg channel that *)
-(* the Hpres_wind walk and the climbing_pole caller threading need): a    *)
-(* SUB-32-BIT integer parameter type forces its sem_cast'd argument to be *)
-(* a genuine Vint.  Every classify_cast arm with a Tint I8/I16/IBool      *)
-(* target either produces a Vint or fails -- in particular a Vptr NEVER   *)
-(* survives (the ptr32 cast_case_pointer conflation is an I32-target-only *)
-(* phenomenon).  This is what repairs the forall-vargs phantom in         *)
-(* body_pres for spawn_wind_particles: its (tshort, tshort) signature     *)
-(* pins both vargs to Vint at EVERY call site, because eval_exprlist      *)
-(* sem_casts each argument to tyargs and exec_Scall pins tyargs = the     *)
-(* callee's true signature (type_of_fundef).  STAGING: not yet consumed;  *)
-(* the consumer is the engine's funcall-leaf channel (see                 *)
-(* wind-walk-scoping).                                                    *)
-(* ====================================================================== *)
-Definition sub32i (ty : type) : bool :=
-  match ty with
-  | Tint I8 _ _ | Tint I16 _ _ | Tint IBool _ _ => true
-  | _ => false
-  end.
-
-Lemma sem_cast_sub32i_vint :
-  forall v ty1 ty2 m v',
-    sub32i ty2 = true ->
-    sem_cast v ty1 ty2 m = Some v' ->
-    exists n, v' = Vint n.
-Proof.
-  intros v ty1 ty2 m v' Hs Hc.
-  destruct ty2 as [ | sz si a | | | | | | | ]; try discriminate Hs.
-  (* deep-destruct the SOURCE type's intsize/floatsize/signedness so
-     classify_cast computes to a literal arm; then resolve the two guards
-     cbn cannot reduce (the intsize_eq sumbool + the OPAQUE Archi.ptr64),
-     and finally case the value matches of the surviving real arm. *)
-  destruct sz; try discriminate Hs;
-    unfold sem_cast in Hc;
-    destruct ty1 as [ | [] [] ? | [] ? | [] ? | ? ? | ? ? ? | ? ? ? | ? ? | ? ? ];
-    cbn in Hc;
-    repeat match type of Hc with
-           | context [intsize_eq ?x ?y] =>
-               destruct (intsize_eq x y) as [? | ?];
-               [ try discriminate | try (exfalso; congruence) ]
-           | context [Archi.ptr64] => destruct Archi.ptr64
-           end;
-    cbn in Hc;
-    repeat match type of Hc with
-           | match ?x with _ => _ end = Some _ =>
-               destruct x; try discriminate Hc
-           | (if ?x then _ else _) = Some _ =>
-               destruct x; try discriminate Hc
-           end;
-    try discriminate Hc;
-    try (injection Hc as Hc; subst v'; eexists; reflexivity).
-Qed.
-
-(* the per-list lift: an eval_exprlist against a signature whose EVERY    *)
-(* parameter type is sub-32-bit integer yields Vint-only vargs.  (The     *)
-(* engine's Scall case will instantiate tyl with the callee's true        *)
-(* signature; for spawn_wind_particles tyl = [tshort; tshort].)           *)
-Lemma eval_exprlist_sub32i_vint :
-  forall ge e le m al tyl vargs,
-    eval_exprlist ge e le m al tyl vargs ->
-    forallb sub32i tyl = true ->
-    forall v, In v vargs -> exists n, v = Vint n.
-Proof.
-  intros ge e le m al tyl vargs Hvl.
-  induction Hvl; intros Hall v Hin.
-  - destruct Hin.
-  - cbn in Hall. apply andb_true_iff in Hall as [Hty Hrest].
-    destruct Hin as [<- | Hin].
-    + eapply sem_cast_sub32i_vint; eauto.
-    + exact (IHHvl Hrest v Hin).
-Qed.
+(* The sargs channel (sub32i / sem_cast_sub32i_vint / sig_sub32 /         *)
+(* sargs_ok) lives in ActionValueFrame.v: the v2 engine's Scall case      *)
+(* discharges the gate from the exec_Scall type_of_fundef pin, so the     *)
+(* funcall-leaf interfaces (Hbridged/Hexempt -> Hrest_pres -> body_pres_s *)
+(* for spawn_wind_particles) carry Vint-pinned args instead of the        *)
+(* forall-vargs phantom.                                                  *)

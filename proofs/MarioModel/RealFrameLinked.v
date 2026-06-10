@@ -614,6 +614,7 @@ Section ReRoot.
     Hypothesis reach_meminv_reached_lp :
       forall m fd vargs t m' vres,
         Reached_fd fd -> NoA m -> meminv_lp bm m -> MWF m -> marg_ok bm vargs ->
+        sargs_ok fd vargs ->
         eval_funcall function_entry2 lp_ge m fd vargs t m' vres ->
         NoA m' /\ meminv_lp bm m' /\ MWF m'.
     (* the call-resolution hypothesis is stated at the EMPTY env -- the only
@@ -681,8 +682,17 @@ Section ReRoot.
         match goal with Hel : eval_exprlist _ _ _ _ al _ ?vargs |- _ =>
           assert (Hmarg : marg_ok bm vargs)
             by (eapply call_arg0_marg_sound_lp; [ exact Hpg0 | exact Hargs | exact Hel ]) end.
+        (* the sargs gate: exec_Scall's type_of_fundef pin makes the call-site
+           tyargs the callee's true signature, so the gate holds GENERICALLY. *)
+        match goal with
+          Hel : eval_exprlist _ _ _ _ al _ ?vargs,
+          Htof : type_of_fundef ?fd = Tfunction _ _ _ |- _ =>
+            assert (Hsargs : sargs_ok fd vargs)
+              by (intro Hs; unfold sig_sub32 in Hs; rewrite Htof in Hs; cbn in Hs;
+                  apply Forall_forall; intros v0 Hin0;
+                  exact (eval_exprlist_sub32i_vint _ _ _ _ _ _ _ Hel Hs v0 Hin0)) end.
         match goal with Hf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
-          destruct (reach_meminv_reached_lp _ _ _ _ _ _ Hrf Hno0 Hmem0 Hmwf0 Hmarg Hf)
+          destruct (reach_meminv_reached_lp _ _ _ _ _ _ Hrf Hno0 Hmem0 Hmwf0 Hmarg Hsargs Hf)
             as (Hno0' & Hmem0' & Hmwf0') end.
         split; [ exact Hno0' | split; [ exact Hmem0' | split; [ | split ] ] ].
         + apply tprov_set_opttemp; [ exact Hck0 | exact Htp0 ].
@@ -729,12 +739,13 @@ Section ReRoot.
       forall m fd vargs t m' vres,
         Reached_fd fd ->
         NoA m -> meminv_lp bm m -> MWF m -> marg_ok bm vargs ->
+        sargs_ok fd vargs ->
         eval_funcall function_entry2 lp_ge m fd vargs t m' vres ->
         NoA m' /\ meminv_lp bm m' /\ MWF m'.
   Proof.
-    intros bm NoA MWF Reached_fd Hval Hrest m fd vargs t m' vres Hrf Hno Hmem HMWF Hmarg Hev.
+    intros bm NoA MWF Reached_fd Hval Hrest m fd vargs t m' vres Hrf Hno Hmem HMWF Hmarg Hsargs Hev.
     unfold meminv_lp in Hmem. destruct Hmem as (Hv & Hsat & Hmwf & Hgwf).
-    destruct (Hval m fd vargs t m' vres Hrf Hno HMWF (fun _ => Hmarg) Hev Hv Hsat) as (Hv' & Hsat' & HMWF').
+    destruct (Hval m fd vargs t m' vres Hrf Hno HMWF (fun _ => Hmarg) Hsargs Hev Hv Hsat) as (Hv' & Hsat' & HMWF').
     destruct (Hrest m fd vargs t m' vres Hno Hmarg Hev Hmwf Hgwf) as (Hno' & Hmwf' & Hgwf').
     split; [ exact Hno' | split; [ unfold meminv_lp; repeat split; assumption | exact HMWF' ] ].
   Qed.
