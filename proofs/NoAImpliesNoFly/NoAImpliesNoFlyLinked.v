@@ -721,11 +721,10 @@ Section NoARealInputMWF.
      the window census): PROVED from per-leaf-callee residuals keyed by
      the 17-id census automatic_callee_ids.  The leaves are being walked
      incrementally (AutomaticLeafSurface, the object-family rest-split
-     pattern): 15 of the 17 are DONE (the B12 act_climbing_pole walk
-     closed the pole cluster via the np3 non-ptr channel), so only
-     act_in_cannon + act_tornado_twirling (automatic_rest_ids) survive
-     here.  act_in_cannon's leaf is where the cannon-fire kill gets
-     consumed (still in rest); tornado is Tier-2 (local _nextPos). *)
+     pattern): 16 of the 17 are DONE (B12 closed the pole cluster via the
+     np3 non-ptr channel; B13 walked act_tornado_twirling via the hybrid
+     twl walker), so ONLY act_in_cannon (automatic_rest_ids) survives
+     here -- the leaf where the engine-v2 cannon-fire kill gets consumed. *)
   Hypothesis Hpres_aut_rest : forall fid f,
       mem_id fid automatic_rest_ids = true ->
       (prog_defmap mario_actions_automatic.prog) ! fid
@@ -830,6 +829,18 @@ Section NoARealInputMWF.
   Hypothesis Hw1cp_v3f_real :
     call_pres_ext_w1 lp bm (NoA_real bm) MWF
       mario_actions_automatic._vec3f_copy.
+  (* act_tornado_twirling is now WALKED (AutomaticLeafSurface's hybrid twl
+     walker: the generic wwalk census + bespoke discharges for its two
+     special call sites).  Its vec3f_copy(m->pos, nextPos) site rides the
+     EXISTING Hw1cp_v3f_real row above; the one NEW residual is
+     f32_find_wall_collision called with ALL out-ptrs aimed at the
+     stack-local _nextPos elems -- the args_all_local (ol) gate, the same
+     honest terminal-external class as find_wall_collisions above
+     (f32_find_wall_collision is EF_external in EVERY generated TU:
+     mario.v:12228, interaction.v:12264, mario_actions_automatic.v:8857). *)
+  Hypothesis Holcp_f32fwc_real :
+    call_pres_ext_ol lp bm (NoA_real bm) MWF SafeB
+      mario_actions_automatic._f32_find_wall_collision.
   (* the special-floors LEAF CENSUS is FULLY DISCHARGED
      (FloorsLeafSurface.floors_callees_pres): check_death_barrier /
      pss_begin_slide / pss_end_slide / check_lava_boost are all WALKED,
@@ -1057,6 +1068,9 @@ Section NoARealInputMWF.
                       Hwcp_fwc
                       Hscp_v3f
                       Hscp_v3s
+                      (* tornado: f32_find_wall_collision's stack-local
+                         (&nextPos[i]) call shape -- the ol gate *)
+                      Holcp_f32fwc_real
                       (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
                       (fun m l m' Hf HM =>
                          mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
