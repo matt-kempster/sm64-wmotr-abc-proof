@@ -105,6 +105,11 @@ proofs/MarioModel/FloorsLeafSurface.v
 #     SHRINKS the capstone's automatic census via incremental rest-split) ---
 proofs/MarioModel/AutomaticLeafSurface.v
 
+# --- GOAL 1 / the wind surface (SPINE: wind_pres DISCHARGES the capstone's
+#     Hpres_wind via the first loop-tolerant walk + the spawn_object
+#     carried+SafeB-return model-boundary row) ---
+proofs/MarioModel/WindSurface.v
+
 # --- top-level demos ---
 proofs/Toy/ToyFrame.v
 proofs/Toy/ToyReach.v

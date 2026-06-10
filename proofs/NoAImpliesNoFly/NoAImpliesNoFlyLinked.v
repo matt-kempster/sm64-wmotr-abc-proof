@@ -49,7 +49,7 @@ From SM64.Proofs Require Import MWFReal RestSurface AirborneSurface
   DispatchKit CutsceneSurface AutomaticSurface StationarySurface
   MovingSurface ObjectSurface SubmergedSurface FloorsSurface WarpSurface
   ActWriterSurface ObjectLeafSurface FloorsLeafSurface AutomaticLeafSurface
-  LocalVarsSurface OutParamSurface.
+  LocalVarsSurface OutParamSurface WindSurface.
 
 Section NoAImpliesNoFlyLinked.
   (* The linked program -- ABSTRACT, never computed (no OOM). *)
@@ -870,15 +870,29 @@ Section NoARealInputMWF.
       (Hpres_floors_ext mario._raise_background_noise eq_refl).
   Hypothesis Hpres_inter : body_pres lp (NoA_real bm) MWF bm
       interaction.f_mario_process_interactions.
-  (* the sargs-gated wind residual: plain body_pres was a forall-vargs
-     PHANTOM here, and FALSE -- wind's (tshort, tshort) signature means an
-     adversarial Vptr yaw/pitch would be stored raw into the SafeB
-     spawned-object block (ptr32 cast_case_pointer), breaking MWF_real's
-     chase closure.  body_pres_s carries the signature-derived Vint arg
-     gate, which every real call site satisfies (the engine discharges it
-     generically from the exec_Scall type_of_fundef pin). *)
-  Hypothesis Hpres_wind : body_pres_s lp (NoA_real bm) MWF bm
-      behavior_actions.f_spawn_wind_particles.
+  (* spawn_object: a TERMINAL EXTERNAL (EF_external in EVERY TU -- no
+     internal body anywhere in generated/), the honest model boundary for
+     the object-pool allocator.  It preserves the carried run facts, and
+     its return value -- a slot of the static object pool -- is SafeB if
+     a pointer at all (exactly what MWF_real's chase closure forces
+     anyway: the spawned object is chase-reachable from the SafeB object
+     lists). *)
+  Hypothesis Hcp_spawn_real : call_pres_ext_sr lp bm (NoA_real bm) MWF SafeB
+      behavior_actions._spawn_object.
+  (* wind is WALKED (WindSurface.wind_pres -- the first loop-tolerant
+     walk): the sargs gate (body_pres_s) pins yaw/pitch to Vint at entry,
+     the spawn row pins _wind's block into SafeB across the pinned
+     _t'1->_wind transfer, and the two rawData stores are Vint stores
+     into the SafeB block, killed by the value-aware chase row.  NO
+     whole-body wind residual remains -- only the spawn_object row. *)
+  Let Hpres_wind : body_pres_s lp (NoA_real bm) MWF bm
+      behavior_actions.f_spawn_wind_particles :=
+    wind_pres lp bm (NoA_real bm) MWF SafeB
+      (mwf_real_ctl lp bm bc oc0 SafeB)
+      HSafeB_not_bm
+      (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+         HSafeB_not_bc Hgms_blk Hgtimer_blk)
+      Hcp_spawn_real.
   (* the warp trigger is WALKED (WarpSurface.warp_pres: its 33 stores are
      all window- or stored_globals-class; its one internal callee,
      music_changed_through_warp, is store-free and walked too): what
