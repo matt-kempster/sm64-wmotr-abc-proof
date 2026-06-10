@@ -719,17 +719,13 @@ Section NoARealInputMWF.
   (* the automatic dispatcher is WALKED (AutomaticSurface.automatic_pres
      over the generic DispatchKit; the quicksandDepth store is killed by
      the window census): PROVED from per-leaf-callee residuals keyed by
-     the 17-id census automatic_callee_ids.  The leaves are being walked
-     incrementally (AutomaticLeafSurface, the object-family rest-split
-     pattern): 16 of the 17 are DONE (B12 closed the pole cluster via the
-     np3 non-ptr channel; B13 walked act_tornado_twirling via the hybrid
-     twl walker), so ONLY act_in_cannon (automatic_rest_ids) survives
-     here -- the leaf where the engine-v2 cannon-fire kill gets consumed. *)
-  Hypothesis Hpres_aut_rest : forall fid f,
-      mem_id fid automatic_rest_ids = true ->
-      (prog_defmap mario_actions_automatic.prog) ! fid
-        = Some (Gfun (Internal f)) ->
-      body_pres lp (NoA_real bm) MWF bm f.
+     the 17-id census automatic_callee_ids.  ALL 17 leaves are now WALKED
+     (AutomaticLeafSurface.automatic_leaf_callees_pres with NO rest
+     residual -- B14 walked act_in_cannon via the hybrid cnn walker
+     CONSUMING the engine-v2 cannon-fire kill: under MWF's input_a_clear
+     projection the gated cannon fire is dead code).  The discharged tree
+     surfaces only the named external/gated rows below (its one NEW row is
+     vec3f_set, the w1 dst-window terminal external, Hw1cp_v3fset_real). *)
   (* the object dispatcher is WALKED (ObjectSurface.object_pres) and its
      leaf census is FULLY DISCHARGED (ObjectLeafSurface.object_callees_pres
      with NO residual premise: ccoc + the six B3 leaves + the three B5
@@ -829,6 +825,14 @@ Section NoARealInputMWF.
   Hypothesis Hw1cp_v3f_real :
     call_pres_ext_w1 lp bm (NoA_real bm) MWF
       mario_actions_automatic._vec3f_copy.
+  (* vec3f_set(m->vel, 0, 0, 0) -- act_in_cannon's one special store site:
+     writes ONLY through its dst = &m->vel, a 12-byte safe bm-window
+     (vel @72; action cell @12 clear).  vec3f_set is EF_external in EVERY
+     generated TU (no internal body anywhere) -- the same honest terminal
+     external-call-model boundary as vec3f_copy above, same w1 gate. *)
+  Hypothesis Hw1cp_v3fset_real :
+    call_pres_ext_w1 lp bm (NoA_real bm) MWF
+      mario_actions_automatic._vec3f_set.
   (* act_tornado_twirling is now WALKED (AutomaticLeafSurface's hybrid twl
      walker: the generic wwalk census + bespoke discharges for its two
      special call sites).  Its vec3f_copy(m->pos, nextPos) site rides the
@@ -1051,6 +1055,11 @@ Section NoARealInputMWF.
                       (mwf_real_chase_step lp bm bc oc0 SafeB)
                       (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm
                          HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk)
+                      (* B14 cannon kill: the carried MWF_real pins Mario's
+                         input halfword A-clear (mwf_real_inp) -- the
+                         mid-frame fact act_in_cannon's fire-gate kill
+                         consumes.  NO new trust. *)
+                      (mwf_real_inp lp bm bc oc0 SafeB)
                       (Hpres_obj_ext mario._vec3s_set eq_refl)
                       (Hpres_obj_ext mario._set_camera_mode eq_refl)
                       (Hpres_obj_ext mario._load_patchable_table eq_refl)
@@ -1100,7 +1109,9 @@ Section NoARealInputMWF.
                       Hcpx_approach_real
                       Holcp_fwc_real
                       Hw1cp_v3f_real
-                      Hpres_aut_rest))
+                      (* B14: act_in_cannon's vec3f_set(m->vel,0,0,0) site --
+                         the w1 dst-window terminal external *)
+                      Hw1cp_v3fset_real))
                 (object_pres lp LO_mario LO_obj LO_stp bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
                    (mwf_real_ctl lp bm bc oc0 SafeB)
