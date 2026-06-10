@@ -200,6 +200,7 @@ Section V2Consumer.
   Hypothesis Hrest_pres : forall m f vargs t m' vres,
       rest_fd (Internal f) ->
       (marg_exempt (Internal f) = false -> marg_ok bm vargs) ->
+      sargs_ok (Internal f) vargs ->
       eval_funcall function_entry2 (lp_ge lp) m (Internal f) vargs t m' vres ->
       NoA m -> MWF m -> Mem.valid_block m bm -> action_sat not_tainted m bm ->
       Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
@@ -757,7 +758,7 @@ Section V2Consumer.
         exact (entry_novars_empty_env _ _ _ _ _ _ _ Hentry
                  (censused_body_novars _ HC)).
       - (* Hbridged: umbi (proved) / rest (residual) *)
-        intros f vargs0 m0 t0 m0' vres0 _ Hb Hmargc Hevf Hno0 Hmwf0 Hv0 Hsat0.
+        intros f vargs0 m0 t0 m0' vres0 _ Hb Hmargc Hsargs Hevf Hno0 Hmwf0 Hv0 Hsat0.
         destruct Hb as [Eumbi | Hrest].
         + injection Eumbi as Eumbi. subst f.
           assert (Hmarg0 : marg_ok bm vargs0) by (apply Hmargc; reflexivity).
@@ -775,7 +776,7 @@ Section V2Consumer.
               [ exact Hac | exact Hv0 | exact Hsat0 ].
           * eapply Hmwf_umbi; [ exact Hmwf0 | exact Hunch | exact Hinp' ].
         + exact (Hrest_pres m0 f vargs0 t0 m0' vres0
-                   Hrest Hmargc Hevf Hno0 Hmwf0 Hv0 Hsat0).
+                   Hrest Hmargc Hsargs Hevf Hno0 Hmwf0 Hv0 Hsat0).
       - (* Hassign: the censused store leaf *)
         intros bc e le m0 a1 a2 loc ofs bf v2 v m0'
                Hlv Hev2 Hcast Has [HTI _] HC Hmwf0 Hv0 Hsat0.
@@ -790,7 +791,7 @@ Section V2Consumer.
                  optid a al tyargs vargs0 vf fd0 HTI HC Hevf Hff Hnex Hargs).
       - (* Hexempt: censused/umbi are non-exempt (compute); rest is the
            residual *)
-        intros f vargs0 m0 t0 m0' vres0 Hr Hex Hevf Hno0 Hmwf0 Hv0 Hsat0.
+        intros f vargs0 m0 t0 m0' vres0 Hr Hex Hsargs Hevf Hno0 Hmwf0 Hv0 Hsat0.
         destruct Hr as [(f0 & Ef & HC0) | [Eumbi | Hrest]].
         + exfalso. injection Ef as Ef. subst f0.
           rewrite (censused_body_nonexempt _ HC0) in Hex. discriminate Hex.
@@ -852,9 +853,9 @@ Section V2Consumer.
       - (* HCsw: the dispatch kill *)
         intros bc e le m0 a ls v n HC _ _ [HTI _] Hev0 Hsa.
         exact (chk_sw lp bm SafeB bc e le m0 a ls v n HC HTI Hev0 Hsa). }
-    intros m fd vargs t m' vres Hrf HnoA HMWF Hmarg Hev Hv Hsat.
+    intros m fd vargs t m' vres Hrf HnoA HMWF Hmarg Hsargs Hev Hv Hsat.
     exact (HV2 m fd vargs t m' vres Hrf HnoA HMWF Hmarg (fun _ => I)
-             Hev Hv Hsat).
+             Hsargs Hev Hv Hsat).
   Qed.
 
 End V2Consumer.

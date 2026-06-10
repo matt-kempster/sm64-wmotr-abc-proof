@@ -1291,11 +1291,91 @@ Definition marg_exempt (fd : Clight.fundef) : bool :=
       end
   end.
 
+(* ====================================================================== *)
+(* The sargs channel: a SUB-32-BIT integer parameter type forces its       *)
+(* sem_cast'd argument to be a genuine Vint.  Every classify_cast arm with *)
+(* a Tint I8/I16/IBool target either produces a Vint or fails -- in        *)
+(* particular a Vptr NEVER survives (the ptr32 cast_case_pointer           *)
+(* conflation is an I32-target-only phenomenon).  This repairs the         *)
+(* forall-vargs phantom in per-body preservation residuals for callees     *)
+(* whose whole signature is sub-32-bit (spawn_wind_particles's             *)
+(* (tshort, tshort)): eval_exprlist sem_casts each argument to tyargs and  *)
+(* exec_Scall pins tyargs = the callee's true signature (type_of_fundef),  *)
+(* so EVERY call site satisfies the gate, while the residual no longer     *)
+(* has to hold for adversarial pointer arguments no real call produces.    *)
+(* ====================================================================== *)
+Definition sub32i (ty : type) : bool :=
+  match ty with
+  | Tint I8 _ _ | Tint I16 _ _ | Tint IBool _ _ => true
+  | _ => false
+  end.
+
+Lemma sem_cast_sub32i_vint :
+  forall v ty1 ty2 m v',
+    sub32i ty2 = true ->
+    sem_cast v ty1 ty2 m = Some v' ->
+    exists n, v' = Vint n.
+Proof.
+  intros v ty1 ty2 m v' Hs Hc.
+  destruct ty2 as [ | sz si a | | | | | | | ]; try discriminate Hs.
+  (* deep-destruct the SOURCE type's intsize/floatsize/signedness so
+     classify_cast computes to a literal arm; then resolve the two guards
+     cbn cannot reduce (the intsize_eq sumbool + the OPAQUE Archi.ptr64),
+     and finally case the value matches of the surviving real arm. *)
+  destruct sz; try discriminate Hs;
+    unfold sem_cast in Hc;
+    destruct ty1 as [ | [] [] ? | [] ? | [] ? | ? ? | ? ? ? | ? ? ? | ? ? | ? ? ];
+    cbn in Hc;
+    repeat match type of Hc with
+           | context [intsize_eq ?x ?y] =>
+               destruct (intsize_eq x y) as [? | ?];
+               [ try discriminate | try (exfalso; congruence) ]
+           | context [Archi.ptr64] => destruct Archi.ptr64
+           end;
+    cbn in Hc;
+    repeat match type of Hc with
+           | match ?x with _ => _ end = Some _ =>
+               destruct x; try discriminate Hc
+           | (if ?x then _ else _) = Some _ =>
+               destruct x; try discriminate Hc
+           end;
+    try discriminate Hc;
+    try (injection Hc as Hc; subst v'; eexists; reflexivity).
+Qed.
+
+(* the per-list lift: an eval_exprlist against a signature whose EVERY    *)
+(* parameter type is sub-32-bit integer yields Vint-only vargs.           *)
+Lemma eval_exprlist_sub32i_vint :
+  forall ge e le m al tyl vargs,
+    eval_exprlist ge e le m al tyl vargs ->
+    forallb sub32i tyl = true ->
+    forall v, In v vargs -> exists n, v = Vint n.
+Proof.
+  intros ge e le m al tyl vargs Hvl.
+  induction Hvl; intros Hall v Hin.
+  - destruct Hin.
+  - cbn in Hall. apply andb_true_iff in Hall as [Hty Hrest].
+    destruct Hin as [<- | Hin].
+    + eapply sem_cast_sub32i_vint; eauto.
+    + exact (IHHvl Hrest v Hin).
+Qed.
+
+(* the decidable signature key + the per-funcall arg gate it induces.     *)
+Definition sig_sub32 (fd : Clight.fundef) : bool :=
+  match type_of_fundef fd with
+  | Tfunction tyl _ _ => forallb sub32i tyl
+  | _ => false
+  end.
+
+Definition sargs_ok (fd : Clight.fundef) (vargs : list val) : Prop :=
+  sig_sub32 fd = true -> Forall (fun v => exists n, v = Vint n) vargs.
+
 Definition reach_value_preserves_reached
     (Q : int -> Prop) (bm : block) (ge : genv) (NoA MWF : mem -> Prop)
     (Reached_fd : Clight.fundef -> Prop) : Prop :=
   forall m fd vargs t m' vres,
     Reached_fd fd -> NoA m -> MWF m -> (marg_exempt fd = false -> marg_ok bm vargs) ->
+    sargs_ok fd vargs ->
     eval_funcall function_entry2 ge m fd vargs t m' vres ->
     Mem.valid_block m bm -> action_sat Q m bm ->
     Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m'.
@@ -1550,7 +1630,7 @@ Proof.
       | split;
         [ eapply action_sat_unchanged_on; [ eapply Hext; exact Hec | exact Hv | exact Hsat ]
         | eapply Hmwf_ext; [ exact Hec | exact Hv | exact HMWF ] ] ]. }
-  intros m fd vargs t m' vres Hreached HnoA HMWF Hmarg Hev Hv Hsat.
+  intros m fd vargs t m' vres Hreached HnoA HMWF Hmarg _ Hev Hv Hsat.
   exact (proj2 MAIN m fd vargs t m' vres Hev Hreached HnoA HMWF Hv Hsat Hmarg).
 Qed.
 
@@ -1587,6 +1667,7 @@ Definition reach_value_preserves_v2
     Reached_fd fd -> NoA m -> MWF m ->
     (marg_exempt fd = false -> marg_ok bm vargs) ->
     (writer fd -> W vargs) ->
+    sargs_ok fd vargs ->
     eval_funcall function_entry2 ge m fd vargs t m' vres ->
     Mem.valid_block m bm -> action_sat Q m bm ->
     Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m'.
@@ -1622,6 +1703,7 @@ Theorem exec_funcall_reach_value_v2 :
     (forall f vargs m t m' vres,
        Reached_fd (Internal f) -> bridged (Internal f) ->
        (marg_exempt (Internal f) = false -> marg_ok bm vargs) ->
+       sargs_ok (Internal f) vargs ->
        eval_funcall function_entry2 ge m (Internal f) vargs t m' vres ->
        NoA m -> MWF m -> Mem.valid_block m bm -> action_sat Q m bm ->
        Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m') ->
@@ -1640,9 +1722,12 @@ Theorem exec_funcall_reach_value_v2 :
        eval_expr ge e le m a vf -> Genv.find_funct ge vf = Some fd ->
        marg_exempt fd = false ->
        eval_exprlist ge e le m al tyargs vargs -> marg_ok bm vargs) ->
-    (* leaf A-exempt: unchanged. *)
+    (* leaf A-exempt: now ALSO gets the signature-derived arg gate (the
+       sargs channel) -- for a sub-32-int-signature callee (wind) the bare
+       forall-vargs was a phantom no real call site produces. *)
     (forall f vargs m t m' vres,
        Reached_fd (Internal f) -> marg_exempt (Internal f) = true ->
+       sargs_ok (Internal f) vargs ->
        eval_funcall function_entry2 ge m (Internal f) vargs t m' vres ->
        NoA m -> MWF m -> Mem.valid_block m bm -> action_sat Q m bm ->
        Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m') ->
@@ -1758,6 +1843,7 @@ Proof.
        NoA m -> MWF m -> Mem.valid_block m bm -> action_sat Q m bm ->
        (marg_exempt fd = false -> marg_ok bm vargs) ->
        (writer fd -> W vargs) ->
+       sargs_ok fd vargs ->
        Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m')).
   { apply (exec_stmt_funcall_ind function_entry2 ge
       (fun e le m s t le' m' out =>
@@ -1769,6 +1855,7 @@ Proof.
          NoA m -> MWF m -> Mem.valid_block m bm -> action_sat Q m bm ->
          (marg_exempt fd = false -> marg_ok bm vargs) ->
          (writer fd -> W vargs) ->
+         sargs_ok fd vargs ->
          Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m')).
     - (* Sskip *) intros e le m HnoA HMWF Hv Hsat i HTI _.
       split; [ exact Hv | split; [ exact Hsat | split; [ exact HMWF | exact HTI ] ] ].
@@ -1791,7 +1878,14 @@ Proof.
       assert (Hwargs : writer f -> W vargs)
         by (intro Hwr; eapply Hcallwriter;
             [ exact HTI | exact HC | exact He | exact Hff | exact Hwr | exact Hel ]).
-      destruct (IHfun Hreached HnoA HMWF Hv Hsat Hmarg Hwargs) as (Hv' & Hsat' & HMWF').
+      (* the sargs gate, discharged GENERICALLY at every call site: exec_Scall
+         pins tyargs = the callee's true signature, and eval_exprlist sem_casts
+         each argument to tyargs -- so a sub-32-int signature forces Vint args. *)
+      assert (Hsargs : sargs_ok f vargs).
+      { intro Hs. unfold sig_sub32 in Hs. rewrite Htof in Hs. cbn in Hs.
+        apply Forall_forall. intros v0 Hin.
+        exact (eval_exprlist_sub32i_vint ge e le m al tyargs vargs Hel Hs v0 Hin). }
+      destruct (IHfun Hreached HnoA HMWF Hv Hsat Hmarg Hwargs Hsargs) as (Hv' & Hsat' & HMWF').
       split; [ exact Hv' | split; [ exact Hsat' | split; [ exact HMWF' |
         eapply HTI_optc;
           [ exact HC | exact HTI
@@ -1852,10 +1946,10 @@ Proof.
       eapply HCsw; [ exact HC | exact HMWF | exact Hsat | exact HTI | exact He | exact Hsa ].
     - (* eval_funcall_internal: bridged-split, then writer-split *)
       intros m f vargs t e le1 le2 m1 m2 out vres m3
-             Hentry Hbexec IHbody Hout Hfree Hreached HnoA HMWF Hv Hsat Hmarg Hwargs.
+             Hentry Hbexec IHbody Hout Hfree Hreached HnoA HMWF Hv Hsat Hmarg Hwargs Hsargs.
       destruct (classic (bridged (Internal f))) as [Hbr | Hnbr].
       { eapply Hbridged;
-          [ exact Hreached | exact Hbr | exact Hmarg
+          [ exact Hreached | exact Hbr | exact Hmarg | exact Hsargs
           | eapply eval_funcall_internal; [ exact Hentry | exact Hbexec | exact Hout | exact Hfree ]
           | exact HnoA | exact HMWF | exact Hv | exact Hsat ]. }
       destruct (classic (writer (Internal f))) as [Hwr | Hnwr].
@@ -1865,7 +1959,7 @@ Proof.
           | exact Hwr | exact Hv | exact Hsat ].
       + destruct (marg_exempt (Internal f)) eqn:Hexm.
         * eapply Hexempt;
-            [ exact Hreached | exact Hexm
+            [ exact Hreached | exact Hexm | exact Hsargs
             | eapply eval_funcall_internal; [ exact Hentry | exact Hbexec | exact Hout | exact Hfree ]
             | exact HnoA | exact HMWF | exact Hv | exact Hsat ].
         * assert (Hmarg' : marg_ok bm vargs) by (apply Hmarg; reflexivity).
@@ -1891,12 +1985,12 @@ Proof.
             [ eapply action_sat_unchanged_on; [ exact Ufree_ac | exact Hv2 | exact Hsat2 ]
             | eapply Hmwf_free; [ exact Hfree | exact HMWF2 ] ] ].
     - (* eval_funcall_external *)
-      intros m ef targs tres cconv vargs t vres m' Hec Hreached HnoA HMWF Hv Hsat Hmarg _.
+      intros m ef targs tres cconv vargs t vres m' Hec Hreached HnoA HMWF Hv Hsat Hmarg _ _.
       split;
       [ eapply external_call_valid_block; [ exact Hec | exact Hv ]
       | split;
         [ eapply action_sat_unchanged_on; [ eapply Hext; exact Hec | exact Hv | exact Hsat ]
         | eapply Hmwf_ext; [ exact Hec | exact Hv | exact HMWF ] ] ]. }
-  intros m fd vargs t m' vres Hreached HnoA HMWF Hmarg Hwargs Hev Hv Hsat.
-  exact (proj2 MAIN m fd vargs t m' vres Hev Hreached HnoA HMWF Hv Hsat Hmarg Hwargs).
+  intros m fd vargs t m' vres Hreached HnoA HMWF Hmarg Hwargs Hsargs Hev Hv Hsat.
+  exact (proj2 MAIN m fd vargs t m' vres Hev Hreached HnoA HMWF Hv Hsat Hmarg Hwargs Hsargs).
 Qed.

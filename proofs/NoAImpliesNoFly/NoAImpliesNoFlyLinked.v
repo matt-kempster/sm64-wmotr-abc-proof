@@ -435,6 +435,7 @@ Section NoARealInputV2.
   Hypothesis Hrest_pres : forall m f vargs t m' vres,
       rest_fd lp (Internal f) ->
       (marg_exempt (Internal f) = false -> marg_ok bm vargs) ->
+      sargs_ok (Internal f) vargs ->
       eval_funcall function_entry2 (lp_ge lp) m (Internal f) vargs t m' vres ->
       NoA_real bm m -> MWF m -> Mem.valid_block m bm ->
       action_sat not_tainted m bm ->
@@ -869,7 +870,14 @@ Section NoARealInputMWF.
       (Hpres_floors_ext mario._raise_background_noise eq_refl).
   Hypothesis Hpres_inter : body_pres lp (NoA_real bm) MWF bm
       interaction.f_mario_process_interactions.
-  Hypothesis Hpres_wind : body_pres lp (NoA_real bm) MWF bm
+  (* the sargs-gated wind residual: plain body_pres was a forall-vargs
+     PHANTOM here, and FALSE -- wind's (tshort, tshort) signature means an
+     adversarial Vptr yaw/pitch would be stored raw into the SafeB
+     spawned-object block (ptr32 cast_case_pointer), breaking MWF_real's
+     chase closure.  body_pres_s carries the signature-derived Vint arg
+     gate, which every real call site satisfies (the engine discharges it
+     generically from the exec_Scall type_of_fundef pin). *)
+  Hypothesis Hpres_wind : body_pres_s lp (NoA_real bm) MWF bm
       behavior_actions.f_spawn_wind_particles.
   (* the warp trigger is WALKED (WarpSurface.warp_pres: its 33 stores are
      all window- or stored_globals-class; its one internal callee,

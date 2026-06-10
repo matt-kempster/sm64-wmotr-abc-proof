@@ -155,6 +155,25 @@ Section RestSurface.
       action_sat not_tainted m bm ->
       Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
 
+  (* the sargs-gated twin, for a body whose WHOLE signature is sub-32-bit
+     integer (spawn_wind_particles: (tshort, tshort)).  For such a body
+     plain body_pres is a forall-vargs PHANTOM -- and in wind's case FALSE:
+     an adversarial Vptr yaw/pitch would be stored raw into the SafeB
+     spawned-object block (ptr32 cast_case_pointer passes a Vptr through
+     the inline s32 store cast), breaking MWF_real's chase closure.  The
+     honest residual carries the signature-derived Vint gate, which EVERY
+     real call site satisfies (the engine's Scall case discharges it from
+     the exec_Scall type_of_fundef pin). *)
+  Definition body_pres_s (NoA MWF : mem -> Prop) (bm : block)
+                         (f : Clight.function) : Prop :=
+    forall m vargs t m' vres,
+      (marg_exempt (Internal f) = false -> marg_ok bm vargs) ->
+      sargs_ok (Internal f) vargs ->
+      eval_funcall function_entry2 (lp_ge lp) m (Internal f) vargs t m' vres ->
+      NoA m -> MWF m -> Mem.valid_block m bm ->
+      action_sat not_tainted m bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
+
   (* the stub, DISCHARGED: body = Sskip, no vars -- the funcall is the
      identity on memory (entry allocates nothing, free frees nothing). *)
   Lemma stub_pres :
@@ -211,18 +230,19 @@ Section RestSurface.
         mario_actions_object.f_mario_execute_object_action ->
       body_pres NoA MWF bm interaction.f_mario_handle_special_floors ->
       body_pres NoA MWF bm interaction.f_mario_process_interactions ->
-      body_pres NoA MWF bm behavior_actions.f_spawn_wind_particles ->
+      body_pres_s NoA MWF bm behavior_actions.f_spawn_wind_particles ->
       body_pres NoA MWF bm level_update.f_level_trigger_warp ->
       forall m f vargs t m' vres,
         rest_fd lp (Internal f) ->
         (marg_exempt (Internal f) = false -> marg_ok bm vargs) ->
+        sargs_ok (Internal f) vargs ->
         eval_funcall function_entry2 (lp_ge lp) m (Internal f) vargs t m' vres ->
         NoA m -> MWF m -> Mem.valid_block m bm ->
         action_sat not_tainted m bm ->
         Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
   Proof.
     intros NoA MWF bm Hsta Hmov Hair Hsub Hcut Haut Hobj Hflo Hint Hwnd Hwrp
-           m f vargs t m' vres Hrest Hmarg Hevf Hno Hmwf Hv Hsat.
+           m f vargs t m' vres Hrest Hmarg Hsargs Hevf Hno Hmwf Hv Hsat.
     destruct (rest_internal_cases f Hrest) as
       [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | ->]]]]]]]]]]].
     - exact (Hsta m vargs t m' vres Hmarg Hevf Hno Hmwf Hv Hsat).
@@ -234,7 +254,7 @@ Section RestSurface.
     - exact (Hobj m vargs t m' vres Hmarg Hevf Hno Hmwf Hv Hsat).
     - exact (Hflo m vargs t m' vres Hmarg Hevf Hno Hmwf Hv Hsat).
     - exact (Hint m vargs t m' vres Hmarg Hevf Hno Hmwf Hv Hsat).
-    - exact (Hwnd m vargs t m' vres Hmarg Hevf Hno Hmwf Hv Hsat).
+    - exact (Hwnd m vargs t m' vres Hmarg Hsargs Hevf Hno Hmwf Hv Hsat).
     - exact (Hwrp m vargs t m' vres Hmarg Hevf Hno Hmwf Hv Hsat).
     - exact (stub_pres NoA MWF bm m vargs t m' vres Hmarg Hevf
                Hno Hmwf Hv Hsat).
