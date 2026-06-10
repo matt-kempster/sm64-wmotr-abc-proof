@@ -792,6 +792,50 @@ Definition stored_globals : list ident :=
   level_update._sTimerRunning ::
   level_update._gHudDisplay :: nil.
 
+(* ---------------------------------------------------------------------- *)
+(* The interaction-handler census (the Hpres_inter arc): the 28 DISTINCT   *)
+(* functions whose addresses populate the sInteractionHandlers dispatch    *)
+(* table (interact_bounce_top appears 3x among the 31 entries).  The       *)
+(* MWFReal table row pins every handler-slot load to one of these          *)
+(* symbols; the InterSurface indirect-call arm resolves them to their      *)
+(* pinned internal bodies.                                                 *)
+(* ---------------------------------------------------------------------- *)
+Definition interaction_handler_ids : list ident :=
+  interaction._interact_coin :: interaction._interact_water_ring
+  :: interaction._interact_star_or_key :: interaction._interact_bbh_entrance
+  :: interaction._interact_warp :: interaction._interact_warp_door
+  :: interaction._interact_door :: interaction._interact_cannon_base
+  :: interaction._interact_igloo_barrier :: interaction._interact_tornado
+  :: interaction._interact_whirlpool :: interaction._interact_strong_wind
+  :: interaction._interact_flame :: interaction._interact_snufit_bullet
+  :: interaction._interact_clam_or_bubba :: interaction._interact_bully
+  :: interaction._interact_shock :: interaction._interact_bounce_top
+  :: interaction._interact_mr_blizzard :: interaction._interact_hit_from_below
+  :: interaction._interact_damage :: interaction._interact_pole
+  :: interaction._interact_hoot :: interaction._interact_breakable
+  :: interaction._interact_koopa_shell :: interaction._interact_unknown_08
+  :: interaction._interact_cap :: interaction._interact_grabbable
+  :: interaction._interact_text :: nil.
+
+(* NON-VACUITY pins: the census COVERS the real generated table (every
+   Init_addrof in v_sInteractionHandlers is one of the 28), and every
+   censused handler is an INTERNAL function of interaction.prog. *)
+Example interaction_handler_ids_cover_table :
+  forallb (fun ini =>
+    match ini with
+    | Init_addrof f _ => existsb (Pos.eqb f) interaction_handler_ids
+    | Init_int32 _ => true
+    | _ => false
+    end) (gvar_init interaction.v_sInteractionHandlers) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example interaction_handler_ids_internal :
+  forallb (fun fid =>
+    match (prog_defmap interaction.prog) ! fid with
+    | Some (Gfun (Internal _)) => true
+    | _ => false
+    end) interaction_handler_ids = true.
+Proof. vm_compute. reflexivity. Qed.
+
 Definition global_store_ok (bc : body_census) (a1 : expr) : bool :=
   match a1 with
   | Evar gid gty =>
