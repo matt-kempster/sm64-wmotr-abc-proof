@@ -44,7 +44,6 @@ Import ListNotations.
 
 (* the leaves NOT yet walked: every slice moves ids out of here *)
 Definition automatic_rest_ids : list ident :=
-  mario_actions_automatic._act_climbing_pole ::
   mario_actions_automatic._act_in_cannon ::
   mario_actions_automatic._act_tornado_twirling :: nil.
 
@@ -102,6 +101,34 @@ Definition ahp_xids : list ident :=
     :: interaction._virtual_to_segmented :: nil.
 Definition ahp_cact : list ident :=
   mario_actions_automatic._marioObj :: nil.
+
+(* B12 act_climbing_pole (the LAST pole leaf): window stores (forwardVel,
+   faceAngle[1] x2) + 2 marioObj chase stores (asF32[34] float Oadd,
+   asS32[33] const 0); the blocker was set_mario_anim_with_accel's third
+   arg _sp24 -- a stick-derived raw scalar with no act_inv story.  The
+   np3 channel carries exactly what the MWF chase row needs: _sp24 is
+   non-Vptr (float-to-int cast = cast_case_s2i, never the ptr32
+   passthrough), threaded from the call site into smawa's animAccel
+   store.  ids = atlp/pcs/spp; xids = approach_s32; sids = hang_sids. *)
+Definition acp_ids : list ident :=
+  mario_actions_automatic._add_tree_leaf_particles
+    :: mario_actions_automatic._play_climbing_sounds
+    :: mario_actions_automatic._set_pole_position :: nil.
+Definition acp_xids : list ident :=
+  mario_actions_automatic._approach_s32 :: nil.
+Definition acp_cact : list ident :=
+  mario_actions_automatic._marioObj :: nil.
+Definition acp_nids : list ident :=
+  mario_actions_automatic._sp24 :: nil.
+Definition acp_np3_ids : list ident :=
+  mario._set_mario_anim_with_accel :: nil.
+(* set_mario_anim_with_accel (mario.prog): set_mario_animation's accel
+   twin -- same deep-chase cact shape, same sole ext callee (sma_xids =
+   [load_patchable_table], REUSED), plus the one nids-gated store
+   o->animInfo.animAccel = accel. *)
+Definition smawa_cact : list ident :=
+  mario._o :: mario._targetAnim :: mario._t'14 :: mario._t'13
+    :: mario._t'12 :: mario._t'11 :: nil.
 
 (* B11 act_top_of_pole: marioObj load (no chase stores) + ONE window store
    (faceAngle[1]); callees set_mario_action(sids)/set_mario_animation(Hsma)/
@@ -322,11 +349,11 @@ Proof. vm_compute. reflexivity. Qed.
 
 (* ---- walks ---- *)
 Example lgl_walk :
-  wwalk_chk' lgl_lids lgl_oc_pids nil nil false nil nil nil nil nil lgl_sids nil
+  wwalk_chk' lgl_lids lgl_oc_pids nil nil nil nil false nil nil nil nil nil lgl_sids nil
     (fn_body mario_actions_automatic.f_let_go_of_ledge) = true.
 Proof. vm_compute. reflexivity. Qed.
 Example ffhrp_walk :
-  wwalk_chk' ffhrp_lids ffhrp_oc_pids nil nil false nil nil nil nil nil nil nil
+  wwalk_chk' ffhrp_lids ffhrp_oc_pids nil nil nil nil false nil nil nil nil nil nil nil
     (fn_body mario.f_find_floor_height_relative_polar) = true.
 Proof. vm_compute. reflexivity. Qed.
 Example sasthf_walk :
@@ -362,7 +389,7 @@ Definition spp_cact : list ident :=
   :: mario_actions_automatic._t'11 :: mario_actions_automatic._t'9
   :: mario_actions_automatic._t'6  :: mario_actions_automatic._t'5 :: nil.
 Example spp_walk :
-  wwalk_chk' spp_lids spp_oc_pids spp_wc_pids spp_sc_pids false
+  wwalk_chk' spp_lids spp_oc_pids spp_wc_pids spp_sc_pids nil nil false
     nil nil nil spp_cact nil spp_sids nil
     (fn_body mario_actions_automatic.f_set_pole_position) = true.
 Proof. vm_compute. reflexivity. Qed.
@@ -538,6 +565,57 @@ Proof. vm_compute. reflexivity. Qed.
 Example ahp_walk :
   wwalk_chk false nil ahp_ids nil ahp_cact ahp_xids hang_sids nil
     (fn_body mario_actions_automatic.f_act_holding_pole) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- B12 set_mario_anim_with_accel (mario.prog, the np3 body) ---- *)
+Example smawa_pin :
+  (prog_defmap mario.prog) ! mario._set_mario_anim_with_accel
+  = Some (Gfun (Internal mario.f_set_mario_anim_with_accel)).
+Proof. vm_compute. reflexivity. Qed.
+Example smawa_vars : fn_vars mario.f_set_mario_anim_with_accel = nil.
+Proof. reflexivity. Qed.
+Example smawa_params :
+  fn_params mario.f_set_mario_anim_with_accel = np3_params.
+Proof. vm_compute. reflexivity. Qed.
+Example smawa_cact_m :
+  mem_id mario_actions_airborne._m smawa_cact = false.
+Proof. vm_compute. reflexivity. Qed.
+Example smawa_cact_anim : mem_id mario._targetAnimID smawa_cact = false.
+Proof. vm_compute. reflexivity. Qed.
+Example smawa_cact_acc : mem_id mario._accel smawa_cact = false.
+Proof. vm_compute. reflexivity. Qed.
+Example smawa_walk :
+  wwalk_chk' nil nil nil nil (mario._accel :: nil) nil false
+    nil nil nil smawa_cact sma_xids nil nil
+    (fn_body mario.f_set_mario_anim_with_accel) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- B12 act_climbing_pole ---- *)
+Example acp_pin :
+  (prog_defmap mario_actions_automatic.prog)
+    ! mario_actions_automatic._act_climbing_pole
+  = Some (Gfun (Internal mario_actions_automatic.f_act_climbing_pole)).
+Proof. vm_compute. reflexivity. Qed.
+Example acp_vars :
+  fn_vars mario_actions_automatic.f_act_climbing_pole = nil.
+Proof. reflexivity. Qed.
+Example acp_params_ok :
+  aut_pok mario_actions_automatic.f_act_climbing_pole = true.
+Proof. vm_compute. reflexivity. Qed.
+Example acp_nonparam_c :
+  forallb (fun t' => negb (mem_id t'
+    (map fst (fn_params mario_actions_automatic.f_act_climbing_pole))))
+    acp_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example acp_nonparam_n :
+  forallb (fun t' => negb (mem_id t'
+    (map fst (fn_params mario_actions_automatic.f_act_climbing_pole))))
+    acp_nids = true.
+Proof. vm_compute. reflexivity. Qed.
+Example acp_walk :
+  wwalk_chk' nil nil nil nil acp_nids acp_np3_ids false
+    nil acp_ids nil acp_cact acp_xids hang_sids nil
+    (fn_body mario_actions_automatic.f_act_climbing_pole) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* ---- B11 act_top_of_pole ---- *)
@@ -3855,6 +3933,74 @@ Section AutomaticLeafRows.
     - exact ahp_walk.
   Qed.
 
+  (* ---- B12 act_climbing_pole: the LAST pole leaf.  The blocker was
+     set_mario_anim_with_accel's third arg (the stick-derived _sp24): a
+     raw scalar with no act_inv/untainted story.  The np3 channel threads
+     exactly the fact the MWF chase row needs -- the value is non-Vptr
+     (float-to-int cast = cast_case_s2i; never the ptr32 i2i passthrough)
+     -- from the call-site census (nids) into smawa's animAccel store.
+     automatic_rest_ids 3 -> 2. ---- *)
+  Lemma Hsmawa :
+    call_pres_np3 lp bm NoA MWF mario._set_mario_anim_with_accel.
+  Proof.
+    apply (call_pres_np3_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._set_mario_anim_with_accel
+             mario.f_set_mario_anim_with_accel
+             nil nil smawa_cact sma_xids nil
+             LO_mario smawa_pin smawa_vars smawa_params
+             smawa_cact_m smawa_cact_anim smawa_cact_acc).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sma_xids_rows.
+    - intros fid' H. discriminate H.
+    - exact smawa_walk.
+  Qed.
+  Lemma acp_ids_rows :
+    forall fid, mem_id fid acp_ids = true -> call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold acp_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hatlp | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hpcs | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_spp | ].
+    discriminate H.
+  Qed.
+  Lemma acp_xids_rows :
+    forall fid, mem_id fid acp_xids = true -> call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold acp_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_approach | ].
+    discriminate H.
+  Qed.
+  Lemma act_climbing_pole_pres :
+    body_pres lp NoA MWF bm mario_actions_automatic.f_act_climbing_pole.
+  Proof.
+    apply (body_pres_of_wwalk_nids lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_automatic.f_act_climbing_pole
+             acp_ids nil acp_cact acp_xids hang_sids nil acp_nids acp_np3_ids
+             acp_vars acp_params_ok acp_nonparam_c acp_nonparam_n).
+    - exact acp_ids_rows.
+    - intros fid' H; discriminate H.
+    - exact acp_xids_rows.
+    - intros fid' H'. unfold hang_sids in H'. cbn [mem_id existsb] in H'.
+      apply orb_true_iff in H' as [Hm | H'];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hsmact | ].
+      discriminate H'.
+    - intros fid' H; discriminate H.
+    - intros fid' H'. unfold acp_np3_ids in H'. cbn [mem_id existsb] in H'.
+      apply orb_true_iff in H' as [Hm | H'];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hsmawa | ].
+      discriminate H'.
+    - exact acp_walk.
+  Qed.
+
   (* ---- B11 top-of-pole pair: BOTH reduce to the single Hrmayt helper ---- *)
   Lemma atop_ids_rows :
     forall fid, mem_id fid atop_ids = true -> call_pres lp bm NoA MWF fid.
@@ -4378,10 +4524,12 @@ Section AutomaticLeafRows.
     { apply Pos.eqb_eq in Hm. subst fid.
       rewrite agpf_pin in Hdm. injection Hdm as <-.
       exact act_grab_pole_fast_pres. }
-    (* 5: act_climbing_pole -- rest (blocked on scalar-arg threading) *)
+    (* 5: act_climbing_pole -- WALKED (B12: np3 non-ptr channel; the
+       smawa gated row carries the stick-derived accel) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
-      refine (Hpres_aut_rest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite acp_pin in Hdm. injection Hdm as <-.
+      exact act_climbing_pole_pres. }
     (* 6: act_top_of_pole_transition -- WALKED (B11; reduces to Hrmayt) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm. subst fid.
