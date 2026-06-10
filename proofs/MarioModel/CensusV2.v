@@ -790,7 +790,14 @@ Definition stored_globals : list ident :=
      and the HUD timer pair written by level_control_timer. *)
   interaction._sPSSSlideStarted ::
   level_update._sTimerRunning ::
-  level_update._gHudDisplay :: nil.
+  level_update._gHudDisplay ::
+  (* the mario_process_interactions statics (the Hpres_inter shell):
+     four interaction.c static data bytes/halfwords written directly by
+     the shell -- same Hglob_blk trust class as the rest. *)
+  interaction._sDelayInvincTimer ::
+  interaction._sInvulnerable ::
+  interaction._sDisplayingDoorText ::
+  interaction._sJustTeleported :: nil.
 
 (* ---------------------------------------------------------------------- *)
 (* The interaction-handler census (the Hpres_inter arc): the 28 DISTINCT   *)
