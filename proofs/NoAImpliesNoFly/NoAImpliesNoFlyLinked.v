@@ -721,9 +721,11 @@ Section NoARealInputMWF.
      the window census): PROVED from per-leaf-callee residuals keyed by
      the 17-id census automatic_callee_ids.  The leaves are being walked
      incrementally (AutomaticLeafSurface, the object-family rest-split
-     pattern): check_common_automatic_cancels is DONE, so only the
-     remaining 16 (automatic_rest_ids) survive here.  act_in_cannon's
-     leaf is where the cannon-fire kill gets consumed (still in rest). *)
+     pattern): 15 of the 17 are DONE (the B12 act_climbing_pole walk
+     closed the pole cluster via the np3 non-ptr channel), so only
+     act_in_cannon + act_tornado_twirling (automatic_rest_ids) survive
+     here.  act_in_cannon's leaf is where the cannon-fire kill gets
+     consumed (still in rest); tornado is Tier-2 (local _nextPos). *)
   Hypothesis Hpres_aut_rest : forall fid f,
       mem_id fid automatic_rest_ids = true ->
       (prog_defmap mario_actions_automatic.prog) ! fid
