@@ -141,16 +141,19 @@ Section MWFReal.
            Genv.find_symbol (lp_ge lp) interaction._gGlobalTimer = Some gb ->
            Mem.load Mint32 m gb 0 = Some v ->
            forall bb oo, v <> Vptr bb oo)
-    (* R9: the sInteractionHandlers handler slots (entry i at 8i, funptr
-       at +4), IF pointers, aim at the censused handler symbols (ofs 0).
-       Conditional like R2/R5/R6 -- monotone-safe, never a positive load
-       fact.  Consumer: the InterSurface indirect-call arm (find_funct on
-       the loaded value then resolves to a pinned internal body). *)
-    /\ (forall tb i b o,
+    (* R9: ANY pointer-valued Mptr load from the sInteractionHandlers table
+       block aims at a censused handler symbol (ofs 0).  Offset-free on
+       purpose: the table is 31 x 8-byte {u32 interactType; funptr handler}
+       entries, so every 4-aligned Mptr load hits either an Init_int32 slot
+       (a Vint, never matches) or an Init_addrof handler slot -- and the
+       offset-free form spares the walk from tracking the loop counter's
+       range.  Conditional like R2/R5/R6 -- monotone-safe, never a positive
+       load fact.  Consumer: the InterSurface indirect-call arm (find_funct
+       on the loaded value then resolves to a pinned internal body). *)
+    /\ (forall tb (ofs : Z) b o,
            Genv.find_symbol (lp_ge lp) interaction._sInteractionHandlers
              = Some tb ->
-           0 <= i < 31 ->
-           Mem.load Mptr m tb (8 * i + 4) = Some (Vptr b o) ->
+           Mem.load Mptr m tb ofs = Some (Vptr b o) ->
            exists fid,
              In fid interaction_handler_ids /\
              Genv.find_symbol (lp_ge lp) fid = Some b /\
@@ -236,18 +239,17 @@ Section MWFReal.
 
   (* the R9 projection: the table row the InterSurface indirect-call arm
      consumes. *)
-  Lemma mwf_real_itab : forall m tb i b o, MWF_real m ->
+  Lemma mwf_real_itab : forall m tb (ofs : Z) b o, MWF_real m ->
       Genv.find_symbol (lp_ge lp) interaction._sInteractionHandlers
         = Some tb ->
-      0 <= i < 31 ->
-      Mem.load Mptr m tb (8 * i + 4) = Some (Vptr b o) ->
+      Mem.load Mptr m tb ofs = Some (Vptr b o) ->
       exists fid,
         In fid interaction_handler_ids /\
         Genv.find_symbol (lp_ge lp) fid = Some b /\
         o = Ptrofs.zero.
   Proof.
-    intros m tb i b o (_ & _ & _ & _ & _ & _ & _ & _ & _ & R9) Hfs Hrng Hld.
-    exact (R9 _ _ _ _ Hfs Hrng Hld).
+    intros m tb ofs b o (_ & _ & _ & _ & _ & _ & _ & _ & _ & R9) Hfs Hld.
+    exact (R9 _ _ _ _ Hfs Hld).
   Qed.
 
   (* ---------------- the row-transfer core ----------------
@@ -452,9 +454,9 @@ Section MWFReal.
       apply (Htr Mint32 gb 0 v);
         [ right; right; right; left; exact Hfs | exact Hld ].
     - (* R9 *)
-      intros tb i b o Hfs Hrng Hld.
-      eapply R9; [ exact Hfs | exact Hrng | ].
-      apply (Htr Mptr tb (8 * i + 4) (Vptr b o));
+      intros tb ofs b o Hfs Hld.
+      eapply R9; [ exact Hfs | ].
+      apply (Htr Mptr tb ofs (Vptr b o));
         [ right; right; right; right; exact Hfs | exact Hld ].
   Qed.
 
@@ -659,8 +661,8 @@ Section MWFReal.
       eapply Mem.load_store_other;
         [ exact Hst | left; exact (proj1 (Hgtimer_blk _ Hfs)) ].
     - (* R9: the table block is not bm *)
-      intros tb i b o Hfs Hrng Hld.
-      eapply R9; [ exact Hfs | exact Hrng | ].
+      intros tb ofs2 b o Hfs Hld.
+      eapply R9; [ exact Hfs | ].
       rewrite <- Hld. symmetry.
       eapply Mem.load_store_other;
         [ exact Hst | left; exact (proj1 (Htable_blk _ Hfs)) ].
@@ -874,8 +876,8 @@ Section MWFReal.
       eapply Mem.load_store_other;
         [ exact Hst | left; exact (proj1 (Hgtimer_blk _ Hfs)) ].
     - (* R9: the table block is not bm *)
-      intros tb i b o Hfs Hrng Hld.
-      eapply R9; [ exact Hfs | exact Hrng | ].
+      intros tb ofs2 b o Hfs Hld.
+      eapply R9; [ exact Hfs | ].
       rewrite <- Hld. symmetry.
       eapply Mem.load_store_other;
         [ exact Hst | left; exact (proj1 (Htable_blk _ Hfs)) ].
