@@ -126,11 +126,6 @@ Section NoAImpliesNoFlyLinked.
   Hypothesis Hreach_val :
     reach_value_preserves_reached not_tainted bm (lp_ge lp) NoA MWF reached_fd.
   Hypothesis Hrest : reach_rest_marg_lp lp bm NoA.
-  Hypothesis Hext :
-    forall ef vargs mm tt vres mm',
-      NoA mm -> meminv_lp lp not_tainted bm mm -> MWF mm ->
-      external_call ef (lp_ge lp) vargs mm tt vres mm' ->
-      NoA mm' /\ meminv_lp lp not_tainted bm mm' /\ MWF mm'.
   Hypothesis Hstore :
     forall e le mm a1 a2 tt le' mm' out,
       NoA mm -> RealFrameValue.prov_ok (Sassign a1 a2) ->
@@ -162,7 +157,7 @@ Section NoAImpliesNoFlyLinked.
     intros i m m' Ha _ (Hv & Hsat & Hwf & Hgwf & HMWF) Hst.
     assert (HnoA : NoA m) by (eapply input_grounds_noA; eassumption).
     destruct (execute_mario_action_preserves_real_reached_lp lp LO_mario not_tainted bm NoA MWF reached_id reached_fd m m'
-                Hreach_val Hrest Hext Hstore Hstoremwf Hbcr Hbodyrck
+                Hreach_val Hrest Hstore Hstoremwf Hbcr Hbodyrck
                 HnoA HMWF Hv Hsat Hwf Hgwf (step_lp_real i m m' Hst))
       as (_ & Hv' & Hs' & Hw' & Hgw' & HMWF').
     exact (conj Hv' (conj Hs' (conj Hw' (conj Hgw' HMWF')))).
@@ -269,11 +264,6 @@ Section NoARealInput.
   Hypothesis Hreach_val :
     reach_value_preserves_reached not_tainted bm (lp_ge lp) NoA_real MWF reached_fd.
   Hypothesis Hrest : reach_rest_marg_lp lp bm NoA_real.
-  Hypothesis Hext :
-    forall ef vargs mm tt vres mm',
-      NoA_real mm -> meminv_lp lp not_tainted bm mm -> MWF mm ->
-      external_call ef (lp_ge lp) vargs mm tt vres mm' ->
-      NoA_real mm' /\ meminv_lp lp not_tainted bm mm' /\ MWF mm'.
   Hypothesis Hstore :
     forall e le mm a1 a2 tt le' mm' out,
       NoA_real mm -> RealFrameValue.prov_ok (Sassign a1 a2) ->
@@ -310,7 +300,7 @@ Section NoARealInput.
     exact (noA_no_spawn_never_flying_lp lp LO_mario bm MWF mem
              (a_pressed_real bm) spawn_flying step_real step_real_steps
              NoA_real reached_id reached_fd
-             Hreach_val Hrest Hext Hstore Hstoremwf Hbcr Hbodyrck
+             Hreach_val Hrest Hstore Hstoremwf Hbcr Hbodyrck
              input_grounds_noA_real init is m Hinit HnoA Hns Hreach).
   Qed.
 
@@ -476,11 +466,6 @@ Section NoARealInputV2.
      own provenance stores + the external meminv preservation), same shapes
      as the abstract section's. ---- *)
   Hypothesis Hrest : reach_rest_marg_lp lp bm (NoA_real bm).
-  Hypothesis Hext :
-    forall ef vargs mm tt vres mm',
-      NoA_real bm mm -> meminv_lp lp not_tainted bm mm -> MWF mm ->
-      external_call ef (lp_ge lp) vargs mm tt vres mm' ->
-      NoA_real bm mm' /\ meminv_lp lp not_tainted bm mm' /\ MWF mm'.
   Hypothesis Hstore :
     forall e le mm a1 a2 tt le' mm' out,
       NoA_real bm mm -> RealFrameValue.prov_ok (Sassign a1 a2) ->
@@ -514,7 +499,7 @@ Section NoARealInputV2.
                 HSafeNotBm Hmwf_window Hmwf_input Hmwf_glob Hmwf_chase
                 Hmwf_umbi WL_exempt Hrest_pres Hret_call Hret_ext
                 Hext_action Hmwf_ext Hmwf_entry Hmwf_free Hmwf_ctl)
-             Hrest Hext Hstore Hstoremwf
+             Hrest Hstore Hstoremwf
              (root_call_resolves lp LO_mario)
              root_body_reach_chk).
   Qed.
@@ -545,7 +530,8 @@ End NoARealInputV2.
 (*     REMAINING CRUX -- the 7 dispatch handlers, where the A-gating       *)
 (*     taint closure gets consumed), return non-aliasing (Hret_call/       *)
 (*     Hret_ext), externals (Hext_action, Hmwf_ext), and the wrapper       *)
-(*     residuals (Hrest/Hext/Hstore/Hstoremwf).                            *)
+(*     residuals (Hrest/Hstore/Hstoremwf; the forall-ef Hext row is GONE   *)
+(*     -- the body census forbids builtins, the engine refutes the case).  *)
 (*                                                                        *)
 (* The 24-hypothesis surface above becomes 15 here, and the initial        *)
 (* condition mem_ok_lp lp bm (MWF_real ...) init is now a CHECKABLE        *)
@@ -968,11 +954,6 @@ Section NoARealInputMWF.
       external_call ef (lp_ge lp) vargs m t vres m' ->
       Mem.valid_block m bm -> MWF m -> MWF m'.
   Hypothesis Hrest : reach_rest_marg_lp lp bm (NoA_real bm).
-  Hypothesis Hext :
-    forall ef vargs mm tt vres mm',
-      NoA_real bm mm -> meminv_lp lp not_tainted bm mm -> MWF mm ->
-      external_call ef (lp_ge lp) vargs mm tt vres mm' ->
-      NoA_real bm mm' /\ meminv_lp lp not_tainted bm mm' /\ MWF mm'.
   Hypothesis Hstore :
     forall e le mm a1 a2 tt le' mm' out,
       NoA_real bm mm -> RealFrameValue.prov_ok (Sassign a1 a2) ->
@@ -1251,7 +1232,7 @@ Section NoARealInputMWF.
              Hret_call Hret_ext Hext_action Hmwf_ext
              (mwf_real_entry lp bm bc oc0 SafeB Hbc_bm)
              (mwf_real_free lp bm bc oc0 SafeB Hbc_bm)
-             Hrest Hext Hstore Hstoremwf).
+             Hrest Hstore Hstoremwf).
   Qed.
 
 End NoARealInputMWF.

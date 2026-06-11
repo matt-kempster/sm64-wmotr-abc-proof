@@ -1142,7 +1142,12 @@ Section ProvEngine.
     | Sassign a1 a2 => (a1 = store1_lval /\ a2 = store1_rval) \/ (a1 = store2_lval /\ a2 = store2_rval)
     | Sset id a => prov_sset_ok id a
     | Scall oid _ _ => optid_untracked oid
-    | Sbuiltin oid _ _ _ => optid_untracked oid
+    (* the real body contains NO builtins (checked by the census below), so
+       the per-statement check FORBIDS them outright. This is what lets every
+       engine refute its Sbuiltin case instead of assuming a forall-ef
+       external-preservation row -- which is FALSE for the real program
+       (EF_memcpy can write any writable cell, including Mario's action). *)
+    | Sbuiltin _ _ _ _ => False
     | Ssequence s1 s2 => prov_ok s1 /\ prov_ok s2
     | Sifthenelse _ s1 s2 => prov_ok s1 /\ prov_ok s2
     | Sloop s1 s2 => prov_ok s1 /\ prov_ok s2
@@ -1344,11 +1349,9 @@ Section ProvEngine.
       NoA m -> meminv m -> marg_ok bm vargs ->
       eval_funcall function_entry2 mario_ge m fd vargs t m' vres ->
       NoA m' /\ meminv m'.
-  Hypothesis ext_meminv_noA :
-    forall ef vargs m t vres m',
-      NoA m -> meminv m ->
-      external_call ef mario_ge vargs m t vres m' ->
-      NoA m' /\ meminv m'.
+  (* NO builtin/external hypothesis: the body census forbids Sbuiltin (the
+     real body has none), so the engines refute that case instead of
+     assuming a forall-ef external row (FALSE: EF_memcpy writes anywhere). *)
   (* the body's two off-bm stores (store1/store2, certified by the census)
      leave the controller bytes NoA reads alone. *)
   Hypothesis noA_store_pres :
@@ -1374,7 +1377,7 @@ Section ProvEngine.
       with (le := le) (m := m) (s := s) (t := t) (le' := le') (m' := m') (out := out);
       try assumption; try (split; [ exact Hno | split; assumption ]).
     - (* Sassign leaf *)
-      clear He reach_meminv_noA ext_meminv_noA Hmem Htp Hck H Hno le m s t le' m' out.
+      clear He reach_meminv_noA Hmem Htp Hck H Hno le m s t le' m' out.
       intros le0 m0 a1 a2 t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0) Hck' Hexec.
       assert (Hle : le0' = le0) by (inversion Hexec; reflexivity). subst le0'.
       split; [ eapply noA_store_pres; [ exact Hno0 | exact Hck' | exact Hexec ] | ].
@@ -1387,28 +1390,23 @@ Section ProvEngine.
       + eapply (store_preserves_meminv store2_lval store2_rval mario._t'13 store2_loc_is_t13);
           [ exact Hmem0 | exact T13 | exact Hexec ].
     - (* Sset leaf *)
-      clear reach_meminv_noA ext_meminv_noA noA_store_pres Hmem Htp Hck H Hno le m s t le' m' out.
+      clear reach_meminv_noA noA_store_pres Hmem Htp Hck H Hno le m s t le' m' out.
       intros le0 m0 id a t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0) Hck' Hexec.
       cbn [prov_ok] in Hck'.
       assert (Hm : m0' = m0) by (inversion Hexec; reflexivity).
       split; [ rewrite Hm; exact Hno0 | ].
       eapply sset_case_preserves; [ exact He | exact Hmem0 | exact Htp0 | exact Hck' | exact Hexec ].
     - (* Scall leaf *)
-      clear He ext_meminv_noA noA_store_pres Hgb Hmem Htp Hck H Hno le m s t le' m' out.
+      clear He noA_store_pres Hgb Hmem Htp Hck H Hno le m s t le' m' out.
       intros le0 m0 oid a al t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0) Hck' Hexec.
       cbn [prov_ok] in Hck'.
       inversion Hexec; subst.
       match goal with Hf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
         destruct (reach_meminv_noA _ _ _ _ _ _ Hno0 Hmem0 Hf) as (Hno0' & Hmem0') end.
       split; [ exact Hno0' | split; [ exact Hmem0' | apply tprov_set_opttemp; assumption ] ].
-    - (* Sbuiltin leaf *)
-      clear He reach_meminv_noA noA_store_pres Hgb Hmem Htp Hck H Hno le m s t le' m' out.
-      intros le0 m0 oid ef tyl al t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0) Hck' Hexec.
-      cbn [prov_ok] in Hck'.
-      inversion Hexec; subst.
-      match goal with Hec : external_call _ _ _ _ _ _ _ |- _ =>
-        destruct (ext_meminv_noA _ _ _ _ _ _ Hno0 Hmem0 Hec) as (Hno0' & Hmem0') end.
-      split; [ exact Hno0' | split; [ exact Hmem0' | apply tprov_set_opttemp; assumption ] ].
+    - (* Sbuiltin leaf: REFUTED by the census (the body has no builtins) *)
+      intros le0 m0 oid ef tyl al t0 le0' m0' out0 _ Hck' _.
+      cbn [prov_ok] in Hck'. destruct Hck'.
   Qed.
 
   (* ================================================================== *)
@@ -1537,7 +1535,7 @@ Section ProvEngine.
       try (split; [ exact Hno | split; [ exact Hmem | split; [ exact Htp | exact Hpg ] ] ]);
       try (split; [ exact Hck | exact Hpck ]).
     - (* Sassign leaf *)
-      clear He reach_meminv_marg reach_meminv_noA ext_meminv_noA Hmem Htp Hpg Hck Hpck H Hno le m s t le' m' out.
+      clear He reach_meminv_marg reach_meminv_noA Hmem Htp Hpg Hck Hpck H Hno le m s t le' m' out.
       intros le0 m0 a1 a2 t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0) (Hck0 & _) Hexec.
       assert (Hle : le0' = le0) by (inversion Hexec; reflexivity). subst le0'.
       split; [ eapply noA_store_pres; [ exact Hno0 | exact Hck0 | exact Hexec ] | ].
@@ -1550,7 +1548,7 @@ Section ProvEngine.
       + eapply (store_preserves_meminv store2_lval store2_rval mario._t'13 store2_loc_is_t13);
           [ exact Hmem0 | exact T13 | exact Hexec ].
     - (* Sset leaf *)
-      clear reach_meminv_marg reach_meminv_noA ext_meminv_noA noA_store_pres Hmem Htp Hpg Hck Hpck H Hno le m s t le' m' out.
+      clear reach_meminv_marg reach_meminv_noA noA_store_pres Hmem Htp Hpg Hck Hpck H Hno le m s t le' m' out.
       intros le0 m0 id a t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0) (Hck0 & Hpck0) Hexec.
       cbn [prov_ok] in Hck0. cbn [pgms_chk] in Hpck0.
       assert (Hm : m0' = m0) by (inversion Hexec; reflexivity).
@@ -1561,7 +1559,7 @@ Section ProvEngine.
       split; [ exact Hmem0' | split; [ exact Htp0' | ] ].
       eapply pgms_sset_preserves; [ exact He | exact Hgwf0 | exact Hpg0 | exact Hpck0 | exact Hexec ].
     - (* Scall leaf -- supplies marg_ok to reach_meminv_marg *)
-      clear reach_meminv_noA ext_meminv_noA noA_store_pres Hmem Htp Hpg Hck Hpck H Hno le m s t le' m' out.
+      clear reach_meminv_noA noA_store_pres Hmem Htp Hpg Hck Hpck H Hno le m s t le' m' out.
       intros le0 m0 oid a al t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0) (Hck0 & Hpck0) Hexec.
       cbn [prov_ok] in Hck0. cbn [pgms_chk] in Hpck0.
       destruct Hpck0 as (Hres & Hargs).
@@ -1574,16 +1572,9 @@ Section ProvEngine.
       split; [ exact Hno0' | split; [ exact Hmem0' | split ] ].
       + apply tprov_set_opttemp; [ exact Hck0 | exact Htp0 ].
       + apply pgms_set_opttemp; [ exact Hres | exact Hpg0 ].
-    - (* Sbuiltin leaf *)
-      clear He reach_meminv_marg reach_meminv_noA noA_store_pres Hmem Htp Hpg Hck Hpck H Hno le m s t le' m' out.
-      intros le0 m0 oid ef tyl al t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0) (Hck0 & Hpck0) Hexec.
-      cbn [prov_ok] in Hck0. cbn [pgms_chk] in Hpck0.
-      inversion Hexec; subst.
-      match goal with Hec : external_call _ _ _ _ _ _ _ |- _ =>
-        destruct (ext_meminv_noA _ _ _ _ _ _ Hno0 Hmem0 Hec) as (Hno0' & Hmem0') end.
-      split; [ exact Hno0' | split; [ exact Hmem0' | split ] ].
-      + apply tprov_set_opttemp; [ exact Hck0 | exact Htp0 ].
-      + apply pgms_set_opttemp; [ exact Hpck0 | exact Hpg0 ].
+    - (* Sbuiltin leaf: REFUTED by the census (the body has no builtins) *)
+      intros le0 m0 oid ef tyl al t0 le0' m0' out0 _ (Hck0 & _) _.
+      cbn [prov_ok] in Hck0. destruct Hck0.
     - (* Hseq *) intros s1 s2 Hd; destruct Hd as [Hp Hg];
         cbn [prov_ok pgms_chk] in Hp, Hg; tauto.
     - (* Hif *) intros a s1 s2 Hd; destruct Hd as [Hp Hg];
@@ -1606,19 +1597,14 @@ Section ProvEngine.
   (* engine ActionValueFrame.exec_funcall_reach_value_wf, whose HTI_set leaf *)
   (* needs MWF to discharge the reached callees' chase-pointer loads. MWF is *)
   (* memory-only: preserved by the body's off-bm stores (store_mwf), by      *)
-  (* reached calls (reach_meminv_wf), by builtins (ext_mwf), and trivially    *)
-  (* by the value-free Ssets.                                                 *)
+  (* reached calls (reach_meminv_wf), and trivially by the value-free        *)
+  (* Ssets. Builtins are FORBIDDEN by the census (the body has none).         *)
   (* ================================================================== *)
   Variable MWF : mem -> Prop.
   Hypothesis reach_meminv_wf :
     forall m fd vargs t m' vres,
       NoA m -> meminv m -> MWF m -> marg_ok bm vargs ->
       eval_funcall function_entry2 mario_ge m fd vargs t m' vres ->
-      NoA m' /\ meminv m' /\ MWF m'.
-  Hypothesis ext_mwf :
-    forall ef vargs m t vres m',
-      NoA m -> meminv m -> MWF m ->
-      external_call ef mario_ge vargs m t vres m' ->
       NoA m' /\ meminv m' /\ MWF m'.
   Hypothesis store_mwf :
     forall e le m a1 a2 t le' m' out,
@@ -1644,7 +1630,7 @@ Section ProvEngine.
             | split; [ exact Hpg | exact Hmwf ] ] ] ]);
       try (split; [ exact Hck | exact Hpck ]).
     - (* Sassign leaf *)
-      clear He reach_meminv_marg reach_meminv_noA reach_meminv_wf ext_meminv_noA ext_mwf
+      clear He reach_meminv_marg reach_meminv_noA reach_meminv_wf
             Hmem Htp Hpg Hmwf Hck Hpck H Hno le m s t le' m' out.
       intros le0 m0 a1 a2 t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0 & Hmwf0) (Hck0 & _) Hexec.
       assert (Hle : le0' = le0) by (inversion Hexec; reflexivity). subst le0'.
@@ -1660,7 +1646,7 @@ Section ProvEngine.
       + eapply (store_preserves_meminv store2_lval store2_rval mario._t'13 store2_loc_is_t13);
           [ exact Hmem0 | exact T13 | exact Hexec ].
     - (* Sset leaf *)
-      clear reach_meminv_marg reach_meminv_noA reach_meminv_wf ext_meminv_noA ext_mwf
+      clear reach_meminv_marg reach_meminv_noA reach_meminv_wf
             noA_store_pres store_mwf Hmem Htp Hpg Hmwf Hck Hpck H Hno le m s t le' m' out.
       intros le0 m0 id a t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0 & Hmwf0) (Hck0 & Hpck0) Hexec.
       cbn [prov_ok] in Hck0. cbn [pgms_chk] in Hpck0.
@@ -1673,7 +1659,7 @@ Section ProvEngine.
       + eapply pgms_sset_preserves; [ exact He | exact Hgwf0 | exact Hpg0 | exact Hpck0 | exact Hexec ].
       + rewrite Hm; exact Hmwf0.
     - (* Scall leaf -- supplies marg_ok to reach_meminv_wf *)
-      clear reach_meminv_marg reach_meminv_noA ext_meminv_noA ext_mwf noA_store_pres store_mwf
+      clear reach_meminv_marg reach_meminv_noA noA_store_pres store_mwf
             Hmem Htp Hpg Hmwf Hck Hpck H Hno le m s t le' m' out.
       intros le0 m0 oid a al t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0 & Hmwf0) (Hck0 & Hpck0) Hexec.
       cbn [prov_ok] in Hck0. cbn [pgms_chk] in Hpck0.
@@ -1688,18 +1674,9 @@ Section ProvEngine.
       + apply tprov_set_opttemp; [ exact Hck0 | exact Htp0 ].
       + apply pgms_set_opttemp; [ exact Hres | exact Hpg0 ].
       + exact Hmwf0'.
-    - (* Sbuiltin leaf *)
-      clear He reach_meminv_marg reach_meminv_noA reach_meminv_wf noA_store_pres store_mwf
-            Hmem Htp Hpg Hmwf Hck Hpck H Hno le m s t le' m' out.
-      intros le0 m0 oid ef tyl al t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0 & Hmwf0) (Hck0 & Hpck0) Hexec.
-      cbn [prov_ok] in Hck0. cbn [pgms_chk] in Hpck0.
-      inversion Hexec; subst.
-      match goal with Hec : external_call _ _ _ _ _ _ _ |- _ =>
-        destruct (ext_mwf _ _ _ _ _ _ Hno0 Hmem0 Hmwf0 Hec) as (Hno0' & Hmem0' & Hmwf0') end.
-      split; [ exact Hno0' | split; [ exact Hmem0' | split; [ | split ] ] ].
-      + apply tprov_set_opttemp; [ exact Hck0 | exact Htp0 ].
-      + apply pgms_set_opttemp; [ exact Hpck0 | exact Hpg0 ].
-      + exact Hmwf0'.
+    - (* Sbuiltin leaf: REFUTED by the census (the body has no builtins) *)
+      intros le0 m0 oid ef tyl al t0 le0' m0' out0 _ (Hck0 & _) _.
+      cbn [prov_ok] in Hck0. destruct Hck0.
     - (* Hseq *) intros s1 s2 Hd; destruct Hd as [Hp Hg];
         cbn [prov_ok pgms_chk] in Hp, Hg; tauto.
     - (* Hif *) intros a s1 s2 Hd; destruct Hd as [Hp Hg];
@@ -1879,16 +1856,9 @@ Section ProvEngine.
       + apply tprov_set_opttemp; [ exact Hck0 | exact Htp0 ].
       + apply pgms_set_opttemp; [ exact Hres | exact Hpg0 ].
       + exact Hmwf0'.
-    - (* Sbuiltin leaf *)
-      intros le0 m0 oid ef tyl al t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0 & Hmwf0) (Hck0 & Hpck0 & _) Hexec.
-      cbn [prov_ok] in Hck0. cbn [pgms_chk] in Hpck0.
-      inversion Hexec; subst.
-      match goal with Hec : external_call _ _ _ _ _ _ _ |- _ =>
-        destruct (ext_mwf _ _ _ _ _ _ Hno0 Hmem0 Hmwf0 Hec) as (Hno0' & Hmem0' & Hmwf0') end.
-      split; [ exact Hno0' | split; [ exact Hmem0' | split; [ | split ] ] ].
-      + apply tprov_set_opttemp; [ exact Hck0 | exact Htp0 ].
-      + apply pgms_set_opttemp; [ exact Hpck0 | exact Hpg0 ].
-      + exact Hmwf0'.
+    - (* Sbuiltin leaf: REFUTED by the census (the body has no builtins) *)
+      intros le0 m0 oid ef tyl al t0 le0' m0' out0 _ (Hck0 & _) _.
+      cbn [prov_ok] in Hck0. destruct Hck0.
     - (* Hseq *) intros s1 s2 Hd; destruct Hd as (Hp & Hg & Hr);
         cbn [prov_ok pgms_chk reach_chk] in Hp, Hg, Hr; tauto.
     - (* Hif *) intros a s1 s2 Hd; destruct Hd as (Hp & Hg & Hr);
@@ -2186,7 +2156,7 @@ Proof.
               m m' t res eq_refl);
       [ | exact (conj HnoA (conj Hv (conj Hsat (conj Hmwf Hgwf)))) | exact Hfun ].
     intros le mm tt le' mm' out Hbind (Hn & Hvv & Hss & Hmw & Hgw) Hexec.
-    edestruct (exec_body_prov_noA bm gb Hgb NoA Hreachmem Hext Hstore
+    edestruct (exec_body_prov_noA bm gb Hgb NoA Hreachmem Hstore
                  empty_env le mm (fn_body mario.f_execute_mario_action) tt le' mm' out)
       as (Hn' & Hmem' & _);
       [ apply PTree.gempty
@@ -2331,7 +2301,7 @@ Proof.
               m m' t res eq_refl);
       [ | exact (conj HnoA (conj Hv (conj Hsat (conj Hmwf Hgwf)))) | exact Hfun ].
     intros le mm tt le' mm' out Hbind (Hn & Hvv & Hss & Hmw & Hgw) Hexec.
-    edestruct (exec_body_prov_marg bm gb Hgb NoA Hreachmem Hext Hstore
+    edestruct (exec_body_prov_marg bm gb Hgb NoA Hreachmem Hstore
                  empty_env le mm (fn_body mario.f_execute_mario_action) tt le' mm' out)
       as (Hn' & Hmem' & _ & _);
       [ apply PTree.gempty
@@ -2406,7 +2376,7 @@ Proof.
               m m' t res eq_refl);
       [ | exact (conj HnoA (conj Hv (conj Hsat (conj Hmwf (conj Hgwf HMWF))))) | exact Hfun ].
     intros le mm tt le' mm' out Hbind (Hn & Hvv & Hss & Hmw & Hgw & Hmf) Hexec.
-    edestruct (exec_body_prov_wf bm gb Hgb NoA Hstore MWF Hreachmem Hext Hstoremwf
+    edestruct (exec_body_prov_wf bm gb Hgb NoA Hstore MWF Hreachmem Hstoremwf
                  empty_env le mm (fn_body mario.f_execute_mario_action) tt le' mm' out)
       as (Hn' & Hmem' & _ & _ & Hmf');
       [ apply PTree.gempty
@@ -2493,7 +2463,7 @@ Proof.
               m m' t res eq_refl);
       [ | exact (conj HnoA (conj Hv (conj Hsat (conj Hmwf (conj Hgwf HMWF))))) | exact Hfun ].
     intros le mm tt le' mm' out Hbind (Hn & Hvv & Hss & Hmw & Hgw & Hmf) Hexec.
-    edestruct (exec_body_prov_reached bm gb Hgb NoA Hstore MWF Hext Hstoremwf
+    edestruct (exec_body_prov_reached bm gb Hgb NoA Hstore MWF Hstoremwf
                  Reached_id Reached_fd Hreachmem Hbcr
                  empty_env le mm (fn_body mario.f_execute_mario_action) tt le' mm' out)
       as (Hn' & Hmem' & _ & _ & Hmf');
