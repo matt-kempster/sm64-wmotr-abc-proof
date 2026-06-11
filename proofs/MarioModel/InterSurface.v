@@ -2132,6 +2132,719 @@ Section CkpwSurface.
 End CkpwSurface.
 
 (* ====================================================================== *)
+(* ====================  push_mario_out_of_object  ====================== *)
+(* interaction.v:3939, ~260 lines: chase loads through _o/_t'19 (memory-  *)
+(* pure), local scalar stores (newMarioX/newMarioZ), m->pos[i] indexed    *)
+(* window stores, sqrtf/atan2s (ungated math externals), find_floor       *)
+(* (oc, &_floor), and the MIXED f32_find_wall_collision(&newMarioX,       *)
+(* &m->pos[1], &newMarioZ, c, c) (the wol arc).  _o is only ever LOADED   *)
+(* through, so the honest gate is plain marg: call_pres.                  *)
+(* ====================================================================== *)
+
+Definition pmoo_lids : list ident :=
+  interaction._floor :: interaction._newMarioX
+    :: interaction._newMarioZ :: nil.
+
+Definition pmoo_local_store_chk (a1 : expr) : bool :=
+  match a1 with
+  | Evar l ty =>
+      mem_id l (interaction._newMarioX :: interaction._newMarioZ :: nil)
+      && proj_sumbool (type_eq ty tfloat)
+  | _ => false
+  end.
+
+Definition pmoo_call_chk (fid : ident) (fty : type) (al : list expr) : bool :=
+  oc_call_chk (interaction._floor :: nil) (interaction._find_floor :: nil)
+    fid fty al
+  || (Pos.eqb fid interaction._f32_find_wall_collision
+      && proj_sumbool
+           (type_eq fty
+              (Tfunction
+                 (tptr tfloat :: tptr tfloat :: tptr tfloat
+                  :: tfloat :: tfloat :: nil) tint cc_default))
+      && match al with
+         | Eaddrof (Evar x1 tx1) tp1
+           :: Ebinop Oadd
+                (Efield (Ederef (Etempvar mp tmp) tsm) fld tfa)
+                (Econst_int idx ti) tp2
+           :: Eaddrof (Evar x2 tx2) tp3
+           :: Econst_single _ _ :: Econst_single _ _ :: nil =>
+             Pos.eqb x1 interaction._newMarioX
+             && Pos.eqb x2 interaction._newMarioZ
+             && Pos.eqb mp interaction._m
+             && Pos.eqb fld interaction._pos
+             && proj_sumbool (type_eq tx1 tfloat)
+             && proj_sumbool (type_eq tx2 tfloat)
+             && proj_sumbool (type_eq tp1 (tptr tfloat))
+             && proj_sumbool (type_eq tp3 (tptr tfloat))
+             && proj_sumbool (type_eq tmp (tptr tyMS))
+             && proj_sumbool (type_eq tsm tyMS)
+             && proj_sumbool (type_eq tfa (tarray tfloat 3))
+             && proj_sumbool (type_eq ti tint)
+             && proj_sumbool (type_eq tp2 (tptr tfloat))
+             && idx_geom_chk interaction._pos idx 4 Mfloat32
+         | _ => false
+         end)
+  || (Pos.eqb fid interaction._sqrtf
+      && proj_sumbool
+           (type_eq fty (Tfunction (tfloat :: nil) tfloat cc_default)))
+  || (Pos.eqb fid interaction._atan2s
+      && proj_sumbool
+           (type_eq fty
+              (Tfunction (tfloat :: tfloat :: nil) tshort cc_default))).
+
+Definition pmoo_optid_ok (optid : option ident) : bool :=
+  match optid with
+  | Some id => negb (Pos.eqb id interaction._m)
+  | None => true
+  end.
+
+Fixpoint pmoo_chk (s : statement) : bool :=
+  match s with
+  | Sskip | Sbreak | Scontinue => true
+  | Sreturn _ => true
+  | Ssequence s1 s2 => pmoo_chk s1 && pmoo_chk s2
+  | Sifthenelse _ s1 s2 => pmoo_chk s1 && pmoo_chk s2
+  | Sset id _ => pmoo_optid_ok (Some id)
+  | Sassign a1 _ =>
+      safe_mfield_store interaction._m a1
+      || idx_mfield_store interaction._m a1
+      || pmoo_local_store_chk a1
+  | Scall optid (Evar fid fty) al =>
+      pmoo_optid_ok optid && pmoo_call_chk fid fty al
+  | _ => false
+  end.
+
+Lemma pmoo_chk_body :
+  pmoo_chk (fn_body interaction.f_push_mario_out_of_object) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma pmoo_pin :
+  (prog_defmap interaction.prog) ! interaction._push_mario_out_of_object
+  = Some (Gfun (Internal interaction.f_push_mario_out_of_object)).
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma pmoo_not_exempt :
+  marg_exempt (Internal interaction.f_push_mario_out_of_object) = false.
+Proof. vm_compute. reflexivity. Qed.
+
+Section PmooSurface.
+  Variable lp : Clight.program.
+  Hypothesis LO_mario : linkorder mario.prog lp.
+  Hypothesis LO_int : linkorder interaction.prog lp.
+
+  Variable bm : block.
+  Variable NoA MWF : mem -> Prop.
+  Variable SafeB : block -> Prop.
+
+  Hypothesis HNoA_of_MWF : forall m, MWF m -> NoA m.
+  Hypothesis HMWF_window : forall mm mm' ch (delta : Z) vv,
+      MWF mm -> store_window_ok delta (size_chunk ch) = true ->
+      Mem.store ch mm bm delta vv = Some mm' -> MWF mm'.
+  Hypothesis HMWF_alloc : forall m lo hi m' b,
+      Mem.alloc m lo hi = (m', b) -> MWF m -> MWF m'.
+  Hypothesis HMWF_free : forall m l m',
+      Mem.free_list m l = Some m' -> MWF m -> MWF m'.
+  Hypothesis HSafeValid :
+    forall m, MWF m -> forall b, SafeB b -> Mem.valid_block m b.
+  Hypothesis HGlobValid :
+    forall m, MWF m -> forall gid bg,
+        Genv.find_symbol (lp_ge lp) gid = Some bg -> Mem.valid_block m bg.
+  Hypothesis Hls_real :
+    forall m ch b (d : Z) v m',
+      local_blk lp bm SafeB b ->
+      Mem.store ch m b d v = Some m' -> MWF m -> MWF m'.
+
+  (* the callee rows *)
+  Hypothesis Hocp_ff :
+    call_pres_ext_oc lp bm NoA MWF SafeB interaction._find_floor.
+  Hypothesis Hwolcp_fwc :
+    call_pres_ext_wol lp bm NoA MWF SafeB
+      interaction._f32_find_wall_collision.
+  Hypothesis Hcpx_sqrtf :
+    call_pres_ext lp bm NoA MWF interaction._sqrtf.
+  Hypothesis Hcpx_atan2s :
+    call_pres_ext lp bm NoA MWF interaction._atan2s.
+
+  (* ---- decoders ---- *)
+  Lemma pmoo_local_decode :
+    forall a1, pmoo_local_store_chk a1 = true ->
+      exists l, a1 = Evar l tfloat /\
+        mem_id l (interaction._newMarioX :: interaction._newMarioZ :: nil)
+        = true.
+  Proof.
+    intros a1 H.
+    destruct a1 as [ | | | | l ty | | | | | | | | | ]; try discriminate H.
+    unfold pmoo_local_store_chk in H.
+    apply andb_true_iff in H as [Hl Hty].
+    destruct (type_eq ty tfloat) as [-> | ]; [ | discriminate Hty ].
+    exists l. split; [ reflexivity | exact Hl ].
+  Qed.
+
+  Lemma pmoo_call_decode :
+    forall fid fty al, pmoo_call_chk fid fty al = true ->
+      oc_call_chk (interaction._floor :: nil)
+        (interaction._find_floor :: nil) fid fty al = true
+      \/ (fid = interaction._f32_find_wall_collision /\
+          fty = Tfunction
+                  (tptr tfloat :: tptr tfloat :: tptr tfloat
+                   :: tfloat :: tfloat :: nil) tint cc_default /\
+          exists idx c4 t4 c5 t5,
+            al = Eaddrof (Evar interaction._newMarioX tfloat) (tptr tfloat)
+                 :: Ebinop Oadd
+                      (Efield
+                         (Ederef (Etempvar interaction._m (tptr tyMS)) tyMS)
+                         interaction._pos (tarray tfloat 3))
+                      (Econst_int idx tint) (tptr tfloat)
+                 :: Eaddrof (Evar interaction._newMarioZ tfloat) (tptr tfloat)
+                 :: Econst_single c4 t4 :: Econst_single c5 t5 :: nil /\
+            idx_geom_chk interaction._pos idx 4 Mfloat32 = true)
+      \/ (fid = interaction._sqrtf /\
+          fty = Tfunction (tfloat :: nil) tfloat cc_default)
+      \/ (fid = interaction._atan2s /\
+          fty = Tfunction (tfloat :: tfloat :: nil) tshort cc_default).
+  Proof.
+    intros fid fty al H. unfold pmoo_call_chk in H.
+    apply orb_true_iff in H as [H | Hat].
+    apply orb_true_iff in H as [H | Hsq].
+    apply orb_true_iff in H as [Hoc | Hfwc].
+    - left. exact Hoc.
+    - right; left.
+      apply andb_true_iff in Hfwc as [H12 Hal].
+      apply andb_true_iff in H12 as [Hfid Hfty].
+      apply Pos.eqb_eq in Hfid.
+      destruct (type_eq fty
+                  (Tfunction
+                     (tptr tfloat :: tptr tfloat :: tptr tfloat
+                      :: tfloat :: tfloat :: nil) tint cc_default))
+        as [Efty | ]; [ | discriminate Hfty ].
+      split; [ exact Hfid | ]. split; [ exact Efty | ].
+      destruct al as [ | a1 al1 ]; try discriminate Hal.
+      destruct a1 as [ | | | | | | | inner1 tp1 | | | | | | ];
+        try discriminate Hal.
+      destruct inner1 as [ | | | | x1 tx1 | | | | | | | | | ];
+        try discriminate Hal.
+      destruct al1 as [ | a2 al2 ]; try discriminate Hal.
+      destruct a2 as [ | | | | | | | | | op b1 b2 tp2 | | | | ];
+        try discriminate Hal.
+      destruct op; try discriminate Hal.
+      destruct b1 as [ | | | | | | | | | | | ef fld tfa | | ];
+        try discriminate Hal.
+      destruct ef as [ | | | | | | edb tsm | | | | | | | ];
+        try discriminate Hal.
+      destruct edb as [ | | | | | mp tmp | | | | | | | | ];
+        try discriminate Hal.
+      destruct b2 as [ idx ti | | | | | | | | | | | | | ];
+        try discriminate Hal.
+      destruct al2 as [ | a3 al3 ]; try discriminate Hal.
+      destruct a3 as [ | | | | | | | inner3 tp3 | | | | | | ];
+        try discriminate Hal.
+      destruct inner3 as [ | | | | x2 tx2 | | | | | | | | | ];
+        try discriminate Hal.
+      destruct al3 as [ | a4 al4 ]; try discriminate Hal.
+      destruct a4 as [ | | c4 t4 | | | | | | | | | | | ];
+        try discriminate Hal.
+      destruct al4 as [ | a5 al5 ]; try discriminate Hal.
+      destruct a5 as [ | | c5 t5 | | | | | | | | | | | ];
+        try discriminate Hal.
+      destruct al5; try discriminate Hal.
+      apply andb_true_iff in Hal as [Hal Hgeo].
+      apply andb_true_iff in Hal as [Hal Htp2].
+      apply andb_true_iff in Hal as [Hal Hti].
+      apply andb_true_iff in Hal as [Hal Htfa].
+      apply andb_true_iff in Hal as [Hal Htsm].
+      apply andb_true_iff in Hal as [Hal Htmp].
+      apply andb_true_iff in Hal as [Hal Htp3].
+      apply andb_true_iff in Hal as [Hal Htp1].
+      apply andb_true_iff in Hal as [Hal Htx2].
+      apply andb_true_iff in Hal as [Hal Htx1].
+      apply andb_true_iff in Hal as [Hal Hfld].
+      apply andb_true_iff in Hal as [Hal Hmp].
+      apply andb_true_iff in Hal as [Hx1 Hx2].
+      apply Pos.eqb_eq in Hx1; subst x1.
+      apply Pos.eqb_eq in Hx2; subst x2.
+      apply Pos.eqb_eq in Hmp; subst mp.
+      apply Pos.eqb_eq in Hfld; subst fld.
+      destruct (type_eq tx1 tfloat) as [-> | ]; [ | discriminate Htx1 ].
+      destruct (type_eq tx2 tfloat) as [-> | ]; [ | discriminate Htx2 ].
+      destruct (type_eq tp1 (tptr tfloat)) as [-> | ];
+        [ | discriminate Htp1 ].
+      destruct (type_eq tp3 (tptr tfloat)) as [-> | ];
+        [ | discriminate Htp3 ].
+      destruct (type_eq tmp (tptr tyMS)) as [-> | ];
+        [ | discriminate Htmp ].
+      destruct (type_eq tsm tyMS) as [-> | ]; [ | discriminate Htsm ].
+      destruct (type_eq tfa (tarray tfloat 3)) as [-> | ];
+        [ | discriminate Htfa ].
+      destruct (type_eq ti tint) as [-> | ]; [ | discriminate Hti ].
+      destruct (type_eq tp2 (tptr tfloat)) as [-> | ];
+        [ | discriminate Htp2 ].
+      exists idx, c4, t4, c5, t5. split; [ reflexivity | exact Hgeo ].
+    - do 2 right; left.
+      apply andb_true_iff in Hsq as [Hfid Hfty].
+      apply Pos.eqb_eq in Hfid.
+      destruct (type_eq fty (Tfunction (tfloat :: nil) tfloat cc_default))
+        as [Efty | ]; [ | discriminate Hfty ].
+      exact (conj Hfid Efty).
+    - do 3 right.
+      apply andb_true_iff in Hat as [Hfid Hfty].
+      apply Pos.eqb_eq in Hfid.
+      destruct (type_eq fty (Tfunction (tfloat :: tfloat :: nil) tshort
+                               cc_default)) as [Efty | ];
+        [ | discriminate Hfty ].
+      exact (conj Hfid Efty).
+  Qed.
+
+  (* ---- the local scalar store brick (newMarioX/newMarioZ) ---- *)
+  Lemma pmoo_local_assign_pres :
+    forall l lb lty a2 e le m0 tr le' m' out,
+      e ! l = Some (lb, lty) ->
+      local_blk lp bm SafeB lb ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0
+        (Sassign (Evar l tfloat) a2) tr le' m' out ->
+      carried bm NoA MWF m0 ->
+      carried bm NoA MWF m' /\ le' = le /\ out = Out_normal.
+  Proof.
+    intros l lb lty a2 e le m0 tr le' m' out Hl Hloc Hexec Hc.
+    inv Hexec.
+    match goal with
+    | Hlv : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ => inv Hlv
+    end.
+    2:{ match goal with
+        | Hn : e ! l = None |- _ => rewrite Hl in Hn; discriminate Hn
+        end. }
+    match goal with
+    | Hb : e ! l = Some _ |- _ =>
+        rewrite Hl in Hb; injection Hb as <- _
+    end.
+    match goal with
+    | Has : assign_loc _ (typeof _) _ _ _ _ _ _ |- _ =>
+        cbn [typeof] in Has; inv Has
+    end.
+    2:{ match goal with
+        | Hac : access_mode _ = By_copy |- _ =>
+            cbn in Hac; discriminate Hac
+        end. }
+    match goal with
+    | Hac : access_mode _ = By_value _ |- _ =>
+        cbn in Hac; injection Hac as <-
+    end.
+    match goal with
+    | Hsv : Mem.storev _ _ _ _ = Some _ |- _ =>
+        unfold Mem.storev in Hsv; rewrite Ptrofs.unsigned_zero in Hsv
+    end.
+    refine (conj _ (conj eq_refl eq_refl)).
+    eapply (localstore_carried lp bm NoA MWF SafeB Hls_real HNoA_of_MWF);
+      [ exact Hloc | | exact Hc ].
+    match goal with
+    | Hst : Mem.store _ _ lb _ _ = Some _ |- _ => exact Hst
+    end.
+  Qed.
+
+  (* ---- the mixed fwc gate: ptr args are (local, bm-window, local) ---- *)
+  Lemma fwc_args_gate :
+    forall idx c4 t4 c5 t5 e le m nXb nXty nZb nZty,
+      e ! interaction._newMarioX = Some (nXb, nXty) ->
+      local_blk lp bm SafeB nXb ->
+      e ! interaction._newMarioZ = Some (nZb, nZty) ->
+      local_blk lp bm SafeB nZb ->
+      (forall b o, le ! interaction._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      idx_geom_chk interaction._pos idx 4 Mfloat32 = true ->
+      forall vargs,
+        eval_exprlist (lp_ge lp) e le m
+          (Eaddrof (Evar interaction._newMarioX tfloat) (tptr tfloat)
+           :: Ebinop Oadd
+                (Efield (Ederef (Etempvar interaction._m (tptr tyMS)) tyMS)
+                   interaction._pos (tarray tfloat 3))
+                (Econst_int idx tint) (tptr tfloat)
+           :: Eaddrof (Evar interaction._newMarioZ tfloat) (tptr tfloat)
+           :: Econst_single c4 t4 :: Econst_single c5 t5 :: nil)
+          (tptr tfloat :: tptr tfloat :: tptr tfloat
+           :: tfloat :: tfloat :: nil) vargs ->
+        args_window_or_local lp bm SafeB vargs.
+  Proof.
+    intros idx c4 t4 c5 t5 e le m nXb nXty nZb nZty
+           HnX HnXloc HnZ HnZloc Hm Hgeo vargs Hvl.
+    inversion Hvl as [ | a1 bl1 ty1 tyl1 v1a v2a vl1 Hev_a Hsc_a Htl1 ];
+      subst; clear Hvl.
+    inversion Htl1 as [ | a2 bl2 ty2 tyl2 v1b v2b vl2 Hev_b Hsc_b Htl2 ];
+      subst; clear Htl1.
+    inversion Htl2 as [ | a3 bl3 ty3 tyl3 v1c v2c vl3 Hev_c Hsc_c Htl3 ];
+      subst; clear Htl2.
+    inversion Htl3 as [ | a4 bl4 ty4 tyl4 v1d v2d vl4 Hev_d Hsc_d Htl4 ];
+      subst; clear Htl3.
+    inversion Htl4 as [ | a5 bl5 ty5 tyl5 v1e v2e vl5 Hev_e Hsc_e Htl5 ];
+      subst; clear Htl4.
+    inversion Htl5; subst; clear Htl5.
+    (* arg1: &newMarioX -> Vptr nXb 0 *)
+    inv Hev_a.
+    2:{ match goal with
+        | Hlv : eval_lvalue _ _ _ _ (Eaddrof _ _) _ _ _ |- _ => inv Hlv
+        end. }
+    match goal with
+    | Hlv : eval_lvalue _ _ _ _ (Evar interaction._newMarioX _) _ _ _ |- _ =>
+        inv Hlv
+    end.
+    2:{ match goal with
+        | Hn : e ! interaction._newMarioX = None |- _ =>
+            rewrite HnX in Hn; discriminate Hn
+        end. }
+    match goal with
+    | Hb : e ! interaction._newMarioX = Some (?l0, tfloat) |- _ =>
+        rewrite HnX in Hb; injection Hb as <- _
+    end.
+    (* arg2: &m->pos[idx] -> Vptr bm o2 (safe window) *)
+    destruct (window_addr_val lp LO_mario bm _ _ _ _ _ _ _ _ Hm Hgeo Hev_b)
+      as (o2 & Ev2 & Hwin2).
+    subst v1b.
+    (* arg3: &newMarioZ -> Vptr nZb 0 *)
+    inv Hev_c.
+    2:{ match goal with
+        | Hlv : eval_lvalue _ _ _ _ (Eaddrof _ _) _ _ _ |- _ => inv Hlv
+        end. }
+    match goal with
+    | Hlv : eval_lvalue _ _ _ _ (Evar interaction._newMarioZ _) _ _ _ |- _ =>
+        inv Hlv
+    end.
+    2:{ match goal with
+        | Hn : e ! interaction._newMarioZ = None |- _ =>
+            rewrite HnZ in Hn; discriminate Hn
+        end. }
+    match goal with
+    | Hb : e ! interaction._newMarioZ = Some (?l0, tfloat) |- _ =>
+        rewrite HnZ in Hb; injection Hb as <- _
+    end.
+    (* args 4/5: float singles *)
+    apply (eval_Econst_single_val lp) in Hev_d; subst v1d.
+    apply (eval_Econst_single_val lp) in Hev_e; subst v1e.
+    intros bb oo Hin; cbn in Hin.
+    destruct Hin as [E | [E | [E | [E | [E | []]]]]]; subst.
+    - apply RealFrameValue.sem_cast_ptr_result_inv in Hsc_a;
+        injection Hsc_a as <- <-.
+      right. exact HnXloc.
+    - apply RealFrameValue.sem_cast_ptr_result_inv in Hsc_b;
+        injection Hsc_b as <- <-.
+      left. exact (conj eq_refl Hwin2).
+    - apply RealFrameValue.sem_cast_ptr_result_inv in Hsc_c;
+        injection Hsc_c as <- <-.
+      right. exact HnZloc.
+    - apply RealFrameValue.sem_cast_ptr_result_inv in Hsc_d;
+        discriminate Hsc_d.
+    - apply RealFrameValue.sem_cast_ptr_result_inv in Hsc_e;
+        discriminate Hsc_e.
+  Qed.
+
+  (* ---- THE WALKER ---- *)
+  Lemma pmoo_walk_pres :
+    forall s e le m0 tr le' m' out,
+      exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
+      pmoo_chk s = true ->
+      e ! interaction._find_floor = None ->
+      e ! interaction._f32_find_wall_collision = None ->
+      e ! interaction._sqrtf = None ->
+      e ! interaction._atan2s = None ->
+      (forall l, mem_id l pmoo_lids = true ->
+         exists lblk tyenv, e ! l = Some (lblk, tyenv) /\
+                            local_blk lp bm SafeB lblk) ->
+      (forall b o, le ! interaction._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      carried bm NoA MWF m0 ->
+      carried bm NoA MWF m' /\
+      (forall b o, le' ! interaction._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero).
+  Proof.
+    intros s e le m0 tr le' m' out Hexec.
+    induction Hexec; intros Hchk Hff Hfwc Hsq Hat Hlids Hm Hc.
+    - (* Sskip *) exact (conj Hc Hm).
+    - (* Sassign *)
+      cbn [pmoo_chk] in Hchk.
+      assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
+                      (Sassign a1 a2) E0 le m' Out_normal)
+        by (econstructor; eauto).
+      apply orb_true_iff in Hchk as [Hchk | Hloc].
+      apply orb_true_iff in Hchk as [Hsf | Hix].
+      + destruct Hc as (HV & HS & HM & HN).
+        destruct (epi_assign_pres lp LO_mario bm MWF HMWF_window
+                    a1 a2 _ _ _ _ _ _ _ Hsf Hm Hex HM HV HS)
+          as (HV' & HS' & HM' & _ & _).
+        exact (conj (conj HV' (conj HS' (conj HM' (HNoA_of_MWF _ HM'))))
+                 Hm).
+      + destruct Hc as (HV & HS & HM & HN).
+        destruct (idx_assign_pres lp LO_mario bm MWF HMWF_window
+                    a1 a2 _ _ _ _ _ _ _ Hix Hm Hex HM HV HS)
+          as (HV' & HS' & HM' & _ & _).
+        exact (conj (conj HV' (conj HS' (conj HM' (HNoA_of_MWF _ HM'))))
+                 Hm).
+      + destruct (pmoo_local_decode _ Hloc) as (l & -> & Hmem).
+        assert (Hmem3 : mem_id l pmoo_lids = true).
+        { unfold mem_id in Hmem; cbn [existsb] in Hmem.
+          apply Bool.orb_true_iff in Hmem as [He | Hmem].
+          - apply Pos.eqb_eq in He; subst l. reflexivity.
+          - apply Bool.orb_true_iff in Hmem as [He | F];
+              [ apply Pos.eqb_eq in He; subst l; reflexivity
+              | discriminate F ]. }
+        destruct (Hlids l Hmem3) as (lb & lty & Hl & Hloc').
+        destruct (pmoo_local_assign_pres l lb lty a2 _ _ _ _ _ _ _
+                    Hl Hloc' Hex Hc) as (Hc' & _ & _).
+        exact (conj Hc' Hm).
+    - (* Sset *)
+      cbn [pmoo_chk pmoo_optid_ok] in Hchk.
+      apply negb_true_iff in Hchk.
+      refine (conj Hc _).
+      intros b o Hg.
+      rewrite PTree.gso in Hg by (intro EE; subst id;
+        rewrite Pos.eqb_refl in Hchk; discriminate Hchk).
+      exact (Hm b o Hg).
+    - (* Scall *)
+      cbn [pmoo_chk] in Hchk.
+      destruct a as [ | | | | fid fty | | | | | | | | | ];
+        try discriminate Hchk.
+      apply andb_true_iff in Hchk as [Hopt Hcc].
+      assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
+                      (Scall optid (Evar fid fty) al) t
+                      (set_opttemp optid vres le) m' Out_normal)
+        by (econstructor; eauto).
+      assert (HmL : forall b o,
+                 (set_opttemp optid vres le) ! interaction._m
+                 = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
+      { cbn [pmoo_optid_ok] in Hopt.
+        destruct optid as [oid | ]; cbn [set_opttemp].
+        - apply negb_true_iff in Hopt.
+          intros b o Hg. rewrite PTree.gso in Hg by (intro EE; subst oid;
+            rewrite Pos.eqb_refl in Hopt; discriminate Hopt).
+          exact (Hm b o Hg).
+        - exact Hm. }
+      destruct (pmoo_call_decode _ _ _ Hcc)
+        as [ Hoc
+           | [ (Hfeq & Hftyeq & (idx & c4 & t4 & c5 & t5 & Haleq & Hgeo))
+             | [ (Hfeq & Hftyeq) | (Hfeq & Hftyeq) ] ] ].
+      + (* oc: find_floor(.., &floor) *)
+        assert (Hcp_oc : forall g,
+                  mem_id g (interaction._find_floor :: nil) = true ->
+                  call_pres_ext_oc lp bm NoA MWF SafeB g).
+        { intros g Hg. unfold mem_id in Hg; cbn [existsb] in Hg.
+          apply Bool.orb_true_iff in Hg as [Eg | F];
+            [ apply Pos.eqb_eq in Eg; subst g; exact Hocp_ff
+            | discriminate F ]. }
+        assert (Hnone_oc : forall g,
+                  mem_id g (interaction._find_floor :: nil) = true ->
+                  e ! g = None).
+        { intros g Hg. unfold mem_id in Hg; cbn [existsb] in Hg.
+          apply Bool.orb_true_iff in Hg as [Eg | F];
+            [ apply Pos.eqb_eq in Eg; subst g; exact Hff
+            | discriminate F ]. }
+        assert (Hlids_oc : forall l,
+                  mem_id l (interaction._floor :: nil) = true ->
+                  exists lblk tyenv, e ! l = Some (lblk, tyenv) /\
+                                     local_blk lp bm SafeB lblk).
+        { intros l Hg. unfold mem_id in Hg; cbn [existsb] in Hg.
+          apply Bool.orb_true_iff in Hg as [Eg | F];
+            [ apply Pos.eqb_eq in Eg; subst l | discriminate F ].
+          apply Hlids. reflexivity. }
+        destruct (oc_call_chk_pres lp bm NoA MWF SafeB
+                    (interaction._floor :: nil)
+                    (interaction._find_floor :: nil)
+                    optid fid fty al e le m _ _ m' _
+                    Hcp_oc Hnone_oc Hlids_oc Hoc Hex Hc) as (Hc' & _).
+        exact (conj Hc' HmL).
+      + (* wol: f32_find_wall_collision (mixed window/local ptr args) *)
+        subst fid fty al.
+        destruct (Hlids interaction._newMarioX eq_refl)
+          as (nXb & nXty & HnX & HnXloc).
+        destruct (Hlids interaction._newMarioZ eq_refl)
+          as (nZb & nZty & HnZ & HnZloc).
+        pose proof (fwc_args_gate idx c4 t4 c5 t5 e le m
+                      nXb nXty nZb nZty HnX HnXloc HnZ HnZloc Hm Hgeo)
+          as Hgate.
+        destruct (wol_scall_pres lp bm NoA MWF SafeB optid
+                    interaction._f32_find_wall_collision
+                    (tptr tfloat :: tptr tfloat :: tptr tfloat
+                     :: tfloat :: tfloat :: nil) tint cc_default
+                    (Eaddrof (Evar interaction._newMarioX tfloat)
+                       (tptr tfloat)
+                     :: Ebinop Oadd
+                          (Efield
+                             (Ederef
+                                (Etempvar interaction._m (tptr tyMS)) tyMS)
+                             interaction._pos (tarray tfloat 3))
+                          (Econst_int idx tint) (tptr tfloat)
+                     :: Eaddrof (Evar interaction._newMarioZ tfloat)
+                          (tptr tfloat)
+                     :: Econst_single c4 t4 :: Econst_single c5 t5 :: nil)
+                    e le m _ _ m' _ Hfwc Hwolcp_fwc Hgate Hex Hc)
+          as (Hc' & _).
+        exact (conj Hc' HmL).
+      + (* sqrtf: ungated math external *)
+        subst fid fty.
+        destruct Hc as (HV & HS & HM & HN).
+        destruct (kit_scallx_pres lp bm NoA MWF optid interaction._sqrtf
+                    (tfloat :: nil) tfloat cc_default
+                    al e le m _ _ m' _ Hsq Hex Hcpx_sqrtf HN HM HV HS)
+          as (HV' & HS' & HM' & HN' & _ & _).
+        exact (conj (conj HV' (conj HS' (conj HM' HN'))) HmL).
+      + (* atan2s: ungated math external *)
+        subst fid fty.
+        destruct Hc as (HV & HS & HM & HN).
+        destruct (kit_scallx_pres lp bm NoA MWF optid interaction._atan2s
+                    (tfloat :: tfloat :: nil) tshort cc_default
+                    al e le m _ _ m' _ Hat Hex Hcpx_atan2s HN HM HV HS)
+          as (HV' & HS' & HM' & HN' & _ & _).
+        exact (conj (conj HV' (conj HS' (conj HM' HN'))) HmL).
+    - (* Sbuiltin *)
+      cbn [pmoo_chk] in Hchk. discriminate Hchk.
+    - (* Sseq_1 *)
+      cbn [pmoo_chk] in Hchk.
+      apply andb_true_iff in Hchk as [H1 H2].
+      destruct (IHHexec1 H1 Hff Hfwc Hsq Hat Hlids Hm Hc) as (Hc1 & Hm1).
+      exact (IHHexec2 H2 Hff Hfwc Hsq Hat Hlids Hm1 Hc1).
+    - (* Sseq_2 *)
+      cbn [pmoo_chk] in Hchk.
+      apply andb_true_iff in Hchk as [H1 _].
+      exact (IHHexec H1 Hff Hfwc Hsq Hat Hlids Hm Hc).
+    - (* Sifthenelse *)
+      cbn [pmoo_chk] in Hchk. apply andb_true_iff in Hchk as [H1 H2].
+      apply IHHexec; try assumption.
+      destruct b; assumption.
+    - (* Sreturn None *) exact (conj Hc Hm).
+    - (* Sreturn (Some _) *) exact (conj Hc Hm).
+    - (* Sbreak *) exact (conj Hc Hm).
+    - (* Scontinue *) exact (conj Hc Hm).
+    - (* Sloop stop1 *)
+      cbn [pmoo_chk] in Hchk. discriminate Hchk.
+    - (* Sloop stop2 *)
+      cbn [pmoo_chk] in Hchk. discriminate Hchk.
+    - (* Sloop loop *)
+      cbn [pmoo_chk] in Hchk. discriminate Hchk.
+    - (* Sswitch *)
+      cbn [pmoo_chk] in Hchk. discriminate Hchk.
+  Qed.
+
+  (* ---- THE ENTRY LEMMA ---- *)
+  Lemma pmoo_body_pres :
+    body_pres lp NoA MWF bm interaction.f_push_mario_out_of_object.
+  Proof.
+    intros m0 vargs0 t0 mF vres0 Hgate Hevf HN HM HV HS.
+    assert (Hmarg : marg_ok bm vargs0)
+      by (apply Hgate; vm_compute; reflexivity).
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      rename Ha into Halloc end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    unfold interaction.f_push_mario_out_of_object in Hbind, Halloc.
+    cbn [fn_params fn_temps fn_vars] in Hbind, Halloc.
+    match goal with H : alloc_variables _ _ _ _ ?E ?ME |- _ =>
+      set (eloc := E) in *; set (me := ME) in * end.
+    assert (Hc0 : carried bm NoA MWF m0)
+      by (split; [ exact HV | split; [ exact HS
+                 | split; [ exact HM | exact HN ] ] ]).
+    pose proof (alloc_variables_carried bm NoA MWF HMWF_alloc HNoA_of_MWF
+                  _ _ _ _ _ _ Halloc Hc0) as Hce.
+    destruct Hce as (HVe & HSe & HMe & HNe).
+    (* the 3 fn_vars are watched-disjoint stack blocks *)
+    pose proof (alloc_variables_hlocal lp bm SafeB m0 _ eloc _ pmoo_lids
+                  Halloc HV (HSafeValid m0 HM) (HGlobValid m0 HM)
+                  ltac:(intros lid Hmem; unfold mem_id, pmoo_lids in Hmem;
+                        cbn [existsb] in Hmem;
+                        apply Bool.orb_true_iff in Hmem;
+                        destruct Hmem as [He | Hmem];
+                        [ apply Pos.eqb_eq in He; subst lid; cbn [map fst];
+                          apply in_eq | ];
+                        apply Bool.orb_true_iff in Hmem;
+                        destruct Hmem as [He | Hmem];
+                        [ apply Pos.eqb_eq in He; subst lid; cbn [map fst];
+                          apply in_cons, in_eq | ];
+                        apply Bool.orb_true_iff in Hmem;
+                        destruct Hmem as [He | Hf];
+                        [ apply Pos.eqb_eq in He; subst lid; cbn [map fst];
+                          apply in_cons, in_cons, in_eq
+                        | discriminate Hf ]))
+      as Hlids.
+    (* bind the 3 params (m, o, padding) *)
+    destruct vargs0 as [| v_m vr1];
+      cbn [bind_parameter_temps] in Hbind; [ discriminate Hbind | ].
+    destruct vr1 as [| v_o vr2];
+      cbn [bind_parameter_temps] in Hbind; [ discriminate Hbind | ].
+    destruct vr2 as [| v_p vr3];
+      cbn [bind_parameter_temps] in Hbind; [ discriminate Hbind | ].
+    destruct vr3 as [| vx vr4];
+      cbn [bind_parameter_temps] in Hbind; [ | discriminate Hbind ].
+    injection Hbind as Hle_init.
+    assert (Hmeq : le1 ! interaction._m = Some v_m).
+    { rewrite <- Hle_init.
+      rewrite PTree.gso by (vm_compute; discriminate).
+      rewrite PTree.gso by (vm_compute; discriminate).
+      apply PTree.gss. }
+    assert (Hmcond : forall b o,
+               le1 ! interaction._m = Some (Vptr b o) ->
+               b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg. rewrite Hmeq in Hg. injection Hg as Hg.
+      subst v_m. exact Hmarg. }
+    (* the 4 callees are unbound globals in the entry env *)
+    assert (Hff_none : eloc ! interaction._find_floor = None).
+    { rewrite (alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc
+                 interaction._find_floor)
+        by (cbn; intros [HH | [HH | [HH | []]]]; vm_compute in HH;
+            discriminate HH).
+      apply PTree.gempty. }
+    assert (Hfwc_none :
+              eloc ! interaction._f32_find_wall_collision = None).
+    { rewrite (alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc
+                 interaction._f32_find_wall_collision)
+        by (cbn; intros [HH | [HH | [HH | []]]]; vm_compute in HH;
+            discriminate HH).
+      apply PTree.gempty. }
+    assert (Hsq_none : eloc ! interaction._sqrtf = None).
+    { rewrite (alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc
+                 interaction._sqrtf)
+        by (cbn; intros [HH | [HH | [HH | []]]]; vm_compute in HH;
+            discriminate HH).
+      apply PTree.gempty. }
+    assert (Hat_none : eloc ! interaction._atan2s = None).
+    { rewrite (alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc
+                 interaction._atan2s)
+        by (cbn; intros [HH | [HH | [HH | []]]]; vm_compute in HH;
+            discriminate HH).
+      apply PTree.gempty. }
+    assert (Hcar : carried bm NoA MWF me)
+      by (split; [ exact HVe | split; [ exact HSe
+                 | split; [ exact HMe | exact HNe ] ] ]).
+    (* ---- WALK the body ---- *)
+    destruct (pmoo_walk_pres _ _ _ _ _ _ _ _
+                Hbody pmoo_chk_body Hff_none Hfwc_none Hsq_none Hat_none
+                Hlids Hmcond Hcar)
+      as (Hcarr & _).
+    (* ---- exit: free the fn_var stack blocks ---- *)
+    destruct Hcarr as (HVb & HSb & HMb & HNb).
+    pose proof (blocks_of_env_bm lp bm m0 _ eloc _ Halloc HV) as Hforall.
+    pose proof (free_list_carried_bm bm NoA MWF HMWF_free HNoA_of_MWF
+                  (blocks_of_env (lp_ge lp) eloc) _ mF Hforall Hfree
+                  (conj HVb (conj HSb (conj HMb HNb))))
+      as (HVf & HSf & HMf & HNf).
+    exact (conj HVf (conj HSf HMf)).
+  Qed.
+
+  (* THE DISCHARGE *)
+  Lemma pmoo_cp :
+    call_pres lp bm NoA MWF interaction._push_mario_out_of_object.
+  Proof.
+    exact (call_pres_of_body lp bm NoA MWF HNoA_of_MWF interaction.prog
+             interaction._push_mario_out_of_object
+             interaction.f_push_mario_out_of_object
+             LO_int pmoo_pin pmoo_body_pres).
+  Qed.
+
+End PmooSurface.
+
+(* ====================================================================== *)
 (* =================  the 29 interact_* handler walks  ================== *)
 (* The io arc: every handler has params EXACTLY (m, interactType, o) and  *)
 (* the shell's io gate supplies vm = Mario-conditional + vo = SafeB-      *)
@@ -2163,13 +2876,39 @@ Example io_wr_walk :
     (fn_body interaction.f_interact_water_ring) = true.
 Proof. vm_compute. reflexivity. Qed.
 
-(* the REST census: the 28 handlers not yet walked (shrinks per slice) *)
+(* ---- igloo_barrier vm pins: 2 chase-root stores (m->interactObj /
+   m->usedObj := o, the engine's root_store_chk arm) + ONE marg internal
+   call push_mario_out_of_object(m, o, 5.0f) (the engine's ids arm; _o is
+   only ever LOADED through inside pmoo, so plain call_pres is honest --
+   see Section PmooSurface above). ---- *)
+Lemma io_ig_pin :
+  (prog_defmap interaction.prog) ! interaction._interact_igloo_barrier
+  = Some (Gfun (Internal interaction.f_interact_igloo_barrier)).
+Proof. vm_compute. reflexivity. Qed.
+
+Example io_ig_vars : fn_vars interaction.f_interact_igloo_barrier = nil.
+Proof. vm_compute. reflexivity. Qed.
+
+Example io_ig_params :
+  fn_params interaction.f_interact_igloo_barrier
+  = (interaction._m, tptr (Tstruct interaction._MarioState noattr))
+    :: (interaction._interactType, tuint)
+    :: (interaction._o, tptr (Tstruct interaction._Object noattr)) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+
+Example io_ig_walk :
+  wwalk_chk false nil (interaction._push_mario_out_of_object :: nil) nil
+    (interaction._o :: nil) nil nil nil
+    (fn_body interaction.f_interact_igloo_barrier) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* the REST census: the 27 handlers not yet walked (shrinks per slice) *)
 Definition io_rest_ids : list ident :=
   interaction._interact_coin
   :: interaction._interact_star_or_key :: interaction._interact_bbh_entrance
   :: interaction._interact_warp :: interaction._interact_warp_door
   :: interaction._interact_door :: interaction._interact_cannon_base
-  :: interaction._interact_igloo_barrier :: interaction._interact_tornado
+  :: interaction._interact_tornado
   :: interaction._interact_whirlpool :: interaction._interact_strong_wind
   :: interaction._interact_flame :: interaction._interact_snufit_bullet
   :: interaction._interact_clam_or_bubba :: interaction._interact_bully
@@ -2238,6 +2977,11 @@ Section IoSurface.
       MWF mm -> SafeB bsafe ->
       (forall bb oo, vv = Vptr bb oo -> SafeB bb) ->
       Mem.store ch mm bsafe d vv = Some mm' -> MWF mm'.
+
+  (* the walked-callee row: push_mario_out_of_object (Section
+     PmooSurface's pmoo_cp at the capstone; igloo's only callee). *)
+  Hypothesis Hcp_pmoo :
+    call_pres lp bm NoA MWF interaction._push_mario_out_of_object.
 
   (* ================================================================== *)
   (* THE io ENTRY PRODUCER: a handler body whose params are EXACTLY      *)
@@ -2366,6 +3110,27 @@ Section IoSurface.
     - exact io_wr_walk.
   Qed.
 
+  (* ---- interact_igloo_barrier: 2 chase-root stores + the pmoo call
+     (engine ids arm, discharged by Hcp_pmoo). ---- *)
+  Lemma io_igloo :
+    body_pres_io lp bm NoA MWF SafeB interaction.f_interact_igloo_barrier.
+  Proof.
+    apply (body_pres_io_of_wwalk interaction.f_interact_igloo_barrier
+             (interaction._push_mario_out_of_object :: nil) nil
+             (interaction._o :: nil) nil nil nil
+             io_ig_vars io_ig_params eq_refl).
+    - intros fid' H.
+      unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcp_pmoo
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact io_ig_walk.
+  Qed.
+
   (* ---- the handler-table dispatch splitter: the capstone's
      Hpres_ihandler from the walked handlers + the io_rest census. ---- *)
   Lemma ihandler_pres_split :
@@ -2381,7 +3146,9 @@ Section IoSurface.
     repeat (destruct Hin as [<- | Hin];
             [ solve [ (eapply Hrest; [ | exact Hdm ]; reflexivity)
                     | (pose proof io_wr_pin as E; rewrite Hdm in E;
-                       injection E as ->; exact io_water_ring) ]
+                       injection E as ->; exact io_water_ring)
+                    | (pose proof io_ig_pin as E; rewrite Hdm in E;
+                       injection E as ->; exact io_igloo) ]
             | ]).
     destruct Hin.
   Qed.

@@ -122,7 +122,11 @@ Definition obj_ext_ids : list ident :=
     (* B10 pole cluster: set_sound_moving_speed is a pure AUDIO external
        (sets the moving-sound speed register), writes no Mario state --
        same model class as play_sound. *)
-    :: mario._set_sound_moving_speed :: nil.
+    :: mario._set_sound_moving_speed
+    (* io arc (push_mario_out_of_object): sqrtf is the pure-math distance
+       external -- the SAME model class as atan2s above (EF_external in
+       every generated TU, writes nothing). *)
+    :: mario._sqrtf :: nil.
 (* NOTE: find_floor was REMOVED from obj_ext_ids.  It is an out-param
    WRITER, so the phantom-false `call_pres_ext find_floor` (which would
    allow &(action cell) as the out-param) is no longer a capstone
