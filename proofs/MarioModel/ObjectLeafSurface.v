@@ -126,7 +126,11 @@ Definition obj_ext_ids : list ident :=
     (* io arc (push_mario_out_of_object): sqrtf is the pure-math distance
        external -- the SAME model class as atan2s above (EF_external in
        every generated TU, writes nothing). *)
-    :: mario._sqrtf :: nil.
+    :: mario._sqrtf
+    (* slice 3 (tdfio): set_camera_shake_from_hit is the pure-camera
+       shake external (tshort arg, no pointers, writes no Mario state) --
+       the same model class as set_camera_mode above. *)
+    :: interaction._set_camera_shake_from_hit :: nil.
 (* NOTE: find_floor was REMOVED from obj_ext_ids.  It is an out-param
    WRITER, so the phantom-false `call_pres_ext find_floor` (which would
    allow &(action cell) as the out-param) is no longer a capstone

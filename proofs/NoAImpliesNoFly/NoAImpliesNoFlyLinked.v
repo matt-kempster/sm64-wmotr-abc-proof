@@ -1071,7 +1071,7 @@ Section NoARealInputMWF.
       (prog_defmap interaction.prog) ! fid = Some (Gfun (Internal f)) ->
       body_pres_io lp bm (NoA_real bm) MWF SafeB f.
   Proof.
-    exact (ihandler_pres_split lp LO_mario bm (NoA_real bm)
+    exact (ihandler_pres_split lp LO_mario LO_int bm (NoA_real bm)
              (MWF_real lp bm bc oc0 SafeB) SafeB
              (mwf_real_ctl lp bm bc oc0 SafeB)
              (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
@@ -1090,6 +1090,93 @@ Section NoARealInputMWF.
              (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                 HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
              Hcp_pmoo_real
+             (mwf_real_ktab lp bm bc oc0 SafeB)
+             (moato_row lp LO_mario LO_int bm (NoA_real bm)
+                (MWF_real lp bm bc oc0 SafeB)
+                (mwf_real_ctl lp bm bc oc0 SafeB)
+                (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                   Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+                (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                   Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                SafeB HSafeB_not_bm
+                (mwf_real_chase_root lp bm bc oc0 SafeB)
+                (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                   HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                   Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                (mwf_real_sglob lp bm bc oc0 SafeB)
+                (mwf_real_chase_step lp bm bc oc0 SafeB)
+                (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                   HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                (Hpres_obj_ext interaction._atan2s eq_refl))
+             (msfv_row lp LO_mario bm (NoA_real bm)
+                (MWF_real lp bm bc oc0 SafeB)
+                (mwf_real_ctl lp bm bc oc0 SafeB)
+                (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                   Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+                (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                   Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                SafeB HSafeB_not_bm
+                (mwf_real_chase_root lp bm bc oc0 SafeB)
+                (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                   HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                   Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                (mwf_real_sglob lp bm bc oc0 SafeB)
+                (mwf_real_chase_step lp bm bc oc0 SafeB)
+                (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                   HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk))
+             (Hpres_obj_ext interaction._set_camera_shake_from_hit eq_refl)
+             (call_pres_of_body lp bm (NoA_real bm)
+                (MWF_real lp bm bc oc0 SafeB)
+                (mwf_real_ctl lp bm bc oc0 SafeB)
+                mario.prog mario._update_mario_sound_and_camera
+                mario.f_update_mario_sound_and_camera LO_mario
+                umsc_pin
+                (umsc_pres lp LO_mario bm (NoA_real bm)
+                   (MWF_real lp bm bc oc0 SafeB)
+                   (mwf_real_ctl lp bm bc oc0 SafeB)
+                   (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                      Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                   (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+                   (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                      Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                   SafeB HSafeB_not_bm
+                   (mwf_real_chase_root lp bm bc oc0 SafeB)
+                   (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                      HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                   (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                      Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                   (mwf_real_sglob lp bm bc oc0 SafeB)
+                   (mwf_real_chase_step lp bm bc oc0 SafeB)
+                   (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                      HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                   (Hpres_obj_ext mario._set_camera_mode eq_refl)
+                   (Hpres_floors_ext mario._raise_background_noise eq_refl)))
+             (Hpres_obj_ext interaction._play_sound eq_refl)
+             (dasma_row lp LO_mario LO_stp LO_int bm (NoA_real bm)
+                (MWF_real lp bm bc oc0 SafeB)
+                (mwf_real_ctl lp bm bc oc0 SafeB)
+                (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                   Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+                (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                   Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                SafeB HSafeB_not_bm
+                (mwf_real_chase_root lp bm bc oc0 SafeB)
+                (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                   HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                   Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                (mwf_real_sglob lp bm bc oc0 SafeB)
+                (mwf_real_chase_step lp bm bc oc0 SafeB)
+                (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                   HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
+                (Hpres_obj_ext interaction._stop_shell_music eq_refl)
+                (Hpres_obj_ext interaction._obj_set_held_state eq_refl))
              Hio_rest).
   Qed.
   Lemma Hcp_mgco_real :
