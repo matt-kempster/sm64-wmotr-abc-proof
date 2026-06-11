@@ -1000,10 +1000,38 @@ Section NoARealInputMWF.
          marioObj->collidedObjs[i] through the root+step SafeB rows);
        - check_kick_or_punch_wall: the ordinary call_pres class,
          Internal in interaction.prog (walkable later). *)
-  Hypothesis Hpres_ihandler : forall fid f,
+  (* the io REST census row: the handlers not yet walked.  Every handler
+     walk (InterSurface's io arc) removes its id from io_rest_ids and this
+     row covers strictly less; interact_water_ring is already OUT. *)
+  Hypothesis Hio_rest : forall fid f,
+      mem_id fid io_rest_ids = true ->
+      (prog_defmap interaction.prog) ! fid = Some (Gfun (Internal f)) ->
+      body_pres_io lp bm (NoA_real bm) MWF SafeB f.
+  Lemma Hpres_ihandler : forall fid f,
       In fid interaction_handler_ids ->
       (prog_defmap interaction.prog) ! fid = Some (Gfun (Internal f)) ->
       body_pres_io lp bm (NoA_real bm) MWF SafeB f.
+  Proof.
+    exact (ihandler_pres_split lp LO_mario bm (NoA_real bm)
+             (MWF_real lp bm bc oc0 SafeB) SafeB
+             (mwf_real_ctl lp bm bc oc0 SafeB)
+             (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk)
+             (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+             (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk)
+             HSafeB_not_bm
+             (mwf_real_chase_root lp bm bc oc0 SafeB)
+             (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk)
+             (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk)
+             (mwf_real_sglob lp bm bc oc0 SafeB)
+             (mwf_real_chase_step lp bm bc oc0 SafeB)
+             (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk)
+             Hio_rest).
+  Qed.
   Lemma Hcp_mgco_real :
     call_pres_mgco lp bm (NoA_real bm) MWF SafeB.
   Proof.
