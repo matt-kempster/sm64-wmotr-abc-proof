@@ -4403,14 +4403,14 @@ Example io_ig_walk :
     (fn_body interaction.f_interact_igloo_barrier) = true.
 Proof. vm_compute. reflexivity. Qed.
 
-(* the REST census: the 17 handlers not yet walked (shrinks per slice) *)
+(* the REST census: the 16 handlers not yet walked (shrinks per slice) *)
 Definition io_rest_ids : list ident :=
   interaction._interact_coin
   :: interaction._interact_star_or_key
   :: interaction._interact_warp :: interaction._interact_warp_door
   :: interaction._interact_door
   :: interaction._interact_snufit_bullet
-  :: interaction._interact_clam_or_bubba :: interaction._interact_bully
+  :: interaction._interact_bully
   :: interaction._interact_bounce_top
   :: interaction._interact_hit_from_below
   :: interaction._interact_pole
@@ -4436,22 +4436,24 @@ Definition ioms_sp_chk (s : statement) : bool :=
   | _ => false
   end.
 
-Fixpoint ioms_chk (s : statement) : bool :=
+Fixpoint ioms_chk (ids xids sids : list ident) (s : statement) : bool :=
   wwalk_chk' nil nil nil nil nil nil false
-    nil nil nil tdaknb_cact nil nil nil s
+    nil ids nil tdaknb_cact xids sids nil s
   || match s with
-     | Ssequence s1 s2 => ioms_chk s1 && ioms_chk s2
-     | Sifthenelse _ s1 s2 => ioms_chk s1 && ioms_chk s2
+     | Ssequence s1 s2 =>
+         ioms_chk ids xids sids s1 && ioms_chk ids xids sids s2
+     | Sifthenelse _ s1 s2 =>
+         ioms_chk ids xids sids s1 && ioms_chk ids xids sids s2
      | _ => ioms_sp_chk s
      end.
 
 (* ---- vm pins ---- *)
 Lemma ioms_mrb_walk :
-  ioms_chk (fn_body interaction.f_interact_mr_blizzard) = true.
+  ioms_chk nil nil nil (fn_body interaction.f_interact_mr_blizzard) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Lemma ioms_dmg_walk :
-  ioms_chk (fn_body interaction.f_interact_damage) = true.
+  ioms_chk nil nil nil (fn_body interaction.f_interact_damage) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Lemma io_mrb_pin :
@@ -4481,6 +4483,26 @@ Lemma io_dmg_params :
   = (interaction._m, tptr (Tstruct interaction._MarioState noattr))
     :: (interaction._interactType, tuint)
     :: (interaction._o, tptr (Tstruct interaction._Object noattr)) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- clam_or_bubba: tdaknb site (ioms arm) + a const-action sma
+   call + o->rawData chase loads; rides the PARAMETRIC ioms walker
+   with sids = [set_mario_action]. ---- *)
+Lemma io_cl_pin :
+  (prog_defmap interaction.prog) ! interaction._interact_clam_or_bubba
+  = Some (Gfun (Internal interaction.f_interact_clam_or_bubba)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma io_cl_vars : fn_vars interaction.f_interact_clam_or_bubba = nil.
+Proof. vm_compute. reflexivity. Qed.
+Lemma io_cl_params :
+  fn_params interaction.f_interact_clam_or_bubba
+  = (interaction._m, tptr (Tstruct interaction._MarioState noattr))
+    :: (interaction._interactType, tuint)
+    :: (interaction._o, tptr (Tstruct interaction._Object noattr)) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+Lemma ioms_cl_walk :
+  ioms_chk nil nil (interaction._set_mario_action :: nil)
+    (fn_body interaction.f_interact_clam_or_bubba) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* ---- the site decoder ---- *)
@@ -5002,11 +5024,21 @@ Section IoSurface.
 
   (* ---- the generic (engine) delegate: cact only ---- *)
   Lemma ioms_generic :
+    forall (ids xids sids : list ident),
+      (forall fid', mem_id fid' ids = true ->
+                    call_pres lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' xids = true ->
+                    call_pres_ext lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' sids = true ->
+                    call_pres_act lp bm NoA MWF fid') ->
     forall s e le m0 tr le' m' out,
       (forall g, mem_id g stored_globals = true -> e ! g = None) ->
+      (forall g, mem_id g ids = true -> e ! g = None) ->
+      (forall g, mem_id g xids = true -> e ! g = None) ->
+      (forall g, mem_id g sids = true -> e ! g = None) ->
       e ! interaction._gGlobalTimer = None ->
       wwalk_chk' nil nil nil nil nil nil false
-        nil nil nil tdaknb_cact nil nil nil s = true ->
+        nil ids nil tdaknb_cact xids sids nil s = true ->
       (forall b o, le ! interaction._m = Some (Vptr b o) ->
                    b = bm /\ o = Ptrofs.zero) ->
       act_inv nil le ->
@@ -5020,17 +5052,18 @@ Section IoSurface.
                    b = bm /\ o = Ptrofs.zero) /\
       act_inv nil le' /\ chase_inv SafeB tdaknb_cact le'.
   Proof.
-    intros s e le m0 tr le' m' out Hub_g Hubgt Hchk
+    intros ids xids sids Hcp_i Hcpx_i Hcps_i
+           s e le m0 tr le' m' out Hub_g Hub_i Hub_x Hub_s Hubgt Hchk
            Htat Hact Hch HN HM HV HS Hexec.
     destruct (wwalk_pres lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-                false nil nil nil tdaknb_cact nil nil nil
+                false nil ids nil tdaknb_cact xids sids nil
                 nil nil nil nil nil nil
+                Hcp_i
                 (fun fid HH => match Bool.diff_false_true HH with end)
-                (fun fid HH => match Bool.diff_false_true HH with end)
-                (fun fid HH => match Bool.diff_false_true HH with end)
-                (fun fid HH => match Bool.diff_false_true HH with end)
+                Hcpx_i
+                Hcps_i
                 (fun fid HH => match Bool.diff_false_true HH with end)
                 (fun fid HH => match Bool.diff_false_true HH with end)
                 (fun fid HH => match Bool.diff_false_true HH with end)
@@ -5041,10 +5074,10 @@ Section IoSurface.
                 (fun lid HH => match Bool.diff_false_true HH with end)
                 Hexec
                 Hub_g
+                Hub_i
                 (fun g HH => match Bool.diff_false_true HH with end)
-                (fun g HH => match Bool.diff_false_true HH with end)
-                (fun g HH => match Bool.diff_false_true HH with end)
-                (fun g HH => match Bool.diff_false_true HH with end)
+                Hub_x
+                Hub_s
                 (fun g HH => match Bool.diff_false_true HH with end)
                 (fun g HH => match Bool.diff_false_true HH with end)
                 (fun g HH => match Bool.diff_false_true HH with end)
@@ -5132,12 +5165,22 @@ Section IoSurface.
 
   (* ---- THE HYBRID WALKER ---- *)
   Lemma ioms_pres :
+    forall (ids xids sids : list ident),
+      (forall fid', mem_id fid' ids = true ->
+                    call_pres lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' xids = true ->
+                    call_pres_ext lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' sids = true ->
+                    call_pres_act lp bm NoA MWF fid') ->
     forall s e le m0 tr le' m' out,
       exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
       (forall g, mem_id g stored_globals = true -> e ! g = None) ->
+      (forall g, mem_id g ids = true -> e ! g = None) ->
+      (forall g, mem_id g xids = true -> e ! g = None) ->
+      (forall g, mem_id g sids = true -> e ! g = None) ->
       e ! interaction._take_damage_and_knock_back = None ->
       e ! interaction._gGlobalTimer = None ->
-      ioms_chk s = true ->
+      ioms_chk ids xids sids s = true ->
       (forall b o, le ! interaction._m = Some (Vptr b o) ->
                    b = bm /\ o = Ptrofs.zero) ->
       act_inv nil le ->
@@ -5150,9 +5193,10 @@ Section IoSurface.
                    b = bm /\ o = Ptrofs.zero) /\
       act_inv nil le' /\ chase_inv SafeB tdaknb_cact le'.
   Proof.
-    intros s e le m0 tr le' m' out Hexec.
+    intros ids xids sids Hcp_i Hcpx_i Hcps_i s e le m0 tr le' m' out Hexec.
     induction Hexec;
-      intros Hub_g Hub_tk Hubgt Hchk Htat Hact Hch HN HM HV HS.
+      intros Hub_g Hub_i Hub_x Hub_s Hub_tk Hubgt Hchk
+             Htat Hact Hch HN HM HV HS.
     - (* Sskip *)
       exact (conj HV (conj HS (conj HM (conj HN
                (conj Htat (conj Hact Hch)))))).
@@ -5160,20 +5204,20 @@ Section IoSurface.
       cbn [ioms_chk] in Hchk.
       apply orb_true_iff in Hchk as [Hg | Hsp];
         [ | cbn [ioms_sp_chk] in Hsp; discriminate Hsp ].
-      eapply (ioms_generic _ _ _ _ _ _ _ _ Hub_g Hubgt Hg
+      eapply (ioms_generic ids xids sids Hcp_i Hcpx_i Hcps_i _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hubgt Hg
                 Htat Hact Hch HN HM HV HS);
         eapply exec_Sassign; eauto.
     - (* Sset: generic only *)
       cbn [ioms_chk] in Hchk.
       apply orb_true_iff in Hchk as [Hg | Hsp];
         [ | cbn [ioms_sp_chk] in Hsp; discriminate Hsp ].
-      eapply (ioms_generic _ _ _ _ _ _ _ _ Hub_g Hubgt Hg
+      eapply (ioms_generic ids xids sids Hcp_i Hcpx_i Hcps_i _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hubgt Hg
                 Htat Hact Hch HN HM HV HS);
         eapply exec_Sset; eauto.
     - (* Scall: generic or THE tdaknb site *)
       cbn [ioms_chk] in Hchk.
       apply orb_true_iff in Hchk as [Hg | Hsp].
-      { eapply (ioms_generic _ _ _ _ _ _ _ _ Hub_g Hubgt Hg
+      { eapply (ioms_generic ids xids sids Hcp_i Hcpx_i Hcps_i _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hubgt Hg
                   Htat Hact Hch HN HM HV HS);
           eapply exec_Scall; eauto. }
       destruct (ioms_sp_decode _ _ _ Hsp)
@@ -5221,26 +5265,26 @@ Section IoSurface.
     - (* Sseq_1 *)
       cbn [ioms_chk] in Hchk.
       apply orb_true_iff in Hchk as [Hg | Hrec].
-      { eapply (ioms_generic _ _ _ _ _ _ _ _ Hub_g Hubgt Hg
+      { eapply (ioms_generic ids xids sids Hcp_i Hcpx_i Hcps_i _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hubgt Hg
                   Htat Hact Hch HN HM HV HS);
           eapply exec_Sseq_1; eauto. }
       apply andb_prop in Hrec as [H1 H2].
-      destruct (IHHexec1 Hub_g Hub_tk Hubgt H1 Htat Hact Hch HN HM HV HS)
+      destruct (IHHexec1 Hub_g Hub_i Hub_x Hub_s Hub_tk Hubgt H1 Htat Hact Hch HN HM HV HS)
         as (HV1 & HS1 & HM1 & HN1 & Htat1 & Hact1 & Hch1).
-      exact (IHHexec2 Hub_g Hub_tk Hubgt H2 Htat1 Hact1 Hch1
-               HN1 HM1 HV1 HS1).
+      exact (IHHexec2 Hub_g Hub_i Hub_x Hub_s Hub_tk Hubgt H2
+               Htat1 Hact1 Hch1 HN1 HM1 HV1 HS1).
     - (* Sseq_2 *)
       cbn [ioms_chk] in Hchk.
       apply orb_true_iff in Hchk as [Hg | Hrec].
-      { eapply (ioms_generic _ _ _ _ _ _ _ _ Hub_g Hubgt Hg
+      { eapply (ioms_generic ids xids sids Hcp_i Hcpx_i Hcps_i _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hubgt Hg
                   Htat Hact Hch HN HM HV HS);
           eapply exec_Sseq_2; eauto. }
       apply andb_prop in Hrec as [H1 _].
-      exact (IHHexec Hub_g Hub_tk Hubgt H1 Htat Hact Hch HN HM HV HS).
+      exact (IHHexec Hub_g Hub_i Hub_x Hub_s Hub_tk Hubgt H1 Htat Hact Hch HN HM HV HS).
     - (* Sifthenelse *)
       cbn [ioms_chk] in Hchk.
       apply orb_true_iff in Hchk as [Hg | Hrec].
-      { eapply (ioms_generic _ _ _ _ _ _ _ _ Hub_g Hubgt Hg
+      { eapply (ioms_generic ids xids sids Hcp_i Hcpx_i Hcps_i _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hubgt Hg
                   Htat Hact Hch HN HM HV HS);
           eapply exec_Sifthenelse; eauto. }
       apply andb_prop in Hrec as [H1 H2].
@@ -5262,45 +5306,52 @@ Section IoSurface.
       cbn [ioms_chk] in Hchk.
       apply orb_true_iff in Hchk as [Hg | Hsp];
         [ | cbn [ioms_sp_chk] in Hsp; discriminate Hsp ].
-      eapply (ioms_generic _ _ _ _ _ _ _ _ Hub_g Hubgt Hg
+      eapply (ioms_generic ids xids sids Hcp_i Hcpx_i Hcps_i _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hubgt Hg
                 Htat Hact Hch HN HM HV HS);
         eapply exec_Sloop_stop1; eauto.
     - (* Sloop stop2: generic only *)
       cbn [ioms_chk] in Hchk.
       apply orb_true_iff in Hchk as [Hg | Hsp];
         [ | cbn [ioms_sp_chk] in Hsp; discriminate Hsp ].
-      eapply (ioms_generic _ _ _ _ _ _ _ _ Hub_g Hubgt Hg
+      eapply (ioms_generic ids xids sids Hcp_i Hcpx_i Hcps_i _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hubgt Hg
                 Htat Hact Hch HN HM HV HS);
         eapply exec_Sloop_stop2; eauto.
     - (* Sloop loop: generic only *)
       cbn [ioms_chk] in Hchk.
       apply orb_true_iff in Hchk as [Hg | Hsp];
         [ | cbn [ioms_sp_chk] in Hsp; discriminate Hsp ].
-      eapply (ioms_generic _ _ _ _ _ _ _ _ Hub_g Hubgt Hg
+      eapply (ioms_generic ids xids sids Hcp_i Hcpx_i Hcps_i _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hubgt Hg
                 Htat Hact Hch HN HM HV HS);
         eapply exec_Sloop_loop; eauto.
     - (* Sswitch: generic only *)
       cbn [ioms_chk] in Hchk.
       apply orb_true_iff in Hchk as [Hg | Hsp];
         [ | cbn [ioms_sp_chk] in Hsp; discriminate Hsp ].
-      eapply (ioms_generic _ _ _ _ _ _ _ _ Hub_g Hubgt Hg
+      eapply (ioms_generic ids xids sids Hcp_i Hcpx_i Hcps_i _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hubgt Hg
                 Htat Hact Hch HN HM HV HS);
         eapply exec_Sswitch; eauto.
   Qed.
 
   (* ---- the two handler producers (body_pres_io entry, 3 params) ---- *)
   Lemma ioms_body_pres :
-    forall (f : Clight.function),
+    forall (f : Clight.function) (ids xids sids : list ident),
+      (forall fid', mem_id fid' ids = true ->
+                    call_pres lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' xids = true ->
+                    call_pres_ext lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' sids = true ->
+                    call_pres_act lp bm NoA MWF fid') ->
       fn_vars f = nil ->
       fn_params f
       = (interaction._m, tptr (Tstruct interaction._MarioState noattr))
         :: (interaction._interactType, tuint)
         :: (interaction._o, tptr (Tstruct interaction._Object noattr))
         :: nil ->
-      ioms_chk (fn_body f) = true ->
+      ioms_chk ids xids sids (fn_body f) = true ->
       body_pres_io lp bm NoA MWF SafeB f.
   Proof.
-    intros f Hvars Hps Hchk m0 vm vi vo t0 m1 vres0 Hvm Hvo Hevf
+    intros f ids xids sids Hcp_i Hcpx_i Hcps_i Hvars Hps Hchk
+           m0 vm vi vo t0 m1 vres0 Hvm Hvo Hevf
            HN HM HV HS.
     inv Hevf.
     match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
@@ -5338,9 +5389,11 @@ Section IoSurface.
     match type of Hbody with
     | exec_stmt _ _ _ _ ?mm _ _ _ _ _ => idtac
     end.
-    destruct (ioms_pres _ _ _ _ _ _ _ _ Hbody
-                (empty_env_unbound _) (PTree.gempty _ _)
-                (PTree.gempty _ _)
+    destruct (ioms_pres ids xids sids Hcp_i Hcpx_i Hcps_i
+                _ _ _ _ _ _ _ _ Hbody
+                (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _) (empty_env_unbound _)
+                (PTree.gempty _ _) (PTree.gempty _ _)
                 Hchk Htat0 Hact0 Hch0 HN HM HV HS)
       as (HV' & HS' & HM' & _ & _ & _ & _).
     change (blocks_of_env (lp_ge lp) empty_env)
@@ -5353,6 +5406,10 @@ Section IoSurface.
     body_pres_io lp bm NoA MWF SafeB interaction.f_interact_mr_blizzard.
   Proof.
     exact (ioms_body_pres interaction.f_interact_mr_blizzard
+             nil nil nil
+             (fun fid HH => match Bool.diff_false_true HH with end)
+             (fun fid HH => match Bool.diff_false_true HH with end)
+             (fun fid HH => match Bool.diff_false_true HH with end)
              io_mrb_vars io_mrb_params ioms_mrb_walk).
   Qed.
 
@@ -5360,7 +5417,27 @@ Section IoSurface.
     body_pres_io lp bm NoA MWF SafeB interaction.f_interact_damage.
   Proof.
     exact (ioms_body_pres interaction.f_interact_damage
+             nil nil nil
+             (fun fid HH => match Bool.diff_false_true HH with end)
+             (fun fid HH => match Bool.diff_false_true HH with end)
+             (fun fid HH => match Bool.diff_false_true HH with end)
              io_dmg_vars io_dmg_params ioms_dmg_walk).
+  Qed.
+
+  Lemma io_clam_or_bubba :
+    body_pres_io lp bm NoA MWF SafeB interaction.f_interact_clam_or_bubba.
+  Proof.
+    apply (ioms_body_pres interaction.f_interact_clam_or_bubba
+             nil nil (interaction._set_mario_action :: nil)).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpa_sma
+        | discriminate F ].
+    - exact io_cl_vars.
+    - exact io_cl_params.
+    - exact ioms_cl_walk.
   Qed.
 
   (* ================================================================== *)
@@ -5619,7 +5696,9 @@ Section IoSurface.
                     | (pose proof io_sh_pin as E; rewrite Hdm in E;
                        injection E as ->; exact io_shock)
                     | (pose proof io_fl_pin as E; rewrite Hdm in E;
-                       injection E as ->; exact io_flame) ]
+                       injection E as ->; exact io_flame)
+                    | (pose proof io_cl_pin as E; rewrite Hdm in E;
+                       injection E as ->; exact io_clam_or_bubba) ]
             | ]).
     destruct Hin.
   Qed.
