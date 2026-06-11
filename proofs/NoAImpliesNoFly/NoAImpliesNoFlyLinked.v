@@ -824,9 +824,14 @@ Section NoARealInputMWF.
          unconstrained intendedPos could alias bm's action cell).
        - mario_get_terrain_sound_addend(m): plain marg internal row
          (Internal in mario.prog; EF_external in mario_step.prog). *)
-  Hypothesis Hcp_pgqs_real :
-    call_pres_mo lp bm (NoA_real bm) MWF SafeB
-      mario_step._perform_ground_quarter_step.
+  (* perform_ground_quarter_step is now WALKED (MarioStepSurface.pgqs_cp,
+     Lemma Hcp_pgqs_real below).  Its one genuinely NEW residual is
+     find_water_level(x, z): a pure float terrain query, EF_external in
+     EVERY generated TU (mario.v:12252, mario_step.v:5662, shadow.v,
+     behavior_actions.v) -- the same honest terminal-external
+     model-boundary class as atan2s. *)
+  Hypothesis Hxcp_fwl_real :
+    call_pres_ext lp bm (NoA_real bm) MWF mario_step._find_water_level.
   Hypothesis Hcp_mgtsa_real :
     call_pres lp bm (NoA_real bm) MWF
       mario_step._mario_get_terrain_sound_addend.
@@ -1113,9 +1118,55 @@ Section NoARealInputMWF.
     eapply mwf_real_local_store; eauto.
   Qed.
 
+  (* perform_ground_quarter_step, WALKED (MarioStepSurface.pgqs_cp): the
+     mo-gated worker behind pgs.  Its gWaterSurfacePseudoFloor originOffset
+     store rides the stored_globals census row (mwf_real_glob);
+     resolve_and_return_wall_collisions is the WALKED AutomaticLeafSurface
+     body (ident-coincident across TUs), leaving its sole terminal external
+     find_wall_collisions (Holcp_fwc_real); find_floor / vec3f_find_ceil
+     ride the existing oc rows, vec3f_copy / vec3f_set the w1 rows, atan2s
+     the obj_ext census; find_water_level is the one NEW terminal external
+     (Hxcp_fwl_real). *)
+  Lemma Hcp_pgqs_real :
+    call_pres_mo lp bm (NoA_real bm) MWF SafeB
+      mario_step._perform_ground_quarter_step.
+  Proof.
+    exact (pgqs_cp lp LO_mario LO_stp bm (NoA_real bm)
+             (MWF_real lp bm bc oc0 SafeB) SafeB
+             (mwf_real_ctl lp bm bc oc0 SafeB)
+             (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk)
+             (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
+             (fun m l m' Hf HM =>
+                mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
+             (mwf_real_safe_valid lp bm bc oc0 SafeB)
+             Hglob_valid
+             aut_local_store
+             (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk
+                mario_step._gWaterSurfacePseudoFloor eq_refl)
+             (AutomaticLeafSurface.Hocp_resolve lp LO_mario bm (NoA_real bm)
+                (MWF_real lp bm bc oc0 SafeB)
+                (mwf_real_ctl lp bm bc oc0 SafeB)
+                SafeB
+                (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
+                (fun m l m' Hf HM =>
+                   mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
+                (mwf_real_safe_valid lp bm bc oc0 SafeB)
+                Hglob_valid
+                aut_local_store
+                Holcp_fwc_real)
+             Hocp_find_floor
+             Hocp_find_ceil
+             Hxcp_fwl_real
+             Hw1cp_v3f_real
+             Hw1cp_v3fset_real
+             (Hpres_obj_ext mario_step._atan2s eq_refl)).
+  Qed.
+
   (* perform_ground_step, WALKED: the MarioStepSurface walk instantiated
-     at MWF_real (frame bricks from MWFReal; the deeper pgqs/mgtsa rows
-     assumed above; vec3f_copy/vec3s_set from the obj_ext census). *)
+     at MWF_real (frame bricks from MWFReal; the deeper pgqs row now the
+     Lemma above, mgtsa still assumed; vec3f_copy/vec3s_set from the
+     obj_ext census). *)
   Lemma Hcp_pgs :
     call_pres lp bm (NoA_real bm) MWF mario_step._perform_ground_step.
   Proof.

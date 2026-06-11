@@ -37,7 +37,7 @@
 From Coq Require Import ZArith List Lia.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
-From SM64.Generated Require mario level_update.
+From SM64.Generated Require mario level_update mario_step.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
   ActionValueFrame RealFrameValue RealFrameLinked AGates.
 
@@ -797,7 +797,14 @@ Definition stored_globals : list ident :=
   interaction._sDelayInvincTimer ::
   interaction._sInvulnerable ::
   interaction._sDisplayingDoorText ::
-  interaction._sJustTeleported :: nil.
+  interaction._sJustTeleported ::
+  (* perform_ground_quarter_step's water-pseudo-floor patch (the pgqs
+     special site, MarioStepSurface): the body stores the ADDRESS of the
+     static Surface gWaterSurfacePseudoFloor into its stack-local _floor,
+     reloads it, and stores floorHeight through it into the global's
+     originOffset field -- a static data symbol in mario_step.prog /
+     mario_actions_moving.prog, same Hglob_blk trust class as the rest. *)
+  mario_step._gWaterSurfacePseudoFloor :: nil.
 
 (* ---------------------------------------------------------------------- *)
 (* The interaction-handler census (the Hpres_inter arc): the 28 DISTINCT   *)
