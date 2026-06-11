@@ -2130,3 +2130,260 @@ Section CkpwSurface.
   Qed.
 
 End CkpwSurface.
+
+(* ====================================================================== *)
+(* =================  the 29 interact_* handler walks  ================== *)
+(* The io arc: every handler has params EXACTLY (m, interactType, o) and  *)
+(* the shell's io gate supplies vm = Mario-conditional + vo = SafeB-      *)
+(* object-conditional.  body_pres_io_of_wwalk seeds _o into the wwalk     *)
+(* engine's chase census (chase_inv) straight from the gate -- NO new     *)
+(* checker arms were needed.  Walked handlers leave io_rest_ids (the      *)
+(* census the capstone's Hio_rest row is keyed on); every new walk        *)
+(* SHRINKS that list.                                                     *)
+(* ====================================================================== *)
+
+(* ---- water_ring vm pins ---- *)
+Lemma io_wr_pin :
+  (prog_defmap interaction.prog) ! interaction._interact_water_ring
+  = Some (Gfun (Internal interaction.f_interact_water_ring)).
+Proof. vm_compute. reflexivity. Qed.
+
+Example io_wr_vars : fn_vars interaction.f_interact_water_ring = nil.
+Proof. vm_compute. reflexivity. Qed.
+
+Example io_wr_params :
+  fn_params interaction.f_interact_water_ring
+  = (interaction._m, tptr (Tstruct interaction._MarioState noattr))
+    :: (interaction._interactType, tuint)
+    :: (interaction._o, tptr (Tstruct interaction._Object noattr)) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+
+Example io_wr_walk :
+  wwalk_chk false nil nil nil (interaction._o :: nil) nil nil nil
+    (fn_body interaction.f_interact_water_ring) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* the REST census: the 28 handlers not yet walked (shrinks per slice) *)
+Definition io_rest_ids : list ident :=
+  interaction._interact_coin
+  :: interaction._interact_star_or_key :: interaction._interact_bbh_entrance
+  :: interaction._interact_warp :: interaction._interact_warp_door
+  :: interaction._interact_door :: interaction._interact_cannon_base
+  :: interaction._interact_igloo_barrier :: interaction._interact_tornado
+  :: interaction._interact_whirlpool :: interaction._interact_strong_wind
+  :: interaction._interact_flame :: interaction._interact_snufit_bullet
+  :: interaction._interact_clam_or_bubba :: interaction._interact_bully
+  :: interaction._interact_shock :: interaction._interact_bounce_top
+  :: interaction._interact_mr_blizzard :: interaction._interact_hit_from_below
+  :: interaction._interact_damage :: interaction._interact_pole
+  :: interaction._interact_hoot :: interaction._interact_breakable
+  :: interaction._interact_koopa_shell :: interaction._interact_unknown_08
+  :: interaction._interact_cap :: interaction._interact_grabbable
+  :: interaction._interact_text :: nil.
+
+Section IoSurface.
+  Variable lp : Clight.program.
+  Hypothesis LO_mario : linkorder mario.prog lp.
+  Hypothesis LO_int : linkorder interaction.prog lp.
+
+  Variable bm : block.
+  Variable NoA MWF : mem -> Prop.
+  Variable SafeB : block -> Prop.
+
+  Hypothesis HNoA_of_MWF : forall m, MWF m -> NoA m.
+  Hypothesis HMWF_window : forall mm mm' ch (delta : Z) vv,
+      MWF mm -> store_window_ok delta (size_chunk ch) = true ->
+      Mem.store ch mm bm delta vv = Some mm' -> MWF mm'.
+  Hypothesis HMWF_glob : forall gid,
+      mem_id gid stored_globals = true ->
+      forall bg, Genv.find_symbol (lp_ge lp) gid = Some bg ->
+        bg <> bm /\
+        (forall mm mm' ch0 (d : Z) vv,
+            MWF mm -> Mem.store ch0 mm bg d vv = Some mm' -> MWF mm').
+  Hypothesis HMWF_act : forall mm mm' vv,
+      MWF mm ->
+      (forall bb oo, vv <> Vptr bb oo) ->
+      Mem.store Mint32 mm bm 12 vv = Some mm' -> MWF mm'.
+  Hypothesis HSafeNotBm : forall b, SafeB b -> b <> bm.
+  Hypothesis HchaseRoot : forall fld delta m b' o',
+      mem_id fld chase_root_fields = true ->
+      field_offset (prog_comp_env mario.prog) fld mario_state_members
+        = Errors.OK (delta, Full) ->
+      MWF m ->
+      Mem.loadv Mptr m
+        (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr delta)))
+        = Some (Vptr b' o') ->
+      SafeB b'.
+  Hypothesis HMWF_chase : forall mm ch bsafe (d : Z) vv mm',
+      MWF mm -> SafeB bsafe ->
+      (forall bb oo, vv <> Vptr bb oo) ->
+      Mem.store ch mm bsafe d vv = Some mm' -> MWF mm'.
+  Hypothesis HMWF_root : forall mm mm' fld (delta : Z) vv,
+      mem_id fld chase_root_fields = true ->
+      field_offset (prog_comp_env mario.prog) fld mario_state_members
+        = Errors.OK (delta, Full) ->
+      (forall bb oo, vv = Vptr bb oo -> SafeB bb) ->
+      MWF mm ->
+      Mem.store Mptr mm bm delta vv = Some mm' -> MWF mm'.
+  Hypothesis HMWF_sglob : forall m gb v,
+      MWF m ->
+      Genv.find_symbol (lp_ge lp) interaction._gGlobalTimer = Some gb ->
+      Mem.load Mint32 m gb 0 = Some v ->
+      forall bb oo, v <> Vptr bb oo.
+  Hypothesis HchaseStep : forall m b ofs b' o',
+      MWF m -> SafeB b ->
+      Mem.loadv Mptr m (Vptr b ofs) = Some (Vptr b' o') ->
+      SafeB b'.
+  Hypothesis HMWF_chase_safe : forall mm ch bsafe (d : Z) vv mm',
+      MWF mm -> SafeB bsafe ->
+      (forall bb oo, vv = Vptr bb oo -> SafeB bb) ->
+      Mem.store ch mm bsafe d vv = Some mm' -> MWF mm'.
+
+  (* ================================================================== *)
+  (* THE io ENTRY PRODUCER: a handler body whose params are EXACTLY      *)
+  (* (m, interactType, o), walked by the wwalk engine with _o seeded     *)
+  (* into the chase census from the io gate's SafeB-object conditional.  *)
+  (* Twin of body_pres_of_wwalk_cact; the io gate replaces marg_ok.      *)
+  (* ================================================================== *)
+  Lemma body_pres_io_of_wwalk :
+    forall (f : Clight.function)
+           (ids wids cact xids sids tids : list ident),
+      fn_vars f = nil ->
+      fn_params f
+      = (interaction._m, tptr (Tstruct interaction._MarioState noattr))
+        :: (interaction._interactType, tuint)
+        :: (interaction._o, tptr (Tstruct interaction._Object noattr))
+        :: nil ->
+      forallb (fun t' => negb (Pos.eqb t' interaction._m)
+                         && negb (Pos.eqb t' interaction._interactType))
+        cact = true ->
+      (forall fid', mem_id fid' ids = true ->
+                    call_pres lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' wids = true ->
+                    call_pres_act lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' xids = true ->
+                    call_pres_ext lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' sids = true ->
+                    call_pres_act lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' tids = true ->
+                    call_pres_act3 lp bm NoA MWF fid') ->
+      wwalk_chk false nil ids wids cact xids sids tids (fn_body f)
+        = true ->
+      body_pres_io lp bm NoA MWF SafeB f.
+  Proof.
+    intros f ids wids cact xids sids tids Hvars Hps Hcok
+           Hcp Hcpa Hcpx Hcps Hcp3t Hchk
+           m0 vm vi vo t0 m1 vres0 Hvm Hvo Hevf HN HM HV HS.
+    inv Hevf.
+    match goal with
+    | He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry
+    end.
+    match goal with
+    | Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody
+    end.
+    match goal with
+    | Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfree
+    end.
+    inv Hentry.
+    match goal with
+    | Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+        rewrite Hvars in Ha; inv Ha
+    end.
+    match goal with
+    | Hb : bind_parameter_temps _ _ _ = Some _ |- _ => rename Hb into Hbind
+    end.
+    rewrite Hps in Hbind.
+    cbn [bind_parameter_temps] in Hbind.
+    injection Hbind as Hle1.
+    (* the entry env facts *)
+    assert (Htat0 : forall b o,
+               le1 ! interaction._m = Some (Vptr b o) ->
+               b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg. rewrite <- Hle1 in Hg.
+      rewrite PTree.gso in Hg by (vm_compute; discriminate).
+      rewrite PTree.gso in Hg by (vm_compute; discriminate).
+      rewrite PTree.gss in Hg. injection Hg as ->.
+      exact (Hvm b o eq_refl). }
+    assert (Hact0 : act_inv nil le1)
+      by (intros t' Hmem' x Hg'; discriminate Hmem').
+    assert (Hch0 : chase_inv SafeB cact le1).
+    { intros t' Hmem' b o Hg'.
+      assert (Hin' : In t' cact).
+      { unfold mem_id in Hmem'. apply existsb_exists in Hmem'.
+        destruct Hmem' as (x & Hx & Heq).
+        apply Pos.eqb_eq in Heq. subst x. exact Hx. }
+      pose proof (proj1 (forallb_forall _ _) Hcok t' Hin') as Ht'.
+      apply andb_prop in Ht' as [Hne_m Hne_it].
+      apply negb_true_iff in Hne_m. apply negb_true_iff in Hne_it.
+      destruct (Pos.eqb t' interaction._o) eqn:Eo.
+      - apply Pos.eqb_eq in Eo. subst t'.
+        rewrite <- Hle1 in Hg'. rewrite PTree.gss in Hg'.
+        injection Hg' as ->.
+        exact (Hvo b o eq_refl).
+      - rewrite <- Hle1 in Hg'.
+        rewrite PTree.gso in Hg'
+          by (intro EE; rewrite EE, Pos.eqb_refl in Eo; discriminate Eo).
+        rewrite PTree.gso in Hg'
+          by (intro EE; rewrite EE, Pos.eqb_refl in Hne_it;
+              discriminate Hne_it).
+        rewrite PTree.gso in Hg'
+          by (intro EE; rewrite EE, Pos.eqb_refl in Hne_m;
+              discriminate Hne_m).
+        pose proof (create_undef_temps_val _ _ _ Hg') as EE.
+        discriminate EE. }
+    (* the free list at the empty env *)
+    change (blocks_of_env (lp_ge lp) empty_env)
+      with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    (* the walk *)
+    destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+                false nil ids wids cact xids sids tids Hcp Hcpa Hcpx Hcps
+                Hcp3t _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _)
+                (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _)
+                (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
+                HN HM HV HS)
+      as (HV' & HS' & HM' & _).
+    exact (conj HV' (conj HS' HM')).
+  Qed.
+
+  (* ---- interact_water_ring: 2 sites (healCounter window store +
+     o->rawData.asS32[43] chase-indexed store), ZERO callees. ---- *)
+  Lemma io_water_ring :
+    body_pres_io lp bm NoA MWF SafeB interaction.f_interact_water_ring.
+  Proof.
+    apply (body_pres_io_of_wwalk interaction.f_interact_water_ring
+             nil nil (interaction._o :: nil) nil nil nil
+             io_wr_vars io_wr_params eq_refl).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact io_wr_walk.
+  Qed.
+
+  (* ---- the handler-table dispatch splitter: the capstone's
+     Hpres_ihandler from the walked handlers + the io_rest census. ---- *)
+  Lemma ihandler_pres_split :
+    (forall fid f, mem_id fid io_rest_ids = true ->
+       (prog_defmap interaction.prog) ! fid = Some (Gfun (Internal f)) ->
+       body_pres_io lp bm NoA MWF SafeB f) ->
+    forall fid f, In fid interaction_handler_ids ->
+      (prog_defmap interaction.prog) ! fid = Some (Gfun (Internal f)) ->
+      body_pres_io lp bm NoA MWF SafeB f.
+  Proof.
+    intros Hrest fid f Hin Hdm.
+    cbn [interaction_handler_ids In] in Hin.
+    repeat (destruct Hin as [<- | Hin];
+            [ solve [ (eapply Hrest; [ | exact Hdm ]; reflexivity)
+                    | (pose proof io_wr_pin as E; rewrite Hdm in E;
+                       injection E as ->; exact io_water_ring) ]
+            | ]).
+    destruct Hin.
+  Qed.
+
+End IoSurface.
