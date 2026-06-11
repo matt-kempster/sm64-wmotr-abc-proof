@@ -113,6 +113,7 @@ Section NoAImpliesNoFlyLinked.
   Variable NoA : mem -> Prop.
   Variable reached_id : ident -> Prop.
   Variable reached_fd : Clight.fundef -> Prop.
+  Variable SafeB : block -> Prop.
 
   (* ---- THE REACH RESIDUALS, ALL OVER THE LINKED GENV lp. None is the false
      reach_ext_action_cell; each ranges over lp and is satisfiable. ---- *)
@@ -126,14 +127,26 @@ Section NoAImpliesNoFlyLinked.
   Hypothesis Hreach_val :
     reach_value_preserves_reached not_tainted bm (lp_ge lp) NoA MWF reached_fd.
   Hypothesis Hrest : reach_rest_marg_lp lp bm NoA reached_fd.
-  Hypothesis Hstore :
+  (* the chase-root row of MWF at the marioObj cell: its value, if a
+     pointer, is SafeB. At the MWF_real grounding this is PROVED
+     (MWFReal.mwf_real_chase_root at fld := _marioObj). *)
+  Hypothesis Hchase_safe : forall delta mm b' o',
+      field_offset (prog_comp_env mario.prog) mario._marioObj mario_state_members
+        = Errors.OK (delta, Full) ->
+      MWF mm ->
+      Mem.loadv Mptr mm (Vptr bm (Ptrofs.repr delta)) = Some (Vptr b' o') ->
+      SafeB b'.
+  (* THE RESTATED STORE ROW (execution-relative): the walk hands the row
+     the SafeB provenance of _t'49/_t'13. The previous forall-le pair was
+     FALSE for the real lp (adversarial le -> store1 hits the controller
+     A-cell). *)
+  Hypothesis Hstore_safe :
     forall e le mm a1 a2 tt le' mm' out,
-      NoA mm -> RealFrameValue.prov_ok (Sassign a1 a2) ->
-      exec_stmt function_entry2 (lp_ge lp) e le mm (Sassign a1 a2) tt le' mm' out -> NoA mm'.
-  Hypothesis Hstoremwf :
-    forall e le mm a1 a2 tt le' mm' out,
-      NoA mm -> RealFrameValue.prov_ok (Sassign a1 a2) -> MWF mm ->
-      exec_stmt function_entry2 (lp_ge lp) e le mm (Sassign a1 a2) tt le' mm' out -> MWF mm'.
+      NoA mm -> MWF mm -> RealFrameValue.prov_ok (Sassign a1 a2) ->
+      (forall b o, le ! mario._t'49 = Some (Vptr b o) -> SafeB b) ->
+      (forall b o, le ! mario._t'13 = Some (Vptr b o) -> SafeB b) ->
+      exec_stmt function_entry2 (lp_ge lp) e le mm (Sassign a1 a2) tt le' mm' out ->
+      NoA mm' /\ MWF mm'.
   Hypothesis Hbcr :
     forall oid a al le mm vf fd,
       RealFrameValue.reach_chk reached_id (Scall oid a al) ->
@@ -156,8 +169,8 @@ Section NoAImpliesNoFlyLinked.
   Proof.
     intros i m m' Ha _ (Hv & Hsat & Hwf & Hgwf & HMWF) Hst.
     assert (HnoA : NoA m) by (eapply input_grounds_noA; eassumption).
-    destruct (execute_mario_action_preserves_real_reached_lp lp LO_mario not_tainted bm NoA MWF reached_id reached_fd m m'
-                Hreach_val Hrest Hstore Hstoremwf Hbcr Hbodyrck
+    destruct (execute_mario_action_preserves_real_reached_lp lp LO_mario not_tainted bm NoA MWF SafeB reached_id reached_fd m m'
+                Hreach_val Hrest Hchase_safe Hstore_safe Hbcr Hbodyrck
                 HnoA HMWF Hv Hsat Hwf Hgwf (step_lp_real i m m' Hst))
       as (_ & Hv' & Hs' & Hw' & Hgw' & HMWF').
     exact (conj Hv' (conj Hs' (conj Hw' (conj Hgw' HMWF')))).
@@ -238,6 +251,7 @@ Section NoARealInput.
 
   Variable reached_id : ident -> Prop.
   Variable reached_fd : Clight.fundef -> Prop.
+  Variable SafeB : block -> Prop.
 
   (* THE CONCRETE NO-A INVARIANT: the controller's A bit is clear in memory. *)
   Definition NoA_real (m : mem) : Prop := ctl_a_clear m bm.
@@ -264,16 +278,22 @@ Section NoARealInput.
   Hypothesis Hreach_val :
     reach_value_preserves_reached not_tainted bm (lp_ge lp) NoA_real MWF reached_fd.
   Hypothesis Hrest : reach_rest_marg_lp lp bm NoA_real reached_fd.
-  Hypothesis Hstore :
+  (* the chase-root row of MWF at the marioObj cell: its value, if a
+     pointer, is SafeB. At the MWF_real grounding this is PROVED
+     (MWFReal.mwf_real_chase_root at fld := _marioObj). *)
+  Hypothesis Hchase_safe : forall delta mm b' o',
+      field_offset (prog_comp_env mario.prog) mario._marioObj mario_state_members
+        = Errors.OK (delta, Full) ->
+      MWF mm ->
+      Mem.loadv Mptr mm (Vptr bm (Ptrofs.repr delta)) = Some (Vptr b' o') ->
+      SafeB b'.
+  Hypothesis Hstore_safe :
     forall e le mm a1 a2 tt le' mm' out,
-      NoA_real mm -> RealFrameValue.prov_ok (Sassign a1 a2) ->
+      NoA_real mm -> MWF mm -> RealFrameValue.prov_ok (Sassign a1 a2) ->
+      (forall b o, le ! mario._t'49 = Some (Vptr b o) -> SafeB b) ->
+      (forall b o, le ! mario._t'13 = Some (Vptr b o) -> SafeB b) ->
       exec_stmt function_entry2 (lp_ge lp) e le mm (Sassign a1 a2) tt le' mm' out ->
-      NoA_real mm'.
-  Hypothesis Hstoremwf :
-    forall e le mm a1 a2 tt le' mm' out,
-      NoA_real mm -> RealFrameValue.prov_ok (Sassign a1 a2) -> MWF mm ->
-      exec_stmt function_entry2 (lp_ge lp) e le mm (Sassign a1 a2) tt le' mm' out ->
-      MWF mm'.
+      NoA_real mm' /\ MWF mm'.
   Hypothesis Hbcr :
     forall oid a al le mm vf fd,
       RealFrameValue.reach_chk reached_id (Scall oid a al) ->
@@ -299,8 +319,8 @@ Section NoARealInput.
     intros init is m Hinit HnoA Hns Hreach.
     exact (noA_no_spawn_never_flying_lp lp LO_mario bm MWF mem
              (a_pressed_real bm) spawn_flying step_real step_real_steps
-             NoA_real reached_id reached_fd
-             Hreach_val Hrest Hstore Hstoremwf Hbcr Hbodyrck
+             NoA_real reached_id reached_fd SafeB
+             Hreach_val Hrest Hchase_safe Hstore_safe Hbcr Hbodyrck
              input_grounds_noA_real init is m Hinit HnoA Hns Hreach).
   Qed.
 
@@ -469,16 +489,22 @@ Section NoARealInputV2.
      own provenance stores + the external meminv preservation), same shapes
      as the abstract section's. ---- *)
   Hypothesis Hrest : reach_rest_marg_lp lp bm (NoA_real bm) (reached_v2 lp).
-  Hypothesis Hstore :
+  (* the chase-root row of MWF at the marioObj cell: its value, if a
+     pointer, is SafeB. At the MWF_real grounding this is PROVED
+     (MWFReal.mwf_real_chase_root at fld := _marioObj). *)
+  Hypothesis Hchase_safe : forall delta mm b' o',
+      field_offset (prog_comp_env mario.prog) mario._marioObj mario_state_members
+        = Errors.OK (delta, Full) ->
+      MWF mm ->
+      Mem.loadv Mptr mm (Vptr bm (Ptrofs.repr delta)) = Some (Vptr b' o') ->
+      SafeB b'.
+  Hypothesis Hstore_safe :
     forall e le mm a1 a2 tt le' mm' out,
-      NoA_real bm mm -> RealFrameValue.prov_ok (Sassign a1 a2) ->
+      NoA_real bm mm -> MWF mm -> RealFrameValue.prov_ok (Sassign a1 a2) ->
+      (forall b o, le ! mario._t'49 = Some (Vptr b o) -> SafeB b) ->
+      (forall b o, le ! mario._t'13 = Some (Vptr b o) -> SafeB b) ->
       exec_stmt function_entry2 (lp_ge lp) e le mm (Sassign a1 a2) tt le' mm' out ->
-      NoA_real bm mm'.
-  Hypothesis Hstoremwf :
-    forall e le mm a1 a2 tt le' mm' out,
-      NoA_real bm mm -> RealFrameValue.prov_ok (Sassign a1 a2) -> MWF mm ->
-      exec_stmt function_entry2 (lp_ge lp) e le mm (Sassign a1 a2) tt le' mm' out ->
-      MWF mm'.
+      NoA_real bm mm' /\ MWF mm'.
 
   (* ==================================================================== *)
   (* THE V2 GROUNDED THEOREM: same conclusion as noA_no_spawn_never_       *)
@@ -495,14 +521,14 @@ Section NoARealInputV2.
       ~ mem_flying_lp bm m.
   Proof.
     exact (noA_no_spawn_never_flying_real lp LO_mario bm MWF spawn_flying
-             root_RID (reached_v2 lp)
+             root_RID (reached_v2 lp) SafeB
              (reach_value_preserves_reached_v2 lp LO_mario bm SafeB
                 (NoA_real bm) MWF
                 Hmwf_inp Hmwf_ctl HactVint HPgms HchaseRoot HchaseStep
                 HSafeNotBm Hmwf_window Hmwf_input Hmwf_glob Hmwf_chase
                 Hmwf_umbi WL_exempt Hrest_pres Hret_call
                 Hext_action Hmwf_ext Hmwf_entry Hmwf_free Hmwf_ctl)
-             Hrest Hstore Hstoremwf
+             Hrest Hchase_safe Hstore_safe
              (root_call_resolves lp LO_mario)
              root_body_reach_chk).
   Qed.
@@ -963,16 +989,22 @@ Section NoARealInputMWF.
       external_call ef (lp_ge lp) vargs m t vres m' ->
       Mem.valid_block m bm -> MWF m -> MWF m'.
   Hypothesis Hrest : reach_rest_marg_lp lp bm (NoA_real bm) (reached_v2 lp).
-  Hypothesis Hstore :
+  (* the chase-root row of MWF at the marioObj cell: its value, if a
+     pointer, is SafeB. At the MWF_real grounding this is PROVED
+     (MWFReal.mwf_real_chase_root at fld := _marioObj). *)
+  Hypothesis Hchase_safe : forall delta mm b' o',
+      field_offset (prog_comp_env mario.prog) mario._marioObj mario_state_members
+        = Errors.OK (delta, Full) ->
+      MWF mm ->
+      Mem.loadv Mptr mm (Vptr bm (Ptrofs.repr delta)) = Some (Vptr b' o') ->
+      SafeB b'.
+  Hypothesis Hstore_safe :
     forall e le mm a1 a2 tt le' mm' out,
-      NoA_real bm mm -> RealFrameValue.prov_ok (Sassign a1 a2) ->
+      NoA_real bm mm -> MWF mm -> RealFrameValue.prov_ok (Sassign a1 a2) ->
+      (forall b o, le ! mario._t'49 = Some (Vptr b o) -> SafeB b) ->
+      (forall b o, le ! mario._t'13 = Some (Vptr b o) -> SafeB b) ->
       exec_stmt function_entry2 (lp_ge lp) e le mm (Sassign a1 a2) tt le' mm' out ->
-      NoA_real bm mm'.
-  Hypothesis Hstoremwf :
-    forall e le mm a1 a2 tt le' mm' out,
-      NoA_real bm mm -> RealFrameValue.prov_ok (Sassign a1 a2) -> MWF mm ->
-      exec_stmt function_entry2 (lp_ge lp) e le mm (Sassign a1 a2) tt le' mm' out ->
-      MWF mm'.
+      NoA_real bm mm' /\ MWF mm'.
 
   (* the out-param arc's local-store MWF brick, GROUNDED at MWF_real:
      a store into a watched-disjoint stack block (local_blk) preserves
@@ -1241,7 +1273,7 @@ Section NoARealInputMWF.
              Hret_call Hext_action Hmwf_ext
              (mwf_real_entry lp bm bc oc0 SafeB Hbc_bm)
              (mwf_real_free lp bm bc oc0 SafeB Hbc_bm)
-             Hrest Hstore Hstoremwf).
+             Hrest Hchase_safe Hstore_safe).
   Qed.
 
 End NoARealInputMWF.
