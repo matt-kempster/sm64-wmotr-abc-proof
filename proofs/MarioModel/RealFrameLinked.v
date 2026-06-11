@@ -361,11 +361,10 @@ Section ReRoot.
         NoA m -> meminv_lp m ->
         eval_funcall function_entry2 lp_ge m fd vargs t m' vres ->
         NoA m' /\ meminv_lp m'.
-    Hypothesis ext_meminv_noA_lp :
-      forall ef vargs m t vres m',
-        NoA m -> meminv_lp m ->
-        external_call ef lp_ge vargs m t vres m' ->
-        NoA m' /\ meminv_lp m'.
+    (* NO external/builtin hypothesis: the body census (prov_ok) forbids
+       Sbuiltin -- the real body has none -- so the engine REFUTES that case.
+       The previous forall-ef row here was FALSE for the real lp (EF_memcpy
+       can write any writable cell, including Mario's action cell). *)
     Hypothesis noA_store_pres_lp :
       forall e le m a1 a2 t le' m' out,
         NoA m -> prov_ok (Sassign a1 a2) ->
@@ -413,13 +412,9 @@ Section ReRoot.
         match goal with Hf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
           destruct (reach_meminv_noA_lp _ _ _ _ _ _ Hno0 Hmem0 Hf) as (Hno0' & Hmem0') end.
         split; [ exact Hno0' | split; [ exact Hmem0' | apply tprov_set_opttemp; assumption ] ].
-      - (* Sbuiltin leaf *)
-        intros le0 m0 oid ef tyl al t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0) Hck' Hexec.
-        cbn [prov_ok] in Hck'.
-        inversion Hexec; subst.
-        match goal with Hec : external_call _ _ _ _ _ _ _ |- _ =>
-          destruct (ext_meminv_noA_lp _ _ _ _ _ _ Hno0 Hmem0 Hec) as (Hno0' & Hmem0') end.
-        split; [ exact Hno0' | split; [ exact Hmem0' | apply tprov_set_opttemp; assumption ] ].
+      - (* Sbuiltin leaf: REFUTED by the census (the body has no builtins) *)
+        intros le0 m0 oid ef tyl al t0 le0' m0' out0 _ Hck' _.
+        cbn [prov_ok] in Hck'. destruct Hck'.
     Qed.
   End ProvEngineLp.
 
@@ -480,9 +475,6 @@ Section ReRoot.
     forall (bm : block) (NoA : mem -> Prop) m m',
       reach_value_preserves_noA Qv bm lp_ge NoA ->
       reach_rest_noA_lp bm NoA ->
-      (forall ef vargs mm tt vres mm',
-          NoA mm -> meminv_lp bm mm ->
-          external_call ef lp_ge vargs mm tt vres mm' -> NoA mm' /\ meminv_lp bm mm') ->
       (forall e le mm a1 a2 tt le' mm' out,
           NoA mm -> prov_ok (Sassign a1 a2) ->
           exec_stmt function_entry2 lp_ge e le mm (Sassign a1 a2) tt le' mm' out -> NoA mm') ->
@@ -493,7 +485,7 @@ Section ReRoot.
       NoA m' /\ Mem.valid_block m' bm /\ action_sat Qv m' bm /\
       marioObj_wf_lp m' bm /\ gMarioState_wf_lp m' bm.
   Proof.
-    intros bm NoA m m' Hval Hrest Hext Hstore HnoA Hv Hsat Hmwf Hgwf
+    intros bm NoA m m' Hval Hrest Hstore HnoA Hv Hsat Hmwf Hgwf
            (b_o & t & res & Hfun).
     pose proof Hgwf as Hgwf2. destruct Hgwf2 as (gb & Hgb & Hload).
     pose proof (reach_meminv_noA_build_lp bm NoA Hval Hrest) as Hreachmem.
@@ -507,7 +499,7 @@ Section ReRoot.
                 m m' t res eq_refl);
         [ | exact (conj HnoA (conj Hv (conj Hsat (conj Hmwf Hgwf)))) | exact Hfun ].
       intros le mm tt le' mm' out Hbind (Hn & Hvv & Hss & Hmw & Hgw) Hexec.
-      edestruct (exec_body_prov_noA_lp bm gb Hgb NoA Hreachmem Hext Hstore
+      edestruct (exec_body_prov_noA_lp bm gb Hgb NoA Hreachmem Hstore
                    empty_env le mm (fn_body mario.f_execute_mario_action) tt le' mm' out)
         as (Hn' & Hmem' & _);
         [ apply PTree.gempty
@@ -606,11 +598,8 @@ Section ReRoot.
       forall e le m a1 a2 t le' m' out,
         NoA m -> prov_ok (Sassign a1 a2) -> MWF m ->
         exec_stmt function_entry2 lp_ge e le m (Sassign a1 a2) t le' m' out -> MWF m'.
-    Hypothesis ext_mwf_lp :
-      forall ef vargs m t vres m',
-        NoA m -> meminv_lp bm m -> MWF m ->
-        external_call ef lp_ge vargs m t vres m' ->
-        NoA m' /\ meminv_lp bm m' /\ MWF m'.
+    (* NO external/builtin hypothesis -- see the note in ProvEngineLp: the
+       census forbids Sbuiltin, the engine refutes the case. *)
     Hypothesis reach_meminv_reached_lp :
       forall m fd vargs t m' vres,
         Reached_fd fd -> NoA m -> meminv_lp bm m -> MWF m -> marg_ok bm vargs ->
@@ -698,16 +687,9 @@ Section ReRoot.
         + apply tprov_set_opttemp; [ exact Hck0 | exact Htp0 ].
         + apply pgms_set_opttemp; [ exact Hres | exact Hpg0 ].
         + exact Hmwf0'.
-      - (* Sbuiltin leaf *)
-        intros le0 m0 oid ef tyl al t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0 & Hmwf0) (Hck0 & Hpck0 & _) Hexec.
-        cbn [prov_ok] in Hck0. cbn [pgms_chk] in Hpck0.
-        inversion Hexec; subst.
-        match goal with Hec : external_call _ _ _ _ _ _ _ |- _ =>
-          destruct (ext_mwf_lp _ _ _ _ _ _ Hno0 Hmem0 Hmwf0 Hec) as (Hno0' & Hmem0' & Hmwf0') end.
-        split; [ exact Hno0' | split; [ exact Hmem0' | split; [ | split ] ] ].
-        + apply tprov_set_opttemp; [ exact Hck0 | exact Htp0 ].
-        + apply pgms_set_opttemp; [ exact Hpck0 | exact Hpg0 ].
-        + exact Hmwf0'.
+      - (* Sbuiltin leaf: REFUTED by the census (the body has no builtins) *)
+        intros le0 m0 oid ef tyl al t0 le0' m0' out0 _ (Hck0 & _) _.
+        cbn [prov_ok] in Hck0. destruct Hck0.
       - (* Hseq *) intros s1 s2 Hd; destruct Hd as (Hp & Hg & Hr);
           cbn [prov_ok pgms_chk reach_chk] in Hp, Hg, Hr; tauto.
       - (* Hif *) intros a s1 s2 Hd; destruct Hd as (Hp & Hg & Hr);
@@ -766,10 +748,6 @@ Section ReRoot.
            (Reached_id : ident -> Prop) (Reached_fd : Clight.fundef -> Prop) m m',
       reach_value_preserves_reached Qv bm lp_ge NoA MWF Reached_fd ->
       reach_rest_marg_lp bm NoA ->
-      (forall ef vargs mm tt vres mm',
-          NoA mm -> meminv_lp bm mm -> MWF mm ->
-          external_call ef lp_ge vargs mm tt vres mm' ->
-          NoA mm' /\ meminv_lp bm mm' /\ MWF mm') ->
       (forall e le mm a1 a2 tt le' mm' out,
           NoA mm -> prov_ok (Sassign a1 a2) ->
           exec_stmt function_entry2 lp_ge e le mm (Sassign a1 a2) tt le' mm' out -> NoA mm') ->
@@ -788,7 +766,7 @@ Section ReRoot.
       NoA m' /\ Mem.valid_block m' bm /\ action_sat Qv m' bm /\
       marioObj_wf_lp m' bm /\ gMarioState_wf_lp m' bm /\ MWF m'.
   Proof.
-    intros bm NoA MWF Reached_id Reached_fd m m' Hval Hrest Hext Hstore Hstoremwf Hbcr Hbodyrck
+    intros bm NoA MWF Reached_id Reached_fd m m' Hval Hrest Hstore Hstoremwf Hbcr Hbodyrck
            HnoA HMWF Hv Hsat Hmwf Hgwf (b_o & t & res & Hfun).
     pose proof Hgwf as Hgwf2. destruct Hgwf2 as (gb & Hgb & Hload).
     pose proof (reach_meminv_reached_build_lp bm NoA MWF Reached_fd Hval Hrest) as Hreachmem.
@@ -803,7 +781,7 @@ Section ReRoot.
         [ | exact (conj HnoA (conj Hv (conj Hsat (conj Hmwf (conj Hgwf HMWF))))) | exact Hfun ].
       intros le mm tt le' mm' out Hbind (Hn & Hvv & Hss & Hmw & Hgw & Hmf) Hexec.
       edestruct (exec_body_prov_reached_lp bm gb Hgb NoA MWF Reached_id Reached_fd
-                   Hstore Hstoremwf Hext Hreachmem Hbcr
+                   Hstore Hstoremwf Hreachmem Hbcr
                    le mm (fn_body mario.f_execute_mario_action) tt le' mm' out)
         as (Hn' & Hmem' & _ & _ & Hmf');
         [ exact Hexec
