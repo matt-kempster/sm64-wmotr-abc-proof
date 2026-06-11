@@ -4403,11 +4403,11 @@ Example io_ig_walk :
     (fn_body interaction.f_interact_igloo_barrier) = true.
 Proof. vm_compute. reflexivity. Qed.
 
-(* the REST census: the 15 handlers not yet walked (shrinks per slice) *)
+(* the REST census: the 14 handlers not yet walked (shrinks per slice) *)
 Definition io_rest_ids : list ident :=
   interaction._interact_coin
   :: interaction._interact_star_or_key
-  :: interaction._interact_warp :: interaction._interact_warp_door
+  :: interaction._interact_warp_door
   :: interaction._interact_door
   :: interaction._interact_bully
   :: interaction._interact_bounce_top
@@ -4890,6 +4890,29 @@ Example io_fl_walk :
     (fn_body interaction.f_interact_flame) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- warp (slice 5): pure engine -- mario_stop_riding_object internal
+   row + play_sound/segmented_to_virtual externals + const-action sma. *)
+Lemma io_wa_pin :
+  (prog_defmap interaction.prog) ! interaction._interact_warp
+  = Some (Gfun (Internal interaction.f_interact_warp)).
+Proof. vm_compute. reflexivity. Qed.
+Example io_wa_vars : fn_vars interaction.f_interact_warp = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example io_wa_params :
+  fn_params interaction.f_interact_warp
+  = (interaction._m, tptr (Tstruct interaction._MarioState noattr))
+    :: (interaction._interactType, tuint)
+    :: (interaction._o, tptr (Tstruct interaction._Object noattr)) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+Example io_wa_walk :
+  wwalk_chk false nil
+    (interaction._mario_stop_riding_object :: nil) nil
+    (interaction._o :: nil)
+    (interaction._play_sound :: interaction._segmented_to_virtual :: nil)
+    (interaction._set_mario_action :: nil) nil
+    (fn_body interaction.f_interact_warp) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 Section IoSurface.
   Variable lp : Clight.program.
   Hypothesis LO_mario : linkorder mario.prog lp.
@@ -4984,6 +5007,12 @@ Section IoSurface.
     call_pres lp bm NoA MWF interaction._mario_stop_riding_and_holding.
   Hypothesis Hcpa_sma :
     call_pres_act lp bm NoA MWF interaction._set_mario_action.
+  (* slice-5: the walked mario_stop_riding_object internal (msro_row)
+     and the segmented_to_virtual model boundary *)
+  Hypothesis Hcp_msro :
+    call_pres lp bm NoA MWF interaction._mario_stop_riding_object.
+  Hypothesis Hcpx_s2v_io :
+    call_pres_ext lp bm NoA MWF interaction._segmented_to_virtual.
 
   Let Hcp_tdfio :
     call_pres lp bm NoA MWF interaction._take_damage_from_interact_object
@@ -5754,6 +5783,36 @@ Section IoSurface.
     - exact ioms_sn_walk.
   Qed.
 
+  Lemma io_warp :
+    body_pres_io lp bm NoA MWF SafeB interaction.f_interact_warp.
+  Proof.
+    apply (body_pres_io_of_wwalk interaction.f_interact_warp
+             nil (interaction._mario_stop_riding_object :: nil) nil
+             (interaction._o :: nil)
+             (interaction._play_sound
+              :: interaction._segmented_to_virtual :: nil)
+             (interaction._set_mario_action :: nil) nil
+             io_wa_vars io_wa_params eq_refl eq_refl).
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcp_msro
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpx_ps | ].
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid';
+          exact Hcpx_s2v_io
+        | discriminate F ].
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpa_sma
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - exact io_wa_walk.
+  Qed.
+
   (* ================================================================== *)
   (* SLICE 4: the eight pure-engine handlers.  Each is the water_ring    *)
   (* pattern -- body_pres_io_of_wwalk + the per-handler censuses; the    *)
@@ -6014,7 +6073,9 @@ Section IoSurface.
                     | (pose proof io_cl_pin as E; rewrite Hdm in E;
                        injection E as ->; exact io_clam_or_bubba)
                     | (pose proof io_sn_pin as E; rewrite Hdm in E;
-                       injection E as ->; exact io_snufit_bullet) ]
+                       injection E as ->; exact io_snufit_bullet)
+                    | (pose proof io_wa_pin as E; rewrite Hdm in E;
+                       injection E as ->; exact io_warp) ]
             | ]).
     destruct Hin.
   Qed.
