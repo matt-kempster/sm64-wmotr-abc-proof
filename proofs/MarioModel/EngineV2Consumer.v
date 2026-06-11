@@ -189,8 +189,8 @@ Section V2Consumer.
   (* per-symbol: the rest surface preserves the carried facts -- but ONLY
      where lp resolves the symbol to an INTERNAL body. A rest symbol that
      lp keeps External (math/runtime: sqrtf, play_sound, find_floor ...)
-     carries NO obligation here: the engine's External path already goes
-     through Hext_action/Hmwf_ext/Hret_ext generically. (Stating this
+     carries NO obligation here: the engine's External path goes through
+     the reached-gated Hext_action/Hmwf_ext rows below. (Stating this
      leaf over all fundefs was a phantom: both engine leaves that consume
      it -- Hbridged/Hexempt -- are Internal-shaped.) THIS is the
      remaining crux at this scope: for the 7 dispatch handlers +
@@ -210,15 +210,20 @@ Section V2Consumer.
       reached_v2 fd ->
       eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m0' vres0 ->
       forall b o, vres0 = Vptr b o -> b <> bm.
-  Hypothesis Hret_ext : forall ef vargs0 m0 t0 vres0 m0',
-      external_call ef (lp_ge lp) vargs0 m0 t0 vres0 m0' ->
-      forall b o, vres0 = Vptr b o -> b <> bm.
 
-  (* externals: the action cell + MWF survive external calls; MWF only
-     reads bm-pinned cells (unchanged-on-bm stability) *)
-  Hypothesis Hext_action :
-    FieldNonInterference.reach_ext_preserves (action_cell bm) (lp_ge lp).
-  Hypothesis Hmwf_ext : forall ef vargs m t vres m',
+  (* externals, REACHED-GATED: with builtins census-refuted, the engine's
+     only external_call site is a reached External fundef, and
+     reached_v2 (External ef) unpacks to a NAMED rest symbol resolving to
+     ef in lp -- a per-symbol model-boundary surface (EF_external rows for
+     play_sound, the math helpers, ...). The previous forall-ef rows
+     (including the now-DELETED Hret_ext) were FALSE for the real program:
+     EF_memcpy writes any writable cell, EF_vload can return Vptr bm 0. *)
+  Hypothesis Hext_action : forall ef targs tres cc vargs m t vres m',
+      reached_v2 (External ef targs tres cc) ->
+      external_call ef (lp_ge lp) vargs m t vres m' ->
+      Mem.unchanged_on (action_cell bm) m m'.
+  Hypothesis Hmwf_ext : forall ef targs tres cc vargs m t vres m',
+      reached_v2 (External ef targs tres cc) ->
       external_call ef (lp_ge lp) vargs m t vres m' ->
       Mem.valid_block m bm -> MWF m -> MWF m'.
   (* MWF crosses function entry/exit by the PRECISE operations there:
@@ -810,13 +815,11 @@ Section V2Consumer.
         intros bc e optid a al v le HC [HTI Hee] _.
         split; [ | exact Hee ].
         exact (chk_ti_optc not_tainted bm SafeB bc e optid a al v le HC HTI).
-      - (* HTI_optb: censused bodies have no builtins *)
-        intros bc e optid ef tyargs al v le HC _ _.
+      - (* HCbuiltin: censused bodies have no builtins *)
+        intros bc optid ef tyargs al HC.
         cbn in HC. discriminate HC.
       - (* Hret_call *)
         exact Hret_call.
-      - (* Hret_builtin *)
-        exact Hret_ext.
       - (* Hcall_reached: PROVED -- the per-symbol resolution closure *)
         intros bc e le m0 optid a al vf fd0 [_ Hee] HC Hevf Hff.
         subst e.
@@ -829,7 +832,7 @@ Section V2Consumer.
         destruct Hr as [(f0 & Ef & HC0) | Hb]; [ | exact (Hnb Hb) ].
         rewrite Efd in Ef. injection Ef as Ef.
         exact (censused_body_not_writer f0 HC0 (eq_sym Ef)).
-      - (* reach_ext_preserves (action_cell bm) *)
+      - (* Hext_action (reached-gated) *)
         exact Hext_action.
       - (* Hmwf_ext *)
         exact Hmwf_ext.

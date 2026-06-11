@@ -1740,16 +1740,16 @@ Theorem exec_funcall_reach_value_v2 :
        C i (Scall optid a al) -> TI i e le ->
        (forall b o, v = Vptr b o -> b <> bm) ->
        TI i e (set_opttemp optid v le)) ->
-    (forall i e optid ef tyargs al v le,
-       C i (Sbuiltin optid ef tyargs al) -> TI i e le ->
-       (forall b o, v = Vptr b o -> b <> bm) ->
-       TI i e (set_opttemp optid v le)) ->
+    (* HCbuiltin: the census FORBIDS builtins (every censused body has
+       none), so the Sbuiltin case is REFUTED outright. This removes the
+       engine's only per-builtin TI/return obligations -- the previous
+       forall-ef Hret_builtin row was FALSE for the real program
+       (EF_vload Mptr on gMarioState's cell returns Vptr bm 0). *)
+    (forall i optid ef tyargs al,
+       C i (Sbuiltin optid ef tyargs al) -> False) ->
     (forall fd m0 vargs0 t0 m0' vres0,
        Reached_fd fd ->
        eval_funcall function_entry2 ge m0 fd vargs0 t0 m0' vres0 ->
-       forall b o, vres0 = Vptr b o -> b <> bm) ->
-    (forall ef vargs0 m0 t0 vres0 m0',
-       external_call ef ge vargs0 m0 t0 vres0 m0' ->
        forall b o, vres0 = Vptr b o -> b <> bm) ->
     (forall i e le m optid a al vf fd,
        TI i e le -> C i (Scall optid a al) ->
@@ -1771,8 +1771,17 @@ Theorem exec_funcall_reach_value_v2 :
        writer fd ->
        Mem.valid_block m bm -> action_sat Q m bm ->
        Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m') ->
-    reach_ext_preserves (action_cell bm) ge ->
-    (forall ef vargs m t vres m',
+    (* the external rows, REACHED-GATED: with builtins refuted above, an
+       external_call happens ONLY at a reached External fundef -- a named
+       rest-symbol resolution. The previous forall-ef forms were FALSE for
+       the real program (EF_memcpy writes any writable cell, including
+       Mario's action cell). *)
+    (forall ef targs tres cc vargs m t vres m',
+       Reached_fd (External ef targs tres cc) ->
+       external_call ef ge vargs m t vres m' ->
+       Mem.unchanged_on (action_cell bm) m m') ->
+    (forall ef targs tres cc vargs m t vres m',
+       Reached_fd (External ef targs tres cc) ->
        external_call ef ge vargs m t vres m' ->
        Mem.valid_block m bm -> MWF m -> MWF m') ->
     (* Hmwf_entry / Hmwf_free: MWF crosses function entry and exit by the
@@ -1827,8 +1836,8 @@ Theorem exec_funcall_reach_value_v2 :
     reach_value_preserves_v2 Q bm ge NoA MWF writer W Reached_fd.
 Proof.
   intros Q bm ge NoA MWF writer W bridged Reached_fd I TI C
-         Hbody Hbridged Hassign Hcallmarg Hexempt HTI_set HTI_optc HTI_optb
-         Hret_call Hret_builtin Hcall_reached Hcallwriter Hw
+         Hbody Hbridged Hassign Hcallmarg Hexempt HTI_set HTI_optc HCbuiltin
+         Hret_call Hcall_reached Hcallwriter Hw
          Hext Hmwf_ext Hmwf_entry Hmwf_free Hmwf_noa HCseq1 HCseq2 HCif HCloop HCsw.
   assert (MAIN :
     (forall e le m s t le' m' out,
@@ -1890,17 +1899,9 @@ Proof.
         eapply HTI_optc;
           [ exact HC | exact HTI
           | exact (Hret_call f m vargs t m' vres Hreached Hfd) ] ] ] ].
-    - (* Sbuiltin *)
+    - (* Sbuiltin: REFUTED -- the census forbids builtins *)
       intros e le m optid ef al tyargs vargs t m' vres Hel Hec HnoA HMWF Hv Hsat i HTI HC.
-      split;
-      [ eapply external_call_valid_block; [ exact Hec | exact Hv ]
-      | split;
-        [ eapply action_sat_unchanged_on; [ eapply Hext; exact Hec | exact Hv | exact Hsat ]
-        | split;
-          [ eapply Hmwf_ext; [ exact Hec | exact Hv | exact HMWF ]
-          | eapply HTI_optb;
-              [ exact HC | exact HTI
-              | exact (Hret_builtin ef vargs m t vres m' Hec) ] ] ] ].
+      destruct (HCbuiltin _ _ _ _ _ HC).
     - (* Sseq_1: the tail census comes from HCseq2 + the head's Out_normal run *)
       intros e le m s1 s2 t1 le1 m1 t2 le2 m2 out He1 IH1 He2 IH2 HnoA HMWF Hv Hsat i HTI HC.
       pose proof (HCseq1 _ _ _ HC) as HC1.
@@ -1984,13 +1985,14 @@ Proof.
           | split;
             [ eapply action_sat_unchanged_on; [ exact Ufree_ac | exact Hv2 | exact Hsat2 ]
             | eapply Hmwf_free; [ exact Hfree | exact HMWF2 ] ] ].
-    - (* eval_funcall_external *)
+    - (* eval_funcall_external: the only external_call site -- reached-gated *)
       intros m ef targs tres cconv vargs t vres m' Hec Hreached HnoA HMWF Hv Hsat Hmarg _ _.
       split;
       [ eapply external_call_valid_block; [ exact Hec | exact Hv ]
       | split;
-        [ eapply action_sat_unchanged_on; [ eapply Hext; exact Hec | exact Hv | exact Hsat ]
-        | eapply Hmwf_ext; [ exact Hec | exact Hv | exact HMWF ] ] ]. }
+        [ eapply action_sat_unchanged_on;
+            [ eapply Hext; [ exact Hreached | exact Hec ] | exact Hv | exact Hsat ]
+        | eapply Hmwf_ext; [ exact Hreached | exact Hec | exact Hv | exact HMWF ] ] ]. }
   intros m fd vargs t m' vres Hreached HnoA HMWF Hmarg Hwargs Hsargs Hev Hv Hsat.
   exact (proj2 MAIN m fd vargs t m' vres Hev Hreached HnoA HMWF Hv Hsat Hmarg Hwargs Hsargs).
 Qed.

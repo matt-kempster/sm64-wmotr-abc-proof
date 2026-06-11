@@ -416,7 +416,7 @@ Section NoARealInputV2.
   (* per-symbol: the rest surface preserves the carried facts -- ONLY
      where lp resolves the symbol to an INTERNAL body (a rest symbol lp
      keeps External carries no obligation here: the engine's External
-     path goes through Hext_action/Hmwf_ext generically). THE REMAINING
+     path goes through the reached-gated Hext_action/Hmwf_ext). THE REMAINING
      CRUX at this scope: at the 7 dispatch handlers + interactions +
      special floors this is exactly where the A-gating taint closure
      (Taint.v + AGates.v kills) gets consumed; at the exempt whitelist
@@ -436,14 +436,17 @@ Section NoARealInputV2.
       reached_v2 lp fd ->
       eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m0' vres0 ->
       forall b o, vres0 = Vptr b o -> b <> bm.
-  Hypothesis Hret_ext : forall ef vargs0 m0 t0 vres0 m0',
-      external_call ef (lp_ge lp) vargs0 m0 t0 vres0 m0' ->
-      forall b o, vres0 = Vptr b o -> b <> bm.
 
-  (* externals: the action cell + MWF survive external calls *)
-  Hypothesis Hext_action :
-    FieldNonInterference.reach_ext_preserves (action_cell bm) (lp_ge lp).
-  Hypothesis Hmwf_ext : forall ef vargs m t vres m',
+  (* externals, REACHED-GATED (per-symbol surface: reached_v2 lp (External
+     ef) carries a named rest symbol resolving to ef). The forall-ef forms
+     -- including the DELETED Hret_ext -- were FALSE for the real program
+     (EF_memcpy / EF_vload counterexamples). *)
+  Hypothesis Hext_action : forall ef targs tres cc vargs m t vres m',
+      reached_v2 lp (External ef targs tres cc) ->
+      external_call ef (lp_ge lp) vargs m t vres m' ->
+      Mem.unchanged_on (action_cell bm) m m'.
+  Hypothesis Hmwf_ext : forall ef targs tres cc vargs m t vres m',
+      reached_v2 lp (External ef targs tres cc) ->
       external_call ef (lp_ge lp) vargs m t vres m' ->
       Mem.valid_block m bm -> MWF m -> MWF m'.
   (* MWF crosses function entry/exit by the PRECISE operations there:
@@ -497,7 +500,7 @@ Section NoARealInputV2.
                 (NoA_real bm) MWF
                 Hmwf_inp Hmwf_ctl HactVint HPgms HchaseRoot HchaseStep
                 HSafeNotBm Hmwf_window Hmwf_input Hmwf_glob Hmwf_chase
-                Hmwf_umbi WL_exempt Hrest_pres Hret_call Hret_ext
+                Hmwf_umbi WL_exempt Hrest_pres Hret_call
                 Hext_action Hmwf_ext Hmwf_entry Hmwf_free Hmwf_ctl)
              Hrest Hstore Hstoremwf
              (root_call_resolves lp LO_mario)
@@ -529,7 +532,8 @@ End NoARealInputV2.
 (*   - the per-symbol callee surface: WL_exempt + Hrest_pres (THE          *)
 (*     REMAINING CRUX -- the 7 dispatch handlers, where the A-gating       *)
 (*     taint closure gets consumed), return non-aliasing (Hret_call/       *)
-(*     Hret_ext), externals (Hext_action, Hmwf_ext), and the wrapper       *)
+(*     return non-aliasing (Hret_call), the reached-gated externals       *)
+(*     (Hext_action, Hmwf_ext), and the wrapper                            *)
 (*     residuals (Hrest/Hstore/Hstoremwf; the forall-ef Hext row is GONE   *)
 (*     -- the body census forbids builtins, the engine refutes the case).  *)
 (*                                                                        *)
@@ -945,12 +949,17 @@ Section NoARealInputMWF.
       reached_v2 lp fd ->
       eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m0' vres0 ->
       forall b o, vres0 = Vptr b o -> b <> bm.
-  Hypothesis Hret_ext : forall ef vargs0 m0 t0 vres0 m0',
-      external_call ef (lp_ge lp) vargs0 m0 t0 vres0 m0' ->
-      forall b o, vres0 = Vptr b o -> b <> bm.
-  Hypothesis Hext_action :
-    FieldNonInterference.reach_ext_preserves (action_cell bm) (lp_ge lp).
-  Hypothesis Hmwf_ext : forall ef vargs m t vres m',
+
+  (* externals, REACHED-GATED (per-symbol surface: reached_v2 lp (External
+     ef) carries a named rest symbol resolving to ef). The forall-ef forms
+     -- including the DELETED Hret_ext -- were FALSE for the real program
+     (EF_memcpy / EF_vload counterexamples). *)
+  Hypothesis Hext_action : forall ef targs tres cc vargs m t vres m',
+      reached_v2 lp (External ef targs tres cc) ->
+      external_call ef (lp_ge lp) vargs m t vres m' ->
+      Mem.unchanged_on (action_cell bm) m m'.
+  Hypothesis Hmwf_ext : forall ef targs tres cc vargs m t vres m',
+      reached_v2 lp (External ef targs tres cc) ->
       external_call ef (lp_ge lp) vargs m t vres m' ->
       Mem.valid_block m bm -> MWF m -> MWF m'.
   Hypothesis Hrest : reach_rest_marg_lp lp bm (NoA_real bm) (reached_v2 lp).
@@ -1229,7 +1238,7 @@ Section NoARealInputMWF.
                       Hgms_blk Hgtimer_blk Htable_blk)
                    (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
                    Hpres_warp_ext))
-             Hret_call Hret_ext Hext_action Hmwf_ext
+             Hret_call Hext_action Hmwf_ext
              (mwf_real_entry lp bm bc oc0 SafeB Hbc_bm)
              (mwf_real_free lp bm bc oc0 SafeB Hbc_bm)
              Hrest Hstore Hstoremwf).
