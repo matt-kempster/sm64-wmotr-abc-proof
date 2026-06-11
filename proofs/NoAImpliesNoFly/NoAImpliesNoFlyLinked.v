@@ -832,9 +832,19 @@ Section NoARealInputMWF.
      model-boundary class as atan2s. *)
   Hypothesis Hxcp_fwl_real :
     call_pres_ext lp bm (NoA_real bm) MWF mario_step._find_water_level.
-  Hypothesis Hcp_mgtsa_real :
+  (* mario_get_terrain_sound_addend, WALKED (MarioStepSurface.mgtsa_cp):
+     EF_external in mario_step.prog but INTERNAL in mario.prog; its body
+     is MEMORY-PURE (no stores, no calls -- chase loads + one Sswitch),
+     so the generic pure_walk memory-identity lemma discharges it with
+     NOTHING assumed in its place. *)
+  Lemma Hcp_mgtsa_real :
     call_pres lp bm (NoA_real bm) MWF
       mario_step._mario_get_terrain_sound_addend.
+  Proof.
+    exact (mgtsa_cp lp LO_mario bm (NoA_real bm)
+             (MWF_real lp bm bc oc0 SafeB)
+             (mwf_real_ctl lp bm bc oc0 SafeB)).
+  Qed.
   (* set_pole_position (B10 pole-cluster scaffold): the 730-line shared pole
      helper is NO LONGER an opaque residual -- it is now PROVED by walking the
      whole body (AutomaticLeafSurface.Hcp_spp via call_pres_of_lwalk3), resting

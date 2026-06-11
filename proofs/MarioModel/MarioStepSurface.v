@@ -1673,3 +1673,173 @@ Section PgqsSurface.
   Qed.
 
 End PgqsSurface.
+
+(* ====================================================================== *)
+(* ==================  mario_get_terrain_sound_addend  ================== *)
+(* EF_external in mario_step.prog but INTERNAL in mario.prog              *)
+(* (mario.v:3093): fn_vars nil, NO Sassign / Scall / Sbuiltin anywhere -- *)
+(* a MEMORY-PURE body (chase loads + one Sswitch).  The walk is the       *)
+(* generic pure_chk/pure_walk memory-identity lemma; every carried fact   *)
+(* is then its own proof.                                                 *)
+(* ====================================================================== *)
+
+(* ---- the defmap pin: Internal in mario.prog ---- *)
+Lemma mgtsa_pin :
+  (prog_defmap mario.prog) ! mario._mario_get_terrain_sound_addend
+  = Some (Gfun (Internal mario.f_mario_get_terrain_sound_addend)).
+Proof. vm_compute. reflexivity. Qed.
+
+(* ====================================================================== *)
+(* the MEMORY-PURE statement class: no Sassign / Scall / Sbuiltin         *)
+(* anywhere, so a big-step execution cannot touch memory at all.          *)
+(* Generic and reusable for any read-only helper body.                    *)
+(* ====================================================================== *)
+Fixpoint pure_chk (s : statement) : bool :=
+  match s with
+  | Sskip | Sbreak | Scontinue | Sreturn _ => true
+  | Sset _ _ => true
+  | Ssequence s1 s2 => pure_chk s1 && pure_chk s2
+  | Sifthenelse _ s1 s2 => pure_chk s1 && pure_chk s2
+  | Sloop s1 s2 => pure_chk s1 && pure_chk s2
+  | Sswitch _ ls => pure_chk_ls ls
+  | _ => false
+  end
+with pure_chk_ls (ls : labeled_statements) : bool :=
+  match ls with
+  | LSnil => true
+  | LScons _ s rest => pure_chk s && pure_chk_ls rest
+  end.
+
+(* NON-VACUITY: the recognizer accepts the REAL generated body. *)
+Lemma mgtsa_chk_body :
+  pure_chk (fn_body mario.f_mario_get_terrain_sound_addend) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- the switch-selection transfer (cnn_chk_select shape) ---- *)
+Lemma pure_chk_ls_seq : forall sl,
+    pure_chk_ls sl = true ->
+    pure_chk (seq_of_labeled_statement sl) = true.
+Proof.
+  induction sl as [| o s sl0 IH]; intros H.
+  - reflexivity.
+  - cbn in H. apply andb_prop in H as [H1 H2].
+    cbn [seq_of_labeled_statement pure_chk].
+    rewrite H1, (IH H2). reflexivity.
+Qed.
+
+Lemma pure_chk_ls_case : forall n sl sl',
+    pure_chk_ls sl = true ->
+    select_switch_case n sl = Some sl' ->
+    pure_chk_ls sl' = true.
+Proof.
+  intros n sl; induction sl as [| o s sl0 IH]; intros sl' H Hsel.
+  - discriminate Hsel.
+  - cbn in H. apply andb_prop in H as [H1 H2].
+    destruct o as [c|]; cbn in Hsel.
+    + destruct (zeq c n).
+      * injection Hsel as <-. cbn. rewrite H1, H2. reflexivity.
+      * exact (IH sl' H2 Hsel).
+    + exact (IH sl' H2 Hsel).
+Qed.
+
+Lemma pure_chk_ls_default : forall sl,
+    pure_chk_ls sl = true ->
+    pure_chk_ls (select_switch_default sl) = true.
+Proof.
+  induction sl as [| o s sl0 IH]; intros H.
+  - exact H.
+  - cbn in H. apply andb_prop in H as [H1 H2].
+    destruct o as [c|]; cbn.
+    + exact (IH H2).
+    + rewrite H1, H2. reflexivity.
+Qed.
+
+Lemma pure_chk_select : forall n sl,
+    pure_chk_ls sl = true ->
+    pure_chk (seq_of_labeled_statement (select_switch n sl)) = true.
+Proof.
+  intros n sl H. apply pure_chk_ls_seq.
+  unfold select_switch.
+  destruct (select_switch_case n sl) eqn:E.
+  - exact (pure_chk_ls_case _ _ _ H E).
+  - exact (pure_chk_ls_default _ H).
+Qed.
+
+(* THE WALK: a pure_chk-accepted statement leaves memory IDENTICAL. *)
+Lemma pure_walk :
+  forall ge s e le m tr le' m' out,
+    exec_stmt function_entry2 ge e le m s tr le' m' out ->
+    pure_chk s = true -> m' = m.
+Proof.
+  intros ge s e le m tr le' m' out Hexec.
+  induction Hexec; intros Hchk; try reflexivity; try discriminate Hchk.
+  - (* Sseq_1 *)
+    cbn [pure_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
+    rewrite (IHHexec2 H2). exact (IHHexec1 H1).
+  - (* Sseq_2 *)
+    cbn [pure_chk] in Hchk. apply andb_prop in Hchk as [H1 _].
+    exact (IHHexec H1).
+  - (* Sifthenelse *)
+    cbn [pure_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
+    apply IHHexec. destruct b; assumption.
+  - (* Sloop stop1 *)
+    cbn [pure_chk] in Hchk. apply andb_prop in Hchk as [H1 _].
+    exact (IHHexec H1).
+  - (* Sloop stop2 *)
+    cbn [pure_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
+    rewrite (IHHexec2 H2). exact (IHHexec1 H1).
+  - (* Sloop loop *)
+    cbn [pure_chk] in Hchk.
+    pose proof Hchk as Hchk0.
+    apply andb_prop in Hchk as [H1 H2].
+    rewrite (IHHexec3 Hchk0), (IHHexec2 H2). exact (IHHexec1 H1).
+  - (* Sswitch *)
+    cbn [pure_chk] in Hchk.
+    exact (IHHexec (pure_chk_select _ _ Hchk)).
+Qed.
+
+Section MgtsaSurface.
+  Variable lp : Clight.program.
+  Hypothesis LO_mario : linkorder mario.prog lp.
+  Variable bm : block.
+  Variable NoA MWF : mem -> Prop.
+  Hypothesis HNoA_of_MWF : forall m, MWF m -> NoA m.
+
+  (* THE ENTRY: fn_vars = nil, body memory-pure => the whole funcall
+     returns the SAME memory; every carried fact is its own proof. *)
+  Lemma mgtsa_body_pres :
+    body_pres lp NoA MWF bm mario.f_mario_get_terrain_sound_addend.
+  Proof.
+    intros m0 vargs0 t0 mF vres0 Hgate Hevf HN HM HV HS.
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      rename Ha into Halloc end.
+    unfold mario.f_mario_get_terrain_sound_addend in Halloc.
+    cbn [fn_vars] in Halloc.
+    inv Halloc.
+    pose proof (pure_walk _ _ _ _ _ _ _ _ _ Hbody mgtsa_chk_body) as Em.
+    subst m1.
+    assert (Hben : blocks_of_env (lp_ge lp) empty_env = nil) by reflexivity.
+    rewrite Hben in Hfree. cbn [Mem.free_list] in Hfree.
+    injection Hfree as <-.
+    exact (conj HV (conj HS HM)).
+  Qed.
+
+  (* THE DISCHARGE (at the capstone's mario_step spelling: same positive). *)
+  Lemma mgtsa_cp :
+    call_pres lp bm NoA MWF mario_step._mario_get_terrain_sound_addend.
+  Proof.
+    exact (call_pres_of_body lp bm NoA MWF HNoA_of_MWF mario.prog
+             mario_step._mario_get_terrain_sound_addend
+             mario.f_mario_get_terrain_sound_addend
+             LO_mario mgtsa_pin mgtsa_body_pres).
+  Qed.
+
+End MgtsaSurface.
