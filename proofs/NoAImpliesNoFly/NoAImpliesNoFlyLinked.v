@@ -966,16 +966,33 @@ Section NoARealInputMWF.
      is PROVED from the 29 census-keyed interact_* handler bodies (the
      GATED class body_pres_io: explicit m/interactType/object args -- a
      plain body_pres would be a phantom forall-object) + the two named
-     interaction.prog helpers, both Internal (walkable later):
+     interaction.prog helpers:
        - mario_get_collided_object: marg-gated + SafeB-if-ptr RETURN (its
-         result seeds the _object chase temp);
-       - check_kick_or_punch_wall: the ordinary call_pres class. *)
+         result seeds the _object chase temp) -- WALKED, PROVED below
+         (InterSurface.mgco_cp: read-only body, the return chases
+         marioObj->collidedObjs[i] through the root+step SafeB rows);
+       - check_kick_or_punch_wall: the ordinary call_pres class,
+         Internal in interaction.prog (walkable later). *)
   Hypothesis Hpres_ihandler : forall fid f,
       In fid interaction_handler_ids ->
       (prog_defmap interaction.prog) ! fid = Some (Gfun (Internal f)) ->
       body_pres_io lp bm (NoA_real bm) MWF SafeB f.
-  Hypothesis Hcp_mgco_real :
+  Lemma Hcp_mgco_real :
     call_pres_mgco lp bm (NoA_real bm) MWF SafeB.
+  Proof.
+    exact (mgco_cp lp LO_mario LO_int bm (NoA_real bm)
+             (MWF_real lp bm bc oc0 SafeB) SafeB
+             (mwf_real_chase_step lp bm bc oc0 SafeB)
+             (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk)
+             (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+             (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk)
+             HSafeB_not_bm
+             (mwf_real_chase_root lp bm bc oc0 SafeB)
+             (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk)).
+  Qed.
   Hypothesis Hcp_ckpw_real :
     call_pres lp bm (NoA_real bm) MWF
       interaction._check_kick_or_punch_wall.
