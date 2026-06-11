@@ -1384,3 +1384,99 @@ Section OutParamArc.
   Qed.
 
 End OutParamArc.
+
+(* ====================================================================== *)
+(* THE WINDOW-OR-LOCAL (wol) ARC: the union gate for an external writer    *)
+(* whose pointer args MIX safe bm-windows and stack locals in ONE call     *)
+(* (push_mario_out_of_object's f32_find_wall_collision(&newMarioX,         *)
+(* &m->pos[1], &newMarioZ, c, c)).  Neither the wc gate (ALL ptrs must be  *)
+(* bm-windows) nor the ol gate (ALL ptrs local) fits.  The union gate is   *)
+(* WEAKER than both, so ONE wol row per symbol REPLACES the wc and ol      *)
+(* rows for that symbol (see the _of_wol derivations).                     *)
+(* ====================================================================== *)
+Section WolArc.
+  Variable lp : Clight.program.
+  Variable bm : block.
+  Variable NoA MWF : mem -> Prop.
+  Variable SafeB : block -> Prop.
+
+  (* every POINTER argument is a watched-disjoint 4-byte bm-window OR a
+     stack-local block; non-pointer args impose nothing. *)
+  Definition args_window_or_local (vargs : list val) : Prop :=
+    forall b ofs, In (Vptr b ofs) vargs ->
+      (b = bm /\ store_window_ok (Ptrofs.unsigned ofs) 4 = true)
+      \/ local_blk lp bm SafeB b.
+
+  Definition call_pres_ext_wol (fid : ident) : Prop :=
+    forall fd m0 vargs0 t0 m1 vres0,
+      eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m1 vres0 ->
+      resolves_lp lp fid fd ->
+      args_window_or_local vargs0 ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\
+      MWF m1 /\ NoA m1.
+
+  (* THE CALL-SITE BRICK (structure mirrors wc_scall_pres verbatim). *)
+  Lemma wol_scall_pres :
+    forall optid fid tyl rty cc args e le0 m0 tr le1 m1 out0,
+      e ! fid = None ->
+      call_pres_ext_wol fid ->
+      (forall vargs, eval_exprlist (lp_ge lp) e le0 m0 args tyl vargs ->
+                     args_window_or_local vargs) ->
+      exec_stmt function_entry2 (lp_ge lp) e le0 m0
+        (Scall optid (Evar fid (Tfunction tyl rty cc)) args)
+        tr le1 m1 out0 ->
+      carried bm NoA MWF m0 ->
+      carried bm NoA MWF m1 /\ out0 = Out_normal.
+  Proof.
+    intros optid fid tyl rty cc args e le0 m0 tr le1 m1 out0
+           He Hwol Hgate Hexec Hc.
+    inv Hexec.
+    match goal with
+    | Hcf : classify_fun _ = fun_case_f _ _ _ |- _ =>
+        cbn in Hcf; injection Hcf as E1 E2 E3; subst
+    end.
+    match goal with
+    | Hv : eval_expr _ _ _ _ (Evar _ _) ?vf |- _ =>
+        destruct (eval_Evar_funct lp _ _ _ _ _ _ _ _ He Hv) as (bf & Hsym & ->)
+    end.
+    match goal with
+    | Hff : Genv.find_funct _ (Vptr bf Ptrofs.zero) = Some ?fd |- _ =>
+        assert (Hres : resolves_lp lp fid fd) by (exists bf; split; assumption)
+    end.
+    match goal with
+    | Hvl : eval_exprlist _ _ _ _ _ _ ?vargs |- _ =>
+        pose proof (Hgate vargs Hvl) as Hww
+    end.
+    destruct Hc as (HV & HS & HM & HN).
+    match goal with
+    | Hevf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+        destruct (Hwol _ _ _ _ _ _ Hevf Hres Hww HN HM HV HS)
+          as (HV' & HS' & HM' & HN')
+    end.
+    split; [ | reflexivity ].
+    split; [ exact HV' | split; [ exact HS' | split; [ exact HM' | exact HN' ] ] ].
+  Qed.
+
+  (* the union gate REFINES both per-symbol fwc gates: one wol row implies
+     the wc row and the ol row for the same symbol. *)
+  Lemma call_pres_ext_wc_of_wol :
+    forall fid, call_pres_ext_wol fid -> call_pres_ext_wc lp bm NoA MWF fid.
+  Proof.
+    intros fid H fd m0 vargs0 t0 m1 vres0 Hevf Hres Hg HN HM HV HS.
+    assert (Hg' : args_window_or_local vargs0)
+      by (intros b ofs Hin; left; exact (Hg b ofs Hin)).
+    exact (H _ _ _ _ _ _ Hevf Hres Hg' HN HM HV HS).
+  Qed.
+
+  Lemma call_pres_ext_ol_of_wol :
+    forall fid,
+      call_pres_ext_wol fid -> call_pres_ext_ol lp bm NoA MWF SafeB fid.
+  Proof.
+    intros fid H fd m0 vargs0 t0 m1 vres0 Hevf Hres Hg HN HM HV HS.
+    assert (Hg' : args_window_or_local vargs0)
+      by (intros b ofs Hin; right; exact (Hg b ofs Hin)).
+    exact (H _ _ _ _ _ _ Hevf Hres Hg' HN HM HV HS).
+  Qed.
+End WolArc.

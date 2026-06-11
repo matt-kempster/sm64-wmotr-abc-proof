@@ -687,13 +687,18 @@ Section NoARealInputMWF.
      shape (true in the intended model; the walker verifies the gate at every
      call site) and per-symbol dischargeable, exactly like Hocp_find_floor:
        - vec3f_find_ceil: out-param writer (call into &_ceil stack local);
-       - f32_find_wall_collision: window writer (collision arg targets bm);
+       - f32_find_wall_collision: writes floats ONLY through its pointer
+         args; its three real call shapes (set_pole_position: all-window;
+         tornado: all-local; push_mario_out_of_object: MIXED window+local)
+         are all instances of ONE union gate, args_window_or_local (wol) --
+         a single row, with the wc/ol forms derived (call_pres_ext_wc_of_wol
+         / call_pres_ext_ol_of_wol);
        - vec3f_copy / vec3s_set: object writers (dst chases m->marioObj->SafeB). *)
   Hypothesis Hocp_find_ceil :
     call_pres_ext_oc lp bm (NoA_real bm) MWF SafeB
       mario_actions_automatic._vec3f_find_ceil.
-  Hypothesis Hwcp_fwc :
-    call_pres_ext_wc lp bm (NoA_real bm) MWF
+  Hypothesis Hwolcp_fwc :
+    call_pres_ext_wol lp bm (NoA_real bm) MWF SafeB
       mario_actions_automatic._f32_find_wall_collision.
   Hypothesis Hscp_v3f :
     call_pres_ext_sc lp bm (NoA_real bm) MWF SafeB
@@ -942,10 +947,9 @@ Section NoARealInputMWF.
      stack-local _nextPos elems -- the args_all_local (ol) gate, the same
      honest terminal-external class as find_wall_collisions above
      (f32_find_wall_collision is EF_external in EVERY generated TU:
-     mario.v:12228, interaction.v:12264, mario_actions_automatic.v:8857). *)
-  Hypothesis Holcp_f32fwc_real :
-    call_pres_ext_ol lp bm (NoA_real bm) MWF SafeB
-      mario_actions_automatic._f32_find_wall_collision.
+     mario.v:12228, interaction.v:12264, mario_actions_automatic.v:8857).
+     That ol-gated row is now DERIVED from the single union-gated
+     Hwolcp_fwc above (call_pres_ext_ol_of_wol) -- one fwc row total. *)
   (* the special-floors LEAF CENSUS is FULLY DISCHARGED
      (FloorsLeafSurface.floors_callees_pres): check_death_barrier /
      pss_begin_slide / pss_end_slide / check_lava_boost are all WALKED,
@@ -1000,6 +1004,52 @@ Section NoARealInputMWF.
          marioObj->collidedObjs[i] through the root+step SafeB rows);
        - check_kick_or_punch_wall: the ordinary call_pres class,
          Internal in interaction.prog (walkable later). *)
+  (* the out-param arc's local-store MWF brick, GROUNDED at MWF_real:
+     a store into a watched-disjoint stack block (local_blk) preserves
+     MWF_real.  The b<>bc obligation of mwf_real_local_store is discharged
+     from local_blk's global clause + Hbc_sym (bc is the gControllers
+     global).  This is the `Hls_real` the ledge cluster consumes. *)
+  Lemma aut_local_store :
+    forall m ch b (d : Z) v m',
+      local_blk lp bm SafeB b ->
+      Mem.store ch m b d v = Some m' -> MWF m -> MWF m'.
+  Proof.
+    intros m ch b d v m' Hlb Hst HM.
+    destruct Hlb as (Hbm & HnS & Hglob).
+    destruct Hbc_sym as (gidc & Hfindc).
+    pose proof (Hglob _ _ Hfindc) as Hbc.
+    eapply mwf_real_local_store; eauto.
+  Qed.
+
+  (* push_mario_out_of_object, WALKED (InterSurface.pmoo_cp): chase loads
+     through the object param (memory-pure), local scalar stores
+     (newMarioX/newMarioZ), m->pos[i] safe-window stores, find_floor
+     (&_floor, the oc gate), sqrtf/atan2s (obj_ext), and the MIXED
+     f32_find_wall_collision(&newMarioX, &m->pos[1], &newMarioZ, c, c)
+     riding the NEW union-gated Hwolcp_fwc row.  The object param is only
+     ever LOADED through, so plain marg call_pres is the honest class.
+     NOTHING new assumed beyond the wol row above. *)
+  Lemma Hcp_pmoo_real :
+    call_pres lp bm (NoA_real bm) MWF
+      interaction._push_mario_out_of_object.
+  Proof.
+    exact (pmoo_cp lp LO_mario LO_int bm (NoA_real bm)
+             (MWF_real lp bm bc oc0 SafeB) SafeB
+             (mwf_real_ctl lp bm bc oc0 SafeB)
+             (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk)
+             (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
+             (fun m l m' Hf HM =>
+                mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
+             (mwf_real_safe_valid lp bm bc oc0 SafeB)
+             Hglob_valid
+             aut_local_store
+             Hocp_find_floor
+             Hwolcp_fwc
+             (Hpres_obj_ext interaction._sqrtf eq_refl)
+             (Hpres_obj_ext interaction._atan2s eq_refl)).
+  Qed.
+
   (* the io REST census row: the handlers not yet walked.  Every handler
      walk (InterSurface's io arc) removes its id from io_rest_ids and this
      row covers strictly less; interact_water_ring is already OUT. *)
@@ -1030,6 +1080,7 @@ Section NoARealInputMWF.
              (mwf_real_chase_step lp bm bc oc0 SafeB)
              (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                 HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk)
+             Hcp_pmoo_real
              Hio_rest).
   Qed.
   Lemma Hcp_mgco_real :
@@ -1047,22 +1098,6 @@ Section NoARealInputMWF.
              (mwf_real_chase_root lp bm bc oc0 SafeB)
              (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                 Hgms_blk Hgtimer_blk Htable_blk)).
-  Qed.
-  (* the out-param arc's local-store MWF brick, GROUNDED at MWF_real:
-     a store into a watched-disjoint stack block (local_blk) preserves
-     MWF_real.  The b<>bc obligation of mwf_real_local_store is discharged
-     from local_blk's global clause + Hbc_sym (bc is the gControllers
-     global).  This is the `Hls_real` the ledge cluster consumes. *)
-  Lemma aut_local_store :
-    forall m ch b (d : Z) v m',
-      local_blk lp bm SafeB b ->
-      Mem.store ch m b d v = Some m' -> MWF m -> MWF m'.
-  Proof.
-    intros m ch b d v m' Hlb Hst HM.
-    destruct Hlb as (Hbm & HnS & Hglob).
-    destruct Hbc_sym as (gidc & Hfindc).
-    pose proof (Hglob _ _ Hfindc) as Hbc.
-    eapply mwf_real_local_store; eauto.
   Qed.
 
   (* check_kick_or_punch_wall, WALKED (InterSurface.ckpw_cp): straight-line
@@ -1386,12 +1421,16 @@ Section NoARealInputMWF.
                       (* the four SHARED gated leaf-external residuals that
                          set_pole_position's WALK reduces to (oc/wc/sc) *)
                       Hocp_find_ceil
-                      Hwcp_fwc
+                      (call_pres_ext_wc_of_wol lp bm (NoA_real bm) MWF SafeB
+                         mario_actions_automatic._f32_find_wall_collision
+                         Hwolcp_fwc)
                       Hscp_v3f
                       Hscp_v3s
                       (* tornado: f32_find_wall_collision's stack-local
                          (&nextPos[i]) call shape -- the ol gate *)
-                      Holcp_f32fwc_real
+                      (call_pres_ext_ol_of_wol lp bm (NoA_real bm) MWF SafeB
+                         mario_actions_automatic._f32_find_wall_collision
+                         Hwolcp_fwc)
                       (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
                       (fun m l m' Hf HM =>
                          mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
