@@ -49,7 +49,8 @@ From SM64.Proofs Require Import MWFReal RestSurface AirborneSurface
   DispatchKit CutsceneSurface AutomaticSurface StationarySurface
   MovingSurface ObjectSurface SubmergedSurface FloorsSurface WarpSurface
   ActWriterSurface ObjectLeafSurface FloorsLeafSurface AutomaticLeafSurface
-  LocalVarsSurface OutParamSurface WindSurface InterSurface.
+  LocalVarsSurface OutParamSurface WindSurface InterSurface
+  MarioStepSurface.
 
 Section NoAImpliesNoFlyLinked.
   (* The linked program -- ABSTRACT, never computed (no OOM). *)
@@ -812,12 +813,23 @@ Section NoARealInputMWF.
   Hypothesis Hpres_obj_ext : forall fid,
       mem_id fid obj_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
-  (* perform_ground_step (fn_vars <> nil: the walker cannot enter it
-     yet) -- the named internal blocker consumed by sgs_row inside the
-     B3 leaf discharge and by act_punching directly; dischargeable by
-     an object-pool-aware walk *)
-  Hypothesis Hcp_pgs :
-    call_pres lp bm (NoA_real bm) MWF mario_step._perform_ground_step.
+  (* perform_ground_step is now WALKED (MarioStepSurface.pgs_cp, the
+     loop-tolerant fn_var walk): the opaque whole-body residual is
+     DECOMPOSED into two deeper internal rows (+ the vec3f_copy/vec3s_set
+     obj_ext rows already carried above).  The Lemma Hcp_pgs below (after
+     aut_local_store) instantiates the walk at MWF_real.
+       - perform_ground_quarter_step(m, intendedPos): intendedPos is
+         pgs's OWN stack array, so the honest gate is the marg-AND-local
+         mo class (a plain marg call_pres would be PHANTOM-FALSE: an
+         unconstrained intendedPos could alias bm's action cell).
+       - mario_get_terrain_sound_addend(m): plain marg internal row
+         (Internal in mario.prog; EF_external in mario_step.prog). *)
+  Hypothesis Hcp_pgqs_real :
+    call_pres_mo lp bm (NoA_real bm) MWF SafeB
+      mario_step._perform_ground_quarter_step.
+  Hypothesis Hcp_mgtsa_real :
+    call_pres lp bm (NoA_real bm) MWF
+      mario_step._mario_get_terrain_sound_addend.
   (* set_pole_position (B10 pole-cluster scaffold): the 730-line shared pole
      helper is NO LONGER an opaque residual -- it is now PROVED by walking the
      whole body (AutomaticLeafSurface.Hcp_spp via call_pres_of_lwalk3), resting
@@ -1099,6 +1111,29 @@ Section NoARealInputMWF.
     destruct Hbc_sym as (gidc & Hfindc).
     pose proof (Hglob _ _ Hfindc) as Hbc.
     eapply mwf_real_local_store; eauto.
+  Qed.
+
+  (* perform_ground_step, WALKED: the MarioStepSurface walk instantiated
+     at MWF_real (frame bricks from MWFReal; the deeper pgqs/mgtsa rows
+     assumed above; vec3f_copy/vec3s_set from the obj_ext census). *)
+  Lemma Hcp_pgs :
+    call_pres lp bm (NoA_real bm) MWF mario_step._perform_ground_step.
+  Proof.
+    exact (pgs_cp lp LO_mario LO_stp bm (NoA_real bm)
+             (MWF_real lp bm bc oc0 SafeB) SafeB
+             (mwf_real_ctl lp bm bc oc0 SafeB)
+             (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk)
+             (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
+             (fun m l m' Hf HM =>
+                mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
+             (mwf_real_safe_valid lp bm bc oc0 SafeB)
+             Hglob_valid
+             aut_local_store
+             Hcp_pgqs_real
+             Hcp_mgtsa_real
+             (Hpres_obj_ext mario_step._vec3f_copy eq_refl)
+             (Hpres_obj_ext mario_step._vec3s_set eq_refl)).
   Qed.
 
   (* ==================================================================== *)
