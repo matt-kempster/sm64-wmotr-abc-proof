@@ -1020,9 +1020,80 @@ Section NoARealInputMWF.
              (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                 Hgms_blk Hgtimer_blk Htable_blk)).
   Qed.
-  Hypothesis Hcp_ckpw_real :
+  (* the out-param arc's local-store MWF brick, GROUNDED at MWF_real:
+     a store into a watched-disjoint stack block (local_blk) preserves
+     MWF_real.  The b<>bc obligation of mwf_real_local_store is discharged
+     from local_blk's global clause + Hbc_sym (bc is the gControllers
+     global).  This is the `Hls_real` the ledge cluster consumes. *)
+  Lemma aut_local_store :
+    forall m ch b (d : Z) v m',
+      local_blk lp bm SafeB b ->
+      Mem.store ch m b d v = Some m' -> MWF m -> MWF m'.
+  Proof.
+    intros m ch b d v m' Hlb Hst HM.
+    destruct Hlb as (Hbm & HnS & Hglob).
+    destruct Hbc_sym as (gidc & Hfindc).
+    pose proof (Hglob _ _ Hfindc) as Hbc.
+    eapply mwf_real_local_store; eauto.
+  Qed.
+
+  (* check_kick_or_punch_wall, WALKED (InterSurface.ckpw_cp): straight-line
+     body with 3 detector[i] stack-array stores (local_idx arm), the
+     m->action := ACT_BACKWARD_AIR_KB inline UNTAINTED constant store
+     (const_act_assign_pres -- the value is statically not in the taint
+     set, checked by the walker's wact_const census), one safe
+     particleFlags window store, and three call classes: the WALKED
+     resolve_and_return_wall_collisions (ol, dst = &detector), the WALKED
+     mario_set_forward_vel (msfv_row, marg internal), and play_sound
+     (pure-audio obj_ext external).  NOTHING new assumed. *)
+  Lemma Hcp_ckpw_real :
     call_pres lp bm (NoA_real bm) MWF
       interaction._check_kick_or_punch_wall.
+  Proof.
+    exact (ckpw_cp lp LO_mario LO_int bm (NoA_real bm)
+             (MWF_real lp bm bc oc0 SafeB) SafeB
+             (mwf_real_ctl lp bm bc oc0 SafeB)
+             (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk)
+             (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk)
+             (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
+             (fun m l m' Hf HM =>
+                mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
+             (mwf_real_safe_valid lp bm bc oc0 SafeB)
+             Hglob_valid
+             aut_local_store
+             (AutomaticLeafSurface.Hocp_resolve lp LO_mario bm (NoA_real bm)
+                (MWF_real lp bm bc oc0 SafeB)
+                (mwf_real_ctl lp bm bc oc0 SafeB)
+                SafeB
+                (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
+                (fun m l m' Hf HM =>
+                   mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
+                (mwf_real_safe_valid lp bm bc oc0 SafeB)
+                Hglob_valid
+                aut_local_store
+                Holcp_fwc_real)
+             (msfv_row lp LO_mario bm (NoA_real bm)
+                (MWF_real lp bm bc oc0 SafeB)
+                (mwf_real_ctl lp bm bc oc0 SafeB)
+                (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                   Hgms_blk Hgtimer_blk Htable_blk)
+                (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+                (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                   Hgms_blk Hgtimer_blk Htable_blk)
+                SafeB HSafeB_not_bm
+                (mwf_real_chase_root lp bm bc oc0 SafeB)
+                (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                   HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk)
+                (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                   Hgms_blk Hgtimer_blk Htable_blk)
+                (mwf_real_sglob lp bm bc oc0 SafeB)
+                (mwf_real_chase_step lp bm bc oc0 SafeB)
+                (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                   HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk))
+             (Hpres_obj_ext interaction._play_sound eq_refl)).
+  Qed.
   Let Hpres_inter : body_pres lp (NoA_real bm) MWF bm
       interaction.f_mario_process_interactions :=
     inter_pres lp LO_mario LO_int bm (NoA_real bm)
@@ -1109,23 +1180,6 @@ Section NoARealInputMWF.
   Proof.
     exact (mwf_real_store_safe lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
              HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk).
-  Qed.
-
-  (* the out-param arc's local-store MWF brick, GROUNDED at MWF_real:
-     a store into a watched-disjoint stack block (local_blk) preserves
-     MWF_real.  The b<>bc obligation of mwf_real_local_store is discharged
-     from local_blk's global clause + Hbc_sym (bc is the gControllers
-     global).  This is the `Hls_real` the ledge cluster consumes. *)
-  Lemma aut_local_store :
-    forall m ch b (d : Z) v m',
-      local_blk lp bm SafeB b ->
-      Mem.store ch m b d v = Some m' -> MWF m -> MWF m'.
-  Proof.
-    intros m ch b d v m' Hlb Hst HM.
-    destruct Hlb as (Hbm & HnS & Hglob).
-    destruct Hbc_sym as (gidc & Hfindc).
-    pose proof (Hglob _ _ Hfindc) as Hbc.
-    eapply mwf_real_local_store; eauto.
   Qed.
 
   (* perform_ground_quarter_step, WALKED (MarioStepSurface.pgqs_cp): the
