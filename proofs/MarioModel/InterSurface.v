@@ -38,7 +38,7 @@ From SM64.Proofs Require Import SymbolicLinking Flying Taint
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface
   AirborneSurface DispatchKit FloorsSurface.
 From SM64.Proofs Require Import ActWriterSurface AutomaticLeafSurface
-  LocalVarsSurface OutParamSurface.
+  LocalVarsSurface OutParamSurface MWFReal.
 
 Import ListNotations.
 
@@ -2843,6 +2843,619 @@ Section PmooSurface.
   Qed.
 
 End PmooSurface.
+
+(* ====================================================================== *)
+(* determine_knockback_action (dka): a marg walk whose RETURN value is    *)
+(* UNTAINTED -- _bonkAction is only ever loaded from the two knockback    *)
+(* tables, whose contents carry MWF's R10 row (MWFReal.mwf_real_ktab).    *)
+(* The row shape call_pres_ret_act = call_pres + untainted_scalar vres    *)
+(* is what tdaknb's `_t'2 := dka(m, damage)` site needs to feed dasma's   *)
+(* call_pres_act action argument.                                         *)
+(* ====================================================================== *)
+
+(* the per-helper residual shape: Mario's pointer first, anything after
+   -- the funcall preserves the carried run facts AND returns an
+   untainted scalar (the table-sourced knockback action). *)
+Definition call_pres_ret_act (lp : Clight.program) (bm : block)
+    (NoA MWF : mem -> Prop) (fid : ident) : Prop :=
+  forall fd m0 vargs0 t0 m1 vres0,
+    eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m1 vres0 ->
+    resolves_lp lp fid fd ->
+    marg_ok bm vargs0 ->
+    NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+    action_sat not_tainted m0 bm ->
+    Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\
+    MWF m1 /\ NoA m1 /\ untainted_scalar vres0.
+
+(* recognizer: the exact 2D table-load shape
+   sXKnockbackActions[terrainIndex][strengthIndex] *)
+Definition dka_table_load_chk (a : expr) : bool :=
+  match a with
+  | Ederef
+      (Ebinop Oadd
+         (Ederef
+            (Ebinop Oadd (Evar tbl tta) (Etempvar i1 ti1) tp1) ta1)
+         (Etempvar i2 ti2) tp2) tyv =>
+      mem_id tbl knockback_table_ids
+      && proj_sumbool (type_eq tta (tarray (tarray tuint 3) 3))
+      && proj_sumbool (type_eq ti1 tshort)
+      && proj_sumbool (type_eq tp1 (tptr (tarray tuint 3)))
+      && proj_sumbool (type_eq ta1 (tarray tuint 3))
+      && proj_sumbool (type_eq ti2 tshort)
+      && proj_sumbool (type_eq tp2 (tptr tuint))
+      && proj_sumbool (type_eq tyv tuint)
+  | _ => false
+  end.
+
+(* _bonkAction may ONLY be Sset from a table load; every other Sset just
+   has to keep its hands off _m. *)
+Definition dka_set_chk (id : ident) (a : expr) : bool :=
+  if Pos.eqb id interaction._bonkAction then dka_table_load_chk a
+  else negb (Pos.eqb id interaction._m).
+
+(* the two callees, both marg-class rows, called with _m first *)
+Definition dka_call_chk (fid : ident) (fty : type) (al : list expr) : bool :=
+  (Pos.eqb fid interaction._mario_obj_angle_to_object
+   || Pos.eqb fid interaction._mario_set_forward_vel)
+  && match fty with
+     | Tfunction (tyh :: _) _ _ => proj_sumbool (type_eq tyh tyMSi)
+     | _ => false
+     end
+  && match al with
+     | Etempvar mp tmp :: _ =>
+         Pos.eqb mp interaction._m && proj_sumbool (type_eq tmp tyMSi)
+     | _ => false
+     end.
+
+Definition dka_optid_ok (optid : option ident) : bool :=
+  match optid with
+  | Some id => negb (Pos.eqb id interaction._m)
+               && negb (Pos.eqb id interaction._bonkAction)
+  | None => true
+  end.
+
+Fixpoint dka_chk (s : statement) : bool :=
+  match s with
+  | Sskip | Sbreak | Scontinue => true
+  | Sreturn None => true
+  | Sreturn (Some a) =>
+      match a with
+      | Etempvar q ty =>
+          Pos.eqb q interaction._bonkAction
+          && proj_sumbool (type_eq ty tuint)
+      | _ => false
+      end
+  | Ssequence s1 s2 => dka_chk s1 && dka_chk s2
+  | Sifthenelse _ s1 s2 => dka_chk s1 && dka_chk s2
+  | Sset id a => dka_set_chk id a
+  | Sassign a1 _ =>
+      safe_mfield_store interaction._m a1
+      || idx_mfield_store interaction._m a1
+      || idx16_mfield_store interaction._m a1
+  | Scall optid (Evar fid fty) al =>
+      dka_optid_ok optid && dka_call_chk fid fty al
+  | _ => false
+  end.
+
+(* ---- vm pins ---- *)
+Lemma dka_chk_body :
+  dka_chk (fn_body interaction.f_determine_knockback_action) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma dka_pin :
+  (prog_defmap interaction.prog) ! interaction._determine_knockback_action
+  = Some (Gfun (Internal interaction.f_determine_knockback_action)).
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma dka_vars : fn_vars interaction.f_determine_knockback_action = nil.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma dka_params :
+  fn_params interaction.f_determine_knockback_action
+  = (interaction._m, tyMSi) :: (interaction._arg, tint) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma dka_ret : fn_return interaction.f_determine_knockback_action = tuint.
+Proof. vm_compute. reflexivity. Qed.
+
+Section DkaSurface.
+  Variable lp : Clight.program.
+  Hypothesis LO_mario : linkorder mario.prog lp.
+  Hypothesis LO_int : linkorder interaction.prog lp.
+
+  Variable bm : block.
+  Variable NoA MWF : mem -> Prop.
+
+  Hypothesis HNoA_of_MWF : forall m, MWF m -> NoA m.
+  Hypothesis HMWF_window : forall mm mm' ch (delta : Z) vv,
+      MWF mm -> store_window_ok delta (size_chunk ch) = true ->
+      Mem.store ch mm bm delta vv = Some mm' -> MWF mm'.
+  (* the R10 projection (MWFReal.mwf_real_ktab at the capstone) *)
+  Hypothesis HMWF_ktab : forall m gid kb (ofs : Z) v,
+      MWF m -> mem_id gid knockback_table_ids = true ->
+      Genv.find_symbol (lp_ge lp) gid = Some kb ->
+      Mem.load Mint32 m kb ofs = Some v ->
+      untainted_scalar v.
+
+  (* the callee rows (both Internal in interaction.prog, both WALKED:
+     ObjectLeafSurface.moato_row / ActWriterSurface.msfv_row) *)
+  Hypothesis Hcp_moato :
+    call_pres lp bm NoA MWF interaction._mario_obj_angle_to_object.
+  Hypothesis Hcp_msfv :
+    call_pres lp bm NoA MWF interaction._mario_set_forward_vel.
+
+  (* the walk-carried temp fact: _bonkAction, when bound, is untainted *)
+  Definition bonk_inv (le : temp_env) : Prop :=
+    forall v, le ! interaction._bonkAction = Some v -> untainted_scalar v.
+
+  (* ---- decoders ---- *)
+  Lemma dka_table_decode : forall a, dka_table_load_chk a = true ->
+      exists tbl ia ib,
+        a = Ederef
+              (Ebinop Oadd
+                 (Ederef
+                    (Ebinop Oadd
+                       (Evar tbl (tarray (tarray tuint 3) 3))
+                       (Etempvar ia tshort) (tptr (tarray tuint 3)))
+                    (tarray tuint 3))
+                 (Etempvar ib tshort) (tptr tuint)) tuint /\
+        mem_id tbl knockback_table_ids = true.
+  Proof.
+    intros a H.
+    destruct a as [ | | | | | | inner tyv | | | | | | | ];
+      try discriminate H.
+    destruct inner as [ | | | | | | | | | op b1 b2 tpo | | | | ];
+      try discriminate H.
+    destruct op; try discriminate H.
+    destruct b1 as [ | | | | | | mid ta1 | | | | | | | ];
+      try discriminate H.
+    destruct mid as [ | | | | | | | | | op2 c1 c2 tpi | | | | ];
+      try discriminate H.
+    destruct op2; try discriminate H.
+    destruct c1 as [ | | | | tbl tta | | | | | | | | | ];
+      try discriminate H.
+    destruct c2 as [ | | | | | ia tia | | | | | | | | ];
+      try discriminate H.
+    destruct b2 as [ | | | | | ib tib | | | | | | | | ];
+      try discriminate H.
+    cbn [dka_table_load_chk] in H.
+    apply andb_true_iff in H as [H Htyv].
+    apply andb_true_iff in H as [H Htpo].
+    apply andb_true_iff in H as [H Htib].
+    apply andb_true_iff in H as [H Hta1].
+    apply andb_true_iff in H as [H Htpi].
+    apply andb_true_iff in H as [H Htia].
+    apply andb_true_iff in H as [Hmem Htta].
+    destruct (type_eq tta (tarray (tarray tuint 3) 3)) as [-> | ];
+      [ | discriminate Htta ].
+    destruct (type_eq tia tshort) as [-> | ]; [ | discriminate Htia ].
+    destruct (type_eq tpi (tptr (tarray tuint 3))) as [-> | ];
+      [ | discriminate Htpi ].
+    destruct (type_eq ta1 (tarray tuint 3)) as [-> | ];
+      [ | discriminate Hta1 ].
+    destruct (type_eq tib tshort) as [-> | ]; [ | discriminate Htib ].
+    destruct (type_eq tpo (tptr tuint)) as [-> | ];
+      [ | discriminate Htpo ].
+    destruct (type_eq tyv tuint) as [-> | ]; [ | discriminate Htyv ].
+    exists tbl, ia, ib. split; [ reflexivity | exact Hmem ].
+  Qed.
+
+  Lemma dka_call_decode : forall fid fty al,
+      dka_call_chk fid fty al = true ->
+      (fid = interaction._mario_obj_angle_to_object
+       \/ fid = interaction._mario_set_forward_vel) /\
+      exists tyrest rty cc rest,
+        fty = Tfunction (tyMSi :: tyrest) rty cc /\
+        al = Etempvar interaction._m tyMSi :: rest.
+  Proof.
+    intros fid fty al H. unfold dka_call_chk in H.
+    apply andb_true_iff in H as [H Hal].
+    apply andb_true_iff in H as [Hfid Hfty].
+    split.
+    { apply orb_true_iff in Hfid as [E | E]; apply Pos.eqb_eq in E;
+        [ left | right ]; exact E. }
+    destruct fty as [ | | | | | | tyl rty cc | | ]; try discriminate Hfty.
+    destruct tyl as [ | tyh tyrest ]; try discriminate Hfty.
+    destruct (type_eq tyh tyMSi) as [-> | ]; [ | discriminate Hfty ].
+    destruct al as [ | a1 rest ]; try discriminate Hal.
+    destruct a1 as [ | | | | | mp tmp | | | | | | | | ];
+      try discriminate Hal.
+    apply andb_true_iff in Hal as [Hmp Htmp].
+    apply Pos.eqb_eq in Hmp; subst mp.
+    destruct (type_eq tmp tyMSi) as [-> | ]; [ | discriminate Htmp ].
+    exists tyrest, rty, cc, rest. split; reflexivity.
+  Qed.
+  (* ---- the table-load value brick (consumes R10) ---- *)
+  Lemma dka_table_load_val :
+    forall tbl ia ib e le m v,
+      mem_id tbl knockback_table_ids = true ->
+      e ! tbl = None ->
+      MWF m ->
+      eval_expr (lp_ge lp) e le m
+        (Ederef
+           (Ebinop Oadd
+              (Ederef
+                 (Ebinop Oadd
+                    (Evar tbl (tarray (tarray tuint 3) 3))
+                    (Etempvar ia tshort) (tptr (tarray tuint 3)))
+                 (tarray tuint 3))
+              (Etempvar ib tshort) (tptr tuint)) tuint) v ->
+      untainted_scalar v.
+  Proof.
+    intros tbl ia ib e le m v Hmem Hnone HM Hev.
+    (* outer Ederef rvalue: only eval_Elvalue applies *)
+    inv Hev.
+    match goal with
+    | Hd : deref_loc (typeof _) _ _ _ _ _ |- _ =>
+        cbn [typeof] in Hd; rename Hd into Hdl
+    end.
+    match goal with
+    | Hlv : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ => inv Hlv
+    end.
+    (* the outer Oadd *)
+    match goal with
+    | Hx : eval_expr _ _ _ _ (Ebinop _ _ _ _) (Vptr _ _) |- _ => inv Hx
+    end.
+    2:{ match goal with
+        | Hlv : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => inv Hlv
+        end. }
+    match goal with
+    | Hs : sem_binary_operation _ _ _ (typeof _) _ _ _ = Some (Vptr _ _)
+      |- _ => cbn [typeof] in Hs; rename Hs into Hsem
+    end.
+    (* the middle Ederef at array type: By_reference passthrough *)
+    match goal with
+    | Hx : eval_expr _ _ _ _ (Ederef _ _) _ |- _ => inv Hx
+    end.
+    match goal with
+    | Hd : deref_loc (typeof _) _ _ _ _ _ |- _ =>
+        cbn [typeof] in Hd; rename Hd into Hdl2
+    end.
+    match goal with
+    | Hlv : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ => inv Hlv
+    end.
+    inv Hdl2;
+      try (match goal with
+           | Hacc : access_mode (tarray tuint 3) = _ |- _ =>
+               cbn in Hacc; discriminate Hacc
+           end).
+    (* the inner Oadd: table base + terrain index *)
+    match goal with
+    | Hx : eval_expr _ _ _ _ (Ebinop _ (Evar _ _) _ _) (Vptr _ _) |- _ =>
+        inv Hx
+    end.
+    2:{ match goal with
+        | Hlv : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => inv Hlv
+        end. }
+    match goal with
+    | Hs : sem_binary_operation _ _ _ (typeof _) _ _ _ = Some (Vptr _ _)
+      |- _ => cbn [typeof] in Hs; rename Hs into Hsem2
+    end.
+    (* the table base: a global array symbol *)
+    match goal with
+    | Hx : eval_expr _ _ _ _ (Evar _ _) _ |- _ => inv Hx
+    end.
+    match goal with
+    | Hd : deref_loc (typeof _) _ _ _ _ _ |- _ =>
+        cbn [typeof] in Hd; rename Hd into Hdl3
+    end.
+    match goal with
+    | Hlv : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ => inv Hlv
+    end.
+    1:{ match goal with
+        | Hl : e ! tbl = Some _ |- _ =>
+            rewrite Hnone in Hl; discriminate Hl
+        end. }
+    inv Hdl3;
+      try (match goal with
+           | Hacc : access_mode (tarray (tarray tuint 3) 3) = _ |- _ =>
+               cbn in Hacc; discriminate Hacc
+           end).
+    (* pin the inner Oadd result block to the symbol block *)
+    unfold sem_binary_operation, sem_add in Hsem2.
+    change (classify_add (tarray (tarray tuint 3) 3) tshort)
+      with (add_case_pi (tarray tuint 3) Signed) in Hsem2.
+    unfold sem_add_ptr_int in Hsem2.
+    match type of Hsem2 with
+    | match ?vi with _ => _ end = _ =>
+        destruct vi; try discriminate Hsem2
+    end.
+    injection Hsem2 as E1 E2; subst.
+    (* pin the outer Oadd result block likewise *)
+    unfold sem_binary_operation, sem_add in Hsem.
+    change (classify_add (tarray tuint 3) tshort)
+      with (add_case_pi tuint Signed) in Hsem.
+    unfold sem_add_ptr_int in Hsem.
+    match type of Hsem with
+    | match ?vi with _ => _ end = _ =>
+        destruct vi; try discriminate Hsem
+    end.
+    injection Hsem as E3 E4; subst.
+    (* the final load *)
+    inv Hdl;
+      try (match goal with
+           | Hacc : access_mode tuint = By_reference |- _ =>
+               cbn in Hacc; discriminate Hacc
+           end);
+      try (match goal with
+           | Hacc : access_mode tuint = By_copy |- _ =>
+               cbn in Hacc; discriminate Hacc
+           end).
+    match goal with
+    | Hacc : access_mode tuint = By_value ?ch |- _ =>
+        cbn in Hacc; injection Hacc as <-
+    end.
+    match goal with
+    | Hld : Mem.loadv Mint32 _ (Vptr _ _) = Some v |- _ => cbn in Hld
+    end.
+    match goal with
+    | Hfs : Genv.find_symbol _ tbl = Some ?kb |- _ =>
+        match goal with
+        | Hld : Mem.load Mint32 m kb ?oo = Some v |- _ =>
+            exact (HMWF_ktab m tbl kb oo v HM Hmem Hfs Hld)
+        end
+    end.
+  Qed.
+
+  (* ---- THE WALKER ---- *)
+  Lemma dka_walk_pres :
+    forall s e le m0 tr le' m' out,
+      exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
+      dka_chk s = true ->
+      e ! interaction._mario_obj_angle_to_object = None ->
+      e ! interaction._mario_set_forward_vel = None ->
+      (forall gid, mem_id gid knockback_table_ids = true ->
+                   e ! gid = None) ->
+      (forall b o, le ! interaction._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      bonk_inv le ->
+      carried bm NoA MWF m0 ->
+      carried bm NoA MWF m' /\
+      (forall b o, le' ! interaction._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) /\
+      bonk_inv le' /\
+      wret_ok true out.
+  Proof.
+    intros s e le m0 tr le' m' out Hexec.
+    induction Hexec; intros Hchk Hmoa Hmsf Hktab Hm Hbonk Hc.
+    - (* Sskip *) exact (conj Hc (conj Hm (conj Hbonk I))).
+    - (* Sassign *)
+      cbn [dka_chk] in Hchk.
+      assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
+                      (Sassign a1 a2) E0 le m' Out_normal)
+        by (econstructor; eauto).
+      apply orb_true_iff in Hchk as [Hchk | Hix16].
+      apply orb_true_iff in Hchk as [Hsf | Hix].
+      + destruct Hc as (HV & HS & HM & HN).
+        destruct (epi_assign_pres lp LO_mario bm MWF HMWF_window
+                    a1 a2 _ _ _ _ _ _ _ Hsf Hm Hex HM HV HS)
+          as (HV' & HS' & HM' & _ & _).
+        exact (conj (conj HV' (conj HS' (conj HM' (HNoA_of_MWF _ HM'))))
+                 (conj Hm (conj Hbonk I))).
+      + destruct Hc as (HV & HS & HM & HN).
+        destruct (idx_assign_pres lp LO_mario bm MWF HMWF_window
+                    a1 a2 _ _ _ _ _ _ _ Hix Hm Hex HM HV HS)
+          as (HV' & HS' & HM' & _ & _).
+        exact (conj (conj HV' (conj HS' (conj HM' (HNoA_of_MWF _ HM'))))
+                 (conj Hm (conj Hbonk I))).
+      + destruct Hc as (HV & HS & HM & HN).
+        destruct (idx16_assign_pres lp LO_mario bm MWF HMWF_window
+                    a1 a2 _ _ _ _ _ _ _ Hix16 Hm Hex HM HV HS)
+          as (HV' & HS' & HM' & _ & _).
+        exact (conj (conj HV' (conj HS' (conj HM' (HNoA_of_MWF _ HM'))))
+                 (conj Hm (conj Hbonk I))).
+    - (* Sset *)
+      cbn [dka_chk dka_set_chk] in Hchk.
+      destruct (Pos.eqb id interaction._bonkAction) eqn:Eb.
+      + apply Pos.eqb_eq in Eb; subst id.
+        destruct (dka_table_decode _ Hchk) as (tbl & ia & ib & -> & Hmem).
+        destruct Hc as (HV & HS & HM & HN).
+        match goal with
+        | Hev : eval_expr _ _ _ _ _ ?w |- _ =>
+            pose proof (dka_table_load_val tbl ia ib e le m w
+                          Hmem (Hktab tbl Hmem) HM Hev) as Huv
+        end.
+        refine (conj (conj HV (conj HS (conj HM HN))) (conj _ (conj _ I))).
+        * intros b o Hg.
+          rewrite PTree.gso in Hg
+            by (intro EE; vm_compute in EE; discriminate EE).
+          exact (Hm b o Hg).
+        * intros w Hg. rewrite PTree.gss in Hg.
+          injection Hg as <-. exact Huv.
+      + refine (conj Hc (conj _ (conj _ I))).
+        * intros b o Hg.
+          rewrite PTree.gso in Hg
+            by (intro EE; subst id; vm_compute in Hchk;
+                discriminate Hchk).
+          exact (Hm b o Hg).
+        * intros w Hg.
+          rewrite PTree.gso in Hg
+            by (intro EE; subst id; rewrite Pos.eqb_refl in Eb;
+                discriminate Eb).
+          exact (Hbonk w Hg).
+    - (* Scall *)
+      cbn [dka_chk] in Hchk.
+      destruct a as [ | | | | fid fty | | | | | | | | | ];
+        try discriminate Hchk.
+      apply andb_true_iff in Hchk as [Hopt Hcc].
+      destruct (dka_call_decode _ _ _ Hcc)
+        as (Hfid & tyrest & rty & cc & rest & -> & ->).
+      assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
+                      (Scall optid
+                         (Evar fid (Tfunction (tyMSi :: tyrest) rty cc))
+                         (Etempvar interaction._m tyMSi :: rest)) t
+                      (set_opttemp optid vres le) m' Out_normal)
+        by (econstructor; eauto).
+      assert (HmL : forall b o,
+                 (set_opttemp optid vres le) ! interaction._m
+                 = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
+      { cbn [dka_optid_ok] in Hopt.
+        destruct optid as [oid | ]; cbn [set_opttemp].
+        - apply andb_true_iff in Hopt as [Hopt1 _].
+          apply negb_true_iff in Hopt1.
+          intros b o Hg. rewrite PTree.gso in Hg by (intro EE; subst oid;
+            rewrite Pos.eqb_refl in Hopt1; discriminate Hopt1).
+          exact (Hm b o Hg).
+        - exact Hm. }
+      assert (HbonkL : bonk_inv (set_opttemp optid vres le)).
+      { cbn [dka_optid_ok] in Hopt.
+        destruct optid as [oid | ]; cbn [set_opttemp].
+        - apply andb_true_iff in Hopt as [_ Hopt2].
+          apply negb_true_iff in Hopt2.
+          intros w Hg. rewrite PTree.gso in Hg by (intro EE; subst oid;
+            rewrite Pos.eqb_refl in Hopt2; discriminate Hopt2).
+          exact (Hbonk w Hg).
+        - exact Hbonk. }
+      destruct Hfid as [-> | ->].
+      + destruct (cp2_scall_pres lp bm NoA MWF optid
+                    interaction._mario_obj_angle_to_object
+                    tyrest rty cc rest e le m _ _ m' _
+                    Hmoa Hex Hcp_moato Hm Hc) as (Hc' & _).
+        exact (conj Hc' (conj HmL (conj HbonkL I))).
+      + destruct (cp2_scall_pres lp bm NoA MWF optid
+                    interaction._mario_set_forward_vel
+                    tyrest rty cc rest e le m _ _ m' _
+                    Hmsf Hex Hcp_msfv Hm Hc) as (Hc' & _).
+        exact (conj Hc' (conj HmL (conj HbonkL I))).
+    - (* Sbuiltin *)
+      cbn [dka_chk] in Hchk. discriminate Hchk.
+    - (* Sseq_1 *)
+      cbn [dka_chk] in Hchk.
+      apply andb_true_iff in Hchk as [H1 H2].
+      destruct (IHHexec1 H1 Hmoa Hmsf Hktab Hm Hbonk Hc)
+        as (Hc1 & Hm1 & Hb1 & _).
+      exact (IHHexec2 H2 Hmoa Hmsf Hktab Hm1 Hb1 Hc1).
+    - (* Sseq_2 *)
+      cbn [dka_chk] in Hchk.
+      apply andb_true_iff in Hchk as [H1 _].
+      exact (IHHexec H1 Hmoa Hmsf Hktab Hm Hbonk Hc).
+    - (* Sifthenelse *)
+      cbn [dka_chk] in Hchk. apply andb_true_iff in Hchk as [H1 H2].
+      apply IHHexec; try assumption.
+      destruct b; assumption.
+    - (* Sreturn None *) exact (conj Hc (conj Hm (conj Hbonk I))).
+    - (* Sreturn (Some a) *)
+      cbn [dka_chk] in Hchk.
+      destruct a as [ | | | | | q ty | | | | | | | | ];
+        try discriminate Hchk.
+      apply andb_true_iff in Hchk as [Hq Hty].
+      apply Pos.eqb_eq in Hq; subst q.
+      destruct (type_eq ty tuint) as [-> | ]; [ | discriminate Hty ].
+      match goal with
+      | Hev : eval_expr _ _ _ _ (Etempvar _ _) ?w |- _ => inv Hev
+      end.
+      2:{ match goal with
+          | Hlv : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv Hlv
+          end. }
+      refine (conj Hc (conj Hm (conj Hbonk _))).
+      cbn [wret_ok typeof]. intros _.
+      match goal with
+      | Hg : le ! interaction._bonkAction = Some ?w |- _ =>
+          exact (conj (Hbonk _ Hg) eq_refl)
+      end.
+    - (* Sbreak *) exact (conj Hc (conj Hm (conj Hbonk I))).
+    - (* Scontinue *) exact (conj Hc (conj Hm (conj Hbonk I))).
+    - (* Sloop stop1 *)
+      cbn [dka_chk] in Hchk. discriminate Hchk.
+    - (* Sloop stop2 *)
+      cbn [dka_chk] in Hchk. discriminate Hchk.
+    - (* Sloop loop *)
+      cbn [dka_chk] in Hchk. discriminate Hchk.
+    - (* Sswitch *)
+      cbn [dka_chk] in Hchk. discriminate Hchk.
+  Qed.
+
+  (* ---- THE ROW ---- *)
+  Lemma dka_row :
+    call_pres_ret_act lp bm NoA MWF
+      interaction._determine_knockback_action.
+  Proof.
+    intros fd m0 vargs0 t0 m1 vres0 Hevf Hres Hmarg HN HM HV HS.
+    pose proof (resolve_pin_fd lp interaction.prog
+                  interaction._determine_knockback_action
+                  interaction.f_determine_knockback_action fd
+                  LO_int dka_pin Hres) as ->.
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Ho : outcome_result_value _ _ _ _ |- _ =>
+      rename Ho into Hout end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      rewrite dka_vars in Ha; inv Ha end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    rewrite dka_params in Hbind.
+    cbn [bind_parameter_temps] in Hbind.
+    destruct vargs0 as [| v_m vr1]; [ discriminate Hbind | ].
+    destruct vr1 as [| v_a vr2]; [ discriminate Hbind | ].
+    destruct vr2 as [| vx vr3]; [ | discriminate Hbind ].
+    injection Hbind as <-.
+    (* entry env facts *)
+    assert (Hm0 : forall b o,
+               (PTree.set interaction._arg v_a
+                  (PTree.set interaction._m v_m
+                     (create_undef_temps
+                        (fn_temps interaction.f_determine_knockback_action))))
+                 ! interaction._m = Some (Vptr b o) ->
+               b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg.
+      rewrite PTree.gso in Hg
+        by (intro EE; vm_compute in EE; discriminate EE).
+      rewrite PTree.gss in Hg. injection Hg as ->.
+      cbn in Hmarg. exact Hmarg. }
+    assert (Hbonk0 : bonk_inv
+               (PTree.set interaction._arg v_a
+                  (PTree.set interaction._m v_m
+                     (create_undef_temps
+                        (fn_temps interaction.f_determine_knockback_action))))).
+    { intros w Hg.
+      rewrite PTree.gso in Hg
+        by (intro EE; vm_compute in EE; discriminate EE).
+      rewrite PTree.gso in Hg
+        by (intro EE; vm_compute in EE; discriminate EE).
+      left. exact (create_undef_temps_val _ _ _ Hg). }
+    match type of Hbody with
+    | exec_stmt _ _ _ _ ?mm _ _ _ _ _ =>
+        assert (Hcar : carried bm NoA MWF mm)
+          by (split; [ exact HV | split; [ exact HS
+                     | split; [ exact HM | exact HN ] ] ])
+    end.
+    (* the walk *)
+    destruct (dka_walk_pres _ _ _ _ _ _ _ _ Hbody dka_chk_body
+                (PTree.gempty _ _) (PTree.gempty _ _)
+                (fun gid _ => PTree.gempty _ _)
+                Hm0 Hbonk0 Hcar)
+      as (Hc' & _ & _ & Hret').
+    destruct Hc' as (HV' & HS' & HM' & HN').
+    (* exit: nothing to free at the empty env *)
+    change (blocks_of_env (lp_ge lp) empty_env)
+      with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    (* the return value: tuint forces Out_return + an i32-neutral cast *)
+    change (fn_return interaction.f_determine_knockback_action)
+      with tuint in Hout.
+    unfold outcome_result_value in Hout.
+    match type of Hret' with
+    | wret_ok _ ?oo => destruct oo as [ | | | ov ]
+    end.
+    - destruct Hout.
+    - destruct Hout.
+    - destruct Hout.
+    - destruct ov as [ [v' t'] | ]; [ | destruct Hout ].
+      destruct Hout as [_ Hcast].
+      destruct (Hret' eq_refl) as [Huv Hi32'].
+      assert (Hi32t : i32_ty tuint = true) by reflexivity.
+      exact (conj HV' (conj HS' (conj HM' (conj HN'
+               (sem_cast_i32_untainted _ _ _ _ _ Hi32' Hi32t
+                  Huv Hcast))))).
+  Qed.
+
+End DkaSurface.
 
 (* ====================================================================== *)
 (* =================  the 29 interact_* handler walks  ================== *)
