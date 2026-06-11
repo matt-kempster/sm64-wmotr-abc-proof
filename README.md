@@ -1,14 +1,69 @@
 # sm64-wmotr-abc-proof
 
-An experiment in machine-checked reasoning about the **Super Mario 64** decompilation,
-aimed (eventually) at a formal *impossibility* result for the **Wing Mario over the
-Rainbow (WMotR)** case of the **A Button Challenge (ABC)**.
+Machine-checked reasoning about the **Super Mario 64** decompilation, aimed at a formal
+*impossibility* result for the **Wing Mario over the Rainbow (WMotR)** case of the
+**A Button Challenge (ABC)**.
 
-Route: **Rocq (Coq) + CompCert `clightgen`**. C source → Clight AST (in Rocq) → generic
-analyses / proofs over that AST. See `docs/` for the design conversations that led here.
+Route: **Rocq (Coq) + CompCert `clightgen`**. Pinned decomp C source → Clight ASTs (in
+Rocq, under `generated/`) → hand-written analyses and theorems over those ASTs (under
+`proofs/`). The toolchain is configured N64-faithfully (32-bit pointers, big-endian).
+See `docs/` for the design conversations that led here.
 
-> Status: **Milestone 0 — toolchain spine.** We are not proving anything about Mario yet.
-> We are proving that the *pipeline* works end to end on a tiny self-contained C file.
+> **Status.** GOAL 1 — *"a run with no A-press never enters a flying action"* — has a
+> live capstone theorem, `noA_no_spawn_never_flying_real_mwf`
+> (`proofs/NoAImpliesNoFly/NoAImpliesNoFlyLinked.v`), stated over the **real linked
+> program**: the mechanically generated Clight of `mario.c` linked with the interaction
+> and action-handler translation units, under CompCert's bigstep semantics. It is fully
+> `Qed`'d and rests only on the standard CompCert axioms — **but it is not finished**:
+> it still consumes an explicit, shrinking set of named residual hypotheses (see the
+> honest scoreboard below). GOAL 2 (WMotR itself requires A) is not started.
+
+---
+
+## The theorem being built (GOAL 1)
+
+**Claim.** Over the linked Clight program (15 generated translation units: `mario`,
+`interaction`, `mario_step`, the `mario_actions_*` handlers, …), if the per-frame input
+never has the A button pressed, then Mario's `action` field never takes a value in the
+tainted set (the flying actions, flying-triple-jump, and the cannon path that can launch
+into flying).
+
+The proof shape: every entry into the tainted action set is shown to be **A-gated** (a
+census over the generated AST + per-site gate lemmas), and a value/provenance engine
+walks the real execution of the frame showing nothing else can write a tainted value
+into the `action` cell — including through pointer chases, stack locals, out-params,
+and cross-TU calls. Memory well-formedness (`MWFReal.v`) supplies the anti-aliasing
+facts (block distinctness, safe store windows, pointer-chase closure).
+
+**Verify it yourself:**
+
+```sh
+bash pipeline/build.sh proofs                      # build everything
+bash .claude/skills/proof-discipline/discipline_check.sh   # the full audit
+```
+
+The audit checks: clean build, no `Admitted`/`Axiom`/`sorry` anywhere, the capstones'
+`Print Assumptions` footprint (only standard CompCert axioms), and the structural
+firewall (nothing load-bearing hides in `Unwired/`). It also prints the **residual
+surface** — the named hypotheses the capstone still assumes. That list, not the green
+build, is the honest progress meter.
+
+### Honest scoreboard — what is still assumed
+
+The capstone's remaining residuals are explicit named hypotheses (never `Admitted`):
+
+- **Per-handler walks (the active front).** The 29 `interact_*` handler bodies are
+  being discharged one by one through a census-keyed split; each walked handler
+  shrinks the assumed census (`io_rest_ids`).
+- **`Hret_call`** — per-reached-body return-value non-aliasing (a known grind).
+- **Terminal-external boundary rows** — functions that are `EF_external` in *every*
+  generated TU (math builtins like `sqrtf`/`atan2s`, surface queries like
+  `find_floor`/`find_wall_collisions`). These are the honest model boundary, each
+  gated on its real argument shape (e.g. "writes only through its out-param, which
+  is a stack local") rather than assumed blindly.
+- **Block-distinctness hypotheses** — e.g. Mario's state block is distinct from the
+  controller block (Mario's `MarioState` lives behind an uninitialized global pointer,
+  so it is pinned by distinctness, not by `find_symbol`).
 
 ---
 
@@ -27,101 +82,74 @@ real, byte-matching decompilation. A bespoke hand-built model is unfalsifiable h
 A regenerable pipeline is auditable: anyone can re-run it from the pinned commit and get
 byte-identical output.
 
-### What this means concretely
-
-| Directory      | Role | Hand-edited? |
-|----------------|------|--------------|
-| `vendor/sm64/` | Upstream SM64 decomp, pinned git **submodule**. The source of truth. | **Never.** Bump the pin deliberately. |
-| `patches/`     | `*.patch` files applied to `vendor/sm64` (or to preprocessed TUs) before extraction. The *only* sanctioned form of hand-modification of input. | The patches, yes. The target, no. |
-| `pipeline/`    | Scripts that turn source into Clight `.v`. The pipeline itself. | Yes — this is our code. |
-| `generated/`   | Output of `pipeline/`: Clight ASTs as Rocq `.v`. Committed, but each file carries a `DO NOT EDIT` header. | **Never.** Regenerate instead. |
-| `proofs/`      | Hand-written Rocq: generic analyses over generated ASTs + the theorems. Imports `generated/`, never modifies it. | Yes — this is our math. |
-| `experiments/` | Self-contained scratch inputs (e.g. the Milestone-0 toy C file) that don't belong to upstream. | Yes. |
-| `docs/`        | Design notes / source conversations. | Yes. |
-
-### Generated files are committed but sacred
-
-We commit `generated/*.v` (decision: reviewable diffs, and proofs build without a local
-CompCert). Each is stamped with a `DO NOT EDIT — regenerate via pipeline` header. CI's job
-(later) is to assert that re-running the pipeline produces byte-identical output. If you
-feel the urge to tweak a generated file, the answer is always one of:
+If you feel the urge to tweak a generated file, the answer is always one of:
 1. fix the **pipeline**, or
 2. add a **patch** to the input, or
 3. write the adjustment as a lemma in **`proofs/`**.
+
+A second discipline guards against the subtler failure mode (proving true things about
+fictions): see `.claude/skills/proof-discipline/SKILL.md`. Residual gaps are kept as
+*named hypotheses on the capstone*, so `Print Assumptions` plus the audit script always
+tell the whole truth.
 
 ---
 
 ## Layout
 
 ```
-docs/            design conversations (read these for the "why")
+docs/            design conversations + RENAMING.md (read these for the "why")
 vendor/sm64/     pinned submodule: the n64decomp/sm64 source of truth
-patches/         hand-modifications to input, as *.patch (none yet)
+patches/         hand-modifications to input, as *.patch
 pipeline/        scripts: source -> preprocessed C -> clightgen -> generated/*.v
-experiments/     self-contained inputs not from upstream
-  toy/           Milestone-0 toy C file
-generated/       GENERATED Clight ASTs (.v). Committed, never hand-edited.
-proofs/          Rocq analyses + theorems over generated/, organized by two
-                 nested goals (see proofs/README.md for the dependency graph):
-  Generic/         shared: subject-independent analyses + frame lemmas
-  MarioModel/      shared: Mario action vocabulary + value-aware frame engine
-  Toy/ Shadow/     M0/M1 pipeline demos
-  NoAImpliesNoFly/   GOAL 1 (near-term): no-A => no-fly capstone, with sub-areas
-                     StoreFrameDischarge/ (a sub-goal: spine + Unwired/),
-                     AltStatements/, ActionAnalyses/
-  WMotRRequiresA/    GOAL 2 (eventual): WMotR ABC-impossibility; README + empty
-                     Unwired/ (builds on GOAL 1; not started)
+                 + build.sh / check.sh / assumptions.sh drivers
+experiments/     self-contained inputs not from upstream (the M0 toy)
+generated/       GENERATED Clight ASTs (.v), 15 SM64 translation units.
+                 Committed, never hand-edited; regenerate via pipeline.
+proofs/          hand-written Rocq over generated/ (see proofs/README.md):
+  Generic/         subject-independent: frame lemmas, callgraph reach,
+                    symbolic linking (cross-TU calls without vm_compute-ing
+                    the whole linked program)
+  MarioModel/      the engine: action taint census (CensusV2), A-gate lemmas
+                    (AGates), memory well-formedness (MWFReal), the value/
+                    provenance walkers and per-TU "surface" files
+  NoAImpliesNoFly/ GOAL 1 capstones (NoAImpliesNoFlyLinked.v) + sub-areas
+  WMotRRequiresA/  GOAL 2 (not started)
+  Toy/ Shadow/     the original M0/M1 pipeline demos
 _CoqProject      Rocq logical-path map
 Makefile         top-level: regenerate + build proofs
 ```
 
-> Files and theorems were renamed/reorganized to literal names; older `docs/`
-> conversations predate that. See [`docs/RENAMING.md`](docs/RENAMING.md) for the
-> full old → new map.
+Everything load-bearing is in the transitive closure of the GOAL-1 capstone (the
+**spine**). Anything compiled but not consumed by the spine lives under an `Unwired/`
+directory, and CI forbids the spine from importing it — staging can't masquerade as
+results.
 
-## Toolchain
+## Toolchain & build
 
-Built into a dedicated, throwaway opam switch so it can't disturb your other projects:
+Built into a dedicated opam switch so it can't disturb other projects:
 
 ```sh
 opam repo add coq-released https://coq.inria.fr/opam/released
-opam switch create sm64-proof ocaml-base-compiler.5.2.0 --no-switch
+opam switch create sm64-proof ocaml-base-compiler.4.14.2 --no-switch
 opam install coq-compcert        # provides `clightgen` + the compcert.* Rocq libs
 ```
 
-Then, in any shell that touches this repo:
+(`coq-compcert` requires **OCaml < 5** — on a 5.x switch opam silently resolves to an
+ancient CompCert. Known-good versions: OCaml 4.14.2, Coq 8.19.2, coq-compcert 3.15.)
+
+Then build through the pipeline drivers (they activate the switch and set
+memory guardrails — don't run bare `coqc`):
 
 ```sh
-eval $(opam env --switch sm64-proof)
+bash pipeline/build.sh proofs                       # build the proofs
+bash pipeline/assumptions.sh <Module.Path> <thm>    # Print Assumptions of a theorem
+python3 pipeline/check_unwired.py                   # spine/Unwired firewall
 ```
 
-`pipeline/env.sh` does exactly that — `source pipeline/env.sh`.
+## Roadmap
 
-## Milestone 0: the toy spine
-
-Goal: prove the *infrastructure* works, with the smallest real theorem.
-
-```sh
-source pipeline/env.sh
-make                     # clightgen the toy, then build proofs
-```
-
-This runs `clightgen` on `experiments/toy/toy.c` → `generated/toy.v`, then checks
-`proofs/Milestones/ToyFrame.v`, which defines a generic syntactic "does function `f` assign to global
-`g`?" analysis over the Clight AST and machine-checks two facts:
-
-- `clobber` **does** write the global `gUnrelated`  (positive control), and
-- `set_timer` **does not**.
-
-This deliberately mirrors the docs' target shape (`writesOf` computed over the AST, checked
-by `reflexivity`), at toy scale. **Soundness** of the syntactic analysis (syntactic
-non-write ⇒ semantic preservation, via CompCert's Clight semantics) is *not* proved here —
-that's Milestone 2. Milestone 0 only establishes the generate→load→compute→check spine.
-
-## Roadmap (from `docs/`)
-
-- **M0 (here):** toolchain + pipeline spine on a toy file.
-- **M1:** `clightgen` a *real* SM64 translation unit (`src/game/shadow.c`) from the pinned
-  submodule; commit its generated Clight; recompute the same syntactic facts over it.
-- **M2:** prove soundness of the frame/effect analysis against CompCert Clight semantics.
-- **M3+:** WMotR level-load / action abstraction → the ABC impossibility theorem.
+- ~~**M0/M1:** pipeline spine on a toy file, then a real TU (`shadow.c`).~~ Done.
+- **GOAL 1 (active):** no-A ⇒ no-fly over the real linked program. Capstone live;
+  discharging the remaining residual surface (handler walks, `Hret_call`).
+- **GOAL 2:** WMotR requires entering the flying set — i.e. the red coins + star are
+  unreachable without it (the Mario-y-bound / red-coin argument). Builds on GOAL 1.
