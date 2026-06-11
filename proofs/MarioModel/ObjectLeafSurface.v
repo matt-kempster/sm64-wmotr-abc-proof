@@ -130,7 +130,12 @@ Definition obj_ext_ids : list ident :=
     (* slice 3 (tdfio): set_camera_shake_from_hit is the pure-camera
        shake external (tshort arg, no pointers, writes no Mario state) --
        the same model class as set_camera_mode above. *)
-    :: interaction._set_camera_shake_from_hit :: nil.
+    :: interaction._set_camera_shake_from_hit
+    (* slice 5 (coin): bhv_spawn_star_no_level_exit spawns the 100-coin
+       star INTO THE OBJECT POOL (a const u32 star index arg, no Mario
+       pointer) -- the same model class as spawn_object's row (the pool
+       is SafeB-disjoint from Mario's state; it writes no Mario cell). *)
+    :: interaction._bhv_spawn_star_no_level_exit :: nil.
 (* NOTE: find_floor was REMOVED from obj_ext_ids.  It is an out-param
    WRITER, so the phantom-false `call_pres_ext find_floor` (which would
    allow &(action cell) as the out-param) is no longer a capstone
