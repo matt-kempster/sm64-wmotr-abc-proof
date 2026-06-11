@@ -67,6 +67,27 @@ Proof.
   inversion H; subst; eauto.
 Qed.
 
+(* the two knockback-action lookup tables (writable statics in
+   interaction.c).  determine_knockback_action reads _bonkAction out of
+   them and the value flows into the action cell through
+   drop_and_set_mario_action, so their contents carry an UNTAINTED row
+   (R10 below). *)
+Definition knockback_table_ids : list ident :=
+  interaction._sBackwardKnockbackActions ::
+  interaction._sForwardKnockbackActions :: nil.
+
+(* satisfiability witness for R10 at the initial memory: all 18 table
+   initializers are untainted action constants (vm over the generated
+   gvar_init lists). *)
+Lemma ktab_init_values_untainted :
+  forallb (fun iv => match iv with
+                     | Init_int32 c => negb (is_tainted c)
+                     | _ => false
+                     end)
+    (gvar_init interaction.v_sBackwardKnockbackActions
+     ++ gvar_init interaction.v_sForwardKnockbackActions) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 Section MWFReal.
   Variable lp : Clight.program.
   Hypothesis LO_mario : linkorder mario.prog lp.
@@ -110,6 +131,15 @@ Section MWFReal.
       Genv.find_symbol (lp_ge lp) interaction._sInteractionHandlers
         = Some tb ->
       tb <> bm /\ tb <> bc /\ ~ SafeB tb.
+  (* the knockback-table blocks: read-only in practice (nothing in the
+     run stores through them), but writable statics in the AST, so their
+     untainted contents are CARRIED (row R10 below), grounded on these
+     blocks being disjoint from everything the run stores through.
+     Per-symbol satisfiable like Hgtimer_blk / Htable_blk. *)
+  Hypothesis Hktab_blk : forall gid kb,
+      mem_id gid knockback_table_ids = true ->
+      Genv.find_symbol (lp_ge lp) gid = Some kb ->
+      kb <> bm /\ kb <> bc /\ ~ SafeB kb.
 
   (* ---------------- the invariant ---------------- *)
 
@@ -126,7 +156,10 @@ Section MWFReal.
             = Some gb -> Mem.valid_block m gb)
      /\ (forall tb, Genv.find_symbol (lp_ge lp)
             interaction._sInteractionHandlers = Some tb ->
-            Mem.valid_block m tb))
+            Mem.valid_block m tb)
+     /\ (forall gid kb, mem_id gid knockback_table_ids = true ->
+            Genv.find_symbol (lp_ge lp) gid = Some kb ->
+            Mem.valid_block m kb))
     (* R1: the input A-bit is clear (conditional). *)
     /\ input_a_clear m bm
     (* R2: the controller pointer cell, IF a pointer, is (bc, oc0). *)
@@ -186,7 +219,22 @@ Section MWFReal.
            exists fid,
              In fid interaction_handler_ids /\
              Genv.find_symbol (lp_ge lp) fid = Some b /\
-             o = Ptrofs.zero).
+             o = Ptrofs.zero)
+    (* R10: any Mint32 load from a knockback-table block is an UNTAINTED
+       scalar.  determine_knockback_action loads _bonkAction from these
+       tables and the value reaches the action cell through
+       drop_and_set_mario_action, so the table contents are part of the
+       taint perimeter.  Offset-free on purpose (Mint32 alignment makes
+       only the 18 constant slots loadable); conditional like R8/R9 --
+       monotone-safe, never a positive load fact.  Satisfiable at init
+       (ktab_init_values_untainted); preserved because no store the run
+       performs aims at the table blocks (Hktab_blk).  Consumer: the
+       dka table-load arm (InterSurface). *)
+    /\ (forall gid kb (ofs : Z) v,
+           mem_id gid knockback_table_ids = true ->
+           Genv.find_symbol (lp_ge lp) gid = Some kb ->
+           Mem.load Mint32 m kb ofs = Some v ->
+           v = Vundef \/ exists vi, v = Vint vi /\ not_tainted vi).
 
   (* ---------------- the projection discharges ----------------
      Each is the v2 capstone hypothesis of the same shape, with
@@ -277,8 +325,21 @@ Section MWFReal.
         Genv.find_symbol (lp_ge lp) fid = Some b /\
         o = Ptrofs.zero.
   Proof.
-    intros m tb ofs b o (_ & _ & _ & _ & _ & _ & _ & _ & _ & R9) Hfs Hld.
+    intros m tb ofs b o (_ & _ & _ & _ & _ & _ & _ & _ & _ & R9 & _) Hfs Hld.
     exact (R9 _ _ _ _ Hfs Hld).
+  Qed.
+
+  (* the R10 projection: the untainted knockback-table row the dka
+     table-load arm consumes. *)
+  Lemma mwf_real_ktab : forall m gid kb (ofs : Z) v, MWF_real m ->
+      mem_id gid knockback_table_ids = true ->
+      Genv.find_symbol (lp_ge lp) gid = Some kb ->
+      Mem.load Mint32 m kb ofs = Some v ->
+      v = Vundef \/ exists vi, v = Vint vi /\ not_tainted vi.
+  Proof.
+    intros m gid kb ofs v
+           (_ & _ & _ & _ & _ & _ & _ & _ & _ & _ & R10) Hgid Hfs Hld.
+    exact (R10 _ _ _ _ Hgid Hfs Hld).
   Qed.
 
   (* ---------------- the row-transfer core ----------------
@@ -360,26 +421,30 @@ Section MWFReal.
           \/ Genv.find_symbol (lp_ge lp) mario._gMarioState = Some b
           \/ Genv.find_symbol (lp_ge lp) interaction._gGlobalTimer = Some b
           \/ Genv.find_symbol (lp_ge lp) interaction._sInteractionHandlers
-             = Some b ->
+             = Some b
+          \/ (exists gid, mem_id gid knockback_table_ids = true
+                /\ Genv.find_symbol (lp_ge lp) gid = Some b) ->
           Mem.load ch m' b ofs = Some v -> Mem.load ch m b ofs = Some v) ->
       (forall b ofs b' o', SafeB b ->
           Mem.loadv Mptr m' (Vptr b ofs) = Some (Vptr b' o') -> SafeB b') ->
       MWF_real m -> MWF_real m'.
   Proof.
     intros m m' Hval Hinp' Htr Hsafe'
-           ((Vbm & Vbc & Vgms & Vsafe & Vgt & Vtb)
-            & _ & R2 & R3 & R4 & R5 & R6 & R7 & R8 & R9).
+           ((Vbm & Vbc & Vgms & Vsafe & Vgt & Vtb & Vkt)
+            & _ & R2 & R3 & R4 & R5 & R6 & R7 & R8 & R9 & R10).
     split;
       [ | split; [ exact Hinp'
         | split; [ | split; [ | split; [ | split; [ | split;
-            [ | split; [ exact Hsafe' | split ]]]]]]]].
+            [ | split; [ exact Hsafe' | split; [ | split ]]]]]]]]].
     - (* R0 *)
       split; [ exact (Hval _ Vbm)
-             | split; [ exact (Hval _ Vbc) | split; [ | split; [ | split ] ] ] ].
+             | split; [ exact (Hval _ Vbc)
+                      | split; [ | split; [ | split; [ | split ] ] ] ] ].
       + intros gb Hfs. exact (Hval _ (Vgms _ Hfs)).
       + intros b Hb. exact (Hval _ (Vsafe _ Hb)).
       + intros gb Hfs. exact (Hval _ (Vgt _ Hfs)).
       + intros tb Hfs. exact (Hval _ (Vtb _ Hfs)).
+      + intros gid kb Hgid Hfs. exact (Hval _ (Vkt _ _ Hgid Hfs)).
     - (* R2 *)
       intros b' o' Hld. apply R2.
       apply (Htr Mptr bm 156 (Vptr b' o')); [ | exact Hld ].
@@ -486,7 +551,13 @@ Section MWFReal.
       intros tb ofs b o Hfs Hld.
       eapply R9; [ exact Hfs | ].
       apply (Htr Mptr tb ofs (Vptr b o));
-        [ right; right; right; right; exact Hfs | exact Hld ].
+        [ right; right; right; right; left; exact Hfs | exact Hld ].
+    - (* R10 *)
+      intros gid kb ofs v Hgid Hfs Hld.
+      eapply R10; [ exact Hgid | exact Hfs | ].
+      apply (Htr Mint32 kb ofs v); [ | exact Hld ].
+      right; right; right; right; right.
+      exists gid. exact (conj Hgid Hfs).
   Qed.
 
   (* ---------------- Hmwf_window ---------------- *)
@@ -520,12 +591,14 @@ Section MWFReal.
       intros ch0 b ofs v Hrow Hld.
       rewrite <- Hld. symmetry.
       eapply Mem.load_store_other; [ exact Hst | ].
-      destruct Hrow as [ [Eb Hcell] | [ Eb | [ Hfs | [ Hfs | Hfs ] ] ] ].
+      destruct Hrow as [ [Eb Hcell] | [ Eb | [ Hfs | [ Hfs | [ Hfs | Hkt ] ] ] ] ].
       + subst b. right. unfold bm_row_cell in Hcell. lia.
       + subst b. left. exact Hbc_bm.
       + left. exact (proj1 (Hgms_blk _ Hfs)).
       + left. exact (proj1 (Hgtimer_blk _ Hfs)).
       + left. exact (proj1 (Htable_blk _ Hfs)).
+      + destruct Hkt as (gid & Hgid & Hfs).
+        left. exact (proj1 (Hktab_blk _ _ Hgid Hfs)).
     - (* R7: SafeB blocks are not bm *)
       intros b ofs b' o' Hs Hld.
       destruct M as (_ & _ & _ & _ & _ & _ & _ & R7 & _).
@@ -551,14 +624,14 @@ Section MWFReal.
       Mem.store Mint32 mm bm 12 vv = Some mm' -> MWF_real mm'.
   Proof.
     intros mm mm' vv M Hnoptr Hst.
-    destruct M as ((Vbm & Vbc & Vgms & Vsafe & Vgt & Vtb)
-                   & R1 & R2 & R3 & R4 & R5 & R6 & R7 & R8 & R9).
+    destruct M as ((Vbm & Vbc & Vgms & Vsafe & Vgt & Vtb & Vkt)
+                   & R1 & R2 & R3 & R4 & R5 & R6 & R7 & R8 & R9 & R10).
     split; [ | split; [ | split; [ | split; [ | split;
-      [ | split; [ | split; [ | split; [ | split ]]]]]]]].
+      [ | split; [ | split; [ | split; [ | split; [ | split ]]]]]]]]].
     - (* R0: validity is store-stable *)
       split; [ eapply Mem.store_valid_block_1; eauto | ].
       split; [ eapply Mem.store_valid_block_1; eauto | ].
-      split; [ | split; [ | split ] ].
+      split; [ | split; [ | split; [ | split ] ] ].
       + intros gb Hfs. eapply Mem.store_valid_block_1;
           [ exact Hst | exact (Vgms _ Hfs) ].
       + intros b Hb. eapply Mem.store_valid_block_1;
@@ -567,6 +640,8 @@ Section MWFReal.
           [ exact Hst | exact (Vgt _ Hfs) ].
       + intros tb Hfs. eapply Mem.store_valid_block_1;
           [ exact Hst | exact (Vtb _ Hfs) ].
+      + intros gid kb Hgid Hfs. eapply Mem.store_valid_block_1;
+          [ exact Hst | exact (Vkt _ _ Hgid Hfs) ].
     - (* R1: [2,4) ends before the store's [12,16) *)
       intros v Hld. apply R1.
       rewrite <- Hld. symmetry.
@@ -695,6 +770,12 @@ Section MWFReal.
       rewrite <- Hld. symmetry.
       eapply Mem.load_store_other;
         [ exact Hst | left; exact (proj1 (Htable_blk _ Hfs)) ].
+    - (* R10: the knockback-table blocks are not bm *)
+      intros gid kb ofs2 v Hgid Hfs Hld.
+      eapply R10; [ exact Hgid | exact Hfs | ].
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other;
+        [ exact Hst | left; exact (proj1 (Hktab_blk _ _ Hgid Hfs)) ].
   Qed.
 
   (* ---------------- the chase-ROOT-cell store row ----------------
@@ -717,14 +798,14 @@ Section MWFReal.
   Proof.
     intros mm mm' fld delta vv Hmem Hfo Hsafe M Hst.
     pose proof (chase_root_offsets _ _ Hmem Hfo) as Hd7.
-    destruct M as ((Vbm & Vbc & Vgms & Vsafe & Vgt & Vtb)
-                   & R1 & R2 & R3 & R4 & R5 & R6 & R7 & R8 & R9).
+    destruct M as ((Vbm & Vbc & Vgms & Vsafe & Vgt & Vtb & Vkt)
+                   & R1 & R2 & R3 & R4 & R5 & R6 & R7 & R8 & R9 & R10).
     split; [ | split; [ | split; [ | split; [ | split;
-      [ | split; [ | split; [ | split; [ | split ]]]]]]]].
+      [ | split; [ | split; [ | split; [ | split; [ | split ]]]]]]]]].
     - (* R0: validity is store-stable *)
       split; [ eapply Mem.store_valid_block_1; eauto | ].
       split; [ eapply Mem.store_valid_block_1; eauto | ].
-      split; [ | split; [ | split ] ].
+      split; [ | split; [ | split; [ | split ] ] ].
       + intros gb Hfs. eapply Mem.store_valid_block_1;
           [ exact Hst | exact (Vgms _ Hfs) ].
       + intros b Hb. eapply Mem.store_valid_block_1;
@@ -733,6 +814,8 @@ Section MWFReal.
           [ exact Hst | exact (Vgt _ Hfs) ].
       + intros tb Hfs. eapply Mem.store_valid_block_1;
           [ exact Hst | exact (Vtb _ Hfs) ].
+      + intros gid kb Hgid Hfs. eapply Mem.store_valid_block_1;
+          [ exact Hst | exact (Vkt _ _ Hgid Hfs) ].
     - (* R1: [2,4) ends before every root cell *)
       intros v Hld. apply R1.
       rewrite <- Hld. symmetry.
@@ -910,6 +993,12 @@ Section MWFReal.
       rewrite <- Hld. symmetry.
       eapply Mem.load_store_other;
         [ exact Hst | left; exact (proj1 (Htable_blk _ Hfs)) ].
+    - (* R10: the knockback-table blocks are not bm *)
+      intros gid kb ofs2 v Hgid Hfs Hld.
+      eapply R10; [ exact Hgid | exact Hfs | ].
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other;
+        [ exact Hst | left; exact (proj1 (Hktab_blk _ _ Hgid Hfs)) ].
   Qed.
 
   (* ---------------- Hmwf_input ---------------- *)
@@ -929,13 +1018,15 @@ Section MWFReal.
       intros ch0 b ofs v Hrow Hld.
       rewrite <- Hld. symmetry.
       eapply Mem.load_store_other; [ exact Hst | ].
-      destruct Hrow as [ [Eb Hcell] | [ Eb | [ Hfs | [ Hfs | Hfs ] ] ] ].
+      destruct Hrow as [ [Eb Hcell] | [ Eb | [ Hfs | [ Hfs | [ Hfs | Hkt ] ] ] ] ].
       + subst b. right. unfold bm_row_cell in Hcell.
         change (size_chunk Mint16unsigned) with 2. lia.
       + subst b. left. exact Hbc_bm.
       + left. exact (proj1 (Hgms_blk _ Hfs)).
       + left. exact (proj1 (Hgtimer_blk _ Hfs)).
       + left. exact (proj1 (Htable_blk _ Hfs)).
+      + destruct Hkt as (gid & Hgid & Hfs).
+        left. exact (proj1 (Hktab_blk _ _ Hgid Hfs)).
     - (* R7 *)
       intros b ofs b' o' Hs Hld.
       destruct M as (_ & _ & _ & _ & _ & _ & _ & R7 & _).
@@ -958,6 +1049,19 @@ Section MWFReal.
   Lemma stored_globals_not_itab :
     mem_id interaction._sInteractionHandlers stored_globals = false.
   Proof. vm_compute. reflexivity. Qed.
+
+  (* the censused stored globals and the knockback tables are disjoint
+     ident lists (vm per table symbol). *)
+  Lemma stored_globals_not_ktab : forall gid,
+      mem_id gid knockback_table_ids = true ->
+      mem_id gid stored_globals = false.
+  Proof.
+    intros gid H.
+    unfold mem_id in H; cbn [existsb] in H.
+    apply Bool.orb_true_iff in H as [E | H];
+      [ | apply Bool.orb_true_iff in H as [E | F]; [ | discriminate F ] ];
+      apply Pos.eqb_eq in E; subst gid; vm_compute; reflexivity.
+  Qed.
 
   Lemma mwf_real_glob : forall gid, mem_id gid stored_globals = true ->
       forall bg, Genv.find_symbol (lp_ge lp) gid = Some bg ->
@@ -989,6 +1093,14 @@ Section MWFReal.
       eapply Genv.global_addresses_distinct; [ | exact Hfs | exact Hfs2 ].
       intro E. subst gid. rewrite stored_globals_not_itab in Hgid.
       discriminate Hgid. }
+    assert (Hktab_ne : forall gid2 kb,
+        mem_id gid2 knockback_table_ids = true ->
+        Genv.find_symbol (lp_ge lp) gid2 = Some kb -> bg <> kb).
+    { intros gid2 kb Hg2 Hfs2.
+      eapply Genv.global_addresses_distinct; [ | exact Hfs | exact Hfs2 ].
+      intro E. subst gid2.
+      rewrite (stored_globals_not_ktab _ Hg2) in Hgid.
+      discriminate Hgid. }
     apply (MWF_real_transfer mm mm'); [ .. | exact M ].
     - intros b Hv. eapply Mem.store_valid_block_1; eauto.
     - intros v Hld. pose proof M as (_ & R1 & _). apply R1.
@@ -997,12 +1109,14 @@ Section MWFReal.
     - intros ch1 b ofs v Hrow Hld.
       rewrite <- Hld. symmetry.
       eapply Mem.load_store_other; [ exact Hst | left ].
-      destruct Hrow as [ [Eb _] | [ Eb | [ Hfs2 | [ Hfs2 | Hfs2 ] ] ] ].
+      destruct Hrow as [ [Eb _] | [ Eb | [ Hfs2 | [ Hfs2 | [ Hfs2 | Hkt ] ] ] ] ].
       + subst b. congruence.
       + subst b. congruence.
       + intro E. exact (Hgms_ne _ Hfs2 (eq_sym E)).
       + intro E. exact (Hgt_ne _ Hfs2 (eq_sym E)).
       + intro E. exact (Hitab_ne _ Hfs2 (eq_sym E)).
+      + destruct Hkt as (gid2 & Hg2 & Hfs2).
+        intro E. exact (Hktab_ne _ _ Hg2 Hfs2 (eq_sym E)).
     - intros b ofs b' o' Hs Hld.
       pose proof M as (_ & _ & _ & _ & _ & _ & _ & R7 & _).
       apply (R7 b ofs b' o' Hs).
@@ -1027,12 +1141,14 @@ Section MWFReal.
     - intros ch1 b ofs v Hrow Hld.
       rewrite <- Hld. symmetry.
       eapply Mem.load_store_other; [ exact Hst | left ].
-      destruct Hrow as [ [Eb _] | [ Eb | [ Hfs2 | [ Hfs2 | Hfs2 ] ] ] ].
+      destruct Hrow as [ [Eb _] | [ Eb | [ Hfs2 | [ Hfs2 | [ Hfs2 | Hkt ] ] ] ] ].
       + subst b. congruence.
       + subst b. intro E. subst bsafe. exact (HSafeB_not_bc Hsb).
       + intro E. subst b. exact (proj2 (proj2 (Hgms_blk _ Hfs2)) Hsb).
       + intro E. subst b. exact (proj2 (proj2 (Hgtimer_blk _ Hfs2)) Hsb).
       + intro E. subst b. exact (proj2 (proj2 (Htable_blk _ Hfs2)) Hsb).
+      + destruct Hkt as (gid & Hgid & Hfs2).
+        intro E. subst b. exact (proj2 (proj2 (Hktab_blk _ _ Hgid Hfs2)) Hsb).
     - (* R7: a non-pointer store cannot forge a chase pointer *)
       intros b ofs b' o' Hs Hld.
       pose proof M as (_ & _ & _ & _ & _ & _ & _ & R7 & _).
@@ -1064,12 +1180,14 @@ Section MWFReal.
     - intros ch1 b ofs v Hrow Hld.
       rewrite <- Hld. symmetry.
       eapply Mem.load_store_other; [ exact Hst | left ].
-      destruct Hrow as [ [Eb _] | [ Eb | [ Hfs2 | [ Hfs2 | Hfs2 ] ] ] ].
+      destruct Hrow as [ [Eb _] | [ Eb | [ Hfs2 | [ Hfs2 | [ Hfs2 | Hkt ] ] ] ] ].
       + subst b. congruence.
       + subst b. intro E. subst bsafe. exact (HSafeB_not_bc Hsb).
       + intro E. subst b. exact (proj2 (proj2 (Hgms_blk _ Hfs2)) Hsb).
       + intro E. subst b. exact (proj2 (proj2 (Hgtimer_blk _ Hfs2)) Hsb).
       + intro E. subst b. exact (proj2 (proj2 (Htable_blk _ Hfs2)) Hsb).
+      + destruct Hkt as (gid & Hgid & Hfs2).
+        intro E. subst b. exact (proj2 (proj2 (Hktab_blk _ _ Hgid Hfs2)) Hsb).
     - (* R7: the stored pointer, when loaded back, is SafeB by premise *)
       intros b ofs b' o' Hs Hld.
       pose proof M as (_ & _ & _ & _ & _ & _ & _ & R7 & _).
@@ -1239,12 +1357,14 @@ Section MWFReal.
       intros ch1 b ofs v Hrow Hld.
       rewrite <- Hld. symmetry.
       eapply Mem.load_store_other; [ exact Hst | left ].
-      destruct Hrow as [ [Eb _] | [ Eb | [ Hfs2 | [ Hfs2 | Hfs2 ] ] ] ].
+      destruct Hrow as [ [Eb _] | [ Eb | [ Hfs2 | [ Hfs2 | [ Hfs2 | Hkt ] ] ] ] ].
       + subst b. congruence.
       + subst b. congruence.
       + apply not_eq_sym. exact (Hglob _ _ Hfs2).
       + apply not_eq_sym. exact (Hglob _ _ Hfs2).
       + apply not_eq_sym. exact (Hglob _ _ Hfs2).
+      + destruct Hkt as (gid & _ & Hfs2).
+        apply not_eq_sym. exact (Hglob _ _ Hfs2).
     - (* R7: SafeB blocks are <> b0 (b0 is not SafeB), so their loads are
          unchanged and SafeB-closure transfers *)
       intros b ofs b' o' Hs Hld.
@@ -1262,24 +1382,27 @@ Section MWFReal.
       input_a_clear mm' bm -> MWF_real mm'.
   Proof.
     intros mm mm' M Hunch Hinp'.
-    pose proof M as ((Vbm & Vbc & Vgms & Vsafe & Vgt & Vtb) & _).
+    pose proof M as ((Vbm & Vbc & Vgms & Vsafe & Vgt & Vtb & Vkt) & _).
     apply (MWF_real_transfer mm mm'); [ .. | exact M ].
     - intros b Hv. eapply Mem.valid_block_unchanged_on; eauto.
     - exact Hinp'.
     - intros ch b ofs v Hrow Hld.
       assert (Vb : Mem.valid_block mm b).
-      { destruct Hrow as [ [Eb _] | [ Eb | [ Hfs | [ Hfs | Hfs ] ] ] ];
+      { destruct Hrow as [ [Eb _] | [ Eb | [ Hfs | [ Hfs | [ Hfs | Hkt ] ] ] ] ];
           [ subst b; exact Vbm | subst b; exact Vbc
-            | exact (Vgms _ Hfs) | exact (Vgt _ Hfs) | exact (Vtb _ Hfs) ]. }
+            | exact (Vgms _ Hfs) | exact (Vgt _ Hfs) | exact (Vtb _ Hfs)
+            | destruct Hkt as (gid & Hgid & Hfs); exact (Vkt _ _ Hgid Hfs) ]. }
       rewrite <- Hld. symmetry.
       eapply Mem.load_unchanged_on_1; [ exact Hunch | exact Vb | ].
       intros i Hi. unfold umbi_footprint.
-      destruct Hrow as [ [Eb Hcell] | [ Eb | [ Hfs | [ Hfs | Hfs ] ] ] ].
+      destruct Hrow as [ [Eb Hcell] | [ Eb | [ Hfs | [ Hfs | [ Hfs | Hkt ] ] ] ] ].
       + subst b. intros [_ Hor]. unfold bm_row_cell in Hcell. lia.
       + subst b. intros [E _]. exact (Hbc_bm E).
       + intros [E _]. exact (proj1 (Hgms_blk _ Hfs) E).
       + intros [E _]. exact (proj1 (Hgtimer_blk _ Hfs) E).
       + intros [E _]. exact (proj1 (Htable_blk _ Hfs) E).
+      + destruct Hkt as (gid & Hgid & Hfs).
+        intros [E _]. exact (proj1 (Hktab_blk _ _ Hgid Hfs) E).
     - intros b ofs b' o' Hs Hld.
       pose proof M as (_ & _ & _ & _ & _ & _ & _ & R7 & _).
       apply (R7 b ofs b' o' Hs). cbn in Hld |- *.
@@ -1294,7 +1417,7 @@ Section MWFReal.
       MWF_real m -> MWF_real m1.
   Proof.
     intros f vargs m e le m1 Hentry M.
-    pose proof M as ((Vbm & Vbc & Vgms & Vsafe & Vgt & Vtb) & _).
+    pose proof M as ((Vbm & Vbc & Vgms & Vsafe & Vgt & Vtb & Vkt) & _).
     assert (Hunch : Mem.unchanged_on (fun b _ => Mem.valid_block m b) m m1)
       by (eapply FieldNonInterference.function_entry2_unchanged_on; eauto).
     apply (MWF_real_transfer m m1); [ .. | exact M ].
@@ -1305,9 +1428,10 @@ Section MWFReal.
         [ exact Hunch | exact Vbm | intros; exact Vbm ].
     - intros ch b ofs v Hrow Hld.
       assert (Vb : Mem.valid_block m b).
-      { destruct Hrow as [ [Eb _] | [ Eb | [ Hfs | [ Hfs | Hfs ] ] ] ];
+      { destruct Hrow as [ [Eb _] | [ Eb | [ Hfs | [ Hfs | [ Hfs | Hkt ] ] ] ] ];
           [ subst b; exact Vbm | subst b; exact Vbc
-            | exact (Vgms _ Hfs) | exact (Vgt _ Hfs) | exact (Vtb _ Hfs) ]. }
+            | exact (Vgms _ Hfs) | exact (Vgt _ Hfs) | exact (Vtb _ Hfs)
+            | destruct Hkt as (gid & Hgid & Hfs); exact (Vkt _ _ Hgid Hfs) ]. }
       rewrite <- Hld. symmetry.
       eapply Mem.load_unchanged_on_1;
         [ exact Hunch | exact Vb | intros; exact Vb ].
@@ -1370,7 +1494,7 @@ Section MWFReal.
       Mem.alloc m lo hi = (m', b) -> MWF_real m -> MWF_real m'.
   Proof.
     intros m lo hi m' b Ha M.
-    pose proof M as ((Vbm & Vbc & Vgms & Vsafe & Vgt & Vtb) & _).
+    pose proof M as ((Vbm & Vbc & Vgms & Vsafe & Vgt & Vtb & Vkt) & _).
     apply (MWF_real_transfer m m'); [ .. | exact M ].
     - intros bb Hv. eapply Mem.valid_block_alloc; eauto.
     - intros v Hld. pose proof M as (_ & R1 & _). apply R1.
@@ -1378,9 +1502,10 @@ Section MWFReal.
       eapply Mem.load_alloc_unchanged; [ exact Ha | exact Vbm ].
     - intros ch bb ofs v Hrow Hld.
       assert (Vb : Mem.valid_block m bb).
-      { destruct Hrow as [ [Eb _] | [ Eb | [ Hfs | [ Hfs | Hfs ] ] ] ];
+      { destruct Hrow as [ [Eb _] | [ Eb | [ Hfs | [ Hfs | [ Hfs | Hkt ] ] ] ] ];
           [ subst bb; exact Vbm | subst bb; exact Vbc
-            | exact (Vgms _ Hfs) | exact (Vgt _ Hfs) | exact (Vtb _ Hfs) ]. }
+            | exact (Vgms _ Hfs) | exact (Vgt _ Hfs) | exact (Vtb _ Hfs)
+            | destruct Hkt as (gid & Hgid & Hfs); exact (Vkt _ _ Hgid Hfs) ]. }
       rewrite <- Hld. symmetry.
       eapply Mem.load_alloc_unchanged; [ exact Ha | exact Vb ].
     - intros bb ofs b' o' Hs Hld.

@@ -660,6 +660,15 @@ Section NoARealInputMWF.
   Hypothesis Htable_blk : forall tb,
       Genv.find_symbol (lp_ge lp) interaction._sInteractionHandlers = Some tb ->
       tb <> bm /\ tb <> bc /\ ~ SafeB tb.
+  (* the knockback-table blocks (sBackward/sForwardKnockbackActions):
+     static interaction.c globals, distinct from Mario's runtime block /
+     the controller struct / the object pool -- same trust class and
+     discharge path as Hgtimer_blk / Htable_blk.  Grounds MWF_real's R10
+     (untainted knockback-table contents, the dka return-value row). *)
+  Hypothesis Hktab_blk : forall gid kb,
+      mem_id gid knockback_table_ids = true ->
+      Genv.find_symbol (lp_ge lp) gid = Some kb ->
+      kb <> bm /\ kb <> bc /\ ~ SafeB kb.
 
   (* ---- the OUT-PARAM ARC residuals (find_floor phantom -> honest swap).
      Two TRUE, standard-CompCert, per-symbol-dischargeable facts that let
@@ -971,20 +980,20 @@ Section NoARealInputMWF.
     qsand_pres lp LO_mario LO_stp LO_int bm (NoA_real bm) MWF
       (mwf_real_ctl lp bm bc oc0 SafeB)
       (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-         Hgms_blk Hgtimer_blk Htable_blk)
+         Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
       (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
       (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-         Hgms_blk Hgtimer_blk Htable_blk)
+         Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
       SafeB HSafeB_not_bm
       (mwf_real_chase_root lp bm bc oc0 SafeB)
       (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-         HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk)
+         HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
       (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-         Hgms_blk Hgtimer_blk Htable_blk)
+         Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
       (mwf_real_sglob lp bm bc oc0 SafeB)
       (mwf_real_chase_step lp bm bc oc0 SafeB)
       (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-         HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk)
+         HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
       (Hpres_obj_ext mario._set_camera_mode eq_refl)
       (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
       (Hpres_obj_ext interaction._stop_shell_music eq_refl)
@@ -1037,7 +1046,7 @@ Section NoARealInputMWF.
              (MWF_real lp bm bc oc0 SafeB) SafeB
              (mwf_real_ctl lp bm bc oc0 SafeB)
              (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                Hgms_blk Hgtimer_blk Htable_blk)
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
              (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
              (fun m l m' Hf HM =>
                 mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
@@ -1066,20 +1075,20 @@ Section NoARealInputMWF.
              (MWF_real lp bm bc oc0 SafeB) SafeB
              (mwf_real_ctl lp bm bc oc0 SafeB)
              (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                Hgms_blk Hgtimer_blk Htable_blk)
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
              (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
              (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                Hgms_blk Hgtimer_blk Htable_blk)
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
              HSafeB_not_bm
              (mwf_real_chase_root lp bm bc oc0 SafeB)
              (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk)
+                HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
              (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                Hgms_blk Hgtimer_blk Htable_blk)
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
              (mwf_real_sglob lp bm bc oc0 SafeB)
              (mwf_real_chase_step lp bm bc oc0 SafeB)
              (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk)
+                HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
              Hcp_pmoo_real
              Hio_rest).
   Qed.
@@ -1090,14 +1099,14 @@ Section NoARealInputMWF.
              (MWF_real lp bm bc oc0 SafeB) SafeB
              (mwf_real_chase_step lp bm bc oc0 SafeB)
              (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                Hgms_blk Hgtimer_blk Htable_blk)
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
              (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
              (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                Hgms_blk Hgtimer_blk Htable_blk)
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
              HSafeB_not_bm
              (mwf_real_chase_root lp bm bc oc0 SafeB)
              (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                Hgms_blk Hgtimer_blk Htable_blk)).
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)).
   Qed.
 
   (* check_kick_or_punch_wall, WALKED (InterSurface.ckpw_cp): straight-line
@@ -1117,9 +1126,9 @@ Section NoARealInputMWF.
              (MWF_real lp bm bc oc0 SafeB) SafeB
              (mwf_real_ctl lp bm bc oc0 SafeB)
              (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                Hgms_blk Hgtimer_blk Htable_blk)
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
              (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                Hgms_blk Hgtimer_blk Htable_blk)
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
              (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
              (fun m l m' Hf HM =>
                 mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
@@ -1141,20 +1150,20 @@ Section NoARealInputMWF.
                 (MWF_real lp bm bc oc0 SafeB)
                 (mwf_real_ctl lp bm bc oc0 SafeB)
                 (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                   Hgms_blk Hgtimer_blk Htable_blk)
+                   Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                 (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
                 (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                   Hgms_blk Hgtimer_blk Htable_blk)
+                   Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                 SafeB HSafeB_not_bm
                 (mwf_real_chase_root lp bm bc oc0 SafeB)
                 (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                   HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk)
+                   HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                 (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                   Hgms_blk Hgtimer_blk Htable_blk)
+                   Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                 (mwf_real_sglob lp bm bc oc0 SafeB)
                 (mwf_real_chase_step lp bm bc oc0 SafeB)
                 (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                   HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk))
+                   HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk))
              (Hpres_obj_ext interaction._play_sound eq_refl)).
   Qed.
   Let Hpres_inter : body_pres lp (NoA_real bm) MWF bm
@@ -1163,7 +1172,7 @@ Section NoARealInputMWF.
       (MWF_real lp bm bc oc0 SafeB) SafeB
       (mwf_real_ctl lp bm bc oc0 SafeB)
       (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-         Hgms_blk Hgtimer_blk Htable_blk)
+         Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
       (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
       (mwf_real_itab lp bm bc oc0 SafeB)
       Hcp_mgco_real Hcp_ckpw_real Hpres_ihandler.
@@ -1188,7 +1197,7 @@ Section NoARealInputMWF.
       (mwf_real_ctl lp bm bc oc0 SafeB)
       HSafeB_not_bm
       (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-         HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk)
+         HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
       Hcp_spawn_real.
   (* the warp trigger is WALKED (WarpSurface.warp_pres: its 33 stores are
      all window- or stored_globals-class; its one internal callee,
@@ -1242,7 +1251,7 @@ Section NoARealInputMWF.
       NoA_real bm mm' /\ MWF mm'.
   Proof.
     exact (mwf_real_store_safe lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-             HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk).
+             HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk).
   Qed.
 
   (* perform_ground_quarter_step, WALKED (MarioStepSurface.pgqs_cp): the
@@ -1262,7 +1271,7 @@ Section NoARealInputMWF.
              (MWF_real lp bm bc oc0 SafeB) SafeB
              (mwf_real_ctl lp bm bc oc0 SafeB)
              (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                Hgms_blk Hgtimer_blk Htable_blk)
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
              (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
              (fun m l m' Hf HM =>
                 mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
@@ -1301,7 +1310,7 @@ Section NoARealInputMWF.
              (MWF_real lp bm bc oc0 SafeB) SafeB
              (mwf_real_ctl lp bm bc oc0 SafeB)
              (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                Hgms_blk Hgtimer_blk Htable_blk)
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
              (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
              (fun m l m' Hf HM =>
                 mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
@@ -1336,12 +1345,12 @@ Section NoARealInputMWF.
              (mwf_real_chase_root lp bm bc oc0 SafeB)
              (mwf_real_chase_step lp bm bc oc0 SafeB)
              HSafeB_not_bm
-             (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk)
-             (mwf_real_input lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk)
+             (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             (mwf_real_input lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
              (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
              (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk)
-             (mwf_real_umbi lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk)
+                HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             (mwf_real_umbi lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
              WL_exempt
              (rest_pres_decompose lp LO_sta LO_mov LO_air LO_sub LO_cut
                 LO_aut LO_obj LO_int LO_beh LO_lvl LO_stp Hrest_ext_only
@@ -1350,13 +1359,13 @@ Section NoARealInputMWF.
                    (MWF_real lp bm bc oc0 SafeB)
                    (mwf_real_ctl lp bm bc oc0 SafeB)
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                      Hgms_blk Hgtimer_blk Htable_blk)
+                      Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                    Hpres_sta_callees Hpres_qsand)
                 (moving_pres lp LO_mario LO_mov LO_stp bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
                    (mwf_real_ctl lp bm bc oc0 SafeB)
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                      Hgms_blk Hgtimer_blk Htable_blk)
+                      Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                    Hpres_mov_callees Hpres_qsand)
                 (airborne_pres lp LO_mario LO_air bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
@@ -1366,42 +1375,42 @@ Section NoARealInputMWF.
                    (MWF_real lp bm bc oc0 SafeB) SafeB
                    (mwf_real_ctl lp bm bc oc0 SafeB)
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                      Hgms_blk Hgtimer_blk Htable_blk)
+                      Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                    HSafeB_not_bm
                    (mwf_real_chase_root lp bm bc oc0 SafeB)
                    (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                      HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk)
+                      HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                    Hpres_sub_callees)
                 (cutscene_pres lp LO_mario LO_cut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
                    (mwf_real_ctl lp bm bc oc0 SafeB)
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                      Hgms_blk Hgtimer_blk Htable_blk)
+                      Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                    Hpres_cut_callees)
                 (automatic_pres lp LO_mario LO_aut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
                    (mwf_real_ctl lp bm bc oc0 SafeB)
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                      Hgms_blk Hgtimer_blk Htable_blk)
+                      Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                    (automatic_leaf_callees_pres lp LO_mario LO_stp LO_aut bm
                       (NoA_real bm)
                       (MWF_real lp bm bc oc0 SafeB)
                       (mwf_real_ctl lp bm bc oc0 SafeB)
                       (mwf_real_window lp bm bc oc0 SafeB Hbc_bm
-                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk)
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                       (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
                       (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm
-                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk)
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                       SafeB HSafeB_not_bm
                       (mwf_real_chase_root lp bm bc oc0 SafeB)
                       (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm
-                         HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk)
+                         HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                       (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm
-                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk)
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                       (mwf_real_sglob lp bm bc oc0 SafeB)
                       (mwf_real_chase_step lp bm bc oc0 SafeB)
                       (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm
-                         HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk)
+                         HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                       (* B14 cannon kill: the carried MWF_real pins Mario's
                          input halfword A-clear (mwf_real_inp) -- the
                          mid-frame fact act_in_cannon's fire-gate kill
@@ -1467,27 +1476,27 @@ Section NoARealInputMWF.
                    (MWF_real lp bm bc oc0 SafeB)
                    (mwf_real_ctl lp bm bc oc0 SafeB)
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                      Hgms_blk Hgtimer_blk Htable_blk)
+                      Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                    (object_callees_pres lp LO_mario LO_stp LO_int LO_obj bm
                       (NoA_real bm)
                       (MWF_real lp bm bc oc0 SafeB)
                       (mwf_real_ctl lp bm bc oc0 SafeB)
                       (mwf_real_window lp bm bc oc0 SafeB Hbc_bm
-                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk)
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                       (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
                       (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm
-                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk)
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                       SafeB HSafeB_not_bm
                       (mwf_real_chase_root lp bm bc oc0 SafeB)
                       (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm
-                         HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk)
+                         HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                       (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm
-                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk)
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                       (mwf_real_sglob lp bm bc oc0 SafeB)
                       (mwf_real_chase_step lp bm bc oc0 SafeB)
                       (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm
                          HSafeB_not_bm HSafeB_not_bc Hgms_blk
-                         Hgtimer_blk Htable_blk)
+                         Hgtimer_blk Htable_blk Hktab_blk)
                       (Hpres_obj_ext mario._play_sound eq_refl)
                       (Hpres_obj_ext mario._vec3s_set eq_refl)
                       (Hpres_obj_ext mario_step._vec3f_copy eq_refl)
@@ -1509,28 +1518,28 @@ Section NoARealInputMWF.
                    (MWF_real lp bm bc oc0 SafeB)
                    (mwf_real_ctl lp bm bc oc0 SafeB)
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                      Hgms_blk Hgtimer_blk Htable_blk)
+                      Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                    (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
                    (floors_callees_pres lp LO_mario LO_stp LO_int LO_lvl bm
                       (NoA_real bm)
                       (MWF_real lp bm bc oc0 SafeB)
                       (mwf_real_ctl lp bm bc oc0 SafeB)
                       (mwf_real_window lp bm bc oc0 SafeB Hbc_bm
-                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk)
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                       (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
                       (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm
-                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk)
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                       SafeB HSafeB_not_bm
                       (mwf_real_chase_root lp bm bc oc0 SafeB)
                       (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm
-                         HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk)
+                         HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                       (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm
-                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk)
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                       (mwf_real_sglob lp bm bc oc0 SafeB)
                       (mwf_real_chase_step lp bm bc oc0 SafeB)
                       (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm
                          HSafeB_not_bm HSafeB_not_bc Hgms_blk
-                         Hgtimer_blk Htable_blk)
+                         Hgtimer_blk Htable_blk Hktab_blk)
                       (Hpres_obj_ext mario._play_sound eq_refl)
                       (Hpres_obj_ext mario._set_camera_mode eq_refl)
                       (Hpres_obj_ext interaction._segmented_to_virtual
@@ -1546,7 +1555,7 @@ Section NoARealInputMWF.
                          (MWF_real lp bm bc oc0 SafeB)
                          (mwf_real_ctl lp bm bc oc0 SafeB)
                          (mwf_real_window lp bm bc oc0 SafeB Hbc_bm
-                            HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk)
+                            HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                          (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm
                             Hglob_blk)
                          Hpres_warp_ext))
@@ -1554,7 +1563,7 @@ Section NoARealInputMWF.
                       (MWF_real lp bm bc oc0 SafeB)
                       (mwf_real_ctl lp bm bc oc0 SafeB)
                       (mwf_real_window lp bm bc oc0 SafeB Hbc_bm
-                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk)
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                       (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
                       Hpres_warp_ext))
                 Hpres_inter Hpres_wind
@@ -1562,7 +1571,7 @@ Section NoARealInputMWF.
                    (MWF_real lp bm bc oc0 SafeB)
                    (mwf_real_ctl lp bm bc oc0 SafeB)
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
-                      Hgms_blk Hgtimer_blk Htable_blk)
+                      Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                    (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
                    Hpres_warp_ext))
              Hret_call Hext_action Hmwf_ext
