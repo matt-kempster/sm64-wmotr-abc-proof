@@ -1236,6 +1236,8 @@ Section NoARealInputMWF.
                    HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                 (Hpres_obj_ext interaction._stop_shell_music eq_refl))
              (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
+             (Hpres_obj_ext interaction._bhv_spawn_star_no_level_exit
+                eq_refl)
              Hio_rest).
   Qed.
   Lemma Hcp_mgco_real :

@@ -4403,10 +4403,9 @@ Example io_ig_walk :
     (fn_body interaction.f_interact_igloo_barrier) = true.
 Proof. vm_compute. reflexivity. Qed.
 
-(* the REST census: the 14 handlers not yet walked (shrinks per slice) *)
+(* the REST census: the 13 handlers not yet walked (shrinks per slice) *)
 Definition io_rest_ids : list ident :=
-  interaction._interact_coin
-  :: interaction._interact_star_or_key
+  interaction._interact_star_or_key
   :: interaction._interact_warp_door
   :: interaction._interact_door
   :: interaction._interact_bully
@@ -4913,6 +4912,28 @@ Example io_wa_walk :
     (fn_body interaction.f_interact_warp) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- coin (slice 5): pure engine -- the only callee is the EXTERNAL
+   bhv_spawn_star_no_level_exit (obj_ext model boundary). *)
+Lemma io_co_pin :
+  (prog_defmap interaction.prog) ! interaction._interact_coin
+  = Some (Gfun (Internal interaction.f_interact_coin)).
+Proof. vm_compute. reflexivity. Qed.
+Example io_co_vars : fn_vars interaction.f_interact_coin = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example io_co_params :
+  fn_params interaction.f_interact_coin
+  = (interaction._m, tptr (Tstruct interaction._MarioState noattr))
+    :: (interaction._interactType, tuint)
+    :: (interaction._o, tptr (Tstruct interaction._Object noattr)) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+Example io_co_walk :
+  wwalk_chk false nil nil nil
+    (interaction._o :: nil)
+    (interaction._bhv_spawn_star_no_level_exit :: nil)
+    nil nil
+    (fn_body interaction.f_interact_coin) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 Section IoSurface.
   Variable lp : Clight.program.
   Hypothesis LO_mario : linkorder mario.prog lp.
@@ -5013,6 +5034,9 @@ Section IoSurface.
     call_pres lp bm NoA MWF interaction._mario_stop_riding_object.
   Hypothesis Hcpx_s2v_io :
     call_pres_ext lp bm NoA MWF interaction._segmented_to_virtual.
+  Hypothesis Hcpx_bssnle :
+    call_pres_ext lp bm NoA MWF
+      interaction._bhv_spawn_star_no_level_exit.
 
   Let Hcp_tdfio :
     call_pres lp bm NoA MWF interaction._take_damage_from_interact_object
@@ -5813,6 +5837,24 @@ Section IoSurface.
     - exact io_wa_walk.
   Qed.
 
+  Lemma io_coin :
+    body_pres_io lp bm NoA MWF SafeB interaction.f_interact_coin.
+  Proof.
+    apply (body_pres_io_of_wwalk interaction.f_interact_coin
+             nil nil nil (interaction._o :: nil)
+             (interaction._bhv_spawn_star_no_level_exit :: nil) nil nil
+             io_co_vars io_co_params eq_refl eq_refl).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpx_bssnle
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact io_co_walk.
+  Qed.
+
   (* ================================================================== *)
   (* SLICE 4: the eight pure-engine handlers.  Each is the water_ring    *)
   (* pattern -- body_pres_io_of_wwalk + the per-handler censuses; the    *)
@@ -6075,7 +6117,9 @@ Section IoSurface.
                     | (pose proof io_sn_pin as E; rewrite Hdm in E;
                        injection E as ->; exact io_snufit_bullet)
                     | (pose proof io_wa_pin as E; rewrite Hdm in E;
-                       injection E as ->; exact io_warp) ]
+                       injection E as ->; exact io_warp)
+                    | (pose proof io_co_pin as E; rewrite Hdm in E;
+                       injection E as ->; exact io_coin) ]
             | ]).
     destruct Hin.
   Qed.
