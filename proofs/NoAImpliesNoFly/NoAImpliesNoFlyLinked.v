@@ -125,7 +125,7 @@ Section NoAImpliesNoFlyLinked.
      in T, and the sole T-entry edges are A-gated (Taint.v). *)
   Hypothesis Hreach_val :
     reach_value_preserves_reached not_tainted bm (lp_ge lp) NoA MWF reached_fd.
-  Hypothesis Hrest : reach_rest_marg_lp lp bm NoA.
+  Hypothesis Hrest : reach_rest_marg_lp lp bm NoA reached_fd.
   Hypothesis Hstore :
     forall e le mm a1 a2 tt le' mm' out,
       NoA mm -> RealFrameValue.prov_ok (Sassign a1 a2) ->
@@ -263,7 +263,7 @@ Section NoARealInput.
      Phase-B target). Same shapes as the abstract section's. ---- *)
   Hypothesis Hreach_val :
     reach_value_preserves_reached not_tainted bm (lp_ge lp) NoA_real MWF reached_fd.
-  Hypothesis Hrest : reach_rest_marg_lp lp bm NoA_real.
+  Hypothesis Hrest : reach_rest_marg_lp lp bm NoA_real reached_fd.
   Hypothesis Hstore :
     forall e le mm a1 a2 tt le' mm' out,
       NoA_real mm -> RealFrameValue.prov_ok (Sassign a1 a2) ->
@@ -465,7 +465,7 @@ Section NoARealInputV2.
   (* ---- the wrapper residuals that are NOT engine-shaped (the root body's
      own provenance stores + the external meminv preservation), same shapes
      as the abstract section's. ---- *)
-  Hypothesis Hrest : reach_rest_marg_lp lp bm (NoA_real bm).
+  Hypothesis Hrest : reach_rest_marg_lp lp bm (NoA_real bm) (reached_v2 lp).
   Hypothesis Hstore :
     forall e le mm a1 a2 tt le' mm' out,
       NoA_real bm mm -> RealFrameValue.prov_ok (Sassign a1 a2) ->
@@ -953,7 +953,7 @@ Section NoARealInputMWF.
   Hypothesis Hmwf_ext : forall ef vargs m t vres m',
       external_call ef (lp_ge lp) vargs m t vres m' ->
       Mem.valid_block m bm -> MWF m -> MWF m'.
-  Hypothesis Hrest : reach_rest_marg_lp lp bm (NoA_real bm).
+  Hypothesis Hrest : reach_rest_marg_lp lp bm (NoA_real bm) (reached_v2 lp).
   Hypothesis Hstore :
     forall e le mm a1 a2 tt le' mm' out,
       NoA_real bm mm -> RealFrameValue.prov_ok (Sassign a1 a2) ->

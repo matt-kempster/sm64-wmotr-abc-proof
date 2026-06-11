@@ -706,9 +706,17 @@ Section ReRoot.
     Qed.
   End ReachedLp.
 
-  (* ---- the marg-gated "rest" residual + meminv build over lp_ge. ---- *)
-  Definition reach_rest_marg_lp (bm : block) (NoA : mem -> Prop) : Prop :=
+  (* ---- the marg-gated "rest" residual + meminv build over lp_ge. ----
+     REACHED-GATED: the build site always has the reached fact in scope, so
+     quantifying over ALL fundefs was a forall-fd phantom -- and a FALSE one:
+     fd := External (EF_memcpy 4 4) with dst = Vptr bm 0 PASSES marg_ok and
+     clobbers the watched cells. Gated on Reached_fd, the external sub-case
+     ranges only over the named rest-symbol resolutions (EF_external model
+     boundaries) and the row is satisfiable. *)
+  Definition reach_rest_marg_lp (bm : block) (NoA : mem -> Prop)
+             (Reached_fd : Clight.fundef -> Prop) : Prop :=
     forall m fd vargs t m' vres,
+      Reached_fd fd ->
       NoA m -> marg_ok bm vargs ->
       eval_funcall function_entry2 lp_ge m fd vargs t m' vres ->
       marioObj_wf_lp m bm -> gMarioState_wf_lp m bm ->
@@ -717,7 +725,7 @@ Section ReRoot.
   Lemma reach_meminv_reached_build_lp :
     forall bm NoA MWF (Reached_fd : Clight.fundef -> Prop),
       reach_value_preserves_reached Qv bm lp_ge NoA MWF Reached_fd ->
-      reach_rest_marg_lp bm NoA ->
+      reach_rest_marg_lp bm NoA Reached_fd ->
       forall m fd vargs t m' vres,
         Reached_fd fd ->
         NoA m -> meminv_lp bm m -> MWF m -> marg_ok bm vargs ->
@@ -728,7 +736,7 @@ Section ReRoot.
     intros bm NoA MWF Reached_fd Hval Hrest m fd vargs t m' vres Hrf Hno Hmem HMWF Hmarg Hsargs Hev.
     unfold meminv_lp in Hmem. destruct Hmem as (Hv & Hsat & Hmwf & Hgwf).
     destruct (Hval m fd vargs t m' vres Hrf Hno HMWF (fun _ => Hmarg) Hsargs Hev Hv Hsat) as (Hv' & Hsat' & HMWF').
-    destruct (Hrest m fd vargs t m' vres Hno Hmarg Hev Hmwf Hgwf) as (Hno' & Hmwf' & Hgwf').
+    destruct (Hrest m fd vargs t m' vres Hrf Hno Hmarg Hev Hmwf Hgwf) as (Hno' & Hmwf' & Hgwf').
     split; [ exact Hno' | split; [ unfold meminv_lp; repeat split; assumption | exact HMWF' ] ].
   Qed.
 
@@ -747,7 +755,7 @@ Section ReRoot.
     forall (bm : block) (NoA MWF : mem -> Prop)
            (Reached_id : ident -> Prop) (Reached_fd : Clight.fundef -> Prop) m m',
       reach_value_preserves_reached Qv bm lp_ge NoA MWF Reached_fd ->
-      reach_rest_marg_lp bm NoA ->
+      reach_rest_marg_lp bm NoA Reached_fd ->
       (forall e le mm a1 a2 tt le' mm' out,
           NoA mm -> prov_ok (Sassign a1 a2) ->
           exec_stmt function_entry2 lp_ge e le mm (Sassign a1 a2) tt le' mm' out -> NoA mm') ->
