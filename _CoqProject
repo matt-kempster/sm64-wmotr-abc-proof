@@ -116,6 +116,11 @@ proofs/MarioModel/WindSurface.v
 #     MWF table row; residuals = 29 body_pres_io handlers + mgco + ckpw) ---
 proofs/MarioModel/InterSurface.v
 
+# --- GOAL 1 / the mario_step surface (SPINE: pgs_cp DISCHARGES the
+#     capstone's Hcp_pgs perform_ground_step blocker via a loop-tolerant
+#     walk; residuals = the deeper pgqs (mo-gated) + mgtsa (marg) rows) ---
+proofs/MarioModel/MarioStepSurface.v
+
 # --- top-level demos ---
 proofs/Toy/ToyFrame.v
 proofs/Toy/ToyReach.v
