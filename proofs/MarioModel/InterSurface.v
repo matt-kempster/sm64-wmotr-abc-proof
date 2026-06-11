@@ -3457,6 +3457,213 @@ Section DkaSurface.
 
 End DkaSurface.
 
+Definition tdfio_optid_ok (optid : option ident) : bool :=
+  match optid with
+  | Some id => negb (Pos.eqb id interaction._m)
+  | None => true
+  end.
+
+Fixpoint tdfio_chk (s : statement) : bool :=
+  match s with
+  | Sskip | Sbreak | Scontinue => true
+  | Sreturn _ => true
+  | Ssequence s1 s2 => tdfio_chk s1 && tdfio_chk s2
+  | Sifthenelse _ s1 s2 => tdfio_chk s1 && tdfio_chk s2
+  | Sset id _ => negb (Pos.eqb id interaction._m)
+  | Sassign a1 _ => safe_mfield_store interaction._m a1
+  | Scall optid (Evar fid fty) al =>
+      tdfio_optid_ok optid
+      && Pos.eqb fid interaction._set_camera_shake_from_hit
+      && match fty with Tfunction _ _ _ => true | _ => false end
+  | _ => false
+  end.
+
+Lemma tdfio_chk_body :
+  tdfio_chk (fn_body interaction.f_take_damage_from_interact_object)
+  = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma tdfio_pin :
+  (prog_defmap interaction.prog)
+    ! interaction._take_damage_from_interact_object
+  = Some (Gfun (Internal interaction.f_take_damage_from_interact_object)).
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma tdfio_vars :
+  fn_vars interaction.f_take_damage_from_interact_object = nil.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma tdfio_params :
+  fn_params interaction.f_take_damage_from_interact_object
+  = (interaction._m, tyMSi) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+
+Section TdfioSurface.
+  Variable lp : Clight.program.
+  Hypothesis LO_mario : linkorder mario.prog lp.
+  Hypothesis LO_int : linkorder interaction.prog lp.
+
+  Variable bm : block.
+  Variable NoA MWF : mem -> Prop.
+
+  Hypothesis HNoA_of_MWF : forall m, MWF m -> NoA m.
+  Hypothesis HMWF_window : forall mm mm' ch (delta : Z) vv,
+      MWF mm -> store_window_ok delta (size_chunk ch) = true ->
+      Mem.store ch mm bm delta vv = Some mm' -> MWF mm'.
+  (* the ungated camera external (no pointer args: tshort -> void) *)
+  Hypothesis Hcpx_scsfh :
+    call_pres_ext lp bm NoA MWF interaction._set_camera_shake_from_hit.
+
+  Lemma tdfio_walk_pres :
+    forall s e le m0 tr le' m' out,
+      exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
+      tdfio_chk s = true ->
+      e ! interaction._set_camera_shake_from_hit = None ->
+      (forall b o, le ! interaction._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      carried bm NoA MWF m0 ->
+      carried bm NoA MWF m' /\
+      (forall b o, le' ! interaction._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero).
+  Proof.
+    intros s e le m0 tr le' m' out Hexec.
+    induction Hexec; intros Hchk Hsc Hm Hc.
+    - (* Sskip *) exact (conj Hc Hm).
+    - (* Sassign *)
+      cbn [tdfio_chk] in Hchk.
+      assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
+                      (Sassign a1 a2) E0 le m' Out_normal)
+        by (econstructor; eauto).
+      destruct Hc as (HV & HS & HM & HN).
+      destruct (epi_assign_pres lp LO_mario bm MWF HMWF_window
+                  a1 a2 _ _ _ _ _ _ _ Hchk Hm Hex HM HV HS)
+        as (HV' & HS' & HM' & _ & _).
+      exact (conj (conj HV' (conj HS' (conj HM' (HNoA_of_MWF _ HM')))) Hm).
+    - (* Sset *)
+      cbn [tdfio_chk] in Hchk.
+      refine (conj Hc _).
+      intros b o Hg.
+      rewrite PTree.gso in Hg by (intro EE; subst id;
+        rewrite Pos.eqb_refl in Hchk; discriminate Hchk).
+      exact (Hm b o Hg).
+    - (* Scall *)
+      cbn [tdfio_chk] in Hchk.
+      destruct a as [ | | | | fid fty | | | | | | | | | ];
+        try discriminate Hchk.
+      apply andb_true_iff in Hchk as [Hchk Hftyb].
+      apply andb_true_iff in Hchk as [Hopt Hfid].
+      apply Pos.eqb_eq in Hfid; subst fid.
+      destruct fty as [ | | | | | | targs tres tcc | | ];
+        try discriminate Hftyb.
+      assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
+                      (Scall optid
+                         (Evar interaction._set_camera_shake_from_hit
+                            (Tfunction targs tres tcc)) al) t
+                      (set_opttemp optid vres le) m' Out_normal)
+        by (econstructor; eauto).
+      assert (HmL : forall b o,
+                 (set_opttemp optid vres le) ! interaction._m
+                 = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
+      { cbn [tdfio_optid_ok] in Hopt.
+        destruct optid as [oid | ]; cbn [set_opttemp].
+        - apply negb_true_iff in Hopt.
+          intros b o Hg. rewrite PTree.gso in Hg by (intro EE; subst oid;
+            rewrite Pos.eqb_refl in Hopt; discriminate Hopt).
+          exact (Hm b o Hg).
+        - exact Hm. }
+      destruct Hc as (HV & HS & HM & HN).
+      destruct (kit_scallx_pres lp bm NoA MWF optid
+                  interaction._set_camera_shake_from_hit
+                  targs tres tcc al e le m _ _ m' _
+                  Hsc Hex Hcpx_scsfh HN HM HV HS)
+        as (HV' & HS' & HM' & HN' & _ & _).
+      exact (conj (conj HV' (conj HS' (conj HM' HN'))) HmL).
+    - (* Sbuiltin *)
+      cbn [tdfio_chk] in Hchk. discriminate Hchk.
+    - (* Sseq_1 *)
+      cbn [tdfio_chk] in Hchk.
+      apply andb_true_iff in Hchk as [H1 H2].
+      destruct (IHHexec1 H1 Hsc Hm Hc) as (Hc1 & Hm1).
+      exact (IHHexec2 H2 Hsc Hm1 Hc1).
+    - (* Sseq_2 *)
+      cbn [tdfio_chk] in Hchk.
+      apply andb_true_iff in Hchk as [H1 _].
+      exact (IHHexec H1 Hsc Hm Hc).
+    - (* Sifthenelse *)
+      cbn [tdfio_chk] in Hchk. apply andb_true_iff in Hchk as [H1 H2].
+      apply IHHexec; try assumption.
+      destruct b; assumption.
+    - (* Sreturn None *) exact (conj Hc Hm).
+    - (* Sreturn (Some _) *) exact (conj Hc Hm).
+    - (* Sbreak *) exact (conj Hc Hm).
+    - (* Scontinue *) exact (conj Hc Hm).
+    - (* Sloop stop1 *) cbn [tdfio_chk] in Hchk. discriminate Hchk.
+    - (* Sloop stop2 *) cbn [tdfio_chk] in Hchk. discriminate Hchk.
+    - (* Sloop loop *) cbn [tdfio_chk] in Hchk. discriminate Hchk.
+    - (* Sswitch *) cbn [tdfio_chk] in Hchk. discriminate Hchk.
+  Qed.
+
+  Lemma tdfio_body_pres :
+    body_pres lp NoA MWF bm interaction.f_take_damage_from_interact_object.
+  Proof.
+    intros m0 vargs0 t0 mF vres0 Hgate Hevf HN HM HV HS.
+    assert (Hmarg : marg_ok bm vargs0)
+      by (apply Hgate; vm_compute; reflexivity).
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      rewrite tdfio_vars in Ha; inv Ha end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    rewrite tdfio_params in Hbind.
+    cbn [bind_parameter_temps] in Hbind.
+    destruct vargs0 as [| v_m vr1]; [ discriminate Hbind | ].
+    destruct vr1 as [| vx vr2]; [ | discriminate Hbind ].
+    injection Hbind as <-.
+    assert (Hm0 : forall b o,
+               (PTree.set interaction._m v_m
+                  (create_undef_temps
+                     (fn_temps
+                        interaction.f_take_damage_from_interact_object)))
+                 ! interaction._m = Some (Vptr b o) ->
+               b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg.
+      rewrite PTree.gss in Hg. injection Hg as ->.
+      cbn in Hmarg. exact Hmarg. }
+    match type of Hbody with
+    | exec_stmt _ _ _ _ ?mm _ _ _ _ _ =>
+        assert (Hcar : carried bm NoA MWF mm)
+          by (split; [ exact HV | split; [ exact HS
+                     | split; [ exact HM | exact HN ] ] ])
+    end.
+    destruct (tdfio_walk_pres _ _ _ _ _ _ _ _ Hbody tdfio_chk_body
+                (PTree.gempty _ _) Hm0 Hcar)
+      as (Hc' & _).
+    destruct Hc' as (HV' & HS' & HM' & HN').
+    change (blocks_of_env (lp_ge lp) empty_env)
+      with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    exact (conj HV' (conj HS' HM')).
+  Qed.
+
+  Lemma tdfio_row :
+    call_pres lp bm NoA MWF
+      interaction._take_damage_from_interact_object.
+  Proof.
+    exact (call_pres_of_body lp bm NoA MWF HNoA_of_MWF interaction.prog
+             interaction._take_damage_from_interact_object
+             interaction.f_take_damage_from_interact_object
+             LO_int tdfio_pin tdfio_body_pres).
+  Qed.
+
+End TdfioSurface.
+
 (* ====================================================================== *)
 (* =================  the 29 interact_* handler walks  ================== *)
 (* The io arc: every handler has params EXACTLY (m, interactType, o) and  *)
