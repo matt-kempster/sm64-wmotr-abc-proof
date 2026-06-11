@@ -174,6 +174,58 @@ Section ReRoot.
       end.
   Qed.
 
+  (* THE LOAD-EXPORTING VARIANT of eval_marioObj_off_bm_lp: the same
+     inversion, but instead of comparing against the wf row's value it
+     RETURNS the chase-root load the evaluation performed. This is the
+     input to the carried MWF's chase-root row (SafeB) in the tsafe
+     re-establishment -- the brick that lets the store rows be stated
+     execution-relative instead of forall-le (which was FALSE). *)
+  Lemma eval_marioObj_load_lp :
+    forall stid e le m bm bobj o,
+      (forall b o', le ! stid = Some (Vptr b o') -> b = bm /\ o' = Ptrofs.zero) ->
+      marioObj_wf_lp m bm ->
+      eval_expr lp_ge e le m
+        (Efield (Ederef (Etempvar stid (tptr (Tstruct mario._MarioState noattr)))
+                        (Tstruct mario._MarioState noattr))
+                mario._marioObj (tptr (Tstruct mario._Object noattr)))
+        (Vptr bobj o) ->
+      exists delta,
+        field_offset (prog_comp_env mario.prog) mario._marioObj mario_state_members
+          = Errors.OK (delta, Full) /\
+        Mem.loadv Mptr m (Vptr bm (Ptrofs.repr delta)) = Some (Vptr bobj o).
+  Proof.
+    intros stid e le m bm bobj o Ht48 (off & bobj0 & ofs0w & Hfo & Hload & Hne & Hng) Hev.
+    apply eval_expr_Efield_load in Hev as (loc & ofs & bf & Hlv & Hderef).
+    apply eval_lvalue_Efield_inv in Hlv as (o0 & id & att & co & delta & Hbase & Hco & Hofs & Hcase).
+    apply eval_expr_Ederef_load in Hbase as (lb & ob & bfb & Hlvb & Hderefb).
+    apply deref_loc_aggregate_eq in Hderefb as [? ?]; [ | right; reflexivity ]. subst lb ob.
+    apply eval_lvalue_Ederef_base in Hlvb.
+    apply eval_expr_Etempvar_val in Hlvb. destruct (Ht48 _ _ Hlvb) as [Hl Ho]. subst.
+    destruct Hcase as [ (Hty & Hfo2) | (Hty & Hfo2) ]; [ | cbn in Hty; discriminate ].
+    cbn in Hty; inv Hty.
+    change (genv_cenv lp_ge) with (prog_comp_env lp) in Hco, Hfo2.
+    destruct mario_defines_MarioState as (co0 & Hmar).
+    pose proof (linkorder_comp_env_extends lp mario.prog mario._MarioState co0 LO_mario Hmar)
+      as Hext_lp.
+    assert (co = co0) by congruence. subst co0.
+    assert (Hmm : mario_state_members = co_members co)
+      by (unfold mario_state_members; rewrite Hmar; reflexivity).
+    rewrite (linkorder_field_offset_agree lp mario.prog mario._marioObj (co_members co)
+               LO_mario) in Hfo2;
+      [ | rewrite <- Hmm; exact mario_state_members_complete ].
+    rewrite Hmm in Hfo. rewrite Hfo in Hfo2. inv Hfo2.
+    rewrite Ptrofs.add_zero_l in Hderef.
+    inv Hderef;
+      try (match goal with Hac : access_mode _ = By_reference |- _ => cbn in Hac; discriminate end);
+      try (match goal with Hac : access_mode _ = By_copy |- _ => cbn in Hac; discriminate end);
+      try (match goal with Hlb : load_bitfield _ _ _ _ _ _ _ _ |- _ => inv Hlb end);
+      match goal with
+      | Hac : access_mode _ = By_value ?chunk,
+        Hlv3 : Mem.loadv ?chunk _ (Vptr _ (Ptrofs.repr ?d)) = Some (Vptr bobj o) |- _ =>
+          cbn in Hac; inv Hac; exists d; split; [ rewrite Hmm; exact Hfo | exact Hlv3 ]
+      end.
+  Qed.
+
   (* Offset faithfulness, packaged for this section: over lp_ge the action cell
      is still byte 12 of MarioState (linking does not move it). This is what lets
      the re-rooted engine keep RealFrameValue's concrete action@12 reasoning. *)
@@ -582,22 +634,58 @@ Section ReRoot.
     - rewrite PTree.gso in Hs by congruence. exact (HP tt Hin b o Hs).
   Qed.
 
+  (* the entry fact for the tsafe invariant: the Object-pointer temps
+     _t'49/_t'13 start Vundef (they are temps, not params), so any SafeB
+     obligation on them is vacuous at entry. Mirrors tprov_entry. *)
+  Lemma tsafe_entry_lp :
+    forall (S : block -> Prop) vargs le,
+      bind_parameter_temps (fn_params mario.f_execute_mario_action) vargs
+         (create_undef_temps (fn_temps mario.f_execute_mario_action)) = Some le ->
+      (forall b o, le ! mario._t'49 = Some (Vptr b o) -> S b) /\
+      (forall b o, le ! mario._t'13 = Some (Vptr b o) -> S b).
+  Proof.
+    intros S vargs le Hbind.
+    assert (Hother : forall id, ~ In id (var_names (fn_params mario.f_execute_mario_action)) ->
+              le ! id = (create_undef_temps (fn_temps mario.f_execute_mario_action)) ! id)
+      by (intros id Hnin; eapply bind_parameter_temps_other; [ exact Hbind | exact Hnin ]).
+    split; intros b o Hlk;
+      rewrite Hother in Hlk by (vm_compute; intuition discriminate);
+      vm_compute in Hlk; discriminate Hlk.
+  Qed.
+
   (* ---- THE MARG/MWF/REACHED BODY ENGINE over lp_ge. ---- *)
   Section ReachedLp.
     Variable bm gb : block.
     Hypothesis Hgb_lp : Genv.find_symbol lp_ge mario._gMarioState = Some gb.
     Variable NoA MWF : mem -> Prop.
+    Variable SafeB : block -> Prop.
     Variable Reached_id : ident -> Prop.
     Variable Reached_fd : Clight.fundef -> Prop.
 
-    Hypothesis noA_store_pres_lp :
+    (* the chase-root row of the carried MWF: the marioObj cell's value, if
+       a pointer, lands in the safe object region. At the grounded capstone
+       this is exactly MWFReal.mwf_real_chase_root at fld := _marioObj. *)
+    Hypothesis chase_root_safe_lp : forall delta m b' o',
+        field_offset (prog_comp_env mario.prog) mario._marioObj mario_state_members
+          = Errors.OK (delta, Full) ->
+        MWF m ->
+        Mem.loadv Mptr m (Vptr bm (Ptrofs.repr delta)) = Some (Vptr b' o') ->
+        SafeB b'.
+
+    (* THE RESTATED STORE ROW (execution-relative). The two body stores go
+       through _t'49/_t'13, and the walk hands this row their SafeB
+       provenance (chased from the marioObj cell under MWF, threaded by the
+       tsafe invariant below). The previous forall-le rows were FALSE for
+       the real lp: an adversarial le binding _t'49 := Vptr bc d lets
+       store1 (a halfword store) overwrite the controller A-cell,
+       breaking ctl_a_clear (= the grounded NoA) and the carried MWF. *)
+    Hypothesis store_pres_safe_lp :
       forall e le m a1 a2 t le' m' out,
-        NoA m -> prov_ok (Sassign a1 a2) ->
-        exec_stmt function_entry2 lp_ge e le m (Sassign a1 a2) t le' m' out -> NoA m'.
-    Hypothesis store_mwf_lp :
-      forall e le m a1 a2 t le' m' out,
-        NoA m -> prov_ok (Sassign a1 a2) -> MWF m ->
-        exec_stmt function_entry2 lp_ge e le m (Sassign a1 a2) t le' m' out -> MWF m'.
+        NoA m -> MWF m -> prov_ok (Sassign a1 a2) ->
+        (forall b o, le ! mario._t'49 = Some (Vptr b o) -> SafeB b) ->
+        (forall b o, le ! mario._t'13 = Some (Vptr b o) -> SafeB b) ->
+        exec_stmt function_entry2 lp_ge e le m (Sassign a1 a2) t le' m' out ->
+        NoA m' /\ MWF m'.
     (* NO external/builtin hypothesis -- see the note in ProvEngineLp: the
        census forbids Sbuiltin, the engine refutes the case. *)
     Hypothesis reach_meminv_reached_lp :
@@ -617,30 +705,93 @@ Section ReRoot.
         eval_expr lp_ge empty_env le mm a vf ->
         Genv.find_funct lp_ge vf = Some fd -> Reached_fd fd.
 
+    (* the SafeB temp invariant carried by the walk: the two Object-pointer
+       temps, IF they hold pointers, point into the safe region. *)
+    Definition tsafe (le : temp_env) : Prop :=
+      (forall b o, le ! mario._t'49 = Some (Vptr b o) -> SafeB b) /\
+      (forall b o, le ! mario._t'13 = Some (Vptr b o) -> SafeB b).
+
+    (* `t = stid->marioObj` makes t SafeB, via the exported chase-root load
+       + the carried MWF's chase-root row. *)
+    Lemma sset_marioObj_safeb_lp :
+      forall tid stid e le m t le' m' out,
+        (forall b o', le ! stid = Some (Vptr b o') -> b = bm /\ o' = Ptrofs.zero) ->
+        marioObj_wf_lp m bm -> MWF m ->
+        exec_stmt function_entry2 lp_ge e le m
+          (Sset tid (Efield (Ederef (Etempvar stid (tptr (Tstruct mario._MarioState noattr)))
+                                    (Tstruct mario._MarioState noattr))
+                            mario._marioObj (tptr (Tstruct mario._Object noattr)))) t le' m' out ->
+        forall b o, le' ! tid = Some (Vptr b o) -> SafeB b.
+    Proof.
+      intros tid stid e le m t le' m' out Hstid Hwf HM H b o Hle'. inv H.
+      rewrite PTree.gss in Hle'. inv Hle'.
+      match goal with Hev : eval_expr _ _ _ _ _ (Vptr b o) |- _ =>
+        destruct (eval_marioObj_load_lp _ _ _ _ _ _ _ Hstid Hwf Hev) as (delta & Hfo & Hld) end.
+      eapply chase_root_safe_lp; [ exact Hfo | exact HM | exact Hld ].
+    Qed.
+
+    (* tsafe across an Sset: re-established by the chase-root row for a
+       tracked temp (the census pins its RHS), gso for the rest. *)
+    Lemma tsafe_sset_preserves :
+      forall e le m id a t le' m' out,
+        meminv_lp bm m -> MWF m ->
+        tprov bm gb le -> tsafe le -> prov_sset_ok id a ->
+        exec_stmt function_entry2 lp_ge e le m (Sset id a) t le' m' out ->
+        tsafe le'.
+    Proof.
+      intros e le m id a t le' m' out Hmem HM Htp Hts Hck Hexec.
+      inversion Hexec; subst.
+      destruct Hmem as (Hv & Hsat & Hmwf & Hgwf).
+      destruct Htp as (T48 & T12 & _ & _).
+      destruct Hts as (S49 & S13).
+      destruct Hck as (C48 & C12 & C49 & C13).
+      split.
+      - intros bb oo Hs. destruct (Pos.eq_dec id mario._t'49) as [E|N].
+        + subst id. rewrite (C49 eq_refl) in Hexec.
+          eapply sset_marioObj_safeb_lp; [ exact T48 | exact Hmwf | exact HM | exact Hexec | exact Hs ].
+        + rewrite PTree.gso in Hs by congruence. exact (S49 _ _ Hs).
+      - intros bb oo Hs. destruct (Pos.eq_dec id mario._t'13) as [E|N].
+        + subst id. rewrite (C13 eq_refl) in Hexec.
+          eapply sset_marioObj_safeb_lp; [ exact T12 | exact Hmwf | exact HM | exact Hexec | exact Hs ].
+        + rewrite PTree.gso in Hs by congruence. exact (S13 _ _ Hs).
+    Qed.
+
+    (* an untracked call-result temp leaves tsafe intact. *)
+    Lemma tsafe_set_opttemp :
+      forall oid v le, optid_untracked oid -> tsafe le -> tsafe (set_opttemp oid v le).
+    Proof.
+      intros oid v le Hut (S49 & S13). destruct oid as [id|]; [ | exact (conj S49 S13) ].
+      destruct (Hut id eq_refl) as (_ & _ & N49 & N13).
+      split; intros bb oo Hs; cbn [set_opttemp] in Hs;
+        rewrite PTree.gso in Hs by congruence;
+        [ exact (S49 _ _ Hs) | exact (S13 _ _ Hs) ].
+    Qed.
+
     Theorem exec_body_prov_reached_lp :
       forall le m s t le' m' out,
         exec_stmt function_entry2 lp_ge empty_env le m s t le' m' out ->
         NoA m -> meminv_lp bm m -> tprov bm gb le -> Pgms bm le -> MWF m ->
+        tsafe le ->
         prov_ok s -> pgms_chk s -> reach_chk Reached_id s ->
-        NoA m' /\ meminv_lp bm m' /\ tprov bm gb le' /\ Pgms bm le' /\ MWF m'.
+        NoA m' /\ meminv_lp bm m' /\ tprov bm gb le' /\ Pgms bm le' /\ MWF m' /\ tsafe le'.
     Proof.
-      intros le m s t le' m' out H Hno Hmem Htp Hpg Hmwf Hck Hpck Hrck.
+      intros le m s t le' m' out H Hno Hmem Htp Hpg Hmwf Hts Hck Hpck Hrck.
       assert (He : empty_env ! mario._gMarioState = None) by apply PTree.gempty.
       apply (body_check_generic lp_ge empty_env
-               (fun mm ll => NoA mm /\ meminv_lp bm mm /\ tprov bm gb ll /\ Pgms bm ll /\ MWF mm)
+               (fun mm ll => NoA mm /\ meminv_lp bm mm /\ tprov bm gb ll /\ Pgms bm ll /\ MWF mm /\ tsafe ll)
                (fun ss => prov_ok ss /\ pgms_chk ss /\ reach_chk Reached_id ss))
         with (le := le) (m := m) (s := s) (t := t) (le' := le') (m' := m') (out := out);
         try exact H;
         try (split; [ exact Hno | split; [ exact Hmem | split; [ exact Htp
-              | split; [ exact Hpg | exact Hmwf ] ] ] ]);
+              | split; [ exact Hpg | split; [ exact Hmwf | exact Hts ] ] ] ] ]);
         try (split; [ exact Hck | split; [ exact Hpck | exact Hrck ] ]).
-      - (* Sassign leaf *)
-        intros le0 m0 a1 a2 t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0 & Hmwf0) (Hck0 & _ & _) Hexec.
+      - (* Sassign leaf: the restated store row consumes the tsafe facts *)
+        intros le0 m0 a1 a2 t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0 & Hmwf0 & Hts0) (Hck0 & _ & _) Hexec.
         assert (Hle : le0' = le0) by (inversion Hexec; reflexivity). subst le0'.
-        assert (Hno0' : NoA m0') by (eapply noA_store_pres_lp; [ exact Hno0 | exact Hck0 | exact Hexec ]).
-        assert (Hmwf0' : MWF m0') by (eapply store_mwf_lp; [ exact Hno0 | exact Hck0 | exact Hmwf0 | exact Hexec ]).
+        destruct (store_pres_safe_lp _ _ _ _ _ _ _ _ _ Hno0 Hmwf0 Hck0
+                    (proj1 Hts0) (proj2 Hts0) Hexec) as (Hno0' & Hmwf0').
         split; [ exact Hno0' | ].
-        split; [ | split; [ exact Htp0 | split; [ exact Hpg0 | exact Hmwf0' ] ] ].
+        split; [ | split; [ exact Htp0 | split; [ exact Hpg0 | split; [ exact Hmwf0' | exact Hts0 ] ] ] ].
         cbn [prov_ok] in Hck0.
         destruct Htp0 as (T48 & T12 & T49 & T13).
         destruct Hck0 as [ [Ha1 Ha2] | [Ha1 Ha2] ]; subst.
@@ -649,18 +800,20 @@ Section ReRoot.
         + eapply (store_preserves_meminv_lp bm gb Hgb_lp store2_lval store2_rval mario._t'13 store2_loc_is_t13_lp);
             [ exact Hmem0 | exact T13 | exact Hexec ].
       - (* Sset leaf *)
-        intros le0 m0 id a t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0 & Hmwf0) (Hck0 & Hpck0 & _) Hexec.
+        intros le0 m0 id a t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0 & Hmwf0 & Hts0) (Hck0 & Hpck0 & _) Hexec.
         cbn [prov_ok] in Hck0. cbn [pgms_chk] in Hpck0.
         assert (Hm : m0' = m0) by (inversion Hexec; reflexivity).
         pose proof Hmem0 as Hmemcopy. destruct Hmemcopy as (_ & _ & _ & Hgwf0).
         destruct (sset_case_preserves_lp bm gb Hgb_lp empty_env le0 m0 id a t0 le0' m0' out0 He Hmem0 Htp0 Hck0 Hexec)
           as (Hmem0' & Htp0').
         split; [ rewrite Hm; exact Hno0 | ].
-        split; [ exact Hmem0' | split; [ exact Htp0' | split ] ].
+        split; [ exact Hmem0' | split; [ exact Htp0' | split; [ | split ] ] ].
         + eapply pgms_sset_preserves_lp; [ exact He | exact Hgwf0 | exact Hpg0 | exact Hpck0 | exact Hexec ].
         + rewrite Hm; exact Hmwf0.
+        + eapply tsafe_sset_preserves;
+            [ exact Hmem0 | exact Hmwf0 | exact Htp0 | exact Hts0 | exact Hck0 | exact Hexec ].
       - (* Scall leaf *)
-        intros le0 m0 oid a al t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0 & Hmwf0) (Hck0 & Hpck0 & Hrck0) Hexec.
+        intros le0 m0 oid a al t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0 & Hmwf0 & Hts0) (Hck0 & Hpck0 & Hrck0) Hexec.
         cbn [prov_ok] in Hck0. cbn [pgms_chk] in Hpck0.
         destruct Hpck0 as (Hres & Hargs).
         inversion Hexec; subst.
@@ -683,10 +836,11 @@ Section ReRoot.
         match goal with Hf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
           destruct (reach_meminv_reached_lp _ _ _ _ _ _ Hrf Hno0 Hmem0 Hmwf0 Hmarg Hsargs Hf)
             as (Hno0' & Hmem0' & Hmwf0') end.
-        split; [ exact Hno0' | split; [ exact Hmem0' | split; [ | split ] ] ].
+        split; [ exact Hno0' | split; [ exact Hmem0' | split; [ | split; [ | split ] ] ] ].
         + apply tprov_set_opttemp; [ exact Hck0 | exact Htp0 ].
         + apply pgms_set_opttemp; [ exact Hres | exact Hpg0 ].
         + exact Hmwf0'.
+        + apply tsafe_set_opttemp; [ exact Hck0 | exact Hts0 ].
       - (* Sbuiltin leaf: REFUTED by the census (the body has no builtins) *)
         intros le0 m0 oid ef tyl al t0 le0' m0' out0 _ (Hck0 & _) _.
         cbn [prov_ok] in Hck0. destruct Hck0.
@@ -752,16 +906,22 @@ Section ReRoot.
   (* what NoAImpliesNoFly will consume in place of the mario_ge wrapper.    *)
   (* ================================================================== *)
   Theorem execute_mario_action_preserves_real_reached_lp :
-    forall (bm : block) (NoA MWF : mem -> Prop)
+    forall (bm : block) (NoA MWF : mem -> Prop) (SafeB : block -> Prop)
            (Reached_id : ident -> Prop) (Reached_fd : Clight.fundef -> Prop) m m',
       reach_value_preserves_reached Qv bm lp_ge NoA MWF Reached_fd ->
       reach_rest_marg_lp bm NoA Reached_fd ->
+      (forall delta mm b' o',
+          field_offset (prog_comp_env mario.prog) mario._marioObj mario_state_members
+            = Errors.OK (delta, Full) ->
+          MWF mm ->
+          Mem.loadv Mptr mm (Vptr bm (Ptrofs.repr delta)) = Some (Vptr b' o') ->
+          SafeB b') ->
       (forall e le mm a1 a2 tt le' mm' out,
-          NoA mm -> prov_ok (Sassign a1 a2) ->
-          exec_stmt function_entry2 lp_ge e le mm (Sassign a1 a2) tt le' mm' out -> NoA mm') ->
-      (forall e le mm a1 a2 tt le' mm' out,
-          NoA mm -> prov_ok (Sassign a1 a2) -> MWF mm ->
-          exec_stmt function_entry2 lp_ge e le mm (Sassign a1 a2) tt le' mm' out -> MWF mm') ->
+          NoA mm -> MWF mm -> prov_ok (Sassign a1 a2) ->
+          (forall b o, le ! mario._t'49 = Some (Vptr b o) -> SafeB b) ->
+          (forall b o, le ! mario._t'13 = Some (Vptr b o) -> SafeB b) ->
+          exec_stmt function_entry2 lp_ge e le mm (Sassign a1 a2) tt le' mm' out ->
+          NoA mm' /\ MWF mm') ->
       (forall oid a al le mm vf fd,
           reach_chk Reached_id (Scall oid a al) ->
           eval_expr lp_ge empty_env le mm a vf ->
@@ -774,7 +934,7 @@ Section ReRoot.
       NoA m' /\ Mem.valid_block m' bm /\ action_sat Qv m' bm /\
       marioObj_wf_lp m' bm /\ gMarioState_wf_lp m' bm /\ MWF m'.
   Proof.
-    intros bm NoA MWF Reached_id Reached_fd m m' Hval Hrest Hstore Hstoremwf Hbcr Hbodyrck
+    intros bm NoA MWF SafeB Reached_id Reached_fd m m' Hval Hrest Hchase Hstore Hbcr Hbodyrck
            HnoA HMWF Hv Hsat Hmwf Hgwf (b_o & t & res & Hfun).
     pose proof Hgwf as Hgwf2. destruct Hgwf2 as (gb & Hgb & Hload).
     pose proof (reach_meminv_reached_build_lp bm NoA MWF Reached_fd Hval Hrest) as Hreachmem.
@@ -788,16 +948,17 @@ Section ReRoot.
                 m m' t res eq_refl);
         [ | exact (conj HnoA (conj Hv (conj Hsat (conj Hmwf (conj Hgwf HMWF))))) | exact Hfun ].
       intros le mm tt le' mm' out Hbind (Hn & Hvv & Hss & Hmw & Hgw & Hmf) Hexec.
-      edestruct (exec_body_prov_reached_lp bm gb Hgb NoA MWF Reached_id Reached_fd
-                   Hstore Hstoremwf Hreachmem Hbcr
+      edestruct (exec_body_prov_reached_lp bm gb Hgb NoA MWF SafeB Reached_id Reached_fd
+                   Hchase Hstore Hreachmem Hbcr
                    le mm (fn_body mario.f_execute_mario_action) tt le' mm' out)
-        as (Hn' & Hmem' & _ & _ & Hmf');
+        as (Hn' & Hmem' & _ & _ & Hmf' & _);
         [ exact Hexec
         | exact Hn
         | exact (conj Hvv (conj Hss (conj Hmw Hgw)))
         | eapply tprov_entry; exact Hbind
         | eapply pgms_entry; exact Hbind
         | exact Hmf
+        | eapply (tsafe_entry_lp SafeB); exact Hbind
         | exact execute_mario_action_body_prov_ok
         | exact execute_mario_action_body_pgms_ok
         | exact Hbodyrck
