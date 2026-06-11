@@ -990,21 +990,31 @@ Section NoARealInputMWF.
       Mem.valid_block m bm -> MWF m -> MWF m'.
   Hypothesis Hrest : reach_rest_marg_lp lp bm (NoA_real bm) (reached_v2 lp).
   (* the chase-root row of MWF at the marioObj cell: its value, if a
-     pointer, is SafeB. At the MWF_real grounding this is PROVED
-     (MWFReal.mwf_real_chase_root at fld := _marioObj). *)
-  Hypothesis Hchase_safe : forall delta mm b' o',
+     pointer, is SafeB. PROVED here: the R6 projection
+     MWFReal.mwf_real_chase_safe. *)
+  Lemma Hchase_safe : forall delta mm b' o',
       field_offset (prog_comp_env mario.prog) mario._marioObj mario_state_members
         = Errors.OK (delta, Full) ->
       MWF mm ->
       Mem.loadv Mptr mm (Vptr bm (Ptrofs.repr delta)) = Some (Vptr b' o') ->
       SafeB b'.
-  Hypothesis Hstore_safe :
+  Proof. exact (mwf_real_chase_safe lp bm bc oc0 SafeB). Qed.
+  (* the two REAL body stores (through the SafeB-pinned temps _t'49/_t'13)
+     preserve NoA_real /\ MWF_real. PROVED here
+     (MWFReal.mwf_real_store_safe: target block SafeB by the carried gate,
+     stored value a Vint by cast shape, R7 via load_pointer_store).
+     Until 2026-06-10 this row was ASSUMED at the live capstone. *)
+  Lemma Hstore_safe :
     forall e le mm a1 a2 tt le' mm' out,
       NoA_real bm mm -> MWF mm -> RealFrameValue.prov_ok (Sassign a1 a2) ->
       (forall b o, le ! mario._t'49 = Some (Vptr b o) -> SafeB b) ->
       (forall b o, le ! mario._t'13 = Some (Vptr b o) -> SafeB b) ->
       exec_stmt function_entry2 (lp_ge lp) e le mm (Sassign a1 a2) tt le' mm' out ->
       NoA_real bm mm' /\ MWF mm'.
+  Proof.
+    exact (mwf_real_store_safe lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+             HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk).
+  Qed.
 
   (* the out-param arc's local-store MWF brick, GROUNDED at MWF_real:
      a store into a watched-disjoint stack block (local_blk) preserves
