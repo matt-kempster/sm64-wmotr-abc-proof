@@ -37,6 +37,7 @@ From SM64.Proofs Require Import SymbolicLinking Flying Taint
   ActionValueFrame RealFrameValue RealFrameLinked.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface
   AirborneSurface DispatchKit FloorsSurface.
+From SM64.Proofs Require ActWriterSurface.
 
 Import ListNotations.
 
@@ -969,3 +970,580 @@ Section InterSurface.
   Qed.
 
 End InterSurface.
+
+(* ====================================================================== *)
+(* THE MGCO WALK: Hcp_mgco DISCHARGED.                                    *)
+(*                                                                        *)
+(* f_mario_get_collided_object's body is READ-ONLY -- no Sassign, no      *)
+(* Scall, no Sbuiltin -- so a frame walk shows memory is preserved        *)
+(* EXACTLY; the whole content of the residual is the SafeB-if-ptr         *)
+(* RETURN: the returned _object temp is loaded from                       *)
+(* m->marioObj->collidedObjs[i] -- one chase-ROOT hop (marioObj, the      *)
+(* reused ActWriterSurface.chase_root_set_sound brick) and one indexed    *)
+(* chase-STEP hop (the bespoke collided_elem_val brick: the element       *)
+(* address is pinned structurally to _t'2's SafeB block, R7 closes the    *)
+(* load).  The NULL return is an I32 constant cast to a pointer type --   *)
+(* a Vint pass-through on ptr32 (cast_case_pointer), never a Vptr.        *)
+(* ====================================================================== *)
+
+
+(* ---- single-column recognizer helpers (multi-column patterns leak
+   stuck cbn goals -- the wind gotcha) ---- *)
+Definition is_ptrty (t : type) : bool :=
+  match t with Tpointer _ _ => true | _ => false end.
+Definition is_ptr_arrty (t : type) : bool :=
+  match t with Tarray el _ _ => is_ptrty el | _ => false end.
+Definition is_structy2 (t : type) : bool :=
+  match t with Tstruct _ _ => true | _ => false end.
+Definition is_oadd (op : binary_operation) : bool :=
+  match op with Oadd => true | _ => false end.
+Definition is_any_tempvar (a : expr) : bool :=
+  match a with Etempvar _ _ => true | _ => false end.
+Definition is_t2_tempvar (a : expr) : bool :=
+  match a with
+  | Etempvar q ty => Pos.eqb q interaction._t'2 && is_ptrty ty
+  | _ => false
+  end.
+Definition is_t2obj_base (a : expr) : bool :=
+  match a with
+  | Ederef b ty => is_t2_tempvar b && is_structy2 ty
+  | _ => false
+  end.
+Definition is_collided_arr (a : expr) : bool :=
+  match a with
+  | Efield b _ ty => is_t2obj_base b && is_ptr_arrty ty
+  | _ => false
+  end.
+Definition is_collided_elem_addr (a : expr) : bool :=
+  match a with
+  | Ebinop op b i ty =>
+      is_oadd op && is_collided_arr b && is_any_tempvar i && is_ptrty ty
+  | _ => false
+  end.
+Definition collided_elem_chk (a : expr) : bool :=
+  match a with
+  | Ederef b ty => is_collided_elem_addr b && is_ptrty ty
+  | _ => false
+  end.
+
+Definition is_i32s (t : type) : bool :=
+  match t with
+  | Tint sz si _ =>
+      proj_sumbool (intsize_eq sz I32)
+      && match si with Signed => true | _ => false end
+  | _ => false
+  end.
+Definition is_int_const (a : expr) : bool :=
+  match a with Econst_int _ ty => is_i32s ty | _ => false end.
+
+Definition mgco_set_chk (id : ident) (a : expr) : bool :=
+  if Pos.eqb id interaction._t'2
+  then ActWriterSurface.chase_root_chk a
+  else if Pos.eqb id interaction._object
+  then collided_elem_chk a
+  else negb (Pos.eqb id interaction._m).
+
+Definition mgco_ret_chk (a : expr) : bool :=
+  match a with
+  | Etempvar q ty => Pos.eqb q interaction._object && is_ptrty ty
+  | Ecast b ty => is_int_const b && is_ptrty ty
+  | _ => false
+  end.
+
+Fixpoint mgco_chk (s : statement) : bool :=
+  match s with
+  | Sskip | Sbreak => true
+  | Sset id a => mgco_set_chk id a
+  | Ssequence s1 s2 => mgco_chk s1 && mgco_chk s2
+  | Sifthenelse _ s1 s2 => mgco_chk s1 && mgco_chk s2
+  | Sloop s1 s2 => mgco_chk s1 && mgco_chk s2
+  | Sreturn (Some a) => mgco_ret_chk a
+  | _ => false
+  end.
+
+Lemma mgco_chk_body :
+  mgco_chk (fn_body interaction.f_mario_get_collided_object) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* an I32-typed constant cast to a pointer type stays a Vint on ptr32
+   (cast_case_pointer pass-through): the NULL return is never a Vptr *)
+Lemma sem_cast_int_to_ptr_vint :
+  forall z si at1 pt pa m v,
+    sem_cast (Vint z) (Tint I32 si at1) (Tpointer pt pa) m = Some v ->
+    v = Vint z.
+Proof.
+  intros z si at1 pt pa m v H.
+  unfold sem_cast in H. cbn in H.
+  injection H as <-. reflexivity.
+Qed.
+
+Section MgcoSurface.
+  Variable lp : Clight.program.
+  Hypothesis LO_mario : linkorder mario.prog lp.
+  Hypothesis LO_int : linkorder interaction.prog lp.
+
+  Variable bm : block.
+  Variable NoA MWF : mem -> Prop.
+  Variable SafeB : block -> Prop.
+
+  Hypothesis HchaseStep : forall m b ofs b' o',
+      MWF m -> SafeB b ->
+      Mem.loadv Mptr m (Vptr b ofs) = Some (Vptr b' o') -> SafeB b'.
+
+  (* ================================================================== *)
+  (* The indexed chase-step brick: a pointer value read from            *)
+  (* t'2->collidedObjs[i] is SafeB (t'2's block via the temp fact, the  *)
+  (* element address pinned structurally, R7 closes the load).          *)
+  (* ================================================================== *)
+  Lemma collided_elem_val :
+    forall le m0 a v,
+      collided_elem_chk a = true ->
+      (forall b o, le ! interaction._t'2 = Some (Vptr b o) -> SafeB b) ->
+      MWF m0 ->
+      eval_expr (lp_ge lp) empty_env le m0 a v ->
+      forall b o, v = Vptr b o -> SafeB b.
+  Proof.
+    intros le m0 a v Hrec Ht2 HM Hev b o ->.
+    (* ---- recognizer-driven destructs FIRST: expose every layer ---- *)
+    destruct a as [ ci cty | cf cty | cs cty | cl cty | gid gty | tv tvy
+                  | ad dy | ar ay | u1 u2 u3 | b1 b2 b3 b4 | c1 c2
+                  | f1 f2 f3 | s1' s2' | g1 g2 ];
+      try discriminate Hrec.
+    cbn [collided_elem_chk] in Hrec.
+    apply andb_prop in Hrec as [Hrec Hdy].
+    destruct ad as [ ci cty | cf cty | cs cty | cl cty | gid gty | tv tvy
+                   | da2 dy2 | ar ay | u1 u2 u3 | op ab ai bty | c1 c2
+                   | f1 f2 f3 | s1' s2' | g1 g2 ];
+      try discriminate Hrec.
+    cbn [is_collided_elem_addr] in Hrec.
+    apply andb_prop in Hrec as [Hrec Hbty].
+    apply andb_prop in Hrec as [Hrec Hai].
+    apply andb_prop in Hrec as [Hop Hrec].
+    destruct op; try discriminate Hop. clear Hop.
+    destruct ai as [ ci cty | cf cty | cs cty | cl cty | gid gty | q2 q2y
+                   | da2 dy2 | ar ay | u1 u2 u3 | b1 b2 b3 b4 | c1 c2
+                   | f1 f2 f3 | s1' s2' | g1 g2 ];
+      try discriminate Hai.
+    clear Hai.
+    destruct ab as [ ci cty | cf cty | cs cty | cl cty | gid gty | tv tvy
+                   | da2 dy2 | ar ay | u1 u2 u3 | b1 b2 b3 b4 | c1 c2
+                   | fe fld fty | s1' s2' | g1 g2 ];
+      try discriminate Hrec.
+    cbn [is_collided_arr] in Hrec.
+    apply andb_prop in Hrec as [Hrec Hfty].
+    destruct fty as [ | i1 i2 i3 | l1 l2 | r1 r2 | pt2 pa2 | aty asz aat
+                    | pf pr pc | st1 st2 | un1 un2 ];
+      try discriminate Hfty.
+    cbn [is_ptr_arrty] in Hfty.
+    destruct aty as [ | i1 i2 i3 | l1 l2 | r1 r2 | pt3 pa3 | a1' a2' a3'
+                    | pf pr pc | st1 st2 | un1 un2 ];
+      try discriminate Hfty.
+    clear Hfty.
+    destruct fe as [ ci cty | cf cty | cs cty | cl cty | gid gty | tv tvy
+                   | de dey | ar ay | u1 u2 u3 | b1 b2 b3 b4 | c1 c2
+                   | f1 f2 f3 | s1' s2' | g1 g2 ];
+      try discriminate Hrec.
+    cbn [is_t2obj_base] in Hrec.
+    apply andb_prop in Hrec as [Hrec Hdey].
+    destruct de as [ ci cty | cf cty | cs cty | cl cty | gid gty | q qty
+                   | da2 dy2 | ar ay | u1 u2 u3 | b1 b2 b3 b4 | c1 c2
+                   | f1 f2 f3 | s1' s2' | g1 g2 ];
+      try discriminate Hrec.
+    cbn [is_t2_tempvar] in Hrec.
+    apply andb_prop in Hrec as [Hq Hqty].
+    apply Pos.eqb_eq in Hq. subst q.
+    destruct qty as [ | i1 i2 i3 | l1 l2 | r1 r2 | pt2 pa2 | a1' a2' a3'
+                    | pf pr pc | st1 st2 | un1 un2 ];
+      try discriminate Hqty.
+    clear Hqty.
+    destruct dey as [ | i1 i2 i3 | l1 l2 | r1 r2 | pt4 pa4 | a1' a2' a3'
+                    | pf pr pc | st2 sa2 | un1 un2 ];
+      try discriminate Hdey.
+    clear Hdey.
+    destruct dy as [ | i1 i2 i3 | l1 l2 | r1 r2 | pt pa | a1' a2' a3'
+                   | pf pr pc | st1 st3 | un1 un2 ];
+      try discriminate Hdy.
+    clear Hdy.
+    destruct bty as [ | i1 i2 i3 | l1 l2 | r1 r2 | pt5 pa5 | a1' a2' a3'
+                    | pf pr pc | st1 st3 | un1 un2 ];
+      try discriminate Hbty.
+    clear Hbty.
+    (* ---- now the eval inversions over fully concrete exprs ---- *)
+    apply eval_expr_Ederef_load in Hev.
+    destruct Hev as (loc & ofs & bf & Hlv & Hdl).
+    inv Hdl;
+      try (match goal with
+           | Hac : access_mode (Tpointer _ _) = _ |- _ =>
+               cbn in Hac; discriminate Hac
+           end).
+    2:{ match goal with
+        | Hlb : load_bitfield _ _ _ _ _ _ _ _ |- _ => inv Hlb
+        end. }
+    match goal with
+    | Hac : access_mode (Tpointer _ _) = By_value ?ch |- _ =>
+        cbn in Hac; injection Hac as <-
+    end.
+    match goal with
+    | Hldv : Mem.loadv _ _ _ = Some _ |- _ => rename Hldv into Hld
+    end.
+    inv Hlv.
+    match goal with
+    | Ha : eval_expr _ _ _ _ (Ebinop _ _ _ _) _ |- _ => rename Ha into Hadd
+    end.
+    inv Hadd.
+    2:{ match goal with
+        | Hlv3 : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => inv Hlv3
+        end. }
+    match goal with
+    | Hsem : sem_binary_operation _ Oadd ?v1 ?t1 ?v2 ?t2 _
+               = Some (Vptr _ _) |- _ =>
+        destruct (sem_add_ptrish_block _ v1 t1 v2 t2 _ _ _
+                    eq_refl Hsem) as (o1 & ->)
+    end.
+    match goal with
+    | Hv1 : eval_expr _ _ _ _ (Efield _ _ _) (Vptr _ _) |- _ =>
+        rename Hv1 into Hfe
+    end.
+    inv Hfe.
+    match goal with
+    | Hd2 : deref_loc (typeof _) _ _ _ _ _ |- _ =>
+        cbn [typeof] in Hd2
+    end.
+    match goal with
+    | Hlv3 : eval_lvalue _ _ _ _ (Efield _ _ _) ?l3 ?o3 ?b3,
+      Hd2 : deref_loc (Tarray ?ety ?esz ?eat) ?mm ?l3 ?o3 ?b3
+              (Vptr ?vb ?vo) |- _ =>
+        destruct (deref_loc_aggregate_eq (Tarray ety esz eat) mm l3 o3 b3
+                    vb vo (or_introl eq_refl) Hd2) as [-> ->];
+        apply eval_lvalue_Efield_base in Hlv3;
+        destruct Hlv3 as (oo0 & Hbase)
+    end.
+    apply eval_expr_Ederef_load in Hbase.
+    destruct Hbase as (lb & ob & bfb & Hlvb & Hdlb).
+    match goal with
+    | Hdx : deref_loc (Tstruct ?sn ?sa) ?mm ?lb2 ?ob2 ?bf2
+              (Vptr ?vb ?vo) |- _ =>
+        destruct (deref_loc_aggregate_eq (Tstruct sn sa) mm lb2 ob2 bf2
+                    vb vo (or_intror eq_refl) Hdx) as [-> ->]
+    end.
+    apply eval_lvalue_Ederef_base in Hlvb.
+    apply eval_expr_Etempvar_val in Hlvb.
+    pose proof (Ht2 _ _ Hlvb) as Hsafe.
+    exact (HchaseStep _ _ _ _ _ HM Hsafe Hld).
+  Qed.
+
+
+  (* the rows chase_root_set_sound consumes (all PROVED at MWF_real) *)
+  Hypothesis HMWF_window : forall mm mm' ch (delta : Z) vv,
+      MWF mm -> store_window_ok delta (size_chunk ch) = true ->
+      Mem.store ch mm bm delta vv = Some mm' -> MWF mm'.
+  Hypothesis HMWF_glob : forall gid,
+      mem_id gid stored_globals = true ->
+      forall bg, Genv.find_symbol (lp_ge lp) gid = Some bg ->
+      bg <> bm /\
+      (forall mm mm' ch0 (d : Z) vv,
+          MWF mm -> Mem.store ch0 mm bg d vv = Some mm' -> MWF mm').
+  Hypothesis HMWF_act : forall mm mm' vv,
+      MWF mm ->
+      (forall bb oo, vv <> Vptr bb oo) ->
+      Mem.store Mint32 mm bm 12 vv = Some mm' -> MWF mm'.
+  Hypothesis HSafeNotBm : forall b, SafeB b -> b <> bm.
+  Hypothesis HchaseRoot : forall fld delta m b' o',
+      mem_id fld chase_root_fields = true ->
+      field_offset (prog_comp_env mario.prog) fld mario_state_members
+        = Errors.OK (delta, Full) ->
+      MWF m ->
+      Mem.loadv Mptr m
+        (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr delta)))
+        = Some (Vptr b' o') -> SafeB b'.
+  Hypothesis HMWF_root : forall mm mm' fld (delta : Z) vv,
+      mem_id fld chase_root_fields = true ->
+      field_offset (prog_comp_env mario.prog) fld mario_state_members
+        = Errors.OK (delta, Full) ->
+      (forall bb oo, vv = Vptr bb oo -> SafeB bb) ->
+      MWF mm -> Mem.store Mptr mm bm delta vv = Some mm' -> MWF mm'.
+
+  (* ---- the temp invariant: 3 facts ---- *)
+  Definition mle (le : temp_env) : Prop :=
+    (forall b o, le ! interaction._m = Some (Vptr b o) ->
+                 b = bm /\ o = Ptrofs.zero) /\
+    (forall b o, le ! interaction._t'2 = Some (Vptr b o) -> SafeB b) /\
+    (forall b o, le ! interaction._object = Some (Vptr b o) -> SafeB b).
+
+  Ltac mgco_id_neq := let E := fresh "E" in intro E; discriminate E.
+
+  Lemma mle_set_other :
+    forall le id v,
+      Pos.eqb id interaction._m = false ->
+      Pos.eqb id interaction._t'2 = false ->
+      Pos.eqb id interaction._object = false ->
+      mle le -> mle (PTree.set id v le).
+  Proof.
+    intros le id v Hm H2 Hob (Im & I2 & Iob).
+    refine (conj _ (conj _ _)); intros b o Hg;
+      rewrite PTree.gso in Hg
+        by (intro E; subst id; rewrite Pos.eqb_refl in *; discriminate).
+    - exact (Im _ _ Hg).
+    - exact (I2 _ _ Hg).
+    - exact (Iob _ _ Hg).
+  Qed.
+
+  Lemma mle_set_t2 :
+    forall le v,
+      mle le ->
+      (forall b o, v = Vptr b o -> SafeB b) ->
+      mle (PTree.set interaction._t'2 v le).
+  Proof.
+    intros le v (Im & I2 & Iob) Hv.
+    refine (conj _ (conj _ _)); intros b o Hg.
+    - rewrite PTree.gso in Hg by mgco_id_neq. exact (Im _ _ Hg).
+    - rewrite PTree.gss in Hg. injection Hg as ->. exact (Hv _ _ eq_refl).
+    - rewrite PTree.gso in Hg by mgco_id_neq. exact (Iob _ _ Hg).
+  Qed.
+
+  Lemma mle_set_object :
+    forall le v,
+      mle le ->
+      (forall b o, v = Vptr b o -> SafeB b) ->
+      mle (PTree.set interaction._object v le).
+  Proof.
+    intros le v (Im & I2 & Iob) Hv.
+    refine (conj _ (conj _ _)); intros b o Hg.
+    - rewrite PTree.gso in Hg by mgco_id_neq. exact (Im _ _ Hg).
+    - rewrite PTree.gso in Hg by mgco_id_neq. exact (I2 _ _ Hg).
+    - rewrite PTree.gss in Hg. injection Hg as ->. exact (Hv _ _ eq_refl).
+  Qed.
+
+  (* ================================================================== *)
+  (* THE WALK: the body is READ-ONLY (no Sassign/Scall/Sbuiltin), so    *)
+  (* memory is preserved EXACTLY; the payload is the temp invariant     *)
+  (* and the SafeB-if-ptr return fact.                                  *)
+  (* ================================================================== *)
+  Lemma mgco_walk_pres :
+    forall e le m0 s tr le' m' out,
+      exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
+      e = empty_env ->
+      mgco_chk s = true ->
+      mle le -> MWF m0 ->
+      m' = m0 /\ mle le' /\
+      (forall v ty, out = Out_return (Some (v, ty)) ->
+         (exists pt pa, ty = Tpointer pt pa) /\
+         (forall b o, v = Vptr b o -> SafeB b)).
+  Proof.
+    intros e le m0 s tr le' m' out Hexec.
+    induction Hexec; intros He Hchk Hile HM.
+    - (* Sskip *)
+      refine (conj eq_refl (conj Hile _)). intros v ty Hq; discriminate Hq.
+    - (* Sassign: excluded *) cbn [mgco_chk] in Hchk. discriminate Hchk.
+    - (* Sset *)
+      cbn [mgco_chk] in Hchk. unfold mgco_set_chk in Hchk. subst e.
+      refine (conj eq_refl (conj _ _));
+        [ | intros v0 ty Hq; discriminate Hq ].
+      destruct (Pos.eqb id interaction._t'2) eqn:E2.
+      + apply Pos.eqb_eq in E2. subst id.
+        apply mle_set_t2; [ exact Hile | ].
+        match goal with
+        | Hev : eval_expr _ _ _ _ a _ |- _ =>
+            exact (ActWriterSurface.chase_root_set_sound lp LO_mario bm MWF
+                     HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm
+                     HchaseRoot HMWF_root a _ _ _ _ Hchk (proj1 Hile) HM Hev)
+        end.
+      + destruct (Pos.eqb id interaction._object) eqn:Eob.
+        * apply Pos.eqb_eq in Eob. subst id.
+          apply mle_set_object; [ exact Hile | ].
+          match goal with
+          | Hev : eval_expr _ _ _ _ a _ |- _ =>
+              exact (collided_elem_val _ _ _ _ Hchk
+                       (proj1 (proj2 Hile)) HM Hev)
+          end.
+        * apply negb_true_iff in Hchk.
+          exact (mle_set_other _ _ _ Hchk E2 Eob Hile).
+    - (* Scall: excluded *) cbn [mgco_chk] in Hchk. discriminate Hchk.
+    - (* Sbuiltin: excluded *) cbn [mgco_chk] in Hchk. discriminate Hchk.
+    - (* Sseq_1 *)
+      cbn [mgco_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
+      destruct (IHHexec1 He H1 Hile HM) as (-> & Hile1 & _).
+      exact (IHHexec2 He H2 Hile1 HM).
+    - (* Sseq_2: s1 exits early *)
+      cbn [mgco_chk] in Hchk. apply andb_prop in Hchk as [H1 _].
+      exact (IHHexec He H1 Hile HM).
+    - (* Sifthenelse *)
+      cbn [mgco_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
+      apply IHHexec; try assumption.
+      destruct b; assumption.
+    - (* Sreturn None: excluded *) cbn [mgco_chk] in Hchk. discriminate Hchk.
+    - (* Sreturn Some *)
+      cbn [mgco_chk] in Hchk.
+      refine (conj eq_refl (conj Hile _)).
+      intros v0 ty Hq. injection Hq as <- <-.
+      unfold mgco_ret_chk in Hchk.
+      destruct a as [ ci cty | cf cty | cs cty | cl cty | gid gty | q qty
+                    | da2 dy2 | ar ay | u1 u2 u3 | b1 b2 b3 b4 | ce cey
+                    | f1 f2 f3 | s1' s2' | g1 g2 ];
+        try discriminate Hchk.
+      + (* return object *)
+        apply andb_prop in Hchk as [Hq2 Hqty].
+        apply Pos.eqb_eq in Hq2. subst q.
+        destruct qty as [ | i1 i2 i3 | l1 l2 | r1 r2 | pt pa | a1' a2' a3'
+                        | pf pr pc | st1 st2 | un1 un2 ];
+          try discriminate Hqty.
+        split; [ cbn [typeof]; eauto | ].
+        match goal with
+        | Hev : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+            apply eval_expr_Etempvar_val in Hev
+        end.
+        intros b o ->.
+        match goal with
+        | Hg : le ! interaction._object = Some (Vptr _ _) |- _ =>
+            exact (proj2 (proj2 Hile) _ _ Hg)
+        end.
+      + (* return NULL: an I32 const cast to a pointer stays Vint *)
+        apply andb_prop in Hchk as [Hic Hcey].
+        destruct ce as [ zi zty | cf cty | cs cty | cl cty | gid gty | q qty
+                       | da2 dy2 | ar ay | u1 u2 u3 | b1 b2 b3 b4 | c1 c2
+                       | f1 f2 f3 | s1' s2' | g1 g2 ];
+          try discriminate Hic.
+        cbn [is_int_const is_i32s] in Hic.
+        destruct zty as [ | sz si zat | zl1 zl2 | zr1 zr2 | zpt zpa
+                        | za1 za2 za3 | zpf zpr zpc | zst1 zst2
+                        | zun1 zun2 ];
+          try discriminate Hic.
+        apply andb_prop in Hic as [Hsz Hsi].
+        destruct (intsize_eq sz I32); [ subst sz | discriminate Hsz ].
+        destruct si; try discriminate Hsi.
+        destruct cey as [ | i1 i2 i3 | l1 l2 | r1 r2 | pt pa | a1' a2' a3'
+                        | pf pr pc | st1 st2 | un1 un2 ];
+          try discriminate Hcey.
+        split; [ cbn [typeof]; eauto | ].
+        match goal with
+        | Hev : eval_expr _ _ _ _ (Ecast _ _) _ |- _ => rename Hev into Hca
+        end.
+        inv Hca.
+        2:{ match goal with
+            | Hlvc : eval_lvalue _ _ _ _ (Ecast _ _) _ _ _ |- _ => inv Hlvc
+            end. }
+        match goal with
+        | Hv1 : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ => rename Hv1 into He1
+        end.
+        inv He1.
+        2:{ match goal with
+            | Hlvc : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+                inv Hlvc
+            end. }
+        match goal with
+        | Hsc : sem_cast (Vint _) (typeof _) _ _ = Some _ |- _ =>
+            cbn [typeof] in Hsc;
+            apply sem_cast_int_to_ptr_vint in Hsc; subst v
+        end.
+        intros b o Hq2; discriminate Hq2.
+    - (* Sbreak *)
+      refine (conj eq_refl (conj Hile _)). intros v ty Hq; discriminate Hq.
+    - (* Scontinue: excluded *) cbn [mgco_chk] in Hchk. discriminate Hchk.
+    - (* Sloop stop1 *)
+      cbn [mgco_chk] in Hchk. apply andb_prop in Hchk as [H1 _].
+      destruct (IHHexec He H1 Hile HM) as (-> & Hile1 & Hret1).
+      refine (conj eq_refl (conj Hile1 _)).
+      match goal with
+      | Hbr : out_break_or_return _ _ |- _ => inv Hbr
+      end.
+      + intros v ty Hq; discriminate Hq.
+      + exact Hret1.
+    - (* Sloop stop2 *)
+      cbn [mgco_chk] in Hchk.
+      pose proof Hchk as Hloop.
+      apply andb_prop in Hchk as [H1 H2].
+      destruct (IHHexec1 He H1 Hile HM) as (-> & Hile1 & _).
+      destruct (IHHexec2 He H2 Hile1 HM) as (-> & Hile2 & Hret2).
+      refine (conj eq_refl (conj Hile2 _)).
+      match goal with
+      | Hbr : out_break_or_return _ _ |- _ => inv Hbr
+      end.
+      + intros v ty Hq; discriminate Hq.
+      + exact Hret2.
+    - (* Sloop loop *)
+      cbn [mgco_chk] in Hchk.
+      pose proof Hchk as Hloop.
+      apply andb_prop in Hchk as [H1 H2].
+      destruct (IHHexec1 He H1 Hile HM) as (-> & Hile1 & _).
+      destruct (IHHexec2 He H2 Hile1 HM) as (-> & Hile2 & _).
+      apply IHHexec3; try assumption.
+    - (* Sswitch: excluded *) cbn [mgco_chk] in Hchk. discriminate Hchk.
+  Qed.
+
+  (* ================================================================== *)
+  (* THE PAYOFF: call_pres_mgco PROVED (the InterSurface residual).     *)
+  (* ================================================================== *)
+  Lemma mgco_cp : call_pres_mgco lp bm NoA MWF SafeB.
+  Proof.
+    intros fd m0 vargs0 t0 m1 vres0 Hevf Hres Hmarg HN HM HV HS.
+    assert (Hfd : fd = Internal interaction.f_mario_get_collided_object).
+    { eapply (resolve_pin_fd lp interaction.prog
+                interaction._mario_get_collided_object);
+        [ exact LO_int | vm_compute; reflexivity | exact Hres ]. }
+    subst fd.
+    inv Hevf.
+    match goal with
+    | He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry
+    end.
+    match goal with
+    | Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody
+    end.
+    match goal with
+    | Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfree
+    end.
+    match goal with
+    | Ho : outcome_result_value _ _ _ _ |- _ => rename Ho into Hout
+    end.
+    inv Hentry.
+    match goal with
+    | Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+        change (fn_vars interaction.f_mario_get_collided_object)
+          with (@nil (ident * type)) in Ha;
+        inv Ha
+    end.
+    match goal with
+    | Hb : bind_parameter_temps _ _ _ = Some _ |- _ => rename Hb into Hbind
+    end.
+    change (fn_params interaction.f_mario_get_collided_object)
+      with ((interaction._m, tyMSp) :: (interaction._interactType, tuint)
+            :: nil) in Hbind.
+    cbn [bind_parameter_temps] in Hbind.
+    destruct vargs0 as [| v0 vr]; [ discriminate Hbind | ].
+    destruct vr as [| v1 vr2]; [ discriminate Hbind | ].
+    destruct vr2; [ | discriminate Hbind ].
+    injection Hbind as <-.
+    change (blocks_of_env (lp_ge lp) empty_env)
+      with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    set (base := create_undef_temps
+                   (fn_temps interaction.f_mario_get_collided_object))
+      in *.
+    assert (Hb2 : base ! interaction._t'2 = Some Vundef)
+      by (vm_compute; reflexivity).
+    assert (Hbob : base ! interaction._object = Some Vundef)
+      by (vm_compute; reflexivity).
+    assert (Hile0 : mle (PTree.set interaction._interactType v1
+                           (PTree.set interaction._m v0 base))).
+    { refine (conj _ (conj _ _)); intros b o Hg;
+        rewrite PTree.gso in Hg by mgco_id_neq.
+      - rewrite PTree.gss in Hg. injection Hg as ->.
+        destruct Hmarg as [E1 E2]; subst; split; reflexivity.
+      - rewrite PTree.gso in Hg by mgco_id_neq.
+        rewrite Hb2 in Hg. discriminate Hg.
+      - rewrite PTree.gso in Hg by mgco_id_neq.
+        rewrite Hbob in Hg. discriminate Hg. }
+    destruct (mgco_walk_pres _ _ _ _ _ _ _ _ Hbody eq_refl
+                mgco_chk_body Hile0 HM)
+      as (-> & _ & Hret).
+    refine (conj HV (conj HS (conj HM _))).
+    change (fn_return interaction.f_mario_get_collided_object)
+      with (Tpointer (Tstruct interaction._Object noattr) noattr) in Hout.
+    destruct out as [ | | | [[v' ty']|] ]; cbn in Hout;
+      try contradiction.
+    destruct Hout as [_ Hcast].
+    destruct (Hret _ _ eq_refl) as [(pt & pa & ->) Hsafe].
+    apply sem_cast_ptr_ptr_id in Hcast. subst vres0.
+    exact Hsafe.
+  Qed.
+
+End MgcoSurface.
