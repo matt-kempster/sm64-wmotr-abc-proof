@@ -38,6 +38,35 @@ From SM64.Proofs Require Import CensusV2.
 Import ListNotations.
 Local Open Scope Z_scope.
 
+(* ---- two cast-shape facts feeding the body-store discharge below ----
+   sem_cast never turns a Vint INTO a Vptr (any types, any memory): on
+   ptr32 the int<->pointer passthrough (cast_case_pointer) passes the
+   Vint through unchanged, every other case lands in Vint/Vlong/Vfloat/
+   Vsingle or fails. *)
+Lemma sem_cast_vint_not_vptr : forall i t1 t2 m v,
+    sem_cast (Vint i) t1 t2 m = Some v -> forall bb oo, v <> Vptr bb oo.
+Proof.
+  intros i t1 t2 m v H bb oo Heq; subst v.
+  unfold sem_cast in H.
+  destruct (classify_cast t1 t2); cbn in H;
+    try discriminate H;
+    try (destruct Archi.ptr64; discriminate H).
+Qed.
+
+(* a cast landing in tshort (Tint I16) is always cast_case_i2i -- even on
+   ptr32, where only an I32 destination triggers the pointer passthrough --
+   so the result is a Vint no matter what the source value was. *)
+Lemma sem_cast_tint_tshort_vint : forall v2 m v,
+    sem_cast v2 tint tshort m = Some v -> exists vi, v = Vint vi.
+Proof.
+  intros v2 m v H.
+  unfold sem_cast in H.
+  change (classify_cast tint tshort) with (cast_case_i2i I16 Signed) in H.
+  cbv beta iota in H.
+  destruct v2; try discriminate H.
+  inversion H; subst; eauto.
+Qed.
+
 Section MWFReal.
   Variable lp : Clight.program.
   Hypothesis LO_mario : linkorder mario.prog lp.
@@ -1051,6 +1080,135 @@ Section MWFReal.
       + apply (R7 b ofs b' o' Hs). cbn.
         rewrite <- Hld. symmetry.
         eapply Mem.load_store_other; [ exact Hst | exact Hdis ].
+  Qed.
+
+  (* ---- the CAPSTONE WRAPPER ROWS, discharged (the P5 payoff): the two
+     rows the re-rooted frame wrapper carries about the root body's own
+     stores.  Until 2026-06-10 both were ASSUMED at the live capstone. ---- *)
+
+  (* Hchase_safe: the _marioObj chase-root row, restated without the
+     add-zero normal form (the wrapper's shape).  Pure projection of R6. *)
+  Lemma mwf_real_chase_safe : forall delta m b' o',
+      field_offset (prog_comp_env mario.prog) mario._marioObj
+        mario_state_members = OK (delta, Full) ->
+      MWF_real m ->
+      Mem.loadv Mptr m (Vptr bm (Ptrofs.repr delta)) = Some (Vptr b' o') ->
+      SafeB b'.
+  Proof.
+    intros delta m b' o' Hfo HM Hld.
+    eapply (mwf_real_chase_root mario._marioObj delta m b' o');
+      [ vm_compute; reflexivity | exact Hfo | exact HM
+      | rewrite Ptrofs.add_zero_l; exact Hld ].
+  Qed.
+
+  (* Hstore_safe: the two REAL body stores of f_execute_mario_action
+     (prov_ok pins the Sassign to store1/store2), executed with the
+     SafeB provenance the walk carries for _t'49/_t'13, preserve
+     ctl_a_clear (= the capstone's NoA_real) and MWF_real.
+       - the target block is the temp's block (store1_loc_is_t49_lp /
+         store2_loc_is_t13_lp), SafeB by the carried gate;
+       - the stored value is a Vint (store1: any source cast to tshort
+         is i2i; store2: the RHS is Econst_int 0; bitfield carriers
+         store Vint by construction) -- so mwf_real_chase applies and
+         R7 survives via load_pointer_store;
+       - ctl_a_clear m' then follows from MWF_real m' (mwf_real_ctl). *)
+  Lemma mwf_real_store_safe :
+    forall e le m a1 a2 tr le' m' out,
+      ctl_a_clear m bm -> MWF_real m ->
+      RealFrameValue.prov_ok (Sassign a1 a2) ->
+      (forall b o, le ! mario._t'49 = Some (Vptr b o) -> SafeB b) ->
+      (forall b o, le ! mario._t'13 = Some (Vptr b o) -> SafeB b) ->
+      exec_stmt function_entry2 (lp_ge lp) e le m (Sassign a1 a2) tr le' m' out ->
+      ctl_a_clear m' bm /\ MWF_real m'.
+  Proof.
+    intros e le m a1 a2 tr le' m' out Hno HM Hck T49 T13 Hexec.
+    cbn [RealFrameValue.prov_ok] in Hck.
+    assert (HM' : MWF_real m').
+    { destruct Hck as [ [Ha1 Ha2] | [Ha1 Ha2] ]; subst a1 a2;
+        inversion Hexec; subst.
+      - (* store1: halfword store through _t'49 into its SafeB block *)
+        match goal with
+        | Hlv : eval_lvalue _ _ _ _ store1_lval _ _ _ |- _ =>
+            apply store1_loc_is_t49_lp in Hlv as (dd & Hle)
+        end.
+        pose proof (T49 _ _ Hle) as Hsafe.
+        (* the cast to tshort makes the stored value a Vint *)
+        match goal with
+        | Hca : sem_cast _ (typeof store1_rval) (typeof store1_lval) _
+                  = Some _ |- _ =>
+            apply sem_cast_tint_tshort_vint in Hca as (vi & ->)
+        end.
+        match goal with
+        | Hal : assign_loc _ (typeof store1_lval) _ _ _ _ _ _ |- _ =>
+            inversion Hal; subst
+        end.
+        + (* By_value: a Vint store into the SafeB block *)
+          match goal with
+          | Hst : Mem.storev _ _ (Vptr _ _) _ = Some m' |- _ => cbn in Hst
+          end.
+          eapply mwf_real_chase; [ exact HM | exact Hsafe | | eassumption ].
+          intros bb oo Heq; discriminate Heq.
+        + (* bitfield: the carrier store is a Vint store
+             (the By_copy case is auto-refuted by inversion: v = Vint vi) *)
+          match goal with
+          | Hsb : store_bitfield _ _ _ _ _ _ _ _ _ _ |- _ =>
+              inversion Hsb; subst
+          end.
+          match goal with
+          | Hst : Mem.storev _ _ (Vptr _ _) (Vint _) = Some m' |- _ =>
+              cbn in Hst
+          end.
+          eapply mwf_real_chase; [ exact HM | exact Hsafe | | eassumption ].
+          intros bb oo Heq; discriminate Heq.
+      - (* store2: word store of Vint 0 through _t'13 *)
+        match goal with
+        | Hlv : eval_lvalue _ _ _ _ store2_lval _ _ _ |- _ =>
+            apply store2_loc_is_t13_lp in Hlv as (dd & Hle)
+        end.
+        pose proof (T13 _ _ Hle) as Hsafe.
+        (* the RHS is Econst_int: it evaluates only to Vint 0 *)
+        match goal with
+        | Hev : eval_expr _ _ _ _ store2_rval _ |- _ =>
+            unfold store2_rval in Hev;
+            inversion Hev; subst;
+            [ | match goal with
+                | Hx : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+                    inversion Hx
+                end ]
+        end.
+        match goal with
+        | Hca : sem_cast (Vint _) _ _ _ = Some _ |- _ =>
+            pose proof (sem_cast_vint_not_vptr _ _ _ _ _ Hca) as Hnp
+        end.
+        match goal with
+        | Hal : assign_loc _ (typeof store2_lval) _ _ _ _ _ _ |- _ =>
+            inversion Hal; subst
+        end.
+        + (* By_value *)
+          match goal with
+          | Hst : Mem.storev _ _ (Vptr _ _) _ = Some m' |- _ => cbn in Hst
+          end.
+          eapply mwf_real_chase; [ exact HM | exact Hsafe | | eassumption ].
+          exact Hnp.
+        + (* By_copy: the stored value is a Vptr, refuted by Hnp *)
+          exfalso. eapply Hnp; reflexivity.
+        + (* bitfield: the carrier store is a Vint store *)
+          match goal with
+          | Hsb : store_bitfield _ _ _ _ _ _ _ _ _ _ |- _ =>
+              inversion Hsb; subst
+          end.
+          match goal with
+          | Hst : Mem.storev _ _ (Vptr _ _) (Vint _) = Some m' |- _ =>
+              cbn in Hst
+          end.
+          eapply mwf_real_chase; [ exact HM | exact Hsafe | | eassumption ].
+          intros bb oo Heq; discriminate Heq.
+    }
+    split; [ | exact HM' ].
+    intros bc' oc' v Hld156 Hldbtn.
+    pose proof HM' as (_ & _ & R2 & R3 & _).
+    destruct (R2 _ _ Hld156) as [Eb Eo]; subst bc' oc'.
+    exact (R3 _ Hldbtn).
   Qed.
 
   (* the LOCAL-STORE row: a store into a fully watched-disjoint block b0 (a
