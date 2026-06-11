@@ -100,6 +100,33 @@ Section ReRoot.
       bobj <> bm /\
       (forall gb, Genv.find_symbol lp_ge mario._gMarioState = Some gb -> bobj <> gb).
 
+  (* the offset of marioObj in MarioState, COMPUTED once (tiny readback --
+     field_offset returns a small pair, not the composite). *)
+  Lemma marioObj_offset_mario :
+    field_offset (prog_comp_env mario.prog) mario._marioObj mario_state_members
+      = Errors.OK (136, Full).
+  Proof. vm_compute. reflexivity. Qed.
+
+  (* ---- the CONDITIONAL wf forms (2026-06-10): IF the watched cell holds
+     a pointer, it is the right one. The positive load-success forms above
+     made the per-funcall rest row (reach_rest_marg_lp, now DELETED)
+     undischargeable: preserving "the load SUCCEEDS" across a callee needs
+     cell-unchanged facts no body walk provides, whereas these conditional
+     rows are projections of the carried MWF (MWF_real R5/R6 + the SafeB
+     distinctness facts). The engines only ever USE the rows on loads the
+     exec derivation itself performed -- so conditionality costs nothing. *)
+  Definition gms_cond_lp (m : mem) (bm : block) : Prop :=
+    forall gb b o,
+      Genv.find_symbol lp_ge mario._gMarioState = Some gb ->
+      Mem.loadv Mptr m (Vptr gb Ptrofs.zero) = Some (Vptr b o) ->
+      b = bm /\ o = Ptrofs.zero.
+
+  Definition mobj_cond_lp (m : mem) (bm : block) : Prop :=
+    forall b o,
+      Mem.loadv Mptr m (Vptr bm (Ptrofs.repr 136)) = Some (Vptr b o) ->
+      b <> bm /\
+      (forall gb, Genv.find_symbol lp_ge mario._gMarioState = Some gb -> b <> gb).
+
   (* mario.prog defines the MarioState composite. NB: we must NOT `vm_compute` the
      lookup itself -- it reduces to Some <the full MarioState composite record,
      members + consistency proofs>, whose readback OOMs. Instead compute only a
@@ -119,89 +146,35 @@ Section ReRoot.
     - cbn in H; discriminate H.
   Qed.
 
-  (* THE SECOND RE-ROOTED EVAL BRICK: the marioObj field load evaluates off bm
-     over lp_ge -- the brick that CONSUMES the offset interface. Identical to
-     RealFrameValue.eval_marioObj_off_bm except the two `rewrite cenv_eq` steps
+  (* THE SECOND RE-ROOTED EVAL BRICK (the LOAD-EXPORTING form): a marioObj
+     field read RETURNS the chase-root load the evaluation performed, at
+     the COMPUTED offset 136. Identical inversion to RealFrameValue's
+     eval_marioObj_off_bm except the two `rewrite cenv_eq` steps
      (false at lp_ge, where genv_cenv = the MERGED env) are replaced by:
        - linkorder_comp_env_extends : pin co to mario's MarioState composite, and
        - linkorder_field_offset_agree : move the offset onto mario.prog's cenv.
-     Everything else threads via the genv-parametric inversion helpers. *)
-  Lemma eval_marioObj_off_bm_lp :
-    forall stid e le m bm bobj o,
-      (forall b o', le ! stid = Some (Vptr b o') -> b = bm /\ o' = Ptrofs.zero) ->
-      marioObj_wf_lp m bm ->
-      eval_expr lp_ge e le m
-        (Efield (Ederef (Etempvar stid (tptr (Tstruct mario._MarioState noattr)))
-                        (Tstruct mario._MarioState noattr))
-                mario._marioObj (tptr (Tstruct mario._Object noattr)))
-        (Vptr bobj o) ->
-      bobj <> bm /\ (forall gb, Genv.find_symbol lp_ge mario._gMarioState = Some gb -> bobj <> gb).
-  Proof.
-    intros stid e le m bm bobj o Ht48 (off & bobj0 & ofs0w & Hfo & Hload & Hne & Hng) Hev.
-    apply eval_expr_Efield_load in Hev as (loc & ofs & bf & Hlv & Hderef).
-    apply eval_lvalue_Efield_inv in Hlv as (o0 & id & att & co & delta & Hbase & Hco & Hofs & Hcase).
-    apply eval_expr_Ederef_load in Hbase as (lb & ob & bfb & Hlvb & Hderefb).
-    apply deref_loc_aggregate_eq in Hderefb as [? ?]; [ | right; reflexivity ]. subst lb ob.
-    apply eval_lvalue_Ederef_base in Hlvb.
-    apply eval_expr_Etempvar_val in Hlvb. destruct (Ht48 _ _ Hlvb) as [Hl Ho]. subst.
-    destruct Hcase as [ (Hty & Hfo2) | (Hty & Hfo2) ]; [ | cbn in Hty; discriminate ].
-    cbn in Hty; inv Hty.
-    (* Hco : (genv_cenv lp_ge) ! _MarioState = Some co (genv_cenv lp_ge convertibly
-       = prog_comp_env lp). Pin co to mario's composite via composite preservation. *)
-    change (genv_cenv lp_ge) with (prog_comp_env lp) in Hco, Hfo2.
-    destruct mario_defines_MarioState as (co0 & Hmar).
-    pose proof (linkorder_comp_env_extends lp mario.prog mario._MarioState co0 LO_mario Hmar)
-      as Hext_lp.
-    assert (co = co0) by congruence. subst co0.
-    (* now Hmar : (prog_comp_env mario.prog) ! _MarioState = Some co. *)
-    assert (Hmm : mario_state_members = co_members co)
-      by (unfold mario_state_members; rewrite Hmar; reflexivity).
-    (* Move Hfo2's offset off the merged env onto mario.prog's cenv. *)
-    rewrite (linkorder_field_offset_agree lp mario.prog mario._marioObj (co_members co)
-               LO_mario) in Hfo2;
-      [ | rewrite <- Hmm; exact mario_state_members_complete ].
-    (* now Hfo2 : field_offset (prog_comp_env mario.prog) _marioObj (co_members co) = OK(delta,bf) *)
-    rewrite Hmm in Hfo. rewrite Hfo in Hfo2. inv Hfo2.
-    rewrite Ptrofs.add_zero_l in Hderef.
-    inv Hderef;
-      try (match goal with Hac : access_mode _ = By_reference |- _ => cbn in Hac; discriminate end);
-      try (match goal with Hac : access_mode _ = By_copy |- _ => cbn in Hac; discriminate end);
-      try (match goal with Hlb : load_bitfield _ _ _ _ _ _ _ _ |- _ => inv Hlb end);
-      match goal with
-      | Hac : access_mode _ = By_value ?chunk,
-        Hlv3 : Mem.loadv ?chunk _ _ = Some (Vptr bobj o) |- _ =>
-          cbn in Hac; inv Hac; rewrite Hlv3 in Hload; inv Hload; split; [ exact Hne | exact Hng ]
-      end.
-  Qed.
-
-  (* THE LOAD-EXPORTING VARIANT of eval_marioObj_off_bm_lp: the same
-     inversion, but instead of comparing against the wf row's value it
-     RETURNS the chase-root load the evaluation performed. This is the
-     input to the carried MWF's chase-root row (SafeB) in the tsafe
-     re-establishment -- the brick that lets the store rows be stated
-     execution-relative instead of forall-le (which was FALSE). *)
+     The exported load feeds the CONDITIONAL rows (mobj_cond_lp, the MWF
+     chase-root row) -- no positive wf premise needed: the derivation
+     itself performed the load. *)
   Lemma eval_marioObj_load_lp :
     forall stid e le m bm bobj o,
       (forall b o', le ! stid = Some (Vptr b o') -> b = bm /\ o' = Ptrofs.zero) ->
-      marioObj_wf_lp m bm ->
       eval_expr lp_ge e le m
         (Efield (Ederef (Etempvar stid (tptr (Tstruct mario._MarioState noattr)))
                         (Tstruct mario._MarioState noattr))
                 mario._marioObj (tptr (Tstruct mario._Object noattr)))
         (Vptr bobj o) ->
-      exists delta,
-        field_offset (prog_comp_env mario.prog) mario._marioObj mario_state_members
-          = Errors.OK (delta, Full) /\
-        Mem.loadv Mptr m (Vptr bm (Ptrofs.repr delta)) = Some (Vptr bobj o).
+      Mem.loadv Mptr m (Vptr bm (Ptrofs.repr 136)) = Some (Vptr bobj o).
   Proof.
-    intros stid e le m bm bobj o Ht48 (off & bobj0 & ofs0w & Hfo & Hload & Hne & Hng) Hev.
+    intros stid e le m bm bobj o Ht48 Hev.
+    pose proof marioObj_offset_mario as Hfo.
     apply eval_expr_Efield_load in Hev as (loc & ofs & bf & Hlv & Hderef).
     apply eval_lvalue_Efield_inv in Hlv as (o0 & id & att & co & delta & Hbase & Hco & Hofs & Hcase).
     apply eval_expr_Ederef_load in Hbase as (lb & ob & bfb & Hlvb & Hderefb).
     apply deref_loc_aggregate_eq in Hderefb as [? ?]; [ | right; reflexivity ]. subst lb ob.
     apply eval_lvalue_Ederef_base in Hlvb.
     apply eval_expr_Etempvar_val in Hlvb. destruct (Ht48 _ _ Hlvb) as [Hl Ho]. subst.
-    destruct Hcase as [ (Hty & Hfo2) | (Hty & Hfo2) ]; [ | cbn in Hty; discriminate ].
+    destruct Hcase as [ (Hty & Hfo2) | (Hty & Hfo2) ]; [ | cbn in Hty; discriminate Hty ].
     cbn in Hty; inv Hty.
     change (genv_cenv lp_ge) with (prog_comp_env lp) in Hco, Hfo2.
     destruct mario_defines_MarioState as (co0 & Hmar).
@@ -216,14 +189,35 @@ Section ReRoot.
     rewrite Hmm in Hfo. rewrite Hfo in Hfo2. inv Hfo2.
     rewrite Ptrofs.add_zero_l in Hderef.
     inv Hderef;
-      try (match goal with Hac : access_mode _ = By_reference |- _ => cbn in Hac; discriminate end);
-      try (match goal with Hac : access_mode _ = By_copy |- _ => cbn in Hac; discriminate end);
+      try (match goal with Hac : access_mode _ = By_reference |- _ => cbn in Hac; discriminate Hac end);
+      try (match goal with Hac : access_mode _ = By_copy |- _ => cbn in Hac; discriminate Hac end);
       try (match goal with Hlb : load_bitfield _ _ _ _ _ _ _ _ |- _ => inv Hlb end);
       match goal with
       | Hac : access_mode _ = By_value ?chunk,
         Hlv3 : Mem.loadv ?chunk _ (Vptr _ (Ptrofs.repr ?d)) = Some (Vptr bobj o) |- _ =>
-          cbn in Hac; inv Hac; exists d; split; [ rewrite Hmm; exact Hfo | exact Hlv3 ]
+          cbn in Hac; inv Hac; exact Hlv3
       end.
+  Qed.
+
+  (* a store through assign_loc into block loc leaves loads at any OTHER
+     block literally unchanged -- the EQUALITY form (no validity side
+     conditions), which is what lets the conditional rows transport
+     BACKWARD: a pointer-valued load observed in m' was already there
+     in m, so the m-row applies. *)
+  Lemma assign_loc_load_other_eq :
+    forall ce ty m loc ofs bf v m' bp chunk (d : Z),
+      assign_loc ce ty m loc ofs bf v m' ->
+      bp <> loc ->
+      Mem.load chunk m' bp d = Mem.load chunk m bp d.
+  Proof.
+    intros ce ty m loc ofs bf v m' bp chunk d Has Hne.
+    inv Has.
+    - match goal with H : Mem.storev _ _ _ _ = Some _ |- _ => cbn in H end.
+      eapply Mem.load_store_other; [ eassumption | left; exact Hne ].
+    - eapply Mem.load_storebytes_other; [ eassumption | left; exact Hne ].
+    - match goal with H : store_bitfield _ _ _ _ _ _ _ _ _ _ |- _ => inv H end.
+      match goal with H : Mem.storev _ _ _ _ = Some _ |- _ => cbn in H end.
+      eapply Mem.load_store_other; [ eassumption | left; exact Hne ].
   Qed.
 
   (* Offset faithfulness, packaged for this section: over lp_ge the action cell
@@ -246,10 +240,11 @@ Section ReRoot.
     Variable bm gb : block.
     Hypothesis Hgb_lp : Genv.find_symbol lp_ge mario._gMarioState = Some gb.
 
-    (* the carried memory invariant, re-rooted at lp_ge (uses the _lp wf preds). *)
+    (* the carried memory invariant, re-rooted at lp_ge -- the pointer-chase
+       rows are the CONDITIONAL forms (see gms_cond_lp/mobj_cond_lp above). *)
     Definition meminv_lp (m : mem) : Prop :=
       Mem.valid_block m bm /\ action_sat Qv m bm /\
-      marioObj_wf_lp m bm /\ gMarioState_wf_lp m bm.
+      mobj_cond_lp m bm /\ gms_cond_lp m bm.
 
     (* THE Sassign CASE over lp_ge: a body store (base temp off {bm,gb}) preserves
        meminv_lp. Same proof as RealFrameValue.store_preserves_meminv, threaded. *)
@@ -262,7 +257,7 @@ Section ReRoot.
         exec_stmt function_entry2 lp_ge e le m (Sassign a1 a2) t le' m' out ->
         meminv_lp m'.
     Proof.
-      intros a1 a2 tid Hgeom e le m t le' m' out (Hv & Hsat & Hmwf & Hgwf) Hoff Hexec. inv Hexec.
+      intros a1 a2 tid Hgeom e le m t le' m' out (Hv & Hsat & Hmo & Hgm) Hoff Hexec. inv Hexec.
       match goal with H : eval_lvalue _ _ _ _ a1 _ _ _ |- _ => rename H into Hlv end.
       match goal with H : assign_loc _ _ _ _ _ _ _ _ |- _ => rename H into Has end.
       apply Hgeom in Hlv as (d & Htmp). destruct (Hoff _ _ Htmp) as [Hnbm Hngb].
@@ -270,14 +265,14 @@ Section ReRoot.
       split; [ eapply assign_loc_action_sat_avoid;
                  [ exact Has | exact Hv | intros i _ [Hb _]; congruence | exact Hsat ] | ].
       split.
-      - destruct Hmwf as (off & bobj & ofs0 & Hfo & Hldv & Hbobj & Hng).
-        exists off, bobj, ofs0. split; [ exact Hfo | ].
-        split; [ | split; [ exact Hbobj | exact Hng ] ].
-        eapply assign_loc_off_loadv; [ exact Has | exact (not_eq_sym Hnbm) | exact Hv | exact Hldv ].
-      - destruct Hgwf as (gb' & Hsym & Hldv). assert (gb' = gb) by congruence. subst gb'.
-        exists gb. split; [ exact Hsym | ].
-        eapply assign_loc_off_loadv;
-          [ exact Has | exact (not_eq_sym Hngb) | eapply loadv_valid_block; exact Hldv | exact Hldv ].
+      - intros b o Hld. apply (Hmo b o). cbn in Hld |- *.
+        rewrite <- (assign_loc_load_other_eq _ _ _ _ _ _ _ _ _ _ _ Has (not_eq_sym Hnbm)).
+        exact Hld.
+      - intros gb0 b o Hsym Hld.
+        assert (gb0 = gb) by congruence. subst gb0.
+        apply (Hgm gb b o Hsym). cbn in Hld |- *.
+        rewrite <- (assign_loc_load_other_eq _ _ _ _ _ _ _ _ _ _ _ Has (not_eq_sym Hngb)).
+        exact Hld.
     Qed.
 
     (* ---- THE Sset CASE, re-rooted. ---- *)
@@ -288,25 +283,25 @@ Section ReRoot.
     Lemma sset_gms_bm_lp :
       forall tid e le m t le' m' out,
         e ! mario._gMarioState = None ->
-        gMarioState_wf_lp m bm ->
+        gms_cond_lp m bm ->
         exec_stmt function_entry2 lp_ge e le m
           (Sset tid (Evar mario._gMarioState (tptr (Tstruct mario._MarioState noattr)))) t le' m' out ->
-        le' ! tid = Some (Vptr bm Ptrofs.zero).
+        forall b o, le' ! tid = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero.
     Proof.
-      intros tid e le m t le' m' out He (gb0 & Hsym & Hload) H. inv H.
+      intros tid e le m t le' m' out He Hcond H b o Hle'. inv H.
+      rewrite PTree.gss in Hle'. inv Hle'.
       match goal with Hev : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
         apply eval_expr_Evar_load in Hev as (loc & ofs & bf & Hlv & Hd) end.
-      apply eval_lvalue_Evar_global_loc in Hlv as [Hfs Hofs]; [ | exact He ].
-      assert (loc = gb0) by congruence. subst.
+      apply eval_lvalue_Evar_global_loc in Hlv as [Hfs Hofs]; [ | exact He ]. subst.
       inv Hd;
         try (match goal with Hac : access_mode _ = By_reference |- _ => cbn in Hac; discriminate end);
         try (match goal with Hac : access_mode _ = By_copy |- _ => cbn in Hac; discriminate end);
         try (match goal with Hlb : load_bitfield _ _ _ _ _ _ _ _ |- _ => inv Hlb end).
       match goal with
       | Hac : access_mode _ = By_value ?chunk, Hl : Mem.loadv ?chunk _ _ = _ |- _ =>
-          cbn in Hac; inv Hac; rewrite Hl in Hload; inv Hload
+          cbn in Hac; inv Hac
       end.
-      rewrite PTree.gss; reflexivity.
+      eapply (Hcond _ _ _); [ exact Hfs | eassumption ].
     Qed.
 
     (* `t = stid->marioObj` makes t hold an off-{bm,gb} pointer, over lp_ge.
@@ -314,17 +309,18 @@ Section ReRoot.
     Lemma sset_marioObj_offbm_lp :
       forall tid stid e le m t le' m' out,
         (forall b o', le ! stid = Some (Vptr b o') -> b = bm /\ o' = Ptrofs.zero) ->
-        marioObj_wf_lp m bm ->
+        mobj_cond_lp m bm ->
         exec_stmt function_entry2 lp_ge e le m
           (Sset tid (Efield (Ederef (Etempvar stid (tptr (Tstruct mario._MarioState noattr)))
                                     (Tstruct mario._MarioState noattr))
                             mario._marioObj (tptr (Tstruct mario._Object noattr)))) t le' m' out ->
         forall b o, le' ! tid = Some (Vptr b o) -> b <> bm /\ b <> gb.
     Proof.
-      intros tid stid e le m t le' m' out Hstid Hwf H b o Hle'. inv H.
+      intros tid stid e le m t le' m' out Hstid Hcond H b o Hle'. inv H.
       rewrite PTree.gss in Hle'. inv Hle'.
       match goal with Hev : eval_expr _ _ _ _ _ (Vptr b o) |- _ =>
-        pose proof (eval_marioObj_off_bm_lp _ _ _ _ _ _ _ Hstid Hwf Hev) as [Hbm Hgbfn] end.
+        pose proof (eval_marioObj_load_lp _ _ _ _ _ _ _ Hstid Hev) as Hld end.
+      destruct (Hcond _ _ Hld) as [Hbm Hgbfn].
       split; [ exact Hbm | exact (Hgbfn gb Hgb_lp) ].
     Qed.
 
@@ -349,11 +345,11 @@ Section ReRoot.
       unfold RealFrameValue.tprov; split; [ | split; [ | split ] ].
       - unfold RealFrameValue.tat. intros bb oo Hs. destruct (Pos.eq_dec id mario._t'48) as [E|N].
         + subst id. rewrite (C48 eq_refl) in Hexec.
-          rewrite (sset_gms_bm_lp _ _ _ _ _ _ _ _ He Hgwf Hexec) in Hs. inv Hs; auto.
+          exact (sset_gms_bm_lp _ _ _ _ _ _ _ _ He Hgwf Hexec _ _ Hs).
         + rewrite PTree.gso in Hs by congruence. exact (T48 _ _ Hs).
       - unfold RealFrameValue.tat. intros bb oo Hs. destruct (Pos.eq_dec id mario._t'12) as [E|N].
         + subst id. rewrite (C12 eq_refl) in Hexec.
-          rewrite (sset_gms_bm_lp _ _ _ _ _ _ _ _ He Hgwf Hexec) in Hs. inv Hs; auto.
+          exact (sset_gms_bm_lp _ _ _ _ _ _ _ _ He Hgwf Hexec _ _ Hs).
         + rewrite PTree.gso in Hs by congruence. exact (T12 _ _ Hs).
       - unfold RealFrameValue.toff. intros bb oo Hs. destruct (Pos.eq_dec id mario._t'49) as [E|N].
         + subst id. rewrite (C49 eq_refl) in Hexec.
@@ -399,75 +395,6 @@ Section ReRoot.
       apply eval_expr_Etempvar_val in Hb. eauto.
     Qed.
 
-    (* ---- THE NO-A-THREADED REACH RESIDUALS, re-rooted at lp_ge. These are the
-       analog of RealFrameValue's reach_meminv_noA / ext_meminv_noA / noA_store_pres,
-       now over globalenv lp. KEY POINT OF THE WHOLE RE-ROOTING: in
-       reach_meminv_noA_lp the eval_funcall ranges over the LINKED genv, so a
-       dispatcher Scall (mario_execute_*_action) resolves to its REAL Internal body
-       and is traversed -- it is NO LONGER an underspecified external bouncing off
-       the false reach_ext_action_cell. The residual is now SATISFIABLE for the
-       real linked program (to be discharged in Phase B by the A-gating closure). *)
-    Variable NoA : mem -> Prop.
-    Hypothesis reach_meminv_noA_lp :
-      forall m fd vargs t m' vres,
-        NoA m -> meminv_lp m ->
-        eval_funcall function_entry2 lp_ge m fd vargs t m' vres ->
-        NoA m' /\ meminv_lp m'.
-    (* NO external/builtin hypothesis: the body census (prov_ok) forbids
-       Sbuiltin -- the real body has none -- so the engine REFUTES that case.
-       The previous forall-ef row here was FALSE for the real lp (EF_memcpy
-       can write any writable cell, including Mario's action cell). *)
-    Hypothesis noA_store_pres_lp :
-      forall e le m a1 a2 t le' m' out,
-        NoA m -> prov_ok (Sassign a1 a2) ->
-        exec_stmt function_entry2 lp_ge e le m (Sassign a1 a2) t le' m' out ->
-        NoA m'.
-
-    (* THE RE-ROOTED BODY CENSUS: the body of f_execute_mario_action preserves
-       NoA /\ meminv_lp /\ tprov over lp_ge. Same body_prov_generic assembly as
-       RealFrameValue.exec_body_prov_noA, now at lp_ge with the _lp leaves. The
-       generic engine is forall-ge, so it applies directly. *)
-    Theorem exec_body_prov_noA_lp :
-      forall e le m s t le' m' out,
-        e ! mario._gMarioState = None ->
-        exec_stmt function_entry2 lp_ge e le m s t le' m' out ->
-        NoA m -> meminv_lp m -> tprov bm gb le -> prov_ok s ->
-        NoA m' /\ meminv_lp m' /\ tprov bm gb le'.
-    Proof.
-      intros e le m s t le' m' out He H Hno Hmem Htp Hck.
-      apply (body_prov_generic lp_ge e
-               (fun mm ll => NoA mm /\ meminv_lp mm /\ tprov bm gb ll))
-        with (le := le) (m := m) (s := s) (t := t) (le' := le') (m' := m') (out := out);
-        try assumption; try (split; [ exact Hno | split; assumption ]).
-      - (* Sassign leaf *)
-        intros le0 m0 a1 a2 t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0) Hck' Hexec.
-        assert (Hle : le0' = le0) by (inversion Hexec; reflexivity). subst le0'.
-        split; [ eapply noA_store_pres_lp; [ exact Hno0 | exact Hck' | exact Hexec ] | ].
-        split; [ | exact Htp0 ].
-        cbn [prov_ok] in Hck'.
-        destruct Htp0 as (T48 & T12 & T49 & T13).
-        destruct Hck' as [ [Ha1 Ha2] | [Ha1 Ha2] ]; subst.
-        + eapply (store_preserves_meminv_lp store1_lval store1_rval mario._t'49 store1_loc_is_t49_lp);
-            [ exact Hmem0 | exact T49 | exact Hexec ].
-        + eapply (store_preserves_meminv_lp store2_lval store2_rval mario._t'13 store2_loc_is_t13_lp);
-            [ exact Hmem0 | exact T13 | exact Hexec ].
-      - (* Sset leaf *)
-        intros le0 m0 id a t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0) Hck' Hexec.
-        cbn [prov_ok] in Hck'.
-        assert (Hm : m0' = m0) by (inversion Hexec; reflexivity).
-        split; [ rewrite Hm; exact Hno0 | ].
-        eapply sset_case_preserves_lp; [ exact He | exact Hmem0 | exact Htp0 | exact Hck' | exact Hexec ].
-      - (* Scall leaf *)
-        intros le0 m0 oid a al t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0) Hck' Hexec.
-        cbn [prov_ok] in Hck'.
-        inversion Hexec; subst.
-        match goal with Hf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
-          destruct (reach_meminv_noA_lp _ _ _ _ _ _ Hno0 Hmem0 Hf) as (Hno0' & Hmem0') end.
-        split; [ exact Hno0' | split; [ exact Hmem0' | apply tprov_set_opttemp; assumption ] ].
-      - (* Sbuiltin leaf: REFUTED by the census (the body has no builtins) *)
-        intros le0 m0 oid ef tyl al t0 le0' m0' out0 _ Hck' _.
-        cbn [prov_ok] in Hck'. destruct Hck'.
-    Qed.
   End ProvEngineLp.
 
   (* ================================================================== *)
@@ -491,90 +418,16 @@ Section ReRoot.
         (Internal mario.f_execute_mario_action)
         (Vptr b_o Ptrofs.zero :: nil) t m' res.
 
-  (* the "rest" reach residual over lp_ge: every reached funcall preserves NoA
-     and the two Mario-pointer invariants. (The value half -- valid + action_sat
-     -- is the separate reach_value_preserves_noA at lp_ge.) *)
-  Definition reach_rest_noA_lp (bm : block) (NoA : mem -> Prop) : Prop :=
-    forall m fd vargs t m' vres,
-      NoA m ->
-      eval_funcall function_entry2 lp_ge m fd vargs t m' vres ->
-      marioObj_wf_lp m bm -> gMarioState_wf_lp m bm ->
-      NoA m' /\ marioObj_wf_lp m' bm /\ gMarioState_wf_lp m' bm.
-
-  Lemma reach_meminv_noA_build_lp :
-    forall bm NoA,
-      reach_value_preserves_noA Qv bm lp_ge NoA ->
-      reach_rest_noA_lp bm NoA ->
-      forall m fd vargs t m' vres,
-        NoA m -> meminv_lp bm m ->
-        eval_funcall function_entry2 lp_ge m fd vargs t m' vres ->
-        NoA m' /\ meminv_lp bm m'.
-  Proof.
-    intros bm NoA Hval Hrest m fd vargs t m' vres Hno Hmem Hev.
-    unfold meminv_lp in Hmem. destruct Hmem as (Hv & Hsat & Hmwf & Hgwf).
-    destruct (Hval m fd vargs t m' vres Hno Hev Hv Hsat) as (Hv' & Hsat').
-    destruct (Hrest m fd vargs t m' vres Hno Hev Hmwf Hgwf) as (Hno' & Hmwf' & Hgwf').
-    split; [ exact Hno' | unfold meminv_lp; repeat split; assumption ].
-  Qed.
-
-  (* THE REDUCTION (re-rooted): a real frame over lp preserves NoA and the full
-     memory invariant, reduced to the no-A reach/ext/store residuals over lp. The
-     body is discharged by exec_body_prov_noA_lp; the entry facts (e = empty_env,
-     tprov vacuous via the reused ge-free tprov_entry, body census via the ge-free
-     execute_mario_action_body_prov_ok) and the gb from gMarioState_wf_lp are
-     supplied here. funcall_from_body_preserves_entry is genv-parametric. *)
-  Theorem execute_mario_action_preserves_real_lp :
-    forall (bm : block) (NoA : mem -> Prop) m m',
-      reach_value_preserves_noA Qv bm lp_ge NoA ->
-      reach_rest_noA_lp bm NoA ->
-      (forall e le mm a1 a2 tt le' mm' out,
-          NoA mm -> prov_ok (Sassign a1 a2) ->
-          exec_stmt function_entry2 lp_ge e le mm (Sassign a1 a2) tt le' mm' out -> NoA mm') ->
-      NoA m ->
-      Mem.valid_block m bm -> action_sat Qv m bm ->
-      marioObj_wf_lp m bm -> gMarioState_wf_lp m bm ->
-      execute_mario_action_step_lp m m' ->
-      NoA m' /\ Mem.valid_block m' bm /\ action_sat Qv m' bm /\
-      marioObj_wf_lp m' bm /\ gMarioState_wf_lp m' bm.
-  Proof.
-    intros bm NoA m m' Hval Hrest Hstore HnoA Hv Hsat Hmwf Hgwf
-           (b_o & t & res & Hfun).
-    pose proof Hgwf as Hgwf2. destruct Hgwf2 as (gb & Hgb & Hload).
-    pose proof (reach_meminv_noA_build_lp bm NoA Hval Hrest) as Hreachmem.
-    assert (HPm' :
-      NoA m' /\ Mem.valid_block m' bm /\ action_sat Qv m' bm /\
-      marioObj_wf_lp m' bm /\ gMarioState_wf_lp m' bm).
-    { eapply (funcall_from_body_preserves_entry
-                (fun mm => NoA mm /\ Mem.valid_block mm bm /\ action_sat Qv mm bm /\
-                           marioObj_wf_lp mm bm /\ gMarioState_wf_lp mm bm)
-                lp_ge mario.f_execute_mario_action (Vptr b_o Ptrofs.zero :: nil)
-                m m' t res eq_refl);
-        [ | exact (conj HnoA (conj Hv (conj Hsat (conj Hmwf Hgwf)))) | exact Hfun ].
-      intros le mm tt le' mm' out Hbind (Hn & Hvv & Hss & Hmw & Hgw) Hexec.
-      edestruct (exec_body_prov_noA_lp bm gb Hgb NoA Hreachmem Hstore
-                   empty_env le mm (fn_body mario.f_execute_mario_action) tt le' mm' out)
-        as (Hn' & Hmem' & _);
-        [ apply PTree.gempty
-        | exact Hexec
-        | exact Hn
-        | exact (conj Hvv (conj Hss (conj Hmw Hgw)))
-        | eapply tprov_entry; exact Hbind
-        | exact execute_mario_action_body_prov_ok
-        | ].
-      unfold meminv_lp in Hmem'. destruct Hmem' as (Hvv' & Hss' & Hmw' & Hgw').
-      exact (conj Hn' (conj Hvv' (conj Hss' (conj Hmw' Hgw')))). }
-    exact HPm'.
-  Qed.
-
   (* ================================================================== *)
   (* TOWARD THE _REACHED VARIANT (the one the capstone consumes).         *)
   (*                                                                    *)
   (* The capstone uses the marg/MWF/reached-gated wrapper                 *)
-  (* execute_mario_action_preserves_real_reached, not the basic one above. *)
-  (* The marg-gating is ESSENTIAL and orthogonal to the genv: the          *)
-  (* forall-vargs reach is FALSE for a misaligned Mario arg, so the basic   *)
-  (* _lp wrapper, while a complete template, would re-introduce vacuity if   *)
-  (* consumed. These two bricks are the only remaining genv-dependent pieces *)
+  (* execute_mario_action_preserves_real_reached_lp below. The basic       *)
+  (* (non-marg, forall-fd) v1 wrapper chain was DELETED 2026-06-10: its    *)
+  (* reach_rest_noA_lp residual was FALSE for the real lp (EF_memcpy),     *)
+  (* exactly the class the restatement arc killed -- keeping the template  *)
+  (* invited re-introducing vacuity. These two bricks are the only         *)
+  (* remaining genv-dependent pieces                                       *)
   (* of the marg/Pgms layer; everything else (Pgms, gms_arg_temps, marg_ok,  *)
   (* call_arg0_marg, reach_chk, pgms_chk, the switch helpers) is genv-free   *)
   (* and reused from RealFrameValue. *)
@@ -617,7 +470,7 @@ Section ReRoot.
   Lemma pgms_sset_preserves_lp :
     forall bm e le m id a t le' m' out,
       e ! mario._gMarioState = None ->
-      gMarioState_wf_lp m bm ->
+      gms_cond_lp m bm ->
       Pgms bm le -> (In id gms_arg_temps -> a = gms_expr) ->
       exec_stmt function_entry2 lp_ge e le m (Sset id a) t le' m' out ->
       Pgms bm le'.
@@ -629,8 +482,7 @@ Section ReRoot.
     unfold Pgms. intros tt Hin b o Hs.
     destruct (Pos.eq_dec tt id) as [E|N].
     - subst tt. specialize (Hck Hin). subst a. unfold gms_expr in Hexec.
-      pose proof (sset_gms_bm_lp bm id e le m t (PTree.set id v le) m' out He Hgwf Hexec) as Hbm0.
-      rewrite Hbm0 in Hs. inv Hs. split; reflexivity.
+      exact (sset_gms_bm_lp bm id e le m t (PTree.set id v le) m' out He Hgwf Hexec b o Hs).
     - rewrite PTree.gso in Hs by congruence. exact (HP tt Hin b o Hs).
   Qed.
 
@@ -716,18 +568,18 @@ Section ReRoot.
     Lemma sset_marioObj_safeb_lp :
       forall tid stid e le m t le' m' out,
         (forall b o', le ! stid = Some (Vptr b o') -> b = bm /\ o' = Ptrofs.zero) ->
-        marioObj_wf_lp m bm -> MWF m ->
+        MWF m ->
         exec_stmt function_entry2 lp_ge e le m
           (Sset tid (Efield (Ederef (Etempvar stid (tptr (Tstruct mario._MarioState noattr)))
                                     (Tstruct mario._MarioState noattr))
                             mario._marioObj (tptr (Tstruct mario._Object noattr)))) t le' m' out ->
         forall b o, le' ! tid = Some (Vptr b o) -> SafeB b.
     Proof.
-      intros tid stid e le m t le' m' out Hstid Hwf HM H b o Hle'. inv H.
+      intros tid stid e le m t le' m' out Hstid HM H b o Hle'. inv H.
       rewrite PTree.gss in Hle'. inv Hle'.
       match goal with Hev : eval_expr _ _ _ _ _ (Vptr b o) |- _ =>
-        destruct (eval_marioObj_load_lp _ _ _ _ _ _ _ Hstid Hwf Hev) as (delta & Hfo & Hld) end.
-      eapply chase_root_safe_lp; [ exact Hfo | exact HM | exact Hld ].
+        pose proof (eval_marioObj_load_lp _ _ _ _ _ _ _ Hstid Hev) as Hld end.
+      eapply chase_root_safe_lp; [ exact marioObj_offset_mario | exact HM | exact Hld ].
     Qed.
 
     (* tsafe across an Sset: re-established by the chase-root row for a
@@ -748,11 +600,11 @@ Section ReRoot.
       split.
       - intros bb oo Hs. destruct (Pos.eq_dec id mario._t'49) as [E|N].
         + subst id. rewrite (C49 eq_refl) in Hexec.
-          eapply sset_marioObj_safeb_lp; [ exact T48 | exact Hmwf | exact HM | exact Hexec | exact Hs ].
+          eapply sset_marioObj_safeb_lp; [ exact T48 | exact HM | exact Hexec | exact Hs ].
         + rewrite PTree.gso in Hs by congruence. exact (S49 _ _ Hs).
       - intros bb oo Hs. destruct (Pos.eq_dec id mario._t'13) as [E|N].
         + subst id. rewrite (C13 eq_refl) in Hexec.
-          eapply sset_marioObj_safeb_lp; [ exact T12 | exact Hmwf | exact HM | exact Hexec | exact Hs ].
+          eapply sset_marioObj_safeb_lp; [ exact T12 | exact HM | exact Hexec | exact Hs ].
         + rewrite PTree.gso in Hs by congruence. exact (S13 _ _ Hs).
     Qed.
 
@@ -860,26 +712,21 @@ Section ReRoot.
     Qed.
   End ReachedLp.
 
-  (* ---- the marg-gated "rest" residual + meminv build over lp_ge. ----
-     REACHED-GATED: the build site always has the reached fact in scope, so
-     quantifying over ALL fundefs was a forall-fd phantom -- and a FALSE one:
-     fd := External (EF_memcpy 4 4) with dst = Vptr bm 0 PASSES marg_ok and
-     clobbers the watched cells. Gated on Reached_fd, the external sub-case
-     ranges only over the named rest-symbol resolutions (EF_external model
-     boundaries) and the row is satisfiable. *)
-  Definition reach_rest_marg_lp (bm : block) (NoA : mem -> Prop)
-             (Reached_fd : Clight.fundef -> Prop) : Prop :=
-    forall m fd vargs t m' vres,
-      Reached_fd fd ->
-      NoA m -> marg_ok bm vargs ->
-      eval_funcall function_entry2 lp_ge m fd vargs t m' vres ->
-      marioObj_wf_lp m bm -> gMarioState_wf_lp m bm ->
-      NoA m' /\ marioObj_wf_lp m' bm /\ gMarioState_wf_lp m' bm.
-
+  (* ---- the meminv build over lp_ge: NO funcall-level rest residual. ----
+     The old reach_rest_marg_lp row (preserve NoA + the POSITIVE wf pair
+     across every reached funcall) is GONE (2026-06-10): with the wf pair
+     CONDITIONAL, everything the wrapper needs after a funcall is a
+     projection of the MWF the value engine already returns --
+       NoA       (at the grounding: ctl_a_clear = MWF_real's R2+R3),
+       mobj_cond (R6 + the SafeB distinctness facts),
+       gms_cond  (R5 verbatim).
+     The three projection rows below are PROVED at the MWF_real grounding. *)
   Lemma reach_meminv_reached_build_lp :
     forall bm NoA MWF (Reached_fd : Clight.fundef -> Prop),
       reach_value_preserves_reached Qv bm lp_ge NoA MWF Reached_fd ->
-      reach_rest_marg_lp bm NoA Reached_fd ->
+      (forall m, MWF m -> NoA m) ->
+      (forall m, MWF m -> mobj_cond_lp m bm) ->
+      (forall m, MWF m -> gms_cond_lp m bm) ->
       forall m fd vargs t m' vres,
         Reached_fd fd ->
         NoA m -> meminv_lp bm m -> MWF m -> marg_ok bm vargs ->
@@ -887,11 +734,13 @@ Section ReRoot.
         eval_funcall function_entry2 lp_ge m fd vargs t m' vres ->
         NoA m' /\ meminv_lp bm m' /\ MWF m'.
   Proof.
-    intros bm NoA MWF Reached_fd Hval Hrest m fd vargs t m' vres Hrf Hno Hmem HMWF Hmarg Hsargs Hev.
-    unfold meminv_lp in Hmem. destruct Hmem as (Hv & Hsat & Hmwf & Hgwf).
+    intros bm NoA MWF Reached_fd Hval Hnoa_mwf Hmo_mwf Hgm_mwf
+           m fd vargs t m' vres Hrf Hno Hmem HMWF Hmarg Hsargs Hev.
+    destruct Hmem as (Hv & Hsat & _ & _).
     destruct (Hval m fd vargs t m' vres Hrf Hno HMWF (fun _ => Hmarg) Hsargs Hev Hv Hsat) as (Hv' & Hsat' & HMWF').
-    destruct (Hrest m fd vargs t m' vres Hrf Hno Hmarg Hev Hmwf Hgwf) as (Hno' & Hmwf' & Hgwf').
-    split; [ exact Hno' | split; [ unfold meminv_lp; repeat split; assumption | exact HMWF' ] ].
+    split; [ exact (Hnoa_mwf m' HMWF') | ].
+    split; [ | exact HMWF' ].
+    exact (conj Hv' (conj Hsat' (conj (Hmo_mwf m' HMWF') (Hgm_mwf m' HMWF')))).
   Qed.
 
   (* ================================================================== *)
@@ -909,7 +758,9 @@ Section ReRoot.
     forall (bm : block) (NoA MWF : mem -> Prop) (SafeB : block -> Prop)
            (Reached_id : ident -> Prop) (Reached_fd : Clight.fundef -> Prop) m m',
       reach_value_preserves_reached Qv bm lp_ge NoA MWF Reached_fd ->
-      reach_rest_marg_lp bm NoA Reached_fd ->
+      (forall mm, MWF mm -> NoA mm) ->
+      (forall mm, MWF mm -> mobj_cond_lp mm bm) ->
+      (forall mm, MWF mm -> gms_cond_lp mm bm) ->
       (forall delta mm b' o',
           field_offset (prog_comp_env mario.prog) mario._marioObj mario_state_members
             = Errors.OK (delta, Full) ->
@@ -929,32 +780,30 @@ Section ReRoot.
       reach_chk Reached_id (fn_body mario.f_execute_mario_action) ->
       NoA m -> MWF m ->
       Mem.valid_block m bm -> action_sat Qv m bm ->
-      marioObj_wf_lp m bm -> gMarioState_wf_lp m bm ->
       execute_mario_action_step_lp m m' ->
-      NoA m' /\ Mem.valid_block m' bm /\ action_sat Qv m' bm /\
-      marioObj_wf_lp m' bm /\ gMarioState_wf_lp m' bm /\ MWF m'.
+      NoA m' /\ Mem.valid_block m' bm /\ action_sat Qv m' bm /\ MWF m'.
   Proof.
-    intros bm NoA MWF SafeB Reached_id Reached_fd m m' Hval Hrest Hchase Hstore Hbcr Hbodyrck
-           HnoA HMWF Hv Hsat Hmwf Hgwf (b_o & t & res & Hfun).
-    pose proof Hgwf as Hgwf2. destruct Hgwf2 as (gb & Hgb & Hload).
-    pose proof (reach_meminv_reached_build_lp bm NoA MWF Reached_fd Hval Hrest) as Hreachmem.
+    intros bm NoA MWF SafeB Reached_id Reached_fd m m' Hval Hnoa_mwf Hmo_mwf Hgm_mwf
+           Hchase Hstore Hbcr Hbodyrck
+           HnoA HMWF Hv Hsat (b_o & t & res & Hfun).
+    destruct gMarioState_symbol_resolves_lp as (gb & Hgb).
+    pose proof (reach_meminv_reached_build_lp bm NoA MWF Reached_fd Hval
+                  Hnoa_mwf Hmo_mwf Hgm_mwf) as Hreachmem.
     assert (HPm' :
-      NoA m' /\ Mem.valid_block m' bm /\ action_sat Qv m' bm /\
-      marioObj_wf_lp m' bm /\ gMarioState_wf_lp m' bm /\ MWF m').
+      NoA m' /\ Mem.valid_block m' bm /\ action_sat Qv m' bm /\ MWF m').
     { eapply (funcall_from_body_preserves_entry
-                (fun mm => NoA mm /\ Mem.valid_block mm bm /\ action_sat Qv mm bm /\
-                           marioObj_wf_lp mm bm /\ gMarioState_wf_lp mm bm /\ MWF mm)
+                (fun mm => NoA mm /\ Mem.valid_block mm bm /\ action_sat Qv mm bm /\ MWF mm)
                 lp_ge mario.f_execute_mario_action (Vptr b_o Ptrofs.zero :: nil)
                 m m' t res eq_refl);
-        [ | exact (conj HnoA (conj Hv (conj Hsat (conj Hmwf (conj Hgwf HMWF))))) | exact Hfun ].
-      intros le mm tt le' mm' out Hbind (Hn & Hvv & Hss & Hmw & Hgw & Hmf) Hexec.
+        [ | exact (conj HnoA (conj Hv (conj Hsat HMWF))) | exact Hfun ].
+      intros le mm tt le' mm' out Hbind (Hn & Hvv & Hss & Hmf) Hexec.
       edestruct (exec_body_prov_reached_lp bm gb Hgb NoA MWF SafeB Reached_id Reached_fd
                    Hchase Hstore Hreachmem Hbcr
                    le mm (fn_body mario.f_execute_mario_action) tt le' mm' out)
         as (Hn' & Hmem' & _ & _ & Hmf' & _);
         [ exact Hexec
         | exact Hn
-        | exact (conj Hvv (conj Hss (conj Hmw Hgw)))
+        | exact (conj Hvv (conj Hss (conj (Hmo_mwf mm Hmf) (Hgm_mwf mm Hmf))))
         | eapply tprov_entry; exact Hbind
         | eapply pgms_entry; exact Hbind
         | exact Hmf
@@ -963,8 +812,8 @@ Section ReRoot.
         | exact execute_mario_action_body_pgms_ok
         | exact Hbodyrck
         | ].
-      unfold meminv_lp in Hmem'. destruct Hmem' as (Hvv' & Hss' & Hmw' & Hgw').
-      exact (conj Hn' (conj Hvv' (conj Hss' (conj Hmw' (conj Hgw' Hmf'))))). }
+      destruct Hmem' as (Hvv' & Hss' & _ & _).
+      exact (conj Hn' (conj Hvv' (conj Hss' Hmf'))). }
     exact HPm'.
   Qed.
 

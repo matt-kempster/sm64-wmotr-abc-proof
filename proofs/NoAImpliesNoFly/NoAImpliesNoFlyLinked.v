@@ -76,9 +76,17 @@ Section NoAImpliesNoFlyLinked.
      Mario's action outside T -- standing on the ground, not mid-cannon-shot. *)
   Definition mem_nontainted_lp (m : mem) : Prop := action_sat not_tainted m bm.
 
+  (* 2026-06-10: the POSITIVE wf pair (marioObj_wf_lp/gMarioState_wf_lp --
+     "the chase loads SUCCEED with the right values") is GONE from the
+     carried invariant: preserving load-success across a callee needs
+     cell-unchanged facts no body walk provides, which made the funcall
+     rest row (reach_rest_marg_lp, DELETED) undischargeable. The engines
+     only use the chase rows on loads the exec derivation itself performed,
+     so the CONDITIONAL forms (RealFrameLinked.gms_cond_lp/mobj_cond_lp)
+     suffice -- and those are projections of MWF, carried below via the
+     H*_of_mwf rows. Init got strictly EASIER. *)
   Definition mem_ok_lp (m : mem) : Prop :=
-    Mem.valid_block m bm /\ mem_nontainted_lp m /\
-    marioObj_wf_lp lp m bm /\ gMarioState_wf_lp lp m bm /\ MWF m.
+    Mem.valid_block m bm /\ mem_nontainted_lp m /\ MWF m.
 
   Lemma mem_nontainted_not_flying_lp : forall m, mem_nontainted_lp m -> ~ mem_flying_lp m.
   Proof.
@@ -126,7 +134,15 @@ Section NoAImpliesNoFlyLinked.
      in T, and the sole T-entry edges are A-gated (Taint.v). *)
   Hypothesis Hreach_val :
     reach_value_preserves_reached not_tainted bm (lp_ge lp) NoA MWF reached_fd.
-  Hypothesis Hrest : reach_rest_marg_lp lp bm NoA reached_fd.
+  (* the three MWF projections that REPLACED the funcall-level rest row
+     (reach_rest_marg_lp, DELETED 2026-06-10): with the carried wf rows
+     CONDITIONAL, everything the wrapper needs after a reached funcall is
+     a projection of the MWF the value engine already returns. All three
+     are PROVED at the MWF_real grounding (mwf_real_ctl; R6 + the SafeB
+     distinctness facts; R5 verbatim). *)
+  Hypothesis Hnoa_of_mwf : forall m, MWF m -> NoA m.
+  Hypothesis Hmobj_of_mwf : forall m, MWF m -> mobj_cond_lp lp m bm.
+  Hypothesis Hgms_of_mwf : forall m, MWF m -> gms_cond_lp lp m bm.
   (* the chase-root row of MWF at the marioObj cell: its value, if a
      pointer, is SafeB. At the MWF_real grounding this is PROVED
      (MWFReal.mwf_real_chase_root at fld := _marioObj). *)
@@ -167,13 +183,14 @@ Section NoAImpliesNoFlyLinked.
       a_pressed i = false -> spawn_flying i = false ->
       mem_ok_lp m -> step_lp i m m' -> mem_ok_lp m'.
   Proof.
-    intros i m m' Ha _ (Hv & Hsat & Hwf & Hgwf & HMWF) Hst.
+    intros i m m' Ha _ (Hv & Hsat & HMWF) Hst.
     assert (HnoA : NoA m) by (eapply input_grounds_noA; eassumption).
     destruct (execute_mario_action_preserves_real_reached_lp lp LO_mario not_tainted bm NoA MWF SafeB reached_id reached_fd m m'
-                Hreach_val Hrest Hchase_safe Hstore_safe Hbcr Hbodyrck
-                HnoA HMWF Hv Hsat Hwf Hgwf (step_lp_real i m m' Hst))
-      as (_ & Hv' & Hs' & Hw' & Hgw' & HMWF').
-    exact (conj Hv' (conj Hs' (conj Hw' (conj Hgw' HMWF')))).
+                Hreach_val Hnoa_of_mwf Hmobj_of_mwf Hgms_of_mwf
+                Hchase_safe Hstore_safe Hbcr Hbodyrck
+                HnoA HMWF Hv Hsat (step_lp_real i m m' Hst))
+      as (_ & Hv' & Hs' & HMWF').
+    exact (conj Hv' (conj Hs' HMWF')).
   Qed.
 
   Lemma combine_preconditions_lp :
@@ -277,7 +294,11 @@ Section NoARealInput.
      Phase-B target). Same shapes as the abstract section's. ---- *)
   Hypothesis Hreach_val :
     reach_value_preserves_reached not_tainted bm (lp_ge lp) NoA_real MWF reached_fd.
-  Hypothesis Hrest : reach_rest_marg_lp lp bm NoA_real reached_fd.
+  (* the three MWF projections replacing the rest row (see the abstract
+     section's comment). All three are PROVED at the MWF_real grounding. *)
+  Hypothesis Hnoa_of_mwf : forall m, MWF m -> NoA_real m.
+  Hypothesis Hmobj_of_mwf : forall m, MWF m -> mobj_cond_lp lp m bm.
+  Hypothesis Hgms_of_mwf : forall m, MWF m -> gms_cond_lp lp m bm.
   (* the chase-root row of MWF at the marioObj cell: its value, if a
      pointer, is SafeB. At the MWF_real grounding this is PROVED
      (MWFReal.mwf_real_chase_root at fld := _marioObj). *)
@@ -310,7 +331,7 @@ Section NoARealInput.
   (* ==================================================================== *)
   Theorem noA_no_spawn_never_flying_real :
     forall (init : mem) (is : list mem) (m : mem),
-      mem_ok_lp lp bm MWF init ->
+      mem_ok_lp bm MWF init ->
       Forall (fun i => a_pressed_real bm i = false) is ->
       Forall (fun i => spawn_flying i = false) is ->
       reachable mem mem step_real init is m ->
@@ -320,7 +341,8 @@ Section NoARealInput.
     exact (noA_no_spawn_never_flying_lp lp LO_mario bm MWF mem
              (a_pressed_real bm) spawn_flying step_real step_real_steps
              NoA_real reached_id reached_fd SafeB
-             Hreach_val Hrest Hchase_safe Hstore_safe Hbcr Hbodyrck
+             Hreach_val Hnoa_of_mwf Hmobj_of_mwf Hgms_of_mwf
+             Hchase_safe Hstore_safe Hbcr Hbodyrck
              input_grounds_noA_real init is m Hinit HnoA Hns Hreach).
   Qed.
 
@@ -485,10 +507,40 @@ Section NoARealInputV2.
      would be FALSE for the real lp (an adversarial Sassign through the
      controller chase sets the A bit) -- so it must not appear here. *)
 
-  (* ---- the wrapper residuals that are NOT engine-shaped (the root body's
-     own provenance stores + the external meminv preservation), same shapes
-     as the abstract section's. ---- *)
-  Hypothesis Hrest : reach_rest_marg_lp lp bm (NoA_real bm) (reached_v2 lp).
+  (* ---- the wrapper rows that are NOT engine-shaped (the root body's own
+     provenance stores + the wf-pair projections), same shapes as the
+     abstract section's. ---- *)
+  (* the gMarioState symbol block is never a chase target: a genv symbol
+     block vs the runtime blocks SafeB collects (same trust class and
+     discharge path as the mwf section's Hgms_blk, of which it is a
+     projection). The ONLY new primitive the funcall rest row
+     (reach_rest_marg_lp, DELETED 2026-06-10) decomposed into at this
+     scope -- NoA is already a projection (Hmwf_ctl) and the wf-pair
+     projections are PROVED below from the chase rows. *)
+  Hypothesis Hgms_not_safe : forall gb,
+      Genv.find_symbol (lp_ge lp) mario._gMarioState = Some gb -> ~ SafeB gb.
+
+  (* the marioObj conditional row is a projection of MWF: a pointer in the
+     marioObj cell is SafeB (HchaseRoot at the computed offset 136), hence
+     off bm and off gMarioState's block. *)
+  Lemma Hmobj_of_mwf : forall m, MWF m -> mobj_cond_lp lp m bm.
+  Proof.
+    intros m HM b o Hld.
+    assert (Hsafe : SafeB b).
+    { eapply (HchaseRoot mario._marioObj 136 m b o);
+        [ vm_compute; reflexivity
+        | exact marioObj_offset_mario
+        | exact HM
+        | rewrite Ptrofs.add_zero_l; exact Hld ]. }
+    split; [ exact (HSafeNotBm b Hsafe) | ].
+    intros gb Hgb Heq. subst b. exact (Hgms_not_safe gb Hgb Hsafe).
+  Qed.
+  (* the gMarioState conditional row is HPgms, eta-wrapped. *)
+  Lemma Hgms_of_mwf : forall m, MWF m -> gms_cond_lp lp m bm.
+  Proof.
+    intros m HM gb b o Hgb Hld. exact (HPgms m gb b o HM Hgb Hld).
+  Qed.
+
   (* the chase-root row of MWF at the marioObj cell: its value, if a
      pointer, is SafeB. At the MWF_real grounding this is PROVED
      (MWFReal.mwf_real_chase_root at fld := _marioObj). *)
@@ -514,7 +566,7 @@ Section NoARealInputV2.
   (* ==================================================================== *)
   Theorem noA_no_spawn_never_flying_real_v2 :
     forall (init : mem) (is : list mem) (m : mem),
-      mem_ok_lp lp bm MWF init ->
+      mem_ok_lp bm MWF init ->
       Forall (fun i => a_pressed_real bm i = false) is ->
       Forall (fun i => spawn_flying i = false) is ->
       reachable mem mem (step_real lp) init is m ->
@@ -528,7 +580,7 @@ Section NoARealInputV2.
                 HSafeNotBm Hmwf_window Hmwf_input Hmwf_glob Hmwf_chase
                 Hmwf_umbi WL_exempt Hrest_pres Hret_call
                 Hext_action Hmwf_ext Hmwf_entry Hmwf_free Hmwf_ctl)
-             Hrest Hchase_safe Hstore_safe
+             Hmwf_ctl Hmobj_of_mwf Hgms_of_mwf Hchase_safe Hstore_safe
              (root_call_resolves lp LO_mario)
              root_body_reach_chk).
   Qed.
@@ -559,12 +611,12 @@ End NoARealInputV2.
 (*     REMAINING CRUX -- the 7 dispatch handlers, where the A-gating       *)
 (*     taint closure gets consumed), return non-aliasing (Hret_call/       *)
 (*     return non-aliasing (Hret_call), the reached-gated externals       *)
-(*     (Hext_action, Hmwf_ext), and the wrapper                            *)
-(*     residuals (Hrest/Hstore/Hstoremwf; the forall-ef Hext row is GONE   *)
-(*     -- the body census forbids builtins, the engine refutes the case).  *)
+(*     (Hext_action, Hmwf_ext); the funcall rest row Hrest and the         *)
+(*     forall-ef Hext / forall-le store rows are GONE (FALSE or            *)
+(*     undischargeable -- restated 2026-06-10).                            *)
 (*                                                                        *)
 (* The 24-hypothesis surface above becomes 15 here, and the initial        *)
-(* condition mem_ok_lp lp bm (MWF_real ...) init is now a CHECKABLE        *)
+(* condition mem_ok_lp bm (MWF_real ...) init is now a CHECKABLE           *)
 (* property of one concrete memory, not a promise about an abstract        *)
 (* invariant.                                                              *)
 (* ====================================================================== *)
@@ -988,7 +1040,6 @@ Section NoARealInputMWF.
       reached_v2 lp (External ef targs tres cc) ->
       external_call ef (lp_ge lp) vargs m t vres m' ->
       Mem.valid_block m bm -> MWF m -> MWF m'.
-  Hypothesis Hrest : reach_rest_marg_lp lp bm (NoA_real bm) (reached_v2 lp).
   (* the chase-root row of MWF at the marioObj cell: its value, if a
      pointer, is SafeB. PROVED here: the R6 projection
      MWFReal.mwf_real_chase_safe. *)
@@ -1040,7 +1091,7 @@ Section NoARealInputMWF.
   (* ==================================================================== *)
   Theorem noA_no_spawn_never_flying_real_mwf :
     forall (init : mem) (is : list mem) (m : mem),
-      mem_ok_lp lp bm MWF init ->
+      mem_ok_lp bm MWF init ->
       Forall (fun i => a_pressed_real bm i = false) is ->
       Forall (fun i => spawn_flying i = false) is ->
       reachable mem mem (step_real lp) init is m ->
@@ -1283,7 +1334,8 @@ Section NoARealInputMWF.
              Hret_call Hext_action Hmwf_ext
              (mwf_real_entry lp bm bc oc0 SafeB Hbc_bm)
              (mwf_real_free lp bm bc oc0 SafeB Hbc_bm)
-             Hrest Hchase_safe Hstore_safe).
+             (fun gb Hgb => proj2 (proj2 (Hgms_blk gb Hgb)))
+             Hchase_safe Hstore_safe).
   Qed.
 
 End NoARealInputMWF.
