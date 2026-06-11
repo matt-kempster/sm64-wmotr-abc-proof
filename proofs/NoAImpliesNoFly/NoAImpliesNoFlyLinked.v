@@ -1177,6 +1177,45 @@ Section NoARealInputMWF.
                 (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
                 (Hpres_obj_ext interaction._stop_shell_music eq_refl)
                 (Hpres_obj_ext interaction._obj_set_held_state eq_refl))
+             (msrah_row lp LO_mario LO_int bm (NoA_real bm)
+                (MWF_real lp bm bc oc0 SafeB)
+                (mwf_real_ctl lp bm bc oc0 SafeB)
+                (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                   Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+                (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                   Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                SafeB HSafeB_not_bm
+                (mwf_real_chase_root lp bm bc oc0 SafeB)
+                (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                   HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                   Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                (mwf_real_sglob lp bm bc oc0 SafeB)
+                (mwf_real_chase_step lp bm bc oc0 SafeB)
+                (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                   HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
+                (Hpres_obj_ext interaction._stop_shell_music eq_refl)
+                (Hpres_obj_ext interaction._obj_set_held_state eq_refl))
+             (smact_pres lp LO_mario LO_stp bm (NoA_real bm)
+                (MWF_real lp bm bc oc0 SafeB)
+                (mwf_real_ctl lp bm bc oc0 SafeB)
+                (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                   Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+                (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                   Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                SafeB HSafeB_not_bm
+                (mwf_real_chase_root lp bm bc oc0 SafeB)
+                (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                   HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                   Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                (mwf_real_sglob lp bm bc oc0 SafeB)
+                (mwf_real_chase_step lp bm bc oc0 SafeB)
+                (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                   HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk))
              Hio_rest).
   Qed.
   Lemma Hcp_mgco_real :

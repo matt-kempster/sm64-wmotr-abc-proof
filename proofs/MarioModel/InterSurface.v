@@ -4403,20 +4403,18 @@ Example io_ig_walk :
     (fn_body interaction.f_interact_igloo_barrier) = true.
 Proof. vm_compute. reflexivity. Qed.
 
-(* the REST census: the 25 handlers not yet walked (shrinks per slice) *)
+(* the REST census: the 17 handlers not yet walked (shrinks per slice) *)
 Definition io_rest_ids : list ident :=
   interaction._interact_coin
-  :: interaction._interact_star_or_key :: interaction._interact_bbh_entrance
+  :: interaction._interact_star_or_key
   :: interaction._interact_warp :: interaction._interact_warp_door
-  :: interaction._interact_door :: interaction._interact_cannon_base
-  :: interaction._interact_tornado
-  :: interaction._interact_whirlpool :: interaction._interact_strong_wind
-  :: interaction._interact_flame :: interaction._interact_snufit_bullet
+  :: interaction._interact_door
+  :: interaction._interact_snufit_bullet
   :: interaction._interact_clam_or_bubba :: interaction._interact_bully
-  :: interaction._interact_shock :: interaction._interact_bounce_top
+  :: interaction._interact_bounce_top
   :: interaction._interact_hit_from_below
   :: interaction._interact_pole
-  :: interaction._interact_hoot :: interaction._interact_breakable
+  :: interaction._interact_breakable
   :: interaction._interact_koopa_shell :: interaction._interact_unknown_08
   :: interaction._interact_cap :: interaction._interact_grabbable
   :: interaction._interact_text :: nil.
@@ -4524,6 +4522,199 @@ Proof.
   exists t1. repeat split; assumption.
 Qed.
 
+(* ====================================================================== *)
+(* SLICE 4 (the pure-engine handlers): EIGHT handler bodies pass the      *)
+(* PLAIN wwalk with per-handler censuses -- no special sites at all.      *)
+(* ids   = walked internal call rows (msrah/umsc/msfv/tdfio);             *)
+(* sids  = the act-writer rows (sma/dasma) -- their const-action call     *)
+(*         sites ride the engine's smact_call_chk arm;                    *)
+(* xids  = play_sound (model-boundary external);                          *)
+(* cact  = _o (seeded from the io gate) plus the chase temps the body     *)
+(*         loads from m's chase-root fields (marioObj/usedObj/_t'10);     *)
+(* wact  = flame's _burningAction only (Sset from untainted consts).     *)
+(* ====================================================================== *)
+
+(* ---- cannon_base ---- *)
+Lemma io_cb_pin :
+  (prog_defmap interaction.prog) ! interaction._interact_cannon_base
+  = Some (Gfun (Internal interaction.f_interact_cannon_base)).
+Proof. vm_compute. reflexivity. Qed.
+Example io_cb_vars : fn_vars interaction.f_interact_cannon_base = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example io_cb_params :
+  fn_params interaction.f_interact_cannon_base
+  = (interaction._m, tptr (Tstruct interaction._MarioState noattr))
+    :: (interaction._interactType, tuint)
+    :: (interaction._o, tptr (Tstruct interaction._Object noattr)) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+Example io_cb_walk :
+  wwalk_chk false nil
+    (interaction._mario_stop_riding_and_holding :: nil) nil
+    (interaction._o :: nil) nil
+    (interaction._set_mario_action :: nil) nil
+    (fn_body interaction.f_interact_cannon_base) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- bbh_entrance ---- *)
+Lemma io_bbh_pin :
+  (prog_defmap interaction.prog) ! interaction._interact_bbh_entrance
+  = Some (Gfun (Internal interaction.f_interact_bbh_entrance)).
+Proof. vm_compute. reflexivity. Qed.
+Example io_bbh_vars : fn_vars interaction.f_interact_bbh_entrance = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example io_bbh_params :
+  fn_params interaction.f_interact_bbh_entrance
+  = (interaction._m, tptr (Tstruct interaction._MarioState noattr))
+    :: (interaction._interactType, tuint)
+    :: (interaction._o, tptr (Tstruct interaction._Object noattr)) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+Example io_bbh_walk :
+  wwalk_chk false nil
+    (interaction._mario_stop_riding_and_holding :: nil) nil
+    (interaction._o :: nil) nil
+    (interaction._set_mario_action :: nil) nil
+    (fn_body interaction.f_interact_bbh_entrance) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- strong_wind ---- *)
+Lemma io_sw_pin :
+  (prog_defmap interaction.prog) ! interaction._interact_strong_wind
+  = Some (Gfun (Internal interaction.f_interact_strong_wind)).
+Proof. vm_compute. reflexivity. Qed.
+Example io_sw_vars : fn_vars interaction.f_interact_strong_wind = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example io_sw_params :
+  fn_params interaction.f_interact_strong_wind
+  = (interaction._m, tptr (Tstruct interaction._MarioState noattr))
+    :: (interaction._interactType, tuint)
+    :: (interaction._o, tptr (Tstruct interaction._Object noattr)) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+Example io_sw_walk :
+  wwalk_chk false nil
+    (interaction._mario_stop_riding_and_holding
+     :: interaction._update_mario_sound_and_camera :: nil) nil
+    (interaction._o :: nil)
+    (interaction._play_sound :: nil)
+    (interaction._set_mario_action :: nil) nil
+    (fn_body interaction.f_interact_strong_wind) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- whirlpool ---- *)
+Lemma io_wp_pin :
+  (prog_defmap interaction.prog) ! interaction._interact_whirlpool
+  = Some (Gfun (Internal interaction.f_interact_whirlpool)).
+Proof. vm_compute. reflexivity. Qed.
+Example io_wp_vars : fn_vars interaction.f_interact_whirlpool = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example io_wp_params :
+  fn_params interaction.f_interact_whirlpool
+  = (interaction._m, tptr (Tstruct interaction._MarioState noattr))
+    :: (interaction._interactType, tuint)
+    :: (interaction._o, tptr (Tstruct interaction._Object noattr)) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+Example io_wp_walk :
+  wwalk_chk false nil
+    (interaction._mario_stop_riding_and_holding :: nil) nil
+    (interaction._o :: interaction._marioObj :: nil)
+    (interaction._play_sound :: nil)
+    (interaction._set_mario_action :: nil) nil
+    (fn_body interaction.f_interact_whirlpool) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- tornado ---- *)
+Lemma io_tn_pin :
+  (prog_defmap interaction.prog) ! interaction._interact_tornado
+  = Some (Gfun (Internal interaction.f_interact_tornado)).
+Proof. vm_compute. reflexivity. Qed.
+Example io_tn_vars : fn_vars interaction.f_interact_tornado = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example io_tn_params :
+  fn_params interaction.f_interact_tornado
+  = (interaction._m, tptr (Tstruct interaction._MarioState noattr))
+    :: (interaction._interactType, tuint)
+    :: (interaction._o, tptr (Tstruct interaction._Object noattr)) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+Example io_tn_walk :
+  wwalk_chk false nil
+    (interaction._mario_stop_riding_and_holding
+     :: interaction._update_mario_sound_and_camera
+     :: interaction._mario_set_forward_vel :: nil) nil
+    (interaction._o :: interaction._marioObj :: nil)
+    (interaction._play_sound :: nil)
+    (interaction._set_mario_action :: nil) nil
+    (fn_body interaction.f_interact_tornado) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- hoot ---- *)
+Lemma io_ho_pin :
+  (prog_defmap interaction.prog) ! interaction._interact_hoot
+  = Some (Gfun (Internal interaction.f_interact_hoot)).
+Proof. vm_compute. reflexivity. Qed.
+Example io_ho_vars : fn_vars interaction.f_interact_hoot = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example io_ho_params :
+  fn_params interaction.f_interact_hoot
+  = (interaction._m, tptr (Tstruct interaction._MarioState noattr))
+    :: (interaction._interactType, tuint)
+    :: (interaction._o, tptr (Tstruct interaction._Object noattr)) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+Example io_ho_walk :
+  wwalk_chk false nil
+    (interaction._mario_stop_riding_and_holding
+     :: interaction._update_mario_sound_and_camera :: nil) nil
+    (interaction._o :: interaction._usedObj :: nil) nil
+    (interaction._set_mario_action :: nil) nil
+    (fn_body interaction.f_interact_hoot) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- shock ---- *)
+Lemma io_sh_pin :
+  (prog_defmap interaction.prog) ! interaction._interact_shock
+  = Some (Gfun (Internal interaction.f_interact_shock)).
+Proof. vm_compute. reflexivity. Qed.
+Example io_sh_vars : fn_vars interaction.f_interact_shock = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example io_sh_params :
+  fn_params interaction.f_interact_shock
+  = (interaction._m, tptr (Tstruct interaction._MarioState noattr))
+    :: (interaction._interactType, tuint)
+    :: (interaction._o, tptr (Tstruct interaction._Object noattr)) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+Example io_sh_walk :
+  wwalk_chk false nil
+    (interaction._update_mario_sound_and_camera
+     :: interaction._take_damage_from_interact_object :: nil) nil
+    (interaction._o :: nil)
+    (interaction._play_sound :: nil)
+    (interaction._drop_and_set_mario_action :: nil) nil
+    (fn_body interaction.f_interact_shock) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- flame: the one wact temp (_burningAction, Sset from untainted
+   ACT_ constants in both branches) feeds the dasma temp-arg site;
+   _t'10 is a chase temp loaded from m->marioObj. ---- *)
+Lemma io_fl_pin :
+  (prog_defmap interaction.prog) ! interaction._interact_flame
+  = Some (Gfun (Internal interaction.f_interact_flame)).
+Proof. vm_compute. reflexivity. Qed.
+Example io_fl_vars : fn_vars interaction.f_interact_flame = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example io_fl_params :
+  fn_params interaction.f_interact_flame
+  = (interaction._m, tptr (Tstruct interaction._MarioState noattr))
+    :: (interaction._interactType, tuint)
+    :: (interaction._o, tptr (Tstruct interaction._Object noattr)) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+Example io_fl_walk :
+  wwalk_chk false
+    (interaction._burningAction :: nil)
+    (interaction._update_mario_sound_and_camera :: nil) nil
+    (interaction._o :: interaction._marioObj :: interaction._t'10 :: nil)
+    (interaction._play_sound :: nil)
+    (interaction._drop_and_set_mario_action :: nil) nil
+    (fn_body interaction.f_interact_flame) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 Section IoSurface.
   Variable lp : Clight.program.
   Hypothesis LO_mario : linkorder mario.prog lp.
@@ -4610,6 +4801,15 @@ Section IoSurface.
   Hypothesis Hcpa_dasma :
     call_pres_act lp bm NoA MWF interaction._drop_and_set_mario_action.
 
+  (* ---- slice-4 rows: the two remaining shared callees of the eight
+     pure-engine handlers.  At the capstone: msrah_row (the walked
+     mario_stop_riding_and_holding internal) and the smact_pres
+     keystone (set_mario_action itself). ---- *)
+  Hypothesis Hcp_msrah :
+    call_pres lp bm NoA MWF interaction._mario_stop_riding_and_holding.
+  Hypothesis Hcpa_sma :
+    call_pres_act lp bm NoA MWF interaction._set_mario_action.
+
   Let Hcp_tdfio :
     call_pres lp bm NoA MWF interaction._take_damage_from_interact_object
     := tdfio_row lp LO_mario LO_int bm NoA MWF HNoA_of_MWF HMWF_window
@@ -4635,7 +4835,7 @@ Section IoSurface.
   (* ================================================================== *)
   Lemma body_pres_io_of_wwalk :
     forall (f : Clight.function)
-           (ids wids cact xids sids tids : list ident),
+           (wact ids wids cact xids sids tids : list ident),
       fn_vars f = nil ->
       fn_params f
       = (interaction._m, tptr (Tstruct interaction._MarioState noattr))
@@ -4645,6 +4845,10 @@ Section IoSurface.
       forallb (fun t' => negb (Pos.eqb t' interaction._m)
                          && negb (Pos.eqb t' interaction._interactType))
         cact = true ->
+      forallb (fun t' => negb (Pos.eqb t' interaction._m)
+                         && negb (Pos.eqb t' interaction._interactType)
+                         && negb (Pos.eqb t' interaction._o))
+        wact = true ->
       (forall fid', mem_id fid' ids = true ->
                     call_pres lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' wids = true ->
@@ -4655,11 +4859,11 @@ Section IoSurface.
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' tids = true ->
                     call_pres_act3 lp bm NoA MWF fid') ->
-      wwalk_chk false nil ids wids cact xids sids tids (fn_body f)
+      wwalk_chk false wact ids wids cact xids sids tids (fn_body f)
         = true ->
       body_pres_io lp bm NoA MWF SafeB f.
   Proof.
-    intros f ids wids cact xids sids tids Hvars Hps Hcok
+    intros f wact ids wids cact xids sids tids Hvars Hps Hcok Hwok
            Hcp Hcpa Hcpx Hcps Hcp3t Hchk
            m0 vm vi vo t0 m1 vres0 Hvm Hvo Hevf HN HM HV HS.
     inv Hevf.
@@ -4692,8 +4896,29 @@ Section IoSurface.
       rewrite PTree.gso in Hg by (vm_compute; discriminate).
       rewrite PTree.gss in Hg. injection Hg as ->.
       exact (Hvm b o eq_refl). }
-    assert (Hact0 : act_inv nil le1)
-      by (intros t' Hmem' x Hg'; discriminate Hmem').
+    assert (Hact0 : act_inv wact le1).
+    { intros t' Hmem' x Hg'.
+      assert (Hin' : In t' wact).
+      { unfold mem_id in Hmem'. apply existsb_exists in Hmem'.
+        destruct Hmem' as (y & Hy & Heq).
+        apply Pos.eqb_eq in Heq. subst y. exact Hy. }
+      pose proof (proj1 (forallb_forall _ _) Hwok t' Hin') as Ht'.
+      apply andb_prop in Ht' as [Ht' Hne_o].
+      apply andb_prop in Ht' as [Hne_m Hne_it].
+      apply negb_true_iff in Hne_m. apply negb_true_iff in Hne_it.
+      apply negb_true_iff in Hne_o.
+      rewrite <- Hle1 in Hg'.
+      rewrite PTree.gso in Hg'
+        by (intro EE; rewrite EE, Pos.eqb_refl in Hne_o;
+            discriminate Hne_o).
+      rewrite PTree.gso in Hg'
+        by (intro EE; rewrite EE, Pos.eqb_refl in Hne_it;
+            discriminate Hne_it).
+      rewrite PTree.gso in Hg'
+        by (intro EE; rewrite EE, Pos.eqb_refl in Hne_m;
+            discriminate Hne_m).
+      pose proof (create_undef_temps_val _ _ _ Hg') as ->.
+      left; reflexivity. }
     assert (Hch0 : chase_inv SafeB cact le1).
     { intros t' Hmem' b o Hg'.
       assert (Hin' : In t' cact).
@@ -4727,7 +4952,7 @@ Section IoSurface.
     destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-                false nil ids wids cact xids sids tids Hcp Hcpa Hcpx Hcps
+                false wact ids wids cact xids sids tids Hcp Hcpa Hcpx Hcps
                 Hcp3t _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _)
@@ -4744,8 +4969,8 @@ Section IoSurface.
     body_pres_io lp bm NoA MWF SafeB interaction.f_interact_water_ring.
   Proof.
     apply (body_pres_io_of_wwalk interaction.f_interact_water_ring
-             nil nil (interaction._o :: nil) nil nil nil
-             io_wr_vars io_wr_params eq_refl).
+             nil nil nil (interaction._o :: nil) nil nil nil
+             io_wr_vars io_wr_params eq_refl eq_refl).
     - intros fid' H. discriminate H.
     - intros fid' H. discriminate H.
     - intros fid' H. discriminate H.
@@ -4760,9 +4985,9 @@ Section IoSurface.
     body_pres_io lp bm NoA MWF SafeB interaction.f_interact_igloo_barrier.
   Proof.
     apply (body_pres_io_of_wwalk interaction.f_interact_igloo_barrier
-             (interaction._push_mario_out_of_object :: nil) nil
+             nil (interaction._push_mario_out_of_object :: nil) nil
              (interaction._o :: nil) nil nil nil
-             io_ig_vars io_ig_params eq_refl).
+             io_ig_vars io_ig_params eq_refl eq_refl).
     - intros fid' H.
       unfold mem_id in H; cbn [existsb] in H.
       apply Bool.orb_true_iff in H as [Eg | F];
@@ -5138,6 +5363,225 @@ Section IoSurface.
              io_dmg_vars io_dmg_params ioms_dmg_walk).
   Qed.
 
+  (* ================================================================== *)
+  (* SLICE 4: the eight pure-engine handlers.  Each is the water_ring    *)
+  (* pattern -- body_pres_io_of_wwalk + the per-handler censuses; the    *)
+  (* row dischargers map each censused callee to its section row.        *)
+  (* ================================================================== *)
+
+  Lemma io_cannon_base :
+    body_pres_io lp bm NoA MWF SafeB interaction.f_interact_cannon_base.
+  Proof.
+    apply (body_pres_io_of_wwalk interaction.f_interact_cannon_base
+             nil (interaction._mario_stop_riding_and_holding :: nil) nil
+             (interaction._o :: nil) nil
+             (interaction._set_mario_action :: nil) nil
+             io_cb_vars io_cb_params eq_refl eq_refl).
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcp_msrah
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpa_sma
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - exact io_cb_walk.
+  Qed.
+
+  Lemma io_bbh_entrance :
+    body_pres_io lp bm NoA MWF SafeB interaction.f_interact_bbh_entrance.
+  Proof.
+    apply (body_pres_io_of_wwalk interaction.f_interact_bbh_entrance
+             nil (interaction._mario_stop_riding_and_holding :: nil) nil
+             (interaction._o :: nil) nil
+             (interaction._set_mario_action :: nil) nil
+             io_bbh_vars io_bbh_params eq_refl eq_refl).
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcp_msrah
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpa_sma
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - exact io_bbh_walk.
+  Qed.
+
+  Lemma io_strong_wind :
+    body_pres_io lp bm NoA MWF SafeB interaction.f_interact_strong_wind.
+  Proof.
+    apply (body_pres_io_of_wwalk interaction.f_interact_strong_wind
+             nil (interaction._mario_stop_riding_and_holding
+              :: interaction._update_mario_sound_and_camera :: nil) nil
+             (interaction._o :: nil)
+             (interaction._play_sound :: nil)
+             (interaction._set_mario_action :: nil) nil
+             io_sw_vars io_sw_params eq_refl eq_refl).
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcp_msrah | ].
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcp_umsc
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpx_ps
+        | discriminate F ].
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpa_sma
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - exact io_sw_walk.
+  Qed.
+
+  Lemma io_whirlpool :
+    body_pres_io lp bm NoA MWF SafeB interaction.f_interact_whirlpool.
+  Proof.
+    apply (body_pres_io_of_wwalk interaction.f_interact_whirlpool
+             nil (interaction._mario_stop_riding_and_holding :: nil) nil
+             (interaction._o :: interaction._marioObj :: nil)
+             (interaction._play_sound :: nil)
+             (interaction._set_mario_action :: nil) nil
+             io_wp_vars io_wp_params eq_refl eq_refl).
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcp_msrah
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpx_ps
+        | discriminate F ].
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpa_sma
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - exact io_wp_walk.
+  Qed.
+
+  Lemma io_tornado :
+    body_pres_io lp bm NoA MWF SafeB interaction.f_interact_tornado.
+  Proof.
+    apply (body_pres_io_of_wwalk interaction.f_interact_tornado
+             nil (interaction._mario_stop_riding_and_holding
+              :: interaction._update_mario_sound_and_camera
+              :: interaction._mario_set_forward_vel :: nil) nil
+             (interaction._o :: interaction._marioObj :: nil)
+             (interaction._play_sound :: nil)
+             (interaction._set_mario_action :: nil) nil
+             io_tn_vars io_tn_params eq_refl eq_refl).
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcp_msrah | ].
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcp_umsc | ].
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcp_msfv
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpx_ps
+        | discriminate F ].
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpa_sma
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - exact io_tn_walk.
+  Qed.
+
+  Lemma io_hoot :
+    body_pres_io lp bm NoA MWF SafeB interaction.f_interact_hoot.
+  Proof.
+    apply (body_pres_io_of_wwalk interaction.f_interact_hoot
+             nil (interaction._mario_stop_riding_and_holding
+              :: interaction._update_mario_sound_and_camera :: nil) nil
+             (interaction._o :: interaction._usedObj :: nil) nil
+             (interaction._set_mario_action :: nil) nil
+             io_ho_vars io_ho_params eq_refl eq_refl).
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcp_msrah | ].
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcp_umsc
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpa_sma
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - exact io_ho_walk.
+  Qed.
+
+  Lemma io_shock :
+    body_pres_io lp bm NoA MWF SafeB interaction.f_interact_shock.
+  Proof.
+    apply (body_pres_io_of_wwalk interaction.f_interact_shock
+             nil (interaction._update_mario_sound_and_camera
+              :: interaction._take_damage_from_interact_object :: nil) nil
+             (interaction._o :: nil)
+             (interaction._play_sound :: nil)
+             (interaction._drop_and_set_mario_action :: nil) nil
+             io_sh_vars io_sh_params eq_refl eq_refl).
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcp_umsc | ].
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcp_tdfio
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpx_ps
+        | discriminate F ].
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpa_dasma
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - exact io_sh_walk.
+  Qed.
+
+  Lemma io_flame :
+    body_pres_io lp bm NoA MWF SafeB interaction.f_interact_flame.
+  Proof.
+    apply (body_pres_io_of_wwalk interaction.f_interact_flame
+             (interaction._burningAction :: nil)
+             (interaction._update_mario_sound_and_camera :: nil) nil
+             (interaction._o :: interaction._marioObj
+              :: interaction._t'10 :: nil)
+             (interaction._play_sound :: nil)
+             (interaction._drop_and_set_mario_action :: nil) nil
+             io_fl_vars io_fl_params eq_refl eq_refl).
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcp_umsc
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpx_ps
+        | discriminate F ].
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpa_dasma
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - exact io_fl_walk.
+  Qed.
+
   (* ---- the handler-table dispatch splitter: the capstone's
      Hpres_ihandler from the walked handlers + the io_rest census. ---- *)
   Lemma ihandler_pres_split :
@@ -5159,7 +5603,23 @@ Section IoSurface.
                     | (pose proof io_mrb_pin as E; rewrite Hdm in E;
                        injection E as ->; exact io_mr_blizzard)
                     | (pose proof io_dmg_pin as E; rewrite Hdm in E;
-                       injection E as ->; exact io_damage) ]
+                       injection E as ->; exact io_damage)
+                    | (pose proof io_cb_pin as E; rewrite Hdm in E;
+                       injection E as ->; exact io_cannon_base)
+                    | (pose proof io_bbh_pin as E; rewrite Hdm in E;
+                       injection E as ->; exact io_bbh_entrance)
+                    | (pose proof io_sw_pin as E; rewrite Hdm in E;
+                       injection E as ->; exact io_strong_wind)
+                    | (pose proof io_wp_pin as E; rewrite Hdm in E;
+                       injection E as ->; exact io_whirlpool)
+                    | (pose proof io_tn_pin as E; rewrite Hdm in E;
+                       injection E as ->; exact io_tornado)
+                    | (pose proof io_ho_pin as E; rewrite Hdm in E;
+                       injection E as ->; exact io_hoot)
+                    | (pose proof io_sh_pin as E; rewrite Hdm in E;
+                       injection E as ->; exact io_shock)
+                    | (pose proof io_fl_pin as E; rewrite Hdm in E;
+                       injection E as ->; exact io_flame) ]
             | ]).
     destruct Hin.
   Qed.
