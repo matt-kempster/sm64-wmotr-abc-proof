@@ -110,6 +110,12 @@ proofs/MarioModel/AutomaticLeafSurface.v
 #     carried+SafeB-return model-boundary row) ---
 proofs/MarioModel/WindSurface.v
 
+# --- GOAL 1 / the interactions surface (SPINE: inter_pres DISCHARGES the
+#     capstone's Hpres_inter via the FIRST indirect-call walk: the
+#     sInteractionHandlers function-pointer loop pinned by the offset-free
+#     MWF table row; residuals = 29 body_pres_io handlers + mgco + ckpw) ---
+proofs/MarioModel/InterSurface.v
+
 # --- top-level demos ---
 proofs/Toy/ToyFrame.v
 proofs/Toy/ToyReach.v

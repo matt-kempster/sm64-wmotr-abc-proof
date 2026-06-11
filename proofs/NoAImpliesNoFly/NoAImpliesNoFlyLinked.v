@@ -49,7 +49,7 @@ From SM64.Proofs Require Import MWFReal RestSurface AirborneSurface
   DispatchKit CutsceneSurface AutomaticSurface StationarySurface
   MovingSurface ObjectSurface SubmergedSurface FloorsSurface WarpSurface
   ActWriterSurface ObjectLeafSurface FloorsLeafSurface AutomaticLeafSurface
-  LocalVarsSurface OutParamSurface WindSurface.
+  LocalVarsSurface OutParamSurface WindSurface InterSurface.
 
 Section NoAImpliesNoFlyLinked.
   (* The linked program -- ABSTRACT, never computed (no OOM). *)
@@ -891,8 +891,36 @@ Section NoARealInputMWF.
       (Hpres_obj_ext interaction._stop_shell_music eq_refl)
       (Hpres_obj_ext interaction._obj_set_held_state eq_refl)
       (Hpres_floors_ext mario._raise_background_noise eq_refl).
-  Hypothesis Hpres_inter : body_pres lp (NoA_real bm) MWF bm
-      interaction.f_mario_process_interactions.
+  (* the interactions dispatcher is WALKED (InterSurface.inter_pres -- the
+     FIRST indirect-call walk: the sInteractionHandlers function-pointer
+     loop, every handler-slot load pinned by the offset-free MWF table row
+     consumed via mwf_real_itab): the old whole-body Hpres_inter residual
+     is PROVED from the 29 census-keyed interact_* handler bodies (the
+     GATED class body_pres_io: explicit m/interactType/object args -- a
+     plain body_pres would be a phantom forall-object) + the two named
+     interaction.prog helpers, both Internal (walkable later):
+       - mario_get_collided_object: marg-gated + SafeB-if-ptr RETURN (its
+         result seeds the _object chase temp);
+       - check_kick_or_punch_wall: the ordinary call_pres class. *)
+  Hypothesis Hpres_ihandler : forall fid f,
+      In fid interaction_handler_ids ->
+      (prog_defmap interaction.prog) ! fid = Some (Gfun (Internal f)) ->
+      body_pres_io lp bm (NoA_real bm) MWF SafeB f.
+  Hypothesis Hcp_mgco_real :
+    call_pres_mgco lp bm (NoA_real bm) MWF SafeB.
+  Hypothesis Hcp_ckpw_real :
+    call_pres lp bm (NoA_real bm) MWF
+      interaction._check_kick_or_punch_wall.
+  Let Hpres_inter : body_pres lp (NoA_real bm) MWF bm
+      interaction.f_mario_process_interactions :=
+    inter_pres lp LO_mario LO_int bm (NoA_real bm)
+      (MWF_real lp bm bc oc0 SafeB) SafeB
+      (mwf_real_ctl lp bm bc oc0 SafeB)
+      (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+         Hgms_blk Hgtimer_blk Htable_blk)
+      (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+      (mwf_real_itab lp bm bc oc0 SafeB)
+      Hcp_mgco_real Hcp_ckpw_real Hpres_ihandler.
   (* spawn_object: a TERMINAL EXTERNAL (EF_external in EVERY TU -- no
      internal body anywhere in generated/), the honest model boundary for
      the object-pool allocator.  It preserves the carried run facts, and
