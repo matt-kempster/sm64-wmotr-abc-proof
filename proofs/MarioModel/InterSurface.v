@@ -4403,7 +4403,7 @@ Example io_ig_walk :
     (fn_body interaction.f_interact_igloo_barrier) = true.
 Proof. vm_compute. reflexivity. Qed.
 
-(* the REST census: the 13 handlers not yet walked (shrinks per slice) *)
+(* the REST census: the 12 handlers not yet walked (shrinks per slice) *)
 Definition io_rest_ids : list ident :=
   interaction._interact_star_or_key
   :: interaction._interact_warp_door
@@ -4413,7 +4413,7 @@ Definition io_rest_ids : list ident :=
   :: interaction._interact_hit_from_below
   :: interaction._interact_pole
   :: interaction._interact_breakable
-  :: interaction._interact_koopa_shell :: interaction._interact_unknown_08
+  :: interaction._interact_koopa_shell
   :: interaction._interact_cap :: interaction._interact_grabbable
   :: interaction._interact_text :: nil.
 
@@ -4932,6 +4932,79 @@ Example io_co_walk :
     (interaction._bhv_spawn_star_no_level_exit :: nil)
     nil nil
     (fn_body interaction.f_interact_coin) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- slice-5 (m,o)-helpers: determine_interaction (reader + the
+   moato angle helper) and bounce_back_from_attack (m-window vel
+   stores + msfv + two model-boundary externals).  Both ride the
+   PLAIN call_pres_of_wwalk producer: only the FIRST param is gated
+   (_m = Mario's pointer); the trailing Object*/u32 params are
+   harmless because neither body stores through them. ---- *)
+Definition di_ids : list ident :=
+  interaction._mario_obj_angle_to_object :: nil.
+Lemma di_pin :
+  (prog_defmap interaction.prog) ! interaction._determine_interaction
+  = Some (Gfun (Internal interaction.f_determine_interaction)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma di_vars : fn_vars interaction.f_determine_interaction = nil.
+Proof. vm_compute. reflexivity. Qed.
+Lemma di_params_ok :
+  match fn_params interaction.f_determine_interaction with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma di_walk :
+  wwalk_chk false nil di_ids nil nil nil nil nil
+    (fn_body interaction.f_determine_interaction) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Definition bba_ids : list ident :=
+  interaction._mario_set_forward_vel :: nil.
+Definition bba_xids : list ident :=
+  interaction._play_sound :: interaction._set_camera_shake_from_hit :: nil.
+Lemma bba_pin :
+  (prog_defmap interaction.prog) ! interaction._bounce_back_from_attack
+  = Some (Gfun (Internal interaction.f_bounce_back_from_attack)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma bba_vars : fn_vars interaction.f_bounce_back_from_attack = nil.
+Proof. vm_compute. reflexivity. Qed.
+Lemma bba_params_ok :
+  match fn_params interaction.f_bounce_back_from_attack with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma bba_walk :
+  wwalk_chk false nil bba_ids nil nil bba_xids nil nil
+    (fn_body interaction.f_bounce_back_from_attack) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- unknown_08: di + bba internal calls + the tdaknb ms site
+   (rides the ioms special arm). ---- *)
+Lemma io_u08_pin :
+  (prog_defmap interaction.prog) ! interaction._interact_unknown_08
+  = Some (Gfun (Internal interaction.f_interact_unknown_08)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma io_u08_vars : fn_vars interaction.f_interact_unknown_08 = nil.
+Proof. vm_compute. reflexivity. Qed.
+Lemma io_u08_params :
+  fn_params interaction.f_interact_unknown_08
+  = (interaction._m, tptr (Tstruct interaction._MarioState noattr))
+    :: (interaction._interactType, tuint)
+    :: (interaction._o, tptr (Tstruct interaction._Object noattr)) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+Lemma ioms_u08_walk :
+  ioms_chk
+    (interaction._determine_interaction
+     :: interaction._bounce_back_from_attack :: nil)
+    nil nil (fn_body interaction.f_interact_unknown_08) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Section IoSurface.
@@ -6074,6 +6147,75 @@ Section IoSurface.
     - exact io_fl_walk.
   Qed.
 
+  (* ---- slice-5: the di / bba rows (walked internals consuming only
+     EXISTING section rows: moato, msfv, play_sound, scsfh) and the
+     unknown_08 handler (ioms walker: di + bba ids + the tdaknb ms
+     special site). ---- *)
+  Lemma di_row :
+    call_pres lp bm NoA MWF interaction._determine_interaction.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             interaction.prog interaction._determine_interaction
+             interaction.f_determine_interaction
+             di_ids nil nil nil
+             LO_int di_pin di_vars di_params_ok).
+    - intros fid' H. unfold di_ids in H. cbn [mem_id existsb] in H.
+      apply Bool.orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcp_moato | ].
+      discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact di_walk.
+  Qed.
+
+  Lemma bba_row :
+    call_pres lp bm NoA MWF interaction._bounce_back_from_attack.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             interaction.prog interaction._bounce_back_from_attack
+             interaction.f_bounce_back_from_attack
+             bba_ids nil bba_xids nil
+             LO_int bba_pin bba_vars bba_params_ok).
+    - intros fid' H. unfold bba_ids in H. cbn [mem_id existsb] in H.
+      apply Bool.orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcp_msfv | ].
+      discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold bba_xids in H. cbn [mem_id existsb] in H.
+      apply Bool.orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_ps | ].
+      apply Bool.orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_scsfh | ].
+      discriminate H.
+    - intros fid' H. discriminate H.
+    - exact bba_walk.
+  Qed.
+
+  Lemma io_unknown_08 :
+    body_pres_io lp bm NoA MWF SafeB interaction.f_interact_unknown_08.
+  Proof.
+    apply (ioms_body_pres interaction.f_interact_unknown_08
+             (interaction._determine_interaction
+              :: interaction._bounce_back_from_attack :: nil)
+             nil nil).
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact di_row | ].
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact bba_row
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact io_u08_vars.
+    - exact io_u08_params.
+    - exact ioms_u08_walk.
+  Qed.
+
   (* ---- the handler-table dispatch splitter: the capstone's
      Hpres_ihandler from the walked handlers + the io_rest census. ---- *)
   Lemma ihandler_pres_split :
@@ -6119,7 +6261,9 @@ Section IoSurface.
                     | (pose proof io_wa_pin as E; rewrite Hdm in E;
                        injection E as ->; exact io_warp)
                     | (pose proof io_co_pin as E; rewrite Hdm in E;
-                       injection E as ->; exact io_coin) ]
+                       injection E as ->; exact io_coin)
+                    | (pose proof io_u08_pin as E; rewrite Hdm in E;
+                       injection E as ->; exact io_unknown_08) ]
             | ]).
     destruct Hin.
   Qed.
