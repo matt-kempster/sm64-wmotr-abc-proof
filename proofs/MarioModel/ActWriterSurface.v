@@ -6542,6 +6542,89 @@ Section ActWriterRows.
     exact (conj HV' (conj HS' (conj HM' HN'))).
   Qed.
 
+  (* ---- the NO-GATE entry: a STORELESS internal helper (every store
+     site rides the glob/xids rows; no Mario param, no chase census).
+     Its row is call_pres_ext -- the same marg-free shape as a model
+     boundary -- so call sites ride the EXISTING xids arm of every
+     walker with no surgery.  First consumer: get_door_save_file_flag
+     (reads the door object's star fields through its only param,
+     calls the save_file_get_flags boundary, stores nothing). ---- *)
+  Lemma call_pres_ext_of_wwalk :
+    forall (TU : Clight.program) (fid : ident) (f : Clight.function)
+           (ids wids xids sids : list ident),
+      linkorder TU lp ->
+      (prog_defmap TU) ! fid = Some (Gfun (Internal f)) ->
+      fn_vars f = nil ->
+      negb (mem_id mario_actions_airborne._m (map fst (fn_params f)))
+        = true ->
+      (forall fid', mem_id fid' ids = true ->
+                    call_pres lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' wids = true ->
+                    call_pres_act lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' xids = true ->
+                    call_pres_ext lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' sids = true ->
+                    call_pres_act lp bm NoA MWF fid') ->
+      wwalk_chk false nil ids wids nil xids sids nil (fn_body f)
+        = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros TU fid f ids wids xids sids LOtu Hdm Hvars Hnm_all
+           Hcp Hcpa Hcpx Hcps Hchk
+           fd m0 vargs0 t0 m1 vres0 Hevf Hres HN HM HV HS.
+    pose proof (resolve_pin_fd lp _ _ _ _ LOtu Hdm Hres) as ->.
+    inv Hevf.
+    match goal with
+    | He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry
+    end.
+    match goal with
+    | Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody
+    end.
+    match goal with
+    | Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfree
+    end.
+    inv Hentry.
+    match goal with
+    | Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+        rewrite Hvars in Ha; inv Ha
+    end.
+    apply negb_true_iff in Hnm_all.
+    (* the entry env facts *)
+    match goal with
+    | Hbind' : bind_parameter_temps _ _ _ = Some ?le1 |- _ =>
+        assert (Htat0 : forall b o,
+                   le1 ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero)
+          by (intros b o Hg;
+              rewrite (bind_params_other _ _ _ _ _ Hbind' Hnm_all) in Hg;
+              pose proof (create_undef_temps_val _ _ _ Hg) as EE;
+              discriminate EE);
+        assert (Hact0 : act_inv nil le1)
+          by (intros t' Hmem' x Hg'; discriminate Hmem');
+        assert (Hch0 : chase_inv SafeB nil le1)
+          by (intros t' Hmem' b o Hg'; discriminate Hmem')
+    end.
+    (* the free list at the empty env *)
+    change (blocks_of_env (lp_ge lp) empty_env)
+      with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    assert (Hcpt0 : forall fid', mem_id fid' nil = true ->
+                    call_pres_act3 lp bm NoA MWF fid')
+      by (intros fid' HH; discriminate HH).
+    (* the walk *)
+    destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+                false nil ids wids nil xids sids nil
+                Hcp Hcpa Hcpx Hcps
+                Hcpt0 _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
+                HN HM HV HS)
+      as (HV' & HS' & HM' & HN' & _ & _ & _ & _).
+    exact (conj HV' (conj HS' (conj HM' HN'))).
+  Qed.
+
   (* ---- the cact entry with a NONEMPTY act-temp census: leaves whose
      smact calls pass a LOCAL untainted const through a temp
      (mario_check_object_grab's t'5, mario_update_punch_sequence's
