@@ -1267,6 +1267,10 @@ Section NoARealInputMWF.
              (Hpres_obj_ext interaction._set_camera_mode eq_refl)
              (Hpres_obj_ext interaction._save_file_get_total_star_count
                 eq_refl)
+             (mwf_real_input lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             (fun mm v HMx Hld =>
+                mwf_real_inp lp bm bc oc0 SafeB mm HMx v Hld)
              Hio_rest).
   Qed.
   Lemma Hcp_mgco_real :
