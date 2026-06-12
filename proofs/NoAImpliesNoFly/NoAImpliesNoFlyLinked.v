@@ -1238,6 +1238,8 @@ Section NoARealInputMWF.
              (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
              (Hpres_obj_ext interaction._bhv_spawn_star_no_level_exit
                 eq_refl)
+             (Hpres_obj_ext interaction._atan2s eq_refl)
+             (Hpres_obj_ext interaction._save_file_get_flags eq_refl)
              Hio_rest).
   Qed.
   Lemma Hcp_mgco_real :

@@ -4403,10 +4403,9 @@ Example io_ig_walk :
     (fn_body interaction.f_interact_igloo_barrier) = true.
 Proof. vm_compute. reflexivity. Qed.
 
-(* the REST census: the 12 handlers not yet walked (shrinks per slice) *)
+(* the REST census: the 11 handlers not yet walked (shrinks per slice) *)
 Definition io_rest_ids : list ident :=
   interaction._interact_star_or_key
-  :: interaction._interact_warp_door
   :: interaction._interact_door
   :: interaction._interact_bully
   :: interaction._interact_bounce_top
@@ -5007,6 +5006,54 @@ Lemma ioms_u08_walk :
     nil nil (fn_body interaction.f_interact_unknown_08) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- should_push_or_pull_door: pure (m,o) reader + atan2s ---- *)
+Definition spd_xids : list ident := interaction._atan2s :: nil.
+Lemma spd_pin :
+  (prog_defmap interaction.prog) ! interaction._should_push_or_pull_door
+  = Some (Gfun (Internal interaction.f_should_push_or_pull_door)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma spd_vars : fn_vars interaction.f_should_push_or_pull_door = nil.
+Proof. vm_compute. reflexivity. Qed.
+Lemma spd_params_ok :
+  match fn_params interaction.f_should_push_or_pull_door with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma spd_walk :
+  wwalk_chk false nil nil nil nil spd_xids nil nil
+    (fn_body interaction.f_should_push_or_pull_door) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- warp_door: spd internal + sfgf/s2v externals + ONE sma call
+   whose action arg is the _doorAction temp -- threaded through wact
+   (every Sset into it is an untainted door-action const). ---- *)
+Definition io_wd_wact : list ident := 1574089240964072973%positive :: nil.
+Lemma io_wd_pin :
+  (prog_defmap interaction.prog) ! interaction._interact_warp_door
+  = Some (Gfun (Internal interaction.f_interact_warp_door)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma io_wd_vars : fn_vars interaction.f_interact_warp_door = nil.
+Proof. vm_compute. reflexivity. Qed.
+Lemma io_wd_params :
+  fn_params interaction.f_interact_warp_door
+  = (interaction._m, tptr (Tstruct interaction._MarioState noattr))
+    :: (interaction._interactType, tuint)
+    :: (interaction._o, tptr (Tstruct interaction._Object noattr)) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+Lemma io_wd_walk :
+  wwalk_chk false io_wd_wact
+    (interaction._should_push_or_pull_door :: nil) nil
+    (interaction._o :: nil)
+    (interaction._save_file_get_flags
+     :: interaction._segmented_to_virtual :: nil)
+    (interaction._set_mario_action :: nil) nil
+    (fn_body interaction.f_interact_warp_door) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 Section IoSurface.
   Variable lp : Clight.program.
   Hypothesis LO_mario : linkorder mario.prog lp.
@@ -5110,6 +5157,12 @@ Section IoSurface.
   Hypothesis Hcpx_bssnle :
     call_pres_ext lp bm NoA MWF
       interaction._bhv_spawn_star_no_level_exit.
+  (* slice-5 (warp_door): the atan2s math external (spd's only callee)
+     and the save-buffer reader. *)
+  Hypothesis Hcpx_atan2s :
+    call_pres_ext lp bm NoA MWF interaction._atan2s.
+  Hypothesis Hcpx_sfgf :
+    call_pres_ext lp bm NoA MWF interaction._save_file_get_flags.
 
   Let Hcp_tdfio :
     call_pres lp bm NoA MWF interaction._take_damage_from_interact_object
@@ -6216,6 +6269,56 @@ Section IoSurface.
     - exact ioms_u08_walk.
   Qed.
 
+  Lemma spd_row :
+    call_pres lp bm NoA MWF interaction._should_push_or_pull_door.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             interaction.prog interaction._should_push_or_pull_door
+             interaction.f_should_push_or_pull_door
+             nil nil spd_xids nil
+             LO_int spd_pin spd_vars spd_params_ok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold spd_xids in H. cbn [mem_id existsb] in H.
+      apply Bool.orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_atan2s | ].
+      discriminate H.
+    - intros fid' H. discriminate H.
+    - exact spd_walk.
+  Qed.
+
+  Lemma io_warp_door :
+    body_pres_io lp bm NoA MWF SafeB interaction.f_interact_warp_door.
+  Proof.
+    apply (body_pres_io_of_wwalk interaction.f_interact_warp_door
+             io_wd_wact
+             (interaction._should_push_or_pull_door :: nil) nil
+             (interaction._o :: nil)
+             (interaction._save_file_get_flags
+              :: interaction._segmented_to_virtual :: nil)
+             (interaction._set_mario_action :: nil) nil
+             io_wd_vars io_wd_params eq_refl eq_refl).
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact spd_row
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpx_sfgf | ].
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpx_s2v_io
+        | discriminate F ].
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpa_sma
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - exact io_wd_walk.
+  Qed.
+
   (* ---- the handler-table dispatch splitter: the capstone's
      Hpres_ihandler from the walked handlers + the io_rest census. ---- *)
   Lemma ihandler_pres_split :
@@ -6263,7 +6366,9 @@ Section IoSurface.
                     | (pose proof io_co_pin as E; rewrite Hdm in E;
                        injection E as ->; exact io_coin)
                     | (pose proof io_u08_pin as E; rewrite Hdm in E;
-                       injection E as ->; exact io_unknown_08) ]
+                       injection E as ->; exact io_unknown_08)
+                    | (pose proof io_wd_pin as E; rewrite Hdm in E;
+                       injection E as ->; exact io_warp_door) ]
             | ]).
     destruct Hin.
   Qed.
