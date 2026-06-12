@@ -139,7 +139,12 @@ Definition obj_ext_ids : list ident :=
     (* slice 5 (warp_door): save_file_get_flags is a pure READER of the
        save buffer (no args, returns the flag word, no Mario pointer) --
        the same model class as the other no-pointer externals here. *)
-    :: interaction._save_file_get_flags :: nil.
+    :: interaction._save_file_get_flags
+    (* slice 5 ob arc (cap / koopa_shell): the two music-sequencer
+       externals (scalar args, no Mario pointer) -- the same model
+       class as play_sound above. *)
+    :: interaction._play_cap_music
+    :: interaction._play_shell_music :: nil.
 (* NOTE: find_floor was REMOVED from obj_ext_ids.  It is an out-param
    WRITER, so the phantom-false `call_pres_ext find_floor` (which would
    allow &(action cell) as the out-param) is no longer a capstone
