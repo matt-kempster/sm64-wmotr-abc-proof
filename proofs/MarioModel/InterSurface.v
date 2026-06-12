@@ -4423,7 +4423,6 @@ Proof. vm_compute. reflexivity. Qed.
 Definition io_rest_ids : list ident :=
   interaction._interact_star_or_key
   :: interaction._interact_bully
-  :: interaction._interact_hit_from_below
   :: interaction._interact_text :: nil.
 
 Definition tyObjI : type := tptr (Tstruct interaction._Object noattr).
@@ -5634,6 +5633,59 @@ Lemma ioms_grab_walk :
     (fn_body interaction.f_interact_grabbable) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- hit_from_below: fn_vars = ONE DEAD u8[4] filler (never referenced
+   anywhere in the body -- a clightgen artifact of the UNUSED filler
+   array).  The vars-tolerant io entry (ioms_body_pres_dv) eats it via
+   the LocalVarsSurface alloc/free bricks; no lids store machinery. ---- *)
+Definition io_filler : ident := 97950979215%positive.
+
+(* mem_id membership + a forallb-ne census check pin an ident apart from
+   the filler (discharges the engine's e!g = None premises for the
+   singleton stack env). *)
+Lemma mem_id_forallb_ne :
+  forall (fl : ident) (l : list ident) (g : ident),
+    forallb (fun fid => negb (Pos.eqb fid fl)) l = true ->
+    mem_id g l = true -> Pos.eqb g fl = false.
+Proof.
+  intros fl l g Hall Hmem.
+  unfold mem_id in Hmem.
+  apply existsb_exists in Hmem as (x & Hin & He).
+  apply Pos.eqb_eq in He. subst x.
+  rewrite forallb_forall in Hall.
+  apply negb_true_iff. exact (Hall _ Hin).
+Qed.
+
+Lemma io_hfb_pin :
+  (prog_defmap interaction.prog) ! interaction._interact_hit_from_below
+  = Some (Gfun (Internal interaction.f_interact_hit_from_below)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma io_hfb_vars :
+  fn_vars interaction.f_interact_hit_from_below
+  = (io_filler, Tarray tuchar 4 noattr) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+Lemma io_hfb_params :
+  fn_params interaction.f_interact_hit_from_below
+  = (interaction._m, tptr (Tstruct interaction._MarioState noattr))
+    :: (interaction._interactType, tuint)
+    :: (interaction._o, tptr (Tstruct interaction._Object noattr)) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+Lemma ioms_hfb_walk :
+  ioms_chk
+    (interaction._reset_mario_pitch
+     :: interaction._determine_interaction
+     :: interaction._bounce_back_from_attack
+     :: interaction._update_mario_sound_and_camera
+     :: interaction._push_mario_out_of_object
+     :: interaction._hit_object_from_below
+     :: interaction._bounce_off_object :: nil)
+    (interaction._play_sound :: nil)
+    (interaction._set_mario_action
+     :: interaction._drop_and_set_mario_action :: nil)
+    (interaction._attack_object :: nil)
+    nil
+    (fn_body interaction.f_interact_hit_from_below) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ---- the three ob-unlocked handlers: cap, koopa_shell, breakable ---- *)
 Lemma io_cap_pin :
   (prog_defmap interaction.prog) ! interaction._interact_cap
@@ -5839,6 +5891,12 @@ Section IoSurface.
   Hypothesis HMWF_inp : forall m v,
       MWF m -> Mem.load Mint16unsigned m bm 2 = Some (Vint v) ->
       Int.and v (Int.repr 2) = Int.zero.
+  (* slice-5 (hit_from_below): the stack-frame alloc/free rows --
+     mwf_real_alloc / mwf_real_free at the capstone, BOTH PROVED. *)
+  Hypothesis HMWF_alloc : forall m lo hi m' b,
+      Mem.alloc m lo hi = (m', b) -> MWF m -> MWF m'.
+  Hypothesis HMWF_free : forall m l m',
+      Mem.free_list m l = Some m' -> MWF m -> MWF m'.
 
   Let Hcp_tdfio :
     call_pres lp bm NoA MWF interaction._take_damage_from_interact_object
@@ -6993,6 +7051,125 @@ Section IoSurface.
     exact (conj HV' (conj HS' HM')).
   Qed.
 
+  (* the vars-tolerant twin: ONE dead stack local (the u8[4] filler) --
+     entry alloc preserves carried (alloc_variables_carried), the env
+     binds ONLY the filler so every census ident stays globally resolved
+     (alloc_variables_unbound + the forallb-ne census check), and the
+     exit free_list of the fresh frame preserves carried
+     (blocks_of_env_bm + free_list_carried_bm). *)
+  Lemma ioms_body_pres_dv :
+    forall (f : Clight.function) (ids xids sids oids qids : list ident),
+      (forall fid', mem_id fid' ids = true ->
+                    call_pres lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' xids = true ->
+                    call_pres_ext lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' sids = true ->
+                    call_pres_act lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' oids = true ->
+                    call_pres_ob lp bm NoA MWF SafeB fid') ->
+      (forall fid', mem_id fid' qids = true ->
+                    call_pres_io lp bm NoA MWF SafeB fid') ->
+      fn_vars f = (io_filler, Tarray tuchar 4 noattr) :: nil ->
+      fn_params f
+      = (interaction._m, tptr (Tstruct interaction._MarioState noattr))
+        :: (interaction._interactType, tuint)
+        :: (interaction._o, tptr (Tstruct interaction._Object noattr))
+        :: nil ->
+      forallb (fun fid => negb (Pos.eqb fid io_filler))
+        (stored_globals ++ ids ++ xids ++ sids ++ oids ++ qids) = true ->
+      ioms_chk ids xids sids oids qids (fn_body f) = true ->
+      body_pres_io lp bm NoA MWF SafeB f.
+  Proof.
+    intros f ids xids sids oids qids Hcp_i Hcpx_i Hcps_i Hcpo_i Hcpq_i
+           Hvars Hps Hne Hchk
+           m0 vm vi vo t0 m1 vres0 Hvm Hvo Hevf
+           HN HM HV HS.
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      rewrite Hvars in Ha; rename Ha into Halloc end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    rewrite Hps in Hbind.
+    cbn [bind_parameter_temps] in Hbind.
+    injection Hbind as Hle1.
+    (* entry: the stack alloc preserves the carried facts *)
+    destruct (alloc_variables_carried bm NoA MWF HMWF_alloc HNoA_of_MWF
+                _ _ _ _ _ _ Halloc
+                (conj HV (conj HS (conj HM HN))))
+      as (HVe & HSe & HMe & HNe).
+    (* env: only the dead filler is bound *)
+    match type of Halloc with
+    | alloc_variables _ _ _ _ ?E _ => set (eloc := E) in *
+    end.
+    assert (Hub_one : forall g, Pos.eqb g io_filler = false ->
+                                eloc ! g = None).
+    { intros g Hneg.
+      rewrite (alloc_variables_unbound _ _ _ _ _ _ Halloc g)
+        by (cbn [map fst In]; intros [HH | HH];
+            [ rewrite <- HH, Pos.eqb_refl in Hneg; discriminate Hneg
+            | exact HH ]).
+      apply PTree.gempty. }
+    rewrite !forallb_app in Hne.
+    apply andb_true_iff in Hne as [Hne_sg Hne].
+    apply andb_true_iff in Hne as [Hne_ids Hne].
+    apply andb_true_iff in Hne as [Hne_xids Hne].
+    apply andb_true_iff in Hne as [Hne_sids Hne].
+    apply andb_true_iff in Hne as [Hne_oids Hne_qids].
+    assert (Htat0 : forall b o,
+               le1 ! interaction._m = Some (Vptr b o) ->
+               b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg. rewrite <- Hle1 in Hg.
+      rewrite PTree.gso in Hg by (vm_compute; discriminate).
+      rewrite PTree.gso in Hg by (vm_compute; discriminate).
+      rewrite PTree.gss in Hg. injection Hg as ->.
+      exact (Hvm b o eq_refl). }
+    assert (Hch0 : chase_inv SafeB tdaknb_cact le1).
+    { intros t' Hmem' b o Hg'.
+      unfold tdaknb_cact, mem_id in Hmem'; cbn [existsb] in Hmem'.
+      apply orb_true_iff in Hmem' as [E | F]; [ | discriminate F ].
+      apply Pos.eqb_eq in E; subst t'.
+      rewrite <- Hle1 in Hg'. rewrite PTree.gss in Hg'.
+      injection Hg' as ->.
+      exact (Hvo b o eq_refl). }
+    assert (Hact0 : act_inv nil le1)
+      by (intros t' HH x Hg'; discriminate HH).
+    destruct (ioms_pres ids xids sids oids qids Hcp_i Hcpx_i Hcps_i
+                Hcpo_i Hcpq_i
+                _ _ _ _ _ _ _ _ Hbody
+                (fun g Hg =>
+                   Hub_one g (mem_id_forallb_ne _ _ _ Hne_sg Hg))
+                (fun g Hg =>
+                   Hub_one g (mem_id_forallb_ne _ _ _ Hne_ids Hg))
+                (fun g Hg =>
+                   Hub_one g (mem_id_forallb_ne _ _ _ Hne_xids Hg))
+                (fun g Hg =>
+                   Hub_one g (mem_id_forallb_ne _ _ _ Hne_sids Hg))
+                (fun g Hg =>
+                   Hub_one g (mem_id_forallb_ne _ _ _ Hne_oids Hg))
+                (fun g Hg =>
+                   Hub_one g (mem_id_forallb_ne _ _ _ Hne_qids Hg))
+                (Hub_one interaction._determine_knockback_action eq_refl)
+                (Hub_one interaction._drop_and_set_mario_action eq_refl)
+                (Hub_one interaction._take_damage_and_knock_back eq_refl)
+                (Hub_one interaction._gGlobalTimer eq_refl)
+                Hchk Htat0 Hact0 Hch0 HNe HMe HVe HSe)
+      as (HV' & HS' & HM' & HN' & _ & _ & _).
+    (* exit: free the fresh stack frame *)
+    pose proof (blocks_of_env_bm lp bm _ _ _ _ Halloc HV) as Hforall.
+    destruct (free_list_carried_bm bm NoA MWF HMWF_free HNoA_of_MWF
+                _ _ _ Hforall Hfree
+                (conj HV' (conj HS' (conj HM' HN'))))
+      as (HVf & HSf & HMf & _).
+    exact (conj HVf (conj HSf HMf)).
+  Qed.
+
   Lemma io_mr_blizzard :
     body_pres_io lp bm NoA MWF SafeB interaction.f_interact_mr_blizzard.
   Proof.
@@ -7905,6 +8082,61 @@ Section IoSurface.
     - exact ioms_grab_walk.
   Qed.
 
+  (* ---- hit_from_below: ioms walk + the DEAD-FILLER vars entry ---- *)
+  Lemma io_hit_from_below :
+    body_pres_io lp bm NoA MWF SafeB
+      interaction.f_interact_hit_from_below.
+  Proof.
+    apply (ioms_body_pres_dv interaction.f_interact_hit_from_below
+             (interaction._reset_mario_pitch
+              :: interaction._determine_interaction
+              :: interaction._bounce_back_from_attack
+              :: interaction._update_mario_sound_and_camera
+              :: interaction._push_mario_out_of_object
+              :: interaction._hit_object_from_below
+              :: interaction._bounce_off_object :: nil)
+             (interaction._play_sound :: nil)
+             (interaction._set_mario_action
+              :: interaction._drop_and_set_mario_action :: nil)
+             (interaction._attack_object :: nil)
+             nil).
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact rmp_row | ].
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact di_row | ].
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact bba_row | ].
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcp_umsc | ].
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcp_pmoo | ].
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact hofb_row | ].
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact boo_row
+        | discriminate F ].
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpx_ps
+        | discriminate F ].
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpa_sma | ].
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpa_dasma
+        | discriminate F ].
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact ao_row
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - exact io_hfb_vars.
+    - exact io_hfb_params.
+    - vm_compute. reflexivity.
+    - exact ioms_hfb_walk.
+  Qed.
+
   (* ---- the handler-table dispatch splitter: the capstone's
      Hpres_ihandler from the walked handlers + the io_rest census. ---- *)
   Lemma ihandler_pres_split :
@@ -7968,7 +8200,9 @@ Section IoSurface.
                     | (pose proof io_pole_pin as E; rewrite Hdm in E;
                        injection E as ->; exact io_pole)
                     | (pose proof io_grab_pin as E; rewrite Hdm in E;
-                       injection E as ->; exact io_grabbable) ]
+                       injection E as ->; exact io_grabbable)
+                    | (pose proof io_hfb_pin as E; rewrite Hdm in E;
+                       injection E as ->; exact io_hit_from_below) ]
             | ]).
     destruct Hin.
   Qed.
