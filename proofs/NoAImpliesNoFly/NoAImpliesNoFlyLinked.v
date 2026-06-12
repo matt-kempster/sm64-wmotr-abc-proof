@@ -1271,6 +1271,9 @@ Section NoARealInputMWF.
                 Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
              (fun mm v HMx Hld =>
                 mwf_real_inp lp bm bc oc0 SafeB mm HMx v Hld)
+             (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
+             (fun m l m' Hf HM =>
+                mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
              Hio_rest).
   Qed.
   Lemma Hcp_mgco_real :
