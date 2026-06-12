@@ -5649,6 +5649,24 @@ Example smaa_walk_not_vacuous :
 Proof. vm_compute. reflexivity. Qed.
 
 (* ====================================================================== *)
+(* The ob row class: a helper whose FIRST param is an OBJECT pointer      *)
+(* (attack_object, get_mario_cap_flag) -- the gate carries SafeB for      *)
+(* arg0 (the call sites pass a chase temp), the trailing args are         *)
+(* unconstrained.  Stores through the param ride the chase rows.          *)
+(* ====================================================================== *)
+Definition call_pres_ob (lp : Clight.program) (bm : block)
+    (NoA MWF : mem -> Prop) (SafeB : block -> Prop) (fid : ident) : Prop :=
+  forall fd m0 v0 vrest t0 m1 vres0,
+    eval_funcall function_entry2 (lp_ge lp) m0 fd (v0 :: vrest)
+      t0 m1 vres0 ->
+    resolves_lp lp fid fd ->
+    (forall b o, v0 = Vptr b o -> SafeB b) ->
+    NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+    action_sat not_tainted m0 bm ->
+    Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\
+    MWF m1 /\ NoA m1.
+
+(* ====================================================================== *)
 (* The rows.                                                              *)
 (* ====================================================================== *)
 Section ActWriterRows.
@@ -6410,6 +6428,112 @@ Section ActWriterRows.
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 false nil ids wids cact xids sids nil Hcp Hcpa Hcpx Hcps
+                Hcpt0 _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
+                HN HM HV HS)
+      as (HV' & HS' & HM' & HN' & _ & _ & _ & _).
+    exact (conj HV' (conj HS' (conj HM' HN'))).
+  Qed.
+
+  (* ---- the funcall->body entry for an OB leaf: the FIRST param is the
+     OBJECT pointer (SafeB from the gate), seeded into the chase census;
+     _m is NOT a param, so the action-temp fact holds vacuously (every
+     non-param temp is Vundef at entry). *)
+  Lemma call_pres_ob_of_wwalk :
+    forall (TU : Clight.program) (fid : ident) (f : Clight.function)
+           (p0 : ident) (ids wids xids sids : list ident),
+      linkorder TU lp ->
+      (prog_defmap TU) ! fid = Some (Gfun (Internal f)) ->
+      fn_vars f = nil ->
+      match fn_params f with
+      | (i, _) :: ps =>
+          Pos.eqb i p0 && negb (mem_id p0 (map fst ps))
+      | nil => false
+      end = true ->
+      negb (mem_id mario_actions_airborne._m (map fst (fn_params f)))
+        = true ->
+      (forall fid', mem_id fid' ids = true ->
+                    call_pres lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' wids = true ->
+                    call_pres_act lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' xids = true ->
+                    call_pres_ext lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' sids = true ->
+                    call_pres_act lp bm NoA MWF fid') ->
+      wwalk_chk false nil ids wids (p0 :: nil) xids sids nil (fn_body f)
+        = true ->
+      call_pres_ob lp bm NoA MWF SafeB fid.
+  Proof.
+    intros TU fid f p0 ids wids xids sids LOtu Hdm Hvars Hps Hnm_all
+           Hcp Hcpa Hcpx Hcps Hchk
+           fd m0 v0 vrest t0 m1 vres0 Hevf Hres Hoarg HN HM HV HS.
+    pose proof (resolve_pin_fd lp _ _ _ _ LOtu Hdm Hres) as ->.
+    inv Hevf.
+    match goal with
+    | He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry
+    end.
+    match goal with
+    | Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody
+    end.
+    match goal with
+    | Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfree
+    end.
+    inv Hentry.
+    match goal with
+    | Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+        rewrite Hvars in Ha; inv Ha
+    end.
+    match goal with
+    | Hb : bind_parameter_temps _ _ _ = Some _ |- _ => rename Hb into Hbind
+    end.
+    destruct (fn_params f) as [| [i ty] ps ] eqn:Eps;
+      [ discriminate Hps | ].
+    apply andb_prop in Hps as [Hi Hnp].
+    apply Pos.eqb_eq in Hi. subst i.
+    apply negb_true_iff in Hnp.
+    apply negb_true_iff in Hnm_all.
+    unfold mem_id in Hnm_all. cbn [map fst existsb] in Hnm_all.
+    apply orb_false_iff in Hnm_all as [Hne_m_p0 Hnm_ps].
+    cbn [bind_parameter_temps] in Hbind.
+    (* the entry env facts *)
+    match goal with
+    | Hbind' : bind_parameter_temps _ _ _ = Some ?le1 |- _ =>
+        assert (Htat0 : forall b o,
+                   le1 ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero)
+          by (intros b o Hg;
+              rewrite (bind_params_other _ _ _ _ _ Hbind' Hnm_ps) in Hg;
+              rewrite PTree.gso in Hg
+                by (intro EE; rewrite EE, Pos.eqb_refl in Hne_m_p0;
+                    discriminate Hne_m_p0);
+              pose proof (create_undef_temps_val _ _ _ Hg) as EE;
+              discriminate EE);
+        assert (Hact0 : act_inv nil le1)
+          by (intros t' Hmem' x Hg'; discriminate Hmem');
+        assert (Hch0 : chase_inv SafeB (p0 :: nil) le1)
+          by (intros t' Hmem' b o Hg';
+              unfold mem_id in Hmem'; cbn [existsb] in Hmem';
+              apply orb_true_iff in Hmem' as [E | F];
+                [ | discriminate F ];
+              apply Pos.eqb_eq in E; subst t';
+              rewrite (bind_params_other _ _ _ _ _ Hbind' Hnp) in Hg';
+              rewrite PTree.gss in Hg'; injection Hg' as ->;
+              exact (Hoarg _ _ eq_refl))
+    end.
+    (* the free list at the empty env *)
+    change (blocks_of_env (lp_ge lp) empty_env)
+      with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    assert (Hcpt0 : forall fid', mem_id fid' nil = true ->
+                    call_pres_act3 lp bm NoA MWF fid')
+      by (intros fid' HH; discriminate HH).
+    (* the walk *)
+    destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+                false nil ids wids (p0 :: nil) xids sids nil
+                Hcp Hcpa Hcpx Hcps
                 Hcpt0 _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
