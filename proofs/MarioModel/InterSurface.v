@@ -4408,7 +4408,6 @@ Definition io_rest_ids : list ident :=
   interaction._interact_star_or_key
   :: interaction._interact_bully
   :: interaction._interact_hit_from_below
-  :: interaction._interact_pole
   :: interaction._interact_grabbable
   :: interaction._interact_text :: nil.
 
@@ -5300,6 +5299,35 @@ Lemma io_door_walk :
     (interaction._o :: nil) io_door_xids
     (interaction._set_mario_action :: nil) nil
     (fn_body interaction.f_interact_door) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- pole: msrah/rmp internals + TWO const-action sma calls.  The
+   marioObj local rides the chase census (clightgen reuses the FIELD
+   ident 365847869239958 for the local temp); its rawData indexed
+   stores take the chase arm, and the fast-branch
+   `oMarioPoleYawVel = (s32)(m->forwardVel*256+4096)` site takes the
+   NEW float-source-cast rhs arm (wchase_rhs_ok's Ecast row). ---- *)
+Definition io_pole_ids : list ident :=
+  interaction._mario_stop_riding_and_holding
+  :: interaction._reset_mario_pitch :: nil.
+Definition io_pole_cact : list ident :=
+  interaction._o :: 365847869239958%positive :: nil.
+Lemma io_pole_pin :
+  (prog_defmap interaction.prog) ! interaction._interact_pole
+  = Some (Gfun (Internal interaction.f_interact_pole)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma io_pole_vars : fn_vars interaction.f_interact_pole = nil.
+Proof. vm_compute. reflexivity. Qed.
+Lemma io_pole_params :
+  fn_params interaction.f_interact_pole
+  = (interaction._m, tptr (Tstruct interaction._MarioState noattr))
+    :: (interaction._interactType, tuint)
+    :: (interaction._o, tptr (Tstruct interaction._Object noattr)) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+Lemma io_pole_walk :
+  wwalk_chk false nil io_pole_ids nil io_pole_cact nil
+    (interaction._set_mario_action :: nil) nil
+    (fn_body interaction.f_interact_pole) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* ---- the three ob-unlocked handlers: cap, koopa_shell, breakable ---- *)
@@ -6949,6 +6977,31 @@ Section IoSurface.
     - exact io_door_walk.
   Qed.
 
+  (* ---- pole (every callee row already exists: msrah hypothesis,
+     rmp_row, the sma keystone) ---- *)
+  Lemma io_pole :
+    body_pres_io lp bm NoA MWF SafeB interaction.f_interact_pole.
+  Proof.
+    apply (body_pres_io_of_wwalk interaction.f_interact_pole
+             nil io_pole_ids nil io_pole_cact nil
+             (interaction._set_mario_action :: nil) nil
+             io_pole_vars io_pole_params eq_refl eq_refl).
+    - intros fid' H. unfold io_pole_ids in H. cbn [mem_id existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcp_msrah | ].
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact rmp_row
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpa_sma
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - exact io_pole_walk.
+  Qed.
+
   (* ---- the three ob-unlocked handlers ---- *)
   Lemma io_cap :
     body_pres_io lp bm NoA MWF SafeB interaction.f_interact_cap.
@@ -7110,7 +7163,9 @@ Section IoSurface.
                     | (pose proof io_bt_pin as E; rewrite Hdm in E;
                        injection E as ->; exact io_bounce_top)
                     | (pose proof io_door_pin as E; rewrite Hdm in E;
-                       injection E as ->; exact io_door) ]
+                       injection E as ->; exact io_door)
+                    | (pose proof io_pole_pin as E; rewrite Hdm in E;
+                       injection E as ->; exact io_pole) ]
             | ]).
     destruct Hin.
   Qed.
