@@ -835,6 +835,12 @@ Definition wchase_rhs_ok (wact : list ident) (ty : type) (a2 : expr)
                       notbool -> Vint of a bool; notint/neg/absfloat are
                       numeric-or-STUCK. *)
                    | Eunop _ _ _ => true
+                   (* a FLOAT-source cast: classify_cast float->i32 is
+                      cast_case_f2i/s2i (Vint-or-stuck), NEVER the ptr32
+                      cast_case_pointer passthrough (i32-SOURCE-only trap;
+                      see sem_cast_float_i32_nonptr).  interact_pole's
+                      `oMarioPoleYawVel = (s32)(m->forwardVel*256+4096)`. *)
+                   | Ecast b cty => float_ty (typeof b) && i32_ty cty
                    | _ => false
                    end).
 
@@ -2232,7 +2238,7 @@ Section ActWriterWalk.
         end.
       - apply andb_prop in HI32 as [_ Ha2].
         destruct a2 as [ c2 ity | | | | | q qty | | | uop ua uty |
-                         op2 aa2 ab2 bty2 | | | | ];
+                         op2 aa2 ab2 bty2 | ca cty | | | ];
           try discriminate Ha2.
         + (* integer literal *)
           match goal with
@@ -2318,7 +2324,26 @@ Section ActWriterWalk.
                                  eqn:Ecs; try discriminate Ha2;
                                exact (sem_sub_default_nonptr _ _ _ _ _ _ _ Ecs
                                         Hsem)) ]))
-             end). }
+             end).
+        + (* a float-to-i32 cast rhs: the INNER sem_cast is f2i/s2i
+             (Vint-or-stuck -- the ptr32 passthrough needs an i32 SOURCE),
+             so the cast value is non-ptr; the outer assign cast
+             preserves non-ptr. *)
+          apply andb_prop in Ha2 as [Hfl Hi32c].
+          match goal with
+          | Hev2 : eval_expr _ _ _ _ (Ecast _ _) _ |- _ =>
+              inv Hev2;
+              try (match goal with
+                   | Hlv : eval_lvalue _ _ _ _ (Ecast _ _) _ _ _ |- _ =>
+                       inv Hlv
+                   end)
+          end.
+          match goal with
+          | Hcast0 : sem_cast ?vv _ _ _ = Some _,
+            Hcin : sem_cast _ _ _ _ = Some ?vv |- _ =>
+              exact (sem_cast_nonptr_pres _ _ _ _ _ Hcast0
+                       (sem_cast_float_i32_nonptr _ _ _ _ _ Hfl Hi32c Hcin))
+          end. }
     (* the store lands in the SafeB block *)
     match goal with
     | Has : assign_loc _ _ _ _ _ _ _ m' |- _ => inv Has
