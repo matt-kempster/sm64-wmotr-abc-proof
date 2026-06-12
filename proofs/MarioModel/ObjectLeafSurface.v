@@ -148,7 +148,15 @@ Definition obj_ext_ids : list ident :=
     (* slice 5 (door): save_file_get_total_star_count is a pure READER
        of the save buffer (two scalar course-range args, no Mario
        pointer) -- the same model class as save_file_get_flags above. *)
-    :: interaction._save_file_get_total_star_count :: nil.
+    :: interaction._save_file_get_total_star_count
+    (* slice 5 (star_or_key): the save-buffer star WRITER (two scalar
+       args: coin score + star index -- writes ONLY the save buffer,
+       no Mario pointer) and the two music-sequencer externals (scalar
+       args / no args) -- the same model classes as the save readers
+       and play_sound above. *)
+    :: interaction._save_file_collect_star_or_key
+    :: interaction._drop_queued_background_music
+    :: interaction._fadeout_level_music :: nil.
 (* NOTE: find_floor was REMOVED from obj_ext_ids.  It is an out-param
    WRITER, so the phantom-false `call_pres_ext find_floor` (which would
    allow &(action cell) as the out-param) is no longer a capstone

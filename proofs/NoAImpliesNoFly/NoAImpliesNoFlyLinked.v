@@ -1059,6 +1059,28 @@ Section NoARealInputMWF.
              (Hpres_obj_ext interaction._atan2s eq_refl)).
   Qed.
 
+  (* spawn_object: a TERMINAL EXTERNAL (EF_external in EVERY TU -- no
+     internal body anywhere in generated/), the honest model boundary for
+     the object-pool allocator.  It preserves the carried run facts, and
+     its return value -- a slot of the static object pool -- is SafeB if
+     a pointer at all (exactly what MWF_real's chase closure forces
+     anyway: the spawned object is chase-reachable from the SafeB object
+     lists).  Declared BEFORE the io block: star_or_key consumes it via
+     the plain-ext weakening below. *)
+  Hypothesis Hcp_spawn_real : call_pres_ext_sr lp bm (NoA_real bm) MWF SafeB
+      behavior_actions._spawn_object.
+  (* the plain-ext weakening (forget the SafeB-return claim; NoA from the
+     MWF grounding) -- star_or_key's xids row, ZERO new trust. *)
+  Lemma Hcpx_so_real :
+    call_pres_ext lp bm (NoA_real bm) MWF interaction._spawn_object.
+  Proof.
+    intros fd m0 vargs0 t0 m1 vres0 Hevf Hres HN HM HV HS.
+    destruct (Hcp_spawn_real fd m0 vargs0 t0 m1 vres0 Hevf Hres
+                HN HM HV HS) as (HV' & HS' & HM' & _).
+    exact (conj HV' (conj HS' (conj HM'
+             (mwf_real_ctl lp bm bc oc0 SafeB m1 HM')))).
+  Qed.
+
   (* the io REST census row: the handlers not yet walked.  Every handler
      walk (InterSurface's io arc) removes its id from io_rest_ids and this
      row covers strictly less; interact_water_ring is already OUT. *)
@@ -1274,6 +1296,12 @@ Section NoARealInputMWF.
              (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
              (fun m l m' Hf HM =>
                 mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
+             (Hpres_obj_ext interaction._save_file_collect_star_or_key
+                eq_refl)
+             (Hpres_obj_ext interaction._drop_queued_background_music
+                eq_refl)
+             (Hpres_obj_ext interaction._fadeout_level_music eq_refl)
+             Hcpx_so_real
              Hio_rest).
   Qed.
   Lemma Hcp_mgco_real :
@@ -1360,15 +1388,6 @@ Section NoARealInputMWF.
       (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
       (mwf_real_itab lp bm bc oc0 SafeB)
       Hcp_mgco_real Hcp_ckpw_real Hpres_ihandler.
-  (* spawn_object: a TERMINAL EXTERNAL (EF_external in EVERY TU -- no
-     internal body anywhere in generated/), the honest model boundary for
-     the object-pool allocator.  It preserves the carried run facts, and
-     its return value -- a slot of the static object pool -- is SafeB if
-     a pointer at all (exactly what MWF_real's chase closure forces
-     anyway: the spawned object is chase-reachable from the SafeB object
-     lists). *)
-  Hypothesis Hcp_spawn_real : call_pres_ext_sr lp bm (NoA_real bm) MWF SafeB
-      behavior_actions._spawn_object.
   (* wind is WALKED (WindSurface.wind_pres -- the first loop-tolerant
      walk): the sargs gate (body_pres_s) pins yaw/pitch to Vint at entry,
      the spawn row pins _wind's block into SafeB across the pinned

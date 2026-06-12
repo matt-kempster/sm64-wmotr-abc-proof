@@ -4421,8 +4421,7 @@ Proof. vm_compute. reflexivity. Qed.
 
 (* the REST census: the 8 handlers not yet walked (shrinks per slice) *)
 Definition io_rest_ids : list ident :=
-  interaction._interact_star_or_key
-  :: interaction._interact_bully
+  interaction._interact_bully
   :: interaction._interact_text :: nil.
 
 Definition tyObjI : type := tptr (Tstruct interaction._Object noattr).
@@ -5633,6 +5632,40 @@ Lemma ioms_grab_walk :
     (fn_body interaction.f_interact_grabbable) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- star_or_key: the wact channel (starGrabAction is a TEMP fed only
+   ACT_* constants), spawn_object via the sr-row weakening, and four
+   music/save model-boundary externals. ---- *)
+Definition io_sok_wact : list ident :=
+  26408835198858973405816668%positive (* starGrabAction *) :: nil.
+Definition io_sok_ids : list ident :=
+  interaction._mario_stop_riding_and_holding
+  :: interaction._update_mario_sound_and_camera :: nil.
+Definition io_sok_xids : list ident :=
+  interaction._play_sound
+  :: interaction._save_file_get_total_star_count
+  :: interaction._save_file_collect_star_or_key
+  :: interaction._drop_queued_background_music
+  :: interaction._fadeout_level_music
+  :: interaction._spawn_object :: nil.
+Lemma io_sok_pin :
+  (prog_defmap interaction.prog) ! interaction._interact_star_or_key
+  = Some (Gfun (Internal interaction.f_interact_star_or_key)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma io_sok_vars : fn_vars interaction.f_interact_star_or_key = nil.
+Proof. vm_compute. reflexivity. Qed.
+Lemma io_sok_params :
+  fn_params interaction.f_interact_star_or_key
+  = (interaction._m, tptr (Tstruct interaction._MarioState noattr))
+    :: (interaction._interactType, tuint)
+    :: (interaction._o, tptr (Tstruct interaction._Object noattr)) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+Lemma io_sok_walk :
+  wwalk_chk false io_sok_wact io_sok_ids nil
+    (interaction._o :: nil) io_sok_xids
+    (interaction._set_mario_action :: nil) nil
+    (fn_body interaction.f_interact_star_or_key) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ---- hit_from_below: fn_vars = ONE DEAD u8[4] filler (never referenced
    anywhere in the body -- a clightgen artifact of the UNUSED filler
    array).  The vars-tolerant io entry (ioms_body_pres_dv) eats it via
@@ -5897,6 +5930,21 @@ Section IoSurface.
       Mem.alloc m lo hi = (m', b) -> MWF m -> MWF m'.
   Hypothesis HMWF_free : forall m l m',
       Mem.free_list m l = Some m' -> MWF m -> MWF m'.
+  (* slice-5 (star_or_key): three music/save model-boundary externals
+     (same classes as play_sound / sfgtsc -- obj_ext rows at the
+     capstone) + spawn_object as a PLAIN ext row (the capstone
+     discharges it by WEAKENING the existing call_pres_ext_sr
+     spawn_object row -- zero new trust). *)
+  Hypothesis Hcpx_sfcsok :
+    call_pres_ext lp bm NoA MWF
+      interaction._save_file_collect_star_or_key.
+  Hypothesis Hcpx_dqbm :
+    call_pres_ext lp bm NoA MWF
+      interaction._drop_queued_background_music.
+  Hypothesis Hcpx_flm :
+    call_pres_ext lp bm NoA MWF interaction._fadeout_level_music.
+  Hypothesis Hcpx_so :
+    call_pres_ext lp bm NoA MWF interaction._spawn_object.
 
   Let Hcp_tdfio :
     call_pres lp bm NoA MWF interaction._take_damage_from_interact_object
@@ -8082,6 +8130,45 @@ Section IoSurface.
     - exact ioms_grab_walk.
   Qed.
 
+  (* ---- star_or_key: wwalk + the wact temp-action channel ---- *)
+  Lemma io_star_or_key :
+    body_pres_io lp bm NoA MWF SafeB
+      interaction.f_interact_star_or_key.
+  Proof.
+    apply (body_pres_io_of_wwalk interaction.f_interact_star_or_key
+             io_sok_wact io_sok_ids nil
+             (interaction._o :: nil) io_sok_xids
+             (interaction._set_mario_action :: nil) nil
+             io_sok_vars io_sok_params eq_refl eq_refl).
+    - intros fid' H. unfold io_sok_ids in H. cbn [mem_id existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcp_msrah | ].
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcp_umsc
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold io_sok_xids in H. cbn [mem_id existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpx_ps | ].
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpx_sfgtsc | ].
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpx_sfcsok | ].
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpx_dqbm | ].
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpx_flm | ].
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpx_so
+        | discriminate F ].
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpa_sma
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - exact io_sok_walk.
+  Qed.
+
   (* ---- hit_from_below: ioms walk + the DEAD-FILLER vars entry ---- *)
   Lemma io_hit_from_below :
     body_pres_io lp bm NoA MWF SafeB
@@ -8202,7 +8289,9 @@ Section IoSurface.
                     | (pose proof io_grab_pin as E; rewrite Hdm in E;
                        injection E as ->; exact io_grabbable)
                     | (pose proof io_hfb_pin as E; rewrite Hdm in E;
-                       injection E as ->; exact io_hit_from_below) ]
+                       injection E as ->; exact io_hit_from_below)
+                    | (pose proof io_sok_pin as E; rewrite Hdm in E;
+                       injection E as ->; exact io_star_or_key) ]
             | ]).
     destruct Hin.
   Qed.
