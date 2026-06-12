@@ -135,7 +135,11 @@ Definition obj_ext_ids : list ident :=
        star INTO THE OBJECT POOL (a const u32 star index arg, no Mario
        pointer) -- the same model class as spawn_object's row (the pool
        is SafeB-disjoint from Mario's state; it writes no Mario cell). *)
-    :: interaction._bhv_spawn_star_no_level_exit :: nil.
+    :: interaction._bhv_spawn_star_no_level_exit
+    (* slice 5 (warp_door): save_file_get_flags is a pure READER of the
+       save buffer (no args, returns the flag word, no Mario pointer) --
+       the same model class as the other no-pointer externals here. *)
+    :: interaction._save_file_get_flags :: nil.
 (* NOTE: find_floor was REMOVED from obj_ext_ids.  It is an out-param
    WRITER, so the phantom-false `call_pres_ext find_floor` (which would
    allow &(action cell) as the out-param) is no longer a capstone
