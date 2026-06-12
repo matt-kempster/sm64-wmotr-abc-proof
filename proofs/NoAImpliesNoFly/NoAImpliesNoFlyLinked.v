@@ -1264,6 +1264,9 @@ Section NoARealInputMWF.
                 (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
                 (Hpres_obj_ext interaction._stop_shell_music eq_refl)
                 (Hpres_obj_ext interaction._obj_set_held_state eq_refl))
+             (Hpres_obj_ext interaction._set_camera_mode eq_refl)
+             (Hpres_obj_ext interaction._save_file_get_total_star_count
+                eq_refl)
              Hio_rest).
   Qed.
   Lemma Hcp_mgco_real :

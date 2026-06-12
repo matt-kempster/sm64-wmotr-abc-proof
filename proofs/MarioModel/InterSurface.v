@@ -4406,9 +4406,7 @@ Proof. vm_compute. reflexivity. Qed.
 (* the REST census: the 8 handlers not yet walked (shrinks per slice) *)
 Definition io_rest_ids : list ident :=
   interaction._interact_star_or_key
-  :: interaction._interact_door
   :: interaction._interact_bully
-  :: interaction._interact_bounce_top
   :: interaction._interact_hit_from_below
   :: interaction._interact_pole
   :: interaction._interact_grabbable
@@ -5202,6 +5200,108 @@ Lemma hofb_walk :
     (fn_body interaction.f_hit_object_from_below) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- reset_mario_pitch: plain (m) row; its only callee is the
+   set_camera_mode camera external (already in obj_ext_ids). ---- *)
+Definition rmp_xids : list ident := interaction._set_camera_mode :: nil.
+Lemma rmp_pin :
+  (prog_defmap interaction.prog) ! interaction._reset_mario_pitch
+  = Some (Gfun (Internal interaction.f_reset_mario_pitch)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma rmp_vars : fn_vars interaction.f_reset_mario_pitch = nil.
+Proof. vm_compute. reflexivity. Qed.
+Lemma rmp_params_ok :
+  match fn_params interaction.f_reset_mario_pitch with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma rmp_walk :
+  wwalk_chk false nil nil nil nil rmp_xids nil nil
+    (fn_body interaction.f_reset_mario_pitch) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- bounce_top: di/bba/boo/rmp internals + play_sound + ONE
+   dasma sma-class call + attack_object through the _o chase temp ---- *)
+Lemma io_bt_pin :
+  (prog_defmap interaction.prog) ! interaction._interact_bounce_top
+  = Some (Gfun (Internal interaction.f_interact_bounce_top)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma io_bt_vars : fn_vars interaction.f_interact_bounce_top = nil.
+Proof. vm_compute. reflexivity. Qed.
+Lemma io_bt_params :
+  fn_params interaction.f_interact_bounce_top
+  = (interaction._m, tptr (Tstruct interaction._MarioState noattr))
+    :: (interaction._interactType, tuint)
+    :: (interaction._o, tptr (Tstruct interaction._Object noattr)) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+Lemma ioms_bt_walk :
+  ioms_chk
+    (interaction._determine_interaction
+     :: interaction._bounce_back_from_attack
+     :: interaction._bounce_off_object
+     :: interaction._reset_mario_pitch :: nil)
+    (interaction._play_sound :: nil)
+    (interaction._drop_and_set_mario_action :: nil)
+    (interaction._attack_object :: nil)
+    (fn_body interaction.f_interact_bounce_top) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- get_door_save_file_flag: a STORELESS internal (reads the door
+   object's star fields through its only param, calls the
+   save_file_get_flags boundary).  Takes the marg-free call_pres_ext
+   row via call_pres_ext_of_wwalk, so the door call site rides the
+   EXISTING xids arm -- no walker surgery. ---- *)
+Definition gdsff_xids : list ident :=
+  interaction._save_file_get_flags :: nil.
+Lemma gdsff_pin :
+  (prog_defmap interaction.prog) ! interaction._get_door_save_file_flag
+  = Some (Gfun (Internal interaction.f_get_door_save_file_flag)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma gdsff_vars : fn_vars interaction.f_get_door_save_file_flag = nil.
+Proof. vm_compute. reflexivity. Qed.
+Lemma gdsff_no_m :
+  negb (mem_id mario_actions_airborne._m
+          (map fst (fn_params interaction.f_get_door_save_file_flag)))
+  = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma gdsff_walk :
+  wwalk_chk false nil nil nil nil gdsff_xids nil nil
+    (fn_body interaction.f_get_door_save_file_flag) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- door: spd internal + the save-file readers + ONE sma call whose
+   action arg is the _doorAction temp -- threaded through wact (every
+   Sset into it is an untainted door-action const). ---- *)
+Definition io_door_wact : list ident :=
+  1690165452731539260872185294%positive :: nil.
+Definition io_door_ids : list ident :=
+  interaction._should_push_or_pull_door :: nil.
+Definition io_door_xids : list ident :=
+  interaction._save_file_get_flags
+  :: interaction._save_file_get_total_star_count
+  :: interaction._get_door_save_file_flag :: nil.
+Lemma io_door_pin :
+  (prog_defmap interaction.prog) ! interaction._interact_door
+  = Some (Gfun (Internal interaction.f_interact_door)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma io_door_vars : fn_vars interaction.f_interact_door = nil.
+Proof. vm_compute. reflexivity. Qed.
+Lemma io_door_params :
+  fn_params interaction.f_interact_door
+  = (interaction._m, tptr (Tstruct interaction._MarioState noattr))
+    :: (interaction._interactType, tuint)
+    :: (interaction._o, tptr (Tstruct interaction._Object noattr)) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+Lemma io_door_walk :
+  wwalk_chk false io_door_wact io_door_ids nil
+    (interaction._o :: nil) io_door_xids
+    (interaction._set_mario_action :: nil) nil
+    (fn_body interaction.f_interact_door) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ---- the three ob-unlocked handlers: cap, koopa_shell, breakable ---- *)
 Lemma io_cap_pin :
   (prog_defmap interaction.prog) ! interaction._interact_cap
@@ -5391,6 +5491,14 @@ Section IoSurface.
     call_pres_ext lp bm NoA MWF interaction._play_shell_music.
   Hypothesis Hcp_mdho :
     call_pres lp bm NoA MWF interaction._mario_drop_held_object.
+  (* slice-5 (bounce_top + door): the set_camera_mode camera external
+     (rmp's only callee; already in obj_ext_ids) and the save-file
+     total-star-count reader. *)
+  Hypothesis Hcpx_scm :
+    call_pres_ext lp bm NoA MWF interaction._set_camera_mode.
+  Hypothesis Hcpx_sfgtsc :
+    call_pres_ext lp bm NoA MWF
+      interaction._save_file_get_total_star_count.
 
   Let Hcp_tdfio :
     call_pres lp bm NoA MWF interaction._take_damage_from_interact_object
@@ -6733,6 +6841,114 @@ Section IoSurface.
     - exact hofb_walk.
   Qed.
 
+  (* ---- the bounce_top / door rows ---- *)
+  Lemma rmp_row :
+    call_pres lp bm NoA MWF interaction._reset_mario_pitch.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             interaction.prog interaction._reset_mario_pitch
+             interaction.f_reset_mario_pitch
+             nil nil rmp_xids nil
+             LO_int rmp_pin rmp_vars rmp_params_ok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold rmp_xids in H. cbn [mem_id existsb] in H.
+      apply Bool.orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_scm | ].
+      discriminate H.
+    - intros fid' H. discriminate H.
+    - exact rmp_walk.
+  Qed.
+
+  Lemma gdsff_row :
+    call_pres_ext lp bm NoA MWF interaction._get_door_save_file_flag.
+  Proof.
+    apply (call_pres_ext_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             interaction.prog interaction._get_door_save_file_flag
+             interaction.f_get_door_save_file_flag
+             nil nil gdsff_xids nil
+             LO_int gdsff_pin gdsff_vars gdsff_no_m).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold gdsff_xids in H. cbn [mem_id existsb] in H.
+      apply Bool.orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_sfgf | ].
+      discriminate H.
+    - intros fid' H. discriminate H.
+    - exact gdsff_walk.
+  Qed.
+
+  Lemma io_bounce_top :
+    body_pres_io lp bm NoA MWF SafeB interaction.f_interact_bounce_top.
+  Proof.
+    apply (ioms_body_pres interaction.f_interact_bounce_top
+             (interaction._determine_interaction
+              :: interaction._bounce_back_from_attack
+              :: interaction._bounce_off_object
+              :: interaction._reset_mario_pitch :: nil)
+             (interaction._play_sound :: nil)
+             (interaction._drop_and_set_mario_action :: nil)
+             (interaction._attack_object :: nil)).
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact di_row | ].
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact bba_row | ].
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact boo_row | ].
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact rmp_row
+        | discriminate F ].
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpx_ps
+        | discriminate F ].
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpa_dasma
+        | discriminate F ].
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact ao_row
+        | discriminate F ].
+    - exact io_bt_vars.
+    - exact io_bt_params.
+    - exact ioms_bt_walk.
+  Qed.
+
+  Lemma io_door :
+    body_pres_io lp bm NoA MWF SafeB interaction.f_interact_door.
+  Proof.
+    apply (body_pres_io_of_wwalk interaction.f_interact_door
+             io_door_wact io_door_ids nil
+             (interaction._o :: nil) io_door_xids
+             (interaction._set_mario_action :: nil) nil
+             io_door_vars io_door_params eq_refl eq_refl).
+    - intros fid' H. unfold io_door_ids in H. cbn [mem_id existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact spd_row
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold io_door_xids in H. cbn [mem_id existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpx_sfgf | ].
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpx_sfgtsc | ].
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact gdsff_row
+        | discriminate F ].
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpa_sma
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - exact io_door_walk.
+  Qed.
+
   (* ---- the three ob-unlocked handlers ---- *)
   Lemma io_cap :
     body_pres_io lp bm NoA MWF SafeB interaction.f_interact_cap.
@@ -6890,7 +7106,11 @@ Section IoSurface.
                     | (pose proof io_ks_pin as E; rewrite Hdm in E;
                        injection E as ->; exact io_koopa_shell)
                     | (pose proof io_brk_pin as E; rewrite Hdm in E;
-                       injection E as ->; exact io_breakable) ]
+                       injection E as ->; exact io_breakable)
+                    | (pose proof io_bt_pin as E; rewrite Hdm in E;
+                       injection E as ->; exact io_bounce_top)
+                    | (pose proof io_door_pin as E; rewrite Hdm in E;
+                       injection E as ->; exact io_door) ]
             | ]).
     destruct Hin.
   Qed.
