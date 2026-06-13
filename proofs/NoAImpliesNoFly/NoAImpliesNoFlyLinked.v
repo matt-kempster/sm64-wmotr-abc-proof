@@ -1081,9 +1081,20 @@ Section NoARealInputMWF.
              (mwf_real_ctl lp bm bc oc0 SafeB m1 HM')))).
   Qed.
 
+  (* interact_bully's action-computing leaf: bully_knock_back_mario, a
+     call_pres_ret_act (its result is the untainted action fed to
+     drop_and_set_mario_action).  The WHOLE interact_bully body is now
+     WALKED (InterSurface io arc) resting only on this one leaf -- the
+     refinement that emptied io_rest_ids.  bkbm is discharged separately
+     by walking its body (a future unit). *)
+  Hypothesis Hcpra_bkbm_real :
+    call_pres_ret_act lp bm (NoA_real bm) MWF
+      interaction._bully_knock_back_mario.
+
   (* the io REST census row: the handlers not yet walked.  Every handler
      walk (InterSurface's io arc) removes its id from io_rest_ids and this
-     row covers strictly less; interact_water_ring is already OUT. *)
+     row covers strictly less; io_rest_ids is now EMPTY (every interact_*
+     handler walked) so this row is vacuous. *)
   Hypothesis Hio_rest : forall fid f,
       mem_id fid io_rest_ids = true ->
       (prog_defmap interaction.prog) ! fid = Some (Gfun (Internal f)) ->
@@ -1199,6 +1210,7 @@ Section NoARealInputMWF.
                 (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
                 (Hpres_obj_ext interaction._stop_shell_music eq_refl)
                 (Hpres_obj_ext interaction._obj_set_held_state eq_refl))
+             Hcpra_bkbm_real
              (msrah_row lp LO_mario LO_int bm (NoA_real bm)
                 (MWF_real lp bm bc oc0 SafeB)
                 (mwf_real_ctl lp bm bc oc0 SafeB)
