@@ -4419,20 +4419,30 @@ Example io_ig_walk :
     (fn_body interaction.f_interact_igloo_barrier) = true.
 Proof. vm_compute. reflexivity. Qed.
 
-(* the REST census: the 8 handlers not yet walked (shrinks per slice) *)
+(* the REST census: the handlers not yet walked (shrinks per slice) *)
 Definition io_rest_ids : list ident :=
-  interaction._interact_bully
-  :: interaction._interact_text :: nil.
+  interaction._interact_bully :: nil.
 
 Definition tyObjI : type := tptr (Tstruct interaction._Object noattr).
 
 (* ---- the special site: _t'1 := take_damage_and_knock_back(m, o) ---- *)
+(* the (m,o)->u32 ms-class callees recognised by the ioms ms-arm: the
+   damage helper (take_damage_and_knock_back) plus the two interact_text
+   sign/NPC helpers (check_read_sign / check_npc_talk).  All three are
+   walked INTERNALS that store through BOTH Mario and the object, so each
+   has a call_pres_ms row (tdaknb_row / crs_row / cnt_row), dispatched
+   inside ms_scall_pres. *)
+Definition ioms_ms_ids : list ident :=
+  interaction._take_damage_and_knock_back
+  :: interaction._check_read_sign
+  :: interaction._check_npc_talk :: nil.
+
 Definition ioms_sp_chk (s : statement) : bool :=
   match s with
   | Scall (Some t1) (Evar fd fty)
       (Etempvar mp tmp :: Etempvar op2 top2 :: nil) =>
       tdaknb_tmp_ok t1
-      && Pos.eqb fd interaction._take_damage_and_knock_back
+      && mem_id fd ioms_ms_ids
       && Pos.eqb mp interaction._m && Pos.eqb op2 interaction._o
       && proj_sumbool (type_eq tmp tyMSi)
       && proj_sumbool (type_eq top2 tyObjI)
@@ -4917,9 +4927,10 @@ Proof. vm_compute. reflexivity. Qed.
 (* ---- the site decoder ---- *)
 Lemma ioms_sp_decode :
   forall optid a al, ioms_sp_chk (Scall optid a al) = true ->
-    exists t1,
+    exists t1 fd,
       optid = Some t1 /\
-      a = Evar interaction._take_damage_and_knock_back
+      mem_id fd ioms_ms_ids = true /\
+      a = Evar fd
             (Tfunction (tyMSi :: tyObjI :: nil) tuint cc_default) /\
       al = Etempvar interaction._m tyMSi
            :: Etempvar interaction._o tyObjI :: nil /\
@@ -4942,7 +4953,6 @@ Proof.
   apply andb_true_iff in H as [H Hop2].
   apply andb_true_iff in H as [H Hmp].
   apply andb_true_iff in H as [Ht1 Hfd].
-  apply Pos.eqb_eq in Hfd; subst fd.
   apply Pos.eqb_eq in Hmp; subst mp.
   apply Pos.eqb_eq in Hop2; subst op2.
   destruct (type_eq tmp tyMSi) as [-> | ]; [ | discriminate Htmp ].
@@ -4950,7 +4960,7 @@ Proof.
   destruct (type_eq fty (Tfunction (tyMSi :: tyObjI :: nil) tuint
                            cc_default)) as [-> | ];
     [ | discriminate Hfty ].
-  exists t1. repeat split; assumption.
+  exists t1, fd. repeat split; assumption.
 Qed.
 
 (* ====================================================================== *)
@@ -5788,6 +5798,383 @@ Lemma ioms_brk_walk :
     (fn_body interaction.f_interact_breakable) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- interact_text: the sign / NPC dialog handler.  Three call sites:
+   check_read_sign(m,o) + check_npc_talk(m,o) [both ms-class, recognised
+   by the ioms ms-arm via ioms_ms_ids] + push_mario_out_of_object(m,o,2)
+   [the ids arm].  fn_vars = nil. ---- *)
+Lemma io_text_pin :
+  (prog_defmap interaction.prog) ! interaction._interact_text
+  = Some (Gfun (Internal interaction.f_interact_text)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma io_text_vars : fn_vars interaction.f_interact_text = nil.
+Proof. vm_compute. reflexivity. Qed.
+Lemma io_text_params :
+  fn_params interaction.f_interact_text
+  = (interaction._m, tptr (Tstruct interaction._MarioState noattr))
+    :: (interaction._interactType, tuint)
+    :: (interaction._o, tptr (Tstruct interaction._Object noattr)) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+Lemma ioms_text_walk :
+  ioms_chk (interaction._push_mario_out_of_object :: nil) nil nil nil nil
+    (fn_body interaction.f_interact_text) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ====================================================================== *)
+(* ===========  MsHelperSurface: the (m,o) ms-class helpers  =========== *)
+(* check_read_sign / check_npc_talk -- the two (m,o)->u32 helpers that  *)
+(* interact_text calls.  Both STORE through Mario AND the object, so     *)
+(* they ride the ms class (call_pres_ms: vm=Mario + vo=SafeB gated).     *)
+(* Walked via the NEW call_pres_ms_of_wwalk producer (prime wwalk_pres,  *)
+(* so the nids channel covers crs's (s16)facingDYaw temp).               *)
+(* ====================================================================== *)
+Section MsHelperSurface.
+  Variable lp : Clight.program.
+  Hypothesis LO_mario : linkorder mario.prog lp.
+  Hypothesis LO_int : linkorder interaction.prog lp.
+
+  Variable bm : block.
+  Variable NoA MWF : mem -> Prop.
+  Variable SafeB : block -> Prop.
+
+  Hypothesis HNoA_of_MWF : forall m, MWF m -> NoA m.
+  Hypothesis HMWF_window : forall mm mm' ch (delta : Z) vv,
+      MWF mm -> store_window_ok delta (size_chunk ch) = true ->
+      Mem.store ch mm bm delta vv = Some mm' -> MWF mm'.
+  Hypothesis HMWF_glob : forall gid,
+      mem_id gid stored_globals = true ->
+      forall bg, Genv.find_symbol (lp_ge lp) gid = Some bg ->
+        bg <> bm /\
+        (forall mm mm' ch0 (d : Z) vv,
+            MWF mm -> Mem.store ch0 mm bg d vv = Some mm' -> MWF mm').
+  Hypothesis HMWF_act : forall mm mm' vv,
+      MWF mm ->
+      (forall bb oo, vv <> Vptr bb oo) ->
+      Mem.store Mint32 mm bm 12 vv = Some mm' -> MWF mm'.
+  Hypothesis HSafeNotBm : forall b, SafeB b -> b <> bm.
+  Hypothesis HchaseRoot : forall fld delta m b' o',
+      mem_id fld chase_root_fields = true ->
+      field_offset (prog_comp_env mario.prog) fld mario_state_members
+        = Errors.OK (delta, Full) ->
+      MWF m ->
+      Mem.loadv Mptr m
+        (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr delta)))
+        = Some (Vptr b' o') ->
+      SafeB b'.
+  Hypothesis HMWF_chase : forall mm ch bsafe (d : Z) vv mm',
+      MWF mm -> SafeB bsafe ->
+      (forall bb oo, vv <> Vptr bb oo) ->
+      Mem.store ch mm bsafe d vv = Some mm' -> MWF mm'.
+  Hypothesis HMWF_root : forall mm mm' fld (delta : Z) vv,
+      mem_id fld chase_root_fields = true ->
+      field_offset (prog_comp_env mario.prog) fld mario_state_members
+        = Errors.OK (delta, Full) ->
+      (forall bb oo, vv = Vptr bb oo -> SafeB bb) ->
+      MWF mm ->
+      Mem.store Mptr mm bm delta vv = Some mm' -> MWF mm'.
+  Hypothesis HMWF_sglob : forall m gb v,
+      MWF m ->
+      Genv.find_symbol (lp_ge lp) interaction._gGlobalTimer = Some gb ->
+      Mem.load Mint32 m gb 0 = Some v ->
+      forall bb oo, v <> Vptr bb oo.
+  Hypothesis HchaseStep : forall m b ofs b' o',
+      MWF m -> SafeB b ->
+      Mem.loadv Mptr m (Vptr b ofs) = Some (Vptr b' o') -> SafeB b'.
+  Hypothesis HMWF_chase_safe : forall mm ch bsafe (d : Z) vv mm',
+      MWF mm -> SafeB bsafe ->
+      (forall bb oo, vv = Vptr bb oo -> SafeB bb) ->
+      Mem.store ch mm bsafe d vv = Some mm' -> MWF mm'.
+
+  (* ---- the generic (m,o) ms-class body-walk producer ----
+     param shape EXACTLY (m, o); gate vm = Mario, vo = SafeB.  The o
+     param seeds chase_inv (_o); every extra chase temp (cact_rest) and
+     nids temp is a NON-param, hence undef at entry -> its invariant
+     holds vacuously.  Uses the PRIME wwalk_pres so the nids channel
+     (the I16-cast facingDYaw temp in check_read_sign) is available. *)
+  Lemma call_pres_ms_of_wwalk :
+    forall (TU : Clight.program) (fid : ident) (f : Clight.function)
+           (ids xids sids cact_rest nids : list ident),
+      linkorder TU lp ->
+      (prog_defmap TU) ! fid = Some (Gfun (Internal f)) ->
+      fn_vars f = nil ->
+      fn_params f = (mario_actions_airborne._m, tyMSi)
+                    :: (interaction._o, tyObjI) :: nil ->
+      forallb (fun t => negb (mem_id t (mario_actions_airborne._m
+                                        :: interaction._o :: nil)))
+              (cact_rest ++ nids) = true ->
+      (forall fid', mem_id fid' ids = true -> call_pres lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' xids = true ->
+                    call_pres_ext lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' sids = true ->
+                    call_pres_act lp bm NoA MWF fid') ->
+      wwalk_chk' nil nil nil nil nids nil false
+        nil ids nil (interaction._o :: cact_rest) xids sids nil
+        (fn_body f) = true ->
+      call_pres_ms lp bm NoA MWF SafeB fid.
+  Proof.
+    intros TU fid f ids xids sids cact_rest nids LOtu Hdm Hvars Hps Hpf
+           Hcp Hcpx Hcps Hchk
+           fd m0 vm vo t0 m1 vres0 Hevf Hres Hvm Hvo HN HM HV HS.
+    pose proof (resolve_pin_fd lp _ _ _ _ LOtu Hdm Hres) as ->.
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      rewrite Hvars in Ha; inv Ha end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    rewrite Hps in Hbind.
+    cbn [bind_parameter_temps] in Hbind.
+    injection Hbind as <-.
+    (* useful: every cact_rest/nids temp is a non-param *)
+    assert (Hnonparam : forall t, In t (cact_rest ++ nids) ->
+              t <> mario_actions_airborne._m /\ t <> interaction._o).
+    { intros t Hin.
+      rewrite forallb_forall in Hpf.
+      pose proof (Hpf t Hin) as Ht.
+      apply negb_true_iff in Ht.
+      unfold mem_id in Ht; cbn [existsb] in Ht.
+      apply orb_false_iff in Ht as [Hm Ht].
+      apply orb_false_iff in Ht as [Ho _].
+      apply Pos.eqb_neq in Hm. apply Pos.eqb_neq in Ho. split; assumption. }
+    (* the undef value of a cact_rest/nids temp at entry *)
+    assert (Hundef : forall t, In t (cact_rest ++ nids) ->
+              forall x,
+                (PTree.set interaction._o vo
+                   (PTree.set mario_actions_airborne._m vm
+                      (create_undef_temps (fn_temps f)))) ! t = Some x ->
+                x = Vundef).
+    { intros t Hin x Hg.
+      destruct (Hnonparam t Hin) as [Hnm Hno].
+      rewrite PTree.gso in Hg by exact Hno.
+      rewrite PTree.gso in Hg by exact Hnm.
+      exact (create_undef_temps_val _ _ _ Hg). }
+    (* entry facts *)
+    assert (Htat0 : forall b o,
+               (PTree.set interaction._o vo
+                  (PTree.set mario_actions_airborne._m vm
+                     (create_undef_temps (fn_temps f))))
+                 ! mario_actions_airborne._m = Some (Vptr b o) ->
+               b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg.
+      rewrite PTree.gso in Hg by (vm_compute; discriminate).
+      rewrite PTree.gss in Hg. injection Hg as ->.
+      exact (Hvm b o eq_refl). }
+    assert (Hch0 : chase_inv SafeB (interaction._o :: cact_rest)
+               (PTree.set interaction._o vo
+                  (PTree.set mario_actions_airborne._m vm
+                     (create_undef_temps (fn_temps f))))).
+    { intros t' Hmem' b o Hg'.
+      unfold mem_id in Hmem'; cbn [existsb] in Hmem'.
+      apply orb_true_iff in Hmem' as [E | Hrest].
+      - apply Pos.eqb_eq in E; subst t'.
+        rewrite PTree.gss in Hg'. injection Hg' as ->.
+        exact (Hvo b o eq_refl).
+      - assert (Hin : In t' (cact_rest ++ nids)).
+        { apply in_or_app. left.
+          apply existsb_exists in Hrest as (x & Hx & Heq).
+          apply Pos.eqb_eq in Heq; subst x; exact Hx. }
+        pose proof (Hundef t' Hin _ Hg') as EE. discriminate EE. }
+    assert (Hnp0 : nptr_inv nids
+               (PTree.set interaction._o vo
+                  (PTree.set mario_actions_airborne._m vm
+                     (create_undef_temps (fn_temps f))))).
+    { intros t' Hmem' x Hg' bb oo ->.
+      assert (Hin : In t' (cact_rest ++ nids)).
+      { apply in_or_app. right.
+        unfold mem_id in Hmem'. apply existsb_exists in Hmem' as (y & Hy & Heq).
+        apply Pos.eqb_eq in Heq; subst y; exact Hy. }
+      pose proof (Hundef t' Hin _ Hg') as EE. discriminate EE. }
+    assert (Hact0 : act_inv nil
+               (PTree.set interaction._o vo
+                  (PTree.set mario_actions_airborne._m vm
+                     (create_undef_temps (fn_temps f)))))
+      by (intros t' HH x Hg'; discriminate HH).
+    (* the walk *)
+    destruct (wwalk_pres lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+                false nil ids nil (interaction._o :: cact_rest) xids sids nil
+                nil nil nil nil nids nil
+                Hcp
+                (fun fid' HH => match Bool.diff_false_true HH with end)
+                Hcpx Hcps
+                (fun fid' HH => match Bool.diff_false_true HH with end)
+                (fun fid' HH => match Bool.diff_false_true HH with end)
+                (fun fid' HH => match Bool.diff_false_true HH with end)
+                (fun fid' HH => match Bool.diff_false_true HH with end)
+                (fun fid' HH => match Bool.diff_false_true HH with end)
+                _ _ _ _ _ _ _ _
+                (fun HH => match HH eq_refl with end)
+                (fun lid HH => match Bool.diff_false_true HH with end)
+                Hbody
+                (empty_env_unbound _) (empty_env_unbound _)
+                (fun g HH => match Bool.diff_false_true HH with end)
+                (empty_env_unbound _) (empty_env_unbound _)
+                (fun g HH => match Bool.diff_false_true HH with end)
+                (fun g HH => match Bool.diff_false_true HH with end)
+                (fun g HH => match Bool.diff_false_true HH with end)
+                (fun g HH => match Bool.diff_false_true HH with end)
+                (fun g HH => match Bool.diff_false_true HH with end)
+                (PTree.gempty _ _)
+                Hchk Htat0 Hact0 Hch0 Hnp0
+                HN HM HV HS)
+      as (HV' & HS' & HM' & HN' & _ & _ & _ & _ & _).
+    change (blocks_of_env (lp_ge lp) empty_env)
+      with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    exact (conj HV' (conj HS' (conj HM' HN'))).
+  Qed.
+
+  (* ---- callee rows (these become IoSurface Lets / existing hyps) ---- *)
+  Hypothesis Hcp_moato :
+    call_pres lp bm NoA MWF interaction._mario_obj_angle_to_object.
+  Hypothesis Hcp_pmoo :
+    call_pres lp bm NoA MWF interaction._push_mario_out_of_object.
+  Hypothesis Hcpa_sma :
+    call_pres_act lp bm NoA MWF interaction._set_mario_action.
+  Hypothesis Hcpx_atan2s :
+    call_pres_ext lp bm NoA MWF interaction._atan2s.
+
+  (* ---- mario_can_talk: storeless / callless reader ---- *)
+  Lemma mct_pin :
+    (prog_defmap interaction.prog) ! interaction._mario_can_talk
+    = Some (Gfun (Internal interaction.f_mario_can_talk)).
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma mct_vars : fn_vars interaction.f_mario_can_talk = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma mct_params_ok :
+    match fn_params interaction.f_mario_can_talk with
+    | (i, ty) :: ps =>
+        Pos.eqb i mario_actions_airborne._m
+        && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id mario_actions_airborne._m (map fst ps))
+    | nil => false
+    end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma mct_walk :
+    wwalk_chk false nil nil nil nil nil nil nil
+      (fn_body interaction.f_mario_can_talk) = true.
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma mct_row : call_pres lp bm NoA MWF interaction._mario_can_talk.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+             HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+             HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             interaction.prog interaction._mario_can_talk
+             interaction.f_mario_can_talk nil nil nil nil
+             LO_int mct_pin mct_vars mct_params_ok
+             (fun fid' HH => match Bool.diff_false_true HH with end)
+             (fun fid' HH => match Bool.diff_false_true HH with end)
+             (fun fid' HH => match Bool.diff_false_true HH with end)
+             (fun fid' HH => match Bool.diff_false_true HH with end)
+             mct_walk).
+  Qed.
+
+  (* ---- object_facing_mario: storeless reader calling atan2s ---- *)
+  Lemma ms_ofm_row : call_pres lp bm NoA MWF interaction._object_facing_mario.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+             HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+             HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             interaction.prog interaction._object_facing_mario
+             interaction.f_object_facing_mario nil nil ofm_xids nil
+             LO_int ofm_pin ofm_vars ofm_params_ok).
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - intros fid' H. unfold ofm_xids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_atan2s | ].
+      discriminate H.
+    - intros fid' H; discriminate H.
+    - exact ofm_walk.
+  Qed.
+
+  (* ---- check_read_sign (crs): ms row, nids = [facingDYaw I16 temp] ---- *)
+  Lemma crs_pin :
+    (prog_defmap interaction.prog) ! interaction._check_read_sign
+    = Some (Gfun (Internal interaction.f_check_read_sign)).
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma crs_vars : fn_vars interaction.f_check_read_sign = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma crs_params_eq :
+    fn_params interaction.f_check_read_sign
+    = (mario_actions_airborne._m, tyMSi) :: (interaction._o, tyObjI) :: nil.
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma crs_row :
+    call_pres_ms lp bm NoA MWF SafeB interaction._check_read_sign.
+  Proof.
+    apply (call_pres_ms_of_wwalk interaction.prog interaction._check_read_sign
+             interaction.f_check_read_sign
+             (interaction._mario_can_talk
+              :: interaction._object_facing_mario :: nil)
+             nil (interaction._set_mario_action :: nil)
+             (134%positive :: 136%positive :: 138%positive :: nil)
+             (1732463587098149519%positive :: nil)
+             LO_int crs_pin crs_vars crs_params_eq).
+    - vm_compute. reflexivity.
+    - intros fid' H. unfold mem_id in H. cbn [existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact mct_row | ].
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact ms_ofm_row | ].
+      discriminate H.
+    - intros fid' H; discriminate H.
+    - intros fid' H. unfold mem_id in H. cbn [existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpa_sma | ].
+      discriminate H.
+    - vm_compute. reflexivity.
+  Qed.
+
+  (* ---- check_npc_talk (cnt): ms row, no nids ---- *)
+  Lemma cnt_pin :
+    (prog_defmap interaction.prog) ! interaction._check_npc_talk
+    = Some (Gfun (Internal interaction.f_check_npc_talk)).
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma cnt_vars : fn_vars interaction.f_check_npc_talk = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma cnt_params_eq :
+    fn_params interaction.f_check_npc_talk
+    = (mario_actions_airborne._m, tyMSi) :: (interaction._o, tyObjI) :: nil.
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma cnt_row :
+    call_pres_ms lp bm NoA MWF SafeB interaction._check_npc_talk.
+  Proof.
+    apply (call_pres_ms_of_wwalk interaction.prog interaction._check_npc_talk
+             interaction.f_check_npc_talk
+             (interaction._mario_can_talk
+              :: interaction._mario_obj_angle_to_object
+              :: interaction._push_mario_out_of_object :: nil)
+             nil (interaction._set_mario_action :: nil)
+             nil nil
+             LO_int cnt_pin cnt_vars cnt_params_eq).
+    - vm_compute. reflexivity.
+    - intros fid' H. unfold mem_id in H. cbn [existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact mct_row | ].
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcp_moato | ].
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcp_pmoo | ].
+      discriminate H.
+    - intros fid' H; discriminate H.
+    - intros fid' H. unfold mem_id in H. cbn [existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpa_sma | ].
+      discriminate H.
+    - vm_compute. reflexivity.
+  Qed.
+
+End MsHelperSurface.
+
 Section IoSurface.
   Variable lp : Clight.program.
   Hypothesis LO_mario : linkorder mario.prog lp.
@@ -5962,6 +6349,30 @@ Section IoSurface.
          HMWF_window HMWF_glob HMWF_act HSafeNotBm HchaseRoot HMWF_chase
          HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
          Hcp_tdfio Hcp_umsc Hcpx_ps Hcpra_dka Hcpa_dasma.
+
+  (* the two interact_text (m,o)->u32 helpers -- walked internals (see
+     MsHelperSurface).  crs needs object_facing_mario (ms_ofm_row, from
+     Hcpx_atan2s) + mario_can_talk (mct_row); cnt needs moato/pmoo. *)
+  Let Hcp_ms_crs :
+    call_pres_ms lp bm NoA MWF SafeB interaction._check_read_sign.
+  Proof. apply crs_row; assumption. Qed.
+  Let Hcp_ms_cnt :
+    call_pres_ms lp bm NoA MWF SafeB interaction._check_npc_talk.
+  Proof. apply cnt_row; assumption. Qed.
+
+  (* the ms-row dispatcher: every recognised (m,o)->u32 callee has a row *)
+  Let ioms_ms_rows : forall fid, mem_id fid ioms_ms_ids = true ->
+      call_pres_ms lp bm NoA MWF SafeB fid.
+  Proof.
+    intros fid H. unfold ioms_ms_ids, mem_id in H. cbn [existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ms_tdaknb | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ms_crs | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ms_cnt | ].
+    discriminate H.
+  Qed.
 
   (* ================================================================== *)
   (* THE io ENTRY PRODUCER: a handler body whose params are EXACTLY      *)
@@ -6208,11 +6619,12 @@ Section IoSurface.
 
   (* ---- the special-site brick ---- *)
   Lemma ms_scall_pres :
-    forall t1 e le0 m0 tr le1 m1 out0,
-      e ! interaction._take_damage_and_knock_back = None ->
+    forall t1 fid e le0 m0 tr le1 m1 out0,
+      mem_id fid ioms_ms_ids = true ->
+      e ! fid = None ->
       exec_stmt function_entry2 (lp_ge lp) e le0 m0
         (Scall (Some t1)
-           (Evar interaction._take_damage_and_knock_back
+           (Evar fid
               (Tfunction (tyMSi :: tyObjI :: nil) tuint cc_default))
            (Etempvar interaction._m tyMSi
             :: Etempvar interaction._o tyObjI :: nil))
@@ -6224,7 +6636,7 @@ Section IoSurface.
       carried bm NoA MWF m1 /\ out0 = Out_normal /\
       (forall t0, t0 <> t1 -> le1 ! t0 = le0 ! t0).
   Proof.
-    intros t1 e le0 m0 tr le1 m1 out0 He Hexec Htat Hcho Hc.
+    intros t1 fid e le0 m0 tr le1 m1 out0 Hmem He Hexec Htat Hcho Hc.
     destruct Hc as (HV & HS & HM & HN).
     inv Hexec.
     match goal with
@@ -6266,7 +6678,7 @@ Section IoSurface.
     match goal with
     | Hevf : eval_funcall _ _ _ _ (_ :: _ :: nil) _ _ _,
       Hff : Genv.find_funct _ (Vptr bf Ptrofs.zero) = Some _ |- _ =>
-        destruct (Hcp_ms_tdaknb _ _ _ _ _ _ _ Hevf
+        destruct (ioms_ms_rows _ Hmem _ _ _ _ _ _ _ Hevf
                     ltac:(red; exists bf; split; assumption)
                     Hvm Hvo HN HM HV HS)
           as (HV' & HS' & HM' & HN')
@@ -6601,7 +7013,7 @@ Section IoSurface.
       (forall g, mem_id g qids = true -> e ! g = None) ->
       e ! interaction._determine_knockback_action = None ->
       e ! interaction._drop_and_set_mario_action = None ->
-      e ! interaction._take_damage_and_knock_back = None ->
+      (forall fid, mem_id fid ioms_ms_ids = true -> e ! fid = None) ->
       e ! interaction._gGlobalTimer = None ->
       ioms_chk ids xids sids oids qids s = true ->
       (forall b o, le ! interaction._m = Some (Vptr b o) ->
@@ -6741,21 +7153,21 @@ Section IoSurface.
               exact (Hch interaction._o eq_refl b o Hg').
             * exact (Hch interaction._o eq_refl b o Hg'). }
       destruct (ioms_sp_decode _ _ _ Hsp)
-        as (t1 & Eopt & Ea & Eal & Ht1).
+        as (t1 & fd2 & Eopt & Hmemfd & Ea & Eal & Ht1).
       subst optid a al.
       apply andb_true_iff in Ht1 as [Ht1m Ht1o].
       apply negb_true_iff in Ht1m. apply negb_true_iff in Ht1o.
       assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
                       (Scall (Some t1)
-                         (Evar interaction._take_damage_and_knock_back
+                         (Evar fd2
                             (Tfunction (tyMSi :: tyObjI :: nil) tuint
                                cc_default))
                          (Etempvar interaction._m tyMSi
                           :: Etempvar interaction._o tyObjI :: nil))
                       t (set_opttemp (Some t1) vres le) m' Out_normal)
         by (eapply exec_Scall; eauto).
-      destruct (ms_scall_pres t1 e le m _ _ _ _
-                  Hub_tk Hex Htat
+      destruct (ms_scall_pres t1 fd2 e le m _ _ _ _
+                  Hmemfd (Hub_tk _ Hmemfd) Hex Htat
                   (fun b o Hg => Hch interaction._o eq_refl b o Hg)
                   (conj HV (conj HS (conj HM HN))))
         as (Hc' & _ & Hfr).
@@ -7090,7 +7502,7 @@ Section IoSurface.
                 (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _)
                 (PTree.gempty _ _) (PTree.gempty _ _)
-                (PTree.gempty _ _) (PTree.gempty _ _)
+                (fun fid _ => PTree.gempty _ fid) (PTree.gempty _ _)
                 Hchk Htat0 Hact0 Hch0 HN HM HV HS)
       as (HV' & HS' & HM' & _ & _ & _ & _).
     change (blocks_of_env (lp_ge lp) empty_env)
@@ -7170,6 +7582,8 @@ Section IoSurface.
     apply andb_true_iff in Hne as [Hne_xids Hne].
     apply andb_true_iff in Hne as [Hne_sids Hne].
     apply andb_true_iff in Hne as [Hne_oids Hne_qids].
+    assert (Hne_ms : forallb (fun fid => negb (Pos.eqb fid io_filler))
+                       ioms_ms_ids = true) by (vm_compute; reflexivity).
     assert (Htat0 : forall b o,
                le1 ! interaction._m = Some (Vptr b o) ->
                b = bm /\ o = Ptrofs.zero).
@@ -7205,7 +7619,8 @@ Section IoSurface.
                    Hub_one g (mem_id_forallb_ne _ _ _ Hne_qids Hg))
                 (Hub_one interaction._determine_knockback_action eq_refl)
                 (Hub_one interaction._drop_and_set_mario_action eq_refl)
-                (Hub_one interaction._take_damage_and_knock_back eq_refl)
+                (fun fid Hg =>
+                   Hub_one fid (mem_id_forallb_ne _ _ _ Hne_ms Hg))
                 (Hub_one interaction._gGlobalTimer eq_refl)
                 Hchk Htat0 Hact0 Hch0 HNe HMe HVe HSe)
       as (HV' & HS' & HM' & HN' & _ & _ & _).
@@ -7242,6 +7657,25 @@ Section IoSurface.
              (fun fid HH => match Bool.diff_false_true HH with end)
              (fun fid HH => match Bool.diff_false_true HH with end)
              io_dmg_vars io_dmg_params ioms_dmg_walk).
+  Qed.
+
+  Lemma io_text :
+    body_pres_io lp bm NoA MWF SafeB interaction.f_interact_text.
+  Proof.
+    apply (ioms_body_pres interaction.f_interact_text
+             (interaction._push_mario_out_of_object :: nil)
+             nil nil nil nil).
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcp_pmoo | ].
+      discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact io_text_vars.
+    - exact io_text_params.
+    - exact ioms_text_walk.
   Qed.
 
   Lemma io_clam_or_bubba :
@@ -8291,7 +8725,9 @@ Section IoSurface.
                     | (pose proof io_hfb_pin as E; rewrite Hdm in E;
                        injection E as ->; exact io_hit_from_below)
                     | (pose proof io_sok_pin as E; rewrite Hdm in E;
-                       injection E as ->; exact io_star_or_key) ]
+                       injection E as ->; exact io_star_or_key)
+                    | (pose proof io_text_pin as E; rewrite Hdm in E;
+                       injection E as ->; exact io_text) ]
             | ]).
     destruct Hin.
   Qed.
