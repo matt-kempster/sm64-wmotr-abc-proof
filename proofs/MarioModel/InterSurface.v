@@ -4421,7 +4421,7 @@ Proof. vm_compute. reflexivity. Qed.
 
 (* the REST census: the handlers not yet walked (shrinks per slice) *)
 Definition io_rest_ids : list ident :=
-  interaction._interact_bully :: nil.
+  nil.
 
 Definition tyObjI : type := tptr (Tstruct interaction._Object noattr).
 
@@ -4826,6 +4826,97 @@ Proof.
   exists t7, a7, t1, t6, a6, t2. repeat split; assumption.
 Qed.
 
+(* ---- the bully pair: bully_knock_back_mario computes an action into a
+   temp, then drop_and_set_mario_action consumes it.  Unlike the snufit
+   pair there are NO interposed Ssets, the producer is a Scall (not a
+   table-load Sset), and dasma's result is DISCARDED (optid = None) with
+   a constant drop-flag third arg.  q1 must not be _m or _o. ---- *)
+Definition ioms_bully_pair_chk (s : statement) : bool :=
+  match s with
+  | Ssequence
+      (Scall (Some t1) (Evar fd ftyd) (Etempvar mp1 tmp1 :: nil))
+      (Scall None (Evar fa ftya)
+         (Etempvar mp2 tmp2 :: Etempvar t1' tt1 :: Econst_int _ _ :: nil)) =>
+      tdaknb_tmp_ok t1
+      && Pos.eqb fd interaction._bully_knock_back_mario
+      && Pos.eqb fa interaction._drop_and_set_mario_action
+      && Pos.eqb mp1 interaction._m && Pos.eqb mp2 interaction._m
+      && Pos.eqb t1' t1
+      && proj_sumbool (type_eq tmp1 tyMSi)
+      && proj_sumbool (type_eq tmp2 tyMSi)
+      && proj_sumbool (type_eq tt1 tuint)
+      && proj_sumbool (type_eq ftyd
+           (Tfunction (tyMSi :: nil) tuint cc_default))
+      && proj_sumbool (type_eq ftya
+           (Tfunction (tyMSi :: tuint :: tuint :: nil) tint cc_default))
+  | _ => false
+  end.
+
+Lemma ioms_bully_pair_decode :
+  forall s1 s2, ioms_bully_pair_chk (Ssequence s1 s2) = true ->
+    exists t1 c cty,
+      s1 = Scall (Some t1)
+             (Evar interaction._bully_knock_back_mario
+                (Tfunction (tyMSi :: nil) tuint cc_default))
+             (Etempvar interaction._m tyMSi :: nil) /\
+      s2 = Scall None
+             (Evar interaction._drop_and_set_mario_action
+                (Tfunction (tyMSi :: tuint :: tuint :: nil) tint cc_default))
+             (Etempvar interaction._m tyMSi
+              :: Etempvar t1 tuint :: Econst_int c cty :: nil) /\
+      tdaknb_tmp_ok t1 = true.
+Proof.
+  intros s1 s2 H. cbn [ioms_bully_pair_chk] in H.
+  destruct s1 as [ | | | optd ad ald | | | | | | | | | | ];
+    try discriminate H.
+  destruct optd as [ t1 | ]; try discriminate H.
+  destruct ad as [ | | | | fd ftyd | | | | | | | | | ];
+    try discriminate H.
+  destruct ald as [ | ad1 ald1 ]; try discriminate H.
+  destruct ad1 as [ | | | | | mp1 tmp1 | | | | | | | | ];
+    try discriminate H.
+  destruct ald1; try discriminate H.
+  destruct s2 as [ | | | opta aa ala | | | | | | | | | | ];
+    try discriminate H.
+  destruct opta as [ t2 | ]; try discriminate H.
+  destruct aa as [ | | | | fa ftya | | | | | | | | | ];
+    try discriminate H.
+  destruct ala as [ | aa1 ala1 ]; try discriminate H.
+  destruct aa1 as [ | | | | | mp2 tmp2 | | | | | | | | ];
+    try discriminate H.
+  destruct ala1 as [ | aa2 ala2 ]; try discriminate H.
+  destruct aa2 as [ | | | | | t1' tt1 | | | | | | | | ];
+    try discriminate H.
+  destruct ala2 as [ | aa3 ala3 ]; try discriminate H.
+  destruct aa3 as [ c cty | | | | | | | | | | | | | ];
+    try discriminate H.
+  destruct ala3; try discriminate H.
+  apply andb_true_iff in H as [H Hftya].
+  apply andb_true_iff in H as [H Hftyd].
+  apply andb_true_iff in H as [H Htt1].
+  apply andb_true_iff in H as [H Htmp2].
+  apply andb_true_iff in H as [H Htmp1].
+  apply andb_true_iff in H as [H Ht1'].
+  apply andb_true_iff in H as [H Hmp2].
+  apply andb_true_iff in H as [H Hmp1].
+  apply andb_true_iff in H as [H Hfa].
+  apply andb_true_iff in H as [Ht1ok Hfd].
+  apply Pos.eqb_eq in Hfd; subst fd.
+  apply Pos.eqb_eq in Hfa; subst fa.
+  apply Pos.eqb_eq in Hmp1; subst mp1.
+  apply Pos.eqb_eq in Hmp2; subst mp2.
+  apply Pos.eqb_eq in Ht1'; subst t1'.
+  destruct (type_eq tmp1 tyMSi) as [-> | ]; [ | discriminate Htmp1 ].
+  destruct (type_eq tmp2 tyMSi) as [-> | ]; [ | discriminate Htmp2 ].
+  destruct (type_eq tt1 tuint) as [-> | ]; [ | discriminate Htt1 ].
+  destruct (type_eq ftyd (Tfunction (tyMSi :: nil) tuint cc_default))
+    as [-> | ]; [ | discriminate Hftyd ].
+  destruct (type_eq ftya (Tfunction (tyMSi :: tuint :: tuint :: nil)
+                            tint cc_default)) as [-> | ];
+    [ | discriminate Hftya ].
+  exists t1, c, cty. repeat split; assumption.
+Qed.
+
 Fixpoint ioms_chk (ids xids sids oids qids : list ident) (s : statement)
   : bool :=
   wwalk_chk' nil nil nil nil nil nil false
@@ -4834,6 +4925,7 @@ Fixpoint ioms_chk (ids xids sids oids qids : list ident) (s : statement)
      | Ssequence s1 s2 =>
          iodp_sp_chk s
          || ioms_inp_chk s
+         || ioms_bully_pair_chk s
          || (ioms_chk ids xids sids oids qids s1
              && ioms_chk ids xids sids oids qids s2)
      | Sifthenelse _ s1 s2 =>
@@ -5819,6 +5911,40 @@ Lemma ioms_text_walk :
     (fn_body interaction.f_interact_text) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- interact_bully: the bully bounce handler.  Body reduces (under
+   the di/pmoo/umsc/bba ids, play_sound ext, dasma act, attack_object ob
+   censuses) to exactly the bully pair:
+     q1 := bully_knock_back_mario(m);    (* untainted action *)
+     drop_and_set_mario_action(m, q1, 0);
+   handled by the NEW ioms_bully_pair arm.  fn_vars = one dead u8[4]
+   filler (the BullyCollisionData scratch). ---- *)
+Lemma io_bully_pin :
+  (prog_defmap interaction.prog) ! interaction._interact_bully
+  = Some (Gfun (Internal interaction.f_interact_bully)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma io_bully_vars :
+  fn_vars interaction.f_interact_bully
+  = (io_filler, Tarray tuchar 4 noattr) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+Lemma io_bully_params :
+  fn_params interaction.f_interact_bully
+  = (interaction._m, tptr (Tstruct interaction._MarioState noattr))
+    :: (interaction._interactType, tuint)
+    :: (interaction._o, tptr (Tstruct interaction._Object noattr)) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+Lemma ioms_bully_walk :
+  ioms_chk
+    (interaction._determine_interaction
+     :: interaction._push_mario_out_of_object
+     :: interaction._update_mario_sound_and_camera
+     :: interaction._bounce_back_from_attack :: nil)
+    (interaction._play_sound :: nil)
+    (interaction._drop_and_set_mario_action :: nil)
+    (interaction._attack_object :: nil)
+    nil
+    (fn_body interaction.f_interact_bully) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ====================================================================== *)
 (* ===========  MsHelperSurface: the (m,o) ms-class helpers  =========== *)
 (* check_read_sign / check_npc_talk -- the two (m,o)->u32 helpers that  *)
@@ -6260,6 +6386,12 @@ Section IoSurface.
     call_pres_ext lp bm NoA MWF interaction._play_sound.
   Hypothesis Hcpa_dasma :
     call_pres_act lp bm NoA MWF interaction._drop_and_set_mario_action.
+  (* slice-5 (bully): the action-computing knockback helper -- a leaf
+     call_pres_ret_act (its result is the untainted action fed to dasma).
+     This REFINES the whole-handler interact_bully assumption down to one
+     named helper; discharged separately by walking bkbm's body. *)
+  Hypothesis Hcpra_bkbm :
+    call_pres_ret_act lp bm NoA MWF interaction._bully_knock_back_mario.
 
   (* ---- slice-4 rows: the two remaining shared callees of the eight
      pure-engine handlers.  At the capstone: msrah_row (the walked
@@ -7013,6 +7145,7 @@ Section IoSurface.
       (forall g, mem_id g qids = true -> e ! g = None) ->
       e ! interaction._determine_knockback_action = None ->
       e ! interaction._drop_and_set_mario_action = None ->
+      e ! interaction._bully_knock_back_mario = None ->
       (forall fid, mem_id fid ioms_ms_ids = true -> e ! fid = None) ->
       e ! interaction._gGlobalTimer = None ->
       ioms_chk ids xids sids oids qids s = true ->
@@ -7031,7 +7164,8 @@ Section IoSurface.
     intros ids xids sids oids qids Hcp_i Hcpx_i Hcps_i Hcpo_i Hcpq_i
            s e le m0 tr le' m' out Hexec.
     induction Hexec;
-      intros Hub_g Hub_i Hub_x Hub_s Hub_o Hub_q Hub_dka Hub_dasma Hub_tk Hubgt Hchk
+      intros Hub_g Hub_i Hub_x Hub_s Hub_o Hub_q Hub_dka Hub_dasma Hub_bkbm
+             Hub_tk Hubgt Hchk
              Htat Hact Hch HN HM HV HS.
     - (* Sskip *)
       exact (conj HV (conj HS (conj HM (conj HN
@@ -7200,17 +7334,67 @@ Section IoSurface.
       { eapply (ioms_generic ids xids sids Hcp_i Hcpx_i Hcps_i _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hubgt Hg
                   Htat Hact Hch HN HM HV HS);
           eapply exec_Sseq_1; eauto. }
-      (* || is LEFT-assoc: (iodp || inp) || (rec && rec) *)
+      (* || is LEFT-assoc: ((iodp || inp) || bully) || (rec && rec) *)
       apply orb_true_iff in Hrec as [Hsp | Hrec].
       2:{ apply andb_prop in Hrec as [H1 H2].
           destruct (IHHexec1 Hub_g Hub_i Hub_x Hub_s Hub_o Hub_q
-                      Hub_dka Hub_dasma
+                      Hub_dka Hub_dasma Hub_bkbm
                       Hub_tk Hubgt H1 Htat Hact Hch HN HM HV HS)
             as (HV1 & HS1 & HM1 & HN1 & Htat1 & Hact1 & Hch1).
           exact (IHHexec2 Hub_g Hub_i Hub_x Hub_s Hub_o Hub_q
-                   Hub_dka Hub_dasma
+                   Hub_dka Hub_dasma Hub_bkbm
                    Hub_tk Hubgt H2 Htat1 Hact1 Hch1 HN1 HM1 HV1
                    HS1). }
+      apply orb_true_iff in Hsp as [Hsp | Hbully].
+      2:{ (* THE BULLY PAIR: (q1 := bkbm(m)); (dasma(m, q1, c)) *)
+          destruct (ioms_bully_pair_decode _ _ Hbully)
+            as (q1 & c0 & cty & Es1 & Es2 & Ht1).
+          subst s1 s2.
+          apply andb_true_iff in Ht1 as [Ht1m Ht1o].
+          apply negb_true_iff in Ht1m. apply negb_true_iff in Ht1o.
+          (* s1: q1 := bully_knock_back_mario(m) -- untainted result *)
+          destruct (cp2_scall_ret_act_pres lp bm NoA MWF q1
+                      interaction._bully_knock_back_mario
+                      nil tuint cc_default nil
+                      e le m _ _ _ _
+                      Hub_bkbm Hexec1 Hcpra_bkbm Htat
+                      (conj HV (conj HS (conj HM HN))))
+            as (Hc1 & _ & Hu1 & Hfr1).
+          destruct Hc1 as (HV1 & HS1 & HM1 & HN1).
+          assert (Hne_m1 : interaction._m <> q1)
+            by (intro EE; rewrite <- EE, Pos.eqb_refl in Ht1m;
+                discriminate Ht1m).
+          assert (Hne_o1 : interaction._o <> q1)
+            by (intro EE; rewrite <- EE, Pos.eqb_refl in Ht1o;
+                discriminate Ht1o).
+          (* s2: dasma(m, q1, c) -- the action arg is the untainted q1 *)
+          match type of Hexec2 with
+          | exec_stmt _ _ _ ?leb _ _ _ _ _ _ =>
+              assert (Htat_c : forall b o,
+                         leb ! interaction._m = Some (Vptr b o) ->
+                         b = bm /\ o = Ptrofs.zero)
+                by (intros b o Hg; rewrite (Hfr1 _ Hne_m1) in Hg;
+                    exact (Htat b o Hg))
+          end.
+          destruct (kit_scallt_pres lp bm NoA MWF None
+                      interaction._drop_and_set_mario_action
+                      tuint (tuint :: nil) tint cc_default
+                      q1 tuint (Econst_int c0 cty :: nil)
+                      e _ _ _ _ _ _
+                      Hub_dasma Hexec2 Hcpa_dasma eq_refl eq_refl
+                      Htat_c Hu1 HN1 HM1 HV1 HS1)
+            as (HV' & HS' & HM' & HN' & _ & vr & Hle').
+          cbn [set_opttemp] in Hle'. rewrite Hle'.
+          refine (conj HV' (conj HS' (conj HM' (conj HN'
+                    (conj _ (conj _ _)))))).
+          + exact Htat_c.
+          + intros t' HH x Hg'. discriminate HH.
+          + intros t' Hmem' b o Hg'.
+            unfold tdaknb_cact, mem_id in Hmem'; cbn [existsb] in Hmem'.
+            apply orb_true_iff in Hmem' as [E | F]; [ | discriminate F ].
+            apply Pos.eqb_eq in E; subst t'.
+            rewrite (Hfr1 _ Hne_o1) in Hg'.
+            exact (Hch interaction._o eq_refl b o Hg'). }
       apply orb_true_iff in Hsp as [Hsp | Hinp].
       2:{ (* THE INPUT-OR PAIR *)
           destruct (ioms_inp_decode _ _ Hinp)
@@ -7359,12 +7543,17 @@ Section IoSurface.
       { eapply (ioms_generic ids xids sids Hcp_i Hcpx_i Hcps_i _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hubgt Hg
                   Htat Hact Hch HN HM HV HS);
           eapply exec_Sseq_2; eauto. }
-      (* || is LEFT-assoc: (iodp || inp) || (rec && rec) *)
+      (* || is LEFT-assoc: ((iodp || inp) || bully) || (rec && rec) *)
       apply orb_true_iff in Hrec as [Hsp | Hrec].
       2:{ apply andb_prop in Hrec as [H1 _].
           exact (IHHexec Hub_g Hub_i Hub_x Hub_s Hub_o Hub_q
-                   Hub_dka Hub_dasma
+                   Hub_dka Hub_dasma Hub_bkbm
                    Hub_tk Hubgt H1 Htat Hact Hch HN HM HV HS). }
+      apply orb_true_iff in Hsp as [Hsp | Hbully].
+      2:{ (* the bully pair's s1 is a single Scall: always Out_normal *)
+          destruct (ioms_bully_pair_decode _ _ Hbully)
+            as (q1 & c0 & cty & Es1 & _).
+          subst s1. exfalso. inv Hexec. congruence. }
       apply orb_true_iff in Hsp as [Hsp | Hinp].
       2:{ (* the inp pair's s1 is an Sset: always Out_normal *)
           destruct (ioms_inp_decode _ _ Hinp)
@@ -7501,7 +7690,7 @@ Section IoSurface.
                 (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _)
-                (PTree.gempty _ _) (PTree.gempty _ _)
+                (PTree.gempty _ _) (PTree.gempty _ _) (PTree.gempty _ _)
                 (fun fid _ => PTree.gempty _ fid) (PTree.gempty _ _)
                 Hchk Htat0 Hact0 Hch0 HN HM HV HS)
       as (HV' & HS' & HM' & _ & _ & _ & _).
@@ -7619,6 +7808,7 @@ Section IoSurface.
                    Hub_one g (mem_id_forallb_ne _ _ _ Hne_qids Hg))
                 (Hub_one interaction._determine_knockback_action eq_refl)
                 (Hub_one interaction._drop_and_set_mario_action eq_refl)
+                (Hub_one interaction._bully_knock_back_mario eq_refl)
                 (fun fid Hg =>
                    Hub_one fid (mem_id_forallb_ne _ _ _ Hne_ms Hg))
                 (Hub_one interaction._gGlobalTimer eq_refl)
@@ -8658,6 +8848,51 @@ Section IoSurface.
     - exact ioms_hfb_walk.
   Qed.
 
+  (* ---- interact_bully: the bully pair (bkbm -> dasma) via the dead-
+     filler vars entry.  bkbm is the action-computing leaf (Hcpra_bkbm);
+     the rest of the body is the di/pmoo/umsc/bba/ps/dasma/attack_object
+     census.  This REFINES the whole-handler assumption to one leaf. ---- *)
+  Lemma io_bully :
+    body_pres_io lp bm NoA MWF SafeB interaction.f_interact_bully.
+  Proof.
+    apply (ioms_body_pres_dv interaction.f_interact_bully
+             (interaction._determine_interaction
+              :: interaction._push_mario_out_of_object
+              :: interaction._update_mario_sound_and_camera
+              :: interaction._bounce_back_from_attack :: nil)
+             (interaction._play_sound :: nil)
+             (interaction._drop_and_set_mario_action :: nil)
+             (interaction._attack_object :: nil)
+             nil).
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact di_row | ].
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcp_pmoo | ].
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcp_umsc | ].
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact bba_row
+        | discriminate F ].
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpx_ps
+        | discriminate F ].
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpa_dasma
+        | discriminate F ].
+    - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
+      apply Bool.orb_true_iff in H as [Eg | F];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact ao_row
+        | discriminate F ].
+    - intros fid' H. discriminate H.
+    - exact io_bully_vars.
+    - exact io_bully_params.
+    - vm_compute. reflexivity.
+    - exact ioms_bully_walk.
+  Qed.
+
   (* ---- the handler-table dispatch splitter: the capstone's
      Hpres_ihandler from the walked handlers + the io_rest census. ---- *)
   Lemma ihandler_pres_split :
@@ -8727,7 +8962,9 @@ Section IoSurface.
                     | (pose proof io_sok_pin as E; rewrite Hdm in E;
                        injection E as ->; exact io_star_or_key)
                     | (pose proof io_text_pin as E; rewrite Hdm in E;
-                       injection E as ->; exact io_text) ]
+                       injection E as ->; exact io_text)
+                    | (pose proof io_bully_pin as E; rewrite Hdm in E;
+                       injection E as ->; exact io_bully) ]
             | ]).
     destruct Hin.
   Qed.
