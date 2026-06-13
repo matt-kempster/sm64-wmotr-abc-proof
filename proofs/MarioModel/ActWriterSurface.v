@@ -202,6 +202,37 @@ Proof.
   - destruct (cast_float_int sg2 f); discriminate Hc.
 Qed.
 
+(* sub-word int targets (I16 / I8) -- the OTHER sound non-pointer cast
+   target: a cast TO a sub-32 int classifies as cast_case_i2i / l2i /
+   s2i / f2i on EVERY source (a pointer on ptr32 classifies as i2i),
+   each Vint-or-stuck.  The ptr32 cast_case_pointer passthrough needs an
+   I32 / pointer / long TARGET -- never a sub-word int.  So the stored
+   value is provably never a Vptr REGARDLESS of source type.  (Used for
+   `s16 facingDYaw = (s16)(...)` in check_read_sign, stored back into an
+   I32 rawData slot.)  Cf. sem_cast_float_i32_nonptr: that one needs a
+   float SOURCE because the I32 target is the cast_case_pointer trap. *)
+Definition subint_ty (ty : type) : bool :=
+  match ty with
+  | Tint I16 _ _ | Tint I8 _ _ => true
+  | _ => false
+  end.
+
+Lemma sem_cast_subint_nonptr : forall v t1 t2 m w,
+    subint_ty t2 = true ->
+    sem_cast v t1 t2 m = Some w ->
+    forall bb oo, w <> Vptr bb oo.
+Proof.
+  intros v t1 t2 m w Ht2 Hc bb oo ->.
+  assert (Hp64 : Archi.ptr64 = false) by (vm_compute; reflexivity).
+  pose proof (sem_cast_vptr_inv _ _ _ _ _ _ Hc) as Hv; subst v.
+  destruct t2 as [ | sz2 sg2 a2 | | | | | | | ]; try discriminate Ht2.
+  unfold sem_cast, classify_cast in Hc.
+  destruct sz2; try discriminate Ht2;
+    destruct t1 as [ | sz1 sg1 a1 | | sz1 a1 | | | | | ];
+    try destruct sz1;
+    rewrite ?Hp64 in Hc; cbn in Hc; try discriminate Hc.
+Qed.
+
 Lemma sem_shl_nonptr : forall v1 t1 v2 t2 v,
     sem_shl v1 t1 v2 t2 = Some v ->
     forall bb oo, v <> Vptr bb oo.
@@ -981,7 +1012,7 @@ Definition sbpair_chk (nids wact cact : list ident) (s1 s2 : statement)
    shortcut, which on ptr32 is a Vptr passthrough). *)
 Definition nsrc_chk (a : expr) : bool :=
   match a with
-  | Ecast b cty => float_ty (typeof b) && i32_ty cty
+  | Ecast b cty => (float_ty (typeof b) && i32_ty cty) || subint_ty cty
   | _ => false
   end.
 
@@ -4468,7 +4499,21 @@ Section ActWriterWalk.
           destruct a as [ | | | | | | | | | | ca cty2 | | | ];
             try discriminate Hns.
           cbn [nsrc_chk] in Hns.
-          apply andb_prop in Hns as [Hfl Hi32c].
+          apply orb_true_iff in Hns as [Hns | Hsub].
+          { apply andb_prop in Hns as [Hfl Hi32c].
+            match goal with
+            | Hev : eval_expr _ _ _ _ (Ecast _ _) _ |- _ =>
+                inv Hev;
+                try (match goal with
+                     | Hlv : eval_lvalue _ _ _ _ (Ecast _ _) _ _ _ |- _ =>
+                         inv Hlv
+                     end)
+            end.
+            match goal with
+            | Hcast : sem_cast _ _ _ _ = Some _ |- _ =>
+                exact (sem_cast_float_i32_nonptr _ _ _ _ _ Hfl Hi32c Hcast)
+            end. }
+          (* the sub-word int cast: non-pointer on EVERY source *)
           match goal with
           | Hev : eval_expr _ _ _ _ (Ecast _ _) _ |- _ =>
               inv Hev;
@@ -4479,7 +4524,7 @@ Section ActWriterWalk.
           end.
           match goal with
           | Hcast : sem_cast _ _ _ _ = Some _ |- _ =>
-              exact (sem_cast_float_i32_nonptr _ _ _ _ _ Hfl Hi32c Hcast)
+              exact (sem_cast_subint_nonptr _ _ _ _ _ Hsub Hcast)
           end.
         * rewrite PTree.gso in Hg by exact Hne.
           exact (Hnp _ Hmem _ Hg).
