@@ -583,6 +583,41 @@ Example sta_hjls_walk :
     (fn_body mario_actions_stationary.f_act_hold_jump_land_stop) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- act_twirl_land: the chase-store leaf (cact) ----
+   Bottoms out in is_anim_at_end / set_mario_animation / stationary_ground_step
+   (= sta_ss_ids) + set_mario_action(CONST) exits.  Its writes are window
+   stores (m->actionState; the m->angleVel[1]/faceAngle[1] indexed-window
+   shorts) PLUS ONE chase store through marioObj:
+     m->marioObj(_t'8)->header.gfx.angle[1] = twirlYaw + ..
+   so the marioObj chase temp _t'8 goes in cact and the store is recognised by
+   chase_store_chk.  Walked with body_pres_of_wwalk_cact (wact = nil). *)
+Definition sta_twl_cact : list ident := mario_actions_stationary._t'8 :: nil.
+Example sta_twl_pin :
+  (prog_defmap mario_actions_stationary.prog)
+    ! mario_actions_stationary._act_twirl_land
+  = Some (Gfun (Internal mario_actions_stationary.f_act_twirl_land)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_twl_vars : fn_vars mario_actions_stationary.f_act_twirl_land = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_twl_params_ok :
+  match fn_params mario_actions_stationary.f_act_twirl_land with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_twl_nonparam :
+  forallb (fun t' => negb (mem_id t'
+             (map fst (fn_params mario_actions_stationary.f_act_twirl_land))))
+    sta_twl_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_twl_walk :
+  wwalk_chk false nil sta_ss_ids nil sta_twl_cact nil sta_sids nil
+    (fn_body mario_actions_stationary.f_act_twirl_land) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ---- the three slice-1 leaves ---- *)
 Example sta_saw_pin :
   (prog_defmap mario_actions_stationary.prog)
@@ -725,7 +760,8 @@ Definition sta_walked_ids : list ident :=
     :: mario_actions_stationary._act_ground_pound_land
     :: mario_actions_stationary._act_hold_butt_slide_stop
     :: mario_actions_stationary._act_hold_freefall_land_stop
-    :: mario_actions_stationary._act_hold_jump_land_stop :: nil.
+    :: mario_actions_stationary._act_hold_jump_land_stop
+    :: mario_actions_stationary._act_twirl_land :: nil.
 Definition sta_rest_ids : list ident :=
   filter (fun id => negb (mem_id id sta_walked_ids)) stationary_callee_ids.
 
@@ -1470,6 +1506,25 @@ Section StationaryLeafRows.
     - exact sta_hjls_walk.
   Qed.
 
+  (* act_twirl_land: the chase-store leaf (marioObj->gfx.angle[1]) -- cact. *)
+  Lemma act_twirl_land_pres :
+    body_pres lp NoA MWF bm
+      mario_actions_stationary.f_act_twirl_land.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_stationary.f_act_twirl_land
+             sta_ss_ids nil sta_twl_cact nil sta_sids nil
+             sta_twl_vars sta_twl_params_ok sta_twl_nonparam).
+    - exact sta_ss_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sta_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact sta_twl_walk.
+  Qed.
+
   (* ================================================================== *)
   (* THE REST-SPLIT: the capstone's Hpres_sta_callees from the walked   *)
   (* leaves + the shrinking sta_rest_ids residual.                      *)
@@ -1611,10 +1666,11 @@ Section StationaryLeafRows.
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
       refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
-    (* 30: act_twirl_land -- rest *)
+    (* 30: act_twirl_land -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite sta_twl_pin in Hdm. injection Hdm as <-.
+      exact act_twirl_land_pres. }
     (* 31: act_triple_jump_land_stop -- rest *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
