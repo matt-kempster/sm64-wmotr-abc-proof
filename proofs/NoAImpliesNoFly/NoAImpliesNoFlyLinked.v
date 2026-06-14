@@ -1669,6 +1669,36 @@ Section NoARealInputMWF.
                       (Hpres_obj_ext interaction._obj_set_held_state eq_refl)
                       (Hpres_obj_ext interaction._sqrtf eq_refl)
                       (Hpres_obj_ext interaction._atan2s eq_refl)
+                      (* SLICE 14: act_idle's find_floor_height_relative_polar
+                         (the out-param helper) -- the PROVED oc-arc walk from
+                         AutomaticLeafSurface, reusing the SAME 6 oc-arc terms
+                         the automatic consumer below already supplies.  NOT new
+                         trust: Hffhrp is fully discharged. *)
+                      (AutomaticLeafSurface.Hffhrp lp LO_mario bm (NoA_real bm)
+                         (MWF_real lp bm bc oc0 SafeB)
+                         (mwf_real_ctl lp bm bc oc0 SafeB)
+                         (mwf_real_window lp bm bc oc0 SafeB Hbc_bm
+                            HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                         (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+                         (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm
+                            HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                         SafeB HSafeB_not_bm
+                         (mwf_real_chase_root lp bm bc oc0 SafeB)
+                         (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm
+                            HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                         (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm
+                            HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                         (mwf_real_sglob lp bm bc oc0 SafeB)
+                         (mwf_real_chase_step lp bm bc oc0 SafeB)
+                         (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm
+                            HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                         Hocp_find_floor
+                         (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
+                         (fun m l m' Hf HM =>
+                            mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
+                         (mwf_real_safe_valid lp bm bc oc0 SafeB)
+                         Hglob_valid
+                         aut_local_store)
                       Hpres_sta_rest)
                    Hpres_qsand)
                 (moving_pres lp LO_mario LO_mov LO_stp bm (NoA_real bm)
