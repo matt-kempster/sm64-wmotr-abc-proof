@@ -755,11 +755,12 @@ Section NoARealInputMWF.
      keyed by the 37-id census stationary_callee_ids, plus the shared
      quicksand body below.
 
-     StationaryLeafSurface (slices 1-3): the clean stationary-step cluster
+     StationaryLeafSurface (slices 1-4): the clean stationary-step cluster
      (standing_against_wall / start_crawling / stop_crawling) + act_shivering
-     + act_waking_up are now WALKED (stationary_leaf_callees_pres), so the
-     assumed surface here shrinks to the FILTERED remainder sta_rest_ids
-     (32 leaves).  Finishing the family deletes this hypothesis entirely. *)
+     + act_waking_up + act_braking_stop (the act3 caller-action channel) are
+     now WALKED (stationary_leaf_callees_pres), so the assumed surface here
+     shrinks to the FILTERED remainder sta_rest_ids (31 leaves).  Finishing
+     the family deletes this hypothesis entirely. *)
   (* the stationary family's audio externals (raise/lower_background_noise,
      stop_sound) -- EF_external in every linked TU, write no Mario state:
      the SAME honest model-boundary class as the obj_ext audio rows. *)
@@ -1633,10 +1634,11 @@ Section NoARealInputMWF.
                    (mwf_real_ctl lp bm bc oc0 SafeB)
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                       Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
-                   (* SLICES 1-3: standing_against_wall/start_crawling/
-                      stop_crawling/shivering/waking_up WALKED; rest stays
-                      Hpres_sta_rest, audio externals via Hpres_sta_ext *)
-                   (stationary_leaf_callees_pres lp LO_mario LO_stp bm
+                   (* SLICES 1-4: standing_against_wall/start_crawling/
+                      stop_crawling/shivering/waking_up/braking_stop WALKED;
+                      rest stays Hpres_sta_rest, audio externals via
+                      Hpres_sta_ext *)
+                   (stationary_leaf_callees_pres lp LO_mario LO_stp LO_sta bm
                       (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
                       (mwf_real_ctl lp bm bc oc0 SafeB)
                       (mwf_real_window lp bm bc oc0 SafeB Hbc_bm

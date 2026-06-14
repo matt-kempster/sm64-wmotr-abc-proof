@@ -7473,6 +7473,128 @@ Section ActWriterRows.
     exact (conj HV' (conj HS' (conj HM' HN'))).
   Qed.
 
+  (* ---- the act3 producer GENERALIZED over the 2nd/3rd param idents.
+     call_pres_act3_of_wwalk hard-codes (_m, _animation, _endAction); the
+     caller-action step helpers (stopping_step / landing_step) thread their
+     OWN 3rd param into set_mario_action and use the idents (_m, _animID,
+     _action).  Same proof, with the param idents abstracted -- the two
+     leading PTree.gso steps (peeling eid/aid to reach _m in the marg
+     lookup) consume the explicit distinctness hyps instead of vm_compute. *)
+  Lemma call_pres_act3_of_wwalk_p :
+    forall (TU : Clight.program) (fid : ident) (f : Clight.function)
+           (wact ids wids cact xids sids : list ident) (aid eid : ident),
+      linkorder TU lp ->
+      (prog_defmap TU) ! fid = Some (Gfun (Internal f)) ->
+      fn_vars f = nil ->
+      fn_params f = (mario_actions_airborne._m, tyMSp)
+                      :: (aid, tint) :: (eid, tuint) :: nil ->
+      aid <> mario_actions_airborne._m ->
+      eid <> mario_actions_airborne._m ->
+      mem_id eid wact = true ->
+      mem_id mario_actions_airborne._m wact = false ->
+      mem_id aid wact = false ->
+      mem_id mario_actions_airborne._m cact = false ->
+      mem_id aid cact = false ->
+      mem_id eid cact = false ->
+      (forall fid', mem_id fid' ids = true ->
+                    call_pres lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' wids = true ->
+                    call_pres_act lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' xids = true ->
+                    call_pres_ext lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' sids = true ->
+                    call_pres_act lp bm NoA MWF fid') ->
+      wwalk_chk false wact ids wids cact xids sids nil (fn_body f) = true ->
+      call_pres_act3 lp bm NoA MWF fid.
+  Proof.
+    intros TU fid f wact ids wids cact xids sids aid eid LOtu Hdm Hvars Hparams
+           Haid_m Heid_m Hwa Hwm Hwanim Hcm Hcanim Hcend Hcp Hcpa Hcpx Hcps Hchk
+           fd m0 v0 v1 aval rest t0 m1 vres0 Hevf Hres Hmarg Hu HN HM HV HS.
+    pose proof (resolve_pin_fd lp _ _ _ _ LOtu Hdm Hres) as ->.
+    inv Hevf.
+    match goal with
+    | He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry
+    end.
+    match goal with
+    | Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody
+    end.
+    match goal with
+    | Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfree
+    end.
+    inv Hentry.
+    match goal with
+    | Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+        rewrite Hvars in Ha; inv Ha
+    end.
+    match goal with
+    | Hb : bind_parameter_temps _ _ _ = Some _ |- _ => rename Hb into Hbind
+    end.
+    rewrite Hparams in Hbind.
+    cbn [bind_parameter_temps] in Hbind.
+    destruct rest as [| vx restx ];
+      cbn [bind_parameter_temps] in Hbind; [ | discriminate Hbind ].
+    injection Hbind as <-.
+    set (base := create_undef_temps (fn_temps f)) in *.
+    assert (Htat0 : forall b o,
+               (PTree.set eid aval
+                  (PTree.set aid v1
+                     (PTree.set mario_actions_airborne._m v0 base)))
+                 ! mario_actions_airborne._m = Some (Vptr b o) ->
+               b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg.
+      rewrite PTree.gso in Hg by (intro E; apply Heid_m; exact (eq_sym E)).
+      rewrite PTree.gso in Hg by (intro E; apply Haid_m; exact (eq_sym E)).
+      rewrite PTree.gss in Hg. injection Hg as ->.
+      cbn in Hmarg. exact Hmarg. }
+    assert (Hact0 : act_inv wact
+               (PTree.set eid aval
+                  (PTree.set aid v1
+                     (PTree.set mario_actions_airborne._m v0 base)))).
+    { intros t' Hmem' x Hg'.
+      destruct (Pos.eq_dec t' eid) as [-> | Hne1].
+      { rewrite PTree.gss in Hg'. injection Hg' as <-. exact Hu. }
+      rewrite PTree.gso in Hg' by exact Hne1.
+      destruct (Pos.eq_dec t' aid) as [-> | Hne2].
+      { rewrite Hmem' in Hwanim. discriminate Hwanim. }
+      rewrite PTree.gso in Hg' by exact Hne2.
+      destruct (Pos.eq_dec t' mario_actions_airborne._m) as [-> | Hne3].
+      { rewrite Hmem' in Hwm. discriminate Hwm. }
+      rewrite PTree.gso in Hg' by exact Hne3.
+      left. exact (create_undef_temps_val _ _ _ Hg'). }
+    assert (Hch0 : chase_inv SafeB cact
+               (PTree.set eid aval
+                  (PTree.set aid v1
+                     (PTree.set mario_actions_airborne._m v0 base)))).
+    { intros t' Hmem' b o Hg'.
+      destruct (Pos.eq_dec t' eid) as [-> | Hne1].
+      { rewrite Hmem' in Hcend. discriminate Hcend. }
+      rewrite PTree.gso in Hg' by exact Hne1.
+      destruct (Pos.eq_dec t' aid) as [-> | Hne2].
+      { rewrite Hmem' in Hcanim. discriminate Hcanim. }
+      rewrite PTree.gso in Hg' by exact Hne2.
+      destruct (Pos.eq_dec t' mario_actions_airborne._m) as [-> | Hne3].
+      { rewrite Hmem' in Hcm. discriminate Hcm. }
+      rewrite PTree.gso in Hg' by exact Hne3.
+      pose proof (create_undef_temps_val _ _ _ Hg') as EE.
+      discriminate EE. }
+    change (blocks_of_env (lp_ge lp) empty_env)
+      with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    assert (Hcpt0 : forall fid', mem_id fid' nil = true ->
+                    call_pres_act3 lp bm NoA MWF fid')
+      by (intros fid' HH; discriminate HH).
+    destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+                false wact ids wids cact xids sids nil Hcp Hcpa Hcpx Hcps
+                Hcpt0 _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
+                HN HM HV HS)
+      as (HV' & HS' & HM' & HN' & _ & _ & _ & _).
+    exact (conj HV' (conj HS' (conj HM' HN'))).
+  Qed.
+
   (* ---- the funcall->body entry for the THIRD-position NON-POINTER
      writer (the np3 class: set_mario_anim_with_accel).  Mario's pointer
      first, the animation id second, the gated NON-POINTER accel THIRD

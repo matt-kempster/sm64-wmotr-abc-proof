@@ -196,6 +196,98 @@ Example sta_sgs_walk :
     (fn_body mario_step.f_stationary_ground_step) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- is_anim_at_end (loads only, the at-end twin of is_anim_past_end) ---- *)
+Example sta_iae_pin :
+  (prog_defmap mario.prog) ! mario._is_anim_at_end
+  = Some (Gfun (Internal mario.f_is_anim_at_end)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_iae_vars : fn_vars mario.f_is_anim_at_end = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_iae_params_ok :
+  match fn_params mario.f_is_anim_at_end with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_iae_walk :
+  wwalk_chk false nil nil nil nil nil nil nil
+    (fn_body mario.f_is_anim_at_end) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- stopping_step: the caller-action step helper (the act3 channel).
+   Threads its OWN 3rd param _action into set_mario_action(m, _action, 0);
+   also calls stationary_ground_step / set_mario_animation(m, _animID) /
+   is_anim_at_end.  Proven call_pres_act3 via call_pres_act3_of_wwalk_p
+   (params (_m, _animID, _action), the action temp _action seeded into
+   wact). ---- *)
+Definition sta_ss_wact : list ident := mario_actions_stationary._action :: nil.
+Definition sta_ss_ids : list ident :=
+  mario_step._stationary_ground_step
+    :: mario._set_mario_animation
+    :: mario._is_anim_at_end :: nil.
+Example sta_ss_pin :
+  (prog_defmap mario_actions_stationary.prog)
+    ! mario_actions_stationary._stopping_step
+  = Some (Gfun (Internal mario_actions_stationary.f_stopping_step)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_ss_vars : fn_vars mario_actions_stationary.f_stopping_step = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_ss_params :
+  fn_params mario_actions_stationary.f_stopping_step
+  = (mario_actions_airborne._m, tyMSp)
+      :: (mario_actions_stationary._animID, tint)
+      :: (mario_actions_stationary._action, tuint) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_ss_aid_m :
+  mario_actions_stationary._animID <> mario_actions_airborne._m.
+Proof. vm_compute. discriminate. Qed.
+Example sta_ss_eid_m :
+  mario_actions_stationary._action <> mario_actions_airborne._m.
+Proof. vm_compute. discriminate. Qed.
+Example sta_ss_wa :
+  mem_id mario_actions_stationary._action sta_ss_wact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_ss_wm :
+  mem_id mario_actions_airborne._m sta_ss_wact = false.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_ss_wanim :
+  mem_id mario_actions_stationary._animID sta_ss_wact = false.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_ss_walk :
+  wwalk_chk false sta_ss_wact sta_ss_ids nil nil nil sta_sids nil
+    (fn_body mario_actions_stationary.f_stopping_step) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- act_braking_stop: calls stopping_step(m, 16, ACT_BRAKING_STOP) via
+   the act3 channel (tids), plus smact-const exits + check_common_action_
+   exits.  No A-gate, no cancel helper -- the cleanest of the stop cluster. *)
+Definition sta_braking_tids : list ident :=
+  mario_actions_stationary._stopping_step :: nil.
+Example sta_abs_pin :
+  (prog_defmap mario_actions_stationary.prog)
+    ! mario_actions_stationary._act_braking_stop
+  = Some (Gfun (Internal mario_actions_stationary.f_act_braking_stop)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_abs_vars :
+  fn_vars mario_actions_stationary.f_act_braking_stop = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_abs_params_ok :
+  match fn_params mario_actions_stationary.f_act_braking_stop with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_abs_walk :
+  wwalk_chk false nil sta_leaf_ids nil nil nil sta_sids sta_braking_tids
+    (fn_body mario_actions_stationary.f_act_braking_stop) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ---- the three slice-1 leaves ---- *)
 Example sta_saw_pin :
   (prog_defmap mario_actions_stationary.prog)
@@ -333,7 +425,8 @@ Definition sta_walked_ids : list ident :=
     :: mario_actions_stationary._act_start_crawling
     :: mario_actions_stationary._act_stop_crawling
     :: mario_actions_stationary._act_shivering
-    :: mario_actions_stationary._act_waking_up :: nil.
+    :: mario_actions_stationary._act_waking_up
+    :: mario_actions_stationary._act_braking_stop :: nil.
 Definition sta_rest_ids : list ident :=
   filter (fun id => negb (mem_id id sta_walked_ids)) stationary_callee_ids.
 
@@ -576,6 +669,67 @@ Section StationaryLeafRows.
     - exact sta_sgs_walk.
   Qed.
 
+  (* ---- is_anim_at_end (the loads-only at-end twin of is_anim_past_end) ---- *)
+  Lemma sta_iae_row : call_pres lp bm NoA MWF mario._is_anim_at_end.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._is_anim_at_end
+             mario.f_is_anim_at_end nil nil nil nil
+             LO_mario sta_iae_pin sta_iae_vars sta_iae_params_ok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sta_iae_walk.
+  Qed.
+
+  (* ---- stopping_step's ids sub-tree, then its act3 row ---- *)
+  Lemma sta_ss_ids_rows : forall fid, mem_id fid sta_ss_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sta_ss_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_sgs_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_sma_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_iae_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma sta_stopping_step_act3 :
+    call_pres_act3 lp bm NoA MWF mario_actions_stationary._stopping_step.
+  Proof.
+    apply (call_pres_act3_of_wwalk_p lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_stationary.prog
+             mario_actions_stationary._stopping_step
+             mario_actions_stationary.f_stopping_step
+             sta_ss_wact sta_ss_ids nil nil nil sta_sids
+             mario_actions_stationary._animID mario_actions_stationary._action
+             LO_sta sta_ss_pin sta_ss_vars sta_ss_params
+             sta_ss_aid_m sta_ss_eid_m sta_ss_wa sta_ss_wm sta_ss_wanim
+             eq_refl eq_refl eq_refl).
+    - exact sta_ss_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sta_sids_rows.
+    - exact sta_ss_walk.
+  Qed.
+
+  Lemma sta_braking_tids_rows :
+    forall fid, mem_id fid sta_braking_tids = true ->
+      call_pres_act3 lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sta_braking_tids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_stopping_step_act3 | ].
+    discriminate H.
+  Qed.
+
   (* the leaf-callee helper census discharged by the rows above *)
   Lemma sta_leaf_ids_rows : forall fid, mem_id fid sta_leaf_ids = true ->
       call_pres lp bm NoA MWF fid.
@@ -713,6 +867,27 @@ Section StationaryLeafRows.
     - exact sta_sids_rows.
     - intros fid' H. discriminate H.
     - exact sta_awku_walk.
+  Qed.
+
+  (* act_braking_stop: the cleanest of the *_stop cluster -- it bottoms out
+     in stopping_step (the act3-channel caller-action helper) + smact-const
+     exits + check_common_action_exits.  No A-gate, no cancel helper. *)
+  Lemma act_braking_stop_pres :
+    body_pres lp NoA MWF bm
+      mario_actions_stationary.f_act_braking_stop.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_stationary.f_act_braking_stop
+             sta_leaf_ids nil nil sta_sids sta_braking_tids
+             sta_abs_vars sta_abs_params_ok).
+    - exact sta_leaf_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sta_sids_rows.
+    - exact sta_braking_tids_rows.
+    - exact sta_abs_walk.
   Qed.
 
   (* ================================================================== *)
@@ -872,10 +1047,11 @@ Section StationaryLeafRows.
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
       refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
-    (* 35: act_braking_stop -- rest *)
+    (* 35: act_braking_stop -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite sta_abs_pin in Hdm. injection Hdm as <-.
+      exact act_braking_stop_pres. }
     (* 36: act_butt_slide_stop -- rest *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
