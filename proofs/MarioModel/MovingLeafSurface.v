@@ -22,7 +22,8 @@ From Coq Require Import ZArith Lia List.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
 From SM64.Generated Require mario mario_step
-  mario_actions_airborne mario_actions_moving.
+  mario_actions_airborne mario_actions_moving
+  mario_actions_object interaction.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
   ActionValueFrame RealFrameValue RealFrameLinked AGates.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface
@@ -96,6 +97,36 @@ Definition mov_del_xids : list ident :=
     :: mario_actions_moving._play_mario_heavy_landing_sound_once
     :: mario_actions_moving._play_mario_landing_sound :: nil.
 
+(* SLICE M3: act_finish_turning_around -- the FIRST walking-cluster leaf.
+   KEY: set_jumping_action is call_pres_act (it threads its _action arg to
+   set_mario_action), NOT a param-action blocker -- so the leaf supplies an
+   untainted const and set_jumping_action sits in the sids channel.  The
+   set_jumping_action arc (mario_floor_is_steep -> mario_facing_downhill +
+   mario_get_floor_class; set_steep_jump_action -> sqrtf/atan2s + drop_and_set
+   _mario_action) is replicated from StationaryLeafSurface's sta_sja arc.
+   update_walking_speed = window stores + approach_s32(ext) + apply_slope_accel.
+   The leaf's one store is a NON-ptr chase store marioObj->header.gfx.angle[i]
+   (cact=[_t'5] absorbs it). *)
+Definition mov_mfist_ids : list ident :=
+  mario._mario_facing_downhill :: mario._mario_get_floor_class :: nil.
+Definition mov_sssja_cact : list ident := mario._t'10 :: nil.
+Definition mov_sssja_xids : list ident :=
+  mario._sqrtf :: mario._atan2s :: nil.
+Definition mov_sssja_sids : list ident :=
+  mario._drop_and_set_mario_action :: nil.
+Definition mov_sja_ids : list ident :=
+  mario._mario_floor_is_steep :: mario._set_steep_jump_action :: nil.
+Definition mov_uws_ids : list ident :=
+  mario_actions_moving._apply_slope_accel :: nil.
+Definition mov_uws_xids : list ident :=
+  mario_actions_object._approach_s32 :: nil.
+Definition mov_ftn_ids : list ident :=
+  mario_actions_moving._update_walking_speed :: mario._set_mario_animation
+    :: mario._is_anim_at_end :: mario_step._perform_ground_step :: nil.
+Definition mov_ftn_cact : list ident := mario_actions_moving._t'5 :: nil.
+Definition mov_ftn_sids : list ident :=
+  mario._set_mario_action :: mario._set_jumping_action :: nil.
+
 (* the walked leaves (this slice) and the shrinking rest *)
 Definition mov_walked_ids : list ident :=
   mario_actions_moving._act_backward_ground_kb
@@ -105,7 +136,8 @@ Definition mov_walked_ids : list ident :=
     :: mario_actions_moving._act_hard_backward_ground_kb
     :: mario_actions_moving._act_hard_forward_ground_kb
     :: mario_actions_moving._act_ground_bonk
-    :: mario_actions_moving._act_death_exit_land :: nil.
+    :: mario_actions_moving._act_death_exit_land
+    :: mario_actions_moving._act_finish_turning_around :: nil.
 Definition mov_rest_ids : list ident :=
   filter (fun id => negb (mem_id id mov_walked_ids)) moving_callee_ids.
 
@@ -368,6 +400,84 @@ Example mov_del_walk :
     (fn_body mario_actions_moving.f_act_death_exit_land) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- SLICE M3 pins ---- *)
+Example mov_mfist_pin :
+  (prog_defmap mario.prog) ! mario._mario_floor_is_steep
+  = Some (Gfun (Internal mario.f_mario_floor_is_steep)).
+Proof. vm_compute. reflexivity. Qed.
+Example mov_mfist_vars : fn_vars mario.f_mario_floor_is_steep = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_mfist_pok : mov_pok mario.f_mario_floor_is_steep = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_mfist_walk :
+  wwalk_chk false nil mov_mfist_ids nil nil nil nil nil
+    (fn_body mario.f_mario_floor_is_steep) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example mov_sssja_pin :
+  (prog_defmap mario.prog) ! mario._set_steep_jump_action
+  = Some (Gfun (Internal mario.f_set_steep_jump_action)).
+Proof. vm_compute. reflexivity. Qed.
+Example mov_sssja_vars : fn_vars mario.f_set_steep_jump_action = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_sssja_pok : mov_pok mario.f_set_steep_jump_action = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_sssja_nonparam :
+  forallb (fun t' => negb (mem_id t' (map fst (fn_params mario.f_set_steep_jump_action))))
+    mov_sssja_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_sssja_walk :
+  wwalk_chk false nil nil nil mov_sssja_cact mov_sssja_xids mov_sssja_sids nil
+    (fn_body mario.f_set_steep_jump_action) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example mov_sja_pin :
+  (prog_defmap mario.prog) ! mario._set_jumping_action
+  = Some (Gfun (Internal mario.f_set_jumping_action)).
+Proof. vm_compute. reflexivity. Qed.
+Example mov_sja_vars : fn_vars mario.f_set_jumping_action = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_sja_params : fn_params mario.f_set_jumping_action = writer_params.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_sja_ret : i32_ty (fn_return mario.f_set_jumping_action) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_sja_walk :
+  wwalk_chk true
+    (mario._action :: mario._t'1 :: mario._t'2 :: nil)
+    mov_sja_ids mov_sids nil nil mov_sids nil
+    (fn_body mario.f_set_jumping_action) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example mov_uws_pin :
+  (prog_defmap mario_actions_moving.prog) ! mario_actions_moving._update_walking_speed
+  = Some (Gfun (Internal mario_actions_moving.f_update_walking_speed)).
+Proof. vm_compute. reflexivity. Qed.
+Example mov_uws_vars : fn_vars mario_actions_moving.f_update_walking_speed = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_uws_pok : mov_pok mario_actions_moving.f_update_walking_speed = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_uws_walk :
+  wwalk_chk false nil mov_uws_ids nil nil mov_uws_xids nil nil
+    (fn_body mario_actions_moving.f_update_walking_speed) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example mov_ftn_pin :
+  (prog_defmap mario_actions_moving.prog) ! mario_actions_moving._act_finish_turning_around
+  = Some (Gfun (Internal mario_actions_moving.f_act_finish_turning_around)).
+Proof. vm_compute. reflexivity. Qed.
+Example mov_ftn_vars : fn_vars mario_actions_moving.f_act_finish_turning_around = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_ftn_pok : mov_pok mario_actions_moving.f_act_finish_turning_around = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_ftn_nonparam :
+  forallb (fun t' => negb (mem_id t' (map fst (fn_params mario_actions_moving.f_act_finish_turning_around))))
+    mov_ftn_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_ftn_walk :
+  wwalk_chk false nil mov_ftn_ids nil mov_ftn_cact nil mov_ftn_sids nil
+    (fn_body mario_actions_moving.f_act_finish_turning_around) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ====================================================================== *)
 (* The rows + the rest-split (one section, the full 12-hyp MWF kit).      *)
 (* ====================================================================== *)
@@ -377,6 +487,10 @@ Section MovingLeafRows.
   Hypothesis LO_mario : linkorder mario.prog lp.
   Hypothesis LO_mario_step : linkorder mario_step.prog lp.
   Hypothesis LO_mov : linkorder mario_actions_moving.prog lp.
+  (* SLICE M3: the interaction TU linkorder (dasma's drop-held-object subtree
+     reaches interaction helpers); supplied by the capstone (it already pins
+     interaction.prog as part of the linked program lp). *)
+  Hypothesis LO_int : linkorder interaction.prog lp.
 
   Variable bm : block.
   Variable NoA MWF : mem -> Prop.
@@ -446,12 +560,27 @@ Section MovingLeafRows.
   (* perform_ground_step: discharged at the capstone (MarioStepSurface) *)
   Hypothesis Hcp_pgs :
     call_pres lp bm NoA MWF mario_step._perform_ground_step.
+  (* SLICE M3: the obj_ext boundary (atan2s + approach_s32 + the dasma trio
+     segmented_to_virtual / stop_shell_music / obj_set_held_state).  ALL in
+     obj_ext_ids; the capstone supplies its own Hpres_obj_ext verbatim. *)
+  Hypothesis Hpres_obj_ext : forall fid,
+      mem_id fid obj_ext_ids = true -> call_pres_ext lp bm NoA MWF fid.
 
   (* the set_mario_action keystone, instantiated once *)
   Let Hsmact : call_pres_act lp bm NoA MWF mario._set_mario_action :=
     smact_pres lp LO_mario LO_mario_step bm NoA MWF HNoA_of_MWF
       HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
       HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe.
+
+  (* SLICE M3: drop_and_set_mario_action -- REUSED from ObjectLeafSurface
+     .dasma_row (the dasma trio externals routed through Hpres_obj_ext). *)
+  Let Hdasma : call_pres_act lp bm NoA MWF mario._drop_and_set_mario_action :=
+    dasma_row lp LO_mario LO_mario_step LO_int bm NoA MWF HNoA_of_MWF
+      HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+      HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+      (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
+      (Hpres_obj_ext interaction._stop_shell_music eq_refl)
+      (Hpres_obj_ext interaction._obj_set_held_state eq_refl).
 
   Lemma mov_sids_rows : forall fid, mem_id fid mov_sids = true ->
       call_pres_act lp bm NoA MWF fid.
@@ -901,6 +1030,189 @@ Section MovingLeafRows.
   Qed.
 
   (* ================================================================== *)
+  (* SLICE M3: the set_jumping_action arc + act_finish_turning_around.  *)
+  (* ================================================================== *)
+
+  (* mario_floor_is_steep: mario_facing_downhill + mario_get_floor_class
+     (the two generic ActWriterSurface rows). *)
+  Lemma mov_mfist_ids_rows : forall fid, mem_id fid mov_mfist_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_mfist_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        exact (mfd_row lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe) | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_mgfc_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_mfist_row : call_pres lp bm NoA MWF mario._mario_floor_is_steep.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._mario_floor_is_steep mario.f_mario_floor_is_steep
+             mov_mfist_ids nil nil nil
+             LO_mario mov_mfist_pin mov_mfist_vars mov_mfist_pok).
+    - exact mov_mfist_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact mov_mfist_walk.
+  Qed.
+
+  (* set_steep_jump_action: marioObj chase store (cact=[_t'10]) + sqrtf/atan2s
+     + drop_and_set_mario_action (Hdasma). *)
+  Lemma mov_sssja_xids_rows : forall fid, mem_id fid mov_sssja_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_sssja_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_sqrtf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        exact (Hpres_obj_ext mario._atan2s eq_refl) | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_sssja_sids_rows : forall fid, mem_id fid mov_sssja_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_sssja_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hdasma | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_sssja_row : call_pres lp bm NoA MWF mario._set_steep_jump_action.
+  Proof.
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._set_steep_jump_action mario.f_set_steep_jump_action
+             nil nil mov_sssja_cact mov_sssja_xids mov_sssja_sids
+             LO_mario mov_sssja_pin mov_sssja_vars mov_sssja_pok mov_sssja_nonparam).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact mov_sssja_xids_rows.
+    - exact mov_sssja_sids_rows.
+    - exact mov_sssja_walk.
+  Qed.
+
+  (* set_jumping_action: call_pres_act (threads _action to set_mario_action). *)
+  Lemma mov_sja_ids_rows : forall fid, mem_id fid mov_sja_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_sja_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_mfist_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_sssja_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_sja_row : call_pres_act lp bm NoA MWF mario._set_jumping_action.
+  Proof.
+    apply (call_pres_act_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._set_jumping_action mario.f_set_jumping_action
+             (mario._action :: mario._t'1 :: mario._t'2 :: nil)
+             mov_sja_ids mov_sids nil nil mov_sids
+             LO_mario mov_sja_pin mov_sja_vars mov_sja_params mov_sja_ret
+             eq_refl eq_refl eq_refl eq_refl eq_refl eq_refl).
+    - exact mov_sja_ids_rows.
+    - exact mov_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact mov_sids_rows.
+    - exact mov_sja_walk.
+  Qed.
+
+  (* update_walking_speed: apply_slope_accel + approach_s32(ext) + window. *)
+  Lemma mov_uws_ids_rows : forall fid, mem_id fid mov_uws_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_uws_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_asa_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_uws_xids_rows : forall fid, mem_id fid mov_uws_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_uws_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        exact (Hpres_obj_ext mario_actions_object._approach_s32 eq_refl) | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_uws_row : call_pres lp bm NoA MWF mario_actions_moving._update_walking_speed.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_moving.prog mario_actions_moving._update_walking_speed
+             mario_actions_moving.f_update_walking_speed
+             mov_uws_ids nil mov_uws_xids nil
+             LO_mov mov_uws_pin mov_uws_vars mov_uws_pok).
+    - exact mov_uws_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact mov_uws_xids_rows.
+    - intros fid' H. discriminate H.
+    - exact mov_uws_walk.
+  Qed.
+
+  (* the leaf: ids + the marioObj non-ptr chase store (cact=[_t'5]) +
+     sids = set_mario_action + set_jumping_action. *)
+  Lemma mov_ftn_ids_rows : forall fid, mem_id fid mov_ftn_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_ftn_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_uws_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_sma_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_iae_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pgs | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_ftn_sids_rows : forall fid, mem_id fid mov_ftn_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_ftn_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_sja_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_ftn_pres :
+    body_pres lp NoA MWF bm mario_actions_moving.f_act_finish_turning_around.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_moving.f_act_finish_turning_around
+             mov_ftn_ids nil mov_ftn_cact nil mov_ftn_sids nil
+             mov_ftn_vars mov_ftn_pok mov_ftn_nonparam).
+    - exact mov_ftn_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact mov_ftn_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact mov_ftn_walk.
+  Qed.
+
+  (* ================================================================== *)
   (* THE REST-SPLIT: the capstone's Hpres_mov_callees from the walked   *)
   (* leaves + the shrinking mov_rest_ids residual.                      *)
   (* ================================================================== *)
@@ -936,10 +1248,10 @@ Section MovingLeafRows.
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
       refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
-    (* 6: act_finish_turning_around -- rest *)
+    (* 6: act_finish_turning_around -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite mov_ftn_pin in Hdm. injection Hdm as <-. exact mov_ftn_pres. }
     (* 7: act_braking -- rest *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
