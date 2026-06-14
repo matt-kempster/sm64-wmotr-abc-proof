@@ -1727,7 +1727,7 @@ Section NoARealInputMWF.
                    (* the 39-id moving residual is SHRUNK to the un-walked
                       32 (mov_rest_ids): the 7-leaf knockback cluster is
                       WALKED via common_ground_knockback_action. *)
-                   (moving_leaf_callees_pres lp LO_mario LO_stp LO_mov bm
+                   (moving_leaf_callees_pres lp LO_mario LO_stp LO_mov LO_int bm
                       (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
                       (mwf_real_ctl lp bm bc oc0 SafeB)
                       (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
@@ -1750,6 +1750,9 @@ Section NoARealInputMWF.
                       (Hpres_obj_ext mario._load_patchable_table eq_refl)
                       Hpres_mov_ext
                       Hcp_pgs
+                      (* SLICE M3: the obj_ext boundary the set_jumping_action
+                         arc reaches (atan2s/approach_s32 + dasma trio). *)
+                      Hpres_obj_ext
                       Hpres_mov_rest)
                    Hpres_qsand)
                 (airborne_pres lp LO_mario LO_air bm (NoA_real bm)
