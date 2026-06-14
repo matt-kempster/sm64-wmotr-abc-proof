@@ -81,6 +81,21 @@ Definition mov_hard_back_xids : list ident :=
 Definition mov_gbonk_xids : list ident :=
   mario_actions_moving._play_mario_landing_sound :: nil.
 
+(* SLICE M2: act_death_exit_land -- the ONE landing-family leaf that does
+   NOT route through common_landing_cancels (the AGates-blocked FTJ gate).
+   Its callees are all already-proven rows: apply_landing_accel (mov_ala_row)
+   + set_mario_animation (mov_sma_row) + is_anim_at_end (mov_iae_row), audio
+   (play_sound obj_ext + play_mario_{heavy_,}landing_sound mov_ext), and
+   set_mario_action with an untainted const (205521409 = ACT_DEATH_EXIT_LAND;
+   the engine's wact_const gate confirms non-flying). *)
+Definition mov_del_ids : list ident :=
+  mario_actions_moving._apply_landing_accel
+    :: mario._set_mario_animation :: mario._is_anim_at_end :: nil.
+Definition mov_del_xids : list ident :=
+  mario._play_sound
+    :: mario_actions_moving._play_mario_heavy_landing_sound_once
+    :: mario_actions_moving._play_mario_landing_sound :: nil.
+
 (* the walked leaves (this slice) and the shrinking rest *)
 Definition mov_walked_ids : list ident :=
   mario_actions_moving._act_backward_ground_kb
@@ -89,7 +104,8 @@ Definition mov_walked_ids : list ident :=
     :: mario_actions_moving._act_soft_forward_ground_kb
     :: mario_actions_moving._act_hard_backward_ground_kb
     :: mario_actions_moving._act_hard_forward_ground_kb
-    :: mario_actions_moving._act_ground_bonk :: nil.
+    :: mario_actions_moving._act_ground_bonk
+    :: mario_actions_moving._act_death_exit_land :: nil.
 Definition mov_rest_ids : list ident :=
   filter (fun id => negb (mem_id id mov_walked_ids)) moving_callee_ids.
 
@@ -335,6 +351,21 @@ Proof. vm_compute. reflexivity. Qed.
 Example mov_gbonk_walk :
   wwalk_chk false nil mov_cgka_only nil nil mov_gbonk_xids nil nil
     (fn_body mario_actions_moving.f_act_ground_bonk) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- SLICE M2: act_death_exit_land ---- *)
+Example mov_del_pin :
+  (prog_defmap mario_actions_moving.prog) ! mario_actions_moving._act_death_exit_land
+  = Some (Gfun (Internal mario_actions_moving.f_act_death_exit_land)).
+Proof. vm_compute. reflexivity. Qed.
+Example mov_del_vars : fn_vars mario_actions_moving.f_act_death_exit_land = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_del_pok : mov_pok mario_actions_moving.f_act_death_exit_land = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_del_walk :
+  wwalk_chk false nil mov_del_ids nil nil mov_del_xids
+    (mario._set_mario_action :: nil) nil
+    (fn_body mario_actions_moving.f_act_death_exit_land) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* ====================================================================== *)
@@ -823,6 +854,52 @@ Section MovingLeafRows.
     - exact mov_gbonk_walk.
   Qed.
 
+  (* ---- SLICE M2: act_death_exit_land (body_pres) ---- *)
+  Lemma mov_del_ids_rows : forall fid, mem_id fid mov_del_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_del_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_ala_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_sma_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_iae_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_del_xids_rows : forall fid, mem_id fid mov_del_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_del_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        apply Hpres_mov_ext; vm_compute; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        apply Hpres_mov_ext; vm_compute; reflexivity | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_del_pres :
+    body_pres lp NoA MWF bm mario_actions_moving.f_act_death_exit_land.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_moving.f_act_death_exit_land
+             mov_del_ids nil mov_del_xids mov_sids nil
+             mov_del_vars mov_del_pok).
+    - exact mov_del_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact mov_del_xids_rows.
+    - exact mov_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact mov_del_walk.
+  Qed.
+
   (* ================================================================== *)
   (* THE REST-SPLIT: the capstone's Hpres_mov_callees from the walked   *)
   (* leaves + the shrinking mov_rest_ids residual.                      *)
@@ -947,10 +1024,10 @@ Section MovingLeafRows.
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
       rewrite mov_gbonk_pin in Hdm. injection Hdm as <-. exact mov_gbonk_pres. }
-    (* 28: act_death_exit_land -- rest *)
+    (* 28: act_death_exit_land -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite mov_del_pin in Hdm. injection Hdm as <-. exact mov_del_pres. }
     (* 29: act_jump_land -- rest *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
