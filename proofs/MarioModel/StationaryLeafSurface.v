@@ -139,6 +139,29 @@ Definition sta_sleep_xids : list ident :=
     :: mario_actions_stationary._play_sound_if_no_flag :: nil.
 Definition sta_sleep_cact : list ident := mario._t'19 :: nil.
 
+(* ---- SLICE 16: check_common_stationary_cancels (ccss) -- the "other" idle
+   gate (case 1).  None of its action constants are tainted (verified), so it
+   is body_pres-viable.  It calls drop_and_set_mario_action(m, untainted const)
+   (sids -> Hdasma), load_level_init_text (the dialog-text IO external, sta_ext),
+   and two cross-TU mario.prog helpers that BOTH preserve not_tainted:
+     - set_water_plunge_action (sets ACT_WATER_PLUNGE, untainted; window stores
+       to forwardVel/vel/pos/faceAngle, set_camera_mode + vec3s_set externals);
+     - update_mario_sound_and_camera (one masked window store; raise_background_
+       noise + set_camera_mode externals).
+   Both are walked here as call_pres helper rows. ---- *)
+Definition sta_umsac_xids : list ident :=
+  mario_actions_stationary._raise_background_noise
+    :: mario._set_camera_mode :: nil.
+Definition sta_swpa_xids : list ident :=
+  mario._set_camera_mode :: mario._vec3s_set :: nil.
+Definition sta_ccss_ids : list ident :=
+  mario._set_water_plunge_action
+    :: mario._update_mario_sound_and_camera :: nil.
+Definition sta_ccss_xids : list ident :=
+  mario_actions_stationary._load_level_init_text :: nil.
+Definition sta_ccss_sids : list ident :=
+  mario._drop_and_set_mario_action :: nil.
+
 (* ---- SLICE 12: the HOLD_IDLE cluster (2: act_hold_idle /
    act_hold_panting_unused).  Gate = check_common_hold_idle_cancels
    [call_pres, cact=[_t'20]]: like ccic but clears a held-object flag bit via
@@ -895,7 +918,11 @@ Definition sta_ext_ids : list ident :=
        every linked TU (verified Internal/External probe), write no Mario state,
        the SAME honest model-boundary class. *)
     :: mario_actions_stationary._play_mario_heavy_landing_sound
-    :: mario_actions_stationary._play_sound_if_no_flag :: nil.
+    :: mario_actions_stationary._play_sound_if_no_flag
+    (* SLICE 16: check_common_stationary_cancels's dialog-text IO external
+       (load_level_init_text) -- EF_external in every TU, writes no Mario
+       state; the SAME honest model boundary. *)
+    :: mario_actions_stationary._load_level_init_text :: nil.
 
 (* act_waking_up's two externals (subset of sta_ext_ids) *)
 Definition sta_waking_xids : list ident :=
@@ -952,7 +979,8 @@ Definition sta_walked_ids : list ident :=
     :: mario_actions_stationary._act_hold_panting_unused
     :: mario_actions_stationary._act_start_sleeping
     :: mario_actions_stationary._act_idle
-    :: mario_actions_stationary._act_sleeping :: nil.
+    :: mario_actions_stationary._act_sleeping
+    :: mario_actions_stationary._check_common_stationary_cancels :: nil.
 Definition sta_rest_ids : list ident :=
   filter (fun id => negb (mem_id id sta_walked_ids)) stationary_callee_ids.
 
@@ -1273,6 +1301,71 @@ Example sta_sleep_walk :
     (fn_body mario_actions_stationary.f_act_sleeping) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- SLICE 16 shape pins: set_water_plunge_action / update_mario_sound_and_
+   camera (mario.prog helpers) + check_common_stationary_cancels (the leaf) ---- *)
+Example sta_swpa_pin :
+  (prog_defmap mario.prog) ! mario._set_water_plunge_action
+  = Some (Gfun (Internal mario.f_set_water_plunge_action)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_swpa_vars : fn_vars mario.f_set_water_plunge_action = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_swpa_params_ok :
+  match fn_params mario.f_set_water_plunge_action with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_swpa_walk :
+  wwalk_chk false nil nil nil nil sta_swpa_xids sta_sids nil
+    (fn_body mario.f_set_water_plunge_action) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example sta_umsac_pin :
+  (prog_defmap mario.prog) ! mario._update_mario_sound_and_camera
+  = Some (Gfun (Internal mario.f_update_mario_sound_and_camera)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_umsac_vars : fn_vars mario.f_update_mario_sound_and_camera = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_umsac_params_ok :
+  match fn_params mario.f_update_mario_sound_and_camera with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_umsac_walk :
+  wwalk_chk false nil nil nil nil sta_umsac_xids nil nil
+    (fn_body mario.f_update_mario_sound_and_camera) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example sta_ccss_pin :
+  (prog_defmap mario_actions_stationary.prog)
+    ! mario_actions_stationary._check_common_stationary_cancels
+  = Some (Gfun (Internal
+      mario_actions_stationary.f_check_common_stationary_cancels)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_ccss_vars :
+  fn_vars mario_actions_stationary.f_check_common_stationary_cancels = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_ccss_params_ok :
+  match fn_params mario_actions_stationary.f_check_common_stationary_cancels with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_ccss_walk :
+  wwalk_chk false nil sta_ccss_ids nil nil sta_ccss_xids sta_ccss_sids nil
+    (fn_body mario_actions_stationary.f_check_common_stationary_cancels) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ---- SLICE 12 shape pins ---- *)
 
 (* check_common_hold_idle_cancels: call_pres.  cact=[_t'20] for the held-object
@@ -1520,6 +1613,11 @@ Section StationaryLeafRows.
      discharged at the capstone, NOT new trust. *)
   Hypothesis Hffhrp_sta :
     call_pres lp bm NoA MWF mario._find_floor_height_relative_polar.
+  (* SLICE 16: set_camera_mode -- the camera external both ccss helpers call.
+     In obj_ext_ids (write no Mario state); discharged at the capstone via
+     Hpres_obj_ext.  NO new distinct trust class. *)
+  Hypothesis Hcpx_scm :
+    call_pres_ext lp bm NoA MWF mario._set_camera_mode.
 
   (* the keystone, instantiated once *)
   Let Hsmact : call_pres_act lp bm NoA MWF mario._set_mario_action :=
@@ -2596,6 +2694,125 @@ Section StationaryLeafRows.
     - exact sta_sleep_walk.
   Qed.
 
+  (* ================================================================== *)
+  (* SLICE 16: check_common_stationary_cancels (ccss) + its 2 helpers   *)
+  (* ================================================================== *)
+
+  (* set_water_plunge_action's externals: set_camera_mode + vec3s_set *)
+  Lemma sta_swpa_xids_rows : forall fid, mem_id fid sta_swpa_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sta_swpa_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_scm | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_v3s | ].
+    discriminate H.
+  Qed.
+
+  (* update_mario_sound_and_camera's externals: raise_background_noise
+     (sta_ext) + set_camera_mode (obj_ext) *)
+  Lemma sta_umsac_xids_rows : forall fid, mem_id fid sta_umsac_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sta_umsac_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        apply Hpres_sta_ext; vm_compute; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_scm | ].
+    discriminate H.
+  Qed.
+
+  (* set_water_plunge_action: call_pres -- writes only UNTAINTED action (via
+     set_mario_action const) + window stores (forwardVel/vel/pos/faceAngle). *)
+  Lemma sta_swpa_row :
+    call_pres lp bm NoA MWF mario._set_water_plunge_action.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._set_water_plunge_action
+             mario.f_set_water_plunge_action
+             nil nil sta_swpa_xids sta_sids
+             LO_mario sta_swpa_pin sta_swpa_vars sta_swpa_params_ok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sta_swpa_xids_rows.
+    - exact sta_sids_rows.
+    - exact sta_swpa_walk.
+  Qed.
+
+  (* update_mario_sound_and_camera: call_pres -- one masked window store +
+     two pure externals (raise_background_noise / set_camera_mode). *)
+  Lemma sta_umsac_row :
+    call_pres lp bm NoA MWF mario._update_mario_sound_and_camera.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._update_mario_sound_and_camera
+             mario.f_update_mario_sound_and_camera
+             nil nil sta_umsac_xids nil
+             LO_mario sta_umsac_pin sta_umsac_vars sta_umsac_params_ok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sta_umsac_xids_rows.
+    - intros fid' H. discriminate H.
+    - exact sta_umsac_walk.
+  Qed.
+
+  (* ccss's ids = the two mario.prog helpers (call_pres) *)
+  Lemma sta_ccss_ids_rows : forall fid, mem_id fid sta_ccss_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sta_ccss_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_swpa_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_umsac_row | ].
+    discriminate H.
+  Qed.
+
+  (* ccss's xids = load_level_init_text (sta_ext IO boundary) *)
+  Lemma sta_ccss_xids_rows : forall fid, mem_id fid sta_ccss_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sta_ccss_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        apply Hpres_sta_ext; vm_compute; reflexivity | ].
+    discriminate H.
+  Qed.
+
+  (* ccss's sids = drop_and_set_mario_action (call_pres_act, untainted const) *)
+  Lemma sta_ccss_sids_rows : forall fid, mem_id fid sta_ccss_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sta_ccss_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hdasma | ].
+    discriminate H.
+  Qed.
+
+  Lemma check_common_stationary_cancels_pres :
+    body_pres lp NoA MWF bm
+      mario_actions_stationary.f_check_common_stationary_cancels.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_stationary.f_check_common_stationary_cancels
+             sta_ccss_ids nil sta_ccss_xids sta_ccss_sids nil
+             sta_ccss_vars sta_ccss_params_ok).
+    - exact sta_ccss_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact sta_ccss_xids_rows.
+    - exact sta_ccss_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact sta_ccss_walk.
+  Qed.
+
   Lemma act_in_quicksand_pres :
     body_pres lp NoA MWF bm mario_actions_stationary.f_act_in_quicksand.
   Proof.
@@ -2816,10 +3033,11 @@ Section StationaryLeafRows.
   Proof.
     intros Hrest fid f H Hdm.
     unfold stationary_callee_ids in H. cbn [mem_id existsb] in H.
-    (* 1: check_common_stationary_cancels -- rest *)
+    (* 1: check_common_stationary_cancels -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite sta_ccss_pin in Hdm. injection Hdm as <-.
+      exact check_common_stationary_cancels_pres. }
     (* 2: act_idle -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
