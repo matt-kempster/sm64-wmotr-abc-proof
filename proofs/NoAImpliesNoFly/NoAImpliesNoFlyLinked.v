@@ -50,7 +50,8 @@ From SM64.Proofs Require Import MWFReal RestSurface AirborneSurface
   MovingSurface ObjectSurface SubmergedSurface FloorsSurface WarpSurface
   ActWriterSurface ObjectLeafSurface FloorsLeafSurface AutomaticLeafSurface
   LocalVarsSurface OutParamSurface WindSurface InterSurface
-  MarioStepSurface BullySurface RetSurface StationaryLeafSurface.
+  MarioStepSurface BullySurface RetSurface StationaryLeafSurface
+  MovingLeafSurface.
 
 Section NoAImpliesNoFlyLinked.
   (* The linked program -- ABSTRACT, never computed (no OOM). *)
@@ -782,12 +783,23 @@ Section NoARealInputMWF.
   (* the moving dispatcher is WALKED (MovingSurface.moving_pres; its
      two-store particleFlags epilogue is killed by the window census):
      PROVED from per-leaf-callee residuals keyed by the 39-id census
-     moving_callee_ids, plus the shared quicksand body. *)
-  Hypothesis Hpres_mov_callees : forall fid f,
-      mem_id fid moving_callee_ids = true ->
+     moving_callee_ids, plus the shared quicksand body.  MovingLeafSurface
+     .moving_leaf_callees_pres SHRINKS that 39-id residual to the
+     mov_rest_ids leaves still un-walked: the knockback cluster (7 leaves
+     -- act_{,soft_,hard_}{backward,forward}_ground_kb + act_ground_bonk,
+     bottoming out in common_ground_knockback_action) is WALKED, so the
+     residual surface is the un-walked 32. *)
+  Hypothesis Hpres_mov_rest : forall fid f,
+      mem_id fid MovingLeafSurface.mov_rest_ids = true ->
       (prog_defmap mario_actions_moving.prog) ! fid
         = Some (Gfun (Internal f)) ->
       body_pres lp (NoA_real bm) MWF bm f.
+  (* the moving family's pure audio externals (mov_ext_ids): the honest
+     model boundary -- play_mario_{heavy_,}landing_sound{,_once} /
+     play_sound_if_no_flag.  Discharged via the obj_ext boundary below. *)
+  Hypothesis Hpres_mov_ext : forall fid,
+      mem_id fid MovingLeafSurface.mov_ext_ids = true ->
+      call_pres_ext lp bm (NoA_real bm) MWF fid.
   (* the airborne dispatcher is WALKED (AirborneSurface.airborne_pres):
      its whole-628-line-body residual is PROVED from per-leaf-callee
      residuals keyed by the 43-id census airborne_callee_ids (41 non-T
@@ -1712,7 +1724,34 @@ Section NoARealInputMWF.
                    (mwf_real_ctl lp bm bc oc0 SafeB)
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                       Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
-                   Hpres_mov_callees Hpres_qsand)
+                   (* the 39-id moving residual is SHRUNK to the un-walked
+                      32 (mov_rest_ids): the 7-leaf knockback cluster is
+                      WALKED via common_ground_knockback_action. *)
+                   (moving_leaf_callees_pres lp LO_mario LO_stp LO_mov bm
+                      (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
+                      (mwf_real_ctl lp bm bc oc0 SafeB)
+                      (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                         Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+                      (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      SafeB HSafeB_not_bm
+                      (mwf_real_chase_root lp bm bc oc0 SafeB)
+                      (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (mwf_real_sglob lp bm bc oc0 SafeB)
+                      (mwf_real_chase_step lp bm bc oc0 SafeB)
+                      (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (Hpres_obj_ext mario._sqrtf eq_refl)
+                      (Hpres_obj_ext mario._play_sound eq_refl)
+                      (Hpres_obj_ext mario._load_patchable_table eq_refl)
+                      Hpres_mov_ext
+                      Hcp_pgs
+                      Hpres_mov_rest)
+                   Hpres_qsand)
                 (airborne_pres lp LO_mario LO_air bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
                    (mwf_real_ctl lp bm bc oc0 SafeB)
