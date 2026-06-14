@@ -142,6 +142,12 @@ proofs/MarioModel/MarioStepSurface.v
 #     stop_crawling) ---
 proofs/MarioModel/StationaryLeafSurface.v
 
+# --- GOAL 1 / the moving-family leaf surface (SPINE:
+#     moving_leaf_callees_pres shrinks the capstone's Hpres_mov_callees
+#     down to a per-leaf census rest-split; slice M1 = the knockback
+#     cluster via common_ground_knockback_action) ---
+proofs/MarioModel/MovingLeafSurface.v
+
 # --- top-level demos ---
 proofs/Toy/ToyFrame.v
 proofs/Toy/ToyReach.v
