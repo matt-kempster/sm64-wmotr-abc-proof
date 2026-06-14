@@ -1671,6 +1671,12 @@ Section NoARealInputMWF.
                       (mwf_real_chase_step lp bm bc oc0 SafeB)
                       (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm
                          HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (* SLICE 17 cclc landing keystone: the carried MWF_real
+                         pins Mario's input halfword A-clear (mwf_real_inp) --
+                         the mid-frame fact the cclc A-gate kill consumes (the
+                         SAME term the automatic cannon consumer below uses).
+                         NO new trust. *)
+                      (mwf_real_inp lp bm bc oc0 SafeB)
                       (Hpres_obj_ext mario_step._vec3f_copy eq_refl)
                       (Hpres_obj_ext mario._vec3s_set eq_refl)
                       (Hpres_obj_ext mario._load_patchable_table eq_refl)
