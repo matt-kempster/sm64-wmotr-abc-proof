@@ -1894,13 +1894,20 @@ Fixpoint wwalk_chk' (lids oc_pids wc_pids sc_pids nids np3_ids : list ident) (rt
                         | Some t =>
                             if mem_id t wact
                             then (* an act-writer call: result feeds wact,
-                                    so the second arg must itself be a
-                                    censused act temp at an I32 type *)
+                                    so the second arg must be a censused
+                                    act temp at an I32 type, OR an
+                                    untainted I32 constant (set_mario_action
+                                    returns its arg, so the result is
+                                    untainted -- set_jumping_action's
+                                    quicksand-branch `_t = sma(m,K,0)`) *)
                               mem_id fid wids
                               && match tys, args with
                                  | ty2 :: _, Etempvar q qty :: _ =>
                                      mem_id q wact && i32_ty ty2
                                      && i32_ty qty
+                                 | ty2 :: _, Econst_int c cty :: _ =>
+                                     wact_const c && i32_ty ty2
+                                     && i32_ty cty
                                  | _, _ => false
                                  end
                             else mem_id fid ids
@@ -3883,6 +3890,98 @@ Section ActWriterWalk.
     eexists; reflexivity.
   Qed.
 
+  (* the act-writer call with a CONSTANT action argument whose RESULT
+     feeds the act tracking: the set_jumping_action quicksand branch
+     `_t = set_mario_action(m, ACT_QUICKSAND_JUMP_LAND, 0); return _t`.
+     The vm-checked constant gives untainted_scalar for the 2nd arg, and
+     set_mario_action RETURNS its action arg, so call_pres_act's result IS
+     untainted -- and unlike kit_scallc_pres we KEEP it, landing the
+     result temp t in wact (so a subsequent `return t` is accepted). *)
+  Lemma kit_scallcw_pres :
+    forall t fid ty2 tys rty cc c ity args e le0 m0 tr le1 m1 out0,
+      e ! fid = None ->
+      exec_stmt function_entry2 (lp_ge lp) e le0 m0
+        (Scall (Some t)
+           (Evar fid (Tfunction (tyMSp :: ty2 :: tys) rty cc))
+           (Etempvar mario_actions_airborne._m tyMSp
+              :: Econst_int c ity :: args))
+        tr le1 m1 out0 ->
+      call_pres_act lp bm NoA MWF fid ->
+      wact_const c = true -> i32_ty ty2 = true -> i32_ty ity = true ->
+      (forall b o, le0 ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\
+      MWF m1 /\ NoA m1 /\ out0 = Out_normal /\
+      (forall x, le1 ! t = Some x -> untainted_scalar x) /\
+      (forall t0, t0 <> t -> le1 ! t0 = le0 ! t0).
+  Proof.
+    intros t fid ty2 tys rty cc c ity args e le0 m0 tr le1 m1 out0
+           He_fid Hexec Hcpa Hc2 Hty2 Hity Htat HN HM HV HS.
+    inv Hexec.
+    match goal with
+    | Hc : classify_fun _ = fun_case_f _ _ _ |- _ =>
+        cbn in Hc; injection Hc as Hc1 Hc2' Hc3; subst
+    end.
+    match goal with
+    | Hv : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
+        apply (eval_Evar_funct _ _ _ _ _ _ _ _ He_fid) in Hv;
+        destruct Hv as (b & Hsym & ->)
+    end.
+    match goal with
+    | Hff : Genv.find_funct _ (Vptr b Ptrofs.zero) = Some ?fd |- _ =>
+        assert (Hres : resolves_lp lp fid fd) by (exists b; split; assumption)
+    end.
+    (* peel the head: Mario's pointer through the identity cast *)
+    match goal with
+    | Ha : eval_exprlist _ _ _ _ (_ :: _) _ _ |- _ => inv Ha
+    end.
+    match goal with
+    | Hv : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+        apply eval_expr_Etempvar_val in Hv; rename Hv into Hv1
+    end.
+    match goal with
+    | Hc : sem_cast _ _ _ _ = Some _ |- _ =>
+        apply sem_cast_ptr_ptr_id in Hc; subst
+    end.
+    (* peel the second arg: the untainted constant, value-neutral cast *)
+    match goal with
+    | Ha : eval_exprlist _ _ _ _ (_ :: _) _ _ |- _ => inv Ha
+    end.
+    match goal with
+    | Hev1 : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+        inv Hev1;
+        try (match goal with
+             | Hlv : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+                 inv Hlv
+             end)
+    end.
+    match goal with
+    | Hcast : sem_cast _ _ _ _ = Some _ |- _ =>
+        pose proof (sem_cast_i32_neutral _ _ _ _ _ Hity Hty2 Hcast) as ->
+    end.
+    pose proof (wact_const_sound _ Hc2) as Hu.
+    (* the marg fact *)
+    match goal with
+    | Hv1' : le0 ! _ = Some ?vv,
+      Hevf : eval_funcall _ _ _ _ (?vv :: ?vrest) _ _ _ |- _ =>
+        assert (Hmarg : marg_ok bm (vv :: vrest))
+          by (destruct vv; cbn; try exact I; exact (Htat _ _ Hv1'))
+    end.
+    match goal with
+    | Hevf : eval_funcall _ _ _ _ (_ :: _) _ _ _ |- _ =>
+        destruct (Hcpa _ _ _ _ _ _ _ _ Hevf Hres Hmarg Hu HN HM HV HS)
+          as (HV' & HS' & HM' & HN' & Hu')
+    end.
+    refine (conj HV' (conj HS' (conj HM' (conj HN'
+             (conj eq_refl (conj _ _)))))).
+    { intros x Hg. cbn [set_opttemp] in Hg.
+      rewrite PTree.gss in Hg. injection Hg as <-. exact Hu'. }
+    intros t0 Hne. cbn [set_opttemp].
+    rewrite PTree.gso by exact Hne. reflexivity.
+  Qed.
+
   (* the act-writer call whose ACTION argument is a censused act TEMP
      (asgs's own set_mario_action(m, endAction, 0) call): act_inv
      supplies untainted_scalar for the temp's value and the I32 cast
@@ -4792,23 +4891,62 @@ Section ActWriterWalk.
           apply andb_prop in Hbr as [Hfw Hbr].
           destruct tys as [| ty2 tys']; try discriminate Hbr.
           destruct args as [| aq args']; try discriminate Hbr.
-          destruct aq as [ ya yb | ya yb | ya yb | ya yb | ya yb | q qty
+          destruct aq as [ c2 ity | ya yb | ya yb | ya yb | ya yb | q qty
                          | ya yb | ya yb | ya yb yc | ya yb yc yd | ya yb
                          | ya yb yc | ya yb | ya yb ];
             try discriminate Hbr.
-          apply andb_prop in Hbr as [Hbr Hqty].
-          apply andb_prop in Hbr as [Hq Hty2].
+          2:{ (* the temp-arg form: the 2nd arg is a censused act temp *)
+            apply andb_prop in Hbr as [Hbr Hqty].
+            apply andb_prop in Hbr as [Hq Hty2].
+            assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
+                            (Scall (Some t')
+                               (Evar cid (Tfunction (tyMSp :: ty2 :: tys')
+                                            res cc))
+                               (Etempvar mario_actions_airborne._m tyMSp
+                                  :: Etempvar q qty :: args'))
+                            t (set_opttemp (Some t') vres le) m' Out_normal)
+              by (econstructor; eauto).
+            destruct (kit_scallw_pres _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (Hubw _ Hfw) Hex
+                        (Hcpa _ Hfw) Hty2 Hqty Htat
+                        (fun x Hx => Hact _ Hq x Hx) HN HM HV HS)
+              as (HV' & HS' & HM' & HN' & _ & Hnew & Hold).
+            refine (conj HV' (conj HS' (conj HM' (conj HN'
+                     (conj _ (conj _ (conj _ (conj _ I)))))))).
+            { intros b o Hg.
+              rewrite Hold in Hg
+                by (intro EE; rewrite <- EE in Hopt; cbn in Hopt;
+                    discriminate Hopt).
+              exact (Htat _ _ Hg). }
+            { intros t0 Hmem x Hg.
+              destruct (Pos.eq_dec t0 t') as [-> | Hne].
+              - exact (Hnew _ Hg).
+              - rewrite Hold in Hg by exact Hne.
+                exact (Hact _ Hmem _ Hg). }
+            { intros t0 Hmem b o Hg.
+              destruct (Pos.eq_dec t0 t') as [-> | Hne].
+              - rewrite Hmem in Hnc. discriminate Hnc.
+              - rewrite Hold in Hg by exact Hne.
+                exact (Hch _ Hmem _ _ Hg). }
+            { intros t0 Hmem v0 Hg.
+              destruct (Pos.eq_dec t0 t') as [-> | Hne].
+              - rewrite Hmem in Hnn. discriminate Hnn.
+              - rewrite Hold in Hg by exact Hne.
+                exact (Hnp _ Hmem _ Hg). } }
+          (* the const-arg form: the 2nd arg is an untainted constant
+             whose RESULT lands in wact (set_jumping_action's quicksand
+             branch `_t = set_mario_action(m, K, 0); return _t`) *)
+          apply andb_prop in Hbr as [Hbr Hity].
+          apply andb_prop in Hbr as [Hc2 Hty2].
           assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
                           (Scall (Some t')
                              (Evar cid (Tfunction (tyMSp :: ty2 :: tys')
                                           res cc))
                              (Etempvar mario_actions_airborne._m tyMSp
-                                :: Etempvar q qty :: args'))
+                                :: Econst_int c2 ity :: args'))
                           t (set_opttemp (Some t') vres le) m' Out_normal)
             by (econstructor; eauto).
-          destruct (kit_scallw_pres _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (Hubw _ Hfw) Hex
-                      (Hcpa _ Hfw) Hty2 Hqty Htat
-                      (fun x Hx => Hact _ Hq x Hx) HN HM HV HS)
+          destruct (kit_scallcw_pres _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (Hubw _ Hfw) Hex
+                      (Hcpa _ Hfw) Hc2 Hty2 Hity Htat HN HM HV HS)
             as (HV' & HS' & HM' & HN' & _ & Hnew & Hold).
           refine (conj HV' (conj HS' (conj HM' (conj HN'
                    (conj _ (conj _ (conj _ (conj _ I)))))))).
