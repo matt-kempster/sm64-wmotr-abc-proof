@@ -106,6 +106,20 @@ Definition sta_idle_ids : list ident :=
     :: mario_step._stationary_ground_step :: nil.
 Definition sta_panting_cact : list ident := mario._t'5 :: nil.
 
+(* ---- SLICE 14: act_idle (the FIFTH idle leaf -- the OC-ARC one).  Beyond the
+   ccic/set_mario_animation/stationary_ground_step idle bottom, act_idle also
+   calls is_anim_at_end (call_pres, reads only) and find_floor_height_relative_
+   polar -- the out-param helper that calls find_floor(x,y,z,&_floor) into a
+   STACK LOCAL.  ffhrp is discharged at the capstone by AutomaticLeafSurface.
+   Hffhrp (the proved call_pres_of_lwalk2 walk over the oc-arc); here it is the
+   section hypothesis Hffhrp_sta.  cact=nil (no chase stores); sids=[sma]. ---- *)
+Definition sta_idle2_ids : list ident :=
+  mario_actions_stationary._check_common_idle_cancels
+    :: mario._set_mario_animation
+    :: mario._is_anim_at_end
+    :: mario._find_floor_height_relative_polar
+    :: mario_step._stationary_ground_step :: nil.
+
 (* ---- SLICE 12: the HOLD_IDLE cluster (2: act_hold_idle /
    act_hold_panting_unused).  Gate = check_common_hold_idle_cancels
    [call_pres, cact=[_t'20]]: like ccic but clears a held-object flag bit via
@@ -912,7 +926,8 @@ Definition sta_walked_ids : list ident :=
     :: mario_actions_stationary._act_panting
     :: mario_actions_stationary._act_hold_idle
     :: mario_actions_stationary._act_hold_panting_unused
-    :: mario_actions_stationary._act_start_sleeping :: nil.
+    :: mario_actions_stationary._act_start_sleeping
+    :: mario_actions_stationary._act_idle :: nil.
 Definition sta_rest_ids : list ident :=
   filter (fun id => negb (mem_id id sta_walked_ids)) stationary_callee_ids.
 
@@ -1181,6 +1196,29 @@ Example sta_pant_walk :
     (fn_body mario_actions_stationary.f_act_panting) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- SLICE 14 shape pins: act_idle ---- *)
+Example sta_idle2_pin :
+  (prog_defmap mario_actions_stationary.prog)
+    ! mario_actions_stationary._act_idle
+  = Some (Gfun (Internal mario_actions_stationary.f_act_idle)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_idle2_vars :
+  fn_vars mario_actions_stationary.f_act_idle = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_idle2_params_ok :
+  match fn_params mario_actions_stationary.f_act_idle with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_idle2_walk :
+  wwalk_chk false nil sta_idle2_ids nil nil nil sta_sids nil
+    (fn_body mario_actions_stationary.f_act_idle) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ---- SLICE 12 shape pins ---- *)
 
 (* check_common_hold_idle_cancels: call_pres.  cact=[_t'20] for the held-object
@@ -1422,6 +1460,12 @@ Section StationaryLeafRows.
     call_pres_ext lp bm NoA MWF mario._sqrtf.
   Hypothesis Hcpx_atan2s :
     call_pres_ext lp bm NoA MWF mario._atan2s.
+  (* SLICE 14: find_floor_height_relative_polar -- the out-param helper act_idle
+     calls (it calls find_floor(x,y,z,&_floor) into a stack local).  This is the
+     PROVED AutomaticLeafSurface.Hffhrp (call_pres_of_lwalk2 over the oc-arc);
+     discharged at the capstone, NOT new trust. *)
+  Hypothesis Hffhrp_sta :
+    call_pres lp bm NoA MWF mario._find_floor_height_relative_polar.
 
   (* the keystone, instantiated once *)
   Let Hsmact : call_pres_act lp bm NoA MWF mario._set_mario_action :=
@@ -2407,6 +2451,42 @@ Section StationaryLeafRows.
     discriminate H.
   Qed.
 
+  (* act_idle's ids = ccic + set_mario_animation + is_anim_at_end +
+     find_floor_height_relative_polar + stationary_ground_step *)
+  Lemma sta_idle2_ids_rows : forall fid, mem_id fid sta_idle2_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sta_idle2_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_ccic_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_sma_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_iae_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hffhrp_sta | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_sgs_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma act_idle_pres :
+    body_pres lp NoA MWF bm mario_actions_stationary.f_act_idle.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_stationary.f_act_idle
+             sta_idle2_ids nil nil sta_sids nil
+             sta_idle2_vars sta_idle2_params_ok).
+    - exact sta_idle2_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sta_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact sta_idle2_walk.
+  Qed.
+
   Lemma act_in_quicksand_pres :
     body_pres lp NoA MWF bm mario_actions_stationary.f_act_in_quicksand.
   Proof.
@@ -2631,10 +2711,11 @@ Section StationaryLeafRows.
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
       refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
-    (* 2: act_idle -- rest *)
+    (* 2: act_idle -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite sta_idle2_pin in Hdm. injection Hdm as <-.
+      exact act_idle_pres. }
     (* 3: act_start_sleeping -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
