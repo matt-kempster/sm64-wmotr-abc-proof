@@ -128,6 +128,20 @@ Definition sta_hidle_ids : list ident :=
 Definition sta_s2v_xids : list ident := interaction._segmented_to_virtual :: nil.
 Definition sta_hpant_cact : list ident := mario._t'5 :: nil.
 
+(* ---- SLICE 13: act_start_sleeping (the idle/sleeping quick win).  Needs only
+   play_anim_sound walked [call_pres: reads m->actionState + m->marioObj->
+   ..animFrame, calls play_sound; xids=play_sound].  The leaf calls ccic +
+   set_mario_animation + play_anim_sound + is_anim_at_end + stationary_ground_step
+   [all call_pres], set_mario_action(const) [sids], play_sound [xids], and two
+   marioBodyState->eyeState chase stores [cact=[_t'19;_t'18]]. ---- *)
+Definition sta_ssleep_ids : list ident :=
+  mario_actions_stationary._check_common_idle_cancels
+    :: mario._set_mario_animation
+    :: mario_actions_stationary._play_anim_sound
+    :: mario._is_anim_at_end
+    :: mario_step._stationary_ground_step :: nil.
+Definition sta_ssleep_cact : list ident := mario._t'19 :: mario._t'18 :: nil.
+
 (* ====================================================================== *)
 (* Shape pins (vm_compute reflexivity over the real AST).                 *)
 (* ====================================================================== *)
@@ -897,7 +911,8 @@ Definition sta_walked_ids : list ident :=
     :: mario_actions_stationary._act_coughing
     :: mario_actions_stationary._act_panting
     :: mario_actions_stationary._act_hold_idle
-    :: mario_actions_stationary._act_hold_panting_unused :: nil.
+    :: mario_actions_stationary._act_hold_panting_unused
+    :: mario_actions_stationary._act_start_sleeping :: nil.
 Definition sta_rest_ids : list ident :=
   filter (fun id => negb (mem_id id sta_walked_ids)) stationary_callee_ids.
 
@@ -1249,6 +1264,62 @@ Proof. vm_compute. reflexivity. Qed.
 Example sta_hpant_walk :
   wwalk_chk false nil sta_hidle_ids nil sta_hpant_cact nil sta_dasma_sids nil
     (fn_body mario_actions_stationary.f_act_hold_panting_unused) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- SLICE 13 shape pins ---- *)
+
+(* play_anim_sound: call_pres.  Params (_m,_actionState,_animFrame,_sound) --
+   first is _m so params_ok holds.  Reads only; calls play_sound (xids). *)
+Example sta_pas_pin :
+  (prog_defmap mario_actions_stationary.prog)
+    ! mario_actions_stationary._play_anim_sound
+  = Some (Gfun (Internal mario_actions_stationary.f_play_anim_sound)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_pas_vars :
+  fn_vars mario_actions_stationary.f_play_anim_sound = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_pas_params_ok :
+  match fn_params mario_actions_stationary.f_play_anim_sound with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_pas_walk :
+  wwalk_chk false nil nil nil nil sta_psound_xids nil nil
+    (fn_body mario_actions_stationary.f_play_anim_sound) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* act_start_sleeping *)
+Example sta_ssleep_pin :
+  (prog_defmap mario_actions_stationary.prog)
+    ! mario_actions_stationary._act_start_sleeping
+  = Some (Gfun (Internal mario_actions_stationary.f_act_start_sleeping)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_ssleep_vars :
+  fn_vars mario_actions_stationary.f_act_start_sleeping = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_ssleep_params_ok :
+  match fn_params mario_actions_stationary.f_act_start_sleeping with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_ssleep_nonparam :
+  forallb (fun t' => negb (mem_id t'
+             (map fst (fn_params
+                mario_actions_stationary.f_act_start_sleeping))))
+    sta_ssleep_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_ssleep_walk :
+  wwalk_chk false nil sta_ssleep_ids nil sta_ssleep_cact sta_psound_xids
+    sta_sids nil
+    (fn_body mario_actions_stationary.f_act_start_sleeping) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* ====================================================================== *)
@@ -2484,6 +2555,63 @@ Section StationaryLeafRows.
   Qed.
 
   (* ================================================================== *)
+  (* SLICE 13: act_start_sleeping (idle/sleeping quick win)             *)
+  (* ================================================================== *)
+
+  (* play_anim_sound: call_pres -- reads only, calls play_sound (xids). *)
+  Lemma sta_pas_row :
+    call_pres lp bm NoA MWF mario_actions_stationary._play_anim_sound.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_stationary.prog
+             mario_actions_stationary._play_anim_sound
+             mario_actions_stationary.f_play_anim_sound
+             nil nil sta_psound_xids nil
+             LO_sta sta_pas_pin sta_pas_vars sta_pas_params_ok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sta_ashv_xids_rows.
+    - intros fid' H. discriminate H.
+    - exact sta_pas_walk.
+  Qed.
+
+  Lemma sta_ssleep_ids_rows : forall fid, mem_id fid sta_ssleep_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sta_ssleep_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_ccic_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_sma_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_pas_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_iae_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_sgs_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma act_start_sleeping_pres :
+    body_pres lp NoA MWF bm mario_actions_stationary.f_act_start_sleeping.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_stationary.f_act_start_sleeping
+             sta_ssleep_ids nil sta_ssleep_cact sta_psound_xids sta_sids nil
+             sta_ssleep_vars sta_ssleep_params_ok sta_ssleep_nonparam).
+    - exact sta_ssleep_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact sta_ashv_xids_rows.
+    - exact sta_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact sta_ssleep_walk.
+  Qed.
+
+  (* ================================================================== *)
   (* THE REST-SPLIT: the capstone's Hpres_sta_callees from the walked   *)
   (* leaves + the shrinking sta_rest_ids residual.                      *)
   (* ================================================================== *)
@@ -2507,10 +2635,11 @@ Section StationaryLeafRows.
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
       refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
-    (* 3: act_start_sleeping -- rest *)
+    (* 3: act_start_sleeping -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite sta_ssleep_pin in Hdm. injection Hdm as <-.
+      exact act_start_sleeping_pres. }
     (* 4: act_sleeping -- rest *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
