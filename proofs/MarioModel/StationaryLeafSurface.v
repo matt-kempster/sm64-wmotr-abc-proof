@@ -288,13 +288,52 @@ Example sta_ashv_walk :
     (fn_body mario_actions_stationary.f_act_shivering) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* the stationary family's OWN external-model-boundary census: the
+   background-noise / sound-stop AUDIO externals.  Each is EF_external in
+   every generated TU (no Internal definition anywhere -- audio engine,
+   outside our linked set), so each writes no Mario state: the SAME honest
+   model class as play_sound / the obj_ext_ids audio rows.  Discharged at
+   the capstone by the standing Hpres_sta_ext boundary hypothesis. *)
+Definition sta_ext_ids : list ident :=
+  mario_actions_stationary._raise_background_noise
+    :: mario_actions_stationary._lower_background_noise
+    :: mario_actions_stationary._stop_sound :: nil.
+
+(* act_waking_up's two externals (subset of sta_ext_ids) *)
+Definition sta_waking_xids : list ident :=
+  mario_actions_stationary._stop_sound
+    :: mario_actions_stationary._raise_background_noise :: nil.
+
+Example sta_awku_pin :
+  (prog_defmap mario_actions_stationary.prog)
+    ! mario_actions_stationary._act_waking_up
+  = Some (Gfun (Internal mario_actions_stationary.f_act_waking_up)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_awku_vars :
+  fn_vars mario_actions_stationary.f_act_waking_up = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_awku_params_ok :
+  match fn_params mario_actions_stationary.f_act_waking_up with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_awku_walk :
+  wwalk_chk false nil sta_leaf_ids nil nil sta_waking_xids sta_sids nil
+    (fn_body mario_actions_stationary.f_act_waking_up) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* the unwalked remainder of stationary_callee_ids (filter, not a
    hand-spelled list -- shrinks automatically as leaves move out) *)
 Definition sta_walked_ids : list ident :=
   mario_actions_stationary._act_standing_against_wall
     :: mario_actions_stationary._act_start_crawling
     :: mario_actions_stationary._act_stop_crawling
-    :: mario_actions_stationary._act_shivering :: nil.
+    :: mario_actions_stationary._act_shivering
+    :: mario_actions_stationary._act_waking_up :: nil.
 Definition sta_rest_ids : list ident :=
   filter (fun id => negb (mem_id id sta_walked_ids)) stationary_callee_ids.
 
@@ -373,6 +412,11 @@ Section StationaryLeafRows.
      discharged at the capstone via Hpres_obj_ext (play_sound in obj_ext_ids) *)
   Hypothesis Hcpx_psound :
     call_pres_ext lp bm NoA MWF mario._play_sound.
+  (* the stationary family's audio externals (raise/lower_background_noise,
+     stop_sound) -- the SAME honest model-boundary class as play_sound; each
+     is EF_external in every linked TU.  Discharged at the capstone. *)
+  Hypothesis Hpres_sta_ext : forall fid,
+      mem_id fid sta_ext_ids = true -> call_pres_ext lp bm NoA MWF fid.
   (* perform_ground_step: discharged at the capstone (MarioStepSurface) *)
   Hypothesis Hcp_pgs :
     call_pres lp bm NoA MWF mario_step._perform_ground_step.
@@ -636,6 +680,41 @@ Section StationaryLeafRows.
     - exact sta_ashv_walk.
   Qed.
 
+  (* act_waking_up: wake-from-sleep.  Calls stop_sound x3 +
+     raise_background_noise (the audio externals), set_mario_action x4 with
+     constant action ids (the smact-const channel), an m->actionTimer window
+     store, set_mario_animation(m, const), and stationary_ground_step. *)
+  Lemma sta_awku_xids_rows : forall fid, mem_id fid sta_waking_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sta_waking_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        apply Hpres_sta_ext; vm_compute; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        apply Hpres_sta_ext; vm_compute; reflexivity | ].
+    discriminate H.
+  Qed.
+
+  Lemma act_waking_up_pres :
+    body_pres lp NoA MWF bm
+      mario_actions_stationary.f_act_waking_up.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_stationary.f_act_waking_up
+             sta_leaf_ids nil sta_waking_xids sta_sids nil
+             sta_awku_vars sta_awku_params_ok).
+    - exact sta_leaf_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact sta_awku_xids_rows.
+    - exact sta_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact sta_awku_walk.
+  Qed.
+
   (* ================================================================== *)
   (* THE REST-SPLIT: the capstone's Hpres_sta_callees from the walked   *)
   (* leaves + the shrinking sta_rest_ids residual.                      *)
@@ -668,10 +747,11 @@ Section StationaryLeafRows.
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
       refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
-    (* 5: act_waking_up -- rest *)
+    (* 5: act_waking_up -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite sta_awku_pin in Hdm. injection Hdm as <-.
+      exact act_waking_up_pres. }
     (* 6: act_panting -- rest *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
