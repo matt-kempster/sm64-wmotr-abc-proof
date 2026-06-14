@@ -116,11 +116,11 @@ proofs/MarioModel/WindSurface.v
 #     MWF table row; residuals = 29 body_pres_io handlers + mgco + ckpw) ---
 proofs/MarioModel/InterSurface.v
 
-# --- GOAL 1 / the bully knockback leaf (STAGING under Unwired: bkbm_row
-#     PROVES call_pres_ret_act for bully_knock_back_mario, the LAST interact_*
-#     leaf, via a self-contained mid-walk keyed to interaction._mario; not yet
-#     consumed by the capstone -- the swap of Hcpra_bkbm_real is the next step) ---
-proofs/MarioModel/Unwired/BullySurface.v
+# --- GOAL 1 / the bully knockback leaf (SPINE: bkbm_row DISCHARGES the
+#     capstone's Hcpra_bkbm_real -- the LAST interact_* leaf -- via a
+#     self-contained mid-walk keyed to interaction._mario; residuals = the
+#     2 static-helper externals init/transfer (terminal boundary rows)) ---
+proofs/MarioModel/BullySurface.v
 
 # --- GOAL 1 / the mario_step surface (SPINE: pgs_cp DISCHARGES the
 #     capstone's Hcp_pgs perform_ground_step blocker via a loop-tolerant

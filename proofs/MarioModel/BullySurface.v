@@ -1,4 +1,6 @@
 (* ====================================================================== *)
+(* SPINE: bkbm_row DISCHARGES the capstone's Hcpra_bkbm_real (the LAST      *)
+(* interact_* leaf); consumed by NoAImpliesNoFlyLinked.                     *)
 (* BullySurface: discharge call_pres_ret_act for bully_knock_back_mario.   *)
 (* The LAST interact_* leaf (created by InterSurface commit 16298bb): the   *)
 (* bully knockback helper computes a bonk action into a u32 and returns it  *)

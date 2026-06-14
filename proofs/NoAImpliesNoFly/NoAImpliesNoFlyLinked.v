@@ -50,7 +50,7 @@ From SM64.Proofs Require Import MWFReal RestSurface AirborneSurface
   MovingSurface ObjectSurface SubmergedSurface FloorsSurface WarpSurface
   ActWriterSurface ObjectLeafSurface FloorsLeafSurface AutomaticLeafSurface
   LocalVarsSurface OutParamSurface WindSurface InterSurface
-  MarioStepSurface.
+  MarioStepSurface BullySurface.
 
 Section NoAImpliesNoFlyLinked.
   (* The linked program -- ABSTRACT, never computed (no OOM). *)
@@ -1083,13 +1083,40 @@ Section NoARealInputMWF.
 
   (* interact_bully's action-computing leaf: bully_knock_back_mario, a
      call_pres_ret_act (its result is the untainted action fed to
-     drop_and_set_mario_action).  The WHOLE interact_bully body is now
-     WALKED (InterSurface io arc) resting only on this one leaf -- the
-     refinement that emptied io_rest_ids.  bkbm is discharged separately
-     by walking its body (a future unit). *)
-  Hypothesis Hcpra_bkbm_real :
+     drop_and_set_mario_action).  The WHOLE interact_bully body is WALKED
+     (InterSurface io arc) resting only on this one leaf -- the refinement
+     that emptied io_rest_ids.  bkbm is now WALKED too (BullySurface.bkbm_row,
+     a self-contained mid-walk keyed to interaction._mario since the param is
+     `mario` not the canonical _m=86): the opaque whole-body assumption is
+     GONE, replaced by the proved row resting only on the 2 static-helper
+     externals init_bully_collision_data / transfer_bully_speed -- terminal
+     boundary rows (EF_external in interaction.prog), the same accepted
+     external-call model class as atan2s/sqrtf/spawn_object. *)
+  Hypothesis Hcpx_ibcd_real :
+    call_pres_ext lp bm (NoA_real bm) MWF
+      interaction._init_bully_collision_data.
+  Hypothesis Hcpx_tbs_real :
+    call_pres_ext lp bm (NoA_real bm) MWF
+      interaction._transfer_bully_speed.
+  Lemma Hcpra_bkbm_real :
     call_pres_ret_act lp bm (NoA_real bm) MWF
       interaction._bully_knock_back_mario.
+  Proof.
+    exact (BullySurface.bkbm_row lp LO_mario LO_int bm (NoA_real bm) MWF SafeB
+             (mwf_real_ctl lp bm bc oc0 SafeB)
+             (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             HSafeB_not_bm
+             (mwf_real_chase_root lp bm bc oc0 SafeB)
+             (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
+             (fun m l m' Hf HM =>
+                mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
+             Hcpx_ibcd_real Hcpx_tbs_real
+             (Hpres_obj_ext interaction._atan2s eq_refl)
+             (Hpres_obj_ext interaction._sqrtf eq_refl)).
+  Qed.
 
   (* the io REST census row: the handlers not yet walked.  Every handler
      walk (InterSurface's io arc) removes its id from io_rest_ids and this
