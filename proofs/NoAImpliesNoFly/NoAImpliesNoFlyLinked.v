@@ -755,11 +755,17 @@ Section NoARealInputMWF.
      keyed by the 37-id census stationary_callee_ids, plus the shared
      quicksand body below.
 
-     SLICE 1 (StationaryLeafSurface): the "clean stationary-step" cluster
-     act_standing_against_wall / act_start_crawling / act_stop_crawling is
-     now WALKED (stationary_leaf_callees_pres), so the assumed surface here
-     shrinks to the FILTERED remainder sta_rest_ids (34 leaves).  Finishing
-     the family deletes this hypothesis entirely. *)
+     StationaryLeafSurface (slices 1-3): the clean stationary-step cluster
+     (standing_against_wall / start_crawling / stop_crawling) + act_shivering
+     + act_waking_up are now WALKED (stationary_leaf_callees_pres), so the
+     assumed surface here shrinks to the FILTERED remainder sta_rest_ids
+     (32 leaves).  Finishing the family deletes this hypothesis entirely. *)
+  (* the stationary family's audio externals (raise/lower_background_noise,
+     stop_sound) -- EF_external in every linked TU, write no Mario state:
+     the SAME honest model-boundary class as the obj_ext audio rows. *)
+  Hypothesis Hpres_sta_ext : forall fid,
+      mem_id fid StationaryLeafSurface.sta_ext_ids = true ->
+      call_pres_ext lp bm (NoA_real bm) MWF fid.
   Hypothesis Hpres_sta_rest : forall fid f,
       mem_id fid sta_rest_ids = true ->
       (prog_defmap mario_actions_stationary.prog) ! fid
@@ -1627,8 +1633,9 @@ Section NoARealInputMWF.
                    (mwf_real_ctl lp bm bc oc0 SafeB)
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                       Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
-                   (* SLICE 1: standing_against_wall/start_crawling/
-                      stop_crawling WALKED; the rest stays Hpres_sta_rest *)
+                   (* SLICES 1-3: standing_against_wall/start_crawling/
+                      stop_crawling/shivering/waking_up WALKED; rest stays
+                      Hpres_sta_rest, audio externals via Hpres_sta_ext *)
                    (stationary_leaf_callees_pres lp LO_mario LO_stp bm
                       (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
                       (mwf_real_ctl lp bm bc oc0 SafeB)
@@ -1651,6 +1658,7 @@ Section NoARealInputMWF.
                       (Hpres_obj_ext mario._vec3s_set eq_refl)
                       (Hpres_obj_ext mario._load_patchable_table eq_refl)
                       (Hpres_obj_ext mario._play_sound eq_refl)
+                      Hpres_sta_ext
                       Hcp_pgs
                       Hpres_sta_rest)
                    Hpres_qsand)
