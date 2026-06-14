@@ -62,6 +62,10 @@ Definition sta_sma_cact : list ident :=
 Definition sta_sma_xids : list ident :=
   mario._load_patchable_table :: nil.
 
+(* the one shared audio external (play_sound, in the obj_ext model class) --
+   used by act_shivering and the landing-sound helper chain *)
+Definition sta_psound_xids : list ident := mario._play_sound :: nil.
+
 (* ====================================================================== *)
 (* Shape pins (vm_compute reflexivity over the real AST).                 *)
 (* ====================================================================== *)
@@ -288,6 +292,81 @@ Example sta_abs_walk :
     (fn_body mario_actions_stationary.f_act_braking_stop) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- the landing-sound helper chain (all INTERNAL in mario.prog, walked;
+   bottoms out in play_sound, the obj_ext audio external) ---- *)
+(* play_sound_and_spawn_particles: reads m->flags, builds a sound id, calls
+   play_sound; the 4 stores are particle/window writes the engine accepts *)
+Example sta_pssp_pin :
+  (prog_defmap mario.prog) ! mario._play_sound_and_spawn_particles
+  = Some (Gfun (Internal mario.f_play_sound_and_spawn_particles)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_pssp_vars :
+  fn_vars mario.f_play_sound_and_spawn_particles = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_pssp_params_ok :
+  match fn_params mario.f_play_sound_and_spawn_particles with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_pssp_walk :
+  wwalk_chk false nil nil nil nil sta_psound_xids nil nil
+    (fn_body mario.f_play_sound_and_spawn_particles) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* play_mario_landing_sound: reads m->flags, calls play_sound_and_spawn_particles *)
+Definition sta_pmls_ids : list ident :=
+  mario._play_sound_and_spawn_particles :: nil.
+Example sta_pmls_pin :
+  (prog_defmap mario.prog) ! mario._play_mario_landing_sound
+  = Some (Gfun (Internal mario.f_play_mario_landing_sound)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_pmls_vars :
+  fn_vars mario.f_play_mario_landing_sound = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_pmls_params_ok :
+  match fn_params mario.f_play_mario_landing_sound with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_pmls_walk :
+  wwalk_chk false nil sta_pmls_ids nil nil nil nil nil
+    (fn_body mario.f_play_mario_landing_sound) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- act_butt_slide_stop: stopping_step (act3) + play_mario_landing_sound
+   (internal helper, ids) + smact-const exits.  No A-gate, no cancel helper. *)
+Definition sta_bss_ids : list ident :=
+  mario._play_mario_landing_sound :: sta_leaf_ids.
+Example sta_bss_pin :
+  (prog_defmap mario_actions_stationary.prog)
+    ! mario_actions_stationary._act_butt_slide_stop
+  = Some (Gfun (Internal mario_actions_stationary.f_act_butt_slide_stop)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_bss_vars :
+  fn_vars mario_actions_stationary.f_act_butt_slide_stop = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_bss_params_ok :
+  match fn_params mario_actions_stationary.f_act_butt_slide_stop with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_bss_walk :
+  wwalk_chk false nil sta_bss_ids nil nil nil sta_sids sta_braking_tids
+    (fn_body mario_actions_stationary.f_act_butt_slide_stop) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ---- the three slice-1 leaves ---- *)
 Example sta_saw_pin :
   (prog_defmap mario_actions_stationary.prog)
@@ -354,9 +433,6 @@ Example sta_apcr_walk :
   wwalk_chk false nil sta_leaf_ids nil nil nil sta_sids nil
     (fn_body mario_actions_stationary.f_act_stop_crawling) = true.
 Proof. vm_compute. reflexivity. Qed.
-
-(* act_shivering's one external (play_sound, in the obj_ext model class) *)
-Definition sta_psound_xids : list ident := mario._play_sound :: nil.
 
 Example sta_ashv_pin :
   (prog_defmap mario_actions_stationary.prog)
@@ -426,7 +502,8 @@ Definition sta_walked_ids : list ident :=
     :: mario_actions_stationary._act_stop_crawling
     :: mario_actions_stationary._act_shivering
     :: mario_actions_stationary._act_waking_up
-    :: mario_actions_stationary._act_braking_stop :: nil.
+    :: mario_actions_stationary._act_braking_stop
+    :: mario_actions_stationary._act_butt_slide_stop :: nil.
 Definition sta_rest_ids : list ident :=
   filter (fun id => negb (mem_id id sta_walked_ids)) stationary_callee_ids.
 
@@ -730,6 +807,51 @@ Section StationaryLeafRows.
     discriminate H.
   Qed.
 
+  (* ---- the landing-sound helper chain ---- *)
+  Lemma sta_pssp_row :
+    call_pres lp bm NoA MWF mario._play_sound_and_spawn_particles.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._play_sound_and_spawn_particles
+             mario.f_play_sound_and_spawn_particles nil nil sta_psound_xids nil
+             LO_mario sta_pssp_pin sta_pssp_vars sta_pssp_params_ok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold sta_psound_xids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_psound | ].
+      discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sta_pssp_walk.
+  Qed.
+
+  Lemma sta_pmls_ids_rows : forall fid, mem_id fid sta_pmls_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sta_pmls_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_pssp_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma sta_pmls_row :
+    call_pres lp bm NoA MWF mario._play_mario_landing_sound.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._play_mario_landing_sound
+             mario.f_play_mario_landing_sound sta_pmls_ids nil nil nil
+             LO_mario sta_pmls_pin sta_pmls_vars sta_pmls_params_ok).
+    - exact sta_pmls_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sta_pmls_walk.
+  Qed.
+
   (* the leaf-callee helper census discharged by the rows above *)
   Lemma sta_leaf_ids_rows : forall fid, mem_id fid sta_leaf_ids = true ->
       call_pres lp bm NoA MWF fid.
@@ -744,6 +866,17 @@ Section StationaryLeafRows.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact sta_sgs_row | ].
     discriminate H.
+  Qed.
+
+  (* act_butt_slide_stop's ids = play_mario_landing_sound + the shared leaf
+     helper census (dispatched by sta_leaf_ids_rows above) *)
+  Lemma sta_bss_ids_rows : forall fid, mem_id fid sta_bss_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sta_bss_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_pmls_row | ].
+    apply sta_leaf_ids_rows. exact H.
   Qed.
 
   (* ================================================================== *)
@@ -888,6 +1021,26 @@ Section StationaryLeafRows.
     - exact sta_sids_rows.
     - exact sta_braking_tids_rows.
     - exact sta_abs_walk.
+  Qed.
+
+  (* act_butt_slide_stop: stopping_step (act3) + play_mario_landing_sound
+     (the internal landing-sound helper chain) + smact-const exits. *)
+  Lemma act_butt_slide_stop_pres :
+    body_pres lp NoA MWF bm
+      mario_actions_stationary.f_act_butt_slide_stop.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_stationary.f_act_butt_slide_stop
+             sta_bss_ids nil nil sta_sids sta_braking_tids
+             sta_bss_vars sta_bss_params_ok).
+    - exact sta_bss_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sta_sids_rows.
+    - exact sta_braking_tids_rows.
+    - exact sta_bss_walk.
   Qed.
 
   (* ================================================================== *)
@@ -1052,10 +1205,11 @@ Section StationaryLeafRows.
     { apply Pos.eqb_eq in Hm; subst fid.
       rewrite sta_abs_pin in Hdm. injection Hdm as <-.
       exact act_braking_stop_pres. }
-    (* 36: act_butt_slide_stop -- rest *)
+    (* 36: act_butt_slide_stop -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite sta_bss_pin in Hdm. injection Hdm as <-.
+      exact act_butt_slide_stop_pres. }
     (* 37: act_hold_butt_slide_stop -- rest *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.

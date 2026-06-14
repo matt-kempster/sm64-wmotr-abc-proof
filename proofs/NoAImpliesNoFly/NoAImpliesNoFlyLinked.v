@@ -755,12 +755,13 @@ Section NoARealInputMWF.
      keyed by the 37-id census stationary_callee_ids, plus the shared
      quicksand body below.
 
-     StationaryLeafSurface (slices 1-4): the clean stationary-step cluster
+     StationaryLeafSurface (slices 1-5): the clean stationary-step cluster
      (standing_against_wall / start_crawling / stop_crawling) + act_shivering
-     + act_waking_up + act_braking_stop (the act3 caller-action channel) are
-     now WALKED (stationary_leaf_callees_pres), so the assumed surface here
-     shrinks to the FILTERED remainder sta_rest_ids (31 leaves).  Finishing
-     the family deletes this hypothesis entirely. *)
+     + act_waking_up + the act3 caller-action stop cluster (act_braking_stop /
+     act_butt_slide_stop, via stopping_step) are now WALKED
+     (stationary_leaf_callees_pres), so the assumed surface here shrinks to
+     the FILTERED remainder sta_rest_ids (30 leaves).  Finishing the family
+     deletes this hypothesis entirely. *)
   (* the stationary family's audio externals (raise/lower_background_noise,
      stop_sound) -- EF_external in every linked TU, write no Mario state:
      the SAME honest model-boundary class as the obj_ext audio rows. *)
