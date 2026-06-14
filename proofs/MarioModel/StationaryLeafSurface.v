@@ -27,7 +27,7 @@ From SM64.Proofs Require Import SymbolicLinking Flying Taint
   ActionValueFrame RealFrameValue RealFrameLinked AGates.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface
   AirborneSurface DispatchKit FloorsSurface.
-From SM64.Proofs Require Import ActWriterSurface StationarySurface.
+From SM64.Proofs Require Import ActWriterSurface ObjectLeafSurface StationarySurface.
 
 Import ListNotations.
 
@@ -367,6 +367,63 @@ Example sta_bss_walk :
     (fn_body mario_actions_stationary.f_act_butt_slide_stop) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- the drop_and_set_mario_action (held-object) sids channel.
+   dasma = drop the held object + set an untainted-const action: a
+   call_pres_act writer, REUSED from ObjectLeafSurface.dasma_row.  Its
+   internal held-object drop bottoms out in three interaction externals
+   (segmented_to_virtual / stop_shell_music / obj_set_held_state), all
+   already in obj_ext_ids -- so NO new trust. ---- *)
+Definition sta_dasma_sids : list ident :=
+  mario._set_mario_action :: mario._drop_and_set_mario_action :: nil.
+
+(* act_hold_heavy_idle: drop_and_set_mario_action(m, ACT, 0) x3 (the held
+   "heavy" item idle) + smact-const exits + stationary_ground_step. *)
+Example sta_hhi_pin :
+  (prog_defmap mario_actions_stationary.prog)
+    ! mario_actions_stationary._act_hold_heavy_idle
+  = Some (Gfun (Internal mario_actions_stationary.f_act_hold_heavy_idle)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_hhi_vars :
+  fn_vars mario_actions_stationary.f_act_hold_heavy_idle = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_hhi_params_ok :
+  match fn_params mario_actions_stationary.f_act_hold_heavy_idle with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_hhi_walk :
+  wwalk_chk false nil sta_leaf_ids nil nil nil sta_dasma_sids nil
+    (fn_body mario_actions_stationary.f_act_hold_heavy_idle) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* act_slide_kick_slide_stop: drop_and_set_mario_action + stopping_step
+   (the act3 channel) + smact-const exits. *)
+Example sta_skss_pin :
+  (prog_defmap mario_actions_stationary.prog)
+    ! mario_actions_stationary._act_slide_kick_slide_stop
+  = Some (Gfun (Internal mario_actions_stationary.f_act_slide_kick_slide_stop)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_skss_vars :
+  fn_vars mario_actions_stationary.f_act_slide_kick_slide_stop = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_skss_params_ok :
+  match fn_params mario_actions_stationary.f_act_slide_kick_slide_stop with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_skss_walk :
+  wwalk_chk false nil sta_leaf_ids nil nil nil sta_dasma_sids sta_braking_tids
+    (fn_body mario_actions_stationary.f_act_slide_kick_slide_stop) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ---- the three slice-1 leaves ---- *)
 Example sta_saw_pin :
   (prog_defmap mario_actions_stationary.prog)
@@ -503,7 +560,9 @@ Definition sta_walked_ids : list ident :=
     :: mario_actions_stationary._act_shivering
     :: mario_actions_stationary._act_waking_up
     :: mario_actions_stationary._act_braking_stop
-    :: mario_actions_stationary._act_butt_slide_stop :: nil.
+    :: mario_actions_stationary._act_butt_slide_stop
+    :: mario_actions_stationary._act_hold_heavy_idle
+    :: mario_actions_stationary._act_slide_kick_slide_stop :: nil.
 Definition sta_rest_ids : list ident :=
   filter (fun id => negb (mem_id id sta_walked_ids)) stationary_callee_ids.
 
@@ -516,6 +575,7 @@ Section StationaryLeafRows.
   Hypothesis LO_mario : linkorder mario.prog lp.
   Hypothesis LO_mario_step : linkorder mario_step.prog lp.
   Hypothesis LO_sta : linkorder mario_actions_stationary.prog lp.
+  Hypothesis LO_int : linkorder interaction.prog lp.
 
   Variable bm : block.
   Variable NoA MWF : mem -> Prop.
@@ -590,12 +650,40 @@ Section StationaryLeafRows.
   (* perform_ground_step: discharged at the capstone (MarioStepSurface) *)
   Hypothesis Hcp_pgs :
     call_pres lp bm NoA MWF mario_step._perform_ground_step.
+  (* the three interaction externals the dasma (drop_and_set_mario_action)
+     held-object drop bottoms out in -- all in obj_ext_ids (NO new trust);
+     discharged at the capstone via Hpres_obj_ext. *)
+  Hypothesis Hcpx_s2v :
+    call_pres_ext lp bm NoA MWF interaction._segmented_to_virtual.
+  Hypothesis Hcpx_ssm :
+    call_pres_ext lp bm NoA MWF interaction._stop_shell_music.
+  Hypothesis Hcpx_oshs :
+    call_pres_ext lp bm NoA MWF interaction._obj_set_held_state.
 
   (* the keystone, instantiated once *)
   Let Hsmact : call_pres_act lp bm NoA MWF mario._set_mario_action :=
     smact_pres lp LO_mario LO_mario_step bm NoA MWF HNoA_of_MWF
       HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
       HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe.
+
+  (* drop_and_set_mario_action's call_pres_act row, REUSED from
+     ObjectLeafSurface.dasma_row. *)
+  Let Hdasma : call_pres_act lp bm NoA MWF mario._drop_and_set_mario_action :=
+    dasma_row lp LO_mario LO_mario_step LO_int bm NoA MWF HNoA_of_MWF
+      HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+      HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+      Hcpx_s2v Hcpx_ssm Hcpx_oshs.
+
+  Lemma sta_dasma_sids_rows : forall fid, mem_id fid sta_dasma_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sta_dasma_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hdasma | ].
+    discriminate H.
+  Qed.
 
   Lemma sta_sids_rows : forall fid, mem_id fid sta_sids = true ->
       call_pres_act lp bm NoA MWF fid.
@@ -1043,6 +1131,47 @@ Section StationaryLeafRows.
     - exact sta_bss_walk.
   Qed.
 
+  (* act_hold_heavy_idle: the held-"heavy"-item idle -- three
+     drop_and_set_mario_action(m, ACT_const, 0) exits (the dasma channel) +
+     smact-const exits + stationary_ground_step. *)
+  Lemma act_hold_heavy_idle_pres :
+    body_pres lp NoA MWF bm
+      mario_actions_stationary.f_act_hold_heavy_idle.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_stationary.f_act_hold_heavy_idle
+             sta_leaf_ids nil nil sta_dasma_sids nil
+             sta_hhi_vars sta_hhi_params_ok).
+    - exact sta_leaf_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sta_dasma_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact sta_hhi_walk.
+  Qed.
+
+  (* act_slide_kick_slide_stop: drop_and_set_mario_action (dasma) +
+     stopping_step (act3) + smact-const exits. *)
+  Lemma act_slide_kick_slide_stop_pres :
+    body_pres lp NoA MWF bm
+      mario_actions_stationary.f_act_slide_kick_slide_stop.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_stationary.f_act_slide_kick_slide_stop
+             sta_leaf_ids nil nil sta_dasma_sids sta_braking_tids
+             sta_skss_vars sta_skss_params_ok).
+    - exact sta_leaf_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sta_dasma_sids_rows.
+    - exact sta_braking_tids_rows.
+    - exact sta_skss_walk.
+  Qed.
+
   (* ================================================================== *)
   (* THE REST-SPLIT: the capstone's Hpres_sta_callees from the walked   *)
   (* leaves + the shrinking sta_rest_ids residual.                      *)
@@ -1092,10 +1221,11 @@ Section StationaryLeafRows.
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
       refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
-    (* 9: act_hold_heavy_idle -- rest *)
+    (* 9: act_hold_heavy_idle -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite sta_hhi_pin in Hdm. injection Hdm as <-.
+      exact act_hold_heavy_idle_pres. }
     (* 10: act_in_quicksand -- rest *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
@@ -1136,10 +1266,11 @@ Section StationaryLeafRows.
     { apply Pos.eqb_eq in Hm; subst fid.
       rewrite sta_apcr_pin in Hdm. injection Hdm as <-.
       exact act_stop_crawling_pres. }
-    (* 19: act_slide_kick_slide_stop -- rest *)
+    (* 19: act_slide_kick_slide_stop -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite sta_skss_pin in Hdm. injection Hdm as <-.
+      exact act_slide_kick_slide_stop_pres. }
     (* 20: act_shockwave_bounce -- rest *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
