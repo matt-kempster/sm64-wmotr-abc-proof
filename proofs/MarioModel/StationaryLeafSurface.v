@@ -618,6 +618,71 @@ Example sta_twl_walk :
     (fn_body mario_actions_stationary.f_act_twirl_land) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- SLICE 9: act_air_throw_land via mario_throw_held_object (cact) ----
+   act_air_throw_land = set_mario_action(CONST) exits + an m->actionTimer
+   window store + mario_throw_held_object(m) + landing_step(m,CONST,CONST)
+   (act3).  mario_throw_held_object [interaction.prog] drops + throws the held
+   object: it chases m->heldObj / m->marioBodyState and stores through those
+   chased pointers (cact = mtho_cact), and its only externals are the THREE
+   held-object externals (segmented_to_virtual / stop_shell_music /
+   obj_set_held_state) -- ALL in obj_ext_ids, already threaded as Hcpx_s2v /
+   Hcpx_ssm / Hcpx_oshs (ZERO new trust). *)
+Definition mtho_xids : list ident :=
+  interaction._segmented_to_virtual :: interaction._stop_shell_music
+    :: interaction._obj_set_held_state :: nil.
+Definition mtho_cact : list ident :=
+  interaction._t'2 :: interaction._t'3 :: interaction._t'5 :: interaction._t'6
+   :: interaction._t'10 :: interaction._t'11 :: interaction._t'13
+   :: interaction._t'14 :: interaction._t'18 :: interaction._t'19 :: nil.
+Example mtho_pin :
+  (prog_defmap interaction.prog) ! interaction._mario_throw_held_object
+  = Some (Gfun (Internal interaction.f_mario_throw_held_object)).
+Proof. vm_compute. reflexivity. Qed.
+Example mtho_vars : fn_vars interaction.f_mario_throw_held_object = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example mtho_params_ok :
+  match fn_params interaction.f_mario_throw_held_object with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mtho_nonparam :
+  forallb (fun t' => negb (mem_id t'
+             (map fst (fn_params interaction.f_mario_throw_held_object))))
+    mtho_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mtho_walk :
+  wwalk_chk false nil nil nil mtho_cact mtho_xids nil nil
+    (fn_body interaction.f_mario_throw_held_object) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Definition sta_atl_ids : list ident :=
+  interaction._mario_throw_held_object :: nil.
+Example sta_atl_pin :
+  (prog_defmap mario_actions_stationary.prog)
+    ! mario_actions_stationary._act_air_throw_land
+  = Some (Gfun (Internal mario_actions_stationary.f_act_air_throw_land)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_atl_vars :
+  fn_vars mario_actions_stationary.f_act_air_throw_land = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_atl_params_ok :
+  match fn_params mario_actions_stationary.f_act_air_throw_land with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_atl_walk :
+  wwalk_chk false nil sta_atl_ids nil nil nil sta_sids sta_landing_tids
+    (fn_body mario_actions_stationary.f_act_air_throw_land) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ---- the three slice-1 leaves ---- *)
 Example sta_saw_pin :
   (prog_defmap mario_actions_stationary.prog)
@@ -761,7 +826,8 @@ Definition sta_walked_ids : list ident :=
     :: mario_actions_stationary._act_hold_butt_slide_stop
     :: mario_actions_stationary._act_hold_freefall_land_stop
     :: mario_actions_stationary._act_hold_jump_land_stop
-    :: mario_actions_stationary._act_twirl_land :: nil.
+    :: mario_actions_stationary._act_twirl_land
+    :: mario_actions_stationary._act_air_throw_land :: nil.
 Definition sta_rest_ids : list ident :=
   filter (fun id => negb (mem_id id sta_walked_ids)) stationary_callee_ids.
 
@@ -1525,6 +1591,60 @@ Section StationaryLeafRows.
     - exact sta_twl_walk.
   Qed.
 
+  (* ---- SLICE 9: mario_throw_held_object row + act_air_throw_land ---- *)
+  Lemma mtho_row :
+    call_pres lp bm NoA MWF interaction._mario_throw_held_object.
+  Proof.
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             interaction.prog interaction._mario_throw_held_object
+             interaction.f_mario_throw_held_object
+             nil nil mtho_cact mtho_xids nil
+             LO_int mtho_pin mtho_vars mtho_params_ok mtho_nonparam).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold mtho_xids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_s2v | ].
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_ssm | ].
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_oshs | ].
+      discriminate H.
+    - intros fid' H. discriminate H.
+    - exact mtho_walk.
+  Qed.
+
+  Lemma sta_atl_ids_rows : forall fid, mem_id fid sta_atl_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sta_atl_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mtho_row | ].
+    discriminate H.
+  Qed.
+
+  (* act_air_throw_land: cchae-free; mario_throw_held_object (ids) +
+     landing_step (act3) + set_mario_action(CONST) exits + actionTimer store. *)
+  Lemma act_air_throw_land_pres :
+    body_pres lp NoA MWF bm
+      mario_actions_stationary.f_act_air_throw_land.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_stationary.f_act_air_throw_land
+             sta_atl_ids nil nil sta_sids sta_landing_tids
+             sta_atl_vars sta_atl_params_ok).
+    - exact sta_atl_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sta_sids_rows.
+    - exact sta_landing_tids_rows.
+    - exact sta_atl_walk.
+  Qed.
+
   (* ================================================================== *)
   (* THE REST-SPLIT: the capstone's Hpres_sta_callees from the walked   *)
   (* leaves + the shrinking sta_rest_ids residual.                      *)
@@ -1658,10 +1778,11 @@ Section StationaryLeafRows.
     { apply Pos.eqb_eq in Hm; subst fid.
       rewrite sta_hffls_pin in Hdm. injection Hdm as <-.
       exact act_hold_freefall_land_stop_pres. }
-    (* 28: act_air_throw_land -- rest *)
+    (* 28: act_air_throw_land -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite sta_atl_pin in Hdm. injection Hdm as <-.
+      exact act_air_throw_land_pres. }
     (* 29: act_lava_boost_land -- rest *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
