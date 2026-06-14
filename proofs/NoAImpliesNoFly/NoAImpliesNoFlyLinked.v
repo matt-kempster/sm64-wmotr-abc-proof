@@ -759,10 +759,10 @@ Section NoARealInputMWF.
      act_shivering + act_waking_up + the act3 caller-action stop cluster
      (act_braking_stop / act_butt_slide_stop, via stopping_step) + the dasma
      held-object cluster (act_hold_heavy_idle / act_slide_kick_slide_stop, via
-     ObjectLeafSurface.dasma_row reused) are now WALKED
-     (stationary_leaf_callees_pres), so the assumed surface here shrinks to
-     the FILTERED remainder sta_rest_ids (28 leaves).  Finishing the family
-     deletes this hypothesis entirely. *)
+     ObjectLeafSurface.dasma_row reused) + act_ground_pound_land (dasma + the
+     landing_step act3 twin) are now WALKED (stationary_leaf_callees_pres), so
+     the assumed surface here shrinks to the FILTERED remainder sta_rest_ids
+     (27 leaves).  Finishing the family deletes this hypothesis entirely. *)
   (* the stationary family's audio externals (raise/lower_background_noise,
      stop_sound) -- EF_external in every linked TU, write no Mario state:
      the SAME honest model-boundary class as the obj_ext audio rows. *)
