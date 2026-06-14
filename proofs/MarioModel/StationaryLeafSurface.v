@@ -66,6 +66,23 @@ Definition sta_sma_xids : list ident :=
    used by act_shivering and the landing-sound helper chain *)
 Definition sta_psound_xids : list ident := mario._play_sound :: nil.
 
+(* ---- the set_jumping_action arc (gates the 3 crouch leaves + the
+   *_cancels helpers).  mario_floor_is_steep's two pure-ish callees;
+   set_steep_jump_action's marioObj chase temp, its two math externals
+   (sqrtf/atan2s, in obj_ext_ids), and its drop_and_set channel; the
+   set_jumping_action ids; and the crouch sids = sma + set_jumping_action. *)
+Definition sta_mfis_ids : list ident :=
+  mario._mario_facing_downhill :: mario._mario_get_floor_class :: nil.
+Definition sta_sssja_cact : list ident := mario._t'10 :: nil.
+Definition sta_sssja_xids : list ident :=
+  mario._sqrtf :: mario._atan2s :: nil.
+Definition sta_sssja_sids : list ident :=
+  mario._drop_and_set_mario_action :: nil.
+Definition sta_sja_ids : list ident :=
+  mario._mario_floor_is_steep :: mario._set_steep_jump_action :: nil.
+Definition sta_crouch_sids : list ident :=
+  mario._set_mario_action :: mario._set_jumping_action :: nil.
+
 (* ====================================================================== *)
 (* Shape pins (vm_compute reflexivity over the real AST).                 *)
 (* ====================================================================== *)
@@ -827,9 +844,155 @@ Definition sta_walked_ids : list ident :=
     :: mario_actions_stationary._act_hold_freefall_land_stop
     :: mario_actions_stationary._act_hold_jump_land_stop
     :: mario_actions_stationary._act_twirl_land
-    :: mario_actions_stationary._act_air_throw_land :: nil.
+    :: mario_actions_stationary._act_air_throw_land
+    :: mario_actions_stationary._act_crouching
+    :: mario_actions_stationary._act_start_crouching
+    :: mario_actions_stationary._act_stop_crouching :: nil.
 Definition sta_rest_ids : list ident :=
   filter (fun id => negb (mem_id id sta_walked_ids)) stationary_callee_ids.
+
+(* ---- the set_jumping_action arc shape pins ---- *)
+
+(* mario_floor_is_steep: call_pres; loads m->floor into an UNTRACKED
+   pointer temp (read-through only, never stored), so cact = nil. *)
+Example sta_mfis_pin :
+  (prog_defmap mario.prog) ! mario._mario_floor_is_steep
+  = Some (Gfun (Internal mario.f_mario_floor_is_steep)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_mfis_vars : fn_vars mario.f_mario_floor_is_steep = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_mfis_params_ok :
+  match fn_params mario.f_mario_floor_is_steep with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_mfis_walk :
+  wwalk_chk false nil sta_mfis_ids nil nil nil nil nil
+    (fn_body mario.f_mario_floor_is_steep) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* set_steep_jump_action: call_pres; marioObj chase store (cact=[_t'10]),
+   sqrtf/atan2s math externals, drop_and_set_mario_action channel. *)
+Example sta_sssja_pin :
+  (prog_defmap mario.prog) ! mario._set_steep_jump_action
+  = Some (Gfun (Internal mario.f_set_steep_jump_action)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_sssja_vars : fn_vars mario.f_set_steep_jump_action = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_sssja_params_ok :
+  match fn_params mario.f_set_steep_jump_action with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_sssja_nonparam :
+  forallb (fun t' => negb (mem_id t'
+             (map fst (fn_params mario.f_set_steep_jump_action))))
+    sta_sssja_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_sssja_walk :
+  wwalk_chk false nil nil nil sta_sssja_cact sta_sssja_xids sta_sssja_sids nil
+    (fn_body mario.f_set_steep_jump_action) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* set_jumping_action: call_pres_act (threads _action to set_mario_action).
+   Its quicksand branch `_t = set_mario_action(m, ACT_QUICKSAND_JUMP_LAND,0);
+   return _t` is the const-result-into-wact pattern -- wact=[_action;_t'1;_t'2],
+   wids=sids=[set_mario_action], ids=[mfis; sssja].  _t'5 (heldObj) is an
+   untracked pointer temp (compared to NULL only), so cact=nil. *)
+Example sta_sja_pin :
+  (prog_defmap mario.prog) ! mario._set_jumping_action
+  = Some (Gfun (Internal mario.f_set_jumping_action)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_sja_vars : fn_vars mario.f_set_jumping_action = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_sja_params :
+  fn_params mario.f_set_jumping_action = writer_params.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_sja_ret : i32_ty (fn_return mario.f_set_jumping_action) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_sja_walk :
+  wwalk_chk true
+    (mario._action :: mario._t'1 :: mario._t'2 :: nil)
+    sta_sja_ids sta_sids nil nil sta_sids nil
+    (fn_body mario.f_set_jumping_action) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- the three crouch leaves (ids = sta_leaf_ids, sids = sma +
+   set_jumping_action).  Same shape; input-gated smact/sja const exits +
+   stationary_ground_step + set_mario_animation + is_anim_past_end. ---- *)
+Example sta_crouch_pin :
+  (prog_defmap mario_actions_stationary.prog)
+    ! mario_actions_stationary._act_crouching
+  = Some (Gfun (Internal mario_actions_stationary.f_act_crouching)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_crouch_vars :
+  fn_vars mario_actions_stationary.f_act_crouching = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_crouch_params_ok :
+  match fn_params mario_actions_stationary.f_act_crouching with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_crouch_walk :
+  wwalk_chk false nil sta_leaf_ids nil nil nil sta_crouch_sids nil
+    (fn_body mario_actions_stationary.f_act_crouching) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example sta_scrouch_pin :
+  (prog_defmap mario_actions_stationary.prog)
+    ! mario_actions_stationary._act_start_crouching
+  = Some (Gfun (Internal mario_actions_stationary.f_act_start_crouching)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_scrouch_vars :
+  fn_vars mario_actions_stationary.f_act_start_crouching = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_scrouch_params_ok :
+  match fn_params mario_actions_stationary.f_act_start_crouching with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_scrouch_walk :
+  wwalk_chk false nil sta_leaf_ids nil nil nil sta_crouch_sids nil
+    (fn_body mario_actions_stationary.f_act_start_crouching) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example sta_pcrouch_pin :
+  (prog_defmap mario_actions_stationary.prog)
+    ! mario_actions_stationary._act_stop_crouching
+  = Some (Gfun (Internal mario_actions_stationary.f_act_stop_crouching)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_pcrouch_vars :
+  fn_vars mario_actions_stationary.f_act_stop_crouching = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_pcrouch_params_ok :
+  match fn_params mario_actions_stationary.f_act_stop_crouching with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_pcrouch_walk :
+  wwalk_chk false nil sta_leaf_ids nil nil nil sta_crouch_sids nil
+    (fn_body mario_actions_stationary.f_act_stop_crouching) = true.
+Proof. vm_compute. reflexivity. Qed.
 
 (* ====================================================================== *)
 (* The walk.                                                              *)
@@ -924,6 +1087,13 @@ Section StationaryLeafRows.
     call_pres_ext lp bm NoA MWF interaction._stop_shell_music.
   Hypothesis Hcpx_oshs :
     call_pres_ext lp bm NoA MWF interaction._obj_set_held_state.
+  (* set_steep_jump_action's two math externals (the steep-jump face-angle
+     trig): both in obj_ext_ids -- NO new trust, discharged at the capstone
+     via Hpres_obj_ext. *)
+  Hypothesis Hcpx_sqrtf :
+    call_pres_ext lp bm NoA MWF mario._sqrtf.
+  Hypothesis Hcpx_atan2s :
+    call_pres_ext lp bm NoA MWF mario._atan2s.
 
   (* the keystone, instantiated once *)
   Let Hsmact : call_pres_act lp bm NoA MWF mario._set_mario_action :=
@@ -1646,6 +1816,183 @@ Section StationaryLeafRows.
   Qed.
 
   (* ================================================================== *)
+  (* SLICE 10: the set_jumping_action arc + the three crouch leaves.    *)
+  (* (Consumes the const-result-into-wact engine arm: set_jumping_action *)
+  (*  is call_pres_act, not call_pres -- it threads _action to           *)
+  (*  set_mario_action.)                                                 *)
+  (* ================================================================== *)
+
+  (* mario_floor_is_steep's two callees, REUSED from ActWriterSurface. *)
+  Lemma sta_mfis_ids_rows : forall fid, mem_id fid sta_mfis_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sta_mfis_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        exact (mfd_row lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe) | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        exact (mgfc_row lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe) | ].
+    discriminate H.
+  Qed.
+
+  Lemma sta_mfis_row :
+    call_pres lp bm NoA MWF mario._mario_floor_is_steep.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._mario_floor_is_steep
+             mario.f_mario_floor_is_steep sta_mfis_ids nil nil nil
+             LO_mario sta_mfis_pin sta_mfis_vars sta_mfis_params_ok).
+    - exact sta_mfis_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sta_mfis_walk.
+  Qed.
+
+  (* set_steep_jump_action's two math externals (sqrtf/atan2s) and its
+     drop_and_set channel. *)
+  Lemma sta_sssja_xids_rows : forall fid, mem_id fid sta_sssja_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sta_sssja_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_sqrtf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_atan2s | ].
+    discriminate H.
+  Qed.
+
+  Lemma sta_sssja_sids_rows : forall fid, mem_id fid sta_sssja_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sta_sssja_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hdasma | ].
+    discriminate H.
+  Qed.
+
+  Lemma sta_sssja_row :
+    call_pres lp bm NoA MWF mario._set_steep_jump_action.
+  Proof.
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._set_steep_jump_action
+             mario.f_set_steep_jump_action nil nil sta_sssja_cact
+             sta_sssja_xids sta_sssja_sids
+             LO_mario sta_sssja_pin sta_sssja_vars sta_sssja_params_ok
+             sta_sssja_nonparam).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sta_sssja_xids_rows.
+    - exact sta_sssja_sids_rows.
+    - exact sta_sssja_walk.
+  Qed.
+
+  (* set_jumping_action's ids = the two helpers above. *)
+  Lemma sta_sja_ids_rows : forall fid, mem_id fid sta_sja_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sta_sja_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_mfis_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_sssja_row | ].
+    discriminate H.
+  Qed.
+
+  (* THE KEYSTONE of this slice: set_jumping_action as call_pres_act,
+     walked via the const-result-into-wact arm. *)
+  Lemma sta_sja_row :
+    call_pres_act lp bm NoA MWF mario._set_jumping_action.
+  Proof.
+    apply (call_pres_act_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._set_jumping_action mario.f_set_jumping_action
+             (mario._action :: mario._t'1 :: mario._t'2 :: nil)
+             sta_sja_ids sta_sids nil nil sta_sids
+             LO_mario sta_sja_pin sta_sja_vars sta_sja_params sta_sja_ret
+             eq_refl eq_refl eq_refl eq_refl eq_refl eq_refl).
+    - exact sta_sja_ids_rows.
+    - exact sta_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact sta_sids_rows.
+    - exact sta_sja_walk.
+  Qed.
+
+  (* the crouch leaves' sids: set_mario_action (Hsmact) + the new
+     set_jumping_action keystone. *)
+  Lemma sta_crouch_sids_rows : forall fid, mem_id fid sta_crouch_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sta_crouch_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_sja_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma act_crouching_pres :
+    body_pres lp NoA MWF bm mario_actions_stationary.f_act_crouching.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_stationary.f_act_crouching
+             sta_leaf_ids nil nil sta_crouch_sids nil
+             sta_crouch_vars sta_crouch_params_ok).
+    - exact sta_leaf_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sta_crouch_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact sta_crouch_walk.
+  Qed.
+
+  Lemma act_start_crouching_pres :
+    body_pres lp NoA MWF bm mario_actions_stationary.f_act_start_crouching.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_stationary.f_act_start_crouching
+             sta_leaf_ids nil nil sta_crouch_sids nil
+             sta_scrouch_vars sta_scrouch_params_ok).
+    - exact sta_leaf_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sta_crouch_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact sta_scrouch_walk.
+  Qed.
+
+  Lemma act_stop_crouching_pres :
+    body_pres lp NoA MWF bm mario_actions_stationary.f_act_stop_crouching.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_stationary.f_act_stop_crouching
+             sta_leaf_ids nil nil sta_crouch_sids nil
+             sta_pcrouch_vars sta_pcrouch_params_ok).
+    - exact sta_leaf_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sta_crouch_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact sta_pcrouch_walk.
+  Qed.
+
+  (* ================================================================== *)
   (* THE REST-SPLIT: the capstone's Hpres_sta_callees from the walked   *)
   (* leaves + the shrinking sta_rest_ids residual.                      *)
   (* ================================================================== *)
@@ -1717,18 +2064,21 @@ Section StationaryLeafRows.
     { apply Pos.eqb_eq in Hm; subst fid.
       rewrite sta_ashv_pin in Hdm. injection Hdm as <-.
       exact act_shivering_pres. }
-    (* 14: act_crouching -- rest *)
+    (* 14: act_crouching -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
-    (* 15: act_start_crouching -- rest *)
+      rewrite sta_crouch_pin in Hdm. injection Hdm as <-.
+      exact act_crouching_pres. }
+    (* 15: act_start_crouching -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
-    (* 16: act_stop_crouching -- rest *)
+      rewrite sta_scrouch_pin in Hdm. injection Hdm as <-.
+      exact act_start_crouching_pres. }
+    (* 16: act_stop_crouching -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite sta_pcrouch_pin in Hdm. injection Hdm as <-.
+      exact act_stop_crouching_pres. }
     (* 17: act_start_crawling -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.

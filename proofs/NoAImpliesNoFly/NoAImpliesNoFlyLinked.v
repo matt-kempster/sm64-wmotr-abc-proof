@@ -1667,6 +1667,8 @@ Section NoARealInputMWF.
                       (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
                       (Hpres_obj_ext interaction._stop_shell_music eq_refl)
                       (Hpres_obj_ext interaction._obj_set_held_state eq_refl)
+                      (Hpres_obj_ext interaction._sqrtf eq_refl)
+                      (Hpres_obj_ext interaction._atan2s eq_refl)
                       Hpres_sta_rest)
                    Hpres_qsand)
                 (moving_pres lp LO_mario LO_mov LO_stp bm (NoA_real bm)
