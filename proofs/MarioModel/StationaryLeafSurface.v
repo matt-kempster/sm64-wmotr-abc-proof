@@ -969,6 +969,10 @@ Definition sta_walked_ids : list ident :=
     :: mario_actions_stationary._act_hold_jump_land_stop
     :: mario_actions_stationary._act_twirl_land
     :: mario_actions_stationary._act_air_throw_land
+    :: mario_actions_stationary._act_jump_land_stop
+    :: mario_actions_stationary._act_double_jump_land_stop
+    :: mario_actions_stationary._act_freefall_land_stop
+    :: mario_actions_stationary._act_triple_jump_land_stop
     :: mario_actions_stationary._act_crouching
     :: mario_actions_stationary._act_start_crouching
     :: mario_actions_stationary._act_stop_crouching
@@ -1508,6 +1512,189 @@ Example sta_ssleep_walk :
 Proof. vm_compute. reflexivity. Qed.
 
 (* ====================================================================== *)
+(* SLICE 17: the input-A-gate landing keystone                            *)
+(* (check_common_landing_cancels, cclc) + the four clean landing handlers *)
+(* it unlocks.                                                            *)
+(*                                                                         *)
+(* cclc's body is a flat right-nested Ssequence of 5 gate-blocks           *)
+(*   (Sset t (m->input); Sif (t & MASK) {set_mario_action(CONST);ret} Sskip)*)
+(* + Sreturn 0.  Four blocks set an untainted const action (NOT in T) via  *)
+(* set_mario_action (the sids keystone) and/or call check_common_action_   *)
+(* exits (ids = the proven sta_ccae_row).  Block 3 is the A-gate           *)
+(* (MASK = 2 = INPUT_A_PRESSED): under NoA its danger THEN (the sole       *)
+(* set_jump_from_landing indirect feed) is dead, so AGates.input_a_gate_   *)
+(* takes_else_lp forces the clean ELSE.  We walk it via a cnn-style hybrid  *)
+(* (generic arm + gate arm), then consume the resulting call_pres to walk  *)
+(* the four landing handlers act_{jump,double_jump,freefall,triple_jump}_   *)
+(* land_stop -- whose bodies are just cclc + landing_step(m,CONST,CONST)    *)
+(* (act3).                                                                  *)
+(* ====================================================================== *)
+
+(* cclc's OWN internal callee channels: check_common_action_exits (ids) and
+   set_mario_action with untainted-const args (sids). *)
+Definition cclc_ids : list ident := mario._check_common_action_exits :: nil.
+Definition cclc_sids : list ident := mario._set_mario_action :: nil.
+
+Definition cclc_gen (s : statement) : bool :=
+  wwalk_chk false nil cclc_ids nil nil nil cclc_sids nil s.
+
+Definition cclc_input_src (src : expr) : bool :=
+  match src with
+  | Efield (Ederef (Etempvar p pty) sty) fld faty =>
+      Pos.eqb p mario_actions_stationary._m
+      && proj_sumbool (type_eq pty (tptr (Tstruct mario._MarioState noattr)))
+      && proj_sumbool (type_eq sty (Tstruct mario._MarioState noattr))
+      && Pos.eqb fld mario._input
+      && proj_sumbool (type_eq faty tushort)
+  | _ => false
+  end.
+
+Definition cclc_a_guard (t6 : ident) (g : expr) : bool :=
+  match g with
+  | Ebinop Oand (Etempvar q qty) (Econst_int c cty) gty =>
+      Pos.eqb q t6
+      && proj_sumbool (type_eq qty tushort)
+      && proj_sumbool (Int.eq_dec c (Int.repr 2))
+      && proj_sumbool (type_eq cty tint)
+      && proj_sumbool (type_eq gty tint)
+  | _ => false
+  end.
+
+Definition cclc_gate_chk (s : statement) : bool :=
+  match s with
+  | Ssequence (Sset t6 src) (Sifthenelse g _ s2) =>
+      cclc_input_src src
+      && cclc_a_guard t6 g
+      && negb (Pos.eqb t6 mario_actions_stationary._m)
+      && cclc_gen s2
+  | _ => false
+  end.
+
+Fixpoint cclc_chk (s : statement) : bool :=
+  cclc_gen s
+  || match s with
+     | Ssequence s1 s2 => cclc_gate_chk s || (cclc_chk s1 && cclc_chk s2)
+     | Sifthenelse _ s1 s2 => cclc_chk s1 && cclc_chk s2
+     | _ => false
+     end.
+
+Example cclc_recognizes :
+  cclc_chk (fn_body mario_actions_stationary.f_check_common_landing_cancels) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example cclc_pin :
+  (prog_defmap mario_actions_stationary.prog)
+    ! mario_actions_stationary._check_common_landing_cancels
+  = Some (Gfun (Internal mario_actions_stationary.f_check_common_landing_cancels)).
+Proof. vm_compute. reflexivity. Qed.
+
+Example cclc_vars :
+  fn_vars mario_actions_stationary.f_check_common_landing_cancels = nil.
+Proof. reflexivity. Qed.
+
+Example cclc_pok :
+  match fn_params mario_actions_stationary.f_check_common_landing_cancels with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* the four clean landing handlers: ids = [cclc], tids = [landing_step] *)
+Definition sta_landcclc_ids : list ident :=
+  mario_actions_stationary._check_common_landing_cancels :: nil.
+
+Example sta_jls_pin :
+  (prog_defmap mario_actions_stationary.prog)
+    ! mario_actions_stationary._act_jump_land_stop
+  = Some (Gfun (Internal mario_actions_stationary.f_act_jump_land_stop)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_jls_vars :
+  fn_vars mario_actions_stationary.f_act_jump_land_stop = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_jls_params_ok :
+  match fn_params mario_actions_stationary.f_act_jump_land_stop with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_jls_walk :
+  wwalk_chk false nil sta_landcclc_ids nil nil nil nil sta_landing_tids
+    (fn_body mario_actions_stationary.f_act_jump_land_stop) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example sta_djls_pin :
+  (prog_defmap mario_actions_stationary.prog)
+    ! mario_actions_stationary._act_double_jump_land_stop
+  = Some (Gfun (Internal mario_actions_stationary.f_act_double_jump_land_stop)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_djls_vars :
+  fn_vars mario_actions_stationary.f_act_double_jump_land_stop = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_djls_params_ok :
+  match fn_params mario_actions_stationary.f_act_double_jump_land_stop with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_djls_walk :
+  wwalk_chk false nil sta_landcclc_ids nil nil nil nil sta_landing_tids
+    (fn_body mario_actions_stationary.f_act_double_jump_land_stop) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example sta_ffls_pin :
+  (prog_defmap mario_actions_stationary.prog)
+    ! mario_actions_stationary._act_freefall_land_stop
+  = Some (Gfun (Internal mario_actions_stationary.f_act_freefall_land_stop)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_ffls_vars :
+  fn_vars mario_actions_stationary.f_act_freefall_land_stop = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_ffls_params_ok :
+  match fn_params mario_actions_stationary.f_act_freefall_land_stop with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_ffls_walk :
+  wwalk_chk false nil sta_landcclc_ids nil nil nil nil sta_landing_tids
+    (fn_body mario_actions_stationary.f_act_freefall_land_stop) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example sta_tjls_pin :
+  (prog_defmap mario_actions_stationary.prog)
+    ! mario_actions_stationary._act_triple_jump_land_stop
+  = Some (Gfun (Internal mario_actions_stationary.f_act_triple_jump_land_stop)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_tjls_vars :
+  fn_vars mario_actions_stationary.f_act_triple_jump_land_stop = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_tjls_params_ok :
+  match fn_params mario_actions_stationary.f_act_triple_jump_land_stop with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_tjls_walk :
+  wwalk_chk false nil sta_landcclc_ids nil nil nil nil sta_landing_tids
+    (fn_body mario_actions_stationary.f_act_triple_jump_land_stop) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ====================================================================== *)
 (* The walk.                                                              *)
 (* ====================================================================== *)
 
@@ -1571,6 +1758,11 @@ Section StationaryLeafRows.
       MWF mm -> SafeB bsafe ->
       (forall bb oo, vv = Vptr bb oo -> SafeB bb) ->
       Mem.store ch mm bsafe d vv = Some mm' -> MWF mm'.
+
+  (* SLICE 17: the carried MWF pins Mario's input halfword A-clear -- the
+     mid-frame fact the cclc A-gate kill consumes.  Supplied at the capstone
+     by mwf_real_inp (NO new trust). *)
+  Hypothesis HMWF_inp : forall m, MWF m -> input_a_clear m bm.
 
   (* the externals these leaves' helper sub-trees bottom out in *)
   Hypothesis Hcpx_v3f :
@@ -1883,6 +2075,452 @@ Section StationaryLeafRows.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact sta_landing_step_act3 | ].
     discriminate H.
+  Qed.
+
+  (* ====================================================================== *)
+  (* SLICE 17: the cclc (check_common_landing_cancels) keystone walk         *)
+  (* (the cnn-style hybrid: generic arm + A-gate arm), and the four clean    *)
+  (* landing handlers it unlocks.                                            *)
+  (* ====================================================================== *)
+
+  Lemma cclc_ids_rows :
+    forall fid, mem_id fid cclc_ids = true -> call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold cclc_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_ccae_row | ].
+    discriminate H.
+  Qed.
+  Lemma cclc_sids_rows :
+    forall fid, mem_id fid cclc_sids = true -> call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold cclc_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | ].
+    discriminate H.
+  Qed.
+
+  Definition cclc_empt {A} (HH : false = true) : A :=
+    match Bool.diff_false_true HH with end.
+
+  (* ONE wwalk_pres0 call on a generic subtree. *)
+  Lemma cclc_generic :
+    forall s e le m0 tr le' m' out,
+      (forall g, mem_id g stored_globals = true -> e ! g = None) ->
+      (forall g, mem_id g cclc_ids = true -> e ! g = None) ->
+      (forall g, mem_id g cclc_sids = true -> e ! g = None) ->
+      e ! interaction._gGlobalTimer = None ->
+      cclc_gen s = true ->
+      (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\
+      NoA m' /\
+      (forall b o, le' ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero).
+  Proof.
+    intros s e le m0 tr le' m' out Hub_g Hub_i Hub_s Hubgt
+           Hchk Htat HN HM HV HS Hexec.
+    unfold cclc_gen in Hchk.
+    destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+                false nil cclc_ids nil nil nil cclc_sids nil
+                cclc_ids_rows (fun fid HH => cclc_empt HH)
+                (fun fid HH => cclc_empt HH)
+                cclc_sids_rows (fun fid HH => cclc_empt HH)
+                s e le m0 tr le' m' out Hexec
+                Hub_g Hub_i (fun g HH => cclc_empt HH) (fun g HH => cclc_empt HH)
+                Hub_s (fun g HH => cclc_empt HH) Hubgt
+                Hchk Htat (fun t HH x Hg => cclc_empt HH)
+                (fun t HH b o Hg => cclc_empt HH)
+                HN HM HV HS)
+      as (HV' & HS' & HM' & HN' & Htat' & _ & _ & _).
+    exact (conj HV' (conj HS' (conj HM' (conj HN' Htat')))).
+  Qed.
+
+  (* gate decode: recover the canonical shape. *)
+  Lemma cclc_gate_shape :
+    forall s1 s2,
+      cclc_gate_chk (Ssequence s1 s2) = true ->
+      exists t6 sTHEN sELSE,
+        s1 = Sset t6 (Efield (Ederef (Etempvar mario_actions_stationary._m
+                                (tptr (Tstruct mario._MarioState noattr)))
+                        (Tstruct mario._MarioState noattr))
+                mario._input tushort) /\
+        s2 = Sifthenelse (Ebinop Oand (Etempvar t6 tushort)
+                            (Econst_int (Int.repr 2) tint) tint)
+               sTHEN sELSE /\
+        Pos.eqb t6 mario_actions_stationary._m = false /\
+        cclc_gen sELSE = true.
+  Proof.
+    intros s1 s2 H. unfold cclc_gate_chk in H.
+    destruct s1 as [ | e1 e2 | t6 src | oi ef alq | oi2 ef2 tyl alq2
+                   | sa sb | ga sa sb | sla slb | | | oret | swa swl
+                   | lid ls | gid ];
+      try discriminate H.
+    destruct s2 as [ | f1 f2 | u6 src2 | oj eg alr | oj2 eg2 tyl2 alr2
+                   | ta tb | g sTHEN sELSE | tla tlb | | | oret2 | swa2 swl2
+                   | lid2 ls2 | gid2 ];
+      try discriminate H.
+    apply andb_prop in H as [H HgenE].
+    apply andb_prop in H as [H Hneq].
+    apply andb_prop in H as [Hsrc Hguard].
+    unfold cclc_input_src in Hsrc.
+    destruct src as [ | | | | | | | | | | | e0 fld faty | | ];
+      try discriminate Hsrc.
+    destruct e0 as [ | | | | | | e3 sty | | | | | | | ];
+      try discriminate Hsrc.
+    destruct e3 as [ | | | | | p pty | | | | | | | | ];
+      try discriminate Hsrc.
+    apply andb_prop in Hsrc as [Hsrc Hfaty].
+    apply andb_prop in Hsrc as [Hsrc Hfld].
+    apply andb_prop in Hsrc as [Hsrc Hsty].
+    apply andb_prop in Hsrc as [Hp Hpty].
+    apply Pos.eqb_eq in Hp. subst p.
+    apply Pos.eqb_eq in Hfld. subst fld.
+    destruct (type_eq pty (tptr (Tstruct mario._MarioState noattr)));
+      [ subst pty | discriminate Hpty ].
+    destruct (type_eq sty (Tstruct mario._MarioState noattr));
+      [ subst sty | discriminate Hsty ].
+    destruct (type_eq faty tushort); [ subst faty | discriminate Hfaty ].
+    unfold cclc_a_guard in Hguard.
+    destruct g as [ | | | | | | | | | op b1 b2 gty | | | | ];
+      try discriminate Hguard.
+    destruct op; try discriminate Hguard.
+    destruct b1 as [ | | | | | q qty | | | | | | | | ];
+      try discriminate Hguard.
+    destruct b2 as [ c cty | | | | | | | | | | | | | ];
+      try discriminate Hguard.
+    apply andb_prop in Hguard as [Hguard Hgty].
+    apply andb_prop in Hguard as [Hguard Hcty].
+    apply andb_prop in Hguard as [Hguard Hc].
+    apply andb_prop in Hguard as [Hq Hqty].
+    apply Pos.eqb_eq in Hq. subst q.
+    destruct (type_eq qty tushort); [ subst qty | discriminate Hqty ].
+    destruct (Int.eq_dec c (Int.repr 2)); [ subst c | discriminate Hc ].
+    destruct (type_eq cty tint); [ subst cty | discriminate Hcty ].
+    destruct (type_eq gty tint); [ subst gty | discriminate Hgty ].
+    apply negb_true_iff in Hneq.
+    exists t6, sTHEN, sELSE.
+    split; [ reflexivity | ].
+    split; [ reflexivity | ].
+    split; [ exact Hneq | exact HgenE ].
+  Qed.
+
+  (* THE KILL: the canonical gate takes its (clean) ELSE on an A-silent frame. *)
+  Lemma cclc_gate_pres :
+    forall t6 sTHEN sELSE e le m0 tr le' m' out,
+      Pos.eqb t6 mario_actions_stationary._m = false ->
+      cclc_gen sELSE = true ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0
+        (Ssequence
+           (Sset t6 (Efield (Ederef (Etempvar mario_actions_stationary._m
+                               (tptr (Tstruct mario._MarioState noattr)))
+                       (Tstruct mario._MarioState noattr))
+               mario._input tushort))
+           (Sifthenelse (Ebinop Oand (Etempvar t6 tushort)
+               (Econst_int (Int.repr 2) tint) tint) sTHEN sELSE))
+        tr le' m' out ->
+      (forall g, mem_id g stored_globals = true -> e ! g = None) ->
+      (forall g, mem_id g cclc_ids = true -> e ! g = None) ->
+      (forall g, mem_id g cclc_sids = true -> e ! g = None) ->
+      e ! interaction._gGlobalTimer = None ->
+      (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\
+      NoA m' /\
+      (forall b o, le' ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero).
+  Proof.
+    intros t6 sTHEN sELSE e le m0 tr le' m' out Hneq HgenE Hexec
+           Hub_g Hub_i Hub_s Hubgt Htat HN HM HV HS.
+    assert (Hle_m : le ! mario_actions_stationary._m
+                    = Some (Vptr bm Ptrofs.zero)).
+    { inv Hexec.
+      - match goal with
+        | H1 : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ Out_normal |- _ => inv H1
+        end.
+        match goal with
+        | Hev : eval_expr _ _ _ _ (Efield _ _ _) _ |- _ =>
+            destruct (efield_base_vptr lp _ _ _ _ _ _ _ _ Hev)
+              as (bc0 & oc0 & Hle0)
+        end.
+        destruct (Htat _ _ Hle0) as [-> ->]. exact Hle0.
+      - match goal with
+        | H1 : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H1
+        end.
+        match goal with
+        | Hne : Out_normal <> Out_normal |- _ => destruct (Hne eq_refl)
+        end. }
+    destruct (input_a_gate_takes_else_lp lp LO_mario
+                mario_actions_stationary._m t6 sTHEN sELSE
+                _ _ _ _ _ _ _ _ Hle_m (HMWF_inp _ HM) Hexec)
+      as (vi & Hload & Hmask & Helse).
+    assert (Htat' : forall b o,
+        (PTree.set t6 (Vint vi) le) ! mario_actions_airborne._m
+        = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg'.
+      rewrite PTree.gso in Hg'
+        by (intro EE; rewrite <- EE in Hneq; vm_compute in Hneq;
+            discriminate Hneq).
+      exact (Htat _ _ Hg'). }
+    exact (cclc_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_s Hubgt HgenE
+             Htat' HN HM HV HS Helse).
+  Qed.
+
+  Lemma cclc_pres :
+    forall s e le m0 tr le' m' out,
+      exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
+      (forall g, mem_id g stored_globals = true -> e ! g = None) ->
+      (forall g, mem_id g cclc_ids = true -> e ! g = None) ->
+      (forall g, mem_id g cclc_sids = true -> e ! g = None) ->
+      e ! interaction._gGlobalTimer = None ->
+      cclc_chk s = true ->
+      (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\
+      NoA m' /\
+      (forall b o, le' ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero).
+  Proof.
+    intros s e le m0 tr le' m' out Hexec.
+    induction Hexec;
+      intros Hub_g Hub_i Hub_s Hubgt Hchk Htat HN HM HV HS.
+    - (* Sskip *)
+      exact (conj HV (conj HS (conj HM (conj HN Htat)))).
+    - (* Sassign *)
+      cbn [cclc_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (cclc_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_s Hubgt
+                Hg Htat HN HM HV HS);
+        eapply exec_Sassign; eauto.
+    - (* Sset *)
+      cbn [cclc_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (cclc_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_s Hubgt
+                Hg Htat HN HM HV HS);
+        eapply exec_Sset; eauto.
+    - (* Scall *)
+      cbn [cclc_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (cclc_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_s Hubgt
+                Hg Htat HN HM HV HS);
+        eapply exec_Scall; eauto.
+    - (* Sbuiltin *)
+      cbn [cclc_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp];
+        [ unfold cclc_gen in Hg; cbn [wwalk_chk' wwalk_chk] in Hg;
+          discriminate Hg | discriminate Hsp ].
+    - (* Sseq_1 *)
+      cbn [cclc_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hrest].
+      { eapply (cclc_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_s Hubgt
+                  Hg Htat HN HM HV HS);
+          eapply exec_Sseq_1; eauto. }
+      apply orb_true_iff in Hrest as [Hgate | Hand].
+      + destruct (cclc_gate_shape _ _ Hgate)
+          as (t6 & sTHEN & sELSE & -> & -> & Hneq & HgenE).
+        eapply cclc_gate_pres; try eassumption.
+        eapply exec_Sseq_1; eauto.
+      + apply andb_prop in Hand as [H1 H2].
+        destruct (IHHexec1 Hub_g Hub_i Hub_s Hubgt H1 Htat HN HM HV HS)
+          as (HV1 & HS1 & HM1 & HN1 & Htat1).
+        exact (IHHexec2 Hub_g Hub_i Hub_s Hubgt H2 Htat1 HN1 HM1 HV1 HS1).
+    - (* Sseq_2 *)
+      cbn [cclc_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hrest].
+      { eapply (cclc_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_s Hubgt
+                  Hg Htat HN HM HV HS);
+          eapply exec_Sseq_2; eauto. }
+      apply orb_true_iff in Hrest as [Hgate | Hand].
+      + exfalso.
+        destruct (cclc_gate_shape _ _ Hgate)
+          as (t6 & sTHEN & sELSE & -> & -> & _ & _).
+        match goal with
+        | H1 : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H1
+        end.
+        match goal with
+        | Hne : Out_normal <> Out_normal |- _ => exact (Hne eq_refl)
+        end.
+      + apply andb_prop in Hand as [H1 _].
+        exact (IHHexec Hub_g Hub_i Hub_s Hubgt H1 Htat HN HM HV HS).
+    - (* Sifthenelse *)
+      cbn [cclc_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp].
+      { eapply (cclc_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_s Hubgt
+                  Hg Htat HN HM HV HS);
+          eapply exec_Sifthenelse; eauto. }
+      apply andb_prop in Hsp as [H1 H2].
+      apply IHHexec; try assumption.
+      destruct b; assumption.
+    - (* Sreturn None *)
+      exact (conj HV (conj HS (conj HM (conj HN Htat)))).
+    - (* Sreturn Some *)
+      exact (conj HV (conj HS (conj HM (conj HN Htat)))).
+    - (* Sbreak *)
+      exact (conj HV (conj HS (conj HM (conj HN Htat)))).
+    - (* Scontinue *)
+      exact (conj HV (conj HS (conj HM (conj HN Htat)))).
+    - (* Sloop stop1 *)
+      cbn [cclc_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (cclc_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_s Hubgt
+                Hg Htat HN HM HV HS);
+        eapply exec_Sloop_stop1; eauto.
+    - (* Sloop stop2 *)
+      cbn [cclc_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (cclc_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_s Hubgt
+                Hg Htat HN HM HV HS);
+        eapply exec_Sloop_stop2; eauto.
+    - (* Sloop loop *)
+      cbn [cclc_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (cclc_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_s Hubgt
+                Hg Htat HN HM HV HS);
+        eapply exec_Sloop_loop; eauto.
+    - (* Sswitch *)
+      cbn [cclc_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (cclc_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_s Hubgt
+                Hg Htat HN HM HV HS);
+        eapply exec_Sswitch; eauto.
+  Qed.
+
+  (* the funcall -> body entry: call_pres for check_common_landing_cancels. *)
+  Lemma sta_cclc_row :
+    call_pres lp bm NoA MWF mario_actions_stationary._check_common_landing_cancels.
+  Proof.
+    intros fd m0 vargs0 t0 m1 vres0 Hevf Hres Hmarg HN HM HV HS.
+    pose proof (resolve_pin_fd lp _ _ _ _ LO_sta cclc_pin Hres) as ->.
+    inv Hevf.
+    match goal with
+    | He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+    match goal with
+    | Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+    match goal with
+    | Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfree end.
+    inv Hentry.
+    match goal with
+    | Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+        rewrite cclc_vars in Ha; inv Ha end.
+    match goal with
+    | Hb : bind_parameter_temps _ _ _ = Some _ |- _ => rename Hb into Hbind end.
+    pose proof cclc_pok as Hpok.
+    destruct (fn_params mario_actions_stationary.f_check_common_landing_cancels)
+      as [| [i ty] ps] eqn:Eps; [ discriminate Hpok | ].
+    apply andb_prop in Hpok as [Hpok Hnm].
+    apply andb_prop in Hpok as [Hi Hty].
+    apply Pos.eqb_eq in Hi. subst i.
+    apply negb_true_iff in Hnm.
+    destruct vargs0 as [| v0 vrest];
+      cbn [bind_parameter_temps] in Hbind; [ discriminate Hbind | ].
+    match goal with
+    | Hbind' : bind_parameter_temps _ _ _ = Some ?le1 |- _ =>
+        assert (Htat : forall b o,
+                   le1 ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero)
+          by (intros b o Hg;
+              rewrite (bind_params_other _ _ _ _ _ Hbind' Hnm) in Hg;
+              rewrite PTree.gss in Hg; injection Hg as ->;
+              cbn in Hmarg; exact Hmarg)
+    end.
+    change (blocks_of_env (lp_ge lp) empty_env)
+      with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    destruct (cclc_pres _ _ _ _ _ _ _ _ Hbody
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (PTree.gempty _ _) cclc_recognizes Htat HN HM HV HS)
+      as (HV' & HS' & HM' & HN' & _).
+    exact (conj HV' (conj HS' (conj HM' HN'))).
+  Qed.
+
+  (* the ids-row for the four landing handlers: cclc (proven above). *)
+  Lemma sta_landcclc_ids_rows :
+    forall fid, mem_id fid sta_landcclc_ids = true -> call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sta_landcclc_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_cclc_row | ].
+    discriminate H.
+  Qed.
+
+  (* the four clean landing handlers: cclc (ids) + landing_step (tids).
+     No A-gate in the handler body itself (it is in cclc); cact=nil. *)
+  Lemma act_jump_land_stop_pres :
+    body_pres lp NoA MWF bm
+      mario_actions_stationary.f_act_jump_land_stop.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_stationary.f_act_jump_land_stop
+             sta_landcclc_ids nil nil nil sta_landing_tids
+             sta_jls_vars sta_jls_params_ok).
+    - exact sta_landcclc_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sta_landing_tids_rows.
+    - exact sta_jls_walk.
+  Qed.
+  Lemma act_double_jump_land_stop_pres :
+    body_pres lp NoA MWF bm
+      mario_actions_stationary.f_act_double_jump_land_stop.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_stationary.f_act_double_jump_land_stop
+             sta_landcclc_ids nil nil nil sta_landing_tids
+             sta_djls_vars sta_djls_params_ok).
+    - exact sta_landcclc_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sta_landing_tids_rows.
+    - exact sta_djls_walk.
+  Qed.
+  Lemma act_freefall_land_stop_pres :
+    body_pres lp NoA MWF bm
+      mario_actions_stationary.f_act_freefall_land_stop.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_stationary.f_act_freefall_land_stop
+             sta_landcclc_ids nil nil nil sta_landing_tids
+             sta_ffls_vars sta_ffls_params_ok).
+    - exact sta_landcclc_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sta_landing_tids_rows.
+    - exact sta_ffls_walk.
+  Qed.
+  Lemma act_triple_jump_land_stop_pres :
+    body_pres lp NoA MWF bm
+      mario_actions_stationary.f_act_triple_jump_land_stop.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_stationary.f_act_triple_jump_land_stop
+             sta_landcclc_ids nil nil nil sta_landing_tids
+             sta_tjls_vars sta_tjls_params_ok).
+    - exact sta_landcclc_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sta_landing_tids_rows.
+    - exact sta_tjls_walk.
   Qed.
 
   (* ---- the landing-sound helper chain ---- *)
@@ -3136,18 +3774,21 @@ Section StationaryLeafRows.
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
       refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
-    (* 22: act_jump_land_stop -- rest *)
+    (* 22: act_jump_land_stop -- WALKED (cclc keystone) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
-    (* 23: act_double_jump_land_stop -- rest *)
+      rewrite sta_jls_pin in Hdm. injection Hdm as <-.
+      exact act_jump_land_stop_pres. }
+    (* 23: act_double_jump_land_stop -- WALKED (cclc keystone) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
-    (* 24: act_freefall_land_stop -- rest *)
+      rewrite sta_djls_pin in Hdm. injection Hdm as <-.
+      exact act_double_jump_land_stop_pres. }
+    (* 24: act_freefall_land_stop -- WALKED (cclc keystone) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite sta_ffls_pin in Hdm. injection Hdm as <-.
+      exact act_freefall_land_stop_pres. }
     (* 25: act_side_flip_land_stop -- rest *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
@@ -3176,10 +3817,11 @@ Section StationaryLeafRows.
     { apply Pos.eqb_eq in Hm; subst fid.
       rewrite sta_twl_pin in Hdm. injection Hdm as <-.
       exact act_twirl_land_pres. }
-    (* 31: act_triple_jump_land_stop -- rest *)
+    (* 31: act_triple_jump_land_stop -- WALKED (cclc keystone) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite sta_tjls_pin in Hdm. injection Hdm as <-.
+      exact act_triple_jump_land_stop_pres. }
     (* 32: act_backflip_land_stop -- rest *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
