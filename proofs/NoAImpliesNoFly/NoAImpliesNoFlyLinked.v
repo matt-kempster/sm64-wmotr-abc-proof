@@ -764,8 +764,9 @@ Section NoARealInputMWF.
      the assumed surface here shrinks to the FILTERED remainder sta_rest_ids
      (27 leaves).  Finishing the family deletes this hypothesis entirely. *)
   (* the stationary family's audio externals (raise/lower_background_noise,
-     stop_sound) -- EF_external in every linked TU, write no Mario state:
-     the SAME honest model-boundary class as the obj_ext audio rows. *)
+     stop_sound, play_mario_heavy_landing_sound, play_sound_if_no_flag) --
+     EF_external in every linked TU, write no Mario state: the SAME honest
+     model-boundary class as the obj_ext audio rows. *)
   Hypothesis Hpres_sta_ext : forall fid,
       mem_id fid StationaryLeafSurface.sta_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
