@@ -1700,6 +1700,11 @@ Section NoARealInputMWF.
                          (mwf_real_safe_valid lp bm bc oc0 SafeB)
                          Hglob_valid
                          aut_local_store)
+                      (* SLICE 16: set_camera_mode (obj_ext) -- the camera
+                         external check_common_stationary_cancels's two helpers
+                         (set_water_plunge_action / update_mario_sound_and_camera)
+                         call.  Discharged via the obj_ext boundary. *)
+                      (Hpres_obj_ext mario._set_camera_mode eq_refl)
                       Hpres_sta_rest)
                    Hpres_qsand)
                 (moving_pres lp LO_mario LO_mov LO_stp bm (NoA_real bm)
