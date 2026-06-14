@@ -50,7 +50,7 @@ From SM64.Proofs Require Import MWFReal RestSurface AirborneSurface
   MovingSurface ObjectSurface SubmergedSurface FloorsSurface WarpSurface
   ActWriterSurface ObjectLeafSurface FloorsLeafSurface AutomaticLeafSurface
   LocalVarsSurface OutParamSurface WindSurface InterSurface
-  MarioStepSurface BullySurface.
+  MarioStepSurface BullySurface RetSurface.
 
 Section NoAImpliesNoFlyLinked.
   (* The linked program -- ABSTRACT, never computed (no OOM). *)
@@ -1452,10 +1452,29 @@ Section NoARealInputMWF.
   Hypothesis Hpres_warp_ext : forall fid,
       mem_id fid warp_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
-  Hypothesis Hret_call : forall fd m0 vargs0 t0 m0' vres0,
+  (* RETURN-VALUE NON-ALIASING, REFINED (RetSurface): the opaque
+     forall-reached row is now PROVED for every reached fundef whose
+     return type cannot carry a Vptr through the return cast
+     (Tvoid / Tint I8/I16/IBool / Tfloat -- ret_fd_safe = true: ~17 of
+     the reached functions, with ZERO new trust, since on ptr64 = false
+     only a Tint I32 / Tpointer target selects cast_case_pointer).  What
+     stays assumed is the SHARPER residual: only the Tint I32 returns
+     (the 4 getters + the 7 dispatchers, whose result is a status int,
+     not a pointer) and the External fundefs (the honest terminal-
+     external model boundary, e.g. EF_vload). *)
+  Hypothesis Hret_unsafe : forall fd m0 vargs0 t0 m0' vres0,
+      reached_v2 lp fd ->
+      RetSurface.ret_fd_safe fd = false ->
+      eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m0' vres0 ->
+      forall b o, vres0 = Vptr b o -> b <> bm.
+  Lemma Hret_call : forall fd m0 vargs0 t0 m0' vres0,
       reached_v2 lp fd ->
       eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m0' vres0 ->
       forall b o, vres0 = Vptr b o -> b <> bm.
+  Proof.
+    exact (RetSurface.ret_avoids_bm_of_unsafe function_entry2 (lp_ge lp) bm
+             (reached_v2 lp) Hret_unsafe).
+  Qed.
 
   (* externals, REACHED-GATED (per-symbol surface: reached_v2 lp (External
      ef) carries a named rest symbol resolving to ef). The forall-ef forms

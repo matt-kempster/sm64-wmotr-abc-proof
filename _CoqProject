@@ -122,6 +122,14 @@ proofs/MarioModel/InterSurface.v
 #     2 static-helper externals init/transfer (terminal boundary rows)) ---
 proofs/MarioModel/BullySurface.v
 
+# --- GOAL 1 / the return-value surface (SPINE: eval_funcall_ret_safe +
+#     ret_avoids_bm_of_unsafe REFINE the capstone's Hret_call -- every
+#     reached fn whose fn_return cannot carry a Vptr through the return
+#     cast (Tvoid / Tint I8/I16/IBool / Tfloat) is discharged with zero
+#     trust; the residual shrinks to ret_fd_safe = false, the Tint I32
+#     returns + the External model-boundary fundefs) ---
+proofs/MarioModel/RetSurface.v
+
 # --- GOAL 1 / the mario_step surface (SPINE: pgs_cp DISCHARGES the
 #     capstone's Hcp_pgs perform_ground_step blocker via a loop-tolerant
 #     walk; residuals = the deeper pgqs (mo-gated) + mgtsa (marg) rows) ---
