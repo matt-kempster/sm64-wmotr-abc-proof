@@ -127,9 +127,22 @@ Definition mov_ftn_cact : list ident := mario_actions_moving._t'5 :: nil.
 Definition mov_ftn_sids : list ident :=
   mario._set_mario_action :: mario._set_jumping_action :: nil.
 
+(* SLICE M4: check_common_moving_cancels -- the moving dispatcher's common
+   cancel gate (callee #1).  0 stores; calls drop_and_set_mario_action (sids ->
+   Hdasma) + set_water_plunge_action (sets ACT_WATER_PLUNGE, untainted; window
+   stores + set_camera_mode/vec3s_set externals, BOTH in obj_ext_ids).  REUSES
+   the StationaryLeafSurface SLICE-16 set_water_plunge_action recipe verbatim. *)
+Definition mov_swpa_xids : list ident :=
+  mario._set_camera_mode :: mario._vec3s_set :: nil.
+Definition mov_ccmc_ids : list ident :=
+  mario._set_water_plunge_action :: nil.
+Definition mov_ccmc_sids : list ident :=
+  mario._drop_and_set_mario_action :: nil.
+
 (* the walked leaves (this slice) and the shrinking rest *)
 Definition mov_walked_ids : list ident :=
-  mario_actions_moving._act_backward_ground_kb
+  mario_actions_moving._check_common_moving_cancels
+    :: mario_actions_moving._act_backward_ground_kb
     :: mario_actions_moving._act_forward_ground_kb
     :: mario_actions_moving._act_soft_backward_ground_kb
     :: mario_actions_moving._act_soft_forward_ground_kb
@@ -476,6 +489,36 @@ Proof. vm_compute. reflexivity. Qed.
 Example mov_ftn_walk :
   wwalk_chk false nil mov_ftn_ids nil mov_ftn_cact nil mov_ftn_sids nil
     (fn_body mario_actions_moving.f_act_finish_turning_around) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- SLICE M4 pins ---- *)
+Example mov_swpa_pin :
+  (prog_defmap mario.prog) ! mario._set_water_plunge_action
+  = Some (Gfun (Internal mario.f_set_water_plunge_action)).
+Proof. vm_compute. reflexivity. Qed.
+Example mov_swpa_vars : fn_vars mario.f_set_water_plunge_action = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_swpa_pok : mov_pok mario.f_set_water_plunge_action = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_swpa_walk :
+  wwalk_chk false nil nil nil nil mov_swpa_xids mov_sids nil
+    (fn_body mario.f_set_water_plunge_action) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example mov_ccmc_pin :
+  (prog_defmap mario_actions_moving.prog)
+    ! mario_actions_moving._check_common_moving_cancels
+  = Some (Gfun (Internal mario_actions_moving.f_check_common_moving_cancels)).
+Proof. vm_compute. reflexivity. Qed.
+Example mov_ccmc_vars :
+  fn_vars mario_actions_moving.f_check_common_moving_cancels = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_ccmc_pok :
+  mov_pok mario_actions_moving.f_check_common_moving_cancels = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_ccmc_walk :
+  wwalk_chk false nil mov_ccmc_ids nil nil nil mov_ccmc_sids nil
+    (fn_body mario_actions_moving.f_check_common_moving_cancels) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* ====================================================================== *)
@@ -1212,6 +1255,69 @@ Section MovingLeafRows.
     - exact mov_ftn_walk.
   Qed.
 
+  (* ---- SLICE M4: check_common_moving_cancels (the common cancel gate) ---- *)
+  Lemma mov_swpa_xids_rows : forall fid, mem_id fid mov_swpa_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_swpa_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        exact (Hpres_obj_ext mario._set_camera_mode eq_refl) | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        exact (Hpres_obj_ext mario._vec3s_set eq_refl) | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_swpa_row : call_pres lp bm NoA MWF mario._set_water_plunge_action.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._set_water_plunge_action mario.f_set_water_plunge_action
+             nil nil mov_swpa_xids mov_sids
+             LO_mario mov_swpa_pin mov_swpa_vars mov_swpa_pok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact mov_swpa_xids_rows.
+    - exact mov_sids_rows.
+    - exact mov_swpa_walk.
+  Qed.
+
+  Lemma mov_ccmc_ids_rows : forall fid, mem_id fid mov_ccmc_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_ccmc_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_swpa_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_ccmc_sids_rows : forall fid, mem_id fid mov_ccmc_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_ccmc_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hdasma | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_ccmc_pres :
+    body_pres lp NoA MWF bm mario_actions_moving.f_check_common_moving_cancels.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_moving.f_check_common_moving_cancels
+             mov_ccmc_ids nil nil mov_ccmc_sids nil mov_ccmc_vars mov_ccmc_pok).
+    - exact mov_ccmc_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact mov_ccmc_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact mov_ccmc_walk.
+  Qed.
+
   (* ================================================================== *)
   (* THE REST-SPLIT: the capstone's Hpres_mov_callees from the walked   *)
   (* leaves + the shrinking mov_rest_ids residual.                      *)
@@ -1228,10 +1334,10 @@ Section MovingLeafRows.
   Proof.
     intros Hrest fid f H Hdm.
     unfold moving_callee_ids in H. cbn [mem_id existsb] in H.
-    (* 1: check_common_moving_cancels -- rest *)
+    (* 1: check_common_moving_cancels -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite mov_ccmc_pin in Hdm. injection Hdm as <-. exact mov_ccmc_pres. }
     (* 2: act_walking -- rest *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
