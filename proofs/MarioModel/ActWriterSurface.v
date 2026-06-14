@@ -829,6 +829,49 @@ Proof.
     rewrite E in Hfo. inv Hfo. lia.
 Qed.
 
+(* the 8 sem_binarith / sem_shift binop heads that NEVER yield a Vptr (a
+   pointer operand makes them STUCK).  Oadd/Osub are EXCLUDED -- they do
+   pointer arithmetic.  Used to ACCEPT an `Ecast (<one of these>) i32` chase
+   RHS: the inner binop is non-Vptr and a cast of a non-pointer to i32 stays
+   non-pointer (the common `o->flags &= ~BIT` masked-store idiom). *)
+Definition nonptr_binop_head (a : expr) : bool :=
+  match a with
+  | Ebinop Oshl _ _ _ | Ebinop Oshr _ _ _ | Ebinop Omul _ _ _
+  | Ebinop Odiv _ _ _ | Ebinop Omod _ _ _ | Ebinop Oand _ _ _
+  | Ebinop Oor  _ _ _ | Ebinop Oxor _ _ _ => true
+  | _ => false
+  end.
+
+Lemma eval_nonptr_binop_head :
+  forall ge e le m op aa ab bty v,
+    nonptr_binop_head (Ebinop op aa ab bty) = true ->
+    eval_expr ge e le m (Ebinop op aa ab bty) v ->
+    forall bb oo, v <> Vptr bb oo.
+Proof.
+  intros ge e le m op aa ab bty v Hh Hev.
+  inv Hev;
+    try (match goal with
+         | Hlv : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => inv Hlv
+         end).
+  match goal with
+  | Hsem : sem_binary_operation _ op _ _ _ _ _ = Some _ |- _ =>
+      destruct op; cbn [nonptr_binop_head] in Hh; try discriminate Hh;
+      cbn [sem_binary_operation] in Hsem
+  end;
+    match goal with
+    | Hsem : _ = Some _ |- _ =>
+        first
+          [ exact (sem_shl_nonptr _ _ _ _ _ Hsem)
+          | exact (sem_shr_nonptr _ _ _ _ _ Hsem)
+          | exact (sem_mul_nonptr _ _ _ _ _ _ Hsem)
+          | exact (sem_div_nonptr _ _ _ _ _ _ Hsem)
+          | exact (sem_mod_nonptr _ _ _ _ _ _ Hsem)
+          | exact (sem_and_nonptr _ _ _ _ _ _ Hsem)
+          | exact (sem_or_nonptr  _ _ _ _ _ _ Hsem)
+          | exact (sem_xor_nonptr _ _ _ _ _ _ Hsem) ]
+    end.
+Qed.
+
 (* the written value must be provably non-Vptr: a non-pointer scalar
    target (I8/I16/IBool/float -- the cast itself launders), or an I32
    target fed by an integer literal or a censused act temp (act temps
@@ -871,7 +914,9 @@ Definition wchase_rhs_ok (wact : list ident) (ty : type) (a2 : expr)
                       cast_case_pointer passthrough (i32-SOURCE-only trap;
                       see sem_cast_float_i32_nonptr).  interact_pole's
                       `oMarioPoleYawVel = (s32)(m->forwardVel*256+4096)`. *)
-                   | Ecast b cty => float_ty (typeof b) && i32_ty cty
+                   | Ecast b cty =>
+                       i32_ty cty
+                       && (float_ty (typeof b) || nonptr_binop_head b)
                    | _ => false
                    end).
 
@@ -2363,25 +2408,45 @@ Section ActWriterWalk.
                                exact (sem_sub_default_nonptr _ _ _ _ _ _ _ Ecs
                                         Hsem)) ]))
              end).
-        + (* a float-to-i32 cast rhs: the INNER sem_cast is f2i/s2i
-             (Vint-or-stuck -- the ptr32 passthrough needs an i32 SOURCE),
-             so the cast value is non-ptr; the outer assign cast
-             preserves non-ptr. *)
-          apply andb_prop in Ha2 as [Hfl Hi32c].
-          match goal with
-          | Hev2 : eval_expr _ _ _ _ (Ecast _ _) _ |- _ =>
-              inv Hev2;
-              try (match goal with
-                   | Hlv : eval_lvalue _ _ _ _ (Ecast _ _) _ _ _ |- _ =>
-                       inv Hlv
-                   end)
-          end.
-          match goal with
-          | Hcast0 : sem_cast ?vv _ _ _ = Some _,
-            Hcin : sem_cast _ _ _ _ = Some ?vv |- _ =>
-              exact (sem_cast_nonptr_pres _ _ _ _ _ Hcast0
-                       (sem_cast_float_i32_nonptr _ _ _ _ _ Hfl Hi32c Hcin))
-          end. }
+        + (* an i32-target cast rhs.  Either a FLOAT source (inner sem_cast is
+             f2i/s2i -- Vint-or-stuck, the ptr32 passthrough needs an i32
+             SOURCE), or a NON-PTR BINOP source (the binop yields non-Vptr, and
+             a cast of a non-pointer to i32 stays non-pointer -- the
+             `o->flags &= ~BIT` masked-store idiom).  Either way the inner cast
+             value is non-ptr; the outer assign cast preserves non-ptr. *)
+          apply andb_prop in Ha2 as [Hi32c Hor].
+          apply orb_true_iff in Hor as [Hfl | Hbin].
+          * match goal with
+            | Hev2 : eval_expr _ _ _ _ (Ecast _ _) _ |- _ =>
+                inv Hev2;
+                try (match goal with
+                     | Hlv : eval_lvalue _ _ _ _ (Ecast _ _) _ _ _ |- _ =>
+                         inv Hlv
+                     end)
+            end.
+            match goal with
+            | Hcast0 : sem_cast ?vv _ _ _ = Some _,
+              Hcin : sem_cast _ _ _ _ = Some ?vv |- _ =>
+                exact (sem_cast_nonptr_pres _ _ _ _ _ Hcast0
+                         (sem_cast_float_i32_nonptr _ _ _ _ _ Hfl Hi32c Hcin))
+            end.
+          * destruct ca; try discriminate Hbin.
+            match goal with
+            | Hev2 : eval_expr _ _ _ _ (Ecast _ _) _ |- _ =>
+                inv Hev2;
+                try (match goal with
+                     | Hlv : eval_lvalue _ _ _ _ (Ecast _ _) _ _ _ |- _ =>
+                         inv Hlv
+                     end)
+            end.
+            match goal with
+            | Hcast0 : sem_cast ?vv _ _ _ = Some _,
+              Hcin : sem_cast ?v1 _ _ _ = Some ?vv,
+              Hev_ca : eval_expr _ _ _ _ (Ebinop _ _ _ _) ?v1 |- _ =>
+                exact (sem_cast_nonptr_pres _ _ _ _ _ Hcast0
+                         (sem_cast_nonptr_pres _ _ _ _ _ Hcin
+                            (eval_nonptr_binop_head _ _ _ _ _ _ _ _ _ Hbin Hev_ca)))
+            end. }
     (* the store lands in the SafeB block *)
     match goal with
     | Has : assign_loc _ _ _ _ _ _ _ m' |- _ => inv Has
