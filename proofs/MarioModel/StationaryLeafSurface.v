@@ -263,12 +263,38 @@ Example sta_apcr_walk :
     (fn_body mario_actions_stationary.f_act_stop_crawling) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* act_shivering's one external (play_sound, in the obj_ext model class) *)
+Definition sta_psound_xids : list ident := mario._play_sound :: nil.
+
+Example sta_ashv_pin :
+  (prog_defmap mario_actions_stationary.prog)
+    ! mario_actions_stationary._act_shivering
+  = Some (Gfun (Internal mario_actions_stationary.f_act_shivering)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_ashv_vars :
+  fn_vars mario_actions_stationary.f_act_shivering = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_ashv_params_ok :
+  match fn_params mario_actions_stationary.f_act_shivering with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_ashv_walk :
+  wwalk_chk false nil sta_leaf_ids nil nil sta_psound_xids sta_sids nil
+    (fn_body mario_actions_stationary.f_act_shivering) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* the unwalked remainder of stationary_callee_ids (filter, not a
    hand-spelled list -- shrinks automatically as leaves move out) *)
 Definition sta_walked_ids : list ident :=
   mario_actions_stationary._act_standing_against_wall
     :: mario_actions_stationary._act_start_crawling
-    :: mario_actions_stationary._act_stop_crawling :: nil.
+    :: mario_actions_stationary._act_stop_crawling
+    :: mario_actions_stationary._act_shivering :: nil.
 Definition sta_rest_ids : list ident :=
   filter (fun id => negb (mem_id id sta_walked_ids)) stationary_callee_ids.
 
@@ -343,6 +369,10 @@ Section StationaryLeafRows.
     call_pres_ext lp bm NoA MWF mario._vec3s_set.
   Hypothesis Hcpx_lpt :
     call_pres_ext lp bm NoA MWF mario._load_patchable_table.
+  (* play_sound: a pure AUDIO external (same model class as the obj_ext rows);
+     discharged at the capstone via Hpres_obj_ext (play_sound in obj_ext_ids) *)
+  Hypothesis Hcpx_psound :
+    call_pres_ext lp bm NoA MWF mario._play_sound.
   (* perform_ground_step: discharged at the capstone (MarioStepSurface) *)
   Hypothesis Hcp_pgs :
     call_pres lp bm NoA MWF mario_step._perform_ground_step.
@@ -576,6 +606,36 @@ Section StationaryLeafRows.
     - exact sta_apcr_walk.
   Qed.
 
+  (* act_shivering: the animation/particle leaf (m->actionState +
+     m->particleFlags window stores, an actionState Sswitch, the
+     chase-temp marioObj loads used only as play_sound's pos arg). *)
+  Lemma sta_ashv_xids_rows : forall fid, mem_id fid sta_psound_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sta_psound_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | ].
+    discriminate H.
+  Qed.
+
+  Lemma act_shivering_pres :
+    body_pres lp NoA MWF bm
+      mario_actions_stationary.f_act_shivering.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_stationary.f_act_shivering
+             sta_leaf_ids nil sta_psound_xids sta_sids nil
+             sta_ashv_vars sta_ashv_params_ok).
+    - exact sta_leaf_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact sta_ashv_xids_rows.
+    - exact sta_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact sta_ashv_walk.
+  Qed.
+
   (* ================================================================== *)
   (* THE REST-SPLIT: the capstone's Hpres_sta_callees from the walked   *)
   (* leaves + the shrinking sta_rest_ids residual.                      *)
@@ -641,10 +701,11 @@ Section StationaryLeafRows.
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
       refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
-    (* 13: act_shivering -- rest *)
+    (* 13: act_shivering -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite sta_ashv_pin in Hdm. injection Hdm as <-.
+      exact act_shivering_pres. }
     (* 14: act_crouching -- rest *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.

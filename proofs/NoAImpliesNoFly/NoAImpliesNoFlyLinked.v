@@ -1650,6 +1650,7 @@ Section NoARealInputMWF.
                       (Hpres_obj_ext mario_step._vec3f_copy eq_refl)
                       (Hpres_obj_ext mario._vec3s_set eq_refl)
                       (Hpres_obj_ext mario._load_patchable_table eq_refl)
+                      (Hpres_obj_ext mario._play_sound eq_refl)
                       Hcp_pgs
                       Hpres_sta_rest)
                    Hpres_qsand)
