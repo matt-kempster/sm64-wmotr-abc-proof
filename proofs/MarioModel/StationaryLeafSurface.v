@@ -83,6 +83,29 @@ Definition sta_sja_ids : list ident :=
 Definition sta_crouch_sids : list ident :=
   mario._set_mario_action :: mario._set_jumping_action :: nil.
 
+(* ---- SLICE 11: the IDLE cluster (3 of 5: act_in_quicksand / act_coughing /
+   act_panting).  Gate = check_common_idle_cancels [call_pres]: it drops the
+   held object (mario_drop_held_object, reused via ObjectLeafSurface.mdho_row),
+   reads m->floor->normal.y, then input-gated const exits through set_mario_action
+   / set_jumping_action / mario_push_off_steep_floor.  push_off threads its
+   _action PARAM to set_mario_action -> it is a call_pres_ACT (wact=[_action;_t'2],
+   wids=sids=[set_mario_action]), walked here via the writer producer.  The three
+   leaves then bottom out in ccic + set_mario_animation + stationary_ground_step
+   (+ play_sound for coughing/panting; + a marioBodyState->eyeState chase store
+   for panting). ---- *)
+Definition sta_pushoff_wact : list ident :=
+  mario_step._action :: mario_step._t'2 :: nil.
+Definition sta_ccic_ids : list ident :=
+  interaction._mario_drop_held_object :: nil.
+Definition sta_ccic_sids : list ident :=
+  mario._set_mario_action :: mario._set_jumping_action
+    :: mario_step._mario_push_off_steep_floor :: nil.
+Definition sta_idle_ids : list ident :=
+  mario_actions_stationary._check_common_idle_cancels
+    :: mario._set_mario_animation
+    :: mario_step._stationary_ground_step :: nil.
+Definition sta_panting_cact : list ident := mario._t'5 :: nil.
+
 (* ====================================================================== *)
 (* Shape pins (vm_compute reflexivity over the real AST).                 *)
 (* ====================================================================== *)
@@ -847,7 +870,10 @@ Definition sta_walked_ids : list ident :=
     :: mario_actions_stationary._act_air_throw_land
     :: mario_actions_stationary._act_crouching
     :: mario_actions_stationary._act_start_crouching
-    :: mario_actions_stationary._act_stop_crouching :: nil.
+    :: mario_actions_stationary._act_stop_crouching
+    :: mario_actions_stationary._act_in_quicksand
+    :: mario_actions_stationary._act_coughing
+    :: mario_actions_stationary._act_panting :: nil.
 Definition sta_rest_ids : list ident :=
   filter (fun id => negb (mem_id id sta_walked_ids)) stationary_callee_ids.
 
@@ -992,6 +1018,128 @@ Proof. vm_compute. reflexivity. Qed.
 Example sta_pcrouch_walk :
   wwalk_chk false nil sta_leaf_ids nil nil nil sta_crouch_sids nil
     (fn_body mario_actions_stationary.f_act_stop_crouching) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- SLICE 11 shape pins ---- *)
+
+(* mario_push_off_steep_floor: call_pres_act -- writer_params, threads
+   _action to set_mario_action; stores m->forwardVel + m->faceAngle[1]
+   (idx16 window).  wact = [_action; _t'2] (the returned set_mario_action
+   result), wids = sids = [set_mario_action].  Lives in mario_step.prog. *)
+Example sta_pushoff_pin :
+  (prog_defmap mario_step.prog) ! mario_step._mario_push_off_steep_floor
+  = Some (Gfun (Internal mario_step.f_mario_push_off_steep_floor)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_pushoff_vars :
+  fn_vars mario_step.f_mario_push_off_steep_floor = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_pushoff_params :
+  fn_params mario_step.f_mario_push_off_steep_floor = writer_params.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_pushoff_ret :
+  i32_ty (fn_return mario_step.f_mario_push_off_steep_floor) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_pushoff_walk :
+  wwalk_chk true sta_pushoff_wact nil sta_sids nil nil sta_sids nil
+    (fn_body mario_step.f_mario_push_off_steep_floor) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* check_common_idle_cancels: call_pres.  m->floor/heldObj read-through ptr
+   temps (UNTRACKED, cact=nil); ids=[mario_drop_held_object]; sids = the
+   const-action exits (sma / sja / push_off). *)
+Example sta_ccic_pin :
+  (prog_defmap mario_actions_stationary.prog)
+    ! mario_actions_stationary._check_common_idle_cancels
+  = Some (Gfun (Internal mario_actions_stationary.f_check_common_idle_cancels)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_ccic_vars :
+  fn_vars mario_actions_stationary.f_check_common_idle_cancels = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_ccic_params_ok :
+  match fn_params mario_actions_stationary.f_check_common_idle_cancels with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_ccic_walk :
+  wwalk_chk false nil sta_ccic_ids nil nil nil sta_ccic_sids nil
+    (fn_body mario_actions_stationary.f_check_common_idle_cancels) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* the three clean idle leaves *)
+Example sta_inqs_pin :
+  (prog_defmap mario_actions_stationary.prog)
+    ! mario_actions_stationary._act_in_quicksand
+  = Some (Gfun (Internal mario_actions_stationary.f_act_in_quicksand)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_inqs_vars :
+  fn_vars mario_actions_stationary.f_act_in_quicksand = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_inqs_params_ok :
+  match fn_params mario_actions_stationary.f_act_in_quicksand with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_inqs_walk :
+  wwalk_chk false nil sta_idle_ids nil nil nil sta_sids nil
+    (fn_body mario_actions_stationary.f_act_in_quicksand) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example sta_cough_pin :
+  (prog_defmap mario_actions_stationary.prog)
+    ! mario_actions_stationary._act_coughing
+  = Some (Gfun (Internal mario_actions_stationary.f_act_coughing)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_cough_vars :
+  fn_vars mario_actions_stationary.f_act_coughing = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_cough_params_ok :
+  match fn_params mario_actions_stationary.f_act_coughing with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_cough_walk :
+  wwalk_chk false nil sta_idle_ids nil nil sta_psound_xids sta_sids nil
+    (fn_body mario_actions_stationary.f_act_coughing) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example sta_pant_pin :
+  (prog_defmap mario_actions_stationary.prog)
+    ! mario_actions_stationary._act_panting
+  = Some (Gfun (Internal mario_actions_stationary.f_act_panting)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_pant_vars :
+  fn_vars mario_actions_stationary.f_act_panting = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_pant_params_ok :
+  match fn_params mario_actions_stationary.f_act_panting with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_pant_nonparam :
+  forallb (fun t' => negb (mem_id t'
+             (map fst (fn_params mario_actions_stationary.f_act_panting))))
+    sta_panting_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_pant_walk :
+  wwalk_chk false nil sta_idle_ids nil sta_panting_cact sta_psound_xids
+    sta_sids nil
+    (fn_body mario_actions_stationary.f_act_panting) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* ====================================================================== *)
@@ -1993,6 +2141,144 @@ Section StationaryLeafRows.
   Qed.
 
   (* ================================================================== *)
+  (* SLICE 11: the IDLE cluster (act_in_quicksand/act_coughing/act_panting) *)
+  (* ================================================================== *)
+
+  (* mario_drop_held_object: call_pres, reused from ObjectLeafSurface. *)
+  Let Hmdho : call_pres lp bm NoA MWF interaction._mario_drop_held_object :=
+    mdho_row lp LO_mario LO_int bm NoA MWF HNoA_of_MWF
+      HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+      HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+      Hcpx_s2v Hcpx_ssm Hcpx_oshs.
+
+  (* mario_push_off_steep_floor: call_pres_act (threads _action to
+     set_mario_action; the const-result-into-wact arm tracks _t'2). *)
+  Lemma sta_pushoff_row :
+    call_pres_act lp bm NoA MWF mario_step._mario_push_off_steep_floor.
+  Proof.
+    apply (call_pres_act_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_step.prog mario_step._mario_push_off_steep_floor
+             mario_step.f_mario_push_off_steep_floor
+             sta_pushoff_wact nil sta_sids nil nil sta_sids
+             LO_mario_step sta_pushoff_pin sta_pushoff_vars sta_pushoff_params
+             sta_pushoff_ret
+             eq_refl eq_refl eq_refl eq_refl eq_refl eq_refl).
+    - intros fid' H. discriminate H.
+    - exact sta_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact sta_sids_rows.
+    - exact sta_pushoff_walk.
+  Qed.
+
+  (* check_common_idle_cancels: call_pres. *)
+  Lemma sta_ccic_ids_rows : forall fid, mem_id fid sta_ccic_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sta_ccic_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hmdho | ].
+    discriminate H.
+  Qed.
+
+  Lemma sta_ccic_sids_rows : forall fid, mem_id fid sta_ccic_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sta_ccic_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_sja_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_pushoff_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma sta_ccic_row :
+    call_pres lp bm NoA MWF mario_actions_stationary._check_common_idle_cancels.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_stationary.prog
+             mario_actions_stationary._check_common_idle_cancels
+             mario_actions_stationary.f_check_common_idle_cancels
+             sta_ccic_ids nil nil sta_ccic_sids
+             LO_sta sta_ccic_pin sta_ccic_vars sta_ccic_params_ok).
+    - exact sta_ccic_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sta_ccic_sids_rows.
+    - exact sta_ccic_walk.
+  Qed.
+
+  (* the idle leaves' ids = ccic + set_mario_animation + stationary_ground_step *)
+  Lemma sta_idle_ids_rows : forall fid, mem_id fid sta_idle_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sta_idle_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_ccic_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_sma_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_sgs_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma act_in_quicksand_pres :
+    body_pres lp NoA MWF bm mario_actions_stationary.f_act_in_quicksand.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_stationary.f_act_in_quicksand
+             sta_idle_ids nil nil sta_sids nil
+             sta_inqs_vars sta_inqs_params_ok).
+    - exact sta_idle_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sta_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact sta_inqs_walk.
+  Qed.
+
+  Lemma act_coughing_pres :
+    body_pres lp NoA MWF bm mario_actions_stationary.f_act_coughing.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_stationary.f_act_coughing
+             sta_idle_ids nil sta_psound_xids sta_sids nil
+             sta_cough_vars sta_cough_params_ok).
+    - exact sta_idle_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact sta_ashv_xids_rows.
+    - exact sta_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact sta_cough_walk.
+  Qed.
+
+  Lemma act_panting_pres :
+    body_pres lp NoA MWF bm mario_actions_stationary.f_act_panting.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_stationary.f_act_panting
+             sta_idle_ids nil sta_panting_cact sta_psound_xids sta_sids nil
+             sta_pant_vars sta_pant_params_ok sta_pant_nonparam).
+    - exact sta_idle_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact sta_ashv_xids_rows.
+    - exact sta_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact sta_pant_walk.
+  Qed.
+
+  (* ================================================================== *)
   (* THE REST-SPLIT: the capstone's Hpres_sta_callees from the walked   *)
   (* leaves + the shrinking sta_rest_ids residual.                      *)
   (* ================================================================== *)
@@ -2029,10 +2315,11 @@ Section StationaryLeafRows.
     { apply Pos.eqb_eq in Hm; subst fid.
       rewrite sta_awku_pin in Hdm. injection Hdm as <-.
       exact act_waking_up_pres. }
-    (* 6: act_panting -- rest *)
+    (* 6: act_panting -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite sta_pant_pin in Hdm. injection Hdm as <-.
+      exact act_panting_pres. }
     (* 7: act_hold_panting_unused -- rest *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
@@ -2046,19 +2333,21 @@ Section StationaryLeafRows.
     { apply Pos.eqb_eq in Hm; subst fid.
       rewrite sta_hhi_pin in Hdm. injection Hdm as <-.
       exact act_hold_heavy_idle_pres. }
-    (* 10: act_in_quicksand -- rest *)
+    (* 10: act_in_quicksand -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite sta_inqs_pin in Hdm. injection Hdm as <-.
+      exact act_in_quicksand_pres. }
     (* 11: act_standing_against_wall -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
       rewrite sta_saw_pin in Hdm. injection Hdm as <-.
       exact act_standing_against_wall_pres. }
-    (* 12: act_coughing -- rest *)
+    (* 12: act_coughing -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite sta_cough_pin in Hdm. injection Hdm as <-.
+      exact act_coughing_pres. }
     (* 13: act_shivering -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
