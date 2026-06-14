@@ -973,6 +973,7 @@ Definition sta_walked_ids : list ident :=
     :: mario_actions_stationary._act_double_jump_land_stop
     :: mario_actions_stationary._act_freefall_land_stop
     :: mario_actions_stationary._act_triple_jump_land_stop
+    :: mario_actions_stationary._act_side_flip_land_stop
     :: mario_actions_stationary._act_crouching
     :: mario_actions_stationary._act_start_crouching
     :: mario_actions_stationary._act_stop_crouching
@@ -1692,6 +1693,38 @@ Proof. vm_compute. reflexivity. Qed.
 Example sta_tjls_walk :
   wwalk_chk false nil sta_landcclc_ids nil nil nil nil sta_landing_tids
     (fn_body mario_actions_stationary.f_act_triple_jump_land_stop) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* act_side_flip_land_stop: cclc + landing_step + a marioObj chase store
+   (m->marioObj(_t'2)->header.gfx.angle[1] += 0x8000) -- the SAME chase-store
+   shape as act_twirl_land, so the marioObj store-temp _t'2 goes in cact and
+   chase_store_chk recognises it. *)
+Definition sta_sfls_cact : list ident := mario_actions_stationary._t'2 :: nil.
+Example sta_sfls_pin :
+  (prog_defmap mario_actions_stationary.prog)
+    ! mario_actions_stationary._act_side_flip_land_stop
+  = Some (Gfun (Internal mario_actions_stationary.f_act_side_flip_land_stop)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_sfls_vars :
+  fn_vars mario_actions_stationary.f_act_side_flip_land_stop = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_sfls_params_ok :
+  match fn_params mario_actions_stationary.f_act_side_flip_land_stop with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_sfls_nonparam :
+  forallb (fun t' => negb (mem_id t'
+             (map fst (fn_params mario_actions_stationary.f_act_side_flip_land_stop))))
+    sta_sfls_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_sfls_walk :
+  wwalk_chk false nil sta_landcclc_ids nil sta_sfls_cact nil nil sta_landing_tids
+    (fn_body mario_actions_stationary.f_act_side_flip_land_stop) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* ====================================================================== *)
@@ -2521,6 +2554,26 @@ Section StationaryLeafRows.
     - intros fid' H. discriminate H.
     - exact sta_landing_tids_rows.
     - exact sta_tjls_walk.
+  Qed.
+
+  (* act_side_flip_land_stop: cclc + landing_step + the marioObj chase store
+     (cact = [_t'2]); the twirl_land cact pattern. *)
+  Lemma act_side_flip_land_stop_pres :
+    body_pres lp NoA MWF bm
+      mario_actions_stationary.f_act_side_flip_land_stop.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_stationary.f_act_side_flip_land_stop
+             sta_landcclc_ids nil sta_sfls_cact nil nil sta_landing_tids
+             sta_sfls_vars sta_sfls_params_ok sta_sfls_nonparam).
+    - exact sta_landcclc_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sta_landing_tids_rows.
+    - exact sta_sfls_walk.
   Qed.
 
   (* ---- the landing-sound helper chain ---- *)
@@ -3789,10 +3842,11 @@ Section StationaryLeafRows.
     { apply Pos.eqb_eq in Hm; subst fid.
       rewrite sta_ffls_pin in Hdm. injection Hdm as <-.
       exact act_freefall_land_stop_pres. }
-    (* 25: act_side_flip_land_stop -- rest *)
+    (* 25: act_side_flip_land_stop -- WALKED (cclc keystone + cact chase store) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite sta_sfls_pin in Hdm. injection Hdm as <-.
+      exact act_side_flip_land_stop_pres. }
     (* 26: act_hold_jump_land_stop -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
