@@ -755,12 +755,13 @@ Section NoARealInputMWF.
      keyed by the 37-id census stationary_callee_ids, plus the shared
      quicksand body below.
 
-     StationaryLeafSurface (slices 1-5): the clean stationary-step cluster
-     (standing_against_wall / start_crawling / stop_crawling) + act_shivering
-     + act_waking_up + the act3 caller-action stop cluster (act_braking_stop /
-     act_butt_slide_stop, via stopping_step) are now WALKED
+     StationaryLeafSurface (slices 1-6): the clean stationary-step cluster +
+     act_shivering + act_waking_up + the act3 caller-action stop cluster
+     (act_braking_stop / act_butt_slide_stop, via stopping_step) + the dasma
+     held-object cluster (act_hold_heavy_idle / act_slide_kick_slide_stop, via
+     ObjectLeafSurface.dasma_row reused) are now WALKED
      (stationary_leaf_callees_pres), so the assumed surface here shrinks to
-     the FILTERED remainder sta_rest_ids (30 leaves).  Finishing the family
+     the FILTERED remainder sta_rest_ids (28 leaves).  Finishing the family
      deletes this hypothesis entirely. *)
   (* the stationary family's audio externals (raise/lower_background_noise,
      stop_sound) -- EF_external in every linked TU, write no Mario state:
@@ -1639,7 +1640,7 @@ Section NoARealInputMWF.
                       stop_crawling/shivering/waking_up/braking_stop WALKED;
                       rest stays Hpres_sta_rest, audio externals via
                       Hpres_sta_ext *)
-                   (stationary_leaf_callees_pres lp LO_mario LO_stp LO_sta bm
+                   (stationary_leaf_callees_pres lp LO_mario LO_stp LO_sta LO_int bm
                       (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
                       (mwf_real_ctl lp bm bc oc0 SafeB)
                       (mwf_real_window lp bm bc oc0 SafeB Hbc_bm
@@ -1663,6 +1664,9 @@ Section NoARealInputMWF.
                       (Hpres_obj_ext mario._play_sound eq_refl)
                       Hpres_sta_ext
                       Hcp_pgs
+                      (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
+                      (Hpres_obj_ext interaction._stop_shell_music eq_refl)
+                      (Hpres_obj_ext interaction._obj_set_held_state eq_refl)
                       Hpres_sta_rest)
                    Hpres_qsand)
                 (moving_pres lp LO_mario LO_mov LO_stp bm (NoA_real bm)
