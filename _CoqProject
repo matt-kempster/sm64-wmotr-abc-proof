@@ -135,6 +135,13 @@ proofs/MarioModel/RetSurface.v
 #     walk; residuals = the deeper pgqs (mo-gated) + mgtsa (marg) rows) ---
 proofs/MarioModel/MarioStepSurface.v
 
+# --- GOAL 1 / the stationary-family leaf surface (SPINE:
+#     stationary_leaf_callees_pres shrinks the capstone's Hpres_sta_callees
+#     down to a per-leaf census rest-split; slice 1 = the clean
+#     stationary-step cluster standing_against_wall/start_crawling/
+#     stop_crawling) ---
+proofs/MarioModel/StationaryLeafSurface.v
+
 # --- top-level demos ---
 proofs/Toy/ToyFrame.v
 proofs/Toy/ToyReach.v

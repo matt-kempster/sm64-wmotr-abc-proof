@@ -50,7 +50,7 @@ From SM64.Proofs Require Import MWFReal RestSurface AirborneSurface
   MovingSurface ObjectSurface SubmergedSurface FloorsSurface WarpSurface
   ActWriterSurface ObjectLeafSurface FloorsLeafSurface AutomaticLeafSurface
   LocalVarsSurface OutParamSurface WindSurface InterSurface
-  MarioStepSurface BullySurface RetSurface.
+  MarioStepSurface BullySurface RetSurface StationaryLeafSurface.
 
 Section NoAImpliesNoFlyLinked.
   (* The linked program -- ABSTRACT, never computed (no OOM). *)
@@ -753,9 +753,15 @@ Section NoARealInputMWF.
      over the generic DispatchKit; the particleFlags epilogue store is
      killed by the window census): PROVED from per-leaf-callee residuals
      keyed by the 37-id census stationary_callee_ids, plus the shared
-     quicksand body below. *)
-  Hypothesis Hpres_sta_callees : forall fid f,
-      mem_id fid stationary_callee_ids = true ->
+     quicksand body below.
+
+     SLICE 1 (StationaryLeafSurface): the "clean stationary-step" cluster
+     act_standing_against_wall / act_start_crawling / act_stop_crawling is
+     now WALKED (stationary_leaf_callees_pres), so the assumed surface here
+     shrinks to the FILTERED remainder sta_rest_ids (34 leaves).  Finishing
+     the family deletes this hypothesis entirely. *)
+  Hypothesis Hpres_sta_rest : forall fid f,
+      mem_id fid sta_rest_ids = true ->
       (prog_defmap mario_actions_stationary.prog) ! fid
         = Some (Gfun (Internal f)) ->
       body_pres lp (NoA_real bm) MWF bm f.
@@ -1621,7 +1627,32 @@ Section NoARealInputMWF.
                    (mwf_real_ctl lp bm bc oc0 SafeB)
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                       Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
-                   Hpres_sta_callees Hpres_qsand)
+                   (* SLICE 1: standing_against_wall/start_crawling/
+                      stop_crawling WALKED; the rest stays Hpres_sta_rest *)
+                   (stationary_leaf_callees_pres lp LO_mario LO_stp bm
+                      (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
+                      (mwf_real_ctl lp bm bc oc0 SafeB)
+                      (mwf_real_window lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+                      (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      SafeB HSafeB_not_bm
+                      (mwf_real_chase_root lp bm bc oc0 SafeB)
+                      (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (mwf_real_sglob lp bm bc oc0 SafeB)
+                      (mwf_real_chase_step lp bm bc oc0 SafeB)
+                      (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (Hpres_obj_ext mario_step._vec3f_copy eq_refl)
+                      (Hpres_obj_ext mario._vec3s_set eq_refl)
+                      (Hpres_obj_ext mario._load_patchable_table eq_refl)
+                      Hcp_pgs
+                      Hpres_sta_rest)
+                   Hpres_qsand)
                 (moving_pres lp LO_mario LO_mov LO_stp bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
                    (mwf_real_ctl lp bm bc oc0 SafeB)
