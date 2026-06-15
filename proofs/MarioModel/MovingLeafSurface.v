@@ -213,7 +213,10 @@ Definition mov_walked_ids : list ident :=
     (* LANDING KEYSTONE: the 3 clean common_landing_cancels leaves *)
     :: mario_actions_moving._act_jump_land
     :: mario_actions_moving._act_freefall_land
-    :: mario_actions_moving._act_double_jump_land :: nil.
+    :: mario_actions_moving._act_double_jump_land
+    (* LANDING KEYSTONE part 2: the HOLD leaves (leading drop-object block) *)
+    :: mario_actions_moving._act_hold_jump_land
+    :: mario_actions_moving._act_hold_freefall_land :: nil.
 Definition mov_rest_ids : list ident :=
   filter (fun id => negb (mem_id id mov_walked_ids)) moving_callee_ids.
 
@@ -2700,15 +2703,23 @@ Section MovingLeafRows.
   Proof. intros; match goal with H : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => inv H end;
            (split; [ reflexivity | split; [ reflexivity | discriminate ] ]). Qed.
 
+  Lemma lnd_exec_set_inv :
+    forall e le m id a tr le' m' out,
+      exec_stmt function_entry2 (lp_ge lp) e le m (Sset id a) tr le' m' out ->
+      m' = m /\ out = Out_normal /\ exists v, le' = PTree.set id v le.
+  Proof. intros; match goal with H : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => inv H end;
+           (split; [ reflexivity | split; [ reflexivity | eexists; reflexivity ] ]). Qed.
+
   (* the clean clc call site: Scall (Some _t'1) of common_landing_cancels with
      args (Etempvar _m, &gid, Evar sap).  gid in knockback_table_ids; sap the
      (arbitrary, used vacuously) setAPressAction.  Preserves + reads off le!_m. *)
   Lemma clc_site_pres :
-    forall gid sap le m tr le' m' out,
+    forall dst gid sap le m tr le' m' out,
+      dst <> M._m ->
       mem_id gid knockback_table_ids = true ->
       (forall b o, le ! M._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero) ->
       exec_stmt function_entry2 (lp_ge lp) empty_env le m
-        (Scall (Some M._t'1)
+        (Scall (Some dst)
            (Evar M._common_landing_cancels
               (Tfunction (tyMSp :: tptr (Tstruct M._LandingAction noattr)
                           :: tptr (Tfunction (tyMSp :: tuint :: tuint :: nil) tint cc_default)
@@ -2725,7 +2736,7 @@ Section MovingLeafRows.
       /\ out = Out_normal
       /\ (forall b o, le' ! M._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
   Proof.
-    intros gid sap le m tr le' m' out Hgid Htat Hexec HN HM HV HS.
+    intros dst gid sap le m tr le' m' out Hdst Hgid Htat Hexec HN HM HV HS.
     inv Hexec.
     match goal with Hcf : classify_fun _ = _ |- _ => cbn in Hcf; inv Hcf end.
     match goal with Hv : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
@@ -2757,14 +2768,15 @@ Section MovingLeafRows.
     end.
     refine (conj HV' (conj HS' (conj HM' (conj HN' (conj eq_refl _))))).
     intros b o Hg. cbn [set_opttemp] in Hg.
-    rewrite PTree.gso in Hg by (vm_compute; congruence).
+    rewrite PTree.gso in Hg by (exact (fun e => Hdst (eq_sym e))).
     exact (Htat b o Hg).
   Qed.
 
   (* the cla call site: Scall None of common_landing_action with args
      (Etempvar _m, Econst_int anim, Econst_int 16779404).  Preserves. *)
   Lemma cla_site_pres :
-    forall anim le m tr le' m' out,
+    forall anim act le m tr le' m' out,
+      wact_const (Int.repr act) = true ->
       (forall b o, le ! M._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero) ->
       exec_stmt function_entry2 (lp_ge lp) empty_env le m
         (Scall None
@@ -2772,12 +2784,12 @@ Section MovingLeafRows.
               (Tfunction (tyMSp :: tshort :: tuint :: nil) tuint cc_default))
            (Etempvar M._m tyMSp
             :: Econst_int (Int.repr anim) tint
-            :: Econst_int (Int.repr 16779404) tint :: nil))
+            :: Econst_int (Int.repr act) tint :: nil))
         tr le' m' out ->
       NoA m -> MWF m -> Mem.valid_block m bm -> action_sat not_tainted m bm ->
       Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\ NoA m'.
   Proof.
-    intros anim le m tr le' m' out Htat Hexec HN HM HV HS.
+    intros anim act le m tr le' m' out Hact Htat Hexec HN HM HV HS.
     inv Hexec.
     match goal with Hcf : classify_fun _ = _ |- _ => cbn in Hcf; inv Hcf end.
     match goal with Hv : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
@@ -2798,7 +2810,7 @@ Section MovingLeafRows.
     match goal with Hv : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
       inv Hv; try (match goal with Hlv : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
                      inv Hlv end) end.
-    match goal with Hc : sem_cast (Vint (Int.repr 16779404)) _ _ _ = Some _ |- _ =>
+    match goal with Hc : sem_cast (Vint (Int.repr act)) _ _ _ = Some _ |- _ =>
       cbn in Hc; injection Hc as <- end.
     match goal with Hel : eval_exprlist _ _ _ _ nil _ _ |- _ => inv Hel end.
     match goal with Hv1 : le ! M._m = Some ?v1 |- _ =>
@@ -2807,8 +2819,7 @@ Section MovingLeafRows.
     match goal with
     | Hevf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
         destruct (cla_funcall_pres _ _ _ _ _ _ _ _ Hres Hevf Htat1
-                    ltac:(right; eexists; split;
-                          [ reflexivity | vm_compute; reflexivity ])
+                    (wact_const_sound _ Hact)
                     HN HM HV HS)
           as (HV' & HS' & HM' & HN')
     end.
@@ -2858,8 +2869,9 @@ Section MovingLeafRows.
     - apply lnd_exec_seq_cases in Hfirst
         as [ (trA & leA & mA & trB & Hclc_c & Hif) | (Hclc_c & Hne0) ].
       2:{ exfalso. apply Hne0. inv Hclc_c. reflexivity. }
-      destruct (clc_site_pres mario_actions_moving._sJumpLandAction
-                  _ _ _ _ _ _ _ ltac:(vm_compute; reflexivity) Htat Hclc_c HN HM HV HS)
+      destruct (clc_site_pres M._t'1 mario_actions_moving._sJumpLandAction
+                  _ _ _ _ _ _ _ ltac:(vm_compute; congruence)
+                  ltac:(vm_compute; reflexivity) Htat Hclc_c HN HM HV HS)
         as (HVa & HSa & HMa & HNa & _ & Htat_a).
       apply lnd_exec_if_inv in Hif as [bb Hif].
       destruct bb.
@@ -2867,18 +2879,21 @@ Section MovingLeafRows.
       + apply lnd_exec_skip_inv in Hif as (-> & -> & _).
         apply lnd_exec_seq_cases in Hsecond
           as [ (trC & leC & mC & trD & Hcla_c & Hret) | (Hcla_c & Hne2) ].
-        * destruct (cla_site_pres 78 _ _ _ _ _ _ Htat_a Hcla_c HNa HMa HVa HSa)
+        * destruct (cla_site_pres 78 16779404 _ _ _ _ _ _
+            ltac:(vm_compute; reflexivity) Htat_a Hcla_c HNa HMa HVa HSa)
             as (HVc & HSc & HMc & HNc).
           apply lnd_exec_return_inv in Hret as (_ & -> & _).
           exact (conj HVc (conj HSc HMc)).
-        * destruct (cla_site_pres 78 _ _ _ _ _ _ Htat_a Hcla_c HNa HMa HVa HSa)
+        * destruct (cla_site_pres 78 16779404 _ _ _ _ _ _
+            ltac:(vm_compute; reflexivity) Htat_a Hcla_c HNa HMa HVa HSa)
             as (HVc & HSc & HMc & HNc).
           exact (conj HVc (conj HSc HMc)).
     - apply lnd_exec_seq_cases in Hfirst
         as [ (trA & leA & mA & trB & Hclc_c & Hif) | (Hclc_c & Hne0) ].
       2:{ exfalso. apply Hne0. inv Hclc_c. reflexivity. }
-      destruct (clc_site_pres mario_actions_moving._sJumpLandAction
-                  _ _ _ _ _ _ _ ltac:(vm_compute; reflexivity) Htat Hclc_c HN HM HV HS)
+      destruct (clc_site_pres M._t'1 mario_actions_moving._sJumpLandAction
+                  _ _ _ _ _ _ _ ltac:(vm_compute; congruence)
+                  ltac:(vm_compute; reflexivity) Htat Hclc_c HN HM HV HS)
         as (HVa & HSa & HMa & HNa & _ & _).
       apply lnd_exec_if_inv in Hif as [bb Hif].
       destruct bb.
@@ -2917,8 +2932,9 @@ Section MovingLeafRows.
     - apply lnd_exec_seq_cases in Hfirst
         as [ (trA & leA & mA & trB & Hclc_c & Hif) | (Hclc_c & Hne0) ].
       2:{ exfalso. apply Hne0. inv Hclc_c. reflexivity. }
-      destruct (clc_site_pres mario_actions_moving._sFreefallLandAction
-                  _ _ _ _ _ _ _ ltac:(vm_compute; reflexivity) Htat Hclc_c HN HM HV HS)
+      destruct (clc_site_pres M._t'1 mario_actions_moving._sFreefallLandAction
+                  _ _ _ _ _ _ _ ltac:(vm_compute; congruence)
+                  ltac:(vm_compute; reflexivity) Htat Hclc_c HN HM HV HS)
         as (HVa & HSa & HMa & HNa & _ & Htat_a).
       apply lnd_exec_if_inv in Hif as [bb Hif].
       destruct bb.
@@ -2926,18 +2942,21 @@ Section MovingLeafRows.
       + apply lnd_exec_skip_inv in Hif as (-> & -> & _).
         apply lnd_exec_seq_cases in Hsecond
           as [ (trC & leC & mC & trD & Hcla_c & Hret) | (Hcla_c & Hne2) ].
-        * destruct (cla_site_pres 87 _ _ _ _ _ _ Htat_a Hcla_c HNa HMa HVa HSa)
+        * destruct (cla_site_pres 87 16779404 _ _ _ _ _ _
+            ltac:(vm_compute; reflexivity) Htat_a Hcla_c HNa HMa HVa HSa)
             as (HVc & HSc & HMc & HNc).
           apply lnd_exec_return_inv in Hret as (_ & -> & _).
           exact (conj HVc (conj HSc HMc)).
-        * destruct (cla_site_pres 87 _ _ _ _ _ _ Htat_a Hcla_c HNa HMa HVa HSa)
+        * destruct (cla_site_pres 87 16779404 _ _ _ _ _ _
+            ltac:(vm_compute; reflexivity) Htat_a Hcla_c HNa HMa HVa HSa)
             as (HVc & HSc & HMc & HNc).
           exact (conj HVc (conj HSc HMc)).
     - apply lnd_exec_seq_cases in Hfirst
         as [ (trA & leA & mA & trB & Hclc_c & Hif) | (Hclc_c & Hne0) ].
       2:{ exfalso. apply Hne0. inv Hclc_c. reflexivity. }
-      destruct (clc_site_pres mario_actions_moving._sFreefallLandAction
-                  _ _ _ _ _ _ _ ltac:(vm_compute; reflexivity) Htat Hclc_c HN HM HV HS)
+      destruct (clc_site_pres M._t'1 mario_actions_moving._sFreefallLandAction
+                  _ _ _ _ _ _ _ ltac:(vm_compute; congruence)
+                  ltac:(vm_compute; reflexivity) Htat Hclc_c HN HM HV HS)
         as (HVa & HSa & HMa & HNa & _ & _).
       apply lnd_exec_if_inv in Hif as [bb Hif].
       destruct bb.
@@ -2976,8 +2995,9 @@ Section MovingLeafRows.
     - apply lnd_exec_seq_cases in Hfirst
         as [ (trA & leA & mA & trB & Hclc_c & Hif) | (Hclc_c & Hne0) ].
       2:{ exfalso. apply Hne0. inv Hclc_c. reflexivity. }
-      destruct (clc_site_pres mario_actions_moving._sDoubleJumpLandAction
-                  _ _ _ _ _ _ _ ltac:(vm_compute; reflexivity) Htat Hclc_c HN HM HV HS)
+      destruct (clc_site_pres M._t'1 mario_actions_moving._sDoubleJumpLandAction
+                  _ _ _ _ _ _ _ ltac:(vm_compute; congruence)
+                  ltac:(vm_compute; reflexivity) Htat Hclc_c HN HM HV HS)
         as (HVa & HSa & HMa & HNa & _ & Htat_a).
       apply lnd_exec_if_inv in Hif as [bb Hif].
       destruct bb.
@@ -2985,24 +3005,304 @@ Section MovingLeafRows.
       + apply lnd_exec_skip_inv in Hif as (-> & -> & _).
         apply lnd_exec_seq_cases in Hsecond
           as [ (trC & leC & mC & trD & Hcla_c & Hret) | (Hcla_c & Hne2) ].
-        * destruct (cla_site_pres 75 _ _ _ _ _ _ Htat_a Hcla_c HNa HMa HVa HSa)
+        * destruct (cla_site_pres 75 16779404 _ _ _ _ _ _
+            ltac:(vm_compute; reflexivity) Htat_a Hcla_c HNa HMa HVa HSa)
             as (HVc & HSc & HMc & HNc).
           apply lnd_exec_return_inv in Hret as (_ & -> & _).
           exact (conj HVc (conj HSc HMc)).
-        * destruct (cla_site_pres 75 _ _ _ _ _ _ Htat_a Hcla_c HNa HMa HVa HSa)
+        * destruct (cla_site_pres 75 16779404 _ _ _ _ _ _
+            ltac:(vm_compute; reflexivity) Htat_a Hcla_c HNa HMa HVa HSa)
             as (HVc & HSc & HMc & HNc).
           exact (conj HVc (conj HSc HMc)).
     - apply lnd_exec_seq_cases in Hfirst
         as [ (trA & leA & mA & trB & Hclc_c & Hif) | (Hclc_c & Hne0) ].
       2:{ exfalso. apply Hne0. inv Hclc_c. reflexivity. }
-      destruct (clc_site_pres mario_actions_moving._sDoubleJumpLandAction
-                  _ _ _ _ _ _ _ ltac:(vm_compute; reflexivity) Htat Hclc_c HN HM HV HS)
+      destruct (clc_site_pres M._t'1 mario_actions_moving._sDoubleJumpLandAction
+                  _ _ _ _ _ _ _ ltac:(vm_compute; congruence)
+                  ltac:(vm_compute; reflexivity) Htat Hclc_c HN HM HV HS)
         as (HVa & HSa & HMa & HNa & _ & _).
       apply lnd_exec_if_inv in Hif as [bb Hif].
       destruct bb.
       + apply lnd_exec_return_inv in Hif as (_ & -> & _).
         exact (conj HVa (conj HSa HMa)).
       + apply lnd_exec_skip_inv in Hif as (_ & -> & Hnn). congruence.
+  Qed.
+
+  (* ================================================================== *)
+  (* LANDING KEYSTONE, part 2: the HOLD _land leaves (hold_jump,         *)
+  (* hold_freefall).  Each opens with a leading drop-held-object block   *)
+  (*   t3 = m->marioObj; t4 = t3->oInteractStatus;                       *)
+  (*   if (t4 & INT_STATUS_MARIO_DROP_OBJECT)                            *)
+  (*       return drop_and_set_mario_action(m, ACT_*_LAND_STOP, 0);      *)
+  (* (a chase-temp READ pair -- m unchanged -- + an UNTAINTED drop call  *)
+  (*  lifted by Hdasma), then the same clc/cla template as the clean     *)
+  (* leaves (clc result temp is _t'2 here, not _t'1).                    *)
+  (* ================================================================== *)
+
+  (* drop_and_set_mario_action(m, UNTAINTED_CONST, 0) -> _t'1. *)
+  Lemma dasma_site_pres :
+    forall dconst le m tr le' m' out,
+      wact_const (Int.repr dconst) = true ->
+      (forall b o, le ! M._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero) ->
+      exec_stmt function_entry2 (lp_ge lp) empty_env le m
+        (Scall (Some M._t'1)
+           (Evar M._drop_and_set_mario_action
+              (Tfunction (tyMSp :: tuint :: tuint :: nil) tint cc_default))
+           (Etempvar M._m tyMSp
+            :: Econst_int (Int.repr dconst) tint
+            :: Econst_int (Int.repr 0) tint :: nil))
+        tr le' m' out ->
+      NoA m -> MWF m -> Mem.valid_block m bm -> action_sat not_tainted m bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\ NoA m'
+      /\ out = Out_normal
+      /\ (forall b o, le' ! M._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
+  Proof.
+    intros dconst le m tr le' m' out Hdconst Htat Hexec HN HM HV HS.
+    inv Hexec.
+    match goal with Hcf : classify_fun _ = _ |- _ => cbn in Hcf; inv Hcf end.
+    match goal with Hv : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
+      apply eval_Evar_funct_empty in Hv; destruct Hv as (fb & Hsym & ->) end.
+    match goal with Hff : Genv.find_funct _ (Vptr fb Ptrofs.zero) = Some ?fd |- _ =>
+      assert (Hres : resolves_lp lp M._drop_and_set_mario_action fd)
+        by (exists fb; split; assumption) end.
+    match goal with Hel : eval_exprlist _ _ _ _ (_ :: _ :: _ :: nil) _ _ |- _ => inv Hel end.
+    match goal with Hv : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+      apply eval_expr_Etempvar_val in Hv; rename Hv into Hv1 end.
+    match goal with Hc : sem_cast _ _ _ _ = Some _ |- _ =>
+      apply AirborneSurface.sem_cast_ptr_ptr_id in Hc; subst end.
+    match goal with Hel : eval_exprlist _ _ _ _ (_ :: _ :: nil) _ _ |- _ => inv Hel end.
+    match goal with Hv : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+      inv Hv; try (match goal with Hlv : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+                     inv Hlv end) end.
+    match goal with Hc : sem_cast (Vint (Int.repr dconst)) _ _ _ = Some _ |- _ =>
+      cbn in Hc; injection Hc as <- end.
+    match goal with Hel : eval_exprlist _ _ _ _ (_ :: nil) _ _ |- _ => inv Hel end.
+    match goal with Hv : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+      inv Hv; try (match goal with Hlv : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+                     inv Hlv end) end.
+    match goal with Hc : sem_cast (Vint (Int.repr 0)) _ _ _ = Some _ |- _ =>
+      cbn in Hc; injection Hc as <- end.
+    match goal with Hel : eval_exprlist _ _ _ _ nil _ _ |- _ => inv Hel end.
+    match goal with Hv1 : le ! M._m = Some ?v1 |- _ =>
+      assert (Hmarg : marg_ok bm (v1 :: Vint (Int.repr dconst) :: Vint (Int.repr 0) :: nil))
+        by (unfold marg_ok; destruct v1 as [| | | | | b o]; auto; exact (Htat b o Hv1)) end.
+    match goal with
+    | Hevf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+        destruct (Hdasma _ _ _ _ _ _ _ _ Hevf Hres Hmarg
+                    (wact_const_sound _ Hdconst) HN HM HV HS)
+          as (HV' & HS' & HM' & HN' & _)
+    end.
+    refine (conj HV' (conj HS' (conj HM' (conj HN' (conj eq_refl _))))).
+    intros b o Hg. cbn [set_opttemp] in Hg.
+    rewrite PTree.gso in Hg by (vm_compute; congruence).
+    exact (Htat b o Hg).
+  Qed.
+
+  (* the hold_*_land leading drop-block (shared, parametric over dconst and
+     the two opaque Sset rvalues + the if-condition).  Preserves the carried
+     run facts and the _m tat across BOTH exits (drop-return + fall-through). *)
+  Lemma hold_lead_pres :
+    forall dconst a3 a4 cond le m tr le' m' out,
+      wact_const (Int.repr dconst) = true ->
+      (forall b o, le ! M._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero) ->
+      exec_stmt function_entry2 (lp_ge lp) empty_env le m
+        (Ssequence (Sset M._t'3 a3)
+          (Ssequence (Sset M._t'4 a4)
+            (Sifthenelse cond
+              (Ssequence
+                 (Scall (Some M._t'1)
+                    (Evar M._drop_and_set_mario_action
+                       (Tfunction (tyMSp :: tuint :: tuint :: nil) tint cc_default))
+                    (Etempvar M._m tyMSp
+                     :: Econst_int (Int.repr dconst) tint
+                     :: Econst_int (Int.repr 0) tint :: nil))
+                 (Sreturn (Some (Etempvar M._t'1 tint))))
+              Sskip)))
+        tr le' m' out ->
+      NoA m -> MWF m -> Mem.valid_block m bm -> action_sat not_tainted m bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\ NoA m'
+      /\ (forall b o, le' ! M._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
+  Proof.
+    intros dconst a3 a4 cond le m tr le' m' out Hdconst Htat Hexec HN HM HV HS.
+    apply lnd_exec_seq_cases in Hexec
+      as [ (tr1 & le1 & m1 & tr2 & Hs3 & Hrest) | (Hs3 & Hne) ].
+    2:{ exfalso. apply Hne. apply lnd_exec_set_inv in Hs3 as (_ & -> & _). reflexivity. }
+    apply lnd_exec_set_inv in Hs3 as (-> & _ & v3 & ->).
+    apply lnd_exec_seq_cases in Hrest
+      as [ (tr3 & le2 & m2 & tr4 & Hs4 & Hif) | (Hs4 & Hne) ].
+    2:{ exfalso. apply Hne. apply lnd_exec_set_inv in Hs4 as (_ & -> & _). reflexivity. }
+    apply lnd_exec_set_inv in Hs4 as (-> & _ & v4 & ->).
+    assert (Htat2 : forall b o,
+       (PTree.set M._t'4 v4 (PTree.set M._t'3 v3 le)) ! M._m = Some (Vptr b o) ->
+       b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg.
+      rewrite PTree.gso in Hg by (vm_compute; congruence).
+      rewrite PTree.gso in Hg by (vm_compute; congruence).
+      exact (Htat b o Hg). }
+    apply lnd_exec_if_inv in Hif as [bb Hif].
+    destruct bb.
+    - apply lnd_exec_seq_cases in Hif
+        as [ (tr5 & le3 & m3 & tr6 & Hcall & Hret) | (Hcall & Hne) ].
+      2:{ exfalso. apply Hne. inv Hcall. reflexivity. }
+      destruct (dasma_site_pres _ _ _ _ _ _ _ Hdconst Htat2 Hcall HN HM HV HS)
+        as (HV' & HS' & HM' & HN' & _ & Htat3).
+      apply lnd_exec_return_inv in Hret as (-> & -> & _).
+      exact (conj HV' (conj HS' (conj HM' (conj HN' Htat3)))).
+    - apply lnd_exec_skip_inv in Hif as (-> & -> & _).
+      exact (conj HV (conj HS (conj HM (conj HN Htat2)))).
+  Qed.
+
+  Example mov_hjland_pin :
+    (prog_defmap mario_actions_moving.prog) ! mario_actions_moving._act_hold_jump_land
+    = Some (Gfun (Internal mario_actions_moving.f_act_hold_jump_land)).
+  Proof. vm_compute. reflexivity. Qed.
+  Example mov_hfland_pin :
+    (prog_defmap mario_actions_moving.prog) ! mario_actions_moving._act_hold_freefall_land
+    = Some (Gfun (Internal mario_actions_moving.f_act_hold_freefall_land)).
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma mov_hjland_pres : body_pres lp NoA MWF bm M.f_act_hold_jump_land.
+  Proof.
+    intros m vargs t mEnd vres Hmarg Hevf HN HM HV HS.
+    assert (Hmarg' : marg_ok bm vargs) by (apply Hmarg; vm_compute; reflexivity).
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      change (fn_vars M.f_act_hold_jump_land) with (@nil (ident * type)) in Ha; inv Ha end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ => rename Hb into Hbind end.
+    change (fn_params M.f_act_hold_jump_land) with ((M._m, tyMSp) :: nil) in Hbind.
+    cbn [bind_parameter_temps] in Hbind.
+    destruct vargs as [| vhead vrest]; [ discriminate Hbind | ].
+    destruct vrest as [|]; [ | discriminate Hbind ].
+    injection Hbind as <-.
+    change (blocks_of_env (lp_ge lp) empty_env) with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    set (base := create_undef_temps (fn_temps M.f_act_hold_jump_land)) in *.
+    assert (Htat : forall b o,
+       (PTree.set M._m vhead base) ! M._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg. rewrite PTree.gss in Hg. injection Hg as Hvh.
+      rewrite Hvh in Hmarg'. cbn in Hmarg'. exact Hmarg'. }
+    unfold M.f_act_hold_jump_land in Hbody; cbn [fn_body] in Hbody.
+    apply lnd_exec_seq_cases in Hbody
+      as [ (trF & leF & mF & trS & Hlead & Hmain) | (Hlead & Hne) ].
+    - destruct (hold_lead_pres 201327152 _ _ _ _ _ _ _ _ _
+                  ltac:(vm_compute; reflexivity) Htat Hlead HN HM HV HS)
+        as (HVl & HSl & HMl & HNl & Htatl).
+      apply lnd_exec_seq_cases in Hmain
+        as [ (trA & leA & mA & trB & Hclcblk & Hcla_blk) | (Hclcblk & Hne) ].
+      + apply lnd_exec_seq_cases in Hclcblk
+          as [ (trC & leC & mC & trD & Hclc_c & Hif) | (Hclc_c & Hne0) ].
+        2:{ exfalso. apply Hne0. inv Hclc_c. reflexivity. }
+        destruct (clc_site_pres M._t'2 M._sHoldJumpLandAction
+                    _ _ _ _ _ _ _ ltac:(vm_compute; congruence)
+                    ltac:(vm_compute; reflexivity) Htatl Hclc_c HNl HMl HVl HSl)
+          as (HVa & HSa & HMa & HNa & _ & Htat_a).
+        apply lnd_exec_if_inv in Hif as [bb Hif].
+        destruct bb.
+        * apply lnd_exec_return_inv in Hif as (_ & _ & Hne1). congruence.
+        * apply lnd_exec_skip_inv in Hif as (-> & -> & _).
+          apply lnd_exec_seq_cases in Hcla_blk
+            as [ (trE & leE & mE & trG & Hcla_c & Hret) | (Hcla_c & Hne2) ].
+          -- destruct (cla_site_pres 64 16779425 _ _ _ _ _ _
+                         ltac:(vm_compute; reflexivity) Htat_a Hcla_c HNa HMa HVa HSa)
+               as (HVc & HSc & HMc & HNc).
+             apply lnd_exec_return_inv in Hret as (_ & -> & _).
+             exact (conj HVc (conj HSc HMc)).
+          -- destruct (cla_site_pres 64 16779425 _ _ _ _ _ _
+                         ltac:(vm_compute; reflexivity) Htat_a Hcla_c HNa HMa HVa HSa)
+               as (HVc & HSc & HMc & HNc).
+             exact (conj HVc (conj HSc HMc)).
+      + apply lnd_exec_seq_cases in Hclcblk
+          as [ (trC & leC & mC & trD & Hclc_c & Hif) | (Hclc_c & Hne0) ].
+        2:{ exfalso. apply Hne0. inv Hclc_c. reflexivity. }
+        destruct (clc_site_pres M._t'2 M._sHoldJumpLandAction
+                    _ _ _ _ _ _ _ ltac:(vm_compute; congruence)
+                    ltac:(vm_compute; reflexivity) Htatl Hclc_c HNl HMl HVl HSl)
+          as (HVa & HSa & HMa & HNa & _ & _).
+        apply lnd_exec_if_inv in Hif as [bb Hif].
+        destruct bb.
+        * apply lnd_exec_return_inv in Hif as (_ & -> & _).
+          exact (conj HVa (conj HSa HMa)).
+        * apply lnd_exec_skip_inv in Hif as (_ & -> & Hnn). congruence.
+    - destruct (hold_lead_pres 201327152 _ _ _ _ _ _ _ _ _
+                  ltac:(vm_compute; reflexivity) Htat Hlead HN HM HV HS)
+        as (HVl & HSl & HMl & HNl & Htatl).
+      exact (conj HVl (conj HSl HMl)).
+  Qed.
+
+  Lemma mov_hfland_pres : body_pres lp NoA MWF bm M.f_act_hold_freefall_land.
+  Proof.
+    intros m vargs t mEnd vres Hmarg Hevf HN HM HV HS.
+    assert (Hmarg' : marg_ok bm vargs) by (apply Hmarg; vm_compute; reflexivity).
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      change (fn_vars M.f_act_hold_freefall_land) with (@nil (ident * type)) in Ha; inv Ha end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ => rename Hb into Hbind end.
+    change (fn_params M.f_act_hold_freefall_land) with ((M._m, tyMSp) :: nil) in Hbind.
+    cbn [bind_parameter_temps] in Hbind.
+    destruct vargs as [| vhead vrest]; [ discriminate Hbind | ].
+    destruct vrest as [|]; [ | discriminate Hbind ].
+    injection Hbind as <-.
+    change (blocks_of_env (lp_ge lp) empty_env) with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    set (base := create_undef_temps (fn_temps M.f_act_hold_freefall_land)) in *.
+    assert (Htat : forall b o,
+       (PTree.set M._m vhead base) ! M._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg. rewrite PTree.gss in Hg. injection Hg as Hvh.
+      rewrite Hvh in Hmarg'. cbn in Hmarg'. exact Hmarg'. }
+    unfold M.f_act_hold_freefall_land in Hbody; cbn [fn_body] in Hbody.
+    apply lnd_exec_seq_cases in Hbody
+      as [ (trF & leF & mF & trS & Hlead & Hmain) | (Hlead & Hne) ].
+    - destruct (hold_lead_pres 201327154 _ _ _ _ _ _ _ _ _
+                  ltac:(vm_compute; reflexivity) Htat Hlead HN HM HV HS)
+        as (HVl & HSl & HMl & HNl & Htatl).
+      apply lnd_exec_seq_cases in Hmain
+        as [ (trA & leA & mA & trB & Hclcblk & Hcla_blk) | (Hclcblk & Hne) ].
+      + apply lnd_exec_seq_cases in Hclcblk
+          as [ (trC & leC & mC & trD & Hclc_c & Hif) | (Hclc_c & Hne0) ].
+        2:{ exfalso. apply Hne0. inv Hclc_c. reflexivity. }
+        destruct (clc_site_pres M._t'2 M._sHoldFreefallLandAction
+                    _ _ _ _ _ _ _ ltac:(vm_compute; congruence)
+                    ltac:(vm_compute; reflexivity) Htatl Hclc_c HNl HMl HVl HSl)
+          as (HVa & HSa & HMa & HNa & _ & Htat_a).
+        apply lnd_exec_if_inv in Hif as [bb Hif].
+        destruct bb.
+        * apply lnd_exec_return_inv in Hif as (_ & _ & Hne1). congruence.
+        * apply lnd_exec_skip_inv in Hif as (-> & -> & _).
+          apply lnd_exec_seq_cases in Hcla_blk
+            as [ (trE & leE & mE & trG & Hcla_c & Hret) | (Hcla_c & Hne2) ].
+          -- destruct (cla_site_pres 66 16779425 _ _ _ _ _ _
+                         ltac:(vm_compute; reflexivity) Htat_a Hcla_c HNa HMa HVa HSa)
+               as (HVc & HSc & HMc & HNc).
+             apply lnd_exec_return_inv in Hret as (_ & -> & _).
+             exact (conj HVc (conj HSc HMc)).
+          -- destruct (cla_site_pres 66 16779425 _ _ _ _ _ _
+                         ltac:(vm_compute; reflexivity) Htat_a Hcla_c HNa HMa HVa HSa)
+               as (HVc & HSc & HMc & HNc).
+             exact (conj HVc (conj HSc HMc)).
+      + apply lnd_exec_seq_cases in Hclcblk
+          as [ (trC & leC & mC & trD & Hclc_c & Hif) | (Hclc_c & Hne0) ].
+        2:{ exfalso. apply Hne0. inv Hclc_c. reflexivity. }
+        destruct (clc_site_pres M._t'2 M._sHoldFreefallLandAction
+                    _ _ _ _ _ _ _ ltac:(vm_compute; congruence)
+                    ltac:(vm_compute; reflexivity) Htatl Hclc_c HNl HMl HVl HSl)
+          as (HVa & HSa & HMa & HNa & _ & _).
+        apply lnd_exec_if_inv in Hif as [bb Hif].
+        destruct bb.
+        * apply lnd_exec_return_inv in Hif as (_ & -> & _).
+          exact (conj HVa (conj HSa HMa)).
+        * apply lnd_exec_skip_inv in Hif as (_ & -> & Hnn). congruence.
+    - destruct (hold_lead_pres 201327154 _ _ _ _ _ _ _ _ _
+                  ltac:(vm_compute; reflexivity) Htat Hlead HN HM HV HS)
+        as (HVl & HSl & HMl & HNl & Htatl).
+      exact (conj HVl (conj HSl HMl)).
   Qed.
 
   Lemma mov_bwa_ids_rows : forall fid, mem_id fid mov_bwa_ids = true ->
@@ -3258,14 +3558,14 @@ Section MovingLeafRows.
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
       refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
-    (* 33: act_hold_jump_land -- rest *)
+    (* 33: act_hold_jump_land -- WALKED (landing keystone part 2) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
-    (* 34: act_hold_freefall_land -- rest *)
+      rewrite mov_hjland_pin in Hdm. injection Hdm as <-. exact mov_hjland_pres. }
+    (* 34: act_hold_freefall_land -- WALKED (landing keystone part 2) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite mov_hfland_pin in Hdm. injection Hdm as <-. exact mov_hfland_pres. }
     (* 35: act_triple_jump_land -- rest *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
