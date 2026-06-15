@@ -309,6 +309,25 @@ Definition mov_asd_ids : list ident :=
     :: mario_actions_moving._apply_slope_accel :: nil.
 Definition mov_asd_xids : list ident := mario_actions_moving._approach_f32 :: nil.
 
+(* ---------------------------------------------------------------------- *)
+(* common_landing_action: the LANDING-family helper EVERY _land leaf       *)
+(* calls after common_landing_cancels.  It writes m->action only at its    *)
+(* switch-case-0 set_mario_action(m, airAction, 0) -- airAction is the 3rd *)
+(* PARAM, the UNTAINTED const each leaf passes (16779404, ...).  So it is  *)
+(* NOT a generic call_pres (false for a tainted airAction); the engine     *)
+(* threads _airAction through wact and the leaf supplies untainted_scalar. *)
+(* Its non-action callees all have rows already: perform_ground_step (Hcp_ *)
+(* pgs), apply_landing_accel (mov_ala_row), apply_slope_decel (mov_asd_    *)
+(* row), set_mario_animation (mov_sma_row); play_mario_landing_sound_once  *)
+(* is an mov_ext external; set_mario_action is the sids keystone.          *)
+Definition cla_ids : list ident :=
+  mario_step._perform_ground_step :: mario_actions_moving._apply_landing_accel
+    :: mario_actions_moving._apply_slope_decel :: mario._set_mario_animation
+    :: nil.
+Definition cla_xids : list ident :=
+  mario_actions_moving._play_mario_landing_sound_once :: nil.
+Definition cla_sids : list ident := mario._set_mario_action :: nil.
+
 (* begin_walking_action producer: wact threads the _action PARAM + the
    set_mario_action result temp _t'1; ids = mario_set_forward_vel;
    wids = set_mario_action.  Output: call_pres_act3. *)
@@ -2490,6 +2509,122 @@ Section MovingLeafRows.
     - exact mov_asd_xids_rows.
     - intros fid' H. discriminate H.
     - exact mov_asd_walk.
+  Qed.
+
+  (* ================================================================== *)
+  (* common_landing_action: the bespoke funcall lift (airAction = an     *)
+  (* untainted const).  Its body walks under the wwalk engine with        *)
+  (* _airAction in wact; the non-action callees route through the rows    *)
+  (* above.  NOT a generic call_pres -- it is keyed to untainted aval.    *)
+  (* ================================================================== *)
+  Lemma cla_ids_rows : forall fid, mem_id fid cla_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold cla_ids in H. cbn [mem_id existsb] in H.
+    repeat (apply orb_true_iff in H as [Hm | H];
+            [ apply Pos.eqb_eq in Hm; subst fid | ]).
+    - exact Hcp_pgs.
+    - exact mov_ala_row.
+    - exact mov_asd_row.
+    - exact mov_sma_row.
+    - discriminate H.
+  Qed.
+
+  Lemma cla_xids_rows : forall fid, mem_id fid cla_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold cla_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid
+      | discriminate H ].
+    exact (Hpres_mov_ext mario_actions_moving._play_mario_landing_sound_once
+             eq_refl).
+  Qed.
+
+  Lemma cla_sids_rows : forall fid, mem_id fid cla_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold cla_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | discriminate H ].
+  Qed.
+
+  Lemma cla_funcall_pres :
+    forall fd m0 vanim av t0 m1 vres0,
+      resolves_lp lp mario_actions_moving._common_landing_action fd ->
+      eval_funcall function_entry2 (lp_ge lp) m0 fd
+        (Vptr bm Ptrofs.zero :: vanim :: Vint av :: nil) t0 m1 vres0 ->
+      untainted_scalar (Vint av) ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm -> action_sat not_tainted m0 bm ->
+      Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\ MWF m1 /\ NoA m1.
+  Proof.
+    intros fd m0 vanim av t0 m1 vres0 Hres Hevf Huav HN HM HV HS.
+    pose proof (resolve_pin_fd lp mario_actions_moving.prog
+                  mario_actions_moving._common_landing_action
+                  mario_actions_moving.f_common_landing_action fd
+                  LO_mov ltac:(vm_compute; reflexivity) Hres) as ->.
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      change (fn_vars mario_actions_moving.f_common_landing_action)
+        with (@nil (ident * type)) in Ha; inv Ha end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    change (fn_params mario_actions_moving.f_common_landing_action)
+      with ((mario_actions_moving._m,
+             tptr (Tstruct mario_actions_moving._MarioState noattr)) ::
+            (mario_actions_moving._animation, tshort) ::
+            (mario_actions_moving._airAction, tuint) :: nil) in Hbind.
+    cbn [bind_parameter_temps] in Hbind.
+    injection Hbind as <-.
+    change (blocks_of_env (lp_ge lp) empty_env)
+      with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    set (base := create_undef_temps
+                   (fn_temps mario_actions_moving.f_common_landing_action)) in *.
+    assert (Htat0 : forall b o,
+       (PTree.set mario_actions_moving._airAction (Vint av)
+          (PTree.set mario_actions_moving._animation vanim
+             (PTree.set mario_actions_moving._m (Vptr bm Ptrofs.zero) base)))
+         ! mario_actions_airborne._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg.
+      rewrite PTree.gso in Hg by (vm_compute; congruence).
+      rewrite PTree.gso in Hg by (vm_compute; congruence).
+      rewrite PTree.gss in Hg. injection Hg as <- <-. split; reflexivity. }
+    assert (Hact0 : act_inv (mario_actions_moving._airAction :: nil)
+       (PTree.set mario_actions_moving._airAction (Vint av)
+          (PTree.set mario_actions_moving._animation vanim
+             (PTree.set mario_actions_moving._m (Vptr bm Ptrofs.zero) base)))).
+    { intros t' Hmem' x Hg'.
+      cbn [mem_id existsb] in Hmem'.
+      apply orb_true_iff in Hmem' as [Ht | Hf]; [ | discriminate Hf ].
+      apply Pos.eqb_eq in Ht; subst t'.
+      rewrite PTree.gss in Hg'. injection Hg' as <-. exact Huav. }
+    assert (Hch0 : chase_inv SafeB nil
+       (PTree.set mario_actions_moving._airAction (Vint av)
+          (PTree.set mario_actions_moving._animation vanim
+             (PTree.set mario_actions_moving._m (Vptr bm Ptrofs.zero) base))))
+      by (intros t' Hmem'; discriminate Hmem').
+    destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+                false (mario_actions_moving._airAction :: nil) cla_ids nil nil
+                cla_xids cla_sids nil
+                cla_ids_rows ltac:(intros fid HH; discriminate HH)
+                cla_xids_rows cla_sids_rows ltac:(intros fid HH; discriminate HH)
+                _ _ _ _ _ _ _ _ Hbody
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (PTree.gempty _ _) ltac:(vm_compute; reflexivity) Htat0 Hact0 Hch0
+                HN HM HV HS)
+      as (HV' & HS' & HM' & HN' & _).
+    exact (conj HV' (conj HS' (conj HM' HN'))).
   Qed.
 
   Lemma mov_bwa_ids_rows : forall fid, mem_id fid mov_bwa_ids = true ->
