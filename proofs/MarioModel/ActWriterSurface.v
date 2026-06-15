@@ -4315,6 +4315,101 @@ Section ActWriterWalk.
     eexists; reflexivity.
   Qed.
 
+  (* RELAXED-ANIM variant of kit_scall3_pres: the SECOND (animation) argument
+     may be ANY expression a2 instead of an Econst_int.  call_pres_act3 (and
+     hence kit_scall3_pres's own proof) NEVER uses the anim value -- only the
+     THIRD (action) arg's untaintedness matters -- so the animation constant
+     peel is simply dropped.  This is the act3 mirror of np3 (np3 = value-
+     irrelevant 2nd + non-pointer 3rd; here = value-irrelevant 2nd + untainted
+     ACTION 3rd).  Consumer: act_long_jump_land_stop's
+     `landing_step(m, <cond-anim temp>, ACT_CROUCHING)`. *)
+  Lemma kit_scall3_anim_pres :
+    forall optid fid ty2 ty3 tys rty cc a2 c3 ity args
+           e le0 m0 tr le1 m1 out0,
+      e ! fid = None ->
+      exec_stmt function_entry2 (lp_ge lp) e le0 m0
+        (Scall optid
+           (Evar fid (Tfunction (tyMSp :: ty2 :: ty3 :: tys) rty cc))
+           (Etempvar mario_actions_airborne._m tyMSp
+              :: a2 :: Econst_int c3 ity :: args))
+        tr le1 m1 out0 ->
+      call_pres_act3 lp bm NoA MWF fid ->
+      wact_const c3 = true -> i32_ty ty3 = true -> i32_ty ity = true ->
+      (forall b o, le0 ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\
+      MWF m1 /\ NoA m1 /\ out0 = Out_normal /\
+      exists vr, le1 = set_opttemp optid vr le0.
+  Proof.
+    intros optid fid ty2 ty3 tys rty cc a2 c3 ity args
+           e le0 m0 tr le1 m1 out0 He_fid Hexec Hcp3 Hc3 Hty3 Hity Htat
+           HN HM HV HS.
+    inv Hexec.
+    match goal with
+    | Hc : classify_fun _ = fun_case_f _ _ _ |- _ =>
+        cbn in Hc; injection Hc as Hcf1 Hcf2 Hcf3; subst
+    end.
+    match goal with
+    | Hv : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
+        apply (eval_Evar_funct _ _ _ _ _ _ _ _ He_fid) in Hv;
+        destruct Hv as (b & Hsym & ->)
+    end.
+    match goal with
+    | Hff : Genv.find_funct _ (Vptr b Ptrofs.zero) = Some ?fd |- _ =>
+        assert (Hres : resolves_lp lp fid fd) by (exists b; split; assumption)
+    end.
+    (* peel the head: Mario's pointer through the identity cast *)
+    match goal with
+    | Ha : eval_exprlist _ _ _ _ (_ :: _) _ _ |- _ => inv Ha
+    end.
+    match goal with
+    | Hv : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+        apply eval_expr_Etempvar_val in Hv; rename Hv into Hv1
+    end.
+    match goal with
+    | Hc : sem_cast _ _ _ _ = Some _ |- _ =>
+        apply sem_cast_ptr_ptr_id in Hc; subst
+    end.
+    (* peel the second arg WITHOUT inverting it: the animation value is
+       irrelevant -- a2's eval & cast are left abstract in context. *)
+    match goal with
+    | Ha : eval_exprlist _ _ _ _ (_ :: _) _ _ |- _ => inv Ha
+    end.
+    (* peel the third arg: the untainted action constant (matched by c3/ity) *)
+    match goal with
+    | Ha : eval_exprlist _ _ _ _ (_ :: _) _ _ |- _ => inv Ha
+    end.
+    match goal with
+    | Hev1 : eval_expr _ _ _ _ (Econst_int c3 ity) _ |- _ =>
+        inv Hev1;
+        try (match goal with
+             | Hlv : eval_lvalue _ _ _ _ (Econst_int c3 ity) _ _ _ |- _ =>
+                 inv Hlv
+             end)
+    end.
+    match goal with
+    | Hcast : sem_cast (Vint c3) _ _ _ = Some _ |- _ =>
+        pose proof (sem_cast_i32_neutral _ _ _ _ _ Hity Hty3 Hcast) as ->
+    end.
+    pose proof (wact_const_sound _ Hc3) as Hu.
+    (* the marg fact *)
+    match goal with
+    | Hv1' : le0 ! _ = Some ?vv,
+      Hevf : eval_funcall _ _ _ _ (?vv :: ?vrest) _ _ _ |- _ =>
+        assert (Hmarg : marg_ok bm (vv :: vrest))
+          by (destruct vv; cbn; try exact I; exact (Htat _ _ Hv1'))
+    end.
+    match goal with
+    | Hevf : eval_funcall _ _ _ _ (_ :: _) _ _ _ |- _ =>
+        destruct (Hcp3 _ _ _ _ _ _ _ _ _ Hevf Hres Hmarg Hu HN HM HV HS)
+          as (HV' & HS' & HM' & HN')
+    end.
+    refine (conj HV' (conj HS' (conj HM' (conj HN' (conj eq_refl _))))).
+    eexists; reflexivity.
+  Qed.
+
   (* ================================================================== *)
   (* THE WRITER WALK.                                                   *)
   (* ================================================================== *)
