@@ -30,7 +30,7 @@
 From Coq Require Import ZArith List Lia.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
-From SM64.Generated Require mario interaction.
+From SM64.Generated Require mario interaction mario_actions_moving.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
   ActionValueFrame RealFrameValue RealFrameLinked AGates.
 From SM64.Proofs Require Import CensusV2.
@@ -67,14 +67,35 @@ Proof.
   inversion H; subst; eauto.
 Qed.
 
-(* the two knockback-action lookup tables (writable statics in
-   interaction.c).  determine_knockback_action reads _bonkAction out of
-   them and the value flows into the action cell through
-   drop_and_set_mario_action, so their contents carry an UNTAINTED row
-   (R10 below). *)
+(* the untainted-action GLOBAL TABLES whose Mint32 contents reach the
+   action cell and which the run never writes through.  Two families,
+   one R10 row:
+   (a) the two knockback-action lookup tables (writable statics in
+       interaction.c).  determine_knockback_action reads _bonkAction out
+       of them and the value flows into the action cell through
+       drop_and_set_mario_action.
+   (b) the nine landing-action descriptor globals (LandingAction structs
+       in mario_actions_moving.c -- sJumpLandAction etc.).  Moving's
+       common_landing_cancels LOADS landingAction->{verySteep,slide,end,
+       offFloor,aPressed}Action out of one of these and set_mario_action's
+       it; every action field of every one is an UNTAINTED constant
+       (vm-verified, landtab_init_int32_untainted below).  The run never
+       stores through them.
+   Both qualify for the same R10 row (any Mint32 load = an untainted
+   scalar).  The list name is historical; semantically these are
+   "untainted action-constant tables the frame leaves untouched". *)
 Definition knockback_table_ids : list ident :=
   interaction._sBackwardKnockbackActions ::
-  interaction._sForwardKnockbackActions :: nil.
+  interaction._sForwardKnockbackActions ::
+  mario_actions_moving._sJumpLandAction ::
+  mario_actions_moving._sFreefallLandAction ::
+  mario_actions_moving._sSideFlipLandAction ::
+  mario_actions_moving._sHoldJumpLandAction ::
+  mario_actions_moving._sHoldFreefallLandAction ::
+  mario_actions_moving._sLongJumpLandAction ::
+  mario_actions_moving._sDoubleJumpLandAction ::
+  mario_actions_moving._sTripleJumpLandAction ::
+  mario_actions_moving._sBackflipLandAction :: nil.
 
 (* satisfiability witness for R10 at the initial memory: all 18 table
    initializers are untainted action constants (vm over the generated
@@ -86,6 +107,29 @@ Lemma ktab_init_values_untainted :
                      end)
     (gvar_init interaction.v_sBackwardKnockbackActions
      ++ gvar_init interaction.v_sForwardKnockbackActions) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* satisfiability witness for the LANDING-table half of R10: every
+   Init_int32 action field of every LandingAction global is untainted
+   (the int16 numFrames/unk02 header slots are skipped -- the run only
+   ever Mint32-loads the u32 action fields, via field_offset >= 4).  The
+   aPressedAction field (loaded only under the dead INPUT_A_PRESSED arm)
+   is included and is itself untainted, so the offset-free R10 row holds
+   without an offset side condition. *)
+Lemma landtab_init_int32_untainted :
+  forallb (fun iv => match iv with
+                     | Init_int32 c => negb (is_tainted c)
+                     | _ => true
+                     end)
+    (gvar_init mario_actions_moving.v_sJumpLandAction
+     ++ gvar_init mario_actions_moving.v_sFreefallLandAction
+     ++ gvar_init mario_actions_moving.v_sSideFlipLandAction
+     ++ gvar_init mario_actions_moving.v_sHoldJumpLandAction
+     ++ gvar_init mario_actions_moving.v_sHoldFreefallLandAction
+     ++ gvar_init mario_actions_moving.v_sLongJumpLandAction
+     ++ gvar_init mario_actions_moving.v_sDoubleJumpLandAction
+     ++ gvar_init mario_actions_moving.v_sTripleJumpLandAction
+     ++ gvar_init mario_actions_moving.v_sBackflipLandAction) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Section MWFReal.
@@ -1058,9 +1102,9 @@ Section MWFReal.
   Proof.
     intros gid H.
     unfold mem_id in H; cbn [existsb] in H.
-    apply Bool.orb_true_iff in H as [E | H];
-      [ | apply Bool.orb_true_iff in H as [E | F]; [ | discriminate F ] ];
-      apply Pos.eqb_eq in E; subst gid; vm_compute; reflexivity.
+    repeat (apply Bool.orb_true_iff in H as [E | H];
+            [ apply Pos.eqb_eq in E; subst gid; vm_compute; reflexivity | ]).
+    discriminate H.
   Qed.
 
   Lemma mwf_real_glob : forall gid, mem_id gid stored_globals = true ->
