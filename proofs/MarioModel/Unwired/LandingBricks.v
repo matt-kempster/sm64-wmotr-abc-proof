@@ -49,7 +49,7 @@ From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint CensusV2
   RealFrameLinked RealFrameValue ActionValueFrame AirborneSurface
-  ActWriterSurface MWFReal AGates.
+  ActWriterSurface MWFReal AGates DispatchKit.
 From SM64.Generated Require mario mario_step mario_actions_moving interaction.
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -140,6 +140,11 @@ Section LandingWalk.
       Genv.find_symbol (lp_ge lp) gid = Some kb ->
       Mem.load Mint32 m kb ofs = Some v ->
       v = Vundef \/ exists vi, v = Vint vi /\ not_tainted vi.
+
+  (* the carried MWF pins Mario's input halfword A-clear -- the mid-frame fact
+     the input&2 indirect-call kill consumes.  Discharged at the capstone via
+     MWFReal.mwf_real_inp (NO new trust). *)
+  Hypothesis HMWF_inp : forall m, MWF m -> input_a_clear m bm.
 
   Let Hsmact : call_pres_act lp bm NoA MWF mario._set_mario_action :=
     smact_pres lp LO_mario LO_mario_step bm NoA MWF HNoA_of_MWF
@@ -361,6 +366,175 @@ Section LandingWalk.
       split; [ exact HV | ]. split; [ exact HS | ].
       split; [ exact HM | ]. split; [ exact HN | ].
       intro; split; reflexivity.
+  Qed.
+
+  (* ================================================================== *)
+  (* The block_pres combinator toolkit.  common_landing_cancels' body is  *)
+  (* a right-nested Ssequence of "blocks"; each block either falls        *)
+  (* through (Out_normal, re-establishing the two param facts for the     *)
+  (* next block) or returns (Out_return, done).  Every block maps to ONE  *)
+  (* brick: scalar/chase loads -> set_block_pres; window stores ->         *)
+  (* window_block_pres (epi_assign_pres); the should_begin_sliding call -> *)
+  (* call1_block_pres (kit_scall_pres); the 5 guarded setters ->           *)
+  (* setter_blk (setter_block_pres); the input&2 indirect call ->          *)
+  (* dead_gate_block_pres (AGates.clc_indirect_call_dead_lp + HMWF_inp);   *)
+  (* the final `return 0` -> return_block_pres.  block_pres_seq folds them.*)
+  (* The whole body runs at env = empty_env (fn_vars = nil).               *)
+  (* ================================================================== *)
+  Definition block_pres (s : statement) (lb : block) : Prop :=
+    forall le m tr le' m' out,
+      le ! M._m = Some (Vptr bm Ptrofs.zero) ->
+      le ! M._landingAction = Some (Vptr lb Ptrofs.zero) ->
+      exec_stmt function_entry2 (lp_ge lp) empty_env le m s tr le' m' out ->
+      NoA m -> MWF m -> Mem.valid_block m bm -> action_sat not_tainted m bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\ NoA m' /\
+      (out = Out_normal ->
+         le' ! M._m = Some (Vptr bm Ptrofs.zero) /\
+         le' ! M._landingAction = Some (Vptr lb Ptrofs.zero)).
+
+  Lemma block_pres_seq : forall s1 s2 lb,
+      block_pres s1 lb -> block_pres s2 lb -> block_pres (Ssequence s1 s2) lb.
+  Proof.
+    intros s1 s2 lb H1 H2 le m tr le' m' out Hm Hla Hexec HN HM HV HS.
+    apply exec_seq_cases in Hexec
+      as [ (tr1 & le1 & m1 & tr2 & HA & HB) | (HA & Hne) ].
+    - destruct (H1 le m tr1 le1 m1 Out_normal Hm Hla HA HN HM HV HS)
+        as (HV1 & HS1 & HM1 & HN1 & Hc1).
+      destruct (Hc1 eq_refl) as (Hm1 & Hla1).
+      destruct (H2 le1 m1 tr2 le' m' out Hm1 Hla1 HB HN1 HM1 HV1 HS1)
+        as (HV2 & HS2 & HM2 & HN2 & Hc2).
+      split; [ exact HV2 | ]. split; [ exact HS2 | ].
+      split; [ exact HM2 | ]. split; [ exact HN2 | ]. exact Hc2.
+    - destruct (H1 le m tr le' m' out Hm Hla HA HN HM HV HS)
+        as (HV1 & HS1 & HM1 & HN1 & _).
+      split; [ exact HV1 | ]. split; [ exact HS1 | ].
+      split; [ exact HM1 | ]. split; [ exact HN1 | ].
+      intro Hc; exfalso; exact (Hne Hc).
+  Qed.
+
+  (* a scalar/chase load into a temp distinct from the two params *)
+  Lemma set_block_pres : forall q a lb,
+      q <> M._m -> q <> M._landingAction -> block_pres (Sset q a) lb.
+  Proof.
+    intros q a lb Hqm Hql le m tr le' m' out Hm Hla Hexec HN HM HV HS.
+    apply exec_set_inv in Hexec as (v & _ & -> & -> & _).
+    split; [ exact HV | ]. split; [ exact HS | ].
+    split; [ exact HM | ]. split; [ exact HN | ].
+    intro. split.
+    - rewrite PTree.gso by (apply not_eq_sym; exact Hqm). exact Hm.
+    - rewrite PTree.gso by (apply not_eq_sym; exact Hql). exact Hla.
+  Qed.
+
+  (* a window-checked m->field store (RHS unconstrained; HMWF_window covers
+     it; the safe window excludes the action cell so action_sat carries) *)
+  Lemma window_block_pres : forall a1 a2 lb,
+      safe_mfield_store mario_actions_airborne._m a1 = true ->
+      block_pres (Sassign a1 a2) lb.
+  Proof.
+    intros a1 a2 lb Hsf le m tr le' m' out Hm Hla Hexec HN HM HV HS.
+    assert (Htat : forall b o,
+               le ! mario_actions_airborne._m = Some (Vptr b o) ->
+               b = bm /\ o = Ptrofs.zero).
+    { intros b o Hb. assert (Hb' : le ! M._m = Some (Vptr b o)) by exact Hb.
+      rewrite Hm in Hb'. injection Hb' as <- <-. split; reflexivity. }
+    destruct (epi_assign_pres lp LO_mario bm MWF HMWF_window a1 a2 empty_env le m
+                tr le' m' out Hsf Htat Hexec HM HV HS)
+      as (HV1 & HS1 & HM1 & Hle' & _).
+    subst le'.
+    split; [ exact HV1 | ]. split; [ exact HS1 | ].
+    split; [ exact HM1 | ]. split; [ exact (HNoA_of_MWF _ HM1) | ].
+    intro. split; [ exact Hm | exact Hla ].
+  Qed.
+
+  (* a 1-arg `t := f(m)` call to a call_pres callee (should_begin_sliding) *)
+  Lemma call1_block_pres : forall (fid t : ident) (rty : type)
+                                  (cc : calling_convention) lb,
+      t <> M._m -> t <> M._landingAction ->
+      call_pres lp bm NoA MWF fid ->
+      block_pres (Scall (Some t) (Evar fid (Tfunction (tyMSp :: nil) rty cc))
+                    (Etempvar mario_actions_airborne._m tyMSp :: nil)) lb.
+  Proof.
+    intros fid t rty cc lb Htm Htl Hcp le m tr le' m' out Hm Hla Hexec HN HM HV HS.
+    assert (Htat : forall b o,
+               le ! mario_actions_airborne._m = Some (Vptr b o) ->
+               b = bm /\ o = Ptrofs.zero).
+    { intros b o Hb. assert (Hb' : le ! M._m = Some (Vptr b o)) by exact Hb.
+      rewrite Hm in Hb'. injection Hb' as <- <-. split; reflexivity. }
+    destruct (kit_scall_pres lp bm NoA MWF (Some t) fid rty cc le m tr le' m' out
+                Hexec Hcp Htat HN HM HV HS)
+      as (HV1 & HS1 & HM1 & HN1 & _ & vr & Hle1).
+    split; [ exact HV1 | ]. split; [ exact HS1 | ].
+    split; [ exact HM1 | ]. split; [ exact HN1 | ].
+    intro. subst le'. cbn [set_opttemp]. split.
+    - rewrite PTree.gso by (apply not_eq_sym; exact Htm). exact Hm.
+    - rewrite PTree.gso by (apply not_eq_sym; exact Htl). exact Hla.
+  Qed.
+
+  (* one of the 5 guarded landingAction-field setter blocks *)
+  Lemma setter_blk : forall (fid : ident),
+      call_pres_act lp bm NoA MWF fid ->
+      forall (gid : ident) (lb : block) (fld q t : ident) (cond : expr),
+        mem_id gid knockback_table_ids = true ->
+        Genv.find_symbol (lp_ge lp) gid = Some lb ->
+        q <> M._m ->
+        block_pres
+          (Sifthenelse cond
+             (Ssequence
+                (Ssequence
+                   (Sset q
+                      (Efield
+                         (Ederef
+                            (Etempvar M._landingAction
+                               (tptr (Tstruct M._LandingAction noattr)))
+                            (Tstruct M._LandingAction noattr)) fld tuint))
+                   (Scall (Some t)
+                      (Evar fid
+                         (Tfunction (tyMSp :: tuint :: tuint :: nil) tuint
+                            cc_default))
+                      (Etempvar M._m tyMSp :: Etempvar q tuint
+                         :: Econst_int (Int.repr 0) tint :: nil)))
+                (Sreturn (Some (Etempvar t tuint))))
+             Sskip) lb.
+  Proof.
+    intros fid Hcpa gid lb fld q t cond Hgid Hsym Hqm
+           le m tr le' m' out Hm Hla Hexec HN HM HV HS.
+    destruct (setter_block_pres fid Hcpa gid lb fld q t cond empty_env le m
+                tr le' m' out Hgid Hsym Hqm Hm Hla (PTree.gempty _ fid)
+                Hexec HN HM HV HS)
+      as (HV1 & HS1 & HM1 & HN1 & Hcont).
+    split; [ exact HV1 | ]. split; [ exact HS1 | ].
+    split; [ exact HM1 | ]. split; [ exact HN1 | ].
+    intro Hc. destruct (Hcont Hc) as (-> & _). split; [ exact Hm | exact Hla ].
+  Qed.
+
+  (* the input&2 indirect setAPressAction call: DEAD under the carried
+     input_a_clear (the gate takes its Sskip else) *)
+  Lemma dead_gate_block_pres : forall lb, block_pres clc_gate lb.
+  Proof.
+    intros lb le m tr le' m' out Hm Hla Hexec HN HM HV HS.
+    pose proof (HMWF_inp m HM) as Hclear.
+    assert (Hm2 : le ! mario_actions_moving._m = Some (Vptr bm Ptrofs.zero))
+      by exact Hm.
+    destruct (clc_indirect_call_dead_lp lp LO_mario empty_env le m bm tr le' m' out
+                Hm2 Hclear Hexec) as (vi & _ & _ & _ & Helse).
+    assert (Hgelse : gate_else clc_gate = Sskip) by (vm_compute; reflexivity).
+    rewrite Hgelse in Helse.
+    apply exec_skip_inv in Helse as (-> & -> & _).
+    split; [ exact HV | ]. split; [ exact HS | ].
+    split; [ exact HM | ]. split; [ exact HN | ].
+    intro. split.
+    - rewrite PTree.gso by (vm_compute; congruence). exact Hm.
+    - rewrite PTree.gso by (vm_compute; congruence). exact Hla.
+  Qed.
+
+  (* the terminal `return 0` *)
+  Lemma return_block_pres : forall a lb, block_pres (Sreturn a) lb.
+  Proof.
+    intros a lb le m tr le' m' out Hm Hla Hexec HN HM HV HS.
+    apply exec_return_inv in Hexec as (-> & -> & Hne).
+    split; [ exact HV | ]. split; [ exact HS | ].
+    split; [ exact HM | ]. split; [ exact HN | ].
+    intro Hc; exfalso; exact (Hne Hc).
   Qed.
 
 End LandingWalk.
