@@ -537,4 +537,147 @@ Section LandingWalk.
     intro Hc; exfalso; exact (Hne Hc).
   Qed.
 
+  (* ================================================================== *)
+  (* The producer rows the body calls bottom out in.                     *)
+  (* ================================================================== *)
+
+  (* mario_push_off_steep_floor: call_pres_act (writer_params, threads
+     _action to set_mario_action; wact = [_action; _t'2], sids = [sma]). *)
+  Definition pushoff_wact : list ident :=
+    mario_step._action :: mario_step._t'2 :: nil.
+  Definition sids_sma : list ident := mario._set_mario_action :: nil.
+
+  Lemma sids_sma_rows : forall fid, mem_id fid sids_sma = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sids_sma in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | discriminate H ].
+  Qed.
+
+  Lemma Hpush : call_pres_act lp bm NoA MWF mario_step._mario_push_off_steep_floor.
+  Proof.
+    apply (call_pres_act_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_step.prog mario_step._mario_push_off_steep_floor
+             mario_step.f_mario_push_off_steep_floor
+             pushoff_wact nil sids_sma nil nil sids_sma
+             LO_mario_step
+             ltac:(vm_compute; reflexivity) ltac:(reflexivity)
+             ltac:(vm_compute; reflexivity) ltac:(vm_compute; reflexivity)
+             eq_refl eq_refl eq_refl eq_refl eq_refl eq_refl).
+    - intros fid' H; discriminate H.
+    - exact sids_sma_rows.
+    - intros fid' H; discriminate H.
+    - exact sids_sma_rows.
+    - vm_compute; reflexivity.
+  Qed.
+
+  (* mario_facing_downhill: call_pres (read-only, in mario.prog). *)
+  Lemma Hmfd : call_pres lp bm NoA MWF mario._mario_facing_downhill.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._mario_facing_downhill
+             mario.f_mario_facing_downhill nil nil nil nil
+             LO_mario ltac:(vm_compute; reflexivity) ltac:(reflexivity)
+             ltac:(vm_compute; reflexivity)).
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - vm_compute; reflexivity.
+  Qed.
+
+  (* should_begin_sliding: call_pres (in mario_actions_moving.prog; calls
+     mario_facing_downhill). *)
+  Definition sbs_ids : list ident := mario._mario_facing_downhill :: nil.
+
+  Lemma sbs_ids_rows : forall fid, mem_id fid sbs_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sbs_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hmfd | discriminate H ].
+  Qed.
+
+  Lemma Hsbs : call_pres lp bm NoA MWF M._should_begin_sliding.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_moving.prog M._should_begin_sliding
+             M.f_should_begin_sliding sbs_ids nil nil nil
+             LO_mov ltac:(vm_compute; reflexivity) ltac:(reflexivity)
+             ltac:(vm_compute; reflexivity)).
+    - exact sbs_ids_rows.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - vm_compute; reflexivity.
+  Qed.
+
+  (* ================================================================== *)
+  (* THE BODY WALK: common_landing_cancels preserves, GIVEN landingAction *)
+  (* points at a ktab landing global lb.  Peels the right-nested body     *)
+  (* (block_pres_seq) and discharges each of the 8 blocks with the bricks *)
+  (* above -- P1 chase+steep, P2 doubleJumpTimer window, P3 should_begin_ *)
+  (* sliding+slide, P4 input&16+end, P5 actionTimer window+end, P6 the    *)
+  (* DEAD input&2 indirect call, P7 input&4+offFloor, P8 return 0.        *)
+  (* ================================================================== *)
+  Lemma clc_body_pres : forall (gid : ident) (lb : block),
+      mem_id gid knockback_table_ids = true ->
+      Genv.find_symbol (lp_ge lp) gid = Some lb ->
+      block_pres (fn_body M.f_common_landing_cancels) lb.
+  Proof.
+    intros gid lb Hgid Hsym.
+    unfold M.f_common_landing_cancels; cbn [fn_body].
+    (* P1: chase load; (chasestep load; STEEP push_off setter) *)
+    apply block_pres_seq.
+    { apply block_pres_seq; [ apply set_block_pres; vm_compute; congruence | ].
+      apply block_pres_seq; [ apply set_block_pres; vm_compute; congruence | ].
+      apply (setter_blk mario_step._mario_push_off_steep_floor Hpush gid lb);
+        [ exact Hgid | exact Hsym | vm_compute; congruence ]. }
+    (* P2: (t'19 load); window store doubleJumpTimer *)
+    apply block_pres_seq.
+    { apply block_pres_seq; [ apply set_block_pres; vm_compute; congruence | ].
+      apply window_block_pres; vm_compute; reflexivity. }
+    (* P3: sbs call; slide setter *)
+    apply block_pres_seq.
+    { apply block_pres_seq;
+        [ apply call1_block_pres;
+          [ vm_compute; congruence | vm_compute; congruence | exact Hsbs ] | ].
+      apply (setter_blk mario._set_mario_action Hsmact gid lb);
+        [ exact Hgid | exact Hsym | vm_compute; congruence ]. }
+    (* P4: input load; end-input16 setter *)
+    apply block_pres_seq.
+    { apply block_pres_seq; [ apply set_block_pres; vm_compute; congruence | ].
+      apply (setter_blk mario._set_mario_action Hsmact gid lb);
+        [ exact Hgid | exact Hsym | vm_compute; congruence ]. }
+    (* P5: ((actionTimer load; cast set); window store actionTimer);
+           (numFrames load; end-numFrames setter) *)
+    apply block_pres_seq.
+    { apply block_pres_seq.
+      { apply block_pres_seq.
+        { apply block_pres_seq;
+            [ apply set_block_pres; vm_compute; congruence
+            | apply set_block_pres; vm_compute; congruence ]. }
+        apply window_block_pres; vm_compute; reflexivity. }
+      apply block_pres_seq; [ apply set_block_pres; vm_compute; congruence | ].
+      apply (setter_blk mario._set_mario_action Hsmact gid lb);
+        [ exact Hgid | exact Hsym | vm_compute; congruence ]. }
+    (* P6: input&2 indirect setAPressAction call -- DEAD *)
+    apply block_pres_seq.
+    { exact (dead_gate_block_pres lb). }
+    (* P7: input load; offFloor-input4 setter *)
+    apply block_pres_seq.
+    { apply block_pres_seq; [ apply set_block_pres; vm_compute; congruence | ].
+      apply (setter_blk mario._set_mario_action Hsmact gid lb);
+        [ exact Hgid | exact Hsym | vm_compute; congruence ]. }
+    (* P8: return 0 *)
+    apply return_block_pres.
+  Qed.
+
 End LandingWalk.
