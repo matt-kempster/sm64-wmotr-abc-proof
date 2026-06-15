@@ -1677,6 +1677,13 @@ Section NoARealInputMWF.
                          SAME term the automatic cannon consumer below uses).
                          NO new trust. *)
                       (mwf_real_inp lp bm bc oc0 SafeB)
+                      (* SLICE 18: the input-AND store prefix of lava_boost --
+                         storing into the umbi footprint (input + framesSinceA/B)
+                         while keeping the A-bit clear preserves MWF_real
+                         (mwf_real_umbi).  NO new trust: the same MWF_real
+                         preservation lemma the cannon umbi arc is built on. *)
+                      (mwf_real_umbi lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                         Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                       (Hpres_obj_ext mario_step._vec3f_copy eq_refl)
                       (Hpres_obj_ext mario._vec3s_set eq_refl)
                       (Hpres_obj_ext mario._load_patchable_table eq_refl)

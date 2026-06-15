@@ -974,6 +974,7 @@ Definition sta_walked_ids : list ident :=
     :: mario_actions_stationary._act_freefall_land_stop
     :: mario_actions_stationary._act_triple_jump_land_stop
     :: mario_actions_stationary._act_side_flip_land_stop
+    :: mario_actions_stationary._act_lava_boost_land
     :: mario_actions_stationary._act_crouching
     :: mario_actions_stationary._act_start_crouching
     :: mario_actions_stationary._act_stop_crouching
@@ -1727,6 +1728,14 @@ Example sta_sfls_walk :
     (fn_body mario_actions_stationary.f_act_side_flip_land_stop) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* act_lava_boost_land: `m->input &= ~MASK` prefix + the clean cclc+landing
+   REST -- walked via the body_pres_input_and_then_wwalk hybrid (SLICE 18). *)
+Example sta_lbl_pin :
+  (prog_defmap mario_actions_stationary.prog)
+    ! mario_actions_stationary._act_lava_boost_land
+  = Some (Gfun (Internal mario_actions_stationary.f_act_lava_boost_land)).
+Proof. vm_compute. reflexivity. Qed.
+
 (* ====================================================================== *)
 (* The walk.                                                              *)
 (* ====================================================================== *)
@@ -1796,6 +1805,19 @@ Section StationaryLeafRows.
      mid-frame fact the cclc A-gate kill consumes.  Supplied at the capstone
      by mwf_real_inp (NO new trust). *)
   Hypothesis HMWF_inp : forall m, MWF m -> input_a_clear m bm.
+
+  (* SLICE 18: an in-place input store that keeps the A-bit clear and touches
+     only the umbi footprint (input [2,4) + framesSinceA/B [40,42)) preserves
+     MWF.  This is the engine-external arm for the `m->input &= ~MASK` prefix
+     of lava_boost / long_jump / backflip (the input cell is OUTSIDE the
+     engine's safe store window precisely because MWF pins it A-clear).
+     Supplied at the capstone by mwf_real_umbi (NO new trust -- the same
+     MWF_real preservation lemma the cannon umbi arc was designed around). *)
+  Hypothesis HMWF_umbi : forall mm mm',
+      MWF mm ->
+      Mem.unchanged_on (fun b o => ~ AGates.umbi_footprint bm b o) mm mm' ->
+      input_a_clear mm' bm ->
+      MWF mm'.
 
   (* the externals these leaves' helper sub-trees bottom out in *)
   Hypothesis Hcpx_v3f :
@@ -2574,6 +2596,159 @@ Section StationaryLeafRows.
     - intros fid' H. discriminate H.
     - exact sta_landing_tids_rows.
     - exact sta_sfls_walk.
+  Qed.
+
+  (* ====================================================================== *)
+  (* SLICE 18: the input-AND-prefix hybrid.  act_lava_boost_land's body is   *)
+  (*   `m->input &= ~MASK ;  REST`  where REST is the SAME cclc+landing_step  *)
+  (* shape as the four clean landing handlers.  The leading `m->input &=`     *)
+  (* store is OUTSIDE the engine's safe window (MWF pins input A-clear), so   *)
+  (* the engine cannot walk it.  We peel it with AGates.contract_and_update   *)
+  (* (ANDing input keeps the A-bit clear, touches only the umbi footprint)    *)
+  (* and bridge to MWF with HMWF_umbi; then the engine walks REST.            *)
+  (* ====================================================================== *)
+  Lemma body_pres_input_and_then_wwalk :
+    forall (f : Clight.function) (t : ident) (mexpr : expr)
+           (REST : statement) (ids wids xids sids tids : list ident),
+      fn_vars f = nil ->
+      match fn_params f with
+      | (i, ty) :: ps =>
+          Pos.eqb i mario_actions_airborne._m
+          && proj_sumbool (type_eq ty tyMSp)
+          && negb (mem_id mario_actions_airborne._m (map fst ps))
+      | nil => false
+      end = true ->
+      fn_body f =
+        Ssequence
+          (Ssequence
+             (Sset t (Efield (Ederef (Etempvar mario._m
+                                (tptr (Tstruct mario._MarioState noattr)))
+                               (Tstruct mario._MarioState noattr))
+                        mario._input tushort))
+             (Sassign (Efield (Ederef (Etempvar mario._m
+                                 (tptr (Tstruct mario._MarioState noattr)))
+                                (Tstruct mario._MarioState noattr))
+                         mario._input tushort)
+                (Ebinop Oand (Etempvar t tushort) mexpr tint)))
+          REST ->
+      t <> mario._m ->
+      typeof mexpr = tint ->
+      (forall fid', mem_id fid' ids = true -> call_pres lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' wids = true -> call_pres_act lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' xids = true -> call_pres_ext lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' sids = true -> call_pres_act lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' tids = true -> call_pres_act3 lp bm NoA MWF fid') ->
+      wwalk_chk false nil ids wids nil xids sids tids REST = true ->
+      body_pres lp NoA MWF bm f.
+  Proof.
+    intros f t mexpr REST ids wids xids sids tids
+           Hvars Hps Hfb Hne Htype Hcp Hcpa Hcpx Hcps Hcp3t Hchk
+           m0 vargs0 t0 mF vresF Hmargf Hevf HN HM HV HS.
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      rewrite Hvars in Ha; inv Ha end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ => rename Hb into Hbind end.
+    destruct (fn_params f) as [| [i ty] ps ] eqn:Eps; [ discriminate Hps | ].
+    apply andb_prop in Hps as [Hps Hnm].
+    apply andb_prop in Hps as [Hi Hty].
+    apply Pos.eqb_eq in Hi. subst i.
+    destruct (type_eq ty tyMSp); [ subst ty | discriminate Hty ].
+    apply negb_true_iff in Hnm.
+    assert (Hmarg : marg_ok bm vargs0).
+    { apply Hmargf. unfold marg_exempt. rewrite Eps. reflexivity. }
+    destruct vargs0 as [| v0 vrest];
+      cbn [bind_parameter_temps] in Hbind; [ discriminate Hbind | ].
+    change (blocks_of_env (lp_ge lp) empty_env)
+      with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    rewrite Hfb in Hbody.
+    match goal with Hbind' : bind_parameter_temps _ _ _ = Some ?le1 |- _ =>
+      assert (Htat0 : forall b o,
+                 le1 ! mario_actions_airborne._m = Some (Vptr b o) ->
+                 b = bm /\ o = Ptrofs.zero)
+        by (intros b o Hg;
+            rewrite (bind_params_other _ _ _ _ _ Hbind' Hnm) in Hg;
+            rewrite PTree.gss in Hg; injection Hg as ->;
+            cbn in Hmarg; exact Hmarg);
+      assert (Hlem : le1 ! mario._m = Some (Vptr bm Ptrofs.zero))
+        by (assert (HbodyC := Hbody);
+            apply (exec_seq_cases lp) in HbodyC
+              as [ (xa & xb & xc & xd & Hp0 & _) | (Hp0 & _) ];
+            apply (exec_seq_cases lp) in Hp0
+              as [ (ya & yb & yc & yd & Hset & _) | (Hset & _) ];
+            apply (exec_set_inv lp) in Hset as (vv & Hev & _ & _ & _);
+            destruct (efield_base_vptr lp _ _ _ _ _ _ _ _ Hev) as (bc & oc & Hle0);
+            destruct (Htat0 _ _ Hle0) as [-> ->]; exact Hle0)
+    end.
+    (* split body = INPUT_PAIR ; REST *)
+    apply (exec_seq_cases lp) in Hbody
+      as [ (trp & le_mid & m_mid & trr & Hpair & Hrest) | (Hpair & Hnn) ].
+    2: { destruct (contract_and_update lp LO_mario t mexpr Hne Htype
+                     _ _ _ bm _ _ _ _ Hlem (HMWF_inp _ HM) Hpair)
+           as (_ & _ & Hout & _). congruence. }
+    destruct (contract_and_update lp LO_mario t mexpr Hne Htype
+                _ _ _ bm _ _ _ _ Hlem (HMWF_inp _ HM) Hpair)
+      as (Hinp_mid & Hle_mid_m & _ & Hunch).
+    assert (HM_mid : MWF m_mid)
+      by (eapply HMWF_umbi; [ exact HM | exact Hunch | exact Hinp_mid ]).
+    assert (HV_mid : Mem.valid_block m_mid bm)
+      by (eapply Mem.valid_block_unchanged_on; [ exact Hunch | exact HV ]).
+    assert (HN_mid : NoA m_mid) by (apply HNoA_of_MWF; exact HM_mid).
+    assert (Hsat_mid : action_sat not_tainted m_mid bm).
+    { intros vv Hvv.
+      refine (HS vv _).
+      rewrite <- Hvv. symmetry.
+      eapply (Mem.load_unchanged_on_1 (fun b o => ~ AGates.umbi_footprint bm b o));
+        [ exact Hunch | exact HV | ].
+      intros i Hi Hfp. destruct Hfp as [_ Hor].
+      cbn [size_chunk] in Hi. destruct Hor; lia. }
+    (* the engine walks REST from the post-input env/mem *)
+    assert (Htat_mid : forall b o,
+               le_mid ! mario_actions_airborne._m = Some (Vptr b o) ->
+               b = bm /\ o = Ptrofs.zero)
+      by (intros b o Hg;
+          assert (Hg2 : le_mid ! mario._m = Some (Vptr b o)) by exact Hg;
+          rewrite Hle_mid_m in Hg2; inv Hg2; split; reflexivity).
+    assert (Hact_mid : act_inv nil le_mid)
+      by (intros t' Hmem' x Hg'; discriminate Hmem').
+    assert (Hch_mid : chase_inv SafeB nil le_mid)
+      by (intros t' Hmem' b o Hg'; discriminate Hmem').
+    destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+                false nil ids wids nil xids sids tids Hcp Hcpa Hcpx Hcps
+                Hcp3t _ _ _ _ _ _ _ _ Hrest
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (PTree.gempty _ _) Hchk Htat_mid Hact_mid Hch_mid
+                HN_mid HM_mid HV_mid Hsat_mid)
+      as (HV' & HS' & HM' & _).
+    exact (conj HV' (conj HS' HM')).
+  Qed.
+
+  Lemma act_lava_boost_land_pres :
+    body_pres lp NoA MWF bm
+      mario_actions_stationary.f_act_lava_boost_land.
+  Proof.
+    eapply (body_pres_input_and_then_wwalk
+              mario_actions_stationary.f_act_lava_boost_land
+              mario_actions_stationary._t'2 _ _
+              sta_landcclc_ids nil nil nil sta_landing_tids).
+    - reflexivity.
+    - vm_compute; reflexivity.
+    - reflexivity.
+    - intro HX; vm_compute in HX; discriminate HX.
+    - reflexivity.
+    - exact sta_landcclc_ids_rows.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - exact sta_landing_tids_rows.
+    - vm_compute; reflexivity.
   Qed.
 
   (* ---- the landing-sound helper chain ---- *)
@@ -3862,10 +4037,11 @@ Section StationaryLeafRows.
     { apply Pos.eqb_eq in Hm; subst fid.
       rewrite sta_atl_pin in Hdm. injection Hdm as <-.
       exact act_air_throw_land_pres. }
-    (* 29: act_lava_boost_land -- rest *)
+    (* 29: act_lava_boost_land -- WALKED (input-AND hybrid, SLICE 18) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite sta_lbl_pin in Hdm. injection Hdm as <-.
+      exact act_lava_boost_land_pres. }
     (* 30: act_twirl_land -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
