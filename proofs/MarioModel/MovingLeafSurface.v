@@ -197,9 +197,48 @@ Definition mov_walked_ids : list ident :=
     :: mario_actions_moving._act_hard_forward_ground_kb
     :: mario_actions_moving._act_ground_bonk
     :: mario_actions_moving._act_death_exit_land
-    :: mario_actions_moving._act_finish_turning_around :: nil.
+    :: mario_actions_moving._act_finish_turning_around
+    :: mario_actions_moving._act_slide_kick_slide :: nil.
 Definition mov_rest_ids : list ident :=
   filter (fun id => negb (mem_id id mov_walked_ids)) moving_callee_ids.
+
+(* ---------------------------------------------------------------------- *)
+(* SLICE M7: the slide helper subtree + act_slide_kick_slide.             *)
+(* mario_bonk_reflection / update_sliding / update_sliding_angle are all  *)
+(* clean window-store-only helpers (no np3, no param-action, no AGates).  *)
+(* ---------------------------------------------------------------------- *)
+
+(* mario_bonk_reflection (mario_step.prog): faceAngle[1] window store +
+   atan2s/play_sound ext + mario_set_forward_vel. *)
+Definition mov_mbr_ids : list ident := mario._mario_set_forward_vel :: nil.
+Definition mov_mbr_xids : list ident :=
+  interaction._atan2s :: mario._play_sound :: nil.
+
+(* update_sliding_angle: slideVel/faceAngle window stores + atan2s/sqrtf ext
+   + mario_update_moving_sand / mario_update_windy_ground. *)
+Definition mov_usa_ids : list ident :=
+  mario_step._mario_update_moving_sand
+    :: mario_step._mario_update_windy_ground :: nil.
+Definition mov_usa_xids : list ident := interaction._atan2s :: mario._sqrtf :: nil.
+
+(* update_sliding: forwardVel window store + sqrtf ext + floor helpers. *)
+Definition mov_usl_ids : list ident :=
+  mario._mario_get_floor_class
+    :: mario_actions_moving._update_sliding_angle
+    :: mario._mario_floor_is_slope
+    :: mario._mario_set_forward_vel :: nil.
+Definition mov_usl_xids : list ident := mario._sqrtf :: nil.
+
+(* act_slide_kick_slide leaf: const-action sids + the slide helper subtree. *)
+Definition mov_sks_ids : list ident :=
+  mario._set_mario_animation
+    :: mario._is_anim_at_end
+    :: mario_actions_moving._update_sliding
+    :: mario_step._perform_ground_step
+    :: mario_step._mario_bonk_reflection :: nil.
+Definition mov_sks_sids : list ident :=
+  mario._set_jumping_action :: mario._set_mario_action :: nil.
+Definition mov_sks_xids : list ident := mario._play_sound :: nil.
 
 (* ====================================================================== *)
 (* Shape pins (vm_compute reflexivity over the real AST).                 *)
@@ -717,6 +756,59 @@ Proof. vm_compute. reflexivity. Qed.
 Example mov_ahhw_walk :
   wwalk_chk false nil mov_ahhw_ids nil nil nil mov_ahhw_sids nil
     (fn_body mario_actions_moving.f_act_hold_heavy_walking) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- SLICE M7 pins ---- *)
+Example mov_mbr_pin :
+  (prog_defmap mario_step.prog) ! mario_step._mario_bonk_reflection
+  = Some (Gfun (Internal mario_step.f_mario_bonk_reflection)).
+Proof. vm_compute. reflexivity. Qed.
+Example mov_mbr_vars : fn_vars mario_step.f_mario_bonk_reflection = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_mbr_pok : mov_pok mario_step.f_mario_bonk_reflection = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_mbr_walk :
+  wwalk_chk false nil mov_mbr_ids nil nil mov_mbr_xids nil nil
+    (fn_body mario_step.f_mario_bonk_reflection) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example mov_usa_pin :
+  (prog_defmap mario_actions_moving.prog) ! mario_actions_moving._update_sliding_angle
+  = Some (Gfun (Internal mario_actions_moving.f_update_sliding_angle)).
+Proof. vm_compute. reflexivity. Qed.
+Example mov_usa_vars : fn_vars mario_actions_moving.f_update_sliding_angle = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_usa_pok : mov_pok mario_actions_moving.f_update_sliding_angle = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_usa_walk :
+  wwalk_chk false nil mov_usa_ids nil nil mov_usa_xids nil nil
+    (fn_body mario_actions_moving.f_update_sliding_angle) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example mov_usl_pin :
+  (prog_defmap mario_actions_moving.prog) ! mario_actions_moving._update_sliding
+  = Some (Gfun (Internal mario_actions_moving.f_update_sliding)).
+Proof. vm_compute. reflexivity. Qed.
+Example mov_usl_vars : fn_vars mario_actions_moving.f_update_sliding = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_usl_pok : mov_pok mario_actions_moving.f_update_sliding = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_usl_walk :
+  wwalk_chk false nil mov_usl_ids nil nil mov_usl_xids nil nil
+    (fn_body mario_actions_moving.f_update_sliding) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example mov_sks_pin :
+  (prog_defmap mario_actions_moving.prog) ! mario_actions_moving._act_slide_kick_slide
+  = Some (Gfun (Internal mario_actions_moving.f_act_slide_kick_slide)).
+Proof. vm_compute. reflexivity. Qed.
+Example mov_sks_vars : fn_vars mario_actions_moving.f_act_slide_kick_slide = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_sks_pok : mov_pok mario_actions_moving.f_act_slide_kick_slide = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_sks_walk :
+  wwalk_chk false nil mov_sks_ids nil nil mov_sks_xids mov_sks_sids nil
+    (fn_body mario_actions_moving.f_act_slide_kick_slide) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* ====================================================================== *)
@@ -1811,6 +1903,189 @@ Section MovingLeafRows.
   Qed.
 
   (* ================================================================== *)
+  (* SLICE M7: the slide helper subtree + act_slide_kick_slide.         *)
+  (* ================================================================== *)
+
+  (* mario_bonk_reflection: faceAngle[1] window store + atan2s/play_sound ext
+     + mario_set_forward_vel (mario_step.prog). *)
+  Lemma mov_mbr_ids_rows : forall fid, mem_id fid mov_mbr_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_mbr_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_msfv_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_mbr_xids_rows : forall fid, mem_id fid mov_mbr_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_mbr_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        apply Hpres_obj_ext; vm_compute; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_mbr_row :
+    call_pres lp bm NoA MWF mario_step._mario_bonk_reflection.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_step.prog mario_step._mario_bonk_reflection
+             mario_step.f_mario_bonk_reflection
+             mov_mbr_ids nil mov_mbr_xids nil
+             LO_mario_step mov_mbr_pin mov_mbr_vars mov_mbr_pok).
+    - exact mov_mbr_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact mov_mbr_xids_rows.
+    - intros fid' H. discriminate H.
+    - exact mov_mbr_walk.
+  Qed.
+
+  (* update_sliding_angle: window stores + atan2s/sqrtf ext + sand/wind. *)
+  Lemma mov_usa_ids_rows : forall fid, mem_id fid mov_usa_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_usa_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_mums_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_muwg_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_usa_xids_rows : forall fid, mem_id fid mov_usa_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_usa_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        apply Hpres_obj_ext; vm_compute; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_sqrtf | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_usa_row :
+    call_pres lp bm NoA MWF mario_actions_moving._update_sliding_angle.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_moving.prog mario_actions_moving._update_sliding_angle
+             mario_actions_moving.f_update_sliding_angle
+             mov_usa_ids nil mov_usa_xids nil
+             LO_mov mov_usa_pin mov_usa_vars mov_usa_pok).
+    - exact mov_usa_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact mov_usa_xids_rows.
+    - intros fid' H. discriminate H.
+    - exact mov_usa_walk.
+  Qed.
+
+  (* update_sliding: forwardVel window store + sqrtf ext + floor helpers
+     + update_sliding_angle. *)
+  Lemma mov_usl_ids_rows : forall fid, mem_id fid mov_usl_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_usl_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_mgfc_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_usa_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_mfis_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_msfv_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_usl_xids_rows : forall fid, mem_id fid mov_usl_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_usl_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_sqrtf | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_usl_row :
+    call_pres lp bm NoA MWF mario_actions_moving._update_sliding.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_moving.prog mario_actions_moving._update_sliding
+             mario_actions_moving.f_update_sliding
+             mov_usl_ids nil mov_usl_xids nil
+             LO_mov mov_usl_pin mov_usl_vars mov_usl_pok).
+    - exact mov_usl_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact mov_usl_xids_rows.
+    - intros fid' H. discriminate H.
+    - exact mov_usl_walk.
+  Qed.
+
+  (* act_slide_kick_slide leaf (body_pres): const-action sids + slide subtree. *)
+  Lemma mov_sks_ids_rows : forall fid, mem_id fid mov_sks_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_sks_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_sma_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_iae_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_usl_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pgs | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_mbr_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_sks_sids_rows : forall fid, mem_id fid mov_sks_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_sks_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_sja_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_sks_xids_rows : forall fid, mem_id fid mov_sks_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_sks_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_sks_pres :
+    body_pres lp NoA MWF bm mario_actions_moving.f_act_slide_kick_slide.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_moving.f_act_slide_kick_slide
+             mov_sks_ids nil mov_sks_xids mov_sks_sids nil
+             mov_sks_vars mov_sks_pok).
+    - exact mov_sks_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact mov_sks_xids_rows.
+    - exact mov_sks_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact mov_sks_walk.
+  Qed.
+
+  (* ================================================================== *)
   (* THE REST-SPLIT: the capstone's Hpres_mov_callees from the walked   *)
   (* leaves + the shrinking mov_rest_ids residual.                      *)
   (* ================================================================== *)
@@ -1902,10 +2177,10 @@ Section MovingLeafRows.
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
       refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
-    (* 20: act_slide_kick_slide -- rest *)
+    (* 20: act_slide_kick_slide -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite mov_sks_pin in Hdm. injection Hdm as <-. exact mov_sks_pres. }
     (* 21: act_hard_backward_ground_kb -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
