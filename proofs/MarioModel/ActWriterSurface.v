@@ -1055,9 +1055,20 @@ Definition sbpair_chk (nids wact cact : list ident) (s1 s2 : statement)
    cast.  sem_cast from a float type yields Vint or gets stuck -- never
    a pointer (cast_case_s2i / f2i; NOT the unsound i32-source i2i
    shortcut, which on ptr32 is a Vptr passthrough). *)
-Definition nsrc_chk (a : expr) : bool :=
+(* A nested cast (`(int)(int)(fv*0x10000)`), a literal, or a COPY of
+   another nids temp also keep the value non-Vptr.  The recursive Ecast
+   arm is type-guard-FREE: a Vptr can only come OUT of a cast that a Vptr
+   went INTO (cast_case_pointer is the only producing case -- see
+   sem_cast_nonptr_pres), so `nsrc_chk nids b` on the inner expression
+   already certifies the result.  The Etempvar arm consumes the threaded
+   nptr provenance; the Econst_int arm is a literal Vint. *)
+Fixpoint nsrc_chk (nids : list ident) (a : expr) : bool :=
   match a with
-  | Ecast b cty => (float_ty (typeof b) && i32_ty cty) || subint_ty cty
+  | Econst_int _ _ => true
+  | Etempvar q _ => mem_id q nids
+  | Ecast b cty =>
+      (float_ty (typeof b) && i32_ty cty) || subint_ty cty
+      || nsrc_chk nids b
   | _ => false
   end.
 
@@ -1875,7 +1886,7 @@ Fixpoint wwalk_chk' (lids oc_pids wc_pids sc_pids nids np3_ids : list ident) (rt
       && (negb (mem_id id wact) || wsrc_chk wact a)
       && (negb (mem_id id cact)
           || chase_root_chk a || chase_step_chk cact a)
-      && (negb (mem_id id nids) || nsrc_chk a)
+      && (negb (mem_id id nids) || nsrc_chk nids a)
   | Sassign a1 a2 =>
       safe_mfield_store mario_actions_airborne._m a1
       || glob_store_chk a1
@@ -4508,6 +4519,59 @@ Section ActWriterWalk.
     exact (conj HV' (conj HS' (conj HM' (conj HN' (conj Hle Hout))))).
   Qed.
 
+  (* A value Sset into an nids temp is non-Vptr.  Recursive over the
+     expression: a literal is Vint, an nids temp is non-Vptr by the
+     threaded provenance, a float->i32 / sub-int cast is non-Vptr by the
+     leaf lemmas, and a cast of an already-non-Vptr inner expression is
+     non-Vptr by sem_cast_nonptr_pres (cast_case_pointer only passes a
+     Vptr THROUGH -- it never manufactures one). *)
+  Lemma nsrc_chk_sound :
+    forall nids a e le m v,
+      nsrc_chk nids a = true ->
+      nptr_inv nids le ->
+      eval_expr (lp_ge lp) e le m a v ->
+      forall bb oo, v <> Vptr bb oo.
+  Proof.
+    intros nids a; induction a as
+      [ i ty | f ty | s ty | l ty | x ty | q qty
+      | da IHd dty | ar IHa ary | uop ua IHu uty
+      | bop ba1 IHb1 ba2 IHb2 bty
+      | ca IHc cty
+      | fa IHf ffld fty | s1 s2 | g1 g2 ];
+      intros e le m v Hchk Hnp Hev; cbn [nsrc_chk] in Hchk;
+      try discriminate Hchk.
+    - (* Econst_int: literal Vint *)
+      inv Hev;
+        try (match goal with
+             | Hlv : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ => inv Hlv
+             end).
+      intros bb oo HH; discriminate HH.
+    - (* Etempvar q: q in nids, non-Vptr by the threaded provenance *)
+      apply eval_expr_Etempvar_val in Hev.
+      exact (Hnp _ Hchk _ Hev).
+    - (* Ecast ca cty *)
+      inv Hev;
+        try (match goal with
+             | Hlv : eval_lvalue _ _ _ _ (Ecast _ _) _ _ _ |- _ => inv Hlv
+             end).
+      apply orb_true_iff in Hchk as [Hfs | Hrec].
+      + apply orb_true_iff in Hfs as [Hfl | Hsub].
+        * apply andb_prop in Hfl as [Hfl Hi32].
+          match goal with
+          | Hcast : sem_cast _ _ _ _ = Some _ |- _ =>
+              exact (sem_cast_float_i32_nonptr _ _ _ _ _ Hfl Hi32 Hcast)
+          end.
+        * match goal with
+          | Hcast : sem_cast _ _ _ _ = Some _ |- _ =>
+              exact (sem_cast_subint_nonptr _ _ _ _ _ Hsub Hcast)
+          end.
+      + match goal with
+        | Hev1 : eval_expr _ _ _ _ ca _, Hcast : sem_cast _ _ _ _ = Some _ |- _ =>
+            exact (sem_cast_nonptr_pres _ _ _ _ _ Hcast
+                     (IHc _ _ _ _ Hrec Hnp Hev1))
+        end.
+  Qed.
+
   Lemma wwalk_pres :
     forall (rt : bool) (wact ids wids cact xids sids tids lids oc_pids wc_pids sc_pids nids np3_ids : list ident),
       (forall fid, mem_id fid ids = true -> call_pres lp bm NoA MWF fid) ->
@@ -4755,35 +4819,9 @@ Section ActWriterWalk.
         destruct (Pos.eq_dec t0 id) as [-> | Hne].
         * rewrite PTree.gss in Hg. injection Hg as <-.
           rewrite Hmem in Hns. cbn [negb orb] in Hns.
-          destruct a as [ | | | | | | | | | | ca cty2 | | | ];
-            try discriminate Hns.
-          cbn [nsrc_chk] in Hns.
-          apply orb_true_iff in Hns as [Hns | Hsub].
-          { apply andb_prop in Hns as [Hfl Hi32c].
-            match goal with
-            | Hev : eval_expr _ _ _ _ (Ecast _ _) _ |- _ =>
-                inv Hev;
-                try (match goal with
-                     | Hlv : eval_lvalue _ _ _ _ (Ecast _ _) _ _ _ |- _ =>
-                         inv Hlv
-                     end)
-            end.
-            match goal with
-            | Hcast : sem_cast _ _ _ _ = Some _ |- _ =>
-                exact (sem_cast_float_i32_nonptr _ _ _ _ _ Hfl Hi32c Hcast)
-            end. }
-          (* the sub-word int cast: non-pointer on EVERY source *)
           match goal with
-          | Hev : eval_expr _ _ _ _ (Ecast _ _) _ |- _ =>
-              inv Hev;
-              try (match goal with
-                   | Hlv : eval_lvalue _ _ _ _ (Ecast _ _) _ _ _ |- _ =>
-                       inv Hlv
-                   end)
-          end.
-          match goal with
-          | Hcast : sem_cast _ _ _ _ = Some _ |- _ =>
-              exact (sem_cast_subint_nonptr _ _ _ _ _ Hsub Hcast)
+          | Hev : eval_expr _ _ _ _ a _ |- _ =>
+              exact (nsrc_chk_sound _ _ _ _ _ _ Hns Hnp Hev)
           end.
         * rewrite PTree.gso in Hg by exact Hne.
           exact (Hnp _ Hmem _ Hg).
