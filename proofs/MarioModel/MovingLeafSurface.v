@@ -29,7 +29,7 @@ From SM64.Proofs Require Import SymbolicLinking Flying Taint
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface
   AirborneSurface DispatchKit FloorsSurface.
 From SM64.Proofs Require Import ActWriterSurface ObjectLeafSurface MovingSurface.
-From SM64.Proofs Require Import MWFReal LandingBricks.
+From SM64.Proofs Require Import MWFReal LandingBricks StationaryLeafSurface.
 
 Import ListNotations.
 
@@ -227,7 +227,9 @@ Definition mov_walked_ids : list ident :=
     :: mario_actions_moving._act_quicksand_jump_land
     :: mario_actions_moving._act_hold_quicksand_jump_land
     (* act_burning_ground: a clean nids-engine walk (np3 smawa via nsrc_chk) *)
-    :: mario_actions_moving._act_burning_ground :: nil.
+    :: mario_actions_moving._act_burning_ground
+    (* act_braking: twl-style hybrid (slide_bonk switch site) *)
+    :: mario_actions_moving._act_braking :: nil.
 Definition mov_rest_ids : list ident :=
   filter (fun id => negb (mem_id id mov_walked_ids)) moving_callee_ids.
 
@@ -3043,28 +3045,29 @@ Section MovingLeafRows.
   (* the slide_bonk call site: Scall None of slide_bonk with args
      (Etempvar _m, Econst fastA, Econst slowA), both fastA/slowA untainted. *)
   Lemma sbonk_site_pres :
-    forall fastA slowA le m tr le' m' out,
-      wact_const (Int.repr fastA) = true ->
-      wact_const (Int.repr slowA) = true ->
+    forall (c2 c3 : int) e le m tr le' m' out,
+      e ! M._slide_bonk = None ->
+      wact_const c2 = true ->
+      wact_const c3 = true ->
       (forall b o, le ! M._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero) ->
-      exec_stmt function_entry2 (lp_ge lp) empty_env le m
+      exec_stmt function_entry2 (lp_ge lp) e le m
         (Scall None
            (Evar M._slide_bonk
               (Tfunction (tyMSp :: tuint :: tuint :: nil) tvoid cc_default))
            (Etempvar M._m tyMSp
-            :: Econst_int (Int.repr fastA) tint
-            :: Econst_int (Int.repr slowA) tint :: nil))
+            :: Econst_int c2 tint
+            :: Econst_int c3 tint :: nil))
         tr le' m' out ->
       NoA m -> MWF m -> Mem.valid_block m bm -> action_sat not_tainted m bm ->
       Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\ NoA m'
       /\ out = Out_normal
       /\ (forall b o, le' ! M._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
   Proof.
-    intros fastA slowA le m tr le' m' out Hfa Hsa Htat Hexec HN HM HV HS.
+    intros c2 c3 e le m tr le' m' out Hsbn Hfa Hsa Htat Hexec HN HM HV HS.
     inv Hexec.
     match goal with Hcf : classify_fun _ = _ |- _ => cbn in Hcf; inv Hcf end.
     match goal with Hv : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
-      apply eval_Evar_funct_empty in Hv; destruct Hv as (fb & Hsym & ->) end.
+      destruct (eval_Evar_funct lp _ _ _ _ _ _ _ _ Hsbn Hv) as (fb & Hsym & ->) end.
     match goal with Hff : Genv.find_funct _ (Vptr fb Ptrofs.zero) = Some ?fd |- _ =>
       assert (Hres : resolves_lp lp M._slide_bonk fd)
         by (exists fb; split; assumption) end.
@@ -3077,13 +3080,13 @@ Section MovingLeafRows.
     match goal with Hv : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
       inv Hv; try (match goal with Hlv : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
                      inv Hlv end) end.
-    match goal with Hc : sem_cast (Vint (Int.repr fastA)) _ _ _ = Some _ |- _ =>
+    match goal with Hc : sem_cast (Vint c2) _ _ _ = Some _ |- _ =>
       cbn in Hc; injection Hc as <- end.
     match goal with Hel : eval_exprlist _ _ _ _ (_ :: nil) _ _ |- _ => inv Hel end.
     match goal with Hv : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
       inv Hv; try (match goal with Hlv : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
                      inv Hlv end) end.
-    match goal with Hc : sem_cast (Vint (Int.repr slowA)) _ _ _ = Some _ |- _ =>
+    match goal with Hc : sem_cast (Vint c3) _ _ _ = Some _ |- _ =>
       cbn in Hc; injection Hc as <- end.
     match goal with Hel : eval_exprlist _ _ _ _ nil _ _ |- _ => inv Hel end.
     match goal with Hv1 : le ! M._m = Some ?v1 |- _ =>
@@ -3147,6 +3150,429 @@ Section MovingLeafRows.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | discriminate H ].
   Qed.
+
+  (* ================================================================== *)
+  (* act_braking (190L): a twl-style induction HYBRID.  The body is a    *)
+  (* right-nested Ssequence of 5 blocks; everything is PURE-ENGINE        *)
+  (* (window store m->particleFlags, marioObj chase-load t'8 for          *)
+  (* play_sound, censused helper calls) EXCEPT one site: a switch case-2  *)
+  (* `slide_bonk(m, 132194, 201327165)` (Scall None, two untainted const  *)
+  (* action params -- fits no engine channel; the sbonk keystone covers   *)
+  (* it).  bk_chk recurses the engine generic arm into Ssequence/Sif/     *)
+  (* Sswitch and accepts the slide_bonk leaf via bk_sp_chk; bk_pres is an  *)
+  (* exec_stmt induction that sends generic subtrees to bk_generic         *)
+  (* (wwalk_pres0 wholesale) and the slide_bonk site to sbonk_site_pres.   *)
+  (* ================================================================== *)
+
+  (* check_common_action_exits: cross-file reuse of the stationary row. *)
+  Let Hccae : call_pres lp bm NoA MWF mario._check_common_action_exits :=
+    StationaryLeafSurface.sta_ccae_row lp LO_mario LO_mario_step bm NoA MWF
+      HNoA_of_MWF HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+      HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe.
+
+  Definition bk_ids : list ident :=
+    M._check_common_action_exits :: M._apply_slope_decel
+      :: M._perform_ground_step :: M._adjust_sound_for_speed
+      :: M._set_mario_animation :: nil.
+  Definition bk_sids : list ident := M._set_mario_action :: nil.
+  Definition bk_xids : list ident := M._play_sound :: nil.
+  Definition bk_cact : list ident := M._t'8 :: nil.
+
+  Lemma bk_ids_rows : forall fid, mem_id fid bk_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold bk_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hccae | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_asd_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pgs | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_asfs_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_sma_row | discriminate H ].
+  Qed.
+
+  Lemma bk_xids_rows : forall fid, mem_id fid bk_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold bk_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | discriminate H ].
+  Qed.
+
+  Lemma bk_sids_rows : forall fid, mem_id fid bk_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold bk_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | discriminate H ].
+  Qed.
+
+  (* the slide_bonk site recognizer: Scall None of slide_bonk with args
+     (Etempvar _m, Econst c2, Econst c3), both c2/c3 untainted; the full
+     function/arg type shape pinned so the inversion is concrete. *)
+  Definition bk_sp_chk (fid : ident) (fty : type) (al : list expr) : bool :=
+    Pos.eqb fid M._slide_bonk
+    && proj_sumbool
+         (type_eq fty (Tfunction (tyMSp :: tuint :: tuint :: nil) tvoid cc_default))
+    && match al with
+       | Etempvar p pty :: Econst_int c2 ct2 :: Econst_int c3 ct3 :: nil =>
+           Pos.eqb p M._m
+           && proj_sumbool (type_eq pty tyMSp)
+           && proj_sumbool (type_eq ct2 tint)
+           && proj_sumbool (type_eq ct3 tint)
+           && wact_const c2 && wact_const c3
+       | _ => false
+       end.
+
+  Fixpoint bk_chk (s : statement) : bool :=
+    wwalk_chk false nil bk_ids nil bk_cact bk_xids bk_sids nil s
+    || match s with
+       | Ssequence s1 s2 => bk_chk s1 && bk_chk s2
+       | Sifthenelse _ s1 s2 => bk_chk s1 && bk_chk s2
+       | Sswitch _ sl => bk_chk_ls sl
+       | Scall None (Evar fid fty) al => bk_sp_chk fid fty al
+       | _ => false
+       end
+  with bk_chk_ls (sl : labeled_statements) : bool :=
+    match sl with
+    | LSnil => true
+    | LScons _ s sl' => bk_chk s && bk_chk_ls sl'
+    end.
+
+  (* ---- the switch-selection transfer (mirror of the engine's) ---- *)
+  Lemma bk_chk_ls_seq : forall sl,
+      bk_chk_ls sl = true -> bk_chk (seq_of_labeled_statement sl) = true.
+  Proof.
+    induction sl as [| o s sl0 IH]; intros H.
+    - reflexivity.
+    - cbn [seq_of_labeled_statement]. cbn [bk_chk_ls] in H.
+      apply andb_prop in H as [H1 H2].
+      cbn [bk_chk]. apply orb_true_iff. right.
+      rewrite H1, (IH H2). reflexivity.
+  Qed.
+
+  Lemma bk_chk_ls_case : forall n sl sl',
+      bk_chk_ls sl = true ->
+      select_switch_case n sl = Some sl' ->
+      bk_chk_ls sl' = true.
+  Proof.
+    intros n sl; induction sl as [| o s sl0 IH]; intros sl' H Hsel.
+    - discriminate Hsel.
+    - cbn [bk_chk_ls] in H. apply andb_prop in H as [H1 H2].
+      destruct o as [c|]; cbn [select_switch_case] in Hsel.
+      + destruct (zeq c n).
+        * injection Hsel as <-. cbn [bk_chk_ls]. rewrite H1, H2. reflexivity.
+        * exact (IH sl' H2 Hsel).
+      + exact (IH sl' H2 Hsel).
+  Qed.
+
+  Lemma bk_chk_ls_default : forall sl,
+      bk_chk_ls sl = true -> bk_chk_ls (select_switch_default sl) = true.
+  Proof.
+    induction sl as [| o s sl0 IH]; intros H.
+    - exact H.
+    - cbn [bk_chk_ls] in H. apply andb_prop in H as [H1 H2].
+      destruct o as [c|]; cbn [select_switch_default].
+      + exact (IH H2).
+      + cbn [bk_chk_ls]. rewrite H1, H2. reflexivity.
+  Qed.
+
+  Lemma bk_chk_select : forall n sl,
+      bk_chk_ls sl = true ->
+      bk_chk (seq_of_labeled_statement (select_switch n sl)) = true.
+  Proof.
+    intros n sl H. apply bk_chk_ls_seq.
+    unfold select_switch.
+    destruct (select_switch_case n sl) eqn:E.
+    - exact (bk_chk_ls_case _ _ _ H E).
+    - exact (bk_chk_ls_default _ H).
+  Qed.
+
+  (* Scall inversion: either the generic engine accepts it, or it is the
+     slide_bonk site (concrete shape). *)
+  Lemma bk_chk_scall_inv : forall optid a al,
+      bk_chk (Scall optid a al) = true ->
+      wwalk_chk false nil bk_ids nil bk_cact bk_xids bk_sids nil
+        (Scall optid a al) = true
+      \/ (optid = None /\ exists fid fty,
+            a = Evar fid fty /\ bk_sp_chk fid fty al = true).
+  Proof.
+    intros optid a al H. cbn [bk_chk] in H.
+    apply orb_true_iff in H as [Hg | Hsp]; [ left; exact Hg | right ].
+    destruct optid as [t'|]; [ discriminate Hsp | ].
+    destruct a as [ i0 t0 | f0 t0 | f0 t0 | i0 t0 | fid fty | id0 t0
+                  | a0 t0 | a0 t0 | op a0 t0 | op a1 a2 t0 | a0 t0
+                  | a0 f0 t0 | t1 t0 | t1 t0 ]; try discriminate Hsp.
+    split; [ reflexivity | ]. exists fid, fty. split; [ reflexivity | exact Hsp ].
+  Qed.
+
+  Lemma bk_sp_chk_shape : forall fid fty al,
+      bk_sp_chk fid fty al = true ->
+      exists c2 c3,
+        fid = M._slide_bonk /\
+        fty = Tfunction (tyMSp :: tuint :: tuint :: nil) tvoid cc_default /\
+        al = Etempvar M._m tyMSp :: Econst_int c2 tint :: Econst_int c3 tint :: nil
+        /\ wact_const c2 = true /\ wact_const c3 = true.
+  Proof.
+    intros fid fty al H. unfold bk_sp_chk in H.
+    apply andb_prop in H as [H Hal].
+    apply andb_prop in H as [Hfid Hfty].
+    apply Pos.eqb_eq in Hfid. subst fid.
+    destruct (type_eq fty (Tfunction (tyMSp :: tuint :: tuint :: nil) tvoid cc_default));
+      [ subst fty | discriminate Hfty ].
+    destruct al as [| a0 al0]; [ discriminate Hal | ].
+    destruct a0 as [ | | | | | p pty | | | | | | | | ]; try discriminate Hal.
+    destruct al0 as [| a1 al1]; [ discriminate Hal | ].
+    destruct a1 as [ c2 ct2 | | | | | | | | | | | | | ]; try discriminate Hal.
+    destruct al1 as [| a2 al2]; [ discriminate Hal | ].
+    destruct a2 as [ c3 ct3 | | | | | | | | | | | | | ]; try discriminate Hal.
+    destruct al2 as [| a3 al3]; [ | discriminate Hal ].
+    apply andb_prop in Hal as [Hal Hc3].
+    apply andb_prop in Hal as [Hal Hc2].
+    apply andb_prop in Hal as [Hal Hct3].
+    apply andb_prop in Hal as [Hal Hct2].
+    apply andb_prop in Hal as [Hp Hpty].
+    apply Pos.eqb_eq in Hp. subst p.
+    destruct (type_eq pty tyMSp); [ subst pty | discriminate Hpty ].
+    destruct (type_eq ct2 tint); [ subst ct2 | discriminate Hct2 ].
+    destruct (type_eq ct3 tint); [ subst ct3 | discriminate Hct3 ].
+    exists c2, c3. repeat split; assumption.
+  Qed.
+
+  (* the generic engine wrapper: wwalk_pres0 wholesale for a subtree the
+     pure census accepts. *)
+  Lemma bk_generic :
+    forall s e le m0 tr le' m' out,
+      (forall g, mem_id g stored_globals = true -> e ! g = None) ->
+      (forall g, mem_id g bk_ids = true -> e ! g = None) ->
+      (forall g, mem_id g bk_xids = true -> e ! g = None) ->
+      (forall g, mem_id g bk_sids = true -> e ! g = None) ->
+      e ! interaction._gGlobalTimer = None ->
+      wwalk_chk false nil bk_ids nil bk_cact bk_xids bk_sids nil s = true ->
+      (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      act_inv nil le ->
+      chase_inv SafeB bk_cact le ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm -> action_sat not_tainted m0 bm ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\ NoA m'
+      /\ (forall b o, le' ! mario_actions_airborne._m = Some (Vptr b o) ->
+                      b = bm /\ o = Ptrofs.zero)
+      /\ act_inv nil le' /\ chase_inv SafeB bk_cact le'.
+  Proof.
+    intros s e le m0 tr le' m' out Hub_g Hub_i Hub_x Hub_s Hubgt Hchk
+           Htat Hact Hch HN HM HV HS Hexec.
+    destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+                false nil bk_ids nil bk_cact bk_xids bk_sids nil
+                bk_ids_rows ltac:(intros fid HH; discriminate HH)
+                bk_xids_rows bk_sids_rows ltac:(intros fid HH; discriminate HH)
+                _ _ _ _ _ _ _ _ Hexec
+                Hub_g Hub_i ltac:(intros g HH; discriminate HH) Hub_x Hub_s
+                ltac:(intros g HH; discriminate HH) Hubgt
+                Hchk Htat Hact Hch HN HM HV HS)
+      as (HV' & HS' & HM' & HN' & Htat' & Hact' & Hch' & _).
+    exact (conj HV' (conj HS' (conj HM' (conj HN'
+             (conj Htat' (conj Hact' Hch')))))).
+  Qed.
+
+  (* THE HYBRID WALK: exec-derivation induction.  Generic subtrees go to
+     bk_generic; the slide_bonk site to sbonk_site_pres. *)
+  Lemma bk_pres :
+    forall s e le m0 tr le' m' out,
+      exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
+      (forall g, mem_id g stored_globals = true -> e ! g = None) ->
+      (forall g, mem_id g bk_ids = true -> e ! g = None) ->
+      (forall g, mem_id g bk_xids = true -> e ! g = None) ->
+      (forall g, mem_id g bk_sids = true -> e ! g = None) ->
+      e ! M._slide_bonk = None ->
+      e ! interaction._gGlobalTimer = None ->
+      bk_chk s = true ->
+      (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      act_inv nil le ->
+      chase_inv SafeB bk_cact le ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm -> action_sat not_tainted m0 bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\ NoA m'
+      /\ (forall b o, le' ! mario_actions_airborne._m = Some (Vptr b o) ->
+                      b = bm /\ o = Ptrofs.zero)
+      /\ act_inv nil le' /\ chase_inv SafeB bk_cact le'.
+  Proof.
+    intros s e le m0 tr le' m' out Hexec.
+    induction Hexec;
+      intros Hub_g Hub_i Hub_x Hub_s Hsbn Hubgt Hchk Htat Hact Hch HN HM HV HS.
+    - (* Sskip *)
+      exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact Hch)))))).
+    - (* Sassign: generic only *)
+      cbn [bk_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (bk_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hubgt
+                Hg Htat Hact Hch HN HM HV HS);
+        eapply exec_Sassign; eauto.
+    - (* Sset: generic only *)
+      cbn [bk_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (bk_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hubgt
+                Hg Htat Hact Hch HN HM HV HS);
+        eapply exec_Sset; eauto.
+    - (* Scall: generic censused arm, or the slide_bonk site *)
+      destruct (bk_chk_scall_inv _ _ _ Hchk)
+        as [Hg | (-> & fid & fty & -> & Hsp)].
+      { eapply (bk_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hubgt
+                  Hg Htat Hact Hch HN HM HV HS);
+          eapply exec_Scall; eauto. }
+      destruct (bk_sp_chk_shape _ _ _ Hsp) as (c2 & c3 & -> & -> & -> & Hc2 & Hc3).
+      assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
+                      (Scall None
+                         (Evar M._slide_bonk
+                            (Tfunction (tyMSp :: tuint :: tuint :: nil) tvoid
+                               cc_default))
+                         (Etempvar M._m tyMSp :: Econst_int c2 tint
+                          :: Econst_int c3 tint :: nil))
+                      t (set_opttemp None vres le) m' Out_normal)
+        by (eapply exec_Scall; eauto).
+      destruct (sbonk_site_pres c2 c3 e le m _ _ _ _ Hsbn Hc2 Hc3 Htat Hex
+                  HN HM HV HS)
+        as (HV' & HS' & HM' & HN' & _ & _).
+      cbn [set_opttemp].
+      exact (conj HV' (conj HS' (conj HM' (conj HN'
+               (conj Htat (conj Hact Hch)))))).
+    - (* Sbuiltin: rejected by both arms *)
+      cbn [bk_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp];
+        [ cbn [wwalk_chk wwalk_chk'] in Hg; discriminate Hg | discriminate Hsp ].
+    - (* Sseq_1 *)
+      cbn [bk_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp].
+      { eapply (bk_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hubgt
+                  Hg Htat Hact Hch HN HM HV HS);
+          eapply exec_Sseq_1; eauto. }
+      apply andb_prop in Hsp as [H1 H2].
+      destruct (IHHexec1 Hub_g Hub_i Hub_x Hub_s Hsbn Hubgt H1 Htat Hact Hch
+                  HN HM HV HS)
+        as (HV1 & HS1 & HM1 & HN1 & Htat1 & Hact1 & Hch1).
+      exact (IHHexec2 Hub_g Hub_i Hub_x Hub_s Hsbn Hubgt H2 Htat1 Hact1 Hch1
+               HN1 HM1 HV1 HS1).
+    - (* Sseq_2 *)
+      cbn [bk_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp].
+      { eapply (bk_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hubgt
+                  Hg Htat Hact Hch HN HM HV HS);
+          eapply exec_Sseq_2; eauto. }
+      apply andb_prop in Hsp as [H1 _].
+      exact (IHHexec Hub_g Hub_i Hub_x Hub_s Hsbn Hubgt H1 Htat Hact Hch
+               HN HM HV HS).
+    - (* Sifthenelse *)
+      cbn [bk_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp].
+      { eapply (bk_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hubgt
+                  Hg Htat Hact Hch HN HM HV HS);
+          eapply exec_Sifthenelse; eauto. }
+      apply andb_prop in Hsp as [H1 H2].
+      apply IHHexec; try assumption.
+      destruct b; assumption.
+    - (* Sreturn None *)
+      exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact Hch)))))).
+    - (* Sreturn (Some a) *)
+      exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact Hch)))))).
+    - (* Sbreak *)
+      exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact Hch)))))).
+    - (* Scontinue *)
+      exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact Hch)))))).
+    - (* Sloop stop1: generic only *)
+      cbn [bk_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (bk_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hubgt
+                Hg Htat Hact Hch HN HM HV HS);
+        eapply exec_Sloop_stop1; eauto.
+    - (* Sloop stop2: generic only *)
+      cbn [bk_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (bk_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hubgt
+                Hg Htat Hact Hch HN HM HV HS);
+        eapply exec_Sloop_stop2; eauto.
+    - (* Sloop loop: generic only *)
+      cbn [bk_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (bk_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hubgt
+                Hg Htat Hact Hch HN HM HV HS);
+        eapply exec_Sloop_loop; eauto.
+    - (* Sswitch: generic, or the slide_bonk-bearing labeled body *)
+      cbn [bk_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp].
+      { eapply (bk_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hubgt
+                  Hg Htat Hact Hch HN HM HV HS);
+          eapply exec_Sswitch; eauto. }
+      apply IHHexec; try assumption.
+      apply bk_chk_select. exact Hsp.
+  Qed.
+
+  Lemma bk_walk : bk_chk (fn_body M.f_act_braking) = true.
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma mov_bk_pres : body_pres lp NoA MWF bm M.f_act_braking.
+  Proof.
+    intros m0 vargs t0 mF vres0 Hmargf Hevf HN HM HV HS.
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      change (fn_vars M.f_act_braking) with (@nil (ident * type)) in Ha;
+      inv Ha end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    change (fn_params M.f_act_braking)
+      with ((M._m, tptr (Tstruct M._MarioState noattr)) :: nil) in Hbind.
+    assert (Hmarg : marg_ok bm vargs) by (apply Hmargf; vm_compute; reflexivity).
+    destruct vargs as [| v0 vrest]; cbn [bind_parameter_temps] in Hbind;
+      [ discriminate Hbind | ].
+    destruct vrest as [| v1 vrest']; cbn [bind_parameter_temps] in Hbind;
+      [ | discriminate Hbind ].
+    injection Hbind as <-.
+    set (base := create_undef_temps (fn_temps M.f_act_braking)) in *.
+    assert (Htat0 : forall b o,
+       (PTree.set M._m v0 base) ! mario_actions_airborne._m = Some (Vptr b o)
+       -> b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg. rewrite PTree.gss in Hg. injection Hg as ->.
+      cbn in Hmarg. exact Hmarg. }
+    assert (Hact0 : act_inv nil (PTree.set M._m v0 base))
+      by (intros t' Hmem'; discriminate Hmem').
+    assert (Hch0 : chase_inv SafeB bk_cact (PTree.set M._m v0 base)).
+    { intros t' Hmem' b o Hg'. unfold bk_cact in Hmem'.
+      cbn [mem_id existsb] in Hmem'.
+      apply orb_true_iff in Hmem' as [Ht | Hf]; [ | discriminate Hf ].
+      apply Pos.eqb_eq in Ht; subst t'.
+      rewrite PTree.gso in Hg' by (vm_compute; congruence).
+      pose proof (create_undef_temps_val _ _ _ Hg') as EE; discriminate EE. }
+    destruct (bk_pres _ _ _ _ _ _ _ _ Hbody
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _) (PTree.gempty _ _) (PTree.gempty _ _)
+                bk_walk Htat0 Hact0 Hch0 HN HM HV HS)
+      as (HVb & HSb & HMb & _ & _ & _ & _).
+    change (blocks_of_env (lp_ge lp) empty_env) with (@nil (block * Z * Z))
+      in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    exact (conj HVb (conj HSb HMb)).
+  Qed.
+
+  Example mov_bk_pin :
+    (prog_defmap mario_actions_moving.prog) ! mario_actions_moving._act_braking
+    = Some (Gfun (Internal mario_actions_moving.f_act_braking)).
+  Proof. vm_compute. reflexivity. Qed.
 
   Lemma mov_abg_pres : body_pres lp NoA MWF bm M.f_act_burning_ground.
   Proof.
@@ -4956,10 +5382,10 @@ Section MovingLeafRows.
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
       rewrite mov_ftn_pin in Hdm. injection Hdm as <-. exact mov_ftn_pres. }
-    (* 7: act_braking -- rest *)
+    (* 7: act_braking -- WALKED (twl-style hybrid: slide_bonk switch site) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite mov_bk_pin in Hdm. injection Hdm as <-. exact mov_bk_pres. }
     (* 8: act_riding_shell_ground -- rest *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
