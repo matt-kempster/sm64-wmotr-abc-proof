@@ -1752,6 +1752,10 @@ Section NoARealInputMWF.
                          save-buffer READER (obj_ext model class). *)
                       (Hpres_obj_ext interaction._save_file_get_total_star_count
                          eq_refl)
+                      (* SLICE 22: act_shockwave_bounce's vec3f_set(m->vel,...)
+                         -- the SAME w1 dst-window terminal-external row the
+                         cannon uses (vec3f_set is EF_external in every TU). *)
+                      Hw1cp_v3fset_real
                       Hpres_sta_rest)
                    Hpres_qsand)
                 (moving_pres lp LO_mario LO_mov LO_stp bm (NoA_real bm)
