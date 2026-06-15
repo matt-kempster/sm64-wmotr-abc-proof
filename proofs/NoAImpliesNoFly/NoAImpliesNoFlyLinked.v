@@ -1802,6 +1802,10 @@ Section NoARealInputMWF.
                          ktab-load-untainted + input-A-clear (NO new trust). *)
                       (mwf_real_ktab lp bm bc oc0 SafeB)
                       (mwf_real_inp lp bm bc oc0 SafeB)
+                      (* LANDING KEYSTONE part 3: the input-clear store MWF row
+                         (store A-clear halfword at input cell -- NO new trust). *)
+                      (mwf_real_input lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                         Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                       Hpres_mov_rest)
                    Hpres_qsand)
                 (airborne_pres lp LO_mario LO_air bm (NoA_real bm)
