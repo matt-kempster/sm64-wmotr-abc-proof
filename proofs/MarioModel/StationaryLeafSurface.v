@@ -988,6 +988,7 @@ Definition sta_walked_ids : list ident :=
     :: mario_actions_stationary._act_start_sleeping
     :: mario_actions_stationary._act_idle
     :: mario_actions_stationary._act_sleeping
+    :: mario_actions_stationary._act_first_person
     :: mario_actions_stationary._check_common_stationary_cancels :: nil.
 Definition sta_rest_ids : list ident :=
   filter (fun id => negb (mem_id id sta_walked_ids)) stationary_callee_ids.
@@ -1760,6 +1761,55 @@ Example sta_ljls_pin :
   = Some (Gfun (Internal mario_actions_stationary.f_act_long_jump_land_stop)).
 Proof. vm_compute. reflexivity. Qed.
 
+(* act_first_person (SLICE 21): the camera-look stationary action.  It is a
+   CLEAN pure-engine walk -- every memory write is engine-safe:
+   - `m->actionState = 1` (window store);
+   - set_mario_action(m, ACT_IDLE/205521409, 0) (an UNTAINTED const action,
+     the sids channel) on the back-out branch, whose result is returned;
+   - the rest is temp traffic: m->input / m->actionState / m->area->camera /
+     m->floor->type / m->statusForCamera->headRotation[i] / m->faceAngle[1]
+     loads into temps (chase LOADS, not stores -- no cact needed).
+   Its calls factor into:
+   - ids   = stationary_ground_step (sta_sgs_row) + set_mario_animation
+             (sta_sma_row) + level_trigger_warp (Hcp_ltw, the SHARED warp
+             body the floors family already walks);
+   - xids  = lower/raise_background_noise (sta_ext audio) + set_camera_mode
+             (obj_ext) + save_file_get_total_star_count (a pure save-buffer
+             READER, obj_ext model class);
+   - sids  = set_mario_action.
+   No A-gate: the INPUT_FIRST_PERSON back-out only ever sets ACT_IDLE (an
+   untainted const), so taint cannot enter. *)
+Definition fp_ids : list ident :=
+  mario_step._stationary_ground_step
+    :: mario._set_mario_animation
+    :: mario_actions_stationary._level_trigger_warp :: nil.
+Definition fp_xids : list ident :=
+  mario_actions_stationary._lower_background_noise
+    :: mario_actions_stationary._raise_background_noise
+    :: mario._set_camera_mode
+    :: mario_actions_stationary._save_file_get_total_star_count :: nil.
+Example sta_fp_pin :
+  (prog_defmap mario_actions_stationary.prog)
+    ! mario_actions_stationary._act_first_person
+  = Some (Gfun (Internal mario_actions_stationary.f_act_first_person)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_fp_vars :
+  fn_vars mario_actions_stationary.f_act_first_person = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_fp_params_ok :
+  match fn_params mario_actions_stationary.f_act_first_person with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_fp_walk :
+  wwalk_chk false nil fp_ids nil nil fp_xids sta_sids nil
+    (fn_body mario_actions_stationary.f_act_first_person) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ====================================================================== *)
 (* The walk.                                                              *)
 (* ====================================================================== *)
@@ -1889,6 +1939,20 @@ Section StationaryLeafRows.
      Hpres_obj_ext.  NO new distinct trust class. *)
   Hypothesis Hcpx_scm :
     call_pres_ext lp bm NoA MWF mario._set_camera_mode.
+
+  (* SLICE 21: act_first_person's two extra capstone-supplied rows.
+     level_trigger_warp is the SHARED warp-trigger body the floors family
+     already walks (WarpSurface.warp_pres); supplied at the capstone via the
+     SAME warp_pres application + call_pres_of_body.  NO new trust -- it is the
+     warp body that is already discharged. *)
+  Hypothesis Hcp_ltw :
+    call_pres lp bm NoA MWF level_update._level_trigger_warp.
+  (* save_file_get_total_star_count: a pure READER of the save buffer (two
+     scalar course-range args, no Mario pointer), in obj_ext_ids -- the SAME
+     model class as the other no-pointer save readers.  Discharged at the
+     capstone via Hpres_obj_ext. *)
+  Hypothesis Hcpx_sfgtsc :
+    call_pres_ext lp bm NoA MWF mario_actions_stationary._save_file_get_total_star_count.
 
   (* the keystone, instantiated once *)
   Let Hsmact : call_pres_act lp bm NoA MWF mario._set_mario_action :=
@@ -4067,6 +4131,56 @@ Section StationaryLeafRows.
     - exact sta_ccss_walk.
   Qed.
 
+  (* ================================================================== *)
+  (* SLICE 21: act_first_person (pure-engine walk).                     *)
+  (* ================================================================== *)
+  Lemma fp_ids_rows : forall fid, mem_id fid fp_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold fp_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_sgs_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_sma_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ltw | ].
+    discriminate H.
+  Qed.
+
+  Lemma fp_xids_rows : forall fid, mem_id fid fp_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold fp_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        apply Hpres_sta_ext; vm_compute; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        apply Hpres_sta_ext; vm_compute; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_scm | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_sfgtsc | ].
+    discriminate H.
+  Qed.
+
+  Lemma act_first_person_pres :
+    body_pres lp NoA MWF bm mario_actions_stationary.f_act_first_person.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_stationary.f_act_first_person
+             fp_ids nil fp_xids sta_sids nil
+             sta_fp_vars sta_fp_params_ok).
+    - exact fp_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact fp_xids_rows.
+    - exact sta_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact sta_fp_walk.
+  Qed.
+
   Lemma act_in_quicksand_pres :
     body_pres lp NoA MWF bm mario_actions_stationary.f_act_in_quicksand.
   Proof.
@@ -4386,10 +4500,11 @@ Section StationaryLeafRows.
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
       refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
-    (* 21: act_first_person -- rest *)
+    (* 21: act_first_person -- WALKED (pure-engine, SLICE 21) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite sta_fp_pin in Hdm. injection Hdm as <-.
+      exact act_first_person_pres. }
     (* 22: act_jump_land_stop -- WALKED (cclc keystone) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
