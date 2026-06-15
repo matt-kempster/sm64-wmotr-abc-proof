@@ -1537,6 +1537,18 @@ Proof.
   rewrite Ha, Hb. apply Int.or_zero.
 Qed.
 
+(* ANDing the input cell with ANY mask keeps the INPUT_A_PRESSED bit clear:
+   a&2=0  =>  (a&b)&2=0.  The AND-analog of and2_or_clear, for the
+   `m->input &= ~MASK` idiom at the head of lava_boost/long_jump/backflip. *)
+Lemma and2_and_left :
+  forall a b,
+    Int.and a (Int.repr 2) = Int.zero ->
+    Int.and (Int.and a b) (Int.repr 2) = Int.zero.
+Proof.
+  intros a b Ha.
+  rewrite (Int.and_commut a b), Int.and_assoc, Ha, Int.and_zero. reflexivity.
+Qed.
+
 (* concrete-ident disequality (the temps vs _m). *)
 Ltac ident_neq := let HX := fresh "HX" in intro HX; vm_compute in HX; discriminate HX.
 
@@ -1644,6 +1656,34 @@ Section UmbiPreservesLp.
         eexists; split; [ exact Hlet | reflexivity ].
       + match goal with H : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ => inv H end.
     - match goal with H : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => inv H end.
+  Qed.
+
+  (* the `t & mexpr` rhs (mexpr : tint) forces the temp to hold a Vint and pins
+     the result to `Vint (vi & mv)` for SOME mask mv -- the AND-analog of
+     or_temp_vint.  We don't pin mv (it's a notint of a constant); and2_and_left
+     handles any mv. *)
+  Lemma and_temp_form :
+    forall t mexpr e le m v1,
+      typeof mexpr = tint ->
+      eval_expr (lp_ge lp) e le m
+        (Ebinop Oand (Etempvar t tushort) mexpr tint) v1 ->
+      exists vi mv, le ! t = Some (Vint vi) /\ v1 = Vint (Int.and vi mv).
+  Proof.
+    intros t mexpr e le m v1 Htype Hev.
+    inv Hev.
+    2: { match goal with H : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => inv H end. }
+    match goal with H : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ => rename H into H1 end.
+    inv H1; [ | match goal with Hlv : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv Hlv end ].
+    match goal with H : le ! t = Some ?va |- _ => rename H into Hlet end.
+    assert (Hp64 : Archi.ptr64 = false) by (vm_compute; reflexivity).
+    match goal with H : sem_binary_operation _ Oand _ _ ?vb _ _ = Some v1 |- _ =>
+      cbn [typeof] in H; rewrite Htype in H;
+      unfold sem_binary_operation, sem_and, sem_binarith, sem_cast in H;
+      cbn [classify_binarith binarith_type classify_cast] in H;
+      rewrite Hp64 in H; cbn in H;
+      match type of Hlet with le ! t = Some ?va => destruct va; try discriminate Hlet end;
+      destruct vb; try discriminate H; inv H end.
+    eexists; eexists; split; [ exact Hlet | reflexivity ].
   Qed.
 
   (* ---- the statement-level preservation contract and its combinators ----
@@ -1767,6 +1807,74 @@ Section UmbiPreservesLp.
       cbn [Val.load_result] in Hsame.
       rewrite Hw in Hsame. inv Hsame.
       rewrite !and2_zero_ext16. apply and2_or_clear; assumption.
+    - rewrite PTree.gso by congruence. exact Hle.
+    - reflexivity.
+    - (* footprint: the store hits (bm, [2,4)) only *)
+      eapply Mem.store_unchanged_on; [ exact Hst | ].
+      intros i Hi HnP. apply HnP. split; [ reflexivity | ].
+      cbn [size_chunk] in Hi. lia.
+  Qed.
+
+  (* THE AND-UPDATE STORE BRICK: `t = m->input; m->input = t & MEXPR` (the
+     `m->input &= ~MASK` idiom at the head of lava_boost/long_jump/backflip).
+     ANDing the input cell with ANY tint mask keeps the INPUT_A_PRESSED bit
+     clear -- no constraint on the mask (and2_and_left), unlike the OR-update
+     which needs the OR constant to be bit-1-clear.  Same umbi footprint. *)
+  Lemma contract_and_update :
+    forall t mexpr,
+      t <> mario._m ->
+      typeof mexpr = tint ->
+      input_clear_contract
+        (Ssequence
+           (Sset t (Efield (Ederef (Etempvar mario._m
+                              (tptr (Tstruct mario._MarioState noattr)))
+                             (Tstruct mario._MarioState noattr))
+                      mario._input tushort))
+           (Sassign (Efield (Ederef (Etempvar mario._m
+                               (tptr (Tstruct mario._MarioState noattr)))
+                              (Tstruct mario._MarioState noattr))
+                       mario._input tushort)
+              (Ebinop Oand (Etempvar t tushort) mexpr tint))).
+  Proof.
+    intros t mexpr Hne Htype e le m bm tr le' m' out Hle Hinp Hex.
+    apply exec_seq_cases in Hex
+      as [ (tr1 & le1 & m1 & tr2 & Ha & Hb) | (Ha & Hnn) ].
+    2: { apply exec_set_inv in Ha as (v & _ & _ & _ & Ho). congruence. }
+    apply exec_set_inv in Ha as (v & Hevset & -> & -> & _).
+    inv Hb.
+    (* rhs: t & MEXPR, forcing t = Vint vi *)
+    match goal with H : eval_expr _ _ _ _ (Ebinop Oand _ _ _) _ |- _ => assert (HH := H) end.
+    destruct (and_temp_form _ _ _ _ _ _ Htype HH) as (vi & mv & Hlet & ->). clear HH.
+    rewrite PTree.gss in Hlet. inv Hlet.
+    (* the Sset's load was the input cell: bit 1 clear by the invariant *)
+    pose proof (eval_input_load_bm_lp lp LO_mario _ _ _ _ _ _ Hle Hevset) as Hld.
+    pose proof (Hinp _ Hld) as Hvi2.
+    (* lhs lvalue: (bm, 2, Full) *)
+    match goal with H : eval_lvalue _ _ _ _ (Efield _ mario._input _) _ _ _ |- _ =>
+      eapply eval_mario_field_lvalue_lp with (delta := 2) (bm := bm) in H;
+      [ destruct H as (-> & -> & ->)
+      | rewrite PTree.gso by congruence; exact Hle
+      | exact mario_input_offset_concrete ] end.
+    (* the cast to tushort: zero_ext 16 (v2 already pinned to Vint (vi & mv)) *)
+    match goal with H : sem_cast _ _ _ _ = Some _ |- _ =>
+      cbn [typeof] in H;
+      unfold sem_cast in H; cbn [classify_cast cast_int_int] in H; inv H end.
+    (* the store *)
+    match goal with H : assign_loc _ _ _ _ _ _ _ _ |- _ => inv H end;
+      try (match goal with Hac : access_mode _ = By_copy |- _ =>
+             cbn in Hac; discriminate Hac end).
+    match goal with Hac : access_mode _ = By_value _ |- _ => cbn in Hac; inv Hac end.
+    match goal with H : Mem.storev _ _ _ _ = Some _ |- _ =>
+      unfold Mem.storev in H;
+      change (Ptrofs.unsigned (Ptrofs.repr 2)) with 2 in H;
+      rename H into Hst end.
+    split; [ | split; [ | split ] ].
+    - (* input_a_clear m' bm *)
+      intros w Hw.
+      pose proof (Mem.load_store_same _ _ _ _ _ _ Hst) as Hsame.
+      cbn [Val.load_result] in Hsame.
+      rewrite Hw in Hsame. inv Hsame.
+      rewrite !and2_zero_ext16. apply and2_and_left. exact Hvi2.
     - rewrite PTree.gso by congruence. exact Hle.
     - reflexivity.
     - (* footprint: the store hits (bm, [2,4)) only *)
