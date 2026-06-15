@@ -225,7 +225,9 @@ Definition mov_walked_ids : list ident :=
     :: mario_actions_moving._act_side_flip_land
     (* QUICKSAND KEYSTONE: the two quicksand_jump_land_action wrappers *)
     :: mario_actions_moving._act_quicksand_jump_land
-    :: mario_actions_moving._act_hold_quicksand_jump_land :: nil.
+    :: mario_actions_moving._act_hold_quicksand_jump_land
+    (* act_burning_ground: a clean nids-engine walk (np3 smawa via nsrc_chk) *)
+    :: mario_actions_moving._act_burning_ground :: nil.
 Definition mov_rest_ids : list ident :=
   filter (fun id => negb (mem_id id mov_walked_ids)) moving_callee_ids.
 
@@ -371,6 +373,25 @@ Definition sb_ids : list ident :=
   mario_step._mario_bonk_reflection :: mario._mario_set_forward_vel :: nil.
 Definition sb_sids : list ident :=
   mario._drop_and_set_mario_action :: mario._set_mario_action :: nil.
+
+(* act_burning_ground: a CLEAN engine walk (wwalk_chk via _nids) -- all action
+   args are untainted consts (sids=set_mario_action), the callees all have rows,
+   the stores are window/indexed-window/chase (marioObj asS32[34] + marioBodyState
+   eyeState).  cact = the marioObj/marioBodyState chase temps.  smawa is the np3
+   leaf: its 3rd arg is an INLINE `(int)(forwardVel/2 * 0x10000)` -- nsrc_chk
+   certifies it non-pointer (float->int cast), so np3_ids carries it (nids=nil). *)
+Definition abg_ids : list ident :=
+  mario_actions_moving._apply_slope_accel :: mario_step._perform_ground_step
+    :: mario_actions_moving._play_step_sound :: nil.
+Definition abg_np3 : list ident := mario._set_mario_anim_with_accel :: nil.
+Definition abg_xids : list ident :=
+  mario._play_sound :: mario_actions_moving._approach_f32
+    :: mario_actions_object._approach_s32 :: nil.
+Definition abg_sids : list ident := mario._set_mario_action :: nil.
+Definition abg_cact : list ident :=
+  mario_actions_moving._t'25 :: mario_actions_moving._t'26
+    :: mario_actions_moving._t'23 :: mario_actions_moving._t'22
+    :: mario_actions_moving._t'10 :: mario_actions_moving._t'7 :: nil.
 
 (* begin_walking_action producer: wact threads the _action PARAM + the
    set_mario_action result temp _t'1; ids = mario_set_forward_vel;
@@ -3080,6 +3101,73 @@ Section MovingLeafRows.
   Qed.
 
   (* ================================================================== *)
+  (* act_burning_ground: a CLEAN basic-engine walk (chase cact = the      *)
+  (* marioObj asS32 temps + the marioBodyState eyeState temp).            *)
+  (* ================================================================== *)
+  Lemma abg_ids_rows : forall fid, mem_id fid abg_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold abg_ids in H. cbn [mem_id existsb] in H.
+    repeat (apply orb_true_iff in H as [Hm | H];
+            [ apply Pos.eqb_eq in Hm; subst fid | ]).
+    - exact mov_asa_row.
+    - exact Hcp_pgs.
+    - exact mov_pss_row.
+    - discriminate H.
+  Qed.
+
+  Lemma abg_np3_rows : forall fid, mem_id fid abg_np3 = true ->
+      call_pres_np3 lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold abg_np3 in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_smawa_row
+      | discriminate H ].
+  Qed.
+
+  Lemma abg_xids_rows : forall fid, mem_id fid abg_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold abg_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        apply Hpres_mov_ext; vm_compute; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        exact (Hpres_obj_ext mario_actions_object._approach_s32 eq_refl) | ].
+    discriminate H.
+  Qed.
+
+  Lemma abg_sids_rows : forall fid, mem_id fid abg_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold abg_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | discriminate H ].
+  Qed.
+
+  Lemma mov_abg_pres : body_pres lp NoA MWF bm M.f_act_burning_ground.
+  Proof.
+    apply (body_pres_of_wwalk_nids lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             M.f_act_burning_ground abg_ids nil abg_cact abg_xids abg_sids nil
+             nil abg_np3
+             ltac:(vm_compute; reflexivity) ltac:(vm_compute; reflexivity)
+             ltac:(vm_compute; reflexivity) ltac:(vm_compute; reflexivity)
+             abg_ids_rows ltac:(intros fid HH; discriminate HH)
+             abg_xids_rows abg_sids_rows ltac:(intros fid HH; discriminate HH)
+             abg_np3_rows ltac:(vm_compute; reflexivity)).
+  Qed.
+
+  Example mov_abg_pin :
+    (prog_defmap mario_actions_moving.prog) ! mario_actions_moving._act_burning_ground
+    = Some (Gfun (Internal mario_actions_moving.f_act_burning_ground)).
+  Proof. vm_compute. reflexivity. Qed.
+
+  (* ================================================================== *)
   (* LANDING KEYSTONE: the 3 CLEAN _land leaves (jump/freefall/double).   *)
   (* Each body = clc(m,&sXLandAction,setX); if(t'1) return 1;             *)
   (*             cla(m,anim,UNTAINTED); return 0.                          *)
@@ -4880,10 +4968,10 @@ Section MovingLeafRows.
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
       refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
-    (* 10: act_burning_ground -- rest *)
+    (* 10: act_burning_ground -- WALKED (nids-engine; np3 smawa via nsrc_chk) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite mov_abg_pin in Hdm. injection Hdm as <-. exact mov_abg_pres. }
     (* 11: act_decelerating -- rest *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.

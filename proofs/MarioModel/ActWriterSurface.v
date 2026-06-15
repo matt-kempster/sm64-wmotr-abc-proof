@@ -1854,15 +1854,20 @@ Definition act3_call_chk (tids : list ident) (fid : ident)
      end.
 
 (* the THIRD-position NON-POINTER call (the np3 class:
-   set_mario_anim_with_accel): the 3rd arg is a censused nids temp --
-   non-Vptr by the threaded provenance; the call-site sem_cast preserves
-   non-pointer-ness GENERICALLY (sem_cast_nonptr_pres), so no type
-   checks are needed.  The 2nd arg (targetAnimID) is value-irrelevant. *)
+   set_mario_anim_with_accel): the 3rd arg is provably non-pointer at the
+   call site -- either a censused nids temp (non-Vptr by the threaded
+   provenance) OR an inline non-pointer source expression (a literal, a
+   float->int cast, a nested cast: `(int)(fv * 0x10000)` in act_burning_
+   ground).  `nsrc_chk nids a3` certifies BOTH (its Etempvar arm subsumes
+   the old temp-only form, so existing callers are unaffected), and its
+   image under the call-site sem_cast stays non-pointer GENERICALLY
+   (sem_cast_nonptr_pres / nsrc_chk_sound).  The 2nd arg (targetAnimID)
+   is value-irrelevant. *)
 Definition np3_call_chk (nids np3_ids : list ident) (fid : ident)
     (tys : list type) (args : list expr) : bool :=
   mem_id fid np3_ids
   && match tys, args with
-     | _ :: _ :: _, _ :: Etempvar q _ :: _ => mem_id q nids
+     | _ :: _ :: _, _ :: a3 :: _ => nsrc_chk nids a3
      | _, _ => false
      end.
 
@@ -4153,27 +4158,28 @@ Section ActWriterWalk.
      sem_cast_nonptr_pres -- is never a pointer, meeting the np3 row's
      gate.  No result joins any tracking. *)
   Lemma kit_scallnp3_pres :
-    forall optid fid ty2 ty3 tys rty cc a2 q qty args
+    forall optid fid ty2 ty3 tys rty cc a2 a3 args
            e le0 m0 tr le1 m1 out0,
       e ! fid = None ->
       exec_stmt function_entry2 (lp_ge lp) e le0 m0
         (Scall optid
            (Evar fid (Tfunction (tyMSp :: ty2 :: ty3 :: tys) rty cc))
            (Etempvar mario_actions_airborne._m tyMSp
-              :: a2 :: Etempvar q qty :: args))
+              :: a2 :: a3 :: args))
         tr le1 m1 out0 ->
       call_pres_np3 lp bm NoA MWF fid ->
       (forall b o, le0 ! mario_actions_airborne._m = Some (Vptr b o) ->
                    b = bm /\ o = Ptrofs.zero) ->
-      (forall v, le0 ! q = Some v -> forall bb oo, v <> Vptr bb oo) ->
+      (forall v, eval_expr (lp_ge lp) e le0 m0 a3 v ->
+                 forall bb oo, v <> Vptr bb oo) ->
       NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
       action_sat not_tainted m0 bm ->
       Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\
       MWF m1 /\ NoA m1 /\ out0 = Out_normal /\
       exists vr, le1 = set_opttemp optid vr le0.
   Proof.
-    intros optid fid ty2 ty3 tys rty cc a2 q qty args
-           e le0 m0 tr le1 m1 out0 He_fid Hexec Hcpn Htat Hq HN HM HV HS.
+    intros optid fid ty2 ty3 tys rty cc a2 a3 args
+           e le0 m0 tr le1 m1 out0 He_fid Hexec Hcpn Htat Hnp3v HN HM HV HS.
     inv Hexec.
     match goal with
     | Hc : classify_fun _ = fun_case_f _ _ _ |- _ =>
@@ -4205,18 +4211,17 @@ Section ActWriterWalk.
     match goal with
     | Ha : eval_exprlist _ _ _ _ (_ :: _) _ _ |- _ => inv Ha
     end.
-    (* peel the third arg: the censused nids temp; the cast preserves
+    (* peel the third arg: an inline non-pointer source; the cast preserves
        non-pointer-ness generically *)
     match goal with
     | Ha : eval_exprlist _ _ _ _ (_ :: _) _ _ |- _ => inv Ha
     end.
     match goal with
-    | Hv : eval_expr _ _ _ _ (Etempvar q _) _ |- _ =>
-        apply eval_expr_Etempvar_val in Hv; rename Hv into Hv3
+    | Hv : eval_expr _ _ _ _ a3 _ |- _ => rename Hv into Hv3
     end.
     match goal with
     | Hc : sem_cast _ _ _ _ = Some _ |- _ =>
-        pose proof (sem_cast_nonptr_pres _ _ _ _ _ Hc (Hq _ Hv3)) as Hnpv
+        pose proof (sem_cast_nonptr_pres _ _ _ _ _ Hc (Hnp3v _ Hv3)) as Hnpv
     end.
     (* the marg fact *)
     match goal with
@@ -5186,21 +5191,20 @@ Section ActWriterWalk.
             destruct tys2 as [| ty3 tys3]; try discriminate Hnp3c.
             destruct args as [| a2 args2]; try discriminate Hnp3c.
             destruct args2 as [| a3 args3]; try discriminate Hnp3c.
-            destruct a3 as [ | | | | | q qty | | | | | | | | ];
-              try discriminate Hnp3c.
             assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
                             (Scall (Some t')
                                (Evar cid (Tfunction
                                             (tyMSp :: ty2 :: ty3 :: tys3)
                                             res cc))
                                (Etempvar mario_actions_airborne._m tyMSp
-                                  :: a2 :: Etempvar q qty :: args3))
+                                  :: a2 :: a3 :: args3))
                             t (set_opttemp (Some t') vres le) m'
                             Out_normal)
               by (econstructor; eauto).
-            destruct (kit_scallnp3_pres _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+            destruct (kit_scallnp3_pres _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
                         (Hnp3_none _ Hf3) Hex (Hcp_np3 _ Hf3) Htat
-                        (fun v Hv => Hnp _ Hnp3c v Hv) HN HM HV HS)
+                        (fun v Hev => nsrc_chk_sound nids a3 e le m v Hnp3c Hnp Hev)
+                        HN HM HV HS)
               as (HV' & HS' & HM' & HN' & _ & _).
             refine (conj HV' (conj HS' (conj HM' (conj HN'
                      (conj _ (conj _ (conj _ (conj _ I)))))))).
@@ -5409,20 +5413,19 @@ Section ActWriterWalk.
           destruct tys2 as [| ty3 tys3]; try discriminate Hnp3c.
           destruct args as [| a2 args2]; try discriminate Hnp3c.
           destruct args2 as [| a3 args3]; try discriminate Hnp3c.
-          destruct a3 as [ | | | | | q qty | | | | | | | | ];
-            try discriminate Hnp3c.
           assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
                           (Scall None
                              (Evar cid (Tfunction
                                           (tyMSp :: ty2 :: ty3 :: tys3)
                                           res cc))
                              (Etempvar mario_actions_airborne._m tyMSp
-                                :: a2 :: Etempvar q qty :: args3))
+                                :: a2 :: a3 :: args3))
                           t (set_opttemp None vres le) m' Out_normal)
             by (econstructor; eauto).
-          destruct (kit_scallnp3_pres _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+          destruct (kit_scallnp3_pres _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
                       (Hnp3_none _ Hf3) Hex (Hcp_np3 _ Hf3) Htat
-                      (fun v Hv => Hnp _ Hnp3c v Hv) HN HM HV HS)
+                      (fun v Hev => nsrc_chk_sound nids a3 e le m v Hnp3c Hnp Hev)
+                      HN HM HV HS)
             as (HV' & HS' & HM' & HN' & _ & _).
           refine (conj HV' (conj HS' (conj HM' (conj HN'
                    (conj _ (conj _ (conj _ (conj _ I)))))))).
