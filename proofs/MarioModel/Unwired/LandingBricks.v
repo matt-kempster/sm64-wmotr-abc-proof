@@ -48,8 +48,8 @@ From Coq Require Import ZArith List Lia.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint CensusV2
-  RealFrameLinked RealFrameValue ActionValueFrame AirborneSurface
-  ActWriterSurface MWFReal AGates DispatchKit.
+  EngineV2Consumer RealFrameLinked RealFrameValue ActionValueFrame
+  AirborneSurface ActWriterSurface MWFReal AGates DispatchKit.
 From SM64.Generated Require mario mario_step mario_actions_moving interaction.
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -678,6 +678,73 @@ Section LandingWalk.
         [ exact Hgid | exact Hsym | vm_compute; congruence ]. }
     (* P8: return 0 *)
     apply return_block_pres.
+  Qed.
+
+  (* ================================================================== *)
+  (* THE FUNCALL LIFT: an eval_funcall of common_landing_cancels with    *)
+  (* args (Vptr bm 0 :: Vptr lb 0 :: v3 :: nil), lb a ktab landing       *)
+  (* global, preserves the carried run facts.  fn_vars = nil so the env  *)
+  (* is empty_env and the 3 params bind into le; clc_body_pres walks the  *)
+  (* body.  This is the bespoke (NOT generic call_pres) lift -- it is     *)
+  (* SPECIALIZED to landingAction = &(ktab global), exactly the value     *)
+  (* each leaf passes (sJumpLandAction, sFreefallLandAction, ...).        *)
+  (* ================================================================== *)
+  Lemma clc_funcall_pres :
+    forall (gid : ident) (lb : block) fd m0 v3 t0 m1 vres0,
+      mem_id gid knockback_table_ids = true ->
+      Genv.find_symbol (lp_ge lp) gid = Some lb ->
+      resolves_lp lp M._common_landing_cancels fd ->
+      eval_funcall function_entry2 (lp_ge lp) m0 fd
+        (Vptr bm Ptrofs.zero :: Vptr lb Ptrofs.zero :: v3 :: nil) t0 m1 vres0 ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm -> action_sat not_tainted m0 bm ->
+      Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\ MWF m1 /\ NoA m1.
+  Proof.
+    intros gid lb fd m0 v3 t0 m1 vres0 Hgid Hsym Hres Hevf HN HM HV HS.
+    pose proof (resolve_pin_fd lp mario_actions_moving.prog
+                  M._common_landing_cancels M.f_common_landing_cancels fd
+                  LO_mov ltac:(vm_compute; reflexivity) Hres) as ->.
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      change (fn_vars M.f_common_landing_cancels) with (@nil (ident * type)) in Ha;
+      inv Ha end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    change (fn_params M.f_common_landing_cancels)
+      with ((M._m, tptr (Tstruct M._MarioState noattr)) ::
+            (M._landingAction, tptr (Tstruct M._LandingAction noattr)) ::
+            (M._setAPressAction,
+             tptr (Tfunction
+                     (tptr (Tstruct M._MarioState noattr) :: tuint :: tuint :: nil)
+                     tint cc_default)) :: nil) in Hbind.
+    cbn [bind_parameter_temps] in Hbind.
+    injection Hbind as <-.
+    change (blocks_of_env (lp_ge lp) empty_env)
+      with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    set (base := create_undef_temps (fn_temps M.f_common_landing_cancels)) in *.
+    assert (Hmle : (PTree.set M._setAPressAction v3
+                     (PTree.set M._landingAction (Vptr lb Ptrofs.zero)
+                        (PTree.set M._m (Vptr bm Ptrofs.zero) base)))
+                   ! M._m = Some (Vptr bm Ptrofs.zero)).
+    { rewrite PTree.gso by (vm_compute; congruence).
+      rewrite PTree.gso by (vm_compute; congruence).
+      rewrite PTree.gss. reflexivity. }
+    assert (Hlale : (PTree.set M._setAPressAction v3
+                      (PTree.set M._landingAction (Vptr lb Ptrofs.zero)
+                         (PTree.set M._m (Vptr bm Ptrofs.zero) base)))
+                    ! M._landingAction = Some (Vptr lb Ptrofs.zero)).
+    { rewrite PTree.gso by (vm_compute; congruence).
+      rewrite PTree.gss. reflexivity. }
+    destruct (clc_body_pres gid lb Hgid Hsym _ _ _ _ _ _ Hmle Hlale Hbody
+                HN HM HV HS) as (HV' & HS' & HM' & HN' & _).
+    exact (conj HV' (conj HS' (conj HM' HN'))).
   Qed.
 
 End LandingWalk.
