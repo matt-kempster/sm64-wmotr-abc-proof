@@ -222,7 +222,10 @@ Definition mov_walked_ids : list ident :=
     :: mario_actions_moving._act_backflip_land
     :: mario_actions_moving._act_long_jump_land
     (* LANDING KEYSTONE part 4: the object-angle chase-store leaf *)
-    :: mario_actions_moving._act_side_flip_land :: nil.
+    :: mario_actions_moving._act_side_flip_land
+    (* QUICKSAND KEYSTONE: the two quicksand_jump_land_action wrappers *)
+    :: mario_actions_moving._act_quicksand_jump_land
+    :: mario_actions_moving._act_hold_quicksand_jump_land :: nil.
 Definition mov_rest_ids : list ident :=
   filter (fun id => negb (mem_id id mov_walked_ids)) moving_callee_ids.
 
@@ -345,6 +348,18 @@ Definition cla_ids : list ident :=
 Definition cla_xids : list ident :=
   mario_actions_moving._play_mario_landing_sound_once :: nil.
 Definition cla_sids : list ident := mario._set_mario_action :: nil.
+
+(* QUICKSAND keystone (quicksand_jump_land_action): TWO param-action seeds
+   (_endAction, _airAction), both written via set_mario_action (sids); the
+   non-action callees perform_ground_step / apply_landing_accel /
+   set_mario_animation / play_mario_jump_sound all have rows.  No externals,
+   no chase stores -- only actionTimer/quicksandDepth window stores. *)
+Definition qjla_wact : list ident :=
+  mario_actions_moving._endAction :: mario_actions_moving._airAction :: nil.
+Definition qjla_ids : list ident :=
+  mario_step._perform_ground_step :: mario_actions_moving._apply_landing_accel
+    :: mario._set_mario_animation :: mario._play_mario_jump_sound :: nil.
+Definition qjla_sids : list ident := mario._set_mario_action :: nil.
 
 (* begin_walking_action producer: wact threads the _action PARAM + the
    set_mario_action result temp _t'1; ids = mario_set_forward_vel;
@@ -1190,6 +1205,14 @@ Section MovingLeafRows.
      Hcpx_psound).  The landing leaves' optional sound site. *)
   Let Hpsinf : call_pres lp bm NoA MWF mario._play_sound_if_no_flag :=
     ObjectLeafSurface.psinf_row lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+      HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase HMWF_root
+      HMWF_sglob HchaseStep HMWF_chase_safe Hcpx_psound.
+
+  (* play_mario_jump_sound -- REUSED from ObjectLeafSurface.pmjs_row (its walk
+     routes the only external mario._play_sound through Hcpx_psound).  The
+     quicksand keystone's audio site. *)
+  Let Hpmjs : call_pres lp bm NoA MWF mario._play_mario_jump_sound :=
+    ObjectLeafSurface.pmjs_row lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
       HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase HMWF_root
       HMWF_sglob HchaseStep HMWF_chase_safe Hcpx_psound.
 
@@ -2673,6 +2696,207 @@ Section MovingLeafRows.
                 HN HM HV HS)
       as (HV' & HS' & HM' & HN' & _).
     exact (conj HV' (conj HS' (conj HM' HN'))).
+  Qed.
+
+  (* ================================================================== *)
+  (* QUICKSAND KEYSTONE: quicksand_jump_land_action(m,a1,a2,endA,airA).    *)
+  (* TWO param-action seeds, both written via set_mario_action; the rest   *)
+  (* are window stores + already-rowed helper calls.                       *)
+  (* ================================================================== *)
+  Lemma qjla_ids_rows : forall fid, mem_id fid qjla_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold qjla_ids in H. cbn [mem_id existsb] in H.
+    repeat (apply orb_true_iff in H as [Hm | H];
+            [ apply Pos.eqb_eq in Hm; subst fid | ]).
+    - exact Hcp_pgs.
+    - exact mov_ala_row.
+    - exact mov_sma_row.
+    - exact Hpmjs.
+    - discriminate H.
+  Qed.
+
+  Lemma qjla_sids_rows : forall fid, mem_id fid qjla_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold qjla_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | discriminate H ].
+  Qed.
+
+  Lemma qjla_funcall_pres :
+    forall fd m0 v0 va1 va2 endA airA t0 m1 vres0,
+      resolves_lp lp mario_actions_moving._quicksand_jump_land_action fd ->
+      eval_funcall function_entry2 (lp_ge lp) m0 fd
+        (v0 :: va1 :: va2 :: Vint endA :: Vint airA :: nil) t0 m1 vres0 ->
+      (forall b o, v0 = Vptr b o -> b = bm /\ o = Ptrofs.zero) ->
+      untainted_scalar (Vint endA) -> untainted_scalar (Vint airA) ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm -> action_sat not_tainted m0 bm ->
+      Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\ MWF m1 /\ NoA m1.
+  Proof.
+    intros fd m0 v0 va1 va2 endA airA t0 m1 vres0 Hres Hevf Htat Huea Huaa
+           HN HM HV HS.
+    pose proof (resolve_pin_fd lp mario_actions_moving.prog
+                  mario_actions_moving._quicksand_jump_land_action
+                  mario_actions_moving.f_quicksand_jump_land_action fd
+                  LO_mov ltac:(vm_compute; reflexivity) Hres) as ->.
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      change (fn_vars mario_actions_moving.f_quicksand_jump_land_action)
+        with (@nil (ident * type)) in Ha; inv Ha end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    change (fn_params mario_actions_moving.f_quicksand_jump_land_action)
+      with ((mario_actions_moving._m,
+             tptr (Tstruct mario_actions_moving._MarioState noattr)) ::
+            (mario_actions_moving._animation1, tint) ::
+            (mario_actions_moving._animation2, tint) ::
+            (mario_actions_moving._endAction, tuint) ::
+            (mario_actions_moving._airAction, tuint) :: nil) in Hbind.
+    cbn [bind_parameter_temps] in Hbind.
+    injection Hbind as <-.
+    change (blocks_of_env (lp_ge lp) empty_env)
+      with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    set (base := create_undef_temps
+                   (fn_temps mario_actions_moving.f_quicksand_jump_land_action)) in *.
+    assert (Htat0 : forall b o,
+       (PTree.set mario_actions_moving._airAction (Vint airA)
+          (PTree.set mario_actions_moving._endAction (Vint endA)
+             (PTree.set mario_actions_moving._animation2 va2
+                (PTree.set mario_actions_moving._animation1 va1
+                   (PTree.set mario_actions_moving._m v0 base)))))
+         ! mario_actions_airborne._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg.
+      rewrite PTree.gso in Hg by (vm_compute; congruence).
+      rewrite PTree.gso in Hg by (vm_compute; congruence).
+      rewrite PTree.gso in Hg by (vm_compute; congruence).
+      rewrite PTree.gso in Hg by (vm_compute; congruence).
+      rewrite PTree.gss in Hg. injection Hg as Hg. exact (Htat b o Hg). }
+    assert (Hact0 : act_inv qjla_wact
+       (PTree.set mario_actions_moving._airAction (Vint airA)
+          (PTree.set mario_actions_moving._endAction (Vint endA)
+             (PTree.set mario_actions_moving._animation2 va2
+                (PTree.set mario_actions_moving._animation1 va1
+                   (PTree.set mario_actions_moving._m v0 base)))))).
+    { intros t' Hmem' x Hg'.
+      unfold qjla_wact in Hmem'. cbn [mem_id existsb] in Hmem'.
+      apply orb_true_iff in Hmem' as [Ht | Hmem'].
+      - apply Pos.eqb_eq in Ht; subst t'.
+        rewrite PTree.gso in Hg' by (vm_compute; congruence).
+        rewrite PTree.gss in Hg'. injection Hg' as <-. exact Huea.
+      - apply orb_true_iff in Hmem' as [Ht | Hf]; [ | discriminate Hf ].
+        apply Pos.eqb_eq in Ht; subst t'.
+        rewrite PTree.gss in Hg'. injection Hg' as <-. exact Huaa. }
+    assert (Hch0 : chase_inv SafeB nil
+       (PTree.set mario_actions_moving._airAction (Vint airA)
+          (PTree.set mario_actions_moving._endAction (Vint endA)
+             (PTree.set mario_actions_moving._animation2 va2
+                (PTree.set mario_actions_moving._animation1 va1
+                   (PTree.set mario_actions_moving._m v0 base))))))
+      by (intros t' Hmem'; discriminate Hmem').
+    destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+                false qjla_wact qjla_ids nil nil nil qjla_sids nil
+                qjla_ids_rows ltac:(intros fid HH; discriminate HH)
+                ltac:(intros fid HH; discriminate HH) qjla_sids_rows
+                ltac:(intros fid HH; discriminate HH)
+                _ _ _ _ _ _ _ _ Hbody
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (PTree.gempty _ _) ltac:(vm_compute; reflexivity) Htat0 Hact0 Hch0
+                HN HM HV HS)
+      as (HV' & HS' & HM' & HN' & _).
+    exact (conj HV' (conj HS' (conj HM' HN'))).
+  Qed.
+
+  (* the quicksand leaf call site: Scall (Some tcap) of quicksand_jump_land_
+     action with (Etempvar _m, Econst a1, Econst a2, Econst endA, Econst airA),
+     both endA and airA vm-checkably untainted.  Preserves + restores the _m
+     tat (the captured result is a fresh temp). *)
+  Lemma qjla_capture_site_pres :
+    forall tcap a1 a2 endA airA le m tr le' m' out,
+      tcap <> M._m ->
+      wact_const (Int.repr endA) = true ->
+      wact_const (Int.repr airA) = true ->
+      (forall b o, le ! M._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero) ->
+      exec_stmt function_entry2 (lp_ge lp) empty_env le m
+        (Scall (Some tcap)
+           (Evar M._quicksand_jump_land_action
+              (Tfunction (tyMSp :: tint :: tint :: tuint :: tuint :: nil)
+                 tint cc_default))
+           (Etempvar M._m tyMSp
+            :: Econst_int (Int.repr a1) tint
+            :: Econst_int (Int.repr a2) tint
+            :: Econst_int (Int.repr endA) tint
+            :: Econst_int (Int.repr airA) tint :: nil))
+        tr le' m' out ->
+      NoA m -> MWF m -> Mem.valid_block m bm -> action_sat not_tainted m bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\ NoA m'
+      /\ out = Out_normal
+      /\ (forall b o, le' ! M._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
+  Proof.
+    intros tcap a1 a2 endA airA le m tr le' m' out Hcap Hea Haa Htat Hexec
+           HN HM HV HS.
+    inv Hexec.
+    match goal with Hcf : classify_fun _ = _ |- _ => cbn in Hcf; inv Hcf end.
+    match goal with Hv : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
+      apply eval_Evar_funct_empty in Hv; destruct Hv as (fb & Hsym & ->) end.
+    match goal with Hff : Genv.find_funct _ (Vptr fb Ptrofs.zero) = Some ?fd |- _ =>
+      assert (Hres : resolves_lp lp M._quicksand_jump_land_action fd)
+        by (exists fb; split; assumption) end.
+    match goal with Hel : eval_exprlist _ _ _ _ (_ :: _ :: _ :: _ :: _ :: nil) _ _ |- _ => inv Hel end.
+    match goal with Hv : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+      apply eval_expr_Etempvar_val in Hv; rename Hv into Hv1 end.
+    match goal with Hc : sem_cast _ _ _ _ = Some _ |- _ =>
+      apply AirborneSurface.sem_cast_ptr_ptr_id in Hc; subst end.
+    (* a1 (arbitrary cast -> va1) *)
+    match goal with Hel : eval_exprlist _ _ _ _ (_ :: _ :: _ :: _ :: nil) _ _ |- _ => inv Hel end.
+    match goal with Hv : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+      inv Hv; try (match goal with Hlv : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+                     inv Hlv end) end.
+    (* a2 (arbitrary cast -> va2) *)
+    match goal with Hel : eval_exprlist _ _ _ _ (_ :: _ :: _ :: nil) _ _ |- _ => inv Hel end.
+    match goal with Hv : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+      inv Hv; try (match goal with Hlv : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+                     inv Hlv end) end.
+    (* endA (cast tint->tuint pinned to Vint endA) *)
+    match goal with Hel : eval_exprlist _ _ _ _ (_ :: _ :: nil) _ _ |- _ => inv Hel end.
+    match goal with Hv : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+      inv Hv; try (match goal with Hlv : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+                     inv Hlv end) end.
+    match goal with Hc : sem_cast (Vint (Int.repr endA)) _ _ _ = Some _ |- _ =>
+      cbn in Hc; injection Hc as <- end.
+    (* airA (cast tint->tuint pinned to Vint airA) *)
+    match goal with Hel : eval_exprlist _ _ _ _ (_ :: nil) _ _ |- _ => inv Hel end.
+    match goal with Hv : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+      inv Hv; try (match goal with Hlv : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+                     inv Hlv end) end.
+    match goal with Hc : sem_cast (Vint (Int.repr airA)) _ _ _ = Some _ |- _ =>
+      cbn in Hc; injection Hc as <- end.
+    match goal with Hel : eval_exprlist _ _ _ _ nil _ _ |- _ => inv Hel end.
+    match goal with Hv1 : le ! M._m = Some ?v1 |- _ =>
+      assert (Htat1 : forall b o, v1 = Vptr b o -> b = bm /\ o = Ptrofs.zero)
+        by (intros b o EE; rewrite EE in Hv1; exact (Htat b o Hv1)) end.
+    match goal with
+    | Hevf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+        destruct (qjla_funcall_pres _ _ _ _ _ _ _ _ _ _ Hres Hevf Htat1
+                    (wact_const_sound _ Hea) (wact_const_sound _ Haa)
+                    HN HM HV HS)
+          as (HV' & HS' & HM' & HN')
+    end.
+    refine (conj HV' (conj HS' (conj HM' (conj HN' (conj eq_refl _))))).
+    intros b o Hg. cbn [set_opttemp] in Hg.
+    rewrite PTree.gso in Hg by (exact (fun e => Hcap (eq_sym e))).
+    exact (Htat b o Hg).
   Qed.
 
   (* ================================================================== *)
@@ -4206,6 +4430,115 @@ Section MovingLeafRows.
       + apply lnd_exec_skip_inv in Hif as (_ & -> & Hnn). congruence.
   Qed.
 
+  (* ============== QUICKSAND leaves: trivial wrappers over the keystone ==== *)
+  Example mov_qjland_pin :
+    (prog_defmap mario_actions_moving.prog) ! mario_actions_moving._act_quicksand_jump_land
+    = Some (Gfun (Internal mario_actions_moving.f_act_quicksand_jump_land)).
+  Proof. vm_compute. reflexivity. Qed.
+  Example mov_hqjland_pin :
+    (prog_defmap mario_actions_moving.prog) ! mario_actions_moving._act_hold_quicksand_jump_land
+    = Some (Gfun (Internal mario_actions_moving.f_act_hold_quicksand_jump_land)).
+  Proof. vm_compute. reflexivity. Qed.
+
+  (* body = { t'1 = qjla(m, a1, a2, endA, airA); cancel = t'1; return cancel } *)
+  Lemma mov_qjland_pres : body_pres lp NoA MWF bm M.f_act_quicksand_jump_land.
+  Proof.
+    intros m vargs t mEnd vres Hmarg Hevf HN HM HV HS.
+    assert (Hmarg' : marg_ok bm vargs) by (apply Hmarg; vm_compute; reflexivity).
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      change (fn_vars M.f_act_quicksand_jump_land) with (@nil (ident * type)) in Ha; inv Ha end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ => rename Hb into Hbind end.
+    change (fn_params M.f_act_quicksand_jump_land) with ((M._m, tyMSp) :: nil) in Hbind.
+    cbn [bind_parameter_temps] in Hbind.
+    destruct vargs as [| vhead vrest]; [ discriminate Hbind | ].
+    destruct vrest as [|]; [ | discriminate Hbind ].
+    injection Hbind as <-.
+    change (blocks_of_env (lp_ge lp) empty_env) with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    set (base := create_undef_temps (fn_temps M.f_act_quicksand_jump_land)) in *.
+    assert (Htat : forall b o,
+       (PTree.set M._m vhead base) ! M._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg. rewrite PTree.gss in Hg. injection Hg as Hvh.
+      rewrite Hvh in Hmarg'. cbn in Hmarg'. exact Hmarg'. }
+    unfold M.f_act_quicksand_jump_land in Hbody; cbn [fn_body] in Hbody.
+    apply lnd_exec_seq_cases in Hbody
+      as [ (trA & leA & mA & trB & Hfirst & Hsecond) | (Hfirst & Hne) ].
+    - apply lnd_exec_seq_cases in Hfirst
+        as [ (trC & leC & mC & trD & Hcall & Hset) | (Hcall & Hne0) ].
+      2:{ destruct (qjla_capture_site_pres M._t'1 77 78 201327152 16779404 _ _ _ _ _ _
+                      ltac:(vm_compute; congruence) ltac:(vm_compute; reflexivity)
+                      ltac:(vm_compute; reflexivity) Htat Hcall HN HM HV HS)
+            as (_ & _ & _ & _ & Ho & _). congruence. }
+      destruct (qjla_capture_site_pres M._t'1 77 78 201327152 16779404 _ _ _ _ _ _
+                  ltac:(vm_compute; congruence) ltac:(vm_compute; reflexivity)
+                  ltac:(vm_compute; reflexivity) Htat Hcall HN HM HV HS)
+        as (HVa & HSa & HMa & HNa & _ & _).
+      apply lnd_exec_set_inv in Hset as (-> & _ & vg & ->).
+      apply lnd_exec_return_inv in Hsecond as (_ & -> & _).
+      exact (conj HVa (conj HSa HMa)).
+    - apply lnd_exec_seq_cases in Hfirst
+        as [ (trC & leC & mC & trD & Hcall & Hset) | (Hcall & Hne0) ].
+      + apply lnd_exec_set_inv in Hset as (_ & Ho & _). congruence.
+      + destruct (qjla_capture_site_pres M._t'1 77 78 201327152 16779404 _ _ _ _ _ _
+                    ltac:(vm_compute; congruence) ltac:(vm_compute; reflexivity)
+                    ltac:(vm_compute; reflexivity) Htat Hcall HN HM HV HS)
+          as (_ & _ & _ & _ & Ho & _). congruence.
+  Qed.
+
+  Lemma mov_hqjland_pres : body_pres lp NoA MWF bm M.f_act_hold_quicksand_jump_land.
+  Proof.
+    intros m vargs t mEnd vres Hmarg Hevf HN HM HV HS.
+    assert (Hmarg' : marg_ok bm vargs) by (apply Hmarg; vm_compute; reflexivity).
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      change (fn_vars M.f_act_hold_quicksand_jump_land) with (@nil (ident * type)) in Ha; inv Ha end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ => rename Hb into Hbind end.
+    change (fn_params M.f_act_hold_quicksand_jump_land) with ((M._m, tyMSp) :: nil) in Hbind.
+    cbn [bind_parameter_temps] in Hbind.
+    destruct vargs as [| vhead vrest]; [ discriminate Hbind | ].
+    destruct vrest as [|]; [ | discriminate Hbind ].
+    injection Hbind as <-.
+    change (blocks_of_env (lp_ge lp) empty_env) with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    set (base := create_undef_temps (fn_temps M.f_act_hold_quicksand_jump_land)) in *.
+    assert (Htat : forall b o,
+       (PTree.set M._m vhead base) ! M._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg. rewrite PTree.gss in Hg. injection Hg as Hvh.
+      rewrite Hvh in Hmarg'. cbn in Hmarg'. exact Hmarg'. }
+    unfold M.f_act_hold_quicksand_jump_land in Hbody; cbn [fn_body] in Hbody.
+    apply lnd_exec_seq_cases in Hbody
+      as [ (trA & leA & mA & trB & Hfirst & Hsecond) | (Hfirst & Hne) ].
+    - apply lnd_exec_seq_cases in Hfirst
+        as [ (trC & leC & mC & trD & Hcall & Hset) | (Hcall & Hne0) ].
+      2:{ destruct (qjla_capture_site_pres M._t'1 65 64 134218292 16779425 _ _ _ _ _ _
+                      ltac:(vm_compute; congruence) ltac:(vm_compute; reflexivity)
+                      ltac:(vm_compute; reflexivity) Htat Hcall HN HM HV HS)
+            as (_ & _ & _ & _ & Ho & _). congruence. }
+      destruct (qjla_capture_site_pres M._t'1 65 64 134218292 16779425 _ _ _ _ _ _
+                  ltac:(vm_compute; congruence) ltac:(vm_compute; reflexivity)
+                  ltac:(vm_compute; reflexivity) Htat Hcall HN HM HV HS)
+        as (HVa & HSa & HMa & HNa & _ & _).
+      apply lnd_exec_set_inv in Hset as (-> & _ & vg & ->).
+      apply lnd_exec_return_inv in Hsecond as (_ & -> & _).
+      exact (conj HVa (conj HSa HMa)).
+    - apply lnd_exec_seq_cases in Hfirst
+        as [ (trC & leC & mC & trD & Hcall & Hset) | (Hcall & Hne0) ].
+      + apply lnd_exec_set_inv in Hset as (_ & Ho & _). congruence.
+      + destruct (qjla_capture_site_pres M._t'1 65 64 134218292 16779425 _ _ _ _ _ _
+                    ltac:(vm_compute; congruence) ltac:(vm_compute; reflexivity)
+                    ltac:(vm_compute; reflexivity) Htat Hcall HN HM HV HS)
+          as (_ & _ & _ & _ & Ho & _). congruence.
+  Qed.
+
   Lemma mov_bwa_ids_rows : forall fid, mem_id fid mov_bwa_ids = true ->
       call_pres lp bm NoA MWF fid.
   Proof.
@@ -4475,14 +4808,14 @@ Section MovingLeafRows.
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
       rewrite mov_bfland_pin in Hdm. injection Hdm as <-. exact mov_bfland_pres. }
-    (* 37: act_quicksand_jump_land -- rest *)
+    (* 37: act_quicksand_jump_land -- WALKED (quicksand keystone) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
-    (* 38: act_hold_quicksand_jump_land -- rest *)
+      rewrite mov_qjland_pin in Hdm. injection Hdm as <-. exact mov_qjland_pres. }
+    (* 38: act_hold_quicksand_jump_land -- WALKED (quicksand keystone) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite mov_hqjland_pin in Hdm. injection Hdm as <-. exact mov_hqjland_pres. }
     (* 39: act_long_jump_land -- WALKED (landing keystone part 3) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
