@@ -1798,6 +1798,10 @@ Section NoARealInputMWF.
                       (* SLICE M3: the obj_ext boundary the set_jumping_action
                          arc reaches (atan2s/approach_s32 + dasma trio). *)
                       Hpres_obj_ext
+                      (* LANDING KEYSTONE: the clc walk's two MWF rows --
+                         ktab-load-untainted + input-A-clear (NO new trust). *)
+                      (mwf_real_ktab lp bm bc oc0 SafeB)
+                      (mwf_real_inp lp bm bc oc0 SafeB)
                       Hpres_mov_rest)
                    Hpres_qsand)
                 (airborne_pres lp LO_mario LO_air bm (NoA_real bm)

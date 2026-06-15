@@ -146,10 +146,10 @@ proofs/MarioModel/StationaryLeafSurface.v
 #     moving_leaf_callees_pres shrinks the capstone's Hpres_mov_callees
 #     down to a per-leaf census rest-split; slice M1 = the knockback
 #     cluster via common_ground_knockback_action) ---
+proofs/MarioModel/LandingBricks.v
 proofs/MarioModel/MovingLeafSurface.v
 
 # --- UNWIRED scaffolding: landing-keystone bricks (not yet load-bearing) ---
-proofs/MarioModel/Unwired/LandingBricks.v
 
 # --- top-level demos ---
 proofs/Toy/ToyFrame.v
