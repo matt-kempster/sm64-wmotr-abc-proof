@@ -361,6 +361,17 @@ Definition qjla_ids : list ident :=
     :: mario._set_mario_animation :: mario._play_mario_jump_sound :: nil.
 Definition qjla_sids : list ident := mario._set_mario_action :: nil.
 
+(* SLIDE_BONK keystone: slide_bonk(m, fastAction, slowAction) -- TWO param-
+   action seeds, fastAction via drop_and_set_mario_action and slowAction via
+   set_mario_action; the only other callees (mario_bonk_reflection /
+   mario_set_forward_vel) have rows; no direct stores. *)
+Definition sb_wact : list ident :=
+  mario_actions_moving._fastAction :: mario_actions_moving._slowAction :: nil.
+Definition sb_ids : list ident :=
+  mario_step._mario_bonk_reflection :: mario._mario_set_forward_vel :: nil.
+Definition sb_sids : list ident :=
+  mario._drop_and_set_mario_action :: mario._set_mario_action :: nil.
+
 (* begin_walking_action producer: wact threads the _action PARAM + the
    set_mario_action result temp _t'1; ids = mario_set_forward_vel;
    wids = set_mario_action.  Output: call_pres_act3. *)
@@ -2897,6 +2908,175 @@ Section MovingLeafRows.
     intros b o Hg. cbn [set_opttemp] in Hg.
     rewrite PTree.gso in Hg by (exact (fun e => Hcap (eq_sym e))).
     exact (Htat b o Hg).
+  Qed.
+
+  (* ================================================================== *)
+  (* SLIDE_BONK keystone: slide_bonk(m, fastAction, slowAction).          *)
+  (* TWO param-action seeds (fastAction via drop_and_set_mario_action,    *)
+  (* slowAction via set_mario_action); no direct stores.                  *)
+  (* ================================================================== *)
+  Lemma sb_ids_rows : forall fid, mem_id fid sb_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sb_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_mbr_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_msfv_row | discriminate H ].
+  Qed.
+
+  Lemma sb_sids_rows : forall fid, mem_id fid sb_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sb_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hdasma | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | discriminate H ].
+  Qed.
+
+  Lemma sbonk_funcall_pres :
+    forall fd m0 v0 fastA slowA t0 m1 vres0,
+      resolves_lp lp mario_actions_moving._slide_bonk fd ->
+      eval_funcall function_entry2 (lp_ge lp) m0 fd
+        (v0 :: Vint fastA :: Vint slowA :: nil) t0 m1 vres0 ->
+      (forall b o, v0 = Vptr b o -> b = bm /\ o = Ptrofs.zero) ->
+      untainted_scalar (Vint fastA) -> untainted_scalar (Vint slowA) ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm -> action_sat not_tainted m0 bm ->
+      Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\ MWF m1 /\ NoA m1.
+  Proof.
+    intros fd m0 v0 fastA slowA t0 m1 vres0 Hres Hevf Htat Hufa Husa
+           HN HM HV HS.
+    pose proof (resolve_pin_fd lp mario_actions_moving.prog
+                  mario_actions_moving._slide_bonk
+                  mario_actions_moving.f_slide_bonk fd
+                  LO_mov ltac:(vm_compute; reflexivity) Hres) as ->.
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      change (fn_vars mario_actions_moving.f_slide_bonk)
+        with (@nil (ident * type)) in Ha; inv Ha end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    change (fn_params mario_actions_moving.f_slide_bonk)
+      with ((mario_actions_moving._m,
+             tptr (Tstruct mario_actions_moving._MarioState noattr)) ::
+            (mario_actions_moving._fastAction, tuint) ::
+            (mario_actions_moving._slowAction, tuint) :: nil) in Hbind.
+    cbn [bind_parameter_temps] in Hbind.
+    injection Hbind as <-.
+    change (blocks_of_env (lp_ge lp) empty_env)
+      with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    set (base := create_undef_temps
+                   (fn_temps mario_actions_moving.f_slide_bonk)) in *.
+    assert (Htat0 : forall b o,
+       (PTree.set mario_actions_moving._slowAction (Vint slowA)
+          (PTree.set mario_actions_moving._fastAction (Vint fastA)
+             (PTree.set mario_actions_moving._m v0 base)))
+         ! mario_actions_airborne._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg.
+      rewrite PTree.gso in Hg by (vm_compute; congruence).
+      rewrite PTree.gso in Hg by (vm_compute; congruence).
+      rewrite PTree.gss in Hg. injection Hg as Hg. exact (Htat b o Hg). }
+    assert (Hact0 : act_inv sb_wact
+       (PTree.set mario_actions_moving._slowAction (Vint slowA)
+          (PTree.set mario_actions_moving._fastAction (Vint fastA)
+             (PTree.set mario_actions_moving._m v0 base)))).
+    { intros t' Hmem' x Hg'.
+      unfold sb_wact in Hmem'. cbn [mem_id existsb] in Hmem'.
+      apply orb_true_iff in Hmem' as [Ht | Hmem'].
+      - apply Pos.eqb_eq in Ht; subst t'.
+        rewrite PTree.gso in Hg' by (vm_compute; congruence).
+        rewrite PTree.gss in Hg'. injection Hg' as <-. exact Hufa.
+      - apply orb_true_iff in Hmem' as [Ht | Hf]; [ | discriminate Hf ].
+        apply Pos.eqb_eq in Ht; subst t'.
+        rewrite PTree.gss in Hg'. injection Hg' as <-. exact Husa. }
+    assert (Hch0 : chase_inv SafeB nil
+       (PTree.set mario_actions_moving._slowAction (Vint slowA)
+          (PTree.set mario_actions_moving._fastAction (Vint fastA)
+             (PTree.set mario_actions_moving._m v0 base))))
+      by (intros t' Hmem'; discriminate Hmem').
+    destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+                false sb_wact sb_ids nil nil nil sb_sids nil
+                sb_ids_rows ltac:(intros fid HH; discriminate HH)
+                ltac:(intros fid HH; discriminate HH) sb_sids_rows
+                ltac:(intros fid HH; discriminate HH)
+                _ _ _ _ _ _ _ _ Hbody
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (PTree.gempty _ _) ltac:(vm_compute; reflexivity) Htat0 Hact0 Hch0
+                HN HM HV HS)
+      as (HV' & HS' & HM' & HN' & _).
+    exact (conj HV' (conj HS' (conj HM' HN'))).
+  Qed.
+
+  (* the slide_bonk call site: Scall None of slide_bonk with args
+     (Etempvar _m, Econst fastA, Econst slowA), both fastA/slowA untainted. *)
+  Lemma sbonk_site_pres :
+    forall fastA slowA le m tr le' m' out,
+      wact_const (Int.repr fastA) = true ->
+      wact_const (Int.repr slowA) = true ->
+      (forall b o, le ! M._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero) ->
+      exec_stmt function_entry2 (lp_ge lp) empty_env le m
+        (Scall None
+           (Evar M._slide_bonk
+              (Tfunction (tyMSp :: tuint :: tuint :: nil) tvoid cc_default))
+           (Etempvar M._m tyMSp
+            :: Econst_int (Int.repr fastA) tint
+            :: Econst_int (Int.repr slowA) tint :: nil))
+        tr le' m' out ->
+      NoA m -> MWF m -> Mem.valid_block m bm -> action_sat not_tainted m bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\ NoA m'
+      /\ out = Out_normal
+      /\ (forall b o, le' ! M._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
+  Proof.
+    intros fastA slowA le m tr le' m' out Hfa Hsa Htat Hexec HN HM HV HS.
+    inv Hexec.
+    match goal with Hcf : classify_fun _ = _ |- _ => cbn in Hcf; inv Hcf end.
+    match goal with Hv : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
+      apply eval_Evar_funct_empty in Hv; destruct Hv as (fb & Hsym & ->) end.
+    match goal with Hff : Genv.find_funct _ (Vptr fb Ptrofs.zero) = Some ?fd |- _ =>
+      assert (Hres : resolves_lp lp M._slide_bonk fd)
+        by (exists fb; split; assumption) end.
+    match goal with Hel : eval_exprlist _ _ _ _ (_ :: _ :: _ :: nil) _ _ |- _ => inv Hel end.
+    match goal with Hv : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+      apply eval_expr_Etempvar_val in Hv; rename Hv into Hv1 end.
+    match goal with Hc : sem_cast _ _ _ _ = Some _ |- _ =>
+      apply AirborneSurface.sem_cast_ptr_ptr_id in Hc; subst end.
+    match goal with Hel : eval_exprlist _ _ _ _ (_ :: _ :: nil) _ _ |- _ => inv Hel end.
+    match goal with Hv : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+      inv Hv; try (match goal with Hlv : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+                     inv Hlv end) end.
+    match goal with Hc : sem_cast (Vint (Int.repr fastA)) _ _ _ = Some _ |- _ =>
+      cbn in Hc; injection Hc as <- end.
+    match goal with Hel : eval_exprlist _ _ _ _ (_ :: nil) _ _ |- _ => inv Hel end.
+    match goal with Hv : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+      inv Hv; try (match goal with Hlv : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+                     inv Hlv end) end.
+    match goal with Hc : sem_cast (Vint (Int.repr slowA)) _ _ _ = Some _ |- _ =>
+      cbn in Hc; injection Hc as <- end.
+    match goal with Hel : eval_exprlist _ _ _ _ nil _ _ |- _ => inv Hel end.
+    match goal with Hv1 : le ! M._m = Some ?v1 |- _ =>
+      assert (Htat1 : forall b o, v1 = Vptr b o -> b = bm /\ o = Ptrofs.zero)
+        by (intros b o EE; rewrite EE in Hv1; exact (Htat b o Hv1)) end.
+    match goal with
+    | Hevf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+        destruct (sbonk_funcall_pres _ _ _ _ _ _ _ _ Hres Hevf Htat1
+                    (wact_const_sound _ Hfa) (wact_const_sound _ Hsa)
+                    HN HM HV HS)
+          as (HV' & HS' & HM' & HN')
+    end.
+    refine (conj HV' (conj HS' (conj HM' (conj HN' (conj eq_refl _))))).
+    intros b o Hg. cbn [set_opttemp] in Hg. exact (Htat b o Hg).
   Qed.
 
   (* ================================================================== *)
