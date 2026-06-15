@@ -771,11 +771,17 @@ Section NoARealInputMWF.
   Hypothesis Hpres_sta_ext : forall fid,
       mem_id fid StationaryLeafSurface.sta_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
-  Hypothesis Hpres_sta_rest : forall fid f,
+  (* The stationary family is now COMPLETE: every leaf in
+     stationary_callee_ids is WALKED (StationaryLeafSurface), so the filtered
+     remainder sta_rest_ids vm_computes to [].  This formerly-assumed rest
+     hypothesis is therefore PROVED vacuously here -- the residual is DELETED
+     from the capstone surface (no longer an assumption). *)
+  Let Hpres_sta_rest : forall fid f,
       mem_id fid sta_rest_ids = true ->
       (prog_defmap mario_actions_stationary.prog) ! fid
         = Some (Gfun (Internal f)) ->
-      body_pres lp (NoA_real bm) MWF bm f.
+      body_pres lp (NoA_real bm) MWF bm f :=
+    ltac:(intros fid f H _; vm_compute in H; discriminate H).
   (* mario_update_quicksand (mario_step.prog, pinned by LO_stp): the ONE
      out-of-TU helper the stationary/moving/object prologues call --
      WALKED (FloorsLeafSurface.qsand_pres); the proved Let is below,
