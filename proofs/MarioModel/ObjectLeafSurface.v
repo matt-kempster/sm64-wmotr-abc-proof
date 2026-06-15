@@ -57,6 +57,10 @@ Definition obj_sids : list ident := mario._set_mario_action :: nil.
 
 Definition psinf_xids : list ident := mario._play_sound :: nil.
 
+(* play_mario_jump_sound: structurally identical to play_sound_if_no_flag --
+   one external (mario._play_sound), one flags window store; no chase stores. *)
+Definition pmjs_xids : list ident := mario._play_sound :: nil.
+
 (* swpa: vec3s_set(m->angleVel,0,0,0) + set_camera_mode(m->area->camera..) *)
 Definition swpa_xids : list ident :=
   mario._vec3s_set :: mario._set_camera_mode :: nil.
@@ -186,6 +190,26 @@ Proof. vm_compute. reflexivity. Qed.
 Example psinf_walk :
   wwalk_chk false nil nil nil nil psinf_xids nil nil
     (fn_body mario.f_play_sound_if_no_flag) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example pmjs_pin :
+  (prog_defmap mario.prog) ! mario._play_mario_jump_sound
+  = Some (Gfun (Internal mario.f_play_mario_jump_sound)).
+Proof. vm_compute. reflexivity. Qed.
+Example pmjs_vars : fn_vars mario.f_play_mario_jump_sound = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example pmjs_params_ok :
+  match fn_params mario.f_play_mario_jump_sound with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example pmjs_walk :
+  wwalk_chk false nil nil nil nil pmjs_xids nil nil
+    (fn_body mario.f_play_mario_jump_sound) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Example iaae_pin :
@@ -1154,6 +1178,24 @@ Section ObjectLeafRows.
       discriminate H.
     - intros fid' H. discriminate H.
     - exact psinf_walk.
+  Qed.
+
+  (* ---- play_mario_jump_sound (flags window store + play_sound external) ---- *)
+  Lemma pmjs_row : call_pres lp bm NoA MWF mario._play_mario_jump_sound.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe mario.prog mario._play_mario_jump_sound
+             mario.f_play_mario_jump_sound nil nil pmjs_xids nil
+             LO_mario pmjs_pin pmjs_vars pmjs_params_ok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold pmjs_xids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_psound | ].
+      discriminate H.
+    - intros fid' H. discriminate H.
+    - exact pmjs_walk.
   Qed.
 
   (* ---- is_anim_at_end (loads only; chase DEPTH is free on loads) ---- *)
