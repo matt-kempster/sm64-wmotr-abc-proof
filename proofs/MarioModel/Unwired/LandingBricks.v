@@ -747,4 +747,103 @@ Section LandingWalk.
     exact (conj HV' (conj HS' (conj HM' HN'))).
   Qed.
 
+  (* ================================================================== *)
+  (* MARG GENERALIZATION.  body_pres allows a NON-pointer first arg      *)
+  (* (marg_ok is vacuously True when vhead is not a Vptr), so the leaf   *)
+  (* consumer can only hand clc a marg-shaped tat0 (an IMPLICATION       *)
+  (* `v0 = Vptr b o -> b=bm/\o=0`), not the literal Vptr bm 0.  We lift  *)
+  (* the committed clc_funcall_pres to that form: the non-pointer case   *)
+  (* is VACUOUS -- the body's first statement loads m->floor, which      *)
+  (* forces the first arg to be a pointer.                               *)
+  (* ================================================================== *)
+
+  (* a body whose first executed Sset loads a field off (Etempvar _m)    *)
+  (* forces le!_m to be a pointer.                                       *)
+  Lemma m_field_load_forces_ptr :
+    forall tmp ms fld fty e le m tr le' m' out v0,
+      le ! M._m = Some v0 ->
+      exec_stmt function_entry2 (lp_ge lp) e le m
+        (Sset tmp (Efield (Ederef (Etempvar M._m (tptr ms)) ms) fld fty))
+        tr le' m' out ->
+      exists b o, v0 = Vptr b o.
+  Proof.
+    intros tmp ms fld fty e le m tr le' m' out v0 Hm Hexec.
+    inv Hexec.
+    match goal with H : eval_expr _ _ _ _ (Efield _ _ _) _ |- _ => inv H end.
+    match goal with H : eval_lvalue _ _ _ _ (Efield _ _ _) _ _ _ |- _ => inv H end.
+    all: match goal with H : eval_expr _ _ _ _ (Ederef _ _) _ |- _ => inv H end.
+    all: match goal with H : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ =>
+           apply eval_lvalue_Ederef_base in H;
+           apply eval_expr_Etempvar_val in H;
+           rewrite Hm in H; injection H as ->; eauto end.
+  Qed.
+
+  (* common_landing_cancels's body opens with `t'20 = m->floor`, so any   *)
+  (* eval_funcall of it forces the first arg to be a pointer.             *)
+  Lemma clc_funcall_forces_ptr :
+    forall fd m0 v0 v2 v3 t0 m1 vres0,
+      resolves_lp lp M._common_landing_cancels fd ->
+      eval_funcall function_entry2 (lp_ge lp) m0 fd
+        (v0 :: v2 :: v3 :: nil) t0 m1 vres0 ->
+      exists b o, v0 = Vptr b o.
+  Proof.
+    intros fd m0 v0 v2 v3 t0 m1 vres0 Hres Hevf.
+    pose proof (resolve_pin_fd lp mario_actions_moving.prog
+                  M._common_landing_cancels M.f_common_landing_cancels fd
+                  LO_mov ltac:(vm_compute; reflexivity) Hres) as ->.
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      change (fn_vars M.f_common_landing_cancels) with (@nil (ident * type)) in Ha;
+      inv Ha end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    change (fn_params M.f_common_landing_cancels)
+      with ((M._m, tptr (Tstruct M._MarioState noattr)) ::
+            (M._landingAction, tptr (Tstruct M._LandingAction noattr)) ::
+            (M._setAPressAction,
+             tptr (Tfunction
+                     (tptr (Tstruct M._MarioState noattr) :: tuint :: tuint :: nil)
+                     tint cc_default)) :: nil) in Hbind.
+    cbn [bind_parameter_temps] in Hbind.
+    injection Hbind as <-.
+    set (base := create_undef_temps (fn_temps M.f_common_landing_cancels)) in *.
+    assert (Hle_m : (PTree.set M._setAPressAction v3
+                      (PTree.set M._landingAction v2
+                         (PTree.set M._m v0 base))) ! M._m = Some v0).
+    { rewrite PTree.gso by (vm_compute; congruence).
+      rewrite PTree.gso by (vm_compute; congruence).
+      rewrite PTree.gss. reflexivity. }
+    unfold M.f_common_landing_cancels in Hbody; cbn [fn_body] in Hbody.
+    inv Hbody;
+      match goal with
+        Hp : exec_stmt _ _ _ _ _ (Ssequence (Sset _ (Efield _ _ _)) _) _ _ _ _ |- _ =>
+          inv Hp end;
+      match goal with
+        Hs : exec_stmt _ _ _ _ _ (Sset _ (Efield _ _ _)) _ _ _ _ |- _ =>
+          exact (m_field_load_forces_ptr _ _ _ _ _ _ _ _ _ _ _ _ Hle_m Hs)
+      end.
+  Qed.
+
+  (* the marg form: first arg via tat0 (non-pointer handled vacuously) *)
+  Lemma clc_funcall_pres_marg :
+    forall (gid : ident) (lb : block) fd m0 v0 v3 t0 m1 vres0,
+      mem_id gid knockback_table_ids = true ->
+      Genv.find_symbol (lp_ge lp) gid = Some lb ->
+      resolves_lp lp M._common_landing_cancels fd ->
+      eval_funcall function_entry2 (lp_ge lp) m0 fd
+        (v0 :: Vptr lb Ptrofs.zero :: v3 :: nil) t0 m1 vres0 ->
+      (forall b o, v0 = Vptr b o -> b = bm /\ o = Ptrofs.zero) ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm -> action_sat not_tainted m0 bm ->
+      Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\ MWF m1 /\ NoA m1.
+  Proof.
+    intros gid lb fd m0 v0 v3 t0 m1 vres0 Hgid Hsym Hres Hevf Htat0 HN HM HV HS.
+    pose proof (clc_funcall_forces_ptr _ _ _ _ _ _ _ _ Hres Hevf) as (b & o & Hv0).
+    subst v0.
+    specialize (Htat0 b o eq_refl) as [-> ->].
+    exact (clc_funcall_pres gid lb fd m0 v3 t0 m1 vres0 Hgid Hsym Hres Hevf HN HM HV HS).
+  Qed.
+
 End LandingWalk.
