@@ -203,7 +203,8 @@ Definition mov_walked_ids : list ident :=
     :: mario_actions_moving._act_death_exit_land
     :: mario_actions_moving._act_finish_turning_around
     :: mario_actions_moving._act_slide_kick_slide
-    :: mario_actions_moving._act_hold_decelerating :: nil.
+    :: mario_actions_moving._act_hold_decelerating
+    :: mario_actions_moving._act_turning_around :: nil.
 Definition mov_rest_ids : list ident :=
   filter (fun id => negb (mem_id id mov_walked_ids)) moving_callee_ids.
 
@@ -286,6 +287,49 @@ Definition mov_ahd_xids : list ident := mario._play_sound :: nil.
 Definition mov_ahd_nids : list ident :=
   mario_actions_moving._t'12 :: mario_actions_moving._val0C :: nil.
 Definition mov_ahd_np3 : list ident := mario._set_mario_anim_with_accel :: nil.
+
+(* ---------------------------------------------------------------------- *)
+(* SLICE M9: the param-action leaf act_turning_around.                     *)
+(* begin_walking_action(m, <float forwardVel>, ACT_X, 0) is an act3-class  *)
+(* call whose action arg (args[1]) is an untainted const and whose arg[0]  *)
+(* (forwardVel) is a FLOAT -- value-irrelevant for call_pres_act3.  The    *)
+(* generalized act3_call_chk arm (relaxed arg0, routed to                   *)
+(* kit_scall3_anim_pres) recognizes it; the 4-param position-3 producer     *)
+(* call_pres_act3_of_wwalk_p4 discharges begin_walking_action's own body    *)
+(* (it threads its _action PARAM through wact into set_mario_action).  Two  *)
+(* new clean helper rows: analog_stick_held_back (read-only) and            *)
+(* apply_slope_decel (floor-class + approach_f32 ext + apply_slope_accel,   *)
+(* the last already proved as mov_asa_row).                                 *)
+(* ---------------------------------------------------------------------- *)
+
+(* apply_slope_decel: mario_get_floor_class + apply_slope_accel (ids) +
+   approach_f32 (ext); switch sets _decel; m->forwardVel window store. *)
+Definition mov_asd_ids : list ident :=
+  mario._mario_get_floor_class
+    :: mario_actions_moving._apply_slope_accel :: nil.
+Definition mov_asd_xids : list ident := mario_actions_moving._approach_f32 :: nil.
+
+(* begin_walking_action producer: wact threads the _action PARAM + the
+   set_mario_action result temp _t'1; ids = mario_set_forward_vel;
+   wids = set_mario_action.  Output: call_pres_act3. *)
+Definition mov_bwa_wact : list ident :=
+  mario_actions_moving._action :: mario_actions_moving._t'1 :: nil.
+Definition mov_bwa_ids : list ident := mario._mario_set_forward_vel :: nil.
+Definition mov_bwa_wids : list ident := mario._set_mario_action :: nil.
+
+(* act_turning_around leaf (body_pres, tids/act3 channel). *)
+Definition mov_ata_ids : list ident :=
+  mario_actions_moving._analog_stick_held_back
+    :: mario_actions_moving._apply_slope_decel
+    :: mario_step._perform_ground_step
+    :: mario._set_mario_animation
+    :: mario._is_anim_at_end
+    :: mario._adjust_sound_for_speed :: nil.
+Definition mov_ata_sids : list ident :=
+  mario._set_mario_action :: mario._set_jumping_action :: nil.
+Definition mov_ata_tids : list ident :=
+  mario_actions_moving._begin_walking_action :: nil.
+Definition mov_ata_xids : list ident := mario._play_sound :: nil.
 
 (* ====================================================================== *)
 (* Shape pins (vm_compute reflexivity over the real AST).                 *)
@@ -902,6 +946,83 @@ Example mov_ahd_walk :
   wwalk_chk' nil nil nil nil mov_ahd_nids mov_ahd_np3 false
     nil mov_ahd_ids nil nil mov_ahd_xids mov_ahd_sids nil
     (fn_body mario_actions_moving.f_act_hold_decelerating) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- SLICE M9 pins/walks ---- *)
+Example mov_ashb_pin :
+  (prog_defmap mario_actions_moving.prog) ! mario_actions_moving._analog_stick_held_back
+  = Some (Gfun (Internal mario_actions_moving.f_analog_stick_held_back)).
+Proof. vm_compute. reflexivity. Qed.
+Example mov_ashb_vars : fn_vars mario_actions_moving.f_analog_stick_held_back = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_ashb_pok : mov_pok mario_actions_moving.f_analog_stick_held_back = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_ashb_walk :
+  wwalk_chk false nil nil nil nil nil nil nil
+    (fn_body mario_actions_moving.f_analog_stick_held_back) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example mov_asd_pin :
+  (prog_defmap mario_actions_moving.prog) ! mario_actions_moving._apply_slope_decel
+  = Some (Gfun (Internal mario_actions_moving.f_apply_slope_decel)).
+Proof. vm_compute. reflexivity. Qed.
+Example mov_asd_vars : fn_vars mario_actions_moving.f_apply_slope_decel = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_asd_pok : mov_pok mario_actions_moving.f_apply_slope_decel = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_asd_walk :
+  wwalk_chk false nil mov_asd_ids nil nil mov_asd_xids nil nil
+    (fn_body mario_actions_moving.f_apply_slope_decel) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example mov_bwa_pin :
+  (prog_defmap mario_actions_moving.prog) ! mario_actions_moving._begin_walking_action
+  = Some (Gfun (Internal mario_actions_moving.f_begin_walking_action)).
+Proof. vm_compute. reflexivity. Qed.
+Example mov_bwa_vars : fn_vars mario_actions_moving.f_begin_walking_action = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_bwa_params :
+  fn_params mario_actions_moving.f_begin_walking_action
+  = (mario_actions_airborne._m, tyMSp)
+      :: (mario_actions_moving._forwardVel, tfloat)
+      :: (mario_actions_moving._action, tuint)
+      :: (mario_actions_moving._actionArg, tuint) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_bwa_aid_m :
+  mario_actions_moving._forwardVel <> mario_actions_airborne._m.
+Proof. vm_compute. discriminate. Qed.
+Example mov_bwa_eid_m :
+  mario_actions_moving._action <> mario_actions_airborne._m.
+Proof. vm_compute. discriminate. Qed.
+Example mov_bwa_harg_m :
+  mario_actions_moving._actionArg <> mario_actions_airborne._m.
+Proof. vm_compute. discriminate. Qed.
+Example mov_bwa_wa : mem_id mario_actions_moving._action mov_bwa_wact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_bwa_wm : mem_id mario_actions_airborne._m mov_bwa_wact = false.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_bwa_wanim :
+  mem_id mario_actions_moving._forwardVel mov_bwa_wact = false.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_bwa_wharg :
+  mem_id mario_actions_moving._actionArg mov_bwa_wact = false.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_bwa_walk :
+  wwalk_chk false mov_bwa_wact mov_bwa_ids mov_bwa_wids nil nil nil nil
+    (fn_body mario_actions_moving.f_begin_walking_action) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example mov_ata_pin :
+  (prog_defmap mario_actions_moving.prog) ! mario_actions_moving._act_turning_around
+  = Some (Gfun (Internal mario_actions_moving.f_act_turning_around)).
+Proof. vm_compute. reflexivity. Qed.
+Example mov_ata_vars : fn_vars mario_actions_moving.f_act_turning_around = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_ata_pok : mov_pok mario_actions_moving.f_act_turning_around = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_ata_walk :
+  wwalk_chk false nil mov_ata_ids nil nil mov_ata_xids mov_ata_sids mov_ata_tids
+    (fn_body mario_actions_moving.f_act_turning_around) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* ====================================================================== *)
@@ -2313,6 +2434,173 @@ Section MovingLeafRows.
     - exact mov_ahd_walk.
   Qed.
 
+  (* ---- SLICE M9: the param-action leaf act_turning_around ---- *)
+
+  (* analog_stick_held_back: pure read-only (reads intendedYaw/faceAngle[1]) *)
+  Lemma mov_ashb_row :
+    call_pres lp bm NoA MWF mario_actions_moving._analog_stick_held_back.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_moving.prog mario_actions_moving._analog_stick_held_back
+             mario_actions_moving.f_analog_stick_held_back
+             nil nil nil nil LO_mov mov_ashb_pin mov_ashb_vars mov_ashb_pok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact mov_ashb_walk.
+  Qed.
+
+  (* apply_slope_decel: mario_get_floor_class + apply_slope_accel + approach_f32 *)
+  Lemma mov_asd_ids_rows : forall fid, mem_id fid mov_asd_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_asd_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_mgfc_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_asa_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_asd_xids_rows : forall fid, mem_id fid mov_asd_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_asd_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        apply Hpres_mov_ext; vm_compute; reflexivity | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_asd_row :
+    call_pres lp bm NoA MWF mario_actions_moving._apply_slope_decel.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_moving.prog mario_actions_moving._apply_slope_decel
+             mario_actions_moving.f_apply_slope_decel
+             mov_asd_ids nil mov_asd_xids nil
+             LO_mov mov_asd_pin mov_asd_vars mov_asd_pok).
+    - exact mov_asd_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact mov_asd_xids_rows.
+    - intros fid' H. discriminate H.
+    - exact mov_asd_walk.
+  Qed.
+
+  Lemma mov_bwa_ids_rows : forall fid, mem_id fid mov_bwa_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_bwa_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_msfv_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_bwa_wids_rows : forall fid, mem_id fid mov_bwa_wids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_bwa_wids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | ].
+    discriminate H.
+  Qed.
+
+  (* begin_walking_action: the PARAM-action producer.  Its _action param is
+     threaded through wact into set_mario_action(m, _action, _actionArg);
+     the call_pres_act3 obligation (untainted aval) discharges its body. *)
+  Lemma mov_bwa_row :
+    call_pres_act3 lp bm NoA MWF mario_actions_moving._begin_walking_action.
+  Proof.
+    apply (call_pres_act3_of_wwalk_p4 lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_moving.prog
+             mario_actions_moving._begin_walking_action
+             mario_actions_moving.f_begin_walking_action
+             mov_bwa_wact mov_bwa_ids mov_bwa_wids nil nil nil
+             mario_actions_moving._forwardVel mario_actions_moving._action
+             mario_actions_moving._actionArg tfloat tuint
+             LO_mov mov_bwa_pin mov_bwa_vars mov_bwa_params
+             mov_bwa_aid_m mov_bwa_eid_m mov_bwa_harg_m
+             mov_bwa_wa mov_bwa_wm mov_bwa_wanim mov_bwa_wharg
+             eq_refl eq_refl eq_refl eq_refl).
+    - exact mov_bwa_ids_rows.
+    - exact mov_bwa_wids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact mov_bwa_walk.
+  Qed.
+
+  Lemma mov_ata_ids_rows : forall fid, mem_id fid mov_ata_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_ata_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_ashb_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_asd_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pgs | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_sma_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_iae_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_asfs_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_ata_sids_rows : forall fid, mem_id fid mov_ata_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_ata_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_sja_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_ata_xids_rows : forall fid, mem_id fid mov_ata_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_ata_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_ata_tids_rows : forall fid, mem_id fid mov_ata_tids = true ->
+      call_pres_act3 lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_ata_tids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_bwa_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_ata_pres :
+    body_pres lp NoA MWF bm mario_actions_moving.f_act_turning_around.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_moving.f_act_turning_around
+             mov_ata_ids nil mov_ata_xids mov_ata_sids mov_ata_tids
+             mov_ata_vars mov_ata_pok).
+    - exact mov_ata_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact mov_ata_xids_rows.
+    - exact mov_ata_sids_rows.
+    - exact mov_ata_tids_rows.
+    - exact mov_ata_walk.
+  Qed.
+
   (* ================================================================== *)
   (* THE REST-SPLIT: the capstone's Hpres_mov_callees from the walked   *)
   (* leaves + the shrinking mov_rest_ids residual.                      *)
@@ -2345,10 +2633,10 @@ Section MovingLeafRows.
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
       rewrite mov_ahhw_pin in Hdm. injection Hdm as <-. exact mov_ahhw_pres. }
-    (* 5: act_turning_around -- rest *)
+    (* 5: act_turning_around -- WALKED (param-action / begin_walking_action) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite mov_ata_pin in Hdm. injection Hdm as <-. exact mov_ata_pres. }
     (* 6: act_finish_turning_around -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.

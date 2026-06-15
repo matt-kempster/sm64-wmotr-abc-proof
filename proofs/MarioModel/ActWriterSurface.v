@@ -1834,16 +1834,22 @@ Definition smact_call_chk (wact sids : list ident) (fid : ident)
      | _, _ => false
      end.
 
-(* the THIRD-position act-writer call (the asgs class): BOTH value args
-   are vm-checked constants -- the animation (any I32 const) and the
-   UNTAINTED action third. *)
+(* the THIRD-position act-writer call (the asgs class): the ACTION
+   (args[1]) is an UNTAINTED I32 constant; args[0] is value-irrelevant
+   -- call_pres_act3 reads only Mario's pointer (v0) and the untainted
+   action (v2 = the THIRD vargs element); the SECOND vargs element is
+   unconstrained by marg_ok and unread by the predicate -- so args[0]
+   may be ANY expression of ANY type (e.g. begin_walking_action's float
+   forwardVel, or its `Eunop Oneg` of a loaded forwardVel temp).  Routed
+   to kit_scall3_anim_pres (the relaxed-arg0 brick, the act3 mirror of
+   np3's relaxed-2nd-arg).  Old form required args[0] = an I32 const;
+   begin_walking_action's float arg forced the relaxation. *)
 Definition act3_call_chk (tids : list ident) (fid : ident)
     (tys : list type) (args : list expr) : bool :=
   mem_id fid tids
   && match tys, args with
-     | ty2 :: ty3 :: _, Econst_int _ i2 :: Econst_int c ity :: _ =>
-         i32_ty ty2 && i32_ty i2 && wact_const c && i32_ty ty3
-         && i32_ty ity
+     | _ :: ty3 :: _, _ :: Econst_int c ity :: _ =>
+         wact_const c && i32_ty ty3 && i32_ty ity
      | _, _ => false
      end.
 
@@ -5220,22 +5226,22 @@ Section ActWriterWalk.
               exact (Hnp _ Hmem _ Hg). } }
           apply orb_true_iff in Hbr.
           destruct Hbr as [Hbr | Ha3].
-          2:{ (* the act3 leaf call (the asgs class): both value args
-                 vm-checked constants, result discarded from wact *)
+          2:{ (* the act3 leaf call (the asgs class): args[0] is value-
+                 irrelevant (ANY expr), args[1] an untainted action const;
+                 result discarded from wact.  Routed to kit_scall3_anim_pres
+                 (the relaxed-arg0 brick -- same shape as the np3 arm above,
+                 but with an untainted Econst action third instead of a
+                 non-ptr nids temp). *)
             unfold act3_call_chk in Ha3.
             apply andb_prop in Ha3 as [Hf3 Ha3].
             destruct tys as [| ty2 tys2]; try discriminate Ha3.
             destruct tys2 as [| ty3 tys3]; try discriminate Ha3.
             destruct args as [| a2 args2]; try discriminate Ha3.
-            destruct a2 as [ c2 i2 | | | | | | | | | | | | | ];
-              try discriminate Ha3.
             destruct args2 as [| a3 args3]; try discriminate Ha3.
             destruct a3 as [ c3 ity | | | | | | | | | | | | | ];
               try discriminate Ha3.
             apply andb_prop in Ha3 as [Ha3 Hity].
-            apply andb_prop in Ha3 as [Ha3 Hty3].
-            apply andb_prop in Ha3 as [Ha3 Hc3].
-            apply andb_prop in Ha3 as [Hty2 Hi2].
+            apply andb_prop in Ha3 as [Hc3 Hty3].
             assert (Hex : exec_stmt function_entry2 (lp_ge lp) e
                             le m
                             (Scall (Some t')
@@ -5243,13 +5249,13 @@ Section ActWriterWalk.
                                             (tyMSp :: ty2 :: ty3 :: tys3)
                                             res cc))
                                (Etempvar mario_actions_airborne._m tyMSp
-                                  :: Econst_int c2 i2
+                                  :: a2
                                   :: Econst_int c3 ity :: args3))
                             t (set_opttemp (Some t') vres le) m'
                             Out_normal)
               by (econstructor; eauto).
-            destruct (kit_scall3_pres _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-                        _ (Hubt _ Hf3) Hex (Hcp3 _ Hf3) Hc3 Hty3 Hity Htat HN HM HV HS)
+            destruct (kit_scall3_anim_pres _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+                        (Hubt _ Hf3) Hex (Hcp3 _ Hf3) Hc3 Hty3 Hity Htat HN HM HV HS)
               as (HV' & HS' & HM' & HN' & _ & _).
             refine (conj HV' (conj HS' (conj HM' (conj HN'
                      (conj _ (conj _ (conj _ (conj _ I)))))))).
@@ -5429,21 +5435,19 @@ Section ActWriterWalk.
             exact (Hnp _ Hmem _ Hg). } }
         apply orb_true_iff in Hbr.
         destruct Hbr as [Hbr | Ha3].
-        2:{ (* the act3 leaf call, result-less *)
+        2:{ (* the act3 leaf call, result-less; args[0] value-irrelevant
+               (ANY expr), args[1] an untainted action const.  Routed to
+               kit_scall3_anim_pres (relaxed-arg0 brick). *)
           unfold act3_call_chk in Ha3.
           apply andb_prop in Ha3 as [Hf3 Ha3].
           destruct tys as [| ty2 tys2]; try discriminate Ha3.
           destruct tys2 as [| ty3 tys3]; try discriminate Ha3.
           destruct args as [| a2 args2]; try discriminate Ha3.
-          destruct a2 as [ c2 i2 | | | | | | | | | | | | | ];
-            try discriminate Ha3.
           destruct args2 as [| a3 args3]; try discriminate Ha3.
           destruct a3 as [ c3 ity | | | | | | | | | | | | | ];
             try discriminate Ha3.
           apply andb_prop in Ha3 as [Ha3 Hity].
-          apply andb_prop in Ha3 as [Ha3 Hty3].
-          apply andb_prop in Ha3 as [Ha3 Hc3].
-          apply andb_prop in Ha3 as [Hty2 Hi2].
+          apply andb_prop in Ha3 as [Hc3 Hty3].
           assert (Hex : exec_stmt function_entry2 (lp_ge lp) e
                           le m
                           (Scall None
@@ -5451,12 +5455,12 @@ Section ActWriterWalk.
                                           (tyMSp :: ty2 :: ty3 :: tys3)
                                           res cc))
                              (Etempvar mario_actions_airborne._m tyMSp
-                                :: Econst_int c2 i2
+                                :: a2
                                 :: Econst_int c3 ity :: args3))
                           t (set_opttemp None vres le) m' Out_normal)
             by (econstructor; eauto).
-          destruct (kit_scall3_pres _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-                      _ (Hubt _ Hf3) Hex (Hcp3 _ Hf3) Hc3 Hty3 Hity Htat HN HM HV HS)
+          destruct (kit_scall3_anim_pres _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+                      (Hubt _ Hf3) Hex (Hcp3 _ Hf3) Hc3 Hty3 Hity Htat HN HM HV HS)
             as (HV' & HS' & HM' & HN' & _ & _).
           refine (conj HV' (conj HS' (conj HM' (conj HN'
                    (conj _ (conj _ (conj _ (conj _ I)))))))).
@@ -8195,6 +8199,144 @@ Section ActWriterRows.
                   (PTree.set aid v1
                      (PTree.set mario_actions_airborne._m v0 base)))).
     { intros t' Hmem' b o Hg'.
+      destruct (Pos.eq_dec t' eid) as [-> | Hne1].
+      { rewrite Hmem' in Hcend. discriminate Hcend. }
+      rewrite PTree.gso in Hg' by exact Hne1.
+      destruct (Pos.eq_dec t' aid) as [-> | Hne2].
+      { rewrite Hmem' in Hcanim. discriminate Hcanim. }
+      rewrite PTree.gso in Hg' by exact Hne2.
+      destruct (Pos.eq_dec t' mario_actions_airborne._m) as [-> | Hne3].
+      { rewrite Hmem' in Hcm. discriminate Hcm. }
+      rewrite PTree.gso in Hg' by exact Hne3.
+      pose proof (create_undef_temps_val _ _ _ Hg') as EE.
+      discriminate EE. }
+    change (blocks_of_env (lp_ge lp) empty_env)
+      with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    assert (Hcpt0 : forall fid', mem_id fid' nil = true ->
+                    call_pres_act3 lp bm NoA MWF fid')
+      by (intros fid' HH; discriminate HH).
+    destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+                false wact ids wids cact xids sids nil Hcp Hcpa Hcpx Hcps
+                Hcpt0 _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
+                HN HM HV HS)
+      as (HV' & HS' & HM' & HN' & _ & _ & _ & _).
+    exact (conj HV' (conj HS' (conj HM' HN'))).
+  Qed.
+
+  (* ---- the FOUR-param position-3 act-writer producer (begin_walking_
+     action: params (m, forwardVel, action, actionArg) -- the ACTION is the
+     THIRD param, the 4th (actionArg) is a value-irrelevant trailing param).
+     Same shape as call_pres_act3_of_wwalk_p but with one extra trailing
+     param (harg) bound off the rest; output is call_pres_act3. *)
+  Lemma call_pres_act3_of_wwalk_p4 :
+    forall (TU : Clight.program) (fid : ident) (f : Clight.function)
+           (wact ids wids cact xids sids : list ident)
+           (aid eid harg : ident) (aty hty : type),
+      linkorder TU lp ->
+      (prog_defmap TU) ! fid = Some (Gfun (Internal f)) ->
+      fn_vars f = nil ->
+      fn_params f = (mario_actions_airborne._m, tyMSp)
+                      :: (aid, aty) :: (eid, tuint) :: (harg, hty) :: nil ->
+      aid <> mario_actions_airborne._m ->
+      eid <> mario_actions_airborne._m ->
+      harg <> mario_actions_airborne._m ->
+      mem_id eid wact = true ->
+      mem_id mario_actions_airborne._m wact = false ->
+      mem_id aid wact = false ->
+      mem_id harg wact = false ->
+      mem_id mario_actions_airborne._m cact = false ->
+      mem_id aid cact = false ->
+      mem_id eid cact = false ->
+      mem_id harg cact = false ->
+      (forall fid', mem_id fid' ids = true ->
+                    call_pres lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' wids = true ->
+                    call_pres_act lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' xids = true ->
+                    call_pres_ext lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' sids = true ->
+                    call_pres_act lp bm NoA MWF fid') ->
+      wwalk_chk false wact ids wids cact xids sids nil (fn_body f) = true ->
+      call_pres_act3 lp bm NoA MWF fid.
+  Proof.
+    intros TU fid f wact ids wids cact xids sids aid eid harg aty hty
+           LOtu Hdm Hvars Hparams Haid_m Heid_m Hharg_m
+           Hwa Hwm Hwanim Hwharg Hcm Hcanim Hcend Hcharg
+           Hcp Hcpa Hcpx Hcps Hchk
+           fd m0 v0 v1 aval rest t0 m1 vres0 Hevf Hres Hmarg Hu HN HM HV HS.
+    pose proof (resolve_pin_fd lp _ _ _ _ LOtu Hdm Hres) as ->.
+    inv Hevf.
+    match goal with
+    | He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry
+    end.
+    match goal with
+    | Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody
+    end.
+    match goal with
+    | Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfree
+    end.
+    inv Hentry.
+    match goal with
+    | Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+        rewrite Hvars in Ha; inv Ha
+    end.
+    match goal with
+    | Hb : bind_parameter_temps _ _ _ = Some _ |- _ => rename Hb into Hbind
+    end.
+    rewrite Hparams in Hbind.
+    cbn [bind_parameter_temps] in Hbind.
+    destruct rest as [| vharg rtail ];
+      cbn [bind_parameter_temps] in Hbind; [ discriminate Hbind | ].
+    destruct rtail as [| ve rte ];
+      cbn [bind_parameter_temps] in Hbind; [ | discriminate Hbind ].
+    injection Hbind as <-.
+    set (base := create_undef_temps (fn_temps f)) in *.
+    assert (Htat0 : forall b o,
+               (PTree.set harg vharg
+                  (PTree.set eid aval
+                     (PTree.set aid v1
+                        (PTree.set mario_actions_airborne._m v0 base))))
+                 ! mario_actions_airborne._m = Some (Vptr b o) ->
+               b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg.
+      rewrite PTree.gso in Hg by (intro E; apply Hharg_m; exact (eq_sym E)).
+      rewrite PTree.gso in Hg by (intro E; apply Heid_m; exact (eq_sym E)).
+      rewrite PTree.gso in Hg by (intro E; apply Haid_m; exact (eq_sym E)).
+      rewrite PTree.gss in Hg. injection Hg as ->.
+      cbn in Hmarg. exact Hmarg. }
+    assert (Hact0 : act_inv wact
+               (PTree.set harg vharg
+                  (PTree.set eid aval
+                     (PTree.set aid v1
+                        (PTree.set mario_actions_airborne._m v0 base))))).
+    { intros t' Hmem' x Hg'.
+      destruct (Pos.eq_dec t' harg) as [-> | Hne0].
+      { rewrite Hmem' in Hwharg. discriminate Hwharg. }
+      rewrite PTree.gso in Hg' by exact Hne0.
+      destruct (Pos.eq_dec t' eid) as [-> | Hne1].
+      { rewrite PTree.gss in Hg'. injection Hg' as <-. exact Hu. }
+      rewrite PTree.gso in Hg' by exact Hne1.
+      destruct (Pos.eq_dec t' aid) as [-> | Hne2].
+      { rewrite Hmem' in Hwanim. discriminate Hwanim. }
+      rewrite PTree.gso in Hg' by exact Hne2.
+      destruct (Pos.eq_dec t' mario_actions_airborne._m) as [-> | Hne3].
+      { rewrite Hmem' in Hwm. discriminate Hwm. }
+      rewrite PTree.gso in Hg' by exact Hne3.
+      left. exact (create_undef_temps_val _ _ _ Hg'). }
+    assert (Hch0 : chase_inv SafeB cact
+               (PTree.set harg vharg
+                  (PTree.set eid aval
+                     (PTree.set aid v1
+                        (PTree.set mario_actions_airborne._m v0 base))))).
+    { intros t' Hmem' b o Hg'.
+      destruct (Pos.eq_dec t' harg) as [-> | Hne0].
+      { rewrite Hmem' in Hcharg. discriminate Hcharg. }
+      rewrite PTree.gso in Hg' by exact Hne0.
       destruct (Pos.eq_dec t' eid) as [-> | Hne1].
       { rewrite Hmem' in Hcend. discriminate Hcend. }
       rewrite PTree.gso in Hg' by exact Hne1.
