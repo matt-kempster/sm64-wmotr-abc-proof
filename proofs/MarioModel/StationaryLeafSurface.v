@@ -19,7 +19,7 @@
 (* ====================================================================== *)
 
 From Coq Require Import ZArith Lia List.
-From compcert Require Import Coqlib Maps AST Integers Values Events Memory
+From compcert Require Import Coqlib Maps AST Integers Floats Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
 From SM64.Generated Require mario mario_step interaction
   mario_actions_airborne mario_actions_stationary.
@@ -28,6 +28,9 @@ From SM64.Proofs Require Import SymbolicLinking Flying Taint
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface
   AirborneSurface DispatchKit FloorsSurface.
 From SM64.Proofs Require Import ActWriterSurface ObjectLeafSurface StationarySurface.
+(* SLICE 22 (act_shockwave_bounce): the w1 dst-window external arm
+   (vec3f_set(m->vel,...)) + carried bundle. *)
+From SM64.Proofs Require Import OutParamSurface LocalVarsSurface.
 
 Import ListNotations.
 
@@ -989,6 +992,7 @@ Definition sta_walked_ids : list ident :=
     :: mario_actions_stationary._act_idle
     :: mario_actions_stationary._act_sleeping
     :: mario_actions_stationary._act_first_person
+    :: mario_actions_stationary._act_shockwave_bounce
     :: mario_actions_stationary._check_common_stationary_cancels :: nil.
 Definition sta_rest_ids : list ident :=
   filter (fun id => negb (mem_id id sta_walked_ids)) stationary_callee_ids.
@@ -1810,6 +1814,71 @@ Example sta_fp_walk :
     (fn_body mario_actions_stationary.f_act_first_person) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* act_shockwave_bounce (SLICE 22): the electric-shock bounce action.  It is
+   a HYBRID walk -- pure engine EXCEPT for the one vec3f_set(m->vel, 0, 0, 0)
+   site, where vec3f_set writes THROUGH a pointer into Mario's OWN velocity
+   window (vel @72, a 12-byte safe bm-window).  vec3f_set is EF_external in
+   EVERY generated TU (no internal body), so it is the honest w1 dst-window
+   terminal-external boundary (the SAME Hw1cp_v3fset_real row act_in_cannon
+   uses).  Everything else is engine-walkable:
+   - ids   = mario_set_forward_vel (msfv_row) + set_mario_animation (sta_sma);
+   - xids  = vec3f_copy + vec3s_set (the marioObj gfx-node writers, obj_ext);
+   - sids  = set_mario_action + hurt_and_set_mario_action.  hasma is a 4-arg
+     act-setter (m, action, actionArg, hurtCounter) consumed via the smact
+     channel (it threads its PARAM action; here BOTH call sites pass an
+     UNTAINTED const action: ACT_SHOCKED 131896 / ACT_BACKWARD_GROUND_KB
+     132194).  hasma itself is PROVED call_pres_act (sta_hasma_row, walked
+     via call_pres_act_of_wwalk4).  No A-gate -- taint never enters. *)
+Definition sw_ids : list ident :=
+  mario._mario_set_forward_vel :: mario._set_mario_animation :: nil.
+Definition sw_xids : list ident :=
+  mario_step._vec3f_copy :: mario._vec3s_set :: nil.
+Definition sw_sids : list ident :=
+  mario._set_mario_action :: mario._hurt_and_set_mario_action :: nil.
+Example sta_sw_pin :
+  (prog_defmap mario_actions_stationary.prog)
+    ! mario_actions_stationary._act_shockwave_bounce
+  = Some (Gfun (Internal mario_actions_stationary.f_act_shockwave_bounce)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_sw_vars :
+  fn_vars mario_actions_stationary.f_act_shockwave_bounce = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_sw_params_ok :
+  match fn_params mario_actions_stationary.f_act_shockwave_bounce with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* hurt_and_set_mario_action (mario.prog): m->hurtCounter = harg;
+   _t'1 = set_mario_action(m, action, actionArg); return _t'1.  A 4-param
+   act-writer -- the action PARAM threads into set_mario_action, the result
+   (_t'1) is the untainted returned action.  Walked as call_pres_act via
+   call_pres_act_of_wwalk4 (wact = [_action; _t'1], wids = [set_mario_action]). *)
+Example sta_hasma_pin :
+  (prog_defmap mario.prog) ! mario._hurt_and_set_mario_action
+  = Some (Gfun (Internal mario.f_hurt_and_set_mario_action)).
+Proof. vm_compute. reflexivity. Qed.
+Example sta_hasma_vars : fn_vars mario.f_hurt_and_set_mario_action = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_hasma_params :
+  fn_params mario.f_hurt_and_set_mario_action
+  = (mario_actions_airborne._m, tyMSp)
+      :: (mario._action, tuint) :: (mario._actionArg, tuint)
+      :: (mario._hurtCounter, tshort) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_hasma_ret :
+  i32_ty (fn_return mario.f_hurt_and_set_mario_action) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_hasma_walk :
+  wwalk_chk true (mario._action :: mario._t'1 :: nil) nil
+    (mario._set_mario_action :: nil) nil nil nil nil
+    (fn_body mario.f_hurt_and_set_mario_action) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ====================================================================== *)
 (* The walk.                                                              *)
 (* ====================================================================== *)
@@ -1953,6 +2022,14 @@ Section StationaryLeafRows.
      capstone via Hpres_obj_ext. *)
   Hypothesis Hcpx_sfgtsc :
     call_pres_ext lp bm NoA MWF mario_actions_stationary._save_file_get_total_star_count.
+
+  (* SLICE 22: vec3f_set -- the w1 dst-window terminal external
+     (act_shockwave_bounce's vec3f_set(m->vel, 0, 0, 0) site).  EF_external
+     in every TU; writes ONLY through its sole pointer arg = &m->vel, a
+     12-byte safe bm-window.  Supplied at the capstone by the SAME
+     Hw1cp_v3fset_real row act_in_cannon uses (NO new trust). *)
+  Hypothesis Hw1cp_v3fset :
+    call_pres_ext_w1 lp bm NoA MWF mario._vec3f_set.
 
   (* the keystone, instantiated once *)
   Let Hsmact : call_pres_act lp bm NoA MWF mario._set_mario_action :=
@@ -3149,6 +3226,56 @@ Section StationaryLeafRows.
     exact (conj HVr (conj HSr HMr)).
   Qed.
 
+  (* the no-prefix entry: body_pres from a preserver of the WHOLE body
+     (act_shockwave_bounce has no input-clear prefix). *)
+  Lemma body_pres_of_preserver :
+    forall (f : Clight.function),
+      fn_vars f = nil ->
+      match fn_params f with
+      | (i, ty) :: ps =>
+          Pos.eqb i mario_actions_airborne._m
+          && proj_sumbool (type_eq ty tyMSp)
+          && negb (mem_id mario_actions_airborne._m (map fst ps))
+      | nil => false
+      end = true ->
+      preserver (fn_body f) ->
+      body_pres lp NoA MWF bm f.
+  Proof.
+    intros f Hvars Hps Hpres m0 vargs0 t0 mF vresF Hmargf Hevf HN HM HV HS.
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      rewrite Hvars in Ha; inv Ha end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ => rename Hb into Hbind end.
+    destruct (fn_params f) as [| [i ty] ps ] eqn:Eps; [ discriminate Hps | ].
+    apply andb_prop in Hps as [Hps Hnm].
+    apply andb_prop in Hps as [Hi Hty].
+    apply Pos.eqb_eq in Hi. subst i.
+    destruct (type_eq ty tyMSp); [ subst ty | discriminate Hty ].
+    apply negb_true_iff in Hnm.
+    assert (Hmarg : marg_ok bm vargs0).
+    { apply Hmargf. unfold marg_exempt. rewrite Eps. reflexivity. }
+    destruct vargs0 as [| v0 vrest];
+      cbn [bind_parameter_temps] in Hbind; [ discriminate Hbind | ].
+    change (blocks_of_env (lp_ge lp) empty_env)
+      with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    match goal with Hbind' : bind_parameter_temps _ _ _ = Some ?le1 |- _ =>
+      assert (Htat0 : forall b o,
+                 le1 ! mario_actions_airborne._m = Some (Vptr b o) ->
+                 b = bm /\ o = Ptrofs.zero)
+        by (intros b o Hg;
+            rewrite (bind_params_other _ _ _ _ _ Hbind' Hnm) in Hg;
+            rewrite PTree.gss in Hg; injection Hg as ->;
+            cbn in Hmarg; exact Hmarg) end.
+    destruct (Hpres _ _ _ _ _ _ Htat0 HN HM HV HS Hbody)
+      as (HVr & HSr & HMr & _ & _).
+    exact (conj HVr (conj HSr HMr)).
+  Qed.
+
   Lemma act_long_jump_land_stop_pres :
     body_pres lp NoA MWF bm
       mario_actions_stationary.f_act_long_jump_land_stop.
@@ -3201,6 +3328,261 @@ Section StationaryLeafRows.
           intros le m tr le' m' out Htat HN HM HV HS Hex.
           inv Hex.
           exact (conj HV (conj HS (conj HM (conj HN Htat)))).
+  Qed.
+
+  (* ====================================================================== *)
+  (* SLICE 22: act_shockwave_bounce (HYBRID: engine + one w1 vec3f_set site) *)
+  (* ====================================================================== *)
+
+  (* hurt_and_set_mario_action as a call_pres_act (the 4-param act-writer:
+     m->hurtCounter = harg; _t'1 = set_mario_action(m, action, actionArg);
+     return _t'1).  Walked via call_pres_act_of_wwalk4. *)
+  Lemma sta_hasma_row :
+    call_pres_act lp bm NoA MWF mario._hurt_and_set_mario_action.
+  Proof.
+    apply (call_pres_act_of_wwalk4 lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._hurt_and_set_mario_action
+             mario.f_hurt_and_set_mario_action
+             (mario._action :: mario._t'1 :: nil) nil
+             (mario._set_mario_action :: nil) nil nil nil
+             mario._hurtCounter tshort
+             LO_mario sta_hasma_pin sta_hasma_vars sta_hasma_params sta_hasma_ret
+             ltac:(intro HX; vm_compute in HX; discriminate HX)
+             ltac:(vm_compute; reflexivity)
+             ltac:(vm_compute; reflexivity)
+             ltac:(vm_compute; reflexivity)
+             ltac:(vm_compute; reflexivity)
+             ltac:(vm_compute; reflexivity)
+             ltac:(vm_compute; reflexivity)
+             ltac:(vm_compute; reflexivity)
+             ltac:(vm_compute; reflexivity)).
+    - intros f' H'; discriminate H'.
+    - intros fid' H'. cbn [mem_id existsb] in H'.
+      apply orb_true_iff in H' as [Hm | H'];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hsmact | discriminate H' ].
+    - intros f' H'; discriminate H'.
+    - intros f' H'; discriminate H'.
+    - exact sta_hasma_walk.
+  Qed.
+
+  (* the shockwave census rows *)
+  Lemma sw_ids_rows : forall fid, mem_id fid sw_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sw_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        exact (msfv_row lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+                 HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe) | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_sma_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma sw_xids_rows : forall fid, mem_id fid sw_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sw_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_v3f | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_v3s | ].
+    discriminate H.
+  Qed.
+
+  Lemma sw_sids_rows : forall fid, mem_id fid sw_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sw_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_hasma_row | ].
+    discriminate H.
+  Qed.
+
+  (* preserver_walk extended with an xids (call_pres_ext) census -- REST7
+     (after the vec3f_set site) calls vec3f_copy / vec3s_set. *)
+  Lemma preserver_walk_x :
+    forall (ids xids sids tids : list ident) (s : statement),
+      (forall fid', mem_id fid' ids = true -> call_pres lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' xids = true -> call_pres_ext lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' sids = true -> call_pres_act lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' tids = true -> call_pres_act3 lp bm NoA MWF fid') ->
+      wwalk_chk false nil ids nil nil xids sids tids s = true ->
+      preserver s.
+  Proof.
+    intros ids xids sids tids s Hcp Hcpx Hcps Hcp3t Hchk
+           le m tr le' m' out Htat HN HM HV HS Hex.
+    assert (Hact : act_inv nil le) by (intros t' Hmem' x Hg'; discriminate Hmem').
+    assert (Hch : chase_inv SafeB nil le)
+      by (intros t' Hmem' b o Hg'; discriminate Hmem').
+    destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+                false nil ids nil nil xids sids tids Hcp
+                ltac:(intros f' H'; discriminate H')
+                Hcpx Hcps Hcp3t _ _ _ _ _ _ _ _ Hex
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (PTree.gempty _ _) Hchk Htat Hact Hch HN HM HV HS)
+      as (HV' & HS' & HM' & HN' & Htat' & _ & _ & _).
+    exact (conj HV' (conj HS' (conj HM' (conj HN' Htat')))).
+  Qed.
+
+  (* &m->vel evaluates to a 12-byte safe bm-window (vel @72).  Twin of
+     AutomaticLeafSurface.vel_window_val, re-proved here (it is section-bound
+     there). *)
+  Lemma sta_vel_window_val :
+    forall e le m v,
+      (forall b o, le ! mario_actions_stationary._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      eval_expr (lp_ge lp) e le m
+        (Efield
+           (Ederef (Etempvar mario_actions_stationary._m
+                      (tptr (Tstruct mario_actions_stationary._MarioState noattr)))
+              (Tstruct mario_actions_stationary._MarioState noattr))
+           mario_actions_stationary._vel (tarray tfloat 3)) v ->
+      exists o, v = Vptr bm o /\ store_window_ok (Ptrofs.unsigned o) 12 = true.
+  Proof.
+    intros e le m v Htat Hev.
+    assert (Hfo : field_offset (prog_comp_env mario.prog)
+                    mario_actions_stationary._vel mario_state_members
+                  = OK (72, Full)) by (vm_compute; reflexivity).
+    assert (Hwin : store_window_ok 72 12 = true) by (vm_compute; reflexivity).
+    inv Hev.
+    match goal with
+    | Hd : deref_loc (typeof _) _ _ _ _ _ |- _ => cbn [typeof] in Hd
+    end.
+    match goal with
+    | Hd : deref_loc (tarray tfloat 3) _ _ _ _ _ |- _ =>
+        inv Hd;
+        try (match goal with Hacc : access_mode (tarray tfloat 3) = _ |- _ =>
+               cbn in Hacc; discriminate Hacc end);
+        try (match goal with Hlb : load_bitfield (tarray tfloat 3) _ _ _ _ _ _ _ |- _ =>
+               inv Hlb end)
+    end.
+    match goal with
+    | Hflv : eval_lvalue _ _ _ _ (Efield _ _ _) ?lf ?of ?bff |- _ =>
+        pose proof Hflv as Hpin;
+        apply eval_lvalue_Efield_base in Hpin;
+        destruct Hpin as (oo0 & Hbase);
+        apply eval_expr_Ederef_load in Hbase;
+        destruct Hbase as (lb & ob & bfb & Hlvb & _);
+        apply eval_lvalue_Ederef_base in Hlvb;
+        apply eval_expr_Etempvar_val in Hlvb;
+        destruct (Htat _ _ Hlvb) as [E1 E2]; subst lb ob;
+        destruct (mfield_lvalue_geom_lp lp LO_mario _ _ _ _ _ _
+                    lf of bff _ _ _ Hlvb Hfo Hflv) as (E3 & E4 & _);
+        subst lf of
+    end.
+    eexists. split; [ reflexivity | ].
+    rewrite Ptrofs.add_zero_l.
+    rewrite Ptrofs.unsigned_repr by (vm_compute; split; discriminate).
+    exact Hwin.
+  Qed.
+
+  (* the vec3f_set(m->vel, 0, 0, 0) special site as a preserver: the dst is
+     a safe bm-window, vec3f_set is the honest w1 terminal external. *)
+  Lemma sw_vec3f_set_pres :
+    preserver
+      (Scall None
+         (Evar mario._vec3f_set
+            (Tfunction (tptr tfloat :: tfloat :: tfloat :: tfloat :: nil)
+               (tptr tvoid) cc_default))
+         (Efield
+            (Ederef (Etempvar mario_actions_stationary._m
+                       (tptr (Tstruct mario_actions_stationary._MarioState noattr)))
+               (Tstruct mario_actions_stationary._MarioState noattr))
+            mario_actions_stationary._vel (tarray tfloat 3)
+          :: Econst_single (Float32.of_bits (Int.repr 0)) tfloat
+          :: Econst_single (Float32.of_bits (Int.repr 0)) tfloat
+          :: Econst_single (Float32.of_bits (Int.repr 0)) tfloat :: nil)).
+  Proof.
+    intros le m tr le' m' out Htat HN HM HV HS Hex.
+    assert (Hle' : le' = le) by (inv Hex; reflexivity).
+    assert (Hc0 : carried bm NoA MWF m)
+      by (split; [ exact HV | split; [ exact HS
+                 | split; [ exact HM | exact HN ] ] ]).
+    assert (Hgate : forall vargs1,
+        eval_exprlist (lp_ge lp) empty_env le m
+          (Efield
+             (Ederef (Etempvar mario_actions_stationary._m
+                        (tptr (Tstruct mario_actions_stationary._MarioState noattr)))
+                (Tstruct mario_actions_stationary._MarioState noattr))
+             mario_actions_stationary._vel (tarray tfloat 3)
+           :: Econst_single (Float32.of_bits (Int.repr 0)) tfloat
+           :: Econst_single (Float32.of_bits (Int.repr 0)) tfloat
+           :: Econst_single (Float32.of_bits (Int.repr 0)) tfloat :: nil)
+          (tptr tfloat :: tfloat :: tfloat :: tfloat :: nil) vargs1 ->
+        arg0_window bm vargs1).
+    { intros vargs1 Hvl.
+      inversion Hvl as [ | x1 bl1 ty1 tyl1 v1a v2a vl1 Hev_a Hsc_a Htl1 ];
+        subst; clear Hvl.
+      destruct (sta_vel_window_val _ _ _ _ Htat Hev_a) as (o0 & Ev0 & Hwin0).
+      subst v1a. cbn in Hsc_a. injection Hsc_a as <-.
+      red. exists o0, vl1. split; [ reflexivity | exact Hwin0 ]. }
+    destruct (w1_scall_pres lp bm NoA MWF None mario._vec3f_set
+                (tptr tfloat :: tfloat :: tfloat :: tfloat :: nil)
+                (tptr tvoid) cc_default
+                (Efield
+                   (Ederef (Etempvar mario_actions_stationary._m
+                              (tptr (Tstruct mario_actions_stationary._MarioState noattr)))
+                      (Tstruct mario_actions_stationary._MarioState noattr))
+                   mario_actions_stationary._vel (tarray tfloat 3)
+                 :: Econst_single (Float32.of_bits (Int.repr 0)) tfloat
+                 :: Econst_single (Float32.of_bits (Int.repr 0)) tfloat
+                 :: Econst_single (Float32.of_bits (Int.repr 0)) tfloat :: nil)
+                empty_env le m tr le' m' out
+                (PTree.gempty _ _) Hw1cp_v3fset Hgate Hex Hc0) as (Hc' & _).
+    destruct Hc' as (HV' & HS' & HM' & HN').
+    rewrite Hle'.
+    exact (conj HV' (conj HS' (conj HM' (conj HN' Htat)))).
+  Qed.
+
+  Lemma act_shockwave_bounce_pres :
+    body_pres lp NoA MWF bm mario_actions_stationary.f_act_shockwave_bounce.
+  Proof.
+    apply (body_pres_of_preserver mario_actions_stationary.f_act_shockwave_bounce
+             sta_sw_vars sta_sw_params_ok).
+    unfold mario_actions_stationary.f_act_shockwave_bounce; cbn [fn_body].
+    (* peel the 6 engine-walkable prefix blocks, the vec3f_set special, REST7 *)
+    apply preserver_seq;
+      [ apply preserver_walk with (ids := sw_ids) (sids := sw_sids) (tids := nil);
+        [ exact sw_ids_rows | exact sw_sids_rows
+        | intros f' H'; discriminate H' | vm_compute; reflexivity ] | ].
+    apply preserver_seq;
+      [ apply preserver_walk with (ids := sw_ids) (sids := sw_sids) (tids := nil);
+        [ exact sw_ids_rows | exact sw_sids_rows
+        | intros f' H'; discriminate H' | vm_compute; reflexivity ] | ].
+    apply preserver_seq;
+      [ apply preserver_walk with (ids := sw_ids) (sids := sw_sids) (tids := nil);
+        [ exact sw_ids_rows | exact sw_sids_rows
+        | intros f' H'; discriminate H' | vm_compute; reflexivity ] | ].
+    apply preserver_seq;
+      [ apply preserver_walk with (ids := sw_ids) (sids := sw_sids) (tids := nil);
+        [ exact sw_ids_rows | exact sw_sids_rows
+        | intros f' H'; discriminate H' | vm_compute; reflexivity ] | ].
+    apply preserver_seq;
+      [ apply preserver_walk with (ids := sw_ids) (sids := sw_sids) (tids := nil);
+        [ exact sw_ids_rows | exact sw_sids_rows
+        | intros f' H'; discriminate H' | vm_compute; reflexivity ] | ].
+    apply preserver_seq;
+      [ apply preserver_walk with (ids := sw_ids) (sids := sw_sids) (tids := nil);
+        [ exact sw_ids_rows | exact sw_sids_rows
+        | intros f' H'; discriminate H' | vm_compute; reflexivity ] | ].
+    apply preserver_seq.
+    - exact sw_vec3f_set_pres.
+    - apply preserver_walk_x with (ids := sw_ids) (xids := sw_xids)
+        (sids := sw_sids) (tids := nil).
+      + exact sw_ids_rows.
+      + exact sw_xids_rows.
+      + exact sw_sids_rows.
+      + intros f' H'; discriminate H'.
+      + vm_compute; reflexivity.
   Qed.
 
   (* ---- the landing-sound helper chain ---- *)
@@ -4496,10 +4878,11 @@ Section StationaryLeafRows.
     { apply Pos.eqb_eq in Hm; subst fid.
       rewrite sta_skss_pin in Hdm. injection Hdm as <-.
       exact act_slide_kick_slide_stop_pres. }
-    (* 20: act_shockwave_bounce -- rest *)
+    (* 20: act_shockwave_bounce -- WALKED (w1 vec3f_set hybrid, SLICE 22) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite sta_sw_pin in Hdm. injection Hdm as <-.
+      exact act_shockwave_bounce_pres. }
     (* 21: act_first_person -- WALKED (pure-engine, SLICE 21) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
