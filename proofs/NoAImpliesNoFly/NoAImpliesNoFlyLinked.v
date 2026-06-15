@@ -1730,6 +1730,28 @@ Section NoARealInputMWF.
                          (set_water_plunge_action / update_mario_sound_and_camera)
                          call.  Discharged via the obj_ext boundary. *)
                       (Hpres_obj_ext mario._set_camera_mode eq_refl)
+                      (* SLICE 21: act_first_person's level_trigger_warp -- the
+                         SHARED warp-trigger body the floors family already
+                         walks (WarpSurface.warp_pres), lifted to a call_pres
+                         via call_pres_of_body.  NO new trust: the same warp
+                         body the floors/warp surfaces discharge. *)
+                      (call_pres_of_body lp bm (NoA_real bm)
+                         (MWF_real lp bm bc oc0 SafeB)
+                         (mwf_real_ctl lp bm bc oc0 SafeB)
+                         level_update.prog level_update._level_trigger_warp
+                         level_update.f_level_trigger_warp LO_lvl
+                         floors_warp_internal
+                         (warp_pres lp LO_mario LO_lvl bm (NoA_real bm)
+                            (MWF_real lp bm bc oc0 SafeB)
+                            (mwf_real_ctl lp bm bc oc0 SafeB)
+                            (mwf_real_window lp bm bc oc0 SafeB Hbc_bm
+                               HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                            (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+                            Hpres_warp_ext))
+                      (* SLICE 21: save_file_get_total_star_count -- the pure
+                         save-buffer READER (obj_ext model class). *)
+                      (Hpres_obj_ext interaction._save_file_get_total_star_count
+                         eq_refl)
                       Hpres_sta_rest)
                    Hpres_qsand)
                 (moving_pres lp LO_mario LO_mov LO_stp bm (NoA_real bm)
