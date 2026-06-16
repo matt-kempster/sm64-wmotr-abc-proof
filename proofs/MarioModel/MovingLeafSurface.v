@@ -56,7 +56,13 @@ Definition mov_ext_ids : list ident :=
     (* the float `approach` math builtin: EF_external in every TU, 4
        tfloat args, no Mario pointer -- the SAME honest pure-math model
        boundary as approach_s32 / sqrtf / atan2s. *)
-    :: mario_actions_moving._approach_f32 :: nil.
+    :: mario_actions_moving._approach_f32
+    (* mtxf_align_terrain_triangle: EF_external in every TU (align_with_floor's
+       terrain-matrix builtin).  Writes only the SafeB sFloorAlignMatrix global
+       (floats, never a pointer) and reads m->pos -- touches NO bm/MWF-relevant
+       state, so it is the SAME honest terminal-external boundary class.  Its
+       call_pres_ext is consumed by align_with_floor_pres below. *)
+    :: mario_actions_moving._mtxf_align_terrain_triangle :: nil.
 
 (* set_mario_animation's chase temps + its load_patchable_table external *)
 Definition mov_sma_cact : list ident :=
@@ -235,7 +241,10 @@ Definition mov_walked_ids : list ident :=
     :: mario_actions_moving._act_decelerating
     (* act_move_punching: clean engine walk (all 6 helpers have rows;
        mario_update_punch_sequence via ObjectLeafSurface.mups_row) *)
-    :: mario_actions_moving._act_move_punching :: nil.
+    :: mario_actions_moving._act_move_punching
+    (* act_crawling: nids-engine consumer of the align_with_floor keystone
+       (the gchase store C through marioObj->gfx.throwMatrix) *)
+    :: mario_actions_moving._act_crawling :: nil.
 Definition mov_rest_ids : list ident :=
   filter (fun id => negb (mem_id id mov_walked_ids)) moving_callee_ids.
 
@@ -625,6 +634,58 @@ Definition mp_ids : list ident :=
     :: mario_actions_moving._apply_slope_accel
     :: mario_step._perform_ground_step :: nil.
 Definition mp_sids : list ident := mario._set_mario_action :: nil.
+
+(* ====================================================================== *)
+(* align_with_floor keystone: the global-pointer-chase store.             *)
+(* The body stores `&sFloorAlignMatrix[t'2]` (a global float-matrix array  *)
+(* element address) THROUGH marioObj->header.gfx.throwMatrix (a censused   *)
+(* chase cell).  This is the ONE store no engine arm recognises, so        *)
+(* align_with_floor is walked bespoke: the engine (wwalk_pres0) handles    *)
+(* the seven other statements (5 loads + the m->pos[1] window store + the  *)
+(* mtxf external), and gchase_assign_pres handles store C.                 *)
+(* ====================================================================== *)
+Definition awf_cact : list ident := mario_actions_moving._t'1 :: nil.
+Definition awf_xids : list ident :=
+  mario_actions_moving._mtxf_align_terrain_triangle :: nil.
+
+(* the throwMatrix store target lvalue (chain rooted at _t'1 = m->marioObj) *)
+Definition awf_a1 :=
+  (Efield
+    (Efield
+      (Efield
+        (Ederef (Etempvar mario_actions_moving._t'1
+                   (tptr (Tstruct mario_actions_moving._Object noattr)))
+          (Tstruct mario_actions_moving._Object noattr))
+        mario_actions_moving._header
+        (Tstruct mario_actions_moving._ObjectNode noattr))
+      mario_actions_moving._gfx
+      (Tstruct mario_actions_moving._GraphNodeObject noattr))
+    mario_actions_moving._throwMatrix
+    (tptr (tarray (tarray tfloat 4) 4))).
+
+(* the stored value: &sFloorAlignMatrix[t'2], a global array element address *)
+Definition awf_a2 :=
+  (Ebinop Oadd
+    (Evar mario_actions_moving._sFloorAlignMatrix
+       (tarray (tarray (tarray tfloat 4) 4) 2))
+    (Etempvar mario_actions_moving._t'2 tushort)
+    (tptr (tarray (tarray tfloat 4) 4))).
+
+(* act_crawling: the cheapest consumer of align_with_floor.  All callees
+   have rows; the ONLY Sassign is the m->intendedMag window store; nids
+   carries the val04 non-pointer temp; np3 carries set_mario_anim_with_accel. *)
+Definition cr_ids : list ident :=
+  mario_actions_moving._should_begin_sliding
+    :: mario_actions_moving._check_ground_dive_or_punch
+    :: mario_actions_moving._update_walking_speed
+    :: mario_step._perform_ground_step
+    :: mario._mario_set_forward_vel
+    :: mario_actions_moving._play_step_sound
+    :: mario_actions_moving._align_with_floor :: nil.
+Definition cr_sids : list ident :=
+  mario._set_mario_action :: mario._set_jumping_action :: nil.
+Definition cr_nids : list ident := mario_actions_moving._val04 :: nil.
+Definition cr_np3 : list ident := mario._set_mario_anim_with_accel :: nil.
 
 (* begin_walking_action producer: wact threads the _action PARAM + the
    set_mario_action result temp _t'1; ids = mario_set_forward_vel;
@@ -1449,6 +1510,17 @@ Section MovingLeafRows.
       MWF mm -> SafeB bsafe ->
       (forall bb oo, vv = Vptr bb oo -> SafeB bb) ->
       Mem.store ch mm bsafe d vv = Some mm' -> MWF mm'.
+
+  (* ALIGN-WITH-FLOOR keystone: sFloorAlignMatrix's block is SafeB.  It is a
+     static f32[2][4][4] global whose address Mario's gfx legitimately holds
+     (marioObj->gfx.throwMatrix = &sFloorAlignMatrix[i]), so it is part of the
+     SafeB reach closure -- a per-symbol POSITIVE SafeB constraint, the dual
+     of the capstone's gMarioState ~SafeB hyp.  Discharged at the capstone
+     (consistent with HSafeNotBm / the named ~SafeB globals: sFloorAlignMatrix
+     is none of bm/bc/gMarioState/gtimer/table/ktab). *)
+  Hypothesis Hsfam_safe : forall gb,
+      Genv.find_symbol (lp_ge lp) mario_actions_moving._sFloorAlignMatrix
+        = Some gb -> SafeB gb.
 
   (* obj_ext externals the knockback subtree bottoms out in *)
   Hypothesis Hcpx_sqrtf :
@@ -4439,6 +4511,373 @@ Section MovingLeafRows.
   Proof. vm_compute. reflexivity. Qed.
 
   (* ================================================================== *)
+  (* align_with_floor: the bespoke straightline walk (store C = gchase). *)
+  (* ================================================================== *)
+
+  (* the global-address VALUE evaluates to a Vptr in sFloorAlignMatrix's
+     block (separate lemma to avoid focus nesting in the store proof) *)
+  Lemma awf_a2_block :
+    forall e le m v,
+      e ! mario_actions_moving._sFloorAlignMatrix = None ->
+      eval_expr (lp_ge lp) e le m awf_a2 v ->
+      forall bb oo, v = Vptr bb oo ->
+        Genv.find_symbol (lp_ge lp) mario_actions_moving._sFloorAlignMatrix
+          = Some bb.
+  Proof.
+    intros e le m v He Hev bb oo Evv.
+    unfold awf_a2 in Hev. inv Hev.
+    2:{ match goal with
+        | Hlv : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => inv Hlv
+        end. }
+    match goal with
+    | Hs : sem_binary_operation _ _ _ _ _ _ _ = Some _ |- _ =>
+        cbn [typeof] in Hs; rename Hs into Hsem
+    end.
+    match goal with
+    | Hx : eval_expr _ _ _ _ (Evar _ _) _ |- _ => inv Hx
+    end.
+    match goal with
+    | Hd : deref_loc (typeof _) _ _ _ _ _ |- _ =>
+        cbn [typeof] in Hd; rename Hd into Hdl
+    end.
+    match goal with
+    | Hlv : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ => inv Hlv
+    end.
+    1:{ match goal with
+        | Hl : e ! _ = Some _ |- _ => rewrite He in Hl; discriminate Hl
+        end. }
+    inv Hdl;
+      try (match goal with
+           | Hacc : access_mode _ = _ |- _ =>
+               cbn in Hacc; discriminate Hacc
+           end).
+    unfold sem_binary_operation, sem_add, sem_add_ptr_int in Hsem.
+    cbn in Hsem.
+    match type of Hsem with
+    | match ?vi with _ => _ end = _ => destruct vi; try discriminate Hsem
+    end.
+    all: congruence.
+  Qed.
+
+  (* store C: storing &sFloorAlignMatrix[t'2] through the censused chase cell
+     marioObj->...->throwMatrix preserves the run facts (the stored value is
+     SafeB-if-pointer by Hsfam_safe; HMWF_chase_safe absorbs the store). *)
+  Lemma awf_gchase_pres :
+    forall e le m0 tr le' m' out,
+      mem_id mario_actions_moving._t'1 awf_cact = true ->
+      ActWriterSurface.chase_inv SafeB awf_cact le ->
+      e ! mario_actions_moving._sFloorAlignMatrix = None ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0 (Sassign awf_a1 awf_a2)
+        tr le' m' out ->
+      MWF m0 -> Mem.valid_block m0 bm -> action_sat not_tainted m0 bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\
+      le' = le /\ out = Out_normal.
+  Proof.
+    intros e le m0 tr le' m' out Hctm Hch He Hexec HM HV HS.
+    inv Hexec.
+    assert (Hcr : chain_root_l awf_a1 = Some mario_actions_moving._t'1)
+      by reflexivity.
+    match goal with
+    | Hlv : eval_lvalue _ _ _ _ awf_a1 _ _ _ |- _ =>
+        destruct (chain_root_l_block _ _ _ _ _ _ _ _ _ Hcr Hlv) as (o0 & Hlet)
+    end.
+    pose proof (Hch _ Hctm _ _ Hlet) as Hsafe.
+    pose proof (HSafeNotBm _ Hsafe) as Hneq.
+    match goal with
+    | Hev2 : eval_expr _ _ _ _ awf_a2 ?vv2 |- _ =>
+        assert (Hv2sp : forall bb oo, vv2 = Vptr bb oo -> SafeB bb)
+          by (intros bb oo Evv;
+              exact (Hsfam_safe _ (awf_a2_block _ _ _ _ He Hev2 _ _ Evv)))
+    end.
+    match goal with
+    | Hcast0 : sem_cast _ _ _ _ = Some ?vw |- _ =>
+        assert (Hsp : forall bb oo, vw = Vptr bb oo -> SafeB bb)
+          by (intros bb oo Evw; rewrite Evw in Hcast0;
+              apply sem_cast_vptr_inv in Hcast0;
+              exact (Hv2sp _ _ Hcast0))
+    end.
+    match goal with
+    | Has : assign_loc _ _ _ _ _ _ _ m' |- _ => inv Has
+    end.
+    - match goal with
+      | Hsv0 : Mem.storev _ _ _ _ = Some m' |- _ =>
+          unfold Mem.storev in Hsv0
+      end.
+      match goal with
+      | Hsv : Mem.store _ _ _ _ _ = Some m' |- _ =>
+          split; [ eauto using Mem.store_valid_block_1 | split ];
+          [ intros av Hload;
+            rewrite (Mem.load_store_other _ _ _ _ _ _ Hsv) in Hload;
+            [ exact (HS av Hload) | left; exact (not_eq_sym Hneq) ]
+          | split;
+            [ exact (HMWF_chase_safe _ _ _ _ _ _ HM Hsafe Hsp Hsv)
+            | split; reflexivity ] ]
+      end.
+    - match goal with
+      | Hac : access_mode (typeof awf_a1) = By_copy |- _ =>
+          cbn [typeof access_mode] in Hac; discriminate Hac
+      end.
+    - match goal with
+      | Hsb : store_bitfield _ _ _ _ _ _ _ _ _ _ |- _ => inv Hsb
+      end.
+  Qed.
+
+  (* the generic engine arm: one wwalk_pres0 call over the empty env (mtxf is
+     routed through Hpres_mov_ext, its honest terminal-external boundary) *)
+  Lemma awf_gen :
+    forall s le m0 tr le' m' out,
+      exec_stmt function_entry2 (lp_ge lp) empty_env le m0 s tr le' m' out ->
+      wwalk_chk false nil nil nil awf_cact awf_xids nil nil s = true ->
+      (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      ActWriterSurface.chase_inv SafeB awf_cact le ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\ NoA m' /\
+      (forall b o, le' ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) /\
+      ActWriterSurface.chase_inv SafeB awf_cact le'.
+  Proof.
+    intros s le m0 tr le' m' out Hexec Hchk Htat Hch HN HM HV HS.
+    assert (Hxr : forall fid, mem_id fid awf_xids = true ->
+                  call_pres_ext lp bm NoA MWF fid).
+    { intros fid Hm. unfold awf_xids, mem_id in Hm. cbn [existsb] in Hm.
+      apply orb_true_iff in Hm as [He | Hf]; [ | discriminate Hf ].
+      apply Pos.eqb_eq in He. subst fid.
+      apply Hpres_mov_ext. vm_compute. reflexivity. }
+    destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+                false nil nil nil awf_cact awf_xids nil nil
+                (fun fid HH => match Bool.diff_false_true HH with end)
+                (fun fid HH => match Bool.diff_false_true HH with end)
+                Hxr
+                (fun fid HH => match Bool.diff_false_true HH with end)
+                (fun fid HH => match Bool.diff_false_true HH with end)
+                s empty_env le m0 tr le' m' out Hexec
+                (fun g _ => PTree.gempty _ g)
+                (fun g _ => PTree.gempty _ g)
+                (fun g _ => PTree.gempty _ g)
+                (fun g _ => PTree.gempty _ g)
+                (fun g _ => PTree.gempty _ g)
+                (fun g _ => PTree.gempty _ g)
+                (PTree.gempty _ _)
+                Hchk Htat
+                (fun t HH => match Bool.diff_false_true HH with end)
+                Hch HN HM HV HS)
+      as (HV' & HS' & HM' & HN' & Htat' & Hact' & Hch' & _).
+    exact (conj HV' (conj HS' (conj HM' (conj HN' (conj Htat' Hch'))))).
+  Qed.
+
+  (* one Ssequence peel: walk the generic prefix s1, hand off s2 *)
+  Lemma awf_seq2 :
+    forall s1 s2 le m0 tr le' m' out,
+      exec_stmt function_entry2 (lp_ge lp) empty_env le m0
+        (Ssequence s1 s2) tr le' m' out ->
+      wwalk_chk false nil nil nil awf_cact awf_xids nil nil s1 = true ->
+      (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      ActWriterSurface.chase_inv SafeB awf_cact le ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      (exists le1 m1 tr1,
+          NoA m1 /\ MWF m1 /\ Mem.valid_block m1 bm /\
+          action_sat not_tainted m1 bm /\
+          (forall b o, le1 ! mario_actions_airborne._m = Some (Vptr b o) ->
+                       b = bm /\ o = Ptrofs.zero) /\
+          ActWriterSurface.chase_inv SafeB awf_cact le1 /\
+          exec_stmt function_entry2 (lp_ge lp) empty_env le1 m1 s2 tr1
+            le' m' out)
+      \/ (Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\
+          NoA m').
+  Proof.
+    intros s1 s2 le m0 tr le' m' out Hexec Hchk Htat Hch HN HM HV HS.
+    inv Hexec.
+    - match goal with
+      | H1 : exec_stmt _ _ _ _ _ s1 _ ?le1 ?m1 Out_normal,
+        H2 : exec_stmt _ _ _ _ _ s2 ?tr2 _ _ _ |- _ =>
+          destruct (awf_gen s1 le m0 _ le1 m1 Out_normal H1 Hchk Htat Hch
+                      HN HM HV HS)
+            as (HV1 & HS1 & HM1 & HN1 & Htat1 & Hch1);
+          left; exists le1, m1, tr2;
+          exact (conj HN1 (conj HM1 (conj HV1 (conj HS1
+                   (conj Htat1 (conj Hch1 H2))))))
+      end.
+    - match goal with
+      | H1 : exec_stmt _ _ _ _ _ s1 _ _ _ _ |- _ =>
+          destruct (awf_gen s1 le m0 _ le' m' out H1 Hchk Htat Hch
+                      HN HM HV HS)
+            as (HV1 & HS1 & HM1 & HN1 & _);
+          right; exact (conj HV1 (conj HS1 (conj HM1 HN1)))
+      end.
+  Qed.
+
+  Lemma align_with_floor_pres :
+    body_pres lp NoA MWF bm mario_actions_moving.f_align_with_floor.
+  Proof.
+    intros m0 vargs t0 mF vres Hmargf Hevf HN HM HV HS.
+    assert (Hmarg : marg_ok bm vargs)
+      by (apply Hmargf; vm_compute; reflexivity).
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      change (fn_vars mario_actions_moving.f_align_with_floor)
+        with (@nil (ident * type)) in Ha;
+      inv Ha end.
+    change (blocks_of_env (lp_ge lp) empty_env) with (@nil (block * Z * Z))
+      in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    assert (Hps : match fn_params mario_actions_moving.f_align_with_floor with
+                  | (i, ty) :: ps =>
+                      (Pos.eqb i mario_actions_airborne._m
+                       && proj_sumbool (type_eq ty tyMSp)
+                       && negb (mem_id mario_actions_airborne._m (map fst ps)))%bool
+                  | nil => false
+                  end = true) by (vm_compute; reflexivity).
+    assert (Hnpc : forallb
+              (fun t' => negb (mem_id t'
+                 (map fst (fn_params mario_actions_moving.f_align_with_floor))))
+              awf_cact = true) by (vm_compute; reflexivity).
+    destruct (fn_params mario_actions_moving.f_align_with_floor)
+      as [| [i ty] ps ] eqn:Eps; [ discriminate Hps | ].
+    apply andb_prop in Hps as [Hps Hnm].
+    apply andb_prop in Hps as [Hi Hty].
+    apply Pos.eqb_eq in Hi. subst i.
+    destruct (type_eq ty tyMSp); [ subst ty | discriminate Hty ].
+    apply negb_true_iff in Hnm.
+    destruct vargs as [| v0 vrest];
+      cbn [bind_parameter_temps] in *; [ discriminate | ].
+    match goal with
+    | Hbind' : bind_parameter_temps _ _ _ = Some ?le1 |- _ =>
+        assert (Htat0 : forall b o,
+                   le1 ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero)
+          by (intros b o Hg;
+              rewrite (bind_params_other _ _ _ _ _ Hbind' Hnm) in Hg;
+              rewrite PTree.gss in Hg; injection Hg as ->;
+              cbn in Hmarg; exact Hmarg);
+        assert (Hch0 : ActWriterSurface.chase_inv SafeB awf_cact le1)
+          by (intros t' Hmem' b o Hg';
+              pose proof (forallb_negb_mem_id _ _ _ Hnpc Hmem') as Hf';
+              unfold mem_id in Hf'; cbn [map fst existsb] in Hf';
+              apply orb_false_iff in Hf' as [Hne_m' Hnps];
+              rewrite (bind_params_other _ _ _ _ _ Hbind' Hnps) in Hg';
+              rewrite PTree.gso in Hg'
+                by (intro EE; rewrite EE, Pos.eqb_refl in Hne_m';
+                    discriminate Hne_m');
+              pose proof (create_undef_temps_val _ _ _ Hg') as EE;
+              discriminate EE)
+    end.
+    destruct (awf_seq2 _ _ _ _ _ _ _ _ Hbody
+                ltac:(vm_compute; reflexivity) Htat0 Hch0 HN HM HV HS)
+      as [ (lA & mA & trA & HNA & HMA & HVA & HSA & HtatA & HchA & HbA)
+         | Hfin ];
+      [ | exact (conj (proj1 Hfin) (conj (proj1 (proj2 Hfin))
+                        (proj1 (proj2 (proj2 Hfin))))) ].
+    destruct (awf_seq2 _ _ _ _ _ _ _ _ HbA
+                ltac:(vm_compute; reflexivity) HtatA HchA HNA HMA HVA HSA)
+      as [ (lB & mB & trB & HNB & HMB & HVB & HSB & HtatB & HchB & HbB)
+         | Hfin ];
+      [ | exact (conj (proj1 Hfin) (conj (proj1 (proj2 Hfin))
+                        (proj1 (proj2 (proj2 Hfin))))) ].
+    destruct (awf_seq2 _ _ _ _ _ _ _ _ HbB
+                ltac:(vm_compute; reflexivity) HtatB HchB HNB HMB HVB HSB)
+      as [ (lC & mC & trC & HNC & HMC & HVC0 & HSC0 & HtatC & HchC & HbC)
+         | Hfin ];
+      [ | exact (conj (proj1 Hfin) (conj (proj1 (proj2 Hfin))
+                        (proj1 (proj2 (proj2 Hfin))))) ].
+    destruct (awf_seq2 _ _ _ _ _ _ _ _ HbC
+                ltac:(vm_compute; reflexivity) HtatC HchC HNC HMC HVC0 HSC0)
+      as [ (lD & mD & trD & HND & HMD & HVD & HSD & HtatD & HchD & HbD)
+         | Hfin ];
+      [ | exact (conj (proj1 Hfin) (conj (proj1 (proj2 Hfin))
+                        (proj1 (proj2 (proj2 Hfin))))) ].
+    destruct (awf_gchase_pres empty_env lD mD _ _ _ _
+                ltac:(vm_compute; reflexivity) HchD (PTree.gempty _ _) HbD
+                HMD HVD HSD)
+      as (HVc & HSc & HMc & _ & _).
+    exact (conj HVc (conj HSc HMc)).
+  Qed.
+
+  (* lift align_with_floor's body_pres to a call_pres for the act_crawling
+     census (align_with_floor is Internal in mario_actions_moving.prog) *)
+  Let mov_awf_cp :
+    call_pres lp bm NoA MWF mario_actions_moving._align_with_floor :=
+    call_pres_of_body lp bm NoA MWF HNoA_of_MWF mario_actions_moving.prog
+      mario_actions_moving._align_with_floor
+      mario_actions_moving.f_align_with_floor
+      LO_mov ltac:(vm_compute; reflexivity) align_with_floor_pres.
+
+  (* ================================================================== *)
+  (* act_crawling: the clean nids-engine consumer of align_with_floor.   *)
+  (* ================================================================== *)
+  Lemma cr_ids_rows : forall fid, mem_id fid cr_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold cr_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_sbs_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_cgdop_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_uws_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pgs | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_msfv_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_pss_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_awf_cp | ].
+    discriminate H.
+  Qed.
+
+  Lemma cr_sids_rows : forall fid, mem_id fid cr_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold cr_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_sja_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma cr_np3_rows : forall fid, mem_id fid cr_np3 = true ->
+      call_pres_np3 lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold cr_np3 in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_smawa_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_cr_pres : body_pres lp NoA MWF bm M.f_act_crawling.
+  Proof.
+    apply (body_pres_of_wwalk_nids lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             M.f_act_crawling cr_ids nil nil nil cr_sids nil cr_nids cr_np3
+             ltac:(vm_compute; reflexivity) ltac:(vm_compute; reflexivity)
+             ltac:(vm_compute; reflexivity) ltac:(vm_compute; reflexivity)
+             cr_ids_rows ltac:(intros fid HH; discriminate HH)
+             ltac:(intros fid HH; discriminate HH) cr_sids_rows
+             ltac:(intros fid HH; discriminate HH) cr_np3_rows
+             ltac:(vm_compute; reflexivity)).
+  Qed.
+
+  Example mov_cr_pin :
+    (prog_defmap mario_actions_moving.prog) ! mario_actions_moving._act_crawling
+    = Some (Gfun (Internal mario_actions_moving.f_act_crawling)).
+  Proof. vm_compute. reflexivity. Qed.
+
+  (* ================================================================== *)
   (* LANDING KEYSTONE: the 3 CLEAN _land leaves (jump/freefall/double).   *)
   (* Each body = clc(m,&sXLandAction,setX); if(t'1) return 1;             *)
   (*             cla(m,anim,UNTAINTED); return 0.                          *)
@@ -6235,10 +6674,10 @@ Section MovingLeafRows.
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
       refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
-    (* 9: act_crawling -- rest *)
+    (* 9: act_crawling -- WALKED (nids-engine; align_with_floor gchase store) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite mov_cr_pin in Hdm. injection Hdm as <-. exact mov_cr_pres. }
     (* 10: act_burning_ground -- WALKED (nids-engine; np3 smawa via nsrc_chk) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
