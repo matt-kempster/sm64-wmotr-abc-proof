@@ -685,6 +685,17 @@ Section NoARealInputMWF.
       mem_id gid knockback_table_ids = true ->
       Genv.find_symbol (lp_ge lp) gid = Some kb ->
       kb <> bm /\ kb <> bc /\ ~ SafeB kb.
+  (* sFloorAlignMatrix IS in the SafeB reach closure: a static f32[2][4][4]
+     global whose address Mario's gfx legitimately holds (the real code does
+     `marioObj->gfx.throwMatrix = &sFloorAlignMatrix[i]` in align_with_floor).
+     The POSITIVE dual of the ~SafeB rows above -- a distinct static global
+     (so consistent with them via genv-symbol injectivity: its block is none
+     of bm / bc / gMarioState / gtimer / table / ktab) and bm-disjoint (bm is
+     the runtime gMarioState block).  Grounds MovingLeafSurface's Hsfam_safe;
+     dischargeable when SafeB is concretized as the chase/reach closure. *)
+  Hypothesis Hsfam_safe : forall gb,
+      Genv.find_symbol (lp_ge lp) mario_actions_moving._sFloorAlignMatrix
+        = Some gb -> SafeB gb.
 
   (* ---- the OUT-PARAM ARC residuals (find_floor phantom -> honest swap).
      Two TRUE, standard-CompCert, per-symbol-dischargeable facts that let
@@ -1806,6 +1817,9 @@ Section NoARealInputMWF.
                       (mwf_real_chase_step lp bm bc oc0 SafeB)
                       (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm
                          HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (* ALIGN-WITH-FLOOR: sFloorAlignMatrix is SafeB (positive
+                         per-symbol reach-closure fact -- act_crawling walked). *)
+                      Hsfam_safe
                       (Hpres_obj_ext mario._sqrtf eq_refl)
                       (Hpres_obj_ext mario._play_sound eq_refl)
                       (Hpres_obj_ext mario._load_patchable_table eq_refl)
