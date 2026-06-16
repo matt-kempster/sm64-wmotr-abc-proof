@@ -1772,7 +1772,8 @@ Section NoARealInputMWF.
                    (* the 39-id moving residual is SHRUNK to the un-walked
                       32 (mov_rest_ids): the 7-leaf knockback cluster is
                       WALKED via common_ground_knockback_action. *)
-                   (moving_leaf_callees_pres lp LO_mario LO_stp LO_mov LO_int bm
+                   (moving_leaf_callees_pres lp LO_mario LO_stp LO_mov LO_int
+                      LO_obj bm
                       (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
                       (mwf_real_ctl lp bm bc oc0 SafeB)
                       (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm

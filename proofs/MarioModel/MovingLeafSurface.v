@@ -232,7 +232,10 @@ Definition mov_walked_ids : list ident :=
     (* act_braking: twl-style hybrid (slide_bonk switch site) *)
     :: mario_actions_moving._act_braking
     (* act_decelerating: A-gated np3 hybrid (set_jump_from_landing kill) *)
-    :: mario_actions_moving._act_decelerating :: nil.
+    :: mario_actions_moving._act_decelerating
+    (* act_move_punching: clean engine walk (all 6 helpers have rows;
+       mario_update_punch_sequence via ObjectLeafSurface.mups_row) *)
+    :: mario_actions_moving._act_move_punching :: nil.
 Definition mov_rest_ids : list ident :=
   filter (fun id => negb (mem_id id mov_walked_ids)) moving_callee_ids.
 
@@ -612,6 +615,16 @@ Definition abg_cact : list ident :=
   mario_actions_moving._t'25 :: mario_actions_moving._t'26
     :: mario_actions_moving._t'23 :: mario_actions_moving._t'22
     :: mario_actions_moving._t'10 :: mario_actions_moving._t'7 :: nil.
+
+(* act_move_punching: all calls are internal call_pres helpers (no externals,
+   no chase temps); the 4 window stores are non-pointer m->field writes. *)
+Definition mp_ids : list ident :=
+  mario_actions_moving._should_begin_sliding
+    :: mario_actions_object._mario_update_punch_sequence
+    :: mario_actions_moving._apply_slope_decel
+    :: mario_actions_moving._apply_slope_accel
+    :: mario_step._perform_ground_step :: nil.
+Definition mp_sids : list ident := mario._set_mario_action :: nil.
 
 (* begin_walking_action producer: wact threads the _action PARAM + the
    set_mario_action result temp _t'1; ids = mario_set_forward_vel;
@@ -1377,6 +1390,11 @@ Section MovingLeafRows.
      reaches interaction helpers); supplied by the capstone (it already pins
      interaction.prog as part of the linked program lp). *)
   Hypothesis LO_int : linkorder interaction.prog lp.
+  (* SLICE M-PUNCH: act_move_punching calls mario_update_punch_sequence, which
+     is Internal in mario_actions_object.prog (External in this TU).  Its row
+     (ObjectLeafSurface.mups_row) needs the object-TU linkorder; the capstone
+     already pins linkorder mario_actions_object.prog lp (object family). *)
+  Hypothesis LO_obj : linkorder mario_actions_object.prog lp.
 
   Variable bm : block.
   Variable NoA MWF : mem -> Prop.
@@ -4352,6 +4370,75 @@ Section MovingLeafRows.
   Proof. vm_compute. reflexivity. Qed.
 
   (* ================================================================== *)
+  (* SLICE M-PUNCH: act_move_punching -- a clean engine walk.             *)
+  (* All five callees are call_pres helpers with existing rows:           *)
+  (*  should_begin_sliding (mov_sbs_row), apply_slope_decel (mov_asd_row), *)
+  (*  apply_slope_accel (mov_asa_row), perform_ground_step (Hcp_pgs), and  *)
+  (*  mario_update_punch_sequence (ObjectLeafSurface.mups_row, Internal in *)
+  (*  mario_actions_object.prog).  set_mario_action via sids (Hsmact).     *)
+  (* The four window stores (actionState/forwardVel x2/particleFlags) are  *)
+  (* non-pointer m->field writes the engine recognizes structurally.       *)
+  (* ================================================================== *)
+  Let Hmups : call_pres lp bm NoA MWF
+                mario_actions_object._mario_update_punch_sequence :=
+    ObjectLeafSurface.mups_row lp LO_mario LO_mario_step LO_int LO_obj bm
+      NoA MWF HNoA_of_MWF HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm
+      HchaseRoot HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+      Hcpx_psound
+      (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
+      (Hpres_obj_ext interaction._stop_shell_music eq_refl)
+      (Hpres_obj_ext interaction._obj_set_held_state eq_refl)
+      Hcpx_lpt
+      (Hpres_obj_ext interaction._atan2s eq_refl)
+      (Hpres_obj_ext interaction._virtual_to_segmented eq_refl).
+
+  Lemma mp_ids_rows : forall fid, mem_id fid mp_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mp_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_sbs_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hmups | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_asd_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_asa_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pgs | ].
+    discriminate H.
+  Qed.
+
+  Lemma mp_sids_rows : forall fid, mem_id fid mp_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mp_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | ].
+    discriminate H.
+  Qed.
+
+  Lemma mov_mp_pres : body_pres lp NoA MWF bm M.f_act_move_punching.
+  Proof.
+    apply (body_pres_of_wwalk_nids lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             M.f_act_move_punching mp_ids nil nil nil mp_sids nil nil nil
+             ltac:(vm_compute; reflexivity) ltac:(vm_compute; reflexivity)
+             ltac:(vm_compute; reflexivity) ltac:(vm_compute; reflexivity)
+             mp_ids_rows ltac:(intros fid HH; discriminate HH)
+             ltac:(intros fid HH; discriminate HH) mp_sids_rows
+             ltac:(intros fid HH; discriminate HH)
+             ltac:(intros fid HH; discriminate HH)
+             ltac:(vm_compute; reflexivity)).
+  Qed.
+
+  Example mov_mp_pin :
+    (prog_defmap mario_actions_moving.prog) ! mario_actions_moving._act_move_punching
+    = Some (Gfun (Internal mario_actions_moving.f_act_move_punching)).
+  Proof. vm_compute. reflexivity. Qed.
+
+  (* ================================================================== *)
   (* LANDING KEYSTONE: the 3 CLEAN _land leaves (jump/freefall/double).   *)
   (* Each body = clc(m,&sXLandAction,setX); if(t'1) return 1;             *)
   (*             cla(m,anim,UNTAINTED); return 0.                          *)
@@ -6184,10 +6271,10 @@ Section MovingLeafRows.
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
       refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
-    (* 18: act_move_punching -- rest *)
+    (* 18: act_move_punching -- WALKED (clean engine walk) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite mov_mp_pin in Hdm. injection Hdm as <-. exact mov_mp_pres. }
     (* 19: act_crouch_slide -- rest *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
