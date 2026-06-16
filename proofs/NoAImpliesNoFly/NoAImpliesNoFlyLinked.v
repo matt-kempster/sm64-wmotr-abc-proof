@@ -1806,6 +1806,12 @@ Section NoARealInputMWF.
                          (store A-clear halfword at input cell -- NO new trust). *)
                       (mwf_real_input lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                          Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (* SLICE M-DEC: the stack-frame rows for the local-vars
+                         arc (check_ground_dive_or_punch's _filler) -- NO new
+                         trust (mwf_real_alloc / mwf_real_free). *)
+                      (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
+                      (fun m l m' Hf HM =>
+                         mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
                       Hpres_mov_rest)
                    Hpres_qsand)
                 (airborne_pres lp LO_mario LO_air bm (NoA_real bm)

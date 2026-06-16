@@ -30,6 +30,7 @@ From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface
   AirborneSurface DispatchKit FloorsSurface.
 From SM64.Proofs Require Import ActWriterSurface ObjectLeafSurface MovingSurface.
 From SM64.Proofs Require Import MWFReal LandingBricks StationaryLeafSurface.
+From SM64.Proofs Require Import LocalVarsSurface.
 
 Import ListNotations.
 
@@ -229,7 +230,9 @@ Definition mov_walked_ids : list ident :=
     (* act_burning_ground: a clean nids-engine walk (np3 smawa via nsrc_chk) *)
     :: mario_actions_moving._act_burning_ground
     (* act_braking: twl-style hybrid (slide_bonk switch site) *)
-    :: mario_actions_moving._act_braking :: nil.
+    :: mario_actions_moving._act_braking
+    (* act_decelerating: A-gated np3 hybrid (set_jump_from_landing kill) *)
+    :: mario_actions_moving._act_decelerating :: nil.
 Definition mov_rest_ids : list ident :=
   filter (fun id => negb (mem_id id mov_walked_ids)) moving_callee_ids.
 
@@ -312,6 +315,221 @@ Definition mov_ahd_xids : list ident := mario._play_sound :: nil.
 Definition mov_ahd_nids : list ident :=
   mario_actions_moving._t'12 :: mario_actions_moving._val0C :: nil.
 Definition mov_ahd_np3 : list ident := mario._set_mario_anim_with_accel :: nil.
+
+(* ====================================================================== *)
+(* SLICE M-DEC: act_decelerating -- an A-gated np3 hybrid.                 *)
+(*                                                                         *)
+(* act_decelerating is act_hold_decelerating's engine census + np3 leaf    *)
+(* (set_mario_anim_with_accel, val0C) PLUS ONE non-engine site: the        *)
+(* `input & 2 -> set_jump_from_landing` A-gate (set_jump_from_landing      *)
+(* ALWAYS taints, no param), provably DEAD on a no-A run.  We mirror the    *)
+(* B14 cannon gated hybrid (AutomaticLeafSurface cnn family), generic       *)
+(* subtrees going to the np3-aware engine wwalk_pres (not wwalk_pres0),     *)
+(* the gate going to input_a_gate_takes_else_lp (THEN unreached).  The one  *)
+(* new helper is check_ground_dive_or_punch (pure engine body + an unused   *)
+(* _filler stack local -> call_pres_of_lwalk, lids=nil).                   *)
+(* ====================================================================== *)
+
+(* dec census: mov_ahd's helpers + check_ground_dive_or_punch *)
+Definition dec_ids : list ident :=
+  mario._mario_get_floor_class
+    :: mario_actions_moving._should_begin_sliding
+    :: mario_actions_moving._check_ground_dive_or_punch
+    :: mario_actions_moving._update_decelerating_speed
+    :: mario_step._perform_ground_step
+    :: mario_step._mario_bonk_reflection
+    :: mario._mario_set_forward_vel
+    :: mario._set_mario_animation
+    :: mario._adjust_sound_for_speed
+    :: mario_actions_moving._play_step_sound :: nil.
+Definition dec_sids : list ident := mario._set_mario_action :: nil.
+Definition dec_xids : list ident := mario._play_sound :: nil.
+Definition dec_nids : list ident :=
+  mario_actions_moving._val0C :: mario_actions_moving._t'11 :: nil.
+Definition dec_np3 : list ident := mario._set_mario_anim_with_accel :: nil.
+Definition dec_cact : list ident := @nil ident.
+
+(* the generic engine arm (np3-aware: nids/np3_ids carried) *)
+Definition dec_gen (s : statement) : bool :=
+  wwalk_chk' nil nil nil nil dec_nids dec_np3 false nil dec_ids nil dec_cact
+    dec_xids dec_sids nil s.
+
+(* STRICT gate recognizers: the EXACT canonical shape input_a_gate_takes_
+   else_lp consumes (the same as the cnn gate). *)
+Definition dec_input_src (src : expr) : bool :=
+  match src with
+  | Efield (Ederef (Etempvar p pty) sty) fld faty =>
+      Pos.eqb p mario_actions_airborne._m
+      && proj_sumbool
+           (type_eq pty (tptr (Tstruct mario._MarioState noattr)))
+      && proj_sumbool (type_eq sty (Tstruct mario._MarioState noattr))
+      && Pos.eqb fld mario._input
+      && proj_sumbool (type_eq faty tushort)
+  | _ => false
+  end.
+
+Definition dec_a_guard (t6 : ident) (g : expr) : bool :=
+  match g with
+  | Ebinop Oand (Etempvar q qty) (Econst_int c cty) gty =>
+      Pos.eqb q t6
+      && proj_sumbool (type_eq qty tushort)
+      && proj_sumbool (Int.eq_dec c (Int.repr 2))
+      && proj_sumbool (type_eq cty tint)
+      && proj_sumbool (type_eq gty tint)
+  | _ => false
+  end.
+
+Definition dec_gate_chk (s : statement) : bool :=
+  match s with
+  | Ssequence (Sset t6 src) (Sifthenelse g _ sELSE) =>
+      dec_input_src src
+      && dec_a_guard t6 g
+      && negb (Pos.eqb t6 mario_actions_airborne._m)
+      && negb (mem_id t6 dec_cact)
+      && dec_gen sELSE
+  | _ => false
+  end.
+
+(* the hybrid recognizer: generic census everywhere, descending through
+   Ssequence/Sifthenelse/Sswitch, with the A-gate special. *)
+Fixpoint dec_chk (s : statement) : bool :=
+  dec_gen s
+  || match s with
+     | Ssequence s1 s2 => dec_gate_chk s || (dec_chk s1 && dec_chk s2)
+     | Sifthenelse _ s1 s2 => dec_chk s1 && dec_chk s2
+     | Sswitch _ ls => dec_chk_ls ls
+     | _ => false
+     end
+with dec_chk_ls (ls : labeled_statements) : bool :=
+  match ls with
+  | LSnil => true
+  | LScons _ s rest => dec_chk s && dec_chk_ls rest
+  end.
+
+(* ---- switch-selection transfer (mirror of the cnn switch lemmas) ---- *)
+Lemma dec_chk_ls_seq : forall sl,
+    dec_chk_ls sl = true ->
+    dec_chk (seq_of_labeled_statement sl) = true.
+Proof.
+  induction sl as [| o s sl0 IH]; intros H.
+  - reflexivity.
+  - cbn in H. apply andb_prop in H as [H1 H2].
+    cbn [seq_of_labeled_statement dec_chk].
+    apply orb_true_iff. right.
+    apply orb_true_iff. right.
+    rewrite H1, (IH H2). reflexivity.
+Qed.
+
+Lemma dec_chk_ls_case : forall n sl sl',
+    dec_chk_ls sl = true ->
+    select_switch_case n sl = Some sl' ->
+    dec_chk_ls sl' = true.
+Proof.
+  intros n sl; induction sl as [| o s sl0 IH]; intros sl' H Hsel.
+  - discriminate Hsel.
+  - cbn in H. apply andb_prop in H as [H1 H2].
+    destruct o as [c|]; cbn in Hsel.
+    + destruct (zeq c n).
+      * injection Hsel as <-. cbn. rewrite H1, H2. reflexivity.
+      * exact (IH sl' H2 Hsel).
+    + exact (IH sl' H2 Hsel).
+Qed.
+
+Lemma dec_chk_ls_default : forall sl,
+    dec_chk_ls sl = true ->
+    dec_chk_ls (select_switch_default sl) = true.
+Proof.
+  induction sl as [| o s sl0 IH]; intros H.
+  - exact H.
+  - cbn in H. apply andb_prop in H as [H1 H2].
+    destruct o as [c|]; cbn.
+    + exact (IH H2).
+    + rewrite H1, H2. reflexivity.
+Qed.
+
+Lemma dec_chk_select : forall n sl,
+    dec_chk_ls sl = true ->
+    dec_chk (seq_of_labeled_statement (select_switch n sl)) = true.
+Proof.
+  intros n sl H. apply dec_chk_ls_seq.
+  unfold select_switch.
+  destruct (select_switch_case n sl) eqn:E.
+  - exact (dec_chk_ls_case _ _ _ H E).
+  - exact (dec_chk_ls_default _ H).
+Qed.
+
+(* ---- the gate decode: recover the kill lemma's EXACT shape ---- *)
+Lemma dec_gate_shape :
+  forall s1 s2,
+    dec_gate_chk (Ssequence s1 s2) = true ->
+    exists t6 sTHEN sELSE,
+      s1 = Sset t6 (Efield (Ederef (Etempvar mario_actions_airborne._m
+                              (tptr (Tstruct mario._MarioState noattr)))
+                      (Tstruct mario._MarioState noattr))
+              mario._input tushort) /\
+      s2 = Sifthenelse (Ebinop Oand (Etempvar t6 tushort)
+                          (Econst_int (Int.repr 2) tint) tint)
+             sTHEN sELSE /\
+      Pos.eqb t6 mario_actions_airborne._m = false /\
+      mem_id t6 dec_cact = false /\
+      dec_gen sELSE = true.
+Proof.
+  intros s1 s2 H. unfold dec_gate_chk in H.
+  destruct s1 as [ | e1 e2 | t6 src | oi ef alq | oi2 ef2 tyl alq2
+                 | sa sb | ga sa sb | sla slb | | | oret | swa swl
+                 | lid ls | gid ];
+    try discriminate H.
+  destruct s2 as [ | f1 f2 | u6 src2 | oj eg alr | oj2 eg2 tyl2 alr2
+                 | ta tb | g sTHEN sELSE | tla tlb | | | oret2 | swa2 swl2
+                 | lid2 ls2 | gid2 ];
+    try discriminate H.
+  apply andb_prop in H as [H HgenE].
+  apply andb_prop in H as [H Hnmem].
+  apply andb_prop in H as [H Hneq].
+  apply andb_prop in H as [Hsrc Hguard].
+  unfold dec_input_src in Hsrc.
+  destruct src as [ | | | | | | | | | | | e0 fld faty | | ];
+    try discriminate Hsrc.
+  destruct e0 as [ | | | | | | e3 sty | | | | | | | ];
+    try discriminate Hsrc.
+  destruct e3 as [ | | | | | p pty | | | | | | | | ];
+    try discriminate Hsrc.
+  apply andb_prop in Hsrc as [Hsrc Hfaty].
+  apply andb_prop in Hsrc as [Hsrc Hfld].
+  apply andb_prop in Hsrc as [Hsrc Hsty].
+  apply andb_prop in Hsrc as [Hp Hpty].
+  apply Pos.eqb_eq in Hp. subst p.
+  apply Pos.eqb_eq in Hfld. subst fld.
+  destruct (type_eq pty (tptr (Tstruct mario._MarioState noattr)));
+    [ subst pty | discriminate Hpty ].
+  destruct (type_eq sty (Tstruct mario._MarioState noattr));
+    [ subst sty | discriminate Hsty ].
+  destruct (type_eq faty tushort); [ subst faty | discriminate Hfaty ].
+  unfold dec_a_guard in Hguard.
+  destruct g as [ | | | | | | | | | op b1 b2 gty | | | | ];
+    try discriminate Hguard.
+  destruct op; try discriminate Hguard.
+  destruct b1 as [ | | | | | q qty | | | | | | | | ];
+    try discriminate Hguard.
+  destruct b2 as [ c cty | | | | | | | | | | | | | ];
+    try discriminate Hguard.
+  apply andb_prop in Hguard as [Hguard Hgty].
+  apply andb_prop in Hguard as [Hguard Hcty].
+  apply andb_prop in Hguard as [Hguard Hc].
+  apply andb_prop in Hguard as [Hq Hqty].
+  apply Pos.eqb_eq in Hq. subst q.
+  destruct (type_eq qty tushort); [ subst qty | discriminate Hqty ].
+  destruct (Int.eq_dec c (Int.repr 2)); [ subst c | discriminate Hc ].
+  destruct (type_eq cty tint); [ subst cty | discriminate Hcty ].
+  destruct (type_eq gty tint); [ subst gty | discriminate Hgty ].
+  apply negb_true_iff in Hneq.
+  apply negb_true_iff in Hnmem.
+  exists t6, sTHEN, sELSE.
+  split; [ reflexivity | ].
+  split; [ reflexivity | ].
+  split; [ exact Hneq | ].
+  split; [ exact Hnmem | exact HgenE ].
+Qed.
 
 (* ---------------------------------------------------------------------- *)
 (* SLICE M9: the param-action leaf act_turning_around.                     *)
@@ -1034,6 +1252,41 @@ Example mov_ahd_walk :
     (fn_body mario_actions_moving.f_act_hold_decelerating) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- SLICE M-DEC pins/walks ---- *)
+Example mov_dec_pin :
+  (prog_defmap mario_actions_moving.prog) ! mario_actions_moving._act_decelerating
+  = Some (Gfun (Internal mario_actions_moving.f_act_decelerating)).
+Proof. vm_compute. reflexivity. Qed.
+Example mov_dec_vars : fn_vars mario_actions_moving.f_act_decelerating = nil.
+Proof. vm_compute. reflexivity. Qed.
+(* the gate-aware non-vacuity gate: ALL decel action consts are untainted
+   EXCEPT the A-gated set_jump_from_landing (provably dead). *)
+Example dec_walk :
+  dec_chk (fn_body mario_actions_moving.f_act_decelerating) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* check_ground_dive_or_punch: a pure-engine body (smact arm handles its 2
+   inline untainted set_mario_action consts; the controller load + vel[1]
+   indexed window store need no census) with ONE unused stack local _filler
+   -> call_pres_of_lwalk (lids=nil). *)
+Example mov_cgdop_pin :
+  (prog_defmap mario_actions_moving.prog) ! mario_actions_moving._check_ground_dive_or_punch
+  = Some (Gfun (Internal mario_actions_moving.f_check_ground_dive_or_punch)).
+Proof. vm_compute. reflexivity. Qed.
+Example mov_cgdop_params :
+  match fn_params mario_actions_moving.f_check_ground_dive_or_punch with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example cgdop_walk :
+  wwalk_chk false nil nil nil nil nil (mario._set_mario_action :: nil) nil
+    (fn_body mario_actions_moving.f_check_ground_dive_or_punch) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ---- SLICE M9 pins/walks ---- *)
 Example mov_ashb_pin :
   (prog_defmap mario_actions_moving.prog) ! mario_actions_moving._analog_stick_held_back
@@ -1217,6 +1470,15 @@ Section MovingLeafRows.
   Hypothesis HMWF_input : forall mm mm' vv,
       MWF mm -> Int.and vv (Int.repr 2) = Int.zero ->
       Mem.store Mint16unsigned mm bm 2 (Vint vv) = Some mm' -> MWF mm'.
+
+  (* SLICE M-DEC: the stack-frame MWF rows for the local-vars arc (the only
+     consumer in this file is check_ground_dive_or_punch's unused _filler
+     local).  Both discharge from MWFReal at the capstone (mwf_real_alloc /
+     mwf_real_free) -- NO new trust. *)
+  Hypothesis HMWF_alloc : forall m lo hi m' b,
+      Mem.alloc m lo hi = (m', b) -> MWF m -> MWF m'.
+  Hypothesis HMWF_free : forall m l m',
+      Mem.free_list m l = Some m' -> MWF m -> MWF m'.
 
   (* the set_mario_action keystone, instantiated once *)
   Let Hsmact : call_pres_act lp bm NoA MWF mario._set_mario_action :=
@@ -2553,6 +2815,502 @@ Section MovingLeafRows.
     - intros fid' H. discriminate H.
     - exact mov_aahw_np3_rows.
     - exact mov_ahd_walk.
+  Qed.
+
+  (* ==================================================================== *)
+  (* SLICE M-DEC: act_decelerating (A-gated np3 hybrid).                   *)
+  (* ==================================================================== *)
+
+  (* the one new helper: check_ground_dive_or_punch -- an engine body
+     (sids = set_mario_action: its 2 inline action consts are untainted but
+     one has actionArg=1, so they route through the sids channel) with an
+     unused _filler stack local (call_pres_of_lwalk, lids=nil). *)
+  Lemma mov_cgdop_row :
+    call_pres lp bm NoA MWF mario_actions_moving._check_ground_dive_or_punch.
+  Proof.
+    apply (call_pres_of_lwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             HMWF_alloc HMWF_free
+             mario_actions_moving.prog
+             mario_actions_moving._check_ground_dive_or_punch
+             mario_actions_moving.f_check_ground_dive_or_punch
+             nil nil nil (mario._set_mario_action :: nil)
+             LO_mov mov_cgdop_pin mov_cgdop_params).
+    - intros g Hg HIn. vm_compute in HIn.
+      destruct HIn as [E | []]. subst g. vm_compute in Hg. discriminate Hg.
+    - intros g Hg. discriminate Hg.
+    - intros g Hg. discriminate Hg.
+    - intros g Hg. discriminate Hg.
+    - intros g Hg HIn. vm_compute in HIn.
+      destruct HIn as [E | []]. subst g. vm_compute in Hg. discriminate Hg.
+    - intro HIn. vm_compute in HIn. destruct HIn as [E | []]. discriminate E.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold mem_id in H. cbn [map fst existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hsmact | discriminate H ].
+    - exact cgdop_walk.
+  Qed.
+
+  Lemma dec_ids_rows : forall fid, mem_id fid dec_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold dec_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_mgfc_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_sbs_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_cgdop_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_uds_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pgs | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_mbr_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_msfv_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_sma_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_asfs_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_pss_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma dec_sids_rows : forall fid, mem_id fid dec_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold dec_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | ].
+    discriminate H.
+  Qed.
+
+  Lemma dec_xids_rows : forall fid, mem_id fid dec_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold dec_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | ].
+    discriminate H.
+  Qed.
+
+  Lemma dec_np3_rows : forall fid, mem_id fid dec_np3 = true ->
+      call_pres_np3 lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold dec_np3 in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_smawa_row | ].
+    discriminate H.
+  Qed.
+
+  (* the generic-subtree discharger: ONE wwalk_pres call (np3-aware), dec
+     census; threads nptr_inv (dec_nids). *)
+  Lemma dec_generic :
+    forall s e le m0 tr le' m' out,
+      (forall g, mem_id g stored_globals = true -> e ! g = None) ->
+      (forall g, mem_id g dec_ids = true -> e ! g = None) ->
+      (forall g, mem_id g dec_xids = true -> e ! g = None) ->
+      (forall g, mem_id g dec_sids = true -> e ! g = None) ->
+      (forall g, mem_id g dec_np3 = true -> e ! g = None) ->
+      e ! interaction._gGlobalTimer = None ->
+      dec_gen s = true ->
+      (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      act_inv nil le ->
+      chase_inv SafeB dec_cact le ->
+      nptr_inv dec_nids le ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\
+      NoA m' /\
+      (forall b o, le' ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) /\
+      act_inv nil le' /\ chase_inv SafeB dec_cact le' /\ nptr_inv dec_nids le'.
+  Proof.
+    intros s e le m0 tr le' m' out Hub_g Hub_i Hub_x Hub_s Hub_n3 Hubgt
+           Hchk Htat Hact Hch Hnp HN HM HV HS Hexec.
+    unfold dec_gen in Hchk.
+    destruct (wwalk_pres lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+                false nil dec_ids nil dec_cact dec_xids dec_sids nil
+                nil nil nil nil dec_nids dec_np3
+                dec_ids_rows
+                (fun fid HH => match Bool.diff_false_true HH with end)
+                dec_xids_rows
+                dec_sids_rows
+                (fun fid HH => match Bool.diff_false_true HH with end)
+                (fun fid HH => match Bool.diff_false_true HH with end)
+                (fun fid HH => match Bool.diff_false_true HH with end)
+                (fun fid HH => match Bool.diff_false_true HH with end)
+                dec_np3_rows
+                _ _ _ _ _ _ _ _
+                (fun Hne => match Hne eq_refl with end)
+                (fun lid HH => match Bool.diff_false_true HH with end)
+                Hexec
+                Hub_g Hub_i
+                (fun g HH => match Bool.diff_false_true HH with end)
+                Hub_x Hub_s
+                (fun g HH => match Bool.diff_false_true HH with end)
+                (fun g HH => match Bool.diff_false_true HH with end)
+                (fun g HH => match Bool.diff_false_true HH with end)
+                (fun g HH => match Bool.diff_false_true HH with end)
+                Hub_n3 Hubgt
+                Hchk Htat Hact Hch Hnp HN HM HV HS)
+      as (HV' & HS' & HM' & HN' & Htat' & Hact' & Hch' & Hnp' & _).
+    exact (conj HV' (conj HS' (conj HM' (conj HN'
+             (conj Htat' (conj Hact' (conj Hch' Hnp'))))))).
+  Qed.
+
+  (* THE KILL CONSUMPTION: the canonical A-gate under the carried MWF
+     (input_a_clear via HMWF_inp) provably takes ELSE; the tainted
+     set_jump_from_landing in THEN is DEAD CODE on a no-A run. *)
+  Lemma dec_gate_pres :
+    forall t6 sTHEN sELSE e le m0 tr le' m' out,
+      Pos.eqb t6 mario_actions_airborne._m = false ->
+      mem_id t6 dec_cact = false ->
+      dec_gen sELSE = true ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0
+        (Ssequence
+           (Sset t6 (Efield (Ederef (Etempvar mario_actions_airborne._m
+                               (tptr (Tstruct mario._MarioState noattr)))
+                       (Tstruct mario._MarioState noattr))
+               mario._input tushort))
+           (Sifthenelse (Ebinop Oand (Etempvar t6 tushort)
+               (Econst_int (Int.repr 2) tint) tint) sTHEN sELSE))
+        tr le' m' out ->
+      (forall g, mem_id g stored_globals = true -> e ! g = None) ->
+      (forall g, mem_id g dec_ids = true -> e ! g = None) ->
+      (forall g, mem_id g dec_xids = true -> e ! g = None) ->
+      (forall g, mem_id g dec_sids = true -> e ! g = None) ->
+      (forall g, mem_id g dec_np3 = true -> e ! g = None) ->
+      e ! interaction._gGlobalTimer = None ->
+      (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      act_inv nil le ->
+      chase_inv SafeB dec_cact le ->
+      nptr_inv dec_nids le ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\
+      NoA m' /\
+      (forall b o, le' ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) /\
+      act_inv nil le' /\ chase_inv SafeB dec_cact le' /\ nptr_inv dec_nids le'.
+  Proof.
+    intros t6 sTHEN sELSE e le m0 tr le' m' out Hneq Hnmem HgenE Hexec
+           Hub_g Hub_i Hub_x Hub_s Hub_n3 Hubgt Htat Hact Hch Hnp HN HM HV HS.
+    assert (Hle_m : le ! mario_actions_airborne._m
+                    = Some (Vptr bm Ptrofs.zero)).
+    { inv Hexec.
+      - match goal with
+        | H1 : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ Out_normal |- _ => inv H1
+        end.
+        match goal with
+        | Hev : eval_expr _ _ _ _ (Efield _ _ _) _ |- _ =>
+            destruct (efield_base_vptr lp _ _ _ _ _ _ _ _ Hev)
+              as (bc0 & oc0 & Hle0)
+        end.
+        destruct (Htat _ _ Hle0) as [-> ->]. exact Hle0.
+      - match goal with
+        | H1 : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H1
+        end.
+        match goal with
+        | Hne : Out_normal <> Out_normal |- _ => destruct (Hne eq_refl)
+        end. }
+    destruct (input_a_gate_takes_else_lp lp LO_mario
+                mario_actions_airborne._m t6 sTHEN sELSE
+                _ _ _ _ _ _ _ _ Hle_m (HMWF_inp _ HM) Hexec)
+      as (vi & Hload & Hmask & Helse).
+    assert (Htat' : forall b o,
+        (PTree.set t6 (Vint vi) le) ! mario_actions_airborne._m
+        = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg'.
+      rewrite PTree.gso in Hg'
+        by (intro EE; rewrite <- EE in Hneq; vm_compute in Hneq;
+            discriminate Hneq).
+      exact (Htat _ _ Hg'). }
+    assert (Hact' : act_inv nil (PTree.set t6 (Vint vi) le))
+      by (intros t' Hmem' x Hg'; discriminate Hmem').
+    assert (Hch' : chase_inv SafeB dec_cact (PTree.set t6 (Vint vi) le)).
+    { intros t' Hmem' b o Hg'.
+      rewrite PTree.gso in Hg'
+        by (intro EE; rewrite EE in Hmem'; rewrite Hmem' in Hnmem;
+            discriminate Hnmem).
+      exact (Hch _ Hmem' _ _ Hg'). }
+    assert (Hnp' : nptr_inv dec_nids (PTree.set t6 (Vint vi) le)).
+    { intros t' Hmem' v' Hg'.
+      destruct (Pos.eq_dec t' t6) as [-> | Hne].
+      - rewrite PTree.gss in Hg'. injection Hg' as <-.
+        intros bb oo E; discriminate E.
+      - rewrite PTree.gso in Hg' by exact Hne.
+        exact (Hnp _ Hmem' _ Hg'). }
+    exact (dec_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hub_n3 Hubgt
+             HgenE Htat' Hact' Hch' Hnp' HN HM HV HS Helse).
+  Qed.
+
+  (* the hybrid walk prover: exec-derivation induction; generic subtrees go
+     to dec_generic; the A-gate goes to dec_gate_pres (the KILL). *)
+  Lemma dec_pres :
+    forall s e le m0 tr le' m' out,
+      exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
+      (forall g, mem_id g stored_globals = true -> e ! g = None) ->
+      (forall g, mem_id g dec_ids = true -> e ! g = None) ->
+      (forall g, mem_id g dec_xids = true -> e ! g = None) ->
+      (forall g, mem_id g dec_sids = true -> e ! g = None) ->
+      (forall g, mem_id g dec_np3 = true -> e ! g = None) ->
+      e ! interaction._gGlobalTimer = None ->
+      dec_chk s = true ->
+      (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      act_inv nil le ->
+      chase_inv SafeB dec_cact le ->
+      nptr_inv dec_nids le ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\
+      NoA m' /\
+      (forall b o, le' ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) /\
+      act_inv nil le' /\ chase_inv SafeB dec_cact le' /\ nptr_inv dec_nids le'.
+  Proof.
+    intros s e le m0 tr le' m' out Hexec.
+    induction Hexec;
+      intros Hub_g Hub_i Hub_x Hub_s Hub_n3 Hubgt
+             Hchk Htat Hact Hch Hnp HN HM HV HS.
+    - (* Sskip *)
+      exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact (conj Hch Hnp))))))).
+    - (* Sassign *)
+      cbn [dec_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (dec_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hub_n3 Hubgt
+                Hg Htat Hact Hch Hnp HN HM HV HS);
+        eapply exec_Sassign; eauto.
+    - (* Sset *)
+      cbn [dec_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (dec_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hub_n3 Hubgt
+                Hg Htat Hact Hch Hnp HN HM HV HS);
+        eapply exec_Sset; eauto.
+    - (* Scall *)
+      cbn [dec_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (dec_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hub_n3 Hubgt
+                Hg Htat Hact Hch Hnp HN HM HV HS);
+        eapply exec_Scall; eauto.
+    - (* Sbuiltin *)
+      cbn [dec_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp];
+        [ unfold dec_gen in Hg; cbn [wwalk_chk'] in Hg; discriminate Hg
+        | discriminate Hsp ].
+    - (* Sseq_1: generic, THE A-GATE, or recurse *)
+      cbn [dec_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hrest].
+      { eapply (dec_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hub_n3
+                  Hubgt Hg Htat Hact Hch Hnp HN HM HV HS);
+          eapply exec_Sseq_1; eauto. }
+      apply orb_true_iff in Hrest as [Hgate | Hand].
+      + destruct (dec_gate_shape _ _ Hgate)
+          as (t6 & sTHEN & sELSE & -> & -> & Hneq & Hnmem & HgenE).
+        eapply dec_gate_pres; try eassumption.
+        eapply exec_Sseq_1; eauto.
+      + apply andb_prop in Hand as [H1 H2].
+        destruct (IHHexec1 Hub_g Hub_i Hub_x Hub_s Hub_n3 Hubgt H1
+                    Htat Hact Hch Hnp HN HM HV HS)
+          as (HV1 & HS1 & HM1 & HN1 & Htat1 & Hact1 & Hch1 & Hnp1).
+        exact (IHHexec2 Hub_g Hub_i Hub_x Hub_s Hub_n3 Hubgt H2
+                 Htat1 Hact1 Hch1 Hnp1 HN1 HM1 HV1 HS1).
+    - (* Sseq_2 *)
+      cbn [dec_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hrest].
+      { eapply (dec_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hub_n3
+                  Hubgt Hg Htat Hact Hch Hnp HN HM HV HS);
+          eapply exec_Sseq_2; eauto. }
+      apply orb_true_iff in Hrest as [Hgate | Hand].
+      + exfalso.
+        destruct (dec_gate_shape _ _ Hgate)
+          as (t6 & sTHEN & sELSE & -> & -> & _ & _ & _).
+        match goal with
+        | H1 : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H1
+        end.
+        match goal with
+        | Hne : Out_normal <> Out_normal |- _ => exact (Hne eq_refl)
+        end.
+      + apply andb_prop in Hand as [H1 _].
+        exact (IHHexec Hub_g Hub_i Hub_x Hub_s Hub_n3 Hubgt H1
+                 Htat Hact Hch Hnp HN HM HV HS).
+    - (* Sifthenelse *)
+      cbn [dec_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp].
+      { eapply (dec_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hub_n3
+                  Hubgt Hg Htat Hact Hch Hnp HN HM HV HS);
+          eapply exec_Sifthenelse; eauto. }
+      apply andb_prop in Hsp as [H1 H2].
+      apply IHHexec; try assumption.
+      destruct b; assumption.
+    - (* Sreturn None *)
+      exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact (conj Hch Hnp))))))).
+    - (* Sreturn (Some a) *)
+      exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact (conj Hch Hnp))))))).
+    - (* Sbreak *)
+      exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact (conj Hch Hnp))))))).
+    - (* Scontinue *)
+      exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact (conj Hch Hnp))))))).
+    - (* Sloop stop1 *)
+      cbn [dec_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (dec_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hub_n3 Hubgt
+                Hg Htat Hact Hch Hnp HN HM HV HS);
+        eapply exec_Sloop_stop1; eauto.
+    - (* Sloop stop2 *)
+      cbn [dec_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (dec_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hub_n3 Hubgt
+                Hg Htat Hact Hch Hnp HN HM HV HS);
+        eapply exec_Sloop_stop2; eauto.
+    - (* Sloop loop *)
+      cbn [dec_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (dec_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hub_n3 Hubgt
+                Hg Htat Hact Hch Hnp HN HM HV HS);
+        eapply exec_Sloop_loop; eauto.
+    - (* Sswitch: generic, or the case-selection descent *)
+      cbn [dec_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hls].
+      { eapply (dec_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hub_n3
+                  Hubgt Hg Htat Hact Hch Hnp HN HM HV HS);
+          eapply exec_Sswitch; eauto. }
+      exact (IHHexec Hub_g Hub_i Hub_x Hub_s Hub_n3 Hubgt
+               (dec_chk_select _ _ Hls) Htat Hact Hch Hnp HN HM HV HS).
+  Qed.
+
+  (* THE LEAF: fn_vars = nil, 1 param _m; the body goes to dec_pres. *)
+  Lemma mov_dec_pres :
+    body_pres lp NoA MWF bm mario_actions_moving.f_act_decelerating.
+  Proof.
+    intros m0 vargs0 t0 mF vres0 Hmargf Hevf HN HM HV HS.
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      rename Ha into Halloc end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    match goal with
+    | Hb : exec_stmt _ _ ?E _ _ _ _ _ _ _ |- _ => set (eloc := E) in *
+    end.
+    assert (Hc0 : carried bm NoA MWF m0)
+      by (split; [ exact HV | split; [ exact HS
+                 | split; [ exact HM | exact HN ] ] ]).
+    pose proof (alloc_variables_carried bm NoA MWF HMWF_alloc HNoA_of_MWF
+                  _ _ _ _ _ _ Halloc Hc0) as Hca.
+    destruct Hca as (HVa & HSa & HMa & HNa).
+    assert (Hps : match fn_params mario_actions_moving.f_act_decelerating
+                  with
+                  | (i, ty) :: ps =>
+                      (Pos.eqb i mario_actions_airborne._m
+                       && proj_sumbool (type_eq ty tyMSp)
+                       && negb (mem_id mario_actions_airborne._m (map fst ps)))%bool
+                  | nil => false
+                  end = true) by (vm_compute; reflexivity).
+    assert (Hnpn : forallb
+              (fun t' => negb (mem_id t'
+                 (map fst (fn_params
+                             mario_actions_moving.f_act_decelerating))))
+              dec_nids = true) by (vm_compute; reflexivity).
+    assert (Hmarg : marg_ok bm vargs0)
+      by (apply Hmargf; vm_compute; reflexivity).
+    destruct (fn_params mario_actions_moving.f_act_decelerating)
+      as [| [i ty] ps ] eqn:Eps; [ discriminate Hps | ].
+    apply andb_prop in Hps as [Hps Hnm].
+    apply andb_prop in Hps as [Hi Hty].
+    apply Pos.eqb_eq in Hi. subst i.
+    destruct (type_eq ty tyMSp); [ subst ty | discriminate Hty ].
+    apply negb_true_iff in Hnm.
+    destruct vargs0 as [| v0 vrest];
+      cbn [bind_parameter_temps] in Hbind; [ discriminate Hbind | ].
+    match goal with
+    | Hbind' : bind_parameter_temps _ _ _ = Some ?le1 |- _ =>
+        assert (Htat0 : forall b o,
+                   le1 ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero)
+          by (intros b o Hg;
+              rewrite (bind_params_other _ _ _ _ _ Hbind' Hnm) in Hg;
+              rewrite PTree.gss in Hg; injection Hg as ->;
+              cbn in Hmarg; exact Hmarg);
+        assert (Hact0 : act_inv nil le1)
+          by (intros t' Hmem' x Hg'; discriminate Hmem');
+        assert (Hch0 : chase_inv SafeB dec_cact le1)
+          by (intros t' Hmem' b o Hg'; discriminate Hmem');
+        assert (Hnp0 : nptr_inv dec_nids le1)
+          by (intros t' Hmem' v' Hg';
+              pose proof (forallb_negb_mem_id _ _ _ Hnpn Hmem') as Hf';
+              unfold mem_id in Hf'; cbn [map fst existsb] in Hf';
+              apply orb_false_iff in Hf' as [Hne_m' Hnps];
+              rewrite (bind_params_other _ _ _ _ _ Hbind' Hnps) in Hg';
+              rewrite PTree.gso in Hg'
+                by (intro EE; rewrite EE, Pos.eqb_refl in Hne_m';
+                    discriminate Hne_m');
+              pose proof (create_undef_temps_val _ _ _ Hg') as EE;
+              rewrite EE; intros bb oo E2; discriminate E2)
+    end.
+    assert (Hub_g : forall g, mem_id g stored_globals = true ->
+                    eloc ! g = None).
+    { intros g Hg.
+      rewrite (alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc g)
+        by (intro Hin; vm_compute in Hin; exact Hin).
+      apply PTree.gempty. }
+    assert (Hub_i : forall g, mem_id g dec_ids = true -> eloc ! g = None).
+    { intros g Hg.
+      rewrite (alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc g)
+        by (intro Hin; vm_compute in Hin; exact Hin).
+      apply PTree.gempty. }
+    assert (Hub_x : forall g, mem_id g dec_xids = true -> eloc ! g = None).
+    { intros g Hg.
+      rewrite (alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc g)
+        by (intro Hin; vm_compute in Hin; exact Hin).
+      apply PTree.gempty. }
+    assert (Hub_s : forall g, mem_id g dec_sids = true -> eloc ! g = None).
+    { intros g Hg.
+      rewrite (alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc g)
+        by (intro Hin; vm_compute in Hin; exact Hin).
+      apply PTree.gempty. }
+    assert (Hub_n3 : forall g, mem_id g dec_np3 = true -> eloc ! g = None).
+    { intros g Hg.
+      rewrite (alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc g)
+        by (intro Hin; vm_compute in Hin; exact Hin).
+      apply PTree.gempty. }
+    assert (Hub_gt : eloc ! interaction._gGlobalTimer = None).
+    { rewrite (alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc
+                 interaction._gGlobalTimer)
+        by (intro Hin; vm_compute in Hin; exact Hin).
+      apply PTree.gempty. }
+    destruct (dec_pres _ _ _ _ _ _ _ _ Hbody
+                Hub_g Hub_i Hub_x Hub_s Hub_n3 Hub_gt
+                dec_walk Htat0 Hact0 Hch0 Hnp0 HNa HMa HVa HSa)
+      as (HVb & HSb & HMb & HNb & _ & _ & _ & _).
+    pose proof (blocks_of_env_bm lp bm m0 _ eloc _ Halloc HV) as Hforall.
+    pose proof (free_list_carried_bm bm NoA MWF HMWF_free HNoA_of_MWF
+                  (blocks_of_env (lp_ge lp) eloc) _ mF Hforall Hfree
+                  (conj HVb (conj HSb (conj HMb HNb))))
+      as (HVf & HSf & HMf & HNf).
+    exact (conj HVf (conj HSf HMf)).
   Qed.
 
   (* ---- SLICE M9: the param-action leaf act_turning_around ---- *)
@@ -5398,10 +6156,10 @@ Section MovingLeafRows.
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
       rewrite mov_abg_pin in Hdm. injection Hdm as <-. exact mov_abg_pres. }
-    (* 11: act_decelerating -- rest *)
+    (* 11: act_decelerating -- WALKED (A-gated np3 hybrid) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite mov_dec_pin in Hdm. injection Hdm as <-. exact mov_dec_pres. }
     (* 12: act_hold_decelerating -- WALKED (val0C np3 leaf) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
