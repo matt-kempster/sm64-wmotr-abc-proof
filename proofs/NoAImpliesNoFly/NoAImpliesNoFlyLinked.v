@@ -475,11 +475,26 @@ Section NoARealInputV2.
       action_sat not_tainted m bm ->
       Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
 
-  (* return values never alias Mario's block *)
-  Hypothesis Hret_call : forall fd m0 vargs0 t0 m0' vres0,
+  (* RETURN-VALUE NON-ALIASING, REFINED (RetSurface): identical to the
+     real_mwf section's refinement below.  The opaque forall-reached row is
+     PROVED for every reached fundef whose return type cannot carry a Vptr
+     through the return cast (Tvoid / Tint I8/I16/IBool / Tfloat,
+     ret_fd_safe = true, ZERO new trust on ptr64 = false).  What stays
+     assumed is the SHARPER residual: only the Tint I32 returns (the 4
+     getters + the 7 dispatchers, status ints) and the External fundefs. *)
+  Hypothesis Hret_unsafe : forall fd m0 vargs0 t0 m0' vres0,
       reached_v2 lp fd ->
+      RetSurface.ret_fd_safe fd = false ->
       eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m0' vres0 ->
       forall b o, vres0 = Vptr b o -> b <> bm.
+  (* section-local Let (not a persistent Lemma -- the real_mwf section below
+     defines its own module-level Lemma Hret_call) *)
+  Let Hret_call : forall fd m0 vargs0 t0 m0' vres0,
+      reached_v2 lp fd ->
+      eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m0' vres0 ->
+      forall b o, vres0 = Vptr b o -> b <> bm :=
+    RetSurface.ret_avoids_bm_of_unsafe function_entry2 (lp_ge lp) bm
+      (reached_v2 lp) Hret_unsafe.
 
   (* externals, REACHED-GATED (per-symbol surface: reached_v2 lp (External
      ef) carries a named rest symbol resolving to ef). The forall-ef forms
@@ -2022,7 +2037,7 @@ Section NoARealInputMWF.
                       Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                    (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
                    Hpres_warp_ext))
-             Hret_call Hext_action Hmwf_ext
+             Hret_unsafe Hext_action Hmwf_ext
              (mwf_real_entry lp bm bc oc0 SafeB Hbc_bm)
              (mwf_real_free lp bm bc oc0 SafeB Hbc_bm)
              (fun gb Hgb => proj2 (proj2 (Hgms_blk gb Hgb)))
