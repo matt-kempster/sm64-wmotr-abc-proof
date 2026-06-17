@@ -247,7 +247,10 @@ Definition mov_walked_ids : list ident :=
     :: mario_actions_moving._act_crawling
     (* act_stomach_slide: csa/ssa keystone (common_slide_action +
        stomach_slide_action multi-action-param lifts) *)
-    :: mario_actions_moving._act_stomach_slide :: nil.
+    :: mario_actions_moving._act_stomach_slide
+    (* act_butt_slide: csaj keystone (common_slide_action_with_jump) +
+       tilt_body_butt_slide chase-store row *)
+    :: mario_actions_moving._act_butt_slide :: nil.
 Definition mov_rest_ids : list ident :=
   filter (fun id => negb (mem_id id mov_walked_ids)) moving_callee_ids.
 
@@ -807,6 +810,26 @@ Example mov_sma_walk :
   wwalk_chk false nil nil nil mov_sma_cact mov_sma_xids nil nil
     (fn_body mario.f_set_mario_animation) = true.
 Proof. vm_compute. reflexivity. Qed.
+(* ---- tilt_body_butt_slide (cact chase-store row, used by act_butt_slide) ---- *)
+Definition mov_tbbs_cact : list ident :=
+  mario_actions_moving._t'4 :: mario_actions_moving._t'1 :: nil.
+Example mov_tbbs_pin :
+  (prog_defmap mario_actions_moving.prog) ! mario_actions_moving._tilt_body_butt_slide
+  = Some (Gfun (Internal mario_actions_moving.f_tilt_body_butt_slide)).
+Proof. vm_compute. reflexivity. Qed.
+Example mov_tbbs_vars : fn_vars mario_actions_moving.f_tilt_body_butt_slide = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_tbbs_pok : mov_pok mario_actions_moving.f_tilt_body_butt_slide = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_tbbs_nonparam :
+  forallb (fun t' => negb (mem_id t'
+             (map fst (fn_params mario_actions_moving.f_tilt_body_butt_slide)))) mov_tbbs_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example mov_tbbs_walk :
+  wwalk_chk false nil nil nil mov_tbbs_cact nil nil nil
+    (fn_body mario_actions_moving.f_tilt_body_butt_slide) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 
 Example mov_mums_pin :
   (prog_defmap mario_step.prog) ! mario_step._mario_update_moving_sand
@@ -7730,6 +7753,607 @@ Proof. vm_compute. reflexivity. Qed.
                     ltac:(vm_compute; reflexivity) Htat Hcall HN HM HV HS)
           as (_ & _ & _ & _ & Ho & _). congruence.
   Qed.
+  (* ================================================================== *)
+  (* COMMON_SLIDE_ACTION_WITH_JUMP (csaj) keystone + act_butt_slide.      *)
+  (* 3-action-param sibling of ssa; reuses csa_call_site_pres for the     *)
+  (* inner common_slide_action site; tilt_body_butt_slide via mov_tbbs_row.*)
+  (* Consumed-row hyps replaced: mov_sja_row/Hsmact/mov_usl_row/          *)
+  (* mov_tbbs_row/csa_call_site_pres; abs_* inversions -> lnd_*.           *)
+  (* ================================================================== *)
+Definition csaj_wact : list ident :=
+  M._stopAction :: M._jumpAction :: M._airAction :: M._t'1 :: M._t'2 :: nil.
+Definition csaj_ids : list ident := M._update_sliding :: nil.
+Definition csaj_wids : list ident :=
+  mario._set_jumping_action :: mario._set_mario_action :: nil.
+
+Fixpoint csaj_chk (s : statement) : bool :=
+  wwalk_chk true csaj_wact csaj_ids csaj_wids nil nil nil nil s
+  || match s with
+     | Ssequence s1 s2 => csaj_chk s1 && csaj_chk s2
+     | Sifthenelse _ s1 s2 => csaj_chk s1 && csaj_chk s2
+     | Sswitch _ sl => csaj_chk_ls sl
+     | Scall None (Evar fid fty) al => csa_site_chk csaj_wact fid fty al
+     | _ => false
+     end
+with csaj_chk_ls (sl : labeled_statements) : bool :=
+  match sl with
+  | LSnil => true
+  | LScons _ s sl' => csaj_chk s && csaj_chk_ls sl'
+  end.
+
+Lemma csaj_chk_ls_seq : forall sl,
+    csaj_chk_ls sl = true -> csaj_chk (seq_of_labeled_statement sl) = true.
+Proof.
+  induction sl as [| o s sl0 IH]; intros H.
+  - reflexivity.
+  - cbn [seq_of_labeled_statement]. cbn [csaj_chk_ls] in H.
+    apply andb_prop in H as [H1 H2].
+    cbn [csaj_chk]. apply orb_true_iff. right.
+    rewrite H1, (IH H2). reflexivity.
+Qed.
+
+Lemma csaj_chk_ls_case : forall n sl sl',
+    csaj_chk_ls sl = true ->
+    select_switch_case n sl = Some sl' ->
+    csaj_chk_ls sl' = true.
+Proof.
+  intros n sl; induction sl as [| o s sl0 IH]; intros sl' H Hsel.
+  - discriminate Hsel.
+  - cbn [csaj_chk_ls] in H. apply andb_prop in H as [H1 H2].
+    destruct o as [c|]; cbn [select_switch_case] in Hsel.
+    + destruct (zeq c n).
+      * injection Hsel as <-. cbn [csaj_chk_ls]. rewrite H1, H2. reflexivity.
+      * exact (IH sl' H2 Hsel).
+    + exact (IH sl' H2 Hsel).
+Qed.
+
+Lemma csaj_chk_ls_default : forall sl,
+    csaj_chk_ls sl = true -> csaj_chk_ls (select_switch_default sl) = true.
+Proof.
+  induction sl as [| o s sl0 IH]; intros H.
+  - exact H.
+  - cbn [csaj_chk_ls] in H. apply andb_prop in H as [H1 H2].
+    destruct o as [c|]; cbn [select_switch_default].
+    + exact (IH H2).
+    + cbn [csaj_chk_ls]. rewrite H1, H2. reflexivity.
+Qed.
+
+Lemma csaj_chk_select : forall n sl,
+    csaj_chk_ls sl = true ->
+    csaj_chk (seq_of_labeled_statement (select_switch n sl)) = true.
+Proof.
+  intros n sl H. apply csaj_chk_ls_seq.
+  unfold select_switch.
+  destruct (select_switch_case n sl) eqn:E.
+  - exact (csaj_chk_ls_case _ _ _ H E).
+  - exact (csaj_chk_ls_default _ H).
+Qed.
+
+Lemma csaj_chk_scall_inv : forall optid a al,
+    csaj_chk (Scall optid a al) = true ->
+    wwalk_chk true csaj_wact csaj_ids csaj_wids nil nil nil nil
+      (Scall optid a al) = true
+    \/ (optid = None /\ exists fid fty,
+          a = Evar fid fty /\ csa_site_chk csaj_wact fid fty al = true).
+Proof.
+  intros optid a al H. cbn [csaj_chk] in H.
+  apply orb_true_iff in H as [Hg | Hsp]; [ left; exact Hg | right ].
+  destruct optid as [t'|]; [ discriminate Hsp | ].
+  destruct a as [ i0 t0 | f0 t0 | f0 t0 | i0 t0 | fid fty | id0 t0
+                | a0 t0 | a0 t0 | op a0 t0 | op a1 a2 t0 | a0 t0
+                | a0 f0 t0 | t1 t0 | t1 t0 ]; try discriminate Hsp.
+  split; [ reflexivity | ]. exists fid, fty. split; [ reflexivity | exact Hsp ].
+Qed.
+
+Example csaj_walk : csaj_chk (fn_body M.f_common_slide_action_with_jump) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example csaj_pin :
+  (prog_defmap mario_actions_moving.prog) ! M._common_slide_action_with_jump
+  = Some (Gfun (Internal M.f_common_slide_action_with_jump)).
+Proof. vm_compute. reflexivity. Qed.
+
+Example abs_pin :
+  (prog_defmap mario_actions_moving.prog) ! M._act_butt_slide
+  = Some (Gfun (Internal M.f_act_butt_slide)).
+Proof. vm_compute. reflexivity. Qed.
+
+  (* tilt_body_butt_slide: clean chase-store body (writes untainted scalars
+     through m->marioBodyState->torsoAngle[i]); cact=[t'4,t'1]. *)
+  Lemma mov_tbbs_row : call_pres lp bm NoA MWF M._tilt_body_butt_slide.
+  Proof.
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_moving.prog M._tilt_body_butt_slide
+             mario_actions_moving.f_tilt_body_butt_slide
+             nil nil mov_tbbs_cact nil nil
+             LO_mov mov_tbbs_pin mov_tbbs_vars mov_tbbs_pok mov_tbbs_nonparam).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact mov_tbbs_walk.
+  Qed.
+  Lemma csaj_ids_rows : forall fid, mem_id fid csaj_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold csaj_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_usl_row | discriminate H ].
+  Qed.
+
+  Lemma csaj_wids_rows : forall fid, mem_id fid csaj_wids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold csaj_wids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_sja_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | discriminate H ].
+  Qed.
+
+  (* ---- csaj generic engine wrapper (rt=true, wids) ---- *)
+  Lemma csaj_generic :
+    forall s e le m0 tr le' m' out,
+      (forall g, mem_id g stored_globals = true -> e ! g = None) ->
+      (forall g, mem_id g csaj_ids = true -> e ! g = None) ->
+      (forall g, mem_id g csaj_wids = true -> e ! g = None) ->
+      e ! interaction._gGlobalTimer = None ->
+      wwalk_chk true csaj_wact csaj_ids csaj_wids nil nil nil nil s = true ->
+      (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      act_inv csaj_wact le ->
+      chase_inv SafeB nil le ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm -> action_sat not_tainted m0 bm ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\ NoA m'
+      /\ (forall b o, le' ! mario_actions_airborne._m = Some (Vptr b o) ->
+                      b = bm /\ o = Ptrofs.zero)
+      /\ act_inv csaj_wact le' /\ chase_inv SafeB nil le'.
+  Proof.
+    intros s e le m0 tr le' m' out Hub_g Hub_i Hub_w Hubgt Hchk
+           Htat Hact Hch HN HM HV HS Hexec.
+    destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+                true csaj_wact csaj_ids csaj_wids nil nil nil nil
+                csaj_ids_rows csaj_wids_rows ltac:(intros fid HH; discriminate HH)
+                ltac:(intros fid HH; discriminate HH) ltac:(intros fid HH; discriminate HH)
+                _ _ _ _ _ _ _ _ Hexec
+                Hub_g Hub_i Hub_w ltac:(intros g HH; discriminate HH)
+                ltac:(intros g HH; discriminate HH) ltac:(intros g HH; discriminate HH) Hubgt
+                Hchk Htat Hact Hch HN HM HV HS)
+      as (HV' & HS' & HM' & HN' & Htat' & Hact' & Hch' & _).
+    exact (conj HV' (conj HS' (conj HM' (conj HN'
+             (conj Htat' (conj Hact' Hch')))))).
+  Qed.
+
+  (* ---- THE csaj HYBRID WALK ---- *)
+  Lemma csaj_pres :
+    forall s e le m0 tr le' m' out,
+      exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
+      (forall g, mem_id g stored_globals = true -> e ! g = None) ->
+      (forall g, mem_id g csaj_ids = true -> e ! g = None) ->
+      (forall g, mem_id g csaj_wids = true -> e ! g = None) ->
+      e ! M._common_slide_action = None ->
+      e ! interaction._gGlobalTimer = None ->
+      csaj_chk s = true ->
+      (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      act_inv csaj_wact le ->
+      chase_inv SafeB nil le ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm -> action_sat not_tainted m0 bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\ NoA m'
+      /\ (forall b o, le' ! mario_actions_airborne._m = Some (Vptr b o) ->
+                      b = bm /\ o = Ptrofs.zero)
+      /\ act_inv csaj_wact le' /\ chase_inv SafeB nil le'.
+  Proof.
+    intros s e le m0 tr le' m' out Hexec.
+    induction Hexec;
+      intros Hub_g Hub_i Hub_w Hcsn Hubgt Hchk Htat Hact Hch HN HM HV HS.
+    - exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact Hch)))))).
+    - cbn [csaj_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (csaj_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_w Hubgt
+                Hg Htat Hact Hch HN HM HV HS);
+        eapply exec_Sassign; eauto.
+    - cbn [csaj_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (csaj_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_w Hubgt
+                Hg Htat Hact Hch HN HM HV HS);
+        eapply exec_Sset; eauto.
+    - destruct (csaj_chk_scall_inv _ _ _ Hchk)
+        as [Hg | (-> & fid & fty & -> & Hsp)].
+      { eapply (csaj_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_w Hubgt
+                  Hg Htat Hact Hch HN HM HV HS);
+          eapply exec_Scall; eauto. }
+      destruct (csa_site_chk_shape _ _ _ _ Hsp) as (t2 & t3 & a4 & -> & -> & -> & Ht2 & Ht3).
+      assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
+                      (Scall None
+                         (Evar M._common_slide_action
+                            (Tfunction (tyMSp :: tuint :: tuint :: tint :: nil)
+                               tvoid cc_default))
+                         (Etempvar M._m tyMSp :: Etempvar t2 tuint
+                          :: Etempvar t3 tuint :: a4 :: nil))
+                      t (set_opttemp None vres le) m' Out_normal)
+        by (eapply exec_Scall; eauto).
+      destruct (csa_call_site_pres csaj_wact t2 t3 a4 e le m _ _ _ _
+                  Hcsn Ht2 Ht3 Hact Htat Hex HN HM HV HS)
+        as (HV' & HS' & HM' & HN' & _ & _).
+      cbn [set_opttemp].
+      exact (conj HV' (conj HS' (conj HM' (conj HN'
+               (conj Htat (conj Hact Hch)))))).
+    - cbn [csaj_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp];
+        [ cbn [wwalk_chk wwalk_chk'] in Hg; discriminate Hg | discriminate Hsp ].
+    - cbn [csaj_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp].
+      { eapply (csaj_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_w Hubgt
+                  Hg Htat Hact Hch HN HM HV HS);
+          eapply exec_Sseq_1; eauto. }
+      apply andb_prop in Hsp as [H1 H2].
+      destruct (IHHexec1 Hub_g Hub_i Hub_w Hcsn Hubgt H1 Htat Hact Hch
+                  HN HM HV HS)
+        as (HV1 & HS1 & HM1 & HN1 & Htat1 & Hact1 & Hch1).
+      exact (IHHexec2 Hub_g Hub_i Hub_w Hcsn Hubgt H2 Htat1 Hact1 Hch1
+               HN1 HM1 HV1 HS1).
+    - cbn [csaj_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp].
+      { eapply (csaj_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_w Hubgt
+                  Hg Htat Hact Hch HN HM HV HS);
+          eapply exec_Sseq_2; eauto. }
+      apply andb_prop in Hsp as [H1 _].
+      exact (IHHexec Hub_g Hub_i Hub_w Hcsn Hubgt H1 Htat Hact Hch
+               HN HM HV HS).
+    - cbn [csaj_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp].
+      { eapply (csaj_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_w Hubgt
+                  Hg Htat Hact Hch HN HM HV HS);
+          eapply exec_Sifthenelse; eauto. }
+      apply andb_prop in Hsp as [H1 H2].
+      apply IHHexec; try assumption.
+      destruct b; assumption.
+    - exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact Hch)))))).
+    - exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact Hch)))))).
+    - exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact Hch)))))).
+    - exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact Hch)))))).
+    - cbn [csaj_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (csaj_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_w Hubgt
+                Hg Htat Hact Hch HN HM HV HS);
+        eapply exec_Sloop_stop1; eauto.
+    - cbn [csaj_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (csaj_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_w Hubgt
+                Hg Htat Hact Hch HN HM HV HS);
+        eapply exec_Sloop_stop2; eauto.
+    - cbn [csaj_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (csaj_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_w Hubgt
+                Hg Htat Hact Hch HN HM HV HS);
+        eapply exec_Sloop_loop; eauto.
+    - cbn [csaj_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp].
+      { eapply (csaj_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_w Hubgt
+                  Hg Htat Hact Hch HN HM HV HS);
+          eapply exec_Sswitch; eauto. }
+      apply IHHexec; try assumption.
+      apply csaj_chk_select. exact Hsp.
+  Qed.
+
+  (* ---- csaj multi-action-param funcall lift (3 action params, no locals) ---- *)
+  Lemma csaj_funcall_pres :
+    forall fd m0 v0 stopA jumpA airA anim t0 m1 vres0,
+      resolves_lp lp M._common_slide_action_with_jump fd ->
+      eval_funcall function_entry2 (lp_ge lp) m0 fd
+        (v0 :: Vint stopA :: Vint jumpA :: Vint airA :: anim :: nil) t0 m1 vres0 ->
+      (forall b o, v0 = Vptr b o -> b = bm /\ o = Ptrofs.zero) ->
+      untainted_scalar (Vint stopA) -> untainted_scalar (Vint jumpA) ->
+      untainted_scalar (Vint airA) ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm -> action_sat not_tainted m0 bm ->
+      Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\ MWF m1 /\ NoA m1.
+  Proof.
+    intros fd m0 v0 stopA jumpA airA anim t0 m1 vres0 Hres Hevf Htat Husa Huja Huaa
+           HN HM HV HS.
+    pose proof (resolve_pin_fd lp mario_actions_moving.prog
+                  mario_actions_moving._common_slide_action_with_jump
+                  mario_actions_moving.f_common_slide_action_with_jump fd
+                  LO_mov ltac:(vm_compute; reflexivity) Hres) as ->.
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      change (fn_vars mario_actions_moving.f_common_slide_action_with_jump)
+        with (@nil (ident * type)) in Ha; inv Ha end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    change (fn_params mario_actions_moving.f_common_slide_action_with_jump)
+      with ((mario_actions_moving._m, tyMSp) ::
+            (mario_actions_moving._stopAction, tuint) ::
+            (mario_actions_moving._jumpAction, tuint) ::
+            (mario_actions_moving._airAction, tuint) ::
+            (mario_actions_moving._animation, tint) :: nil) in Hbind.
+    cbn [bind_parameter_temps] in Hbind.
+    injection Hbind as <-.
+    change (blocks_of_env (lp_ge lp) empty_env)
+      with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    set (base := create_undef_temps
+                   (fn_temps mario_actions_moving.f_common_slide_action_with_jump)) in *.
+    assert (Htat0 : forall b o,
+       (PTree.set mario_actions_moving._animation anim
+          (PTree.set mario_actions_moving._airAction (Vint airA)
+             (PTree.set mario_actions_moving._jumpAction (Vint jumpA)
+                (PTree.set mario_actions_moving._stopAction (Vint stopA)
+                   (PTree.set mario_actions_moving._m v0 base)))))
+         ! mario_actions_airborne._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg.
+      rewrite PTree.gso in Hg by (vm_compute; congruence).
+      rewrite PTree.gso in Hg by (vm_compute; congruence).
+      rewrite PTree.gso in Hg by (vm_compute; congruence).
+      rewrite PTree.gso in Hg by (vm_compute; congruence).
+      rewrite PTree.gss in Hg. injection Hg as ->. exact (Htat _ _ eq_refl). }
+    assert (Hact0 : act_inv csaj_wact
+       (PTree.set mario_actions_moving._animation anim
+          (PTree.set mario_actions_moving._airAction (Vint airA)
+             (PTree.set mario_actions_moving._jumpAction (Vint jumpA)
+                (PTree.set mario_actions_moving._stopAction (Vint stopA)
+                   (PTree.set mario_actions_moving._m v0 base)))))).
+    { intros t' Hmem' x Hg'.
+      unfold csaj_wact in Hmem'. cbn [mem_id existsb] in Hmem'.
+      apply orb_true_iff in Hmem' as [Ht | Hmem'].
+      { apply Pos.eqb_eq in Ht; subst t'.
+        rewrite PTree.gso in Hg' by (vm_compute; congruence).
+        rewrite PTree.gso in Hg' by (vm_compute; congruence).
+        rewrite PTree.gso in Hg' by (vm_compute; congruence).
+        rewrite PTree.gss in Hg'. injection Hg' as <-. exact Husa. }
+      apply orb_true_iff in Hmem' as [Ht | Hmem'].
+      { apply Pos.eqb_eq in Ht; subst t'.
+        rewrite PTree.gso in Hg' by (vm_compute; congruence).
+        rewrite PTree.gso in Hg' by (vm_compute; congruence).
+        rewrite PTree.gss in Hg'. injection Hg' as <-. exact Huja. }
+      apply orb_true_iff in Hmem' as [Ht | Hmem'].
+      { apply Pos.eqb_eq in Ht; subst t'.
+        rewrite PTree.gso in Hg' by (vm_compute; congruence).
+        rewrite PTree.gss in Hg'. injection Hg' as <-. exact Huaa. }
+      (* the two undef temps t'1, t'2 *)
+      assert (Hund : forall x0,
+          (PTree.set mario_actions_moving._animation anim
+            (PTree.set mario_actions_moving._airAction (Vint airA)
+               (PTree.set mario_actions_moving._jumpAction (Vint jumpA)
+                  (PTree.set mario_actions_moving._stopAction (Vint stopA)
+                     (PTree.set mario_actions_moving._m v0 base))))) ! t' = Some x0 ->
+          t' <> mario_actions_moving._animation ->
+          t' <> mario_actions_moving._airAction ->
+          t' <> mario_actions_moving._jumpAction ->
+          t' <> mario_actions_moving._stopAction ->
+          t' <> mario_actions_moving._m ->
+          x0 = Vundef).
+      { intros x0 Hx0 HA HB HC HD HE.
+        rewrite PTree.gso in Hx0 by exact HA.
+        rewrite PTree.gso in Hx0 by exact HB.
+        rewrite PTree.gso in Hx0 by exact HC.
+        rewrite PTree.gso in Hx0 by exact HD.
+        rewrite PTree.gso in Hx0 by exact HE.
+        exact (create_undef_temps_val _ _ _ Hx0). }
+      repeat (apply orb_true_iff in Hmem' as [Ht | Hmem'];
+              [ apply Pos.eqb_eq in Ht; subst t';
+                rewrite (Hund _ Hg'); try (vm_compute; congruence);
+                left; reflexivity | ]).
+      discriminate Hmem'. }
+    assert (Hch0 : chase_inv SafeB nil
+       (PTree.set mario_actions_moving._animation anim
+          (PTree.set mario_actions_moving._airAction (Vint airA)
+             (PTree.set mario_actions_moving._jumpAction (Vint jumpA)
+                (PTree.set mario_actions_moving._stopAction (Vint stopA)
+                   (PTree.set mario_actions_moving._m v0 base))))))
+      by (intros t' Hmem'; discriminate Hmem').
+    destruct (csaj_pres _ _ _ _ _ _ _ _ Hbody
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (PTree.gempty _ _) (PTree.gempty _ _)
+                csaj_walk Htat0 Hact0 Hch0 HN HM HV HS)
+      as (HV' & HS' & HM' & HN' & _).
+    exact (conj HV' (conj HS' (conj HM' HN'))).
+  Qed.
+
+  (* ---- the const-arg capture site (for the leaf wrappers) ---- *)
+  Lemma csaj_capture_site_pres :
+    forall tcap stopA jumpA airA anim le m tr le' m' out,
+      tcap <> M._m ->
+      wact_const (Int.repr stopA) = true ->
+      wact_const (Int.repr jumpA) = true ->
+      wact_const (Int.repr airA) = true ->
+      (forall b o, le ! M._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero) ->
+      exec_stmt function_entry2 (lp_ge lp) empty_env le m
+        (Scall (Some tcap)
+           (Evar M._common_slide_action_with_jump
+              (Tfunction (tyMSp :: tuint :: tuint :: tuint :: tint :: nil) tint cc_default))
+           (Etempvar M._m tyMSp
+            :: Econst_int (Int.repr stopA) tint
+            :: Econst_int (Int.repr jumpA) tint
+            :: Econst_int (Int.repr airA) tint
+            :: Econst_int (Int.repr anim) tint :: nil))
+        tr le' m' out ->
+      NoA m -> MWF m -> Mem.valid_block m bm -> action_sat not_tainted m bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\ NoA m'
+      /\ out = Out_normal
+      /\ (forall b o, le' ! M._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
+  Proof.
+    intros tcap stopA jumpA airA anim le m tr le' m' out Hcap Hsa Hja Haa Htat Hexec
+           HN HM HV HS.
+    inv Hexec.
+    match goal with Hcf : classify_fun _ = _ |- _ => cbn in Hcf; inv Hcf end.
+    match goal with Hv : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
+      apply eval_Evar_funct_empty in Hv; destruct Hv as (fb & Hsym & ->) end.
+    match goal with Hff : Genv.find_funct _ (Vptr fb Ptrofs.zero) = Some ?fd |- _ =>
+      assert (Hres : resolves_lp lp M._common_slide_action_with_jump fd)
+        by (exists fb; split; assumption) end.
+    match goal with Hel : eval_exprlist _ _ _ _ (_ :: _ :: _ :: _ :: _ :: nil) _ _ |- _ => inv Hel end.
+    match goal with Hv : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+      apply eval_expr_Etempvar_val in Hv; rename Hv into Hv1 end.
+    match goal with Hc : sem_cast _ _ _ _ = Some _ |- _ =>
+      apply AirborneSurface.sem_cast_ptr_ptr_id in Hc; subst end.
+    match goal with Hel : eval_exprlist _ _ _ _ (_ :: _ :: _ :: _ :: nil) _ _ |- _ => inv Hel end.
+    match goal with Hv : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+      inv Hv; try (match goal with Hlv : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+                     inv Hlv end) end.
+    match goal with Hc : sem_cast (Vint (Int.repr stopA)) _ _ _ = Some _ |- _ =>
+      cbn in Hc; injection Hc as <- end.
+    match goal with Hel : eval_exprlist _ _ _ _ (_ :: _ :: _ :: nil) _ _ |- _ => inv Hel end.
+    match goal with Hv : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+      inv Hv; try (match goal with Hlv : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+                     inv Hlv end) end.
+    match goal with Hc : sem_cast (Vint (Int.repr jumpA)) _ _ _ = Some _ |- _ =>
+      cbn in Hc; injection Hc as <- end.
+    match goal with Hel : eval_exprlist _ _ _ _ (_ :: _ :: nil) _ _ |- _ => inv Hel end.
+    match goal with Hv : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+      inv Hv; try (match goal with Hlv : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+                     inv Hlv end) end.
+    match goal with Hc : sem_cast (Vint (Int.repr airA)) _ _ _ = Some _ |- _ =>
+      cbn in Hc; injection Hc as <- end.
+    match goal with Hel : eval_exprlist _ _ _ _ (_ :: nil) _ _ |- _ => inv Hel end.
+    match goal with Hel : eval_exprlist _ _ _ _ nil _ _ |- _ => inv Hel end.
+    match goal with Hv1 : le ! M._m = Some ?v1 |- _ =>
+      assert (Htat1 : forall b o, v1 = Vptr b o -> b = bm /\ o = Ptrofs.zero)
+        by (intros b o EE; rewrite EE in Hv1; exact (Htat b o Hv1)) end.
+    match goal with
+    | Hevf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+        destruct (csaj_funcall_pres _ _ _ _ _ _ _ _ _ _ Hres Hevf Htat1
+                    (wact_const_sound _ Hsa) (wact_const_sound _ Hja)
+                    (wact_const_sound _ Haa)
+                    HN HM HV HS)
+          as (HV' & HS' & HM' & HN')
+    end.
+    refine (conj HV' (conj HS' (conj HM' (conj HN' (conj eq_refl _))))).
+    intros b o Hg. cbn [set_opttemp] in Hg.
+    rewrite PTree.gso in Hg by (exact (fun e => Hcap (eq_sym e))).
+    exact (Htat b o Hg).
+  Qed.
+
+  (* ---- the trailing tilt_body_butt_slide(m) void call site ---- *)
+  Lemma tilt_void_site_pres :
+    forall e le m tr le' m' out,
+      e ! M._tilt_body_butt_slide = None ->
+      (forall b o, le ! M._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero) ->
+      exec_stmt function_entry2 (lp_ge lp) e le m
+        (Scall None
+           (Evar M._tilt_body_butt_slide
+              (Tfunction (tyMSp :: nil) tvoid cc_default))
+           (Etempvar M._m tyMSp :: nil))
+        tr le' m' out ->
+      NoA m -> MWF m -> Mem.valid_block m bm -> action_sat not_tainted m bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\ NoA m'
+      /\ out = Out_normal
+      /\ (forall b o, le' ! M._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
+  Proof.
+    intros e le m tr le' m' out Htn Htat Hexec HN HM HV HS.
+    inv Hexec.
+    match goal with Hcf : classify_fun _ = _ |- _ => cbn in Hcf; inv Hcf end.
+    match goal with Hv : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
+      destruct (eval_Evar_funct lp _ _ _ _ _ _ _ _ Htn Hv) as (fb & Hsym & ->) end.
+    match goal with Hff : Genv.find_funct _ (Vptr fb Ptrofs.zero) = Some ?fd |- _ =>
+      assert (Hres : resolves_lp lp M._tilt_body_butt_slide fd)
+        by (exists fb; split; assumption) end.
+    match goal with Hel : eval_exprlist _ _ _ _ (_ :: nil) _ _ |- _ => inv Hel end.
+    match goal with Hv : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+      apply eval_expr_Etempvar_val in Hv; rename Hv into Hv1 end.
+    match goal with Hc : sem_cast _ _ _ _ = Some _ |- _ =>
+      apply AirborneSurface.sem_cast_ptr_ptr_id in Hc; subst end.
+    match goal with Hel : eval_exprlist _ _ _ _ nil _ _ |- _ => inv Hel end.
+    match goal with Hv1 : le ! M._m = Some ?v1 |- _ =>
+      assert (Hmarg : marg_ok bm (v1 :: nil)) by
+        (destruct v1 as [ | | | | | bb oo ]; cbn; try exact I;
+         exact (Htat bb oo Hv1)) end.
+    match goal with
+    | Hevf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+        destruct (mov_tbbs_row _ _ _ _ _ _ Hevf Hres Hmarg HN HM HV HS)
+          as (HV' & HS' & HM' & HN')
+    end.
+    refine (conj HV' (conj HS' (conj HM' (conj HN' (conj eq_refl _))))).
+    intros b o Hg. cbn [set_opttemp] in Hg. exact (Htat b o Hg).
+  Qed.
+
+  (* ---- act_butt_slide leaf wrapper ----
+     body = { t'1 = csaj(m,201327166,50333824,50333838,145); cancel = t'1;
+              tilt_body_butt_slide(m); return cancel } *)
+  Lemma mov_abs_pres : body_pres lp NoA MWF bm M.f_act_butt_slide.
+  Proof.
+    intros m vargs t mEnd vres Hmarg Hevf HN HM HV HS.
+    assert (Hmarg' : marg_ok bm vargs) by (apply Hmarg; vm_compute; reflexivity).
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      change (fn_vars M.f_act_butt_slide) with (@nil (ident * type)) in Ha; inv Ha end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ => rename Hb into Hbind end.
+    change (fn_params M.f_act_butt_slide) with ((M._m, tyMSp) :: nil) in Hbind.
+    cbn [bind_parameter_temps] in Hbind.
+    destruct vargs as [| vhead vrest]; [ discriminate Hbind | ].
+    destruct vrest as [|]; [ | discriminate Hbind ].
+    injection Hbind as <-.
+    change (blocks_of_env (lp_ge lp) empty_env) with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    set (base := create_undef_temps (fn_temps M.f_act_butt_slide)) in *.
+    assert (Htat : forall b o,
+       (PTree.set M._m vhead base) ! M._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg. rewrite PTree.gss in Hg. injection Hg as Hvh.
+      rewrite Hvh in Hmarg'. cbn in Hmarg'. exact Hmarg'. }
+    unfold M.f_act_butt_slide in Hbody; cbn [fn_body] in Hbody.
+    (* outer seq: (capture; set) ;; (tilt; return) *)
+    apply lnd_exec_seq_cases in Hbody
+      as [ (trA & leA & mA & trB & Hfirst & Hsecond) | (Hfirst & Hne) ].
+    - (* first block (capture;set) ran to Out_normal *)
+      apply lnd_exec_seq_cases in Hfirst
+        as [ (trC & leC & mC & trD & Hcall & Hset) | (Hcall & Hne0) ].
+      2:{ destruct (csaj_capture_site_pres M._t'1 201327166 50333824 50333838 145
+                      _ _ _ _ _ _ ltac:(vm_compute; congruence)
+                      ltac:(vm_compute; reflexivity) ltac:(vm_compute; reflexivity)
+                      ltac:(vm_compute; reflexivity) Htat Hcall HN HM HV HS)
+            as (_ & _ & _ & _ & Ho & _). congruence. }
+      destruct (csaj_capture_site_pres M._t'1 201327166 50333824 50333838 145
+                  _ _ _ _ _ _ ltac:(vm_compute; congruence)
+                  ltac:(vm_compute; reflexivity) ltac:(vm_compute; reflexivity)
+                  ltac:(vm_compute; reflexivity) Htat Hcall HN HM HV HS)
+        as (HVc & HSc & HMc & HNc & _ & Htatc).
+      apply lnd_exec_set_inv in Hset as (-> & _ & vg & ->).
+      (* now the (tilt; return) block in leC' = set cancel vg leC, mem mC *)
+      assert (Htatc' : forall b o,
+         (PTree.set M._cancel vg leC) ! M._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
+      { intros b o Hg. rewrite PTree.gso in Hg by (vm_compute; congruence).
+        exact (Htatc b o Hg). }
+      apply lnd_exec_seq_cases in Hsecond
+        as [ (trE & leE & mE & trF & Htilt' & Hret) | (Htilt' & Hne1) ].
+      + destruct (tilt_void_site_pres _ _ _ _ _ _ _
+                    ltac:(apply PTree.gempty) Htatc' Htilt' HNc HMc HVc HSc)
+          as (HVt & HSt & HMt & HNt & _ & _).
+        apply lnd_exec_return_inv in Hret as (_ & -> & _).
+        exact (conj HVt (conj HSt HMt)).
+      + destruct (tilt_void_site_pres _ _ _ _ _ _ _
+                    ltac:(apply PTree.gempty) Htatc' Htilt' HNc HMc HVc HSc)
+          as (_ & _ & _ & _ & Ho & _). congruence.
+    - (* first block exited abnormally: impossible (set ends Out_normal) *)
+      apply lnd_exec_seq_cases in Hfirst
+        as [ (trC & leC & mC & trD & Hcall & Hset) | (Hcall & Hne0) ].
+      + apply lnd_exec_set_inv in Hset as (_ & Ho & _). congruence.
+      + destruct (csaj_capture_site_pres M._t'1 201327166 50333824 50333838 145
+                    _ _ _ _ _ _ ltac:(vm_compute; congruence)
+                    ltac:(vm_compute; reflexivity) ltac:(vm_compute; reflexivity)
+                    ltac:(vm_compute; reflexivity) Htat Hcall HN HM HV HS)
+          as (_ & _ & _ & _ & Ho & _). congruence.
+  Qed.
+
 
 
   Lemma mov_bwa_ids_rows : forall fid, mem_id fid mov_bwa_ids = true ->
@@ -7905,10 +8529,10 @@ Proof. vm_compute. reflexivity. Qed.
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
       rewrite mov_ahd_pin in Hdm. injection Hdm as <-. exact mov_ahd_pres. }
-    (* 13: act_butt_slide -- rest *)
+    (* 13: act_butt_slide -- WALKED (csaj keystone + tilt_body_butt_slide) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite abs_pin in Hdm. injection Hdm as <-. exact mov_abs_pres. }
     (* 14: act_stomach_slide -- WALKED (csa/ssa keystone) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
