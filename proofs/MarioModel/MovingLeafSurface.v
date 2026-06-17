@@ -254,7 +254,10 @@ Definition mov_walked_ids : list ident :=
     (* the HOLD- pair: shared HOLD-FRONT (held-object drop_and_set early
        return) ;; ssa-REST (stomach) / csaj-REST + tilt (butt) *)
     :: mario_actions_moving._act_hold_stomach_slide
-    :: mario_actions_moving._act_hold_butt_slide :: nil.
+    :: mario_actions_moving._act_hold_butt_slide
+    (* act_crouch_slide: csaj-hybrid recognizer-walk (5 wids capture blocks
+       + common_slide_action_with_jump capture tail via the special arm) *)
+    :: mario_actions_moving._act_crouch_slide :: nil.
 Definition mov_rest_ids : list ident :=
   filter (fun id => negb (mem_id id mov_walked_ids)) moving_callee_ids.
 
@@ -8643,6 +8646,472 @@ Proof. vm_compute. reflexivity. Qed.
       exact (conj HVa (conj HSa HMa)).
   Qed.
 
+  (* ================================================================== *)
+  (* act_crouch_slide: the csaj-HYBRID recognizer-walk.                  *)
+  (* The body is 5 guarded set_mario_action/set_jumping_action capture+   *)
+  (* return blocks (all engine-recognizable: window loads/stores + wids   *)
+  (* captures with UNTAINTED const action args) followed by a tail        *)
+  (*   t'7 = common_slide_action_with_jump(m, S,J,A, anim); cancel = t'7; *)
+  (*   return cancel                                                      *)
+  (* whose call needs ALL THREE action consts untainted -- so csaj CANNOT *)
+  (* be a wids (call_pres_act) function (that would only check the FIRST  *)
+  (* arg).  Instead a special recognizer arm catches it and the walker    *)
+  (* discharges it via csaj_e_capture_pres (the generic-env csaj capture, *)
+  (* consuming csaj_funcall_pres).  rt=false: body_pres makes no return-   *)
+  (* value claim, so the csaj result t'7 stays OUT of wact (its value is  *)
+  (* not proven untainted), keeping act_inv intact.                       *)
+  (* ================================================================== *)
+
+  (* ---- the crouch recognizer (engine || csaj-capture special arm) ---- *)
+  Definition crouch_wact : list ident :=
+    M._t'1 :: M._t'2 :: M._t'3 :: M._t'4 :: M._t'5 :: M._t'6 :: nil.
+  Definition crouch_ids : list ident := nil.
+  Definition crouch_wids : list ident :=
+    mario._set_mario_action :: mario._set_jumping_action :: nil.
+
+  Definition csaj_cap_site_chk (t fid : ident) (fty : type) (al : list expr) : bool :=
+    negb (Pos.eqb t M._m) && negb (mem_id t crouch_wact)
+    && Pos.eqb fid M._common_slide_action_with_jump
+    && proj_sumbool
+         (type_eq fty (Tfunction (tyMSp::tuint::tuint::tuint::tint::nil) tint cc_default))
+    && match al with
+       | Etempvar p pty :: Econst_int s sty :: Econst_int j jty
+         :: Econst_int a aty :: Econst_int anm anty :: nil =>
+           Pos.eqb p M._m && proj_sumbool (type_eq pty tyMSp)
+           && proj_sumbool (type_eq sty tint) && proj_sumbool (type_eq jty tint)
+           && proj_sumbool (type_eq aty tint) && proj_sumbool (type_eq anty tint)
+           && wact_const s && wact_const j && wact_const a
+       | _ => false
+       end.
+
+  Fixpoint crouch_chk (s : statement) : bool :=
+    wwalk_chk false crouch_wact crouch_ids crouch_wids nil nil nil nil s
+    || match s with
+       | Ssequence s1 s2 => crouch_chk s1 && crouch_chk s2
+       | Sifthenelse _ s1 s2 => crouch_chk s1 && crouch_chk s2
+       | Sswitch _ sl => crouch_chk_ls sl
+       | Scall (Some t) (Evar fid fty) al => csaj_cap_site_chk t fid fty al
+       | _ => false
+       end
+  with crouch_chk_ls (sl : labeled_statements) : bool :=
+    match sl with
+    | LSnil => true
+    | LScons _ s sl' => crouch_chk s && crouch_chk_ls sl'
+    end.
+
+  Lemma crouch_chk_ls_seq : forall sl,
+      crouch_chk_ls sl = true -> crouch_chk (seq_of_labeled_statement sl) = true.
+  Proof.
+    induction sl as [| o s sl0 IH]; intros H.
+    - reflexivity.
+    - cbn [seq_of_labeled_statement]. cbn [crouch_chk_ls] in H.
+      apply andb_prop in H as [H1 H2]. cbn [crouch_chk].
+      apply orb_true_iff. right. rewrite H1, (IH H2). reflexivity.
+  Qed.
+  Lemma crouch_chk_ls_case : forall n sl sl',
+      crouch_chk_ls sl = true -> select_switch_case n sl = Some sl' ->
+      crouch_chk_ls sl' = true.
+  Proof.
+    intros n sl; induction sl as [| o s sl0 IH]; intros sl' H Hsel.
+    - discriminate Hsel.
+    - cbn [crouch_chk_ls] in H. apply andb_prop in H as [H1 H2].
+      destruct o as [c|]; cbn [select_switch_case] in Hsel.
+      + destruct (zeq c n).
+        * injection Hsel as <-. cbn [crouch_chk_ls]. rewrite H1, H2. reflexivity.
+        * exact (IH sl' H2 Hsel).
+      + exact (IH sl' H2 Hsel).
+  Qed.
+  Lemma crouch_chk_ls_default : forall sl,
+      crouch_chk_ls sl = true -> crouch_chk_ls (select_switch_default sl) = true.
+  Proof.
+    induction sl as [| o s sl0 IH]; intros H.
+    - exact H.
+    - cbn [crouch_chk_ls] in H. apply andb_prop in H as [H1 H2].
+      destruct o as [c|]; cbn [select_switch_default].
+      + exact (IH H2).
+      + cbn [crouch_chk_ls]. rewrite H1, H2. reflexivity.
+  Qed.
+  Lemma crouch_chk_select : forall n sl,
+      crouch_chk_ls sl = true ->
+      crouch_chk (seq_of_labeled_statement (select_switch n sl)) = true.
+  Proof.
+    intros n sl H. apply crouch_chk_ls_seq. unfold select_switch.
+    destruct (select_switch_case n sl) eqn:E.
+    - exact (crouch_chk_ls_case _ _ _ H E).
+    - exact (crouch_chk_ls_default _ H).
+  Qed.
+  Lemma crouch_chk_scall_inv : forall optid a al,
+      crouch_chk (Scall optid a al) = true ->
+      wwalk_chk false crouch_wact crouch_ids crouch_wids nil nil nil nil
+        (Scall optid a al) = true
+      \/ (exists t fid fty,
+            optid = Some t /\ a = Evar fid fty /\ csaj_cap_site_chk t fid fty al = true).
+  Proof.
+    intros optid a al H. cbn [crouch_chk] in H.
+    apply orb_true_iff in H as [Hg | Hsp]; [ left; exact Hg | right ].
+    destruct optid as [t'|]; [ | discriminate Hsp ].
+    destruct a as [ i0 t0 | f0 t0 | f0 t0 | i0 t0 | fid fty | id0 t0
+                  | a0 t0 | a0 t0 | op a0 t0 | op a1 a2 t0 | a0 t0
+                  | a0 f0 t0 | t1 t0 | t1 t0 ]; try discriminate Hsp.
+    exists t', fid, fty. split; [ reflexivity | split; [ reflexivity | exact Hsp ] ].
+  Qed.
+  Lemma csaj_cap_site_shape : forall t fid fty al,
+      csaj_cap_site_chk t fid fty al = true ->
+      t <> M._m /\ mem_id t crouch_wact = false
+      /\ fid = M._common_slide_action_with_jump
+      /\ fty = Tfunction (tyMSp :: tuint :: tuint :: tuint :: tint :: nil) tint cc_default
+      /\ exists s j a anm,
+           al = (Etempvar M._m tyMSp :: Econst_int s tint :: Econst_int j tint
+                 :: Econst_int a tint :: Econst_int anm tint :: nil)
+           /\ wact_const s = true /\ wact_const j = true /\ wact_const a = true.
+  Proof.
+    intros t fid fty al H. unfold csaj_cap_site_chk in H.
+    apply andb_prop in H as [H Hal].
+    apply andb_prop in H as [H Hty].
+    apply andb_prop in H as [H Hfid].
+    apply andb_prop in H as [Htm Htw].
+    apply negb_true_iff in Htw.
+    assert (Htmne : t <> M._m).
+    { apply negb_true_iff in Htm. intro E; subst t.
+      rewrite Pos.eqb_refl in Htm; discriminate Htm. }
+    apply Pos.eqb_eq in Hfid.
+    destruct (type_eq fty (Tfunction (tyMSp :: tuint :: tuint :: tuint :: tint :: nil) tint cc_default))
+      as [Efty | Nfty]; [ | discriminate Hty ]. subst fty. clear Hty.
+    destruct al as [| e0 al0]; [ discriminate Hal | ].
+    destruct e0 as [ i t0 | f t0 | f t0 | i t0 | id t0 | p pty
+                   | a0 t0 | a0 t0 | o a0 t0 | o a1 a2 t0 | a0 t0
+                   | a0 f0 t0 | ty t0 | ty t0 ]; try discriminate Hal.
+    destruct al0 as [| e1 al1]; [ discriminate Hal | ].
+    destruct e1 as [ s sty | f t0 | f t0 | i t0 | id t0 | p0 pt0
+                   | a0 t0 | a0 t0 | o a0 t0 | o a1 a2 t0 | a0 t0
+                   | a0 f0 t0 | ty t0 | ty t0 ]; try discriminate Hal.
+    destruct al1 as [| e2 al2]; [ discriminate Hal | ].
+    destruct e2 as [ j jty | f t0 | f t0 | i t0 | id t0 | p0 pt0
+                   | a0 t0 | a0 t0 | o a0 t0 | o a1 a2 t0 | a0 t0
+                   | a0 f0 t0 | ty t0 | ty t0 ]; try discriminate Hal.
+    destruct al2 as [| e3 al3]; [ discriminate Hal | ].
+    destruct e3 as [ a aty | f t0 | f t0 | i t0 | id t0 | p0 pt0
+                   | a0 t0 | a0 t0 | o a0 t0 | o a1 a2 t0 | a0 t0
+                   | a0 f0 t0 | ty t0 | ty t0 ]; try discriminate Hal.
+    destruct al3 as [| e4 al4]; [ discriminate Hal | ].
+    destruct e4 as [ anm anty | f t0 | f t0 | i t0 | id t0 | p0 pt0
+                   | a0 t0 | a0 t0 | o a0 t0 | o a1 a2 t0 | a0 t0
+                   | a0 f0 t0 | ty t0 | ty t0 ]; try discriminate Hal.
+    destruct al4 as [|]; [ | discriminate Hal ].
+    apply andb_prop in Hal as [Hal Ha].
+    apply andb_prop in Hal as [Hal Hj].
+    apply andb_prop in Hal as [Hal Hs].
+    apply andb_prop in Hal as [Hal Hanty].
+    apply andb_prop in Hal as [Hal Haty].
+    apply andb_prop in Hal as [Hal Hjty].
+    apply andb_prop in Hal as [Hal Hsty].
+    apply andb_prop in Hal as [Hpm Hpty].
+    apply Pos.eqb_eq in Hpm; subst p.
+    destruct (type_eq pty tyMSp) as [Epty | Npty]; [ | discriminate Hpty ]. subst pty.
+    destruct (type_eq sty tint) as [-> | ?]; [ | discriminate Hsty ].
+    destruct (type_eq jty tint) as [-> | ?]; [ | discriminate Hjty ].
+    destruct (type_eq aty tint) as [-> | ?]; [ | discriminate Haty ].
+    destruct (type_eq anty tint) as [-> | ?]; [ | discriminate Hanty ].
+    split; [ exact Htmne | ]. split; [ exact Htw | ].
+    split; [ exact Hfid | ]. split; [ reflexivity | ].
+    exists s, j, a, anm. split; [ reflexivity | ].
+    split; [ exact Hs | split; [ exact Hj | exact Ha ] ].
+  Qed.
+
+  (* ---- the generic-env csaj const-capture (clone of                    *)
+  (*      csaj_capture_site_pres at a generic env e, int const args) ---- *)
+  Lemma csaj_e_capture_pres :
+    forall e t s j a anm le m tr le' m' out,
+      t <> M._m ->
+      e ! M._common_slide_action_with_jump = None ->
+      wact_const s = true -> wact_const j = true -> wact_const a = true ->
+      (forall b o, le ! M._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero) ->
+      exec_stmt function_entry2 (lp_ge lp) e le m
+        (Scall (Some t)
+           (Evar M._common_slide_action_with_jump
+              (Tfunction (tyMSp :: tuint :: tuint :: tuint :: tint :: nil) tint cc_default))
+           (Etempvar M._m tyMSp
+            :: Econst_int s tint :: Econst_int j tint
+            :: Econst_int a tint :: Econst_int anm tint :: nil))
+        tr le' m' out ->
+      NoA m -> MWF m -> Mem.valid_block m bm -> action_sat not_tainted m bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\ NoA m'
+      /\ out = Out_normal
+      /\ (forall b o, le' ! M._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
+  Proof.
+    intros e t s j a anm le m tr le' m' out Hcap He Hsa Hja Haa Htat Hexec
+           HN HM HV HS.
+    inv Hexec.
+    match goal with Hcf : classify_fun _ = _ |- _ => cbn in Hcf; inv Hcf end.
+    match goal with Hv : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
+      destruct (eval_Evar_funct lp _ _ _ _ _ _ _ _ He Hv) as (fb & Hsym & ->) end.
+    match goal with Hff : Genv.find_funct _ (Vptr fb Ptrofs.zero) = Some ?fd |- _ =>
+      assert (Hres : resolves_lp lp M._common_slide_action_with_jump fd)
+        by (exists fb; split; assumption) end.
+    match goal with Hel : eval_exprlist _ _ _ _ (_ :: _ :: _ :: _ :: _ :: nil) _ _ |- _ => inv Hel end.
+    match goal with Hv : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+      apply eval_expr_Etempvar_val in Hv; rename Hv into Hv1 end.
+    match goal with Hc : sem_cast _ _ _ _ = Some _ |- _ =>
+      apply AirborneSurface.sem_cast_ptr_ptr_id in Hc; subst end.
+    match goal with Hel : eval_exprlist _ _ _ _ (_ :: _ :: _ :: _ :: nil) _ _ |- _ => inv Hel end.
+    match goal with Hv : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+      inv Hv; try (match goal with Hlv : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+                     inv Hlv end) end.
+    match goal with Hc : sem_cast (Vint s) _ _ _ = Some _ |- _ =>
+      cbn in Hc; injection Hc as <- end.
+    match goal with Hel : eval_exprlist _ _ _ _ (_ :: _ :: _ :: nil) _ _ |- _ => inv Hel end.
+    match goal with Hv : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+      inv Hv; try (match goal with Hlv : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+                     inv Hlv end) end.
+    match goal with Hc : sem_cast (Vint j) _ _ _ = Some _ |- _ =>
+      cbn in Hc; injection Hc as <- end.
+    match goal with Hel : eval_exprlist _ _ _ _ (_ :: _ :: nil) _ _ |- _ => inv Hel end.
+    match goal with Hv : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+      inv Hv; try (match goal with Hlv : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+                     inv Hlv end) end.
+    match goal with Hc : sem_cast (Vint a) _ _ _ = Some _ |- _ =>
+      cbn in Hc; injection Hc as <- end.
+    match goal with Hel : eval_exprlist _ _ _ _ (_ :: nil) _ _ |- _ => inv Hel end.
+    match goal with Hel : eval_exprlist _ _ _ _ nil _ _ |- _ => inv Hel end.
+    match goal with Hv1 : le ! M._m = Some ?v1 |- _ =>
+      assert (Htat1 : forall b o, v1 = Vptr b o -> b = bm /\ o = Ptrofs.zero)
+        by (intros b o EE; rewrite EE in Hv1; exact (Htat b o Hv1)) end.
+    match goal with
+    | Hevf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+        destruct (csaj_funcall_pres _ _ _ _ _ _ _ _ _ _ Hres Hevf Htat1
+                    (wact_const_sound _ Hsa) (wact_const_sound _ Hja)
+                    (wact_const_sound _ Haa)
+                    HN HM HV HS)
+          as (HV' & HS' & HM' & HN')
+    end.
+    refine (conj HV' (conj HS' (conj HM' (conj HN' (conj eq_refl _))))).
+    intros b o Hg. cbn [set_opttemp] in Hg.
+    rewrite PTree.gso in Hg by (exact (fun ee => Hcap (eq_sym ee))).
+    exact (Htat b o Hg).
+  Qed.
+
+  (* ---- crouch census rows ---- *)
+  Lemma crouch_ids_rows : forall fid, mem_id fid crouch_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof. intros fid H. unfold crouch_ids in H. discriminate H. Qed.
+
+  Lemma crouch_wids_rows : forall fid, mem_id fid crouch_wids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold crouch_wids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_sja_row | discriminate H ].
+  Qed.
+
+  (* ---- the engine fallback over a crouch_chk-recognized statement ---- *)
+  Lemma crouch_generic :
+    forall s e le m0 tr le' m' out,
+      (forall g, mem_id g stored_globals = true -> e ! g = None) ->
+      (forall g, mem_id g crouch_ids = true -> e ! g = None) ->
+      (forall g, mem_id g crouch_wids = true -> e ! g = None) ->
+      e ! interaction._gGlobalTimer = None ->
+      wwalk_chk false crouch_wact crouch_ids crouch_wids nil nil nil nil s = true ->
+      (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      act_inv crouch_wact le ->
+      chase_inv SafeB nil le ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm -> action_sat not_tainted m0 bm ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\ NoA m'
+      /\ (forall b o, le' ! mario_actions_airborne._m = Some (Vptr b o) ->
+                      b = bm /\ o = Ptrofs.zero)
+      /\ act_inv crouch_wact le' /\ chase_inv SafeB nil le'.
+  Proof.
+    intros s e le m0 tr le' m' out Hub_g Hub_i Hub_w Hubgt Hchk
+           Htat Hact Hch HN HM HV HS Hexec.
+    destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+                false crouch_wact crouch_ids crouch_wids nil nil nil nil
+                crouch_ids_rows crouch_wids_rows ltac:(intros fid HH; discriminate HH)
+                ltac:(intros fid HH; discriminate HH) ltac:(intros fid HH; discriminate HH)
+                _ _ _ _ _ _ _ _ Hexec
+                Hub_g Hub_i Hub_w ltac:(intros g HH; discriminate HH)
+                ltac:(intros g HH; discriminate HH) ltac:(intros g HH; discriminate HH) Hubgt
+                Hchk Htat Hact Hch HN HM HV HS)
+      as (HV' & HS' & HM' & HN' & Htat' & Hact' & Hch' & _).
+    exact (conj HV' (conj HS' (conj HM' (conj HN'
+             (conj Htat' (conj Hact' Hch')))))).
+  Qed.
+
+  (* ---- THE crouch HYBRID WALK ---- *)
+  Lemma crouch_pres :
+    forall s e le m0 tr le' m' out,
+      exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
+      (forall g, mem_id g stored_globals = true -> e ! g = None) ->
+      (forall g, mem_id g crouch_ids = true -> e ! g = None) ->
+      (forall g, mem_id g crouch_wids = true -> e ! g = None) ->
+      e ! M._common_slide_action_with_jump = None ->
+      e ! interaction._gGlobalTimer = None ->
+      crouch_chk s = true ->
+      (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      act_inv crouch_wact le ->
+      chase_inv SafeB nil le ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm -> action_sat not_tainted m0 bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\ NoA m'
+      /\ (forall b o, le' ! mario_actions_airborne._m = Some (Vptr b o) ->
+                      b = bm /\ o = Ptrofs.zero)
+      /\ act_inv crouch_wact le' /\ chase_inv SafeB nil le'.
+  Proof.
+    intros s e le m0 tr le' m' out Hexec.
+    induction Hexec;
+      intros Hub_g Hub_i Hub_w Hcsn Hubgt Hchk Htat Hact Hch HN HM HV HS.
+    - exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact Hch)))))).
+    - cbn [crouch_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (crouch_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_w Hubgt
+                Hg Htat Hact Hch HN HM HV HS);
+        eapply exec_Sassign; eauto.
+    - cbn [crouch_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (crouch_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_w Hubgt
+                Hg Htat Hact Hch HN HM HV HS);
+        eapply exec_Sset; eauto.
+    - destruct (crouch_chk_scall_inv _ _ _ Hchk)
+        as [Hg | (tc & fidc & ftyc & -> & -> & Hsp)].
+      { eapply (crouch_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_w Hubgt
+                  Hg Htat Hact Hch HN HM HV HS);
+          eapply exec_Scall; eauto. }
+      destruct (csaj_cap_site_shape _ _ _ _ Hsp)
+        as (Htm & Htw & -> & -> & sc & jc & ac & anm & -> & Hs & Hj & Ha).
+      assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
+                      (Scall (Some tc)
+                         (Evar M._common_slide_action_with_jump
+                            (Tfunction (tyMSp :: tuint :: tuint :: tuint :: tint :: nil)
+                               tint cc_default))
+                         (Etempvar M._m tyMSp :: Econst_int sc tint :: Econst_int jc tint
+                          :: Econst_int ac tint :: Econst_int anm tint :: nil))
+                      t (set_opttemp (Some tc) vres le) m' Out_normal)
+        by (eapply exec_Scall; eauto).
+      destruct (csaj_e_capture_pres e tc sc jc ac anm le m _ _ _ _
+                  Htm Hcsn Hs Hj Ha Htat Hex HN HM HV HS)
+        as (HV' & HS' & HM' & HN' & _ & Htat').
+      cbn [set_opttemp] in *.
+      refine (conj HV' (conj HS' (conj HM' (conj HN' (conj Htat' (conj _ _)))))).
+      + intros t'' Hmem'' x Hg''.
+        rewrite PTree.gso in Hg''
+          by (intro EE; subst t''; rewrite Htw in Hmem''; discriminate Hmem'').
+        exact (Hact t'' Hmem'' x Hg'').
+      + intros t'' Hmem''; discriminate Hmem''.
+    - cbn [crouch_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp];
+        [ cbn [wwalk_chk wwalk_chk'] in Hg; discriminate Hg | discriminate Hsp ].
+    - cbn [crouch_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp].
+      { eapply (crouch_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_w Hubgt
+                  Hg Htat Hact Hch HN HM HV HS);
+          eapply exec_Sseq_1; eauto. }
+      apply andb_prop in Hsp as [H1 H2].
+      destruct (IHHexec1 Hub_g Hub_i Hub_w Hcsn Hubgt H1 Htat Hact Hch
+                  HN HM HV HS)
+        as (HV1 & HS1 & HM1 & HN1 & Htat1 & Hact1 & Hch1).
+      exact (IHHexec2 Hub_g Hub_i Hub_w Hcsn Hubgt H2 Htat1 Hact1 Hch1
+               HN1 HM1 HV1 HS1).
+    - cbn [crouch_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp].
+      { eapply (crouch_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_w Hubgt
+                  Hg Htat Hact Hch HN HM HV HS);
+          eapply exec_Sseq_2; eauto. }
+      apply andb_prop in Hsp as [H1 _].
+      exact (IHHexec Hub_g Hub_i Hub_w Hcsn Hubgt H1 Htat Hact Hch
+               HN HM HV HS).
+    - cbn [crouch_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp].
+      { eapply (crouch_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_w Hubgt
+                  Hg Htat Hact Hch HN HM HV HS);
+          eapply exec_Sifthenelse; eauto. }
+      apply andb_prop in Hsp as [H1 H2].
+      apply IHHexec; try assumption.
+      destruct b; assumption.
+    - exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact Hch)))))).
+    - exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact Hch)))))).
+    - exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact Hch)))))).
+    - exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact Hch)))))).
+    - cbn [crouch_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (crouch_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_w Hubgt
+                Hg Htat Hact Hch HN HM HV HS);
+        eapply exec_Sloop_stop1; eauto.
+    - cbn [crouch_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (crouch_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_w Hubgt
+                Hg Htat Hact Hch HN HM HV HS);
+        eapply exec_Sloop_stop2; eauto.
+    - cbn [crouch_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (crouch_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_w Hubgt
+                Hg Htat Hact Hch HN HM HV HS);
+        eapply exec_Sloop_loop; eauto.
+    - cbn [crouch_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp].
+      { eapply (crouch_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_w Hubgt
+                  Hg Htat Hact Hch HN HM HV HS);
+          eapply exec_Sswitch; eauto. }
+      apply IHHexec; try assumption.
+      apply crouch_chk_select. exact Hsp.
+  Qed.
+
+  Example acs_pin :
+    (prog_defmap mario_actions_moving.prog) ! M._act_crouch_slide
+    = Some (Gfun (Internal M.f_act_crouch_slide)).
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma mov_acs_pres : body_pres lp NoA MWF bm M.f_act_crouch_slide.
+  Proof.
+    intros m vargs t mEnd vres Hmarg Hevf HN HM HV HS.
+    assert (Hmarg' : marg_ok bm vargs) by (apply Hmarg; vm_compute; reflexivity).
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      change (fn_vars M.f_act_crouch_slide) with (@nil (ident * type)) in Ha; inv Ha end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ => rename Hb into Hbind end.
+    change (fn_params M.f_act_crouch_slide) with ((M._m, tyMSp) :: nil) in Hbind.
+    cbn [bind_parameter_temps] in Hbind.
+    destruct vargs as [| vhead vrest]; [ discriminate Hbind | ].
+    destruct vrest as [|]; [ | discriminate Hbind ].
+    injection Hbind as <-.
+    change (blocks_of_env (lp_ge lp) empty_env) with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    set (base := create_undef_temps (fn_temps M.f_act_crouch_slide)) in *.
+    assert (Htat : forall b o,
+       (PTree.set M._m vhead base) ! M._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg. rewrite PTree.gss in Hg. injection Hg as Hvh.
+      rewrite Hvh in Hmarg'. cbn in Hmarg'. exact Hmarg'. }
+    assert (Hact0 : act_inv crouch_wact (PTree.set M._m vhead base)).
+    { intros t' Hmem' x Hg'.
+      unfold crouch_wact in Hmem'. cbn [mem_id existsb] in Hmem'.
+      repeat (apply orb_true_iff in Hmem' as [Ht | Hmem'];
+              [ apply Pos.eqb_eq in Ht; subst t';
+                rewrite PTree.gso in Hg' by (vm_compute; congruence);
+                left; exact (create_undef_temps_val _ _ _ Hg') | ]).
+      discriminate Hmem'. }
+    assert (Hch0 : chase_inv SafeB nil (PTree.set M._m vhead base))
+      by (intros t' Hmem'; discriminate Hmem').
+    unfold M.f_act_crouch_slide in Hbody; cbn [fn_body] in Hbody.
+    destruct (crouch_pres _ _ _ _ _ _ _ _ Hbody
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (PTree.gempty _ _) (PTree.gempty _ _)
+                ltac:(vm_compute; reflexivity) Htat Hact0 Hch0 HN HM HV HS)
+      as (HV' & HS' & HM' & _).
+    exact (conj HV' (conj HS' HM')).
+  Qed.
+
 
 
   Lemma mov_bwa_ids_rows : forall fid, mem_id fid mov_bwa_ids = true ->
@@ -8842,10 +9311,10 @@ Proof. vm_compute. reflexivity. Qed.
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
       rewrite mov_mp_pin in Hdm. injection Hdm as <-. exact mov_mp_pres. }
-    (* 19: act_crouch_slide -- rest *)
+    (* 19: act_crouch_slide -- WALKED (csaj-hybrid recognizer-walk) *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
-      refine (Hrest _ f _ Hdm); vm_compute; reflexivity. }
+      rewrite acs_pin in Hdm. injection Hdm as <-. exact mov_acs_pres. }
     (* 20: act_slide_kick_slide -- WALKED *)
     apply orb_true_iff in H as [Hm | H].
     { apply Pos.eqb_eq in Hm; subst fid.
