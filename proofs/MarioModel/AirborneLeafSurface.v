@@ -1640,16 +1640,48 @@ Definition airborne_walked_ids : list ident :=
   A._act_dive ::
   A._act_vertical_wind ::
   A._act_lava_boost ::
-  A._act_getting_blown :: nil.
+  A._act_getting_blown ::
+  A._act_ground_pound :: nil.
 
 Definition airborne_rest_ids : list ident :=
-  A._act_ground_pound ::
   A._act_riding_hoot :: nil.
 
 (* the rest list is EXACTLY the non-walked complement of the census *)
 Example air_rest_check :
   airborne_rest_ids
   = filter (fun id => negb (mem_id id airborne_walked_ids)) airborne_callee_ids.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ====================================================================== *)
+(* SLICE A28: act_ground_pound.  All stores are Mario-window (pos/peakHeight/ *)
+(* vel/actionTimer/actionState/particleFlags); marioObj loads are read-only  *)
+(* (no chase stores -> cact=nil).  Calls: perform_air_step / mario_set_      *)
+(* forward_vel / set_mario_animation / play_sound_if_no_flag / play_mario_   *)
+(* heavy_landing_sound / should_get_stuck_in_ground (all call_pres, ids);    *)
+(* set_mario_action + check_fall_damage (call_pres_act, action arg an        *)
+(* untainted const, sids); vec3f_copy / play_sound / set_camera_shake_from_  *)
+(* hit (obj_ext, xids).                                                       *)
+Definition air_gp_ids : list ident :=
+  A._perform_air_step :: mario._mario_set_forward_vel
+    :: mario._set_mario_animation :: mario._play_sound_if_no_flag
+    :: mario._play_mario_heavy_landing_sound
+    :: A._should_get_stuck_in_ground :: nil.
+Definition air_gp_xids : list ident :=
+  A._vec3f_copy :: A._play_sound :: A._set_camera_shake_from_hit :: nil.
+Definition air_gp_sids : list ident :=
+  mario._set_mario_action :: A._check_fall_damage :: nil.
+
+Example air_gp_pin :
+  (prog_defmap mario_actions_airborne.prog) ! A._act_ground_pound
+  = Some (Gfun (Internal A.f_act_ground_pound)).
+Proof. vm_compute. reflexivity. Qed.
+Example air_gp_vars : fn_vars A.f_act_ground_pound = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example air_gp_pok : air_pok A.f_act_ground_pound = true.
+Proof. vm_compute. reflexivity. Qed.
+Example air_gp_walk :
+  wwalk_chk false nil air_gp_ids nil nil air_gp_xids air_gp_sids nil
+    (fn_body A.f_act_ground_pound) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* ====================================================================== *)
@@ -4218,6 +4250,67 @@ Section AirborneLeafRows.
   Qed.
 
   (* ==================================================================== *)
+  (* SLICE A28: act_ground_pound rows + pres.                             *)
+  (* ==================================================================== *)
+  Lemma air_gp_ids_rows : forall fid, mem_id fid air_gp_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold air_gp_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pas | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hmsfv | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_sma_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hpsinf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_pmhls_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_sgsig_row | ].
+    discriminate H.
+  Qed.
+  Lemma air_gp_xids_rows : forall fid, mem_id fid air_gp_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold air_gp_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        exact (Hpres_obj_ext A._vec3f_copy eq_refl) | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        exact (Hpres_obj_ext A._set_camera_shake_from_hit eq_refl) | ].
+    discriminate H.
+  Qed.
+  Lemma air_gp_sids_rows : forall fid, mem_id fid air_gp_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold air_gp_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_cfd_row | ].
+    discriminate H.
+  Qed.
+  Lemma air_gp_pres : body_pres lp NoA MWF bm A.f_act_ground_pound.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             A.f_act_ground_pound
+             air_gp_ids nil air_gp_xids air_gp_sids nil
+             air_gp_vars air_gp_pok).
+    - exact air_gp_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact air_gp_xids_rows.
+    - exact air_gp_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact air_gp_walk.
+  Qed.
+
+  (* ==================================================================== *)
   (* THE REST-SPLIT: the capstone's Hpres_air_callees from the walked     *)
   (* leaves + the shrinking airborne_rest_ids residual.                   *)
   (* ==================================================================== *)
@@ -4323,7 +4416,9 @@ Section AirborneLeafRows.
                 | (rewrite air_lb_pin in Hdm; injection Hdm as <-;
                    exact air_lb_pres)
                 | (rewrite air_gb_pin in Hdm; injection Hdm as <-;
-                   exact air_gb_pres) ] | ]).
+                   exact air_gb_pres)
+                | (rewrite air_gp_pin in Hdm; injection Hdm as <-;
+                   exact air_gp_pres) ] | ]).
     discriminate H.
   Qed.
 
