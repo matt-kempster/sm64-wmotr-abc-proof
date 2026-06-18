@@ -854,3 +854,83 @@ Lemma avw_walk :
   wwalk_chk false nil nil nil nil nil nil nil
     (fn_body mario_step.f_apply_vertical_wind) = true.
 Proof. vm_compute. reflexivity. Qed.
+
+(* ====================================================================== *)
+(* apply_gravity + its two callees -- ALL clean wwalk discharges.          *)
+(*   - apply_twirl_gravity (atg): NO calls, NO fn_vars; writes m->angleVel *)
+(*     [i] indexed-window.  Zero-residual via the bare engine (cact=nil).  *)
+(*   - should_strengthen_gravity_for_jump_ascent (ssg): NO calls, NO       *)
+(*     fn_vars; a pure reader.  Zero-residual via the bare engine.         *)
+(*   - apply_gravity (ag): ids=[atg; ssg] + ONE marioBodyState chase store *)
+(*     (_t'17->wingFlutter = 1, a const int) -> cact=[_t'17].              *)
+(* The capstone feeds these to call_pres_of_wwalk (atg/ssg) and            *)
+(* call_pres_of_wwalk_cact (ag, consuming Hcp_atg/Hcp_ssg) -> ELIMINATES   *)
+(* the Hcp_ag_real residual the pas walk left, zero net new residuals.     *)
+(* ====================================================================== *)
+Lemma atg_pin :
+  (prog_defmap mario_step.prog) ! mario_step._apply_twirl_gravity
+  = Some (Gfun (Internal mario_step.f_apply_twirl_gravity)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma atg_vars : fn_vars mario_step.f_apply_twirl_gravity = nil.
+Proof. reflexivity. Qed.
+Lemma atg_params :
+  match fn_params mario_step.f_apply_twirl_gravity with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma atg_walk :
+  wwalk_chk false nil nil nil nil nil nil nil
+    (fn_body mario_step.f_apply_twirl_gravity) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma ssg_pin :
+  (prog_defmap mario_step.prog) ! mario_step._should_strengthen_gravity_for_jump_ascent
+  = Some (Gfun (Internal mario_step.f_should_strengthen_gravity_for_jump_ascent)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma ssg_vars :
+  fn_vars mario_step.f_should_strengthen_gravity_for_jump_ascent = nil.
+Proof. reflexivity. Qed.
+Lemma ssg_params :
+  match fn_params mario_step.f_should_strengthen_gravity_for_jump_ascent with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma ssg_walk :
+  wwalk_chk false nil nil nil nil nil nil nil
+    (fn_body mario_step.f_should_strengthen_gravity_for_jump_ascent) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma ag_pin :
+  (prog_defmap mario_step.prog) ! mario_step._apply_gravity
+  = Some (Gfun (Internal mario_step.f_apply_gravity)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma ag_vars : fn_vars mario_step.f_apply_gravity = nil.
+Proof. reflexivity. Qed.
+Lemma ag_params :
+  match fn_params mario_step.f_apply_gravity with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma ag_cact_nonparam :
+  forallb (fun t' => negb (mem_id t' (map fst (fn_params mario_step.f_apply_gravity))))
+    (mario_step._t'17 :: nil) = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma ag_walk :
+  wwalk_chk false nil
+    (mario_step._apply_twirl_gravity
+       :: mario_step._should_strengthen_gravity_for_jump_ascent :: nil)
+    nil (mario_step._t'17 :: nil) nil nil nil
+    (fn_body mario_step.f_apply_gravity) = true.
+Proof. vm_compute. reflexivity. Qed.
