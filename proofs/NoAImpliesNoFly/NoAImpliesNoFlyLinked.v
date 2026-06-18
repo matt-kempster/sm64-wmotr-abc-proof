@@ -882,9 +882,11 @@ Section NoARealInputMWF.
          class (arg0 marg AND arg1 local: call_pres_paqs).  A marg-only
          call_pres would be phantom-FALSE (an unconstrained intendedPos could
          alias bm's action cell).  Deeper INTERNAL (mario_step.prog) row.
-       - apply_gravity(m): a plain marg INTERNAL (mario_step.prog) helper --
-         a deeper call_pres row (Hcp_ag_real), walkable later.
-       - apply_vertical_wind(m): also marg INTERNAL, but a CLEAN window-writer
+       - apply_gravity(m): marg INTERNAL -- now WALKED zero-residual (Lemma
+         Hcp_ag below), together with its two clean callees apply_twirl_gravity
+         (Hcp_atg) + should_strengthen_gravity_for_jump_ascent (Hcp_ssg); its
+         only chase store is m->marioBodyState->wingFlutter = 1 (cact gate).
+       - apply_vertical_wind(m): also marg INTERNAL, a CLEAN window-writer
          (no calls, no fn_vars, only m->vel[1] indexed-window stores) -- now
          WALKED zero-residual (Lemma Hcp_avw below, the air twin of msfv_row).
        - mario_get_terrain_sound_addend(m): the already-WALKED marg row
@@ -894,8 +896,6 @@ Section NoARealInputMWF.
   Hypothesis Hcp_paqs_real :
     PerformAirStepSurface.call_pres_paqs lp bm (NoA_real bm) MWF SafeB
       mario_step._perform_air_quarter_step.
-  Hypothesis Hcp_ag_real :
-    call_pres lp bm (NoA_real bm) MWF mario_step._apply_gravity.
   (* mario_blow_off_cap: act_getting_blown's cap-blow-off helper (INTERNAL
      interaction.prog).  It spawns a cap Object and stores through that fresh
      non-Mario block; that spawn-into-cact chase pattern needs the spawn/wind
@@ -1758,10 +1758,115 @@ Section NoARealInputMWF.
     exact avw_walk.
   Qed.
 
+  (* apply_twirl_gravity / should_strengthen_gravity_for_jump_ascent, WALKED
+     zero-residual (PerformAirStepSurface.atg_*/ssg_* via call_pres_of_wwalk):
+     both NO-call, NO-fn_var clean bodies (twirl writes m->angleVel[i]
+     indexed-window; ssg is a pure reader).  apply_gravity's two callees. *)
+  Lemma Hcp_atg :
+    call_pres lp bm (NoA_real bm) MWF mario_step._apply_twirl_gravity.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm (NoA_real bm)
+             (MWF_real lp bm bc oc0 SafeB)
+             (mwf_real_ctl lp bm bc oc0 SafeB)
+             (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+             (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             SafeB HSafeB_not_bm
+             (mwf_real_chase_root lp bm bc oc0 SafeB)
+             (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             (mwf_real_sglob lp bm bc oc0 SafeB)
+             (mwf_real_chase_step lp bm bc oc0 SafeB)
+             (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             mario_step.prog mario_step._apply_twirl_gravity
+             mario_step.f_apply_twirl_gravity nil nil nil nil
+             LO_stp atg_pin atg_vars atg_params);
+      try (intros fid' Hfid'; discriminate Hfid').
+    exact atg_walk.
+  Qed.
+
+  Lemma Hcp_ssg :
+    call_pres lp bm (NoA_real bm) MWF
+      mario_step._should_strengthen_gravity_for_jump_ascent.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm (NoA_real bm)
+             (MWF_real lp bm bc oc0 SafeB)
+             (mwf_real_ctl lp bm bc oc0 SafeB)
+             (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+             (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             SafeB HSafeB_not_bm
+             (mwf_real_chase_root lp bm bc oc0 SafeB)
+             (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             (mwf_real_sglob lp bm bc oc0 SafeB)
+             (mwf_real_chase_step lp bm bc oc0 SafeB)
+             (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             mario_step.prog
+             mario_step._should_strengthen_gravity_for_jump_ascent
+             mario_step.f_should_strengthen_gravity_for_jump_ascent
+             nil nil nil nil
+             LO_stp ssg_pin ssg_vars ssg_params);
+      try (intros fid' Hfid'; discriminate Hfid').
+    exact ssg_walk.
+  Qed.
+
+  (* apply_gravity, WALKED (PerformAirStepSurface.ag_* via call_pres_of_wwalk_
+     cact): ids=[apply_twirl_gravity; should_strengthen_gravity_for_jump_ascent]
+     supplied by Hcp_atg/Hcp_ssg; the one chase store m->marioBodyState->
+     wingFlutter = 1 (a const int) rides cact=[_t'17] (the MWF chase rows). *)
+  Lemma Hcp_ag :
+    call_pres lp bm (NoA_real bm) MWF mario_step._apply_gravity.
+  Proof.
+    apply (call_pres_of_wwalk_cact lp LO_mario bm (NoA_real bm)
+             (MWF_real lp bm bc oc0 SafeB)
+             (mwf_real_ctl lp bm bc oc0 SafeB)
+             (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+             (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             SafeB HSafeB_not_bm
+             (mwf_real_chase_root lp bm bc oc0 SafeB)
+             (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             (mwf_real_sglob lp bm bc oc0 SafeB)
+             (mwf_real_chase_step lp bm bc oc0 SafeB)
+             (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             mario_step.prog mario_step._apply_gravity
+             mario_step.f_apply_gravity
+             (mario_step._apply_twirl_gravity
+                :: mario_step._should_strengthen_gravity_for_jump_ascent :: nil)
+             nil (mario_step._t'17 :: nil) nil nil
+             LO_stp ag_pin ag_vars ag_params ag_cact_nonparam).
+    - intros fid' Hfid'.
+      apply orb_true_iff in Hfid' as [Hm | Hfid'].
+      + apply Pos.eqb_eq in Hm; subst fid'; exact Hcp_atg.
+      + apply orb_true_iff in Hfid' as [Hm | Hfid']; [ | discriminate Hfid' ].
+        apply Pos.eqb_eq in Hm; subst fid'; exact Hcp_ssg.
+    - intros fid' Hfid'; discriminate Hfid'.
+    - intros fid' Hfid'; discriminate Hfid'.
+    - intros fid' Hfid'; discriminate Hfid'.
+    - exact ag_walk.
+  Qed.
+
   (* perform_air_step, WALKED (PerformAirStepSurface.pas_cp): the air twin of
      pgs, instantiated at MWF_real (frame bricks from MWFReal; the deeper paqs
-     row is the paqs-gated residual Hcp_paqs_real, apply_gravity the marg row
-     Hcp_ag_real, apply_vertical_wind the WALKED Lemma Hcp_avw, mgtsa the
+     row is the paqs-gated residual Hcp_paqs_real, apply_gravity the WALKED
+     Lemma Hcp_ag, apply_vertical_wind the WALKED Lemma Hcp_avw, mgtsa the
      already-walked Lemma, vec3f_copy/vec3s_set from the obj_ext census). *)
   Lemma Hcp_pas :
     call_pres lp bm (NoA_real bm) MWF mario_step._perform_air_step.
@@ -1779,7 +1884,7 @@ Section NoARealInputMWF.
              aut_local_store
              Hcp_paqs_real
              Hcp_mgtsa_real
-             Hcp_ag_real
+             Hcp_ag
              Hcp_avw
              (Hpres_obj_ext mario_step._vec3f_copy eq_refl)
              (Hpres_obj_ext mario_step._vec3s_set eq_refl)).
