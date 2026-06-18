@@ -843,12 +843,25 @@ Section NoARealInputMWF.
      code under the dispatch kill).  AirborneLeafSurface SHRINKS the
      43-id census to the un-walked airborne_rest_ids: SLICE A1 walks
      the two prologue helpers (check_common_airborne_cancels +
-     play_far_fall_sound).  Discharge proceeds id by id. *)
+     play_far_fall_sound); SLICE A2 walks the three clean common_air_
+     action_step wrappers (act_freefall / act_hold_freefall /
+     act_wall_kick_air) under the Hcp_caas_real residual below.
+     Discharge proceeds id by id. *)
   Hypothesis Hpres_air_rest : forall fid f,
       mem_id fid AirborneLeafSurface.airborne_rest_ids = true ->
       (prog_defmap mario_actions_airborne.prog) ! fid
         = Some (Gfun (Internal f)) ->
       body_pres lp (NoA_real bm) MWF bm f.
+  (* common_air_action_step: the BIG shared air-physics helper (the air
+     analogue of perform_ground_step's Hcp_pgs) -- an INTERNAL
+     mario_actions_airborne.prog function, carried as a call_pres residual
+     and discharged later by walking its body (all its stores are window /
+     indexed-window + untainted-const actions).  Its presence DECOMPOSES the
+     11 common_air_action_step-dependent act handlers from whole-cloth
+     leaves into thin wrappers (SLICE A2 walks 3 of them). *)
+  Hypothesis Hcp_caas_real :
+    call_pres lp bm (NoA_real bm) MWF
+      mario_actions_airborne._common_air_action_step.
   (* the submerged dispatcher is WALKED (SubmergedSurface.submerged_pres
      over the generic DispatchKit; the quicksandDepth store is killed by
      the window census, and the two headAngle chase-pair stores -- the
@@ -1901,6 +1914,7 @@ Section NoARealInputMWF.
                          HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                       (Hpres_obj_ext mario._play_sound eq_refl)
                       Hpres_obj_ext
+                      Hcp_caas_real
                       Hpres_air_rest))
                 (submerged_pres lp LO_mario LO_sub bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB) SafeB
