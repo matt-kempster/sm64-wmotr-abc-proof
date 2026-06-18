@@ -10648,6 +10648,84 @@ Proof. vm_compute. reflexivity. Qed.
     - exact psw_walk.
   Qed.
 
+  (* ---- anim_and_audio_for_walk: np3 + cact + the rawData.asS32[34] store ----
+     The `marioObj->oMarioWalkingPitch = (s16)approach_s32(..)` chase store goes
+     through the subint-cast wchase_rhs_ok arm (cast to s16 is always Vint). *)
+  Definition aaw_ids : list ident :=
+    M._is_anim_past_frame :: M._play_step_sound :: M._tilt_body_running :: nil.
+  Definition aaw_cact : list ident := M._marioObj :: nil.
+  Definition aaw_xids : list ident := M._approach_s32 :: nil.
+  Definition aaw_nids : list ident := M._val14 :: M._t'2 :: M._t'4 :: nil.
+  Definition aaw_np3 : list ident := M._set_mario_anim_with_accel :: nil.
+
+  Example aaw_pin :
+    (prog_defmap mario_actions_moving.prog) ! M._anim_and_audio_for_walk
+    = Some (Gfun (Internal M.f_anim_and_audio_for_walk)).
+  Proof. vm_compute. reflexivity. Qed.
+  Example aaw_vars : fn_vars M.f_anim_and_audio_for_walk = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example aaw_pok : mov_pok M.f_anim_and_audio_for_walk = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example aaw_nonparam_c :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params M.f_anim_and_audio_for_walk))))
+      aaw_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example aaw_nonparam_n :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params M.f_anim_and_audio_for_walk))))
+      aaw_nids = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example aaw_walk :
+    wwalk_chk' nil nil nil nil aaw_nids aaw_np3 false
+      nil aaw_ids nil aaw_cact aaw_xids nil nil
+      (fn_body M.f_anim_and_audio_for_walk) = true.
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma aaw_ids_rows : forall fid, mem_id fid aaw_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold aaw_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_iapf_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_pss_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_tbr_row | discriminate H ].
+  Qed.
+  Lemma aaw_xids_rows : forall fid, mem_id fid aaw_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold aaw_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        exact (Hpres_obj_ext mario_actions_object._approach_s32 eq_refl)
+      | discriminate H ].
+  Qed.
+  Lemma aaw_np3_rows : forall fid, mem_id fid aaw_np3 = true ->
+      call_pres_np3 lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold aaw_np3 in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_smawa_row | discriminate H ].
+  Qed.
+
+  Lemma mov_aaw_row : call_pres lp bm NoA MWF M._anim_and_audio_for_walk.
+  Proof.
+    apply (call_pres_of_wwalk_nids lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_moving.prog M._anim_and_audio_for_walk
+             M.f_anim_and_audio_for_walk
+             aaw_ids nil aaw_cact aaw_xids nil nil aaw_nids aaw_np3
+             LO_mov aaw_pin aaw_vars aaw_pok aaw_nonparam_c aaw_nonparam_n).
+    - exact aaw_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact aaw_xids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact aaw_np3_rows.
+    - exact aaw_walk.
+  Qed.
+
   Lemma mov_bwa_ids_rows : forall fid, mem_id fid mov_bwa_ids = true ->
       call_pres lp bm NoA MWF fid.
   Proof.
