@@ -51,7 +51,8 @@ From SM64.Proofs Require Import MWFReal RestSurface AirborneSurface
   ActWriterSurface ObjectLeafSurface FloorsLeafSurface AutomaticLeafSurface
   LocalVarsSurface OutParamSurface WindSurface InterSurface
   MarioStepSurface PerformAirStepSurface BullySurface RetSurface
-  StationaryLeafSurface MovingLeafSurface AirborneLeafSurface MboCSurface.
+  StationaryLeafSurface MovingLeafSurface AirborneLeafSurface MboCSurface
+  SubmergedLeafSurface.
 
 Section NoAImpliesNoFlyLinked.
   (* The linked program -- ABSTRACT, never computed (no OOM). *)
@@ -931,14 +932,31 @@ Section NoARealInputMWF.
      over the generic DispatchKit; the quicksandDepth store is killed by
      the window census, and the two headAngle chase-pair stores -- the
      ONLY dispatcher stores through a chased pointer -- by the MWF chase
-     rows: the root load at bm@152 lands in SafeB, SafeB is bm-disjoint):
-     PROVED from per-leaf-callee residuals keyed by the 33-id census
-     submerged_callee_ids. *)
-  Hypothesis Hpres_sub_callees : forall fid f,
-      mem_id fid submerged_callee_ids = true ->
+     rows: the root load at bm@152 lands in SafeB, SafeB is bm-disjoint).
+     Its 33-id census residual is now SHRUNK leaf by leaf by
+     SubmergedLeafSurface.submerged_leaf_callees_pres.
+
+     SLICE 1: act_metal_water_standing WALKED (a pure body_pres_of_wwalk
+     walk: three set_mario_action(const) cancels, a head-anim switch
+     [set_mario_animation], an is_anim_at_end gate, the stop_and_set_height_
+     to_floor step, window stores to actionState/particleFlags; NO chase
+     stores).  The shared helper rows is_anim_at_end / set_mario_animation
+     are WALKED inside the leaf surface; set_mario_action is the reusable
+     smact_pres keystone.  The remaining 32 stay under Hpres_sub_rest. *)
+  Hypothesis Hpres_sub_rest : forall fid f,
+      mem_id fid sub_rest_ids = true ->
       (prog_defmap mario_actions_submerged.prog) ! fid
         = Some (Gfun (Internal f)) ->
       body_pres lp (NoA_real bm) MWF bm f.
+  (* the ONE honest step residual slice 1 introduces: stop_and_set_height_
+     to_floor (mario_step.prog) writes pos/vel (window) and copies into
+     marioObj's gfx pos/angle through the chased marioObj pointer (SafeB
+     pool); it never touches the action cell, so it is a genuine call_pres
+     for any caller -- a real, named, dischargeable function (its sc-arc
+     body walk is the NEXT submerged unit), NOT a restatement of the goal. *)
+  Hypothesis Hcp_sashf_real :
+    call_pres lp bm (NoA_real bm) MWF
+      mario_step._stop_and_set_height_to_floor.
   (* the cutscene dispatcher is WALKED (CutsceneSurface.cutscene_pres
      over the generic DispatchKit): its whole-body residual is PROVED
      from per-leaf-callee residuals keyed by the 51-id census
@@ -2327,7 +2345,29 @@ Section NoARealInputMWF.
                    (mwf_real_chase_root lp bm bc oc0 SafeB)
                    (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                       HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
-                   Hpres_sub_callees)
+                   (* SLICE 1: act_metal_water_standing WALKED; the 33-id
+                      census is shrunk to the un-walked 32 (sub_rest_ids). *)
+                   (submerged_leaf_callees_pres lp LO_mario LO_stp bm
+                      (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
+                      (mwf_real_ctl lp bm bc oc0 SafeB)
+                      (mwf_real_window lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+                      (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      SafeB HSafeB_not_bm
+                      (mwf_real_chase_root lp bm bc oc0 SafeB)
+                      (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (mwf_real_sglob lp bm bc oc0 SafeB)
+                      (mwf_real_chase_step lp bm bc oc0 SafeB)
+                      (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (Hpres_obj_ext mario._load_patchable_table eq_refl)
+                      Hcp_sashf_real
+                      Hpres_sub_rest))
                 (cutscene_pres lp LO_mario LO_cut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
                    (mwf_real_ctl lp bm bc oc0 SafeB)
