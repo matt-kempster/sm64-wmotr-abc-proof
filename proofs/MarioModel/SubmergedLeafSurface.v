@@ -22,7 +22,7 @@ From Coq Require Import ZArith Lia List.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
 From SM64.Generated Require mario mario_step
-  mario_actions_airborne mario_actions_submerged level_update.
+  mario_actions_airborne mario_actions_submerged level_update interaction.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
   ActionValueFrame RealFrameValue RealFrameLinked AGates.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface
@@ -126,6 +126,26 @@ Definition sub_drown_cact : list ident :=
     :: mario_actions_submerged._t'5
     :: mario_actions_submerged._t'6 :: nil.
 
+(* act_water_shocked: the INLINE knockback (does NOT call common_water_knockback_
+   step).  set_mario_action's action arg is the ternary health<0x100 ? DEATH :
+   IDLE -- two untainted consts written into _t'2 => wact=[_t'2] (the seeded
+   untainted-action temp).  Chases m->marioBodyState (headAngle write, _t'3) and
+   m->marioObj (gfx read for play_sound, _t'8) => cact=[_t'3; _t'8].  ids reused
+   (ssd/pws/sma/psinf); externals play_sound + set_camera_shake_from_hit are
+   obj_ext_ids members (Hpres_obj_ext, NO new trust); set_mario_action via
+   sub_sids (Hsmact).  ZERO new capstone trust. *)
+Definition sub_shock_wact : list ident :=
+  mario_actions_submerged._t'2 :: nil.
+Definition sub_shock_ids : list ident :=
+  mario_actions_submerged._stationary_slow_down
+    :: mario_actions_submerged._perform_water_step
+    :: mario._set_mario_animation
+    :: mario_actions_submerged._play_sound_if_no_flag :: nil.
+Definition sub_shock_cact : list ident :=
+  mario_actions_submerged._t'3 :: mario_actions_submerged._t'8 :: nil.
+Definition sub_shock_xids : list ident :=
+  mario._play_sound :: interaction._set_camera_shake_from_hit :: nil.
+
 (* the WALKED leaves. *)
 Definition sub_walked_ids : list ident :=
   mario_actions_submerged._act_metal_water_standing
@@ -145,7 +165,8 @@ Definition sub_walked_ids : list ident :=
     :: mario_actions_submerged._act_metal_water_falling
     :: mario_actions_submerged._act_hold_metal_water_falling
     :: mario_actions_submerged._act_water_death
-    :: mario_actions_submerged._act_drowning :: nil.
+    :: mario_actions_submerged._act_drowning
+    :: mario_actions_submerged._act_water_shocked :: nil.
 Definition sub_rest_ids : list ident :=
   filter (fun id => negb (mem_id id sub_walked_ids)) submerged_callee_ids.
 
@@ -570,6 +591,36 @@ Example sub_dr_walk :
     (fn_body mario_actions_submerged.f_act_drowning) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- act_water_shocked: wact=[_t'2] (ternary-const action), cact=[_t'3;_t'8]
+   (marioBodyState headAngle write + marioObj gfx read), xids=[play_sound;
+   set_camera_shake_from_hit] (obj_ext) ---- *)
+Example sub_sh_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._act_water_shocked
+  = Some (Gfun (Internal mario_actions_submerged.f_act_water_shocked)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_sh_vars :
+  fn_vars mario_actions_submerged.f_act_water_shocked = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_sh_pok :
+  sub_hold_pok mario_actions_submerged.f_act_water_shocked = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_sh_nonparam_c :
+  forallb (fun t' => negb (mem_id t'
+    (map fst (fn_params mario_actions_submerged.f_act_water_shocked))))
+    sub_shock_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_sh_nonparam_w :
+  forallb (fun t' => negb (mem_id t'
+    (map fst (fn_params mario_actions_submerged.f_act_water_shocked))))
+    sub_shock_wact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_sh_walk :
+  wwalk_chk false sub_shock_wact sub_shock_ids nil sub_shock_cact
+    sub_shock_xids sub_sids nil
+    (fn_body mario_actions_submerged.f_act_water_shocked) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ====================================================================== *)
 (* The section: the leaf-callee discharge, keyed by the census.           *)
 (* ====================================================================== *)
@@ -747,6 +798,13 @@ Section SubmergedLeafRows.
   Hypothesis Hcp_psinf :
     call_pres lp bm NoA MWF mario_actions_submerged._play_sound_if_no_flag.
 
+  (* act_water_shocked's two terminal externals -- both obj_ext_ids members,
+     the same audio/camera-shake model-boundary class as play_sound's row
+     (discharged at the capstone via Hpres_obj_ext, NO new trust). *)
+  Hypothesis Hcpx_psound : call_pres_ext lp bm NoA MWF mario._play_sound.
+  Hypothesis Hcpx_scshf :
+    call_pres_ext lp bm NoA MWF interaction._set_camera_shake_from_hit.
+
   (* the keystone, instantiated once: set_mario_action is call_pres_act. *)
   Let Hsmact : call_pres_act lp bm NoA MWF mario._set_mario_action :=
     smact_pres lp LO_mario LO_mario_step bm NoA MWF HNoA_of_MWF
@@ -882,6 +940,32 @@ Section SubmergedLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ssd | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pws | ].
+    discriminate H.
+  Qed.
+
+  Lemma sub_shock_ids_rows : forall fid, mem_id fid sub_shock_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sub_shock_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ssd | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pws | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_sma_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_psinf | ].
+    discriminate H.
+  Qed.
+
+  Lemma sub_shock_xids_rows : forall fid, mem_id fid sub_shock_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sub_shock_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_scshf | ].
     discriminate H.
   Qed.
 
@@ -1221,6 +1305,25 @@ Section SubmergedLeafRows.
     - exact sub_dr_walk.
   Qed.
 
+  Lemma act_water_shocked_pres :
+    body_pres lp NoA MWF bm
+      mario_actions_submerged.f_act_water_shocked.
+  Proof.
+    apply (body_pres_of_wwalk_wact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.f_act_water_shocked
+             sub_shock_wact sub_shock_ids nil sub_shock_cact
+             sub_shock_xids sub_sids nil
+             sub_sh_vars sub_sh_pok sub_sh_nonparam_c sub_sh_nonparam_w).
+    - exact sub_shock_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact sub_shock_xids_rows.
+    - exact sub_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact sub_sh_walk.
+  Qed.
+
   (* ================================================================== *)
   (* THE PAYOFF: the census-keyed leaf discharge.  The walked leaf is   *)
   (* discharged here; everything else falls through to the rest premise *)
@@ -1327,6 +1430,11 @@ Section SubmergedLeafRows.
     { apply Pos.eqb_eq in Ew18; subst fid.
       rewrite sub_dr_pin in Hdm. injection Hdm as <-.
       exact act_drowning_pres. }
+    destruct (Pos.eqb fid mario_actions_submerged._act_water_shocked)
+      eqn:Ew19.
+    { apply Pos.eqb_eq in Ew19; subst fid.
+      rewrite sub_sh_pin in Hdm. injection Hdm as <-.
+      exact act_water_shocked_pres. }
     (* REST: fid is in the census and not a walked id, so it is in the
        filter that defines sub_rest_ids. *)
     apply (Hrest fid f); [ | exact Hdm ].
@@ -1334,7 +1442,7 @@ Section SubmergedLeafRows.
     apply mem_id_filter_true; [ exact H | ].
     unfold sub_walked_ids. cbn [mem_id existsb].
     rewrite Ew1, Ew2, Ew3, Ew4, Ew5, Ew6, Ew7, Ew8, Ew9, Ew10,
-      Ew11, Ew12, Ew13, Ew14, Ew15, Ew16, Ew17, Ew18. reflexivity.
+      Ew11, Ew12, Ew13, Ew14, Ew15, Ew16, Ew17, Ew18, Ew19. reflexivity.
   Qed.
 
 End SubmergedLeafRows.
