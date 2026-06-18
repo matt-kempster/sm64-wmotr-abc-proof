@@ -322,6 +322,36 @@ Proof. vm_compute. reflexivity. Qed.
 (* Hcp_caas).                                                              *)
 (* ====================================================================== *)
 
+(* common_air_knockback_step (cakbs): the 2nd airborne keystone.  A DUAL
+   param-action helper -- it forwards _landAction (2nd param) to set_mario_
+   action AND _hardFallAction (3rd param) to check_fall_damage_or_get_stuck
+   (which forwards it to check_fall_damage -> set_mario_action).  So BOTH
+   args 2,3 must be untainted; a plain call_pres is phantom-FALSE.  Its body
+   passes the STANDARD engine with both params bound into wact (rt=false:
+   every caller discards the _stepResult return). *)
+Definition cakbs_wact : list ident := A._landAction :: A._hardFallAction :: nil.
+Definition cakbs_ids : list ident :=
+  A._mario_set_forward_vel :: A._perform_air_step :: A._set_mario_animation
+    :: A._mario_bonk_reflection :: A._lava_boost_on_wall :: nil.
+Definition cakbs_sids : list ident :=
+  A._check_fall_damage_or_get_stuck :: A._set_mario_action :: nil.
+
+Example cakbs_pin :
+  (prog_defmap mario_actions_airborne.prog) ! A._common_air_knockback_step
+  = Some (Gfun (Internal A.f_common_air_knockback_step)).
+Proof. vm_compute. reflexivity. Qed.
+Example cakbs_vars : fn_vars A.f_common_air_knockback_step = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example cakbs_params :
+  fn_params A.f_common_air_knockback_step
+  = (A._m, tyMSp) :: (A._landAction, tuint) :: (A._hardFallAction, tuint)
+      :: (A._animation, tint) :: (A._speed, tfloat) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+Example cakbs_walk :
+  wwalk_chk false cakbs_wact cakbs_ids nil nil nil cakbs_sids nil
+    (fn_body A.f_common_air_knockback_step) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* play_knockback_sound (airborne.prog): reads actionArg/forwardVel window,
    calls play_sound_if_no_flag (internal, Hpsinf); no stores. *)
 Definition air_pks_ids : list ident := mario._play_sound_if_no_flag :: nil.
@@ -3188,6 +3218,140 @@ Section AirborneLeafRows.
     - exact air_cfdgs_xids_rows.
     - exact air_cfdgs_sids_rows.
     - exact air_cfdgs_walk.
+  Qed.
+
+  (* ==================================================================== *)
+  (* The 2nd airborne keystone: common_air_knockback_step (cakbs) lift.    *)
+  (* A DUAL param-action funcall residual -- BOTH the 2nd arg (_landAction) *)
+  (* and the 3rd arg (_hardFallAction) must be untainted.  cakbs's body    *)
+  (* passes the STANDARD engine (cakbs_walk) with both bound into wact, so  *)
+  (* the lift goes straight through wwalk_pres0 (no bespoke walker).        *)
+  (* ==================================================================== *)
+  Lemma cakbs_ids_rows : forall fid, mem_id fid cakbs_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold cakbs_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hmsfv | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pas | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_sma_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_mbr_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_lbow_row | ].
+    discriminate H.
+  Qed.
+  Lemma cakbs_sids_rows : forall fid, mem_id fid cakbs_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold cakbs_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_cfdgs_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | ].
+    discriminate H.
+  Qed.
+
+  (* general av1/av2 (untainted_scalar) NOT Vint -- the thrown consumers pass
+     the 2nd arg as a TEMP whose act_inv guarantee is untainted_scalar (Vundef
+     OR Vint untainted), so the lift must accept Vundef too. *)
+  Lemma cakbs_funcall_pres :
+    forall fd m0 v0 av1 av2 anim spd t0 m1 vres0,
+      resolves_lp lp A._common_air_knockback_step fd ->
+      eval_funcall function_entry2 (lp_ge lp) m0 fd
+        (v0 :: av1 :: av2 :: anim :: spd :: nil) t0 m1 vres0 ->
+      (forall b o, v0 = Vptr b o -> b = bm /\ o = Ptrofs.zero) ->
+      untainted_scalar av1 -> untainted_scalar av2 ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm -> action_sat not_tainted m0 bm ->
+      Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\ MWF m1 /\ NoA m1.
+  Proof.
+    intros fd m0 v0 av1 av2 anim spd t0 m1 vres0 Hres Hevf Hmarg Hu1 Hu2
+           HN HM HV HS.
+    pose proof (resolve_pin_fd lp mario_actions_airborne.prog
+                  A._common_air_knockback_step A.f_common_air_knockback_step fd
+                  LO_air ltac:(vm_compute; reflexivity) Hres) as ->.
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      change (fn_vars A.f_common_air_knockback_step)
+        with (@nil (ident * type)) in Ha; inv Ha end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    change (fn_params A.f_common_air_knockback_step)
+      with ((A._m, tyMSp) :: (A._landAction, tuint) :: (A._hardFallAction, tuint)
+            :: (A._animation, tint) :: (A._speed, tfloat) :: nil) in Hbind.
+    cbn [bind_parameter_temps] in Hbind.
+    injection Hbind as <-.
+    change (blocks_of_env (lp_ge lp) empty_env)
+      with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    set (base := create_undef_temps
+                   (fn_temps A.f_common_air_knockback_step)) in *.
+    assert (Htat0 : forall b o,
+       (PTree.set A._speed spd
+          (PTree.set A._animation anim
+             (PTree.set A._hardFallAction av2
+                (PTree.set A._landAction av1
+                   (PTree.set A._m v0 base)))))
+         ! mario_actions_airborne._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg.
+      rewrite PTree.gso in Hg by (vm_compute; congruence).
+      rewrite PTree.gso in Hg by (vm_compute; congruence).
+      rewrite PTree.gso in Hg by (vm_compute; congruence).
+      rewrite PTree.gso in Hg by (vm_compute; congruence).
+      rewrite PTree.gss in Hg. injection Hg as ->. exact (Hmarg _ _ eq_refl). }
+    assert (Hact0 : act_inv cakbs_wact
+       (PTree.set A._speed spd
+          (PTree.set A._animation anim
+             (PTree.set A._hardFallAction av2
+                (PTree.set A._landAction av1
+                   (PTree.set A._m v0 base)))))).
+    { intros t' Hmem' x Hg'.
+      unfold cakbs_wact in Hmem'. cbn [mem_id existsb] in Hmem'.
+      apply orb_true_iff in Hmem' as [Ht | Hmem'].
+      { apply Pos.eqb_eq in Ht; subst t'.
+        rewrite PTree.gso in Hg' by (vm_compute; congruence).
+        rewrite PTree.gso in Hg' by (vm_compute; congruence).
+        rewrite PTree.gso in Hg' by (vm_compute; congruence).
+        rewrite PTree.gss in Hg'. injection Hg' as <-. exact Hu1. }
+      apply orb_true_iff in Hmem' as [Ht | Hmem'].
+      { apply Pos.eqb_eq in Ht; subst t'.
+        rewrite PTree.gso in Hg' by (vm_compute; congruence).
+        rewrite PTree.gso in Hg' by (vm_compute; congruence).
+        rewrite PTree.gss in Hg'. injection Hg' as <-. exact Hu2. }
+      discriminate Hmem'. }
+    assert (Hch0 : chase_inv SafeB nil
+       (PTree.set A._speed spd
+          (PTree.set A._animation anim
+             (PTree.set A._hardFallAction av2
+                (PTree.set A._landAction av1
+                   (PTree.set A._m v0 base))))))
+      by (intros t' Hmem'; discriminate Hmem').
+    assert (Hcpt0 : forall fid', mem_id fid' nil = true ->
+                    call_pres_act3 lp bm NoA MWF fid')
+      by (intros fid' HH; discriminate HH).
+    destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+                false cakbs_wact cakbs_ids nil nil nil cakbs_sids nil
+                cakbs_ids_rows
+                ltac:(intros fid' HH; discriminate HH)
+                ltac:(intros fid' HH; discriminate HH)
+                cakbs_sids_rows Hcpt0
+                _ _ _ _ _ _ _ _ Hbody
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (PTree.gempty _ _) cakbs_walk Htat0 Hact0 Hch0 HN HM HV HS)
+      as (HV' & HS' & HM' & HN' & _ & _ & _ & _).
+    exact (conj HV' (conj HS' (conj HM' HN'))).
   Qed.
 
   Lemma air_stj2_ids_rows : forall fid, mem_id fid air_stj2_ids = true ->
