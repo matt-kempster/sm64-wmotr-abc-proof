@@ -840,6 +840,36 @@ Example air_tfw_walk :
 Proof. vm_compute. reflexivity. Qed.
 
 (* ====================================================================== *)
+(* SLICE A12: act_slide_kick.                                              *)
+(* ====================================================================== *)
+(* thin update_air_without_turn / perform_air_step wrapper; AIR_STEP_NONE  *)
+(* writes m->marioObj->header.gfx.angle[0] = atan2s(..) (chase store, cact *)
+(* = the marioObj ptr temps: 2 store-targets + 1 read-base for the clamp). *)
+Definition air_sk_ids : list ident :=
+  mario._play_mario_sound :: mario._set_mario_animation
+    :: A._update_air_without_turn :: A._perform_air_step
+    :: mario._play_mario_landing_sound :: A._lava_boost_on_wall :: nil.
+Definition air_sk_cact : list ident :=
+  A._t'14 :: A._t'16 :: A._t'17 :: nil.
+
+Example air_sk_pin :
+  (prog_defmap mario_actions_airborne.prog) ! A._act_slide_kick
+  = Some (Gfun (Internal A.f_act_slide_kick)).
+Proof. vm_compute. reflexivity. Qed.
+Example air_sk_vars : fn_vars A.f_act_slide_kick = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example air_sk_pok : air_pok A.f_act_slide_kick = true.
+Proof. vm_compute. reflexivity. Qed.
+Example air_sk_nonparam :
+  forallb (fun t' => negb (mem_id t' (map fst (fn_params A.f_act_slide_kick))))
+    air_sk_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example air_sk_walk :
+  wwalk_chk false nil air_sk_ids nil air_sk_cact air_tfw_xids air_sids nil
+    (fn_body A.f_act_slide_kick) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ====================================================================== *)
 (* The walked / rest split of airborne_callee_ids.                        *)
 (* ====================================================================== *)
 Definition airborne_walked_ids : list ident :=
@@ -871,7 +901,8 @@ Definition airborne_walked_ids : list ident :=
   A._act_burning_jump ::
   A._act_burning_fall ::
   A._act_thrown_backward ::
-  A._act_thrown_forward :: nil.
+  A._act_thrown_forward ::
+  A._act_slide_kick :: nil.
 
 Definition airborne_rest_ids : list ident :=
   A._act_jump ::
@@ -886,8 +917,7 @@ Definition airborne_rest_ids : list ident :=
   A._act_ground_pound ::
   A._act_jump_kick ::
   A._act_riding_hoot ::
-  A._act_vertical_wind ::
-  A._act_slide_kick :: nil.
+  A._act_vertical_wind :: nil.
 
 (* the rest list is EXACTLY the non-walked complement of the census *)
 Example air_rest_check :
@@ -2272,6 +2302,43 @@ Section AirborneLeafRows.
   Qed.
 
   (* ==================================================================== *)
+  (* SLICE A12: act_slide_kick.                                            *)
+  (* ==================================================================== *)
+  Lemma air_sk_ids_rows : forall fid, mem_id fid air_sk_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold air_sk_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_pms_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_sma_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_uawt_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pas | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_pmls_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_lbow_row | ].
+    discriminate H.
+  Qed.
+  Lemma air_sk_pres : body_pres lp NoA MWF bm A.f_act_slide_kick.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             A.f_act_slide_kick
+             air_sk_ids nil air_sk_cact air_tfw_xids air_sids nil
+             air_sk_vars air_sk_pok air_sk_nonparam).
+    - exact air_sk_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact air_tfw_xids_rows.
+    - exact air_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact air_sk_walk.
+  Qed.
+
+  (* ==================================================================== *)
   (* THE REST-SPLIT: the capstone's Hpres_air_callees from the walked     *)
   (* leaves + the shrinking airborne_rest_ids residual.                   *)
   (* ==================================================================== *)
@@ -2353,7 +2420,9 @@ Section AirborneLeafRows.
                 | (rewrite air_tbk_pin in Hdm; injection Hdm as <-;
                    exact air_tbk_pres)
                 | (rewrite air_tfw_pin in Hdm; injection Hdm as <-;
-                   exact air_tfw_pres) ] | ]).
+                   exact air_tfw_pres)
+                | (rewrite air_sk_pin in Hdm; injection Hdm as <-;
+                   exact air_sk_pres) ] | ]).
     discriminate H.
   Qed.
 
