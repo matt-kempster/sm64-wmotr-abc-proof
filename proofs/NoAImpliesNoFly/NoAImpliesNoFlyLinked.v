@@ -882,8 +882,11 @@ Section NoARealInputMWF.
          class (arg0 marg AND arg1 local: call_pres_paqs).  A marg-only
          call_pres would be phantom-FALSE (an unconstrained intendedPos could
          alias bm's action cell).  Deeper INTERNAL (mario_step.prog) row.
-       - apply_gravity(m) / apply_vertical_wind(m): plain marg INTERNAL
-         (mario_step.prog) helpers -- deeper call_pres rows, walkable later.
+       - apply_gravity(m): a plain marg INTERNAL (mario_step.prog) helper --
+         a deeper call_pres row (Hcp_ag_real), walkable later.
+       - apply_vertical_wind(m): also marg INTERNAL, but a CLEAN window-writer
+         (no calls, no fn_vars, only m->vel[1] indexed-window stores) -- now
+         WALKED zero-residual (Lemma Hcp_avw below, the air twin of msfv_row).
        - mario_get_terrain_sound_addend(m): the already-WALKED marg row
          (Hcp_mgtsa_real, shared with pgs).
        - vec3f_copy / vec3s_set: the ungated obj_ext externals (Hpres_obj_ext).
@@ -893,8 +896,6 @@ Section NoARealInputMWF.
       mario_step._perform_air_quarter_step.
   Hypothesis Hcp_ag_real :
     call_pres lp bm (NoA_real bm) MWF mario_step._apply_gravity.
-  Hypothesis Hcp_avw_real :
-    call_pres lp bm (NoA_real bm) MWF mario_step._apply_vertical_wind.
   (* mario_blow_off_cap: act_getting_blown's cap-blow-off helper (INTERNAL
      interaction.prog).  It spawns a cap Object and stores through that fresh
      non-Mario block; that spawn-into-cact chase pattern needs the spawn/wind
@@ -1725,11 +1726,43 @@ Section NoARealInputMWF.
              (Hpres_obj_ext mario_step._vec3s_set eq_refl)).
   Qed.
 
+  (* apply_vertical_wind, WALKED zero-residual (PerformAirStepSurface.avw_*
+     via call_pres_of_wwalk): a CLEAN window-writer (no calls, no fn_vars;
+     m->vel[1] indexed-window stores, m->floor->type a chase READ).  The air
+     twin of msfv_row -- same MWF_real kit. *)
+  Lemma Hcp_avw :
+    call_pres lp bm (NoA_real bm) MWF mario_step._apply_vertical_wind.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm (NoA_real bm)
+             (MWF_real lp bm bc oc0 SafeB)
+             (mwf_real_ctl lp bm bc oc0 SafeB)
+             (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+             (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             SafeB HSafeB_not_bm
+             (mwf_real_chase_root lp bm bc oc0 SafeB)
+             (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             (mwf_real_sglob lp bm bc oc0 SafeB)
+             (mwf_real_chase_step lp bm bc oc0 SafeB)
+             (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             mario_step.prog mario_step._apply_vertical_wind
+             mario_step.f_apply_vertical_wind nil nil nil nil
+             LO_stp avw_pin avw_vars avw_params);
+      try (intros fid' Hfid'; discriminate Hfid').
+    exact avw_walk.
+  Qed.
+
   (* perform_air_step, WALKED (PerformAirStepSurface.pas_cp): the air twin of
      pgs, instantiated at MWF_real (frame bricks from MWFReal; the deeper paqs
-     row is the paqs-gated residual Hcp_paqs_real, apply_gravity/apply_vertical_
-     wind the marg rows Hcp_ag_real/Hcp_avw_real, mgtsa the already-walked Lemma,
-     vec3f_copy/vec3s_set from the obj_ext census). *)
+     row is the paqs-gated residual Hcp_paqs_real, apply_gravity the marg row
+     Hcp_ag_real, apply_vertical_wind the WALKED Lemma Hcp_avw, mgtsa the
+     already-walked Lemma, vec3f_copy/vec3s_set from the obj_ext census). *)
   Lemma Hcp_pas :
     call_pres lp bm (NoA_real bm) MWF mario_step._perform_air_step.
   Proof.
@@ -1747,7 +1780,7 @@ Section NoARealInputMWF.
              Hcp_paqs_real
              Hcp_mgtsa_real
              Hcp_ag_real
-             Hcp_avw_real
+             Hcp_avw
              (Hpres_obj_ext mario_step._vec3f_copy eq_refl)
              (Hpres_obj_ext mario_step._vec3s_set eq_refl)).
   Qed.
