@@ -964,6 +964,13 @@ Section NoARealInputMWF.
   Hypothesis Hcp_pmwjs_real :
     call_pres lp bm (NoA_real bm) MWF
       mario_actions_submerged._play_metal_water_jumping_sound.
+  (* SLICE 3 (act_metal_water_jump): update_metal_water_jump_speed writes
+     forwardVel/vel (window) + returns a hit-ceiling flag, never the action
+     cell -> genuine call_pres for any caller.  Honest residual (body walk a
+     later unit).  perform_air_step is the already-PROVED Hcp_pas Lemma. *)
+  Hypothesis Hcp_umwjs_real :
+    call_pres lp bm (NoA_real bm) MWF
+      mario_actions_submerged._update_metal_water_jump_speed.
   (* the cutscene dispatcher is WALKED (CutsceneSurface.cutscene_pres
      over the generic DispatchKit): its whole-body residual is PROVED
      from per-leaf-callee residuals keyed by the 51-id census
@@ -2375,6 +2382,8 @@ Section NoARealInputMWF.
                       (Hpres_obj_ext mario._load_patchable_table eq_refl)
                       Hcp_sashf_real
                       Hcp_pmwjs_real
+                      Hcp_pas
+                      Hcp_umwjs_real
                       Hpres_sub_rest))
                 (cutscene_pres lp LO_mario LO_cut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
