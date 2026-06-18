@@ -135,6 +135,13 @@ proofs/MarioModel/RetSurface.v
 #     walk; residuals = the deeper pgqs (mo-gated) + mgtsa (marg) rows) ---
 proofs/MarioModel/MarioStepSurface.v
 
+# --- GOAL 1 / the perform_air_step surface (SPINE: pas_cp DISCHARGES the
+#     capstone's Hcp_pas_real perform_air_step blocker via a loop-tolerant
+#     fn_var walk -- the air twin of pgs; residuals = the deeper paqs
+#     (paqs-gated: arg0 marg AND arg1 local) + apply_gravity/apply_vertical_
+#     wind (marg) + mgtsa rows) ---
+proofs/MarioModel/PerformAirStepSurface.v
+
 # --- GOAL 1 / the stationary-family leaf surface (SPINE:
 #     stationary_leaf_callees_pres shrinks the capstone's Hpres_sta_callees
 #     down to a per-leaf census rest-split; slice 1 = the clean

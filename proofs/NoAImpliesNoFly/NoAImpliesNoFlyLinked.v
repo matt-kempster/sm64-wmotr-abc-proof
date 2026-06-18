@@ -50,8 +50,8 @@ From SM64.Proofs Require Import MWFReal RestSurface AirborneSurface
   MovingSurface ObjectSurface SubmergedSurface FloorsSurface WarpSurface
   ActWriterSurface ObjectLeafSurface FloorsLeafSurface AutomaticLeafSurface
   LocalVarsSurface OutParamSurface WindSurface InterSurface
-  MarioStepSurface BullySurface RetSurface StationaryLeafSurface
-  MovingLeafSurface AirborneLeafSurface.
+  MarioStepSurface PerformAirStepSurface BullySurface RetSurface
+  StationaryLeafSurface MovingLeafSurface AirborneLeafSurface.
 
 Section NoAImpliesNoFlyLinked.
   (* The linked program -- ABSTRACT, never computed (no OOM). *)
@@ -870,14 +870,31 @@ Section NoARealInputMWF.
   Hypothesis Hcp_cakbs_real :
     call_pres lp bm (NoA_real bm) MWF
       mario_actions_airborne._common_air_knockback_step.
-  (* perform_air_step: the air-physics step driver (INTERNAL
-     mario_actions_airborne.prog -- the air analogue of perform_ground_step's
-     Hcp_pgs), carried as a call_pres residual and discharged later by walking
-     its body.  Drives the rollout act handlers (SLICE A6) and the remaining
-     air-physics leaves; its presence DECOMPOSES them into thin wrappers. *)
-  Hypothesis Hcp_pas_real :
-    call_pres lp bm (NoA_real bm) MWF
-      mario_actions_airborne._perform_air_step.
+  (* perform_air_step is now WALKED, not assumed: its whole body is proved to
+     preserve the carried run facts (PerformAirStepSurface.pas_cp, the air twin
+     of MarioStepSurface.pgs_cp -- a loop-tolerant fn_var walk; the Lemma
+     Hcp_pas below instantiates it at MWF_real).  The old opaque whole-body
+     residual is therefore DECOMPOSED (not collapsed) into perform_air_step's
+     honest callees one call-graph level down:
+       - perform_air_quarter_step(m, intendedPos, stepArg): intendedPos is
+         pas's OWN stack array but the MIDDLE arg (stepArg is last), so the mo
+         class (last_arg_local) does NOT fit -- the honest gate is the paqs
+         class (arg0 marg AND arg1 local: call_pres_paqs).  A marg-only
+         call_pres would be phantom-FALSE (an unconstrained intendedPos could
+         alias bm's action cell).  Deeper INTERNAL (mario_step.prog) row.
+       - apply_gravity(m) / apply_vertical_wind(m): plain marg INTERNAL
+         (mario_step.prog) helpers -- deeper call_pres rows, walkable later.
+       - mario_get_terrain_sound_addend(m): the already-WALKED marg row
+         (Hcp_mgtsa_real, shared with pgs).
+       - vec3f_copy / vec3s_set: the ungated obj_ext externals (Hpres_obj_ext).
+     decompose, not collapse. *)
+  Hypothesis Hcp_paqs_real :
+    PerformAirStepSurface.call_pres_paqs lp bm (NoA_real bm) MWF SafeB
+      mario_step._perform_air_quarter_step.
+  Hypothesis Hcp_ag_real :
+    call_pres lp bm (NoA_real bm) MWF mario_step._apply_gravity.
+  Hypothesis Hcp_avw_real :
+    call_pres lp bm (NoA_real bm) MWF mario_step._apply_vertical_wind.
   (* mario_blow_off_cap: act_getting_blown's cap-blow-off helper (INTERNAL
      interaction.prog).  It spawns a cap Object and stores through that fresh
      non-Mario block; that spawn-into-cact chase pattern needs the spawn/wind
@@ -1708,6 +1725,33 @@ Section NoARealInputMWF.
              (Hpres_obj_ext mario_step._vec3s_set eq_refl)).
   Qed.
 
+  (* perform_air_step, WALKED (PerformAirStepSurface.pas_cp): the air twin of
+     pgs, instantiated at MWF_real (frame bricks from MWFReal; the deeper paqs
+     row is the paqs-gated residual Hcp_paqs_real, apply_gravity/apply_vertical_
+     wind the marg rows Hcp_ag_real/Hcp_avw_real, mgtsa the already-walked Lemma,
+     vec3f_copy/vec3s_set from the obj_ext census). *)
+  Lemma Hcp_pas :
+    call_pres lp bm (NoA_real bm) MWF mario_step._perform_air_step.
+  Proof.
+    exact (pas_cp lp LO_mario LO_stp bm (NoA_real bm)
+             (MWF_real lp bm bc oc0 SafeB) SafeB
+             (mwf_real_ctl lp bm bc oc0 SafeB)
+             (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
+             (fun m l m' Hf HM =>
+                mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
+             (mwf_real_safe_valid lp bm bc oc0 SafeB)
+             Hglob_valid
+             aut_local_store
+             Hcp_paqs_real
+             Hcp_mgtsa_real
+             Hcp_ag_real
+             Hcp_avw_real
+             (Hpres_obj_ext mario_step._vec3f_copy eq_refl)
+             (Hpres_obj_ext mario_step._vec3s_set eq_refl)).
+  Qed.
+
   (* ==================================================================== *)
   (* THE MWF-GROUNDED THEOREM: same conclusion as the v2 capstone, but    *)
   (* the carried invariant is the concrete MWF_real -- its 14 projection/ *)
@@ -1955,7 +1999,7 @@ Section NoARealInputMWF.
                       (Hpres_obj_ext mario._load_patchable_table eq_refl)
                       (Hpres_floors_ext mario._raise_background_noise eq_refl)
                       (Hpres_obj_ext mario._set_camera_mode eq_refl)
-                      Hcp_pas_real
+                      Hcp_pas
                       Hcpx_approach_real
                       (* SLICE A21: act_lava_boost's low-health
                          level_trigger_warp -- the SHARED warp-trigger body
@@ -1976,7 +2020,7 @@ Section NoARealInputMWF.
                             Hpres_warp_ext))
                       (* SLICE A22: act_getting_blown's mario_blow_off_cap --
                          carried as an internal call_pres residual (spawn arc
-                         pending), the air analogue of Hcp_pas_real. *)
+                         pending), the air analogue of Hcp_caas_real. *)
                       Hcp_mboc_real
                       Hpres_air_rest))
                 (submerged_pres lp LO_mario LO_sub bm (NoA_real bm)
