@@ -1014,6 +1014,143 @@ Example air_twl_walk :
 Proof. vm_compute. reflexivity. Qed.
 
 (* ====================================================================== *)
+(* SLICE A16: the check_fall_damage cluster helpers + act_steep_jump.      *)
+(* ====================================================================== *)
+(* check_fall_damage(m, hardFallAction) and check_fall_damage_or_get_stuck *)
+(* are 2-param call_pres_act writers (the action is the hardFallAction      *)
+(* PARAM, passed untainted by the caller) -- walked via the new            *)
+(* call_pres_act_of_wwalk2 producer.  Their callees are pure readers       *)
+(* (mario_floor_is_slippery / should_get_stuck_in_ground), the act writer  *)
+(* drop_and_set_mario_action (Hdasma), and the pure-camera/audio externals *)
+(* set_camera_shake_from_hit + play_sound (obj_ext / Hcpx_psound).         *)
+(* act_steep_jump: an input-gated set_mario_action const, play_mario_sound *)
+(* / mario_set_forward_vel / perform_air_step (Sswitch) + cfdgs (sids), a  *)
+(* set_mario_animation, and a marioObj->gfx.angle[1] chase store; the      *)
+(* soft-cancel set_mario_action takes a const-derived temp _t'3 in wact.   *)
+
+(* -- mario_get_floor_class: pure read-only leaf (empty census). -- *)
+Example air_mgfc_pin :
+  (prog_defmap mario.prog) ! mario._mario_get_floor_class
+  = Some (Gfun (Internal mario.f_mario_get_floor_class)).
+Proof. vm_compute. reflexivity. Qed.
+Example air_mgfc_vars : fn_vars mario.f_mario_get_floor_class = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example air_mgfc_pok : air_pok mario.f_mario_get_floor_class = true.
+Proof. vm_compute. reflexivity. Qed.
+Example air_mgfc_walk :
+  wwalk_chk false nil nil nil nil nil nil nil
+    (fn_body mario.f_mario_get_floor_class) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* -- mario_floor_is_slippery: ids=[mario_get_floor_class]. -- *)
+Example air_mfisl_pin :
+  (prog_defmap mario.prog) ! mario._mario_floor_is_slippery
+  = Some (Gfun (Internal mario.f_mario_floor_is_slippery)).
+Proof. vm_compute. reflexivity. Qed.
+Example air_mfisl_vars : fn_vars mario.f_mario_floor_is_slippery = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example air_mfisl_pok : air_pok mario.f_mario_floor_is_slippery = true.
+Proof. vm_compute. reflexivity. Qed.
+Example air_mfisl_walk :
+  wwalk_chk false nil (mario._mario_get_floor_class :: nil) nil nil nil nil nil
+    (fn_body mario.f_mario_floor_is_slippery) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* -- should_get_stuck_in_ground: pure read-only leaf (empty census). -- *)
+Example air_sgsig_pin :
+  (prog_defmap mario_actions_airborne.prog) ! A._should_get_stuck_in_ground
+  = Some (Gfun (Internal A.f_should_get_stuck_in_ground)).
+Proof. vm_compute. reflexivity. Qed.
+Example air_sgsig_vars : fn_vars A.f_should_get_stuck_in_ground = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example air_sgsig_pok : air_pok A.f_should_get_stuck_in_ground = true.
+Proof. vm_compute. reflexivity. Qed.
+Example air_sgsig_walk :
+  wwalk_chk false nil nil nil nil nil nil nil
+    (fn_body A.f_should_get_stuck_in_ground) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* -- check_fall_damage: 2-param call_pres_act. -- *)
+Definition air_cfd_wact : list ident := A._hardFallAction :: A._t'2 :: nil.
+Definition air_cfd_ids : list ident := A._mario_floor_is_slippery :: nil.
+Definition air_cfd_wids : list ident := A._drop_and_set_mario_action :: nil.
+Definition air_cfd_cact : list ident := A._t'8 :: A._t'11 :: nil.
+Definition air_cfd_xids : list ident :=
+  A._set_camera_shake_from_hit :: A._play_sound :: nil.
+Example air_cfd_pin :
+  (prog_defmap mario_actions_airborne.prog) ! A._check_fall_damage
+  = Some (Gfun (Internal A.f_check_fall_damage)).
+Proof. vm_compute. reflexivity. Qed.
+Example air_cfd_vars : fn_vars A.f_check_fall_damage = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example air_cfd_params :
+  fn_params A.f_check_fall_damage
+  = (A._m, tyMSp) :: (A._hardFallAction, tuint) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+Example air_cfd_ret : i32_ty (fn_return A.f_check_fall_damage) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example air_cfd_walk :
+  wwalk_chk true air_cfd_wact air_cfd_ids air_cfd_wids air_cfd_cact
+    air_cfd_xids nil nil (fn_body A.f_check_fall_damage) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* -- check_fall_damage_or_get_stuck: 2-param call_pres_act. -- *)
+Definition air_cfdgs_wact : list ident := A._hardFallAction :: A._t'2 :: nil.
+Definition air_cfdgs_ids : list ident := A._should_get_stuck_in_ground :: nil.
+Definition air_cfdgs_wids : list ident := A._check_fall_damage :: nil.
+Definition air_cfdgs_cact : list ident := A._t'4 :: nil.
+Definition air_cfdgs_xids : list ident := A._play_sound :: nil.
+Definition air_cfdgs_sids : list ident := A._drop_and_set_mario_action :: nil.
+Example air_cfdgs_pin :
+  (prog_defmap mario_actions_airborne.prog) ! A._check_fall_damage_or_get_stuck
+  = Some (Gfun (Internal A.f_check_fall_damage_or_get_stuck)).
+Proof. vm_compute. reflexivity. Qed.
+Example air_cfdgs_vars : fn_vars A.f_check_fall_damage_or_get_stuck = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example air_cfdgs_params :
+  fn_params A.f_check_fall_damage_or_get_stuck
+  = (A._m, tyMSp) :: (A._hardFallAction, tuint) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+Example air_cfdgs_ret :
+  i32_ty (fn_return A.f_check_fall_damage_or_get_stuck) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example air_cfdgs_walk :
+  wwalk_chk true air_cfdgs_wact air_cfdgs_ids air_cfdgs_wids air_cfdgs_cact
+    air_cfdgs_xids air_cfdgs_sids nil
+    (fn_body A.f_check_fall_damage_or_get_stuck) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* -- act_steep_jump (the first cfd-cluster leaf). -- *)
+Definition air_stj2_ids : list ident :=
+  mario._play_mario_sound :: mario._mario_set_forward_vel
+    :: A._perform_air_step :: mario._set_mario_animation
+    :: A._lava_boost_on_wall :: nil.
+Definition air_stj2_wact : list ident := A._t'3 :: nil.
+Definition air_stj2_cact : list ident := A._t'5 :: A._t'6 :: nil.
+Definition air_stj2_sids : list ident :=
+  mario._set_mario_action :: A._check_fall_damage_or_get_stuck :: nil.
+Example air_stj2_pin :
+  (prog_defmap mario_actions_airborne.prog) ! A._act_steep_jump
+  = Some (Gfun (Internal A.f_act_steep_jump)).
+Proof. vm_compute. reflexivity. Qed.
+Example air_stj2_vars : fn_vars A.f_act_steep_jump = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example air_stj2_pok : air_pok A.f_act_steep_jump = true.
+Proof. vm_compute. reflexivity. Qed.
+Example air_stj2_nonparam_c :
+  forallb (fun t' => negb (mem_id t' (map fst (fn_params A.f_act_steep_jump))))
+    air_stj2_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example air_stj2_nonparam_w :
+  forallb (fun t' => negb (mem_id t' (map fst (fn_params A.f_act_steep_jump))))
+    air_stj2_wact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example air_stj2_walk :
+  wwalk_chk false air_stj2_wact air_stj2_ids nil air_stj2_cact nil
+    air_stj2_sids nil (fn_body A.f_act_steep_jump) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ====================================================================== *)
 (* The walked / rest split of airborne_callee_ids.                        *)
 (* ====================================================================== *)
 Definition airborne_walked_ids : list ident :=
@@ -1050,10 +1187,10 @@ Definition airborne_walked_ids : list ident :=
   A._act_crazy_box_bounce ::
   A._act_jump ::
   A._act_double_jump ::
-  A._act_twirling :: nil.
+  A._act_twirling ::
+  A._act_steep_jump :: nil.
 
 Definition airborne_rest_ids : list ident :=
-  A._act_steep_jump ::
   A._act_dive ::
   A._act_air_throw ::
   A._act_lava_boost ::
@@ -2652,6 +2789,208 @@ Section AirborneLeafRows.
   Qed.
 
   (* ==================================================================== *)
+  (* SLICE A16: check_fall_damage cluster + act_steep_jump.               *)
+  (* ==================================================================== *)
+  Lemma air_mgfc_row : call_pres lp bm NoA MWF mario._mario_get_floor_class.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._mario_get_floor_class
+             mario.f_mario_get_floor_class
+             nil nil nil nil LO_mario air_mgfc_pin air_mgfc_vars air_mgfc_pok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact air_mgfc_walk.
+  Qed.
+  Lemma air_mfisl_ids_rows : forall fid,
+      mem_id fid (mario._mario_get_floor_class :: nil) = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_mgfc_row | ].
+    discriminate H.
+  Qed.
+  Lemma air_mfisl_row : call_pres lp bm NoA MWF mario._mario_floor_is_slippery.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._mario_floor_is_slippery
+             mario.f_mario_floor_is_slippery
+             (mario._mario_get_floor_class :: nil) nil nil nil
+             LO_mario air_mfisl_pin air_mfisl_vars air_mfisl_pok).
+    - exact air_mfisl_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact air_mfisl_walk.
+  Qed.
+  Lemma air_sgsig_row :
+    call_pres lp bm NoA MWF A._should_get_stuck_in_ground.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_airborne.prog A._should_get_stuck_in_ground
+             A.f_should_get_stuck_in_ground
+             nil nil nil nil LO_air air_sgsig_pin air_sgsig_vars air_sgsig_pok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact air_sgsig_walk.
+  Qed.
+
+  Lemma air_cfd_ids_rows : forall fid, mem_id fid air_cfd_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold air_cfd_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_mfisl_row | ].
+    discriminate H.
+  Qed.
+  Lemma air_cfd_wids_rows : forall fid, mem_id fid air_cfd_wids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold air_cfd_wids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hdasma | ].
+    discriminate H.
+  Qed.
+  Lemma air_cfd_xids_rows : forall fid, mem_id fid air_cfd_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold air_cfd_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        exact (Hpres_obj_ext A._set_camera_shake_from_hit eq_refl) | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | ].
+    discriminate H.
+  Qed.
+  Lemma air_cfd_row : call_pres_act lp bm NoA MWF A._check_fall_damage.
+  Proof.
+    apply (call_pres_act_of_wwalk2 lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_airborne.prog A._check_fall_damage
+             A.f_check_fall_damage A._hardFallAction tuint
+             air_cfd_wact air_cfd_ids air_cfd_wids air_cfd_cact air_cfd_xids nil
+             LO_air air_cfd_pin air_cfd_vars air_cfd_params air_cfd_ret).
+    - intro EE; vm_compute in EE; discriminate EE.
+    - vm_compute; reflexivity.
+    - vm_compute; reflexivity.
+    - vm_compute; reflexivity.
+    - vm_compute; reflexivity.
+    - exact air_cfd_ids_rows.
+    - exact air_cfd_wids_rows.
+    - exact air_cfd_xids_rows.
+    - intros fid' H. discriminate H.
+    - exact air_cfd_walk.
+  Qed.
+
+  Lemma air_cfdgs_ids_rows : forall fid, mem_id fid air_cfdgs_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold air_cfdgs_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_sgsig_row | ].
+    discriminate H.
+  Qed.
+  Lemma air_cfdgs_wids_rows : forall fid, mem_id fid air_cfdgs_wids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold air_cfdgs_wids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_cfd_row | ].
+    discriminate H.
+  Qed.
+  Lemma air_cfdgs_xids_rows : forall fid, mem_id fid air_cfdgs_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold air_cfdgs_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | ].
+    discriminate H.
+  Qed.
+  Lemma air_cfdgs_sids_rows : forall fid, mem_id fid air_cfdgs_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold air_cfdgs_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hdasma | ].
+    discriminate H.
+  Qed.
+  Lemma air_cfdgs_row :
+    call_pres_act lp bm NoA MWF A._check_fall_damage_or_get_stuck.
+  Proof.
+    apply (call_pres_act_of_wwalk2 lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_airborne.prog A._check_fall_damage_or_get_stuck
+             A.f_check_fall_damage_or_get_stuck A._hardFallAction tuint
+             air_cfdgs_wact air_cfdgs_ids air_cfdgs_wids air_cfdgs_cact
+             air_cfdgs_xids air_cfdgs_sids
+             LO_air air_cfdgs_pin air_cfdgs_vars air_cfdgs_params air_cfdgs_ret).
+    - intro EE; vm_compute in EE; discriminate EE.
+    - vm_compute; reflexivity.
+    - vm_compute; reflexivity.
+    - vm_compute; reflexivity.
+    - vm_compute; reflexivity.
+    - exact air_cfdgs_ids_rows.
+    - exact air_cfdgs_wids_rows.
+    - exact air_cfdgs_xids_rows.
+    - exact air_cfdgs_sids_rows.
+    - exact air_cfdgs_walk.
+  Qed.
+
+  Lemma air_stj2_ids_rows : forall fid, mem_id fid air_stj2_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold air_stj2_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_pms_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hmsfv | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pas | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_sma_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_lbow_row | ].
+    discriminate H.
+  Qed.
+  Lemma air_stj2_sids_rows : forall fid, mem_id fid air_stj2_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold air_stj2_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_cfdgs_row | ].
+    discriminate H.
+  Qed.
+  Lemma air_stj2_pres : body_pres lp NoA MWF bm A.f_act_steep_jump.
+  Proof.
+    apply (body_pres_of_wwalk_wact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             A.f_act_steep_jump
+             air_stj2_wact air_stj2_ids nil air_stj2_cact nil air_stj2_sids nil
+             air_stj2_vars air_stj2_pok air_stj2_nonparam_c air_stj2_nonparam_w).
+    - exact air_stj2_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact air_stj2_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact air_stj2_walk.
+  Qed.
+
+  (* ==================================================================== *)
   (* THE REST-SPLIT: the capstone's Hpres_air_callees from the walked     *)
   (* leaves + the shrinking airborne_rest_ids residual.                   *)
   (* ==================================================================== *)
@@ -2743,7 +3082,9 @@ Section AirborneLeafRows.
                 | (rewrite air_djmp_pin in Hdm; injection Hdm as <-;
                    exact air_djmp_pres)
                 | (rewrite air_twl_pin in Hdm; injection Hdm as <-;
-                   exact air_twl_pres) ] | ]).
+                   exact air_twl_pres)
+                | (rewrite air_stj2_pin in Hdm; injection Hdm as <-;
+                   exact air_stj2_pres) ] | ]).
     discriminate H.
   Qed.
 
