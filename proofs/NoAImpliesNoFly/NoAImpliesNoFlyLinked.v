@@ -2501,6 +2501,13 @@ Section NoARealInputMWF.
                       (* SLICE 9 (act_drowning): play_sound_if_no_flag honest
                          residual; the leaf reuses everything else. *)
                       Hcp_psinf_real
+                      (* SLICE 10 (act_water_shocked): the two terminal
+                         externals are obj_ext_ids members (Hpres_obj_ext) --
+                         NO new trust.  The leaf's ternary-const set_mario_action
+                         (wact) + marioBodyState/marioObj chases (cact) reuse the
+                         set_mario_action keystone + the slice-7 step residuals. *)
+                      (Hpres_obj_ext mario._play_sound eq_refl)
+                      (Hpres_obj_ext interaction._set_camera_shake_from_hit eq_refl)
                       Hpres_sub_rest))
                 (cutscene_pres lp LO_mario LO_cut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
