@@ -10309,6 +10309,122 @@ Proof. vm_compute. reflexivity. Qed.
     - exact arsg_walk.
   Qed.
 
+  (* ==================================================================== *)
+  (* act_walking helper rows (SCAFFOLDING for the act_walking leaf).       *)
+  (*   tilt_body_walking = clean chase-store helper (val0C=marioBodyState;  *)
+  (*     torsoAngle[i] via approach_s32).                                   *)
+  (*   begin_braking_action = mario_drop_held_object + set_mario_action     *)
+  (*     consts + faceAngle[1] self-store.                                  *)
+  (* ==================================================================== *)
+
+  (* mario_drop_held_object: call_pres, reused from ObjectLeafSurface. *)
+  Let Hmdho : call_pres lp bm NoA MWF interaction._mario_drop_held_object :=
+    ObjectLeafSurface.mdho_row lp LO_mario LO_int bm NoA MWF HNoA_of_MWF
+      HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+      HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+      (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
+      (Hpres_obj_ext interaction._stop_shell_music eq_refl)
+      (Hpres_obj_ext interaction._obj_set_held_state eq_refl).
+
+  (* ---- tilt_body_walking: chase-store helper row ---- *)
+  Definition tbw_cact : list ident := M._val0C :: nil.
+  Definition tbw_xids : list ident := M._approach_s32 :: nil.
+
+  Example tbw_pin :
+    (prog_defmap mario_actions_moving.prog) ! M._tilt_body_walking
+    = Some (Gfun (Internal M.f_tilt_body_walking)).
+  Proof. vm_compute. reflexivity. Qed.
+  Example tbw_vars : fn_vars M.f_tilt_body_walking = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example tbw_pok : mov_pok M.f_tilt_body_walking = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example tbw_nonparam :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params M.f_tilt_body_walking))))
+      tbw_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example tbw_walk :
+    wwalk_chk false nil nil nil tbw_cact tbw_xids nil nil
+      (fn_body M.f_tilt_body_walking) = true.
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma tbw_xids_rows : forall fid, mem_id fid tbw_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold tbw_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        exact (Hpres_obj_ext mario_actions_object._approach_s32 eq_refl)
+      | discriminate H ].
+  Qed.
+
+  Lemma mov_tbw_row : call_pres lp bm NoA MWF M._tilt_body_walking.
+  Proof.
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_moving.prog M._tilt_body_walking
+             M.f_tilt_body_walking
+             nil nil tbw_cact tbw_xids nil
+             LO_mov tbw_pin tbw_vars tbw_pok tbw_nonparam).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact tbw_xids_rows.
+    - intros fid' H. discriminate H.
+    - exact tbw_walk.
+  Qed.
+
+  (* ---- begin_braking_action: drop_held + set_mario_action consts ---- *)
+  Definition bba_ids : list ident := M._mario_drop_held_object :: nil.
+  Definition bba_sids : list ident := M._set_mario_action :: nil.
+
+  Example bba_pin :
+    (prog_defmap mario_actions_moving.prog) ! M._begin_braking_action
+    = Some (Gfun (Internal M.f_begin_braking_action)).
+  Proof. vm_compute. reflexivity. Qed.
+  Example bba_vars : fn_vars M.f_begin_braking_action = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example bba_pok : mov_pok M.f_begin_braking_action = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example bba_nonparam :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params M.f_begin_braking_action))))
+      (@nil ident) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example bba_walk :
+    wwalk_chk false nil bba_ids nil nil nil bba_sids nil
+      (fn_body M.f_begin_braking_action) = true.
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma bba_ids_rows : forall fid, mem_id fid bba_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold bba_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hmdho | discriminate H ].
+  Qed.
+  Lemma bba_sids_rows : forall fid, mem_id fid bba_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold bba_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | discriminate H ].
+  Qed.
+
+  Lemma mov_bba_row : call_pres lp bm NoA MWF M._begin_braking_action.
+  Proof.
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_moving.prog M._begin_braking_action
+             M.f_begin_braking_action
+             bba_ids nil nil nil bba_sids
+             LO_mov bba_pin bba_vars bba_pok bba_nonparam).
+    - exact bba_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact bba_sids_rows.
+    - exact bba_walk.
+  Qed.
+
   Lemma mov_bwa_ids_rows : forall fid, mem_id fid mov_bwa_ids = true ->
       call_pres lp bm NoA MWF fid.
   Proof.
