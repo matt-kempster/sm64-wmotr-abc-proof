@@ -1946,6 +1946,7 @@ Section NoARealInputMWF.
                       (Hpres_floors_ext mario._raise_background_noise eq_refl)
                       (Hpres_obj_ext mario._set_camera_mode eq_refl)
                       Hcp_pas_real
+                      Hcpx_approach_real
                       Hpres_air_rest))
                 (submerged_pres lp LO_mario LO_sub bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB) SafeB
