@@ -854,13 +854,20 @@ Section NoARealInputMWF.
       body_pres lp (NoA_real bm) MWF bm f.
   (* common_air_action_step: the BIG shared air-physics helper (the air
      analogue of perform_ground_step's Hcp_pgs) -- an INTERNAL
-     mario_actions_airborne.prog function, carried as a call_pres residual
-     and discharged later by walking its body (all its stores are window /
-     indexed-window + untainted-const actions).  Its presence DECOMPOSES the
+     mario_actions_airborne.prog function, carried as a call_pres_ACT residual
+     (2nd-arg untainted_scalar gated, NOT plain call_pres) and discharged later
+     by walking its body.  WHY the act-gate: caas forwards its 2nd PARAM
+     _landAction straight to set_mario_action(m,_landAction,0), so a marg-only
+     call_pres (gating arg0=bm only) would be PHANTOM-FALSE -- an adversarial
+     tainted landAction would set m->action into the flying/taint set, breaking
+     action_sat.  Every air-act caller passes an untainted-const landAction
+     (e.g. ACT_FREEFALL_LAND), so caas rides the sids (untainted-2nd-arg) gate
+     exactly like set_mario_action; its other stores are window /
+     indexed-window + untainted-const actions.  Its presence DECOMPOSES the
      11 common_air_action_step-dependent act handlers from whole-cloth
      leaves into thin wrappers (SLICE A2 walks 3 of them). *)
   Hypothesis Hcp_caas_real :
-    call_pres lp bm (NoA_real bm) MWF
+    call_pres_act lp bm (NoA_real bm) MWF
       mario_actions_airborne._common_air_action_step.
   (* common_air_knockback_step: the 2nd shared air-physics helper (the
      knockback analogue of common_air_action_step) -- also an INTERNAL

@@ -134,9 +134,16 @@ Proof. vm_compute. reflexivity. Qed.
    play_mario_jump_sound (pmjs_row); set_mario_action + drop_and_set_mario_
    action (sids). *)
 Definition air_ajc_ids : list ident :=
-  A._common_air_action_step :: mario._play_mario_jump_sound :: nil.
+  mario._play_mario_jump_sound :: nil.
+(* common_air_action_step (caas) is a call_pres_act callee, NOT call_pres:
+   it forwards its 2nd PARAM _landAction to set_mario_action(m,_landAction,0),
+   so a plain call_pres (marg-only, arg0=bm) would be phantom-FALSE under an
+   adversarial tainted landAction.  It rides the sids (2nd-arg untainted_scalar)
+   gate exactly like set_mario_action; every caller passes an untainted-const
+   landAction (wact_const-checkable at the call site by smact_call_chk). *)
 Definition air_ajc_sids : list ident :=
-  mario._set_mario_action :: mario._drop_and_set_mario_action :: nil.
+  A._common_air_action_step :: mario._set_mario_action
+    :: mario._drop_and_set_mario_action :: nil.
 
 (* act_freefall: B/Z input-gated set_mario_action + a Sswitch(actionArg)
    choosing the animation (no store) + caas. *)
@@ -193,9 +200,9 @@ Definition air_pms_ids : list ident :=
   mario._play_mario_action_sound :: mario._play_mario_jump_sound
     :: mario._play_sound_if_no_flag :: nil.
 
-(* the caas + play_mario_sound census (hold_jump / long_jump) *)
+(* the play_mario_sound census (hold_jump / long_jump); caas rides sids. *)
 Definition air_cps_ids : list ident :=
-  A._common_air_action_step :: mario._play_mario_sound :: nil.
+  mario._play_mario_sound :: nil.
 Definition air_lj_xids : list ident := mario._play_sound :: nil.
 
 (* play_mario_sound (mario.prog): reads m->flags, dispatches to the 3 audio
@@ -253,7 +260,7 @@ Proof. vm_compute. reflexivity. Qed.
 Example air_lj_pok : air_pok A.f_act_long_jump = true.
 Proof. vm_compute. reflexivity. Qed.
 Example air_lj_walk :
-  wwalk_chk false nil air_cps_ids nil nil air_lj_xids nil nil
+  wwalk_chk false nil air_cps_ids nil nil air_lj_xids air_ajc_sids nil
     (fn_body A.f_act_long_jump) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -281,8 +288,7 @@ Proof. vm_compute. reflexivity. Qed.
 (* the caas + play_mario_sound + play_flip_sounds census (triple_jump /
    backflip) *)
 Definition air_tjbf_ids : list ident :=
-  A._common_air_action_step :: mario._play_mario_sound
-    :: A._play_flip_sounds :: nil.
+  mario._play_mario_sound :: A._play_flip_sounds :: nil.
 
 Example air_tj_pin :
   (prog_defmap mario_actions_airborne.prog) ! A._act_triple_jump
@@ -618,7 +624,7 @@ Definition air_rsa_ids : list ident :=
     :: A._update_air_without_turn :: nil.
 Definition air_rsa_cact : list ident := A._t'2 :: A._t'3 :: nil.
 Definition air_sf_ids : list ident :=
-  A._common_air_action_step :: A._play_mario_sound :: nil.
+  A._play_mario_sound :: nil.
 Definition air_sf_cact : list ident :=
   A._t'4 :: A._t'6 :: A._t'7 :: A._t'8 :: nil.
 
@@ -665,7 +671,7 @@ Example air_sf_nonparam :
     air_sf_cact = true.
 Proof. vm_compute. reflexivity. Qed.
 Example air_sf_walk :
-  wwalk_chk false nil air_sf_ids nil air_sf_cact air_pffs_xids air_sids nil
+  wwalk_chk false nil air_sf_ids nil air_sf_cact air_pffs_xids air_ajc_sids nil
     (fn_body A.f_act_side_flip) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -915,8 +921,7 @@ Proof. vm_compute. reflexivity. Qed.
 (* play_mario_sound + common_air_action_step ids; set_mario_action const). *)
 Definition air_ckdia_wact : list ident := A._t'1 :: nil.
 Definition air_jmp_ids : list ident :=
-  A._check_kick_or_dive_in_air :: mario._play_mario_sound
-    :: A._common_air_action_step :: nil.
+  A._check_kick_or_dive_in_air :: mario._play_mario_sound :: nil.
 
 Example air_ckdia_pin :
   (prog_defmap mario_actions_airborne.prog) ! A._check_kick_or_dive_in_air
@@ -948,7 +953,7 @@ Proof. vm_compute. reflexivity. Qed.
 Example air_jmp_pok : air_pok A.f_act_jump = true.
 Proof. vm_compute. reflexivity. Qed.
 Example air_jmp_walk :
-  wwalk_chk false nil air_jmp_ids nil nil nil air_sids nil
+  wwalk_chk false nil air_jmp_ids nil nil nil air_ajc_sids nil
     (fn_body A.f_act_jump) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -961,7 +966,7 @@ Proof. vm_compute. reflexivity. Qed.
 Example air_djmp_pok : air_pok A.f_act_double_jump = true.
 Proof. vm_compute. reflexivity. Qed.
 Example air_djmp_walk :
-  wwalk_chk false nil air_jmp_ids nil nil nil air_sids nil
+  wwalk_chk false nil air_jmp_ids nil nil nil air_ajc_sids nil
     (fn_body A.f_act_double_jump) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -1633,11 +1638,17 @@ Section AirborneLeafRows.
   (* ==================================================================== *)
 
   (* common_air_action_step: the BIG shared air-physics helper, carried as
-     a call_pres residual (internal mario_actions_airborne.prog, the air
-     analogue of Hcp_pgs; discharged later by walking its body).  All its
-     stores are window / indexed-window + untainted-const actions. *)
+     a call_pres_act residual (internal mario_actions_airborne.prog, the air
+     analogue of Hcp_pgs; discharged later by walking its body).  It is a
+     call_pres_ACT (2nd-arg gated) NOT a plain call_pres: it forwards its 2nd
+     PARAM _landAction straight to set_mario_action(m,_landAction,0), so a
+     marg-only call_pres would be phantom-FALSE under an adversarial tainted
+     landAction.  Under the untainted_scalar-2nd-arg gate that store preserves
+     action_sat; every air-act caller passes an untainted-const landAction
+     (wact_const-checkable, so caas rides the sids arm like set_mario_action).
+     Its other stores are window / indexed-window + untainted-const actions. *)
   Hypothesis Hcp_caas :
-    call_pres lp bm NoA MWF mario_actions_airborne._common_air_action_step.
+    call_pres_act lp bm NoA MWF mario_actions_airborne._common_air_action_step.
 
   (* 2nd airborne keystone: common_air_knockback_step (INTERNAL airborne.prog;
      discharge later by walking its body). *)
@@ -1690,8 +1701,6 @@ Section AirborneLeafRows.
   Proof.
     intros fid H. unfold air_ajc_ids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_caas | ].
-    apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hpmjs | ].
     discriminate H.
   Qed.
@@ -1700,6 +1709,8 @@ Section AirborneLeafRows.
       call_pres_act lp bm NoA MWF fid.
   Proof.
     intros fid H. unfold air_ajc_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_caas | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | ].
     apply orb_true_iff in H as [Hm | H];
@@ -1803,8 +1814,6 @@ Section AirborneLeafRows.
   Proof.
     intros fid H. unfold air_cps_ids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_caas | ].
-    apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact air_pms_row | ].
     discriminate H.
   Qed.
@@ -1858,11 +1867,11 @@ Section AirborneLeafRows.
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              A.f_act_long_jump
-             air_cps_ids nil air_lj_xids nil nil air_lj_vars air_lj_pok).
+             air_cps_ids nil air_lj_xids air_ajc_sids nil air_lj_vars air_lj_pok).
     - exact air_cps_ids_rows.
     - intros fid' H. discriminate H.
     - exact air_lj_xids_rows.
-    - intros fid' H. discriminate H.
+    - exact air_ajc_sids_rows.
     - intros fid' H. discriminate H.
     - exact air_lj_walk.
   Qed.
@@ -1899,8 +1908,6 @@ Section AirborneLeafRows.
       call_pres lp bm NoA MWF fid.
   Proof.
     intros fid H. unfold air_tjbf_ids in H. cbn [mem_id existsb] in H.
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_caas | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact air_pms_row | ].
     apply orb_true_iff in H as [Hm | H];
@@ -2560,8 +2567,6 @@ Section AirborneLeafRows.
   Proof.
     intros fid H. unfold air_sf_ids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_caas | ].
-    apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact air_pms_row | ].
     discriminate H.
   Qed.
@@ -2571,12 +2576,12 @@ Section AirborneLeafRows.
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              A.f_act_side_flip
-             air_sf_ids nil air_sf_cact air_pffs_xids air_sids nil
+             air_sf_ids nil air_sf_cact air_pffs_xids air_ajc_sids nil
              air_sf_vars air_sf_pok air_sf_nonparam).
     - exact air_sf_ids_rows.
     - intros fid' H. discriminate H.
     - exact air_pffs_xids_rows.
-    - exact air_sids_rows.
+    - exact air_ajc_sids_rows.
     - intros fid' H. discriminate H.
     - exact air_sf_walk.
   Qed.
@@ -2930,8 +2935,6 @@ Section AirborneLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact air_ckdia_row | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact air_pms_row | ].
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_caas | ].
     discriminate H.
   Qed.
   Lemma air_jmp_pres : body_pres lp NoA MWF bm A.f_act_jump.
@@ -2940,11 +2943,11 @@ Section AirborneLeafRows.
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              A.f_act_jump
-             air_jmp_ids nil nil air_sids nil air_jmp_vars air_jmp_pok).
+             air_jmp_ids nil nil air_ajc_sids nil air_jmp_vars air_jmp_pok).
     - exact air_jmp_ids_rows.
     - intros fid' H. discriminate H.
     - intros fid' H. discriminate H.
-    - exact air_sids_rows.
+    - exact air_ajc_sids_rows.
     - intros fid' H. discriminate H.
     - exact air_jmp_walk.
   Qed.
@@ -2954,11 +2957,11 @@ Section AirborneLeafRows.
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              A.f_act_double_jump
-             air_jmp_ids nil nil air_sids nil air_djmp_vars air_djmp_pok).
+             air_jmp_ids nil nil air_ajc_sids nil air_djmp_vars air_djmp_pok).
     - exact air_jmp_ids_rows.
     - intros fid' H. discriminate H.
     - intros fid' H. discriminate H.
-    - exact air_sids_rows.
+    - exact air_ajc_sids_rows.
     - intros fid' H. discriminate H.
     - exact air_djmp_walk.
   Qed.
