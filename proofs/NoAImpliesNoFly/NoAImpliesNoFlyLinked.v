@@ -1035,6 +1035,13 @@ Section NoARealInputMWF.
   Hypothesis Hcp_cwks_real :
     call_pres_act3 lp bm (NoA_real bm) MWF
       mario_actions_submerged._common_water_knockback_step.
+  (* SLICE 12 (cancel gate): transition_submerged_to_walking is an honest
+     INTERNAL residual (f_transition_submerged_to_walking in mario.prog),
+     dischargeable by walking its body later.  stop_shell_music (the nullary
+     audio external) is discharged zero-trust via Hpres_obj_ext below. *)
+  Hypothesis Hcp_tstw_real :
+    call_pres lp bm (NoA_real bm) MWF
+      mario_actions_submerged._transition_submerged_to_walking.
   (* the cutscene dispatcher is WALKED (CutsceneSurface.cutscene_pres
      over the generic DispatchKit): its whole-body residual is PROVED
      from per-leaf-callee residuals keyed by the 51-id census
@@ -2519,6 +2526,11 @@ Section NoARealInputMWF.
                       (* SLICE 11 (kb pair): cwks via call_pres_act3 (act3_call_chk
                          gates the untainted ACT_WATER_IDLE const at endAction). *)
                       Hcp_cwks_real
+                      (* SLICE 12 (cancel gate): transition_submerged_to_walking
+                         honest internal residual; stop_shell_music zero-trust via
+                         the obj_ext boundary. *)
+                      Hcp_tstw_real
+                      (Hpres_obj_ext interaction._stop_shell_music eq_refl)
                       Hpres_sub_rest))
                 (cutscene_pres lp LO_mario LO_cut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
