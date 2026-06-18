@@ -869,14 +869,13 @@ Section NoARealInputMWF.
   Hypothesis Hcp_caas_real :
     call_pres_act lp bm (NoA_real bm) MWF
       mario_actions_airborne._common_air_action_step.
-  (* common_air_knockback_step: the 2nd shared air-physics helper (the
-     knockback analogue of common_air_action_step) -- also an INTERNAL
-     mario_actions_airborne.prog function carried as a call_pres residual,
-     discharged later by walking its body.  DECOMPOSES the knockback act
-     handlers (hard kb leaves walked in SLICE A5a) into thin wrappers. *)
-  Hypothesis Hcp_cakbs_real :
-    call_pres lp bm (NoA_real bm) MWF
-      mario_actions_airborne._common_air_knockback_step.
+  (* common_air_knockback_step DISCHARGED (2nd airborne keystone): it was a
+     PHANTOM-FALSE call_pres residual -- the body forwards TWO param-actions
+     (_landAction, _hardFallAction) to set_mario_action, so plain call_pres
+     (which quantifies over all vargs) admitted a tainted action and broke
+     action_sat.  The 7 knockback handlers now ride AirborneLeafSurface's
+     cakbs dual-action hybrid walker (body_pres_of_cakbs_walk), which gates
+     both action args untainted via the lift cakbs_funcall_pres.  No residual. *)
   (* perform_air_step is now WALKED, not assumed: its whole body is proved to
      preserve the carried run facts (PerformAirStepSurface.pas_cp, the air twin
      of MarioStepSurface.pgs_cp -- a loop-tolerant fn_var walk; the Lemma
@@ -2231,7 +2230,6 @@ Section NoARealInputMWF.
                       (Hpres_obj_ext mario._play_sound eq_refl)
                       Hpres_obj_ext
                       Hcp_caas_real
-                      Hcp_cakbs_real
                       (Hpres_obj_ext mario._sqrtf eq_refl)
                       (Hpres_obj_ext mario._atan2s eq_refl)
                       Hcpx_approach_f32_real

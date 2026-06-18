@@ -876,6 +876,193 @@ Example air_tfw_walk :
 Proof. vm_compute. reflexivity. Qed.
 
 (* ====================================================================== *)
+(* cakbs DISCHARGE -- the dual-action hybrid walker for the 7 knockback    *)
+(* handlers (common_air_knockback_step's CALLERS).  cakbs forwards TWO     *)
+(* param-actions to set_mario_action, so plain call_pres is phantom-false; *)
+(* it rides a SPECIAL SITE that gates both action args untainted (const-   *)
+(* or-wact-temp), discharged by the Stage-1 lift cakbs_funcall_pres.  The  *)
+(* template is MovingLeafSurface's csaj machinery, generalized to a        *)
+(* const-OR-temp arg recognizer + an optional capture temp (thrown_forward *)
+(* captures the s32 return into _t'2).  cact/xids carry thrown_forward's   *)
+(* atan2s gfx.angle[0] chase store (harmless for the other 6).             *)
+(* ====================================================================== *)
+Definition cakbs_cons_wact : list ident := A._landAction :: nil.
+Definition cakbs_cons_ids : list ident :=
+  A._check_wall_kick :: A._play_knockback_sound
+    :: mario._play_sound_if_no_flag :: nil.
+Definition cakbs_cons_cact : list ident := A._t'4 :: nil.
+Definition cakbs_cons_xids : list ident := A._atan2s :: nil.
+
+(* an action argument at a cakbs site: an untainted const, or a wact temp. *)
+Definition cakbs_usrc (wact : list ident) (a : expr) : bool :=
+  match a with
+  | Econst_int c ty => wact_const c && proj_sumbool (type_eq ty tint)
+  | Etempvar q ty => mem_id q wact && proj_sumbool (type_eq ty tuint)
+  | _ => false
+  end.
+
+(* the OPTIONAL capture temp (cakbs returns s32): must dodge every tracked
+   census so set_opttemp preserves act_inv / chase_inv / the m-temp fact. *)
+Definition cakbs_optid_ok (wact cact : list ident) (optid : option ident) : bool :=
+  match optid with
+  | None => true
+  | Some id => negb (mem_id id wact) && negb (mem_id id cact)
+               && negb (Pos.eqb id A._m)
+  end.
+
+Definition cakbs_site_chk (wact cact : list ident) (optid : option ident)
+    (fid : ident) (fty : type) (al : list expr) : bool :=
+  cakbs_optid_ok wact cact optid
+  && Pos.eqb fid A._common_air_knockback_step
+  && proj_sumbool
+       (type_eq fty (Tfunction (tyMSp :: tuint :: tuint :: tint :: tfloat :: nil)
+                       tuint cc_default))
+  && match al with
+     | Etempvar p pty :: a1 :: a2 :: a3 :: a4 :: nil =>
+         Pos.eqb p A._m && proj_sumbool (type_eq pty tyMSp)
+         && cakbs_usrc wact a1 && cakbs_usrc wact a2
+     | _ => false
+     end.
+
+Lemma cakbs_site_chk_shape : forall wact cact optid fid fty al,
+    cakbs_site_chk wact cact optid fid fty al = true ->
+    exists a1 a2 a3 a4,
+      fid = A._common_air_knockback_step /\
+      fty = Tfunction (tyMSp :: tuint :: tuint :: tint :: tfloat :: nil)
+              tuint cc_default /\
+      al = Etempvar A._m tyMSp :: a1 :: a2 :: a3 :: a4 :: nil /\
+      cakbs_optid_ok wact cact optid = true /\
+      cakbs_usrc wact a1 = true /\ cakbs_usrc wact a2 = true.
+Proof.
+  intros wact cact optid fid fty al H. unfold cakbs_site_chk in H.
+  apply andb_prop in H as [H Hal].
+  apply andb_prop in H as [H Hfty].
+  apply andb_prop in H as [Hoptid Hfid].
+  apply Pos.eqb_eq in Hfid. subst fid.
+  destruct (type_eq fty (Tfunction (tyMSp :: tuint :: tuint :: tint :: tfloat :: nil)
+                           tuint cc_default));
+    [ subst fty | discriminate Hfty ].
+  destruct al as [| a0 al0]; [ discriminate Hal | ].
+  destruct a0 as [ | | | | | p pty | | | | | | | | ]; try discriminate Hal.
+  destruct al0 as [| a1 al1]; [ discriminate Hal | ].
+  destruct al1 as [| a2 al2]; [ discriminate Hal | ].
+  destruct al2 as [| a3 al3]; [ discriminate Hal | ].
+  destruct al3 as [| a4 al4]; [ discriminate Hal | ].
+  destruct al4 as [| a5 al5]; [ | discriminate Hal ].
+  apply andb_prop in Hal as [Hal Hu2].
+  apply andb_prop in Hal as [Hal Hu1].
+  apply andb_prop in Hal as [Hp Hpty].
+  apply Pos.eqb_eq in Hp. subst p.
+  destruct (type_eq pty tyMSp); [ subst pty | discriminate Hpty ].
+  exists a1, a2, a3, a4. repeat split; assumption.
+Qed.
+
+Fixpoint cakbs_cons_chk (s : statement) : bool :=
+  wwalk_chk true cakbs_cons_wact cakbs_cons_ids nil cakbs_cons_cact
+    cakbs_cons_xids nil nil s
+  || match s with
+     | Ssequence s1 s2 => cakbs_cons_chk s1 && cakbs_cons_chk s2
+     | Sifthenelse _ s1 s2 => cakbs_cons_chk s1 && cakbs_cons_chk s2
+     | Sswitch _ sl => cakbs_cons_chk_ls sl
+     | Scall optid (Evar fid fty) al =>
+         cakbs_site_chk cakbs_cons_wact cakbs_cons_cact optid fid fty al
+     | _ => false
+     end
+with cakbs_cons_chk_ls (sl : labeled_statements) : bool :=
+  match sl with
+  | LSnil => true
+  | LScons _ s sl' => cakbs_cons_chk s && cakbs_cons_chk_ls sl'
+  end.
+
+Lemma cakbs_cons_chk_ls_seq : forall sl,
+    cakbs_cons_chk_ls sl = true ->
+    cakbs_cons_chk (seq_of_labeled_statement sl) = true.
+Proof.
+  induction sl as [| o s sl0 IH]; intros H.
+  - reflexivity.
+  - cbn [seq_of_labeled_statement]. cbn [cakbs_cons_chk_ls] in H.
+    apply andb_prop in H as [H1 H2].
+    cbn [cakbs_cons_chk]. apply orb_true_iff. right.
+    rewrite H1, (IH H2). reflexivity.
+Qed.
+
+Lemma cakbs_cons_chk_ls_case : forall n sl sl',
+    cakbs_cons_chk_ls sl = true ->
+    select_switch_case n sl = Some sl' ->
+    cakbs_cons_chk_ls sl' = true.
+Proof.
+  intros n sl; induction sl as [| o s sl0 IH]; intros sl' H Hsel.
+  - discriminate Hsel.
+  - cbn [cakbs_cons_chk_ls] in H. apply andb_prop in H as [H1 H2].
+    destruct o as [c|]; cbn [select_switch_case] in Hsel.
+    + destruct (zeq c n).
+      * injection Hsel as <-. cbn [cakbs_cons_chk_ls]. rewrite H1, H2. reflexivity.
+      * exact (IH sl' H2 Hsel).
+    + exact (IH sl' H2 Hsel).
+Qed.
+
+Lemma cakbs_cons_chk_ls_default : forall sl,
+    cakbs_cons_chk_ls sl = true ->
+    cakbs_cons_chk_ls (select_switch_default sl) = true.
+Proof.
+  induction sl as [| o s sl0 IH]; intros H.
+  - exact H.
+  - cbn [cakbs_cons_chk_ls] in H. apply andb_prop in H as [H1 H2].
+    destruct o as [c|]; cbn [select_switch_default].
+    + exact (IH H2).
+    + cbn [cakbs_cons_chk_ls]. rewrite H1, H2. reflexivity.
+Qed.
+
+Lemma cakbs_cons_chk_select : forall n sl,
+    cakbs_cons_chk_ls sl = true ->
+    cakbs_cons_chk (seq_of_labeled_statement (select_switch n sl)) = true.
+Proof.
+  intros n sl H. apply cakbs_cons_chk_ls_seq.
+  unfold select_switch.
+  destruct (select_switch_case n sl) eqn:E.
+  - exact (cakbs_cons_chk_ls_case _ _ _ H E).
+  - exact (cakbs_cons_chk_ls_default _ H).
+Qed.
+
+Lemma cakbs_cons_chk_scall_inv : forall optid a al,
+    cakbs_cons_chk (Scall optid a al) = true ->
+    wwalk_chk true cakbs_cons_wact cakbs_cons_ids nil cakbs_cons_cact
+      cakbs_cons_xids nil nil (Scall optid a al) = true
+    \/ (exists fid fty,
+          a = Evar fid fty /\
+          cakbs_site_chk cakbs_cons_wact cakbs_cons_cact optid fid fty al = true).
+Proof.
+  intros optid a al H. cbn [cakbs_cons_chk] in H.
+  apply orb_true_iff in H as [Hg | Hsp]; [ left; exact Hg | right ].
+  destruct a as [ i0 t0 | f0 t0 | f0 t0 | i0 t0 | fid fty | id0 t0
+                | a0 t0 | a0 t0 | op a0 t0 | op a1 a2 t0 | a0 t0
+                | a0 f0 t0 | t1 t0 | t1 t0 ]; try discriminate Hsp.
+  exists fid, fty. split; [ reflexivity | exact Hsp ].
+Qed.
+
+Example cakbs_chk_hbkb :
+  cakbs_cons_chk (fn_body A.f_act_hard_backward_air_kb) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example cakbs_chk_hfkb :
+  cakbs_cons_chk (fn_body A.f_act_hard_forward_air_kb) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example cakbs_chk_bkb :
+  cakbs_cons_chk (fn_body A.f_act_backward_air_kb) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example cakbs_chk_fkb :
+  cakbs_cons_chk (fn_body A.f_act_forward_air_kb) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example cakbs_chk_sb :
+  cakbs_cons_chk (fn_body A.f_act_soft_bonk) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example cakbs_chk_tbk :
+  cakbs_cons_chk (fn_body A.f_act_thrown_backward) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example cakbs_chk_tfw :
+  cakbs_cons_chk (fn_body A.f_act_thrown_forward) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ====================================================================== *)
 (* SLICE A12: act_slide_kick.                                              *)
 (* ====================================================================== *)
 (* thin update_air_without_turn / perform_air_step wrapper; AIR_STEP_NONE  *)
@@ -1680,10 +1867,11 @@ Section AirborneLeafRows.
   Hypothesis Hcp_caas :
     call_pres_act lp bm NoA MWF mario_actions_airborne._common_air_action_step.
 
-  (* 2nd airborne keystone: common_air_knockback_step (INTERNAL airborne.prog;
-     discharge later by walking its body). *)
-  Hypothesis Hcp_cakbs :
-    call_pres lp bm NoA MWF mario_actions_airborne._common_air_knockback_step.
+  (* 2nd airborne keystone DISCHARGED: common_air_knockback_step is no longer
+     a call_pres residual -- it forwards TWO param-actions to set_mario_action,
+     so the plain call_pres was PHANTOM-FALSE.  Its 7 callers now ride the
+     cakbs dual-action hybrid walker (body_pres_of_cakbs_walk, Block B), which
+     gates both action args untainted via the Stage-1 lift cakbs_funcall_pres. *)
 
   (* ==================================================================== *)
   (* SLICE A6 boundary: the air-physics terminal externals + the          *)
@@ -2003,47 +2191,10 @@ Section AirborneLeafRows.
     - exact air_pks_walk.
   Qed.
 
-  (* the hard-kb census: play_knockback_sound + common_air_knockback_step *)
-  Lemma air_hkb_ids_rows : forall fid, mem_id fid air_hkb_ids = true ->
-      call_pres lp bm NoA MWF fid.
-  Proof.
-    intros fid H. unfold air_hkb_ids in H. cbn [mem_id existsb] in H.
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact air_pks_row | ].
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_cakbs | ].
-    discriminate H.
-  Qed.
-
-  Lemma air_hbkb_pres : body_pres lp NoA MWF bm A.f_act_hard_backward_air_kb.
-  Proof.
-    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
-             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-             A.f_act_hard_backward_air_kb
-             air_hkb_ids nil nil nil nil air_hbkb_vars air_hbkb_pok).
-    - exact air_hkb_ids_rows.
-    - intros fid' H. discriminate H.
-    - intros fid' H. discriminate H.
-    - intros fid' H. discriminate H.
-    - intros fid' H. discriminate H.
-    - exact air_hbkb_walk.
-  Qed.
-
-  Lemma air_hfkb_pres : body_pres lp NoA MWF bm A.f_act_hard_forward_air_kb.
-  Proof.
-    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
-             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-             A.f_act_hard_forward_air_kb
-             air_hkb_ids nil nil nil nil air_hfkb_vars air_hfkb_pok).
-    - exact air_hkb_ids_rows.
-    - intros fid' H. discriminate H.
-    - intros fid' H. discriminate H.
-    - intros fid' H. discriminate H.
-    - intros fid' H. discriminate H.
-    - exact air_hfkb_walk.
-  Qed.
+  (* the 7 knockback handlers (air_hbkb/hfkb/bkb/fkb/sb/tbk/tfw) are
+     discharged below via the cakbs dual-action hybrid walker
+     (body_pres_of_cakbs_walk), NOT the standard engine -- common_air_
+     knockback_step is a special SITE, not a call_pres census member. *)
 
   (* -------- SLICE A5b: check_wall_kick + directional/soft kb rows -------- *)
 
@@ -2074,65 +2225,10 @@ Section AirborneLeafRows.
     - exact air_cwk_walk.
   Qed.
 
-  (* the directional/soft-kb census:
-     check_wall_kick + play_knockback_sound + common_air_knockback_step *)
-  Lemma air_bkb_ids_rows : forall fid, mem_id fid air_bkb_ids = true ->
-      call_pres lp bm NoA MWF fid.
-  Proof.
-    intros fid H. unfold air_bkb_ids in H. cbn [mem_id existsb] in H.
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact air_cwk_row | ].
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact air_pks_row | ].
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_cakbs | ].
-    discriminate H.
-  Qed.
+  (* The cakbs dual-action hybrid walker (Block B) is defined LATER, right
+     after the Stage-1 lift cakbs_funcall_pres (which it consumes) and the
+     scattered leaf rows that lift needs.  See body_pres_of_cakbs_walk. *)
 
-  Lemma air_bkb_pres : body_pres lp NoA MWF bm A.f_act_backward_air_kb.
-  Proof.
-    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
-             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-             A.f_act_backward_air_kb
-             air_bkb_ids nil nil nil nil air_bkb_vars air_bkb_pok).
-    - exact air_bkb_ids_rows.
-    - intros fid' H. discriminate H.
-    - intros fid' H. discriminate H.
-    - intros fid' H. discriminate H.
-    - intros fid' H. discriminate H.
-    - exact air_bkb_walk.
-  Qed.
-
-  Lemma air_fkb_pres : body_pres lp NoA MWF bm A.f_act_forward_air_kb.
-  Proof.
-    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
-             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-             A.f_act_forward_air_kb
-             air_bkb_ids nil nil nil nil air_fkb_vars air_fkb_pok).
-    - exact air_bkb_ids_rows.
-    - intros fid' H. discriminate H.
-    - intros fid' H. discriminate H.
-    - intros fid' H. discriminate H.
-    - intros fid' H. discriminate H.
-    - exact air_fkb_walk.
-  Qed.
-
-  Lemma air_sb_pres : body_pres lp NoA MWF bm A.f_act_soft_bonk.
-  Proof.
-    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
-             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-             A.f_act_soft_bonk
-             air_bkb_ids nil nil nil nil air_sb_vars air_sb_pok).
-    - exact air_bkb_ids_rows.
-    - intros fid' H. discriminate H.
-    - intros fid' H. discriminate H.
-    - intros fid' H. discriminate H.
-    - intros fid' H. discriminate H.
-    - exact air_sb_walk.
-  Qed.
 
   (* ==================================================================== *)
   (* SLICE A6: the air-physics helper rows + the two rollout leaves.      *)
@@ -2811,31 +2907,10 @@ Section AirborneLeafRows.
     - exact air_bfa_walk.
   Qed.
 
-  Lemma air_tk_ids_rows : forall fid, mem_id fid air_tk_ids = true ->
-      call_pres lp bm NoA MWF fid.
-  Proof.
-    intros fid H. unfold air_tk_ids in H. cbn [mem_id existsb] in H.
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hpsinf | ].
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_cakbs | ].
-    discriminate H.
-  Qed.
-  Lemma air_tbk_pres : body_pres lp NoA MWF bm A.f_act_thrown_backward.
-  Proof.
-    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
-             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-             A.f_act_thrown_backward
-             air_tk_ids nil nil nil nil air_tbk_vars air_tbk_pok).
-    - exact air_tk_ids_rows.
-    - intros fid' H. discriminate H.
-    - intros fid' H. discriminate H.
-    - intros fid' H. discriminate H.
-    - intros fid' H. discriminate H.
-    - exact air_tbk_walk.
-  Qed.
-
+  (* air_tbk_pres / air_tfw_pres are discharged later via the cakbs hybrid
+     walker (Block B) -- common_air_knockback_step is a special SITE there,
+     so the old air_tk_ids row is no longer needed.  air_tfw_xids_rows is
+     KEPT (act_slide_kick below reuses air_tfw_xids = [atan2s]). *)
   Lemma air_tfw_xids_rows : forall fid, mem_id fid air_tfw_xids = true ->
       call_pres_ext lp bm NoA MWF fid.
   Proof.
@@ -2843,21 +2918,6 @@ Section AirborneLeafRows.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_atan2s | ].
     discriminate H.
-  Qed.
-  Lemma air_tfw_pres : body_pres lp NoA MWF bm A.f_act_thrown_forward.
-  Proof.
-    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
-             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-             A.f_act_thrown_forward
-             air_tk_ids nil air_tfw_cact air_tfw_xids nil nil
-             air_tfw_vars air_tfw_pok air_tfw_nonparam).
-    - exact air_tk_ids_rows.
-    - intros fid' H. discriminate H.
-    - exact air_tfw_xids_rows.
-    - intros fid' H. discriminate H.
-    - intros fid' H. discriminate H.
-    - exact air_tfw_walk.
   Qed.
 
   (* ==================================================================== *)
@@ -3352,6 +3412,435 @@ Section AirborneLeafRows.
                 (PTree.gempty _ _) cakbs_walk Htat0 Hact0 Hch0 HN HM HV HS)
       as (HV' & HS' & HM' & HN' & _ & _ & _ & _).
     exact (conj HV' (conj HS' (conj HM' HN'))).
+  Qed.
+
+  (* ==================================================================== *)
+  (* cakbs DISCHARGE -- the dual-action hybrid walker (Block B).          *)
+  (* Placed here so air_cwk_row / air_pks_row / Hpsinf / Hcpx_atan2s are  *)
+  (* all in scope for the census rows below.                              *)
+  (* ==================================================================== *)
+
+  (* an action argument is untainted: an untainted const, or a wact temp
+     (whose act_inv guarantee forces Vint-untainted at the real site). *)
+  Lemma cakbs_usrc_untainted :
+    forall wact a ge en le m v av,
+      cakbs_usrc wact a = true ->
+      act_inv wact le ->
+      eval_expr ge en le m a v ->
+      sem_cast v (typeof a) tuint m = Some av ->
+      untainted_scalar av.
+  Proof.
+    intros wact a ge en le m v av Hu Hact Hev Hcast.
+    destruct a as [ i t | f t | f t | i t | id t | q t
+                  | a0 t | a0 t | op a0 t | op a0 a1 t | a0 t
+                  | a0 f t | ty0 t | ty0 t ];
+      cbn [cakbs_usrc] in Hu; try discriminate Hu.
+    - (* Econst_int i t *)
+      apply andb_prop in Hu as [Hc Hty].
+      destruct (type_eq t tint); [ subst t | discriminate Hty ].
+      apply eval_expr_Econst_int_val in Hev. subst v.
+      cbn [typeof] in Hcast. cbn in Hcast. injection Hcast as <-.
+      apply wact_const_sound. exact Hc.
+    - (* Etempvar q t *)
+      apply andb_prop in Hu as [Hmem Hty].
+      destruct (type_eq t tuint); [ subst t | discriminate Hty ].
+      apply eval_expr_Etempvar_val in Hev.
+      pose proof (Hact _ Hmem _ Hev) as Hu'.
+      cbn [typeof] in Hcast.
+      destruct Hu' as [Eu | (w & Eu & Hntw)]; subst.
+      { exfalso. cbn in Hcast. discriminate Hcast. }
+      cbn in Hcast. injection Hcast as <-.
+      right. exists w. split; [ reflexivity | exact Hntw ].
+  Qed.
+
+  (* THE cakbs site lemma: a Scall of common_air_knockback_step with both
+     action args untainted (const-or-wact) preserves the invariants, AND
+     the result-temp env (set_opttemp optid vres le) still satisfies the
+     m-temp fact / act_inv / chase_inv (the capture temp dodges them). *)
+  Lemma cakbs_call_site_pres :
+    forall optid a1 a2 a3 a4 e le m tr le' m' out,
+      e ! A._common_air_knockback_step = None ->
+      cakbs_optid_ok cakbs_cons_wact cakbs_cons_cact optid = true ->
+      cakbs_usrc cakbs_cons_wact a1 = true ->
+      cakbs_usrc cakbs_cons_wact a2 = true ->
+      act_inv cakbs_cons_wact le ->
+      chase_inv SafeB cakbs_cons_cact le ->
+      (forall b o, le ! A._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero) ->
+      exec_stmt function_entry2 (lp_ge lp) e le m
+        (Scall optid
+           (Evar A._common_air_knockback_step
+              (Tfunction (tyMSp :: tuint :: tuint :: tint :: tfloat :: nil)
+                 tuint cc_default))
+           (Etempvar A._m tyMSp :: a1 :: a2 :: a3 :: a4 :: nil))
+        tr le' m' out ->
+      NoA m -> MWF m -> Mem.valid_block m bm -> action_sat not_tainted m bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\ NoA m'
+      /\ (forall b o, le' ! A._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero)
+      /\ act_inv cakbs_cons_wact le' /\ chase_inv SafeB cakbs_cons_cact le'.
+  Proof.
+    intros optid a1 a2 a3 a4 e le m tr le' m' out Hcsn Hoptid Hu1 Hu2
+           Hact Hch Htat Hexec HN HM HV HS.
+    inv Hexec.
+    match goal with Hcf : classify_fun _ = _ |- _ => cbn in Hcf; inv Hcf end.
+    match goal with Hv : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
+      destruct (eval_Evar_funct lp _ _ _ _ _ _ _ _ Hcsn Hv) as (fb & Hsym & ->) end.
+    match goal with Hff : Genv.find_funct _ (Vptr fb Ptrofs.zero) = Some ?fd |- _ =>
+      assert (Hres : resolves_lp lp A._common_air_knockback_step fd)
+        by (exists fb; split; assumption) end.
+    (* arg0: m *)
+    match goal with Hel : eval_exprlist _ _ _ _ (_ :: _ :: _ :: _ :: _ :: nil) _ _ |- _ =>
+      inv Hel end.
+    match goal with Hv : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+      apply eval_expr_Etempvar_val in Hv; rename Hv into Hvm end.
+    match goal with Hc : sem_cast _ _ _ _ = Some _ |- _ =>
+      apply AirborneSurface.sem_cast_ptr_ptr_id in Hc; subst end.
+    (* arg1 *)
+    match goal with Hel : eval_exprlist _ _ _ _ (a1 :: _ :: _ :: _ :: nil) _ _ |- _ =>
+      inv Hel end.
+    match goal with
+    | Hev : eval_expr _ _ _ _ a1 ?vv, Hc : sem_cast ?vv _ _ _ = Some _ |- _ =>
+        pose proof (cakbs_usrc_untainted cakbs_cons_wact a1 _ _ _ _ _ _ Hu1 Hact Hev Hc)
+          as Huav1
+    end.
+    (* arg2 *)
+    match goal with Hel : eval_exprlist _ _ _ _ (a2 :: _ :: _ :: nil) _ _ |- _ =>
+      inv Hel end.
+    match goal with
+    | Hev : eval_expr _ _ _ _ a2 ?vv, Hc : sem_cast ?vv _ _ _ = Some _ |- _ =>
+        pose proof (cakbs_usrc_untainted cakbs_cons_wact a2 _ _ _ _ _ _ Hu2 Hact Hev Hc)
+          as Huav2
+    end.
+    (* arg3, arg4 (arbitrary), then nil *)
+    match goal with Hel : eval_exprlist _ _ _ _ (a3 :: _ :: nil) _ _ |- _ => inv Hel end.
+    match goal with Hel : eval_exprlist _ _ _ _ (a4 :: nil) _ _ |- _ => inv Hel end.
+    match goal with Hel : eval_exprlist _ _ _ _ nil _ _ |- _ => inv Hel end.
+    match goal with Hvm : le ! A._m = Some ?v1 |- _ =>
+      assert (Htat1 : forall b o, v1 = Vptr b o -> b = bm /\ o = Ptrofs.zero)
+        by (intros b o EE; rewrite EE in Hvm; exact (Htat b o Hvm)) end.
+    match goal with Hevf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+      destruct (cakbs_funcall_pres _ _ _ _ _ _ _ _ _ _ Hres Hevf Htat1 Huav1 Huav2
+                  HN HM HV HS) as (HV' & HS' & HM' & HN') end.
+    (* le' = set_opttemp optid vres le; the capture temp dodges m/wact/cact *)
+    destruct optid as [id|]; cbn [set_opttemp].
+    - cbn [cakbs_optid_ok] in Hoptid.
+      apply andb_prop in Hoptid as [Hoptid Hnm_id].
+      apply andb_prop in Hoptid as [Hnw_id Hnc_id].
+      apply negb_true_iff in Hnm_id. apply negb_true_iff in Hnw_id.
+      apply negb_true_iff in Hnc_id.
+      refine (conj HV' (conj HS' (conj HM' (conj HN' (conj _ (conj _ _)))))).
+      + intros b o Hg. rewrite PTree.gso in Hg
+          by (intro EE; rewrite EE, Pos.eqb_refl in Hnm_id; discriminate Hnm_id).
+        exact (Htat b o Hg).
+      + intros t Ht x Hg. rewrite PTree.gso in Hg
+          by (intro EE; rewrite EE in Ht; rewrite Ht in Hnw_id; discriminate Hnw_id).
+        exact (Hact t Ht x Hg).
+      + intros t Ht b o Hg. rewrite PTree.gso in Hg
+          by (intro EE; rewrite EE in Ht; rewrite Ht in Hnc_id; discriminate Hnc_id).
+        exact (Hch t Ht b o Hg).
+    - exact (conj HV' (conj HS' (conj HM' (conj HN'
+               (conj Htat (conj Hact Hch)))))).
+  Qed.
+
+  Lemma cakbs_cons_ids_rows : forall fid, mem_id fid cakbs_cons_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold cakbs_cons_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_cwk_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_pks_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hpsinf | ].
+    discriminate H.
+  Qed.
+
+  Lemma cakbs_cons_xids_rows : forall fid, mem_id fid cakbs_cons_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold cakbs_cons_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_atan2s | ].
+    discriminate H.
+  Qed.
+
+  (* the standard-engine wrapper for a non-special statement (rt=true,
+     ids+cact+xids carried; wids/sids/tids empty). *)
+  Lemma cakbs_cons_generic :
+    forall s e le m0 tr le' m' out,
+      (forall g, mem_id g stored_globals = true -> e ! g = None) ->
+      (forall g, mem_id g cakbs_cons_ids = true -> e ! g = None) ->
+      (forall g, mem_id g cakbs_cons_xids = true -> e ! g = None) ->
+      e ! interaction._gGlobalTimer = None ->
+      wwalk_chk true cakbs_cons_wact cakbs_cons_ids nil cakbs_cons_cact
+        cakbs_cons_xids nil nil s = true ->
+      (forall b o, le ! A._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero) ->
+      act_inv cakbs_cons_wact le ->
+      chase_inv SafeB cakbs_cons_cact le ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm -> action_sat not_tainted m0 bm ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\ NoA m'
+      /\ (forall b o, le' ! A._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero)
+      /\ act_inv cakbs_cons_wact le' /\ chase_inv SafeB cakbs_cons_cact le'.
+  Proof.
+    intros s e le m0 tr le' m' out Hub_g Hub_i Hub_x Hubgt Hchk
+           Htat Hact Hch HN HM HV HS Hexec.
+    destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+                true cakbs_cons_wact cakbs_cons_ids nil cakbs_cons_cact
+                cakbs_cons_xids nil nil
+                cakbs_cons_ids_rows ltac:(intros fid HH; discriminate HH)
+                cakbs_cons_xids_rows ltac:(intros fid HH; discriminate HH)
+                ltac:(intros fid HH; discriminate HH)
+                _ _ _ _ _ _ _ _ Hexec
+                Hub_g Hub_i ltac:(intros g HH; discriminate HH) Hub_x
+                ltac:(intros g HH; discriminate HH) ltac:(intros g HH; discriminate HH) Hubgt
+                Hchk Htat Hact Hch HN HM HV HS)
+      as (HV' & HS' & HM' & HN' & Htat' & Hact' & Hch' & _).
+    exact (conj HV' (conj HS' (conj HM' (conj HN'
+             (conj Htat' (conj Hact' Hch')))))).
+  Qed.
+
+  (* THE cakbs HYBRID WALK (template = MovingLeafSurface.csaj_pres). *)
+  Lemma cakbs_cons_pres :
+    forall s e le m0 tr le' m' out,
+      exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
+      (forall g, mem_id g stored_globals = true -> e ! g = None) ->
+      (forall g, mem_id g cakbs_cons_ids = true -> e ! g = None) ->
+      (forall g, mem_id g cakbs_cons_xids = true -> e ! g = None) ->
+      e ! A._common_air_knockback_step = None ->
+      e ! interaction._gGlobalTimer = None ->
+      cakbs_cons_chk s = true ->
+      (forall b o, le ! A._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero) ->
+      act_inv cakbs_cons_wact le ->
+      chase_inv SafeB cakbs_cons_cact le ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm -> action_sat not_tainted m0 bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\ NoA m'
+      /\ (forall b o, le' ! A._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero)
+      /\ act_inv cakbs_cons_wact le' /\ chase_inv SafeB cakbs_cons_cact le'.
+  Proof.
+    intros s e le m0 tr le' m' out Hexec.
+    induction Hexec;
+      intros Hub_g Hub_i Hub_x Hcsn Hubgt Hchk Htat Hact Hch HN HM HV HS.
+    - exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact Hch)))))).
+    - cbn [cakbs_cons_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (cakbs_cons_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hubgt
+                Hg Htat Hact Hch HN HM HV HS);
+        eapply exec_Sassign; eauto.
+    - cbn [cakbs_cons_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (cakbs_cons_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hubgt
+                Hg Htat Hact Hch HN HM HV HS);
+        eapply exec_Sset; eauto.
+    - destruct (cakbs_cons_chk_scall_inv _ _ _ Hchk)
+        as [Hg | (fid & fty & -> & Hsp)].
+      { eapply (cakbs_cons_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hubgt
+                  Hg Htat Hact Hch HN HM HV HS);
+          eapply exec_Scall; eauto. }
+      destruct (cakbs_site_chk_shape _ _ _ _ _ _ Hsp)
+        as (a1 & a2 & a3 & a4 & -> & -> & -> & Hoptid & Hu1 & Hu2).
+      assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
+                      (Scall optid
+                         (Evar A._common_air_knockback_step
+                            (Tfunction (tyMSp :: tuint :: tuint :: tint :: tfloat :: nil)
+                               tuint cc_default))
+                         (Etempvar A._m tyMSp :: a1 :: a2 :: a3 :: a4 :: nil))
+                      t (set_opttemp optid vres le) m' Out_normal)
+        by (eapply exec_Scall; eauto).
+      destruct (cakbs_call_site_pres optid a1 a2 a3 a4 e le m _ _ _ _
+                  Hcsn Hoptid Hu1 Hu2 Hact Hch Htat Hex HN HM HV HS)
+        as (HV' & HS' & HM' & HN' & Htat' & Hact' & Hch').
+      exact (conj HV' (conj HS' (conj HM' (conj HN'
+               (conj Htat' (conj Hact' Hch')))))).
+    - cbn [cakbs_cons_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp];
+        [ cbn [wwalk_chk wwalk_chk'] in Hg; discriminate Hg | discriminate Hsp ].
+    - cbn [cakbs_cons_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp].
+      { eapply (cakbs_cons_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hubgt
+                  Hg Htat Hact Hch HN HM HV HS);
+          eapply exec_Sseq_1; eauto. }
+      apply andb_prop in Hsp as [H1 H2].
+      destruct (IHHexec1 Hub_g Hub_i Hub_x Hcsn Hubgt H1 Htat Hact Hch
+                  HN HM HV HS)
+        as (HV1 & HS1 & HM1 & HN1 & Htat1 & Hact1 & Hch1).
+      exact (IHHexec2 Hub_g Hub_i Hub_x Hcsn Hubgt H2 Htat1 Hact1 Hch1
+               HN1 HM1 HV1 HS1).
+    - cbn [cakbs_cons_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp].
+      { eapply (cakbs_cons_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hubgt
+                  Hg Htat Hact Hch HN HM HV HS);
+          eapply exec_Sseq_2; eauto. }
+      apply andb_prop in Hsp as [H1 _].
+      exact (IHHexec Hub_g Hub_i Hub_x Hcsn Hubgt H1 Htat Hact Hch
+               HN HM HV HS).
+    - cbn [cakbs_cons_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp].
+      { eapply (cakbs_cons_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hubgt
+                  Hg Htat Hact Hch HN HM HV HS);
+          eapply exec_Sifthenelse; eauto. }
+      apply andb_prop in Hsp as [H1 H2].
+      apply IHHexec; try assumption.
+      destruct b; assumption.
+    - exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact Hch)))))).
+    - exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact Hch)))))).
+    - exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact Hch)))))).
+    - exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact Hch)))))).
+    - cbn [cakbs_cons_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (cakbs_cons_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hubgt
+                Hg Htat Hact Hch HN HM HV HS);
+        eapply exec_Sloop_stop1; eauto.
+    - cbn [cakbs_cons_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (cakbs_cons_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hubgt
+                Hg Htat Hact Hch HN HM HV HS);
+        eapply exec_Sloop_stop2; eauto.
+    - cbn [cakbs_cons_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp]; [ | discriminate Hsp ].
+      eapply (cakbs_cons_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hubgt
+                Hg Htat Hact Hch HN HM HV HS);
+        eapply exec_Sloop_loop; eauto.
+    - cbn [cakbs_cons_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp].
+      { eapply (cakbs_cons_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hubgt
+                  Hg Htat Hact Hch HN HM HV HS);
+          eapply exec_Sswitch; eauto. }
+      apply IHHexec; try assumption.
+      apply cakbs_cons_chk_select. exact Hsp.
+  Qed.
+
+  (* the funcall->body entry (every cons has fn_vars=nil, params=[_m]).
+     copies body_pres_of_wwalk_wact's entry setup, then the hybrid walk. *)
+  Lemma body_pres_of_cakbs_walk :
+    forall (f : Clight.function),
+      fn_vars f = nil ->
+      air_pok f = true ->
+      forallb (fun t' => negb (mem_id t' (map fst (fn_params f)))) cakbs_cons_cact
+        = true ->
+      forallb (fun t' => negb (mem_id t' (map fst (fn_params f)))) cakbs_cons_wact
+        = true ->
+      cakbs_cons_chk (fn_body f) = true ->
+      body_pres lp NoA MWF bm f.
+  Proof.
+    intros f Hvars Hpok Hnpc Hnpw Hchk m0 vargs0 t0 m1 vres0 Hmargf Hevf HN HM HV HS.
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      rewrite Hvars in Ha; inv Ha end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    unfold air_pok in Hpok.
+    destruct (fn_params f) as [| [i ty] ps ] eqn:Eps; [ discriminate Hpok | ].
+    apply andb_prop in Hpok as [Hpok Hnm].
+    apply andb_prop in Hpok as [Hi Hty].
+    apply Pos.eqb_eq in Hi. subst i.
+    destruct (type_eq ty tyMSp); [ subst ty | discriminate Hty ].
+    apply negb_true_iff in Hnm.
+    assert (Hmarg : ActionValueFrame.marg_ok bm vargs0).
+    { apply Hmargf. unfold ActionValueFrame.marg_exempt. rewrite Eps. reflexivity. }
+    destruct vargs0 as [| v0 vrest];
+      cbn [bind_parameter_temps] in Hbind; [ discriminate Hbind | ].
+    match goal with
+    | Hbind' : bind_parameter_temps _ _ _ = Some ?le1 |- _ =>
+        assert (Htat0 : forall b o, le1 ! A._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero)
+          by (intros b o Hg; rewrite (bind_params_other _ _ _ _ _ Hbind' Hnm) in Hg;
+              rewrite PTree.gss in Hg; injection Hg as ->; cbn in Hmarg; exact Hmarg);
+        assert (Hact0 : act_inv cakbs_cons_wact le1)
+          by (intros t' Hmem' x Hg';
+              pose proof (forallb_negb_mem_id _ _ _ Hnpw Hmem') as Hf';
+              unfold mem_id in Hf'; cbn [map fst existsb] in Hf';
+              apply orb_false_iff in Hf' as [Hne_m' Hnps];
+              rewrite (bind_params_other _ _ _ _ _ Hbind' Hnps) in Hg';
+              rewrite PTree.gso in Hg'
+                by (intro EE; rewrite EE, Pos.eqb_refl in Hne_m'; discriminate Hne_m');
+              pose proof (create_undef_temps_val _ _ _ Hg') as EE; rewrite EE; left;
+              reflexivity);
+        assert (Hch0 : chase_inv SafeB cakbs_cons_cact le1)
+          by (intros t' Hmem' b o Hg';
+              pose proof (forallb_negb_mem_id _ _ _ Hnpc Hmem') as Hf';
+              unfold mem_id in Hf'; cbn [map fst existsb] in Hf';
+              apply orb_false_iff in Hf' as [Hne_m' Hnps];
+              rewrite (bind_params_other _ _ _ _ _ Hbind' Hnps) in Hg';
+              rewrite PTree.gso in Hg'
+                by (intro EE; rewrite EE, Pos.eqb_refl in Hne_m'; discriminate Hne_m');
+              pose proof (create_undef_temps_val _ _ _ Hg') as EE; discriminate EE)
+    end.
+    change (blocks_of_env (lp_ge lp) empty_env)
+      with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    destruct (cakbs_cons_pres _ _ _ _ _ _ _ _ Hbody
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (PTree.gempty _ _) (PTree.gempty _ _)
+                Hchk Htat0 Hact0 Hch0 HN HM HV HS)
+      as (HV' & HS' & HM' & _).
+    exact (conj HV' (conj HS' HM')).
+  Qed.
+
+  Lemma air_hbkb_pres : body_pres lp NoA MWF bm A.f_act_hard_backward_air_kb.
+  Proof.
+    exact (body_pres_of_cakbs_walk A.f_act_hard_backward_air_kb
+             air_hbkb_vars air_hbkb_pok
+             ltac:(vm_compute; reflexivity) ltac:(vm_compute; reflexivity)
+             cakbs_chk_hbkb).
+  Qed.
+
+  Lemma air_hfkb_pres : body_pres lp NoA MWF bm A.f_act_hard_forward_air_kb.
+  Proof.
+    exact (body_pres_of_cakbs_walk A.f_act_hard_forward_air_kb
+             air_hfkb_vars air_hfkb_pok
+             ltac:(vm_compute; reflexivity) ltac:(vm_compute; reflexivity)
+             cakbs_chk_hfkb).
+  Qed.
+
+  Lemma air_bkb_pres : body_pres lp NoA MWF bm A.f_act_backward_air_kb.
+  Proof.
+    exact (body_pres_of_cakbs_walk A.f_act_backward_air_kb
+             air_bkb_vars air_bkb_pok
+             ltac:(vm_compute; reflexivity) ltac:(vm_compute; reflexivity)
+             cakbs_chk_bkb).
+  Qed.
+
+  Lemma air_fkb_pres : body_pres lp NoA MWF bm A.f_act_forward_air_kb.
+  Proof.
+    exact (body_pres_of_cakbs_walk A.f_act_forward_air_kb
+             air_fkb_vars air_fkb_pok
+             ltac:(vm_compute; reflexivity) ltac:(vm_compute; reflexivity)
+             cakbs_chk_fkb).
+  Qed.
+
+  Lemma air_sb_pres : body_pres lp NoA MWF bm A.f_act_soft_bonk.
+  Proof.
+    exact (body_pres_of_cakbs_walk A.f_act_soft_bonk
+             air_sb_vars air_sb_pok
+             ltac:(vm_compute; reflexivity) ltac:(vm_compute; reflexivity)
+             cakbs_chk_sb).
+  Qed.
+
+  Lemma air_tbk_pres : body_pres lp NoA MWF bm A.f_act_thrown_backward.
+  Proof.
+    exact (body_pres_of_cakbs_walk A.f_act_thrown_backward
+             air_tbk_vars air_tbk_pok
+             ltac:(vm_compute; reflexivity) ltac:(vm_compute; reflexivity)
+             cakbs_chk_tbk).
+  Qed.
+
+  Lemma air_tfw_pres : body_pres lp NoA MWF bm A.f_act_thrown_forward.
+  Proof.
+    exact (body_pres_of_cakbs_walk A.f_act_thrown_forward
+             air_tfw_vars air_tfw_pok
+             ltac:(vm_compute; reflexivity) ltac:(vm_compute; reflexivity)
+             cakbs_chk_tfw).
   Qed.
 
   Lemma air_stj2_ids_rows : forall fid, mem_id fid air_stj2_ids = true ->
