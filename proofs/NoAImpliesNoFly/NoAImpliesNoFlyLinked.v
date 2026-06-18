@@ -905,17 +905,6 @@ Section NoARealInputMWF.
          (Hcp_mgtsa_real, shared with pgs).
        - vec3f_copy / vec3s_set: the ungated obj_ext externals (Hpres_obj_ext).
      decompose, not collapse. *)
-  (* check_ledge_grab(m, lowerWall, intendedPos, nextPos): paqs's one deeper
-     INTERNAL (mario_step.prog) callee.  A bool-returning ledge-grab predicate
-     with its OWN fn_vars (_ledgePos stack array + _ledgeFloor) -- it reads
-     m->vel / nextPos / intendedPos, calls find_floor/vec3f_copy with out-ptrs
-     into its locals, and on success writes m->pos / m->faceAngle (root-window
-     stores, action cell @12 clear).  Carried here as a call_pres residual,
-     dischargeable later by the SAME fn_var walk (paqs_walk_pres machinery).
-     Its presence DECOMPOSES paqs (now WALKED) into this one honest deeper
-     internal row -- decompose, not collapse. *)
-  Hypothesis Hcp_clg_real :
-    call_pres lp bm (NoA_real bm) MWF mario_step._check_ledge_grab.
   (* mario_blow_off_cap: act_getting_blown's cap-blow-off helper (INTERNAL
      interaction.prog).  It spawns a cap Object and stores through that fresh
      non-Mario block; that spawn-into-cact chase pattern needs the spawn/wind
@@ -1881,6 +1870,37 @@ Section NoARealInputMWF.
     - intros fid' Hfid'; discriminate Hfid'.
     - intros fid' Hfid'; discriminate Hfid'.
     - exact ag_walk.
+  Qed.
+
+  (* check_ledge_grab, WALKED (PerformAirStepSurface.clg_cp): paqs's one
+     deeper INTERNAL callee (mario_step.prog).  A bool-returning ledge-grab
+     predicate with its OWN fn_vars (_ledgeFloor : Surface*, _ledgePos :
+     f32[3] stack array); only _m is gated (marg) -- the other 3 pointer
+     params (wall/intendedPos/nextPos) are READ-ONLY.  On the full-success
+     path it writes m->pos (WINDOW vec3f_copy, w1) / m->floor (pointer field,
+     safe window) / m->floorHeight / m->floorAngle (safe fields) /
+     m->faceAngle[i] (short idx, idx16) + its OWN _ledgePos[i] stack stores
+     (local idx).  ALL its gated callees are SHARED with the pgqs/paqs walks
+     (find_floor oc = Hocp_find_floor; window vec3f_copy w1 = Hw1cp_v3f_real;
+     atan2s = the obj_ext row) -- so this discharge adds ZERO new capstone
+     rows.  Instantiated at MWF_real (frame bricks from MWFReal). *)
+  Lemma Hcp_clg_real :
+    call_pres lp bm (NoA_real bm) MWF mario_step._check_ledge_grab.
+  Proof.
+    exact (PerformAirStepSurface.clg_cp lp LO_mario LO_stp bm (NoA_real bm)
+             (MWF_real lp bm bc oc0 SafeB) SafeB
+             (mwf_real_ctl lp bm bc oc0 SafeB)
+             (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
+             (fun m l m' Hf HM =>
+                mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
+             (mwf_real_safe_valid lp bm bc oc0 SafeB)
+             Hglob_valid
+             aut_local_store
+             Hocp_find_floor
+             Hw1cp_v3f_real
+             (Hpres_obj_ext mario_step._atan2s eq_refl)).
   Qed.
 
   (* perform_air_quarter_step, WALKED (PerformAirStepSurface.paqs_cp): the
