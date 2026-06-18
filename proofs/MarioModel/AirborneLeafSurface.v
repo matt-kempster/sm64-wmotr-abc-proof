@@ -1212,6 +1212,47 @@ Example air_at_walk :
 Proof. vm_compute. reflexivity. Qed.
 
 (* ====================================================================== *)
+(* SLICE A19: act_dive (fourth cfd-cluster leaf).                          *)
+(* ====================================================================== *)
+(* play_mario_sound / set_mario_animation / mario_check_object_grab /      *)
+(* mario_grab_used_object / update_air_without_turn / perform_air_step /   *)
+(* should_get_stuck_in_ground / mario_bonk_reflection / lava_boost_on_wall *)
+(* (ids); play_sound (xids); drop_and_set_mario_action + check_fall_damage *)
+(* + set_mario_action (all const/untainted-2nd-arg, sids); faceAngle[0] and *)
+(* vel[1] indexed window stores; chase stores via marioBodyState->grabPos  *)
+(* (_t'20), marioObj->gfx.angle[0] (_t'13), and the play_sound camera read  *)
+(* base (_t'11) -- all in cact.                                            *)
+Definition air_dive_ids : list ident :=
+  mario._play_mario_sound :: mario._set_mario_animation
+    :: interaction._mario_check_object_grab
+    :: interaction._mario_grab_used_object
+    :: A._update_air_without_turn :: A._perform_air_step
+    :: A._should_get_stuck_in_ground :: mario_step._mario_bonk_reflection
+    :: A._lava_boost_on_wall :: nil.
+Definition air_dive_cact : list ident :=
+  A._t'20 :: A._t'13 :: A._t'11 :: nil.
+Definition air_dive_xids : list ident := mario._play_sound :: nil.
+Definition air_dive_sids : list ident :=
+  mario._drop_and_set_mario_action :: A._check_fall_damage
+    :: mario._set_mario_action :: nil.
+Example air_dive_pin :
+  (prog_defmap mario_actions_airborne.prog) ! A._act_dive
+  = Some (Gfun (Internal A.f_act_dive)).
+Proof. vm_compute. reflexivity. Qed.
+Example air_dive_vars : fn_vars A.f_act_dive = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example air_dive_pok : air_pok A.f_act_dive = true.
+Proof. vm_compute. reflexivity. Qed.
+Example air_dive_nonparam :
+  forallb (fun t' => negb (mem_id t' (map fst (fn_params A.f_act_dive))))
+    air_dive_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example air_dive_walk :
+  wwalk_chk false nil air_dive_ids nil air_dive_cact air_dive_xids
+    air_dive_sids nil (fn_body A.f_act_dive) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ====================================================================== *)
 (* The walked / rest split of airborne_callee_ids.                        *)
 (* ====================================================================== *)
 Definition airborne_walked_ids : list ident :=
@@ -1251,10 +1292,10 @@ Definition airborne_walked_ids : list ident :=
   A._act_twirling ::
   A._act_steep_jump ::
   A._act_jump_kick ::
-  A._act_air_throw :: nil.
+  A._act_air_throw ::
+  A._act_dive :: nil.
 
 Definition airborne_rest_ids : list ident :=
-  A._act_dive ::
   A._act_lava_boost ::
   A._act_getting_blown ::
   A._act_ground_pound ::
@@ -3150,6 +3191,83 @@ Section AirborneLeafRows.
   Qed.
 
   (* ==================================================================== *)
+  (* SLICE A19: act_dive.                                                 *)
+  (* ==================================================================== *)
+  Let Hmguo : call_pres lp bm NoA MWF interaction._mario_grab_used_object :=
+    ObjectLeafSurface.mguo_row lp LO_mario LO_int bm NoA MWF HNoA_of_MWF
+      HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+      HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+      (Hpres_obj_ext interaction._obj_set_held_state eq_refl).
+  Let Hmcog : call_pres lp bm NoA MWF interaction._mario_check_object_grab :=
+    ObjectLeafSurface.mcog_row lp LO_mario LO_mario_step LO_int bm NoA MWF
+      HNoA_of_MWF HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+      HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+      (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
+      (Hpres_obj_ext interaction._stop_shell_music eq_refl)
+      (Hpres_obj_ext interaction._obj_set_held_state eq_refl)
+      (Hpres_obj_ext interaction._atan2s eq_refl)
+      (Hpres_obj_ext interaction._virtual_to_segmented eq_refl).
+  Lemma air_dive_ids_rows : forall fid, mem_id fid air_dive_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold air_dive_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_pms_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_sma_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hmcog | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hmguo | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_uawt_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pas | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_sgsig_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_mbr_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_lbow_row | ].
+    discriminate H.
+  Qed.
+  Lemma air_dive_xids_rows : forall fid, mem_id fid air_dive_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold air_dive_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | ].
+    discriminate H.
+  Qed.
+  Lemma air_dive_sids_rows : forall fid, mem_id fid air_dive_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold air_dive_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hdasma | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_cfd_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | ].
+    discriminate H.
+  Qed.
+  Lemma air_dive_pres : body_pres lp NoA MWF bm A.f_act_dive.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             A.f_act_dive
+             air_dive_ids nil air_dive_cact air_dive_xids air_dive_sids nil
+             air_dive_vars air_dive_pok air_dive_nonparam).
+    - exact air_dive_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact air_dive_xids_rows.
+    - exact air_dive_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact air_dive_walk.
+  Qed.
+
+  (* ==================================================================== *)
   (* THE REST-SPLIT: the capstone's Hpres_air_callees from the walked     *)
   (* leaves + the shrinking airborne_rest_ids residual.                   *)
   (* ==================================================================== *)
@@ -3247,7 +3365,9 @@ Section AirborneLeafRows.
                 | (rewrite air_jk_pin in Hdm; injection Hdm as <-;
                    exact air_jk_pres)
                 | (rewrite air_at_pin in Hdm; injection Hdm as <-;
-                   exact air_at_pres) ] | ]).
+                   exact air_at_pres)
+                | (rewrite air_dive_pin in Hdm; injection Hdm as <-;
+                   exact air_dive_pres) ] | ]).
     discriminate H.
   Qed.
 
