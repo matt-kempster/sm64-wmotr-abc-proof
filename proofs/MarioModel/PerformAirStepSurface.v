@@ -821,3 +821,36 @@ Section PasSurface.
   Qed.
 
 End PasSurface.
+
+(* ====================================================================== *)
+(* apply_vertical_wind: a perform_air_step callee, but a CLEAN window-     *)
+(* writer (NO calls, NO fn_vars; the only chase is a READ of m->floor->    *)
+(* type -- reads never write memory).  All its stores are m->vel[1]        *)
+(* indexed-window stores.  So it is discharged ZERO-RESIDUAL via the bare  *)
+(* wwalk engine (the air analogue of mario_set_forward_vel's msfv_row).    *)
+(* The pin/vars/params/walk facts are pure vm_compute checks; the capstone *)
+(* (Lemma Hcp_avw) feeds them to call_pres_of_wwalk with the MWF_real kit, *)
+(* ELIMINATING the Hcp_avw_real residual the pas walk left.                *)
+(* ====================================================================== *)
+Lemma avw_pin :
+  (prog_defmap mario_step.prog) ! mario_step._apply_vertical_wind
+  = Some (Gfun (Internal mario_step.f_apply_vertical_wind)).
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma avw_vars : fn_vars mario_step.f_apply_vertical_wind = nil.
+Proof. reflexivity. Qed.
+
+Lemma avw_params :
+  match fn_params mario_step.f_apply_vertical_wind with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma avw_walk :
+  wwalk_chk false nil nil nil nil nil nil nil
+    (fn_body mario_step.f_apply_vertical_wind) = true.
+Proof. vm_compute. reflexivity. Qed.
