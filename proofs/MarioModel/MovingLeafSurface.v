@@ -10566,6 +10566,88 @@ Proof. vm_compute. reflexivity. Qed.
     - exact tbr_walk.
   Qed.
 
+  (* ---- push_or_sidle_wall: np3 + cact + read-only float* startPos param ---- *)
+  Definition psw_ids : list ident :=
+    M._mario_set_forward_vel :: M._set_mario_animation :: M._find_floor_slope
+    :: M._play_step_sound :: nil.
+  Definition psw_cact : list ident := M._t'7 :: M._t'6 :: nil.
+  Definition psw_xids : list ident := M._atan2s :: M._sqrtf :: M._play_sound :: nil.
+  Definition psw_nids : list ident := M._val04 :: nil.
+  Definition psw_np3 : list ident := M._set_mario_anim_with_accel :: nil.
+
+  Example psw_pin :
+    (prog_defmap mario_actions_moving.prog) ! M._push_or_sidle_wall
+    = Some (Gfun (Internal M.f_push_or_sidle_wall)).
+  Proof. vm_compute. reflexivity. Qed.
+  Example psw_vars : fn_vars M.f_push_or_sidle_wall = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example psw_pok : mov_pok M.f_push_or_sidle_wall = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example psw_nonparam_c :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params M.f_push_or_sidle_wall))))
+      psw_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example psw_nonparam_n :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params M.f_push_or_sidle_wall))))
+      psw_nids = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example psw_walk :
+    wwalk_chk' nil nil nil nil psw_nids psw_np3 false
+      nil psw_ids nil psw_cact psw_xids nil nil
+      (fn_body M.f_push_or_sidle_wall) = true.
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma psw_ids_rows : forall fid, mem_id fid psw_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold psw_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_msfv_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_sma_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_ffs_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_pss_row | discriminate H ].
+  Qed.
+  Lemma psw_xids_rows : forall fid, mem_id fid psw_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold psw_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        exact (Hpres_obj_ext mario._atan2s eq_refl) | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_sqrtf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | discriminate H ].
+  Qed.
+  Lemma psw_np3_rows : forall fid, mem_id fid psw_np3 = true ->
+      call_pres_np3 lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold psw_np3 in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_smawa_row | discriminate H ].
+  Qed.
+
+  Lemma mov_psw_row : call_pres lp bm NoA MWF M._push_or_sidle_wall.
+  Proof.
+    apply (call_pres_of_wwalk_nids lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_moving.prog M._push_or_sidle_wall
+             M.f_push_or_sidle_wall
+             psw_ids nil psw_cact psw_xids nil nil psw_nids psw_np3
+             LO_mov psw_pin psw_vars psw_pok psw_nonparam_c psw_nonparam_n).
+    - exact psw_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact psw_xids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact psw_np3_rows.
+    - exact psw_walk.
+  Qed.
+
   Lemma mov_bwa_ids_rows : forall fid, mem_id fid mov_bwa_ids = true ->
       call_pres lp bm NoA MWF fid.
   Proof.
