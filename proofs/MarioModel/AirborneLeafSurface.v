@@ -1183,6 +1183,35 @@ Example air_jk_walk :
 Proof. vm_compute. reflexivity. Qed.
 
 (* ====================================================================== *)
+(* SLICE A18: act_air_throw (third cfd-cluster leaf).                      *)
+(* ====================================================================== *)
+(* actionTimer++ window store, mario_throw_held_object (ids, via the       *)
+(* shared ObjectLeafSurface row), play_sound_if_no_flag /                  *)
+(* set_mario_animation / update_air_without_turn / perform_air_step /      *)
+(* mario_set_forward_vel / lava_boost_on_wall (ids);                       *)
+(* check_fall_damage_or_get_stuck (sids); one inline                       *)
+(* m->action = ACT_FORWARD_AIR_KB untainted-const store.  No chase store.  *)
+Definition air_at_ids : list ident :=
+  interaction._mario_throw_held_object :: mario._play_sound_if_no_flag
+    :: mario._set_mario_animation :: A._update_air_without_turn
+    :: A._perform_air_step :: mario._mario_set_forward_vel
+    :: A._lava_boost_on_wall :: nil.
+Definition air_at_sids : list ident :=
+  A._check_fall_damage_or_get_stuck :: nil.
+Example air_at_pin :
+  (prog_defmap mario_actions_airborne.prog) ! A._act_air_throw
+  = Some (Gfun (Internal A.f_act_air_throw)).
+Proof. vm_compute. reflexivity. Qed.
+Example air_at_vars : fn_vars A.f_act_air_throw = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example air_at_pok : air_pok A.f_act_air_throw = true.
+Proof. vm_compute. reflexivity. Qed.
+Example air_at_walk :
+  wwalk_chk false nil air_at_ids nil nil nil air_at_sids nil
+    (fn_body A.f_act_air_throw) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ====================================================================== *)
 (* The walked / rest split of airborne_callee_ids.                        *)
 (* ====================================================================== *)
 Definition airborne_walked_ids : list ident :=
@@ -1221,11 +1250,11 @@ Definition airborne_walked_ids : list ident :=
   A._act_double_jump ::
   A._act_twirling ::
   A._act_steep_jump ::
-  A._act_jump_kick :: nil.
+  A._act_jump_kick ::
+  A._act_air_throw :: nil.
 
 Definition airborne_rest_ids : list ident :=
   A._act_dive ::
-  A._act_air_throw ::
   A._act_lava_boost ::
   A._act_getting_blown ::
   A._act_ground_pound ::
@@ -3068,6 +3097,59 @@ Section AirborneLeafRows.
   Qed.
 
   (* ==================================================================== *)
+  (* SLICE A18: act_air_throw.                                            *)
+  (* ==================================================================== *)
+  Let Hmtho : call_pres lp bm NoA MWF interaction._mario_throw_held_object :=
+    ObjectLeafSurface.mtho_row lp LO_mario LO_int bm NoA MWF HNoA_of_MWF
+      HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+      HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+      (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
+      (Hpres_obj_ext interaction._stop_shell_music eq_refl)
+      (Hpres_obj_ext interaction._obj_set_held_state eq_refl).
+  Lemma air_at_ids_rows : forall fid, mem_id fid air_at_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold air_at_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hmtho | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hpsinf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_sma_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_uawt_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pas | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hmsfv | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_lbow_row | ].
+    discriminate H.
+  Qed.
+  Lemma air_at_sids_rows : forall fid, mem_id fid air_at_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold air_at_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_cfdgs_row | ].
+    discriminate H.
+  Qed.
+  Lemma air_at_pres : body_pres lp NoA MWF bm A.f_act_air_throw.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             A.f_act_air_throw
+             air_at_ids nil nil air_at_sids nil air_at_vars air_at_pok).
+    - exact air_at_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact air_at_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact air_at_walk.
+  Qed.
+
+  (* ==================================================================== *)
   (* THE REST-SPLIT: the capstone's Hpres_air_callees from the walked     *)
   (* leaves + the shrinking airborne_rest_ids residual.                   *)
   (* ==================================================================== *)
@@ -3163,7 +3245,9 @@ Section AirborneLeafRows.
                 | (rewrite air_stj2_pin in Hdm; injection Hdm as <-;
                    exact air_stj2_pres)
                 | (rewrite air_jk_pin in Hdm; injection Hdm as <-;
-                   exact air_jk_pres) ] | ]).
+                   exact air_jk_pres)
+                | (rewrite air_at_pin in Hdm; injection Hdm as <-;
+                   exact air_at_pres) ] | ]).
     discriminate H.
   Qed.
 
