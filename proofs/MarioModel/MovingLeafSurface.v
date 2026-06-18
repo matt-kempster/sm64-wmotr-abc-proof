@@ -10443,6 +10443,12 @@ Proof. vm_compute. reflexivity. Qed.
       Mem.store ch m b d v = Some m' -> MWF m -> MWF m'.
   Hypothesis Hocp_find_floor :
     call_pres_ext_oc lp bm NoA MWF SafeB mario._find_floor.
+  (* find_wall_collisions: EF_external in EVERY TU (the honest terminal-ext
+     boundary), ol-gated on its sole pointer arg = &(stack-local wallCols).
+     Discharged at the capstone by the existing Holcp_fwc_real (already a
+     residual there for the resolve walk -- ONE fwc row total). *)
+  Hypothesis Holcp_fwc :
+    call_pres_ext_ol lp bm NoA MWF SafeB mario._find_wall_collisions.
 
   (* ---- find_floor_slope: lwalk2 (local _floor + find_floor oc + atan2s) ---- *)
   Definition ffs_lids : list ident := mario._floor :: nil.
@@ -10725,6 +10731,580 @@ Proof. vm_compute. reflexivity. Qed.
     - exact aaw_np3_rows.
     - exact aaw_walk.
   Qed.
+
+  (* ==================================================================== *)
+  (* check_ledge_climb_down: HYBRID walk (the LAST act_walking helper).     *)
+  (*   fn_vars = [_wallCols (Tstruct WallCollisionData); _floor (Surface ptr)]*)
+  (*   SPECIAL sites -- write LOCAL blocks ONLY:                            *)
+  (*     - 5x  wallCols.{x,y,z,radius,offsetY} = ..  (local-struct field    *)
+  (*           store via local_field_assign_pres)                           *)
+  (*     - find_wall_collisions(&wallCols)  (ol terminal-ext; args_all_local *)
+  (*           gate; ONE find_wall_collisions row, shared with the resolve  *)
+  (*           walk's Holcp_fwc_real at the capstone)                       *)
+  (*   GENERIC (wwalk census):  find_floor(x,y,z,&floor) [oc],              *)
+  (*     m->pos[i] + m->faceAngle[i] window stores, set_mario_action(m,1358,*)
+  (*     0) [sids, ACT_LEDGE_CLIMB_DOWN = 0x54E = MOVING, untainted],       *)
+  (*     set_mario_animation(m,28) [ids], atan2s [xids].                    *)
+  (* ==================================================================== *)
+  Definition clcd_lids : list ident := M._wallCols :: M._floor :: nil.
+  Definition clcd_oc : list ident := mario._find_floor :: nil.
+  Definition clcd_ids : list ident := mario._set_mario_animation :: nil.
+  Definition clcd_xids : list ident := mario._atan2s :: nil.
+  Definition clcd_sids : list ident := mario._set_mario_action :: nil.
+
+  Definition clcd_gen (s : statement) : bool :=
+    wwalk_chk' clcd_lids clcd_oc nil nil nil nil false
+      nil clcd_ids nil nil clcd_xids clcd_sids nil s.
+
+  (* the two SPECIAL shapes (everything else generic). *)
+  Definition clcd_sp_chk (s : statement) : bool :=
+    match s with
+    | Sassign (Efield (Evar lid (Tstruct sid _)) _ fty) _ =>
+        Pos.eqb lid M._wallCols
+        && Pos.eqb sid M._WallCollisionData
+        && proj_sumbool (type_eq fty tfloat)
+    | Scall optid (Evar fid (Tfunction tyl rty cc)) al =>
+        match optid with
+        | Some id => negb (Pos.eqb id mario_actions_airborne._m)
+        | None => true
+        end
+        && Pos.eqb fid M._find_wall_collisions
+        && proj_sumbool
+             (type_eq (Tfunction tyl rty cc)
+                (Tfunction (tptr (Tstruct M._WallCollisionData noattr) :: nil)
+                   tint cc_default))
+        && match al with
+           | Eaddrof (Evar cd cdt) tya :: nil =>
+               Pos.eqb cd M._wallCols
+               && proj_sumbool
+                    (type_eq cdt (Tstruct M._WallCollisionData noattr))
+               && proj_sumbool
+                    (type_eq tya (tptr (Tstruct M._WallCollisionData noattr)))
+           | _ => false
+           end
+    | _ => false
+    end.
+
+  Fixpoint clcd_chk (s : statement) : bool :=
+    clcd_gen s
+    || match s with
+       | Ssequence s1 s2 => clcd_chk s1 && clcd_chk s2
+       | Sifthenelse _ s1 s2 => clcd_chk s1 && clcd_chk s2
+       | _ => clcd_sp_chk s
+       end.
+
+  Example clcd_walk :
+    clcd_chk (fn_body M.f_check_ledge_climb_down) = true.
+  Proof. vm_compute. reflexivity. Qed.
+
+  (* ---- the generic-subtree discharger: ONE wwalk_pres call (clcd census) ---- *)
+  Lemma clcd_ids_rows : forall fid, mem_id fid clcd_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold clcd_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_sma_row | discriminate H ].
+  Qed.
+  Lemma clcd_xids_rows : forall fid, mem_id fid clcd_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold clcd_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        exact (Hpres_obj_ext mario._atan2s eq_refl) | discriminate H ].
+  Qed.
+  Lemma clcd_sids_rows : forall fid, mem_id fid clcd_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold clcd_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | discriminate H ].
+  Qed.
+  Lemma clcd_oc_rows : forall fid, mem_id fid clcd_oc = true ->
+      call_pres_ext_oc lp bm NoA MWF SafeB fid.
+  Proof.
+    intros fid H. unfold clcd_oc in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hocp_find_floor | discriminate H ].
+  Qed.
+
+  Lemma clcd_generic :
+    forall s e le m0 tr le' m' out,
+      (forall lid, mem_id lid clcd_lids = true ->
+         exists lblk tyenv, e ! lid = Some (lblk, tyenv) /\
+                            local_blk lp bm SafeB lblk) ->
+      (forall g, mem_id g stored_globals = true -> e ! g = None) ->
+      (forall g, mem_id g clcd_ids = true -> e ! g = None) ->
+      (forall g, mem_id g clcd_xids = true -> e ! g = None) ->
+      (forall g, mem_id g clcd_sids = true -> e ! g = None) ->
+      (forall g, mem_id g clcd_oc = true -> e ! g = None) ->
+      e ! interaction._gGlobalTimer = None ->
+      clcd_gen s = true ->
+      (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      act_inv nil le ->
+      chase_inv SafeB nil le ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\
+      NoA m' /\
+      (forall b o, le' ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) /\
+      act_inv nil le' /\ chase_inv SafeB nil le'.
+  Proof.
+    intros s e le m0 tr le' m' out Hlocal Hub_g Hub_i Hub_x Hub_s Hub_oc
+           Hubgt Hchk Htat Hact Hch HN HM HV HS Hexec.
+    destruct (wwalk_pres lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+                false nil clcd_ids nil nil clcd_xids clcd_sids nil
+                clcd_lids clcd_oc nil nil nil nil
+                clcd_ids_rows
+                (fun fid HH => match Bool.diff_false_true HH with end)
+                clcd_xids_rows clcd_sids_rows
+                (fun fid HH => match Bool.diff_false_true HH with end)
+                clcd_oc_rows
+                (fun fid HH => match Bool.diff_false_true HH with end)
+                (fun fid HH => match Bool.diff_false_true HH with end)
+                (fun fid HH => match Bool.diff_false_true HH with end)
+                _ _ _ _ _ _ _ _
+                (fun _ => Hls_real) Hlocal Hexec
+                Hub_g Hub_i
+                (fun g HH => match Bool.diff_false_true HH with end)
+                Hub_x Hub_s
+                (fun g HH => match Bool.diff_false_true HH with end)
+                Hub_oc
+                (fun g HH => match Bool.diff_false_true HH with end)
+                (fun g HH => match Bool.diff_false_true HH with end)
+                (fun g HH => match Bool.diff_false_true HH with end)
+                Hubgt Hchk Htat Hact Hch
+                (fun t HH => match Bool.diff_false_true HH with end)
+                HN HM HV HS)
+      as (HV' & HS' & HM' & HN' & Htat' & Hact' & Hch' & _ & _).
+    exact (conj HV' (conj HS' (conj HM' (conj HN'
+             (conj Htat' (conj Hact' Hch')))))).
+  Qed.
+
+  (* ---- decode of the special Sassign (wallCols.fld store) ---- *)
+  Lemma clcd_sp_assign_shape :
+    forall a1 a2, clcd_sp_chk (Sassign a1 a2) = true ->
+      exists sattr fld,
+        a1 = Efield (Evar M._wallCols (Tstruct M._WallCollisionData sattr))
+               fld tfloat.
+  Proof.
+    intros a1 a2 H. cbn [clcd_sp_chk] in H.
+    destruct a1 as [ | | | | | | | | | | | base fld fty | | ];
+      try discriminate H.
+    destruct base as [ | | | | lid lty | | | | | | | | | ]; try discriminate H.
+    destruct lty as [ | | | | | | | sid sattr | ]; try discriminate H.
+    apply andb_true_iff in H as [H Hfty].
+    apply andb_true_iff in H as [Hlid Hsid].
+    apply Pos.eqb_eq in Hlid; subst lid.
+    apply Pos.eqb_eq in Hsid; subst sid.
+    destruct (type_eq fty tfloat) as [-> | ]; [ | discriminate Hfty ].
+    exists sattr, fld. reflexivity.
+  Qed.
+
+  (* ---- decode of the special Scall (find_wall_collisions(&wallCols)) ---- *)
+  Lemma clcd_sp_call_shape :
+    forall optid a al, clcd_sp_chk (Scall optid a al) = true ->
+      (forall id, optid = Some id -> id <> mario_actions_airborne._m)
+      /\ a = Evar M._find_wall_collisions
+            (Tfunction (tptr (Tstruct M._WallCollisionData noattr) :: nil)
+               tint cc_default)
+      /\ al = Eaddrof (Evar M._wallCols (Tstruct M._WallCollisionData noattr))
+                 (tptr (Tstruct M._WallCollisionData noattr)) :: nil.
+  Proof.
+    intros optid a al H. cbn [clcd_sp_chk] in H.
+    destruct a as [ | | | | fid fty | | | | | | | | | ]; try discriminate H.
+    destruct fty as [ | | | | | | tyl rty cc | | ]; try discriminate H.
+    apply andb_true_iff in H as [H Hal].
+    apply andb_true_iff in H as [H Hfty].
+    apply andb_true_iff in H as [Hopt Hfid].
+    apply Pos.eqb_eq in Hfid; subst fid.
+    assert (Hoptne : forall id, optid = Some id ->
+                                id <> mario_actions_airborne._m).
+    { destruct optid as [oid | ]; [ | intros id Hd; discriminate Hd ].
+      intros id Hd; injection Hd as ->.
+      apply negb_true_iff in Hopt.
+      intro EE; subst id; rewrite Pos.eqb_refl in Hopt; discriminate Hopt. }
+    destruct (type_eq (Tfunction tyl rty cc)
+                (Tfunction (tptr (Tstruct M._WallCollisionData noattr) :: nil)
+                   tint cc_default)) as [E | ]; [ | discriminate Hfty ].
+    injection E as <- <- <-.
+    destruct al as [ | x al0 ]; try discriminate Hal.
+    destruct x as [ | | | | | | | base tya | | | | | | ]; try discriminate Hal.
+    destruct base as [ | | | | cd cdt | | | | | | | | | ]; try discriminate Hal.
+    destruct al0 as [ | x1 al1 ]; [ | discriminate Hal ].
+    apply andb_true_iff in Hal as [Hal Htya].
+    apply andb_true_iff in Hal as [Hcd Hcdt].
+    apply Pos.eqb_eq in Hcd; subst cd.
+    destruct (type_eq cdt (Tstruct M._WallCollisionData noattr)) as [-> | ];
+      [ | discriminate Hcdt ].
+    destruct (type_eq tya (tptr (Tstruct M._WallCollisionData noattr)))
+      as [-> | ]; [ | discriminate Htya ].
+    split; [ exact Hoptne | split; reflexivity ].
+  Qed.
+
+  (* ---- the hybrid walker ---- *)
+  Lemma clcd_pres :
+    forall s e le m0 tr le' m' out,
+      (forall lid, mem_id lid clcd_lids = true ->
+         exists lblk tyenv, e ! lid = Some (lblk, tyenv) /\
+                            local_blk lp bm SafeB lblk) ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
+      (forall g, mem_id g stored_globals = true -> e ! g = None) ->
+      (forall g, mem_id g clcd_ids = true -> e ! g = None) ->
+      (forall g, mem_id g clcd_xids = true -> e ! g = None) ->
+      (forall g, mem_id g clcd_sids = true -> e ! g = None) ->
+      (forall g, mem_id g clcd_oc = true -> e ! g = None) ->
+      e ! M._find_wall_collisions = None ->
+      e ! interaction._gGlobalTimer = None ->
+      clcd_chk s = true ->
+      (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      act_inv nil le ->
+      chase_inv SafeB nil le ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\
+      NoA m' /\
+      (forall b o, le' ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) /\
+      act_inv nil le' /\ chase_inv SafeB nil le'.
+  Proof.
+    intros s e le m0 tr le' m' out Hlocal Hexec.
+    induction Hexec;
+      intros Hub_g Hub_i Hub_x Hub_s Hub_oc Hfwc Hubgt
+             Hchk Htat Hact Hch HN HM HV HS.
+    - (* Sskip *)
+      exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact Hch)))))).
+    - (* Sassign: generic OR the wallCols.fld special store *)
+      cbn [clcd_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp].
+      { eapply (clcd_generic _ _ _ _ _ _ _ _ Hlocal Hub_g Hub_i Hub_x Hub_s
+                  Hub_oc Hubgt Hg Htat Hact Hch HN HM HV HS).
+        eapply exec_Sassign; eauto. }
+      destruct (clcd_sp_assign_shape _ _ Hsp) as (sattr & fld & ->).
+      assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
+                      (Sassign (Efield (Evar M._wallCols
+                                  (Tstruct M._WallCollisionData sattr)) fld tfloat)
+                         a2) E0 le m' Out_normal)
+        by (econstructor; eauto).
+      destruct (Hlocal M._wallCols eq_refl) as (lblk & tyenv & Hbind & Hlb).
+      assert (Hc0 : carried bm NoA MWF m)
+        by (split; [ exact HV | split; [ exact HS
+                   | split; [ exact HM | exact HN ] ] ]).
+      destruct (local_field_assign_pres lp bm NoA MWF SafeB Hls_real
+                  HNoA_of_MWF e M._wallCols M._WallCollisionData sattr tyenv
+                  fld tfloat a2 le m _ _ m' _ lblk Mfloat32
+                  Hbind Hlb eq_refl Hex Hc0) as (Hc' & _ & _).
+      destruct Hc' as (HV' & HS' & HM' & HN').
+      exact (conj HV' (conj HS' (conj HM' (conj HN'
+               (conj Htat (conj Hact Hch)))))).
+    - (* Sset: generic only *)
+      cbn [clcd_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp];
+        [ | cbn [clcd_sp_chk] in Hsp; discriminate Hsp ].
+      eapply (clcd_generic _ _ _ _ _ _ _ _ Hlocal Hub_g Hub_i Hub_x Hub_s
+                Hub_oc Hubgt Hg Htat Hact Hch HN HM HV HS).
+      eapply exec_Sset; eauto.
+    - (* Scall: generic census OR the find_wall_collisions special site *)
+      cbn [clcd_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp].
+      { eapply (clcd_generic _ _ _ _ _ _ _ _ Hlocal Hub_g Hub_i Hub_x Hub_s
+                  Hub_oc Hubgt Hg Htat Hact Hch HN HM HV HS).
+        eapply exec_Scall; eauto. }
+      destruct (clcd_sp_call_shape _ _ _ Hsp) as (Hoptne & -> & ->).
+      assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
+                      (Scall optid
+                         (Evar M._find_wall_collisions
+                            (Tfunction (tptr (Tstruct M._WallCollisionData noattr)
+                                        :: nil) tint cc_default))
+                         (Eaddrof (Evar M._wallCols
+                                     (Tstruct M._WallCollisionData noattr))
+                            (tptr (Tstruct M._WallCollisionData noattr)) :: nil))
+                      t (set_opttemp optid vres le) m' Out_normal)
+        by (eapply exec_Scall; eauto).
+      destruct (Hlocal M._wallCols eq_refl) as (lblk & tyenv & Hbind & Hlb).
+      assert (Hgate : forall vargs,
+          eval_exprlist (lp_ge lp) e le m
+            (Eaddrof (Evar M._wallCols (Tstruct M._WallCollisionData noattr))
+               (tptr (Tstruct M._WallCollisionData noattr)) :: nil)
+            (tptr (Tstruct M._WallCollisionData noattr) :: nil) vargs ->
+          args_all_local lp bm SafeB vargs).
+      { intros vargs0 Hvl.
+        inversion Hvl as [ | a1 bl1 ty1 tyl1 v1a v2a vl1 Hev_a Hsc_a Htl1 ];
+          subst; clear Hvl.
+        inversion Htl1; subst; clear Htl1.
+        intros bb oo Hin; cbn in Hin.
+        destruct Hin as [E | []]; subst v2a.
+        apply RealFrameValue.sem_cast_ptr_result_inv in Hsc_a; subst v1a.
+        inv Hev_a;
+          [ | match goal with
+              | Hlv : eval_lvalue _ _ _ _ (Eaddrof _ _) _ _ _ |- _ => inv Hlv
+              end ].
+        match goal with
+        | Hlv : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ => inv Hlv
+        end;
+        [ match goal with
+          | Hb : e ! M._wallCols = Some _ |- _ =>
+              rewrite Hbind in Hb; injection Hb as <- _; exact Hlb
+          end
+        | match goal with
+          | Hn : e ! M._wallCols = None |- _ =>
+              rewrite Hbind in Hn; discriminate Hn
+          end ]. }
+      assert (HtatL : forall b o,
+                 (set_opttemp optid vres le) ! mario_actions_airborne._m
+                   = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
+      { destruct optid as [oid | ]; cbn [set_opttemp]; [ | exact Htat ].
+        assert (Hne : oid <> mario_actions_airborne._m)
+          by (apply Hoptne; reflexivity).
+        intros b o Hg.
+        rewrite PTree.gso in Hg by exact (not_eq_sym Hne).
+        exact (Htat b o Hg). }
+      assert (Hc0 : carried bm NoA MWF m)
+        by (split; [ exact HV | split; [ exact HS
+                   | split; [ exact HM | exact HN ] ] ]).
+      destruct (ol_scall_pres lp bm NoA MWF SafeB optid
+                  M._find_wall_collisions
+                  (tptr (Tstruct M._WallCollisionData noattr) :: nil)
+                  tint cc_default
+                  (Eaddrof (Evar M._wallCols (Tstruct M._WallCollisionData noattr))
+                     (tptr (Tstruct M._WallCollisionData noattr)) :: nil)
+                  e le m _ _ m' _ Hfwc Holcp_fwc Hgate Hex Hc0) as (Hc' & _).
+      destruct Hc' as (HV' & HS' & HM' & HN').
+      assert (HactL : act_inv nil (set_opttemp optid vres le))
+        by (intros t' Hmem' x Hg'; discriminate Hmem').
+      assert (HchL : chase_inv SafeB nil (set_opttemp optid vres le))
+        by (intros t' Hmem' b o Hg'; discriminate Hmem').
+      exact (conj HV' (conj HS' (conj HM' (conj HN'
+               (conj HtatL (conj HactL HchL)))))).
+    - (* Sbuiltin: rejected by BOTH arms *)
+      cbn [clcd_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp];
+        [ cbn [clcd_gen wwalk_chk'] in Hg; discriminate Hg
+        | cbn [clcd_sp_chk] in Hsp; discriminate Hsp ].
+    - (* Sseq_1 *)
+      cbn [clcd_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp].
+      { eapply (clcd_generic _ _ _ _ _ _ _ _ Hlocal Hub_g Hub_i Hub_x Hub_s
+                  Hub_oc Hubgt Hg Htat Hact Hch HN HM HV HS).
+        eapply exec_Sseq_1; eauto. }
+      apply andb_prop in Hsp as [H1 H2].
+      destruct (IHHexec1 Hlocal Hub_g Hub_i Hub_x Hub_s Hub_oc Hfwc Hubgt
+                  H1 Htat Hact Hch HN HM HV HS)
+        as (HV1 & HS1 & HM1 & HN1 & Htat1 & Hact1 & Hch1).
+      exact (IHHexec2 Hlocal Hub_g Hub_i Hub_x Hub_s Hub_oc Hfwc Hubgt
+               H2 Htat1 Hact1 Hch1 HN1 HM1 HV1 HS1).
+    - (* Sseq_2 *)
+      cbn [clcd_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp].
+      { eapply (clcd_generic _ _ _ _ _ _ _ _ Hlocal Hub_g Hub_i Hub_x Hub_s
+                  Hub_oc Hubgt Hg Htat Hact Hch HN HM HV HS).
+        eapply exec_Sseq_2; eauto. }
+      apply andb_prop in Hsp as [H1 _].
+      exact (IHHexec Hlocal Hub_g Hub_i Hub_x Hub_s Hub_oc Hfwc Hubgt
+               H1 Htat Hact Hch HN HM HV HS).
+    - (* Sifthenelse *)
+      cbn [clcd_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp].
+      { eapply (clcd_generic _ _ _ _ _ _ _ _ Hlocal Hub_g Hub_i Hub_x Hub_s
+                  Hub_oc Hubgt Hg Htat Hact Hch HN HM HV HS).
+        eapply exec_Sifthenelse; eauto. }
+      apply andb_prop in Hsp as [H1 H2].
+      apply IHHexec; try assumption.
+      destruct b; assumption.
+    - (* Sreturn None *)
+      exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact Hch)))))).
+    - (* Sreturn (Some a) *)
+      exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact Hch)))))).
+    - (* Sbreak *)
+      exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact Hch)))))).
+    - (* Scontinue *)
+      exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact Hch)))))).
+    - (* Sloop stop1: generic only *)
+      cbn [clcd_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp];
+        [ | cbn [clcd_sp_chk] in Hsp; discriminate Hsp ].
+      eapply (clcd_generic _ _ _ _ _ _ _ _ Hlocal Hub_g Hub_i Hub_x Hub_s
+                Hub_oc Hubgt Hg Htat Hact Hch HN HM HV HS).
+      eapply exec_Sloop_stop1; eauto.
+    - (* Sloop stop2: generic only *)
+      cbn [clcd_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp];
+        [ | cbn [clcd_sp_chk] in Hsp; discriminate Hsp ].
+      eapply (clcd_generic _ _ _ _ _ _ _ _ Hlocal Hub_g Hub_i Hub_x Hub_s
+                Hub_oc Hubgt Hg Htat Hact Hch HN HM HV HS).
+      eapply exec_Sloop_stop2; eauto.
+    - (* Sloop loop: generic only *)
+      cbn [clcd_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp];
+        [ | cbn [clcd_sp_chk] in Hsp; discriminate Hsp ].
+      eapply (clcd_generic _ _ _ _ _ _ _ _ Hlocal Hub_g Hub_i Hub_x Hub_s
+                Hub_oc Hubgt Hg Htat Hact Hch HN HM HV HS).
+      eapply exec_Sloop_loop; eauto.
+    - (* Sswitch: generic only *)
+      cbn [clcd_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp];
+        [ | cbn [clcd_sp_chk] in Hsp; discriminate Hsp ].
+      eapply (clcd_generic _ _ _ _ _ _ _ _ Hlocal Hub_g Hub_i Hub_x Hub_s
+                Hub_oc Hubgt Hg Htat Hact Hch HN HM HV HS).
+      eapply exec_Sswitch; eauto.
+  Qed.
+
+  Lemma clcd_pin :
+    (prog_defmap mario_actions_moving.prog) ! M._check_ledge_climb_down
+    = Some (Gfun (Internal M.f_check_ledge_climb_down)).
+  Proof. vm_compute. reflexivity. Qed.
+
+  (* THE LEAF entry: mirrors call_pres_of_lwalk2 (alloc _wallCols/_floor,
+     bind _m, the Hlocal constructor, free at exit); body goes to clcd_pres. *)
+  Lemma mov_clcd_pres : body_pres lp NoA MWF bm M.f_check_ledge_climb_down.
+  Proof.
+    intros m0 vargs0 t0 mF vres0 Hmargf Hevf HN HM HV HS.
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      rename Ha into Halloc end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    match goal with
+    | Hb : exec_stmt _ _ ?E _ _ _ _ _ _ _ |- _ => set (eloc := E) in *
+    end.
+    assert (Hc0 : carried bm NoA MWF m0)
+      by (split; [ exact HV | split; [ exact HS
+                 | split; [ exact HM | exact HN ] ] ]).
+    pose proof (alloc_variables_carried bm NoA MWF HMWF_alloc HNoA_of_MWF
+                  _ _ _ _ _ _ Halloc Hc0) as Hca.
+    destruct Hca as (HVa & HSa & HMa & HNa).
+    pose proof (alloc_variables_hlocal lp bm SafeB m0 _ eloc _ clcd_lids
+                  Halloc HV (HSafeValid m0 HM) (HGlobValid m0 HM)
+                  ltac:(intros lid Hl; unfold clcd_lids, mem_id in Hl;
+                        cbn [existsb] in Hl;
+                        apply Bool.orb_true_iff in Hl;
+                        destruct Hl as [Hm1 | Hl];
+                        [ apply Pos.eqb_eq in Hm1; subst lid;
+                          vm_compute; left; reflexivity | ];
+                        apply Bool.orb_true_iff in Hl;
+                        destruct Hl as [Hm1 | Hl];
+                        [ apply Pos.eqb_eq in Hm1; subst lid;
+                          vm_compute; right; left; reflexivity
+                        | discriminate Hl ]))
+      as Hlocal.
+    assert (Hps : match fn_params M.f_check_ledge_climb_down with
+                  | (i, ty) :: ps =>
+                      (Pos.eqb i mario_actions_airborne._m
+                       && proj_sumbool (type_eq ty tyMSp)
+                       && negb (mem_id mario_actions_airborne._m
+                                  (map fst ps)))%bool
+                  | nil => false
+                  end = true) by (vm_compute; reflexivity).
+    assert (Hmarg : marg_ok bm vargs0)
+      by (apply Hmargf; vm_compute; reflexivity).
+    destruct (fn_params M.f_check_ledge_climb_down)
+      as [| [i ty] ps ] eqn:Eps; [ discriminate Hps | ].
+    apply andb_prop in Hps as [Hps Hnm].
+    apply andb_prop in Hps as [Hi Hty].
+    apply Pos.eqb_eq in Hi. subst i.
+    destruct (type_eq ty tyMSp); [ subst ty | discriminate Hty ].
+    apply negb_true_iff in Hnm.
+    destruct vargs0 as [| v0 vrest];
+      cbn [bind_parameter_temps] in Hbind; [ discriminate Hbind | ].
+    match goal with
+    | Hbind' : bind_parameter_temps _ _ _ = Some ?le1 |- _ =>
+        assert (Htat0 : forall b o,
+                   le1 ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero)
+          by (intros b o Hg;
+              rewrite (bind_params_other _ _ _ _ _ Hbind' Hnm) in Hg;
+              rewrite PTree.gss in Hg; injection Hg as ->;
+              cbn in Hmarg; exact Hmarg);
+        assert (Hact0 : act_inv nil le1)
+          by (intros t' Hmem' x Hg'; discriminate Hmem');
+        assert (Hch0 : chase_inv SafeB nil le1)
+          by (intros t' Hmem' b o Hg'; discriminate Hmem')
+    end.
+    assert (Hub_g : forall g, mem_id g stored_globals = true ->
+                    eloc ! g = None).
+    { intros g Hg.
+      rewrite (alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc g)
+        by (intro Hin; vm_compute in Hin;
+            destruct Hin as [E | [E | []]]; subst g;
+            vm_compute in Hg; discriminate Hg).
+      apply PTree.gempty. }
+    assert (Hub_i : forall g, mem_id g clcd_ids = true -> eloc ! g = None).
+    { intros g Hg.
+      rewrite (alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc g)
+        by (intro Hin; vm_compute in Hin;
+            destruct Hin as [E | [E | []]]; subst g;
+            vm_compute in Hg; discriminate Hg).
+      apply PTree.gempty. }
+    assert (Hub_x : forall g, mem_id g clcd_xids = true -> eloc ! g = None).
+    { intros g Hg.
+      rewrite (alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc g)
+        by (intro Hin; vm_compute in Hin;
+            destruct Hin as [E | [E | []]]; subst g;
+            vm_compute in Hg; discriminate Hg).
+      apply PTree.gempty. }
+    assert (Hub_s : forall g, mem_id g clcd_sids = true -> eloc ! g = None).
+    { intros g Hg.
+      rewrite (alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc g)
+        by (intro Hin; vm_compute in Hin;
+            destruct Hin as [E | [E | []]]; subst g;
+            vm_compute in Hg; discriminate Hg).
+      apply PTree.gempty. }
+    assert (Hub_oc : forall g, mem_id g clcd_oc = true -> eloc ! g = None).
+    { intros g Hg.
+      rewrite (alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc g)
+        by (intro Hin; vm_compute in Hin;
+            destruct Hin as [E | [E | []]]; subst g;
+            vm_compute in Hg; discriminate Hg).
+      apply PTree.gempty. }
+    assert (Hfwcn : eloc ! M._find_wall_collisions = None).
+    { rewrite (alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc
+                 M._find_wall_collisions)
+        by (intro Hin; vm_compute in Hin;
+            destruct Hin as [E | [E | []]]; discriminate E).
+      apply PTree.gempty. }
+    assert (Hub_gt : eloc ! interaction._gGlobalTimer = None).
+    { rewrite (alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc
+                 interaction._gGlobalTimer)
+        by (intro Hin; vm_compute in Hin;
+            destruct Hin as [E | [E | []]]; discriminate E).
+      apply PTree.gempty. }
+    destruct (clcd_pres _ _ _ _ _ _ _ _ Hlocal Hbody
+                Hub_g Hub_i Hub_x Hub_s Hub_oc Hfwcn Hub_gt
+                clcd_walk Htat0 Hact0 Hch0 HNa HMa HVa HSa)
+      as (HVb & HSb & HMb & HNb & _ & _ & _).
+    pose proof (blocks_of_env_bm lp bm m0 _ eloc _ Halloc HV) as Hforall.
+    pose proof (free_list_carried_bm bm NoA MWF HMWF_free HNoA_of_MWF
+                  (blocks_of_env (lp_ge lp) eloc) _ mF Hforall Hfree
+                  (conj HVb (conj HSb (conj HMb HNb))))
+      as (HVf & HSf & HMf & HNf).
+    exact (conj HVf (conj HSf HMf)).
+  Qed.
+
+  Lemma mov_clcd_row : call_pres lp bm NoA MWF M._check_ledge_climb_down.
+  Proof.
+    exact (call_pres_of_body lp bm NoA MWF HNoA_of_MWF
+             mario_actions_moving.prog M._check_ledge_climb_down
+             M.f_check_ledge_climb_down LO_mov clcd_pin mov_clcd_pres).
+  Qed.
+
 
   Lemma mov_bwa_ids_rows : forall fid, mem_id fid mov_bwa_ids = true ->
       call_pres lp bm NoA MWF fid.
