@@ -878,6 +878,16 @@ Section NoARealInputMWF.
   Hypothesis Hcp_pas_real :
     call_pres lp bm (NoA_real bm) MWF
       mario_actions_airborne._perform_air_step.
+  (* mario_blow_off_cap: act_getting_blown's cap-blow-off helper (INTERNAL
+     interaction.prog).  It spawns a cap Object and stores through that fresh
+     non-Mario block; that spawn-into-cact chase pattern needs the spawn/wind
+     arc the base wwalk engine does not yet carry, so it is carried as a
+     call_pres residual (the air analogue of Hcp_caas_real / Hcp_pas_real) and
+     discharged later by walking its body.  Its presence DECOMPOSES
+     act_getting_blown (all root-window stores otherwise) into a thin wrapper. *)
+  Hypothesis Hcp_mboc_real :
+    call_pres lp bm (NoA_real bm) MWF
+      interaction._mario_blow_off_cap.
   (* approach_f32: the asymptotic-approach math helper.  EF_external in EVERY
      generated TU (Gfun(External ...), no internal body anywhere) -- the same
      honest terminal external-call model boundary as atan2s/sqrtf, and (unlike
@@ -1964,6 +1974,10 @@ Section NoARealInputMWF.
                                HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                             (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
                             Hpres_warp_ext))
+                      (* SLICE A22: act_getting_blown's mario_blow_off_cap --
+                         carried as an internal call_pres residual (spawn arc
+                         pending), the air analogue of Hcp_pas_real. *)
+                      Hcp_mboc_real
                       Hpres_air_rest))
                 (submerged_pres lp LO_mario LO_sub bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB) SafeB
