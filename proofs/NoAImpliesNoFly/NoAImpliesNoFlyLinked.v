@@ -2469,6 +2469,25 @@ Section NoARealInputMWF.
                          down + perform_water_step honest residuals. *)
                       Hcp_ssd_real
                       Hcp_pws_real
+                      (* SLICE 8 (act_water_death): level_trigger_warp is the
+                         SHARED warp-trigger body the floors/warp surfaces
+                         already walk (call_pres_of_body + warp_pres) -- the
+                         SAME term act_lava_boost feeds above, NO new trust.
+                         The leaf reuses the slice-7 step residuals + a cact
+                         chase store of m->marioBodyState->eyeState. *)
+                      (call_pres_of_body lp bm (NoA_real bm)
+                         (MWF_real lp bm bc oc0 SafeB)
+                         (mwf_real_ctl lp bm bc oc0 SafeB)
+                         level_update.prog level_update._level_trigger_warp
+                         level_update.f_level_trigger_warp LO_lvl
+                         floors_warp_internal
+                         (warp_pres lp LO_mario LO_lvl bm (NoA_real bm)
+                            (MWF_real lp bm bc oc0 SafeB)
+                            (mwf_real_ctl lp bm bc oc0 SafeB)
+                            (mwf_real_window lp bm bc oc0 SafeB Hbc_bm
+                               HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                            (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+                            Hpres_warp_ext))
                       Hpres_sub_rest))
                 (cutscene_pres lp LO_mario LO_cut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)

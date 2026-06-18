@@ -22,7 +22,7 @@ From Coq Require Import ZArith Lia List.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
 From SM64.Generated Require mario mario_step
-  mario_actions_airborne mario_actions_submerged.
+  mario_actions_airborne mario_actions_submerged level_update.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
   ActionValueFrame RealFrameValue RealFrameLinked AGates.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface
@@ -94,6 +94,20 @@ Definition sub_fall_ids : list ident :=
     :: mario_actions_submerged._stationary_slow_down
     :: mario_actions_submerged._perform_water_step :: nil.
 
+(* the ids helpers act_water_death calls: stationary_slow_down +
+   perform_water_step (the slice-7 step residuals, REUSED), set_mario_animation
+   (sub_sma_row), and level_trigger_warp (the SHARED warp-trigger, already
+   discharged at the capstone -- NO new trust).  The body also chases
+   m->marioBodyState into a temp and writes its eyeState (a non-pointer const
+   into a SafeB chase-root block), so cact = [_t'2].  No set_mario_action. *)
+Definition sub_death_ids : list ident :=
+  mario_actions_submerged._stationary_slow_down
+    :: mario_actions_submerged._perform_water_step
+    :: mario._set_mario_animation
+    :: level_update._level_trigger_warp :: nil.
+Definition sub_death_cact : list ident :=
+  mario_actions_submerged._t'2 :: nil.
+
 (* the WALKED leaves. *)
 Definition sub_walked_ids : list ident :=
   mario_actions_submerged._act_metal_water_standing
@@ -111,7 +125,8 @@ Definition sub_walked_ids : list ident :=
     :: mario_actions_submerged._act_water_action_end
     :: mario_actions_submerged._act_hold_water_action_end
     :: mario_actions_submerged._act_metal_water_falling
-    :: mario_actions_submerged._act_hold_metal_water_falling :: nil.
+    :: mario_actions_submerged._act_hold_metal_water_falling
+    :: mario_actions_submerged._act_water_death :: nil.
 Definition sub_rest_ids : list ident :=
   filter (fun id => negb (mem_id id sub_walked_ids)) submerged_callee_ids.
 
@@ -487,6 +502,32 @@ Example sub_hmwf2_walk :
     (fn_body mario_actions_submerged.f_act_hold_metal_water_falling) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- act_water_death: stationary_slow_down + perform_water_step + set_mario_
+   animation + level_trigger_warp; chases m->marioBodyState into _t'2 and writes
+   eyeState (a non-pointer const into a SafeB chase-root block) => cact=[_t'2].
+   No set_mario_action.  REUSES the slice-7 step residuals + the SHARED warp
+   trigger -- NO new capstone trust. ---- *)
+Example sub_wd_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._act_water_death
+  = Some (Gfun (Internal mario_actions_submerged.f_act_water_death)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_wd_vars :
+  fn_vars mario_actions_submerged.f_act_water_death = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_wd_pok :
+  sub_hold_pok mario_actions_submerged.f_act_water_death = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_wd_nonparam :
+  forallb (fun t' => negb (mem_id t'
+    (map fst (fn_params mario_actions_submerged.f_act_water_death))))
+    sub_death_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_wd_walk :
+  wwalk_chk false nil sub_death_ids nil sub_death_cact nil nil nil
+    (fn_body mario_actions_submerged.f_act_water_death) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ====================================================================== *)
 (* The section: the leaf-callee discharge, keyed by the census.           *)
 (* ====================================================================== *)
@@ -649,6 +690,14 @@ Section SubmergedLeafRows.
   Hypothesis Hcp_pws :
     call_pres lp bm NoA MWF mario_actions_submerged._perform_water_step.
 
+  (* level_trigger_warp: the SHARED warp-trigger.  Writes the sDelayedWarp*
+     statics (stored_globals, bm/SafeB-disjoint) + reads m; NEVER the action
+     cell, a genuine call_pres for any caller.  ALREADY discharged at the
+     capstone (the floors/warp surfaces walk its body, call_pres_of_body +
+     warp_pres) -- the capstone feeds that existing term, NO new trust. *)
+  Hypothesis Hcp_ltw :
+    call_pres lp bm NoA MWF level_update._level_trigger_warp.
+
   (* the keystone, instantiated once: set_mario_action is call_pres_act. *)
   Let Hsmact : call_pres_act lp bm NoA MWF mario._set_mario_action :=
     smact_pres lp LO_mario LO_mario_step bm NoA MWF HNoA_of_MWF
@@ -750,6 +799,21 @@ Section SubmergedLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ssd | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pws | ].
+    discriminate H.
+  Qed.
+
+  Lemma sub_death_ids_rows : forall fid, mem_id fid sub_death_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sub_death_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ssd | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pws | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_sma_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ltw | ].
     discriminate H.
   Qed.
 
@@ -1053,6 +1117,24 @@ Section SubmergedLeafRows.
     - exact sub_hmwf2_walk.
   Qed.
 
+  Lemma act_water_death_pres :
+    body_pres lp NoA MWF bm
+      mario_actions_submerged.f_act_water_death.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.f_act_water_death
+             sub_death_ids nil sub_death_cact nil nil nil
+             sub_wd_vars sub_wd_pok sub_wd_nonparam).
+    - exact sub_death_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sub_wd_walk.
+  Qed.
+
   (* ================================================================== *)
   (* THE PAYOFF: the census-keyed leaf discharge.  The walked leaf is   *)
   (* discharged here; everything else falls through to the rest premise *)
@@ -1149,6 +1231,11 @@ Section SubmergedLeafRows.
     { apply Pos.eqb_eq in Ew16; subst fid.
       rewrite sub_hmwf2_pin in Hdm. injection Hdm as <-.
       exact act_hold_metal_water_falling_pres. }
+    destruct (Pos.eqb fid mario_actions_submerged._act_water_death)
+      eqn:Ew17.
+    { apply Pos.eqb_eq in Ew17; subst fid.
+      rewrite sub_wd_pin in Hdm. injection Hdm as <-.
+      exact act_water_death_pres. }
     (* REST: fid is in the census and not a walked id, so it is in the
        filter that defines sub_rest_ids. *)
     apply (Hrest fid f); [ | exact Hdm ].
@@ -1156,7 +1243,7 @@ Section SubmergedLeafRows.
     apply mem_id_filter_true; [ exact H | ].
     unfold sub_walked_ids. cbn [mem_id existsb].
     rewrite Ew1, Ew2, Ew3, Ew4, Ew5, Ew6, Ew7, Ew8, Ew9, Ew10,
-      Ew11, Ew12, Ew13, Ew14, Ew15, Ew16. reflexivity.
+      Ew11, Ew12, Ew13, Ew14, Ew15, Ew16, Ew17. reflexivity.
   Qed.
 
 End SubmergedLeafRows.
