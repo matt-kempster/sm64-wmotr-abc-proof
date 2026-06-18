@@ -957,6 +957,13 @@ Section NoARealInputMWF.
   Hypothesis Hcp_sashf_real :
     call_pres lp bm (NoA_real bm) MWF
       mario_step._stop_and_set_height_to_floor.
+  (* SLICE 2: the metal-water _land leaves' jump/land sound helper.  Writes
+     particleFlags/flags (window) + plays a sound via play_sound_if_no_flag;
+     never the action cell, so a genuine call_pres for any caller.  Honest
+     residual (body walk = play_sound_if_no_flag + play_sound obj_ext). *)
+  Hypothesis Hcp_pmwjs_real :
+    call_pres lp bm (NoA_real bm) MWF
+      mario_actions_submerged._play_metal_water_jumping_sound.
   (* the cutscene dispatcher is WALKED (CutsceneSurface.cutscene_pres
      over the generic DispatchKit): its whole-body residual is PROVED
      from per-leaf-callee residuals keyed by the 51-id census
@@ -2367,6 +2374,7 @@ Section NoARealInputMWF.
                          HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                       (Hpres_obj_ext mario._load_patchable_table eq_refl)
                       Hcp_sashf_real
+                      Hcp_pmwjs_real
                       Hpres_sub_rest))
                 (cutscene_pres lp LO_mario LO_cut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)

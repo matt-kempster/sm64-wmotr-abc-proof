@@ -43,17 +43,23 @@ Definition sub_sma_xids : list ident := mario._load_patchable_table :: nil.
 (* set_mario_action(const) is the only action-writer in slice 1. *)
 Definition sub_sids : list ident := mario._set_mario_action :: nil.
 
-(* the ids helpers act_metal_water_standing calls (each passes m, marg):
+(* the ids helpers the metal-water cluster calls (each passes m, marg):
    set_mario_animation + is_anim_at_end (walked here) + stop_and_set_height_
-   to_floor (the assumed honest step residual). *)
-Definition sub_mws_ids : list ident :=
+   to_floor + play_metal_water_jumping_sound (the assumed honest step/sound
+   residuals).  A single superset list serves all three metal-water leaves --
+   act_metal_water_standing does not call play_metal_water_jumping_sound, but
+   an unused ids entry is harmless to the walk. *)
+Definition sub_metal_ids : list ident :=
   mario._set_mario_animation
     :: mario._is_anim_at_end
-    :: mario_step._stop_and_set_height_to_floor :: nil.
+    :: mario_step._stop_and_set_height_to_floor
+    :: mario_actions_submerged._play_metal_water_jumping_sound :: nil.
 
-(* slice 1: the single WALKED leaf. *)
+(* the WALKED leaves. *)
 Definition sub_walked_ids : list ident :=
-  mario_actions_submerged._act_metal_water_standing :: nil.
+  mario_actions_submerged._act_metal_water_standing
+    :: mario_actions_submerged._act_metal_water_jump_land
+    :: mario_actions_submerged._act_metal_water_fall_land :: nil.
 Definition sub_rest_ids : list ident :=
   filter (fun id => negb (mem_id id sub_walked_ids)) submerged_callee_ids.
 
@@ -143,8 +149,54 @@ Example sub_mws_pok :
   end = true.
 Proof. vm_compute. reflexivity. Qed.
 Example sub_mws_walk :
-  wwalk_chk false nil sub_mws_ids nil nil nil sub_sids nil
+  wwalk_chk false nil sub_metal_ids nil nil nil sub_sids nil
     (fn_body mario_actions_submerged.f_act_metal_water_standing) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- act_metal_water_jump_land ---- *)
+Example sub_mwjl_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._act_metal_water_jump_land
+  = Some (Gfun (Internal mario_actions_submerged.f_act_metal_water_jump_land)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_mwjl_vars :
+  fn_vars mario_actions_submerged.f_act_metal_water_jump_land = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_mwjl_pok :
+  match fn_params mario_actions_submerged.f_act_metal_water_jump_land with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_mwjl_walk :
+  wwalk_chk false nil sub_metal_ids nil nil nil sub_sids nil
+    (fn_body mario_actions_submerged.f_act_metal_water_jump_land) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- act_metal_water_fall_land ---- *)
+Example sub_mwfl_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._act_metal_water_fall_land
+  = Some (Gfun (Internal mario_actions_submerged.f_act_metal_water_fall_land)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_mwfl_vars :
+  fn_vars mario_actions_submerged.f_act_metal_water_fall_land = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_mwfl_pok :
+  match fn_params mario_actions_submerged.f_act_metal_water_fall_land with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_mwfl_walk :
+  wwalk_chk false nil sub_metal_ids nil nil nil sub_sids nil
+    (fn_body mario_actions_submerged.f_act_metal_water_fall_land) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* ====================================================================== *)
@@ -225,6 +277,13 @@ Section SubmergedLeafRows.
   Hypothesis Hcp_sashf :
     call_pres lp bm NoA MWF mario_step._stop_and_set_height_to_floor.
 
+  (* play_metal_water_jumping_sound: writes particleFlags/flags (window) and
+     plays a sound via play_sound_if_no_flag; it NEVER touches the action
+     cell, so a genuine call_pres for any caller.  Honest residual (its body
+     walk -- play_sound_if_no_flag + play_sound obj_ext -- is a later unit). *)
+  Hypothesis Hcp_pmwjs :
+    call_pres lp bm NoA MWF mario_actions_submerged._play_metal_water_jumping_sound.
+
   (* the keystone, instantiated once: set_mario_action is call_pres_act. *)
   Let Hsmact : call_pres_act lp bm NoA MWF mario._set_mario_action :=
     smact_pres lp LO_mario LO_mario_step bm NoA MWF HNoA_of_MWF
@@ -270,17 +329,19 @@ Section SubmergedLeafRows.
     - exact sub_sma_walk.
   Qed.
 
-  (* ---- the ids/sids row dispatchers for the leaf walk ---- *)
-  Lemma sub_mws_ids_rows : forall fid, mem_id fid sub_mws_ids = true ->
+  (* ---- the ids/sids row dispatchers for the leaf walks ---- *)
+  Lemma sub_metal_ids_rows : forall fid, mem_id fid sub_metal_ids = true ->
       call_pres lp bm NoA MWF fid.
   Proof.
-    intros fid H. unfold sub_mws_ids in H. cbn [mem_id existsb] in H.
+    intros fid H. unfold sub_metal_ids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact sub_sma_row | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact sub_iae_row | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sashf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pmwjs | ].
     discriminate H.
   Qed.
 
@@ -293,7 +354,7 @@ Section SubmergedLeafRows.
     discriminate H.
   Qed.
 
-  (* ---- the leaf walk ---- *)
+  (* ---- the leaf walks ---- *)
   Lemma act_metal_water_standing_pres :
     body_pres lp NoA MWF bm
       mario_actions_submerged.f_act_metal_water_standing.
@@ -302,14 +363,50 @@ Section SubmergedLeafRows.
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              mario_actions_submerged.f_act_metal_water_standing
-             sub_mws_ids nil nil sub_sids nil
+             sub_metal_ids nil nil sub_sids nil
              sub_mws_vars sub_mws_pok).
-    - exact sub_mws_ids_rows.
+    - exact sub_metal_ids_rows.
     - intros fid' H. discriminate H.
     - intros fid' H. discriminate H.
     - exact sub_sids_rows.
     - intros fid' H. discriminate H.
     - exact sub_mws_walk.
+  Qed.
+
+  Lemma act_metal_water_jump_land_pres :
+    body_pres lp NoA MWF bm
+      mario_actions_submerged.f_act_metal_water_jump_land.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.f_act_metal_water_jump_land
+             sub_metal_ids nil nil sub_sids nil
+             sub_mwjl_vars sub_mwjl_pok).
+    - exact sub_metal_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sub_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact sub_mwjl_walk.
+  Qed.
+
+  Lemma act_metal_water_fall_land_pres :
+    body_pres lp NoA MWF bm
+      mario_actions_submerged.f_act_metal_water_fall_land.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.f_act_metal_water_fall_land
+             sub_metal_ids nil nil sub_sids nil
+             sub_mwfl_vars sub_mwfl_pok).
+    - exact sub_metal_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sub_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact sub_mwfl_walk.
   Qed.
 
   (* ================================================================== *)
@@ -329,17 +426,27 @@ Section SubmergedLeafRows.
   Proof.
     intros Hrest fid f H Hdm.
     destruct (Pos.eqb fid mario_actions_submerged._act_metal_water_standing)
-      eqn:Ew.
-    - (* WALKED *)
-      apply Pos.eqb_eq in Ew; subst fid.
+      eqn:Ew1.
+    { apply Pos.eqb_eq in Ew1; subst fid.
       rewrite sub_mws_pin in Hdm. injection Hdm as <-.
-      exact act_metal_water_standing_pres.
-    - (* REST: fid is in the census and not the walked id, so it is in the
-         filter that defines sub_rest_ids. *)
-      apply (Hrest fid f); [ | exact Hdm ].
-      unfold sub_rest_ids.
-      apply mem_id_filter_true; [ exact H | ].
-      unfold sub_walked_ids. cbn [mem_id existsb]. rewrite Ew. reflexivity.
+      exact act_metal_water_standing_pres. }
+    destruct (Pos.eqb fid mario_actions_submerged._act_metal_water_jump_land)
+      eqn:Ew2.
+    { apply Pos.eqb_eq in Ew2; subst fid.
+      rewrite sub_mwjl_pin in Hdm. injection Hdm as <-.
+      exact act_metal_water_jump_land_pres. }
+    destruct (Pos.eqb fid mario_actions_submerged._act_metal_water_fall_land)
+      eqn:Ew3.
+    { apply Pos.eqb_eq in Ew3; subst fid.
+      rewrite sub_mwfl_pin in Hdm. injection Hdm as <-.
+      exact act_metal_water_fall_land_pres. }
+    (* REST: fid is in the census and not a walked id, so it is in the
+       filter that defines sub_rest_ids. *)
+    apply (Hrest fid f); [ | exact Hdm ].
+    unfold sub_rest_ids.
+    apply mem_id_filter_true; [ exact H | ].
+    unfold sub_walked_ids. cbn [mem_id existsb].
+    rewrite Ew1, Ew2, Ew3. reflexivity.
   Qed.
 
 End SubmergedLeafRows.
