@@ -870,6 +870,21 @@ Section NoARealInputMWF.
   Hypothesis Hcp_cakbs_real :
     call_pres lp bm (NoA_real bm) MWF
       mario_actions_airborne._common_air_knockback_step.
+  (* perform_air_step: the air-physics step driver (INTERNAL
+     mario_actions_airborne.prog -- the air analogue of perform_ground_step's
+     Hcp_pgs), carried as a call_pres residual and discharged later by walking
+     its body.  Drives the rollout act handlers (SLICE A6) and the remaining
+     air-physics leaves; its presence DECOMPOSES them into thin wrappers. *)
+  Hypothesis Hcp_pas_real :
+    call_pres lp bm (NoA_real bm) MWF
+      mario_actions_airborne._perform_air_step.
+  (* approach_f32: the asymptotic-approach math helper.  EF_external in EVERY
+     generated TU (Gfun(External ...), no internal body anywhere) -- the same
+     honest terminal external-call model boundary as atan2s/sqrtf, and (unlike
+     them) not already in obj_ext_ids/floors_ext_ids. *)
+  Hypothesis Hcpx_approach_f32_real :
+    call_pres_ext lp bm (NoA_real bm) MWF
+      mario_actions_airborne._approach_f32.
   (* the submerged dispatcher is WALKED (SubmergedSurface.submerged_pres
      over the generic DispatchKit; the quicksandDepth store is killed by
      the window census, and the two headAngle chase-pair stores -- the
@@ -1924,6 +1939,13 @@ Section NoARealInputMWF.
                       Hpres_obj_ext
                       Hcp_caas_real
                       Hcp_cakbs_real
+                      (Hpres_obj_ext mario._sqrtf eq_refl)
+                      (Hpres_obj_ext mario._atan2s eq_refl)
+                      Hcpx_approach_f32_real
+                      (Hpres_obj_ext mario._load_patchable_table eq_refl)
+                      (Hpres_floors_ext mario._raise_background_noise eq_refl)
+                      (Hpres_obj_ext mario._set_camera_mode eq_refl)
+                      Hcp_pas_real
                       Hpres_air_rest))
                 (submerged_pres lp LO_mario LO_sub bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB) SafeB
