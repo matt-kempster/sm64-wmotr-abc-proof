@@ -1027,6 +1027,14 @@ Section NoARealInputMWF.
   Hypothesis Hcp_psinf_real :
     call_pres lp bm (NoA_real bm) MWF
       mario_actions_submerged._play_sound_if_no_flag.
+  (* SLICE 11 (knockback pair): common_water_knockback_step is action-
+     preserving WHEN its endAction param (the THIRD vargs element) is
+     untainted -- exactly call_pres_act3.  An honest INTERNAL residual
+     (dischargeable later via the #66 param-action arc); the two kb leaves
+     pass ACT_WATER_IDLE (untainted const) there. *)
+  Hypothesis Hcp_cwks_real :
+    call_pres_act3 lp bm (NoA_real bm) MWF
+      mario_actions_submerged._common_water_knockback_step.
   (* the cutscene dispatcher is WALKED (CutsceneSurface.cutscene_pres
      over the generic DispatchKit): its whole-body residual is PROVED
      from per-leaf-callee residuals keyed by the 51-id census
@@ -2508,6 +2516,9 @@ Section NoARealInputMWF.
                          set_mario_action keystone + the slice-7 step residuals. *)
                       (Hpres_obj_ext mario._play_sound eq_refl)
                       (Hpres_obj_ext interaction._set_camera_shake_from_hit eq_refl)
+                      (* SLICE 11 (kb pair): cwks via call_pres_act3 (act3_call_chk
+                         gates the untainted ACT_WATER_IDLE const at endAction). *)
+                      Hcp_cwks_real
                       Hpres_sub_rest))
                 (cutscene_pres lp LO_mario LO_cut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)

@@ -146,6 +146,19 @@ Definition sub_shock_cact : list ident :=
 Definition sub_shock_xids : list ident :=
   mario._play_sound :: interaction._set_camera_shake_from_hit :: nil.
 
+(* the knockback pair (act_backward_water_kb / act_forward_water_kb): each
+   body is one `common_water_knockback_step(m, <anim>, ACT_WATER_IDLE, m->
+   actionArg)` call (+ return 0).  cwks writes m->action via set_mario_action
+   with `m->health >= 0x100 ? endAction : ACT_WATER_DEATH` -- so it preserves
+   the action cell ONLY when its endAction (param index 2) is untainted.  That
+   is exactly call_pres_act3's gate (`aval` = the THIRD vargs element); the leaf
+   passes ACT_WATER_IDLE (a const, vm-checked untainted) there, recognised by
+   the engine's act3_call_chk (Mario-stripped index 1 = full index 2).  So cwks
+   rides tids as ONE honest residual Hcp_cwks (`call_pres_act3 cwks`,
+   dischargeable later via the param-action arc once endAction is threaded). *)
+Definition sub_kb_tids : list ident :=
+  mario_actions_submerged._common_water_knockback_step :: nil.
+
 (* the WALKED leaves. *)
 Definition sub_walked_ids : list ident :=
   mario_actions_submerged._act_metal_water_standing
@@ -166,7 +179,9 @@ Definition sub_walked_ids : list ident :=
     :: mario_actions_submerged._act_hold_metal_water_falling
     :: mario_actions_submerged._act_water_death
     :: mario_actions_submerged._act_drowning
-    :: mario_actions_submerged._act_water_shocked :: nil.
+    :: mario_actions_submerged._act_water_shocked
+    :: mario_actions_submerged._act_backward_water_kb
+    :: mario_actions_submerged._act_forward_water_kb :: nil.
 Definition sub_rest_ids : list ident :=
   filter (fun id => negb (mem_id id sub_walked_ids)) submerged_callee_ids.
 
@@ -621,6 +636,41 @@ Example sub_sh_walk :
     (fn_body mario_actions_submerged.f_act_water_shocked) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- the knockback pair: ONE cwks call via tids (act3_call_chk gates the
+   ACT_WATER_IDLE const at full-index 2 = endAction); ids/wids/xids/sids all
+   nil, the only row is sub_kb_tids_rows (call_pres_act3 cwks = Hcp_cwks). ---- *)
+Example sub_bwkb_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._act_backward_water_kb
+  = Some (Gfun (Internal mario_actions_submerged.f_act_backward_water_kb)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_bwkb_vars :
+  fn_vars mario_actions_submerged.f_act_backward_water_kb = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_bwkb_pok :
+  sub_hold_pok mario_actions_submerged.f_act_backward_water_kb = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_bwkb_walk :
+  wwalk_chk false nil nil nil nil nil nil sub_kb_tids
+    (fn_body mario_actions_submerged.f_act_backward_water_kb) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example sub_fwkb_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._act_forward_water_kb
+  = Some (Gfun (Internal mario_actions_submerged.f_act_forward_water_kb)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_fwkb_vars :
+  fn_vars mario_actions_submerged.f_act_forward_water_kb = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_fwkb_pok :
+  sub_hold_pok mario_actions_submerged.f_act_forward_water_kb = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_fwkb_walk :
+  wwalk_chk false nil nil nil nil nil nil sub_kb_tids
+    (fn_body mario_actions_submerged.f_act_forward_water_kb) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ====================================================================== *)
 (* The section: the leaf-callee discharge, keyed by the census.           *)
 (* ====================================================================== *)
@@ -805,6 +855,15 @@ Section SubmergedLeafRows.
   Hypothesis Hcpx_scshf :
     call_pres_ext lp bm NoA MWF interaction._set_camera_shake_from_hit.
 
+  (* the knockback step helper: action-preserving WHEN its endAction (param
+     index 2 = the THIRD vargs element) is untainted.  Exactly call_pres_act3.
+     An honest INTERNAL residual (cwks is internal in mario_actions_submerged.
+     prog) -- dischargeable later via the #66 param-action arc (walk its body
+     threading the untainted endAction param into the action store). *)
+  Hypothesis Hcp_cwks :
+    call_pres_act3 lp bm NoA MWF
+      mario_actions_submerged._common_water_knockback_step.
+
   (* the keystone, instantiated once: set_mario_action is call_pres_act. *)
   Let Hsmact : call_pres_act lp bm NoA MWF mario._set_mario_action :=
     smact_pres lp LO_mario LO_mario_step bm NoA MWF HNoA_of_MWF
@@ -977,6 +1036,15 @@ Section SubmergedLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpa_dasma | ].
+    discriminate H.
+  Qed.
+
+  Lemma sub_kb_tids_rows : forall fid, mem_id fid sub_kb_tids = true ->
+      call_pres_act3 lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sub_kb_tids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_cwks | ].
     discriminate H.
   Qed.
 
@@ -1324,6 +1392,42 @@ Section SubmergedLeafRows.
     - exact sub_sh_walk.
   Qed.
 
+  Lemma act_backward_water_kb_pres :
+    body_pres lp NoA MWF bm
+      mario_actions_submerged.f_act_backward_water_kb.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.f_act_backward_water_kb
+             nil nil nil nil sub_kb_tids
+             sub_bwkb_vars sub_bwkb_pok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sub_kb_tids_rows.
+    - exact sub_bwkb_walk.
+  Qed.
+
+  Lemma act_forward_water_kb_pres :
+    body_pres lp NoA MWF bm
+      mario_actions_submerged.f_act_forward_water_kb.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.f_act_forward_water_kb
+             nil nil nil nil sub_kb_tids
+             sub_fwkb_vars sub_fwkb_pok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sub_kb_tids_rows.
+    - exact sub_fwkb_walk.
+  Qed.
+
   (* ================================================================== *)
   (* THE PAYOFF: the census-keyed leaf discharge.  The walked leaf is   *)
   (* discharged here; everything else falls through to the rest premise *)
@@ -1435,6 +1539,16 @@ Section SubmergedLeafRows.
     { apply Pos.eqb_eq in Ew19; subst fid.
       rewrite sub_sh_pin in Hdm. injection Hdm as <-.
       exact act_water_shocked_pres. }
+    destruct (Pos.eqb fid mario_actions_submerged._act_backward_water_kb)
+      eqn:Ew20.
+    { apply Pos.eqb_eq in Ew20; subst fid.
+      rewrite sub_bwkb_pin in Hdm. injection Hdm as <-.
+      exact act_backward_water_kb_pres. }
+    destruct (Pos.eqb fid mario_actions_submerged._act_forward_water_kb)
+      eqn:Ew21.
+    { apply Pos.eqb_eq in Ew21; subst fid.
+      rewrite sub_fwkb_pin in Hdm. injection Hdm as <-.
+      exact act_forward_water_kb_pres. }
     (* REST: fid is in the census and not a walked id, so it is in the
        filter that defines sub_rest_ids. *)
     apply (Hrest fid f); [ | exact Hdm ].
@@ -1442,7 +1556,8 @@ Section SubmergedLeafRows.
     apply mem_id_filter_true; [ exact H | ].
     unfold sub_walked_ids. cbn [mem_id existsb].
     rewrite Ew1, Ew2, Ew3, Ew4, Ew5, Ew6, Ew7, Ew8, Ew9, Ew10,
-      Ew11, Ew12, Ew13, Ew14, Ew15, Ew16, Ew17, Ew18, Ew19. reflexivity.
+      Ew11, Ew12, Ew13, Ew14, Ew15, Ew16, Ew17, Ew18, Ew19,
+      Ew20, Ew21. reflexivity.
   Qed.
 
 End SubmergedLeafRows.
