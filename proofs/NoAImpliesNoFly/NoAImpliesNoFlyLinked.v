@@ -51,7 +51,7 @@ From SM64.Proofs Require Import MWFReal RestSurface AirborneSurface
   ActWriterSurface ObjectLeafSurface FloorsLeafSurface AutomaticLeafSurface
   LocalVarsSurface OutParamSurface WindSurface InterSurface
   MarioStepSurface PerformAirStepSurface BullySurface RetSurface
-  StationaryLeafSurface MovingLeafSurface AirborneLeafSurface.
+  StationaryLeafSurface MovingLeafSurface AirborneLeafSurface MboCSurface.
 
 Section NoAImpliesNoFlyLinked.
   (* The linked program -- ABSTRACT, never computed (no OOM). *)
@@ -916,9 +916,10 @@ Section NoARealInputMWF.
      call_pres residual (the air analogue of Hcp_caas_real / Hcp_pas_real) and
      discharged later by walking its body.  Its presence DECOMPOSES
      act_getting_blown (all root-window stores otherwise) into a thin wrapper. *)
-  Hypothesis Hcp_mboc_real :
-    call_pres lp bm (NoA_real bm) MWF
-      interaction._mario_blow_off_cap.
+  (* Hcp_mboc_real (mario_blow_off_cap) is now WALKED and PROVED below
+     (Lemma Hcp_mboc_real, after Hcp_spawn_real), resting on the honest
+     spawn_object / save_file_set_cap_pos external boundaries -- see
+     MboCSurface.mboc_cp.  No longer an assumed hypothesis. *)
   (* approach_f32: the asymptotic-approach math helper.  EF_external in EVERY
      generated TU (Gfun(External ...), no internal body anywhere) -- the same
      honest terminal external-call model boundary as atan2s/sqrtf, and (unlike
@@ -1243,6 +1244,39 @@ Section NoARealInputMWF.
                 HN HM HV HS) as (HV' & HS' & HM' & _).
     exact (conj HV' (conj HS' (conj HM'
              (mwf_real_ctl lp bm bc oc0 SafeB m1 HM')))).
+  Qed.
+
+  (* save_file_set_cap_pos: an EF_external save-file boundary in EVERY
+     generated TU (scalar f32 args, void return, no Mario pointer) -- the
+     honest terminal external-call model class, like atan2s/sqrtf.  The ONLY
+     new residual introduced by discharging Hcp_mboc_real: an internal-body
+     assumption DECOMPOSED into this external boundary plus the already-
+     standing spawn_object row. *)
+  Hypothesis Hcp_savefile_real :
+    call_pres_ext lp bm (NoA_real bm) MWF interaction._save_file_set_cap_pos.
+
+  (* SLICE A22 DISCHARGED: mario_blow_off_cap WALKED (the spawn/wind arc).
+     Its body's stores all land in SafeB object-pool blocks (the capObject
+     chase) or Mario's window (m->flags, offset 4, action-disjoint); its
+     callees are the pure reader does_mario_have_normal_cap_on_head (ZERO
+     residual, pure_walk), spawn_object (Hcp_spawn_real, SafeB return), and
+     save_file_set_cap_pos (Hcp_savefile_real).  The opaque internal-body
+     residual is GONE, replaced by mboc_cp resting only on honest boundaries. *)
+  Lemma Hcp_mboc_real :
+    call_pres lp bm (NoA_real bm) MWF interaction._mario_blow_off_cap.
+  Proof.
+    exact (mboc_cp lp LO_int LO_mario bm (NoA_real bm) MWF SafeB
+             (mwf_real_ctl lp bm bc oc0 SafeB)
+             HSafeB_not_bm
+             (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             (* HMWF_flags: a Mint32 store at (bm,4) is window-disjoint *)
+             (fun mm mm' vv HM Hst =>
+                mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                  Hgms_blk Hgtimer_blk Htable_blk Hktab_blk mm mm' Mint32 4 vv
+                  HM eq_refl Hst)
+             Hcp_spawn_real
+             Hcp_savefile_real).
   Qed.
 
   (* interact_bully's action-computing leaf: bully_knock_back_mario, a
