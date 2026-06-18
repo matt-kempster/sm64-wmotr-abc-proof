@@ -821,11 +821,15 @@ Section NoARealInputMWF.
      -- act_{,soft_,hard_}{backward,forward}_ground_kb + act_ground_bonk,
      bottoming out in common_ground_knockback_action) is WALKED, so the
      residual surface is the un-walked 32. *)
-  Hypothesis Hpres_mov_rest : forall fid f,
+  (* mov_rest_ids = nil: ALL 39 moving leaves are now WALKED (act_walking, the
+     LAST, closes the family) -- so this residual is VACUOUS, no longer
+     ASSUMED but PROVED (its mem_id-true premise is unsatisfiable). *)
+  Lemma Hpres_mov_rest : forall fid f,
       mem_id fid MovingLeafSurface.mov_rest_ids = true ->
       (prog_defmap mario_actions_moving.prog) ! fid
         = Some (Gfun (Internal f)) ->
       body_pres lp (NoA_real bm) MWF bm f.
+  Proof. intros fid f H _; vm_compute in H; discriminate H. Qed.
   (* the moving family's pure audio externals (mov_ext_ids): the honest
      model boundary -- play_mario_{heavy_,}landing_sound{,_once} /
      play_sound_if_no_flag.  Discharged via the obj_ext boundary below. *)
@@ -999,6 +1003,17 @@ Section NoARealInputMWF.
       mario._find_wall_collisions.
   Hypothesis Hw1cp_v3f_real :
     call_pres_ext_w1 lp bm (NoA_real bm) MWF
+      mario_actions_automatic._vec3f_copy.
+  (* vec3f_copy(_startPos, m->pos) in act_walking: dst = arg0 = the caller's
+     _startPos stack-local array, src = arg1 = m->pos (a safe bm-window, action
+     cell @12 clear).  vec3f_copy writes ONLY through its dst (arg0); here the
+     dst is a LOCAL, not a window, so the honest gate is the UNION gate (wol:
+     every ptr arg window-or-local) -- STRICTLY MORE PERMISSIVE than the w1
+     gate Hw1cp_v3f_real above (which only covers a window dst).  Same
+     EF_external-in-every-TU terminal-external boundary as vec3f_copy / vec3f_set
+     above; one extra honest row for the local-dst call shape. *)
+  Hypothesis Hwolcp_v3f_real :
+    call_pres_ext_wol lp bm (NoA_real bm) MWF SafeB
       mario_actions_automatic._vec3f_copy.
   (* vec3f_set(m->vel, 0, 0, 0) -- act_in_cannon's one special store site:
      writes ONLY through its dst = &m->vel, a 12-byte safe bm-window
@@ -1842,6 +1857,17 @@ Section NoARealInputMWF.
                       (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
                       (fun m l m' Hf HM =>
                          mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
+                      (* act_walking (THE LAST moving leaf): the local-vars +
+                         out-param kit -- HSafeValid / HGlobValid / Hls_real /
+                         find_floor (oc) / find_wall_collisions (ol) -- all
+                         shared with the automatic family (NO new trust), plus
+                         the ONE new honest vec3f_copy wol row (local dst). *)
+                      (mwf_real_safe_valid lp bm bc oc0 SafeB)
+                      Hglob_valid
+                      aut_local_store
+                      Hocp_find_floor
+                      Holcp_fwc_real
+                      Hwolcp_v3f_real
                       Hpres_mov_rest)
                    Hpres_qsand)
                 (airborne_pres lp LO_mario LO_air bm (NoA_real bm)
