@@ -148,6 +148,7 @@ proofs/MarioModel/StationaryLeafSurface.v
 #     cluster via common_ground_knockback_action) ---
 proofs/MarioModel/LandingBricks.v
 proofs/MarioModel/MovingLeafSurface.v
+proofs/MarioModel/AirborneLeafSurface.v
 
 # --- UNWIRED scaffolding: landing-keystone bricks (not yet load-bearing) ---
 

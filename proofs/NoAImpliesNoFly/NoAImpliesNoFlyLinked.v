@@ -51,7 +51,7 @@ From SM64.Proofs Require Import MWFReal RestSurface AirborneSurface
   ActWriterSurface ObjectLeafSurface FloorsLeafSurface AutomaticLeafSurface
   LocalVarsSurface OutParamSurface WindSurface InterSurface
   MarioStepSurface BullySurface RetSurface StationaryLeafSurface
-  MovingLeafSurface.
+  MovingLeafSurface AirborneLeafSurface.
 
 Section NoAImpliesNoFlyLinked.
   (* The linked program -- ABSTRACT, never computed (no OOM). *)
@@ -840,9 +840,12 @@ Section NoARealInputMWF.
      its whole-628-line-body residual is PROVED from per-leaf-callee
      residuals keyed by the 43-id census airborne_callee_ids (41 non-T
      act handlers + the 2 prologue helpers; the 3 T handlers are dead
-     code under the dispatch kill). Discharge proceeds id by id. *)
-  Hypothesis Hpres_air_callees : forall fid f,
-      mem_id fid airborne_callee_ids = true ->
+     code under the dispatch kill).  AirborneLeafSurface SHRINKS the
+     43-id census to the un-walked airborne_rest_ids: SLICE A1 walks
+     the two prologue helpers (check_common_airborne_cancels +
+     play_far_fall_sound).  Discharge proceeds id by id. *)
+  Hypothesis Hpres_air_rest : forall fid f,
+      mem_id fid AirborneLeafSurface.airborne_rest_ids = true ->
       (prog_defmap mario_actions_airborne.prog) ! fid
         = Some (Gfun (Internal f)) ->
       body_pres lp (NoA_real bm) MWF bm f.
@@ -1873,7 +1876,32 @@ Section NoARealInputMWF.
                 (airborne_pres lp LO_mario LO_air bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
                    (mwf_real_ctl lp bm bc oc0 SafeB)
-                   Hpres_air_callees)
+                   (* the 43-id airborne residual is SHRUNK to the un-walked
+                      airborne_rest_ids: SLICE A1 walks the two prologue
+                      helpers (check_common_airborne_cancels + play_far_fall_
+                      sound) via the SAME shared rows the moving family uses
+                      (swpa / dasma / play_sound) -- NO new trust. *)
+                   (airborne_leaf_callees_pres lp LO_mario LO_stp LO_int bm
+                      (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
+                      (mwf_real_ctl lp bm bc oc0 SafeB)
+                      (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                         Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+                      (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      SafeB HSafeB_not_bm
+                      (mwf_real_chase_root lp bm bc oc0 SafeB)
+                      (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (mwf_real_sglob lp bm bc oc0 SafeB)
+                      (mwf_real_chase_step lp bm bc oc0 SafeB)
+                      (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (Hpres_obj_ext mario._play_sound eq_refl)
+                      Hpres_obj_ext
+                      Hpres_air_rest))
                 (submerged_pres lp LO_mario LO_sub bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB) SafeB
                    (mwf_real_ctl lp bm bc oc0 SafeB)
