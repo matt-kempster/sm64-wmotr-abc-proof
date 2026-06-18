@@ -990,6 +990,18 @@ Section NoARealInputMWF.
   Hypothesis Hcp_umwws_real :
     call_pres lp bm (NoA_real bm) MWF
       mario_actions_submerged._update_metal_water_walking_speed.
+  (* SLICE 6 (the water-IDLE cluster: water_idle/hold + water_action_end/hold):
+     common_idle_step is the shared swim-idle step.  Writes m->faceAngle
+     (window) + chases m->marioBodyState->headAngle (a SafeB chase-root block) +
+     calls update_swimming_yaw/pitch/speed, perform_water_step, update_water_
+     pitch, set_mario_animation/set_mario_anim_with_accel.  NEVER the action
+     cell (the act handlers dispatch set_mario_action themselves), so a genuine
+     call_pres for any caller.  Honest residual (body walk = chase machinery +
+     perform_water_step, a later unit).  The four idle leaves reduce to it + the
+     already-walked is_anim_at_end + the set_mario_action/dasma sids. *)
+  Hypothesis Hcp_cis_real :
+    call_pres lp bm (NoA_real bm) MWF
+      mario_actions_submerged._common_idle_step.
   (* the cutscene dispatcher is WALKED (CutsceneSurface.cutscene_pres
      over the generic DispatchKit): its whole-body residual is PROVED
      from per-leaf-callee residuals keyed by the 51-id census
@@ -2435,6 +2447,9 @@ Section NoARealInputMWF.
                       Hcp_smawa_real
                       Hcp_pmwws_real
                       Hcp_umwws_real
+                      (* SLICE 6 (water-IDLE cluster): common_idle_step honest
+                         residual; the 4 idle leaves reduce to it + sids. *)
+                      Hcp_cis_real
                       Hpres_sub_rest))
                 (cutscene_pres lp LO_mario LO_cut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
