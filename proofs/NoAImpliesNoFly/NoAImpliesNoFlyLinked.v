@@ -846,12 +846,10 @@ Section NoARealInputMWF.
      play_far_fall_sound); SLICE A2 walks the three clean common_air_
      action_step wrappers (act_freefall / act_hold_freefall /
      act_wall_kick_air) under the Hcp_caas_real residual below.
-     Discharge proceeds id by id. *)
-  Hypothesis Hpres_air_rest : forall fid f,
-      mem_id fid AirborneLeafSurface.airborne_rest_ids = true ->
-      (prog_defmap mario_actions_airborne.prog) ! fid
-        = Some (Gfun (Internal f)) ->
-      body_pres lp (NoA_real bm) MWF bm f.
+     Discharge proceeds id by id.  SLICE A29 (act_riding_hoot, the LAST
+     leaf) emptied airborne_rest_ids -> the Hpres_air_rest residual is
+     GONE (discharged inline at the airborne_leaf_callees_pres call site
+     by a vacuous-membership refutation). *)
   (* common_air_action_step: the BIG shared air-physics helper (the air
      analogue of perform_ground_step's Hcp_pgs) -- an INTERNAL
      mario_actions_airborne.prog function, carried as a call_pres_ACT residual
@@ -1104,6 +1102,15 @@ Section NoARealInputMWF.
      external-call-model boundary as vec3f_copy above, same w1 gate. *)
   Hypothesis Hw1cp_v3fset_real :
     call_pres_ext_w1 lp bm (NoA_real bm) MWF
+      mario_actions_automatic._vec3f_set.
+  (* SLICE A29: vec3f_set called with dst = marioObj->header.gfx.pos -- a SafeB
+     object-pool CHASE dst -- in act_riding_hoot.  vec3f_set is EF_external in
+     EVERY generated TU; the SAME honest terminal external-call-model boundary
+     as Hscp_v3f (vec3f_copy) / Hscp_v3s (vec3s_set), gated on its pointer arg
+     landing in the SafeB chase pool (the sc class).  Distinct from
+     Hw1cp_v3fset_real above (the w1/window class for the m->vel dst). *)
+  Hypothesis Hscp_v3fset_real :
+    call_pres_ext_sc lp bm (NoA_real bm) MWF SafeB
       mario_actions_automatic._vec3f_set.
   (* act_tornado_twirling is now WALKED (AutomaticLeafSurface's hybrid twl
      walker: the generic wwalk census + bespoke discharges for its two
@@ -2259,7 +2266,24 @@ Section NoARealInputMWF.
                          carried as an internal call_pres residual (spawn arc
                          pending), the air analogue of Hcp_caas_real. *)
                       Hcp_mboc_real
-                      Hpres_air_rest))
+                      (* SLICE A29: act_riding_hoot WALKED (the LAST
+                         airborne_rest leaf) via a bespoke hybrid walker (the
+                         act_in_cannon precedent MINUS the A-gate).  Its
+                         externals: vec3s_set/vec3f_set object writers whose
+                         dst chases marioObj into the SafeB pool (sc:
+                         Hscp_v3s / NEW Hscp_v3fset_real), the
+                         vec3f_set(m->vel,0,0,0) Mario-window writer (w1:
+                         Hw1cp_v3fset_real), and the entry/exit stack-frame
+                         MWF rows (fn_vars=nil: mwf_real_alloc/free, PROVED
+                         terms, no new trust).  airborne_rest_ids is now nil
+                         => Hpres_air_rest DISCHARGED (vacuous rest). *)
+                      Hscp_v3s
+                      Hscp_v3fset_real
+                      Hw1cp_v3fset_real
+                      (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
+                      (fun m l m' Hf HM =>
+                         mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
+                      ltac:(intros fid f H _; vm_compute in H; discriminate H)))
                 (submerged_pres lp LO_mario LO_sub bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB) SafeB
                    (mwf_real_ctl lp bm bc oc0 SafeB)
