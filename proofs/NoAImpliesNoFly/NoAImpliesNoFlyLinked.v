@@ -1947,6 +1947,23 @@ Section NoARealInputMWF.
                       (Hpres_obj_ext mario._set_camera_mode eq_refl)
                       Hcp_pas_real
                       Hcpx_approach_real
+                      (* SLICE A21: act_lava_boost's low-health
+                         level_trigger_warp -- the SHARED warp-trigger body
+                         the floors/warp surfaces already walk (warp_pres
+                         lifted via call_pres_of_body).  NO new trust. *)
+                      (call_pres_of_body lp bm (NoA_real bm)
+                         (MWF_real lp bm bc oc0 SafeB)
+                         (mwf_real_ctl lp bm bc oc0 SafeB)
+                         level_update.prog level_update._level_trigger_warp
+                         level_update.f_level_trigger_warp LO_lvl
+                         floors_warp_internal
+                         (warp_pres lp LO_mario LO_lvl bm (NoA_real bm)
+                            (MWF_real lp bm bc oc0 SafeB)
+                            (mwf_real_ctl lp bm bc oc0 SafeB)
+                            (mwf_real_window lp bm bc oc0 SafeB Hbc_bm
+                               HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                            (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+                            Hpres_warp_ext))
                       Hpres_air_rest))
                 (submerged_pres lp LO_mario LO_sub bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB) SafeB
