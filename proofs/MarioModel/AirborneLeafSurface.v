@@ -551,6 +551,57 @@ Example air_fro_walk :
 Proof. vm_compute. reflexivity. Qed.
 
 (* ====================================================================== *)
+(* SLICE A7: act_butt_slide_air + act_air_hit_wall (reuse the A6 cluster). *)
+(* ====================================================================== *)
+(* update_air_with_turn is the turning twin of update_air_without_turn --  *)
+(* SAME callee census (air_uawt_ids / air_uawt_xids).                      *)
+Definition air_bsa_ids : list ident :=
+  A._update_air_with_turn :: A._perform_air_step :: A._lava_boost_on_wall
+    :: A._play_mario_landing_sound :: A._set_mario_animation :: nil.
+Definition air_ahw_ids : list ident :=
+  A._mario_drop_held_object :: A._mario_set_forward_vel
+    :: A._set_mario_animation :: nil.
+
+Example air_uawith_pin :
+  (prog_defmap mario_actions_airborne.prog) ! A._update_air_with_turn
+  = Some (Gfun (Internal A.f_update_air_with_turn)).
+Proof. vm_compute. reflexivity. Qed.
+Example air_uawith_vars : fn_vars A.f_update_air_with_turn = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example air_uawith_pok : air_pok A.f_update_air_with_turn = true.
+Proof. vm_compute. reflexivity. Qed.
+Example air_uawith_walk :
+  wwalk_chk false nil air_uawt_ids nil nil air_uawt_xids nil nil
+    (fn_body A.f_update_air_with_turn) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example air_bsa_pin :
+  (prog_defmap mario_actions_airborne.prog) ! A._act_butt_slide_air
+  = Some (Gfun (Internal A.f_act_butt_slide_air)).
+Proof. vm_compute. reflexivity. Qed.
+Example air_bsa_vars : fn_vars A.f_act_butt_slide_air = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example air_bsa_pok : air_pok A.f_act_butt_slide_air = true.
+Proof. vm_compute. reflexivity. Qed.
+Example air_bsa_walk :
+  wwalk_chk false nil air_bsa_ids nil nil nil air_sids nil
+    (fn_body A.f_act_butt_slide_air) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example air_ahw_pin :
+  (prog_defmap mario_actions_airborne.prog) ! A._act_air_hit_wall
+  = Some (Gfun (Internal A.f_act_air_hit_wall)).
+Proof. vm_compute. reflexivity. Qed.
+Example air_ahw_vars : fn_vars A.f_act_air_hit_wall = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example air_ahw_pok : air_pok A.f_act_air_hit_wall = true.
+Proof. vm_compute. reflexivity. Qed.
+Example air_ahw_walk :
+  wwalk_chk false nil air_ahw_ids nil nil nil air_sids nil
+    (fn_body A.f_act_air_hit_wall) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ====================================================================== *)
 (* The walked / rest split of airborne_callee_ids.                        *)
 (* ====================================================================== *)
 Definition airborne_walked_ids : list ident :=
@@ -570,7 +621,9 @@ Definition airborne_walked_ids : list ident :=
   A._act_forward_air_kb ::
   A._act_soft_bonk ::
   A._act_backward_rollout ::
-  A._act_forward_rollout :: nil.
+  A._act_forward_rollout ::
+  A._act_butt_slide_air ::
+  A._act_air_hit_wall :: nil.
 
 Definition airborne_rest_ids : list ident :=
   A._act_jump ::
@@ -585,11 +638,9 @@ Definition airborne_rest_ids : list ident :=
   A._act_riding_shell_air ::
   A._act_dive ::
   A._act_air_throw ::
-  A._act_butt_slide_air ::
   A._act_hold_butt_slide_air ::
   A._act_lava_boost ::
   A._act_getting_blown ::
-  A._act_air_hit_wall ::
   A._act_crazy_box_bounce ::
   A._act_special_triple_jump ::
   A._act_ground_pound ::
@@ -1548,6 +1599,96 @@ Section AirborneLeafRows.
   Qed.
 
   (* ==================================================================== *)
+  (* SLICE A7: update_air_with_turn + mdho rows; butt_slide_air / hit_wall *)
+  (* ==================================================================== *)
+
+  (* update_air_with_turn: turning twin of uawt -- SAME callee rows. *)
+  Lemma air_uawith_row : call_pres lp bm NoA MWF A._update_air_with_turn.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_airborne.prog A._update_air_with_turn
+             A.f_update_air_with_turn
+             air_uawt_ids nil air_uawt_xids nil
+             LO_air air_uawith_pin air_uawith_vars air_uawith_pok).
+    - exact air_uawt_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact air_uawt_xids_rows.
+    - intros fid' H. discriminate H.
+    - exact air_uawith_walk.
+  Qed.
+
+  (* mario_drop_held_object -- REUSED from ObjectLeafSurface.mdho_row. *)
+  Let Hmdho : call_pres lp bm NoA MWF interaction._mario_drop_held_object :=
+    ObjectLeafSurface.mdho_row lp LO_mario LO_int bm NoA MWF HNoA_of_MWF
+      HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+      HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+      (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
+      (Hpres_obj_ext interaction._stop_shell_music eq_refl)
+      (Hpres_obj_ext interaction._obj_set_held_state eq_refl).
+
+  (* ---- act_butt_slide_air ---- *)
+  Lemma air_bsa_ids_rows : forall fid, mem_id fid air_bsa_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold air_bsa_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_uawith_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pas | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_lbow_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_pmls_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_sma_row | ].
+    discriminate H.
+  Qed.
+  Lemma air_bsa_pres : body_pres lp NoA MWF bm A.f_act_butt_slide_air.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             A.f_act_butt_slide_air
+             air_bsa_ids nil nil air_sids nil air_bsa_vars air_bsa_pok).
+    - exact air_bsa_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact air_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact air_bsa_walk.
+  Qed.
+
+  (* ---- act_air_hit_wall ---- *)
+  Lemma air_ahw_ids_rows : forall fid, mem_id fid air_ahw_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold air_ahw_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hmdho | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hmsfv | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_sma_row | ].
+    discriminate H.
+  Qed.
+  Lemma air_ahw_pres : body_pres lp NoA MWF bm A.f_act_air_hit_wall.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             A.f_act_air_hit_wall
+             air_ahw_ids nil nil air_sids nil air_ahw_vars air_ahw_pok).
+    - exact air_ahw_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact air_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact air_ahw_walk.
+  Qed.
+
+  (* ==================================================================== *)
   (* THE REST-SPLIT: the capstone's Hpres_air_callees from the walked     *)
   (* leaves + the shrinking airborne_rest_ids residual.                   *)
   (* ==================================================================== *)
@@ -1605,7 +1746,11 @@ Section AirborneLeafRows.
                 | (rewrite air_bro_pin in Hdm; injection Hdm as <-;
                    exact air_bro_pres)
                 | (rewrite air_fro_pin in Hdm; injection Hdm as <-;
-                   exact air_fro_pres) ] | ]).
+                   exact air_fro_pres)
+                | (rewrite air_bsa_pin in Hdm; injection Hdm as <-;
+                   exact air_bsa_pres)
+                | (rewrite air_ahw_pin in Hdm; injection Hdm as <-;
+                   exact air_ahw_pres) ] | ]).
     discriminate H.
   Qed.
 
