@@ -1002,6 +1002,21 @@ Section NoARealInputMWF.
   Hypothesis Hcp_cis_real :
     call_pres lp bm (NoA_real bm) MWF
       mario_actions_submerged._common_idle_step.
+  (* SLICE 7 (the metal-water FALLING pair): the two step helpers, each a
+     genuine call_pres for any caller (neither touches the action cell).
+     - stationary_slow_down writes m->angleVel/forwardVel/vel/faceAngle
+       (window) from approach_f32/approach_s32 + the gSineTable trig;
+     - perform_water_step writes m->vel (window) + chases marioObj's SafeB
+       gfx pos/angle pool via vec3f_copy/vec3s_set.
+     The faceAngle nudge reads gSineTable (a global LOAD, no store), so the
+     pair needs NO external/global row -- set_mario_animation is the already-
+     walked sub_sma_row, the action select is the set_mario_action/dasma sids. *)
+  Hypothesis Hcp_ssd_real :
+    call_pres lp bm (NoA_real bm) MWF
+      mario_actions_submerged._stationary_slow_down.
+  Hypothesis Hcp_pws_real :
+    call_pres lp bm (NoA_real bm) MWF
+      mario_actions_submerged._perform_water_step.
   (* the cutscene dispatcher is WALKED (CutsceneSurface.cutscene_pres
      over the generic DispatchKit): its whole-body residual is PROVED
      from per-leaf-callee residuals keyed by the 51-id census
@@ -2450,6 +2465,10 @@ Section NoARealInputMWF.
                       (* SLICE 6 (water-IDLE cluster): common_idle_step honest
                          residual; the 4 idle leaves reduce to it + sids. *)
                       Hcp_cis_real
+                      (* SLICE 7 (metal-water FALLING pair): stationary_slow_
+                         down + perform_water_step honest residuals. *)
+                      Hcp_ssd_real
+                      Hcp_pws_real
                       Hpres_sub_rest))
                 (cutscene_pres lp LO_mario LO_cut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
