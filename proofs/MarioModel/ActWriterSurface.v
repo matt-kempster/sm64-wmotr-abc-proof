@@ -915,8 +915,14 @@ Definition wchase_rhs_ok (wact : list ident) (ty : type) (a2 : expr)
                       see sem_cast_float_i32_nonptr).  interact_pole's
                       `oMarioPoleYawVel = (s32)(m->forwardVel*256+4096)`. *)
                    | Ecast b cty =>
-                       i32_ty cty
-                       && (float_ty (typeof b) || nonptr_binop_head b)
+                       (i32_ty cty
+                        && (float_ty (typeof b) || nonptr_binop_head b))
+                       (* a SUB-INT target cast (s16/s8/bool): classify_cast is
+                          i2i/f2i/.. -> always Vint, NEVER the ptr32
+                          cast_case_pointer passthrough (which needs an i32
+                          TARGET).  anim_and_audio_for_walk's
+                          `marioObj->oMarioWalkingPitch = (s16)approach_s32(..)`. *)
+                       || subint_ty cty
                    | _ => false
                    end).
 
@@ -2436,6 +2442,23 @@ Section ActWriterWalk.
              a cast of a non-pointer to i32 stays non-pointer -- the
              `o->flags &= ~BIT` masked-store idiom).  Either way the inner cast
              value is non-ptr; the outer assign cast preserves non-ptr. *)
+          apply orb_true_iff in Ha2 as [Ha2 | Hsub].
+          2:{ (* a SUB-INT target cast: inner cast yields Vint (never Vptr),
+                 the outer assign cast preserves non-ptr. *)
+            match goal with
+            | Hev2 : eval_expr _ _ _ _ (Ecast _ _) _ |- _ =>
+                inv Hev2;
+                try (match goal with
+                     | Hlv : eval_lvalue _ _ _ _ (Ecast _ _) _ _ _ |- _ =>
+                         inv Hlv
+                     end)
+            end.
+            match goal with
+            | Hcast0 : sem_cast ?vv _ _ _ = Some _,
+              Hcin : sem_cast _ _ _ _ = Some ?vv |- _ =>
+                exact (sem_cast_nonptr_pres _ _ _ _ _ Hcast0
+                         (sem_cast_subint_nonptr _ _ _ _ _ Hsub Hcin))
+            end. }
           apply andb_prop in Ha2 as [Hi32c Hor].
           apply orb_true_iff in Hor as [Hfl | Hbin].
           * match goal with
