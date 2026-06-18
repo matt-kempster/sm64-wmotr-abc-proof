@@ -1017,6 +1017,16 @@ Section NoARealInputMWF.
   Hypothesis Hcp_pws_real :
     call_pres lp bm (NoA_real bm) MWF
       mario_actions_submerged._perform_water_step.
+  (* SLICE 9 (act_drowning): play_sound_if_no_flag is the flag-gated sound
+     helper (m->flags window + a sound, never the action cell) -- the SAME
+     genuine-call_pres class the airborne/stationary surfaces' Hpsinf uses.
+     Honest residual (body walk = play_sound obj_ext + the flag store).  The
+     drowning leaf reuses the slice-7 step residuals + sub_sma_row/sub_iae_row
+     + the SHARED level_trigger_warp, plus a 3-temp cact (marioBodyState
+     eyeState writes + marioObj animFrame read). *)
+  Hypothesis Hcp_psinf_real :
+    call_pres lp bm (NoA_real bm) MWF
+      mario_actions_submerged._play_sound_if_no_flag.
   (* the cutscene dispatcher is WALKED (CutsceneSurface.cutscene_pres
      over the generic DispatchKit): its whole-body residual is PROVED
      from per-leaf-callee residuals keyed by the 51-id census
@@ -2488,6 +2498,9 @@ Section NoARealInputMWF.
                                HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                             (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
                             Hpres_warp_ext))
+                      (* SLICE 9 (act_drowning): play_sound_if_no_flag honest
+                         residual; the leaf reuses everything else. *)
+                      Hcp_psinf_real
                       Hpres_sub_rest))
                 (cutscene_pres lp LO_mario LO_cut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
