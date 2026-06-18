@@ -971,6 +971,25 @@ Section NoARealInputMWF.
   Hypothesis Hcp_umwjs_real :
     call_pres lp bm (NoA_real bm) MWF
       mario_actions_submerged._update_metal_water_jump_speed.
+  (* SLICE 5 (the metal-water WALKING pair): the three walking-specific helpers,
+     each a genuine call_pres for any caller (none touches the action cell).
+     perform_ground_step is NOT here -- it is the already-PROVED Hcp_pgs Lemma
+     (MarioStepSurface walk), fed through with NO new trust.
+     - set_mario_anim_with_accel writes the anim window + chases marioObj's
+       SafeB gfx anim pool (body already walked in AutomaticLeafSurface via the
+       np3 channel; promotable to a standalone call_pres Lemma later);
+     - play_metal_water_walking_sound writes particleFlags (window) + plays a
+       footstep sound (body walk = is_anim_past_frame + play_sound obj_ext);
+     - update_metal_water_walking_speed writes forwardVel/faceAngle/slideVel/vel
+       (window) from intendedMag/intendedYaw + reads m->floor->normal.y. *)
+  Hypothesis Hcp_smawa_real :
+    call_pres lp bm (NoA_real bm) MWF mario._set_mario_anim_with_accel.
+  Hypothesis Hcp_pmwws_real :
+    call_pres lp bm (NoA_real bm) MWF
+      mario_actions_submerged._play_metal_water_walking_sound.
+  Hypothesis Hcp_umwws_real :
+    call_pres lp bm (NoA_real bm) MWF
+      mario_actions_submerged._update_metal_water_walking_speed.
   (* the cutscene dispatcher is WALKED (CutsceneSurface.cutscene_pres
      over the generic DispatchKit): its whole-body residual is PROVED
      from per-leaf-callee residuals keyed by the 51-id census
@@ -2409,6 +2428,13 @@ Section NoARealInputMWF.
                          (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
                          (Hpres_obj_ext interaction._stop_shell_music eq_refl)
                          (Hpres_obj_ext interaction._obj_set_held_state eq_refl))
+                      (* SLICE 5 (metal-water WALKING pair): perform_ground_step
+                         is the already-PROVED Hcp_pgs Lemma (NO new trust); the
+                         three walking helpers are honest call_pres residuals. *)
+                      Hcp_pgs
+                      Hcp_smawa_real
+                      Hcp_pmwws_real
+                      Hcp_umwws_real
                       Hpres_sub_rest))
                 (cutscene_pres lp LO_mario LO_cut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
