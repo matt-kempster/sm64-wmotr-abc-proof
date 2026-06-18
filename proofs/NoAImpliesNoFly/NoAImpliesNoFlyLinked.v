@@ -881,7 +881,19 @@ Section NoARealInputMWF.
          class (last_arg_local) does NOT fit -- the honest gate is the paqs
          class (arg0 marg AND arg1 local: call_pres_paqs).  A marg-only
          call_pres would be phantom-FALSE (an unconstrained intendedPos could
-         alias bm's action cell).  Deeper INTERNAL (mario_step.prog) row.
+         alias bm's action cell).  Now WALKED, not assumed: the whole
+         perform_air_quarter_step body is proved to preserve the carried run
+         facts (PerformAirStepSurface.paqs_cp, a loop-tolerant fn_var walk --
+         _nextPos is paqs's OWN stack array; the Lemma Hcp_paqs_real below
+         instantiates it at MWF_real).  Its gWaterSurfacePseudoFloor store
+         rides the stored_globals census (mwf_real_glob); resolve / find_floor
+         / vec3f_find_ceil / find_water_level / vec3f_copy(window) / atan2s
+         ride the SAME gated-external rows the pgqs walk consumes; the entry
+         vec3f_copy(nextPos, intendedPos) (both LOCAL) rides the ol gate
+         DERIVED from Hwolcp_v3f_real (call_pres_ext_ol_of_wol).  Its one
+         genuinely NEW residual is the deeper INTERNAL (mario_step.prog) helper
+         check_ledge_grab (Hcp_clg_real below): a fn_var-walking bool-returning
+         predicate, dischargeable later by the same machinery.
        - apply_gravity(m): marg INTERNAL -- now WALKED zero-residual (Lemma
          Hcp_ag below), together with its two clean callees apply_twirl_gravity
          (Hcp_atg) + should_strengthen_gravity_for_jump_ascent (Hcp_ssg); its
@@ -893,9 +905,17 @@ Section NoARealInputMWF.
          (Hcp_mgtsa_real, shared with pgs).
        - vec3f_copy / vec3s_set: the ungated obj_ext externals (Hpres_obj_ext).
      decompose, not collapse. *)
-  Hypothesis Hcp_paqs_real :
-    PerformAirStepSurface.call_pres_paqs lp bm (NoA_real bm) MWF SafeB
-      mario_step._perform_air_quarter_step.
+  (* check_ledge_grab(m, lowerWall, intendedPos, nextPos): paqs's one deeper
+     INTERNAL (mario_step.prog) callee.  A bool-returning ledge-grab predicate
+     with its OWN fn_vars (_ledgePos stack array + _ledgeFloor) -- it reads
+     m->vel / nextPos / intendedPos, calls find_floor/vec3f_copy with out-ptrs
+     into its locals, and on success writes m->pos / m->faceAngle (root-window
+     stores, action cell @12 clear).  Carried here as a call_pres residual,
+     dischargeable later by the SAME fn_var walk (paqs_walk_pres machinery).
+     Its presence DECOMPOSES paqs (now WALKED) into this one honest deeper
+     internal row -- decompose, not collapse. *)
+  Hypothesis Hcp_clg_real :
+    call_pres lp bm (NoA_real bm) MWF mario_step._check_ledge_grab.
   (* mario_blow_off_cap: act_getting_blown's cap-blow-off helper (INTERNAL
      interaction.prog).  It spawns a cap Object and stores through that fresh
      non-Mario block; that spawn-into-cact chase pattern needs the spawn/wind
@@ -1861,6 +1881,60 @@ Section NoARealInputMWF.
     - intros fid' Hfid'; discriminate Hfid'.
     - intros fid' Hfid'; discriminate Hfid'.
     - exact ag_walk.
+  Qed.
+
+  (* perform_air_quarter_step, WALKED (PerformAirStepSurface.paqs_cp): the
+     paqs-gated worker behind pas (arg0 marg AND arg1 = intendedPos local --
+     the air twin of pgqs's mo gate, but intendedPos is a MIDDLE param so the
+     gate carries BOTH).  _nextPos is paqs's OWN stack array (fn_var), so the
+     out-param locality comes from alloc_variables (not a pointer param).  Its
+     gWaterSurfacePseudoFloor originOffset store rides the stored_globals
+     census row (mwf_real_glob); resolve_and_return_wall_collisions is the
+     WALKED AutomaticLeafSurface body (ident-coincident across TUs), leaving
+     its sole terminal external find_wall_collisions (Holcp_fwc_real);
+     find_floor / vec3f_find_ceil ride the oc rows, the window vec3f_copy /
+     atan2s ride the w1 / obj_ext rows, find_water_level the Hxcp_fwl_real
+     row -- ALL shared with the pgqs walk.  The entry vec3f_copy(nextPos,
+     intendedPos) (both LOCAL) rides the ol gate DERIVED from the union row
+     Hwolcp_v3f_real (call_pres_ext_ol_of_wol).  Its one genuinely NEW residual
+     is the deeper INTERNAL check_ledge_grab (Hcp_clg_real). *)
+  Lemma Hcp_paqs_real :
+    PerformAirStepSurface.call_pres_paqs lp bm (NoA_real bm) MWF SafeB
+      mario_step._perform_air_quarter_step.
+  Proof.
+    exact (PerformAirStepSurface.paqs_cp lp LO_mario LO_stp bm (NoA_real bm)
+             (MWF_real lp bm bc oc0 SafeB) SafeB
+             (mwf_real_ctl lp bm bc oc0 SafeB)
+             (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
+             (fun m l m' Hf HM =>
+                mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
+             (mwf_real_safe_valid lp bm bc oc0 SafeB)
+             Hglob_valid
+             aut_local_store
+             (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk
+                mario_step._gWaterSurfacePseudoFloor eq_refl)
+             (AutomaticLeafSurface.Hocp_resolve lp LO_mario bm (NoA_real bm)
+                (MWF_real lp bm bc oc0 SafeB)
+                (mwf_real_ctl lp bm bc oc0 SafeB)
+                SafeB
+                (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
+                (fun m l m' Hf HM =>
+                   mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
+                (mwf_real_safe_valid lp bm bc oc0 SafeB)
+                Hglob_valid
+                aut_local_store
+                Holcp_fwc_real)
+             Hocp_find_floor
+             Hocp_find_ceil
+             Hxcp_fwl_real
+             (call_pres_ext_ol_of_wol lp bm (NoA_real bm)
+                (MWF_real lp bm bc oc0 SafeB) SafeB
+                mario_actions_automatic._vec3f_copy Hwolcp_v3f_real)
+             Hw1cp_v3f_real
+             (Hpres_obj_ext mario_step._atan2s eq_refl)
+             Hcp_clg_real).
   Qed.
 
   (* perform_air_step, WALKED (PerformAirStepSurface.pas_cp): the air twin of
