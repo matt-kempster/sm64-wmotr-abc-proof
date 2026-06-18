@@ -862,6 +862,14 @@ Section NoARealInputMWF.
   Hypothesis Hcp_caas_real :
     call_pres lp bm (NoA_real bm) MWF
       mario_actions_airborne._common_air_action_step.
+  (* common_air_knockback_step: the 2nd shared air-physics helper (the
+     knockback analogue of common_air_action_step) -- also an INTERNAL
+     mario_actions_airborne.prog function carried as a call_pres residual,
+     discharged later by walking its body.  DECOMPOSES the knockback act
+     handlers (hard kb leaves walked in SLICE A5a) into thin wrappers. *)
+  Hypothesis Hcp_cakbs_real :
+    call_pres lp bm (NoA_real bm) MWF
+      mario_actions_airborne._common_air_knockback_step.
   (* the submerged dispatcher is WALKED (SubmergedSurface.submerged_pres
      over the generic DispatchKit; the quicksandDepth store is killed by
      the window census, and the two headAngle chase-pair stores -- the
@@ -1915,6 +1923,7 @@ Section NoARealInputMWF.
                       (Hpres_obj_ext mario._play_sound eq_refl)
                       Hpres_obj_ext
                       Hcp_caas_real
+                      Hcp_cakbs_real
                       Hpres_air_rest))
                 (submerged_pres lp LO_mario LO_sub bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB) SafeB
