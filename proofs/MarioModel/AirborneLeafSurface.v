@@ -966,6 +966,54 @@ Example air_djmp_walk :
 Proof. vm_compute. reflexivity. Qed.
 
 (* ====================================================================== *)
+(* SLICE A15: update_lava_boost_or_twirling row + act_twirling.            *)
+(* ====================================================================== *)
+(* update_lava_boost_or_twirling: pure window writer (forwardVel/faceAngle  *)
+(* [1]/vel[0]/vel[2]/slideVelX/slideVelZ); coss/sins are inlined gSineTable *)
+(* global reads, NOT calls -> EMPTY census.  act_twirling: chase store      *)
+(* m->marioObj->gfx.angle[1] += m->twirlYaw (cact = marioObj ptr temps) +   *)
+(* approach_s32 ext (reuse capstone Hcpx_approach_real, same $"approach_s32" *)
+(* positive as the automatic family) + play_sound ext.                      *)
+Definition air_twl_ids : list ident :=
+  mario._set_mario_animation :: mario._is_anim_past_end
+    :: A._update_lava_boost_or_twirling :: A._perform_air_step
+    :: A._mario_bonk_reflection :: A._lava_boost_on_wall :: nil.
+Definition air_twl_xids : list ident :=
+  A._approach_s32 :: mario._play_sound :: nil.
+Definition air_twl_cact : list ident :=
+  A._t'5 :: A._t'6 :: A._t'10 :: nil.
+
+Example air_ulbot_pin :
+  (prog_defmap mario_actions_airborne.prog) ! A._update_lava_boost_or_twirling
+  = Some (Gfun (Internal A.f_update_lava_boost_or_twirling)).
+Proof. vm_compute. reflexivity. Qed.
+Example air_ulbot_vars : fn_vars A.f_update_lava_boost_or_twirling = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example air_ulbot_pok : air_pok A.f_update_lava_boost_or_twirling = true.
+Proof. vm_compute. reflexivity. Qed.
+Example air_ulbot_walk :
+  wwalk_chk false nil nil nil nil nil nil nil
+    (fn_body A.f_update_lava_boost_or_twirling) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example air_twl_pin :
+  (prog_defmap mario_actions_airborne.prog) ! A._act_twirling
+  = Some (Gfun (Internal A.f_act_twirling)).
+Proof. vm_compute. reflexivity. Qed.
+Example air_twl_vars : fn_vars A.f_act_twirling = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example air_twl_pok : air_pok A.f_act_twirling = true.
+Proof. vm_compute. reflexivity. Qed.
+Example air_twl_nonparam :
+  forallb (fun t' => negb (mem_id t' (map fst (fn_params A.f_act_twirling))))
+    air_twl_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example air_twl_walk :
+  wwalk_chk false nil air_twl_ids nil air_twl_cact air_twl_xids air_sids nil
+    (fn_body A.f_act_twirling) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ====================================================================== *)
 (* The walked / rest split of airborne_callee_ids.                        *)
 (* ====================================================================== *)
 Definition airborne_walked_ids : list ident :=
@@ -1001,10 +1049,10 @@ Definition airborne_walked_ids : list ident :=
   A._act_slide_kick ::
   A._act_crazy_box_bounce ::
   A._act_jump ::
-  A._act_double_jump :: nil.
+  A._act_double_jump ::
+  A._act_twirling :: nil.
 
 Definition airborne_rest_ids : list ident :=
-  A._act_twirling ::
   A._act_steep_jump ::
   A._act_dive ::
   A._act_air_throw ::
@@ -1250,6 +1298,10 @@ Section AirborneLeafRows.
     call_pres_ext lp bm NoA MWF mario._raise_background_noise.
   Hypothesis Hcpx_scm : call_pres_ext lp bm NoA MWF mario._set_camera_mode.
   Hypothesis Hcp_pas : call_pres lp bm NoA MWF A._perform_air_step.
+  (* approach_s32: the integer asymptotic-approach math helper.  EF_external in
+     EVERY TU = honest terminal boundary (same $"approach_s32" positive as the
+     automatic family's Hcpx_approach_real at the capstone -- NO new trust). *)
+  Hypothesis Hcpx_approach_s32 : call_pres_ext lp bm NoA MWF A._approach_s32.
 
   (* play_mario_jump_sound -- REUSED from ObjectLeafSurface.pmjs_row *)
   Let Hpmjs : call_pres lp bm NoA MWF mario._play_mario_jump_sound :=
@@ -2536,6 +2588,70 @@ Section AirborneLeafRows.
   Qed.
 
   (* ==================================================================== *)
+  (* SLICE A15: update_lava_boost_or_twirling + act_twirling.              *)
+  (* ==================================================================== *)
+  Lemma air_ulbot_row :
+    call_pres lp bm NoA MWF A._update_lava_boost_or_twirling.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_airborne.prog A._update_lava_boost_or_twirling
+             A.f_update_lava_boost_or_twirling
+             nil nil nil nil
+             LO_air air_ulbot_pin air_ulbot_vars air_ulbot_pok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact air_ulbot_walk.
+  Qed.
+
+  Lemma air_twl_ids_rows : forall fid, mem_id fid air_twl_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold air_twl_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_sma_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hipae | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_ulbot_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pas | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_mbr_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_lbow_row | ].
+    discriminate H.
+  Qed.
+  Lemma air_twl_xids_rows : forall fid, mem_id fid air_twl_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold air_twl_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_approach_s32 | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | ].
+    discriminate H.
+  Qed.
+  Lemma air_twl_pres : body_pres lp NoA MWF bm A.f_act_twirling.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             A.f_act_twirling
+             air_twl_ids nil air_twl_cact air_twl_xids air_sids nil
+             air_twl_vars air_twl_pok air_twl_nonparam).
+    - exact air_twl_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact air_twl_xids_rows.
+    - exact air_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact air_twl_walk.
+  Qed.
+
+  (* ==================================================================== *)
   (* THE REST-SPLIT: the capstone's Hpres_air_callees from the walked     *)
   (* leaves + the shrinking airborne_rest_ids residual.                   *)
   (* ==================================================================== *)
@@ -2625,7 +2741,9 @@ Section AirborneLeafRows.
                 | (rewrite air_jmp_pin in Hdm; injection Hdm as <-;
                    exact air_jmp_pres)
                 | (rewrite air_djmp_pin in Hdm; injection Hdm as <-;
-                   exact air_djmp_pres) ] | ]).
+                   exact air_djmp_pres)
+                | (rewrite air_twl_pin in Hdm; injection Hdm as <-;
+                   exact air_twl_pres) ] | ]).
     discriminate H.
   Qed.
 
