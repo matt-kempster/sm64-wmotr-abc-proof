@@ -30,7 +30,7 @@ From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface
   AirborneSurface DispatchKit FloorsSurface.
 From SM64.Proofs Require Import ActWriterSurface ObjectLeafSurface MovingSurface.
 From SM64.Proofs Require Import MWFReal LandingBricks StationaryLeafSurface.
-From SM64.Proofs Require Import LocalVarsSurface.
+From SM64.Proofs Require Import LocalVarsSurface OutParamSurface.
 
 Import ListNotations.
 
@@ -10423,6 +10423,147 @@ Proof. vm_compute. reflexivity. Qed.
     - intros fid' H. discriminate H.
     - exact bba_sids_rows.
     - exact bba_walk.
+  Qed.
+
+  (* ==================================================================== *)
+  (* lwalk2 infrastructure for the act_walking helper tree                 *)
+  (*   (find_floor_slope has a local _floor ptr + find_floor out-param).    *)
+  (*   These 4 hyps are discharged at the capstone by MWFReal facts +       *)
+  (*   the existing Hocp_find_floor (NO new trust); while the find_floor_    *)
+  (*   slope row is unconsumed scaffolding they do NOT touch the capstone.   *)
+  (* ==================================================================== *)
+  Hypothesis HSafeValid :
+    forall m, MWF m -> forall b, SafeB b -> Mem.valid_block m b.
+  Hypothesis HGlobValid :
+    forall m, MWF m -> forall gid bg,
+        Genv.find_symbol (lp_ge lp) gid = Some bg -> Mem.valid_block m bg.
+  Hypothesis Hls_real :
+    forall m ch b (d : Z) v m',
+      local_blk lp bm SafeB b ->
+      Mem.store ch m b d v = Some m' -> MWF m -> MWF m'.
+  Hypothesis Hocp_find_floor :
+    call_pres_ext_oc lp bm NoA MWF SafeB mario._find_floor.
+
+  (* ---- find_floor_slope: lwalk2 (local _floor + find_floor oc + atan2s) ---- *)
+  Definition ffs_lids : list ident := mario._floor :: nil.
+  Definition ffs_oc_pids : list ident := mario._find_floor :: nil.
+  Definition ffs_xids : list ident := mario._atan2s :: nil.
+
+  Example ffs_pin :
+    (prog_defmap mario.prog) ! mario._find_floor_slope
+    = Some (Gfun (Internal mario.f_find_floor_slope)).
+  Proof. vm_compute. reflexivity. Qed.
+  Example ffs_pok : mov_pok mario.f_find_floor_slope = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example ffs_walk :
+    wwalk_chk' ffs_lids ffs_oc_pids nil nil nil nil
+      false nil nil nil nil ffs_xids nil nil
+      (fn_body mario.f_find_floor_slope) = true.
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma ffs_xids_rows : forall fid, mem_id fid ffs_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold ffs_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        exact (Hpres_obj_ext mario._atan2s eq_refl)
+      | discriminate H ].
+  Qed.
+  Lemma ffs_oc_rows : forall fid, mem_id fid ffs_oc_pids = true ->
+      call_pres_ext_oc lp bm NoA MWF SafeB fid.
+  Proof.
+    intros fid H. unfold ffs_oc_pids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hocp_find_floor
+      | discriminate H ].
+  Qed.
+
+  Lemma mov_ffs_row : call_pres lp bm NoA MWF mario._find_floor_slope.
+  Proof.
+    apply (call_pres_of_lwalk2 lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             HMWF_alloc HMWF_free
+             mario.prog mario._find_floor_slope mario.f_find_floor_slope
+             nil nil ffs_xids nil ffs_lids ffs_oc_pids nil nil
+             LO_mario ffs_pin ffs_pok).
+    - (* Hdg: stored_globals disjoint from fn_vars=[_floor] *)
+      intros g Hg Hin; vm_compute in Hin;
+        destruct Hin as [Heq | []]; subst g; vm_compute in Hg; discriminate.
+    - intros g HH; discriminate HH.   (* Hdi: ids=nil *)
+    - intros g HH; discriminate HH.   (* Hdw: wids=nil *)
+    - (* Hdx: xids=[atan2s] disjoint from fn_vars *)
+      intros g Hg Hin; vm_compute in Hin;
+        destruct Hin as [Heq | []]; subst g; vm_compute in Hg; discriminate.
+    - intros g HH; discriminate HH.   (* Hds: sids=nil *)
+    - (* Hdoc: oc_pids=[find_floor] disjoint from fn_vars *)
+      intros g Hg Hin; vm_compute in Hin;
+        destruct Hin as [Heq | []]; subst g; vm_compute in Hg; discriminate.
+    - intros g HH; discriminate HH.   (* Hdwc: wc_pids=nil *)
+    - intros g HH; discriminate HH.   (* Hdsc: sc_pids=nil *)
+    - (* Hdgt: gGlobalTimer not a local *)
+      vm_compute; intro Hin; destruct Hin as [Heq | []]; discriminate Heq.
+    - (* Hlsub: lids=[_floor] subset of fn_vars *)
+      intros lid Hl; unfold ffs_lids in Hl; cbn [mem_id existsb] in Hl;
+        apply orb_true_iff in Hl as [Hm | Hf];
+        [ apply Pos.eqb_eq in Hm; subst lid; vm_compute; left; reflexivity
+        | discriminate Hf ].
+    - exact HSafeValid.
+    - exact HGlobValid.
+    - exact Hls_real.
+    - intros fid' H; discriminate H.   (* Hcp: ids=nil *)
+    - intros fid' H; discriminate H.   (* Hcpa: wids=nil *)
+    - exact ffs_xids_rows.             (* Hcpx: xids *)
+    - intros fid' H; discriminate H.   (* Hcps: sids=nil *)
+    - exact ffs_oc_rows.               (* Hcpoc: oc_pids *)
+    - intros fid' H; discriminate H.   (* Hcpwc: wc_pids=nil *)
+    - intros fid' H; discriminate H.   (* Hcpsc: sc_pids=nil *)
+    - exact ffs_walk.                  (* Hchk *)
+  Qed.
+
+  (* ---- tilt_body_running: ids=[find_floor_slope] ---- *)
+  Definition tbr_ids : list ident := M._find_floor_slope :: nil.
+
+  Example tbr_pin :
+    (prog_defmap mario_actions_moving.prog) ! M._tilt_body_running
+    = Some (Gfun (Internal M.f_tilt_body_running)).
+  Proof. vm_compute. reflexivity. Qed.
+  Example tbr_vars : fn_vars M.f_tilt_body_running = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example tbr_pok : mov_pok M.f_tilt_body_running = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example tbr_nonparam :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params M.f_tilt_body_running))))
+      (@nil ident) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example tbr_walk :
+    wwalk_chk false nil tbr_ids nil nil nil nil nil
+      (fn_body M.f_tilt_body_running) = true.
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma tbr_ids_rows : forall fid, mem_id fid tbr_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold tbr_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_ffs_row | discriminate H ].
+  Qed.
+
+  Lemma mov_tbr_row : call_pres lp bm NoA MWF M._tilt_body_running.
+  Proof.
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_moving.prog M._tilt_body_running
+             M.f_tilt_body_running
+             tbr_ids nil nil nil nil
+             LO_mov tbr_pin tbr_vars tbr_pok tbr_nonparam).
+    - exact tbr_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact tbr_walk.
   Qed.
 
   Lemma mov_bwa_ids_rows : forall fid, mem_id fid mov_bwa_ids = true ->
