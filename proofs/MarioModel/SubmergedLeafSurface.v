@@ -159,6 +159,21 @@ Definition sub_shock_xids : list ident :=
 Definition sub_kb_tids : list ident :=
   mario_actions_submerged._common_water_knockback_step :: nil.
 
+(* the submerged cancel gate (check_common_submerged_cancels): window stores
+   (pos[1], heldObj:=NULL), a chase store through m->heldObj (the held-shell
+   oInteractStatus:=INT_STATUS_STOP_RIDING=1<<22, a non-ptr Oshl const into a
+   chase-root block; heldObj in chase_root_fields), a set_mario_action(const
+   ACT_DROWNING) (sids), the nullary stop_shell_music() (xids = the audio
+   model-boundary, reuses Hpres_obj_ext -- NO new trust), and the tail call
+   transition_submerged_to_walking(m) (ids = ONE honest INTERNAL residual,
+   it's f_transition_submerged_to_walking in mario.prog, dischargeable). *)
+Definition sub_ccsc_cact : list ident :=
+  mario_actions_submerged._t'12 :: mario_actions_submerged._t'10 :: nil.
+Definition sub_ccsc_ids : list ident :=
+  mario_actions_submerged._transition_submerged_to_walking :: nil.
+Definition sub_ccsc_xids : list ident :=
+  interaction._stop_shell_music :: nil.
+
 (* the WALKED leaves. *)
 Definition sub_walked_ids : list ident :=
   mario_actions_submerged._act_metal_water_standing
@@ -181,7 +196,8 @@ Definition sub_walked_ids : list ident :=
     :: mario_actions_submerged._act_drowning
     :: mario_actions_submerged._act_water_shocked
     :: mario_actions_submerged._act_backward_water_kb
-    :: mario_actions_submerged._act_forward_water_kb :: nil.
+    :: mario_actions_submerged._act_forward_water_kb
+    :: mario_actions_submerged._check_common_submerged_cancels :: nil.
 Definition sub_rest_ids : list ident :=
   filter (fun id => negb (mem_id id sub_walked_ids)) submerged_callee_ids.
 
@@ -671,6 +687,30 @@ Example sub_fwkb_walk :
     (fn_body mario_actions_submerged.f_act_forward_water_kb) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- the cancel gate: body_pres_of_wwalk_cact (cact = the two heldObj
+   chase temps); ids = transition_submerged_to_walking; xids = stop_shell_
+   music; sids = set_mario_action. ---- *)
+Example sub_ccsc_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._check_common_submerged_cancels
+  = Some (Gfun (Internal mario_actions_submerged.f_check_common_submerged_cancels)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_ccsc_vars :
+  fn_vars mario_actions_submerged.f_check_common_submerged_cancels = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_ccsc_pok :
+  sub_hold_pok mario_actions_submerged.f_check_common_submerged_cancels = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_ccsc_nonparam :
+  forallb (fun t' => negb (mem_id t'
+    (map fst (fn_params mario_actions_submerged.f_check_common_submerged_cancels))))
+    sub_ccsc_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_ccsc_walk :
+  wwalk_chk false nil sub_ccsc_ids nil sub_ccsc_cact sub_ccsc_xids sub_sids nil
+    (fn_body mario_actions_submerged.f_check_common_submerged_cancels) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ====================================================================== *)
 (* The section: the leaf-callee discharge, keyed by the census.           *)
 (* ====================================================================== *)
@@ -864,6 +904,17 @@ Section SubmergedLeafRows.
     call_pres_act3 lp bm NoA MWF
       mario_actions_submerged._common_water_knockback_step.
 
+  (* SLICE 12 (cancel gate): transition_submerged_to_walking is an honest
+     INTERNAL residual (f_transition_submerged_to_walking in mario.prog;
+     it transitions Mario to a walking action -- dischargeable by walking
+     its body later).  stop_shell_music is the nullary AUDIO external
+     (reuses the obj_ext boundary at the capstone -- NO new trust). *)
+  Hypothesis Hcp_tstw :
+    call_pres lp bm NoA MWF
+      mario_actions_submerged._transition_submerged_to_walking.
+  Hypothesis Hcpx_ssm :
+    call_pres_ext lp bm NoA MWF interaction._stop_shell_music.
+
   (* the keystone, instantiated once: set_mario_action is call_pres_act. *)
   Let Hsmact : call_pres_act lp bm NoA MWF mario._set_mario_action :=
     smact_pres lp LO_mario LO_mario_step bm NoA MWF HNoA_of_MWF
@@ -1045,6 +1096,24 @@ Section SubmergedLeafRows.
     intros fid H. unfold sub_kb_tids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_cwks | ].
+    discriminate H.
+  Qed.
+
+  Lemma sub_ccsc_ids_rows : forall fid, mem_id fid sub_ccsc_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sub_ccsc_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_tstw | ].
+    discriminate H.
+  Qed.
+
+  Lemma sub_ccsc_xids_rows : forall fid, mem_id fid sub_ccsc_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sub_ccsc_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_ssm | ].
     discriminate H.
   Qed.
 
@@ -1428,6 +1497,24 @@ Section SubmergedLeafRows.
     - exact sub_fwkb_walk.
   Qed.
 
+  Lemma act_check_common_submerged_cancels_pres :
+    body_pres lp NoA MWF bm
+      mario_actions_submerged.f_check_common_submerged_cancels.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.f_check_common_submerged_cancels
+             sub_ccsc_ids nil sub_ccsc_cact sub_ccsc_xids sub_sids nil
+             sub_ccsc_vars sub_ccsc_pok sub_ccsc_nonparam).
+    - exact sub_ccsc_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact sub_ccsc_xids_rows.
+    - exact sub_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact sub_ccsc_walk.
+  Qed.
+
   (* ================================================================== *)
   (* THE PAYOFF: the census-keyed leaf discharge.  The walked leaf is   *)
   (* discharged here; everything else falls through to the rest premise *)
@@ -1549,6 +1636,11 @@ Section SubmergedLeafRows.
     { apply Pos.eqb_eq in Ew21; subst fid.
       rewrite sub_fwkb_pin in Hdm. injection Hdm as <-.
       exact act_forward_water_kb_pres. }
+    destruct (Pos.eqb fid mario_actions_submerged._check_common_submerged_cancels)
+      eqn:Ew22.
+    { apply Pos.eqb_eq in Ew22; subst fid.
+      rewrite sub_ccsc_pin in Hdm. injection Hdm as <-.
+      exact act_check_common_submerged_cancels_pres. }
     (* REST: fid is in the census and not a walked id, so it is in the
        filter that defines sub_rest_ids. *)
     apply (Hrest fid f); [ | exact Hdm ].
@@ -1557,7 +1649,7 @@ Section SubmergedLeafRows.
     unfold sub_walked_ids. cbn [mem_id existsb].
     rewrite Ew1, Ew2, Ew3, Ew4, Ew5, Ew6, Ew7, Ew8, Ew9, Ew10,
       Ew11, Ew12, Ew13, Ew14, Ew15, Ew16, Ew17, Ew18, Ew19,
-      Ew20, Ew21. reflexivity.
+      Ew20, Ew21, Ew22. reflexivity.
   Qed.
 
 End SubmergedLeafRows.
