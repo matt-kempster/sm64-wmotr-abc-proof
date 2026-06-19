@@ -31,7 +31,7 @@ From SM64.Proofs Require Import ActWriterSurface SubmergedSurface MarioStepSurfa
 (* Require (not Import) ObjectLeafSurface / MovingLeafSurface: we only reuse
    their proved mtho_row / mov_smawa_row, referenced qualified -- avoids name
    shadowing. *)
-From SM64.Proofs Require ObjectLeafSurface MovingLeafSurface.
+From SM64.Proofs Require ObjectLeafSurface MovingLeafSurface InterSurface.
 
 Import ListNotations.
 
@@ -1609,6 +1609,138 @@ Proof.
 Qed.
 
 (* ====================================================================== *)
+(* check_water_grab (cwg) recognizer: the per-statement check for the      *)
+(* bespoke walk.  The body reads m->marioObj->collidedObjInteractTypes; if  *)
+(* the GRAB bit is set it calls mario_get_collided_object (mgco) into _t'1, *)
+(* copies it to _object, stores _object into the m->usedObj ROOT field,     *)
+(* calls mario_grab_used_object, and writes 1 into marioBodyState->grabPos. *)
+(* The threaded invariant tracks _m (Mario), _t'1 / _object (mgco's SafeB   *)
+(* result), and _t'6 (the marioBodyState chase root).                       *)
+(* ====================================================================== *)
+
+(* `_object = _t'1`: the only allowed source for the _object temp. *)
+Definition cwg_obj_src (a : expr) : bool :=
+  match a with
+  | Etempvar t _ => Pos.eqb t mario_actions_submerged._t'1
+  | _ => false
+  end.
+
+(* `_t'1 = mario_get_collided_object(m, _)`: SafeB result into _t'1. *)
+Definition cwg_mgco_call (optid : option ident) (fid : ident) (al : list expr) : bool :=
+  match optid, al with
+  | Some t, Etempvar p _ :: _ :: nil =>
+      Pos.eqb t mario_actions_submerged._t'1
+      && Pos.eqb fid mario_actions_submerged._mario_get_collided_object
+      && Pos.eqb p mario_actions_submerged._m
+  | _, _ => false
+  end.
+
+(* `mario_grab_used_object(m)`: a void Mario-arg internal call. *)
+Definition cwg_mguo_call (optid : option ident) (fid : ident) (al : list expr) : bool :=
+  match optid, al with
+  | None, Etempvar p _ :: nil =>
+      Pos.eqb fid mario_actions_submerged._mario_grab_used_object
+      && Pos.eqb p mario_actions_submerged._m
+  | _, _ => false
+  end.
+
+(* `_t = atan2s(_, _)`: a pure-math external whose result lands in an
+   UNtracked temp (so the threaded invariant survives set_opttemp). *)
+Definition cwg_atan2s_call (optid : option ident) (fid : ident) : bool :=
+  match optid with
+  | Some t =>
+      Pos.eqb fid mario_actions_submerged._atan2s
+      && negb (Pos.eqb t mario_actions_submerged._m)
+      && negb (Pos.eqb t mario_actions_submerged._t'1)
+      && negb (Pos.eqb t interaction._object)
+      && negb (Pos.eqb t mario_actions_submerged._t'6)
+  | None => false
+  end.
+
+(* Shape lemmas: extract the concrete call structure from a passing
+   recognizer, in a PRISTINE context (no induction-introduced name
+   collisions).  Mirrors CensusV2.callee_in_mptr_shape. *)
+Lemma cwg_mgco_call_shape :
+  forall optid fid al, cwg_mgco_call optid fid al = true ->
+    exists pty a2,
+      optid = Some mario_actions_submerged._t'1 /\
+      fid = mario_actions_submerged._mario_get_collided_object /\
+      al = Etempvar mario_actions_submerged._m pty :: a2 :: nil.
+Proof.
+  intros optid fid al H. unfold cwg_mgco_call in H.
+  destruct optid as [t1 | ]; cbv beta iota in H; [ | discriminate H ].
+  (* destruct the head INSIDE every cons case: the recognizer checks the
+     head's constructor before the list length, so a stuck `match a0` would
+     otherwise survive in the 1- and 3+-element cases. *)
+  destruct al as [ | a0 [ | a2 [ | ] ] ];
+    try (destruct a0 as [ | | | | | p pty | | | | | | | | ]);
+    cbv beta iota in H; try discriminate H.
+  apply andb_true_iff in H as [H Hp].
+  apply andb_true_iff in H as [Ht1 Hfid].
+  apply Pos.eqb_eq in Ht1. apply Pos.eqb_eq in Hfid. apply Pos.eqb_eq in Hp.
+  subst. exists pty, a2. auto.
+Qed.
+
+Lemma cwg_mguo_call_shape :
+  forall optid fid al, cwg_mguo_call optid fid al = true ->
+    exists pty,
+      optid = None /\
+      fid = mario_actions_submerged._mario_grab_used_object /\
+      al = Etempvar mario_actions_submerged._m pty :: nil.
+Proof.
+  intros optid fid al H. unfold cwg_mguo_call in H.
+  destruct optid as [ | ]; cbv beta iota in H; [ discriminate H | ].
+  destruct al as [ | a0 [ | ] ];
+    try (destruct a0 as [ | | | | | p pty | | | | | | | | ]);
+    cbv beta iota in H; try discriminate H.
+  apply andb_true_iff in H as [Hfid Hp].
+  apply Pos.eqb_eq in Hfid. apply Pos.eqb_eq in Hp.
+  subst. exists pty. auto.
+Qed.
+
+Lemma cwg_atan2s_call_shape :
+  forall optid fid, cwg_atan2s_call optid fid = true ->
+    exists t2,
+      optid = Some t2 /\
+      fid = mario_actions_submerged._atan2s /\
+      Pos.eqb t2 mario_actions_submerged._m = false /\
+      Pos.eqb t2 mario_actions_submerged._t'1 = false /\
+      Pos.eqb t2 interaction._object = false /\
+      Pos.eqb t2 mario_actions_submerged._t'6 = false.
+Proof.
+  intros optid fid H. unfold cwg_atan2s_call in H.
+  destruct optid as [t2 | ]; cbv beta iota in H; [ | discriminate H ].
+  apply andb_true_iff in H as [H Hn6].
+  apply andb_true_iff in H as [H Hno].
+  apply andb_true_iff in H as [H Hnt1].
+  apply andb_true_iff in H as [Hfid Hnm].
+  apply Pos.eqb_eq in Hfid. subst fid.
+  apply negb_true_iff in Hnm. apply negb_true_iff in Hnt1.
+  apply negb_true_iff in Hno. apply negb_true_iff in Hn6.
+  exists t2. repeat split; try reflexivity; assumption.
+Qed.
+
+Fixpoint cwg_chk (s : statement) : bool :=
+  match s with
+  | Sskip | Sbreak | Scontinue => true
+  | Sreturn _ => true
+  | Sset id a =>
+      negb (Pos.eqb id mario_actions_submerged._m)
+      && negb (Pos.eqb id mario_actions_submerged._t'1)
+      && (if Pos.eqb id interaction._object then cwg_obj_src a else true)
+      && (if Pos.eqb id mario_actions_submerged._t'6 then chase_root_chk a else true)
+  | Sassign a1 a2 =>
+      root_store_chk [interaction._object] a1 a2
+      || chase_store_chk nil [mario_actions_submerged._t'6] a1 a2
+  | Scall optid (Evar fid (Tfunction _ _ _)) al =>
+      cwg_mgco_call optid fid al || cwg_mguo_call optid fid al
+      || cwg_atan2s_call optid fid
+  | Ssequence s1 s2 => cwg_chk s1 && cwg_chk s2
+  | Sifthenelse _ s1 s2 => cwg_chk s1 && cwg_chk s2
+  | _ => false
+  end.
+
+(* ====================================================================== *)
 (* The section: the leaf-callee discharge, keyed by the census.           *)
 (* ====================================================================== *)
 
@@ -1812,8 +1944,18 @@ Section SubmergedLeafRows.
      interaction.prog body the object/stationary/airborne families already
      walk).  Its 3 terminal externals (segmented_to_virtual / stop_shell_music
      / obj_set_held_state) ride the obj_ext boundary -- NO new trust. *)
-  Hypothesis Hcp_cwg :
-    call_pres lp bm NoA MWF mario_actions_submerged._check_water_grab.
+  (* check_water_grab is DISCHARGED below (sub_cwg_row): a bespoke front-peel
+     walk.  Its sole engine-blind site is `m->usedObj = object`, a store to a
+     chase ROOT field whose RHS is the RESULT of mario_get_collided_object
+     (mgco) -- the generic chase engine forbids a call result from landing in
+     a cact temp, so we thread mgco's SafeB-if-ptr RETURN through Hcp_mgco_safe
+     (= InterSurface.call_pres_mgco, already PROVED at the capstone by mgco_cp)
+     and discharge the root store via root_assign_pres with cact = [_object].
+     The grabPos store rides chase_assign_pres; mguo rides kit_scall_pres;
+     atan2s rides the obj_ext boundary (Hcpx_atan2s).  NO new trust -- the mgco
+     SafeB term ALREADY exists, so a CLEAN capstone -1. *)
+  Hypothesis Hcp_mgco_safe :
+    InterSurface.call_pres_mgco lp bm NoA MWF SafeB.
   (* the throw/punch terminal externals -- all obj_ext_ids members (the
      pure-math approach_s32, the behaviour-segment reader segmented_to_virtual,
      the audio play_shell_music) -> discharged at the capstone via Hpres_obj_ext,
@@ -3188,6 +3330,298 @@ Section SubmergedLeafRows.
     discriminate H.
   Qed.
 
+  (* ================================================================== *)
+  (* check_water_grab (cwg): the getter->root-store leaf.  See cwg_chk.  *)
+  (* ================================================================== *)
+
+  (* mario_grab_used_object: REUSE ObjectLeafSurface.mguo_row (the SAME
+     interaction.prog body), exactly as sub_mtho_row reuses mtho_row. *)
+  Lemma sub_mguo_row :
+    call_pres lp bm NoA MWF mario_actions_submerged._mario_grab_used_object.
+  Proof.
+    exact (ObjectLeafSurface.mguo_row lp LO_mario LO_int bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+             HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe Hcpx_oshs).
+  Qed.
+
+  (* The threaded temp invariant for the cwg walk. *)
+  Definition cwg_inv (le : temp_env) : Prop :=
+    (forall b o, le ! mario_actions_submerged._m = Some (Vptr b o) ->
+                 b = bm /\ o = Ptrofs.zero) /\
+    (forall b o, le ! mario_actions_submerged._t'1 = Some (Vptr b o) -> SafeB b) /\
+    (forall b o, le ! interaction._object = Some (Vptr b o) -> SafeB b) /\
+    (forall b o, le ! mario_actions_submerged._t'6 = Some (Vptr b o) -> SafeB b).
+
+  Lemma cwg_inv_set : forall id v le,
+    Pos.eqb id mario_actions_submerged._m = false ->
+    Pos.eqb id mario_actions_submerged._t'1 = false ->
+    (Pos.eqb id interaction._object = true ->
+       forall b o, v = Vptr b o -> SafeB b) ->
+    (Pos.eqb id mario_actions_submerged._t'6 = true ->
+       forall b o, v = Vptr b o -> SafeB b) ->
+    cwg_inv le -> cwg_inv (PTree.set id v le).
+  Proof.
+    intros id v le Hnm Hnt1 Hobj Ht6 (Hm & Ht1 & Ho & H6).
+    split; [|split;[|split]]; intros b o Hg.
+    - rewrite PTree.gso in Hg by (apply Pos.eqb_neq in Hnm; congruence).
+      exact (Hm _ _ Hg).
+    - rewrite PTree.gso in Hg by (apply Pos.eqb_neq in Hnt1; congruence).
+      exact (Ht1 _ _ Hg).
+    - destruct (Pos.eqb id interaction._object) eqn:Eo.
+      + apply Pos.eqb_eq in Eo. subst id. rewrite PTree.gss in Hg.
+        injection Hg as Hg'. exact (Hobj eq_refl _ _ Hg').
+      + rewrite PTree.gso in Hg by (apply Pos.eqb_neq in Eo; congruence).
+        exact (Ho _ _ Hg).
+    - destruct (Pos.eqb id mario_actions_submerged._t'6) eqn:E6.
+      + apply Pos.eqb_eq in E6. subst id. rewrite PTree.gss in Hg.
+        injection Hg as Hg'. exact (Ht6 eq_refl _ _ Hg').
+      + rewrite PTree.gso in Hg by (apply Pos.eqb_neq in E6; congruence).
+        exact (H6 _ _ Hg).
+  Qed.
+
+  (* the mgco call lands its SafeB result in _t'1 -- the one set cwg_inv_set
+     cannot do (it requires id <> _t'1). *)
+  Lemma cwg_inv_set_t1 : forall v le,
+    (forall b o, v = Vptr b o -> SafeB b) ->
+    cwg_inv le -> cwg_inv (PTree.set mario_actions_submerged._t'1 v le).
+  Proof.
+    intros v le Hv (Hm & _ & Ho & H6).
+    split; [|split;[|split]]; intros b o Hg.
+    - rewrite PTree.gso in Hg by (vm_compute; discriminate). exact (Hm _ _ Hg).
+    - rewrite PTree.gss in Hg. injection Hg as Hg'. exact (Hv _ _ Hg').
+    - rewrite PTree.gso in Hg by (vm_compute; discriminate). exact (Ho _ _ Hg).
+    - rewrite PTree.gso in Hg by (vm_compute; discriminate). exact (H6 _ _ Hg).
+  Qed.
+
+  Lemma cwg_chase_inv_obj : forall le,
+    cwg_inv le -> chase_inv SafeB [interaction._object] le.
+  Proof.
+    intros le (_ & _ & Ho & _) t Ht b o Hg.
+    cbn [mem_id existsb] in Ht. rewrite orb_false_r in Ht.
+    apply Pos.eqb_eq in Ht. subst t. exact (Ho _ _ Hg).
+  Qed.
+
+  Lemma cwg_chase_inv_t6 : forall le,
+    cwg_inv le -> chase_inv SafeB [mario_actions_submerged._t'6] le.
+  Proof.
+    intros le (_ & _ & _ & H6) t Ht b o Hg.
+    cbn [mem_id existsb] in Ht. rewrite orb_false_r in Ht.
+    apply Pos.eqb_eq in Ht. subst t. exact (H6 _ _ Hg).
+  Qed.
+
+  Lemma cwg_act_inv_nil : forall le, act_inv nil le.
+  Proof. intros le t Ht. cbn [mem_id existsb] in Ht. discriminate Ht. Qed.
+
+  (* THE WALK: any cwg_chk-passing statement, executed from a cwg_inv le,
+     preserves the carried triple AND cwg_inv -- whatever its outcome
+     (the `return 1` deep in the grab branch is handled by Sseq_2 / IH). *)
+  Lemma cwg_walk_pres :
+    forall e le m0 s tr le' m' out,
+      exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
+      e = empty_env ->
+      cwg_chk s = true ->
+      cwg_inv le -> MWF m0 -> Mem.valid_block m0 bm -> action_sat not_tainted m0 bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\ cwg_inv le'.
+  Proof.
+    intros e le m0 s tr le' m' out Hexec.
+    induction Hexec; intros He Hchk Hinv HM HV HS.
+    - (* Sskip *) exact (conj HV (conj HS (conj HM Hinv))).
+    - (* Sassign a1 a2 *)
+      cbn [cwg_chk] in Hchk.
+      assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
+                      (Sassign a1 a2) E0 le m' Out_normal)
+        by (econstructor; eauto).
+      apply orb_true_iff in Hchk as [Hrs | Hcs].
+      + (* m->usedObj = object : the root store, RHS SafeB from cwg_inv *)
+        destruct (ActWriterSurface.root_assign_pres lp LO_mario bm MWF SafeB HMWF_root
+                    [interaction._object] a1 a2 e le m E0 le m' Out_normal
+                    Hrs (proj1 Hinv) (cwg_chase_inv_obj le Hinv) Hex HM HV HS)
+          as (HV' & HS' & HM' & _ & _).
+        exact (conj HV' (conj HS' (conj HM' Hinv))).
+      + (* t'6->grabPos = 1 : a chase store of a const through the SafeB root *)
+        destruct (ActWriterSurface.chase_assign_pres lp bm MWF SafeB HSafeNotBm
+                    HMWF_chase nil [mario_actions_submerged._t'6] a1 a2 e le m E0
+                    le m' Out_normal Hcs (cwg_act_inv_nil le)
+                    (cwg_chase_inv_t6 le Hinv) Hex HM HV HS)
+          as (HV' & HS' & HM' & _ & _).
+        exact (conj HV' (conj HS' (conj HM' Hinv))).
+    - (* Sset id a *)
+      cbn [cwg_chk] in Hchk.
+      apply andb_true_iff in Hchk as [Hchk Ht6c].
+      apply andb_true_iff in Hchk as [Hchk Hobjc].
+      apply andb_true_iff in Hchk as [Hnm Hnt1].
+      apply negb_true_iff in Hnm. apply negb_true_iff in Hnt1.
+      refine (conj HV (conj HS (conj HM _))).
+      apply cwg_inv_set; [ exact Hnm | exact Hnt1 | | | exact Hinv ].
+      + (* id = _object : a = Etempvar _t'1, value SafeB from cwg_inv *)
+        intros Eo. rewrite Eo in Hobjc. unfold cwg_obj_src in Hobjc.
+        destruct a as [ | | | | | t' tt' | | | | | | | | ]; try discriminate Hobjc.
+        apply Pos.eqb_eq in Hobjc. subst t'.
+        match goal with Hev : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+          apply RealFrameValue.eval_expr_Etempvar_val in Hev; rename Hev into Hv1 end.
+        intros b o ->. exact (proj1 (proj2 Hinv) _ _ Hv1).
+      + (* id = _t'6 : a = m->marioBodyState, value SafeB via chase_root_set_sound *)
+        intros E6. rewrite E6 in Ht6c.
+        match goal with Hev : eval_expr _ _ _ _ a _ |- _ =>
+          exact (ActWriterSurface.chase_root_set_sound lp LO_mario bm MWF
+                   HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_root
+                   a _ _ _ _ Ht6c (proj1 Hinv) HM Hev) end.
+    - (* Scall optid a al *)
+      subst e.
+      (* the recognizer pins the callee to a Tfunction-typed Evar *)
+      destruct a as [ | | | | fid fty | | | | | | | | | ];
+        try (cbn [cwg_chk] in Hchk; discriminate Hchk).
+      destruct fty as [ | | | | | | tyl rty cc | | ];
+        try (cbn [cwg_chk] in Hchk; discriminate Hchk).
+      cbn [cwg_chk] in Hchk.
+      match goal with Hv : eval_expr _ _ _ _ (Evar _ (Tfunction _ _ _)) _ |- _ =>
+        apply eval_Evar_funct_empty in Hv; destruct Hv as (bf & Hsym & ->) end.
+      match goal with Hff : Genv.find_funct _ (Vptr bf Ptrofs.zero) = Some ?fd |- _ =>
+        assert (Hres : resolves_lp lp fid fd) by (exists bf; split; assumption) end.
+      apply orb_true_iff in Hchk as [Hchk | Hat].
+      apply orb_true_iff in Hchk as [Hmg | Hmu].
+      + (* _t'1 = mario_get_collided_object(m, _) : SafeB return *)
+        destruct (cwg_mgco_call_shape _ _ _ Hmg) as (pty & a2 & -> & -> & ->).
+        match goal with Hvl : eval_exprlist _ _ _ _ (_ :: _ :: nil) _ _ |- _ => inv Hvl end.
+        match goal with Hvl : eval_exprlist _ _ _ _ (_ :: nil) _ _ |- _ => inv Hvl end.
+        match goal with Hvl : eval_exprlist _ _ _ _ nil _ _ |- _ => inv Hvl end.
+        match goal with Hv : eval_expr _ _ _ _ (Etempvar mario_actions_submerged._m _) _ |- _ =>
+          apply RealFrameValue.eval_expr_Etempvar_val in Hv; rename Hv into Hvm end.
+        (* the first vararg is the call-site cast of the _m temp (Mario, (bm,0));
+           marg_ok only constrains a Vptr head, and a cast that yields a Vptr had
+           that same Vptr as input (sem_cast_vptr_inv) -- no concrete cast types
+           needed, so the abstract call signature is fine. *)
+        match goal with
+        | Hvm' : le ! mario_actions_submerged._m = Some ?v1,
+          Hcm : sem_cast ?v1 (typeof (Etempvar _ _)) _ _ = Some ?vm,
+          Hca : sem_cast _ (typeof a2) _ _ = Some ?vm2 |- _ =>
+            assert (Hmarg : marg_ok bm (vm :: vm2 :: nil)) by
+              (unfold marg_ok; destruct vm as [ | | | | | bb oo ]; try exact I;
+               rewrite (CensusV2.sem_cast_vptr_inv _ _ _ _ _ _ Hcm) in Hvm';
+               exact (proj1 Hinv _ _ Hvm')) end.
+        match goal with Hevf : eval_funcall _ _ _ _ (_ :: _ :: nil) _ _ _ |- _ =>
+          destruct (Hcp_mgco_safe _ _ _ _ _ _ Hevf Hres Hmarg
+                      (HNoA_of_MWF _ HM) HM HV HS)
+            as (HV' & HS' & HM' & Hsafe) end.
+        cbn [set_opttemp].
+        refine (conj HV' (conj HS' (conj HM' _))).
+        apply cwg_inv_set_t1; [ exact Hsafe | exact Hinv ].
+      + (* mario_grab_used_object(m) : a void Mario-arg internal *)
+        destruct (cwg_mguo_call_shape _ _ _ Hmu) as (pty & -> & -> & ->).
+        match goal with Hvl : eval_exprlist _ _ _ _ (_ :: nil) _ _ |- _ => inv Hvl end.
+        match goal with Hvl : eval_exprlist _ _ _ _ nil _ _ |- _ => inv Hvl end.
+        match goal with Hv : eval_expr _ _ _ _ (Etempvar mario_actions_submerged._m _) _ |- _ =>
+          apply RealFrameValue.eval_expr_Etempvar_val in Hv; rename Hv into Hvm end.
+        match goal with
+        | Hvm' : le ! mario_actions_submerged._m = Some ?v1,
+          Hcm : sem_cast ?v1 (typeof (Etempvar _ _)) _ _ = Some ?vm |- _ =>
+            assert (Hmarg : marg_ok bm (vm :: nil)) by
+              (unfold marg_ok; destruct vm as [ | | | | | bb oo ]; try exact I;
+               rewrite (CensusV2.sem_cast_vptr_inv _ _ _ _ _ _ Hcm) in Hvm';
+               exact (proj1 Hinv _ _ Hvm')) end.
+        match goal with Hevf : eval_funcall _ _ _ _ (_ :: nil) _ _ _ |- _ =>
+          destruct (sub_mguo_row _ _ _ _ _ _ Hevf Hres Hmarg
+                      (HNoA_of_MWF _ HM) HM HV HS)
+            as (HV' & HS' & HM' & _) end.
+        cbn [set_opttemp]. exact (conj HV' (conj HS' (conj HM' Hinv))).
+      + (* _t = atan2s(_, _) : pure-math external, result in an untracked temp *)
+        destruct (cwg_atan2s_call_shape _ _ Hat)
+          as (t2 & -> & -> & Hnm & Hnt1 & Hno & Hn6).
+        match goal with Hevf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+          destruct (Hcpx_atan2s _ _ _ _ _ _ Hevf Hres
+                      (HNoA_of_MWF _ HM) HM HV HS)
+            as (HV' & HS' & HM' & _) end.
+        cbn [set_opttemp].
+        refine (conj HV' (conj HS' (conj HM' _))).
+        apply cwg_inv_set;
+          [ exact Hnm | exact Hnt1
+          | intros HH; rewrite Hno in HH; discriminate HH
+          | intros HH; rewrite Hn6 in HH; discriminate HH
+          | exact Hinv ].
+    - (* Sbuiltin: rejected *)
+      cbn [cwg_chk] in Hchk. discriminate Hchk.
+    - (* Sseq_1 *)
+      cbn [cwg_chk] in Hchk. apply andb_true_iff in Hchk as [H1 H2].
+      destruct (IHHexec1 He H1 Hinv HM HV HS) as (HV1 & HS1 & HM1 & Hinv1).
+      exact (IHHexec2 He H2 Hinv1 HM1 HV1 HS1).
+    - (* Sseq_2: s1 exits early *)
+      cbn [cwg_chk] in Hchk. apply andb_true_iff in Hchk as [H1 _].
+      exact (IHHexec He H1 Hinv HM HV HS).
+    - (* Sifthenelse *)
+      cbn [cwg_chk] in Hchk. apply andb_true_iff in Hchk as [H1 H2].
+      apply IHHexec; try assumption. destruct b; assumption.
+    - (* Sreturn None *) exact (conj HV (conj HS (conj HM Hinv))).
+    - (* Sreturn Some *) exact (conj HV (conj HS (conj HM Hinv))).
+    - (* Sbreak *) exact (conj HV (conj HS (conj HM Hinv))).
+    - (* Scontinue *) exact (conj HV (conj HS (conj HM Hinv))).
+    - (* Sloop stop1: rejected *)
+      cbn [cwg_chk] in Hchk. discriminate Hchk.
+    - (* Sloop stop2: rejected *)
+      cbn [cwg_chk] in Hchk. discriminate Hchk.
+    - (* Sloop loop: rejected *)
+      cbn [cwg_chk] in Hchk. discriminate Hchk.
+    - (* Sswitch: rejected *)
+      cbn [cwg_chk] in Hchk. discriminate Hchk.
+  Qed.
+
+  Lemma sub_cwg_pin :
+    (prog_defmap mario_actions_submerged.prog) ! mario_actions_submerged._check_water_grab
+    = Some (Gfun (Internal mario_actions_submerged.f_check_water_grab)).
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma sub_cwg_body :
+    body_pres lp NoA MWF bm mario_actions_submerged.f_check_water_grab.
+  Proof.
+    intros m0 vargs0 t0 mF vres0 Hgate Hevf HN HM HV HS.
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ => rename Ha into Halloc end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ => rename Hb into Hbind end.
+    change (fn_vars mario_actions_submerged.f_check_water_grab)
+      with (@nil (ident * type)) in Halloc.
+    inv Halloc.
+    match goal with
+    | Hbd : exec_stmt _ _ _ ?LE ?MM _ _ _ _ _ |- _ => rename LE into le; rename MM into m0
+    end.
+    assert (Hben : blocks_of_env (lp_ge lp) empty_env = nil) by reflexivity.
+    rewrite Hben in Hfree. cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    change (fn_params mario_actions_submerged.f_check_water_grab)
+      with ((mario_actions_submerged._m,
+             tptr (Tstruct mario_actions_submerged._MarioState noattr)) :: nil) in Hbind.
+    destruct vargs0 as [|vm0 [|vextra vrest]];
+      cbn [bind_parameter_temps] in Hbind; try discriminate Hbind.
+    injection Hbind as Hbind.
+    specialize (Hgate ltac:(vm_compute; reflexivity)).
+    assert (Hlm : le ! mario_actions_submerged._m = Some vm0).
+    { rewrite <- Hbind. apply PTree.gss. }
+    assert (Htat : forall b o,
+      le ! mario_actions_submerged._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
+    { intros b o Hb. rewrite Hlm in Hb. injection Hb as Hb. subst vm0.
+      cbn in Hgate. exact Hgate. }
+    assert (Hinv : cwg_inv le).
+    { split; [ exact Htat | split; [|split] ]; intros b o Hb;
+        rewrite <- Hbind in Hb;
+        rewrite PTree.gso in Hb by (vm_compute; discriminate);
+        vm_compute in Hb; discriminate Hb. }
+    destruct (cwg_walk_pres empty_env le m0
+                (fn_body mario_actions_submerged.f_check_water_grab) _ _ _ _
+                Hbody eq_refl ltac:(vm_compute; reflexivity) Hinv HM HV HS)
+      as (HV' & HS' & HM' & _).
+    exact (conj HV' (conj HS' HM')).
+  Qed.
+
+  Lemma sub_cwg_row :
+    call_pres lp bm NoA MWF mario_actions_submerged._check_water_grab.
+  Proof.
+    exact (call_pres_of_body lp bm NoA MWF HNoA_of_MWF mario_actions_submerged.prog
+             mario_actions_submerged._check_water_grab
+             mario_actions_submerged.f_check_water_grab
+             LO_sub sub_cwg_pin sub_cwg_body).
+  Qed.
+
   Lemma sub_tp_ids_rows : forall fid, mem_id fid sub_tp_ids = true ->
       call_pres lp bm NoA MWF fid.
   Proof.
@@ -3211,7 +3645,7 @@ Section SubmergedLeafRows.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact sub_mtho_row | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_cwg | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_cwg_row | ].
     discriminate H.
   Qed.
 
