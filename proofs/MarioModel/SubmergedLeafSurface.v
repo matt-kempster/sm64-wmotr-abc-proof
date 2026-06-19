@@ -453,6 +453,57 @@ Example sub_uwp_walk :
     (fn_body mario_actions_submerged.f_update_water_pitch) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- get_buoyancy (NO stores; sole call is swimming_near_surface, already
+   discharged as sns_cp; reads m->flags/action) -> ids=[swimming_near_surface] *)
+Definition sub_gb_ids : list ident :=
+  mario_actions_submerged._swimming_near_surface :: nil.
+Example sub_gb_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._get_buoyancy
+  = Some (Gfun (Internal mario_actions_submerged.f_get_buoyancy)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_gb_vars : fn_vars mario_actions_submerged.f_get_buoyancy = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_gb_pok :
+  match fn_params mario_actions_submerged.f_get_buoyancy with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_gb_walk :
+  wwalk_chk false nil sub_gb_ids nil nil nil nil nil
+    (fn_body mario_actions_submerged.f_get_buoyancy) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- update_swimming_speed (window stores forwardVel/vel[0..2]; sole call is
+   get_buoyancy; coss/sins = gSineTable loads) -> ids=[get_buoyancy] *)
+Definition sub_uss_ids : list ident :=
+  mario_actions_submerged._get_buoyancy :: nil.
+Example sub_uss_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._update_swimming_speed
+  = Some (Gfun (Internal mario_actions_submerged.f_update_swimming_speed)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_uss_vars :
+  fn_vars mario_actions_submerged.f_update_swimming_speed = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_uss_pok :
+  match fn_params mario_actions_submerged.f_update_swimming_speed with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_uss_walk :
+  wwalk_chk false nil sub_uss_ids nil nil nil nil nil
+    (fn_body mario_actions_submerged.f_update_swimming_speed) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ---- act_metal_water_standing ---- *)
 Example sub_mws_pin :
   (prog_defmap mario_actions_submerged.prog)
@@ -1335,8 +1386,9 @@ Section SubmergedLeafRows.
      (sub_usy_row / sub_usp_row via call_pres_of_wwalk): pure window stores into
      Mario's own faceAngle/angleVel, the only call (approach_s32, yaw only) rides
      the obj_ext boundary -- NO hypothesis needed. *)
-  Hypothesis Hcp_uss :
-    call_pres lp bm NoA MWF mario_actions_submerged._update_swimming_speed.
+  (* update_swimming_speed is DISCHARGED below (sub_uss_row): window stores +
+     get_buoyancy (sub_gb_row, whose sole call swimming_near_surface is sns_cp)
+     -- NO hypothesis needed. *)
   (* update_water_pitch is DISCHARGED below (sub_uwp_row): chase stores through
      m->marioObj, no calls -- NO hypothesis needed. *)
   Hypothesis Hcp_mtho :
@@ -1552,6 +1604,62 @@ Section SubmergedLeafRows.
     - exact sub_uwp_walk.
   Qed.
 
+  (* get_buoyancy: NO stores; sole call is swimming_near_surface (sns_cp, already
+     discharged this surface) -> ids=[swimming_near_surface].  No new trust. *)
+  Lemma sub_gb_ids_rows : forall fid, mem_id fid sub_gb_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sub_gb_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sns_cp | ].
+    discriminate H.
+  Qed.
+
+  Lemma sub_gb_row :
+    call_pres lp bm NoA MWF mario_actions_submerged._get_buoyancy.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.prog
+             mario_actions_submerged._get_buoyancy
+             mario_actions_submerged.f_get_buoyancy
+             sub_gb_ids nil nil nil LO_sub sub_gb_pin sub_gb_vars sub_gb_pok).
+    - exact sub_gb_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sub_gb_walk.
+  Qed.
+
+  (* update_swimming_speed: window stores (forwardVel/vel); sole call is
+     get_buoyancy (sub_gb_row); coss/sins = gSineTable loads.  No new trust. *)
+  Lemma sub_uss_ids_rows : forall fid, mem_id fid sub_uss_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sub_uss_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_gb_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma sub_uss_row :
+    call_pres lp bm NoA MWF mario_actions_submerged._update_swimming_speed.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.prog
+             mario_actions_submerged._update_swimming_speed
+             mario_actions_submerged.f_update_swimming_speed
+             sub_uss_ids nil nil nil LO_sub sub_uss_pin sub_uss_vars sub_uss_pok).
+    - exact sub_uss_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sub_uss_walk.
+  Qed.
+
   (* ---- the ids/sids row dispatchers for the leaf walks ---- *)
   Lemma sub_metal_ids_rows : forall fid, mem_id fid sub_metal_ids = true ->
       call_pres lp bm NoA MWF fid.
@@ -1718,7 +1826,7 @@ Section SubmergedLeafRows.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact sub_usp_row | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_uss | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_uss_row | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pws | ].
     apply orb_true_iff in H as [Hm | H];
