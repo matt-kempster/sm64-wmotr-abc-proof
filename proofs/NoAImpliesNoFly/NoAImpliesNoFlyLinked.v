@@ -960,11 +960,10 @@ Section NoARealInputMWF.
      [approach_f32]), play_metal_water_walking_sound (sub_pmwws_row, ids=
      [is_anim_past_frame] + xids=[play_sound]), update_metal_water_walking_speed
      (sub_umwws_row, xids=[approach_s32]) -- all window stores, all callees already
-     proved or obj_ext, NO hypothesis needed.  set_mario_anim_with_accel remains an
-     honest residual (anim chase store; body walked in AutomaticLeafSurface, not yet
-     promoted). *)
-  Hypothesis Hcp_smawa_real :
-    call_pres lp bm (NoA_real bm) MWF mario._set_mario_anim_with_accel.
+     proved or obj_ext, NO hypothesis needed.  set_mario_anim_with_accel is now
+     DISCHARGED inside SubmergedLeafSurface as call_pres_np3 (sub_smawa_row, reusing
+     MovingLeafSurface.mov_smawa_row) and threaded through the two metal-water-walking
+     leaves via the np3 channel -- NO hypothesis needed. *)
   (* SLICE 6 (the water-IDLE cluster: water_idle/hold + water_action_end/hold):
      common_idle_step is the shared swim-idle step.  Writes m->faceAngle
      (window) + chases m->marioBodyState->headAngle (a SafeB chase-root block) +
@@ -2527,10 +2526,10 @@ Section NoARealInputMWF.
                          (Hpres_obj_ext interaction._stop_shell_music eq_refl)
                          (Hpres_obj_ext interaction._obj_set_held_state eq_refl))
                       (* SLICE 5 (metal-water WALKING pair): perform_ground_step
-                         is the already-PROVED Hcp_pgs Lemma (NO new trust); the
-                         three walking helpers are honest call_pres residuals. *)
+                         is the already-PROVED Hcp_pgs Lemma (NO new trust);
+                         set_mario_anim_with_accel is now DISCHARGED in-surface
+                         (sub_smawa_row, np3 channel, NO hyp). *)
                       Hcp_pgs
-                      Hcp_smawa_real
                       (* SLICE 6 (water-IDLE cluster): common_idle_step honest
                          residual; the 4 idle leaves reduce to it + sids. *)
                       Hcp_cis_real
