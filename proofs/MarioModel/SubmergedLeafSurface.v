@@ -558,6 +558,29 @@ Example sub_psn_walk :
     (fn_body mario_actions_submerged.f_play_swimming_noise) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- play_sound_if_no_flag (mario.prog): window read of m->flags; conditional
+   play_sound (obj_ext) + window store m->flags |= flags -> xids=[play_sound].
+   Reuses sub_psn_xids (= [play_sound]). *)
+Example sub_psinf_pin :
+  (prog_defmap mario.prog) ! mario._play_sound_if_no_flag
+  = Some (Gfun (Internal mario.f_play_sound_if_no_flag)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_psinf_vars : fn_vars mario.f_play_sound_if_no_flag = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_psinf_pok :
+  match fn_params mario.f_play_sound_if_no_flag with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_psinf_walk :
+  wwalk_chk false nil nil nil nil sub_psn_xids nil nil
+    (fn_body mario.f_play_sound_if_no_flag) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ---- act_metal_water_standing ---- *)
 Example sub_mws_pin :
   (prog_defmap mario_actions_submerged.prog)
@@ -1395,12 +1418,9 @@ Section SubmergedLeafRows.
   Hypothesis Hcp_ltw :
     call_pres lp bm NoA MWF level_update._level_trigger_warp.
 
-  (* play_sound_if_no_flag: the flag-gated sound helper.  Writes m->flags
-     (window) + plays a sound; NEVER the action cell, a genuine call_pres for
-     any caller (the SAME Hpsinf class the airborne/stationary surfaces use).
-     Honest residual (body walk = play_sound obj_ext + the flag store). *)
-  Hypothesis Hcp_psinf :
-    call_pres lp bm NoA MWF mario_actions_submerged._play_sound_if_no_flag.
+  (* play_sound_if_no_flag (the flag-gated sound helper, mario.prog) is
+     DISCHARGED below (sub_psinf_row): window store m->flags + lone call
+     play_sound (obj_ext) -- NO hypothesis needed. *)
 
   (* act_water_shocked's two terminal externals -- both obj_ext_ids members,
      the same audio/camera-shake model-boundary class as play_sound's row
@@ -1782,6 +1802,24 @@ Section SubmergedLeafRows.
     - exact sub_psn_walk.
   Qed.
 
+  (* play_sound_if_no_flag (mario.prog): window store m->flags; lone call
+     play_sound (sub_psn_xids_rows -> Hcpx_psound, obj_ext).  No new trust. *)
+  Lemma sub_psinf_row :
+    call_pres lp bm NoA MWF mario_actions_submerged._play_sound_if_no_flag.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._play_sound_if_no_flag mario.f_play_sound_if_no_flag
+             nil nil sub_psn_xids nil LO_mario
+             sub_psinf_pin sub_psinf_vars sub_psinf_pok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sub_psn_xids_rows.
+    - intros fid' H. discriminate H.
+    - exact sub_psinf_walk.
+  Qed.
+
   (* ---- the ids/sids row dispatchers for the leaf walks ---- *)
   Lemma sub_metal_ids_rows : forall fid, mem_id fid sub_metal_ids = true ->
       call_pres lp bm NoA MWF fid.
@@ -1867,7 +1905,7 @@ Section SubmergedLeafRows.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ltw | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_psinf | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_psinf_row | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact sub_ssd_row | ].
     apply orb_true_iff in H as [Hm | H];
@@ -1886,7 +1924,7 @@ Section SubmergedLeafRows.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact sub_sma_row | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_psinf | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_psinf_row | ].
     discriminate H.
   Qed.
 
@@ -1956,7 +1994,7 @@ Section SubmergedLeafRows.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact sub_sma_row | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_psinf | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_psinf_row | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact sub_iae_row | ].
     apply orb_true_iff in H as [Hm | H];
