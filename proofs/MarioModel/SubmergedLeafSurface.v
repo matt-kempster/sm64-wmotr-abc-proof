@@ -28,9 +28,10 @@ From SM64.Proofs Require Import SymbolicLinking Flying Taint
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface
   AirborneSurface DispatchKit FloorsSurface.
 From SM64.Proofs Require Import ActWriterSurface SubmergedSurface MarioStepSurface.
-(* Require (not Import) ObjectLeafSurface: we only reuse its proved mtho_row,
-   referenced qualified -- avoids name shadowing. *)
-From SM64.Proofs Require ObjectLeafSurface.
+(* Require (not Import) ObjectLeafSurface / MovingLeafSurface: we only reuse
+   their proved mtho_row / mov_smawa_row, referenced qualified -- avoids name
+   shadowing. *)
+From SM64.Proofs Require ObjectLeafSurface MovingLeafSurface.
 
 Import ListNotations.
 
@@ -70,11 +71,19 @@ Definition sub_metal_ids : list ident :=
    pool); NONE touches the action cell, so each is a genuine call_pres for any
    caller.  perform_ground_step is ALREADY PROVED (capstone Hcp_pgs, the
    MarioStepSurface walk) -- fed through, NO new trust. *)
+(* set_mario_anim_with_accel moved OUT of ids into the np3 channel: it is the
+   np3 body (its 3rd arg `accel` must be non-pointer to safely store), so it is
+   discharged as call_pres_np3 (sub_smawa_row, reusing MovingLeafSurface.
+   mov_smawa_row).  The metal_water_walking leaves pass val04 (a float-derived
+   s32, nids-tracked via [_val04; _t'5]) as that 3rd arg. *)
 Definition sub_walk_ids : list ident :=
-  mario._set_mario_anim_with_accel
-    :: mario_actions_submerged._play_metal_water_walking_sound
+  mario_actions_submerged._play_metal_water_walking_sound
     :: mario_actions_submerged._update_metal_water_walking_speed
     :: mario_step._perform_ground_step :: nil.
+Definition sub_walk_np3 : list ident :=
+  mario._set_mario_anim_with_accel :: nil.
+Definition sub_walk_nids : list ident :=
+  mario_actions_submerged._val04 :: mario_actions_submerged._t'5 :: nil.
 
 (* the ids helpers the water-IDLE cluster (water_idle/hold + water_action_end/
    hold) calls: common_idle_step (the shared swim-idle step -- writes window +
@@ -1046,8 +1055,14 @@ Example sub_mww_pok :
   sub_hold_pok mario_actions_submerged.f_act_metal_water_walking = true.
 Proof. vm_compute. reflexivity. Qed.
 Example sub_mww_walk :
-  wwalk_chk false nil sub_walk_ids nil nil nil sub_sids nil
+  wwalk_chk' nil nil nil nil sub_walk_nids sub_walk_np3 false
+    nil sub_walk_ids nil nil nil sub_sids nil
     (fn_body mario_actions_submerged.f_act_metal_water_walking) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_mww_nonparam_n :
+  forallb (fun t' => negb (mem_id t'
+    (map fst (fn_params mario_actions_submerged.f_act_metal_water_walking))))
+    sub_walk_nids = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Example sub_hmww_pin :
@@ -1062,8 +1077,14 @@ Example sub_hmww_pok :
   sub_hold_pok mario_actions_submerged.f_act_hold_metal_water_walking = true.
 Proof. vm_compute. reflexivity. Qed.
 Example sub_hmww_walk :
-  wwalk_chk false nil sub_walk_ids nil nil nil sub_sids nil
+  wwalk_chk' nil nil nil nil sub_walk_nids sub_walk_np3 false
+    nil sub_walk_ids nil nil nil sub_sids nil
     (fn_body mario_actions_submerged.f_act_hold_metal_water_walking) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_hmww_nonparam_n :
+  forallb (fun t' => negb (mem_id t'
+    (map fst (fn_params mario_actions_submerged.f_act_hold_metal_water_walking))))
+    sub_walk_nids = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* ---- the water-IDLE cluster (common_idle_step + is_anim_at_end ids; the
@@ -1643,12 +1664,9 @@ Section SubmergedLeafRows.
 
   (* set_mario_anim_with_accel: set_mario_animation's accel-scaled sibling.
      Writes the anim window + chases marioObj's SafeB gfx anim pool through the
-     anim id / accel scalar args; NEVER the action cell, so a genuine call_pres
-     for any caller.  Honest residual (its body is already walked in
-     AutomaticLeafSurface via the np3 channel -- promotable to a standalone
-     call_pres Lemma later). *)
-  Hypothesis Hcp_smawa :
-    call_pres lp bm NoA MWF mario._set_mario_anim_with_accel.
+     anim id / accel scalar args; NEVER the action cell.  DISCHARGED below as
+     call_pres_np3 (sub_smawa_row, reusing MovingLeafSurface.mov_smawa_row) and
+     threaded through the smawa-calling leaves via the np3 channel -- NO hyp. *)
 
   (* play_metal_water_walking_sound is DISCHARGED below (sub_pmwws_row): window
      store + ids=[is_anim_past_frame] (sub_iapf_row) + xids=[play_sound]
@@ -2959,12 +2977,29 @@ Section SubmergedLeafRows.
     discriminate H.
   Qed.
 
+  (* set_mario_anim_with_accel via the np3 channel: REUSE the already-proved
+     MovingLeafSurface.mov_smawa_row (call_pres_np3; same mario.prog body the
+     moving family walks).  Needs only LO_mario + wwalk vars + Hcpx_lpt. *)
+  Lemma sub_smawa_row :
+    call_pres_np3 lp bm NoA MWF mario._set_mario_anim_with_accel.
+  Proof.
+    exact (MovingLeafSurface.mov_smawa_row lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+             HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe Hcpx_lpt).
+  Qed.
+  Lemma sub_walk_np3_rows : forall fid, mem_id fid sub_walk_np3 = true ->
+      call_pres_np3 lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sub_walk_np3 in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_smawa_row | ].
+    discriminate H.
+  Qed.
+
   Lemma sub_walk_ids_rows : forall fid, mem_id fid sub_walk_ids = true ->
       call_pres lp bm NoA MWF fid.
   Proof.
     intros fid H. unfold sub_walk_ids in H. cbn [mem_id existsb] in H.
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_smawa | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact sub_pmwws_row | ].
     apply orb_true_iff in H as [Hm | H];
@@ -3369,17 +3404,18 @@ Section SubmergedLeafRows.
     body_pres lp NoA MWF bm
       mario_actions_submerged.f_act_metal_water_walking.
   Proof.
-    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (body_pres_of_wwalk_nids lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              mario_actions_submerged.f_act_metal_water_walking
-             sub_walk_ids nil nil sub_sids nil
-             sub_mww_vars sub_mww_pok).
+             sub_walk_ids nil nil nil sub_sids nil sub_walk_nids sub_walk_np3
+             sub_mww_vars sub_mww_pok eq_refl sub_mww_nonparam_n).
     - exact sub_walk_ids_rows.
     - intros fid' H. discriminate H.
     - intros fid' H. discriminate H.
     - exact sub_sids_rows.
     - intros fid' H. discriminate H.
+    - exact sub_walk_np3_rows.
     - exact sub_mww_walk.
   Qed.
 
@@ -3387,17 +3423,18 @@ Section SubmergedLeafRows.
     body_pres lp NoA MWF bm
       mario_actions_submerged.f_act_hold_metal_water_walking.
   Proof.
-    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (body_pres_of_wwalk_nids lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              mario_actions_submerged.f_act_hold_metal_water_walking
-             sub_walk_ids nil nil sub_sids nil
-             sub_hmww_vars sub_hmww_pok).
+             sub_walk_ids nil nil nil sub_sids nil sub_walk_nids sub_walk_np3
+             sub_hmww_vars sub_hmww_pok eq_refl sub_hmww_nonparam_n).
     - exact sub_walk_ids_rows.
     - intros fid' H. discriminate H.
     - intros fid' H. discriminate H.
     - exact sub_sids_rows.
     - intros fid' H. discriminate H.
+    - exact sub_walk_np3_rows.
     - exact sub_hmww_walk.
   Qed.
 
