@@ -1042,6 +1042,23 @@ Section NoARealInputMWF.
   Hypothesis Hcp_tstw_real :
     call_pres lp bm (NoA_real bm) MWF
       mario_actions_submerged._transition_submerged_to_walking.
+  (* SLICE 13 (throw/punch pair): the four swimming helpers + the throw/grab
+     helpers are honest INTERNAL residuals (all internal in their TUs),
+     dischargeable by walking their bodies later.  The three terminal
+     externals (approach_s32 / segmented_to_virtual / play_shell_music) are
+     obj_ext, discharged zero-trust via Hpres_obj_ext below. *)
+  Hypothesis Hcp_usy_real :
+    call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._update_swimming_yaw.
+  Hypothesis Hcp_usp_real :
+    call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._update_swimming_pitch.
+  Hypothesis Hcp_uss_real :
+    call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._update_swimming_speed.
+  Hypothesis Hcp_uwp_real :
+    call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._update_water_pitch.
+  Hypothesis Hcp_mtho_real :
+    call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._mario_throw_held_object.
+  Hypothesis Hcp_cwg_real :
+    call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._check_water_grab.
   (* the cutscene dispatcher is WALKED (CutsceneSurface.cutscene_pres
      over the generic DispatchKit): its whole-body residual is PROVED
      from per-leaf-callee residuals keyed by the 51-id census
@@ -2531,6 +2548,15 @@ Section NoARealInputMWF.
                          the obj_ext boundary. *)
                       Hcp_tstw_real
                       (Hpres_obj_ext interaction._stop_shell_music eq_refl)
+                      (* SLICE 13 (throw/punch): 4 swim helpers + throw/grab
+                         helpers (honest internal residuals); approach_s32 /
+                         segmented_to_virtual / play_shell_music zero-trust via
+                         the obj_ext boundary. *)
+                      Hcp_usy_real Hcp_usp_real Hcp_uss_real Hcp_uwp_real
+                      Hcp_mtho_real Hcp_cwg_real
+                      (Hpres_obj_ext mario_actions_object._approach_s32 eq_refl)
+                      (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
+                      (Hpres_obj_ext interaction._play_shell_music eq_refl)
                       Hpres_sub_rest))
                 (cutscene_pres lp LO_mario LO_cut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
