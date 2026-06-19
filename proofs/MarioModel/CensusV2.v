@@ -809,7 +809,11 @@ Definition stored_globals : list ident :=
      leaves (act_breaststroke / act_swimming_end / act_flutter_kick) store
      sSwimStrength = MIN_SWIM_STRENGTH or sSwimStrength += 10 directly -- a
      static s16 data symbol, same Hglob_blk bm/bc/SafeB-disjoint trust class. *)
-  mario_actions_submerged._sSwimStrength :: nil.
+  mario_actions_submerged._sSwimStrength ::
+  (* the bob-increment static (mario_actions_submerged): act_water_plunge stores
+     sBobIncrement = 0 directly when the plunge resolves -- a static s16 data
+     symbol, same Hglob_blk bm/bc/SafeB-disjoint trust class. *)
+  mario_actions_submerged._sBobIncrement :: nil.
 
 (* ---------------------------------------------------------------------- *)
 (* The interaction-handler census (the Hpres_inter arc): the 28 DISTINCT   *)

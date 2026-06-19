@@ -238,6 +238,37 @@ Definition swim_hfk_cact : list ident := mario_actions_submerged._t'10 :: nil.
 Definition swim_wss_cact : list ident :=
   mario_actions_submerged._t'8 :: mario_actions_submerged._t'6 :: nil.
 
+(* SLICE 15 (the LAST two submerged leaves -- act_water_plunge +
+   act_caught_in_whirlpool).  Both are straight-line switch bodies (NOT loops).
+   water_plunge stores sBobIncrement=0 (stored_globals), set_mario_action(const)
+   the 6-case resolve (sub_sids), play_sound (obj_ext) via marioObj cact temps +
+   a heldObj!=NULL read temp, and calls swimming_near_surface / stationary_slow_
+   down / perform_water_step / set_mario_animation.  whirlpool chases m->marioObj
+   (oMarioWhirlpoolPosY float chase store) + m->usedObj (whirlpool oPos reads),
+   sets pos/vel/faceAngle window, calls level_trigger_warp (the SHARED warp) +
+   set_mario_animation, and the obj_ext math/copy externals sqrtf / atan2s /
+   vec3f_copy / vec3s_set.  ONE new honest residual: swimming_near_surface. *)
+Definition wp_ids : list ident :=
+  mario_actions_submerged._swimming_near_surface
+    :: mario_actions_submerged._stationary_slow_down
+    :: mario_actions_submerged._perform_water_step
+    :: mario_actions_submerged._set_mario_animation :: nil.
+Definition wp_xids : list ident := mario_actions_submerged._play_sound :: nil.
+Definition wp_cact : list ident :=
+  mario_actions_submerged._t'19
+    :: mario_actions_submerged._t'14
+    :: mario_actions_submerged._t'13 :: nil.
+Definition whirl_ids : list ident :=
+  mario_actions_submerged._level_trigger_warp
+    :: mario_actions_submerged._set_mario_animation :: nil.
+Definition whirl_xids : list ident :=
+  mario_actions_submerged._sqrtf
+    :: mario_actions_submerged._atan2s
+    :: mario_actions_submerged._vec3f_copy
+    :: mario_actions_submerged._vec3s_set :: nil.
+Definition whirl_cact : list ident :=
+  mario_actions_submerged._marioObj :: mario_actions_submerged._whirlpool :: nil.
+
 (* the WALKED leaves. *)
 Definition sub_walked_ids : list ident :=
   mario_actions_submerged._act_metal_water_standing
@@ -270,7 +301,9 @@ Definition sub_walked_ids : list ident :=
     :: mario_actions_submerged._act_hold_breaststroke
     :: mario_actions_submerged._act_hold_swimming_end
     :: mario_actions_submerged._act_hold_flutter_kick
-    :: mario_actions_submerged._act_water_shell_swimming :: nil.
+    :: mario_actions_submerged._act_water_shell_swimming
+    :: mario_actions_submerged._act_water_plunge
+    :: mario_actions_submerged._act_caught_in_whirlpool :: nil.
 Definition sub_rest_ids : list ident :=
   filter (fun id => negb (mem_id id sub_walked_ids)) submerged_callee_ids.
 
@@ -967,6 +1000,49 @@ Example sub_wss_walk :
     (fn_body mario_actions_submerged.f_act_water_shell_swimming) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- SLICE 15: the last two submerged leaves. ---- *)
+(* water_plunge (cact = [_t'19 heldObj read; _t'14/_t'13 marioObj play_sound]). *)
+Example sub_wpl_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._act_water_plunge
+  = Some (Gfun (Internal mario_actions_submerged.f_act_water_plunge)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_wpl_vars : fn_vars mario_actions_submerged.f_act_water_plunge = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_wpl_pok : sub_hold_pok mario_actions_submerged.f_act_water_plunge = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_wpl_nonparam :
+  forallb (fun t' => negb (mem_id t'
+    (map fst (fn_params mario_actions_submerged.f_act_water_plunge))))
+    wp_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_wpl_walk :
+  wwalk_chk false nil wp_ids nil wp_cact wp_xids sub_sids nil
+    (fn_body mario_actions_submerged.f_act_water_plunge) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* whirlpool (cact = [_marioObj; _whirlpool]). *)
+Example sub_whp_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._act_caught_in_whirlpool
+  = Some (Gfun (Internal mario_actions_submerged.f_act_caught_in_whirlpool)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_whp_vars :
+  fn_vars mario_actions_submerged.f_act_caught_in_whirlpool = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_whp_pok :
+  sub_hold_pok mario_actions_submerged.f_act_caught_in_whirlpool = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_whp_nonparam :
+  forallb (fun t' => negb (mem_id t'
+    (map fst (fn_params mario_actions_submerged.f_act_caught_in_whirlpool))))
+    whirl_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_whp_walk :
+  wwalk_chk false nil whirl_ids nil whirl_cact whirl_xids nil nil
+    (fn_body mario_actions_submerged.f_act_caught_in_whirlpool) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ====================================================================== *)
 (* The section: the leaf-callee discharge, keyed by the census.           *)
 (* ====================================================================== *)
@@ -1220,6 +1296,24 @@ Section SubmergedLeafRows.
     call_pres lp bm NoA MWF mario_actions_submerged._common_swimming_step.
   Hypothesis Hcpx_af32 :
     call_pres_ext lp bm NoA MWF mario_actions_submerged._approach_f32.
+
+  (* SLICE 15 (the last two leaves): swimming_near_surface is the ONE honest
+     INTERNAL residual (internal in mario_actions_submerged.prog, a pure read of
+     m->pos[1]/waterLevel returning a flag -- dischargeable by walking it later).
+     The four whirlpool externals (sqrtf / atan2s / vec3f_copy / vec3s_set) are
+     obj_ext_ids members, discharged zero-trust via Hpres_obj_ext at the
+     capstone.  level_trigger_warp reuses the SHARED Hcp_ltw; set_mario_action /
+     play_sound / set_mario_animation reuse the keystone / obj_ext / sub_sma_row. *)
+  Hypothesis Hcp_sns :
+    call_pres lp bm NoA MWF mario_actions_submerged._swimming_near_surface.
+  Hypothesis Hcpx_sqrtf :
+    call_pres_ext lp bm NoA MWF mario_actions_submerged._sqrtf.
+  Hypothesis Hcpx_atan2s :
+    call_pres_ext lp bm NoA MWF mario_actions_submerged._atan2s.
+  Hypothesis Hcpx_v3fc :
+    call_pres_ext lp bm NoA MWF mario_actions_submerged._vec3f_copy.
+  Hypothesis Hcpx_v3ss :
+    call_pres_ext lp bm NoA MWF mario_actions_submerged._vec3s_set.
 
   (* the keystone, instantiated once: set_mario_action is call_pres_act. *)
   Let Hsmact : call_pres_act lp bm NoA MWF mario._set_mario_action :=
@@ -1493,6 +1587,57 @@ Section SubmergedLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_af32 | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_ssm | ].
+    discriminate H.
+  Qed.
+
+  (* ---- SLICE 15: the last-two-leaves rows ---- *)
+  Lemma wp_ids_rows : forall fid, mem_id fid wp_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold wp_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sns | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ssd | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pws | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_sma_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma wp_xids_rows : forall fid, mem_id fid wp_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold wp_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | ].
+    discriminate H.
+  Qed.
+
+  Lemma whirl_ids_rows : forall fid, mem_id fid whirl_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold whirl_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ltw | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_sma_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma whirl_xids_rows : forall fid, mem_id fid whirl_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold whirl_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_sqrtf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_atan2s | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_v3fc | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_v3ss | ].
     discriminate H.
   Qed.
 
@@ -2050,6 +2195,41 @@ Section SubmergedLeafRows.
     - exact sub_wss_walk.
   Qed.
 
+  (* ---- SLICE 15: the last two submerged leaves ---- *)
+  Lemma act_water_plunge_pres :
+    body_pres lp NoA MWF bm mario_actions_submerged.f_act_water_plunge.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.f_act_water_plunge
+             wp_ids nil wp_cact wp_xids sub_sids nil
+             sub_wpl_vars sub_wpl_pok sub_wpl_nonparam).
+    - exact wp_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact wp_xids_rows.
+    - exact sub_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact sub_wpl_walk.
+  Qed.
+
+  Lemma act_caught_in_whirlpool_pres :
+    body_pres lp NoA MWF bm mario_actions_submerged.f_act_caught_in_whirlpool.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.f_act_caught_in_whirlpool
+             whirl_ids nil whirl_cact whirl_xids nil nil
+             sub_whp_vars sub_whp_pok sub_whp_nonparam).
+    - exact whirl_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact whirl_xids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sub_whp_walk.
+  Qed.
+
   (* ================================================================== *)
   (* THE PAYOFF: the census-keyed leaf discharge.  The walked leaf is   *)
   (* discharged here; everything else falls through to the rest premise *)
@@ -2221,6 +2401,16 @@ Section SubmergedLeafRows.
     { apply Pos.eqb_eq in Ew31; subst fid.
       rewrite sub_wss_pin in Hdm. injection Hdm as <-.
       exact act_water_shell_swimming_pres. }
+    destruct (Pos.eqb fid mario_actions_submerged._act_water_plunge)
+      eqn:Ew32.
+    { apply Pos.eqb_eq in Ew32; subst fid.
+      rewrite sub_wpl_pin in Hdm. injection Hdm as <-.
+      exact act_water_plunge_pres. }
+    destruct (Pos.eqb fid mario_actions_submerged._act_caught_in_whirlpool)
+      eqn:Ew33.
+    { apply Pos.eqb_eq in Ew33; subst fid.
+      rewrite sub_whp_pin in Hdm. injection Hdm as <-.
+      exact act_caught_in_whirlpool_pres. }
     (* REST: fid is in the census and not a walked id, so it is in the
        filter that defines sub_rest_ids. *)
     apply (Hrest fid f); [ | exact Hdm ].
@@ -2230,7 +2420,22 @@ Section SubmergedLeafRows.
     rewrite Ew1, Ew2, Ew3, Ew4, Ew5, Ew6, Ew7, Ew8, Ew9, Ew10,
       Ew11, Ew12, Ew13, Ew14, Ew15, Ew16, Ew17, Ew18, Ew19,
       Ew20, Ew21, Ew22, Ew23, Ew24, Ew25, Ew26, Ew27, Ew28, Ew29,
-      Ew30, Ew31. reflexivity.
+      Ew30, Ew31, Ew32, Ew33. reflexivity.
+  Qed.
+
+  (* SLICE 15 CLOSES THE SUBMERGED LEAF FAMILY: all 33 census ids are now
+     WALKED (sub_rest_ids computes to []), so the rest premise is VACUOUS.
+     This full version discharges it inline -- the WHOLE submerged leaf census
+     is positively walked, with NO catch-all "rest" hypothesis surviving at the
+     capstone (Hpres_sub_rest is eliminated). *)
+  Lemma submerged_leaf_callees_pres_full :
+    forall fid f, mem_id fid submerged_callee_ids = true ->
+      (prog_defmap mario_actions_submerged.prog) ! fid
+        = Some (Gfun (Internal f)) ->
+      body_pres lp NoA MWF bm f.
+  Proof.
+    apply submerged_leaf_callees_pres.
+    intros fid f H _. vm_compute in H. discriminate H.
   Qed.
 
 End SubmergedLeafRows.
