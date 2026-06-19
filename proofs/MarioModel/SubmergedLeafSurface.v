@@ -504,6 +504,35 @@ Example sub_uss_walk :
     (fn_body mario_actions_submerged.f_update_swimming_speed) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- stationary_slow_down (window stores angleVel/forwardVel/vel/faceAngle;
+   sole internal call get_buoyancy -> ids; approach_f32/approach_s32 externals
+   -> xids, both obj_ext; coss/sins = gSineTable loads) *)
+Definition sub_ssd_ids : list ident :=
+  mario_actions_submerged._get_buoyancy :: nil.
+Definition sub_ssd_xids : list ident :=
+  mario_actions_submerged._approach_f32 :: mario_actions_object._approach_s32 :: nil.
+Example sub_ssd_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._stationary_slow_down
+  = Some (Gfun (Internal mario_actions_submerged.f_stationary_slow_down)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_ssd_vars :
+  fn_vars mario_actions_submerged.f_stationary_slow_down = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_ssd_pok :
+  match fn_params mario_actions_submerged.f_stationary_slow_down with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_ssd_walk :
+  wwalk_chk false nil sub_ssd_ids nil nil sub_ssd_xids nil nil
+    (fn_body mario_actions_submerged.f_stationary_slow_down) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ---- act_metal_water_standing ---- *)
 Example sub_mws_pin :
   (prog_defmap mario_actions_submerged.prog)
@@ -1320,12 +1349,10 @@ Section SubmergedLeafRows.
   Hypothesis Hcp_cis :
     call_pres lp bm NoA MWF mario_actions_submerged._common_idle_step.
 
-  (* stationary_slow_down: the water decel helper.  Writes m->angleVel/
-     forwardVel/vel/faceAngle (window) from approach_f32/approach_s32 +
-     get_buoyancy + coss/sins(gSineTable); NEVER the action cell, a genuine
-     call_pres for any caller.  Honest residual (body walk a later unit). *)
-  Hypothesis Hcp_ssd :
-    call_pres lp bm NoA MWF mario_actions_submerged._stationary_slow_down.
+  (* stationary_slow_down: the water decel helper (window stores from
+     approach_f32/approach_s32 + get_buoyancy + coss/sins).  DISCHARGED below
+     (sub_ssd_row): ids=[get_buoyancy] (sub_gb_row), xids=[approach_f32,
+     approach_s32] (obj_ext) -- NO hypothesis needed. *)
 
   (* perform_water_step: the Tier-2 water step.  Writes m->vel (window) +
      chases marioObj's SafeB gfx pos/angle pool through vec3f_copy/vec3s_set;
@@ -1660,6 +1687,47 @@ Section SubmergedLeafRows.
     - exact sub_uss_walk.
   Qed.
 
+  (* stationary_slow_down: window stores; ids=[get_buoyancy] (sub_gb_row);
+     xids=[approach_f32, approach_s32] (Hcpx_af32 / Hcpx_approach, both obj_ext)
+     -- NO new trust. *)
+  Lemma sub_ssd_ids_rows : forall fid, mem_id fid sub_ssd_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sub_ssd_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_gb_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma sub_ssd_xids_rows : forall fid, mem_id fid sub_ssd_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sub_ssd_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_af32 | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_approach | ].
+    discriminate H.
+  Qed.
+
+  Lemma sub_ssd_row :
+    call_pres lp bm NoA MWF mario_actions_submerged._stationary_slow_down.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.prog
+             mario_actions_submerged._stationary_slow_down
+             mario_actions_submerged.f_stationary_slow_down
+             sub_ssd_ids nil sub_ssd_xids nil LO_sub
+             sub_ssd_pin sub_ssd_vars sub_ssd_pok).
+    - exact sub_ssd_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact sub_ssd_xids_rows.
+    - intros fid' H. discriminate H.
+    - exact sub_ssd_walk.
+  Qed.
+
   (* ---- the ids/sids row dispatchers for the leaf walks ---- *)
   Lemma sub_metal_ids_rows : forall fid, mem_id fid sub_metal_ids = true ->
       call_pres lp bm NoA MWF fid.
@@ -1713,7 +1781,7 @@ Section SubmergedLeafRows.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact sub_sma_row | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ssd | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_ssd_row | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pws | ].
     discriminate H.
@@ -1724,7 +1792,7 @@ Section SubmergedLeafRows.
   Proof.
     intros fid H. unfold sub_death_ids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ssd | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_ssd_row | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pws | ].
     apply orb_true_iff in H as [Hm | H];
@@ -1747,7 +1815,7 @@ Section SubmergedLeafRows.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_psinf | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ssd | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_ssd_row | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pws | ].
     discriminate H.
@@ -1758,7 +1826,7 @@ Section SubmergedLeafRows.
   Proof.
     intros fid H. unfold sub_shock_ids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ssd | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_ssd_row | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pws | ].
     apply orb_true_iff in H as [Hm | H];
@@ -1898,7 +1966,7 @@ Section SubmergedLeafRows.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact sns_cp | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ssd | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_ssd_row | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pws | ].
     apply orb_true_iff in H as [Hm | H];
