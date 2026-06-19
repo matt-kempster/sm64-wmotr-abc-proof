@@ -1045,10 +1045,10 @@ Section NoARealInputMWF.
      dischargeable by walking their bodies later.  The three terminal
      externals (approach_s32 / segmented_to_virtual / play_shell_music) are
      obj_ext, discharged zero-trust via Hpres_obj_ext below. *)
-  Hypothesis Hcp_usy_real :
-    call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._update_swimming_yaw.
-  Hypothesis Hcp_usp_real :
-    call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._update_swimming_pitch.
+  (* update_swimming_yaw + update_swimming_pitch need NO hypothesis: both are
+     DISCHARGED inside SubmergedLeafSurface (sub_usy_row / sub_usp_row via
+     call_pres_of_wwalk) -- pure window stores into Mario's own faceAngle/
+     angleVel, the lone approach_s32 call (yaw) rides the obj_ext boundary. *)
   Hypothesis Hcp_uss_real :
     call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._update_swimming_speed.
   Hypothesis Hcp_uwp_real :
@@ -2582,7 +2582,7 @@ Section NoARealInputMWF.
                          helpers (honest internal residuals); approach_s32 /
                          segmented_to_virtual / play_shell_music zero-trust via
                          the obj_ext boundary. *)
-                      Hcp_usy_real Hcp_usp_real Hcp_uss_real Hcp_uwp_real
+                      Hcp_uss_real Hcp_uwp_real
                       Hcp_mtho_real Hcp_cwg_real
                       (Hpres_obj_ext mario_actions_object._approach_s32 eq_refl)
                       (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
