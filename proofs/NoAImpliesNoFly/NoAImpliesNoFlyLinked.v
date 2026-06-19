@@ -946,15 +946,14 @@ Section NoARealInputMWF.
      is NO Hpres_sub_rest catch-all hypothesis any more -- the family discharge
      is submerged_leaf_callees_pres_full, whose vacuous rest premise is proved
      inline (sub_rest_ids computes to []). *)
-  (* the ONE honest step residual slice 1 introduces: stop_and_set_height_
-     to_floor (mario_step.prog) writes pos/vel (window) and copies into
-     marioObj's gfx pos/angle through the chased marioObj pointer (SafeB
-     pool); it never touches the action cell, so it is a genuine call_pres
-     for any caller -- a real, named, dischargeable function (its sc-arc
-     body walk is the NEXT submerged unit), NOT a restatement of the goal. *)
-  Hypothesis Hcp_sashf_real :
-    call_pres lp bm (NoA_real bm) MWF
-      mario_step._stop_and_set_height_to_floor.
+  (* stop_and_set_height_to_floor (mario_step.prog) needs NO hypothesis --
+     DISCHARGED in-surface (SubmergedLeafSurface.sub_sashf_row, the SAME walk as
+     AutomaticLeafSurface.Hsasthf): writes pos/vel (window) + copies into
+     marioObj's gfx pos/angle through the chased marioObj pointer (a NON-bm
+     SafeB pool block, action cell untouched).  ids=[mario_set_forward_vel]
+     (sub_msfv_row); xids=[vec3f_copy; vec3s_set] ride the EXISTING obj_ext
+     boundary (Hpres_obj_ext, already assumed by the whirlpool slice) -- NO new
+     trust. *)
   (* SLICE 2/3/5 metal-water sound+speed helpers are now DISCHARGED in-surface
      (SubmergedLeafSurface): play_metal_water_jumping_sound (sub_pmwjs_row, ids=
      [play_sound_if_no_flag]), update_metal_water_jump_speed (sub_umwjs_row, xids=
@@ -2495,7 +2494,9 @@ Section NoARealInputMWF.
                       (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm
                          HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                       (Hpres_obj_ext mario._load_patchable_table eq_refl)
-                      Hcp_sashf_real
+                      (* stop_and_set_height_to_floor DISCHARGED in-surface
+                         (sub_sashf_row) -- NO hyp; vec3f_copy/vec3s_set ride the
+                         existing obj_ext boundary, msfv proved inline. *)
                       Hcp_pas
                       (* SLICE 4 (hold-metal variants): drop_and_set_mario_action
                          is the already-PROVED dasma_row (ObjectLeafSurface),
