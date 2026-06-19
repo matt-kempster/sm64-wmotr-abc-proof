@@ -1011,13 +1011,24 @@ Section NoARealInputMWF.
      to an I32 cast of the untainted endAction param / const into the action
      temp (wsrc_chk's act-temp cast arm); callees are the ssd/sma/iae rows +
      perform_water_step (Hcp_pws) + set_mario_action (keystone).  NO hyp. *)
-  (* SLICE 12 (cancel gate): transition_submerged_to_walking is an honest
-     INTERNAL residual (f_transition_submerged_to_walking in mario.prog),
-     dischargeable by walking its body later.  stop_shell_music (the nullary
-     audio external) is discharged zero-trust via Hpres_obj_ext below. *)
-  Hypothesis Hcp_tstw_real :
-    call_pres lp bm (NoA_real bm) MWF
-      mario_actions_submerged._transition_submerged_to_walking.
+  (* SLICE 12 (cancel gate): transition_submerged_to_walking needs NO
+     hypothesis -- DISCHARGED in-surface (sub_tstw_row, the ws hybrid walker):
+     its body is the wwalk engine generic arm plus the lone vec3s_set(m->
+     angleVel,0,0,0) special site (angleVel @50; a 6-byte write strictly INSIDE
+     a 12-byte-safe bm-window, action cell @12 clear -- store_window_ok 50 12 =
+     true), which rides the SHARED Hw1cp_v3sset_real boundary below;
+     set_camera_mode is obj_ext, set_mario_action is the keystone.
+     stop_shell_music (the nullary audio external) is discharged zero-trust via
+     Hpres_obj_ext below.
+     The angleVel-window terminal external, SHARED by both submerged helpers
+     (transition_submerged_to_walking + check_water_jump) that call
+     vec3s_set(m->angleVel): vec3s_set is EF_external in EVERY generated TU (no
+     internal body anywhere) -- the same honest terminal external-call-model
+     boundary as vec3f_set's m->vel window (Hw1cp_v3fset_real), same w1 gate,
+     here for the 6-byte angleVel write. *)
+  Hypothesis Hw1cp_v3sset_real :
+    call_pres_ext_w1 lp bm (NoA_real bm) MWF
+      mario._vec3s_set.
   (* SLICE 13 (throw/punch pair): the four swimming helpers + the throw/grab
      helpers are honest INTERNAL residuals (all internal in their TUs),
      dischargeable by walking their bodies later.  The three terminal
@@ -1046,8 +1057,12 @@ Section NoARealInputMWF.
      dasma_row; play_sound / stop_shell_music reuse the obj_ext boundary.
      approach_f32 is the ONE new terminal external (the pure-math float
      approach builtin -- EF_external in every TU, the honest model boundary). *)
-  Hypothesis Hcp_cwj_real :
-    call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._check_water_jump.
+  (* check_water_jump needs NO hypothesis -- DISCHARGED in-surface
+     (sub_cwj_row, the SAME ws hybrid walker as tstw): the A-gated body is the
+     wwalk engine generic arm plus vec3s_set(m->angleVel,0,0,0) (rides the
+     SHARED Hw1cp_v3sset_real boundary above) + m->vel[1]=62 (window store) +
+     set_mario_action (keystone).  NO new trust beyond the shared angleVel
+     window external. *)
   Hypothesis Hcp_satf_real :
     call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._set_anim_to_frame.
   (* play_swimming_noise needs NO hypothesis: DISCHARGED inside
@@ -2551,9 +2566,10 @@ Section NoARealInputMWF.
                       (* SLICE 11 (kb pair): cwks is DISCHARGED in-surface
                          (sub_cwks_row, call_pres_act3_of_wwalk_p4) -- NO hyp. *)
                       (* SLICE 12 (cancel gate): transition_submerged_to_walking
-                         honest internal residual; stop_shell_music zero-trust via
-                         the obj_ext boundary. *)
-                      Hcp_tstw_real
+                         is DISCHARGED in-surface (sub_tstw_row, ws hybrid walker)
+                         -- NO hyp; its angleVel vec3s_set rides the shared
+                         Hw1cp_v3sset_real boundary appended below.
+                         stop_shell_music zero-trust via the obj_ext boundary. *)
                       (Hpres_obj_ext interaction._stop_shell_music eq_refl)
                       (* SLICE 13 (throw/punch): 4 swim helpers + throw/grab
                          helpers (honest internal residuals); approach_s32 /
@@ -2569,7 +2585,9 @@ Section NoARealInputMWF.
                          stop_shell_music reuse the keystone + dasma_row +
                          obj_ext boundary (NO new trust); approach_f32 is the
                          ONE new terminal-external boundary row. *)
-                      Hcp_cwj_real Hcp_satf_real
+                      (* check_water_jump DISCHARGED in-surface (sub_cwj_row,
+                         ws hybrid walker) -- NO hyp; shares Hw1cp_v3sset_real. *)
+                      Hcp_satf_real
                       Hcp_css_real Hcpx_approach_f32_real
                       (* SLICE 15 (the last two leaves -- CLOSES the family):
                          swimming_near_surface is a PURE read-only body, so it is
@@ -2584,7 +2602,13 @@ Section NoARealInputMWF.
                       (Hpres_obj_ext mario_actions_submerged._sqrtf eq_refl)
                       (Hpres_obj_ext mario_actions_submerged._atan2s eq_refl)
                       (Hpres_obj_ext mario_actions_submerged._vec3f_copy eq_refl)
-                      (Hpres_obj_ext mario_actions_submerged._vec3s_set eq_refl)))
+                      (Hpres_obj_ext mario_actions_submerged._vec3s_set eq_refl)
+                      (* SLICE 12/14 ws walker externals (tstw + cwj bodies):
+                         set_camera_mode rides the obj_ext boundary (NO new
+                         trust); the angleVel vec3s_set window is the ONE new
+                         terminal-external boundary row (Hw1cp_v3sset_real). *)
+                      (Hpres_obj_ext mario._set_camera_mode eq_refl)
+                      Hw1cp_v3sset_real))
                 (cutscene_pres lp LO_mario LO_cut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
                    (mwf_real_ctl lp bm bc oc0 SafeB)
