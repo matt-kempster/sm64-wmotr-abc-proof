@@ -423,6 +423,36 @@ Example sub_usy_walk :
     (fn_body mario_actions_submerged.f_update_swimming_yaw) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- update_water_pitch (chase stores through m->marioObj: gfx.pos[1] float
+   += and gfx.angle[0] s16 = scaled; sins -> gSineTable load, NO external) ---- *)
+Definition sub_uwp_cact : list ident := mario_actions_submerged._marioObj :: nil.
+Example sub_uwp_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._update_water_pitch
+  = Some (Gfun (Internal mario_actions_submerged.f_update_water_pitch)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_uwp_vars :
+  fn_vars mario_actions_submerged.f_update_water_pitch = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_uwp_pok :
+  match fn_params mario_actions_submerged.f_update_water_pitch with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_uwp_nonparam :
+  forallb (fun t' => negb (mem_id t'
+             (map fst (fn_params mario_actions_submerged.f_update_water_pitch))))
+          sub_uwp_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_uwp_walk :
+  wwalk_chk false nil nil nil sub_uwp_cact nil nil nil
+    (fn_body mario_actions_submerged.f_update_water_pitch) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ---- act_metal_water_standing ---- *)
 Example sub_mws_pin :
   (prog_defmap mario_actions_submerged.prog)
@@ -1307,8 +1337,8 @@ Section SubmergedLeafRows.
      the obj_ext boundary -- NO hypothesis needed. *)
   Hypothesis Hcp_uss :
     call_pres lp bm NoA MWF mario_actions_submerged._update_swimming_speed.
-  Hypothesis Hcp_uwp :
-    call_pres lp bm NoA MWF mario_actions_submerged._update_water_pitch.
+  (* update_water_pitch is DISCHARGED below (sub_uwp_row): chase stores through
+     m->marioObj, no calls -- NO hypothesis needed. *)
   Hypothesis Hcp_mtho :
     call_pres lp bm NoA MWF mario_actions_submerged._mario_throw_held_object.
   Hypothesis Hcp_cwg :
@@ -1502,6 +1532,26 @@ Section SubmergedLeafRows.
     - exact sub_usy_walk.
   Qed.
 
+  (* update_water_pitch: chase stores through m->marioObj (chase root) -> cact;
+     no calls (sins = gSineTable load).  No new trust. *)
+  Lemma sub_uwp_row :
+    call_pres lp bm NoA MWF mario_actions_submerged._update_water_pitch.
+  Proof.
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.prog
+             mario_actions_submerged._update_water_pitch
+             mario_actions_submerged.f_update_water_pitch
+             nil nil sub_uwp_cact nil nil
+             LO_sub sub_uwp_pin sub_uwp_vars sub_uwp_pok sub_uwp_nonparam).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sub_uwp_walk.
+  Qed.
+
   (* ---- the ids/sids row dispatchers for the leaf walks ---- *)
   Lemma sub_metal_ids_rows : forall fid, mem_id fid sub_metal_ids = true ->
       call_pres lp bm NoA MWF fid.
@@ -1672,7 +1722,7 @@ Section SubmergedLeafRows.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pws | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_uwp | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_uwp_row | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact sub_sma_row | ].
     apply orb_true_iff in H as [Hm | H];
