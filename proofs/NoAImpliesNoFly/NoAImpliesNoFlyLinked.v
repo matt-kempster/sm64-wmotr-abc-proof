@@ -1047,8 +1047,11 @@ Section NoARealInputMWF.
      ObjectLeafSurface.mtho_row; the SAME interaction.prog body the object/
      stationary/airborne families walk).  Its 3 terminal externals ride the
      obj_ext boundary -- NO new trust. *)
-  Hypothesis Hcp_cwg_real :
-    call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._check_water_grab.
+  (* check_water_grab (cwg) is now DISCHARGED in-surface (SubmergedLeafSurface.
+     sub_cwg_row): a getter->root-store leaf whose body is fully walked.  Its
+     ONE internal dependency -- call_pres_mgco for mario_get_collided_object
+     (the SafeB pointer-return brick) -- is fed the already-proved Hcp_mgco_real
+     below, so this leaf adds NO new hypothesis. *)
   (* SLICE 14 (the swimming cluster -- 7 leaves): the swim helpers are honest
      INTERNAL residuals (check_water_jump / play_swimming_noise /
      reset_bob_variables / common_swimming_step in mario_actions_submerged.prog,
@@ -2580,10 +2583,12 @@ Section NoARealInputMWF.
                       (* SLICE 13 (throw/punch): mario_throw_held_object is now
                          DISCHARGED in-surface (sub_mtho_row, reusing
                          ObjectLeafSurface.mtho_row) -- NO hyp; check_water_grab
-                         stays an honest internal residual.  approach_s32 /
+                         is ALSO now discharged in-surface (sub_cwg_row), fed the
+                         proved Hcp_mgco_real (mario_get_collided_object SafeB
+                         pointer-return brick) below.  approach_s32 /
                          segmented_to_virtual / play_shell_music / obj_set_held_
                          state zero-trust via the obj_ext boundary. *)
-                      Hcp_cwg_real
+                      Hcp_mgco_real
                       (Hpres_obj_ext mario_actions_object._approach_s32 eq_refl)
                       (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
                       (Hpres_obj_ext interaction._play_shell_music eq_refl)
