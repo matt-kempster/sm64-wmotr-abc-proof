@@ -1059,6 +1059,27 @@ Section NoARealInputMWF.
     call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._mario_throw_held_object.
   Hypothesis Hcp_cwg_real :
     call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._check_water_grab.
+  (* SLICE 14 (the swimming cluster -- 7 leaves): the swim helpers are honest
+     INTERNAL residuals (check_water_jump / play_swimming_noise /
+     reset_bob_variables / common_swimming_step in mario_actions_submerged.prog,
+     set_anim_to_frame in mario.prog), each dischargeable by walking its body
+     later; NONE writes the action cell.  set_mario_action /
+     drop_and_set_mario_action (the action cancels) reuse the keystone +
+     dasma_row; play_sound / stop_shell_music reuse the obj_ext boundary.
+     approach_f32 is the ONE new terminal external (the pure-math float
+     approach builtin -- EF_external in every TU, the honest model boundary). *)
+  Hypothesis Hcp_cwj_real :
+    call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._check_water_jump.
+  Hypothesis Hcp_satf_real :
+    call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._set_anim_to_frame.
+  Hypothesis Hcp_psn_real :
+    call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._play_swimming_noise.
+  Hypothesis Hcp_rbv_real :
+    call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._reset_bob_variables.
+  Hypothesis Hcp_css_real :
+    call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._common_swimming_step.
+  Hypothesis Hcpx_af32_real :
+    call_pres_ext lp bm (NoA_real bm) MWF mario_actions_submerged._approach_f32.
   (* the cutscene dispatcher is WALKED (CutsceneSurface.cutscene_pres
      over the generic DispatchKit): its whole-body residual is PROVED
      from per-leaf-callee residuals keyed by the 51-id census
@@ -2557,6 +2578,14 @@ Section NoARealInputMWF.
                       (Hpres_obj_ext mario_actions_object._approach_s32 eq_refl)
                       (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
                       (Hpres_obj_ext interaction._play_shell_music eq_refl)
+                      (* SLICE 14 (the swimming cluster -- 7 leaves): the swim
+                         helpers are honest internal residuals; set_mario_action
+                         / drop_and_set_mario_action / play_sound /
+                         stop_shell_music reuse the keystone + dasma_row +
+                         obj_ext boundary (NO new trust); approach_f32 is the
+                         ONE new terminal-external boundary row. *)
+                      Hcp_cwj_real Hcp_satf_real Hcp_psn_real Hcp_rbv_real
+                      Hcp_css_real Hcpx_af32_real
                       Hpres_sub_rest))
                 (cutscene_pres lp LO_mario LO_cut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
