@@ -28,6 +28,9 @@ From SM64.Proofs Require Import SymbolicLinking Flying Taint
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface
   AirborneSurface DispatchKit FloorsSurface.
 From SM64.Proofs Require Import ActWriterSurface SubmergedSurface MarioStepSurface.
+(* Require (not Import) ObjectLeafSurface: we only reuse its proved mtho_row,
+   referenced qualified -- avoids name shadowing. *)
+From SM64.Proofs Require ObjectLeafSurface.
 
 Import ListNotations.
 
@@ -1538,6 +1541,11 @@ Section SubmergedLeafRows.
   Hypothesis LO_mario : linkorder mario.prog lp.
   Hypothesis LO_mario_step : linkorder mario_step.prog lp.
   Hypothesis LO_sub : linkorder mario_actions_submerged.prog lp.
+  (* interaction.prog linkorder -- needed to REUSE ObjectLeafSurface.mtho_row
+     (mario_throw_held_object is Internal in interaction.prog).  Discharged at
+     the capstone by the EXISTING interaction linkorder (the same LO_int the
+     dasma_row arg already threads) -- a proved linkorder, NOT a residual. *)
+  Hypothesis LO_int : linkorder interaction.prog lp.
 
   Variable bm : block.
   Variable NoA MWF : mem -> Prop.
@@ -1726,8 +1734,11 @@ Section SubmergedLeafRows.
      -- NO hypothesis needed. *)
   (* update_water_pitch is DISCHARGED below (sub_uwp_row): chase stores through
      m->marioObj, no calls -- NO hypothesis needed. *)
-  Hypothesis Hcp_mtho :
-    call_pres lp bm NoA MWF mario_actions_submerged._mario_throw_held_object.
+  (* mario_throw_held_object needs NO hypothesis -- DISCHARGED in-surface
+     (sub_mtho_row) by REUSING ObjectLeafSurface.mtho_row (it is the SAME
+     interaction.prog body the object/stationary/airborne families already
+     walk).  Its 3 terminal externals (segmented_to_virtual / stop_shell_music
+     / obj_set_held_state) ride the obj_ext boundary -- NO new trust. *)
   Hypothesis Hcp_cwg :
     call_pres lp bm NoA MWF mario_actions_submerged._check_water_grab.
   (* the throw/punch terminal externals -- all obj_ext_ids members (the
@@ -1740,6 +1751,11 @@ Section SubmergedLeafRows.
     call_pres_ext lp bm NoA MWF interaction._segmented_to_virtual.
   Hypothesis Hcpx_psm :
     call_pres_ext lp bm NoA MWF interaction._play_shell_music.
+  (* obj_set_held_state: the 3rd terminal external of mario_throw_held_object
+     (obj_ext_ids member -> capstone discharges via Hpres_obj_ext, the SAME
+     term the dasma_row arg already passes) -- NO new trust. *)
+  Hypothesis Hcpx_oshs :
+    call_pres_ext lp bm NoA MWF interaction._obj_set_held_state.
 
   (* SLICE 14 (the swimming cluster): the swim helpers are honest INTERNAL
      residuals (check_water_jump / play_swimming_noise / reset_bob_variables /
@@ -2471,6 +2487,19 @@ Section SubmergedLeafRows.
     - exact sub_sashf_walk.
   Qed.
 
+  (* mario_throw_held_object: REUSE the already-proved ObjectLeafSurface.mtho_row
+     (interaction.prog body; the object/stationary/airborne families instantiate
+     the identical term).  Its 3 obj_ext externals ride Hcpx_s2v/Hcpx_ssm/
+     Hcpx_oshs -- all obj_ext at the capstone, NO new trust. *)
+  Lemma sub_mtho_row :
+    call_pres lp bm NoA MWF mario_actions_submerged._mario_throw_held_object.
+  Proof.
+    exact (ObjectLeafSurface.mtho_row lp LO_mario LO_int bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+             HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             Hcpx_s2v Hcpx_ssm Hcpx_oshs).
+  Qed.
+
   Lemma sub_sma_xids_rows : forall fid, mem_id fid sub_sma_xids = true ->
       call_pres_ext lp bm NoA MWF fid.
   Proof.
@@ -3088,7 +3117,7 @@ Section SubmergedLeafRows.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact sub_iae_row | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_mtho | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_mtho_row | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_cwg | ].
     discriminate H.
