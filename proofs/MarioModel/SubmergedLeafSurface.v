@@ -206,6 +206,38 @@ Definition sub_tp_xids : list ident :=
     :: interaction._segmented_to_virtual
     :: interaction._play_shell_music :: nil.
 
+(* SLICE 14 (the swimming cluster -- the 7 free/hold breaststroke/swimming_end/
+   flutter_kick leaves + water_shell_swimming).  Each is the m-only swim action
+   body: it stores sSwimStrength (the free trio; a stored_globals data symbol,
+   Hglob_blk-disjoint), set_mario_action/drop_and_set_mario_action(const) the
+   action cancels (sub_sids -- the untainted swim/water-action consts), and
+   calls the shared swim helpers.  cact IS PER-LEAF (the marioObj/heldObj chase
+   temps each body loads -- marioObj for the play_sound cameraToObject arg and
+   the rawData.asS32[43] held-flag load; heldObj for water_shell_swimming's
+   oInteractStatus chase store + its own heldObj:=NULL chase-root clear).  ids =
+   the swim helpers, all genuine call_pres (none touches the action cell); xids
+   = play_sound/stop_shell_music (obj_ext audio boundary, NO new trust) +
+   approach_f32 (the pure-math float external -- the ONE new honest boundary). *)
+Definition swim_ids : list ident :=
+  mario_actions_submerged._check_water_jump
+    :: mario_actions_submerged._set_anim_to_frame
+    :: mario_actions_submerged._set_mario_animation
+    :: mario_actions_submerged._reset_bob_variables
+    :: mario_actions_submerged._common_swimming_step
+    :: mario_actions_submerged._play_swimming_noise :: nil.
+Definition swim_xids : list ident :=
+  mario_actions_submerged._play_sound
+    :: mario_actions_submerged._approach_f32
+    :: mario_actions_submerged._stop_shell_music :: nil.
+(* per-leaf cact: the marioObj/heldObj chase temps. *)
+Definition swim_bs_cact : list ident := mario_actions_submerged._t'11 :: nil.
+Definition swim_hbs_cact : list ident :=
+  mario_actions_submerged._t'22 :: mario_actions_submerged._t'10 :: nil.
+Definition swim_hse_cact : list ident := mario_actions_submerged._t'14 :: nil.
+Definition swim_hfk_cact : list ident := mario_actions_submerged._t'10 :: nil.
+Definition swim_wss_cact : list ident :=
+  mario_actions_submerged._t'8 :: mario_actions_submerged._t'6 :: nil.
+
 (* the WALKED leaves. *)
 Definition sub_walked_ids : list ident :=
   mario_actions_submerged._act_metal_water_standing
@@ -231,7 +263,14 @@ Definition sub_walked_ids : list ident :=
     :: mario_actions_submerged._act_forward_water_kb
     :: mario_actions_submerged._check_common_submerged_cancels
     :: mario_actions_submerged._act_water_throw
-    :: mario_actions_submerged._act_water_punch :: nil.
+    :: mario_actions_submerged._act_water_punch
+    :: mario_actions_submerged._act_breaststroke
+    :: mario_actions_submerged._act_swimming_end
+    :: mario_actions_submerged._act_flutter_kick
+    :: mario_actions_submerged._act_hold_breaststroke
+    :: mario_actions_submerged._act_hold_swimming_end
+    :: mario_actions_submerged._act_hold_flutter_kick
+    :: mario_actions_submerged._act_water_shell_swimming :: nil.
 Definition sub_rest_ids : list ident :=
   filter (fun id => negb (mem_id id sub_walked_ids)) submerged_callee_ids.
 
@@ -791,6 +830,143 @@ Example sub_wp_walk :
     (fn_body mario_actions_submerged.f_act_water_punch) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- SLICE 14: the swimming cluster pins. ---- *)
+(* breaststroke (cact = [_t'11], the marioObj for play_sound). *)
+Example sub_bs_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._act_breaststroke
+  = Some (Gfun (Internal mario_actions_submerged.f_act_breaststroke)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_bs_vars : fn_vars mario_actions_submerged.f_act_breaststroke = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_bs_pok : sub_hold_pok mario_actions_submerged.f_act_breaststroke = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_bs_nonparam :
+  forallb (fun t' => negb (mem_id t'
+    (map fst (fn_params mario_actions_submerged.f_act_breaststroke))))
+    swim_bs_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_bs_walk :
+  wwalk_chk false nil swim_ids nil swim_bs_cact swim_xids sub_sids nil
+    (fn_body mario_actions_submerged.f_act_breaststroke) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* swimming_end (no cact). *)
+Example sub_se_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._act_swimming_end
+  = Some (Gfun (Internal mario_actions_submerged.f_act_swimming_end)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_se_vars : fn_vars mario_actions_submerged.f_act_swimming_end = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_se_pok : sub_hold_pok mario_actions_submerged.f_act_swimming_end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_se_walk :
+  wwalk_chk false nil swim_ids nil nil swim_xids sub_sids nil
+    (fn_body mario_actions_submerged.f_act_swimming_end) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* flutter_kick (no cact; approach_f32 external). *)
+Example sub_fk_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._act_flutter_kick
+  = Some (Gfun (Internal mario_actions_submerged.f_act_flutter_kick)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_fk_vars : fn_vars mario_actions_submerged.f_act_flutter_kick = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_fk_pok : sub_hold_pok mario_actions_submerged.f_act_flutter_kick = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_fk_walk :
+  wwalk_chk false nil swim_ids nil nil swim_xids sub_sids nil
+    (fn_body mario_actions_submerged.f_act_flutter_kick) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* hold_breaststroke (cact = [_t'22; _t'10]: rawData-flag load + play_sound). *)
+Example sub_hbs_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._act_hold_breaststroke
+  = Some (Gfun (Internal mario_actions_submerged.f_act_hold_breaststroke)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_hbs_vars : fn_vars mario_actions_submerged.f_act_hold_breaststroke = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_hbs_pok :
+  sub_hold_pok mario_actions_submerged.f_act_hold_breaststroke = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_hbs_nonparam :
+  forallb (fun t' => negb (mem_id t'
+    (map fst (fn_params mario_actions_submerged.f_act_hold_breaststroke))))
+    swim_hbs_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_hbs_walk :
+  wwalk_chk false nil swim_ids nil swim_hbs_cact swim_xids sub_sids nil
+    (fn_body mario_actions_submerged.f_act_hold_breaststroke) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* hold_swimming_end (cact = [_t'14]: rawData-flag load). *)
+Example sub_hse_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._act_hold_swimming_end
+  = Some (Gfun (Internal mario_actions_submerged.f_act_hold_swimming_end)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_hse_vars : fn_vars mario_actions_submerged.f_act_hold_swimming_end = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_hse_pok :
+  sub_hold_pok mario_actions_submerged.f_act_hold_swimming_end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_hse_nonparam :
+  forallb (fun t' => negb (mem_id t'
+    (map fst (fn_params mario_actions_submerged.f_act_hold_swimming_end))))
+    swim_hse_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_hse_walk :
+  wwalk_chk false nil swim_ids nil swim_hse_cact swim_xids sub_sids nil
+    (fn_body mario_actions_submerged.f_act_hold_swimming_end) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* hold_flutter_kick (cact = [_t'10]: rawData-flag load; approach_f32). *)
+Example sub_hfk_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._act_hold_flutter_kick
+  = Some (Gfun (Internal mario_actions_submerged.f_act_hold_flutter_kick)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_hfk_vars : fn_vars mario_actions_submerged.f_act_hold_flutter_kick = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_hfk_pok :
+  sub_hold_pok mario_actions_submerged.f_act_hold_flutter_kick = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_hfk_nonparam :
+  forallb (fun t' => negb (mem_id t'
+    (map fst (fn_params mario_actions_submerged.f_act_hold_flutter_kick))))
+    swim_hfk_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_hfk_walk :
+  wwalk_chk false nil swim_ids nil swim_hfk_cact swim_xids sub_sids nil
+    (fn_body mario_actions_submerged.f_act_hold_flutter_kick) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* water_shell_swimming (cact = [_t'8; _t'6]: marioObj rawData-flag load +
+   heldObj for the oInteractStatus chase store; also clears heldObj:=NULL). *)
+Example sub_wss_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._act_water_shell_swimming
+  = Some (Gfun (Internal mario_actions_submerged.f_act_water_shell_swimming)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_wss_vars :
+  fn_vars mario_actions_submerged.f_act_water_shell_swimming = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_wss_pok :
+  sub_hold_pok mario_actions_submerged.f_act_water_shell_swimming = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_wss_nonparam :
+  forallb (fun t' => negb (mem_id t'
+    (map fst (fn_params mario_actions_submerged.f_act_water_shell_swimming))))
+    swim_wss_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_wss_walk :
+  wwalk_chk false nil swim_ids nil swim_wss_cact swim_xids sub_sids nil
+    (fn_body mario_actions_submerged.f_act_water_shell_swimming) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ====================================================================== *)
 (* The section: the leaf-callee discharge, keyed by the census.           *)
 (* ====================================================================== *)
@@ -1022,6 +1198,28 @@ Section SubmergedLeafRows.
     call_pres_ext lp bm NoA MWF interaction._segmented_to_virtual.
   Hypothesis Hcpx_psm :
     call_pres_ext lp bm NoA MWF interaction._play_shell_music.
+
+  (* SLICE 14 (the swimming cluster): the swim helpers are honest INTERNAL
+     residuals (check_water_jump / play_swimming_noise / reset_bob_variables /
+     common_swimming_step are internal in mario_actions_submerged.prog,
+     set_anim_to_frame is internal in mario.prog) -- dischargeable by walking
+     their bodies later.  NONE writes the action cell (the leaves dispatch
+     set_mario_action / drop_and_set_mario_action themselves via sub_sids; the
+     helpers update swim physics / bob variables / animation frames).
+     approach_f32 is the ONE new terminal external -- the pure-math float
+     approach builtin (EF_external in every TU, the honest model boundary). *)
+  Hypothesis Hcp_cwj :
+    call_pres lp bm NoA MWF mario_actions_submerged._check_water_jump.
+  Hypothesis Hcp_satf :
+    call_pres lp bm NoA MWF mario_actions_submerged._set_anim_to_frame.
+  Hypothesis Hcp_psn :
+    call_pres lp bm NoA MWF mario_actions_submerged._play_swimming_noise.
+  Hypothesis Hcp_rbv :
+    call_pres lp bm NoA MWF mario_actions_submerged._reset_bob_variables.
+  Hypothesis Hcp_css :
+    call_pres lp bm NoA MWF mario_actions_submerged._common_swimming_step.
+  Hypothesis Hcpx_af32 :
+    call_pres_ext lp bm NoA MWF mario_actions_submerged._approach_f32.
 
   (* the keystone, instantiated once: set_mario_action is call_pres_act. *)
   Let Hsmact : call_pres_act lp bm NoA MWF mario._set_mario_action :=
@@ -1262,6 +1460,39 @@ Section SubmergedLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_s2v | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psm | ].
+    discriminate H.
+  Qed.
+
+  (* ---- SLICE 14: the swimming-cluster rows ---- *)
+  Lemma swim_ids_rows : forall fid, mem_id fid swim_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold swim_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_cwj | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_satf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_sma_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_rbv | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_css | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_psn | ].
+    discriminate H.
+  Qed.
+
+  Lemma swim_xids_rows : forall fid, mem_id fid swim_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold swim_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_af32 | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_ssm | ].
     discriminate H.
   Qed.
 
@@ -1699,6 +1930,126 @@ Section SubmergedLeafRows.
     - exact sub_wp_walk.
   Qed.
 
+  (* ---- SLICE 14: the swimming-cluster leaves ---- *)
+  Lemma act_breaststroke_pres :
+    body_pres lp NoA MWF bm mario_actions_submerged.f_act_breaststroke.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.f_act_breaststroke
+             swim_ids nil swim_bs_cact swim_xids sub_sids nil
+             sub_bs_vars sub_bs_pok sub_bs_nonparam).
+    - exact swim_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact swim_xids_rows.
+    - exact sub_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact sub_bs_walk.
+  Qed.
+
+  Lemma act_swimming_end_pres :
+    body_pres lp NoA MWF bm mario_actions_submerged.f_act_swimming_end.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.f_act_swimming_end
+             swim_ids nil swim_xids sub_sids nil
+             sub_se_vars sub_se_pok).
+    - exact swim_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact swim_xids_rows.
+    - exact sub_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact sub_se_walk.
+  Qed.
+
+  Lemma act_flutter_kick_pres :
+    body_pres lp NoA MWF bm mario_actions_submerged.f_act_flutter_kick.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.f_act_flutter_kick
+             swim_ids nil swim_xids sub_sids nil
+             sub_fk_vars sub_fk_pok).
+    - exact swim_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact swim_xids_rows.
+    - exact sub_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact sub_fk_walk.
+  Qed.
+
+  Lemma act_hold_breaststroke_pres :
+    body_pres lp NoA MWF bm mario_actions_submerged.f_act_hold_breaststroke.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.f_act_hold_breaststroke
+             swim_ids nil swim_hbs_cact swim_xids sub_sids nil
+             sub_hbs_vars sub_hbs_pok sub_hbs_nonparam).
+    - exact swim_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact swim_xids_rows.
+    - exact sub_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact sub_hbs_walk.
+  Qed.
+
+  Lemma act_hold_swimming_end_pres :
+    body_pres lp NoA MWF bm mario_actions_submerged.f_act_hold_swimming_end.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.f_act_hold_swimming_end
+             swim_ids nil swim_hse_cact swim_xids sub_sids nil
+             sub_hse_vars sub_hse_pok sub_hse_nonparam).
+    - exact swim_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact swim_xids_rows.
+    - exact sub_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact sub_hse_walk.
+  Qed.
+
+  Lemma act_hold_flutter_kick_pres :
+    body_pres lp NoA MWF bm mario_actions_submerged.f_act_hold_flutter_kick.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.f_act_hold_flutter_kick
+             swim_ids nil swim_hfk_cact swim_xids sub_sids nil
+             sub_hfk_vars sub_hfk_pok sub_hfk_nonparam).
+    - exact swim_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact swim_xids_rows.
+    - exact sub_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact sub_hfk_walk.
+  Qed.
+
+  Lemma act_water_shell_swimming_pres :
+    body_pres lp NoA MWF bm mario_actions_submerged.f_act_water_shell_swimming.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.f_act_water_shell_swimming
+             swim_ids nil swim_wss_cact swim_xids sub_sids nil
+             sub_wss_vars sub_wss_pok sub_wss_nonparam).
+    - exact swim_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact swim_xids_rows.
+    - exact sub_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact sub_wss_walk.
+  Qed.
+
   (* ================================================================== *)
   (* THE PAYOFF: the census-keyed leaf discharge.  The walked leaf is   *)
   (* discharged here; everything else falls through to the rest premise *)
@@ -1835,6 +2186,41 @@ Section SubmergedLeafRows.
     { apply Pos.eqb_eq in Ew24; subst fid.
       rewrite sub_wp_pin in Hdm. injection Hdm as <-.
       exact act_water_punch_pres. }
+    destruct (Pos.eqb fid mario_actions_submerged._act_breaststroke)
+      eqn:Ew25.
+    { apply Pos.eqb_eq in Ew25; subst fid.
+      rewrite sub_bs_pin in Hdm. injection Hdm as <-.
+      exact act_breaststroke_pres. }
+    destruct (Pos.eqb fid mario_actions_submerged._act_swimming_end)
+      eqn:Ew26.
+    { apply Pos.eqb_eq in Ew26; subst fid.
+      rewrite sub_se_pin in Hdm. injection Hdm as <-.
+      exact act_swimming_end_pres. }
+    destruct (Pos.eqb fid mario_actions_submerged._act_flutter_kick)
+      eqn:Ew27.
+    { apply Pos.eqb_eq in Ew27; subst fid.
+      rewrite sub_fk_pin in Hdm. injection Hdm as <-.
+      exact act_flutter_kick_pres. }
+    destruct (Pos.eqb fid mario_actions_submerged._act_hold_breaststroke)
+      eqn:Ew28.
+    { apply Pos.eqb_eq in Ew28; subst fid.
+      rewrite sub_hbs_pin in Hdm. injection Hdm as <-.
+      exact act_hold_breaststroke_pres. }
+    destruct (Pos.eqb fid mario_actions_submerged._act_hold_swimming_end)
+      eqn:Ew29.
+    { apply Pos.eqb_eq in Ew29; subst fid.
+      rewrite sub_hse_pin in Hdm. injection Hdm as <-.
+      exact act_hold_swimming_end_pres. }
+    destruct (Pos.eqb fid mario_actions_submerged._act_hold_flutter_kick)
+      eqn:Ew30.
+    { apply Pos.eqb_eq in Ew30; subst fid.
+      rewrite sub_hfk_pin in Hdm. injection Hdm as <-.
+      exact act_hold_flutter_kick_pres. }
+    destruct (Pos.eqb fid mario_actions_submerged._act_water_shell_swimming)
+      eqn:Ew31.
+    { apply Pos.eqb_eq in Ew31; subst fid.
+      rewrite sub_wss_pin in Hdm. injection Hdm as <-.
+      exact act_water_shell_swimming_pres. }
     (* REST: fid is in the census and not a walked id, so it is in the
        filter that defines sub_rest_ids. *)
     apply (Hrest fid f); [ | exact Hdm ].
@@ -1843,7 +2229,8 @@ Section SubmergedLeafRows.
     unfold sub_walked_ids. cbn [mem_id existsb].
     rewrite Ew1, Ew2, Ew3, Ew4, Ew5, Ew6, Ew7, Ew8, Ew9, Ew10,
       Ew11, Ew12, Ew13, Ew14, Ew15, Ew16, Ew17, Ew18, Ew19,
-      Ew20, Ew21, Ew22, Ew23, Ew24. reflexivity.
+      Ew20, Ew21, Ew22, Ew23, Ew24, Ew25, Ew26, Ew27, Ew28, Ew29,
+      Ew30, Ew31. reflexivity.
   Qed.
 
 End SubmergedLeafRows.

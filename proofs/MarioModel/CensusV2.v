@@ -37,7 +37,7 @@
 From Coq Require Import ZArith List Lia.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
-From SM64.Generated Require mario level_update mario_step.
+From SM64.Generated Require mario level_update mario_step mario_actions_submerged.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
   ActionValueFrame RealFrameValue RealFrameLinked AGates.
 
@@ -804,7 +804,12 @@ Definition stored_globals : list ident :=
      reloads it, and stores floorHeight through it into the global's
      originOffset field -- a static data symbol in mario_step.prog /
      mario_actions_moving.prog, same Hglob_blk trust class as the rest. *)
-  mario_step._gWaterSurfacePseudoFloor :: nil.
+  mario_step._gWaterSurfacePseudoFloor ::
+  (* the swimming-strength static (mario_actions_submerged): the swimming
+     leaves (act_breaststroke / act_swimming_end / act_flutter_kick) store
+     sSwimStrength = MIN_SWIM_STRENGTH or sSwimStrength += 10 directly -- a
+     static s16 data symbol, same Hglob_blk bm/bc/SafeB-disjoint trust class. *)
+  mario_actions_submerged._sSwimStrength :: nil.
 
 (* ---------------------------------------------------------------------- *)
 (* The interaction-handler census (the Hpres_inter arc): the 28 DISTINCT   *)
