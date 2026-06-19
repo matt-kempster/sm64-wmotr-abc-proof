@@ -1043,8 +1043,11 @@ Section NoARealInputMWF.
   (* update_water_pitch needs NO hypothesis: DISCHARGED inside
      SubmergedLeafSurface (sub_uwp_row) -- chase stores through m->marioObj
      (chase root), no calls (sins = gSineTable load). *)
-  Hypothesis Hcp_mtho_real :
-    call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._mario_throw_held_object.
+  (* mario_throw_held_object needs NO hypothesis -- DISCHARGED in-surface
+     (SubmergedLeafSurface.sub_mtho_row, reusing the already-proved
+     ObjectLeafSurface.mtho_row; the SAME interaction.prog body the object/
+     stationary/airborne families walk).  Its 3 terminal externals ride the
+     obj_ext boundary -- NO new trust. *)
   Hypothesis Hcp_cwg_real :
     call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._check_water_grab.
   (* SLICE 14 (the swimming cluster -- 7 leaves): the swim helpers are honest
@@ -2475,7 +2478,7 @@ Section NoARealInputMWF.
                       HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                    (* SLICE 1: act_metal_water_standing WALKED; the 33-id
                       census is shrunk to the un-walked 32 (sub_rest_ids). *)
-                   (submerged_leaf_callees_pres_full lp LO_mario LO_stp LO_sub bm
+                   (submerged_leaf_callees_pres_full lp LO_mario LO_stp LO_sub LO_int bm
                       (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
                       (mwf_real_ctl lp bm bc oc0 SafeB)
                       (mwf_real_window lp bm bc oc0 SafeB Hbc_bm
@@ -2572,14 +2575,17 @@ Section NoARealInputMWF.
                          Hw1cp_v3sset_real boundary appended below.
                          stop_shell_music zero-trust via the obj_ext boundary. *)
                       (Hpres_obj_ext interaction._stop_shell_music eq_refl)
-                      (* SLICE 13 (throw/punch): 4 swim helpers + throw/grab
-                         helpers (honest internal residuals); approach_s32 /
-                         segmented_to_virtual / play_shell_music zero-trust via
-                         the obj_ext boundary. *)
-                      Hcp_mtho_real Hcp_cwg_real
+                      (* SLICE 13 (throw/punch): mario_throw_held_object is now
+                         DISCHARGED in-surface (sub_mtho_row, reusing
+                         ObjectLeafSurface.mtho_row) -- NO hyp; check_water_grab
+                         stays an honest internal residual.  approach_s32 /
+                         segmented_to_virtual / play_shell_music / obj_set_held_
+                         state zero-trust via the obj_ext boundary. *)
+                      Hcp_cwg_real
                       (Hpres_obj_ext mario_actions_object._approach_s32 eq_refl)
                       (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
                       (Hpres_obj_ext interaction._play_shell_music eq_refl)
+                      (Hpres_obj_ext interaction._obj_set_held_state eq_refl)
                       (* SLICE 14 (the swimming cluster -- 7 leaves): the swim
                          helpers are honest internal residuals; set_mario_action
                          / drop_and_set_mario_action / play_sound /
