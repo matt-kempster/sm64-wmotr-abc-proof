@@ -157,6 +157,12 @@ proofs/MarioModel/LandingBricks.v
 proofs/MarioModel/MovingLeafSurface.v
 proofs/MarioModel/AirborneLeafSurface.v
 
+# --- GOAL 1 / airborne-cap + submerged leaf surfaces (SPINE: imported by the
+#     capstone; were previously built standalone and omitted from _CoqProject,
+#     so the full build never verified them -- now tracked) ---
+proofs/MarioModel/MboCSurface.v
+proofs/MarioModel/SubmergedLeafSurface.v
+
 # --- UNWIRED scaffolding: landing-keystone bricks (not yet load-bearing) ---
 
 # --- top-level demos ---
