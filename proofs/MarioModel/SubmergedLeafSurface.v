@@ -581,6 +581,132 @@ Example sub_psinf_walk :
     (fn_body mario.f_play_sound_if_no_flag) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- is_anim_past_frame (mario.prog): chase reads of marioObj animInfo,
+   returns bool; NO stores, NO calls -> all censuses nil (twin of is_anim_at_end) *)
+Example sub_iapf_pin :
+  (prog_defmap mario.prog) ! mario._is_anim_past_frame
+  = Some (Gfun (Internal mario.f_is_anim_past_frame)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_iapf_vars : fn_vars mario.f_is_anim_past_frame = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_iapf_pok :
+  match fn_params mario.f_is_anim_past_frame with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_iapf_walk :
+  wwalk_chk false nil nil nil nil nil nil nil
+    (fn_body mario.f_is_anim_past_frame) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- play_metal_water_jumping_sound: window store particleFlags; sole call is
+   play_sound_if_no_flag (sub_psinf_row) -> ids=[play_sound_if_no_flag] *)
+Definition sub_pmwjs_ids : list ident :=
+  mario_actions_submerged._play_sound_if_no_flag :: nil.
+Example sub_pmwjs_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._play_metal_water_jumping_sound
+  = Some (Gfun (Internal mario_actions_submerged.f_play_metal_water_jumping_sound)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_pmwjs_vars :
+  fn_vars mario_actions_submerged.f_play_metal_water_jumping_sound = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_pmwjs_pok :
+  match fn_params mario_actions_submerged.f_play_metal_water_jumping_sound with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_pmwjs_walk :
+  wwalk_chk false nil sub_pmwjs_ids nil nil nil nil nil
+    (fn_body mario_actions_submerged.f_play_metal_water_jumping_sound) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- play_metal_water_walking_sound: window store particleFlags;
+   ids=[is_anim_past_frame], xids=[play_sound] (sub_psn_xids); chase reads *)
+Definition sub_pmwws_ids : list ident :=
+  mario_actions_submerged._is_anim_past_frame :: nil.
+Example sub_pmwws_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._play_metal_water_walking_sound
+  = Some (Gfun (Internal mario_actions_submerged.f_play_metal_water_walking_sound)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_pmwws_vars :
+  fn_vars mario_actions_submerged.f_play_metal_water_walking_sound = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_pmwws_pok :
+  match fn_params mario_actions_submerged.f_play_metal_water_walking_sound with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_pmwws_walk :
+  wwalk_chk false nil sub_pmwws_ids nil nil sub_psn_xids nil nil
+    (fn_body mario_actions_submerged.f_play_metal_water_walking_sound) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- update_metal_water_walking_speed: window stores; xids=[approach_s32]
+   (Hcpx_approach); m->floor chase read; sins/coss = gSineTable loads *)
+Definition sub_umwws_xids : list ident :=
+  mario_actions_object._approach_s32 :: nil.
+Example sub_umwws_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._update_metal_water_walking_speed
+  = Some (Gfun (Internal mario_actions_submerged.f_update_metal_water_walking_speed)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_umwws_vars :
+  fn_vars mario_actions_submerged.f_update_metal_water_walking_speed = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_umwws_pok :
+  match fn_params mario_actions_submerged.f_update_metal_water_walking_speed with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_umwws_walk :
+  wwalk_chk false nil nil nil nil sub_umwws_xids nil nil
+    (fn_body mario_actions_submerged.f_update_metal_water_walking_speed) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- update_metal_water_jump_speed: window stores; xids=[approach_f32]
+   (Hcpx_af32); sins/coss = gSineTable loads *)
+Definition sub_umwjs_xids : list ident :=
+  mario_actions_submerged._approach_f32 :: nil.
+Example sub_umwjs_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._update_metal_water_jump_speed
+  = Some (Gfun (Internal mario_actions_submerged.f_update_metal_water_jump_speed)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_umwjs_vars :
+  fn_vars mario_actions_submerged.f_update_metal_water_jump_speed = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_umwjs_pok :
+  match fn_params mario_actions_submerged.f_update_metal_water_jump_speed with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_umwjs_walk :
+  wwalk_chk false nil nil nil nil sub_umwjs_xids nil nil
+    (fn_body mario_actions_submerged.f_update_metal_water_jump_speed) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ---- act_metal_water_standing ---- *)
 Example sub_mws_pin :
   (prog_defmap mario_actions_submerged.prog)
@@ -1328,12 +1454,8 @@ Section SubmergedLeafRows.
   Hypothesis Hcp_sashf :
     call_pres lp bm NoA MWF mario_step._stop_and_set_height_to_floor.
 
-  (* play_metal_water_jumping_sound: writes particleFlags/flags (window) and
-     plays a sound via play_sound_if_no_flag; it NEVER touches the action
-     cell, so a genuine call_pres for any caller.  Honest residual (its body
-     walk -- play_sound_if_no_flag + play_sound obj_ext -- is a later unit). *)
-  Hypothesis Hcp_pmwjs :
-    call_pres lp bm NoA MWF mario_actions_submerged._play_metal_water_jumping_sound.
+  (* play_metal_water_jumping_sound is DISCHARGED below (sub_pmwjs_row): window
+     store + sole call play_sound_if_no_flag (sub_psinf_row) -- NO hyp needed. *)
 
   (* perform_air_step: the air step (writes pos/vel, returns the step result;
      the CALLER dispatches the result to set the action), so a genuine
@@ -1341,11 +1463,8 @@ Section SubmergedLeafRows.
      feeds its existing Hcp_pas Lemma, NO new trust. *)
   Hypothesis Hcp_pas :
     call_pres lp bm NoA MWF mario_step._perform_air_step.
-  (* update_metal_water_jump_speed: writes forwardVel/vel (window) and returns
-     a hit-ceiling flag; never the action cell, so a genuine call_pres.  Honest
-     residual (its body walk is a later unit). *)
-  Hypothesis Hcp_umwjs :
-    call_pres lp bm NoA MWF mario_actions_submerged._update_metal_water_jump_speed.
+  (* update_metal_water_jump_speed is DISCHARGED below (sub_umwjs_row): window
+     stores + xids=[approach_f32] (Hcpx_af32, obj_ext) -- NO hyp needed. *)
 
   (* drop_and_set_mario_action: the held-object drop + set_mario_action.  A
      call_pres_act (writes action only via set_mario_action with the untainted
@@ -1370,21 +1489,13 @@ Section SubmergedLeafRows.
   Hypothesis Hcp_smawa :
     call_pres lp bm NoA MWF mario._set_mario_anim_with_accel.
 
-  (* play_metal_water_walking_sound: writes particleFlags (window) and plays a
-     footstep sound at anim frames 10/49; chases marioObj's gfx cameraToObject
-     (SafeB read).  NEVER the action cell, so a genuine call_pres.  Honest
-     residual (its body walk -- is_anim_past_frame + play_sound obj_ext -- is a
-     later unit). *)
-  Hypothesis Hcp_pmwws :
-    call_pres lp bm NoA MWF mario_actions_submerged._play_metal_water_walking_sound.
+  (* play_metal_water_walking_sound is DISCHARGED below (sub_pmwws_row): window
+     store + ids=[is_anim_past_frame] (sub_iapf_row) + xids=[play_sound]
+     (obj_ext) -- NO hyp needed. *)
 
-  (* update_metal_water_walking_speed: writes forwardVel/faceAngle/slideVel/vel
-     (window) from m->intendedMag/intendedYaw and reads m->floor->normal.y;
-     NEVER the action cell, so a genuine call_pres.  Honest residual (its body
-     walk -- approach_s32 + sins/coss ext + the m->floor chase read -- is a
-     later unit). *)
-  Hypothesis Hcp_umwws :
-    call_pres lp bm NoA MWF mario_actions_submerged._update_metal_water_walking_speed.
+  (* update_metal_water_walking_speed is DISCHARGED below (sub_umwws_row): window
+     stores + xids=[approach_s32] (Hcpx_approach, obj_ext) + m->floor chase read
+     -- NO hyp needed. *)
 
   (* common_idle_step: the shared swim-idle step.  Writes m->faceAngle (window)
      + chases m->marioBodyState->headAngle (a SafeB chase-root block) + calls
@@ -1820,6 +1931,137 @@ Section SubmergedLeafRows.
     - exact sub_psinf_walk.
   Qed.
 
+  (* is_anim_past_frame (mario.prog): NO stores, NO calls -- twin of is_anim_at_end. *)
+  Lemma sub_iapf_row : call_pres lp bm NoA MWF mario._is_anim_past_frame.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._is_anim_past_frame mario.f_is_anim_past_frame
+             nil nil nil nil LO_mario sub_iapf_pin sub_iapf_vars sub_iapf_pok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sub_iapf_walk.
+  Qed.
+
+  (* play_metal_water_jumping_sound: window store; sole call play_sound_if_no_flag
+     (sub_psinf_row) -> ids.  No new trust. *)
+  Lemma sub_pmwjs_ids_rows : forall fid, mem_id fid sub_pmwjs_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sub_pmwjs_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_psinf_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma sub_pmwjs_row :
+    call_pres lp bm NoA MWF mario_actions_submerged._play_metal_water_jumping_sound.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.prog
+             mario_actions_submerged._play_metal_water_jumping_sound
+             mario_actions_submerged.f_play_metal_water_jumping_sound
+             sub_pmwjs_ids nil nil nil LO_sub
+             sub_pmwjs_pin sub_pmwjs_vars sub_pmwjs_pok).
+    - exact sub_pmwjs_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sub_pmwjs_walk.
+  Qed.
+
+  (* play_metal_water_walking_sound: window store; ids=[is_anim_past_frame]
+     (sub_iapf_row), xids=[play_sound] (sub_psn_xids_rows).  No new trust. *)
+  Lemma sub_pmwws_ids_rows : forall fid, mem_id fid sub_pmwws_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sub_pmwws_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_iapf_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma sub_pmwws_row :
+    call_pres lp bm NoA MWF mario_actions_submerged._play_metal_water_walking_sound.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.prog
+             mario_actions_submerged._play_metal_water_walking_sound
+             mario_actions_submerged.f_play_metal_water_walking_sound
+             sub_pmwws_ids nil sub_psn_xids nil LO_sub
+             sub_pmwws_pin sub_pmwws_vars sub_pmwws_pok).
+    - exact sub_pmwws_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact sub_psn_xids_rows.
+    - intros fid' H. discriminate H.
+    - exact sub_pmwws_walk.
+  Qed.
+
+  (* update_metal_water_walking_speed: window stores; xids=[approach_s32]
+     (Hcpx_approach).  No new trust. *)
+  Lemma sub_umwws_xids_rows : forall fid, mem_id fid sub_umwws_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sub_umwws_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_approach | ].
+    discriminate H.
+  Qed.
+
+  Lemma sub_umwws_row :
+    call_pres lp bm NoA MWF mario_actions_submerged._update_metal_water_walking_speed.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.prog
+             mario_actions_submerged._update_metal_water_walking_speed
+             mario_actions_submerged.f_update_metal_water_walking_speed
+             nil nil sub_umwws_xids nil LO_sub
+             sub_umwws_pin sub_umwws_vars sub_umwws_pok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sub_umwws_xids_rows.
+    - intros fid' H. discriminate H.
+    - exact sub_umwws_walk.
+  Qed.
+
+  (* update_metal_water_jump_speed: window stores; xids=[approach_f32]
+     (Hcpx_af32).  No new trust. *)
+  Lemma sub_umwjs_xids_rows : forall fid, mem_id fid sub_umwjs_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sub_umwjs_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_af32 | ].
+    discriminate H.
+  Qed.
+
+  Lemma sub_umwjs_row :
+    call_pres lp bm NoA MWF mario_actions_submerged._update_metal_water_jump_speed.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.prog
+             mario_actions_submerged._update_metal_water_jump_speed
+             mario_actions_submerged.f_update_metal_water_jump_speed
+             nil nil sub_umwjs_xids nil LO_sub
+             sub_umwjs_pin sub_umwjs_vars sub_umwjs_pok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sub_umwjs_xids_rows.
+    - intros fid' H. discriminate H.
+    - exact sub_umwjs_walk.
+  Qed.
+
   (* ---- the ids/sids row dispatchers for the leaf walks ---- *)
   Lemma sub_metal_ids_rows : forall fid, mem_id fid sub_metal_ids = true ->
       call_pres lp bm NoA MWF fid.
@@ -1832,11 +2074,11 @@ Section SubmergedLeafRows.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sashf | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pmwjs | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_pmwjs_row | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pas | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_umwjs | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_umwjs_row | ].
     discriminate H.
   Qed.
 
@@ -1847,9 +2089,9 @@ Section SubmergedLeafRows.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_smawa | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pmwws | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_pmwws_row | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_umwws | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_umwws_row | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pgs | ].
     discriminate H.

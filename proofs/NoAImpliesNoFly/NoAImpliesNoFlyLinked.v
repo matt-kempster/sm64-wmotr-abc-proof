@@ -955,39 +955,17 @@ Section NoARealInputMWF.
   Hypothesis Hcp_sashf_real :
     call_pres lp bm (NoA_real bm) MWF
       mario_step._stop_and_set_height_to_floor.
-  (* SLICE 2: the metal-water _land leaves' jump/land sound helper.  Writes
-     particleFlags/flags (window) + plays a sound via play_sound_if_no_flag;
-     never the action cell, so a genuine call_pres for any caller.  Honest
-     residual (body walk = play_sound_if_no_flag + play_sound obj_ext). *)
-  Hypothesis Hcp_pmwjs_real :
-    call_pres lp bm (NoA_real bm) MWF
-      mario_actions_submerged._play_metal_water_jumping_sound.
-  (* SLICE 3 (act_metal_water_jump): update_metal_water_jump_speed writes
-     forwardVel/vel (window) + returns a hit-ceiling flag, never the action
-     cell -> genuine call_pres for any caller.  Honest residual (body walk a
-     later unit).  perform_air_step is the already-PROVED Hcp_pas Lemma. *)
-  Hypothesis Hcp_umwjs_real :
-    call_pres lp bm (NoA_real bm) MWF
-      mario_actions_submerged._update_metal_water_jump_speed.
-  (* SLICE 5 (the metal-water WALKING pair): the three walking-specific helpers,
-     each a genuine call_pres for any caller (none touches the action cell).
-     perform_ground_step is NOT here -- it is the already-PROVED Hcp_pgs Lemma
-     (MarioStepSurface walk), fed through with NO new trust.
-     - set_mario_anim_with_accel writes the anim window + chases marioObj's
-       SafeB gfx anim pool (body already walked in AutomaticLeafSurface via the
-       np3 channel; promotable to a standalone call_pres Lemma later);
-     - play_metal_water_walking_sound writes particleFlags (window) + plays a
-       footstep sound (body walk = is_anim_past_frame + play_sound obj_ext);
-     - update_metal_water_walking_speed writes forwardVel/faceAngle/slideVel/vel
-       (window) from intendedMag/intendedYaw + reads m->floor->normal.y. *)
+  (* SLICE 2/3/5 metal-water sound+speed helpers are now DISCHARGED in-surface
+     (SubmergedLeafSurface): play_metal_water_jumping_sound (sub_pmwjs_row, ids=
+     [play_sound_if_no_flag]), update_metal_water_jump_speed (sub_umwjs_row, xids=
+     [approach_f32]), play_metal_water_walking_sound (sub_pmwws_row, ids=
+     [is_anim_past_frame] + xids=[play_sound]), update_metal_water_walking_speed
+     (sub_umwws_row, xids=[approach_s32]) -- all window stores, all callees already
+     proved or obj_ext, NO hypothesis needed.  set_mario_anim_with_accel remains an
+     honest residual (anim chase store; body walked in AutomaticLeafSurface, not yet
+     promoted). *)
   Hypothesis Hcp_smawa_real :
     call_pres lp bm (NoA_real bm) MWF mario._set_mario_anim_with_accel.
-  Hypothesis Hcp_pmwws_real :
-    call_pres lp bm (NoA_real bm) MWF
-      mario_actions_submerged._play_metal_water_walking_sound.
-  Hypothesis Hcp_umwws_real :
-    call_pres lp bm (NoA_real bm) MWF
-      mario_actions_submerged._update_metal_water_walking_speed.
   (* SLICE 6 (the water-IDLE cluster: water_idle/hold + water_action_end/hold):
      common_idle_step is the shared swim-idle step.  Writes m->faceAngle
      (window) + chases m->marioBodyState->headAngle (a SafeB chase-root block) +
@@ -2502,9 +2480,7 @@ Section NoARealInputMWF.
                          HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                       (Hpres_obj_ext mario._load_patchable_table eq_refl)
                       Hcp_sashf_real
-                      Hcp_pmwjs_real
                       Hcp_pas
-                      Hcp_umwjs_real
                       (* SLICE 4 (hold-metal variants): drop_and_set_mario_action
                          is the already-PROVED dasma_row (ObjectLeafSurface),
                          the SAME reusable term the interact_bully/stationary
@@ -2535,8 +2511,6 @@ Section NoARealInputMWF.
                          three walking helpers are honest call_pres residuals. *)
                       Hcp_pgs
                       Hcp_smawa_real
-                      Hcp_pmwws_real
-                      Hcp_umwws_real
                       (* SLICE 6 (water-IDLE cluster): common_idle_step honest
                          residual; the 4 idle leaves reduce to it + sids. *)
                       Hcp_cis_real
