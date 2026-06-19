@@ -1022,9 +1022,9 @@ Section NoARealInputMWF.
      drowning leaf reuses the slice-7 step residuals + sub_sma_row/sub_iae_row
      + the SHARED level_trigger_warp, plus a 3-temp cact (marioBodyState
      eyeState writes + marioObj animFrame read). *)
-  Hypothesis Hcp_psinf_real :
-    call_pres lp bm (NoA_real bm) MWF
-      mario_actions_submerged._play_sound_if_no_flag.
+  (* play_sound_if_no_flag needs NO hypothesis: DISCHARGED inside
+     SubmergedLeafSurface (sub_psinf_row) -- window store m->flags + lone call
+     play_sound (obj_ext). *)
   (* SLICE 11 (knockback pair): common_water_knockback_step is action-
      preserving WHEN its endAction param (the THIRD vargs element) is
      untainted -- exactly call_pres_act3.  An honest INTERNAL residual
@@ -2563,9 +2563,9 @@ Section NoARealInputMWF.
                                HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                             (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
                             Hpres_warp_ext))
-                      (* SLICE 9 (act_drowning): play_sound_if_no_flag honest
-                         residual; the leaf reuses everything else. *)
-                      Hcp_psinf_real
+                      (* SLICE 9 (act_drowning): play_sound_if_no_flag now
+                         DISCHARGED in-surface (sub_psinf_row, NO hyp); the leaf
+                         reuses everything else. *)
                       (* SLICE 10 (act_water_shocked): the two terminal
                          externals are obj_ext_ids members (Hpres_obj_ext) --
                          NO new trust.  The leaf's ternary-const set_mario_action
