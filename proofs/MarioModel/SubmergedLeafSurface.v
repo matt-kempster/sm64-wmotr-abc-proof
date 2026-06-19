@@ -1554,6 +1554,61 @@ Example sub_whp_walk :
 Proof. vm_compute. reflexivity. Qed.
 
 (* ====================================================================== *)
+(* Generic exec-derivation strippers (no section vars): peel a leading     *)
+(* Sset off a sequence.  set_anim_to_frame is a CALL-FREE body whose only   *)
+(* memory writes are scalar stores through an interior animInfo pointer     *)
+(* aliasing the marioObj SafeB block -- a fixed-shape walk, so direct       *)
+(* inversion is cleaner than the generic engine (whose chase tracking has   *)
+(* no arm for the `animInfo = &marioObj->..->animInfo` Eaddrof set).        *)
+(* ====================================================================== *)
+
+Lemma exec_seq_sset : forall ge e le m i a s tr le' m' out,
+  exec_stmt function_entry2 ge e le m (Ssequence (Sset i a) s) tr le' m' out ->
+  exists v t2, eval_expr ge e le m a v /\
+               exec_stmt function_entry2 ge e (PTree.set i v le) m s t2 le' m' out.
+Proof.
+  intros ge e le m i a s tr le' m' out H. inv H.
+  - match goal with Hs : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv Hs end.
+    eauto.
+  - match goal with Hs : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ ?o |- _ => inv Hs end.
+    match goal with Hne : Out_normal <> Out_normal |- _ => exfalso; exact (Hne eq_refl) end.
+Qed.
+
+Lemma exec_seq_two_sset : forall ge e le m i1 a1 i2 a2 s tr le' m' out,
+  exec_stmt function_entry2 ge e le m
+    (Ssequence (Ssequence (Sset i1 a1) (Sset i2 a2)) s) tr le' m' out ->
+  exists v1 v2 t2, eval_expr ge e le m a1 v1 /\
+                   eval_expr ge e (PTree.set i1 v1 le) m a2 v2 /\
+                   exec_stmt function_entry2 ge e
+                     (PTree.set i2 v2 (PTree.set i1 v1 le)) m s t2 le' m' out.
+Proof.
+  intros ge e le m i1 a1 i2 a2 s tr le' m' out H. inv H.
+  - match goal with
+    | HA : exec_stmt _ _ _ _ _ (Ssequence (Sset _ _) (Sset _ _)) _ _ _ _ |- _ =>
+        apply exec_seq_sset in HA; destruct HA as (v1 & ? & Hev1 & HA);
+        inv HA
+    end.
+    eauto 8.
+  - match goal with
+    | HA : exec_stmt _ _ _ _ _ (Ssequence (Sset _ _) (Sset _ _)) _ _ _ ?o |- _ =>
+        apply exec_seq_sset in HA; destruct HA as (? & ? & ? & HA);
+        inv HA
+    end.
+    match goal with Hne : Out_normal <> Out_normal |- _ => exfalso; exact (Hne eq_refl) end.
+Qed.
+
+(* An Eaddrof evaluates to a pointer at the lvalue's location, WITHOUT
+   substituting the result variable away (unlike a bare [inv]). *)
+Lemma eval_Eaddrof_inv : forall ge e le m a ty v,
+  eval_expr ge e le m (Eaddrof a ty) v ->
+  exists loc ofs, eval_lvalue ge e le m a loc ofs Full /\ v = Vptr loc ofs.
+Proof.
+  intros ge e le m a ty v H. inv H.
+  - eauto.
+  - match goal with Hlv : eval_lvalue _ _ _ _ (Eaddrof _ _) _ _ _ |- _ => inv Hlv end.
+Qed.
+
+(* ====================================================================== *)
 (* The section: the leaf-callee discharge, keyed by the census.           *)
 (* ====================================================================== *)
 
@@ -1789,8 +1844,10 @@ Section SubmergedLeafRows.
      (window store), set_mario_action (keystone).  The A-gated inner block
      (input & INPUT_A_PRESSED) is walked too -- it never escapes the action
      cell.  NO hyp. *)
-  Hypothesis Hcp_satf :
-    call_pres lp bm NoA MWF mario_actions_submerged._set_anim_to_frame.
+  (* set_anim_to_frame is DISCHARGED below (sub_satf_row): bespoke walk of its
+     body (fn_vars=nil, no calls).  It chases m->marioObj to a SafeB block,
+     forms &animInfo (same block), and the 4 scalar stores all go THROUGH that
+     chased animInfo pointer -- never the action cell.  NO hypothesis needed. *)
   (* play_swimming_noise is DISCHARGED below (sub_psn_row): no stores, lone call
      play_sound (obj_ext) -- NO hypothesis needed. *)
   (* reset_bob_variables is DISCHARGED below (sub_rbv_row): three direct
@@ -3171,6 +3228,193 @@ Section SubmergedLeafRows.
     discriminate H.
   Qed.
 
+  (* ================================================================== *)
+  (* set_anim_to_frame (SLICE 14, mario.prog): a CALL-FREE body whose    *)
+  (* only writes are scalar stores `animInfo->animFrame[AccelAssist] = c` *)
+  (* through an INTERIOR pointer animInfo = &m->marioObj->..->animInfo    *)
+  (* aliasing the marioObj SafeB block.  The generic chase engine has no  *)
+  (* arm for the Eaddrof interior-pointer Sset, so we walk the fixed body *)
+  (* directly: chase_root_set_sound pins marioObj SafeB, chain_root_l_    *)
+  (* block carries that block onto animInfo, chase_assign_pres absorbs    *)
+  (* each store (SafeB block, non-Vptr scalar value).  DISCHARGES the     *)
+  (* former Hcp_satf residual -- NO new trust.                            *)
+  (* ================================================================== *)
+
+  Lemma sat_act_inv_nil : forall le0, act_inv nil le0.
+  Proof. intros le0 tt Htt. cbn [mem_id existsb] in Htt. discriminate Htt. Qed.
+
+  Lemma sat_ci_set : forall id v le,
+    Pos.eqb id mario._animInfo = false ->
+    chase_inv SafeB [mario._animInfo] le ->
+    chase_inv SafeB [mario._animInfo] (PTree.set id v le).
+  Proof.
+    intros id v le Hne Hci tt Htt b o Hb.
+    cbn [mem_id existsb] in Htt. rewrite orb_false_r in Htt.
+    apply Pos.eqb_eq in Htt. subst tt.
+    rewrite PTree.gso in Hb by (apply Pos.eqb_neq in Hne; congruence).
+    refine (Hci mario._animInfo _ b o Hb).
+    cbn [mem_id existsb]. rewrite orb_false_r. apply Pos.eqb_refl.
+  Qed.
+
+  Lemma sat_store : forall a1 a2 le mm tr le' mm' out,
+    exec_stmt function_entry2 (lp_ge lp) empty_env le mm
+      (Sassign a1 a2) tr le' mm' out ->
+    chase_store_chk nil [mario._animInfo] a1 a2 = true ->
+    chase_inv SafeB [mario._animInfo] le ->
+    MWF mm -> Mem.valid_block mm bm -> action_sat not_tainted mm bm ->
+    Mem.valid_block mm' bm /\ action_sat not_tainted mm' bm /\ MWF mm'.
+  Proof.
+    intros a1 a2 le mm tr le' mm' out Hexec Hck Hci HM HV HS.
+    destruct (chase_assign_pres lp bm MWF SafeB HSafeNotBm HMWF_chase
+                nil [mario._animInfo] a1 a2 empty_env le mm tr le' mm' out
+                Hck (sat_act_inv_nil le) Hci Hexec HM HV HS)
+      as (HV' & HS' & HM' & _ & _).
+    exact (conj HV' (conj HS' HM')).
+  Qed.
+
+  Lemma sub_satf_pin :
+    (prog_defmap mario.prog) ! mario._set_anim_to_frame
+    = Some (Gfun (Internal mario.f_set_anim_to_frame)).
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma sub_satf_body :
+    body_pres lp NoA MWF bm mario.f_set_anim_to_frame.
+  Proof.
+    intros m0 vargs0 t0 mF vres0 Hgate Hevf HN HM HV HS.
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      rename Ha into Halloc end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    (* alloc nil -> empty_env, body memory unchanged *)
+    change (fn_vars mario.f_set_anim_to_frame) with (@nil (ident * type)) in Halloc.
+    inv Halloc.
+    (* the [inv]s above auto-named the bound temp env and body memory; pin
+       them to the names the walk below uses (avoid the Peano.le collision) *)
+    match goal with
+    | Hbd : exec_stmt _ _ _ ?LE ?MM _ _ _ _ _ |- _ =>
+        rename LE into le; rename MM into m0
+    end.
+    (* the free_list of the empty env is the identity: mF is the body memory *)
+    assert (Hben : blocks_of_env (lp_ge lp) empty_env = nil) by reflexivity.
+    rewrite Hben in Hfree. cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    (* bind the two params *)
+    change (fn_params mario.f_set_anim_to_frame)
+      with ((mario._m, tptr (Tstruct mario._MarioState noattr))
+            :: (mario._animFrame, tshort) :: nil) in Hbind.
+    destruct vargs0 as [|vm0 [|vaf0 [|vextra vrest]]];
+      cbn [bind_parameter_temps] in Hbind; try discriminate Hbind.
+    injection Hbind as Hbind.
+    (* the marg fact for _m *)
+    specialize (Hgate eq_refl).
+    assert (Hlm : le ! mario._m = Some vm0).
+    { rewrite <- Hbind. rewrite PTree.gso by discriminate. apply PTree.gss. }
+    assert (Htat : forall b o,
+      le ! mario._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
+    { intros b o Hb. rewrite Hlm in Hb. injection Hb as Hb. subst vm0.
+      cbn in Hgate. exact Hgate. }
+    (* expose the body *)
+    unfold mario.f_set_anim_to_frame in Hbody. cbn [fn_body] in Hbody.
+    (* strip the first two Ssets: t'6 = m->marioObj; animInfo = &(..animInfo) *)
+    apply exec_seq_two_sset in Hbody.
+    destruct Hbody as (v6 & vai & ? & Hev6 & Hevai & Hbody).
+    (* marioObj is a chase root: v6 is SafeB-if-a-pointer *)
+    pose proof (chase_root_set_sound lp LO_mario bm MWF HMWF_window HMWF_glob
+                  HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_root
+                  (Efield (Ederef (Etempvar mario._m
+                       (tptr (Tstruct mario._MarioState noattr)))
+                       (Tstruct mario._MarioState noattr)) mario._marioObj
+                       (tptr (Tstruct mario._Object noattr)))
+                  empty_env le m0 v6
+                  ltac:(vm_compute; reflexivity) Htat HM Hev6) as Hsafe6.
+    (* animInfo = &(v6 .. animInfo): same block as v6, hence SafeB.
+       Use eval_Eaddrof_inv (not [inv]) so [vai] stays a name. *)
+    destruct (eval_Eaddrof_inv _ _ _ _ _ _ _ Hevai) as (loc & ofs & Hlv & Hvai_eq).
+    destruct (chain_root_l_block (lp_ge lp) empty_env
+                (PTree.set mario._t'6 v6 le) m0
+                (Efield (Efield (Efield
+                   (Ederef (Etempvar mario._t'6
+                      (tptr (Tstruct mario._Object noattr)))
+                      (Tstruct mario._Object noattr)) mario._header
+                      (Tstruct mario._ObjectNode noattr)) mario._gfx
+                      (Tstruct mario._GraphNodeObject noattr)) mario._animInfo
+                   (Tstruct mario._AnimInfo noattr))
+                mario._t'6 loc ofs Full
+                ltac:(vm_compute; reflexivity) Hlv) as (o0 & Ht6).
+    rewrite PTree.gss in Ht6. injection Ht6 as Ht6.
+    pose proof (Hsafe6 _ _ Ht6) as Hsafe_loc.
+    (* the chase invariant for [animInfo] at le2 *)
+    assert (Hci : chase_inv SafeB [mario._animInfo]
+                    (PTree.set mario._animInfo vai
+                       (PTree.set mario._t'6 v6 le))).
+    { intros tt Htt b o Hb. cbn [mem_id existsb] in Htt.
+      rewrite orb_false_r in Htt. apply Pos.eqb_eq in Htt. subst tt.
+      rewrite PTree.gss in Hb. injection Hb as Hb. rewrite Hvai_eq in Hb.
+      injection Hb as Hbloc Hbofs. subst. exact Hsafe_loc. }
+    (* strip curAnim, t'1 (loads -- memory unchanged), refresh Hci *)
+    apply exec_seq_sset in Hbody. destruct Hbody as (vca & ? & _ & Hbody).
+    apply (sat_ci_set mario._curAnim vca _ ltac:(vm_compute; reflexivity)) in Hci.
+    apply exec_seq_sset in Hbody. destruct Hbody as (v1 & ? & _ & Hbody).
+    apply (sat_ci_set mario._t'1 v1 _ ltac:(vm_compute; reflexivity)) in Hci.
+    (* outer if (animAccel != 0) *)
+    inv Hbody.
+    match goal with Hb1 : exec_stmt _ _ _ _ _ (if ?b then _ else _) _ _ _ _ |- _ =>
+      destruct b end.
+    - (* THEN: t'3 = curAnim->flags; if (flags & BACKWARD) *)
+      match goal with Hb : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+        apply exec_seq_sset in Hb; destruct Hb as (v3 & ? & _ & Hbody) end.
+      apply (sat_ci_set mario._t'3 v3 _ ltac:(vm_compute; reflexivity)) in Hci.
+      inv Hbody.
+      match goal with Hb2 : exec_stmt _ _ _ _ _ (if ?b then _ else _) _ _ _ _ |- _ =>
+        destruct b end.
+      + (* t'5 = animInfo->animAccel; STORE animFrameAccelAssist *)
+        match goal with Hb : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+          apply exec_seq_sset in Hb; destruct Hb as (v5 & ? & _ & Hstore) end.
+        apply (sat_ci_set mario._t'5 v5 _ ltac:(vm_compute; reflexivity)) in Hci.
+        eapply sat_store;
+          [ exact Hstore | vm_compute; reflexivity | exact Hci
+          | exact HM | exact HV | exact HS ].
+      + (* t'4 = animInfo->animAccel; STORE animFrameAccelAssist *)
+        match goal with Hb : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+          apply exec_seq_sset in Hb; destruct Hb as (v4 & ? & _ & Hstore) end.
+        apply (sat_ci_set mario._t'4 v4 _ ltac:(vm_compute; reflexivity)) in Hci.
+        eapply sat_store;
+          [ exact Hstore | vm_compute; reflexivity | exact Hci
+          | exact HM | exact HV | exact HS ].
+    - (* ELSE: t'2 = curAnim->flags; if (flags & BACKWARD) *)
+      match goal with Hb : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+        apply exec_seq_sset in Hb; destruct Hb as (v2 & ? & _ & Hbody) end.
+      apply (sat_ci_set mario._t'2 v2 _ ltac:(vm_compute; reflexivity)) in Hci.
+      inv Hbody.
+      match goal with Hb3 : exec_stmt _ _ _ _ _ (if ?b then _ else _) _ _ _ _ |- _ =>
+        destruct b end.
+      + (* STORE animFrame = animFrame + 1 *)
+        match goal with Hstore : exec_stmt _ _ _ _ _ (Sassign _ _) _ _ _ _ |- _ =>
+          eapply sat_store;
+            [ exact Hstore | vm_compute; reflexivity | exact Hci
+            | exact HM | exact HV | exact HS ] end.
+      + (* STORE animFrame = animFrame - 1 *)
+        match goal with Hstore : exec_stmt _ _ _ _ _ (Sassign _ _) _ _ _ _ |- _ =>
+          eapply sat_store;
+            [ exact Hstore | vm_compute; reflexivity | exact Hci
+            | exact HM | exact HV | exact HS ] end.
+  Qed.
+
+  Lemma sub_satf_row :
+    call_pres lp bm NoA MWF mario_actions_submerged._set_anim_to_frame.
+  Proof.
+    exact (call_pres_of_body lp bm NoA MWF HNoA_of_MWF mario.prog
+             mario._set_anim_to_frame mario.f_set_anim_to_frame
+             LO_mario sub_satf_pin sub_satf_body).
+  Qed.
+
   (* ---- SLICE 14: the swimming-cluster rows ---- *)
   Lemma swim_ids_rows : forall fid, mem_id fid swim_ids = true ->
       call_pres lp bm NoA MWF fid.
@@ -3179,7 +3423,7 @@ Section SubmergedLeafRows.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact sub_cwj_row | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_satf | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_satf_row | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact sub_sma_row | ].
     apply orb_true_iff in H as [Hm | H];
