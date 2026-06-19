@@ -1064,8 +1064,11 @@ Section NoARealInputMWF.
      SHARED Hw1cp_v3sset_real boundary above) + m->vel[1]=62 (window store) +
      set_mario_action (keystone).  NO new trust beyond the shared angleVel
      window external. *)
-  Hypothesis Hcp_satf_real :
-    call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._set_anim_to_frame.
+  (* set_anim_to_frame needs NO hypothesis: DISCHARGED inside
+     SubmergedLeafSurface (sub_satf_row) -- a bespoke walk of its body
+     (fn_vars=nil, no calls).  It chases m->marioObj to a SafeB block, forms
+     &animInfo (same block), and the 4 scalar stores all go THROUGH that chased
+     animInfo pointer, never the action cell. *)
   (* play_swimming_noise needs NO hypothesis: DISCHARGED inside
      SubmergedLeafSurface (sub_psn_row) -- no stores, lone call play_sound
      (obj_ext). *)
@@ -2593,7 +2596,10 @@ Section NoARealInputMWF.
                          ONE new terminal-external boundary row. *)
                       (* check_water_jump DISCHARGED in-surface (sub_cwj_row,
                          ws hybrid walker) -- NO hyp; shares Hw1cp_v3sset_real. *)
-                      Hcp_satf_real
+                      (* set_anim_to_frame DISCHARGED in-surface (sub_satf_row,
+                         bespoke body walk: chases m->marioObj to a SafeB block,
+                         all 4 scalar stores go through the chased animInfo ptr,
+                         never the action cell) -- NO hyp. *)
                       Hcp_css_real Hcpx_approach_f32_real
                       (* SLICE 15 (the last two leaves -- CLOSES the family):
                          swimming_near_surface is a PURE read-only body, so it is
