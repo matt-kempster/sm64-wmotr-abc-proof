@@ -349,6 +349,60 @@ Example sub_iae_walk :
     (fn_body mario.f_is_anim_at_end) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- mario_set_forward_vel (PURE window stores + gSineTable loads; the same
+   already-PROVED helper as ActWriterSurface.msfv_row / AutomaticLeafSurface.
+   Hmsfv -- all-nil censuses, its only non-window store is the vel[0] indexed
+   write the engine's window recognizer already handles) ---- *)
+Example sub_msfv_pin :
+  (prog_defmap mario.prog) ! mario._mario_set_forward_vel
+  = Some (Gfun (Internal mario.f_mario_set_forward_vel)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_msfv_vars : fn_vars mario.f_mario_set_forward_vel = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_msfv_pok :
+  match fn_params mario.f_mario_set_forward_vel with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_msfv_walk :
+  wwalk_chk false nil nil nil nil nil nil nil
+    (fn_body mario.f_mario_set_forward_vel) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- stop_and_set_height_to_floor (mario_step.prog): the SAME walk already
+   PROVED as AutomaticLeafSurface.Hsasthf -- ids=[mario_set_forward_vel],
+   xids=[vec3f_copy; vec3s_set] (both write through marioObj->header.gfx.*
+   chase dsts -- a NON-bm SafeB object-pool block, action cell @12 untouched;
+   discharged via the EXISTING obj_ext boundary Hcpx_v3fc/Hcpx_v3ss the
+   whirlpool slice already assumes -- NO new trust) ---- *)
+Definition sub_sashf_ids : list ident := mario._mario_set_forward_vel :: nil.
+Definition sub_sashf_xids : list ident :=
+  mario_step._vec3f_copy :: mario._vec3s_set :: nil.
+Example sub_sashf_pin :
+  (prog_defmap mario_step.prog) ! mario_step._stop_and_set_height_to_floor
+  = Some (Gfun (Internal mario_step.f_stop_and_set_height_to_floor)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_sashf_vars :
+  fn_vars mario_step.f_stop_and_set_height_to_floor = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_sashf_pok :
+  match fn_params mario_step.f_stop_and_set_height_to_floor with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_sashf_walk :
+  wwalk_chk false nil sub_sashf_ids nil nil sub_sashf_xids nil nil
+    (fn_body mario_step.f_stop_and_set_height_to_floor) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ---- set_mario_animation (cact chase temps + load_patchable_table) ---- *)
 Example sub_sma_pin :
   (prog_defmap mario.prog) ! mario._set_mario_animation
@@ -1545,13 +1599,13 @@ Section SubmergedLeafRows.
   Hypothesis Hcpx_lpt :
     call_pres_ext lp bm NoA MWF mario._load_patchable_table.
 
-  (* THE ONE honest step residual of slice 1: stop_and_set_height_to_floor.
-     It writes m->pos[1]/m->vel[1]/forwardVel (window) and copies into
-     marioObj's gfx pos/angle through the chased marioObj pointer (SafeB
-     pool); it NEVER touches the action cell, so it is a genuine call_pres
-     for any caller.  Discharged later by walking its sc-arc body. *)
-  Hypothesis Hcp_sashf :
-    call_pres lp bm NoA MWF mario_step._stop_and_set_height_to_floor.
+  (* stop_and_set_height_to_floor needs NO hypothesis -- DISCHARGED in-surface
+     (sub_sashf_row, the SAME walk as AutomaticLeafSurface.Hsasthf): it writes
+     m->pos[1]/m->vel[1]/forwardVel (window) and copies into marioObj's gfx
+     pos/angle through the chased marioObj pointer (a NON-bm SafeB pool block,
+     action cell untouched).  ids=[mario_set_forward_vel] (sub_msfv_row);
+     xids=[vec3f_copy; vec3s_set] ride the EXISTING obj_ext boundary
+     (Hcpx_v3fc/Hcpx_v3ss the whirlpool slice already assumes) -- NO new trust. *)
 
   (* play_metal_water_jumping_sound is DISCHARGED below (sub_pmwjs_row): window
      store + sole call play_sound_if_no_flag (sub_psinf_row) -- NO hyp needed. *)
@@ -2361,6 +2415,62 @@ Section SubmergedLeafRows.
     - exact sub_iae_walk.
   Qed.
 
+  (* mario_set_forward_vel: pure window stores, all-nil censuses (twin of
+     ActWriterSurface.msfv_row). *)
+  Lemma sub_msfv_row : call_pres lp bm NoA MWF mario._mario_set_forward_vel.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._mario_set_forward_vel mario.f_mario_set_forward_vel
+             nil nil nil nil LO_mario sub_msfv_pin sub_msfv_vars sub_msfv_pok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sub_msfv_walk.
+  Qed.
+
+  (* stop_and_set_height_to_floor (mario_step.prog): ids=[mario_set_forward_vel]
+     (=sub_msfv_row), xids=[vec3f_copy; vec3s_set] through marioObj->header.gfx.*
+     chase dsts -- a NON-bm SafeB block, so the EXISTING obj_ext boundary
+     (Hcpx_v3fc/Hcpx_v3ss, already assumed by the whirlpool slice) discharges
+     them, NO new trust.  The SAME walk as AutomaticLeafSurface.Hsasthf. *)
+  Lemma sub_sashf_xids_rows :
+    forall fid, mem_id fid sub_sashf_xids = true -> call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sub_sashf_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_v3fc | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_v3ss | ].
+    discriminate H.
+  Qed.
+  Lemma sub_sashf_ids_rows :
+    forall fid, mem_id fid sub_sashf_ids = true -> call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sub_sashf_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_msfv_row | ].
+    discriminate H.
+  Qed.
+  Lemma sub_sashf_row :
+    call_pres lp bm NoA MWF mario_step._stop_and_set_height_to_floor.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_step.prog mario_step._stop_and_set_height_to_floor
+             mario_step.f_stop_and_set_height_to_floor
+             sub_sashf_ids nil sub_sashf_xids nil
+             LO_mario_step sub_sashf_pin sub_sashf_vars sub_sashf_pok).
+    - exact sub_sashf_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact sub_sashf_xids_rows.
+    - intros fid' H. discriminate H.
+    - exact sub_sashf_walk.
+  Qed.
+
   Lemma sub_sma_xids_rows : forall fid, mem_id fid sub_sma_xids = true ->
       call_pres_ext lp bm NoA MWF fid.
   Proof.
@@ -2810,7 +2920,7 @@ Section SubmergedLeafRows.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact sub_iae_row | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sashf | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_sashf_row | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact sub_pmwjs_row | ].
     apply orb_true_iff in H as [Hm | H];
