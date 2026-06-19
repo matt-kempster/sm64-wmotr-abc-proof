@@ -1005,12 +1005,12 @@ Section NoARealInputMWF.
      play_sound (obj_ext). *)
   (* SLICE 11 (knockback pair): common_water_knockback_step is action-
      preserving WHEN its endAction param (the THIRD vargs element) is
-     untainted -- exactly call_pres_act3.  An honest INTERNAL residual
-     (dischargeable later via the #66 param-action arc); the two kb leaves
-     pass ACT_WATER_IDLE (untainted const) there. *)
-  Hypothesis Hcp_cwks_real :
-    call_pres_act3 lp bm (NoA_real bm) MWF
-      mario_actions_submerged._common_water_knockback_step.
+     untainted -- exactly call_pres_act3.  DISCHARGED inside
+     SubmergedLeafSurface (sub_cwks_row) via call_pres_act3_of_wwalk_p4: the
+     ternary action arg `health>=0x100 ? endAction : ACT_WATER_DEATH` lowers
+     to an I32 cast of the untainted endAction param / const into the action
+     temp (wsrc_chk's act-temp cast arm); callees are the ssd/sma/iae rows +
+     perform_water_step (Hcp_pws) + set_mario_action (keystone).  NO hyp. *)
   (* SLICE 12 (cancel gate): transition_submerged_to_walking is an honest
      INTERNAL residual (f_transition_submerged_to_walking in mario.prog),
      dischargeable by walking its body later.  stop_shell_music (the nullary
@@ -2548,9 +2548,8 @@ Section NoARealInputMWF.
                          set_mario_action keystone + the slice-7 step residuals. *)
                       (Hpres_obj_ext mario._play_sound eq_refl)
                       (Hpres_obj_ext interaction._set_camera_shake_from_hit eq_refl)
-                      (* SLICE 11 (kb pair): cwks via call_pres_act3 (act3_call_chk
-                         gates the untainted ACT_WATER_IDLE const at endAction). *)
-                      Hcp_cwks_real
+                      (* SLICE 11 (kb pair): cwks is DISCHARGED in-surface
+                         (sub_cwks_row, call_pres_act3_of_wwalk_p4) -- NO hyp. *)
                       (* SLICE 12 (cancel gate): transition_submerged_to_walking
                          honest internal residual; stop_shell_music zero-trust via
                          the obj_ext boundary. *)

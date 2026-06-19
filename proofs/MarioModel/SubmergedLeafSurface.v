@@ -733,6 +733,79 @@ Example sub_rbv_walk :
     (fn_body mario_actions_submerged.f_reset_bob_variables) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- common_water_knockback_step (the call_pres_act3 kb helper): writes
+   m->action via set_mario_action(m, health>=0x100 ? endAction : ACT_WATER_DEATH,
+   0).  The ternary lowers to `_t'1 = (uint)endAction` / `_t'1 = (uint)ACT_*`,
+   both an I32 cast into the action temp -- accepted by wsrc_chk's act-temp /
+   const cast arms.  endAction is the THIRD param (the act3 gate's untainted
+   aval), arg3 the value-irrelevant 4th -> call_pres_act3_of_wwalk_p4.
+   ids = stationary_slow_down (sub_ssd_row) + perform_water_step (Hcp_pws) +
+   set_mario_animation (sub_sma_row) + is_anim_at_end (sub_iae_row);
+   cact = [_t'4] (m->marioBodyState->headAngle[0] chase store);
+   sids = set_mario_action (Hsmact). ---- *)
+Definition sub_cwks_wact : list ident :=
+  mario_actions_submerged._endAction :: mario_actions_submerged._t'1 :: nil.
+Definition sub_cwks_ids : list ident :=
+  mario_actions_submerged._stationary_slow_down
+  :: mario_actions_submerged._perform_water_step
+  :: mario._set_mario_animation :: mario._is_anim_at_end :: nil.
+Definition sub_cwks_cact : list ident :=
+  mario_actions_submerged._t'4 :: nil.
+Definition sub_cwks_sids : list ident :=
+  mario._set_mario_action :: nil.
+Example sub_cwks_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._common_water_knockback_step
+  = Some (Gfun (Internal mario_actions_submerged.f_common_water_knockback_step)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_cwks_vars :
+  fn_vars mario_actions_submerged.f_common_water_knockback_step = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_cwks_params :
+  fn_params mario_actions_submerged.f_common_water_knockback_step
+  = (mario_actions_airborne._m, tyMSp)
+      :: (mario_actions_submerged._animation, tint)
+      :: (mario_actions_submerged._endAction, tuint)
+      :: (mario_actions_submerged._arg3, tint) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_cwks_aid_m :
+  mario_actions_submerged._animation <> mario_actions_airborne._m.
+Proof. vm_compute. discriminate. Qed.
+Example sub_cwks_eid_m :
+  mario_actions_submerged._endAction <> mario_actions_airborne._m.
+Proof. vm_compute. discriminate. Qed.
+Example sub_cwks_harg_m :
+  mario_actions_submerged._arg3 <> mario_actions_airborne._m.
+Proof. vm_compute. discriminate. Qed.
+Example sub_cwks_wa :
+  mem_id mario_actions_submerged._endAction sub_cwks_wact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_cwks_wm :
+  mem_id mario_actions_airborne._m sub_cwks_wact = false.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_cwks_wanim :
+  mem_id mario_actions_submerged._animation sub_cwks_wact = false.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_cwks_wharg :
+  mem_id mario_actions_submerged._arg3 sub_cwks_wact = false.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_cwks_cm :
+  mem_id mario_actions_airborne._m sub_cwks_cact = false.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_cwks_canim :
+  mem_id mario_actions_submerged._animation sub_cwks_cact = false.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_cwks_cend :
+  mem_id mario_actions_submerged._endAction sub_cwks_cact = false.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_cwks_charg :
+  mem_id mario_actions_submerged._arg3 sub_cwks_cact = false.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_cwks_walk :
+  wwalk_chk false sub_cwks_wact sub_cwks_ids nil sub_cwks_cact nil sub_cwks_sids nil
+    (fn_body mario_actions_submerged.f_common_water_knockback_step) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ---- act_metal_water_standing ---- *)
 Example sub_mws_pin :
   (prog_defmap mario_actions_submerged.prog)
@@ -1119,7 +1192,7 @@ Proof. vm_compute. reflexivity. Qed.
 
 (* ---- the knockback pair: ONE cwks call via tids (act3_call_chk gates the
    ACT_WATER_IDLE const at full-index 2 = endAction); ids/wids/xids/sids all
-   nil, the only row is sub_kb_tids_rows (call_pres_act3 cwks = Hcp_cwks). ---- *)
+   nil, the only row is sub_kb_tids_rows (call_pres_act3 cwks = sub_cwks_row). ---- *)
 Example sub_bwkb_pin :
   (prog_defmap mario_actions_submerged.prog)
     ! mario_actions_submerged._act_backward_water_kb
@@ -1568,12 +1641,11 @@ Section SubmergedLeafRows.
 
   (* the knockback step helper: action-preserving WHEN its endAction (param
      index 2 = the THIRD vargs element) is untainted.  Exactly call_pres_act3.
-     An honest INTERNAL residual (cwks is internal in mario_actions_submerged.
-     prog) -- dischargeable later via the #66 param-action arc (walk its body
-     threading the untainted endAction param into the action store). *)
-  Hypothesis Hcp_cwks :
-    call_pres_act3 lp bm NoA MWF
-      mario_actions_submerged._common_water_knockback_step.
+     DISCHARGED below (sub_cwks_row): walk its body via call_pres_act3_of_wwalk_p4
+     threading the untainted endAction param into the action store
+     (set_mario_action(m, health>=0x100 ? endAction : ACT_WATER_DEATH, 0));
+     the only callees are the already-discharged ssd/sma/iae rows + the
+     perform_water_step residual (Hcp_pws) + set_mario_action (Hsmact).  NO hyp. *)
 
   (* SLICE 12 (cancel gate): transition_submerged_to_walking is an honest
      INTERNAL residual (f_transition_submerged_to_walking in mario.prog;
@@ -1981,6 +2053,57 @@ Section SubmergedLeafRows.
     - exact sub_rbv_walk.
   Qed.
 
+  (* common_water_knockback_step: the call_pres_act3 kb helper.  ids dispatch to
+     the discharged ssd/sma/iae rows + the perform_water_step residual (Hcp_pws);
+     sids dispatch to set_mario_action (Hsmact). *)
+  Lemma sub_cwks_ids_rows : forall fid, mem_id fid sub_cwks_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sub_cwks_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_ssd_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pws | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_sma_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_iae_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma sub_cwks_sids_rows : forall fid, mem_id fid sub_cwks_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sub_cwks_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | ].
+    discriminate H.
+  Qed.
+
+  Lemma sub_cwks_row :
+    call_pres_act3 lp bm NoA MWF
+      mario_actions_submerged._common_water_knockback_step.
+  Proof.
+    apply (call_pres_act3_of_wwalk_p4 lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.prog
+             mario_actions_submerged._common_water_knockback_step
+             mario_actions_submerged.f_common_water_knockback_step
+             sub_cwks_wact sub_cwks_ids nil sub_cwks_cact nil sub_cwks_sids
+             mario_actions_submerged._animation mario_actions_submerged._endAction
+             mario_actions_submerged._arg3 tint tint
+             LO_sub sub_cwks_pin sub_cwks_vars sub_cwks_params
+             sub_cwks_aid_m sub_cwks_eid_m sub_cwks_harg_m
+             sub_cwks_wa sub_cwks_wm sub_cwks_wanim sub_cwks_wharg
+             sub_cwks_cm sub_cwks_canim sub_cwks_cend sub_cwks_charg).
+    - exact sub_cwks_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sub_cwks_sids_rows.
+    - exact sub_cwks_walk.
+  Qed.
+
   (* is_anim_past_frame (mario.prog): NO stores, NO calls -- twin of is_anim_at_end. *)
   Lemma sub_iapf_row : call_pres lp bm NoA MWF mario._is_anim_past_frame.
   Proof.
@@ -2247,7 +2370,7 @@ Section SubmergedLeafRows.
   Proof.
     intros fid H. unfold sub_kb_tids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_cwks | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_cwks_row | ].
     discriminate H.
   Qed.
 
