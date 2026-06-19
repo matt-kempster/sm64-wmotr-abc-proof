@@ -374,6 +374,55 @@ Example sub_sma_walk :
     (fn_body mario.f_set_mario_animation) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- update_swimming_pitch (pure window stores m->faceAngle[0]; reads
+   m->controller->stickY as a chase load into a temp; ZERO calls) ---- *)
+Example sub_usp_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._update_swimming_pitch
+  = Some (Gfun (Internal mario_actions_submerged.f_update_swimming_pitch)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_usp_vars :
+  fn_vars mario_actions_submerged.f_update_swimming_pitch = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_usp_pok :
+  match fn_params mario_actions_submerged.f_update_swimming_pitch with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_usp_walk :
+  wwalk_chk false nil nil nil nil nil nil nil
+    (fn_body mario_actions_submerged.f_update_swimming_pitch) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- update_swimming_yaw (window stores m->angleVel/faceAngle; ONE
+   approach_s32 external -> xids, reuses the obj_ext boundary) ---- *)
+Definition sub_usy_xids : list ident := mario_actions_object._approach_s32 :: nil.
+Example sub_usy_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._update_swimming_yaw
+  = Some (Gfun (Internal mario_actions_submerged.f_update_swimming_yaw)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_usy_vars :
+  fn_vars mario_actions_submerged.f_update_swimming_yaw = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_usy_pok :
+  match fn_params mario_actions_submerged.f_update_swimming_yaw with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_usy_walk :
+  wwalk_chk false nil nil nil nil sub_usy_xids nil nil
+    (fn_body mario_actions_submerged.f_update_swimming_yaw) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ---- act_metal_water_standing ---- *)
 Example sub_mws_pin :
   (prog_defmap mario_actions_submerged.prog)
@@ -1252,10 +1301,10 @@ Section SubmergedLeafRows.
      submerged.prog / interaction.prog, dischargeable by walking their bodies
      later).  None writes the action cell directly (they update swimming yaw/
      pitch/speed/face physics + grab/throw the held object). *)
-  Hypothesis Hcp_usy :
-    call_pres lp bm NoA MWF mario_actions_submerged._update_swimming_yaw.
-  Hypothesis Hcp_usp :
-    call_pres lp bm NoA MWF mario_actions_submerged._update_swimming_pitch.
+  (* update_swimming_yaw + update_swimming_pitch are DISCHARGED outright below
+     (sub_usy_row / sub_usp_row via call_pres_of_wwalk): pure window stores into
+     Mario's own faceAngle/angleVel, the only call (approach_s32, yaw only) rides
+     the obj_ext boundary -- NO hypothesis needed. *)
   Hypothesis Hcp_uss :
     call_pres lp bm NoA MWF mario_actions_submerged._update_swimming_speed.
   Hypothesis Hcp_uwp :
@@ -1405,6 +1454,52 @@ Section SubmergedLeafRows.
     - exact sub_sma_xids_rows.
     - intros fid' H. discriminate H.
     - exact sub_sma_walk.
+  Qed.
+
+  (* update_swimming_pitch: pure window stores, ZERO calls -> all censuses nil. *)
+  Lemma sub_usp_row :
+    call_pres lp bm NoA MWF mario_actions_submerged._update_swimming_pitch.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.prog
+             mario_actions_submerged._update_swimming_pitch
+             mario_actions_submerged.f_update_swimming_pitch
+             nil nil nil nil LO_sub sub_usp_pin sub_usp_vars sub_usp_pok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sub_usp_walk.
+  Qed.
+
+  (* update_swimming_yaw: window stores + ONE approach_s32 external (xids), which
+     reuses the SHARED obj_ext boundary (Hcpx_approach) -- NO new trust. *)
+  Lemma sub_usy_xids_rows : forall fid, mem_id fid sub_usy_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sub_usy_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_approach | ].
+    discriminate H.
+  Qed.
+
+  Lemma sub_usy_row :
+    call_pres lp bm NoA MWF mario_actions_submerged._update_swimming_yaw.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.prog
+             mario_actions_submerged._update_swimming_yaw
+             mario_actions_submerged.f_update_swimming_yaw
+             nil nil sub_usy_xids nil LO_sub sub_usy_pin sub_usy_vars sub_usy_pok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sub_usy_xids_rows.
+    - intros fid' H. discriminate H.
+    - exact sub_usy_walk.
   Qed.
 
   (* ---- the ids/sids row dispatchers for the leaf walks ---- *)
@@ -1569,9 +1664,9 @@ Section SubmergedLeafRows.
   Proof.
     intros fid H. unfold sub_tp_ids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_usy | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_usy_row | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_usp | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_usp_row | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_uss | ].
     apply orb_true_iff in H as [Hm | H];
