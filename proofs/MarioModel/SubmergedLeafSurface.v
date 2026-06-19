@@ -707,6 +707,32 @@ Example sub_umwjs_walk :
     (fn_body mario_actions_submerged.f_update_metal_water_jump_speed) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- reset_bob_variables (three DIRECT static-global stores: sBobTimer = 0,
+   sBobIncrement = 0x800, sBobHeight = m->faceAngle[0]/256 + 20; all three idents
+   now in CensusV2.stored_globals, so glob_store_chk accepts each Sassign).  No
+   callees, no externals -- every census is nil. ---- *)
+Example sub_rbv_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._reset_bob_variables
+  = Some (Gfun (Internal mario_actions_submerged.f_reset_bob_variables)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_rbv_vars :
+  fn_vars mario_actions_submerged.f_reset_bob_variables = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_rbv_pok :
+  match fn_params mario_actions_submerged.f_reset_bob_variables with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_rbv_walk :
+  wwalk_chk false nil nil nil nil nil nil nil
+    (fn_body mario_actions_submerged.f_reset_bob_variables) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ---- act_metal_water_standing ---- *)
 Example sub_mws_pin :
   (prog_defmap mario_actions_submerged.prog)
@@ -1604,8 +1630,9 @@ Section SubmergedLeafRows.
     call_pres lp bm NoA MWF mario_actions_submerged._set_anim_to_frame.
   (* play_swimming_noise is DISCHARGED below (sub_psn_row): no stores, lone call
      play_sound (obj_ext) -- NO hypothesis needed. *)
-  Hypothesis Hcp_rbv :
-    call_pres lp bm NoA MWF mario_actions_submerged._reset_bob_variables.
+  (* reset_bob_variables is DISCHARGED below (sub_rbv_row): three direct
+     static-global stores (sBobTimer/sBobIncrement/sBobHeight, all in
+     stored_globals) -- NO hypothesis needed. *)
   Hypothesis Hcp_css :
     call_pres lp bm NoA MWF mario_actions_submerged._common_swimming_step.
   Hypothesis Hcpx_af32 :
@@ -1929,6 +1956,29 @@ Section SubmergedLeafRows.
     - exact sub_psn_xids_rows.
     - intros fid' H. discriminate H.
     - exact sub_psinf_walk.
+  Qed.
+
+  (* reset_bob_variables (mario_actions_submerged.prog): three DIRECT static-
+     global stores (sBobTimer/sBobIncrement/sBobHeight, all in stored_globals);
+     the sBobHeight RHS reads m->faceAngle[0] (a window load, transparent).  No
+     callees, no externals -- every census is nil.  Each Sassign is accepted by
+     glob_store_chk and preserved via HMWF_glob (Hglob_blk's distinctness for the
+     three static blocks). *)
+  Lemma sub_rbv_row :
+    call_pres lp bm NoA MWF mario_actions_submerged._reset_bob_variables.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.prog
+             mario_actions_submerged._reset_bob_variables
+             mario_actions_submerged.f_reset_bob_variables
+             nil nil nil nil LO_sub sub_rbv_pin sub_rbv_vars sub_rbv_pok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sub_rbv_walk.
   Qed.
 
   (* is_anim_past_frame (mario.prog): NO stores, NO calls -- twin of is_anim_at_end. *)
@@ -2271,7 +2321,7 @@ Section SubmergedLeafRows.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact sub_sma_row | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_rbv | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_rbv_row | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_css | ].
     apply orb_true_iff in H as [Hm | H];

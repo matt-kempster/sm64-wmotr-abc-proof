@@ -813,7 +813,13 @@ Definition stored_globals : list ident :=
   (* the bob-increment static (mario_actions_submerged): act_water_plunge stores
      sBobIncrement = 0 directly when the plunge resolves -- a static s16 data
      symbol, same Hglob_blk bm/bc/SafeB-disjoint trust class. *)
-  mario_actions_submerged._sBobIncrement :: nil.
+  mario_actions_submerged._sBobIncrement ::
+  (* the remaining two bob statics (mario_actions_submerged): reset_bob_variables
+     stores sBobTimer = 0 and sBobHeight = m->faceAngle[0]/256 + 20 directly --
+     static s16/f32 data symbols, same Hglob_blk bm/bc/SafeB-disjoint trust class
+     as sBobIncrement above. *)
+  mario_actions_submerged._sBobTimer ::
+  mario_actions_submerged._sBobHeight :: nil.
 
 (* ---------------------------------------------------------------------- *)
 (* The interaction-handler census (the Hpres_inter arc): the 28 DISTINCT   *)
