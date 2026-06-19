@@ -1076,19 +1076,19 @@ Section NoARealInputMWF.
     call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._reset_bob_variables.
   Hypothesis Hcp_css_real :
     call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._common_swimming_step.
-  Hypothesis Hcpx_af32_real :
-    call_pres_ext lp bm (NoA_real bm) MWF mario_actions_submerged._approach_f32.
+  (* SLICE 14's approach_f32 needs NO hypothesis: mario_actions_submerged.
+     _approach_f32 is the SAME string-shared positive as mario_actions_airborne.
+     _approach_f32, so the airborne Hcpx_approach_f32_real (above) covers it. *)
   (* SLICE 15 (the last two submerged leaves -- act_water_plunge +
      act_caught_in_whirlpool, both straight-line switch bodies): swimming_near_
-     surface is the ONE honest INTERNAL residual (a pure m->pos/waterLevel read
-     returning a flag, internal in mario_actions_submerged.prog).  This CLOSES
-     the submerged leaf census -- every one of the 33 ids is now positively
-     WALKED, so Hpres_sub_rest is ELIMINATED (the family discharge uses
+     surface is a PURE read-only body (a m->pos/waterLevel read returning a
+     flag), so it is DISCHARGED OUTRIGHT inside SubmergedLeafSurface (sns_cp via
+     the pure_walk tool) -- NO hypothesis here.  This CLOSES the submerged leaf
+     census -- every one of the 33 ids is now positively WALKED, so
+     Hpres_sub_rest is ELIMINATED (the family discharge uses
      submerged_leaf_callees_pres_full, whose vacuous rest premise is proved
      inline).  whirlpool's sqrtf/atan2s/vec3f_copy/vec3s_set are obj_ext (NO new
      trust); level_trigger_warp reuses the SHARED Hcp_ltw. *)
-  Hypothesis Hcp_sns_real :
-    call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._swimming_near_surface.
   (* the cutscene dispatcher is WALKED (CutsceneSurface.cutscene_pres
      over the generic DispatchKit): its whole-body residual is PROVED
      from per-leaf-callee residuals keyed by the 51-id census
@@ -2479,7 +2479,7 @@ Section NoARealInputMWF.
                       HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                    (* SLICE 1: act_metal_water_standing WALKED; the 33-id
                       census is shrunk to the un-walked 32 (sub_rest_ids). *)
-                   (submerged_leaf_callees_pres_full lp LO_mario LO_stp bm
+                   (submerged_leaf_callees_pres_full lp LO_mario LO_stp LO_sub bm
                       (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
                       (mwf_real_ctl lp bm bc oc0 SafeB)
                       (mwf_real_window lp bm bc oc0 SafeB Hbc_bm
@@ -2594,13 +2594,17 @@ Section NoARealInputMWF.
                          obj_ext boundary (NO new trust); approach_f32 is the
                          ONE new terminal-external boundary row. *)
                       Hcp_cwj_real Hcp_satf_real Hcp_psn_real Hcp_rbv_real
-                      Hcp_css_real Hcpx_af32_real
-                      (* SLICE 15 (the last two leaves -- CLOSES the family): the
-                         lone internal residual swimming_near_surface; the four
-                         whirlpool externals ride the obj_ext boundary (NO new
-                         trust).  submerged_leaf_callees_pres_full discharges the
-                         now-empty rest premise inline -- NO Hpres_sub_rest. *)
-                      Hcp_sns_real
+                      Hcp_css_real Hcpx_approach_f32_real
+                      (* SLICE 15 (the last two leaves -- CLOSES the family):
+                         swimming_near_surface is a PURE read-only body, so it is
+                         DISCHARGED outright inside SubmergedLeafSurface (sns_cp
+                         via pure_walk) -- NO hypothesis.  The four whirlpool
+                         externals ride the obj_ext boundary (NO new trust).
+                         submerged_leaf_callees_pres_full discharges the now-empty
+                         rest premise inline -- NO Hpres_sub_rest.
+                         NOTE: mario_actions_submerged._approach_f32 is the SAME
+                         string-shared positive as airborne's, so the airborne
+                         Hcpx_approach_f32_real covers it -- NO Hcpx_af32_real. *)
                       (Hpres_obj_ext mario_actions_submerged._sqrtf eq_refl)
                       (Hpres_obj_ext mario_actions_submerged._atan2s eq_refl)
                       (Hpres_obj_ext mario_actions_submerged._vec3f_copy eq_refl)

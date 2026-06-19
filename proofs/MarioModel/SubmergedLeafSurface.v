@@ -27,7 +27,7 @@ From SM64.Proofs Require Import SymbolicLinking Flying Taint
   ActionValueFrame RealFrameValue RealFrameLinked AGates.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface
   AirborneSurface DispatchKit FloorsSurface.
-From SM64.Proofs Require Import ActWriterSurface SubmergedSurface.
+From SM64.Proofs Require Import ActWriterSurface SubmergedSurface MarioStepSurface.
 
 Import ListNotations.
 
@@ -1304,8 +1304,55 @@ Section SubmergedLeafRows.
      obj_ext_ids members, discharged zero-trust via Hpres_obj_ext at the
      capstone.  level_trigger_warp reuses the SHARED Hcp_ltw; set_mario_action /
      play_sound / set_mario_animation reuse the keystone / obj_ext / sub_sma_row. *)
-  Hypothesis Hcp_sns :
+  (* swimming_near_surface is a PURE read-only body: it loads m->flags,
+     m->waterLevel, m->pos[1] and returns a bool -- no stores, no calls.
+     So we DISCHARGE its call_pres outright via the pure_walk tool (no
+     hypothesis needed): the whole funcall returns the same memory, so every
+     carried run fact is its own proof. *)
+  Lemma sns_pin :
+    (prog_defmap mario_actions_submerged.prog)
+      ! mario_actions_submerged._swimming_near_surface
+    = Some (Gfun (Internal mario_actions_submerged.f_swimming_near_surface)).
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma sns_chk_body :
+    pure_chk (fn_body mario_actions_submerged.f_swimming_near_surface) = true.
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma sns_body_pres :
+    body_pres lp NoA MWF bm mario_actions_submerged.f_swimming_near_surface.
+  Proof.
+    intros m0 vargs0 t0 mF vres0 Hgate Hevf HN HM HV HS.
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      rename Ha into Halloc end.
+    unfold mario_actions_submerged.f_swimming_near_surface in Halloc.
+    cbn [fn_vars] in Halloc.
+    inv Halloc.
+    pose proof (pure_walk _ _ _ _ _ _ _ _ _ Hbody sns_chk_body) as Em.
+    subst m1.
+    assert (Hben : blocks_of_env (lp_ge lp) empty_env = nil) by reflexivity.
+    rewrite Hben in Hfree. cbn [Mem.free_list] in Hfree.
+    injection Hfree as <-.
+    exact (conj HV (conj HS HM)).
+  Qed.
+
+  Lemma sns_cp :
     call_pres lp bm NoA MWF mario_actions_submerged._swimming_near_surface.
+  Proof.
+    exact (call_pres_of_body lp bm NoA MWF HNoA_of_MWF mario_actions_submerged.prog
+             mario_actions_submerged._swimming_near_surface
+             mario_actions_submerged.f_swimming_near_surface
+             LO_sub sns_pin sns_body_pres).
+  Qed.
+
   Hypothesis Hcpx_sqrtf :
     call_pres_ext lp bm NoA MWF mario_actions_submerged._sqrtf.
   Hypothesis Hcpx_atan2s :
@@ -1596,7 +1643,7 @@ Section SubmergedLeafRows.
   Proof.
     intros fid H. unfold wp_ids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sns | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sns_cp | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ssd | ].
     apply orb_true_iff in H as [Hm | H];
