@@ -533,6 +533,31 @@ Example sub_ssd_walk :
     (fn_body mario_actions_submerged.f_stationary_slow_down) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- play_swimming_noise (chase reads marioObj->animFrame/cameraToObject;
+   ONE conditional play_sound (obj_ext); NO stores) -> xids=[play_sound] *)
+Definition sub_psn_xids : list ident := mario._play_sound :: nil.
+Example sub_psn_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._play_swimming_noise
+  = Some (Gfun (Internal mario_actions_submerged.f_play_swimming_noise)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_psn_vars :
+  fn_vars mario_actions_submerged.f_play_swimming_noise = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_psn_pok :
+  match fn_params mario_actions_submerged.f_play_swimming_noise with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_psn_walk :
+  wwalk_chk false nil nil nil nil sub_psn_xids nil nil
+    (fn_body mario_actions_submerged.f_play_swimming_noise) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ---- act_metal_water_standing ---- *)
 Example sub_mws_pin :
   (prog_defmap mario_actions_submerged.prog)
@@ -1446,8 +1471,8 @@ Section SubmergedLeafRows.
     call_pres lp bm NoA MWF mario_actions_submerged._check_water_jump.
   Hypothesis Hcp_satf :
     call_pres lp bm NoA MWF mario_actions_submerged._set_anim_to_frame.
-  Hypothesis Hcp_psn :
-    call_pres lp bm NoA MWF mario_actions_submerged._play_swimming_noise.
+  (* play_swimming_noise is DISCHARGED below (sub_psn_row): no stores, lone call
+     play_sound (obj_ext) -- NO hypothesis needed. *)
   Hypothesis Hcp_rbv :
     call_pres lp bm NoA MWF mario_actions_submerged._reset_bob_variables.
   Hypothesis Hcp_css :
@@ -1728,6 +1753,35 @@ Section SubmergedLeafRows.
     - exact sub_ssd_walk.
   Qed.
 
+  (* play_swimming_noise: NO stores; lone call play_sound (Hcpx_psound, obj_ext)
+     -> xids=[play_sound].  No new trust. *)
+  Lemma sub_psn_xids_rows : forall fid, mem_id fid sub_psn_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sub_psn_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | ].
+    discriminate H.
+  Qed.
+
+  Lemma sub_psn_row :
+    call_pres lp bm NoA MWF mario_actions_submerged._play_swimming_noise.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.prog
+             mario_actions_submerged._play_swimming_noise
+             mario_actions_submerged.f_play_swimming_noise
+             nil nil sub_psn_xids nil LO_sub
+             sub_psn_pin sub_psn_vars sub_psn_pok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sub_psn_xids_rows.
+    - intros fid' H. discriminate H.
+    - exact sub_psn_walk.
+  Qed.
+
   (* ---- the ids/sids row dispatchers for the leaf walks ---- *)
   Lemma sub_metal_ids_rows : forall fid, mem_id fid sub_metal_ids = true ->
       call_pres lp bm NoA MWF fid.
@@ -1941,7 +1995,7 @@ Section SubmergedLeafRows.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_css | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_psn | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_psn_row | ].
     discriminate H.
   Qed.
 

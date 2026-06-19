@@ -1072,8 +1072,9 @@ Section NoARealInputMWF.
     call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._check_water_jump.
   Hypothesis Hcp_satf_real :
     call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._set_anim_to_frame.
-  Hypothesis Hcp_psn_real :
-    call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._play_swimming_noise.
+  (* play_swimming_noise needs NO hypothesis: DISCHARGED inside
+     SubmergedLeafSurface (sub_psn_row) -- no stores, lone call play_sound
+     (obj_ext). *)
   Hypothesis Hcp_rbv_real :
     call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._reset_bob_variables.
   Hypothesis Hcp_css_real :
@@ -2594,7 +2595,7 @@ Section NoARealInputMWF.
                          stop_shell_music reuse the keystone + dasma_row +
                          obj_ext boundary (NO new trust); approach_f32 is the
                          ONE new terminal-external boundary row. *)
-                      Hcp_cwj_real Hcp_satf_real Hcp_psn_real Hcp_rbv_real
+                      Hcp_cwj_real Hcp_satf_real Hcp_rbv_real
                       Hcp_css_real Hcpx_approach_f32_real
                       (* SLICE 15 (the last two leaves -- CLOSES the family):
                          swimming_near_surface is a PURE read-only body, so it is
