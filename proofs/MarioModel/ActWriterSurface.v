@@ -1823,6 +1823,7 @@ Definition wsrc_chk (wact : list ident) (a : expr) : bool :=
   | Econst_int c _ => wact_const c
   | Etempvar q _ => mem_id q wact
   | Ecast (Econst_int c ity) cty => i32_ty ity && i32_ty cty && wact_const c
+  | Ecast (Etempvar q ity) cty => i32_ty ity && i32_ty cty && mem_id q wact
   | _ => false
   end.
 
@@ -4804,32 +4805,48 @@ Section ActWriterWalk.
                 apply eval_expr_Etempvar_val in Hev;
                 exact (Hact _ Hrest _ Hev)
             end. }
-          { (* I32 cast of an untainted constant: value-neutral *)
-            destruct ca as [ c3 ity | | | | | | | | | | | | | ];
-              try discriminate Hrest.
-            apply andb_prop in Hrest as [Hrest Hc3].
-            apply andb_prop in Hrest as [Hity Hcty2].
-            match goal with
-            | Hev : eval_expr _ _ _ _ (Ecast _ _) _ |- _ =>
-                inv Hev;
-                try (match goal with
-                     | Hlv : eval_lvalue _ _ _ _ (Ecast _ _) _ _ _ |- _ =>
-                         inv Hlv
-                     end)
-            end.
-            match goal with
-            | Hev1 : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
-                inv Hev1;
-                try (match goal with
-                     | Hlv : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _
-                       |- _ => inv Hlv
-                     end)
-            end.
-            match goal with
-            | Hcast : sem_cast _ _ _ _ = Some _ |- _ =>
-                rewrite (sem_cast_i32_neutral _ _ _ _ _ Hity Hcty2 Hcast)
-            end.
-            exact (wact_const_sound _ Hc3). }
+          { (* I32 cast of an untainted source (a const OR another act
+               temp): value-neutral, so the cast preserves untaintedness.
+               (set_mario_action's ternary action arg lowers to
+               `_t = (uint)endAction` / `_t = (uint)ACT_*` -- the endAction
+               case is a cast of a wact PARAM temp, the const case a cast of
+               an untainted literal.) *)
+            destruct ca as [ c3 ity | | | | | q3 qty | | | | | | | | ];
+              try discriminate Hrest;
+              apply andb_prop in Hrest as [Hrest Hsrc];
+              apply andb_prop in Hrest as [Hity Hcty2];
+              match goal with
+              | Hev : eval_expr _ _ _ _ (Ecast _ _) _ |- _ =>
+                  inv Hev;
+                  try (match goal with
+                       | Hlv : eval_lvalue _ _ _ _ (Ecast _ _) _ _ _ |- _ =>
+                           inv Hlv
+                       end)
+              end.
+            - (* cast of an untainted I32 constant *)
+              match goal with
+              | Hev1 : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+                  inv Hev1;
+                  try (match goal with
+                       | Hlv : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _
+                         |- _ => inv Hlv
+                       end)
+              end.
+              match goal with
+              | Hcast : sem_cast _ _ _ _ = Some _ |- _ =>
+                  rewrite (sem_cast_i32_neutral _ _ _ _ _ Hity Hcty2 Hcast)
+              end.
+              exact (wact_const_sound _ Hsrc).
+            - (* cast of another untainted act (wact) temp: the source value
+                 is untainted_scalar by act_inv, and an I32->I32 cast keeps
+                 it untainted (sem_cast_i32_untainted) *)
+              match goal with
+              | Hev1 : eval_expr _ _ _ _ (Etempvar _ _) _,
+                Hcast : sem_cast _ _ _ _ = Some _ |- _ =>
+                  apply eval_expr_Etempvar_val in Hev1;
+                  exact (sem_cast_i32_untainted _ _ _ _ _ Hity Hcty2
+                           (Hact _ Hsrc _ Hev1) Hcast)
+              end. }
         * rewrite PTree.gso in Hg by exact Hne.
           exact (Hact _ Hmem _ Hg).
       + intros t Hmem b o Hg.
