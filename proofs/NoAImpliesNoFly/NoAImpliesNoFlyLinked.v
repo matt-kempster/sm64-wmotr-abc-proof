@@ -942,12 +942,10 @@ Section NoARealInputMWF.
      to_floor step, window stores to actionState/particleFlags; NO chase
      stores).  The shared helper rows is_anim_at_end / set_mario_animation
      are WALKED inside the leaf surface; set_mario_action is the reusable
-     smact_pres keystone.  The remaining 32 stay under Hpres_sub_rest. *)
-  Hypothesis Hpres_sub_rest : forall fid f,
-      mem_id fid sub_rest_ids = true ->
-      (prog_defmap mario_actions_submerged.prog) ! fid
-        = Some (Gfun (Internal f)) ->
-      body_pres lp (NoA_real bm) MWF bm f.
+     smact_pres keystone.  As of SLICE 15 ALL 33 census ids are WALKED, so there
+     is NO Hpres_sub_rest catch-all hypothesis any more -- the family discharge
+     is submerged_leaf_callees_pres_full, whose vacuous rest premise is proved
+     inline (sub_rest_ids computes to []). *)
   (* the ONE honest step residual slice 1 introduces: stop_and_set_height_
      to_floor (mario_step.prog) writes pos/vel (window) and copies into
      marioObj's gfx pos/angle through the chased marioObj pointer (SafeB
@@ -1080,6 +1078,17 @@ Section NoARealInputMWF.
     call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._common_swimming_step.
   Hypothesis Hcpx_af32_real :
     call_pres_ext lp bm (NoA_real bm) MWF mario_actions_submerged._approach_f32.
+  (* SLICE 15 (the last two submerged leaves -- act_water_plunge +
+     act_caught_in_whirlpool, both straight-line switch bodies): swimming_near_
+     surface is the ONE honest INTERNAL residual (a pure m->pos/waterLevel read
+     returning a flag, internal in mario_actions_submerged.prog).  This CLOSES
+     the submerged leaf census -- every one of the 33 ids is now positively
+     WALKED, so Hpres_sub_rest is ELIMINATED (the family discharge uses
+     submerged_leaf_callees_pres_full, whose vacuous rest premise is proved
+     inline).  whirlpool's sqrtf/atan2s/vec3f_copy/vec3s_set are obj_ext (NO new
+     trust); level_trigger_warp reuses the SHARED Hcp_ltw. *)
+  Hypothesis Hcp_sns_real :
+    call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._swimming_near_surface.
   (* the cutscene dispatcher is WALKED (CutsceneSurface.cutscene_pres
      over the generic DispatchKit): its whole-body residual is PROVED
      from per-leaf-callee residuals keyed by the 51-id census
@@ -2470,7 +2479,7 @@ Section NoARealInputMWF.
                       HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                    (* SLICE 1: act_metal_water_standing WALKED; the 33-id
                       census is shrunk to the un-walked 32 (sub_rest_ids). *)
-                   (submerged_leaf_callees_pres lp LO_mario LO_stp bm
+                   (submerged_leaf_callees_pres_full lp LO_mario LO_stp bm
                       (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
                       (mwf_real_ctl lp bm bc oc0 SafeB)
                       (mwf_real_window lp bm bc oc0 SafeB Hbc_bm
@@ -2586,7 +2595,16 @@ Section NoARealInputMWF.
                          ONE new terminal-external boundary row. *)
                       Hcp_cwj_real Hcp_satf_real Hcp_psn_real Hcp_rbv_real
                       Hcp_css_real Hcpx_af32_real
-                      Hpres_sub_rest))
+                      (* SLICE 15 (the last two leaves -- CLOSES the family): the
+                         lone internal residual swimming_near_surface; the four
+                         whirlpool externals ride the obj_ext boundary (NO new
+                         trust).  submerged_leaf_callees_pres_full discharges the
+                         now-empty rest premise inline -- NO Hpres_sub_rest. *)
+                      Hcp_sns_real
+                      (Hpres_obj_ext mario_actions_submerged._sqrtf eq_refl)
+                      (Hpres_obj_ext mario_actions_submerged._atan2s eq_refl)
+                      (Hpres_obj_ext mario_actions_submerged._vec3f_copy eq_refl)
+                      (Hpres_obj_ext mario_actions_submerged._vec3s_set eq_refl)))
                 (cutscene_pres lp LO_mario LO_cut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
                    (mwf_real_ctl lp bm bc oc0 SafeB)
