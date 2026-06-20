@@ -181,6 +181,27 @@ Definition fasg_ids : list ident :=
     :: mario._set_mario_animation :: nil.
 Definition fasg_xids : list ident := mario._play_sound :: nil.
 
+(* act_spawn_spin_airborne: the airborne twin of spawn_spin_landing.  Plain
+   body_pres_of_wwalk (wact=nil, cact=nil): the marioObj read feeds play_sound
+   only; m-field stores (actionState) + indexed window stores (vel[1]).
+   ids = set_water_plunge_action / mario_set_forward_vel / perform_air_step /
+   play_mario_landing_sound / set_mario_animation; xids = load_level_init_text
+   (Hcpx_llit) + play_sound (Hcpx_psound); sids = set_mario_action (const 4901). *)
+Definition ssa_ids : list ident :=
+  mario._set_water_plunge_action :: mario._mario_set_forward_vel
+    :: mario_step._perform_air_step :: mario._play_mario_landing_sound
+    :: mario._set_mario_animation :: nil.
+Definition ssa_xids : list ident :=
+  C._load_level_init_text :: mario._play_sound :: nil.
+
+(* act_warp_door_spawn: body_pres_of_wwalk_cact.  cact = [_t'9;_t'8] = the
+   usedObj chase temps stored THROUGH (m->usedObj->rawData.asS32[43] = const);
+   ids = set_mario_animation / stop_and_set_height_to_floor; sids =
+   set_mario_action (consts 536875781, 205521409); xids = nil. *)
+Definition wds_cact : list ident := C._t'9 :: C._t'8 :: nil.
+Definition wds_ids : list ident :=
+  mario._set_mario_animation :: mario_step._stop_and_set_height_to_floor :: nil.
+
 (* the WALKED leaves (SLICE 1 + SLICE 2 + SLICE 3 + SLICE 4 + SLICE 5). *)
 Definition cut_walked_ids : list ident :=
   C._act_electrocution :: C._act_suffocation
@@ -194,7 +215,8 @@ Definition cut_walked_ids : list ident :=
     :: C._act_emerge_from_pipe :: C._act_shocked
     :: C._act_teleport_fade_in :: C._act_spawn_spin_landing
     :: C._act_spawn_no_spin_landing :: C._act_standing_death
-    :: C._act_fall_after_star_grab :: nil.
+    :: C._act_fall_after_star_grab :: C._act_spawn_spin_airborne
+    :: C._act_warp_door_spawn :: nil.
 Definition cut_rest_ids : list ident :=
   filter (fun id => negb (mem_id id cut_walked_ids)) cutscene_callee_ids.
 
@@ -504,6 +526,14 @@ Proof. vm_compute. reflexivity. Qed.
 Example fasg_pin :
   (prog_defmap C.prog) ! C._act_fall_after_star_grab
   = Some (Gfun (Internal C.f_act_fall_after_star_grab)).
+Proof. vm_compute. reflexivity. Qed.
+Example ssa_pin :
+  (prog_defmap C.prog) ! C._act_spawn_spin_airborne
+  = Some (Gfun (Internal C.f_act_spawn_spin_airborne)).
+Proof. vm_compute. reflexivity. Qed.
+Example wds_pin :
+  (prog_defmap C.prog) ! C._act_warp_door_spawn
+  = Some (Gfun (Internal C.f_act_warp_door_spawn)).
 Proof. vm_compute. reflexivity. Qed.
 (* is_anim_at_end: the loads-only "anim done?" helper (walked in-file). *)
 Example cut_iae_pin :
@@ -1638,6 +1668,107 @@ Section CutsceneLeafRows.
     - exact fasg_walk.
   Qed.
 
+  (* act_spawn_spin_airborne: body_pres_of_wwalk, the airborne twin of
+     spawn_spin_landing.  cact=nil (marioObj read feeds play_sound only). *)
+  Lemma ssa_ids_rows : forall fid, mem_id fid ssa_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold ssa_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hswpa | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hmsfv | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pas | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact pmls_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | discriminate H ].
+  Qed.
+  Lemma ssa_xids_rows : forall fid, mem_id fid ssa_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold ssa_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_llit | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | discriminate H ].
+  Qed.
+  Example ssa_vars : fn_vars C.f_act_spawn_spin_airborne = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example ssa_pok :
+    match fn_params C.f_act_spawn_spin_airborne with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example ssa_walk :
+    wwalk_chk false nil ssa_ids nil nil ssa_xids tfi_sids nil
+      (fn_body C.f_act_spawn_spin_airborne) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma ssa_pres : body_pres lp NoA MWF bm C.f_act_spawn_spin_airborne.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_spawn_spin_airborne ssa_ids nil ssa_xids tfi_sids nil
+             ssa_vars ssa_pok).
+    - exact ssa_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact ssa_xids_rows.
+    - intros fid' H. unfold tfi_sids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hsmact | discriminate H ].
+    - intros fid' H. discriminate H.
+    - exact ssa_walk.
+  Qed.
+
+  (* act_warp_door_spawn: body_pres_of_wwalk_cact.  cact = [_t'9;_t'8] = the
+     usedObj chase temps stored through (rawData.asS32[43] = const). *)
+  Lemma wds_ids_rows : forall fid, mem_id fid wds_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold wds_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sashf | discriminate H ].
+  Qed.
+  Example wds_vars : fn_vars C.f_act_warp_door_spawn = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example wds_pok :
+    match fn_params C.f_act_warp_door_spawn with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example wds_nonparam :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_warp_door_spawn))))
+      wds_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example wds_walk :
+    wwalk_chk false nil wds_ids nil wds_cact nil tfi_sids nil
+      (fn_body C.f_act_warp_door_spawn) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma wds_pres : body_pres lp NoA MWF bm C.f_act_warp_door_spawn.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_warp_door_spawn wds_ids nil wds_cact nil tfi_sids nil
+             wds_vars wds_pok wds_nonparam).
+    - exact wds_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold tfi_sids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hsmact | discriminate H ].
+    - intros fid' H. discriminate H.
+    - exact wds_walk.
+  Qed.
+
   (* ==================================================================== *)
   (* The family rest-split: discharge the SLICE 1-5 leaves, leaving the   *)
   (* other 36 under cut_rest_ids.                                         *)
@@ -1722,13 +1853,19 @@ Section CutsceneLeafRows.
     destruct (Pos.eqb fid C._act_fall_after_star_grab) eqn:E23.
     { apply Pos.eqb_eq in E23; subst fid.
       rewrite fasg_pin in Hdm. injection Hdm as <-. exact fasg_pres. }
+    destruct (Pos.eqb fid C._act_spawn_spin_airborne) eqn:E24.
+    { apply Pos.eqb_eq in E24; subst fid.
+      rewrite ssa_pin in Hdm. injection Hdm as <-. exact ssa_pres. }
+    destruct (Pos.eqb fid C._act_warp_door_spawn) eqn:E25.
+    { apply Pos.eqb_eq in E25; subst fid.
+      rewrite wds_pin in Hdm. injection Hdm as <-. exact wds_pres. }
     (* REST: fid is in the census and not a walked id. *)
     apply (Hrest fid f); [ | exact Hdm ].
     unfold cut_rest_ids.
     apply mem_id_filter_true; [ exact H | ].
     unfold cut_walked_ids. cbn [mem_id existsb].
     rewrite E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15, E16,
-      E17, E18, E19, E20, E21, E22, E23.
+      E17, E18, E19, E20, E21, E22, E23, E24, E25.
     reflexivity.
   Qed.
 
