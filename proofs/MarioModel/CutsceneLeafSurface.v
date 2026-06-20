@@ -73,11 +73,23 @@ Definition slice3_ids : list ident :=
 (* the marioObj chase temps act_disappeared stores the graphnode flags through. *)
 Definition disap_cact : list ident := C._t'5 :: C._t'6 :: nil.
 
-(* the WALKED leaves (SLICE 1 + SLICE 2 + SLICE 3). *)
+(* SLICE 4: two more "covered-callee" leaves.
+   act_eaten_by_bubba: psinf + sma + ltw (a slice3_ids subset) + the same
+     marioObj-graphnode-flags chase store as disappeared (ebb_cact).
+   act_waiting_for_dialog: sma + the two out-param externals vec3f_copy /
+     vec3s_set (already carried), writing the marioObj gfx pos/angle through
+     its chase temps (wfd_cact). *)
+Definition wfd_xids : list ident :=
+  mario._vec3f_copy :: mario._vec3s_set :: nil.
+Definition ebb_cact : list ident := C._t'2 :: C._t'3 :: nil.
+Definition wfd_cact : list ident := C._t'4 :: C._t'2 :: nil.
+
+(* the WALKED leaves (SLICE 1 + SLICE 2 + SLICE 3 + SLICE 4). *)
 Definition cut_walked_ids : list ident :=
   C._act_electrocution :: C._act_suffocation
     :: C._act_death_on_back :: C._act_death_on_stomach
-    :: C._act_disappeared :: C._act_teleport_fade_out :: nil.
+    :: C._act_disappeared :: C._act_teleport_fade_out
+    :: C._act_eaten_by_bubba :: C._act_waiting_for_dialog :: nil.
 Definition cut_rest_ids : list ident :=
   filter (fun id => negb (mem_id id cut_walked_ids)) cutscene_callee_ids.
 
@@ -242,6 +254,53 @@ Proof. vm_compute. reflexivity. Qed.
 Example tfo_walk :
   wwalk_chk false nil slice3_ids nil nil nil nil nil
     (fn_body C.f_act_teleport_fade_out) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- SLICE 4: act_eaten_by_bubba + act_waiting_for_dialog. ---- *)
+Example ebb_pin :
+  (prog_defmap C.prog) ! C._act_eaten_by_bubba
+  = Some (Gfun (Internal C.f_act_eaten_by_bubba)).
+Proof. vm_compute. reflexivity. Qed.
+Example ebb_vars : fn_vars C.f_act_eaten_by_bubba = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example ebb_pok :
+  match fn_params C.f_act_eaten_by_bubba with
+  | (i, ty) :: ps =>
+      Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id Am (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example ebb_nonparam :
+  forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_eaten_by_bubba))))
+    ebb_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example ebb_walk :
+  wwalk_chk false nil slice3_ids nil ebb_cact nil nil nil
+    (fn_body C.f_act_eaten_by_bubba) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example wfd_pin :
+  (prog_defmap C.prog) ! C._act_waiting_for_dialog
+  = Some (Gfun (Internal C.f_act_waiting_for_dialog)).
+Proof. vm_compute. reflexivity. Qed.
+Example wfd_vars : fn_vars C.f_act_waiting_for_dialog = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example wfd_pok :
+  match fn_params C.f_act_waiting_for_dialog with
+  | (i, ty) :: ps =>
+      Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id Am (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example wfd_nonparam :
+  forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_waiting_for_dialog))))
+    wfd_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example wfd_walk :
+  wwalk_chk false nil slice3_ids nil wfd_cact wfd_xids nil nil
+    (fn_body C.f_act_waiting_for_dialog) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* membership of the un-walked rest. *)
@@ -549,9 +608,51 @@ Section CutsceneLeafRows.
     - exact tfo_walk.
   Qed.
 
+  (* ---- SLICE 4: act_eaten_by_bubba + act_waiting_for_dialog. ---- *)
+  Lemma wfd_xids_rows : forall fid, mem_id fid wfd_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold wfd_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_v3fc | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_v3ss | ].
+    discriminate H.
+  Qed.
+
+  Lemma ebb_pres : body_pres lp NoA MWF bm C.f_act_eaten_by_bubba.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_eaten_by_bubba slice3_ids nil ebb_cact nil nil nil
+             ebb_vars ebb_pok ebb_nonparam).
+    - exact slice3_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact ebb_walk.
+  Qed.
+
+  Lemma wfd_pres : body_pres lp NoA MWF bm C.f_act_waiting_for_dialog.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_waiting_for_dialog slice3_ids nil wfd_cact wfd_xids nil nil
+             wfd_vars wfd_pok wfd_nonparam).
+    - exact slice3_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact wfd_xids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact wfd_walk.
+  Qed.
+
   (* ==================================================================== *)
-  (* The family rest-split: discharge the SLICE-1/2/3 leaves, leaving     *)
-  (* the other 45 under cut_rest_ids.                                     *)
+  (* The family rest-split: discharge the SLICE 1-4 leaves, leaving the   *)
+  (* other 43 under cut_rest_ids.                                         *)
   (* ==================================================================== *)
   Lemma cutscene_leaf_callees_pres :
     (forall fid f, mem_id fid cut_rest_ids = true ->
@@ -582,12 +683,18 @@ Section CutsceneLeafRows.
     destruct (Pos.eqb fid C._act_teleport_fade_out) eqn:E6.
     { apply Pos.eqb_eq in E6; subst fid.
       rewrite tfo_pin in Hdm. injection Hdm as <-. exact tfo_pres. }
+    destruct (Pos.eqb fid C._act_eaten_by_bubba) eqn:E7.
+    { apply Pos.eqb_eq in E7; subst fid.
+      rewrite ebb_pin in Hdm. injection Hdm as <-. exact ebb_pres. }
+    destruct (Pos.eqb fid C._act_waiting_for_dialog) eqn:E8.
+    { apply Pos.eqb_eq in E8; subst fid.
+      rewrite wfd_pin in Hdm. injection Hdm as <-. exact wfd_pres. }
     (* REST: fid is in the census and not a walked id. *)
     apply (Hrest fid f); [ | exact Hdm ].
     unfold cut_rest_ids.
     apply mem_id_filter_true; [ exact H | ].
     unfold cut_walked_ids. cbn [mem_id existsb].
-    rewrite E1, E2, E3, E4, E5, E6. reflexivity.
+    rewrite E1, E2, E3, E4, E5, E6, E7, E8. reflexivity.
   Qed.
 
 End CutsceneLeafRows.
