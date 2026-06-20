@@ -1395,7 +1395,10 @@ Section NoARealInputMWF.
      resting on the SAME mwf_real rows + the resolve (itself WALKED, via
      AutomaticLeafSurface.Hocp_resolve) / find_floor / vec3f_find_ceil oc rows +
      the vec3f_copy / vec3f_set w1-window rows the pwfs walk needs + the obj_ext
-     vec3f_copy / vec3s_set boundary + the SOLE new sub-residual Hcp_apw. *)
+     vec3f_copy / vec3s_set boundary + apw_cp (apply_water_current, ALSO walked
+     -- a loop-tolerant whirlpool-body walk resting only on Hls_real + obj_ext
+     sqrtf / atan2s).  The WHOLE perform_water_step subtree is thus discharged
+     with NO residual beyond the standard mwf_real + obj_ext boundary rows. *)
   Lemma Hcp_pws_real :
     call_pres lp bm (NoA_real bm) MWF
       mario_actions_submerged._perform_water_step.
