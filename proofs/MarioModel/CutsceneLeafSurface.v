@@ -115,6 +115,15 @@ Definition mo_cact : list ident := C._marioObj :: nil.
 (* act_spawn_no_spin_airborne: launch (sids) + set_water_plunge_action (ids);
    reads m->pos[1] / m->waterLevel (non-pointer m fields, np channel). *)
 Definition snsa_ids : list ident := mario._set_water_plunge_action :: nil.
+(* play_mario_landing_sound's sole callee (twin of pmhls). *)
+Definition pmls_ids : list ident :=
+  mario._play_sound_and_spawn_particles :: nil.
+(* act_emerge_from_pipe: launch (sids) + psinf/msfv/play_mario_landing_sound
+   (ids) + marioObj graphnode chase store (mo_cact) + global gCurrLevelNum/
+   gCurrAreaIndex scalar reads (np channel). *)
+Definition efp_ids : list ident :=
+  mario._play_sound_if_no_flag :: mario._mario_set_forward_vel
+    :: mario._play_mario_landing_sound :: nil.
 
 (* the WALKED leaves (SLICE 1 + SLICE 2 + SLICE 3 + SLICE 4 + SLICE 5). *)
 Definition cut_walked_ids : list ident :=
@@ -125,7 +134,8 @@ Definition cut_walked_ids : list ident :=
     :: C._act_exit_airborne :: C._act_falling_exit_airborne
     :: C._act_death_exit :: C._act_unused_death_exit
     :: C._act_falling_death_exit :: C._act_special_exit_airborne
-    :: C._act_special_death_exit :: C._act_spawn_no_spin_airborne :: nil.
+    :: C._act_special_death_exit :: C._act_spawn_no_spin_airborne
+    :: C._act_emerge_from_pipe :: nil.
 Definition cut_rest_ids : list ident :=
   filter (fun id => negb (mem_id id cut_walked_ids)) cutscene_callee_ids.
 
@@ -389,6 +399,28 @@ Proof. vm_compute. reflexivity. Qed.
 Example snsa_pin :
   (prog_defmap C.prog) ! C._act_spawn_no_spin_airborne
   = Some (Gfun (Internal C.f_act_spawn_no_spin_airborne)).
+Proof. vm_compute. reflexivity. Qed.
+Example pmls_pin :
+  (prog_defmap mario.prog) ! mario._play_mario_landing_sound
+  = Some (Gfun (Internal mario.f_play_mario_landing_sound)).
+Proof. vm_compute. reflexivity. Qed.
+Example pmls_vars : fn_vars mario.f_play_mario_landing_sound = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example pmls_pok :
+  match fn_params mario.f_play_mario_landing_sound with
+  | (i, ty) :: ps =>
+      Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id Am (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example pmls_walk :
+  wwalk_chk false nil pmls_ids nil nil nil nil nil
+    (fn_body mario.f_play_mario_landing_sound) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example efp_pin :
+  (prog_defmap C.prog) ! C._act_emerge_from_pipe
+  = Some (Gfun (Internal C.f_act_emerge_from_pipe)).
 Proof. vm_compute. reflexivity. Qed.
 
 (* membership of the un-walked rest. *)
@@ -1101,6 +1133,76 @@ Section CutsceneLeafRows.
     - exact snsa_walk.
   Qed.
 
+  (* play_mario_landing_sound: the non-heavy twin of pmhls (sole callee
+     play_sound_and_spawn_particles); built inline from Hcp_psasp. *)
+  Lemma pmls_ids_rows : forall fid, mem_id fid pmls_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold pmls_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_psasp | discriminate H ].
+  Qed.
+  Lemma pmls_row :
+    call_pres lp bm NoA MWF mario._play_mario_landing_sound.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._play_mario_landing_sound
+             mario.f_play_mario_landing_sound
+             pmls_ids nil nil nil
+             LO_mario pmls_pin pmls_vars pmls_pok).
+    - exact pmls_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact pmls_walk.
+  Qed.
+
+  (* act_emerge_from_pipe: the last launch caller. *)
+  Lemma efp_ids_rows : forall fid, mem_id fid efp_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold efp_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_psinf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hmsfv | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact pmls_row | discriminate H ].
+  Qed.
+  Example efp_vars : fn_vars C.f_act_emerge_from_pipe = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example efp_pok :
+    match fn_params C.f_act_emerge_from_pipe with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example efp_nonparam :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_emerge_from_pipe))))
+      mo_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example efp_walk :
+    wwalk_chk false nil efp_ids nil mo_cact nil exit_launch_sids nil
+      (fn_body C.f_act_emerge_from_pipe) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma efp_pres : body_pres lp NoA MWF bm C.f_act_emerge_from_pipe.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_emerge_from_pipe efp_ids nil mo_cact nil exit_launch_sids nil
+             efp_vars efp_pok efp_nonparam).
+    - exact efp_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact exit_launch_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact efp_walk.
+  Qed.
+
   (* ==================================================================== *)
   (* The family rest-split: discharge the SLICE 1-5 leaves, leaving the   *)
   (* other 36 under cut_rest_ids.                                         *)
@@ -1164,12 +1266,16 @@ Section CutsceneLeafRows.
     destruct (Pos.eqb fid C._act_spawn_no_spin_airborne) eqn:E16.
     { apply Pos.eqb_eq in E16; subst fid.
       rewrite snsa_pin in Hdm. injection Hdm as <-. exact snsa_pres. }
+    destruct (Pos.eqb fid C._act_emerge_from_pipe) eqn:E17.
+    { apply Pos.eqb_eq in E17; subst fid.
+      rewrite efp_pin in Hdm. injection Hdm as <-. exact efp_pres. }
     (* REST: fid is in the census and not a walked id. *)
     apply (Hrest fid f); [ | exact Hdm ].
     unfold cut_rest_ids.
     apply mem_id_filter_true; [ exact H | ].
     unfold cut_walked_ids. cbn [mem_id existsb].
-    rewrite E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15, E16.
+    rewrite E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15, E16,
+      E17.
     reflexivity.
   Qed.
 
