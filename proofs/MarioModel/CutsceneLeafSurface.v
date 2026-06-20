@@ -202,7 +202,48 @@ Definition wds_cact : list ident := C._t'9 :: C._t'8 :: nil.
 Definition wds_ids : list ident :=
   mario._set_mario_animation :: mario_step._stop_and_set_height_to_floor :: nil.
 
-(* the WALKED leaves (SLICE 1 + SLICE 2 + SLICE 3 + SLICE 4 + SLICE 5). *)
+(* SLICE 12: the dialog-cluster external boundary.  cut_ext_ids = the
+   cutscene DIALOG / TIME-STOP externals: EF_external in EVERY linked TU
+   (verified -- no Internal body anywhere under generated/), the honest
+   model-boundary class (same as obj_ext/sta_ext/mov_ext).  They drive the
+   dialog-box renderer and the global time-stop flag; none of them takes a
+   MarioState pointer or writes gMarioState->action, so call_pres_ext holds.
+   Supplied at the capstone by the new Hpres_cut_ext boundary; grows as
+   further dialog/save/spawn leaves discharge. *)
+Definition cut_ext_ids : list ident :=
+  C._create_dialog_inverted_box :: C._trigger_cutscene_dialog
+    :: C._enable_time_stop :: C._disable_time_stop :: nil.
+
+(* act_reading_sign: body_pres_of_wwalk (wact=nil, cact=nil -- marioObj/usedObj
+   chase temps are only LOADED; the only stores are direct non-action m-fields:
+   actionState / faceAngle[1] / pos[0,2] / actionTimer).  ids = psinf + sma;
+   xids = the 4 dialog/time-stop externals (Hcut_ext) + vec3f_copy / vec3s_set
+   (obj_ext); sids = set_mario_action (const 205521409). *)
+Definition rs_ids : list ident :=
+  mario._play_sound_if_no_flag :: mario._set_mario_animation :: nil.
+Definition rs_xids : list ident :=
+  C._trigger_cutscene_dialog :: C._enable_time_stop
+    :: C._create_dialog_inverted_box :: C._disable_time_stop
+    :: mario._vec3f_copy :: mario._vec3s_set :: nil.
+
+(* act_bbh_enter_spin: body_pres_of_wwalk_cact.  cact = [_t'18;_t'10] = the
+   marioObj chase temps stored THROUGH (rawData angle[0] / node flags);
+   ids = mario_set_forward_vel / set_mario_animation / perform_air_step /
+   level_trigger_warp / play_sound_if_no_flag / stop_and_set_height_to_floor;
+   xids = sqrtf / atan2s / play_sound (obj_ext) + vec3f_set (now obj_ext);
+   sids = nil (NO set_mario_action). *)
+Definition bbhs_cact : list ident := C._t'18 :: C._t'10 :: nil.
+Definition bbhs_ids : list ident :=
+  mario._mario_set_forward_vel :: mario._set_mario_animation
+    :: mario_step._perform_air_step :: level_update._level_trigger_warp
+    :: mario._play_sound_if_no_flag
+    :: mario_step._stop_and_set_height_to_floor :: nil.
+Definition bbhs_xids : list ident :=
+  mario._sqrtf :: interaction._atan2s :: mario._play_sound
+    :: mario._vec3f_set :: nil.
+
+(* the WALKED leaves (SLICE 1 + SLICE 2 + SLICE 3 + SLICE 4 + SLICE 5
+   + SLICE 12). *)
 Definition cut_walked_ids : list ident :=
   C._act_electrocution :: C._act_suffocation
     :: C._act_death_on_back :: C._act_death_on_stomach
@@ -216,7 +257,8 @@ Definition cut_walked_ids : list ident :=
     :: C._act_teleport_fade_in :: C._act_spawn_spin_landing
     :: C._act_spawn_no_spin_landing :: C._act_standing_death
     :: C._act_fall_after_star_grab :: C._act_spawn_spin_airborne
-    :: C._act_warp_door_spawn :: nil.
+    :: C._act_warp_door_spawn
+    :: C._act_reading_sign :: C._act_bbh_enter_spin :: nil.
 Definition cut_rest_ids : list ident :=
   filter (fun id => negb (mem_id id cut_walked_ids)) cutscene_callee_ids.
 
@@ -535,6 +577,14 @@ Example wds_pin :
   (prog_defmap C.prog) ! C._act_warp_door_spawn
   = Some (Gfun (Internal C.f_act_warp_door_spawn)).
 Proof. vm_compute. reflexivity. Qed.
+Example rs_pin :
+  (prog_defmap C.prog) ! C._act_reading_sign
+  = Some (Gfun (Internal C.f_act_reading_sign)).
+Proof. vm_compute. reflexivity. Qed.
+Example bbhs_pin :
+  (prog_defmap C.prog) ! C._act_bbh_enter_spin
+  = Some (Gfun (Internal C.f_act_bbh_enter_spin)).
+Proof. vm_compute. reflexivity. Qed.
 (* is_anim_at_end: the loads-only "anim done?" helper (walked in-file). *)
 Example cut_iae_pin :
   (prog_defmap mario.prog) ! mario._is_anim_at_end
@@ -675,6 +725,18 @@ Section CutsceneLeafRows.
     call_pres_ext lp bm NoA MWF C._load_level_init_text.
   Hypothesis Hcpx_pmlso :
     call_pres_ext lp bm NoA MWF C._play_mario_landing_sound_once.
+  (* SLICE 12 dialog cluster.  Hcut_ext = the new cutscene dialog/time-stop
+     external boundary (cut_ext_ids): EF_external in every linked TU, fed at
+     the capstone by Hpres_cut_ext (the honest model boundary, same class as
+     obj_ext/sta_ext/mov_ext).  atan2s / sqrtf / vec3f_set are the pure
+     math/vector externals (all three now in obj_ext_ids), fed via
+     Hpres_obj_ext -- NO new trust. *)
+  Hypothesis Hcut_ext : forall fid,
+      mem_id fid cut_ext_ids = true -> call_pres_ext lp bm NoA MWF fid.
+  Hypothesis Hcpx_atan2s :
+    call_pres_ext lp bm NoA MWF interaction._atan2s.
+  Hypothesis Hcpx_sqrtf : call_pres_ext lp bm NoA MWF mario._sqrtf.
+  Hypothesis Hcpx_v3fset : call_pres_ext lp bm NoA MWF mario._vec3f_set.
 
   Lemma Hcp_psinf : call_pres lp bm NoA MWF mario._play_sound_if_no_flag.
   Proof. eapply ObjectLeafSurface.psinf_row; eassumption. Qed.
@@ -1769,6 +1831,132 @@ Section CutsceneLeafRows.
     - exact wds_walk.
   Qed.
 
+  (* SLICE 12a: act_reading_sign.  body_pres_of_wwalk (wact=nil, cact=nil --
+     marioObj/usedObj are LOADED only; stores are direct non-action m-fields).
+     ids = psinf + sma; xids = the 4 dialog/time-stop externals (Hcut_ext)
+     + vec3f_copy / vec3s_set (obj_ext); sids = set_mario_action (const). *)
+  Lemma rs_ids_rows : forall fid, mem_id fid rs_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold rs_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_psinf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | discriminate H ].
+  Qed.
+  Lemma rs_xids_rows : forall fid, mem_id fid rs_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold rs_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; apply Hcut_ext; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; apply Hcut_ext; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; apply Hcut_ext; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; apply Hcut_ext; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_v3fc | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_v3ss | discriminate H ].
+  Qed.
+  Example rs_vars : fn_vars C.f_act_reading_sign = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example rs_pok :
+    match fn_params C.f_act_reading_sign with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example rs_walk :
+    wwalk_chk false nil rs_ids nil nil rs_xids tfi_sids nil
+      (fn_body C.f_act_reading_sign) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma rs_pres : body_pres lp NoA MWF bm C.f_act_reading_sign.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_reading_sign rs_ids nil rs_xids tfi_sids nil
+             rs_vars rs_pok).
+    - exact rs_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact rs_xids_rows.
+    - intros fid' H. unfold tfi_sids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hsmact | discriminate H ].
+    - intros fid' H. discriminate H.
+    - exact rs_walk.
+  Qed.
+
+  (* SLICE 12b: act_bbh_enter_spin.  body_pres_of_wwalk_cact.  cact =
+     [_t'18;_t'10] = the marioObj chase temps stored THROUGH; ids = msfv / sma
+     / pas / ltw / psinf / sashf; xids = sqrtf / atan2s / play_sound / vec3f_set
+     (all obj_ext); sids = nil. *)
+  Lemma bbhs_ids_rows : forall fid, mem_id fid bbhs_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold bbhs_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hmsfv | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pas | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ltw | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_psinf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sashf | discriminate H ].
+  Qed.
+  Lemma bbhs_xids_rows : forall fid, mem_id fid bbhs_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold bbhs_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_sqrtf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_atan2s | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_v3fset | discriminate H ].
+  Qed.
+  Example bbhs_vars : fn_vars C.f_act_bbh_enter_spin = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example bbhs_pok :
+    match fn_params C.f_act_bbh_enter_spin with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example bbhs_nonparam :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_bbh_enter_spin))))
+      bbhs_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example bbhs_walk :
+    wwalk_chk false nil bbhs_ids nil bbhs_cact bbhs_xids nil nil
+      (fn_body C.f_act_bbh_enter_spin) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma bbhs_pres : body_pres lp NoA MWF bm C.f_act_bbh_enter_spin.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_bbh_enter_spin bbhs_ids nil bbhs_cact bbhs_xids nil nil
+             bbhs_vars bbhs_pok bbhs_nonparam).
+    - exact bbhs_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact bbhs_xids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact bbhs_walk.
+  Qed.
+
   (* ==================================================================== *)
   (* The family rest-split: discharge the SLICE 1-5 leaves, leaving the   *)
   (* other 36 under cut_rest_ids.                                         *)
@@ -1859,13 +2047,19 @@ Section CutsceneLeafRows.
     destruct (Pos.eqb fid C._act_warp_door_spawn) eqn:E25.
     { apply Pos.eqb_eq in E25; subst fid.
       rewrite wds_pin in Hdm. injection Hdm as <-. exact wds_pres. }
+    destruct (Pos.eqb fid C._act_reading_sign) eqn:E26.
+    { apply Pos.eqb_eq in E26; subst fid.
+      rewrite rs_pin in Hdm. injection Hdm as <-. exact rs_pres. }
+    destruct (Pos.eqb fid C._act_bbh_enter_spin) eqn:E27.
+    { apply Pos.eqb_eq in E27; subst fid.
+      rewrite bbhs_pin in Hdm. injection Hdm as <-. exact bbhs_pres. }
     (* REST: fid is in the census and not a walked id. *)
     apply (Hrest fid f); [ | exact Hdm ].
     unfold cut_rest_ids.
     apply mem_id_filter_true; [ exact H | ].
     unfold cut_walked_ids. cbn [mem_id existsb].
     rewrite E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15, E16,
-      E17, E18, E19, E20, E21, E22, E23, E24, E25.
+      E17, E18, E19, E20, E21, E22, E23, E24, E25, E26, E27.
     reflexivity.
   Qed.
 

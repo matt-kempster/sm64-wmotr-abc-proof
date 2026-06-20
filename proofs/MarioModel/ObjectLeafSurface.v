@@ -114,7 +114,14 @@ Definition ccoc_sids : list ident :=
 (* the object family's EXTERNAL leaf rows (the warp_ext_ids model class);
    grows as further leaves discharge *)
 Definition obj_ext_ids : list ident :=
-  mario._vec3s_set :: mario._set_camera_mode
+  mario._vec3s_set
+    (* cutscene bbh/squished cluster: vec3f_set writes a caller-provided
+       float window (3 scalar components into &Object->gfx.pos-style
+       arrays), no Mario pointer -- the SAME pure-vector-helper model
+       class as vec3s_set / vec3f_copy above (EF_external in every
+       generated TU, writes no Mario cell). *)
+    :: mario._vec3f_set
+    :: mario._set_camera_mode
     :: interaction._segmented_to_virtual
     :: interaction._stop_shell_music
     :: interaction._obj_set_held_state
