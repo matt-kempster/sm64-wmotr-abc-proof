@@ -1149,6 +1149,17 @@ Section NoARealInputMWF.
   Hypothesis Hpres_obj_ext : forall fid,
       mem_id fid obj_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
+  (* SLICE 12 (cutscene dialog cluster): the new cutscene DIALOG / TIME-STOP
+     external boundary (CutsceneLeafSurface.cut_ext_ids = create_dialog_inverted_box
+     / trigger_cutscene_dialog / enable_time_stop / disable_time_stop).  These
+     are EF_external in EVERY linked TU (no Internal body anywhere under
+     generated/), the SAME honest model-boundary class as obj_ext/sta_ext/mov_ext
+     above: they drive the dialog renderer and the global time-stop flag, take no
+     MarioState pointer, and never touch gMarioState->action.  Consumed by
+     act_reading_sign (+ growing as the save/spawn dialog leaves discharge). *)
+  Hypothesis Hpres_cut_ext : forall fid,
+      mem_id fid CutsceneLeafSurface.cut_ext_ids = true ->
+      call_pres_ext lp bm (NoA_real bm) MWF fid.
   (* perform_ground_step is now WALKED (MarioStepSurface.pgs_cp, the
      loop-tolerant fn_var walk): the opaque whole-body residual is
      DECOMPOSED into two deeper internal rows (+ the vec3f_copy/vec3s_set
@@ -2842,6 +2853,10 @@ Section NoARealInputMWF.
                       (Hpres_mov_ext
                          mario_actions_moving._play_mario_landing_sound_once
                          eq_refl)
+                      Hpres_cut_ext
+                      (Hpres_obj_ext interaction._atan2s eq_refl)
+                      (Hpres_obj_ext mario._sqrtf eq_refl)
+                      (Hpres_obj_ext mario._vec3f_set eq_refl)
                       Hpres_cut_rest))
                 (automatic_pres lp LO_mario LO_aut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
