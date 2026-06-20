@@ -52,7 +52,7 @@ From SM64.Proofs Require Import MWFReal RestSurface AirborneSurface
   LocalVarsSurface OutParamSurface WindSurface InterSurface
   MarioStepSurface PerformAirStepSurface PerformWaterStepSurface BullySurface
   RetSurface StationaryLeafSurface MovingLeafSurface AirborneLeafSurface
-  MboCSurface SubmergedLeafSurface.
+  MboCSurface SubmergedLeafSurface CutsceneLeafSurface.
 
 Section NoAImpliesNoFlyLinked.
   (* The linked program -- ABSTRACT, never computed (no OOM). *)
@@ -1115,8 +1115,15 @@ Section NoARealInputMWF.
      cutscene_callee_ids (the prologue helper + the 50 act handlers;
      the particleFlags epilogue store is killed by the window census).
      Discharge proceeds id by id. *)
-  Hypothesis Hpres_cut_callees : forall fid f,
-      mem_id fid cutscene_callee_ids = true ->
+  (* SLICE 1 of the cutscene leaf family is now WALKED (CutsceneLeafSurface.
+     cutscene_leaf_callees_pres): the death-cluster prologue helper
+     common_death_handler (set_mario_animation + level_trigger_warp + the
+     m->marioBodyState->eyeState chase store + stop_and_set_height_to_floor)
+     and the two cleanest death leaves act_electrocution / act_suffocation
+     (play_sound_if_no_flag + common_death_handler + return 0).  The remaining
+     49 leaves stay under this shrunk residual over cut_rest_ids. *)
+  Hypothesis Hpres_cut_rest : forall fid f,
+      mem_id fid CutsceneLeafSurface.cut_rest_ids = true ->
       (prog_defmap mario_actions_cutscene.prog) ! fid
         = Some (Gfun (Internal f)) ->
       body_pres lp (NoA_real bm) MWF bm f.
@@ -2792,7 +2799,42 @@ Section NoARealInputMWF.
                    (mwf_real_ctl lp bm bc oc0 SafeB)
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                       Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
-                   Hpres_cut_callees)
+                   (CutsceneLeafSurface.cutscene_leaf_callees_pres lp LO_mario
+                      LO_stp LO_cut bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
+                      (mwf_real_ctl lp bm bc oc0 SafeB)
+                      (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                         Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+                      (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                         Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      SafeB HSafeB_not_bm
+                      (mwf_real_chase_root lp bm bc oc0 SafeB)
+                      (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                         HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                         Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (mwf_real_sglob lp bm bc oc0 SafeB)
+                      (mwf_real_chase_step lp bm bc oc0 SafeB)
+                      (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                         HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (Hpres_obj_ext mario._play_sound eq_refl)
+                      (Hpres_obj_ext mario._load_patchable_table eq_refl)
+                      (Hpres_obj_ext mario._vec3f_copy eq_refl)
+                      (Hpres_obj_ext mario._vec3s_set eq_refl)
+                      (call_pres_of_body lp bm (NoA_real bm)
+                         (MWF_real lp bm bc oc0 SafeB)
+                         (mwf_real_ctl lp bm bc oc0 SafeB)
+                         level_update.prog level_update._level_trigger_warp
+                         level_update.f_level_trigger_warp LO_lvl
+                         floors_warp_internal
+                         (warp_pres lp LO_mario LO_lvl bm (NoA_real bm)
+                            (MWF_real lp bm bc oc0 SafeB)
+                            (mwf_real_ctl lp bm bc oc0 SafeB)
+                            (mwf_real_window lp bm bc oc0 SafeB Hbc_bm
+                               HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                            (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+                            Hpres_warp_ext))
+                      Hpres_cut_rest))
                 (automatic_pres lp LO_mario LO_aut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
                    (mwf_real_ctl lp bm bc oc0 SafeB)
