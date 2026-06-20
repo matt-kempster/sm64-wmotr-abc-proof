@@ -1130,3 +1130,386 @@ Section WaterStepSurface.
   Qed.
 
 End WaterStepSurface.
+
+(* ====================================================================== *)
+(* recognizer: apply_water_current (apw) -- the whirlpool-current writer.   *)
+(* PURE local-writer: every store is step[i] through the _step pointer      *)
+(* PARAM (local under the paqs gate); the only calls are sqrtf / atan2s     *)
+(* (pure obj_ext math -- the sin/cos are gSineTable LOADS, not calls); an   *)
+(* Sloop iterates the 2 whirlpools; NO m-store anywhere (m is read-only).   *)
+(* ====================================================================== *)
+Definition apw_assign_chk (a1 : expr) : bool :=
+  match a1 with
+  | Ederef (Ebinop Oadd (Etempvar q tq) (Econst_int _ tci) _) ety =>
+      Pos.eqb q Sub._step
+      && proj_sumbool (type_eq tq (tptr tfloat))
+      && proj_sumbool (type_eq tci tint)
+      && proj_sumbool (type_eq ety tfloat)
+  | _ => false
+  end.
+
+Definition apw_call_chk (fid : ident) (fty : type) : bool :=
+  (Pos.eqb fid Sub._sqrtf
+   && proj_sumbool (type_eq fty (Tfunction (tfloat :: nil) tfloat cc_default)))
+  || (Pos.eqb fid Sub._atan2s
+      && proj_sumbool (type_eq fty
+           (Tfunction (tfloat :: tfloat :: nil) tshort cc_default))).
+
+Definition apw_optid_ok (optid : option ident) : bool :=
+  match optid with
+  | Some id => negb (Pos.eqb id Sub._step)
+  | None => true
+  end.
+
+Fixpoint apw_chk (s : statement) : bool :=
+  match s with
+  | Sskip | Sbreak | Scontinue => true
+  | Sreturn _ => true
+  | Ssequence s1 s2 => apw_chk s1 && apw_chk s2
+  | Sifthenelse _ s1 s2 => apw_chk s1 && apw_chk s2
+  | Sloop s1 s2 => apw_chk s1 && apw_chk s2
+  | Sset id _ => apw_optid_ok (Some id)
+  | Sassign a1 _ => apw_assign_chk a1
+  | Scall optid (Evar fid fty) _ => apw_optid_ok optid && apw_call_chk fid fty
+  | _ => false
+  end.
+
+Lemma apw_pin :
+  (prog_defmap Sub.prog) ! Sub._apply_water_current
+  = Some (Gfun (Internal Sub.f_apply_water_current)).
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma apw_chk_body :
+  apw_chk (fn_body Sub.f_apply_water_current) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Section ApplyWaterCurrentSurface.
+  Variable lp : Clight.program.
+  Hypothesis LO_sub : linkorder Sub.prog lp.
+
+  Variable bm : block.
+  Variable NoA MWF : mem -> Prop.
+  Variable SafeB : block -> Prop.
+
+  Hypothesis HNoA_of_MWF : forall m, MWF m -> NoA m.
+  Hypothesis HMWF_alloc : forall m lo hi m' b,
+      Mem.alloc m lo hi = (m', b) -> MWF m -> MWF m'.
+  Hypothesis HMWF_free : forall m l m',
+      Mem.free_list m l = Some m' -> MWF m -> MWF m'.
+  Hypothesis HSafeValid :
+    forall m, MWF m -> forall b, SafeB b -> Mem.valid_block m b.
+  Hypothesis HGlobValid :
+    forall m, MWF m -> forall gid bg,
+        Genv.find_symbol (lp_ge lp) gid = Some bg -> Mem.valid_block m bg.
+  Hypothesis Hls_real :
+    forall m ch b (d : Z) v m',
+      local_blk lp bm SafeB b ->
+      Mem.store ch m b d v = Some m' -> MWF m -> MWF m'.
+
+  (* the two trig externals, the SAME ungated obj_ext boundary pws uses. *)
+  Hypothesis Hcpx_sqrtf :
+    call_pres_ext lp bm NoA MWF Sub._sqrtf.
+  Hypothesis Hcpx_atan2s :
+    call_pres_ext lp bm NoA MWF Sub._atan2s.
+
+  (* ==================================================================== *)
+  (* pointer-PARAM indexed store bricks (the rwc/_pos pattern): the base    *)
+  (* temp is local-IF-pointer, and an EXECUTED q[i] store forces le!q to a   *)
+  (* Vptr (on ptr64=false an int base would yield a Vint, never the Vptr     *)
+  (* the lvalue eval produced).                                             *)
+  (* ==================================================================== *)
+  Lemma apw_idx_base_ptr_of_exec :
+    forall e q idxN itya ety2 a2 le m0 tr le' m' out,
+      exec_stmt function_entry2 (lp_ge lp) e le m0
+        (Sassign (Ederef (Ebinop Oadd (Etempvar q (tptr tfloat))
+                            (Econst_int idxN tint) itya) ety2) a2)
+        tr le' m' out ->
+      exists lb oo, le ! q = Some (Vptr lb oo).
+  Proof.
+    intros e q idxN itya ety2 a2 le m0 tr le' m' out Hexec.
+    inv Hexec.
+    match goal with
+    | Hlv : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ => inv Hlv
+    end.
+    match goal with
+    | Hp : eval_expr _ _ _ _ (Ebinop _ _ _ _) _ |- _ => inv Hp
+    end.
+    2:{ match goal with
+        | Hlv2 : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => inv Hlv2
+        end. }
+    match goal with
+    | Hi : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+        inv Hi;
+        try (match goal with
+             | Hlv3 : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+                 inv Hlv3
+             end)
+    end.
+    match goal with
+    | Ha : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+        apply RealFrameValue.eval_expr_Etempvar_val in Ha
+    end.
+    match goal with
+    | Hsem : sem_binary_operation _ _ ?V _ _ _ _ = Some (Vptr _ _),
+      Hq : _ ! _ = Some ?V |- _ =>
+        destruct V; cbn in Hsem;
+        [ discriminate Hsem
+        | destruct Archi.ptr64; discriminate Hsem
+        | discriminate Hsem
+        | discriminate Hsem
+        | discriminate Hsem
+        | eexists; eexists; exact Hq ]
+    end.
+  Qed.
+
+  Lemma apw_idx_assign_pres_cond :
+    forall e q idxN itya ety2 a2 le m0 tr le' m' out ch,
+      (forall b o, le ! q = Some (Vptr b o) -> local_blk lp bm SafeB b) ->
+      access_mode ety2 = By_value ch ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0
+        (Sassign (Ederef (Ebinop Oadd (Etempvar q (tptr tfloat))
+                            (Econst_int idxN tint) itya) ety2) a2)
+        tr le' m' out ->
+      carried bm NoA MWF m0 ->
+      carried bm NoA MWF m' /\ le' = le /\ out = Out_normal.
+  Proof.
+    intros e q idxN itya ety2 a2 le m0 tr le' m' out ch Hcond Hacc Hexec Hc.
+    destruct (apw_idx_base_ptr_of_exec _ _ _ _ _ _ _ _ _ _ _ _ Hexec)
+      as (lb & oo & Hq).
+    exact (local_ptr_idx_assign_pres lp bm NoA MWF SafeB Hls_real HNoA_of_MWF
+             _ _ _ _ _ _ _ _ _ _ _ _ lb oo _
+             Hq (Hcond _ _ Hq) Hacc Hexec Hc).
+  Qed.
+
+  (* ==================================================================== *)
+  (* apw decoders                                                         *)
+  (* ==================================================================== *)
+  Lemma apw_assign_decode :
+    forall a1, apw_assign_chk a1 = true ->
+      exists idxN ity,
+        a1 = Ederef (Ebinop Oadd (Etempvar Sub._step (tptr tfloat))
+                       (Econst_int idxN tint) ity) tfloat.
+  Proof.
+    intros a1 H. unfold apw_assign_chk in H.
+    destruct a1 as [ | | | | | | ed ety | | | | | | | ]; try discriminate H.
+    destruct ed as [ | | | | | | | | | bop e1 e2 bty | | | | ];
+      try discriminate H.
+    destruct bop; try discriminate H.
+    destruct e1 as [ | | | | | q tq | | | | | | | | ]; try discriminate H.
+    destruct e2 as [ idxN tci | | | | | | | | | | | | | ]; try discriminate H.
+    apply andb_true_iff in H as [H Hety].
+    apply andb_true_iff in H as [H Htci].
+    apply andb_true_iff in H as [Hq Htq].
+    apply Pos.eqb_eq in Hq; subst q.
+    destruct (type_eq tq (tptr tfloat)) as [-> | ]; [ | discriminate Htq ].
+    destruct (type_eq tci tint) as [-> | ]; [ | discriminate Htci ].
+    destruct (type_eq ety tfloat) as [-> | ]; [ | discriminate Hety ].
+    exists idxN, bty. reflexivity.
+  Qed.
+
+  Lemma apw_call_decode :
+    forall fid fty, apw_call_chk fid fty = true ->
+      (fid = Sub._sqrtf /\
+       fty = Tfunction (tfloat :: nil) tfloat cc_default)
+      \/ (fid = Sub._atan2s /\
+          fty = Tfunction (tfloat :: tfloat :: nil) tshort cc_default).
+  Proof.
+    intros fid fty H. unfold apw_call_chk in H.
+    apply orb_true_iff in H as [Hs | Ha].
+    - left.
+      apply andb_true_iff in Hs as [Hfid Hfty].
+      apply Pos.eqb_eq in Hfid.
+      destruct (type_eq fty (Tfunction (tfloat :: nil) tfloat cc_default))
+        as [Efty | ]; [ | discriminate Hfty ].
+      split; [ exact Hfid | exact Efty ].
+    - right.
+      apply andb_true_iff in Ha as [Hfid Hfty].
+      apply Pos.eqb_eq in Hfid.
+      destruct (type_eq fty
+                  (Tfunction (tfloat :: tfloat :: nil) tshort cc_default))
+        as [Efty | ]; [ | discriminate Hfty ].
+      split; [ exact Hfid | exact Efty ].
+  Qed.
+
+  (* ==================================================================== *)
+  (* apw body walk.  _step is the pointer PARAM, local-if-pointer (the      *)
+  (* paqs arg1 gate); the walk is loop-tolerant (Sloop recurses via IH).    *)
+  (* ==================================================================== *)
+  Lemma apw_walk_pres :
+    forall s e le m0 tr le' m' out,
+      exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
+      apw_chk s = true ->
+      e ! Sub._sqrtf = None ->
+      e ! Sub._atan2s = None ->
+      (forall b o, le ! Sub._step = Some (Vptr b o) -> local_blk lp bm SafeB b) ->
+      carried bm NoA MWF m0 ->
+      carried bm NoA MWF m' /\
+      (forall b o, le' ! Sub._step = Some (Vptr b o) -> local_blk lp bm SafeB b).
+  Proof.
+    intros s e le m0 tr le' m' out Hexec.
+    induction Hexec; intros Hchk Hsq Hat Hstep Hc.
+    - (* Sskip *) exact (conj Hc Hstep).
+    - (* Sassign a1 a2 *)
+      cbn [apw_chk] in Hchk.
+      assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
+                      (Sassign a1 a2) E0 le m' Out_normal)
+        by (econstructor; eauto).
+      destruct (apw_assign_decode _ Hchk) as (idxN & ity & ->).
+      destruct (apw_idx_assign_pres_cond e Sub._step idxN ity tfloat
+                  a2 le m _ _ m' _ Mfloat32 Hstep eq_refl Hex Hc)
+        as (Hc' & _ & _).
+      exact (conj Hc' Hstep).
+    - (* Sset id a: id <> _step (apw_optid_ok) *)
+      cbn [apw_chk apw_optid_ok] in Hchk.
+      apply negb_true_iff in Hchk.
+      refine (conj Hc _).
+      intros b o Hg.
+      rewrite PTree.gso in Hg
+        by (intro EE; subst id; rewrite Pos.eqb_refl in Hchk; discriminate Hchk).
+      exact (Hstep b o Hg).
+    - (* Scall optid a al *)
+      cbn [apw_chk] in Hchk.
+      destruct a as [ | | | | fid fty | | | | | | | | | ]; try discriminate Hchk.
+      apply andb_true_iff in Hchk as [Hopt Hcc].
+      assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
+                      (Scall optid (Evar fid fty) al) t (set_opttemp optid vres le)
+                      m' Out_normal)
+        by (econstructor; eauto).
+      assert (HstepL : forall b o,
+                 (set_opttemp optid vres le) ! Sub._step = Some (Vptr b o) ->
+                 local_blk lp bm SafeB b).
+      { cbn [apw_optid_ok] in Hopt.
+        destruct optid as [oid | ]; cbn [set_opttemp].
+        - apply negb_true_iff in Hopt.
+          intros b o Hg. rewrite PTree.gso in Hg by (intro EE; subst oid;
+            rewrite Pos.eqb_refl in Hopt; discriminate Hopt). exact (Hstep b o Hg).
+        - exact Hstep. }
+      destruct (apw_call_decode _ _ Hcc)
+        as [ (Hfeq & Hftyeq) | (Hfeq & Hftyeq) ]; subst fid fty.
+      + (* sqrtf: ungated obj_ext external *)
+        destruct Hc as (HV & HS & HM & HN).
+        destruct (kit_scallx_pres lp bm NoA MWF optid Sub._sqrtf
+                    (tfloat :: nil) tfloat cc_default
+                    al e le m _ _ m' _ Hsq Hex Hcpx_sqrtf HN HM HV HS)
+          as (HV' & HS' & HM' & HN' & _ & _).
+        exact (conj (conj HV' (conj HS' (conj HM' HN'))) HstepL).
+      + (* atan2s: ungated obj_ext external *)
+        destruct Hc as (HV & HS & HM & HN).
+        destruct (kit_scallx_pres lp bm NoA MWF optid Sub._atan2s
+                    (tfloat :: tfloat :: nil) tshort cc_default
+                    al e le m _ _ m' _ Hat Hex Hcpx_atan2s HN HM HV HS)
+          as (HV' & HS' & HM' & HN' & _ & _).
+        exact (conj (conj HV' (conj HS' (conj HM' HN'))) HstepL).
+    - (* Sbuiltin: rejected *)
+      cbn [apw_chk] in Hchk. discriminate Hchk.
+    - (* Sseq_1 *)
+      cbn [apw_chk] in Hchk. apply andb_true_iff in Hchk as [H1 H2].
+      destruct (IHHexec1 H1 Hsq Hat Hstep Hc) as (Hc1 & Hstep1).
+      exact (IHHexec2 H2 Hsq Hat Hstep1 Hc1).
+    - (* Sseq_2 (s1 aborts) *)
+      cbn [apw_chk] in Hchk. apply andb_true_iff in Hchk as [H1 _].
+      exact (IHHexec H1 Hsq Hat Hstep Hc).
+    - (* Sifthenelse *)
+      cbn [apw_chk] in Hchk. apply andb_true_iff in Hchk as [H1 H2].
+      apply IHHexec; try assumption.
+      destruct b; assumption.
+    - (* Sreturn None *) exact (conj Hc Hstep).
+    - (* Sreturn (Some _) *) exact (conj Hc Hstep).
+    - (* Sbreak *) exact (conj Hc Hstep).
+    - (* Scontinue *) exact (conj Hc Hstep).
+    - (* Sloop stop1 *)
+      cbn [apw_chk] in Hchk. apply andb_true_iff in Hchk as [H1 _].
+      exact (IHHexec H1 Hsq Hat Hstep Hc).
+    - (* Sloop stop2 *)
+      cbn [apw_chk] in Hchk. apply andb_true_iff in Hchk as [H1 H2].
+      destruct (IHHexec1 H1 Hsq Hat Hstep Hc) as (Hc1 & Hstep1).
+      exact (IHHexec2 H2 Hsq Hat Hstep1 Hc1).
+    - (* Sloop loop *)
+      cbn [apw_chk] in Hchk.
+      pose proof Hchk as Hchk0.
+      apply andb_true_iff in Hchk as [H1 H2].
+      destruct (IHHexec1 H1 Hsq Hat Hstep Hc) as (Hc1 & Hstep1).
+      destruct (IHHexec2 H2 Hsq Hat Hstep1 Hc1) as (Hc2 & Hstep2).
+      exact (IHHexec3 Hchk0 Hsq Hat Hstep2 Hc2).
+    - (* Sswitch: rejected *)
+      cbn [apw_chk] in Hchk. discriminate Hchk.
+  Qed.
+
+  (* ==================================================================== *)
+  (* THE DISCHARGE: apply_water_current preserves carried under the paqs    *)
+  (* gate.  params [_m; _step], fn_vars = nil (no stack frame to free).      *)
+  (* ==================================================================== *)
+  Lemma apw_cp :
+    call_pres_paqs lp bm NoA MWF SafeB Sub._apply_water_current.
+  Proof.
+    unfold call_pres_paqs.
+    intros fd m0 vargs0 t0 m1 vres0 Hevf Hres Hgate HN HM HV HS.
+    pose proof (OutParamSurface.resolve_pin_fd lp Sub.prog _
+                  Sub.f_apply_water_current fd LO_sub apw_pin Hres) as ->.
+    destruct Hgate as (Hcond & Hlocal).
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      rename Ha into Halloc end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    unfold Sub.f_apply_water_current in Hbind, Halloc.
+    cbn [fn_params fn_temps fn_vars] in Hbind, Halloc.
+    match goal with H : alloc_variables _ _ _ _ ?E ?ME |- _ =>
+      set (eloc := E) in *; set (me := ME) in * end.
+    assert (Hc0 : carried bm NoA MWF m0)
+      by (split; [ exact HV | split; [ exact HS
+                 | split; [ exact HM | exact HN ] ] ]).
+    pose proof (alloc_variables_carried bm NoA MWF HMWF_alloc HNoA_of_MWF
+                  _ _ _ _ _ _ Halloc Hc0) as Hce.
+    destruct Hce as (HVe & HSe & HMe & HNe).
+    (* bind the 2 params _m, _step *)
+    destruct vargs0 as [| v_m vr1];
+      cbn [bind_parameter_temps] in Hbind; [ discriminate Hbind | ].
+    destruct vr1 as [| v_step vr2];
+      cbn [bind_parameter_temps] in Hbind; [ discriminate Hbind | ].
+    destruct vr2; [ | cbn [bind_parameter_temps] in Hbind; discriminate Hbind ].
+    injection Hbind as Hle_init.
+    assert (Hsteq : le1 ! Sub._step = Some v_step)
+      by (rewrite <- Hle_init; apply PTree.gss).
+    (* _step local-if-pointer from arg1_local *)
+    cbn [arg1_local arg1_val] in Hlocal.
+    destruct Hlocal as (sb & so & Hvst & Hstloc).
+    injection Hvst as Hvst; subst v_step.
+    assert (Hstep_pin : forall b o,
+               le1 ! Sub._step = Some (Vptr b o) -> local_blk lp bm SafeB b).
+    { intros b o Hg. rewrite Hsteq in Hg. injection Hg as Hg; subst.
+      exact Hstloc. }
+    (* the 2 callees are unbound in the entry env (fn_vars = nil) *)
+    assert (Hsq : eloc ! Sub._sqrtf = None).
+    { rewrite (alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc
+                 Sub._sqrtf) by (cbn; intros []).
+      apply PTree.gempty. }
+    assert (Hat : eloc ! Sub._atan2s = None).
+    { rewrite (alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc
+                 Sub._atan2s) by (cbn; intros []).
+      apply PTree.gempty. }
+    assert (Hcar : carried bm NoA MWF me)
+      by (split; [ exact HVe | split; [ exact HSe
+                 | split; [ exact HMe | exact HNe ] ] ]).
+    (* ---- WALK the body ---- *)
+    destruct (apw_walk_pres _ eloc le1 _ _ _ _ _
+                Hbody apw_chk_body Hsq Hat Hstep_pin Hcar)
+      as (Hcarr & _).
+    (* ---- exit: free the (empty) fn_var frame ---- *)
+    destruct Hcarr as (HVb & HSb & HMb & HNb).
+    pose proof (blocks_of_env_bm lp bm m0 _ eloc _ Halloc HV) as Hforall.
+    pose proof (free_list_carried_bm bm NoA MWF HMWF_free HNoA_of_MWF
+                  (blocks_of_env (lp_ge lp) eloc) _ _ Hforall Hfree
+                  (conj HVb (conj HSb (conj HMb HNb))))
+      as (HVf & HSf & HMf & HNf).
+    exact (conj HVf (conj HSf (conj HMf HNf))).
+  Qed.
+
+End ApplyWaterCurrentSurface.
