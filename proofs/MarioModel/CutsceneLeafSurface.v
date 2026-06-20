@@ -170,6 +170,16 @@ Definition snsl_xids : list ident :=
 Definition sd_ids : list ident :=
   mario._play_sound_if_no_flag :: C._common_death_handler
     :: mario._play_mario_landing_sound :: nil.
+(* act_fall_after_star_grab: a body_pres_of_wwalk_wact leaf.  _t'2 is the
+   cond?4871:4866 untainted-action temp feeding the 2nd set_mario_action;
+   ids = perform_air_step + play_mario_landing_sound + set_mario_animation;
+   xids = play_sound (marioObj cameraToObject float* arg, ignored); the marioObj
+   read is NOT stored through (cact=nil); m-field stores only (particleFlags). *)
+Definition fasg_wact : list ident := C._t'2 :: nil.
+Definition fasg_ids : list ident :=
+  mario_step._perform_air_step :: mario._play_mario_landing_sound
+    :: mario._set_mario_animation :: nil.
+Definition fasg_xids : list ident := mario._play_sound :: nil.
 
 (* the WALKED leaves (SLICE 1 + SLICE 2 + SLICE 3 + SLICE 4 + SLICE 5). *)
 Definition cut_walked_ids : list ident :=
@@ -183,7 +193,8 @@ Definition cut_walked_ids : list ident :=
     :: C._act_special_death_exit :: C._act_spawn_no_spin_airborne
     :: C._act_emerge_from_pipe :: C._act_shocked
     :: C._act_teleport_fade_in :: C._act_spawn_spin_landing
-    :: C._act_spawn_no_spin_landing :: C._act_standing_death :: nil.
+    :: C._act_spawn_no_spin_landing :: C._act_standing_death
+    :: C._act_fall_after_star_grab :: nil.
 Definition cut_rest_ids : list ident :=
   filter (fun id => negb (mem_id id cut_walked_ids)) cutscene_callee_ids.
 
@@ -489,6 +500,10 @@ Proof. vm_compute. reflexivity. Qed.
 Example sd_pin :
   (prog_defmap C.prog) ! C._act_standing_death
   = Some (Gfun (Internal C.f_act_standing_death)).
+Proof. vm_compute. reflexivity. Qed.
+Example fasg_pin :
+  (prog_defmap C.prog) ! C._act_fall_after_star_grab
+  = Some (Gfun (Internal C.f_act_fall_after_star_grab)).
 Proof. vm_compute. reflexivity. Qed.
 (* is_anim_at_end: the loads-only "anim done?" helper (walked in-file). *)
 Example cut_iae_pin :
@@ -1570,6 +1585,59 @@ Section CutsceneLeafRows.
     - exact sd_walk.
   Qed.
 
+  (* act_fall_after_star_grab: body_pres_of_wwalk_wact (wact=[_t'2]). *)
+  Lemma fasg_ids_rows : forall fid, mem_id fid fasg_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold fasg_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pas | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact pmls_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | discriminate H ].
+  Qed.
+  Example fasg_vars : fn_vars C.f_act_fall_after_star_grab = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example fasg_pok :
+    match fn_params C.f_act_fall_after_star_grab with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example fasg_nonparam_wact :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_fall_after_star_grab))))
+      fasg_wact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example fasg_nonparam_cact :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_fall_after_star_grab))))
+      nil = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example fasg_walk :
+    wwalk_chk false fasg_wact fasg_ids nil nil fasg_xids tfi_sids nil
+      (fn_body C.f_act_fall_after_star_grab) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma fasg_pres : body_pres lp NoA MWF bm C.f_act_fall_after_star_grab.
+  Proof.
+    apply (body_pres_of_wwalk_wact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_fall_after_star_grab fasg_wact fasg_ids nil nil fasg_xids
+             tfi_sids nil
+             fasg_vars fasg_pok fasg_nonparam_cact fasg_nonparam_wact).
+    - exact fasg_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold fasg_xids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_psound | discriminate H ].
+    - intros fid' H. unfold tfi_sids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hsmact | discriminate H ].
+    - intros fid' H. discriminate H.
+    - exact fasg_walk.
+  Qed.
+
   (* ==================================================================== *)
   (* The family rest-split: discharge the SLICE 1-5 leaves, leaving the   *)
   (* other 36 under cut_rest_ids.                                         *)
@@ -1651,13 +1719,16 @@ Section CutsceneLeafRows.
     destruct (Pos.eqb fid C._act_standing_death) eqn:E22.
     { apply Pos.eqb_eq in E22; subst fid.
       rewrite sd_pin in Hdm. injection Hdm as <-. exact sd_pres. }
+    destruct (Pos.eqb fid C._act_fall_after_star_grab) eqn:E23.
+    { apply Pos.eqb_eq in E23; subst fid.
+      rewrite fasg_pin in Hdm. injection Hdm as <-. exact fasg_pres. }
     (* REST: fid is in the census and not a walked id. *)
     apply (Hrest fid f); [ | exact Hdm ].
     unfold cut_rest_ids.
     apply mem_id_filter_true; [ exact H | ].
     unfold cut_walked_ids. cbn [mem_id existsb].
     rewrite E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15, E16,
-      E17, E18, E19, E20, E21, E22.
+      E17, E18, E19, E20, E21, E22, E23.
     reflexivity.
   Qed.
 
