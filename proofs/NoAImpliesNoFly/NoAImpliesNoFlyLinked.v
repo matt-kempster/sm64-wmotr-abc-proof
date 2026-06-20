@@ -50,9 +50,9 @@ From SM64.Proofs Require Import MWFReal RestSurface AirborneSurface
   MovingSurface ObjectSurface SubmergedSurface FloorsSurface WarpSurface
   ActWriterSurface ObjectLeafSurface FloorsLeafSurface AutomaticLeafSurface
   LocalVarsSurface OutParamSurface WindSurface InterSurface
-  MarioStepSurface PerformAirStepSurface BullySurface RetSurface
-  StationaryLeafSurface MovingLeafSurface AirborneLeafSurface MboCSurface
-  SubmergedLeafSurface.
+  MarioStepSurface PerformAirStepSurface PerformWaterStepSurface BullySurface
+  RetSurface StationaryLeafSurface MovingLeafSurface AirborneLeafSurface
+  MboCSurface SubmergedLeafSurface.
 
 Section NoAImpliesNoFlyLinked.
   (* The linked program -- ABSTRACT, never computed (no OOM). *)
@@ -988,9 +988,22 @@ Section NoARealInputMWF.
   (* stationary_slow_down needs NO hypothesis: DISCHARGED inside
      SubmergedLeafSurface (sub_ssd_row) -- window stores; ids=[get_buoyancy]
      (sub_gb_row -> sns_cp), xids=[approach_f32, approach_s32] (obj_ext). *)
-  Hypothesis Hcp_pws_real :
-    call_pres lp bm (NoA_real bm) MWF
-      mario_actions_submerged._perform_water_step.
+  (* perform_water_step is now WALKED end-to-end (PerformWaterStepSurface.pws_cp,
+     the water twin of perform_air_step): its m->vel window store + the
+     nextPos[i] local stores + the two gated out-param calls all preserve the
+     carried facts.  perform_water_full_step (pwfs) is ITSELF walked there
+     (pwfs_cp), resting only on the SAME resolve / find_floor / vec3f_find_ceil /
+     vec3f_copy-window / vec3f_set-window externals the paqs walk already
+     carries; vec3f_copy/vec3s_set in perform_water_step ride the obj_ext
+     boundary (marioObj SafeB chase pool).  The old whole-function Hcp_pws_real
+     residual is REPLACED by the Lemma Hcp_pws_real below, resting on its SOLE
+     new sub-residual Hcp_apw: apply_water_current, the whirlpool-current writer
+     through its _step float* param (a LOCAL under the SAME paqs gate -- arg0
+     marg AND arg1 local) -- Internal in mario_actions_submerged.prog, WALKABLE
+     later as its own unit. *)
+  Hypothesis Hcp_apw :
+    PerformAirStepSurface.call_pres_paqs lp bm (NoA_real bm) MWF SafeB
+      mario_actions_submerged._apply_water_current.
   (* SLICE 9 (act_drowning): play_sound_if_no_flag is the flag-gated sound
      helper (m->flags window + a sound, never the action cell) -- the SAME
      genuine-call_pres class the airborne/stationary surfaces' Hpsinf uses.
@@ -1376,6 +1389,47 @@ Section NoARealInputMWF.
              Hwolcp_fwc
              (Hpres_obj_ext interaction._sqrtf eq_refl)
              (Hpres_obj_ext interaction._atan2s eq_refl)).
+  Qed.
+
+  (* perform_water_step WALKED (PerformWaterStepSurface.pws_cp, the water twin
+     of pas/pmoo above): discharges the old whole-function Hcp_pws_real residual,
+     resting on the SAME mwf_real rows + the resolve (itself WALKED, via
+     AutomaticLeafSurface.Hocp_resolve) / find_floor / vec3f_find_ceil oc rows +
+     the vec3f_copy / vec3f_set w1-window rows the pwfs walk needs + the obj_ext
+     vec3f_copy / vec3s_set boundary + the SOLE new sub-residual Hcp_apw. *)
+  Lemma Hcp_pws_real :
+    call_pres lp bm (NoA_real bm) MWF
+      mario_actions_submerged._perform_water_step.
+  Proof.
+    exact (PerformWaterStepSurface.pws_cp lp LO_mario LO_sub bm (NoA_real bm)
+             (MWF_real lp bm bc oc0 SafeB) SafeB
+             (mwf_real_ctl lp bm bc oc0 SafeB)
+             (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
+             (fun m l m' Hf HM =>
+                mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
+             (mwf_real_safe_valid lp bm bc oc0 SafeB)
+             Hglob_valid
+             aut_local_store
+             (AutomaticLeafSurface.Hocp_resolve lp LO_mario bm (NoA_real bm)
+                (MWF_real lp bm bc oc0 SafeB)
+                (mwf_real_ctl lp bm bc oc0 SafeB)
+                SafeB
+                (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
+                (fun m l m' Hf HM =>
+                   mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
+                (mwf_real_safe_valid lp bm bc oc0 SafeB)
+                Hglob_valid
+                aut_local_store
+                Holcp_fwc_real)
+             Hocp_find_floor
+             Hocp_find_ceil
+             Hw1cp_v3f_real
+             Hw1cp_v3fset_real
+             Hcp_apw
+             (Hpres_obj_ext mario_step._vec3f_copy eq_refl)
+             (Hpres_obj_ext mario._vec3s_set eq_refl)).
   Qed.
 
   (* spawn_object: a TERMINAL EXTERNAL (EF_external in EVERY TU -- no
