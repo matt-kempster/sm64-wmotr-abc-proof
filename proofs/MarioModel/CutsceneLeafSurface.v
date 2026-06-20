@@ -84,12 +84,45 @@ Definition wfd_xids : list ident :=
 Definition ebb_cact : list ident := C._t'2 :: C._t'3 :: nil.
 Definition wfd_cact : list ident := C._t'4 :: C._t'2 :: nil.
 
-(* the WALKED leaves (SLICE 1 + SLICE 2 + SLICE 3 + SLICE 4). *)
+(* ---- LAUNCH ARC (SLICE 5): the launch_mario_until_land helper + its
+   exit/death-airborne callers.  launch is a 4-param action writer
+   (m, endAction-CONST, animation, forwardVel); call_pres_act_of_wwalk4g
+   walks its body -- mario_set_forward_vel / set_mario_animation /
+   perform_air_step in ids (plain call_pres helpers), the const-action
+   set_mario_action in sids (smact_call_chk), and the airStepLanded
+   comparison (always 0/1, hence untainted) seeded into wact via the
+   wsrc_chk comparison arm and RETURNED.  Each exit/death leaf carries
+   launch in its OWN sids (smact_call_chk gates the const endAction it
+   passes) and otherwise stores only marioObj graphnode fields (chase
+   temps) and non-action MarioState fields. *)
+Definition launch_ids : list ident :=
+  mario._mario_set_forward_vel :: mario._set_mario_animation
+    :: mario_step._perform_air_step :: nil.
+Definition launch_wact : list ident :=
+  C._endAction :: C._airStepLanded :: nil.
+Definition launch_sids : list ident := mario._set_mario_action :: nil.
+(* the leaves' sids: launch itself (a const-action writer). *)
+Definition exit_launch_sids : list ident := C._launch_mario_until_land :: nil.
+(* the play_sound-calling death leaves' xids; the special leaf's psinf ids. *)
+Definition dex_xids : list ident := mario._play_sound :: nil.
+Definition sexair_ids : list ident := mario._play_sound_if_no_flag :: nil.
+(* per-leaf marioObj graphnode chase temps. *)
+Definition exair_cact : list ident := C._t'5 :: C._t'6 :: nil.
+Definition fexair_cact : list ident := C._t'3 :: C._t'4 :: nil.
+Definition dex_cact : list ident := C._t'5 :: nil.
+Definition udfdex_cact : list ident := C._t'3 :: nil.
+Definition mo_cact : list ident := C._marioObj :: nil.
+
+(* the WALKED leaves (SLICE 1 + SLICE 2 + SLICE 3 + SLICE 4 + SLICE 5). *)
 Definition cut_walked_ids : list ident :=
   C._act_electrocution :: C._act_suffocation
     :: C._act_death_on_back :: C._act_death_on_stomach
     :: C._act_disappeared :: C._act_teleport_fade_out
-    :: C._act_eaten_by_bubba :: C._act_waiting_for_dialog :: nil.
+    :: C._act_eaten_by_bubba :: C._act_waiting_for_dialog
+    :: C._act_exit_airborne :: C._act_falling_exit_airborne
+    :: C._act_death_exit :: C._act_unused_death_exit
+    :: C._act_falling_death_exit :: C._act_special_exit_airborne
+    :: C._act_special_death_exit :: nil.
 Definition cut_rest_ids : list ident :=
   filter (fun id => negb (mem_id id cut_walked_ids)) cutscene_callee_ids.
 
@@ -303,6 +336,54 @@ Example wfd_walk :
     (fn_body C.f_act_waiting_for_dialog) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- SLICE 5: the launch helper + its AST pins. ---- *)
+Example launch_pin :
+  (prog_defmap C.prog) ! C._launch_mario_until_land
+  = Some (Gfun (Internal C.f_launch_mario_until_land)).
+Proof. vm_compute. reflexivity. Qed.
+Example launch_vars : fn_vars C.f_launch_mario_until_land = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example launch_params :
+  fn_params C.f_launch_mario_until_land
+  = (mario_actions_airborne._m, tyMSp) :: (C._endAction, tint)
+      :: (C._animation, tint) :: (C._forwardVel, tfloat) :: nil.
+Proof. vm_compute. reflexivity. Qed.
+Example launch_ret : i32_ty (fn_return C.f_launch_mario_until_land) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example launch_walk :
+  wwalk_chk true launch_wact launch_ids nil nil nil launch_sids nil
+    (fn_body C.f_launch_mario_until_land) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example exair_pin :
+  (prog_defmap C.prog) ! C._act_exit_airborne
+  = Some (Gfun (Internal C.f_act_exit_airborne)).
+Proof. vm_compute. reflexivity. Qed.
+Example fexair_pin :
+  (prog_defmap C.prog) ! C._act_falling_exit_airborne
+  = Some (Gfun (Internal C.f_act_falling_exit_airborne)).
+Proof. vm_compute. reflexivity. Qed.
+Example dex_pin :
+  (prog_defmap C.prog) ! C._act_death_exit
+  = Some (Gfun (Internal C.f_act_death_exit)).
+Proof. vm_compute. reflexivity. Qed.
+Example udex_pin :
+  (prog_defmap C.prog) ! C._act_unused_death_exit
+  = Some (Gfun (Internal C.f_act_unused_death_exit)).
+Proof. vm_compute. reflexivity. Qed.
+Example fdex_pin :
+  (prog_defmap C.prog) ! C._act_falling_death_exit
+  = Some (Gfun (Internal C.f_act_falling_death_exit)).
+Proof. vm_compute. reflexivity. Qed.
+Example sexair_pin :
+  (prog_defmap C.prog) ! C._act_special_exit_airborne
+  = Some (Gfun (Internal C.f_act_special_exit_airborne)).
+Proof. vm_compute. reflexivity. Qed.
+Example sdex_pin :
+  (prog_defmap C.prog) ! C._act_special_death_exit
+  = Some (Gfun (Internal C.f_act_special_death_exit)).
+Proof. vm_compute. reflexivity. Qed.
+
 (* membership of the un-walked rest. *)
 Lemma mem_id_filter_true :
   forall (P : ident -> bool) (l : list ident) (fid : ident),
@@ -398,6 +479,12 @@ Section CutsceneLeafRows.
   Hypothesis Hcpx_v3ss : call_pres_ext lp bm NoA MWF mario._vec3s_set.
   Hypothesis Hcp_ltw :
     call_pres lp bm NoA MWF level_update._level_trigger_warp.
+  (* perform_air_step: the air step (writes pos/vel, returns the step
+     result; the CALLER dispatches the result).  ALREADY PROVED
+     (PerformAirStepSurface.pas_cp); the capstone feeds its existing
+     Hcp_pas Lemma -- NO new trust.  Consumed only via launch's ids. *)
+  Hypothesis Hcp_pas :
+    call_pres lp bm NoA MWF mario_step._perform_air_step.
 
   Lemma Hcp_psinf : call_pres lp bm NoA MWF mario._play_sound_if_no_flag.
   Proof. eapply ObjectLeafSurface.psinf_row; eassumption. Qed.
@@ -651,8 +738,316 @@ Section CutsceneLeafRows.
   Qed.
 
   (* ==================================================================== *)
-  (* The family rest-split: discharge the SLICE 1-4 leaves, leaving the   *)
-  (* other 43 under cut_rest_ids.                                         *)
+  (* SLICE 5: the LAUNCH arc.                                             *)
+  (* ==================================================================== *)
+  (* launch's plain callees + the const-action writer, reused from the
+     keystones (no new trust): msfv_row / smact_pres are PROVED rows. *)
+  Let Hmsfv : call_pres lp bm NoA MWF mario._mario_set_forward_vel :=
+    msfv_row lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window HMWF_glob
+      HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase HMWF_root HMWF_sglob
+      HchaseStep HMWF_chase_safe.
+  Let Hsmact : call_pres_act lp bm NoA MWF mario._set_mario_action :=
+    smact_pres lp LO_mario LO_stp bm NoA MWF HNoA_of_MWF
+      HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+      HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe.
+
+  (* the launch_mario_until_land producer: a 4-param const-action writer
+     whose airStepLanded return (a comparison, always 0/1) is untainted. *)
+  Lemma Hcpa_launch :
+    call_pres_act lp bm NoA MWF C._launch_mario_until_land.
+  Proof.
+    apply (call_pres_act_of_wwalk4g lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_cutscene.prog C._launch_mario_until_land
+             C.f_launch_mario_until_land
+             launch_wact launch_ids nil nil nil launch_sids
+             C._endAction C._animation C._forwardVel tint tint tfloat
+             LO_cut launch_pin launch_vars launch_params launch_ret).
+    - intro EE; vm_compute in EE; discriminate EE.
+    - intro EE; vm_compute in EE; discriminate EE.
+    - intro EE; vm_compute in EE; discriminate EE.
+    - vm_compute; reflexivity.
+    - vm_compute; reflexivity.
+    - vm_compute; reflexivity.
+    - vm_compute; reflexivity.
+    - vm_compute; reflexivity.
+    - vm_compute; reflexivity.
+    - vm_compute; reflexivity.
+    - vm_compute; reflexivity.
+    - intros fid' H. unfold launch_ids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hmsfv | ].
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcp_sma | ].
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcp_pas | discriminate H ].
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold launch_sids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hsmact | discriminate H ].
+    - exact launch_walk.
+  Qed.
+
+  (* the sids row reused by every exit/death leaf (launch in its sids). *)
+  Lemma exit_launch_sids_rows : forall fid,
+      mem_id fid exit_launch_sids = true -> call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold exit_launch_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpa_launch | discriminate H ].
+  Qed.
+
+  (* per-leaf AST shape pins (vars / param-ok / cact-nonparam / walk). *)
+  Example exair_vars : fn_vars C.f_act_exit_airborne = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example exair_pok :
+    match fn_params C.f_act_exit_airborne with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example exair_nonparam :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_exit_airborne))))
+      exair_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example exair_walk :
+    wwalk_chk false nil nil nil exair_cact nil exit_launch_sids nil
+      (fn_body C.f_act_exit_airborne) = true.
+  Proof. vm_compute. reflexivity. Qed.
+
+  Example fexair_vars : fn_vars C.f_act_falling_exit_airborne = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example fexair_pok :
+    match fn_params C.f_act_falling_exit_airborne with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example fexair_nonparam :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_falling_exit_airborne))))
+      fexair_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example fexair_walk :
+    wwalk_chk false nil nil nil fexair_cact nil exit_launch_sids nil
+      (fn_body C.f_act_falling_exit_airborne) = true.
+  Proof. vm_compute. reflexivity. Qed.
+
+  Example dex_vars : fn_vars C.f_act_death_exit = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example dex_pok :
+    match fn_params C.f_act_death_exit with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example dex_nonparam :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_death_exit))))
+      dex_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example dex_walk :
+    wwalk_chk false nil nil nil dex_cact dex_xids exit_launch_sids nil
+      (fn_body C.f_act_death_exit) = true.
+  Proof. vm_compute. reflexivity. Qed.
+
+  Example udex_vars : fn_vars C.f_act_unused_death_exit = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example udex_pok :
+    match fn_params C.f_act_unused_death_exit with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example udex_nonparam :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_unused_death_exit))))
+      udfdex_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example udex_walk :
+    wwalk_chk false nil nil nil udfdex_cact dex_xids exit_launch_sids nil
+      (fn_body C.f_act_unused_death_exit) = true.
+  Proof. vm_compute. reflexivity. Qed.
+
+  Example fdex_vars : fn_vars C.f_act_falling_death_exit = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example fdex_pok :
+    match fn_params C.f_act_falling_death_exit with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example fdex_nonparam :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_falling_death_exit))))
+      udfdex_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example fdex_walk :
+    wwalk_chk false nil nil nil udfdex_cact dex_xids exit_launch_sids nil
+      (fn_body C.f_act_falling_death_exit) = true.
+  Proof. vm_compute. reflexivity. Qed.
+
+  Example sexair_vars : fn_vars C.f_act_special_exit_airborne = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example sexair_pok :
+    match fn_params C.f_act_special_exit_airborne with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example sexair_nonparam :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_special_exit_airborne))))
+      mo_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example sexair_walk :
+    wwalk_chk false nil sexair_ids nil mo_cact nil exit_launch_sids nil
+      (fn_body C.f_act_special_exit_airborne) = true.
+  Proof. vm_compute. reflexivity. Qed.
+
+  Example sdex_vars : fn_vars C.f_act_special_death_exit = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example sdex_pok :
+    match fn_params C.f_act_special_death_exit with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example sdex_nonparam :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_special_death_exit))))
+      mo_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example sdex_walk :
+    wwalk_chk false nil nil nil mo_cact nil exit_launch_sids nil
+      (fn_body C.f_act_special_death_exit) = true.
+  Proof. vm_compute. reflexivity. Qed.
+
+  (* the 7 exit/death leaves: each stores marioObj graphnode fields (chase
+     temps) + non-action MarioState fields, and dispatches launch in sids. *)
+  Lemma exair_pres : body_pres lp NoA MWF bm C.f_act_exit_airborne.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_exit_airborne nil nil exair_cact nil exit_launch_sids nil
+             exair_vars exair_pok exair_nonparam).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact exit_launch_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact exair_walk.
+  Qed.
+
+  Lemma fexair_pres : body_pres lp NoA MWF bm C.f_act_falling_exit_airborne.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_falling_exit_airborne nil nil fexair_cact nil
+             exit_launch_sids nil
+             fexair_vars fexair_pok fexair_nonparam).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact exit_launch_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact fexair_walk.
+  Qed.
+
+  Lemma dex_pres : body_pres lp NoA MWF bm C.f_act_death_exit.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_death_exit nil nil dex_cact dex_xids exit_launch_sids nil
+             dex_vars dex_pok dex_nonparam).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold dex_xids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_psound | discriminate H ].
+    - exact exit_launch_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact dex_walk.
+  Qed.
+
+  Lemma udex_pres : body_pres lp NoA MWF bm C.f_act_unused_death_exit.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_unused_death_exit nil nil udfdex_cact dex_xids
+             exit_launch_sids nil
+             udex_vars udex_pok udex_nonparam).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold dex_xids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_psound | discriminate H ].
+    - exact exit_launch_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact udex_walk.
+  Qed.
+
+  Lemma fdex_pres : body_pres lp NoA MWF bm C.f_act_falling_death_exit.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_falling_death_exit nil nil udfdex_cact dex_xids
+             exit_launch_sids nil
+             fdex_vars fdex_pok fdex_nonparam).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold dex_xids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_psound | discriminate H ].
+    - exact exit_launch_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact fdex_walk.
+  Qed.
+
+  Lemma sexair_pres : body_pres lp NoA MWF bm C.f_act_special_exit_airborne.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_special_exit_airborne sexair_ids nil mo_cact nil
+             exit_launch_sids nil
+             sexair_vars sexair_pok sexair_nonparam).
+    - intros fid' H. unfold sexair_ids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcp_psinf | discriminate H ].
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact exit_launch_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact sexair_walk.
+  Qed.
+
+  Lemma sdex_pres : body_pres lp NoA MWF bm C.f_act_special_death_exit.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_special_death_exit nil nil mo_cact nil exit_launch_sids nil
+             sdex_vars sdex_pok sdex_nonparam).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact exit_launch_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact sdex_walk.
+  Qed.
+
+  (* ==================================================================== *)
+  (* The family rest-split: discharge the SLICE 1-5 leaves, leaving the   *)
+  (* other 36 under cut_rest_ids.                                         *)
   (* ==================================================================== *)
   Lemma cutscene_leaf_callees_pres :
     (forall fid f, mem_id fid cut_rest_ids = true ->
@@ -689,12 +1084,34 @@ Section CutsceneLeafRows.
     destruct (Pos.eqb fid C._act_waiting_for_dialog) eqn:E8.
     { apply Pos.eqb_eq in E8; subst fid.
       rewrite wfd_pin in Hdm. injection Hdm as <-. exact wfd_pres. }
+    destruct (Pos.eqb fid C._act_exit_airborne) eqn:E9.
+    { apply Pos.eqb_eq in E9; subst fid.
+      rewrite exair_pin in Hdm. injection Hdm as <-. exact exair_pres. }
+    destruct (Pos.eqb fid C._act_falling_exit_airborne) eqn:E10.
+    { apply Pos.eqb_eq in E10; subst fid.
+      rewrite fexair_pin in Hdm. injection Hdm as <-. exact fexair_pres. }
+    destruct (Pos.eqb fid C._act_death_exit) eqn:E11.
+    { apply Pos.eqb_eq in E11; subst fid.
+      rewrite dex_pin in Hdm. injection Hdm as <-. exact dex_pres. }
+    destruct (Pos.eqb fid C._act_unused_death_exit) eqn:E12.
+    { apply Pos.eqb_eq in E12; subst fid.
+      rewrite udex_pin in Hdm. injection Hdm as <-. exact udex_pres. }
+    destruct (Pos.eqb fid C._act_falling_death_exit) eqn:E13.
+    { apply Pos.eqb_eq in E13; subst fid.
+      rewrite fdex_pin in Hdm. injection Hdm as <-. exact fdex_pres. }
+    destruct (Pos.eqb fid C._act_special_exit_airborne) eqn:E14.
+    { apply Pos.eqb_eq in E14; subst fid.
+      rewrite sexair_pin in Hdm. injection Hdm as <-. exact sexair_pres. }
+    destruct (Pos.eqb fid C._act_special_death_exit) eqn:E15.
+    { apply Pos.eqb_eq in E15; subst fid.
+      rewrite sdex_pin in Hdm. injection Hdm as <-. exact sdex_pres. }
     (* REST: fid is in the census and not a walked id. *)
     apply (Hrest fid f); [ | exact Hdm ].
     unfold cut_rest_ids.
     apply mem_id_filter_true; [ exact H | ].
     unfold cut_walked_ids. cbn [mem_id existsb].
-    rewrite E1, E2, E3, E4, E5, E6, E7, E8. reflexivity.
+    rewrite E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15.
+    reflexivity.
   Qed.
 
 End CutsceneLeafRows.
