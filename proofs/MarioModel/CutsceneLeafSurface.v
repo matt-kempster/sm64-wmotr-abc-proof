@@ -51,9 +51,20 @@ Definition cdh_cact : list ident := C._t'2 :: nil.
 Definition death_ids : list ident :=
   mario._play_sound_if_no_flag :: C._common_death_handler :: nil.
 
-(* the WALKED leaves (SLICE 1). *)
+(* play_mario_heavy_landing_sound's sole callee (a plain call_pres helper). *)
+Definition pmhls_ids : list ident :=
+  mario._play_sound_and_spawn_particles :: nil.
+
+(* the two heavier death leaves (SLICE 2): psinf + common_death_handler +
+   (animFrame==K -> play_mario_heavy_landing_sound) + return 0. *)
+Definition death_ids3 : list ident :=
+  mario._play_sound_if_no_flag :: C._common_death_handler
+    :: mario._play_mario_heavy_landing_sound :: nil.
+
+(* the WALKED leaves (SLICE 1 + SLICE 2). *)
 Definition cut_walked_ids : list ident :=
-  C._act_electrocution :: C._act_suffocation :: nil.
+  C._act_electrocution :: C._act_suffocation
+    :: C._act_death_on_back :: C._act_death_on_stomach :: nil.
 Definition cut_rest_ids : list ident :=
   filter (fun id => negb (mem_id id cut_walked_ids)) cutscene_callee_ids.
 
@@ -117,6 +128,64 @@ Proof. vm_compute. reflexivity. Qed.
 Example suff_walk :
   wwalk_chk false nil death_ids nil nil nil nil nil
     (fn_body C.f_act_suffocation) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- SLICE 2: play_mario_heavy_landing_sound + the two heavy death leaves. ---- *)
+Example pmhls_pin :
+  (prog_defmap mario.prog) ! mario._play_mario_heavy_landing_sound
+  = Some (Gfun (Internal mario.f_play_mario_heavy_landing_sound)).
+Proof. vm_compute. reflexivity. Qed.
+Example pmhls_vars : fn_vars mario.f_play_mario_heavy_landing_sound = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example pmhls_pok :
+  match fn_params mario.f_play_mario_heavy_landing_sound with
+  | (i, ty) :: ps =>
+      Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id Am (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example pmhls_walk :
+  wwalk_chk false nil pmhls_ids nil nil nil nil nil
+    (fn_body mario.f_play_mario_heavy_landing_sound) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example dob_pin :
+  (prog_defmap C.prog) ! C._act_death_on_back
+  = Some (Gfun (Internal C.f_act_death_on_back)).
+Proof. vm_compute. reflexivity. Qed.
+Example dob_vars : fn_vars C.f_act_death_on_back = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example dob_pok :
+  match fn_params C.f_act_death_on_back with
+  | (i, ty) :: ps =>
+      Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id Am (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example dob_walk :
+  wwalk_chk false nil death_ids3 nil nil nil nil nil
+    (fn_body C.f_act_death_on_back) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example dos_pin :
+  (prog_defmap C.prog) ! C._act_death_on_stomach
+  = Some (Gfun (Internal C.f_act_death_on_stomach)).
+Proof. vm_compute. reflexivity. Qed.
+Example dos_vars : fn_vars C.f_act_death_on_stomach = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example dos_pok :
+  match fn_params C.f_act_death_on_stomach with
+  | (i, ty) :: ps =>
+      Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id Am (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example dos_walk :
+  wwalk_chk false nil death_ids3 nil nil nil nil nil
+    (fn_body C.f_act_death_on_stomach) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* membership of the un-walked rest. *)
@@ -298,9 +367,87 @@ Section CutsceneLeafRows.
     - exact suff_walk.
   Qed.
 
+  (* ---- SLICE 2: play_mario_heavy_landing_sound + death_on_back/stomach. ---- *)
+  (* play_sound_and_spawn_particles is the sole callee of pmhls; its row is
+     PROVED in ObjectLeafSurface and reused here (window stores to
+     m->particleFlags + the play_sound external).  NO new trust. *)
+  Lemma Hcp_psasp :
+    call_pres lp bm NoA MWF mario._play_sound_and_spawn_particles.
+  Proof. eapply ObjectLeafSurface.psasp_row; eassumption. Qed.
+
+  Lemma pmhls_ids_rows : forall fid, mem_id fid pmhls_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold pmhls_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_psasp | ].
+    discriminate H.
+  Qed.
+
+  Lemma pmhls_row :
+    call_pres lp bm NoA MWF mario._play_mario_heavy_landing_sound.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._play_mario_heavy_landing_sound
+             mario.f_play_mario_heavy_landing_sound
+             pmhls_ids nil nil nil
+             LO_mario pmhls_pin pmhls_vars pmhls_pok).
+    - exact pmhls_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact pmhls_walk.
+  Qed.
+
+  (* the two heavy death leaves: psinf + common_death_handler + pmhls. *)
+  Lemma death_ids3_rows : forall fid, mem_id fid death_ids3 = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold death_ids3 in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_psinf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cdh_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact pmhls_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma dob_pres : body_pres lp NoA MWF bm C.f_act_death_on_back.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_death_on_back death_ids3 nil nil nil nil
+             dob_vars dob_pok).
+    - exact death_ids3_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact dob_walk.
+  Qed.
+
+  Lemma dos_pres : body_pres lp NoA MWF bm C.f_act_death_on_stomach.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_death_on_stomach death_ids3 nil nil nil nil
+             dos_vars dos_pok).
+    - exact death_ids3_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact dos_walk.
+  Qed.
+
   (* ==================================================================== *)
-  (* The family rest-split: discharge the SLICE-1 leaves, leaving the     *)
-  (* other 49 under cut_rest_ids.                                          *)
+  (* The family rest-split: discharge the SLICE-1 + SLICE-2 leaves,       *)
+  (* leaving the other 47 under cut_rest_ids.                             *)
   (* ==================================================================== *)
   Lemma cutscene_leaf_callees_pres :
     (forall fid f, mem_id fid cut_rest_ids = true ->
@@ -319,12 +466,18 @@ Section CutsceneLeafRows.
     destruct (Pos.eqb fid C._act_suffocation) eqn:E2.
     { apply Pos.eqb_eq in E2; subst fid.
       rewrite suff_pin in Hdm. injection Hdm as <-. exact suff_pres. }
+    destruct (Pos.eqb fid C._act_death_on_back) eqn:E3.
+    { apply Pos.eqb_eq in E3; subst fid.
+      rewrite dob_pin in Hdm. injection Hdm as <-. exact dob_pres. }
+    destruct (Pos.eqb fid C._act_death_on_stomach) eqn:E4.
+    { apply Pos.eqb_eq in E4; subst fid.
+      rewrite dos_pin in Hdm. injection Hdm as <-. exact dos_pres. }
     (* REST: fid is in the census and not a walked id. *)
     apply (Hrest fid f); [ | exact Hdm ].
     unfold cut_rest_ids.
     apply mem_id_filter_true; [ exact H | ].
     unfold cut_walked_ids. cbn [mem_id existsb].
-    rewrite E1, E2. reflexivity.
+    rewrite E1, E2, E3, E4. reflexivity.
   Qed.
 
 End CutsceneLeafRows.
