@@ -799,6 +799,112 @@ Example sub_rbv_walk :
     (fn_body mario_actions_submerged.f_reset_bob_variables) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* ---- set_swimming_at_surface_particles (mario_actions_submerged.prog): window
+   store m->particleFlags |= flag + DIRECT static store sWasAtSurface = atSurface
+   (now in stored_globals) + a marioObj read for the play_sound gfx arg.  Lone
+   call play_sound (sub_psn_xids -> Hcpx_psound, obj_ext).  cact=nil (the marioObj
+   temp is only READ for the sound arg, never stored through).  No new trust. *)
+Example sub_ssasp_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._set_swimming_at_surface_particles
+  = Some (Gfun (Internal mario_actions_submerged.f_set_swimming_at_surface_particles)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_ssasp_vars :
+  fn_vars mario_actions_submerged.f_set_swimming_at_surface_particles = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_ssasp_pok :
+  match fn_params mario_actions_submerged.f_set_swimming_at_surface_particles with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_ssasp_walk :
+  wwalk_chk false nil nil nil nil sub_psn_xids nil nil
+    (fn_body mario_actions_submerged.f_set_swimming_at_surface_particles) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- surface_swim_bob (mario_actions_submerged.prog): static-global stores
+   sBobTimer/sBobIncrement (both in stored_globals) + a chase store through
+   _t'4 = m->marioObj into header.gfx.pos[1] (cact=[_t'4]; _t'5 also = marioObj
+   but READ-only).  Globals sBobIncrement/sBobTimer/sBobHeight + gSineTable are
+   LOADS.  No calls.  No new trust. *)
+Definition sub_ssb_cact : list ident := mario_actions_submerged._t'4 :: nil.
+Example sub_ssb_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._surface_swim_bob
+  = Some (Gfun (Internal mario_actions_submerged.f_surface_swim_bob)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_ssb_vars :
+  fn_vars mario_actions_submerged.f_surface_swim_bob = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_ssb_pok :
+  match fn_params mario_actions_submerged.f_surface_swim_bob with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_ssb_nonparam :
+  forallb (fun t' => negb (mem_id t'
+             (map fst (fn_params mario_actions_submerged.f_surface_swim_bob))))
+          sub_ssb_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_ssb_walk :
+  wwalk_chk false nil nil nil sub_ssb_cact nil nil nil
+    (fn_body mario_actions_submerged.f_surface_swim_bob) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- common_swimming_step (mario_actions_submerged.prog): the shared swim
+   step.  Window stores m->faceAngle[0] (idx) under an Sswitch on the
+   perform_water_step result, + a chase store m->marioBodyState->headAngle[0]
+   (cact=[_t'4]).  ids = the five swim helpers (usy/usp/uss/uwp = discharged
+   leaf rows, perform_water_step = Hcp_pws) + find_floor_slope (Hcp_ffs) +
+   surface_swim_bob (sub_ssb_row) + set_swimming_at_surface_particles
+   (sub_ssasp_row); xids = approach_s32 (Hcpx_approach, obj_ext).  NEVER the
+   action cell -- a genuine call_pres for any caller. *)
+Definition css_ids : list ident :=
+  mario_actions_submerged._update_swimming_yaw ::
+  mario_actions_submerged._update_swimming_pitch ::
+  mario_actions_submerged._update_swimming_speed ::
+  mario_actions_submerged._perform_water_step ::
+  mario_actions_submerged._find_floor_slope ::
+  mario_actions_submerged._update_water_pitch ::
+  mario_actions_submerged._surface_swim_bob ::
+  mario_actions_submerged._set_swimming_at_surface_particles :: nil.
+Definition css_cact : list ident := mario_actions_submerged._t'4 :: nil.
+Definition css_xids : list ident := mario_actions_object._approach_s32 :: nil.
+Example sub_css_pin :
+  (prog_defmap mario_actions_submerged.prog)
+    ! mario_actions_submerged._common_swimming_step
+  = Some (Gfun (Internal mario_actions_submerged.f_common_swimming_step)).
+Proof. vm_compute. reflexivity. Qed.
+Example sub_css_vars :
+  fn_vars mario_actions_submerged.f_common_swimming_step = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_css_pok :
+  match fn_params mario_actions_submerged.f_common_swimming_step with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_css_nonparam :
+  forallb (fun t' => negb (mem_id t'
+             (map fst (fn_params mario_actions_submerged.f_common_swimming_step))))
+          css_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sub_css_walk :
+  wwalk_chk false nil css_ids nil css_cact css_xids nil nil
+    (fn_body mario_actions_submerged.f_common_swimming_step) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ---- common_water_knockback_step (the call_pres_act3 kb helper): writes
    m->action via set_mario_action(m, health>=0x100 ? endAction : ACT_WATER_DEATH,
    0).  The ternary lowers to `_t'1 = (uint)endAction` / `_t'1 = (uint)ACT_*`,
@@ -1995,8 +2101,16 @@ Section SubmergedLeafRows.
   (* reset_bob_variables is DISCHARGED below (sub_rbv_row): three direct
      static-global stores (sBobTimer/sBobIncrement/sBobHeight, all in
      stored_globals) -- NO hypothesis needed. *)
-  Hypothesis Hcp_css :
-    call_pres lp bm NoA MWF mario_actions_submerged._common_swimming_step.
+  (* common_swimming_step is now DISCHARGED below (sub_css_row) -- NO hypothesis.
+     Its sole deep callee that is NOT a discharged leaf row / obj_ext is
+     find_floor_slope (mario.prog, reached only in the WATER_STEP_HIT_FLOOR
+     switch arm): a memory-pure reader (writes only its own stack-local _floor
+     via find_floor's out-param, returns a slope short).  It is carried here as
+     Hcp_ffs and discharged at the capstone via the oc-arc walk (Hcp_ffs_real,
+     call_pres_of_lwalk2 over Hocp_find_floor + atan2s) -- the SAME row that
+     replaces the old Hcp_css_real slot, NO new trust. *)
+  Hypothesis Hcp_ffs :
+    call_pres lp bm NoA MWF mario._find_floor_slope.
   Hypothesis Hcpx_af32 :
     call_pres_ext lp bm NoA MWF mario_actions_submerged._approach_f32.
 
@@ -2974,6 +3088,102 @@ Section SubmergedLeafRows.
     - exact sub_rbv_walk.
   Qed.
 
+  (* set_swimming_at_surface_particles: window store m->particleFlags + static
+     store sWasAtSurface + marioObj read; lone call play_sound (obj_ext). *)
+  Lemma sub_ssasp_row :
+    call_pres lp bm NoA MWF
+      mario_actions_submerged._set_swimming_at_surface_particles.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.prog
+             mario_actions_submerged._set_swimming_at_surface_particles
+             mario_actions_submerged.f_set_swimming_at_surface_particles
+             nil nil sub_psn_xids nil LO_sub
+             sub_ssasp_pin sub_ssasp_vars sub_ssasp_pok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sub_psn_xids_rows.
+    - intros fid' H. discriminate H.
+    - exact sub_ssasp_walk.
+  Qed.
+
+  (* surface_swim_bob: static stores sBobTimer/sBobIncrement + a marioObj gfx
+     chase store (cact=[_t'4]); no calls. *)
+  Lemma sub_ssb_row :
+    call_pres lp bm NoA MWF mario_actions_submerged._surface_swim_bob.
+  Proof.
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.prog
+             mario_actions_submerged._surface_swim_bob
+             mario_actions_submerged.f_surface_swim_bob
+             nil nil sub_ssb_cact nil nil
+             LO_sub sub_ssb_pin sub_ssb_vars sub_ssb_pok sub_ssb_nonparam).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sub_ssb_walk.
+  Qed.
+
+  (* common_swimming_step: the shared swim step.  ids = the five swim helpers +
+     find_floor_slope (Hcp_ffs) + surface_swim_bob (sub_ssb_row) +
+     set_swimming_at_surface_particles (sub_ssasp_row); xids = approach_s32
+     (Hcpx_approach); cact = [_t'4] (the m->marioBodyState->headAngle[0] chase
+     store).  Genuine call_pres -- NEVER the action cell. *)
+  Lemma sub_css_ids_rows : forall fid, mem_id fid css_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold css_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_usy_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_usp_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_uss_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pws | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ffs | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_uwp_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_ssb_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_ssasp_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma sub_css_xids_rows : forall fid, mem_id fid css_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold css_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_approach | ].
+    discriminate H.
+  Qed.
+
+  Lemma sub_css_row :
+    call_pres lp bm NoA MWF mario_actions_submerged._common_swimming_step.
+  Proof.
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_submerged.prog
+             mario_actions_submerged._common_swimming_step
+             mario_actions_submerged.f_common_swimming_step
+             css_ids nil css_cact css_xids nil
+             LO_sub sub_css_pin sub_css_vars sub_css_pok sub_css_nonparam).
+    - exact sub_css_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact sub_css_xids_rows.
+    - intros fid' H. discriminate H.
+    - exact sub_css_walk.
+  Qed.
+
   (* common_water_knockback_step: the call_pres_act3 kb helper.  ids dispatch to
      the discharged ssd/sma/iae rows + the perform_water_step residual (Hcp_pws);
      sids dispatch to set_mario_action (Hsmact). *)
@@ -3863,7 +4073,7 @@ Section SubmergedLeafRows.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact sub_rbv_row | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_css | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sub_css_row | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact sub_psn_row | ].
     discriminate H.

@@ -1090,8 +1090,12 @@ Section NoARealInputMWF.
   (* reset_bob_variables needs NO hypothesis: DISCHARGED inside
      SubmergedLeafSurface (sub_rbv_row) -- three direct static-global stores
      (sBobTimer/sBobIncrement/sBobHeight, all now in CensusV2.stored_globals). *)
-  Hypothesis Hcp_css_real :
-    call_pres lp bm (NoA_real bm) MWF mario_actions_submerged._common_swimming_step.
+  (* common_swimming_step needs NO hypothesis: now WALKED inside
+     SubmergedLeafSurface (sub_css_row) -- window faceAngle stores + a
+     marioBodyState->headAngle chase store + the discharged swim helper rows +
+     find_floor_slope.  Its slice-14 slot is now fed Hcp_ffs_real (find_floor_
+     slope, walked above), the SOLE deep callee that was not already a leaf row /
+     obj_ext.  NET: -1 residual (Hcp_css_real eliminated), zero new trust. *)
   (* SLICE 14's approach_f32 needs NO hypothesis: mario_actions_submerged.
      _approach_f32 is the SAME string-shared positive as mario_actions_airborne.
      _approach_f32, so the airborne Hcpx_approach_f32_real (above) covers it. *)
@@ -1440,6 +1444,99 @@ Section NoARealInputMWF.
                 (Hpres_obj_ext interaction._atan2s eq_refl))
              (Hpres_obj_ext mario_step._vec3f_copy eq_refl)
              (Hpres_obj_ext mario._vec3s_set eq_refl)).
+  Qed.
+
+  (* find_floor_slope (mario.prog): the slope reader common_swimming_step calls
+     in the WATER_STEP_HIT_FLOOR switch arm.  It is MEMORY-PURE w.r.t. bm/globals
+     -- the only "write" is find_floor's out-param into the function's OWN
+     stack-local _floor (lids=[_floor], oc gate), the rest are gSineTable/pos
+     reads + atan2s slope math.  Walked via the lwalk2 oc-arc (the SAME
+     MovingLeafSurface.mov_ffs_row pattern) resting ONLY on the EXISTING capstone
+     rows Hocp_find_floor (find_floor's out-param oc gate) + atan2s (obj_ext).
+     This Lemma is what fills the old Hcp_css_real slot -- NO new trust. *)
+  Definition cap_ffs_lids : list ident := mario._floor :: nil.
+  Definition cap_ffs_oc_pids : list ident := mario._find_floor :: nil.
+  Definition cap_ffs_xids : list ident := mario._atan2s :: nil.
+  Example cap_ffs_pin :
+    (prog_defmap mario.prog) ! mario._find_floor_slope
+    = Some (Gfun (Internal mario.f_find_floor_slope)).
+  Proof. vm_compute. reflexivity. Qed.
+  Example cap_ffs_pok :
+    match fn_params mario.f_find_floor_slope with
+    | (i, ty) :: ps =>
+        Pos.eqb i mario_actions_airborne._m
+        && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id mario_actions_airborne._m (map fst ps))
+    | nil => false
+    end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example cap_ffs_walk :
+    wwalk_chk' cap_ffs_lids cap_ffs_oc_pids nil nil nil nil
+      false nil nil nil nil cap_ffs_xids nil nil
+      (fn_body mario.f_find_floor_slope) = true.
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma Hcp_ffs_real :
+    call_pres lp bm (NoA_real bm) MWF mario._find_floor_slope.
+  Proof.
+    apply (call_pres_of_lwalk2 lp LO_mario bm (NoA_real bm)
+             (MWF_real lp bm bc oc0 SafeB)
+             (mwf_real_ctl lp bm bc oc0 SafeB)
+             (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+             (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             SafeB HSafeB_not_bm
+             (mwf_real_chase_root lp bm bc oc0 SafeB)
+             (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             (mwf_real_sglob lp bm bc oc0 SafeB)
+             (mwf_real_chase_step lp bm bc oc0 SafeB)
+             (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
+             (fun m l m' Hf HM =>
+                mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
+             mario.prog mario._find_floor_slope mario.f_find_floor_slope
+             nil nil cap_ffs_xids nil cap_ffs_lids cap_ffs_oc_pids nil nil
+             LO_mario cap_ffs_pin cap_ffs_pok).
+    - intros g Hg Hin; vm_compute in Hin;
+        destruct Hin as [Heq | []]; subst g; vm_compute in Hg; discriminate.
+    - intros g HH; discriminate HH.
+    - intros g HH; discriminate HH.
+    - intros g Hg Hin; vm_compute in Hin;
+        destruct Hin as [Heq | []]; subst g; vm_compute in Hg; discriminate.
+    - intros g HH; discriminate HH.
+    - intros g Hg Hin; vm_compute in Hin;
+        destruct Hin as [Heq | []]; subst g; vm_compute in Hg; discriminate.
+    - intros g HH; discriminate HH.
+    - intros g HH; discriminate HH.
+    - vm_compute; intro Hin; destruct Hin as [Heq | []]; discriminate Heq.
+    - intros lid Hl; unfold cap_ffs_lids in Hl; cbn [mem_id existsb] in Hl;
+        apply orb_true_iff in Hl as [Hm | Hf];
+        [ apply Pos.eqb_eq in Hm; subst lid; vm_compute; left; reflexivity
+        | discriminate Hf ].
+    - exact (mwf_real_safe_valid lp bm bc oc0 SafeB).
+    - exact Hglob_valid.
+    - exact aut_local_store.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - intros fid' H; unfold cap_ffs_xids in H; cbn [mem_id existsb] in H;
+        apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid';
+          exact (Hpres_obj_ext mario._atan2s eq_refl)
+        | discriminate H ].
+    - intros fid' H; discriminate H.
+    - intros fid' H; unfold cap_ffs_oc_pids in H; cbn [mem_id existsb] in H;
+        apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hocp_find_floor
+        | discriminate H ].
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - exact cap_ffs_walk.
   Qed.
 
   (* spawn_object: a TERMINAL EXTERNAL (EF_external in EVERY TU -- no
@@ -2669,7 +2766,7 @@ Section NoARealInputMWF.
                          bespoke body walk: chases m->marioObj to a SafeB block,
                          all 4 scalar stores go through the chased animInfo ptr,
                          never the action cell) -- NO hyp. *)
-                      Hcp_css_real Hcpx_approach_f32_real
+                      Hcp_ffs_real Hcpx_approach_f32_real
                       (* SLICE 15 (the last two leaves -- CLOSES the family):
                          swimming_near_surface is a PURE read-only body, so it is
                          DISCHARGED outright inside SubmergedLeafSurface (sns_cp

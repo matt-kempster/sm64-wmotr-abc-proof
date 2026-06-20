@@ -819,7 +819,14 @@ Definition stored_globals : list ident :=
      static s16/f32 data symbols, same Hglob_blk bm/bc/SafeB-disjoint trust class
      as sBobIncrement above. *)
   mario_actions_submerged._sBobTimer ::
-  mario_actions_submerged._sBobHeight :: nil.
+  mario_actions_submerged._sBobHeight ::
+  (* the surface-particle edge static (mario_actions_submerged):
+     set_swimming_at_surface_particles stores sWasAtSurface = atSurface
+     directly each frame (edge-detect for the breach sound) -- a static s16
+     data symbol, same Hglob_blk bm/bc/SafeB-disjoint trust class as the bob
+     statics above.  Consumed by sub_ssasp_row (the set_swimming_at_surface_
+     particles leaf, a callee of common_idle_step / common_swimming_step). *)
+  mario_actions_submerged._sWasAtSurface :: nil.
 
 (* ---------------------------------------------------------------------- *)
 (* The interaction-handler census (the Hpres_inter arc): the 28 DISTINCT   *)
