@@ -142,6 +142,12 @@ proofs/MarioModel/MarioStepSurface.v
 #     wind (marg) + mgtsa rows) ---
 proofs/MarioModel/PerformAirStepSurface.v
 
+# --- GOAL 1 / perform_water_step surface (SPINE: discharges the capstone's
+#     Hcp_pws_real -- the water twin of PerformAirStepSurface; walks
+#     perform_water_step + perform_water_full_step (pwfs), leaving the SOLE
+#     new sub-residual apply_water_current (paqs-gated, walkable later)) ---
+proofs/MarioModel/PerformWaterStepSurface.v
+
 # --- GOAL 1 / the stationary-family leaf surface (SPINE:
 #     stationary_leaf_callees_pres shrinks the capstone's Hpres_sta_callees
 #     down to a per-leaf census rest-split; slice 1 = the clean
