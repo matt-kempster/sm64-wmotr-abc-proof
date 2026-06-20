@@ -148,6 +148,21 @@ Definition tfi_ids : list ident :=
     :: mario_step._stop_and_set_height_to_floor :: nil.
 Definition tfi_xids : list ident := mario._set_camera_mode :: nil.
 Definition tfi_sids : list ident := mario._set_mario_action :: nil.
+(* act_spawn_spin_landing + act_spawn_no_spin_landing: body_pres_of_wwalk
+   leaves gated on the is_anim_at_end "anim done?" check (walked in-file,
+   loads-only).  load_level_init_text (the dialog-text IO external, sta_ext
+   boundary) and play_mario_landing_sound_once (mov_ext audio boundary) ride
+   the honest terminal-external boundary; the only set_mario_action target
+   (205521409) is an untainted action const. *)
+Definition ssl_ids : list ident :=
+  mario_step._stop_and_set_height_to_floor :: mario._set_mario_animation
+    :: mario._is_anim_at_end :: nil.
+Definition ssl_xids : list ident := C._load_level_init_text :: nil.
+Definition snsl_ids : list ident :=
+  mario._set_mario_animation :: mario_step._stop_and_set_height_to_floor
+    :: mario._is_anim_at_end :: nil.
+Definition snsl_xids : list ident :=
+  C._load_level_init_text :: C._play_mario_landing_sound_once :: nil.
 
 (* the WALKED leaves (SLICE 1 + SLICE 2 + SLICE 3 + SLICE 4 + SLICE 5). *)
 Definition cut_walked_ids : list ident :=
@@ -160,7 +175,8 @@ Definition cut_walked_ids : list ident :=
     :: C._act_falling_death_exit :: C._act_special_exit_airborne
     :: C._act_special_death_exit :: C._act_spawn_no_spin_airborne
     :: C._act_emerge_from_pipe :: C._act_shocked
-    :: C._act_teleport_fade_in :: nil.
+    :: C._act_teleport_fade_in :: C._act_spawn_spin_landing
+    :: C._act_spawn_no_spin_landing :: nil.
 Definition cut_rest_ids : list ident :=
   filter (fun id => negb (mem_id id cut_walked_ids)) cutscene_callee_ids.
 
@@ -455,6 +471,33 @@ Example tfi_pin :
   (prog_defmap C.prog) ! C._act_teleport_fade_in
   = Some (Gfun (Internal C.f_act_teleport_fade_in)).
 Proof. vm_compute. reflexivity. Qed.
+Example ssl_pin :
+  (prog_defmap C.prog) ! C._act_spawn_spin_landing
+  = Some (Gfun (Internal C.f_act_spawn_spin_landing)).
+Proof. vm_compute. reflexivity. Qed.
+Example snsl_pin :
+  (prog_defmap C.prog) ! C._act_spawn_no_spin_landing
+  = Some (Gfun (Internal C.f_act_spawn_no_spin_landing)).
+Proof. vm_compute. reflexivity. Qed.
+(* is_anim_at_end: the loads-only "anim done?" helper (walked in-file). *)
+Example cut_iae_pin :
+  (prog_defmap mario.prog) ! mario._is_anim_at_end
+  = Some (Gfun (Internal mario.f_is_anim_at_end)).
+Proof. vm_compute. reflexivity. Qed.
+Example cut_iae_vars : fn_vars mario.f_is_anim_at_end = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example cut_iae_pok :
+  match fn_params mario.f_is_anim_at_end with
+  | (i, ty) :: ps =>
+      Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id Am (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example cut_iae_walk :
+  wwalk_chk false nil nil nil nil nil nil nil
+    (fn_body mario.f_is_anim_at_end) = true.
+Proof. vm_compute. reflexivity. Qed.
 
 (* membership of the un-walked rest. *)
 Lemma mem_id_filter_true :
@@ -567,6 +610,15 @@ Section CutsceneLeafRows.
      Consumed only by act_shocked. *)
   Hypothesis Hcpx_scsfh :
     call_pres_ext lp bm NoA MWF interaction._set_camera_shake_from_hit.
+  (* load_level_init_text: the dialog-text IO external (in sta_ext_ids; the
+     capstone feeds it via Hpres_sta_ext) -- EF_external in every TU, writes no
+     Mario state.  play_mario_landing_sound_once: the once-guarded landing-sound
+     external (in mov_ext_ids; fed via Hpres_mov_ext).  Both honest model
+     boundaries; consumed only by the two spawn-landing leaves. *)
+  Hypothesis Hcpx_llit :
+    call_pres_ext lp bm NoA MWF C._load_level_init_text.
+  Hypothesis Hcpx_pmlso :
+    call_pres_ext lp bm NoA MWF C._play_mario_landing_sound_once.
 
   Lemma Hcp_psinf : call_pres lp bm NoA MWF mario._play_sound_if_no_flag.
   Proof. eapply ObjectLeafSurface.psinf_row; eassumption. Qed.
@@ -575,6 +627,21 @@ Section CutsceneLeafRows.
   Lemma Hcp_sashf :
     call_pres lp bm NoA MWF mario_step._stop_and_set_height_to_floor.
   Proof. eapply SubmergedLeafSurface.sub_sashf_row; eassumption. Qed.
+  (* is_anim_at_end: loads-only, walked in-file (all-nil censuses). *)
+  Lemma cut_iae_row : call_pres lp bm NoA MWF mario._is_anim_at_end.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._is_anim_at_end
+             mario.f_is_anim_at_end nil nil nil nil
+             LO_mario cut_iae_pin cut_iae_vars cut_iae_pok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact cut_iae_walk.
+  Qed.
 
   (* common_death_handler: set_mario_animation + (animFrame==warpFrame ->
      level_trigger_warp) + m->marioBodyState->eyeState = 8 (chase store) +
@@ -1353,6 +1420,103 @@ Section CutsceneLeafRows.
     - exact tfi_walk.
   Qed.
 
+  (* act_spawn_spin_landing: body_pres_of_wwalk.  ids = sashf/sma/iae;
+     xids = load_level_init_text (Hcpx_llit); sids = set_mario_action. *)
+  Lemma ssl_ids_rows : forall fid, mem_id fid ssl_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold ssl_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sashf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cut_iae_row | discriminate H ].
+  Qed.
+  Example ssl_vars : fn_vars C.f_act_spawn_spin_landing = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example ssl_pok :
+    match fn_params C.f_act_spawn_spin_landing with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example ssl_walk :
+    wwalk_chk false nil ssl_ids nil nil ssl_xids tfi_sids nil
+      (fn_body C.f_act_spawn_spin_landing) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma ssl_pres : body_pres lp NoA MWF bm C.f_act_spawn_spin_landing.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_spawn_spin_landing ssl_ids nil ssl_xids tfi_sids nil
+             ssl_vars ssl_pok).
+    - exact ssl_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold ssl_xids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_llit | discriminate H ].
+    - intros fid' H. unfold tfi_sids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hsmact | discriminate H ].
+    - intros fid' H. discriminate H.
+    - exact ssl_walk.
+  Qed.
+
+  (* act_spawn_no_spin_landing: same shape + play_mario_landing_sound_once
+     (Hcpx_pmlso) in xids. *)
+  Lemma snsl_ids_rows : forall fid, mem_id fid snsl_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold snsl_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sashf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cut_iae_row | discriminate H ].
+  Qed.
+  Lemma snsl_xids_rows : forall fid, mem_id fid snsl_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold snsl_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_llit | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_pmlso | discriminate H ].
+  Qed.
+  Example snsl_vars : fn_vars C.f_act_spawn_no_spin_landing = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example snsl_pok :
+    match fn_params C.f_act_spawn_no_spin_landing with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example snsl_walk :
+    wwalk_chk false nil snsl_ids nil nil snsl_xids tfi_sids nil
+      (fn_body C.f_act_spawn_no_spin_landing) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma snsl_pres : body_pres lp NoA MWF bm C.f_act_spawn_no_spin_landing.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_spawn_no_spin_landing snsl_ids nil snsl_xids tfi_sids nil
+             snsl_vars snsl_pok).
+    - exact snsl_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact snsl_xids_rows.
+    - intros fid' H. unfold tfi_sids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hsmact | discriminate H ].
+    - intros fid' H. discriminate H.
+    - exact snsl_walk.
+  Qed.
+
   (* ==================================================================== *)
   (* The family rest-split: discharge the SLICE 1-5 leaves, leaving the   *)
   (* other 36 under cut_rest_ids.                                         *)
@@ -1425,13 +1589,19 @@ Section CutsceneLeafRows.
     destruct (Pos.eqb fid C._act_teleport_fade_in) eqn:E19.
     { apply Pos.eqb_eq in E19; subst fid.
       rewrite tfi_pin in Hdm. injection Hdm as <-. exact tfi_pres. }
+    destruct (Pos.eqb fid C._act_spawn_spin_landing) eqn:E20.
+    { apply Pos.eqb_eq in E20; subst fid.
+      rewrite ssl_pin in Hdm. injection Hdm as <-. exact ssl_pres. }
+    destruct (Pos.eqb fid C._act_spawn_no_spin_landing) eqn:E21.
+    { apply Pos.eqb_eq in E21; subst fid.
+      rewrite snsl_pin in Hdm. injection Hdm as <-. exact snsl_pres. }
     (* REST: fid is in the census and not a walked id. *)
     apply (Hrest fid f); [ | exact Hdm ].
     unfold cut_rest_ids.
     apply mem_id_filter_true; [ exact H | ].
     unfold cut_walked_ids. cbn [mem_id existsb].
     rewrite E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15, E16,
-      E17, E18, E19.
+      E17, E18, E19, E20, E21.
     reflexivity.
   Qed.
 

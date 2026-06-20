@@ -2837,6 +2837,11 @@ Section NoARealInputMWF.
                       Hcp_pas
                       (Hpres_obj_ext mario._set_camera_mode eq_refl)
                       (Hpres_obj_ext interaction._set_camera_shake_from_hit eq_refl)
+                      (Hpres_sta_ext
+                         mario_actions_stationary._load_level_init_text eq_refl)
+                      (Hpres_mov_ext
+                         mario_actions_moving._play_mario_landing_sound_once
+                         eq_refl)
                       Hpres_cut_rest))
                 (automatic_pres lp LO_mario LO_aut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
