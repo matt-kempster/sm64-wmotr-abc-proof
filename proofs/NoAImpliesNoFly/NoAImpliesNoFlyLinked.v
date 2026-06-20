@@ -2835,6 +2835,7 @@ Section NoARealInputMWF.
                             (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
                             Hpres_warp_ext))
                       Hcp_pas
+                      (Hpres_obj_ext mario._set_camera_mode eq_refl)
                       Hpres_cut_rest))
                 (automatic_pres lp LO_mario LO_aut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
