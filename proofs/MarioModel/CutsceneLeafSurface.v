@@ -21,7 +21,7 @@ From Coq Require Import ZArith Lia List.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
 From SM64.Generated Require mario mario_step mario_actions_airborne
-  mario_actions_cutscene level_update.
+  mario_actions_cutscene level_update interaction.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
   ActionValueFrame RealFrameValue RealFrameLinked AGates.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface
@@ -124,6 +124,20 @@ Definition pmls_ids : list ident :=
 Definition efp_ids : list ident :=
   mario._play_sound_if_no_flag :: mario._mario_set_forward_vel
     :: mario._play_mario_landing_sound :: nil.
+(* act_shocked: a body_pres_of_wwalk_wact leaf.  _t'3 is an untainted
+   action-const temp (m->health<256 ? 135955 : 205521409, both via Ecast),
+   _t'9 the marioObj chase temp; set_camera_shake_from_hit is an obj_ext
+   terminal external (1-arg, writes camera state, never bm). *)
+Definition sh_wact : list ident := C._t'3 :: nil.
+Definition sh_cact : list ident := C._t'9 :: nil.
+Definition sh_ids : list ident :=
+  mario._play_sound_if_no_flag :: mario._set_mario_animation
+    :: mario._mario_set_forward_vel :: mario_step._perform_air_step
+    :: mario._play_mario_landing_sound
+    :: mario_step._stop_and_set_height_to_floor :: nil.
+Definition sh_xids : list ident :=
+  mario._play_sound :: interaction._set_camera_shake_from_hit :: nil.
+Definition sh_sids : list ident := mario._set_mario_action :: nil.
 
 (* the WALKED leaves (SLICE 1 + SLICE 2 + SLICE 3 + SLICE 4 + SLICE 5). *)
 Definition cut_walked_ids : list ident :=
@@ -135,7 +149,7 @@ Definition cut_walked_ids : list ident :=
     :: C._act_death_exit :: C._act_unused_death_exit
     :: C._act_falling_death_exit :: C._act_special_exit_airborne
     :: C._act_special_death_exit :: C._act_spawn_no_spin_airborne
-    :: C._act_emerge_from_pipe :: nil.
+    :: C._act_emerge_from_pipe :: C._act_shocked :: nil.
 Definition cut_rest_ids : list ident :=
   filter (fun id => negb (mem_id id cut_walked_ids)) cutscene_callee_ids.
 
@@ -422,6 +436,10 @@ Example efp_pin :
   (prog_defmap C.prog) ! C._act_emerge_from_pipe
   = Some (Gfun (Internal C.f_act_emerge_from_pipe)).
 Proof. vm_compute. reflexivity. Qed.
+Example sh_pin :
+  (prog_defmap C.prog) ! C._act_shocked
+  = Some (Gfun (Internal C.f_act_shocked)).
+Proof. vm_compute. reflexivity. Qed.
 
 (* membership of the un-walked rest. *)
 Lemma mem_id_filter_true :
@@ -529,6 +547,11 @@ Section CutsceneLeafRows.
      trust.  Consumed only by set_water_plunge_action's row (swpa). *)
   Hypothesis Hcpx_scm :
     call_pres_ext lp bm NoA MWF mario._set_camera_mode.
+  (* set_camera_shake_from_hit: a terminal obj_ext external (in obj_ext_ids;
+     the capstone already feeds it elsewhere); writes camera state, never bm.
+     Consumed only by act_shocked. *)
+  Hypothesis Hcpx_scsfh :
+    call_pres_ext lp bm NoA MWF interaction._set_camera_shake_from_hit.
 
   Lemma Hcp_psinf : call_pres lp bm NoA MWF mario._play_sound_if_no_flag.
   Proof. eapply ObjectLeafSurface.psinf_row; eassumption. Qed.
@@ -1203,6 +1226,73 @@ Section CutsceneLeafRows.
     - exact efp_walk.
   Qed.
 
+  (* act_shocked: a body_pres_of_wwalk_wact leaf.  _t'3 is the untainted
+     action-const temp written into m->action via set_mario_action;
+     set_camera_shake_from_hit is an obj_ext terminal external. *)
+  Lemma sh_ids_rows : forall fid, mem_id fid sh_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sh_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_psinf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hmsfv | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pas | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact pmls_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sashf | discriminate H ].
+  Qed.
+  Lemma sh_xids_rows : forall fid, mem_id fid sh_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sh_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_scsfh | discriminate H ].
+  Qed.
+  Example sh_vars : fn_vars C.f_act_shocked = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example sh_pok :
+    match fn_params C.f_act_shocked with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example sh_nonparam_cact :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_shocked))))
+      sh_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example sh_nonparam_wact :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_shocked))))
+      sh_wact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example sh_walk :
+    wwalk_chk false sh_wact sh_ids nil sh_cact sh_xids sh_sids nil
+      (fn_body C.f_act_shocked) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma sh_pres : body_pres lp NoA MWF bm C.f_act_shocked.
+  Proof.
+    apply (body_pres_of_wwalk_wact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_shocked sh_wact sh_ids nil sh_cact sh_xids sh_sids nil
+             sh_vars sh_pok sh_nonparam_cact sh_nonparam_wact).
+    - exact sh_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact sh_xids_rows.
+    - intros fid' H. unfold sh_sids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hsmact | discriminate H ].
+    - intros fid' H. discriminate H.
+    - exact sh_walk.
+  Qed.
+
   (* ==================================================================== *)
   (* The family rest-split: discharge the SLICE 1-5 leaves, leaving the   *)
   (* other 36 under cut_rest_ids.                                         *)
@@ -1269,13 +1359,16 @@ Section CutsceneLeafRows.
     destruct (Pos.eqb fid C._act_emerge_from_pipe) eqn:E17.
     { apply Pos.eqb_eq in E17; subst fid.
       rewrite efp_pin in Hdm. injection Hdm as <-. exact efp_pres. }
+    destruct (Pos.eqb fid C._act_shocked) eqn:E18.
+    { apply Pos.eqb_eq in E18; subst fid.
+      rewrite sh_pin in Hdm. injection Hdm as <-. exact sh_pres. }
     (* REST: fid is in the census and not a walked id. *)
     apply (Hrest fid f); [ | exact Hdm ].
     unfold cut_rest_ids.
     apply mem_id_filter_true; [ exact H | ].
     unfold cut_walked_ids. cbn [mem_id existsb].
     rewrite E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15, E16,
-      E17.
+      E17, E18.
     reflexivity.
   Qed.
 
