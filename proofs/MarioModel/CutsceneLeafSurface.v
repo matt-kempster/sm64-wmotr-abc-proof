@@ -138,6 +138,16 @@ Definition sh_ids : list ident :=
 Definition sh_xids : list ident :=
   mario._play_sound :: interaction._set_camera_shake_from_hit :: nil.
 Definition sh_sids : list ident := mario._set_mario_action :: nil.
+(* act_teleport_fade_in: a body_pres_of_wwalk leaf (wact=nil, cact=nil).  It
+   reads m->actionTimer/flags/pos[1]/waterLevel (np channel) and the area->
+   camera chain ONLY to pass the Camera* to set_camera_mode (obj_ext, args
+   unchecked -- never stored through, so no cact); both set_mario_action
+   targets (939532992, 205521409) are untainted action constants. *)
+Definition tfi_ids : list ident :=
+  mario._play_sound_if_no_flag :: mario._set_mario_animation
+    :: mario_step._stop_and_set_height_to_floor :: nil.
+Definition tfi_xids : list ident := mario._set_camera_mode :: nil.
+Definition tfi_sids : list ident := mario._set_mario_action :: nil.
 
 (* the WALKED leaves (SLICE 1 + SLICE 2 + SLICE 3 + SLICE 4 + SLICE 5). *)
 Definition cut_walked_ids : list ident :=
@@ -149,7 +159,8 @@ Definition cut_walked_ids : list ident :=
     :: C._act_death_exit :: C._act_unused_death_exit
     :: C._act_falling_death_exit :: C._act_special_exit_airborne
     :: C._act_special_death_exit :: C._act_spawn_no_spin_airborne
-    :: C._act_emerge_from_pipe :: C._act_shocked :: nil.
+    :: C._act_emerge_from_pipe :: C._act_shocked
+    :: C._act_teleport_fade_in :: nil.
 Definition cut_rest_ids : list ident :=
   filter (fun id => negb (mem_id id cut_walked_ids)) cutscene_callee_ids.
 
@@ -439,6 +450,10 @@ Proof. vm_compute. reflexivity. Qed.
 Example sh_pin :
   (prog_defmap C.prog) ! C._act_shocked
   = Some (Gfun (Internal C.f_act_shocked)).
+Proof. vm_compute. reflexivity. Qed.
+Example tfi_pin :
+  (prog_defmap C.prog) ! C._act_teleport_fade_in
+  = Some (Gfun (Internal C.f_act_teleport_fade_in)).
 Proof. vm_compute. reflexivity. Qed.
 
 (* membership of the un-walked rest. *)
@@ -1293,6 +1308,51 @@ Section CutsceneLeafRows.
     - exact sh_walk.
   Qed.
 
+  (* act_teleport_fade_in: a body_pres_of_wwalk leaf.  set_camera_mode is the
+     obj_ext (Hcpx_scm); set_mario_action is the keystone (Hsmact). *)
+  Lemma tfi_ids_rows : forall fid, mem_id fid tfi_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold tfi_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_psinf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sashf | discriminate H ].
+  Qed.
+  Example tfi_vars : fn_vars C.f_act_teleport_fade_in = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example tfi_pok :
+    match fn_params C.f_act_teleport_fade_in with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example tfi_walk :
+    wwalk_chk false nil tfi_ids nil nil tfi_xids tfi_sids nil
+      (fn_body C.f_act_teleport_fade_in) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma tfi_pres : body_pres lp NoA MWF bm C.f_act_teleport_fade_in.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_teleport_fade_in tfi_ids nil tfi_xids tfi_sids nil
+             tfi_vars tfi_pok).
+    - exact tfi_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold tfi_xids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_scm | discriminate H ].
+    - intros fid' H. unfold tfi_sids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hsmact | discriminate H ].
+    - intros fid' H. discriminate H.
+    - exact tfi_walk.
+  Qed.
+
   (* ==================================================================== *)
   (* The family rest-split: discharge the SLICE 1-5 leaves, leaving the   *)
   (* other 36 under cut_rest_ids.                                         *)
@@ -1362,13 +1422,16 @@ Section CutsceneLeafRows.
     destruct (Pos.eqb fid C._act_shocked) eqn:E18.
     { apply Pos.eqb_eq in E18; subst fid.
       rewrite sh_pin in Hdm. injection Hdm as <-. exact sh_pres. }
+    destruct (Pos.eqb fid C._act_teleport_fade_in) eqn:E19.
+    { apply Pos.eqb_eq in E19; subst fid.
+      rewrite tfi_pin in Hdm. injection Hdm as <-. exact tfi_pres. }
     (* REST: fid is in the census and not a walked id. *)
     apply (Hrest fid f); [ | exact Hdm ].
     unfold cut_rest_ids.
     apply mem_id_filter_true; [ exact H | ].
     unfold cut_walked_ids. cbn [mem_id existsb].
     rewrite E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15, E16,
-      E17, E18.
+      E17, E18, E19.
     reflexivity.
   Qed.
 
