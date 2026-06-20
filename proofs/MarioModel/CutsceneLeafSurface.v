@@ -61,10 +61,23 @@ Definition death_ids3 : list ident :=
   mario._play_sound_if_no_flag :: C._common_death_handler
     :: mario._play_mario_heavy_landing_sound :: nil.
 
-(* the WALKED leaves (SLICE 1 + SLICE 2). *)
+(* SLICE 3: the two "warp helper only" leaves (act_disappeared /
+   act_teleport_fade_out) -- both call ONLY rows already proved here:
+   play_sound_if_no_flag, set_mario_animation, level_trigger_warp,
+   stop_and_set_height_to_floor.  (disappeared omits psinf; the superset
+   census still accepts it.) *)
+Definition slice3_ids : list ident :=
+  mario._play_sound_if_no_flag :: mario._set_mario_animation
+    :: level_update._level_trigger_warp
+    :: mario_step._stop_and_set_height_to_floor :: nil.
+(* the marioObj chase temps act_disappeared stores the graphnode flags through. *)
+Definition disap_cact : list ident := C._t'5 :: C._t'6 :: nil.
+
+(* the WALKED leaves (SLICE 1 + SLICE 2 + SLICE 3). *)
 Definition cut_walked_ids : list ident :=
   C._act_electrocution :: C._act_suffocation
-    :: C._act_death_on_back :: C._act_death_on_stomach :: nil.
+    :: C._act_death_on_back :: C._act_death_on_stomach
+    :: C._act_disappeared :: C._act_teleport_fade_out :: nil.
 Definition cut_rest_ids : list ident :=
   filter (fun id => negb (mem_id id cut_walked_ids)) cutscene_callee_ids.
 
@@ -186,6 +199,49 @@ Proof. vm_compute. reflexivity. Qed.
 Example dos_walk :
   wwalk_chk false nil death_ids3 nil nil nil nil nil
     (fn_body C.f_act_death_on_stomach) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- SLICE 3: act_disappeared + act_teleport_fade_out. ---- *)
+Example disap_pin :
+  (prog_defmap C.prog) ! C._act_disappeared
+  = Some (Gfun (Internal C.f_act_disappeared)).
+Proof. vm_compute. reflexivity. Qed.
+Example disap_vars : fn_vars C.f_act_disappeared = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example disap_pok :
+  match fn_params C.f_act_disappeared with
+  | (i, ty) :: ps =>
+      Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id Am (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example disap_nonparam :
+  forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_disappeared))))
+    disap_cact = true.
+Proof. vm_compute. reflexivity. Qed.
+Example disap_walk :
+  wwalk_chk false nil slice3_ids nil disap_cact nil nil nil
+    (fn_body C.f_act_disappeared) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example tfo_pin :
+  (prog_defmap C.prog) ! C._act_teleport_fade_out
+  = Some (Gfun (Internal C.f_act_teleport_fade_out)).
+Proof. vm_compute. reflexivity. Qed.
+Example tfo_vars : fn_vars C.f_act_teleport_fade_out = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example tfo_pok :
+  match fn_params C.f_act_teleport_fade_out with
+  | (i, ty) :: ps =>
+      Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id Am (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example tfo_walk :
+  wwalk_chk false nil slice3_ids nil nil nil nil nil
+    (fn_body C.f_act_teleport_fade_out) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* membership of the un-walked rest. *)
@@ -445,9 +501,57 @@ Section CutsceneLeafRows.
     - exact dos_walk.
   Qed.
 
+  (* ---- SLICE 3: act_disappeared + act_teleport_fade_out. ---- *)
+  (* both call only the four already-proved helper rows; disappeared also
+     stores the marioObj graphnode flags through its chase temps (disap_cact). *)
+  Lemma slice3_ids_rows : forall fid, mem_id fid slice3_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold slice3_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_psinf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ltw | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sashf | ].
+    discriminate H.
+  Qed.
+
+  Lemma disap_pres : body_pres lp NoA MWF bm C.f_act_disappeared.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_disappeared slice3_ids nil disap_cact nil nil nil
+             disap_vars disap_pok disap_nonparam).
+    - exact slice3_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact disap_walk.
+  Qed.
+
+  Lemma tfo_pres : body_pres lp NoA MWF bm C.f_act_teleport_fade_out.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_teleport_fade_out slice3_ids nil nil nil nil
+             tfo_vars tfo_pok).
+    - exact slice3_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact tfo_walk.
+  Qed.
+
   (* ==================================================================== *)
-  (* The family rest-split: discharge the SLICE-1 + SLICE-2 leaves,       *)
-  (* leaving the other 47 under cut_rest_ids.                             *)
+  (* The family rest-split: discharge the SLICE-1/2/3 leaves, leaving     *)
+  (* the other 45 under cut_rest_ids.                                     *)
   (* ==================================================================== *)
   Lemma cutscene_leaf_callees_pres :
     (forall fid f, mem_id fid cut_rest_ids = true ->
@@ -472,12 +576,18 @@ Section CutsceneLeafRows.
     destruct (Pos.eqb fid C._act_death_on_stomach) eqn:E4.
     { apply Pos.eqb_eq in E4; subst fid.
       rewrite dos_pin in Hdm. injection Hdm as <-. exact dos_pres. }
+    destruct (Pos.eqb fid C._act_disappeared) eqn:E5.
+    { apply Pos.eqb_eq in E5; subst fid.
+      rewrite disap_pin in Hdm. injection Hdm as <-. exact disap_pres. }
+    destruct (Pos.eqb fid C._act_teleport_fade_out) eqn:E6.
+    { apply Pos.eqb_eq in E6; subst fid.
+      rewrite tfo_pin in Hdm. injection Hdm as <-. exact tfo_pres. }
     (* REST: fid is in the census and not a walked id. *)
     apply (Hrest fid f); [ | exact Hdm ].
     unfold cut_rest_ids.
     apply mem_id_filter_true; [ exact H | ].
     unfold cut_walked_ids. cbn [mem_id existsb].
-    rewrite E1, E2, E3, E4. reflexivity.
+    rewrite E1, E2, E3, E4, E5, E6. reflexivity.
   Qed.
 
 End CutsceneLeafRows.
