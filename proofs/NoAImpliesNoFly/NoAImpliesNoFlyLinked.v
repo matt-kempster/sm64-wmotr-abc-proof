@@ -2834,6 +2834,7 @@ Section NoARealInputMWF.
                                HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                             (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
                             Hpres_warp_ext))
+                      Hcp_pas
                       Hpres_cut_rest))
                 (automatic_pres lp LO_mario LO_aut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)

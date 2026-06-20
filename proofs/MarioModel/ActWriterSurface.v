@@ -54,6 +54,68 @@ Proof.
   destruct (is_tainted c); [ discriminate H | reflexivity ].
 Qed.
 
+(* ---- comparison results are always untainted (Val.of_bool = Vint 0/1).
+   A C comparison `a == b` / `a < b` etc. lowers to a binary op whose
+   value is Cop.sem_cmp ... = Val.of_bool b, i.e. Vint 0 or Vint 1 -- never
+   a pointer, never a tainted action.  This lets the writer-walker seed a
+   boolean temp into wact (e.g. launch_mario_until_land's
+   `airStepLanded = (stepResult == 1)`, then `return airStepLanded`). *)
+Definition is_cmp (op : binary_operation) : bool :=
+  match op with Oeq | One | Olt | Ogt | Ole | Oge => true | _ => false end.
+
+Lemma cmp_ptr_of_bool : forall m c v1 v2 v,
+    cmp_ptr m c v1 v2 = Some v -> exists b, v = Val.of_bool b.
+Proof.
+  unfold cmp_ptr. intros m c v1 v2 v H.
+  destruct (if Archi.ptr64 then Val.cmplu_bool (Mem.valid_pointer m) c v1 v2
+            else Val.cmpu_bool (Mem.valid_pointer m) c v1 v2) as [bb|] eqn:E;
+    cbn [option_map] in H; [ | discriminate H ].
+  injection H as <-. exists bb. reflexivity.
+Qed.
+
+Lemma sem_cmp_of_bool : forall c v1 t1 v2 t2 m v,
+    sem_cmp c v1 t1 v2 t2 m = Some v -> exists b, v = Val.of_bool b.
+Proof.
+  intros c v1 t1 v2 t2 m v H. unfold sem_cmp in H.
+  destruct (classify_cmp t1 t2) eqn:Ecc.
+  - eapply cmp_ptr_of_bool; exact H.
+  - destruct v2; try discriminate H; eapply cmp_ptr_of_bool; exact H.
+  - destruct v1; try discriminate H; eapply cmp_ptr_of_bool; exact H.
+  - destruct v2; try discriminate H; eapply cmp_ptr_of_bool; exact H.
+  - destruct v1; try discriminate H; eapply cmp_ptr_of_bool; exact H.
+  - unfold sem_binarith in H.
+    destruct (sem_cast v1 t1 _ m) as [v1'|]; [ | discriminate H ].
+    destruct (sem_cast v2 t2 _ m) as [v2'|]; [ | discriminate H ].
+    destruct (classify_binarith t1 t2);
+      destruct v1'; try discriminate H; destruct v2'; try discriminate H;
+      injection H as <-; eexists; reflexivity.
+Qed.
+
+Lemma untainted_of_bool : forall b, untainted_scalar (Val.of_bool b).
+Proof.
+  intros b. destruct b; cbn [Val.of_bool Vtrue Vfalse];
+    apply wact_const_sound; vm_compute; reflexivity.
+Qed.
+
+Lemma eval_cmp_binop_untainted : forall ge e le m op aa ab bty v,
+    is_cmp op = true ->
+    eval_expr ge e le m (Ebinop op aa ab bty) v ->
+    untainted_scalar v.
+Proof.
+  intros ge e le m op aa ab bty v Hop Hev.
+  inv Hev;
+    [ | match goal with
+        | Hlv : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => inv Hlv
+        end ].
+  match goal with
+  | Hsem : sem_binary_operation _ op _ _ _ _ _ = Some _ |- _ =>
+      destruct op; cbn [is_cmp] in Hop; try discriminate Hop;
+      cbn [sem_binary_operation] in Hsem;
+      apply sem_cmp_of_bool in Hsem as [b ->]
+  end;
+  apply untainted_of_bool.
+Qed.
+
 (* the per-writer residual shape: Mario's pointer first, an untainted
    scalar action second, anything after -- the funcall preserves the
    carried run facts and returns an untainted scalar. *)
@@ -1824,6 +1886,9 @@ Definition wsrc_chk (wact : list ident) (a : expr) : bool :=
   | Etempvar q _ => mem_id q wact
   | Ecast (Econst_int c ity) cty => i32_ty ity && i32_ty cty && wact_const c
   | Ecast (Etempvar q ity) cty => i32_ty ity && i32_ty cty && mem_id q wact
+  (* a COMPARISON source: the value is Cop.sem_cmp = Val.of_bool b = Vint 0/1,
+     always untainted (eval_cmp_binop_untainted). *)
+  | Ebinop op _ _ _ => is_cmp op
   | _ => false
   end.
 
@@ -4786,7 +4851,7 @@ Section ActWriterWalk.
         destruct (Pos.eq_dec t id) as [-> | Hne].
         * rewrite PTree.gss in Hg. injection Hg as <-.
           rewrite Hmem in Hrest. cbn [negb orb] in Hrest.
-          destruct a as [ c cty | | | | | q qty | | | | | ca cty2 | | | ];
+          destruct a as [ c cty | | | | | q qty | | | | op ea eb ety | ca cty2 | | | ];
             try discriminate Hrest;
             cbn [wsrc_chk] in Hrest.
           { (* untainted constant *)
@@ -4804,6 +4869,12 @@ Section ActWriterWalk.
             | Hev : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
                 apply eval_expr_Etempvar_val in Hev;
                 exact (Hact _ Hrest _ Hev)
+            end. }
+          { (* a comparison source: the value is Val.of_bool b = Vint 0/1,
+               always untainted (eval_cmp_binop_untainted). *)
+            match goal with
+            | Hev : eval_expr _ _ _ _ (Ebinop _ _ _ _) _ |- _ =>
+                exact (eval_cmp_binop_untainted _ _ _ _ _ _ _ _ _ Hrest Hev)
             end. }
           { (* I32 cast of an untainted source (a const OR another act
                temp): value-neutral, so the cast preserves untaintedness.
@@ -7988,6 +8059,169 @@ Section ActWriterRows.
       rewrite PTree.gso in Hg' by exact Hne2.
       destruct (Pos.eq_dec t' mario_actions_airborne._m) as [-> | Hne3].
       { rewrite Hmem' in Hcm. discriminate Hcm. }
+      rewrite PTree.gso in Hg' by exact Hne3.
+      pose proof (create_undef_temps_val _ _ _ Hg') as EE.
+      discriminate EE. }
+    change (blocks_of_env (lp_ge lp) empty_env)
+      with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    assert (Hcpt0 : forall fid', mem_id fid' nil = true ->
+                    call_pres_act3 lp bm NoA MWF fid')
+      by (intros fid' HH; discriminate HH).
+    destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+                true wact ids wids cact xids sids nil Hcp Hcpa Hcpx Hcps
+                Hcpt0 _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
+                HN HM HV HS)
+      as (HV' & HS' & HM' & HN' & _ & _ & _ & Hret').
+    destruct (fn_return f) as [ | rsz rsg raa | | | | | | | ] eqn:Eret;
+      try discriminate Hret.
+    destruct rsz; try discriminate Hret.
+    unfold outcome_result_value in Hout.
+    match type of Hret' with
+    | wret_ok _ ?oo => destruct oo as [ | | | ov ]
+    end.
+    - destruct Hout.
+    - destruct Hout.
+    - destruct Hout.
+    - destruct ov as [ [v' t'] | ]; [ | destruct Hout ].
+      destruct Hout as [_ Hcast].
+      destruct (Hret' eq_refl) as [Huv Hi32'].
+      exact (conj HV' (conj HS' (conj HM' (conj HN'
+               (sem_cast_i32_untainted _ _ _ _ _ Hi32' Hret
+                  Huv Hcast))))).
+  Qed.
+
+  (* ---- the call_pres_act producer FULLY generalized over a 4-param
+     writer: Mario's pointer FIRST, a generic untainted action SECOND
+     (`aid`, type `aty`), then TWO trailing junk params (p3,p4 of any
+     type) bound but never seeded into wact/cact, i32 return.  Unlike
+     call_pres_act_of_wwalk4 (which fixes params 2-3 to the
+     _action/_actionArg hurt shape), this fits ANY 4-arg action writer --
+     e.g. launch_mario_until_land(m, endAction, animation, forwardVel),
+     whose `airStepLanded = (stepResult==1)` boolean is seeded into wact
+     via the new comparison arm of wsrc_chk and returned. *)
+  Lemma call_pres_act_of_wwalk4g :
+    forall (TU : Clight.program) (fid : ident) (f : Clight.function)
+           (wact ids wids cact xids sids : list ident)
+           (aid p3 p4 : ident) (aty t3 t4 : type),
+      linkorder TU lp ->
+      (prog_defmap TU) ! fid = Some (Gfun (Internal f)) ->
+      fn_vars f = nil ->
+      fn_params f = (mario_actions_airborne._m, tyMSp)
+                      :: (aid, aty) :: (p3, t3) :: (p4, t4) :: nil ->
+      i32_ty (fn_return f) = true ->
+      aid <> mario_actions_airborne._m ->
+      p3 <> mario_actions_airborne._m ->
+      p4 <> mario_actions_airborne._m ->
+      mem_id aid wact = true ->
+      mem_id mario_actions_airborne._m wact = false ->
+      mem_id p3 wact = false ->
+      mem_id p4 wact = false ->
+      mem_id mario_actions_airborne._m cact = false ->
+      mem_id aid cact = false ->
+      mem_id p3 cact = false ->
+      mem_id p4 cact = false ->
+      (forall fid', mem_id fid' ids = true ->
+                    call_pres lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' wids = true ->
+                    call_pres_act lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' xids = true ->
+                    call_pres_ext lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' sids = true ->
+                    call_pres_act lp bm NoA MWF fid') ->
+      wwalk_chk true wact ids wids cact xids sids nil (fn_body f) = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros TU fid f wact ids wids cact xids sids aid p3 p4 aty t3 t4
+           LOtu Hdm Hvars Hparams Hret Haid_m Hp3_m Hp4_m
+           Haidw Hmw Hp3w Hp4w Hmc Haic Hp3c Hp4c
+           Hcp Hcpa Hcpx Hcps Hchk
+           fd m0 v0 aval rest t0 m1 vres0 Hevf Hres Hmarg Hu HN HM HV HS.
+    pose proof (resolve_pin_fd lp _ _ _ _ LOtu Hdm Hres) as ->.
+    inv Hevf.
+    match goal with
+    | He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry
+    end.
+    match goal with
+    | Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody
+    end.
+    match goal with
+    | Ho : outcome_result_value _ _ _ _ |- _ => rename Ho into Hout
+    end.
+    match goal with
+    | Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfree
+    end.
+    inv Hentry.
+    match goal with
+    | Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+        rewrite Hvars in Ha; inv Ha
+    end.
+    match goal with
+    | Hb : bind_parameter_temps _ _ _ = Some _ |- _ => rename Hb into Hbind
+    end.
+    rewrite Hparams in Hbind.
+    cbn [bind_parameter_temps] in Hbind.
+    destruct rest as [| v2 rest2 ];
+      cbn [bind_parameter_temps] in Hbind; [ discriminate Hbind | ].
+    destruct rest2 as [| v3 rest3 ];
+      cbn [bind_parameter_temps] in Hbind; [ discriminate Hbind | ].
+    destruct rest3 as [| v4 rest4 ];
+      cbn [bind_parameter_temps] in Hbind; [ | discriminate Hbind ].
+    injection Hbind as <-.
+    set (base := create_undef_temps (fn_temps f)) in *.
+    assert (Htat0 : forall b o,
+               (PTree.set p4 v3
+                  (PTree.set p3 v2
+                     (PTree.set aid aval
+                        (PTree.set mario_actions_airborne._m v0 base))))
+                 ! mario_actions_airborne._m = Some (Vptr b o) ->
+               b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg.
+      rewrite PTree.gso in Hg by (intro E; apply Hp4_m; exact (eq_sym E)).
+      rewrite PTree.gso in Hg by (intro E; apply Hp3_m; exact (eq_sym E)).
+      rewrite PTree.gso in Hg by (intro E; apply Haid_m; exact (eq_sym E)).
+      rewrite PTree.gss in Hg. injection Hg as ->.
+      cbn in Hmarg. exact Hmarg. }
+    assert (Hact0 : act_inv wact
+               (PTree.set p4 v3
+                  (PTree.set p3 v2
+                     (PTree.set aid aval
+                        (PTree.set mario_actions_airborne._m v0 base))))).
+    { intros t' Hmem' x Hg'.
+      destruct (Pos.eq_dec t' p4) as [-> | Hne0].
+      { rewrite Hmem' in Hp4w. discriminate Hp4w. }
+      rewrite PTree.gso in Hg' by exact Hne0.
+      destruct (Pos.eq_dec t' p3) as [-> | Hne1].
+      { rewrite Hmem' in Hp3w. discriminate Hp3w. }
+      rewrite PTree.gso in Hg' by exact Hne1.
+      destruct (Pos.eq_dec t' aid) as [-> | Hne2].
+      { rewrite PTree.gss in Hg'. injection Hg' as <-. exact Hu. }
+      rewrite PTree.gso in Hg' by exact Hne2.
+      destruct (Pos.eq_dec t' mario_actions_airborne._m) as [-> | Hne3].
+      { rewrite Hmem' in Hmw. discriminate Hmw. }
+      rewrite PTree.gso in Hg' by exact Hne3.
+      left. exact (create_undef_temps_val _ _ _ Hg'). }
+    assert (Hch0 : chase_inv SafeB cact
+               (PTree.set p4 v3
+                  (PTree.set p3 v2
+                     (PTree.set aid aval
+                        (PTree.set mario_actions_airborne._m v0 base))))).
+    { intros t' Hmem' b o Hg'.
+      destruct (Pos.eq_dec t' p4) as [-> | Hne0].
+      { rewrite Hmem' in Hp4c. discriminate Hp4c. }
+      rewrite PTree.gso in Hg' by exact Hne0.
+      destruct (Pos.eq_dec t' p3) as [-> | Hne1].
+      { rewrite Hmem' in Hp3c. discriminate Hp3c. }
+      rewrite PTree.gso in Hg' by exact Hne1.
+      destruct (Pos.eq_dec t' aid) as [-> | Hne2].
+      { rewrite Hmem' in Haic. discriminate Haic. }
+      rewrite PTree.gso in Hg' by exact Hne2.
+      destruct (Pos.eq_dec t' mario_actions_airborne._m) as [-> | Hne3].
+      { rewrite Hmem' in Hmc. discriminate Hmc. }
       rewrite PTree.gso in Hg' by exact Hne3.
       pose proof (create_undef_temps_val _ _ _ Hg') as EE.
       discriminate EE. }
