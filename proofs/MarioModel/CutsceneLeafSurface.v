@@ -112,6 +112,9 @@ Definition fexair_cact : list ident := C._t'3 :: C._t'4 :: nil.
 Definition dex_cact : list ident := C._t'5 :: nil.
 Definition udfdex_cact : list ident := C._t'3 :: nil.
 Definition mo_cact : list ident := C._marioObj :: nil.
+(* act_spawn_no_spin_airborne: launch (sids) + set_water_plunge_action (ids);
+   reads m->pos[1] / m->waterLevel (non-pointer m fields, np channel). *)
+Definition snsa_ids : list ident := mario._set_water_plunge_action :: nil.
 
 (* the WALKED leaves (SLICE 1 + SLICE 2 + SLICE 3 + SLICE 4 + SLICE 5). *)
 Definition cut_walked_ids : list ident :=
@@ -122,7 +125,7 @@ Definition cut_walked_ids : list ident :=
     :: C._act_exit_airborne :: C._act_falling_exit_airborne
     :: C._act_death_exit :: C._act_unused_death_exit
     :: C._act_falling_death_exit :: C._act_special_exit_airborne
-    :: C._act_special_death_exit :: nil.
+    :: C._act_special_death_exit :: C._act_spawn_no_spin_airborne :: nil.
 Definition cut_rest_ids : list ident :=
   filter (fun id => negb (mem_id id cut_walked_ids)) cutscene_callee_ids.
 
@@ -383,6 +386,10 @@ Example sdex_pin :
   (prog_defmap C.prog) ! C._act_special_death_exit
   = Some (Gfun (Internal C.f_act_special_death_exit)).
 Proof. vm_compute. reflexivity. Qed.
+Example snsa_pin :
+  (prog_defmap C.prog) ! C._act_spawn_no_spin_airborne
+  = Some (Gfun (Internal C.f_act_spawn_no_spin_airborne)).
+Proof. vm_compute. reflexivity. Qed.
 
 (* membership of the un-walked rest. *)
 Lemma mem_id_filter_true :
@@ -485,6 +492,11 @@ Section CutsceneLeafRows.
      Hcp_pas Lemma -- NO new trust.  Consumed only via launch's ids. *)
   Hypothesis Hcp_pas :
     call_pres lp bm NoA MWF mario_step._perform_air_step.
+  (* set_camera_mode: a terminal obj_ext external (in obj_ext_ids); the
+     capstone feeds (Hpres_obj_ext mario._set_camera_mode eq_refl) -- NO new
+     trust.  Consumed only by set_water_plunge_action's row (swpa). *)
+  Hypothesis Hcpx_scm :
+    call_pres_ext lp bm NoA MWF mario._set_camera_mode.
 
   Lemma Hcp_psinf : call_pres lp bm NoA MWF mario._play_sound_if_no_flag.
   Proof. eapply ObjectLeafSurface.psinf_row; eassumption. Qed.
@@ -750,6 +762,13 @@ Section CutsceneLeafRows.
     smact_pres lp LO_mario LO_stp bm NoA MWF HNoA_of_MWF
       HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
       HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe.
+  (* set_water_plunge_action: a plain window/out-param helper (vec3s_set +
+     set_camera_mode), reused from ObjectLeafSurface.swpa_row -- no new trust. *)
+  Let Hswpa : call_pres lp bm NoA MWF mario._set_water_plunge_action :=
+    ObjectLeafSurface.swpa_row lp LO_mario LO_stp bm NoA MWF HNoA_of_MWF
+      HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+      HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+      Hcpx_v3ss Hcpx_scm.
 
   (* the launch_mario_until_land producer: a 4-param const-action writer
      whose airStepLanded return (a comparison, always 0/1) is untainted. *)
@@ -1045,6 +1064,43 @@ Section CutsceneLeafRows.
     - exact sdex_walk.
   Qed.
 
+  (* act_spawn_no_spin_airborne: launch (sids) + set_water_plunge_action (ids),
+     cact=nil (reads m->pos[1]/waterLevel via the np channel). *)
+  Lemma snsa_ids_rows : forall fid,
+      mem_id fid snsa_ids = true -> call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold snsa_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hswpa | discriminate H ].
+  Qed.
+  Example snsa_vars : fn_vars C.f_act_spawn_no_spin_airborne = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example snsa_pok :
+    match fn_params C.f_act_spawn_no_spin_airborne with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example snsa_walk :
+    wwalk_chk false nil snsa_ids nil nil nil exit_launch_sids nil
+      (fn_body C.f_act_spawn_no_spin_airborne) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma snsa_pres : body_pres lp NoA MWF bm C.f_act_spawn_no_spin_airborne.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_spawn_no_spin_airborne snsa_ids nil nil exit_launch_sids nil
+             snsa_vars snsa_pok).
+    - exact snsa_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact exit_launch_sids_rows.
+    - intros fid' H. discriminate H.
+    - exact snsa_walk.
+  Qed.
+
   (* ==================================================================== *)
   (* The family rest-split: discharge the SLICE 1-5 leaves, leaving the   *)
   (* other 36 under cut_rest_ids.                                         *)
@@ -1105,12 +1161,15 @@ Section CutsceneLeafRows.
     destruct (Pos.eqb fid C._act_special_death_exit) eqn:E15.
     { apply Pos.eqb_eq in E15; subst fid.
       rewrite sdex_pin in Hdm. injection Hdm as <-. exact sdex_pres. }
+    destruct (Pos.eqb fid C._act_spawn_no_spin_airborne) eqn:E16.
+    { apply Pos.eqb_eq in E16; subst fid.
+      rewrite snsa_pin in Hdm. injection Hdm as <-. exact snsa_pres. }
     (* REST: fid is in the census and not a walked id. *)
     apply (Hrest fid f); [ | exact Hdm ].
     unfold cut_rest_ids.
     apply mem_id_filter_true; [ exact H | ].
     unfold cut_walked_ids. cbn [mem_id existsb].
-    rewrite E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15.
+    rewrite E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15, E16.
     reflexivity.
   Qed.
 
