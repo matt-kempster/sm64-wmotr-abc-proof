@@ -168,6 +168,7 @@ proofs/MarioModel/AirborneLeafSurface.v
 #     so the full build never verified them -- now tracked) ---
 proofs/MarioModel/MboCSurface.v
 proofs/MarioModel/SubmergedLeafSurface.v
+proofs/MarioModel/SpawnObjSurface.v
 proofs/MarioModel/CutsceneLeafSurface.v
 
 # --- UNWIRED scaffolding: landing-keystone bricks (not yet load-bearing) ---
