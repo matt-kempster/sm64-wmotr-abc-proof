@@ -256,6 +256,46 @@ Definition rnd_ids : list ident :=
 Definition rnd_xids : list ident :=
   mario_actions_object._approach_s32 :: mario._vec3f_copy :: mario._vec3s_set :: nil.
 
+(* SLICE 21: act_unlocking_star_door (usd).  body_pres_of_wwalk_cact.  fn_vars=
+   nil.  cact = the marioObj/usedObj chase temps stored THROUGH (m->marioObj->
+   oMarioReadingSignDPosX/Z = m->pos[i]) and read back for the m->pos window
+   updates.  ids = set_mario_animation / update_mario_pos_for_anim /
+   stop_and_set_height_to_floor / is_anim_at_end; xids = spawn_object (the star
+   into the SafeB object pool) / save_file_set_flags (save-buffer writer) /
+   get_door_save_file_flag (a STORELESS internal -> cut_gdsff_row, the in-section
+   twin of InterSurface.gdsff_row); sids = set_mario_action (const ACT_READING_
+   AUTOMATIC_DIALOG).  ALL xids rows reuse standing capstone boundaries. *)
+Definition usd_cact : list ident :=
+  C._t'5 :: C._t'7 :: C._t'10 :: C._t'13 :: C._t'15 :: C._t'17 :: C._t'21 :: nil.
+Definition usd_ids : list ident :=
+  mario._set_mario_animation :: mario._update_mario_pos_for_anim
+    :: mario_step._stop_and_set_height_to_floor :: mario._is_anim_at_end :: nil.
+Definition usd_xids : list ident :=
+  interaction._spawn_object :: interaction._save_file_set_flags
+    :: interaction._get_door_save_file_flag :: nil.
+
+(* get_door_save_file_flag support (the in-section twin of InterSurface's
+   gdsff_row -- a STORELESS internal reading the door object through its only
+   param, calling the save_file_get_flags boundary).  CutsceneLeafSurface does
+   not Require InterSurface, so these globals are re-derived locally. *)
+Definition cut_gdsff_xids : list ident :=
+  interaction._save_file_get_flags :: nil.
+Lemma cut_gdsff_pin :
+  (prog_defmap interaction.prog) ! interaction._get_door_save_file_flag
+  = Some (Gfun (Internal interaction.f_get_door_save_file_flag)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma cut_gdsff_vars : fn_vars interaction.f_get_door_save_file_flag = nil.
+Proof. vm_compute. reflexivity. Qed.
+Lemma cut_gdsff_no_m :
+  negb (mem_id mario_actions_airborne._m
+          (map fst (fn_params interaction.f_get_door_save_file_flag)))
+  = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma cut_gdsff_walk :
+  wwalk_chk false nil nil nil nil cut_gdsff_xids nil nil
+    (fn_body interaction.f_get_door_save_file_flag) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* SLICE 12: the dialog-cluster external boundary.  cut_ext_ids = the
    cutscene DIALOG / TIME-STOP externals: EF_external in EVERY linked TU
    (verified -- no Internal body anywhere under generated/), the honest
@@ -442,6 +482,7 @@ Definition cut_walked_ids : list ident :=
     :: C._act_fall_after_star_grab :: C._act_spawn_spin_airborne
     :: C._act_warp_door_spawn :: C._act_going_through_door
     :: C._act_entering_star_door :: C._act_reading_npc_dialog
+    :: C._act_unlocking_star_door
     :: C._act_reading_sign :: C._act_bbh_enter_spin
     :: C._act_reading_automatic_dialog :: C._act_bbh_enter_jump
     :: C._act_star_dance :: C._act_star_dance_water
@@ -779,6 +820,10 @@ Example rnd_pin :
   (prog_defmap C.prog) ! C._act_reading_npc_dialog
   = Some (Gfun (Internal C.f_act_reading_npc_dialog)).
 Proof. vm_compute. reflexivity. Qed.
+Example usd_pin :
+  (prog_defmap C.prog) ! C._act_unlocking_star_door
+  = Some (Gfun (Internal C.f_act_unlocking_star_door)).
+Proof. vm_compute. reflexivity. Qed.
 Example rs_pin :
   (prog_defmap C.prog) ! C._act_reading_sign
   = Some (Gfun (Internal C.f_act_reading_sign)).
@@ -1097,6 +1142,19 @@ Section CutsceneLeafRows.
      by act_reading_npc_dialog (rnd). *)
   Hypothesis Hcpx_approach :
     call_pres_ext lp bm NoA MWF mario_actions_object._approach_s32.
+  (* act_unlocking_star_door (usd) externals -- ALL honest boundaries the
+     capstone ALREADY supplies (NO new capstone hypothesis):
+     - spawn_object: the object-pool allocator (Hcpx_so_real, derived from the
+       standing Hcp_spawn_real);
+     - save_file_get_flags / save_file_set_flags: save-buffer reader/writer
+       externals in obj_ext_ids (Hpres_obj_ext).  Hcpx_sfgf is consumed only by
+       cut_gdsff_row (the in-section twin of InterSurface.gdsff_row). *)
+  Hypothesis Hcpx_spawn :
+    call_pres_ext lp bm NoA MWF interaction._spawn_object.
+  Hypothesis Hcpx_sfgf :
+    call_pres_ext lp bm NoA MWF interaction._save_file_get_flags.
+  Hypothesis Hcpx_sfsf :
+    call_pres_ext lp bm NoA MWF interaction._save_file_set_flags.
   Hypothesis Hcpx_sqrtf : call_pres_ext lp bm NoA MWF mario._sqrtf.
   Hypothesis Hcpx_v3fset : call_pres_ext lp bm NoA MWF mario._vec3f_set.
   (* SLICE 14 (act_squished): perform_ground_step, DISCHARGED at the capstone
@@ -2444,6 +2502,85 @@ Section CutsceneLeafRows.
     - exact rnd_walk.
   Qed.
 
+  (* SLICE 21: act_unlocking_star_door (usd).  cut_gdsff_row = the in-section
+     twin of InterSurface.gdsff_row (call_pres_ext_of_wwalk: marg-free, its only
+     callee is the save_file_get_flags boundary -> Hcpx_sfgf).  ZERO new trust. *)
+  Lemma cut_gdsff_row :
+    call_pres_ext lp bm NoA MWF interaction._get_door_save_file_flag.
+  Proof.
+    apply (call_pres_ext_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             interaction.prog interaction._get_door_save_file_flag
+             interaction.f_get_door_save_file_flag
+             nil nil cut_gdsff_xids nil
+             LO_int cut_gdsff_pin cut_gdsff_vars cut_gdsff_no_m).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold cut_gdsff_xids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_sfgf | discriminate H ].
+    - intros fid' H. discriminate H.
+    - exact cut_gdsff_walk.
+  Qed.
+  Lemma usd_ids_rows : forall fid, mem_id fid usd_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold usd_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_umpfa | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sashf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cut_iae_row | discriminate H ].
+  Qed.
+  Lemma usd_xids_rows : forall fid, mem_id fid usd_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold usd_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_spawn | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_sfsf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cut_gdsff_row | discriminate H ].
+  Qed.
+  Example usd_vars : fn_vars C.f_act_unlocking_star_door = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example usd_pok :
+    match fn_params C.f_act_unlocking_star_door with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example usd_nonparam :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_unlocking_star_door))))
+      usd_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example usd_walk :
+    wwalk_chk false nil usd_ids nil usd_cact usd_xids tfi_sids nil
+      (fn_body C.f_act_unlocking_star_door) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma usd_pres : body_pres lp NoA MWF bm C.f_act_unlocking_star_door.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_unlocking_star_door usd_ids nil usd_cact usd_xids tfi_sids nil
+             usd_vars usd_pok usd_nonparam).
+    - exact usd_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact usd_xids_rows.
+    - intros fid' H. unfold tfi_sids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hsmact | discriminate H ].
+    - intros fid' H. discriminate H.
+    - exact usd_walk.
+  Qed.
+
   (* SLICE 12a: act_reading_sign.  body_pres_of_wwalk (wact=nil, cact=nil --
      marioObj/usedObj are LOADED only; stores are direct non-action m-fields).
      ids = psinf + sma; xids = the 4 dialog/time-stop externals (Hcut_ext)
@@ -3567,6 +3704,9 @@ Section CutsceneLeafRows.
     destruct (Pos.eqb fid C._act_reading_npc_dialog) eqn:E40.
     { apply Pos.eqb_eq in E40; subst fid.
       rewrite rnd_pin in Hdm. injection Hdm as <-. exact rnd_pres. }
+    destruct (Pos.eqb fid C._act_unlocking_star_door) eqn:E41.
+    { apply Pos.eqb_eq in E41; subst fid.
+      rewrite usd_pin in Hdm. injection Hdm as <-. exact usd_pres. }
     destruct (Pos.eqb fid C._act_reading_sign) eqn:E26.
     { apply Pos.eqb_eq in E26; subst fid.
       rewrite rs_pin in Hdm. injection Hdm as <-. exact rs_pres. }
@@ -3609,7 +3749,7 @@ Section CutsceneLeafRows.
     apply mem_id_filter_true; [ exact H | ].
     unfold cut_walked_ids. cbn [mem_id existsb].
     rewrite E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15, E16,
-      E17, E18, E19, E20, E21, E22, E23, E24, E25, E35, E39, E40, E26, E27, E28, E29, E30, E31,
+      E17, E18, E19, E20, E21, E22, E23, E24, E25, E35, E39, E40, E41, E26, E27, E28, E29, E30, E31,
       E32, E33, E34, E36, E37, E38.
     reflexivity.
   Qed.
