@@ -1870,7 +1870,7 @@ Section AirborneLeafRows.
   Lemma air_pffs_pres :
     body_pres lp NoA MWF bm A.f_play_far_fall_sound.
   Proof.
-    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (body_pres_of_wwalk_s2 lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              A.f_play_far_fall_sound
@@ -1897,8 +1897,14 @@ Section AirborneLeafRows.
      action_sat; every air-act caller passes an untainted-const landAction
      (wact_const-checkable, so caas rides the sids arm like set_mario_action).
      Its other stores are window / indexed-window + untainted-const actions. *)
+  (* common_air_action_step's HONEST contract: call_pres_act2 (no-return action
+     gate), NOT call_pres_act.  caas forwards its 2nd param _landAction to
+     set_mario_action(m,_landAction,0), so the action arg must be gated
+     untainted; but NO caller stores caas's RETURN into the action cell, so the
+     untainted-return claim is unneeded.  Supplied at the capstone by the PROVED
+     caas_act2_row (walking caas's body), eliminating the old Hcp_caas_real. *)
   Hypothesis Hcp_caas :
-    call_pres_act lp bm NoA MWF mario_actions_airborne._common_air_action_step.
+    call_pres_act2 lp bm NoA MWF mario_actions_airborne._common_air_action_step.
 
   (* 2nd airborne keystone DISCHARGED: common_air_knockback_step is no longer
      a call_pres residual -- it forwards TWO param-actions to set_mario_action,
@@ -1981,22 +1987,22 @@ Section AirborneLeafRows.
   Qed.
 
   Lemma air_ajc_sids_rows : forall fid, mem_id fid air_ajc_sids = true ->
-      call_pres_act lp bm NoA MWF fid.
+      call_pres_act2 lp bm NoA MWF fid.
   Proof.
     intros fid H. unfold air_ajc_sids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_caas | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact (call_pres_act_weaken Hsmact) | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hdasma | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact (call_pres_act_weaken Hdasma) | ].
     discriminate H.
   Qed.
 
   (* the three clean caas-dependent wrappers *)
   Lemma air_ff_pres : body_pres lp NoA MWF bm A.f_act_freefall.
   Proof.
-    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (body_pres_of_wwalk_s2 lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              A.f_act_freefall
@@ -2011,7 +2017,7 @@ Section AirborneLeafRows.
 
   Lemma air_hff_pres : body_pres lp NoA MWF bm A.f_act_hold_freefall.
   Proof.
-    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (body_pres_of_wwalk_s2 lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              A.f_act_hold_freefall
@@ -2026,7 +2032,7 @@ Section AirborneLeafRows.
 
   Lemma air_wka_pres : body_pres lp NoA MWF bm A.f_act_wall_kick_air.
   Proof.
-    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (body_pres_of_wwalk_s2 lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              A.f_act_wall_kick_air
@@ -2105,7 +2111,7 @@ Section AirborneLeafRows.
   (* act_top_of_pole_jump: caas + play_mario_jump_sound (air_ajc census). *)
   Lemma air_tpj_pres : body_pres lp NoA MWF bm A.f_act_top_of_pole_jump.
   Proof.
-    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (body_pres_of_wwalk_s2 lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              A.f_act_top_of_pole_jump
@@ -2121,7 +2127,7 @@ Section AirborneLeafRows.
   (* act_hold_jump: caas + play_mario_sound + sids. *)
   Lemma air_hj_pres : body_pres lp NoA MWF bm A.f_act_hold_jump.
   Proof.
-    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (body_pres_of_wwalk_s2 lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              A.f_act_hold_jump
@@ -2138,7 +2144,7 @@ Section AirborneLeafRows.
      m->actionState window store. *)
   Lemma air_lj_pres : body_pres lp NoA MWF bm A.f_act_long_jump.
   Proof.
-    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (body_pres_of_wwalk_s2 lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              A.f_act_long_jump
@@ -2192,7 +2198,7 @@ Section AirborneLeafRows.
 
   Lemma air_tj_pres : body_pres lp NoA MWF bm A.f_act_triple_jump.
   Proof.
-    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (body_pres_of_wwalk_s2 lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              A.f_act_triple_jump
@@ -2207,7 +2213,7 @@ Section AirborneLeafRows.
 
   Lemma air_bf_pres : body_pres lp NoA MWF bm A.f_act_backflip.
   Proof.
-    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (body_pres_of_wwalk_s2 lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              A.f_act_backflip
@@ -2695,7 +2701,7 @@ Section AirborneLeafRows.
   Qed.
   Lemma air_hbsa_pres : body_pres lp NoA MWF bm A.f_act_hold_butt_slide_air.
   Proof.
-    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (body_pres_of_wwalk_s2 lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              A.f_act_hold_butt_slide_air
@@ -2755,7 +2761,7 @@ Section AirborneLeafRows.
   Qed.
   Lemma air_sf_pres : body_pres lp NoA MWF bm A.f_act_side_flip.
   Proof.
-    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (body_pres_of_wwalk_cact_s2 lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              A.f_act_side_flip
@@ -2885,7 +2891,7 @@ Section AirborneLeafRows.
   Qed.
   Lemma air_hwj_pres : body_pres lp NoA MWF bm A.f_act_hold_water_jump.
   Proof.
-    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (body_pres_of_wwalk_s2 lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              A.f_act_hold_water_jump
@@ -3086,7 +3092,7 @@ Section AirborneLeafRows.
   Qed.
   Lemma air_jmp_pres : body_pres lp NoA MWF bm A.f_act_jump.
   Proof.
-    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (body_pres_of_wwalk_s2 lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              A.f_act_jump
@@ -3100,7 +3106,7 @@ Section AirborneLeafRows.
   Qed.
   Lemma air_djmp_pres : body_pres lp NoA MWF bm A.f_act_double_jump.
   Proof.
-    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (body_pres_of_wwalk_s2 lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              A.f_act_double_jump
@@ -3335,6 +3341,147 @@ Section AirborneLeafRows.
     - exact air_cfdgs_xids_rows.
     - exact air_cfdgs_sids_rows.
     - exact air_cfdgs_walk.
+  Qed.
+
+  (* ==================================================================== *)
+  (* THE caas KEYSTONE: common_air_action_step's body walk, proving its    *)
+  (* honest no-return action contract call_pres_act2 (eliminates the old   *)
+  (* Hcp_caas_real capstone hypothesis).  caas forwards its 2nd param       *)
+  (* _landAction into set_mario_action(m,_landAction,0); under the          *)
+  (* untainted-2nd-arg gate that store preserves action_sat.  Census        *)
+  (* (probe-verified): wact = [_landAction]; ids = 6 plain callees;         *)
+  (* sids = [set_mario_action; drop_and_set_mario_action;                   *)
+  (* check_fall_damage_or_get_stuck] -- cfdgs is ITSELF a call_pres_act     *)
+  (* (it forwards ACT_HARD_BACKWARD_GROUND_KB, an untainted const), so it    *)
+  (* rides the sids arm, NOT ids.  rt = false: caas returns stepResult /    *)
+  (* set_mario_action(...)'s result (both semantically untainted) but NO     *)
+  (* caller stores caas's return into the action cell, so no return claim    *)
+  (* is needed.                                                              *)
+  (* ==================================================================== *)
+  Definition caas_ids : list ident :=
+    A._update_air_without_turn :: A._perform_air_step
+      :: mario._set_mario_animation :: mario_step._mario_bonk_reflection
+      :: mario._mario_set_forward_vel :: A._lava_boost_on_wall :: nil.
+  Definition caas_sids : list ident :=
+    mario._set_mario_action :: mario._drop_and_set_mario_action
+      :: A._check_fall_damage_or_get_stuck :: nil.
+  Example caas_pin :
+    (prog_defmap mario_actions_airborne.prog) ! A._common_air_action_step
+    = Some (Gfun (Internal A.f_common_air_action_step)).
+  Proof. vm_compute. reflexivity. Qed.
+  Example caas_walk :
+    wwalk_chk false (A._landAction :: nil) caas_ids nil nil nil caas_sids nil
+      (fn_body A.f_common_air_action_step) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma caas_ids_rows : forall fid, mem_id fid caas_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold caas_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_uawt_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pas | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_sma_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_mbr_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hmsfv | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact air_lbow_row | discriminate H ].
+  Qed.
+  Lemma caas_sids_rows : forall fid, mem_id fid caas_sids = true ->
+      call_pres_act2 lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold caas_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact (call_pres_act_weaken Hsmact) | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact (call_pres_act_weaken Hdasma) | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        exact (call_pres_act_weaken air_cfdgs_row) | discriminate H ].
+  Qed.
+  Lemma caas_act2_row :
+    call_pres_act2 lp bm NoA MWF A._common_air_action_step.
+  Proof.
+    intros fd m0 v0 aval rest t0 m1 vres0 Hevf Hres Hmarg Hu HN HM HV HS.
+    pose proof (resolve_pin_fd lp mario_actions_airborne.prog
+                  A._common_air_action_step A.f_common_air_action_step fd
+                  LO_air ltac:(vm_compute; reflexivity) Hres) as ->.
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      change (fn_vars A.f_common_air_action_step)
+        with (@nil (ident * type)) in Ha; inv Ha end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    change (fn_params A.f_common_air_action_step)
+      with ((A._m, tyMSp) :: (A._landAction, tuint) :: (A._animation, tint)
+            :: (A._stepArg, tuint) :: nil) in Hbind.
+    cbn [bind_parameter_temps] in Hbind.
+    destruct rest as [| v_anim rest1];
+      cbn [bind_parameter_temps] in Hbind; [ discriminate Hbind | ].
+    destruct rest1 as [| v_steparg rest2];
+      cbn [bind_parameter_temps] in Hbind; [ discriminate Hbind | ].
+    destruct rest2 as [| vx restx];
+      cbn [bind_parameter_temps] in Hbind;
+      [ injection Hbind as <- | discriminate Hbind ].
+    change (blocks_of_env (lp_ge lp) empty_env)
+      with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    set (base := create_undef_temps (fn_temps A.f_common_air_action_step)) in *.
+    assert (Htat0 : forall b o,
+       (PTree.set A._stepArg v_steparg
+          (PTree.set A._animation v_anim
+             (PTree.set A._landAction aval
+                (PTree.set A._m v0 base))))
+         ! mario_actions_airborne._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg.
+      rewrite PTree.gso in Hg by (vm_compute; congruence).
+      rewrite PTree.gso in Hg by (vm_compute; congruence).
+      rewrite PTree.gso in Hg by (vm_compute; congruence).
+      rewrite PTree.gss in Hg. injection Hg as ->. cbn in Hmarg. exact Hmarg. }
+    assert (Hact0 : act_inv (A._landAction :: nil)
+       (PTree.set A._stepArg v_steparg
+          (PTree.set A._animation v_anim
+             (PTree.set A._landAction aval
+                (PTree.set A._m v0 base))))).
+    { intros t' Hmem' x Hg'.
+      unfold mem_id in Hmem'. cbn [existsb] in Hmem'.
+      rewrite Bool.orb_false_r in Hmem'. apply Pos.eqb_eq in Hmem'. subst t'.
+      rewrite PTree.gso in Hg' by (vm_compute; congruence).
+      rewrite PTree.gso in Hg' by (vm_compute; congruence).
+      rewrite PTree.gss in Hg'. injection Hg' as <-. exact Hu. }
+    assert (Hch0 : chase_inv SafeB nil
+       (PTree.set A._stepArg v_steparg
+          (PTree.set A._animation v_anim
+             (PTree.set A._landAction aval
+                (PTree.set A._m v0 base)))))
+      by (intros t' Hmem'; discriminate Hmem').
+    assert (Hcpt0 : forall fid', mem_id fid' nil = true ->
+                    call_pres_act3 lp bm NoA MWF fid')
+      by (intros fid' HH; discriminate HH).
+    destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+                false (A._landAction :: nil) caas_ids nil nil nil caas_sids nil
+                caas_ids_rows
+                (fun fid' HH => match Bool.diff_false_true HH with end)
+                (fun fid' HH => match Bool.diff_false_true HH with end)
+                caas_sids_rows Hcpt0
+                _ _ _ _ _ _ _ _ Hbody
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (PTree.gempty _ _) caas_walk Htat0 Hact0 Hch0 HN HM HV HS)
+      as (HV' & HS' & HM' & HN' & _).
+    exact (conj HV' (conj HS' (conj HM' HN'))).
   Qed.
 
   (* ==================================================================== *)

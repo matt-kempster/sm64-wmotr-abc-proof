@@ -865,9 +865,12 @@ Section NoARealInputMWF.
      indexed-window + untainted-const actions.  Its presence DECOMPOSES the
      11 common_air_action_step-dependent act handlers from whole-cloth
      leaves into thin wrappers (SLICE A2 walks 3 of them). *)
-  Hypothesis Hcp_caas_real :
-    call_pres_act lp bm (NoA_real bm) MWF
-      mario_actions_airborne._common_air_action_step.
+  (* Hcp_caas_real is now PROVED, not assumed: see the Lemma below (after
+     Hcp_pas), discharged by walking common_air_action_step's body
+     (AirborneLeafSurface.caas_act2_row).  Its honest contract is
+     call_pres_act2 (no-return action gate), NOT call_pres_act: no caller
+     stores caas's return into the action cell, so the untainted-return claim
+     is unneeded.  This ELIMINATES the last internal-function residual. *)
   (* common_air_knockback_step DISCHARGED (2nd airborne keystone): it was a
      PHANTOM-FALSE call_pres residual -- the body forwards TWO param-actions
      (_landAction, _hardFallAction) to set_mario_action, so plain call_pres
@@ -2363,6 +2366,44 @@ Section NoARealInputMWF.
              Hcp_avw
              (Hpres_obj_ext mario_step._vec3f_copy eq_refl)
              (Hpres_obj_ext mario_step._vec3s_set eq_refl)).
+  Qed.
+
+  (* THE caas KEYSTONE, PROVED (was Hypothesis Hcp_caas_real): the body of
+     common_air_action_step is walked (AirborneLeafSurface.caas_act2_row) to
+     its honest no-return action contract call_pres_act2.  Eliminates the LAST
+     internal-function residual; every air-act caller already passes an
+     untainted-const landAction, so caas rides the sids gate. *)
+  Lemma Hcp_caas_real :
+    call_pres_act2 lp bm (NoA_real bm) MWF
+      mario_actions_airborne._common_air_action_step.
+  Proof.
+    exact (AirborneLeafSurface.caas_act2_row lp LO_mario LO_stp LO_air LO_int bm
+             (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
+             (mwf_real_ctl lp bm bc oc0 SafeB)
+             (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+             (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             SafeB HSafeB_not_bm
+             (mwf_real_chase_root lp bm bc oc0 SafeB)
+             (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm HSafeB_not_bc
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             (mwf_real_sglob lp bm bc oc0 SafeB)
+             (mwf_real_chase_step lp bm bc oc0 SafeB)
+             (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm HSafeB_not_bc
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             (Hpres_obj_ext mario._play_sound eq_refl)
+             Hpres_obj_ext
+             (Hpres_obj_ext mario._sqrtf eq_refl)
+             (Hpres_obj_ext mario._atan2s eq_refl)
+             Hcpx_approach_f32_real
+             (Hpres_obj_ext mario._load_patchable_table eq_refl)
+             (Hpres_floors_ext mario._raise_background_noise eq_refl)
+             (Hpres_obj_ext mario._set_camera_mode eq_refl)
+             Hcp_pas).
   Qed.
 
   (* ==================================================================== *)
