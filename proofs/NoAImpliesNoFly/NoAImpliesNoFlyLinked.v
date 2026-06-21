@@ -2905,6 +2905,13 @@ Section NoARealInputMWF.
                          the SAME dedicated boundary the submerged family uses
                          -- NO new trust. *)
                       Hcpx_approach_real
+                      (* SLICE 21 (act_unlocking_star_door): spawn_object rides
+                         the standing Hcp_spawn_real (plain-ext weakening); the
+                         two save-buffer externals ride obj_ext_ids (save_file_
+                         set_flags newly added there).  NO new capstone hyp. *)
+                      Hcpx_so_real
+                      (Hpres_obj_ext interaction._save_file_get_flags eq_refl)
+                      (Hpres_obj_ext interaction._save_file_set_flags eq_refl)
                       (Hpres_obj_ext mario._sqrtf eq_refl)
                       (Hpres_obj_ext mario._vec3f_set eq_refl)
                       Hcp_pgs
