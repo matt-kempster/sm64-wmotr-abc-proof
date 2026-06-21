@@ -217,7 +217,15 @@ Definition cut_ext_ids : list ident :=
        the dialog-id reader, and the cutscene-music cue -- all EF_external
        in every linked TU, same boundary class as the four above. *)
     :: C._create_dialog_box :: C._create_dialog_box_with_var
-    :: C._get_dialog_id :: C._play_cutscene_music :: nil.
+    :: C._get_dialog_id :: C._play_cutscene_music
+    (* SLICE 13 star-dance externals: the star-collection feedback set --
+       object spawn, the response dialog box, the bg-sound mute/unmute, the
+       course-clear / music cues, and the save commit.  EF_external in EVERY
+       linked TU (verified -- no Internal body anywhere under generated/),
+       same honest model-boundary class. *)
+    :: C._spawn_object :: C._create_dialog_box_with_response
+    :: C._disable_background_sound :: C._enable_background_sound
+    :: C._play_course_clear :: C._play_music :: C._save_file_do_save :: nil.
 
 (* act_reading_sign: body_pres_of_wwalk (wact=nil, cact=nil -- marioObj/usedObj
    chase temps are only LOADED; the only stores are direct non-action m-fields:
@@ -274,8 +282,51 @@ Definition bbhj_ids : list ident :=
 Definition bbhj_xids : list ident :=
   mario._sqrtf :: interaction._atan2s :: nil.
 
+(* SLICE 13: the star-dance cluster.  Two leaf act handlers (act_star_dance,
+   act_star_dance_water) share two internal helpers that must be WALKED (both
+   have Internal bodies in mario_actions_cutscene -> NOT honest externals):
+
+     get_star_collection_dialog   -- pure near-leaf: reads the global
+       sStarsNeededForDialog, stores m->prevNumStarsForDialog (non-action).
+       all-nil censuses (call_pres_of_wwalk).
+     general_star_dance_handler   -- the body that fires the star feedback.
+       wact = [_t'5] (untainted action-const temp); ids = is_anim_at_end /
+       level_trigger_warp / get_star_collection_dialog; xids = the 10
+       star-feedback externals (play_sound -> Hcpx_psound, the other 9 ->
+       Hcut_ext); sids = set_mario_action.  3 stores all direct m-fields
+       (actionTimer / actionState x2 -- non-action). *)
+Definition gscd_ids  : list ident := nil.
+Definition gsdh_wact : list ident := C._t'5 :: nil.
+Definition gsdh_ids  : list ident :=
+  mario._is_anim_at_end :: level_update._level_trigger_warp
+    :: C._get_star_collection_dialog :: nil.
+Definition gsdh_xids : list ident :=
+  C._spawn_object :: mario._play_sound :: C._create_dialog_box_with_response
+    :: C._disable_background_sound :: C._enable_background_sound
+    :: C._play_course_clear :: C._play_music :: C._save_file_do_save
+    :: C._enable_time_stop :: C._disable_time_stop :: nil.
+
+(* act_star_dance: body_pres_of_wwalk_cact.  cact = [_t'3] = the marioObj
+   chase temp stored THROUGH (marioBodyState->handState = 2); other stores
+   are m->faceAngle[1] (direct, non-action).  ids = general_star_dance_handler
+   / set_mario_animation / stop_and_set_height_to_floor. *)
+Definition sdn_cact : list ident := C._t'3 :: nil.
+Definition sdn_ids  : list ident :=
+  C._general_star_dance_handler :: mario._set_mario_animation
+    :: mario_step._stop_and_set_height_to_floor :: nil.
+
+(* act_star_dance_water: body_pres_of_wwalk_cact.  cact = [_t'3] (same
+   marioBodyState->handState = 2 chase store); marioObj LOADED for the
+   vec3f_copy / vec3s_set args.  ids = general_star_dance_handler /
+   set_mario_animation; xids = vec3f_copy / vec3s_set (obj_ext). *)
+Definition sdw_cact : list ident := C._t'3 :: nil.
+Definition sdw_ids  : list ident :=
+  C._general_star_dance_handler :: mario._set_mario_animation :: nil.
+Definition sdw_xids : list ident :=
+  mario._vec3f_copy :: mario._vec3s_set :: nil.
+
 (* the WALKED leaves (SLICE 1 + SLICE 2 + SLICE 3 + SLICE 4 + SLICE 5
-   + SLICE 12). *)
+   + SLICE 12 + SLICE 13). *)
 Definition cut_walked_ids : list ident :=
   C._act_electrocution :: C._act_suffocation
     :: C._act_death_on_back :: C._act_death_on_stomach
@@ -291,7 +342,8 @@ Definition cut_walked_ids : list ident :=
     :: C._act_fall_after_star_grab :: C._act_spawn_spin_airborne
     :: C._act_warp_door_spawn
     :: C._act_reading_sign :: C._act_bbh_enter_spin
-    :: C._act_reading_automatic_dialog :: C._act_bbh_enter_jump :: nil.
+    :: C._act_reading_automatic_dialog :: C._act_bbh_enter_jump
+    :: C._act_star_dance :: C._act_star_dance_water :: nil.
 Definition cut_rest_ids : list ident :=
   filter (fun id => negb (mem_id id cut_walked_ids)) cutscene_callee_ids.
 
@@ -625,6 +677,22 @@ Proof. vm_compute. reflexivity. Qed.
 Example bbhj_pin :
   (prog_defmap C.prog) ! C._act_bbh_enter_jump
   = Some (Gfun (Internal C.f_act_bbh_enter_jump)).
+Proof. vm_compute. reflexivity. Qed.
+Example gscd_pin :
+  (prog_defmap C.prog) ! C._get_star_collection_dialog
+  = Some (Gfun (Internal C.f_get_star_collection_dialog)).
+Proof. vm_compute. reflexivity. Qed.
+Example gsdh_pin :
+  (prog_defmap C.prog) ! C._general_star_dance_handler
+  = Some (Gfun (Internal C.f_general_star_dance_handler)).
+Proof. vm_compute. reflexivity. Qed.
+Example sdn_pin :
+  (prog_defmap C.prog) ! C._act_star_dance
+  = Some (Gfun (Internal C.f_act_star_dance)).
+Proof. vm_compute. reflexivity. Qed.
+Example sdw_pin :
+  (prog_defmap C.prog) ! C._act_star_dance_water
+  = Some (Gfun (Internal C.f_act_star_dance_water)).
 Proof. vm_compute. reflexivity. Qed.
 (* is_anim_at_end: the loads-only "anim done?" helper (walked in-file). *)
 Example cut_iae_pin :
@@ -2131,6 +2199,208 @@ Section CutsceneLeafRows.
     - exact bbhj_walk.
   Qed.
 
+  (* SLICE 13: the star-dance cluster.  get_star_collection_dialog (all-nil
+     near-leaf) -> general_star_dance_handler (wact action-const, 10 externals)
+     -> act_star_dance / act_star_dance_water (body_pres_of_wwalk_cact). *)
+  Example gscd_vars : fn_vars C.f_get_star_collection_dialog = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example gscd_pok :
+    match fn_params C.f_get_star_collection_dialog with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example gscd_walk :
+    wwalk_chk false nil nil nil nil nil nil nil
+      (fn_body C.f_get_star_collection_dialog) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma gscd_row : call_pres lp bm NoA MWF C._get_star_collection_dialog.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_cutscene.prog C._get_star_collection_dialog
+             C.f_get_star_collection_dialog nil nil nil nil
+             LO_cut gscd_pin gscd_vars gscd_pok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact gscd_walk.
+  Qed.
+
+  Lemma gsdh_ids_rows : forall fid, mem_id fid gsdh_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold gsdh_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cut_iae_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ltw | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact gscd_row | discriminate H ].
+  Qed.
+  Lemma gsdh_xids_rows : forall fid, mem_id fid gsdh_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold gsdh_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; apply Hcut_ext; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; apply Hcut_ext; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; apply Hcut_ext; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; apply Hcut_ext; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; apply Hcut_ext; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; apply Hcut_ext; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; apply Hcut_ext; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; apply Hcut_ext; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; apply Hcut_ext; reflexivity
+      | discriminate H ].
+  Qed.
+  Example gsdh_vars : fn_vars C.f_general_star_dance_handler = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example gsdh_pok :
+    match fn_params C.f_general_star_dance_handler with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example gsdh_nonparam_cact :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_general_star_dance_handler))))
+      nil = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example gsdh_nonparam_wact :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_general_star_dance_handler))))
+      gsdh_wact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example gsdh_walk :
+    wwalk_chk false gsdh_wact gsdh_ids nil nil gsdh_xids tfi_sids nil
+      (fn_body C.f_general_star_dance_handler) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma gsdh_row :
+    call_pres lp bm NoA MWF C._general_star_dance_handler.
+  Proof.
+    apply (call_pres_of_wwalk_wact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_cutscene.prog C._general_star_dance_handler
+             C.f_general_star_dance_handler
+             gsdh_wact gsdh_ids nil nil gsdh_xids tfi_sids
+             LO_cut gsdh_pin gsdh_vars gsdh_pok gsdh_nonparam_cact
+             gsdh_nonparam_wact).
+    - exact gsdh_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact gsdh_xids_rows.
+    - intros fid' H. unfold tfi_sids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hsmact | discriminate H ].
+    - exact gsdh_walk.
+  Qed.
+
+  Lemma sdn_ids_rows : forall fid, mem_id fid sdn_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sdn_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact gsdh_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sashf | discriminate H ].
+  Qed.
+  Example sdn_vars : fn_vars C.f_act_star_dance = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example sdn_pok :
+    match fn_params C.f_act_star_dance with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example sdn_nonparam :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_star_dance))))
+      sdn_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example sdn_walk :
+    wwalk_chk false nil sdn_ids nil sdn_cact nil nil nil
+      (fn_body C.f_act_star_dance) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma sdn_pres : body_pres lp NoA MWF bm C.f_act_star_dance.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_star_dance sdn_ids nil sdn_cact nil nil nil
+             sdn_vars sdn_pok sdn_nonparam).
+    - exact sdn_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sdn_walk.
+  Qed.
+
+  Lemma sdw_ids_rows : forall fid, mem_id fid sdw_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sdw_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact gsdh_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | discriminate H ].
+  Qed.
+  Lemma sdw_xids_rows : forall fid, mem_id fid sdw_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sdw_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_v3fc | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_v3ss | discriminate H ].
+  Qed.
+  Example sdw_vars : fn_vars C.f_act_star_dance_water = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example sdw_pok :
+    match fn_params C.f_act_star_dance_water with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example sdw_nonparam :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_star_dance_water))))
+      sdw_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example sdw_walk :
+    wwalk_chk false nil sdw_ids nil sdw_cact sdw_xids nil nil
+      (fn_body C.f_act_star_dance_water) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma sdw_pres : body_pres lp NoA MWF bm C.f_act_star_dance_water.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_star_dance_water sdw_ids nil sdw_cact sdw_xids nil nil
+             sdw_vars sdw_pok sdw_nonparam).
+    - exact sdw_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact sdw_xids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact sdw_walk.
+  Qed.
+
   (* ==================================================================== *)
   (* The family rest-split: discharge the SLICE 1-5 leaves, leaving the   *)
   (* other 36 under cut_rest_ids.                                         *)
@@ -2233,13 +2503,19 @@ Section CutsceneLeafRows.
     destruct (Pos.eqb fid C._act_bbh_enter_jump) eqn:E29.
     { apply Pos.eqb_eq in E29; subst fid.
       rewrite bbhj_pin in Hdm. injection Hdm as <-. exact bbhj_pres. }
+    destruct (Pos.eqb fid C._act_star_dance) eqn:E30.
+    { apply Pos.eqb_eq in E30; subst fid.
+      rewrite sdn_pin in Hdm. injection Hdm as <-. exact sdn_pres. }
+    destruct (Pos.eqb fid C._act_star_dance_water) eqn:E31.
+    { apply Pos.eqb_eq in E31; subst fid.
+      rewrite sdw_pin in Hdm. injection Hdm as <-. exact sdw_pres. }
     (* REST: fid is in the census and not a walked id. *)
     apply (Hrest fid f); [ | exact Hdm ].
     unfold cut_rest_ids.
     apply mem_id_filter_true; [ exact H | ].
     unfold cut_walked_ids. cbn [mem_id existsb].
     rewrite E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15, E16,
-      E17, E18, E19, E20, E21, E22, E23, E24, E25, E26, E27, E28, E29.
+      E17, E18, E19, E20, E21, E22, E23, E24, E25, E26, E27, E28, E29, E30, E31.
     reflexivity.
   Qed.
 
