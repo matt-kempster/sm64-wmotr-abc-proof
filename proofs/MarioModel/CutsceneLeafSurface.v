@@ -28,7 +28,8 @@ From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface
   DispatchKit FloorsSurface ActWriterSurface CutsceneSurface.
 (* Require (not Import): reuse the proved psinf_row / sma_row / sub_sashf_row
    rows, referenced qualified -- avoids name shadowing. *)
-From SM64.Proofs Require ObjectLeafSurface SubmergedLeafSurface.
+From SM64.Proofs Require ObjectLeafSurface SubmergedLeafSurface
+  OutParamSurface LocalVarsSurface AutomaticLeafSurface.
 
 Import ListNotations.
 
@@ -201,6 +202,22 @@ Definition ssa_xids : list ident :=
 Definition wds_cact : list ident := C._t'9 :: C._t'8 :: nil.
 Definition wds_ids : list ident :=
   mario._set_mario_animation :: mario_step._stop_and_set_height_to_floor :: nil.
+
+(* SLICE 17: act_going_through_door.  body_pres_of_wwalk_cact.  Structural twin
+   of act_warp_door_spawn (wds): the interactObj/usedObj chase temps stored
+   THROUGH (obj->rawData.asS32[43] = 1<<n const), plus the usedObj-window reads
+   feeding m->faceAngle[1] / m->pos[0] / m->pos[2] / m->actionTimer window
+   stores.  cact = [_t'16;_t'15;_t'11;_t'9;_t'7] (the five interactObj/usedObj
+   chase roots); ids = update_mario_pos_for_anim (Hcp_umpfa, the new WALKED
+   helper) / stop_and_set_height_to_floor / is_anim_at_end / set_mario_animation
+   / level_trigger_warp; sids = set_mario_action (const 205521409); xids = nil. *)
+Definition gtd_cact : list ident :=
+  C._t'16 :: C._t'15 :: C._t'11 :: C._t'9 :: C._t'7 :: nil.
+Definition gtd_ids : list ident :=
+  mario._update_mario_pos_for_anim
+    :: mario_step._stop_and_set_height_to_floor
+    :: mario._is_anim_at_end :: mario._set_mario_animation
+    :: level_update._level_trigger_warp :: nil.
 
 (* SLICE 12: the dialog-cluster external boundary.  cut_ext_ids = the
    cutscene DIALOG / TIME-STOP externals: EF_external in EVERY linked TU
@@ -386,7 +403,7 @@ Definition cut_walked_ids : list ident :=
     :: C._act_teleport_fade_in :: C._act_spawn_spin_landing
     :: C._act_spawn_no_spin_landing :: C._act_standing_death
     :: C._act_fall_after_star_grab :: C._act_spawn_spin_airborne
-    :: C._act_warp_door_spawn
+    :: C._act_warp_door_spawn :: C._act_going_through_door
     :: C._act_reading_sign :: C._act_bbh_enter_spin
     :: C._act_reading_automatic_dialog :: C._act_bbh_enter_jump
     :: C._act_star_dance :: C._act_star_dance_water
@@ -710,6 +727,10 @@ Example wds_pin :
   (prog_defmap C.prog) ! C._act_warp_door_spawn
   = Some (Gfun (Internal C.f_act_warp_door_spawn)).
 Proof. vm_compute. reflexivity. Qed.
+Example gtd_pin :
+  (prog_defmap C.prog) ! C._act_going_through_door
+  = Some (Gfun (Internal C.f_act_going_through_door)).
+Proof. vm_compute. reflexivity. Qed.
 Example rs_pin :
   (prog_defmap C.prog) ! C._act_reading_sign
   = Some (Gfun (Internal C.f_act_reading_sign)).
@@ -1003,6 +1024,43 @@ Section CutsceneLeafRows.
       Mem.alloc m lo hi = (m', b) -> MWF m -> MWF m'.
   Hypothesis HMWF_free : forall m l m',
       Mem.free_list m l = Some m' -> MWF m -> MWF m'.
+  (* SLICE 17 (act_going_through_door): the SafeB/global stack-frame validity
+     projections that update_mario_pos_for_anim's WALK consumes (it allocs the
+     _translation local + calls find_mario_anim_flags_and_translation, the
+     oc2 out-param helper).  Discharged at the capstone from MWFReal:
+     HSafeValid <- mwf_real_safe_valid, HGlobValid <- Hglob_valid -- the SAME
+     terms the automatic family already threads, NO new trust. *)
+  Hypothesis HSafeValid :
+    forall m, MWF m -> forall b, SafeB b -> Mem.valid_block m b.
+  Hypothesis HGlobValid :
+    forall m, MWF m -> forall gid bg,
+        Genv.find_symbol (lp_ge lp) gid = Some bg -> Mem.valid_block m bg.
+  (* update_mario_pos_for_anim's WALK (Humpfa) also bottoms out in: the
+     stack-local store->MWF brick (Hls_real <- aut_local_store), and the three
+     terminal externals of its find_mario_anim_flags_and_translation callee --
+     segmented_to_virtual (call_pres_ext), geo_update_animation_frame (sc-gated
+     out-param) and retrieve_animation_index (oc-gated out-param).  Discharged
+     at the capstone from the SAME automatic-family terms (aut_local_store,
+     Hpres_obj_ext, Hscp_geo_real, Hocp_rai_real) -- NO new trust. *)
+  Hypothesis Hls_real :
+    forall m ch b (d : Z) v m',
+      LocalVarsSurface.local_blk lp bm SafeB b ->
+      Mem.store ch m b d v = Some m' -> MWF m -> MWF m'.
+  Hypothesis Hcpx_s2v :
+    call_pres_ext lp bm NoA MWF interaction._segmented_to_virtual.
+  Hypothesis Hscp_geo :
+    OutParamSurface.call_pres_ext_sc lp bm NoA MWF SafeB
+      mario._geo_update_animation_frame.
+  Hypothesis Hocp_rai :
+    OutParamSurface.call_pres_ext_oc lp bm NoA MWF SafeB
+      mario._retrieve_animation_index.
+
+  (* SLICE 17: update_mario_pos_for_anim is WALKED (AutomaticLeafSurface.Humpfa,
+     a HYBRID walk: the famft out-param call via oc2 + the two pos[i] window
+     stores).  Fed here from the section hyps above -- NO new trust. *)
+  Lemma Hcp_umpfa :
+    call_pres lp bm NoA MWF mario._update_mario_pos_for_anim.
+  Proof. eapply AutomaticLeafSurface.Humpfa; eassumption. Qed.
 
   Lemma Hcp_psinf : call_pres lp bm NoA MWF mario._play_sound_if_no_flag.
   Proof. eapply ObjectLeafSurface.psinf_row; eassumption. Qed.
@@ -2097,6 +2155,55 @@ Section CutsceneLeafRows.
     - exact wds_walk.
   Qed.
 
+  Lemma gtd_ids_rows : forall fid, mem_id fid gtd_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold gtd_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_umpfa | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sashf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cut_iae_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ltw | discriminate H ].
+  Qed.
+  Example gtd_vars : fn_vars C.f_act_going_through_door = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example gtd_pok :
+    match fn_params C.f_act_going_through_door with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example gtd_nonparam :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_going_through_door))))
+      gtd_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example gtd_walk :
+    wwalk_chk false nil gtd_ids nil gtd_cact nil tfi_sids nil
+      (fn_body C.f_act_going_through_door) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma gtd_pres : body_pres lp NoA MWF bm C.f_act_going_through_door.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_going_through_door gtd_ids nil gtd_cact nil tfi_sids nil
+             gtd_vars gtd_pok gtd_nonparam).
+    - exact gtd_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold tfi_sids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hsmact | discriminate H ].
+    - intros fid' H. discriminate H.
+    - exact gtd_walk.
+  Qed.
+
   (* SLICE 12a: act_reading_sign.  body_pres_of_wwalk (wact=nil, cact=nil --
      marioObj/usedObj are LOADED only; stores are direct non-action m-fields).
      ids = psinf + sma; xids = the 4 dialog/time-stop externals (Hcut_ext)
@@ -2916,6 +3023,9 @@ Section CutsceneLeafRows.
     destruct (Pos.eqb fid C._act_warp_door_spawn) eqn:E25.
     { apply Pos.eqb_eq in E25; subst fid.
       rewrite wds_pin in Hdm. injection Hdm as <-. exact wds_pres. }
+    destruct (Pos.eqb fid C._act_going_through_door) eqn:E35.
+    { apply Pos.eqb_eq in E35; subst fid.
+      rewrite gtd_pin in Hdm. injection Hdm as <-. exact gtd_pres. }
     destruct (Pos.eqb fid C._act_reading_sign) eqn:E26.
     { apply Pos.eqb_eq in E26; subst fid.
       rewrite rs_pin in Hdm. injection Hdm as <-. exact rs_pres. }
@@ -2949,7 +3059,7 @@ Section CutsceneLeafRows.
     apply mem_id_filter_true; [ exact H | ].
     unfold cut_walked_ids. cbn [mem_id existsb].
     rewrite E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15, E16,
-      E17, E18, E19, E20, E21, E22, E23, E24, E25, E26, E27, E28, E29, E30, E31,
+      E17, E18, E19, E20, E21, E22, E23, E24, E25, E35, E26, E27, E28, E29, E30, E31,
       E32, E33, E34.
     reflexivity.
   Qed.
