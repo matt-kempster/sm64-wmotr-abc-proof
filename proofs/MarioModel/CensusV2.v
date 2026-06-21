@@ -826,7 +826,12 @@ Definition stored_globals : list ident :=
      data symbol, same Hglob_blk bm/bc/SafeB-disjoint trust class as the bob
      statics above.  Consumed by sub_ssasp_row (the set_swimming_at_surface_
      particles leaf, a callee of common_idle_step / common_swimming_step). *)
-  mario_actions_submerged._sWasAtSurface :: nil.
+  mario_actions_submerged._sWasAtSurface ::
+  (* the cutscene save-state flag (act_reading_automatic_dialog clears it
+     when the first-castle-entry music cue plays): a static schar in
+     level_update.c, bm/bc/SafeB-disjoint per Hglob_blk -- same trust class
+     as the other save/state statics above. *)
+  level_update._gNeverEnteredCastle :: nil.
 
 (* ---------------------------------------------------------------------- *)
 (* The interaction-handler census (the Hpres_inter arc): the 28 DISTINCT   *)
