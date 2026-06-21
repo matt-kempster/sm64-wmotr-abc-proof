@@ -212,7 +212,12 @@ Definition wds_ids : list ident :=
    further dialog/save/spawn leaves discharge. *)
 Definition cut_ext_ids : list ident :=
   C._create_dialog_inverted_box :: C._trigger_cutscene_dialog
-    :: C._enable_time_stop :: C._disable_time_stop :: nil.
+    :: C._enable_time_stop :: C._disable_time_stop
+    (* SLICE 12c automatic-dialog externals: the dialog-box constructors,
+       the dialog-id reader, and the cutscene-music cue -- all EF_external
+       in every linked TU, same boundary class as the four above. *)
+    :: C._create_dialog_box :: C._create_dialog_box_with_var
+    :: C._get_dialog_id :: C._play_cutscene_music :: nil.
 
 (* act_reading_sign: body_pres_of_wwalk (wact=nil, cact=nil -- marioObj/usedObj
    chase temps are only LOADED; the only stores are direct non-action m-fields:
@@ -242,6 +247,21 @@ Definition bbhs_xids : list ident :=
   mario._sqrtf :: interaction._atan2s :: mario._play_sound
     :: mario._vec3f_set :: nil.
 
+(* act_reading_automatic_dialog: body_pres_of_wwalk_wact.  wact = [_t'3] = the
+   untainted action-const temp (Ecast 67109952 / 205521409 -> 2nd set_mario_action;
+   1st set_mario_action uses const 939532992 directly).  cact = nil (marioBodyState
+   t'4 is LOADED only, passed to vec3s_set).  ids = set_mario_animation; xids = the
+   6 dialog/time-stop externals (Hcut_ext) + vec3s_set (obj_ext); sids =
+   set_mario_action.  The only global store is gNeverEnteredCastle = 0
+   (glob_store_chk via stored_globals); m-field stores are actionState/actionTimer
+   arithmetic (non-action). *)
+Definition rad_wact : list ident := C._t'3 :: nil.
+Definition rad_ids : list ident := mario._set_mario_animation :: nil.
+Definition rad_xids : list ident :=
+  C._enable_time_stop :: C._create_dialog_box :: C._create_dialog_box_with_var
+    :: C._get_dialog_id :: C._disable_time_stop :: C._play_cutscene_music
+    :: mario._vec3s_set :: nil.
+
 (* the WALKED leaves (SLICE 1 + SLICE 2 + SLICE 3 + SLICE 4 + SLICE 5
    + SLICE 12). *)
 Definition cut_walked_ids : list ident :=
@@ -258,7 +278,8 @@ Definition cut_walked_ids : list ident :=
     :: C._act_spawn_no_spin_landing :: C._act_standing_death
     :: C._act_fall_after_star_grab :: C._act_spawn_spin_airborne
     :: C._act_warp_door_spawn
-    :: C._act_reading_sign :: C._act_bbh_enter_spin :: nil.
+    :: C._act_reading_sign :: C._act_bbh_enter_spin
+    :: C._act_reading_automatic_dialog :: nil.
 Definition cut_rest_ids : list ident :=
   filter (fun id => negb (mem_id id cut_walked_ids)) cutscene_callee_ids.
 
@@ -584,6 +605,10 @@ Proof. vm_compute. reflexivity. Qed.
 Example bbhs_pin :
   (prog_defmap C.prog) ! C._act_bbh_enter_spin
   = Some (Gfun (Internal C.f_act_bbh_enter_spin)).
+Proof. vm_compute. reflexivity. Qed.
+Example rad_pin :
+  (prog_defmap C.prog) ! C._act_reading_automatic_dialog
+  = Some (Gfun (Internal C.f_act_reading_automatic_dialog)).
 Proof. vm_compute. reflexivity. Qed.
 (* is_anim_at_end: the loads-only "anim done?" helper (walked in-file). *)
 Example cut_iae_pin :
@@ -1957,6 +1982,74 @@ Section CutsceneLeafRows.
     - exact bbhs_walk.
   Qed.
 
+  (* SLICE 12c: act_reading_automatic_dialog.  body_pres_of_wwalk_wact.  wact =
+     [_t'3] (untainted action-const temp); cact = nil (marioBodyState LOADED only);
+     ids = sma; xids = 6 dialog/time-stop externals (Hcut_ext) + vec3s_set (obj_ext);
+     sids = set_mario_action; gNeverEnteredCastle store via stored_globals. *)
+  Lemma rad_ids_rows : forall fid, mem_id fid rad_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold rad_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | discriminate H ].
+  Qed.
+  Lemma rad_xids_rows : forall fid, mem_id fid rad_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold rad_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; apply Hcut_ext; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; apply Hcut_ext; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; apply Hcut_ext; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; apply Hcut_ext; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; apply Hcut_ext; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; apply Hcut_ext; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_v3ss | discriminate H ].
+  Qed.
+  Example rad_vars : fn_vars C.f_act_reading_automatic_dialog = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example rad_pok :
+    match fn_params C.f_act_reading_automatic_dialog with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example rad_nonparam_cact :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_reading_automatic_dialog))))
+      nil = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example rad_nonparam_wact :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_reading_automatic_dialog))))
+      rad_wact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example rad_walk :
+    wwalk_chk false rad_wact rad_ids nil nil rad_xids tfi_sids nil
+      (fn_body C.f_act_reading_automatic_dialog) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma rad_pres : body_pres lp NoA MWF bm C.f_act_reading_automatic_dialog.
+  Proof.
+    apply (body_pres_of_wwalk_wact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_reading_automatic_dialog rad_wact rad_ids nil nil rad_xids
+             tfi_sids nil rad_vars rad_pok rad_nonparam_cact rad_nonparam_wact).
+    - exact rad_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact rad_xids_rows.
+    - intros fid' H. unfold tfi_sids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hsmact | discriminate H ].
+    - intros fid' H. discriminate H.
+    - exact rad_walk.
+  Qed.
+
   (* ==================================================================== *)
   (* The family rest-split: discharge the SLICE 1-5 leaves, leaving the   *)
   (* other 36 under cut_rest_ids.                                         *)
@@ -2053,13 +2146,16 @@ Section CutsceneLeafRows.
     destruct (Pos.eqb fid C._act_bbh_enter_spin) eqn:E27.
     { apply Pos.eqb_eq in E27; subst fid.
       rewrite bbhs_pin in Hdm. injection Hdm as <-. exact bbhs_pres. }
+    destruct (Pos.eqb fid C._act_reading_automatic_dialog) eqn:E28.
+    { apply Pos.eqb_eq in E28; subst fid.
+      rewrite rad_pin in Hdm. injection Hdm as <-. exact rad_pres. }
     (* REST: fid is in the census and not a walked id. *)
     apply (Hrest fid f); [ | exact Hdm ].
     unfold cut_rest_ids.
     apply mem_id_filter_true; [ exact H | ].
     unfold cut_walked_ids. cbn [mem_id existsb].
     rewrite E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15, E16,
-      E17, E18, E19, E20, E21, E22, E23, E24, E25, E26, E27.
+      E17, E18, E19, E20, E21, E22, E23, E24, E25, E26, E27, E28.
     reflexivity.
   Qed.
 
