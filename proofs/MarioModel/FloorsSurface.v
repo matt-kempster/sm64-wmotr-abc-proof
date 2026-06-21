@@ -31,6 +31,120 @@ From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface
 Import ListNotations.
 
 (* ====================================================================== *)
+(* DEEP-GLOBAL-STORE block invariance: an lvalue of the shape             *)
+(*   sGlobalUnion.field1.arrField[i]                                       *)
+(* (a union root, a struct mid-field, an array leaf-field, an integer     *)
+(* index) lands in the global union's block -- so a store there is, like  *)
+(* every other stored_globals store, offset-irrelevant and killed by the  *)
+(* HMWF_glob row.  This is the recognizer arm for credits/end_peach       *)
+(* viewport writes (sEndCutsceneVp.vp.vscale[i] / .vtrans[i]).            *)
+(* ====================================================================== *)
+
+(* a By_copy deref of a pointer lvalue yields that same block. *)
+Lemma deref_copy_addr : forall ty m loc o' bf' b ofs,
+    deref_loc ty m loc o' bf' (Vptr b ofs) -> access_mode ty = By_copy -> loc = b.
+Proof.
+  intros ty m loc o' bf' b ofs Hd Hac. inv Hd.
+  - match goal with H : access_mode _ = By_value _ |- _ => rewrite Hac in H; discriminate end.
+  - match goal with H : access_mode _ = By_reference |- _ => rewrite Hac in H; discriminate end.
+  - reflexivity.
+  - match goal with Hbf : load_bitfield _ _ _ _ _ _ _ _ |- _ => inv Hbf end.
+Qed.
+
+(* an Efield lvalue's block = its base EXPRESSION's pointer block (struct/union). *)
+Lemma agg_efield_step : forall ge e le m a f t b ofs bf,
+    eval_lvalue ge e le m (Efield a f t) b ofs bf ->
+    exists o', eval_expr ge e le m a (Vptr b o').
+Proof. intros. inv H; eexists; eassumption. Qed.
+
+(* a global Evar lvalue's block IS the symbol's block (and the symbol exists). *)
+Lemma evar_glob_block : forall ge e le m gid t b ofs bf,
+    eval_lvalue ge e le m (Evar gid t) b ofs bf ->
+    e ! gid = None -> Genv.find_symbol ge gid = Some b.
+Proof. intros. inv H; congruence. Qed.
+
+(* one aggregate (By_copy) Efield/Evar level: eval_expr (Vptr b _) -> eval_lvalue at b. *)
+Lemma agg_copy_lvalue : forall ge e le m a b ofs,
+    eval_expr ge e le m a (Vptr b ofs) ->
+    match a with Evar _ _ => True | Efield _ _ _ => True | _ => False end ->
+    access_mode (typeof a) = By_copy ->
+    exists o' bf', eval_lvalue ge e le m a b o' bf'.
+Proof.
+  intros ge e le m a b ofs Hev Hsh Hac. inv Hev; try (cbn in Hsh; contradiction).
+  match goal with
+  | Hl : eval_lvalue _ _ _ _ a ?loc ?o' ?bf0, Hd : deref_loc _ _ _ _ _ _ |- _ =>
+      assert (Hbeq : loc = b) by (eapply deref_copy_addr; [ exact Hd | exact Hac ]);
+      subst loc; exists o', bf0; exact Hl
+  end.
+Qed.
+
+(* a By_reference (array) deref of an lvalue yields the same block AND offset. *)
+Lemma array_decay_ptr : forall m loc o bf v ts n att,
+    deref_loc (Tarray ts n att) m loc o bf v ->
+    v = Vptr loc o.
+Proof.
+  intros m loc o bf v ts n att Hd. inv Hd.
+  - match goal with H : access_mode _ = By_value _ |- _ => cbn in H; discriminate end.
+  - reflexivity.
+  - reflexivity.
+  - match goal with Hbf : load_bitfield _ _ _ _ _ _ _ _ |- _ => inv Hbf end.
+Qed.
+
+(* the array-decay + index Ederef lands in the array field's base block. *)
+Lemma ederef_add_block : forall ge e le m inner f ts n att idx pty rty b ofs bf,
+    eval_lvalue ge e le m
+      (Ederef (Ebinop Oadd (Efield inner f (Tarray ts n att))
+                 (Econst_int idx tint) pty) rty) b ofs bf ->
+    exists o' bf', eval_lvalue ge e le m (Efield inner f (Tarray ts n att)) b o' bf'.
+Proof.
+  intros. inv H.
+  match goal with H : eval_expr _ _ _ _ (Ebinop _ _ _ _) _ |- _ => inv H end.
+  match goal with H : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ => inv H end.
+  match goal with H : eval_expr _ _ _ _ (Efield _ _ _) _ |- _ => inv H end.
+  match goal with
+  | Hd : deref_loc (typeof (Efield _ _ (Tarray _ _ _))) _ _ _ _ _ |- _ =>
+      cbn [typeof] in Hd; apply array_decay_ptr in Hd; rewrite Hd in *; clear Hd
+  end.
+  match goal with
+  | Hsa : sem_binary_operation _ Oadd (Vptr ?loc _) _ _ _ _ = Some (Vptr ?b _) |- _ =>
+      cbn [typeof] in Hsa;
+      unfold sem_binary_operation, sem_add in Hsa; cbn in Hsa;
+      assert (Hbl : b = loc) by congruence; subst b
+  end.
+  match goal with
+  | Hlv : eval_lvalue _ _ _ _ (Efield _ _ _) ?bk ?oo ?bff
+    |- exists _ _, eval_lvalue _ _ _ _ (Efield _ _ _) ?bk _ _ =>
+      exists oo; exists bff; exact Hlv
+  end.
+  (* the two shelved branches treat Ebinop / Econst_int as lvalues -- impossible *)
+  Unshelve.
+  all: match goal with
+       | H : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => solve [ inversion H ]
+       | H : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ => solve [ inversion H ]
+       end.
+Qed.
+
+(* THE block-invariance lemma for the depth-2 union/struct field + array-index
+   store: the lvalue's block IS the global union's symbol block. *)
+Lemma deep2_glob_block :
+  forall ge e le m gid u ua f1 s sa f2 ts n att idx pty rty b ofs bf,
+    eval_lvalue ge e le m
+      (Ederef (Ebinop Oadd
+                 (Efield (Efield (Evar gid (Tunion u ua)) f1 (Tstruct s sa)) f2 (Tarray ts n att))
+                 (Econst_int idx tint) pty) rty) b ofs bf ->
+    e ! gid = None ->
+    Genv.find_symbol ge gid = Some b.
+Proof.
+  intros ge e le m gid u ua f1 s sa f2 ts n att idx pty rty b ofs bf Hlv He.
+  apply ederef_add_block in Hlv as (o1 & bf1 & Hef2).
+  apply agg_efield_step in Hef2 as (o2 & Hxp2).
+  apply agg_copy_lvalue in Hxp2 as (o3 & bf3 & Hef1); [ | exact I | reflexivity ].
+  apply agg_efield_step in Hef1 as (o4 & Hxp1).
+  apply agg_copy_lvalue in Hxp1 as (o5 & bf5 & Hvar); [ | exact I | reflexivity ].
+  exact (evar_glob_block _ _ _ _ _ _ _ _ _ Hvar He).
+Qed.
+
+(* ====================================================================== *)
 (* The generic walker recognizer (top-level: no lp).                      *)
 (* ====================================================================== *)
 
@@ -55,6 +169,17 @@ Definition glob_store_chk (a1 : expr) : bool :=
          and the HMWF_glob row is offset-irrelevant *)
       mem_id gid stored_globals
       && match access_mode fty with By_value _ => true | _ => false end
+  | Ederef (Ebinop Oadd
+              (Efield (Efield (Evar gid (Tunion _ _)) _ (Tstruct _ _)) _
+                 (Tarray _ _ _)) (Econst_int _ ity) _) rty =>
+      (* a depth-2 union/struct field + array-index write into a censused
+         global UNION (sEndCutsceneVp.vp.vscale[i] / .vtrans[i]): the store
+         lands in the SAME global block (deep2_glob_block), offset-irrelevant.
+         The index const is pinned to tint so classify_add reduces in the
+         soundness proof. *)
+      mem_id gid stored_globals
+      && proj_sumbool (type_eq ity tint)
+      && match access_mode rty with By_value _ => true | _ => false end
   | _ => false
   end.
 
@@ -295,7 +420,8 @@ Section FloorsSurface.
                    | da dy | ar ay | u1 u2 u3 | b1 b2 b3 b4 | c1 c2
                    | f1 f2 f3 | s1' s2' | g1 g2 ];
       try discriminate Hgs.
-    2:{ (* the Efield-of-global-struct case: the store lands in the SAME
+    (* three surviving goals: 1=Evar 2=Ederef(deep) 3=Efield-of-struct *)
+    3:{ (* the Efield-of-global-struct case: the store lands in the SAME
            global block (at the field offset); every fact below is
            block-level, so the offset is irrelevant *)
       destruct f1 as [ | | | | gid gty | | | | | | | | | ];
@@ -351,6 +477,62 @@ Section FloorsSurface.
       (* two goals survive: the By_value store and the bitfield store
          (the field_offset bf is abstract here); both bottom out in a
          Mem.storev at the global's block, which is all the rows need *)
+      2: match goal with
+         | Hsb : store_bitfield _ _ _ _ _ _ _ _ _ _ |- _ => inv Hsb
+         end.
+      all: match goal with
+           | Hstv : Mem.storev _ _ _ _ = Some _ |- _ =>
+               unfold Mem.storev in Hstv; rename Hstv into Hst
+           end.
+      all: split; [ eauto using Mem.store_valid_block_1 | ].
+      all: split;
+        [ intros av Hload;
+          rewrite (Mem.load_store_other _ _ _ _ _ _ Hst) in Hload;
+          [ exact (HS av Hload) | left; exact (not_eq_sym Hne) ] | ].
+      all: split; [ exact (Hrow _ _ _ _ _ HM Hst) | ].
+      all: split; reflexivity. }
+    2:{ (* the DEEP-global union/struct/array store
+           (sEndCutsceneVp.vp.vscale[i]): peel the Ederef shape, then
+           deep2_glob_block lands it in the global block (offset-irrelevant
+           like the other stored_globals stores) *)
+      destruct da as [ | | | | | | | | | bop e21 e22 ebty | | | | ];
+        try discriminate Hgs.
+      destruct bop; try discriminate Hgs.
+      destruct e21 as [ | | | | | | | | | | | e21b e21f e21ty | | ];
+        try discriminate Hgs.
+      destruct e21b as [ | | | | | | | | | | | e21bb e21bf e21bty | | ];
+        try discriminate Hgs.
+      destruct e21bb as [ | | | | gid gty | | | | | | | | | ];
+        try discriminate Hgs.
+      destruct gty as [ | | | | | | | | u ua ]; try discriminate Hgs.
+      destruct e21bty as [ | | | | | | | sid att | ]; try discriminate Hgs.
+      destruct e21ty as [ | | | | | ta_t ta_sz ta_a | | | ];
+        try discriminate Hgs.
+      destruct e22 as [ idx ity | | | | | | | | | | | | | ];
+        try discriminate Hgs.
+      cbn [glob_store_chk] in Hgs.
+      apply andb_prop in Hgs as [Hgs0 Hacc].
+      apply andb_prop in Hgs0 as [Hgid Hity].
+      destruct (type_eq ity tint) as [Heq | ]; [ subst ity | discriminate Hity ].
+      destruct (access_mode dy) as [ch | | | ] eqn:Hac; try discriminate Hacc.
+      inv Hexec.
+      (* the deep lvalue lands in the global union's block *)
+      match goal with
+      | Hlv : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ =>
+          apply deep2_glob_block in Hlv;
+            [ rename Hlv into Hsym | exact (He_unbound _ Hgid) ]
+      end.
+      destruct (HMWF_glob _ Hgid _ Hsym) as [Hne Hrow].
+      (* the store: any chunk at the global's block *)
+      match goal with
+      | Has : assign_loc _ _ _ _ _ _ _ m' |- _ =>
+          cbn [typeof] in Has;
+          inv Has;
+          try (match goal with
+               | Hac2 : access_mode dy = _ |- _ =>
+                   rewrite Hac in Hac2; discriminate Hac2
+               end)
+      end.
       2: match goal with
          | Hsb : store_bitfield _ _ _ _ _ _ _ _ _ _ |- _ => inv Hsb
          end.
