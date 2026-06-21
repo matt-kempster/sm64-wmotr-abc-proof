@@ -239,6 +239,23 @@ Definition esd_ids : list ident :=
 Definition esd_np3 : list ident := mario._set_mario_anim_with_accel :: nil.
 Definition esd_xids : list ident := interaction._atan2s :: nil.
 
+(* SLICE 20: act_reading_npc_dialog (rnd).  fn_vars=nil (headTurnAmount/
+   angleToNPC are SSA temps).  cact=nil -- the marioObj/marioBodyState writes
+   all happen INSIDE vec3f_copy/vec3s_set (xids out-params), so the body has
+   no direct chase store.  The `set_mario_action(m, _t'4, 0)` call where _t'4 =
+   (heldObj==NULL ? ACT_IDLE : ACT_HOLD_IDLE) needs the WACT channel: _t'4 is a
+   LOCAL temp set from UNTAINTED action constants, recognized by wsrc_chk
+   (Ecast of an untainted const), so the smact_call_chk action-arg gate passes
+   (body_pres_of_wwalk_wact seeds _t'4 = Vundef at entry).  ids = moato
+   (cut_moato_row, in-section twin of ObjectLeafSurface.moato_row) + sma; xids =
+   approach_s32 (Hcpx_approach, obj_ext) + vec3f_copy + vec3s_set; sids =
+   set_mario_action (the 4925 = ACT_PUTTING_ON_CAP branch is a const arg). *)
+Definition rnd_wact : list ident := C._t'4 :: nil.
+Definition rnd_ids : list ident :=
+  interaction._mario_obj_angle_to_object :: mario._set_mario_animation :: nil.
+Definition rnd_xids : list ident :=
+  mario_actions_object._approach_s32 :: mario._vec3f_copy :: mario._vec3s_set :: nil.
+
 (* SLICE 12: the dialog-cluster external boundary.  cut_ext_ids = the
    cutscene DIALOG / TIME-STOP externals: EF_external in EVERY linked TU
    (verified -- no Internal body anywhere under generated/), the honest
@@ -424,7 +441,7 @@ Definition cut_walked_ids : list ident :=
     :: C._act_spawn_no_spin_landing :: C._act_standing_death
     :: C._act_fall_after_star_grab :: C._act_spawn_spin_airborne
     :: C._act_warp_door_spawn :: C._act_going_through_door
-    :: C._act_entering_star_door
+    :: C._act_entering_star_door :: C._act_reading_npc_dialog
     :: C._act_reading_sign :: C._act_bbh_enter_spin
     :: C._act_reading_automatic_dialog :: C._act_bbh_enter_jump
     :: C._act_star_dance :: C._act_star_dance_water
@@ -758,6 +775,10 @@ Example esd_pin :
   (prog_defmap C.prog) ! C._act_entering_star_door
   = Some (Gfun (Internal C.f_act_entering_star_door)).
 Proof. vm_compute. reflexivity. Qed.
+Example rnd_pin :
+  (prog_defmap C.prog) ! C._act_reading_npc_dialog
+  = Some (Gfun (Internal C.f_act_reading_npc_dialog)).
+Proof. vm_compute. reflexivity. Qed.
 Example rs_pin :
   (prog_defmap C.prog) ! C._act_reading_sign
   = Some (Gfun (Internal C.f_act_reading_sign)).
@@ -1070,6 +1091,12 @@ Section CutsceneLeafRows.
       mem_id fid cut_ext_ids = true -> call_pres_ext lp bm NoA MWF fid.
   Hypothesis Hcpx_atan2s :
     call_pres_ext lp bm NoA MWF interaction._atan2s.
+  (* approach_s32: a pure-math integer-clamp EF_external (in obj_ext_ids; no
+     Mem write).  The capstone feeds the dedicated Hcpx_approach_real -- the
+     SAME term the submerged family threads -- so NO new trust.  Consumed only
+     by act_reading_npc_dialog (rnd). *)
+  Hypothesis Hcpx_approach :
+    call_pres_ext lp bm NoA MWF mario_actions_object._approach_s32.
   Hypothesis Hcpx_sqrtf : call_pres_ext lp bm NoA MWF mario._sqrtf.
   Hypothesis Hcpx_v3fset : call_pres_ext lp bm NoA MWF mario._vec3f_set.
   (* SLICE 14 (act_squished): perform_ground_step, DISCHARGED at the capstone
@@ -2335,6 +2362,88 @@ Section CutsceneLeafRows.
     - exact esd_walk.
   Qed.
 
+  (* SLICE 20: act_reading_npc_dialog (rnd).  cut_moato_row = the in-section
+     twin of ObjectLeafSurface.moato_row (mario_obj_angle_to_object is a pure
+     getter; its only callee is atan2s -> Hcpx_atan2s).  ZERO new trust. *)
+  Lemma cut_moato_row :
+    call_pres lp bm NoA MWF interaction._mario_obj_angle_to_object.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             interaction.prog interaction._mario_obj_angle_to_object
+             interaction.f_mario_obj_angle_to_object
+             nil nil ObjectLeafSurface.moato_xids nil
+             LO_int ObjectLeafSurface.moato_pin ObjectLeafSurface.moato_vars
+             ObjectLeafSurface.moato_params_ok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold ObjectLeafSurface.moato_xids in H.
+      cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_atan2s | discriminate H ].
+    - intros fid' H. discriminate H.
+    - exact ObjectLeafSurface.moato_walk.
+  Qed.
+  Lemma rnd_ids_rows : forall fid, mem_id fid rnd_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold rnd_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cut_moato_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | discriminate H ].
+  Qed.
+  Lemma rnd_xids_rows : forall fid, mem_id fid rnd_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold rnd_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_approach | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_v3fc | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_v3ss | discriminate H ].
+  Qed.
+  Example rnd_vars : fn_vars C.f_act_reading_npc_dialog = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example rnd_pok :
+    match fn_params C.f_act_reading_npc_dialog with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example rnd_nonparam_cact :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_reading_npc_dialog))))
+      (@nil ident) = true.
+  Proof. reflexivity. Qed.
+  Example rnd_nonparam_wact :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_reading_npc_dialog))))
+      rnd_wact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example rnd_walk :
+    wwalk_chk false rnd_wact rnd_ids nil nil rnd_xids tfi_sids nil
+      (fn_body C.f_act_reading_npc_dialog) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma rnd_pres : body_pres lp NoA MWF bm C.f_act_reading_npc_dialog.
+  Proof.
+    apply (body_pres_of_wwalk_wact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_reading_npc_dialog rnd_wact rnd_ids nil nil rnd_xids
+             tfi_sids nil
+             rnd_vars rnd_pok rnd_nonparam_cact rnd_nonparam_wact).
+    - exact rnd_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact rnd_xids_rows.
+    - intros fid' H. unfold tfi_sids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hsmact | discriminate H ].
+    - intros fid' H. discriminate H.
+    - exact rnd_walk.
+  Qed.
+
   (* SLICE 12a: act_reading_sign.  body_pres_of_wwalk (wact=nil, cact=nil --
      marioObj/usedObj are LOADED only; stores are direct non-action m-fields).
      ids = psinf + sma; xids = the 4 dialog/time-stop externals (Hcut_ext)
@@ -3455,6 +3564,9 @@ Section CutsceneLeafRows.
     destruct (Pos.eqb fid C._act_entering_star_door) eqn:E39.
     { apply Pos.eqb_eq in E39; subst fid.
       rewrite esd_pin in Hdm. injection Hdm as <-. exact esd_pres. }
+    destruct (Pos.eqb fid C._act_reading_npc_dialog) eqn:E40.
+    { apply Pos.eqb_eq in E40; subst fid.
+      rewrite rnd_pin in Hdm. injection Hdm as <-. exact rnd_pres. }
     destruct (Pos.eqb fid C._act_reading_sign) eqn:E26.
     { apply Pos.eqb_eq in E26; subst fid.
       rewrite rs_pin in Hdm. injection Hdm as <-. exact rs_pres. }
@@ -3497,7 +3609,7 @@ Section CutsceneLeafRows.
     apply mem_id_filter_true; [ exact H | ].
     unfold cut_walked_ids. cbn [mem_id existsb].
     rewrite E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15, E16,
-      E17, E18, E19, E20, E21, E22, E23, E24, E25, E35, E39, E26, E27, E28, E29, E30, E31,
+      E17, E18, E19, E20, E21, E22, E23, E24, E25, E35, E39, E40, E26, E27, E28, E29, E30, E31,
       E32, E33, E34, E36, E37, E38.
     reflexivity.
   Qed.
