@@ -358,6 +358,19 @@ Definition qsd_ids : list ident :=
     :: mario_step._stationary_ground_step :: nil.
 Definition qsd_xids : list ident := mario._play_sound :: nil.
 
+(* SLICE 16: act_putting_on_cap.  body_pres_of_wwalk (fn_vars=nil, cact=nil:
+   marioObj/usedObj loaded only, never stored through).  The only callee not
+   yet in-section is the tiny helper cutscene_put_cap_on (2 m->flags window
+   stores of untainted uint masks + play_sound, marioObj read-only) -- walked
+   in-file (cpco_row).  enable/disable_time_stop ride the cut_ext boundary
+   (Hcut_ext); stationary_ground_step is now in-section (cut_sgs_row). *)
+Definition cpco_xids : list ident := mario._play_sound :: nil.
+Definition poc_ids : list ident :=
+  mario._set_mario_animation :: C._cutscene_put_cap_on
+    :: mario._is_anim_at_end :: mario_step._stationary_ground_step :: nil.
+Definition poc_xids : list ident :=
+  C._enable_time_stop :: C._disable_time_stop :: nil.
+
 (* the WALKED leaves (SLICE 1 + SLICE 2 + SLICE 3 + SLICE 4 + SLICE 5
    + SLICE 12 + SLICE 13 + SLICE 14). *)
 Definition cut_walked_ids : list ident :=
@@ -377,7 +390,8 @@ Definition cut_walked_ids : list ident :=
     :: C._act_reading_sign :: C._act_bbh_enter_spin
     :: C._act_reading_automatic_dialog :: C._act_bbh_enter_jump
     :: C._act_star_dance :: C._act_star_dance_water
-    :: C._act_squished :: C._act_quicksand_death :: nil.
+    :: C._act_squished :: C._act_quicksand_death
+    :: C._act_putting_on_cap :: nil.
 Definition cut_rest_ids : list ident :=
   filter (fun id => negb (mem_id id cut_walked_ids)) cutscene_callee_ids.
 
@@ -807,6 +821,43 @@ Proof. vm_compute. reflexivity. Qed.
 Example cut_iae_walk :
   wwalk_chk false nil nil nil nil nil nil nil
     (fn_body mario.f_is_anim_at_end) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* SLICE 16 pins: cutscene_put_cap_on (tiny flags-store helper) and
+   act_putting_on_cap. *)
+Example cpco_pin :
+  (prog_defmap C.prog) ! C._cutscene_put_cap_on
+  = Some (Gfun (Internal C.f_cutscene_put_cap_on)).
+Proof. vm_compute. reflexivity. Qed.
+Example cpco_vars : fn_vars C.f_cutscene_put_cap_on = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example cpco_pok :
+  match fn_params C.f_cutscene_put_cap_on with
+  | (i, ty) :: ps =>
+      Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id Am (map fst ps))
+  | nil => false end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example cpco_walk :
+  wwalk_chk false nil nil nil nil cpco_xids nil nil
+    (fn_body C.f_cutscene_put_cap_on) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example poc_pin :
+  (prog_defmap C.prog) ! C._act_putting_on_cap
+  = Some (Gfun (Internal C.f_act_putting_on_cap)).
+Proof. vm_compute. reflexivity. Qed.
+Example poc_vars : fn_vars C.f_act_putting_on_cap = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example poc_pok :
+  match fn_params C.f_act_putting_on_cap with
+  | (i, ty) :: ps =>
+      Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id Am (map fst ps))
+  | nil => false end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example poc_walk :
+  wwalk_chk false nil poc_ids nil nil poc_xids tfi_sids nil
+    (fn_body C.f_act_putting_on_cap) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* membership of the un-walked rest. *)
@@ -2711,6 +2762,70 @@ Section CutsceneLeafRows.
     - exact qsd_walk.
   Qed.
 
+  (* ---- SLICE 16: act_putting_on_cap ---- *)
+  (* cutscene_put_cap_on: 2 m->flags window stores + play_sound, marioObj
+     read-only.  Plain call_pres via call_pres_of_wwalk (xids=[play_sound]). *)
+  Lemma cpco_xids_rows : forall fid, mem_id fid cpco_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold cpco_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | discriminate H ].
+  Qed.
+  Lemma cpco_row : call_pres lp bm NoA MWF C._cutscene_put_cap_on.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_cutscene.prog C._cutscene_put_cap_on
+             C.f_cutscene_put_cap_on nil nil cpco_xids nil
+             LO_cut cpco_pin cpco_vars cpco_pok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact cpco_xids_rows.
+    - intros fid' H. discriminate H.
+    - exact cpco_walk.
+  Qed.
+  Lemma poc_ids_rows : forall fid, mem_id fid poc_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold poc_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cpco_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cut_iae_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cut_sgs_row | discriminate H ].
+  Qed.
+  Lemma poc_xids_rows : forall fid, mem_id fid poc_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold poc_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; apply Hcut_ext; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; apply Hcut_ext; reflexivity
+      | discriminate H ].
+  Qed.
+  Lemma poc_pres : body_pres lp NoA MWF bm C.f_act_putting_on_cap.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_putting_on_cap poc_ids nil poc_xids tfi_sids nil
+             poc_vars poc_pok).
+    - exact poc_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact poc_xids_rows.
+    - intros fid' H. unfold tfi_sids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hsmact | discriminate H ].
+    - intros fid' H. discriminate H.
+    - exact poc_walk.
+  Qed.
+
   (* ==================================================================== *)
   (* The family rest-split: discharge the SLICE 1-5 leaves, leaving the   *)
   (* other 36 under cut_rest_ids.                                         *)
@@ -2825,6 +2940,9 @@ Section CutsceneLeafRows.
     destruct (Pos.eqb fid C._act_quicksand_death) eqn:E33.
     { apply Pos.eqb_eq in E33; subst fid.
       rewrite qsd_pin in Hdm. injection Hdm as <-. exact qsd_pres. }
+    destruct (Pos.eqb fid C._act_putting_on_cap) eqn:E34.
+    { apply Pos.eqb_eq in E34; subst fid.
+      rewrite poc_pin in Hdm. injection Hdm as <-. exact poc_pres. }
     (* REST: fid is in the census and not a walked id. *)
     apply (Hrest fid f); [ | exact Hdm ].
     unfold cut_rest_ids.
@@ -2832,7 +2950,7 @@ Section CutsceneLeafRows.
     unfold cut_walked_ids. cbn [mem_id existsb].
     rewrite E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15, E16,
       E17, E18, E19, E20, E21, E22, E23, E24, E25, E26, E27, E28, E29, E30, E31,
-      E32, E33.
+      E32, E33, E34.
     reflexivity.
   Qed.
 
