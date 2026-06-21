@@ -1275,6 +1275,83 @@ Section OutParamArc.
       split; [ reflexivity | exact Hloc ].
   Qed.
 
+  (* The TEMPVAR-arg1 variant of oc2_extract: identical gate, but the middle
+     (scalar) argument is an `Etempvar c1 ty1` rather than an `Econst_int c
+     tint`.  Its value is irrelevant to oc2_gate (only arg0 cond-safety and
+     arg2 locality matter), so the proof is oc2_extract verbatim with the
+     arg1 step matching the tempvar shape.  Consumed by update_mario_pos_for_
+     anim's famft call, which passes arg1 = m->faceAngle[1] (a tempvar). *)
+  Lemma oc2_extract_tv :
+    forall e le m cid sz attr c1 ty1 lid ety n aattr tyenv lb vargs,
+      (forall b o, le ! cid = Some (Vptr b o) -> SafeB b) ->
+      e ! lid = Some (lb, tyenv) ->
+      local_blk lp bm SafeB lb ->
+      eval_exprlist (lp_ge lp) e le m
+        (Etempvar cid (tptr (Tstruct sz attr))
+          :: Etempvar c1 ty1
+          :: Evar lid (Tarray ety n aattr) :: nil)
+        (tptr (Tstruct sz attr) :: tint :: tptr ety :: nil) vargs ->
+      oc2_gate vargs.
+  Proof.
+    intros e le m cid sz attr c1 ty1 lid ety n aattr tyenv lb vargs
+           Hcond Hlid Hloc Hvl.
+    inv Hvl.
+    match goal with
+    | He : eval_expr _ _ _ _ (Etempvar cid _) _ |- _ => inv He
+    end;
+      try (match goal with
+           | Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv Hl
+           end).
+    match goal with
+    | Hg : le ! cid = Some ?vc, Hc0 : sem_cast ?vc _ _ _ = Some ?hd |- _ =>
+        assert (Hhead : forall bb oo, hd = Vptr bb oo -> SafeB bb);
+        [ intros bb oo Hhd; rewrite Hhd in Hc0;
+          destruct vc as [ | iv | lv | fv | sv | bv ov ];
+          cbn in Hc0; try discriminate Hc0;
+          injection Hc0 as <- <-; exact (Hcond _ _ Hg)
+        | clear Hc0 Hg ]
+    end.
+    (* arg1: the scalar tempvar -- step past it (value irrelevant to the gate) *)
+    match goal with
+    | Hvl1 : eval_exprlist _ _ _ _ (Etempvar _ _ :: _) _ _ |- _ => inv Hvl1
+    end.
+    (* arg2: the bare array Evar -> Vptr lb 0 (local_blk) *)
+    match goal with
+    | Hvl2 : eval_exprlist _ _ _ _ (Evar _ _ :: _) _ _ |- _ => inv Hvl2
+    end.
+    match goal with
+    | Hvl3 : eval_exprlist _ _ _ _ nil _ _ |- _ => inv Hvl3
+    end.
+    match goal with
+    | He2 : eval_expr _ _ _ _ (Evar lid _) _ |- _ => inv He2
+    end.
+    match goal with
+    | Hlv : eval_lvalue _ _ _ _ (Evar lid _) _ _ _ |- _ => inv Hlv
+    end;
+      [ | match goal with
+          | He : e ! lid = None |- _ => rewrite Hlid in He; discriminate He
+          end ].
+    match goal with
+    | Hd : deref_loc (typeof _) _ _ _ _ _ |- _ => cbn [typeof] in Hd
+    end.
+    match goal with
+    | Hg : e ! lid = Some (?l, _), Hd : deref_loc (Tarray _ _ _) _ ?l _ _ _ |- _ =>
+        assert (Hl : l = lb) by congruence; subst l; inv Hd;
+        try (match goal with
+             | Hacc : access_mode (Tarray _ _ _) = _ |- _ =>
+                 cbn in Hacc; discriminate Hacc
+             end)
+    end.
+    match goal with
+    | Hc2 : sem_cast (Vptr lb _) _ _ _ = Some _ |- _ =>
+        cbn in Hc2; injection Hc2 as <-
+    end.
+    split.
+    - exact Hhead.
+    - red. cbn [last_val]. exists lb, Ptrofs.zero.
+      split; [ reflexivity | exact Hloc ].
+  Qed.
+
   (* ====================================================================== *)
   (* THE marg-AND-oc GATE (the INTERNAL twin of oc2).  oc2 gates arg0 on     *)
   (* SafeB (a chased Object pointer); this gates arg0 on MARG -- arg0 is the  *)

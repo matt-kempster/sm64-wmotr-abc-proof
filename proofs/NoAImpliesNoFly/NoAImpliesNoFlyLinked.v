@@ -2861,6 +2861,17 @@ Section NoARealInputMWF.
                       (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
                       (fun m l m' Hf HM =>
                          mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
+                      (* SLICE 17 (act_going_through_door -> update_mario_pos_
+                         for_anim WALK): the SafeB/global-validity projections,
+                         the local-store MWF brick, and famft's three terminal
+                         externals -- ALL the SAME terms the automatic family
+                         threads below.  NO new trust. *)
+                      (mwf_real_safe_valid lp bm bc oc0 SafeB)
+                      Hglob_valid
+                      aut_local_store
+                      (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
+                      Hscp_geo_real
+                      Hocp_rai_real
                       Hpres_cut_rest))
                 (automatic_pres lp LO_mario LO_aut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
