@@ -274,6 +274,20 @@ Definition usd_xids : list ident :=
   interaction._spawn_object :: interaction._save_file_set_flags
     :: interaction._get_door_save_file_flag :: nil.
 
+(* SLICE 22: check_for_instant_quicksand (cfiq).  body_pres_of_wwalk -- a
+   READ-ONLY body (every Sset is a load: m->floor, m->floor->type, m->action;
+   NO stores at all, so cact = nil).  The two memory effects are calls:
+   update_mario_sound_and_camera (ids -- rides the SAME floors-family call_pres
+   the capstone already builds) and drop_and_set_mario_action(m, 135954, 0)
+   (sids -- 135954 = ACT_QUICKSAND_DEATH, an UNTAINTED I32 constant; routed
+   through the keystone dasma_row).  NO new capstone trust: dasma's three
+   externals (segmented_to_virtual / stop_shell_music / obj_set_held_state) all
+   ride obj_ext_ids, and umsc reuses the floors-family term. *)
+Definition cfiq_ids : list ident :=
+  mario._update_mario_sound_and_camera :: nil.
+Definition cfiq_sids : list ident :=
+  mario._drop_and_set_mario_action :: nil.
+
 (* get_door_save_file_flag support (the in-section twin of InterSurface's
    gdsff_row -- a STORELESS internal reading the door object through its only
    param, calling the save_file_get_flags boundary).  CutsceneLeafSurface does
@@ -489,7 +503,8 @@ Definition cut_walked_ids : list ident :=
     :: C._act_squished :: C._act_quicksand_death
     :: C._act_putting_on_cap
     :: C._act_head_stuck_in_ground :: C._act_butt_stuck_in_ground
-    :: C._act_feet_stuck_in_ground :: nil.
+    :: C._act_feet_stuck_in_ground
+    :: C._check_for_instant_quicksand :: nil.
 Definition cut_rest_ids : list ident :=
   filter (fun id => negb (mem_id id cut_walked_ids)) cutscene_callee_ids.
 
@@ -823,6 +838,10 @@ Proof. vm_compute. reflexivity. Qed.
 Example usd_pin :
   (prog_defmap C.prog) ! C._act_unlocking_star_door
   = Some (Gfun (Internal C.f_act_unlocking_star_door)).
+Proof. vm_compute. reflexivity. Qed.
+Example cfiq_pin :
+  (prog_defmap C.prog) ! C._check_for_instant_quicksand
+  = Some (Gfun (Internal C.f_check_for_instant_quicksand)).
 Proof. vm_compute. reflexivity. Qed.
 Example rs_pin :
   (prog_defmap C.prog) ! C._act_reading_sign
@@ -1198,6 +1217,17 @@ Section CutsceneLeafRows.
   Hypothesis Hocp_rai :
     OutParamSurface.call_pres_ext_oc lp bm NoA MWF SafeB
       mario._retrieve_animation_index.
+  (* SLICE 22 (check_for_instant_quicksand): the keystone dasma_row needs two
+     more honest externals beyond Hcpx_s2v (stop_shell_music, obj_set_held_state
+     -- both ride obj_ext_ids at the capstone), and update_mario_sound_and_camera
+     rides the SAME floors-family call_pres the capstone already builds.  NO new
+     trust. *)
+  Hypothesis Hcpx_ssm :
+    call_pres_ext lp bm NoA MWF interaction._stop_shell_music.
+  Hypothesis Hcpx_oshs :
+    call_pres_ext lp bm NoA MWF interaction._obj_set_held_state.
+  Hypothesis Hcp_umsc :
+    call_pres lp bm NoA MWF mario._update_mario_sound_and_camera.
 
   (* SLICE 17: update_mario_pos_for_anim is WALKED (AutomaticLeafSurface.Humpfa,
      a HYBRID walk: the famft out-param call via oc2 + the two pos[i] window
@@ -1485,6 +1515,14 @@ Section CutsceneLeafRows.
     smact_pres lp LO_mario LO_stp bm NoA MWF HNoA_of_MWF
       HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
       HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe.
+  (* SLICE 22: the const-action keystone for check_for_instant_quicksand --
+     reused verbatim from ObjectLeafSurface, gated on the three honest externals
+     (Hcpx_s2v/ssm/oshs).  ZERO new trust. *)
+  Let Hdasma : call_pres_act lp bm NoA MWF mario._drop_and_set_mario_action :=
+    ObjectLeafSurface.dasma_row lp LO_mario LO_stp LO_int bm NoA MWF HNoA_of_MWF
+      HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+      HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+      Hcpx_s2v Hcpx_ssm Hcpx_oshs.
   (* set_water_plunge_action: a plain window/out-param helper (vec3s_set +
      set_camera_mode), reused from ObjectLeafSurface.swpa_row -- no new trust. *)
   Let Hswpa : call_pres lp bm NoA MWF mario._set_water_plunge_action :=
@@ -2579,6 +2617,46 @@ Section CutsceneLeafRows.
         [ apply Pos.eqb_eq in Hm; subst fid'; exact Hsmact | discriminate H ].
     - intros fid' H. discriminate H.
     - exact usd_walk.
+  Qed.
+
+  (* SLICE 22: check_for_instant_quicksand.  body_pres_of_wwalk; read-only body
+     (cact=nil), ids = update_mario_sound_and_camera, sids = drop_and_set_mario_
+     action (const ACT_QUICKSAND_DEATH = 135954, untainted). *)
+  Lemma cfiq_ids_rows : forall fid, mem_id fid cfiq_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold cfiq_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_umsc | discriminate H ].
+  Qed.
+  Example cfiq_vars : fn_vars C.f_check_for_instant_quicksand = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example cfiq_pok :
+    match fn_params C.f_check_for_instant_quicksand with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example cfiq_walk :
+    wwalk_chk false nil cfiq_ids nil nil nil cfiq_sids nil
+      (fn_body C.f_check_for_instant_quicksand) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma cfiq_pres : body_pres lp NoA MWF bm C.f_check_for_instant_quicksand.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_check_for_instant_quicksand cfiq_ids nil nil cfiq_sids nil
+             cfiq_vars cfiq_pok).
+    - exact cfiq_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. unfold cfiq_sids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hdasma | discriminate H ].
+    - intros fid' H. discriminate H.
+    - exact cfiq_walk.
   Qed.
 
   (* SLICE 12a: act_reading_sign.  body_pres_of_wwalk (wact=nil, cact=nil --
@@ -3707,6 +3785,9 @@ Section CutsceneLeafRows.
     destruct (Pos.eqb fid C._act_unlocking_star_door) eqn:E41.
     { apply Pos.eqb_eq in E41; subst fid.
       rewrite usd_pin in Hdm. injection Hdm as <-. exact usd_pres. }
+    destruct (Pos.eqb fid C._check_for_instant_quicksand) eqn:E42.
+    { apply Pos.eqb_eq in E42; subst fid.
+      rewrite cfiq_pin in Hdm. injection Hdm as <-. exact cfiq_pres. }
     destruct (Pos.eqb fid C._act_reading_sign) eqn:E26.
     { apply Pos.eqb_eq in E26; subst fid.
       rewrite rs_pin in Hdm. injection Hdm as <-. exact rs_pres. }
@@ -3749,7 +3830,7 @@ Section CutsceneLeafRows.
     apply mem_id_filter_true; [ exact H | ].
     unfold cut_walked_ids. cbn [mem_id existsb].
     rewrite E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15, E16,
-      E17, E18, E19, E20, E21, E22, E23, E24, E25, E35, E39, E40, E41, E26, E27, E28, E29, E30, E31,
+      E17, E18, E19, E20, E21, E22, E23, E24, E25, E35, E39, E40, E41, E42, E26, E27, E28, E29, E30, E31,
       E32, E33, E34, E36, E37, E38.
     reflexivity.
   Qed.
