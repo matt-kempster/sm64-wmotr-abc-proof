@@ -408,7 +408,9 @@ Definition cut_walked_ids : list ident :=
     :: C._act_reading_automatic_dialog :: C._act_bbh_enter_jump
     :: C._act_star_dance :: C._act_star_dance_water
     :: C._act_squished :: C._act_quicksand_death
-    :: C._act_putting_on_cap :: nil.
+    :: C._act_putting_on_cap
+    :: C._act_head_stuck_in_ground :: C._act_butt_stuck_in_ground
+    :: C._act_feet_stuck_in_ground :: nil.
 Definition cut_rest_ids : list ident :=
   filter (fun id => negb (mem_id id cut_walked_ids)) cutscene_callee_ids.
 
@@ -895,6 +897,38 @@ Proof.
       rewrite Pos.eqb_refl. reflexivity.
     + cbn [orb] in Hin. specialize (IH Hin HP).
       destruct (P a); [ cbn [existsb]; rewrite Ea; cbn [orb]; exact IH | exact IH ].
+Qed.
+
+(* ---------------------------------------------------------------------- *)
+(* Pure CompCert helpers for the index-5 stuck-in-ground wrapper rows.     *)
+(* (section-independent: no genv/section vars).                            *)
+(* ---------------------------------------------------------------------- *)
+Lemma sem_cast_tint_tint_id :
+  forall n m, sem_cast (Vint n) tint tint m = Some (Vint n).
+Proof. intros. reflexivity. Qed.
+
+(* a 6-arg exprlist whose 6th arg is a CONST int (Econst_int ACT tint) with
+   last typelist entry tint yields a 6-elt vargs ending in Vint ACT. *)
+Lemma exprlist_action6 :
+  forall ge e le m a0 a1 a2 a3 a4 ACT t0 t1 t2 t3 t4 vargs,
+    eval_exprlist ge e le m
+      (a0 :: a1 :: a2 :: a3 :: a4 :: Econst_int ACT tint :: nil)
+      (t0 :: t1 :: t2 :: t3 :: t4 :: tint :: nil) vargs ->
+    exists v0 v1 v2 v3 v4,
+      vargs = v0 :: v1 :: v2 :: v3 :: v4 :: Vint ACT :: nil.
+Proof.
+  intros ge e le m a0 a1 a2 a3 a4 ACT t0 t1 t2 t3 t4 vargs Hel.
+  do 5 (match goal with H : eval_exprlist _ _ _ _ (_ :: _ :: _) _ _ |- _ =>
+          inv H end).
+  match goal with H : eval_exprlist _ _ _ _ (Econst_int _ _ :: nil) _ _ |- _ =>
+    inv H end.
+  match goal with H : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ => inv H end.
+  2: { match goal with Hl : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+         inv Hl end. }
+  match goal with H : eval_exprlist _ _ _ _ nil _ _ |- _ => inv H end.
+  match goal with H : sem_cast (Vint _) _ tint _ = Some _ |- _ =>
+    cbn in H; injection H as <- end.
+  do 5 eexists; reflexivity.
 Qed.
 
 (* ====================================================================== *)
@@ -2934,6 +2968,300 @@ Section CutsceneLeafRows.
   Qed.
 
   (* ==================================================================== *)
+  (* SLICE 18: the stuck-in-ground cluster (head/butt/feet).  Each leaf is *)
+  (* a tiny wrapper `stuck_in_ground_handler(m, anim, c1,c2,c3, ACT_const)`*)
+  (* + return FALSE.  stuck_in_ground_handler is a VOID-return action      *)
+  (* writer whose endAction is at PARAM INDEX 5 -- no call_pres_act_of_    *)
+  (* wwalk producer fits (all fix the action at index 1), so we prove a    *)
+  (* bespoke index-5 gate Hsig (model: call_pres_act_of_wwalk4g).  Body    *)
+  (* walk PROBED green; ZERO new externals (all 6 callees already          *)
+  (* call_pres-available: sma/satf/sashf/iae/psasp/pmls).                  *)
+  (* ==================================================================== *)
+  Definition sig_ids : list ident :=
+    mario._set_mario_animation :: mario._set_anim_to_frame
+      :: mario_step._stop_and_set_height_to_floor :: mario._is_anim_at_end
+      :: mario._play_sound_and_spawn_particles
+      :: mario._play_mario_landing_sound :: nil.
+  Example sig_pin :
+    (prog_defmap C.prog) ! C._stuck_in_ground_handler
+    = Some (Gfun (Internal C.f_stuck_in_ground_handler)).
+  Proof. vm_compute. reflexivity. Qed.
+  Example sig_vars : fn_vars C.f_stuck_in_ground_handler = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example sig_params :
+    fn_params C.f_stuck_in_ground_handler
+    = (Am, tyMSp) :: (C._animation, tint) :: (C._unstuckFrame, tint)
+        :: (C._target2, tint) :: (C._target3, tint) :: (C._endAction, tint) :: nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example sig_walk :
+    wwalk_chk false (C._endAction :: nil) sig_ids nil nil nil
+      (mario._set_mario_action :: nil) nil
+      (fn_body C.f_stuck_in_ground_handler) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma sig_ids_rows : forall fid, mem_id fid sig_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sig_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cut_satf_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sashf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cut_iae_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_psasp | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact pmls_row | discriminate H ].
+  Qed.
+
+  (* the bespoke INDEX-5 action-gate contract for stuck_in_ground_handler:
+     Mario ptr first, four scalars, the UNTAINTED action SIXTH; void return
+     (no return-value claim).  Proof = call_pres_act_of_wwalk4g adapted to
+     6 params + rt=false. *)
+  Lemma Hsig :
+    forall fd m0 v0 v1 v2 v3 v4 aval rest t0 m1 vres0,
+      eval_funcall function_entry2 (lp_ge lp) m0 fd
+        (v0 :: v1 :: v2 :: v3 :: v4 :: aval :: rest) t0 m1 vres0 ->
+      resolves_lp lp C._stuck_in_ground_handler fd ->
+      marg_ok bm (v0 :: v1 :: v2 :: v3 :: v4 :: aval :: rest) ->
+      untainted_scalar aval ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\
+      MWF m1 /\ NoA m1.
+  Proof.
+    intros fd m0 v0 v1 v2 v3 v4 aval rest t0 m1 vres0
+           Hevf Hres Hmarg Hu HN HM HV HS.
+    pose proof (OutParamSurface.resolve_pin_fd lp _ _ _ _ LO_cut sig_pin Hres) as ->.
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      rewrite sig_vars in Ha; inv Ha end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    rewrite sig_params in Hbind. cbn [bind_parameter_temps] in Hbind.
+    destruct rest as [| vr restr]; cbn [bind_parameter_temps] in Hbind;
+      [ injection Hbind as <- | discriminate Hbind ].
+    set (base := create_undef_temps (fn_temps C.f_stuck_in_ground_handler)) in *.
+    assert (Htat0 : forall b o,
+               (PTree.set C._endAction aval
+                  (PTree.set C._target3 v4
+                     (PTree.set C._target2 v3
+                        (PTree.set C._unstuckFrame v2
+                           (PTree.set C._animation v1
+                              (PTree.set Am v0 base)))))) ! Am
+                 = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg.
+      rewrite PTree.gso in Hg by (intro E; vm_compute in E; discriminate E).
+      rewrite PTree.gso in Hg by (intro E; vm_compute in E; discriminate E).
+      rewrite PTree.gso in Hg by (intro E; vm_compute in E; discriminate E).
+      rewrite PTree.gso in Hg by (intro E; vm_compute in E; discriminate E).
+      rewrite PTree.gso in Hg by (intro E; vm_compute in E; discriminate E).
+      rewrite PTree.gss in Hg. injection Hg as ->. cbn in Hmarg.
+      exact Hmarg. }
+    assert (Hact0 : act_inv (C._endAction :: nil)
+               (PTree.set C._endAction aval
+                  (PTree.set C._target3 v4
+                     (PTree.set C._target2 v3
+                        (PTree.set C._unstuckFrame v2
+                           (PTree.set C._animation v1
+                              (PTree.set Am v0 base))))))).
+    { intros t' Hmem' x Hg'.
+      unfold mem_id in Hmem'. cbn [existsb] in Hmem'.
+      rewrite Bool.orb_false_r in Hmem'. apply Pos.eqb_eq in Hmem'. subst t'.
+      rewrite PTree.gss in Hg'. injection Hg' as <-. exact Hu. }
+    assert (Hch0 : chase_inv SafeB nil
+               (PTree.set C._endAction aval
+                  (PTree.set C._target3 v4
+                     (PTree.set C._target2 v3
+                        (PTree.set C._unstuckFrame v2
+                           (PTree.set C._animation v1
+                              (PTree.set Am v0 base))))))).
+    { intros t' Hmem' b o Hg'. discriminate Hmem'. }
+    change (blocks_of_env (lp_ge lp) empty_env)
+      with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    assert (Hcpa_nil : forall fid, mem_id fid (@nil ident) = true ->
+                       call_pres_act lp bm NoA MWF fid)
+      by (intros fid HH; discriminate HH).
+    assert (Hcpx_nil : forall fid, mem_id fid (@nil ident) = true ->
+                       call_pres_ext lp bm NoA MWF fid)
+      by (intros fid HH; discriminate HH).
+    assert (Hcp3_nil : forall fid, mem_id fid (@nil ident) = true ->
+                       call_pres_act3 lp bm NoA MWF fid)
+      by (intros fid HH; discriminate HH).
+    assert (Hcps_sma : forall fid,
+               mem_id fid (mario._set_mario_action :: nil) = true ->
+               call_pres_act lp bm NoA MWF fid).
+    { intros fid HH. unfold mem_id in HH. cbn [existsb] in HH.
+      rewrite Bool.orb_false_r in HH. apply Pos.eqb_eq in HH. subst fid.
+      exact Hsmact. }
+    destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+                false (C._endAction :: nil) sig_ids nil nil nil
+                (mario._set_mario_action :: nil) nil
+                sig_ids_rows Hcpa_nil Hcpx_nil Hcps_sma Hcp3_nil
+                _ _ _ _ _ _ _ _ Hbody
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (PTree.gempty _ _) sig_walk Htat0 Hact0 Hch0
+                HN HM HV HS)
+      as (HV' & HS' & HM' & HN' & _).
+    exact (conj HV' (conj HS' (conj HM' HN'))).
+  Qed.
+
+  (* ==================================================================== *)
+  (* The three stuck_in_ground WRAPPERS (head/butt/feet): each is a       *)
+  (* 1-param leaf whose body is                                            *)
+  (*   Ssequence (Scall stuck_in_ground_handler(m, c1,c2,c3,c4, ACT))      *)
+  (*             (Sreturn 0)                                               *)
+  (* with ACT a NON-FLYING action constant (ACT_IDLE / ACT_GROUND_POUND_  *)
+  (* _LAND).  The handler call is index-5-action -- no engine channel      *)
+  (* fits -- so we invert the body by hand and discharge the inner call    *)
+  (* with the keystone Hsig, feeding the const action through its          *)
+  (* untainted_scalar gate (wact_const_sound).                             *)
+  (* ==================================================================== *)
+  Lemma sig_wrapper_pres :
+    forall f a1 a2 a3 a4 ACT,
+      marg_exempt (Internal f) = false ->
+      fn_params f = (Am, tyMSp) :: nil ->
+      fn_vars f = nil ->
+      fn_temps f = nil ->
+      fn_body f =
+        Ssequence
+          (Scall None
+             (Evar C._stuck_in_ground_handler
+                (Tfunction (tyMSp :: tint :: tint :: tint :: tint :: tint :: nil)
+                   tvoid cc_default))
+             (Etempvar Am tyMSp :: a1 :: a2 :: a3 :: a4
+                :: Econst_int ACT tint :: nil))
+          (Sreturn (Some (Econst_int (Int.repr 0) tint))) ->
+      wact_const ACT = true ->
+      body_pres lp NoA MWF bm f.
+  Proof.
+    intros f a1 a2 a3 a4 ACT Hnex Hpar Hvar Htmp Hbod Hwc.
+    intros m vargs t m' vres Hmi Hevf HN HM HV HS.
+    specialize (Hmi Hnex).
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      rewrite Hvar in Ha; inv Ha end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    rewrite Hpar in Hbind. cbn [bind_parameter_temps] in Hbind.
+    destruct vargs as [| v0 vr]; [ discriminate Hbind | ].
+    destruct vr as [| vr0 vrr]; cbn [bind_parameter_temps] in Hbind;
+      [ injection Hbind as <- | discriminate Hbind ].
+    set (le0 := PTree.set Am v0 (create_undef_temps (fn_temps f))) in *.
+    assert (Htat : forall b o, le0 ! Am = Some (Vptr b o) ->
+                               b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg. unfold le0 in Hg. rewrite PTree.gss in Hg.
+      injection Hg as ->. cbn in Hmi. exact Hmi. }
+    change (blocks_of_env (lp_ge lp) empty_env)
+      with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    rewrite Hbod in Hbody.
+    inv Hbody.
+    (* close the Sseq_2 branch (Scall yields Out_normal, contradicting the
+       out <> Out_normal premise) wherever inversion placed it. *)
+    all: try (match goal with
+              | Hne : _ <> Out_normal |- _ =>
+                  match goal with
+                  | Hsc : exec_stmt _ _ _ _ _ (Scall _ _ _) _ _ _ _ |- _ =>
+                      exfalso; inv Hsc; exact (Hne eq_refl)
+                  end
+              end).
+    match goal with Hsc : exec_stmt _ _ _ _ _ (Scall _ _ _) _ _ _ _ |- _ =>
+      rename Hsc into Hscall end.
+    match goal with Hsr : exec_stmt _ _ _ _ _ (Sreturn _) _ _ _ _ |- _ =>
+      rename Hsr into Hsret end.
+    inv Hsret.
+    inv Hscall.
+    match goal with Hcf : classify_fun _ = fun_case_f _ _ _ |- _ =>
+      cbn in Hcf; injection Hcf as E1 E2 E3; subst end.
+    match goal with Hv : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
+      destruct (OutParamSurface.eval_Evar_funct lp _ _ _ _ _ _ _ _
+                  (PTree.gempty _ _) Hv) as (bf & Hsym & ->) end.
+    match goal with
+    | Hvl : eval_exprlist _ _ _ _ (Etempvar _ _ :: _) _ _ |- _ =>
+        rename Hvl into Hel end.
+    pose proof Hel as Hel2.
+    assert (Hmarg_h : marg_ok bm _)
+      by (eapply ActionValueFrame.eval_exprlist_temp_marg_ok;
+          [ exact Htat | exact Hel ]).
+    apply exprlist_action6 in Hel2.
+    destruct Hel2 as (w0 & w1 & w2 & w3 & w4 & Hva). subst.
+    assert (Hu : untainted_scalar (Vint ACT))
+      by (apply wact_const_sound; exact Hwc).
+    match goal with
+    | Hff : Genv.find_funct _ (Vptr bf Ptrofs.zero) = Some ?fd,
+      Hevf : eval_funcall _ _ _ ?fd _ _ _ _ |- _ =>
+        assert (Hres_h : resolves_lp lp C._stuck_in_ground_handler fd)
+          by (red; exists bf; split; [ exact Hsym | exact Hff ]);
+        destruct (Hsig fd _ w0 w1 w2 w3 w4 (Vint ACT) nil _ _ _
+                    Hevf Hres_h Hmarg_h Hu HN HM HV HS)
+          as (HV' & HS' & HM' & HN') end.
+    exact (conj HV' (conj HS' HM')).
+  Qed.
+
+  (* prog_defmap pins for the three wrappers. *)
+  Example ghd_pin :
+    (prog_defmap mario_actions_cutscene.prog) ! C._act_head_stuck_in_ground
+      = Some (Gfun (Internal C.f_act_head_stuck_in_ground)).
+  Proof. vm_compute. reflexivity. Qed.
+  Example gbs_pin :
+    (prog_defmap mario_actions_cutscene.prog) ! C._act_butt_stuck_in_ground
+      = Some (Gfun (Internal C.f_act_butt_stuck_in_ground)).
+  Proof. vm_compute. reflexivity. Qed.
+  Example gfs_pin :
+    (prog_defmap mario_actions_cutscene.prog) ! C._act_feet_stuck_in_ground
+      = Some (Gfun (Internal C.f_act_feet_stuck_in_ground)).
+  Proof. vm_compute. reflexivity. Qed.
+
+  (* the three wrapper body_pres rows (ACT_IDLE / ACT_GROUND_POUND_LAND). *)
+  Lemma ghd_pres : body_pres lp NoA MWF bm C.f_act_head_stuck_in_ground.
+  Proof.
+    apply (sig_wrapper_pres C.f_act_head_stuck_in_ground
+             (Econst_int (Int.repr 57) tint) (Econst_int (Int.repr 96) tint)
+             (Econst_int (Int.repr 105) tint) (Econst_int (Int.repr 135) tint)
+             (Int.repr 205521409));
+      vm_compute; reflexivity.
+  Qed.
+  Lemma gbs_pres : body_pres lp NoA MWF bm C.f_act_butt_stuck_in_ground.
+  Proof.
+    apply (sig_wrapper_pres C.f_act_butt_stuck_in_ground
+             (Econst_int (Int.repr 62) tint) (Econst_int (Int.repr 127) tint)
+             (Econst_int (Int.repr 136) tint)
+             (Eunop Oneg (Econst_int (Int.repr 2) tint) tint)
+             (Int.repr 8389180));
+      vm_compute; reflexivity.
+  Qed.
+  Lemma gfs_pres : body_pres lp NoA MWF bm C.f_act_feet_stuck_in_ground.
+  Proof.
+    apply (sig_wrapper_pres C.f_act_feet_stuck_in_ground
+             (Econst_int (Int.repr 85) tint) (Econst_int (Int.repr 116) tint)
+             (Econst_int (Int.repr 129) tint)
+             (Eunop Oneg (Econst_int (Int.repr 2) tint) tint)
+             (Int.repr 205521409));
+      vm_compute; reflexivity.
+  Qed.
+
+  (* ==================================================================== *)
   (* The family rest-split: discharge the SLICE 1-5 leaves, leaving the   *)
   (* other 36 under cut_rest_ids.                                         *)
   (* ==================================================================== *)
@@ -3053,6 +3381,15 @@ Section CutsceneLeafRows.
     destruct (Pos.eqb fid C._act_putting_on_cap) eqn:E34.
     { apply Pos.eqb_eq in E34; subst fid.
       rewrite poc_pin in Hdm. injection Hdm as <-. exact poc_pres. }
+    destruct (Pos.eqb fid C._act_head_stuck_in_ground) eqn:E36.
+    { apply Pos.eqb_eq in E36; subst fid.
+      rewrite ghd_pin in Hdm. injection Hdm as <-. exact ghd_pres. }
+    destruct (Pos.eqb fid C._act_butt_stuck_in_ground) eqn:E37.
+    { apply Pos.eqb_eq in E37; subst fid.
+      rewrite gbs_pin in Hdm. injection Hdm as <-. exact gbs_pres. }
+    destruct (Pos.eqb fid C._act_feet_stuck_in_ground) eqn:E38.
+    { apply Pos.eqb_eq in E38; subst fid.
+      rewrite gfs_pin in Hdm. injection Hdm as <-. exact gfs_pres. }
     (* REST: fid is in the census and not a walked id. *)
     apply (Hrest fid f); [ | exact Hdm ].
     unfold cut_rest_ids.
@@ -3060,7 +3397,7 @@ Section CutsceneLeafRows.
     unfold cut_walked_ids. cbn [mem_id existsb].
     rewrite E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15, E16,
       E17, E18, E19, E20, E21, E22, E23, E24, E25, E35, E26, E27, E28, E29, E30, E31,
-      E32, E33, E34.
+      E32, E33, E34, E36, E37, E38.
     reflexivity.
   Qed.
 
