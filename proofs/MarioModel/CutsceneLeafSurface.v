@@ -262,6 +262,18 @@ Definition rad_xids : list ident :=
     :: C._get_dialog_id :: C._disable_time_stop :: C._play_cutscene_music
     :: mario._vec3s_set :: nil.
 
+(* act_bbh_enter_jump: body_pres_of_wwalk (wact=nil, cact=nil -- usedObj LOADED
+   only for the cage-distance read; all stores are direct m-fields vel[1]/flags/
+   actionState/actionTimer).  ids = mario_set_forward_vel / set_mario_animation /
+   perform_air_step / play_mario_action_sound / play_mario_jump_sound; xids =
+   sqrtf / atan2s (obj_ext); sids = set_mario_action (const 5429). *)
+Definition bbhj_ids : list ident :=
+  mario._mario_set_forward_vel :: mario._set_mario_animation
+    :: mario_step._perform_air_step :: mario._play_mario_action_sound
+    :: mario._play_mario_jump_sound :: nil.
+Definition bbhj_xids : list ident :=
+  mario._sqrtf :: interaction._atan2s :: nil.
+
 (* the WALKED leaves (SLICE 1 + SLICE 2 + SLICE 3 + SLICE 4 + SLICE 5
    + SLICE 12). *)
 Definition cut_walked_ids : list ident :=
@@ -279,7 +291,7 @@ Definition cut_walked_ids : list ident :=
     :: C._act_fall_after_star_grab :: C._act_spawn_spin_airborne
     :: C._act_warp_door_spawn
     :: C._act_reading_sign :: C._act_bbh_enter_spin
-    :: C._act_reading_automatic_dialog :: nil.
+    :: C._act_reading_automatic_dialog :: C._act_bbh_enter_jump :: nil.
 Definition cut_rest_ids : list ident :=
   filter (fun id => negb (mem_id id cut_walked_ids)) cutscene_callee_ids.
 
@@ -609,6 +621,10 @@ Proof. vm_compute. reflexivity. Qed.
 Example rad_pin :
   (prog_defmap C.prog) ! C._act_reading_automatic_dialog
   = Some (Gfun (Internal C.f_act_reading_automatic_dialog)).
+Proof. vm_compute. reflexivity. Qed.
+Example bbhj_pin :
+  (prog_defmap C.prog) ! C._act_bbh_enter_jump
+  = Some (Gfun (Internal C.f_act_bbh_enter_jump)).
 Proof. vm_compute. reflexivity. Qed.
 (* is_anim_at_end: the loads-only "anim done?" helper (walked in-file). *)
 Example cut_iae_pin :
@@ -2050,6 +2066,71 @@ Section CutsceneLeafRows.
     - exact rad_walk.
   Qed.
 
+  (* SLICE 12d: act_bbh_enter_jump.  body_pres_of_wwalk.  The two mario sound
+     helpers are REUSED from ObjectLeafSurface (both bottom out in play_sound =
+     Hcpx_psound, ZERO new trust): pmas_row / pmjs_row. *)
+  Let Hpmas : call_pres lp bm NoA MWF mario._play_mario_action_sound :=
+    ObjectLeafSurface.pmas_row lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+      HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase HMWF_root
+      HMWF_sglob HchaseStep HMWF_chase_safe Hcpx_psound.
+  Let Hpmjs : call_pres lp bm NoA MWF mario._play_mario_jump_sound :=
+    ObjectLeafSurface.pmjs_row lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+      HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase HMWF_root
+      HMWF_sglob HchaseStep HMWF_chase_safe Hcpx_psound.
+  Lemma bbhj_ids_rows : forall fid, mem_id fid bbhj_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold bbhj_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hmsfv | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pas | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hpmas | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hpmjs | discriminate H ].
+  Qed.
+  Lemma bbhj_xids_rows : forall fid, mem_id fid bbhj_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold bbhj_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_sqrtf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_atan2s | discriminate H ].
+  Qed.
+  Example bbhj_vars : fn_vars C.f_act_bbh_enter_jump = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example bbhj_pok :
+    match fn_params C.f_act_bbh_enter_jump with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example bbhj_walk :
+    wwalk_chk false nil bbhj_ids nil nil bbhj_xids tfi_sids nil
+      (fn_body C.f_act_bbh_enter_jump) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma bbhj_pres : body_pres lp NoA MWF bm C.f_act_bbh_enter_jump.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_bbh_enter_jump bbhj_ids nil bbhj_xids tfi_sids nil
+             bbhj_vars bbhj_pok).
+    - exact bbhj_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact bbhj_xids_rows.
+    - intros fid' H. unfold tfi_sids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hsmact | discriminate H ].
+    - intros fid' H. discriminate H.
+    - exact bbhj_walk.
+  Qed.
+
   (* ==================================================================== *)
   (* The family rest-split: discharge the SLICE 1-5 leaves, leaving the   *)
   (* other 36 under cut_rest_ids.                                         *)
@@ -2149,13 +2230,16 @@ Section CutsceneLeafRows.
     destruct (Pos.eqb fid C._act_reading_automatic_dialog) eqn:E28.
     { apply Pos.eqb_eq in E28; subst fid.
       rewrite rad_pin in Hdm. injection Hdm as <-. exact rad_pres. }
+    destruct (Pos.eqb fid C._act_bbh_enter_jump) eqn:E29.
+    { apply Pos.eqb_eq in E29; subst fid.
+      rewrite bbhj_pin in Hdm. injection Hdm as <-. exact bbhj_pres. }
     (* REST: fid is in the census and not a walked id. *)
     apply (Hrest fid f); [ | exact Hdm ].
     unfold cut_rest_ids.
     apply mem_id_filter_true; [ exact H | ].
     unfold cut_walked_ids. cbn [mem_id existsb].
     rewrite E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15, E16,
-      E17, E18, E19, E20, E21, E22, E23, E24, E25, E26, E27, E28.
+      E17, E18, E19, E20, E21, E22, E23, E24, E25, E26, E27, E28, E29.
     reflexivity.
   Qed.
 
