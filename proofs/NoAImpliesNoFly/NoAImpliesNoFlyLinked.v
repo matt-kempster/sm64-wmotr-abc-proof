@@ -965,17 +965,18 @@ Section NoARealInputMWF.
      MovingLeafSurface.mov_smawa_row) and threaded through the two metal-water-walking
      leaves via the np3 channel -- NO hypothesis needed. *)
   (* SLICE 6 (the water-IDLE cluster: water_idle/hold + water_action_end/hold):
-     common_idle_step is the shared swim-idle step.  Writes m->faceAngle
-     (window) + chases m->marioBodyState->headAngle (a SafeB chase-root block) +
-     calls update_swimming_yaw/pitch/speed, perform_water_step, update_water_
-     pitch, set_mario_animation/set_mario_anim_with_accel.  NEVER the action
-     cell (the act handlers dispatch set_mario_action themselves), so a genuine
-     call_pres for any caller.  Honest residual (body walk = chase machinery +
-     perform_water_step, a later unit).  The four idle leaves reduce to it + the
-     already-walked is_anim_at_end + the set_mario_action/dasma sids. *)
-  Hypothesis Hcp_cis_real :
-    call_pres lp bm (NoA_real bm) MWF
-      mario_actions_submerged._common_idle_step.
+     common_idle_step is now WALKED in-surface, not assumed -- see
+     SubmergedLeafSurface.sub_cis_row (call_pres_np3, the np3 twin of
+     common_swimming_step's sub_css_row).  Its m->faceAngle window store + the
+     m->marioBodyState->headAngle chase (materialised through an INTERIOR
+     pointer `_val = &t'7->headAngle[0]`, rides the engine's new
+     chase_step_chain arm) are pure preservation; it NEVER touches the action
+     cell.  It does FORWARD its own 3rd param into set_mario_anim_with_accel's
+     accel slot, so a plain call_pres would be PHANTOM-FALSE (an adversarial
+     POINTER would forge a pointer in the object's animAccel); the honest
+     residual is call_pres_np3, and the 4 idle leaves ride the np3 channel
+     (sub_idle_np3_rows), passing Const-0 / a const-fed _val 3rd arg.  NO
+     hypothesis -- the residual is ELIMINATED. *)
   (* SLICE 7 (the metal-water FALLING pair): the two step helpers, each a
      genuine call_pres for any caller (neither touches the action cell).
      - stationary_slow_down writes m->angleVel/forwardVel/vel/faceAngle
@@ -2715,9 +2716,13 @@ Section NoARealInputMWF.
                          set_mario_anim_with_accel is now DISCHARGED in-surface
                          (sub_smawa_row, np3 channel, NO hyp). *)
                       Hcp_pgs
-                      (* SLICE 6 (water-IDLE cluster): common_idle_step honest
-                         residual; the 4 idle leaves reduce to it + sids. *)
-                      Hcp_cis_real
+                      (* SLICE 6 (water-IDLE cluster): common_idle_step is now
+                         WALKED in-surface (sub_cis_row, call_pres_np3 -- the np3
+                         twin of common_swimming_step; its interior-pointer
+                         headAngle chase rides the new engine chase_step_chain
+                         arm, its gated 3rd param feeds set_mario_anim_with_accel).
+                         NO hypothesis -- the 4 idle leaves ride the np3 channel
+                         (sub_idle_np3_rows). *)
                       (* SLICE 7 (metal-water FALLING pair): stationary_slow_down
                          is now DISCHARGED in-surface (sub_ssd_row, NO hyp);
                          perform_water_step honest residual. *)

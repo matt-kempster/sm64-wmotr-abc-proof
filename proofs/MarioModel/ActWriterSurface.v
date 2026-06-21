@@ -1019,6 +1019,18 @@ Definition chase_step_chk (cact : list ident) (a : expr) : bool :=
   | _ => false
   end.
 
+(* the chase-STEP via an INTERIOR pointer into a chase block: an address
+   computation `&t1->fld[idx]` (an Ebinop Oadd of an array-typed Efield)
+   or a plain chase-temp copy.  chain_root_e bottoms out at a censused
+   chase temp t1; the resulting pointer shares t1's BLOCK -- pure offset
+   arithmetic, NO memory load -- so it is SafeB whenever t1 is.
+   common_idle_step's `_val = &m->marioBodyState->headAngle[0]`. *)
+Definition chase_step_chain_chk (cact : list ident) (a : expr) : bool :=
+  match chain_root_e a with
+  | Some t => mem_id t cact
+  | None => false
+  end.
+
 (* a chase store of a CENSUSED POINTER temp (`o->..curAnim = targetAnim`):
    the stored value is SafeB-if-a-pointer by the chase invariant; the MWF
    chase-ptr row absorbs the store. *)
@@ -1968,7 +1980,8 @@ Fixpoint wwalk_chk' (lids oc_pids wc_pids sc_pids nids np3_ids : list ident) (rt
       negb (Pos.eqb id mario_actions_airborne._m)
       && (negb (mem_id id wact) || wsrc_chk wact a)
       && (negb (mem_id id cact)
-          || chase_root_chk a || chase_step_chk cact a)
+          || chase_root_chk a || chase_step_chk cact a
+          || chase_step_chain_chk cact a)
       && (negb (mem_id id nids) || nsrc_chk nids a)
   | Sassign a1 a2 =>
       safe_mfield_store mario_actions_airborne._m a1
@@ -2369,6 +2382,26 @@ Section ActWriterWalk.
     - match goal with
       | Hlb : load_bitfield _ _ _ _ _ _ _ _ |- _ => inv Hlb
       end.
+  Qed.
+
+  (* ================================================================== *)
+  (* The interior-pointer chase-STEP brick: an address `&t1->fld[idx]`   *)
+  (* (or a chase-temp copy) shares t1's BLOCK -- pure offset arithmetic, *)
+  (* NO memory load -- so chain_root_e_block pins it to t1's value's     *)
+  (* block, which the chase invariant keeps SafeB.                       *)
+  (* ================================================================== *)
+  Lemma chase_step_chain_set_sound :
+    forall cact a e le m v,
+      chase_step_chain_chk cact a = true ->
+      chase_inv cact le ->
+      eval_expr (lp_ge lp) e le m a v ->
+      forall b o, v = Vptr b o -> SafeB b.
+  Proof.
+    intros cact a e le m v Hck Hch Hev b o ->.
+    unfold chase_step_chain_chk in Hck.
+    destruct (chain_root_e a) as [t | ] eqn:Hcr; [ | discriminate Hck ].
+    destruct (chain_root_e_block _ _ _ _ _ _ _ _ Hcr Hev) as (o0 & Hle).
+    exact (Hch _ Hck _ _ Hle).
   Qed.
 
   (* ================================================================== *)
@@ -4924,15 +4957,21 @@ Section ActWriterWalk.
         destruct (Pos.eq_dec t id) as [-> | Hne].
         * rewrite PTree.gss in Hg. injection Hg as ->.
           rewrite Hmem in Hcc. cbn [negb orb] in Hcc.
-          apply orb_true_iff in Hcc. destruct Hcc as [Hcc | Hcs].
-          { match goal with
-            | Hev : eval_expr _ _ _ _ a _ |- _ =>
-                exact (chase_root_set_sound _ _ _ _ _ Hcc Htat HM Hev
-                         _ _ eq_refl)
-            end. }
+          apply orb_true_iff in Hcc. destruct Hcc as [Hcc | Harr].
+          { apply orb_true_iff in Hcc. destruct Hcc as [Hcc | Hcs].
+            { match goal with
+              | Hev : eval_expr _ _ _ _ a _ |- _ =>
+                  exact (chase_root_set_sound _ _ _ _ _ Hcc Htat HM Hev
+                           _ _ eq_refl)
+              end. }
+            { match goal with
+              | Hev : eval_expr _ _ _ _ a _ |- _ =>
+                  exact (chase_step_set_sound _ _ _ _ _ _ Hcs Hch HM Hev
+                           _ _ eq_refl)
+              end. } }
           match goal with
           | Hev : eval_expr _ _ _ _ a _ |- _ =>
-              exact (chase_step_set_sound _ _ _ _ _ _ Hcs Hch HM Hev
+              exact (chase_step_chain_set_sound _ _ _ _ _ _ Harr Hch Hev
                        _ _ eq_refl)
           end.
         * rewrite PTree.gso in Hg by exact Hne.
@@ -9019,6 +9058,142 @@ Section ActWriterRows.
                 (fun g HH => match Bool.diff_false_true HH with end)
                 (fun g HH => match Bool.diff_false_true HH with end)
                 (fun g HH => match Bool.diff_false_true HH with end)
+                _ _ _ _ _ _ _ _
+                (fun Hne => match Hne eq_refl with end)
+                (fun lid HH => match Bool.diff_false_true HH with end)
+                Hbody
+                (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _) (empty_env_unbound _)
+                (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0 Hnp0
+                HN HM HV HS)
+      as (HV' & HS' & HM' & HN' & _ & _ & _ & _ & _).
+    exact (conj HV' (conj HS' (conj HM' HN'))).
+  Qed.
+
+  (* ---- the np3 funcall->body entry for a Mario-head leaf with GENERAL
+     3rd-param ident (not the np3_params shape) that ITSELF CALLS np3
+     leaves: the gated 3rd param p3 enters nids; cact carries the chase
+     temps; np3_ids names the gated callees.  common_idle_step forwards
+     its own gated _arg into set_mario_anim_with_accel's accel slot. ---- *)
+  Lemma call_pres_np3_of_wwalk3 :
+    forall (TU : Clight.program) (fid : ident) (f : Clight.function)
+           (p2 p3 : ident) (t2 t3 : type)
+           (ids wids cact xids sids np3_ids : list ident),
+      linkorder TU lp ->
+      (prog_defmap TU) ! fid = Some (Gfun (Internal f)) ->
+      fn_vars f = nil ->
+      fn_params f =
+        (mario_actions_airborne._m, tyMSp) :: (p2, t2) :: (p3, t3) :: nil ->
+      Pos.eqb p2 mario_actions_airborne._m = false ->
+      Pos.eqb p3 mario_actions_airborne._m = false ->
+      mem_id mario_actions_airborne._m cact = false ->
+      mem_id p2 cact = false ->
+      mem_id p3 cact = false ->
+      (forall fid', mem_id fid' ids = true ->
+                    call_pres lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' wids = true ->
+                    call_pres_act lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' xids = true ->
+                    call_pres_ext lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' sids = true ->
+                    call_pres_act lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' np3_ids = true ->
+                    call_pres_np3 lp bm NoA MWF fid') ->
+      wwalk_chk' nil nil nil nil (p3 :: nil) np3_ids false
+        nil ids wids cact xids sids nil (fn_body f) = true ->
+      call_pres_np3 lp bm NoA MWF fid.
+  Proof.
+    intros TU fid f p2 p3 t2 t3 ids wids cact xids sids np3_ids
+           LOtu Hdm Hvars Hparams Hp2m Hp3m Hcm Hcp2 Hcp3
+           Hcp Hcpa Hcpx Hcps Hcpn3 Hchk
+           fd m0 v0 v1 v2 rest t0 m1 vres0 Hevf Hres Hmarg Hnpv HN HM HV HS.
+    pose proof (resolve_pin_fd lp _ _ _ _ LOtu Hdm Hres) as ->.
+    inv Hevf.
+    match goal with
+    | He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry
+    end.
+    match goal with
+    | Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody
+    end.
+    match goal with
+    | Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfree
+    end.
+    inv Hentry.
+    match goal with
+    | Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+        rewrite Hvars in Ha; inv Ha
+    end.
+    match goal with
+    | Hb : bind_parameter_temps _ _ _ = Some _ |- _ => rename Hb into Hbind
+    end.
+    rewrite Hparams in Hbind. cbn [bind_parameter_temps] in Hbind.
+    destruct rest as [| vx restx ];
+      cbn [bind_parameter_temps] in Hbind; [ | discriminate Hbind ].
+    injection Hbind as <-.
+    set (base := create_undef_temps (fn_temps f)) in *.
+    (* the entry env facts *)
+    assert (Htat0 : forall b o,
+               (PTree.set p3 v2
+                  (PTree.set p2 v1
+                     (PTree.set mario_actions_airborne._m v0 base)))
+                 ! mario_actions_airborne._m = Some (Vptr b o) ->
+               b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg.
+      rewrite PTree.gso in Hg
+        by (apply Pos.eqb_neq in Hp3m; congruence).
+      rewrite PTree.gso in Hg
+        by (apply Pos.eqb_neq in Hp2m; congruence).
+      rewrite PTree.gss in Hg. injection Hg as ->.
+      cbn in Hmarg. exact Hmarg. }
+    assert (Hact0 : act_inv nil
+               (PTree.set p3 v2
+                  (PTree.set p2 v1
+                     (PTree.set mario_actions_airborne._m v0 base)))).
+    { intros t' Hmem' x Hg'. discriminate Hmem'. }
+    assert (Hch0 : chase_inv SafeB cact
+               (PTree.set p3 v2
+                  (PTree.set p2 v1
+                     (PTree.set mario_actions_airborne._m v0 base)))).
+    { intros t' Hmem' b o Hg'.
+      destruct (Pos.eq_dec t' p3) as [-> | Hne1].
+      { rewrite Hmem' in Hcp3. discriminate Hcp3. }
+      rewrite PTree.gso in Hg' by exact Hne1.
+      destruct (Pos.eq_dec t' p2) as [-> | Hne2].
+      { rewrite Hmem' in Hcp2. discriminate Hcp2. }
+      rewrite PTree.gso in Hg' by exact Hne2.
+      destruct (Pos.eq_dec t' mario_actions_airborne._m) as [-> | Hne3].
+      { rewrite Hmem' in Hcm. discriminate Hcm. }
+      rewrite PTree.gso in Hg' by exact Hne3.
+      pose proof (create_undef_temps_val _ _ _ Hg') as EE.
+      discriminate EE. }
+    assert (Hnp0 : nptr_inv (p3 :: nil)
+               (PTree.set p3 v2
+                  (PTree.set p2 v1
+                     (PTree.set mario_actions_airborne._m v0 base)))).
+    { intros t' Hmem' v' Hg'.
+      cbn [mem_id existsb] in Hmem'.
+      apply orb_true_iff in Hmem' as [Hm' | Hm'];
+        [ apply Pos.eqb_eq in Hm'; subst t' | discriminate Hm' ].
+      rewrite PTree.gss in Hg'. injection Hg' as <-. exact Hnpv. }
+    (* the free list at the empty env *)
+    change (blocks_of_env (lp_ge lp) empty_env)
+      with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    (* the walk *)
+    destruct (wwalk_pres lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+                false nil ids wids cact xids sids nil
+                nil nil nil nil (p3 :: nil) np3_ids
+                Hcp Hcpa Hcpx Hcps
+                (fun g HH => match Bool.diff_false_true HH with end)
+                (fun g HH => match Bool.diff_false_true HH with end)
+                (fun g HH => match Bool.diff_false_true HH with end)
+                (fun g HH => match Bool.diff_false_true HH with end)
+                Hcpn3
                 _ _ _ _ _ _ _ _
                 (fun Hne => match Hne eq_refl with end)
                 (fun lid HH => match Bool.diff_false_true HH with end)
