@@ -340,6 +340,24 @@ Definition sq_ids : list ident :=
 Definition sq_xids : list ident :=
   interaction._atan2s :: mario._vec3f_set :: nil.
 
+(* SLICE 15: act_quicksand_death.  body_pres_of_wwalk (fn_vars=nil).  The one
+   formerly-blocking callee stationary_ground_step (sgs) is now WALKABLE in-file
+   -- its sub-tree (mario_set_forward_vel / mario_update_moving_sand /
+   mario_update_windy_ground / perform_ground_step + vec3f_copy/vec3s_set) all
+   resolve to existing section terms now that Hcp_pgs is present.  mums/muwg/
+   set_anim_to_frame are pure all-nil near-leaves (walked in-file). *)
+Definition sgs_ids : list ident :=
+  mario._mario_set_forward_vel :: mario_step._mario_update_moving_sand
+    :: mario_step._mario_update_windy_ground
+    :: mario_step._perform_ground_step :: nil.
+Definition sgs_xids : list ident :=
+  mario._vec3f_copy :: mario._vec3s_set :: nil.
+Definition qsd_ids : list ident :=
+  level_update._level_trigger_warp :: mario._play_sound_if_no_flag
+    :: mario._set_anim_to_frame :: mario._set_mario_animation
+    :: mario_step._stationary_ground_step :: nil.
+Definition qsd_xids : list ident := mario._play_sound :: nil.
+
 (* the WALKED leaves (SLICE 1 + SLICE 2 + SLICE 3 + SLICE 4 + SLICE 5
    + SLICE 12 + SLICE 13 + SLICE 14). *)
 Definition cut_walked_ids : list ident :=
@@ -359,7 +377,7 @@ Definition cut_walked_ids : list ident :=
     :: C._act_reading_sign :: C._act_bbh_enter_spin
     :: C._act_reading_automatic_dialog :: C._act_bbh_enter_jump
     :: C._act_star_dance :: C._act_star_dance_water
-    :: C._act_squished :: nil.
+    :: C._act_squished :: C._act_quicksand_death :: nil.
 Definition cut_rest_ids : list ident :=
   filter (fun id => negb (mem_id id cut_walked_ids)) cutscene_callee_ids.
 
@@ -713,6 +731,63 @@ Proof. vm_compute. reflexivity. Qed.
 Example sq_pin :
   (prog_defmap C.prog) ! C._act_squished
   = Some (Gfun (Internal C.f_act_squished)).
+Proof. vm_compute. reflexivity. Qed.
+(* SLICE 15 pins/shapes: the sgs sub-tree near-leaves + the leaf. *)
+Example mums_pin :
+  (prog_defmap mario_step.prog) ! mario_step._mario_update_moving_sand
+  = Some (Gfun (Internal mario_step.f_mario_update_moving_sand)).
+Proof. vm_compute. reflexivity. Qed.
+Example mums_vars : fn_vars mario_step.f_mario_update_moving_sand = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example mums_pok :
+  match fn_params mario_step.f_mario_update_moving_sand with
+  | (i, ty) :: ps =>
+      Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id Am (map fst ps))
+  | nil => false end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example muwg_pin :
+  (prog_defmap mario_step.prog) ! mario_step._mario_update_windy_ground
+  = Some (Gfun (Internal mario_step.f_mario_update_windy_ground)).
+Proof. vm_compute. reflexivity. Qed.
+Example muwg_vars : fn_vars mario_step.f_mario_update_windy_ground = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example muwg_pok :
+  match fn_params mario_step.f_mario_update_windy_ground with
+  | (i, ty) :: ps =>
+      Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id Am (map fst ps))
+  | nil => false end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example satf_pin :
+  (prog_defmap mario.prog) ! mario._set_anim_to_frame
+  = Some (Gfun (Internal mario.f_set_anim_to_frame)).
+Proof. vm_compute. reflexivity. Qed.
+Example satf_vars : fn_vars mario.f_set_anim_to_frame = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example satf_pok :
+  match fn_params mario.f_set_anim_to_frame with
+  | (i, ty) :: ps =>
+      Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id Am (map fst ps))
+  | nil => false end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sgs_pin :
+  (prog_defmap mario_step.prog) ! mario_step._stationary_ground_step
+  = Some (Gfun (Internal mario_step.f_stationary_ground_step)).
+Proof. vm_compute. reflexivity. Qed.
+Example sgs_vars : fn_vars mario_step.f_stationary_ground_step = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example sgs_pok :
+  match fn_params mario_step.f_stationary_ground_step with
+  | (i, ty) :: ps =>
+      Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id Am (map fst ps))
+  | nil => false end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example qsd_pin :
+  (prog_defmap C.prog) ! C._act_quicksand_death
+  = Some (Gfun (Internal C.f_act_quicksand_death)).
 Proof. vm_compute. reflexivity. Qed.
 (* is_anim_at_end: the loads-only "anim done?" helper (walked in-file). *)
 Example cut_iae_pin :
@@ -2496,6 +2571,146 @@ Section CutsceneLeafRows.
     - exact sq_walk.
   Qed.
 
+  (* SLICE 15: act_quicksand_death.  The sgs sub-tree, walked in-file (no new
+     trust -- every callee resolves to an existing section term now that Hcp_pgs
+     is present).  mums / muwg / set_anim_to_frame = pure all-nil near-leaves. *)
+  Example cut_mums_walk :
+    wwalk_chk false nil nil nil nil nil nil nil
+      (fn_body mario_step.f_mario_update_moving_sand) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma cut_mums_row :
+    call_pres lp bm NoA MWF mario_step._mario_update_moving_sand.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_step.prog mario_step._mario_update_moving_sand
+             mario_step.f_mario_update_moving_sand nil nil nil nil
+             LO_stp mums_pin mums_vars mums_pok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact cut_mums_walk.
+  Qed.
+  Example cut_muwg_walk :
+    wwalk_chk false nil nil nil nil nil nil nil
+      (fn_body mario_step.f_mario_update_windy_ground) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma cut_muwg_row :
+    call_pres lp bm NoA MWF mario_step._mario_update_windy_ground.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_step.prog mario_step._mario_update_windy_ground
+             mario_step.f_mario_update_windy_ground nil nil nil nil
+             LO_stp muwg_pin muwg_vars muwg_pok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact cut_muwg_walk.
+  Qed.
+  (* set_anim_to_frame is CALL-FREE but has a marioObj->animInfo chase store
+     that the standard wwalk_chk engine does not accept; SubmergedLeafSurface
+     discharged it via a bespoke walk (sub_satf_body).  Reuse it cross-section
+     exactly like Hcp_sashf above. *)
+  Lemma cut_satf_row : call_pres lp bm NoA MWF mario._set_anim_to_frame.
+  Proof. eapply SubmergedLeafSurface.sub_satf_row; eassumption. Qed.
+  Lemma cut_sgs_ids_rows : forall fid, mem_id fid sgs_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sgs_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hmsfv | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cut_mums_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cut_muwg_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pgs | discriminate H ].
+  Qed.
+  Lemma cut_sgs_xids_rows : forall fid, mem_id fid sgs_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sgs_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_v3fc | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_v3ss | discriminate H ].
+  Qed.
+  Example cut_sgs_walk :
+    wwalk_chk false nil sgs_ids nil nil sgs_xids nil nil
+      (fn_body mario_step.f_stationary_ground_step) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma cut_sgs_row :
+    call_pres lp bm NoA MWF mario_step._stationary_ground_step.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_step.prog mario_step._stationary_ground_step
+             mario_step.f_stationary_ground_step sgs_ids nil sgs_xids nil
+             LO_stp sgs_pin sgs_vars sgs_pok).
+    - exact cut_sgs_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact cut_sgs_xids_rows.
+    - intros fid' H. discriminate H.
+    - exact cut_sgs_walk.
+  Qed.
+  Lemma qsd_ids_rows : forall fid, mem_id fid qsd_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold qsd_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ltw | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_psinf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cut_satf_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cut_sgs_row | discriminate H ].
+  Qed.
+  Lemma qsd_xids_rows : forall fid, mem_id fid qsd_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold qsd_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | discriminate H ].
+  Qed.
+  Example qsd_vars : fn_vars C.f_act_quicksand_death = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example qsd_pok :
+    match fn_params C.f_act_quicksand_death with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example qsd_walk :
+    wwalk_chk false nil qsd_ids nil nil qsd_xids tfi_sids nil
+      (fn_body C.f_act_quicksand_death) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma qsd_pres : body_pres lp NoA MWF bm C.f_act_quicksand_death.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_quicksand_death qsd_ids nil qsd_xids tfi_sids nil
+             qsd_vars qsd_pok).
+    - exact qsd_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact qsd_xids_rows.
+    - intros fid' H. unfold tfi_sids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hsmact | discriminate H ].
+    - intros fid' H. discriminate H.
+    - exact qsd_walk.
+  Qed.
+
   (* ==================================================================== *)
   (* The family rest-split: discharge the SLICE 1-5 leaves, leaving the   *)
   (* other 36 under cut_rest_ids.                                         *)
@@ -2607,6 +2822,9 @@ Section CutsceneLeafRows.
     destruct (Pos.eqb fid C._act_squished) eqn:E32.
     { apply Pos.eqb_eq in E32; subst fid.
       rewrite sq_pin in Hdm. injection Hdm as <-. exact sq_pres. }
+    destruct (Pos.eqb fid C._act_quicksand_death) eqn:E33.
+    { apply Pos.eqb_eq in E33; subst fid.
+      rewrite qsd_pin in Hdm. injection Hdm as <-. exact qsd_pres. }
     (* REST: fid is in the census and not a walked id. *)
     apply (Hrest fid f); [ | exact Hdm ].
     unfold cut_rest_ids.
@@ -2614,7 +2832,7 @@ Section CutsceneLeafRows.
     unfold cut_walked_ids. cbn [mem_id existsb].
     rewrite E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15, E16,
       E17, E18, E19, E20, E21, E22, E23, E24, E25, E26, E27, E28, E29, E30, E31,
-      E32.
+      E32, E33.
     reflexivity.
   Qed.
 
