@@ -29,7 +29,7 @@ From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface
 (* Require (not Import): reuse the proved psinf_row / sma_row / sub_sashf_row
    rows, referenced qualified -- avoids name shadowing. *)
 From SM64.Proofs Require ObjectLeafSurface SubmergedLeafSurface
-  OutParamSurface LocalVarsSurface AutomaticLeafSurface.
+  OutParamSurface LocalVarsSurface AutomaticLeafSurface MovingLeafSurface.
 
 Import ListNotations.
 
@@ -219,6 +219,26 @@ Definition gtd_ids : list ident :=
     :: mario._is_anim_at_end :: mario._set_mario_animation
     :: level_update._level_trigger_warp :: nil.
 
+(* SLICE 19: act_entering_star_door (esd).  The FIRST cutscene leaf that
+   needs the np3 channel: it calls set_mario_anim_with_accel(m, ANIM, 0x28000)
+   -- a chase-writer whose 3rd arg (an animation accel) is stored RAW into the
+   marioObj block, so plain call_pres is phantom-FALSE (an adversary 3rd-arg
+   pointer would forge a SafeB pointer).  The honest row is call_pres_np3
+   (3rd-arg non-pointer gated, REUSING MovingLeafSurface.mov_smawa_row); the
+   constant 0x28000 satisfies the gate (nsrc_chk Econst_int).  body_pres_of_
+   wwalk_NIDS (np3_ids = [smawa]).  fn_vars=nil (targetDX/DZ/targetAngle are
+   SSA temps).  cact = the 9 marioObj/usedObj chase temps stored THROUGH
+   (m->marioObj->oMarioReadingSignDPosX/Z = const) and read for the m->pos
+   window updates; ids = set_mario_animation / stop_and_set_height_to_floor;
+   xids = atan2s; sids = set_mario_action (const ACT_IDLE). *)
+Definition esd_cact : list ident :=
+  C._t'14 :: C._t'17 :: C._t'20 :: C._t'22 :: C._t'23 :: C._t'24
+    :: C._t'28 :: C._t'33 :: C._t'35 :: nil.
+Definition esd_ids : list ident :=
+  mario._set_mario_animation :: mario_step._stop_and_set_height_to_floor :: nil.
+Definition esd_np3 : list ident := mario._set_mario_anim_with_accel :: nil.
+Definition esd_xids : list ident := interaction._atan2s :: nil.
+
 (* SLICE 12: the dialog-cluster external boundary.  cut_ext_ids = the
    cutscene DIALOG / TIME-STOP externals: EF_external in EVERY linked TU
    (verified -- no Internal body anywhere under generated/), the honest
@@ -404,6 +424,7 @@ Definition cut_walked_ids : list ident :=
     :: C._act_spawn_no_spin_landing :: C._act_standing_death
     :: C._act_fall_after_star_grab :: C._act_spawn_spin_airborne
     :: C._act_warp_door_spawn :: C._act_going_through_door
+    :: C._act_entering_star_door
     :: C._act_reading_sign :: C._act_bbh_enter_spin
     :: C._act_reading_automatic_dialog :: C._act_bbh_enter_jump
     :: C._act_star_dance :: C._act_star_dance_water
@@ -732,6 +753,10 @@ Proof. vm_compute. reflexivity. Qed.
 Example gtd_pin :
   (prog_defmap C.prog) ! C._act_going_through_door
   = Some (Gfun (Internal C.f_act_going_through_door)).
+Proof. vm_compute. reflexivity. Qed.
+Example esd_pin :
+  (prog_defmap C.prog) ! C._act_entering_star_door
+  = Some (Gfun (Internal C.f_act_entering_star_door)).
 Proof. vm_compute. reflexivity. Qed.
 Example rs_pin :
   (prog_defmap C.prog) ! C._act_reading_sign
@@ -2238,6 +2263,78 @@ Section CutsceneLeafRows.
     - exact gtd_walk.
   Qed.
 
+  (* SLICE 19: act_entering_star_door via the np3 channel. *)
+  Lemma esd_smawa_row :
+    call_pres_np3 lp bm NoA MWF mario._set_mario_anim_with_accel.
+  Proof.
+    exact (MovingLeafSurface.mov_smawa_row lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+             HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe Hcpx_lpt).
+  Qed.
+  Lemma esd_ids_rows : forall fid, mem_id fid esd_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold esd_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sashf | discriminate H ].
+  Qed.
+  Lemma esd_xids_rows : forall fid, mem_id fid esd_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold esd_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_atan2s | discriminate H ].
+  Qed.
+  Lemma esd_np3_rows : forall fid, mem_id fid esd_np3 = true ->
+      call_pres_np3 lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold esd_np3 in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact esd_smawa_row | discriminate H ].
+  Qed.
+  Example esd_vars : fn_vars C.f_act_entering_star_door = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example esd_pok :
+    match fn_params C.f_act_entering_star_door with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example esd_nonparam :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_entering_star_door))))
+      esd_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example esd_nonparam_np3 :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_entering_star_door))))
+      (@nil ident) = true.
+  Proof. reflexivity. Qed.
+  Example esd_walk :
+    wwalk_chk' nil nil nil nil nil esd_np3 false
+      nil esd_ids nil esd_cact esd_xids tfi_sids nil
+      (fn_body C.f_act_entering_star_door) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma esd_pres : body_pres lp NoA MWF bm C.f_act_entering_star_door.
+  Proof.
+    apply (body_pres_of_wwalk_nids lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_entering_star_door esd_ids nil esd_cact esd_xids tfi_sids
+             nil nil esd_np3
+             esd_vars esd_pok esd_nonparam esd_nonparam_np3).
+    - exact esd_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact esd_xids_rows.
+    - intros fid' H. unfold tfi_sids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hsmact | discriminate H ].
+    - intros fid' H. discriminate H.
+    - exact esd_np3_rows.
+    - exact esd_walk.
+  Qed.
+
   (* SLICE 12a: act_reading_sign.  body_pres_of_wwalk (wact=nil, cact=nil --
      marioObj/usedObj are LOADED only; stores are direct non-action m-fields).
      ids = psinf + sma; xids = the 4 dialog/time-stop externals (Hcut_ext)
@@ -3355,6 +3452,9 @@ Section CutsceneLeafRows.
     destruct (Pos.eqb fid C._act_going_through_door) eqn:E35.
     { apply Pos.eqb_eq in E35; subst fid.
       rewrite gtd_pin in Hdm. injection Hdm as <-. exact gtd_pres. }
+    destruct (Pos.eqb fid C._act_entering_star_door) eqn:E39.
+    { apply Pos.eqb_eq in E39; subst fid.
+      rewrite esd_pin in Hdm. injection Hdm as <-. exact esd_pres. }
     destruct (Pos.eqb fid C._act_reading_sign) eqn:E26.
     { apply Pos.eqb_eq in E26; subst fid.
       rewrite rs_pin in Hdm. injection Hdm as <-. exact rs_pres. }
@@ -3397,7 +3497,7 @@ Section CutsceneLeafRows.
     apply mem_id_filter_true; [ exact H | ].
     unfold cut_walked_ids. cbn [mem_id existsb].
     rewrite E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15, E16,
-      E17, E18, E19, E20, E21, E22, E23, E24, E25, E35, E26, E27, E28, E29, E30, E31,
+      E17, E18, E19, E20, E21, E22, E23, E24, E25, E35, E39, E26, E27, E28, E29, E30, E31,
       E32, E33, E34, E36, E37, E38.
     reflexivity.
   Qed.
