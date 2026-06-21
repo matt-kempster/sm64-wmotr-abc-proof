@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>No-A ⇒ No-Fly — State of the Union, 2026-06-21</title>
+<style>
+  :root{
+    --bg:#ffffff; --panel:#f6f8fa; --panel2:#eef1f4; --ink:#1f2328; --dim:#59636e;
+    --line:#d8dee4; --kw:#cf222e; --id:#0550ae; --ty:#8250df; --lit:#0a3069;
+    --com:#6e7781; --green:#1a7f37; --greenbg:#dafbe1; --amber:#9a6700; --amberbg:#fff8c5;
+    --red:#cf222e; --redbg:#ffebe9; --blue:#0969da; --bluebg:#ddf4ff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:1080px;margin:0 auto;padding:40px 24px 120px;}
+  h1{font-size:30px;line-height:1.2;margin:0 0 6px;}
+  h2{font-size:23px;margin:54px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--line);}
+  h3{font-size:18px;margin:30px 0 8px;color:var(--id);}
+  .sub{color:var(--dim);font-size:17px;margin:0 0 28px;}
+  p{margin:12px 0;}
+  code,pre,.mono{font-family:"SF Mono",ui-monospace,"Cascadia Code",Menlo,Consolas,monospace;}
+  code{background:var(--panel2);padding:1px 5px;border-radius:4px;font-size:13.5px;}
+  pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;
+    overflow-x:auto;font-size:13px;}
+  a{color:var(--id);}
+  .lead{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--blue);
+    border-radius:8px;padding:18px 20px;margin:22px 0;}
+  .pill{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    padding:2px 8px;border-radius:999px;vertical-align:middle;white-space:nowrap;}
+  .p-grind{background:var(--greenbg);color:#0f5323;border:1px solid #aceebb;}
+  .p-work{background:var(--amberbg);color:#7d5300;border:1px solid #eac54f;}
+  .p-design{background:var(--redbg);color:#a40e26;border:1px solid #ff9492;}
+  .p-trust{background:var(--bluebg);color:#0a3069;border:1px solid #80ccff;}
+  .p-prog{background:#fbefff;color:#6639ba;border:1px solid #d8b9ff;}
+  .p-done{background:var(--greenbg);color:#0f5323;border:1px solid #4ac26b;}
+  .score{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;}
+  .score th,.score td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  .score th{background:var(--panel2);font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--dim);}
+  .score td.m{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;white-space:nowrap;}
+  .verdict{border-radius:8px;padding:16px 18px;margin:16px 0;}
+  .v-yes{background:var(--greenbg);border:1px solid #aceebb;}
+  .v-warn{background:var(--amberbg);border:1px solid #eac54f;}
+  ul,ol{margin:12px 0;padding-left:22px;} li{margin:6px 0;}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--dim);margin:14px 0 0;}
+  /* the DAG */
+  .dag{margin:24px 0;}
+  .layer{border:1px solid var(--line);border-radius:10px;background:var(--panel);
+    padding:12px 16px;margin:0;}
+  .layer .lt{font-weight:700;font-size:14px;}
+  .layer .ld{font-size:13.5px;color:var(--dim);margin-top:2px;}
+  .layer.done{border-left:5px solid var(--green);}
+  .layer.open{border-left:5px solid var(--amber);}
+  .layer.trust{border-left:5px solid var(--blue);}
+  .layer.mixed{border-left:5px solid var(--ty);}
+  .arrow{text-align:center;color:var(--dim);font-size:18px;line-height:1.1;margin:2px 0;}
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  .cell{flex:1 1 110px;border:1px solid var(--line);border-radius:7px;padding:7px 9px;
+    font-size:12.5px;background:#fff;text-align:center;}
+  .cell.done{background:var(--greenbg);border-color:#aceebb;}
+  .cell.open{background:var(--amberbg);border-color:#eac54f;}
+  .cell.prog{background:#fbefff;border-color:#d8b9ff;}
+  .cell b{display:block;font-size:13px;}
+  del{color:var(--dim);}
+  .opine{border:1px solid var(--line);border-left:4px solid var(--ty);border-radius:8px;
+    background:var(--panel);padding:16px 20px;margin:18px 0;}
+  .big{font-size:15px;}
+  .delta{background:var(--greenbg);border:1px solid #aceebb;border-radius:8px;padding:14px 18px;margin:18px 0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>No-A ⇒ No-Fly: State of the Union</h1>
+<p class="sub">Where the proof stands on 2026-06-21 — what the theorem actually says, how it's
+built, every assumption it still rests on (with a difficulty grade for each), and some
+editorializing. Written deliberately without proof-assistant jargon: SM64 words and
+plain proof words only. (Prior edition: <a href="state-of-the-union-2026-06-10.html">2026-06-10</a>.)</p>
+
+<div class="lead">
+<strong>TL;DR.</strong> The theorem — <em>"if the A button is never down on any frame, and no
+warp ever spawns Mario directly into a flying state, then Mario is never in a flying
+action"</em> — is fully stated over the real decompiled game code and proved end-to-end,
+resting on <strong>56 named assumptions</strong>. The headline change since June 10 is not the
+count (54 → 56) but the <em>kind</em>: the entire <strong>202-body handler grind that was
+the bulk of the work is essentially gone</strong> — six of the seven action-handler families
+(stationary, moving, airborne, submerged, automatic, object) are now machine-walked
+end-to-end, the interaction system is closed, and roughly two dozen named single-function
+keystones (the ground/air/water step engines, the pole/hang/tornado/cannon helpers) have
+been discharged. What remains is qualitatively different and far smaller: <strong>one open
+handler census</strong> (26 cutscene bodies, pure grind), <strong>~26 trust-frontier claims</strong>
+about never-decompiled functions (audio, collision raycasts, vector math — now the
+<em>largest</em> single category), the <strong>memory-layout and linking bookkeeping</strong> (25
+facts, near-zero risk), and just <strong>3 plumbing rows</strong> — down from 8, and already
+sharpened from the old over-broad "for all externals" shape. The theorem is <strong>not
+finished</strong> — but the research-shaped risk is gone; what's left is a short, named checklist.
+</div>
+
+<h2>1 · What the theorem says, in SM64 terms</h2>
+
+<p>Imagine a frame-by-frame run of the game: a starting memory state, then one frame after
+another, each frame reading the controller and updating Mario. The theorem
+(<code>noA_no_spawn_never_flying_real_mwf</code>) says:</p>
+
+<ul>
+<li><strong>IF</strong> the starting state is sane (Mario exists, his action isn't already
+flying-or-cannon, the global pointers point where they should — a checkable list of
+conditions, the kind a save state either satisfies or doesn't),</li>
+<li><strong>and</strong> at every frame boundary, the A bit of the controller data in memory is 0,</li>
+<li><strong>and</strong> no frame is a warp that spawns Mario directly into a flying action (the
+"start a level shot out of a cannon in the sky" case — excluded by assumption, not analyzed yet),</li>
+<li><strong>THEN</strong> at every reachable state, the 32-bit value sitting in Mario's
+<code>action</code> field is not a flying action.</li>
+</ul>
+
+<p>The theorem exists in <strong>four nested versions</strong>, each one replacing an abstraction
+with the real thing — this is how the proof keeps itself honest, and the differences are the
+whole point of taking it seriously:</p>
+
+<table class="score">
+<tr><th>Version</th><th>What got real</th></tr>
+<tr><td class="m">…_lp</td><td>The per-frame step is the real linked program's <code>execute_mario_action</code>, but the controller input is still an abstract bit.</td></tr>
+<tr><td class="m">…_real</td><td>The input is the actual A bit read out of the controller struct in memory.</td></tr>
+<tr><td class="m">…_real_v2</td><td>The set of functions a frame can reach is a <em>computed</em> census, not an abstract "everything reachable."</td></tr>
+<tr><td class="m">…_real_mwf</td><td>The "sane memory" precondition is a concrete, row-by-row invariant about the actual memory image — the sharpest statement, and the one this document audits.</td></tr>
+</table>
+
+<p>Two things make this worth taking seriously rather than being a cartoon of the claim:</p>
+
+<p><strong>First, "the game" means the actual decompiled code.</strong> Every fact about SM64 in
+this proof comes from C source (the decomp) run through a mechanical
+compiler-frontend pipeline into the proof assistant. Nobody hand-wrote a model of
+<code>act_walking</code>; the proof reads the same AST the compiler would compile. The C
+files in scope: <code>mario.c</code>, all seven <code>mario_actions_*.c</code> files,
+<code>interaction.c</code>, <code>mario_step.c</code>, <code>behavior_actions</code> (the wind),
+<code>level_update.c</code> (warps). If the proof claims <code>act_jump</code> doesn't write
+the action field except through <code>set_mario_action</code>, that's because a machine read
+<code>act_jump</code>'s real body, line by line, and checked.</p>
+
+<p><strong>Second, "a frame" means actually running the code.</strong> Each step of the run is a
+real big-step execution of <code>execute_mario_action</code> — the function that dispatches to
+the stationary/moving/airborne/submerged/cutscene/automatic/object handler groups —
+over the linked program, with all its real callees. The flying logic is inside the
+analyzed code, not assumed away.</p>
+
+<h3>The honest scope caveats (read these — unchanged from June 10)</h3>
+<ul>
+<li><strong>The frame is Mario's action step.</strong> The per-frame step is one call of
+<code>execute_mario_action</code> (which includes interactions, quicksand, special floors,
+warps, the wind). It is <em>not yet</em> the entire game-loop frame — the level script,
+the camera, and other objects' behavior code running <em>outside</em> Mario's update aren't in
+the step relation. If some Goomba's behavior code wrote Mario's action field directly,
+the current theorem wouldn't see it. (Objects mostly interact with Mario <em>through</em>
+the interaction system, which <em>is</em> in scope — but "mostly" is a claim about the game,
+not yet a theorem.)</li>
+<li><strong>The spawn exclusion is an abstract bit.</strong> "No frame spawns Mario into flight"
+is a per-frame boolean the theorem takes as input. It models the warp/level-script
+path (<code>set_mario_initial_action</code>) which hasn't been analyzed. Eventually this should
+become a real claim about the warp code.</li>
+<li><strong>This is GOAL 1.</strong> GOAL 2 — "you cannot complete Wing Mario over the Rainbow
+without flying" (the actual route argument: red coins, the y-coordinate bound) — has not
+been started. GOAL 1 is the engine-level lemma it will sit on.</li>
+</ul>
+
+<h2>2 · The shape of the proof</h2>
+
+<p>The mathematical heart is one idea and one engineering decision.</p>
+
+<p><strong>The idea: track "tainted", not "flying".</strong> The obvious invariant — "Mario's
+action is never flying" — is not inductive, because of the cannon: you enter
+<code>ACT_SHOT_FROM_CANNON</code> on an A-press frame, but the handler writes
+<code>ACT_FLYING</code> on a <em>later, A-free</em> frame (if you have the wing cap). So a
+per-frame "no flying without A this frame" claim is simply false. The proof instead
+carries: Mario's action is never in the <strong>taint set T</strong> = {the flying actions} ∪
+{<code>ACT_FLYING_TRIPLE_JUMP</code>, <code>ACT_SHOT_FROM_CANNON</code>}. Every door <em>into</em>
+T was found by machine census of every <code>set_mario_action</code> call site, and each door
+was proved to be A-gated: the dispatch into flying, the cannon fire (gated on the A bit
+read from memory — which the carried invariant says is clear), the three
+flying-triple-jump callers, one indirect site. Since T contains the flying set, "never
+tainted" gives "never flying" for free. The price is honest: the starting state must not
+already be mid-cannon-shot.</p>
+
+<p><strong>The decision: walk everything.</strong> "Does this function ever write Mario's action
+field?" sounds like a job for a clever pointer-analysis abstraction. Clever pointer
+abstractions over real C are where verification projects go to die. Instead the project
+built reusable <em>walkers</em> — proof machinery that takes a real function body and
+mechanically grinds through it statement by statement, discharging each store against a
+small set of proved "bricks": stores to Mario's non-action fields are fine (field-offset
+geometry), stores to known globals are fine (those globals live in different memory),
+stores through chased object pointers are fine (the pointer-chase invariant keeps them in
+the object pool, which is disjoint from Mario), stores to a function's own locals are fine,
+A-gated branches are dead code, and writes to the action field must go through the blessed
+setter family. <strong>Since June 10 the walkers have chewed through the entire handler
+backlog</strong> — well over a hundred more real bodies, including the four big "rest" families
+(stationary, moving, airborne, submerged) and a string of nasty multi-level helper subtrees
+(the ground/air/water quarter-step engines, hanging physics, the tornado, the cannon).</p>
+
+<p><strong>Memory safety is its own invariant.</strong> Underneath everything sits a concrete
+ten-or-so-row invariant about the memory image, proved preserved by every step: the A bit
+is clear in both the controller struct and Mario's mirrored input halfword; the action
+field always holds a real 32-bit value; <code>gMarioState</code> points at Mario;
+Mario's object pointers (<code>marioObj</code>, <code>heldObj</code>, <code>usedObj</code>,
+<code>interactObj</code>…) point into the object pool; anything you reach by chasing pointers
+from the pool stays in the pool; the interaction-handler table only ever yields the 29
+known handler functions. This is what kills the "but C has pointers, anything could write
+anywhere" objection — not by hand-waving, but as a maintained, machine-checked invariant.</p>
+
+<h3>The dependency picture</h3>
+
+<div class="dag">
+  <div class="layer done">
+    <div class="lt">THE THEOREM (proved, modulo the ledger in §3)</div>
+    <div class="ld">sane start ∧ A never down ∧ no flying spawn-warps ⇒ never flying.
+    Four nested versions (§1), each replacing an abstraction with the real thing.</div>
+  </div>
+  <div class="arrow">↑</div>
+  <div class="layer done">
+    <div class="lt">Frame induction (proved)</div>
+    <div class="ld">Carried invariant: action ∉ T ∧ the memory rows. One real execution of
+    <code>execute_mario_action</code> preserves it.</div>
+  </div>
+  <div class="arrow">↑</div>
+  <div class="layer done">
+    <div class="lt">The frame's own body + the seven dispatchers (all walked, proved)</div>
+    <div class="ld">execute_mario_action, update_mario_button_inputs (A-clear is maintained), and:</div>
+    <div class="row">
+      <div class="cell done"><b>stationary</b>walked</div>
+      <div class="cell done"><b>moving</b>walked</div>
+      <div class="cell done"><b>airborne</b>walked</div>
+      <div class="cell done"><b>submerged</b>walked</div>
+      <div class="cell done"><b>cutscene</b>walked</div>
+      <div class="cell done"><b>automatic</b>walked</div>
+      <div class="cell done"><b>object</b>walked</div>
+    </div>
+    <div class="row">
+      <div class="cell done"><b>quicksand</b>walked</div>
+      <div class="cell done"><b>special floors</b>walked</div>
+      <div class="cell done"><b>warp trigger</b>walked</div>
+      <div class="cell done"><b>wind</b>walked (loop!)</div>
+      <div class="cell done"><b>interactions</b>walked + closed</div>
+    </div>
+  </div>
+  <div class="arrow">↑</div>
+  <div class="layer mixed">
+    <div class="lt">Per-handler leaf censuses — once the bulk, now nearly gone</div>
+    <div class="ld">Every act handler each dispatcher can reach, as an explicit computed list.
+    On June 10 this layer held 202 open bodies; today only cutscene remains:</div>
+    <div class="row">
+      <div class="cell done"><b>stationary 37</b>ALL walked</div>
+      <div class="cell done"><b>moving 39</b>ALL walked</div>
+      <div class="cell done"><b>airborne 43</b>ALL walked</div>
+      <div class="cell done"><b>submerged 33</b>ALL walked</div>
+      <div class="cell open"><b>cutscene 26</b>left (of ~50)</div>
+      <div class="cell done"><b>automatic 17</b>ALL walked</div>
+      <div class="cell done"><b>object ~11</b>ALL walked</div>
+    </div>
+  </div>
+  <div class="arrow">↑</div>
+  <div class="layer done">
+    <div class="lt">The keystone + the gate kills + ~25 named engine bodies (all proved)</div>
+    <div class="ld">set_mario_action and its sub-setters only enter T when A is down; the cannon
+    fire / flying dispatch / FTJ callers are dead code under "A bit clear"; and the heavy
+    shared helpers — the ground/air/water step engines, the pole/hang/tornado helpers — are
+    each fully walked (§3.3).</div>
+  </div>
+  <div class="arrow">↑</div>
+  <div class="layer mixed">
+    <div class="lt">Foundation</div>
+    <div class="ld"><span class="pill p-grind">proved</span> the memory-invariant rows and their
+    preservation under every store class &nbsp;·&nbsp;
+    <span class="pill p-work">assumed</span> memory-layout facts (Mario ≠ controller ≠ globals ≠
+    object pool) and link-assembly facts &nbsp;·&nbsp;
+    <span class="pill p-trust">trusted</span> ~26 claims about never-decompiled functions
+    (audio, collision, vector math) &nbsp;·&nbsp; the decompiled ASTs themselves (the pipeline).</div>
+  </div>
+</div>
+
+<p>Hygiene, verified today against the live build: green, <strong>zero</strong> admitted/unfinished
+proofs anywhere — every gap is an explicit named assumption, never a buried hole — and the
+axiom check on all four capstones reports only the 9 standard logic/compiler-model axioms
+(classical logic, functional extensionality, proof irrelevance, two real-number choice
+principles, and CompCert's four generic external-call parameters). Nothing project-invented.</p>
+
+<h2>3 · The complete assumption ledger</h2>
+
+<p>Everything below is the full list of 56 named hypotheses the sharpest theorem rests on.
+If it's not on this list, the proof doesn't assume it. Grades:</p>
+
+<div class="legend">
+  <span><span class="pill p-grind">grind</span> machinery exists; it's labor</span>
+  <span><span class="pill p-work">real work</span> needs a careful one-off or a new pattern</span>
+  <span><span class="pill p-design">needs restating</span> sharpen before discharging</span>
+  <span><span class="pill p-trust">trust frontier</span> unprovable without decompiling more of the game</span>
+  <span><span class="pill p-done">closed</span> the assumption is now a proved lemma / vacuous</span>
+</div>
+
+<div class="delta">
+<strong>The big structural change since June 10.</strong> The five handler-body censuses
+(<code>Hpres_sta_callees</code>, <code>Hpres_mov_callees</code>, <code>Hpres_air_callees</code>,
+<code>Hpres_sub_callees</code>, and most of <code>Hpres_cut_callees</code>) — 202 function
+bodies, <em>the entire mass of last month's ledger</em> — are <strong>gone as assumptions</strong>:
+they are now proved lemmas inside the proof. The interaction census (<code>Hpres_inter</code>,
+June 10's active front) is <strong>closed</strong>. What replaced them is much smaller and is
+dominated by the trust frontier, which is now the single largest category.</p>
+</div>
+
+<h3>3.1 · The one open handler census — 26 cutscene bodies <span class="pill p-grind">grind</span></h3>
+
+<table class="score">
+<tr><th>Assumption</th><th>What it says</th><th>Count</th></tr>
+<tr><td class="m">Hpres_cut_rest</td><td>The cutscene act handlers not yet walked (door opening, star dance, the various death and warp-in scenes, credits poses) respect the rules: action writes only via the blessed setters, no stray writes to watched memory. Down from ~50 to 26 as the cutscene slices burn through.</td><td>26 bodies</td></tr>
+</table>
+
+<p><strong>Judgment.</strong> This is the last of the handler-body mass, and it's the easy kind:
+cutscene handlers are mostly scripted (set an animation, advance a timer, set the next action
+through the blessed setter). The machinery is the same that already cleared 200+ other bodies;
+the burn-down has been steady at a handful per session. No new ideas expected — the realistic
+risk is tedium plus the occasional scripted body that pokes a global needing one new offset fact.</p>
+
+<h3>3.2 · Interactions — <span class="pill p-done">closed</span> (was the active front on June 10)</h3>
+
+<table class="score">
+<tr><th>Assumption</th><th>Status</th></tr>
+<tr><td class="m">Hpres_inter / Hpres_ihandler</td><td><strong>Discharged.</strong> The indirect call through the writable function-pointer table is solved, and all 29 <code>interact_*</code> handlers (coins, doors, shells, cap pickups, grabs, bully knock-back, sign reading, NPC talk…) are walked, plus the damage/sign/NPC helper subtree.</td></tr>
+<tr><td class="m">Hio_rest</td><td><strong>Vacuous.</strong> The "remaining interaction helpers" census is now the empty list — there is nothing left under it. (It survives as a formal premise only; its body is trivially true.)</td></tr>
+</table>
+
+<p><strong>Judgment.</strong> The spiciest state-changing code in the game — shell rides, cap
+pickups, grabs — is now machine-checked not to write Mario's action except through the gate.
+This was June 10's "current front"; it is done.</p>
+
+<h3>3.3 · The named engine bodies — <span class="pill p-done">~25 discharged</span></h3>
+
+<p>These were the individually-hard helper functions — the ones that outlived their families
+because they declare local structs, feed collision out-parameters, or loop. Every one listed
+on June 10 (and many more) is now a <em>proved lemma</em>, not an assumption:</p>
+
+<table class="score">
+<tr><th>Discharged this layer</th><th>What it is</th></tr>
+<tr><td class="m">Hcp_pgs, Hcp_pgqs, Hcp_paqs, Hcp_pas, Hcp_pws</td><td>The ground / air / water step engines and their quarter-step inner loops — the movement-and-collision core every physical action funnels through.</td></tr>
+<tr><td class="m">Hcp_caas (today), Hcp_clg, Hcp_mboc, Hcp_apw, Hcp_avw</td><td>common_air_action_step (the last internal-function residual, walked today), check_ledge_grab, mario_blow_off_cap, apply_water_current, apply_vertical_wind.</td></tr>
+<tr><td class="m">Hcp_mgco, Hcp_ckpw, Hcp_mgtsa, Hcp_pmoo, Hcpra_bkbm</td><td>collided-object lookup, kick/punch-wall check, terrain-sound addend, the interaction-process loop body, bully knock-back.</td></tr>
+<tr><td class="m">Hcp_atg, Hcp_ssg, Hcp_ag, Hcp_avw, Hcp_ffs, Hpres_mov_rest, …</td><td>twirl/spawn-star/grab helpers and the moving-family rest closure.</td></tr>
+</table>
+
+<p><strong>Judgment.</strong> Every "this one needs a careful one-off" item from the last report
+is closed. The walker toolkit absorbed all of them; nothing on this layer remains assumed.</p>
+
+<h3>3.4 · Memory-layout facts — 11 <span class="pill p-work">real work</span>, near-zero risk</h3>
+
+<p>These say that distinct things live in distinct memory — the C-level truism the whole
+anti-aliasing story stands on.</p>
+
+<table class="score">
+<tr><th>Assumption</th><th>Plain English</th></tr>
+<tr><td class="m">Hbc_bm</td><td>The controller struct and Mario's struct are different allocations.</td></tr>
+<tr><td class="m">HSafeB_not_bm, HSafeB_not_bc</td><td>No object-pool slot is Mario's struct, and none is the controller struct.</td></tr>
+<tr><td class="m">Hgms_blk, Hgtimer_blk, Htable_blk, Hktab_blk</td><td>gMarioState, gGlobalTimer, and the two handler/dispatch tables each live apart from Mario / controller / pool.</td></tr>
+<tr><td class="m">Hglob_blk</td><td>Each of the plain globals the analyzed code writes (timers, door-text flags, camera-mode cells, …) lives apart from Mario / controller / pool.</td></tr>
+<tr><td class="m">Hsfam_safe</td><td>One specific scratch global (the floor-alignment matrix) is itself an object-pool-safe block.</td></tr>
+<tr><td class="m">Hbc_sym</td><td>The controller struct is itself one of the game's globals (<code>gControllers</code>).</td></tr>
+<tr><td class="m">Hglob_valid</td><td>Global variables always sit in allocated memory.</td></tr>
+</table>
+
+<p><strong>Judgment.</strong> All true for boring reasons (separate C objects don't overlap;
+globals are allocated at startup and never freed). Discharging them needs a one-time
+"initial memory" story — describing the state right after startup and showing these facts
+hold and persist. Self-contained, fully standard, no SM64 cleverness required; sequence it
+late, in one pass.</p>
+
+<h3>3.5 · Program-assembly facts — 14 <span class="pill p-work">real work</span>, bookkeeping flavor</h3>
+
+<table class="score">
+<tr><th>Assumption</th><th>Plain English</th></tr>
+<tr><td class="m">LO_mario … LO_stp (12)</td><td>Each analyzed C file (mario.c, the seven action files, interaction.c, mario_step.c, behavior_actions, level_update.c) is genuinely part of the final linked program, and linking didn't swap out its functions.</td></tr>
+<tr><td class="m">Hrest_ext_only</td><td>The whitelisted pure-math helpers (sins/coss-style) and one music helper are <em>not</em> given bodies by some other linked file.</td></tr>
+<tr><td class="m">WL_exempt</td><td>A call to a whitelisted helper by name really resolves to that helper.</td></tr>
+</table>
+
+<p><strong>Judgment.</strong> True by construction of the program; the obstacle is mechanical
+(naively computing the whole linked program out-runs this machine's 8 GB of RAM, so the
+linked program is kept symbolic; a bounded technique for exactly this is already proved out).
+These could also legitimately <em>stay</em> as premises — "here is how the program is assembled"
+is a reasonable thing for a theorem statement to say out loud. Low risk either way.</p>
+
+<h3>3.6 · The trust frontier — ~26 claims about never-decompiled functions <span class="pill p-trust">trust frontier</span></h3>
+
+<p>These functions are called by analyzed code but their own C was never fed through the
+pipeline (they live in math_util.c, surface_collision.c, the audio and camera systems…).
+The proof therefore <em>assumes</em> a specific, small behavior contract for each. <strong>This is
+now the largest single category in the ledger</strong> — not because it grew, but because
+everything around it shrank. Honesty note: the compiler model's baseline assumption about
+unknown external functions is that they may write <em>any</em> memory, so these rows are genuine
+additional trust — and they are exactly the list of what is being trusted. Each is the kind of
+claim a person can check against the decomp in minutes.</p>
+
+<table class="score">
+<tr><th>Assumption(s)</th><th>Functions</th><th>What's trusted</th></tr>
+<tr><td class="m">Hocp_find_floor, Hocp_find_ceil, Hocp_rai_real</td><td>find_floor, vec3f_find_ceil, retrieve_animation_index</td><td>Raycast/lookup helpers that write <em>only</em> through the out-pointer the caller hands them (always a caller stack local at every analyzed call site — the proof checks the call sites; only the callee's discipline is trusted).</td></tr>
+<tr><td class="m">Hwolcp_fwc, Holcp_fwc_real, Hxcp_fwl_real</td><td>find_wall_collisions, f32_find_wall_collision (several call shapes)</td><td>Wall collision: writes only through its collision-data / position pointers (aimed at locals or at Mario's position fields — never at the action field).</td></tr>
+<tr><td class="m">Hscp_v3f, Hscp_v3s, Hscp_v3fset_real, Hw1cp_v3f_real, Hw1cp_v3fset_real, Hw1cp_v3sset_real, Hwolcp_v3f_real</td><td>vec3f_copy, vec3s_set, vec3f_set (various destination windows)</td><td>Three-component vector copy/set: writes only through its destination pointer (aimed at object fields or at Mario's pos/vel — safe fields, checked at each call site).</td></tr>
+<tr><td class="m">Hcpx_approach_real, Hcpx_approach_f32_real</td><td>approach_s32, approach_f32</td><td>Pure number-chasing math; writes nothing.</td></tr>
+<tr><td class="m">Hscp_geo_real</td><td>geo_update_animation_frame</td><td>Writes only into the passed object's animation struct.</td></tr>
+<tr><td class="m">Hcp_spawn_real</td><td>spawn_object</td><td>The object allocator: doesn't touch Mario's struct or the watched cells; what it returns is an object-pool slot.</td></tr>
+<tr><td class="m">Hcp_savefile_real, Hcpx_ibcd_real, Hcpx_tbs_real</td><td>save-file write, a bully init/collision-data helper, a transfer-speed helper</td><td>Each touches only its own save buffer / object fields, never Mario's action or the watched memory.</td></tr>
+<tr><td class="m">Hpres_obj_ext, Hpres_sta_ext, Hpres_mov_ext, Hpres_cut_ext, Hpres_floors_ext, Hpres_warp_ext (6 family rows)</td><td>play_sound, set_camera_mode, load_patchable_table, segmented_to_virtual, atan2s/sqrtf, dialog/time-stop helpers, transition/music helpers…</td><td>Each names a finite id-list of audio / camera / address-translation / dialog externals that never write Mario's action or the watched memory.</td></tr>
+</table>
+
+<p><strong>Judgment.</strong> A decision is owed here, and I'd make it explicitly rather than
+drift: either (a) declare this the documented model boundary — the final theorem reads
+"…assuming these ~26 named functions behave as stated", defensible because each claim is tiny
+and auditable; or (b) shrink it by decompiling more files. If shrinking, the two high-value
+targets are obvious: <strong>surface_collision.c</strong> retires the whole collision cluster and
+<strong>math_util.c</strong> retires the vector/math cluster — together more than half the frontier,
+both small, self-contained, loop-heavy-but-pointer-simple C the existing walkers should handle.
+Audio and camera I'd leave on the frontier forever; nobody doubts <code>play_sound</code> doesn't
+grant flight, and the audio system is a huge dependency swamp.</p>
+
+<h3>3.7 · The plumbing — 3 rows left, already sharpened <span class="pill p-work">real work</span></h3>
+
+<p>June 10 flagged 8 over-broad "for <em>all</em> externals / <em>any</em> function" rows as the
+risk concentration. <strong>Five are now gone</strong> (discharged or merged into §3.6), and the
+three that remain have already been <em>restated</em> from the dangerous "for all" shape into
+the safe "only the functions a frame actually reaches" shape — the exact refactor the project's
+own post-mortems prescribe. The over-broad versions (including the deleted <code>Hret_ext</code>)
+were provably false for the real program — they admitted <code>memcpy</code>/<code>vload</code>
+adversaries the game never invokes — and have been deleted.</p>
+
+<table class="score">
+<tr><th>Assumption</th><th>What it says</th><th>Judgment</th></tr>
+<tr><td class="m">Hret_unsafe</td><td>Among the functions a frame can reach, the ones whose return type <em>could</em> carry a pointer never return a pointer to Mario's struct.</td><td>Per-body return-value analysis over a concrete reached set; the walkers already track return values. The all-functions twin (<code>Hret_call</code>) is <em>derived from this and proved</em>. Grind-shaped. <span class="pill p-grind">grind</span></td></tr>
+<tr><td class="m">Hext_action</td><td>Any external call a frame reaches leaves Mario's action cell unchanged.</td><td>Reached-gated, so the adversarial externals are excluded. Per-function it's the same audit as §3.6. Medium.</td></tr>
+<tr><td class="m">Hmwf_ext</td><td>Any external call a frame reaches preserves the whole memory invariant.</td><td>Same shape as <code>Hext_action</code>, one rung stronger; same discharge path.</td></tr>
+</table>
+
+<p><strong>Judgment.</strong> This was the part I most wanted retired, and it's three-quarters
+retired. The remaining three are sharp (reached-gated, not universal) and reduce to the same
+per-external audit as the trust frontier. The risk that a vacuous or unsatisfiable "for all"
+was hiding here is largely discharged — the dangerous shapes are deleted, not papered over.</p>
+
+<h2>4 · Scorecard</h2>
+
+<table class="score">
+<tr><th>Family</th><th>Items</th><th>Grade</th><th>Bottom line</th></tr>
+<tr><td>Cutscene census (§3.1)</td><td>1 assumption / 26 bodies</td><td><span class="pill p-grind">grind</span></td><td>Last of the handler mass. Easy bodies, proven machinery.</td></tr>
+<tr><td>Interactions (§3.2)</td><td>0 (closed)</td><td><span class="pill p-done">closed</span></td><td>June's front; done — 29 handlers + table walked.</td></tr>
+<tr><td>Named engine bodies (§3.3)</td><td>0 (~25 discharged)</td><td><span class="pill p-done">closed</span></td><td>Every individually-hard helper proved.</td></tr>
+<tr><td>Memory layout (§3.4)</td><td>11 facts</td><td><span class="pill p-work">real work</span></td><td>One startup-state story discharges all; zero risk.</td></tr>
+<tr><td>Program assembly (§3.5)</td><td>14 facts</td><td><span class="pill p-work">real work</span></td><td>Bookkeeping; could honestly stay as premises.</td></tr>
+<tr><td>Trust frontier (§3.6)</td><td>~26 claims</td><td><span class="pill p-trust">trust frontier</span></td><td>Now the largest category. Decision owed: document, or decompile surface_collision.c + math_util.c and halve it.</td></tr>
+<tr><td>Plumbing (§3.7)</td><td>3 rows (was 8)</td><td><span class="pill p-work">real work</span></td><td>Already sharpened; reduces to the §3.6 audit.</td></tr>
+</table>
+
+<h2>5 · What I actually think</h2>
+
+<div class="opine">
+<p><strong>The character of the proof has flipped.</strong> A month ago the honest summary was
+"a 202-body checklist plus some risky old plumbing." Today the checklist is 26 cutscene bodies,
+the risky plumbing is three sharpened rows, and the dominant remaining item is a <em>decision</em>,
+not a problem: how much of the game's math/collision/audio C to keep trusting versus decompile.
+That is a much healthier place to be — the remaining work is almost entirely either mechanical
+burn-down or a deliberate scoping call, with very little "and here we hope an idea shows up."</p>
+
+<p><strong>The load-bearing insight is still the taint set, and the brute-force bet has paid in
+full.</strong> The cannon is the whole ballgame: any sketch that says "flying requires A on the
+same frame" is false, and building the invariant around "shot-from-cannon counts as
+already-flying" is what makes this engage the real game rather than a story about it. And the
+walk-everything bet — build a new proof arm whenever the C does something new, then reuse it —
+has now consumed the entire handler set including the genuinely hard helpers (the step engines,
+hanging, the tornado, the cannon's A-gated dead branch). The toolkit is mature; new bodies are
+cheap unless they're truly novel, and novelty is now rare.</p>
+
+<p><strong>Where I'd spend skepticism, in order.</strong> (1) The trust frontier — it's fine if
+declared, corrosive if it silently grows; I'd institute a hard rule that the frontier only
+shrinks, and I'd retire surface_collision.c and math_util.c to cut it roughly in half.
+(2) The frame-scope caveat — "Mario's action step" is still not "the whole game frame," and
+closing that gap (level script, other objects' direct writes) is a real future arc, not a
+footnote. (3) The startup-memory story for §3.4/§3.5 — standard, but unwritten, and everything
+leans on it; I wouldn't want it to be the thing discovered to be subtly wrong at the end.</p>
+
+<p><strong>What's left is small, but GOAL 2 is the iceberg.</strong> Finishing GOAL 1 from here —
+26 cutscene bodies, the startup story, the linking pass, and a decision on the frontier — is
+weeks, not months, and almost none of it is research. But GOAL 2 (the actual Wing-Mario-over-
+the-Rainbow route argument: red coins, the y-coordinate bound, the level geometry) has not been
+started, and it is a different kind of proof entirely. GOAL 1 is the engine lemma it stands on;
+it is nearly a checklist now, but it is the foundation, not the building.</p>
+</div>
+
+<h2>6 · Since the last status doc (06-10)</h2>
+<ul>
+<li><del>stationary census (37)</del>, <del>moving census (39)</del>,
+<del>airborne census (43)</del>, <del>submerged census (33)</del> — <strong>all walked.</strong>
+The four big "rest" families that were 152 of the 202 open bodies on June 10 are done.</li>
+<li><del>Interactions front (Hpres_inter)</del> — <strong>closed:</strong> all 29
+<code>interact_*</code> handlers walked through the function-pointer table, plus the
+damage/sign/NPC helper subtree; the leftover-helper census is now empty.</li>
+<li><del>perform_ground_step</del> and its whole subtree — walked — along with the air and
+water step engines (<code>perform_air_quarter_step</code>, <code>perform_water_step</code>,
+<code>apply_water_current</code>) and a string of named keystones (check_ledge_grab,
+common_swimming_step, common_idle_step, mario_blow_off_cap, the collided-object/kick-punch/
+terrain-sound helpers).</li>
+<li><del>common_air_action_step (Hcp_caas)</del> — walked <strong>today</strong>: the last
+internal-function residual. The four capstones now assume no opaque internal body at all —
+only externals, layout, linking, the cutscene rest, and the three plumbing rows.</li>
+<li><del>Plumbing: 8 over-broad rows</del> → <strong>3 sharpened rows</strong>: the false
+"for all externals / for any function" shapes were deleted; what remains is reached-gated
+and reduces to the per-external audit.</li>
+</ul>
+
+<p class="sub" style="margin-top:48px">Verified against the live build at commit
+<code>546400c</code> (2026-06-21): green, zero admits, 9 standard axioms on all four capstones,
+56 named assumptions on the sharpest (<code>…_real_mwf</code>) as enumerated above. The theorem
+is <strong>not finished</strong> — it still rests on every row in §3.</p>
+
+</div>
+</body>
+</html>
