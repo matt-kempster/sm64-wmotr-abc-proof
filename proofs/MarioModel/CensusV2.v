@@ -37,7 +37,8 @@
 From Coq Require Import ZArith List Lia.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
-From SM64.Generated Require mario level_update mario_step mario_actions_submerged.
+From SM64.Generated Require mario level_update mario_step mario_actions_submerged
+  mario_actions_cutscene.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
   ActionValueFrame RealFrameValue RealFrameLinked AGates.
 
@@ -831,7 +832,16 @@ Definition stored_globals : list ident :=
      when the first-castle-entry music cue plays): a static schar in
      level_update.c, bm/bc/SafeB-disjoint per Hglob_blk -- same trust class
      as the other save/state statics above. *)
-  level_update._gNeverEnteredCastle :: nil.
+  level_update._gNeverEnteredCastle ::
+  (* the credits-cutscene viewport/credits statics (act_credits_cutscene):
+     sEndCutsceneVp is the end-cutscene viewport UNION (the deep
+     .vp.vscale[i]/.vtrans[i] writes go here via the deep glob_store_chk
+     arm), and sDispCreditsEntry is the displayed-credits-entry pointer
+     (sDispCreditsEntry = gCurrCreditsEntry).  Both static data symbols in
+     mario_actions_cutscene.c, bm/bc/SafeB-disjoint per Hglob_blk -- the
+     same static-layout trust class as every stored_globals entry above. *)
+  mario_actions_cutscene._sEndCutsceneVp ::
+  mario_actions_cutscene._sDispCreditsEntry :: nil.
 
 (* ---------------------------------------------------------------------- *)
 (* The interaction-handler census (the Hpres_inter arc): the 28 DISTINCT   *)

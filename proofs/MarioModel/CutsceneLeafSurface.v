@@ -308,6 +308,22 @@ Definition ukd_xids : list ident :=
   mario._play_sound :: interaction._save_file_set_flags
     :: interaction._save_file_clear_flags :: nil.
 
+(* act_credits_cutscene: chase stores (statusForCamera->cameraEvent,
+   marioObj->gfx.angle[1]), safe m-field stores (particleFlags/actionState/
+   actionTimer), the DEEP global viewport stores (sEndCutsceneVp.vp.vscale[i]/
+   .vtrans[i] via the new glob_store_chk deep arm), a simple global store
+   (sDispCreditsEntry), marg internal calls and pure externals. *)
+Definition cred_ids : list ident :=
+  mario._set_mario_animation
+    :: mario_step._stop_and_set_height_to_floor
+    :: level_update._level_trigger_warp :: nil.
+Definition cred_xids : list ident :=
+  mario._set_camera_mode :: mario_step._vec3f_copy :: mario._vec3s_copy
+    :: C._override_viewport_and_clip :: C._reset_cutscene_msg_fade :: nil.
+(* the two chase-store temps: _t'32 <- m->statusForCamera (cameraEvent store),
+   _t'4 <- m->marioObj (the deep gfx.angle[1] indexed chase store). *)
+Definition cred_cact : list ident := C._t'32 :: C._t'4 :: nil.
+
 (* get_door_save_file_flag support (the in-section twin of InterSurface's
    gdsff_row -- a STORELESS internal reading the door object through its only
    param, calling the save_file_get_flags boundary).  CutsceneLeafSurface does
@@ -525,7 +541,8 @@ Definition cut_walked_ids : list ident :=
     :: C._act_head_stuck_in_ground :: C._act_butt_stuck_in_ground
     :: C._act_feet_stuck_in_ground
     :: C._check_for_instant_quicksand
-    :: C._act_unlocking_key_door :: nil.
+    :: C._act_unlocking_key_door
+    :: C._act_credits_cutscene :: nil.
 Definition cut_rest_ids : list ident :=
   filter (fun id => negb (mem_id id cut_walked_ids)) cutscene_callee_ids.
 
@@ -867,6 +884,10 @@ Proof. vm_compute. reflexivity. Qed.
 Example ukd_pin :
   (prog_defmap C.prog) ! C._act_unlocking_key_door
   = Some (Gfun (Internal C.f_act_unlocking_key_door)).
+Proof. vm_compute. reflexivity. Qed.
+Example cred_pin :
+  (prog_defmap C.prog) ! C._act_credits_cutscene
+  = Some (Gfun (Internal C.f_act_credits_cutscene)).
 Proof. vm_compute. reflexivity. Qed.
 Example rs_pin :
   (prog_defmap C.prog) ! C._act_reading_sign
@@ -1263,6 +1284,17 @@ Section CutsceneLeafRows.
     call_pres_ext lp bm NoA MWF interaction._save_file_clear_flags.
   Hypothesis Hcpx_spawn_sr :
     WindSurface.call_pres_ext_sr lp bm NoA MWF SafeB C._spawn_object.
+  (* SLICE 24 (act_credits_cutscene) externals -- all honest boundaries now in
+     obj_ext_ids, fed at the capstone via Hpres_obj_ext (NO new capstone trust):
+     - vec3s_copy: the s16-vector copy twin of vec3f_copy / vec3s_set (writes the
+       Object's interior, never bm);
+     - override_viewport_and_clip / reset_cutscene_msg_fade: the cutscene HUD/
+       viewport EF_external boundaries (write rendering state, never Mario). *)
+  Hypothesis Hcpx_v3sc : call_pres_ext lp bm NoA MWF mario._vec3s_copy.
+  Hypothesis Hcpx_ovac :
+    call_pres_ext lp bm NoA MWF C._override_viewport_and_clip.
+  Hypothesis Hcpx_rcmf :
+    call_pres_ext lp bm NoA MWF C._reset_cutscene_msg_fade.
 
   (* SLICE 17: update_mario_pos_for_anim is WALKED (AutomaticLeafSurface.Humpfa,
      a HYBRID walk: the famft out-param call via oc2 + the two pos[i] window
@@ -3224,6 +3256,69 @@ Section CutsceneLeafRows.
     - exact sdw_walk.
   Qed.
 
+  (* SLICE 24: act_credits_cutscene -- the FIRST deep-global-store leaf.  The
+     body writes the cutscene viewport union sEndCutsceneVp.vp.vscale[i]/.vtrans[i]
+     (recognized by glob_store_chk's new deep Ederef arm) plus a simple global
+     sDispCreditsEntry, two safe chase stores (cameraEvent / gfx.angle[1]) via
+     cred_cact, marg internal calls and pure externals.  No new engine arm. *)
+  Lemma cred_ids_rows : forall fid, mem_id fid cred_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold cred_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sashf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ltw | discriminate H ].
+  Qed.
+  Lemma cred_xids_rows : forall fid, mem_id fid cred_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold cred_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_scm | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_v3fc | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_v3sc | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_ovac | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_rcmf | discriminate H ].
+  Qed.
+  Example cred_vars : fn_vars C.f_act_credits_cutscene = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example cred_pok :
+    match fn_params C.f_act_credits_cutscene with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example cred_nonparam :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_credits_cutscene))))
+      cred_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example cred_walk :
+    wwalk_chk false nil cred_ids nil cred_cact cred_xids nil nil
+      (fn_body C.f_act_credits_cutscene) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma cred_pres : body_pres lp NoA MWF bm C.f_act_credits_cutscene.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_credits_cutscene cred_ids nil cred_cact cred_xids nil nil
+             cred_vars cred_pok cred_nonparam).
+    - exact cred_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact cred_xids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact cred_walk.
+  Qed.
+
   (* SLICE 14: act_squished -- the FIRST body_pres_of_lwalk leaf (dead
      filler[4] stack local, lids=nil).  perform_ground_step via the new
      Hcp_pgs section hyp. *)
@@ -3895,6 +3990,9 @@ Section CutsceneLeafRows.
     destruct (Pos.eqb fid C._act_unlocking_key_door) eqn:E43.
     { apply Pos.eqb_eq in E43; subst fid.
       rewrite ukd_pin in Hdm. injection Hdm as <-. exact ukd_pres. }
+    destruct (Pos.eqb fid C._act_credits_cutscene) eqn:E44.
+    { apply Pos.eqb_eq in E44; subst fid.
+      rewrite cred_pin in Hdm. injection Hdm as <-. exact cred_pres. }
     destruct (Pos.eqb fid C._act_reading_sign) eqn:E26.
     { apply Pos.eqb_eq in E26; subst fid.
       rewrite rs_pin in Hdm. injection Hdm as <-. exact rs_pres. }
@@ -3937,7 +4035,7 @@ Section CutsceneLeafRows.
     apply mem_id_filter_true; [ exact H | ].
     unfold cut_walked_ids. cbn [mem_id existsb].
     rewrite E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15, E16,
-      E17, E18, E19, E20, E21, E22, E23, E24, E25, E35, E39, E40, E41, E42, E43, E26, E27, E28, E29, E30, E31,
+      E17, E18, E19, E20, E21, E22, E23, E24, E25, E35, E39, E40, E41, E42, E43, E44, E26, E27, E28, E29, E30, E31,
       E32, E33, E34, E36, E37, E38.
     reflexivity.
   Qed.
