@@ -132,6 +132,45 @@ Definition call_pres_act (lp : Clight.program) (bm : block)
     Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\
     MWF m1 /\ NoA m1 /\ untainted_scalar vres0.
 
+(* the NO-RETURN second-position writer residual (the caas class):
+   Mario's pointer first, an UNTAINTED scalar action second, anything after
+   -- the funcall preserves the carried run facts but makes NO claim about
+   its return value.  WHY this is the honest shape for common_air_action_
+   step: every one of caas's 11 call sites either DISCARDS the result
+   (`Scall None`) or consumes it only in a control-flow test (`_t'3 != 3`),
+   NEVER storing it into the action cell -- so the untainted-RETURN obligation
+   call_pres_act carries is dead weight that would force characterising
+   perform_air_step's step-code return through a Sloop.  The sids consumer
+   (kit_scallc_pres / kit_scallt_pres) already DISCARDS call_pres_act's return
+   conjunct, so weakening the sids premise to this shape is behaviour-
+   preserving for every existing sids member. *)
+Definition call_pres_act2 (lp : Clight.program) (bm : block)
+    (NoA MWF : mem -> Prop) (fid : ident) : Prop :=
+  forall fd m0 v0 aval rest t0 m1 vres0,
+    eval_funcall function_entry2 (lp_ge lp) m0 fd
+      (v0 :: aval :: rest) t0 m1 vres0 ->
+    resolves_lp lp fid fd ->
+    marg_ok bm (v0 :: aval :: rest) ->
+    untainted_scalar aval ->
+    NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+    action_sat not_tainted m0 bm ->
+    Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\
+    MWF m1 /\ NoA m1.
+
+(* call_pres_act is strictly stronger than call_pres_act2 (it ALSO claims an
+   untainted return).  Every existing sids member is supplied as call_pres_act
+   at the surfaces; the producers weaken it to call_pres_act2 before feeding
+   the (now-honest) sids premise of wwalk_pres. *)
+Lemma call_pres_act_weaken : forall {lp bm NoA MWF fid},
+    call_pres_act lp bm NoA MWF fid -> call_pres_act2 lp bm NoA MWF fid.
+Proof.
+  intros lp bm NoA MWF fid H fd m0 v0 aval rest t0 m1 vres0
+         Hevf Hres Hmarg Hu HN HM HV HS.
+  destruct (H fd m0 v0 aval rest t0 m1 vres0 Hevf Hres Hmarg Hu HN HM HV HS)
+    as (HV' & HS' & HM' & HN' & _).
+  exact (conj HV' (conj HS' (conj HM' HN'))).
+Qed.
+
 (* the THIRD-position writer residual shape (the asgs class): Mario's
    pointer first, anything second, an UNTAINTED scalar action third.
    No return-value claim -- nothing consumes the result. *)
@@ -4028,7 +4067,7 @@ Section ActWriterWalk.
            (Etempvar mario_actions_airborne._m tyMSp
               :: Econst_int c ity :: args))
         tr le1 m1 out0 ->
-      call_pres_act lp bm NoA MWF fid ->
+      call_pres_act2 lp bm NoA MWF fid ->
       wact_const c = true -> i32_ty ty2 = true -> i32_ty ity = true ->
       (forall b o, le0 ! mario_actions_airborne._m = Some (Vptr b o) ->
                    b = bm /\ o = Ptrofs.zero) ->
@@ -4093,7 +4132,7 @@ Section ActWriterWalk.
     match goal with
     | Hevf : eval_funcall _ _ _ _ (_ :: _) _ _ _ |- _ =>
         destruct (Hcpa _ _ _ _ _ _ _ _ Hevf Hres Hmarg Hu HN HM HV HS)
-          as (HV' & HS' & HM' & HN' & _)
+          as (HV' & HS' & HM' & HN')
     end.
     refine (conj HV' (conj HS' (conj HM' (conj HN' (conj eq_refl _))))).
     eexists; reflexivity.
@@ -4205,7 +4244,7 @@ Section ActWriterWalk.
            (Etempvar mario_actions_airborne._m tyMSp
               :: Etempvar q qty :: args))
         tr le1 m1 out0 ->
-      call_pres_act lp bm NoA MWF fid ->
+      call_pres_act2 lp bm NoA MWF fid ->
       i32_ty ty2 = true -> i32_ty qty = true ->
       (forall b o, le0 ! mario_actions_airborne._m = Some (Vptr b o) ->
                    b = bm /\ o = Ptrofs.zero) ->
@@ -4267,7 +4306,7 @@ Section ActWriterWalk.
     match goal with
     | Hevf : eval_funcall _ _ _ _ (_ :: _) _ _ _ |- _ =>
         destruct (Hcpa _ _ _ _ _ _ _ _ Hevf Hres Hmarg Hu HN HM HV HS)
-          as (HV' & HS' & HM' & HN' & _)
+          as (HV' & HS' & HM' & HN')
     end.
     refine (conj HV' (conj HS' (conj HM' (conj HN' (conj eq_refl _))))).
     eexists; reflexivity.
@@ -4713,7 +4752,7 @@ Section ActWriterWalk.
       (forall fid, mem_id fid xids = true ->
                    call_pres_ext lp bm NoA MWF fid) ->
       (forall fid, mem_id fid sids = true ->
-                   call_pres_act lp bm NoA MWF fid) ->
+                   call_pres_act2 lp bm NoA MWF fid) ->
       (forall fid, mem_id fid tids = true ->
                    call_pres_act3 lp bm NoA MWF fid) ->
       (forall fid, mem_id fid oc_pids = true ->
@@ -5847,7 +5886,7 @@ Section ActWriterWalk.
       (forall fid, mem_id fid xids = true ->
                    call_pres_ext lp bm NoA MWF fid) ->
       (forall fid, mem_id fid sids = true ->
-                   call_pres_act lp bm NoA MWF fid) ->
+                   call_pres_act2 lp bm NoA MWF fid) ->
       (forall fid, mem_id fid tids = true ->
                    call_pres_act3 lp bm NoA MWF fid) ->
       forall s e le m0 tr le' m' out,
@@ -6429,7 +6468,7 @@ Section ActWriterRows.
     destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-                false nil ids wids nil xids sids nil Hcp Hcpa Hcpx Hcps
+                false nil ids wids nil xids sids nil Hcp Hcpa Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH))
                 Hcpt0 _ _ _ _ _ _ _ _ Hbody
                 Hub_g Hub_i Hub_w Hub_x Hub_s Hub_t Hub_gt
                 Hchk Htat0 Hact0 Hch0 HNa HMa HVa HSa)
@@ -6565,7 +6604,7 @@ Section ActWriterRows.
     destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-                false nil ids wids nil xids sids nil Hcp Hcpa Hcpx Hcps
+                false nil ids wids nil xids sids nil Hcp Hcpa Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH))
                 Hcpt0 _ _ _ _ _ _ _ _ Hbody
                 Hub_g Hub_i Hub_w Hub_x Hub_s Hub_t Hub_gt
                 Hchk Htat0 Hact0 Hch0 HNa HMa HVa HSa)
@@ -6735,7 +6774,7 @@ Section ActWriterRows.
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 false nil ids wids nil xids sids nil lids oc_pids wc_pids sc_pids
                 nil nil
-                Hcp Hcpa Hcpx Hcps Hcpt0 Hcpoc Hcpwc Hcpsc
+                Hcp Hcpa Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH)) Hcpt0 Hcpoc Hcpwc Hcpsc
                 (fun g HH => match Bool.diff_false_true HH with end)
                 _ _ _ _ _ _ _ _
                 (fun _ => Hls_real) Hlocal Hbody
@@ -6918,7 +6957,7 @@ Section ActWriterRows.
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 false nil ids wids cact xids sids nil lids oc_pids wc_pids sc_pids
                 nil nil
-                Hcp Hcpa Hcpx Hcps Hcpt0 Hcpoc Hcpwc Hcpsc
+                Hcp Hcpa Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH)) Hcpt0 Hcpoc Hcpwc Hcpsc
                 (fun g HH => match Bool.diff_false_true HH with end)
                 _ _ _ _ _ _ _ _
                 (fun _ => Hls_real) Hlocal Hbody
@@ -7020,7 +7059,7 @@ Section ActWriterRows.
     destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-                false nil ids wids nil xids sids nil Hcp Hcpa Hcpx Hcps
+                false nil ids wids nil xids sids nil Hcp Hcpa Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH))
                 Hcpt0 _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
@@ -7142,7 +7181,7 @@ Section ActWriterRows.
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 false nil ids wids cact xids sids tids
                 nil nil nil nil nids np3_ids
-                Hcp Hcpa Hcpx Hcps Hcp3t
+                Hcp Hcpa Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH)) Hcp3t
                 (fun g HH => match Bool.diff_false_true HH with end)
                 (fun g HH => match Bool.diff_false_true HH with end)
                 (fun g HH => match Bool.diff_false_true HH with end)
@@ -7257,7 +7296,7 @@ Section ActWriterRows.
     destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-                false nil ids wids cact xids sids nil Hcp Hcpa Hcpx Hcps
+                false nil ids wids cact xids sids nil Hcp Hcpa Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH))
                 Hcpt0 _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
@@ -7363,7 +7402,7 @@ Section ActWriterRows.
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 false nil ids wids (p0 :: nil) xids sids nil
-                Hcp Hcpa Hcpx Hcps
+                Hcp Hcpa Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH))
                 Hcpt0 _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
@@ -7446,7 +7485,7 @@ Section ActWriterRows.
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 false nil ids wids nil xids sids nil
-                Hcp Hcpa Hcpx Hcps
+                Hcp Hcpa Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH))
                 Hcpt0 _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
@@ -7563,7 +7602,7 @@ Section ActWriterRows.
     destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-                false wact ids wids cact xids sids nil Hcp Hcpa Hcpx Hcps
+                false wact ids wids cact xids sids nil Hcp Hcpa Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH))
                 Hcpt0 _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
@@ -7641,7 +7680,7 @@ Section ActWriterRows.
     destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-                false nil ids wids nil xids sids nil Hcp Hcpa Hcpx Hcps
+                false nil ids wids nil xids sids nil Hcp Hcpa Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH))
                 Hcpt0 _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
@@ -7735,7 +7774,7 @@ Section ActWriterRows.
     destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-                false nil ids wids nil xids sids tids Hcp Hcpa Hcpx Hcps
+                false nil ids wids nil xids sids tids Hcp Hcpa Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH))
                 Hcp3t _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
@@ -7840,7 +7879,7 @@ Section ActWriterRows.
     destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-                false nil ids wids cact xids sids tids Hcp Hcpa Hcpx Hcps
+                false nil ids wids cact xids sids tids Hcp Hcpa Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH))
                 Hcp3t _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
@@ -7957,7 +7996,7 @@ Section ActWriterRows.
     destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-                false wact ids wids cact xids sids tids Hcp Hcpa Hcpx Hcps
+                false wact ids wids cact xids sids tids Hcp Hcpa Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH))
                 Hcp3t _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
@@ -8083,7 +8122,7 @@ Section ActWriterRows.
     destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-                true wact ids wids cact xids sids nil Hcp Hcpa Hcpx Hcps
+                true wact ids wids cact xids sids nil Hcp Hcpa Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH))
                 Hcpt0 _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
@@ -8244,7 +8283,7 @@ Section ActWriterRows.
     destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-                true wact ids wids cact xids sids nil Hcp Hcpa Hcpx Hcps
+                true wact ids wids cact xids sids nil Hcp Hcpa Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH))
                 Hcpt0 _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
@@ -8407,7 +8446,7 @@ Section ActWriterRows.
     destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-                true wact ids wids cact xids sids nil Hcp Hcpa Hcpx Hcps
+                true wact ids wids cact xids sids nil Hcp Hcpa Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH))
                 Hcpt0 _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
@@ -8535,7 +8574,7 @@ Section ActWriterRows.
     destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-                true wact ids wids cact xids sids nil Hcp Hcpa Hcpx Hcps
+                true wact ids wids cact xids sids nil Hcp Hcpa Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH))
                 Hcpt0 _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
@@ -8675,7 +8714,7 @@ Section ActWriterRows.
     destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-                false wact ids wids cact xids sids nil Hcp Hcpa Hcpx Hcps
+                false wact ids wids cact xids sids nil Hcp Hcpa Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH))
                 Hcpt0 _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
@@ -8797,7 +8836,7 @@ Section ActWriterRows.
     destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-                false wact ids wids cact xids sids nil Hcp Hcpa Hcpx Hcps
+                false wact ids wids cact xids sids nil Hcp Hcpa Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH))
                 Hcpt0 _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
@@ -8935,7 +8974,7 @@ Section ActWriterRows.
     destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-                false wact ids wids cact xids sids nil Hcp Hcpa Hcpx Hcps
+                false wact ids wids cact xids sids nil Hcp Hcpa Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH))
                 Hcpt0 _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
@@ -9052,7 +9091,7 @@ Section ActWriterRows.
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 false nil ids wids cact xids sids nil
                 nil nil nil nil (mario._accel :: nil) nil
-                Hcp Hcpa Hcpx Hcps
+                Hcp Hcpa Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH))
                 (fun g HH => match Bool.diff_false_true HH with end)
                 (fun g HH => match Bool.diff_false_true HH with end)
                 (fun g HH => match Bool.diff_false_true HH with end)
@@ -9188,7 +9227,7 @@ Section ActWriterRows.
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 false nil ids wids cact xids sids nil
                 nil nil nil nil (p3 :: nil) np3_ids
-                Hcp Hcpa Hcpx Hcps
+                Hcp Hcpa Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH))
                 (fun g HH => match Bool.diff_false_true HH with end)
                 (fun g HH => match Bool.diff_false_true HH with end)
                 (fun g HH => match Bool.diff_false_true HH with end)
@@ -9321,7 +9360,7 @@ Section ActWriterRows.
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 false nil ids wids cact xids sids tids
                 nil nil nil nil nids np3_ids
-                Hcp Hcpa Hcpx Hcps Hcp3t
+                Hcp Hcpa Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH)) Hcp3t
                 (fun g HH => match Bool.diff_false_true HH with end)
                 (fun g HH => match Bool.diff_false_true HH with end)
                 (fun g HH => match Bool.diff_false_true HH with end)

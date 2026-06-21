@@ -1826,7 +1826,9 @@ Section AutomaticLeafRows.
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 false nil nil nil nil nil nil nil
-                HcpN HcpaN HcpxN HcpaN Hcp3N _ _ _ _ _ _ _ _ HBexec
+                HcpN HcpaN HcpxN
+                (fun fid HH => call_pres_act_weaken (HcpaN fid HH)) Hcp3N
+                _ _ _ _ _ _ _ _ HBexec
                 Hub_g Hub_n Hub_n Hub_n Hub_n Hub_n Hub_gt
                 HchkB Htat_B HactN HchN
                 HNa HMa HVa HSa)
@@ -5112,7 +5114,7 @@ Section AutomaticLeafRows.
                 twl_lids twl_oc nil twl_sc nil nil
                 twl_ids_rows
                 (fun fid HH => match Bool.diff_false_true HH with end)
-                twl_xids_rows twl_sids_rows
+                twl_xids_rows (fun fid HH => call_pres_act_weaken (twl_sids_rows fid HH))
                 (fun fid HH => match Bool.diff_false_true HH with end)
                 twl_oc_rows
                 (fun fid HH => match Bool.diff_false_true HH with end)

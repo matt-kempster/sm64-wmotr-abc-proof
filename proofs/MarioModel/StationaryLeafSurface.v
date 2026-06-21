@@ -2350,7 +2350,7 @@ Section StationaryLeafRows.
                 false nil cclc_ids nil nil nil cclc_sids nil
                 cclc_ids_rows (fun fid HH => cclc_empt HH)
                 (fun fid HH => cclc_empt HH)
-                cclc_sids_rows (fun fid HH => cclc_empt HH)
+                (fun fid HH => call_pres_act_weaken (cclc_sids_rows fid HH)) (fun fid HH => cclc_empt HH)
                 s e le m0 tr le' m' out Hexec
                 Hub_g Hub_i (fun g HH => cclc_empt HH) (fun g HH => cclc_empt HH)
                 Hub_s (fun g HH => cclc_empt HH) Hubgt
@@ -2885,7 +2885,8 @@ Section StationaryLeafRows.
     destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-                false nil ids wids nil xids sids tids Hcp Hcpa Hcpx Hcps
+                false nil ids wids nil xids sids tids Hcp Hcpa Hcpx
+                (fun fid HH => call_pres_act_weaken (Hcps fid HH))
                 Hcp3t _ _ _ _ _ _ _ _ Hrest
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
@@ -3024,7 +3025,8 @@ Section StationaryLeafRows.
     destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-                false nil ids wids nil xids sids tids Hcp Hcpa Hcpx Hcps
+                false nil ids wids nil xids sids tids Hcp Hcpa Hcpx
+                (fun fid HH => call_pres_act_weaken (Hcps fid HH))
                 Hcp3t _ _ _ _ _ _ _ _ Hrest
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
@@ -3133,7 +3135,8 @@ Section StationaryLeafRows.
                 false nil ids nil nil nil sids tids Hcp
                 ltac:(intros f' H'; discriminate H')
                 ltac:(intros f' H'; discriminate H')
-                Hcps Hcp3t _ _ _ _ _ _ _ _ Hex
+                (fun fid HH => call_pres_act_weaken (Hcps fid HH))
+                Hcp3t _ _ _ _ _ _ _ _ Hex
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (PTree.gempty _ _) Hchk Htat Hact Hch HN HM HV HS)
@@ -3425,7 +3428,8 @@ Section StationaryLeafRows.
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 false nil ids nil nil xids sids tids Hcp
                 ltac:(intros f' H'; discriminate H')
-                Hcpx Hcps Hcp3t _ _ _ _ _ _ _ _ Hex
+                Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH))
+                Hcp3t _ _ _ _ _ _ _ _ Hex
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (PTree.gempty _ _) Hchk Htat Hact Hch HN HM HV HS)

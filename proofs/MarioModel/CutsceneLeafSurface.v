@@ -3109,7 +3109,8 @@ Section CutsceneLeafRows.
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 false (C._endAction :: nil) sig_ids nil nil nil
                 (mario._set_mario_action :: nil) nil
-                sig_ids_rows Hcpa_nil Hcpx_nil Hcps_sma Hcp3_nil
+                sig_ids_rows Hcpa_nil Hcpx_nil
+                (fun fid HH => call_pres_act_weaken (Hcps_sma fid HH)) Hcp3_nil
                 _ _ _ _ _ _ _ _ Hbody
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
