@@ -89,7 +89,7 @@ the bulk of the work is essentially gone</strong> — six of the seven action-ha
 end-to-end, the interaction system is closed, and roughly two dozen named single-function
 keystones (the ground/air/water step engines, the pole/hang/tornado/cannon helpers) have
 been discharged. What remains is qualitatively different and far smaller: <strong>one open
-handler census</strong> (26 cutscene bodies, pure grind), <strong>~26 trust-frontier claims</strong>
+handler census</strong> (12 cutscene bodies, pure grind), <strong>~26 trust-frontier claims</strong>
 about never-decompiled functions (audio, collision raycasts, vector math — now the
 <em>largest</em> single category), the <strong>memory-layout and linking bookkeeping</strong> (25
 facts, near-zero risk), and just <strong>3 plumbing rows</strong> — down from 8, and already
@@ -251,7 +251,7 @@ anywhere" objection — not by hand-waving, but as a maintained, machine-checked
       <div class="cell done"><b>moving 39</b>ALL walked</div>
       <div class="cell done"><b>airborne 43</b>ALL walked</div>
       <div class="cell done"><b>submerged 33</b>ALL walked</div>
-      <div class="cell open"><b>cutscene 26</b>left (of ~50)</div>
+      <div class="cell open"><b>cutscene 12</b>left (of ~50)</div>
       <div class="cell done"><b>automatic 17</b>ALL walked</div>
       <div class="cell done"><b>object ~11</b>ALL walked</div>
     </div>
@@ -305,11 +305,11 @@ June 10's active front) is <strong>closed</strong>. What replaced them is much s
 dominated by the trust frontier, which is now the single largest category.</p>
 </div>
 
-<h3>3.1 · The one open handler census — 26 cutscene bodies <span class="pill p-grind">grind</span></h3>
+<h3>3.1 · The one open handler census — 12 cutscene bodies <span class="pill p-grind">grind</span></h3>
 
 <table class="score">
 <tr><th>Assumption</th><th>What it says</th><th>Count</th></tr>
-<tr><td class="m">Hpres_cut_rest</td><td>The cutscene act handlers not yet walked (door opening, star dance, the various death and warp-in scenes, credits poses) respect the rules: action writes only via the blessed setters, no stray writes to watched memory. Down from ~50 to 26 as the cutscene slices burn through.</td><td>26 bodies</td></tr>
+<tr><td class="m">Hpres_cut_rest</td><td>The cutscene act handlers not yet walked (door opening, star dance, the various death and warp-in scenes, credits poses) respect the rules: action writes only via the blessed setters, no stray writes to watched memory. Down from ~50 to 12 as the cutscene slices burn through (18 slices walked so far this front).</td><td>12 bodies</td></tr>
 </table>
 
 <p><strong>Judgment.</strong> This is the last of the handler-body mass, and it's the easy kind:
@@ -443,7 +443,7 @@ was hiding here is largely discharged — the dangerous shapes are deleted, not 
 
 <table class="score">
 <tr><th>Family</th><th>Items</th><th>Grade</th><th>Bottom line</th></tr>
-<tr><td>Cutscene census (§3.1)</td><td>1 assumption / 26 bodies</td><td><span class="pill p-grind">grind</span></td><td>Last of the handler mass. Easy bodies, proven machinery.</td></tr>
+<tr><td>Cutscene census (§3.1)</td><td>1 assumption / 12 bodies</td><td><span class="pill p-grind">grind</span></td><td>Last of the handler mass. Easy bodies, proven machinery.</td></tr>
 <tr><td>Interactions (§3.2)</td><td>0 (closed)</td><td><span class="pill p-done">closed</span></td><td>June's front; done — 29 handlers + table walked.</td></tr>
 <tr><td>Named engine bodies (§3.3)</td><td>0 (~25 discharged)</td><td><span class="pill p-done">closed</span></td><td>Every individually-hard helper proved.</td></tr>
 <tr><td>Memory layout (§3.4)</td><td>11 facts</td><td><span class="pill p-work">real work</span></td><td>One startup-state story discharges all; zero risk.</td></tr>
@@ -456,7 +456,7 @@ was hiding here is largely discharged — the dangerous shapes are deleted, not 
 
 <div class="opine">
 <p><strong>The character of the proof has flipped.</strong> A month ago the honest summary was
-"a 202-body checklist plus some risky old plumbing." Today the checklist is 26 cutscene bodies,
+"a 202-body checklist plus some risky old plumbing." Today the checklist is 12 cutscene bodies,
 the risky plumbing is three sharpened rows, and the dominant remaining item is a <em>decision</em>,
 not a problem: how much of the game's math/collision/audio C to keep trusting versus decompile.
 That is a much healthier place to be — the remaining work is almost entirely either mechanical
@@ -480,7 +480,7 @@ footnote. (3) The startup-memory story for §3.4/§3.5 — standard, but unwritt
 leans on it; I wouldn't want it to be the thing discovered to be subtly wrong at the end.</p>
 
 <p><strong>What's left is small, but GOAL 2 is the iceberg.</strong> Finishing GOAL 1 from here —
-26 cutscene bodies, the startup story, the linking pass, and a decision on the frontier — is
+12 cutscene bodies, the startup story, the linking pass, and a decision on the frontier — is
 weeks, not months, and almost none of it is research. But GOAL 2 (the actual Wing-Mario-over-
 the-Rainbow route argument: red coins, the y-coordinate bound, the level geometry) has not been
 started, and it is a different kind of proof entirely. GOAL 1 is the engine lemma it stands on;
