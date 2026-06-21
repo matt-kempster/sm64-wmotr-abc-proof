@@ -6128,7 +6128,7 @@ Section MsHelperSurface.
                 nil nil nil nil nids nil
                 Hcp
                 (fun fid' HH => match Bool.diff_false_true HH with end)
-                Hcpx Hcps
+                Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH))
                 (fun fid' HH => match Bool.diff_false_true HH with end)
                 (fun fid' HH => match Bool.diff_false_true HH with end)
                 (fun fid' HH => match Bool.diff_false_true HH with end)
@@ -6631,7 +6631,8 @@ Section IoSurface.
     destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-                false wact ids wids cact xids sids tids Hcp Hcpa Hcpx Hcps
+                false wact ids wids cact xids sids tids Hcp Hcpa Hcpx
+                (fun fid HH => call_pres_act_weaken (Hcps fid HH))
                 Hcp3t _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _)
@@ -6720,7 +6721,7 @@ Section IoSurface.
                 Hcp_i
                 (fun fid HH => match Bool.diff_false_true HH with end)
                 Hcpx_i
-                Hcps_i
+                (fun fid HH => call_pres_act_weaken (Hcps_i fid HH))
                 (fun fid HH => match Bool.diff_false_true HH with end)
                 (fun fid HH => match Bool.diff_false_true HH with end)
                 (fun fid HH => match Bool.diff_false_true HH with end)
@@ -7381,7 +7382,7 @@ Section IoSurface.
                       tuint (tuint :: nil) tint cc_default
                       q1 tuint (Econst_int c0 cty :: nil)
                       e _ _ _ _ _ _
-                      Hub_dasma Hexec2 Hcpa_dasma eq_refl eq_refl
+                      Hub_dasma Hexec2 (call_pres_act_weaken Hcpa_dasma) eq_refl eq_refl
                       Htat_c Hu1 HN1 HM1 HV1 HS1)
             as (HV' & HS' & HM' & HN' & _ & vr & Hle').
           cbn [set_opttemp] in Hle'. rewrite Hle'.

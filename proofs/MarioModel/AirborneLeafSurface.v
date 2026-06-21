@@ -3462,7 +3462,7 @@ Section AirborneLeafRows.
                 cakbs_ids_rows
                 ltac:(intros fid' HH; discriminate HH)
                 ltac:(intros fid' HH; discriminate HH)
-                cakbs_sids_rows Hcpt0
+                (fun fid HH => call_pres_act_weaken (cakbs_sids_rows fid HH)) Hcpt0
                 _ _ _ _ _ _ _ _ Hbody
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
@@ -4631,7 +4631,7 @@ Section AirborneLeafRows.
                 rh_ids_rows
                 (fun fid HH => match Bool.diff_false_true HH with end)
                 (fun fid HH => match Bool.diff_false_true HH with end)
-                rh_sids_rows
+                (fun fid HH => call_pres_act_weaken (rh_sids_rows fid HH))
                 (fun fid HH => match Bool.diff_false_true HH with end)
                 (fun fid HH => match Bool.diff_false_true HH with end)
                 (fun fid HH => match Bool.diff_false_true HH with end)

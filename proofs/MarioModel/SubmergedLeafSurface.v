@@ -2521,7 +2521,7 @@ Section SubmergedLeafRows.
                 (fun fid HH => match Bool.diff_false_true HH with end)
                 (fun fid HH => match Bool.diff_false_true HH with end)
                 swk_xids_rows
-                swk_sids_rows
+                (fun fid HH => call_pres_act_weaken (swk_sids_rows fid HH))
                 (fun fid HH => match Bool.diff_false_true HH with end)
                 (fun fid HH => match Bool.diff_false_true HH with end)
                 (fun fid HH => match Bool.diff_false_true HH with end)

@@ -3089,7 +3089,7 @@ Section MovingLeafRows.
                 dec_ids_rows
                 (fun fid HH => match Bool.diff_false_true HH with end)
                 dec_xids_rows
-                dec_sids_rows
+                (fun fid HH => call_pres_act_weaken (dec_sids_rows fid HH))
                 (fun fid HH => match Bool.diff_false_true HH with end)
                 (fun fid HH => match Bool.diff_false_true HH with end)
                 (fun fid HH => match Bool.diff_false_true HH with end)
@@ -3625,7 +3625,7 @@ Section MovingLeafRows.
                 false (mario_actions_moving._airAction :: nil) cla_ids nil nil
                 cla_xids cla_sids nil
                 cla_ids_rows ltac:(intros fid HH; discriminate HH)
-                cla_xids_rows cla_sids_rows ltac:(intros fid HH; discriminate HH)
+                cla_xids_rows (fun fid HH => call_pres_act_weaken (cla_sids_rows fid HH)) ltac:(intros fid HH; discriminate HH)
                 _ _ _ _ _ _ _ _ Hbody
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
@@ -3744,7 +3744,7 @@ Section MovingLeafRows.
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 false qjla_wact qjla_ids nil nil nil qjla_sids nil
                 qjla_ids_rows ltac:(intros fid HH; discriminate HH)
-                ltac:(intros fid HH; discriminate HH) qjla_sids_rows
+                ltac:(intros fid HH; discriminate HH) (fun fid HH => call_pres_act_weaken (qjla_sids_rows fid HH))
                 ltac:(intros fid HH; discriminate HH)
                 _ _ _ _ _ _ _ _ Hbody
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
@@ -3934,7 +3934,7 @@ Section MovingLeafRows.
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 false sb_wact sb_ids nil nil nil sb_sids nil
                 sb_ids_rows ltac:(intros fid HH; discriminate HH)
-                ltac:(intros fid HH; discriminate HH) sb_sids_rows
+                ltac:(intros fid HH; discriminate HH) (fun fid HH => call_pres_act_weaken (sb_sids_rows fid HH))
                 ltac:(intros fid HH; discriminate HH)
                 _ _ _ _ _ _ _ _ Hbody
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
@@ -4273,7 +4273,7 @@ Section MovingLeafRows.
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 false nil bk_ids nil bk_cact bk_xids bk_sids nil
                 bk_ids_rows ltac:(intros fid HH; discriminate HH)
-                bk_xids_rows bk_sids_rows ltac:(intros fid HH; discriminate HH)
+                bk_xids_rows (fun fid HH => call_pres_act_weaken (bk_sids_rows fid HH)) ltac:(intros fid HH; discriminate HH)
                 _ _ _ _ _ _ _ _ Hexec
                 Hub_g Hub_i ltac:(intros g HH; discriminate HH) Hub_x Hub_s
                 ltac:(intros g HH; discriminate HH) Hubgt
@@ -5374,7 +5374,7 @@ Proof. vm_compute. reflexivity. Qed.
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 false csa_wact csa_ids nil nil csa_xids csa_sids nil
                 csa_ids_rows ltac:(intros fid HH; discriminate HH)
-                csa_xids_rows csa_sids_rows ltac:(intros fid HH; discriminate HH)
+                csa_xids_rows (fun fid HH => call_pres_act_weaken (csa_sids_rows fid HH)) ltac:(intros fid HH; discriminate HH)
                 _ _ _ _ _ _ _ _ Hexec
                 Hub_g Hub_i ltac:(intros g HH; discriminate HH) Hub_x Hub_s
                 ltac:(intros g HH; discriminate HH) Hubgt
@@ -9419,7 +9419,7 @@ Proof. vm_compute. reflexivity. Qed.
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 false dive_wact dive_ids nil dive_cact dive_xids dive_sids nil
                 dive_ids_rows ltac:(intros fid HH; discriminate HH)
-                dive_xids_rows dive_sids_rows ltac:(intros fid HH; discriminate HH)
+                dive_xids_rows (fun fid HH => call_pres_act_weaken (dive_sids_rows fid HH)) ltac:(intros fid HH; discriminate HH)
                 _ _ _ _ _ _ _ _ Hexec
                 Hub_g Hub_i ltac:(intros g HH; discriminate HH) Hub_x Hub_s
                 ltac:(intros g HH; discriminate HH) Hubgt
@@ -10872,7 +10872,7 @@ Proof. vm_compute. reflexivity. Qed.
                 clcd_lids clcd_oc nil nil nil nil
                 clcd_ids_rows
                 (fun fid HH => match Bool.diff_false_true HH with end)
-                clcd_xids_rows clcd_sids_rows
+                clcd_xids_rows (fun fid HH => call_pres_act_weaken (clcd_sids_rows fid HH))
                 (fun fid HH => match Bool.diff_false_true HH with end)
                 clcd_oc_rows
                 (fun fid HH => match Bool.diff_false_true HH with end)
@@ -11554,7 +11554,7 @@ Proof. vm_compute. reflexivity. Qed.
                 aw_ids_rows
                 (fun fid HH => match Bool.diff_false_true HH with end)
                 (fun fid HH => match Bool.diff_false_true HH with end)
-                aw_sids_rows
+                (fun fid HH => call_pres_act_weaken (aw_sids_rows fid HH))
                 (fun fid HH => match Bool.diff_false_true HH with end)
                 (fun fid HH => match Bool.diff_false_true HH with end)
                 (fun fid HH => match Bool.diff_false_true HH with end)
