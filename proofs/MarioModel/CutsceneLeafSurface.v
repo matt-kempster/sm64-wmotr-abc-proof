@@ -325,8 +325,23 @@ Definition sdw_ids  : list ident :=
 Definition sdw_xids : list ident :=
   mario._vec3f_copy :: mario._vec3s_set :: nil.
 
+(* SLICE 14: act_squished.  A body_pres_of_lwalk leaf -- its only oddity is a
+   DEAD stack-local `filler[4]` (never stored through, so lids=nil and the
+   unprimed walk suffices, but fn_vars is non-nil).  No chase stores (the two
+   marioObj loads feed vec3f_set's window out-param, an obj_ext), no action
+   temps (all 5 set_mario_action 2nd-args are untainted consts -> sids).
+   ids = perform_ground_step / set_mario_animation / play_sound_if_no_flag /
+   stop_and_set_height_to_floor / level_trigger_warp; xids = atan2s / vec3f_set
+   (obj_ext); sids = set_mario_action. *)
+Definition sq_ids : list ident :=
+  mario_step._perform_ground_step :: mario._set_mario_animation
+    :: mario._play_sound_if_no_flag :: mario_step._stop_and_set_height_to_floor
+    :: level_update._level_trigger_warp :: nil.
+Definition sq_xids : list ident :=
+  interaction._atan2s :: mario._vec3f_set :: nil.
+
 (* the WALKED leaves (SLICE 1 + SLICE 2 + SLICE 3 + SLICE 4 + SLICE 5
-   + SLICE 12 + SLICE 13). *)
+   + SLICE 12 + SLICE 13 + SLICE 14). *)
 Definition cut_walked_ids : list ident :=
   C._act_electrocution :: C._act_suffocation
     :: C._act_death_on_back :: C._act_death_on_stomach
@@ -343,7 +358,8 @@ Definition cut_walked_ids : list ident :=
     :: C._act_warp_door_spawn
     :: C._act_reading_sign :: C._act_bbh_enter_spin
     :: C._act_reading_automatic_dialog :: C._act_bbh_enter_jump
-    :: C._act_star_dance :: C._act_star_dance_water :: nil.
+    :: C._act_star_dance :: C._act_star_dance_water
+    :: C._act_squished :: nil.
 Definition cut_rest_ids : list ident :=
   filter (fun id => negb (mem_id id cut_walked_ids)) cutscene_callee_ids.
 
@@ -694,6 +710,10 @@ Example sdw_pin :
   (prog_defmap C.prog) ! C._act_star_dance_water
   = Some (Gfun (Internal C.f_act_star_dance_water)).
 Proof. vm_compute. reflexivity. Qed.
+Example sq_pin :
+  (prog_defmap C.prog) ! C._act_squished
+  = Some (Gfun (Internal C.f_act_squished)).
+Proof. vm_compute. reflexivity. Qed.
 (* is_anim_at_end: the loads-only "anim done?" helper (walked in-file). *)
 Example cut_iae_pin :
   (prog_defmap mario.prog) ! mario._is_anim_at_end
@@ -846,6 +866,17 @@ Section CutsceneLeafRows.
     call_pres_ext lp bm NoA MWF interaction._atan2s.
   Hypothesis Hcpx_sqrtf : call_pres_ext lp bm NoA MWF mario._sqrtf.
   Hypothesis Hcpx_v3fset : call_pres_ext lp bm NoA MWF mario._vec3f_set.
+  (* SLICE 14 (act_squished): perform_ground_step, DISCHARGED at the capstone
+     (MarioStepSurface) -- supplied here as a section hyp, zero new trust. *)
+  Hypothesis Hcp_pgs :
+    call_pres lp bm NoA MWF mario_step._perform_ground_step.
+  (* the stack-frame MWF rows for the body_pres_of_lwalk leaf (act_squished's
+     dead filler[4]).  Discharged at the capstone from MWFReal:
+     HMWF_alloc <- mwf_real_alloc, HMWF_free <- mwf_real_free. *)
+  Hypothesis HMWF_alloc : forall m lo hi m' b,
+      Mem.alloc m lo hi = (m', b) -> MWF m -> MWF m'.
+  Hypothesis HMWF_free : forall m l m',
+      Mem.free_list m l = Some m' -> MWF m -> MWF m'.
 
   Lemma Hcp_psinf : call_pres lp bm NoA MWF mario._play_sound_if_no_flag.
   Proof. eapply ObjectLeafSurface.psinf_row; eassumption. Qed.
@@ -2401,6 +2432,70 @@ Section CutsceneLeafRows.
     - exact sdw_walk.
   Qed.
 
+  (* SLICE 14: act_squished -- the FIRST body_pres_of_lwalk leaf (dead
+     filler[4] stack local, lids=nil).  perform_ground_step via the new
+     Hcp_pgs section hyp. *)
+  Lemma sq_ids_rows : forall fid, mem_id fid sq_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sq_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pgs | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_psinf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sashf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ltw | discriminate H ].
+  Qed.
+  Lemma sq_xids_rows : forall fid, mem_id fid sq_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sq_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_atan2s | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_v3fset | discriminate H ].
+  Qed.
+  Example sq_pok :
+    match fn_params C.f_act_squished with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example sq_walk :
+    wwalk_chk false nil sq_ids nil nil sq_xids tfi_sids nil
+      (fn_body C.f_act_squished) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma sq_pres : body_pres lp NoA MWF bm C.f_act_squished.
+  Proof.
+    apply (body_pres_of_lwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             HMWF_alloc HMWF_free
+             C.f_act_squished sq_ids nil sq_xids tfi_sids sq_pok).
+    - intros g Hg HIn. vm_compute in HIn.
+      destruct HIn as [E | []]. subst g. vm_compute in Hg. discriminate Hg.
+    - intros g Hg HIn. vm_compute in HIn.
+      destruct HIn as [E | []]. subst g. vm_compute in Hg. discriminate Hg.
+    - intros g Hg. discriminate Hg.
+    - intros g Hg HIn. vm_compute in HIn.
+      destruct HIn as [E | []]. subst g. vm_compute in Hg. discriminate Hg.
+    - intros g Hg HIn. vm_compute in HIn.
+      destruct HIn as [E | []]. subst g. vm_compute in Hg. discriminate Hg.
+    - intro HIn. vm_compute in HIn. destruct HIn as [E | []]. discriminate E.
+    - exact sq_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact sq_xids_rows.
+    - intros fid' H. unfold tfi_sids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hsmact | discriminate H ].
+    - exact sq_walk.
+  Qed.
+
   (* ==================================================================== *)
   (* The family rest-split: discharge the SLICE 1-5 leaves, leaving the   *)
   (* other 36 under cut_rest_ids.                                         *)
@@ -2509,13 +2604,17 @@ Section CutsceneLeafRows.
     destruct (Pos.eqb fid C._act_star_dance_water) eqn:E31.
     { apply Pos.eqb_eq in E31; subst fid.
       rewrite sdw_pin in Hdm. injection Hdm as <-. exact sdw_pres. }
+    destruct (Pos.eqb fid C._act_squished) eqn:E32.
+    { apply Pos.eqb_eq in E32; subst fid.
+      rewrite sq_pin in Hdm. injection Hdm as <-. exact sq_pres. }
     (* REST: fid is in the census and not a walked id. *)
     apply (Hrest fid f); [ | exact Hdm ].
     unfold cut_rest_ids.
     apply mem_id_filter_true; [ exact H | ].
     unfold cut_walked_ids. cbn [mem_id existsb].
     rewrite E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15, E16,
-      E17, E18, E19, E20, E21, E22, E23, E24, E25, E26, E27, E28, E29, E30, E31.
+      E17, E18, E19, E20, E21, E22, E23, E24, E25, E26, E27, E28, E29, E30, E31,
+      E32.
     reflexivity.
   Qed.
 

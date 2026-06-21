@@ -2857,6 +2857,10 @@ Section NoARealInputMWF.
                       (Hpres_obj_ext interaction._atan2s eq_refl)
                       (Hpres_obj_ext mario._sqrtf eq_refl)
                       (Hpres_obj_ext mario._vec3f_set eq_refl)
+                      Hcp_pgs
+                      (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
+                      (fun m l m' Hf HM =>
+                         mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
                       Hpres_cut_rest))
                 (automatic_pres lp LO_mario LO_aut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
