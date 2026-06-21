@@ -38,7 +38,7 @@ From Coq Require Import ZArith Lia List.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
 From SM64.Generated Require mario mario_step interaction
-  mario_actions_airborne mario_actions_object.
+  mario_actions_airborne mario_actions_object mario_actions_cutscene.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
   ActionValueFrame RealFrameValue RealFrameLinked AGates.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface
@@ -178,7 +178,19 @@ Definition obj_ext_ids : list ident :=
        hypothesis. *)
     :: interaction._save_file_clear_flags
     :: interaction._drop_queued_background_music
-    :: interaction._fadeout_level_music :: nil.
+    :: interaction._fadeout_level_music
+    (* cutscene credits (act_credits_cutscene): vec3s_copy is the s16-vector
+       copier (writes a caller-provided short window, e.g. marioObj->gfx.angle
+       <- m->faceAngle; no Mario pointer first) -- the SAME pure-vector-helper
+       model class as vec3f_copy above.  override_viewport_and_clip and
+       reset_cutscene_msg_fade are pure viewport / message-fade writers (they
+       touch only the sEndCutsceneVp viewport union and the msg-fade statics,
+       no Mario pointer) -- EF_external in every generated TU, the same honest
+       boundary class as set_camera_mode.  All ride Hpres_obj_ext, NO new
+       capstone hypothesis. *)
+    :: mario._vec3s_copy
+    :: mario_actions_cutscene._override_viewport_and_clip
+    :: mario_actions_cutscene._reset_cutscene_msg_fade :: nil.
 (* NOTE: find_floor was REMOVED from obj_ext_ids.  It is an out-param
    WRITER, so the phantom-false `call_pres_ext find_floor` (which would
    allow &(action cell) as the out-param) is no longer a capstone

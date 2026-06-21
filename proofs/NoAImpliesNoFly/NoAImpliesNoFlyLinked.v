@@ -2969,6 +2969,14 @@ Section NoARealInputMWF.
                          new capstone hypothesis. *)
                       (Hpres_obj_ext interaction._save_file_clear_flags eq_refl)
                       Hcp_spawn_real
+                      (* SLICE 24 (act_credits_cutscene): vec3s_copy + the two
+                         cutscene HUD/viewport externals all ride obj_ext_ids
+                         (newly added there) -- NO new capstone hypothesis. *)
+                      (Hpres_obj_ext mario._vec3s_copy eq_refl)
+                      (Hpres_obj_ext mario_actions_cutscene._override_viewport_and_clip
+                         eq_refl)
+                      (Hpres_obj_ext mario_actions_cutscene._reset_cutscene_msg_fade
+                         eq_refl)
                       Hpres_cut_rest))
                 (automatic_pres lp LO_mario LO_aut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
