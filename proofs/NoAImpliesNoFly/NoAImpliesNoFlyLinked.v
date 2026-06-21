@@ -2961,6 +2961,14 @@ Section NoARealInputMWF.
                                HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                             (Hpres_obj_ext mario._set_camera_mode eq_refl)
                             (Hpres_floors_ext mario._raise_background_noise eq_refl)))
+                      (* SLICE 23 (act_unlocking_key_door): save_file_clear_flags
+                         rides obj_ext_ids (newly added there, the WRITER twin of
+                         save_file_set_flags); spawn_object's SafeB-RETURN form is
+                         the standing Hcp_spawn_real, threaded into the in-TU
+                         spawn_obj_at_mario_rel_yaw helper (SpawnObjSurface).  NO
+                         new capstone hypothesis. *)
+                      (Hpres_obj_ext interaction._save_file_clear_flags eq_refl)
+                      Hcp_spawn_real
                       Hpres_cut_rest))
                 (automatic_pres lp LO_mario LO_aut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)

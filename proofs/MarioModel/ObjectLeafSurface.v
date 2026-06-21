@@ -171,6 +171,12 @@ Definition obj_ext_ids : list ident :=
        in every generated TU, the SAME honest model class as save_file_collect_
        star_or_key above.  Rides Hpres_obj_ext, NO new capstone hypothesis. *)
     :: interaction._save_file_set_flags
+    (* cutscene door (act_unlocking_key_door): save_file_clear_flags is the
+       twin save-buffer WRITER (one scalar flag-word arg, no Mario pointer)
+       -- EF_external in every generated TU, the SAME honest model class as
+       save_file_set_flags above.  Rides Hpres_obj_ext, NO new capstone
+       hypothesis. *)
+    :: interaction._save_file_clear_flags
     :: interaction._drop_queued_background_music
     :: interaction._fadeout_level_music :: nil.
 (* NOTE: find_floor was REMOVED from obj_ext_ids.  It is an out-param

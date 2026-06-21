@@ -29,7 +29,8 @@ From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface
 (* Require (not Import): reuse the proved psinf_row / sma_row / sub_sashf_row
    rows, referenced qualified -- avoids name shadowing. *)
 From SM64.Proofs Require ObjectLeafSurface SubmergedLeafSurface
-  OutParamSurface LocalVarsSurface AutomaticLeafSurface MovingLeafSurface.
+  OutParamSurface LocalVarsSurface AutomaticLeafSurface MovingLeafSurface
+  WindSurface SpawnObjSurface.
 
 Import ListNotations.
 
@@ -288,6 +289,25 @@ Definition cfiq_ids : list ident :=
 Definition cfiq_sids : list ident :=
   mario._drop_and_set_mario_action :: nil.
 
+(* SLICE 23: act_unlocking_key_door (ukd).  body_pres_of_wwalk -- a body whose
+   Object* temps (the door/key objects) are LOADED only (chase reads), so every
+   store is a direct window write into m->faceAngle/pos/actionTimer (cact=nil).
+   ids = spawn_obj_at_mario_rel_yaw (the in-TU spawn helper, walked in
+   SpawnObjSurface) + set_mario_animation + update_mario_pos_for_anim +
+   stop_and_set_height_to_floor + is_anim_at_end.  xids = play_sound +
+   save_file_set_flags + save_file_clear_flags (all in obj_ext_ids; Hpres_obj_ext).
+   sids = set_mario_action(m, 67109952, 0) (67109952 = ACT_UNLOCKING_KEY_DOOR's
+   successor const, UNTAINTED I32).  NO new capstone trust: the spawn helper's
+   own residual (spawn_object via call_pres_ext_sr) is the standing Hcp_spawn_real,
+   and save_file_clear_flags rides obj_ext_ids. *)
+Definition ukd_ids : list ident :=
+  C._spawn_obj_at_mario_rel_yaw :: mario._set_mario_animation
+    :: mario._update_mario_pos_for_anim
+    :: mario_step._stop_and_set_height_to_floor :: mario._is_anim_at_end :: nil.
+Definition ukd_xids : list ident :=
+  mario._play_sound :: interaction._save_file_set_flags
+    :: interaction._save_file_clear_flags :: nil.
+
 (* get_door_save_file_flag support (the in-section twin of InterSurface's
    gdsff_row -- a STORELESS internal reading the door object through its only
    param, calling the save_file_get_flags boundary).  CutsceneLeafSurface does
@@ -504,7 +524,8 @@ Definition cut_walked_ids : list ident :=
     :: C._act_putting_on_cap
     :: C._act_head_stuck_in_ground :: C._act_butt_stuck_in_ground
     :: C._act_feet_stuck_in_ground
-    :: C._check_for_instant_quicksand :: nil.
+    :: C._check_for_instant_quicksand
+    :: C._act_unlocking_key_door :: nil.
 Definition cut_rest_ids : list ident :=
   filter (fun id => negb (mem_id id cut_walked_ids)) cutscene_callee_ids.
 
@@ -842,6 +863,10 @@ Proof. vm_compute. reflexivity. Qed.
 Example cfiq_pin :
   (prog_defmap C.prog) ! C._check_for_instant_quicksand
   = Some (Gfun (Internal C.f_check_for_instant_quicksand)).
+Proof. vm_compute. reflexivity. Qed.
+Example ukd_pin :
+  (prog_defmap C.prog) ! C._act_unlocking_key_door
+  = Some (Gfun (Internal C.f_act_unlocking_key_door)).
 Proof. vm_compute. reflexivity. Qed.
 Example rs_pin :
   (prog_defmap C.prog) ! C._act_reading_sign
@@ -1228,6 +1253,16 @@ Section CutsceneLeafRows.
     call_pres_ext lp bm NoA MWF interaction._obj_set_held_state.
   Hypothesis Hcp_umsc :
     call_pres lp bm NoA MWF mario._update_mario_sound_and_camera.
+  (* SLICE 23 (act_unlocking_key_door) externals -- both honest boundaries the
+     capstone ALREADY supplies (NO new capstone hypothesis):
+     - save_file_clear_flags: the save-buffer WRITER twin of save_file_set_flags,
+       in obj_ext_ids (fed via Hpres_obj_ext);
+     - spawn_object (SafeB-RETURN form): the standing Hcp_spawn_real, threaded
+       into the in-TU spawn_obj_at_mario_rel_yaw helper (SpawnObjSurface). *)
+  Hypothesis Hcpx_sfcf :
+    call_pres_ext lp bm NoA MWF interaction._save_file_clear_flags.
+  Hypothesis Hcpx_spawn_sr :
+    WindSurface.call_pres_ext_sr lp bm NoA MWF SafeB C._spawn_object.
 
   (* SLICE 17: update_mario_pos_for_anim is WALKED (AutomaticLeafSurface.Humpfa,
      a HYBRID walk: the famft out-param call via oc2 + the two pos[i] window
@@ -1530,6 +1565,13 @@ Section CutsceneLeafRows.
       HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
       HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
       Hcpx_v3ss Hcpx_scm.
+  (* SLICE 23: the in-TU spawn_obj_at_mario_rel_yaw helper (SpawnObjSurface), the
+     spawn-then-store-through-spawned-obj arc.  Its only residual, spawn_object's
+     SafeB-return boundary, is the section hyp Hcpx_spawn_sr (= Hcp_spawn_real at
+     the capstone).  ZERO new trust. *)
+  Let Hcp_spawn_obj : call_pres lp bm NoA MWF C._spawn_obj_at_mario_rel_yaw :=
+    SpawnObjSurface.spawn_obj_cp lp LO_cut bm NoA MWF SafeB HNoA_of_MWF
+      HSafeNotBm HMWF_chase Hcpx_spawn_sr.
 
   (* the launch_mario_until_land producer: a 4-param const-action writer
      whose airStepLanded return (a comparison, always 0/1) is untainted. *)
@@ -2657,6 +2699,68 @@ Section CutsceneLeafRows.
         [ apply Pos.eqb_eq in Hm; subst fid'; exact Hdasma | discriminate H ].
     - intros fid' H. discriminate H.
     - exact cfiq_walk.
+  Qed.
+
+  (* SLICE 23: act_unlocking_key_door.  body_pres_of_wwalk; the door/key Object*
+     temps are LOADED only (chase reads), so every store is a direct window write
+     into m->faceAngle/pos/actionTimer (cact=nil).  ids = spawn_obj_at_mario_rel_
+     yaw + set_mario_animation + update_mario_pos_for_anim + stop_and_set_height_
+     to_floor + is_anim_at_end.  xids = play_sound + save_file_set_flags +
+     save_file_clear_flags.  sids = set_mario_action(m, 67109952, 0) (untainted). *)
+  Lemma ukd_ids_rows : forall fid, mem_id fid ukd_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold ukd_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_spawn_obj | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_umpfa | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sashf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cut_iae_row | discriminate H ].
+  Qed.
+  Lemma ukd_xids_rows : forall fid, mem_id fid ukd_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold ukd_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_sfsf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_sfcf | discriminate H ].
+  Qed.
+  Example ukd_vars : fn_vars C.f_act_unlocking_key_door = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example ukd_pok :
+    match fn_params C.f_act_unlocking_key_door with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example ukd_walk :
+    wwalk_chk false nil ukd_ids nil nil ukd_xids tfi_sids nil
+      (fn_body C.f_act_unlocking_key_door) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma ukd_pres : body_pres lp NoA MWF bm C.f_act_unlocking_key_door.
+  Proof.
+    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_unlocking_key_door ukd_ids nil ukd_xids tfi_sids nil
+             ukd_vars ukd_pok).
+    - exact ukd_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact ukd_xids_rows.
+    - intros fid' H. unfold tfi_sids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hsmact | discriminate H ].
+    - intros fid' H. discriminate H.
+    - exact ukd_walk.
   Qed.
 
   (* SLICE 12a: act_reading_sign.  body_pres_of_wwalk (wact=nil, cact=nil --
@@ -3788,6 +3892,9 @@ Section CutsceneLeafRows.
     destruct (Pos.eqb fid C._check_for_instant_quicksand) eqn:E42.
     { apply Pos.eqb_eq in E42; subst fid.
       rewrite cfiq_pin in Hdm. injection Hdm as <-. exact cfiq_pres. }
+    destruct (Pos.eqb fid C._act_unlocking_key_door) eqn:E43.
+    { apply Pos.eqb_eq in E43; subst fid.
+      rewrite ukd_pin in Hdm. injection Hdm as <-. exact ukd_pres. }
     destruct (Pos.eqb fid C._act_reading_sign) eqn:E26.
     { apply Pos.eqb_eq in E26; subst fid.
       rewrite rs_pin in Hdm. injection Hdm as <-. exact rs_pres. }
@@ -3830,7 +3937,7 @@ Section CutsceneLeafRows.
     apply mem_id_filter_true; [ exact H | ].
     unfold cut_walked_ids. cbn [mem_id existsb].
     rewrite E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15, E16,
-      E17, E18, E19, E20, E21, E22, E23, E24, E25, E35, E39, E40, E41, E42, E26, E27, E28, E29, E30, E31,
+      E17, E18, E19, E20, E21, E22, E23, E24, E25, E35, E39, E40, E41, E42, E43, E26, E27, E28, E29, E30, E31,
       E32, E33, E34, E36, E37, E38.
     reflexivity.
   Qed.
