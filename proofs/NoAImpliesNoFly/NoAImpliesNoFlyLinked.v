@@ -2857,7 +2857,7 @@ Section NoARealInputMWF.
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                       Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                    (CutsceneLeafSurface.cutscene_leaf_callees_pres lp LO_mario
-                      LO_stp LO_cut bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
+                      LO_stp LO_int LO_cut bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
                       (mwf_real_ctl lp bm bc oc0 SafeB)
                       (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                          Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
@@ -2901,6 +2901,10 @@ Section NoARealInputMWF.
                          eq_refl)
                       Hpres_cut_ext
                       (Hpres_obj_ext interaction._atan2s eq_refl)
+                      (* SLICE 20 (act_reading_npc_dialog): approach_s32 rides
+                         the SAME dedicated boundary the submerged family uses
+                         -- NO new trust. *)
+                      Hcpx_approach_real
                       (Hpres_obj_ext mario._sqrtf eq_refl)
                       (Hpres_obj_ext mario._vec3f_set eq_refl)
                       Hcp_pgs
