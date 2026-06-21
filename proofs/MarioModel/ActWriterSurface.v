@@ -7695,7 +7695,7 @@ Section ActWriterRows.
      capstone's Hpres_*_callees hypotheses quantify over the censused
      body, not a resolution.  The marg premise is unlocked by computing
      marg_exempt = false from the Mario-head parameter shape. *)
-  Lemma body_pres_of_wwalk :
+  Lemma body_pres_of_wwalk_s2 :
     forall (f : Clight.function) (ids wids xids sids tids : list ident),
       fn_vars f = nil ->
       match fn_params f with
@@ -7712,7 +7712,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' xids = true ->
                     call_pres_ext lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' sids = true ->
-                    call_pres_act lp bm NoA MWF fid') ->
+                    call_pres_act2 lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' tids = true ->
                     call_pres_act3 lp bm NoA MWF fid') ->
       wwalk_chk false nil ids wids nil xids sids tids (fn_body f) = true ->
@@ -7774,7 +7774,7 @@ Section ActWriterRows.
     destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-                false nil ids wids nil xids sids tids Hcp Hcpa Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH))
+                false nil ids wids nil xids sids tids Hcp Hcpa Hcpx Hcps
                 Hcp3t _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
@@ -7783,10 +7783,43 @@ Section ActWriterRows.
     exact (conj HV' (conj HS' HM')).
   Qed.
 
+  (* The call_pres_act-sids wrapper: every existing consumer (which proves its
+     sids callees as full call_pres_act) keeps its external API; the no-return
+     sids slot is weakened to call_pres_act2 internally.  body_pres_of_wwalk_s2
+     carries the real walk and admits the weaker (no-return) sids contract used
+     by common_air_action_step's caller cluster. *)
+  Lemma body_pres_of_wwalk :
+    forall (f : Clight.function) (ids wids xids sids tids : list ident),
+      fn_vars f = nil ->
+      match fn_params f with
+      | (i, ty) :: ps =>
+          Pos.eqb i mario_actions_airborne._m
+          && proj_sumbool (type_eq ty tyMSp)
+          && negb (mem_id mario_actions_airborne._m (map fst ps))
+      | nil => false
+      end = true ->
+      (forall fid', mem_id fid' ids = true ->
+                    call_pres lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' wids = true ->
+                    call_pres_act lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' xids = true ->
+                    call_pres_ext lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' sids = true ->
+                    call_pres_act lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' tids = true ->
+                    call_pres_act3 lp bm NoA MWF fid') ->
+      wwalk_chk false nil ids wids nil xids sids tids (fn_body f) = true ->
+      body_pres lp NoA MWF bm f.
+  Proof.
+    intros f ids wids xids sids tids Hvars Hps Hcp Hcpa Hcpx Hcps Hcp3t Hchk.
+    exact (body_pres_of_wwalk_s2 f ids wids xids sids tids Hvars Hps Hcp Hcpa Hcpx
+             (fun fid HH => call_pres_act_weaken (Hcps fid HH)) Hcp3t Hchk).
+  Qed.
+
   (* ---- the per-family LEAF entry WITH a chase census: the same
      Mario-head shape as body_pres_of_wwalk, every censused chase temp
      a NON-param (undef at entry, so chase_inv holds vacuously). *)
-  Lemma body_pres_of_wwalk_cact :
+  Lemma body_pres_of_wwalk_cact_s2 :
     forall (f : Clight.function)
            (ids wids cact xids sids tids : list ident),
       fn_vars f = nil ->
@@ -7806,7 +7839,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' xids = true ->
                     call_pres_ext lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' sids = true ->
-                    call_pres_act lp bm NoA MWF fid') ->
+                    call_pres_act2 lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' tids = true ->
                     call_pres_act3 lp bm NoA MWF fid') ->
       wwalk_chk false nil ids wids cact xids sids tids (fn_body f)
@@ -7879,13 +7912,46 @@ Section ActWriterRows.
     destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-                false nil ids wids cact xids sids tids Hcp Hcpa Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH))
+                false nil ids wids cact xids sids tids Hcp Hcpa Hcpx Hcps
                 Hcp3t _ _ _ _ _ _ _ _ Hbody (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
                 (PTree.gempty _ _) Hchk Htat0 Hact0 Hch0
                 HN HM HV HS)
       as (HV' & HS' & HM' & _).
     exact (conj HV' (conj HS' HM')).
+  Qed.
+
+  (* call_pres_act-sids wrapper for the cact variant (see body_pres_of_wwalk). *)
+  Lemma body_pres_of_wwalk_cact :
+    forall (f : Clight.function)
+           (ids wids cact xids sids tids : list ident),
+      fn_vars f = nil ->
+      match fn_params f with
+      | (i, ty) :: ps =>
+          Pos.eqb i mario_actions_airborne._m
+          && proj_sumbool (type_eq ty tyMSp)
+          && negb (mem_id mario_actions_airborne._m (map fst ps))
+      | nil => false
+      end = true ->
+      forallb (fun t' => negb (mem_id t' (map fst (fn_params f)))) cact
+        = true ->
+      (forall fid', mem_id fid' ids = true ->
+                    call_pres lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' wids = true ->
+                    call_pres_act lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' xids = true ->
+                    call_pres_ext lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' sids = true ->
+                    call_pres_act lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' tids = true ->
+                    call_pres_act3 lp bm NoA MWF fid') ->
+      wwalk_chk false nil ids wids cact xids sids tids (fn_body f)
+        = true ->
+      body_pres lp NoA MWF bm f.
+  Proof.
+    intros f ids wids cact xids sids tids Hvars Hps Hnpc Hcp Hcpa Hcpx Hcps Hcp3t Hchk.
+    exact (body_pres_of_wwalk_cact_s2 f ids wids cact xids sids tids Hvars Hps Hnpc
+             Hcp Hcpa Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH)) Hcp3t Hchk).
   Qed.
 
   (* ---- the per-family LEAF entry WITH an untainted action-temp census
