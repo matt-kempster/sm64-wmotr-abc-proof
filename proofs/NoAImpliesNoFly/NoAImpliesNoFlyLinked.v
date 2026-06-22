@@ -480,12 +480,21 @@ Section NoARealInputV2.
      real_mwf section's refinement below.  The opaque forall-reached row is
      PROVED for every reached fundef whose return type cannot carry a Vptr
      through the return cast (Tvoid / Tint I8/I16/IBool / Tfloat,
-     ret_fd_safe = true, ZERO new trust on ptr64 = false).  What stays
-     assumed is the SHARPER residual: only the Tint I32 returns (the 4
-     getters + the 7 dispatchers, status ints) and the External fundefs. *)
+     ret_fd_safe = true, ZERO new trust on ptr64 = false), AND -- sharper
+     still -- for every Internal whose return value is a vint-tracked
+     "computed int" (fd_is_vint = true: an I32 result temp only ever
+     assigned int constants / bitwise-shift / comparison / sub-word casts,
+     never a pointer or call result -- RetSurface.ret_avoids_bm_of_vint,
+     also ZERO new trust).  fd_is_vint computes to true for both I32
+     getters mario_get_floor_class / mario_get_terrain_sound_addend, so they
+     are now DISCHARGED.  What stays assumed is the still-sharper residual:
+     the Tint I32 returns that are NOT vint-tracked (the 7 dispatchers, whose
+     status int flows through a switch the syntactic check does not yet
+     track) and the External fundefs. *)
   Hypothesis Hret_unsafe : forall fd m0 vargs0 t0 m0' vres0,
       reached_v2 lp fd ->
       RetSurface.ret_fd_safe fd = false ->
+      RetSurface.fd_is_vint fd = false ->
       eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m0' vres0 ->
       forall b o, vres0 = Vptr b o -> b <> bm.
   (* section-local Let (not a persistent Lemma -- the real_mwf section below
@@ -494,7 +503,7 @@ Section NoARealInputV2.
       reached_v2 lp fd ->
       eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m0' vres0 ->
       forall b o, vres0 = Vptr b o -> b <> bm :=
-    RetSurface.ret_avoids_bm_of_unsafe function_entry2 (lp_ge lp) bm
+    RetSurface.ret_avoids_bm_of_unsafe_vint (lp_ge lp) bm
       (reached_v2 lp) Hret_unsafe.
 
   (* externals, REACHED-GATED (per-symbol surface: reached_v2 lp (External
@@ -1992,14 +2001,22 @@ Section NoARealInputMWF.
      return type cannot carry a Vptr through the return cast
      (Tvoid / Tint I8/I16/IBool / Tfloat -- ret_fd_safe = true: ~17 of
      the reached functions, with ZERO new trust, since on ptr64 = false
-     only a Tint I32 / Tpointer target selects cast_case_pointer).  What
-     stays assumed is the SHARPER residual: only the Tint I32 returns
-     (the 4 getters + the 7 dispatchers, whose result is a status int,
-     not a pointer) and the External fundefs (the honest terminal-
-     external model boundary, e.g. EF_vload). *)
+     only a Tint I32 / Tpointer target selects cast_case_pointer), AND --
+     sharper still -- for every Internal whose return value is a vint-
+     tracked "computed int" (fd_is_vint = true: an I32 result temp only
+     ever assigned int constants / bitwise-shift / comparison / sub-word
+     casts, never a pointer or call result -- ret_avoids_bm_of_vint, also
+     ZERO new trust).  fd_is_vint computes to true for both I32 getters
+     mario_get_floor_class / mario_get_terrain_sound_addend, so they are
+     now DISCHARGED.  What stays assumed is the still-sharper residual: the
+     Tint I32 returns that are NOT vint-tracked (the 7 dispatchers, whose
+     status int flows through a switch the syntactic check does not yet
+     track) and the External fundefs (the honest terminal-external model
+     boundary, e.g. EF_vload). *)
   Hypothesis Hret_unsafe : forall fd m0 vargs0 t0 m0' vres0,
       reached_v2 lp fd ->
       RetSurface.ret_fd_safe fd = false ->
+      RetSurface.fd_is_vint fd = false ->
       eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m0' vres0 ->
       forall b o, vres0 = Vptr b o -> b <> bm.
   Lemma Hret_call : forall fd m0 vargs0 t0 m0' vres0,
@@ -2007,7 +2024,7 @@ Section NoARealInputMWF.
       eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m0' vres0 ->
       forall b o, vres0 = Vptr b o -> b <> bm.
   Proof.
-    exact (RetSurface.ret_avoids_bm_of_unsafe function_entry2 (lp_ge lp) bm
+    exact (RetSurface.ret_avoids_bm_of_unsafe_vint (lp_ge lp) bm
              (reached_v2 lp) Hret_unsafe).
   Qed.
 
