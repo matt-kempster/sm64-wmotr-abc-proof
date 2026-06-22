@@ -1002,6 +1002,29 @@ Example cut_iae_walk :
     (fn_body mario.f_is_anim_at_end) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* advance_cutscene_step: the cutscene-step bumper -- three safe-window
+   stores (actionState / actionTimer / actionArg, all outside the protected
+   input/action/chase cells) + one load, no calls.  All-nil census. *)
+Example acs_pin :
+  (prog_defmap mario_actions_cutscene.prog)
+    ! mario_actions_cutscene._advance_cutscene_step
+  = Some (Gfun (Internal mario_actions_cutscene.f_advance_cutscene_step)).
+Proof. vm_compute. reflexivity. Qed.
+Example acs_vars : fn_vars mario_actions_cutscene.f_advance_cutscene_step = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example acs_pok :
+  match fn_params mario_actions_cutscene.f_advance_cutscene_step with
+  | (i, ty) :: ps =>
+      Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id Am (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example acs_walk :
+  wwalk_chk false nil nil nil nil nil nil nil
+    (fn_body mario_actions_cutscene.f_advance_cutscene_step) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* SLICE 16 pins: cutscene_put_cap_on (tiny flags-store helper) and
    act_putting_on_cap. *)
 Example cpco_pin :
@@ -1296,6 +1319,26 @@ Section CutsceneLeafRows.
   Hypothesis Hcpx_rcmf :
     call_pres_ext lp bm NoA MWF C._reset_cutscene_msg_fade.
 
+  (* cutscene jumbo-star (flying): the spline-keyframe animator externals --
+     EF_external terminal boundary, supplied at the capstone by Hpres_obj_ext
+     (both now in ObjectLeafSurface.obj_ext_ids).  NO new capstone trust. *)
+  Hypothesis Hcpx_asi : call_pres_ext lp bm NoA MWF C._anim_spline_init.
+  Hypothesis Hcpx_asp : call_pres_ext lp bm NoA MWF C._anim_spline_poll.
+
+  (* cutscene jumbo-star (falling) input-OR-store keystones (NO new trust:
+     both are PROVED MWFReal projections at the capstone).  jumbo_star_cutscene_
+     falling does `m->input |= INPUT_SQUISHED` (0x80) -- a store into the input
+     cell [2,4) that store_window_ok deliberately EXCLUDES (it is the A-clear
+     cell).  The store is sound because 0x80 & 0x2 = 0, so it preserves
+     input_a_clear (and hence MWF and NoA = ctl_a_clear, whose cells -- bm@156
+     + the controller block -- are disjoint from [2,4)).  HMWF_inp is the
+     input_a_clear projection (mwf_real_inp); HMWF_inp_store is the input-cell
+     store-tolerance row (mwf_real_input). *)
+  Hypothesis HMWF_inp : forall m, MWF m -> AGates.input_a_clear m bm.
+  Hypothesis HMWF_inp_store : forall mm mm' vv,
+      MWF mm -> Int.and vv (Int.repr 2) = Int.zero ->
+      Mem.store Mint16unsigned mm bm 2 (Vint vv) = Some mm' -> MWF mm'.
+
   (* SLICE 17: update_mario_pos_for_anim is WALKED (AutomaticLeafSurface.Humpfa,
      a HYBRID walk: the famft out-param call via oc2 + the two pos[i] window
      stores).  Fed here from the section hyps above -- NO new trust. *)
@@ -1307,6 +1350,28 @@ Section CutsceneLeafRows.
   Proof. eapply ObjectLeafSurface.psinf_row; eassumption. Qed.
   Lemma Hcp_sma : call_pres lp bm NoA MWF mario._set_mario_animation.
   Proof. eapply ObjectLeafSurface.sma_row; eassumption. Qed.
+  (* is_anim_past_end: the loads-only "anim past end?" helper (twin of
+     is_anim_at_end), reused from ObjectLeafSurface -- NO new trust. *)
+  Lemma Hcp_ipae : call_pres lp bm NoA MWF mario._is_anim_past_end.
+  Proof. eapply ObjectLeafSurface.ipae_row; eassumption. Qed.
+  (* advance_cutscene_step: three safe-window stores, no calls (walked in-file,
+     all-nil censuses). *)
+  Lemma cut_acs_row :
+    call_pres lp bm NoA MWF mario_actions_cutscene._advance_cutscene_step.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_cutscene.prog
+             mario_actions_cutscene._advance_cutscene_step
+             mario_actions_cutscene.f_advance_cutscene_step nil nil nil nil
+             LO_cut acs_pin acs_vars acs_pok).
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact acs_walk.
+  Qed.
   Lemma Hcp_sashf :
     call_pres lp bm NoA MWF mario_step._stop_and_set_height_to_floor.
   Proof. eapply SubmergedLeafSurface.sub_sashf_row; eassumption. Qed.
@@ -3880,6 +3945,708 @@ Section CutsceneLeafRows.
              (Eunop Oneg (Econst_int (Int.repr 2) tint) tint)
              (Int.repr 205521409));
       vm_compute; reflexivity.
+  Qed.
+
+  (* ==================================================================== *)
+  (* JUMBO-STAR CUTSCENE (act_jumbo_star_cutscene): an actionArg Sswitch    *)
+  (* dispatcher over three subhandlers (falling / taking_off / flying).     *)
+  (* The dispatcher + subhandlers shrink cut_rest by ONE (act_jumbo_star_   *)
+  (* cutscene becomes a cut_walked_id).                                     *)
+  (* --------------------------------------------------------------------- *)
+  (* falling is the HYBRID leaf: its `m->input |= INPUT_SQUISHED` store     *)
+  (* lands in the input cell [2,4) that store_window_ok deliberately        *)
+  (* EXCLUDES (the A-clear cell).  Everything else is the generic census;   *)
+  (* the one input-OR-store site gets a bespoke arm consuming HMWF_inp /    *)
+  (* HMWF_inp_store (PROVED MWFReal projections -- NO new trust).           *)
+  (* ==================================================================== *)
+
+  (* the generated offset of MarioState.input *)
+  Example input_field_off :
+    field_offset (prog_comp_env mario.prog) mario._input mario_state_members
+    = OK (2, Full).
+  Proof. vm_compute. reflexivity. Qed.
+
+  Definition fall_ids : list ident :=
+    mario._mario_set_forward_vel :: mario._set_mario_animation
+      :: mario_step._perform_air_step :: mario._play_mario_landing_sound
+      :: mario._is_anim_at_end
+      :: mario_actions_cutscene._advance_cutscene_step :: nil.
+  Definition fall_cact : list ident := C._t'4 :: nil.
+  Definition fall_xids : list ident := C._play_cutscene_music :: nil.
+
+  Lemma fall_ids_rows : forall fid, mem_id fid fall_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold fall_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hmsfv | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pas | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact pmls_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cut_iae_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cut_acs_row | discriminate H ].
+  Qed.
+  Lemma fall_xids_rows : forall fid, mem_id fid fall_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold fall_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        apply Hcut_ext; vm_compute; reflexivity | discriminate H ].
+  Qed.
+
+  (* the generic census base (no sc / no lids -- falling's only non-generic
+     site is the input-OR-store, handled by the special arm). *)
+  Definition fall_gen (s : statement) : bool :=
+    wwalk_chk' nil nil nil nil nil nil false nil fall_ids nil fall_cact
+      fall_xids nil nil s.
+
+  (* the input-OR-store recognizer: m->input := (load m->input) | const,
+     with const & INPUT_A_PRESSED(=2) = 0. *)
+  Definition fall_input_field (a : expr) : bool :=
+    match a with
+    | Efield (Ederef (Etempvar p pty) sty) fld faty =>
+        Pos.eqb p C._m
+        && proj_sumbool (type_eq pty (tptr (Tstruct mario._MarioState noattr)))
+        && proj_sumbool (type_eq sty (Tstruct mario._MarioState noattr))
+        && Pos.eqb fld mario._input
+        && proj_sumbool (type_eq faty tushort)
+    | _ => false
+    end.
+  Definition fall_input_chk (s : statement) : bool :=
+    match s with
+    | Ssequence (Sset t src)
+                (Sassign dst (Ebinop Oor (Etempvar q qty) (Econst_int c cty) bty)) =>
+        fall_input_field src && fall_input_field dst
+        && Pos.eqb q t
+        && proj_sumbool (type_eq qty tushort)
+        && proj_sumbool (type_eq cty tint)
+        && proj_sumbool (type_eq bty tint)
+        && proj_sumbool (Int.eq_dec (Int.and c (Int.repr 2)) Int.zero)
+        && negb (Pos.eqb t C._m)
+        && negb (mem_id t fall_cact)
+    | _ => false
+    end.
+
+  Lemma fall_input_field_shape : forall a,
+      fall_input_field a = true ->
+      exists pty faty,
+        a = Efield (Ederef (Etempvar C._m pty) (Tstruct mario._MarioState noattr))
+              mario._input faty
+        /\ pty = tptr (Tstruct mario._MarioState noattr)
+        /\ faty = tushort.
+  Proof.
+    intros a H.
+    destruct a as [ | | | | | | | | | | | e0 fld faty | | ]; try discriminate H.
+    destruct e0 as [ | | | | | | e1 sty | | | | | | | ]; try discriminate H.
+    destruct e1 as [ | | | | | p pty | | | | | | | | ]; try discriminate H.
+    unfold fall_input_field in H.
+    apply andb_true_iff in H as [H Hfa].
+    apply andb_true_iff in H as [H Hfld].
+    apply andb_true_iff in H as [H Hsty].
+    apply andb_true_iff in H as [Hp Hpty].
+    apply Pos.eqb_eq in Hp; subst p.
+    apply Pos.eqb_eq in Hfld; subst fld.
+    destruct (type_eq pty (tptr (Tstruct mario._MarioState noattr)));
+      [ subst pty | discriminate Hpty ].
+    destruct (type_eq sty (Tstruct mario._MarioState noattr));
+      [ subst sty | discriminate Hsty ].
+    destruct (type_eq faty tushort); [ subst faty | discriminate Hfa ].
+    eauto.
+  Qed.
+
+  Lemma fall_input_shape : forall s,
+      fall_input_chk s = true ->
+      exists t c,
+        s = Ssequence
+              (Sset t (Efield (Ederef (Etempvar C._m
+                          (tptr (Tstruct mario._MarioState noattr)))
+                          (Tstruct mario._MarioState noattr)) mario._input tushort))
+              (Sassign (Efield (Ederef (Etempvar C._m
+                          (tptr (Tstruct mario._MarioState noattr)))
+                          (Tstruct mario._MarioState noattr)) mario._input tushort)
+                 (Ebinop Oor (Etempvar t tushort) (Econst_int c tint) tint))
+        /\ Int.and c (Int.repr 2) = Int.zero
+        /\ Pos.eqb t C._m = false /\ mem_id t fall_cact = false.
+  Proof.
+    intros s H. unfold fall_input_chk in H.
+    destruct s as [ | | | | | s1 s2 | | | | | | | | ]; try discriminate H.
+    destruct s1 as [ | | t src | | | | | | | | | | | ]; try discriminate H.
+    destruct s2 as [ | dst rhs | | | | | | | | | | | | ]; try discriminate H.
+    destruct rhs as [ | | | | | | | | | op b1 b2 bty | | | | ]; try discriminate H.
+    destruct op; try discriminate H.
+    destruct b1 as [ | | | | | q qty | | | | | | | | ]; try discriminate H.
+    destruct b2 as [ c cty | | | | | | | | | | | | | ]; try discriminate H.
+    apply andb_true_iff in H as [H Hnmem].
+    apply andb_true_iff in H as [H Hnm].
+    apply andb_true_iff in H as [H Hand2].
+    apply andb_true_iff in H as [H Hbty].
+    apply andb_true_iff in H as [H Hcty].
+    apply andb_true_iff in H as [H Hqty].
+    apply andb_true_iff in H as [H Hqt].
+    apply andb_true_iff in H as [Hsrc Hdst].
+    apply Pos.eqb_eq in Hqt; subst q.
+    destruct (fall_input_field_shape _ Hsrc) as (pty1 & faty1 & -> & -> & ->).
+    destruct (fall_input_field_shape _ Hdst) as (pty2 & faty2 & -> & -> & ->).
+    destruct (type_eq qty tushort); [ subst qty | discriminate Hqty ].
+    destruct (type_eq cty tint); [ subst cty | discriminate Hcty ].
+    destruct (type_eq bty tint); [ subst bty | discriminate Hbty ].
+    destruct (Int.eq_dec (Int.and c (Int.repr 2)) Int.zero) as [Heq | ];
+      [ | discriminate Hand2 ].
+    apply negb_true_iff in Hnm.
+    apply negb_true_iff in Hnmem.
+    exists t, c. split; [ reflexivity | ].
+    split; [ exact Heq | ].
+    split; [ exact Hnm | exact Hnmem ].
+  Qed.
+
+  Fixpoint fall_chk (s : statement) : bool :=
+    fall_gen s
+    || match s with
+       | Ssequence s1 s2 => fall_input_chk s || (fall_chk s1 && fall_chk s2)
+       | Sifthenelse _ s1 s2 => fall_chk s1 && fall_chk s2
+       | _ => false
+       end.
+
+  (* the generic-subtree discharger: ONE wwalk_pres call, falling census. *)
+  Lemma fall_generic :
+    forall s e le m0 tr le' m' out,
+      (forall g, mem_id g stored_globals = true -> e ! g = None) ->
+      (forall g, mem_id g fall_ids = true -> e ! g = None) ->
+      (forall g, mem_id g fall_xids = true -> e ! g = None) ->
+      e ! interaction._gGlobalTimer = None ->
+      fall_gen s = true ->
+      (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      act_inv nil le ->
+      chase_inv SafeB fall_cact le ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\
+      NoA m' /\
+      (forall b o, le' ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) /\
+      act_inv nil le' /\ chase_inv SafeB fall_cact le'.
+  Proof.
+    intros s e le m0 tr le' m' out Hub_g Hub_i Hub_x Hubgt
+           Hchk Htat Hact Hch HN HM HV HS Hexec.
+    unfold fall_gen in Hchk.
+    destruct (wwalk_pres lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+                false nil fall_ids nil fall_cact fall_xids nil nil
+                nil nil nil nil nil nil
+                fall_ids_rows
+                (fun fid HH => match Bool.diff_false_true HH with end)
+                fall_xids_rows
+                (fun fid HH => match Bool.diff_false_true HH with end)
+                (fun fid HH => match Bool.diff_false_true HH with end)
+                (fun fid HH => match Bool.diff_false_true HH with end)
+                (fun fid HH => match Bool.diff_false_true HH with end)
+                (fun fid HH => match Bool.diff_false_true HH with end)
+                (fun fid HH => match Bool.diff_false_true HH with end)
+                _ _ _ _ _ _ _ _
+                (fun _ => Hls_real)
+                (fun lid HH => match Bool.diff_false_true HH with end)
+                Hexec
+                Hub_g Hub_i
+                (fun g HH => match Bool.diff_false_true HH with end)
+                Hub_x
+                (fun g HH => match Bool.diff_false_true HH with end)
+                (fun g HH => match Bool.diff_false_true HH with end)
+                (fun g HH => match Bool.diff_false_true HH with end)
+                (fun g HH => match Bool.diff_false_true HH with end)
+                (fun g HH => match Bool.diff_false_true HH with end)
+                (fun g HH => match Bool.diff_false_true HH with end)
+                Hubgt
+                Hchk Htat Hact Hch
+                (fun t HH => match Bool.diff_false_true HH with end)
+                HN HM HV HS)
+      as (HV' & HS' & HM' & HN' & Htat' & Hact' & Hch' & _ & _).
+    exact (conj HV' (conj HS' (conj HM' (conj HN'
+             (conj Htat' (conj Hact' Hch')))))).
+  Qed.
+
+  (* THE INPUT-OR-STORE ARM: m->input := (load m->input) | const, with
+     const & 2 = 0.  The loaded value `old` is A-clear (HMWF_inp); OR-ing a
+     2-clear const keeps it 2-clear, so the store preserves MWF (HMWF_inp_
+     store) and hence NoA = ctl_a_clear (HNoA_of_MWF).  The action cell @12 is
+     disjoint from the input cell @2, so action_sat survives. *)
+  Lemma fall_input_pres :
+    forall t c e le m0 tr le' m' out,
+      Pos.eqb t C._m = false ->
+      mem_id t fall_cact = false ->
+      Int.and c (Int.repr 2) = Int.zero ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0
+        (Ssequence
+           (Sset t (Efield (Ederef (Etempvar C._m
+                       (tptr (Tstruct mario._MarioState noattr)))
+                     (Tstruct mario._MarioState noattr)) mario._input tushort))
+           (Sassign (Efield (Ederef (Etempvar C._m
+                       (tptr (Tstruct mario._MarioState noattr)))
+                     (Tstruct mario._MarioState noattr)) mario._input tushort)
+              (Ebinop Oor (Etempvar t tushort) (Econst_int c tint) tint)))
+        tr le' m' out ->
+      (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      act_inv nil le -> chase_inv SafeB fall_cact le ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\
+      NoA m' /\
+      (forall b o, le' ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) /\
+      act_inv nil le' /\ chase_inv SafeB fall_cact le'.
+  Proof.
+    intros t c e le m0 tr le' m' out Hneq Hnmem Hc Hexec Htat Hact Hch
+           HN HM HV HS.
+    inv Hexec.
+    2:{ (* Sseq_2: the Sset never exits non-normally *)
+        match goal with
+        | Hs : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv Hs
+        end.
+        match goal with
+        | Hne : Out_normal <> Out_normal |- _ => destruct (Hne eq_refl)
+        end. }
+    (* --- the Sset: t <- load m->input --- *)
+    match goal with
+    | Hset : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ Out_normal |- _ =>
+        inv Hset
+    end.
+    match goal with
+    | Hev : eval_expr _ _ _ _ (Efield _ _ _) _ |- _ => inv Hev
+    end.
+    match goal with
+    | Hlv0 : eval_lvalue _ _ _ _ (Efield _ _ _) _ _ _ |- _ =>
+        pose proof Hlv0 as Hpin;
+        apply eval_lvalue_Efield_base in Hpin;
+        destruct Hpin as (oo0 & Hbase);
+        apply eval_expr_Ederef_load in Hbase;
+        destruct Hbase as (lb & ob & bfb & Hlvb & _);
+        apply eval_lvalue_Ederef_base in Hlvb;
+        apply eval_expr_Etempvar_val in Hlvb
+    end.
+    destruct (Htat _ _ Hlvb) as [E1 E2]. subst lb ob.
+    match goal with
+    | Hlv0 : eval_lvalue _ _ _ _ (Efield _ _ _) ?loc ?ofs ?bf |- _ =>
+        destruct (mfield_lvalue_geom_lp lp LO_mario _ _ _ _ _ _
+                    loc ofs bf _ _ _ Hlvb input_field_off Hlv0)
+          as (E3 & E4 & E5);
+        subst loc ofs bf
+    end.
+    match goal with
+    | Hd : deref_loc (typeof _) _ _ _ _ _ |- _ => cbn [typeof] in Hd
+    end.
+    match goal with
+    | Hd : deref_loc tushort _ _ _ _ _ |- _ =>
+        inv Hd;
+        try (match goal with
+             | Hac : access_mode tushort = _ |- _ => cbn in Hac; discriminate Hac
+             end);
+        try (match goal with
+             | Hlb : load_bitfield tushort _ _ _ _ _ _ _ |- _ => inv Hlb
+             end)
+    end.
+    match goal with
+    | Hac : access_mode tushort = By_value ?ch |- _ =>
+        change (access_mode tushort) with (By_value Mint16unsigned) in Hac;
+        injection Hac as <-
+    end.
+    match goal with
+    | Hlr : Mem.loadv _ _ _ = Some _ |- _ =>
+        unfold Mem.loadv in Hlr; rewrite Ptrofs.add_zero_l in Hlr;
+        change (Ptrofs.unsigned (Ptrofs.repr 2)) with 2 in Hlr;
+        rename Hlr into Hload
+    end.
+    (* --- the Sassign: m->input := t | c --- *)
+    match goal with
+    | Hasn : exec_stmt _ _ _ _ _ (Sassign _ _) _ _ _ _ |- _ => inv Hasn
+    end.
+    (* the store lvalue geometry: (bm, 2) *)
+    match goal with
+    | Hlv1 : eval_lvalue _ _ _ _ (Efield _ _ _) _ _ _ |- _ =>
+        pose proof Hlv1 as Hpin1;
+        apply eval_lvalue_Efield_base in Hpin1;
+        destruct Hpin1 as (oo1 & Hbase1);
+        apply eval_expr_Ederef_load in Hbase1;
+        destruct Hbase1 as (lb1 & ob1 & bfb1 & Hlvb1 & _);
+        apply eval_lvalue_Ederef_base in Hlvb1;
+        apply eval_expr_Etempvar_val in Hlvb1
+    end.
+    (* the store base loads in (PTree.set t v le); peel a COPY to pin bm,
+       keeping the original Hlvb1 in the le1 env that the lvalue uses. *)
+    pose proof Hlvb1 as Hlvb1c.
+    rewrite PTree.gso in Hlvb1c
+      by (intro EE; rewrite <- EE in Hneq; vm_compute in Hneq; discriminate Hneq).
+    destruct (Htat _ _ Hlvb1c) as [E1' E2']. subst lb1 ob1.
+    match goal with
+    | Hlv1 : eval_lvalue _ _ _ _ (Efield _ _ _) ?loc ?ofs ?bf |- _ =>
+        destruct (mfield_lvalue_geom_lp lp LO_mario _ _ _ _ _ _
+                    loc ofs bf _ _ _ Hlvb1 input_field_off Hlv1)
+          as (F3 & F4 & F5);
+        subst loc ofs bf
+    end.
+    (* the RHS eval: Oor (Etempvar t) (Econst_int c) *)
+    match goal with
+    | Hev : eval_expr _ _ _ _ (Ebinop _ _ _ _) _ |- _ =>
+        inv Hev;
+        try (match goal with
+             | Hlv : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => inv Hlv
+             end)
+    end.
+    match goal with
+    | Ht : eval_expr _ _ _ _ (Etempvar t _) _ |- _ =>
+        inv Ht;
+        try (match goal with
+             | Hlv : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv Hlv
+             end)
+    end.
+    match goal with
+    | Hcst : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+        inv Hcst;
+        try (match goal with
+             | Hlv : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ => inv Hlv
+             end)
+    end.
+    (* the temp t holds the loaded value v *)
+    match goal with
+    | Hget : (PTree.set t ?vv le) ! t = Some _ |- _ =>
+        rewrite PTree.gss in Hget; injection Hget as <-
+    end.
+    (* a Mint16unsigned load is Vint or Vundef; sem_or forces Vint old *)
+    match goal with
+    | Hsem : sem_binary_operation _ Oor ?v0 _ _ _ _ = Some _ |- _ =>
+        destruct v0 as [ | old | | | | ];
+        try (cbn in Hsem; discriminate Hsem)
+    end.
+    assert (Hold2 : Int.and old (Int.repr 2) = Int.zero)
+      by (apply (HMWF_inp _ HM); exact Hload).
+    match goal with
+    | Hsem : sem_binary_operation _ Oor _ _ _ _ _ = Some _ |- _ =>
+        cbn in Hsem; injection Hsem as <-
+    end.
+    match goal with
+    | Hcast : sem_cast _ _ _ _ = Some _ |- _ =>
+        cbn in Hcast; injection Hcast as <-
+    end.
+    (* the assign_loc By_value store at (bm, 2) *)
+    match goal with
+    | Has : assign_loc _ _ _ _ _ _ _ m' |- _ =>
+        cbn [typeof] in Has; inv Has;
+        try (match goal with
+             | Hac : access_mode tushort = By_reference |- _ => discriminate Hac
+             end);
+        try (match goal with
+             | Hac : access_mode tushort = By_copy |- _ => discriminate Hac
+             end)
+    end.
+    match goal with
+    | Hac : access_mode tushort = By_value ?ch |- _ =>
+        change (access_mode tushort) with (By_value Mint16unsigned) in Hac;
+        injection Hac as <-
+    end.
+    match goal with
+    | Hsv : Mem.storev _ _ _ _ = Some m' |- _ =>
+        unfold Mem.storev in Hsv; rewrite Ptrofs.add_zero_l in Hsv;
+        change (Ptrofs.unsigned (Ptrofs.repr 2)) with 2 in Hsv;
+        rename Hsv into Hstore
+    end.
+    assert (Hvv : Int.and (Int.zero_ext 16 (Int.or old c)) (Int.repr 2)
+                  = Int.zero)
+      by (rewrite and2_zero_ext16; apply and2_or_clear; assumption).
+    assert (HM' : MWF m')
+      by (eapply HMWF_inp_store; [ exact HM | exact Hvv | exact Hstore ]).
+    split; [ exact (Mem.store_valid_block_1 _ _ _ _ _ _ Hstore _ HV) | ].
+    split.
+    { intros av Hl.
+      rewrite (Mem.load_store_other _ _ _ _ _ _ Hstore) in Hl;
+        [ exact (HS av Hl) | right; right; cbn [size_chunk]; lia ]. }
+    split; [ exact HM' | ].
+    split; [ exact (HNoA_of_MWF _ HM') | ].
+    split.
+    { intros b o Hg.
+      rewrite PTree.gso in Hg
+        by (intro EE; rewrite <- EE in Hneq; vm_compute in Hneq;
+            discriminate Hneq).
+      exact (Htat _ _ Hg). }
+    split.
+    { intros t' Hmem' x Hg'; discriminate Hmem'. }
+    { intros t' Hmem' b o Hg'.
+      rewrite PTree.gso in Hg'
+        by (intro EE; rewrite EE in Hmem'; rewrite Hmem' in Hnmem;
+            discriminate Hnmem).
+      exact (Hch _ Hmem' _ _ Hg'). }
+  Qed.
+
+  (* THE HYBRID WALK: exec-derivation induction.  Generic subtrees go to
+     fall_generic wholesale; the input-OR-store Ssequence goes to
+     fall_input_pres (the novel arm). *)
+  Lemma fall_pres :
+    forall s e le m0 tr le' m' out,
+      exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
+      (forall g, mem_id g stored_globals = true -> e ! g = None) ->
+      (forall g, mem_id g fall_ids = true -> e ! g = None) ->
+      (forall g, mem_id g fall_xids = true -> e ! g = None) ->
+      e ! interaction._gGlobalTimer = None ->
+      fall_chk s = true ->
+      (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      act_inv nil le ->
+      chase_inv SafeB fall_cact le ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\
+      NoA m' /\
+      (forall b o, le' ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) /\
+      act_inv nil le' /\ chase_inv SafeB fall_cact le'.
+  Proof.
+    intros s e le m0 tr le' m' out Hexec.
+    induction Hexec;
+      intros Hub_g Hub_i Hub_x Hubgt
+             Hchk Htat Hact Hch HN HM HV HS.
+    - (* Sskip *)
+      exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact Hch)))))).
+    - (* Sassign: generic only *)
+      cbn [fall_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hrest]; [ | discriminate Hrest ].
+      eapply (fall_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hubgt
+                Hg Htat Hact Hch HN HM HV HS);
+        eapply exec_Sassign; eauto.
+    - (* Sset: generic only *)
+      cbn [fall_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hrest]; [ | discriminate Hrest ].
+      eapply (fall_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hubgt
+                Hg Htat Hact Hch HN HM HV HS);
+        eapply exec_Sset; eauto.
+    - (* Scall: generic censused arm *)
+      cbn [fall_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hrest]; [ | discriminate Hrest ].
+      eapply (fall_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hubgt
+                Hg Htat Hact Hch HN HM HV HS);
+        eapply exec_Scall; eauto.
+    - (* Sbuiltin: rejected by both arms *)
+      cbn [fall_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hrest];
+        [ unfold fall_gen in Hg; cbn [wwalk_chk'] in Hg; discriminate Hg
+        | discriminate Hrest ].
+    - (* Sseq_1: generic, the input-OR-store, or recurse *)
+      cbn [fall_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hrest].
+      { eapply (fall_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hubgt
+                  Hg Htat Hact Hch HN HM HV HS);
+          eapply exec_Sseq_1; eauto. }
+      apply orb_true_iff in Hrest as [Hinput | Hand].
+      + (* THE INPUT-OR-STORE *)
+        destruct (fall_input_shape _ Hinput)
+          as (t6 & c6 & Es & Hand2 & Hneq & Hnmem).
+        injection Es as -> ->.
+        eapply fall_input_pres; try eassumption.
+        eapply exec_Sseq_1; eauto.
+      + apply andb_prop in Hand as [H1 H2].
+        destruct (IHHexec1 Hub_g Hub_i Hub_x Hubgt H1
+                    Htat Hact Hch HN HM HV HS)
+          as (HV1 & HS1 & HM1 & HN1 & Htat1 & Hact1 & Hch1).
+        exact (IHHexec2 Hub_g Hub_i Hub_x Hubgt H2
+                 Htat1 Hact1 Hch1 HN1 HM1 HV1 HS1).
+    - (* Sseq_2 *)
+      cbn [fall_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hrest].
+      { eapply (fall_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hubgt
+                  Hg Htat Hact Hch HN HM HV HS);
+          eapply exec_Sseq_2; eauto. }
+      apply orb_true_iff in Hrest as [Hinput | Hand].
+      + (* the input-store's Sset cannot exit non-normally *)
+        exfalso.
+        destruct (fall_input_shape _ Hinput)
+          as (t6 & c6 & Es & _ & _ & _).
+        injection Es as -> ->.
+        match goal with
+        | H1 : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H1
+        end.
+        match goal with
+        | Hne : Out_normal <> Out_normal |- _ => exact (Hne eq_refl)
+        end.
+      + apply andb_prop in Hand as [H1 _].
+        exact (IHHexec Hub_g Hub_i Hub_x Hubgt H1
+                 Htat Hact Hch HN HM HV HS).
+    - (* Sifthenelse *)
+      cbn [fall_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hsp].
+      { eapply (fall_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hubgt
+                  Hg Htat Hact Hch HN HM HV HS);
+          eapply exec_Sifthenelse; eauto. }
+      apply andb_prop in Hsp as [H1 H2].
+      apply IHHexec; try assumption.
+      destruct b; assumption.
+    - (* Sreturn None *)
+      exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact Hch)))))).
+    - (* Sreturn (Some a) *)
+      exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact Hch)))))).
+    - (* Sbreak *)
+      exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact Hch)))))).
+    - (* Scontinue *)
+      exact (conj HV (conj HS (conj HM (conj HN
+               (conj Htat (conj Hact Hch)))))).
+    - (* Sloop stop1: generic only *)
+      cbn [fall_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hrest]; [ | discriminate Hrest ].
+      eapply (fall_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hubgt
+                Hg Htat Hact Hch HN HM HV HS);
+        eapply exec_Sloop_stop1; eauto.
+    - (* Sloop stop2: generic only *)
+      cbn [fall_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hrest]; [ | discriminate Hrest ].
+      eapply (fall_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hubgt
+                Hg Htat Hact Hch HN HM HV HS);
+        eapply exec_Sloop_stop2; eauto.
+    - (* Sloop loop: generic only *)
+      cbn [fall_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hrest]; [ | discriminate Hrest ].
+      eapply (fall_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hubgt
+                Hg Htat Hact Hch HN HM HV HS);
+        eapply exec_Sloop_loop; eauto.
+    - (* Sswitch: generic only *)
+      cbn [fall_chk] in Hchk.
+      apply orb_true_iff in Hchk as [Hg | Hrest]; [ | discriminate Hrest ].
+      eapply (fall_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hubgt
+                Hg Htat Hact Hch HN HM HV HS);
+        eapply exec_Sswitch; eauto.
+  Qed.
+
+  (* the falling subhandler is Internal in mario_actions_cutscene.prog *)
+  Lemma fall_pin :
+    (prog_defmap mario_actions_cutscene.prog)
+      ! mario_actions_cutscene._jumbo_star_cutscene_falling
+    = Some (Gfun (Internal
+                    mario_actions_cutscene.f_jumbo_star_cutscene_falling)).
+  Proof. vm_compute. reflexivity. Qed.
+
+  (* NON-VACUITY: the hybrid recognizer accepts the REAL falling body. *)
+  Lemma fall_walk :
+    fall_chk (fn_body mario_actions_cutscene.f_jumbo_star_cutscene_falling)
+    = true.
+  Proof. vm_compute. reflexivity. Qed.
+
+  (* THE LEAF: fn_vars = nil, 1 param _m; the body goes to fall_pres. *)
+  Lemma falling_body_pres :
+    body_pres lp NoA MWF bm
+      mario_actions_cutscene.f_jumbo_star_cutscene_falling.
+  Proof.
+    intros m0 vargs0 t0 mF vres0 Hmargf Hevf HN HM HV HS.
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      rename Ha into Halloc end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    match goal with
+    | Hb : exec_stmt _ _ ?E _ _ _ _ _ _ _ |- _ => set (eloc := E) in *
+    end.
+    assert (Hc0 : LocalVarsSurface.carried bm NoA MWF m0)
+      by (split; [ exact HV | split; [ exact HS
+                 | split; [ exact HM | exact HN ] ] ]).
+    pose proof (LocalVarsSurface.alloc_variables_carried
+                  bm NoA MWF HMWF_alloc HNoA_of_MWF
+                  _ _ _ _ _ _ Halloc Hc0) as Hca.
+    destruct Hca as (HVa & HSa & HMa & HNa).
+    assert (Hps : match
+                    fn_params
+                      mario_actions_cutscene.f_jumbo_star_cutscene_falling
+                  with
+                  | (i, ty) :: ps =>
+                      (Pos.eqb i mario_actions_airborne._m
+                       && proj_sumbool (type_eq ty tyMSp)
+                       && negb (mem_id mario_actions_airborne._m
+                                  (map fst ps)))%bool
+                  | nil => false
+                  end = true) by (vm_compute; reflexivity).
+    assert (Hnpc : forallb
+              (fun t' => negb (mem_id t'
+                 (map fst (fn_params
+                    mario_actions_cutscene.f_jumbo_star_cutscene_falling))))
+              fall_cact = true) by (vm_compute; reflexivity).
+    assert (Hmarg : marg_ok bm vargs0)
+      by (apply Hmargf; vm_compute; reflexivity).
+    destruct (fn_params mario_actions_cutscene.f_jumbo_star_cutscene_falling)
+      as [| [i ty] ps ] eqn:Eps; [ discriminate Hps | ].
+    apply andb_prop in Hps as [Hps Hnm].
+    apply andb_prop in Hps as [Hi Hty].
+    apply Pos.eqb_eq in Hi. subst i.
+    destruct (type_eq ty tyMSp); [ subst ty | discriminate Hty ].
+    apply negb_true_iff in Hnm.
+    destruct vargs0 as [| v0 vrest];
+      cbn [bind_parameter_temps] in Hbind; [ discriminate Hbind | ].
+    match goal with
+    | Hbind' : bind_parameter_temps _ _ _ = Some ?le1 |- _ =>
+        assert (Htat0 : forall b o,
+                   le1 ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero)
+          by (intros b o Hg;
+              rewrite (bind_params_other _ _ _ _ _ Hbind' Hnm) in Hg;
+              rewrite PTree.gss in Hg; injection Hg as ->;
+              cbn in Hmarg; exact Hmarg);
+        assert (Hact0 : act_inv nil le1)
+          by (intros t' Hmem' x Hg'; discriminate Hmem');
+        assert (Hch0 : chase_inv SafeB fall_cact le1)
+          by (intros t' Hmem' b o Hg';
+              pose proof (forallb_negb_mem_id _ _ _ Hnpc Hmem') as Hf';
+              unfold mem_id in Hf'; cbn [map fst existsb] in Hf';
+              apply orb_false_iff in Hf' as [Hne_m' Hnps];
+              rewrite (bind_params_other _ _ _ _ _ Hbind' Hnps) in Hg';
+              rewrite PTree.gso in Hg'
+                by (intro EE; rewrite EE, Pos.eqb_refl in Hne_m';
+                    discriminate Hne_m');
+              pose proof (create_undef_temps_val _ _ _ Hg') as EE;
+              discriminate EE)
+    end.
+    assert (Hub_g : forall g, mem_id g stored_globals = true ->
+                    eloc ! g = None).
+    { intros g Hg.
+      rewrite (LocalVarsSurface.alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc g)
+        by (intro Hin; vm_compute in Hin; exact Hin).
+      apply PTree.gempty. }
+    assert (Hub_i : forall g, mem_id g fall_ids = true -> eloc ! g = None).
+    { intros g Hg.
+      rewrite (LocalVarsSurface.alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc g)
+        by (intro Hin; vm_compute in Hin; exact Hin).
+      apply PTree.gempty. }
+    assert (Hub_x : forall g, mem_id g fall_xids = true -> eloc ! g = None).
+    { intros g Hg.
+      rewrite (LocalVarsSurface.alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc g)
+        by (intro Hin; vm_compute in Hin; exact Hin).
+      apply PTree.gempty. }
+    assert (Hub_gt : eloc ! interaction._gGlobalTimer = None).
+    { rewrite (LocalVarsSurface.alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc
+                 interaction._gGlobalTimer)
+        by (intro Hin; vm_compute in Hin; exact Hin).
+      apply PTree.gempty. }
+    destruct (fall_pres _ _ _ _ _ _ _ _ Hbody
+                Hub_g Hub_i Hub_x Hub_gt
+                fall_walk Htat0 Hact0 Hch0 HNa HMa HVa HSa)
+      as (HVb & HSb & HMb & HNb & _ & _ & _).
+    pose proof (LocalVarsSurface.blocks_of_env_bm lp bm m0 _ eloc _ Halloc HV) as Hforall.
+    pose proof (LocalVarsSurface.free_list_carried_bm bm NoA MWF HMWF_free HNoA_of_MWF
+                  (blocks_of_env (lp_ge lp) eloc) _ mF Hforall Hfree
+                  (conj HVb (conj HSb (conj HMb HNb))))
+      as (HVf & HSf & HMf & HNf).
+    exact (conj HVf (conj HSf HMf)).
   Qed.
 
   (* ==================================================================== *)
