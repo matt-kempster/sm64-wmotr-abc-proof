@@ -369,7 +369,15 @@ Definition cut_ext_ids : list ident :=
        same honest model-boundary class. *)
     :: C._spawn_object :: C._create_dialog_box_with_response
     :: C._disable_background_sound :: C._enable_background_sound
-    :: C._play_course_clear :: C._play_music :: C._save_file_do_save :: nil.
+    :: C._play_course_clear :: C._play_music :: C._save_file_do_save
+    (* SLICE 26 act_exit_land_save_dialog externals: the save-menu commit
+       (set_menu_mode), peach's-jingle audio cue, and the two
+       level-transition audio externals reached through the NON-Mario
+       fade_into_special_warp body (fadeout_music / play_transition).  All
+       EF_external in EVERY linked TU (verified -- no Internal body anywhere
+       under generated/), same honest model-boundary class. *)
+    :: C._set_menu_mode :: C._play_peachs_jingle
+    :: level_update._fadeout_music :: level_update._play_transition :: nil.
 
 (* act_reading_sign: body_pres_of_wwalk (wact=nil, cact=nil -- marioObj/usedObj
    chase temps are only LOADED; the only stores are direct non-action m-fields:
@@ -543,7 +551,8 @@ Definition cut_walked_ids : list ident :=
     :: C._check_for_instant_quicksand
     :: C._act_unlocking_key_door
     :: C._act_credits_cutscene
-    :: C._act_jumbo_star_cutscene :: nil.
+    :: C._act_jumbo_star_cutscene
+    :: C._act_exit_land_save_dialog :: nil.
 Definition cut_rest_ids : list ident :=
   filter (fun id => negb (mem_id id cut_walked_ids)) cutscene_callee_ids.
 
@@ -4872,6 +4881,324 @@ Section CutsceneLeafRows.
   Qed.
 
   (* ==================================================================== *)
+  (* SLICE 26: act_exit_land_save_dialog (eld).  The save-menu landing     *)
+  (* leaf.  Three NON-Mario level-transition glob-setters in the          *)
+  (* handle_save_menu subtree -- fade_into_special_warp -> { warp_special, *)
+  (* level_set_transition } (level_update.prog) -- only store into          *)
+  (* bm-disjoint statics (stored_globals, Hglob_blk), so each is walked as  *)
+  (* call_pres_ext via the marg-FREE call_pres_ext_of_wwalk producer (NO m  *)
+  (* param: the m->bm chase invariant is vacuous).  cutscene_take_cap_off   *)
+  (* is the cpco twin (2 m->flags stores + play_sound).  The leaf itself    *)
+  (* chases m->marioBodyState (handState/eyeState) + m->marioObj            *)
+  (* (gfx.angle[1] deep indexed store) -- cact = [t'17;t'16;t'11].          *)
+  (* gSaveOptSelectIndex + the 5 transition statics ride stored_globals;    *)
+  (* the 4 dialog/audio externals ride cut_ext_ids (Hcut_ext).  NO new      *)
+  (* capstone hypothesis: every brick is an existing section term.          *)
+  (* ==================================================================== *)
+
+  (* --- warp_special: 3 glob stores (sCurrPlayMode/D_80339ECA/D_80339EE0),
+     NON-Mario param _arg, no callees.  call_pres_ext_of_wwalk. --- *)
+  Example wsp_pin :
+    (prog_defmap level_update.prog) ! level_update._warp_special
+    = Some (Gfun (Internal level_update.f_warp_special)).
+  Proof. vm_compute. reflexivity. Qed.
+  Example wsp_vars : fn_vars level_update.f_warp_special = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example wsp_no_m :
+    negb (mem_id Am (map fst (fn_params level_update.f_warp_special))) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example wsp_walk :
+    wwalk_chk false nil nil nil nil nil nil nil
+      (fn_body level_update.f_warp_special) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma wsp_row : call_pres_ext lp bm NoA MWF level_update._warp_special.
+  Proof.
+    apply (call_pres_ext_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             level_update.prog level_update._warp_special
+             level_update.f_warp_special nil nil nil nil
+             LO_lvl wsp_pin wsp_vars wsp_no_m).
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - exact wsp_walk.
+  Qed.
+
+  (* --- level_set_transition: 2 glob stores (sTransitionTimer = length,
+     sTransitionUpdate = updateFunction, a funptr -> By_value Mptr store),
+     NON-Mario params, no callees.  call_pres_ext_of_wwalk. --- *)
+  Example lst_pin :
+    (prog_defmap level_update.prog) ! level_update._level_set_transition
+    = Some (Gfun (Internal level_update.f_level_set_transition)).
+  Proof. vm_compute. reflexivity. Qed.
+  Example lst_vars : fn_vars level_update.f_level_set_transition = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example lst_no_m :
+    negb (mem_id Am (map fst (fn_params level_update.f_level_set_transition)))
+    = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example lst_walk :
+    wwalk_chk false nil nil nil nil nil nil nil
+      (fn_body level_update.f_level_set_transition) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma lst_row :
+    call_pres_ext lp bm NoA MWF level_update._level_set_transition.
+  Proof.
+    apply (call_pres_ext_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             level_update.prog level_update._level_set_transition
+             level_update.f_level_set_transition nil nil nil nil
+             LO_lvl lst_pin lst_vars lst_no_m).
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - exact lst_walk.
+  Qed.
+
+  (* --- fade_into_special_warp: local Sset of param _color + 4 calls
+     (fadeout_music/play_transition externals + level_set_transition/
+     warp_special internals), NO stores, NON-Mario params.  Walked as
+     call_pres_ext; xids = the 4 callees. --- *)
+  Definition fiw_xids : list ident :=
+    level_update._fadeout_music :: level_update._play_transition
+      :: level_update._level_set_transition :: level_update._warp_special :: nil.
+  Example fiw_pin :
+    (prog_defmap level_update.prog) ! level_update._fade_into_special_warp
+    = Some (Gfun (Internal level_update.f_fade_into_special_warp)).
+  Proof. vm_compute. reflexivity. Qed.
+  Example fiw_vars : fn_vars level_update.f_fade_into_special_warp = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example fiw_no_m :
+    negb (mem_id Am (map fst (fn_params level_update.f_fade_into_special_warp)))
+    = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example fiw_walk :
+    wwalk_chk false nil nil nil nil fiw_xids nil nil
+      (fn_body level_update.f_fade_into_special_warp) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma fiw_xids_rows : forall fid, mem_id fid fiw_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold fiw_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; apply Hcut_ext; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; apply Hcut_ext; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact lst_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact wsp_row | discriminate H ].
+  Qed.
+  Lemma fiw_row :
+    call_pres_ext lp bm NoA MWF level_update._fade_into_special_warp.
+  Proof.
+    apply (call_pres_ext_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             level_update.prog level_update._fade_into_special_warp
+             level_update.f_fade_into_special_warp nil nil fiw_xids nil
+             LO_lvl fiw_pin fiw_vars fiw_no_m).
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - exact fiw_xids_rows.
+    - intros fid' H; discriminate H.
+    - exact fiw_walk.
+  Qed.
+
+  (* --- cutscene_take_cap_off: the cpco twin (flags &= ~16; flags |= 32;
+     play_sound), marioObj read-only.  call_pres_of_wwalk. --- *)
+  Definition ctco_xids : list ident := mario._play_sound :: nil.
+  Example ctco_pin :
+    (prog_defmap C.prog) ! C._cutscene_take_cap_off
+    = Some (Gfun (Internal C.f_cutscene_take_cap_off)).
+  Proof. vm_compute. reflexivity. Qed.
+  Example ctco_vars : fn_vars C.f_cutscene_take_cap_off = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example ctco_pok :
+    match fn_params C.f_cutscene_take_cap_off with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example ctco_walk :
+    wwalk_chk false nil nil nil nil ctco_xids nil nil
+      (fn_body C.f_cutscene_take_cap_off) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma ctco_xids_rows : forall fid, mem_id fid ctco_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold ctco_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | discriminate H ].
+  Qed.
+  Lemma ctco_row : call_pres lp bm NoA MWF C._cutscene_take_cap_off.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_cutscene.prog C._cutscene_take_cap_off
+             C.f_cutscene_take_cap_off nil nil ctco_xids nil
+             LO_cut ctco_pin ctco_vars ctco_pok).
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - exact ctco_xids_rows.
+    - intros fid' H; discriminate H.
+    - exact ctco_walk.
+  Qed.
+
+  (* --- handle_save_menu: reads gSaveOptSelectIndex/gCurrSaveFileNum, one
+     m->faceAngle[1] idx16 window store, calls is_anim_past_end /
+     get_star_collection_dialog (ids), save_file_do_save / fade_into_special_
+     warp / disable_time_stop / play_peachs_jingle (xids), set_mario_action
+     (sids, const action UNTAINTED).  cact = nil (no chase store).
+     call_pres_of_wwalk. --- *)
+  Definition hsm_ids : list ident :=
+    mario._is_anim_past_end :: C._get_star_collection_dialog :: nil.
+  Definition hsm_xids : list ident :=
+    C._save_file_do_save :: level_update._fade_into_special_warp
+      :: C._disable_time_stop :: C._play_peachs_jingle :: nil.
+  Definition hsm_sids : list ident := mario._set_mario_action :: nil.
+  Example hsm_pin :
+    (prog_defmap C.prog) ! C._handle_save_menu
+    = Some (Gfun (Internal C.f_handle_save_menu)).
+  Proof. vm_compute. reflexivity. Qed.
+  Example hsm_vars : fn_vars C.f_handle_save_menu = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example hsm_pok :
+    match fn_params C.f_handle_save_menu with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example hsm_walk :
+    wwalk_chk false nil hsm_ids nil nil hsm_xids hsm_sids nil
+      (fn_body C.f_handle_save_menu) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma hsm_ids_rows : forall fid, mem_id fid hsm_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold hsm_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ipae | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact gscd_row | discriminate H ].
+  Qed.
+  Lemma hsm_xids_rows : forall fid, mem_id fid hsm_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold hsm_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; apply Hcut_ext; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact fiw_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; apply Hcut_ext; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; apply Hcut_ext; reflexivity | discriminate H ].
+  Qed.
+  Lemma hsm_sids_rows : forall fid, mem_id fid hsm_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold hsm_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | discriminate H ].
+  Qed.
+  Lemma hsm_row : call_pres lp bm NoA MWF C._handle_save_menu.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_cutscene.prog C._handle_save_menu
+             C.f_handle_save_menu hsm_ids nil hsm_xids hsm_sids
+             LO_cut hsm_pin hsm_vars hsm_pok).
+    - exact hsm_ids_rows.
+    - intros fid' H; discriminate H.
+    - exact hsm_xids_rows.
+    - exact hsm_sids_rows.
+    - exact hsm_walk.
+  Qed.
+
+  (* --- act_exit_land_save_dialog: the leaf.  ids = stationary_ground_step /
+     set_mario_animation / is_anim_past_end / spawn_obj_at_mario_rel_yaw /
+     handle_save_menu / cutscene_take_cap_off / cutscene_put_cap_on; cact =
+     [t'17;t'16;t'11] (marioBodyState handState/eyeState + marioObj gfx.angle[1]);
+     xids = play_mario_landing_sound_once / enable_time_stop / set_menu_mode /
+     play_sound; sids = nil.  Stores: m->actionState (window) +
+     gSaveOptSelectIndex = 0 (glob). --- *)
+  Definition eld_ids : list ident :=
+    mario_step._stationary_ground_step :: mario._set_mario_animation
+      :: mario._is_anim_past_end :: C._spawn_obj_at_mario_rel_yaw
+      :: C._handle_save_menu :: C._cutscene_take_cap_off
+      :: C._cutscene_put_cap_on :: nil.
+  Definition eld_cact : list ident :=
+    C._t'17 :: C._t'16 :: C._t'11 :: nil.
+  Definition eld_xids : list ident :=
+    C._play_mario_landing_sound_once :: C._enable_time_stop
+      :: C._set_menu_mode :: mario._play_sound :: nil.
+  Example eld_walk :
+    wwalk_chk false nil eld_ids nil eld_cact eld_xids nil nil
+      (fn_body C.f_act_exit_land_save_dialog) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma eld_ids_rows : forall fid, mem_id fid eld_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold eld_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cut_sgs_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ipae | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_spawn_obj | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact hsm_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact ctco_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cpco_row | discriminate H ].
+  Qed.
+  Lemma eld_xids_rows : forall fid, mem_id fid eld_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold eld_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_pmlso | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; apply Hcut_ext; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; apply Hcut_ext; reflexivity | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | discriminate H ].
+  Qed.
+  Lemma eld_pin :
+    (prog_defmap mario_actions_cutscene.prog) ! C._act_exit_land_save_dialog
+      = Some (Gfun (Internal C.f_act_exit_land_save_dialog)).
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma eld_pres : body_pres lp NoA MWF bm C.f_act_exit_land_save_dialog.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_exit_land_save_dialog eld_ids nil eld_cact eld_xids nil nil).
+    - vm_compute; reflexivity.
+    - vm_compute; reflexivity.
+    - vm_compute; reflexivity.
+    - exact eld_ids_rows.
+    - intros fid' H; discriminate H.
+    - exact eld_xids_rows.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - exact eld_walk.
+  Qed.
+
+  (* ==================================================================== *)
   (* The family rest-split: discharge the SLICE 1-5 leaves, leaving the   *)
   (* other 36 under cut_rest_ids.                                         *)
   (* ==================================================================== *)
@@ -4985,6 +5312,9 @@ Section CutsceneLeafRows.
     destruct (Pos.eqb fid C._act_jumbo_star_cutscene) eqn:E45.
     { apply Pos.eqb_eq in E45; subst fid.
       rewrite jumbo_pin in Hdm. injection Hdm as <-. exact jumbo_pres. }
+    destruct (Pos.eqb fid C._act_exit_land_save_dialog) eqn:E46.
+    { apply Pos.eqb_eq in E46; subst fid.
+      rewrite eld_pin in Hdm. injection Hdm as <-. exact eld_pres. }
     destruct (Pos.eqb fid C._act_reading_sign) eqn:E26.
     { apply Pos.eqb_eq in E26; subst fid.
       rewrite rs_pin in Hdm. injection Hdm as <-. exact rs_pres. }
@@ -5027,7 +5357,7 @@ Section CutsceneLeafRows.
     apply mem_id_filter_true; [ exact H | ].
     unfold cut_walked_ids. cbn [mem_id existsb].
     rewrite E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15, E16,
-      E17, E18, E19, E20, E21, E22, E23, E24, E25, E35, E39, E40, E41, E42, E43, E44, E45, E26, E27, E28, E29, E30, E31,
+      E17, E18, E19, E20, E21, E22, E23, E24, E25, E35, E39, E40, E41, E42, E43, E44, E45, E46, E26, E27, E28, E29, E30, E31,
       E32, E33, E34, E36, E37, E38.
     reflexivity.
   Qed.

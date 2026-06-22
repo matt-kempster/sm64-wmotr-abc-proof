@@ -841,7 +841,22 @@ Definition stored_globals : list ident :=
      mario_actions_cutscene.c, bm/bc/SafeB-disjoint per Hglob_blk -- the
      same static-layout trust class as every stored_globals entry above. *)
   mario_actions_cutscene._sEndCutsceneVp ::
-  mario_actions_cutscene._sDispCreditsEntry :: nil.
+  mario_actions_cutscene._sDispCreditsEntry ::
+  (* the save-menu / level-transition statics (act_exit_land_save_dialog):
+     gSaveOptSelectIndex is the save-option cursor the leaf resets to 0;
+     the fade_into_special_warp subtree (warp_special + level_set_transition,
+     both NON-Mario level_update.c internals reached via handle_save_menu)
+     writes sCurrPlayMode / D_80339ECA / D_80339EE0 (warp_special) and
+     sTransitionTimer / sTransitionUpdate (level_set_transition; the latter
+     takes a funptr -> By_value Mptr store).  All static data symbols in
+     mario_actions_cutscene.c / level_update.c, bm/bc/SafeB-disjoint per
+     Hglob_blk -- the same static-layout trust class as every entry above. *)
+  mario_actions_cutscene._gSaveOptSelectIndex ::
+  level_update._sCurrPlayMode ::
+  level_update._D_80339ECA ::
+  level_update._D_80339EE0 ::
+  level_update._sTransitionTimer ::
+  level_update._sTransitionUpdate :: nil.
 
 (* ---------------------------------------------------------------------- *)
 (* The interaction-handler census (the Hpres_inter arc): the 28 DISTINCT   *)
