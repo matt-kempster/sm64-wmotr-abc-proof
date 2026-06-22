@@ -2857,7 +2857,7 @@ Section NoARealInputMWF.
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                       Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                    (CutsceneLeafSurface.cutscene_leaf_callees_pres lp LO_mario
-                      LO_stp LO_int LO_cut bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
+                      LO_stp LO_int LO_lvl LO_cut bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
                       (mwf_real_ctl lp bm bc oc0 SafeB)
                       (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                          Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
