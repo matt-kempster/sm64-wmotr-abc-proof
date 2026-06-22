@@ -542,7 +542,8 @@ Definition cut_walked_ids : list ident :=
     :: C._act_feet_stuck_in_ground
     :: C._check_for_instant_quicksand
     :: C._act_unlocking_key_door
-    :: C._act_credits_cutscene :: nil.
+    :: C._act_credits_cutscene
+    :: C._act_jumbo_star_cutscene :: nil.
 Definition cut_rest_ids : list ident :=
   filter (fun id => negb (mem_id id cut_walked_ids)) cutscene_callee_ids.
 
@@ -4649,6 +4650,227 @@ Section CutsceneLeafRows.
     exact (conj HVf (conj HSf HMf)).
   Qed.
 
+  (* --------- taking_off subhandler: clean generic walk (no input store) --- *)
+  (* All stores are either window m-fields (actionState++, particleFlags|=) or *)
+  (* chase stores through marioObj (marioObj->rawData.asF32[34]).  Callees are *)
+  (* the ids rows (sma/ipae/pmls/psasp/umpfa/acs) + xids (play_sound/vec3f_set *)
+  (* /vec3f_copy/vec3s_set).  marioObj/t'13/t'11/t'10 are the chase temps.     *)
+  Definition tko_ids : list ident :=
+    mario._set_mario_animation :: mario._is_anim_past_end
+      :: mario._play_mario_landing_sound :: mario._play_sound_and_spawn_particles
+      :: mario._update_mario_pos_for_anim
+      :: mario_actions_cutscene._advance_cutscene_step :: nil.
+  Definition tko_cact : list ident :=
+    C._marioObj :: C._t'13 :: C._t'11 :: C._t'10 :: nil.
+  Definition tko_xids : list ident :=
+    mario._play_sound :: mario._vec3f_set :: mario._vec3f_copy
+      :: mario._vec3s_set :: nil.
+
+  Example tko_walk_probe :
+    wwalk_chk false nil tko_ids nil tko_cact tko_xids nil nil
+      (fn_body mario_actions_cutscene.f_jumbo_star_cutscene_taking_off) = true.
+  Proof. vm_compute; reflexivity. Qed.
+
+  Lemma tko_ids_rows : forall fid, mem_id fid tko_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold tko_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ipae | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact pmls_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_psasp | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_umpfa | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cut_acs_row | discriminate H ].
+  Qed.
+  Lemma tko_xids_rows : forall fid, mem_id fid tko_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold tko_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_v3fset | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_v3fc | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_v3ss | discriminate H ].
+  Qed.
+
+  Lemma taking_off_body_pres :
+    body_pres lp NoA MWF bm C.f_jumbo_star_cutscene_taking_off.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_jumbo_star_cutscene_taking_off
+             tko_ids nil tko_cact tko_xids nil nil).
+    - vm_compute; reflexivity.
+    - vm_compute; reflexivity.
+    - vm_compute; reflexivity.
+    - exact tko_ids_rows.
+    - intros fid' H; discriminate H.
+    - exact tko_xids_rows.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - exact tko_walk_probe.
+  Qed.
+
+  (* --------- flying subhandler: lwalk (fn_vars=[targetPos]) generic walk --- *)
+  (* Two chase roots: marioObj (gfx.angle stores) AND marioBodyState (handState *)
+  (* via t'8).  sids = set_mario_action(m, 16779404, 0) -- the const must be    *)
+  (* untainted (NOT a flying/FTJ/cannon action).  level_trigger_warp = the      *)
+  (* SHARED warp trigger (Hcp_ltw).  externals: anim_spline_init/poll, sqrtf,   *)
+  (* atan2s, vec3f_copy.  targetPos is a LOCAL float[3] (out-param to            *)
+  (* anim_spline_poll + read for the angle math), so block != bm.               *)
+  Definition fly_ids : list ident :=
+    mario._set_mario_animation :: level_update._level_trigger_warp :: nil.
+  Definition fly_cact : list ident :=
+    C._marioObj :: C._t'13 :: C._t'12 :: C._t'10 :: C._t'8 :: C._t'7 :: nil.
+  Definition fly_xids : list ident :=
+    C._anim_spline_init :: C._anim_spline_poll :: mario._sqrtf
+      :: interaction._atan2s :: mario._vec3f_copy :: nil.
+  Definition fly_sids : list ident := mario._set_mario_action :: nil.
+
+  Example fly_walk_probe :
+    wwalk_chk false nil fly_ids nil fly_cact fly_xids fly_sids nil
+      (fn_body mario_actions_cutscene.f_jumbo_star_cutscene_flying) = true.
+  Proof. vm_compute; reflexivity. Qed.
+
+  Lemma fly_ids_rows : forall fid, mem_id fid fly_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold fly_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ltw | discriminate H ].
+  Qed.
+  Lemma fly_xids_rows : forall fid, mem_id fid fly_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold fly_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_asi | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_asp | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_sqrtf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_atan2s | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_v3fc | discriminate H ].
+  Qed.
+
+  Lemma flying_body_pres :
+    body_pres lp NoA MWF bm C.f_jumbo_star_cutscene_flying.
+  Proof.
+    apply (body_pres_of_lwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             HMWF_alloc HMWF_free
+             C.f_jumbo_star_cutscene_flying
+             fly_ids nil fly_cact fly_xids fly_sids).
+    - vm_compute; reflexivity.                          (* params shape *)
+    - intros g Hg HIn. vm_compute in HIn.               (* stored_globals not in vars *)
+      destruct HIn as [E | []]. subst g. vm_compute in Hg. discriminate Hg.
+    - intros g Hg HIn. vm_compute in HIn.               (* ids not in vars *)
+      destruct HIn as [E | []]. subst g. vm_compute in Hg. discriminate Hg.
+    - intros g Hg. discriminate Hg.                     (* wids = nil *)
+    - intros g Hg HIn. vm_compute in HIn.               (* xids not in vars *)
+      destruct HIn as [E | []]. subst g. vm_compute in Hg. discriminate Hg.
+    - intros g Hg HIn. vm_compute in HIn.               (* sids not in vars *)
+      destruct HIn as [E | []]. subst g. vm_compute in Hg. discriminate Hg.
+    - intro HIn. vm_compute in HIn.                     (* gGlobalTimer not in vars *)
+      destruct HIn as [E | []]. discriminate E.
+    - vm_compute; reflexivity.                          (* cact not in params *)
+    - exact fly_ids_rows.
+    - intros fid' H; discriminate H.                    (* wids rows *)
+    - exact fly_xids_rows.
+    - intros fid' H. unfold fly_sids in H. cbn [mem_id existsb] in H.
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hsmact | discriminate H ].
+    - exact fly_walk_probe.
+  Qed.
+
+  (* --------- the dispatcher: act_jumbo_star_cutscene reads m->actionArg --- *)
+  (* and Sswitches over {0->falling, 1->taking_off, 2->flying}, each called   *)
+  (* with (m).  Lift the 3 subhandler body_pres to call_pres (LO_cut) and     *)
+  (* walk the dispatcher generically (no stores; ids = the 3 subhandlers).    *)
+  Lemma falling_pin :
+    (prog_defmap mario_actions_cutscene.prog)
+      ! C._jumbo_star_cutscene_falling
+      = Some (Gfun (Internal C.f_jumbo_star_cutscene_falling)).
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma taking_off_pin :
+    (prog_defmap mario_actions_cutscene.prog)
+      ! C._jumbo_star_cutscene_taking_off
+      = Some (Gfun (Internal C.f_jumbo_star_cutscene_taking_off)).
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma flying_pin :
+    (prog_defmap mario_actions_cutscene.prog)
+      ! C._jumbo_star_cutscene_flying
+      = Some (Gfun (Internal C.f_jumbo_star_cutscene_flying)).
+  Proof. vm_compute. reflexivity. Qed.
+
+  Definition jumbo_ids : list ident :=
+    C._jumbo_star_cutscene_falling :: C._jumbo_star_cutscene_taking_off
+      :: C._jumbo_star_cutscene_flying :: nil.
+
+  Lemma jumbo_ids_rows : forall fid, mem_id fid jumbo_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold jumbo_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        exact (call_pres_of_body lp bm NoA MWF HNoA_of_MWF
+                 mario_actions_cutscene.prog _ _ LO_cut falling_pin
+                 falling_body_pres) | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        exact (call_pres_of_body lp bm NoA MWF HNoA_of_MWF
+                 mario_actions_cutscene.prog _ _ LO_cut taking_off_pin
+                 taking_off_body_pres) | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        exact (call_pres_of_body lp bm NoA MWF HNoA_of_MWF
+                 mario_actions_cutscene.prog _ _ LO_cut flying_pin
+                 flying_body_pres)
+      | discriminate H ].
+  Qed.
+
+  Example jumbo_walk :
+    wwalk_chk false nil jumbo_ids nil nil nil nil nil
+      (fn_body C.f_act_jumbo_star_cutscene) = true.
+  Proof. vm_compute; reflexivity. Qed.
+
+  Lemma jumbo_pin :
+    (prog_defmap mario_actions_cutscene.prog) ! C._act_jumbo_star_cutscene
+      = Some (Gfun (Internal C.f_act_jumbo_star_cutscene)).
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma jumbo_pres : body_pres lp NoA MWF bm C.f_act_jumbo_star_cutscene.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_jumbo_star_cutscene jumbo_ids nil nil nil nil nil).
+    - vm_compute; reflexivity.
+    - vm_compute; reflexivity.
+    - vm_compute; reflexivity.
+    - exact jumbo_ids_rows.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - exact jumbo_walk.
+  Qed.
+
   (* ==================================================================== *)
   (* The family rest-split: discharge the SLICE 1-5 leaves, leaving the   *)
   (* other 36 under cut_rest_ids.                                         *)
@@ -4760,6 +4982,9 @@ Section CutsceneLeafRows.
     destruct (Pos.eqb fid C._act_credits_cutscene) eqn:E44.
     { apply Pos.eqb_eq in E44; subst fid.
       rewrite cred_pin in Hdm. injection Hdm as <-. exact cred_pres. }
+    destruct (Pos.eqb fid C._act_jumbo_star_cutscene) eqn:E45.
+    { apply Pos.eqb_eq in E45; subst fid.
+      rewrite jumbo_pin in Hdm. injection Hdm as <-. exact jumbo_pres. }
     destruct (Pos.eqb fid C._act_reading_sign) eqn:E26.
     { apply Pos.eqb_eq in E26; subst fid.
       rewrite rs_pin in Hdm. injection Hdm as <-. exact rs_pres. }
@@ -4802,7 +5027,7 @@ Section CutsceneLeafRows.
     apply mem_id_filter_true; [ exact H | ].
     unfold cut_walked_ids. cbn [mem_id existsb].
     rewrite E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15, E16,
-      E17, E18, E19, E20, E21, E22, E23, E24, E25, E35, E39, E40, E41, E42, E43, E44, E26, E27, E28, E29, E30, E31,
+      E17, E18, E19, E20, E21, E22, E23, E24, E25, E35, E39, E40, E41, E42, E43, E44, E45, E26, E27, E28, E29, E30, E31,
       E32, E33, E34, E36, E37, E38.
     reflexivity.
   Qed.

@@ -2977,6 +2977,18 @@ Section NoARealInputMWF.
                          eq_refl)
                       (Hpres_obj_ext mario_actions_cutscene._reset_cutscene_msg_fade
                          eq_refl)
+                      (* SLICE 25 (act_jumbo_star_cutscene = falling/taking_off/
+                         flying dispatcher): the spline-keyframe animator externals
+                         ride obj_ext_ids (newly added there), and the falling
+                         subhandler's `m->input |= INPUT_SQUISHED` store rides the
+                         PROVED MWFReal input-clear projections (mwf_real_inp pins
+                         the A-clear halfword; mwf_real_input preserves it under an
+                         OR-store whose const has bit 2 clear) -- NO new trust. *)
+                      (Hpres_obj_ext mario_actions_cutscene._anim_spline_init eq_refl)
+                      (Hpres_obj_ext mario_actions_cutscene._anim_spline_poll eq_refl)
+                      (mwf_real_inp lp bm bc oc0 SafeB)
+                      (mwf_real_input lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                         Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                       Hpres_cut_rest))
                 (automatic_pres lp LO_mario LO_aut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
