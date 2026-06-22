@@ -190,7 +190,17 @@ Definition obj_ext_ids : list ident :=
        capstone hypothesis. *)
     :: mario._vec3s_copy
     :: mario_actions_cutscene._override_viewport_and_clip
-    :: mario_actions_cutscene._reset_cutscene_msg_fade :: nil.
+    :: mario_actions_cutscene._reset_cutscene_msg_fade
+    (* cutscene jumbo-star (jumbo_star_cutscene_flying): anim_spline_init /
+       anim_spline_poll are the spline-keyframe animator externals (init takes
+       a keyframe table pointer; poll writes a caller-provided float[3] target
+       window) -- they touch only the spline statics and the caller's out
+       window, no Mario pointer -- EF_external in every generated TU (no
+       Internal body anywhere under generated/), the same honest boundary
+       class as the viewport writers above.  Both ride Hpres_obj_ext, NO new
+       capstone hypothesis. *)
+    :: mario_actions_cutscene._anim_spline_init
+    :: mario_actions_cutscene._anim_spline_poll :: nil.
 (* NOTE: find_floor was REMOVED from obj_ext_ids.  It is an out-param
    WRITER, so the phantom-false `call_pres_ext find_floor` (which would
    allow &(action cell) as the out-param) is no longer a capstone
