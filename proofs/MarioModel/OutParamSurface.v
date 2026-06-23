@@ -1010,6 +1010,86 @@ Section OutParamArc.
   Qed.
 
   (* ====================================================================== *)
+  (* THE DST-LOCAL-WRITER ARC (wl): the honest gate for an EXTERNAL that      *)
+  (* writes through its FIRST (dst) pointer arg into a STACK-LOCAL block,     *)
+  (* while a LATER pointer arg is a read-only SOURCE in a DIFFERENT block     *)
+  (* (so neither the ol args_all_local gate -- which demands EVERY pointer    *)
+  (* arg be local -- nor the w1 arg0_window gate -- a bm-window dst -- fits). *)
+  (*                                                                        *)
+  (* The canonical case is `vec3f_copy(pos, m->pos)` in act_debug_free_move: *)
+  (* dst = pos (a stack-local working copy, the fn_var the lids arm tracks), *)
+  (* src = &m->pos (a 12-byte bm-window, read-only).  vec3f_copy writes ONLY *)
+  (* through its dst, so the honest gate is that the FIRST pointer arg is a  *)
+  (* local_blk; the source arg is unconstrained.  Mirror of the w1 arc, a    *)
+  (* local_blk dst instead of a bm-window dst -- the FOURTH face of           *)
+  (* vec3f_copy (after wc=all-window, sc=arg0-SafeB, ol=all-local,           *)
+  (* w1=arg0-window).                                                         *)
+  (* ====================================================================== *)
+
+  (* the dst-local gate: the FIRST argument (the write destination) is a
+     stack-local block.  The remaining args (the read-only src, scalars) are
+     unconstrained -- the external writes only through dst. *)
+  Definition arg0_local (vargs : list val) : Prop :=
+    exists b ofs rest, vargs = Vptr b ofs :: rest /\ local_blk lp bm SafeB b.
+
+  (* the ARG-AWARE external residual for the DST-LOCAL writers: preserves the
+     carried run facts PROVIDED the dst arg lands in a local_blk. *)
+  Definition call_pres_ext_wl (fid : ident) : Prop :=
+    forall fd m0 vargs0 t0 m1 vres0,
+      eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m1 vres0 ->
+      resolves_lp fid fd ->
+      arg0_local vargs0 ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\
+      MWF m1 /\ NoA m1.
+
+  (* THE CALL-SITE BRICK: a Scall to a dst-local writer whose dst arg
+     evaluates to a local_blk preserves carried.  Consumed by the
+     act_debug_free_move body walk at its vec3f_copy(pos, m->pos) call site.
+     (Structure mirrors w1_scall_pres / sc_scall_pres exactly.) *)
+  Lemma wl_scall_pres :
+    forall optid fid tyl rty cc args e le0 m0 tr le1 m1 out0,
+      e ! fid = None ->
+      call_pres_ext_wl fid ->
+      (forall vargs, eval_exprlist (lp_ge lp) e le0 m0 args tyl vargs ->
+                     arg0_local vargs) ->
+      exec_stmt function_entry2 (lp_ge lp) e le0 m0
+        (Scall optid (Evar fid (Tfunction tyl rty cc)) args)
+        tr le1 m1 out0 ->
+      carried bm NoA MWF m0 ->
+      carried bm NoA MWF m1 /\ out0 = Out_normal.
+  Proof.
+    intros optid fid tyl rty cc args e le0 m0 tr le1 m1 out0
+           He Hwl Hloc Hexec Hc.
+    inv Hexec.
+    match goal with
+    | Hcf : classify_fun _ = fun_case_f _ _ _ |- _ =>
+        cbn in Hcf; injection Hcf as E1 E2 E3; subst
+    end.
+    match goal with
+    | Hv : eval_expr _ _ _ _ (Evar _ _) ?vf |- _ =>
+        destruct (eval_Evar_funct _ _ _ _ _ _ _ _ He Hv) as (bf & Hsym & ->)
+    end.
+    match goal with
+    | Hff : Genv.find_funct _ (Vptr bf Ptrofs.zero) = Some ?fd |- _ =>
+        assert (Hres : resolves_lp fid fd) by (exists bf; split; assumption)
+    end.
+    match goal with
+    | Hvl : eval_exprlist _ _ _ _ _ _ ?vargs |- _ =>
+        pose proof (Hloc vargs Hvl) as Hla
+    end.
+    destruct Hc as (HV & HS & HM & HN).
+    match goal with
+    | Hevf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+        destruct (Hwl _ _ _ _ _ _ Hevf Hres Hla HN HM HV HS)
+          as (HV' & HS' & HM' & HN')
+    end.
+    split; [ | reflexivity ].
+    split; [ exact HV' | split; [ exact HS' | split; [ exact HM' | exact HN' ] ] ].
+  Qed.
+
+  (* ====================================================================== *)
   (* geo_update_animation_frame's out-param: its dst arg is                  *)
   (* `&obj->header.gfx.animInfo` -- three AGGREGATE Efields over the         *)
   (* Ederef of the _obj temp.  Each aggregate Efield/Ederef hands back the   *)
