@@ -455,6 +455,129 @@ Section AGatesLp.
     exact Hbr.
   Qed.
 
+  (* ================================================================== *)
+  (* GATE LEMMA 2' (the Oeq variant): some A-gated sites compare         *)
+  (* buttonPressed == A_BUTTON (exact equality, e.g.                     *)
+  (* act_debug_free_move @mario_actions_cutscene.c:578) rather than      *)
+  (* buttonPressed & A_BUTTON.  Under ctl_a_clear the A bit is clear, so  *)
+  (* buttonPressed <> 0x8000 (which HAS the A bit set), and the equality  *)
+  (* guard takes ELSE.  Same shape / conclusion as ctl_a_gate_takes_else  *)
+  (* _lp; only the final guard-discharge bricks differ.                  *)
+  (* ================================================================== *)
+
+  (* the Int fact: A-bit-clear forces inequality with the A_BUTTON mask. *)
+  Lemma eq_a_false_of_and_zero :
+    forall vi, Int.and vi (Int.repr 32768) = Int.zero ->
+               Int.eq vi (Int.repr 32768) = false.
+  Proof.
+    intros vi Hand.
+    destruct (Int.eq vi (Int.repr 32768)) eqn:E; [ | reflexivity ].
+    apply Int.same_if_eq in E. subst vi. exfalso.
+    apply (f_equal Int.unsigned) in Hand. vm_compute in Hand. discriminate.
+  Qed.
+
+  (* the Oeq-guard inversion (mirror of guard_temp_vint at Oeq): the      *)
+  (* comparison `(t2 : tushort) == (c : tint)` evaluates to               *)
+  (* Val.of_bool (Int.eq vi c) for whatever Vint vi the temp holds.       *)
+  Lemma guard_temp_cmp_eq :
+    forall t2 (c : Z) e le m v1,
+      eval_expr (lp_ge lp) e le m
+        (Ebinop Oeq (Etempvar t2 tushort) (Econst_int (Int.repr c) tint) tint) v1 ->
+      exists vi, le ! t2 = Some (Vint vi) /\ v1 = Val.of_bool (Int.eq vi (Int.repr c)).
+  Proof.
+    intros t2 c e le m v1 Hev.
+    inv Hev.
+    - (* eval_Ebinop *)
+      match goal with H : eval_expr _ _ _ _ (Etempvar _ _) ?vv |- _ =>
+        apply eval_expr_Etempvar_val in H; rename H into Hle2 end.
+      match goal with H : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ => inv H end.
+      + match goal with H : sem_binary_operation _ _ _ _ _ _ _ = Some v1 |- _ =>
+          unfold sem_binary_operation, sem_cmp, sem_binarith, sem_cast in H;
+          match goal with HH : le ! t2 = Some ?va |- _ =>
+            destruct va;
+            cbn [classify_cmp typeconv classify_binarith binarith_type
+                 classify_cast cast_int_int Int.cmp] in H;
+            try discriminate H end;
+          inv H end.
+        eexists; split; [ exact Hle2 | reflexivity ].
+      + match goal with H : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ => inv H end.
+    - (* eval_Elvalue on a binop: impossible *)
+      match goal with H : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => inv H end.
+  Qed.
+
+  (* the bool_val reducer: an A-bit-clear equality guard is FALSE.        *)
+  Lemma bool_val_eq_a_false :
+    forall vi m b,
+      Int.and vi (Int.repr 32768) = Int.zero ->
+      bool_val (Val.of_bool (Int.eq vi (Int.repr 32768))) tint m = Some b ->
+      b = false.
+  Proof.
+    intros vi m b Hand Hbv.
+    rewrite (eq_a_false_of_and_zero vi Hand) in Hbv.
+    cbn in Hbv. inv Hbv. reflexivity.
+  Qed.
+
+  Theorem ctl_a_gate_eq_takes_else_lp :
+    forall mptr t1 t2 THEN ELSE e le m bm tr le' m' out,
+      le ! mptr = Some (Vptr bm Ptrofs.zero) ->
+      ctl_a_clear m bm ->
+      exec_stmt function_entry2 (lp_ge lp) e le m
+        (Ssequence
+           (Sset t1 (Efield (Ederef (Etempvar mptr (tptr (Tstruct mario._MarioState noattr)))
+                                    (Tstruct mario._MarioState noattr))
+                            mario._controller (tptr (Tstruct mario._Controller noattr))))
+           (Ssequence
+              (Sset t2 (Efield (Ederef (Etempvar t1 (tptr (Tstruct mario._Controller noattr)))
+                                       (Tstruct mario._Controller noattr))
+                               mario._buttonPressed tushort))
+              (Sifthenelse (Ebinop Oeq (Etempvar t2 tushort)
+                              (Econst_int (Int.repr 32768) tint) tint)
+                 THEN ELSE)))
+        tr le' m' out ->
+      exists bc oc vi,
+        Mem.load Mptr m bm 156 = Some (Vptr bc oc) /\
+        Mem.load Mint16unsigned m bc
+          (Ptrofs.unsigned (Ptrofs.add oc (Ptrofs.repr 18))) = Some (Vint vi) /\
+        Int.and vi (Int.repr 32768) = Int.zero /\
+        exec_stmt function_entry2 (lp_ge lp) e
+          (PTree.set t2 (Vint vi) (PTree.set t1 (Vptr bc oc) le)) m
+          ELSE tr le' m' out.
+  Proof.
+    intros mptr t1 t2 THEN ELSE e le m bm tr le' m' out Hle Hclear Hexec.
+    inv Hexec.
+    2: { match goal with H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H end.
+         match goal with H : Out_normal <> Out_normal |- _ =>
+           contradiction H; reflexivity end. }
+    match goal with H : exec_stmt _ _ _ _ _ (Sset t1 _) _ _ _ _ |- _ => inv H end.
+    match goal with H : eval_expr _ _ _ _ (Efield _ mario._controller _) ?vv |- _ =>
+      pose proof (eval_controller_load_bm_lp _ _ _ _ _ vv Hle H) as Hldctl end.
+    match goal with H : exec_stmt _ _ _ _ _ (Ssequence (Sset t2 _) _) _ _ _ _ |- _ =>
+      inv H end.
+    2: { match goal with H : exec_stmt _ _ _ _ _ (Sset t2 _) _ _ _ _ |- _ => inv H end.
+         match goal with H : Out_normal <> Out_normal |- _ =>
+           contradiction H; reflexivity end. }
+    match goal with H : exec_stmt _ _ _ _ _ (Sset t2 _) _ _ _ _ |- _ => inv H end.
+    match goal with H : eval_expr _ _ _ _ (Efield _ mario._buttonPressed _) _ |- _ =>
+      pose proof H as Hevbp;
+      apply efield_base_vptr in H as (bc & oc & Hle1) end.
+    rewrite PTree.gss in Hle1. inv Hle1.
+    pose proof (eval_buttonPressed_load_lp t1 _ _ _ bc oc _ (PTree.gss _ _ _) Hevbp) as Hldbp.
+    match goal with H : exec_stmt _ _ _ _ _ (Sifthenelse _ _ _) _ _ _ _ |- _ => inv H end.
+    match goal with H : exec_stmt _ _ _ _ _ (if _ then THEN else ELSE) _ _ _ _ |- _ =>
+      rename H into Hbr end.
+    match goal with H : eval_expr _ _ _ _ (Ebinop _ _ _ _) _ |- _ =>
+      apply guard_temp_cmp_eq in H as (vi & Hle2 & ->) end.
+    rewrite PTree.gss in Hle2. inv Hle2.
+    pose proof (Hclear bc oc vi Hldctl Hldbp) as Hand.
+    match goal with H : bool_val _ _ _ = Some ?bb |- _ =>
+      cbn [typeof] in H;
+      pose proof (bool_val_eq_a_false vi _ _ Hand H) as Hb end.
+    subst.
+    exists bc, oc, vi.
+    split; [ exact Hldctl | ]. split; [ exact Hldbp | ]. split; [ exact Hand | ].
+    exact Hbr.
+  Qed.
+
 End AGatesLp.
 
 (* ====================================================================== *)
