@@ -5199,6 +5199,101 @@ Section CutsceneLeafRows.
   Qed.
 
   (* ==================================================================== *)
+  (* ==================================================================== *)
+  (* SLICE 21: act_debug_free_move (dfm) -- the FIRST cutscene HYBRID walk *)
+  (* (mirror of AutomaticLeafSurface.twl).  The ~400-line body is          *)
+  (* wwalk-clean EXCEPT three vec3f_copy/rwc call sites, distinguished by  *)
+  (* their dst SHAPE:                                                       *)
+  (*   - resolve_and_return_wall_collisions(pos, c, c)  [ol gate, pos a    *)
+  (*       stack-local working copy]                                       *)
+  (*   - vec3f_copy(pos, m->pos)  [wl gate, dst=local pos, src=m->pos      *)
+  (*       window -- the NEW OutParamSurface arc]                          *)
+  (*   - vec3f_copy(m->pos, pos)  [w1 gate, dst=m->pos window, src=local]  *)
+  (* Its marioObj vec3f_copy/vec3s_set (dst chases _t'9/_t'7 into the      *)
+  (* Object) ride the GENERIC sc arm; its A-gate                          *)
+  (* (gPlayer1Controller->buttonPressed == 0x8000) walks GENERICALLY --    *)
+  (* the THEN's set_mario_action(m, _action, 0) is gated by smact_call_chk *)
+  (* with _action in wact (the inner water-level if sets _action to one of *)
+  (* two UNTAINTED action consts ACT_WATER_IDLE / ACT_IDLE), so NO         *)
+  (* controller-clear fact is needed.                                      *)
+  (* ==================================================================== *)
+
+  Definition dfm_lids : list ident := C._pos :: C._surf :: nil.
+  Definition dfm_oc : list ident := mario._find_floor :: nil.
+  Definition dfm_sc : list ident :=
+    mario._vec3f_copy :: mario._vec3s_set :: nil.
+  Definition dfm_ids : list ident := mario._set_mario_animation :: nil.
+  Definition dfm_wact : list ident := C._action :: nil.
+  Definition dfm_cact : list ident := C._t'9 :: C._t'7 :: nil.
+  Definition dfm_sids : list ident := mario._set_mario_action :: nil.
+
+  Definition dfm_gen (s : statement) : bool :=
+    wwalk_chk' dfm_lids dfm_oc nil dfm_sc nil nil false
+      dfm_wact dfm_ids nil dfm_cact nil dfm_sids nil s.
+
+  (* one whole-array local decay arg: `pos` (a stack-local fn_var). *)
+  Definition dfm_pos_arg (a : expr) : bool :=
+    match a with
+    | Evar lid aty =>
+        Pos.eqb lid C._pos && proj_sumbool (type_eq aty (tarray tfloat 3))
+    | _ => false
+    end.
+
+  (* the m->pos window arg. *)
+  Definition dfm_mpos_arg (a : expr) : bool :=
+    match a with
+    | Efield (Ederef (Etempvar p pty) sty) fld faty =>
+        Pos.eqb p C._m
+        && proj_sumbool (type_eq pty (tptr (Tstruct C._MarioState noattr)))
+        && proj_sumbool (type_eq sty (Tstruct C._MarioState noattr))
+        && Pos.eqb fld C._pos
+        && proj_sumbool (type_eq faty (tarray tfloat 3))
+    | _ => false
+    end.
+
+  Definition dfm_sg_arg (a : expr) : bool :=
+    match a with Econst_single _ _ => true | _ => false end.
+
+  Definition dfm_rwc_fty : type :=
+    Tfunction (tptr tfloat :: tfloat :: tfloat :: nil)
+      (tptr (Tstruct C._Surface noattr)) cc_default.
+  Definition dfm_v3f_fty : type :=
+    Tfunction (tptr tfloat :: tptr tfloat :: nil) (tptr tvoid) cc_default.
+
+  (* the THREE special call shapes (everything else is generic). *)
+  Definition dfm_sp_chk (s : statement) : bool :=
+    match s with
+    | Scall None (Evar fid fty) al =>
+        (Pos.eqb fid C._resolve_and_return_wall_collisions
+         && proj_sumbool (type_eq fty dfm_rwc_fty)
+         && match al with
+            | a0 :: a1 :: a2 :: nil =>
+                dfm_pos_arg a0 && dfm_sg_arg a1 && dfm_sg_arg a2
+            | _ => false
+            end)
+        || (Pos.eqb fid C._vec3f_copy
+            && proj_sumbool (type_eq fty dfm_v3f_fty)
+            && match al with
+               | d0 :: d1 :: nil =>
+                   (dfm_pos_arg d0 && dfm_mpos_arg d1)   (* SITE B: wl *)
+                   || (dfm_mpos_arg d0 && dfm_pos_arg d1) (* SITE C: w1 *)
+               | _ => false
+               end)
+    | _ => false
+    end.
+
+  Fixpoint dfm_chk (s : statement) : bool :=
+    dfm_gen s
+    || match s with
+       | Ssequence s1 s2 => dfm_chk s1 && dfm_chk s2
+       | Sifthenelse _ s1 s2 => dfm_chk s1 && dfm_chk s2
+       | _ => dfm_sp_chk s
+       end.
+
+  (* the syntactic probe: the hybrid recognizer accepts the REAL body. *)
+  Example dfm_walk : dfm_chk (fn_body C.f_act_debug_free_move) = true.
+  Proof. vm_compute. reflexivity. Qed.
+
   (* The family rest-split: discharge the SLICE 1-5 leaves, leaving the   *)
   (* other 36 under cut_rest_ids.                                         *)
   (* ==================================================================== *)
