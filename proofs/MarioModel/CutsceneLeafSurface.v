@@ -385,7 +385,18 @@ Definition cut_ext_ids : list ident :=
        camera/sound/object-pool state, never Mario's bm action cell.  Same
        honest model-boundary class as the dialog/time-stop externals above. *)
     :: C._spawn_object_abs_with_rot :: C._camera_approach_f32_symmetric
-    :: C._sound_banks_enable :: C._obj_mark_for_deletion :: nil.
+    :: C._sound_banks_enable :: C._obj_mark_for_deletion
+    (* act_end_peach_cutscene subhandler externals: the per-object sound cue
+       (play_sound), the dialog/subtitle poster (set_cutscene_message), the
+       sequence-volume duck/unduck pair (seq_player_lower_volume /
+       seq_player_unlower_volume), and the jumbo-star scale (obj_scale).  All
+       EF_external in EVERY linked TU (verified -- no Internal body anywhere
+       under generated/); each writes audio/HUD/object-pool state, never Mario's
+       bm action cell.  Same honest model-boundary class as the externals
+       above. *)
+    :: C._play_sound :: C._set_cutscene_message
+    :: C._seq_player_lower_volume :: C._seq_player_unlower_volume
+    :: C._obj_scale :: nil.
 
 (* act_reading_sign: body_pres_of_wwalk (wact=nil, cact=nil -- marioObj/usedObj
    chase temps are only LOADED; the only stores are direct non-action m-fields:
@@ -575,7 +586,12 @@ Definition gobj_ids : list ident :=
   mario_actions_cutscene._sIntroWarpPipeObj
     :: mario_actions_cutscene._sEndPeachObj
     :: mario_actions_cutscene._sEndRightToadObj
-    :: mario_actions_cutscene._sEndLeftToadObj :: nil.
+    :: mario_actions_cutscene._sEndLeftToadObj
+    (* act_end_peach_cutscene: sEndJumboStarObj is chased for a THROUGH store
+       (summon_jumbo_star writes sEndJumboStarObj->rawData.asS32[19]); its
+       loaded pointer is SafeB-if-a-pointer via HGlobObjRoot, same honest
+       per-symbol reach-closure trust class as the other gobj roots. *)
+    :: mario_actions_cutscene._sEndJumboStarObj :: nil.
 
 (* ====================================================================== *)
 (* INTRO CUTSCENE family (act_intro_cutscene + 7 subhandlers).  Closing    *)
