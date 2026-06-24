@@ -4106,7 +4106,7 @@ Section AutomaticLeafRows.
              mario_actions_automatic._set_pole_position
              mario_actions_automatic.f_set_pole_position
              nil nil spp_cact nil spp_sids spp_lids spp_oc_pids spp_wc_pids
-             spp_sc_pids
+             spp_sc_pids nil
              LO_aut spp_pin spp_params_ok spp_npc).
     - (* Hdg: stored_globals disjoint from fn_vars=[_filler;_floor;_ceil] *)
       intros g Hg Hin; vm_compute in Hin;
@@ -4131,6 +4131,7 @@ Section AutomaticLeafRows.
       intros g Hg Hin; vm_compute in Hin;
         repeat (destruct Hin as [Heq | Hin];
                 [ subst g; vm_compute in Hg; discriminate | ]); exact Hin.
+    - intros g HH; discriminate HH.   (* Hdnp3: np3_ids=nil *)
     - (* Hdgt: gGlobalTimer not a local *)
       vm_compute; intro Hin;
         repeat (destruct Hin as [Heq | Hin]; [ discriminate Heq | ]); exact Hin.
@@ -4149,6 +4150,7 @@ Section AutomaticLeafRows.
     - exact spp_oc_rows.               (* Hcpoc: oc_pids *)
     - exact spp_wc_rows.               (* Hcpwc: wc_pids *)
     - exact spp_sc_rows.               (* Hcpsc: sc_pids *)
+    - intros fid' H; discriminate H.   (* Hcp_np3: np3_ids=nil *)
     - exact spp_walk.                  (* Hchk *)
   Qed.
 

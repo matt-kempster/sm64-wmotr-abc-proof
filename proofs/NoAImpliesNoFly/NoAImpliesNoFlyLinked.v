@@ -1137,18 +1137,14 @@ Section NoARealInputMWF.
      cutscene_callee_ids (the prologue helper + the 50 act handlers;
      the particleFlags epilogue store is killed by the window census).
      Discharge proceeds id by id. *)
-  (* SLICE 1 of the cutscene leaf family is now WALKED (CutsceneLeafSurface.
+  (* The cutscene leaf family is now FULLY WALKED (CutsceneLeafSurface.
      cutscene_leaf_callees_pres): the death-cluster prologue helper
-     common_death_handler (set_mario_animation + level_trigger_warp + the
-     m->marioBodyState->eyeState chase store + stop_and_set_height_to_floor)
-     and the two cleanest death leaves act_electrocution / act_suffocation
-     (play_sound_if_no_flag + common_death_handler + return 0).  The remaining
-     49 leaves stay under this shrunk residual over cut_rest_ids. *)
-  Hypothesis Hpres_cut_rest : forall fid f,
-      mem_id fid CutsceneLeafSurface.cut_rest_ids = true ->
-      (prog_defmap mario_actions_cutscene.prog) ! fid
-        = Some (Gfun (Internal f)) ->
-      body_pres lp (NoA_real bm) MWF bm f.
+     common_death_handler plus ALL 50 act handlers, the last being
+     act_end_peach_cutscene (the 13-subhandler dispatcher).  cut_rest_ids
+     therefore computes to nil, so the former Hpres_cut_rest residual is
+     VACUOUS and discharged inline (CutsceneLeafSurface.cut_rest_vacuous) at
+     the cutscene_leaf_callees_pres application below -- the capstone no
+     longer assumes ANY cutscene-leaf body. *)
   (* SLICE 27 (act_intro_cutscene WALKED): the glob-obj reach-closure
      assumption.  The intro warp-pipe / end-peach object pointers (gobj_ids),
      IF holding a pointer, point into the SafeB object pool -- they are
@@ -3059,7 +3055,13 @@ Section NoARealInputMWF.
                          closure assumption, consumed by raise_pipe/lower_pipe's
                          seed arms (the new R11-style model boundary). *)
                       Hglob_obj_root
-                      Hpres_cut_rest))
+                      LO_mov
+                      (* cut_rest_ids = nil: ALL 50 cutscene act handlers are
+                         now walked (act_end_peach_cutscene was the last), so
+                         this residual is vacuous and discharged inline -- the
+                         capstone no longer ASSUMES any cutscene-leaf body. *)
+                      (fun fid f Hmem _ =>
+                         CutsceneLeafSurface.cut_rest_vacuous _ fid Hmem)))
                 (automatic_pres lp LO_mario LO_aut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
                    (mwf_real_ctl lp bm bc oc0 SafeB)
