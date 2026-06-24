@@ -8075,6 +8075,276 @@ Section CutsceneLeafRows.
     exact (conj HV' (conj HS' (conj HM' HN'))).
   Qed.
 
+  (* ==================================================================== *)
+  (* SLICE D: end_obj_set_visual_pos (eovp) + the eovp-call walker arm.   *)
+  (* eovp is the per-actor visual-pos helper called by dialog_3 /         *)
+  (* run_to_castle.  param _o : Object* (SafeB-if-ptr); fn_vars =          *)
+  (* [_surf, _sp24].  ZERO Mario/global stores: the only memory writers    *)
+  (* are find_mario_anim_flags_and_translation (oc2, through &_sp24) and   *)
+  (* find_floor (oc, through &_surf) -- both preserve carried (local       *)
+  (* out-param blocks watched-disjoint from bm).  Its row is call_pres_ob  *)
+  (* (SafeB arg0 gate).  Bespoke walk (famft's oc2 call has no generic-    *)
+  (* engine arm), modeled on AutomaticLeafSurface.Hrmayt + oc_call_pres.   *)
+  (* ==================================================================== *)
+  (* local copy of AutomaticLeafSurface.crush_all_r (refutes the impossible
+     Sseq_2 stop-cases when the left statement is a Sset / Scall / Sreturn). *)
+  Ltac crush_all_r :=
+    repeat match goal with
+    | H : ?x <> ?x |- _ => destruct (H eq_refl)
+    | H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H
+    | H : exec_stmt _ _ _ _ _ (Sreturn _) _ _ _ _ |- _ => inv H
+    | H : exec_stmt _ _ _ _ _ (Sassign _ _) _ _ _ _ |- _ => inv H
+    | H : exec_stmt _ _ _ _ _ (Scall _ _ _) _ _ _ _ |- _ => inv H
+    | H : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _ |- _ => inv H
+    | H : exec_stmt _ _ _ _ _ Sskip _ _ _ _ |- _ => inv H
+    | H : exec_stmt _ _ _ _ _ (Sifthenelse _ _ _) _ _ _ _ |- _ => inv H
+    | H : exec_stmt _ _ _ _ _ (if ?b then _ else _) _ _ _ _ |- _ => destruct b
+    end.
+
+  Lemma eovp_pin :
+    (prog_defmap mario_actions_cutscene.prog) ! C._end_obj_set_visual_pos
+    = Some (Gfun (Internal C.f_end_obj_set_visual_pos)).
+  Proof. vm_compute. reflexivity. Qed.
+
+  (* famft's oc2 row, fed from the SAME section hyps that discharge
+     Hcp_umpfa (Hscp_geo / Hocp_rai / Hcpx_s2v / locals) -- NO new trust. *)
+  Lemma cut_Hoc2_famft :
+    OutParamSurface.call_pres_ext_oc2 lp bm NoA MWF SafeB
+      mario._find_mario_anim_flags_and_translation.
+  Proof. eapply AutomaticLeafSurface.Hoc2_famft; eassumption. Qed.
+
+  Lemma eovp_row :
+    call_pres_ob lp bm NoA MWF SafeB C._end_obj_set_visual_pos.
+  Proof.
+    intros fd m0 v0 vrest t0 mF vres0 Hevf Hres Hoarg HN HM HV HS.
+    pose proof (OutParamSurface.resolve_pin_fd lp _ _ _ _ LO_cut eovp_pin Hres) as ->.
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      rename Ha into Halloc end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    unfold C.f_end_obj_set_visual_pos in Hbody, Hbind, Halloc.
+    cbn [fn_body fn_params fn_temps fn_vars] in Hbody, Hbind, Halloc.
+    match goal with H : alloc_variables _ _ _ _ ?E ?ME |- _ =>
+      set (eloc := E) in *; set (me := ME) in * end.
+    assert (Hc0 : LocalVarsSurface.carried bm NoA MWF m0)
+      by (split; [ exact HV | split; [ exact HS
+                 | split; [ exact HM | exact HN ] ] ]).
+    pose proof (LocalVarsSurface.alloc_variables_carried
+                  bm NoA MWF HMWF_alloc HNoA_of_MWF
+                  _ _ _ _ _ _ Halloc Hc0) as Hce.
+    destruct Hce as (HVe & HSe & HMe & HNe).
+    (* the two stack locals _surf, _sp24 are watched-disjoint blocks *)
+    pose proof (LocalVarsSurface.alloc_variables_hlocal lp bm SafeB m0 _ eloc _
+                  (C._surf :: C._sp24 :: nil) Halloc HV
+                  (HSafeValid m0 HM) (HGlobValid m0 HM)
+                  ltac:(intros lid Hm; unfold mem_id in Hm; cbn [existsb] in Hm;
+                        apply Bool.orb_true_iff in Hm; destruct Hm as [He | Hm1];
+                        [ apply Pos.eqb_eq in He; subst lid; cbn [map fst];
+                          apply in_eq | ];
+                        apply Bool.orb_true_iff in Hm1; destruct Hm1 as [He2 | Hf];
+                        [ apply Pos.eqb_eq in He2; subst lid; cbn [map fst];
+                          apply in_cons; apply in_eq | discriminate Hf ]))
+      as Hlocal_fn.
+    destruct (Hlocal_fn C._surf ltac:(vm_compute; reflexivity))
+      as (sb & sty & Hesurf & Hsloc).
+    destruct (Hlocal_fn C._sp24 ltac:(vm_compute; reflexivity))
+      as (pb & pty & Hesp24 & Hploc).
+    (* the param _o is bound to v0 (the call_pres_ob SafeB-if-ptr argument) *)
+    destruct vrest as [| v1 vrest'];
+      [ | cbn [bind_parameter_temps] in Hbind; discriminate Hbind ].
+    match goal with
+    | Hb : bind_parameter_temps _ _ _ = Some ?L |- _ =>
+        assert (Hoeq : L ! C._o = Some v0)
+          by (cbn [bind_parameter_temps] in Hb;
+              injection Hb as HH; rewrite <- HH; apply PTree.gss)
+    end.
+    (* famft / find_floor are globals, unbound in the entry env *)
+    assert (Hfamft_none :
+              eloc ! mario._find_mario_anim_flags_and_translation = None).
+    { rewrite (LocalVarsSurface.alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc
+                 mario._find_mario_anim_flags_and_translation)
+        by (cbn; intros [HH | [HH | []]]; vm_compute in HH; discriminate HH).
+      apply PTree.gempty. }
+    assert (Hff_none : eloc ! mario._find_floor = None).
+    { rewrite (LocalVarsSurface.alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc
+                 mario._find_floor)
+        by (cbn; intros [HH | [HH | []]]; vm_compute in HH; discriminate HH).
+      apply PTree.gempty. }
+    (* ---- walk the body: blk1 = (Sset t'7 ; Scall famft) ---- *)
+    inv Hbody; [ | crush_all_r ].
+    match goal with
+    | HA : exec_stmt _ _ _ _ _ (Ssequence (Sset _ _) (Scall _ _ _)) _ _ _ Out_normal |- _ =>
+        inv HA; [ | crush_all_r ]
+    end.
+    match goal with
+    | HA1 : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv HA1
+    end.
+    match goal with
+    | H : exec_stmt _ _ _ _ _ (Scall _ _ _) _ _ _ _ |- _ => rename H into HA2
+    end.
+    match type of HA2 with
+    | exec_stmt _ _ ?E ?L ?M
+        (Scall _ (Evar _ (Tfunction ?TYL _ _)) ?ARGS) _ _ _ _ =>
+        assert (Hgate : forall vargs,
+                  eval_exprlist (lp_ge lp) E L M ARGS TYL vargs ->
+                  OutParamSurface.oc2_gate lp bm SafeB vargs)
+          by (intros vargs Hvl;
+              eapply (OutParamSurface.oc2_extract_tv lp bm SafeB E L M
+                        C._o _ _ _ _ C._sp24 _ _ _ pty pb vargs);
+              [ intros bb oo Hg;
+                rewrite PTree.gso in Hg
+                  by (intro EE; vm_compute in EE; discriminate EE);
+                rewrite Hoeq in Hg; injection Hg as Hv; exact (Hoarg bb oo Hv)
+              | exact Hesp24 | exact Hploc | exact Hvl ])
+    end.
+    destruct (OutParamSurface.oc2_scall_pres lp bm NoA MWF SafeB
+                None _ _ _ _ _ _ _ _ _ _ _ _
+                Hfamft_none cut_Hoc2_famft Hgate
+                HA2 (conj HVe (conj HSe (conj HMe HNe))))
+      as (Hcar_A & _).
+    clear Hgate.
+    (* ---- walk blk2: the loads/temp-computes (mem unchanged) down to the
+       find_floor oc call + the Sreturn ---- *)
+    match goal with
+    | HB : exec_stmt _ _ _ _ _ (Ssequence (Ssequence _ _) _) _ _ _ _ |- _ =>
+        rename HB into Hrest
+    end.
+    repeat match goal with
+    | H : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _ |- _ =>
+        inv H; [ | crush_all_r ]
+    | H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H
+    end.
+    match goal with
+    | H : exec_stmt _ _ _ _ _ (Scall _ _ _) _ _ _ _ |- _ => rename H into Hff
+    end.
+    destruct (OutParamSurface.oc_call_pres lp bm NoA MWF SafeB
+                _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+                Hff_none Hocp_find_floor Hesurf Hsloc Hff Hcar_A)
+      as (Hcar_B & _).
+    match goal with
+    | H : exec_stmt _ _ _ _ _ (Sreturn _) _ _ _ _ |- _ => inv H
+    end.
+    (* ---- exit: free the [_surf, _sp24] stack blocks ---- *)
+    destruct Hcar_B as (HVb & HSb & HMb & HNb).
+    pose proof (LocalVarsSurface.blocks_of_env_bm lp bm m0 _ eloc _ Halloc HV)
+      as Hforall.
+    pose proof (LocalVarsSurface.free_list_carried_bm bm NoA MWF HMWF_free
+                  HNoA_of_MWF (blocks_of_env (lp_ge lp) eloc) _ mF Hforall Hfree
+                  (conj HVb (conj HSb (conj HMb HNb))))
+      as (HVf & HSf & HMf & HNf).
+    exact (conj HVf (conj HSf (conj HMf HNf))).
+  Qed.
+
+  (* ---- the eovp-call walker arm: a Scall (Some tret) to eovp through a
+     chase-temp pointer arg (targ in cact, SafeB-if-ptr) returning into a
+     free temp (tret not in cact, not _m).  Consumes eovp_row (call_pres_ob).
+     eovp returns a float; its result lands in tret (untracked) so chase_inv
+     cact / the _m pin survive the set_opttemp regardless of the value. ---- *)
+  Definition eovp_ids : list ident := C._end_obj_set_visual_pos :: nil.
+
+  Lemma eovp_rows : forall fid, mem_id fid eovp_ids = true ->
+      call_pres_ob lp bm NoA MWF SafeB fid.
+  Proof.
+    intros fid H. unfold eovp_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [E | H];
+      [ apply Pos.eqb_eq in E; subst fid; exact eovp_row | discriminate H ].
+  Qed.
+
+  Definition eovp_chk (cact : list ident) (s : statement) : bool :=
+    match s with
+    | Scall (Some tret) (Evar fid (Tfunction (Tpointer _ _ :: nil) _ _))
+        (Etempvar targ (Tpointer _ _) :: nil) =>
+        mem_id fid eovp_ids && mem_id targ cact
+        && negb (mem_id tret cact) && negb (Pos.eqb tret Am)
+    | _ => false
+    end.
+
+  Lemma eovp_call_pres :
+    forall (cact : list ident) e le m0 tr le' m' out
+           tret fid p1 pa1 a1 aa1 rty cc targ,
+      mem_id fid eovp_ids = true ->
+      mem_id targ cact = true ->
+      negb (mem_id tret cact) = true ->
+      negb (Pos.eqb tret Am) = true ->
+      e ! fid = None ->
+      (forall b o, le ! Am = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero) ->
+      chase_inv SafeB cact le ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0
+        (Scall (Some tret) (Evar fid (Tfunction (Tpointer p1 pa1 :: nil) rty cc))
+           (Etempvar targ (Tpointer a1 aa1) :: nil)) tr le' m' out ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\
+      NoA m' /\
+      (forall b o, le' ! Am = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero) /\
+      chase_inv SafeB cact le'.
+  Proof.
+    intros cact e le m0 tr le' m' out tret fid p1 pa1 a1 aa1 rty cc targ
+           Hfid Htarg Htret_c Htret_m He Htat Hch Hexec HN HM HV HS.
+    inv Hexec.
+    match goal with
+    | Hcf : classify_fun _ = fun_case_f _ _ _ |- _ =>
+        cbn in Hcf; injection Hcf as E1 E2 E3; subst
+    end.
+    match goal with
+    | Hv : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
+        destruct (eval_Evar_funct lp _ _ _ _ _ _ _ _ He Hv)
+          as (bf & Hsym & ->)
+    end.
+    match goal with
+    | Hvl : eval_exprlist _ _ _ _ (_ :: _) _ _ |- _ =>
+        inversion Hvl as [ | a0 bl0 ty0 tyl0 v1a v2a vl0 Hev_a Hsc_a Htl0 ];
+        subst; clear Hvl
+    end.
+    (* the arg tempvar value: le ! targ = Some v1a (kill the spurious
+       eval_Elvalue case -- Etempvar is not an lvalue) *)
+    match goal with
+    | He2 : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+        inv He2;
+        [ | match goal with
+            | Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv Hl
+            end ]
+    end.
+    (* SafeB-if-ptr for the cast result v2a (the ptr passes through cast_case_
+       pointer on ptr32; chase_inv supplies SafeB for the targ block) *)
+    assert (Hv0 : forall b o, v2a = Vptr b o -> SafeB b).
+    { intros b o E. rewrite E in Hsc_a.
+      match goal with
+      | Hg : le ! targ = Some ?vc |- _ =>
+          destruct vc as [ | iv | lv | fv | sv | bv ov ];
+          cbn in Hsc_a; try discriminate Hsc_a;
+          injection Hsc_a as <- <-; exact (Hch targ Htarg _ _ Hg)
+      end. }
+    match goal with
+    | Hevf : eval_funcall _ _ _ _ (_ :: _) _ _ _,
+      Hff : Genv.find_funct _ (Vptr bf Ptrofs.zero) = Some _ |- _ =>
+        destruct (eovp_rows fid Hfid _ _ _ _ _ _ _ Hevf
+                    ltac:(red; exists bf; split; [ exact Hsym | exact Hff ])
+                    Hv0 HN HM HV HS)
+          as (HV' & HS' & HM' & HN')
+    end.
+    apply negb_true_iff in Htret_m. apply Pos.eqb_neq in Htret_m.
+    apply negb_true_iff in Htret_c.
+    refine (conj HV' (conj HS' (conj HM' (conj HN' (conj _ _))))).
+    - (* the _m pin survives set_opttemp (Some tret) (tret <> _m) *)
+      intros b o Hb. cbn [set_opttemp] in Hb.
+      rewrite PTree.gso in Hb by (apply not_eq_sym; exact Htret_m).
+      exact (Htat b o Hb).
+    - (* chase_inv cact survives (tret not in cact) *)
+      intros t Htmem b o Hb. cbn [set_opttemp] in Hb.
+      rewrite PTree.gso in Hb
+        by (intro EE; subst t; rewrite Htmem in Htret_c; discriminate Htret_c).
+      exact (Hch t Htmem b o Hb).
+  Qed.
+
   Definition epw_gen (cact : list ident) (s : statement) : bool :=
     wwalk_chk' nil nil nil nil nil nil false
       nil ep_ids nil cact ep_xids nil nil s.
@@ -8085,6 +8355,7 @@ Section CutsceneLeafRows.
     || match s with
        | Ssequence s1 s2 => epw_chk cact seeds s1 && epw_chk cact seeds s2
        | Sifthenelse _ s1 s2 => epw_chk cact seeds s1 && epw_chk cact seeds s2
+       | Scall _ _ _ => eovp_chk cact s
        | _ => gobj_seed_chk2 seeds s
        end.
 
@@ -8157,6 +8428,7 @@ Section CutsceneLeafRows.
       e ! interaction._gGlobalTimer = None ->
       (forall g, mem_id g gobj_ids = true -> e ! g = None) ->
       (forall g, mem_id g ep_ob_ids = true -> e ! g = None) ->
+      (forall g, mem_id g eovp_ids = true -> e ! g = None) ->
       epw_chk cact seeds s = true ->
       (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
                    b = bm /\ o = Ptrofs.zero) ->
@@ -8171,7 +8443,7 @@ Section CutsceneLeafRows.
   Proof.
     intros cact seeds Hseed_ne_m s e le m0 tr le' m' out Hexec.
     induction Hexec;
-      intros Hub_g Hub_i Hub_x Hubgt Hub_gobj Hub_ob Hchk Htat Hch
+      intros Hub_g Hub_i Hub_x Hubgt Hub_gobj Hub_ob Hub_eovp Hchk Htat Hch
              HN HM HV HS.
     - (* Sskip *)
       exact (conj HV (conj HS (conj HM (conj HN (conj Htat Hch))))).
@@ -8211,36 +8483,63 @@ Section CutsceneLeafRows.
           -- apply Pos.eqb_neq in Et.
              rewrite PTree.gso in Hb by (exact Et).
              exact (Hch t Htmem b o Hb).
-    - (* Scall: generic OR the ob-call *)
+    - (* Scall: generic OR the ob-call OR the eovp-call *)
       cbn [epw_chk] in Hchk.
-      apply orb_true_iff in Hchk as [Hgo | Hsp];
-        [ | cbn [gobj_seed_chk2] in Hsp; discriminate Hsp ].
-      apply orb_true_iff in Hgo as [Hg | Hob].
-      + eapply (epw_generic _ _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hubgt Hg
-                  Htat Hch HN HM HV HS);
-          eapply exec_Scall; eauto.
-      + (* ob arm *)
-        unfold ep_ob_chk in Hob.
-        destruct optid; [ discriminate Hob | ].
+      apply orb_true_iff in Hchk as [Hgo | Heovp].
+      + apply orb_true_iff in Hgo as [Hg | Hob].
+        * eapply (epw_generic _ _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hubgt Hg
+                    Htat Hch HN HM HV HS);
+            eapply exec_Scall; eauto.
+        * (* ob arm *)
+          unfold ep_ob_chk in Hob.
+          destruct optid; [ discriminate Hob | ].
+          destruct a as [ | | | | f0 fty | | | | | | | | | ];
+            try discriminate Hob.
+          destruct fty as [ | | | | | | tyl0 rty0 cc0 | | ];
+            try discriminate Hob.
+          destruct al as [ | a0 al' ]; [ discriminate Hob | ].
+          destruct a0 as [ n0 ty00 | | | | | | | | | | | | | ];
+            try discriminate Hob.
+          assert (Hexec' : exec_stmt function_entry2 (lp_ge lp) e le m
+                             (Scall None (Evar f0 (Tfunction tyl0 rty0 cc0))
+                                (Econst_int n0 ty00 :: al')) t
+                             (set_opttemp None vres le) m' Out_normal)
+            by (eapply exec_Scall; eauto).
+          destruct (ep_ob_pres _ _ _ _ _ _ _ _ _ _ _ _ _ _ Hob
+                      (Hub_ob _ Hob) Hexec' HN HM HV HS)
+            as (HV' & HS' & HM' & HN').
+          split; [ exact HV' | split; [ exact HS' | split; [ exact HM' |
+            split; [ exact HN' | split ] ] ] ].
+          ** exact Htat.
+          ** exact Hch.
+      + (* eovp arm: Scall (Some tret) eovp(Etempvar targ) *)
+        unfold eovp_chk in Heovp.
+        destruct optid as [ tret | ]; [ | discriminate Heovp ].
         destruct a as [ | | | | f0 fty | | | | | | | | | ];
-          try discriminate Hob.
+          try discriminate Heovp.
         destruct fty as [ | | | | | | tyl0 rty0 cc0 | | ];
-          try discriminate Hob.
-        destruct al as [ | a0 al' ]; [ discriminate Hob | ].
-        destruct a0 as [ n0 ty00 | | | | | | | | | | | | | ];
-          try discriminate Hob.
+          try discriminate Heovp.
+        destruct tyl0 as [ | tyh tyl0' ]; [ discriminate Heovp | ].
+        destruct tyh as [ | | | | pp ppa | | | | ];
+          try discriminate Heovp.
+        destruct tyl0' as [ | tyx tyxs ]; [ | discriminate Heovp ].
+        destruct al as [ | a0 al' ]; [ discriminate Heovp | ].
+        destruct a0 as [ | | | | | targ tty | | | | | | | | ];
+          try discriminate Heovp.
+        destruct tty as [ | | | | aa aaa | | | | ];
+          try discriminate Heovp.
+        destruct al' as [ | ax axs ]; [ | discriminate Heovp ].
+        apply andb_prop in Heovp as [Heovp Hm4].
+        apply andb_prop in Heovp as [Heovp Hm3].
+        apply andb_prop in Heovp as [Hm1 Hm2].
         assert (Hexec' : exec_stmt function_entry2 (lp_ge lp) e le m
-                           (Scall None (Evar f0 (Tfunction tyl0 rty0 cc0))
-                              (Econst_int n0 ty00 :: al')) t
-                           (set_opttemp None vres le) m' Out_normal)
+                           (Scall (Some tret)
+                              (Evar f0 (Tfunction (Tpointer pp ppa :: nil) rty0 cc0))
+                              (Etempvar targ (Tpointer aa aaa) :: nil)) t
+                           (set_opttemp (Some tret) vres le) m' Out_normal)
           by (eapply exec_Scall; eauto).
-        destruct (ep_ob_pres _ _ _ _ _ _ _ _ _ _ _ _ _ _ Hob
-                    (Hub_ob _ Hob) Hexec' HN HM HV HS)
-          as (HV' & HS' & HM' & HN').
-        split; [ exact HV' | split; [ exact HS' | split; [ exact HM' |
-          split; [ exact HN' | split ] ] ] ].
-        * exact Htat.
-        * exact Hch.
+        exact (eovp_call_pres cact e le m _ _ _ _ tret f0 pp ppa aa aaa rty0 cc0
+                 targ Hm1 Hm2 Hm3 Hm4 (Hub_eovp _ Hm1) Htat Hch Hexec' HN HM HV HS).
     - (* Sbuiltin: rejected by all arms *)
       cbn [epw_chk] in Hchk.
       apply orb_true_iff in Hchk as [Hgo | Hsp];
@@ -8257,10 +8556,10 @@ Section CutsceneLeafRows.
                   Htat Hch HN HM HV HS);
           eapply exec_Sseq_1; eauto. }
       apply andb_prop in Hsp as [H1 H2].
-      destruct (IHHexec1 Hub_g Hub_i Hub_x Hubgt Hub_gobj Hub_ob H1 Htat Hch
+      destruct (IHHexec1 Hub_g Hub_i Hub_x Hubgt Hub_gobj Hub_ob Hub_eovp H1 Htat Hch
                   HN HM HV HS)
         as (HV1 & HS1 & HM1 & HN1 & Htat1 & Hch1).
-      exact (IHHexec2 Hub_g Hub_i Hub_x Hubgt Hub_gobj Hub_ob H2 Htat1 Hch1
+      exact (IHHexec2 Hub_g Hub_i Hub_x Hubgt Hub_gobj Hub_ob Hub_eovp H2 Htat1 Hch1
                HN1 HM1 HV1 HS1).
     - (* Sseq_2 *)
       cbn [epw_chk] in Hchk.
@@ -8271,7 +8570,7 @@ Section CutsceneLeafRows.
                   Htat Hch HN HM HV HS);
           eapply exec_Sseq_2; eauto. }
       apply andb_prop in Hsp as [H1 _].
-      exact (IHHexec Hub_g Hub_i Hub_x Hubgt Hub_gobj Hub_ob H1 Htat Hch
+      exact (IHHexec Hub_g Hub_i Hub_x Hubgt Hub_gobj Hub_ob Hub_eovp H1 Htat Hch
                HN HM HV HS).
     - (* Sifthenelse *)
       cbn [epw_chk] in Hchk.
@@ -8408,8 +8707,10 @@ Section CutsceneLeafRows.
                     empty_env ! g = None) by (intros; apply PTree.gempty).
     assert (Hub_ob : forall g, mem_id g ep_ob_ids = true ->
                     empty_env ! g = None) by (intros; apply PTree.gempty).
+    assert (Hub_eovp : forall g, mem_id g eovp_ids = true ->
+                    empty_env ! g = None) by (intros; apply PTree.gempty).
     destruct (epw_pres_stmt cact seeds Hseed_ne_m _ _ _ _ _ _ _ _ Hbody
-                Hub_g Hub_i Hub_x Hubgt Hub_gobj Hub_ob Hwalk Htat0 Hch0
+                Hub_g Hub_i Hub_x Hubgt Hub_gobj Hub_ob Hub_eovp Hwalk Htat0 Hch0
                 HN HM HV HS)
       as (HVb & HSb & HMb & _ & _ & _).
     exact (conj HVb (conj HSb HMb)).
@@ -8577,173 +8878,123 @@ Section CutsceneLeafRows.
              mario_actions_cutscene.prog _ _ LO_cut dpc_pin dpc_pres).
   Qed.
 
-  (* ==================================================================== *)
-  (* SLICE D1: end_obj_set_visual_pos (eovp) -- the per-actor visual-pos  *)
-  (* helper called by dialog_3 / run_to_castle.  param _o : Object*       *)
-  (* (SafeB-if-ptr); fn_vars = [_surf, _sp24].  ZERO Mario/global stores:  *)
-  (* the only memory writers are find_mario_anim_flags_and_translation     *)
-  (* (oc2, through the &_sp24 local out-param) and find_floor (oc, through *)
-  (* the &_surf local out-param) -- both preserve carried (local out-param *)
-  (* blocks are watched-disjoint from bm).  Its row is call_pres_ob (the   *)
-  (* SafeB arg0 gate), consumed at the eovp call sites in dialog_3 /       *)
-  (* run_to_castle.  Bespoke walk (famft's oc2 call has no generic-engine  *)
-  (* arm), modeled on AutomaticLeafSurface.Hrmayt + oc_call_pres.          *)
-  (* ==================================================================== *)
-  (* local copy of AutomaticLeafSurface.crush_all_r (refutes the impossible
-     Sseq_2 stop-cases when the left statement is a Sset / Scall / Sreturn). *)
-  Ltac crush_all_r :=
-    repeat match goal with
-    | H : ?x <> ?x |- _ => destruct (H eq_refl)
-    | H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H
-    | H : exec_stmt _ _ _ _ _ (Sreturn _) _ _ _ _ |- _ => inv H
-    | H : exec_stmt _ _ _ _ _ (Sassign _ _) _ _ _ _ |- _ => inv H
-    | H : exec_stmt _ _ _ _ _ (Scall _ _ _) _ _ _ _ |- _ => inv H
-    | H : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _ |- _ => inv H
-    | H : exec_stmt _ _ _ _ _ Sskip _ _ _ _ |- _ => inv H
-    | H : exec_stmt _ _ _ _ _ (Sifthenelse _ _ _) _ _ _ _ |- _ => inv H
-    | H : exec_stmt _ _ _ _ _ (if ?b then _ else _) _ _ _ _ |- _ => destruct b
-    end.
-
-  Lemma eovp_pin :
-    (prog_defmap mario_actions_cutscene.prog) ! C._end_obj_set_visual_pos
-    = Some (Gfun (Internal C.f_end_obj_set_visual_pos)).
+  (* ---- dialog_3: cact = seeds = [t'13,t'12,t'11,t'10,t'9,t'8] (the gobj
+     temps that serve as eovp args -- t'13/t'11/t'9 -- and chase-store
+     bases -- t'12/t'10/t'8 -- into <gobj>->rawData.asF32[7]).  Three eovp
+     calls (eovp-arm), three chase stores, set_mario_animation (marg),
+     advance_cutscene_step (marg), and the actionTimer switch whose body
+     (sEndPeachAnimation / sEndToadAnims[i] / D_8032CBE8 global stores +
+     set_cutscene_message / play_sound externals + t'7/t'6 gobj loads,
+     all OUT of cact so the Sset arm passes trivially) is wholly walked by
+     epw_gen.  The eovp temps t'7/t'6 are loaded but used only as
+     play_sound args, so they need NOT be censused. *)
+  Example dg3_pin :
+    (prog_defmap mario_actions_cutscene.prog)
+      ! C._end_peach_cutscene_dialog_3
+    = Some (Gfun (Internal C.f_end_peach_cutscene_dialog_3)).
   Proof. vm_compute. reflexivity. Qed.
-
-  (* famft's oc2 row, fed from the SAME section hyps that discharge
-     Hcp_umpfa (Hscp_geo / Hocp_rai / Hcpx_s2v / locals) -- NO new trust. *)
-  Lemma cut_Hoc2_famft :
-    OutParamSurface.call_pres_ext_oc2 lp bm NoA MWF SafeB
-      mario._find_mario_anim_flags_and_translation.
-  Proof. eapply AutomaticLeafSurface.Hoc2_famft; eassumption. Qed.
-
-  Lemma eovp_row :
-    call_pres_ob lp bm NoA MWF SafeB C._end_obj_set_visual_pos.
+  Definition dg3_cact : list ident :=
+    C._t'13 :: C._t'12 :: C._t'11 :: C._t'10 :: C._t'9 :: C._t'8 :: nil.
+  Definition dg3_seeds : list ident :=
+    C._t'13 :: C._t'12 :: C._t'11 :: C._t'10 :: C._t'9 :: C._t'8 :: nil.
+  Example dg3_vars : fn_vars C.f_end_peach_cutscene_dialog_3 = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example dg3_pok :
+    match fn_params C.f_end_peach_cutscene_dialog_3 with
+    | (i, ty) :: ps =>
+        (Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+         && negb (mem_id Am (map fst ps)))%bool
+    | nil => false
+    end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example dg3_npc :
+    forallb (fun t' => negb (mem_id t'
+       (map fst (fn_params C.f_end_peach_cutscene_dialog_3))))
+      dg3_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma dg3_seed_ne_m : forall id,
+      mem_id id dg3_seeds = true -> id <> mario_actions_airborne._m.
   Proof.
-    intros fd m0 v0 vrest t0 mF vres0 Hevf Hres Hoarg HN HM HV HS.
-    pose proof (OutParamSurface.resolve_pin_fd lp _ _ _ _ LO_cut eovp_pin Hres) as ->.
-    inv Hevf.
-    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
-      rename He into Hentry end.
-    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
-      rename Hx into Hbody end.
-    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
-      rename Hf into Hfree end.
-    inv Hentry.
-    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
-      rename Ha into Halloc end.
-    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
-      rename Hb into Hbind end.
-    unfold C.f_end_obj_set_visual_pos in Hbody, Hbind, Halloc.
-    cbn [fn_body fn_params fn_temps fn_vars] in Hbody, Hbind, Halloc.
-    match goal with H : alloc_variables _ _ _ _ ?E ?ME |- _ =>
-      set (eloc := E) in *; set (me := ME) in * end.
-    assert (Hc0 : LocalVarsSurface.carried bm NoA MWF m0)
-      by (split; [ exact HV | split; [ exact HS
-                 | split; [ exact HM | exact HN ] ] ]).
-    pose proof (LocalVarsSurface.alloc_variables_carried
-                  bm NoA MWF HMWF_alloc HNoA_of_MWF
-                  _ _ _ _ _ _ Halloc Hc0) as Hce.
-    destruct Hce as (HVe & HSe & HMe & HNe).
-    (* the two stack locals _surf, _sp24 are watched-disjoint blocks *)
-    pose proof (LocalVarsSurface.alloc_variables_hlocal lp bm SafeB m0 _ eloc _
-                  (C._surf :: C._sp24 :: nil) Halloc HV
-                  (HSafeValid m0 HM) (HGlobValid m0 HM)
-                  ltac:(intros lid Hm; unfold mem_id in Hm; cbn [existsb] in Hm;
-                        apply Bool.orb_true_iff in Hm; destruct Hm as [He | Hm1];
-                        [ apply Pos.eqb_eq in He; subst lid; cbn [map fst];
-                          apply in_eq | ];
-                        apply Bool.orb_true_iff in Hm1; destruct Hm1 as [He2 | Hf];
-                        [ apply Pos.eqb_eq in He2; subst lid; cbn [map fst];
-                          apply in_cons; apply in_eq | discriminate Hf ]))
-      as Hlocal_fn.
-    destruct (Hlocal_fn C._surf ltac:(vm_compute; reflexivity))
-      as (sb & sty & Hesurf & Hsloc).
-    destruct (Hlocal_fn C._sp24 ltac:(vm_compute; reflexivity))
-      as (pb & pty & Hesp24 & Hploc).
-    (* the param _o is bound to v0 (the call_pres_ob SafeB-if-ptr argument) *)
-    destruct vrest as [| v1 vrest'];
-      [ | cbn [bind_parameter_temps] in Hbind; discriminate Hbind ].
-    match goal with
-    | Hb : bind_parameter_temps _ _ _ = Some ?L |- _ =>
-        assert (Hoeq : L ! C._o = Some v0)
-          by (cbn [bind_parameter_temps] in Hb;
-              injection Hb as HH; rewrite <- HH; apply PTree.gss)
-    end.
-    (* famft / find_floor are globals, unbound in the entry env *)
-    assert (Hfamft_none :
-              eloc ! mario._find_mario_anim_flags_and_translation = None).
-    { rewrite (LocalVarsSurface.alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc
-                 mario._find_mario_anim_flags_and_translation)
-        by (cbn; intros [HH | [HH | []]]; vm_compute in HH; discriminate HH).
-      apply PTree.gempty. }
-    assert (Hff_none : eloc ! mario._find_floor = None).
-    { rewrite (LocalVarsSurface.alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc
-                 mario._find_floor)
-        by (cbn; intros [HH | [HH | []]]; vm_compute in HH; discriminate HH).
-      apply PTree.gempty. }
-    (* ---- walk the body: blk1 = (Sset t'7 ; Scall famft) ---- *)
-    inv Hbody; [ | crush_all_r ].
-    match goal with
-    | HA : exec_stmt _ _ _ _ _ (Ssequence (Sset _ _) (Scall _ _ _)) _ _ _ Out_normal |- _ =>
-        inv HA; [ | crush_all_r ]
-    end.
-    match goal with
-    | HA1 : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv HA1
-    end.
-    match goal with
-    | H : exec_stmt _ _ _ _ _ (Scall _ _ _) _ _ _ _ |- _ => rename H into HA2
-    end.
-    match type of HA2 with
-    | exec_stmt _ _ ?E ?L ?M
-        (Scall _ (Evar _ (Tfunction ?TYL _ _)) ?ARGS) _ _ _ _ =>
-        assert (Hgate : forall vargs,
-                  eval_exprlist (lp_ge lp) E L M ARGS TYL vargs ->
-                  OutParamSurface.oc2_gate lp bm SafeB vargs)
-          by (intros vargs Hvl;
-              eapply (OutParamSurface.oc2_extract_tv lp bm SafeB E L M
-                        C._o _ _ _ _ C._sp24 _ _ _ pty pb vargs);
-              [ intros bb oo Hg;
-                rewrite PTree.gso in Hg
-                  by (intro EE; vm_compute in EE; discriminate EE);
-                rewrite Hoeq in Hg; injection Hg as Hv; exact (Hoarg bb oo Hv)
-              | exact Hesp24 | exact Hploc | exact Hvl ])
-    end.
-    destruct (OutParamSurface.oc2_scall_pres lp bm NoA MWF SafeB
-                None _ _ _ _ _ _ _ _ _ _ _ _
-                Hfamft_none cut_Hoc2_famft Hgate
-                HA2 (conj HVe (conj HSe (conj HMe HNe))))
-      as (Hcar_A & _).
-    clear Hgate.
-    (* ---- walk blk2: the loads/temp-computes (mem unchanged) down to the
-       find_floor oc call + the Sreturn ---- *)
-    match goal with
-    | HB : exec_stmt _ _ _ _ _ (Ssequence (Ssequence _ _) _) _ _ _ _ |- _ =>
-        rename HB into Hrest
-    end.
-    repeat match goal with
-    | H : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _ |- _ =>
-        inv H; [ | crush_all_r ]
-    | H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H
-    end.
-    match goal with
-    | H : exec_stmt _ _ _ _ _ (Scall _ _ _) _ _ _ _ |- _ => rename H into Hff
-    end.
-    destruct (OutParamSurface.oc_call_pres lp bm NoA MWF SafeB
-                _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-                Hff_none Hocp_find_floor Hesurf Hsloc Hff Hcar_A)
-      as (Hcar_B & _).
-    match goal with
-    | H : exec_stmt _ _ _ _ _ (Sreturn _) _ _ _ _ |- _ => inv H
-    end.
-    (* ---- exit: free the [_surf, _sp24] stack blocks ---- *)
-    destruct Hcar_B as (HVb & HSb & HMb & HNb).
-    pose proof (LocalVarsSurface.blocks_of_env_bm lp bm m0 _ eloc _ Halloc HV)
-      as Hforall.
-    pose proof (LocalVarsSurface.free_list_carried_bm bm NoA MWF HMWF_free
-                  HNoA_of_MWF (blocks_of_env (lp_ge lp) eloc) _ mF Hforall Hfree
-                  (conj HVb (conj HSb (conj HMb HNb))))
-      as (HVf & HSf & HMf & HNf).
-    exact (conj HVf (conj HSf (conj HMf HNf))).
+    intros id H. unfold dg3_seeds in H. cbn [mem_id existsb] in H.
+    repeat (apply orb_true_iff in H as [E | H];
+            [ apply Pos.eqb_eq in E; subst id; discriminate | ]).
+    discriminate H.
+  Qed.
+  Example dg3_margex :
+    marg_exempt (Internal C.f_end_peach_cutscene_dialog_3) = false.
+  Proof. vm_compute. reflexivity. Qed.
+  Example dg3_walk :
+    epw_chk dg3_cact dg3_seeds
+      (fn_body C.f_end_peach_cutscene_dialog_3) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma dg3_pres :
+    body_pres lp NoA MWF bm C.f_end_peach_cutscene_dialog_3.
+  Proof.
+    exact (epw_body_pres _ dg3_cact dg3_seeds dg3_vars dg3_margex dg3_pok
+             dg3_npc dg3_seed_ne_m dg3_walk).
+  Qed.
+  Lemma dg3_row :
+    call_pres lp bm NoA MWF C._end_peach_cutscene_dialog_3.
+  Proof.
+    exact (call_pres_of_body lp bm NoA MWF HNoA_of_MWF
+             mario_actions_cutscene.prog _ _ LO_cut dg3_pin dg3_pres).
+  Qed.
+
+  (* ---- run_to_castle: cact = [t'10,t'9], seeds = nil.  Unlike dialog_3,
+     the eovp arg (t'10) and chase-store base (t'9) are loaded from
+     m->marioObj -- a MARIO-ROOTED chase pointer recognised by epw_gen's
+     chase_root_chk arm directly, so no gobj seeding is needed.  One eovp
+     call (eovp-arm), one chase store into marioObj->header.gfx.pos[1], the
+     anim-id if/set_mario_animation, is_anim_past_end (marg), the
+     m->actionState writes (safe_mfield_store), the actionTimer guards with
+     set_cutscene_message / play_sound (ext, t'7 gobj load OUT of cact) and
+     advance_cutscene_step (marg) -- all walked by epw_gen. *)
+  Example rtc_pin :
+    (prog_defmap mario_actions_cutscene.prog)
+      ! C._end_peach_cutscene_run_to_castle
+    = Some (Gfun (Internal C.f_end_peach_cutscene_run_to_castle)).
+  Proof. vm_compute. reflexivity. Qed.
+  Definition rtc_cact : list ident := C._t'10 :: C._t'9 :: nil.
+  Definition rtc_seeds : list ident := nil.
+  Example rtc_vars : fn_vars C.f_end_peach_cutscene_run_to_castle = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example rtc_pok :
+    match fn_params C.f_end_peach_cutscene_run_to_castle with
+    | (i, ty) :: ps =>
+        (Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+         && negb (mem_id Am (map fst ps)))%bool
+    | nil => false
+    end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example rtc_npc :
+    forallb (fun t' => negb (mem_id t'
+       (map fst (fn_params C.f_end_peach_cutscene_run_to_castle))))
+      rtc_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma rtc_seed_ne_m : forall id,
+      mem_id id rtc_seeds = true -> id <> mario_actions_airborne._m.
+  Proof.
+    intros id H. unfold rtc_seeds in H. cbn [mem_id existsb] in H.
+    discriminate H.
+  Qed.
+  Example rtc_margex :
+    marg_exempt (Internal C.f_end_peach_cutscene_run_to_castle) = false.
+  Proof. vm_compute. reflexivity. Qed.
+  Example rtc_walk :
+    epw_chk rtc_cact rtc_seeds
+      (fn_body C.f_end_peach_cutscene_run_to_castle) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma rtc_pres :
+    body_pres lp NoA MWF bm C.f_end_peach_cutscene_run_to_castle.
+  Proof.
+    exact (epw_body_pres _ rtc_cact rtc_seeds rtc_vars rtc_margex rtc_pok
+             rtc_npc rtc_seed_ne_m rtc_walk).
+  Qed.
+  Lemma rtc_row :
+    call_pres lp bm NoA MWF C._end_peach_cutscene_run_to_castle.
+  Proof.
+    exact (call_pres_of_body lp bm NoA MWF HNoA_of_MWF
+             mario_actions_cutscene.prog _ _ LO_cut rtc_pin rtc_pres).
   Qed.
 
   (* The family rest-split: discharge the SLICE 1-5 leaves, leaving the   *)
