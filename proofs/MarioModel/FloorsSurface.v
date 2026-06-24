@@ -144,6 +144,45 @@ Proof.
   exact (evar_glob_block _ _ _ _ _ _ _ _ _ Hvar He).
 Qed.
 
+(* THE block-invariance lemma for a DIRECT global-array indexed store
+   (`sEndToadAnims[i] = c`): the lvalue's block IS the global array symbol's
+   block (twin of deep2_glob_block, but the array carrier is a bare Evar, not
+   an Efield chain). *)
+Lemma glob_arr_block :
+  forall ge e le m gid ts n att idx pty rty b ofs bf,
+    eval_lvalue ge e le m
+      (Ederef (Ebinop Oadd (Evar gid (Tarray ts n att))
+                 (Econst_int idx tint) pty) rty) b ofs bf ->
+    e ! gid = None ->
+    Genv.find_symbol ge gid = Some b.
+Proof.
+  intros ge e le m gid ts n att idx pty rty b ofs bf Hlv He.
+  inv Hlv.
+  match goal with H : eval_expr _ _ _ _ (Ebinop _ _ _ _) _ |- _ => inv H end.
+  match goal with H : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ => inv H end.
+  match goal with H : eval_expr _ _ _ _ (Evar _ _) _ |- _ => inv H end.
+  match goal with
+  | Hd : deref_loc _ _ _ _ _ _ |- _ =>
+      cbn [typeof] in Hd; apply array_decay_ptr in Hd;
+      rewrite Hd in *; clear Hd
+  end.
+  match goal with
+  | Hsa : sem_binary_operation _ Oadd (Vptr ?loc _) _ _ _ _ = Some (Vptr ?bb _) |- _ =>
+      cbn [typeof] in Hsa;
+      unfold sem_binary_operation, sem_add in Hsa; cbn in Hsa;
+      assert (Hbl : bb = loc) by congruence; subst bb
+  end.
+  match goal with
+  | Hlv2 : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ =>
+      exact (evar_glob_block _ _ _ _ _ _ _ _ _ Hlv2 He)
+  end.
+  Unshelve.
+  all: match goal with
+       | H : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => solve [ inversion H ]
+       | H : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ => solve [ inversion H ]
+       end.
+Qed.
+
 (* ====================================================================== *)
 (* The generic walker recognizer (top-level: no lp).                      *)
 (* ====================================================================== *)
@@ -177,6 +216,15 @@ Definition glob_store_chk (a1 : expr) : bool :=
          lands in the SAME global block (deep2_glob_block), offset-irrelevant.
          The index const is pinned to tint so classify_add reduces in the
          soundness proof. *)
+      mem_id gid stored_globals
+      && proj_sumbool (type_eq ity tint)
+      && match access_mode rty with By_value _ => true | _ => false end
+  | Ederef (Ebinop Oadd (Evar gid (Tarray _ _ _))
+              (Econst_int _ ity) _) rty =>
+      (* a DIRECT global-ARRAY indexed write (sEndToadAnims[i] = c): the bare
+         Evar array carrier decays to the symbol's base address (glob_arr_block),
+         so the store lands in the SAME global block, offset-irrelevant.  The
+         index const is pinned to tint so classify_add reduces in soundness. *)
       mem_id gid stored_globals
       && proj_sumbool (type_eq ity tint)
       && match access_mode rty with By_value _ => true | _ => false end
@@ -491,15 +539,58 @@ Section FloorsSurface.
           [ exact (HS av Hload) | left; exact (not_eq_sym Hne) ] | ].
       all: split; [ exact (Hrow _ _ _ _ _ HM Hst) | ].
       all: split; reflexivity. }
-    2:{ (* the DEEP-global union/struct/array store
-           (sEndCutsceneVp.vp.vscale[i]): peel the Ederef shape, then
-           deep2_glob_block lands it in the global block (offset-irrelevant
-           like the other stored_globals stores) *)
+    2:{ (* the Ederef-shaped global stores: a DIRECT global-array indexed
+           write (sEndToadAnims[i]) via glob_arr_block, OR the DEEP
+           union/struct/array store (sEndCutsceneVp.vp.vscale[i]) via
+           deep2_glob_block.  Both land in the global block (offset-irrelevant
+           like the other stored_globals stores). *)
       destruct da as [ | | | | | | | | | bop e21 e22 ebty | | | | ];
         try discriminate Hgs.
       destruct bop; try discriminate Hgs.
-      destruct e21 as [ | | | | | | | | | | | e21b e21f e21ty | | ];
+      destruct e21 as [ | | | | gidv gtyv | | | | | | | e21b e21f e21ty | | ];
         try discriminate Hgs.
+      { (* the DIRECT global-ARRAY indexed write (sEndToadAnims[i] = c): the
+           bare Evar array carrier decays to the symbol's base block. *)
+        destruct gtyv as [ | | | | | ta_t ta_sz ta_a | | | ];
+          try discriminate Hgs.
+        destruct e22 as [ idx ity | | | | | | | | | | | | | ];
+          try discriminate Hgs.
+        cbn [glob_store_chk] in Hgs.
+        apply andb_prop in Hgs as [Hgs0 Hacc].
+        apply andb_prop in Hgs0 as [Hgid Hity].
+        destruct (type_eq ity tint) as [Heq | ]; [ subst ity | discriminate Hity ].
+        destruct (access_mode dy) as [ch | | | ] eqn:Hac; try discriminate Hacc.
+        inv Hexec.
+        match goal with
+        | Hlv : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ =>
+            apply glob_arr_block in Hlv;
+              [ rename Hlv into Hsym | exact (He_unbound _ Hgid) ]
+        end.
+        destruct (HMWF_glob _ Hgid _ Hsym) as [Hne Hrow].
+        match goal with
+        | Has : assign_loc _ _ _ _ _ _ _ m' |- _ =>
+            cbn [typeof] in Has;
+            inv Has;
+            try (match goal with
+                 | Hac2 : access_mode dy = _ |- _ =>
+                     rewrite Hac in Hac2; discriminate Hac2
+                 end)
+        end.
+        2: match goal with
+           | Hsb : store_bitfield _ _ _ _ _ _ _ _ _ _ |- _ => inv Hsb
+           end.
+        all: match goal with
+             | Hstv : Mem.storev _ _ _ _ = Some _ |- _ =>
+                 unfold Mem.storev in Hstv; rename Hstv into Hst
+             end.
+        all: split; [ eauto using Mem.store_valid_block_1 | ].
+        all: split;
+          [ intros av Hload;
+            rewrite (Mem.load_store_other _ _ _ _ _ _ Hst) in Hload;
+            [ exact (HS av Hload) | left; exact (not_eq_sym Hne) ] | ].
+        all: split; [ exact (Hrow _ _ _ _ _ HM Hst) | ].
+        all: split; reflexivity. }
+      (* the DEEP-global union/struct/array store (e21 = Efield e21b ..). *)
       destruct e21b as [ | | | | | | | | | | | e21bb e21bf e21bty | | ];
         try discriminate Hgs.
       destruct e21bb as [ | | | | gid gty | | | | | | | | | ];
