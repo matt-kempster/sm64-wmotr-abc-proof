@@ -982,7 +982,12 @@ Definition wchase_rhs_ok (wact : list ident) (ty : type) (a2 : expr)
   nonptr_scalar ty
   || (i32_ty ty && match a2 with
                    | Econst_int _ _ => true
-                   | Etempvar q _ => mem_id q wact
+                   (* a censused act temp (non-ptr by act_inv) OR a FLOAT-typed
+                      temp: the assign cast float->i32 is f2i/s2i (Vint-or-stuck),
+                      NEVER the ptr32 cast_case_pointer passthrough (i32-SOURCE
+                      only).  spawn_peach's `sEndPeachObj->asS32[61] =
+                      camera_approach_f32_symmetric(...)` (a tfloat temp). *)
+                   | Etempvar q qty => mem_id q wact || float_ty qty
                    (* the pointer-STUCK binops: each is sem_shl / sem_shr /
                       sem_binarith, which yield Vint/Vlong/Vfloat/Vsingle or
                       get STUCK (None) on a pointer operand -- so the stored
@@ -2485,7 +2490,7 @@ Section ActWriterWalk.
         | Hcast0 : sem_cast _ _ _ _ = Some _ |- _ =>
             exact (sem_cast_to_nonptr_scalar _ _ _ _ _ Hsc Hcast0)
         end.
-      - apply andb_prop in HI32 as [_ Ha2].
+      - apply andb_prop in HI32 as [Hi32t Ha2].
         destruct a2 as [ c2 ity | | | | | q qty | | | uop ua uty |
                          op2 aa2 ab2 bty2 | ca cty | | | ];
           try discriminate Ha2.
@@ -2502,11 +2507,17 @@ Section ActWriterWalk.
           | Hcast0 : sem_cast _ _ _ _ = Some _ |- _ =>
               exact (sem_cast_vint_nonptr _ _ _ _ _ Hcast0)
           end.
-        + (* censused act temp: untainted scalar, never a pointer *)
+        + (* censused act temp (untainted scalar) OR a float-typed temp
+             (the assign cast float->i32 is f2i/s2i -> Vint-or-stuck) *)
+          apply orb_true_iff in Ha2 as [Hwa | Hfl].
+          2:{ match goal with
+              | Hcast0 : sem_cast _ _ _ _ = Some _ |- _ =>
+                  exact (sem_cast_float_i32_nonptr _ _ _ _ _ Hfl Hi32t Hcast0)
+              end. }
           match goal with
           | Hev2 : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
               apply eval_expr_Etempvar_val in Hev2;
-              destruct (Hact _ Ha2 _ Hev2) as [Ev | (w & Ev & _)];
+              destruct (Hact _ Hwa _ Hev2) as [Ev | (w & Ev & _)];
               subst
           end.
           * match goal with
