@@ -557,6 +557,14 @@ Definition cut_walked_ids : list ident :=
 Definition cut_rest_ids : list ident :=
   filter (fun id => negb (mem_id id cut_walked_ids)) cutscene_callee_ids.
 
+(* the cutscene GLOBAL object-pointer roots: stores THROUGH a value loaded from
+   one of these land in the SafeB object pool (the intro warp-pipe / end-peach
+   objects are spawn_object'd into the pool).  Used by the bespoke glob-obj
+   chase walker that closes intro/end_peach/end_waving. *)
+Definition gobj_ids : list ident :=
+  mario_actions_cutscene._sIntroWarpPipeObj
+    :: mario_actions_cutscene._sEndPeachObj :: nil.
+
 (* ---- the AST shape pins (vm_compute reflexivity). ---- *)
 Example cdh_pin :
   (prog_defmap C.prog) ! C._common_death_handler
@@ -5312,6 +5320,66 @@ Section CutsceneLeafRows.
   Hypothesis Hocp_resolve :
     OutParamSurface.call_pres_ext_ol lp bm NoA MWF SafeB
       mario._resolve_and_return_wall_collisions.
+
+  (* ==================================================================== *)
+  (* GLOB-OBJ-CHASE FOUNDATION (for closing the cutscene tail: intro /     *)
+  (* end_peach / end_waving store THROUGH a value loaded from a GLOBAL     *)
+  (* object-pointer variable in gobj_ids).  This is the honest per-symbol  *)
+  (* reach-closure row + the seed lemma; the bespoke per-leaf walker that  *)
+  (* CONSUMES them is built next.  [scaffolding -- no spine lemma uses it   *)
+  (* yet; see [[cutscene-globobj-campaign]].]                              *)
+  (* ==================================================================== *)
+  (* HGlobObjRoot: each global obj-ptr in gobj_ids, IF a pointer, points   *)
+  (* into the SafeB object pool (the warp-pipe / end-peach objects are     *)
+  (* spawn_object'd into the pool).  Honest, per-symbol, dischargeable in   *)
+  (* principle (NOT provable from current MWFReal: SafeB is abstract and    *)
+  (* there is no per-symbol global-obj membership row -- this becomes a     *)
+  (* new R11-style capstone assumption when consumed). *)
+  Hypothesis HGlobObjRoot :
+    forall g gb m b o,
+      mem_id g gobj_ids = true ->
+      MWF m ->
+      Genv.find_symbol (lp_ge lp) g = Some gb ->
+      Mem.loadv Mptr m (Vptr gb Ptrofs.zero) = Some (Vptr b o) ->
+      SafeB b.
+
+  (* the SEED: `Sset t (Evar g (tptr Object))` for g in gobj_ids makes t   *)
+  (* hold a value that, IF a pointer, is SafeB -- so t can join the chase   *)
+  (* set.  Clone of RealFrameValue.sset_gms_bm, concluding SafeB (not =bm). *)
+  Lemma glob_obj_seed :
+    forall g tid e le m tr le' m' out,
+      mem_id g gobj_ids = true ->
+      e ! g = None ->
+      MWF m ->
+      exec_stmt function_entry2 (lp_ge lp) e le m
+        (Sset tid (Evar g (tptr (Tstruct C._Object noattr)))) tr le' m' out ->
+      exists v, le' = PTree.set tid v le /\ m' = m /\ out = Out_normal /\
+                (forall b o, v = Vptr b o -> SafeB b).
+  Proof.
+    intros g tid e le m tr le' m' out Hg He HM Hexec.
+    inv Hexec.
+    match goal with Hev : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
+      apply RealFrameValue.eval_expr_Evar_load in Hev
+        as (loc & ofs & bf & Hlv & Hd) end.
+    apply RealFrameValue.eval_lvalue_Evar_global_loc in Hlv as [Hfs Hofs];
+      [ | exact He ].
+    subst ofs.
+    eexists.
+    split; [ reflexivity |
+      split; [ reflexivity | split; [ reflexivity | ] ] ].
+    intros b o Hbo.
+    inv Hd;
+      try (match goal with Hac : access_mode _ = By_reference |- _ =>
+             cbn in Hac; discriminate end);
+      try (match goal with Hac : access_mode _ = By_copy |- _ =>
+             cbn in Hac; discriminate end);
+      try (match goal with Hlb : load_bitfield _ _ _ _ _ _ _ _ |- _ => inv Hlb end).
+    match goal with
+    | Hac : access_mode _ = By_value _,
+      Hl : Mem.loadv _ _ _ = Some (Vptr b o) |- _ =>
+        cbn in Hac; inv Hac; eapply HGlobObjRoot; eassumption
+    end.
+  Qed.
 
   Lemma dfm_ids_rows : forall fid, mem_id fid dfm_ids = true ->
       call_pres lp bm NoA MWF fid.
