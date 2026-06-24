@@ -8577,6 +8577,175 @@ Section CutsceneLeafRows.
              mario_actions_cutscene.prog _ _ LO_cut dpc_pin dpc_pres).
   Qed.
 
+  (* ==================================================================== *)
+  (* SLICE D1: end_obj_set_visual_pos (eovp) -- the per-actor visual-pos  *)
+  (* helper called by dialog_3 / run_to_castle.  param _o : Object*       *)
+  (* (SafeB-if-ptr); fn_vars = [_surf, _sp24].  ZERO Mario/global stores:  *)
+  (* the only memory writers are find_mario_anim_flags_and_translation     *)
+  (* (oc2, through the &_sp24 local out-param) and find_floor (oc, through *)
+  (* the &_surf local out-param) -- both preserve carried (local out-param *)
+  (* blocks are watched-disjoint from bm).  Its row is call_pres_ob (the   *)
+  (* SafeB arg0 gate), consumed at the eovp call sites in dialog_3 /       *)
+  (* run_to_castle.  Bespoke walk (famft's oc2 call has no generic-engine  *)
+  (* arm), modeled on AutomaticLeafSurface.Hrmayt + oc_call_pres.          *)
+  (* ==================================================================== *)
+  (* local copy of AutomaticLeafSurface.crush_all_r (refutes the impossible
+     Sseq_2 stop-cases when the left statement is a Sset / Scall / Sreturn). *)
+  Ltac crush_all_r :=
+    repeat match goal with
+    | H : ?x <> ?x |- _ => destruct (H eq_refl)
+    | H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H
+    | H : exec_stmt _ _ _ _ _ (Sreturn _) _ _ _ _ |- _ => inv H
+    | H : exec_stmt _ _ _ _ _ (Sassign _ _) _ _ _ _ |- _ => inv H
+    | H : exec_stmt _ _ _ _ _ (Scall _ _ _) _ _ _ _ |- _ => inv H
+    | H : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _ |- _ => inv H
+    | H : exec_stmt _ _ _ _ _ Sskip _ _ _ _ |- _ => inv H
+    | H : exec_stmt _ _ _ _ _ (Sifthenelse _ _ _) _ _ _ _ |- _ => inv H
+    | H : exec_stmt _ _ _ _ _ (if ?b then _ else _) _ _ _ _ |- _ => destruct b
+    end.
+
+  Lemma eovp_pin :
+    (prog_defmap mario_actions_cutscene.prog) ! C._end_obj_set_visual_pos
+    = Some (Gfun (Internal C.f_end_obj_set_visual_pos)).
+  Proof. vm_compute. reflexivity. Qed.
+
+  (* famft's oc2 row, fed from the SAME section hyps that discharge
+     Hcp_umpfa (Hscp_geo / Hocp_rai / Hcpx_s2v / locals) -- NO new trust. *)
+  Lemma cut_Hoc2_famft :
+    OutParamSurface.call_pres_ext_oc2 lp bm NoA MWF SafeB
+      mario._find_mario_anim_flags_and_translation.
+  Proof. eapply AutomaticLeafSurface.Hoc2_famft; eassumption. Qed.
+
+  Lemma eovp_row :
+    call_pres_ob lp bm NoA MWF SafeB C._end_obj_set_visual_pos.
+  Proof.
+    intros fd m0 v0 vrest t0 mF vres0 Hevf Hres Hoarg HN HM HV HS.
+    pose proof (OutParamSurface.resolve_pin_fd lp _ _ _ _ LO_cut eovp_pin Hres) as ->.
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      rename Ha into Halloc end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    unfold C.f_end_obj_set_visual_pos in Hbody, Hbind, Halloc.
+    cbn [fn_body fn_params fn_temps fn_vars] in Hbody, Hbind, Halloc.
+    match goal with H : alloc_variables _ _ _ _ ?E ?ME |- _ =>
+      set (eloc := E) in *; set (me := ME) in * end.
+    assert (Hc0 : LocalVarsSurface.carried bm NoA MWF m0)
+      by (split; [ exact HV | split; [ exact HS
+                 | split; [ exact HM | exact HN ] ] ]).
+    pose proof (LocalVarsSurface.alloc_variables_carried
+                  bm NoA MWF HMWF_alloc HNoA_of_MWF
+                  _ _ _ _ _ _ Halloc Hc0) as Hce.
+    destruct Hce as (HVe & HSe & HMe & HNe).
+    (* the two stack locals _surf, _sp24 are watched-disjoint blocks *)
+    pose proof (LocalVarsSurface.alloc_variables_hlocal lp bm SafeB m0 _ eloc _
+                  (C._surf :: C._sp24 :: nil) Halloc HV
+                  (HSafeValid m0 HM) (HGlobValid m0 HM)
+                  ltac:(intros lid Hm; unfold mem_id in Hm; cbn [existsb] in Hm;
+                        apply Bool.orb_true_iff in Hm; destruct Hm as [He | Hm1];
+                        [ apply Pos.eqb_eq in He; subst lid; cbn [map fst];
+                          apply in_eq | ];
+                        apply Bool.orb_true_iff in Hm1; destruct Hm1 as [He2 | Hf];
+                        [ apply Pos.eqb_eq in He2; subst lid; cbn [map fst];
+                          apply in_cons; apply in_eq | discriminate Hf ]))
+      as Hlocal_fn.
+    destruct (Hlocal_fn C._surf ltac:(vm_compute; reflexivity))
+      as (sb & sty & Hesurf & Hsloc).
+    destruct (Hlocal_fn C._sp24 ltac:(vm_compute; reflexivity))
+      as (pb & pty & Hesp24 & Hploc).
+    (* the param _o is bound to v0 (the call_pres_ob SafeB-if-ptr argument) *)
+    destruct vrest as [| v1 vrest'];
+      [ | cbn [bind_parameter_temps] in Hbind; discriminate Hbind ].
+    match goal with
+    | Hb : bind_parameter_temps _ _ _ = Some ?L |- _ =>
+        assert (Hoeq : L ! C._o = Some v0)
+          by (cbn [bind_parameter_temps] in Hb;
+              injection Hb as HH; rewrite <- HH; apply PTree.gss)
+    end.
+    (* famft / find_floor are globals, unbound in the entry env *)
+    assert (Hfamft_none :
+              eloc ! mario._find_mario_anim_flags_and_translation = None).
+    { rewrite (LocalVarsSurface.alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc
+                 mario._find_mario_anim_flags_and_translation)
+        by (cbn; intros [HH | [HH | []]]; vm_compute in HH; discriminate HH).
+      apply PTree.gempty. }
+    assert (Hff_none : eloc ! mario._find_floor = None).
+    { rewrite (LocalVarsSurface.alloc_variables_unbound (lp_ge lp) m0 _ empty_env _ _ Halloc
+                 mario._find_floor)
+        by (cbn; intros [HH | [HH | []]]; vm_compute in HH; discriminate HH).
+      apply PTree.gempty. }
+    (* ---- walk the body: blk1 = (Sset t'7 ; Scall famft) ---- *)
+    inv Hbody; [ | crush_all_r ].
+    match goal with
+    | HA : exec_stmt _ _ _ _ _ (Ssequence (Sset _ _) (Scall _ _ _)) _ _ _ Out_normal |- _ =>
+        inv HA; [ | crush_all_r ]
+    end.
+    match goal with
+    | HA1 : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv HA1
+    end.
+    match goal with
+    | H : exec_stmt _ _ _ _ _ (Scall _ _ _) _ _ _ _ |- _ => rename H into HA2
+    end.
+    match type of HA2 with
+    | exec_stmt _ _ ?E ?L ?M
+        (Scall _ (Evar _ (Tfunction ?TYL _ _)) ?ARGS) _ _ _ _ =>
+        assert (Hgate : forall vargs,
+                  eval_exprlist (lp_ge lp) E L M ARGS TYL vargs ->
+                  OutParamSurface.oc2_gate lp bm SafeB vargs)
+          by (intros vargs Hvl;
+              eapply (OutParamSurface.oc2_extract_tv lp bm SafeB E L M
+                        C._o _ _ _ _ C._sp24 _ _ _ pty pb vargs);
+              [ intros bb oo Hg;
+                rewrite PTree.gso in Hg
+                  by (intro EE; vm_compute in EE; discriminate EE);
+                rewrite Hoeq in Hg; injection Hg as Hv; exact (Hoarg bb oo Hv)
+              | exact Hesp24 | exact Hploc | exact Hvl ])
+    end.
+    destruct (OutParamSurface.oc2_scall_pres lp bm NoA MWF SafeB
+                None _ _ _ _ _ _ _ _ _ _ _ _
+                Hfamft_none cut_Hoc2_famft Hgate
+                HA2 (conj HVe (conj HSe (conj HMe HNe))))
+      as (Hcar_A & _).
+    clear Hgate.
+    (* ---- walk blk2: the loads/temp-computes (mem unchanged) down to the
+       find_floor oc call + the Sreturn ---- *)
+    match goal with
+    | HB : exec_stmt _ _ _ _ _ (Ssequence (Ssequence _ _) _) _ _ _ _ |- _ =>
+        rename HB into Hrest
+    end.
+    repeat match goal with
+    | H : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _ |- _ =>
+        inv H; [ | crush_all_r ]
+    | H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H
+    end.
+    match goal with
+    | H : exec_stmt _ _ _ _ _ (Scall _ _ _) _ _ _ _ |- _ => rename H into Hff
+    end.
+    destruct (OutParamSurface.oc_call_pres lp bm NoA MWF SafeB
+                _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+                Hff_none Hocp_find_floor Hesurf Hsloc Hff Hcar_A)
+      as (Hcar_B & _).
+    match goal with
+    | H : exec_stmt _ _ _ _ _ (Sreturn _) _ _ _ _ |- _ => inv H
+    end.
+    (* ---- exit: free the [_surf, _sp24] stack blocks ---- *)
+    destruct Hcar_B as (HVb & HSb & HMb & HNb).
+    pose proof (LocalVarsSurface.blocks_of_env_bm lp bm m0 _ eloc _ Halloc HV)
+      as Hforall.
+    pose proof (LocalVarsSurface.free_list_carried_bm bm NoA MWF HMWF_free
+                  HNoA_of_MWF (blocks_of_env (lp_ge lp) eloc) _ mF Hforall Hfree
+                  (conj HVb (conj HSb (conj HMb HNb))))
+      as (HVf & HSf & HMf & HNf).
+    exact (conj HVf (conj HSf (conj HMf HNf))).
+  Qed.
+
   (* The family rest-split: discharge the SLICE 1-5 leaves, leaving the   *)
   (* other 36 under cut_rest_ids.                                         *)
   (* ==================================================================== *)
