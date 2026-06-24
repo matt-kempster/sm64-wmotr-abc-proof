@@ -752,6 +752,15 @@ Section NoARealInputMWF.
   Hypothesis Hscp_v3s :
     call_pres_ext_sc lp bm (NoA_real bm) MWF SafeB
       mario_actions_automatic._vec3s_set.
+  (* act_debug_free_move's vec3f_copy(pos, m->pos): dst = a STACK-LOCAL array,
+     src = m->pos (a bm-window READ).  Neither sc (dst not SafeB), w1 (dst not a
+     window), nor ol (src not local) fits; the TIGHT sound boundary is wl --
+     arg0 (the written dst) is local, src unconstrained (vec3f_copy writes ONLY
+     through arg0).  Distinct from the wol row (whose 4-byte window gate would
+     be UNSOUND for vec3f_copy's 12-byte write through a window dst). *)
+  Hypothesis Hwlcp_v3f_real :
+    call_pres_ext_wl lp bm (NoA_real bm) MWF SafeB
+      mario_actions_automatic._vec3f_copy.
 
   (* ---- the surviving per-symbol residuals, now stated at the CONCRETE
      invariant MWF_real (same shapes as the v2 section's; see the
@@ -3006,6 +3015,30 @@ Section NoARealInputMWF.
                       (mwf_real_inp lp bm bc oc0 SafeB)
                       (mwf_real_input lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                          Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (* SLICE 26 (act_debug_free_move WALKED): the cutscene's
+                         own marioObj-chase vec3f_copy/vec3s_set (sc), the
+                         m->pos-window vec3f_copy (w1), the NEW dst-local
+                         vec3f_copy(pos, m->pos) (wl -- the only fresh honest
+                         boundary), the find_floor out-param (oc), and the
+                         resolve_and_return_wall_collisions all-local call (ol,
+                         the SHARED walked-resolve body reused from automatic).
+                         Only Hwlcp_v3f_real is new trust. *)
+                      Hscp_v3f
+                      Hscp_v3s
+                      Hw1cp_v3f_real
+                      Hwlcp_v3f_real
+                      Hocp_find_floor
+                      (AutomaticLeafSurface.Hocp_resolve lp LO_mario bm
+                         (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
+                         (mwf_real_ctl lp bm bc oc0 SafeB)
+                         SafeB
+                         (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
+                         (fun m l m' Hf HM =>
+                            mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
+                         (mwf_real_safe_valid lp bm bc oc0 SafeB)
+                         Hglob_valid
+                         aut_local_store
+                         Holcp_fwc_real)
                       Hpres_cut_rest))
                 (automatic_pres lp LO_mario LO_aut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
