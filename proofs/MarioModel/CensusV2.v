@@ -878,7 +878,26 @@ Definition stored_globals : list ident :=
   mario_actions_cutscene._sEndRightToadObj ::
   mario_actions_cutscene._sEndLeftToadObj ::
   mario_actions_cutscene._sEndPeachAnimation ::
-  mario_actions_cutscene._sEndToadAnims :: nil.
+  mario_actions_cutscene._sEndToadAnims ::
+  (* act_end_peach_cutscene's additional statics (the 13 end_peach subhandlers
+     + generate_yellow_sparkles): sEndJumboStarObj is a SET object pointer (and
+     a THROUGH-store chase root -- it is ALSO in gobj_ids); gCutsceneFocus is a
+     SET object pointer (spawn_peach: gCutsceneFocus = sEndPeachObj);
+     gPaintingMarioYEntry is an f32 SET by fade_out; D_8032CBE4 / D_8032CBE8 are
+     schar dialog-phase statics SET directly; sMarioBlinkOverride is a u8[20]
+     blink-table READ by kiss_from_peach (carried here so the read site needs no
+     bespoke handling); sSparkleGenTheta / sSparkleGenPhi are the int sparkle
+     generator angles SET by generate_yellow_sparkles.  All static data symbols
+     in mario_actions_cutscene.c, bm/bc/SafeB-disjoint per Hglob_blk -- the same
+     static-layout / pointer-global trust class as every entry above. *)
+  mario_actions_cutscene._sEndJumboStarObj ::
+  mario_actions_cutscene._gCutsceneFocus ::
+  mario_actions_cutscene._gPaintingMarioYEntry ::
+  mario_actions_cutscene._D_8032CBE4 ::
+  mario_actions_cutscene._D_8032CBE8 ::
+  mario_actions_cutscene._sMarioBlinkOverride ::
+  mario_actions_cutscene._sSparkleGenTheta ::
+  mario_actions_cutscene._sSparkleGenPhi :: nil.
 
 (* ---------------------------------------------------------------------- *)
 (* The interaction-handler census (the Hpres_inter arc): the 28 DISTINCT   *)
