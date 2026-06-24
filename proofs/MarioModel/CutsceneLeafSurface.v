@@ -565,6 +565,123 @@ Definition gobj_ids : list ident :=
   mario_actions_cutscene._sIntroWarpPipeObj
     :: mario_actions_cutscene._sEndPeachObj :: nil.
 
+(* ====================================================================== *)
+(* INTRO CUTSCENE family (act_intro_cutscene + 7 subhandlers).  Closing    *)
+(* this leaf takes cut_rest 3->2.  The 4 standard subhandlers walk via the *)
+(* generic engine (call_pres_of_wwalk); the 3 glob-obj ones (raise_pipe /  *)
+(* lower_pipe store THROUGH sIntroWarpPipeObj; peach_lakitu SETS it) use a  *)
+(* bespoke walker keyed on glob_obj_seed.  See [[cutscene-globobj-campaign]].*)
+(* ---- subhandler #5 land_outside_pipe: no stores, 4 marg calls. ---- *)
+Definition lop_ids : list ident :=
+  mario._set_mario_animation :: mario._is_anim_at_end
+    :: mario_actions_cutscene._advance_cutscene_step
+    :: mario_step._stop_and_set_height_to_floor :: nil.
+Example lop_pin :
+  (prog_defmap mario_actions_cutscene.prog)
+    ! mario_actions_cutscene._intro_cutscene_land_outside_pipe
+  = Some (Gfun (Internal mario_actions_cutscene.f_intro_cutscene_land_outside_pipe)).
+Proof. vm_compute. reflexivity. Qed.
+Example lop_vars :
+  fn_vars mario_actions_cutscene.f_intro_cutscene_land_outside_pipe = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example lop_pok :
+  match fn_params mario_actions_cutscene.f_intro_cutscene_land_outside_pipe with
+  | (i, ty) :: ps =>
+      Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id Am (map fst ps))
+  | nil => false end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example lop_walk :
+  wwalk_chk false nil lop_ids nil nil nil nil nil
+    (fn_body mario_actions_cutscene.f_intro_cutscene_land_outside_pipe) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- subhandler #1 hide_hud_and_mario: gHudDisplay glob store + chase    *)
+(* stores through statusForCamera/marioObj + advance_cutscene_step. ---- *)
+Definition hhm_ids : list ident :=
+  mario_actions_cutscene._advance_cutscene_step :: nil.
+Definition hhm_cact : list ident :=
+  mario_actions_cutscene._t'4 :: mario_actions_cutscene._t'1
+    :: mario_actions_cutscene._t'2 :: nil.
+Example hhm_pin :
+  (prog_defmap mario_actions_cutscene.prog)
+    ! mario_actions_cutscene._intro_cutscene_hide_hud_and_mario
+  = Some (Gfun (Internal mario_actions_cutscene.f_intro_cutscene_hide_hud_and_mario)).
+Proof. vm_compute. reflexivity. Qed.
+Example hhm_vars :
+  fn_vars mario_actions_cutscene.f_intro_cutscene_hide_hud_and_mario = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example hhm_pok :
+  match fn_params mario_actions_cutscene.f_intro_cutscene_hide_hud_and_mario with
+  | (i, ty) :: ps =>
+      Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id Am (map fst ps))
+  | nil => false end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example hhm_walk :
+  wwalk_chk false nil hhm_ids nil hhm_cact nil nil nil
+    (fn_body mario_actions_cutscene.f_intro_cutscene_hide_hud_and_mario) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- subhandler #4 jump_out_of_pipe: m->actionTimer window + gHudDisplay  *)
+(* glob + marioObj chase store + 6 marg calls + play_sound/sound_banks_enable *)
+(* externals (perform_air_step lands AIR_STEP_LANDED branch). ---- *)
+Definition jop_ids : list ident :=
+  mario._play_sound_if_no_flag :: mario._set_mario_animation
+    :: mario._mario_set_forward_vel :: mario_step._perform_air_step
+    :: mario._play_mario_landing_sound
+    :: mario_actions_cutscene._advance_cutscene_step :: nil.
+Definition jop_xids : list ident :=
+  mario_actions_cutscene._sound_banks_enable :: mario._play_sound :: nil.
+Definition jop_cact : list ident :=
+  mario_actions_cutscene._t'4 :: mario_actions_cutscene._t'5
+    :: mario_actions_cutscene._t'3 :: nil.
+Example jop_pin :
+  (prog_defmap mario_actions_cutscene.prog)
+    ! mario_actions_cutscene._intro_cutscene_jump_out_of_pipe
+  = Some (Gfun (Internal mario_actions_cutscene.f_intro_cutscene_jump_out_of_pipe)).
+Proof. vm_compute. reflexivity. Qed.
+Example jop_vars :
+  fn_vars mario_actions_cutscene.f_intro_cutscene_jump_out_of_pipe = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example jop_pok :
+  match fn_params mario_actions_cutscene.f_intro_cutscene_jump_out_of_pipe with
+  | (i, ty) :: ps =>
+      Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id Am (map fst ps))
+  | nil => false end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example jop_walk :
+  wwalk_chk false nil jop_ids nil jop_cact jop_xids nil nil
+    (fn_body mario_actions_cutscene.f_intro_cutscene_jump_out_of_pipe) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- subhandler #7 set_mario_to_idle: gCamera read (scratch temps,        *)
+(* auto-accepted) + gCameraMovementFlags glob store + set_mario_action       *)
+(* (sids) + stop_and_set_height_to_floor. ---- *)
+Definition smti_ids : list ident :=
+  mario_step._stop_and_set_height_to_floor :: nil.
+Definition smti_sids : list ident := mario._set_mario_action :: nil.
+Example smti_pin :
+  (prog_defmap mario_actions_cutscene.prog)
+    ! mario_actions_cutscene._intro_cutscene_set_mario_to_idle
+  = Some (Gfun (Internal mario_actions_cutscene.f_intro_cutscene_set_mario_to_idle)).
+Proof. vm_compute. reflexivity. Qed.
+Example smti_vars :
+  fn_vars mario_actions_cutscene.f_intro_cutscene_set_mario_to_idle = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example smti_pok :
+  match fn_params mario_actions_cutscene.f_intro_cutscene_set_mario_to_idle with
+  | (i, ty) :: ps =>
+      Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id Am (map fst ps))
+  | nil => false end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example smti_walk :
+  wwalk_chk false nil smti_ids nil nil nil smti_sids nil
+    (fn_body mario_actions_cutscene.f_intro_cutscene_set_mario_to_idle) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* ---- the AST shape pins (vm_compute reflexivity). ---- *)
 Example cdh_pin :
   (prog_defmap C.prog) ! C._common_death_handler
@@ -1214,6 +1331,19 @@ Section CutsceneLeafRows.
      Hcp_pas Lemma -- NO new trust.  Consumed only via launch's ids. *)
   Hypothesis Hcp_pas :
     call_pres lp bm NoA MWF mario_step._perform_air_step.
+  (* INTRO-cutscene terminal externals (honest model boundary, EF_external in
+     every linked TU; each writes camera/sound/object state, never Mario's bm
+     action cell -- discharged at the capstone via the obj_ext boundary, NO
+     new trust beyond the existing terminal-external surface):
+       sound_banks_enable               (jump_out_of_pipe)
+       camera_approach_f32_symmetric     (raise_pipe; float->float, pure)
+       obj_mark_for_deletion             (lower_pipe; flags a pool object) *)
+  Hypothesis Hcpx_sbe :
+    call_pres_ext lp bm NoA MWF mario_actions_cutscene._sound_banks_enable.
+  Hypothesis Hcpx_caf :
+    call_pres_ext lp bm NoA MWF mario_actions_cutscene._camera_approach_f32_symmetric.
+  Hypothesis Hcpx_omfd :
+    call_pres_ext lp bm NoA MWF mario_actions_cutscene._obj_mark_for_deletion.
   (* set_camera_mode: a terminal obj_ext external (in obj_ext_ids); the
      capstone feeds (Hpres_obj_ext mario._set_camera_mode eq_refl) -- NO new
      trust.  Consumed only by set_water_plunge_action's row (swpa). *)
@@ -1408,6 +1538,68 @@ Section CutsceneLeafRows.
     - intros fid' H. discriminate H.
     - intros fid' H. discriminate H.
     - exact cut_iae_walk.
+  Qed.
+
+  (* ---- INTRO subhandler #5: land_outside_pipe (4 marg calls, no stores). ---- *)
+  Lemma lop_ids_rows : forall fid, mem_id fid lop_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold lop_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cut_iae_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cut_acs_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sashf | discriminate H ].
+  Qed.
+
+  Lemma lop_row :
+    call_pres lp bm NoA MWF mario_actions_cutscene._intro_cutscene_land_outside_pipe.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_cutscene.prog
+             mario_actions_cutscene._intro_cutscene_land_outside_pipe
+             mario_actions_cutscene.f_intro_cutscene_land_outside_pipe
+             lop_ids nil nil nil
+             LO_cut lop_pin lop_vars lop_pok).
+    - exact lop_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact lop_walk.
+  Qed.
+
+  (* ---- INTRO subhandler #1: hide_hud_and_mario (gHudDisplay glob store +
+     chase stores through statusForCamera/marioObj + advance_cutscene_step). ---- *)
+  Lemma hhm_ids_rows : forall fid, mem_id fid hhm_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold hhm_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cut_acs_row | discriminate H ].
+  Qed.
+
+  Lemma hhm_row :
+    call_pres lp bm NoA MWF mario_actions_cutscene._intro_cutscene_hide_hud_and_mario.
+  Proof.
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_cutscene.prog
+             mario_actions_cutscene._intro_cutscene_hide_hud_and_mario
+             mario_actions_cutscene.f_intro_cutscene_hide_hud_and_mario
+             hhm_ids nil hhm_cact nil nil
+             LO_cut hhm_pin hhm_vars hhm_pok).
+    - vm_compute. reflexivity.
+    - exact hhm_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact hhm_walk.
   Qed.
 
   (* common_death_handler: set_mario_animation + (animFrame==warpFrame ->
@@ -2044,6 +2236,87 @@ Section CutsceneLeafRows.
     - intros fid' H. discriminate H.
     - intros fid' H. discriminate H.
     - exact pmls_walk.
+  Qed.
+
+  (* ---- INTRO subhandler #4: jump_out_of_pipe (window + glob + marioObj
+     chase stores, 6 marg calls, sound_banks_enable/play_sound externals). ---- *)
+  Lemma jop_ids_rows : forall fid, mem_id fid jop_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold jop_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_psinf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hmsfv | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pas | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact pmls_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cut_acs_row | discriminate H ].
+  Qed.
+  Lemma jop_xids_rows : forall fid, mem_id fid jop_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold jop_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_sbe | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | discriminate H ].
+  Qed.
+  Lemma jop_row :
+    call_pres lp bm NoA MWF mario_actions_cutscene._intro_cutscene_jump_out_of_pipe.
+  Proof.
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_cutscene.prog
+             mario_actions_cutscene._intro_cutscene_jump_out_of_pipe
+             mario_actions_cutscene.f_intro_cutscene_jump_out_of_pipe
+             jop_ids nil jop_cact jop_xids nil
+             LO_cut jop_pin jop_vars jop_pok).
+    - vm_compute. reflexivity.
+    - exact jop_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact jop_xids_rows.
+    - intros fid' H. discriminate H.
+    - exact jop_walk.
+  Qed.
+
+  (* ---- INTRO subhandler #7: set_mario_to_idle (gCamera read + glob store +
+     set_mario_action [sids] + stop_and_set_height_to_floor). ---- *)
+  Lemma smti_ids_rows : forall fid, mem_id fid smti_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold smti_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sashf | discriminate H ].
+  Qed.
+  Lemma smti_sids_rows : forall fid, mem_id fid smti_sids = true ->
+      call_pres_act lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold smti_sids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hsmact | discriminate H ].
+  Qed.
+  Lemma smti_row :
+    call_pres lp bm NoA MWF mario_actions_cutscene._intro_cutscene_set_mario_to_idle.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_cutscene.prog
+             mario_actions_cutscene._intro_cutscene_set_mario_to_idle
+             mario_actions_cutscene.f_intro_cutscene_set_mario_to_idle
+             smti_ids nil nil smti_sids
+             LO_cut smti_pin smti_vars smti_pok).
+    - exact smti_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact smti_sids_rows.
+    - exact smti_walk.
   Qed.
 
   (* act_emerge_from_pipe: the last launch caller. *)
