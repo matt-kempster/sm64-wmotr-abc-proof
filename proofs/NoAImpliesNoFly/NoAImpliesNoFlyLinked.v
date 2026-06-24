@@ -1683,14 +1683,10 @@ Section NoARealInputMWF.
              (Hpres_obj_ext interaction._sqrtf eq_refl)).
   Qed.
 
-  (* the io REST census row: the handlers not yet walked.  Every handler
-     walk (InterSurface's io arc) removes its id from io_rest_ids and this
-     row covers strictly less; io_rest_ids is now EMPTY (every interact_*
-     handler walked) so this row is vacuous. *)
-  Hypothesis Hio_rest : forall fid f,
-      mem_id fid io_rest_ids = true ->
-      (prog_defmap interaction.prog) ! fid = Some (Gfun (Internal f)) ->
-      body_pres_io lp bm (NoA_real bm) MWF SafeB f.
+  (* the io REST census row is now VACUOUS: io_rest_ids = nil (every
+     interact_* handler is walked), so it is discharged inline at the
+     Hpres_ihandler call below (InterSurface.io_rest_vacuous) -- the capstone
+     no longer assumes any interaction-handler body. *)
   Lemma Hpres_ihandler : forall fid f,
       In fid interaction_handler_ids ->
       (prog_defmap interaction.prog) ! fid = Some (Gfun (Internal f)) ->
@@ -1906,7 +1902,10 @@ Section NoARealInputMWF.
                 eq_refl)
              (Hpres_obj_ext interaction._fadeout_level_music eq_refl)
              Hcpx_so_real
-             Hio_rest).
+             (* io_rest_ids = nil: every interact_* handler is walked, so this
+                residual is vacuous and discharged inline -- the capstone no
+                longer assumes any interaction-handler body. *)
+             (fun fid f Hmem _ => InterSurface.io_rest_vacuous _ fid Hmem)).
   Qed.
   Lemma Hcp_mgco_real :
     call_pres_mgco lp bm (NoA_real bm) MWF SafeB.

@@ -4423,6 +4423,14 @@ Proof. vm_compute. reflexivity. Qed.
 Definition io_rest_ids : list ident :=
   nil.
 
+(* EVERY interact_* handler is now walked, so the un-walked remainder is
+   EMPTY (io_rest_ids = nil literally).  The capstone's old Hio_rest residual
+   is therefore VACUOUS and discharged inline (io_rest_vacuous), DELETED from
+   the capstone's hypothesis surface. *)
+Lemma io_rest_vacuous :
+  forall (Q : Prop) fid, mem_id fid io_rest_ids = true -> Q.
+Proof. intros Q fid H. discriminate H. Qed.
+
 Definition tyObjI : type := tptr (Tstruct interaction._Object noattr).
 
 (* ---- the special site: _t'1 := take_damage_and_knock_back(m, o) ---- *)
