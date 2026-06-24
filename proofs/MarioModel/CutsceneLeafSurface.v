@@ -4437,7 +4437,7 @@ Section CutsceneLeafRows.
         && proj_sumbool (type_eq faty tushort)
     | _ => false
     end.
-  Definition fall_input_chk (s : statement) : bool :=
+  Definition fall_input_chk (cact : list ident) (s : statement) : bool :=
     match s with
     | Ssequence (Sset t src)
                 (Sassign dst (Ebinop Oor (Etempvar q qty) (Econst_int c cty) bty)) =>
@@ -4448,7 +4448,7 @@ Section CutsceneLeafRows.
         && proj_sumbool (type_eq bty tint)
         && proj_sumbool (Int.eq_dec (Int.and c (Int.repr 2)) Int.zero)
         && negb (Pos.eqb t C._m)
-        && negb (mem_id t fall_cact)
+        && negb (mem_id t cact)
     | _ => false
     end.
 
@@ -4479,8 +4479,8 @@ Section CutsceneLeafRows.
     eauto.
   Qed.
 
-  Lemma fall_input_shape : forall s,
-      fall_input_chk s = true ->
+  Lemma fall_input_shape : forall cact s,
+      fall_input_chk cact s = true ->
       exists t c,
         s = Ssequence
               (Sset t (Efield (Ederef (Etempvar C._m
@@ -4491,9 +4491,9 @@ Section CutsceneLeafRows.
                           (Tstruct mario._MarioState noattr)) mario._input tushort)
                  (Ebinop Oor (Etempvar t tushort) (Econst_int c tint) tint))
         /\ Int.and c (Int.repr 2) = Int.zero
-        /\ Pos.eqb t C._m = false /\ mem_id t fall_cact = false.
+        /\ Pos.eqb t C._m = false /\ mem_id t cact = false.
   Proof.
-    intros s H. unfold fall_input_chk in H.
+    intros cact s H. unfold fall_input_chk in H.
     destruct s as [ | | | | | s1 s2 | | | | | | | | ]; try discriminate H.
     destruct s1 as [ | | t src | | | | | | | | | | | ]; try discriminate H.
     destruct s2 as [ | dst rhs | | | | | | | | | | | | ]; try discriminate H.
@@ -4527,7 +4527,7 @@ Section CutsceneLeafRows.
   Fixpoint fall_chk (s : statement) : bool :=
     fall_gen s
     || match s with
-       | Ssequence s1 s2 => fall_input_chk s || (fall_chk s1 && fall_chk s2)
+       | Ssequence s1 s2 => fall_input_chk fall_cact s || (fall_chk s1 && fall_chk s2)
        | Sifthenelse _ s1 s2 => fall_chk s1 && fall_chk s2
        | _ => false
        end.
@@ -4598,9 +4598,9 @@ Section CutsceneLeafRows.
      store) and hence NoA = ctl_a_clear (HNoA_of_MWF).  The action cell @12 is
      disjoint from the input cell @2, so action_sat survives. *)
   Lemma fall_input_pres :
-    forall t c e le m0 tr le' m' out,
+    forall (cact : list ident) t c e le m0 tr le' m' out,
       Pos.eqb t C._m = false ->
-      mem_id t fall_cact = false ->
+      mem_id t cact = false ->
       Int.and c (Int.repr 2) = Int.zero ->
       exec_stmt function_entry2 (lp_ge lp) e le m0
         (Ssequence
@@ -4614,16 +4614,16 @@ Section CutsceneLeafRows.
         tr le' m' out ->
       (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
                    b = bm /\ o = Ptrofs.zero) ->
-      act_inv nil le -> chase_inv SafeB fall_cact le ->
+      act_inv nil le -> chase_inv SafeB cact le ->
       NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
       action_sat not_tainted m0 bm ->
       Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\
       NoA m' /\
       (forall b o, le' ! mario_actions_airborne._m = Some (Vptr b o) ->
                    b = bm /\ o = Ptrofs.zero) /\
-      act_inv nil le' /\ chase_inv SafeB fall_cact le'.
+      act_inv nil le' /\ chase_inv SafeB cact le'.
   Proof.
-    intros t c e le m0 tr le' m' out Hneq Hnmem Hc Hexec Htat Hact Hch
+    intros cact t c e le m0 tr le' m' out Hneq Hnmem Hc Hexec Htat Hact Hch
            HN HM HV HS.
     inv Hexec.
     2:{ (* Sseq_2: the Sset never exits non-normally *)
@@ -4864,7 +4864,7 @@ Section CutsceneLeafRows.
           eapply exec_Sseq_1; eauto. }
       apply orb_true_iff in Hrest as [Hinput | Hand].
       + (* THE INPUT-OR-STORE *)
-        destruct (fall_input_shape _ Hinput)
+        destruct (fall_input_shape _ _ Hinput)
           as (t6 & c6 & Es & Hand2 & Hneq & Hnmem).
         injection Es as -> ->.
         eapply fall_input_pres; try eassumption.
@@ -4884,7 +4884,7 @@ Section CutsceneLeafRows.
       apply orb_true_iff in Hrest as [Hinput | Hand].
       + (* the input-store's Sset cannot exit non-normally *)
         exfalso.
-        destruct (fall_input_shape _ Hinput)
+        destruct (fall_input_shape _ _ Hinput)
           as (t6 & c6 & Es & _ & _ & _).
         injection Es as -> ->.
         match goal with
@@ -8345,6 +8345,45 @@ Section CutsceneLeafRows.
       exact (Hch t Htmem b o Hb).
   Qed.
 
+  (* ---- the input-OR-store arm for the shared epw walker: derive the
+     cact-generic fall_input_pres (act_inv nil le is vacuous since epw runs
+     wact = nil).  Consumed in epw's Ssequence case; mario_falling's
+     `m->input |= INPUT_SQUISHED` lands here. ---- *)
+  Lemma epw_input_pres :
+    forall (cact : list ident) t c e le m0 tr le' m' out,
+      Pos.eqb t C._m = false ->
+      mem_id t cact = false ->
+      Int.and c (Int.repr 2) = Int.zero ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0
+        (Ssequence
+           (Sset t (Efield (Ederef (Etempvar C._m
+                       (tptr (Tstruct mario._MarioState noattr)))
+                     (Tstruct mario._MarioState noattr)) mario._input tushort))
+           (Sassign (Efield (Ederef (Etempvar C._m
+                       (tptr (Tstruct mario._MarioState noattr)))
+                     (Tstruct mario._MarioState noattr)) mario._input tushort)
+              (Ebinop Oor (Etempvar t tushort) (Econst_int c tint) tint)))
+        tr le' m' out ->
+      (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      chase_inv SafeB cact le ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\
+      NoA m' /\
+      (forall b o, le' ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) /\
+      chase_inv SafeB cact le'.
+  Proof.
+    intros cact t c e le m0 tr le' m' out Hneq Hnmem Hc Hexec Htat Hch
+           HN HM HV HS.
+    assert (Hact : act_inv nil le) by (intros t' Hm; discriminate Hm).
+    destruct (fall_input_pres cact t c e le m0 tr le' m' out Hneq Hnmem Hc
+                Hexec Htat Hact Hch HN HM HV HS)
+      as (HVb & HSb & HMb & HNb & Hpin & _ & Hchb).
+    exact (conj HVb (conj HSb (conj HMb (conj HNb (conj Hpin Hchb))))).
+  Qed.
+
   Definition epw_gen (cact : list ident) (s : statement) : bool :=
     wwalk_chk' nil nil nil nil nil nil false
       nil ep_ids nil cact ep_xids nil nil s.
@@ -8353,7 +8392,9 @@ Section CutsceneLeafRows.
     epw_gen cact s
     || ep_ob_chk s
     || match s with
-       | Ssequence s1 s2 => epw_chk cact seeds s1 && epw_chk cact seeds s2
+       | Ssequence s1 s2 =>
+           fall_input_chk cact s
+           || (epw_chk cact seeds s1 && epw_chk cact seeds s2)
        | Sifthenelse _ s1 s2 => epw_chk cact seeds s1 && epw_chk cact seeds s2
        | Scall _ _ _ => eovp_chk cact s
        | _ => gobj_seed_chk2 seeds s
@@ -8555,12 +8596,19 @@ Section CutsceneLeafRows.
         eapply (epw_generic _ _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hubgt Hg
                   Htat Hch HN HM HV HS);
           eapply exec_Sseq_1; eauto. }
-      apply andb_prop in Hsp as [H1 H2].
-      destruct (IHHexec1 Hub_g Hub_i Hub_x Hubgt Hub_gobj Hub_ob Hub_eovp H1 Htat Hch
-                  HN HM HV HS)
-        as (HV1 & HS1 & HM1 & HN1 & Htat1 & Hch1).
-      exact (IHHexec2 Hub_g Hub_i Hub_x Hubgt Hub_gobj Hub_ob Hub_eovp H2 Htat1 Hch1
-               HN1 HM1 HV1 HS1).
+      apply orb_true_iff in Hsp as [Hinput | Hand].
+      + (* the input-OR-store arm: m->input |= const *)
+        destruct (fall_input_shape _ _ Hinput)
+          as (t6 & c6 & Es & Hand2 & Hneq & Hnmem).
+        injection Es as -> ->.
+        eapply epw_input_pres; try eassumption.
+        eapply exec_Sseq_1; eauto.
+      + apply andb_prop in Hand as [H1 H2].
+        destruct (IHHexec1 Hub_g Hub_i Hub_x Hubgt Hub_gobj Hub_ob Hub_eovp H1 Htat Hch
+                    HN HM HV HS)
+          as (HV1 & HS1 & HM1 & HN1 & Htat1 & Hch1).
+        exact (IHHexec2 Hub_g Hub_i Hub_x Hubgt Hub_gobj Hub_ob Hub_eovp H2 Htat1 Hch1
+                 HN1 HM1 HV1 HS1).
     - (* Sseq_2 *)
       cbn [epw_chk] in Hchk.
       apply orb_true_iff in Hchk as [Hgo | Hsp].
@@ -8569,9 +8617,20 @@ Section CutsceneLeafRows.
         eapply (epw_generic _ _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hubgt Hg
                   Htat Hch HN HM HV HS);
           eapply exec_Sseq_2; eauto. }
-      apply andb_prop in Hsp as [H1 _].
-      exact (IHHexec Hub_g Hub_i Hub_x Hubgt Hub_gobj Hub_ob Hub_eovp H1 Htat Hch
-               HN HM HV HS).
+      apply orb_true_iff in Hsp as [Hinput | Hand].
+      + (* the input-OR-store's Sset cannot exit non-normally *)
+        exfalso.
+        destruct (fall_input_shape _ _ Hinput) as (t6 & c6 & Es & _ & _ & _).
+        injection Es as -> ->.
+        match goal with
+        | H1 : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H1
+        end.
+        match goal with
+        | Hne : Out_normal <> Out_normal |- _ => exact (Hne eq_refl)
+        end.
+      + apply andb_prop in Hand as [H1 _].
+        exact (IHHexec Hub_g Hub_i Hub_x Hubgt Hub_gobj Hub_ob Hub_eovp H1 Htat Hch
+                 HN HM HV HS).
     - (* Sifthenelse *)
       cbn [epw_chk] in Hchk.
       apply orb_true_iff in Hchk as [Hgo | Hsp].
@@ -8995,6 +9054,63 @@ Section CutsceneLeafRows.
   Proof.
     exact (call_pres_of_body lp bm NoA MWF HNoA_of_MWF
              mario_actions_cutscene.prog _ _ LO_cut rtc_pin rtc_pres).
+  Qed.
+
+  (* ---- mario_falling: cact = [t'5] (the statusForCamera chase temp, the
+     store t'5->cameraEvent = 11 lands in a SafeB block), seeds = nil.  Its
+     `m->input |= INPUT_SQUISHED(0x80)` store lands in the input cell [2,4)
+     EXCLUDED by store_window_ok; the new epw input-OR-store arm
+     (epw_input_pres, consuming HMWF_inp / HMWF_inp_store -- PROVED MWFReal
+     projections, NO new trust) absorbs it.  Everything else is generic:
+     m->flags |= 0x18 (safe_mfield_store), and the marg calls
+     set_mario_animation / mario_set_forward_vel / perform_air_step /
+     play_mario_landing_sound / advance_cutscene_step (all in ep_ids). *)
+  Example mfl_pin :
+    (prog_defmap mario_actions_cutscene.prog)
+      ! C._end_peach_cutscene_mario_falling
+    = Some (Gfun (Internal C.f_end_peach_cutscene_mario_falling)).
+  Proof. vm_compute. reflexivity. Qed.
+  Definition mfl_cact : list ident := C._t'5 :: nil.
+  Definition mfl_seeds : list ident := nil.
+  Example mfl_vars : fn_vars C.f_end_peach_cutscene_mario_falling = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example mfl_pok :
+    match fn_params C.f_end_peach_cutscene_mario_falling with
+    | (i, ty) :: ps =>
+        (Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+         && negb (mem_id Am (map fst ps)))%bool
+    | nil => false
+    end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example mfl_npc :
+    forallb (fun t' => negb (mem_id t'
+       (map fst (fn_params C.f_end_peach_cutscene_mario_falling))))
+      mfl_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma mfl_seed_ne_m : forall id,
+      mem_id id mfl_seeds = true -> id <> mario_actions_airborne._m.
+  Proof.
+    intros id H. unfold mfl_seeds in H. cbn [mem_id existsb] in H.
+    discriminate H.
+  Qed.
+  Example mfl_margex :
+    marg_exempt (Internal C.f_end_peach_cutscene_mario_falling) = false.
+  Proof. vm_compute. reflexivity. Qed.
+  Example mfl_walk :
+    epw_chk mfl_cact mfl_seeds
+      (fn_body C.f_end_peach_cutscene_mario_falling) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma mfl_pres :
+    body_pres lp NoA MWF bm C.f_end_peach_cutscene_mario_falling.
+  Proof.
+    exact (epw_body_pres _ mfl_cact mfl_seeds mfl_vars mfl_margex mfl_pok
+             mfl_npc mfl_seed_ne_m mfl_walk).
+  Qed.
+  Lemma mfl_row :
+    call_pres lp bm NoA MWF C._end_peach_cutscene_mario_falling.
+  Proof.
+    exact (call_pres_of_body lp bm NoA MWF HNoA_of_MWF
+             mario_actions_cutscene.prog _ _ LO_cut mfl_pin mfl_pres).
   Qed.
 
   (* The family rest-split: discharge the SLICE 1-5 leaves, leaving the   *)
