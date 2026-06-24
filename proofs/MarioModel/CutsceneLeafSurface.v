@@ -7635,6 +7635,314 @@ Section CutsceneLeafRows.
              mario_actions_cutscene.prog _ _ LO_cut eaw_pin eaw_pres).
   Qed.
 
+  (* ==================================================================== *)
+  (* act_end_peach_cutscene SUBHANDLERS -- the 13 end_peach_cutscene_*     *)
+  (* callees of the act_end_peach_cutscene dispatcher (cut_rest 1, the     *)
+  (* LAST cutscene leaf).  Each subhandler is a body_pres_of_wwalk_cact    *)
+  (* walk; the dispatcher (wired as E50 once all 13 + dispatcher are       *)
+  (* walked) calls each via a marg call, so each subhandler exposes a      *)
+  (* call_pres row (<name>_row).  This BATCH = the 7 "general" subhandlers *)
+  (* (no glob-obj SEED store, no end_obj_set_visual_pos): they ride the    *)
+  (* generic engine.  The shared ep_ids / ep_xids cover the union of marg  *)
+  (* callees / cut_ext_ids externals (a larger list only RECOGNISES more,  *)
+  (* never less -- every actual call in each body is a member).            *)
+  (* ==================================================================== *)
+  Definition ep_ids : list ident :=
+    mario._set_mario_animation :: mario._mario_set_forward_vel
+      :: mario_step._perform_air_step :: mario._play_mario_landing_sound
+      :: mario_step._stop_and_set_height_to_floor :: mario._is_anim_at_end
+      :: mario._is_anim_past_end :: C._cutscene_take_cap_off
+      :: C._cutscene_put_cap_on :: level_update._level_trigger_warp
+      :: C._advance_cutscene_step :: nil.
+  Definition ep_xids : list ident :=
+    C._spawn_object_abs_with_rot :: C._obj_scale :: C._set_cutscene_message
+      :: C._seq_player_lower_volume :: C._seq_player_unlower_volume
+      :: C._play_sound :: C._play_cutscene_music :: nil.
+
+  Lemma ep_ids_rows : forall fid, mem_id fid ep_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold ep_ids in H. cbn [mem_id existsb] in H.
+    repeat (apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid;
+        first [ exact Hcp_sma | exact Hmsfv | exact Hcp_pas | exact pmls_row
+              | exact Hcp_sashf | exact cut_iae_row | exact Hcp_ipae
+              | exact ctco_row | exact cpco_row | exact Hcp_ltw
+              | exact cut_acs_row ] | ]).
+    discriminate H.
+  Qed.
+
+  Lemma ep_xids_rows : forall fid, mem_id fid ep_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. apply Hcut_ext.
+    unfold ep_xids in H. cbn [mem_id existsb] in H.
+    repeat (apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; vm_compute; reflexivity | ]).
+    discriminate H.
+  Qed.
+
+  (* the per-subhandler chase censuses (the m-> chase store roots). *)
+  Definition kfp_cact : list ident := C._t'6 :: C._t'4 :: C._t'3 :: nil.
+  Definition epsd_cact : list ident := C._t'5 :: C._t'4 :: nil.
+
+  (* (mario_falling is NOT here: its `m->input |= 0x80` write hits the
+     input cell [2,4), which store_window_ok deliberately carves out -- the
+     A-press field is protected exactly like the action cell.  It needs the
+     A-clear-aware input arm (a later slice), not the generic wwalk path.) *)
+
+  (* mario_landing: SET sEndJumboStarObj + m->capTimer; ids = sma/sashf/iae/
+     acs; xids = spawn / obj_scale.  No chase store. *)
+  Example mln_pin :
+    (prog_defmap mario_actions_cutscene.prog) ! C._end_peach_cutscene_mario_landing
+    = Some (Gfun (Internal C.f_end_peach_cutscene_mario_landing)).
+  Proof. vm_compute. reflexivity. Qed.
+  Example mln_vars : fn_vars C.f_end_peach_cutscene_mario_landing = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example mln_pok :
+    match fn_params C.f_end_peach_cutscene_mario_landing with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false
+    end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example mln_walk :
+    wwalk_chk false nil ep_ids nil nil ep_xids nil nil
+      (fn_body C.f_end_peach_cutscene_mario_landing) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma mln_pres : body_pres lp NoA MWF bm C.f_end_peach_cutscene_mario_landing.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_end_peach_cutscene_mario_landing ep_ids nil nil ep_xids nil nil
+             mln_vars mln_pok eq_refl).
+    - exact ep_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact ep_xids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact mln_walk.
+  Qed.
+  Lemma mln_row : call_pres lp bm NoA MWF C._end_peach_cutscene_mario_landing.
+  Proof.
+    exact (call_pres_of_body lp bm NoA MWF HNoA_of_MWF
+             mario_actions_cutscene.prog _ _ LO_cut mln_pin mln_pres).
+  Qed.
+
+  (* dialog_1: glob SETs (sEndPeachAnimation / D_8032CBE4 / D_8032CBE8) +
+     m->actionState direct; ids = sma/ctco/iae/acs; xids = set_cutscene_message
+     / seq_player_lower_volume / play_sound.  sEndPeachObj read into non-cact
+     temps for play_sound. *)
+  Example dg1_pin :
+    (prog_defmap mario_actions_cutscene.prog) ! C._end_peach_cutscene_dialog_1
+    = Some (Gfun (Internal C.f_end_peach_cutscene_dialog_1)).
+  Proof. vm_compute. reflexivity. Qed.
+  Example dg1_vars : fn_vars C.f_end_peach_cutscene_dialog_1 = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example dg1_pok :
+    match fn_params C.f_end_peach_cutscene_dialog_1 with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false
+    end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example dg1_walk :
+    wwalk_chk false nil ep_ids nil nil ep_xids nil nil
+      (fn_body C.f_end_peach_cutscene_dialog_1) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma dg1_pres : body_pres lp NoA MWF bm C.f_end_peach_cutscene_dialog_1.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_end_peach_cutscene_dialog_1 ep_ids nil nil ep_xids nil nil
+             dg1_vars dg1_pok eq_refl).
+    - exact ep_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact ep_xids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact dg1_walk.
+  Qed.
+  Lemma dg1_row : call_pres lp bm NoA MWF C._end_peach_cutscene_dialog_1.
+  Proof.
+    exact (call_pres_of_body lp bm NoA MWF HNoA_of_MWF
+             mario_actions_cutscene.prog _ _ LO_cut dg1_pin dg1_pres).
+  Qed.
+
+  (* dialog_2: glob SETs (sEndPeachAnimation / D_8032CBE8); ids = acs;
+     xids = set_cutscene_message / play_sound.  No chase store. *)
+  Example dg2_pin :
+    (prog_defmap mario_actions_cutscene.prog) ! C._end_peach_cutscene_dialog_2
+    = Some (Gfun (Internal C.f_end_peach_cutscene_dialog_2)).
+  Proof. vm_compute. reflexivity. Qed.
+  Example dg2_vars : fn_vars C.f_end_peach_cutscene_dialog_2 = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example dg2_pok :
+    match fn_params C.f_end_peach_cutscene_dialog_2 with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false
+    end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example dg2_walk :
+    wwalk_chk false nil ep_ids nil nil ep_xids nil nil
+      (fn_body C.f_end_peach_cutscene_dialog_2) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma dg2_pres : body_pres lp NoA MWF bm C.f_end_peach_cutscene_dialog_2.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_end_peach_cutscene_dialog_2 ep_ids nil nil ep_xids nil nil
+             dg2_vars dg2_pok eq_refl).
+    - exact ep_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact ep_xids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact dg2_walk.
+  Qed.
+  Lemma dg2_row : call_pres lp bm NoA MWF C._end_peach_cutscene_dialog_2.
+  Proof.
+    exact (call_pres_of_body lp bm NoA MWF HNoA_of_MWF
+             mario_actions_cutscene.prog _ _ LO_cut dg2_pin dg2_pres).
+  Qed.
+
+  (* kiss_from_peach: marioBodyState->eyeState chase stores (cact=[t'6;t'4;t'3])
+     + glob SETs + sMarioBlinkOverride READ; ids = acs only. *)
+  Example kfp_pin :
+    (prog_defmap mario_actions_cutscene.prog) ! C._end_peach_cutscene_kiss_from_peach
+    = Some (Gfun (Internal C.f_end_peach_cutscene_kiss_from_peach)).
+  Proof. vm_compute. reflexivity. Qed.
+  Example kfp_vars : fn_vars C.f_end_peach_cutscene_kiss_from_peach = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example kfp_pok :
+    match fn_params C.f_end_peach_cutscene_kiss_from_peach with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false
+    end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example kfp_nonparam :
+    forallb (fun t' => negb (mem_id t'
+      (map fst (fn_params C.f_end_peach_cutscene_kiss_from_peach)))) kfp_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example kfp_walk :
+    wwalk_chk false nil ep_ids nil kfp_cact ep_xids nil nil
+      (fn_body C.f_end_peach_cutscene_kiss_from_peach) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma kfp_pres : body_pres lp NoA MWF bm C.f_end_peach_cutscene_kiss_from_peach.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_end_peach_cutscene_kiss_from_peach ep_ids nil kfp_cact ep_xids nil nil
+             kfp_vars kfp_pok kfp_nonparam).
+    - exact ep_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact ep_xids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact kfp_walk.
+  Qed.
+  Lemma kfp_row : call_pres lp bm NoA MWF C._end_peach_cutscene_kiss_from_peach.
+  Proof.
+    exact (call_pres_of_body lp bm NoA MWF HNoA_of_MWF
+             mario_actions_cutscene.prog _ _ LO_cut kfp_pin kfp_pres).
+  Qed.
+
+  (* star_dance: marioBodyState->handState/eyeState chase stores
+     (cact=[t'5;t'4]) + glob SET D_8032CBE4 + marioObj read (play_sound arg);
+     ids = sma/cpco/acs; xids = play_sound / seq_player_unlower_volume /
+     play_cutscene_music. *)
+  Example epsd_pin :
+    (prog_defmap mario_actions_cutscene.prog) ! C._end_peach_cutscene_star_dance
+    = Some (Gfun (Internal C.f_end_peach_cutscene_star_dance)).
+  Proof. vm_compute. reflexivity. Qed.
+  Example epsd_vars : fn_vars C.f_end_peach_cutscene_star_dance = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example epsd_pok :
+    match fn_params C.f_end_peach_cutscene_star_dance with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false
+    end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example epsd_nonparam :
+    forallb (fun t' => negb (mem_id t'
+      (map fst (fn_params C.f_end_peach_cutscene_star_dance)))) epsd_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example epsd_walk :
+    wwalk_chk false nil ep_ids nil epsd_cact ep_xids nil nil
+      (fn_body C.f_end_peach_cutscene_star_dance) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma epsd_pres : body_pres lp NoA MWF bm C.f_end_peach_cutscene_star_dance.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_end_peach_cutscene_star_dance ep_ids nil epsd_cact ep_xids nil nil
+             epsd_vars epsd_pok epsd_nonparam).
+    - exact ep_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact ep_xids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact epsd_walk.
+  Qed.
+  Lemma epsd_row : call_pres lp bm NoA MWF C._end_peach_cutscene_star_dance.
+  Proof.
+    exact (call_pres_of_body lp bm NoA MWF HNoA_of_MWF
+             mario_actions_cutscene.prog _ _ LO_cut epsd_pin epsd_pres).
+  Qed.
+
+  (* fade_out: glob SET gPaintingMarioYEntry + m->actionState direct;
+     ids = level_trigger_warp.  No chase store, no externals. *)
+  Example fdo_pin :
+    (prog_defmap mario_actions_cutscene.prog) ! C._end_peach_cutscene_fade_out
+    = Some (Gfun (Internal C.f_end_peach_cutscene_fade_out)).
+  Proof. vm_compute. reflexivity. Qed.
+  Example fdo_vars : fn_vars C.f_end_peach_cutscene_fade_out = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example fdo_pok :
+    match fn_params C.f_end_peach_cutscene_fade_out with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false
+    end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example fdo_walk :
+    wwalk_chk false nil ep_ids nil nil ep_xids nil nil
+      (fn_body C.f_end_peach_cutscene_fade_out) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma fdo_pres : body_pres lp NoA MWF bm C.f_end_peach_cutscene_fade_out.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_end_peach_cutscene_fade_out ep_ids nil nil ep_xids nil nil
+             fdo_vars fdo_pok eq_refl).
+    - exact ep_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact ep_xids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact fdo_walk.
+  Qed.
+  Lemma fdo_row : call_pres lp bm NoA MWF C._end_peach_cutscene_fade_out.
+  Proof.
+    exact (call_pres_of_body lp bm NoA MWF HNoA_of_MWF
+             mario_actions_cutscene.prog _ _ LO_cut fdo_pin fdo_pres).
+  Qed.
+
   (* The family rest-split: discharge the SLICE 1-5 leaves, leaving the   *)
   (* other 36 under cut_rest_ids.                                         *)
   (* ==================================================================== *)
