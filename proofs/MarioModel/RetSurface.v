@@ -16,11 +16,21 @@
 (* This eliminates the ~17 void/sub-word-int-returning reached functions   *)
 (* (11 void censused + update_mario_button_inputs + the void rest          *)
 (* dispatch helpers + level_trigger_warp's s16 return) from the residual   *)
-(* surface.  What remains -- ret_fd_safe fd = false -- is exactly the      *)
-(* Tint I32 returns (the 4 getters + the 7 dispatchers, whose int result   *)
-(* is a status code, not a pointer) and the External fundefs (the honest   *)
-(* terminal-external model boundary, e.g. EF_vload).  Those stay as the    *)
-(* SHARPER residual Hret_unsafe at the capstone.                           *)
+(* surface.  Of the remaining Tint I32 returns, fd_is_vint discharges the   *)
+(* "computed int" functions with ZERO program assumption, via TWO arms:     *)
+(*   - the TEMP arm (fn_vint_temp): a return temp only ever assigned a      *)
+(*     vint_expr (getters, predicates like mario_facing_downhill);          *)
+(*   - the CONSTANT arm (ret_const_chk, added 2026-06-24): every return     *)
+(*     site is a vint_expr directly, no temp -- e.g. mario_floor_is_        *)
+(*     slippery (return 0 / return 1 in separate branches), a REACHED       *)
+(*     predicate the temp arm misses.                                       *)
+(* What STILL remains -- ret_fd_safe = false AND fd_is_vint = false -- is   *)
+(* the I32 dispatchers whose result is a CALL result or a field load        *)
+(* (execute_mario_action returns gMarioState->particleFlags; the 6 per-     *)
+(* category mario_execute_*_action return the _cancel call-result) and the  *)
+(* External fundefs (the honest terminal-external boundary, e.g. EF_vload). *)
+(* Those stay as Hret_unsafe at the capstone -- the call-result/field-load  *)
+(* cases need the value/MWF return engine (see hret-dispatcher-closure).    *)
 (* ====================================================================== *)
 
 From Coq Require Import List.
@@ -645,11 +655,181 @@ Proof.
 Qed.
 
 (* ---------------------------------------------------------------------- *)
+(* THE CONSTANT-RETURN WALKER.  Some I32-returning reached functions never  *)
+(* return a temp at all: every `return` site is a vint_expr (a literal /    *)
+(* bitwise / comparison / sub-word cast).  The canonical case is            *)
+(* execute_mario_action, whose SOLE return is `return 0` -- the per-        *)
+(* category dispatcher results are consumed into the do-while loop flag,    *)
+(* never returned.  Such a body needs NO return-temp tracking (hence no     *)
+(* fn_vars / param side-conditions): every value-return is directly a       *)
+(* vint_expr, so the result is never a Vptr.  ZERO program assumption.      *)
+(* ---------------------------------------------------------------------- *)
+
+Fixpoint ret_const_chk (s : statement) : bool :=
+  match s with
+  | Sreturn (Some e) => vint_expr e
+  | Sreturn None => true
+  | Ssequence s1 s2 => ret_const_chk s1 && ret_const_chk s2
+  | Sifthenelse _ s1 s2 => ret_const_chk s1 && ret_const_chk s2
+  | Sloop s1 s2 => ret_const_chk s1 && ret_const_chk s2
+  | Sswitch _ ls => ret_const_chk_ls ls
+  | Slabel _ s1 => ret_const_chk s1
+  | _ => true   (* Sskip/Sassign/Sset/Scall/Sbuiltin/Sbreak/Scontinue/Sgoto *)
+  end
+with ret_const_chk_ls (ls : labeled_statements) : bool :=
+  match ls with
+  | LSnil => true
+  | LScons _ s ls' => ret_const_chk s && ret_const_chk_ls ls'
+  end.
+
+Lemma select_switch_case_vconst : forall n ls sl',
+  ret_const_chk_ls ls = true ->
+  select_switch_case n ls = Some sl' ->
+  ret_const_chk_ls sl' = true.
+Proof.
+  intros n ls. induction ls as [|olbl s ls' IH]; intros sl' Hchk Hsel; cbn in *.
+  - discriminate Hsel.
+  - destruct olbl as [z|].
+    + destruct (zeq z n).
+      * inv Hsel. exact Hchk.
+      * apply andb_true_iff in Hchk. apply IH; [ apply Hchk | exact Hsel ].
+    + apply andb_true_iff in Hchk. apply IH; [ apply Hchk | exact Hsel ].
+Qed.
+
+Lemma select_switch_default_vconst : forall ls,
+  ret_const_chk_ls ls = true ->
+  ret_const_chk_ls (select_switch_default ls) = true.
+Proof.
+  intros ls. induction ls as [|olbl s ls' IH]; intros Hchk; cbn in *.
+  - exact Hchk.
+  - destruct olbl as [z|].
+    + apply andb_true_iff in Hchk. apply IH. apply Hchk.
+    + cbn. exact Hchk.
+Qed.
+
+Lemma select_switch_vconst : forall n ls,
+  ret_const_chk_ls ls = true ->
+  ret_const_chk_ls (select_switch n ls) = true.
+Proof.
+  intros n ls Hchk. unfold select_switch.
+  destruct (select_switch_case n ls) eqn:E.
+  - eapply select_switch_case_vconst; [ exact Hchk | exact E ].
+  - apply select_switch_default_vconst; exact Hchk.
+Qed.
+
+Lemma seq_of_ls_vconst : forall ls,
+  ret_const_chk_ls ls = true ->
+  ret_const_chk (seq_of_labeled_statement ls) = true.
+Proof.
+  intros ls. induction ls as [|olbl s ls' IH]; intros Hchk; cbn in *.
+  - reflexivity.
+  - apply andb_true_iff in Hchk. destruct Hchk as [Hs Hls].
+    apply andb_true_iff. split; [ exact Hs | apply IH; exact Hls ].
+Qed.
+
+(* exec of a ret_const_chk'd statement: if it returns a value, that value is
+   never a Vptr.  No temp threading -- the precondition is purely syntactic. *)
+Lemma exec_stmt_vconst :
+  forall ge e le m s t le' m' out,
+    exec_stmt function_entry2 ge e le m s t le' m' out ->
+    ret_const_chk s = true ->
+    no_vptr_ret out.
+Proof.
+  intros ge.
+  set (P := fun (e:env) (le:temp_env) (m:mem) (s:statement) (t:trace)
+                (le':temp_env) (m':mem) (out:outcome) =>
+              ret_const_chk s = true -> no_vptr_ret out).
+  set (Q := fun (m:mem) (fd:fundef) (vargs:list val) (t:trace)
+                (m':mem) (vres:val) => True).
+  assert (MAIN :
+    (forall e le m s t le' m' out,
+       exec_stmt function_entry2 ge e le m s t le' m' out -> P e le m s t le' m' out)
+    /\ (forall m fd vargs t m' vres,
+          eval_funcall function_entry2 ge m fd vargs t m' vres -> Q m fd vargs t m' vres)).
+  { apply (exec_stmt_funcall_ind function_entry2 ge P Q); unfold P, Q; clear P Q.
+    - (* Sskip *) intros e le m _; intros v ty Hc; discriminate Hc.
+    - (* Sassign *) intros e le m a1 a2 loc ofs bf v2 v mm' Hlv Hee Hcast Hassign _; intros v0 ty Hc; discriminate Hc.
+    - (* Sset *) intros e le m id a v Hee _; intros v0 ty Hc; discriminate Hc.
+    - (* Scall *) intros e le m optid a al tyargs tyres cconv vf vargs fd t' mm' vres
+        Hcf Hee Hel Hff Htof Hfd _ _; intros v0 ty Hc; discriminate Hc.
+    - (* Sbuiltin *) intros e le m optid ef tyargs al vargs t' mm' vres Hel Hec _; intros v0 ty Hc; discriminate Hc.
+    - (* Sseq_1 *) intros e le m s1 s2 t1 le1 m1 t2 le2 m2 out He1 IH1 He2 IH2 Hchk.
+      cbn in Hchk. apply andb_true_iff in Hchk. destruct Hchk as [_ Hc2].
+      exact (IH2 Hc2).
+    - (* Sseq_2 *) intros e le m s1 s2 t1 le1 m1 out He1 IH1 Hout Hchk.
+      cbn in Hchk. apply andb_true_iff in Hchk. destruct Hchk as [Hc1 _].
+      exact (IH1 Hc1).
+    - (* Sifthenelse *) intros e le m a s1 s2 v1 bb t' lee m' out Hee Hbool Hexec IH Hchk.
+      cbn in Hchk. apply andb_true_iff in Hchk. destruct Hchk as [Hc1 Hc2].
+      apply IH; destruct bb; [ exact Hc1 | exact Hc2 ].
+    - (* Sreturn_none *) intros e le m _; intros v ty Hc; discriminate Hc.
+    - (* Sreturn_some *) intros e le m a v Hee Hchk.
+      cbn in Hchk.
+      assert (Hnv : no_vptr_val v) by exact (vint_expr_not_vptr ge e le m a v Hee Hchk).
+      intros v0 ty Hc. inv Hc. exact Hnv.
+    - (* Sbreak *) intros e le m _; intros v ty Hc; discriminate Hc.
+    - (* Scontinue *) intros e le m _; intros v ty Hc; discriminate Hc.
+    - (* Sloop_stop1 *) intros e le m s1 s2 t' lee m' out1 out He1 IH1 Hbor Hchk.
+      cbn in Hchk. apply andb_true_iff in Hchk. destruct Hchk as [Hc1 _].
+      intros v ty Hc. exact (IH1 Hc1 v ty (obor_return _ _ _ _ Hbor Hc)).
+    - (* Sloop_stop2 *) intros e le m s1 s2 t1 le1 m1 out1 t2 le2 m2 out2 out
+        He1 IH1 Hnc He2 IH2 Hbor Hchk.
+      cbn in Hchk. apply andb_true_iff in Hchk. destruct Hchk as [_ Hc2].
+      intros v ty Hc. exact (IH2 Hc2 v ty (obor_return _ _ _ _ Hbor Hc)).
+    - (* Sloop_loop *) intros e le m s1 s2 t1 le1 m1 out1 t2 le2 m2 t3 le3 m3 out
+        He1 IH1 Hnc1 He2 IH2 He3 IH3 Hchk.
+      exact (IH3 Hchk).
+    - (* Sswitch *) intros e le m a t' v n sl le1 m1 out1 Hee Hsel Hexec IH Hchk.
+      cbn in Hchk.
+      assert (Hcsel : ret_const_chk (seq_of_labeled_statement (select_switch n sl)) = true).
+      { apply seq_of_ls_vconst. apply select_switch_vconst. exact Hchk. }
+      intros v0 ty Hc. unfold outcome_switch in Hc.
+      destruct out1; try discriminate Hc.
+      exact (IH Hcsel v0 ty Hc).
+    - (* eval_funcall_internal *) intros; exact I.
+    - (* eval_funcall_external *) intros; exact I. }
+  intros e le m s t le' m' out Hexec Hchk.
+  exact (proj1 MAIN e le m s t le' m' out Hexec Hchk).
+Qed.
+
+(* THE FUNCALL LEMMA: an I32-returning Internal whose every return is a
+   vint_expr constant never returns a Vptr. *)
+Lemma eval_funcall_ret_vconst :
+  forall ge f vargs m t m' vres,
+    eval_funcall function_entry2 ge m (Internal f) vargs t m' vres ->
+    ret_const_chk (fn_body f) = true ->
+    fn_return f <> Tvoid ->
+    no_vptr_val vres.
+Proof.
+  intros ge f vargs m t m' vres Hfun Hchk Hretty.
+  inv Hfun.
+  match goal with Hfe : function_entry2 _ _ _ _ _ _ _ |- _ => inv Hfe end.
+  match goal with
+  | Hexec : exec_stmt function_entry2 ge ?ee ?lee _ (fn_body f) _ ?lez _ ?out,
+    Hout : outcome_result_value ?out _ vres _ |- _ =>
+      pose proof (exec_stmt_vconst ge ee lee _ (fn_body f) _ lez _ out Hexec Hchk) as Hret;
+      destruct out as [ | | | [[v0 ty0]| ]]; cbn in Hout;
+      [ (* Out_normal *) destruct (fn_return f); cbn in Hout;
+          solve [ contradiction | exfalso; apply Hretty; reflexivity ]
+      | (* Out_break *) destruct (fn_return f); cbn in Hout; contradiction
+      | (* Out_continue *) destruct (fn_return f); cbn in Hout; contradiction
+      | (* Out_return (Some (v0, ty0)) *)
+          destruct Hout as [_ Hcast];
+          intros b o ->;
+          assert (Hnp : no_vptr_val v0) by (eapply Hret; reflexivity);
+          pose proof (sem_cast_Vptr_through v0 ty0 _ _ b o Hcast) as Hv0;
+          exact (Hnp b o Hv0)
+      | (* Out_return None *) destruct (fn_return f); cbn in Hout;
+          solve [ contradiction | exfalso; apply Hretty; reflexivity ] ]
+  end.
+Qed.
+
+(* ---------------------------------------------------------------------- *)
 (* A DECIDABLE predicate identifying an Internal whose return value is a   *)
-(* "computed int": fn_vars empty, a return temp vt found, vt not a param,  *)
-(* the body vint-tracks vt, and a non-void return type.  Whenever it       *)
-(* holds, eval_funcall_ret_vint discharges the Hret obligation with ZERO   *)
-(* program assumption.                                                      *)
+(* "computed int": EITHER a return temp vt that the body vint-tracks       *)
+(* (fn_vars empty, vt not a param), OR every return site is a vint_expr    *)
+(* constant (ret_const_chk -- the dispatcher case, no temp).  Either way   *)
+(* eval_funcall never returns a Vptr.  ZERO program assumption.            *)
 (* ---------------------------------------------------------------------- *)
 
 Fixpoint ret_temp_of (s : statement) : option ident :=
@@ -665,15 +845,20 @@ Definition ret_ty_nonvoid (t : type) : bool :=
 Lemma ret_ty_nonvoid_neq : forall t, ret_ty_nonvoid t = true -> t <> Tvoid.
 Proof. intros t H; destruct t; cbn in H; try discriminate H; intro Hc; discriminate Hc. Qed.
 
-Definition fn_is_vint (f : function) : bool :=
-  ret_ty_nonvoid (fn_return f)
-  && (match fn_vars f with nil => true | _ => false end)
+(* the temp-tracked arm: fn_vars empty, a return temp vt that is not a param
+   and is vint-tracked through the body. *)
+Definition fn_vint_temp (f : function) : bool :=
+  (match fn_vars f with nil => true | _ => false end)
   && (match ret_temp_of (fn_body f) with
       | Some vt =>
           negb (existsb (fun p => Pos.eqb p vt) (var_names (fn_params f)))
           && vint_body_chk vt (fn_body f)
       | None => false
       end).
+
+Definition fn_is_vint (f : function) : bool :=
+  ret_ty_nonvoid (fn_return f)
+  && (fn_vint_temp f || ret_const_chk (fn_body f)).
 
 Definition fd_is_vint (fd : Clight.fundef) : bool :=
   match fd with Internal f => fn_is_vint f | External _ _ _ _ => false end.
@@ -697,18 +882,24 @@ Proof.
   intros ge bm m fd vargs t m' vres Hvint Hfun b o Hvp.
   destruct fd as [f | ]; [ | discriminate Hvint ].
   cbn in Hvint. unfold fn_is_vint in Hvint.
-  apply andb_true_iff in Hvint. destruct Hvint as [Hvint12 Hvint3].
-  apply andb_true_iff in Hvint12. destruct Hvint12 as [Hnv Hvars].
-  destruct (ret_temp_of (fn_body f)) as [vt | ] eqn:Hrt; [ | discriminate Hvint3 ].
-  apply andb_true_iff in Hvint3. destruct Hvint3 as [Hnotin Hbody].
-  assert (Hvars' : fn_vars f = nil)
-    by (destruct (fn_vars f); [ reflexivity | discriminate Hvars ]).
-  apply negb_true_iff in Hnotin.
-  pose proof (existsb_eqb_false_not_in vt (var_names (fn_params f)) Hnotin) as Hnin.
+  apply andb_true_iff in Hvint. destruct Hvint as [Hnv Hdisj].
   pose proof (ret_ty_nonvoid_neq _ Hnv) as Hretty.
-  pose proof (eval_funcall_ret_vint ge f vargs m t m' vres vt
-                Hfun Hvars' Hnin Hbody Hretty) as Hnvptr.
-  exfalso. exact (Hnvptr b o Hvp).
+  apply orb_true_iff in Hdisj. destruct Hdisj as [Htemp | Hconst].
+  - (* temp-tracked arm *)
+    unfold fn_vint_temp in Htemp.
+    apply andb_true_iff in Htemp. destruct Htemp as [Hvars Hbody3].
+    destruct (ret_temp_of (fn_body f)) as [vt | ] eqn:Hrt; [ | discriminate Hbody3 ].
+    apply andb_true_iff in Hbody3. destruct Hbody3 as [Hnotin Hbody].
+    assert (Hvars' : fn_vars f = nil)
+      by (destruct (fn_vars f); [ reflexivity | discriminate Hvars ]).
+    apply negb_true_iff in Hnotin.
+    pose proof (existsb_eqb_false_not_in vt (var_names (fn_params f)) Hnotin) as Hnin.
+    pose proof (eval_funcall_ret_vint ge f vargs m t m' vres vt
+                  Hfun Hvars' Hnin Hbody Hretty) as Hnvptr.
+    exfalso. exact (Hnvptr b o Hvp).
+  - (* constant-return arm *)
+    pose proof (eval_funcall_ret_vconst ge f vargs m t m' vres Hfun Hconst Hretty) as Hnvptr.
+    exfalso. exact (Hnvptr b o Hvp).
 Qed.
 
 (* THE SHARPER ASSEMBLY: Hret_call for any reached predicate reduces to the *)
