@@ -21,7 +21,7 @@ From Coq Require Import ZArith Lia List.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
 From SM64.Generated Require mario mario_step mario_actions_airborne
-  mario_actions_cutscene level_update interaction.
+  mario_actions_cutscene mario_actions_moving level_update interaction.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
   ActionValueFrame RealFrameValue RealFrameLinked AGates.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface
@@ -574,9 +574,24 @@ Definition cut_walked_ids : list ident :=
     :: C._act_exit_land_save_dialog
     :: C._act_debug_free_move
     :: C._act_intro_cutscene
-    :: C._act_end_waving_cutscene :: nil.
+    :: C._act_end_waving_cutscene
+    :: C._act_end_peach_cutscene :: nil.
 Definition cut_rest_ids : list ident :=
   filter (fun id => negb (mem_id id cut_walked_ids)) cutscene_callee_ids.
+
+(* ALL 50 cutscene act handlers + the prologue helper are now WALKED:
+   cut_walked_ids covers every member of cutscene_callee_ids, so the
+   un-walked remainder is EMPTY.  The act_end_peach_cutscene dispatcher
+   (the last leaf, 13 subhandlers) was the final addition.  This makes the
+   capstone's old Hpres_cut_rest residual VACUOUS -- there is no fid left
+   for it to range over -- so it is discharged inline (cut_rest_vacuous)
+   and DELETED from the capstone's hypothesis surface. *)
+Lemma cut_rest_ids_nil : cut_rest_ids = nil.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma cut_rest_vacuous :
+  forall (Q : Prop) fid, mem_id fid cut_rest_ids = true -> Q.
+Proof. intros Q fid H. rewrite cut_rest_ids_nil in H. discriminate H. Qed.
 
 (* the cutscene GLOBAL object-pointer roots: stores THROUGH a value loaded from
    one of these land in the SafeB object pool (the intro warp-pipe / end-peach
@@ -9113,6 +9128,258 @@ Section CutsceneLeafRows.
              mario_actions_cutscene.prog _ _ LO_cut mfl_pin mfl_pres).
   Qed.
 
+  (* ==================================================================== *)
+  (* run_to_peach -- the LAST of the 13 end_peach subhandlers.  Unlike the *)
+  (* other 12, it has a LOCAL (fn_vars = [_surf]) used as the find_floor   *)
+  (* out-param, so it is NOT epw_body_pres-walkable (which needs           *)
+  (* fn_vars=nil).  It goes through the np3-extended local-vars producer   *)
+  (* call_pres_of_lwalk3_np3.  Censuses:                                   *)
+  (*   ids = [advance_cutscene_step; play_step_sound]  (marg calls)        *)
+  (*   cact = [t'4]  (the m->marioObj chase temp feeding vec3f_copy's dst) *)
+  (*   lids = [surf]  (find_floor out-param)                               *)
+  (*   oc = [find_floor], sc = [vec3f_copy],                               *)
+  (*   np3 = [set_mario_anim_with_accel(m,114,0x80000)]  (3rd-arg non-ptr) *)
+  (* Stores: sEndPeachAnimation (glob), m->pos[i] (idx window),            *)
+  (* m->particleFlags|=1 (safe window).  play_step_sound's call_pres is    *)
+  (* imported from MovingLeafSurface.mov_pss_row (needs LO_mov +           *)
+  (* Hcpx_psound).  Walking this row deletes the LAST cut_rest leaf.       *)
+  (* ==================================================================== *)
+  (* LO_mov: the moving-TU linkorder.  Declared HERE (late, just before    *)
+  (* its only user) rather than with the other LO_* up top -- an extra     *)
+  (* linkorder in the early section context blows up the `eapply X;        *)
+  (* eassumption' proofs (e.g. Hcp_umpfa) by multiplying eassumption's     *)
+  (* evar search.  Same plumbing class as LO_cut; discharged at the        *)
+  (* capstone (MovingLeafSurface already requires it).  Being last-        *)
+  (* declared, it is the LAST section arg of cutscene_leaf_callees_pres.   *)
+  Hypothesis LO_mov : linkorder mario_actions_moving.prog lp.
+  Lemma cut_pss_row :
+    call_pres lp bm NoA MWF mario_actions_moving._play_step_sound.
+  Proof.
+    exact (MovingLeafSurface.mov_pss_row lp LO_mario LO_mov bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             Hcpx_psound).
+  Qed.
+  Definition rtp_ids : list ident :=
+    C._advance_cutscene_step :: mario_actions_moving._play_step_sound :: nil.
+  Definition rtp_cact : list ident := C._t'4 :: nil.
+  Definition rtp_lids : list ident := C._surf :: nil.
+  Definition rtp_oc : list ident := mario._find_floor :: nil.
+  Definition rtp_sc : list ident := mario._vec3f_copy :: nil.
+  Definition rtp_np3 : list ident := mario._set_mario_anim_with_accel :: nil.
+  Lemma rtp_ids_rows : forall fid, mem_id fid rtp_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold rtp_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cut_acs_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cut_pss_row | discriminate H ].
+  Qed.
+  Lemma rtp_np3_rows : forall fid, mem_id fid rtp_np3 = true ->
+      call_pres_np3 lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold rtp_np3 in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact esd_smawa_row
+      | discriminate H ].
+  Qed.
+  Lemma rtp_oc_rows : forall fid, mem_id fid rtp_oc = true ->
+      OutParamSurface.call_pres_ext_oc lp bm NoA MWF SafeB fid.
+  Proof.
+    intros fid H. unfold rtp_oc in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hocp_find_floor
+      | discriminate H ].
+  Qed.
+  Lemma rtp_sc_rows : forall fid, mem_id fid rtp_sc = true ->
+      OutParamSurface.call_pres_ext_sc lp bm NoA MWF SafeB fid.
+  Proof.
+    intros fid H. unfold rtp_sc in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hscp_v3f | discriminate H ].
+  Qed.
+  Example rtp_pin :
+    (prog_defmap mario_actions_cutscene.prog)
+      ! C._end_peach_cutscene_run_to_peach
+    = Some (Gfun (Internal C.f_end_peach_cutscene_run_to_peach)).
+  Proof. vm_compute. reflexivity. Qed.
+  Example rtp_params_ok :
+    match fn_params C.f_end_peach_cutscene_run_to_peach with
+    | (i, ty) :: ps =>
+        (Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+         && negb (mem_id Am (map fst ps)))%bool
+    | nil => false
+    end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example rtp_npc :
+    forallb (fun t' => negb (mem_id t'
+       (map fst (fn_params C.f_end_peach_cutscene_run_to_peach))))
+      rtp_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example rtp_walk :
+    wwalk_chk' rtp_lids rtp_oc nil rtp_sc nil rtp_np3 false
+      nil rtp_ids nil rtp_cact nil nil nil
+      (fn_body C.f_end_peach_cutscene_run_to_peach) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma rtp_row :
+    call_pres lp bm NoA MWF C._end_peach_cutscene_run_to_peach.
+  Proof.
+    apply (call_pres_of_lwalk3 lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             HMWF_alloc HMWF_free
+             mario_actions_cutscene.prog
+             C._end_peach_cutscene_run_to_peach
+             C.f_end_peach_cutscene_run_to_peach
+             rtp_ids nil rtp_cact nil nil rtp_lids rtp_oc nil rtp_sc rtp_np3
+             LO_cut rtp_pin rtp_params_ok rtp_npc).
+    - (* Hdg: stored_globals disjoint from fn_vars=[_surf] *)
+      intros g Hg Hin; vm_compute in Hin;
+        repeat (destruct Hin as [Heq | Hin];
+                [ subst g; vm_compute in Hg; discriminate | ]); exact Hin.
+    - (* Hdi: ids disjoint from fn_vars *)
+      intros g Hg Hin; vm_compute in Hin;
+        repeat (destruct Hin as [Heq | Hin];
+                [ subst g; vm_compute in Hg; discriminate | ]); exact Hin.
+    - intros g HH; discriminate HH.   (* Hdw: wids=nil *)
+    - intros g HH; discriminate HH.   (* Hdx: xids=nil *)
+    - intros g HH; discriminate HH.   (* Hds: sids=nil *)
+    - (* Hdoc: oc_pids disjoint from fn_vars *)
+      intros g Hg Hin; vm_compute in Hin;
+        repeat (destruct Hin as [Heq | Hin];
+                [ subst g; vm_compute in Hg; discriminate | ]); exact Hin.
+    - intros g HH; discriminate HH.   (* Hdwc: wc_pids=nil *)
+    - (* Hdsc: sc_pids disjoint from fn_vars *)
+      intros g Hg Hin; vm_compute in Hin;
+        repeat (destruct Hin as [Heq | Hin];
+                [ subst g; vm_compute in Hg; discriminate | ]); exact Hin.
+    - (* Hdnp3: np3_ids disjoint from fn_vars *)
+      intros g Hg Hin; vm_compute in Hin;
+        repeat (destruct Hin as [Heq | Hin];
+                [ subst g; vm_compute in Hg; discriminate | ]); exact Hin.
+    - (* Hdgt: gGlobalTimer not a local *)
+      vm_compute; intro Hin;
+        repeat (destruct Hin as [Heq | Hin]; [ discriminate Heq | ]); exact Hin.
+    - (* Hlsub: lids=[_surf] subset of fn_vars *)
+      intros lid Hl; unfold rtp_lids in Hl; cbn [mem_id existsb] in Hl;
+        repeat (apply orb_true_iff in Hl as [Hm | Hl];
+                [ apply Pos.eqb_eq in Hm; subst lid; vm_compute; auto 10 | ]);
+        discriminate Hl.
+    - exact HSafeValid.
+    - exact HGlobValid.
+    - exact Hls_real.
+    - exact rtp_ids_rows.              (* Hcp: ids *)
+    - intros fid' H; discriminate H.   (* Hcpa: wids=nil *)
+    - intros fid' H; discriminate H.   (* Hcpx: xids=nil *)
+    - intros fid' H; discriminate H.   (* Hcps: sids=nil *)
+    - exact rtp_oc_rows.               (* Hcpoc: oc_pids *)
+    - intros fid' H; discriminate H.   (* Hcpwc: wc_pids=nil *)
+    - exact rtp_sc_rows.               (* Hcpsc: sc_pids *)
+    - exact rtp_np3_rows.              (* Hcp_np3: np3_ids *)
+    - exact rtp_walk.                  (* Hchk *)
+  Qed.
+
+  (* ==================================================================== *)
+  (* SLICE F -- THE DISPATCHER act_end_peach_cutscene.  Reads m->actionArg  *)
+  (* (t'2) and Sswitches over {0..12} -> the 13 subhandler(m) marg calls    *)
+  (* (each a call_pres _row above), then the credits-style tail:            *)
+  (* m->actionTimer++ (safe window store), 4 DEEP global stores into        *)
+  (* sEndCutsceneVp.vp.vscale[i]/.vtrans[i] (glob_store_chk deep arm,        *)
+  (* sEndCutsceneVp in stored_globals), override_viewport_and_clip          *)
+  (* (Hcpx_ovac), return 0.  Structurally identical to cred_pres.  This is  *)
+  (* the LAST cut_rest leaf: walking it takes cut_rest 1->0.                *)
+  (* ==================================================================== *)
+  Definition aepc_ids : list ident :=
+    C._end_peach_cutscene_mario_falling
+      :: C._end_peach_cutscene_mario_landing
+      :: C._end_peach_cutscene_summon_jumbo_star
+      :: C._end_peach_cutscene_spawn_peach
+      :: C._end_peach_cutscene_descend_peach
+      :: C._end_peach_cutscene_run_to_peach
+      :: C._end_peach_cutscene_dialog_1
+      :: C._end_peach_cutscene_dialog_2
+      :: C._end_peach_cutscene_kiss_from_peach
+      :: C._end_peach_cutscene_star_dance
+      :: C._end_peach_cutscene_dialog_3
+      :: C._end_peach_cutscene_run_to_castle
+      :: C._end_peach_cutscene_fade_out :: nil.
+  Definition aepc_xids : list ident :=
+    C._override_viewport_and_clip :: nil.
+  Lemma aepc_ids_rows : forall fid, mem_id fid aepc_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold aepc_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mfl_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mln_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sjs_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact spw_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact dpc_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact rtp_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact dg1_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact dg2_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact kfp_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact epsd_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact dg3_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact rtc_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact fdo_row | discriminate H ].
+  Qed.
+  Lemma aepc_xids_rows : forall fid, mem_id fid aepc_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold aepc_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_ovac | discriminate H ].
+  Qed.
+  Example aepc_pin :
+    (prog_defmap mario_actions_cutscene.prog) ! C._act_end_peach_cutscene
+      = Some (Gfun (Internal C.f_act_end_peach_cutscene)).
+  Proof. vm_compute. reflexivity. Qed.
+  Example aepc_vars : fn_vars C.f_act_end_peach_cutscene = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example aepc_pok :
+    match fn_params C.f_act_end_peach_cutscene with
+    | (i, ty) :: ps =>
+        Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+        && negb (mem_id Am (map fst ps))
+    | nil => false end = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example aepc_nonparam :
+    forallb (fun t' => negb (mem_id t'
+       (map fst (fn_params C.f_act_end_peach_cutscene)))) (@nil ident) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example aepc_walk :
+    wwalk_chk false nil aepc_ids nil nil aepc_xids nil nil
+      (fn_body C.f_act_end_peach_cutscene) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma aepc_pres : body_pres lp NoA MWF bm C.f_act_end_peach_cutscene.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_end_peach_cutscene aepc_ids nil nil aepc_xids nil nil
+             aepc_vars aepc_pok aepc_nonparam).
+    - exact aepc_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact aepc_xids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact aepc_walk.
+  Qed.
+
   (* The family rest-split: discharge the SLICE 1-5 leaves, leaving the   *)
   (* other 36 under cut_rest_ids.                                         *)
   (* ==================================================================== *)
@@ -9238,6 +9505,9 @@ Section CutsceneLeafRows.
     destruct (Pos.eqb fid C._act_end_waving_cutscene) eqn:E49.
     { apply Pos.eqb_eq in E49; subst fid.
       rewrite eaw_pin in Hdm. injection Hdm as <-. exact eaw_pres. }
+    destruct (Pos.eqb fid C._act_end_peach_cutscene) eqn:E50.
+    { apply Pos.eqb_eq in E50; subst fid.
+      rewrite aepc_pin in Hdm. injection Hdm as <-. exact aepc_pres. }
     destruct (Pos.eqb fid C._act_reading_sign) eqn:E26.
     { apply Pos.eqb_eq in E26; subst fid.
       rewrite rs_pin in Hdm. injection Hdm as <-. exact rs_pres. }
@@ -9280,7 +9550,7 @@ Section CutsceneLeafRows.
     apply mem_id_filter_true; [ exact H | ].
     unfold cut_walked_ids. cbn [mem_id existsb].
     rewrite E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15, E16,
-      E17, E18, E19, E20, E21, E22, E23, E24, E25, E35, E39, E40, E41, E42, E43, E44, E45, E46, E47, E48, E49, E26, E27, E28, E29, E30, E31,
+      E17, E18, E19, E20, E21, E22, E23, E24, E25, E35, E39, E40, E41, E42, E43, E44, E45, E46, E47, E48, E49, E50, E26, E27, E28, E29, E30, E31,
       E32, E33, E34, E36, E37, E38.
     reflexivity.
   Qed.

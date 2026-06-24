@@ -6959,7 +6959,7 @@ Section ActWriterRows.
      Vptr, so chase_inv holds vacuously. *)
   Lemma call_pres_of_lwalk3 :
     forall (TU : Clight.program) (fid : ident) (f : Clight.function)
-           (ids wids cact xids sids lids oc_pids wc_pids sc_pids : list ident),
+           (ids wids cact xids sids lids oc_pids wc_pids sc_pids np3_ids : list ident),
       linkorder TU lp ->
       (prog_defmap TU) ! fid = Some (Gfun (Internal f)) ->
       match fn_params f with
@@ -6980,6 +6980,7 @@ Section ActWriterRows.
       (forall g, mem_id g oc_pids = true -> ~ In g (map fst (fn_vars f))) ->
       (forall g, mem_id g wc_pids = true -> ~ In g (map fst (fn_vars f))) ->
       (forall g, mem_id g sc_pids = true -> ~ In g (map fst (fn_vars f))) ->
+      (forall g, mem_id g np3_ids = true -> ~ In g (map fst (fn_vars f))) ->
       ~ In interaction._gGlobalTimer (map fst (fn_vars f)) ->
       (forall lid, mem_id lid lids = true -> In lid (map fst (fn_vars f))) ->
       (forall m, MWF m -> forall b, SafeB b -> Mem.valid_block m b) ->
@@ -7001,12 +7002,14 @@ Section ActWriterRows.
                     call_pres_ext_wc lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' sc_pids = true ->
                     call_pres_ext_sc lp bm NoA MWF SafeB fid') ->
-      wwalk_chk' lids oc_pids wc_pids sc_pids nil nil false nil ids wids cact xids sids nil (fn_body f) = true ->
+      (forall fid', mem_id fid' np3_ids = true ->
+                    call_pres_np3 lp bm NoA MWF fid') ->
+      wwalk_chk' lids oc_pids wc_pids sc_pids nil np3_ids false nil ids wids cact xids sids nil (fn_body f) = true ->
       call_pres lp bm NoA MWF fid.
   Proof.
-    intros TU fid f ids wids cact xids sids lids oc_pids wc_pids sc_pids LOtu Hdm Hps Hnpc
-           Hdg Hdi Hdw Hdx Hds Hdoc Hdwc Hdsc Hdgt Hlsub HSafeValid HGlobValid Hls_real
-           Hcp Hcpa Hcpx Hcps Hcpoc Hcpwc Hcpsc Hchk
+    intros TU fid f ids wids cact xids sids lids oc_pids wc_pids sc_pids np3_ids LOtu Hdm Hps Hnpc
+           Hdg Hdi Hdw Hdx Hds Hdoc Hdwc Hdsc Hdnp3 Hdgt Hlsub HSafeValid HGlobValid Hls_real
+           Hcp Hcpa Hcpx Hcps Hcpoc Hcpwc Hcpsc Hcp_np3 Hchk
            fd m0 vargs0 t0 mF vres0 Hevf Hres Hmarg HN HM HV HS.
     pose proof (resolve_pin_fd lp _ _ _ _ LOtu Hdm Hres) as ->.
     inv Hevf.
@@ -7103,6 +7106,10 @@ Section ActWriterRows.
                      empty_env _ _ Halloc g (Hdsc g Hg)); apply PTree.gempty).
     assert (Hub_t : forall g, mem_id g (@nil ident) = true -> eloc ! g = None)
       by (intros g HH; discriminate HH).
+    assert (Hub_np3 : forall g, mem_id g np3_ids = true -> eloc ! g = None)
+      by (intros g Hg;
+          rewrite (alloc_variables_unbound (lp_ge lp) m0 (fn_vars f)
+                     empty_env _ _ Halloc g (Hdnp3 g Hg)); apply PTree.gempty).
     assert (Hub_gt : eloc ! interaction._gGlobalTimer = None)
       by (rewrite (alloc_variables_unbound (lp_ge lp) m0 (fn_vars f)
                      empty_env _ _ Halloc interaction._gGlobalTimer Hdgt);
@@ -7111,13 +7118,13 @@ Section ActWriterRows.
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
                 false nil ids wids cact xids sids nil lids oc_pids wc_pids sc_pids
-                nil nil
+                nil np3_ids
                 Hcp Hcpa Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH)) Hcpt0 Hcpoc Hcpwc Hcpsc
-                (fun g HH => match Bool.diff_false_true HH with end)
+                Hcp_np3
                 _ _ _ _ _ _ _ _
                 (fun _ => Hls_real) Hlocal Hbody
                 Hub_g Hub_i Hub_w Hub_x Hub_s Hub_t Hub_oc Hub_wc Hub_sc
-                (fun g HH => match Bool.diff_false_true HH with end) Hub_gt
+                Hub_np3 Hub_gt
                 Hchk Htat0 Hact0 Hch0
                 (fun t HH => match Bool.diff_false_true HH with end)
                 HNa HMa HVa HSa)
