@@ -863,7 +863,22 @@ Definition stored_globals : list ident :=
      mario_actions_cutscene.c, bm/bc/SafeB-disjoint per Hglob_blk -- the same
      pointer-global trust class as sDispCreditsEntry above (the rvalue is
      unconstrained; MWF tolerates any store into this off-Mario cell). *)
-  mario_actions_cutscene._sIntroWarpPipeObj :: nil.
+  mario_actions_cutscene._sIntroWarpPipeObj ::
+  (* the end-cutscene object pointers + animation statics (act_end_waving_
+     cutscene / act_end_peach_cutscene): sEndPeachObj/sEndRightToadObj/
+     sEndLeftToadObj are SET to spawn_object_abs_with_rot results (By_value
+     Mptr stores); sEndPeachAnimation is an s16 anim static written directly;
+     sEndToadAnims is an s16[2] anim array written by direct indexed stores
+     (the bare-Evar-array glob_arr_block arm).  All static data symbols in
+     mario_actions_cutscene.c, bm/bc/SafeB-disjoint per Hglob_blk -- the same
+     pointer/static-global trust class as sIntroWarpPipeObj / sDispCreditsEntry
+     above (the rvalues are unconstrained; MWF tolerates any store into these
+     off-Mario cells). *)
+  mario_actions_cutscene._sEndPeachObj ::
+  mario_actions_cutscene._sEndRightToadObj ::
+  mario_actions_cutscene._sEndLeftToadObj ::
+  mario_actions_cutscene._sEndPeachAnimation ::
+  mario_actions_cutscene._sEndToadAnims :: nil.
 
 (* ---------------------------------------------------------------------- *)
 (* The interaction-handler census (the Hpres_inter arc): the 28 DISTINCT   *)
