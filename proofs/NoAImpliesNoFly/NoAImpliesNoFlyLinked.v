@@ -1149,6 +1149,22 @@ Section NoARealInputMWF.
       (prog_defmap mario_actions_cutscene.prog) ! fid
         = Some (Gfun (Internal f)) ->
       body_pres lp (NoA_real bm) MWF bm f.
+  (* SLICE 27 (act_intro_cutscene WALKED): the glob-obj reach-closure
+     assumption.  The intro warp-pipe / end-peach object pointers (gobj_ids),
+     IF holding a pointer, point into the SafeB object pool -- they are
+     spawn_object'd into the pool by the peach_lakitu subhandler and never
+     aliased to Mario's bm.  Honest, per-symbol, R11-style: SafeB is abstract
+     and there is no per-symbol global-obj membership row in MWFReal, so this
+     is a genuine new model-boundary assumption (a full discharge would thread
+     peach_lakitu's spawn-result SafeB-ness through the gobj cell).  Consumed
+     by the raise_pipe / lower_pipe seed arms (glob_obj_val). *)
+  Hypothesis Hglob_obj_root :
+    forall g gb m b o,
+      mem_id g CutsceneLeafSurface.gobj_ids = true ->
+      MWF m ->
+      Genv.find_symbol (lp_ge lp) g = Some gb ->
+      Mem.loadv Mptr m (Vptr gb Ptrofs.zero) = Some (Vptr b o) ->
+      SafeB b.
   (* the automatic dispatcher is WALKED (AutomaticSurface.automatic_pres
      over the generic DispatchKit; the quicksandDepth store is killed by
      the window census): PROVED from per-leaf-callee residuals keyed by
@@ -3039,6 +3055,10 @@ Section NoARealInputMWF.
                          Hglob_valid
                          aut_local_store
                          Holcp_fwc_real)
+                      (* SLICE 27 (act_intro_cutscene): the glob-obj reach-
+                         closure assumption, consumed by raise_pipe/lower_pipe's
+                         seed arms (the new R11-style model boundary). *)
+                      Hglob_obj_root
                       Hpres_cut_rest))
                 (automatic_pres lp LO_mario LO_aut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)

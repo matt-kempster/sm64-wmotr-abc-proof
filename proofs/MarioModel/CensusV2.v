@@ -856,7 +856,14 @@ Definition stored_globals : list ident :=
   level_update._D_80339ECA ::
   level_update._D_80339EE0 ::
   level_update._sTransitionTimer ::
-  level_update._sTransitionUpdate :: nil.
+  level_update._sTransitionUpdate ::
+  (* the intro-cutscene warp-pipe object pointer (act_intro_cutscene's
+     peach_lakitu subhandler SETS sIntroWarpPipeObj = spawn_object_abs_with_rot
+     result; a By_value Mptr store).  A static Object* data symbol in
+     mario_actions_cutscene.c, bm/bc/SafeB-disjoint per Hglob_blk -- the same
+     pointer-global trust class as sDispCreditsEntry above (the rvalue is
+     unconstrained; MWF tolerates any store into this off-Mario cell). *)
+  mario_actions_cutscene._sIntroWarpPipeObj :: nil.
 
 (* ---------------------------------------------------------------------- *)
 (* The interaction-handler census (the Hpres_inter arc): the 28 DISTINCT   *)

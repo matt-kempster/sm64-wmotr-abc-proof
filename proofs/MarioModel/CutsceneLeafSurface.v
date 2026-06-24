@@ -377,7 +377,15 @@ Definition cut_ext_ids : list ident :=
        EF_external in EVERY linked TU (verified -- no Internal body anywhere
        under generated/), same honest model-boundary class. *)
     :: C._set_menu_mode :: C._play_peachs_jingle
-    :: level_update._fadeout_music :: level_update._play_transition :: nil.
+    :: level_update._fadeout_music :: level_update._play_transition
+    (* act_intro_cutscene subhandler externals (peach_lakitu / raise_pipe /
+       jump_out_of_pipe / lower_pipe): the object-spawn / camera-approach /
+       sound-bank / object-deletion externals.  EF_external in EVERY linked TU
+       (verified -- no Internal body anywhere under generated/); each writes
+       camera/sound/object-pool state, never Mario's bm action cell.  Same
+       honest model-boundary class as the dialog/time-stop externals above. *)
+    :: C._spawn_object_abs_with_rot :: C._camera_approach_f32_symmetric
+    :: C._sound_banks_enable :: C._obj_mark_for_deletion :: nil.
 
 (* act_reading_sign: body_pres_of_wwalk (wact=nil, cact=nil -- marioObj/usedObj
    chase temps are only LOADED; the only stores are direct non-action m-fields:
@@ -553,7 +561,8 @@ Definition cut_walked_ids : list ident :=
     :: C._act_credits_cutscene
     :: C._act_jumbo_star_cutscene
     :: C._act_exit_land_save_dialog
-    :: C._act_debug_free_move :: nil.
+    :: C._act_debug_free_move
+    :: C._act_intro_cutscene :: nil.
 Definition cut_rest_ids : list ident :=
   filter (fun id => negb (mem_id id cut_walked_ids)) cutscene_callee_ids.
 
@@ -680,6 +689,58 @@ Proof. vm_compute. reflexivity. Qed.
 Example smti_walk :
   wwalk_chk false nil smti_ids nil nil nil smti_sids nil
     (fn_body mario_actions_cutscene.f_intro_cutscene_set_mario_to_idle) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- subhandler #2 peach_lakitu_scene: a GENERIC walk.  The glob-obj SET   *)
+(* store `Sassign (Evar sIntroWarpPipeObj) (Etempvar t'1)` is the generic     *)
+(* glob_store_chk arm now that sIntroWarpPipeObj is in stored_globals -- the  *)
+(* rvalue (the spawn_object_abs_with_rot result) is unconstrained, MWF        *)
+(* tolerates any store into the off-Mario static cell (Hglob_blk).            *)
+(* gCurrentObject is READ-only (Sset t'5, scratch); the m->actionTimer        *)
+(* increment is a Mario window store; advance_cutscene_step is a marg call    *)
+(* (ids); spawn_object_abs_with_rot is a terminal external (xids). ---- *)
+Definition pk_ids : list ident :=
+  mario_actions_cutscene._advance_cutscene_step :: nil.
+Definition pk_xids : list ident :=
+  mario_actions_cutscene._spawn_object_abs_with_rot :: nil.
+Example pk_pin :
+  (prog_defmap mario_actions_cutscene.prog)
+    ! mario_actions_cutscene._intro_cutscene_peach_lakitu_scene
+  = Some (Gfun (Internal mario_actions_cutscene.f_intro_cutscene_peach_lakitu_scene)).
+Proof. vm_compute. reflexivity. Qed.
+Example pk_vars :
+  fn_vars mario_actions_cutscene.f_intro_cutscene_peach_lakitu_scene = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example pk_pok :
+  match fn_params mario_actions_cutscene.f_intro_cutscene_peach_lakitu_scene with
+  | (i, ty) :: ps =>
+      Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id Am (map fst ps))
+  | nil => false end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example pk_walk :
+  wwalk_chk false nil pk_ids nil nil pk_xids nil nil
+    (fn_body mario_actions_cutscene.f_intro_cutscene_peach_lakitu_scene) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---- the dispatcher: act_intro_cutscene is a switch(m->actionArg) over the *)
+(* 7 subhandlers (each a marg call in ids), returning FALSE (Econst_int 0,    *)
+(* rt=false so the return arm is unconstrained).  jumbo_pres precedent. ---- *)
+Definition intro_ids : list ident :=
+  mario_actions_cutscene._intro_cutscene_hide_hud_and_mario
+    :: mario_actions_cutscene._intro_cutscene_peach_lakitu_scene
+    :: mario_actions_cutscene._intro_cutscene_raise_pipe
+    :: mario_actions_cutscene._intro_cutscene_jump_out_of_pipe
+    :: mario_actions_cutscene._intro_cutscene_land_outside_pipe
+    :: mario_actions_cutscene._intro_cutscene_lower_pipe
+    :: mario_actions_cutscene._intro_cutscene_set_mario_to_idle :: nil.
+Example intro_pin :
+  (prog_defmap mario_actions_cutscene.prog) ! C._act_intro_cutscene
+  = Some (Gfun (Internal C.f_act_intro_cutscene)).
+Proof. vm_compute. reflexivity. Qed.
+Example intro_walk :
+  wwalk_chk false nil intro_ids nil nil nil nil nil
+    (fn_body C.f_act_intro_cutscene) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* ---- the AST shape pins (vm_compute reflexivity). ---- *)
@@ -1331,19 +1392,14 @@ Section CutsceneLeafRows.
      Hcp_pas Lemma -- NO new trust.  Consumed only via launch's ids. *)
   Hypothesis Hcp_pas :
     call_pres lp bm NoA MWF mario_step._perform_air_step.
-  (* INTRO-cutscene terminal externals (honest model boundary, EF_external in
-     every linked TU; each writes camera/sound/object state, never Mario's bm
-     action cell -- discharged at the capstone via the obj_ext boundary, NO
-     new trust beyond the existing terminal-external surface):
-       sound_banks_enable               (jump_out_of_pipe)
-       camera_approach_f32_symmetric     (raise_pipe; float->float, pure)
-       obj_mark_for_deletion             (lower_pipe; flags a pool object) *)
-  Hypothesis Hcpx_sbe :
-    call_pres_ext lp bm NoA MWF mario_actions_cutscene._sound_banks_enable.
-  Hypothesis Hcpx_caf :
-    call_pres_ext lp bm NoA MWF mario_actions_cutscene._camera_approach_f32_symmetric.
-  Hypothesis Hcpx_omfd :
-    call_pres_ext lp bm NoA MWF mario_actions_cutscene._obj_mark_for_deletion.
+  (* INTRO-cutscene terminal externals (sound_banks_enable / camera_approach_
+     f32_symmetric / obj_mark_for_deletion / spawn_object_abs_with_rot): the
+     honest model boundary, EF_external in every linked TU, each writing
+     camera/sound/object-pool state and never Mario's bm action cell.  They are
+     in cut_ext_ids, so the Hcpx_* rows below (after Hcut_ext) are PROVED via
+     Hcut_ext -- NO new capstone trust beyond the existing cutscene-external
+     boundary (Hpres_cut_ext).  spawn_object_abs_with_rot's result is stored
+     into sIntroWarpPipeObj via the unconstrained glob_store arm. *)
   (* set_camera_mode: a terminal obj_ext external (in obj_ext_ids); the
      capstone feeds (Hpres_obj_ext mario._set_camera_mode eq_refl) -- NO new
      trust.  Consumed only by set_water_plunge_action's row (swpa). *)
@@ -1371,6 +1427,21 @@ Section CutsceneLeafRows.
      Hpres_obj_ext -- NO new trust. *)
   Hypothesis Hcut_ext : forall fid,
       mem_id fid cut_ext_ids = true -> call_pres_ext lp bm NoA MWF fid.
+  (* the 4 INTRO-cutscene externals, PROVED from Hcut_ext (all in cut_ext_ids):
+     spawn_object_abs_with_rot / camera_approach_f32_symmetric /
+     sound_banks_enable / obj_mark_for_deletion.  NO new capstone trust. *)
+  Lemma Hcpx_sbe :
+    call_pres_ext lp bm NoA MWF mario_actions_cutscene._sound_banks_enable.
+  Proof. apply Hcut_ext; vm_compute; reflexivity. Qed.
+  Lemma Hcpx_caf :
+    call_pres_ext lp bm NoA MWF mario_actions_cutscene._camera_approach_f32_symmetric.
+  Proof. apply Hcut_ext; vm_compute; reflexivity. Qed.
+  Lemma Hcpx_omfd :
+    call_pres_ext lp bm NoA MWF mario_actions_cutscene._obj_mark_for_deletion.
+  Proof. apply Hcut_ext; vm_compute; reflexivity. Qed.
+  Lemma Hcpx_soawr :
+    call_pres_ext lp bm NoA MWF mario_actions_cutscene._spawn_object_abs_with_rot.
+  Proof. apply Hcut_ext; vm_compute; reflexivity. Qed.
   Hypothesis Hcpx_atan2s :
     call_pres_ext lp bm NoA MWF interaction._atan2s.
   (* approach_s32: a pure-math integer-clamp EF_external (in obj_ext_ids; no
@@ -2318,6 +2389,43 @@ Section CutsceneLeafRows.
     - exact smti_sids_rows.
     - exact smti_walk.
   Qed.
+
+  (* ---- subhandler #2 peach_lakitu_scene: generic walk (the glob-obj SET     *)
+  (* store rides the unconstrained glob_store arm; spawn is a terminal ext). ---- *)
+  Lemma pk_ids_rows : forall fid, mem_id fid pk_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold pk_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cut_acs_row | discriminate H ].
+  Qed.
+  Lemma pk_xids_rows : forall fid, mem_id fid pk_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold pk_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_soawr | discriminate H ].
+  Qed.
+  Lemma pk_row :
+    call_pres lp bm NoA MWF mario_actions_cutscene._intro_cutscene_peach_lakitu_scene.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario_actions_cutscene.prog
+             mario_actions_cutscene._intro_cutscene_peach_lakitu_scene
+             mario_actions_cutscene.f_intro_cutscene_peach_lakitu_scene
+             pk_ids nil pk_xids nil
+             LO_cut pk_pin pk_vars pk_pok).
+    - exact pk_ids_rows.
+    - intros fid' H. discriminate H.
+    - exact pk_xids_rows.
+    - intros fid' H. discriminate H.
+    - exact pk_walk.
+  Qed.
+
+  (* (intro_ids_rows + intro_pres live after lzp_row -- they consume the
+     raise_pipe / lower_pipe rows defined in the glob-obj bespoke block.) *)
 
   (* act_emerge_from_pipe: the last launch caller. *)
   Lemma efp_ids_rows : forall fid, mem_id fid efp_ids = true ->
@@ -7086,6 +7194,45 @@ Section CutsceneLeafRows.
              mario_actions_cutscene.prog _ _ LO_cut lzp_pin lzp_pres).
   Qed.
 
+  (* ---- the act_intro_cutscene dispatcher row + body_pres (consumes all 7
+     subhandler rows; placed here so the raise_pipe / lower_pipe rows above
+     are in scope). ---- *)
+  Lemma intro_ids_rows : forall fid, mem_id fid intro_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold intro_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact hhm_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact pk_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact rzp_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact jop_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact lop_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact lzp_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact smti_row | discriminate H ].
+  Qed.
+  Lemma intro_pres : body_pres lp NoA MWF bm C.f_act_intro_cutscene.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_intro_cutscene intro_ids nil nil nil nil nil).
+    - vm_compute; reflexivity.
+    - vm_compute; reflexivity.
+    - vm_compute; reflexivity.
+    - exact intro_ids_rows.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - exact intro_walk.
+  Qed.
+
   (* The family rest-split: discharge the SLICE 1-5 leaves, leaving the   *)
   (* other 36 under cut_rest_ids.                                         *)
   (* ==================================================================== *)
@@ -7205,6 +7352,9 @@ Section CutsceneLeafRows.
     destruct (Pos.eqb fid C._act_debug_free_move) eqn:E47.
     { apply Pos.eqb_eq in E47; subst fid.
       rewrite dfm_pin in Hdm. injection Hdm as <-. exact dfm_pres. }
+    destruct (Pos.eqb fid C._act_intro_cutscene) eqn:E48.
+    { apply Pos.eqb_eq in E48; subst fid.
+      rewrite intro_pin in Hdm. injection Hdm as <-. exact intro_pres. }
     destruct (Pos.eqb fid C._act_reading_sign) eqn:E26.
     { apply Pos.eqb_eq in E26; subst fid.
       rewrite rs_pin in Hdm. injection Hdm as <-. exact rs_pres. }
@@ -7247,7 +7397,7 @@ Section CutsceneLeafRows.
     apply mem_id_filter_true; [ exact H | ].
     unfold cut_walked_ids. cbn [mem_id existsb].
     rewrite E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15, E16,
-      E17, E18, E19, E20, E21, E22, E23, E24, E25, E35, E39, E40, E41, E42, E43, E44, E45, E46, E47, E26, E27, E28, E29, E30, E31,
+      E17, E18, E19, E20, E21, E22, E23, E24, E25, E35, E39, E40, E41, E42, E43, E44, E45, E46, E47, E48, E26, E27, E28, E29, E30, E31,
       E32, E33, E34, E36, E37, E38.
     reflexivity.
   Qed.
