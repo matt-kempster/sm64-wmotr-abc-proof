@@ -3932,6 +3932,99 @@ Proof.
     exact Hfunct.
 Qed.
 
+Definition unload_deallocate_object_call_argument_shape_obligations
+    (le : temp_env) (memory : mem)
+    (pool_block : block) (slot : Z) : Prop :=
+  forall tyargs vargs,
+    eval_exprlist unload_object_ge empty_env le memory
+      ((Eaddrof
+          (Evar S._gFreeObjectList (Tstruct S._ObjectNode noattr))
+          (tptr (Tstruct S._ObjectNode noattr))) ::
+       (Eaddrof unload_object_header_lhs
+          (tptr (Tstruct S._ObjectNode noattr))) ::
+       nil)
+      tyargs vargs ->
+    deallocate_object_internal_call_shape_obligations
+      memory vargs pool_block slot.
+
+Definition unload_deallocate_object_call_empty_env_shape_frame_obligation
+    : Prop :=
+  deallocate_object_function_resolves_in_empty_env ->
+  forall le memory pool_block slot trace le' memory' outcome,
+    valid_object_slot slot ->
+    le ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) ->
+    unload_deallocate_object_call_argument_shape_obligations
+      le memory pool_block slot ->
+    exec_stmt function_entry2 unload_object_ge empty_env le memory
+      unload_deallocate_object_call trace le' memory' outcome ->
+    le' ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) /\
+    Mem.unchanged_on
+      (active_flags_byte pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z)))
+      memory memory'.
+
+Theorem unload_deallocate_object_call_empty_env_shape_frame_obligation_holds :
+  unload_deallocate_object_call_empty_env_shape_frame_obligation.
+Proof.
+  unfold unload_deallocate_object_call_empty_env_shape_frame_obligation.
+  intros Hresolve le memory pool_block slot trace le' memory' outcome
+    Hvalid Hobj Hshape_args Hexec.
+  unfold unload_deallocate_object_call in Hexec.
+  inv Hexec.
+  match goal with
+  | Hfun_expr :
+      eval_expr _ _ _ _ _ ?function_value,
+    Hfind :
+      Genv.find_funct _ ?function_value = Some _
+      |- _ =>
+      pose proof
+        (Hresolve le memory function_value Hfun_expr) as Hresolved;
+      rewrite Hresolved in Hfind;
+      inv Hfind
+  end.
+  split.
+  - exact Hobj.
+  - match goal with
+    | Hargs :
+        eval_exprlist _ empty_env le memory _ ?tyargs ?vargs,
+      Hcall :
+        eval_funcall function_entry2 unload_object_ge memory
+          (Internal S.f_deallocate_object) ?vargs trace memory' _ |- _ =>
+        pose proof (Hshape_args tyargs vargs Hargs) as Hshape_call;
+        eapply
+          (eval_funcall_internal_deallocate_object_preserves_pool_slot_active_flags_from_shape_obligations
+            memory vargs trace memory' _ pool_block slot
+            Hvalid Hshape_call);
+        exact Hcall
+    end.
+Qed.
+
+Theorem unload_deallocate_object_call_empty_env_frame_from_shape_obligations :
+  forall le memory pool_block slot trace le' memory' outcome,
+    valid_object_slot slot ->
+    le ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) ->
+    unload_deallocate_object_call_argument_shape_obligations
+      le memory pool_block slot ->
+    exec_stmt function_entry2 unload_object_ge empty_env le memory
+      unload_deallocate_object_call trace le' memory' outcome ->
+    le' ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) /\
+    Mem.unchanged_on
+      (active_flags_byte pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z)))
+      memory memory'.
+Proof.
+  eapply unload_deallocate_object_call_empty_env_shape_frame_obligation_holds.
+  apply deallocate_object_function_resolves_in_empty_env_holds.
+Qed.
+
 Definition unload_deallocate_object_call_empty_env_frame_obligation : Prop :=
   statement_preserves_active_flags_bytes (fn_body S.f_deallocate_object) ->
   deallocate_object_function_resolves_in_empty_env ->
