@@ -316,6 +316,13 @@ its execution trace, not over a hand-written transition function.
   packages that binding fact for later list-shape work: it is enough to prove
   the deallocation body shape obligations for entry temp environments whose
   `_freeList` and `_obj` values are the actual call arguments.
+- `deallocate_object_resolved_free_list_shape_obligations` and
+  `deallocate_object_bound_entry_shape_obligations_from_resolved_free_list_shapes`
+  further reduce that target for the actual global free-list argument. The list
+  proof now needs to show that the resolved `gFreeObjectList` pointer is either
+  external to the watched object-pool block or a valid pool-slot header, plus
+  the entry `obj->next` dereference shape and the post-first-splice
+  `obj->prev` dereference shape.
 - `unload_deallocate_object_call_actual_argument_shapes_from_bound_entry_shapes`,
   `unload_deallocate_object_call_empty_env_frame_from_actual_shape_obligations`,
   and `unload_deallocate_object_call_empty_env_frame_from_bound_entry_shapes`
@@ -323,6 +330,9 @@ its execution trace, not over a hand-written transition function.
   list proof can now supply a bound-entry shape fact for the resolved
   `gFreeObjectList` block and the current object-pool slot header, rather than
   reasoning again about CompCert argument evaluation or `function_entry2`.
+- `unload_deallocate_object_call_empty_env_frame_from_resolved_free_list_shapes`
+  composes those two reductions, so the caller-side generated `Scall` can use
+  the resolved-free-list checklist directly.
 - `unload_object_tail_preserves_pool_slot_active_flags_from_named_frames`
   projects that bridge into the activeFlags-only property needed by the
   deactivation proof.

@@ -3892,6 +3892,58 @@ Definition deallocate_object_bound_entry_shape_obligations
     deallocate_object_body_shape_obligations
       entry_env entry_temps memory pool_block slot.
 
+Definition deallocate_object_resolved_free_list_shape_obligations
+    (memory : mem) (free_block : block)
+    (pool_block : block) (slot : Z) : Prop :=
+  object_node_field_deref_shape
+    memory pool_block pool_block
+    (Ptrofs.repr ((slot * object_slot_size)%Z)) 96 /\
+  object_node_pointer_external_or_pool_slot_header
+    pool_block free_block Ptrofs.zero /\
+  (forall entry_env entry_temps trace_first le_after_first memory_after_first,
+    entry_temps ! S._freeList =
+      Some (Vptr free_block Ptrofs.zero) ->
+    entry_temps ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) ->
+    exec_stmt function_entry2 unload_object_ge entry_env entry_temps memory
+      (Ssequence
+        deallocate_object_read_next
+        (Ssequence
+          deallocate_object_read_prev
+          deallocate_object_next_prev_assign))
+      trace_first le_after_first memory_after_first Out_normal ->
+    object_node_field_deref_shape
+      memory_after_first pool_block pool_block
+      (Ptrofs.repr ((slot * object_slot_size)%Z)) 100).
+
+Theorem deallocate_object_bound_entry_shape_obligations_from_resolved_free_list_shapes :
+  forall memory free_block pool_block slot,
+    deallocate_object_resolved_free_list_shape_obligations
+      memory free_block pool_block slot ->
+    deallocate_object_bound_entry_shape_obligations
+      memory (Vptr free_block Ptrofs.zero)
+      (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z)))
+      pool_block slot.
+Proof.
+  intros memory free_block pool_block slot
+    (Hnext_shape & Hfree_pointer_shape & Hprev_after_first).
+  unfold deallocate_object_bound_entry_shape_obligations.
+  intros entry_env entry_temps Hfree Hobj.
+  unfold deallocate_object_body_shape_obligations.
+  split; [exact Hnext_shape |].
+  split.
+  - unfold temp_points_to_external_or_pool_slot_header.
+    intros node_block node_offset Hnode.
+    assert (node_block = free_block) by congruence.
+    assert (node_offset = Ptrofs.zero) by congruence.
+    subst node_block node_offset.
+    exact Hfree_pointer_shape.
+  - intros trace_first le_after_first memory_after_first Hexec.
+    eapply Hprev_after_first; eauto.
+Qed.
+
 Theorem deallocate_object_internal_call_shape_obligations_from_bound_entry_shapes :
   forall memory free_value pool_block slot,
     deallocate_object_bound_entry_shape_obligations
@@ -4346,6 +4398,37 @@ Proof.
     eauto.
   eapply unload_deallocate_object_call_actual_argument_shapes_from_bound_entry_shapes;
     eauto.
+Qed.
+
+Theorem unload_deallocate_object_call_empty_env_frame_from_resolved_free_list_shapes :
+  forall le memory pool_block slot trace le' memory' outcome,
+    valid_object_slot slot ->
+    le ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) ->
+    (forall free_block,
+      Genv.find_symbol unload_object_ge S._gFreeObjectList =
+      Some free_block ->
+      deallocate_object_resolved_free_list_shape_obligations
+        memory free_block pool_block slot) ->
+    exec_stmt function_entry2 unload_object_ge empty_env le memory
+      unload_deallocate_object_call trace le' memory' outcome ->
+    le' ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) /\
+    Mem.unchanged_on
+      (active_flags_byte pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z)))
+      memory memory'.
+Proof.
+  intros le memory pool_block slot trace le' memory' outcome
+    Hvalid Hobj Hresolved Hexec.
+  eapply unload_deallocate_object_call_empty_env_frame_from_bound_entry_shapes;
+    eauto.
+  intros free_block Hsymbol.
+  apply deallocate_object_bound_entry_shape_obligations_from_resolved_free_list_shapes.
+  apply Hresolved.
+  exact Hsymbol.
 Qed.
 
 Definition unload_deallocate_object_call_empty_env_shape_frame_obligation

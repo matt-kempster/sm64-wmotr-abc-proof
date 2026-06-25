@@ -152,7 +152,10 @@ generated and compile. Rocq checks now pin:
   `&gFreeObjectList` resolves to the global free-list symbol and
   `&obj->header` to the current object-pool slot header pointer. The generated
   `Scall` frame is now reduced directly to a bound-entry list-shape fact for
-  that resolved free-list block and current slot header;
+  that resolved free-list block and current slot header, and then further to a
+  resolved-free-list checklist: the free-list pointer shape, the entry
+  `obj->next` dereference shape, and the post-first-splice `obj->prev`
+  dereference shape;
 - the complete generated `spawn_object` direct-writer census for
   `activeFlags`: exactly `unload_object`, `allocate_object`, `create_object`,
   and `mark_obj_for_deletion` write that field directly;
