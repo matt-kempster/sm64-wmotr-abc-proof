@@ -342,6 +342,15 @@ bash pipeline/assumptions.sh \
   deallocate_object_resolved_free_list_deref_shape_obligations
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
+  object_pool_link_fields_well_shaped
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  first_deallocate_splice_preserves_pool_link_fields
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  deallocate_object_resolved_free_list_deref_shapes_from_pool_link_fields
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
   deallocate_object_resolved_free_list_shape_obligations_from_deref_shapes
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
@@ -390,10 +399,25 @@ bash pipeline/assumptions.sh \
   unload_deallocate_object_call_empty_env_frame_from_deref_shape_obligations
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
+  unload_deallocate_object_call_empty_env_pool_link_shape_obligations
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  unload_deallocate_object_call_empty_env_deref_shape_obligations_from_pool_link_shapes
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
   unload_object_tail_empty_env_pool_slot_frame_from_deref_shape_obligations
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   unload_object_tail_preserves_pool_slot_active_flags_from_empty_env_deref_shape_obligations
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  unload_object_tail_empty_env_pool_link_shape_frame_obligations
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  unload_object_tail_empty_env_pool_slot_frame_from_pool_link_shape_obligations
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  unload_object_tail_preserves_pool_slot_active_flags_from_empty_env_pool_link_shape_obligations
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   deallocate_object_function_resolves_in_empty_env

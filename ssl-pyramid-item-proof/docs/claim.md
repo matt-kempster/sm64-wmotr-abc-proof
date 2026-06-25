@@ -346,6 +346,16 @@ its execution trace, not over a hand-written transition function.
   is the current narrowest generated-call bridge: the caller-side `Scall` now
   only needs the entry `obj->next` dereference shape and the post-first-splice
   `obj->prev` dereference shape.
+- `object_pool_link_fields_well_shaped`,
+  `first_deallocate_splice_preserves_pool_link_fields`, and
+  `deallocate_object_resolved_free_list_deref_shapes_from_pool_link_fields`
+  restate that narrow checklist in object-list-invariant language: if every
+  valid pool slot's `next`/`prev` link fields dereference only to external
+  blocks or valid pool-slot headers, and the first generated deallocation
+  splice preserves that link-shape invariant, then the exact resolved-free-list
+  dereference-shape obligations follow. The remaining work is now to prove
+  those invariant facts from the real object-list/free-list structure, not to
+  rediscover the CompCert call plumbing.
 - `empty_env_pool_slot_statement_preserves_obj_and_active_flags`,
   `empty_env_pool_slot_statement_preserves_sequence`,
   `unload_deallocate_object_call_empty_env_frame_from_deref_shape_obligations`,
@@ -357,6 +367,15 @@ its execution trace, not over a hand-written transition function.
   This is still conditional on supplying the actual dereference-shape
   invariant, but the final `deallocate_object` leaf is no longer represented
   as an opaque generic frame in this empty-env path.
+- `unload_deallocate_object_call_empty_env_pool_link_shape_obligations`,
+  `unload_deallocate_object_call_empty_env_deref_shape_obligations_from_pool_link_shapes`,
+  `unload_object_tail_empty_env_pool_link_shape_frame_obligations`,
+  `unload_object_tail_empty_env_pool_slot_frame_from_pool_link_shape_obligations`,
+  and
+  `unload_object_tail_preserves_pool_slot_active_flags_from_empty_env_pool_link_shape_obligations`
+  lift the empty-env tail bridge one rung lower again: the deallocate leaf can
+  now be supplied by the pool-link-shape invariant plus first-splice
+  preservation, instead of directly assuming the two dereference-shape facts.
 - `unload_object_tail_preserves_pool_slot_active_flags_from_named_frames`
   projects that bridge into the activeFlags-only property needed by the
   deactivation proof.
