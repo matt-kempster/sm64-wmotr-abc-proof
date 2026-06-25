@@ -323,6 +323,15 @@ its execution trace, not over a hand-written transition function.
   external to the watched object-pool block or a valid pool-slot header, plus
   the entry `obj->next` dereference shape and the post-first-splice
   `obj->prev` dereference shape.
+- `valid_object_slot_zero`,
+  `object_node_pointer_zero_external_or_pool_slot_header`,
+  `deallocate_object_resolved_free_list_deref_shape_obligations`, and
+  `deallocate_object_resolved_free_list_shape_obligations_from_deref_shapes`
+  discharge the free-list pointer-shape part of that checklist for the concrete
+  zero-offset `&gFreeObjectList` pointer. With the current shape predicate, a
+  zero-offset pointer is acceptable either because it is in an external block
+  or, in the same-block fallback case, because offset zero is valid pool slot
+  0's header.
 - `unload_deallocate_object_call_actual_argument_shapes_from_bound_entry_shapes`,
   `unload_deallocate_object_call_empty_env_frame_from_actual_shape_obligations`,
   and `unload_deallocate_object_call_empty_env_frame_from_bound_entry_shapes`
@@ -333,6 +342,10 @@ its execution trace, not over a hand-written transition function.
 - `unload_deallocate_object_call_empty_env_frame_from_resolved_free_list_shapes`
   composes those two reductions, so the caller-side generated `Scall` can use
   the resolved-free-list checklist directly.
+- `unload_deallocate_object_call_empty_env_frame_from_resolved_free_list_deref_shapes`
+  is the current narrowest generated-call bridge: the caller-side `Scall` now
+  only needs the entry `obj->next` dereference shape and the post-first-splice
+  `obj->prev` dereference shape.
 - `unload_object_tail_preserves_pool_slot_active_flags_from_named_frames`
   projects that bridge into the activeFlags-only property needed by the
   deactivation proof.

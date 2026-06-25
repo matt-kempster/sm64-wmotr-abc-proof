@@ -931,6 +931,31 @@ Definition object_node_pointer_external_or_pool_slot_header
     valid_object_slot node_slot /\
     node_offset = Ptrofs.repr (node_slot * object_slot_size).
 
+Lemma valid_object_slot_zero : valid_object_slot 0.
+Proof.
+  unfold valid_object_slot, object_pool_capacity.
+  lia.
+Qed.
+
+Lemma object_node_pointer_zero_external_or_pool_slot_header :
+  forall pool_block node_block,
+    object_node_pointer_external_or_pool_slot_header
+      pool_block node_block Ptrofs.zero.
+Proof.
+  intros pool_block node_block.
+  unfold object_node_pointer_external_or_pool_slot_header.
+  destruct (peq node_block pool_block) as [Heq | Hneq].
+  - subst node_block.
+    right.
+    exists 0.
+    split; [apply valid_object_slot_zero |].
+    replace (0 * object_slot_size) with 0 by lia.
+    change (Ptrofs.repr 0) with Ptrofs.zero.
+    reflexivity.
+  - left.
+    exact Hneq.
+Qed.
+
 Definition temp_points_to_external_or_pool_slot_header
     (le : temp_env) (temporary : ident) (pool_block : block) : Prop :=
   forall node_block node_offset,
@@ -3917,6 +3942,44 @@ Definition deallocate_object_resolved_free_list_shape_obligations
       memory_after_first pool_block pool_block
       (Ptrofs.repr ((slot * object_slot_size)%Z)) 100).
 
+Definition deallocate_object_resolved_free_list_deref_shape_obligations
+    (memory : mem) (pool_block : block) (slot : Z) : Prop :=
+  object_node_field_deref_shape
+    memory pool_block pool_block
+    (Ptrofs.repr ((slot * object_slot_size)%Z)) 96 /\
+  (forall entry_env entry_temps trace_first le_after_first memory_after_first,
+    entry_temps ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) ->
+    exec_stmt function_entry2 unload_object_ge entry_env entry_temps memory
+      (Ssequence
+        deallocate_object_read_next
+        (Ssequence
+          deallocate_object_read_prev
+          deallocate_object_next_prev_assign))
+      trace_first le_after_first memory_after_first Out_normal ->
+    object_node_field_deref_shape
+      memory_after_first pool_block pool_block
+      (Ptrofs.repr ((slot * object_slot_size)%Z)) 100).
+
+Theorem deallocate_object_resolved_free_list_shape_obligations_from_deref_shapes :
+  forall memory free_block pool_block slot,
+    deallocate_object_resolved_free_list_deref_shape_obligations
+      memory pool_block slot ->
+    deallocate_object_resolved_free_list_shape_obligations
+      memory free_block pool_block slot.
+Proof.
+  intros memory free_block pool_block slot
+    (Hnext_shape & Hprev_after_first).
+  unfold deallocate_object_resolved_free_list_shape_obligations.
+  split; [exact Hnext_shape |].
+  split.
+  - apply object_node_pointer_zero_external_or_pool_slot_header.
+  - intros entry_env entry_temps trace_first le_after_first
+      memory_after_first _ Hobj Hexec.
+    eapply Hprev_after_first; eauto.
+Qed.
+
 Theorem deallocate_object_bound_entry_shape_obligations_from_resolved_free_list_shapes :
   forall memory free_block pool_block slot,
     deallocate_object_resolved_free_list_shape_obligations
@@ -4429,6 +4492,33 @@ Proof.
   apply deallocate_object_bound_entry_shape_obligations_from_resolved_free_list_shapes.
   apply Hresolved.
   exact Hsymbol.
+Qed.
+
+Theorem unload_deallocate_object_call_empty_env_frame_from_resolved_free_list_deref_shapes :
+  forall le memory pool_block slot trace le' memory' outcome,
+    valid_object_slot slot ->
+    le ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) ->
+    deallocate_object_resolved_free_list_deref_shape_obligations
+      memory pool_block slot ->
+    exec_stmt function_entry2 unload_object_ge empty_env le memory
+      unload_deallocate_object_call trace le' memory' outcome ->
+    le' ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) /\
+    Mem.unchanged_on
+      (active_flags_byte pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z)))
+      memory memory'.
+Proof.
+  intros le memory pool_block slot trace le' memory' outcome
+    Hvalid Hobj Hderef_shapes Hexec.
+  eapply unload_deallocate_object_call_empty_env_frame_from_resolved_free_list_shapes;
+    eauto.
+  intros free_block _.
+  apply deallocate_object_resolved_free_list_shape_obligations_from_deref_shapes.
+  exact Hderef_shapes.
 Qed.
 
 Definition unload_deallocate_object_call_empty_env_shape_frame_obligation
