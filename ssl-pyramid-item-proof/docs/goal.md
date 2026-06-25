@@ -22,20 +22,38 @@ possible, provide the counterexample instead of an impossibility proof.
 
 ## Working definition of "item"
 
-For this proof, "item" should not be read as only one SM64 interaction type.
-The intended focus includes portable or rideable objects such as cork boxes,
-shells, and similar objects whose identity might plausibly be carried, ridden,
-held, used, or otherwise preserved through Mario/object references across the
-area-change barrier.
+For this proof, "item" should mean a gameplay-relevant `gObjectPool` object
+identity, not just one SM64 interaction enum or one carry action. The primary
+focus is on objects like cork boxes, shells, and similar portable, grabbable,
+holdable, rideable, or otherwise Mario-linked objects whose identity might
+plausibly be carried into SSL's Pyramid by a direct pointer, a saved object
+reference, or a reused object-pool slot.
 
-The proof should also account for adjacent object classes if they can affect
-the same impossibility or cloning question. For example, hats/caps or other
-special objects should be considered in scope if their generated code stores a
-live `gObjectPool` object pointer, preserves an allocation epoch, creates a
-stale reference, or can otherwise influence whether an outside-Pyramid object
-identity reaches the Pyramid. The formal development may later refine this into
-a precise predicate, but it must not silently exclude such cases unless a
-mechanized or documented argument justifies the exclusion.
+The theorem should distinguish at least three cases:
+
+- direct transfer: the same live outside-Pyramid object identity crosses the
+  area-change barrier;
+- stale transfer: an outside-Pyramid object is unloaded, but some surviving
+  reference still denotes that old object identity or allocation epoch after
+  the Pyramid loads; and
+- cloning-relevant slot reuse: a stale outside reference later aliases a newly
+  allocated in-Pyramid object, such as a goomba, in a way that can duplicate or
+  otherwise clone gameplay state.
+
+Adjacent object classes are in scope exactly when they can affect that
+transfer/cloning question. In particular, hats/caps, cap objects, special
+interaction objects, or behavior-specific parent/child references should be
+considered if their generated code stores a live `gObjectPool` pointer,
+preserves an allocation epoch, creates a stale reference, changes Mario's
+held/ridden/used/interacted object references, or can otherwise influence
+whether an outside-Pyramid object identity reaches the Pyramid.
+
+Pure counters or state effects, such as coins, timers, music, camera state, or
+ordinary collected-item flags, are not the central target unless they preserve
+or reconstruct an object identity relevant to transfer or cloning. The formal
+development may later refine this prose into a precise Coq predicate, but it
+must not silently exclude any object class without a mechanized or documented
+reason for the exclusion.
 
 ## Repository workflow constraints
 
