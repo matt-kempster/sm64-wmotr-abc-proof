@@ -284,6 +284,13 @@ its execution trace, not over a hand-written transition function.
   `obj->next` dereference shape, the entry-time `_freeList` temp shape, and the
   `obj->prev` dereference shape at the actual memory state after the first
   generated splice has executed.
+- `deallocate_object_body_preserves_pool_slot_active_flags_from_shape_obligations`
+  projects that body bridge to the activeFlags-only frame property, and
+  `eval_funcall_internal_deallocate_object_preserves_pool_slot_active_flags_from_shape_obligations`
+  carries it across CompCert's internal-function call boundary. The call-level
+  theorem deliberately states the shape obligations over the real
+  `function_entry2` environment/temporaries/memory produced for the call,
+  avoiding an over-strong global body-frame assumption.
 - `unload_object_tail_preserves_pool_slot_active_flags_from_named_frames`
   projects that bridge into the activeFlags-only property needed by the
   deactivation proof.

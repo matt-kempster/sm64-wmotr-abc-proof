@@ -264,6 +264,9 @@ bash pipeline/assumptions.sh \
   deallocate_object_body_pool_slot_frame_from_shape_obligations
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
+  deallocate_object_body_preserves_pool_slot_active_flags_from_shape_obligations
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
   deallocate_object_body_pool_slot_frame_from_remaining_obligations
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
@@ -319,6 +322,9 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   eval_funcall_internal_deallocate_object_preserves_active_flags_from_body_frame
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  eval_funcall_internal_deallocate_object_preserves_pool_slot_active_flags_from_shape_obligations
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   deallocate_object_function_resolves_in_empty_env

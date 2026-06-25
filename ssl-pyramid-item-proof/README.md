@@ -138,7 +138,9 @@ generated and compile. Rocq checks now pin:
   `deallocate_object` preserves the watched activeFlags bytes if the list proof
   supplies the entry `obj->next` dereference shape, the entry `freeList` temp
   shape, and the `obj->prev` dereference shape at the actual post-first-splice
-  memory state;
+  memory state. The same shape-scoped frame now carries through CompCert's
+  internal-function `eval_funcall` boundary for `deallocate_object`, stated
+  over the real `function_entry2` temps and memory for the call;
 - the complete generated `spawn_object` direct-writer census for
   `activeFlags`: exactly `unload_object`, `allocate_object`, `create_object`,
   and `mark_obj_for_deletion` write that field directly;
