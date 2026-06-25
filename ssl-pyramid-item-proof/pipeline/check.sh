@@ -330,6 +330,12 @@ bash pipeline/assumptions.sh \
   function_entry2_deallocate_object_binds_parameter_temps
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
+  deallocate_object_resolved_free_list_shape_obligations
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  deallocate_object_bound_entry_shape_obligations_from_resolved_free_list_shapes
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
   deallocate_object_internal_call_shape_obligations_from_bound_entry_shapes
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
@@ -355,6 +361,9 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   unload_deallocate_object_call_empty_env_frame_from_bound_entry_shapes
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  unload_deallocate_object_call_empty_env_frame_from_resolved_free_list_shapes
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   deallocate_object_function_resolves_in_empty_env
