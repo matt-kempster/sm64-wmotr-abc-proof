@@ -67,6 +67,8 @@ the same pool slot's deactivation fact.
 - [x] Lift that empty-env tail bridge one rung lower: the final
   `deallocate_object` leaf now needs object-pool link-shape facts plus
   first-splice preservation, instead of raw deref-shape facts.
+- [x] Close the first-splice preservation side quest, so this empty-env tail
+  bridge now only needs the pool-link field invariant at the deallocate leaf.
 - [ ] Plug this pool-link-shape tail bridge into the actual traversal path, so
   the deactivation certificate no longer uses the older generic call frame.
 - [ ] Audit / prove the three non-deallocate helper calls cannot touch the
@@ -104,11 +106,11 @@ being unlinked and recycled.
 - [x] Prove the generic CompCert memory fact that storing a shaped object-node
   pointer preserves all pool-link deref-shape facts. Tiny linker-goblin
   defeated; the remaining thing is specializing it to the generated splice.
+- [x] Specialize that generic shaped-store preservation lemma to the generated
+  `next->prev = obj->prev` assignment and close the first-splice preservation
+  seam for real. Bowser's list surgery has one fewer shadow to hide in.
 - [ ] Prove `object_pool_link_fields_well_shaped` from the real
   object-list/free-list invariant, not from optimism and coffee.
-- [ ] Specialize the generic shaped-store preservation lemma to the generated
-  `next->prev = obj->prev` assignment, closing the first-splice preservation
-  seam for real.
 - [ ] Track whether any stale pointer can survive the free-list splice and later
   alias a newly allocated in-Pyramid object.
 
@@ -192,10 +194,9 @@ lower than before:
 
 - prove `object_pool_link_fields_well_shaped` from the real object-pool/list
   invariant;
-- specialize the generic shaped-store preservation lemma to the generated
-  first-splice assignment; and
-- lift the empty-env cleanup-tail bridge into the actual traversal/deactivation
-  certificate path.
+- audit the three non-deallocate helper calls at the same frame level; and
+- plug the field-only empty-env cleanup-tail bridge into the actual generated
+  traversal/deactivation certificate path.
 
 Translation: we are trying to make the free-list surgery boring enough that the
 stale-pointer question has nowhere dark left to hide.
