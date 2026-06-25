@@ -20,13 +20,15 @@ the height ceiling is `~1675 + 112 + ε ≈ 1790` — still ~1350 units below th
 "high" red coin (`y = 3140`). The conclusion (4 red coins unreachable ⇒ star never
 spawns) stands; it just rests on a *bounded-impulse* bound, not a zero-lift one.
 
-The one way that bound could fail — **chaining** the ground pound so its
-unconditional rise ratchets without landing (the **squish-cancel** chain) — is
-disproved in §5: `m->squishTimer` can never become non-zero under no-A (fall-damage
-needs a `>1150` fall the height bound precludes; `INPUT_SQUISHED` needs a `≤150`
-ceil-floor gap), **and** the `≤150` gap that would enable a squish is exactly the
-geometry that gates the ground-pound rise *off* (it needs `>160` headroom). Squish
-and lift are mutually exclusive, so there is no ratchet.
+The one way that bound could fail — **squish cancel**, which drops Mario to idle
+mid-air and lets him re-launch (dive/jump/ledge-grab) without landing, chaining
+the raisers — is disproved in §5. The cancel requires entering `ACT_SQUISHED`,
+which requires `INPUT_SQUISHED`, which requires a `SURFACE_FLAG_DYNAMIC` surface
+within a `≤150` ceil-floor gap. WMotR's *only* dynamic surfaces are the 6 static
+wing-cap `!` boxes; the one island-reachable box floats ~315 u above the spawn
+floor (collision `y ≈ 1990–2012` vs floor `1675`), so **no reachable `≤150` squish
+spot exists** — the cancel can never trigger. The separate fall-damage `squishTimer`
+path needs a `>1150` fall the height bound precludes. No squish ⇒ no ratchet.
 
 ## 1. The climb fuel — every `m->vel[1]` write (positive/relevant)
 
@@ -131,49 +133,37 @@ so a dive cannot bridge any gap — Mario falls into the void and dies. Containm
 | `automatic.c:526` | `statusForCamera->pos[1]` | **N/A** — camera mirror |
 | all `camera.c`, `coin.inc.c`, `graph_node.c`, `paintings.c`, `tilting_inverted_pyramid` | camera / object / gfx pos | **N/A** — not Mario gameplay y |
 
-## 5. The ratchet question — squish-cancel ground-pound chains (disproved)
+## 5. The ratchet question — squish cancel (disproved)
 
 The bounds in §3 are *per action*. They only bound the *reachable set* if no
 mechanism **chains** the raisers so the rises accumulate without a return to the
-floor between them. Per-action bounds do **not** by themselves imply a chain
-bound — that inference is a non-sequitur. The dangerous raiser is the ground
-pound, because its rise (`airborne.c:928`) is an **unconditional** `m->pos[1] +=
-yOffset` (not a velocity impulse that gravity erases), so if it could be
-re-entered mid-air without landing it would ratchet. The known way to do that is
-the **squish-cancel ground-pound chain**: being squished defeats the normal
-"land between ground pounds" reset. So the whole no-A height bound hinges on:
-**can `m->squishTimer` become non-zero in WMotR under no-A?**
+floor between them — per-action bounds do **not** by themselves imply a chain
+bound. The known chaining mechanism is the **squish cancel** (mechanism as
+described by the ABC community, reconciled here against the source):
 
-**Every non-zero writer of `m->squishTimer` (exhaustive grep `vendor/sm64/src/`):**
-1. `airborne.c:95` `= 30` — inside `check_fall_damage`, gated on
-   `fallHeight = m->peakHeight - m->pos[1] > 1150` (the `damageHeight = 600`
-   branch is dead — `//! Never true`, `actionState` never equals the large
-   `ACT_GROUND_POUND` constant — so the threshold is **always 1150**).
-2. `cutscene.c:1346` `= 0xFF` — inside `act_bbh_enter_spin`, the Big Boo's Haunt
-   cage cutscene. **ABSENT** — needs the BBH cage object; not in WMotR.
-3. `cutscene.c:1502/1540` (`act_squished`) — only **maintains** the timer once
-   already in `ACT_SQUISHED`; cannot bootstrap it. Reaching `ACT_SQUISHED`
-   requires `INPUT_SQUISHED` to have been set.
-   (`mario.c:1809`, `cutscene.c:1498/1566`, the `mario.c:1206-1222` decrements
-   only ever set it to `0` — harmless.)
+> If Mario gets squished and **un-squished in the same frame**, he drops into the
+> **idle** action state mid-air, from which he can immediately dive, ledge-grab,
+> or jump — *even if* he was diving, dive-rollout-ing, ground-pounding, or in
+> knockback. The un-squish happens when a **steep surface (≥60°, `normal.y <
+> 0.5`)** pushes Mario by the surface-normal's horizontal component (≤10 u, or
+> ≤2.5 with quarter-frames) far enough to **escape** the squish spot. A *squish
+> spot* is a unit square where floor and ceiling are close together vertically;
+> the squish must appear **where Mario already is** (a ceiling descending onto
+> him, or a spontaneously-exposed dynamic ceiling) — he cannot enter a ceiling
+> hitbox from the side without bonking.
 
-So `squishTimer ≠ 0` requires **(A)** a fall with `fallHeight > 1150`, or
-**(B)** `INPUT_SQUISHED` (→ `ACT_SQUISHED`). Both are killed:
+This is exactly `act_squished`'s steep-surface branch
+(`cutscene.c:1547-1569`): `m->floor->normal.y < 0.5` / `-0.5 < m->ceil->normal.y`
+→ `vel = sins/coss(surfAngle)*10` → if `perform_ground_step ==
+GROUND_STEP_LEFT_GROUND` then `squishTimer = 0; set_mario_action(ACT_IDLE, 0)`.
+So the cancel **requires Mario to be in `ACT_SQUISHED`**. That is the bottleneck,
+and it is closed.
 
-**(A) fall-damage squish — killed by the height bound (coupled induction).**
-`fallHeight = peakHeight − pos[1]`. To get a *survivable* squish (not death, not
-the `fallHeight > 3000` hard-fall) you must land on a **solid** floor. The only
-solid floor reachable under no-A is the central spawn island (`y ≈ 1536–1675`);
-every lower island is across the death void, unreachable without a jump (= A).
-By the §3/§4 bound the reachable peak is `≤ ~1790`, so a fall back onto the spawn
-island has `fallHeight ≤ 1790 − 1536 ≈ 254 < 1150`. The only way to exceed 1150
-of fall is to walk off the island — straight into the death plane (`y = -8191`),
-which **kills** (or hard-falls), it does not squish. So no survivable
-`fallHeight > 1150` exists. (This is the coupled induction: *bounded height ⇒
-bounded survivable fall ⇒ no fall-squish ⇒ height stays bounded*.)
-
-**(B) `INPUT_SQUISHED` — killed by a threshold mutual-exclusion (the clean kill).**
-`INPUT_SQUISHED` is set at exactly one site, `mario.c:1340-1349`:
+**Kill 1 (primary) — no squish spot is reachable, so `ACT_SQUISHED` is never entered.**
+Mario enters `ACT_SQUISHED` only via the four `check_common_*_cancels`
+(stationary `:1094`, airborne `:2052`, object `:448`, moving `:1963`), **each
+guarded by `if (m->input & INPUT_SQUISHED)`**. `INPUT_SQUISHED` is set at exactly
+one site, `mario.c:1344-1350`:
 ```c
 if ((m->floor->flags & SURFACE_FLAG_DYNAMIC) || (m->ceil && m->ceil->flags & SURFACE_FLAG_DYNAMIC)) {
     ceilToFloorDist = m->ceilHeight - m->floorHeight;
@@ -181,46 +171,65 @@ if ((m->floor->flags & SURFACE_FLAG_DYNAMIC) || (m->ceil && m->ceil->flags & SUR
         m->input |= INPUT_SQUISHED;
 }
 ```
-It needs a **dynamic surface** *and* a ceil-floor gap `≤ 150`. Two facts close it:
+It needs a **`SURFACE_FLAG_DYNAMIC`** floor/ceil *and* a `≤150` ceil-floor gap. (A
+purely *static* "exposed ceiling / invisible wall" never qualifies — the dynamic
+flag is mandatory.) In WMotR:
+- `SURFACE_FLAG_DYNAMIC` is set at one site (`surface_load.c:715`, in
+  `load_object_surfaces ← load_object_collision_model`), and **of every WMotR
+  object only `bhvExclamationBox` (the 6 wing-cap `!` boxes) ever calls
+  `load_object_collision_model`** (`exclamation_box.inc.c:101`, only in solid
+  `oAction == 2`). Poles, cannons, coins, 1-ups, the red-coin star, the warp —
+  none load collision. So the *only* dynamic surfaces are these 6 boxes, and they
+  are **static** (`oPosY = oHomeY`, no motion) — never a *descending* or
+  *spontaneous* ceiling, exactly the geometry the trick needs.
+- **The boxes never form a `≤150` gap.** The `!`-box collision model spans only
+  `y ∈ [oPosY+30, oPosY+52]` (`exclamation_box_outline/collision.inc.c`) — a
+  ~22 u cube floating *above* its origin. Five boxes sit over far islands across
+  the death void (unreachable without a jump = A). The one island-reachable box,
+  #1 at `oHomeY = 1960`, has its collision at `y ≈ 1990–2012` — **≈ 315 u above**
+  the spawn-island floor (`y ≈ 1675`). Standing on the island, `ceilToFloorDist ≈
+  315 ≫ 150`; standing on the box, there is no ceiling at all. No unit square in
+  WMotR has a dynamic surface within 150 u of a reachable floor.
 
-- *Dynamic surfaces in WMotR are only the 6 wing-cap `!` boxes.*
-  `SURFACE_FLAG_DYNAMIC` is set at one site (`surface_load.c:715`, in
-  `load_object_surfaces ← load_object_collision_model`). Of every WMotR object,
-  **only `bhvExclamationBox` calls `load_object_collision_model`**
-  (`exclamation_box.inc.c:101`, and only in `oAction == 2` once the box is solid).
-  Poles, cannons, coins, 1-ups, star, warp — none load a collision model. The
-  boxes are **static** (`oPosY = oHomeY`, no vertical motion), so they create a
-  fixed-position solid, never a *closing* crusher. Five of the six sit above
-  far islands across the void (unreachable without A); only box #1
-  `(-400, 1960, -120)` floats over the spawn island.
-- *The squish trigger and the ground-pound rise are mutually exclusive.* This is
-  the robust kill, independent of box geometry: `INPUT_SQUISHED` needs
-  `ceilHeight − floorHeight ≤ 150`. Anywhere Mario is in such a gap,
-  `pos[1] ≥ floorHeight = ceilHeight − (gap) ≥ ceilHeight − 150`, so
-  `pos[1] + yOffset + 160 ≥ ceilHeight + 10 + yOffset > ceilHeight`
-  (`yOffset = 20 − 2·actionTimer ≥ 2 > 0` for the whole windup, `actionTimer 0–9`).
-  That makes the ground-pound rise guard `pos[1] + yOffset + 160 < ceilHeight`
-  (`airborne.c:927`) **false** — the rise is skipped. **The ≤150 gap that turns
-  the squish ON turns the ground-pound rise OFF (it needs >160 of headroom).**
-  So a squish-cancel ground-pound chain ratchets `≤ 0` height per pound: to gain
-  height Mario must leave the gap (clearance `> 160`), but leaving the gap clears
-  `INPUT_SQUISHED` and `act_squished` releases (`spaceUnderCeil > 160 ⇒
-  squishTimer = 0`, `cutscene.c:1497-1499`). Either way, no accumulation.
+⇒ `INPUT_SQUISHED` is never set under no-A in WMotR ⇒ `ACT_SQUISHED` is never
+entered ⇒ **the squish cancel can never trigger.**
 
-⇒ `m->squishTimer` is never non-zero under no-A in WMotR, **and even if it were**,
-the squish-enabling geometry suppresses the only unconditional raiser. The
-ground pound therefore always self-terminates to a landed state
-(`AIR_STEP_LANDED → ACT_GROUND_POUND_LAND`), the "land between pounds" reset
-holds, and the §3 bound is not a per-action illusion but a true bound on the
-reachable set. **The squish-cancel chain cannot bootstrap, and cannot ratchet.**
+**Kill 2 — the fall-damage `squishTimer` path (separate) — coupled induction.**
+The *other* way `squishTimer` goes non-zero is `check_fall_damage`
+(`airborne.c:95`, `= 30`), needing `fallHeight = peakHeight − pos[1] > 1150` (the
+`damageHeight = 600` branch is dead, `//! Never true`). This sets the timer but
+**does not enter `ACT_SQUISHED`** (it falls through to `GROUND_POUND_LAND`), so it
+doesn't even grant the cancel — but it is killed anyway: a *survivable* fall must
+land on a solid floor, the only reachable solid floor is the spawn island (`y ≈
+1536–1675`), and the §3/§4 peak is `≤ ~1790`, so `fallHeight ≤ ~254 < 1150`. The
+only `>1150` drop is off the island into the death plane (`y = -8191`) = death,
+not squish. *Bounded height ⇒ bounded survivable fall ⇒ no fall-squish ⇒ height
+stays bounded.* (The remaining `squishTimer` writer, `cutscene.c:1346` `=0xFF`, is
+`act_bbh_enter_spin` — BBH cage cutscene, absent object.)
+
+**Backstop — even if a squish cancel *did* fire, no unbounded ratchet under no-A.**
+The idle-mid-air menu the trick unlocks is, with A held off: **jump → A-gated,
+dead**; **dive → `vel[1] = 20`, bounded (apex +50)**; **ledge-grab → no height
+gain beyond the ledge**. The Squish Push itself is **horizontal** (≤10 u). The
+Bully-speed-transfer variant needs a Bully — absent. So the worst case is a chain
+of bounded dives, each launching from near a *fixed* box height (~1990), giving
+`≤ ~2040` — still ~1100 u below the lowest high coin (`y = 3140`). There is no
+higher squish spot to escalate to, because the boxes are at fixed positions and
+do not move.
+
+*(Secondary remark, a different chaining model: were the chain instead trying to
+pump the ground-pound rise* while *squished, that too is gated off — the rise
+needs `pos[1] + yOffset + 160 < ceilHeight` i.e. `>160` headroom, but a squish
+spot is a `≤150` gap, so in the gap the rise is skipped. True, but not the
+mechanism above; the real cancel escapes to idle rather than rising in place.)*
 
 *Still owed (honesty):* the no-squish **grounding invariant** — that *every*
-no-A-reachable airborne action either self-terminates to a landed/grounded state
-or is itself height-bounded — is checked here for the ground pound and the dive
-kit specifically, but not yet enumerated over the full air-transition graph. And
-the exact frame-timing of the published squish-cancel trick is not pinned (only
-its precondition, `squishTimer ≠ 0`, which we kill). Neither gap weakens the two
-kills above; both are flagged for the eventual Coq formalization.
+no-A-reachable airborne action self-terminates to a landed state or is itself
+height-bounded — is checked for the ground pound and the dive kit, not yet
+enumerated over the full air-transition graph. And the exact frame-timing of the
+trick is not pinned — only its precondition (`ACT_SQUISHED`, i.e. a reachable
+`≤150` dynamic squish spot), which Kill 1 removes outright. Both flagged for the
+eventual Coq formalization.
 
 ## 6. Conclusion
 
