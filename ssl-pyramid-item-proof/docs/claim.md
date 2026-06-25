@@ -316,6 +316,13 @@ its execution trace, not over a hand-written transition function.
   packages that binding fact for later list-shape work: it is enough to prove
   the deallocation body shape obligations for entry temp environments whose
   `_freeList` and `_obj` values are the actual call arguments.
+- `unload_deallocate_object_call_actual_argument_shapes_from_bound_entry_shapes`,
+  `unload_deallocate_object_call_empty_env_frame_from_actual_shape_obligations`,
+  and `unload_deallocate_object_call_empty_env_frame_from_bound_entry_shapes`
+  connect the exact generated `Scall` to that reduced target. The remaining
+  list proof can now supply a bound-entry shape fact for the resolved
+  `gFreeObjectList` block and the current object-pool slot header, rather than
+  reasoning again about CompCert argument evaluation or `function_entry2`.
 - `unload_object_tail_preserves_pool_slot_active_flags_from_named_frames`
   projects that bridge into the activeFlags-only property needed by the
   deactivation proof.

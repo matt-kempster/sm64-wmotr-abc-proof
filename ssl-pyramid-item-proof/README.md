@@ -150,7 +150,9 @@ generated and compile. Rocq checks now pin:
   `_freeList` and `_obj` temps, with no local-variable allocation changing
   memory. The caller-side argument evaluation is pinned too:
   `&gFreeObjectList` resolves to the global free-list symbol and
-  `&obj->header` to the current object-pool slot header pointer;
+  `&obj->header` to the current object-pool slot header pointer. The generated
+  `Scall` frame is now reduced directly to a bound-entry list-shape fact for
+  that resolved free-list block and current slot header;
 - the complete generated `spawn_object` direct-writer census for
   `activeFlags`: exactly `unload_object`, `allocate_object`, `create_object`,
   and `mark_obj_for_deletion` write that field directly;
