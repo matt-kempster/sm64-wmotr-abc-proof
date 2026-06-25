@@ -96,9 +96,15 @@ being unlinked and recycled.
 - [x] Define `object_pool_link_fields_well_shaped` and
   `first_deallocate_splice_preserves_pool_link_fields`, then prove they imply
   the exact resolved-free-list deref-shape obligations.
-- [ ] Prove `object_pool_link_fields_well_shaped` and
-  `first_deallocate_splice_preserves_pool_link_fields` from the real
+- [x] Prove the generated first splice loads shaped `next`/`prev` temps from
+  `object_pool_link_fields_well_shaped`.
+- [x] Reduce `first_deallocate_splice_preserves_pool_link_fields` to the
+  smaller shaped-store obligation: the generated `next->prev = obj->prev`
+  store has a shaped target and shaped value.
+- [ ] Prove `object_pool_link_fields_well_shaped` from the real
   object-list/free-list invariant, not from optimism and coffee.
+- [ ] Prove the shaped first-splice store actually preserves
+  `object_pool_link_fields_well_shaped` at the CompCert memory level.
 - [ ] Track whether any stale pointer can survive the free-list splice and later
   alias a newly allocated in-Pyramid object.
 
@@ -180,8 +186,10 @@ counterexample-shaped goblin.
 The next proof-shaped bite is still the cleanup/deallocation seam, but one rung
 lower than before:
 
-- prove the new pool-link-shape invariant and first-splice-preservation seam
-  from the real object-pool/list invariant; and
+- prove `object_pool_link_fields_well_shaped` from the real object-pool/list
+  invariant;
+- prove the shaped first-splice store preserves that invariant at the CompCert
+  memory level; and
 - lift the empty-env cleanup-tail bridge into the actual traversal/deactivation
   certificate path.
 
