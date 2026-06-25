@@ -2150,6 +2150,55 @@ Proof.
   split; reflexivity.
 Qed.
 
+Lemma eval_unload_object_header_lhs_lvalue_pointer :
+  forall e le memory pool_block slot loc ofs,
+    valid_object_slot slot ->
+    le ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) ->
+    eval_lvalue unload_object_ge e le memory
+      unload_object_header_lhs loc ofs Full ->
+    loc = pool_block /\
+    ofs = Ptrofs.repr ((slot * object_slot_size)%Z).
+Proof.
+  intros e le memory pool_block slot loc ofs Hvalid Hobj Hlv.
+  unfold unload_object_header_lhs in Hlv.
+  inv Hlv;
+    [ | match goal with Hut : typeof _ = Tunion _ _ |- _ => inv Hut end ].
+  rewrite unload_object_genv_cenv in *.
+  match goal with
+  | Hty : typeof (Ederef _ _) = Tstruct _ _ |- _ =>
+      cbn [typeof] in Hty;
+      inv Hty
+  end.
+  match goal with
+  | Hco : unload_object_ce ! S._Object = Some ?co,
+    Hfield :
+      field_offset unload_object_ce S._header (co_members ?co) =
+      OK (?delta, ?bf) |- _ =>
+      assert (Hmembers : co_members co = unload_object_members) by
+        (unfold unload_object_members; rewrite Hco; reflexivity);
+      rewrite Hmembers in Hfield;
+      rewrite unload_object_header_layout in Hfield;
+      inv Hfield
+  end.
+  match goal with
+  | Hbase :
+      eval_expr unload_object_ge e le memory
+        (Ederef
+          (Etempvar S._obj (tptr (Tstruct S._Object noattr)))
+          (Tstruct S._Object noattr))
+        (Vptr ?base_block ?base_ofs) |- _ =>
+      destruct
+        (eval_unload_object_base_expr_pointer
+          e le memory pool_block slot base_block base_ofs
+          Hvalid Hobj Hbase) as (Hblock & Hofs);
+      subst base_block base_ofs
+  end.
+  rewrite Ptrofs.add_zero.
+  split; reflexivity.
+Qed.
+
 Lemma eval_unload_object_gfx_expr_pointer :
   forall e le memory pool_block slot loc ofs,
     valid_object_slot slot ->
@@ -3992,6 +4041,127 @@ Proof.
         eq_refl H0) as Hvalue.
     subst function_value.
     exact Hfunct.
+Qed.
+
+Lemma unload_object_ge_resolves_gFreeObjectList :
+  exists block,
+    Genv.find_symbol unload_object_ge S._gFreeObjectList = Some block.
+Proof.
+  assert (Hdefmap :
+    (prog_defmap S.prog) ! S._gFreeObjectList =
+    Some (Gvar S.v_gFreeObjectList)).
+  { vm_compute. reflexivity. }
+  apply (proj1 (Genv.find_def_symbol _ _ _)) in Hdefmap.
+  destruct Hdefmap as (block & Hsymbol & _).
+  exists block.
+  exact Hsymbol.
+Qed.
+
+Definition deallocate_object_argument_types : list type :=
+  (tptr (Tstruct S._ObjectNode noattr)) ::
+  (tptr (Tstruct S._ObjectNode noattr)) ::
+  nil.
+
+Lemma unload_deallocate_object_call_argument_values :
+  forall le memory pool_block slot vargs,
+    valid_object_slot slot ->
+    le ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) ->
+    eval_exprlist unload_object_ge empty_env le memory
+      ((Eaddrof
+          (Evar S._gFreeObjectList (Tstruct S._ObjectNode noattr))
+          (tptr (Tstruct S._ObjectNode noattr))) ::
+       (Eaddrof unload_object_header_lhs
+          (tptr (Tstruct S._ObjectNode noattr))) ::
+       nil)
+      deallocate_object_argument_types vargs ->
+    exists free_block,
+      Genv.find_symbol unload_object_ge S._gFreeObjectList =
+      Some free_block /\
+      vargs =
+        Vptr free_block Ptrofs.zero ::
+        Vptr pool_block
+          (Ptrofs.repr ((slot * object_slot_size)%Z)) ::
+        nil.
+Proof.
+  intros le memory pool_block slot vargs Hvalid Hobj Hargs.
+  unfold deallocate_object_argument_types in Hargs.
+  inv Hargs.
+  match goal with
+  | Hfree_expr :
+      eval_expr _ _ _ _
+        (Eaddrof
+          (Evar S._gFreeObjectList (Tstruct S._ObjectNode noattr))
+          (tptr (Tstruct S._ObjectNode noattr))) _ |- _ =>
+      inv Hfree_expr
+  end.
+  all:
+    try match goal with
+    | Hbad :
+        eval_lvalue _ _ _ _
+          (Eaddrof
+            (Evar S._gFreeObjectList (Tstruct S._ObjectNode noattr))
+            (tptr (Tstruct S._ObjectNode noattr))) _ _ _ |- _ =>
+        inv Hbad
+    end.
+  match goal with
+  | Hfree_lvalue :
+      eval_lvalue _ empty_env _ _
+        (Evar S._gFreeObjectList (Tstruct S._ObjectNode noattr))
+        _ _ _ |- _ =>
+      inv Hfree_lvalue
+  end.
+  - cbn in *.
+    discriminate.
+  - match goal with
+    | Hcast_free : sem_cast _ _ _ _ = Some _ |- _ =>
+        cbn in Hcast_free;
+        inv Hcast_free
+    end.
+    match goal with
+    | Htail :
+        eval_exprlist _ _ _ _
+          ((Eaddrof unload_object_header_lhs
+             (tptr (Tstruct S._ObjectNode noattr))) :: nil)
+          _ _ |- _ =>
+        inv Htail
+    end.
+    match goal with
+    | Hheader_expr :
+        eval_expr _ _ _ _
+          (Eaddrof unload_object_header_lhs
+            (tptr (Tstruct S._ObjectNode noattr))) _ |- _ =>
+        inv Hheader_expr
+    end.
+    all:
+      try match goal with
+      | Hbad :
+          eval_lvalue _ _ _ _
+            (Eaddrof unload_object_header_lhs
+              (tptr (Tstruct S._ObjectNode noattr))) _ _ _ |- _ =>
+          inv Hbad
+      end.
+    match goal with
+    | Hheader_lvalue :
+        eval_lvalue _ empty_env le memory
+          unload_object_header_lhs ?header_block ?header_ofs Full |- _ =>
+        destruct
+          (eval_unload_object_header_lhs_lvalue_pointer
+            empty_env le memory pool_block slot header_block header_ofs
+            Hvalid Hobj Hheader_lvalue) as (Hheader_block & Hheader_ofs);
+        subst header_block header_ofs
+    end.
+    match goal with
+    | Hcast_header : sem_cast _ _ _ _ = Some _ |- _ =>
+        cbn in Hcast_header;
+        inv Hcast_header
+    end.
+    match goal with
+    | Hnil : eval_exprlist _ _ _ _ nil nil _ |- _ => inv Hnil
+    end.
+    eexists.
+    split; [eassumption | reflexivity].
 Qed.
 
 Definition unload_deallocate_object_call_argument_shape_obligations

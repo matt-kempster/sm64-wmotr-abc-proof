@@ -306,6 +306,12 @@ its execution trace, not over a hand-written transition function.
   parameter-as-temporaries semantics, the two call arguments become exactly the
   `_freeList` and `_obj` temps, and because the generated function has no local
   variables, entry memory is the call memory.
+- `eval_unload_object_header_lhs_lvalue_pointer`,
+  `unload_object_ge_resolves_gFreeObjectList`, and
+  `unload_deallocate_object_call_argument_values` pin the caller-side generated
+  argument evaluation itself: for the actual deallocation argument types,
+  `&gFreeObjectList` evaluates to the global free-list symbol and
+  `&obj->header` evaluates to the current object-pool slot header pointer.
 - `deallocate_object_internal_call_shape_obligations_from_bound_entry_shapes`
   packages that binding fact for later list-shape work: it is enough to prove
   the deallocation body shape obligations for entry temp environments whose

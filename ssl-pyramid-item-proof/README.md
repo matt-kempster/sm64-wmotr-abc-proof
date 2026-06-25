@@ -5,6 +5,9 @@ that an object originating in Shifting Sand Land area 1 cannot remain the same
 live object across the area-change warp into the Pyramid (area 2). If the claim
 is false, the project will instead contain a concrete counterexample.
 
+The durable recovery copy of the active proof objective is tracked in
+`docs/goal.md`.
+
 This directory is intended to live inside the WMotR proof repository as
 `ssl-pyramid-item-proof/`. To reproduce the generated Clight, provide a separate
 checkout of the SM64 decompilation source pinned at commit
@@ -145,7 +148,9 @@ generated and compile. Rocq checks now pin:
   wrapper in `unload_object`. The generated `function_entry2` parameter
   binding is also proved to put the two call arguments exactly into the
   `_freeList` and `_obj` temps, with no local-variable allocation changing
-  memory;
+  memory. The caller-side argument evaluation is pinned too:
+  `&gFreeObjectList` resolves to the global free-list symbol and
+  `&obj->header` to the current object-pool slot header pointer;
 - the complete generated `spawn_object` direct-writer census for
   `activeFlags`: exactly `unload_object`, `allocate_object`, `create_object`,
   and `mark_obj_for_deletion` write that field directly;
