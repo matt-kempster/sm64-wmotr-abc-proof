@@ -162,6 +162,18 @@ bash pipeline/assumptions.sh \
   object_node_field_value_shape_from_deref_shape
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
+  value_points_to_external_or_pool_slot_header
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  temp_lookup_value_pointer_shape
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  sem_cast_object_node_pointer_preserves_value_shape
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  storev_shaped_pointer_preserves_object_node_field_deref_shape
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
   exec_object_node_field_read_sets_temp_shape
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
@@ -343,6 +355,12 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   object_pool_link_fields_well_shaped
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  storev_shaped_pointer_preserves_object_pool_link_fields
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  assign_loc_shaped_pointer_preserves_object_pool_link_fields
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   first_deallocate_splice_shaped_store_preserves_pool_link_fields

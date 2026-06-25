@@ -366,6 +366,18 @@ its execution trace, not over a hand-written transition function.
   remaining preservation obligation is the memory-level fact that performing
   the shaped `next->prev = obj->prev` store preserves the pool-link-shape
   invariant.
+- `value_points_to_external_or_pool_slot_header`,
+  `temp_lookup_value_pointer_shape`,
+  `sem_cast_object_node_pointer_preserves_value_shape`,
+  `storev_shaped_pointer_preserves_object_node_field_deref_shape`,
+  `storev_shaped_pointer_preserves_object_pool_link_fields`, and
+  `assign_loc_shaped_pointer_preserves_object_pool_link_fields` discharge the
+  generic memory part of that preservation story. The key CompCert split is:
+  after a shaped pointer store, any later object-node field load either reads
+  the newly stored shaped pointer (`Mem.load_pointer_store`) or is an
+  unaffected old load (`Mem.load_store_other`). What remains is the narrower
+  generated-code bridge from the actual `next->prev = obj->prev` assignment to
+  this generic shaped-store lemma.
 - `empty_env_pool_slot_statement_preserves_obj_and_active_flags`,
   `empty_env_pool_slot_statement_preserves_sequence`,
   `unload_deallocate_object_call_empty_env_frame_from_deref_shape_obligations`,
