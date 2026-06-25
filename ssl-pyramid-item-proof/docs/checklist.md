@@ -64,8 +64,11 @@ the same pool slot's deactivation fact.
   `deallocate_object`.
 - [x] Add the empty-env tail bridge that uses the resolved-free-list
   deref-shape path for the final `deallocate_object` call.
-- [ ] Finish replacing the generic `deallocate_object` frame assumption with
-  concrete generated-body facts.
+- [x] Lift that empty-env tail bridge one rung lower: the final
+  `deallocate_object` leaf now needs object-pool link-shape facts plus
+  first-splice preservation, instead of raw deref-shape facts.
+- [ ] Plug this pool-link-shape tail bridge into the actual traversal path, so
+  the deactivation certificate no longer uses the older generic call frame.
 - [ ] Audit / prove the three non-deallocate helper calls cannot touch the
   watched pool slot in the bad way.
 - [ ] Connect the cleanup-tail theorem into the traversal/deactivation trace,
@@ -90,8 +93,12 @@ being unlinked and recycled.
 - [x] Thread that deref-shape bridge through the generated cleanup tail in the
   empty-env case, which is the actual no-local-vars shape of these generated
   bodies.
-- [ ] Prove those deref-shape obligations from a real object-list invariant,
-  not from optimism and coffee.
+- [x] Define `object_pool_link_fields_well_shaped` and
+  `first_deallocate_splice_preserves_pool_link_fields`, then prove they imply
+  the exact resolved-free-list deref-shape obligations.
+- [ ] Prove `object_pool_link_fields_well_shaped` and
+  `first_deallocate_splice_preserves_pool_link_fields` from the real
+  object-list/free-list invariant, not from optimism and coffee.
 - [ ] Track whether any stale pointer can survive the free-list splice and later
   alias a newly allocated in-Pyramid object.
 
@@ -173,8 +180,8 @@ counterexample-shaped goblin.
 The next proof-shaped bite is still the cleanup/deallocation seam, but one rung
 lower than before:
 
-- derive the resolved-free-list deref-shape obligations from a real
-  object-pool/list invariant; and
+- prove the new pool-link-shape invariant and first-splice-preservation seam
+  from the real object-pool/list invariant; and
 - lift the empty-env cleanup-tail bridge into the actual traversal/deactivation
   certificate path.
 
