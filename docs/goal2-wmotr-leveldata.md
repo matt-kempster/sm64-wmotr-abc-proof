@@ -11,13 +11,15 @@ All coordinates are `(x, y, z)` in level units; `y` is up.
 WMotR is tiny and made entirely of plain floating floors over a kill plane. Two
 results fall straight out of the data:
 
-1. **No-lift.** Under no-A, **WMotR contains no usable positive-yVel source.** Every
-   yVel-raiser in the census is either A-gated (all jumps, cannon, flight) or needs an
-   object/surface WMotR doesn't have (no lava, no fire, no enemies/bounces, no
-   tweester, no quicksand, no vertical wind, no moving platforms, no water). The one
-   non-A height mechanism physically present — the 6 climbable **poles** — sits across
-   the void, unreachable (see §4). So under no-A Mario's `vel[1]` is never positive,
-   and his height is pinned to the start island, `pos[1] ≤ ~1675 + ε`.
+1. **Near-no-lift.** Under no-A, almost every yVel-raiser is A-gated (all jumps, cannon,
+   flight) or needs an object/surface WMotR doesn't have (no lava, fire, enemies/bounces,
+   tweester, quicksand, vertical wind, moving platforms, water, jumping box). The
+   climbable **poles** sit across the void, unreachable (§4). **The one exception
+   [refined 2026-06-24 — see goal2-wmotr-y-changer-census.md]:** the **B-button ground
+   dive** + its follow-ups (forward rollout, ground pound) *are* reachable without A, but
+   are **bounded** — apex ≤ ~112 units above the floor, no ratchet, no horizontal escape.
+   So Mario's height is pinned to the start island, `pos[1] ≤ ~1675 + ~112 + ε ≈ 1790` —
+   still ~1350 below the lowest high red coin.
 2. **The star never spawns.** The 8 red coins gate a `bhvHiddenRedCoinStar`. **4 of the
    8 sit at `y ≥ 3140`** (up to 4600) — thousands of units above the no-lift ceiling.
    Under no-A those 4 can never be touched, so the 8/8 count is never met, so the star
