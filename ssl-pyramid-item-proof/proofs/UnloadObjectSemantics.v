@@ -3278,6 +3278,29 @@ Proof.
     end.
 Qed.
 
+Theorem deallocate_object_body_preserves_pool_slot_active_flags_from_shape_obligations :
+  forall e le memory pool_block slot trace le' memory' outcome,
+    valid_object_slot slot ->
+    le ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) ->
+    deallocate_object_body_shape_obligations e le memory pool_block slot ->
+    exec_stmt function_entry2 unload_object_ge e le memory
+      (fn_body S.f_deallocate_object) trace le' memory' outcome ->
+    Mem.unchanged_on
+      (active_flags_byte pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z)))
+      memory memory'.
+Proof.
+  intros e le memory pool_block slot trace le' memory' outcome
+    Hvalid Hobj Hshape Hexec.
+  destruct
+    (deallocate_object_body_pool_slot_frame_from_shape_obligations
+      e le memory pool_block slot trace le' memory' outcome
+      Hvalid Hobj Hshape Hexec) as (_ & Hunchanged).
+  exact Hunchanged.
+Qed.
+
 Definition deallocate_object_body_remaining_pool_slot_frame_obligations
     : Prop :=
   pool_slot_statement_preserves_obj_and_active_flags
@@ -3767,6 +3790,66 @@ Proof.
         (Hbody entry_env entry_temps initial_memory
           object_block object_offset body_trace body_temps body_memory
           body_out Hexec) as Hunchanged_body
+  end.
+  match goal with
+  | Hfree : Mem.free_list ?body_memory (blocks_of_env _ empty_env) =
+      Some memory' |- _ =>
+      cbn in Hfree;
+      inv Hfree
+  end.
+  exact Hunchanged_body.
+Qed.
+
+Definition deallocate_object_internal_call_shape_obligations
+    (memory : mem) (vargs : list val)
+    (pool_block : block) (slot : Z) : Prop :=
+  forall entry_env entry_temps entry_memory,
+    function_entry2 unload_object_ge S.f_deallocate_object
+      vargs memory entry_env entry_temps entry_memory ->
+    entry_temps ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) /\
+    deallocate_object_body_shape_obligations
+      entry_env entry_temps entry_memory pool_block slot.
+
+Theorem eval_funcall_internal_deallocate_object_preserves_pool_slot_active_flags_from_shape_obligations :
+  forall memory vargs trace memory' result pool_block slot,
+    valid_object_slot slot ->
+    deallocate_object_internal_call_shape_obligations
+      memory vargs pool_block slot ->
+    eval_funcall function_entry2 unload_object_ge memory
+      (Internal S.f_deallocate_object) vargs trace memory' result ->
+    Mem.unchanged_on
+      (active_flags_byte pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z)))
+      memory memory'.
+Proof.
+  intros memory vargs trace memory' result pool_block slot
+    Hvalid Hshape_call Hcall.
+  inv Hcall.
+  match goal with
+  | Hentry :
+      function_entry2 unload_object_ge S.f_deallocate_object
+        vargs memory ?entry_env ?entry_temps ?entry_memory |- _ =>
+      destruct (Hshape_call entry_env entry_temps entry_memory Hentry)
+        as (Hobj_entry & Hshape_entry);
+      inv Hentry
+  end.
+  cbn in *.
+  match goal with
+  | Halloc : alloc_variables _ _ _ nil _ _ |- _ => inv Halloc
+  end.
+  match goal with
+  | Hexec :
+      exec_stmt function_entry2 unload_object_ge ?entry_env ?entry_temps
+        ?initial_memory ?statement_body
+        ?body_trace ?body_temps ?body_memory ?body_out |- _ =>
+      change statement_body with (fn_body S.f_deallocate_object) in Hexec;
+      pose proof
+        (deallocate_object_body_preserves_pool_slot_active_flags_from_shape_obligations
+          entry_env entry_temps initial_memory pool_block slot body_trace
+          body_temps body_memory body_out Hvalid Hobj_entry Hshape_entry
+          Hexec) as Hunchanged_body
   end.
   match goal with
   | Hfree : Mem.free_list ?body_memory (blocks_of_env _ empty_env) =
