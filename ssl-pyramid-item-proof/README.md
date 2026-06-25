@@ -142,7 +142,10 @@ generated and compile. Rocq checks now pin:
   internal-function `eval_funcall` boundary for `deallocate_object`, stated
   over the real `function_entry2` temps and memory for the call, and through
   the generated `Scall None deallocate_object(&gFreeObjectList, &obj->header)`
-  wrapper in `unload_object`;
+  wrapper in `unload_object`. The generated `function_entry2` parameter
+  binding is also proved to put the two call arguments exactly into the
+  `_freeList` and `_obj` temps, with no local-variable allocation changing
+  memory;
 - the complete generated `spawn_object` direct-writer census for
   `activeFlags`: exactly `unload_object`, `allocate_object`, `create_object`,
   and `mark_obj_for_deletion` write that field directly;

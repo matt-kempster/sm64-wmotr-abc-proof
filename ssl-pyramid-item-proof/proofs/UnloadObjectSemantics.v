@@ -3812,6 +3812,68 @@ Definition deallocate_object_internal_call_shape_obligations
     deallocate_object_body_shape_obligations
       entry_env entry_temps entry_memory pool_block slot.
 
+Lemma function_entry2_deallocate_object_binds_parameter_temps :
+  forall memory free_value obj_value entry_env entry_temps entry_memory,
+    function_entry2 unload_object_ge S.f_deallocate_object
+      (free_value :: obj_value :: nil)
+      memory entry_env entry_temps entry_memory ->
+    entry_temps ! S._freeList = Some free_value /\
+    entry_temps ! S._obj = Some obj_value /\
+    entry_memory = memory.
+Proof.
+  intros memory free_value obj_value entry_env entry_temps entry_memory
+    Hentry.
+  inv Hentry.
+  cbn in *.
+  match goal with
+  | Halloc : alloc_variables _ _ _ nil _ _ |- _ => inv Halloc
+  end.
+  repeat match goal with
+  | H : Some _ = Some _ |- _ => inv H
+  end.
+  repeat split; reflexivity.
+Qed.
+
+Definition deallocate_object_bound_entry_shape_obligations
+    (memory : mem) (free_value obj_value : val)
+    (pool_block : block) (slot : Z) : Prop :=
+  forall entry_env entry_temps,
+    entry_temps ! S._freeList = Some free_value ->
+    entry_temps ! S._obj = Some obj_value ->
+    deallocate_object_body_shape_obligations
+      entry_env entry_temps memory pool_block slot.
+
+Theorem deallocate_object_internal_call_shape_obligations_from_bound_entry_shapes :
+  forall memory free_value pool_block slot,
+    deallocate_object_bound_entry_shape_obligations
+      memory free_value
+      (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z)))
+      pool_block slot ->
+    deallocate_object_internal_call_shape_obligations
+      memory
+      (free_value ::
+       Vptr pool_block
+         (Ptrofs.repr ((slot * object_slot_size)%Z)) ::
+       nil)
+      pool_block slot.
+Proof.
+  intros memory free_value pool_block slot Hbound.
+  unfold deallocate_object_internal_call_shape_obligations.
+  intros entry_env entry_temps entry_memory Hentry.
+  destruct
+    (function_entry2_deallocate_object_binds_parameter_temps
+      memory free_value
+      (Vptr pool_block
+        (Ptrofs.repr (slot * object_slot_size)))
+      entry_env entry_temps entry_memory Hentry)
+    as (Hfree & Hobj & Hmemory).
+  subst entry_memory.
+  split.
+  - exact Hobj.
+  - apply Hbound; assumption.
+Qed.
+
 Theorem eval_funcall_internal_deallocate_object_preserves_pool_slot_active_flags_from_shape_obligations :
   forall memory vargs trace memory' result pool_block slot,
     valid_object_slot slot ->
