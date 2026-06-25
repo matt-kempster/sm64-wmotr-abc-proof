@@ -2983,6 +2983,130 @@ Proof.
       end.
 Qed.
 
+Definition statement_preserves_temp_shape
+    (temporary : ident) (statement_body : statement) : Prop :=
+  forall e le memory pool_block trace le' memory' outcome,
+    temp_points_to_external_or_pool_slot_header le temporary pool_block ->
+    exec_stmt function_entry2 unload_object_ge e le memory
+      statement_body trace le' memory' outcome ->
+    temp_points_to_external_or_pool_slot_header le' temporary pool_block.
+
+Lemma statement_preserves_temp_shape_sset_different :
+  forall protected written expression,
+    Pos.eqb written protected = false ->
+    statement_preserves_temp_shape protected (Sset written expression).
+Proof.
+  intros protected written expression Hdifferent.
+  unfold statement_preserves_temp_shape.
+  intros e le memory pool_block trace le' memory' outcome Hshape Hexec.
+  destruct
+    (exec_sset_different_preserves_temp_shape
+      protected written expression e le memory pool_block trace le' memory'
+      outcome Hdifferent Hshape Hexec)
+    as (Hshape' & _ & _).
+  exact Hshape'.
+Qed.
+
+Lemma statement_preserves_temp_shape_assign :
+  forall protected lhs rhs,
+    statement_preserves_temp_shape protected (Sassign lhs rhs).
+Proof.
+  intros protected lhs rhs.
+  unfold statement_preserves_temp_shape.
+  intros e le memory pool_block trace le' memory' outcome Hshape Hexec.
+  inv Hexec.
+  exact Hshape.
+Qed.
+
+Lemma statement_preserves_temp_shape_sequence :
+  forall protected first rest,
+    statement_preserves_temp_shape protected first ->
+    statement_preserves_temp_shape protected rest ->
+    statement_preserves_temp_shape protected (Ssequence first rest).
+Proof.
+  intros protected first rest Hfirst Hrest.
+  unfold statement_preserves_temp_shape in *.
+  intros e le memory pool_block trace le' memory' outcome Hshape Hexec.
+  inv Hexec.
+  - match goal with
+    | Hfirst_exec :
+        exec_stmt _ _ _ _ _ first ?trace1 ?le_after_first
+          ?memory_after_first Out_normal,
+      Hrest_exec :
+        exec_stmt _ _ _ ?le_mid ?memory_mid rest ?trace2 le' memory'
+          outcome |- _ =>
+        assert
+          (Hshape_after_first :
+            temp_points_to_external_or_pool_slot_header
+              le_after_first protected pool_block)
+          by (eapply Hfirst; eauto);
+        eapply Hrest; eauto
+    end.
+  - eapply Hfirst; eauto.
+Qed.
+
+Lemma deallocate_object_first_splice_preserves_free_list_shape :
+  forall e le memory pool_block trace le' memory' outcome,
+    temp_points_to_external_or_pool_slot_header le S._freeList pool_block ->
+    exec_stmt function_entry2 unload_object_ge e le memory
+      (Ssequence
+        deallocate_object_read_next
+        (Ssequence
+          deallocate_object_read_prev
+          deallocate_object_next_prev_assign))
+      trace le' memory' outcome ->
+    temp_points_to_external_or_pool_slot_header
+      le' S._freeList pool_block.
+Proof.
+  change
+    (statement_preserves_temp_shape S._freeList
+      (Ssequence
+        deallocate_object_read_next
+        (Ssequence
+          deallocate_object_read_prev
+          deallocate_object_next_prev_assign))).
+  apply statement_preserves_temp_shape_sequence.
+  - apply statement_preserves_temp_shape_sset_different.
+    vm_compute.
+    reflexivity.
+  - apply statement_preserves_temp_shape_sequence.
+    + apply statement_preserves_temp_shape_sset_different.
+      vm_compute.
+      reflexivity.
+    + apply statement_preserves_temp_shape_assign.
+Qed.
+
+Lemma deallocate_object_second_splice_preserves_free_list_shape :
+  forall e le memory pool_block trace le' memory' outcome,
+    temp_points_to_external_or_pool_slot_header le S._freeList pool_block ->
+    exec_stmt function_entry2 unload_object_ge e le memory
+      (Ssequence
+        deallocate_object_read_prev_again
+        (Ssequence
+          deallocate_object_read_next_again
+          deallocate_object_prev_next_assign))
+      trace le' memory' outcome ->
+    temp_points_to_external_or_pool_slot_header
+      le' S._freeList pool_block.
+Proof.
+  change
+    (statement_preserves_temp_shape S._freeList
+      (Ssequence
+        deallocate_object_read_prev_again
+        (Ssequence
+          deallocate_object_read_next_again
+          deallocate_object_prev_next_assign))).
+  apply statement_preserves_temp_shape_sequence.
+  - apply statement_preserves_temp_shape_sset_different.
+    vm_compute.
+    reflexivity.
+  - apply statement_preserves_temp_shape_sequence.
+    + apply statement_preserves_temp_shape_sset_different.
+      vm_compute.
+      reflexivity.
+    + apply statement_preserves_temp_shape_assign.
+Qed.
+
 Lemma pool_slot_statement_preserves_sequence :
   forall first rest,
     pool_slot_statement_preserves_obj_and_active_flags first ->
@@ -3029,6 +3153,129 @@ Proof.
   split.
   - eapply PTree_set_preserves_different; eauto.
   - apply Mem.unchanged_on_refl.
+Qed.
+
+Definition deallocate_object_body_shape_obligations
+    (e : env) (le : temp_env) (memory : mem)
+    (pool_block : block) (slot : Z) : Prop :=
+  object_node_field_deref_shape
+    memory pool_block pool_block
+    (Ptrofs.repr ((slot * object_slot_size)%Z)) 96 /\
+  temp_points_to_external_or_pool_slot_header le S._freeList pool_block /\
+  (forall trace_first le_after_first memory_after_first,
+    exec_stmt function_entry2 unload_object_ge e le memory
+      (Ssequence
+        deallocate_object_read_next
+        (Ssequence
+          deallocate_object_read_prev
+          deallocate_object_next_prev_assign))
+      trace_first le_after_first memory_after_first Out_normal ->
+    object_node_field_deref_shape
+      memory_after_first pool_block pool_block
+      (Ptrofs.repr ((slot * object_slot_size)%Z)) 100).
+
+Lemma deallocate_object_body_pool_slot_frame_from_shape_obligations :
+  forall e le memory pool_block slot trace le' memory' outcome,
+    valid_object_slot slot ->
+    le ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) ->
+    deallocate_object_body_shape_obligations e le memory pool_block slot ->
+    exec_stmt function_entry2 unload_object_ge e le memory
+      (fn_body S.f_deallocate_object) trace le' memory' outcome ->
+    le' ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) /\
+    Mem.unchanged_on
+      (active_flags_byte pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z)))
+      memory memory'.
+Proof.
+  intros e le memory pool_block slot trace le' memory' outcome
+    Hvalid Hobj (Hnext_shape & Hfree_shape & Hprev_after_first) Hexec.
+  rewrite deallocate_object_body_split in Hexec.
+  inv Hexec.
+  - match goal with
+    | Hfirst :
+        exec_stmt _ _ _ _ _
+          (Ssequence
+            deallocate_object_read_next
+            (Ssequence
+              deallocate_object_read_prev
+              deallocate_object_next_prev_assign))
+          ?trace_first ?le_after_first ?memory_after_first Out_normal,
+      Hrest :
+        exec_stmt _ _ _ ?le_mid ?memory_mid
+          (Ssequence
+            (Ssequence
+              deallocate_object_read_prev_again
+              (Ssequence
+                deallocate_object_read_next_again
+                deallocate_object_prev_next_assign))
+            (Ssequence
+              (Ssequence
+                deallocate_object_read_free_next
+                deallocate_object_obj_next_assign)
+              deallocate_object_free_list_next_assign))
+          ?trace_rest le' memory' outcome |- _ =>
+        destruct
+          (deallocate_object_first_splice_pool_slot_frame_from_next_deref_shape
+            e le memory pool_block slot trace_first le_after_first
+            memory_after_first Out_normal Hvalid Hobj Hnext_shape Hfirst)
+          as (Hobj_after_first & Hunchanged_first);
+        pose proof
+          (deallocate_object_first_splice_preserves_free_list_shape
+            e le memory pool_block trace_first le_after_first
+            memory_after_first Out_normal Hfree_shape Hfirst)
+          as Hfree_after_first;
+        pose proof
+          (Hprev_after_first trace_first le_after_first
+            memory_after_first Hfirst)
+          as Hprev_shape;
+        inv Hrest
+    end.
+    + destruct
+        (deallocate_object_second_splice_pool_slot_frame_from_prev_deref_shape
+          e le1 m1 pool_block slot t0 le2 m0 Out_normal
+          Hvalid Hobj_after_first Hprev_shape H5)
+        as (Hobj_after_second & Hunchanged_second).
+      pose proof
+        (deallocate_object_second_splice_preserves_free_list_shape
+          e le1 m1 pool_block t0 le2 m0 Out_normal
+          Hfree_after_first H5)
+        as Hfree_after_second.
+      destruct
+        (deallocate_object_free_list_insert_pool_slot_frame_from_free_list_shape
+          e le2 m0 pool_block slot t3 le' memory' outcome
+          Hvalid Hobj_after_second Hfree_after_second H11)
+        as (Hobj_final & Hunchanged_final).
+      split; [exact Hobj_final |].
+      eapply Mem.unchanged_on_trans.
+      * exact Hunchanged_first.
+      * eapply Mem.unchanged_on_trans; eauto.
+    + destruct
+        (deallocate_object_second_splice_pool_slot_frame_from_prev_deref_shape
+          e le1 m1 pool_block slot t2 le' memory' outcome
+          Hvalid Hobj_after_first Hprev_shape H5)
+        as (Hobj_after_second & Hunchanged_second).
+      split; [exact Hobj_after_second |].
+      eapply Mem.unchanged_on_trans; eauto.
+  - match goal with
+    | Hfirst :
+        exec_stmt _ _ _ _ _
+          (Ssequence
+            deallocate_object_read_next
+            (Ssequence
+              deallocate_object_read_prev
+              deallocate_object_next_prev_assign))
+          ?trace_first ?le_after_first ?memory_after_first outcome |- _ =>
+        destruct
+          (deallocate_object_first_splice_pool_slot_frame_from_next_deref_shape
+            e le memory pool_block slot trace_first le_after_first
+            memory_after_first outcome Hvalid Hobj Hnext_shape Hfirst)
+          as (Hobj_after_first & Hunchanged_first);
+        split; [exact Hobj_after_first | exact Hunchanged_first]
+    end.
 Qed.
 
 Definition deallocate_object_body_remaining_pool_slot_frame_obligations
