@@ -342,6 +342,21 @@ bash pipeline/assumptions.sh \
   unload_deallocate_object_call_argument_values
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
+  unload_deallocate_object_call_actual_argument_shape_obligations
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  unload_deallocate_object_call_actual_argument_shapes_from_bound_entry_shapes
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  unload_deallocate_object_call_empty_env_actual_shape_frame_obligation_holds
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  unload_deallocate_object_call_empty_env_frame_from_actual_shape_obligations
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  unload_deallocate_object_call_empty_env_frame_from_bound_entry_shapes
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
   deallocate_object_function_resolves_in_empty_env
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
