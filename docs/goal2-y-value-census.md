@@ -235,9 +235,14 @@ Under **A-never-pressed**, partition the raisers:
    floor. Need: enumerate, confirm each is a bounded impulse from a bounded launch
    height.
 4. **Geometry-pinned (B-geom)** — y set equal to floor/ceil/water/object. Bounded
-   by the **highest such surface in the level**. This is a **level-data property**,
-   not a code property: the proof here is "the max floor/water/ridable-object y in
-   WMotR's area is < y\*." Stage-specific.
+   by the highest **reachable** surface — NOT simply "the highest surface in the
+   level." **[CORRECTED 2026-06-24 — see goal2-wmotr-leveldata.md.]** In WMotR there
+   is a top surface (`y ≈ 4537`) sitting *among/above* the red coins, so a naive
+   "highest surface < y\*" bound is false. The right statement is a **reachability**
+   one: the highest surface Mario can *get to* under no-A is the start island
+   (`y ≈ 1675`), because reaching a higher disconnected island needs a lift (a jump
+   = A, or a pole he can't cross the void to). This is the **inescapable-island /
+   no-lift** argument, stronger than a height bound and the actual crux for WMotR.
 5. **Object-carried (platforms/elevators/tornado/hoot)** — y follows a moving
    object. Bounded by the object's vertical range = **level + behavior data**. The
    genuinely hard, stage-specific residual. (Hoot: reaching it needs a jump ⇒ may
@@ -247,18 +252,24 @@ Under **A-never-pressed**, partition the raisers:
 
 Categories 1–3 are **code properties** — finite censuses + the integration bound,
 the same flavor of work GOAL 1 already does, and reusing GOAL 1's taint closure.
-**Categories 4–5 are level-data properties.** "Fits within bounds due to stage
-geometry" means: read WMotR's actual collision mesh / object layout and show the
-max standable/ridable height is below the star. That needs the **level data**
+**Categories 4–5 are level-data properties.** They need the **level data**
 (collision triangles, object spawn table) in scope — which the current pipeline
 (`mario.c` + action files + interaction/step/warps) does **not** yet ingest. The
-geometry bound is a *new kind of fact* for this project (data, not control flow).
+geometry argument is a *new kind of fact* for this project (data, not control flow).
 
-Possible softening: maybe the route never needs Mario to *stand* high — only to
-*reach* y\*. If even the highest ridable object + the biggest non-A impulse apex is
-< y\*, geometry detail collapses to a single number per area. Worth checking the
-actual WMotR heights early; it may be that **no non-A mechanism clears the gap by a
-wide margin**, making the bound crude and robust rather than tight and fragile.
+**The WMotR data makes this MUCH better than feared. [2026-06-24 — see
+goal2-wmotr-leveldata.md.]** WMotR is a tiny sky level of plain floating floors over
+a kill plane, with **no lava, fire, enemies, tweester, quicksand, vertical wind,
+moving platforms, or water.** So under no-A it has **no usable positive-yVel source
+at all** (every jump is A-gated; every other raiser needs an object/surface that
+isn't there; the only present lift — 6 poles — is across an un-crossable void). That
+collapses the hard geometry into one clean fact: Mario is pinned to the start island
+at `y ≲ 1675`, while **4 of the 8 red coins float at `y ≥ 3140`** — so the red-coin
+star never spawns and the level is uncompletable without A. The bound is **crude and
+robust** (a ~1500-unit margin), exactly the good case hoped for here — *not* a tight
+fragile geometry computation. The honest hard part shrinks to (a) ingesting the WMotR
+collision/macro data as pipeline constants, and (b) the no-lift lemma + one-step pole
+containment.
 
 ## 7. Suggested next steps (in order)
 
