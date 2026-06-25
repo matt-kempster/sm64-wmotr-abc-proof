@@ -62,6 +62,8 @@ the same pool slot's deactivation fact.
 - [x] Reduce the tail frame checklist to four remaining calls:
   `stop_sounds_from_source`, `geo_remove_child`, `geo_add_child`, and
   `deallocate_object`.
+- [x] Add the empty-env tail bridge that uses the resolved-free-list
+  deref-shape path for the final `deallocate_object` call.
 - [ ] Finish replacing the generic `deallocate_object` frame assumption with
   concrete generated-body facts.
 - [ ] Audit / prove the three non-deallocate helper calls cannot touch the
@@ -85,6 +87,9 @@ being unlinked and recycled.
   &obj->header)` has the expected argument shape.
 - [x] Reduce the deallocate-call frame to
   `deallocate_object_resolved_free_list_deref_shape_obligations`.
+- [x] Thread that deref-shape bridge through the generated cleanup tail in the
+  empty-env case, which is the actual no-local-vars shape of these generated
+  bodies.
 - [ ] Prove those deref-shape obligations from a real object-list invariant,
   not from optimism and coffee.
 - [ ] Track whether any stale pointer can survive the free-list splice and later
@@ -165,12 +170,13 @@ counterexample-shaped goblin.
 
 ## Current next bite
 
-The next proof-shaped bite is still the cleanup/deallocation seam:
+The next proof-shaped bite is still the cleanup/deallocation seam, but one rung
+lower than before:
 
-- reduce the `unload_object` tail's final `deallocate_object` frame obligation
-  to the already-proved resolved-free-list deref-shape bridge; then
-- start deriving those deref-shape obligations from a real object-pool/list
-  invariant.
+- derive the resolved-free-list deref-shape obligations from a real
+  object-pool/list invariant; and
+- lift the empty-env cleanup-tail bridge into the actual traversal/deactivation
+  certificate path.
 
 Translation: we are trying to make the free-list surgery boring enough that the
 stale-pointer question has nowhere dark left to hide.
