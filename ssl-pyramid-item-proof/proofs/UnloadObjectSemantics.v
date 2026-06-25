@@ -980,6 +980,91 @@ Definition object_node_field_deref_shape
     object_node_pointer_external_or_pool_slot_header
       pool_block target_block target_offset.
 
+Definition value_points_to_external_or_pool_slot_header
+    (pool_block : block) (value : val) : Prop :=
+  forall target_block target_offset,
+    value = Vptr target_block target_offset ->
+    object_node_pointer_external_or_pool_slot_header
+      pool_block target_block target_offset.
+
+Lemma temp_lookup_value_pointer_shape :
+  forall le temporary pool_block value,
+    temp_points_to_external_or_pool_slot_header
+      le temporary pool_block ->
+    le ! temporary = Some value ->
+    value_points_to_external_or_pool_slot_header pool_block value.
+Proof.
+  intros le temporary pool_block value Htemp Hlookup.
+  unfold value_points_to_external_or_pool_slot_header.
+  intros target_block target_offset Hvalue.
+  subst value.
+  eapply Htemp.
+  exact Hlookup.
+Qed.
+
+Lemma sem_cast_object_node_pointer_preserves_value_shape :
+  forall memory pool_block value cast_value,
+    value_points_to_external_or_pool_slot_header pool_block value ->
+    sem_cast value
+      (tptr (Tstruct S._ObjectNode noattr))
+      (tptr (Tstruct S._ObjectNode noattr))
+      memory = Some cast_value ->
+    value_points_to_external_or_pool_slot_header pool_block cast_value.
+Proof.
+  intros memory pool_block value cast_value Hshape Hcast.
+  unfold value_points_to_external_or_pool_slot_header in *.
+  intros target_block target_offset Hcast_value.
+  subst cast_value.
+  destruct value; cbn in Hcast; try discriminate;
+    inv Hcast; eauto.
+Qed.
+
+Lemma storev_shaped_pointer_preserves_object_node_field_deref_shape :
+  forall memory memory' pool_block source_block source_offset field_delta
+         store_chunk store_block store_offset stored_value,
+    Mem.storev store_chunk memory (Vptr store_block store_offset)
+      stored_value = Some memory' ->
+    value_points_to_external_or_pool_slot_header
+      pool_block stored_value ->
+    object_node_field_deref_shape
+      memory pool_block source_block source_offset field_delta ->
+    object_node_field_deref_shape
+      memory' pool_block source_block source_offset field_delta.
+Proof.
+  intros memory memory' pool_block source_block source_offset field_delta
+    store_chunk store_block store_offset stored_value Hstore Hstored_shape
+    Hfield_shape.
+  unfold object_node_field_deref_shape in *.
+  intros target_block target_offset Hderef.
+  inv Hderef; cbn in *; try discriminate.
+  unfold Mem.storev in Hstore.
+  unfold Mem.loadv in H0.
+  pose proof
+    (Mem.load_pointer_store
+      store_chunk memory store_block (Ptrofs.unsigned store_offset)
+      stored_value memory' chunk source_block
+      (Ptrofs.unsigned
+        (Ptrofs.add source_offset (Ptrofs.repr field_delta)))
+      target_block target_offset Hstore H0) as Hload_case.
+  destruct Hload_case as
+    [(Hstored_value & _ & _ & _) | Hother].
+  - eapply Hstored_shape.
+    exact Hstored_value.
+  - eapply Hfield_shape.
+    econstructor.
+    + exact H.
+    + unfold Mem.loadv.
+      rewrite
+        (Mem.load_store_other
+          store_chunk memory store_block
+          (Ptrofs.unsigned store_offset) stored_value memory'
+          Hstore chunk source_block
+          (Ptrofs.unsigned
+            (Ptrofs.add source_offset (Ptrofs.repr field_delta)))) in H0
+        by exact Hother.
+      exact H0.
+Qed.
+
 Definition object_node_field_value_shape
     (e : env) (le : temp_env) (memory : mem)
     (source field : ident) (pool_block : block) : Prop :=
@@ -3952,6 +4037,46 @@ Definition object_pool_link_fields_well_shaped
     object_node_field_deref_shape
       memory pool_block pool_block
       (Ptrofs.repr ((slot * object_slot_size)%Z)) 100.
+
+Lemma storev_shaped_pointer_preserves_object_pool_link_fields :
+  forall memory memory' pool_block store_chunk store_block store_offset
+         stored_value,
+    Mem.storev store_chunk memory (Vptr store_block store_offset)
+      stored_value = Some memory' ->
+    value_points_to_external_or_pool_slot_header
+      pool_block stored_value ->
+    object_pool_link_fields_well_shaped memory pool_block ->
+    object_pool_link_fields_well_shaped memory' pool_block.
+Proof.
+  intros memory memory' pool_block store_chunk store_block store_offset
+    stored_value Hstore Hstored_shape Hlinks.
+  unfold object_pool_link_fields_well_shaped in *.
+  intros slot Hvalid.
+  destruct (Hlinks slot Hvalid) as (Hnext_shape & Hprev_shape).
+  split.
+  - eapply storev_shaped_pointer_preserves_object_node_field_deref_shape;
+      eauto.
+  - eapply storev_shaped_pointer_preserves_object_node_field_deref_shape;
+      eauto.
+Qed.
+
+Lemma assign_loc_shaped_pointer_preserves_object_pool_link_fields :
+  forall ty chunk memory memory' pool_block store_block store_offset
+         stored_value,
+    access_mode ty = By_value chunk ->
+    assign_loc unload_object_ce ty memory store_block store_offset
+      Full stored_value memory' ->
+    value_points_to_external_or_pool_slot_header
+      pool_block stored_value ->
+    object_pool_link_fields_well_shaped memory pool_block ->
+    object_pool_link_fields_well_shaped memory' pool_block.
+Proof.
+  intros ty chunk memory memory' pool_block store_block store_offset
+    stored_value Hmode Hassign Hstored_shape Hlinks.
+  inv Hassign; try congruence.
+  eapply storev_shaped_pointer_preserves_object_pool_link_fields;
+    eauto.
+Qed.
 
 Definition first_deallocate_splice_shaped_store_preserves_pool_link_fields
     (memory : mem) (pool_block : block) (slot : Z) : Prop :=
