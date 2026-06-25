@@ -381,6 +381,21 @@ bash pipeline/assumptions.sh \
   unload_deallocate_object_call_empty_env_frame_from_resolved_free_list_deref_shapes
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
+  pool_slot_statement_preserves_obj_and_active_flags_in_empty_env
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  empty_env_pool_slot_statement_preserves_sequence
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  unload_deallocate_object_call_empty_env_frame_from_deref_shape_obligations
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  unload_object_tail_empty_env_pool_slot_frame_from_deref_shape_obligations
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  unload_object_tail_preserves_pool_slot_active_flags_from_empty_env_deref_shape_obligations
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
   deallocate_object_function_resolves_in_empty_env
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \

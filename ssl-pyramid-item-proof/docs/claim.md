@@ -346,6 +346,17 @@ its execution trace, not over a hand-written transition function.
   is the current narrowest generated-call bridge: the caller-side `Scall` now
   only needs the entry `obj->next` dereference shape and the post-first-splice
   `obj->prev` dereference shape.
+- `empty_env_pool_slot_statement_preserves_obj_and_active_flags`,
+  `empty_env_pool_slot_statement_preserves_sequence`,
+  `unload_deallocate_object_call_empty_env_frame_from_deref_shape_obligations`,
+  `unload_object_tail_empty_env_pool_slot_frame_from_deref_shape_obligations`,
+  and
+  `unload_object_tail_preserves_pool_slot_active_flags_from_empty_env_deref_shape_obligations`
+  thread that narrow deallocate-call bridge through the generated cleanup tail
+  in the empty-env case used by these no-local-variable generated functions.
+  This is still conditional on supplying the actual dereference-shape
+  invariant, but the final `deallocate_object` leaf is no longer represented
+  as an opaque generic frame in this empty-env path.
 - `unload_object_tail_preserves_pool_slot_active_flags_from_named_frames`
   projects that bridge into the activeFlags-only property needed by the
   deactivation proof.

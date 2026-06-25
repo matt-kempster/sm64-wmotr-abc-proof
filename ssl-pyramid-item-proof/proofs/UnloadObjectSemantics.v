@@ -4521,6 +4521,180 @@ Proof.
   exact Hderef_shapes.
 Qed.
 
+Definition empty_env_pool_slot_statement_preserves_obj_and_active_flags
+    (statement_body : statement) : Prop :=
+  forall le memory pool_block slot trace le' memory' outcome,
+    valid_object_slot slot ->
+    le ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) ->
+    exec_stmt function_entry2 unload_object_ge empty_env le memory
+      statement_body trace le' memory' outcome ->
+    le' ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) /\
+    Mem.unchanged_on
+      (active_flags_byte pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z)))
+      memory memory'.
+
+Lemma pool_slot_statement_preserves_obj_and_active_flags_in_empty_env :
+  forall statement_body,
+    pool_slot_statement_preserves_obj_and_active_flags statement_body ->
+    empty_env_pool_slot_statement_preserves_obj_and_active_flags
+      statement_body.
+Proof.
+  unfold pool_slot_statement_preserves_obj_and_active_flags,
+    empty_env_pool_slot_statement_preserves_obj_and_active_flags.
+  intros statement_body Hframe le memory pool_block slot trace le' memory'
+    outcome Hvalid Hobj Hexec.
+  eapply Hframe; eauto.
+Qed.
+
+Lemma empty_env_pool_slot_statement_preserves_sequence :
+  forall first rest,
+    empty_env_pool_slot_statement_preserves_obj_and_active_flags first ->
+    empty_env_pool_slot_statement_preserves_obj_and_active_flags rest ->
+    empty_env_pool_slot_statement_preserves_obj_and_active_flags
+      (Ssequence first rest).
+Proof.
+  intros first rest Hfirst Hrest.
+  unfold empty_env_pool_slot_statement_preserves_obj_and_active_flags in *.
+  intros le memory pool_block slot trace le' memory' outcome
+    Hvalid Hobj Hexec.
+  inv Hexec.
+  - match goal with
+    | Hexec_first :
+        exec_stmt _ _ _ _ _ first _ ?le_mid ?memory_mid Out_normal,
+      Hexec_rest :
+        exec_stmt _ _ _ ?le_mid ?memory_mid rest _ _ _ _ |- _ =>
+        destruct
+          (Hfirst le memory pool_block slot _ le_mid memory_mid
+            Out_normal Hvalid Hobj Hexec_first)
+          as (Hobj_mid & Hunchanged_first);
+        destruct
+          (Hrest le_mid memory_mid pool_block slot _ le' memory'
+            outcome Hvalid Hobj_mid Hexec_rest)
+          as (Hobj_final & Hunchanged_rest);
+        split;
+          [ exact Hobj_final
+          | eapply Mem.unchanged_on_trans; eauto ]
+    end.
+  - match goal with
+    | Hexec_first :
+        exec_stmt _ _ _ _ _ first _ _ _ ?outcome_first |- _ =>
+        destruct
+          (Hfirst le memory pool_block slot _ le' memory'
+            outcome_first Hvalid Hobj Hexec_first)
+          as (Hobj_final & Hunchanged_first);
+        split; [exact Hobj_final | exact Hunchanged_first]
+    end.
+Qed.
+
+Definition unload_deallocate_object_call_empty_env_deref_shape_obligations
+    : Prop :=
+  forall le memory pool_block slot,
+    valid_object_slot slot ->
+    le ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) ->
+    deallocate_object_resolved_free_list_deref_shape_obligations
+      memory pool_block slot.
+
+Theorem unload_deallocate_object_call_empty_env_frame_from_deref_shape_obligations :
+  unload_deallocate_object_call_empty_env_deref_shape_obligations ->
+  empty_env_pool_slot_statement_preserves_obj_and_active_flags
+    unload_deallocate_object_call.
+Proof.
+  unfold unload_deallocate_object_call_empty_env_deref_shape_obligations,
+    empty_env_pool_slot_statement_preserves_obj_and_active_flags.
+  intros Hderef le memory pool_block slot trace le' memory' outcome
+    Hvalid Hobj Hexec.
+  eapply unload_deallocate_object_call_empty_env_frame_from_resolved_free_list_deref_shapes;
+    eauto.
+Qed.
+
+Definition unload_object_tail_empty_env_deref_shape_pool_slot_frame_obligations
+    : Prop :=
+  pool_slot_statement_preserves_obj_and_active_flags
+    unload_stop_sounds_call /\
+  pool_slot_statement_preserves_obj_and_active_flags
+    unload_geo_remove_child_call /\
+  pool_slot_statement_preserves_obj_and_active_flags
+    unload_geo_add_child_call /\
+  unload_deallocate_object_call_empty_env_deref_shape_obligations.
+
+Theorem unload_object_tail_empty_env_pool_slot_frame_from_deref_shape_obligations :
+  unload_object_tail_empty_env_deref_shape_pool_slot_frame_obligations ->
+  empty_env_pool_slot_statement_preserves_obj_and_active_flags
+    unload_object_tail.
+Proof.
+  intros (Hstop & Hremove & Hadd & Hdeallocate).
+  rewrite unload_object_tail_split_prev.
+  apply empty_env_pool_slot_statement_preserves_sequence.
+  - apply pool_slot_statement_preserves_obj_and_active_flags_in_empty_env.
+    apply unload_prev_obj_assign_pool_slot_frame.
+  - rewrite unload_object_after_prev_split_throw_matrix.
+    apply empty_env_pool_slot_statement_preserves_sequence.
+    + apply pool_slot_statement_preserves_obj_and_active_flags_in_empty_env.
+      apply unload_throw_matrix_assign_pool_slot_frame.
+    + rewrite unload_object_after_throw_matrix_split_stop_sounds.
+      apply empty_env_pool_slot_statement_preserves_sequence.
+      * apply pool_slot_statement_preserves_obj_and_active_flags_in_empty_env.
+        exact Hstop.
+      * rewrite unload_object_after_stop_sounds_split_geo_remove_child.
+        apply empty_env_pool_slot_statement_preserves_sequence.
+        -- apply pool_slot_statement_preserves_obj_and_active_flags_in_empty_env.
+           exact Hremove.
+        -- rewrite unload_object_after_geo_remove_child_split_geo_add_child.
+           apply empty_env_pool_slot_statement_preserves_sequence.
+           ++ apply
+                pool_slot_statement_preserves_obj_and_active_flags_in_empty_env.
+              exact Hadd.
+           ++ rewrite unload_object_after_geo_add_child_split_graph_flags_bit2.
+              apply empty_env_pool_slot_statement_preserves_sequence.
+              ** apply
+                   pool_slot_statement_preserves_obj_and_active_flags_in_empty_env.
+                 apply unload_graph_flags_clear_bit2_pool_slot_frame_from_assign.
+                 apply unload_graph_flags_assign_bit2_pool_slot_frame.
+              ** rewrite
+                   unload_object_after_graph_flags_bit2_split_graph_flags_bit0.
+                 apply empty_env_pool_slot_statement_preserves_sequence.
+                 --- apply
+                       pool_slot_statement_preserves_obj_and_active_flags_in_empty_env.
+                     apply
+                       unload_graph_flags_clear_bit0_pool_slot_frame_from_assign.
+                     apply unload_graph_flags_assign_bit0_pool_slot_frame.
+                 --- rewrite
+                       unload_object_after_graph_flags_bit0_is_deallocate_call.
+                     apply
+                       unload_deallocate_object_call_empty_env_frame_from_deref_shape_obligations.
+                     exact Hdeallocate.
+Qed.
+
+Theorem unload_object_tail_preserves_pool_slot_active_flags_from_empty_env_deref_shape_obligations :
+  unload_object_tail_empty_env_deref_shape_pool_slot_frame_obligations ->
+  forall le memory pool_block slot trace le' memory' outcome,
+    valid_object_slot slot ->
+    le ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) ->
+    exec_stmt function_entry2 unload_object_ge empty_env le memory
+      unload_object_tail trace le' memory' outcome ->
+    Mem.unchanged_on
+      (active_flags_byte pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z)))
+      memory memory'.
+Proof.
+  intros Hframes le memory pool_block slot trace le' memory' outcome
+    Hvalid Hobj Hexec.
+  destruct
+    (unload_object_tail_empty_env_pool_slot_frame_from_deref_shape_obligations
+      Hframes le memory pool_block slot trace le' memory' outcome
+      Hvalid Hobj Hexec) as (_ & Hunchanged).
+  exact Hunchanged.
+Qed.
+
 Definition unload_deallocate_object_call_empty_env_shape_frame_obligation
     : Prop :=
   deallocate_object_function_resolves_in_empty_env ->
