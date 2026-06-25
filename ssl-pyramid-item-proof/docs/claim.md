@@ -214,6 +214,14 @@ its execution trace, not over a hand-written transition function.
   `deallocate_object` body has that frame property. This avoids the
   over-strong arbitrary-environment claim where a local variable could shadow
   the global function name.
+- `unload_deallocate_object_call_argument_shape_obligations`,
+  `unload_deallocate_object_call_empty_env_shape_frame_obligation_holds`, and
+  `unload_deallocate_object_call_empty_env_frame_from_shape_obligations` add
+  the tighter caller-side bridge needed by the list-shape proof: the generated
+  `Scall` preserves `_obj` and the watched activeFlags bytes when the actual
+  evaluated argument list for `deallocate_object(&gFreeObjectList,
+  &obj->header)` leads to a `function_entry2` state satisfying the
+  shape-scoped deallocation-body obligations.
 - `deallocate_object_body_has_obj_next_store_event`,
   `eval_deallocate_object_obj_next_lhs_pool_slot`,
   `exec_deallocate_object_obj_next_assign_preserves_active_flags`, and
@@ -290,7 +298,9 @@ its execution trace, not over a hand-written transition function.
   carries it across CompCert's internal-function call boundary. The call-level
   theorem deliberately states the shape obligations over the real
   `function_entry2` environment/temporaries/memory produced for the call,
-  avoiding an over-strong global body-frame assumption.
+  avoiding an over-strong global body-frame assumption. The generated-`Scall`
+  wrapper then packages this as a caller-side frame theorem over the exact
+  `deallocate_object(&gFreeObjectList, &obj->header)` argument evaluation.
 - `unload_object_tail_preserves_pool_slot_active_flags_from_named_frames`
   projects that bridge into the activeFlags-only property needed by the
   deactivation proof.

@@ -140,7 +140,9 @@ generated and compile. Rocq checks now pin:
   shape, and the `obj->prev` dereference shape at the actual post-first-splice
   memory state. The same shape-scoped frame now carries through CompCert's
   internal-function `eval_funcall` boundary for `deallocate_object`, stated
-  over the real `function_entry2` temps and memory for the call;
+  over the real `function_entry2` temps and memory for the call, and through
+  the generated `Scall None deallocate_object(&gFreeObjectList, &obj->header)`
+  wrapper in `unload_object`;
 - the complete generated `spawn_object` direct-writer census for
   `activeFlags`: exactly `unload_object`, `allocate_object`, `create_object`,
   and `mark_obj_for_deletion` write that field directly;

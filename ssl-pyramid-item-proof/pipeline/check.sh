@@ -336,6 +336,12 @@ bash pipeline/assumptions.sh \
   deallocate_object_function_resolves_in_empty_env_holds
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
+  unload_deallocate_object_call_empty_env_shape_frame_obligation_holds
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  unload_deallocate_object_call_empty_env_frame_from_shape_obligations
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
   unload_deallocate_object_call_empty_env_frame_obligation
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
