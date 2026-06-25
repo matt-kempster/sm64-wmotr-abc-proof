@@ -4078,6 +4078,60 @@ Proof.
     eauto.
 Qed.
 
+Lemma exec_deallocate_object_next_prev_assign_preserves_pool_link_fields_from_value_shape :
+  forall e le memory pool_block trace le' memory' outcome,
+    temp_points_to_external_or_pool_slot_header le S._t'5 pool_block ->
+    object_pool_link_fields_well_shaped memory pool_block ->
+    exec_stmt function_entry2 unload_object_ge e le memory
+      deallocate_object_next_prev_assign trace le' memory' outcome ->
+    le' = le /\
+    outcome = Out_normal /\
+    object_pool_link_fields_well_shaped memory' pool_block.
+Proof.
+  intros e le memory pool_block trace le' memory' outcome
+    Hvalue_shape Hlinks Hexec.
+  unfold deallocate_object_next_prev_assign in Hexec.
+  inv Hexec.
+  rewrite unload_object_genv_cenv in *.
+  match goal with
+  | Hlv :
+      eval_lvalue _ ?env ?temps ?mem deallocate_object_next_prev_lhs
+        ?loc ?ofs ?bf |- _ =>
+      unfold deallocate_object_next_prev_lhs in Hlv;
+      destruct
+        (eval_object_node_temp_field_lvalue
+          S._t'4 S._prev 100 env temps mem loc ofs bf
+          unload_object_node_prev_layout Hlv)
+        as (target_block & target_offset & _ & Hloc & Hofs & Hbf);
+      subst loc ofs bf
+  end.
+  split; [reflexivity | split; [reflexivity |]].
+  assert
+    (Hrhs_shape :
+      value_points_to_external_or_pool_slot_header pool_block v2).
+  { unfold value_points_to_external_or_pool_slot_header.
+    intros rhs_block rhs_offset Hrhs_value.
+    subst v2.
+    inv H2;
+      try (match goal with
+           | Hlv : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ =>
+               solve [inv Hlv]
+           end).
+    eapply Hvalue_shape.
+    match goal with
+    | Hlookup : _ ! S._t'5 = Some (Vptr rhs_block rhs_offset) |- _ =>
+        exact Hlookup
+    end. }
+  assert
+    (Hstored_shape :
+      value_points_to_external_or_pool_slot_header pool_block v).
+  { eapply sem_cast_object_node_pointer_preserves_value_shape; eauto. }
+  eapply assign_loc_shaped_pointer_preserves_object_pool_link_fields
+    with (chunk := Mint32);
+    eauto;
+    reflexivity.
+Qed.
+
 Definition first_deallocate_splice_shaped_store_preserves_pool_link_fields
     (memory : mem) (pool_block : block) (slot : Z) : Prop :=
   forall entry_env entry_temps trace_first le_after_first memory_after_first,
@@ -4254,6 +4308,96 @@ Proof.
     end.
 Qed.
 
+Theorem first_deallocate_splice_shaped_store_preserves_pool_link_fields_holds :
+  forall memory pool_block slot,
+    first_deallocate_splice_shaped_store_preserves_pool_link_fields
+      memory pool_block slot.
+Proof.
+  unfold first_deallocate_splice_shaped_store_preserves_pool_link_fields.
+  intros memory pool_block slot entry_env entry_temps trace_first
+    le_after_first memory_after_first Hvalid Hobj Hlinks Hexec _ _.
+  destruct (Hlinks slot Hvalid) as (_ & Hprev_shape).
+  assert (Ht4_not_obj : Pos.eqb S._t'4 S._obj = false)
+    by (vm_compute; reflexivity).
+  inv Hexec.
+  - change deallocate_object_read_next with
+      (Sset S._t'4 (object_node_field_expr S._obj S._next))
+      in H4.
+    destruct
+      (exec_sset_different_preserves_lookup
+        S._obj
+        (Vptr pool_block
+          (Ptrofs.repr (slot * object_slot_size)))
+        S._t'4 (object_node_field_expr S._obj S._next)
+        entry_env entry_temps memory t1 le1 m1 Out_normal
+        Ht4_not_obj Hobj H4)
+      as (Hobj_after_next & Hm1 & _).
+    subst m1.
+    match goal with
+    | Hrest :
+        exec_stmt _ _ _ _ _
+          (Ssequence
+            deallocate_object_read_prev
+            deallocate_object_next_prev_assign)
+          _ _ _ _ |- _ =>
+        inv Hrest
+    end.
+    + match goal with
+      | Hread_prev :
+          exec_stmt _ _ _ ?le_after_next memory
+            deallocate_object_read_prev ?trace_prev ?le_after_prev
+            ?memory_after_prev Out_normal,
+        Hassign :
+          exec_stmt _ _ _ ?le_after_prev ?memory_after_prev
+            deallocate_object_next_prev_assign ?trace_assign
+            le_after_first memory_after_first Out_normal |- _ =>
+          change deallocate_object_read_prev with
+            (Sset S._t'5 (object_node_field_expr S._obj S._prev))
+            in Hread_prev;
+          destruct
+            (exec_deallocate_object_read_prev_sets_t5_shape_from_deref_shape
+              entry_env le_after_next memory pool_block pool_block
+              (Ptrofs.repr (slot * object_slot_size))
+              trace_prev le_after_prev memory_after_prev Out_normal
+              Hobj_after_next Hprev_shape Hread_prev)
+            as (Ht5_after_prev & Hmemory_after_prev & _);
+          subst memory_after_prev;
+          destruct
+            (exec_deallocate_object_next_prev_assign_preserves_pool_link_fields_from_value_shape
+              entry_env le_after_prev memory pool_block trace_assign
+              le_after_first memory_after_first Out_normal
+              Ht5_after_prev Hlinks Hassign)
+            as (_ & _ & Hlinks_after_first);
+          exact Hlinks_after_first
+      end.
+    + match goal with
+      | Hread_prev :
+          exec_stmt _ _ _ _ _
+            deallocate_object_read_prev _ _ _ _ |- _ =>
+          change deallocate_object_read_prev with
+            (Sset S._t'5 (object_node_field_expr S._obj S._prev))
+            in Hread_prev;
+          inv Hread_prev
+      end.
+      match goal with
+      | Hneq : Out_normal <> Out_normal |- _ =>
+          exfalso; apply Hneq; reflexivity
+      end.
+  - match goal with
+    | Hread_next :
+        exec_stmt _ _ _ _ _
+          deallocate_object_read_next _ _ _ _ |- _ =>
+        change deallocate_object_read_next with
+          (Sset S._t'4 (object_node_field_expr S._obj S._next))
+          in Hread_next;
+        inv Hread_next
+    end.
+    match goal with
+    | Hneq : Out_normal <> Out_normal |- _ =>
+        exfalso; apply Hneq; reflexivity
+    end.
+Qed.
+
 Theorem first_deallocate_splice_preserves_pool_link_fields_from_shaped_store :
   forall memory pool_block slot,
     valid_object_slot slot ->
@@ -4274,6 +4418,19 @@ Proof.
       le_after_first memory_after_first Hvalid Hobj Hlinks Hexec)
     as (Ht4_shape & Ht5_shape).
   eapply Hstore; eauto.
+Qed.
+
+Theorem first_deallocate_splice_preserves_pool_link_fields_from_pool_link_fields :
+  forall memory pool_block slot,
+    valid_object_slot slot ->
+    object_pool_link_fields_well_shaped memory pool_block ->
+    first_deallocate_splice_preserves_pool_link_fields
+      memory pool_block slot.
+Proof.
+  intros memory pool_block slot Hvalid Hlinks.
+  eapply first_deallocate_splice_preserves_pool_link_fields_from_shaped_store;
+    eauto.
+  apply first_deallocate_splice_shaped_store_preserves_pool_link_fields_holds.
 Qed.
 
 Definition deallocate_object_resolved_free_list_deref_shape_obligations
@@ -4331,6 +4488,20 @@ Proof.
   eapply deallocate_object_resolved_free_list_deref_shapes_from_pool_link_fields;
     eauto.
   eapply first_deallocate_splice_preserves_pool_link_fields_from_shaped_store;
+    eauto.
+Qed.
+
+Theorem deallocate_object_resolved_free_list_deref_shapes_from_pool_link_fields_holds :
+  forall memory pool_block slot,
+    valid_object_slot slot ->
+    object_pool_link_fields_well_shaped memory pool_block ->
+    deallocate_object_resolved_free_list_deref_shape_obligations
+      memory pool_block slot.
+Proof.
+  intros memory pool_block slot Hvalid Hlinks.
+  eapply deallocate_object_resolved_free_list_deref_shapes_from_pool_link_fields;
+    eauto.
+  eapply first_deallocate_splice_preserves_pool_link_fields_from_pool_link_fields;
     eauto.
 Qed.
 
@@ -4997,6 +5168,15 @@ Definition unload_deallocate_object_call_empty_env_pool_link_shape_obligations
     first_deallocate_splice_preserves_pool_link_fields
       memory pool_block slot.
 
+Definition unload_deallocate_object_call_empty_env_pool_link_fields_obligations
+    : Prop :=
+  forall le memory pool_block slot,
+    valid_object_slot slot ->
+    le ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) ->
+    object_pool_link_fields_well_shaped memory pool_block.
+
 Definition unload_deallocate_object_call_empty_env_pool_link_store_obligations
     : Prop :=
   forall le memory pool_block slot,
@@ -5019,6 +5199,31 @@ Proof.
     as (Hlinks & Hfirst_splice).
   eapply deallocate_object_resolved_free_list_deref_shapes_from_pool_link_fields;
     eauto.
+Qed.
+
+Theorem unload_deallocate_object_call_empty_env_pool_link_shape_obligations_from_field_obligations :
+  unload_deallocate_object_call_empty_env_pool_link_fields_obligations ->
+  unload_deallocate_object_call_empty_env_pool_link_shape_obligations.
+Proof.
+  unfold unload_deallocate_object_call_empty_env_pool_link_fields_obligations,
+    unload_deallocate_object_call_empty_env_pool_link_shape_obligations.
+  intros Hfields le memory pool_block slot Hvalid Hobj.
+  pose proof (Hfields le memory pool_block slot Hvalid Hobj)
+    as Hlinks.
+  split; [exact Hlinks |].
+  eapply first_deallocate_splice_preserves_pool_link_fields_from_pool_link_fields;
+    eauto.
+Qed.
+
+Theorem unload_deallocate_object_call_empty_env_deref_shape_obligations_from_pool_link_field_obligations :
+  unload_deallocate_object_call_empty_env_pool_link_fields_obligations ->
+  unload_deallocate_object_call_empty_env_deref_shape_obligations.
+Proof.
+  intros Hfields.
+  apply unload_deallocate_object_call_empty_env_deref_shape_obligations_from_pool_link_shapes.
+  apply
+    unload_deallocate_object_call_empty_env_pool_link_shape_obligations_from_field_obligations.
+  exact Hfields.
 Qed.
 
 Theorem unload_deallocate_object_call_empty_env_pool_link_shape_obligations_from_store_obligations :
@@ -5184,6 +5389,63 @@ Definition unload_object_tail_empty_env_pool_link_store_frame_obligations
   pool_slot_statement_preserves_obj_and_active_flags
     unload_geo_add_child_call /\
   unload_deallocate_object_call_empty_env_pool_link_store_obligations.
+
+Definition unload_object_tail_empty_env_pool_link_fields_frame_obligations
+    : Prop :=
+  pool_slot_statement_preserves_obj_and_active_flags
+    unload_stop_sounds_call /\
+  pool_slot_statement_preserves_obj_and_active_flags
+    unload_geo_remove_child_call /\
+  pool_slot_statement_preserves_obj_and_active_flags
+    unload_geo_add_child_call /\
+  unload_deallocate_object_call_empty_env_pool_link_fields_obligations.
+
+Theorem unload_object_tail_empty_env_pool_link_shape_obligations_from_field_obligations :
+  unload_object_tail_empty_env_pool_link_fields_frame_obligations ->
+  unload_object_tail_empty_env_pool_link_shape_frame_obligations.
+Proof.
+  intros (Hstop & Hremove & Hadd & Hdeallocate).
+  split; [exact Hstop |].
+  split; [exact Hremove |].
+  split; [exact Hadd |].
+  apply
+    unload_deallocate_object_call_empty_env_pool_link_shape_obligations_from_field_obligations.
+  exact Hdeallocate.
+Qed.
+
+Theorem unload_object_tail_empty_env_pool_slot_frame_from_pool_link_field_obligations :
+  unload_object_tail_empty_env_pool_link_fields_frame_obligations ->
+  empty_env_pool_slot_statement_preserves_obj_and_active_flags
+    unload_object_tail.
+Proof.
+  intros Hframes.
+  apply unload_object_tail_empty_env_pool_slot_frame_from_pool_link_shape_obligations.
+  apply
+    unload_object_tail_empty_env_pool_link_shape_obligations_from_field_obligations.
+  exact Hframes.
+Qed.
+
+Theorem unload_object_tail_preserves_pool_slot_active_flags_from_empty_env_pool_link_field_obligations :
+  unload_object_tail_empty_env_pool_link_fields_frame_obligations ->
+  forall le memory pool_block slot trace le' memory' outcome,
+    valid_object_slot slot ->
+    le ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) ->
+    exec_stmt function_entry2 unload_object_ge empty_env le memory
+      unload_object_tail trace le' memory' outcome ->
+    Mem.unchanged_on
+      (active_flags_byte pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z)))
+      memory memory'.
+Proof.
+  intros Hframes.
+  apply
+    unload_object_tail_preserves_pool_slot_active_flags_from_empty_env_pool_link_shape_obligations.
+  apply
+    unload_object_tail_empty_env_pool_link_shape_obligations_from_field_obligations.
+  exact Hframes.
+Qed.
 
 Theorem unload_object_tail_empty_env_pool_link_shape_obligations_from_store_obligations :
   unload_object_tail_empty_env_pool_link_store_frame_obligations ->

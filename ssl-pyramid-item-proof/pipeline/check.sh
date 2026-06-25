@@ -222,6 +222,9 @@ bash pipeline/assumptions.sh \
   exec_deallocate_object_next_prev_assign_preserves_active_flags_from_target_shape
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
+  exec_deallocate_object_next_prev_assign_preserves_pool_link_fields_from_value_shape
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
   exec_deallocate_object_prev_next_assign_preserves_active_flags_from_target_shape
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
@@ -366,6 +369,9 @@ bash pipeline/assumptions.sh \
   first_deallocate_splice_shaped_store_preserves_pool_link_fields
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
+  first_deallocate_splice_shaped_store_preserves_pool_link_fields_holds
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
   first_deallocate_splice_preserves_pool_link_fields
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
@@ -375,10 +381,16 @@ bash pipeline/assumptions.sh \
   first_deallocate_splice_preserves_pool_link_fields_from_shaped_store
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
+  first_deallocate_splice_preserves_pool_link_fields_from_pool_link_fields
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
   deallocate_object_resolved_free_list_deref_shapes_from_pool_link_fields
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   deallocate_object_resolved_free_list_deref_shapes_from_pool_link_shaped_store
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  deallocate_object_resolved_free_list_deref_shapes_from_pool_link_fields_holds
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   deallocate_object_resolved_free_list_shape_obligations_from_deref_shapes
@@ -432,10 +444,19 @@ bash pipeline/assumptions.sh \
   unload_deallocate_object_call_empty_env_pool_link_shape_obligations
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
+  unload_deallocate_object_call_empty_env_pool_link_fields_obligations
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
   unload_deallocate_object_call_empty_env_pool_link_store_obligations
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   unload_deallocate_object_call_empty_env_deref_shape_obligations_from_pool_link_shapes
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  unload_deallocate_object_call_empty_env_pool_link_shape_obligations_from_field_obligations
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  unload_deallocate_object_call_empty_env_deref_shape_obligations_from_pool_link_field_obligations
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   unload_deallocate_object_call_empty_env_pool_link_shape_obligations_from_store_obligations
@@ -460,6 +481,18 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   unload_object_tail_empty_env_pool_link_store_frame_obligations
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  unload_object_tail_empty_env_pool_link_fields_frame_obligations
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  unload_object_tail_empty_env_pool_link_shape_obligations_from_field_obligations
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  unload_object_tail_empty_env_pool_slot_frame_from_pool_link_field_obligations
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  unload_object_tail_preserves_pool_slot_active_flags_from_empty_env_pool_link_field_obligations
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   unload_object_tail_empty_env_pool_link_shape_obligations_from_store_obligations

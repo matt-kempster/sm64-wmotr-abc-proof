@@ -375,9 +375,17 @@ its execution trace, not over a hand-written transition function.
   generic memory part of that preservation story. The key CompCert split is:
   after a shaped pointer store, any later object-node field load either reads
   the newly stored shaped pointer (`Mem.load_pointer_store`) or is an
-  unaffected old load (`Mem.load_store_other`). What remains is the narrower
-  generated-code bridge from the actual `next->prev = obj->prev` assignment to
-  this generic shaped-store lemma.
+  unaffected old load (`Mem.load_store_other`).
+- `exec_deallocate_object_next_prev_assign_preserves_pool_link_fields_from_value_shape`,
+  `first_deallocate_splice_shaped_store_preserves_pool_link_fields_holds`,
+  `first_deallocate_splice_preserves_pool_link_fields_from_pool_link_fields`,
+  and
+  `deallocate_object_resolved_free_list_deref_shapes_from_pool_link_fields_holds`
+  close the generated-code bridge for the actual first splice. The proof now
+  decomposes the generated sequence, uses the second read to obtain the shaped
+  `_t'5 = obj->prev` value, and applies the generic shaped-store lemma to the
+  real `next->prev = obj->prev` assignment. At this level, the remaining input
+  is just `object_pool_link_fields_well_shaped`.
 - `empty_env_pool_slot_statement_preserves_obj_and_active_flags`,
   `empty_env_pool_slot_statement_preserves_sequence`,
   `unload_deallocate_object_call_empty_env_frame_from_deref_shape_obligations`,
@@ -409,6 +417,17 @@ its execution trace, not over a hand-written transition function.
   expose that smaller shaped-store seam all the way up at the cleanup-tail
   frame boundary. Future traversal work can therefore supply pool-link
   well-shapedness plus shaped-store preservation directly.
+- `unload_deallocate_object_call_empty_env_pool_link_fields_obligations`,
+  `unload_deallocate_object_call_empty_env_pool_link_shape_obligations_from_field_obligations`,
+  `unload_deallocate_object_call_empty_env_deref_shape_obligations_from_pool_link_field_obligations`,
+  `unload_object_tail_empty_env_pool_link_fields_frame_obligations`,
+  `unload_object_tail_empty_env_pool_link_shape_obligations_from_field_obligations`,
+  `unload_object_tail_empty_env_pool_slot_frame_from_pool_link_field_obligations`,
+  and
+  `unload_object_tail_preserves_pool_slot_active_flags_from_empty_env_pool_link_field_obligations`
+  remove that extra shaped-store assumption from the exposed empty-env seam.
+  The cleanup-tail bridge can now be driven by the helper-call frame facts plus
+  the pool-link field invariant alone.
 - `unload_object_tail_preserves_pool_slot_active_flags_from_named_frames`
   projects that bridge into the activeFlags-only property needed by the
   deactivation proof.
