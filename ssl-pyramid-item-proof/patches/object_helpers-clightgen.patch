@@ -1,0 +1,23 @@
+--- object_helpers.c
++++ object_helpers.c
+@@ -1179 +1179 @@
+-        decel = (*value) * (*value) * (dragStrength * 0.0001L);
++        decel = (*value) * (*value) * (dragStrength * 0.0001);
+@@ -1183 +1183 @@
+-            if (*value < 0.001L) {
++            if (*value < 0.001) {
+@@ -1188 +1188 @@
+-            if (*value > -0.001L) {
++            if (*value > -0.001) {
+@@ -1260 +1260 @@
+-    f32 decelY = (f32)(sqrtf(o->oVelY * o->oVelY) * (o->oDragStrength * 7.0f)) / 100.0L;
++    f32 decelY = (f32)(sqrtf(o->oVelY * o->oVelY) * (o->oDragStrength * 7.0f)) / 100.0;
+@@ -1392 +1392 @@
+-    if (radius > 0.1L) {
++    if (radius > 0.1) {
+@@ -1702 +1702 @@
+-    if (radius > 0.1L) {
++    if (radius > 0.1) {
+@@ -2287 +2287 @@
+-    cur_obj_scale(gDebugInfo[DEBUG_PAGE_ENEMYINFO][3] / 100.0f + 1.0l);
++    cur_obj_scale(gDebugInfo[DEBUG_PAGE_ENEMYINFO][3] / 100.0f + 1.0);
