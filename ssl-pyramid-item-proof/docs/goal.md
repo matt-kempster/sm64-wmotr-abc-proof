@@ -4,6 +4,9 @@ This file backs up the active Codex goal for the SSL Pyramid proof work. If the
 app-level goal state is lost, recreate it from this note rather than relying on
 memory.
 
+For the living, human-readable TODO map, see `checklist.md`. Codex should update
+that checklist during each round of work when the proof frontier changes.
+
 ## Active objective
 
 Build a formal Rocq/Coq + CompCert `clightgen` proof, using the
