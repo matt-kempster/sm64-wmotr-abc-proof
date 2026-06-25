@@ -5,13 +5,14 @@ that an object originating in Shifting Sand Land area 1 cannot remain the same
 live object across the area-change warp into the Pyramid (area 2). If the claim
 is false, the project will instead contain a concrete counterexample.
 
-When developed as a standalone workspace, the reference repository is kept
-separately at `../reference-sm64-wmotr-abc-proof`. The pinned SM64 source is
-kept separately at `../reference-sm64-decomp` at commit
-`9921382a68bb0c865e5e45eb594d9c64db59b1af`. When this directory is checked out
-inside the WMotR proof repository, the scripts also auto-detect the SM64 source
-at `../../reference-sm64-decomp`. Set `SM64_SOURCE=/path/to/sm64` for shell
-scripts or `SM64=/path/to/sm64` for `make` to override either layout.
+To reproduce the generated Clight, provide a checkout of the SM64
+decompilation source pinned at commit
+`9921382a68bb0c865e5e45eb594d9c64db59b1af`. By default, the scripts look for
+that checkout at `../reference-sm64-decomp` (a sibling of this proof directory)
+or at `../../reference-sm64-decomp` (a sibling of the containing repository,
+when this proof directory is nested inside another checkout). Set
+`SM64_SOURCE=/path/to/sm64` for shell scripts or `SM64=/path/to/sm64` for
+`make` to override auto-detection.
 
 ## Intended route
 
@@ -180,7 +181,7 @@ refresh path.
 Use a Unix-like shell with `opam`, Coq, and CompCert available. The helper
 script below activates the opam switch named by `SM64_ITEM_SWITCH` (default:
 `sm64-item-proof`). The SM64 decompilation source is auto-detected in the
-standalone and nested layouts described above; set `SM64_SOURCE=/path/to/sm64`
+common layouts described above; set `SM64_SOURCE=/path/to/sm64`
 for the shell scripts or `SM64=/path/to/sm64` for `make` if your checkout uses a
 different layout.
 
