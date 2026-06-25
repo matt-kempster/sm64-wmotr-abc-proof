@@ -177,6 +177,15 @@ bash pipeline/assumptions.sh \
   exec_sset_different_preserves_lookup
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
+  statement_preserves_temp_shape_sset_different
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  statement_preserves_temp_shape_assign
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  statement_preserves_temp_shape_sequence
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
   exec_deallocate_object_read_next_sets_t4_shape_from_deref_shape
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
@@ -244,6 +253,15 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   deallocate_object_free_list_insert_pool_slot_frame_from_free_list_shape
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  deallocate_object_first_splice_preserves_free_list_shape
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  deallocate_object_second_splice_preserves_free_list_shape
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  deallocate_object_body_pool_slot_frame_from_shape_obligations
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   deallocate_object_body_pool_slot_frame_from_remaining_obligations

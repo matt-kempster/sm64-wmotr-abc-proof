@@ -270,6 +270,20 @@ its execution trace, not over a hand-written transition function.
   activeFlags frame, the value read from `freeList->next` may be arbitrary; the
   only target-shape requirement is that `freeList` itself points outside the
   object pool or to a valid pool-slot header.
+- `statement_preserves_temp_shape_sset_different`,
+  `statement_preserves_temp_shape_assign`,
+  `statement_preserves_temp_shape_sequence`,
+  `deallocate_object_first_splice_preserves_free_list_shape`, and
+  `deallocate_object_second_splice_preserves_free_list_shape` prove that the
+  generated first and second splice sequences do not clobber the `_freeList`
+  temporary's header-or-external shape.
+- `deallocate_object_body_shape_obligations` and
+  `deallocate_object_body_pool_slot_frame_from_shape_obligations` now compose
+  the whole generated `deallocate_object` body from the three segment facts.
+  The remaining list-shape proof must supply exactly: the entry-time
+  `obj->next` dereference shape, the entry-time `_freeList` temp shape, and the
+  `obj->prev` dereference shape at the actual memory state after the first
+  generated splice has executed.
 - `unload_object_tail_preserves_pool_slot_active_flags_from_named_frames`
   projects that bridge into the activeFlags-only property needed by the
   deactivation proof.

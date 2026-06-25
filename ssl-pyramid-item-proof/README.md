@@ -133,7 +133,12 @@ generated and compile. Rocq checks now pin:
   under the `obj->prev` dereference-shape hypothesis; and the final free-list
   insertion sequence
   (`_t'1 = freeList->next; obj->next = _t'1; freeList->next = obj`) is proved
-  as an activeFlags frame from the shape of the `freeList` temp itself;
+  as an activeFlags frame from the shape of the `freeList` temp itself. These
+  segment facts are now composed into a body-level generated-Clight bridge:
+  `deallocate_object` preserves the watched activeFlags bytes if the list proof
+  supplies the entry `obj->next` dereference shape, the entry `freeList` temp
+  shape, and the `obj->prev` dereference shape at the actual post-first-splice
+  memory state;
 - the complete generated `spawn_object` direct-writer census for
   `activeFlags`: exactly `unload_object`, `allocate_object`, `create_object`,
   and `mark_obj_for_deletion` write that field directly;
@@ -168,8 +173,8 @@ allocation epoch remains continuously live across the barrier.
 This is not yet the final impossibility theorem. The main open bridge is to
 prove the remaining `Mem.unchanged_on` frame property for `unload_object`'s
 cleanup tail leaves (the three external cleanup calls plus the
-`deallocate_object` body frame), then lift the result through the
-`unload_objects_from_area` traversal and the linked Clight
+`deallocate_object` list-shape obligations described above), then lift the
+result through the `unload_objects_from_area` traversal and the linked Clight
 execution of `warp_area`/`unload_area`. The currently mechanized stale-pointer
 result covers Mario's `interactObj`/`heldObj`/`usedObj`/`riddenObj` provenance
 through the warp spine and the render-side `GraphNodeHeldObject.objNode`
