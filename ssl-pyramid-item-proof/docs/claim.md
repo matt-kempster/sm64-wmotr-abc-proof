@@ -301,6 +301,15 @@ its execution trace, not over a hand-written transition function.
   avoiding an over-strong global body-frame assumption. The generated-`Scall`
   wrapper then packages this as a caller-side frame theorem over the exact
   `deallocate_object(&gFreeObjectList, &obj->header)` argument evaluation.
+- `function_entry2_deallocate_object_binds_parameter_temps` proves the
+  concrete generated `f_deallocate_object` parameter binding: under CompCert's
+  parameter-as-temporaries semantics, the two call arguments become exactly the
+  `_freeList` and `_obj` temps, and because the generated function has no local
+  variables, entry memory is the call memory.
+- `deallocate_object_internal_call_shape_obligations_from_bound_entry_shapes`
+  packages that binding fact for later list-shape work: it is enough to prove
+  the deallocation body shape obligations for entry temp environments whose
+  `_freeList` and `_obj` values are the actual call arguments.
 - `unload_object_tail_preserves_pool_slot_active_flags_from_named_frames`
   projects that bridge into the activeFlags-only property needed by the
   deactivation proof.
