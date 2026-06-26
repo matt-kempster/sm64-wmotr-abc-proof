@@ -181,6 +181,17 @@ its execution trace, not over a hand-written transition function.
   `stop_sounds_from_source` does not write through its `pos` parameter, and
   `deallocate_object`, `geo_remove_child`, and `geo_add_child` have no direct
   `activeFlags` assignment in their generated bodies.
+- `unload_non_deallocate_helper_call_shapes`,
+  `non_deallocate_cleanup_helpers_have_no_direct_active_flags_write`, and
+  `linked_resolves_non_deallocate_cleanup_helpers` make the three
+  non-deallocate helper calls less spooky. The caller-side statements are
+  pinned to exactly `stop_sounds_from_source(obj->header.gfx.cameraToObject)`,
+  `geo_remove_child(&obj->header.gfx.node)`, and
+  `geo_add_child(&gObjParentGraphNode, &obj->header.gfx.node)`. The real linked
+  program resolves those names to the generated audio/graph bodies, and those
+  bodies have no direct `activeFlags` writes; the graph helpers also have no
+  direct callees, while the audio helper's only direct call stays inside the
+  already-censused audio translation unit.
 - `assign_loc_by_value_preserves_active_flags_bytes` is the direct-store
   building block: a CompCert by-value assignment preserves the watched
   activeFlags bytes when its concrete store range is disjoint from them, using
@@ -497,9 +508,12 @@ once the object-list/global proof supplies the header-or-external shape of their
 target temps. The whole tail is now reduced to a
 refined same-object frame checklist: `stop_sounds_from_source`,
 `geo_remove_child`, `geo_add_child`, and `deallocate_object`. The cleanup call
-targets are separated from the known allocation/deletion activeFlags writers by
-generated-code census facts; semantic alias/frame arguments for the calls are
-still required.
+targets are separated from the known allocation/deletion activeFlags writers,
+their caller argument shapes are pinned, and the three non-deallocate helper
+names resolve to generated internal bodies in the linked program. Semantic
+alias/frame arguments for the graph-node and audio-bank writes are still
+required before those helper calls can discharge the local cleanup-tail frame
+tuple outright.
 
 ## Mechanized traversal invariant
 
@@ -582,9 +596,10 @@ metatheory, keeping the linked program opaque, to show that the core symbols
 resolve to their actual internal bodies whenever the linked program contains
 the `level_update`, `area`, `object_list_processor`, `spawn_object`,
 `graph_node`, `mario`, and `audio/external` programs. In particular,
-`stop_sounds_from_source` is no longer left as an unconstrained external call;
-its real C body is generated and the whole audio TU has no direct
-`activeFlags` writer.
+`stop_sounds_from_source`, `geo_remove_child`, and `geo_add_child` are no
+longer just unconstrained external names at the linked-program boundary; their
+real C bodies are generated, and the audit above pins their direct
+`activeFlags` footprint.
 
 Still required is a reproducible certificate that these seven generated
 programs successfully form the chosen linked program and the semantic

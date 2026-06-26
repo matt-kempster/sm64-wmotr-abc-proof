@@ -326,6 +326,14 @@ Theorem stop_sounds_direct_call_order :
   [AU._update_background_music_after_sound].
 Proof. vm_compute; reflexivity. Qed.
 
+Theorem geo_remove_child_direct_call_order :
+  direct_callees_s (fn_body G.f_geo_remove_child) = [].
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem geo_add_child_direct_call_order :
+  direct_callees_s (fn_body G.f_geo_add_child) = [].
+Proof. vm_compute; reflexivity. Qed.
+
 Theorem deallocate_object_has_no_direct_active_flags_assignment :
   assigns_field_s S._activeFlags
     (fn_body S.f_deallocate_object) = false.
@@ -359,6 +367,30 @@ Proof.
       | exact deallocate_object_has_no_direct_active_flags_assignment
       | exact geo_remove_child_has_no_direct_active_flags_assignment
       | exact geo_add_child_has_no_direct_active_flags_assignment ].
+Qed.
+
+Theorem non_deallocate_cleanup_helpers_have_no_direct_active_flags_write :
+  direct_field_writers AU.prog S._activeFlags = [] /\
+  assigns_through_temp_s AU._pos
+    (fn_body AU.f_stop_sounds_from_source) = false /\
+  direct_callees_s (fn_body AU.f_stop_sounds_from_source) =
+    [AU._update_background_music_after_sound] /\
+  assigns_field_s G._activeFlags
+    (fn_body G.f_geo_remove_child) = false /\
+  direct_callees_s (fn_body G.f_geo_remove_child) = [] /\
+  assigns_field_s G._activeFlags
+    (fn_body G.f_geo_add_child) = false /\
+  direct_callees_s (fn_body G.f_geo_add_child) = [].
+Proof.
+  repeat split;
+    first
+      [ exact audio_has_no_direct_active_flags_writer
+      | exact stop_sounds_does_not_write_through_source_pointer
+      | exact stop_sounds_direct_call_order
+      | exact geo_remove_child_has_no_direct_active_flags_assignment
+      | exact geo_remove_child_direct_call_order
+      | exact geo_add_child_has_no_direct_active_flags_assignment
+      | exact geo_add_child_direct_call_order ].
 Qed.
 
 Theorem transition_structural_spine :
