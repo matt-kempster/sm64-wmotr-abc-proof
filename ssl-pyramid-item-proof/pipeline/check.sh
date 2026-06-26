@@ -542,6 +542,9 @@ bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   exec_unload_object_deactivates_pool_slot
 bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  exec_unload_object_deactivates_pool_slot_from_empty_env_pool_link_field_obligations
+bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.TraversalModel \
   traversal_trace_forbids_transfer
 bash pipeline/assumptions.sh \

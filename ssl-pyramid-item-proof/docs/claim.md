@@ -135,6 +135,14 @@ its execution trace, not over a hand-written transition function.
   generated `unload_object` body deactivates that pool slot. This avoids the
   over-strong requirement that the tail frame every activeFlags-shaped byte
   range in arbitrary memory.
+- `exec_unload_object_deactivates_pool_slot_from_empty_env_pool_link_field_obligations`
+  now connects that generated-body bridge to the newer field-only empty-env
+  cleanup-tail proof. Under the helper-call frame facts plus
+  `object_pool_link_fields_well_shaped`, the actual generated
+  `fn_body f_unload_object` deactivates the current object-pool slot. This is
+  still an own-slot deactivation result; the remaining `deactivation_trace`
+  bridge needs a full `deactivation_step`, including preservation of other
+  already-deactivated slots.
 - `unload_object_tail_does_not_write_obj_temp` pins a key generated-code fact:
   the cleanup tail does not overwrite the `_obj` temporary. This is the
   syntactic fact needed to compose same-object frame obligations through the
@@ -428,6 +436,11 @@ its execution trace, not over a hand-written transition function.
   remove that extra shaped-store assumption from the exposed empty-env seam.
   The cleanup-tail bridge can now be driven by the helper-call frame facts plus
   the pool-link field invariant alone.
+- The field-only empty-env seam is now used by
+  `exec_unload_object_deactivates_pool_slot_from_empty_env_pool_link_field_obligations`,
+  so it reaches the actual generated `unload_object` body rather than stopping
+  at the cleanup tail. Future traversal work still has to lift this own-slot
+  result into a trace step that frames other deactivated slots.
 - `unload_object_tail_preserves_pool_slot_active_flags_from_named_frames`
   projects that bridge into the activeFlags-only property needed by the
   deactivation proof.
