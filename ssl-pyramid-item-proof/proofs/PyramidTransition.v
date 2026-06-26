@@ -10,7 +10,7 @@ Record pyramid_transition_certificate
   certificate_snapshot_well_formed :
     snapshot_well_formed before pool_block snapshot;
   certificate_deactivation_trace :
-    deactivation_trace pool_block before
+    valid_deactivation_trace pool_block before
       (unload_targets ssl_outside_area snapshot) barrier
 }.
 
@@ -23,7 +23,7 @@ Proof.
   intros before barrier pool_block warp_dest_block current_area_block
     snapshot Hcertificate.
   destruct Hcertificate as [_ Hsnapshot Htrace].
-  eapply traversal_trace_clears_outside; eauto.
+  eapply valid_traversal_trace_clears_outside; eauto.
 Qed.
 
 Theorem certified_pyramid_transition_forbids_continuous_item_transfer :

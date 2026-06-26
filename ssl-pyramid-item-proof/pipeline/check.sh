@@ -71,6 +71,21 @@ bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadSequence \
   deactivation_step_is_valid_deactivation_step
 bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadSequence \
+  deactivation_trace_is_valid_deactivation_trace
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadSequence \
+  valid_deactivation_trace_preserves_other_valid_slot
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadSequence \
+  valid_deactivation_trace_clears_members
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadSequence \
+  covered_valid_deactivation_trace_clears_outside
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadSequence \
+  covered_valid_deactivation_trace_forbids_transfer
+bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   unload_object_node_next_layout
 bash pipeline/assumptions.sh \
@@ -558,7 +573,19 @@ bash pipeline/assumptions.sh \
   exec_unload_object_valid_deactivation_step_from_tail_frame
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.TraversalModel \
+  unload_targets_are_valid
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TraversalModel \
+  valid_traversal_trace_clears_outside
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TraversalModel \
+  valid_traversal_trace_forbids_transfer
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TraversalModel \
   traversal_trace_forbids_transfer
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.PyramidTransition \
+  certified_pyramid_transition_clears_outside
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.PyramidTransition \
   certified_pyramid_transition_forbids_continuous_item_transfer
