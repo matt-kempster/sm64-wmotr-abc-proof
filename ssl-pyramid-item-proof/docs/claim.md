@@ -143,6 +143,18 @@ its execution trace, not over a hand-written transition function.
   still an own-slot deactivation result; the remaining `deactivation_trace`
   bridge needs a full `deactivation_step`, including preservation of other
   already-deactivated slots.
+- `valid_deactivation_step`,
+  `deactivation_step_is_valid_deactivation_step`,
+  `pool_slot_deactivated_is_pointer_slot`,
+  `exec_unload_active_flags_assign_preserves_other_pool_slot`, and
+  `exec_unload_object_valid_deactivation_step_from_tail_frame` add the
+  valid-slot version of that trace-step bridge. The generated activeFlags
+  store is shown to preserve any other deactivated pool slot, and the cleanup
+  tail's global frame carries those valid slots through the rest of the
+  generated body. This is deliberately scoped to `valid_object_slot`, matching
+  `outside_live_slot`; the next refinement is to drive the same shape from the
+  tighter field-only/pool-link obligations instead of the older global tail
+  frame.
 - `unload_object_tail_does_not_write_obj_temp` pins a key generated-code fact:
   the cleanup tail does not overwrite the `_obj` temporary. This is the
   syntactic fact needed to compose same-object frame obligations through the

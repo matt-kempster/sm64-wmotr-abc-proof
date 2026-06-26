@@ -111,6 +111,26 @@ Definition deactivation_step
     slot_deactivated before pool_block kept_slot ->
     slot_deactivated after pool_block kept_slot.
 
+Definition valid_deactivation_step
+    (pool_block : block) (slot : Z) (before after : mem) : Prop :=
+  slot_deactivated after pool_block slot /\
+  forall kept_slot,
+    valid_object_slot kept_slot ->
+    kept_slot <> slot ->
+    slot_deactivated before pool_block kept_slot ->
+    slot_deactivated after pool_block kept_slot.
+
+Theorem deactivation_step_is_valid_deactivation_step :
+  forall pool_block slot before after,
+    deactivation_step pool_block slot before after ->
+    valid_deactivation_step pool_block slot before after.
+Proof.
+  intros pool_block slot before after (Hslot & Hpreserves).
+  split; [exact Hslot |].
+  intros kept_slot _ Hdifferent Hdeactivated.
+  eapply Hpreserves; eauto.
+Qed.
+
 Inductive deactivation_trace (pool_block : block)
     : mem -> list Z -> mem -> Prop :=
 | trace_none :

@@ -72,13 +72,16 @@ the same pool slot's deactivation fact.
 - [x] Connect the field-only empty-env cleanup-tail bridge back to the actual
   generated `fn_body f_unload_object`, proving the current slot is deactivated
   after that body under those obligations.
+- [x] Add a valid-slot-scoped `valid_deactivation_step` bridge for generated
+  `unload_object` via the global tail frame. Not every integer is a real object
+  slot; the proof now says the quiet part out loud.
 - [ ] Plug this pool-link-shape tail bridge into the actual traversal path, so
   the deactivation certificate no longer uses the older generic call frame.
 - [ ] Audit / prove the three non-deallocate helper calls cannot touch the
   watched pool slot in the bad way.
-- [ ] Strengthen the generated `unload_object` bridge into a full
-  `deactivation_step`, including preservation of already-deactivated other
-  slots. Right now it proves the unloaded slot dies, not the whole trace step.
+- [ ] Replace the global-tail-frame valid step with the tighter field-only /
+  pool-link invariant route, so the trace bridge no longer leans on the older
+  broad frame assumption.
 - [ ] Connect the cleanup-tail theorem into the traversal/deactivation trace,
   not just as a standalone local lemma.
 
@@ -201,9 +204,8 @@ lower than before:
 - prove `object_pool_link_fields_well_shaped` from the real object-pool/list
   invariant;
 - audit the three non-deallocate helper calls at the same frame level; and
-- strengthen generated `unload_object` execution from "this slot is
-  deactivated" into a full `deactivation_step`, then plug that into the actual
-  traversal/deactivation certificate path.
+- thread `valid_deactivation_step` through a valid-slot trace model, then plug
+  that into the actual traversal/deactivation certificate path.
 
 Translation: we are trying to make the free-list surgery boring enough that the
 stale-pointer question has nowhere dark left to hide.
