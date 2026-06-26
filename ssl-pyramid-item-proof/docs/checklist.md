@@ -1,6 +1,6 @@
 # SSL Pyramid item proof checklist
 
-Last updated: 2026-06-25
+Last updated: 2026-06-26
 
 Tiny vibe check: this is the human-readable TODO list for the "can we smuggle
 stuff into SSL Pyramid?" proof. The Coq files are the machine's truth. This
@@ -75,7 +75,7 @@ the same pool slot's deactivation fact.
 - [x] Add a valid-slot-scoped `valid_deactivation_step` bridge for generated
   `unload_object` via the global tail frame. Not every integer is a real object
   slot; the proof now says the quiet part out loud.
-- [ ] Plug this pool-link-shape tail bridge into the actual traversal path, so
+- [x] Plug this pool-link-shape tail bridge into the actual traversal path, so
   the deactivation certificate no longer uses the older generic call frame.
 - [ ] Audit / prove the three non-deallocate helper calls cannot touch the
   watched pool slot in the bad way.
@@ -135,7 +135,7 @@ This is the "the engine actually unloads every outside object it should" layer.
 - [ ] Prove every listed outside slot gets an actual `unload_object` execution
   that deactivates that slot.
 - [ ] Connect the generated cleanup execution to the abstract
-  `deactivation_trace`.
+  `valid_deactivation_trace`.
 
 ## 6. Stale-pointer / cloning investigation
 
@@ -204,8 +204,9 @@ lower than before:
 - prove `object_pool_link_fields_well_shaped` from the real object-pool/list
   invariant;
 - audit the three non-deallocate helper calls at the same frame level; and
-- thread `valid_deactivation_step` through a valid-slot trace model, then plug
-  that into the actual traversal/deactivation certificate path.
+- connect the generated traversal/unload execution to the new
+  `valid_deactivation_trace` certificate path, not just the abstract snapshot
+  model.
 
 Translation: we are trying to make the free-list surgery boring enough that the
 stale-pointer question has nowhere dark left to hide.

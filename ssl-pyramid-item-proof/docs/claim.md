@@ -140,8 +140,8 @@ its execution trace, not over a hand-written transition function.
   cleanup-tail proof. Under the helper-call frame facts plus
   `object_pool_link_fields_well_shaped`, the actual generated
   `fn_body f_unload_object` deactivates the current object-pool slot. This is
-  still an own-slot deactivation result; the remaining `deactivation_trace`
-  bridge needs a full `deactivation_step`, including preservation of other
+  still an own-slot deactivation result; by itself it does not provide the
+  whole trace step, because the trace also needs preservation of other
   already-deactivated slots.
 - `valid_deactivation_step`,
   `deactivation_step_is_valid_deactivation_step`,
@@ -155,6 +155,14 @@ its execution trace, not over a hand-written transition function.
   `outside_live_slot`; the next refinement is to drive the same shape from the
   tighter field-only/pool-link obligations instead of the older global tail
   frame.
+- `valid_deactivation_trace`,
+  `valid_deactivation_trace_clears_members`,
+  `valid_traversal_trace_forbids_transfer`, and the updated
+  `pyramid_transition_certificate` thread the valid-slot step model through
+  the traversal certificate. The capstone certificate no longer asks for the
+  older all-integer `deactivation_trace`; it asks for a trace whose targets are
+  real object-pool slots and whose preservation promise is scoped to those
+  real slots.
 - `unload_object_tail_does_not_write_obj_temp` pins a key generated-code fact:
   the cleanup tail does not overwrite the `_obj` temporary. This is the
   syntactic fact needed to compose same-object frame obligations through the
@@ -589,8 +597,9 @@ overlap an object's `activeFlags` bytes.
 bundles:
 
 - the concrete SSL destination fields and current outside-area field;
-- the well-formed 13-list snapshot; and
-- the area-1 deactivation trace.
+- the well-formed 13-list snapshot, including that all listed slots are valid
+  object-pool slots; and
+- the area-1 valid deactivation trace.
 
 The theorem
 `certified_pyramid_transition_forbids_continuous_item_transfer` is fully proved
