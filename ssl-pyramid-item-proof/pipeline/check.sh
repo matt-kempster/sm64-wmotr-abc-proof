@@ -29,8 +29,14 @@ bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.LayoutFacts \
   unload_object_direct_store_offsets_miss_active_flags
 bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.SymbolicLinking \
+  linked_resolves_non_deallocate_cleanup_helpers
+bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   unload_object_after_prev_split_throw_matrix
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  unload_non_deallocate_helper_call_shapes
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   unload_object_throw_matrix_layout
@@ -556,6 +562,9 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.TransitionFacts \
   cleanup_call_targets_have_no_direct_active_flags_assignment
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TransitionFacts \
+  non_deallocate_cleanup_helpers_have_no_direct_active_flags_write
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   unload_object_tail_preserves_deactivation_from_frame

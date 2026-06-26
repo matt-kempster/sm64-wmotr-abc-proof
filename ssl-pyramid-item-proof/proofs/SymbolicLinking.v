@@ -228,6 +228,28 @@ Section TransitionLinkedResolution.
     - exact audio_defmap_stop_sounds_from_source.
   Qed.
 
+  Theorem linked_resolves_non_deallocate_cleanup_helpers :
+    (exists block,
+      Genv.find_symbol (globalenv linked) AU._stop_sounds_from_source =
+      Some block /\
+      Genv.find_funct_ptr (globalenv linked) block =
+      Some (Internal AU.f_stop_sounds_from_source)) /\
+    (exists block,
+      Genv.find_symbol (globalenv linked) G._geo_remove_child = Some block /\
+      Genv.find_funct_ptr (globalenv linked) block =
+      Some (Internal G.f_geo_remove_child)) /\
+    (exists block,
+      Genv.find_symbol (globalenv linked) G._geo_add_child = Some block /\
+      Genv.find_funct_ptr (globalenv linked) block =
+      Some (Internal G.f_geo_add_child)).
+  Proof.
+    split.
+    - apply linked_resolves_stop_sounds_from_source.
+    - split.
+      + apply linked_resolves_geo_remove_child.
+      + apply linked_resolves_geo_add_child.
+  Qed.
+
   Theorem linked_resolves_init_mario :
     exists block,
       Genv.find_symbol (globalenv linked) M._init_mario = Some block /\

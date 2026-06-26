@@ -65,6 +65,21 @@ Definition unload_object_graph_node_expr : expr :=
     unload_object_gfx_expr
     S._node (Tstruct S._GraphNode noattr).
 
+Definition unload_object_camera_to_object_expr : expr :=
+  Efield
+    unload_object_gfx_expr
+    S._cameraToObject (tarray tfloat 3).
+
+Definition unload_object_graph_node_addr_expr : expr :=
+  Eaddrof
+    unload_object_graph_node_expr
+    (tptr (Tstruct S._GraphNode noattr)).
+
+Definition unload_global_parent_graph_node_addr_expr : expr :=
+  Eaddrof
+    (Evar S._gObjParentGraphNode (Tstruct S._GraphNode noattr))
+    (tptr (Tstruct S._GraphNode noattr)).
+
 Definition unload_object_tail : statement :=
   match fn_body S.f_unload_object with
   | Ssequence _ tail => tail
@@ -338,6 +353,66 @@ Theorem unload_object_after_prev_split_throw_matrix :
   unload_object_after_prev =
   Ssequence unload_throw_matrix_assign unload_object_after_throw_matrix.
 Proof. reflexivity. Qed.
+
+Theorem unload_stop_sounds_call_shape :
+  unload_stop_sounds_call =
+  Scall None
+    (Evar S._stop_sounds_from_source
+      (Tfunction ((tptr tfloat) :: nil) tvoid cc_default))
+    (unload_object_camera_to_object_expr :: nil).
+Proof. reflexivity. Qed.
+
+Theorem unload_geo_remove_child_call_shape :
+  unload_geo_remove_child_call =
+  Scall None
+    (Evar S._geo_remove_child
+      (Tfunction
+        ((tptr (Tstruct S._GraphNode noattr)) :: nil)
+        (tptr (Tstruct S._GraphNode noattr)) cc_default))
+    (unload_object_graph_node_addr_expr :: nil).
+Proof. reflexivity. Qed.
+
+Theorem unload_geo_add_child_call_shape :
+  unload_geo_add_child_call =
+  Scall None
+    (Evar S._geo_add_child
+      (Tfunction
+        ((tptr (Tstruct S._GraphNode noattr)) ::
+         (tptr (Tstruct S._GraphNode noattr)) :: nil)
+        (tptr (Tstruct S._GraphNode noattr)) cc_default))
+    (unload_global_parent_graph_node_addr_expr ::
+     unload_object_graph_node_addr_expr :: nil).
+Proof. reflexivity. Qed.
+
+Theorem unload_non_deallocate_helper_call_shapes :
+  unload_stop_sounds_call =
+    Scall None
+      (Evar S._stop_sounds_from_source
+        (Tfunction ((tptr tfloat) :: nil) tvoid cc_default))
+      (unload_object_camera_to_object_expr :: nil) /\
+  unload_geo_remove_child_call =
+    Scall None
+      (Evar S._geo_remove_child
+        (Tfunction
+          ((tptr (Tstruct S._GraphNode noattr)) :: nil)
+          (tptr (Tstruct S._GraphNode noattr)) cc_default))
+      (unload_object_graph_node_addr_expr :: nil) /\
+  unload_geo_add_child_call =
+    Scall None
+      (Evar S._geo_add_child
+        (Tfunction
+          ((tptr (Tstruct S._GraphNode noattr)) ::
+           (tptr (Tstruct S._GraphNode noattr)) :: nil)
+          (tptr (Tstruct S._GraphNode noattr)) cc_default))
+      (unload_global_parent_graph_node_addr_expr ::
+       unload_object_graph_node_addr_expr :: nil).
+Proof.
+  repeat split;
+    first
+      [ apply unload_stop_sounds_call_shape
+      | apply unload_geo_remove_child_call_shape
+      | apply unload_geo_add_child_call_shape ].
+Qed.
 
 Theorem unload_object_after_throw_matrix_split_stop_sounds :
   unload_object_after_throw_matrix =
