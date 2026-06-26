@@ -5766,3 +5766,35 @@ Proof.
   apply pointer_slot_deactivated_is_pool_slot; [exact Hvalid |].
   eapply exec_unload_object_deactivates_from_same_obj_frame; eauto.
 Qed.
+
+Theorem exec_unload_object_deactivates_pool_slot_from_empty_env_pool_link_field_obligations :
+  unload_object_tail_empty_env_pool_link_fields_frame_obligations ->
+  forall le memory pool_block slot trace le' memory' outcome,
+    valid_object_slot slot ->
+    le ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) ->
+    exec_stmt function_entry2 unload_object_ge empty_env le memory
+      (fn_body S.f_unload_object) trace le' memory' outcome ->
+    slot_deactivated memory' pool_block slot.
+Proof.
+  intros Htail_frames le memory pool_block slot trace le' memory' outcome
+    Hvalid Hobj Hexec.
+  apply pointer_slot_deactivated_is_pool_slot; [exact Hvalid |].
+  rewrite unload_object_body_split in Hexec.
+  destruct
+    (exec_seq_assign _ _ _ _ _ _ _ _ _ _ _ _ Hexec)
+    as (trace1 & le1 & memory1 & trace2 & Hfirst & Hrest).
+  destruct
+    (exec_unload_active_flags_assign
+      empty_env le memory pool_block
+      (Ptrofs.repr (slot * object_slot_size))
+      trace1 le1 memory1 Out_normal Hobj Hfirst)
+    as (Hle1 & _ & Hdeactivated).
+  subst le1.
+  eapply unchanged_on_active_flags_preserves_pointer_slot_deactivated.
+  - eapply
+      unload_object_tail_preserves_pool_slot_active_flags_from_empty_env_pool_link_field_obligations;
+      eauto.
+  - exact Hdeactivated.
+Qed.
