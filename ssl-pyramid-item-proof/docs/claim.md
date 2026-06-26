@@ -670,6 +670,22 @@ must be ruled out separately; it is not represented by `heldObj`. Coins and
 allocations, and the final theorem must say explicitly whether such persistent
 counter effects are outside the word “item.”
 
+`proofs/OutsideObjectChannels.v` packages this as the finite list
+`outside_pyramid_object_channels`. The list has nine named channel cases and is
+checked against generated data:
+
+- `outside_pyramid_transport_relevant_macro_entries_exact` extracts exactly
+  these nine relevant macro entries from the generated SSL area-1 macro table;
+- every listed channel is present in `ssl_seg7_area_1_macro_objs`;
+- its encoded macro preset matches its preset-table index;
+- its preset behavior and preset parameter match `sMacroObjectPresets`;
+- the shell-box preset parameter is tied to `bhvKoopaShell` through
+  `sExclamationBoxContents`;
+- the Wing Cap preset parameter is tied to `bhvWingCap` through the same
+  generated contents table; and
+- the direct object cases are backed by generated hitbox facts showing
+  `INTERACT_GRABBABLE`.
+
 The proof also has to cover dynamically spawned descendants and glitch-created
 stale-slot references; this finite list is the hold/ride root set, not the whole
 area-1 object set.
