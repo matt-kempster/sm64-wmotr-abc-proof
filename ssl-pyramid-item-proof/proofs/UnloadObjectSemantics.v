@@ -3,7 +3,7 @@ Import ListNotations.
 From compcert Require Import AST Coqlib Ctypes Clight ClightBigstep Cop Errors
   Globalenvs Integers Maps Memory Values Clightdefs.
 From SSLPyramid.Generated Require Import spawn_object.
-From SSLPyramid.Proofs Require Import ASTFacts Spec.
+From SSLPyramid.Proofs Require Import ASTFacts Spec UnloadSequence UnloadStore.
 
 Module S := spawn_object.
 
@@ -1297,6 +1297,20 @@ Proof.
   exact Hpointer.
 Qed.
 
+Theorem pool_slot_deactivated_is_pointer_slot :
+  forall memory pool_block slot,
+    valid_object_slot slot ->
+    slot_deactivated memory pool_block slot ->
+    pointer_slot_deactivated memory pool_block
+      (Ptrofs.repr ((slot * object_slot_size)%Z)).
+Proof.
+  intros memory pool_block slot Hvalid Hslot.
+  unfold pointer_slot_deactivated.
+  unfold slot_deactivated in Hslot.
+  rewrite (pool_slot_active_flags_address slot Hvalid).
+  exact Hslot.
+Qed.
+
 Lemma assign_loc_tshort_zero_load_same :
   forall ce memory object_block object_offset memory',
     assign_loc ce tshort memory object_block object_offset Full
@@ -1405,6 +1419,109 @@ Proof.
       unfold pointer_slot_deactivated;
       apply assign_loc_tshort_zero_load_same in Hassign;
       exact Hassign
+  end.
+Qed.
+
+Lemma exec_unload_active_flags_assign_preserves_other_pool_slot :
+  forall (e : env) le memory pool_block changed_slot kept_slot
+         trace le' memory' outcome,
+    valid_object_slot changed_slot ->
+    kept_slot <> changed_slot ->
+    le ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((changed_slot * object_slot_size)%Z))) ->
+    slot_deactivated memory pool_block kept_slot ->
+    exec_stmt function_entry2 unload_object_ge e le memory
+      unload_active_flags_assign trace le' memory' outcome ->
+    slot_deactivated memory' pool_block kept_slot.
+Proof.
+  intros e le memory pool_block changed_slot kept_slot trace le' memory'
+    outcome Hvalid_changed Hdifferent Hobj Hdeactivated Hexec.
+  unfold unload_active_flags_assign in Hexec.
+  inv Hexec.
+  match goal with
+  | Hlv : eval_lvalue _ _ _ _ (Efield _ _ _) _ _ _ |- _ => inv Hlv
+  end;
+    [ | match goal with Hut : typeof _ = Tunion _ _ |- _ => inv Hut end ].
+  match goal with
+  | Hee : eval_expr _ _ _ _ (Ederef _ _) _ |- _ => inv Hee
+  end.
+  match goal with
+  | Hlv : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ => inv Hlv
+  end.
+  match goal with
+  | He : eval_expr _ _ _ _ (Etempvar S._obj _) _ |- _ =>
+      inv He;
+      try (match goal with
+           | Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ =>
+               solve [inv Hl]
+           end)
+  end.
+  match goal with
+  | Hlookup : ?temps ! S._obj = Some (Vptr ?b ?ofs) |- _ =>
+      first
+        [ constr_eq ofs (Ptrofs.repr (changed_slot * object_slot_size));
+          fail 1
+        | first
+            [ constr_eq b pool_block
+            | assert (b = pool_block) by congruence; subst b ];
+          assert
+            (ofs = Ptrofs.repr (changed_slot * object_slot_size))
+            by congruence;
+          subst ofs ]
+  end.
+  match goal with
+  | Hderef : deref_loc _ _ _ _ _ _ |- _ =>
+      cbn [typeof] in Hderef;
+      inv Hderef
+  end;
+    try (match goal with
+         | Hmode : access_mode (Tstruct _ _) = By_value _ |- _ =>
+             discriminate
+         end);
+    try (match goal with
+         | Hmode : access_mode (Tstruct _ _) = By_reference |- _ =>
+             discriminate
+         end).
+  repeat match goal with
+  | H : context[typeof (Efield _ _ _)] |- _ => cbn [typeof] in H
+  | H : context[typeof (Ederef _ _)] |- _ => cbn [typeof] in H
+  end.
+  match goal with Hty : Tstruct _ _ = Tstruct _ _ |- _ => inv Hty end.
+  rewrite unload_object_genv_cenv in *.
+  match goal with
+  | Hco : unload_object_ce ! S._Object = Some ?co,
+    Hfield :
+      field_offset unload_object_ce S._activeFlags (co_members ?co) =
+      OK (?delta, ?bf),
+    Heval : eval_expr _ _ _ _ (Econst_int _ _) ?rhs_value,
+    Hcast : sem_cast ?rhs_value _ _ _ = Some ?stored_value,
+    Hassign :
+      assign_loc unload_object_ce tshort ?memory0 ?object_block0
+        (Ptrofs.add ?object_offset0 (Ptrofs.repr ?delta))
+        ?bf ?stored_value memory' |- _ =>
+      assert (Hmembers : co_members co = unload_object_members) by
+        (unfold unload_object_members; rewrite Hco; reflexivity);
+      rewrite Hmembers in Hfield;
+      rewrite unload_object_active_flags_layout in Hfield;
+      inv Hfield;
+      inv Heval;
+      try (match goal with
+           | Hl : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+               solve [inv Hl]
+           end);
+      vm_compute in Hcast;
+      inv Hcast;
+      inv Hassign;
+      try congruence;
+      simpl in H;
+      inv H;
+      unfold Mem.storev in H0;
+      rewrite
+        (pool_slot_active_flags_address changed_slot Hvalid_changed)
+        in H0;
+      eapply store_other_slot_preserves_deactivated;
+        eauto
   end.
 Qed.
 
@@ -5797,4 +5914,42 @@ Proof.
       unload_object_tail_preserves_pool_slot_active_flags_from_empty_env_pool_link_field_obligations;
       eauto.
   - exact Hdeactivated.
+Qed.
+
+Theorem exec_unload_object_valid_deactivation_step_from_tail_frame :
+  unload_object_tail_preserves_active_flags_bytes ->
+  forall (e : env) le memory pool_block slot
+         trace le' memory' outcome,
+    valid_object_slot slot ->
+    le ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) ->
+    exec_stmt function_entry2 unload_object_ge e le memory
+      (fn_body S.f_unload_object) trace le' memory' outcome ->
+    valid_deactivation_step pool_block slot memory memory'.
+Proof.
+  intros Htail e le memory pool_block slot trace le' memory' outcome
+    Hvalid Hobj Hexec.
+  split.
+  - eapply exec_unload_object_deactivates_pool_slot.
+    + apply unload_object_tail_preserves_deactivation_from_frame.
+      exact Htail.
+    + exact Hvalid.
+    + exact Hobj.
+    + exact Hexec.
+  - intros kept_slot Hvalid_kept Hdifferent Hdeactivated.
+    rewrite unload_object_body_split in Hexec.
+    destruct
+      (exec_seq_assign _ _ _ _ _ _ _ _ _ _ _ _ Hexec)
+      as (trace1 & le1 & memory1 & trace2 & Hfirst & Hrest).
+    pose proof
+      (exec_unload_active_flags_assign_preserves_other_pool_slot
+        e le memory pool_block slot kept_slot trace1 le1 memory1
+        Out_normal Hvalid Hdifferent Hobj Hdeactivated Hfirst)
+      as Hdeactivated_after_first.
+    eapply pointer_slot_deactivated_is_pool_slot; [exact Hvalid_kept |].
+    eapply unchanged_on_active_flags_preserves_pointer_slot_deactivated.
+    + eapply Htail.
+      exact Hrest.
+    + apply pool_slot_deactivated_is_pointer_slot; assumption.
 Qed.

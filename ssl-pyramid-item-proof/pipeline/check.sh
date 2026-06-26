@@ -68,6 +68,9 @@ bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   unload_object_header_lhs_access_mode
 bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadSequence \
+  deactivation_step_is_valid_deactivation_step
+bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   unload_object_node_next_layout
 bash pipeline/assumptions.sh \
@@ -94,6 +97,9 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   pool_slot_header_address
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  pool_slot_deactivated_is_pointer_slot
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   pool_slot_node_next_address
@@ -229,6 +235,9 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   exec_deallocate_object_free_list_next_assign_preserves_active_flags_from_target_shape
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  exec_unload_active_flags_assign_preserves_other_pool_slot
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   exec_unload_prev_obj_assign_preserves_active_flags
@@ -544,6 +553,9 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   exec_unload_object_deactivates_pool_slot_from_empty_env_pool_link_field_obligations
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  exec_unload_object_valid_deactivation_step_from_tail_frame
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.TraversalModel \
   traversal_trace_forbids_transfer
