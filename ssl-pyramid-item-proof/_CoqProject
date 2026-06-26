@@ -20,6 +20,7 @@ generated/ssl_area1_macro.v
 generated/audio_external.v
 
 proofs/ASTFacts.v
+proofs/OutsideObjectChannels.v
 proofs/Spec.v
 proofs/StalePointerModel.v
 proofs/LayoutFacts.v

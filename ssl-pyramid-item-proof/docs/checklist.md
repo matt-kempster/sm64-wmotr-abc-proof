@@ -40,7 +40,11 @@ This is the "what toys are actually outside the pyramid?" layer.
 - [x] Record that SSL area 1 has a Koopa shell source via exclamation box.
 - [x] Record the Wing Cap boxes / cap-state channel as a separate thing from
   "same object identity crosses the wall."
-- [ ] Mechanize the finite list of outside-Pyramid object channels.
+- [x] Mechanize the finite list of outside-Pyramid object channels.
+  `OutsideObjectChannels.v` now gives us nine named cases instead of a
+  hand-wavy pile: small breakable box, two bob-ombs, two jumping boxes, the
+  shell box, and three Wing Cap boxes. It also extracts the exact relevant
+  macro entries from the generated SSL area-1 macro table.
 - [ ] Decide, with proof/doc evidence, whether each channel is:
   - direct object transfer risk,
   - stale-pointer / cloning risk,
@@ -204,8 +208,8 @@ counterexample-shaped goblin.
 
 ## Current next bite
 
-The next proof-shaped bite is still the cleanup/deallocation seam, but one rung
-lower than before:
+The next proof-shaped bite is now the integration seam: make the helper/free-list
+frame facts come from real linked execution, then plug them into traversal:
 
 - prove `object_pool_link_fields_well_shaped` from the real object-pool/list
   invariant;
@@ -217,3 +221,7 @@ lower than before:
 
 Translation: we are trying to make the free-list surgery boring enough that the
 stale-pointer question has nowhere dark left to hide.
+
+Channel-side next bite: classify the nine mechanized
+`outside_pyramid_object_channels`, with the shell/ridden-object path first,
+because that is still the spicy one.

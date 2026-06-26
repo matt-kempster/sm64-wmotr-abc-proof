@@ -322,6 +322,42 @@ Fixpoint macro_preset_behavior_at
   | _, _ => None
   end.
 
+Fixpoint macro_preset_param_at
+    (index : nat) (data : list init_data) : option int :=
+  match index, data with
+  | O, Init_addrof _ _ :: Init_int16 _ :: Init_int16 parameter :: _ =>
+      Some parameter
+  | S index',
+    Init_addrof _ _ :: Init_int16 _ :: Init_int16 _ :: rest =>
+      macro_preset_param_at index' rest
+  | _, _ => None
+  end.
+
+Fixpoint count_macro_objects_with_preset
+    (data : list init_data) (encoded_preset : Z) : nat :=
+  match data with
+  | Init_int16 p :: Init_int16 _ :: Init_int16 _ ::
+    Init_int16 _ :: Init_int16 _ :: rest =>
+      if int16_matches p encoded_preset
+      then S (count_macro_objects_with_preset rest encoded_preset)
+      else count_macro_objects_with_preset rest encoded_preset
+  | _ => O
+  end.
+
+Definition int8_matches (value : int) (expected : Z) : bool :=
+  Int.eq value (Int.repr expected).
+
+Fixpoint exclamation_box_content_behavior_at
+    (contents_id : Z) (data : list init_data) : option ident :=
+  match data with
+  | Init_int8 found_id :: Init_int8 _ :: Init_int8 _ :: Init_int8 _ ::
+    Init_addrof behavior _ :: rest =>
+      if int8_matches found_id contents_id
+      then Some behavior
+      else exclamation_box_content_behavior_at contents_id rest
+  | _ => None
+  end.
+
 Definition first_int32 (data : list init_data) : option int :=
   match data with
   | Init_int32 value :: _ => Some value
