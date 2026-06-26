@@ -79,9 +79,12 @@ the same pool slot's deactivation fact.
   the deactivation certificate no longer uses the older generic call frame.
 - [x] Audit / prove the three non-deallocate helper calls cannot touch the
   watched pool slot in the bad way.
-- [ ] Turn the helper-call audit into the semantic alias/frame proof: graph
-  node link writes and audio-bank writes must be shown disjoint from the
-  watched pool slot's `activeFlags` bytes in the linked execution.
+- [x] Turn the helper-call audit into the store-level semantic alias/frame
+  proof: graph node link writes and audio-bank/global writes must be shown
+  disjoint from the watched pool slot's `activeFlags` bytes.
+- [ ] Compose those store-level graph/audio alias-frame facts through the full
+  linked helper executions, so the three helper calls discharge their cleanup
+  tail frame obligations instead of sitting as caller-side assumptions.
 - [ ] Replace the global-tail-frame valid step with the tighter field-only /
   pool-link invariant route, so the trace bridge no longer leans on the older
   broad frame assumption.
@@ -206,8 +209,8 @@ lower than before:
 
 - prove `object_pool_link_fields_well_shaped` from the real object-pool/list
   invariant;
-- turn the now-mechanized non-deallocate helper audit into the semantic
-  alias/frame proof for graph/audio writes; and
+- compose the store-level graph/audio alias-frame facts through the full linked
+  helper executions; and
 - connect the generated traversal/unload execution to the new
   `valid_deactivation_trace` certificate path, not just the abstract snapshot
   model.

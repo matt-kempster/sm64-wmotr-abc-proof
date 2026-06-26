@@ -192,6 +192,18 @@ its execution trace, not over a hand-written transition function.
   bodies have no direct `activeFlags` writes; the graph helpers also have no
   direct callees, while the audio helper's only direct call stays inside the
   already-censused audio translation unit.
+- `graph_node_link_field_store_misses_active_flags_from_header_shape`,
+  its four field specializations (`prev`, `next`, `parent`, `children`),
+  `store_to_other_block_preserves_active_flags_bytes`,
+  `storev_to_other_block_preserves_active_flags_bytes`,
+  `assign_loc_by_value_to_other_block_preserves_active_flags_bytes`, and
+  `non_deallocate_helper_write_alias_frames` are the semantic alias/frame
+  layer for those helper writes. If a graph-node pointer is either outside the
+  object pool block or exactly at a valid pool-slot header, then stores to its
+  link fields at offsets 4, 8, 12, and 16 miss the watched slot's
+  `activeFlags` bytes at offset 116. Separately, any by-value store/assignment
+  to a block known not to be `gObjectPool` preserves those watched bytes; this
+  is the shape needed for audio-bank globals and the global parent graph node.
 - `assign_loc_by_value_preserves_active_flags_bytes` is the direct-store
   building block: a CompCert by-value assignment preserves the watched
   activeFlags bytes when its concrete store range is disjoint from them, using
@@ -510,10 +522,11 @@ refined same-object frame checklist: `stop_sounds_from_source`,
 `geo_remove_child`, `geo_add_child`, and `deallocate_object`. The cleanup call
 targets are separated from the known allocation/deletion activeFlags writers,
 their caller argument shapes are pinned, and the three non-deallocate helper
-names resolve to generated internal bodies in the linked program. Semantic
-alias/frame arguments for the graph-node and audio-bank writes are still
-required before those helper calls can discharge the local cleanup-tail frame
-tuple outright.
+names resolve to generated internal bodies in the linked program. The
+store-level semantic alias/frame arguments for graph-node and audio-bank writes
+are now proved; the remaining composition step is to push those store-frame
+facts through the complete linked helper executions so the local cleanup-tail
+frame tuple can consume them directly.
 
 ## Mechanized traversal invariant
 
@@ -602,9 +615,9 @@ real C bodies are generated, and the audit above pins their direct
 `activeFlags` footprint.
 
 Still required is a reproducible certificate that these seven generated
-programs successfully form the chosen linked program and the semantic
-alias/separation proof that their graph-list and audio-bank writes cannot
-overlap an object's `activeFlags` bytes.
+programs successfully form the chosen linked program and the execution-level
+composition that applies the store-level graph/audio alias-frame facts to the
+actual helper calls.
 
 ## Current capstone
 

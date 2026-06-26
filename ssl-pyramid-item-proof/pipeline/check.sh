@@ -99,6 +99,18 @@ bash pipeline/assumptions.sh \
   unload_object_node_prev_layout
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
+  unload_graph_node_parent_layout
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  unload_graph_node_children_layout
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  unload_graph_node_prev_layout
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  unload_graph_node_next_layout
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
   unload_object_tail_preserves_active_flags_bytes_from_leaf_frames
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
@@ -154,6 +166,33 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   object_node_prev_store_misses_active_flags_from_header_shape
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  graph_node_link_field_store_misses_active_flags_from_header_shape
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  graph_node_prev_store_misses_active_flags_from_header_shape
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  graph_node_next_store_misses_active_flags_from_header_shape
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  graph_node_parent_store_misses_active_flags_from_header_shape
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  graph_node_children_store_misses_active_flags_from_header_shape
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  store_to_other_block_preserves_active_flags_bytes
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  storev_to_other_block_preserves_active_flags_bytes
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  assign_loc_by_value_to_other_block_preserves_active_flags_bytes
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  non_deallocate_helper_write_alias_frames
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   pool_slot_graph_flags_nested_address
