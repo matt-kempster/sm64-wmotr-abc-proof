@@ -595,6 +595,26 @@ Theorem unload_graph_node_flags_layout :
   OK (2, Full).
 Proof. vm_compute; reflexivity. Qed.
 
+Theorem unload_graph_node_prev_layout :
+  field_offset unload_object_ce S._prev unload_graph_node_members =
+  OK (4, Full).
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem unload_graph_node_next_layout :
+  field_offset unload_object_ce S._next unload_graph_node_members =
+  OK (8, Full).
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem unload_graph_node_parent_layout :
+  field_offset unload_object_ce S._parent unload_graph_node_members =
+  OK (12, Full).
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem unload_graph_node_children_layout :
+  field_offset unload_object_ce S._children unload_graph_node_members =
+  OK (16, Full).
+Proof. vm_compute; reflexivity. Qed.
+
 Lemma unload_object_genv_cenv :
   genv_cenv unload_object_ge = unload_object_ce.
 Proof.
@@ -1356,6 +1376,223 @@ Proof.
   - lia.
   - unfold object_slot_size; lia.
   - unfold object_active_flags_offset; lia.
+Qed.
+
+Theorem graph_node_link_field_store_misses_active_flags_from_header_shape :
+  forall pool_block watched_slot node_block node_offset field_offset byte,
+    valid_object_slot watched_slot ->
+    0 <= field_offset ->
+    field_offset + 4 <= object_active_flags_offset ->
+    object_node_pointer_external_or_pool_slot_header
+      pool_block node_block node_offset ->
+    Ptrofs.unsigned (Ptrofs.add node_offset (Ptrofs.repr field_offset)) <=
+      byte <
+    Ptrofs.unsigned (Ptrofs.add node_offset (Ptrofs.repr field_offset)) + 4 ->
+    ~ active_flags_byte pool_block
+        (Ptrofs.repr ((watched_slot * object_slot_size)%Z))
+        node_block byte.
+Proof.
+  intros pool_block watched_slot node_block node_offset field_offset byte
+    Hvalid Hnonnegative Hbefore_active Hshape Hrange.
+  eapply
+    (object_node_field_store_misses_active_flags_from_header_shape
+      pool_block watched_slot node_block node_offset field_offset 4 byte).
+  - exact Hvalid.
+  - exact Hnonnegative.
+  - lia.
+  - unfold object_slot_size, object_active_flags_offset in *.
+    lia.
+  - exact Hbefore_active.
+  - exact Hshape.
+  - exact Hrange.
+Qed.
+
+Theorem graph_node_prev_store_misses_active_flags_from_header_shape :
+  forall pool_block watched_slot node_block node_offset byte,
+    valid_object_slot watched_slot ->
+    object_node_pointer_external_or_pool_slot_header
+      pool_block node_block node_offset ->
+    Ptrofs.unsigned (Ptrofs.add node_offset (Ptrofs.repr 4)) <= byte <
+    Ptrofs.unsigned (Ptrofs.add node_offset (Ptrofs.repr 4)) + 4 ->
+    ~ active_flags_byte pool_block
+        (Ptrofs.repr ((watched_slot * object_slot_size)%Z))
+        node_block byte.
+Proof.
+  intros pool_block watched_slot node_block node_offset byte
+    Hvalid Hshape Hrange.
+  eapply graph_node_link_field_store_misses_active_flags_from_header_shape;
+    eauto.
+  - lia.
+  - unfold object_active_flags_offset; lia.
+Qed.
+
+Theorem graph_node_next_store_misses_active_flags_from_header_shape :
+  forall pool_block watched_slot node_block node_offset byte,
+    valid_object_slot watched_slot ->
+    object_node_pointer_external_or_pool_slot_header
+      pool_block node_block node_offset ->
+    Ptrofs.unsigned (Ptrofs.add node_offset (Ptrofs.repr 8)) <= byte <
+    Ptrofs.unsigned (Ptrofs.add node_offset (Ptrofs.repr 8)) + 4 ->
+    ~ active_flags_byte pool_block
+        (Ptrofs.repr ((watched_slot * object_slot_size)%Z))
+        node_block byte.
+Proof.
+  intros pool_block watched_slot node_block node_offset byte
+    Hvalid Hshape Hrange.
+  eapply graph_node_link_field_store_misses_active_flags_from_header_shape;
+    eauto.
+  - lia.
+  - unfold object_active_flags_offset; lia.
+Qed.
+
+Theorem graph_node_parent_store_misses_active_flags_from_header_shape :
+  forall pool_block watched_slot node_block node_offset byte,
+    valid_object_slot watched_slot ->
+    object_node_pointer_external_or_pool_slot_header
+      pool_block node_block node_offset ->
+    Ptrofs.unsigned (Ptrofs.add node_offset (Ptrofs.repr 12)) <= byte <
+    Ptrofs.unsigned (Ptrofs.add node_offset (Ptrofs.repr 12)) + 4 ->
+    ~ active_flags_byte pool_block
+        (Ptrofs.repr ((watched_slot * object_slot_size)%Z))
+        node_block byte.
+Proof.
+  intros pool_block watched_slot node_block node_offset byte
+    Hvalid Hshape Hrange.
+  eapply graph_node_link_field_store_misses_active_flags_from_header_shape;
+    eauto.
+  - lia.
+  - unfold object_active_flags_offset; lia.
+Qed.
+
+Theorem graph_node_children_store_misses_active_flags_from_header_shape :
+  forall pool_block watched_slot node_block node_offset byte,
+    valid_object_slot watched_slot ->
+    object_node_pointer_external_or_pool_slot_header
+      pool_block node_block node_offset ->
+    Ptrofs.unsigned (Ptrofs.add node_offset (Ptrofs.repr 16)) <= byte <
+    Ptrofs.unsigned (Ptrofs.add node_offset (Ptrofs.repr 16)) + 4 ->
+    ~ active_flags_byte pool_block
+        (Ptrofs.repr ((watched_slot * object_slot_size)%Z))
+        node_block byte.
+Proof.
+  intros pool_block watched_slot node_block node_offset byte
+    Hvalid Hshape Hrange.
+  eapply graph_node_link_field_store_misses_active_flags_from_header_shape;
+    eauto.
+  - lia.
+  - unfold object_active_flags_offset; lia.
+Qed.
+
+Theorem store_to_other_block_preserves_active_flags_bytes :
+  forall chunk memory object_block object_offset store_block store_offset
+         value memory',
+    store_block <> object_block ->
+    Mem.store chunk memory store_block store_offset value = Some memory' ->
+    Mem.unchanged_on (active_flags_byte object_block object_offset)
+      memory memory'.
+Proof.
+  intros chunk memory object_block object_offset store_block store_offset
+    value memory' Hblock Hstore.
+  eapply Mem.store_unchanged_on; eauto.
+  intros byte _ Hactive.
+  destruct Hactive as (Hsame_block & _).
+  subst store_block.
+  contradiction.
+Qed.
+
+Theorem storev_to_other_block_preserves_active_flags_bytes :
+  forall chunk memory object_block object_offset store_block store_offset
+         value memory',
+    store_block <> object_block ->
+    Mem.storev chunk memory (Vptr store_block store_offset) value =
+      Some memory' ->
+    Mem.unchanged_on (active_flags_byte object_block object_offset)
+      memory memory'.
+Proof.
+  intros chunk memory object_block object_offset store_block store_offset
+    value memory' Hblock Hstore.
+  unfold Mem.storev in Hstore.
+  eapply store_to_other_block_preserves_active_flags_bytes; eauto.
+Qed.
+
+Theorem assign_loc_by_value_to_other_block_preserves_active_flags_bytes :
+  forall ce ty chunk memory object_block object_offset store_block
+         store_offset value memory',
+    access_mode ty = By_value chunk ->
+    store_block <> object_block ->
+    assign_loc ce ty memory store_block store_offset Full value memory' ->
+    Mem.unchanged_on (active_flags_byte object_block object_offset)
+      memory memory'.
+Proof.
+  intros ce ty chunk memory object_block object_offset store_block
+    store_offset value memory' Hmode Hblock Hassign.
+  inv Hassign; try congruence.
+  match goal with
+  | Hmode' : access_mode ty = By_value ?stored_chunk,
+    Hstore : Mem.storev ?stored_chunk _ (Vptr store_block store_offset) _ =
+      Some _ |- _ =>
+      assert (stored_chunk = chunk) by congruence;
+      subst stored_chunk;
+      eapply storev_to_other_block_preserves_active_flags_bytes; eauto
+  end.
+Qed.
+
+Theorem non_deallocate_helper_write_alias_frames :
+  (forall pool_block watched_slot node_block node_offset field_offset byte,
+    valid_object_slot watched_slot ->
+    (field_offset = 4 \/
+     field_offset = 8 \/
+     field_offset = 12 \/
+     field_offset = 16) ->
+    object_node_pointer_external_or_pool_slot_header
+      pool_block node_block node_offset ->
+    Ptrofs.unsigned (Ptrofs.add node_offset (Ptrofs.repr field_offset)) <=
+      byte <
+    Ptrofs.unsigned (Ptrofs.add node_offset (Ptrofs.repr field_offset)) + 4 ->
+    ~ active_flags_byte pool_block
+        (Ptrofs.repr ((watched_slot * object_slot_size)%Z))
+        node_block byte) /\
+  (forall chunk memory memory' pool_block watched_slot store_block
+          store_offset value,
+    valid_object_slot watched_slot ->
+    store_block <> pool_block ->
+    Mem.store chunk memory store_block store_offset value = Some memory' ->
+    Mem.unchanged_on
+      (active_flags_byte pool_block
+        (Ptrofs.repr ((watched_slot * object_slot_size)%Z)))
+      memory memory') /\
+  (forall ce ty chunk memory memory' pool_block watched_slot store_block
+          store_offset value,
+    valid_object_slot watched_slot ->
+    access_mode ty = By_value chunk ->
+    store_block <> pool_block ->
+    assign_loc ce ty memory store_block store_offset Full value memory' ->
+    Mem.unchanged_on
+      (active_flags_byte pool_block
+        (Ptrofs.repr ((watched_slot * object_slot_size)%Z)))
+      memory memory').
+Proof.
+  split.
+  - intros pool_block watched_slot node_block node_offset field_offset byte
+      Hvalid Hfield Hshape Hrange.
+    destruct Hfield as
+      [Hfield | [Hfield | [Hfield | Hfield]]]; subst field_offset.
+    + eapply graph_node_prev_store_misses_active_flags_from_header_shape;
+        eauto.
+    + eapply graph_node_next_store_misses_active_flags_from_header_shape;
+        eauto.
+    + eapply graph_node_parent_store_misses_active_flags_from_header_shape;
+        eauto.
+    + eapply graph_node_children_store_misses_active_flags_from_header_shape;
+        eauto.
+  - split.
+    + intros store_chunk memory memory' pool_block watched_slot store_block
+        store_offset value _ Hblock Hstore.
+      eapply store_to_other_block_preserves_active_flags_bytes; eauto.
+    + intros ce ty store_chunk memory memory' pool_block watched_slot
+        store_block store_offset value _ Hmode Hblock Hassign.
+      eapply assign_loc_by_value_to_other_block_preserves_active_flags_bytes;
+        eauto.
 Qed.
 
 Theorem pointer_slot_deactivated_is_pool_slot :
