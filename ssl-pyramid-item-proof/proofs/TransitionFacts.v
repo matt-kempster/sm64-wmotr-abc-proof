@@ -1,4 +1,4 @@
-From Coq Require Import List ZArith.
+From Coq Require Import Bool List ZArith.
 Import ListNotations.
 From compcert Require Import AST Ctypes Clight Integers.
 From SSLPyramid.Generated Require Import
@@ -137,6 +137,152 @@ Definition field_mentioners
     (filter
       (fun named_function =>
          statement_mentions_field_s field (fn_body (snd named_function)))
+      (internal_functions (prog_defs program))).
+
+Definition type_is_graph_node (ty : type) : bool :=
+  match ty with
+  | Tstruct found _ => Pos.eqb found G._GraphNode
+  | _ => false
+  end.
+
+Definition graph_node_link_field (field : ident) : bool :=
+  Pos.eqb field G._parent ||
+  Pos.eqb field G._children ||
+  Pos.eqb field G._prev ||
+  Pos.eqb field G._next.
+
+Fixpoint expression_graph_node_link_fields (e : expr) : list ident :=
+  match e with
+  | Ederef inner _ | Eaddrof inner _ | Eunop _ inner _
+  | Ecast inner _ =>
+      expression_graph_node_link_fields inner
+  | Efield inner found _ =>
+      (if graph_node_link_field found
+          && type_is_graph_node (typeof inner)
+       then [found]
+       else []) ++
+      expression_graph_node_link_fields inner
+  | Ebinop _ lhs rhs _ =>
+      expression_graph_node_link_fields lhs ++
+      expression_graph_node_link_fields rhs
+  | _ => []
+  end.
+
+Fixpoint expression_list_graph_node_link_fields
+    (args : list expr) : list ident :=
+  match args with
+  | [] => []
+  | arg :: rest =>
+      expression_graph_node_link_fields arg ++
+      expression_list_graph_node_link_fields rest
+  end.
+
+Fixpoint statement_graph_node_link_fields_s
+    (s : statement) : list ident :=
+  match s with
+  | Sassign lhs rhs =>
+      expression_graph_node_link_fields lhs ++
+      expression_graph_node_link_fields rhs
+  | Sset _ rhs => expression_graph_node_link_fields rhs
+  | Scall _ callee args =>
+      expression_graph_node_link_fields callee ++
+      expression_list_graph_node_link_fields args
+  | Sbuiltin _ _ _ args =>
+      expression_list_graph_node_link_fields args
+  | Ssequence s1 s2 =>
+      statement_graph_node_link_fields_s s1 ++
+      statement_graph_node_link_fields_s s2
+  | Sifthenelse condition s1 s2 =>
+      expression_graph_node_link_fields condition ++
+      statement_graph_node_link_fields_s s1 ++
+      statement_graph_node_link_fields_s s2
+  | Sloop s1 s2 =>
+      statement_graph_node_link_fields_s s1 ++
+      statement_graph_node_link_fields_s s2
+  | Slabel _ body => statement_graph_node_link_fields_s body
+  | Sswitch selector cases =>
+      expression_graph_node_link_fields selector ++
+      statement_graph_node_link_fields_ls cases
+  | Sreturn (Some result) =>
+      expression_graph_node_link_fields result
+  | _ => []
+  end
+with statement_graph_node_link_fields_ls
+       (cases : labeled_statements) : list ident :=
+  match cases with
+  | LSnil => []
+  | LScons _ body rest =>
+      statement_graph_node_link_fields_s body ++
+      statement_graph_node_link_fields_ls rest
+  end.
+
+Fixpoint statement_graph_node_link_fields_before_call_s
+    (stop : ident) (s : statement) : list ident :=
+  match s with
+  | Sassign lhs rhs =>
+      expression_graph_node_link_fields lhs ++
+      expression_graph_node_link_fields rhs
+  | Sset _ rhs => expression_graph_node_link_fields rhs
+  | Scall _ callee args =>
+      expression_graph_node_link_fields callee ++
+      expression_list_graph_node_link_fields args
+  | Sbuiltin _ _ _ args =>
+      expression_list_graph_node_link_fields args
+  | Ssequence s1 s2 =>
+      statement_graph_node_link_fields_before_call_s stop s1 ++
+      if calls_ident_s stop s1 then
+        []
+      else
+        statement_graph_node_link_fields_before_call_s stop s2
+  | Sifthenelse condition s1 s2 =>
+      expression_graph_node_link_fields condition ++
+      statement_graph_node_link_fields_before_call_s stop s1 ++
+      statement_graph_node_link_fields_before_call_s stop s2
+  | Sloop s1 s2 =>
+      statement_graph_node_link_fields_before_call_s stop s1 ++
+      statement_graph_node_link_fields_before_call_s stop s2
+  | Slabel _ body =>
+      statement_graph_node_link_fields_before_call_s stop body
+  | Sswitch selector cases =>
+      expression_graph_node_link_fields selector ++
+      statement_graph_node_link_fields_before_call_ls stop cases
+  | Sreturn (Some result) =>
+      expression_graph_node_link_fields result
+  | _ => []
+  end
+with statement_graph_node_link_fields_before_call_ls
+       (stop : ident) (cases : labeled_statements) : list ident :=
+  match cases with
+  | LSnil => []
+  | LScons _ body rest =>
+      statement_graph_node_link_fields_before_call_s stop body ++
+      statement_graph_node_link_fields_before_call_ls stop rest
+  end.
+
+Definition statement_mentions_graph_node_link_fields
+    (s : statement) : bool :=
+  match statement_graph_node_link_fields_s s with
+  | [] => false
+  | _ => true
+  end.
+
+Definition graph_node_link_field_mentioners
+    (program : Clight.program) : list ident :=
+  map fst
+    (filter
+      (fun named_function =>
+         statement_mentions_graph_node_link_fields (fn_body (snd named_function)))
+      (internal_functions (prog_defs program))).
+
+Definition graph_node_link_field_occurrences
+    (program : Clight.program) : list (ident * list ident) :=
+  map
+    (fun named_function =>
+       (fst named_function,
+        statement_graph_node_link_fields_s (fn_body (snd named_function))))
+    (filter
+      (fun named_function =>
+         statement_mentions_graph_node_link_fields (fn_body (snd named_function)))
       (internal_functions (prog_defs program))).
 
 Theorem generated_for_32_bit_big_endian :
@@ -704,3 +850,80 @@ Theorem pyramid_load_window_graph_specific_roots_not_mentioned_before_cleanup :
   statement_mentions_field_before_call_s L._init_mario G._objNode
     (fn_body L.f_init_mario_after_warp) = false.
 Proof. vm_compute; repeat split; reflexivity. Qed.
+
+Theorem load_area_direct_typed_graph_node_link_fields :
+  statement_graph_node_link_fields_s (fn_body A.f_load_area) = [].
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem load_obj_warp_nodes_typed_graph_node_link_fields :
+  statement_graph_node_link_fields_s (fn_body A.f_load_obj_warp_nodes) =
+    [G._children; G._next; G._children].
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem load_area_calls_graph_node_link_traversal_helpers :
+  event_subsequenceb
+    [Event_call A._load_obj_warp_nodes;
+     Event_call A._geo_call_global_function_nodes]
+    (statement_events_s (fn_body A.f_load_area)) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem area_typed_graph_node_link_field_occurrences :
+  graph_node_link_field_occurrences A.prog =
+    [(A._load_obj_warp_nodes, [G._children; G._next; G._children])].
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem load_mario_area_direct_typed_graph_node_link_fields :
+  statement_graph_node_link_fields_s (fn_body A.f_load_mario_area) = [].
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem object_list_processor_typed_graph_node_link_field_mentioners :
+  graph_node_link_field_mentioners O.prog = [].
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem init_mario_after_warp_before_init_mario_typed_graph_node_link_fields :
+  statement_graph_node_link_fields_before_call_s L._init_mario
+    (fn_body L.f_init_mario_after_warp) = [].
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem graph_node_typed_graph_node_link_field_mentioners :
+  graph_node_link_field_mentioners G.prog =
+    [G._init_scene_graph_node_links;
+     G._geo_add_child;
+     G._geo_remove_child;
+     G._geo_make_first_child;
+     G._geo_call_global_function_nodes_helper;
+     G._geo_call_global_function_nodes;
+     G._geo_find_root].
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem pyramid_load_window_typed_graph_node_link_audit :
+  statement_graph_node_link_fields_s (fn_body A.f_load_area) = [] /\
+  statement_graph_node_link_fields_s (fn_body A.f_load_obj_warp_nodes) =
+    [G._children; G._next; G._children] /\
+  event_subsequenceb
+    [Event_call A._load_obj_warp_nodes;
+     Event_call A._geo_call_global_function_nodes]
+    (statement_events_s (fn_body A.f_load_area)) = true /\
+  statement_graph_node_link_fields_s (fn_body A.f_load_mario_area) = [] /\
+  graph_node_link_field_mentioners O.prog = [] /\
+  statement_graph_node_link_fields_before_call_s L._init_mario
+    (fn_body L.f_init_mario_after_warp) = [] /\
+  graph_node_link_field_mentioners G.prog =
+    [G._init_scene_graph_node_links;
+     G._geo_add_child;
+     G._geo_remove_child;
+     G._geo_make_first_child;
+     G._geo_call_global_function_nodes_helper;
+     G._geo_call_global_function_nodes;
+     G._geo_find_root].
+Proof.
+  repeat split;
+    first
+      [ exact load_area_direct_typed_graph_node_link_fields
+      | exact load_obj_warp_nodes_typed_graph_node_link_fields
+      | exact load_area_calls_graph_node_link_traversal_helpers
+      | exact load_mario_area_direct_typed_graph_node_link_fields
+      | exact object_list_processor_typed_graph_node_link_field_mentioners
+      | exact init_mario_after_warp_before_init_mario_typed_graph_node_link_fields
+      | exact graph_node_typed_graph_node_link_field_mentioners ].
+Qed.

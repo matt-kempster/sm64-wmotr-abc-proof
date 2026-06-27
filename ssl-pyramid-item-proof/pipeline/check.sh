@@ -677,6 +677,9 @@ bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.TransitionFacts \
   pyramid_load_window_graph_specific_roots_not_mentioned_before_cleanup
 bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TransitionFacts \
+  pyramid_load_window_typed_graph_node_link_audit
+bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.StaleWindowObservation \
   held_grab_stale_load_window_is_unobserved_before_cleanup
 bash pipeline/assumptions.sh \
