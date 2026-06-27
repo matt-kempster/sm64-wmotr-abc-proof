@@ -1,6 +1,6 @@
 From Coq Require Import List ZArith.
 Import ListNotations.
-From compcert Require Import AST Clight Integers.
+From compcert Require Import AST Ctypes Clight Integers.
 From SSLPyramid.Generated Require Import
   area audio_external behavior_actions graph_node level_script level_update
   macro_special_objects mario
@@ -22,6 +22,122 @@ Module O := object_list_processor.
 Module S := spawn_object.
 Module SM := ssl_area1_macro.
 Module SSL := ssl_script.
+
+Fixpoint expression_mentions_field_deep
+    (field : ident) (e : expr) : bool :=
+  match e with
+  | Ederef inner _ | Eaddrof inner _ | Eunop _ inner _
+  | Ecast inner _ | Efield inner _ _ =>
+      match e with
+      | Efield inner found _ =>
+          Pos.eqb found field ||
+          expression_mentions_field_deep field inner
+      | _ => expression_mentions_field_deep field inner
+      end
+  | Ebinop _ operand1 operand2 _ =>
+      expression_mentions_field_deep field operand1 ||
+      expression_mentions_field_deep field operand2
+  | _ => false
+  end.
+
+Fixpoint expression_list_mentions_field_deep
+    (field : ident) (args : list expr) : bool :=
+  match args with
+  | [] => false
+  | arg :: rest =>
+      expression_mentions_field_deep field arg ||
+      expression_list_mentions_field_deep field rest
+  end.
+
+Fixpoint statement_mentions_field_s
+    (field : ident) (s : statement) : bool :=
+  match s with
+  | Sassign lhs rhs =>
+      expression_mentions_field_deep field lhs ||
+      expression_mentions_field_deep field rhs
+  | Sset _ rhs => expression_mentions_field_deep field rhs
+  | Scall _ callee args =>
+      expression_mentions_field_deep field callee ||
+      expression_list_mentions_field_deep field args
+  | Sbuiltin _ _ _ args =>
+      expression_list_mentions_field_deep field args
+  | Ssequence s1 s2 =>
+      statement_mentions_field_s field s1 ||
+      statement_mentions_field_s field s2
+  | Sifthenelse condition s1 s2 =>
+      expression_mentions_field_deep field condition ||
+      statement_mentions_field_s field s1 ||
+      statement_mentions_field_s field s2
+  | Sloop s1 s2 =>
+      statement_mentions_field_s field s1 ||
+      statement_mentions_field_s field s2
+  | Slabel _ body => statement_mentions_field_s field body
+  | Sswitch selector cases =>
+      expression_mentions_field_deep field selector ||
+      statement_mentions_field_ls field cases
+  | Sreturn (Some result) =>
+      expression_mentions_field_deep field result
+  | _ => false
+  end
+with statement_mentions_field_ls
+       (field : ident) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      statement_mentions_field_s field body ||
+      statement_mentions_field_ls field rest
+  end.
+
+Fixpoint statement_mentions_field_before_call_s
+    (stop : ident) (field : ident) (s : statement) : bool :=
+  match s with
+  | Sassign lhs rhs =>
+      expression_mentions_field_deep field lhs ||
+      expression_mentions_field_deep field rhs
+  | Sset _ rhs => expression_mentions_field_deep field rhs
+  | Scall _ callee args =>
+      expression_mentions_field_deep field callee ||
+      expression_list_mentions_field_deep field args
+  | Sbuiltin _ _ _ args =>
+      expression_list_mentions_field_deep field args
+  | Ssequence s1 s2 =>
+      statement_mentions_field_before_call_s stop field s1 ||
+      if calls_ident_s stop s1 then
+        false
+      else
+        statement_mentions_field_before_call_s stop field s2
+  | Sifthenelse condition s1 s2 =>
+      expression_mentions_field_deep field condition ||
+      statement_mentions_field_before_call_s stop field s1 ||
+      statement_mentions_field_before_call_s stop field s2
+  | Sloop s1 s2 =>
+      statement_mentions_field_before_call_s stop field s1 ||
+      statement_mentions_field_before_call_s stop field s2
+  | Slabel _ body =>
+      statement_mentions_field_before_call_s stop field body
+  | Sswitch selector cases =>
+      expression_mentions_field_deep field selector ||
+      statement_mentions_field_before_call_ls stop field cases
+  | Sreturn (Some result) =>
+      expression_mentions_field_deep field result
+  | _ => false
+  end
+with statement_mentions_field_before_call_ls
+       (stop : ident) (field : ident) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      statement_mentions_field_before_call_s stop field body ||
+      statement_mentions_field_before_call_ls stop field rest
+  end.
+
+Definition field_mentioners
+    (program : Clight.program) (field : ident) : list ident :=
+  map fst
+    (filter
+      (fun named_function =>
+         statement_mentions_field_s field (fn_body (snd named_function)))
+      (internal_functions (prog_defs program))).
 
 Theorem generated_for_32_bit_big_endian :
   M.Info.bitsize = 32%Z /\ M.Info.big_endian = true.
@@ -471,4 +587,88 @@ Proof.
       | exact init_mario_clears_ridden_object
       | exact init_mario_clears_used_object
       | exact init_mario_after_warp_rebinds_spawn_object_after_init ].
+Qed.
+
+Theorem load_area_does_not_mention_stale_mario_object_refs :
+  statement_mentions_field_s L._heldObj
+    (fn_body A.f_load_area) = false /\
+  statement_mentions_field_s L._usedObj
+    (fn_body A.f_load_area) = false /\
+  statement_mentions_field_s L._riddenObj
+    (fn_body A.f_load_area) = false.
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
+Theorem load_mario_area_does_not_mention_stale_mario_object_refs :
+  statement_mentions_field_s L._heldObj
+    (fn_body A.f_load_mario_area) = false /\
+  statement_mentions_field_s L._usedObj
+    (fn_body A.f_load_mario_area) = false /\
+  statement_mentions_field_s L._riddenObj
+    (fn_body A.f_load_mario_area) = false.
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
+Theorem object_list_processor_does_not_mention_stale_mario_object_refs :
+  field_mentioners O.prog O._heldObj = [] /\
+  field_mentioners O.prog O._usedObj = [] /\
+  field_mentioners O.prog O._riddenObj = [].
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
+Theorem init_mario_after_warp_before_init_mario_does_not_mention_stale_refs :
+  statement_mentions_field_before_call_s L._init_mario L._heldObj
+    (fn_body L.f_init_mario_after_warp) = false /\
+  statement_mentions_field_before_call_s L._init_mario L._usedObj
+    (fn_body L.f_init_mario_after_warp) = false /\
+  statement_mentions_field_before_call_s L._init_mario L._riddenObj
+    (fn_body L.f_init_mario_after_warp) = false.
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
+Theorem pyramid_load_window_stale_refs_not_observed_before_cleanup :
+  statement_mentions_field_s L._heldObj
+    (fn_body A.f_load_area) = false /\
+  statement_mentions_field_s L._usedObj
+    (fn_body A.f_load_area) = false /\
+  statement_mentions_field_s L._riddenObj
+    (fn_body A.f_load_area) = false /\
+  statement_mentions_field_s L._heldObj
+    (fn_body A.f_load_mario_area) = false /\
+  statement_mentions_field_s L._usedObj
+    (fn_body A.f_load_mario_area) = false /\
+  statement_mentions_field_s L._riddenObj
+    (fn_body A.f_load_mario_area) = false /\
+  field_mentioners O.prog O._heldObj = [] /\
+  field_mentioners O.prog O._usedObj = [] /\
+  field_mentioners O.prog O._riddenObj = [] /\
+  statement_mentions_field_before_call_s L._init_mario L._heldObj
+    (fn_body L.f_init_mario_after_warp) = false /\
+  statement_mentions_field_before_call_s L._init_mario L._usedObj
+    (fn_body L.f_init_mario_after_warp) = false /\
+  statement_mentions_field_before_call_s L._init_mario L._riddenObj
+    (fn_body L.f_init_mario_after_warp) = false.
+Proof.
+  repeat split;
+    first
+      [ destruct load_area_does_not_mention_stale_mario_object_refs as
+          [Hheld [Hused Hridden]]; exact Hheld
+      | destruct load_area_does_not_mention_stale_mario_object_refs as
+          [Hheld [Hused Hridden]]; exact Hused
+      | destruct load_area_does_not_mention_stale_mario_object_refs as
+          [Hheld [Hused Hridden]]; exact Hridden
+      | destruct load_mario_area_does_not_mention_stale_mario_object_refs as
+          [Hheld [Hused Hridden]]; exact Hheld
+      | destruct load_mario_area_does_not_mention_stale_mario_object_refs as
+          [Hheld [Hused Hridden]]; exact Hused
+      | destruct load_mario_area_does_not_mention_stale_mario_object_refs as
+          [Hheld [Hused Hridden]]; exact Hridden
+      | destruct object_list_processor_does_not_mention_stale_mario_object_refs
+          as [Hheld [Hused Hridden]]; exact Hheld
+      | destruct object_list_processor_does_not_mention_stale_mario_object_refs
+          as [Hheld [Hused Hridden]]; exact Hused
+      | destruct object_list_processor_does_not_mention_stale_mario_object_refs
+          as [Hheld [Hused Hridden]]; exact Hridden
+      | destruct init_mario_after_warp_before_init_mario_does_not_mention_stale_refs
+          as [Hheld [Hused Hridden]]; exact Hheld
+      | destruct init_mario_after_warp_before_init_mario_does_not_mention_stale_refs
+          as [Hheld [Hused Hridden]]; exact Hused
+      | destruct init_mario_after_warp_before_init_mario_does_not_mention_stale_refs
+          as [Hheld [Hused Hridden]]; exact Hridden ].
 Qed.
