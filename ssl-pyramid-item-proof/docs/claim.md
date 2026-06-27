@@ -62,9 +62,13 @@ its execution trace, not over a hand-written transition function.
   before area-2 spawning.
 - Model allocation epochs or an equivalent event-history predicate so slot
   reuse is not mistaken for object transport.
-- Finish checking non-carry mechanisms (caps, behavior-specific parent/child
-  references, and any non-MarioState stale references) and state explicitly
-  which notion of "item" the theorem covers.
+- Compose the finite non-Mario reference audit
+  (`proofs/NonMarioReferenceFacts.v`) with reachability/execution facts: caps,
+  behavior-specific parent/child references, graph links, render-held-object
+  links, `Object.platform`, `Object.collidedObjs`, and raw
+  `rawData.asObject` slots now have a generated-code writer/root census, but
+  the semantic proof still has to show whether any of those roots can survive
+  the SSL outside-to-Pyramid warp.
 
 ## Mechanized unload-object result
 
@@ -617,16 +621,27 @@ contain no stale outside allocation epoch. It also proves that deactivating a
 slot at the unload barrier means later raw slot reuse is not a continuous item
 transfer.
 
-The render-side held-object graph path has now been brought into the same
-clightgen/Rocq route. `src/game/mario_misc.c` generates
-`generated/mario_misc.v`, and `proofs/RenderHeldObjectFacts.v` proves that
-`geo_switch_mario_hand_grab_pos` is the only direct writer of
-`GraphNodeHeldObject.objNode` in that TU. It also pins the generated event
-sequence in the function body: clear `objNode` to null, read
-`marioState->heldObj`, and, in the non-null branch, assign that held-object
-temporary back to `objNode`. Consequently, once the warp spine has cleared
-`MarioState.heldObj`, this render graph path is not an independent persistent
-outside-item pointer.
+The non-Mario reference roots have now been brought into the same
+clightgen/Rocq route. `proofs/RenderHeldObjectFacts.v` still proves the
+`mario_misc.c` render-side fact: `geo_switch_mario_hand_grab_pos` is the only
+direct writer of `GraphNodeHeldObject.objNode` in that TU, and its generated
+event sequence clears `objNode`, reads `marioState->heldObj`, then assigns the
+held-object temporary back to `objNode` in the non-null branch. Consequently,
+once the warp spine has cleared `MarioState.heldObj`, this render graph path is
+not an independent persistent outside-item pointer.
+
+`proofs/NonMarioReferenceFacts.v` adds the finite generated-code census for the
+remaining non-Mario roots. It proves from generated composite layouts that
+object-owned references include scalar `Object*` fields
+`parentObj`/`prevObj`/`platform`, the `collidedObjs` array, and raw behavior
+`rawData.asObject` slots; it also pins `ObjectNode` list links,
+`GraphNode` parent/child/prev/next links, `GraphNodeObject.sharedChild`, and
+`GraphNodeHeldObject.objNode`. The same file records the direct/deep writer
+sets: for example, `platform` is written only by `spawn_object.allocate_object`
+and `behavior_actions.bowser_free_update` in the audited generated corpus,
+`collidedObjs` has no direct lvalue writers in that corpus, and
+`rawData.asObject` writes are confined to a finite list of behavior-action
+functions.
 
 So far, I do not have a counterexample: the obvious stale-pointer-to-goomba
 scenario would require an outside item reference to survive the warp, and the
@@ -634,8 +649,8 @@ current generated-Clight facts show the relevant MarioState references are
 cleared or rebound before pyramid control resumes; the render-side held-object
 graph pointer is refreshed from the cleared `heldObj` field rather than kept
 independently. This remains weaker than a complete whole-engine clone
-impossibility proof until the remaining non-Mario/render reference channels are
-either ingested or ruled unreachable.
+impossibility proof until the finite non-Mario root list above is composed with
+reachability and area-transition execution facts.
 
 ## Linking boundary
 

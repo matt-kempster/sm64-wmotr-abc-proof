@@ -187,8 +187,14 @@ counterexample-shaped goblin.
 - [x] Check the main MarioState held/ridden/used/interacted style channels far
   enough to know the obvious stale goomba story is not already a counterexample.
 - [x] Record the known `act_picking_up` fake-object / stale-slot weirdness.
-- [ ] Finish the non-Mario reference audit: behavior parent/child links, graph
+- [x] Finish the non-Mario reference audit: behavior parent/child links, graph
   links, render-held-object links, and any object-owned references.
+  `proofs/NonMarioReferenceFacts.v` is the goblin ledger here: Object-owned
+  refs are now mechanically split into scalar `Object*` fields
+  (`parentObj`, `prevObj`, `platform`), the `collidedObjs` array, and
+  `rawData.asObject`; graph tree/list links and render-held `objNode` writers
+  are also pinned. This is the finite writer/root audit, not yet the full
+  semantic "can one survive the Pyramid warp?" proof.
 - [ ] Prove or refute whether an outside grab can leave a stale object pointer
   live across the Pyramid load.
 - [ ] If stale slot reuse can clone an in-Pyramid goomba/object, stop proving
@@ -250,8 +256,9 @@ Translation: the proof now knows that clearing one object is not enough; all
 other already-dead valid slots have to stay boring too. Very rude of memory,
 but fair.
 
-Channel-side next bite: plug the classification table into the final item
-predicate/theorem. In Discord goblin terms: make the five held-style object
-risks and the shell/ridden-object risk go through the MarioState stale-ref
-cleanup proof, while saying very explicitly that Wing Cap boxes are cap state,
-not transported object identity.
+Channel-side next bite: use `NonMarioReferenceFacts.v` to start the semantic
+stale-root pass. In Discord goblin terms: the pointer-root roll call is no
+longer spooky fog; now chase whether any listed root can actually stay live
+across the SSL outside -> Pyramid unload/load spine. The first spicy targets
+are `platform` and `rawData.asObject`, because they are real object-owned
+references outside the MarioState held/ridden/interacted quartet.

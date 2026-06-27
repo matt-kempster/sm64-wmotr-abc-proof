@@ -26,6 +26,36 @@ bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.RenderHeldObjectFacts \
   geo_switch_mario_hand_grab_pos_refreshes_objnode_from_mario_heldObj
 bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.NonMarioReferenceFacts \
+  object_owned_scalar_object_reference_fields
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.NonMarioReferenceFacts \
+  object_owned_array_object_reference_fields
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.NonMarioReferenceFacts \
+  object_raw_data_object_reference_array_fields
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.NonMarioReferenceFacts \
+  spawn_object_owned_reference_writers
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.NonMarioReferenceFacts \
+  object_owned_raw_behavior_object_slot_writers
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.NonMarioReferenceFacts \
+  graph_node_tree_link_writers
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.NonMarioReferenceFacts \
+  graph_node_shared_child_writers
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.NonMarioReferenceFacts \
+  graph_node_held_object_objnode_writers
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.NonMarioReferenceFacts \
+  init_graph_node_held_object_stores_objnode_parameter
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.NonMarioReferenceFacts \
+  mario_misc_render_held_object_refreshes_from_mario_heldObj
+bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.LayoutFacts \
   unload_object_direct_store_offsets_miss_active_flags
 bash pipeline/assumptions.sh \
