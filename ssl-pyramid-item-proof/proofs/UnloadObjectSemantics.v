@@ -4467,6 +4467,35 @@ Definition object_pool_link_fields_well_shaped
       memory pool_block pool_block
       (Ptrofs.repr ((slot * object_slot_size)%Z)) 100.
 
+Record object_pool_list_link_invariant
+    (memory : mem) (pool_block : block) : Prop := {
+  object_pool_list_next_link_field_well_shaped :
+    forall slot,
+      valid_object_slot slot ->
+      object_node_field_deref_shape
+        memory pool_block pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z)) 96;
+  object_pool_list_prev_link_field_well_shaped :
+    forall slot,
+      valid_object_slot slot ->
+      object_node_field_deref_shape
+        memory pool_block pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z)) 100
+}.
+
+Theorem object_pool_link_fields_well_shaped_from_list_link_invariant :
+  forall memory pool_block,
+    object_pool_list_link_invariant memory pool_block ->
+    object_pool_link_fields_well_shaped memory pool_block.
+Proof.
+  intros memory pool_block Hinvariant.
+  unfold object_pool_link_fields_well_shaped.
+  intros slot Hvalid.
+  split.
+  - apply object_pool_list_next_link_field_well_shaped; assumption.
+  - apply object_pool_list_prev_link_field_well_shaped; assumption.
+Qed.
+
 Lemma storev_shaped_pointer_preserves_object_pool_link_fields :
   forall memory memory' pool_block store_chunk store_block store_offset
          stored_value,
@@ -6226,6 +6255,113 @@ Proof.
       unload_object_tail_preserves_pool_slot_active_flags_from_empty_env_pool_link_field_obligations;
       eauto.
   - exact Hdeactivated.
+Qed.
+
+Definition unload_object_tail_empty_env_preserves_valid_pool_slot_active_flags
+    : Prop :=
+  forall le memory pool_block target_slot watched_slot trace le' memory'
+         outcome,
+    valid_object_slot target_slot ->
+    valid_object_slot watched_slot ->
+    le ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((target_slot * object_slot_size)%Z))) ->
+    exec_stmt function_entry2 unload_object_ge empty_env le memory
+      unload_object_tail trace le' memory' outcome ->
+    Mem.unchanged_on
+      (active_flags_byte pool_block
+        (Ptrofs.repr ((watched_slot * object_slot_size)%Z)))
+      memory memory'.
+
+Theorem exec_unload_object_valid_deactivation_step_from_empty_env_valid_pool_slot_tail_frame :
+  unload_object_tail_empty_env_preserves_valid_pool_slot_active_flags ->
+  forall le memory pool_block slot trace le' memory' outcome,
+    valid_object_slot slot ->
+    le ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) ->
+    exec_stmt function_entry2 unload_object_ge empty_env le memory
+      (fn_body S.f_unload_object) trace le' memory' outcome ->
+    valid_deactivation_step pool_block slot memory memory'.
+Proof.
+  intros Htail_frame le memory pool_block slot trace le' memory' outcome
+    Hvalid Hobj Hexec.
+  rewrite unload_object_body_split in Hexec.
+  destruct
+    (exec_seq_assign _ _ _ _ _ _ _ _ _ _ _ _ Hexec)
+    as (trace1 & le1 & memory1 & trace2 & Hfirst & Hrest).
+  split.
+  - apply pointer_slot_deactivated_is_pool_slot; [exact Hvalid |].
+    destruct
+      (exec_unload_active_flags_assign
+        empty_env le memory pool_block
+        (Ptrofs.repr (slot * object_slot_size))
+        trace1 le1 memory1 Out_normal Hobj Hfirst)
+      as (Hle1 & _ & Hdeactivated).
+    subst le1.
+    eapply unchanged_on_active_flags_preserves_pointer_slot_deactivated.
+    + eapply
+        (Htail_frame le memory1 pool_block slot slot trace2 le' memory'
+          outcome);
+        eauto.
+    + exact Hdeactivated.
+  - intros kept_slot Hvalid_kept Hdifferent Hdeactivated.
+    destruct
+      (exec_unload_active_flags_assign
+        empty_env le memory pool_block
+        (Ptrofs.repr (slot * object_slot_size))
+        trace1 le1 memory1 Out_normal Hobj Hfirst)
+      as (Hle1 & _ & _).
+    subst le1.
+    pose proof
+      (exec_unload_active_flags_assign_preserves_other_pool_slot
+        empty_env le memory pool_block slot kept_slot trace1 le memory1
+        Out_normal Hvalid Hdifferent Hobj Hdeactivated Hfirst)
+    as Hdeactivated_after_first.
+    eapply pointer_slot_deactivated_is_pool_slot; [exact Hvalid_kept |].
+    eapply unchanged_on_active_flags_preserves_pointer_slot_deactivated.
+    + eapply
+        (Htail_frame le memory1 pool_block slot kept_slot trace2 le' memory'
+          outcome);
+        eauto.
+    + apply pool_slot_deactivated_is_pointer_slot; assumption.
+Qed.
+
+Inductive generated_unload_execution_trace (pool_block : block)
+    : mem -> list Z -> mem -> Prop :=
+| generated_unload_trace_none :
+    forall memory,
+      generated_unload_execution_trace pool_block memory [] memory
+| generated_unload_trace_one_more :
+    forall memory memory1 memory2 slot rest le trace le' outcome,
+      valid_object_slot slot ->
+      le ! S._obj =
+        Some (Vptr pool_block
+          (Ptrofs.repr ((slot * object_slot_size)%Z))) ->
+      exec_stmt function_entry2 unload_object_ge empty_env le memory
+        (fn_body S.f_unload_object) trace le' memory1 outcome ->
+      generated_unload_execution_trace pool_block memory1 rest memory2 ->
+      generated_unload_execution_trace pool_block memory (slot :: rest)
+        memory2.
+
+Theorem generated_unload_execution_trace_is_valid_deactivation_trace_from_empty_env_valid_pool_slot_tail_frame :
+  unload_object_tail_empty_env_preserves_valid_pool_slot_active_flags ->
+  forall pool_block before targets after,
+    generated_unload_execution_trace pool_block before targets after ->
+    valid_deactivation_trace pool_block before targets after.
+Proof.
+  intros Htail_frame pool_block before targets after Htrace.
+  induction Htrace as
+      [memory
+      | memory memory1 memory2 slot rest le trace le' outcome
+        Hvalid Hobj Hexec Hrest IHrest].
+  - constructor.
+  - econstructor.
+    + exact Hvalid.
+    + eapply
+        exec_unload_object_valid_deactivation_step_from_empty_env_valid_pool_slot_tail_frame;
+        eauto.
+    + exact IHrest.
 Qed.
 
 Theorem exec_unload_object_valid_deactivation_step_from_tail_frame :

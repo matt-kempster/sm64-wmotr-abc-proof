@@ -94,14 +94,18 @@ the same pool slot's deactivation fact.
 - [x] Turn the helper-call audit into the store-level semantic alias/frame
   proof: graph node link writes and audio-bank/global writes must be shown
   disjoint from the watched pool slot's `activeFlags` bytes.
+- [x] Name the valid-slot all-slot cleanup-tail seam:
+  `unload_object_tail_empty_env_preserves_valid_pool_slot_active_flags`, then
+  prove generated `fn_body f_unload_object` gives a `valid_deactivation_step`
+  from it. This is the "not just the target slot, every already-dead valid
+  slot stays dead" bridge.
 - [ ] Compose those store-level graph/audio alias-frame facts through the full
   linked helper executions, so the three helper calls discharge their cleanup
   tail frame obligations instead of sitting as caller-side assumptions.
-- [ ] Replace the global-tail-frame valid step with the tighter field-only /
-  pool-link invariant route, so the trace bridge no longer leans on the older
-  broad frame assumption.
-- [ ] Connect the cleanup-tail theorem into the traversal/deactivation trace,
-  not just as a standalone local lemma.
+- [ ] Prove the new all-valid-slot tail seam from the tighter field-only /
+  pool-link invariant route. Important caveat: the current field-only lemma
+  only preserves the slot being unloaded; the valid trace also needs every
+  other valid slot's deactivated status to survive the cleanup tail.
 
 ## 4. `deallocate_object` / free-list surgery
 
@@ -136,8 +140,11 @@ being unlinked and recycled.
 - [x] Specialize that generic shaped-store preservation lemma to the generated
   `next->prev = obj->prev` assignment and close the first-splice preservation
   seam for real. Bowser's list surgery has one fewer shadow to hide in.
-- [ ] Prove `object_pool_link_fields_well_shaped` from the real
-  object-list/free-list invariant, not from optimism and coffee.
+- [x] Add `object_pool_list_link_invariant` as the real object-list/free-list
+  link-field interface, and prove it implies
+  `object_pool_link_fields_well_shaped`.
+- [ ] Derive `object_pool_list_link_invariant` from the actual generated
+  object-list/free-list traversal state, not from optimism and coffee.
 - [ ] Track whether any stale pointer can survive the free-list splice and later
   alias a newly allocated in-Pyramid object.
 
@@ -152,8 +159,12 @@ This is the "the engine actually unloads every outside object it should" layer.
 - [ ] Prove every live outside-Pyramid slot appears in the unload target list.
 - [ ] Prove every listed outside slot gets an actual `unload_object` execution
   that deactivates that slot.
-- [ ] Connect the generated cleanup execution to the abstract
-  `valid_deactivation_trace`.
+- [x] Connect a list of generated `unload_object` executions to the abstract
+  `valid_deactivation_trace` via `generated_unload_execution_trace`, then plug
+  that into the outside-clearing / transfer-forbidding traversal lemmas.
+- [ ] Derive `generated_unload_execution_trace` from the actual generated
+  `unload_objects_from_area` loop, instead of handing it a pre-chewed target
+  list.
 
 ## 6. Stale-pointer / cloning investigation
 
@@ -216,19 +227,19 @@ counterexample-shaped goblin.
 
 ## Current next bite
 
-The next proof-shaped bite is now the integration seam: make the helper/free-list
-frame facts come from real linked execution, then plug them into traversal:
+The next proof-shaped bite is the newly exposed all-slot tail-frame seam:
 
-- prove `object_pool_link_fields_well_shaped` from the real object-pool/list
-  invariant;
-- compose the store-level graph/audio alias-frame facts through the full linked
-  helper executions; and
-- connect the generated traversal/unload execution to the new
-  `valid_deactivation_trace` certificate path, not just the abstract snapshot
-  model.
+- prove `unload_object_tail_empty_env_preserves_valid_pool_slot_active_flags`
+  from the pool-link/linked-helper route, not from the older broad global tail
+  frame;
+- derive `object_pool_list_link_invariant` from the actual object-pool/list
+  state; and
+- derive `generated_unload_execution_trace` from the real
+  `unload_objects_from_area` traversal loop.
 
-Translation: we are trying to make the free-list surgery boring enough that the
-stale-pointer question has nowhere dark left to hide.
+Translation: the proof now knows that clearing one object is not enough; all
+other already-dead valid slots have to stay boring too. Very rude of memory,
+but fair.
 
 Channel-side next bite: plug the classification table into the final item
 predicate/theorem. In Discord goblin terms: make the five held-style object

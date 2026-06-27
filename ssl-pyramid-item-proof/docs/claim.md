@@ -398,14 +398,17 @@ its execution trace, not over a hand-written transition function.
   only needs the entry `obj->next` dereference shape and the post-first-splice
   `obj->prev` dereference shape.
 - `object_pool_link_fields_well_shaped`,
+  `object_pool_list_link_invariant`,
+  `object_pool_link_fields_well_shaped_from_list_link_invariant`,
   `first_deallocate_splice_preserves_pool_link_fields`, and
   `deallocate_object_resolved_free_list_deref_shapes_from_pool_link_fields`
-  restate that narrow checklist in object-list-invariant language: if every
-  valid pool slot's `next`/`prev` link fields dereference only to external
-  blocks or valid pool-slot headers, and the first generated deallocation
-  splice preserves that link-shape invariant, then the exact resolved-free-list
-  dereference-shape obligations follow. The remaining work is now to prove
-  those invariant facts from the real object-list/free-list structure, not to
+  restate that narrow checklist in object-list-invariant language. The named
+  list-link invariant says every valid pool slot's `next`/`prev` link fields
+  dereference only to external blocks or valid pool-slot headers; it now
+  directly implies the deallocator-facing `object_pool_link_fields_well_shaped`
+  shape. With first-splice preservation, the exact resolved-free-list
+  dereference-shape obligations follow. The remaining work is now to derive
+  that invariant from the real object-list/free-list structure, not to
   rediscover the CompCert call plumbing.
 - `first_deallocate_splice_shaped_store_preserves_pool_link_fields`,
   `deallocate_object_first_splice_loads_pool_link_shapes`,
@@ -484,6 +487,21 @@ its execution trace, not over a hand-written transition function.
   so it reaches the actual generated `unload_object` body rather than stopping
   at the cleanup tail. Future traversal work still has to lift this own-slot
   result into a trace step that frames other deactivated slots.
+- `unload_object_tail_empty_env_preserves_valid_pool_slot_active_flags` and
+  `exec_unload_object_valid_deactivation_step_from_empty_env_valid_pool_slot_tail_frame`
+  name and use that missing lift: if the cleanup tail preserves the
+  `activeFlags` bytes for every valid watched pool slot while unloading a valid
+  target slot, then the generated `fn_body f_unload_object` is a real
+  `valid_deactivation_step`. This records the important caveat that the
+  field-only own-slot lemma is not, by itself, enough for
+  `valid_deactivation_trace`; the trace proof also needs already-deactivated
+  sibling slots to stay deactivated.
+- `generated_unload_execution_trace` and
+  `generated_unload_execution_trace_is_valid_deactivation_trace_from_empty_env_valid_pool_slot_tail_frame`
+  package a list of generated `unload_object` body executions into the abstract
+  `valid_deactivation_trace` certificate. This is the generated-unload bridge;
+  the remaining traversal work is to derive this execution trace from the
+  actual `unload_objects_from_area` loop.
 - `unload_object_tail_preserves_pool_slot_active_flags_from_named_frames`
   projects that bridge into the activeFlags-only property needed by the
   deactivation proof.
@@ -526,7 +544,10 @@ names resolve to generated internal bodies in the linked program. The
 store-level semantic alias/frame arguments for graph-node and audio-bank writes
 are now proved; the remaining composition step is to push those store-frame
 facts through the complete linked helper executions so the local cleanup-tail
-frame tuple can consume them directly.
+frame tuple can consume them directly. The trace side now has an explicit
+generated-`unload_object` execution certificate, but the field-only helper/free
+list route still has to be strengthened into the all-valid-slot tail frame
+before it can completely replace the older broad tail-frame assumption.
 
 ## Mechanized traversal invariant
 
@@ -542,9 +563,17 @@ Rocq proves that filtering this snapshot for area 1:
 - forbids continuous item transfer whenever the Clight execution supplies the
   corresponding deactivation trace.
 
+The newer generated-unload bridge adds
+`generated_unload_targets_trace_clears_outside` and
+`generated_unload_targets_trace_forbids_transfer`: a list of actual generated
+`unload_object` body executions for the area-1 target list now feeds the
+`valid_deactivation_trace` certificate directly. This still starts from a
+prepared target list; it does not yet prove that the generated
+`unload_objects_from_area` loop is the producer of that list.
+
 The remaining traversal bridge is therefore concrete: derive that snapshot
-and trace from the circular-list execution of the generated
-`f_unload_objects_from_area`.
+and generated-unload execution trace from the circular-list execution of the
+generated `f_unload_objects_from_area`.
 
 ## Stale-pointer / cloning edge
 
