@@ -671,6 +671,18 @@ bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.TransitionFacts \
   pyramid_load_window_stale_refs_not_observed_before_cleanup
 bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TransitionFacts \
+  pyramid_load_window_object_owned_roots_not_mentioned_before_cleanup
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TransitionFacts \
+  pyramid_load_window_graph_specific_roots_not_mentioned_before_cleanup
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
+  held_grab_stale_load_window_is_unobserved_before_cleanup
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
+  held_grab_reused_slot_alias_is_unobserved_before_cleanup
+bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   unload_object_tail_preserves_deactivation_from_frame
 bash pipeline/assumptions.sh \
