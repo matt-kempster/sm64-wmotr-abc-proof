@@ -25,6 +25,7 @@ proofs/Spec.v
 proofs/StalePointerModel.v
 proofs/LayoutFacts.v
 proofs/RenderHeldObjectFacts.v
+proofs/NonMarioReferenceFacts.v
 proofs/UnloadStore.v
 proofs/UnloadSequence.v
 proofs/UnloadObjectSemantics.v
