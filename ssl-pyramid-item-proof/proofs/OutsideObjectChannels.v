@@ -1,12 +1,16 @@
 From Coq Require Import Bool List PArith.BinPos ZArith.
 Import ListNotations.
-From compcert Require Import AST Integers.
+From compcert Require Import AST Clight Integers.
 From SSLPyramid.Generated Require Import
-  behavior_actions macro_special_objects obj_behaviors ssl_area1_macro.
+  behavior_actions interaction level_update macro_special_objects mario
+  obj_behaviors ssl_area1_macro.
 From SSLPyramid.Proofs Require Import ASTFacts.
 
 Module B := behavior_actions.
+Module I := interaction.
+Module L := level_update.
 Module P := macro_special_objects.
+Module M := mario.
 Module OB := obj_behaviors.
 Module SM := ssl_area1_macro.
 
@@ -28,6 +32,25 @@ Inductive outside_pyramid_channel_class : Type :=
 | SpawnedRiddenShell
 | CapPowerupState.
 
+Inductive outside_pyramid_reference_route : Type :=
+| HeldUsedOrInteractReference
+| RiddenShellReference
+| CapTimerAndFlagsState
+| NoReferenceRoute.
+
+Record outside_pyramid_channel_risk := {
+  risk_direct_object_transfer : bool;
+  risk_stale_pointer_or_cloning : bool;
+  risk_ordinary_state_only : bool;
+  risk_irrelevant_to_item_identity : bool
+}.
+
+Record outside_pyramid_channel_classification := {
+  classified_channel_id : outside_pyramid_channel_id;
+  classified_route : outside_pyramid_reference_route;
+  classified_risk : outside_pyramid_channel_risk
+}.
+
 Record outside_pyramid_object_channel := {
   channel_id : outside_pyramid_channel_id;
   channel_preset_index : nat;
@@ -40,6 +63,27 @@ Record outside_pyramid_object_channel := {
   channel_preset_parameter : Z;
   channel_class : outside_pyramid_channel_class
 }.
+
+Definition direct_grabbable_risk : outside_pyramid_channel_risk := {|
+  risk_direct_object_transfer := true;
+  risk_stale_pointer_or_cloning := true;
+  risk_ordinary_state_only := false;
+  risk_irrelevant_to_item_identity := false
+|}.
+
+Definition spawned_ridden_shell_risk : outside_pyramid_channel_risk := {|
+  risk_direct_object_transfer := true;
+  risk_stale_pointer_or_cloning := true;
+  risk_ordinary_state_only := false;
+  risk_irrelevant_to_item_identity := false
+|}.
+
+Definition cap_powerup_state_risk : outside_pyramid_channel_risk := {|
+  risk_direct_object_transfer := false;
+  risk_stale_pointer_or_cloning := false;
+  risk_ordinary_state_only := true;
+  risk_irrelevant_to_item_identity := false
+|}.
 
 Definition macro_object_tuple : Type := (Z * Z * Z * Z * Z)%type.
 
@@ -218,6 +262,62 @@ Definition outside_pyramid_transport_relevant_macro_entries
     (gvar_init SM.v_ssl_seg7_area_1_macro_objs)
     outside_pyramid_transport_relevant_encoded_presets.
 
+Definition classify_outside_pyramid_channel
+    (channel : outside_pyramid_object_channel)
+    : outside_pyramid_channel_classification :=
+  match channel_class channel with
+  | DirectGrabbableObject => {|
+      classified_channel_id := channel_id channel;
+      classified_route := HeldUsedOrInteractReference;
+      classified_risk := direct_grabbable_risk
+    |}
+  | SpawnedRiddenShell => {|
+      classified_channel_id := channel_id channel;
+      classified_route := RiddenShellReference;
+      classified_risk := spawned_ridden_shell_risk
+    |}
+  | CapPowerupState => {|
+      classified_channel_id := channel_id channel;
+      classified_route := CapTimerAndFlagsState;
+      classified_risk := cap_powerup_state_risk
+    |}
+  end.
+
+Definition outside_pyramid_channel_classifications_shell_first
+    : list outside_pyramid_channel_classification :=
+  [{| classified_channel_id := ChannelKoopaShellBox;
+      classified_route := RiddenShellReference;
+      classified_risk := spawned_ridden_shell_risk |};
+   {| classified_channel_id := ChannelSmallBreakableBox;
+      classified_route := HeldUsedOrInteractReference;
+      classified_risk := direct_grabbable_risk |};
+   {| classified_channel_id := ChannelFirstBobomb;
+      classified_route := HeldUsedOrInteractReference;
+      classified_risk := direct_grabbable_risk |};
+   {| classified_channel_id := ChannelSecondBobomb;
+      classified_route := HeldUsedOrInteractReference;
+      classified_risk := direct_grabbable_risk |};
+   {| classified_channel_id := ChannelFirstJumpingBox;
+      classified_route := HeldUsedOrInteractReference;
+      classified_risk := direct_grabbable_risk |};
+   {| classified_channel_id := ChannelSecondJumpingBox;
+      classified_route := HeldUsedOrInteractReference;
+      classified_risk := direct_grabbable_risk |};
+   {| classified_channel_id := ChannelFirstWingCapBox;
+      classified_route := CapTimerAndFlagsState;
+      classified_risk := cap_powerup_state_risk |};
+   {| classified_channel_id := ChannelSecondWingCapBox;
+      classified_route := CapTimerAndFlagsState;
+      classified_risk := cap_powerup_state_risk |};
+   {| classified_channel_id := ChannelThirdWingCapBox;
+      classified_route := CapTimerAndFlagsState;
+      classified_risk := cap_powerup_state_risk |}].
+
+Definition outside_pyramid_classified_channel_ids
+    : list outside_pyramid_channel_id :=
+  map classified_channel_id
+    outside_pyramid_channel_classifications_shell_first.
+
 Theorem outside_pyramid_object_channel_count :
   length outside_pyramid_object_channels = 9%nat.
 Proof. vm_compute; reflexivity. Qed.
@@ -241,6 +341,84 @@ Qed.
 Theorem outside_pyramid_object_channels_match_generated_tables :
   forallb channel_matches_generated_tables
     outside_pyramid_object_channels = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem outside_pyramid_channel_classification_count :
+  length outside_pyramid_channel_classifications_shell_first = 9%nat.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem outside_pyramid_channel_classifications_start_with_shell :
+  match outside_pyramid_channel_classifications_shell_first with
+  | shell :: _ =>
+      classified_channel_id shell = ChannelKoopaShellBox /\
+      classified_route shell = RiddenShellReference /\
+      classified_risk shell = spawned_ridden_shell_risk
+  | [] => False
+  end.
+Proof. vm_compute; auto. Qed.
+
+Theorem outside_pyramid_classified_channel_ids_complete :
+  forall channel_id,
+    In channel_id outside_pyramid_classified_channel_ids.
+Proof.
+  intros [] ; simpl; eauto 10.
+Qed.
+
+Theorem outside_pyramid_channel_classifications_cover_channels :
+  forall channel,
+    In channel outside_pyramid_object_channels ->
+    In (channel_id channel) outside_pyramid_classified_channel_ids.
+Proof.
+  intros channel Hin.
+  repeat
+    (destruct Hin as [<- | Hin];
+     [simpl; eauto 10 |]).
+  contradiction.
+Qed.
+
+Theorem outside_pyramid_classification_is_not_irrelevant :
+  forall classification,
+    In classification outside_pyramid_channel_classifications_shell_first ->
+    risk_irrelevant_to_item_identity
+      (classified_risk classification) = false.
+Proof.
+  intros classification Hin.
+  repeat
+    (destruct Hin as [<- | Hin];
+     [vm_compute; reflexivity |]).
+  contradiction.
+Qed.
+
+Theorem outside_pyramid_classification_exact :
+  map (fun classification =>
+         (classified_channel_id classification,
+          classified_route classification,
+          risk_direct_object_transfer
+            (classified_risk classification),
+          risk_stale_pointer_or_cloning
+            (classified_risk classification),
+          risk_ordinary_state_only
+            (classified_risk classification),
+          risk_irrelevant_to_item_identity
+            (classified_risk classification)))
+    outside_pyramid_channel_classifications_shell_first =
+  [(ChannelKoopaShellBox, RiddenShellReference, true, true, false, false);
+   (ChannelSmallBreakableBox, HeldUsedOrInteractReference,
+      true, true, false, false);
+   (ChannelFirstBobomb, HeldUsedOrInteractReference,
+      true, true, false, false);
+   (ChannelSecondBobomb, HeldUsedOrInteractReference,
+      true, true, false, false);
+   (ChannelFirstJumpingBox, HeldUsedOrInteractReference,
+      true, true, false, false);
+   (ChannelSecondJumpingBox, HeldUsedOrInteractReference,
+      true, true, false, false);
+   (ChannelFirstWingCapBox, CapTimerAndFlagsState,
+      false, false, true, false);
+   (ChannelSecondWingCapBox, CapTimerAndFlagsState,
+      false, false, true, false);
+   (ChannelThirdWingCapBox, CapTimerAndFlagsState,
+      false, false, true, false)].
 Proof. vm_compute; reflexivity. Qed.
 
 Theorem outside_pyramid_transport_relevant_macro_entries_exact :
@@ -278,6 +456,20 @@ Theorem outside_pyramid_exclamation_box_contents :
     Some B._bhvWingCap.
 Proof. vm_compute; auto. Qed.
 
+Theorem shell_channel_generated_ridden_object_evidence :
+  exclamation_box_content_behavior_at 3
+    (gvar_init B.v_sExclamationBoxContents) =
+    Some B._bhvKoopaShell /\
+  first_int32 (gvar_init B.v_sKoopaShellHitbox) =
+    Some (Int.repr 524288) /\
+  event_subsequenceb
+    [Event_assign_field_from_temp I._interactObj I._o;
+     Event_assign_field_from_temp I._usedObj I._o;
+     Event_assign_field_from_temp I._riddenObj I._o]
+    (statement_events_s (fn_body I.f_interact_koopa_shell)) = true /\
+  assigns_zero_to_field_s M._riddenObj (fn_body M.f_init_mario) = true.
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
 Theorem outside_pyramid_direct_channels_are_grabbable_behaviors :
   first_int32 (gvar_init OB.v_sBreakableBoxSmallHitbox) =
     Some (Int.repr 2) /\
@@ -286,3 +478,32 @@ Theorem outside_pyramid_direct_channels_are_grabbable_behaviors :
   first_int32 (gvar_init B.v_sJumpingBoxHitbox) =
     Some (Int.repr 2).
 Proof. vm_compute; auto. Qed.
+
+Theorem direct_grabbable_channel_mario_reference_cleanup_evidence :
+  first_int32 (gvar_init OB.v_sBreakableBoxSmallHitbox) =
+    Some (Int.repr 2) /\
+  first_int32 (gvar_init OB.v_sBobombHitbox) =
+    Some (Int.repr 2) /\
+  first_int32 (gvar_init B.v_sJumpingBoxHitbox) =
+    Some (Int.repr 2) /\
+  assigns_zero_to_field_s M._heldObj (fn_body M.f_init_mario) = true /\
+  assigns_zero_to_field_s M._usedObj (fn_body M.f_init_mario) = true /\
+  event_subsequenceb
+    [Event_call L._init_mario;
+     Event_set_temp_from_field L._t'41 L._spawnNode L._object;
+     Event_assign_field_from_temp L._interactObj L._t'41;
+     Event_set_temp_from_field L._t'39 L._spawnNode L._object;
+     Event_assign_field_from_temp L._usedObj L._t'39]
+    (statement_events_s (fn_body L.f_init_mario_after_warp)) = true.
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
+Theorem wing_cap_channel_state_only_generated_evidence :
+  exclamation_box_content_behavior_at 0
+    (gvar_init B.v_sExclamationBoxContents) =
+    Some B._bhvWingCap /\
+  assigns_zero_to_field_s M._capTimer (fn_body M.f_init_mario) = true /\
+  assigns_field_s L._capTimer
+    (fn_body L.f_set_mario_initial_cap_powerup) = true /\
+  direct_field_writers L.prog L._capTimer =
+    [L._set_mario_initial_cap_powerup].
+Proof. vm_compute; repeat split; reflexivity. Qed.
