@@ -1,7 +1,8 @@
 From Coq Require Import List ZArith.
 Import ListNotations.
 From compcert Require Import AST Memory Values.
-From SSLPyramid.Proofs Require Import Spec UnloadSequence.
+From SSLPyramid.Proofs Require Import Spec UnloadObjectSemantics
+  UnloadSequence.
 
 Local Open Scope Z_scope.
 
@@ -147,4 +148,33 @@ Proof.
   intros before barrier after pool_block snapshot Hsnapshot Htrace.
   apply cleared_barrier_forbids_continuous_transfer.
   eapply valid_traversal_trace_clears_outside; eauto.
+Qed.
+
+Theorem generated_unload_targets_trace_clears_outside :
+  unload_object_tail_empty_env_preserves_valid_pool_slot_active_flags ->
+  forall before barrier pool_block snapshot,
+    snapshot_well_formed before pool_block snapshot ->
+    generated_unload_execution_trace pool_block before
+      (unload_targets ssl_outside_area snapshot) barrier ->
+    outside_slots_cleared_at_barrier before barrier pool_block.
+Proof.
+  intros Htail_frame before barrier pool_block snapshot Hsnapshot Htrace.
+  eapply valid_traversal_trace_clears_outside.
+  - exact Hsnapshot.
+  - eapply
+      generated_unload_execution_trace_is_valid_deactivation_trace_from_empty_env_valid_pool_slot_tail_frame;
+      eauto.
+Qed.
+
+Theorem generated_unload_targets_trace_forbids_transfer :
+  unload_object_tail_empty_env_preserves_valid_pool_slot_active_flags ->
+  forall before barrier after pool_block snapshot,
+    snapshot_well_formed before pool_block snapshot ->
+    generated_unload_execution_trace pool_block before
+      (unload_targets ssl_outside_area snapshot) barrier ->
+    ~ continuous_item_transfer before barrier after pool_block.
+Proof.
+  intros Htail_frame before barrier after pool_block snapshot Hsnapshot Htrace.
+  apply cleared_barrier_forbids_continuous_transfer.
+  eapply generated_unload_targets_trace_clears_outside; eauto.
 Qed.

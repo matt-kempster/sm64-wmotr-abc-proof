@@ -429,6 +429,9 @@ bash pipeline/assumptions.sh \
   object_pool_link_fields_well_shaped
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
+  object_pool_link_fields_well_shaped_from_list_link_invariant
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
   storev_shaped_pointer_preserves_object_pool_link_fields
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
@@ -618,6 +621,12 @@ bash pipeline/assumptions.sh \
   exec_unload_object_deactivates_pool_slot_from_empty_env_pool_link_field_obligations
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
+  exec_unload_object_valid_deactivation_step_from_empty_env_valid_pool_slot_tail_frame
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  generated_unload_execution_trace_is_valid_deactivation_trace_from_empty_env_valid_pool_slot_tail_frame
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
   exec_unload_object_valid_deactivation_step_from_tail_frame
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.TraversalModel \
@@ -628,6 +637,12 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.TraversalModel \
   valid_traversal_trace_forbids_transfer
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TraversalModel \
+  generated_unload_targets_trace_clears_outside
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TraversalModel \
+  generated_unload_targets_trace_forbids_transfer
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.TraversalModel \
   traversal_trace_forbids_transfer
