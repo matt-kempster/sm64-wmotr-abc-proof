@@ -210,6 +210,12 @@ counterexample-shaped goblin.
   `held_grab_stale_reference_would_alias_reused_slot_after_load` says slot
   reuse during load would make that stale ref alias a live slot. The cleanup
   theorem still says the post-`init_mario_after_warp` Mario refs are boring.
+- [x] Audit whether that mid-transition stale Mario ref is read before cleanup
+  by the obvious suspects. `pyramid_load_window_stale_refs_not_observed_before_cleanup`
+  checks that `load_area`, `load_mario_area`, the generated
+  `object_list_processor` module, and the pre-`init_mario` prefix of
+  `init_mario_after_warp` do not mention `heldObj`, `usedObj`, or `riddenObj`.
+  Current mood: spooky window, but not caught doing cloning crime there.
 - [ ] If stale slot reuse can clone an in-Pyramid goomba/object, stop proving
   impossibility and write the counterexample cleanly.
 
@@ -269,10 +275,9 @@ Translation: the proof now knows that clearing one object is not enough; all
 other already-dead valid slots have to stay boring too. Very rude of memory,
 but fair.
 
-Channel-side next bite: decide whether the mid-transition stale `heldObj`
-window is observable/useful before `init_mario` clears it. In Discord goblin
-terms: the stale pointer can ride through `load_area`; now we need to catch it
-doing crime. Audit `load_area`, `load_mario_area`, and the front of
-`init_mario_after_warp` for any read/use of `heldObj`/`usedObj`/`riddenObj`
-before cleanup, and only then decide whether this is a cloning counterexample
-or merely a scary-but-dead window.
+Channel-side next bite: connect the no-observation audit to the stale-window
+model as a named semantic corollary, then keep chasing the non-Mario root list.
+In Discord goblin terms: the stale `heldObj` ghost made it through
+`load_area`, but the obvious routines did not look at it. Now check whether
+`platform`, `rawData.asObject`, graph links, or any remaining linked external
+callee can keep a useful outside-object epoch alive into normal Pyramid play.

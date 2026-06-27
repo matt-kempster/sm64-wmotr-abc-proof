@@ -656,6 +656,21 @@ bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.TransitionFacts \
   warp_area_loads_destination_before_mario_reference_cleanup
 bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TransitionFacts \
+  load_area_does_not_mention_stale_mario_object_refs
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TransitionFacts \
+  load_mario_area_does_not_mention_stale_mario_object_refs
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TransitionFacts \
+  object_list_processor_does_not_mention_stale_mario_object_refs
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TransitionFacts \
+  init_mario_after_warp_before_init_mario_does_not_mention_stale_refs
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TransitionFacts \
+  pyramid_load_window_stale_refs_not_observed_before_cleanup
+bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   unload_object_tail_preserves_deactivation_from_frame
 bash pipeline/assumptions.sh \
