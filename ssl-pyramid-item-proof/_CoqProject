@@ -33,3 +33,4 @@ proofs/TraversalModel.v
 proofs/SymbolicLinking.v
 proofs/PyramidTransition.v
 proofs/TransitionFacts.v
+proofs/StaleWindowObservation.v

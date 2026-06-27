@@ -656,6 +656,26 @@ by these generated bodies before cleanup. This does not yet discharge every
 external or non-Mario reference root, but it blocks the most direct
 "load_area immediately uses the stale held pointer" cloning story.
 
+`proofs/StaleWindowObservation.v` now connects the provenance model to that
+generated-code audit. Its corollaries
+`held_grab_stale_load_window_is_unobserved_before_cleanup` and
+`held_grab_reused_slot_alias_is_unobserved_before_cleanup` package the whole
+story: an outside held-object epoch can survive into the post-load/pre-cleanup
+window, and if the slot is already active again it can alias that live slot,
+but the audited generated load/reinit path does not mention the Mario stale-ref
+fields before `init_mario` clears them.
+
+The same load-window scanner has started chewing on non-Mario roots.
+`pyramid_load_window_object_owned_roots_not_mentioned_before_cleanup` shows
+that the audited path does not mention `Object.platform` or raw
+`rawData.asObject` slots before cleanup. The graph-specific theorem
+`pyramid_load_window_graph_specific_roots_not_mentioned_before_cleanup` shows
+the same for `GraphNodeObject.sharedChild` and
+`GraphNodeHeldObject.objNode`. The generic graph links
+`parent`/`children`/`prev`/`next` are intentionally not closed by this raw
+field-name scanner because those names collide with other generated structs;
+they need a type-aware audit before the proof can honestly call them boring.
+
 The non-Mario reference roots have now been brought into the same
 clightgen/Rocq route. `proofs/RenderHeldObjectFacts.v` still proves the
 `mario_misc.c` render-side fact: `geo_switch_mario_hand_grab_pos` is the only
@@ -682,10 +702,12 @@ So far, I do not have a full cloning counterexample. I do have a checked
 counterexample to the too-strong wording "no stale pointer survives the Pyramid
 load": the held-object stale root can survive into the post-`load_area`,
 pre-`init_mario` window. The latest generated-code audit says the obvious
-load/reinit bodies do not observe that stale Mario ref before cleanup. A
-cloning counterexample now needs either a remaining linked external/callee path
-outside this audit, or a non-Mario root from the finite audit above that
-survives into normal Pyramid play.
+load/reinit bodies do not observe that stale Mario ref before cleanup, and the
+first non-Mario root pass also clears `platform`, `rawData.asObject`,
+`sharedChild`, and render-held `objNode` for that window. A cloning
+counterexample now needs either a remaining linked external/callee path outside
+this audit, a typed generic-graph-link survivor, or another non-Mario root from
+the finite audit above that survives into normal Pyramid play.
 
 ## Linking boundary
 

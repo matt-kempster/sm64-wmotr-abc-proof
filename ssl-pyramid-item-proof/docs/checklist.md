@@ -216,6 +216,17 @@ counterexample-shaped goblin.
   `object_list_processor` module, and the pre-`init_mario` prefix of
   `init_mario_after_warp` do not mention `heldObj`, `usedObj`, or `riddenObj`.
   Current mood: spooky window, but not caught doing cloning crime there.
+- [x] Connect the no-observation audit to the stale-window model. The new
+  `proofs/StaleWindowObservation.v` corollaries say the stale held-object
+  window, and even the conditional reused-slot alias window, are unobserved by
+  the audited generated load/reinit path before cleanup.
+- [x] Start chasing non-Mario roots through the same window:
+  `pyramid_load_window_object_owned_roots_not_mentioned_before_cleanup` covers
+  `platform` and `rawData.asObject`, while
+  `pyramid_load_window_graph_specific_roots_not_mentioned_before_cleanup`
+  covers `GraphNodeObject.sharedChild` and `GraphNodeHeldObject.objNode`.
+  Generic graph `parent`/`children`/`prev`/`next` still need a typed audit
+  because those field names collide with other structs.
 - [ ] If stale slot reuse can clone an in-Pyramid goomba/object, stop proving
   impossibility and write the counterexample cleanly.
 
@@ -275,9 +286,8 @@ Translation: the proof now knows that clearing one object is not enough; all
 other already-dead valid slots have to stay boring too. Very rude of memory,
 but fair.
 
-Channel-side next bite: connect the no-observation audit to the stale-window
-model as a named semantic corollary, then keep chasing the non-Mario root list.
-In Discord goblin terms: the stale `heldObj` ghost made it through
-`load_area`, but the obvious routines did not look at it. Now check whether
-`platform`, `rawData.asObject`, graph links, or any remaining linked external
-callee can keep a useful outside-object epoch alive into normal Pyramid play.
+Channel-side next bite: build a typed graph-link audit for
+`GraphNode.parent`/`children`/`prev`/`next` instead of relying on raw field
+names. In Discord goblin terms: `sharedChild` and held-object `objNode` stayed
+quiet, but the generic graph link names are too overloaded for the current
+scanner. We need a type-aware version before declaring those links boring.
