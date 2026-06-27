@@ -144,13 +144,22 @@ bash pipeline/assumptions.sh \
   pool_slot_prev_obj_store_misses_active_flags
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
+  pool_slot_prev_obj_store_misses_watched_active_flags
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
   pool_slot_throw_matrix_store_misses_active_flags
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  pool_slot_throw_matrix_store_misses_watched_active_flags
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   pool_slot_throw_matrix_nested_address
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   pool_slot_graph_flags_store_misses_active_flags
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  pool_slot_graph_flags_store_misses_watched_active_flags
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   pool_slot_node_next_store_misses_active_flags

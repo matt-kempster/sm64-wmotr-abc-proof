@@ -99,6 +99,10 @@ the same pool slot's deactivation fact.
   prove generated `fn_body f_unload_object` gives a `valid_deactivation_step`
   from it. This is the "not just the target slot, every already-dead valid
   slot stays dead" bridge.
+- [x] Prove the target-slot vs watched-slot byte-range arithmetic for the
+  direct cleanup stores (`prevObj`, `throwMatrix`, graph `flags`). Translation:
+  if cleanup writes a non-`activeFlags` field in slot A, it misses
+  `activeFlags` for any valid slot B, not just A.
 - [ ] Compose those store-level graph/audio alias-frame facts through the full
   linked helper executions, so the three helper calls discharge their cleanup
   tail frame obligations instead of sitting as caller-side assumptions.
@@ -106,6 +110,9 @@ the same pool slot's deactivation fact.
   pool-link invariant route. Important caveat: the current field-only lemma
   only preserves the slot being unloaded; the valid trace also needs every
   other valid slot's deactivated status to survive the cleanup tail.
+- [ ] Lift the new target-vs-watched direct-store arithmetic into execution
+  wrappers for `prevObj = NULL`, `throwMatrix = NULL`, and the graph-flag
+  clears, then compose those wrappers through the non-call chunks of the tail.
 
 ## 4. `deallocate_object` / free-list surgery
 
@@ -232,6 +239,8 @@ The next proof-shaped bite is the newly exposed all-slot tail-frame seam:
 - prove `unload_object_tail_empty_env_preserves_valid_pool_slot_active_flags`
   from the pool-link/linked-helper route, not from the older broad global tail
   frame;
+- lift `pool_slot_*_store_misses_watched_active_flags` into the direct
+  generated cleanup executions;
 - derive `object_pool_list_link_invariant` from the actual object-pool/list
   state; and
 - derive `generated_unload_execution_trace` from the real

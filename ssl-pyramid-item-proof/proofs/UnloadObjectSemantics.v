@@ -939,6 +939,37 @@ Proof.
   lia.
 Qed.
 
+Lemma pool_slot_store_range_misses_watched_active_flags :
+  forall pool_block target_slot watched_slot store_offset store_size byte,
+    valid_object_slot target_slot ->
+    valid_object_slot watched_slot ->
+    0 <= store_offset ->
+    store_offset + store_size <= object_slot_size ->
+    (store_offset + store_size <= object_active_flags_offset \/
+     object_active_flags_offset + size_chunk Mint16signed <= store_offset) ->
+    object_field_address target_slot store_offset <= byte <
+    object_field_address target_slot store_offset + store_size ->
+    ~ active_flags_byte pool_block
+        (Ptrofs.repr ((watched_slot * object_slot_size)%Z))
+        pool_block byte.
+Proof.
+  intros pool_block target_slot watched_slot store_offset store_size byte
+    Hvalid_target Hvalid_watched Hnonnegative Hfits Hseparate Hstore_range
+    Hactive.
+  destruct (Z.eq_dec target_slot watched_slot) as [Heq | Hdifferent].
+  - subst watched_slot.
+    eapply pool_slot_store_range_misses_active_flags; eauto.
+  - pose proof
+      (pool_slot_active_flags_byte_range
+        pool_block watched_slot byte Hvalid_watched Hactive)
+      as Hactive_range.
+    unfold valid_object_slot, object_pool_capacity in *.
+    unfold object_field_address, object_slot_size,
+      object_active_flags_offset in *.
+    change (size_chunk Mint16signed) with 2 in *.
+    lia.
+Qed.
+
 Theorem pool_slot_prev_obj_store_misses_active_flags :
   forall pool_block slot byte,
     valid_object_slot slot ->
@@ -953,6 +984,27 @@ Proof.
   left.
   unfold object_active_flags_offset.
   lia.
+Qed.
+
+Theorem pool_slot_prev_obj_store_misses_watched_active_flags :
+  forall pool_block target_slot watched_slot byte,
+    valid_object_slot target_slot ->
+    valid_object_slot watched_slot ->
+    object_field_address target_slot 108 <= byte <
+    object_field_address target_slot 108 + 4 ->
+    ~ active_flags_byte pool_block
+        (Ptrofs.repr ((watched_slot * object_slot_size)%Z))
+        pool_block byte.
+Proof.
+  intros pool_block target_slot watched_slot byte
+    Hvalid_target Hvalid_watched Hrange.
+  eapply
+    (pool_slot_store_range_misses_watched_active_flags
+      pool_block target_slot watched_slot 108 4 byte);
+    eauto.
+  - lia.
+  - unfold object_slot_size; lia.
+  - left. unfold object_active_flags_offset. lia.
 Qed.
 
 Theorem pool_slot_throw_matrix_store_misses_active_flags :
@@ -971,6 +1023,27 @@ Proof.
   lia.
 Qed.
 
+Theorem pool_slot_throw_matrix_store_misses_watched_active_flags :
+  forall pool_block target_slot watched_slot byte,
+    valid_object_slot target_slot ->
+    valid_object_slot watched_slot ->
+    object_field_address target_slot 80 <= byte <
+    object_field_address target_slot 80 + 4 ->
+    ~ active_flags_byte pool_block
+        (Ptrofs.repr ((watched_slot * object_slot_size)%Z))
+        pool_block byte.
+Proof.
+  intros pool_block target_slot watched_slot byte
+    Hvalid_target Hvalid_watched Hrange.
+  eapply
+    (pool_slot_store_range_misses_watched_active_flags
+      pool_block target_slot watched_slot 80 4 byte);
+    eauto.
+  - lia.
+  - unfold object_slot_size; lia.
+  - left. unfold object_active_flags_offset. lia.
+Qed.
+
 Theorem pool_slot_graph_flags_store_misses_active_flags :
   forall pool_block slot byte,
     valid_object_slot slot ->
@@ -985,6 +1058,27 @@ Proof.
   left.
   unfold object_active_flags_offset.
   lia.
+Qed.
+
+Theorem pool_slot_graph_flags_store_misses_watched_active_flags :
+  forall pool_block target_slot watched_slot byte,
+    valid_object_slot target_slot ->
+    valid_object_slot watched_slot ->
+    object_field_address target_slot 2 <= byte <
+    object_field_address target_slot 2 + 2 ->
+    ~ active_flags_byte pool_block
+        (Ptrofs.repr ((watched_slot * object_slot_size)%Z))
+        pool_block byte.
+Proof.
+  intros pool_block target_slot watched_slot byte
+    Hvalid_target Hvalid_watched Hrange.
+  eapply
+    (pool_slot_store_range_misses_watched_active_flags
+      pool_block target_slot watched_slot 2 2 byte);
+    eauto.
+  - lia.
+  - unfold object_slot_size; lia.
+  - left. unfold object_active_flags_offset. lia.
 Qed.
 
 Theorem pool_slot_node_next_store_misses_active_flags :
@@ -2323,7 +2417,7 @@ Proof.
   split; [reflexivity | split; [reflexivity |]].
   match goal with
   | Hassign :
-      assign_loc unload_object_ce _ _ _ _ _ _ _ |- _ =>
+      assign_loc _ _ _ _ _ _ _ _ |- _ =>
       eapply assign_loc_by_value_preserves_active_flags_bytes
         with (chunk := Mint32) in Hassign;
       [ exact Hassign
