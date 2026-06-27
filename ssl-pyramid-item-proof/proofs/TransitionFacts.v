@@ -441,3 +441,34 @@ Proof.
       | exact level_update_has_no_direct_held_object_writer
       | exact level_update_has_no_direct_ridden_object_writer ].
 Qed.
+
+Theorem warp_area_loads_destination_before_mario_reference_cleanup :
+  direct_callees_s (fn_body L.f_warp_area) =
+    [L._level_control_timer;
+     L._unload_mario_area;
+     L._load_area;
+     L._init_mario_after_warp] /\
+  event_subsequenceb
+    [Event_call L._load_mario_area;
+     Event_call L._init_mario]
+    (statement_events_s (fn_body L.f_init_mario_after_warp)) = true /\
+  assigns_zero_to_field_s M._heldObj (fn_body M.f_init_mario) = true /\
+  assigns_zero_to_field_s M._riddenObj (fn_body M.f_init_mario) = true /\
+  assigns_zero_to_field_s M._usedObj (fn_body M.f_init_mario) = true /\
+  event_subsequenceb
+    [Event_call L._init_mario;
+     Event_set_temp_from_field L._t'41 L._spawnNode L._object;
+     Event_assign_field_from_temp L._interactObj L._t'41;
+     Event_set_temp_from_field L._t'39 L._spawnNode L._object;
+     Event_assign_field_from_temp L._usedObj L._t'39]
+    (statement_events_s (fn_body L.f_init_mario_after_warp)) = true.
+Proof.
+  repeat split;
+    first
+      [ exact warp_area_direct_call_order
+      | vm_compute; reflexivity
+      | exact init_mario_clears_held_object
+      | exact init_mario_clears_ridden_object
+      | exact init_mario_clears_used_object
+      | exact init_mario_after_warp_rebinds_spawn_object_after_init ].
+Qed.
