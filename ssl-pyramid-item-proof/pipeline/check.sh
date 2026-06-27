@@ -20,6 +20,12 @@ bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.StalePointerModel \
   deactivated_raw_slot_reuse_is_not_continuous_transfer
 bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StalePointerModel \
+  outside_held_grab_can_leave_stale_reference_across_pyramid_load
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StalePointerModel \
+  held_grab_stale_reference_would_alias_reused_slot_after_load
+bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.RenderHeldObjectFacts \
   geo_switch_mario_hand_grab_pos_direct_objnode_writers
 bash pipeline/assumptions.sh \
@@ -646,6 +652,9 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.TransitionFacts \
   non_deallocate_cleanup_helpers_have_no_direct_active_flags_write
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TransitionFacts \
+  warp_area_loads_destination_before_mario_reference_cleanup
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   unload_object_tail_preserves_deactivation_from_frame

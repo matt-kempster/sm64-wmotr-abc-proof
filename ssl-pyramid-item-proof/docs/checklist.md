@@ -153,7 +153,14 @@ being unlinked and recycled.
 - [ ] Derive `object_pool_list_link_invariant` from the actual generated
   object-list/free-list traversal state, not from optimism and coffee.
 - [ ] Track whether any stale pointer can survive the free-list splice and later
-  alias a newly allocated in-Pyramid object.
+  alias a newly allocated in-Pyramid object. Partial progress: the model now
+  has a checked mid-transition witness that a held outside allocation epoch can
+  still be in `heldObj` after destination `load_area`; if that slot is active
+  again after load, the stale reference aliases it. Still missing: derive the
+  actual slot reuse/free-list story rather than assuming post-load activity.
+  This is not yet a cloning counterexample because the generated spine then
+  runs `init_mario` / `init_mario_after_warp` before normal Pyramid play
+  resumes.
 
 ## 5. Traversal / area unload bridge
 
@@ -195,8 +202,14 @@ counterexample-shaped goblin.
   `rawData.asObject`; graph tree/list links and render-held `objNode` writers
   are also pinned. This is the finite writer/root audit, not yet the full
   semantic "can one survive the Pyramid warp?" proof.
-- [ ] Prove or refute whether an outside grab can leave a stale object pointer
+- [x] Prove or refute whether an outside grab can leave a stale object pointer
   live across the Pyramid load.
+  Refuted the "cannot" version for the mid-transition `load_area` boundary:
+  `outside_held_grab_can_leave_stale_reference_across_pyramid_load` gives the
+  held-object stale-reference witness, and
+  `held_grab_stale_reference_would_alias_reused_slot_after_load` says slot
+  reuse during load would make that stale ref alias a live slot. The cleanup
+  theorem still says the post-`init_mario_after_warp` Mario refs are boring.
 - [ ] If stale slot reuse can clone an in-Pyramid goomba/object, stop proving
   impossibility and write the counterexample cleanly.
 
@@ -256,9 +269,10 @@ Translation: the proof now knows that clearing one object is not enough; all
 other already-dead valid slots have to stay boring too. Very rude of memory,
 but fair.
 
-Channel-side next bite: use `NonMarioReferenceFacts.v` to start the semantic
-stale-root pass. In Discord goblin terms: the pointer-root roll call is no
-longer spooky fog; now chase whether any listed root can actually stay live
-across the SSL outside -> Pyramid unload/load spine. The first spicy targets
-are `platform` and `rawData.asObject`, because they are real object-owned
-references outside the MarioState held/ridden/interacted quartet.
+Channel-side next bite: decide whether the mid-transition stale `heldObj`
+window is observable/useful before `init_mario` clears it. In Discord goblin
+terms: the stale pointer can ride through `load_area`; now we need to catch it
+doing crime. Audit `load_area`, `load_mario_area`, and the front of
+`init_mario_after_warp` for any read/use of `heldObj`/`usedObj`/`riddenObj`
+before cleanup, and only then decide whether this is a cloning counterexample
+or merely a scary-but-dead window.

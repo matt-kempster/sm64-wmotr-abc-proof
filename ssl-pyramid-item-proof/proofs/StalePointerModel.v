@@ -6,10 +6,18 @@
    object, the raw pointer value may be equal, but the allocation epoch is not
    the outside item unless one of Mario's references preserves that old epoch.
 
-   The generated-Clight facts in TransitionFacts establish the relevant spine:
-   init_mario clears heldObj/riddenObj/usedObj, and init_mario_after_warp then
-   assigns interactObj/usedObj from the destination spawn object after the
-   init_mario call.
+   The generated-Clight facts in TransitionFacts establish two distinct
+   points in the transition spine:
+
+   - warp_area unloads the old area and calls load_area for the destination
+     before it calls init_mario_after_warp;
+   - init_mario then clears heldObj/riddenObj/usedObj, and
+     init_mario_after_warp assigns interactObj/usedObj from the destination
+     spawn object after the init_mario call.
+
+   So "survives the Pyramid load" and "survives until Pyramid play resumes"
+   are different claims.  The former has a model witness below; the latter is
+   the already-proved post_pyramid_warp_reference_shape theorem.
  *)
 
 From Coq Require Import List ZArith.
@@ -53,6 +61,51 @@ Definition post_pyramid_warp_reference_shape
   ref_used_object refs = DestinationSpawnObject destination_spawn_slot /\
   ref_ridden_object refs = NoObjectReference.
 
+Record pyramid_load_window_reference_origins := {
+  refs_before_area_unload : mario_reference_origins;
+  refs_after_pyramid_load_before_mario_init : mario_reference_origins;
+  refs_after_mario_reinit : mario_reference_origins
+}.
+
+Definition outside_held_grab_refs
+    (outside_slot : Z) : mario_reference_origins := {|
+  ref_interact_object := NoObjectReference;
+  ref_held_object := OutsideAllocationEpoch outside_slot;
+  ref_used_object := NoObjectReference;
+  ref_ridden_object := NoObjectReference
+|}.
+
+Definition post_reinit_refs
+    (destination_spawn_slot : Z) : mario_reference_origins := {|
+  ref_interact_object := DestinationSpawnObject destination_spawn_slot;
+  ref_held_object := NoObjectReference;
+  ref_used_object := DestinationSpawnObject destination_spawn_slot;
+  ref_ridden_object := NoObjectReference
+|}.
+
+Definition outside_held_grab_load_window
+    (outside_slot destination_spawn_slot : Z)
+    : pyramid_load_window_reference_origins := {|
+  refs_before_area_unload := outside_held_grab_refs outside_slot;
+  refs_after_pyramid_load_before_mario_init :=
+    outside_held_grab_refs outside_slot;
+  refs_after_mario_reinit := post_reinit_refs destination_spawn_slot
+|}.
+
+Definition stale_outside_reference_after_pyramid_load
+    (before : mem) (pool_block : block)
+    (window : pyramid_load_window_reference_origins) : Prop :=
+  stale_outside_reference before pool_block
+    (refs_after_pyramid_load_before_mario_init window).
+
+Definition stale_outside_reference_aliases_live_slot
+    (before after_load : mem) (pool_block : block)
+    (refs : mario_reference_origins) : Prop :=
+  exists slot,
+    outside_live_slot before pool_block slot /\
+    slot_active after_load pool_block slot /\
+    In (OutsideAllocationEpoch slot) (mario_reference_origin_list refs).
+
 Theorem post_pyramid_warp_shape_has_no_stale_outside_reference :
   forall before pool_block destination_spawn_slot refs,
     post_pyramid_warp_reference_shape destination_spawn_slot refs ->
@@ -69,6 +122,65 @@ Proof.
     (destruct Hin as [Hin | Hin];
      [discriminate |]).
   contradiction.
+Qed.
+
+Theorem post_reinit_refs_have_post_pyramid_warp_shape :
+  forall destination_spawn_slot,
+    post_pyramid_warp_reference_shape destination_spawn_slot
+      (post_reinit_refs destination_spawn_slot).
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
+Theorem outside_held_grab_can_leave_stale_reference_across_pyramid_load :
+  forall before pool_block outside_slot destination_spawn_slot,
+    outside_live_slot before pool_block outside_slot ->
+    exists window,
+      window =
+        outside_held_grab_load_window outside_slot destination_spawn_slot /\
+      stale_outside_reference_after_pyramid_load
+        before pool_block window /\
+      ~ stale_outside_reference before pool_block
+          (refs_after_mario_reinit window).
+Proof.
+  intros before pool_block outside_slot destination_spawn_slot Houtside.
+  exists (outside_held_grab_load_window
+            outside_slot destination_spawn_slot).
+  split.
+  - reflexivity.
+  - split.
+    + exists outside_slot.
+      split; [exact Houtside |].
+      unfold mario_reference_origin_list,
+        outside_held_grab_load_window, outside_held_grab_refs.
+      simpl.
+      right; left; reflexivity.
+    + apply post_pyramid_warp_shape_has_no_stale_outside_reference
+        with (destination_spawn_slot := destination_spawn_slot).
+      apply post_reinit_refs_have_post_pyramid_warp_shape.
+Qed.
+
+Theorem held_grab_stale_reference_would_alias_reused_slot_after_load :
+  forall before after_load pool_block outside_slot destination_spawn_slot,
+    outside_live_slot before pool_block outside_slot ->
+    slot_active after_load pool_block outside_slot ->
+    exists window,
+      window =
+        outside_held_grab_load_window outside_slot destination_spawn_slot /\
+      stale_outside_reference_aliases_live_slot
+        before after_load pool_block
+        (refs_after_pyramid_load_before_mario_init window).
+Proof.
+  intros before after_load pool_block outside_slot
+    destination_spawn_slot Houtside Hactive_after_load.
+  exists (outside_held_grab_load_window
+            outside_slot destination_spawn_slot).
+  split; [reflexivity |].
+  exists outside_slot.
+  split; [exact Houtside |].
+  split; [exact Hactive_after_load |].
+  unfold mario_reference_origin_list,
+    outside_held_grab_load_window, outside_held_grab_refs.
+  simpl.
+  right; left; reflexivity.
 Qed.
 
 Theorem deactivated_raw_slot_reuse_is_not_continuous_transfer :

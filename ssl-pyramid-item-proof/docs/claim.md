@@ -602,7 +602,7 @@ The first situation is possible in SM64's allocator and must not be confused
 with item transport. The second is the dangerous stale-pointer cloning channel.
 
 Current generated-Clight facts close the main MarioState version of that
-channel for the pyramid warp spine:
+channel by the time normal Pyramid play resumes:
 
 - `mario.f_init_mario` directly clears `heldObj`, `riddenObj`, and `usedObj`;
 - `level_update.f_init_mario_after_warp` has the ordered event subsequence
@@ -620,6 +620,22 @@ warp `interactObj` and `usedObj` are destination-spawn references while
 contain no stale outside allocation epoch. It also proves that deactivating a
 slot at the unload barrier means later raw slot reuse is not a continuous item
 transfer.
+
+There is now an important mid-transition caveat. The generated theorem
+`warp_area_loads_destination_before_mario_reference_cleanup` records that
+`level_update.f_warp_area` calls destination `load_area` before
+`init_mario_after_warp`; `init_mario`, which clears `heldObj`/`riddenObj`/
+`usedObj`, is inside that later wrapper. `proofs/StalePointerModel.v` therefore
+refutes the stronger claim that no outside grab can leave a stale object
+reference across the Pyramid load boundary: the theorem
+`outside_held_grab_can_leave_stale_reference_across_pyramid_load` constructs
+the held-object provenance window, and
+`held_grab_stale_reference_would_alias_reused_slot_after_load` says that if the
+destination load has already made the old slot active again, the stale held
+reference would alias that live slot. This is not yet a cloning counterexample:
+the same witness also proves the post-`init_mario_after_warp` reference shape
+has no stale outside epoch, so the remaining question is whether generated code
+can observe or act on the mid-window stale alias before cleanup.
 
 The non-Mario reference roots have now been brought into the same
 clightgen/Rocq route. `proofs/RenderHeldObjectFacts.v` still proves the
@@ -643,14 +659,12 @@ and `behavior_actions.bowser_free_update` in the audited generated corpus,
 `rawData.asObject` writes are confined to a finite list of behavior-action
 functions.
 
-So far, I do not have a counterexample: the obvious stale-pointer-to-goomba
-scenario would require an outside item reference to survive the warp, and the
-current generated-Clight facts show the relevant MarioState references are
-cleared or rebound before pyramid control resumes; the render-side held-object
-graph pointer is refreshed from the cleared `heldObj` field rather than kept
-independently. This remains weaker than a complete whole-engine clone
-impossibility proof until the finite non-Mario root list above is composed with
-reachability and area-transition execution facts.
+So far, I do not have a full cloning counterexample. I do have a checked
+counterexample to the too-strong wording "no stale pointer survives the Pyramid
+load": the held-object stale root can survive into the post-`load_area`,
+pre-`init_mario` window. A cloning counterexample still needs generated code
+that observes or uses that alias before cleanup, or a non-Mario root from the
+finite audit above that survives into normal Pyramid play.
 
 ## Linking boundary
 
