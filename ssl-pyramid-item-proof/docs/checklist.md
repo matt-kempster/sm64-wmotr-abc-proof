@@ -225,8 +225,21 @@ counterexample-shaped goblin.
   `platform` and `rawData.asObject`, while
   `pyramid_load_window_graph_specific_roots_not_mentioned_before_cleanup`
   covers `GraphNodeObject.sharedChild` and `GraphNodeHeldObject.objNode`.
-  Generic graph `parent`/`children`/`prev`/`next` still need a typed audit
-  because those field names collide with other structs.
+  The generic graph `parent`/`children`/`prev`/`next` names needed the typed
+  pass below because raw `next`/`prev` also means object-list links and a bunch
+  of other totally-not-graph stuff.
+- [x] Build a type-aware graph-link audit for
+  `GraphNode.parent`/`children`/`prev`/`next`. New theorem
+  `pyramid_load_window_typed_graph_node_link_audit` ignores fake scares like
+  `ObjectNode.next`, but it also caught the real goblin: direct `load_area`
+  has no typed graph-link field access, yet it calls `load_obj_warp_nodes` and
+  `geo_call_global_function_nodes`. The former reads typed graph links exactly
+  as `children`, `next`, `children`; the latter lives in the generated
+  `graph_node` TU, whose typed graph-link mentioners are now a finite list
+  (`init_scene_graph_node_links`, `geo_add_child`, `geo_remove_child`,
+  `geo_make_first_child`, the two `geo_call_global_function_nodes*` helpers,
+  and `geo_find_root`). Translation: field-name collision defeated; semantic
+  graph traversal is still a real dragon.
 - [ ] If stale slot reuse can clone an in-Pyramid goomba/object, stop proving
   impossibility and write the counterexample cleanly.
 
@@ -286,8 +299,10 @@ Translation: the proof now knows that clearing one object is not enough; all
 other already-dead valid slots have to stay boring too. Very rude of memory,
 but fair.
 
-Channel-side next bite: build a typed graph-link audit for
-`GraphNode.parent`/`children`/`prev`/`next` instead of relying on raw field
-names. In Discord goblin terms: `sharedChild` and held-object `objNode` stayed
-quiet, but the generic graph link names are too overloaded for the current
-scanner. We need a type-aware version before declaring those links boring.
+Channel-side next bite: use the typed graph-link census semantically. In
+Discord goblin terms: the scanner no longer confuses `ObjectNode.next` with
+`GraphNode.next`, but it found actual `GraphNode.children` / `GraphNode.next`
+reads during `load_obj_warp_nodes` and the generated graph traversal helpers.
+Next round should prove those traversals only walk the destination/current
+graph tree, or else turn a surviving outside graph link into a concrete
+counterexample candidate.

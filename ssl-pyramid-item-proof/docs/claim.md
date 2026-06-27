@@ -672,9 +672,20 @@ that the audited path does not mention `Object.platform` or raw
 `pyramid_load_window_graph_specific_roots_not_mentioned_before_cleanup` shows
 the same for `GraphNodeObject.sharedChild` and
 `GraphNodeHeldObject.objNode`. The generic graph links
-`parent`/`children`/`prev`/`next` are intentionally not closed by this raw
-field-name scanner because those names collide with other generated structs;
-they need a type-aware audit before the proof can honestly call them boring.
+`parent`/`children`/`prev`/`next` now use a separate typed scanner:
+`pyramid_load_window_typed_graph_node_link_audit` only counts those fields when
+the receiver expression has type `struct GraphNode`. That kills the false
+positives from `ObjectNode.next` / `ObjectNode.prev`, but it also records a real
+path: direct `load_area` has no typed generic graph-link field access, while
+`load_obj_warp_nodes` reads `GraphNode.children`, `GraphNode.next`, then
+`GraphNode.children`, and `load_area` calls both `load_obj_warp_nodes` and
+`geo_call_global_function_nodes`. The generated `graph_node` translation unit's
+typed mentioner list is finite too: `init_scene_graph_node_links`,
+`geo_add_child`, `geo_remove_child`, `geo_make_first_child`, the two
+`geo_call_global_function_nodes*` helpers, and `geo_find_root`. So the
+field-name-collision problem is closed; the remaining graph obligation is the
+semantic one, namely proving these traversals cannot observe a stale outside
+graph link in a cloning-useful way.
 
 The non-Mario reference roots have now been brought into the same
 clightgen/Rocq route. `proofs/RenderHeldObjectFacts.v` still proves the
@@ -706,8 +717,9 @@ load/reinit bodies do not observe that stale Mario ref before cleanup, and the
 first non-Mario root pass also clears `platform`, `rawData.asObject`,
 `sharedChild`, and render-held `objNode` for that window. A cloning
 counterexample now needs either a remaining linked external/callee path outside
-this audit, a typed generic-graph-link survivor, or another non-Mario root from
-the finite audit above that survives into normal Pyramid play.
+this audit, a semantic survivor through the typed graph traversal paths above,
+or another non-Mario root from the finite audit above that survives into normal
+Pyramid play.
 
 ## Linking boundary
 
