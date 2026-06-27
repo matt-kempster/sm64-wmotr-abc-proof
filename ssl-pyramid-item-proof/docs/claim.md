@@ -686,6 +686,31 @@ checked against generated data:
 - the direct object cases are backed by generated hitbox facts showing
   `INTERACT_GRABBABLE`.
 
+The current channel classification is also mechanized there:
+
+- `outside_pyramid_channel_classifications_shell_first` deliberately starts
+  with the Koopa shell box;
+- `outside_pyramid_classification_exact` classifies that shell box as both a
+  direct object-transfer risk and a stale-pointer/cloning risk through the
+  `RiddenShellReference` route;
+- the small breakable box, two bob-ombs, and two jumping boxes are classified
+  as direct object-transfer and stale-pointer/cloning risks through the
+  `HeldUsedOrInteractReference` route;
+- the three Wing Cap boxes are classified as `CapTimerAndFlagsState`, i.e. an
+  ordinary state channel rather than transported `gObjectPool` identity; and
+- `outside_pyramid_classification_is_not_irrelevant` records that none of the
+  nine mechanized channels is being thrown away as irrelevant.
+
+The shell/ridden path has first-class generated evidence now:
+`shell_channel_generated_ridden_object_evidence` ties the shell-box contents to
+`bhvKoopaShell`, pins the shell hitbox to `INTERACT_KOOPA_SHELL`, shows
+`interact_koopa_shell` assigning the shell object through Mario's
+`interactObj`, `usedObj`, and `riddenObj` fields, and records that
+`init_mario` clears `riddenObj`. The matching direct-object and cap-state
+evidence is bundled in
+`direct_grabbable_channel_mario_reference_cleanup_evidence` and
+`wing_cap_channel_state_only_generated_evidence`.
+
 The proof also has to cover dynamically spawned descendants and glitch-created
 stale-slot references; this finite list is the hold/ride root set, not the whole
 area-1 object set.

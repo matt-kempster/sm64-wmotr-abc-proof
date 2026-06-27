@@ -1,6 +1,6 @@
 # SSL Pyramid item proof checklist
 
-Last updated: 2026-06-26
+Last updated: 2026-06-27
 
 Tiny vibe check: this is the human-readable TODO list for the "can we smuggle
 stuff into SSL Pyramid?" proof. The Coq files are the machine's truth. This
@@ -45,13 +45,21 @@ This is the "what toys are actually outside the pyramid?" layer.
   hand-wavy pile: small breakable box, two bob-ombs, two jumping boxes, the
   shell box, and three Wing Cap boxes. It also extracts the exact relevant
   macro entries from the generated SSL area-1 macro table.
-- [ ] Decide, with proof/doc evidence, whether each channel is:
+- [x] Decide, with proof/doc evidence, whether each channel is:
   - direct object transfer risk,
   - stale-pointer / cloning risk,
   - only ordinary state like coins/timers/music/camera,
   - or irrelevant to item identity.
-- [ ] Specifically track the shell/ridden-object channel. Shells are the spicy
-  one; do not hand-wave them.
+  `outside_pyramid_channel_classifications_shell_first` now says the shell box
+  is both a direct-object and stale/cloning risk through `riddenObj`; the five
+  grabbable objects are direct/stale risks through held/used/interact-style
+  references; and the three Wing Cap boxes are cap-state-only channels, not
+  object-identity channels.
+- [x] Specifically track the shell/ridden-object channel. Shells are the spicy
+  one; do not hand-wave them. The shell case is first in the classification
+  table and has generated evidence for `bhvKoopaShell`, `INTERACT_KOOPA_SHELL`,
+  `interact_koopa_shell` writing `riddenObj`, and `init_mario` clearing
+  `riddenObj`.
 
 ## 3. `unload_object` cleanup proof
 
@@ -222,6 +230,8 @@ frame facts come from real linked execution, then plug them into traversal:
 Translation: we are trying to make the free-list surgery boring enough that the
 stale-pointer question has nowhere dark left to hide.
 
-Channel-side next bite: classify the nine mechanized
-`outside_pyramid_object_channels`, with the shell/ridden-object path first,
-because that is still the spicy one.
+Channel-side next bite: plug the classification table into the final item
+predicate/theorem. In Discord goblin terms: make the five held-style object
+risks and the shell/ridden-object risk go through the MarioState stale-ref
+cleanup proof, while saying very explicitly that Wing Cap boxes are cap state,
+not transported object identity.
