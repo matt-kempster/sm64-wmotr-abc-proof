@@ -513,6 +513,14 @@ its execution trace, not over a hand-written transition function.
   (`slot*608+116..117`). `ObjectNode.next` and `ObjectNode.prev` are now also
   pinned at offsets `96` and `100`, respectively, for the deallocation-body
   list-pointer proof.
+- `pool_slot_store_range_misses_watched_active_flags`,
+  `pool_slot_prev_obj_store_misses_watched_active_flags`,
+  `pool_slot_throw_matrix_store_misses_watched_active_flags`, and
+  `pool_slot_graph_flags_store_misses_watched_active_flags` generalize those
+  direct-store arithmetic facts to the target-vs-watched-slot shape needed by
+  `valid_deactivation_trace`: a cleanup write into a non-`activeFlags` field of
+  one valid slot misses the `activeFlags` bytes of every valid watched slot,
+  including both the same-slot and different-slot cases.
 - `pool_slot_throw_matrix_nested_address` normalizes the exact nested Clight
   address shape produced by `obj->header.gfx.throwMatrix`: adding `header`
   offset 0, `gfx` offset 0, and `throwMatrix` offset 80 reduces to the
