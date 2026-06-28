@@ -772,6 +772,17 @@ normalization and frame composition: prove the generated temps really denote
 the intended parent/prev/next/children addresses and then show unrelated graph
 fields do not alias those stores.
 
+One concrete splice assignment is now bridged all the way to the memory record.
+`geo_remove_child_prev_next_assignment_effect_store_and_frames` says that once
+the generated final assignment of the first splice runs with `_t'6` holding the
+previous node and `_t'7` holding the next node, its `Sassign` effect is exactly
+the concrete `previous->next = next` store. The same theorem frames byte-
+disjoint `children` and `next` graph-link loads across that store. The remaining
+piece for this one splice is not the store anymore; it is the preceding `Sset`
+read normalization proving `_t'6 = graphNode->prev` and `_t'7 =
+graphNode->next` from the generated reads without using a proof term that makes
+Coq/WSL fall over.
+
 The non-Mario reference roots have now been brought into the same
 clightgen/Rocq route. `proofs/RenderHeldObjectFacts.v` still proves the
 `mario_misc.c` render-side fact: `geo_switch_mario_hand_grab_pos` is the only

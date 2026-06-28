@@ -720,6 +720,9 @@ bash pipeline/assumptions.sh \
   graph_node_field_store_ptr_load_same
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.GraphTraversalModel \
+  geo_remove_child_prev_next_assignment_effect_store_and_frames
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.GraphTraversalModel \
   geo_remove_child_graph_effect_from_memory_effect
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.GraphTraversalModel \

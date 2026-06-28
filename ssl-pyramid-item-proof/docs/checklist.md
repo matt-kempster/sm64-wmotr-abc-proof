@@ -315,6 +315,18 @@ counterexample-shaped goblin.
   not dead is normalizing each generated lvalue/temp chain to "this is
   precisely `prev->next`, `next->prev`, `parent->children`, etc." and then
   threading the non-overlap frame facts through the sequence.
+- [x] Prove the first one-splice assignment/store/frame bridge.
+  The theorem
+  `geo_remove_child_prev_next_assignment_effect_store_and_frames` now covers
+  the final assignment in the first `geo_remove_child` splice: if the generated
+  assignment effect runs with `_t'6` holding `graphNode->prev` and `_t'7`
+  holding `graphNode->next`, then the assignment is exactly the concrete
+  `previous->next = next` `GraphNode.next` store. It also proves byte-disjoint
+  `children` and `next` graph-link loads are framed across that store. Tiny
+  but important caveat: the semantic `Sset` proof that fills `_t'6` and `_t'7`
+  from the two generated reads is still the next goblin; a direct attempt
+  worked logically but was too heavy/flaky under Coq/WSL, so it needs a lighter
+  inversion lemma rather than brute-force `eval_expr` destruction.
 - [ ] If stale slot reuse can clone an in-Pyramid goomba/object, stop proving
   impossibility and write the counterexample cleanly.
 
@@ -390,13 +402,10 @@ Translation: the proof now knows that clearing one object is not enough; all
 other already-dead valid slots have to stay boring too. Very rude of memory,
 but fair.
 
-Channel-side next bite: finish the lvalue/temp normalization and frame
-composition for those assignment effects. In Discord goblin terms: `Sassign`
-now hands us the bloody knife (`assign_loc`), and exact field-address knives
-already become graph memory stores. Next, prove the temp chains say
-`_t'6 = graphNode->prev`, `_t'7 = graphNode->next`, `_firstChild =
-&parent->children`, and the add-child temps are the parent/first/last child
-nodes claimed by the store trace. Then thread those exact stores through the
-helper sequence and prove non-overlap leaves unrelated `children`/`next`
-fields framed. If one of those lvalues can secretly point at an outside graph
-edge, congrats, we found the counterexample-shaped little criminal.
+Channel-side next bite: finish the semantic `Sset` temp-read normalization for
+the first `geo_remove_child` splice without making Coq eat the whole AST cave.
+In Discord goblin terms: the final `previous->next = next` knife is now pinned
+and framed once `_t'6` and `_t'7` are known. Next, prove the two preceding reads
+cheaply: `_t'6 = graphNode->prev` and `_t'7 = graphNode->next`. After that,
+compose the three-step splice, then clone the pattern for `next->prev`,
+`parent->children`, and the add-child temps.

@@ -173,6 +173,14 @@ Definition graph_node_ce : composite_env := prog_comp_env G.prog.
 
 Definition graph_node_ge : genv := globalenv G.prog.
 
+Lemma graph_node_genv_cenv :
+  genv_cenv graph_node_ge = graph_node_ce.
+Proof.
+  unfold graph_node_ge, graph_node_ce, globalenv.
+  cbn [genv_cenv].
+  reflexivity.
+Qed.
+
 Definition generated_graph_node_members : members :=
   match graph_node_ce ! G._GraphNode with
   | Some composite => co_members composite
@@ -1267,6 +1275,255 @@ Proof.
     graph_node_indirect_null_assignment_effect.
   eapply exec_generated_sassign_effect_from_exec_stmt.
   exact Hexec.
+Qed.
+
+Lemma graph_node_deref_loc_by_copy_pointer :
+  forall memory block offset value,
+    deref_loc graph_node_type memory block offset Full value ->
+    value = Vptr block offset.
+Proof.
+  intros memory block offset value Hderef.
+  inv Hderef; try reflexivity;
+    match goal with
+    | Hmode : access_mode graph_node_type = _ |- _ =>
+          vm_compute in Hmode;
+          discriminate
+    end.
+Qed.
+
+Lemma graph_node_ptr_deref_loc_loadv :
+  forall memory block offset value,
+    deref_loc graph_node_ptr_type memory block offset Full value ->
+    Mem.loadv Mint32 memory (Vptr block offset) = Some value.
+Proof.
+  intros memory block offset value Hderef.
+  inv Hderef.
+  - match goal with
+    | Hmode : access_mode graph_node_ptr_type = By_value ?chunk,
+      Hload : Mem.loadv ?chunk memory (Vptr block offset) = Some value |- _ =>
+        cbn in Hmode;
+        rewrite graph_node_target_mptr_is_mint32 in Hmode;
+        inv Hmode;
+        exact Hload
+    end.
+  - match goal with
+    | Hmode : access_mode graph_node_ptr_type = By_reference |- _ =>
+        vm_compute in Hmode;
+        discriminate
+    end.
+  - match goal with
+    | Hmode : access_mode graph_node_ptr_type = By_copy |- _ =>
+        vm_compute in Hmode;
+        discriminate
+    end.
+Qed.
+
+Lemma eval_graph_node_temp_deref_pointer_with_lookup :
+  forall temporary e le memory loc ofs,
+    eval_expr graph_node_ge e le memory
+      (Ederef
+        (Etempvar temporary graph_node_ptr_type)
+        graph_node_type)
+      (Vptr loc ofs) ->
+    le ! temporary = Some (Vptr loc ofs).
+Proof.
+  intros temporary e le memory loc ofs Hexpr.
+  inv Hexpr.
+  match goal with
+  | Hlv : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ => inv Hlv
+  end.
+  match goal with
+  | Htemp : eval_expr _ _ _ _
+      (Etempvar temporary _) _ |- _ =>
+      inv Htemp;
+      try (match goal with
+           | Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ =>
+               solve [inv Hl]
+           end)
+  end.
+  match goal with
+  | Hlookup : le ! temporary = Some (Vptr ?base_block ?base_ofs),
+    Hderef : deref_loc _ memory ?base_block ?base_ofs Full
+      (Vptr loc ofs) |- _ =>
+      pose proof
+        (graph_node_deref_loc_by_copy_pointer
+          memory base_block base_ofs (Vptr loc ofs) Hderef) as Hcopy;
+      inv Hcopy;
+      exact Hlookup
+  end.
+Qed.
+
+Lemma eval_graph_node_temp_field_lvalue :
+  forall temporary field field_delta e le memory loc ofs bf,
+    field_offset graph_node_ce field generated_graph_node_members =
+      OK (field_delta, Full) ->
+    eval_lvalue graph_node_ge e le memory
+      (graph_node_temp_field_expr temporary field)
+      loc ofs bf ->
+    exists base_block base_ofs,
+      le ! temporary = Some (Vptr base_block base_ofs) /\
+      loc = base_block /\
+      ofs = Ptrofs.add base_ofs (Ptrofs.repr field_delta) /\
+      bf = Full.
+Proof.
+  intros temporary field field_delta e le memory loc ofs bf
+    Hlayout Hlv.
+  unfold graph_node_temp_field_expr in Hlv.
+  inv Hlv;
+    [ | match goal with Hut : typeof _ = Tunion _ _ |- _ => inv Hut end ].
+  rewrite graph_node_genv_cenv in *.
+  match goal with
+  | Hty :
+      typeof
+        (Ederef
+          (Etempvar temporary graph_node_ptr_type)
+          graph_node_type) = Tstruct _ _ |- _ =>
+      cbn [typeof] in Hty;
+      inv Hty
+  end.
+  match goal with
+  | Hco : graph_node_ce ! G._GraphNode = Some ?co,
+    Hfield :
+      field_offset graph_node_ce field (co_members ?co) =
+      OK (?delta, ?bf0) |- _ =>
+      assert (Hmembers : co_members co = generated_graph_node_members) by
+        (unfold generated_graph_node_members; rewrite Hco; reflexivity);
+      rewrite Hmembers in Hfield;
+      rewrite Hlayout in Hfield;
+      inv Hfield
+  end.
+  match goal with
+  | Hbase :
+      eval_expr graph_node_ge e le memory
+        (Ederef
+          (Etempvar temporary graph_node_ptr_type)
+          graph_node_type)
+        (Vptr ?base_block ?base_ofs) |- _ =>
+      exists base_block, base_ofs;
+      split;
+      [ eapply eval_graph_node_temp_deref_pointer_with_lookup;
+        exact Hbase
+      | split; [reflexivity | split; reflexivity] ]
+  end.
+Qed.
+
+Lemma graph_node_field_ptr_assignment_effect_store_ptr_from_temps :
+  forall e le before after node_temp field field_delta value_temp node value,
+    field_offset graph_node_ce field generated_graph_node_members =
+      OK (field_delta, Full) ->
+    le ! node_temp = Some (graph_node_pointer_value node) ->
+    le ! value_temp = Some (graph_node_pointer_value value) ->
+    graph_node_field_ptr_assignment_effect e le before after
+      node_temp field value_temp ->
+    graph_node_field_store_ptr before after node field_delta value.
+Proof.
+  intros e le before after node_temp field field_delta value_temp
+    [node_block node_offset] [value_block value_offset]
+    Hlayout Hnode Hvalue Heffect.
+  unfold graph_node_field_ptr_assignment_effect,
+    generated_sassign_effect in Heffect.
+  destruct Heffect as
+    (loc & ofs & bf & raw_value & stored_value &
+     Hlv & Hexpr & Hcast & Hassign).
+  pose proof
+    (eval_graph_node_temp_field_lvalue
+      node_temp field field_delta e le before loc ofs bf
+      Hlayout Hlv) as Hnormalized.
+  destruct Hnormalized as
+    (base_block & base_offset & Hbase_lookup & Hloc & Hofs & Hbf).
+  unfold graph_node_pointer_value in Hnode, Hvalue.
+  cbn in Hnode, Hvalue.
+  assert (base_block = node_block) by congruence.
+  assert (base_offset = node_offset) by congruence.
+  subst base_block base_offset loc ofs bf.
+  inv Hexpr;
+    try (match goal with
+         | Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ =>
+             solve [inv Hl]
+         end).
+  assert (raw_value = Vptr value_block value_offset) by congruence.
+  subst raw_value.
+  cbn in Hcast.
+  inv Hcast.
+  eapply assign_loc_graph_node_field_store_ptr.
+  exact Hassign.
+Qed.
+
+Definition graph_node_field_bytes_disjoint
+    (read_node : graph_node_pointer) (read_field_offset : Z)
+    (store_node : graph_node_pointer) (store_field_offset : Z) : Prop :=
+  fst read_node <> fst store_node \/
+  Ptrofs.unsigned
+    (Ptrofs.add (snd read_node) (Ptrofs.repr read_field_offset)) + 4 <=
+  Ptrofs.unsigned
+    (Ptrofs.add (snd store_node) (Ptrofs.repr store_field_offset)) \/
+  Ptrofs.unsigned
+    (Ptrofs.add (snd store_node) (Ptrofs.repr store_field_offset)) + 4 <=
+  Ptrofs.unsigned
+    (Ptrofs.add (snd read_node) (Ptrofs.repr read_field_offset)).
+
+Lemma graph_node_field_store_ptr_frames_disjoint_load_ptr :
+  forall before after store_node store_field_offset value
+    read_node read_field_offset,
+    graph_node_field_store_ptr before after
+      store_node store_field_offset value ->
+    graph_node_field_bytes_disjoint
+      read_node read_field_offset store_node store_field_offset ->
+    graph_node_field_load_ptr after read_node read_field_offset =
+    graph_node_field_load_ptr before read_node read_field_offset.
+Proof.
+  intros before after [store_block store_offset] store_field_offset
+    [value_block value_offset] [read_block read_offset]
+    read_field_offset Hstore Hdisjoint.
+  unfold graph_node_field_store_ptr, graph_node_field_store_value,
+    graph_node_field_load_ptr, graph_node_field_load,
+    graph_node_field_address, graph_node_pointer_value,
+    graph_node_field_bytes_disjoint in *.
+  cbn in *.
+  unfold Mem.storev in Hstore.
+  cbn in Hstore.
+  erewrite Mem.load_store_other by
+    (exact Hstore || exact Hdisjoint).
+  reflexivity.
+Qed.
+
+Theorem geo_remove_child_prev_next_assignment_effect_store_and_frames :
+  forall e le before after previous next,
+    le ! G._t'6 = Some (graph_node_pointer_value previous) ->
+    le ! G._t'7 = Some (graph_node_pointer_value next) ->
+    graph_node_field_ptr_assignment_effect e le before after
+      G._t'6 G._next G._t'7 ->
+    graph_node_field_store_ptr before after
+      previous graph_node_next_field_offset next /\
+    (forall from,
+      graph_node_field_bytes_disjoint
+        from graph_node_children_field_offset
+        previous graph_node_next_field_offset ->
+      graph_node_field_load_ptr after
+        from graph_node_children_field_offset =
+      graph_node_field_load_ptr before
+        from graph_node_children_field_offset) /\
+    (forall from,
+      graph_node_field_bytes_disjoint
+        from graph_node_next_field_offset
+        previous graph_node_next_field_offset ->
+      graph_node_field_load_ptr after
+        from graph_node_next_field_offset =
+      graph_node_field_load_ptr before
+        from graph_node_next_field_offset).
+Proof.
+  intros e le before after previous next Hprev Hnext Heffect.
+  pose proof
+    (graph_node_field_ptr_assignment_effect_store_ptr_from_temps
+      e le before after G._t'6 G._next
+      graph_node_next_field_offset G._t'7 previous next
+      generated_graph_node_next_layout Hprev Hnext Heffect) as Hstore.
+  repeat split.
+  - exact Hstore.
+  - intros from Hdisjoint.
+    eapply graph_node_field_store_ptr_frames_disjoint_load_ptr; eauto.
+  - intros from Hdisjoint.
+    eapply graph_node_field_store_ptr_frames_disjoint_load_ptr; eauto.
 Qed.
 
 Definition concrete_graph_links (memory : mem)
