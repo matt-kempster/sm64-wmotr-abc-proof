@@ -289,6 +289,18 @@ counterexample-shaped goblin.
   `unload_object` move that parks the removed node under
   `gObjParentGraphNode`; that is safe only once the node is classified
   dead/parked-not-transportable.
+- [x] Invert the real generated helper `exec_stmt` runs down to named
+  byte-effect obligations.
+  `exec_geo_remove_child_body_inverts_spine` and the `geo_add_child` spine
+  lemmas split the generated Clight bodies into the actual parent/prev/next
+  reads, sibling rewires, parent-children branch, and return pieces. The new
+  `geo_remove_child_memory_effect_from_exec_stmt` /
+  `geo_add_child_memory_effect_from_then_branch_exec_stmt` bridge says:
+  if that real generated execution also gives us the precise load/store/frame
+  facts, then we get the memory-effect records already accepted by the graph
+  traversal proof. Translation: the helper body shape is no longer handwavy;
+  the next gremlin is proving the individual assignments really make the
+  promised bytes move and leave the other graph-link bytes alone.
 - [ ] If stale slot reuse can clone an in-Pyramid goomba/object, stop proving
   impossibility and write the counterexample cleanly.
 
@@ -348,13 +360,12 @@ Translation: the proof now knows that clearing one object is not enough; all
 other already-dead valid slots have to stay boring too. Very rude of memory,
 but fair.
 
-Channel-side next bite: make the generated helper executions produce the
-new memory-effect records. In Discord goblin terms: we now have a byte-shaped
-contract saying which `GraphNode` loads/stores count as clean list surgery.
-Next, invert the actual `exec_stmt` runs for `geo_remove_child` and
-`geo_add_child` enough to fill those records: read parent/prev/next,
-observe the `prev->next` and `next->prev` stores, split the
-`parent->children` null-vs-next branch, and prove the non-written
-`children`/`next` fields are framed. If any of those generated stores can
-alias a surprise outside edge, that edge becomes the graph-link
-counterexample candidate.
+Channel-side next bite: derive the `geo_*_exec_memory_obligations` from the
+individual generated assignments. In Discord goblin terms: the actual helper
+bodies now cough up a named execution spine, but the spine still says
+"someone owes me the exact byte facts." Next, invert the `Sset` / `Sassign`
+steps far enough to show the `parent`, `prev`, `next`, and `children` lvalues
+hit the generated `GraphNode` offsets, the `assign_loc` stores match the
+recorded store traces, and unrelated `children`/`next` fields stay framed by
+non-overlap. If a store aliases an unexpected outside graph edge, that edge is
+our graph-link counterexample-shaped little criminal.
