@@ -249,6 +249,20 @@ counterexample-shaped goblin.
   those generated roots that is not current/destination. Translation: either
   prove the graph tree is clean after unload/load, or we have the exact shape
   of the spooky survivor to chase. No mushy middle.
+- [x] Pin the generated unload/load graph-relink skeleton and bridge it to the
+  traversal invariant. `generated_unload_load_graph_relink_audit_holds` now
+  checks the actual call order: `unload_object` does
+  `geo_remove_child -> geo_add_child -> deallocate_object`,
+  `try_allocate_object` does `geo_remove_child -> geo_add_child`,
+  retry allocation can unload an unimportant object then try allocation again,
+  and `load_area` calls `spawn_objects_from_info` before
+  `load_obj_warp_nodes` / `geo_call_global_function_nodes`. The new theorem
+  `unload_load_relink_effects_confine_generated_traversal` says that if those
+  relinks have the expected reachability effect -- after relinking, every node
+  reachable from the generated roots was either already reachable before or is
+  newly current/destination -- then the later graph traversals are confined.
+  Translation: the route through real generated functions is now named; the
+  remaining monster is the semantic postcondition of the relink helpers.
 - [ ] If stale slot reuse can clone an in-Pyramid goomba/object, stop proving
   impossibility and write the counterexample cleanly.
 
@@ -308,11 +322,11 @@ Translation: the proof now knows that clearing one object is not enough; all
 other already-dead valid slots have to stay boring too. Very rude of memory,
 but fair.
 
-Channel-side next bite: derive the graph-root/edge-closure invariant from the
-real unload/load path. In Discord goblin terms: `GraphTraversalModel.v` says
-"if the object-parent list and current-area root are clean, the traversal is
-clean; if not, the reachable outside node is our counterexample-shaped little
-criminal." Now we need to prove `unload_object`/`geo_remove_child` actually
-remove outside graph nodes from `gObjParentGraphNode.children`/`next`, and
-that destination load only attaches current/destination nodes before
-`load_obj_warp_nodes` / `geo_call_global_function_nodes` run.
+Channel-side next bite: prove the semantic relink postconditions for
+`geo_remove_child` and `geo_add_child`. In Discord goblin terms: we now know
+the real generated path calls the right list-surgery helpers in the right
+places. Next we need to prove their executions satisfy the reachability
+promise: `geo_remove_child` removes the target from the generated roots'
+`children`/`next` reachability, and `geo_add_child` only adds a node that is
+already classified current/destination or dead-not-outside. If that fails, the
+failed node is the graph-link counterexample candidate.
