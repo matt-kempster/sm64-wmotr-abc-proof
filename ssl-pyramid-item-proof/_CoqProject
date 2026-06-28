@@ -33,5 +33,6 @@ proofs/TraversalModel.v
 proofs/SymbolicLinking.v
 proofs/PyramidTransition.v
 proofs/TransitionFacts.v
+proofs/CapPickupStateFacts.v
 proofs/GraphTraversalModel.v
 proofs/StaleWindowObservation.v

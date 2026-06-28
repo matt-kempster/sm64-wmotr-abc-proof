@@ -917,6 +917,23 @@ evidence is bundled in
 `direct_grabbable_channel_mario_reference_cleanup_evidence` and
 `wing_cap_channel_state_only_generated_evidence`.
 
+The cap-state side channel has now been audited more directly in
+`proofs/CapPickupStateFacts.v`. Successful `interact_cap` does temporarily set
+`m->interactObj = o`, so the proof does not pretend the cap object pointer
+never appears. The durable pickup effects, however, are ordinary Mario state:
+`m->flags`, `m->capTimer`, action/music/sound effects, and the cap object's own
+interact-status word. The generated pickup body does not write `heldObj`,
+`usedObj`, `riddenObj`, or `marioObj`, and it does not call `spawn_object`.
+`update_and_return_cap_flags` likewise only updates cap timer/flag state and
+does not spawn or write Mario object-reference roots. The transient
+`interactObj` pointer is also covered by the load-window audit: `load_area`,
+`load_mario_area`, the generated object-list processor, and the pre-`init_mario`
+prefix of `init_mario_after_warp` do not mention `interactObj`. Thus the
+current generated evidence classifies outside Wing Cap pickup as ordinary cap
+state transfer, not reconstruction of the outside cap object identity. A
+separate future check may still document normal-cap loss/retrieval, where the
+game can spawn a fresh normal-cap object from Mario/save state.
+
 The proof also has to cover dynamically spawned descendants and glitch-created
 stale-slot references; this finite list is the hold/ride root set, not the whole
 area-1 object set.

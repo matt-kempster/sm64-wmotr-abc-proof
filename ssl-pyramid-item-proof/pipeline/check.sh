@@ -680,6 +680,21 @@ bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.TransitionFacts \
   pyramid_load_window_typed_graph_node_link_audit
 bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.CapPickupStateFacts \
+  cap_pickup_generated_identity_audit_exact
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.CapPickupStateFacts \
+  cap_pickup_durable_identity_reconstruction_risk_is_false
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.CapPickupStateFacts \
+  generated_cap_timer_update_identity_audit_exact
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.CapPickupStateFacts \
+  cap_pickup_transient_interact_obj_not_observed_before_cleanup
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.CapPickupStateFacts \
+  wing_cap_channels_are_cap_state_only_after_pickup_audit
+bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.GraphTraversalModel \
   generated_graph_traversal_audit_holds
 bash pipeline/assumptions.sh \
