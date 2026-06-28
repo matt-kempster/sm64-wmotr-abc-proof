@@ -263,6 +263,18 @@ counterexample-shaped goblin.
   newly current/destination -- then the later graph traversals are confined.
   Translation: the route through real generated functions is now named; the
   remaining monster is the semantic postcondition of the relink helpers.
+- [x] Prove the graph-level semantic relink postconditions for
+  `geo_remove_child` and `geo_add_child`.
+  `geo_remove_child_semantic_execution_satisfies_reachability_after_remove`
+  says a generated-shape remove execution that only keeps old edges or skips
+  over the removed node really removes that node from the generated roots'
+  `children`/`next` reachability. `geo_add_child_semantic_execution_satisfies_reachability_after_add_current`
+  says a generated-shape add execution only preserves old reachability or
+  lands on a node already classified current/destination. The composed theorem
+  `generated_relink_semantic_executions_confine_traversal` plugs both helper
+  contracts into the traversal confinement path. Translation: the graph goblin
+  now has to beat a named semantic contract, not just wave at spooky sibling
+  links.
 - [ ] If stale slot reuse can clone an in-Pyramid goomba/object, stop proving
   impossibility and write the counterexample cleanly.
 
@@ -322,11 +334,12 @@ Translation: the proof now knows that clearing one object is not enough; all
 other already-dead valid slots have to stay boring too. Very rude of memory,
 but fair.
 
-Channel-side next bite: prove the semantic relink postconditions for
-`geo_remove_child` and `geo_add_child`. In Discord goblin terms: we now know
-the real generated path calls the right list-surgery helpers in the right
-places. Next we need to prove their executions satisfy the reachability
-promise: `geo_remove_child` removes the target from the generated roots'
-`children`/`next` reachability, and `geo_add_child` only adds a node that is
-already classified current/destination or dead-not-outside. If that fails, the
-failed node is the graph-link counterexample candidate.
+Channel-side next bite: lower the graph-level relink contracts one more layer
+toward raw CompCert memory. In Discord goblin terms: the helper contracts now
+say exactly what `geo_remove_child` / `geo_add_child` must do to the abstract
+`children`/`next` graph. Next we need to connect those contracts to concrete
+loads/stores for the generated helper bodies: parent/prev/next reads,
+`parent->children` writes, circular sibling rewires, and the special
+"removed node is parked under `gObjParentGraphNode` before deallocate" case.
+If that byte-level bridge fails, the failed edge is the graph-link
+counterexample candidate.
