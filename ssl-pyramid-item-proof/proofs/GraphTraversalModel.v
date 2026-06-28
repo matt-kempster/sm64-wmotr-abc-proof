@@ -18,8 +18,8 @@
 
 From Coq Require Import Classical List ZArith.
 Import ListNotations.
-From compcert Require Import AST Coqlib Ctypes Clight ClightBigstep Errors
-  Events Globalenvs Integers Maps Memory Values.
+From compcert Require Import AST Clightdefs Coqlib Cop Ctypes Clight
+  ClightBigstep Errors Events Globalenvs Integers Maps Memory Values.
 From SSLPyramid.Proofs Require Import ASTFacts TransitionFacts.
 
 Local Open Scope Z_scope.
@@ -204,6 +204,44 @@ Theorem generated_graph_node_children_layout :
   OK (graph_node_children_field_offset, Full).
 Proof. vm_compute; reflexivity. Qed.
 
+Definition graph_node_type : type := Tstruct G._GraphNode noattr.
+Definition graph_node_ptr_type : type := tptr graph_node_type.
+Definition graph_node_ptr_ptr_type : type := tptr graph_node_ptr_type.
+
+Lemma graph_node_target_mptr_is_mint32 : Mptr = Mint32.
+Proof. vm_compute. reflexivity. Qed.
+
+Definition graph_node_temp_field_expr
+    (node_temp field_id : ident) : expr :=
+  Efield
+    (Ederef (Etempvar node_temp graph_node_ptr_type) graph_node_type)
+    field_id graph_node_ptr_type.
+
+Definition graph_node_temp_field_read
+    (target_temp node_temp field_id : ident) : statement :=
+  Sset target_temp (graph_node_temp_field_expr node_temp field_id).
+
+Definition graph_node_temp_field_assign
+    (node_temp field_id value_temp : ident) : statement :=
+  Sassign
+    (graph_node_temp_field_expr node_temp field_id)
+    (Etempvar value_temp graph_node_ptr_type).
+
+Definition graph_node_indirect_ptr_expr (slot_temp : ident) : expr :=
+  Ederef (Etempvar slot_temp graph_node_ptr_ptr_type) graph_node_ptr_type.
+
+Definition graph_node_indirect_ptr_assign
+    (slot_temp value_temp : ident) : statement :=
+  Sassign
+    (graph_node_indirect_ptr_expr slot_temp)
+    (Etempvar value_temp graph_node_ptr_type).
+
+Definition graph_node_null_ptr_expr : expr :=
+  Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid).
+
+Definition graph_node_indirect_null_assign (slot_temp : ident) : statement :=
+  Sassign (graph_node_indirect_ptr_expr slot_temp) graph_node_null_ptr_expr.
+
 Definition geo_remove_child_body : statement :=
   fn_body G.f_geo_remove_child.
 
@@ -296,6 +334,45 @@ Theorem geo_remove_child_after_next_prev_splice_split :
     geo_remove_child_return_parent.
 Proof. reflexivity. Qed.
 
+Theorem geo_remove_child_prev_next_splice_shape :
+  geo_remove_child_prev_next_splice =
+  Ssequence
+    (graph_node_temp_field_read G._t'6 G._graphNode G._prev)
+    (Ssequence
+      (graph_node_temp_field_read G._t'7 G._graphNode G._next)
+      (graph_node_temp_field_assign G._t'6 G._next G._t'7)).
+Proof. reflexivity. Qed.
+
+Theorem geo_remove_child_next_prev_splice_shape :
+  geo_remove_child_next_prev_splice =
+  Ssequence
+    (graph_node_temp_field_read G._t'4 G._graphNode G._next)
+    (Ssequence
+      (graph_node_temp_field_read G._t'5 G._graphNode G._prev)
+      (graph_node_temp_field_assign G._t'4 G._prev G._t'5)).
+Proof. reflexivity. Qed.
+
+Theorem geo_remove_child_parent_children_branch_shape :
+  geo_remove_child_parent_children_branch =
+  Ssequence
+    (Sset G._t'1 (graph_node_indirect_ptr_expr G._firstChild))
+    (Sifthenelse
+      (Ebinop Oeq
+        (Etempvar G._t'1 graph_node_ptr_type)
+        (Etempvar G._graphNode graph_node_ptr_type) tint)
+      (Ssequence
+        (graph_node_temp_field_read G._t'2 G._graphNode G._next)
+        (Sifthenelse
+          (Ebinop Oeq
+            (Etempvar G._t'2 graph_node_ptr_type)
+            (Etempvar G._graphNode graph_node_ptr_type) tint)
+          (graph_node_indirect_null_assign G._firstChild)
+          (Ssequence
+            (graph_node_temp_field_read G._t'3 G._graphNode G._next)
+            (graph_node_indirect_ptr_assign G._firstChild G._t'3))))
+      Sskip).
+Proof. reflexivity. Qed.
+
 Definition geo_add_child_body : statement :=
   fn_body G.f_geo_add_child.
 
@@ -356,6 +433,50 @@ Theorem geo_add_child_after_assign_parent_split :
   geo_add_child_after_assign_parent =
   Ssequence geo_add_child_read_parent_first_child
     geo_add_child_children_branch.
+Proof. reflexivity. Qed.
+
+Definition geo_add_child_empty_children_branch : statement :=
+  match geo_add_child_children_branch with
+  | Sifthenelse _ then_branch _ => then_branch
+  | body => body
+  end.
+
+Definition geo_add_child_nonempty_children_branch : statement :=
+  match geo_add_child_children_branch with
+  | Sifthenelse _ _ else_branch => else_branch
+  | body => body
+  end.
+
+Theorem geo_add_child_assign_parent_shape :
+  geo_add_child_assign_parent =
+  graph_node_temp_field_assign G._childNode G._parent G._parent.
+Proof. reflexivity. Qed.
+
+Theorem geo_add_child_empty_children_branch_shape :
+  geo_add_child_empty_children_branch =
+  Ssequence
+    (graph_node_temp_field_assign G._parent G._children G._childNode)
+    (Ssequence
+      (graph_node_temp_field_assign G._childNode G._prev G._childNode)
+      (graph_node_temp_field_assign G._childNode G._next G._childNode)).
+Proof. reflexivity. Qed.
+
+Theorem geo_add_child_nonempty_children_branch_shape :
+  geo_add_child_nonempty_children_branch =
+  Ssequence
+    (Sset G._parentLastChild
+      (graph_node_temp_field_expr G._parentFirstChild G._prev))
+    (Ssequence
+      (graph_node_temp_field_assign G._childNode G._prev
+        G._parentLastChild)
+      (Ssequence
+        (graph_node_temp_field_assign G._childNode G._next
+          G._parentFirstChild)
+        (Ssequence
+          (graph_node_temp_field_assign G._parentFirstChild G._prev
+            G._childNode)
+          (graph_node_temp_field_assign G._parentLastChild G._next
+            G._childNode)))).
 Proof. reflexivity. Qed.
 
 Section AbstractGraph.
@@ -1009,6 +1130,143 @@ Proof.
   cbn in Hstore.
   rewrite (Mem.load_store_same _ _ _ _ _ _ Hstore).
   reflexivity.
+Qed.
+
+Lemma assign_loc_graph_node_field_store_ptr :
+  forall before after node field_offset value,
+    assign_loc graph_node_ge graph_node_ptr_type before
+      (fst node)
+      (Ptrofs.add (snd node) (Ptrofs.repr field_offset))
+      Full (graph_node_pointer_value value) after ->
+    graph_node_field_store_ptr before after node field_offset value.
+Proof.
+  intros before after [node_block node_offset] field_offset
+    [value_block value_offset] Hassign.
+  unfold graph_node_field_store_ptr, graph_node_field_store_value,
+    graph_node_pointer_value, graph_node_field_address in *.
+  cbn in *.
+  inversion Hassign; subst; clear Hassign; simpl in *; try congruence.
+  inversion H; subst.
+  rewrite graph_node_target_mptr_is_mint32 in H0.
+  exact H0.
+Qed.
+
+Lemma assign_loc_graph_node_field_store_null :
+  forall before after node field_offset,
+    assign_loc graph_node_ge graph_node_ptr_type before
+      (fst node)
+      (Ptrofs.add (snd node) (Ptrofs.repr field_offset))
+      Full (Vint Int.zero) after ->
+    graph_node_field_store_null before after node field_offset.
+Proof.
+  intros before after [node_block node_offset] field_offset Hassign.
+  unfold graph_node_field_store_null, graph_node_field_store_value,
+    graph_node_field_address in *.
+  cbn in *.
+  inversion Hassign; subst; clear Hassign; simpl in *; try congruence.
+  inversion H; subst.
+  rewrite graph_node_target_mptr_is_mint32 in H0.
+  exact H0.
+Qed.
+
+Definition generated_sassign_effect
+    (lhs rhs : expr) (e : env) (le : temp_env)
+    (before after : mem) : Prop :=
+  exists loc ofs bf raw_value stored_value,
+    eval_lvalue graph_node_ge e le before lhs loc ofs bf /\
+    eval_expr graph_node_ge e le before rhs raw_value /\
+    Cop.sem_cast raw_value (typeof rhs) (typeof lhs) before =
+      Some stored_value /\
+    assign_loc graph_node_ge (typeof lhs) before loc ofs bf
+      stored_value after.
+
+Lemma exec_generated_sassign_effect_from_exec_stmt :
+  forall e le before lhs rhs trace le' after outcome,
+    exec_stmt function_entry2 graph_node_ge e le before
+      (Sassign lhs rhs) trace le' after outcome ->
+    generated_sassign_effect lhs rhs e le before after /\
+    trace = E0 /\ le' = le /\ outcome = Out_normal.
+Proof.
+  intros e le before lhs rhs trace le' after outcome Hexec.
+  inv Hexec.
+  split.
+  - unfold generated_sassign_effect.
+    repeat eexists; eauto.
+  - repeat split; reflexivity.
+Qed.
+
+Definition graph_node_field_ptr_assignment_effect
+    (e : env) (le : temp_env) (before after : mem)
+    (node_temp field_id value_temp : ident) : Prop :=
+  generated_sassign_effect
+    (graph_node_temp_field_expr node_temp field_id)
+    (Etempvar value_temp graph_node_ptr_type)
+    e le before after.
+
+Definition graph_node_indirect_ptr_assignment_effect
+    (e : env) (le : temp_env) (before after : mem)
+    (slot_temp value_temp : ident) : Prop :=
+  generated_sassign_effect
+    (graph_node_indirect_ptr_expr slot_temp)
+    (Etempvar value_temp graph_node_ptr_type)
+    e le before after.
+
+Definition graph_node_indirect_null_assignment_effect
+    (e : env) (le : temp_env) (before after : mem)
+    (slot_temp : ident) : Prop :=
+  generated_sassign_effect
+    (graph_node_indirect_ptr_expr slot_temp)
+    graph_node_null_ptr_expr
+    e le before after.
+
+Lemma exec_graph_node_field_ptr_assignment_effect :
+  forall e le before after node_temp field_id value_temp
+    trace le' outcome,
+    exec_stmt function_entry2 graph_node_ge e le before
+      (graph_node_temp_field_assign node_temp field_id value_temp)
+      trace le' after outcome ->
+    graph_node_field_ptr_assignment_effect e le before after
+      node_temp field_id value_temp /\
+    trace = E0 /\ le' = le /\ outcome = Out_normal.
+Proof.
+  intros e le before after node_temp field_id value_temp
+    trace le' outcome Hexec.
+  unfold graph_node_temp_field_assign,
+    graph_node_field_ptr_assignment_effect.
+  eapply exec_generated_sassign_effect_from_exec_stmt.
+  exact Hexec.
+Qed.
+
+Lemma exec_graph_node_indirect_ptr_assignment_effect :
+  forall e le before after slot_temp value_temp trace le' outcome,
+    exec_stmt function_entry2 graph_node_ge e le before
+      (graph_node_indirect_ptr_assign slot_temp value_temp)
+      trace le' after outcome ->
+    graph_node_indirect_ptr_assignment_effect e le before after
+      slot_temp value_temp /\
+    trace = E0 /\ le' = le /\ outcome = Out_normal.
+Proof.
+  intros e le before after slot_temp value_temp trace le' outcome Hexec.
+  unfold graph_node_indirect_ptr_assign,
+    graph_node_indirect_ptr_assignment_effect.
+  eapply exec_generated_sassign_effect_from_exec_stmt.
+  exact Hexec.
+Qed.
+
+Lemma exec_graph_node_indirect_null_assignment_effect :
+  forall e le before after slot_temp trace le' outcome,
+    exec_stmt function_entry2 graph_node_ge e le before
+      (graph_node_indirect_null_assign slot_temp)
+      trace le' after outcome ->
+    graph_node_indirect_null_assignment_effect e le before after
+      slot_temp /\
+    trace = E0 /\ le' = le /\ outcome = Out_normal.
+Proof.
+  intros e le before after slot_temp trace le' outcome Hexec.
+  unfold graph_node_indirect_null_assign,
+    graph_node_indirect_null_assignment_effect.
+  eapply exec_generated_sassign_effect_from_exec_stmt.
+  exact Hexec.
 Qed.
 
 Definition concrete_graph_links (memory : mem)

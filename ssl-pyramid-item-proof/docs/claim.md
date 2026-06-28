@@ -758,6 +758,20 @@ their lvalues, and CompCert `assign_loc` stores that the parent/prev/next and
 children bytes are exactly the ones in the memory-effect records, with no
 surprise alias to an outside graph edge.
 
+The first part of that assignment layer is now mechanized. The proof names the
+actual generated graph-link assignment shapes inside `geo_remove_child` and
+`geo_add_child`, including the sibling rewires, `parent->children` branch, and
+empty/nonempty add-child insertion cases. `generated_sassign_effect` and the
+`exec_graph_node_*_assignment_effect` lemmas invert individual `Sassign`
+executions into their real `eval_lvalue`, `eval_expr`, cast, and `assign_loc`
+facts. Separately, `assign_loc_graph_node_field_store_ptr` and
+`assign_loc_graph_node_field_store_null` prove that an exact ppc32 pointer
+`assign_loc` at a `GraphNode` field address is exactly the `Mem.storev` fact
+used by the graph memory-effect records. What remains is the temp/lvalue
+normalization and frame composition: prove the generated temps really denote
+the intended parent/prev/next/children addresses and then show unrelated graph
+fields do not alias those stores.
+
 The non-Mario reference roots have now been brought into the same
 clightgen/Rocq route. `proofs/RenderHeldObjectFacts.v` still proves the
 `mario_misc.c` render-side fact: `geo_switch_mario_hand_grab_pos` is the only

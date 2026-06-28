@@ -301,6 +301,20 @@ counterexample-shaped goblin.
   traversal proof. Translation: the helper body shape is no longer handwavy;
   the next gremlin is proving the individual assignments really make the
   promised bytes move and leave the other graph-link bytes alone.
+- [x] Lower the generated graph-link assignments one more rung.
+  `GraphTraversalModel.v` now names the actual generated assignment shapes:
+  the two `geo_remove_child` sibling splices, the `firstChild`
+  null-vs-next branch, `geo_add_child`'s parent store, and both empty/nonempty
+  child-list insertion branches. It also proves the ppc32 pointer-store bridge
+  `assign_loc_graph_node_field_store_ptr` /
+  `assign_loc_graph_node_field_store_null`, plus generic `Sassign` inversion
+  lemmas such as `exec_graph_node_field_ptr_assignment_effect` and the
+  indirect-pointer variants. Translation: `Sassign` now coughs up the real
+  `eval_lvalue` / `eval_expr` / cast / `assign_loc` package, and exact
+  field-address `assign_loc`s become our `Mem.storev` records. The bit still
+  not dead is normalizing each generated lvalue/temp chain to "this is
+  precisely `prev->next`, `next->prev`, `parent->children`, etc." and then
+  threading the non-overlap frame facts through the sequence.
 - [ ] If stale slot reuse can clone an in-Pyramid goomba/object, stop proving
   impossibility and write the counterexample cleanly.
 
@@ -360,12 +374,13 @@ Translation: the proof now knows that clearing one object is not enough; all
 other already-dead valid slots have to stay boring too. Very rude of memory,
 but fair.
 
-Channel-side next bite: derive the `geo_*_exec_memory_obligations` from the
-individual generated assignments. In Discord goblin terms: the actual helper
-bodies now cough up a named execution spine, but the spine still says
-"someone owes me the exact byte facts." Next, invert the `Sset` / `Sassign`
-steps far enough to show the `parent`, `prev`, `next`, and `children` lvalues
-hit the generated `GraphNode` offsets, the `assign_loc` stores match the
-recorded store traces, and unrelated `children`/`next` fields stay framed by
-non-overlap. If a store aliases an unexpected outside graph edge, that edge is
-our graph-link counterexample-shaped little criminal.
+Channel-side next bite: finish the lvalue/temp normalization and frame
+composition for those assignment effects. In Discord goblin terms: `Sassign`
+now hands us the bloody knife (`assign_loc`), and exact field-address knives
+already become graph memory stores. Next, prove the temp chains say
+`_t'6 = graphNode->prev`, `_t'7 = graphNode->next`, `_firstChild =
+&parent->children`, and the add-child temps are the parent/first/last child
+nodes claimed by the store trace. Then thread those exact stores through the
+helper sequence and prove non-overlap leaves unrelated `children`/`next`
+fields framed. If one of those lvalues can secretly point at an outside graph
+edge, congrats, we found the counterexample-shaped little criminal.
