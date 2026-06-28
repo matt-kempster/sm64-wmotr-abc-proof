@@ -687,6 +687,21 @@ field-name-collision problem is closed; the remaining graph obligation is the
 semantic one, namely proving these traversals cannot observe a stale outside
 graph link in a cloning-useful way.
 
+`proofs/GraphTraversalModel.v` now packages that semantic obligation as an
+actual theorem fork instead of a TODO cloud. The theorem
+`generated_graph_traversals_confined_under_root_closure` says the generated
+graph traversals are confined whenever the object-parent child-list root and
+the current-area graph root are current/destination nodes, and `children` /
+`next` edges preserve that current/destination property. Conversely,
+`surviving_outside_graph_link_is_counterexample_candidate` says that any graph
+node reachable from either generated root which is not current/destination is
+already a formal counterexample candidate for the stale-window investigation.
+So there is not currently a concrete graph-link cloning counterexample, but the
+remaining proof obligation is precise: derive the graph-root and graph-edge
+closure invariant from the real unload/load path, especially
+`geo_remove_child` during outside object unload and the destination object
+attachment path before `load_obj_warp_nodes` runs.
+
 The non-Mario reference roots have now been brought into the same
 clightgen/Rocq route. `proofs/RenderHeldObjectFacts.v` still proves the
 `mario_misc.c` render-side fact: `geo_switch_mario_hand_grab_pos` is the only
@@ -717,7 +732,7 @@ load/reinit bodies do not observe that stale Mario ref before cleanup, and the
 first non-Mario root pass also clears `platform`, `rawData.asObject`,
 `sharedChild`, and render-held `objNode` for that window. A cloning
 counterexample now needs either a remaining linked external/callee path outside
-this audit, a semantic survivor through the typed graph traversal paths above,
+this audit, a reachable outside graph node from the generated traversal roots,
 or another non-Mario root from the finite audit above that survives into normal
 Pyramid play.
 

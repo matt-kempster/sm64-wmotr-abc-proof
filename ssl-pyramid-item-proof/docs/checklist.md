@@ -240,6 +240,15 @@ counterexample-shaped goblin.
   `geo_make_first_child`, the two `geo_call_global_function_nodes*` helpers,
   and `geo_find_root`). Translation: field-name collision defeated; semantic
   graph traversal is still a real dragon.
+- [x] Prove the semantic fork for those graph traversals:
+  `proofs/GraphTraversalModel.v` now says the generated roots are boring if
+  the object-parent child list root and current-area root are
+  current/destination nodes and `children`/`next` links preserve that property.
+  If that closure fails, the same file gives a formal
+  `graph_link_counterexample_candidate`: a reachable graph node from one of
+  those generated roots that is not current/destination. Translation: either
+  prove the graph tree is clean after unload/load, or we have the exact shape
+  of the spooky survivor to chase. No mushy middle.
 - [ ] If stale slot reuse can clone an in-Pyramid goomba/object, stop proving
   impossibility and write the counterexample cleanly.
 
@@ -299,10 +308,11 @@ Translation: the proof now knows that clearing one object is not enough; all
 other already-dead valid slots have to stay boring too. Very rude of memory,
 but fair.
 
-Channel-side next bite: use the typed graph-link census semantically. In
-Discord goblin terms: the scanner no longer confuses `ObjectNode.next` with
-`GraphNode.next`, but it found actual `GraphNode.children` / `GraphNode.next`
-reads during `load_obj_warp_nodes` and the generated graph traversal helpers.
-Next round should prove those traversals only walk the destination/current
-graph tree, or else turn a surviving outside graph link into a concrete
-counterexample candidate.
+Channel-side next bite: derive the graph-root/edge-closure invariant from the
+real unload/load path. In Discord goblin terms: `GraphTraversalModel.v` says
+"if the object-parent list and current-area root are clean, the traversal is
+clean; if not, the reachable outside node is our counterexample-shaped little
+criminal." Now we need to prove `unload_object`/`geo_remove_child` actually
+remove outside graph nodes from `gObjParentGraphNode.children`/`next`, and
+that destination load only attaches current/destination nodes before
+`load_obj_warp_nodes` / `geo_call_global_function_nodes` run.

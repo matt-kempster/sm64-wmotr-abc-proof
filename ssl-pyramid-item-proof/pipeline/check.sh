@@ -680,6 +680,15 @@ bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.TransitionFacts \
   pyramid_load_window_typed_graph_node_link_audit
 bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.GraphTraversalModel \
+  generated_graph_traversal_audit_holds
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.GraphTraversalModel \
+  generated_graph_traversals_confined_under_root_closure
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.GraphTraversalModel \
+  surviving_outside_graph_link_is_counterexample_candidate
+bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.StaleWindowObservation \
   held_grab_stale_load_window_is_unobserved_before_cleanup
 bash pipeline/assumptions.sh \
