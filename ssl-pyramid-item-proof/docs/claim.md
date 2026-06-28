@@ -714,10 +714,24 @@ calls `spawn_objects_from_info` before `load_obj_warp_nodes` and
 semantic postcondition needed from those real relink helpers: after
 unload/load relinking, every node reachable from the generated traversal roots
 must either have been reachable from the already-clean graph before, or be
-newly classified current/destination. This does not yet prove the helper
-executions satisfy that reachability postcondition, but it replaces the vague
-"prove the graph tree is clean" request with the concrete `geo_remove_child` /
-`geo_add_child` postconditions that have to be discharged next.
+newly classified current/destination.
+
+That helper postcondition is now discharged at the abstract graph-semantics
+level. `geo_remove_child_semantic_execution_satisfies_reachability_after_remove`
+packages the generated `geo_remove_child` body shape with the graph effect that
+every after-edge is either an old edge or skips over the removed node, plus no
+new non-self incoming edge to the removed node. Under the explicit side
+condition that the generated traversal roots are not literally the removed
+node, it proves the removed node is gone from generated-root reachability.
+`geo_add_child_semantic_execution_satisfies_reachability_after_add_current`
+packages the generated `geo_add_child` body shape with the graph effect that
+new insertion edges either point at the added child or back into the previous
+parent sibling ring, and proves the add step only exposes nodes already
+classified current/destination. Finally,
+`generated_relink_semantic_executions_confine_traversal` composes the two
+helper execution contracts into the generated traversal confinement theorem.
+The remaining lowering work is to connect these graph-level effects to the
+raw CompCert memory loads/stores of the helper bodies.
 
 The non-Mario reference roots have now been brought into the same
 clightgen/Rocq route. `proofs/RenderHeldObjectFacts.v` still proves the

@@ -693,6 +693,15 @@ bash pipeline/assumptions.sh \
   unload_load_relink_effects_confine_generated_traversal
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.GraphTraversalModel \
+  geo_remove_child_semantic_execution_satisfies_reachability_after_remove
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.GraphTraversalModel \
+  geo_add_child_semantic_execution_satisfies_reachability_after_add_current
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.GraphTraversalModel \
+  generated_relink_semantic_executions_confine_traversal
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.GraphTraversalModel \
   surviving_outside_graph_link_is_counterexample_candidate
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.StaleWindowObservation \
