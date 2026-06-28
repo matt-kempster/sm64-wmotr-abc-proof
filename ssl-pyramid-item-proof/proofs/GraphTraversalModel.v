@@ -69,6 +69,103 @@ Proof.
       | exact graph_node_typed_graph_node_link_field_mentioners ].
 Qed.
 
+Theorem unload_object_graph_relink_call_order :
+  event_subsequenceb
+    [Event_call S._geo_remove_child;
+     Event_call S._geo_add_child;
+     Event_call S._deallocate_object]
+    (statement_events_s (fn_body S.f_unload_object)) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem try_allocate_object_graph_relink_call_order :
+  event_subsequenceb
+    [Event_call S._geo_remove_child;
+     Event_call S._geo_add_child]
+    (statement_events_s (fn_body S.f_try_allocate_object)) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem allocate_object_retry_relink_call_order :
+  event_subsequenceb
+    [Event_call S._try_allocate_object;
+     Event_call S._unload_object;
+     Event_call S._try_allocate_object]
+    (statement_events_s (fn_body S.f_allocate_object)) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem load_area_builds_destination_graph_before_traversal :
+  event_subsequenceb
+    [Event_call A._spawn_objects_from_info;
+     Event_call A._load_obj_warp_nodes;
+     Event_call A._geo_call_global_function_nodes]
+    (statement_events_s (fn_body A.f_load_area)) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem geo_remove_child_relink_shape_audit :
+  direct_callees_s (fn_body G.f_geo_remove_child) = [] /\
+  event_subsequenceb
+    [Event_set_temp_from_field G._parent G._graphNode G._parent;
+     Event_set_temp_from_field G._t'6 G._graphNode G._prev;
+     Event_set_temp_from_field G._t'7 G._graphNode G._next;
+     Event_assign_field_from_temp G._next G._t'7;
+     Event_set_temp_from_field G._t'4 G._graphNode G._next;
+     Event_set_temp_from_field G._t'5 G._graphNode G._prev;
+     Event_assign_field_from_temp G._prev G._t'5]
+    (statement_events_s (fn_body G.f_geo_remove_child)) = true /\
+  assigns_through_temp_s G._firstChild
+    (fn_body G.f_geo_remove_child) = true.
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
+Theorem geo_add_child_relink_shape_audit :
+  direct_callees_s (fn_body G.f_geo_add_child) = [] /\
+  event_subsequenceb
+    [Event_assign_field_from_temp G._parent G._parent;
+     Event_set_temp_from_field G._parentFirstChild G._parent G._children;
+     Event_assign_field_from_temp G._children G._childNode]
+    (statement_events_s (fn_body G.f_geo_add_child)) = true /\
+  event_subsequenceb
+    [Event_assign_field_from_temp G._prev G._parentLastChild;
+     Event_assign_field_from_temp G._next G._parentFirstChild;
+     Event_assign_field_from_temp G._prev G._childNode;
+     Event_assign_field_from_temp G._next G._childNode]
+    (statement_events_s (fn_body G.f_geo_add_child)) = true.
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
+Definition generated_unload_load_graph_relink_audit : Prop :=
+  event_subsequenceb
+    [Event_call S._geo_remove_child;
+     Event_call S._geo_add_child;
+     Event_call S._deallocate_object]
+    (statement_events_s (fn_body S.f_unload_object)) = true /\
+  event_subsequenceb
+    [Event_call S._geo_remove_child;
+     Event_call S._geo_add_child]
+    (statement_events_s (fn_body S.f_try_allocate_object)) = true /\
+  event_subsequenceb
+    [Event_call S._try_allocate_object;
+     Event_call S._unload_object;
+     Event_call S._try_allocate_object]
+    (statement_events_s (fn_body S.f_allocate_object)) = true /\
+  event_subsequenceb
+    [Event_call A._spawn_objects_from_info;
+     Event_call A._load_obj_warp_nodes;
+     Event_call A._geo_call_global_function_nodes]
+    (statement_events_s (fn_body A.f_load_area)) = true /\
+  direct_callees_s (fn_body G.f_geo_remove_child) = [] /\
+  direct_callees_s (fn_body G.f_geo_add_child) = [].
+
+Theorem generated_unload_load_graph_relink_audit_holds :
+  generated_unload_load_graph_relink_audit.
+Proof.
+  repeat split;
+    first
+      [ exact unload_object_graph_relink_call_order
+      | exact try_allocate_object_graph_relink_call_order
+      | exact allocate_object_retry_relink_call_order
+      | exact load_area_builds_destination_graph_before_traversal
+      | destruct geo_remove_child_relink_shape_audit as [H _]; exact H
+      | destruct geo_add_child_relink_shape_audit as [H _]; exact H ].
+Qed.
+
 Section AbstractGraph.
 
 Variable graph_node_id : Type.
@@ -129,6 +226,39 @@ Definition generated_load_area_graph_traversals_confined
          object_parent_first_child current_area_root) ->
     graph_traversal_confined links current_or_destination root.
 
+Definition generated_root_reachability_preserved_or_new_current
+    (before after : graph_links)
+    (current_or_destination : graph_node_id -> Prop)
+    (object_parent_first_child current_area_root : graph_node_id) : Prop :=
+  forall root node,
+    In root
+      (generated_load_area_graph_roots
+         object_parent_first_child current_area_root) ->
+    graph_link_reachable after root node ->
+    graph_link_reachable before root node \/ current_or_destination node.
+
+Definition generated_root_reachability_after_remove
+    (before after : graph_links)
+    (object_parent_first_child current_area_root removed : graph_node_id)
+    : Prop :=
+  forall root node,
+    In root
+      (generated_load_area_graph_roots
+         object_parent_first_child current_area_root) ->
+    graph_link_reachable after root node ->
+    node <> removed /\ graph_link_reachable before root node.
+
+Definition generated_root_reachability_after_add_current
+    (before after : graph_links)
+    (current_or_destination : graph_node_id -> Prop)
+    (object_parent_first_child current_area_root : graph_node_id) : Prop :=
+  forall root node,
+    In root
+      (generated_load_area_graph_roots
+         object_parent_first_child current_area_root) ->
+    graph_link_reachable after root node ->
+    graph_link_reachable before root node \/ current_or_destination node.
+
 Lemma graph_link_reachable_preserves :
   forall links (current_or_destination : graph_node_id -> Prop) root node,
     current_or_destination root ->
@@ -170,6 +300,90 @@ Proof.
     + exact Hpres.
     + exact Hreach.
   - contradiction.
+Qed.
+
+Theorem generated_graph_confinement_after_relink_effect :
+  forall before after (current_or_destination : graph_node_id -> Prop)
+    object_parent_first_child current_area_root,
+    generated_load_area_graph_traversals_confined
+      before current_or_destination
+      object_parent_first_child current_area_root ->
+    generated_root_reachability_preserved_or_new_current
+      before after current_or_destination
+      object_parent_first_child current_area_root ->
+    generated_load_area_graph_traversals_confined
+      after current_or_destination
+      object_parent_first_child current_area_root.
+Proof.
+  intros before after current_or_destination object_parent_first_child
+    current_area_root Hbefore Heffect root Hroot node Hreach.
+  destruct (Heffect root node Hroot Hreach) as [Hold | Hnew].
+  - exact (Hbefore root Hroot node Hold).
+  - exact Hnew.
+Qed.
+
+Theorem geo_remove_child_effect_preserves_generated_confinement :
+  forall before after (current_or_destination : graph_node_id -> Prop)
+    object_parent_first_child current_area_root removed,
+    generated_load_area_graph_traversals_confined
+      before current_or_destination
+      object_parent_first_child current_area_root ->
+    generated_root_reachability_after_remove
+      before after object_parent_first_child current_area_root removed ->
+    generated_load_area_graph_traversals_confined
+      after current_or_destination
+      object_parent_first_child current_area_root.
+Proof.
+  intros before after current_or_destination object_parent_first_child
+    current_area_root removed Hbefore Hremove.
+  eapply generated_graph_confinement_after_relink_effect.
+  - exact Hbefore.
+  - intros root node Hroot Hreach.
+    destruct (Hremove root node Hroot Hreach) as (_ & Hold).
+    left. exact Hold.
+Qed.
+
+Theorem geo_add_child_current_destination_effect_preserves_generated_confinement :
+  forall before after (current_or_destination : graph_node_id -> Prop)
+    object_parent_first_child current_area_root,
+    generated_load_area_graph_traversals_confined
+      before current_or_destination
+      object_parent_first_child current_area_root ->
+    generated_root_reachability_after_add_current
+      before after current_or_destination
+      object_parent_first_child current_area_root ->
+    generated_load_area_graph_traversals_confined
+      after current_or_destination
+      object_parent_first_child current_area_root.
+Proof.
+  intros before after current_or_destination object_parent_first_child
+    current_area_root Hbefore Hadd.
+  eapply generated_graph_confinement_after_relink_effect; eauto.
+Qed.
+
+Theorem unload_load_relink_effects_confine_generated_traversal :
+  forall before_unload after_unload after_load
+    (current_or_destination : graph_node_id -> Prop)
+    object_parent_first_child current_area_root removed,
+    generated_load_area_graph_traversals_confined
+      before_unload current_or_destination
+      object_parent_first_child current_area_root ->
+    generated_root_reachability_after_remove
+      before_unload after_unload
+      object_parent_first_child current_area_root removed ->
+    generated_root_reachability_after_add_current
+      after_unload after_load current_or_destination
+      object_parent_first_child current_area_root ->
+    generated_load_area_graph_traversals_confined
+      after_load current_or_destination
+      object_parent_first_child current_area_root.
+Proof.
+  intros before_unload after_unload after_load current_or_destination
+    object_parent_first_child current_area_root removed Hbefore
+    Hremove Hadd.
+  eapply geo_add_child_current_destination_effect_preserves_generated_confinement.
+  - eapply geo_remove_child_effect_preserves_generated_confinement; eauto.
+  - exact Hadd.
 Qed.
 
 Definition graph_link_counterexample_candidate

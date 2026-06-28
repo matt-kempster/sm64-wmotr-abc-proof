@@ -702,6 +702,23 @@ closure invariant from the real unload/load path, especially
 `geo_remove_child` during outside object unload and the destination object
 attachment path before `load_obj_warp_nodes` runs.
 
+The next bridge is now also mechanized. The theorem
+`generated_unload_load_graph_relink_audit_holds` pins the generated control
+shape: `spawn_object.unload_object` calls `geo_remove_child`, then
+`geo_add_child`, then `deallocate_object`; `try_allocate_object` calls
+`geo_remove_child` then `geo_add_child`; `allocate_object` can retry by
+unloading an unimportant object and trying allocation again; and `area.load_area`
+calls `spawn_objects_from_info` before `load_obj_warp_nodes` and
+`geo_call_global_function_nodes`. The theorem
+`unload_load_relink_effects_confine_generated_traversal` then states the exact
+semantic postcondition needed from those real relink helpers: after
+unload/load relinking, every node reachable from the generated traversal roots
+must either have been reachable from the already-clean graph before, or be
+newly classified current/destination. This does not yet prove the helper
+executions satisfy that reachability postcondition, but it replaces the vague
+"prove the graph tree is clean" request with the concrete `geo_remove_child` /
+`geo_add_child` postconditions that have to be discharged next.
+
 The non-Mario reference roots have now been brought into the same
 clightgen/Rocq route. `proofs/RenderHeldObjectFacts.v` still proves the
 `mario_misc.c` render-side fact: `geo_switch_mario_hand_grab_pos` is the only

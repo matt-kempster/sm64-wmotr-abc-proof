@@ -684,7 +684,13 @@ bash pipeline/assumptions.sh \
   generated_graph_traversal_audit_holds
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.GraphTraversalModel \
+  generated_unload_load_graph_relink_audit_holds
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.GraphTraversalModel \
   generated_graph_traversals_confined_under_root_closure
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.GraphTraversalModel \
+  unload_load_relink_effects_confine_generated_traversal
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.GraphTraversalModel \
   surviving_outside_graph_link_is_counterexample_candidate
