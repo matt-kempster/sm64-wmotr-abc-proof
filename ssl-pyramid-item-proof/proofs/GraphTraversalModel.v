@@ -16,10 +16,12 @@
    investigation rather than a boring no-observation fact.
  *)
 
-From Coq Require Import Classical List.
+From Coq Require Import Classical List ZArith.
 Import ListNotations.
-From compcert Require Import Clight.
+From compcert Require Import AST Ctypes Clight Errors Integers Maps Memory Values.
 From SSLPyramid.Proofs Require Import ASTFacts TransitionFacts.
+
+Local Open Scope Z_scope.
 
 Theorem geo_call_global_function_nodes_typed_graph_node_link_fields :
   statement_graph_node_link_fields_s
@@ -165,6 +167,39 @@ Proof.
       | destruct geo_remove_child_relink_shape_audit as [H _]; exact H
       | destruct geo_add_child_relink_shape_audit as [H _]; exact H ].
 Qed.
+
+Definition graph_node_ce : composite_env := prog_comp_env G.prog.
+
+Definition generated_graph_node_members : members :=
+  match graph_node_ce ! G._GraphNode with
+  | Some composite => co_members composite
+  | None => nil
+  end.
+
+Definition graph_node_prev_field_offset : Z := 4.
+Definition graph_node_next_field_offset : Z := 8.
+Definition graph_node_parent_field_offset : Z := 12.
+Definition graph_node_children_field_offset : Z := 16.
+
+Theorem generated_graph_node_prev_layout :
+  field_offset graph_node_ce G._prev generated_graph_node_members =
+  OK (graph_node_prev_field_offset, Full).
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem generated_graph_node_next_layout :
+  field_offset graph_node_ce G._next generated_graph_node_members =
+  OK (graph_node_next_field_offset, Full).
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem generated_graph_node_parent_layout :
+  field_offset graph_node_ce G._parent generated_graph_node_members =
+  OK (graph_node_parent_field_offset, Full).
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem generated_graph_node_children_layout :
+  field_offset graph_node_ce G._children generated_graph_node_members =
+  OK (graph_node_children_field_offset, Full).
+Proof. vm_compute; reflexivity. Qed.
 
 Section AbstractGraph.
 
@@ -746,3 +781,441 @@ Proof.
 Qed.
 
 End AbstractGraph.
+
+Definition graph_node_pointer : Type := (block * ptrofs)%type.
+
+Definition graph_node_pointer_value (node : graph_node_pointer) : val :=
+  Vptr (fst node) (snd node).
+
+Definition graph_node_field_address
+    (node : graph_node_pointer) (field_offset : Z) : val :=
+  Vptr (fst node) (Ptrofs.add (snd node) (Ptrofs.repr field_offset)).
+
+Definition graph_node_field_load
+    (memory : mem) (node : graph_node_pointer) (field_offset : Z)
+    : option val :=
+  Mem.loadv Mint32 memory (graph_node_field_address node field_offset).
+
+Definition graph_node_field_load_ptr
+    (memory : mem) (node : graph_node_pointer) (field_offset : Z)
+    : option graph_node_pointer :=
+  match graph_node_field_load memory node field_offset with
+  | Some (Vptr block offset) => Some (block, offset)
+  | _ => None
+  end.
+
+Definition graph_node_field_store_value
+    (before after : mem) (node : graph_node_pointer)
+    (field_offset : Z) (value : val) : Prop :=
+  Mem.storev Mint32 before
+    (graph_node_field_address node field_offset) value = Some after.
+
+Definition graph_node_field_store_ptr
+    (before after : mem) (node : graph_node_pointer)
+    (field_offset : Z) (value : graph_node_pointer) : Prop :=
+  graph_node_field_store_value before after node field_offset
+    (graph_node_pointer_value value).
+
+Definition graph_node_field_store_null
+    (before after : mem) (node : graph_node_pointer)
+    (field_offset : Z) : Prop :=
+  graph_node_field_store_value before after node field_offset (Vint Int.zero).
+
+Lemma graph_node_field_store_ptr_load_same :
+  forall before after node field_offset value,
+    graph_node_field_store_ptr before after node field_offset value ->
+    graph_node_field_load_ptr after node field_offset = Some value.
+Proof.
+  intros before after [node_block node_offset] field_offset
+    [value_block value_offset] Hstore.
+  unfold graph_node_field_store_ptr, graph_node_field_store_value,
+    graph_node_pointer_value, graph_node_field_load_ptr,
+    graph_node_field_load, graph_node_field_address in *.
+  cbn in *.
+  unfold Mem.storev in Hstore.
+  cbn in Hstore.
+  rewrite (Mem.load_store_same _ _ _ _ _ _ Hstore).
+  reflexivity.
+Qed.
+
+Lemma graph_node_field_store_null_load_ptr_none :
+  forall before after node field_offset,
+    graph_node_field_store_null before after node field_offset ->
+    graph_node_field_load_ptr after node field_offset = None.
+Proof.
+  intros before after [node_block node_offset] field_offset Hstore.
+  unfold graph_node_field_store_null, graph_node_field_store_value,
+    graph_node_field_load_ptr, graph_node_field_load,
+    graph_node_field_address in *.
+  cbn in *.
+  unfold Mem.storev in Hstore.
+  cbn in Hstore.
+  rewrite (Mem.load_store_same _ _ _ _ _ _ Hstore).
+  reflexivity.
+Qed.
+
+Definition concrete_graph_links (memory : mem)
+    : graph_links graph_node_pointer :=
+  {|
+    graph_child := fun node =>
+      graph_node_field_load_ptr
+        memory node graph_node_children_field_offset;
+    graph_next := fun node =>
+      graph_node_field_load_ptr
+        memory node graph_node_next_field_offset
+  |}.
+
+Definition geo_remove_child_compcert_store_trace
+    (before after : mem)
+    (removed parent previous next : graph_node_pointer) : Prop :=
+  exists after_prev_next after_next_prev,
+    graph_node_field_store_ptr before
+      after_prev_next previous graph_node_next_field_offset next /\
+    graph_node_field_store_ptr
+      after_prev_next after_next_prev
+      next graph_node_prev_field_offset previous /\
+    (after = after_next_prev \/
+    graph_node_field_store_ptr
+      after_next_prev after
+      parent graph_node_children_field_offset next \/
+    graph_node_field_store_null
+      after_next_prev after
+      parent graph_node_children_field_offset).
+
+Record geo_remove_child_memory_effect
+    (before after : mem)
+    (removed parent previous next : graph_node_pointer) : Prop := {
+  geo_remove_child_memory_generated_body :
+    direct_callees_s (fn_body G.f_geo_remove_child) = [] /\
+    event_subsequenceb
+      [Event_set_temp_from_field G._parent G._graphNode G._parent;
+       Event_set_temp_from_field G._t'6 G._graphNode G._prev;
+       Event_set_temp_from_field G._t'7 G._graphNode G._next;
+       Event_assign_field_from_temp G._next G._t'7;
+       Event_set_temp_from_field G._t'4 G._graphNode G._next;
+       Event_set_temp_from_field G._t'5 G._graphNode G._prev;
+       Event_assign_field_from_temp G._prev G._t'5]
+      (statement_events_s (fn_body G.f_geo_remove_child)) = true /\
+    assigns_through_temp_s G._firstChild
+      (fn_body G.f_geo_remove_child) = true;
+  geo_remove_child_memory_parent_read :
+    graph_node_field_load_ptr before
+      removed graph_node_parent_field_offset = Some parent;
+  geo_remove_child_memory_prev_read :
+    graph_node_field_load_ptr before
+      removed graph_node_prev_field_offset = Some previous;
+  geo_remove_child_memory_next_read :
+    graph_node_field_load_ptr before
+      removed graph_node_next_field_offset = Some next;
+  geo_remove_child_memory_store_trace :
+    geo_remove_child_compcert_store_trace before after
+      removed parent previous next;
+  geo_remove_child_memory_parent_child_after :
+    forall to,
+      graph_node_field_load_ptr after
+        parent graph_node_children_field_offset = Some to ->
+      graph_node_field_load_ptr before
+        parent graph_node_children_field_offset = Some to \/
+      graph_node_field_load_ptr before
+        parent graph_node_children_field_offset = Some removed /\
+      graph_node_field_load_ptr before
+        removed graph_node_next_field_offset = Some to;
+  geo_remove_child_memory_previous_next_after :
+    forall to,
+      graph_node_field_load_ptr after
+        previous graph_node_next_field_offset = Some to ->
+      graph_node_field_load_ptr before
+        previous graph_node_next_field_offset = Some to \/
+      graph_node_field_load_ptr before
+        previous graph_node_next_field_offset = Some removed /\
+      graph_node_field_load_ptr before
+        removed graph_node_next_field_offset = Some to;
+  geo_remove_child_memory_children_frame :
+    forall from,
+      from <> parent ->
+      graph_node_field_load_ptr after
+        from graph_node_children_field_offset =
+      graph_node_field_load_ptr before
+        from graph_node_children_field_offset;
+  geo_remove_child_memory_next_frame :
+    forall from,
+      from <> previous ->
+      graph_node_field_load_ptr after
+        from graph_node_next_field_offset =
+      graph_node_field_load_ptr before
+        from graph_node_next_field_offset;
+  geo_remove_child_memory_no_after_incoming_to_removed :
+    forall from,
+      from <> removed ->
+      graph_node_field_load_ptr after
+        from graph_node_children_field_offset <> Some removed /\
+      graph_node_field_load_ptr after
+        from graph_node_next_field_offset <> Some removed
+}.
+
+Theorem geo_remove_child_graph_effect_from_memory_effect :
+  forall before after removed parent previous next,
+    geo_remove_child_memory_effect before after
+      removed parent previous next ->
+    geo_remove_child_graph_effect graph_node_pointer
+      (concrete_graph_links before) (concrete_graph_links after) removed.
+Proof.
+  intros before after removed parent previous next Hmemory.
+  destruct Hmemory as
+    [_ _ _ _ _ Hparent_child Hprevious_next Hchildren_frame
+     Hnext_frame Hno_incoming].
+  split.
+  - intros from to Hstep.
+    destruct Hstep as [from to Hchild | from to Hnext]; cbn in *.
+    + destruct (classic (from = parent)) as [Hfrom | Hfrom].
+      * subst from.
+        destruct (Hparent_child to Hchild) as
+          [Hold | [Hparent_removed Hremoved_to]].
+        -- left. apply GraphChildStep. exact Hold.
+        -- right. split.
+           ++ apply GraphChildStep. exact Hparent_removed.
+           ++ apply GraphNextStep. exact Hremoved_to.
+      * rewrite Hchildren_frame in Hchild by exact Hfrom.
+        left. apply GraphChildStep. exact Hchild.
+    + destruct (classic (from = previous)) as [Hfrom | Hfrom].
+      * subst from.
+        destruct (Hprevious_next to Hnext) as
+          [Hold | [Hprevious_removed Hremoved_to]].
+        -- left. apply GraphNextStep. exact Hold.
+        -- right. split.
+           ++ apply GraphNextStep. exact Hprevious_removed.
+           ++ apply GraphNextStep. exact Hremoved_to.
+      * rewrite Hnext_frame in Hnext by exact Hfrom.
+        left. apply GraphNextStep. exact Hnext.
+  - intros from Hfrom Hstep.
+    destruct Hstep as [from to Hchild | from to Hnext]; cbn in *.
+    + destruct (Hno_incoming from Hfrom) as [Hno_child _].
+      exact (Hno_child Hchild).
+    + destruct (Hno_incoming from Hfrom) as [_ Hno_next].
+      exact (Hno_next Hnext).
+Qed.
+
+Theorem geo_remove_child_semantic_execution_from_memory_effect :
+  forall before after removed parent previous next,
+    geo_remove_child_memory_effect before after
+      removed parent previous next ->
+    geo_remove_child_semantic_execution graph_node_pointer
+      (concrete_graph_links before) (concrete_graph_links after) removed.
+Proof.
+  intros before after removed parent previous next Hmemory.
+  apply geo_remove_child_semantic_execution_from_graph_effect.
+  eapply geo_remove_child_graph_effect_from_memory_effect.
+  exact Hmemory.
+Qed.
+
+Definition geo_add_child_compcert_store_trace
+    (before after : mem) (parent child : graph_node_pointer) : Prop :=
+  exists after_parent after_parent_children after_child_prev after_child_next,
+    graph_node_field_store_ptr before
+      after_parent child graph_node_parent_field_offset parent /\
+    (after_parent_children = after_parent \/
+     graph_node_field_store_ptr after_parent after_parent_children
+       parent graph_node_children_field_offset child) /\
+    (graph_node_field_store_ptr after_parent_children
+       after_child_prev child graph_node_prev_field_offset child \/
+    exists parent_last_child,
+      graph_node_field_store_ptr after_parent_children
+        after_child_prev child graph_node_prev_field_offset
+        parent_last_child) /\
+    (graph_node_field_store_ptr after_child_prev
+       after_child_next child graph_node_next_field_offset child \/
+    exists parent_first_child,
+      graph_node_field_store_ptr after_child_prev
+        after_child_next child graph_node_next_field_offset
+        parent_first_child) /\
+    (after = after_child_next \/
+    exists parent_first_child parent_last_child after_first_prev,
+      graph_node_field_store_ptr after_child_next
+        after_first_prev
+        parent_first_child graph_node_prev_field_offset child /\
+      graph_node_field_store_ptr after_first_prev after
+        parent_last_child graph_node_next_field_offset child).
+
+Record geo_add_child_memory_effect
+    (before after : mem) (parent child : graph_node_pointer) : Prop := {
+  geo_add_child_memory_generated_body :
+    direct_callees_s (fn_body G.f_geo_add_child) = [] /\
+    event_subsequenceb
+      [Event_assign_field_from_temp G._parent G._parent;
+       Event_set_temp_from_field G._parentFirstChild G._parent G._children;
+       Event_assign_field_from_temp G._children G._childNode]
+      (statement_events_s (fn_body G.f_geo_add_child)) = true /\
+    event_subsequenceb
+      [Event_assign_field_from_temp G._prev G._parentLastChild;
+       Event_assign_field_from_temp G._next G._parentFirstChild;
+       Event_assign_field_from_temp G._prev G._childNode;
+       Event_assign_field_from_temp G._next G._childNode]
+      (statement_events_s (fn_body G.f_geo_add_child)) = true;
+  geo_add_child_memory_parent_store_observed :
+    graph_node_field_load_ptr after
+      child graph_node_parent_field_offset = Some parent;
+  geo_add_child_memory_store_trace :
+    geo_add_child_compcert_store_trace before after parent child;
+  geo_add_child_memory_children_after :
+    forall from to,
+      graph_node_field_load_ptr after
+        from graph_node_children_field_offset = Some to ->
+      graph_node_field_load_ptr before
+        from graph_node_children_field_offset = Some to \/
+      (from = parent /\ to = child);
+  geo_add_child_memory_next_after :
+    forall from to,
+      graph_node_field_load_ptr after
+        from graph_node_next_field_offset = Some to ->
+      graph_node_field_load_ptr before
+        from graph_node_next_field_offset = Some to \/
+      (from = child /\
+       (to = child \/
+        graph_link_reachable graph_node_pointer
+          (concrete_graph_links before) parent to)) \/
+      (graph_link_reachable graph_node_pointer
+        (concrete_graph_links before) parent from /\ to = child)
+}.
+
+Theorem geo_add_child_graph_effect_from_memory_effect :
+  forall before after parent child,
+    geo_add_child_memory_effect before after parent child ->
+    geo_add_child_graph_effect graph_node_pointer
+      (concrete_graph_links before) (concrete_graph_links after)
+      parent child.
+Proof.
+  intros before after parent child Hmemory.
+  destruct Hmemory as [_ _ _ Hchildren_after Hnext_after].
+  split.
+  intros from to Hstep.
+  destruct Hstep as [from to Hchild | from to Hnext]; cbn in *.
+  - destruct (Hchildren_after from to Hchild) as
+      [Hold | [Hfrom_parent Hto_child]].
+    + left. apply GraphChildStep. exact Hold.
+    + right. left. split; assumption.
+  - destruct (Hnext_after from to Hnext) as
+      [Hold |
+       [[Hfrom_child [Hto_child | Hparent_to]] |
+        [Hparent_from Hto_child]]].
+    + left. apply GraphNextStep. exact Hold.
+    + right. right. left.
+      split; [exact Hfrom_child | left; exact Hto_child].
+    + right. right. left.
+      split; [exact Hfrom_child | right; exact Hparent_to].
+    + right. right. right.
+      split; assumption.
+Qed.
+
+Theorem geo_add_child_semantic_execution_from_memory_effect :
+  forall before after parent child,
+    geo_add_child_memory_effect before after parent child ->
+    geo_add_child_semantic_execution graph_node_pointer
+      (concrete_graph_links before) (concrete_graph_links after)
+      parent child.
+Proof.
+  intros before after parent child Hmemory.
+  apply geo_add_child_semantic_execution_from_graph_effect.
+  eapply geo_add_child_graph_effect_from_memory_effect.
+  exact Hmemory.
+Qed.
+
+Definition graph_node_safe_for_generated_traversal
+    (current_or_destination dead_not_outside : graph_node_pointer -> Prop)
+    (node : graph_node_pointer) : Prop :=
+  current_or_destination node \/ dead_not_outside node.
+
+Theorem parked_removed_node_is_safe_for_generated_traversal :
+  forall
+    (current_or_destination dead_not_outside : graph_node_pointer -> Prop)
+    removed,
+    dead_not_outside removed ->
+    graph_node_safe_for_generated_traversal
+      current_or_destination dead_not_outside removed.
+Proof.
+  intros current_or_destination dead_not_outside removed Hdead.
+  right. exact Hdead.
+Qed.
+
+Theorem generated_relink_memory_effects_confine_traversal :
+  forall before_unload after_remove after_add
+    (safe_node : graph_node_pointer -> Prop)
+    object_parent_first_child current_area_root removed
+    remove_parent remove_previous remove_next add_parent add_child,
+    generated_load_area_graph_traversals_confined graph_node_pointer
+      (concrete_graph_links before_unload) safe_node
+      object_parent_first_child current_area_root ->
+    graph_links_preserve graph_node_pointer
+      (concrete_graph_links before_unload) safe_node ->
+    generated_roots_exclude_node graph_node_pointer
+      object_parent_first_child current_area_root removed ->
+    geo_remove_child_memory_effect before_unload after_remove
+      removed remove_parent remove_previous remove_next ->
+    safe_node add_parent ->
+    safe_node add_child ->
+    geo_add_child_memory_effect after_remove after_add add_parent add_child ->
+    generated_load_area_graph_traversals_confined graph_node_pointer
+      (concrete_graph_links after_add) safe_node
+      object_parent_first_child current_area_root.
+Proof.
+  intros before_unload after_remove after_add safe_node
+    object_parent_first_child current_area_root removed
+    remove_parent remove_previous remove_next add_parent add_child
+    Hbefore Hpres Hroots Hremove_memory Hadd_parent Hadd_child Hadd_memory.
+  eapply
+    (generated_relink_semantic_executions_confine_traversal
+       graph_node_pointer).
+  - exact Hbefore.
+  - exact Hpres.
+  - exact Hroots.
+  - eapply geo_remove_child_semantic_execution_from_memory_effect.
+    exact Hremove_memory.
+  - exact Hadd_parent.
+  - exact Hadd_child.
+  - eapply geo_add_child_semantic_execution_from_memory_effect.
+    exact Hadd_memory.
+Qed.
+
+Theorem generated_unload_parking_memory_effect_confines_traversal :
+  forall before_unload after_remove after_parking
+    (current_or_destination dead_not_outside : graph_node_pointer -> Prop)
+    object_parent_first_child current_area_root removed
+    remove_parent remove_previous remove_next object_parent_graph_node,
+    generated_load_area_graph_traversals_confined graph_node_pointer
+      (concrete_graph_links before_unload)
+      (graph_node_safe_for_generated_traversal
+        current_or_destination dead_not_outside)
+      object_parent_first_child current_area_root ->
+    graph_links_preserve graph_node_pointer
+      (concrete_graph_links before_unload)
+      (graph_node_safe_for_generated_traversal
+        current_or_destination dead_not_outside) ->
+    generated_roots_exclude_node graph_node_pointer
+      object_parent_first_child current_area_root removed ->
+    geo_remove_child_memory_effect before_unload after_remove
+      removed remove_parent remove_previous remove_next ->
+    graph_node_safe_for_generated_traversal
+      current_or_destination dead_not_outside object_parent_graph_node ->
+    dead_not_outside removed ->
+    geo_add_child_memory_effect after_remove after_parking
+      object_parent_graph_node removed ->
+    generated_load_area_graph_traversals_confined graph_node_pointer
+      (concrete_graph_links after_parking)
+      (graph_node_safe_for_generated_traversal
+        current_or_destination dead_not_outside)
+      object_parent_first_child current_area_root.
+Proof.
+  intros before_unload after_remove after_parking
+    current_or_destination dead_not_outside object_parent_first_child
+    current_area_root removed remove_parent remove_previous remove_next
+    object_parent_graph_node Hbefore Hpres Hroots Hremove_memory
+    Hpark_parent Hdead_removed Hparking_memory.
+  eapply generated_relink_memory_effects_confine_traversal.
+  - exact Hbefore.
+  - exact Hpres.
+  - exact Hroots.
+  - exact Hremove_memory.
+  - exact Hpark_parent.
+  - apply parked_removed_node_is_safe_for_generated_traversal.
+    exact Hdead_removed.
+  - exact Hparking_memory.
+Qed.

@@ -730,8 +730,24 @@ parent sibling ring, and proves the add step only exposes nodes already
 classified current/destination. Finally,
 `generated_relink_semantic_executions_confine_traversal` composes the two
 helper execution contracts into the generated traversal confinement theorem.
-The remaining lowering work is to connect these graph-level effects to the
-raw CompCert memory loads/stores of the helper bodies.
+
+That contract has now been lowered one more layer toward CompCert memory.
+`generated_graph_node_prev_layout`, `generated_graph_node_next_layout`,
+`generated_graph_node_parent_layout`, and
+`generated_graph_node_children_layout` pin the generated `GraphNode` offsets
+used by the helpers. `graph_node_field_load_ptr` and
+`graph_node_field_store_ptr` describe the relevant `Mem.loadv` /
+`Mem.storev` operations. `geo_remove_child_graph_effect_from_memory_effect`
+and `geo_add_child_graph_effect_from_memory_effect` prove that concrete
+parent/prev/next/children load-store-frame facts imply the abstract graph
+effects above, and `generated_relink_memory_effects_confine_traversal`
+composes those memory effects all the way back into traversal confinement.
+The `unload_object` parking wrinkle is also explicit:
+`generated_unload_parking_memory_effect_confines_traversal` handles the
+`geo_add_child(&gObjParentGraphNode, removed)` step, but only after the removed
+node is classified as dead/parked-not-transportable. The remaining lowering
+work is to invert the actual generated `exec_stmt` runs of `geo_remove_child`
+and `geo_add_child` enough to produce these memory-effect records.
 
 The non-Mario reference roots have now been brought into the same
 clightgen/Rocq route. `proofs/RenderHeldObjectFacts.v` still proves the
