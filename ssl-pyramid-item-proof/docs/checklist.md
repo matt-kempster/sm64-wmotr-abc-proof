@@ -1,6 +1,6 @@
 # SSL Pyramid item proof checklist
 
-Last updated: 2026-06-27
+Last updated: 2026-06-28
 
 Tiny vibe check: this is the human-readable TODO list for the "can we smuggle
 stuff into SSL Pyramid?" proof. The Coq files are the machine's truth. This
@@ -324,8 +324,24 @@ counterexample-shaped goblin.
   or state transfer.
 - [x] Record that cap timer/state is a distinct state-transfer channel, not
   automatically the same as object transfer.
-- [ ] Decide whether cap pickup state can reconstruct an outside object identity
+- [x] Decide whether cap pickup state can reconstruct an outside object identity
   or only transfers ordinary Mario state.
+  `proofs/CapPickupStateFacts.v` is the new cap goblin ledger. It proves
+  `interact_cap` does read the cap object's behavior and does set
+  `m->interactObj = o` during successful pickup, so there is a transient
+  pointer. But the durable cap-pickup channel is ordinary Mario state:
+  `m->flags`, `m->capTimer`, action/music/sound, plus the cap object's own
+  interact-status word. The generated pickup body does not write `heldObj`,
+  `usedObj`, `riddenObj`, or `marioObj`, and it does not call `spawn_object`.
+  The post-pickup cap timer updater also does not spawn or write Mario
+  object-reference roots. Finally, the audited Pyramid load window does not
+  mention `interactObj` before `init_mario_after_warp` reaches the
+  cleanup/rebind path. Translation: cap pickup can leave a spooky temporary
+  `interactObj`, but the cap timer/flag state cannot reconstruct the outside
+  cap object identity.
+- [ ] If normal-cap loss/retrieval becomes relevant, prove separately that
+  `mario_blow_off_cap` creates a fresh normal-cap object from Mario/save state,
+  not the original outside Wing Cap box/cap identity.
 - [ ] Finish the shell ride/ridden-object proof path.
 - [ ] Check cork boxes and other grabbables against the same held-object/stale
   reference logic.
