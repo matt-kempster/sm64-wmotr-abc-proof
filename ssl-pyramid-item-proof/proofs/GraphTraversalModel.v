@@ -18,7 +18,8 @@
 
 From Coq Require Import Classical List ZArith.
 Import ListNotations.
-From compcert Require Import AST Ctypes Clight Errors Integers Maps Memory Values.
+From compcert Require Import AST Coqlib Ctypes Clight ClightBigstep Errors
+  Events Globalenvs Integers Maps Memory Values.
 From SSLPyramid.Proofs Require Import ASTFacts TransitionFacts.
 
 Local Open Scope Z_scope.
@@ -170,6 +171,8 @@ Qed.
 
 Definition graph_node_ce : composite_env := prog_comp_env G.prog.
 
+Definition graph_node_ge : genv := globalenv G.prog.
+
 Definition generated_graph_node_members : members :=
   match graph_node_ce ! G._GraphNode with
   | Some composite => co_members composite
@@ -200,6 +203,160 @@ Theorem generated_graph_node_children_layout :
   field_offset graph_node_ce G._children generated_graph_node_members =
   OK (graph_node_children_field_offset, Full).
 Proof. vm_compute; reflexivity. Qed.
+
+Definition geo_remove_child_body : statement :=
+  fn_body G.f_geo_remove_child.
+
+Definition geo_remove_child_read_parent : statement :=
+  match geo_remove_child_body with
+  | Ssequence head _ => head
+  | body => body
+  end.
+
+Definition geo_remove_child_after_parent : statement :=
+  match geo_remove_child_body with
+  | Ssequence _ tail => tail
+  | body => body
+  end.
+
+Definition geo_remove_child_read_first_child : statement :=
+  match geo_remove_child_after_parent with
+  | Ssequence head _ => head
+  | body => body
+  end.
+
+Definition geo_remove_child_after_first_child : statement :=
+  match geo_remove_child_after_parent with
+  | Ssequence _ tail => tail
+  | body => body
+  end.
+
+Definition geo_remove_child_prev_next_splice : statement :=
+  match geo_remove_child_after_first_child with
+  | Ssequence head _ => head
+  | body => body
+  end.
+
+Definition geo_remove_child_after_prev_next_splice : statement :=
+  match geo_remove_child_after_first_child with
+  | Ssequence _ tail => tail
+  | body => body
+  end.
+
+Definition geo_remove_child_next_prev_splice : statement :=
+  match geo_remove_child_after_prev_next_splice with
+  | Ssequence head _ => head
+  | body => body
+  end.
+
+Definition geo_remove_child_after_next_prev_splice : statement :=
+  match geo_remove_child_after_prev_next_splice with
+  | Ssequence _ tail => tail
+  | body => body
+  end.
+
+Definition geo_remove_child_parent_children_branch : statement :=
+  match geo_remove_child_after_next_prev_splice with
+  | Ssequence head _ => head
+  | body => body
+  end.
+
+Definition geo_remove_child_return_parent : statement :=
+  match geo_remove_child_after_next_prev_splice with
+  | Ssequence _ tail => tail
+  | body => body
+  end.
+
+Theorem geo_remove_child_body_split :
+  geo_remove_child_body =
+  Ssequence geo_remove_child_read_parent geo_remove_child_after_parent.
+Proof. reflexivity. Qed.
+
+Theorem geo_remove_child_after_parent_split :
+  geo_remove_child_after_parent =
+  Ssequence geo_remove_child_read_first_child
+    geo_remove_child_after_first_child.
+Proof. reflexivity. Qed.
+
+Theorem geo_remove_child_after_first_child_split :
+  geo_remove_child_after_first_child =
+  Ssequence geo_remove_child_prev_next_splice
+    geo_remove_child_after_prev_next_splice.
+Proof. reflexivity. Qed.
+
+Theorem geo_remove_child_after_prev_next_splice_split :
+  geo_remove_child_after_prev_next_splice =
+  Ssequence geo_remove_child_next_prev_splice
+    geo_remove_child_after_next_prev_splice.
+Proof. reflexivity. Qed.
+
+Theorem geo_remove_child_after_next_prev_splice_split :
+  geo_remove_child_after_next_prev_splice =
+  Ssequence geo_remove_child_parent_children_branch
+    geo_remove_child_return_parent.
+Proof. reflexivity. Qed.
+
+Definition geo_add_child_body : statement :=
+  fn_body G.f_geo_add_child.
+
+Definition geo_add_child_top_if : statement :=
+  match geo_add_child_body with
+  | Ssequence head _ => head
+  | body => body
+  end.
+
+Definition geo_add_child_return_child : statement :=
+  match geo_add_child_body with
+  | Ssequence _ tail => tail
+  | body => body
+  end.
+
+Definition geo_add_child_then_branch : statement :=
+  match geo_add_child_top_if with
+  | Sifthenelse _ then_branch _ => then_branch
+  | body => body
+  end.
+
+Definition geo_add_child_assign_parent : statement :=
+  match geo_add_child_then_branch with
+  | Ssequence head _ => head
+  | body => body
+  end.
+
+Definition geo_add_child_after_assign_parent : statement :=
+  match geo_add_child_then_branch with
+  | Ssequence _ tail => tail
+  | body => body
+  end.
+
+Definition geo_add_child_read_parent_first_child : statement :=
+  match geo_add_child_after_assign_parent with
+  | Ssequence head _ => head
+  | body => body
+  end.
+
+Definition geo_add_child_children_branch : statement :=
+  match geo_add_child_after_assign_parent with
+  | Ssequence _ tail => tail
+  | body => body
+  end.
+
+Theorem geo_add_child_body_split :
+  geo_add_child_body =
+  Ssequence geo_add_child_top_if geo_add_child_return_child.
+Proof. reflexivity. Qed.
+
+Theorem geo_add_child_then_branch_split :
+  geo_add_child_then_branch =
+  Ssequence geo_add_child_assign_parent
+    geo_add_child_after_assign_parent.
+Proof. reflexivity. Qed.
+
+Theorem geo_add_child_after_assign_parent_split :
+  geo_add_child_after_assign_parent =
+  Ssequence geo_add_child_read_parent_first_child
+    geo_add_child_children_branch.
+Proof. reflexivity. Qed.
 
 Section AbstractGraph.
 
@@ -865,6 +1022,358 @@ Definition concrete_graph_links (memory : mem)
         memory node graph_node_next_field_offset
   |}.
 
+Definition geo_remove_child_exec_spine
+    (e : env) (le : temp_env) (memory : mem)
+    (trace : trace) (le' : temp_env) (memory' : mem)
+    (outcome : outcome) : Prop :=
+  exists trace_parent le_parent memory_parent
+         trace_first le_first memory_first
+         trace_prev_next le_prev_next memory_prev_next
+         trace_next_prev le_next_prev memory_next_prev
+         trace_children le_children memory_children
+         trace_return,
+    exec_stmt function_entry2 graph_node_ge e le memory
+      geo_remove_child_read_parent
+      trace_parent le_parent memory_parent Out_normal /\
+    exec_stmt function_entry2 graph_node_ge e le_parent memory_parent
+      geo_remove_child_read_first_child
+      trace_first le_first memory_first Out_normal /\
+    exec_stmt function_entry2 graph_node_ge e le_first memory_first
+      geo_remove_child_prev_next_splice
+      trace_prev_next le_prev_next memory_prev_next Out_normal /\
+    exec_stmt function_entry2 graph_node_ge e le_prev_next memory_prev_next
+      geo_remove_child_next_prev_splice
+      trace_next_prev le_next_prev memory_next_prev Out_normal /\
+    exec_stmt function_entry2 graph_node_ge e le_next_prev memory_next_prev
+      geo_remove_child_parent_children_branch
+      trace_children le_children memory_children Out_normal /\
+    exec_stmt function_entry2 graph_node_ge e le_children memory_children
+      geo_remove_child_return_parent
+      trace_return le' memory' outcome.
+
+Definition geo_add_child_body_exec_spine
+    (e : env) (le : temp_env) (memory : mem)
+    (trace : trace) (le' : temp_env) (memory' : mem)
+    (outcome : outcome) : Prop :=
+  exists trace_top le_top memory_top trace_return,
+    exec_stmt function_entry2 graph_node_ge e le memory
+      geo_add_child_top_if trace_top le_top memory_top Out_normal /\
+    exec_stmt function_entry2 graph_node_ge e le_top memory_top
+      geo_add_child_return_child trace_return le' memory' outcome.
+
+Definition geo_add_child_then_branch_exec_spine
+    (e : env) (le : temp_env) (memory : mem)
+    (trace : trace) (le' : temp_env) (memory' : mem)
+    (outcome : outcome) : Prop :=
+  exists trace_parent le_parent memory_parent
+         trace_first le_first memory_first
+         trace_branch,
+    exec_stmt function_entry2 graph_node_ge e le memory
+      geo_add_child_assign_parent
+      trace_parent le_parent memory_parent Out_normal /\
+    exec_stmt function_entry2 graph_node_ge e le_parent memory_parent
+      geo_add_child_read_parent_first_child
+      trace_first le_first memory_first Out_normal /\
+    exec_stmt function_entry2 graph_node_ge e le_first memory_first
+      geo_add_child_children_branch
+      trace_branch le' memory' outcome.
+
+Ltac impossible_generated_prefix :=
+  repeat match goal with
+  | H : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _ |- _ => inv H
+  | H : exec_stmt _ _ _ _ _ (Sifthenelse _ _ _) _ _ _ _ |- _ => inv H
+  | H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H
+  | H : exec_stmt _ _ _ _ _ (Sassign _ _) _ _ _ _ |- _ => inv H
+  | H : exec_stmt _ _ _ _ _ Sskip _ _ _ _ |- _ => inv H
+  | H : outcome_result_value _ _ = _ |- _ => inv H
+  | b : bool |- _ => destruct b
+  end; congruence.
+
+Lemma exec_geo_remove_child_parent_children_branch_normal :
+  forall e le memory trace le' memory' outcome,
+    exec_stmt function_entry2 graph_node_ge e le memory
+      geo_remove_child_parent_children_branch trace le' memory' outcome ->
+    outcome = Out_normal.
+Proof.
+  intros e le memory trace le' memory' outcome Hexec.
+  unfold geo_remove_child_parent_children_branch,
+    geo_remove_child_after_next_prev_splice,
+    geo_remove_child_after_prev_next_splice,
+    geo_remove_child_after_first_child,
+    geo_remove_child_after_parent,
+    geo_remove_child_body in Hexec.
+  cbn in Hexec.
+  repeat match goal with
+  | b : bool |- _ => destruct b
+  | H : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _ |- _ => inv H
+  | H : exec_stmt _ _ _ _ _ (Sifthenelse _ _ _) _ _ _ _ |- _ => inv H
+  | H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H
+  | H : exec_stmt _ _ _ _ _ (Sassign _ _) _ _ _ _ |- _ => inv H
+  | H : exec_stmt _ _ _ _ _ Sskip _ _ _ _ |- _ => inv H
+  end;
+  reflexivity.
+Qed.
+
+Lemma exec_geo_remove_child_prev_next_splice_normal :
+  forall e le memory trace le' memory' outcome,
+    exec_stmt function_entry2 graph_node_ge e le memory
+      geo_remove_child_prev_next_splice trace le' memory' outcome ->
+    outcome = Out_normal.
+Proof.
+  intros e le memory trace le' memory' outcome Hexec.
+  unfold geo_remove_child_prev_next_splice,
+    geo_remove_child_after_first_child,
+    geo_remove_child_after_parent,
+    geo_remove_child_body in Hexec.
+  cbn in Hexec.
+  repeat match goal with
+  | H : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _ |- _ => inv H
+  | H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H
+  | H : exec_stmt _ _ _ _ _ (Sassign _ _) _ _ _ _ |- _ => inv H
+  end;
+  reflexivity.
+Qed.
+
+Lemma exec_geo_remove_child_next_prev_splice_normal :
+  forall e le memory trace le' memory' outcome,
+    exec_stmt function_entry2 graph_node_ge e le memory
+      geo_remove_child_next_prev_splice trace le' memory' outcome ->
+    outcome = Out_normal.
+Proof.
+  intros e le memory trace le' memory' outcome Hexec.
+  unfold geo_remove_child_next_prev_splice,
+    geo_remove_child_after_prev_next_splice,
+    geo_remove_child_after_first_child,
+    geo_remove_child_after_parent,
+    geo_remove_child_body in Hexec.
+  cbn in Hexec.
+  repeat match goal with
+  | H : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _ |- _ => inv H
+  | H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H
+  | H : exec_stmt _ _ _ _ _ (Sassign _ _) _ _ _ _ |- _ => inv H
+  end;
+  reflexivity.
+Qed.
+
+Lemma exec_geo_remove_child_read_parent_normal :
+  forall e le memory trace le' memory' outcome,
+    exec_stmt function_entry2 graph_node_ge e le memory
+      geo_remove_child_read_parent trace le' memory' outcome ->
+    outcome = Out_normal.
+Proof.
+  intros e le memory trace le' memory' outcome Hexec.
+  unfold geo_remove_child_read_parent, geo_remove_child_body in Hexec.
+  cbn in Hexec.
+  inv Hexec.
+  reflexivity.
+Qed.
+
+Lemma exec_geo_remove_child_read_first_child_normal :
+  forall e le memory trace le' memory' outcome,
+    exec_stmt function_entry2 graph_node_ge e le memory
+      geo_remove_child_read_first_child trace le' memory' outcome ->
+    outcome = Out_normal.
+Proof.
+  intros e le memory trace le' memory' outcome Hexec.
+  unfold geo_remove_child_read_first_child,
+    geo_remove_child_after_parent,
+    geo_remove_child_body in Hexec.
+  cbn in Hexec.
+  inv Hexec.
+  reflexivity.
+Qed.
+
+Lemma exec_geo_add_child_top_if_normal :
+  forall e le memory trace le' memory' outcome,
+    exec_stmt function_entry2 graph_node_ge e le memory
+      geo_add_child_top_if trace le' memory' outcome ->
+    outcome = Out_normal.
+Proof.
+  intros e le memory trace le' memory' outcome Hexec.
+  unfold geo_add_child_top_if, geo_add_child_body in Hexec.
+  cbn in Hexec.
+  repeat match goal with
+  | b : bool |- _ => destruct b
+  | H : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _ |- _ => inv H
+  | H : exec_stmt _ _ _ _ _ (Sifthenelse _ _ _) _ _ _ _ |- _ => inv H
+  | H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H
+  | H : exec_stmt _ _ _ _ _ (Sassign _ _) _ _ _ _ |- _ => inv H
+  | H : exec_stmt _ _ _ _ _ Sskip _ _ _ _ |- _ => inv H
+  end;
+  reflexivity.
+Qed.
+
+Lemma exec_geo_add_child_assign_parent_normal :
+  forall e le memory trace le' memory' outcome,
+    exec_stmt function_entry2 graph_node_ge e le memory
+      geo_add_child_assign_parent trace le' memory' outcome ->
+    outcome = Out_normal.
+Proof.
+  intros e le memory trace le' memory' outcome Hexec.
+  unfold geo_add_child_assign_parent, geo_add_child_then_branch,
+    geo_add_child_top_if, geo_add_child_body in Hexec.
+  cbn in Hexec.
+  inv Hexec.
+  reflexivity.
+Qed.
+
+Lemma exec_geo_add_child_read_parent_first_child_normal :
+  forall e le memory trace le' memory' outcome,
+    exec_stmt function_entry2 graph_node_ge e le memory
+      geo_add_child_read_parent_first_child trace le' memory' outcome ->
+    outcome = Out_normal.
+Proof.
+  intros e le memory trace le' memory' outcome Hexec.
+  unfold geo_add_child_read_parent_first_child,
+    geo_add_child_after_assign_parent,
+    geo_add_child_then_branch,
+    geo_add_child_top_if, geo_add_child_body in Hexec.
+  cbn in Hexec.
+  inv Hexec.
+  reflexivity.
+Qed.
+
+Theorem exec_geo_remove_child_body_inverts_spine :
+  forall e le memory trace le' memory' outcome,
+    exec_stmt function_entry2 graph_node_ge e le memory
+      geo_remove_child_body trace le' memory' outcome ->
+    geo_remove_child_exec_spine
+      e le memory trace le' memory' outcome.
+Proof.
+  intros e le memory trace le' memory' outcome Hexec.
+  rewrite geo_remove_child_body_split in Hexec.
+  inv Hexec.
+  - match goal with
+    | Hrest :
+        exec_stmt _ _ _ _ _
+          geo_remove_child_after_parent _ _ _ _ |- _ =>
+        rewrite geo_remove_child_after_parent_split in Hrest;
+        inv Hrest
+    end.
+    + match goal with
+      | Hrest :
+          exec_stmt _ _ _ _ _
+            geo_remove_child_after_first_child _ _ _ _ |- _ =>
+          rewrite geo_remove_child_after_first_child_split in Hrest;
+          inv Hrest
+      end.
+      * match goal with
+        | Hrest :
+            exec_stmt _ _ _ _ _
+              geo_remove_child_after_prev_next_splice _ _ _ _ |- _ =>
+            rewrite geo_remove_child_after_prev_next_splice_split in Hrest;
+            inv Hrest
+        end.
+        -- match goal with
+           | Hrest :
+               exec_stmt _ _ _ _ _
+                 geo_remove_child_after_next_prev_splice _ _ _ _ |- _ =>
+               rewrite geo_remove_child_after_next_prev_splice_split in Hrest;
+               inv Hrest
+           end.
+           ++ repeat eexists; repeat split; eassumption.
+            ++ match goal with
+               | Hfirst :
+                   exec_stmt _ _ _ _ _
+                     geo_remove_child_parent_children_branch _ _ _ ?out,
+                 Hneq : ?out <> Out_normal |- _ =>
+                   apply exec_geo_remove_child_parent_children_branch_normal
+                     in Hfirst;
+                   contradiction
+               end.
+        -- match goal with
+           | Hfirst :
+               exec_stmt _ _ _ _ _
+                 geo_remove_child_next_prev_splice _ _ _ ?out,
+             Hneq : ?out <> Out_normal |- _ =>
+               apply exec_geo_remove_child_next_prev_splice_normal
+                 in Hfirst;
+               contradiction
+           end.
+      * match goal with
+        | Hfirst :
+            exec_stmt _ _ _ _ _
+              geo_remove_child_prev_next_splice _ _ _ ?out,
+          Hneq : ?out <> Out_normal |- _ =>
+            apply exec_geo_remove_child_prev_next_splice_normal
+              in Hfirst;
+            contradiction
+        end.
+    + match goal with
+      | Hfirst :
+          exec_stmt _ _ _ _ _
+            geo_remove_child_read_first_child _ _ _ ?out,
+        Hneq : ?out <> Out_normal |- _ =>
+          apply exec_geo_remove_child_read_first_child_normal in Hfirst;
+          contradiction
+      end.
+  - match goal with
+    | Hfirst :
+        exec_stmt _ _ _ _ _
+          geo_remove_child_read_parent _ _ _ ?out,
+      Hneq : ?out <> Out_normal |- _ =>
+        apply exec_geo_remove_child_read_parent_normal in Hfirst;
+        contradiction
+    end.
+Qed.
+
+Theorem exec_geo_add_child_body_inverts_top_spine :
+  forall e le memory trace le' memory' outcome,
+    exec_stmt function_entry2 graph_node_ge e le memory
+      geo_add_child_body trace le' memory' outcome ->
+    geo_add_child_body_exec_spine
+      e le memory trace le' memory' outcome.
+Proof.
+  intros e le memory trace le' memory' outcome Hexec.
+  rewrite geo_add_child_body_split in Hexec.
+  inv Hexec.
+  - repeat eexists; repeat split; eassumption.
+  - match goal with
+    | Hfirst :
+        exec_stmt _ _ _ _ _
+          geo_add_child_top_if _ _ _ ?out,
+      Hneq : ?out <> Out_normal |- _ =>
+        apply exec_geo_add_child_top_if_normal in Hfirst;
+        contradiction
+    end.
+Qed.
+
+Theorem exec_geo_add_child_then_branch_inverts_spine :
+  forall e le memory trace le' memory' outcome,
+    exec_stmt function_entry2 graph_node_ge e le memory
+      geo_add_child_then_branch trace le' memory' outcome ->
+    geo_add_child_then_branch_exec_spine
+      e le memory trace le' memory' outcome.
+Proof.
+  intros e le memory trace le' memory' outcome Hexec.
+  rewrite geo_add_child_then_branch_split in Hexec.
+  inv Hexec.
+  - match goal with
+    | Hrest :
+        exec_stmt _ _ _ _ _
+          geo_add_child_after_assign_parent _ _ _ _ |- _ =>
+        rewrite geo_add_child_after_assign_parent_split in Hrest;
+        inv Hrest
+    end.
+    + repeat eexists; repeat split; eassumption.
+    + match goal with
+      | Hfirst :
+          exec_stmt _ _ _ _ _
+            geo_add_child_read_parent_first_child _ _ _ ?out,
+        Hneq : ?out <> Out_normal |- _ =>
+          apply exec_geo_add_child_read_parent_first_child_normal in Hfirst;
+          contradiction
+      end.
+  - match goal with
+    | Hfirst :
+        exec_stmt _ _ _ _ _
+          geo_add_child_assign_parent _ _ _ ?out,
+      Hneq : ?out <> Out_normal |- _ =>
+        apply exec_geo_add_child_assign_parent_normal in Hfirst;
+        contradiction
+    end.
+Qed.
+
 Definition geo_remove_child_compcert_store_trace
     (before after : mem)
     (removed parent previous next : graph_node_pointer) : Prop :=
@@ -952,6 +1461,96 @@ Record geo_remove_child_memory_effect
       graph_node_field_load_ptr after
         from graph_node_next_field_offset <> Some removed
 }.
+
+Record geo_remove_child_exec_memory_obligations
+    (before after : mem)
+    (removed parent previous next : graph_node_pointer) : Prop := {
+  geo_remove_child_exec_parent_read :
+    graph_node_field_load_ptr before
+      removed graph_node_parent_field_offset = Some parent;
+  geo_remove_child_exec_prev_read :
+    graph_node_field_load_ptr before
+      removed graph_node_prev_field_offset = Some previous;
+  geo_remove_child_exec_next_read :
+    graph_node_field_load_ptr before
+      removed graph_node_next_field_offset = Some next;
+  geo_remove_child_exec_store_trace :
+    geo_remove_child_compcert_store_trace before after
+      removed parent previous next;
+  geo_remove_child_exec_parent_child_after :
+    forall to,
+      graph_node_field_load_ptr after
+        parent graph_node_children_field_offset = Some to ->
+      graph_node_field_load_ptr before
+        parent graph_node_children_field_offset = Some to \/
+      graph_node_field_load_ptr before
+        parent graph_node_children_field_offset = Some removed /\
+      graph_node_field_load_ptr before
+        removed graph_node_next_field_offset = Some to;
+  geo_remove_child_exec_previous_next_after :
+    forall to,
+      graph_node_field_load_ptr after
+        previous graph_node_next_field_offset = Some to ->
+      graph_node_field_load_ptr before
+        previous graph_node_next_field_offset = Some to \/
+      graph_node_field_load_ptr before
+        previous graph_node_next_field_offset = Some removed /\
+      graph_node_field_load_ptr before
+        removed graph_node_next_field_offset = Some to;
+  geo_remove_child_exec_children_frame :
+    forall from,
+      from <> parent ->
+      graph_node_field_load_ptr after
+        from graph_node_children_field_offset =
+      graph_node_field_load_ptr before
+        from graph_node_children_field_offset;
+  geo_remove_child_exec_next_frame :
+    forall from,
+      from <> previous ->
+      graph_node_field_load_ptr after
+        from graph_node_next_field_offset =
+      graph_node_field_load_ptr before
+        from graph_node_next_field_offset;
+  geo_remove_child_exec_no_after_incoming_to_removed :
+    forall from,
+      from <> removed ->
+      graph_node_field_load_ptr after
+        from graph_node_children_field_offset <> Some removed /\
+      graph_node_field_load_ptr after
+        from graph_node_next_field_offset <> Some removed
+}.
+
+Theorem geo_remove_child_memory_effect_from_exec_stmt :
+  forall e le before trace le' after outcome
+    removed parent previous next,
+    exec_stmt function_entry2 graph_node_ge e le before
+      geo_remove_child_body trace le' after outcome ->
+    geo_remove_child_exec_memory_obligations before after
+      removed parent previous next ->
+    geo_remove_child_memory_effect before after
+      removed parent previous next.
+Proof.
+  intros e le before trace le' after outcome
+    removed parent previous next Hexec Hobligations.
+  pose proof
+    (exec_geo_remove_child_body_inverts_spine
+       e le before trace le' after outcome Hexec) as _Hspine.
+  destruct Hobligations as
+    [Hparent Hprev Hnext Hstores Hparent_child Hprevious_next
+     Hchildren_frame Hnext_frame Hno_incoming].
+  refine {| geo_remove_child_memory_generated_body := _;
+            geo_remove_child_memory_parent_read := Hparent;
+            geo_remove_child_memory_prev_read := Hprev;
+            geo_remove_child_memory_next_read := Hnext;
+            geo_remove_child_memory_store_trace := Hstores;
+            geo_remove_child_memory_parent_child_after := Hparent_child;
+            geo_remove_child_memory_previous_next_after := Hprevious_next;
+            geo_remove_child_memory_children_frame := Hchildren_frame;
+            geo_remove_child_memory_next_frame := Hnext_frame;
+            geo_remove_child_memory_no_after_incoming_to_removed :=
+              Hno_incoming |}.
+  exact geo_remove_child_relink_shape_audit.
+Qed.
 
 Theorem geo_remove_child_graph_effect_from_memory_effect :
   forall before after removed parent previous next,
@@ -1077,6 +1676,56 @@ Record geo_add_child_memory_effect
         (concrete_graph_links before) parent from /\ to = child)
 }.
 
+Record geo_add_child_exec_memory_obligations
+    (before after : mem) (parent child : graph_node_pointer) : Prop := {
+  geo_add_child_exec_parent_store_observed :
+    graph_node_field_load_ptr after
+      child graph_node_parent_field_offset = Some parent;
+  geo_add_child_exec_store_trace :
+    geo_add_child_compcert_store_trace before after parent child;
+  geo_add_child_exec_children_after :
+    forall from to,
+      graph_node_field_load_ptr after
+        from graph_node_children_field_offset = Some to ->
+      graph_node_field_load_ptr before
+        from graph_node_children_field_offset = Some to \/
+      (from = parent /\ to = child);
+  geo_add_child_exec_next_after :
+    forall from to,
+      graph_node_field_load_ptr after
+        from graph_node_next_field_offset = Some to ->
+      graph_node_field_load_ptr before
+        from graph_node_next_field_offset = Some to \/
+      (from = child /\
+       (to = child \/
+        graph_link_reachable graph_node_pointer
+          (concrete_graph_links before) parent to)) \/
+      (graph_link_reachable graph_node_pointer
+        (concrete_graph_links before) parent from /\ to = child)
+}.
+
+Theorem geo_add_child_memory_effect_from_then_branch_exec_stmt :
+  forall e le before trace le' after outcome parent child,
+    exec_stmt function_entry2 graph_node_ge e le before
+      geo_add_child_then_branch trace le' after outcome ->
+    geo_add_child_exec_memory_obligations before after parent child ->
+    geo_add_child_memory_effect before after parent child.
+Proof.
+  intros e le before trace le' after outcome parent child
+    Hexec Hobligations.
+  pose proof
+    (exec_geo_add_child_then_branch_inverts_spine
+       e le before trace le' after outcome Hexec) as _Hspine.
+  destruct Hobligations as
+    [Hparent Hstores Hchildren_after Hnext_after].
+  refine {| geo_add_child_memory_generated_body := _;
+            geo_add_child_memory_parent_store_observed := Hparent;
+            geo_add_child_memory_store_trace := Hstores;
+            geo_add_child_memory_children_after := Hchildren_after;
+            geo_add_child_memory_next_after := Hnext_after |}.
+  exact geo_add_child_relink_shape_audit.
+Qed.
+
 Theorem geo_add_child_graph_effect_from_memory_effect :
   forall before after parent child,
     geo_add_child_memory_effect before after parent child ->
@@ -1173,6 +1822,54 @@ Proof.
   - exact Hadd_child.
   - eapply geo_add_child_semantic_execution_from_memory_effect.
     exact Hadd_memory.
+Qed.
+
+Theorem generated_relink_exec_stmt_effects_confine_traversal :
+  forall remove_env remove_temps before_unload
+    remove_trace remove_temps' after_remove remove_outcome
+    add_env add_temps add_trace add_temps' after_add add_outcome
+    (safe_node : graph_node_pointer -> Prop)
+    object_parent_first_child current_area_root removed
+    remove_parent remove_previous remove_next add_parent add_child,
+    exec_stmt function_entry2 graph_node_ge remove_env remove_temps
+      before_unload geo_remove_child_body
+      remove_trace remove_temps' after_remove remove_outcome ->
+    geo_remove_child_exec_memory_obligations
+      before_unload after_remove
+      removed remove_parent remove_previous remove_next ->
+    exec_stmt function_entry2 graph_node_ge add_env add_temps
+      after_remove geo_add_child_then_branch
+      add_trace add_temps' after_add add_outcome ->
+    geo_add_child_exec_memory_obligations
+      after_remove after_add add_parent add_child ->
+    generated_load_area_graph_traversals_confined graph_node_pointer
+      (concrete_graph_links before_unload) safe_node
+      object_parent_first_child current_area_root ->
+    graph_links_preserve graph_node_pointer
+      (concrete_graph_links before_unload) safe_node ->
+    generated_roots_exclude_node graph_node_pointer
+      object_parent_first_child current_area_root removed ->
+    safe_node add_parent ->
+    safe_node add_child ->
+    generated_load_area_graph_traversals_confined graph_node_pointer
+      (concrete_graph_links after_add) safe_node
+      object_parent_first_child current_area_root.
+Proof.
+  intros remove_env remove_temps before_unload
+    remove_trace remove_temps' after_remove remove_outcome
+    add_env add_temps add_trace add_temps' after_add add_outcome
+    safe_node object_parent_first_child current_area_root removed
+    remove_parent remove_previous remove_next add_parent add_child
+    Hremove_exec Hremove_obligations Hadd_exec Hadd_obligations
+    Hbefore Hpres Hroots Hadd_parent Hadd_child.
+  eapply generated_relink_memory_effects_confine_traversal.
+  - exact Hbefore.
+  - exact Hpres.
+  - exact Hroots.
+  - eapply geo_remove_child_memory_effect_from_exec_stmt; eauto.
+  - exact Hadd_parent.
+  - exact Hadd_child.
+  - eapply geo_add_child_memory_effect_from_then_branch_exec_stmt; eauto.
 Qed.
 
 Theorem generated_unload_parking_memory_effect_confines_traversal :

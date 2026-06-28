@@ -746,8 +746,17 @@ The `unload_object` parking wrinkle is also explicit:
 `generated_unload_parking_memory_effect_confines_traversal` handles the
 `geo_add_child(&gObjParentGraphNode, removed)` step, but only after the removed
 node is classified as dead/parked-not-transportable. The remaining lowering
-work is to invert the actual generated `exec_stmt` runs of `geo_remove_child`
-and `geo_add_child` enough to produce these memory-effect records.
+work is no longer the high-level helper-body shape: the actual generated
+`exec_stmt` runs of `geo_remove_child` and `geo_add_child` are now inverted
+into named execution spines, and the new
+`geo_remove_child_memory_effect_from_exec_stmt` /
+`geo_add_child_memory_effect_from_then_branch_exec_stmt` theorems show that
+those real executions imply the graph memory effects once the exact
+load/store/frame obligations are supplied. The remaining lowering is the
+assignment layer itself: prove from the generated `Sset` / `Sassign` steps,
+their lvalues, and CompCert `assign_loc` stores that the parent/prev/next and
+children bytes are exactly the ones in the memory-effect records, with no
+surprise alias to an outside graph edge.
 
 The non-Mario reference roots have now been brought into the same
 clightgen/Rocq route. `proofs/RenderHeldObjectFacts.v` still proves the
