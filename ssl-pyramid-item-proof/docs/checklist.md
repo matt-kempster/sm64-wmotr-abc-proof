@@ -275,6 +275,20 @@ counterexample-shaped goblin.
   contracts into the traversal confinement path. Translation: the graph goblin
   now has to beat a named semantic contract, not just wave at spooky sibling
   links.
+- [x] Lower the graph relink contracts one step toward raw CompCert memory.
+  `GraphTraversalModel.v` now pins the generated `GraphNode` field offsets
+  for `prev`, `next`, `parent`, and `children`, defines concrete
+  `Mem.loadv` / `Mem.storev` helpers for those fields, and records the exact
+  remove/add store traces we care about. Theorems
+  `geo_remove_child_graph_effect_from_memory_effect` and
+  `geo_add_child_graph_effect_from_memory_effect` turn those concrete
+  load/store/frame facts into the abstract graph effects, and
+  `generated_relink_memory_effects_confine_traversal` plugs them into the
+  traversal proof. Special goblin accounted for:
+  `generated_unload_parking_memory_effect_confines_traversal` models the
+  `unload_object` move that parks the removed node under
+  `gObjParentGraphNode`; that is safe only once the node is classified
+  dead/parked-not-transportable.
 - [ ] If stale slot reuse can clone an in-Pyramid goomba/object, stop proving
   impossibility and write the counterexample cleanly.
 
@@ -334,12 +348,13 @@ Translation: the proof now knows that clearing one object is not enough; all
 other already-dead valid slots have to stay boring too. Very rude of memory,
 but fair.
 
-Channel-side next bite: lower the graph-level relink contracts one more layer
-toward raw CompCert memory. In Discord goblin terms: the helper contracts now
-say exactly what `geo_remove_child` / `geo_add_child` must do to the abstract
-`children`/`next` graph. Next we need to connect those contracts to concrete
-loads/stores for the generated helper bodies: parent/prev/next reads,
-`parent->children` writes, circular sibling rewires, and the special
-"removed node is parked under `gObjParentGraphNode` before deallocate" case.
-If that byte-level bridge fails, the failed edge is the graph-link
+Channel-side next bite: make the generated helper executions produce the
+new memory-effect records. In Discord goblin terms: we now have a byte-shaped
+contract saying which `GraphNode` loads/stores count as clean list surgery.
+Next, invert the actual `exec_stmt` runs for `geo_remove_child` and
+`geo_add_child` enough to fill those records: read parent/prev/next,
+observe the `prev->next` and `next->prev` stores, split the
+`parent->children` null-vs-next branch, and prove the non-written
+`children`/`next` fields are framed. If any of those generated stores can
+alias a surprise outside edge, that edge becomes the graph-link
 counterexample candidate.

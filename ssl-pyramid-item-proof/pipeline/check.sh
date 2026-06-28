@@ -702,6 +702,21 @@ bash pipeline/assumptions.sh \
   generated_relink_semantic_executions_confine_traversal
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.GraphTraversalModel \
+  graph_node_field_store_ptr_load_same
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.GraphTraversalModel \
+  geo_remove_child_graph_effect_from_memory_effect
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.GraphTraversalModel \
+  geo_add_child_graph_effect_from_memory_effect
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.GraphTraversalModel \
+  generated_relink_memory_effects_confine_traversal
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.GraphTraversalModel \
+  generated_unload_parking_memory_effect_confines_traversal
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.GraphTraversalModel \
   surviving_outside_graph_link_is_counterexample_candidate
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.StaleWindowObservation \
