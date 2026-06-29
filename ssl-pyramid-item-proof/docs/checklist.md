@@ -372,6 +372,20 @@ counterexample-shaped goblin.
   `next->prev = previous` sequence now produces the concrete
   `GraphNode.prev` store, while preserving byte-disjoint `children` / `next`
   traversal loads across that store.
+- [x] Compose the sibling splices into the two-store
+  `geo_remove_child_compcert_store_trace` prefix.
+  `geo_remove_child_compcert_store_trace` has been moved up next to the concrete
+  store lemmas, and
+  `geo_remove_child_sibling_splices_store_trace_prefix_from_loads` now packages
+  the two generated sibling splices into the first two concrete stores:
+  `previous->next = next`, then `next->prev = previous`. The theorem also
+  threads the first store far enough to justify the second splice rereading the
+  removed node's `prev`/`next`: `removed.next` is handled either by the
+  singleton/self case (`removed = previous`) or a disjoint `next` frame, and
+  `removed.prev` uses the disjoint `prev` frame. Small caveat, kept explicit
+  rather than handwaved: the theorem still takes the post-first-splice
+  `_graphNode` temp lookup as a seam, because proving the first splice preserves
+  that temp cleanly is a separate tiny execution-shape proof.
 - [ ] If stale slot reuse can clone an in-Pyramid goomba/object, stop proving
   impossibility and write the counterexample cleanly.
 
@@ -447,17 +461,16 @@ Translation: the proof now knows that clearing one object is not enough; all
 other already-dead valid slots have to stay boring too. Very rude of memory,
 but fair.
 
-Channel-side next bite: compose the two sibling splices into the two-store
-`geo_remove_child_compcert_store_trace` prefix:
+Channel-side next bite: close the remaining seam around the two-store prefix
+and then continue into the parent-children branch:
 
-- first splice proves `previous->next = next`;
-- mirror splice proves `next->prev = previous`;
-- the frame facts from the first store must be threaded far enough to let the
-  second splice re-read `graphNode->prev` / `graphNode->next` from the removed
-  node;
-- then package the result as the first two stores in
-  `geo_remove_child_compcert_store_trace`.
+- prove `geo_remove_child_prev_next_splice` preserves the `_graphNode` temp
+  without brittle generated-hypothesis-name matching;
+- feed that into
+  `geo_remove_child_sibling_splices_store_trace_prefix_from_loads`;
+- then start the `parent->children` branch, where the trace either parks
+  `parent->children = next` or writes null in the singleton case.
 
-In Discord goblin terms: both knives are now individually tagged. Next, make
-them walk in order without stabbing the evidence bag, then move on to
-`parent->children` and the add-child temps.
+In Discord goblin terms: both knives now walk in order, but one tiny receipt
+(`_graphNode` survived the first walk) is still being handed in manually. Make
+that receipt automatic, then go bully `parent->children`.
