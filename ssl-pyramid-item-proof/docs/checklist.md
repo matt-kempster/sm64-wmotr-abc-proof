@@ -351,6 +351,17 @@ counterexample-shaped goblin.
   concrete `graphNode->prev` / `graphNode->next` memory facts and proves the
   generated `_t'6` / `_t'7` reads fill the temps, preserve `_t'6` across the
   second read, leave memory alone, and finish normally.
+- [x] Compose the first `geo_remove_child` splice all the way through the
+  concrete store/frame theorem.
+  `geo_remove_child_prev_next_read_assign_store_and_frames_from_loads` now
+  chains the two concrete sibling reads into the generated assignment effect,
+  then calls `geo_remove_child_prev_next_assignment_effect_store_and_frames`.
+  `geo_remove_child_prev_next_splice_store_and_frames_from_loads` lifts that
+  to the actual generated `geo_remove_child_prev_next_splice` statement. In
+  Discord goblin terms: the first splice is now one tidy creature:
+  `_t'6 = graphNode->prev`, `_t'7 = graphNode->next`, then
+  `previous->next = next`, with the disjoint `children` / `next` frame facts
+  packed in the bag.
 - [ ] If stale slot reuse can clone an in-Pyramid goomba/object, stop proving
   impossibility and write the counterexample cleanly.
 
@@ -426,16 +437,14 @@ Translation: the proof now knows that clearing one object is not enough; all
 other already-dead valid slots have to stay boring too. Very rude of memory,
 but fair.
 
-Channel-side next bite: compose the concrete two-read theorem with
-`geo_remove_child_prev_next_assignment_effect_store_and_frames`, so the first
-`geo_remove_child` splice becomes one tidy proof-shaped creature:
+Channel-side next bite: clone the completed first-splice pattern for the second
+`geo_remove_child` sibling splice, the `next->prev = previous` side:
 
-- generated `_t'6 = graphNode->prev`;
-- generated `_t'7 = graphNode->next`;
-- generated `previous->next = next`;
-- plus the byte-disjoint `children` / `next` frame facts for that store.
+- generated `_t'4 = graphNode->next`;
+- generated `_t'5 = graphNode->prev`;
+- generated `next->prev = previous`;
+- plus the byte-disjoint frame facts needed around `GraphNode.prev`.
 
-In Discord goblin terms: the `_t'6`/`_t'7` toll booth now works. Next, make it
-walk directly into the `previous->next = next` knife theorem and come out with
-the first full splice record. Then clone the pattern for `next->prev`,
-`parent->children`, and the add-child temps.
+In Discord goblin terms: the first knife is sheathed and tagged. Now make the
+mirror knife prove itself, then move on to `parent->children` and the add-child
+temps.
