@@ -2282,6 +2282,102 @@ Proof.
     end.
 Qed.
 
+Definition geo_remove_child_compcert_store_trace
+    (before after : mem)
+    (removed parent previous next : graph_node_pointer) : Prop :=
+  exists after_prev_next after_next_prev,
+    graph_node_field_store_ptr before
+      after_prev_next previous graph_node_next_field_offset next /\
+    graph_node_field_store_ptr
+      after_prev_next after_next_prev
+      next graph_node_prev_field_offset previous /\
+    (after = after_next_prev \/
+    graph_node_field_store_ptr
+      after_next_prev after
+      parent graph_node_children_field_offset next \/
+    graph_node_field_store_null
+      after_next_prev after
+      parent graph_node_children_field_offset).
+
+Theorem geo_remove_child_sibling_splices_store_trace_prefix_from_loads :
+  forall e le before
+         trace_prev_next le_prev_next after_prev_next
+         trace_next_prev le_next_prev after_next_prev outcome_next_prev
+         removed parent previous next,
+    le ! G._graphNode = Some (graph_node_pointer_value removed) ->
+    graph_node_field_load_ptr before removed
+      graph_node_prev_field_offset = Some previous ->
+    graph_node_field_load_ptr before removed
+      graph_node_next_field_offset = Some next ->
+    graph_node_field_bytes_disjoint
+      removed graph_node_prev_field_offset
+      previous graph_node_next_field_offset ->
+    removed = previous \/
+    graph_node_field_bytes_disjoint
+      removed graph_node_next_field_offset
+      previous graph_node_next_field_offset ->
+    le_prev_next ! G._graphNode =
+      Some (graph_node_pointer_value removed) ->
+    exec_stmt function_entry2 graph_node_ge e le before
+      geo_remove_child_prev_next_splice
+      trace_prev_next le_prev_next after_prev_next Out_normal ->
+    exec_stmt function_entry2 graph_node_ge e le_prev_next after_prev_next
+      geo_remove_child_next_prev_splice
+      trace_next_prev le_next_prev after_next_prev outcome_next_prev ->
+    geo_remove_child_compcert_store_trace before after_next_prev
+      removed parent previous next /\
+    outcome_next_prev = Out_normal.
+Proof.
+  intros e le before trace_prev_next le_prev_next after_prev_next
+    trace_next_prev le_next_prev after_next_prev outcome_next_prev
+    removed parent previous next Hgraph_node Hprev_before Hnext_before
+    Hprev_reread_frame Hnext_reread_case Hgraph_node_after_first
+    Hfirst Hsecond.
+  destruct
+    (geo_remove_child_prev_next_splice_store_and_frames_from_loads
+      e le before trace_prev_next le_prev_next after_prev_next Out_normal
+      removed previous next Hgraph_node Hprev_before Hnext_before Hfirst)
+    as (Hstore_first & _ & Hnext_frame_first & _).
+  assert (Hprev_after_first :
+    graph_node_field_load_ptr after_prev_next removed
+      graph_node_prev_field_offset = Some previous).
+  {
+    rewrite
+      (graph_node_field_store_ptr_frames_disjoint_load_ptr
+        before after_prev_next previous graph_node_next_field_offset
+        next removed graph_node_prev_field_offset
+        Hstore_first Hprev_reread_frame).
+    exact Hprev_before.
+  }
+  assert (Hnext_after_first :
+    graph_node_field_load_ptr after_prev_next removed
+      graph_node_next_field_offset = Some next).
+  {
+    destruct Hnext_reread_case as [Hremoved_previous | Hnext_reread_frame].
+    - subst previous.
+      exact
+        (graph_node_field_store_ptr_load_same
+          before after_prev_next removed graph_node_next_field_offset
+          next Hstore_first).
+    - rewrite
+        (Hnext_frame_first removed Hnext_reread_frame).
+      exact Hnext_before.
+  }
+  destruct
+    (geo_remove_child_next_prev_splice_store_and_frames_from_loads
+      e le_prev_next after_prev_next trace_next_prev le_next_prev
+      after_next_prev outcome_next_prev removed previous next
+      Hgraph_node_after_first Hprev_after_first Hnext_after_first Hsecond)
+    as (Hstore_second & _ & _ & Hout_second).
+  split.
+  - exists after_prev_next, after_next_prev.
+    repeat split.
+    + exact Hstore_first.
+    + exact Hstore_second.
+    + left. reflexivity.
+  - exact Hout_second.
+Qed.
+
 Definition concrete_graph_links (memory : mem)
     : graph_links graph_node_pointer :=
   {|
@@ -2644,23 +2740,6 @@ Proof.
         contradiction
     end.
 Qed.
-
-Definition geo_remove_child_compcert_store_trace
-    (before after : mem)
-    (removed parent previous next : graph_node_pointer) : Prop :=
-  exists after_prev_next after_next_prev,
-    graph_node_field_store_ptr before
-      after_prev_next previous graph_node_next_field_offset next /\
-    graph_node_field_store_ptr
-      after_prev_next after_next_prev
-      next graph_node_prev_field_offset previous /\
-    (after = after_next_prev \/
-    graph_node_field_store_ptr
-      after_next_prev after
-      parent graph_node_children_field_offset next \/
-    graph_node_field_store_null
-      after_next_prev after
-      parent graph_node_children_field_offset).
 
 Record geo_remove_child_memory_effect
     (before after : mem)
