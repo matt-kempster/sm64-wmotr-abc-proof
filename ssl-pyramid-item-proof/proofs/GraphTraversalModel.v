@@ -250,6 +250,18 @@ Definition graph_node_null_ptr_expr : expr :=
 Definition graph_node_indirect_null_assign (slot_temp : ident) : statement :=
   Sassign (graph_node_indirect_ptr_expr slot_temp) graph_node_null_ptr_expr.
 
+Lemma graph_node_type_access_by_copy :
+  access_mode graph_node_type = By_copy.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma graph_node_ptr_type_access_by_value_mint32 :
+  access_mode graph_node_ptr_type = By_value Mint32.
+Proof.
+  cbn.
+  rewrite graph_node_target_mptr_is_mint32.
+  reflexivity.
+Qed.
+
 Definition geo_remove_child_body : statement :=
   fn_body G.f_geo_remove_child.
 
@@ -1211,6 +1223,38 @@ Definition graph_node_field_ptr_assignment_effect
     (Etempvar value_temp graph_node_ptr_type)
     e le before after.
 
+Lemma graph_temp_set_preserves_different :
+  forall {A} (tree : PTree.t A) written kept value kept_value,
+    Pos.eqb written kept = false ->
+    tree ! kept = Some kept_value ->
+    (PTree.set written value tree) ! kept = Some kept_value.
+Proof.
+  intros A tree written kept value kept_value Hneq Hlookup.
+  rewrite PTree.gso.
+  - exact Hlookup.
+  - intro Heq.
+    subst written.
+    rewrite Pos.eqb_refl in Hneq.
+    discriminate.
+Qed.
+
+Lemma exec_generated_sset_effect_from_exec_stmt :
+  forall e le before target rhs trace le' after outcome,
+    exec_stmt function_entry2 graph_node_ge e le before
+      (Sset target rhs) trace le' after outcome ->
+    exists value,
+      eval_expr graph_node_ge e le before rhs value /\
+      trace = E0 /\
+      le' = PTree.set target value le /\
+      after = before /\
+      outcome = Out_normal.
+Proof.
+  intros e le before target rhs trace le' after outcome Hexec.
+  inv Hexec.
+  exists v.
+  repeat split; reflexivity || assumption.
+Qed.
+
 Definition graph_node_indirect_ptr_assignment_effect
     (e : env) (le : temp_env) (before after : mem)
     (slot_temp value_temp : ident) : Prop :=
@@ -1405,6 +1449,138 @@ Proof.
         exact Hbase
       | split; [reflexivity | split; reflexivity] ]
   end.
+Qed.
+
+Lemma graph_node_field_load_ptr_some_loadv :
+  forall memory node field_delta value,
+    graph_node_field_load_ptr memory node field_delta = Some value ->
+    Mem.loadv Mint32 memory
+      (graph_node_field_address node field_delta) =
+    Some (graph_node_pointer_value value).
+Proof.
+  intros memory [node_block node_offset] field_delta
+    [value_block value_offset] Hload.
+  unfold graph_node_field_load_ptr, graph_node_field_load,
+    graph_node_field_address, graph_node_pointer_value, Mem.loadv in *.
+  cbn in *.
+  destruct
+    (Mem.load Mint32 memory node_block
+      (Ptrofs.unsigned
+        (Ptrofs.add node_offset (Ptrofs.repr field_delta))))
+    eqn:Hloadv; try discriminate.
+  destruct v; try discriminate.
+  inv Hload.
+  reflexivity.
+Qed.
+
+Definition graph_node_temp_field_read_normalizes
+    (source field : ident) (e : env) (le : temp_env)
+    (memory : mem) (value : graph_node_pointer) : Prop :=
+  forall raw_value,
+    eval_expr graph_node_ge e le memory
+      (graph_node_temp_field_expr source field) raw_value ->
+    raw_value = graph_node_pointer_value value.
+
+Lemma exec_graph_node_temp_field_read_sets_temp_ptr :
+  forall target source field e le memory trace le' memory'
+         outcome value,
+    graph_node_temp_field_read_normalizes
+      source field e le memory value ->
+    exec_stmt function_entry2 graph_node_ge e le memory
+      (graph_node_temp_field_read target source field)
+      trace le' memory' outcome ->
+    le' ! target = Some (graph_node_pointer_value value) /\
+    memory' = memory /\
+    outcome = Out_normal.
+Proof.
+  intros target source field e le memory trace le' memory'
+    outcome value Hnormalize Hexec.
+  unfold graph_node_temp_field_read in Hexec.
+  destruct
+    (exec_generated_sset_effect_from_exec_stmt
+      e le memory target (graph_node_temp_field_expr source field)
+      trace le' memory' outcome Hexec)
+    as (raw_value & Hexpr & _ & Hle' & Hmemory' & Houtcome).
+  pose proof (Hnormalize raw_value Hexpr) as Hraw.
+  subst le' memory' outcome raw_value.
+  rewrite PTree.gss.
+  repeat split; reflexivity.
+Qed.
+
+Lemma exec_graph_node_temp_field_read_preserves_lookup :
+  forall kept kept_value target source field e le memory trace le' memory'
+         outcome,
+    Pos.eqb target kept = false ->
+    le ! kept = Some kept_value ->
+    exec_stmt function_entry2 graph_node_ge e le memory
+      (graph_node_temp_field_read target source field)
+      trace le' memory' outcome ->
+    le' ! kept = Some kept_value /\
+    memory' = memory /\
+    outcome = Out_normal.
+Proof.
+  intros kept kept_value target source field e le memory trace le' memory'
+    outcome Hneq Hlookup Hexec.
+  unfold graph_node_temp_field_read in Hexec.
+  destruct
+    (exec_generated_sset_effect_from_exec_stmt
+      e le memory target (graph_node_temp_field_expr source field)
+      trace le' memory' outcome Hexec)
+    as (raw_value & _ & _ & Hle' & Hmemory' & Houtcome).
+  subst le' memory' outcome.
+  split.
+  - eapply graph_temp_set_preserves_different; eauto.
+  - split; reflexivity.
+Qed.
+
+Theorem geo_remove_child_prev_then_next_reads_set_temps_from_normalization :
+  forall e le before
+         trace_prev le_prev memory_prev outcome_prev
+         trace_next le_next memory_next outcome_next
+         previous next,
+    graph_node_temp_field_read_normalizes
+      G._graphNode G._prev e le before previous ->
+    exec_stmt function_entry2 graph_node_ge e le before
+      (graph_node_temp_field_read G._t'6 G._graphNode G._prev)
+      trace_prev le_prev memory_prev outcome_prev ->
+    graph_node_temp_field_read_normalizes
+      G._graphNode G._next e le_prev memory_prev next ->
+    exec_stmt function_entry2 graph_node_ge e le_prev memory_prev
+      (graph_node_temp_field_read G._t'7 G._graphNode G._next)
+      trace_next le_next memory_next outcome_next ->
+    le_prev ! G._t'6 = Some (graph_node_pointer_value previous) /\
+    le_next ! G._t'6 = Some (graph_node_pointer_value previous) /\
+    le_next ! G._t'7 = Some (graph_node_pointer_value next) /\
+    memory_prev = before /\
+    memory_next = memory_prev /\
+    outcome_prev = Out_normal /\
+    outcome_next = Out_normal.
+Proof.
+  intros e le before trace_prev le_prev memory_prev outcome_prev
+    trace_next le_next memory_next outcome_next previous next
+    Hprev_normalizes Hprev_exec Hnext_normalizes Hnext_exec.
+  assert (Ht7_not_t6 : Pos.eqb G._t'7 G._t'6 = false)
+    by (vm_compute; reflexivity).
+  destruct
+    (exec_graph_node_temp_field_read_sets_temp_ptr
+      G._t'6 G._graphNode G._prev e le before
+      trace_prev le_prev memory_prev outcome_prev previous
+      Hprev_normalizes Hprev_exec)
+    as (Ht6_prev & Hmemory_prev & Houtcome_prev).
+  destruct
+    (exec_graph_node_temp_field_read_sets_temp_ptr
+      G._t'7 G._graphNode G._next e le_prev memory_prev
+      trace_next le_next memory_next outcome_next next
+      Hnext_normalizes Hnext_exec)
+    as (Ht7_next & Hmemory_next & Houtcome_next).
+  destruct
+    (exec_graph_node_temp_field_read_preserves_lookup
+      G._t'6 (graph_node_pointer_value previous)
+      G._t'7 G._graphNode G._next e le_prev memory_prev
+      trace_next le_next memory_next outcome_next
+      Ht7_not_t6 Ht6_prev Hnext_exec)
+    as (Ht6_next & _ & _).
+  repeat split; assumption.
 Qed.
 
 Lemma graph_node_field_ptr_assignment_effect_store_ptr_from_temps :
