@@ -362,6 +362,16 @@ counterexample-shaped goblin.
   `_t'6 = graphNode->prev`, `_t'7 = graphNode->next`, then
   `previous->next = next`, with the disjoint `children` / `next` frame facts
   packed in the bag.
+- [x] Clone the sibling-splice bridge for `next->prev = previous`.
+  The mirror side is now mechanized too:
+  `geo_remove_child_next_prev_assignment_effect_store_and_frames`,
+  `geo_remove_child_next_then_prev_reads_set_temps_from_loads`,
+  `geo_remove_child_next_prev_read_assign_store_and_frames_from_loads`, and
+  `geo_remove_child_next_prev_splice_store_and_frames_from_loads`. Translation:
+  the generated `_t'4 = graphNode->next`, `_t'5 = graphNode->prev`, and
+  `next->prev = previous` sequence now produces the concrete
+  `GraphNode.prev` store, while preserving byte-disjoint `children` / `next`
+  traversal loads across that store.
 - [ ] If stale slot reuse can clone an in-Pyramid goomba/object, stop proving
   impossibility and write the counterexample cleanly.
 
@@ -437,14 +447,17 @@ Translation: the proof now knows that clearing one object is not enough; all
 other already-dead valid slots have to stay boring too. Very rude of memory,
 but fair.
 
-Channel-side next bite: clone the completed first-splice pattern for the second
-`geo_remove_child` sibling splice, the `next->prev = previous` side:
+Channel-side next bite: compose the two sibling splices into the two-store
+`geo_remove_child_compcert_store_trace` prefix:
 
-- generated `_t'4 = graphNode->next`;
-- generated `_t'5 = graphNode->prev`;
-- generated `next->prev = previous`;
-- plus the byte-disjoint frame facts needed around `GraphNode.prev`.
+- first splice proves `previous->next = next`;
+- mirror splice proves `next->prev = previous`;
+- the frame facts from the first store must be threaded far enough to let the
+  second splice re-read `graphNode->prev` / `graphNode->next` from the removed
+  node;
+- then package the result as the first two stores in
+  `geo_remove_child_compcert_store_trace`.
 
-In Discord goblin terms: the first knife is sheathed and tagged. Now make the
-mirror knife prove itself, then move on to `parent->children` and the add-child
-temps.
+In Discord goblin terms: both knives are now individually tagged. Next, make
+them walk in order without stabbing the evidence bag, then move on to
+`parent->children` and the add-child temps.

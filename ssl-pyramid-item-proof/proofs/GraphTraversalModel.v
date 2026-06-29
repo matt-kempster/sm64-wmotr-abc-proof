@@ -2009,6 +2009,279 @@ Proof.
     end.
 Qed.
 
+Theorem geo_remove_child_next_prev_assignment_effect_store_and_frames :
+  forall e le before after previous next,
+    le ! G._t'4 = Some (graph_node_pointer_value next) ->
+    le ! G._t'5 = Some (graph_node_pointer_value previous) ->
+    graph_node_field_ptr_assignment_effect e le before after
+      G._t'4 G._prev G._t'5 ->
+    graph_node_field_store_ptr before after
+      next graph_node_prev_field_offset previous /\
+    (forall from,
+      graph_node_field_bytes_disjoint
+        from graph_node_children_field_offset
+        next graph_node_prev_field_offset ->
+      graph_node_field_load_ptr after
+        from graph_node_children_field_offset =
+      graph_node_field_load_ptr before
+        from graph_node_children_field_offset) /\
+    (forall from,
+      graph_node_field_bytes_disjoint
+        from graph_node_next_field_offset
+        next graph_node_prev_field_offset ->
+      graph_node_field_load_ptr after
+        from graph_node_next_field_offset =
+      graph_node_field_load_ptr before
+        from graph_node_next_field_offset).
+Proof.
+  intros e le before after previous next Hnext Hprev Heffect.
+  pose proof
+    (graph_node_field_ptr_assignment_effect_store_ptr_from_temps
+      e le before after G._t'4 G._prev
+      graph_node_prev_field_offset G._t'5 next previous
+      generated_graph_node_prev_layout Hnext Hprev Heffect) as Hstore.
+  repeat split.
+  - exact Hstore.
+  - intros from Hdisjoint.
+    eapply graph_node_field_store_ptr_frames_disjoint_load_ptr; eauto.
+  - intros from Hdisjoint.
+    eapply graph_node_field_store_ptr_frames_disjoint_load_ptr; eauto.
+Qed.
+
+Theorem geo_remove_child_next_then_prev_reads_set_temps_from_loads :
+  forall e le before
+         trace_next le_next memory_next outcome_next
+         trace_prev le_prev memory_prev outcome_prev
+         graph_node previous next,
+    le ! G._graphNode = Some (graph_node_pointer_value graph_node) ->
+    graph_node_field_load_ptr before graph_node
+      graph_node_prev_field_offset = Some previous ->
+    graph_node_field_load_ptr before graph_node
+      graph_node_next_field_offset = Some next ->
+    exec_stmt function_entry2 graph_node_ge e le before
+      (graph_node_temp_field_read G._t'4 G._graphNode G._next)
+      trace_next le_next memory_next outcome_next ->
+    exec_stmt function_entry2 graph_node_ge e le_next memory_next
+      (graph_node_temp_field_read G._t'5 G._graphNode G._prev)
+      trace_prev le_prev memory_prev outcome_prev ->
+    le_next ! G._t'4 = Some (graph_node_pointer_value next) /\
+    le_prev ! G._t'4 = Some (graph_node_pointer_value next) /\
+    le_prev ! G._t'5 = Some (graph_node_pointer_value previous) /\
+    memory_next = before /\
+    memory_prev = memory_next /\
+    outcome_next = Out_normal /\
+    outcome_prev = Out_normal.
+Proof.
+  intros e le before trace_next le_next memory_next outcome_next
+    trace_prev le_prev memory_prev outcome_prev graph_node previous next
+    Hgraph_node Hprevious Hnext Hnext_exec Hprev_exec.
+  assert (Ht4_not_graph_node : Pos.eqb G._t'4 G._graphNode = false)
+    by (vm_compute; reflexivity).
+  assert (Ht5_not_t4 : Pos.eqb G._t'5 G._t'4 = false)
+    by (vm_compute; reflexivity).
+  pose proof
+    (graph_node_next_read_normalizes_from_load_ptr
+      e le before graph_node next Hgraph_node Hnext)
+    as Hnext_normalizes.
+  destruct
+    (exec_graph_node_temp_field_read_sets_temp_ptr
+      G._t'4 G._graphNode G._next e le before
+      trace_next le_next memory_next outcome_next next
+      Hnext_normalizes Hnext_exec)
+    as (Ht4_next & Hmemory_next & Houtcome_next).
+  destruct
+    (exec_graph_node_temp_field_read_preserves_lookup
+      G._graphNode (graph_node_pointer_value graph_node)
+      G._t'4 G._graphNode G._next e le before
+      trace_next le_next memory_next outcome_next
+      Ht4_not_graph_node Hgraph_node Hnext_exec)
+    as (Hgraph_node_next & _ & _).
+  assert (Hprev_in_memory_next :
+    graph_node_field_load_ptr memory_next graph_node
+      graph_node_prev_field_offset = Some previous).
+  {
+    rewrite Hmemory_next.
+    exact Hprevious.
+  }
+  pose proof
+    (graph_node_prev_read_normalizes_from_load_ptr
+      e le_next memory_next graph_node previous
+      Hgraph_node_next Hprev_in_memory_next)
+    as Hprev_normalizes.
+  destruct
+    (exec_graph_node_temp_field_read_sets_temp_ptr
+      G._t'5 G._graphNode G._prev e le_next memory_next
+      trace_prev le_prev memory_prev outcome_prev previous
+      Hprev_normalizes Hprev_exec)
+    as (Ht5_prev & Hmemory_prev & Houtcome_prev).
+  destruct
+    (exec_graph_node_temp_field_read_preserves_lookup
+      G._t'4 (graph_node_pointer_value next)
+      G._t'5 G._graphNode G._prev e le_next memory_next
+      trace_prev le_prev memory_prev outcome_prev
+      Ht5_not_t4 Ht4_next Hprev_exec)
+    as (Ht4_prev & _ & _).
+  repeat split; assumption.
+Qed.
+
+Theorem geo_remove_child_next_prev_read_assign_store_and_frames_from_loads :
+  forall e le before
+         trace_next le_next memory_next outcome_next
+         trace_prev le_prev memory_prev outcome_prev
+         trace_assign le_after after outcome_assign
+         graph_node previous next,
+    le ! G._graphNode = Some (graph_node_pointer_value graph_node) ->
+    graph_node_field_load_ptr before graph_node
+      graph_node_prev_field_offset = Some previous ->
+    graph_node_field_load_ptr before graph_node
+      graph_node_next_field_offset = Some next ->
+    exec_stmt function_entry2 graph_node_ge e le before
+      (graph_node_temp_field_read G._t'4 G._graphNode G._next)
+      trace_next le_next memory_next outcome_next ->
+    exec_stmt function_entry2 graph_node_ge e le_next memory_next
+      (graph_node_temp_field_read G._t'5 G._graphNode G._prev)
+      trace_prev le_prev memory_prev outcome_prev ->
+    exec_stmt function_entry2 graph_node_ge e le_prev memory_prev
+      (graph_node_temp_field_assign G._t'4 G._prev G._t'5)
+      trace_assign le_after after outcome_assign ->
+    graph_node_field_store_ptr before after
+      next graph_node_prev_field_offset previous /\
+    (forall from,
+      graph_node_field_bytes_disjoint
+        from graph_node_children_field_offset
+        next graph_node_prev_field_offset ->
+      graph_node_field_load_ptr after
+        from graph_node_children_field_offset =
+      graph_node_field_load_ptr before
+        from graph_node_children_field_offset) /\
+    (forall from,
+      graph_node_field_bytes_disjoint
+        from graph_node_next_field_offset
+        next graph_node_prev_field_offset ->
+      graph_node_field_load_ptr after
+        from graph_node_next_field_offset =
+      graph_node_field_load_ptr before
+        from graph_node_next_field_offset) /\
+    outcome_next = Out_normal /\
+    outcome_prev = Out_normal /\
+    outcome_assign = Out_normal.
+Proof.
+  intros e le before trace_next le_next memory_next outcome_next
+    trace_prev le_prev memory_prev outcome_prev
+    trace_assign le_after after outcome_assign
+    graph_node previous next Hgraph_node Hprevious Hnext
+    Hread_next Hread_prev Hassign.
+  destruct
+    (geo_remove_child_next_then_prev_reads_set_temps_from_loads
+      e le before trace_next le_next memory_next outcome_next
+      trace_prev le_prev memory_prev outcome_prev
+      graph_node previous next Hgraph_node Hprevious Hnext
+      Hread_next Hread_prev)
+    as (Ht4_next & Ht4_prev & Ht5_prev &
+        Hmemory_next & Hmemory_prev & Hout_next & Hout_prev).
+  destruct
+    (exec_graph_node_field_ptr_assignment_effect
+      e le_prev memory_prev after G._t'4 G._prev G._t'5
+      trace_assign le_after outcome_assign Hassign)
+    as (Heffect & _ & _ & Hout_assign).
+  subst memory_next memory_prev.
+  destruct
+    (geo_remove_child_next_prev_assignment_effect_store_and_frames
+      e le_prev before after previous next
+      Ht4_prev Ht5_prev Heffect)
+    as (Hstore & Hchildren_frame & Hnext_frame).
+  repeat split; assumption.
+Qed.
+
+Theorem geo_remove_child_next_prev_splice_store_and_frames_from_loads :
+  forall e le before trace le_after after outcome
+         graph_node previous next,
+    le ! G._graphNode = Some (graph_node_pointer_value graph_node) ->
+    graph_node_field_load_ptr before graph_node
+      graph_node_prev_field_offset = Some previous ->
+    graph_node_field_load_ptr before graph_node
+      graph_node_next_field_offset = Some next ->
+    exec_stmt function_entry2 graph_node_ge e le before
+      geo_remove_child_next_prev_splice trace le_after after outcome ->
+    graph_node_field_store_ptr before after
+      next graph_node_prev_field_offset previous /\
+    (forall from,
+      graph_node_field_bytes_disjoint
+        from graph_node_children_field_offset
+        next graph_node_prev_field_offset ->
+      graph_node_field_load_ptr after
+        from graph_node_children_field_offset =
+      graph_node_field_load_ptr before
+        from graph_node_children_field_offset) /\
+    (forall from,
+      graph_node_field_bytes_disjoint
+        from graph_node_next_field_offset
+        next graph_node_prev_field_offset ->
+      graph_node_field_load_ptr after
+        from graph_node_next_field_offset =
+      graph_node_field_load_ptr before
+        from graph_node_next_field_offset) /\
+    outcome = Out_normal.
+Proof.
+  intros e le before trace le_after after outcome
+    graph_node previous next Hgraph_node Hprevious Hnext Hexec.
+  rewrite geo_remove_child_next_prev_splice_shape in Hexec.
+  inv Hexec.
+  - match goal with
+    | Hrest :
+        exec_stmt _ _ _ _ _
+          (Ssequence
+            (graph_node_temp_field_read G._t'5 G._graphNode G._prev)
+            (graph_node_temp_field_assign G._t'4 G._prev G._t'5))
+          _ _ _ _ |- _ =>
+        inv Hrest
+    end.
+    + match goal with
+      | Hread_next :
+          exec_stmt _ _ _ _ _
+            (graph_node_temp_field_read G._t'4 G._graphNode G._next)
+            ?trace_next ?le_next ?memory_next Out_normal,
+        Hread_prev :
+          exec_stmt _ _ _ _ _
+            (graph_node_temp_field_read G._t'5 G._graphNode G._prev)
+            ?trace_prev ?le_prev ?memory_prev Out_normal,
+        Hassign :
+          exec_stmt _ _ _ _ _
+            (graph_node_temp_field_assign G._t'4 G._prev G._t'5)
+            ?trace_assign ?le_final ?memory_final ?out_final |- _ =>
+          destruct
+            (geo_remove_child_next_prev_read_assign_store_and_frames_from_loads
+              e le before trace_next le_next memory_next Out_normal
+              trace_prev le_prev memory_prev Out_normal
+              trace_assign le_final memory_final out_final
+              graph_node previous next Hgraph_node Hprevious Hnext
+              Hread_next Hread_prev Hassign)
+            as (Hstore & Hchildren_frame & Hnext_frame &
+                _ & _ & Hout_assign);
+          repeat split; assumption
+      end.
+    + match goal with
+      | Hread_prev :
+          exec_stmt _ _ _ _ _
+            (graph_node_temp_field_read G._t'5 G._graphNode G._prev)
+            _ _ _ ?bad_out,
+        Hbad : ?bad_out <> Out_normal |- _ =>
+          unfold graph_node_temp_field_read in Hread_prev;
+          inv Hread_prev;
+          contradiction
+      end.
+  - match goal with
+    | Hread_next :
+        exec_stmt _ _ _ _ _
+          (graph_node_temp_field_read G._t'4 G._graphNode G._next)
+          _ _ _ ?bad_out,
+      Hbad : ?bad_out <> Out_normal |- _ =>
+        unfold graph_node_temp_field_read in Hread_next;
+        inv Hread_next;
+        contradiction
+    end.
+Qed.
+
 Definition concrete_graph_links (memory : mem)
     : graph_links graph_node_pointer :=
   {|
