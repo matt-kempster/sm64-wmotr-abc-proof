@@ -386,6 +386,18 @@ counterexample-shaped goblin.
   rather than handwaved: the theorem still takes the post-first-splice
   `_graphNode` temp lookup as a seam, because proving the first splice preserves
   that temp cleanly is a separate tiny execution-shape proof.
+- [ ] Park the remaining graph-unlink paperwork: `_graphNode` temp preservation
+  and the `parent->children` branch.
+  This is expected proof grind, not a promising counterexample vein. The
+  `_graphNode` seam should be syntactic: the first sibling splice writes temps
+  and memory, but not `_graphNode`. The parent-child branch still has real cases
+  (`parent->children = next` versus null for singleton), so it eventually needs
+  to be mechanized, but it is ordinary unlink bookkeeping. When this gets picked
+  back up: prove `geo_remove_child_prev_next_splice` preserves `_graphNode`,
+  feed that into
+  `geo_remove_child_sibling_splices_store_trace_prefix_from_loads`, then prove
+  the generated parent-child branch's exact store/null behavior plus the needed
+  frame/no-incoming facts.
 - [ ] If stale slot reuse can clone an in-Pyramid goomba/object, stop proving
   impossibility and write the counterexample cleanly.
 
@@ -461,16 +473,18 @@ Translation: the proof now knows that clearing one object is not enough; all
 other already-dead valid slots have to stay boring too. Very rude of memory,
 but fair.
 
-Channel-side next bite: close the remaining seam around the two-store prefix
-and then continue into the parent-children branch:
+Channel-side next bite: detour into counterexample-hunting before grinding the
+graph-unlink tail:
 
-- prove `geo_remove_child_prev_next_splice` preserves the `_graphNode` temp
-  without brittle generated-hypothesis-name matching;
-- feed that into
-  `geo_remove_child_sibling_splices_store_trace_prefix_from_loads`;
-- then start the `parent->children` branch, where the trace either parks
-  `parent->children = next` or writes null in the singleton case.
+- audit higher-risk object-owned roots such as `platform`, `rawData.asObject`,
+  behavior parent/child links, render-held-object links, and any remaining
+  graph roots;
+- revisit shell/ridden/held/used channels and stale-pointer observation/use
+  windows;
+- treat any reachable outside graph root or persistent outside object pointer
+  as a counterexample candidate first, before spending more time on the boring
+  `_graphNode` / `parent->children` unlink paperwork.
 
-In Discord goblin terms: both knives now walk in order, but one tiny receipt
-(`_graphNode` survived the first walk) is still being handed in manually. Make
-that receipt automatic, then go bully `parent->children`.
+In Discord goblin terms: the unlink proof is boring paperwork with a pretty
+obvious ending. Go sniff the weird pointers first; if one smells like cloning,
+that little criminal jumps the queue.
