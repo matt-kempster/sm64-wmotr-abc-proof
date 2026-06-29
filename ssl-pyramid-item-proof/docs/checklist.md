@@ -323,10 +323,32 @@ counterexample-shaped goblin.
   holding `graphNode->next`, then the assignment is exactly the concrete
   `previous->next = next` `GraphNode.next` store. It also proves byte-disjoint
   `children` and `next` graph-link loads are framed across that store. Tiny
-  but important caveat: the semantic `Sset` proof that fills `_t'6` and `_t'7`
-  from the two generated reads is still the next goblin; a direct attempt
-  worked logically but was too heavy/flaky under Coq/WSL, so it needs a lighter
-  inversion lemma rather than brute-force `eval_expr` destruction.
+  but important caveat: this bridge still assumes the temps already contain
+  the two sibling pointers; the read bridge below is what now starts feeding it.
+- [x] Package the two preceding generated `Sset` reads without eating the
+  whole generated AST cave.
+  `GraphTraversalModel.v` now has a cheap `Sset` inversion layer:
+  `exec_generated_sset_effect_from_exec_stmt`,
+  `graph_node_temp_field_read_normalizes`,
+  `exec_graph_node_temp_field_read_sets_temp_ptr`, and
+  `geo_remove_child_prev_then_next_reads_set_temps_from_normalization`.
+  Translation: if we prove the generated expression `graphNode->prev`
+  normalizes to the concrete `previous` pointer, then the generated
+  `_t'6 = graphNode->prev` read really puts `previous` in `_t'6`; same deal
+  for `_t'7 = graphNode->next`. The second read is also proved not to clobber
+  `_t'6`, and both reads leave memory alone. This is real CompCert `Sset`
+  plumbing, just with the scary expression-normalization fact split out.
+- [ ] Prove the actual `graph_node_temp_field_read_normalizes` obligations for
+  `_prev` and `_next` from concrete `GraphNode` field loads.
+  I tried two routes this round: direct `eval_expr` inversion, and a
+  constructive lvalue proof that asks Coq to expose the generated
+  `GraphNode` composite lookup. Both are logically the right shape, but the
+  generic composite lookup made Coq/WSL faceplant with silent `E_UNEXPECTED`
+  crashes. Next attempt should avoid broad `cbn`/`vm_compute` over
+  `G.prog`; make a tiny specialized composite/member lookup lemma for
+  `GraphNode.prev` and `GraphNode.next`, or extract those field-offset
+  certificates once and reuse them without normalizing the whole generated
+  graph-node universe.
 - [ ] If stale slot reuse can clone an in-Pyramid goomba/object, stop proving
   impossibility and write the counterexample cleanly.
 
@@ -402,10 +424,17 @@ Translation: the proof now knows that clearing one object is not enough; all
 other already-dead valid slots have to stay boring too. Very rude of memory,
 but fair.
 
-Channel-side next bite: finish the semantic `Sset` temp-read normalization for
-the first `geo_remove_child` splice without making Coq eat the whole AST cave.
-In Discord goblin terms: the final `previous->next = next` knife is now pinned
-and framed once `_t'6` and `_t'7` are known. Next, prove the two preceding reads
-cheaply: `_t'6 = graphNode->prev` and `_t'7 = graphNode->next`. After that,
-compose the three-step splice, then clone the pattern for `next->prev`,
-`parent->children`, and the add-child temps.
+Channel-side next bite: kill the newly isolated normalization obligations:
+prove `graph_node_temp_field_read_normalizes G._graphNode G._prev ... previous`
+and `graph_node_temp_field_read_normalizes G._graphNode G._next ... next` from
+the concrete `graph_node_field_load_ptr` facts, without broad normalization of
+`G.prog`.
+
+In Discord goblin terms: `_t'6`/`_t'7` now have a nice little toll booth. If
+the expression-normalization goblin hands over "yes, `graphNode->prev` really
+is `previous`" and "yes, `graphNode->next` really is `next`", then the toll
+booth proves the generated reads fill the temps and don't mess with memory.
+The remaining snack is making that goblin pay up without asking Coq to digest
+the entire graph-node buffet. Once that is done, compose the two-read theorem
+with `geo_remove_child_prev_next_assignment_effect_store_and_frames`, then
+clone the pattern for `next->prev`, `parent->children`, and the add-child temps.
