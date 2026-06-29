@@ -1481,6 +1481,79 @@ Definition graph_node_temp_field_read_normalizes
       (graph_node_temp_field_expr source field) raw_value ->
     raw_value = graph_node_pointer_value value.
 
+Lemma graph_node_temp_field_read_normalizes_from_load_ptr :
+  forall source field field_delta e le memory node value,
+    field_offset graph_node_ce field generated_graph_node_members =
+      OK (field_delta, Full) ->
+    le ! source = Some (graph_node_pointer_value node) ->
+    graph_node_field_load_ptr memory node field_delta = Some value ->
+    graph_node_temp_field_read_normalizes
+      source field e le memory value.
+Proof.
+  intros source field field_delta e le memory
+    [node_block node_offset] [value_block value_offset]
+    Hlayout Hsource Hload raw_value Hexpr.
+  unfold graph_node_temp_field_expr in Hexpr.
+  inversion Hexpr; subst; clear Hexpr.
+  pose proof
+    (eval_graph_node_temp_field_lvalue
+      source field field_delta e le memory loc ofs bf Hlayout H)
+    as Hnormalized.
+  destruct Hnormalized as
+    (base_block & base_offset & Hbase_lookup & Hloc & Hofs & Hbf).
+  unfold graph_node_pointer_value in Hsource.
+  cbn in Hsource.
+  assert (base_block = node_block) by congruence.
+  assert (base_offset = node_offset) by congruence.
+  subst base_block base_offset loc ofs bf.
+  pose proof
+    (graph_node_ptr_deref_loc_loadv
+      memory node_block
+      (Ptrofs.add node_offset (Ptrofs.repr field_delta))
+      raw_value H0) as Hload_raw.
+  pose proof
+    (graph_node_field_load_ptr_some_loadv
+      memory (node_block, node_offset) field_delta
+      (value_block, value_offset) Hload) as Hload_expected.
+  unfold Mem.loadv in Hload_raw.
+  cbn in Hload_raw.
+  unfold graph_node_field_address, graph_node_pointer_value in Hload_expected.
+  cbn in Hload_expected.
+  rewrite Hload_raw in Hload_expected.
+  inv Hload_expected.
+  reflexivity.
+Qed.
+
+Lemma graph_node_prev_read_normalizes_from_load_ptr :
+  forall e le memory graph_node previous,
+    le ! G._graphNode = Some (graph_node_pointer_value graph_node) ->
+    graph_node_field_load_ptr memory graph_node
+      graph_node_prev_field_offset = Some previous ->
+    graph_node_temp_field_read_normalizes
+      G._graphNode G._prev e le memory previous.
+Proof.
+  intros e le memory graph_node previous Hgraph_node Hprevious.
+  eapply graph_node_temp_field_read_normalizes_from_load_ptr.
+  - exact generated_graph_node_prev_layout.
+  - exact Hgraph_node.
+  - exact Hprevious.
+Qed.
+
+Lemma graph_node_next_read_normalizes_from_load_ptr :
+  forall e le memory graph_node next,
+    le ! G._graphNode = Some (graph_node_pointer_value graph_node) ->
+    graph_node_field_load_ptr memory graph_node
+      graph_node_next_field_offset = Some next ->
+    graph_node_temp_field_read_normalizes
+      G._graphNode G._next e le memory next.
+Proof.
+  intros e le memory graph_node next Hgraph_node Hnext.
+  eapply graph_node_temp_field_read_normalizes_from_load_ptr.
+  - exact generated_graph_node_next_layout.
+  - exact Hgraph_node.
+  - exact Hnext.
+Qed.
+
 Lemma exec_graph_node_temp_field_read_sets_temp_ptr :
   forall target source field e le memory trace le' memory'
          outcome value,
@@ -1567,6 +1640,82 @@ Proof.
       trace_prev le_prev memory_prev outcome_prev previous
       Hprev_normalizes Hprev_exec)
     as (Ht6_prev & Hmemory_prev & Houtcome_prev).
+  destruct
+    (exec_graph_node_temp_field_read_sets_temp_ptr
+      G._t'7 G._graphNode G._next e le_prev memory_prev
+      trace_next le_next memory_next outcome_next next
+      Hnext_normalizes Hnext_exec)
+    as (Ht7_next & Hmemory_next & Houtcome_next).
+  destruct
+    (exec_graph_node_temp_field_read_preserves_lookup
+      G._t'6 (graph_node_pointer_value previous)
+      G._t'7 G._graphNode G._next e le_prev memory_prev
+      trace_next le_next memory_next outcome_next
+      Ht7_not_t6 Ht6_prev Hnext_exec)
+    as (Ht6_next & _ & _).
+  repeat split; assumption.
+Qed.
+
+Theorem geo_remove_child_prev_then_next_reads_set_temps_from_loads :
+  forall e le before
+         trace_prev le_prev memory_prev outcome_prev
+         trace_next le_next memory_next outcome_next
+         graph_node previous next,
+    le ! G._graphNode = Some (graph_node_pointer_value graph_node) ->
+    graph_node_field_load_ptr before graph_node
+      graph_node_prev_field_offset = Some previous ->
+    graph_node_field_load_ptr before graph_node
+      graph_node_next_field_offset = Some next ->
+    exec_stmt function_entry2 graph_node_ge e le before
+      (graph_node_temp_field_read G._t'6 G._graphNode G._prev)
+      trace_prev le_prev memory_prev outcome_prev ->
+    exec_stmt function_entry2 graph_node_ge e le_prev memory_prev
+      (graph_node_temp_field_read G._t'7 G._graphNode G._next)
+      trace_next le_next memory_next outcome_next ->
+    le_prev ! G._t'6 = Some (graph_node_pointer_value previous) /\
+    le_next ! G._t'6 = Some (graph_node_pointer_value previous) /\
+    le_next ! G._t'7 = Some (graph_node_pointer_value next) /\
+    memory_prev = before /\
+    memory_next = memory_prev /\
+    outcome_prev = Out_normal /\
+    outcome_next = Out_normal.
+Proof.
+  intros e le before trace_prev le_prev memory_prev outcome_prev
+    trace_next le_next memory_next outcome_next graph_node previous next
+    Hgraph_node Hprevious Hnext Hprev_exec Hnext_exec.
+  assert (Ht6_not_graph_node : Pos.eqb G._t'6 G._graphNode = false)
+    by (vm_compute; reflexivity).
+  assert (Ht7_not_t6 : Pos.eqb G._t'7 G._t'6 = false)
+    by (vm_compute; reflexivity).
+  pose proof
+    (graph_node_prev_read_normalizes_from_load_ptr
+      e le before graph_node previous Hgraph_node Hprevious)
+    as Hprev_normalizes.
+  destruct
+    (exec_graph_node_temp_field_read_sets_temp_ptr
+      G._t'6 G._graphNode G._prev e le before
+      trace_prev le_prev memory_prev outcome_prev previous
+      Hprev_normalizes Hprev_exec)
+    as (Ht6_prev & Hmemory_prev & Houtcome_prev).
+  destruct
+    (exec_graph_node_temp_field_read_preserves_lookup
+      G._graphNode (graph_node_pointer_value graph_node)
+      G._t'6 G._graphNode G._prev e le before
+      trace_prev le_prev memory_prev outcome_prev
+      Ht6_not_graph_node Hgraph_node Hprev_exec)
+    as (Hgraph_node_prev & _ & _).
+  assert (Hnext_in_memory_prev :
+    graph_node_field_load_ptr memory_prev graph_node
+      graph_node_next_field_offset = Some next).
+  {
+    rewrite Hmemory_prev.
+    exact Hnext.
+  }
+  pose proof
+    (graph_node_next_read_normalizes_from_load_ptr
+      e le_prev memory_prev graph_node next
+      Hgraph_node_prev Hnext_in_memory_prev)
+    as Hnext_normalizes.
   destruct
     (exec_graph_node_temp_field_read_sets_temp_ptr
       G._t'7 G._graphNode G._next e le_prev memory_prev
