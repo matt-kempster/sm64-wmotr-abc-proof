@@ -338,17 +338,19 @@ counterexample-shaped goblin.
   for `_t'7 = graphNode->next`. The second read is also proved not to clobber
   `_t'6`, and both reads leave memory alone. This is real CompCert `Sset`
   plumbing, just with the scary expression-normalization fact split out.
-- [ ] Prove the actual `graph_node_temp_field_read_normalizes` obligations for
+- [x] Prove the actual `graph_node_temp_field_read_normalizes` obligations for
   `_prev` and `_next` from concrete `GraphNode` field loads.
-  I tried two routes this round: direct `eval_expr` inversion, and a
-  constructive lvalue proof that asks Coq to expose the generated
-  `GraphNode` composite lookup. Both are logically the right shape, but the
-  generic composite lookup made Coq/WSL faceplant with silent `E_UNEXPECTED`
-  crashes. Next attempt should avoid broad `cbn`/`vm_compute` over
-  `G.prog`; make a tiny specialized composite/member lookup lemma for
-  `GraphNode.prev` and `GraphNode.next`, or extract those field-offset
-  certificates once and reuse them without normalizing the whole generated
-  graph-node universe.
+  Landed without asking Coq to swallow the whole generated graph-node buffet:
+  `graph_node_temp_field_read_normalizes_from_load_ptr` reuses the existing
+  `eval_graph_node_temp_field_lvalue` normalizer, then compares the real
+  `deref_loc` load with `graph_node_field_load_ptr`. The two spicy
+  specializations are now
+  `graph_node_prev_read_normalizes_from_load_ptr` and
+  `graph_node_next_read_normalizes_from_load_ptr`. Even better,
+  `geo_remove_child_prev_then_next_reads_set_temps_from_loads` now starts from
+  concrete `graphNode->prev` / `graphNode->next` memory facts and proves the
+  generated `_t'6` / `_t'7` reads fill the temps, preserve `_t'6` across the
+  second read, leave memory alone, and finish normally.
 - [ ] If stale slot reuse can clone an in-Pyramid goomba/object, stop proving
   impossibility and write the counterexample cleanly.
 
@@ -424,17 +426,16 @@ Translation: the proof now knows that clearing one object is not enough; all
 other already-dead valid slots have to stay boring too. Very rude of memory,
 but fair.
 
-Channel-side next bite: kill the newly isolated normalization obligations:
-prove `graph_node_temp_field_read_normalizes G._graphNode G._prev ... previous`
-and `graph_node_temp_field_read_normalizes G._graphNode G._next ... next` from
-the concrete `graph_node_field_load_ptr` facts, without broad normalization of
-`G.prog`.
+Channel-side next bite: compose the concrete two-read theorem with
+`geo_remove_child_prev_next_assignment_effect_store_and_frames`, so the first
+`geo_remove_child` splice becomes one tidy proof-shaped creature:
 
-In Discord goblin terms: `_t'6`/`_t'7` now have a nice little toll booth. If
-the expression-normalization goblin hands over "yes, `graphNode->prev` really
-is `previous`" and "yes, `graphNode->next` really is `next`", then the toll
-booth proves the generated reads fill the temps and don't mess with memory.
-The remaining snack is making that goblin pay up without asking Coq to digest
-the entire graph-node buffet. Once that is done, compose the two-read theorem
-with `geo_remove_child_prev_next_assignment_effect_store_and_frames`, then
-clone the pattern for `next->prev`, `parent->children`, and the add-child temps.
+- generated `_t'6 = graphNode->prev`;
+- generated `_t'7 = graphNode->next`;
+- generated `previous->next = next`;
+- plus the byte-disjoint `children` / `next` frame facts for that store.
+
+In Discord goblin terms: the `_t'6`/`_t'7` toll booth now works. Next, make it
+walk directly into the `previous->next = next` knife theorem and come out with
+the first full splice record. Then clone the pattern for `next->prev`,
+`parent->children`, and the add-child temps.
