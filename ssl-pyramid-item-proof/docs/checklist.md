@@ -849,12 +849,29 @@ counterexample-shaped goblin.
   `activeFlags`, `create_object` calls `allocate_object`, `spawn_objects_from_info`
   calls `create_object` before `geo_obj_init_spawninfo`, and
   `geo_obj_init_spawninfo` copies `activeAreaIndex` from spawn info.
+  Newer progress: we now generate `ssl_area2_macro.v` from the real SSL
+  Pyramid macro list instead of hand-waving at the source file. `ASTFacts.v`
+  has small static parsers for level-script `OBJECT`s and macro-object entries.
+  `TransitionFacts.v` proves the destination Pyramid load has 4 direct area-2
+  objects in `level_ssl_entry`, 14 objects in `script_func_local_4`, 2 objects
+  in `script_func_local_5`, and 50 macro objects from
+  `ssl_seg7_area_2_macro_objs`. So the current source-backed lower-bound
+  receipt is 70 destination allocations before Mario's post-warp cleanup.
+  It also proves `level_cmd_place_object` copies `sCurrAreaIndex` into
+  spawn info's `activeAreaIndex`, so area-2 script objects really carry the
+  Pyramid area value through the generated level-script placement spine.
+  `StaleWindowObservation.v` adds
+  `ssl_pyramid_destination_allocations_reach_slot_if_depth_below_70`: if the
+  watched stale slot is fewer than 70 free-list pops below the head, the
+  destination allocation count is enough to reach it before `init_mario`.
   `StaleWindowObservation.v` packages this as
   `same_slot_reuse_generated_order_receipt_audit_holds`. Still not done:
   invert the actual linked CompCert executions enough to turn those generated
   statement spines into concrete `Mem.store` facts for
-  `same_slot_pyramid_allocation_store_trace`, and derive the destination
-  spawn-info `activeAreaIndex = 2` premise from the real Pyramid spawn data.
+  `same_slot_pyramid_allocation_store_trace`; and derive the watched outside
+  slot's actual free-list depth from the generated unload traversal, so we can
+  decide whether the proven 70 destination allocations are enough for each
+  watched channel instead of just using the conditional `depth < 70` receipt.
 - [ ] Run the full proof pipeline.
 - [ ] Push the final proof state to the fork.
 - [ ] Only open a PR if the user explicitly says yes.
@@ -873,11 +890,14 @@ from generated-AST/order facts into concrete CompCert memory effects.
 - prove the `allocate_object` `activeFlags = (1 << 0) | (1 << 8)` assignment is
   the `Mint16signed` store in `same_slot_pyramid_allocation_store_trace`;
 - prove the destination `geo_obj_init_spawninfo` copy is the `Mint8signed`
-  active-area store, with spawn info's `activeAreaIndex` equal to Pyramid area
-  `2`; and
-- if the allocation count cannot reach the watched slot before
-  `init_mario_after_warp`, mark the stronger technical counterexample branch
-  blocked for the normal route instead of pretending.
+  active-area store. The generated/source value side is now pinned:
+  `level_cmd_place_object` copies `sCurrAreaIndex`, and the Pyramid destination
+  object scripts/macros are area 2; what remains is the concrete store
+  inversion; and
+- derive the watched slot's free-list depth from real unload traversal. If it
+  is below 70, the new count receipt reaches it; if it is 70 or deeper, mark
+  the stronger technical counterexample branch blocked for that route instead
+  of pretending.
 
 In Discord goblin terms: the route map is pinned; now make the tire tracks in
 CompCert memory line up with the map.

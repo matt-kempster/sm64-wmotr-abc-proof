@@ -447,10 +447,28 @@ Definition technical_stale_slot_alias_without_generated_use
 
 Definition same_slot_reuse_generated_order_receipt_audit : Prop :=
   proposition_of generated_same_slot_reuse_order_spine_holds /\
+  proposition_of ssl_pyramid_destination_spawn_info_source_supplies_area_2 /\
+  proposition_of level_cmd_place_object_copies_current_area_to_spawn_active_area /\
+  proposition_of
+    ssl_pyramid_destination_allocation_count_before_init_lower_bound_is_70 /\
   proposition_of deallocate_push_then_first_allocation_reuses_same_slot /\
   proposition_of deallocated_slot_at_head_is_reached_by_one_allocation /\
   proposition_of watched_slot_under_newer_free_slots_needs_enough_allocations /\
   proposition_of same_slot_pyramid_allocation_store_trace_from_receipt.
+
+Theorem ssl_pyramid_destination_allocations_reach_slot_if_depth_below_70 :
+  forall newer_slots older_slots watched_slot,
+    (length newer_slots <
+     ssl_pyramid_destination_allocation_count_before_init_lower_bound)%nat ->
+    allocation_count_reaches_watched_slot
+      (newer_slots ++ watched_slot :: older_slots)
+      watched_slot
+      ssl_pyramid_destination_allocation_count_before_init_lower_bound.
+Proof.
+  intros newer_slots older_slots watched_slot Hdepth.
+  apply watched_slot_under_newer_free_slots_needs_enough_allocations.
+  exact Hdepth.
+Qed.
 
 Theorem same_slot_reuse_generated_order_receipt_audit_holds :
   same_slot_reuse_generated_order_receipt_audit.
@@ -458,6 +476,14 @@ Proof.
   unfold same_slot_reuse_generated_order_receipt_audit,
     proposition_of.
   split; [exact generated_same_slot_reuse_order_spine_holds |].
+  split; [exact ssl_pyramid_destination_spawn_info_source_supplies_area_2 |].
+  split;
+    [ exact level_cmd_place_object_copies_current_area_to_spawn_active_area
+    |].
+  split;
+    [ exact
+        ssl_pyramid_destination_allocation_count_before_init_lower_bound_is_70
+    |].
   split; [exact deallocate_push_then_first_allocation_reuses_same_slot |].
   split; [exact deallocated_slot_at_head_is_reached_by_one_allocation |].
   split; [exact watched_slot_under_newer_free_slots_needs_enough_allocations |].

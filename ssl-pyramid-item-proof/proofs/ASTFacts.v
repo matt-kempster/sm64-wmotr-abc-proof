@@ -344,6 +344,83 @@ Fixpoint count_macro_objects_with_preset
   | _ => O
   end.
 
+Fixpoint count_macro_object_entries
+    (data : list init_data) : nat :=
+  match data with
+  | Init_int16 p :: Init_int16 _ :: Init_int16 _ ::
+    Init_int16 _ :: Init_int16 _ :: rest =>
+      if int16_matches p (-1)
+      then O
+      else S (count_macro_object_entries rest)
+  | _ => O
+  end.
+
+Definition init_int32_byte
+    (word : int) (byte_from_right : Z) : Z :=
+  Z.modulo
+    (Z.div (Int.unsigned word) (2 ^ (8 * byte_from_right)))
+    256.
+
+Definition init_int32_opcode_matches
+    (word : int) (opcode : Z) : bool :=
+  Z.eqb (init_int32_byte word 3) opcode.
+
+Definition level_script_object_opcode : Z := 36.
+Definition level_script_area_opcode : Z := 31.
+Definition level_script_end_area_opcode : Z := 32.
+
+Definition init_int32_area_word_matches
+    (word : int) (area_index : Z) : bool :=
+  init_int32_opcode_matches word level_script_area_opcode &&
+  Z.eqb (init_int32_byte word 1) area_index.
+
+Fixpoint count_level_script_object_commands
+    (data : list init_data) : nat :=
+  match data with
+  | Init_int32 word :: rest =>
+      if init_int32_opcode_matches word level_script_object_opcode
+      then
+        match rest with
+        | _ :: _ :: _ :: _ :: Init_addrof _ _ :: command_tail =>
+            S (count_level_script_object_commands command_tail)
+        | _ => count_level_script_object_commands rest
+        end
+      else count_level_script_object_commands rest
+  | _ :: rest => count_level_script_object_commands rest
+  | nil => O
+  end.
+
+Fixpoint count_level_script_object_commands_until_end_area
+    (data : list init_data) : nat :=
+  match data with
+  | Init_int32 word :: rest =>
+      if init_int32_opcode_matches word level_script_end_area_opcode
+      then O
+      else if init_int32_opcode_matches word level_script_object_opcode
+      then
+        match rest with
+        | _ :: _ :: _ :: _ :: Init_addrof _ _ :: command_tail =>
+            S (count_level_script_object_commands_until_end_area
+                 command_tail)
+        | _ =>
+            count_level_script_object_commands_until_end_area rest
+        end
+      else count_level_script_object_commands_until_end_area rest
+  | _ :: rest => count_level_script_object_commands_until_end_area rest
+  | nil => O
+  end.
+
+Fixpoint count_level_script_area_object_commands
+    (data : list init_data) (area_index : Z) : nat :=
+  match data with
+  | Init_int32 word :: rest =>
+      if init_int32_area_word_matches word area_index
+      then count_level_script_object_commands_until_end_area rest
+      else count_level_script_area_object_commands rest area_index
+  | _ :: rest => count_level_script_area_object_commands rest area_index
+  | nil => O
+  end.
+
 Definition int8_matches (value : int) (expected : Z) : bool :=
   Int.eq value (Int.repr expected).
 

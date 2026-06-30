@@ -5,7 +5,7 @@ From SSLPyramid.Generated Require Import
   area audio_external behavior_actions graph_node interaction level_script
   level_update macro_special_objects mario mario_actions_cutscene
   obj_behaviors object_helpers object_list_processor spawn_object
-  ssl_area1_macro ssl_script.
+  ssl_area1_macro ssl_area2_macro ssl_script.
 From SSLPyramid.Proofs Require Import ASTFacts.
 
 Module A := area.
@@ -23,6 +23,7 @@ Module H := object_helpers.
 Module O := object_list_processor.
 Module S := spawn_object.
 Module SM := ssl_area1_macro.
+Module SM2 := ssl_area2_macro.
 Module SSL := ssl_script.
 
 Definition proposition_of {P : Prop} (_ : P) : Prop := P.
@@ -145,6 +146,30 @@ with temp_const_assignments_ls
   | LScons _ body rest =>
       temp_const_assignments_s temporary body ++
       temp_const_assignments_ls temporary rest
+  end.
+
+Fixpoint temp_set_from_global_s
+    (temporary global : ident) (s : statement) : bool :=
+  match s with
+  | Sset found (Evar global_found _) =>
+      Pos.eqb found temporary && Pos.eqb global_found global
+  | Ssequence s1 s2 | Sifthenelse _ s1 s2 | Sloop s1 s2 =>
+      temp_set_from_global_s temporary global s1 ||
+      temp_set_from_global_s temporary global s2
+  | Slabel _ body =>
+      temp_set_from_global_s temporary global body
+  | Sswitch _ cases =>
+      temp_set_from_global_ls temporary global cases
+  | _ => false
+  end
+with temp_set_from_global_ls
+       (temporary global : ident) (cases : labeled_statements)
+    : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      temp_set_from_global_s temporary global body ||
+      temp_set_from_global_ls temporary global rest
   end.
 
 Fixpoint expression_mentions_field_deep
@@ -493,6 +518,61 @@ Theorem ssl_outside_has_third_wing_cap_box :
     (gvar_init SM.v_ssl_seg7_area_1_macro_objs)
     91 5860 940 4180 0 = true.
 Proof. vm_compute; reflexivity. Qed.
+
+Definition ssl_pyramid_direct_level_script_object_count : nat :=
+  count_level_script_area_object_commands
+    (gvar_init SSL.v_level_ssl_entry) 2 +
+  count_level_script_object_commands
+    (gvar_init SSL.v_script_func_local_4) +
+  count_level_script_object_commands
+    (gvar_init SSL.v_script_func_local_5).
+
+Definition ssl_pyramid_macro_object_count : nat :=
+  count_macro_object_entries
+    (gvar_init SM2.v_ssl_seg7_area_2_macro_objs).
+
+Definition ssl_pyramid_destination_allocation_count_before_init_lower_bound
+    : nat :=
+  ssl_pyramid_macro_object_count +
+  ssl_pyramid_direct_level_script_object_count.
+
+Theorem ssl_pyramid_area2_direct_entry_object_count :
+  count_level_script_area_object_commands
+    (gvar_init SSL.v_level_ssl_entry) 2 = 4%nat.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem ssl_pyramid_area2_local_4_object_count :
+  count_level_script_object_commands
+    (gvar_init SSL.v_script_func_local_4) = 14%nat.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem ssl_pyramid_area2_local_5_object_count :
+  count_level_script_object_commands
+    (gvar_init SSL.v_script_func_local_5) = 2%nat.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem ssl_pyramid_direct_level_script_object_count_is_20 :
+  ssl_pyramid_direct_level_script_object_count = 20%nat.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem ssl_pyramid_area2_macro_object_count_is_50 :
+  ssl_pyramid_macro_object_count = 50%nat.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem ssl_pyramid_destination_allocation_count_before_init_lower_bound_is_70 :
+  ssl_pyramid_destination_allocation_count_before_init_lower_bound = 70%nat.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem ssl_pyramid_destination_spawn_info_source_supplies_area_2 :
+  count_level_script_area_object_commands
+    (gvar_init SSL.v_level_ssl_entry) 2 = 4%nat /\
+  count_level_script_object_commands
+    (gvar_init SSL.v_script_func_local_4) = 14%nat /\
+  count_level_script_object_commands
+    (gvar_init SSL.v_script_func_local_5) = 2%nat /\
+  count_macro_object_entries
+    (gvar_init SM2.v_ssl_seg7_area_2_macro_objs) = 50%nat.
+Proof. vm_compute; repeat split; reflexivity. Qed.
 
 Theorem preset_72_is_small_breakable_box :
   macro_preset_behavior_at 72
@@ -1035,6 +1115,14 @@ Theorem level_script_active_area_writers :
   direct_field_writers LS.prog LS._activeAreaIndex =
   [LS._level_cmd_init_mario; LS._level_cmd_place_object].
 Proof. vm_compute; reflexivity. Qed.
+
+Theorem level_cmd_place_object_copies_current_area_to_spawn_active_area :
+  temp_set_from_global_s LS._t'17 LS._sCurrAreaIndex
+    (fn_body LS.f_level_cmd_place_object) = true /\
+  event_subsequenceb
+    [Event_assign_field_from_temp LS._activeAreaIndex LS._t'17]
+    (statement_events_s (fn_body LS.f_level_cmd_place_object)) = true.
+Proof. vm_compute; repeat split; reflexivity. Qed.
 
 Theorem area_has_no_direct_active_area_writer :
   direct_field_writers A.prog A._activeAreaIndex = [].
