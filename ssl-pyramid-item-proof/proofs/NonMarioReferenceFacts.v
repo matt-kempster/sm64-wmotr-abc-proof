@@ -141,6 +141,121 @@ Definition mentioned_field_writers
          assigns_mentioned_field_s field (fn_body (snd named_function)))
       (internal_functions (prog_defs program))).
 
+Fixpoint expression_list_mentions_field
+    (field : ident) (args : list expr) : bool :=
+  match args with
+  | [] => false
+  | arg :: rest =>
+      expression_mentions_field field arg ||
+      expression_list_mentions_field field rest
+  end.
+
+Fixpoint mentions_field_s
+    (field : ident) (s : statement) : bool :=
+  match s with
+  | Sassign lhs rhs =>
+      expression_mentions_field field lhs ||
+      expression_mentions_field field rhs
+  | Sset _ rhs => expression_mentions_field field rhs
+  | Scall _ callee args =>
+      expression_mentions_field field callee ||
+      expression_list_mentions_field field args
+  | Sbuiltin _ _ _ args =>
+      expression_list_mentions_field field args
+  | Ssequence s1 s2 =>
+      mentions_field_s field s1 ||
+      mentions_field_s field s2
+  | Sifthenelse condition s1 s2 =>
+      expression_mentions_field field condition ||
+      mentions_field_s field s1 ||
+      mentions_field_s field s2
+  | Sloop s1 s2 =>
+      mentions_field_s field s1 ||
+      mentions_field_s field s2
+  | Slabel _ body => mentions_field_s field body
+  | Sswitch selector cases =>
+      expression_mentions_field field selector ||
+      mentions_field_ls field cases
+  | Sreturn (Some result) =>
+      expression_mentions_field field result
+  | _ => false
+  end
+with mentions_field_ls
+       (field : ident) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      mentions_field_s field body ||
+      mentions_field_ls field rest
+  end.
+
+Definition mentioned_field_functions
+    (program : Clight.program) (field : ident) : list ident :=
+  map fst
+    (filter
+      (fun named_function =>
+         mentions_field_s field (fn_body (snd named_function)))
+      (internal_functions (prog_defs program))).
+
+Fixpoint expression_field_mentions (e : expr) : list ident :=
+  match e with
+  | Ederef inner _ | Eaddrof inner _ | Eunop _ inner _
+  | Ecast inner _ =>
+      expression_field_mentions inner
+  | Ebinop _ lhs rhs _ =>
+      expression_field_mentions lhs ++ expression_field_mentions rhs
+  | Efield inner found _ =>
+      expression_field_mentions inner ++ [found]
+  | _ => []
+  end.
+
+Fixpoint expression_list_field_mentions (args : list expr) : list ident :=
+  match args with
+  | [] => []
+  | arg :: rest =>
+      expression_field_mentions arg ++ expression_list_field_mentions rest
+  end.
+
+Fixpoint statement_field_mentions (s : statement) : list ident :=
+  match s with
+  | Sassign lhs rhs =>
+      expression_field_mentions lhs ++ expression_field_mentions rhs
+  | Sset _ rhs => expression_field_mentions rhs
+  | Scall _ callee args =>
+      expression_field_mentions callee ++ expression_list_field_mentions args
+  | Sbuiltin _ _ _ args =>
+      expression_list_field_mentions args
+  | Ssequence s1 s2 =>
+      statement_field_mentions s1 ++ statement_field_mentions s2
+  | Sifthenelse condition s1 s2 =>
+      expression_field_mentions condition ++
+      statement_field_mentions s1 ++
+      statement_field_mentions s2
+  | Sloop s1 s2 =>
+      statement_field_mentions s1 ++ statement_field_mentions s2
+  | Slabel _ body => statement_field_mentions body
+  | Sswitch selector cases =>
+      expression_field_mentions selector ++ statement_field_mentions_ls cases
+  | Sreturn (Some result) => expression_field_mentions result
+  | _ => []
+  end
+with statement_field_mentions_ls
+       (cases : labeled_statements) : list ident :=
+  match cases with
+  | LSnil => []
+  | LScons _ body rest =>
+      statement_field_mentions body ++ statement_field_mentions_ls rest
+  end.
+
+Definition count_or_collided_field
+    (count_field collided_field field : ident) : bool :=
+  Pos.eqb field count_field || Pos.eqb field collided_field.
+
+Definition count_or_collided_mentions
+    (count_field collided_field : ident) (s : statement) : list ident :=
+  filter (count_or_collided_field count_field collided_field)
+    (statement_field_mentions s).
+
 Theorem object_owned_scalar_object_reference_fields :
   pointer_members_to_struct S.composites S._Object S._Object =
   [S._parentObj; S._prevObj; S._platform].
@@ -254,6 +369,38 @@ Theorem object_owned_collided_object_array_writers :
   mentioned_field_writers H.prog H._collidedObjs = [] /\
   mentioned_field_writers O.prog O._collidedObjs = [] /\
   mentioned_field_writers S.prog S._collidedObjs = [].
+Proof. repeat split; vm_compute; reflexivity. Qed.
+
+Theorem generated_collided_object_array_readers :
+  mentioned_field_functions A.prog A._collidedObjs = [] /\
+  mentioned_field_functions AU.prog AU._collidedObjs = [] /\
+  mentioned_field_functions B.prog B._collidedObjs = [] /\
+  mentioned_field_functions G.prog G._collidedObjs = [] /\
+  mentioned_field_functions I.prog I._collidedObjs =
+    [I._mario_get_collided_object] /\
+  mentioned_field_functions LS.prog LS._collidedObjs = [] /\
+  mentioned_field_functions L.prog L._collidedObjs = [] /\
+  mentioned_field_functions P.prog P._collidedObjs = [] /\
+  mentioned_field_functions MM.prog MM._collidedObjs = [] /\
+  mentioned_field_functions M.prog M._collidedObjs = [] /\
+  mentioned_field_functions OB.prog OB._collidedObjs = [] /\
+  mentioned_field_functions H.prog H._collidedObjs =
+    [H._obj_check_if_collided_with_object;
+     H._obj_attack_collided_from_other_object] /\
+  mentioned_field_functions O.prog O._collidedObjs = [] /\
+  mentioned_field_functions S.prog S._collidedObjs = [].
+Proof. repeat split; vm_compute; reflexivity. Qed.
+
+Theorem generated_collided_object_array_reads_are_count_preceded :
+  count_or_collided_mentions I._numCollidedObjs I._collidedObjs
+    (fn_body I.f_mario_get_collided_object) =
+    [I._numCollidedObjs; I._collidedObjs] /\
+  count_or_collided_mentions H._numCollidedObjs H._collidedObjs
+    (fn_body H.f_obj_check_if_collided_with_object) =
+    [H._numCollidedObjs; H._collidedObjs] /\
+  count_or_collided_mentions H._numCollidedObjs H._collidedObjs
+    (fn_body H.f_obj_attack_collided_from_other_object) =
+    [H._numCollidedObjs; H._collidedObjs].
 Proof. repeat split; vm_compute; reflexivity. Qed.
 
 Theorem object_owned_raw_behavior_object_slot_writers :
