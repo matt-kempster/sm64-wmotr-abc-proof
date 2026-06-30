@@ -17,6 +17,7 @@ generated/level_script.v
 generated/macro_special_objects.v
 generated/ssl_script.v
 generated/ssl_area1_macro.v
+generated/ssl_area2_macro.v
 generated/audio_external.v
 
 proofs/ASTFacts.v

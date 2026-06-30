@@ -40,6 +40,7 @@ GENERATED := \
   generated/macro_special_objects.v \
   generated/ssl_script.v \
   generated/ssl_area1_macro.v \
+  generated/ssl_area2_macro.v \
   generated/audio_external.v
 
 .PHONY: all generated proofs clean
@@ -99,6 +100,10 @@ generated/ssl_script.v: $(SM64)/levels/ssl/script.c pipeline/clightgen.sh
 
 generated/ssl_area1_macro.v: inputs/ssl_area1_macro.c \
     $(SM64)/levels/ssl/areas/1/macro.inc.c pipeline/clightgen.sh
+	bash pipeline/clightgen.sh $< $@ $(SM64_CG)
+
+generated/ssl_area2_macro.v: inputs/ssl_area2_macro.c \
+    $(SM64)/levels/ssl/areas/2/macro.inc.c pipeline/clightgen.sh
 	bash pipeline/clightgen.sh $< $@ $(SM64_CG)
 
 generated/audio_external.v: $(SM64)/src/audio/external.c pipeline/clightgen.sh
