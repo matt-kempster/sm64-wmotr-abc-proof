@@ -669,6 +669,30 @@ bash pipeline/assumptions.sh \
   execute_mario_action_processes_interactions_only_when_action_nonzero
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.TransitionFacts \
+  execute_mario_action_normal_warp_sources_guarded_by_action_nonzero
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TransitionFacts \
+  interaction_handler_table_contains_warp_handlers
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TransitionFacts \
+  interaction_warp_handlers_set_actions_not_direct_warp_triggers
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TransitionFacts \
+  interaction_special_floor_warp_trigger_callers
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TransitionFacts \
+  disappeared_cutscene_action_triggers_delayed_warp
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TransitionFacts \
+  level_update_normal_play_warp_entry_callers
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TransitionFacts \
+  audited_script_area_modules_do_not_directly_trigger_normal_warp_entry
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TransitionFacts \
+  normal_gameplay_ssl_warp_entry_action_nonzero_syntactic_certificate
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TransitionFacts \
   star_collection_handler_sets_action_but_is_interaction_downstream
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.TransitionFacts \

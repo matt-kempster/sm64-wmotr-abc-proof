@@ -3,7 +3,7 @@ Import ListNotations.
 From compcert Require Import AST Cop Ctypes Clight Integers.
 From SSLPyramid.Generated Require Import
   area audio_external behavior_actions graph_node interaction level_script
-  level_update macro_special_objects mario
+  level_update macro_special_objects mario mario_actions_cutscene
   obj_behaviors object_helpers object_list_processor spawn_object
   ssl_area1_macro ssl_script.
 From SSLPyramid.Proofs Require Import ASTFacts.
@@ -17,12 +17,15 @@ Module LS := level_script.
 Module L := level_update.
 Module P := macro_special_objects.
 Module M := mario.
+Module MC := mario_actions_cutscene.
 Module OB := obj_behaviors.
 Module H := object_helpers.
 Module O := object_list_processor.
 Module S := spawn_object.
 Module SM := ssl_area1_macro.
 Module SSL := ssl_script.
+
+Definition proposition_of {P : Prop} (_ : P) : Prop := P.
 
 Definition events_emptyb (events : list statement_event) : bool :=
   match events with
@@ -182,6 +185,23 @@ Definition field_mentioners
       (fun named_function =>
          statement_mentions_field_s field (fn_body (snd named_function)))
       (internal_functions (prog_defs program))).
+
+Definition direct_callers
+    (program : Clight.program) (callee : ident) : list ident :=
+  map fst
+    (filter
+      (fun named_function =>
+         calls_ident_s callee (fn_body (snd named_function)))
+      (internal_functions (prog_defs program))).
+
+Fixpoint init_data_contains_addrof
+    (target : ident) (data : list init_data) : bool :=
+  match data with
+  | Init_addrof found _ :: rest =>
+      Pos.eqb found target || init_data_contains_addrof target rest
+  | _ :: rest => init_data_contains_addrof target rest
+  | [] => false
+  end.
 
 Definition type_is_graph_node (ty : type) : bool :=
   match ty with
@@ -636,6 +656,109 @@ Theorem execute_mario_action_processes_interactions_only_when_action_nonzero :
      Event_call M._mario_process_interactions]
     (fn_body M.f_execute_mario_action) = true.
 Proof. vm_compute; repeat split; reflexivity. Qed.
+
+Theorem execute_mario_action_normal_warp_sources_guarded_by_action_nonzero :
+  event_subsequenceb
+    [Event_set_temp_from_field M._t'9 M._t'8 M._action]
+    (statement_events_s (fn_body M.f_execute_mario_action)) = true /\
+  temp_nonzero_guarded_event_subsequenceb M._t'9
+    [Event_call M._update_mario_inputs;
+     Event_call M._mario_handle_special_floors;
+     Event_call M._mario_process_interactions;
+     Event_call M._mario_execute_cutscene_action]
+    (fn_body M.f_execute_mario_action) = true.
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
+Theorem interaction_handler_table_contains_warp_handlers :
+  init_data_contains_addrof I._interact_warp
+    (gvar_init I.v_sInteractionHandlers) = true /\
+  init_data_contains_addrof I._interact_warp_door
+    (gvar_init I.v_sInteractionHandlers) = true.
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
+Theorem interaction_warp_handlers_set_actions_not_direct_warp_triggers :
+  calls_ident_s I._set_mario_action
+    (fn_body I.f_interact_warp) = true /\
+  assigns_field_s I._interactObj
+    (fn_body I.f_interact_warp) = true /\
+  assigns_field_s I._usedObj
+    (fn_body I.f_interact_warp) = true /\
+  calls_ident_s I._level_trigger_warp
+    (fn_body I.f_interact_warp) = false /\
+  calls_ident_s I._set_mario_action
+    (fn_body I.f_interact_warp_door) = true /\
+  calls_ident_s I._level_trigger_warp
+    (fn_body I.f_interact_warp_door) = false.
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
+Theorem interaction_special_floor_warp_trigger_callers :
+  direct_callers I.prog I._level_trigger_warp =
+    [I._check_death_barrier; I._mario_handle_special_floors] /\
+  calls_ident_s I._level_trigger_warp
+    (fn_body I.f_check_death_barrier) = true /\
+  calls_ident_s I._level_trigger_warp
+    (fn_body I.f_mario_handle_special_floors) = true /\
+  calls_ident_s I._check_death_barrier
+    (fn_body I.f_mario_handle_special_floors) = true.
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
+Theorem disappeared_cutscene_action_triggers_delayed_warp :
+  calls_ident_s MC._level_trigger_warp
+    (fn_body MC.f_act_disappeared) = true /\
+  calls_ident_s MC._act_disappeared
+    (fn_body MC.f_mario_execute_cutscene_action) = true.
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
+Theorem level_update_normal_play_warp_entry_callers :
+  direct_callers L.prog L._warp_area =
+    [L._play_mode_normal] /\
+  direct_callers L.prog L._level_trigger_warp =
+    [L._play_mode_normal] /\
+  event_subsequenceb
+    [Event_call L._warp_area]
+    (statement_events_s (fn_body L.f_play_mode_normal)) = true /\
+  calls_ident_s L._level_trigger_warp
+    (fn_body L.f_play_mode_normal) = true.
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
+Theorem audited_script_area_modules_do_not_directly_trigger_normal_warp_entry :
+  direct_callers LS.prog L._level_trigger_warp = [] /\
+  direct_callers LS.prog L._warp_area = [] /\
+  direct_callers A.prog L._level_trigger_warp = [] /\
+  direct_callers A.prog L._warp_area = [] /\
+  direct_callers SSL.prog L._level_trigger_warp = [] /\
+  direct_callers SSL.prog L._warp_area = [].
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
+Theorem normal_gameplay_ssl_warp_entry_action_nonzero_syntactic_certificate :
+  proposition_of
+    execute_mario_action_processes_interactions_only_when_action_nonzero /\
+  proposition_of
+    execute_mario_action_normal_warp_sources_guarded_by_action_nonzero /\
+  proposition_of interaction_handler_table_contains_warp_handlers /\
+  proposition_of interaction_warp_handlers_set_actions_not_direct_warp_triggers /\
+  proposition_of interaction_special_floor_warp_trigger_callers /\
+  proposition_of disappeared_cutscene_action_triggers_delayed_warp /\
+  proposition_of level_update_normal_play_warp_entry_callers /\
+  proposition_of
+    audited_script_area_modules_do_not_directly_trigger_normal_warp_entry.
+Proof.
+  unfold proposition_of.
+  split;
+    [ exact execute_mario_action_processes_interactions_only_when_action_nonzero
+    |].
+  split;
+    [ exact execute_mario_action_normal_warp_sources_guarded_by_action_nonzero
+    |].
+  split; [ exact interaction_handler_table_contains_warp_handlers |].
+  split;
+    [ exact interaction_warp_handlers_set_actions_not_direct_warp_triggers
+    |].
+  split; [ exact interaction_special_floor_warp_trigger_callers |].
+  split; [ exact disappeared_cutscene_action_triggers_delayed_warp |].
+  split; [ exact level_update_normal_play_warp_entry_callers |].
+  exact audited_script_area_modules_do_not_directly_trigger_normal_warp_entry.
+Qed.
 
 Theorem star_collection_handler_sets_action_but_is_interaction_downstream :
   statement_mentions_field_s I._action

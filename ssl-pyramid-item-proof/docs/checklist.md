@@ -263,13 +263,30 @@ counterexample-shaped goblin.
   pins star collection as downstream of that interaction path. Translation:
   action 0 is not "Mario can freely act while stale"; it is "Mario basically
   does not run his normal action/interact machine."
-- [ ] Prove the global warp-entry invariant for the SSL Pyramid change-area
+- [x] Prove the global warp-entry invariant for the SSL Pyramid change-area
   path: every normal gameplay route that can set up `warp_area` while Mario is
   holding/using/riding something has `gMarioState->action <> ACT_UNINITIALIZED`.
-  The promising route is now narrow: the interaction warp path is downstream of
-  `execute_mario_action`, which is already action-nonzero guarded. Still need to
-  connect that to `level_trigger_warp` / `warp_area` and rule out any script or
-  init-level route that could combine action 0 with a stale held outside object.
+  `normal_gameplay_ssl_warp_entry_action_nonzero_syntactic_certificate` is the
+  bridge. It says the normal gameplay warp sources are under
+  `execute_mario_action`'s nonzero-action branch:
+  `update_mario_inputs`, `mario_handle_special_floors`,
+  `mario_process_interactions`, and the later cutscene-action executor are all
+  behind the `action` guard. The interaction handler table contains
+  `interact_warp` / `interact_warp_door`; those handlers set Mario actions and
+  do not directly call `level_trigger_warp`. The delayed-warp trigger then
+  shows up in generated cutscene action code (`act_disappeared`) and in the
+  special-floor helpers (`check_death_barrier` /
+  `mario_handle_special_floors`). Finally, generated `level_update` has
+  `warp_area` and its demo `level_trigger_warp` calls only in
+  `play_mode_normal`, while the audited script/area modules do not directly
+  call either `warp_area` or `level_trigger_warp`.
+
+  Translation: if Mario is doing normal gameplay and can still have a
+  held/used/ridden/interact-style stale outside root, the path that schedules
+  the Pyramid warp is not action 0. If someone finds an `action == 0` Pyramid
+  entry with a stale outside root, it is not this normal interaction/floor warp
+  route; it is a new script/init/external counterexample candidate and should
+  get its own wanted poster.
 - [x] Start chasing non-Mario roots through the same window:
   `pyramid_load_window_object_owned_roots_not_mentioned_before_cleanup` covers
   `platform` and `rawData.asObject`, while
@@ -574,6 +591,9 @@ actual survival/refutation pass:
 - chase the externally implemented Mario-platform helpers only after proving
   they can actually run before the cleanup/rebind path; right now the generated
   load window does not call them;
+- if an `action == 0` Pyramid entry still looks possible, treat it as a
+  non-normal script/init/external route first; the normal gameplay
+  interaction/floor route is now pinned behind the nonzero-action guard;
 - keep the graph-root fork as-is: reachable outside graph root means candidate,
   otherwise go back to the boring unlink proof.
 
