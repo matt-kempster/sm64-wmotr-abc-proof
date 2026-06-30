@@ -813,6 +813,21 @@ bash pipeline/assumptions.sh \
   persistent_outside_pointer_from_high_risk_root_is_counterexample_candidate
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.StaleWindowObservation \
+  post_init_mario_refs_have_no_stale_outside_reference
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
+  normal_post_init_mario_root_origins_match_post_reinit_refs
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
+  normal_post_init_mario_high_risk_roots_do_not_persist
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
+  normal_path_high_risk_roots_do_not_persist_or_are_candidates
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
+  normal_ssl_pyramid_change_area_high_risk_root_certificate_holds
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
   shell_and_grabbable_stale_channel_load_window_audit_holds
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \

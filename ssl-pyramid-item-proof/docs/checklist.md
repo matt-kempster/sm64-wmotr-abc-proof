@@ -321,6 +321,24 @@ counterexample-shaped goblin.
   grabbable cleanup evidence, and the Mario stale-root no-observation audit.
   Translation: the shell/held/used/ridden paths are still the right scary
   channels, but this bite did not find a use site before the cleanup broom.
+- [x] Prove/triage high-risk root persistence past `init_mario_after_warp` for
+  the normal SSL Pyramid change-area path.
+  `normal_ssl_pyramid_change_area_high_risk_root_certificate_holds` now ties
+  the normal nonzero-action warp-entry guard, `warp_area -> load_area ->
+  init_mario_after_warp` ordering, `init_mario` cleanup facts, and the
+  high-risk load-window audit into one certificate. The Mario-owned roots are
+  closed for the post-init state: `interactObj` / `usedObj` are rebinding to
+  the destination spawn object, while `heldObj` / `riddenObj` are boring null
+  roots. The theorem
+  `normal_path_high_risk_roots_do_not_persist_or_are_candidates` keeps the
+  non-Mario roots honest: `parentObj`, `prevObj`, `platform`,
+  `collidedObjs`, `rawData.asObject`, render-held links, and graph links are
+  not magically cleared by Mario init; if any of those survives with an
+  outside allocation epoch, it immediately instantiates
+  `persistent_outside_pointer_counterexample_candidate`.
+  Discord goblin translation: Mario's pockets get swept. The weird object and
+  graph pockets are still on the corkboard, but any survivor now gets a formal
+  little criminal nametag instead of being handwaved.
 - [x] Build a type-aware graph-link audit for
   `GraphNode.parent`/`children`/`prev`/`next`. New theorem
   `pyramid_load_window_typed_graph_node_link_audit` ignores fake scares like
@@ -581,13 +599,16 @@ In Discord goblin terms: we proved that everyone on the bouncer's list gets
 thrown out. Now prove the bouncer's list really came from the engine's
 `gObjectLists` clipboard.
 
-Channel-side next bite: turn the new counterexample-candidate wrapper into an
-actual survival/refutation pass:
+Channel-side next bite: chase the non-Mario survivors now that the normal Mario
+root broom is pinned:
 
-- prove the high-risk roots cannot persist past `init_mario_after_warp` for the
-  normal SSL Pyramid change-area path, or instantiate
-  `persistent_outside_pointer_from_high_risk_root_is_counterexample_candidate`
-  with the survivor;
+- derive the object-owned roots (`parentObj`, `prevObj`, `platform`,
+  `collidedObjs`, `rawData.asObject`) from the real unload/list cleanup, or
+  instantiate `persistent_outside_pointer_counterexample_candidate` with the
+  surviving field;
+- derive the render-held and graph roots from the real graph unlink/load
+  invariants, or turn the surviving graph/render-held edge into the existing
+  counterexample candidate;
 - chase the externally implemented Mario-platform helpers only after proving
   they can actually run before the cleanup/rebind path; right now the generated
   load window does not call them;
