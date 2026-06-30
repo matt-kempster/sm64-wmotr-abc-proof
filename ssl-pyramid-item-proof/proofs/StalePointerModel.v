@@ -20,9 +20,9 @@
    the already-proved post_pyramid_warp_reference_shape theorem.
  *)
 
-From Coq Require Import List ZArith.
+From Coq Require Import Lia List ZArith.
 Import ListNotations.
-From compcert Require Import AST Memory Values.
+From compcert Require Import AST Integers Memory Values.
 From SSLPyramid.Proofs Require Import Spec.
 
 Local Open Scope Z_scope.
@@ -161,6 +161,40 @@ Definition no_technical_stale_pointer_after_mario_reinit
   ~ stale_outside_reference before pool_block
       (refs_after_mario_reinit window).
 
+Definition object_allocation_active_flags_value :=
+  Int.repr 257.
+
+Definition same_slot_pyramid_allocation_store_trace
+    (allocation_start after_area_store after_load : mem)
+    (pool_block : block) (slot : Z) : Prop :=
+  Mem.store Mint8signed allocation_start pool_block
+    (object_field_address slot object_active_area_offset)
+    (Vint (Int.repr ssl_pyramid_area)) =
+    Some after_area_store /\
+  Mem.store Mint16signed after_area_store pool_block
+    (object_field_address slot object_active_flags_offset)
+    (Vint object_allocation_active_flags_value) =
+    Some after_load.
+
+Definition slot_active_as_pyramid_object
+    (memory : mem) (pool_block : block) (slot : Z) : Prop :=
+  slot_active memory pool_block slot /\
+  slot_belongs_to_area memory pool_block slot ssl_pyramid_area.
+
+Definition stale_outside_reference_aliases_pyramid_slot
+    (before after_load : mem) (pool_block : block)
+    (refs : mario_reference_origins) : Prop :=
+  exists slot,
+    outside_live_slot before pool_block slot /\
+    slot_active_as_pyramid_object after_load pool_block slot /\
+    In (OutsideAllocationEpoch slot) (mario_reference_origin_list refs).
+
+Definition technical_stale_pyramid_slot_alias_during_load
+    (before after_load : mem) (pool_block : block)
+    (window : pyramid_load_window_reference_origins) : Prop :=
+  stale_outside_reference_aliases_pyramid_slot before after_load pool_block
+    (refs_after_pyramid_load_before_mario_init window).
+
 Record technical_stale_window_counterexample
     (before : mem) (pool_block : block)
     (window : pyramid_load_window_reference_origins) : Prop := {
@@ -179,6 +213,17 @@ Record technical_stale_slot_reuse_counterexample
     technical_stale_window_counterexample before pool_block window;
   technical_stale_reuse_aliases_live_slot :
     technical_stale_slot_alias_during_load
+      before after_load pool_block window
+}.
+
+Record technical_stale_pyramid_slot_reuse_counterexample
+    (before after_load : mem) (pool_block : block)
+    (window : pyramid_load_window_reference_origins) : Prop := {
+  technical_stale_pyramid_reuse_base :
+    technical_stale_slot_reuse_counterexample
+      before after_load pool_block window;
+  technical_stale_pyramid_reuse_aliases_pyramid_slot :
+    technical_stale_pyramid_slot_alias_during_load
       before after_load pool_block window
 }.
 
@@ -203,6 +248,53 @@ Record ridden_technical_stale_slot_reuse_counterexample
       before after_load pool_block
       (refs_after_pyramid_load_before_mario_init window)
 }.
+
+Record ridden_technical_stale_pyramid_slot_reuse_counterexample
+    (before after_load : mem) (pool_block : block)
+    (window : pyramid_load_window_reference_origins) : Prop := {
+  ridden_technical_stale_pyramid_reuse_base :
+    ridden_technical_stale_slot_reuse_counterexample
+      before after_load pool_block window;
+  ridden_technical_stale_pyramid_reuse_aliases_pyramid_slot :
+    technical_stale_pyramid_slot_alias_during_load
+      before after_load pool_block window
+}.
+
+Theorem same_slot_pyramid_allocation_store_trace_gives_pyramid_live_slot :
+  forall allocation_start after_area_store after_load pool_block slot,
+    same_slot_pyramid_allocation_store_trace
+      allocation_start after_area_store after_load pool_block slot ->
+    slot_active_as_pyramid_object after_load pool_block slot.
+Proof.
+  intros allocation_start after_area_store after_load pool_block slot Hstores.
+  destruct Hstores as (Harea_store & Hactive_store).
+  split.
+  - exists (Int.sign_ext 16 object_allocation_active_flags_value).
+    split.
+    + unfold slot_active, object_allocation_active_flags_value.
+      rewrite (Mem.load_store_same _ _ _ _ _ _ Hactive_store).
+      reflexivity.
+    + unfold object_allocation_active_flags_value.
+      vm_compute.
+      discriminate.
+  - unfold slot_belongs_to_area.
+    rewrite (Mem.load_store_other
+      Mint16signed after_area_store pool_block
+      (object_field_address slot object_active_flags_offset)
+      (Vint object_allocation_active_flags_value) after_load
+      Hactive_store
+      Mint8signed pool_block
+      (object_field_address slot object_active_area_offset)).
+    + rewrite (Mem.load_store_same _ _ _ _ _ _ Harea_store).
+      unfold ssl_pyramid_area.
+      vm_compute.
+      reflexivity.
+    + right; left.
+      unfold object_field_address, object_active_area_offset,
+        object_active_flags_offset, object_slot_size.
+      simpl.
+      lia.
+Qed.
 
 Theorem post_pyramid_warp_shape_has_no_stale_outside_reference :
   forall before pool_block destination_spawn_slot refs,
@@ -452,6 +544,46 @@ Proof.
   - exact Halias.
 Qed.
 
+Theorem held_grab_constructs_technical_pyramid_slot_reuse_counterexample
+    :
+  forall before allocation_start after_area_store after_load
+      pool_block outside_slot destination_spawn_slot,
+    outside_live_slot before pool_block outside_slot ->
+    same_slot_pyramid_allocation_store_trace
+      allocation_start after_area_store after_load pool_block outside_slot ->
+    exists window,
+      window =
+        outside_held_grab_load_window outside_slot destination_spawn_slot /\
+      technical_stale_pyramid_slot_reuse_counterexample
+        before after_load pool_block window.
+Proof.
+  intros before allocation_start after_area_store after_load
+    pool_block outside_slot destination_spawn_slot Houtside Hstores.
+  pose proof
+    (same_slot_pyramid_allocation_store_trace_gives_pyramid_live_slot
+       allocation_start after_area_store after_load pool_block outside_slot
+       Hstores) as Hpyramid_live.
+  destruct Hpyramid_live as (Hactive_after_load & Harea_after_load).
+  destruct
+    (held_grab_constructs_technical_slot_reuse_counterexample
+       before after_load pool_block outside_slot destination_spawn_slot
+       Houtside Hactive_after_load)
+    as (window & Hwindow & Hbase).
+  exists window.
+  split; [exact Hwindow |].
+  constructor.
+  - exact Hbase.
+  - subst window.
+    exists outside_slot.
+    split; [exact Houtside |].
+    split.
+    + split; [exact Hactive_after_load | exact Harea_after_load].
+    + unfold mario_reference_origin_list, outside_held_grab_load_window,
+        outside_held_grab_refs.
+      simpl.
+      right; left; reflexivity.
+Qed.
+
 Theorem ridden_shell_stale_slot_alias_is_conditional_on_reuse :
   forall before after_load pool_block outside_slot destination_spawn_slot,
     outside_live_slot before pool_block outside_slot ->
@@ -514,6 +646,46 @@ Proof.
     + constructor; [exact Hstale | exact Hclean].
     + exact Halias.
   - exact Hridden_alias.
+Qed.
+
+Theorem shell_ride_constructs_ridden_technical_pyramid_slot_reuse_counterexample
+    :
+  forall before allocation_start after_area_store after_load
+      pool_block outside_slot destination_spawn_slot,
+    outside_live_slot before pool_block outside_slot ->
+    same_slot_pyramid_allocation_store_trace
+      allocation_start after_area_store after_load pool_block outside_slot ->
+    exists window,
+      window =
+        outside_shell_ride_load_window outside_slot destination_spawn_slot /\
+      ridden_technical_stale_pyramid_slot_reuse_counterexample
+        before after_load pool_block window.
+Proof.
+  intros before allocation_start after_area_store after_load
+    pool_block outside_slot destination_spawn_slot Houtside Hstores.
+  pose proof
+    (same_slot_pyramid_allocation_store_trace_gives_pyramid_live_slot
+       allocation_start after_area_store after_load pool_block outside_slot
+       Hstores) as Hpyramid_live.
+  destruct Hpyramid_live as (Hactive_after_load & Harea_after_load).
+  destruct
+    (shell_ride_constructs_ridden_technical_slot_reuse_counterexample
+       before after_load pool_block outside_slot destination_spawn_slot
+       Houtside Hactive_after_load)
+    as (window & Hwindow & Hbase).
+  exists window.
+  split; [exact Hwindow |].
+  constructor.
+  - exact Hbase.
+  - subst window.
+    exists outside_slot.
+    split; [exact Houtside |].
+    split.
+    + split; [exact Hactive_after_load | exact Harea_after_load].
+    + unfold mario_reference_origin_list, outside_shell_ride_load_window,
+        outside_shell_ride_refs.
+      simpl.
+      left; reflexivity.
 Qed.
 
 Theorem deactivated_raw_slot_reuse_is_not_continuous_transfer :

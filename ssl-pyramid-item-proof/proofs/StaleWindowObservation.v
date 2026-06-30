@@ -96,6 +96,26 @@ Record audited_ridden_technical_stale_slot_reuse_counterexample
     audited_mario_stale_ref_no_observation_before_cleanup
 }.
 
+Record audited_technical_stale_pyramid_slot_reuse_counterexample
+    (before after_load : mem) (pool_block : block)
+    (window : pyramid_load_window_reference_origins) : Prop := {
+  audited_technical_stale_pyramid_reuse_base :
+    technical_stale_pyramid_slot_reuse_counterexample
+      before after_load pool_block window;
+  audited_technical_stale_pyramid_reuse_no_generated_use :
+    audited_mario_stale_ref_no_observation_before_cleanup
+}.
+
+Record audited_ridden_technical_stale_pyramid_slot_reuse_counterexample
+    (before after_load : mem) (pool_block : block)
+    (window : pyramid_load_window_reference_origins) : Prop := {
+  audited_ridden_technical_stale_pyramid_reuse_base :
+    ridden_technical_stale_pyramid_slot_reuse_counterexample
+      before after_load pool_block window;
+  audited_ridden_technical_stale_pyramid_reuse_no_generated_use :
+    audited_mario_stale_ref_no_observation_before_cleanup
+}.
+
 Theorem held_grab_constructs_audited_technical_stale_window_counterexample :
   forall before pool_block outside_slot destination_spawn_slot,
     outside_live_slot before pool_block outside_slot ->
@@ -110,6 +130,34 @@ Proof.
   destruct
     (held_grab_constructs_technical_stale_window_counterexample
        before pool_block outside_slot destination_spawn_slot Houtside)
+    as (window & Hwindow & Hcounterexample).
+  exists window.
+  split; [exact Hwindow |].
+  constructor.
+  - exact Hcounterexample.
+  - exact audited_mario_stale_ref_no_observation_before_cleanup_holds.
+Qed.
+
+Theorem held_grab_constructs_audited_technical_pyramid_slot_reuse_counterexample
+    :
+  forall before allocation_start after_area_store after_load
+      pool_block outside_slot destination_spawn_slot,
+    outside_live_slot before pool_block outside_slot ->
+    same_slot_pyramid_allocation_store_trace
+      allocation_start after_area_store after_load pool_block outside_slot ->
+    exists window,
+      window =
+        outside_held_grab_load_window
+          outside_slot destination_spawn_slot /\
+      audited_technical_stale_pyramid_slot_reuse_counterexample
+        before after_load pool_block window.
+Proof.
+  intros before allocation_start after_area_store after_load
+    pool_block outside_slot destination_spawn_slot Houtside Hstores.
+  destruct
+    (held_grab_constructs_technical_pyramid_slot_reuse_counterexample
+       before allocation_start after_area_store after_load
+       pool_block outside_slot destination_spawn_slot Houtside Hstores)
     as (window & Hwindow & Hcounterexample).
   exists window.
   split; [exact Hwindow |].
@@ -157,6 +205,34 @@ Proof.
   destruct
     (shell_ride_constructs_ridden_technical_stale_window_counterexample
        before pool_block outside_slot destination_spawn_slot Houtside)
+    as (window & Hwindow & Hcounterexample).
+  exists window.
+  split; [exact Hwindow |].
+  constructor.
+  - exact Hcounterexample.
+  - exact audited_mario_stale_ref_no_observation_before_cleanup_holds.
+Qed.
+
+Theorem shell_ride_constructs_audited_ridden_technical_pyramid_slot_reuse_counterexample
+    :
+  forall before allocation_start after_area_store after_load
+      pool_block outside_slot destination_spawn_slot,
+    outside_live_slot before pool_block outside_slot ->
+    same_slot_pyramid_allocation_store_trace
+      allocation_start after_area_store after_load pool_block outside_slot ->
+    exists window,
+      window =
+        outside_shell_ride_load_window
+          outside_slot destination_spawn_slot /\
+      audited_ridden_technical_stale_pyramid_slot_reuse_counterexample
+        before after_load pool_block window.
+Proof.
+  intros before allocation_start after_area_store after_load
+    pool_block outside_slot destination_spawn_slot Houtside Hstores.
+  destruct
+    (shell_ride_constructs_ridden_technical_pyramid_slot_reuse_counterexample
+       before allocation_start after_area_store after_load
+       pool_block outside_slot destination_spawn_slot Houtside Hstores)
     as (window & Hwindow & Hcounterexample).
   exists window.
   split; [exact Hwindow |].
@@ -1268,6 +1344,10 @@ Definition shell_and_grabbable_stale_channel_load_window_audit : Prop :=
   proposition_of
     shell_ride_constructs_audited_ridden_technical_slot_reuse_counterexample /\
   proposition_of
+    held_grab_constructs_audited_technical_pyramid_slot_reuse_counterexample /\
+  proposition_of
+    shell_ride_constructs_audited_ridden_technical_pyramid_slot_reuse_counterexample /\
+  proposition_of
     shell_ride_ridden_stale_load_window_is_unobserved_before_cleanup /\
   proposition_of
     shell_ride_reused_slot_alias_is_technical_not_gameplay_useful /\
@@ -1292,6 +1372,12 @@ Proof.
   |].
   split; [
     exact shell_ride_constructs_audited_ridden_technical_slot_reuse_counterexample
+  |].
+  split; [
+    exact held_grab_constructs_audited_technical_pyramid_slot_reuse_counterexample
+  |].
+  split; [
+    exact shell_ride_constructs_audited_ridden_technical_pyramid_slot_reuse_counterexample
   |].
   split; [exact shell_ride_ridden_stale_load_window_is_unobserved_before_cleanup |].
   split; [exact shell_ride_reused_slot_alias_is_technical_not_gameplay_useful |].
