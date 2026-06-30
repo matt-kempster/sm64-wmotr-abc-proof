@@ -54,6 +54,13 @@ Definition stale_outside_reference
     outside_live_slot before pool_block slot /\
     In (OutsideAllocationEpoch slot) (mario_reference_origin_list refs).
 
+Definition stale_ridden_outside_reference
+    (before : mem) (pool_block : block)
+    (refs : mario_reference_origins) : Prop :=
+  exists slot,
+    outside_live_slot before pool_block slot /\
+    ref_ridden_object refs = OutsideAllocationEpoch slot.
+
 Definition post_pyramid_warp_reference_shape
     (destination_spawn_slot : Z) (refs : mario_reference_origins) : Prop :=
   ref_interact_object refs = DestinationSpawnObject destination_spawn_slot /\
@@ -75,6 +82,14 @@ Definition outside_held_grab_refs
   ref_ridden_object := NoObjectReference
 |}.
 
+Definition outside_shell_ride_refs
+    (outside_slot : Z) : mario_reference_origins := {|
+  ref_interact_object := OutsideAllocationEpoch outside_slot;
+  ref_held_object := NoObjectReference;
+  ref_used_object := OutsideAllocationEpoch outside_slot;
+  ref_ridden_object := OutsideAllocationEpoch outside_slot
+|}.
+
 Definition post_reinit_refs
     (destination_spawn_slot : Z) : mario_reference_origins := {|
   ref_interact_object := DestinationSpawnObject destination_spawn_slot;
@@ -92,10 +107,25 @@ Definition outside_held_grab_load_window
   refs_after_mario_reinit := post_reinit_refs destination_spawn_slot
 |}.
 
+Definition outside_shell_ride_load_window
+    (outside_slot destination_spawn_slot : Z)
+    : pyramid_load_window_reference_origins := {|
+  refs_before_area_unload := outside_shell_ride_refs outside_slot;
+  refs_after_pyramid_load_before_mario_init :=
+    outside_shell_ride_refs outside_slot;
+  refs_after_mario_reinit := post_reinit_refs destination_spawn_slot
+|}.
+
 Definition stale_outside_reference_after_pyramid_load
     (before : mem) (pool_block : block)
     (window : pyramid_load_window_reference_origins) : Prop :=
   stale_outside_reference before pool_block
+    (refs_after_pyramid_load_before_mario_init window).
+
+Definition stale_ridden_outside_reference_after_pyramid_load
+    (before : mem) (pool_block : block)
+    (window : pyramid_load_window_reference_origins) : Prop :=
+  stale_ridden_outside_reference before pool_block
     (refs_after_pyramid_load_before_mario_init window).
 
 Definition technical_stale_pointer_smuggled_into_load_window
@@ -110,6 +140,14 @@ Definition stale_outside_reference_aliases_live_slot
     outside_live_slot before pool_block slot /\
     slot_active after_load pool_block slot /\
     In (OutsideAllocationEpoch slot) (mario_reference_origin_list refs).
+
+Definition stale_ridden_reference_aliases_live_slot
+    (before after_load : mem) (pool_block : block)
+    (refs : mario_reference_origins) : Prop :=
+  exists slot,
+    outside_live_slot before pool_block slot /\
+    slot_active after_load pool_block slot /\
+    ref_ridden_object refs = OutsideAllocationEpoch slot.
 
 Definition technical_stale_slot_alias_during_load
     (before after_load : mem) (pool_block : block)
@@ -175,6 +213,41 @@ Proof.
       apply post_reinit_refs_have_post_pyramid_warp_shape.
 Qed.
 
+Theorem outside_shell_ride_can_leave_ridden_stale_reference_across_pyramid_load :
+  forall before pool_block outside_slot destination_spawn_slot,
+    outside_live_slot before pool_block outside_slot ->
+    exists window,
+      window =
+        outside_shell_ride_load_window outside_slot destination_spawn_slot /\
+      stale_outside_reference_after_pyramid_load
+        before pool_block window /\
+      stale_ridden_outside_reference_after_pyramid_load
+        before pool_block window /\
+      ~ stale_outside_reference before pool_block
+          (refs_after_mario_reinit window).
+Proof.
+  intros before pool_block outside_slot destination_spawn_slot Houtside.
+  exists (outside_shell_ride_load_window
+            outside_slot destination_spawn_slot).
+  split; [reflexivity |].
+  split.
+  - exists outside_slot.
+    split; [exact Houtside |].
+    unfold mario_reference_origin_list,
+      outside_shell_ride_load_window, outside_shell_ride_refs.
+    simpl.
+    left; reflexivity.
+  - split.
+    + exists outside_slot.
+      split; [exact Houtside |].
+      unfold outside_shell_ride_load_window, outside_shell_ride_refs.
+      simpl.
+      reflexivity.
+    + apply post_pyramid_warp_shape_has_no_stale_outside_reference
+        with (destination_spawn_slot := destination_spawn_slot).
+      apply post_reinit_refs_have_post_pyramid_warp_shape.
+Qed.
+
 Theorem held_grab_stale_reference_would_alias_reused_slot_after_load :
   forall before after_load pool_block outside_slot destination_spawn_slot,
     outside_live_slot before pool_block outside_slot ->
@@ -198,6 +271,41 @@ Proof.
     outside_held_grab_load_window, outside_held_grab_refs.
   simpl.
   right; left; reflexivity.
+Qed.
+
+Theorem ridden_shell_stale_reference_would_alias_reused_slot_after_load :
+  forall before after_load pool_block outside_slot destination_spawn_slot,
+    outside_live_slot before pool_block outside_slot ->
+    slot_active after_load pool_block outside_slot ->
+    exists window,
+      window =
+        outside_shell_ride_load_window outside_slot destination_spawn_slot /\
+      stale_outside_reference_aliases_live_slot
+        before after_load pool_block
+        (refs_after_pyramid_load_before_mario_init window) /\
+      stale_ridden_reference_aliases_live_slot
+        before after_load pool_block
+        (refs_after_pyramid_load_before_mario_init window).
+Proof.
+  intros before after_load pool_block outside_slot
+    destination_spawn_slot Houtside Hactive_after_load.
+  exists (outside_shell_ride_load_window
+            outside_slot destination_spawn_slot).
+  split; [reflexivity |].
+  split.
+  - exists outside_slot.
+    split; [exact Houtside |].
+    split; [exact Hactive_after_load |].
+    unfold mario_reference_origin_list,
+      outside_shell_ride_load_window, outside_shell_ride_refs.
+    simpl.
+    left; reflexivity.
+  - exists outside_slot.
+    split; [exact Houtside |].
+    split; [exact Hactive_after_load |].
+    unfold outside_shell_ride_load_window, outside_shell_ride_refs.
+    simpl.
+    reflexivity.
 Qed.
 
 Theorem held_grab_stale_slot_alias_is_conditional_on_reuse :
@@ -235,6 +343,44 @@ Proof.
     subst alias_window.
     exact Halias.
   - exact Hclean.
+Qed.
+
+Theorem ridden_shell_stale_slot_alias_is_conditional_on_reuse :
+  forall before after_load pool_block outside_slot destination_spawn_slot,
+    outside_live_slot before pool_block outside_slot ->
+    slot_active after_load pool_block outside_slot ->
+    exists window,
+      window =
+        outside_shell_ride_load_window outside_slot destination_spawn_slot /\
+      technical_stale_pointer_smuggled_into_load_window
+        before pool_block window /\
+      technical_stale_slot_alias_during_load
+        before after_load pool_block window /\
+      stale_ridden_reference_aliases_live_slot
+        before after_load pool_block
+        (refs_after_pyramid_load_before_mario_init window) /\
+      no_technical_stale_pointer_after_mario_reinit
+        before pool_block window.
+Proof.
+  intros before after_load pool_block outside_slot
+    destination_spawn_slot Houtside Hactive_after_load.
+  destruct
+    (outside_shell_ride_can_leave_ridden_stale_reference_across_pyramid_load
+       before pool_block outside_slot destination_spawn_slot Houtside)
+    as (window & Hwindow & Hstale & _ & Hclean).
+  destruct
+    (ridden_shell_stale_reference_would_alias_reused_slot_after_load
+       before after_load pool_block outside_slot destination_spawn_slot
+       Houtside Hactive_after_load)
+    as (alias_window & Halias_window & Halias & Hridden_alias).
+  exists window.
+  split; [exact Hwindow |].
+  split; [exact Hstale |].
+  subst window.
+  inversion Halias_window.
+  subst alias_window.
+  split; [exact Halias |].
+  split; [exact Hridden_alias | exact Hclean].
 Qed.
 
 Theorem deactivated_raw_slot_reuse_is_not_continuous_transfer :
