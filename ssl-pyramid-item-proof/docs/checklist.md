@@ -57,12 +57,17 @@ executions.
   `create_object -> allocate_object -> try_allocate_object` path far enough to
   show it reads/pops that same free-list head, or count how many newer freed
   slots sit above the watched slot.
-- [ ] Prove generated `allocate_object` produces the normalized `assign_loc`
-  consumed by `assign_loc_active_flags_allocation_store`.
-  The raw `Mem.store Mint16signed` part after `assign_loc` is done.
-- [ ] Prove generated `geo_obj_init_spawninfo` produces the normalized
-  active-area `assign_loc` consumed by `assign_loc_active_area_store`.
-  The raw `Mem.store Mint8signed` part after `assign_loc` is done.
+- [ ] Finish generated `allocate_object` activeFlags normalization.
+  Done now: exact generated `Sassign` inversion exposes the
+  lvalue/rhs/cast/`assign_loc` package, and the RHS is proven to store
+  `Vint 257`. Still missing: normalize the lvalue to the watched pool slot's
+  exact `activeFlags` address.
+- [ ] Finish generated `geo_obj_init_spawninfo` active-area normalization.
+  Done now: exact generated active-area `Sset _t'6 = spawn->activeAreaIndex`
+  plus `Sassign graphNode->activeAreaIndex = _t'6` inversion exposes the
+  generated assignment effect. Still missing: prove the spawn value is area 2
+  at this point and normalize the graphNode lvalue to the watched pool slot's
+  exact `activeAreaIndex` address.
 - [ ] Derive `generated_unload_execution_trace` from the real
   `f_unload_objects_from_area` 13-list loop. The certificate adapter and
   index-based suffix split are done; the remaining beast is proving the loop
@@ -224,8 +229,16 @@ prove the scary thing?"
   raw `Mem.store` facts for activeFlags and activeArea.
 - `StaleWindowObservation.v` packages those normalized stores into
   `same_slot_pyramid_allocation_store_trace_from_linked_assign_locs`.
-- The remaining missing receipt is not the raw store after `assign_loc`; it is
-  deriving those `assign_loc`s from actual linked `exec_stmt` bodies.
+- New lower-level inversion progress:
+  `exec_allocate_object_active_flags_assign_exposes_sassign_effect` exposes the
+  generated activeFlags assignment package, and
+  `exec_allocate_object_active_flags_assign_exposes_value_effect` proves the
+  generated RHS/cast side is exactly `Vint 257`.
+  `exec_geo_obj_init_spawninfo_active_area_copy_exposes_effect` exposes the
+  generated active-area copy as the real `Sset` plus `Sassign` pair.
+- The remaining missing receipt is now specifically lvalue/source
+  normalization: turn those generated assignment-effect packages into the
+  exact watched-slot `assign_loc`s consumed by the raw `Mem.store` bridge.
 
 ## Things that are probably proof grind, not counterexample smell
 

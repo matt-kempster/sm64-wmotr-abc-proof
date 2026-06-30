@@ -11,7 +11,8 @@
 
 From Coq Require Import List ZArith.
 Import ListNotations.
-From compcert Require Import AST Clight Clightdefs Ctypes Integers Memory Values.
+From compcert Require Import AST Clight ClightBigstep Clightdefs Coqlib Ctypes
+  Events Integers Maps Memory Values.
 From SSLPyramid.Proofs Require Import
   ASTFacts GraphTraversalModel NonMarioReferenceFacts OutsideObjectChannels
   RenderHeldObjectFacts Spec StalePointerModel TransitionFacts
@@ -507,6 +508,135 @@ Proof.
   - eapply assign_loc_active_area_store; eauto.
 Qed.
 
+Definition geo_obj_init_spawninfo_active_area_source : expr :=
+  Efield
+    (Ederef
+      (Etempvar G._spawn (tptr (Tstruct G._SpawnInfo noattr)))
+      (Tstruct G._SpawnInfo noattr))
+    G._activeAreaIndex tschar.
+
+Definition geo_obj_init_spawninfo_active_area_lhs : expr :=
+  Efield
+    (Ederef
+      (Etempvar G._graphNode
+        (tptr (Tstruct G._GraphNodeObject noattr)))
+      (Tstruct G._GraphNodeObject noattr))
+    G._activeAreaIndex tschar.
+
+Definition geo_obj_init_spawninfo_active_area_rhs : expr :=
+  Etempvar G._t'6 tschar.
+
+Definition geo_obj_init_spawninfo_active_area_set : statement :=
+  Sset G._t'6 geo_obj_init_spawninfo_active_area_source.
+
+Definition geo_obj_init_spawninfo_active_area_assign : statement :=
+  Sassign geo_obj_init_spawninfo_active_area_lhs
+    geo_obj_init_spawninfo_active_area_rhs.
+
+Definition geo_obj_init_spawninfo_active_area_copy : statement :=
+  Ssequence geo_obj_init_spawninfo_active_area_set
+    geo_obj_init_spawninfo_active_area_assign.
+
+Definition geo_obj_init_spawninfo_active_area_copy_effect
+    (e : env) (le : temp_env) (before after : mem) : Prop :=
+  exists read_value,
+    eval_expr graph_node_ge e le before
+      geo_obj_init_spawninfo_active_area_source
+      read_value /\
+    generated_sassign_effect
+      geo_obj_init_spawninfo_active_area_lhs
+      geo_obj_init_spawninfo_active_area_rhs
+      e
+      (PTree.set G._t'6 read_value le)
+      before after.
+
+Theorem exec_geo_obj_init_spawninfo_active_area_assign_exposes_sassign_effect :
+  forall e le memory trace le' memory' outcome,
+    exec_stmt function_entry2 graph_node_ge e le memory
+      geo_obj_init_spawninfo_active_area_assign trace le' memory' outcome ->
+    generated_sassign_effect
+      geo_obj_init_spawninfo_active_area_lhs
+      geo_obj_init_spawninfo_active_area_rhs
+      e le memory memory' /\
+    trace = E0 /\ le' = le /\ outcome = Out_normal.
+Proof.
+  intros e le memory trace le' memory' outcome Hexec.
+  unfold geo_obj_init_spawninfo_active_area_assign in Hexec.
+  eapply exec_generated_sassign_effect_from_exec_stmt.
+  exact Hexec.
+Qed.
+
+Theorem exec_geo_obj_init_spawninfo_active_area_copy_exposes_effect :
+  forall e le memory trace le' memory' outcome,
+    exec_stmt function_entry2 graph_node_ge e le memory
+      geo_obj_init_spawninfo_active_area_copy trace le' memory' outcome ->
+    geo_obj_init_spawninfo_active_area_copy_effect e le memory memory' /\
+    trace = E0 /\ outcome = Out_normal.
+Proof.
+  intros e le memory trace le' memory' outcome Hexec.
+  unfold geo_obj_init_spawninfo_active_area_copy in Hexec.
+  inv Hexec.
+  - match goal with
+    | Hset :
+        exec_stmt function_entry2 graph_node_ge e le memory
+          geo_obj_init_spawninfo_active_area_set _ _ _ _ |- _ =>
+        destruct
+          (exec_generated_sset_effect_from_exec_stmt
+            e le memory G._t'6 geo_obj_init_spawninfo_active_area_source
+            _ _ _ _ Hset)
+          as (read_value & Hread & Htrace_set & Hle_set & Hmemory_set
+              & Hout_set);
+        subst
+    end.
+    match goal with
+    | Hassign :
+        exec_stmt function_entry2 graph_node_ge e
+          (PTree.set G._t'6 ?read_value le) memory
+          geo_obj_init_spawninfo_active_area_assign _ _ _ _ |- _ =>
+        destruct
+          (exec_geo_obj_init_spawninfo_active_area_assign_exposes_sassign_effect
+            e (PTree.set G._t'6 read_value le) memory _ _ _ _ Hassign)
+          as (Heffect & Htrace_assign & Hle_assign & Hout_assign);
+        subst
+    end.
+    split.
+    + exists read_value.
+      split; assumption.
+    + repeat split; simpl; reflexivity.
+  - match goal with
+    | Hset :
+        exec_stmt function_entry2 graph_node_ge e le memory
+          geo_obj_init_spawninfo_active_area_set _ _ _ _ |- _ =>
+        destruct
+          (exec_generated_sset_effect_from_exec_stmt
+            e le memory G._t'6 geo_obj_init_spawninfo_active_area_source
+            _ _ _ _ Hset)
+          as (_ & _ & _ & _ & _ & Hout_set);
+        subst
+    end.
+    contradiction.
+Qed.
+
+Definition generated_same_slot_assignment_inversion_audit : Prop :=
+  proposition_of exec_allocate_object_active_flags_assign_exposes_sassign_effect /\
+  proposition_of exec_allocate_object_active_flags_assign_exposes_value_effect /\
+  proposition_of
+    exec_geo_obj_init_spawninfo_active_area_assign_exposes_sassign_effect /\
+  proposition_of
+    exec_geo_obj_init_spawninfo_active_area_copy_exposes_effect.
+
+Theorem generated_same_slot_assignment_inversion_audit_holds :
+  generated_same_slot_assignment_inversion_audit.
+Proof.
+  unfold generated_same_slot_assignment_inversion_audit,
+    proposition_of.
+  split; [exact exec_allocate_object_active_flags_assign_exposes_sassign_effect |].
+  split; [exact exec_allocate_object_active_flags_assign_exposes_value_effect |].
+  split.
+  - exact exec_geo_obj_init_spawninfo_active_area_assign_exposes_sassign_effect.
+  - exact exec_geo_obj_init_spawninfo_active_area_copy_exposes_effect.
+Qed.
+
 Definition same_slot_reuse_generated_order_receipt_audit : Prop :=
   proposition_of generated_same_slot_reuse_order_spine_holds /\
   proposition_of ssl_pyramid_destination_spawn_info_source_supplies_area_2 /\
@@ -519,7 +649,8 @@ Definition same_slot_reuse_generated_order_receipt_audit : Prop :=
   proposition_of unload_order_suffix_gives_watched_slot_free_list_depth /\
   proposition_of same_slot_pyramid_allocation_store_trace_from_receipt /\
   proposition_of
-    same_slot_pyramid_allocation_store_trace_from_linked_assign_locs.
+    same_slot_pyramid_allocation_store_trace_from_linked_assign_locs /\
+  proposition_of generated_same_slot_assignment_inversion_audit_holds.
 
 Theorem ssl_pyramid_destination_allocations_reach_slot_if_depth_below_70 :
   forall newer_slots older_slots watched_slot,
@@ -713,7 +844,8 @@ Proof.
   split; [exact watched_slot_under_newer_free_slots_needs_enough_allocations |].
   split; [exact unload_order_suffix_gives_watched_slot_free_list_depth |].
   split; [exact same_slot_pyramid_allocation_store_trace_from_receipt |].
-  exact same_slot_pyramid_allocation_store_trace_from_linked_assign_locs.
+  split; [exact same_slot_pyramid_allocation_store_trace_from_linked_assign_locs |].
+  exact generated_same_slot_assignment_inversion_audit_holds.
 Qed.
 
 Theorem held_grab_reused_slot_alias_is_technical_not_gameplay_useful :
