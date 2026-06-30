@@ -920,6 +920,26 @@ The current channel classification is also mechanized there:
 - `outside_pyramid_classification_is_not_irrelevant` records that none of the
   nine mechanized channels is being thrown away as irrelevant.
 
+The direct grabbable branch is now closed explicitly.  The exact direct
+grabbable channel list is:
+
+- `ChannelSmallBreakableBox`;
+- `ChannelFirstBobomb`;
+- `ChannelSecondBobomb`;
+- `ChannelFirstJumpingBox`;
+- `ChannelSecondJumpingBox`.
+
+`outside_pyramid_direct_grabbable_channels_exact` ties those channel IDs to
+the generated behaviors and coordinates, while
+`outside_pyramid_held_reference_channels_are_exact_direct_grabbables` proves
+that the held-reference classification list is exactly this direct-grabbable
+list.  Generated interaction evidence then pins the path: `interact_grabbable`
+writes Mario's `interactObj` after `able_to_grab_object` and does not write
+`usedObj` or `riddenObj`; `mario_grab_used_object` copies `usedObj` into
+`heldObj` and does not write `riddenObj`.  The wrapper
+`direct_grabbable_held_stale_reference_audit_holds` connects those facts to the
+existing held-object stale-window and same-slot-reuse counterexample model.
+
 The shell/ridden path has first-class generated evidence now:
 `shell_channel_generated_ridden_object_evidence` ties the shell-box contents to
 `bhvKoopaShell`, pins the shell hitbox to `INTERACT_KOOPA_SHELL`, shows
