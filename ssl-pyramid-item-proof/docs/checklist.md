@@ -57,17 +57,21 @@ executions.
   `create_object -> allocate_object -> try_allocate_object` path far enough to
   show it reads/pops that same free-list head, or count how many newer freed
   slots sit above the watched slot.
-- [ ] Finish generated `allocate_object` activeFlags normalization.
-  Done now: exact generated `Sassign` inversion exposes the
-  lvalue/rhs/cast/`assign_loc` package, and the RHS is proven to store
-  `Vint 257`. Still missing: normalize the lvalue to the watched pool slot's
-  exact `activeFlags` address.
-- [ ] Finish generated `geo_obj_init_spawninfo` active-area normalization.
-  Done now: exact generated active-area `Sset _t'6 = spawn->activeAreaIndex`
-  plus `Sassign graphNode->activeAreaIndex = _t'6` inversion exposes the
-  generated assignment effect. Still missing: prove the spawn value is area 2
-  at this point and normalize the graphNode lvalue to the watched pool slot's
-  exact `activeAreaIndex` address.
+- [x] Finish generated `allocate_object` activeFlags normalization.
+  `exec_allocate_object_active_flags_assign_exposes_slot_assign_loc` now says
+  the generated assignment writes `Vint 257` to the watched pool slot's exact
+  `activeFlags` address.
+- [x] Finish the local generated `geo_obj_init_spawninfo` active-area
+  normalization.
+  `geo_obj_init_spawninfo_active_area_copy_effect_assign_loc` says that if the
+  source spawn struct reads `activeAreaIndex = 2`, the generated
+  `_t'6 = spawn->activeAreaIndex; graphNode->activeAreaIndex = _t'6` copy
+  writes `Vint 2` to the watched pool slot's exact `activeAreaIndex` address.
+- [ ] Derive the source spawn-memory receipt
+  `spawninfo_active_area_read ... ssl_pyramid_area` from the actual destination
+  spawn construction / level-script execution. The local generated copy proof
+  is done; the remaining seam is proving that this particular `spawn` pointer
+  really is one of the Pyramid area-2 spawn infos.
 - [ ] Derive `generated_unload_execution_trace` from the real
   `f_unload_objects_from_area` 13-list loop. The certificate adapter and
   index-based suffix split are done; the remaining beast is proving the loop
@@ -236,9 +240,18 @@ prove the scary thing?"
   generated RHS/cast side is exactly `Vint 257`.
   `exec_geo_obj_init_spawninfo_active_area_copy_exposes_effect` exposes the
   generated active-area copy as the real `Sset` plus `Sassign` pair.
-- The remaining missing receipt is now specifically lvalue/source
-  normalization: turn those generated assignment-effect packages into the
-  exact watched-slot `assign_loc`s consumed by the raw `Mem.store` bridge.
+- Newer lower-level receipt:
+  `exec_allocate_object_active_flags_assign_exposes_slot_assign_loc` closes the
+  activeFlags value+lvalue normalization all the way to the watched slot.
+  `geo_obj_init_spawninfo_active_area_copy_effect_assign_loc` closes the
+  activeArea value+lvalue normalization under the precise source-memory
+  premise `spawninfo_active_area_read ... ssl_pyramid_area`.
+  `concrete_same_slot_allocation_assign_locs_from_generated_effects` composes
+  those two local generated effects into the existing same-slot assign-loc
+  receipt.
+- The remaining missing receipt is now specifically source construction:
+  derive `spawninfo_active_area_read` for the concrete destination Pyramid
+  spawn pointer from the real level-script/spawn-info execution path.
 
 ## Things that are probably proof grind, not counterexample smell
 

@@ -1860,6 +1860,134 @@ Definition allocate_object_active_flags_value_effect
     assign_loc unload_object_ce tshort before loc ofs bf
       (Vint (Int.repr 257)) after.
 
+Lemma object_struct_deref_loc_pointer_same :
+  forall memory object_block object_offset loc ofs,
+    deref_loc (Tstruct S._Object noattr) memory object_block
+      object_offset Full (Vptr loc ofs) ->
+    loc = object_block /\ ofs = object_offset.
+Proof.
+  intros memory object_block object_offset loc ofs Hderef.
+  inv Hderef;
+    simpl in *;
+    try discriminate.
+  split; reflexivity.
+Qed.
+
+Lemma eval_allocate_object_active_flags_lvalue_normalizes :
+  forall e le memory pool_block slot loc ofs bf,
+    le ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) ->
+    eval_lvalue unload_object_ge e le memory
+      allocate_object_active_flags_lhs loc ofs bf ->
+    loc = pool_block /\
+    ofs =
+      Ptrofs.add
+        (Ptrofs.repr ((slot * object_slot_size)%Z))
+        (Ptrofs.repr object_active_flags_offset) /\
+    bf = Full.
+Proof.
+  intros e le memory pool_block slot loc ofs bf Hobj Hlv.
+  unfold allocate_object_active_flags_lhs in Hlv.
+  inv Hlv;
+    [ | match goal with Hut : typeof _ = Tunion _ _ |- _ => inv Hut end ].
+  match goal with
+  | Hbase :
+      eval_expr unload_object_ge e le memory
+        (Ederef
+          (Etempvar S._obj (tptr (Tstruct S._Object noattr)))
+          (Tstruct S._Object noattr))
+        (Vptr ?base_block ?base_ofs) |- _ =>
+      inv Hbase
+  end.
+  match goal with
+  | Hptr : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ => inv Hptr
+  end.
+  match goal with
+  | Htemp :
+      eval_expr unload_object_ge e le memory
+        (Etempvar S._obj (tptr (Tstruct S._Object noattr)))
+        (Vptr ?base_block ?base_ofs) |- _ =>
+      inv Htemp;
+      try (match goal with
+           | Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ =>
+               solve [inv Hl]
+           end)
+  end.
+  match goal with
+  | Hlookup : ?temps ! S._obj = Some (Vptr ?base_block ?base_ofs) |- _ =>
+      assert (base_block = pool_block) by congruence;
+      assert (base_ofs = Ptrofs.repr (slot * object_slot_size)) by congruence;
+      subst base_block base_ofs
+  end.
+  all:
+    try match goal with
+    | Hderef :
+        deref_loc (Tstruct S._Object noattr) ?mem ?object_block
+          ?object_offset Full (Vptr ?base_block ?base_ofs)
+        |- _ =>
+        pose proof
+          (object_struct_deref_loc_pointer_same
+            mem object_block object_offset base_block base_ofs Hderef)
+          as (Hbase_block & Hbase_ofs);
+        subst base_block base_ofs
+    end.
+  rewrite unload_object_genv_cenv in *.
+  repeat match goal with
+  | H : context[typeof (Ederef _ _)] |- _ => cbn [typeof] in H
+  | H : context[typeof (Etempvar _ _)] |- _ => cbn [typeof] in H
+  end.
+  match goal with Hty : Tstruct _ _ = Tstruct _ _ |- _ => inv Hty end.
+  match goal with
+  | Hco : unload_object_ce ! S._Object = Some ?co,
+    Hfield :
+      field_offset unload_object_ce S._activeFlags (co_members ?co) =
+      OK (?delta, ?field_bf) |- _ =>
+      assert (Hmembers : co_members co = unload_object_members) by
+        (unfold unload_object_members; rewrite Hco; reflexivity);
+      rewrite Hmembers in Hfield;
+      rewrite unload_object_active_flags_layout in Hfield;
+      inv Hfield
+  end.
+  all:
+    repeat match goal with
+    | Hderef :
+        deref_loc (Tstruct S._Object noattr) ?mem ?object_block
+          ?object_offset Full (Vptr ?base_block ?base_ofs)
+        |- _ =>
+        let Hsame := fresh "Hsame" in
+        pose proof
+          (object_struct_deref_loc_pointer_same
+            mem object_block object_offset base_block base_ofs Hderef)
+          as Hsame;
+        destruct Hsame as [? ?];
+        subst base_block base_ofs
+    end;
+    repeat split; reflexivity.
+Qed.
+
+Theorem allocate_object_active_flags_value_effect_assign_loc :
+  forall e le memory memory' pool_block slot,
+    le ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) ->
+    allocate_object_active_flags_value_effect e le memory memory' ->
+    assign_loc unload_object_ce tshort memory pool_block
+      (Ptrofs.add
+        (Ptrofs.repr ((slot * object_slot_size)%Z))
+        (Ptrofs.repr object_active_flags_offset))
+      Full (Vint (Int.repr 257)) memory'.
+Proof.
+  intros e le memory memory' pool_block slot Hobj Heffect.
+  destruct Heffect as (loc & ofs & bf & Hlv & Hassign).
+  pose proof
+    (eval_allocate_object_active_flags_lvalue_normalizes
+      e le memory pool_block slot loc ofs bf Hobj Hlv)
+    as (Hloc & Hofs & Hbf).
+  subst loc ofs bf.
+  exact Hassign.
+Qed.
+
 Lemma eval_allocate_object_active_flags_rhs_value :
   forall e le memory raw_value,
     eval_expr unload_object_ge e le memory
@@ -1960,6 +2088,30 @@ Proof.
   split.
   - apply allocate_object_active_flags_sassign_effect_has_value.
     exact Heffect.
+  - repeat split; assumption.
+Qed.
+
+Theorem exec_allocate_object_active_flags_assign_exposes_slot_assign_loc :
+  forall (e : env) le memory pool_block slot trace le' memory' outcome,
+    le ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) ->
+    exec_stmt function_entry2 unload_object_ge e le memory
+      allocate_object_active_flags_assign trace le' memory' outcome ->
+    assign_loc unload_object_ce tshort memory pool_block
+      (Ptrofs.add
+        (Ptrofs.repr ((slot * object_slot_size)%Z))
+        (Ptrofs.repr object_active_flags_offset))
+      Full (Vint (Int.repr 257)) memory' /\
+    trace = E0 /\ le' = le /\ outcome = Out_normal.
+Proof.
+  intros e le memory pool_block slot trace le' memory' outcome Hobj Hexec.
+  destruct
+    (exec_allocate_object_active_flags_assign_exposes_value_effect
+      e le memory trace le' memory' outcome Hexec)
+    as (Heffect & Htrace & Hle & Houtcome).
+  split.
+  - eapply allocate_object_active_flags_value_effect_assign_loc; eauto.
   - repeat split; assumption.
 Qed.
 
