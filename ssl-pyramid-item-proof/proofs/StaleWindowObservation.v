@@ -12,7 +12,7 @@
 From Coq Require Import List ZArith.
 Import ListNotations.
 From compcert Require Import AST Clight ClightBigstep Clightdefs Coqlib Ctypes
-  Events Integers Maps Memory Values.
+  Errors Events Integers Maps Memory Values.
 From SSLPyramid.Proofs Require Import
   ASTFacts GraphTraversalModel NonMarioReferenceFacts OutsideObjectChannels
   RenderHeldObjectFacts Spec StalePointerModel TransitionFacts
@@ -537,6 +537,282 @@ Definition geo_obj_init_spawninfo_active_area_copy : statement :=
   Ssequence geo_obj_init_spawninfo_active_area_set
     geo_obj_init_spawninfo_active_area_assign.
 
+Definition generated_graph_node_object_members : members :=
+  match graph_node_ce ! G._GraphNodeObject with
+  | Some composite => co_members composite
+  | None => nil
+  end.
+
+Definition generated_spawn_info_members : members :=
+  match graph_node_ce ! G._SpawnInfo with
+  | Some composite => co_members composite
+  | None => nil
+  end.
+
+Definition spawn_info_active_area_offset : Z := 13.
+
+Theorem generated_graph_node_object_active_area_layout :
+  field_offset graph_node_ce G._activeAreaIndex
+    generated_graph_node_object_members =
+  OK (object_active_area_offset, Full).
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem generated_spawn_info_active_area_layout :
+  field_offset graph_node_ce G._activeAreaIndex
+    generated_spawn_info_members =
+  OK (spawn_info_active_area_offset, Full).
+Proof. vm_compute; reflexivity. Qed.
+
+Lemma graph_node_object_struct_deref_loc_pointer_same :
+  forall memory object_block object_offset loc ofs,
+    deref_loc (Tstruct G._GraphNodeObject noattr) memory object_block
+      object_offset Full (Vptr loc ofs) ->
+    loc = object_block /\ ofs = object_offset.
+Proof.
+  intros memory object_block object_offset loc ofs Hderef.
+  inv Hderef;
+    simpl in *;
+    try discriminate.
+  split; reflexivity.
+Qed.
+
+Lemma spawn_info_struct_deref_loc_pointer_same :
+  forall memory spawn_block spawn_offset loc ofs,
+    deref_loc (Tstruct G._SpawnInfo noattr) memory spawn_block
+      spawn_offset Full (Vptr loc ofs) ->
+    loc = spawn_block /\ ofs = spawn_offset.
+Proof.
+  intros memory spawn_block spawn_offset loc ofs Hderef.
+  inv Hderef;
+    simpl in *;
+    try discriminate.
+  split; reflexivity.
+Qed.
+
+Definition spawninfo_active_area_read
+    (memory : mem) (spawn_block : block) (spawn_offset : ptrofs)
+    (area : Z) : Prop :=
+  Mem.loadv Mint8signed memory
+    (Vptr spawn_block
+      (Ptrofs.add spawn_offset
+        (Ptrofs.repr spawn_info_active_area_offset))) =
+  Some (Vint (Int.repr area)).
+
+Lemma eval_geo_obj_init_spawninfo_active_area_lvalue_normalizes :
+  forall e le memory pool_block slot loc ofs bf,
+    le ! G._graphNode =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) ->
+    eval_lvalue graph_node_ge e le memory
+      geo_obj_init_spawninfo_active_area_lhs loc ofs bf ->
+    loc = pool_block /\
+    ofs =
+      Ptrofs.add
+        (Ptrofs.repr ((slot * object_slot_size)%Z))
+        (Ptrofs.repr object_active_area_offset) /\
+    bf = Full.
+Proof.
+  intros e le memory pool_block slot loc ofs bf HgraphNode Hlv.
+  unfold geo_obj_init_spawninfo_active_area_lhs in Hlv.
+  inv Hlv;
+    [ | match goal with Hut : typeof _ = Tunion _ _ |- _ => inv Hut end ].
+  match goal with
+  | Hbase :
+      eval_expr graph_node_ge e le memory
+        (Ederef
+          (Etempvar G._graphNode
+            (tptr (Tstruct G._GraphNodeObject noattr)))
+          (Tstruct G._GraphNodeObject noattr))
+        (Vptr ?base_block ?base_ofs) |- _ =>
+      inv Hbase
+  end.
+  match goal with
+  | Hptr : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ => inv Hptr
+  end.
+  match goal with
+  | Htemp :
+      eval_expr graph_node_ge e le memory
+        (Etempvar G._graphNode
+          (tptr (Tstruct G._GraphNodeObject noattr)))
+        (Vptr ?base_block ?base_ofs) |- _ =>
+      inv Htemp;
+      try (match goal with
+           | Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ =>
+               solve [inv Hl]
+           end)
+  end.
+  match goal with
+  | Hlookup : ?temps ! G._graphNode = Some (Vptr ?base_block ?base_ofs) |- _ =>
+      assert (base_block = pool_block) by congruence;
+      assert (base_ofs = Ptrofs.repr (slot * object_slot_size)) by congruence;
+      subst base_block base_ofs
+  end.
+  all:
+    try match goal with
+    | Hderef :
+        deref_loc (Tstruct G._GraphNodeObject noattr) ?mem ?object_block
+          ?object_offset Full (Vptr ?base_block ?base_ofs)
+        |- _ =>
+        pose proof
+          (graph_node_object_struct_deref_loc_pointer_same
+            mem object_block object_offset base_block base_ofs Hderef)
+          as (Hbase_block & Hbase_ofs);
+        subst base_block base_ofs
+    end.
+  rewrite graph_node_genv_cenv in *.
+  repeat match goal with
+  | H : context[typeof (Ederef _ _)] |- _ => cbn [typeof] in H
+  | H : context[typeof (Etempvar _ _)] |- _ => cbn [typeof] in H
+  end.
+  match goal with Hty : Tstruct _ _ = Tstruct _ _ |- _ => inv Hty end.
+  match goal with
+  | Hco : graph_node_ce ! G._GraphNodeObject = Some ?co,
+    Hfield :
+      field_offset graph_node_ce G._activeAreaIndex (co_members ?co) =
+      OK (?delta, ?field_bf) |- _ =>
+      assert (Hmembers : co_members co =
+        generated_graph_node_object_members) by
+        (unfold generated_graph_node_object_members;
+         rewrite Hco; reflexivity);
+      rewrite Hmembers in Hfield;
+      rewrite generated_graph_node_object_active_area_layout in Hfield;
+      inv Hfield
+  end.
+  all:
+    repeat match goal with
+    | Hderef :
+        deref_loc (Tstruct G._GraphNodeObject noattr) ?mem ?object_block
+          ?object_offset Full (Vptr ?base_block ?base_ofs)
+        |- _ =>
+        let Hsame := fresh "Hsame" in
+        pose proof
+          (graph_node_object_struct_deref_loc_pointer_same
+            mem object_block object_offset base_block base_ofs Hderef)
+          as Hsame;
+        destruct Hsame as [? ?];
+        subst base_block base_ofs
+    end;
+    repeat split; reflexivity.
+Qed.
+
+Lemma eval_geo_obj_init_spawninfo_active_area_source_lvalue_normalizes :
+  forall e le memory spawn_block spawn_offset loc ofs bf,
+    le ! G._spawn = Some (Vptr spawn_block spawn_offset) ->
+    eval_lvalue graph_node_ge e le memory
+      geo_obj_init_spawninfo_active_area_source loc ofs bf ->
+    loc = spawn_block /\
+    ofs =
+      Ptrofs.add spawn_offset
+        (Ptrofs.repr spawn_info_active_area_offset) /\
+    bf = Full.
+Proof.
+  intros e le memory spawn_block spawn_offset loc ofs bf Hspawn Hlv.
+  unfold geo_obj_init_spawninfo_active_area_source in Hlv.
+  inv Hlv;
+    [ | match goal with Hut : typeof _ = Tunion _ _ |- _ => inv Hut end ].
+  match goal with
+  | Hbase :
+      eval_expr graph_node_ge e le memory
+        (Ederef
+          (Etempvar G._spawn (tptr (Tstruct G._SpawnInfo noattr)))
+          (Tstruct G._SpawnInfo noattr))
+        (Vptr ?base_block ?base_ofs) |- _ =>
+      inv Hbase
+  end.
+  match goal with
+  | Hptr : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ => inv Hptr
+  end.
+  match goal with
+  | Htemp :
+      eval_expr graph_node_ge e le memory
+        (Etempvar G._spawn (tptr (Tstruct G._SpawnInfo noattr)))
+        (Vptr ?base_block ?base_ofs) |- _ =>
+      inv Htemp;
+      try (match goal with
+           | Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ =>
+               solve [inv Hl]
+           end)
+  end.
+  match goal with
+  | Hlookup : ?temps ! G._spawn = Some (Vptr ?base_block ?base_ofs) |- _ =>
+      assert (base_block = spawn_block) by congruence;
+      assert (base_ofs = spawn_offset) by congruence;
+      subst base_block base_ofs
+  end.
+  all:
+    try match goal with
+    | Hderef :
+        deref_loc (Tstruct G._SpawnInfo noattr) ?mem ?object_block
+          ?object_offset Full (Vptr ?base_block ?base_ofs)
+        |- _ =>
+        pose proof
+          (spawn_info_struct_deref_loc_pointer_same
+            mem object_block object_offset base_block base_ofs Hderef)
+          as (Hbase_block & Hbase_ofs);
+        subst base_block base_ofs
+    end.
+  rewrite graph_node_genv_cenv in *.
+  repeat match goal with
+  | H : context[typeof (Ederef _ _)] |- _ => cbn [typeof] in H
+  | H : context[typeof (Etempvar _ _)] |- _ => cbn [typeof] in H
+  end.
+  match goal with Hty : Tstruct _ _ = Tstruct _ _ |- _ => inv Hty end.
+  match goal with
+  | Hco : graph_node_ce ! G._SpawnInfo = Some ?co,
+    Hfield :
+      field_offset graph_node_ce G._activeAreaIndex (co_members ?co) =
+      OK (?delta, ?field_bf) |- _ =>
+      assert (Hmembers : co_members co = generated_spawn_info_members) by
+        (unfold generated_spawn_info_members;
+         rewrite Hco; reflexivity);
+      rewrite Hmembers in Hfield;
+      rewrite generated_spawn_info_active_area_layout in Hfield;
+      inv Hfield
+  end.
+  all:
+    repeat match goal with
+    | Hderef :
+        deref_loc (Tstruct G._SpawnInfo noattr) ?mem ?object_block
+          ?object_offset Full (Vptr ?base_block ?base_ofs)
+        |- _ =>
+        let Hsame := fresh "Hsame" in
+        pose proof
+          (spawn_info_struct_deref_loc_pointer_same
+            mem object_block object_offset base_block base_ofs Hderef)
+          as Hsame;
+        destruct Hsame as [? ?];
+        subst base_block base_ofs
+    end;
+    repeat split; reflexivity.
+Qed.
+
+Lemma eval_geo_obj_init_spawninfo_active_area_source_reads_area :
+  forall e le memory spawn_block spawn_offset area raw_value,
+    le ! G._spawn = Some (Vptr spawn_block spawn_offset) ->
+    spawninfo_active_area_read memory spawn_block spawn_offset area ->
+    eval_expr graph_node_ge e le memory
+      geo_obj_init_spawninfo_active_area_source raw_value ->
+    raw_value = Vint (Int.repr area).
+Proof.
+  intros e le memory spawn_block spawn_offset area raw_value
+    Hspawn Hload Hexpr.
+  unfold spawninfo_active_area_read in Hload.
+  inv Hexpr.
+  pose proof
+    (eval_geo_obj_init_spawninfo_active_area_source_lvalue_normalizes
+      e le memory spawn_block spawn_offset loc ofs bf Hspawn H)
+    as (Hloc & Hofs & Hbf).
+  subst loc ofs bf.
+  inv H0;
+    simpl in *;
+    try discriminate.
+  inversion H1; subst.
+  unfold Mem.loadv in H2.
+  rewrite Hload in H2.
+  inv H2.
+  reflexivity.
+Qed.
+
 Definition geo_obj_init_spawninfo_active_area_copy_effect
     (e : env) (le : temp_env) (before after : mem) : Prop :=
   exists read_value,
@@ -617,13 +893,109 @@ Proof.
     contradiction.
 Qed.
 
+Theorem geo_obj_init_spawninfo_active_area_copy_effect_assign_loc :
+  forall e le before after pool_block slot spawn_block spawn_offset,
+    le ! G._graphNode =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) ->
+    le ! G._spawn = Some (Vptr spawn_block spawn_offset) ->
+    spawninfo_active_area_read
+      before spawn_block spawn_offset ssl_pyramid_area ->
+    geo_obj_init_spawninfo_active_area_copy_effect e le before after ->
+    assign_loc graph_node_ge tschar before pool_block
+      (Ptrofs.add
+        (Ptrofs.repr ((slot * object_slot_size)%Z))
+        (Ptrofs.repr object_active_area_offset))
+      Full (Vint (Int.repr ssl_pyramid_area)) after.
+Proof.
+  intros e le before after pool_block slot spawn_block spawn_offset
+    HgraphNode Hspawn Hspawn_area Heffect.
+  destruct Heffect as (read_value & Hread & Heffect).
+  pose proof
+    (eval_geo_obj_init_spawninfo_active_area_source_reads_area
+      e le before spawn_block spawn_offset ssl_pyramid_area
+      read_value Hspawn Hspawn_area Hread) as Hread_value.
+  subst read_value.
+  destruct Heffect as
+    (loc & ofs & bf & raw_value & stored_value &
+      Hlv & Hrhs & Hcast & Hassign).
+  unfold geo_obj_init_spawninfo_active_area_rhs in Hrhs.
+  inv Hrhs;
+    try (match goal with
+         | Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ =>
+             solve [inv Hl]
+         end).
+  match goal with
+  | Hlookup :
+      (PTree.set G._t'6 (Vint (Int.repr ssl_pyramid_area)) le) !
+        G._t'6 = Some ?raw |- _ =>
+      rewrite PTree.gss in Hlookup;
+      inv Hlookup
+  end.
+  vm_compute in Hcast.
+  inv Hcast.
+  assert (HgraphNode_after_set :
+    (PTree.set G._t'6 (Vint (Int.repr ssl_pyramid_area)) le) !
+      G._graphNode =
+    Some (Vptr pool_block
+      (Ptrofs.repr ((slot * object_slot_size)%Z)))).
+  { rewrite PTree.gso.
+    - exact HgraphNode.
+    - intro Heq.
+      vm_compute in Heq.
+      discriminate. }
+  pose proof
+    (eval_geo_obj_init_spawninfo_active_area_lvalue_normalizes
+      e
+      (PTree.set G._t'6 (Vint (Int.repr ssl_pyramid_area)) le)
+      before pool_block slot loc ofs bf
+      HgraphNode_after_set Hlv) as (Hloc & Hofs & Hbf).
+  subst loc ofs bf.
+  cbn in Hassign.
+  exact Hassign.
+Qed.
+
+Theorem concrete_same_slot_allocation_assign_locs_from_generated_effects :
+  forall allocation_e allocation_le active_area_e active_area_le
+      allocation_start after_active_flags_store after_load
+      pool_block slot spawn_block spawn_offset,
+    allocation_le ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) ->
+    allocate_object_active_flags_value_effect
+      allocation_e allocation_le allocation_start after_active_flags_store ->
+    active_area_le ! G._graphNode =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) ->
+    active_area_le ! G._spawn = Some (Vptr spawn_block spawn_offset) ->
+    spawninfo_active_area_read
+      after_active_flags_store spawn_block spawn_offset ssl_pyramid_area ->
+    geo_obj_init_spawninfo_active_area_copy_effect
+      active_area_e active_area_le after_active_flags_store after_load ->
+    concrete_same_slot_allocation_assign_locs graph_node_ge
+      allocation_start after_active_flags_store after_load pool_block slot.
+Proof.
+  intros allocation_e allocation_le active_area_e active_area_le
+    allocation_start after_active_flags_store after_load
+    pool_block slot spawn_block spawn_offset
+    Hobj Heffect_active_flags HgraphNode Hspawn Hspawn_area
+    Heffect_active_area.
+  constructor.
+  - unfold object_allocation_active_flags_value.
+    eapply allocate_object_active_flags_value_effect_assign_loc; eauto.
+  - eapply geo_obj_init_spawninfo_active_area_copy_effect_assign_loc; eauto.
+Qed.
+
 Definition generated_same_slot_assignment_inversion_audit : Prop :=
   proposition_of exec_allocate_object_active_flags_assign_exposes_sassign_effect /\
   proposition_of exec_allocate_object_active_flags_assign_exposes_value_effect /\
+  proposition_of exec_allocate_object_active_flags_assign_exposes_slot_assign_loc /\
   proposition_of
     exec_geo_obj_init_spawninfo_active_area_assign_exposes_sassign_effect /\
   proposition_of
-    exec_geo_obj_init_spawninfo_active_area_copy_exposes_effect.
+    exec_geo_obj_init_spawninfo_active_area_copy_exposes_effect /\
+  proposition_of geo_obj_init_spawninfo_active_area_copy_effect_assign_loc /\
+  proposition_of concrete_same_slot_allocation_assign_locs_from_generated_effects.
 
 Theorem generated_same_slot_assignment_inversion_audit_holds :
   generated_same_slot_assignment_inversion_audit.
@@ -632,9 +1004,12 @@ Proof.
     proposition_of.
   split; [exact exec_allocate_object_active_flags_assign_exposes_sassign_effect |].
   split; [exact exec_allocate_object_active_flags_assign_exposes_value_effect |].
+  split; [exact exec_allocate_object_active_flags_assign_exposes_slot_assign_loc |].
   split.
   - exact exec_geo_obj_init_spawninfo_active_area_assign_exposes_sassign_effect.
-  - exact exec_geo_obj_init_spawninfo_active_area_copy_exposes_effect.
+  - split; [exact exec_geo_obj_init_spawninfo_active_area_copy_exposes_effect |].
+    split; [exact geo_obj_init_spawninfo_active_area_copy_effect_assign_loc |].
+    exact concrete_same_slot_allocation_assign_locs_from_generated_effects.
 Qed.
 
 Definition same_slot_reuse_generated_order_receipt_audit : Prop :=
