@@ -1,6 +1,6 @@
 # SSL Pyramid item proof checklist
 
-Last updated: 2026-06-28
+Last updated: 2026-06-30
 
 Tiny vibe check: this is the human-readable TODO list for the "can we smuggle
 stuff into SSL Pyramid?" proof. The Coq files are the machine's truth. This
@@ -28,8 +28,17 @@ newly suspicious, update this file in the same round.
   work stays clean.
 - [x] Use the CompCert `clightgen` route like the WMotR proof.
 - [x] Document the pinned SM64 source / generated-Clight route.
-- [ ] Confirm whether extra ROM-derived assets are needed for the remaining
-  generated files. If yes: ask for the ROM instead of pretending.
+- [x] Confirm whether extra ROM-derived assets are needed for the remaining
+  generated files. Current answer: not for the generated-file work presently
+  on the checklist. The 17 Clight TUs we are proving against are checked in,
+  the proof pipeline uses those directly, and probe-regenerating representative
+  scary inputs (`area.c`, `levels/ssl/script.c`, `src/audio/external.c`, and
+  the giant `behavior_actions.c`) works from the pinned source checkout even
+  though this machine does not currently have `reference-sm64-decomp/build/us`.
+  So no ROM request right now. If we later add a TU or reproduction step that
+  actually needs ROM-extracted build assets/headers, full ROM byte-compare, or
+  emulator corroboration, stop and ask for a legally obtained US ROM instead
+  of doing the proof-goblin "probably fine" shuffle.
 - [ ] Make the build/rebuild story reproducible for a human on a normal setup,
   not just this one WSL box.
 
