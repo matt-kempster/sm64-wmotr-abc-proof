@@ -840,6 +840,30 @@ Proof.
   apply freshly_allocated_destination_object_owned_epoch_invariant.
 Qed.
 
+Theorem count_zero_collided_storage_has_no_active_origins :
+  forall stale_collided_storage,
+    active_collided_object_origins_after_count
+      0 stale_collided_storage = [].
+Proof. reflexivity. Qed.
+
+Definition collided_object_array_count_guard_audit : Prop :=
+  proposition_of generated_collided_object_array_readers /\
+  proposition_of generated_collided_object_array_reads_are_count_preceded /\
+  proposition_of object_owned_collided_object_array_writers /\
+  proposition_of count_zero_collided_storage_has_no_active_origins.
+
+Theorem collided_object_array_count_guard_audit_holds :
+  collided_object_array_count_guard_audit.
+Proof.
+  unfold collided_object_array_count_guard_audit, proposition_of.
+  repeat split;
+    first
+      [ exact generated_collided_object_array_readers
+      | exact generated_collided_object_array_reads_are_count_preceded
+      | exact object_owned_collided_object_array_writers
+      | exact count_zero_collided_storage_has_no_active_origins ].
+Qed.
+
 Theorem object_owned_observations_clean_or_counterexample :
   forall before pool_block observations,
     object_owned_root_epoch_invariant before pool_block observations \/
@@ -955,6 +979,7 @@ Definition channel_side_survivor_elimination_certificate : Prop :=
   proposition_of allocate_object_object_owned_root_init_audit_holds /\
   proposition_of spawn_objects_from_info_linked_object_owned_audit_holds /\
   proposition_of freshly_allocated_destination_object_owned_roots_do_not_survive /\
+  proposition_of collided_object_array_count_guard_audit_holds /\
   proposition_of object_owned_observations_clean_or_counterexample /\
   proposition_of graph_or_render_root_epoch_invariant_eliminates_survivors /\
   proposition_of graph_or_render_root_origin_survivor_is_counterexample_candidate /\
@@ -975,6 +1000,7 @@ Proof.
       | exact allocate_object_object_owned_root_init_audit_holds
       | exact spawn_objects_from_info_linked_object_owned_audit_holds
       | exact freshly_allocated_destination_object_owned_roots_do_not_survive
+      | exact collided_object_array_count_guard_audit_holds
       | exact object_owned_observations_clean_or_counterexample
       | exact graph_or_render_root_epoch_invariant_eliminates_survivors
       | exact graph_or_render_root_origin_survivor_is_counterexample_candidate

@@ -439,6 +439,19 @@ counterexample-shaped goblin.
   entries as live roots. If some later code reads beyond that count, that would
   be a new bug-shaped creature, not the normal load-path story.
 
+  That tiny gremlin now has a smaller cage:
+  `generated_collided_object_array_readers` says the generated proof universe's
+  `collidedObjs` readers are exactly `mario_get_collided_object`,
+  `obj_check_if_collided_with_object`, and
+  `obj_attack_collided_from_other_object`. The companion
+  `generated_collided_object_array_reads_are_count_preceded` says each of those
+  readers consults `numCollidedObjs` before the array read, and
+  `collided_object_array_count_guard_audit_holds` connects that to the
+  zero-count model fact. The remaining not-fully-generated receipt is
+  `src/game/object_collision.c`: source shows the same count discipline plus
+  the collision writer/reset path, but that file is not currently one of our
+  clightgen inputs.
+
   Also fixed the mental model for the platform helpers:
   `spawn_objects_from_info_linked_object_owned_audit_holds` shows the linked
   generated body of `spawn_objects_from_info` does call
@@ -733,10 +746,10 @@ the object-owned fresh-allocation sweep:
   `load_area -> spawn_objects_from_info -> create_object -> allocate_object`
   execution path. The fresh object shape is clean now; the remaining receipt is
   linked execution, not a likely counterexample;
-- keep the collision-array footnote honest: either prove later reads of
-  `collidedObjs` are count-guarded by `numCollidedObjs`, or explicitly keep
-  "read stale raw collision storage despite count zero" as a weird
-  counterexample candidate;
+- finish the collision-array receipt only if we decide to generate/audit
+  `src/game/object_collision.c`; the currently generated readers are now
+  pinned as count-preceded, so the stale raw-storage issue is no longer a
+  generated-reader mystery;
 - connect the render-held elimination to linked execution order: prove the
   relevant `geo_switch_mario_hand_grab_pos` refresh, if observed after Pyramid
   load, is downstream of post-`init_mario` `heldObj = NULL`;
