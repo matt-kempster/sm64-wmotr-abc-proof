@@ -348,6 +348,34 @@ counterexample-shaped goblin.
   Discord goblin translation: Mario's pockets get swept. The weird object and
   graph pockets are still on the corkboard, but any survivor now gets a formal
   little criminal nametag instead of being handwaved.
+- [x] Chase the non-Mario high-risk root survivors after the Mario broom.
+  `non_mario_high_risk_root_survivor_boundary_holds` now splits the scary
+  non-Mario roots into two checked piles:
+  `object_owned_high_risk_roots` (`parentObj`, `prevObj`, `platform`,
+  `collidedObjs`, `rawData.asObject`) and
+  `graph_and_render_high_risk_roots` (`GraphNodeObject.sharedChild`,
+  render-held `GraphNodeHeldObject.objNode`, and generic graph tree/sibling
+  links). The generated cleanup/list side is tied to the real traversal
+  clearing facts (`generated_unload_targets_trace_clears_outside` /
+  `generated_unload_targets_trace_forbids_transfer`), while the graph/render
+  side is tied to the existing graph confinement-or-counterexample theorem.
+  Important caveat, because this is where proof goblins like to hide: those
+  facts clear outside object liveness and constrain graph traversal, but they
+  do not magically erase every object-owned pointer field. So the two explicit
+  survivor lemmas now do the honest thing:
+  `object_owned_root_survivor_is_counterexample_candidate` and
+  `graph_or_render_root_survivor_is_counterexample_candidate` turn any
+  surviving outside allocation epoch in those roots into
+  `persistent_outside_pointer_counterexample_candidate` immediately. Also
+  re-pinned `mario_platform_helper_precleanup_boundary_holds`: the generated
+  load/reinit window still does not call `clear_mario_platform`,
+  `apply_mario_platform_displacement`, or `update_mario_platform`, so those
+  helpers do not jump the queue unless a path proves they can run before the
+  cleanup/rebind broom.
+  Discord goblin translation: no new little criminal caught red-handed, but
+  the suspect lineup now has named mugshot slots. If `platform`,
+  `rawData.asObject`, render-held, or a graph edge survives with an outside
+  epoch, it is formally a counterexample candidate instead of a vibe.
 - [x] Build a type-aware graph-link audit for
   `GraphNode.parent`/`children`/`prev`/`next`. New theorem
   `pyramid_load_window_typed_graph_node_link_audit` ignores fake scares like
@@ -608,19 +636,27 @@ In Discord goblin terms: we proved that everyone on the bouncer's list gets
 thrown out. Now prove the bouncer's list really came from the engine's
 `gObjectLists` clipboard.
 
-Channel-side next bite: chase the non-Mario survivors now that the normal Mario
-root broom is pinned:
+Channel-side next bite: turn the new non-Mario survivor boundary into actual
+elimination facts where possible:
 
-- derive the object-owned roots (`parentObj`, `prevObj`, `platform`,
-  `collidedObjs`, `rawData.asObject`) from the real unload/list cleanup, or
-  instantiate `persistent_outside_pointer_counterexample_candidate` with the
-  surviving field;
-- derive the render-held and graph roots from the real graph unlink/load
-  invariants, or turn the surviving graph/render-held edge into the existing
-  counterexample candidate;
-- chase the externally implemented Mario-platform helpers only after proving
-  they can actually run before the cleanup/rebind path; right now the generated
-  load window does not call them;
+- prove object-owned survivor absence from a real object-pool/list invariant:
+  no current/destination object has `parentObj`, `prevObj`, `platform`,
+  `collidedObjs`, or `rawData.asObject` carrying an outside allocation epoch
+  after the unload/load boundary; if that fails, instantiate
+  `object_owned_root_survivor_is_counterexample_candidate` with the concrete
+  field;
+- prove render-held survivor absence from the real render-held refresh path
+  plus post-`init_mario` `heldObj = NULL`; if that fails, instantiate
+  `graph_or_render_root_survivor_is_counterexample_candidate` with
+  `RootGraphHeldObjectObjNode`;
+- prove graph survivor absence from the graph unlink/load invariant; if that
+  fails, use either the graph traversal counterexample candidate or
+  `graph_or_render_root_survivor_is_counterexample_candidate`, depending on
+  whether the survivor is an outside reachable graph node or an object epoch
+  held by a graph-owned root;
+- only reopen the externally implemented Mario-platform helpers if a generated
+  path actually calls them before cleanup/rebind; the audited load window still
+  does not;
 - if an `action == 0` Pyramid entry still looks possible, treat it as a
   non-normal script/init/external route first; the normal gameplay
   interaction/floor route is now pinned behind the nonzero-action guard;
