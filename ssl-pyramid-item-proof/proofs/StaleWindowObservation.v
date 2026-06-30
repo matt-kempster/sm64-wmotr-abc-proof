@@ -270,6 +270,140 @@ Proof.
   split; [exact Houtside | reflexivity].
 Qed.
 
+Theorem post_init_mario_refs_have_no_stale_outside_reference :
+  forall before pool_block destination_spawn_slot,
+    ~ stale_outside_reference before pool_block
+        (post_reinit_refs destination_spawn_slot).
+Proof.
+  intros before pool_block destination_spawn_slot.
+  apply post_pyramid_warp_shape_has_no_stale_outside_reference
+    with (destination_spawn_slot := destination_spawn_slot).
+  apply post_reinit_refs_have_post_pyramid_warp_shape.
+Qed.
+
+Definition normal_post_init_mario_root_origin
+    (destination_spawn_slot : Z)
+    (root : high_risk_outside_pointer_root)
+    : option object_reference_origin :=
+  match root with
+  | RootMarioInteractObj =>
+      Some (DestinationSpawnObject destination_spawn_slot)
+  | RootMarioHeldObj =>
+      Some NoObjectReference
+  | RootMarioUsedObj =>
+      Some (DestinationSpawnObject destination_spawn_slot)
+  | RootMarioRiddenObj =>
+      Some NoObjectReference
+  | _ =>
+      None
+  end.
+
+Definition normal_post_init_root_survives_as_outside
+    (before : mem) (pool_block : block)
+    (destination_spawn_slot : Z)
+    (root : high_risk_outside_pointer_root) : Prop :=
+  exists origin slot,
+    normal_post_init_mario_root_origin destination_spawn_slot root =
+      Some origin /\
+    outside_live_slot before pool_block slot /\
+    origin = OutsideAllocationEpoch slot.
+
+Theorem normal_post_init_mario_root_origins_match_post_reinit_refs :
+  forall destination_spawn_slot,
+    [normal_post_init_mario_root_origin
+       destination_spawn_slot RootMarioInteractObj;
+     normal_post_init_mario_root_origin
+       destination_spawn_slot RootMarioHeldObj;
+     normal_post_init_mario_root_origin
+       destination_spawn_slot RootMarioUsedObj;
+     normal_post_init_mario_root_origin
+       destination_spawn_slot RootMarioRiddenObj] =
+    map Some
+      (mario_reference_origin_list
+         (post_reinit_refs destination_spawn_slot)).
+Proof.
+  intros destination_spawn_slot.
+  vm_compute.
+  reflexivity.
+Qed.
+
+Theorem normal_post_init_mario_high_risk_roots_do_not_persist :
+  forall before pool_block destination_spawn_slot root,
+    root_is_mario_state_reference root = true ->
+    ~ normal_post_init_root_survives_as_outside
+        before pool_block destination_spawn_slot root.
+Proof.
+  intros before pool_block destination_spawn_slot root Hmario Hsurvives.
+  destruct Hsurvives as (origin & slot & Horigin & _ & Houtside_epoch).
+  destruct root; simpl in Hmario; try discriminate;
+    simpl in Horigin; inversion Horigin; subst origin; discriminate.
+Qed.
+
+Definition normal_post_init_high_risk_root_outcome
+    (before : mem) (pool_block : block)
+    (destination_spawn_slot : Z)
+    (root : high_risk_outside_pointer_root) : Prop :=
+  (root_is_mario_state_reference root = true /\
+   ~ normal_post_init_root_survives_as_outside
+       before pool_block destination_spawn_slot root) \/
+  (root_is_mario_state_reference root = false /\
+   forall slot,
+     outside_live_slot before pool_block slot ->
+     persistent_outside_pointer_counterexample_candidate before pool_block
+       {| observed_pointer_root := root;
+          observed_pointer_origin := OutsideAllocationEpoch slot |}).
+
+Theorem normal_path_high_risk_roots_do_not_persist_or_are_candidates :
+  forall before pool_block destination_spawn_slot root,
+    In root high_risk_outside_pointer_roots ->
+    normal_post_init_high_risk_root_outcome
+      before pool_block destination_spawn_slot root.
+Proof.
+  intros before pool_block destination_spawn_slot root Hroot.
+  destruct root; simpl in *.
+  all: try
+    (left;
+     split;
+     [reflexivity
+     | apply normal_post_init_mario_high_risk_roots_do_not_persist;
+       reflexivity]).
+  all: right.
+  all: split; [reflexivity |].
+  all: intros slot Houtside.
+  all: apply persistent_outside_pointer_from_high_risk_root_is_counterexample_candidate;
+    assumption.
+Qed.
+
+Definition normal_ssl_pyramid_change_area_high_risk_root_certificate : Prop :=
+  proposition_of normal_gameplay_ssl_warp_entry_action_nonzero_syntactic_certificate /\
+  proposition_of warp_area_loads_destination_before_mario_reference_cleanup /\
+  proposition_of init_mario_after_warp_cleanup_is_guarded_by_action_nonzero /\
+  proposition_of init_mario_clears_held_object /\
+  proposition_of init_mario_clears_ridden_object /\
+  proposition_of init_mario_clears_used_object /\
+  high_risk_pointer_roots_load_window_audit /\
+  forall before pool_block destination_spawn_slot root,
+    In root high_risk_outside_pointer_roots ->
+    normal_post_init_high_risk_root_outcome
+      before pool_block destination_spawn_slot root.
+
+Theorem normal_ssl_pyramid_change_area_high_risk_root_certificate_holds :
+  normal_ssl_pyramid_change_area_high_risk_root_certificate.
+Proof.
+  unfold normal_ssl_pyramid_change_area_high_risk_root_certificate,
+    proposition_of.
+  split; [exact normal_gameplay_ssl_warp_entry_action_nonzero_syntactic_certificate |].
+  split; [exact warp_area_loads_destination_before_mario_reference_cleanup |].
+  split; [exact init_mario_after_warp_cleanup_is_guarded_by_action_nonzero |].
+  split; [exact init_mario_clears_held_object |].
+  split; [exact init_mario_clears_ridden_object |].
+  split; [exact init_mario_clears_used_object |].
+  split; [exact high_risk_pointer_roots_load_window_audit_holds |].
+  intros before pool_block destination_spawn_slot root Hroot.
+  apply normal_path_high_risk_roots_do_not_persist_or_are_candidates.
+  exact Hroot.
+Qed.
+
 Definition shell_and_grabbable_stale_channel_load_window_audit : Prop :=
   proposition_of
     outside_pyramid_channel_classifications_start_with_shell /\
