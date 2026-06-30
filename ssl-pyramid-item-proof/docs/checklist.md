@@ -836,11 +836,51 @@ counterexample-shaped goblin.
   above the watched slot on the free list, then count Pyramid allocations until
   the watched slot is popped; if the count/order never reaches it before
   `init_mario`, this branch gets blocked.
+  Partial progress: `StalePointerModel.v` now has the abstract free-list
+  receipt model. `deallocate_push_then_first_allocation_reuses_same_slot` says
+  the easy case out loud: if the watched slot is pushed to the free-list head,
+  the next allocation pops that same slot. If newer unloaded slots sit above
+  it, `watched_slot_under_newer_free_slots_needs_enough_allocations` records
+  the exact count condition: enough Pyramid allocations must happen before
+  `init_mario` for the watched slot to be reached. `TransitionFacts.v` now has
+  `generated_same_slot_reuse_order_spine_holds`, pinning the generated-AST
+  order: `deallocate_object` inserts under `gFreeObjectList`,
+  `try_allocate_object` pops `freeList->next`, `allocate_object` writes
+  `activeFlags`, `create_object` calls `allocate_object`, `spawn_objects_from_info`
+  calls `create_object` before `geo_obj_init_spawninfo`, and
+  `geo_obj_init_spawninfo` copies `activeAreaIndex` from spawn info.
+  `StaleWindowObservation.v` packages this as
+  `same_slot_reuse_generated_order_receipt_audit_holds`. Still not done:
+  invert the actual linked CompCert executions enough to turn those generated
+  statement spines into concrete `Mem.store` facts for
+  `same_slot_pyramid_allocation_store_trace`, and derive the destination
+  spawn-info `activeAreaIndex = 2` premise from the real Pyramid spawn data.
 - [ ] Run the full proof pipeline.
 - [ ] Push the final proof state to the fork.
 - [ ] Only open a PR if the user explicitly says yes.
 
 ## Current next bite
+
+Same-slot reuse next bite: lower `same_slot_reuse_generated_order_receipt_audit_holds`
+from generated-AST/order facts into concrete CompCert memory effects.
+
+- invert the actual generated `deallocate_object` execution far enough to show
+  the final `freeList->next = obj` store puts the watched object slot at the
+  free-list head;
+- invert the first generated `try_allocate_object` call in the destination
+  `create_object -> allocate_object` path far enough to show it reads/pops that
+  same `freeList->next` head, or count how many newer freed slots sit above it;
+- prove the `allocate_object` `activeFlags = (1 << 0) | (1 << 8)` assignment is
+  the `Mint16signed` store in `same_slot_pyramid_allocation_store_trace`;
+- prove the destination `geo_obj_init_spawninfo` copy is the `Mint8signed`
+  active-area store, with spawn info's `activeAreaIndex` equal to Pyramid area
+  `2`; and
+- if the allocation count cannot reach the watched slot before
+  `init_mario_after_warp`, mark the stronger technical counterexample branch
+  blocked for the normal route instead of pretending.
+
+In Discord goblin terms: the route map is pinned; now make the tire tracks in
+CompCert memory line up with the map.
 
 The next proof-shaped bite is the newly exposed all-slot tail-frame seam:
 

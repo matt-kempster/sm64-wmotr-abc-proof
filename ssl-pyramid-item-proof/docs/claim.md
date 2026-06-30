@@ -665,6 +665,24 @@ window, and if the slot is already active again it can alias that live slot,
 but the audited generated load/reinit path does not mention the Mario stale-ref
 fields before `init_mario` clears them.
 
+The stronger same-slot branch now has its generated-order receipt layer.
+`same_slot_pyramid_allocation_store_trace` is still the concrete memory-store
+premise that makes the stale slot become a live Pyramid slot, but it is no
+longer floating completely loose.  `deallocate_push_then_first_allocation_reuses_same_slot`
+and `watched_slot_under_newer_free_slots_needs_enough_allocations` model the
+free-list cases: if the watched slot is at the head, the next allocation reuses
+it; if newer freed slots sit above it, enough destination allocations must
+happen to pop down to it.  `generated_same_slot_reuse_order_spine_holds` pins
+the generated Clight order for the real route: `deallocate_object` inserts
+under `gFreeObjectList`, `try_allocate_object` pops `freeList->next`,
+`allocate_object` writes `activeFlags`, `create_object` calls
+`allocate_object`, `spawn_objects_from_info` calls `create_object` before
+`geo_obj_init_spawninfo`, and `geo_obj_init_spawninfo` copies
+`activeAreaIndex` from spawn info.  The remaining work is semantic, not a
+route-finding mystery: invert those linked executions into concrete
+`Mem.store` facts and prove the destination spawn info supplies Pyramid area
+`2`.
+
 The same load-window scanner has started chewing on non-Mario roots.
 `pyramid_load_window_object_owned_roots_not_mentioned_before_cleanup` shows
 that the audited path does not mention `Object.platform` or raw

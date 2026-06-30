@@ -182,6 +182,102 @@ Definition same_slot_pyramid_allocation_store_trace
     (Vint object_allocation_active_flags_value) =
     Some after_load.
 
+Definition free_list_slots : Type := list Z.
+
+Definition deallocate_pushes_slot_to_free_list
+    (before : free_list_slots) (slot : Z)
+    (after : free_list_slots) : Prop :=
+  after = slot :: before.
+
+Definition allocation_pops_free_list_head
+    (before : free_list_slots) (slot : Z)
+    (after : free_list_slots) : Prop :=
+  before = slot :: after.
+
+Definition allocation_count_reaches_watched_slot
+    (free_list : free_list_slots) (watched_slot : Z)
+    (allocation_count : nat) : Prop :=
+  exists newer_slots older_slots,
+    free_list = newer_slots ++ watched_slot :: older_slots /\
+    (length newer_slots < allocation_count)%nat.
+
+Theorem deallocate_push_then_first_allocation_reuses_same_slot :
+  forall before after_push after_pop watched_slot popped_slot,
+    deallocate_pushes_slot_to_free_list
+      before watched_slot after_push ->
+    allocation_pops_free_list_head
+      after_push popped_slot after_pop ->
+    popped_slot = watched_slot.
+Proof.
+  intros before after_push after_pop watched_slot popped_slot Hpush Hpop.
+  unfold deallocate_pushes_slot_to_free_list,
+    allocation_pops_free_list_head in *.
+  subst after_push.
+  inversion Hpop.
+  reflexivity.
+Qed.
+
+Theorem deallocated_slot_at_head_is_reached_by_one_allocation :
+  forall before after_push watched_slot,
+    deallocate_pushes_slot_to_free_list
+      before watched_slot after_push ->
+    allocation_count_reaches_watched_slot after_push watched_slot 1%nat.
+Proof.
+  intros before after_push watched_slot Hpush.
+  unfold deallocate_pushes_slot_to_free_list in Hpush.
+  subst after_push.
+  unfold allocation_count_reaches_watched_slot.
+  exists [], before.
+  split; [reflexivity | cbn; lia].
+Qed.
+
+Theorem watched_slot_under_newer_free_slots_needs_enough_allocations :
+  forall newer_slots older_slots watched_slot allocation_count,
+    (length newer_slots < allocation_count)%nat ->
+    allocation_count_reaches_watched_slot
+      (newer_slots ++ watched_slot :: older_slots)
+      watched_slot allocation_count.
+Proof.
+  intros newer_slots older_slots watched_slot allocation_count Hcount.
+  unfold allocation_count_reaches_watched_slot.
+  exists newer_slots, older_slots.
+  split; [reflexivity | exact Hcount].
+Qed.
+
+Record same_slot_pyramid_allocation_receipt
+    (allocation_start after_area_store after_load : mem)
+    (pool_block : block) (free_list : free_list_slots)
+    (slot : Z) (allocation_count : nat) : Prop := {
+  receipt_allocation_count_reaches_slot :
+    allocation_count_reaches_watched_slot
+      free_list slot allocation_count;
+  receipt_area_store :
+    Mem.store Mint8signed allocation_start pool_block
+      (object_field_address slot object_active_area_offset)
+      (Vint (Int.repr ssl_pyramid_area)) =
+      Some after_area_store;
+  receipt_active_flags_store :
+    Mem.store Mint16signed after_area_store pool_block
+      (object_field_address slot object_active_flags_offset)
+      (Vint object_allocation_active_flags_value) =
+      Some after_load
+}.
+
+Theorem same_slot_pyramid_allocation_store_trace_from_receipt :
+  forall allocation_start after_area_store after_load
+      pool_block free_list slot allocation_count,
+    same_slot_pyramid_allocation_receipt
+      allocation_start after_area_store after_load
+      pool_block free_list slot allocation_count ->
+    same_slot_pyramid_allocation_store_trace
+      allocation_start after_area_store after_load pool_block slot.
+Proof.
+  intros allocation_start after_area_store after_load
+    pool_block free_list slot allocation_count Hreceipt.
+  destruct Hreceipt as [_ Harea Hactive].
+  split; assumption.
+Qed.
+
 Definition slot_active_as_pyramid_object
     (memory : mem) (pool_block : block) (slot : Z) : Prop :=
   slot_active memory pool_block slot /\
