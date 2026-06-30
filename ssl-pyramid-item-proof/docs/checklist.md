@@ -732,8 +732,24 @@ counterexample-shaped goblin.
   gets kicked off the bus before the warp finishes. The remaining stale
   candidates on this route are `interactObj` / `usedObj` pointing at the warp
   object, not `riddenObj` pointing at the shell.
-- [ ] Check cork boxes and other grabbables against the same held-object/stale
+- [x] Check cork boxes and other grabbables against the same held-object/stale
   reference logic.
+  `OutsideObjectChannels.v` now has the exact five direct-grabbable channels:
+  the small breakable box, two bob-ombs, and two jumping/cork boxes. The new
+  `outside_pyramid_held_reference_channels_are_exact_direct_grabbables` and
+  `outside_pyramid_held_reference_classifications_exact` facts say precisely
+  that these five, and only these five, use the `HeldUsedOrInteractReference`
+  route. Generated interaction evidence now pins the front half too:
+  `interact_grabbable_sets_interact_root_not_ridden` says the grabbable
+  handler writes `interactObj` after `able_to_grab_object` and does **not**
+  write `usedObj` or `riddenObj`; `mario_grab_used_object_moves_used_to_held_not_ridden`
+  says the helper copies `usedObj` into `heldObj` and does not touch
+  `riddenObj`. `StaleWindowObservation.v` packages the whole thing as
+  `direct_grabbable_held_stale_reference_audit_holds`, tying those five
+  channels to the already-audited held-root stale-window / same-slot-reuse
+  technical counterexample shape. Translation: cork boxes are boring in the
+  good way: they go through the held-object goblin, not the shell-riding
+  goblin.
 
 ## 8. Linking / generated-file boundary
 

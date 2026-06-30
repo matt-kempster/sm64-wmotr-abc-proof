@@ -479,6 +479,43 @@ Proof.
     split; [exact Hclean | exact Haudit].
 Qed.
 
+Definition direct_grabbable_held_stale_reference_audit : Prop :=
+  proposition_of outside_pyramid_direct_grabbable_channels_exact /\
+  proposition_of
+    outside_pyramid_held_reference_channels_are_exact_direct_grabbables /\
+  proposition_of outside_pyramid_held_reference_classifications_exact /\
+  proposition_of outside_pyramid_direct_channels_are_grabbable_behaviors /\
+  proposition_of interact_grabbable_sets_interact_root_not_ridden /\
+  proposition_of mario_grab_used_object_moves_used_to_held_not_ridden /\
+  proposition_of direct_grabbable_channel_mario_reference_cleanup_evidence /\
+  proposition_of
+    held_grab_constructs_audited_technical_stale_window_counterexample /\
+  proposition_of
+    held_grab_constructs_audited_technical_slot_reuse_counterexample /\
+  proposition_of
+    held_grab_constructs_audited_technical_pyramid_slot_reuse_counterexample /\
+  proposition_of held_grab_reused_slot_alias_is_technical_not_gameplay_useful.
+
+Theorem direct_grabbable_held_stale_reference_audit_holds :
+  direct_grabbable_held_stale_reference_audit.
+Proof.
+  unfold direct_grabbable_held_stale_reference_audit,
+    proposition_of.
+  repeat split;
+    first
+      [ exact outside_pyramid_direct_grabbable_channels_exact
+      | exact outside_pyramid_held_reference_channels_are_exact_direct_grabbables
+      | exact outside_pyramid_held_reference_classifications_exact
+      | exact outside_pyramid_direct_channels_are_grabbable_behaviors
+      | exact interact_grabbable_sets_interact_root_not_ridden
+      | exact mario_grab_used_object_moves_used_to_held_not_ridden
+      | exact direct_grabbable_channel_mario_reference_cleanup_evidence
+      | exact held_grab_constructs_audited_technical_stale_window_counterexample
+      | exact held_grab_constructs_audited_technical_slot_reuse_counterexample
+      | exact held_grab_constructs_audited_technical_pyramid_slot_reuse_counterexample
+      | exact held_grab_reused_slot_alias_is_technical_not_gameplay_useful ].
+Qed.
+
 Definition shell_ride_ridden_alias_without_generated_use
     (before after_load : mem) (pool_block : block)
     (window : pyramid_load_window_reference_origins) : Prop :=
@@ -1441,7 +1478,9 @@ Qed.
 Definition shell_and_grabbable_stale_channel_load_window_audit : Prop :=
   proposition_of
     outside_pyramid_channel_classifications_start_with_shell /\
+  direct_grabbable_held_stale_reference_audit /\
   proposition_of shell_channel_generated_ridden_object_evidence /\
+  normal_interact_warp_ridden_object_clearance_audit /\
   proposition_of
     held_grab_constructs_audited_technical_stale_window_counterexample /\
   proposition_of
@@ -1469,7 +1508,9 @@ Proof.
   unfold shell_and_grabbable_stale_channel_load_window_audit,
     proposition_of.
   split; [exact outside_pyramid_channel_classifications_start_with_shell |].
+  split; [exact direct_grabbable_held_stale_reference_audit_holds |].
   split; [exact shell_channel_generated_ridden_object_evidence |].
+  split; [exact normal_interact_warp_ridden_object_clearance_audit_holds |].
   split; [
     exact held_grab_constructs_audited_technical_stale_window_counterexample
   |].

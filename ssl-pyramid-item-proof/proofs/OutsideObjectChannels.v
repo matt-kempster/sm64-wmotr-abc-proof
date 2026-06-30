@@ -267,6 +267,17 @@ Definition outside_pyramid_transport_relevant_macro_entries
     (gvar_init SM.v_ssl_seg7_area_1_macro_objs)
     outside_pyramid_transport_relevant_encoded_presets.
 
+Definition channel_is_direct_grabbable
+    (channel : outside_pyramid_object_channel) : bool :=
+  match channel_class channel with
+  | DirectGrabbableObject => true
+  | _ => false
+  end.
+
+Definition outside_pyramid_direct_grabbable_channels
+    : list outside_pyramid_object_channel :=
+  filter channel_is_direct_grabbable outside_pyramid_object_channels.
+
 Definition classify_outside_pyramid_channel
     (channel : outside_pyramid_object_channel)
     : outside_pyramid_channel_classification :=
@@ -323,6 +334,18 @@ Definition outside_pyramid_classified_channel_ids
   map classified_channel_id
     outside_pyramid_channel_classifications_shell_first.
 
+Definition classification_uses_held_reference_route
+    (classification : outside_pyramid_channel_classification) : bool :=
+  match classified_route classification with
+  | HeldUsedOrInteractReference => true
+  | _ => false
+  end.
+
+Definition outside_pyramid_held_reference_channel_classifications
+    : list outside_pyramid_channel_classification :=
+  filter classification_uses_held_reference_route
+    outside_pyramid_channel_classifications_shell_first.
+
 Theorem outside_pyramid_object_channel_count :
   length outside_pyramid_object_channels = 9%nat.
 Proof. vm_compute; reflexivity. Qed.
@@ -350,6 +373,44 @@ Proof. vm_compute; reflexivity. Qed.
 
 Theorem outside_pyramid_channel_classification_count :
   length outside_pyramid_channel_classifications_shell_first = 9%nat.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem outside_pyramid_direct_grabbable_channels_exact :
+  map (fun channel =>
+         (channel_id channel, channel_behavior channel,
+          channel_preset_index channel, channel_x channel,
+          channel_y channel, channel_z channel))
+    outside_pyramid_direct_grabbable_channels =
+  [(ChannelSmallBreakableBox, P._bhvBreakableBoxSmall,
+      72%nat, 5900, 50, 3440);
+   (ChannelFirstBobomb, P._bhvBobomb, 111%nat, 3800, 0, 6000);
+   (ChannelSecondBobomb, P._bhvBobomb, 111%nat, 1750, 0, 6450);
+   (ChannelFirstJumpingBox, P._bhvJumpingBox,
+      87%nat, 1120, 0, 6480);
+   (ChannelSecondJumpingBox, P._bhvJumpingBox,
+      87%nat, -5200, 0, 1700)].
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem outside_pyramid_held_reference_channels_are_exact_direct_grabbables :
+  map classified_channel_id
+    outside_pyramid_held_reference_channel_classifications =
+  map channel_id outside_pyramid_direct_grabbable_channels.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem outside_pyramid_held_reference_classifications_exact :
+  map (fun classification =>
+         (classified_channel_id classification,
+          classified_route classification,
+          risk_direct_object_transfer
+            (classified_risk classification),
+          risk_stale_pointer_or_cloning
+            (classified_risk classification)))
+    outside_pyramid_held_reference_channel_classifications =
+  [(ChannelSmallBreakableBox, HeldUsedOrInteractReference, true, true);
+   (ChannelFirstBobomb, HeldUsedOrInteractReference, true, true);
+   (ChannelSecondBobomb, HeldUsedOrInteractReference, true, true);
+   (ChannelFirstJumpingBox, HeldUsedOrInteractReference, true, true);
+   (ChannelSecondJumpingBox, HeldUsedOrInteractReference, true, true)].
 Proof. vm_compute; reflexivity. Qed.
 
 Theorem outside_pyramid_channel_classifications_start_with_shell :
@@ -499,6 +560,28 @@ Theorem outside_pyramid_direct_channels_are_grabbable_behaviors :
   first_int32 (gvar_init B.v_sJumpingBoxHitbox) =
     Some (Int.repr 2).
 Proof. vm_compute; auto. Qed.
+
+Theorem interact_grabbable_sets_interact_root_not_ridden :
+  event_subsequenceb
+    [Event_call I._able_to_grab_object;
+     Event_assign_field_from_temp I._interactObj I._o]
+    (statement_events_s (fn_body I.f_interact_grabbable)) = true /\
+  assigns_field_s I._usedObj
+    (fn_body I.f_interact_grabbable) = false /\
+  assigns_field_s I._riddenObj
+    (fn_body I.f_interact_grabbable) = false.
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
+Theorem mario_grab_used_object_moves_used_to_held_not_ridden :
+  event_subsequenceb
+    [Event_set_temp_from_field I._t'1 I._m I._heldObj;
+     Event_set_temp_from_field I._t'3 I._m I._usedObj;
+     Event_assign_field_from_temp I._heldObj I._t'3;
+     Event_call I._obj_set_held_state]
+    (statement_events_s (fn_body I.f_mario_grab_used_object)) = true /\
+  assigns_field_s I._riddenObj
+    (fn_body I.f_mario_grab_used_object) = false.
+Proof. vm_compute; repeat split; reflexivity. Qed.
 
 Theorem direct_grabbable_channel_mario_reference_cleanup_evidence :
   first_int32 (gvar_init OB.v_sBreakableBoxSmallHitbox) =
