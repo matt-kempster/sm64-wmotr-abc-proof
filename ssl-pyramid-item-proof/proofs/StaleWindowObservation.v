@@ -593,6 +593,225 @@ Proof.
     eapply graph_or_render_root_survivor_is_counterexample_candidate; eauto.
 Qed.
 
+Definition root_origin_observations :=
+  list (high_risk_outside_pointer_root * object_reference_origin).
+
+Definition origin_mentions_outside_epoch
+    (before : mem) (pool_block : block)
+    (origin : object_reference_origin) : Prop :=
+  exists slot,
+    outside_live_slot before pool_block slot /\
+    origin = OutsideAllocationEpoch slot.
+
+Definition origin_clean_of_outside_epochs
+    (before : mem) (pool_block : block)
+    (origin : object_reference_origin) : Prop :=
+  forall slot,
+    outside_live_slot before pool_block slot ->
+    origin <> OutsideAllocationEpoch slot.
+
+Definition root_origin_observations_have_no_outside_epoch
+    (before : mem) (pool_block : block)
+    (roots : list high_risk_outside_pointer_root)
+    (observations : root_origin_observations) : Prop :=
+  forall root origin slot,
+    In root roots ->
+    In (root, origin) observations ->
+    outside_live_slot before pool_block slot ->
+    origin <> OutsideAllocationEpoch slot.
+
+Definition root_origin_observations_have_survivor
+    (before : mem) (pool_block : block)
+    (roots : list high_risk_outside_pointer_root)
+    (observations : root_origin_observations) : Prop :=
+  exists root origin slot,
+    In root roots /\
+    In (root, origin) observations /\
+    outside_live_slot before pool_block slot /\
+    origin = OutsideAllocationEpoch slot.
+
+Theorem clean_root_origin_observations_eliminate_survivors :
+  forall before pool_block roots observations,
+    root_origin_observations_have_no_outside_epoch
+      before pool_block roots observations ->
+    ~ root_origin_observations_have_survivor
+        before pool_block roots observations.
+Proof.
+  intros before pool_block roots observations Hclean Hsurvivor.
+  destruct Hsurvivor as
+    (root & origin & slot & Hroot & Hobs & Houtside & Horigin).
+  exact (Hclean root origin slot Hroot Hobs Houtside Horigin).
+Qed.
+
+Theorem object_owned_root_origin_survivor_is_counterexample_candidate :
+  forall before pool_block observations,
+    root_origin_observations_have_survivor
+      before pool_block object_owned_high_risk_roots observations ->
+    exists root origin,
+      In (root, origin) observations /\
+      persistent_outside_pointer_counterexample_candidate before pool_block
+        {| observed_pointer_root := root;
+           observed_pointer_origin := origin |}.
+Proof.
+  intros before pool_block observations Hsurvivor.
+  destruct Hsurvivor as
+    (root & origin & slot & Hroot & Hobs & Houtside & Horigin).
+  exists root, origin.
+  split; [exact Hobs |].
+  subst origin.
+  eapply object_owned_root_survivor_is_counterexample_candidate; eauto.
+Qed.
+
+Theorem graph_or_render_root_origin_survivor_is_counterexample_candidate :
+  forall before pool_block observations,
+    root_origin_observations_have_survivor
+      before pool_block graph_and_render_high_risk_roots observations ->
+    exists root origin,
+      In (root, origin) observations /\
+      persistent_outside_pointer_counterexample_candidate before pool_block
+        {| observed_pointer_root := root;
+           observed_pointer_origin := origin |}.
+Proof.
+  intros before pool_block observations Hsurvivor.
+  destruct Hsurvivor as
+    (root & origin & slot & Hroot & Hobs & Houtside & Horigin).
+  exists root, origin.
+  split; [exact Hobs |].
+  subst origin.
+  eapply graph_or_render_root_survivor_is_counterexample_candidate; eauto.
+Qed.
+
+Definition object_owned_root_epoch_invariant
+    (before : mem) (pool_block : block)
+    (observations : root_origin_observations) : Prop :=
+  root_origin_observations_have_no_outside_epoch
+    before pool_block object_owned_high_risk_roots observations.
+
+Theorem object_owned_root_epoch_invariant_eliminates_survivors :
+  forall before pool_block observations,
+    object_owned_root_epoch_invariant before pool_block observations ->
+    ~ root_origin_observations_have_survivor
+        before pool_block object_owned_high_risk_roots observations.
+Proof.
+  intros before pool_block observations Hclean.
+  apply clean_root_origin_observations_eliminate_survivors.
+  exact Hclean.
+Qed.
+
+Definition graph_or_render_root_epoch_invariant
+    (before : mem) (pool_block : block)
+    (observations : root_origin_observations) : Prop :=
+  root_origin_observations_have_no_outside_epoch
+    before pool_block graph_and_render_high_risk_roots observations.
+
+Theorem graph_or_render_root_epoch_invariant_eliminates_survivors :
+  forall before pool_block observations,
+    graph_or_render_root_epoch_invariant before pool_block observations ->
+    ~ root_origin_observations_have_survivor
+        before pool_block graph_and_render_high_risk_roots observations.
+Proof.
+  intros before pool_block observations Hclean.
+  apply clean_root_origin_observations_eliminate_survivors.
+  exact Hclean.
+Qed.
+
+Definition render_held_objnode_origin_after_post_init
+    (destination_spawn_slot : Z) : object_reference_origin :=
+  ref_held_object (post_reinit_refs destination_spawn_slot).
+
+Definition render_held_post_init_observations
+    (destination_spawn_slot : Z) : root_origin_observations :=
+  [(RootGraphHeldObjectObjNode,
+    render_held_objnode_origin_after_post_init destination_spawn_slot)].
+
+Theorem render_held_objnode_origin_after_post_init_is_no_object :
+  forall destination_spawn_slot,
+    render_held_objnode_origin_after_post_init destination_spawn_slot =
+    NoObjectReference.
+Proof.
+  intros destination_spawn_slot.
+  vm_compute.
+  reflexivity.
+Qed.
+
+Theorem render_held_objnode_origin_after_post_init_has_no_outside_epoch :
+  forall before pool_block destination_spawn_slot,
+    ~ origin_mentions_outside_epoch before pool_block
+        (render_held_objnode_origin_after_post_init destination_spawn_slot).
+Proof.
+  intros before pool_block destination_spawn_slot Hsurvivor.
+  destruct Hsurvivor as (slot & _ & Horigin).
+  rewrite render_held_objnode_origin_after_post_init_is_no_object in Horigin.
+  discriminate.
+Qed.
+
+Theorem render_held_post_init_observations_have_no_survivor :
+  forall before pool_block destination_spawn_slot,
+    ~ root_origin_observations_have_survivor before pool_block
+        [RootGraphHeldObjectObjNode]
+        (render_held_post_init_observations destination_spawn_slot).
+Proof.
+  intros before pool_block destination_spawn_slot.
+  apply clean_root_origin_observations_eliminate_survivors.
+  unfold root_origin_observations_have_no_outside_epoch,
+    render_held_post_init_observations.
+  intros root origin slot Hroot Hobs _ Horigin.
+  destruct Hroot as [Hroot | Hroot]; [subst root | contradiction].
+  destruct Hobs as [Hobs | Hobs]; [inversion Hobs; subst origin | contradiction].
+  unfold render_held_objnode_origin_after_post_init, post_reinit_refs in *.
+  simpl in *.
+  discriminate.
+Qed.
+
+Theorem graph_confinement_eliminates_reachable_outside_graph_node :
+  forall (graph_node_id : Type)
+    (links : graph_links graph_node_id)
+    (current_or_destination : graph_node_id -> Prop)
+    object_parent_first_child current_area_root root outside_node,
+    @generated_load_area_graph_traversals_confined graph_node_id
+      links current_or_destination
+      object_parent_first_child current_area_root ->
+    In root
+      (@generated_load_area_graph_roots graph_node_id
+         object_parent_first_child current_area_root) ->
+    @graph_link_reachable graph_node_id links root outside_node ->
+    ~ current_or_destination outside_node ->
+    False.
+Proof.
+  intros graph_node_id links current_or_destination object_parent_first_child
+    current_area_root root outside_node Hconfined Hroot Hreachable Houtside.
+  apply Houtside.
+  exact (Hconfined root Hroot outside_node Hreachable).
+Qed.
+
+Definition channel_side_survivor_elimination_certificate : Prop :=
+  proposition_of object_owned_root_epoch_invariant_eliminates_survivors /\
+  proposition_of object_owned_root_origin_survivor_is_counterexample_candidate /\
+  proposition_of graph_or_render_root_epoch_invariant_eliminates_survivors /\
+  proposition_of graph_or_render_root_origin_survivor_is_counterexample_candidate /\
+  proposition_of render_held_objnode_origin_after_post_init_is_no_object /\
+  proposition_of render_held_post_init_observations_have_no_survivor /\
+  proposition_of graph_confinement_eliminates_reachable_outside_graph_node /\
+  proposition_of generated_graph_traversal_confinement_or_counterexample_candidate /\
+  proposition_of mario_platform_helper_precleanup_boundary_holds.
+
+Theorem channel_side_survivor_elimination_certificate_holds :
+  channel_side_survivor_elimination_certificate.
+Proof.
+  unfold channel_side_survivor_elimination_certificate, proposition_of.
+  repeat split;
+    first
+      [ exact object_owned_root_epoch_invariant_eliminates_survivors
+      | exact object_owned_root_origin_survivor_is_counterexample_candidate
+      | exact graph_or_render_root_epoch_invariant_eliminates_survivors
+      | exact graph_or_render_root_origin_survivor_is_counterexample_candidate
+      | exact render_held_objnode_origin_after_post_init_is_no_object
+      | exact render_held_post_init_observations_have_no_survivor
+      | exact graph_confinement_eliminates_reachable_outside_graph_node
+      | exact generated_graph_traversal_confinement_or_counterexample_candidate
+      | exact mario_platform_helper_precleanup_boundary_holds ].
+Qed.
+
 Definition shell_and_grabbable_stale_channel_load_window_audit : Prop :=
   proposition_of
     outside_pyramid_channel_classifications_start_with_shell /\
