@@ -57,6 +57,67 @@ Proof.
   exact pyramid_load_window_stale_refs_not_observed_before_cleanup.
 Qed.
 
+Record audited_technical_stale_window_counterexample
+    (before : mem) (pool_block : block)
+    (window : pyramid_load_window_reference_origins) : Prop := {
+  audited_technical_stale_window_base :
+    technical_stale_window_counterexample before pool_block window;
+  audited_technical_stale_window_no_generated_use :
+    audited_mario_stale_ref_no_observation_before_cleanup
+}.
+
+Record audited_ridden_technical_stale_window_counterexample
+    (before : mem) (pool_block : block)
+    (window : pyramid_load_window_reference_origins) : Prop := {
+  audited_ridden_technical_stale_window_base :
+    ridden_technical_stale_window_counterexample
+      before pool_block window;
+  audited_ridden_technical_stale_window_no_generated_use :
+    audited_mario_stale_ref_no_observation_before_cleanup
+}.
+
+Record audited_technical_stale_slot_reuse_counterexample
+    (before after_load : mem) (pool_block : block)
+    (window : pyramid_load_window_reference_origins) : Prop := {
+  audited_technical_stale_reuse_base :
+    technical_stale_slot_reuse_counterexample
+      before after_load pool_block window;
+  audited_technical_stale_reuse_no_generated_use :
+    audited_mario_stale_ref_no_observation_before_cleanup
+}.
+
+Record audited_ridden_technical_stale_slot_reuse_counterexample
+    (before after_load : mem) (pool_block : block)
+    (window : pyramid_load_window_reference_origins) : Prop := {
+  audited_ridden_technical_stale_reuse_base :
+    ridden_technical_stale_slot_reuse_counterexample
+      before after_load pool_block window;
+  audited_ridden_technical_stale_reuse_no_generated_use :
+    audited_mario_stale_ref_no_observation_before_cleanup
+}.
+
+Theorem held_grab_constructs_audited_technical_stale_window_counterexample :
+  forall before pool_block outside_slot destination_spawn_slot,
+    outside_live_slot before pool_block outside_slot ->
+    exists window,
+      window =
+        outside_held_grab_load_window
+          outside_slot destination_spawn_slot /\
+      audited_technical_stale_window_counterexample
+        before pool_block window.
+Proof.
+  intros before pool_block outside_slot destination_spawn_slot Houtside.
+  destruct
+    (held_grab_constructs_technical_stale_window_counterexample
+       before pool_block outside_slot destination_spawn_slot Houtside)
+    as (window & Hwindow & Hcounterexample).
+  exists window.
+  split; [exact Hwindow |].
+  constructor.
+  - exact Hcounterexample.
+  - exact audited_mario_stale_ref_no_observation_before_cleanup_holds.
+Qed.
+
 Theorem held_grab_stale_load_window_is_unobserved_before_cleanup :
   forall before pool_block outside_slot destination_spawn_slot,
     outside_live_slot before pool_block outside_slot ->
@@ -80,6 +141,28 @@ Proof.
   split; [exact Hstale |].
   split; [exact Hclean |].
   exact audited_mario_stale_ref_no_observation_before_cleanup_holds.
+Qed.
+
+Theorem shell_ride_constructs_audited_ridden_technical_stale_window_counterexample :
+  forall before pool_block outside_slot destination_spawn_slot,
+    outside_live_slot before pool_block outside_slot ->
+    exists window,
+      window =
+        outside_shell_ride_load_window
+          outside_slot destination_spawn_slot /\
+      audited_ridden_technical_stale_window_counterexample
+        before pool_block window.
+Proof.
+  intros before pool_block outside_slot destination_spawn_slot Houtside.
+  destruct
+    (shell_ride_constructs_ridden_technical_stale_window_counterexample
+       before pool_block outside_slot destination_spawn_slot Houtside)
+    as (window & Hwindow & Hcounterexample).
+  exists window.
+  split; [exact Hwindow |].
+  constructor.
+  - exact Hcounterexample.
+  - exact audited_mario_stale_ref_no_observation_before_cleanup_holds.
 Qed.
 
 Theorem shell_ride_ridden_stale_load_window_is_unobserved_before_cleanup :
@@ -140,6 +223,31 @@ Proof.
     apply post_pyramid_warp_shape_has_no_stale_outside_reference
       with (destination_spawn_slot := destination_spawn_slot).
     apply post_reinit_refs_have_post_pyramid_warp_shape.
+  - exact audited_mario_stale_ref_no_observation_before_cleanup_holds.
+Qed.
+
+Theorem held_grab_constructs_audited_technical_slot_reuse_counterexample :
+  forall before after_load pool_block outside_slot destination_spawn_slot,
+    outside_live_slot before pool_block outside_slot ->
+    slot_active after_load pool_block outside_slot ->
+    exists window,
+      window =
+        outside_held_grab_load_window
+          outside_slot destination_spawn_slot /\
+      audited_technical_stale_slot_reuse_counterexample
+        before after_load pool_block window.
+Proof.
+  intros before after_load pool_block outside_slot
+    destination_spawn_slot Houtside Hactive_after_load.
+  destruct
+    (held_grab_constructs_technical_slot_reuse_counterexample
+       before after_load pool_block outside_slot destination_spawn_slot
+       Houtside Hactive_after_load)
+    as (window & Hwindow & Hcounterexample).
+  exists window.
+  split; [exact Hwindow |].
+  constructor.
+  - exact Hcounterexample.
   - exact audited_mario_stale_ref_no_observation_before_cleanup_holds.
 Qed.
 
@@ -224,6 +332,31 @@ Proof.
       [ exact Hclean
       | exact audited_mario_stale_ref_no_observation_before_cleanup_holds ].
   - exact Hridden_alias.
+Qed.
+
+Theorem shell_ride_constructs_audited_ridden_technical_slot_reuse_counterexample :
+  forall before after_load pool_block outside_slot destination_spawn_slot,
+    outside_live_slot before pool_block outside_slot ->
+    slot_active after_load pool_block outside_slot ->
+    exists window,
+      window =
+        outside_shell_ride_load_window
+          outside_slot destination_spawn_slot /\
+      audited_ridden_technical_stale_slot_reuse_counterexample
+        before after_load pool_block window.
+Proof.
+  intros before after_load pool_block outside_slot
+    destination_spawn_slot Houtside Hactive_after_load.
+  destruct
+    (shell_ride_constructs_ridden_technical_slot_reuse_counterexample
+       before after_load pool_block outside_slot destination_spawn_slot
+       Houtside Hactive_after_load)
+    as (window & Hwindow & Hcounterexample).
+  exists window.
+  split; [exact Hwindow |].
+  constructor.
+  - exact Hcounterexample.
+  - exact audited_mario_stale_ref_no_observation_before_cleanup_holds.
 Qed.
 
 Inductive high_risk_outside_pointer_root : Type :=
@@ -1127,6 +1260,14 @@ Definition shell_and_grabbable_stale_channel_load_window_audit : Prop :=
     outside_pyramid_channel_classifications_start_with_shell /\
   proposition_of shell_channel_generated_ridden_object_evidence /\
   proposition_of
+    held_grab_constructs_audited_technical_stale_window_counterexample /\
+  proposition_of
+    shell_ride_constructs_audited_ridden_technical_stale_window_counterexample /\
+  proposition_of
+    held_grab_constructs_audited_technical_slot_reuse_counterexample /\
+  proposition_of
+    shell_ride_constructs_audited_ridden_technical_slot_reuse_counterexample /\
+  proposition_of
     shell_ride_ridden_stale_load_window_is_unobserved_before_cleanup /\
   proposition_of
     shell_ride_reused_slot_alias_is_technical_not_gameplay_useful /\
@@ -1140,6 +1281,18 @@ Proof.
     proposition_of.
   split; [exact outside_pyramid_channel_classifications_start_with_shell |].
   split; [exact shell_channel_generated_ridden_object_evidence |].
+  split; [
+    exact held_grab_constructs_audited_technical_stale_window_counterexample
+  |].
+  split; [
+    exact shell_ride_constructs_audited_ridden_technical_stale_window_counterexample
+  |].
+  split; [
+    exact held_grab_constructs_audited_technical_slot_reuse_counterexample
+  |].
+  split; [
+    exact shell_ride_constructs_audited_ridden_technical_slot_reuse_counterexample
+  |].
   split; [exact shell_ride_ridden_stale_load_window_is_unobserved_before_cleanup |].
   split; [exact shell_ride_reused_slot_alias_is_technical_not_gameplay_useful |].
   split; [exact direct_grabbable_channel_mario_reference_cleanup_evidence |].
