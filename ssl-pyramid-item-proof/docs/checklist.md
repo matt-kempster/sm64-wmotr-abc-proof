@@ -264,6 +264,20 @@ counterexample-shaped goblin.
   Translation: you can maybe arrange which new slot the stale pointer aliases,
   but the audited code path still does not let Mario poke it through
   `heldObj`/`usedObj`/`riddenObj`/`interactObj` before the cleanup broom arrives.
+- [x] Check whether Pyramid mechanisms react to Mario's stale object roots.
+  This is the "what if the stale pointer aliases literally anything in the
+  Pyramid?" sniff test. `ssl_pyramid_mechanism_behaviors_do_not_mention_stale_mario_object_refs`
+  now checks the named Pyramid-ish behavior bodies: spindel, moving Pyramid
+  wall, Pyramid elevator, Pyramid top/fragments, pillar touch detector, sand
+  sound, poles, grindel/thwomp, and tilting inverted pyramid. It checks all
+  four stale Mario object roots in those bodies: `heldObj`, `usedObj`,
+  `riddenObj`, and `interactObj`. `stale_mario_object_refs_pyramid_behavior_update_audit`
+  combines that with the already-pinned fact that `load_area` /
+  `load_mario_area` do not call `update_objects` before `init_mario`.
+  Translation: no current evidence that a newly loaded Pyramid object
+  immediately updates itself because it got aliased by one of Mario's stale
+  object roots; the scary branch would need a different pre-cleanup observer,
+  not ordinary poles/spindels/etc.
 - [x] Identify the scary `gMarioState->action == 0` cleanup-skip seam.
   Source names this value `ACT_UNINITIALIZED`, and the generated proof has
   `act_uninitialized_is_zero`. More importantly,
