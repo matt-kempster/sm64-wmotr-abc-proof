@@ -251,6 +251,22 @@ counterexample-shaped goblin.
   `init_mario_after_warp` do not mention `heldObj`, `usedObj`, `riddenObj`, or
   `interactObj`. Current mood: spooky window, but not caught doing cloning
   crime there.
+- [x] Check the folklore claim: "touching a warp / entering
+  `ACT_DISAPPEARED` drops what Mario is holding before transition."
+  Verdict: not correct for normal held objects. The generated-source receipt
+  `interact_warp_disappeared_path_stops_riding_not_holding` says
+  `interact_warp` calls `mario_stop_riding_object` and plain
+  `set_mario_action(... ACT_DISAPPEARED ...)`, but it does not call
+  `mario_drop_held_object` or `drop_and_set_mario_action`. So a ridden shell is
+  explicitly stopped there, but a normal `heldObj` is not dropped by the warp
+  touch itself. `act_disappeared_triggers_warp_without_dropping_held_object`
+  says the disappeared action calls `level_trigger_warp` without dropping, and
+  `level_transition_bodies_do_not_drop_held_object_before_reinit` says
+  `level_trigger_warp`, `warp_area`, and `warp_level` do not mention/drop
+  `heldObj`; the cleanup is later `init_mario`, after destination load starts.
+  Also: the SSL Pyramid entrance is a same-level area transition
+  (`LEVEL_SSL` area 1 -> area 2), not a change-level warp, although
+  `warp_level` has the same "load destination, then init_mario" cleanup shape.
 - [x] Connect the no-observation audit to the stale-window model. The new
   `proofs/StaleWindowObservation.v` corollaries say the stale held-object
   window, and even the conditional reused-slot alias window, are unobserved by
