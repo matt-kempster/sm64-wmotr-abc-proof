@@ -57,6 +57,85 @@ Proof.
   exact pyramid_load_window_stale_refs_not_observed_before_cleanup.
 Qed.
 
+Definition obj_behaviors_stmt_ignores_stale_mario_object_refs
+    (stmt : statement) : Prop :=
+  statement_mentions_field_s OB._heldObj stmt = false /\
+  statement_mentions_field_s OB._usedObj stmt = false /\
+  statement_mentions_field_s OB._riddenObj stmt = false /\
+  statement_mentions_field_s OB._interactObj stmt = false.
+
+Definition behavior_actions_stmt_ignores_stale_mario_object_refs
+    (stmt : statement) : Prop :=
+  statement_mentions_field_s B._heldObj stmt = false /\
+  statement_mentions_field_s B._usedObj stmt = false /\
+  statement_mentions_field_s B._riddenObj stmt = false /\
+  statement_mentions_field_s B._interactObj stmt = false.
+
+Theorem ssl_pyramid_mechanism_behaviors_do_not_mention_stale_mario_object_refs :
+  obj_behaviors_stmt_ignores_stale_mario_object_refs
+    (fn_body OB.f_bhv_spindel_init) /\
+  obj_behaviors_stmt_ignores_stale_mario_object_refs
+    (fn_body OB.f_bhv_spindel_loop) /\
+  obj_behaviors_stmt_ignores_stale_mario_object_refs
+    (fn_body OB.f_bhv_ssl_moving_pyramid_wall_init) /\
+  obj_behaviors_stmt_ignores_stale_mario_object_refs
+    (fn_body OB.f_bhv_ssl_moving_pyramid_wall_loop) /\
+  obj_behaviors_stmt_ignores_stale_mario_object_refs
+    (fn_body OB.f_bhv_pyramid_elevator_init) /\
+  obj_behaviors_stmt_ignores_stale_mario_object_refs
+    (fn_body OB.f_bhv_pyramid_elevator_loop) /\
+  obj_behaviors_stmt_ignores_stale_mario_object_refs
+    (fn_body OB.f_bhv_pyramid_elevator_trajectory_marker_ball_loop) /\
+  obj_behaviors_stmt_ignores_stale_mario_object_refs
+    (fn_body OB.f_bhv_pyramid_top_init) /\
+  obj_behaviors_stmt_ignores_stale_mario_object_refs
+    (fn_body OB.f_bhv_pyramid_top_spinning) /\
+  obj_behaviors_stmt_ignores_stale_mario_object_refs
+    (fn_body OB.f_bhv_pyramid_top_explode) /\
+  obj_behaviors_stmt_ignores_stale_mario_object_refs
+    (fn_body OB.f_bhv_pyramid_top_loop) /\
+  obj_behaviors_stmt_ignores_stale_mario_object_refs
+    (fn_body OB.f_bhv_pyramid_top_fragment_init) /\
+  obj_behaviors_stmt_ignores_stale_mario_object_refs
+    (fn_body OB.f_bhv_pyramid_top_fragment_loop) /\
+  obj_behaviors_stmt_ignores_stale_mario_object_refs
+    (fn_body OB.f_bhv_pyramid_pillar_touch_detector_loop) /\
+  obj_behaviors_stmt_ignores_stale_mario_object_refs
+    (fn_body OB.f_bhv_sand_sound_loop) /\
+  behavior_actions_stmt_ignores_stale_mario_object_refs
+    (fn_body B.f_bhv_pole_init) /\
+  behavior_actions_stmt_ignores_stale_mario_object_refs
+    (fn_body B.f_bhv_pole_base_loop) /\
+  behavior_actions_stmt_ignores_stale_mario_object_refs
+    (fn_body B.f_bhv_giant_pole_loop) /\
+  behavior_actions_stmt_ignores_stale_mario_object_refs
+    (fn_body B.f_bhv_grindel_thwomp_loop) /\
+  behavior_actions_stmt_ignores_stale_mario_object_refs
+    (fn_body B.f_bhv_tilting_inverted_pyramid_loop).
+Proof. repeat split; vm_compute; reflexivity. Qed.
+
+Definition stale_mario_object_refs_pyramid_behavior_update_audit : Prop :=
+  proposition_of load_area_direct_call_order /\
+  proposition_of load_area_does_not_call_update_objects /\
+  proposition_of load_mario_area_does_not_call_update_objects /\
+  proposition_of
+    ssl_pyramid_mechanism_behaviors_do_not_mention_stale_mario_object_refs /\
+  audited_mario_stale_ref_no_observation_before_cleanup.
+
+Theorem stale_mario_object_refs_pyramid_behavior_update_audit_holds :
+  stale_mario_object_refs_pyramid_behavior_update_audit.
+Proof.
+  unfold stale_mario_object_refs_pyramid_behavior_update_audit,
+    proposition_of.
+  repeat split;
+    first
+      [ exact load_area_direct_call_order
+      | exact load_area_does_not_call_update_objects
+      | exact load_mario_area_does_not_call_update_objects
+      | exact ssl_pyramid_mechanism_behaviors_do_not_mention_stale_mario_object_refs
+      | exact audited_mario_stale_ref_no_observation_before_cleanup_holds ].
+Qed.
+
 Record audited_technical_stale_window_counterexample
     (before : mem) (pool_block : block)
     (window : pyramid_load_window_reference_origins) : Prop := {
@@ -1347,6 +1426,7 @@ Definition shell_and_grabbable_stale_channel_load_window_audit : Prop :=
     held_grab_constructs_audited_technical_pyramid_slot_reuse_counterexample /\
   proposition_of
     shell_ride_constructs_audited_ridden_technical_pyramid_slot_reuse_counterexample /\
+  stale_mario_object_refs_pyramid_behavior_update_audit /\
   proposition_of
     shell_ride_ridden_stale_load_window_is_unobserved_before_cleanup /\
   proposition_of
@@ -1378,6 +1458,9 @@ Proof.
   |].
   split; [
     exact shell_ride_constructs_audited_ridden_technical_pyramid_slot_reuse_counterexample
+  |].
+  split; [
+    exact stale_mario_object_refs_pyramid_behavior_update_audit_holds
   |].
   split; [exact shell_ride_ridden_stale_load_window_is_unobserved_before_cleanup |].
   split; [exact shell_ride_reused_slot_alias_is_technical_not_gameplay_useful |].
