@@ -161,6 +161,49 @@ Definition no_technical_stale_pointer_after_mario_reinit
   ~ stale_outside_reference before pool_block
       (refs_after_mario_reinit window).
 
+Record technical_stale_window_counterexample
+    (before : mem) (pool_block : block)
+    (window : pyramid_load_window_reference_origins) : Prop := {
+  technical_stale_window_has_stale_pointer :
+    technical_stale_pointer_smuggled_into_load_window
+      before pool_block window;
+  technical_stale_window_is_cleared_by_reinit :
+    no_technical_stale_pointer_after_mario_reinit
+      before pool_block window
+}.
+
+Record technical_stale_slot_reuse_counterexample
+    (before after_load : mem) (pool_block : block)
+    (window : pyramid_load_window_reference_origins) : Prop := {
+  technical_stale_reuse_has_stale_window :
+    technical_stale_window_counterexample before pool_block window;
+  technical_stale_reuse_aliases_live_slot :
+    technical_stale_slot_alias_during_load
+      before after_load pool_block window
+}.
+
+Record ridden_technical_stale_window_counterexample
+    (before : mem) (pool_block : block)
+    (window : pyramid_load_window_reference_origins) : Prop := {
+  ridden_technical_stale_window_base :
+    technical_stale_window_counterexample before pool_block window;
+  ridden_technical_stale_window_has_ridden_pointer :
+    stale_ridden_outside_reference_after_pyramid_load
+      before pool_block window
+}.
+
+Record ridden_technical_stale_slot_reuse_counterexample
+    (before after_load : mem) (pool_block : block)
+    (window : pyramid_load_window_reference_origins) : Prop := {
+  ridden_technical_stale_reuse_base :
+    technical_stale_slot_reuse_counterexample
+      before after_load pool_block window;
+  ridden_technical_stale_reuse_aliases_ridden_slot :
+    stale_ridden_reference_aliases_live_slot
+      before after_load pool_block
+      (refs_after_pyramid_load_before_mario_init window)
+}.
+
 Theorem post_pyramid_warp_shape_has_no_stale_outside_reference :
   forall before pool_block destination_spawn_slot refs,
     post_pyramid_warp_reference_shape destination_spawn_slot refs ->
@@ -213,6 +256,25 @@ Proof.
       apply post_reinit_refs_have_post_pyramid_warp_shape.
 Qed.
 
+Theorem held_grab_constructs_technical_stale_window_counterexample :
+  forall before pool_block outside_slot destination_spawn_slot,
+    outside_live_slot before pool_block outside_slot ->
+    exists window,
+      window =
+        outside_held_grab_load_window outside_slot destination_spawn_slot /\
+      technical_stale_window_counterexample
+        before pool_block window.
+Proof.
+  intros before pool_block outside_slot destination_spawn_slot Houtside.
+  destruct
+    (outside_held_grab_can_leave_stale_reference_across_pyramid_load
+       before pool_block outside_slot destination_spawn_slot Houtside)
+    as (window & Hwindow & Hstale & Hclean).
+  exists window.
+  split; [exact Hwindow |].
+  constructor; [exact Hstale | exact Hclean].
+Qed.
+
 Theorem outside_shell_ride_can_leave_ridden_stale_reference_across_pyramid_load :
   forall before pool_block outside_slot destination_spawn_slot,
     outside_live_slot before pool_block outside_slot ->
@@ -246,6 +308,27 @@ Proof.
     + apply post_pyramid_warp_shape_has_no_stale_outside_reference
         with (destination_spawn_slot := destination_spawn_slot).
       apply post_reinit_refs_have_post_pyramid_warp_shape.
+Qed.
+
+Theorem shell_ride_constructs_ridden_technical_stale_window_counterexample :
+  forall before pool_block outside_slot destination_spawn_slot,
+    outside_live_slot before pool_block outside_slot ->
+    exists window,
+      window =
+        outside_shell_ride_load_window outside_slot destination_spawn_slot /\
+      ridden_technical_stale_window_counterexample
+        before pool_block window.
+Proof.
+  intros before pool_block outside_slot destination_spawn_slot Houtside.
+  destruct
+    (outside_shell_ride_can_leave_ridden_stale_reference_across_pyramid_load
+       before pool_block outside_slot destination_spawn_slot Houtside)
+    as (window & Hwindow & Hstale & Hridden & Hclean).
+  exists window.
+  split; [exact Hwindow |].
+  constructor.
+  - constructor; [exact Hstale | exact Hclean].
+  - exact Hridden.
 Qed.
 
 Theorem held_grab_stale_reference_would_alias_reused_slot_after_load :
@@ -345,6 +428,30 @@ Proof.
   - exact Hclean.
 Qed.
 
+Theorem held_grab_constructs_technical_slot_reuse_counterexample :
+  forall before after_load pool_block outside_slot destination_spawn_slot,
+    outside_live_slot before pool_block outside_slot ->
+    slot_active after_load pool_block outside_slot ->
+    exists window,
+      window =
+        outside_held_grab_load_window outside_slot destination_spawn_slot /\
+      technical_stale_slot_reuse_counterexample
+        before after_load pool_block window.
+Proof.
+  intros before after_load pool_block outside_slot
+    destination_spawn_slot Houtside Hactive_after_load.
+  destruct
+    (held_grab_stale_slot_alias_is_conditional_on_reuse
+       before after_load pool_block outside_slot destination_spawn_slot
+       Houtside Hactive_after_load)
+    as (window & Hwindow & Hstale & Halias & Hclean).
+  exists window.
+  split; [exact Hwindow |].
+  constructor.
+  - constructor; [exact Hstale | exact Hclean].
+  - exact Halias.
+Qed.
+
 Theorem ridden_shell_stale_slot_alias_is_conditional_on_reuse :
   forall before after_load pool_block outside_slot destination_spawn_slot,
     outside_live_slot before pool_block outside_slot ->
@@ -381,6 +488,32 @@ Proof.
   subst alias_window.
   split; [exact Halias |].
   split; [exact Hridden_alias | exact Hclean].
+Qed.
+
+Theorem shell_ride_constructs_ridden_technical_slot_reuse_counterexample :
+  forall before after_load pool_block outside_slot destination_spawn_slot,
+    outside_live_slot before pool_block outside_slot ->
+    slot_active after_load pool_block outside_slot ->
+    exists window,
+      window =
+        outside_shell_ride_load_window outside_slot destination_spawn_slot /\
+      ridden_technical_stale_slot_reuse_counterexample
+        before after_load pool_block window.
+Proof.
+  intros before after_load pool_block outside_slot
+    destination_spawn_slot Houtside Hactive_after_load.
+  destruct
+    (ridden_shell_stale_slot_alias_is_conditional_on_reuse
+       before after_load pool_block outside_slot destination_spawn_slot
+       Houtside Hactive_after_load)
+    as (window & Hwindow & Hstale & Halias & Hridden_alias & Hclean).
+  exists window.
+  split; [exact Hwindow |].
+  constructor.
+  - constructor.
+    + constructor; [exact Hstale | exact Hclean].
+    + exact Halias.
+  - exact Hridden_alias.
 Qed.
 
 Theorem deactivated_raw_slot_reuse_is_not_continuous_transfer :

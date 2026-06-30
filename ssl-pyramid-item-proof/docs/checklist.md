@@ -731,18 +731,37 @@ counterexample-shaped goblin.
   `before` is continuously active at the unload barrier and in any later
   `after` state. This is deliberately narrower than "no stale pointer ever
   exists."
+- [x] Create the technical stale-window counterexample artifact.
+  `StalePointerModel.v` now has first-class counterexample records instead of
+  just vibes: `technical_stale_window_counterexample` says a Mario root still
+  names an outside allocation epoch after the Pyramid load but before
+  `init_mario`, and `technical_stale_slot_reuse_counterexample` says the same
+  stale root aliases a live slot if that exact pool slot has been reused by the
+  load. The held-object constructor is
+  `held_grab_constructs_technical_stale_window_counterexample`; the spicy shell
+  constructor is
+  `shell_ride_constructs_ridden_technical_stale_window_counterexample`, which
+  tracks the `riddenObj` flavor too. `StaleWindowObservation.v` also has the
+  audited versions, so the goblin receipt includes the current boring-but-key
+  fact: generated load/reinit code does not observe those stale Mario roots
+  before cleanup. Translation: yes, the technical stale-window smuggling shape
+  happens in the model once an outside live slot exists; the stronger
+  "stale pointer aliases a newly loaded Pyramid object" version still needs the
+  explicit slot-reuse premise, which is exactly where real allocation order may
+  block the scarier counterexample.
 - [ ] If the theorem is false, document the counterexample instead:
   setup, object, pointer/root that survives, slot reuse, and why it clones or
   transfers gameplay identity.
-  Current nuance: `StalePointerModel.v` /
-  `StaleWindowObservation.v` now name a technical stale-window counterexample
-  shape. `held_grab_stale_slot_alias_is_conditional_on_reuse` says a held
-  outside object can leave a stale load-window reference, and if the same slot
-  is reused during Pyramid load, that stale reference aliases a live slot.
-  `held_grab_reused_slot_alias_is_technical_not_gameplay_useful` connects that
-  to the no-generated-use-before-cleanup audit. So the current story is "yes,
-  technical stale smuggling is modelable if slot reuse happens; no, that is not
-  yet a practical cloning/gameplay transfer counterexample."
+  Current nuance: the technical stale-window counterexample is real at the
+  provenance/window layer, but it is intentionally classified as technical.
+  It does not yet refute the gameplay theorem because the proof still says the
+  stale root is cleared by `init_mario` / `init_mario_after_warp`, and the
+  generated load window still has no observed pre-cleanup use of
+  `heldObj`/`usedObj`/`riddenObj`/`interactObj`. If later generated load facts
+  prove same-slot reuse and a pre-cleanup observer, then the little criminal
+  becomes a practical cloning/identity-transfer counterexample. Right now it
+  is "yes, a stale outside epoch can be carried into the Pyramid load window;
+  no, we have not shown it can do useful gameplay crime."
 - [ ] Run the full proof pipeline.
 - [ ] Push the final proof state to the fork.
 - [ ] Only open a PR if the user explicitly says yes.
