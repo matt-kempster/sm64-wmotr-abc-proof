@@ -11,11 +11,11 @@
 
 From Coq Require Import List ZArith.
 Import ListNotations.
-From compcert Require Import AST Clight Memory Values.
+From compcert Require Import AST Clight Clightdefs Ctypes Integers Memory Values.
 From SSLPyramid.Proofs Require Import
   ASTFacts GraphTraversalModel NonMarioReferenceFacts OutsideObjectChannels
   RenderHeldObjectFacts Spec StalePointerModel TransitionFacts
-  TraversalModel.
+  TraversalModel UnloadObjectSemantics.
 
 Local Open Scope Z_scope.
 
@@ -447,6 +447,66 @@ Definition technical_stale_slot_alias_without_generated_use
     before pool_block window /\
   audited_mario_stale_ref_no_observation_before_cleanup.
 
+Record concrete_same_slot_allocation_assign_locs
+    (active_area_ce : composite_env)
+    (allocation_start after_active_flags_store after_load : mem)
+    (pool_block : block) (slot : Z) : Prop := {
+  concrete_active_flags_assign_loc :
+    assign_loc unload_object_ce tshort allocation_start pool_block
+      (Ptrofs.add
+        (Ptrofs.repr ((slot * object_slot_size)%Z))
+        (Ptrofs.repr object_active_flags_offset))
+      Full (Vint object_allocation_active_flags_value)
+      after_active_flags_store;
+  concrete_active_area_assign_loc :
+    assign_loc active_area_ce tschar after_active_flags_store pool_block
+      (Ptrofs.add
+        (Ptrofs.repr ((slot * object_slot_size)%Z))
+        (Ptrofs.repr object_active_area_offset))
+      Full (Vint (Int.repr ssl_pyramid_area))
+      after_load
+}.
+
+Theorem same_slot_pyramid_allocation_store_trace_from_linked_assign_locs :
+  forall active_area_ce allocation_start after_active_flags_store after_load
+      pool_block slot,
+    valid_object_slot slot ->
+    concrete_same_slot_allocation_assign_locs active_area_ce
+      allocation_start after_active_flags_store after_load pool_block slot ->
+    same_slot_pyramid_allocation_store_trace
+      allocation_start after_active_flags_store after_load pool_block slot.
+Proof.
+  intros active_area_ce allocation_start after_active_flags_store after_load
+    pool_block slot Hvalid Hassigns.
+  destruct Hassigns as [Hactive_flags Hactive_area].
+  split.
+  - unfold object_allocation_active_flags_value in Hactive_flags.
+    eapply assign_loc_active_flags_allocation_store; eauto.
+  - eapply assign_loc_active_area_store; eauto.
+Qed.
+
+Theorem same_slot_pyramid_allocation_receipt_from_linked_assign_locs :
+  forall active_area_ce allocation_start after_active_flags_store after_load
+      pool_block free_list slot allocation_count,
+    valid_object_slot slot ->
+    allocation_count_reaches_watched_slot
+      free_list slot allocation_count ->
+    concrete_same_slot_allocation_assign_locs active_area_ce
+      allocation_start after_active_flags_store after_load pool_block slot ->
+    same_slot_pyramid_allocation_receipt
+      allocation_start after_active_flags_store after_load
+      pool_block free_list slot allocation_count.
+Proof.
+  intros active_area_ce allocation_start after_active_flags_store after_load
+    pool_block free_list slot allocation_count Hvalid Hcount Hassigns.
+  destruct Hassigns as [Hactive_flags Hactive_area].
+  constructor.
+  - exact Hcount.
+  - unfold object_allocation_active_flags_value in Hactive_flags.
+    eapply assign_loc_active_flags_allocation_store; eauto.
+  - eapply assign_loc_active_area_store; eauto.
+Qed.
+
 Definition same_slot_reuse_generated_order_receipt_audit : Prop :=
   proposition_of generated_same_slot_reuse_order_spine_holds /\
   proposition_of ssl_pyramid_destination_spawn_info_source_supplies_area_2 /\
@@ -457,7 +517,9 @@ Definition same_slot_reuse_generated_order_receipt_audit : Prop :=
   proposition_of deallocated_slot_at_head_is_reached_by_one_allocation /\
   proposition_of watched_slot_under_newer_free_slots_needs_enough_allocations /\
   proposition_of unload_order_suffix_gives_watched_slot_free_list_depth /\
-  proposition_of same_slot_pyramid_allocation_store_trace_from_receipt.
+  proposition_of same_slot_pyramid_allocation_store_trace_from_receipt /\
+  proposition_of
+    same_slot_pyramid_allocation_store_trace_from_linked_assign_locs.
 
 Theorem ssl_pyramid_destination_allocations_reach_slot_if_depth_below_70 :
   forall newer_slots older_slots watched_slot,
@@ -529,6 +591,109 @@ Proof.
     eauto.
 Qed.
 
+Record unload_objects_from_area_generated_loop_certificate
+    (before barrier : mem) (pool_block : block) (area : Z)
+    (snapshot : object_list_snapshot) : Prop := {
+  generated_loop_body_is_f_unload_objects_from_area :
+    proposition_of unload_objects_from_area_traversal_spine;
+  generated_loop_snapshot_well_formed :
+    snapshot_well_formed before pool_block snapshot;
+  generated_loop_unload_trace :
+    generated_unload_execution_trace pool_block before
+      (unload_targets area snapshot) barrier
+}.
+
+Theorem generated_object_list_traversal_certificate_from_f_unload_objects_from_area_loop :
+  forall before barrier pool_block area snapshot,
+    unload_objects_from_area_generated_loop_certificate
+      before barrier pool_block area snapshot ->
+    generated_object_list_traversal_certificate
+      before barrier pool_block area snapshot.
+Proof.
+  intros before barrier pool_block area snapshot Hloop.
+  destruct Hloop as [_ Hsnapshot Htrace].
+  constructor.
+  - exact Hsnapshot.
+  - exact Htrace.
+Qed.
+
+Lemma nth_error_factorizes_list :
+  forall {A : Type} (xs : list A) index value,
+    nth_error xs index = Some value ->
+    xs = firstn index xs ++ value :: skipn (S index) xs.
+Proof.
+  intros A xs.
+  induction xs as [| head tail IHtail].
+  - intros [| index] value Hnth; inversion Hnth.
+  - intros [| index] value Hnth.
+    + simpl in Hnth.
+      inversion Hnth; subst.
+      reflexivity.
+    + simpl in Hnth.
+      simpl.
+      f_equal.
+      apply IHtail.
+      exact Hnth.
+Qed.
+
+Theorem generated_loop_reaches_watched_slot_by_target_index_if_tail_below_70 :
+  forall before barrier pool_block snapshot initial_free_list
+      target_index watched_slot,
+    unload_objects_from_area_generated_loop_certificate
+      before barrier pool_block ssl_outside_area snapshot ->
+    nth_error (unload_targets ssl_outside_area snapshot) target_index =
+      Some watched_slot ->
+    (length
+      (skipn (S target_index)
+        (unload_targets ssl_outside_area snapshot)) <
+     ssl_pyramid_destination_allocation_count_before_init_lower_bound)%nat ->
+    allocation_count_reaches_watched_slot
+      (free_list_after_deallocation_targets initial_free_list
+        (unload_targets ssl_outside_area snapshot))
+      watched_slot
+      ssl_pyramid_destination_allocation_count_before_init_lower_bound.
+Proof.
+  intros before barrier pool_block snapshot initial_free_list
+    target_index watched_slot Hloop Hnth Htail_depth.
+  eapply generated_traversal_reaches_watched_slot_if_suffix_below_70
+    with
+      (before := before)
+      (barrier := barrier)
+      (pool_block := pool_block)
+      (snapshot := snapshot)
+      (prefix :=
+        firstn target_index (unload_targets ssl_outside_area snapshot))
+      (suffix :=
+        skipn (S target_index)
+          (unload_targets ssl_outside_area snapshot)).
+  - eapply
+      generated_object_list_traversal_certificate_from_f_unload_objects_from_area_loop.
+    exact Hloop.
+  - apply nth_error_factorizes_list.
+    exact Hnth.
+  - exact Htail_depth.
+Qed.
+
+Definition generated_unload_traversal_certificate_audit : Prop :=
+  proposition_of unload_objects_from_area_traversal_spine /\
+  proposition_of
+    generated_object_list_traversal_certificate_from_f_unload_objects_from_area_loop /\
+  proposition_of
+    generated_loop_reaches_watched_slot_by_target_index_if_tail_below_70.
+
+Theorem generated_unload_traversal_certificate_audit_holds :
+  generated_unload_traversal_certificate_audit.
+Proof.
+  unfold generated_unload_traversal_certificate_audit,
+    proposition_of.
+  split; [exact unload_objects_from_area_traversal_spine |].
+  split.
+  - exact
+      generated_object_list_traversal_certificate_from_f_unload_objects_from_area_loop.
+  - exact
+      generated_loop_reaches_watched_slot_by_target_index_if_tail_below_70.
+Qed.
+
 Theorem same_slot_reuse_generated_order_receipt_audit_holds :
   same_slot_reuse_generated_order_receipt_audit.
 Proof.
@@ -547,7 +712,8 @@ Proof.
   split; [exact deallocated_slot_at_head_is_reached_by_one_allocation |].
   split; [exact watched_slot_under_newer_free_slots_needs_enough_allocations |].
   split; [exact unload_order_suffix_gives_watched_slot_free_list_depth |].
-  exact same_slot_pyramid_allocation_store_trace_from_receipt.
+  split; [exact same_slot_pyramid_allocation_store_trace_from_receipt |].
+  exact same_slot_pyramid_allocation_store_trace_from_linked_assign_locs.
 Qed.
 
 Theorem held_grab_reused_slot_alias_is_technical_not_gameplay_useful :

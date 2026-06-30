@@ -877,25 +877,44 @@ counterexample-shaped goblin.
   `unload_targets = prefix ++ watched :: suffix` and `length suffix < 70`,
   then the proven Pyramid destination allocation lower bound reaches the
   watched slot.
+  Newer newest-progress goblin: `UnloadObjectSemantics.v` now has
+  `assign_loc_tshort_store`, `assign_loc_tschar_store`,
+  `assign_loc_active_flags_allocation_store`, and
+  `assign_loc_active_area_store`. Translation: once the generated assignment
+  has been normalized down to CompCert's `assign_loc`, the proof now gets the
+  exact raw `Mem.store Mint16signed` for `activeFlags = 257` and
+  `Mem.store Mint8signed` for `activeAreaIndex = 2`. `StaleWindowObservation.v`
+  then packages the two normalized stores with
+  `same_slot_pyramid_allocation_store_trace_from_linked_assign_locs` and
+  `same_slot_pyramid_allocation_receipt_from_linked_assign_locs`, so the
+  same-slot receipt is concrete at the store layer instead of just vibes.
+  On the traversal side, `StaleWindowObservation.v` also adds
+  `unload_objects_from_area_generated_loop_certificate`,
+  `generated_object_list_traversal_certificate_from_f_unload_objects_from_area_loop`,
+  and
+  `generated_loop_reaches_watched_slot_by_target_index_if_tail_below_70`.
+  That means the watched-slot split is no longer an arbitrary
+  `prefix ++ watched :: suffix` input: if the watched slot is at index `i` in
+  the generated `unload_targets`, the suffix is exactly `skipn (S i)
+  unload_targets`.
   `StaleWindowObservation.v` packages this as
-  `same_slot_reuse_generated_order_receipt_audit_holds`. Still not done:
-  invert the actual linked CompCert executions enough to turn those generated
-  statement spines into concrete `Mem.store` facts for
-  `same_slot_pyramid_allocation_store_trace`; and construct the actual
-  generated traversal certificate from `f_unload_objects_from_area`, so the
-  `prefix/suffix` factorization is no longer an input but comes from the real
-  object-list loop. I tried the obvious direct inversion for the
-  `allocate_object` activeFlags assignment into a raw `Mem.store`; it hit the
-  familiar WSL/Coq `E_UNEXPECTED` crash path, so that proof needs to be made
-  more specialized instead of doing broad inversion over the generated body.
-- [ ] Run the full proof pipeline.
+  `same_slot_reuse_generated_order_receipt_audit_holds` and
+  `generated_unload_traversal_certificate_audit_holds`. Still not done:
+  invert the actual linked `exec_stmt` bodies enough to produce those
+  normalized `assign_loc` facts directly from `allocate_object` and
+  `geo_obj_init_spawninfo`; and derive the
+  `generated_unload_execution_trace` by actually walking the generated
+  13-list `f_unload_objects_from_area` loop. The obvious huge-body inversion
+  path already made Coq/WSL fall over once, so the next attempt should keep
+  going statement-by-statement instead of trying to digest the whole beast.
+- [x] Run the full proof pipeline.
 - [ ] Push the final proof state to the fork.
 - [ ] Only open a PR if the user explicitly says yes.
 
 ## Current next bite
 
-Same-slot reuse next bite: lower `same_slot_reuse_generated_order_receipt_audit_holds`
-from generated-AST/order facts into concrete CompCert memory effects.
+Same-slot reuse next bite: finish lowering the same-slot counterexample receipt
+from generated-AST/order facts into concrete linked executions.
 
 - invert the actual generated `deallocate_object` execution far enough to show
   the final `freeList->next = obj` store puts the watched object slot at the
@@ -903,23 +922,22 @@ from generated-AST/order facts into concrete CompCert memory effects.
 - invert the first generated `try_allocate_object` call in the destination
   `create_object -> allocate_object` path far enough to show it reads/pops that
   same `freeList->next` head, or count how many newer freed slots sit above it;
-- prove the `allocate_object` `activeFlags = (1 << 0) | (1 << 8)` assignment is
-  the `Mint16signed` store in `same_slot_pyramid_allocation_store_trace`.
-  Important: the receipt order is now corrected, so this is the first store,
-  not the second store;
-- prove the destination `geo_obj_init_spawninfo` copy is the `Mint8signed`
-  active-area store. The generated/source value side is now pinned:
-  `level_cmd_place_object` copies `sCurrAreaIndex`, and the Pyramid destination
-  object scripts/macros are area 2; what remains is the concrete store
-  inversion; and
-- construct the generated traversal certificate from
-  `f_unload_objects_from_area`, then factor that real `unload_targets` list as
-  `prefix ++ watched :: suffix`. If `length suffix < 70`, the new suffix-depth
-  receipt reaches the watched slot; if it is 70 or deeper, mark the stronger
-  technical counterexample branch blocked for that route instead of pretending.
+- prove the actual generated `allocate_object`
+  `activeFlags = (1 << 0) | (1 << 8)` `exec_stmt` produces the normalized
+  `assign_loc` consumed by `assign_loc_active_flags_allocation_store`. The raw
+  `Mem.store` part after `assign_loc` is done now;
+- prove the actual generated `geo_obj_init_spawninfo` active-area copy
+  `exec_stmt` produces the normalized `assign_loc` consumed by
+  `assign_loc_active_area_store`. The raw `Mem.store` part after `assign_loc`
+  is done now; and
+- derive `generated_unload_execution_trace` from the real
+  `f_unload_objects_from_area` 13-list loop. The certificate adapter and the
+  index-based suffix split are done; the remaining beast is proving the loop
+  really reads the circular lists and calls `unload_object` exactly for
+  `unload_targets area snapshot`.
 
-In Discord goblin terms: the route map is pinned; now make the tire tracks in
-CompCert memory line up with the map.
+In Discord goblin terms: the map now has tire tracks for the two final stores.
+Next we need the dashcam footage showing the generated code drove there.
 
 The next proof-shaped bite is the newly exposed all-slot tail-frame seam:
 
