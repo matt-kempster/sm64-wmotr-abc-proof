@@ -635,6 +635,48 @@ Theorem level_update_has_no_direct_ridden_object_writer :
   direct_field_writers L.prog L._riddenObj = [].
 Proof. vm_compute; reflexivity. Qed.
 
+Theorem interact_warp_disappeared_path_stops_riding_not_holding :
+  calls_ident_s I._mario_stop_riding_object
+    (fn_body I.f_interact_warp) = true /\
+  calls_ident_s I._mario_drop_held_object
+    (fn_body I.f_interact_warp) = false /\
+  calls_ident_s I._drop_and_set_mario_action
+    (fn_body I.f_interact_warp) = false /\
+  calls_ident_s I._set_mario_action
+    (fn_body I.f_interact_warp) = true.
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
+Theorem act_disappeared_triggers_warp_without_dropping_held_object :
+  calls_ident_s MC._level_trigger_warp
+    (fn_body MC.f_act_disappeared) = true /\
+  calls_ident_s MC._drop_and_set_mario_action
+    (fn_body MC.f_act_disappeared) = false /\
+  calls_ident_s MC._set_mario_action
+    (fn_body MC.f_act_disappeared) = false.
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
+Theorem level_transition_bodies_do_not_drop_held_object_before_reinit :
+  statement_mentions_field_s L._heldObj
+    (fn_body L.f_level_trigger_warp) = false /\
+  statement_mentions_field_s L._heldObj
+    (fn_body L.f_warp_area) = false /\
+  statement_mentions_field_s L._heldObj
+    (fn_body L.f_warp_level) = false /\
+  calls_ident_s L._init_mario_after_warp
+    (fn_body L.f_warp_area) = true /\
+  calls_ident_s L._init_mario_after_warp
+    (fn_body L.f_warp_level) = true /\
+  direct_field_writers L.prog L._heldObj = [] /\
+  assigns_zero_to_field_s M._heldObj
+    (fn_body M.f_init_mario) = true.
+Proof.
+  repeat split;
+    first
+      [ vm_compute; reflexivity
+      | exact level_update_has_no_direct_held_object_writer
+      | exact init_mario_clears_held_object ].
+Qed.
+
 Theorem unload_mario_area_calls_unload_objects_from_area :
   calls_ident_s A._unload_objects_from_area
     (fn_body A.f_unload_mario_area) = true.
