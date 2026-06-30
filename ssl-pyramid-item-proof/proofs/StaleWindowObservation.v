@@ -445,6 +445,25 @@ Definition technical_stale_slot_alias_without_generated_use
     before pool_block window /\
   audited_mario_stale_ref_no_observation_before_cleanup.
 
+Definition same_slot_reuse_generated_order_receipt_audit : Prop :=
+  proposition_of generated_same_slot_reuse_order_spine_holds /\
+  proposition_of deallocate_push_then_first_allocation_reuses_same_slot /\
+  proposition_of deallocated_slot_at_head_is_reached_by_one_allocation /\
+  proposition_of watched_slot_under_newer_free_slots_needs_enough_allocations /\
+  proposition_of same_slot_pyramid_allocation_store_trace_from_receipt.
+
+Theorem same_slot_reuse_generated_order_receipt_audit_holds :
+  same_slot_reuse_generated_order_receipt_audit.
+Proof.
+  unfold same_slot_reuse_generated_order_receipt_audit,
+    proposition_of.
+  split; [exact generated_same_slot_reuse_order_spine_holds |].
+  split; [exact deallocate_push_then_first_allocation_reuses_same_slot |].
+  split; [exact deallocated_slot_at_head_is_reached_by_one_allocation |].
+  split; [exact watched_slot_under_newer_free_slots_needs_enough_allocations |].
+  exact same_slot_pyramid_allocation_store_trace_from_receipt.
+Qed.
+
 Theorem held_grab_reused_slot_alias_is_technical_not_gameplay_useful :
   forall before after_load pool_block outside_slot destination_spawn_slot,
     outside_live_slot before pool_block outside_slot ->

@@ -1064,6 +1064,76 @@ Theorem spawn_object_active_flags_writers :
    S._mark_obj_for_deletion].
 Proof. vm_compute; reflexivity. Qed.
 
+Theorem deallocate_object_inserts_object_at_free_list_head_spine :
+  event_subsequenceb
+    [Event_set_temp_from_field S._t'1 S._freeList S._next;
+     Event_assign_field_from_temp S._next S._t'1;
+     Event_assign_field_from_temp S._next S._obj]
+    (statement_events_s (fn_body S.f_deallocate_object)) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem try_allocate_object_pops_free_list_head_spine :
+  event_subsequenceb
+    [Event_set_temp_from_field S._t'5 S._freeList S._next;
+     Event_set_temp_from_field S._t'4 S._nextObj S._next;
+     Event_assign_field_from_temp S._next S._t'4;
+     Event_call S._geo_remove_child;
+     Event_call S._geo_add_child]
+    (statement_events_s (fn_body S.f_try_allocate_object)) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem allocate_object_first_try_sets_allocation_active_flags_spine :
+  event_subsequenceb
+    [Event_call S._try_allocate_object;
+     Event_assign_field S._activeFlags]
+    (statement_events_s (fn_body S.f_allocate_object)) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem create_object_calls_allocate_object_then_may_touch_active_flags :
+  event_subsequenceb
+    [Event_call S._allocate_object]
+    (statement_events_s (fn_body S.f_create_object)) = true /\
+  assigns_field_s S._activeFlags
+    (fn_body S.f_create_object) = true.
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
+Theorem spawn_objects_from_info_create_then_spawninfo_spine :
+  event_subsequenceb
+    [Event_call O._create_object;
+     Event_call O._geo_obj_init_spawninfo]
+    (statement_events_s (fn_body O.f_spawn_objects_from_info)) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem geo_obj_init_spawninfo_copies_active_area_spine :
+  event_subsequenceb
+    [Event_set_temp_from_field G._t'6 G._spawn G._activeAreaIndex;
+     Event_assign_field_from_temp G._activeAreaIndex G._t'6]
+    (statement_events_s (fn_body G.f_geo_obj_init_spawninfo)) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Definition generated_same_slot_reuse_order_spine : Prop :=
+  proposition_of deallocate_object_inserts_object_at_free_list_head_spine /\
+  proposition_of try_allocate_object_pops_free_list_head_spine /\
+  proposition_of allocate_object_first_try_sets_allocation_active_flags_spine /\
+  proposition_of create_object_calls_allocate_object_then_may_touch_active_flags /\
+  proposition_of spawn_objects_from_info_create_then_spawninfo_spine /\
+  proposition_of geo_obj_init_spawninfo_copies_active_area_spine.
+
+Theorem generated_same_slot_reuse_order_spine_holds :
+  generated_same_slot_reuse_order_spine.
+Proof.
+  unfold generated_same_slot_reuse_order_spine,
+    proposition_of.
+  repeat split;
+    first
+      [ exact deallocate_object_inserts_object_at_free_list_head_spine
+      | exact try_allocate_object_pops_free_list_head_spine
+      | exact allocate_object_first_try_sets_allocation_active_flags_spine
+      | exact create_object_calls_allocate_object_then_may_touch_active_flags
+      | exact spawn_objects_from_info_create_then_spawninfo_spine
+      | exact geo_obj_init_spawninfo_copies_active_area_spine ].
+Qed.
+
 Theorem stop_sounds_does_not_write_through_source_pointer :
   assigns_through_temp_s AU._pos
     (fn_body AU.f_stop_sounds_from_source) = false.
