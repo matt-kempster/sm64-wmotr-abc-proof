@@ -705,6 +705,12 @@ bash pipeline/assumptions.sh \
   pyramid_load_window_object_owned_roots_not_mentioned_before_cleanup
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.TransitionFacts \
+  pyramid_load_window_full_object_owned_roots_not_mentioned_before_cleanup
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TransitionFacts \
+  pyramid_load_window_mario_platform_externals_not_called_before_cleanup
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TransitionFacts \
   pyramid_load_window_graph_specific_roots_not_mentioned_before_cleanup
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.TransitionFacts \
@@ -772,6 +778,18 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.StaleWindowObservation \
   held_grab_reused_slot_alias_is_unobserved_before_cleanup
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
+  high_risk_outside_pointer_root_classification_exact
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
+  high_risk_pointer_roots_load_window_audit_holds
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
+  persistent_outside_pointer_from_high_risk_root_is_counterexample_candidate
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
+  shell_and_grabbable_stale_channel_load_window_audit_holds
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   unload_object_tail_preserves_deactivation_from_frame
