@@ -13,7 +13,7 @@ From Coq Require Import List ZArith.
 Import ListNotations.
 From compcert Require Import AST Clight Memory Values.
 From SSLPyramid.Proofs Require Import
-  GraphTraversalModel NonMarioReferenceFacts OutsideObjectChannels
+  ASTFacts GraphTraversalModel NonMarioReferenceFacts OutsideObjectChannels
   RenderHeldObjectFacts Spec StalePointerModel TransitionFacts
   TraversalModel.
 
@@ -698,6 +698,131 @@ Proof.
   exact Hclean.
 Qed.
 
+Definition allocate_object_object_owned_root_init_audit : Prop :=
+  event_subsequenceb
+    [Event_assign_field_from_temp S._parentObj S._obj;
+     Event_assign_field_null S._prevObj;
+     Event_assign_field_null S._platform]
+    (statement_events_s (fn_body S.f_allocate_object)) = true /\
+  assigns_zero_to_field_s S._numCollidedObjs
+    (fn_body S.f_allocate_object) = true /\
+  statement_mentions_field_s S._rawData
+    (fn_body S.f_allocate_object) = true /\
+  statement_mentions_field_s S._asObject
+    (fn_body S.f_allocate_object) = false.
+
+Theorem allocate_object_object_owned_root_init_audit_holds :
+  allocate_object_object_owned_root_init_audit.
+Proof.
+  unfold allocate_object_object_owned_root_init_audit.
+  vm_compute.
+  repeat split; reflexivity.
+Qed.
+
+Definition spawn_objects_from_info_linked_object_owned_audit : Prop :=
+  event_subsequenceb
+    [Event_call O._clear_mario_platform;
+     Event_call O._create_object]
+    (statement_events_s (fn_body O.f_spawn_objects_from_info)) = true /\
+  calls_ident_s O._apply_mario_platform_displacement
+    (fn_body O.f_spawn_objects_from_info) = false /\
+  calls_ident_s O._update_mario_platform
+    (fn_body O.f_spawn_objects_from_info) = false /\
+  field_mentioners O.prog O._parentObj = [] /\
+  field_mentioners O.prog O._prevObj = [] /\
+  field_mentioners O.prog O._platform = [] /\
+  field_mentioners O.prog O._collidedObjs = [] /\
+  field_mentioners O.prog O._asObject = [].
+
+Theorem spawn_objects_from_info_linked_object_owned_audit_holds :
+  spawn_objects_from_info_linked_object_owned_audit.
+Proof.
+  unfold spawn_objects_from_info_linked_object_owned_audit.
+  vm_compute.
+  repeat split; reflexivity.
+Qed.
+
+Definition active_collided_object_origins_after_count
+    (count : nat) (origins : list object_reference_origin)
+    : list object_reference_origin :=
+  firstn count origins.
+
+Definition object_owned_observations_from_origins
+    (parent prev platform : object_reference_origin)
+    (active_collided raw_as_object : list object_reference_origin)
+    : root_origin_observations :=
+  [(RootObjectParentObj, parent);
+   (RootObjectPrevObj, prev);
+   (RootObjectPlatform, platform)] ++
+  map (fun origin => (RootObjectCollidedObjs, origin)) active_collided ++
+  map (fun origin => (RootObjectRawDataAsObject, origin)) raw_as_object.
+
+Definition freshly_allocated_destination_object_owned_observations
+    (allocated_slot : Z)
+    (stale_collided_storage : list object_reference_origin)
+    : root_origin_observations :=
+  object_owned_observations_from_origins
+    (OtherObjectReference allocated_slot)
+    NoObjectReference
+    NoObjectReference
+    (active_collided_object_origins_after_count 0 stale_collided_storage)
+    [NoObjectReference].
+
+Theorem freshly_allocated_destination_object_owned_epoch_invariant :
+  forall before pool_block allocated_slot stale_collided_storage,
+    object_owned_root_epoch_invariant before pool_block
+      (freshly_allocated_destination_object_owned_observations
+         allocated_slot stale_collided_storage).
+Proof.
+  intros before pool_block allocated_slot stale_collided_storage.
+  unfold object_owned_root_epoch_invariant,
+    root_origin_observations_have_no_outside_epoch,
+    freshly_allocated_destination_object_owned_observations,
+    object_owned_observations_from_origins,
+    active_collided_object_origins_after_count.
+  simpl.
+  intros root origin slot _ Hobs _ Horigin.
+  repeat
+    (destruct Hobs as [Hobs | Hobs];
+     [inversion Hobs; subst origin; discriminate |]).
+  contradiction.
+Qed.
+
+Theorem freshly_allocated_destination_object_owned_roots_do_not_survive :
+  forall before pool_block allocated_slot stale_collided_storage,
+    ~ root_origin_observations_have_survivor before pool_block
+        object_owned_high_risk_roots
+        (freshly_allocated_destination_object_owned_observations
+           allocated_slot stale_collided_storage).
+Proof.
+  intros before pool_block allocated_slot stale_collided_storage.
+  apply object_owned_root_epoch_invariant_eliminates_survivors.
+  apply freshly_allocated_destination_object_owned_epoch_invariant.
+Qed.
+
+Theorem object_owned_observations_clean_or_counterexample :
+  forall before pool_block observations,
+    object_owned_root_epoch_invariant before pool_block observations \/
+    root_origin_observations_have_survivor
+      before pool_block object_owned_high_risk_roots observations ->
+    (~ root_origin_observations_have_survivor
+        before pool_block object_owned_high_risk_roots observations) \/
+    exists root origin,
+      In (root, origin) observations /\
+      persistent_outside_pointer_counterexample_candidate before pool_block
+        {| observed_pointer_root := root;
+           observed_pointer_origin := origin |}.
+Proof.
+  intros before pool_block observations Houtcome.
+  destruct Houtcome as [Hclean | Hsurvivor].
+  - left.
+    apply object_owned_root_epoch_invariant_eliminates_survivors.
+    exact Hclean.
+  - right.
+    apply object_owned_root_origin_survivor_is_counterexample_candidate.
+    exact Hsurvivor.
+Qed.
+
 Definition graph_or_render_root_epoch_invariant
     (before : mem) (pool_block : block)
     (observations : root_origin_observations) : Prop :=
@@ -787,6 +912,10 @@ Qed.
 Definition channel_side_survivor_elimination_certificate : Prop :=
   proposition_of object_owned_root_epoch_invariant_eliminates_survivors /\
   proposition_of object_owned_root_origin_survivor_is_counterexample_candidate /\
+  proposition_of allocate_object_object_owned_root_init_audit_holds /\
+  proposition_of spawn_objects_from_info_linked_object_owned_audit_holds /\
+  proposition_of freshly_allocated_destination_object_owned_roots_do_not_survive /\
+  proposition_of object_owned_observations_clean_or_counterexample /\
   proposition_of graph_or_render_root_epoch_invariant_eliminates_survivors /\
   proposition_of graph_or_render_root_origin_survivor_is_counterexample_candidate /\
   proposition_of render_held_objnode_origin_after_post_init_is_no_object /\
@@ -803,6 +932,10 @@ Proof.
     first
       [ exact object_owned_root_epoch_invariant_eliminates_survivors
       | exact object_owned_root_origin_survivor_is_counterexample_candidate
+      | exact allocate_object_object_owned_root_init_audit_holds
+      | exact spawn_objects_from_info_linked_object_owned_audit_holds
+      | exact freshly_allocated_destination_object_owned_roots_do_not_survive
+      | exact object_owned_observations_clean_or_counterexample
       | exact graph_or_render_root_epoch_invariant_eliminates_survivors
       | exact graph_or_render_root_origin_survivor_is_counterexample_candidate
       | exact render_held_objnode_origin_after_post_init_is_no_object

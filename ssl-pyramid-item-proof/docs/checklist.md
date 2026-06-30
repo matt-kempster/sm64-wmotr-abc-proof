@@ -402,6 +402,49 @@ counterexample-shaped goblin.
   "no survivor" comes out; spooky outside epoch goes in, counterexample nametag
   comes out. Render-held after Mario's broom is clean. Object-owned and generic
   graph roots still need their real invariant receipts.
+- [x] Check the object-owned root counterexample vein for freshly loaded
+  Pyramid objects.
+  `allocate_object_object_owned_root_init_audit_holds` pins the generated
+  allocation reset shape: new object gets `parentObj = self`, `prevObj = NULL`,
+  `platform = NULL`, `numCollidedObjs = 0`, and raw behavior data is touched
+  through the zeroing path rather than through `rawData.asObject` as a live
+  object pointer. The new provenance model
+  `freshly_allocated_destination_object_owned_roots_do_not_survive` says that
+  this fresh destination allocation shape has no outside allocation epoch in
+  the active object-owned roots. Important tiny gremlin:
+  `collidedObjs` raw storage is not individually zeroed, so stale bits can
+  physically remain there, but the generated allocation path resets
+  `numCollidedObjs` to zero; the model treats only the active counted collision
+  entries as live roots. If some later code reads beyond that count, that would
+  be a new bug-shaped creature, not the normal load-path story.
+
+  Also fixed the mental model for the platform helpers:
+  `spawn_objects_from_info_linked_object_owned_audit_holds` shows the linked
+  generated body of `spawn_objects_from_info` does call
+  `clear_mario_platform` before `create_object`, even though the `area.v`
+  surface sees it as an external call. Local source audit of
+  `src/game/platform_displacement.c` says `clear_mario_platform` only clears
+  the global `gMarioPlatform`; it does not write `Object.platform`. The same
+  generated body does not call `apply_mario_platform_displacement` or
+  `update_mario_platform`, and it has no direct object-owned field mentioners
+  for `parentObj`, `prevObj`, `platform`, active `collidedObjs`, or
+  `asObject`.
+
+  Two extra "don't panic later" notes: `create_object` can call
+  `snap_object_to_floor` for a few object-list classes, but the source and
+  generated writer census both say this adjusts floor/position/move-flag style
+  state, not `Object.platform`. Macro-object spawning passes
+  `gMacroObjectDefaultParent` into the object-helper spawn path, so its
+  `parentObj` is a default/global parent shape, not an outside allocation
+  epoch, but the exact cross-TU macro/helper linkage is still a receipt for a
+  later polishing pass.
+
+  Discord goblin translation: fresh Pyramid objects do not wake up holding an
+  outside object in `parentObj`, `prevObj`, `platform`, or `rawData.asObject`.
+  The collision array can have dusty old bytes under the couch, but the
+  "number of things under the couch" counter is zero, so normal code should not
+  see them. No object-owned counterexample found here; this branch now smells
+  mostly like invariant paperwork.
 - [x] Build a type-aware graph-link audit for
   `GraphNode.parent`/`children`/`prev`/`next`. New theorem
   `pyramid_load_window_typed_graph_node_link_audit` ignores fake scares like
@@ -662,15 +705,17 @@ In Discord goblin terms: we proved that everyone on the bouncer's list gets
 thrown out. Now prove the bouncer's list really came from the engine's
 `gObjectLists` clipboard.
 
-Channel-side next bite: derive the clean root-origin observation lists from
-real engine invariants instead of handing them to the sorter:
+Channel-side next bite: finish the remaining linked/invariant receipts after
+the object-owned fresh-allocation sweep:
 
-- derive `object_owned_root_epoch_invariant` from a real object-pool/list
-  invariant: no current/destination object has `parentObj`, `prevObj`,
-  `platform`, `collidedObjs`, or `rawData.asObject` carrying an outside
-  allocation epoch after the unload/load boundary; if that fails, feed the
-  concrete observation to
-  `object_owned_root_origin_survivor_is_counterexample_candidate`;
+- lift the fresh-allocation object-owned result through the actual linked
+  `load_area -> spawn_objects_from_info -> create_object -> allocate_object`
+  execution path. The fresh object shape is clean now; the remaining receipt is
+  linked execution, not a likely counterexample;
+- keep the collision-array footnote honest: either prove later reads of
+  `collidedObjs` are count-guarded by `numCollidedObjs`, or explicitly keep
+  "read stale raw collision storage despite count zero" as a weird
+  counterexample candidate;
 - connect the render-held elimination to linked execution order: prove the
   relevant `geo_switch_mario_hand_grab_pos` refresh, if observed after Pyramid
   load, is downstream of post-`init_mario` `heldObj = NULL`;
@@ -681,8 +726,10 @@ real engine invariants instead of handing them to the sorter:
   depending on whether the survivor is an outside reachable graph node or an
   object epoch held by a graph-owned root;
 - only reopen the externally implemented Mario-platform helpers if a generated
-  path actually calls them before cleanup/rebind; the audited load window still
-  does not;
+  path actually calls `apply_mario_platform_displacement` or
+  `update_mario_platform` before cleanup/rebind. `clear_mario_platform` does
+  run through linked `spawn_objects_from_info`, but source-audits as a global
+  nulling helper rather than an `Object.platform` writer;
 - if an `action == 0` Pyramid entry still looks possible, treat it as a
   non-normal script/init/external route first; the normal gameplay
   interaction/floor route is now pinned behind the nonzero-action guard;
