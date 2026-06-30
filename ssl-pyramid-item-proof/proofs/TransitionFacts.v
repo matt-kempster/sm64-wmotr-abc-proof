@@ -635,6 +635,19 @@ Theorem level_update_has_no_direct_ridden_object_writer :
   direct_field_writers L.prog L._riddenObj = [].
 Proof. vm_compute; reflexivity. Qed.
 
+Theorem mario_stop_riding_object_clears_ridden_object :
+  assigns_zero_to_field_s I._riddenObj
+    (fn_body I.f_mario_stop_riding_object) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem mario_stop_riding_object_clears_ridden_object_after_shell_stop :
+  event_subsequenceb
+    [Event_set_temp_from_field I._t'1 I._m I._riddenObj;
+     Event_call I._stop_shell_music;
+     Event_assign_field_null I._riddenObj]
+    (statement_events_s (fn_body I.f_mario_stop_riding_object)) = true.
+Proof. vm_compute; reflexivity. Qed.
+
 Theorem interact_warp_disappeared_path_stops_riding_not_holding :
   calls_ident_s I._mario_stop_riding_object
     (fn_body I.f_interact_warp) = true /\
@@ -644,6 +657,35 @@ Theorem interact_warp_disappeared_path_stops_riding_not_holding :
     (fn_body I.f_interact_warp) = false /\
   calls_ident_s I._set_mario_action
     (fn_body I.f_interact_warp) = true.
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
+Theorem interact_warp_stops_riding_before_disappeared_action :
+  event_subsequenceb
+    [Event_call I._mario_stop_riding_object;
+     Event_call I._set_mario_action]
+    (statement_events_s (fn_body I.f_interact_warp)) = true /\
+  assigns_zero_to_field_s I._riddenObj
+    (fn_body I.f_mario_stop_riding_object) = true /\
+  calls_ident_s I._mario_drop_held_object
+    (fn_body I.f_interact_warp) = false.
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
+Theorem normal_interact_warp_clears_ridden_before_warp_completion :
+  event_subsequenceb
+    [Event_call I._mario_stop_riding_object;
+     Event_call I._set_mario_action]
+    (statement_events_s (fn_body I.f_interact_warp)) = true /\
+  event_subsequenceb
+    [Event_set_temp_from_field I._t'1 I._m I._riddenObj;
+     Event_call I._stop_shell_music;
+     Event_assign_field_null I._riddenObj]
+    (statement_events_s (fn_body I.f_mario_stop_riding_object)) = true /\
+  calls_ident_s MC._level_trigger_warp
+    (fn_body MC.f_act_disappeared) = true /\
+  calls_ident_s L._warp_area
+    (fn_body L.f_play_mode_normal) = true /\
+  calls_ident_s L._init_mario_after_warp
+    (fn_body L.f_warp_area) = true.
 Proof. vm_compute; repeat split; reflexivity. Qed.
 
 Theorem act_disappeared_triggers_warp_without_dropping_held_object :

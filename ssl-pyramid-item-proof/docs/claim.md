@@ -876,7 +876,9 @@ hold/ride transport candidates:
 - one `bhvExclamationBox` configured to spawn a Koopa shell.
 
 The first three behaviors are the area-1 `INTERACT_GRABBABLE` candidates. The
-shell is a separate `riddenObj` channel.
+shell interaction can write Mario's `riddenObj`, so it is audited separately;
+the normal Pyramid object-warp route then calls `mario_stop_riding_object`
+inside `interact_warp`, before the delayed warp completes.
 
 Area 1 also contains three exclamation boxes configured for Wing Caps, plus
 coins and 1-Ups. The generated census now pins the three Wing Cap boxes too.
@@ -923,8 +925,16 @@ The shell/ridden path has first-class generated evidence now:
 `bhvKoopaShell`, pins the shell hitbox to `INTERACT_KOOPA_SHELL`, shows
 `interact_koopa_shell` assigning the shell object through Mario's
 `interactObj`, `usedObj`, and `riddenObj` fields, and records that
-`init_mario` clears `riddenObj`. The matching direct-object and cap-state
-evidence is bundled in
+`init_mario` clears `riddenObj`. The newer ordering certificate
+`normal_interact_warp_clears_ridden_before_warp_completion` is stronger for
+the normal SSL Pyramid object-warp path: generated `interact_warp` calls
+`mario_stop_riding_object` before `set_mario_action`, and the helper contains
+the `riddenObj = NULL` cleanup. The same certificate also pins the downstream
+completion spine: `act_disappeared` can trigger `level_trigger_warp`, normal
+play can call `warp_area`, and `warp_area` calls `init_mario_after_warp`. Thus
+the shell stale-window model is a
+what-if shape, not the reachable normal Pyramid warp route. The matching
+direct-object and cap-state evidence is bundled in
 `direct_grabbable_channel_mario_reference_cleanup_evidence` and
 `wing_cap_channel_state_only_generated_evidence`.
 
