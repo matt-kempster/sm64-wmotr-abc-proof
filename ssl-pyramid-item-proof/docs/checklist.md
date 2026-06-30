@@ -686,7 +686,22 @@ counterexample-shaped goblin.
 - [ ] If normal-cap loss/retrieval becomes relevant, prove separately that
   `mario_blow_off_cap` creates a fresh normal-cap object from Mario/save state,
   not the original outside Wing Cap box/cap identity.
-- [ ] Finish the shell ride/ridden-object proof path.
+- [x] Finish the shell ride/ridden-object proof path.
+  `StalePointerModel.v` now has the shell-specific provenance shape:
+  `outside_shell_ride_refs` records what generated `interact_koopa_shell`
+  does: the shell can sit in `interactObj`, `usedObj`, and especially
+  `riddenObj`. The new
+  `outside_shell_ride_can_leave_ridden_stale_reference_across_pyramid_load`
+  theorem says the ridden-object stale reference survives into the
+  post-load/pre-`init_mario` window, and
+  `ridden_shell_stale_slot_alias_is_conditional_on_reuse` says that if the same
+  object-pool slot is reused during Pyramid load, the stale shell ref aliases a
+  live slot. `StaleWindowObservation.v` then packages the important boring
+  ending: `shell_ride_reused_slot_alias_is_technical_not_gameplay_useful`
+  combines that conditional alias with the generated no-use-before-cleanup
+  audit. Translation: shell ride is absolutely the spicy ridden-object path,
+  and yes, it has the same technical stale-window shape; but at this proof
+  layer it still does not become a practical cloning/gameplay-transfer route.
 - [ ] Check cork boxes and other grabbables against the same held-object/stale
   reference logic.
 

@@ -82,6 +82,34 @@ Proof.
   exact audited_mario_stale_ref_no_observation_before_cleanup_holds.
 Qed.
 
+Theorem shell_ride_ridden_stale_load_window_is_unobserved_before_cleanup :
+  forall before pool_block outside_slot destination_spawn_slot,
+    outside_live_slot before pool_block outside_slot ->
+    exists window,
+      window =
+        outside_shell_ride_load_window
+          outside_slot destination_spawn_slot /\
+      stale_outside_reference_after_pyramid_load
+        before pool_block window /\
+      stale_ridden_outside_reference_after_pyramid_load
+        before pool_block window /\
+      ~ stale_outside_reference before pool_block
+          (refs_after_mario_reinit window) /\
+      audited_mario_stale_ref_no_observation_before_cleanup.
+Proof.
+  intros before pool_block outside_slot destination_spawn_slot Houtside.
+  destruct
+    (outside_shell_ride_can_leave_ridden_stale_reference_across_pyramid_load
+       before pool_block outside_slot destination_spawn_slot Houtside)
+    as (window & Hwindow & Hstale & Hridden & Hclean).
+  exists window.
+  split; [exact Hwindow |].
+  split; [exact Hstale |].
+  split; [exact Hridden |].
+  split; [exact Hclean |].
+  exact audited_mario_stale_ref_no_observation_before_cleanup_holds.
+Qed.
+
 Theorem held_grab_reused_slot_alias_is_unobserved_before_cleanup :
   forall before after_load pool_block outside_slot destination_spawn_slot,
     outside_live_slot before pool_block outside_slot ->
@@ -158,6 +186,44 @@ Proof.
     right; left; reflexivity.
   - split; [exact Halias |].
     split; [exact Hclean | exact Haudit].
+Qed.
+
+Definition shell_ride_ridden_alias_without_generated_use
+    (before after_load : mem) (pool_block : block)
+    (window : pyramid_load_window_reference_origins) : Prop :=
+  technical_stale_slot_alias_without_generated_use
+    before after_load pool_block window /\
+  stale_ridden_reference_aliases_live_slot
+    before after_load pool_block
+    (refs_after_pyramid_load_before_mario_init window).
+
+Theorem shell_ride_reused_slot_alias_is_technical_not_gameplay_useful :
+  forall before after_load pool_block outside_slot destination_spawn_slot,
+    outside_live_slot before pool_block outside_slot ->
+    slot_active after_load pool_block outside_slot ->
+    exists window,
+      window =
+        outside_shell_ride_load_window
+          outside_slot destination_spawn_slot /\
+      shell_ride_ridden_alias_without_generated_use
+        before after_load pool_block window.
+Proof.
+  intros before after_load pool_block outside_slot
+    destination_spawn_slot Houtside Hactive_after_load.
+  destruct
+    (ridden_shell_stale_slot_alias_is_conditional_on_reuse
+       before after_load pool_block outside_slot destination_spawn_slot
+       Houtside Hactive_after_load)
+    as (window & Hwindow & Hstale & Halias & Hridden_alias & Hclean).
+  exists window.
+  split; [exact Hwindow |].
+  split.
+  - split; [exact Hstale |].
+    split; [exact Halias |].
+    split;
+      [ exact Hclean
+      | exact audited_mario_stale_ref_no_observation_before_cleanup_holds ].
+  - exact Hridden_alias.
 Qed.
 
 Inductive high_risk_outside_pointer_root : Type :=
@@ -1060,6 +1126,10 @@ Definition shell_and_grabbable_stale_channel_load_window_audit : Prop :=
   proposition_of
     outside_pyramid_channel_classifications_start_with_shell /\
   proposition_of shell_channel_generated_ridden_object_evidence /\
+  proposition_of
+    shell_ride_ridden_stale_load_window_is_unobserved_before_cleanup /\
+  proposition_of
+    shell_ride_reused_slot_alias_is_technical_not_gameplay_useful /\
   proposition_of direct_grabbable_channel_mario_reference_cleanup_evidence /\
   audited_mario_stale_ref_no_observation_before_cleanup.
 
@@ -1070,6 +1140,8 @@ Proof.
     proposition_of.
   split; [exact outside_pyramid_channel_classifications_start_with_shell |].
   split; [exact shell_channel_generated_ridden_object_evidence |].
+  split; [exact shell_ride_ridden_stale_load_window_is_unobserved_before_cleanup |].
+  split; [exact shell_ride_reused_slot_alias_is_technical_not_gameplay_useful |].
   split; [exact direct_grabbable_channel_mario_reference_cleanup_evidence |].
   exact audited_mario_stale_ref_no_observation_before_cleanup_holds.
 Qed.
