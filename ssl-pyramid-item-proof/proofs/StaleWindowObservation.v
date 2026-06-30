@@ -272,6 +272,46 @@ Proof.
   split; [exact Houtside | reflexivity].
 Qed.
 
+Definition weird_action_zero_entry_audit : Prop :=
+  proposition_of act_uninitialized_is_zero /\
+  proposition_of init_mario_from_save_file_sets_action_uninitialized /\
+  proposition_of init_mario_assigns_nonzero_initial_action_shape /\
+  proposition_of nonnormal_script_init_debug_demo_warp_entry_audit /\
+  proposition_of normal_gameplay_ssl_warp_entry_action_nonzero_syntactic_certificate.
+
+Theorem weird_action_zero_entry_audit_holds :
+  weird_action_zero_entry_audit.
+Proof.
+  unfold weird_action_zero_entry_audit, proposition_of.
+  split; [exact act_uninitialized_is_zero |].
+  split; [exact init_mario_from_save_file_sets_action_uninitialized |].
+  split; [exact init_mario_assigns_nonzero_initial_action_shape |].
+  split; [exact nonnormal_script_init_debug_demo_warp_entry_audit |].
+  exact normal_gameplay_ssl_warp_entry_action_nonzero_syntactic_certificate.
+Qed.
+
+Definition action_zero_stale_mario_root_counterexample_candidate
+    (before : mem) (pool_block : block)
+    (root : high_risk_outside_pointer_root) (slot : Z) : Prop :=
+  root_is_mario_state_reference root = true /\
+  persistent_outside_pointer_counterexample_candidate before pool_block
+    {| observed_pointer_root := root;
+       observed_pointer_origin := OutsideAllocationEpoch slot |}.
+
+Theorem weird_action_zero_stale_mario_root_is_counterexample_candidate :
+  forall before pool_block root slot,
+    root_is_mario_state_reference root = true ->
+    outside_live_slot before pool_block slot ->
+    action_zero_stale_mario_root_counterexample_candidate
+      before pool_block root slot.
+Proof.
+  intros before pool_block root slot Hmario Houtside.
+  split; [exact Hmario |].
+  apply persistent_outside_pointer_from_high_risk_root_is_counterexample_candidate.
+  - apply high_risk_outside_pointer_roots_complete.
+  - exact Houtside.
+Qed.
+
 Theorem post_init_mario_refs_have_no_stale_outside_reference :
   forall before pool_block destination_spawn_slot,
     ~ stale_outside_reference before pool_block

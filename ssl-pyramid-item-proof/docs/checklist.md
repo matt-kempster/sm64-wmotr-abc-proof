@@ -296,6 +296,27 @@ counterexample-shaped goblin.
   entry with a stale outside root, it is not this normal interaction/floor warp
   route; it is a new script/init/external counterexample candidate and should
   get its own wanted poster.
+- [x] Weird `action == 0` entry sweep: script/init/debug/demo edition.
+  New proof crumbs in `TransitionFacts.v`:
+  `nonnormal_script_init_debug_demo_warp_entry_audit` packages the goofy stuff
+  we were worried about. The init/save-file route can call
+  `init_mario_from_save_file` and make `ACT_UNINITIALIZED`, but those init
+  bodies do not directly call `warp_area` or `level_trigger_warp`. The
+  object-list/debug module also has no direct warp entry trigger. Frame advance
+  is not a secret warp path; it routes through `play_mode_normal`. Demo inputs
+  are now pinned as the two generated `level_trigger_warp` calls whose op
+  values are `WARP_OP_DEMO_NEXT` / `WARP_OP_DEMO_END` (the generated constants
+  are `22` / `25`), not a targeted SSL Pyramid area-change node.
+
+  Translation: no normal generated script/init/debug/demo route found that
+  combines `ACT_UNINITIALIZED` with an existing stale
+  `heldObj`/`riddenObj`/`usedObj`/`interactObj` and then walks into Pyramid.
+  The remaining spooky version is external/state-injection shaped: if someone
+  manually preserves a stale Mario root while forcing action 0 and a Pyramid
+  warp destination, that is a legit counterexample candidate, not a route the
+  audited generated code currently constructs. `StaleWindowObservation.v`
+  names that tripwire with
+  `weird_action_zero_stale_mario_root_is_counterexample_candidate`.
 - [x] Start chasing non-Mario roots through the same window:
   `pyramid_load_window_object_owned_roots_not_mentioned_before_cleanup` covers
   `platform` and `rawData.asObject`, while
@@ -730,9 +751,9 @@ the object-owned fresh-allocation sweep:
   `update_mario_platform` before cleanup/rebind. `clear_mario_platform` does
   run through linked `spawn_objects_from_info`, but source-audits as a global
   nulling helper rather than an `Object.platform` writer;
-- if an `action == 0` Pyramid entry still looks possible, treat it as a
-  non-normal script/init/external route first; the normal gameplay
-  interaction/floor route is now pinned behind the nonzero-action guard;
+- if an `action == 0` Pyramid entry still shows up, it needs to be
+  external/state-injection shaped now. The generated script/init/debug/demo
+  sweep did not find a normal route that creates the stale-root combo;
 - keep the graph-root fork as-is: reachable outside graph root means candidate,
   otherwise go back to the boring unlink proof.
 

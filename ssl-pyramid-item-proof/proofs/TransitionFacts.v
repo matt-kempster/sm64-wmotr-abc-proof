@@ -70,6 +70,83 @@ with temp_nonzero_guarded_event_subsequence_ls
       temp_nonzero_guarded_event_subsequence_ls temporary needle rest
   end.
 
+Inductive second_arg_shape : Type :=
+| SecondArgTemp : ident -> second_arg_shape
+| SecondArgConst : int -> second_arg_shape
+| SecondArgOther : second_arg_shape.
+
+Definition expression_second_arg_shape (e : expr) : second_arg_shape :=
+  match e with
+  | Etempvar temporary _ => SecondArgTemp temporary
+  | Econst_int value _ => SecondArgConst value
+  | Ecast (Econst_int value _) _ => SecondArgConst value
+  | _ => SecondArgOther
+  end.
+
+Definition second_arg_shape_of_args (args : list expr) : second_arg_shape :=
+  match args with
+  | _ :: second :: _ => expression_second_arg_shape second
+  | _ => SecondArgOther
+  end.
+
+Fixpoint call_second_arg_shapes_s (callee : ident) (s : statement)
+    : list second_arg_shape :=
+  match s with
+  | Scall _ (Evar id _) args =>
+      if Pos.eqb id callee
+      then [second_arg_shape_of_args args]
+      else []
+  | Ssequence s1 s2 | Sifthenelse _ s1 s2 | Sloop s1 s2 =>
+      call_second_arg_shapes_s callee s1 ++
+      call_second_arg_shapes_s callee s2
+  | Slabel _ body => call_second_arg_shapes_s callee body
+  | Sswitch _ cases => call_second_arg_shapes_ls callee cases
+  | _ => []
+  end
+with call_second_arg_shapes_ls
+       (callee : ident) (cases : labeled_statements)
+    : list second_arg_shape :=
+  match cases with
+  | LSnil => []
+  | LScons _ body rest =>
+      call_second_arg_shapes_s callee body ++
+      call_second_arg_shapes_ls callee rest
+  end.
+
+Definition expression_const_int (e : expr) : option int :=
+  match e with
+  | Econst_int value _ => Some value
+  | Ecast (Econst_int value _) _ => Some value
+  | _ => None
+  end.
+
+Fixpoint temp_const_assignments_s (temporary : ident) (s : statement)
+    : list int :=
+  match s with
+  | Sset found rhs =>
+      if Pos.eqb found temporary
+      then
+        match expression_const_int rhs with
+        | Some value => [value]
+        | None => []
+        end
+      else []
+  | Ssequence s1 s2 | Sifthenelse _ s1 s2 | Sloop s1 s2 =>
+      temp_const_assignments_s temporary s1 ++
+      temp_const_assignments_s temporary s2
+  | Slabel _ body => temp_const_assignments_s temporary body
+  | Sswitch _ cases => temp_const_assignments_ls temporary cases
+  | _ => []
+  end
+with temp_const_assignments_ls
+       (temporary : ident) (cases : labeled_statements) : list int :=
+  match cases with
+  | LSnil => []
+  | LScons _ body rest =>
+      temp_const_assignments_s temporary body ++
+      temp_const_assignments_ls temporary rest
+  end.
+
 Fixpoint expression_mentions_field_deep
     (field : ident) (e : expr) : bool :=
   match e with
@@ -721,6 +798,54 @@ Theorem level_update_normal_play_warp_entry_callers :
     (fn_body L.f_play_mode_normal) = true.
 Proof. vm_compute; repeat split; reflexivity. Qed.
 
+Theorem play_mode_normal_demo_warp_call_arguments :
+  call_second_arg_shapes_s L._level_trigger_warp
+    (fn_body L.f_play_mode_normal) =
+  [SecondArgTemp L._t'1; SecondArgConst (Int.repr 22)].
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem play_mode_normal_demo_warp_temp_candidates :
+  temp_const_assignments_s L._t'1 (fn_body L.f_play_mode_normal) =
+  [Int.repr 25; Int.repr 22].
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem play_mode_normal_demo_trigger_before_area_update :
+  event_subsequenceb
+    [Event_call L._level_trigger_warp;
+     Event_call L._warp_area;
+     Event_call L._area_update_objects;
+     Event_call L._initiate_delayed_warp]
+    (statement_events_s (fn_body L.f_play_mode_normal)) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem play_mode_frame_advance_routes_through_normal_play :
+  calls_ident_s L._warp_area
+    (fn_body L.f_play_mode_frame_advance) = false /\
+  calls_ident_s L._level_trigger_warp
+    (fn_body L.f_play_mode_frame_advance) = false /\
+  calls_ident_s L._play_mode_normal
+    (fn_body L.f_play_mode_frame_advance) = true /\
+  direct_callers L.prog L._play_mode_normal =
+    [L._play_mode_frame_advance; L._update_level].
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
+Theorem level_init_routes_do_not_directly_trigger_normal_warp_entry :
+  calls_ident_s L._warp_area (fn_body L.f_init_level) = false /\
+  calls_ident_s L._level_trigger_warp (fn_body L.f_init_level) = false /\
+  calls_ident_s L._warp_area
+    (fn_body L.f_lvl_init_from_save_file) = false /\
+  calls_ident_s L._level_trigger_warp
+    (fn_body L.f_lvl_init_from_save_file) = false /\
+  calls_ident_s L._init_mario_from_save_file
+    (fn_body L.f_lvl_init_from_save_file) = true /\
+  calls_ident_s L._init_mario (fn_body L.f_init_level) = true.
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
+Theorem object_update_debug_module_does_not_directly_trigger_warp_entry :
+  direct_callers O.prog L._level_trigger_warp = [] /\
+  direct_callers O.prog L._warp_area = [].
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
 Theorem audited_script_area_modules_do_not_directly_trigger_normal_warp_entry :
   direct_callers LS.prog L._level_trigger_warp = [] /\
   direct_callers LS.prog L._warp_area = [] /\
@@ -729,6 +854,28 @@ Theorem audited_script_area_modules_do_not_directly_trigger_normal_warp_entry :
   direct_callers SSL.prog L._level_trigger_warp = [] /\
   direct_callers SSL.prog L._warp_area = [].
 Proof. vm_compute; repeat split; reflexivity. Qed.
+
+Theorem nonnormal_script_init_debug_demo_warp_entry_audit :
+  proposition_of
+    level_init_routes_do_not_directly_trigger_normal_warp_entry /\
+  proposition_of
+    object_update_debug_module_does_not_directly_trigger_warp_entry /\
+  proposition_of play_mode_frame_advance_routes_through_normal_play /\
+  proposition_of play_mode_normal_demo_warp_call_arguments /\
+  proposition_of play_mode_normal_demo_warp_temp_candidates /\
+  proposition_of play_mode_normal_demo_trigger_before_area_update /\
+  proposition_of
+    audited_script_area_modules_do_not_directly_trigger_normal_warp_entry.
+Proof.
+  unfold proposition_of.
+  split; [ exact level_init_routes_do_not_directly_trigger_normal_warp_entry |].
+  split; [ exact object_update_debug_module_does_not_directly_trigger_warp_entry |].
+  split; [ exact play_mode_frame_advance_routes_through_normal_play |].
+  split; [ exact play_mode_normal_demo_warp_call_arguments |].
+  split; [ exact play_mode_normal_demo_warp_temp_candidates |].
+  split; [ exact play_mode_normal_demo_trigger_before_area_update |].
+  exact audited_script_area_modules_do_not_directly_trigger_normal_warp_entry.
+Qed.
 
 Theorem normal_gameplay_ssl_warp_entry_action_nonzero_syntactic_certificate :
   proposition_of
@@ -740,6 +887,7 @@ Theorem normal_gameplay_ssl_warp_entry_action_nonzero_syntactic_certificate :
   proposition_of interaction_special_floor_warp_trigger_callers /\
   proposition_of disappeared_cutscene_action_triggers_delayed_warp /\
   proposition_of level_update_normal_play_warp_entry_callers /\
+  proposition_of nonnormal_script_init_debug_demo_warp_entry_audit /\
   proposition_of
     audited_script_area_modules_do_not_directly_trigger_normal_warp_entry.
 Proof.
@@ -757,6 +905,7 @@ Proof.
   split; [ exact interaction_special_floor_warp_trigger_callers |].
   split; [ exact disappeared_cutscene_action_triggers_delayed_warp |].
   split; [ exact level_update_normal_play_warp_entry_callers |].
+  split; [ exact nonnormal_script_init_debug_demo_warp_entry_audit |].
   exact audited_script_area_modules_do_not_directly_trigger_normal_warp_entry.
 Qed.
 
