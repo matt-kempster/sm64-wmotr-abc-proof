@@ -1,7 +1,7 @@
 From Coq Require Import Bool Lia List ZArith.
 Import ListNotations.
 From compcert Require Import AST Coqlib Ctypes Clight ClightBigstep Cop Errors
-  Globalenvs Integers Maps Memory Values Clightdefs.
+  Events Globalenvs Integers Maps Memory Values Clightdefs.
 From SSLPyramid.Generated Require Import spawn_object.
 From SSLPyramid.Proofs Require Import ASTFacts Spec UnloadSequence UnloadStore.
 
@@ -45,18 +45,22 @@ Definition unload_active_flags_assign : statement :=
       S._activeFlags tshort)
     (Econst_int (Int.repr 0) tint).
 
+Definition allocate_object_active_flags_lhs : expr :=
+  Efield
+    (Ederef
+      (Etempvar S._obj (tptr (Tstruct S._Object noattr)))
+      (Tstruct S._Object noattr))
+    S._activeFlags tshort.
+
+Definition allocate_object_active_flags_rhs : expr :=
+  Ebinop Oor
+    (Ebinop Oshl (Econst_int (Int.repr 1) tint)
+      (Econst_int (Int.repr 0) tint) tint)
+    (Ebinop Oshl (Econst_int (Int.repr 1) tint)
+      (Econst_int (Int.repr 8) tint) tint) tint.
+
 Definition allocate_object_active_flags_assign : statement :=
-  Sassign
-    (Efield
-      (Ederef
-        (Etempvar S._obj (tptr (Tstruct S._Object noattr)))
-        (Tstruct S._Object noattr))
-      S._activeFlags tshort)
-    (Ebinop Oor
-      (Ebinop Oshl (Econst_int (Int.repr 1) tint)
-        (Econst_int (Int.repr 0) tint) tint)
-      (Ebinop Oshl (Econst_int (Int.repr 1) tint)
-        (Econst_int (Int.repr 8) tint) tint) tint).
+  Sassign allocate_object_active_flags_lhs allocate_object_active_flags_rhs.
 
 Definition unload_object_base_expr : expr :=
   Ederef
@@ -1835,6 +1839,128 @@ Proof.
   rewrite <- Haddress.
   eapply assign_loc_tschar_store.
   exact Hassign.
+Qed.
+
+Definition generated_unload_sassign_effect
+    (lhs rhs : expr) (e : env) (le : temp_env)
+    (before after : mem) : Prop :=
+  exists loc ofs bf raw_value stored_value,
+    eval_lvalue unload_object_ge e le before lhs loc ofs bf /\
+    eval_expr unload_object_ge e le before rhs raw_value /\
+    Cop.sem_cast raw_value (typeof rhs) (typeof lhs) before =
+      Some stored_value /\
+    assign_loc unload_object_ce (typeof lhs) before loc ofs bf
+      stored_value after.
+
+Definition allocate_object_active_flags_value_effect
+    (e : env) (le : temp_env) (before after : mem) : Prop :=
+  exists loc ofs bf,
+    eval_lvalue unload_object_ge e le before
+      allocate_object_active_flags_lhs loc ofs bf /\
+    assign_loc unload_object_ce tshort before loc ofs bf
+      (Vint (Int.repr 257)) after.
+
+Lemma eval_allocate_object_active_flags_rhs_value :
+  forall e le memory raw_value,
+    eval_expr unload_object_ge e le memory
+      allocate_object_active_flags_rhs raw_value ->
+    raw_value = Vint (Int.repr 257).
+Proof.
+  intros e le memory raw_value Heval.
+  unfold allocate_object_active_flags_rhs in Heval.
+  inv Heval.
+  repeat match goal with
+  | H : eval_expr _ _ _ _ (Ebinop Oshl _ _ _) _ |- _ => inv H
+  | H : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ => inv H
+  | H : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ =>
+      solve [inv H]
+  | H : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+      solve [inv H]
+  end.
+  repeat match goal with
+  | H : sem_binary_operation _ Oshl _ _ _ _ _ = Some _ |- _ =>
+      vm_compute in H; inv H
+  end.
+  repeat match goal with
+  | H : sem_binary_operation _ Oor _ _ _ _ _ = Some _ |- _ =>
+      vm_compute in H; inv H
+  | H : sem_or _ _ _ _ _ = Some _ |- _ =>
+      vm_compute in H; inv H
+  | H : Some _ = Some _ |- _ => inv H
+  end.
+  all: match goal with
+  | H : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => inv H
+  | _ => reflexivity
+  end.
+Qed.
+
+Theorem allocate_object_active_flags_sassign_effect_has_value :
+  forall e le before after,
+    generated_unload_sassign_effect
+      allocate_object_active_flags_lhs allocate_object_active_flags_rhs
+      e le before after ->
+    allocate_object_active_flags_value_effect e le before after.
+Proof.
+  intros e le before after Heffect.
+  destruct Heffect as
+    (loc & ofs & bf & raw_value & stored_value &
+      Hlv & Hrhs & Hcast & Hassign).
+  apply eval_allocate_object_active_flags_rhs_value in Hrhs.
+  subst raw_value.
+  cbn in Hcast.
+  vm_compute in Hcast.
+  inv Hcast.
+  exists loc, ofs, bf.
+  split; [exact Hlv | exact Hassign].
+Qed.
+
+Lemma exec_unload_generated_sassign_effect_from_exec_stmt :
+  forall e le before lhs rhs trace le' after outcome,
+    exec_stmt function_entry2 unload_object_ge e le before
+      (Sassign lhs rhs) trace le' after outcome ->
+    generated_unload_sassign_effect lhs rhs e le before after /\
+    trace = E0 /\ le' = le /\ outcome = Out_normal.
+Proof.
+  intros e le before lhs rhs trace le' after outcome Hexec.
+  inv Hexec.
+  rewrite unload_object_genv_cenv in *.
+  split.
+  - unfold generated_unload_sassign_effect.
+    repeat eexists; eauto.
+  - repeat split; reflexivity.
+Qed.
+
+Theorem exec_allocate_object_active_flags_assign_exposes_sassign_effect :
+  forall (e : env) le memory trace le' memory' outcome,
+    exec_stmt function_entry2 unload_object_ge e le memory
+      allocate_object_active_flags_assign trace le' memory' outcome ->
+    generated_unload_sassign_effect
+      allocate_object_active_flags_lhs allocate_object_active_flags_rhs
+      e le memory memory' /\
+    trace = E0 /\ le' = le /\ outcome = Out_normal.
+Proof.
+  intros e le memory trace le' memory' outcome Hexec.
+  unfold allocate_object_active_flags_assign in Hexec.
+  eapply exec_unload_generated_sassign_effect_from_exec_stmt.
+  exact Hexec.
+Qed.
+
+Theorem exec_allocate_object_active_flags_assign_exposes_value_effect :
+  forall (e : env) le memory trace le' memory' outcome,
+    exec_stmt function_entry2 unload_object_ge e le memory
+      allocate_object_active_flags_assign trace le' memory' outcome ->
+    allocate_object_active_flags_value_effect e le memory memory' /\
+    trace = E0 /\ le' = le /\ outcome = Out_normal.
+Proof.
+  intros e le memory trace le' memory' outcome Hexec.
+  destruct
+    (exec_allocate_object_active_flags_assign_exposes_sassign_effect
+      e le memory trace le' memory' outcome Hexec)
+    as (Heffect & Htrace & Hle & Houtcome).
+  split.
+  - apply allocate_object_active_flags_sassign_effect_has_value.
+    exact Heffect.
+  - repeat split; assumption.
 Qed.
 
 Lemma exec_unload_active_flags_assign :
