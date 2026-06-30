@@ -153,6 +153,17 @@ Proof.
       | exact level_transition_bodies_do_not_drop_held_object_before_reinit ].
 Qed.
 
+Definition normal_interact_warp_ridden_object_clearance_audit : Prop :=
+  proposition_of normal_interact_warp_clears_ridden_before_warp_completion.
+
+Theorem normal_interact_warp_ridden_object_clearance_audit_holds :
+  normal_interact_warp_ridden_object_clearance_audit.
+Proof.
+  unfold normal_interact_warp_ridden_object_clearance_audit,
+    proposition_of.
+  exact normal_interact_warp_clears_ridden_before_warp_completion.
+Qed.
+
 Record audited_technical_stale_window_counterexample
     (before : mem) (pool_block : block)
     (window : pyramid_load_window_reference_origins) : Prop := {

@@ -717,21 +717,21 @@ counterexample-shaped goblin.
   `mario_blow_off_cap` creates a fresh normal-cap object from Mario/save state,
   not the original outside Wing Cap box/cap identity.
 - [x] Finish the shell ride/ridden-object proof path.
-  `StalePointerModel.v` now has the shell-specific provenance shape:
+  `StalePointerModel.v` still has the shell-specific what-if shape:
   `outside_shell_ride_refs` records what generated `interact_koopa_shell`
-  does: the shell can sit in `interactObj`, `usedObj`, and especially
-  `riddenObj`. The new
-  `outside_shell_ride_can_leave_ridden_stale_reference_across_pyramid_load`
-  theorem says the ridden-object stale reference survives into the
-  post-load/pre-`init_mario` window, and
-  `ridden_shell_stale_slot_alias_is_conditional_on_reuse` says that if the same
-  object-pool slot is reused during Pyramid load, the stale shell ref aliases a
-  live slot. `StaleWindowObservation.v` then packages the important boring
-  ending: `shell_ride_reused_slot_alias_is_technical_not_gameplay_useful`
-  combines that conditional alias with the generated no-use-before-cleanup
-  audit. Translation: shell ride is absolutely the spicy ridden-object path,
-  and yes, it has the same technical stale-window shape; but at this proof
-  layer it still does not become a practical cloning/gameplay-transfer route.
+  does, namely that the shell can sit in `interactObj`, `usedObj`, and
+  `riddenObj`. But that shape is **not** the normal Pyramid warp route.
+  `TransitionFacts.v` now has
+  `normal_interact_warp_clears_ridden_before_warp_completion`: generated
+  `interact_warp` calls `mario_stop_riding_object` before `set_mario_action`,
+  and generated `mario_stop_riding_object` contains the
+  `riddenObj = NULL` cleanup. The same certificate also pins the downstream
+  warp-completion spine (`act_disappeared` can trigger `level_trigger_warp`,
+  normal play can call `warp_area`, and `warp_area` calls
+  `init_mario_after_warp`). Translation: the shell-riding goblin
+  gets kicked off the bus before the warp finishes. The remaining stale
+  candidates on this route are `interactObj` / `usedObj` pointing at the warp
+  object, not `riddenObj` pointing at the shell.
 - [ ] Check cork boxes and other grabbables against the same held-object/stale
   reference logic.
 

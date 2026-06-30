@@ -116,6 +116,12 @@ Definition outside_shell_ride_load_window
   refs_after_mario_reinit := post_reinit_refs destination_spawn_slot
 |}.
 
+(* Model-only shape: this is useful for saying what a ridden-object stale
+   window would look like, but the normal Pyramid object-warp route does not
+   establish this shape.  The generated-code audit in TransitionFacts proves
+   interact_warp calls mario_stop_riding_object first, and that helper clears
+   riddenObj before interact_warp hands off to the delayed-warp path. *)
+
 Definition stale_outside_reference_after_pyramid_load
     (before : mem) (pool_block : block)
     (window : pyramid_load_window_reference_origins) : Prop :=
