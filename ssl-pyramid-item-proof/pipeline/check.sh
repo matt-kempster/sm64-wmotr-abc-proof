@@ -864,6 +864,18 @@ bash pipeline/assumptions.sh \
   object_owned_root_epoch_invariant_eliminates_survivors
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.StaleWindowObservation \
+  allocate_object_object_owned_root_init_audit_holds
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
+  spawn_objects_from_info_linked_object_owned_audit_holds
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
+  freshly_allocated_destination_object_owned_roots_do_not_survive
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
+  object_owned_observations_clean_or_counterexample
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
   graph_or_render_root_epoch_invariant_eliminates_survivors
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.StaleWindowObservation \
