@@ -376,6 +376,32 @@ counterexample-shaped goblin.
   the suspect lineup now has named mugshot slots. If `platform`,
   `rawData.asObject`, render-held, or a graph edge survives with an outside
   epoch, it is formally a counterexample candidate instead of a vibe.
+- [x] Turn the non-Mario survivor boundary into elimination-or-counterexample
+  plumbing.
+  `channel_side_survivor_elimination_certificate_holds` adds a finite
+  root-origin observation layer. If an invariant supplies a post-boundary list
+  of root origins with no outside allocation epochs, then
+  `object_owned_root_epoch_invariant_eliminates_survivors` and
+  `graph_or_render_root_epoch_invariant_eliminates_survivors` prove there is no
+  survivor in that pile. If the invariant fails because some listed origin is
+  literally an outside epoch, the mirror lemmas
+  `object_owned_root_origin_survivor_is_counterexample_candidate` and
+  `graph_or_render_root_origin_survivor_is_counterexample_candidate` produce
+  the counterexample candidate immediately. The one root we can actually broom
+  right now is render-held after post-init:
+  `render_held_post_init_observations_have_no_survivor` says the refreshed
+  `GraphNodeHeldObject.objNode` origin follows post-`init_mario` `heldObj`,
+  which is `NoObjectReference`, so that channel has no outside epoch once the
+  refresh is downstream of the Mario cleanup. Graph traversal also gained the
+  direct elimination lemma
+  `graph_confinement_eliminates_reachable_outside_graph_node`: if the graph
+  roots are confined to current/destination nodes, a reachable outside graph
+  node is impossible; otherwise the existing graph counterexample candidate
+  remains the exit ramp.
+  Discord goblin translation: we built the sorter. Clean invariant goes in,
+  "no survivor" comes out; spooky outside epoch goes in, counterexample nametag
+  comes out. Render-held after Mario's broom is clean. Object-owned and generic
+  graph roots still need their real invariant receipts.
 - [x] Build a type-aware graph-link audit for
   `GraphNode.parent`/`children`/`prev`/`next`. New theorem
   `pyramid_load_window_typed_graph_node_link_audit` ignores fake scares like
@@ -636,24 +662,24 @@ In Discord goblin terms: we proved that everyone on the bouncer's list gets
 thrown out. Now prove the bouncer's list really came from the engine's
 `gObjectLists` clipboard.
 
-Channel-side next bite: turn the new non-Mario survivor boundary into actual
-elimination facts where possible:
+Channel-side next bite: derive the clean root-origin observation lists from
+real engine invariants instead of handing them to the sorter:
 
-- prove object-owned survivor absence from a real object-pool/list invariant:
-  no current/destination object has `parentObj`, `prevObj`, `platform`,
-  `collidedObjs`, or `rawData.asObject` carrying an outside allocation epoch
-  after the unload/load boundary; if that fails, instantiate
-  `object_owned_root_survivor_is_counterexample_candidate` with the concrete
-  field;
-- prove render-held survivor absence from the real render-held refresh path
-  plus post-`init_mario` `heldObj = NULL`; if that fails, instantiate
-  `graph_or_render_root_survivor_is_counterexample_candidate` with
-  `RootGraphHeldObjectObjNode`;
-- prove graph survivor absence from the graph unlink/load invariant; if that
-  fails, use either the graph traversal counterexample candidate or
-  `graph_or_render_root_survivor_is_counterexample_candidate`, depending on
-  whether the survivor is an outside reachable graph node or an object epoch
-  held by a graph-owned root;
+- derive `object_owned_root_epoch_invariant` from a real object-pool/list
+  invariant: no current/destination object has `parentObj`, `prevObj`,
+  `platform`, `collidedObjs`, or `rawData.asObject` carrying an outside
+  allocation epoch after the unload/load boundary; if that fails, feed the
+  concrete observation to
+  `object_owned_root_origin_survivor_is_counterexample_candidate`;
+- connect the render-held elimination to linked execution order: prove the
+  relevant `geo_switch_mario_hand_grab_pos` refresh, if observed after Pyramid
+  load, is downstream of post-`init_mario` `heldObj = NULL`;
+- derive `graph_or_render_root_epoch_invariant` for shared-child / graph-owned
+  object roots from the graph unlink/load invariant; if that fails, use either
+  the graph traversal counterexample candidate or
+  `graph_or_render_root_origin_survivor_is_counterexample_candidate`,
+  depending on whether the survivor is an outside reachable graph node or an
+  object epoch held by a graph-owned root;
 - only reopen the externally implemented Mario-platform helpers if a generated
   path actually calls them before cleanup/rebind; the audited load window still
   does not;

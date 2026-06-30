@@ -852,6 +852,36 @@ bash pipeline/assumptions.sh \
   non_mario_high_risk_root_survivor_boundary_holds
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.StaleWindowObservation \
+  clean_root_origin_observations_eliminate_survivors
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
+  object_owned_root_origin_survivor_is_counterexample_candidate
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
+  graph_or_render_root_origin_survivor_is_counterexample_candidate
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
+  object_owned_root_epoch_invariant_eliminates_survivors
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
+  graph_or_render_root_epoch_invariant_eliminates_survivors
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
+  render_held_objnode_origin_after_post_init_is_no_object
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
+  render_held_objnode_origin_after_post_init_has_no_outside_epoch
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
+  render_held_post_init_observations_have_no_survivor
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
+  graph_confinement_eliminates_reachable_outside_graph_node
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
+  channel_side_survivor_elimination_certificate_holds
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
   shell_and_grabbable_stale_channel_load_window_audit_holds
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
