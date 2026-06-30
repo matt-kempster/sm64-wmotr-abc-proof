@@ -36,12 +36,23 @@ The theorem should distinguish at least three cases:
 
 - direct transfer: the same live outside-Pyramid object identity crosses the
   area-change barrier;
-- stale transfer: an outside-Pyramid object is unloaded, but some surviving
-  reference still denotes that old object identity or allocation epoch after
-  the Pyramid loads; and
+- technical stale-window smuggling: an outside-Pyramid object is unloaded, but
+  some surviving reference still contains the old slot/provenance during the
+  post-load / pre-`init_mario` window. This is a real technical discovery and
+  may count as a narrow counterexample to the naive wording "nothing stale ever
+  enters," but it is not automatically useful;
 - cloning-relevant slot reuse: a stale outside reference later aliases a newly
-  allocated in-Pyramid object, such as a goomba, in a way that can duplicate or
-  otherwise clone gameplay state.
+  allocated in-Pyramid object, such as a goomba, in a way that generated code
+  can actually observe or use before cleanup, thereby duplicating or otherwise
+  cloning gameplay state.
+
+The formal theorem should therefore avoid the old conflation. The intended
+gameplay theorem is not "no stale pointer can briefly exist"; it is "no
+outside-Pyramid `gObjectPool` allocation identity enters the Pyramid in a
+gameplay-usable / cloning-relevant way." If a stale pointer exists only in the
+short load window and generated code cannot use it before `init_mario` clears or
+rebinds Mario's object roots, document that as a technical stale-window
+counterexample shape rather than as a practical cloning route.
 
 Adjacent object classes are in scope exactly when they can affect that
 transfer/cloning question. In particular, hats/caps, cap objects, special

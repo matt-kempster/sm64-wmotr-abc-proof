@@ -115,6 +115,51 @@ Proof.
   - exact audited_mario_stale_ref_no_observation_before_cleanup_holds.
 Qed.
 
+Definition technical_stale_slot_alias_without_generated_use
+    (before after_load : mem) (pool_block : block)
+    (window : pyramid_load_window_reference_origins) : Prop :=
+  technical_stale_pointer_smuggled_into_load_window
+    before pool_block window /\
+  technical_stale_slot_alias_during_load
+    before after_load pool_block window /\
+  no_technical_stale_pointer_after_mario_reinit
+    before pool_block window /\
+  audited_mario_stale_ref_no_observation_before_cleanup.
+
+Theorem held_grab_reused_slot_alias_is_technical_not_gameplay_useful :
+  forall before after_load pool_block outside_slot destination_spawn_slot,
+    outside_live_slot before pool_block outside_slot ->
+    slot_active after_load pool_block outside_slot ->
+    exists window,
+      window =
+        outside_held_grab_load_window
+          outside_slot destination_spawn_slot /\
+      technical_stale_slot_alias_without_generated_use
+        before after_load pool_block window.
+Proof.
+  intros before after_load pool_block outside_slot
+    destination_spawn_slot Houtside Hactive_after_load.
+  destruct
+    (held_grab_reused_slot_alias_is_unobserved_before_cleanup
+       before after_load pool_block outside_slot destination_spawn_slot
+       Houtside Hactive_after_load)
+    as (window & Hwindow & Halias & Hclean & Haudit).
+  exists window.
+  split; [exact Hwindow |].
+  split.
+  - subst window.
+    unfold technical_stale_pointer_smuggled_into_load_window,
+      stale_outside_reference_after_pyramid_load.
+    exists outside_slot.
+    split; [exact Houtside |].
+    unfold mario_reference_origin_list, outside_held_grab_load_window,
+      outside_held_grab_refs.
+    simpl.
+    right; left; reflexivity.
+  - split; [exact Halias |].
+    split; [exact Hclean | exact Haudit].
+Qed.
+
 Inductive high_risk_outside_pointer_root : Type :=
 | RootMarioInteractObj
 | RootMarioHeldObj
