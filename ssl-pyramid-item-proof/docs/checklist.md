@@ -864,14 +864,30 @@ counterexample-shaped goblin.
   `ssl_pyramid_destination_allocations_reach_slot_if_depth_below_70`: if the
   watched stale slot is fewer than 70 free-list pops below the head, the
   destination allocation count is enough to reach it before `init_mario`.
+  Newest progress: `same_slot_pyramid_allocation_store_trace` was corrected
+  to match the generated execution order: `allocate_object` writes
+  `activeFlags = 257` first, then `geo_obj_init_spawninfo` writes
+  `activeAreaIndex = 2`. This matters; the old receipt had those two stores
+  backwards. `StalePointerModel.v` now also has
+  `unload_order_suffix_gives_watched_slot_free_list_depth`, which says the
+  watched slot's free-list depth after unload is exactly the number of later
+  unload targets after it. `StaleWindowObservation.v` connects that to the
+  generated traversal certificate with
+  `generated_traversal_reaches_watched_slot_if_suffix_below_70`: if
+  `unload_targets = prefix ++ watched :: suffix` and `length suffix < 70`,
+  then the proven Pyramid destination allocation lower bound reaches the
+  watched slot.
   `StaleWindowObservation.v` packages this as
   `same_slot_reuse_generated_order_receipt_audit_holds`. Still not done:
   invert the actual linked CompCert executions enough to turn those generated
   statement spines into concrete `Mem.store` facts for
-  `same_slot_pyramid_allocation_store_trace`; and derive the watched outside
-  slot's actual free-list depth from the generated unload traversal, so we can
-  decide whether the proven 70 destination allocations are enough for each
-  watched channel instead of just using the conditional `depth < 70` receipt.
+  `same_slot_pyramid_allocation_store_trace`; and construct the actual
+  generated traversal certificate from `f_unload_objects_from_area`, so the
+  `prefix/suffix` factorization is no longer an input but comes from the real
+  object-list loop. I tried the obvious direct inversion for the
+  `allocate_object` activeFlags assignment into a raw `Mem.store`; it hit the
+  familiar WSL/Coq `E_UNEXPECTED` crash path, so that proof needs to be made
+  more specialized instead of doing broad inversion over the generated body.
 - [ ] Run the full proof pipeline.
 - [ ] Push the final proof state to the fork.
 - [ ] Only open a PR if the user explicitly says yes.
@@ -888,16 +904,19 @@ from generated-AST/order facts into concrete CompCert memory effects.
   `create_object -> allocate_object` path far enough to show it reads/pops that
   same `freeList->next` head, or count how many newer freed slots sit above it;
 - prove the `allocate_object` `activeFlags = (1 << 0) | (1 << 8)` assignment is
-  the `Mint16signed` store in `same_slot_pyramid_allocation_store_trace`;
+  the `Mint16signed` store in `same_slot_pyramid_allocation_store_trace`.
+  Important: the receipt order is now corrected, so this is the first store,
+  not the second store;
 - prove the destination `geo_obj_init_spawninfo` copy is the `Mint8signed`
   active-area store. The generated/source value side is now pinned:
   `level_cmd_place_object` copies `sCurrAreaIndex`, and the Pyramid destination
   object scripts/macros are area 2; what remains is the concrete store
   inversion; and
-- derive the watched slot's free-list depth from real unload traversal. If it
-  is below 70, the new count receipt reaches it; if it is 70 or deeper, mark
-  the stronger technical counterexample branch blocked for that route instead
-  of pretending.
+- construct the generated traversal certificate from
+  `f_unload_objects_from_area`, then factor that real `unload_targets` list as
+  `prefix ++ watched :: suffix`. If `length suffix < 70`, the new suffix-depth
+  receipt reaches the watched slot; if it is 70 or deeper, mark the stronger
+  technical counterexample branch blocked for that route instead of pretending.
 
 In Discord goblin terms: the route map is pinned; now make the tire tracks in
 CompCert memory line up with the map.

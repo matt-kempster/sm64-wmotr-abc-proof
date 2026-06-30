@@ -171,15 +171,15 @@ Definition object_allocation_active_flags_value :=
   Int.repr 257.
 
 Definition same_slot_pyramid_allocation_store_trace
-    (allocation_start after_area_store after_load : mem)
+    (allocation_start after_active_flags_store after_load : mem)
     (pool_block : block) (slot : Z) : Prop :=
-  Mem.store Mint8signed allocation_start pool_block
-    (object_field_address slot object_active_area_offset)
-    (Vint (Int.repr ssl_pyramid_area)) =
-    Some after_area_store /\
-  Mem.store Mint16signed after_area_store pool_block
+  Mem.store Mint16signed allocation_start pool_block
     (object_field_address slot object_active_flags_offset)
     (Vint object_allocation_active_flags_value) =
+    Some after_active_flags_store /\
+  Mem.store Mint8signed after_active_flags_store pool_block
+    (object_field_address slot object_active_area_offset)
+    (Vint (Int.repr ssl_pyramid_area)) =
     Some after_load.
 
 Definition free_list_slots : Type := list Z.
@@ -200,6 +200,11 @@ Definition allocation_count_reaches_watched_slot
   exists newer_slots older_slots,
     free_list = newer_slots ++ watched_slot :: older_slots /\
     (length newer_slots < allocation_count)%nat.
+
+Definition free_list_after_deallocation_targets
+    (initial_free_list : free_list_slots)
+    (unload_targets : list Z) : free_list_slots :=
+  rev unload_targets ++ initial_free_list.
 
 Theorem deallocate_push_then_first_allocation_reuses_same_slot :
   forall before after_push after_pop watched_slot popped_slot,
@@ -244,37 +249,58 @@ Proof.
   split; [reflexivity | exact Hcount].
 Qed.
 
+Theorem unload_order_suffix_gives_watched_slot_free_list_depth :
+  forall initial_free_list prefix suffix watched_slot allocation_count,
+    (length suffix < allocation_count)%nat ->
+    allocation_count_reaches_watched_slot
+      (free_list_after_deallocation_targets initial_free_list
+        (prefix ++ watched_slot :: suffix))
+      watched_slot allocation_count.
+Proof.
+  intros initial_free_list prefix suffix watched_slot allocation_count Hcount.
+  unfold allocation_count_reaches_watched_slot,
+    free_list_after_deallocation_targets.
+  exists (rev suffix), (rev prefix ++ initial_free_list).
+  split.
+  - rewrite rev_app_distr.
+    simpl.
+    repeat rewrite <- app_assoc.
+    reflexivity.
+  - rewrite rev_length.
+    exact Hcount.
+Qed.
+
 Record same_slot_pyramid_allocation_receipt
-    (allocation_start after_area_store after_load : mem)
+    (allocation_start after_active_flags_store after_load : mem)
     (pool_block : block) (free_list : free_list_slots)
     (slot : Z) (allocation_count : nat) : Prop := {
   receipt_allocation_count_reaches_slot :
     allocation_count_reaches_watched_slot
       free_list slot allocation_count;
-  receipt_area_store :
-    Mem.store Mint8signed allocation_start pool_block
-      (object_field_address slot object_active_area_offset)
-      (Vint (Int.repr ssl_pyramid_area)) =
-      Some after_area_store;
   receipt_active_flags_store :
-    Mem.store Mint16signed after_area_store pool_block
+    Mem.store Mint16signed allocation_start pool_block
       (object_field_address slot object_active_flags_offset)
       (Vint object_allocation_active_flags_value) =
+      Some after_active_flags_store;
+  receipt_area_store :
+    Mem.store Mint8signed after_active_flags_store pool_block
+      (object_field_address slot object_active_area_offset)
+      (Vint (Int.repr ssl_pyramid_area)) =
       Some after_load
 }.
 
 Theorem same_slot_pyramid_allocation_store_trace_from_receipt :
-  forall allocation_start after_area_store after_load
+  forall allocation_start after_active_flags_store after_load
       pool_block free_list slot allocation_count,
     same_slot_pyramid_allocation_receipt
-      allocation_start after_area_store after_load
+      allocation_start after_active_flags_store after_load
       pool_block free_list slot allocation_count ->
     same_slot_pyramid_allocation_store_trace
-      allocation_start after_area_store after_load pool_block slot.
+      allocation_start after_active_flags_store after_load pool_block slot.
 Proof.
-  intros allocation_start after_area_store after_load
+  intros allocation_start after_active_flags_store after_load
     pool_block free_list slot allocation_count Hreceipt.
-  destruct Hreceipt as [_ Harea Hactive].
+  destruct Hreceipt as [_ Hactive Harea].
   split; assumption.
 Qed.
 
@@ -363,39 +389,40 @@ Record ridden_technical_stale_pyramid_slot_reuse_counterexample
 }.
 
 Theorem same_slot_pyramid_allocation_store_trace_gives_pyramid_live_slot :
-  forall allocation_start after_area_store after_load pool_block slot,
+  forall allocation_start after_active_flags_store after_load pool_block slot,
     same_slot_pyramid_allocation_store_trace
-      allocation_start after_area_store after_load pool_block slot ->
+      allocation_start after_active_flags_store after_load pool_block slot ->
     slot_active_as_pyramid_object after_load pool_block slot.
 Proof.
-  intros allocation_start after_area_store after_load pool_block slot Hstores.
-  destruct Hstores as (Harea_store & Hactive_store).
+  intros allocation_start after_active_flags_store after_load pool_block slot
+    Hstores.
+  destruct Hstores as (Hactive_store & Harea_store).
   split.
   - exists (Int.sign_ext 16 object_allocation_active_flags_value).
     split.
     + unfold slot_active, object_allocation_active_flags_value.
-      rewrite (Mem.load_store_same _ _ _ _ _ _ Hactive_store).
-      reflexivity.
+      rewrite (Mem.load_store_other
+        Mint8signed after_active_flags_store pool_block
+        (object_field_address slot object_active_area_offset)
+        (Vint (Int.repr ssl_pyramid_area)) after_load
+        Harea_store
+        Mint16signed pool_block
+        (object_field_address slot object_active_flags_offset)).
+      * rewrite (Mem.load_store_same _ _ _ _ _ _ Hactive_store).
+        reflexivity.
+      * right; right.
+        unfold object_field_address, object_active_area_offset,
+          object_active_flags_offset, object_slot_size.
+        simpl.
+        lia.
     + unfold object_allocation_active_flags_value.
       vm_compute.
       discriminate.
   - unfold slot_belongs_to_area.
-    rewrite (Mem.load_store_other
-      Mint16signed after_area_store pool_block
-      (object_field_address slot object_active_flags_offset)
-      (Vint object_allocation_active_flags_value) after_load
-      Hactive_store
-      Mint8signed pool_block
-      (object_field_address slot object_active_area_offset)).
-    + rewrite (Mem.load_store_same _ _ _ _ _ _ Harea_store).
-      unfold ssl_pyramid_area.
-      vm_compute.
+    rewrite (Mem.load_store_same _ _ _ _ _ _ Harea_store).
+    unfold ssl_pyramid_area.
+    vm_compute.
       reflexivity.
-    + right; left.
-      unfold object_field_address, object_active_area_offset,
-        object_active_flags_offset, object_slot_size.
-      simpl.
-      lia.
 Qed.
 
 Theorem post_pyramid_warp_shape_has_no_stale_outside_reference :
@@ -648,23 +675,24 @@ Qed.
 
 Theorem held_grab_constructs_technical_pyramid_slot_reuse_counterexample
     :
-  forall before allocation_start after_area_store after_load
+  forall before allocation_start after_active_flags_store after_load
       pool_block outside_slot destination_spawn_slot,
     outside_live_slot before pool_block outside_slot ->
     same_slot_pyramid_allocation_store_trace
-      allocation_start after_area_store after_load pool_block outside_slot ->
+      allocation_start after_active_flags_store after_load
+      pool_block outside_slot ->
     exists window,
       window =
         outside_held_grab_load_window outside_slot destination_spawn_slot /\
       technical_stale_pyramid_slot_reuse_counterexample
         before after_load pool_block window.
 Proof.
-  intros before allocation_start after_area_store after_load
+  intros before allocation_start after_active_flags_store after_load
     pool_block outside_slot destination_spawn_slot Houtside Hstores.
   pose proof
     (same_slot_pyramid_allocation_store_trace_gives_pyramid_live_slot
-       allocation_start after_area_store after_load pool_block outside_slot
-       Hstores) as Hpyramid_live.
+       allocation_start after_active_flags_store after_load
+       pool_block outside_slot Hstores) as Hpyramid_live.
   destruct Hpyramid_live as (Hactive_after_load & Harea_after_load).
   destruct
     (held_grab_constructs_technical_slot_reuse_counterexample
@@ -752,23 +780,24 @@ Qed.
 
 Theorem shell_ride_constructs_ridden_technical_pyramid_slot_reuse_counterexample
     :
-  forall before allocation_start after_area_store after_load
+  forall before allocation_start after_active_flags_store after_load
       pool_block outside_slot destination_spawn_slot,
     outside_live_slot before pool_block outside_slot ->
     same_slot_pyramid_allocation_store_trace
-      allocation_start after_area_store after_load pool_block outside_slot ->
+      allocation_start after_active_flags_store after_load
+      pool_block outside_slot ->
     exists window,
       window =
         outside_shell_ride_load_window outside_slot destination_spawn_slot /\
       ridden_technical_stale_pyramid_slot_reuse_counterexample
         before after_load pool_block window.
 Proof.
-  intros before allocation_start after_area_store after_load
+  intros before allocation_start after_active_flags_store after_load
     pool_block outside_slot destination_spawn_slot Houtside Hstores.
   pose proof
     (same_slot_pyramid_allocation_store_trace_gives_pyramid_live_slot
-       allocation_start after_area_store after_load pool_block outside_slot
-       Hstores) as Hpyramid_live.
+       allocation_start after_active_flags_store after_load
+       pool_block outside_slot Hstores) as Hpyramid_live.
   destruct Hpyramid_live as (Hactive_after_load & Harea_after_load).
   destruct
     (shell_ride_constructs_ridden_technical_slot_reuse_counterexample

@@ -45,6 +45,19 @@ Definition unload_active_flags_assign : statement :=
       S._activeFlags tshort)
     (Econst_int (Int.repr 0) tint).
 
+Definition allocate_object_active_flags_assign : statement :=
+  Sassign
+    (Efield
+      (Ederef
+        (Etempvar S._obj (tptr (Tstruct S._Object noattr)))
+        (Tstruct S._Object noattr))
+      S._activeFlags tshort)
+    (Ebinop Oor
+      (Ebinop Oshl (Econst_int (Int.repr 1) tint)
+        (Econst_int (Int.repr 0) tint) tint)
+      (Ebinop Oshl (Econst_int (Int.repr 1) tint)
+        (Econst_int (Int.repr 8) tint) tint) tint).
+
 Definition unload_object_base_expr : expr :=
   Ederef
     (Etempvar S._obj (tptr (Tstruct S._Object noattr)))

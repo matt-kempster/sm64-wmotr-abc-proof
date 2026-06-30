@@ -247,11 +247,12 @@ Qed.
 
 Theorem held_grab_constructs_audited_technical_pyramid_slot_reuse_counterexample
     :
-  forall before allocation_start after_area_store after_load
+  forall before allocation_start after_active_flags_store after_load
       pool_block outside_slot destination_spawn_slot,
     outside_live_slot before pool_block outside_slot ->
     same_slot_pyramid_allocation_store_trace
-      allocation_start after_area_store after_load pool_block outside_slot ->
+      allocation_start after_active_flags_store after_load
+      pool_block outside_slot ->
     exists window,
       window =
         outside_held_grab_load_window
@@ -259,11 +260,11 @@ Theorem held_grab_constructs_audited_technical_pyramid_slot_reuse_counterexample
       audited_technical_stale_pyramid_slot_reuse_counterexample
         before after_load pool_block window.
 Proof.
-  intros before allocation_start after_area_store after_load
+  intros before allocation_start after_active_flags_store after_load
     pool_block outside_slot destination_spawn_slot Houtside Hstores.
   destruct
     (held_grab_constructs_technical_pyramid_slot_reuse_counterexample
-       before allocation_start after_area_store after_load
+       before allocation_start after_active_flags_store after_load
        pool_block outside_slot destination_spawn_slot Houtside Hstores)
     as (window & Hwindow & Hcounterexample).
   exists window.
@@ -322,11 +323,12 @@ Qed.
 
 Theorem shell_ride_constructs_audited_ridden_technical_pyramid_slot_reuse_counterexample
     :
-  forall before allocation_start after_area_store after_load
+  forall before allocation_start after_active_flags_store after_load
       pool_block outside_slot destination_spawn_slot,
     outside_live_slot before pool_block outside_slot ->
     same_slot_pyramid_allocation_store_trace
-      allocation_start after_area_store after_load pool_block outside_slot ->
+      allocation_start after_active_flags_store after_load
+      pool_block outside_slot ->
     exists window,
       window =
         outside_shell_ride_load_window
@@ -334,11 +336,11 @@ Theorem shell_ride_constructs_audited_ridden_technical_pyramid_slot_reuse_counte
       audited_ridden_technical_stale_pyramid_slot_reuse_counterexample
         before after_load pool_block window.
 Proof.
-  intros before allocation_start after_area_store after_load
+  intros before allocation_start after_active_flags_store after_load
     pool_block outside_slot destination_spawn_slot Houtside Hstores.
   destruct
     (shell_ride_constructs_ridden_technical_pyramid_slot_reuse_counterexample
-       before allocation_start after_area_store after_load
+       before allocation_start after_active_flags_store after_load
        pool_block outside_slot destination_spawn_slot Houtside Hstores)
     as (window & Hwindow & Hcounterexample).
   exists window.
@@ -454,6 +456,7 @@ Definition same_slot_reuse_generated_order_receipt_audit : Prop :=
   proposition_of deallocate_push_then_first_allocation_reuses_same_slot /\
   proposition_of deallocated_slot_at_head_is_reached_by_one_allocation /\
   proposition_of watched_slot_under_newer_free_slots_needs_enough_allocations /\
+  proposition_of unload_order_suffix_gives_watched_slot_free_list_depth /\
   proposition_of same_slot_pyramid_allocation_store_trace_from_receipt.
 
 Theorem ssl_pyramid_destination_allocations_reach_slot_if_depth_below_70 :
@@ -468,6 +471,62 @@ Proof.
   intros newer_slots older_slots watched_slot Hdepth.
   apply watched_slot_under_newer_free_slots_needs_enough_allocations.
   exact Hdepth.
+Qed.
+
+Theorem generated_unload_suffix_depth_reaches_watched_slot_if_below_70 :
+  forall initial_free_list prefix suffix watched_slot,
+    (length suffix <
+     ssl_pyramid_destination_allocation_count_before_init_lower_bound)%nat ->
+    allocation_count_reaches_watched_slot
+      (free_list_after_deallocation_targets initial_free_list
+        (prefix ++ watched_slot :: suffix))
+      watched_slot
+      ssl_pyramid_destination_allocation_count_before_init_lower_bound.
+Proof.
+  intros initial_free_list prefix suffix watched_slot Hdepth.
+  apply unload_order_suffix_gives_watched_slot_free_list_depth.
+  exact Hdepth.
+Qed.
+
+Theorem generated_traversal_free_list_depth_from_unload_targets :
+  forall before barrier pool_block snapshot initial_free_list
+      prefix suffix watched_slot allocation_count,
+    generated_object_list_traversal_certificate
+      before barrier pool_block ssl_outside_area snapshot ->
+    unload_targets ssl_outside_area snapshot =
+      prefix ++ watched_slot :: suffix ->
+    (length suffix < allocation_count)%nat ->
+    allocation_count_reaches_watched_slot
+      (free_list_after_deallocation_targets initial_free_list
+        (unload_targets ssl_outside_area snapshot))
+      watched_slot allocation_count.
+Proof.
+  intros before barrier pool_block snapshot initial_free_list
+    prefix suffix watched_slot allocation_count _ Htargets Hdepth.
+  rewrite Htargets.
+  apply unload_order_suffix_gives_watched_slot_free_list_depth.
+  exact Hdepth.
+Qed.
+
+Theorem generated_traversal_reaches_watched_slot_if_suffix_below_70 :
+  forall before barrier pool_block snapshot initial_free_list
+      prefix suffix watched_slot,
+    generated_object_list_traversal_certificate
+      before barrier pool_block ssl_outside_area snapshot ->
+    unload_targets ssl_outside_area snapshot =
+      prefix ++ watched_slot :: suffix ->
+    (length suffix <
+     ssl_pyramid_destination_allocation_count_before_init_lower_bound)%nat ->
+    allocation_count_reaches_watched_slot
+      (free_list_after_deallocation_targets initial_free_list
+        (unload_targets ssl_outside_area snapshot))
+      watched_slot
+      ssl_pyramid_destination_allocation_count_before_init_lower_bound.
+Proof.
+  intros before barrier pool_block snapshot initial_free_list
+    prefix suffix watched_slot Hcertificate Htargets Hdepth.
+  eapply generated_traversal_free_list_depth_from_unload_targets;
+    eauto.
 Qed.
 
 Theorem same_slot_reuse_generated_order_receipt_audit_holds :
@@ -487,6 +546,7 @@ Proof.
   split; [exact deallocate_push_then_first_allocation_reuses_same_slot |].
   split; [exact deallocated_slot_at_head_is_reached_by_one_allocation |].
   split; [exact watched_slot_under_newer_free_slots_needs_enough_allocations |].
+  split; [exact unload_order_suffix_gives_watched_slot_free_list_depth |].
   exact same_slot_pyramid_allocation_store_trace_from_receipt.
 Qed.
 
