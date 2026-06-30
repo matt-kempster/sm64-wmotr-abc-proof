@@ -1,9 +1,9 @@
 From Coq Require Import Bool List ZArith.
 Import ListNotations.
-From compcert Require Import AST Ctypes Clight Integers.
+From compcert Require Import AST Cop Ctypes Clight Integers.
 From SSLPyramid.Generated Require Import
-  area audio_external behavior_actions graph_node level_script level_update
-  macro_special_objects mario
+  area audio_external behavior_actions graph_node interaction level_script
+  level_update macro_special_objects mario
   obj_behaviors object_helpers object_list_processor spawn_object
   ssl_area1_macro ssl_script.
 From SSLPyramid.Proofs Require Import ASTFacts.
@@ -12,6 +12,7 @@ Module A := area.
 Module AU := audio_external.
 Module B := behavior_actions.
 Module G := graph_node.
+Module I := interaction.
 Module LS := level_script.
 Module L := level_update.
 Module P := macro_special_objects.
@@ -22,6 +23,49 @@ Module O := object_list_processor.
 Module S := spawn_object.
 Module SM := ssl_area1_macro.
 Module SSL := ssl_script.
+
+Definition events_emptyb (events : list statement_event) : bool :=
+  match events with
+  | [] => true
+  | _ => false
+  end.
+
+Definition expr_is_temp_nonzero_guard (temporary : ident) (e : expr) : bool :=
+  match e with
+  | Etempvar found _ => Pos.eqb found temporary
+  | Ebinop Cop.One (Etempvar found _) (Econst_int value _) _ =>
+      Pos.eqb found temporary && Int.eq value Int.zero
+  | _ => false
+  end.
+
+Fixpoint temp_nonzero_guarded_event_subsequenceb
+    (temporary : ident) (needle : list statement_event) (s : statement)
+    : bool :=
+  match s with
+  | Sifthenelse condition then_branch else_branch =>
+      (expr_is_temp_nonzero_guard temporary condition &&
+       event_subsequenceb needle (statement_events_s then_branch) &&
+       events_emptyb (statement_events_s else_branch)) ||
+      temp_nonzero_guarded_event_subsequenceb temporary needle then_branch ||
+      temp_nonzero_guarded_event_subsequenceb temporary needle else_branch
+  | Ssequence s1 s2 | Sloop s1 s2 =>
+      temp_nonzero_guarded_event_subsequenceb temporary needle s1 ||
+      temp_nonzero_guarded_event_subsequenceb temporary needle s2
+  | Slabel _ body =>
+      temp_nonzero_guarded_event_subsequenceb temporary needle body
+  | Sswitch _ cases =>
+      temp_nonzero_guarded_event_subsequence_ls temporary needle cases
+  | _ => false
+  end
+with temp_nonzero_guarded_event_subsequence_ls
+       (temporary : ident) (needle : list statement_event)
+       (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      temp_nonzero_guarded_event_subsequenceb temporary needle body ||
+      temp_nonzero_guarded_event_subsequence_ls temporary needle rest
+  end.
 
 Fixpoint expression_mentions_field_deep
     (field : ident) (e : expr) : bool :=
@@ -439,6 +483,23 @@ Theorem init_mario_after_warp_rebinds_spawn_object_after_init :
     (statement_events_s (fn_body L.f_init_mario_after_warp)) = true.
 Proof. vm_compute; reflexivity. Qed.
 
+Theorem act_uninitialized_is_zero :
+  Int.eq (Int.repr 0) Int.zero = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem init_mario_after_warp_cleanup_is_guarded_by_action_nonzero :
+  event_subsequenceb
+    [Event_set_temp_from_field L._t'37 L._t'36 L._action]
+    (statement_events_s (fn_body L.f_init_mario_after_warp)) = true /\
+  temp_nonzero_guarded_event_subsequenceb L._t'37
+    [Event_call L._load_mario_area;
+     Event_call L._init_mario;
+     Event_call L._set_mario_initial_action;
+     Event_assign_field L._interactObj;
+     Event_assign_field L._usedObj]
+    (fn_body L.f_init_mario_after_warp) = true.
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
 Theorem init_mario_after_warp_writes_interact_object :
   assigns_field_s L._interactObj
     (fn_body L.f_init_mario_after_warp) = true.
@@ -496,10 +557,48 @@ Theorem unload_area_calls_unload_objects_from_area :
     (fn_body A.f_unload_area) = true.
 Proof. vm_compute; reflexivity. Qed.
 
+Theorem load_area_direct_call_order :
+  direct_callees_s (fn_body A.f_load_area) =
+  [A._load_area_terrain;
+   A._spawn_objects_from_info;
+   A._load_obj_warp_nodes;
+   A._geo_call_global_function_nodes].
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem load_area_does_not_call_update_objects :
+  calls_ident_s A._update_objects (fn_body A.f_load_area) = false.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem load_mario_area_does_not_call_update_objects :
+  calls_ident_s A._update_objects (fn_body A.f_load_mario_area) = false.
+Proof. vm_compute; reflexivity. Qed.
+
 Theorem unload_objects_from_area_calls_unload_object :
   calls_ident_s O._unload_object
     (fn_body O.f_unload_objects_from_area) = true.
 Proof. vm_compute; reflexivity. Qed.
+
+Theorem unload_objects_from_area_direct_call_order :
+  direct_callees_s (fn_body O.f_unload_objects_from_area) =
+  [O._unload_object].
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem unload_objects_from_area_traversal_spine :
+  direct_callees_s (fn_body O.f_unload_objects_from_area) =
+    [O._unload_object] /\
+  statement_mentions_field_s O._next
+    (fn_body O.f_unload_objects_from_area) = true /\
+  statement_mentions_field_s O._activeAreaIndex
+    (fn_body O.f_unload_objects_from_area) = true /\
+  writes_temp_s O._list (fn_body O.f_unload_objects_from_area) = true /\
+  writes_temp_s O._node (fn_body O.f_unload_objects_from_area) = true /\
+  writes_temp_s O._obj (fn_body O.f_unload_objects_from_area) = true /\
+  writes_temp_s O._i (fn_body O.f_unload_objects_from_area) = true.
+Proof.
+  repeat split;
+    vm_compute;
+    reflexivity.
+Qed.
 
 Theorem unload_object_deactivates_slot :
   assigns_zero_to_field_s S._activeFlags
@@ -517,6 +616,37 @@ Proof. vm_compute; reflexivity. Qed.
 Theorem init_mario_clears_used_object :
   assigns_zero_to_field_s M._usedObj (fn_body M.f_init_mario) = true.
 Proof. vm_compute; reflexivity. Qed.
+
+Theorem init_mario_from_save_file_sets_action_uninitialized :
+  assigns_zero_to_field_s M._action
+    (fn_body M.f_init_mario_from_save_file) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem init_mario_assigns_nonzero_initial_action_shape :
+  assigns_field_s M._action (fn_body M.f_init_mario) = true /\
+  assigns_zero_to_field_s M._action (fn_body M.f_init_mario) = false.
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
+Theorem execute_mario_action_processes_interactions_only_when_action_nonzero :
+  event_subsequenceb
+    [Event_set_temp_from_field M._t'9 M._t'8 M._action]
+    (statement_events_s (fn_body M.f_execute_mario_action)) = true /\
+  temp_nonzero_guarded_event_subsequenceb M._t'9
+    [Event_call M._update_mario_inputs;
+     Event_call M._mario_process_interactions]
+    (fn_body M.f_execute_mario_action) = true.
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
+Theorem star_collection_handler_sets_action_but_is_interaction_downstream :
+  statement_mentions_field_s I._action
+    (fn_body I.f_interact_star_or_key) = true /\
+  assigns_field_s I._interactObj
+    (fn_body I.f_interact_star_or_key) = true /\
+  assigns_field_s I._usedObj
+    (fn_body I.f_interact_star_or_key) = true /\
+  calls_ident_s I._set_mario_action
+    (fn_body I.f_interact_star_or_key) = true.
+Proof. vm_compute; repeat split; reflexivity. Qed.
 
 Theorem dynamic_spawn_sets_active_area :
   assigns_field_s H._activeAreaIndex
@@ -741,6 +871,8 @@ Theorem load_area_does_not_mention_stale_mario_object_refs :
   statement_mentions_field_s L._usedObj
     (fn_body A.f_load_area) = false /\
   statement_mentions_field_s L._riddenObj
+    (fn_body A.f_load_area) = false /\
+  statement_mentions_field_s L._interactObj
     (fn_body A.f_load_area) = false.
 Proof. vm_compute; repeat split; reflexivity. Qed.
 
@@ -750,13 +882,16 @@ Theorem load_mario_area_does_not_mention_stale_mario_object_refs :
   statement_mentions_field_s L._usedObj
     (fn_body A.f_load_mario_area) = false /\
   statement_mentions_field_s L._riddenObj
+    (fn_body A.f_load_mario_area) = false /\
+  statement_mentions_field_s L._interactObj
     (fn_body A.f_load_mario_area) = false.
 Proof. vm_compute; repeat split; reflexivity. Qed.
 
 Theorem object_list_processor_does_not_mention_stale_mario_object_refs :
   field_mentioners O.prog O._heldObj = [] /\
   field_mentioners O.prog O._usedObj = [] /\
-  field_mentioners O.prog O._riddenObj = [].
+  field_mentioners O.prog O._riddenObj = [] /\
+  field_mentioners O.prog O._interactObj = [].
 Proof. vm_compute; repeat split; reflexivity. Qed.
 
 Theorem init_mario_after_warp_before_init_mario_does_not_mention_stale_refs :
@@ -765,6 +900,8 @@ Theorem init_mario_after_warp_before_init_mario_does_not_mention_stale_refs :
   statement_mentions_field_before_call_s L._init_mario L._usedObj
     (fn_body L.f_init_mario_after_warp) = false /\
   statement_mentions_field_before_call_s L._init_mario L._riddenObj
+    (fn_body L.f_init_mario_after_warp) = false /\
+  statement_mentions_field_before_call_s L._init_mario L._interactObj
     (fn_body L.f_init_mario_after_warp) = false.
 Proof. vm_compute; repeat split; reflexivity. Qed.
 
@@ -775,48 +912,30 @@ Theorem pyramid_load_window_stale_refs_not_observed_before_cleanup :
     (fn_body A.f_load_area) = false /\
   statement_mentions_field_s L._riddenObj
     (fn_body A.f_load_area) = false /\
+  statement_mentions_field_s L._interactObj
+    (fn_body A.f_load_area) = false /\
   statement_mentions_field_s L._heldObj
     (fn_body A.f_load_mario_area) = false /\
   statement_mentions_field_s L._usedObj
     (fn_body A.f_load_mario_area) = false /\
   statement_mentions_field_s L._riddenObj
     (fn_body A.f_load_mario_area) = false /\
+  statement_mentions_field_s L._interactObj
+    (fn_body A.f_load_mario_area) = false /\
   field_mentioners O.prog O._heldObj = [] /\
   field_mentioners O.prog O._usedObj = [] /\
   field_mentioners O.prog O._riddenObj = [] /\
+  field_mentioners O.prog O._interactObj = [] /\
   statement_mentions_field_before_call_s L._init_mario L._heldObj
     (fn_body L.f_init_mario_after_warp) = false /\
   statement_mentions_field_before_call_s L._init_mario L._usedObj
     (fn_body L.f_init_mario_after_warp) = false /\
   statement_mentions_field_before_call_s L._init_mario L._riddenObj
+    (fn_body L.f_init_mario_after_warp) = false /\
+  statement_mentions_field_before_call_s L._init_mario L._interactObj
     (fn_body L.f_init_mario_after_warp) = false.
 Proof.
-  repeat split;
-    first
-      [ destruct load_area_does_not_mention_stale_mario_object_refs as
-          [Hheld [Hused Hridden]]; exact Hheld
-      | destruct load_area_does_not_mention_stale_mario_object_refs as
-          [Hheld [Hused Hridden]]; exact Hused
-      | destruct load_area_does_not_mention_stale_mario_object_refs as
-          [Hheld [Hused Hridden]]; exact Hridden
-      | destruct load_mario_area_does_not_mention_stale_mario_object_refs as
-          [Hheld [Hused Hridden]]; exact Hheld
-      | destruct load_mario_area_does_not_mention_stale_mario_object_refs as
-          [Hheld [Hused Hridden]]; exact Hused
-      | destruct load_mario_area_does_not_mention_stale_mario_object_refs as
-          [Hheld [Hused Hridden]]; exact Hridden
-      | destruct object_list_processor_does_not_mention_stale_mario_object_refs
-          as [Hheld [Hused Hridden]]; exact Hheld
-      | destruct object_list_processor_does_not_mention_stale_mario_object_refs
-          as [Hheld [Hused Hridden]]; exact Hused
-      | destruct object_list_processor_does_not_mention_stale_mario_object_refs
-          as [Hheld [Hused Hridden]]; exact Hridden
-      | destruct init_mario_after_warp_before_init_mario_does_not_mention_stale_refs
-          as [Hheld [Hused Hridden]]; exact Hheld
-      | destruct init_mario_after_warp_before_init_mario_does_not_mention_stale_refs
-          as [Hheld [Hused Hridden]]; exact Hused
-      | destruct init_mario_after_warp_before_init_mario_does_not_mention_stale_refs
-          as [Hheld [Hused Hridden]]; exact Hridden ].
+  vm_compute; repeat split; reflexivity.
 Qed.
 
 Theorem pyramid_load_window_object_owned_roots_not_mentioned_before_cleanup :

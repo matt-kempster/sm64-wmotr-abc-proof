@@ -39,6 +39,27 @@ Definition snapshot_well_formed
     slot_belongs_to_area before pool_block slot area <->
     snapshot_area snapshot slot = area).
 
+Record generated_object_list_traversal_certificate
+    (before barrier : mem) (pool_block : block) (area : Z)
+    (snapshot : object_list_snapshot) : Prop := {
+  generated_traversal_snapshot_well_formed :
+    snapshot_well_formed before pool_block snapshot;
+  generated_traversal_unload_trace :
+    generated_unload_execution_trace pool_block before
+      (unload_targets area snapshot) barrier
+}.
+
+Theorem generated_object_list_traversal_derives_snapshot :
+  forall before barrier pool_block area snapshot,
+    generated_object_list_traversal_certificate
+      before barrier pool_block area snapshot ->
+    snapshot_well_formed before pool_block snapshot.
+Proof.
+  intros before barrier pool_block area snapshot Hcertificate.
+  destruct Hcertificate as [Hsnapshot _].
+  exact Hsnapshot.
+Qed.
+
 Theorem unload_targets_are_nodup :
   forall area snapshot,
     NoDup (snapshot_slots snapshot) ->
@@ -82,6 +103,62 @@ Proof.
   - apply Z.eqb_eq.
     apply (proj1 (Harea slot ssl_outside_area Hvalid)).
     exact Hbelongs.
+Qed.
+
+Theorem generated_object_list_traversal_lists_all_outside_live_slots :
+  forall before barrier pool_block snapshot slot,
+    generated_object_list_traversal_certificate
+      before barrier pool_block ssl_outside_area snapshot ->
+    outside_live_slot before pool_block slot ->
+    In slot (unload_targets ssl_outside_area snapshot).
+Proof.
+  intros before barrier pool_block snapshot slot Hcertificate Houtside.
+  eapply outside_live_slots_are_unload_targets.
+  - eapply generated_object_list_traversal_derives_snapshot.
+    exact Hcertificate.
+  - exact Houtside.
+Qed.
+
+Theorem generated_object_list_traversal_executes_and_deactivates_listed_slot :
+  unload_object_tail_empty_env_preserves_valid_pool_slot_active_flags ->
+  forall before barrier pool_block area snapshot slot,
+    generated_object_list_traversal_certificate
+      before barrier pool_block area snapshot ->
+    In slot (unload_targets area snapshot) ->
+    generated_unload_object_execution_for_slot pool_block slot /\
+    slot_deactivated barrier pool_block slot.
+Proof.
+  intros Htail_frame before barrier pool_block area snapshot slot
+    Hcertificate Hin.
+  destruct Hcertificate as [Hsnapshot Htrace].
+  eapply
+    generated_unload_execution_trace_executes_and_deactivates_member_from_empty_env_valid_pool_slot_tail_frame.
+  - exact Htail_frame.
+  - exact Htrace.
+  - apply unload_targets_are_nodup.
+    destruct Hsnapshot as (_ & Hnodup & _ & _ & _).
+    exact Hnodup.
+  - eapply unload_targets_are_valid.
+    exact Hsnapshot.
+  - exact Hin.
+Qed.
+
+Theorem generated_object_list_traversal_executes_and_deactivates_outside_live_slot :
+  unload_object_tail_empty_env_preserves_valid_pool_slot_active_flags ->
+  forall before barrier pool_block snapshot slot,
+    generated_object_list_traversal_certificate
+      before barrier pool_block ssl_outside_area snapshot ->
+    outside_live_slot before pool_block slot ->
+    generated_unload_object_execution_for_slot pool_block slot /\
+    slot_deactivated barrier pool_block slot.
+Proof.
+  intros Htail_frame before barrier pool_block snapshot slot
+    Hcertificate Houtside.
+  eapply generated_object_list_traversal_executes_and_deactivates_listed_slot.
+  - exact Htail_frame.
+  - exact Hcertificate.
+  - eapply generated_object_list_traversal_lists_all_outside_live_slots;
+      eauto.
 Qed.
 
 Theorem traversal_trace_clears_outside :

@@ -170,15 +170,30 @@ This is the "the engine actually unloads every outside object it should" layer.
 - [x] Prove that, if the deactivation trace covers the outside-area snapshot,
   continuous item transfer is forbidden.
 - [ ] Derive the snapshot from the actual generated object-list traversal.
-- [ ] Prove every live outside-Pyramid slot appears in the unload target list.
-- [ ] Prove every listed outside slot gets an actual `unload_object` execution
+  Progress: the generated body spine is now pinned by
+  `unload_objects_from_area_traversal_spine`, and
+  `generated_object_list_traversal_certificate` is the formal bridge the real
+  loop inversion has to construct. Still unchecked because we have not yet
+  inverted the circular `gObjectLists` loop execution itself. Translation: the
+  receipt has a named slot now, but the engine still has to hand it to us.
+- [x] Prove every live outside-Pyramid slot appears in the unload target list.
+  `generated_object_list_traversal_lists_all_outside_live_slots` connects the
+  generated traversal certificate's snapshot to the existing
+  `outside_live_slots_are_unload_targets` coverage theorem.
+- [x] Prove every listed outside slot gets an actual `unload_object` execution
   that deactivates that slot.
+  `generated_unload_execution_trace_executes_member` extracts the concrete
+  generated `f_unload_object` execution witness for any listed slot, and
+  `generated_object_list_traversal_executes_and_deactivates_listed_slot` adds
+  final deactivation via the valid-slot tail-frame assumption.
 - [x] Connect a list of generated `unload_object` executions to the abstract
   `valid_deactivation_trace` via `generated_unload_execution_trace`, then plug
   that into the outside-clearing / transfer-forbidding traversal lemmas.
 - [ ] Derive `generated_unload_execution_trace` from the actual generated
   `unload_objects_from_area` loop, instead of handing it a pre-chewed target
-  list.
+  list. Progress: trace membership now means an actual generated unload body
+  execution, so the remaining seam is only producing the trace from the loop,
+  not proving what each trace member does.
 
 ## 6. Stale-pointer / cloning investigation
 
@@ -214,12 +229,47 @@ counterexample-shaped goblin.
   by the obvious suspects. `pyramid_load_window_stale_refs_not_observed_before_cleanup`
   checks that `load_area`, `load_mario_area`, the generated
   `object_list_processor` module, and the pre-`init_mario` prefix of
-  `init_mario_after_warp` do not mention `heldObj`, `usedObj`, or `riddenObj`.
-  Current mood: spooky window, but not caught doing cloning crime there.
+  `init_mario_after_warp` do not mention `heldObj`, `usedObj`, `riddenObj`, or
+  `interactObj`. Current mood: spooky window, but not caught doing cloning
+  crime there.
 - [x] Connect the no-observation audit to the stale-window model. The new
   `proofs/StaleWindowObservation.v` corollaries say the stale held-object
   window, and even the conditional reused-slot alias window, are unobserved by
   the audited generated load/reinit path before cleanup.
+- [x] Check whether normal object update can act on the temporarily aliased
+  Pyramid object before `init_mario` clears/rebinds Mario's roots.
+  `load_area_direct_call_order`, `load_area_does_not_call_update_objects`, and
+  `load_mario_area_does_not_call_update_objects` pin the generated gap: the
+  loader may spawn destination objects, load warp nodes, and run graph global
+  callbacks, but it does not run the ordinary `update_objects` gameplay loop.
+  Translation: you can maybe arrange which new slot the stale pointer aliases,
+  but the audited code path still does not let Mario poke it through
+  `heldObj`/`usedObj`/`riddenObj`/`interactObj` before the cleanup broom arrives.
+- [x] Identify the scary `gMarioState->action == 0` cleanup-skip seam.
+  Source names this value `ACT_UNINITIALIZED`, and the generated proof has
+  `act_uninitialized_is_zero`. More importantly,
+  `init_mario_after_warp_cleanup_is_guarded_by_action_nonzero` records that the
+  `load_mario_area` / `init_mario` / rebind sequence sits under the generated
+  `action != 0` branch. So yes, if `action == 0` at this exact point, the broom
+  can be skipped. That is not a normal controllable action; it is the
+  pre-initialized Mario state.
+- [x] Check what `action == 0` does to normal Mario interactions.
+  `init_mario_from_save_file_sets_action_uninitialized` records the obvious
+  source of action 0, while `init_mario_assigns_nonzero_initial_action_shape`
+  records that normal init assigns a real initial action instead of zero.
+  `execute_mario_action_processes_interactions_only_when_action_nonzero` says
+  the generated Mario executor only reaches input/interactions when action is
+  nonzero, and `star_collection_handler_sets_action_but_is_interaction_downstream`
+  pins star collection as downstream of that interaction path. Translation:
+  action 0 is not "Mario can freely act while stale"; it is "Mario basically
+  does not run his normal action/interact machine."
+- [ ] Prove the global warp-entry invariant for the SSL Pyramid change-area
+  path: every normal gameplay route that can set up `warp_area` while Mario is
+  holding/using/riding something has `gMarioState->action <> ACT_UNINITIALIZED`.
+  The promising route is now narrow: the interaction warp path is downstream of
+  `execute_mario_action`, which is already action-nonzero guarded. Still need to
+  connect that to `level_trigger_warp` / `warp_area` and rule out any script or
+  init-level route that could combine action 0 with a stale held outside object.
 - [x] Start chasing non-Mario roots through the same window:
   `pyramid_load_window_object_owned_roots_not_mentioned_before_cleanup` covers
   `platform` and `rawData.asObject`, while
@@ -467,11 +517,26 @@ The next proof-shaped bite is the newly exposed all-slot tail-frame seam:
 - derive `object_pool_list_link_invariant` from the actual object-pool/list
   state; and
 - derive `generated_unload_execution_trace` from the real
-  `unload_objects_from_area` traversal loop.
+  `unload_objects_from_area` traversal loop, now specifically by constructing
+  `generated_object_list_traversal_certificate` from the generated 13-list
+  loop.
 
 Translation: the proof now knows that clearing one object is not enough; all
 other already-dead valid slots have to stay boring too. Very rude of memory,
 but fair.
+
+Traversal-side next bite: invert the generated `f_unload_objects_from_area`
+loop enough to build `generated_object_list_traversal_certificate`:
+
+- read the 13 circular `gObjectLists` chains into `snapshot_lists`;
+- prove the active/live slots in memory are exactly covered by that snapshot;
+- show the generated `activeAreaIndex == areaIndex` branch produces exactly
+  `unload_targets area snapshot`; and
+- package the recursive calls as `generated_unload_execution_trace`.
+
+In Discord goblin terms: we proved that everyone on the bouncer's list gets
+thrown out. Now prove the bouncer's list really came from the engine's
+`gObjectLists` clipboard.
 
 Channel-side next bite: detour into counterexample-hunting before grinding the
 graph-unlink tail:

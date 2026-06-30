@@ -654,6 +654,36 @@ bash pipeline/assumptions.sh \
   non_deallocate_cleanup_helpers_have_no_direct_active_flags_write
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.TransitionFacts \
+  act_uninitialized_is_zero
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TransitionFacts \
+  init_mario_after_warp_cleanup_is_guarded_by_action_nonzero
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TransitionFacts \
+  init_mario_from_save_file_sets_action_uninitialized
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TransitionFacts \
+  init_mario_assigns_nonzero_initial_action_shape
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TransitionFacts \
+  execute_mario_action_processes_interactions_only_when_action_nonzero
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TransitionFacts \
+  star_collection_handler_sets_action_but_is_interaction_downstream
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TransitionFacts \
+  load_area_direct_call_order
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TransitionFacts \
+  load_area_does_not_call_update_objects
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TransitionFacts \
+  load_mario_area_does_not_call_update_objects
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TransitionFacts \
+  unload_objects_from_area_traversal_spine
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TransitionFacts \
   warp_area_loads_destination_before_mario_reference_cleanup
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.TransitionFacts \
@@ -759,13 +789,28 @@ bash pipeline/assumptions.sh \
   exec_unload_object_valid_deactivation_step_from_empty_env_valid_pool_slot_tail_frame
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
+  generated_unload_execution_trace_executes_member
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
   generated_unload_execution_trace_is_valid_deactivation_trace_from_empty_env_valid_pool_slot_tail_frame
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.UnloadObjectSemantics \
+  generated_unload_execution_trace_executes_and_deactivates_member_from_empty_env_valid_pool_slot_tail_frame
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
   exec_unload_object_valid_deactivation_step_from_tail_frame
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.TraversalModel \
   unload_targets_are_valid
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TraversalModel \
+  generated_object_list_traversal_lists_all_outside_live_slots
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TraversalModel \
+  generated_object_list_traversal_executes_and_deactivates_listed_slot
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.TraversalModel \
+  generated_object_list_traversal_executes_and_deactivates_outside_live_slot
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.TraversalModel \
   valid_traversal_trace_clears_outside
