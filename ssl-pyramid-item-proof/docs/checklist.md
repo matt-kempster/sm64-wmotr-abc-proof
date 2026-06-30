@@ -742,8 +742,11 @@ counterexample-shaped goblin.
   route. Generated interaction evidence now pins the front half too:
   `interact_grabbable_sets_interact_root_not_ridden` says the grabbable
   handler writes `interactObj` after `able_to_grab_object` and does **not**
-  write `usedObj` or `riddenObj`; `mario_grab_used_object_moves_used_to_held_not_ridden`
-  says the helper copies `usedObj` into `heldObj` and does not touch
+  write `usedObj` or `riddenObj`;
+  `mario_check_object_grab_moves_interact_to_used_not_ridden` says the object
+  grab check can copy `interactObj` into `usedObj` and still does not touch
+  `riddenObj`; `mario_grab_used_object_moves_used_to_held_not_ridden`
+  says the grab helper copies `usedObj` into `heldObj` and does not touch
   `riddenObj`. `StaleWindowObservation.v` packages the whole thing as
   `direct_grabbable_held_stale_reference_audit_holds`, tying those five
   channels to the already-audited held-root stale-window / same-slot-reuse

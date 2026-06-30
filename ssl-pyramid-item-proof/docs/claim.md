@@ -935,8 +935,9 @@ the generated behaviors and coordinates, while
 that the held-reference classification list is exactly this direct-grabbable
 list.  Generated interaction evidence then pins the path: `interact_grabbable`
 writes Mario's `interactObj` after `able_to_grab_object` and does not write
-`usedObj` or `riddenObj`; `mario_grab_used_object` copies `usedObj` into
-`heldObj` and does not write `riddenObj`.  The wrapper
+`usedObj` or `riddenObj`; `mario_check_object_grab` can copy `interactObj`
+into `usedObj` and does not write `riddenObj`; `mario_grab_used_object` copies
+`usedObj` into `heldObj` and does not write `riddenObj`.  The wrapper
 `direct_grabbable_held_stale_reference_audit_holds` connects those facts to the
 existing held-object stale-window and same-slot-reuse counterexample model.
 

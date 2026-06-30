@@ -572,6 +572,19 @@ Theorem interact_grabbable_sets_interact_root_not_ridden :
     (fn_body I.f_interact_grabbable) = false.
 Proof. vm_compute; repeat split; reflexivity. Qed.
 
+Theorem mario_check_object_grab_moves_interact_to_used_not_ridden :
+  event_subsequenceb
+    [Event_set_temp_from_field I._t'13 I._m I._interactObj;
+     Event_assign_field_from_temp I._usedObj I._t'13]
+    (statement_events_s (fn_body I.f_mario_check_object_grab)) = true /\
+  event_subsequenceb
+    [Event_set_temp_from_field I._t'10 I._m I._interactObj;
+     Event_assign_field_from_temp I._usedObj I._t'10]
+    (statement_events_s (fn_body I.f_mario_check_object_grab)) = true /\
+  assigns_field_s I._riddenObj
+    (fn_body I.f_mario_check_object_grab) = false.
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
 Theorem mario_grab_used_object_moves_used_to_held_not_ridden :
   event_subsequenceb
     [Event_set_temp_from_field I._t'1 I._m I._heldObj;

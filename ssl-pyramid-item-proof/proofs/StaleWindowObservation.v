@@ -486,6 +486,7 @@ Definition direct_grabbable_held_stale_reference_audit : Prop :=
   proposition_of outside_pyramid_held_reference_classifications_exact /\
   proposition_of outside_pyramid_direct_channels_are_grabbable_behaviors /\
   proposition_of interact_grabbable_sets_interact_root_not_ridden /\
+  proposition_of mario_check_object_grab_moves_interact_to_used_not_ridden /\
   proposition_of mario_grab_used_object_moves_used_to_held_not_ridden /\
   proposition_of direct_grabbable_channel_mario_reference_cleanup_evidence /\
   proposition_of
@@ -508,6 +509,7 @@ Proof.
       | exact outside_pyramid_held_reference_classifications_exact
       | exact outside_pyramid_direct_channels_are_grabbable_behaviors
       | exact interact_grabbable_sets_interact_root_not_ridden
+      | exact mario_check_object_grab_moves_interact_to_used_not_ridden
       | exact mario_grab_used_object_moves_used_to_held_not_ridden
       | exact direct_grabbable_channel_mario_reference_cleanup_evidence
       | exact held_grab_constructs_audited_technical_stale_window_counterexample
