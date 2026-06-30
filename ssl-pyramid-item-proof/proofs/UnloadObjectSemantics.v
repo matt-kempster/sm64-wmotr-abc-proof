@@ -1751,6 +1751,92 @@ Proof.
   end.
 Qed.
 
+Lemma assign_loc_tshort_store :
+  forall ce memory object_block object_offset value memory',
+    assign_loc ce tshort memory object_block object_offset Full
+      (Vint value) memory' ->
+    Mem.store Mint16signed memory object_block
+      (Ptrofs.unsigned object_offset) (Vint value) = Some memory'.
+Proof.
+  intros ce memory object_block object_offset value memory' Hassign.
+  inv Hassign.
+  match goal with
+  | Hmode : access_mode _ = By_value ?chunk,
+    Hstore : Mem.storev ?chunk _ _ _ = Some _ |- _ =>
+      simpl in Hmode;
+      inversion Hmode;
+      subst chunk;
+      unfold Mem.storev in Hstore;
+      exact Hstore
+  end.
+Qed.
+
+Lemma assign_loc_tschar_store :
+  forall ce memory object_block object_offset value memory',
+    assign_loc ce tschar memory object_block object_offset Full
+      (Vint value) memory' ->
+    Mem.store Mint8signed memory object_block
+      (Ptrofs.unsigned object_offset) (Vint value) = Some memory'.
+Proof.
+  intros ce memory object_block object_offset value memory' Hassign.
+  inv Hassign.
+  match goal with
+  | Hmode : access_mode _ = By_value ?chunk,
+    Hstore : Mem.storev ?chunk _ _ _ = Some _ |- _ =>
+      simpl in Hmode;
+      inversion Hmode;
+      subst chunk;
+      unfold Mem.storev in Hstore;
+      exact Hstore
+  end.
+Qed.
+
+Theorem assign_loc_active_flags_allocation_store :
+  forall memory memory' pool_block slot,
+    valid_object_slot slot ->
+    assign_loc unload_object_ce tshort memory pool_block
+      (Ptrofs.add
+        (Ptrofs.repr ((slot * object_slot_size)%Z))
+        (Ptrofs.repr object_active_flags_offset))
+      Full (Vint (Int.repr 257)) memory' ->
+    Mem.store Mint16signed memory pool_block
+      (object_field_address slot object_active_flags_offset)
+      (Vint (Int.repr 257)) = Some memory'.
+Proof.
+  intros memory memory' pool_block slot Hvalid Hassign.
+  rewrite <- (pool_slot_active_flags_address slot Hvalid).
+  eapply assign_loc_tshort_store.
+  exact Hassign.
+Qed.
+
+Theorem assign_loc_active_area_store :
+  forall ce memory memory' pool_block slot area,
+    valid_object_slot slot ->
+    assign_loc ce tschar memory pool_block
+      (Ptrofs.add
+        (Ptrofs.repr ((slot * object_slot_size)%Z))
+        (Ptrofs.repr object_active_area_offset))
+      Full (Vint (Int.repr area)) memory' ->
+    Mem.store Mint8signed memory pool_block
+      (object_field_address slot object_active_area_offset)
+      (Vint (Int.repr area)) = Some memory'.
+Proof.
+  intros ce memory memory' pool_block slot area Hvalid Hassign.
+  assert (Haddress :
+    Ptrofs.unsigned
+      (Ptrofs.add
+        (Ptrofs.repr ((slot * object_slot_size)%Z))
+        (Ptrofs.repr object_active_area_offset)) =
+    object_field_address slot object_active_area_offset).
+  { apply pool_slot_field_address.
+    - exact Hvalid.
+    - unfold object_active_area_offset, object_slot_size.
+      lia. }
+  rewrite <- Haddress.
+  eapply assign_loc_tschar_store.
+  exact Hassign.
+Qed.
+
 Lemma exec_unload_active_flags_assign :
   forall (e : env) le memory object_block object_offset
          trace le' memory' outcome,
