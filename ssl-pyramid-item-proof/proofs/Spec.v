@@ -4,6 +4,16 @@
    only if its gObjectPool slot remains continuously active through the
    post-unload / pre-area-2-load barrier. If the slot is deactivated and later
    reused, the later occupant is a new object even though its address is equal.
+
+   This deliberately separates three things that are easy to conflate:
+
+   - a gameplay item identity: a live outside-area gObjectPool allocation epoch;
+   - a gameplay-usable transfer: that same allocation epoch remains active
+     through the Pyramid unload/load barrier and into the later state;
+   - a stale raw/Mario pointer: a reference field can still contain the old
+     slot address or provenance during a short load window even though the
+     object allocation epoch has been deactivated. That is a technical
+     stale-pointer phenomenon, not by itself a usable item transfer.
  *)
 
 From Coq Require Import ZArith.
@@ -57,6 +67,24 @@ Definition outside_live_slot
   slot_active memory pool_block slot /\
   slot_belongs_to_area memory pool_block slot 1.
 
+Definition outside_pyramid_item_identity
+    (memory : mem) (pool_block : block) (slot : Z) : Prop :=
+  outside_live_slot memory pool_block slot.
+
+Definition item_identity_continuously_enters_pyramid
+    (before barrier after : mem) (pool_block : block) (slot : Z)
+    : Prop :=
+  outside_pyramid_item_identity before pool_block slot /\
+  slot_active barrier pool_block slot /\
+  slot_active after pool_block slot.
+
+Definition no_outside_pyramid_item_identity_enters_pyramid
+    (before barrier after : mem) (pool_block : block) : Prop :=
+  forall slot,
+    outside_pyramid_item_identity before pool_block slot ->
+    ~ (slot_active barrier pool_block slot /\
+       slot_active after pool_block slot).
+
 Definition pyramid_warp_pending
     (memory : mem) (warp_dest_block current_area_block : block) : Prop :=
   Mem.load Mint8unsigned memory warp_dest_block warp_dest_type_offset =
@@ -84,6 +112,90 @@ Definition continuous_item_transfer
     outside_live_slot before pool_block slot /\
     slot_active barrier pool_block slot /\
     slot_active after pool_block slot.
+
+Definition gameplay_usable_item_transfer
+    (before barrier after : mem) (pool_block : block) : Prop :=
+  exists slot,
+    item_identity_continuously_enters_pyramid
+      before barrier after pool_block slot.
+
+Theorem continuous_item_transfer_iff_gameplay_usable_item_transfer :
+  forall before barrier after pool_block,
+    continuous_item_transfer before barrier after pool_block <->
+    gameplay_usable_item_transfer before barrier after pool_block.
+Proof.
+  intros before barrier after pool_block.
+  unfold continuous_item_transfer, gameplay_usable_item_transfer,
+    item_identity_continuously_enters_pyramid, outside_pyramid_item_identity.
+  split.
+  - intros (slot & Houtside & Hactive_barrier & Hactive_after).
+    exists slot.
+    split; [exact Houtside |].
+    split; [exact Hactive_barrier | exact Hactive_after].
+  - intros (slot & Houtside & Hactive_barrier & Hactive_after).
+    exists slot.
+    split; [exact Houtside |].
+    split; [exact Hactive_barrier | exact Hactive_after].
+Qed.
+
+Theorem no_outside_item_identity_entry_forbids_gameplay_usable_transfer :
+  forall before barrier after pool_block,
+    no_outside_pyramid_item_identity_enters_pyramid
+      before barrier after pool_block ->
+    ~ gameplay_usable_item_transfer before barrier after pool_block.
+Proof.
+  intros before barrier after pool_block Hnone.
+  intros (slot & Houtside & Hactive_barrier & Hactive_after).
+  exact (Hnone slot Houtside (conj Hactive_barrier Hactive_after)).
+Qed.
+
+Theorem no_outside_item_identity_entry_forbids_continuous_transfer :
+  forall before barrier after pool_block,
+    no_outside_pyramid_item_identity_enters_pyramid
+      before barrier after pool_block ->
+    ~ continuous_item_transfer before barrier after pool_block.
+Proof.
+  intros before barrier after pool_block Hnone Htransfer.
+  apply
+    (no_outside_item_identity_entry_forbids_gameplay_usable_transfer
+       before barrier after pool_block Hnone).
+  apply continuous_item_transfer_iff_gameplay_usable_item_transfer.
+  exact Htransfer.
+Qed.
+
+Theorem outside_slots_cleared_forbids_item_identity_entry :
+  forall before barrier after pool_block,
+    outside_slots_cleared_at_barrier before barrier pool_block ->
+    no_outside_pyramid_item_identity_enters_pyramid
+      before barrier after pool_block.
+Proof.
+  intros before barrier after pool_block Hcleared slot Houtside.
+  intros (Hactive_barrier & _).
+  specialize (Hcleared slot Houtside).
+  destruct Hactive_barrier as (flags & Hload & Hnonzero).
+  rewrite Hcleared in Hload.
+  inversion Hload.
+  apply Hnonzero.
+  symmetry.
+  assumption.
+Qed.
+
+Theorem deactivated_slot_forbids_same_item_identity_entry :
+  forall before barrier after pool_block slot,
+    outside_pyramid_item_identity before pool_block slot ->
+    slot_deactivated barrier pool_block slot ->
+    ~ item_identity_continuously_enters_pyramid
+        before barrier after pool_block slot.
+Proof.
+  intros before barrier after pool_block slot _ Hdeactivated Hentry.
+  destruct Hentry as (_ & Hactive_barrier & _).
+  destruct Hactive_barrier as (flags & Hload & Hnonzero).
+  rewrite Hdeactivated in Hload.
+  inversion Hload.
+  apply Hnonzero.
+  symmetry.
+  assumption.
+Qed.
 
 Theorem cleared_barrier_forbids_continuous_transfer :
   forall before barrier after pool_block,

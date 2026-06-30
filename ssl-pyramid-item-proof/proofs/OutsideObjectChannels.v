@@ -85,6 +85,11 @@ Definition cap_powerup_state_risk : outside_pyramid_channel_risk := {|
   risk_irrelevant_to_item_identity := false
 |}.
 
+Definition channel_carries_object_pool_item_identity
+    (classification : outside_pyramid_channel_classification) : bool :=
+  risk_direct_object_transfer (classified_risk classification) ||
+  risk_stale_pointer_or_cloning (classified_risk classification).
+
 Definition macro_object_tuple : Type := (Z * Z * Z * Z * Z)%type.
 
 Definition channel_macro_tuple
@@ -419,6 +424,22 @@ Theorem outside_pyramid_classification_exact :
       false, false, true, false);
    (ChannelThirdWingCapBox, CapTimerAndFlagsState,
       false, false, true, false)].
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem outside_pyramid_object_pool_item_identity_channels_exact :
+  map (fun classification =>
+         (classified_channel_id classification,
+          channel_carries_object_pool_item_identity classification))
+    outside_pyramid_channel_classifications_shell_first =
+  [(ChannelKoopaShellBox, true);
+   (ChannelSmallBreakableBox, true);
+   (ChannelFirstBobomb, true);
+   (ChannelSecondBobomb, true);
+   (ChannelFirstJumpingBox, true);
+   (ChannelSecondJumpingBox, true);
+   (ChannelFirstWingCapBox, false);
+   (ChannelSecondWingCapBox, false);
+   (ChannelThirdWingCapBox, false)].
 Proof. vm_compute; reflexivity. Qed.
 
 Theorem outside_pyramid_transport_relevant_macro_entries_exact :

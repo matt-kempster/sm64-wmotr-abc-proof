@@ -18,9 +18,19 @@ newly suspicious, update this file in the same round.
   in the main target zone.
 - [x] Keep hats/caps and special objects in scope when they can preserve object
   identity, stale refs, or cloning power.
-- [ ] Turn the prose item definition into a precise Coq predicate.
-- [ ] Make the final theorem say exactly which item classes are covered, so no
+- [x] Turn the prose item definition into a precise Coq predicate.
+  `Spec.v` now names the core predicate:
+  `outside_pyramid_item_identity before pool_block slot`, meaning a live
+  outside-area `gObjectPool` allocation epoch. It also separates
+  `gameplay_usable_item_transfer` from a mere stale pointer, because stale
+  address/provenance during the load window is not automatically cloning.
+- [x] Make the final theorem say exactly which item classes are covered, so no
   one can hide a shell behind wording fog.
+  `outside_pyramid_object_pool_item_identity_channels_exact` marks the six
+  object-identity channels as covered: shell box, small breakable box, two
+  Bob-ombs, and two jumping boxes. The three wing-cap boxes are ordinary Mario
+  state unless they preserve/reconstruct object identity, which the cap audit
+  says they do not.
 
 ## 1. Game facts and source setup
 
@@ -696,12 +706,28 @@ counterexample-shaped goblin.
   `certified_pyramid_transition_forbids_continuous_item_transfer`.
 - [ ] Replace the conditional certificate with one derived from generated
   Clight execution of the real SSL transition path.
-- [ ] State the final theorem in game words and Coq words:
+- [x] State the final theorem in game words and Coq words:
   "no outside-Pyramid object identity enters the Pyramid," with the stale-slot
   interpretation nailed down.
+  `PyramidTransition.v` now states
+  `ssl_pyramid_no_gameplay_usable_outside_item_entry_statement`: game words,
+  no outside SSL object-pool item identity enters the Pyramid in a
+  gameplay-usable way; Coq words, no live outside allocation epoch from
+  `before` is continuously active at the unload barrier and in any later
+  `after` state. This is deliberately narrower than "no stale pointer ever
+  exists."
 - [ ] If the theorem is false, document the counterexample instead:
   setup, object, pointer/root that survives, slot reuse, and why it clones or
   transfers gameplay identity.
+  Current nuance: `StalePointerModel.v` /
+  `StaleWindowObservation.v` now name a technical stale-window counterexample
+  shape. `held_grab_stale_slot_alias_is_conditional_on_reuse` says a held
+  outside object can leave a stale load-window reference, and if the same slot
+  is reused during Pyramid load, that stale reference aliases a live slot.
+  `held_grab_reused_slot_alias_is_technical_not_gameplay_useful` connects that
+  to the no-generated-use-before-cleanup audit. So the current story is "yes,
+  technical stale smuggling is modelable if slot reuse happens; no, that is not
+  yet a practical cloning/gameplay transfer counterexample."
 - [ ] Run the full proof pipeline.
 - [ ] Push the final proof state to the fork.
 - [ ] Only open a PR if the user explicitly says yes.

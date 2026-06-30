@@ -98,6 +98,11 @@ Definition stale_outside_reference_after_pyramid_load
   stale_outside_reference before pool_block
     (refs_after_pyramid_load_before_mario_init window).
 
+Definition technical_stale_pointer_smuggled_into_load_window
+    (before : mem) (pool_block : block)
+    (window : pyramid_load_window_reference_origins) : Prop :=
+  stale_outside_reference_after_pyramid_load before pool_block window.
+
 Definition stale_outside_reference_aliases_live_slot
     (before after_load : mem) (pool_block : block)
     (refs : mario_reference_origins) : Prop :=
@@ -105,6 +110,18 @@ Definition stale_outside_reference_aliases_live_slot
     outside_live_slot before pool_block slot /\
     slot_active after_load pool_block slot /\
     In (OutsideAllocationEpoch slot) (mario_reference_origin_list refs).
+
+Definition technical_stale_slot_alias_during_load
+    (before after_load : mem) (pool_block : block)
+    (window : pyramid_load_window_reference_origins) : Prop :=
+  stale_outside_reference_aliases_live_slot before after_load pool_block
+    (refs_after_pyramid_load_before_mario_init window).
+
+Definition no_technical_stale_pointer_after_mario_reinit
+    (before : mem) (pool_block : block)
+    (window : pyramid_load_window_reference_origins) : Prop :=
+  ~ stale_outside_reference before pool_block
+      (refs_after_mario_reinit window).
 
 Theorem post_pyramid_warp_shape_has_no_stale_outside_reference :
   forall before pool_block destination_spawn_slot refs,
@@ -181,6 +198,43 @@ Proof.
     outside_held_grab_load_window, outside_held_grab_refs.
   simpl.
   right; left; reflexivity.
+Qed.
+
+Theorem held_grab_stale_slot_alias_is_conditional_on_reuse :
+  forall before after_load pool_block outside_slot destination_spawn_slot,
+    outside_live_slot before pool_block outside_slot ->
+    slot_active after_load pool_block outside_slot ->
+    exists window,
+      window =
+        outside_held_grab_load_window outside_slot destination_spawn_slot /\
+      technical_stale_pointer_smuggled_into_load_window
+        before pool_block window /\
+      technical_stale_slot_alias_during_load
+        before after_load pool_block window /\
+      no_technical_stale_pointer_after_mario_reinit
+        before pool_block window.
+Proof.
+  intros before after_load pool_block outside_slot
+    destination_spawn_slot Houtside Hactive_after_load.
+  destruct
+    (outside_held_grab_can_leave_stale_reference_across_pyramid_load
+       before pool_block outside_slot destination_spawn_slot Houtside)
+    as (window & Hwindow & Hstale & Hclean).
+  exists window.
+  split; [exact Hwindow |].
+  split; [exact Hstale |].
+  split.
+  - subst window.
+    unfold technical_stale_slot_alias_during_load.
+    destruct
+      (held_grab_stale_reference_would_alias_reused_slot_after_load
+         before after_load pool_block outside_slot destination_spawn_slot
+         Houtside Hactive_after_load)
+      as (alias_window & Halias_window & Halias).
+    inversion Halias_window.
+    subst alias_window.
+    exact Halias.
+  - exact Hclean.
 Qed.
 
 Theorem deactivated_raw_slot_reuse_is_not_continuous_transfer :
