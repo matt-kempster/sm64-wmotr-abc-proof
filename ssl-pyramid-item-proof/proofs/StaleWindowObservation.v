@@ -11,11 +11,13 @@
 
 From Coq Require Import List ZArith.
 Import ListNotations.
-From compcert Require Import Clight.
+From compcert Require Import AST Clight Memory Values.
 From SSLPyramid.Proofs Require Import
-  Spec StalePointerModel TransitionFacts.
+  OutsideObjectChannels Spec StalePointerModel TransitionFacts.
 
 Local Open Scope Z_scope.
+
+Definition proposition_of {P : Prop} (_ : P) : Prop := P.
 
 Definition audited_mario_stale_ref_no_observation_before_cleanup : Prop :=
   statement_mentions_field_s L._heldObj
@@ -109,4 +111,179 @@ Proof.
       with (destination_spawn_slot := destination_spawn_slot).
     apply post_reinit_refs_have_post_pyramid_warp_shape.
   - exact audited_mario_stale_ref_no_observation_before_cleanup_holds.
+Qed.
+
+Inductive high_risk_outside_pointer_root : Type :=
+| RootMarioInteractObj
+| RootMarioHeldObj
+| RootMarioUsedObj
+| RootMarioRiddenObj
+| RootObjectParentObj
+| RootObjectPrevObj
+| RootObjectPlatform
+| RootObjectCollidedObjs
+| RootObjectRawDataAsObject
+| RootGraphObjectSharedChild
+| RootGraphHeldObjectObjNode
+| RootGraphTreeOrSiblingLink.
+
+Definition high_risk_outside_pointer_roots
+    : list high_risk_outside_pointer_root :=
+  [RootMarioInteractObj;
+   RootMarioHeldObj;
+   RootMarioUsedObj;
+   RootMarioRiddenObj;
+   RootObjectParentObj;
+   RootObjectPrevObj;
+   RootObjectPlatform;
+   RootObjectCollidedObjs;
+   RootObjectRawDataAsObject;
+   RootGraphObjectSharedChild;
+   RootGraphHeldObjectObjNode;
+   RootGraphTreeOrSiblingLink].
+
+Definition root_is_mario_state_reference
+    (root : high_risk_outside_pointer_root) : bool :=
+  match root with
+  | RootMarioInteractObj
+  | RootMarioHeldObj
+  | RootMarioUsedObj
+  | RootMarioRiddenObj => true
+  | _ => false
+  end.
+
+Definition root_is_object_owned_reference
+    (root : high_risk_outside_pointer_root) : bool :=
+  match root with
+  | RootObjectParentObj
+  | RootObjectPrevObj
+  | RootObjectPlatform
+  | RootObjectCollidedObjs
+  | RootObjectRawDataAsObject => true
+  | _ => false
+  end.
+
+Definition root_is_graph_reference
+    (root : high_risk_outside_pointer_root) : bool :=
+  match root with
+  | RootGraphObjectSharedChild
+  | RootGraphHeldObjectObjNode
+  | RootGraphTreeOrSiblingLink => true
+  | _ => false
+  end.
+
+Definition root_is_render_held_reference
+    (root : high_risk_outside_pointer_root) : bool :=
+  match root with
+  | RootGraphHeldObjectObjNode => true
+  | _ => false
+  end.
+
+Theorem high_risk_outside_pointer_roots_complete :
+  forall root,
+    In root high_risk_outside_pointer_roots.
+Proof.
+  intros [] ; simpl; eauto 20.
+Qed.
+
+Theorem high_risk_outside_pointer_root_classification_exact :
+  map
+    (fun root =>
+       (root,
+        root_is_mario_state_reference root,
+        root_is_object_owned_reference root,
+        root_is_graph_reference root,
+        root_is_render_held_reference root))
+    high_risk_outside_pointer_roots =
+  [(RootMarioInteractObj, true, false, false, false);
+   (RootMarioHeldObj, true, false, false, false);
+   (RootMarioUsedObj, true, false, false, false);
+   (RootMarioRiddenObj, true, false, false, false);
+   (RootObjectParentObj, false, true, false, false);
+   (RootObjectPrevObj, false, true, false, false);
+   (RootObjectPlatform, false, true, false, false);
+   (RootObjectCollidedObjs, false, true, false, false);
+   (RootObjectRawDataAsObject, false, true, false, false);
+   (RootGraphObjectSharedChild, false, false, true, false);
+   (RootGraphHeldObjectObjNode, false, false, true, true);
+   (RootGraphTreeOrSiblingLink, false, false, true, false)].
+Proof. vm_compute; reflexivity. Qed.
+
+Definition high_risk_pointer_roots_load_window_audit : Prop :=
+  audited_mario_stale_ref_no_observation_before_cleanup /\
+  proposition_of
+    pyramid_load_window_full_object_owned_roots_not_mentioned_before_cleanup /\
+  proposition_of
+    pyramid_load_window_mario_platform_externals_not_called_before_cleanup /\
+  proposition_of
+    pyramid_load_window_graph_specific_roots_not_mentioned_before_cleanup /\
+  proposition_of
+    pyramid_load_window_typed_graph_node_link_audit.
+
+Theorem high_risk_pointer_roots_load_window_audit_holds :
+  high_risk_pointer_roots_load_window_audit.
+Proof.
+  unfold high_risk_pointer_roots_load_window_audit, proposition_of.
+  split; [exact audited_mario_stale_ref_no_observation_before_cleanup_holds |].
+  split;
+    [ exact pyramid_load_window_full_object_owned_roots_not_mentioned_before_cleanup
+    |].
+  split;
+    [ exact pyramid_load_window_mario_platform_externals_not_called_before_cleanup
+    |].
+  split;
+    [ exact pyramid_load_window_graph_specific_roots_not_mentioned_before_cleanup
+    |].
+  exact pyramid_load_window_typed_graph_node_link_audit.
+Qed.
+
+Record outside_pointer_observation := {
+  observed_pointer_root : high_risk_outside_pointer_root;
+  observed_pointer_origin : object_reference_origin
+}.
+
+Definition observation_mentions_outside_slot
+    (before : mem) (pool_block : block)
+    (observation : outside_pointer_observation) : Prop :=
+  exists slot,
+    outside_live_slot before pool_block slot /\
+    observed_pointer_origin observation = OutsideAllocationEpoch slot.
+
+Definition persistent_outside_pointer_counterexample_candidate
+    (before : mem) (pool_block : block)
+    (observation : outside_pointer_observation) : Prop :=
+  In (observed_pointer_root observation)
+    high_risk_outside_pointer_roots /\
+  observation_mentions_outside_slot before pool_block observation.
+
+Theorem persistent_outside_pointer_from_high_risk_root_is_counterexample_candidate :
+  forall before pool_block root slot,
+    In root high_risk_outside_pointer_roots ->
+    outside_live_slot before pool_block slot ->
+    persistent_outside_pointer_counterexample_candidate before pool_block
+      {| observed_pointer_root := root;
+         observed_pointer_origin := OutsideAllocationEpoch slot |}.
+Proof.
+  intros before pool_block root slot Hroot Houtside.
+  split; [exact Hroot |].
+  exists slot.
+  split; [exact Houtside | reflexivity].
+Qed.
+
+Definition shell_and_grabbable_stale_channel_load_window_audit : Prop :=
+  proposition_of
+    outside_pyramid_channel_classifications_start_with_shell /\
+  proposition_of shell_channel_generated_ridden_object_evidence /\
+  proposition_of direct_grabbable_channel_mario_reference_cleanup_evidence /\
+  audited_mario_stale_ref_no_observation_before_cleanup.
+
+Theorem shell_and_grabbable_stale_channel_load_window_audit_holds :
+  shell_and_grabbable_stale_channel_load_window_audit.
+Proof.
+  unfold shell_and_grabbable_stale_channel_load_window_audit,
+    proposition_of.
+  split; [exact outside_pyramid_channel_classifications_start_with_shell |].
+  split; [exact shell_channel_generated_ridden_object_evidence |].
+  split; [exact direct_grabbable_channel_mario_reference_cleanup_evidence |].
+  exact audited_mario_stale_ref_no_observation_before_cleanup_holds.
 Qed.

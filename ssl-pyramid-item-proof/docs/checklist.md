@@ -278,6 +278,32 @@ counterexample-shaped goblin.
   The generic graph `parent`/`children`/`prev`/`next` names needed the typed
   pass below because raw `next`/`prev` also means object-list links and a bunch
   of other totally-not-graph stuff.
+- [x] Detour into counterexample-hunting before more graph-unlink paperwork.
+  New `proofs/StaleWindowObservation.v` root ledger
+  `high_risk_outside_pointer_roots` puts the scary roots in one place:
+  Mario `interactObj`/`heldObj`/`usedObj`/`riddenObj`, object-owned
+  `parentObj`/`prevObj`/`platform`/`collidedObjs`/`rawData.asObject`,
+  `GraphNodeObject.sharedChild`, render-held `GraphNodeHeldObject.objNode`,
+  and generic graph tree/sibling links. The new
+  `persistent_outside_pointer_from_high_risk_root_is_counterexample_candidate`
+  theorem says the quiet part formally: if any of those roots still points at
+  an outside allocation epoch, that is not "probably fine"; it is a
+  counterexample candidate and jumps the queue.
+- [x] Beef up the Pyramid load-window audit for object-owned roots.
+  `pyramid_load_window_full_object_owned_roots_not_mentioned_before_cleanup`
+  now covers `parentObj`, `prevObj`, `platform`, `collidedObjs`, and
+  `rawData.asObject` across `load_area`, `load_mario_area`, the generated
+  `object_list_processor` module, and the pre-`init_mario` prefix of
+  `init_mario_after_warp`. Also pinned
+  `pyramid_load_window_mario_platform_externals_not_called_before_cleanup`,
+  because `clear_mario_platform`, `apply_mario_platform_displacement`, and
+  `update_mario_platform` are spicy names and deserve their own bouncer.
+- [x] Revisit shell/ridden/held/used channels in that same certificate.
+  `shell_and_grabbable_stale_channel_load_window_audit_holds` packages the
+  shell-first classification, ridden-shell generated evidence, direct
+  grabbable cleanup evidence, and the Mario stale-root no-observation audit.
+  Translation: the shell/held/used/ridden paths are still the right scary
+  channels, but this bite did not find a use site before the cleanup broom.
 - [x] Build a type-aware graph-link audit for
   `GraphNode.parent`/`children`/`prev`/`next`. New theorem
   `pyramid_load_window_typed_graph_node_link_audit` ignores fake scares like
@@ -538,18 +564,19 @@ In Discord goblin terms: we proved that everyone on the bouncer's list gets
 thrown out. Now prove the bouncer's list really came from the engine's
 `gObjectLists` clipboard.
 
-Channel-side next bite: detour into counterexample-hunting before grinding the
-graph-unlink tail:
+Channel-side next bite: turn the new counterexample-candidate wrapper into an
+actual survival/refutation pass:
 
-- audit higher-risk object-owned roots such as `platform`, `rawData.asObject`,
-  behavior parent/child links, render-held-object links, and any remaining
-  graph roots;
-- revisit shell/ridden/held/used channels and stale-pointer observation/use
-  windows;
-- treat any reachable outside graph root or persistent outside object pointer
-  as a counterexample candidate first, before spending more time on the boring
-  `_graphNode` / `parent->children` unlink paperwork.
+- prove the high-risk roots cannot persist past `init_mario_after_warp` for the
+  normal SSL Pyramid change-area path, or instantiate
+  `persistent_outside_pointer_from_high_risk_root_is_counterexample_candidate`
+  with the survivor;
+- chase the externally implemented Mario-platform helpers only after proving
+  they can actually run before the cleanup/rebind path; right now the generated
+  load window does not call them;
+- keep the graph-root fork as-is: reachable outside graph root means candidate,
+  otherwise go back to the boring unlink proof.
 
-In Discord goblin terms: the unlink proof is boring paperwork with a pretty
-obvious ending. Go sniff the weird pointers first; if one smells like cloning,
-that little criminal jumps the queue.
+Discord goblin translation: the sniff test found no immediate cloning stink in
+the load window, but it installed a tripwire. If a stale outside pointer
+survives in any of those roots, the little criminal gets a name tag.

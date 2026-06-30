@@ -955,6 +955,65 @@ Theorem pyramid_load_window_object_owned_roots_not_mentioned_before_cleanup :
     (fn_body L.f_init_mario_after_warp) = false.
 Proof. vm_compute; repeat split; reflexivity. Qed.
 
+Theorem pyramid_load_window_full_object_owned_roots_not_mentioned_before_cleanup :
+  statement_mentions_field_s S._parentObj
+    (fn_body A.f_load_area) = false /\
+  statement_mentions_field_s S._prevObj
+    (fn_body A.f_load_area) = false /\
+  statement_mentions_field_s S._platform
+    (fn_body A.f_load_area) = false /\
+  statement_mentions_field_s S._collidedObjs
+    (fn_body A.f_load_area) = false /\
+  statement_mentions_field_s S._asObject
+    (fn_body A.f_load_area) = false /\
+  statement_mentions_field_s S._parentObj
+    (fn_body A.f_load_mario_area) = false /\
+  statement_mentions_field_s S._prevObj
+    (fn_body A.f_load_mario_area) = false /\
+  statement_mentions_field_s S._platform
+    (fn_body A.f_load_mario_area) = false /\
+  statement_mentions_field_s S._collidedObjs
+    (fn_body A.f_load_mario_area) = false /\
+  statement_mentions_field_s S._asObject
+    (fn_body A.f_load_mario_area) = false /\
+  field_mentioners O.prog O._parentObj = [] /\
+  field_mentioners O.prog O._prevObj = [] /\
+  field_mentioners O.prog O._platform = [] /\
+  field_mentioners O.prog O._collidedObjs = [] /\
+  field_mentioners O.prog O._asObject = [] /\
+  statement_mentions_field_before_call_s L._init_mario S._parentObj
+    (fn_body L.f_init_mario_after_warp) = false /\
+  statement_mentions_field_before_call_s L._init_mario S._prevObj
+    (fn_body L.f_init_mario_after_warp) = false /\
+  statement_mentions_field_before_call_s L._init_mario S._platform
+    (fn_body L.f_init_mario_after_warp) = false /\
+  statement_mentions_field_before_call_s L._init_mario S._collidedObjs
+    (fn_body L.f_init_mario_after_warp) = false /\
+  statement_mentions_field_before_call_s L._init_mario S._asObject
+    (fn_body L.f_init_mario_after_warp) = false.
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
+Theorem pyramid_load_window_mario_platform_externals_not_called_before_cleanup :
+  calls_ident_s O._clear_mario_platform
+    (fn_body A.f_load_area) = false /\
+  calls_ident_s O._apply_mario_platform_displacement
+    (fn_body A.f_load_area) = false /\
+  calls_ident_s O._update_mario_platform
+    (fn_body A.f_load_area) = false /\
+  calls_ident_s O._clear_mario_platform
+    (fn_body A.f_load_mario_area) = false /\
+  calls_ident_s O._apply_mario_platform_displacement
+    (fn_body A.f_load_mario_area) = false /\
+  calls_ident_s O._update_mario_platform
+    (fn_body A.f_load_mario_area) = false /\
+  calls_ident_s O._clear_mario_platform
+    (fn_body L.f_init_mario_after_warp) = false /\
+  calls_ident_s O._apply_mario_platform_displacement
+    (fn_body L.f_init_mario_after_warp) = false /\
+  calls_ident_s O._update_mario_platform
+    (fn_body L.f_init_mario_after_warp) = false.
+Proof. vm_compute; repeat split; reflexivity. Qed.
+
 Theorem pyramid_load_window_graph_specific_roots_not_mentioned_before_cleanup :
   statement_mentions_field_s G._sharedChild
     (fn_body A.f_load_area) = false /\
