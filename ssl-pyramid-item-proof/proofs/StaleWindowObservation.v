@@ -13,7 +13,9 @@ From Coq Require Import List ZArith.
 Import ListNotations.
 From compcert Require Import AST Clight Memory Values.
 From SSLPyramid.Proofs Require Import
-  OutsideObjectChannels Spec StalePointerModel TransitionFacts.
+  GraphTraversalModel NonMarioReferenceFacts OutsideObjectChannels
+  RenderHeldObjectFacts Spec StalePointerModel TransitionFacts
+  TraversalModel.
 
 Local Open Scope Z_scope.
 
@@ -402,6 +404,193 @@ Proof.
   intros before pool_block destination_spawn_slot root Hroot.
   apply normal_path_high_risk_roots_do_not_persist_or_are_candidates.
   exact Hroot.
+Qed.
+
+Definition object_owned_high_risk_roots
+    : list high_risk_outside_pointer_root :=
+  [RootObjectParentObj;
+   RootObjectPrevObj;
+   RootObjectPlatform;
+   RootObjectCollidedObjs;
+   RootObjectRawDataAsObject].
+
+Definition graph_and_render_high_risk_roots
+    : list high_risk_outside_pointer_root :=
+  [RootGraphObjectSharedChild;
+   RootGraphHeldObjectObjNode;
+   RootGraphTreeOrSiblingLink].
+
+Theorem object_owned_high_risk_roots_exact :
+  object_owned_high_risk_roots =
+  filter root_is_object_owned_reference high_risk_outside_pointer_roots.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem graph_and_render_high_risk_roots_exact :
+  graph_and_render_high_risk_roots =
+  filter root_is_graph_reference high_risk_outside_pointer_roots.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem object_owned_high_risk_roots_are_high_risk :
+  forall root,
+    In root object_owned_high_risk_roots ->
+    In root high_risk_outside_pointer_roots.
+Proof.
+  intros root Hroot.
+  destruct root; simpl in *; intuition congruence.
+Qed.
+
+Theorem graph_and_render_high_risk_roots_are_high_risk :
+  forall root,
+    In root graph_and_render_high_risk_roots ->
+    In root high_risk_outside_pointer_roots.
+Proof.
+  intros root Hroot.
+  destruct root; simpl in *; intuition congruence.
+Qed.
+
+Theorem object_owned_root_survivor_is_counterexample_candidate :
+  forall before pool_block root slot,
+    In root object_owned_high_risk_roots ->
+    outside_live_slot before pool_block slot ->
+    persistent_outside_pointer_counterexample_candidate before pool_block
+      {| observed_pointer_root := root;
+         observed_pointer_origin := OutsideAllocationEpoch slot |}.
+Proof.
+  intros before pool_block root slot Hroot Houtside.
+  apply persistent_outside_pointer_from_high_risk_root_is_counterexample_candidate.
+  - apply object_owned_high_risk_roots_are_high_risk.
+    exact Hroot.
+  - exact Houtside.
+Qed.
+
+Theorem graph_or_render_root_survivor_is_counterexample_candidate :
+  forall before pool_block root slot,
+    In root graph_and_render_high_risk_roots ->
+    outside_live_slot before pool_block slot ->
+    persistent_outside_pointer_counterexample_candidate before pool_block
+      {| observed_pointer_root := root;
+         observed_pointer_origin := OutsideAllocationEpoch slot |}.
+Proof.
+  intros before pool_block root slot Hroot Houtside.
+  apply persistent_outside_pointer_from_high_risk_root_is_counterexample_candidate.
+  - apply graph_and_render_high_risk_roots_are_high_risk.
+    exact Hroot.
+  - exact Houtside.
+Qed.
+
+Definition object_owned_root_generated_cleanup_boundary : Prop :=
+  proposition_of object_owned_scalar_object_reference_fields /\
+  proposition_of object_owned_array_object_reference_fields /\
+  proposition_of object_raw_data_object_reference_array_fields /\
+  proposition_of spawn_object_owned_reference_writers /\
+  proposition_of object_helpers_owned_reference_writers /\
+  proposition_of object_list_processor_has_no_owned_reference_writers /\
+  proposition_of transition_side_modules_have_no_owned_reference_writers /\
+  proposition_of object_owned_platform_writers /\
+  proposition_of object_owned_collided_object_array_writers /\
+  proposition_of object_owned_raw_behavior_object_slot_writers /\
+  proposition_of pyramid_load_window_full_object_owned_roots_not_mentioned_before_cleanup /\
+  proposition_of generated_unload_targets_trace_clears_outside /\
+  proposition_of generated_unload_targets_trace_forbids_transfer.
+
+Theorem object_owned_root_generated_cleanup_boundary_holds :
+  object_owned_root_generated_cleanup_boundary.
+Proof.
+  unfold object_owned_root_generated_cleanup_boundary, proposition_of.
+  repeat split;
+    first
+      [ exact object_owned_scalar_object_reference_fields
+      | exact object_owned_array_object_reference_fields
+      | exact object_raw_data_object_reference_array_fields
+      | exact spawn_object_owned_reference_writers
+      | exact object_helpers_owned_reference_writers
+      | exact object_list_processor_has_no_owned_reference_writers
+      | exact transition_side_modules_have_no_owned_reference_writers
+      | exact object_owned_platform_writers
+      | exact object_owned_collided_object_array_writers
+      | exact object_owned_raw_behavior_object_slot_writers
+      | exact pyramid_load_window_full_object_owned_roots_not_mentioned_before_cleanup
+      | exact generated_unload_targets_trace_clears_outside
+      | exact generated_unload_targets_trace_forbids_transfer ].
+Qed.
+
+Definition graph_and_render_root_generated_cleanup_boundary : Prop :=
+  proposition_of graph_node_reference_fields /\
+  proposition_of graph_node_object_shared_child_reference_fields /\
+  proposition_of graph_node_held_object_reference_fields /\
+  proposition_of graph_node_tree_link_writers /\
+  proposition_of graph_node_shared_child_writers /\
+  proposition_of graph_node_held_object_objnode_writers /\
+  proposition_of init_graph_node_held_object_stores_objnode_parameter /\
+  proposition_of mario_misc_render_held_object_refreshes_from_mario_heldObj /\
+  proposition_of geo_switch_mario_hand_grab_pos_direct_objnode_writers /\
+  proposition_of geo_switch_mario_hand_grab_pos_refreshes_objnode_from_mario_heldObj /\
+  proposition_of pyramid_load_window_graph_specific_roots_not_mentioned_before_cleanup /\
+  proposition_of pyramid_load_window_typed_graph_node_link_audit /\
+  proposition_of generated_graph_traversal_confinement_or_counterexample_candidate /\
+  proposition_of surviving_outside_graph_link_is_counterexample_candidate.
+
+Theorem graph_and_render_root_generated_cleanup_boundary_holds :
+  graph_and_render_root_generated_cleanup_boundary.
+Proof.
+  unfold graph_and_render_root_generated_cleanup_boundary, proposition_of.
+  repeat split;
+    first
+      [ exact graph_node_reference_fields
+      | exact graph_node_object_shared_child_reference_fields
+      | exact graph_node_held_object_reference_fields
+      | exact graph_node_tree_link_writers
+      | exact graph_node_shared_child_writers
+      | exact graph_node_held_object_objnode_writers
+      | exact init_graph_node_held_object_stores_objnode_parameter
+      | exact mario_misc_render_held_object_refreshes_from_mario_heldObj
+      | exact geo_switch_mario_hand_grab_pos_direct_objnode_writers
+      | exact geo_switch_mario_hand_grab_pos_refreshes_objnode_from_mario_heldObj
+      | exact pyramid_load_window_graph_specific_roots_not_mentioned_before_cleanup
+      | exact pyramid_load_window_typed_graph_node_link_audit
+      | exact generated_graph_traversal_confinement_or_counterexample_candidate
+      | exact surviving_outside_graph_link_is_counterexample_candidate ].
+Qed.
+
+Definition mario_platform_helper_precleanup_boundary : Prop :=
+  proposition_of pyramid_load_window_mario_platform_externals_not_called_before_cleanup.
+
+Theorem mario_platform_helper_precleanup_boundary_holds :
+  mario_platform_helper_precleanup_boundary.
+Proof.
+  unfold mario_platform_helper_precleanup_boundary, proposition_of.
+  exact pyramid_load_window_mario_platform_externals_not_called_before_cleanup.
+Qed.
+
+Definition non_mario_high_risk_root_survivor_boundary : Prop :=
+  object_owned_root_generated_cleanup_boundary /\
+  graph_and_render_root_generated_cleanup_boundary /\
+  mario_platform_helper_precleanup_boundary /\
+  (forall before pool_block root slot,
+    In root object_owned_high_risk_roots ->
+    outside_live_slot before pool_block slot ->
+    persistent_outside_pointer_counterexample_candidate before pool_block
+      {| observed_pointer_root := root;
+         observed_pointer_origin := OutsideAllocationEpoch slot |}) /\
+  (forall before pool_block root slot,
+    In root graph_and_render_high_risk_roots ->
+    outside_live_slot before pool_block slot ->
+    persistent_outside_pointer_counterexample_candidate before pool_block
+      {| observed_pointer_root := root;
+         observed_pointer_origin := OutsideAllocationEpoch slot |}).
+
+Theorem non_mario_high_risk_root_survivor_boundary_holds :
+  non_mario_high_risk_root_survivor_boundary.
+Proof.
+  unfold non_mario_high_risk_root_survivor_boundary.
+  split; [exact object_owned_root_generated_cleanup_boundary_holds |].
+  split; [exact graph_and_render_root_generated_cleanup_boundary_holds |].
+  split; [exact mario_platform_helper_precleanup_boundary_holds |].
+  split.
+  - intros before pool_block root slot Hroot Houtside.
+    eapply object_owned_root_survivor_is_counterexample_candidate; eauto.
+  - intros before pool_block root slot Hroot Houtside.
+    eapply graph_or_render_root_survivor_is_counterexample_candidate; eauto.
 Qed.
 
 Definition shell_and_grabbable_stale_channel_load_window_audit : Prop :=

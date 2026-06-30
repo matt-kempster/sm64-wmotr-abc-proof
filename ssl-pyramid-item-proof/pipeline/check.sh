@@ -828,6 +828,30 @@ bash pipeline/assumptions.sh \
   normal_ssl_pyramid_change_area_high_risk_root_certificate_holds
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.StaleWindowObservation \
+  object_owned_high_risk_roots_exact
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
+  graph_and_render_high_risk_roots_exact
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
+  object_owned_root_survivor_is_counterexample_candidate
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
+  graph_or_render_root_survivor_is_counterexample_candidate
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
+  object_owned_root_generated_cleanup_boundary_holds
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
+  graph_and_render_root_generated_cleanup_boundary_holds
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
+  mario_platform_helper_precleanup_boundary_holds
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
+  non_mario_high_risk_root_survivor_boundary_holds
+bash pipeline/assumptions.sh \
+  SSLPyramid.Proofs.StaleWindowObservation \
   shell_and_grabbable_stale_channel_load_window_audit_holds
 bash pipeline/assumptions.sh \
   SSLPyramid.Proofs.UnloadObjectSemantics \
