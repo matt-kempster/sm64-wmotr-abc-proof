@@ -6438,6 +6438,44 @@ Inductive generated_unload_execution_trace (pool_block : block)
       generated_unload_execution_trace pool_block memory (slot :: rest)
         memory2.
 
+Definition generated_unload_object_execution_for_slot
+    (pool_block : block) (slot : Z) : Prop :=
+  exists memory memory' le trace le' outcome,
+    valid_object_slot slot /\
+    le ! S._obj =
+      Some (Vptr pool_block
+        (Ptrofs.repr ((slot * object_slot_size)%Z))) /\
+    exec_stmt function_entry2 unload_object_ge empty_env le memory
+      (fn_body S.f_unload_object) trace le' memory' outcome.
+
+Theorem generated_unload_execution_trace_executes_member :
+  forall pool_block before targets after slot,
+    generated_unload_execution_trace pool_block before targets after ->
+    In slot targets ->
+    generated_unload_object_execution_for_slot pool_block slot.
+Proof.
+  intros pool_block before targets after slot Htrace.
+  induction Htrace as
+      [memory
+      | memory memory1 memory2 head rest le trace le' outcome
+        Hvalid Hobj Hexec Hrest IHrest].
+  - intros Hin.
+    inversion Hin.
+  - intros Hin.
+    simpl in Hin.
+    destruct Hin as [Hequal | Hin].
+    + subst head.
+      unfold generated_unload_object_execution_for_slot.
+      exists memory, memory1, le, trace, le', outcome.
+      split.
+      * exact Hvalid.
+      * split.
+        -- exact Hobj.
+        -- exact Hexec.
+    + apply IHrest.
+      exact Hin.
+Qed.
+
 Theorem generated_unload_execution_trace_is_valid_deactivation_trace_from_empty_env_valid_pool_slot_tail_frame :
   unload_object_tail_empty_env_preserves_valid_pool_slot_active_flags ->
   forall pool_block before targets after,
@@ -6456,6 +6494,45 @@ Proof.
         exec_unload_object_valid_deactivation_step_from_empty_env_valid_pool_slot_tail_frame;
         eauto.
     + exact IHrest.
+Qed.
+
+Theorem generated_unload_execution_trace_deactivates_member_from_empty_env_valid_pool_slot_tail_frame :
+  unload_object_tail_empty_env_preserves_valid_pool_slot_active_flags ->
+  forall pool_block before targets after slot,
+    generated_unload_execution_trace pool_block before targets after ->
+    NoDup targets ->
+    Forall valid_object_slot targets ->
+    In slot targets ->
+    slot_deactivated after pool_block slot.
+Proof.
+  intros Htail_frame pool_block before targets after slot
+    Htrace Hnodup Hvalid_targets Hin.
+  eapply valid_deactivation_trace_clears_members.
+  - eapply
+      generated_unload_execution_trace_is_valid_deactivation_trace_from_empty_env_valid_pool_slot_tail_frame;
+      eauto.
+  - exact Hnodup.
+  - exact Hvalid_targets.
+  - exact Hin.
+Qed.
+
+Theorem generated_unload_execution_trace_executes_and_deactivates_member_from_empty_env_valid_pool_slot_tail_frame :
+  unload_object_tail_empty_env_preserves_valid_pool_slot_active_flags ->
+  forall pool_block before targets after slot,
+    generated_unload_execution_trace pool_block before targets after ->
+    NoDup targets ->
+    Forall valid_object_slot targets ->
+    In slot targets ->
+    generated_unload_object_execution_for_slot pool_block slot /\
+    slot_deactivated after pool_block slot.
+Proof.
+  intros Htail_frame pool_block before targets after slot
+    Htrace Hnodup Hvalid_targets Hin.
+  split.
+  - eapply generated_unload_execution_trace_executes_member; eauto.
+  - eapply
+      generated_unload_execution_trace_deactivates_member_from_empty_env_valid_pool_slot_tail_frame;
+      eauto.
 Qed.
 
 Theorem exec_unload_object_valid_deactivation_step_from_tail_frame :
