@@ -749,6 +749,20 @@ counterexample-shaped goblin.
   "stale pointer aliases a newly loaded Pyramid object" version still needs the
   explicit slot-reuse premise, which is exactly where real allocation order may
   block the scarier counterexample.
+- [x] Prove the stronger technical counterexample from a concrete same-slot
+  Pyramid allocation store.
+  This is the new sharper goblin: `same_slot_pyramid_allocation_store_trace`
+  says the load path writes Pyramid area `2` and normal allocation
+  `activeFlags = 257` to the exact stale slot. From that concrete memory-store
+  trace, `same_slot_pyramid_allocation_store_trace_gives_pyramid_live_slot`
+  proves the slot is active and belongs to the Pyramid. Then
+  `held_grab_constructs_technical_pyramid_slot_reuse_counterexample` and
+  `shell_ride_constructs_ridden_technical_pyramid_slot_reuse_counterexample`
+  compose that with the stale Mario roots. The audited versions in
+  `StaleWindowObservation.v` keep the no-generated-use-before-cleanup receipt.
+  Translation: if the real unload/load order puts a newly loaded Pyramid object
+  into the stale slot, the stronger technical counterexample is now formally
+  constructed, not just wished into existence.
 - [ ] If the theorem is false, document the counterexample instead:
   setup, object, pointer/root that survives, slot reuse, and why it clones or
   transfers gameplay identity.
@@ -762,6 +776,17 @@ counterexample-shaped goblin.
   becomes a practical cloning/identity-transfer counterexample. Right now it
   is "yes, a stale outside epoch can be carried into the Pyramid load window;
   no, we have not shown it can do useful gameplay crime."
+- [ ] Derive the same-slot Pyramid allocation store trace from the actual
+  generated unload/load order.
+  This is the remaining real-world receipt for the stronger technical
+  counterexample: prove the watched outside object's `deallocate_object` call
+  puts its slot at the head of `gFreeObjectList`, prove the first relevant
+  Pyramid `create_object` / `allocate_object` pops that same head, and prove
+  the `geo_obj_init_spawninfo`/allocation stores are the concrete
+  `same_slot_pyramid_allocation_store_trace`. If another unloaded object sits
+  above the watched slot on the free list, then count Pyramid allocations until
+  the watched slot is popped; if the count/order never reaches it before
+  `init_mario`, this branch gets blocked.
 - [ ] Run the full proof pipeline.
 - [ ] Push the final proof state to the fork.
 - [ ] Only open a PR if the user explicitly says yes.
