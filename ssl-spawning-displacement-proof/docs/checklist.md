@@ -18,4 +18,6 @@
 - [ ] Replace model-level source facts with generated JP Clight `vm_compute`
   facts.
 - [ ] Lift the conditional capstone through linked Clight semantics.
-- [ ] Prove enough allocation/order detail for a concrete SSL route, if needed.
+- [x] Prove enough allocation/order detail for a concrete SSL route candidate:
+  if the stale slot is at depth 60 in the post-unload free list, the 61st
+  area-2 allocation is the Spindel allocation.

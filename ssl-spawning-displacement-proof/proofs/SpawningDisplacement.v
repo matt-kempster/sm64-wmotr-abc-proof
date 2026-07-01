@@ -1,4 +1,4 @@
-From Coq Require Import List ZArith.
+From Coq Require Import List ZArith Lia.
 From SSLSpawning.Proofs Require Import Spec JPSpawn PlatformDisplacement
   FreeListReuse UpdateOrder SSLFacts.
 
@@ -141,4 +141,68 @@ Proof.
   repeat split.
   apply spindel_active_fields_are_useful.
   exact Hdivisor.
+Qed.
+
+Theorem ssl_spindel_exact_reuse_from_area_unload_depth :
+  forall initial_free_list unload_prefix unload_suffix old_platform_slot,
+    length unload_suffix = ssl_area2_spindel_required_free_list_depth ->
+    nth_allocation_reuses_slot
+      (free_list_after_unloads initial_free_list
+        (unload_prefix ++ old_platform_slot :: unload_suffix))
+      ssl_area2_spindel_allocation_index
+      old_platform_slot.
+Proof.
+  intros initial_free_list unload_prefix unload_suffix old_platform_slot
+    Hdepth.
+  rewrite ssl_area2_spindel_allocation_position_including_macros.
+  rewrite ssl_area2_spindel_required_free_list_depth_is_60 in Hdepth.
+  replace 61%nat with (S (length unload_suffix)) by lia.
+  apply unload_suffix_depth_gives_exact_reuse_allocation.
+Qed.
+
+Theorem concrete_ssl_spindel_route_allocation_feeds_first_update :
+  forall initial_free_list unload_prefix unload_suffix old_platform_slot
+      state divisor direction,
+    length unload_suffix = ssl_area2_spindel_required_free_list_depth ->
+    state_time_stop_active state = false ->
+    state_has_mario_object state = true ->
+    state_gMarioPlatform state = Some old_platform_slot ->
+    state_object_memory state old_platform_slot =
+      spindel_active_fields divisor direction ->
+    valid_spindel_divisor divisor ->
+    exists observation,
+      nth_allocation_reuses_slot
+        (free_list_after_unloads initial_free_list
+          (unload_prefix ++ old_platform_slot :: unload_suffix))
+        ssl_area2_spindel_allocation_index
+        old_platform_slot /\
+      nth_error ssl_area2_regular_spawn_order (11 - 1) =
+        Some KindSpindel /\
+      apply_mario_platform_displacement_model state = Some observation /\
+      observation_slot observation = old_platform_slot /\
+      observation_oVelZ observation =
+        signed_by_direction (20 / divisor) direction /\
+      observation_oAngleVelPitch observation =
+        signed_by_direction (1024 / divisor) direction /\
+      (observation_oVelZ observation <> 0 \/
+       observation_oAngleVelPitch observation <> 0).
+Proof.
+  intros initial_free_list unload_prefix unload_suffix old_platform_slot
+    state divisor direction Hdepth Htime Hmario Hplatform Hfields Hdivisor.
+  exists (observe_platform_fields old_platform_slot
+    (spindel_active_fields divisor direction)).
+  split.
+  - eapply ssl_spindel_exact_reuse_from_area_unload_depth.
+    exact Hdepth.
+  - split.
+    + apply ssl_area2_spindel_is_regular_position_11.
+    + split.
+      * unfold apply_mario_platform_displacement_model.
+        rewrite Htime, Hmario, Hplatform, Hfields.
+        reflexivity.
+      * split; [reflexivity |].
+        split; [reflexivity |].
+        split; [reflexivity |].
+        apply spindel_active_fields_are_useful.
+        exact Hdivisor.
 Qed.

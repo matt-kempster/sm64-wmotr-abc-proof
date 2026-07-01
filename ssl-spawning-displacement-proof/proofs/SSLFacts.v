@@ -86,6 +86,35 @@ Definition ssl_area2_regular_spawn_order : list object_kind := [
 Definition ssl_area1_macro_object_count : nat := 46.
 Definition ssl_area2_macro_object_count : nat := 50.
 
+Definition ssl_area2_allocation_index_for_regular_position
+    (regular_position : nat) : nat :=
+  ssl_area2_macro_object_count + regular_position.
+
+Definition ssl_area2_required_free_list_depth_for_regular_position
+    (regular_position : nat) : nat :=
+  ssl_area2_allocation_index_for_regular_position regular_position - 1.
+
+Definition ssl_area2_pyramid_elevator_allocation_index : nat :=
+  ssl_area2_allocation_index_for_regular_position 6.
+
+Definition ssl_area2_moving_wall_1_allocation_index : nat :=
+  ssl_area2_allocation_index_for_regular_position 7.
+
+Definition ssl_area2_moving_wall_4_allocation_index : nat :=
+  ssl_area2_allocation_index_for_regular_position 10.
+
+Definition ssl_area2_spindel_allocation_index : nat :=
+  ssl_area2_allocation_index_for_regular_position 11.
+
+Definition ssl_area2_spindel_required_free_list_depth : nat :=
+  ssl_area2_required_free_list_depth_for_regular_position 11.
+
+Definition ssl_area2_grindel_1_allocation_index : nat :=
+  ssl_area2_allocation_index_for_regular_position 12.
+
+Definition ssl_area2_grindel_3_allocation_index : nat :=
+  ssl_area2_allocation_index_for_regular_position 14.
+
 Theorem ssl_area2_macro_count_is_50 :
   ssl_area2_macro_object_count = 50%nat.
 Proof.
@@ -117,32 +146,44 @@ Proof.
 Qed.
 
 Theorem ssl_area2_spindel_allocation_position_including_macros :
-  (ssl_area2_macro_object_count + 11 = 61)%nat.
+  ssl_area2_spindel_allocation_index = 61%nat.
 Proof.
   reflexivity.
 Qed.
 
 Theorem ssl_area2_pyramid_elevator_allocation_position_including_macros :
-  (ssl_area2_macro_object_count + 6 = 56)%nat.
+  ssl_area2_pyramid_elevator_allocation_index = 56%nat.
 Proof.
   reflexivity.
 Qed.
 
 Theorem ssl_area2_moving_wall_allocation_positions_including_macros :
-  (ssl_area2_macro_object_count + 7 = 57)%nat /\
-  (ssl_area2_macro_object_count + 8 = 58)%nat /\
-  (ssl_area2_macro_object_count + 9 = 59)%nat /\
-  (ssl_area2_macro_object_count + 10 = 60)%nat.
+  ssl_area2_moving_wall_1_allocation_index = 57%nat /\
+  ssl_area2_allocation_index_for_regular_position 8 = 58%nat /\
+  ssl_area2_allocation_index_for_regular_position 9 = 59%nat /\
+  ssl_area2_moving_wall_4_allocation_index = 60%nat.
 Proof.
   repeat split.
 Qed.
 
 Theorem ssl_area2_grindel_allocation_positions_including_macros :
-  (ssl_area2_macro_object_count + 12 = 62)%nat /\
-  (ssl_area2_macro_object_count + 13 = 63)%nat /\
-  (ssl_area2_macro_object_count + 14 = 64)%nat.
+  ssl_area2_grindel_1_allocation_index = 62%nat /\
+  ssl_area2_allocation_index_for_regular_position 13 = 63%nat /\
+  ssl_area2_grindel_3_allocation_index = 64%nat.
 Proof.
   repeat split.
+Qed.
+
+Theorem ssl_area2_spindel_required_free_list_depth_is_60 :
+  ssl_area2_spindel_required_free_list_depth = 60%nat.
+Proof.
+  reflexivity.
+Qed.
+
+Theorem ssl_area2_spindel_is_regular_position_11 :
+  nth_error ssl_area2_regular_spawn_order (11 - 1) = Some KindSpindel.
+Proof.
+  reflexivity.
 Qed.
 
 Theorem ssl_spindel_has_useful_z_velocity_and_pitch_angle_velocity :
