@@ -1,6 +1,9 @@
 # Goal
 
-Prove the core JP spawning displacement mechanism for Super Mario 64 SSL:
+Prove, or refute under explicit ordinary-gameplay assumptions, the JP spawning
+displacement route for Super Mario 64 SSL.
+
+The core engine theorem remains:
 
 1. `VERSION_JP` area spawning does not clear `gMarioPlatform`.
 2. `apply_mario_platform_displacement()` trusts the non-null pointer currently
@@ -12,4 +15,40 @@ Prove the core JP spawning displacement mechanism for Super Mario 64 SSL:
 5. If the reused object is Spindel in an active movement state, the displacement
    uses nonzero `oVelZ` and `oAngleVelPitch` from that Spindel object.
 
-The target is a conditional engine theorem, not full star collection.
+The main open route question is outside the pyramid: can area 1 put Mario in an
+Area 1 -> Area 2 warp hitbox while `update_mario_platform()` also sees an
+object-owned floor from an area-1 source platform?
+
+The candidate source platforms are:
+
+- `bhvPyramidTop`
+- `bhvToxBox`
+- `bhvExclamationBox`
+
+Current status: the original spawned positions are ruled out by the conservative
+fixed-warp model in `proofs/SourcePlatformOverlap.v`.  The model records both
+Area 1 -> Area 2 warp hitboxes and bounding boxes that over-approximate the
+source platform collision extents.  It proves that the pyramid top, the three
+Tox Boxes, and the five area-1 exclamation boxes do not overlap either warp as
+spawned.  The same file also proves that a transported or cloned source
+platform surface of any of those three kinds could have bounding-box overlap
+with the top-entry warp if a real gameplay mechanism can place it there.
+
+The fixed area-1 warps are loaded at level start, so the proof should not assume
+that a warp can be transported to an easier platform.  Instead, any positive
+route needs an overlap mechanism, clone/transport mechanism, or a carefully
+specified Mario-object-position/desync mechanism that makes the same
+`gMarioObject` position satisfy both warp interaction and platform-floor
+selection.  Any negative result should state the assumptions under which such an
+overlap is impossible.  The remaining positive route search is therefore not
+"which spawned platform is close enough?", but "can gameplay create, clone,
+transport, or desync an object-owned platform surface at one of the fixed
+warps, and can that stale slot be placed at Spindel's depth-60 free-list
+position?"
+
+The target is still not full star collection.  The target is either:
+
+- a concrete outside-pyramid seed theorem feeding the already-proved inside
+  Spindel reuse result; or
+- a disproof theorem showing that no such outside seed is possible under the
+  modeled ordinary-position, fixed-warp, source-platform assumptions.

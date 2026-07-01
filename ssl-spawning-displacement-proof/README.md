@@ -20,6 +20,50 @@ mechanism:
   count, the regular spawn order, and the Spindel fields that make it the most
   interesting target.
 
+The current route question has shifted toward the outside-pyramid seed.  The
+inside-pyramid theorem is conditional and useful: if a stale area-1 platform
+slot survives the transition and is reused by area-2 Spindel, the first
+displacement update reads Spindel's fields.  The unresolved part is whether SSL
+area 1 can actually set `gMarioPlatform` while entering an Area 1 -> Area 2
+warp.
+
+That seed requires the same ordinary Mario/object position to satisfy both
+conditions:
+
+- overlap one of the fixed Area 1 -> Area 2 warp hitboxes;
+- be within 4 units of an object-owned floor from a source platform.
+
+The relevant source platform kinds are `bhvPyramidTop`, `bhvToxBox`, and
+`bhvExclamationBox`.  These objects, and the warps, are all loaded from the level
+script or macro data at area start, so a proof must either find a real overlap,
+prove a source-backed clone/transport/desync mechanism, or rule the route out
+under explicitly modeled ordinary-position assumptions.
+
+`proofs/SourcePlatformOverlap.v` now proves the first generalized outside
+result.  It models both fixed Area 1 -> Area 2 warp hitboxes and conservative
+bounding boxes for all three source platform kinds.  The theorem
+`original_area1_seed_platforms_do_not_overlap_area1_to_area2_warps` shows that
+the pyramid top, all three Tox Boxes, and all five area-1 exclamation boxes do
+not overlap either warp as spawned.  Since these boxes over-approximate the
+relevant collision extents, the ordinary fixed-position seed is ruled out at
+this level of modeling.
+
+It also proves
+`transported_source_platform_kind_bbox_can_overlap_top_entry_warp`: for any of
+the three source platform kinds, if gameplay could actually transport or clone
+that source platform surface to the top-entry warp height and position, the
+coarse platform/warp geometry would no longer block the seed.  This is a
+geometry witness only, not yet a source-backed transport route.
+
+The same file also keeps the positive side conditional and generalized.  The
+theorem `any_area1_source_platform_seed_feeds_spindel_if_reused` says that if
+any area-1 source platform kind does set `gMarioPlatform` and that stale slot is
+later reused by the area-2 Spindel allocation, the first displacement update
+observes Spindel's active `oVelZ = 20` and `oAngleVelPitch = 1024`.  Thus the
+remaining hard problem is outside the pyramid: find or rule out a real
+clone/transport/desync mechanism that creates the required platform/warp
+overlap while arranging the depth-60 slot reuse.
+
 ## Source configuration
 
 The generated Clight files are JP-specific and live under `generated/jp_*.v`.
@@ -156,7 +200,17 @@ processed before `INTERACT_GRABBABLE`; the non-fading warp sets
 `act_picking_up()`.  The checked theorem
 `no_drop_fake_box_at_warp_proper_cannot_seed_platform` records this obstruction.
 
-To prove a full from-start route, the remaining gameplay obligation is a
-clone/transport mechanism that leaves the object executing `bhvExclamationBox`
-action 2, or otherwise reloads equivalent object-owned surface collision at the
-warp, while also arranging the stale slot at depth 60 for Spindel reuse.
+To prove a full from-start route, the remaining gameplay obligation is now
+generalized beyond exclamation boxes: find a clone/transport/desync mechanism
+for any source platform kind that leaves object-owned platform collision at an
+Area 1 -> Area 2 warp, while also arranging the stale slot at depth 60 for
+Spindel reuse.  If that cannot be done under ordinary gameplay assumptions, the
+project should pivot to a disproof of SSL spawning displacement outside the
+pyramid, while keeping the conditional inside-pyramid Spindel result as the
+expected consequence of any hypothetical outside seed.
+
+`proofs/SourcePlatformOverlap.v` extends that route search to pyramid top, Tox
+Boxes, and exclamation boxes together.  It proves that none of their original
+spawned positions has even bounding-box overlap with either Area 1 -> Area 2
+warp, while preserving the conditional Spindel theorem for any future
+source-backed seed.

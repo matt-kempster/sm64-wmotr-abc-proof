@@ -29,10 +29,13 @@ ssl_area1_macro="$SOURCE_ROOT/levels/ssl/areas/1/macro.inc.c"
 ssl_area2_macro="$SOURCE_ROOT/levels/ssl/areas/2/macro.inc.c"
 spindel="$SOURCE_ROOT/src/game/behaviors/spindel.inc.c"
 pyramid_top="$SOURCE_ROOT/src/game/behaviors/pyramid_top.inc.c"
+tox_box="$SOURCE_ROOT/src/game/behaviors/tox_box.inc.c"
 behavior_data="$SOURCE_ROOT/data/behavior_data.c"
 exclamation_box="$SOURCE_ROOT/src/game/behaviors/exclamation_box.inc.c"
 surface_load="$SOURCE_ROOT/src/engine/surface_load.c"
 exclamation_box_collision="$SOURCE_ROOT/actors/exclamation_box_outline/collision.inc.c"
+pyramid_top_collision="$SOURCE_ROOT/levels/ssl/pyramid_top/collision.inc.c"
+tox_box_collision="$SOURCE_ROOT/levels/ssl/tox_box/collision.inc.c"
 interaction="$SOURCE_ROOT/src/game/interaction.c"
 object_helpers="$SOURCE_ROOT/src/game/object_helpers.c"
 mario="$SOURCE_ROOT/src/game/mario.c"
@@ -105,7 +108,10 @@ require_pattern "$ssl_script" 'MODEL_SSL_TOX_BOX.*4873,[[:space:]]*0, -3335.*TOX
 require_pattern "$ssl_script" 'MODEL_SSL_SPINDEL.*-2458, 2109, -1430.*bhvSpindel'
 require_pattern "$ssl_script" 'MODEL_SSL_PYRAMID_ELEVATOR.*0, 4966,[[:space:]]*256.*bhvPyramidElevator'
 require_pattern "$ssl_script" 'MARIO_POS\(/\*area\*/ 1, /\*yaw\*/ 88, /\*pos\*/ 653, 38, 6566\)'
+require_pattern "$ssl_script" 'MODEL_NONE.*-2048,[[:space:]]*0,[[:space:]]*56.*BPARAM2\(WARP_NODE_14\).*bhvWarp'
 require_pattern "$ssl_script" 'MODEL_NONE.*-2048,[[:space:]]*768, -1024.*BPARAM1\(15\).*WARP_NODE_1E.*bhvWarp'
+require_pattern "$ssl_script" 'WARP_NODE.*WARP_NODE_14.*LEVEL_SSL.*2.*WARP_NODE_0A'
+require_pattern "$ssl_script" 'WARP_NODE.*WARP_NODE_1E.*LEVEL_SSL.*2.*WARP_NODE_14'
 require_pattern "$ssl_area1_macro" 'macro_box_wing_cap.*6900,[[:space:]]*350, -5400'
 require_pattern "$ssl_area1_macro" 'macro_box_wing_cap.*-3000,[[:space:]]*500,[[:space:]]*800'
 require_pattern "$ssl_area1_macro" 'macro_box_koopa_shell.*5840,[[:space:]]*940,[[:space:]]*2500'
@@ -117,6 +123,19 @@ require_pattern "$spindel" 'o->oVelZ = -20 / sp18;'
 require_pattern "$spindel" 'o->oAngleVelPitch = -1024 / sp18;'
 require_pattern "$pyramid_top" 'o->oAngleVelYaw \+= 0x100;'
 require_pattern "$pyramid_top" 'o->oAngleVelYaw = 0x1800;'
+require_order "$behavior_data" \
+  '^const BehaviorScript bhvToxBox\[\]' \
+  'BEGIN\(OBJ_LIST_SURFACE\)' \
+  'LOAD_COLLISION_DATA\(ssl_seg7_collision_tox_box\)' \
+  'ADD_FLOAT\(oPosY, 256\)' \
+  'CALL_NATIVE\(bhv_tox_box_loop\)'
+require_order "$behavior_data" \
+  '^const BehaviorScript bhvPyramidTop\[\]' \
+  'BEGIN\(OBJ_LIST_SURFACE\)' \
+  'LOAD_COLLISION_DATA\(ssl_seg7_collision_pyramid_top\)' \
+  'SET_FLOAT\(oCollisionDistance, 20000\)' \
+  'CALL_NATIVE\(bhv_pyramid_top_loop\)' \
+  'CALL_NATIVE\(load_object_collision_model\)'
 require_order "$behavior_data" \
   '^const BehaviorScript bhvExclamationBox\[\]' \
   'BEGIN\(OBJ_LIST_SURFACE\)' \
@@ -139,6 +158,9 @@ require_order "$behavior_data" \
 require_order "$exclamation_box" \
   '^void exclamation_box_act_2\(void\)' \
   'cur_obj_become_tangible\(\);' \
+  'load_object_collision_model\(\);'
+require_order "$tox_box" \
+  '^void bhv_tox_box_loop\(void\)' \
   'load_object_collision_model\(\);'
 require_order "$surface_load" \
   '^void load_object_surfaces\(TerrainData \*\*data, TerrainData \*vertexData\)' \
@@ -170,5 +192,11 @@ require_order "$mario_actions_cutscene" \
   'level_trigger_warp\(m, m->actionArg >> 16\);'
 require_pattern "$exclamation_box_collision" 'COL_VERTEX\(-26, 52, -26\)'
 require_pattern "$exclamation_box_collision" 'COL_VERTEX\(26, 52, 26\)'
+require_pattern "$pyramid_top_collision" 'COL_VERTEX\(-511, -255, 512\)'
+require_pattern "$pyramid_top_collision" 'COL_VERTEX\(512, -255, -511\)'
+require_pattern "$pyramid_top_collision" 'COL_VERTEX\(0, 256, 0\)'
+require_pattern "$tox_box_collision" 'COL_VERTEX\(-255, 256, 256\)'
+require_pattern "$tox_box_collision" 'COL_VERTEX\(256, 256, -255\)'
+require_pattern "$tox_box_collision" 'COL_VERTEX\(256, -255, -255\)'
 
 echo "JP spawning displacement source census matches expected source facts."
