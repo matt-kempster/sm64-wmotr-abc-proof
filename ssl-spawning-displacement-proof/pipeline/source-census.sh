@@ -121,8 +121,42 @@ require_pattern "$spindel" 'o->oVelZ = 20 / sp18;'
 require_pattern "$spindel" 'o->oAngleVelPitch = 1024 / sp18;'
 require_pattern "$spindel" 'o->oVelZ = -20 / sp18;'
 require_pattern "$spindel" 'o->oAngleVelPitch = -1024 / sp18;'
+require_pattern "$tox_box" 's8 sToxBoxActionTable1\[\] = \{'
+require_pattern "$tox_box" 'FORWARD, FORWARD, RIGHT, RIGHT, BACKWARD, BACKWARD, RIGHT, RIGHT, BACKWARD, IDLE,'
+require_pattern "$tox_box" 's8 sToxBoxActionTable2\[\] = \{'
+require_pattern "$tox_box" 'FORWARD, FORWARD, LEFT, LEFT, LEFT, IDLE,'
+require_pattern "$tox_box" 's8 sToxBoxActionTable3\[\] = \{'
+require_pattern "$tox_box" 'FORWARD, FORWARD, FORWARD, FORWARD, FORWARD, IDLE,'
+require_order "$tox_box" \
+  '^void tox_box_move\(f32 forwardVel, f32 upVel, s16 deltaPitch, s16 deltaRoll\)' \
+  'o->oPosY = 99.41124 \* sins\(\(f32\)\(o->oTimer \+ 1\) / 8 \* 0x8000\) \+ o->oHomeY \+ 3.0f;' \
+  'cur_obj_set_pos_via_transform\(\);' \
+  'if \(o->oTimer == 7\)' \
+  'o->oAction = cur_obj_progress_action_table\(\);'
+require_order "$tox_box" \
+  '^void tox_box_act_roll_land\(void\)' \
+  'o->oPosY = o->oHomeY \+ 3.0f;' \
+  'if \(o->oTimer == 20\)' \
+  'o->oAction = cur_obj_progress_action_table\(\);'
 require_pattern "$pyramid_top" 'o->oAngleVelYaw \+= 0x100;'
 require_pattern "$pyramid_top" 'o->oAngleVelYaw = 0x1800;'
+require_pattern "$pyramid_top" 'o->oPosX = o->oHomeX \+ sins\(o->oTimer \* 0x4000\) \* 40.0f;'
+require_pattern "$pyramid_top" 'o->oPosY = o->oHomeY \+ absf_2\(sins\(o->oTimer \* 0x2000\) \* 10.0f\);'
+require_pattern "$pyramid_top" 'o->oPosY \+= o->oVelY;'
+require_pattern "$pyramid_top" 'spawn_object\(o, MODEL_DIRT_ANIMATION, bhvPyramidTopFragment\);'
+require_order "$object_helpers" \
+  '^s32 cur_obj_progress_action_table\(void\)' \
+  'actionTable\[nextActionIndex\] != TOX_BOX_ACT_TABLE_END' \
+  'o->oToxBoxActionStep\+\+;' \
+  'nextAction = actionTable\[0\];' \
+  'o->oToxBoxActionStep = 0;'
+require_order "$object_helpers" \
+  '^void cur_obj_set_pos_via_transform\(void\)' \
+  'obj_build_transform_from_pos_and_angle\(o, O_PARENT_RELATIVE_POS_INDEX, O_MOVE_ANGLE_INDEX\);' \
+  'obj_build_vel_from_transform\(o\);' \
+  'o->oPosX \+= o->oVelX;' \
+  'o->oPosY \+= o->oVelY;' \
+  'o->oPosZ \+= o->oVelZ;'
 require_order "$behavior_data" \
   '^const BehaviorScript bhvToxBox\[\]' \
   'BEGIN\(OBJ_LIST_SURFACE\)' \
@@ -136,6 +170,11 @@ require_order "$behavior_data" \
   'SET_FLOAT\(oCollisionDistance, 20000\)' \
   'CALL_NATIVE\(bhv_pyramid_top_loop\)' \
   'CALL_NATIVE\(load_object_collision_model\)'
+require_order "$behavior_data" \
+  '^const BehaviorScript bhvPyramidTopFragment\[\]' \
+  'BEGIN\(OBJ_LIST_DEFAULT\)' \
+  'CALL_NATIVE\(bhv_pyramid_top_fragment_init\)' \
+  'CALL_NATIVE\(bhv_pyramid_top_fragment_loop\)'
 require_order "$behavior_data" \
   '^const BehaviorScript bhvExclamationBox\[\]' \
   'BEGIN\(OBJ_LIST_SURFACE\)' \
@@ -158,7 +197,12 @@ require_order "$behavior_data" \
 require_order "$exclamation_box" \
   '^void exclamation_box_act_2\(void\)' \
   'cur_obj_become_tangible\(\);' \
+  'o->oPosY = o->oHomeY;' \
+  'o->oAction = 3;' \
   'load_object_collision_model\(\);'
+require_order "$exclamation_box" \
+  '^void exclamation_box_act_3\(void\)' \
+  'cur_obj_move_using_fvel_and_gravity\(\);'
 require_order "$tox_box" \
   '^void bhv_tox_box_loop\(void\)' \
   'load_object_collision_model\(\);'

@@ -58,10 +58,23 @@
   Tox Box, or exclamation box surface could be placed at the top-entry warp,
   its conservative bounding box can overlap that warp hitbox.  This shows the
   remaining problem is source-backed transport/desync, not the inside result.
+- [x] Check the source platform built-in motion routes.  The pyramid top only
+  oscillates slightly in X and then rises/spins; Tox Boxes follow bounded
+  table-driven paths; exclamation boxes load collision only while at their
+  source position.  The theorem
+  `modeled_source_platform_transport_mechanisms_do_not_seed_warp` proves these
+  modeled routes do not leave a standable source-platform surface at either
+  Area 1 -> Area 2 warp.
+- [x] Prove that the modeled transport/clone routes cannot satisfy the full
+  Spindel-depth seed obligation.  The theorem
+  `no_modeled_transport_spindel_depth_route` rules out the current modeled
+  mechanisms before the free-list depth condition can matter.
 - [ ] Find or prove a clone/transport/desync mechanism that leaves a standable
   source-platform surface at an Area 1 -> Area 2 warp while placing that slot at
   Spindel's depth-60 allocation position.  This may use pyramid top, Tox Boxes,
-  or exclamation boxes; the spawned positions themselves are now ruled out.
+  or exclamation boxes; the spawned positions and modeled built-in/fake-object
+  transport routes are now ruled out.  A stronger Mario/object-position desync
+  or memory-corruption clone mechanism remains outside the current model.
 - [ ] If no such mechanism exists, reframe the final result as a disproof of
   SSL spawning displacement under the modeled ordinary gameplay assumptions,
   while retaining the conditional inside-pyramid Spindel theorem.
