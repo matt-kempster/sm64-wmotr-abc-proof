@@ -1589,12 +1589,117 @@ Proof.
   - exact Htail_depth.
 Qed.
 
+Theorem generated_loop_reaches_watched_slot_if_target_list_at_most_70 :
+  forall before barrier pool_block snapshot initial_free_list watched_slot,
+    unload_objects_from_area_generated_loop_certificate
+      before barrier pool_block ssl_outside_area snapshot ->
+    In watched_slot (unload_targets ssl_outside_area snapshot) ->
+    (length (unload_targets ssl_outside_area snapshot) <=
+     ssl_pyramid_destination_allocation_count_before_init_lower_bound)%nat ->
+    allocation_count_reaches_watched_slot
+      (free_list_after_deallocation_targets initial_free_list
+        (unload_targets ssl_outside_area snapshot))
+      watched_slot
+      ssl_pyramid_destination_allocation_count_before_init_lower_bound.
+Proof.
+  intros before barrier pool_block snapshot initial_free_list
+    watched_slot Hloop Hin Htarget_count.
+  destruct
+    (in_split watched_slot
+      (unload_targets ssl_outside_area snapshot) Hin)
+    as (prefix & suffix & Htargets).
+  eapply generated_traversal_reaches_watched_slot_if_suffix_below_70
+    with
+      (before := before)
+      (barrier := barrier)
+      (pool_block := pool_block)
+      (snapshot := snapshot)
+      (prefix := prefix)
+      (suffix := suffix).
+  - eapply
+      generated_object_list_traversal_certificate_from_f_unload_objects_from_area_loop.
+    exact Hloop.
+  - exact Htargets.
+  - rewrite Htargets in Htarget_count.
+    rewrite app_length in Htarget_count.
+    simpl in Htarget_count.
+    lia.
+Qed.
+
+Theorem held_grab_generated_loop_same_slot_reuse_counterexample_if_target_list_at_most_70 :
+  forall before barrier allocation_start after_active_flags_store after_load
+      active_area_ce pool_block snapshot initial_free_list outside_slot
+      destination_spawn_slot,
+    unload_objects_from_area_generated_loop_certificate
+      before barrier pool_block ssl_outside_area snapshot ->
+    In outside_slot (unload_targets ssl_outside_area snapshot) ->
+    (length (unload_targets ssl_outside_area snapshot) <=
+     ssl_pyramid_destination_allocation_count_before_init_lower_bound)%nat ->
+    outside_live_slot before pool_block outside_slot ->
+    concrete_same_slot_allocation_assign_locs active_area_ce
+      allocation_start after_active_flags_store after_load
+      pool_block outside_slot ->
+    same_slot_pyramid_allocation_receipt
+      allocation_start after_active_flags_store after_load
+      pool_block
+      (free_list_after_deallocation_targets initial_free_list
+        (unload_targets ssl_outside_area snapshot))
+      outside_slot
+      ssl_pyramid_destination_allocation_count_before_init_lower_bound /\
+    exists window,
+      window =
+        outside_held_grab_load_window
+          outside_slot destination_spawn_slot /\
+      audited_technical_stale_pyramid_slot_reuse_counterexample
+        before after_load pool_block window.
+Proof.
+  intros before barrier allocation_start after_active_flags_store after_load
+    active_area_ce pool_block snapshot initial_free_list outside_slot
+    destination_spawn_slot Hloop Hin Htarget_count Houtside Hassigns.
+  assert (Hreaches :
+    allocation_count_reaches_watched_slot
+      (free_list_after_deallocation_targets initial_free_list
+        (unload_targets ssl_outside_area snapshot))
+      outside_slot
+      ssl_pyramid_destination_allocation_count_before_init_lower_bound).
+  { eapply generated_loop_reaches_watched_slot_if_target_list_at_most_70;
+      eauto. }
+  assert (Hvalid : valid_object_slot outside_slot).
+  { destruct Houtside as (Hvalid & _).
+    exact Hvalid. }
+  pose proof
+    (same_slot_pyramid_allocation_receipt_from_linked_assign_locs
+      active_area_ce allocation_start after_active_flags_store after_load
+      pool_block
+      (free_list_after_deallocation_targets initial_free_list
+        (unload_targets ssl_outside_area snapshot))
+      outside_slot
+      ssl_pyramid_destination_allocation_count_before_init_lower_bound
+      Hvalid Hreaches Hassigns) as Hreceipt.
+  pose proof
+    (same_slot_pyramid_allocation_store_trace_from_receipt
+      allocation_start after_active_flags_store after_load
+      pool_block
+      (free_list_after_deallocation_targets initial_free_list
+        (unload_targets ssl_outside_area snapshot))
+      outside_slot
+      ssl_pyramid_destination_allocation_count_before_init_lower_bound
+      Hreceipt) as Hstores.
+  split; [exact Hreceipt |].
+  eapply held_grab_constructs_audited_technical_pyramid_slot_reuse_counterexample;
+    eauto.
+Qed.
+
 Definition generated_unload_traversal_certificate_audit : Prop :=
   proposition_of unload_objects_from_area_traversal_spine /\
   proposition_of
     generated_object_list_traversal_certificate_from_f_unload_objects_from_area_loop /\
   proposition_of
-    generated_loop_reaches_watched_slot_by_target_index_if_tail_below_70.
+    generated_loop_reaches_watched_slot_by_target_index_if_tail_below_70 /\
+  proposition_of
+    generated_loop_reaches_watched_slot_if_target_list_at_most_70 /\
+  proposition_of
+    held_grab_generated_loop_same_slot_reuse_counterexample_if_target_list_at_most_70.
 
 Theorem generated_unload_traversal_certificate_audit_holds :
   generated_unload_traversal_certificate_audit.
@@ -1605,8 +1710,13 @@ Proof.
   split.
   - exact
       generated_object_list_traversal_certificate_from_f_unload_objects_from_area_loop.
-  - exact
-      generated_loop_reaches_watched_slot_by_target_index_if_tail_below_70.
+  - split.
+    + exact
+        generated_loop_reaches_watched_slot_by_target_index_if_tail_below_70.
+    + split.
+      * exact generated_loop_reaches_watched_slot_if_target_list_at_most_70.
+      * exact
+          held_grab_generated_loop_same_slot_reuse_counterexample_if_target_list_at_most_70.
 Qed.
 
 Theorem same_slot_reuse_generated_order_receipt_audit_holds :
