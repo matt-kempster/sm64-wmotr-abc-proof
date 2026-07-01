@@ -238,3 +238,22 @@ transport candidates: pyramid-top motion, Tox Box path motion, collision-loaded
 exclamation-box motion, fake-object grab/drop, and no-drop held-box behavior.
 The remaining open route would need a stronger, source-backed clone/transport
 or Mario/object-position desync mechanism than the ones modeled here.
+
+`proofs/DesyncMechanismSearch.v` investigates two stronger leads:
+
+- Astral Projection Glitch-style desync.
+- SSL Tweester/tornado transportation by rapid home oscillation.
+
+The useful desync shape would have to affect `gMarioObject->oPos` after
+`copy_mario_state_to_object()`, because object hitbox collision and
+`update_mario_platform()` both use the Mario object position.  A visible model
+desync through `header.gfx.pos` alone is not enough.  The known
+Chuckya-based APG setup is not present in SSL area 1, so this lead does not
+currently provide a source-backed route.
+
+Tweester transportation is also not enough in the current model.  Tweesters are
+`OBJ_LIST_POLELIKE` tornado interaction objects, not source platform surfaces;
+they hide when more than 3000 units from Mario; and `INTERACT_WARP` is processed
+before `INTERACT_TORNADO`, so a successful warp collision prevents a same-frame
+tornado move from setting up `gMarioPlatform`.  The checked theorem is
+`investigated_desync_mechanisms_do_not_currently_seed_overlap`.

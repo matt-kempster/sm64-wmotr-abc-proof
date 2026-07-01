@@ -69,12 +69,28 @@
   Spindel-depth seed obligation.  The theorem
   `no_modeled_transport_spindel_depth_route` rules out the current modeled
   mechanisms before the free-list depth condition can matter.
+- [x] Investigate Astral Projection Glitch as a Mario/object-position desync
+  lead.  The proof records that visible-model desync alone is ignored by the
+  seed checks: object hitbox collision and `update_mario_platform()` use
+  `gMarioObject->oPos`, while the visible model uses `header.gfx.pos`.
+  A useful route would need a post-copy `gMarioObject->oPos` desync.  The known
+  Chuckya-based APG setup is unavailable in SSL because SSL area 1 has no
+  Chuckya source.
+- [x] Investigate SSL tornado transportation / rapid home oscillation.  The
+  proof records that Tweesters are `OBJ_LIST_POLELIKE` interaction objects, not
+  source platform surfaces, and that they hide once farther than 3000 units from
+  Mario.  It also records that `INTERACT_WARP` is processed before
+  `INTERACT_TORNADO`, so a warp collision preempts a same-frame tornado move.
+- [x] Prove the checked desync-search obstruction:
+  `investigated_desync_mechanisms_do_not_currently_seed_overlap`.
 - [ ] Find or prove a clone/transport/desync mechanism that leaves a standable
   source-platform surface at an Area 1 -> Area 2 warp while placing that slot at
   Spindel's depth-60 allocation position.  This may use pyramid top, Tox Boxes,
   or exclamation boxes; the spawned positions and modeled built-in/fake-object
-  transport routes are now ruled out.  A stronger Mario/object-position desync
-  or memory-corruption clone mechanism remains outside the current model.
+  transport routes are now ruled out.  The APG/tornado leads considered so far
+  are also ruled out in their source-backed forms.  The remaining opening is a
+  stronger, source-backed post-copy `gMarioObject->oPos` desync or
+  memory-corruption clone mechanism.
 - [ ] If no such mechanism exists, reframe the final result as a disproof of
   SSL spawning displacement under the modeled ordinary gameplay assumptions,
   while retaining the conditional inside-pyramid Spindel theorem.

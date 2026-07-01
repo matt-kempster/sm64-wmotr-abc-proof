@@ -32,4 +32,5 @@ proofs/ClonedPlatformWarp.v
 proofs/SSLStartCloneRoute.v
 proofs/SourcePlatformOverlap.v
 proofs/SourcePlatformTransport.v
+proofs/DesyncMechanismSearch.v
 proofs/SpawningDisplacement.v
