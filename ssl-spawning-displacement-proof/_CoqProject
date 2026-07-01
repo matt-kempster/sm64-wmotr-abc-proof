@@ -27,4 +27,5 @@ proofs/PlatformDisplacement.v
 proofs/FreeListReuse.v
 proofs/UpdateOrder.v
 proofs/SSLFacts.v
+proofs/PyramidTopWarp.v
 proofs/SpawningDisplacement.v

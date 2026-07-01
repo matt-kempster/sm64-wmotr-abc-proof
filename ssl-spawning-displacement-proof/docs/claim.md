@@ -10,3 +10,9 @@ owned by Mario's current floor, or the same object Mario stood on previously.
 For SSL, Spindel is the most interesting target because active Spindel movement
 sets both `oVelZ` and `oAngleVelPitch`; the elevator and moving walls are mostly
 vertical displacement targets.
+
+The outside pyramid top remains a valid object-owned seed platform in general,
+but not via the top-entry warp while standing on it.  The top-entry warp's
+hitbox is horizontally centered near the pyramid top, yet vertically spans only
+`768..818`; the spinning pyramid-top collision starts at world Y `1281` and
+rises from there.

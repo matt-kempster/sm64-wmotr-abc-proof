@@ -98,3 +98,14 @@ The generated-Clight grounding is kept in the build pipeline and source census.
 Future work should replace the remaining model-level source certificates with
 `vm_compute` facts over the generated JP modules, following the pattern in
 `ssl-pyramid-item-proof/proofs/*Facts.v`.
+
+## Pyramid top entry warp
+
+`proofs/PyramidTopWarp.v` records the source constants for the outside pyramid
+top-entry warp and pyramid-top collision.  The warp is horizontally aligned with
+the pyramid top, but its hitbox is only the vertical interval `768..818`.  The
+pyramid-top collision's lowest world Y is `1281` at home and only rises while
+spinning, so the checked theorem
+`cannot_enter_top_entry_warp_while_standing_on_spinning_pyramid_top` shows this
+particular warp cannot be entered while `update_mario_platform()` is selecting
+the spinning pyramid-top surface.
