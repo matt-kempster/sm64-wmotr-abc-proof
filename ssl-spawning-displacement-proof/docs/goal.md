@@ -53,6 +53,17 @@ surfaces, they hide when more than 3000 units from Mario, and warp interaction
 is processed before tornado interaction, preventing a same-frame
 warp-then-tornado-move seed.
 
+The same file now extends the audit to the remaining source-backed post-copy
+`gMarioObject->oPos` and clone/corruption opening.  The source census shows
+that direct global `gMarioObject->oPos` writes outside the normal
+MarioState-to-object sync paths occur only in `butterfly_calculate_angle()`;
+that helper uses balanced temporary offsets around `obj_turn_toward_object()`
+and restores the Mario object position before returning.  SSL area 1 has no
+butterfly or triplet-butterfly source.  On the clone side, the audited source
+platform behaviors do not spawn a standable source-platform clone: pyramid top
+spawns pillar touch detectors and dirt fragments, Tox Boxes spawn no objects,
+and exclamation boxes spawn only their fixed contents table.
+
 The fixed area-1 warps are loaded at level start, so the proof should not assume
 that a warp can be transported to an easier platform.  Instead, any positive
 route needs an overlap mechanism, clone/transport mechanism, or a carefully
@@ -61,11 +72,13 @@ specified Mario-object-position/desync mechanism that makes the same
 selection.  Any negative result should state the assumptions under which such an
 overlap is impossible.  The remaining positive route search is therefore not
 "which spawned platform is close enough?", or even "does built-in motion get one
-there?", but "can gameplay create a stronger clone/transport/desync than the
-modeled source mechanisms, specifically a source-backed post-copy
-`gMarioObject->oPos` desync or memory-corruption clone, placing an object-owned
-platform surface at one of the fixed warps while also putting that stale slot at
-Spindel's depth-60 free-list position?"
+there?", and the direct post-copy writer/source-platform spawned-clone space is
+now audited with no candidate found.  A positive route would need a new
+mechanism outside that audited set, such as a stronger closed-loop
+Mario/object-position desync or a concrete memory-corruption primitive that is
+specified precisely enough to add to the model, while still placing an
+object-owned platform surface at one of the fixed warps and putting that stale
+slot at Spindel's depth-60 free-list position.
 
 The target is still not full star collection.  The target is either:
 

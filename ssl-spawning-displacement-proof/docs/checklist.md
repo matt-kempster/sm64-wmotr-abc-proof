@@ -83,14 +83,23 @@
   `INTERACT_TORNADO`, so a warp collision preempts a same-frame tornado move.
 - [x] Prove the checked desync-search obstruction:
   `investigated_desync_mechanisms_do_not_currently_seed_overlap`.
-- [ ] Find or prove a clone/transport/desync mechanism that leaves a standable
+- [x] Audit the remaining source-backed post-copy `gMarioObject->oPos` and
+  clone/corruption opening.  The direct write census finds only the butterfly
+  temporary-offset helper outside normal state-sync writes; it restores
+  `gMarioObject->oPos` before returning and SSL has no butterfly source.
+  Pyramid top spawns only detector/fragment children, Tox Boxes spawn no
+  objects, and exclamation boxes spawn only their fixed contents table.  The
+  theorem `investigated_desync_mechanisms_do_not_currently_seed_overlap` now
+  includes these audited candidate families.
+- [ ] Find a clone/transport/desync mechanism that leaves a standable
   source-platform surface at an Area 1 -> Area 2 warp while placing that slot at
   Spindel's depth-60 allocation position.  This may use pyramid top, Tox Boxes,
   or exclamation boxes; the spawned positions and modeled built-in/fake-object
   transport routes are now ruled out.  The APG/tornado leads considered so far
-  are also ruled out in their source-backed forms.  The remaining opening is a
-  stronger, source-backed post-copy `gMarioObject->oPos` desync or
-  memory-corruption clone mechanism.
+  are also ruled out in their source-backed forms, and the direct post-copy
+  writer / source-platform spawned-clone audit found no current candidate.  Any
+  remaining positive route needs a mechanism outside this audited set, or the
+  project should move to a closed-world disproof under explicit assumptions.
 - [ ] If no such mechanism exists, reframe the final result as a disproof of
   SSL spawning displacement under the modeled ordinary gameplay assumptions,
   while retaining the conditional inside-pyramid Spindel theorem.
