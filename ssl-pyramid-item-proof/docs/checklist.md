@@ -57,6 +57,19 @@ executions.
   `create_object -> allocate_object -> try_allocate_object` path far enough to
   show it reads/pops that same free-list head, or count how many newer freed
   slots sit above the watched slot.
+- [x] Package the “does the Pyramid load reach the stale slot before
+  `init_mario`?” bridge.
+  `generated_loop_reaches_watched_slot_if_target_list_at_most_70` now says:
+  if the watched slot is in the unload target list and that whole list has at
+  most the 70 destination allocations we have before cleanup, the free-list
+  depth is shallow enough. `held_grab_generated_loop_same_slot_reuse_counterexample_if_target_list_at_most_70`
+  then combines that with the concrete allocation stores to produce the audited
+  technical Pyramid-slot reuse counterexample.
+- [ ] Prove the real SSL outside unload target list for the watched grabbable
+  route is small enough (`length <= 70`) and contains the watched slot. This is
+  now the cleanest next proof target for turning the technical counterexample
+  from “conditional receipt” into “yep, this route really aliases a loaded
+  Pyramid object during the stale window.”
 - [x] Finish generated `allocate_object` activeFlags normalization.
   `exec_allocate_object_active_flags_assign_exposes_slot_assign_loc` now says
   the generated assignment writes `Vint 257` to the watched pool slot's exact
@@ -126,6 +139,9 @@ Next we need the dashcam footage showing the generated code drove there.
 - [ ] If the watched slot is too deep in the free list to be reached before
   `init_mario`, mark the stronger same-slot counterexample branch blocked for
   that route instead of pretending.
+- [ ] Derive a real bound for `length (unload_targets ssl_outside_area snapshot)`
+  on the normal SSL outside-to-Pyramid transition, or derive the exact watched
+  target suffix length if the full list is too hard.
 
 ### Traversal / outside-area unload
 
@@ -260,6 +276,15 @@ prove the scary thing?"
   now proves the generated level-script active-area copy itself produces
   `spawninfo_active_area_read ... ssl_pyramid_area` for a concrete `_spawnInfo`
   pointer, assuming the generated read of `sCurrAreaIndex` is Pyramid area 2.
+- `generated_loop_reaches_watched_slot_if_target_list_at_most_70` proves the
+  count/depth side in friendly terms: if the whole outside unload target list
+  is no longer than the 70 Pyramid allocations before `init_mario`, then any
+  watched target in that list will be popped/reused during Pyramid loading.
+- `held_grab_generated_loop_same_slot_reuse_counterexample_if_target_list_at_most_70`
+  composes that reachability/depth fact with the concrete same-slot allocation
+  stores, producing the audited technical counterexample for held grabbables:
+  the stale held pointer aliases a live Pyramid-area slot before cleanup, while
+  the audited generated path still does not observe/use it before `init_mario`.
 - The remaining missing receipt is now the full source-construction plumbing:
   connect that exact `level_cmd_place_object` subexecution to the real
   `f_level_cmd_place_object` allocation/list insertion path, then prove the
