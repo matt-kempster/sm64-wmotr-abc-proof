@@ -31,6 +31,8 @@ spindel="$SOURCE_ROOT/src/game/behaviors/spindel.inc.c"
 pyramid_top="$SOURCE_ROOT/src/game/behaviors/pyramid_top.inc.c"
 tox_box="$SOURCE_ROOT/src/game/behaviors/tox_box.inc.c"
 tweester="$SOURCE_ROOT/src/game/behaviors/tweester.inc.c"
+butterfly="$SOURCE_ROOT/src/game/behaviors/butterfly.inc.c"
+triplet_butterfly="$SOURCE_ROOT/src/game/behaviors/triplet_butterfly.inc.c"
 behavior_data="$SOURCE_ROOT/data/behavior_data.c"
 exclamation_box="$SOURCE_ROOT/src/game/behaviors/exclamation_box.inc.c"
 surface_load="$SOURCE_ROOT/src/engine/surface_load.c"
@@ -123,6 +125,9 @@ require_pattern "$ssl_script" 'MODEL_TWEESTER.*3066,[[:space:]]*-200,[[:space:]]
 require_absent "$ssl_script" 'bhvChuckya'
 require_absent "$ssl_area1_macro" 'macro_chuckya'
 require_absent "$ssl_area2_macro" 'macro_chuckya'
+require_absent "$ssl_script" 'bhvButterfly|bhvTripletButterfly|MODEL_BUTTERFLY'
+require_absent "$ssl_area1_macro" 'bhvButterfly|bhvTripletButterfly|MODEL_BUTTERFLY|butterfly'
+require_absent "$ssl_area2_macro" 'bhvButterfly|bhvTripletButterfly|MODEL_BUTTERFLY|butterfly'
 require_pattern "$ssl_script" 'MODEL_SSL_SPINDEL.*-2458, 2109, -1430.*bhvSpindel'
 require_pattern "$ssl_script" 'MODEL_SSL_PYRAMID_ELEVATOR.*0, 4966,[[:space:]]*256.*bhvPyramidElevator'
 require_pattern "$ssl_script" 'MARIO_POS\(/\*area\*/ 1, /\*yaw\*/ 88, /\*pos\*/ 653, 38, 6566\)'
@@ -162,6 +167,9 @@ require_pattern "$pyramid_top" 'o->oPosX = o->oHomeX \+ sins\(o->oTimer \* 0x400
 require_pattern "$pyramid_top" 'o->oPosY = o->oHomeY \+ absf_2\(sins\(o->oTimer \* 0x2000\) \* 10.0f\);'
 require_pattern "$pyramid_top" 'o->oPosY \+= o->oVelY;'
 require_pattern "$pyramid_top" 'spawn_object\(o, MODEL_DIRT_ANIMATION, bhvPyramidTopFragment\);'
+require_pattern "$pyramid_top" 'spawn_object_abs_with_rot\(o, 0, MODEL_NONE, bhvPyramidPillarTouchDetector'
+require_absent "$pyramid_top" 'bhvToxBox|bhvExclamationBox'
+require_absent "$tox_box" 'spawn_object'
 require_order "$object_helpers" \
   '^s32 cur_obj_progress_action_table\(void\)' \
   'actionTable\[nextActionIndex\] != TOX_BOX_ACT_TABLE_END' \
@@ -193,6 +201,11 @@ require_order "$behavior_data" \
   'BEGIN\(OBJ_LIST_DEFAULT\)' \
   'CALL_NATIVE\(bhv_pyramid_top_fragment_init\)' \
   'CALL_NATIVE\(bhv_pyramid_top_fragment_loop\)'
+require_order "$behavior_data" \
+  '^const BehaviorScript bhvPyramidPillarTouchDetector\[\]' \
+  'BEGIN\(OBJ_LIST_LEVEL\)' \
+  'SET_HITBOX\(/\*Radius\*/ 50, /\*Height\*/ 50\)' \
+  'CALL_NATIVE\(bhv_pyramid_pillar_touch_detector_loop\)'
 require_order "$behavior_data" \
   '^const BehaviorScript bhvTweester\[\]' \
   'BEGIN\(OBJ_LIST_POLELIKE\)' \
@@ -228,6 +241,22 @@ require_order "$exclamation_box" \
 require_order "$exclamation_box" \
   '^void exclamation_box_act_3\(void\)' \
   'cur_obj_move_using_fvel_and_gravity\(\);'
+require_order "$exclamation_box" \
+  '^struct ExclamationBoxContents sExclamationBoxContents\[\]' \
+  'bhvWingCap' \
+  'bhvMetalCap' \
+  'bhvVanishCap' \
+  'bhvKoopaShell' \
+  'bhvSingleCoinGetsSpawned' \
+  'bhvThreeCoinsSpawn' \
+  'bhvTenCoinsSpawn' \
+  'bhv1UpWalking' \
+  'bhvSpawnedStar' \
+  'bhv1UpRunningAway' \
+  'NULL'
+require_absent "$exclamation_box" 'bhvPyramidTop'
+require_absent "$exclamation_box" 'bhvToxBox'
+require_absent "$exclamation_box" 'bhvExclamationBox'
 require_order "$tox_box" \
   '^void bhv_tox_box_loop\(void\)' \
   'load_object_collision_model\(\);'
@@ -244,6 +273,28 @@ require_order "$tweester" \
   'obj_set_hitbox\(o, &sTweesterHitbox\);' \
   'cur_obj_call_action_function\(sTweesterActions\);' \
   'o->oInteractStatus = 0;'
+require_order "$butterfly" \
+  '^void butterfly_calculate_angle\(void\)' \
+  'gMarioObject->oPosX \+=' \
+  'gMarioObject->oPosZ \+=' \
+  'obj_turn_toward_object\(o, gMarioObject, 16, 0x300\);' \
+  'gMarioObject->oPosX -=' \
+  'gMarioObject->oPosZ -=' \
+  'gMarioObject->oPosY \+=' \
+  'obj_turn_toward_object\(o, gMarioObject, 15, 0x500\);' \
+  'gMarioObject->oPosY -='
+require_order "$behavior_data" \
+  '^const BehaviorScript bhvButterfly\[\]' \
+  'BEGIN\(OBJ_LIST_DEFAULT\)' \
+  'CALL_NATIVE\(bhv_butterfly_loop\)'
+require_order "$behavior_data" \
+  '^const BehaviorScript bhvTripletButterfly\[\]' \
+  'BEGIN\(OBJ_LIST_GENACTOR\)' \
+  'CALL_NATIVE\(bhv_triplet_butterfly_update\)'
+require_order "$triplet_butterfly" \
+  '^static struct TripletButterflyActivationData sTripletButterflyActivationData\[\]' \
+  'MODEL_BOWLING_BALL, NULL' \
+  'MODEL_1UP,[[:space:]]*bhv1UpWalking'
 require_order "$surface_load" \
   '^void load_object_surfaces\(TerrainData \*\*data, TerrainData \*vertexData\)' \
   'surface->object = gCurrentObject;'
@@ -311,6 +362,23 @@ require_order "$platform_displacement" \
   'marioY = gMarioObject->oPosY;' \
   'marioZ = gMarioObject->oPosZ;' \
   'floorHeight = find_floor\(marioX, marioY, marioZ, &floor\);'
+direct_mario_object_pos_writes="$(
+  grep -RInE 'gMarioObject->oPos[XYZ][[:space:]]*[-+]?=' \
+    "$SOURCE_ROOT/src" "$SOURCE_ROOT/include" | awk 'END { print NR }'
+)"
+if [ "$direct_mario_object_pos_writes" != "6" ]; then
+  echo "direct gMarioObject->oPos write count changed: $direct_mario_object_pos_writes" >&2
+  exit 1
+fi
+
+state_sync_mario_object_pos_writes="$(
+  grep -RInE 'gMarioState->marioObj->oPos[XYZ][[:space:]]*[-+]?=' \
+    "$SOURCE_ROOT/src" "$SOURCE_ROOT/include" | awk 'END { print NR }'
+)"
+if [ "$state_sync_mario_object_pos_writes" != "6" ]; then
+  echo "MarioState-to-marioObj oPos sync write count changed: $state_sync_mario_object_pos_writes" >&2
+  exit 1
+fi
 require_order "$mario_actions_cutscene" \
   '^s32 act_disappeared\(struct MarioState \*m\)' \
   'level_trigger_warp\(m, m->actionArg >> 16\);'

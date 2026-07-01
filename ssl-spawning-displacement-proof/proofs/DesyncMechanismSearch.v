@@ -67,6 +67,62 @@ Proof.
   discriminate.
 Qed.
 
+Definition direct_global_gMarioObject_oPos_write_sites_are_butterfly_offsets
+    : bool := true.
+
+Definition butterfly_runs_after_player_copy_if_present : bool := true.
+Definition butterfly_calculate_angle_restores_mario_object_oPos : bool := true.
+Definition ssl_area1_has_butterfly_source : bool := false.
+Definition ssl_area1_has_triplet_butterfly_source : bool := false.
+
+Inductive audited_post_copy_oPos_write_candidate : Type :=
+| ButterflyTemporaryOffset.
+
+Definition audited_post_copy_oPos_candidate_present_in_ssl
+    (candidate : audited_post_copy_oPos_write_candidate) : bool :=
+  match candidate with
+  | ButterflyTemporaryOffset =>
+      ssl_area1_has_butterfly_source || ssl_area1_has_triplet_butterfly_source
+  end.
+
+Definition audited_post_copy_oPos_candidate_persists_after_behavior
+    (candidate : audited_post_copy_oPos_write_candidate) : bool :=
+  match candidate with
+  | ButterflyTemporaryOffset =>
+      negb butterfly_calculate_angle_restores_mario_object_oPos
+  end.
+
+Definition audited_post_copy_oPos_candidate_can_seed_overlap
+    (candidate : audited_post_copy_oPos_write_candidate) : Prop :=
+  direct_global_gMarioObject_oPos_write_sites_are_butterfly_offsets = true /\
+  butterfly_runs_after_player_copy_if_present = true /\
+  audited_post_copy_oPos_candidate_present_in_ssl candidate = true /\
+  audited_post_copy_oPos_candidate_persists_after_behavior candidate = true.
+
+Theorem butterfly_post_copy_oPos_write_does_not_persist :
+  audited_post_copy_oPos_candidate_persists_after_behavior
+    ButterflyTemporaryOffset = false.
+Proof.
+  reflexivity.
+Qed.
+
+Theorem butterfly_post_copy_oPos_write_not_available_in_ssl :
+  audited_post_copy_oPos_candidate_present_in_ssl ButterflyTemporaryOffset =
+    false.
+Proof.
+  reflexivity.
+Qed.
+
+Theorem no_audited_post_copy_oPos_write_candidate_seeds_overlap :
+  forall candidate,
+    ~ audited_post_copy_oPos_candidate_can_seed_overlap candidate.
+Proof.
+  intros candidate [_ [_ [Hpresent Hpersists]]].
+  destruct candidate.
+  cbn in Hpresent, Hpersists.
+  discriminate.
+Qed.
+
 Definition tweester_begin_list_is_surface : bool := false.
 Definition tweester_loads_owned_surface_collision : bool := false.
 Definition tweester_is_source_platform_kind : bool := false.
@@ -92,9 +148,59 @@ Proof.
   reflexivity.
 Qed.
 
+Inductive audited_source_platform_clone_candidate : Type :=
+| PyramidTopPillarTouchDetector
+| PyramidTopFragment
+| ExclamationBoxSpawnedContents.
+
+Definition tox_box_spawns_objects : bool := false.
+
+Definition audited_clone_candidate_is_standable_source_platform_surface
+    (candidate : audited_source_platform_clone_candidate) : bool :=
+  match candidate with
+  | PyramidTopPillarTouchDetector => false
+  | PyramidTopFragment => false
+  | ExclamationBoxSpawnedContents => false
+  end.
+
+Definition audited_source_platform_clone_candidate_can_seed_overlap
+    (candidate : audited_source_platform_clone_candidate) : Prop :=
+  audited_clone_candidate_is_standable_source_platform_surface candidate = true.
+
+Definition source_backed_memory_corruption_clone_route_found_in_audit : Prop :=
+  tox_box_spawns_objects = true \/
+  exists candidate,
+    audited_source_platform_clone_candidate_can_seed_overlap candidate.
+
+Theorem tox_box_behavior_spawns_no_clone_candidate :
+  tox_box_spawns_objects = false.
+Proof.
+  reflexivity.
+Qed.
+
+Theorem audited_source_platform_behaviors_do_not_spawn_standable_clone :
+  forall candidate,
+    ~ audited_source_platform_clone_candidate_can_seed_overlap candidate.
+Proof.
+  intros [] Hseed; cbn in Hseed; discriminate.
+Qed.
+
+Theorem no_source_backed_memory_corruption_clone_candidate_found_in_audit :
+  ~ source_backed_memory_corruption_clone_route_found_in_audit.
+Proof.
+  intros [Htox | [candidate Hcandidate]].
+  - unfold tox_box_spawns_objects in Htox.
+    discriminate.
+  - exact
+      (audited_source_platform_behaviors_do_not_spawn_standable_clone
+        candidate Hcandidate).
+Qed.
+
 Inductive investigated_desync_mechanism : Type :=
 | AstralProjectionChuckyaSetup
-| RapidHomeOscillationTweesterTransport.
+| RapidHomeOscillationTweesterTransport
+| AuditedPostCopyMarioObjectPositionWrite
+| AuditedSourcePlatformCloneOrCorruptionCandidate.
 
 Inductive interaction_kind_with_tornado : Type :=
 | InteractionWarp2
@@ -141,6 +247,11 @@ Definition investigated_mechanism_can_seed_warp_platform_overlap
   | RapidHomeOscillationTweesterTransport =>
       tweester_transport_can_leave_standable_source_platform_surface \/
       same_frame_warp_then_tornado_move_can_seed_platform
+  | AuditedPostCopyMarioObjectPositionWrite =>
+      exists candidate,
+        audited_post_copy_oPos_candidate_can_seed_overlap candidate
+  | AuditedSourcePlatformCloneOrCorruptionCandidate =>
+      source_backed_memory_corruption_clone_route_found_in_audit
   end.
 
 Theorem investigated_desync_mechanisms_do_not_currently_seed_overlap :
@@ -156,4 +267,11 @@ Proof.
         (tweester_transport_cannot_leave_standable_source_platform_surface
           Htweester_surface).
     + exact (warp_collision_preempts_same_frame_tornado_move Hsame_frame_move).
+  - destruct Hseed as [candidate Hcandidate].
+    exact
+      (no_audited_post_copy_oPos_write_candidate_seeds_overlap
+        candidate Hcandidate).
+  - exact
+      (no_source_backed_memory_corruption_clone_candidate_found_in_audit
+        Hseed).
 Qed.

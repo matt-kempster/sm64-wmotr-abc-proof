@@ -43,7 +43,16 @@ interaction and changes Mario to `ACT_DISAPPEARED`; `act_picking_up()` therefore
 does not run on that frame.  This is recorded as
 `no_drop_fake_box_at_warp_proper_cannot_seed_platform`.
 
-Thus the checked status is: a standable cloned exclamation box at the warp is
-sufficient for the stale-slot Spindel route, but the from-start fake-object
-exclamation-box route still needs a source-backed clone/transport mechanism that
+Thus the checked status is: a standable cloned or transported source platform
+at the warp is sufficient for the stale-slot Spindel route, but the from-start
+route still needs a source-backed clone/transport/desync mechanism that
 preserves or restores object-owned surface collision.
+
+The latest source-backed audit did not find that missing mechanism.  Direct
+global `gMarioObject->oPos` writes outside the normal MarioState-to-object sync
+paths occur only in the butterfly helper, which uses balanced temporary offsets
+and is not sourced in SSL.  Pyramid top spawns only pillar detectors and dirt
+fragments, Tox Boxes spawn no objects, and exclamation boxes spawn their fixed
+contents table rather than a standable source-platform clone.  This narrows the
+remaining opening to a new mechanism outside the audited source candidates, or
+to a closed-world disproof under explicit ordinary-gameplay assumptions.

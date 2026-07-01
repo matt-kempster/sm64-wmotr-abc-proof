@@ -82,6 +82,24 @@ Spindel depth-60 reuse obligation.  This is not a global theorem against every
 possible memory-corruption or Mario/object-position desync; it is a
 source-backed narrowing of where a positive route would have to come from.
 
+`proofs/DesyncMechanismSearch.v` records the next source audit.  A useful
+Mario/object-position route would need a write to `gMarioObject->oPos` after
+`bhv_mario_update()` copies `MarioState.pos` into the Mario object and before
+`update_mario_platform()` reads the object position.  The direct write census in
+`pipeline/source-census.sh` finds only the butterfly helper as a global
+`gMarioObject->oPos` writer outside the normal state-sync paths.  That helper
+adds temporary offsets only for `obj_turn_toward_object()` and subtracts them
+before returning, and SSL area 1 has no butterfly or triplet-butterfly source.
+
+The same audit checks the source-platform clone side.  Pyramid top spawns only
+pillar touch detectors and dirt fragments; Tox Boxes do not spawn objects; and
+exclamation boxes spawn a fixed contents table of caps, shell, coins, 1-ups,
+and stars rather than another standable source-platform object.  The theorem
+`no_source_backed_memory_corruption_clone_candidate_found_in_audit` captures
+that bounded result.  This is intentionally not a global theorem against
+arbitrary memory corruption; it says the source-backed candidates found in this
+decomp pass do not provide the missing warp/platform overlap.
+
 ## Source configuration
 
 The generated Clight files are JP-specific and live under `generated/jp_*.v`.
@@ -239,10 +257,13 @@ exclamation-box motion, fake-object grab/drop, and no-drop held-box behavior.
 The remaining open route would need a stronger, source-backed clone/transport
 or Mario/object-position desync mechanism than the ones modeled here.
 
-`proofs/DesyncMechanismSearch.v` investigates two stronger leads:
+`proofs/DesyncMechanismSearch.v` investigates the stronger leads currently
+under discussion:
 
 - Astral Projection Glitch-style desync.
 - SSL Tweester/tornado transportation by rapid home oscillation.
+- post-copy `gMarioObject->oPos` writers found by source census.
+- source-platform spawned clone/corruption candidates.
 
 The useful desync shape would have to affect `gMarioObject->oPos` after
 `copy_mario_state_to_object()`, because object hitbox collision and
@@ -257,3 +278,12 @@ they hide when more than 3000 units from Mario; and `INTERACT_WARP` is processed
 before `INTERACT_TORNADO`, so a successful warp collision prevents a same-frame
 tornado move from setting up `gMarioPlatform`.  The checked theorem is
 `investigated_desync_mechanisms_do_not_currently_seed_overlap`.
+
+The post-copy `gMarioObject->oPos` census leaves only
+`butterfly_calculate_angle()` as a direct global Mario-object position writer.
+That code temporarily offsets `gMarioObject->oPos`, calls
+`obj_turn_toward_object()`, then restores the position before returning; SSL
+area 1 also has no butterfly or triplet-butterfly source.  The clone/corruption
+audit checks the source platform behaviors themselves: pyramid top only spawns
+pillar detectors and fragments, Tox Boxes spawn nothing, and exclamation boxes
+spawn their fixed contents table, not another standable source platform.
