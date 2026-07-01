@@ -21,3 +21,7 @@
 - [x] Prove enough allocation/order detail for a concrete SSL route candidate:
   if the stale slot is at depth 60 in the post-unload free list, the 61st
   area-2 allocation is the Spindel allocation.
+- [x] Check the outside pyramid top-entry warp against pyramid-top collision:
+  the warp is horizontally aligned, but its vertical hitbox `768..818` is below
+  the spinning pyramid top's lowest collision Y `1281`, so this seed route is
+  impossible as stated.
