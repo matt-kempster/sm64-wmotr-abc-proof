@@ -25,3 +25,22 @@
   the warp is horizontally aligned, but its vertical hitbox `768..818` is below
   the spinning pyramid top's lowest collision Y `1281`, so this seed route is
   impossible as stated.
+- [x] Prove the cloned-platform seed route at engine level: a tangible cloned
+  exclamation box at the top-entry warp can set `gMarioPlatform`, JP spawning
+  preserves the pointer, and the stale slot can feed the area-2 Spindel reuse
+  witness.
+- [x] Record SSL start-position and area-1 exclamation-box source facts:
+  Mario starts at `(653, 38, 6566)` yaw `88`, and the five area-1 exclamation
+  boxes are not already at the top-entry warp seed position.
+- [x] Check the straightforward fake-object grab/drop cloning route for an
+  exclamation box: for a non-holdable box, `obj_set_held_state()` switches the
+  executed behavior to `bhvCarrySomething3/4`, which does not load surface
+  collision, so this path cannot by itself seed `gMarioPlatform`.
+- [x] Check the no-drop fake-object variant at the top-entry warp: if the box is
+  already held, `bhvCarrySomething3` does not reload collision after
+  `clear_dynamic_surfaces()`; if the pickup would complete while Mario is inside
+  the warp, `INTERACT_WARP` is processed before `INTERACT_GRABBABLE` and changes
+  Mario to `ACT_DISAPPEARED`, so `act_picking_up()` does not run.
+- [ ] Find or prove a different from-start clone/transport mechanism that
+  leaves a standable exclamation-box surface at the top-entry warp while placing
+  that slot at Spindel's depth-60 allocation position.

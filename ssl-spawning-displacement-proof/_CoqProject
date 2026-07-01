@@ -28,4 +28,6 @@ proofs/FreeListReuse.v
 proofs/UpdateOrder.v
 proofs/SSLFacts.v
 proofs/PyramidTopWarp.v
+proofs/ClonedPlatformWarp.v
+proofs/SSLStartCloneRoute.v
 proofs/SpawningDisplacement.v
