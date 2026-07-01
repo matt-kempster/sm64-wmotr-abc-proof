@@ -1124,6 +1124,22 @@ Theorem level_cmd_place_object_copies_current_area_to_spawn_active_area :
     (statement_events_s (fn_body LS.f_level_cmd_place_object)) = true.
 Proof. vm_compute; repeat split; reflexivity. Qed.
 
+Theorem level_cmd_place_object_links_active_area_spawninfo_into_area_list :
+  event_subsequenceb
+    [Event_assign_field_from_temp LS._activeAreaIndex LS._t'17;
+     Event_assign_field_from_temp LS._next LS._t'10;
+     Event_assign_field_from_temp LS._objectSpawnInfos LS._spawnInfo]
+    (statement_events_s (fn_body LS.f_level_cmd_place_object)) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem load_area_passes_area_spawn_list_to_spawn_objects_from_info :
+  event_subsequenceb
+    [Event_set_temp_from_field A._t'5 A._t'4 A._objectSpawnInfos;
+     Event_set_temp_from_field A._t'7 A._t'6 A._objectSpawnInfos;
+     Event_call A._spawn_objects_from_info]
+    (statement_events_s (fn_body A.f_load_area)) = true.
+Proof. vm_compute; reflexivity. Qed.
+
 Theorem area_has_no_direct_active_area_writer :
   direct_field_writers A.prog A._activeAreaIndex = [].
 Proof. vm_compute; reflexivity. Qed.
