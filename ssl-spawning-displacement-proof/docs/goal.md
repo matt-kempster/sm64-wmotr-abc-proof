@@ -42,6 +42,17 @@ modeled mechanisms do not leave a standable source-platform surface at either
 Area 1 -> Area 2 warp, so they also cannot satisfy the full Spindel depth-60
 seed route.
 
+`proofs/DesyncMechanismSearch.v` checks the two stronger leads currently under
+discussion.  Astral Projection Glitch has the right general flavor only if it
+can create a post-copy `gMarioObject->oPos` desync: visible-model desync alone
+does not affect the seed checks, because object hitbox collision and
+`update_mario_platform()` use `gMarioObject->oPos`, not `header.gfx.pos`.  The
+known Chuckya-based APG setup is not available in SSL area 1.  SSL tornado
+transportation is also not enough as modeled: Tweesters are not platform
+surfaces, they hide when more than 3000 units from Mario, and warp interaction
+is processed before tornado interaction, preventing a same-frame
+warp-then-tornado-move seed.
+
 The fixed area-1 warps are loaded at level start, so the proof should not assume
 that a warp can be transported to an easier platform.  Instead, any positive
 route needs an overlap mechanism, clone/transport mechanism, or a carefully
@@ -51,9 +62,10 @@ selection.  Any negative result should state the assumptions under which such an
 overlap is impossible.  The remaining positive route search is therefore not
 "which spawned platform is close enough?", or even "does built-in motion get one
 there?", but "can gameplay create a stronger clone/transport/desync than the
-modeled source mechanisms, placing an object-owned platform surface at one of
-the fixed warps while also putting that stale slot at Spindel's depth-60
-free-list position?"
+modeled source mechanisms, specifically a source-backed post-copy
+`gMarioObject->oPos` desync or memory-corruption clone, placing an object-owned
+platform surface at one of the fixed warps while also putting that stale slot at
+Spindel's depth-60 free-list position?"
 
 The target is still not full star collection.  The target is either:
 
