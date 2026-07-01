@@ -30,4 +30,5 @@ proofs/SSLFacts.v
 proofs/PyramidTopWarp.v
 proofs/ClonedPlatformWarp.v
 proofs/SSLStartCloneRoute.v
+proofs/SourcePlatformOverlap.v
 proofs/SpawningDisplacement.v

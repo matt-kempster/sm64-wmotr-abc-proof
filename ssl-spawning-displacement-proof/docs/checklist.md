@@ -41,6 +41,27 @@
   `clear_dynamic_surfaces()`; if the pickup would complete while Mario is inside
   the warp, `INTERACT_WARP` is processed before `INTERACT_GRABBABLE` and changes
   Mario to `ACT_DISAPPEARED`, so `act_picking_up()` does not run.
-- [ ] Find or prove a different from-start clone/transport mechanism that
-  leaves a standable exclamation-box surface at the top-entry warp while placing
-  that slot at Spindel's depth-60 allocation position.
+- [x] Generalize the outside seed search from exclamation boxes to all area-1
+  source platform kinds: pyramid top, Tox Boxes, and exclamation boxes.
+- [x] Model the fixed Area 1 -> Area 2 warps and conservative platform
+  bounding boxes for pyramid top, Tox Boxes, and exclamation boxes.
+- [x] Prove the conservative fixed-position overlap result: as spawned, none of
+  the area-1 source platform bounding boxes overlaps either Area 1 -> Area 2
+  warp hitbox.  Because these boxes over-approximate the relevant collision
+  extents, this rules out ordinary same-position overlap for the original
+  placements.
+- [x] Prove the generalized conditional inside theorem: any area-1 source
+  platform kind that does set `gMarioPlatform`, and whose stale slot is later
+  reused by the area-2 Spindel allocation, feeds the expected Spindel `oVelZ`
+  and `oAngleVelPitch` to the first displacement update.
+- [x] Prove the generalized transported-geometry witness: if a pyramid top,
+  Tox Box, or exclamation box surface could be placed at the top-entry warp,
+  its conservative bounding box can overlap that warp hitbox.  This shows the
+  remaining problem is source-backed transport/desync, not the inside result.
+- [ ] Find or prove a clone/transport/desync mechanism that leaves a standable
+  source-platform surface at an Area 1 -> Area 2 warp while placing that slot at
+  Spindel's depth-60 allocation position.  This may use pyramid top, Tox Boxes,
+  or exclamation boxes; the spawned positions themselves are now ruled out.
+- [ ] If no such mechanism exists, reframe the final result as a disproof of
+  SSL spawning displacement under the modeled ordinary gameplay assumptions,
+  while retaining the conditional inside-pyramid Spindel theorem.
