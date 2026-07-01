@@ -67,11 +67,18 @@ executions.
   source spawn struct reads `activeAreaIndex = 2`, the generated
   `_t'6 = spawn->activeAreaIndex; graphNode->activeAreaIndex = _t'6` copy
   writes `Vint 2` to the watched pool slot's exact `activeAreaIndex` address.
-- [ ] Derive the source spawn-memory receipt
+- [ ] Finish deriving the source spawn-memory receipt
   `spawninfo_active_area_read ... ssl_pyramid_area` from the actual destination
-  spawn construction / level-script execution. The local generated copy proof
-  is done; the remaining seam is proving that this particular `spawn` pointer
-  really is one of the Pyramid area-2 spawn infos.
+  spawn construction / level-script execution.
+  New receipt: `exec_level_cmd_place_object_active_area_copy_gives_spawninfo_active_area_read`
+  proves the concrete generated `level_cmd_place_object` active-area copy:
+  if `sCurrAreaIndex` reads Pyramid area 2 and `_spawnInfo` is the concrete
+  destination spawn pointer, the generated `_t'17 = sCurrAreaIndex;
+  spawnInfo->activeAreaIndex = _t'17` stores/then reads back area 2 from that
+  spawn struct. Remaining seam: plug this exact substatement into the full
+  `f_level_cmd_place_object` execution, carry the allocated `spawnInfo` pointer
+  into the destination spawn list, and connect that list element to the later
+  `geo_obj_init_spawninfo` call.
 - [ ] Derive `generated_unload_execution_trace` from the real
   `f_unload_objects_from_area` 13-list loop. The certificate adapter and
   index-based suffix split are done; the remaining beast is proving the loop
@@ -249,14 +256,21 @@ prove the scary thing?"
   `concrete_same_slot_allocation_assign_locs_from_generated_effects` composes
   those two local generated effects into the existing same-slot assign-loc
   receipt.
-- The remaining missing receipt is now specifically source construction:
-  derive `spawninfo_active_area_read` for the concrete destination Pyramid
-  spawn pointer from the real level-script/spawn-info execution path.
+- `exec_level_cmd_place_object_active_area_copy_gives_spawninfo_active_area_read`
+  now proves the generated level-script active-area copy itself produces
+  `spawninfo_active_area_read ... ssl_pyramid_area` for a concrete `_spawnInfo`
+  pointer, assuming the generated read of `sCurrAreaIndex` is Pyramid area 2.
+- The remaining missing receipt is now the full source-construction plumbing:
+  connect that exact `level_cmd_place_object` subexecution to the real
+  `f_level_cmd_place_object` allocation/list insertion path, then prove the
+  same spawn pointer is what the later destination spawn loop passes to
+  `geo_obj_init_spawninfo`.
 
 ## Things that are probably proof grind, not counterexample smell
 
 - The remaining `geo_remove_child` `_graphNode` / parent-child unlink paperwork.
-- The activeFlags/activeArea store bridge after lvalue/expression normalization.
+- Full-path plumbing from `level_cmd_place_object` spawn-info construction to
+  the later `geo_obj_init_spawninfo` call.
 - The all-valid-slot cleanup-tail frame once helper calls are linked properly.
 
 Still keep the tripwire: if any outside object pointer or outside graph edge
