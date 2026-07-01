@@ -12,7 +12,7 @@
 From Coq Require Import List ZArith.
 Import ListNotations.
 From compcert Require Import AST Clight ClightBigstep Clightdefs Coqlib Ctypes
-  Errors Events Integers Maps Memory Values.
+  Errors Events Globalenvs Integers Maps Memory Values.
 From SSLPyramid.Proofs Require Import
   ASTFacts GraphTraversalModel NonMarioReferenceFacts OutsideObjectChannels
   RenderHeldObjectFacts Spec StalePointerModel TransitionFacts
@@ -598,6 +598,409 @@ Definition spawninfo_active_area_read
         (Ptrofs.repr spawn_info_active_area_offset))) =
   Some (Vint (Int.repr area)).
 
+Definition level_script_ge : genv := globalenv LS.prog.
+
+Definition level_script_ce : composite_env := prog_comp_env LS.prog.
+
+Lemma level_script_genv_cenv :
+  genv_cenv level_script_ge = level_script_ce.
+Proof.
+  unfold level_script_ge, level_script_ce, globalenv.
+  cbn [genv_cenv].
+  reflexivity.
+Qed.
+
+Definition level_script_spawn_info_members : members :=
+  match level_script_ce ! LS._SpawnInfo with
+  | Some composite => co_members composite
+  | None => nil
+  end.
+
+Theorem level_script_spawn_info_active_area_layout :
+  field_offset level_script_ce LS._activeAreaIndex
+    level_script_spawn_info_members =
+  OK (spawn_info_active_area_offset, Full).
+Proof. vm_compute; reflexivity. Qed.
+
+Definition level_cmd_place_object_current_area_read
+    (e : env) (memory : mem) (area : Z) : Prop :=
+  exists area_block,
+    e ! LS._sCurrAreaIndex = None /\
+    Genv.find_symbol level_script_ge LS._sCurrAreaIndex = Some area_block /\
+    Mem.loadv Mint16signed memory (Vptr area_block Ptrofs.zero) =
+      Some (Vint (Int.repr area)).
+
+Definition level_cmd_place_object_active_area_source : expr :=
+  Evar LS._sCurrAreaIndex tshort.
+
+Definition level_cmd_place_object_active_area_lhs : expr :=
+  Efield
+    (Ederef
+      (Etempvar LS._spawnInfo
+        (tptr (Tstruct LS._SpawnInfo noattr)))
+      (Tstruct LS._SpawnInfo noattr))
+    LS._activeAreaIndex tschar.
+
+Definition level_cmd_place_object_active_area_rhs : expr :=
+  Etempvar LS._t'17 tshort.
+
+Definition level_cmd_place_object_active_area_set : statement :=
+  Sset LS._t'17 level_cmd_place_object_active_area_source.
+
+Definition level_cmd_place_object_active_area_assign : statement :=
+  Sassign level_cmd_place_object_active_area_lhs
+    level_cmd_place_object_active_area_rhs.
+
+Definition level_cmd_place_object_active_area_copy : statement :=
+  Ssequence level_cmd_place_object_active_area_set
+    level_cmd_place_object_active_area_assign.
+
+Lemma level_script_spawn_info_struct_deref_loc_pointer_same :
+  forall memory spawn_block spawn_offset loc ofs,
+    deref_loc (Tstruct LS._SpawnInfo noattr) memory spawn_block
+      spawn_offset Full (Vptr loc ofs) ->
+    loc = spawn_block /\ ofs = spawn_offset.
+Proof.
+  intros memory spawn_block spawn_offset loc ofs Hderef.
+  inv Hderef;
+    simpl in *;
+    try discriminate.
+  split; reflexivity.
+Qed.
+
+Lemma eval_level_cmd_place_object_current_area_source :
+  forall e le memory area,
+    level_cmd_place_object_current_area_read e memory area ->
+    eval_expr level_script_ge e le memory
+      level_cmd_place_object_active_area_source
+      (Vint (Int.repr area)).
+Proof.
+  intros e le memory area Hread.
+  destruct Hread as (area_block & Hlocal & Hsymbol & Hload).
+  unfold level_cmd_place_object_active_area_source.
+  eapply eval_Elvalue.
+  - apply eval_Evar_global.
+    + exact Hlocal.
+    + exact Hsymbol.
+  - econstructor.
+    + reflexivity.
+    + exact Hload.
+Qed.
+
+Lemma eval_level_cmd_place_object_current_area_source_value :
+  forall e le memory area raw_value,
+    level_cmd_place_object_current_area_read e memory area ->
+    eval_expr level_script_ge e le memory
+      level_cmd_place_object_active_area_source raw_value ->
+    raw_value = Vint (Int.repr area).
+Proof.
+  intros e le memory area raw_value Hread Hexpr.
+  destruct Hread as (area_block & Hlocal & Hsymbol & Hload).
+  unfold level_cmd_place_object_active_area_source in Hexpr.
+  inv Hexpr.
+  match goal with
+  | Hlv : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ => inv Hlv
+  end.
+  - congruence.
+  - assert (loc = area_block) by congruence.
+    subst loc.
+    inv H0;
+      match goal with
+      | Haccess :
+          access_mode (typeof (Evar LS._sCurrAreaIndex tshort)) =
+          By_value ?chunk |- _ =>
+          cbn [typeof access_mode] in Haccess;
+          inv Haccess
+      | Haccess :
+          access_mode (typeof (Evar LS._sCurrAreaIndex tshort)) =
+          By_reference |- _ =>
+          cbn [typeof access_mode] in Haccess;
+          discriminate
+      | Haccess :
+          access_mode (typeof (Evar LS._sCurrAreaIndex tshort)) =
+          By_copy |- _ =>
+          cbn [typeof access_mode] in Haccess;
+          discriminate
+      end.
+    match goal with
+    | Hmem :
+        Mem.loadv Mint16signed memory (Vptr area_block Ptrofs.zero) =
+        Some raw_value |- _ =>
+        rewrite Hload in Hmem;
+        inv Hmem
+    end.
+    reflexivity.
+Qed.
+
+Lemma eval_level_cmd_place_object_active_area_lvalue_normalizes :
+  forall e le memory spawn_block spawn_offset loc ofs bf,
+    le ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
+    eval_lvalue level_script_ge e le memory
+      level_cmd_place_object_active_area_lhs loc ofs bf ->
+    loc = spawn_block /\
+    ofs =
+      Ptrofs.add spawn_offset
+        (Ptrofs.repr spawn_info_active_area_offset) /\
+    bf = Full.
+Proof.
+  intros e le memory spawn_block spawn_offset loc ofs bf Hspawn Hlv.
+  unfold level_cmd_place_object_active_area_lhs in Hlv.
+  inv Hlv;
+    [ | match goal with Hut : typeof _ = Tunion _ _ |- _ => inv Hut end ].
+  match goal with
+  | Hbase :
+      eval_expr level_script_ge e le memory
+        (Ederef
+          (Etempvar LS._spawnInfo
+            (tptr (Tstruct LS._SpawnInfo noattr)))
+          (Tstruct LS._SpawnInfo noattr))
+        (Vptr ?base_block ?base_ofs) |- _ =>
+      inv Hbase
+  end.
+  match goal with
+  | Hptr : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ => inv Hptr
+  end.
+  match goal with
+  | Htemp :
+      eval_expr level_script_ge e le memory
+        (Etempvar LS._spawnInfo
+          (tptr (Tstruct LS._SpawnInfo noattr)))
+        (Vptr ?base_block ?base_ofs) |- _ =>
+      inv Htemp;
+      try (match goal with
+           | Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ =>
+               solve [inv Hl]
+           end)
+  end.
+  match goal with
+  | Hlookup : ?temps ! LS._spawnInfo = Some (Vptr ?base_block ?base_ofs) |- _ =>
+      assert (base_block = spawn_block) by congruence;
+      assert (base_ofs = spawn_offset) by congruence;
+      subst base_block base_ofs
+  end.
+  all:
+    try match goal with
+    | Hderef :
+        deref_loc (Tstruct LS._SpawnInfo noattr) ?mem ?object_block
+          ?object_offset Full (Vptr ?base_block ?base_ofs)
+        |- _ =>
+        pose proof
+          (level_script_spawn_info_struct_deref_loc_pointer_same
+            mem object_block object_offset base_block base_ofs Hderef)
+          as (Hbase_block & Hbase_ofs);
+        subst base_block base_ofs
+    end.
+  rewrite level_script_genv_cenv in *.
+  repeat match goal with
+  | H : context[typeof (Ederef _ _)] |- _ => progress (cbn [typeof] in H)
+  | H : context[typeof (Etempvar _ _)] |- _ =>
+      progress (cbn [typeof] in H)
+  end.
+  match goal with Hty : Tstruct _ _ = Tstruct _ _ |- _ => inv Hty end.
+  match goal with
+  | Hco : level_script_ce ! LS._SpawnInfo = Some ?co,
+    Hfield :
+      field_offset level_script_ce LS._activeAreaIndex (co_members ?co) =
+      OK (?delta, ?field_bf) |- _ =>
+      assert (Hmembers : co_members co = level_script_spawn_info_members) by
+        (unfold level_script_spawn_info_members;
+         rewrite Hco; reflexivity);
+      rewrite Hmembers in Hfield;
+      rewrite level_script_spawn_info_active_area_layout in Hfield;
+      inv Hfield
+  end.
+  all:
+    match goal with
+    | Hderef :
+        deref_loc (Tstruct LS._SpawnInfo noattr) ?mem ?object_block
+          ?object_offset Full (Vptr ?base_block ?base_ofs)
+        |- _ =>
+        let Hsame := fresh "Hsame" in
+        pose proof
+          (level_script_spawn_info_struct_deref_loc_pointer_same
+            mem object_block object_offset base_block base_ofs Hderef)
+          as Hsame;
+        clear Hderef;
+        destruct Hsame as [? ?];
+        subst base_block base_ofs
+    | _ => idtac
+    end;
+    repeat split; reflexivity.
+Qed.
+
+Definition level_script_sassign_effect
+    (lhs rhs : expr) (e : env) (le : temp_env)
+    (before after : mem) : Prop :=
+  exists loc ofs bf raw_value stored_value,
+    eval_lvalue level_script_ge e le before lhs loc ofs bf /\
+    eval_expr level_script_ge e le before rhs raw_value /\
+    Cop.sem_cast raw_value (typeof rhs) (typeof lhs) before =
+      Some stored_value /\
+    assign_loc level_script_ce (typeof lhs) before loc ofs bf
+      stored_value after.
+
+Lemma exec_level_script_sassign_effect_from_exec_stmt :
+  forall e le before lhs rhs trace le' after outcome,
+    exec_stmt function_entry2 level_script_ge e le before
+      (Sassign lhs rhs) trace le' after outcome ->
+    level_script_sassign_effect lhs rhs e le before after /\
+    trace = E0 /\ le' = le /\ outcome = Out_normal.
+Proof.
+  intros e le before lhs rhs trace le' after outcome Hexec.
+  inv Hexec.
+  rewrite level_script_genv_cenv in *.
+  split.
+  - unfold level_script_sassign_effect.
+    repeat eexists; eauto.
+  - repeat split; reflexivity.
+Qed.
+
+Lemma exec_level_script_sset_effect_from_exec_stmt :
+  forall e le before target rhs trace le' after outcome,
+    exec_stmt function_entry2 level_script_ge e le before
+      (Sset target rhs) trace le' after outcome ->
+    exists value,
+      eval_expr level_script_ge e le before rhs value /\
+      trace = E0 /\
+      le' = PTree.set target value le /\
+      after = before /\
+      outcome = Out_normal.
+Proof.
+  intros e le before target rhs trace le' after outcome Hexec.
+  inv Hexec.
+  exists v.
+  repeat split; reflexivity || assumption.
+Qed.
+
+Lemma level_cmd_place_object_active_area_sassign_effect_assign_loc :
+  forall e le before after spawn_block spawn_offset,
+    le ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
+    le ! LS._t'17 = Some (Vint (Int.repr ssl_pyramid_area)) ->
+    level_script_sassign_effect
+      level_cmd_place_object_active_area_lhs
+      level_cmd_place_object_active_area_rhs
+      e le before after ->
+    assign_loc level_script_ce tschar before spawn_block
+      (Ptrofs.add spawn_offset
+        (Ptrofs.repr spawn_info_active_area_offset))
+      Full (Vint (Int.repr ssl_pyramid_area)) after.
+Proof.
+  intros e le before after spawn_block spawn_offset
+    Hspawn Htemp Heffect.
+  destruct Heffect as
+    (loc & ofs & bf & raw_value & stored_value &
+      Hlv & Hrhs & Hcast & Hassign).
+  unfold level_cmd_place_object_active_area_rhs in Hrhs.
+  inv Hrhs;
+    try (match goal with
+         | Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ =>
+             solve [inv Hl]
+         end).
+  match goal with
+  | Hlookup : le ! LS._t'17 = Some ?raw |- _ =>
+      assert (raw = Vint (Int.repr ssl_pyramid_area)) by congruence;
+      subst raw
+  end.
+  vm_compute in Hcast.
+  inv Hcast.
+  pose proof
+    (eval_level_cmd_place_object_active_area_lvalue_normalizes
+      e le before spawn_block spawn_offset loc ofs bf Hspawn Hlv)
+    as (Hloc & Hofs & Hbf).
+  subst loc ofs bf.
+  cbn in Hassign.
+  exact Hassign.
+Qed.
+
+Theorem exec_level_cmd_place_object_active_area_copy_gives_spawninfo_active_area_read :
+  forall e le before after trace le' outcome spawn_block spawn_offset,
+    le ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
+    level_cmd_place_object_current_area_read
+      e before ssl_pyramid_area ->
+    exec_stmt function_entry2 level_script_ge e le before
+      level_cmd_place_object_active_area_copy trace le' after outcome ->
+    spawninfo_active_area_read
+      after spawn_block spawn_offset ssl_pyramid_area /\
+    trace = E0 /\ outcome = Out_normal.
+Proof.
+  intros e le before after trace le' outcome spawn_block spawn_offset
+    Hspawn Harea Hexec.
+  unfold level_cmd_place_object_active_area_copy in Hexec.
+  inv Hexec.
+  - match goal with
+    | Hset :
+        exec_stmt function_entry2 level_script_ge e le before
+          level_cmd_place_object_active_area_set _ _ _ _ |- _ =>
+        destruct
+          (exec_level_script_sset_effect_from_exec_stmt
+            e le before LS._t'17 level_cmd_place_object_active_area_source
+            _ _ _ _ Hset)
+          as (read_value & Hread & Htrace_set & Hle_set & Hmemory_set
+              & Hout_set);
+        subst
+    end.
+    assert (read_value = Vint (Int.repr ssl_pyramid_area)).
+    { eapply eval_level_cmd_place_object_current_area_source_value; eauto. }
+    subst read_value.
+    match goal with
+    | Hassign :
+        exec_stmt function_entry2 level_script_ge e
+          (PTree.set LS._t'17 (Vint (Int.repr ssl_pyramid_area)) le)
+          before level_cmd_place_object_active_area_assign _ _ _ _ |- _ =>
+        destruct
+          (exec_level_script_sassign_effect_from_exec_stmt
+            e (PTree.set LS._t'17 (Vint (Int.repr ssl_pyramid_area)) le)
+            before level_cmd_place_object_active_area_lhs
+            level_cmd_place_object_active_area_rhs _ _ _ _ Hassign)
+          as (Heffect & Htrace_assign & Hle_assign & Hout_assign);
+        subst
+    end.
+    assert (Hspawn_after_set :
+      (PTree.set LS._t'17 (Vint (Int.repr ssl_pyramid_area)) le) !
+        LS._spawnInfo = Some (Vptr spawn_block spawn_offset)).
+    { rewrite PTree.gso.
+      - exact Hspawn.
+      - intro Heq.
+        vm_compute in Heq.
+        discriminate. }
+    assert (Ht17_after_set :
+      (PTree.set LS._t'17 (Vint (Int.repr ssl_pyramid_area)) le) !
+        LS._t'17 = Some (Vint (Int.repr ssl_pyramid_area))).
+    { rewrite PTree.gss.
+      reflexivity. }
+    pose proof
+      (level_cmd_place_object_active_area_sassign_effect_assign_loc
+        e (PTree.set LS._t'17 (Vint (Int.repr ssl_pyramid_area)) le)
+        before after spawn_block spawn_offset
+        Hspawn_after_set Ht17_after_set Heffect)
+      as Hassign_loc.
+    pose proof
+      (assign_loc_tschar_store
+        level_script_ce before spawn_block
+        (Ptrofs.add spawn_offset
+          (Ptrofs.repr spawn_info_active_area_offset))
+        (Int.repr ssl_pyramid_area) after Hassign_loc)
+      as Hstore.
+    split.
+    + unfold spawninfo_active_area_read, Mem.loadv.
+      cbn.
+      erewrite Mem.load_store_same by exact Hstore.
+      reflexivity.
+    + repeat split; simpl; reflexivity.
+  - match goal with
+    | Hset :
+        exec_stmt function_entry2 level_script_ge e le before
+          level_cmd_place_object_active_area_set _ _ _ _ |- _ =>
+        destruct
+          (exec_level_script_sset_effect_from_exec_stmt
+            e le before LS._t'17 level_cmd_place_object_active_area_source
+            _ _ _ _ Hset)
+          as (_ & _ & _ & _ & _ & Hout_set);
+        subst
+    end.
+    contradiction.
+Qed.
+
 Lemma eval_geo_obj_init_spawninfo_active_area_lvalue_normalizes :
   forall e le memory pool_block slot loc ofs bf,
     le ! G._graphNode =
@@ -661,8 +1064,9 @@ Proof.
     end.
   rewrite graph_node_genv_cenv in *.
   repeat match goal with
-  | H : context[typeof (Ederef _ _)] |- _ => cbn [typeof] in H
-  | H : context[typeof (Etempvar _ _)] |- _ => cbn [typeof] in H
+  | H : context[typeof (Ederef _ _)] |- _ => progress (cbn [typeof] in H)
+  | H : context[typeof (Etempvar _ _)] |- _ =>
+      progress (cbn [typeof] in H)
   end.
   match goal with Hty : Tstruct _ _ = Tstruct _ _ |- _ => inv Hty end.
   match goal with
@@ -679,7 +1083,7 @@ Proof.
       inv Hfield
   end.
   all:
-    repeat match goal with
+    match goal with
     | Hderef :
         deref_loc (Tstruct G._GraphNodeObject noattr) ?mem ?object_block
           ?object_offset Full (Vptr ?base_block ?base_ofs)
@@ -689,8 +1093,10 @@ Proof.
           (graph_node_object_struct_deref_loc_pointer_same
             mem object_block object_offset base_block base_ofs Hderef)
           as Hsame;
+        clear Hderef;
         destruct Hsame as [? ?];
         subst base_block base_ofs
+    | _ => idtac
     end;
     repeat split; reflexivity.
 Qed.
@@ -753,8 +1159,9 @@ Proof.
     end.
   rewrite graph_node_genv_cenv in *.
   repeat match goal with
-  | H : context[typeof (Ederef _ _)] |- _ => cbn [typeof] in H
-  | H : context[typeof (Etempvar _ _)] |- _ => cbn [typeof] in H
+  | H : context[typeof (Ederef _ _)] |- _ => progress (cbn [typeof] in H)
+  | H : context[typeof (Etempvar _ _)] |- _ =>
+      progress (cbn [typeof] in H)
   end.
   match goal with Hty : Tstruct _ _ = Tstruct _ _ |- _ => inv Hty end.
   match goal with
@@ -770,7 +1177,7 @@ Proof.
       inv Hfield
   end.
   all:
-    repeat match goal with
+    match goal with
     | Hderef :
         deref_loc (Tstruct G._SpawnInfo noattr) ?mem ?object_block
           ?object_offset Full (Vptr ?base_block ?base_ofs)
@@ -780,8 +1187,10 @@ Proof.
           (spawn_info_struct_deref_loc_pointer_same
             mem object_block object_offset base_block base_ofs Hderef)
           as Hsame;
+        clear Hderef;
         destruct Hsame as [? ?];
         subst base_block base_ofs
+    | _ => idtac
     end;
     repeat split; reflexivity.
 Qed.
