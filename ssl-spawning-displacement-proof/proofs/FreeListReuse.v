@@ -54,6 +54,11 @@ Definition allocation_count_reaches_watched_slot
     free_list = newer ++ watched :: older /\
     (length newer < allocation_count)%nat.
 
+Definition nth_allocation_reuses_slot
+    (free_list : free_list_slots) (allocation_index : nat)
+    (watched : slot) : Prop :=
+  nth_error free_list (allocation_index - 1) = Some watched.
+
 Definition free_list_after_unloads
     (initial : free_list_slots) (unloaded_in_order : list slot)
     : free_list_slots :=
@@ -84,6 +89,38 @@ Proof.
   split; [reflexivity | exact Hcount].
 Qed.
 
+Theorem nth_allocation_exact_from_newer_slots :
+  forall newer older watched,
+    nth_allocation_reuses_slot
+      (newer ++ watched :: older) (S (length newer)) watched.
+Proof.
+  intros newer older watched.
+  unfold nth_allocation_reuses_slot.
+  replace (S (length newer) - 1)%nat with (length newer) by lia.
+  rewrite nth_error_app2.
+  - replace (length newer - length newer)%nat with 0%nat by lia.
+    reflexivity.
+  - lia.
+Qed.
+
+Theorem nth_allocation_exact_implies_reached :
+  forall free_list watched allocation_index,
+    nth_allocation_reuses_slot free_list allocation_index watched ->
+    (0 < allocation_index)%nat ->
+    allocation_count_reaches_watched_slot
+      free_list watched allocation_index.
+Proof.
+  intros free_list watched allocation_index Hnth Hpositive.
+  unfold nth_allocation_reuses_slot in Hnth.
+  apply nth_error_split in Hnth.
+  destruct Hnth as (newer & older & Hfree & Hlen).
+  unfold allocation_count_reaches_watched_slot.
+  exists newer, older.
+  split; [exact Hfree |].
+  rewrite Hlen.
+  lia.
+Qed.
+
 Theorem unload_suffix_depth_gives_reuse_allocation_count :
   forall initial prefix suffix watched allocation_count,
     (length suffix < allocation_count)%nat ->
@@ -101,4 +138,19 @@ Proof.
     reflexivity.
   - rewrite rev_length.
     exact Hcount.
+Qed.
+
+Theorem unload_suffix_depth_gives_exact_reuse_allocation :
+  forall initial prefix suffix watched,
+    nth_allocation_reuses_slot
+      (free_list_after_unloads initial (prefix ++ watched :: suffix))
+      (S (length suffix)) watched.
+Proof.
+  intros initial prefix suffix watched.
+  unfold free_list_after_unloads.
+  rewrite rev_app_distr.
+  simpl.
+  repeat rewrite <- app_assoc.
+  rewrite <- (rev_length suffix).
+  apply nth_allocation_exact_from_newer_slots.
 Qed.
