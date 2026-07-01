@@ -1,0 +1,21 @@
+# Checklist
+
+- [x] Locate and inspect the existing `ssl-pyramid-item-proof/` structure.
+- [x] Verify the JP-only `#ifndef VERSION_JP` guard around
+  `clear_mario_platform()` in `spawn_objects_from_info()`.
+- [x] Verify `apply_mario_platform_displacement()` reads `gMarioPlatform` and
+  calls `apply_platform_displacement(TRUE, platform)` when non-null.
+- [x] Verify free-list push/pop order in `deallocate_object()` and
+  `try_allocate_object()`.
+- [x] Verify `update_objects()` order:
+  `clear_dynamic_surfaces`, `update_terrain_objects`,
+  `apply_mario_platform_displacement`, collisions, non-terrain objects,
+  unload deactivated objects, `update_mario_platform`.
+- [x] Count SSL area-2 macro objects from source: 50.
+- [x] Record SSL area-2 regular spawn order and Spindel's position after macros.
+- [x] Add JP-specific Clight generation targets.
+- [x] Add hand-written proof stack for the conditional core theorem.
+- [ ] Replace model-level source facts with generated JP Clight `vm_compute`
+  facts.
+- [ ] Lift the conditional capstone through linked Clight semantics.
+- [ ] Prove enough allocation/order detail for a concrete SSL route, if needed.
