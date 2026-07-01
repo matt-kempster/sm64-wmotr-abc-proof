@@ -34,6 +34,14 @@ spawned.  The same file also proves that a transported or cloned source
 platform surface of any of those three kinds could have bounding-box overlap
 with the top-entry warp if a real gameplay mechanism can place it there.
 
+`proofs/SourcePlatformTransport.v` now checks the ordinary source-backed
+mechanisms considered so far.  It models pyramid-top built-in motion, the three
+Tox Box action-table path envelopes, exclamation-box collision-loaded motion,
+the fake-object grab/drop route, and the no-drop held-box variant.  These
+modeled mechanisms do not leave a standable source-platform surface at either
+Area 1 -> Area 2 warp, so they also cannot satisfy the full Spindel depth-60
+seed route.
+
 The fixed area-1 warps are loaded at level start, so the proof should not assume
 that a warp can be transported to an easier platform.  Instead, any positive
 route needs an overlap mechanism, clone/transport mechanism, or a carefully
@@ -41,10 +49,11 @@ specified Mario-object-position/desync mechanism that makes the same
 `gMarioObject` position satisfy both warp interaction and platform-floor
 selection.  Any negative result should state the assumptions under which such an
 overlap is impossible.  The remaining positive route search is therefore not
-"which spawned platform is close enough?", but "can gameplay create, clone,
-transport, or desync an object-owned platform surface at one of the fixed
-warps, and can that stale slot be placed at Spindel's depth-60 free-list
-position?"
+"which spawned platform is close enough?", or even "does built-in motion get one
+there?", but "can gameplay create a stronger clone/transport/desync than the
+modeled source mechanisms, placing an object-owned platform surface at one of
+the fixed warps while also putting that stale slot at Spindel's depth-60
+free-list position?"
 
 The target is still not full star collection.  The target is either:
 

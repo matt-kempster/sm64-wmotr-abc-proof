@@ -64,6 +64,24 @@ remaining hard problem is outside the pyramid: find or rule out a real
 clone/transport/desync mechanism that creates the required platform/warp
 overlap while arranging the depth-60 slot reuse.
 
+`proofs/SourcePlatformTransport.v` records the next obstruction layer.  It
+models the ordinary source-backed mechanisms considered so far:
+
+- pyramid-top built-in motion;
+- all three Tox Box action-table path envelopes;
+- exclamation-box collision-loaded motion;
+- fake-object grab/drop of a non-holdable exclamation box;
+- the no-drop held-box variant at the warp proper.
+
+The theorem `modeled_source_platform_transport_mechanisms_do_not_seed_warp`
+proves that none of those modeled mechanisms leaves a standable source-platform
+surface at either Area 1 -> Area 2 warp.  The theorem
+`no_modeled_transport_spindel_depth_route` then lifts that obstruction to the
+full route shape: these modeled mechanisms cannot satisfy the seed surface plus
+Spindel depth-60 reuse obligation.  This is not a global theorem against every
+possible memory-corruption or Mario/object-position desync; it is a
+source-backed narrowing of where a positive route would have to come from.
+
 ## Source configuration
 
 The generated Clight files are JP-specific and live under `generated/jp_*.v`.
@@ -214,3 +232,9 @@ Boxes, and exclamation boxes together.  It proves that none of their original
 spawned positions has even bounding-box overlap with either Area 1 -> Area 2
 warp, while preserving the conditional Spindel theorem for any future
 source-backed seed.
+
+`proofs/SourcePlatformTransport.v` further rules out the modeled ordinary
+transport candidates: pyramid-top motion, Tox Box path motion, collision-loaded
+exclamation-box motion, fake-object grab/drop, and no-drop held-box behavior.
+The remaining open route would need a stronger, source-backed clone/transport
+or Mario/object-position desync mechanism than the ones modeled here.
