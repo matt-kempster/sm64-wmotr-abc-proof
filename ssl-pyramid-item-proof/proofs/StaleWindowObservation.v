@@ -598,6 +598,44 @@ Definition spawninfo_active_area_read
         (Ptrofs.repr spawn_info_active_area_offset))) =
   Some (Vint (Int.repr area)).
 
+Definition store_disjoint_from_spawninfo_active_area
+    (spawn_block : block) (spawn_offset : ptrofs)
+    (chunk : memory_chunk) (store_block : block)
+    (store_offset : Z) : Prop :=
+  spawn_block <> store_block \/
+  Ptrofs.unsigned
+    (Ptrofs.add spawn_offset
+      (Ptrofs.repr spawn_info_active_area_offset)) +
+    size_chunk Mint8signed <= store_offset \/
+  store_offset + size_chunk chunk <=
+    Ptrofs.unsigned
+      (Ptrofs.add spawn_offset
+        (Ptrofs.repr spawn_info_active_area_offset)).
+
+Theorem spawninfo_active_area_read_preserved_by_disjoint_store :
+  forall before after spawn_block spawn_offset area
+      chunk store_block store_offset value,
+    Mem.store chunk before store_block store_offset value = Some after ->
+    store_disjoint_from_spawninfo_active_area
+      spawn_block spawn_offset chunk store_block store_offset ->
+    spawninfo_active_area_read before spawn_block spawn_offset area ->
+    spawninfo_active_area_read after spawn_block spawn_offset area.
+Proof.
+  intros before after spawn_block spawn_offset area
+    chunk store_block store_offset value Hstore Hdisjoint Hread.
+  unfold spawninfo_active_area_read, Mem.loadv in *.
+  cbn in *.
+  rewrite
+    (Mem.load_store_other
+      chunk before store_block store_offset value after Hstore
+      Mint8signed spawn_block
+      (Ptrofs.unsigned
+        (Ptrofs.add spawn_offset
+          (Ptrofs.repr spawn_info_active_area_offset)))).
+  - exact Hread.
+  - exact Hdisjoint.
+Qed.
+
 Definition level_script_ge : genv := globalenv LS.prog.
 
 Definition level_script_ce : composite_env := prog_comp_env LS.prog.
@@ -999,6 +1037,36 @@ Proof.
         subst
     end.
     contradiction.
+Qed.
+
+Theorem level_cmd_place_object_real_path_active_area_receipt :
+  forall e le before after trace le' outcome spawn_block spawn_offset,
+    le ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
+    level_cmd_place_object_current_area_read
+      e before ssl_pyramid_area ->
+    exec_stmt function_entry2 level_script_ge e le before
+      level_cmd_place_object_active_area_copy trace le' after outcome ->
+    spawninfo_active_area_read
+      after spawn_block spawn_offset ssl_pyramid_area /\
+    trace = E0 /\
+    outcome = Out_normal /\
+    proposition_of
+      level_cmd_place_object_links_active_area_spawninfo_into_area_list /\
+    proposition_of load_area_passes_area_spawn_list_to_spawn_objects_from_info.
+Proof.
+  intros e le before after trace le' outcome spawn_block spawn_offset
+    Hspawn Harea Hexec.
+  destruct
+    (exec_level_cmd_place_object_active_area_copy_gives_spawninfo_active_area_read
+      e le before after trace le' outcome spawn_block spawn_offset
+      Hspawn Harea Hexec)
+    as (Hread & Htrace & Houtcome).
+  split; [exact Hread |].
+  split; [exact Htrace |].
+  split; [exact Houtcome |].
+  split.
+  - exact level_cmd_place_object_links_active_area_spawninfo_into_area_list.
+  - exact load_area_passes_area_spawn_list_to_spawn_objects_from_info.
 Qed.
 
 Lemma eval_geo_obj_init_spawninfo_active_area_lvalue_normalizes :
@@ -1426,6 +1494,9 @@ Definition same_slot_reuse_generated_order_receipt_audit : Prop :=
   proposition_of ssl_pyramid_destination_spawn_info_source_supplies_area_2 /\
   proposition_of level_cmd_place_object_copies_current_area_to_spawn_active_area /\
   proposition_of
+    level_cmd_place_object_links_active_area_spawninfo_into_area_list /\
+  proposition_of load_area_passes_area_spawn_list_to_spawn_objects_from_info /\
+  proposition_of
     ssl_pyramid_destination_allocation_count_before_init_lower_bound_is_70 /\
   proposition_of deallocate_push_then_first_allocation_reuses_same_slot /\
   proposition_of deallocated_slot_at_head_is_reached_by_one_allocation /\
@@ -1434,6 +1505,8 @@ Definition same_slot_reuse_generated_order_receipt_audit : Prop :=
   proposition_of same_slot_pyramid_allocation_store_trace_from_receipt /\
   proposition_of
     same_slot_pyramid_allocation_store_trace_from_linked_assign_locs /\
+  proposition_of level_cmd_place_object_real_path_active_area_receipt /\
+  proposition_of spawninfo_active_area_read_preserved_by_disjoint_store /\
   proposition_of generated_same_slot_assignment_inversion_audit_holds.
 
 Theorem ssl_pyramid_destination_allocations_reach_slot_if_depth_below_70 :
@@ -1731,6 +1804,13 @@ Proof.
     |].
   split;
     [ exact
+        level_cmd_place_object_links_active_area_spawninfo_into_area_list
+    |].
+  split;
+    [ exact load_area_passes_area_spawn_list_to_spawn_objects_from_info
+    |].
+  split;
+    [ exact
         ssl_pyramid_destination_allocation_count_before_init_lower_bound_is_70
     |].
   split; [exact deallocate_push_then_first_allocation_reuses_same_slot |].
@@ -1739,6 +1819,8 @@ Proof.
   split; [exact unload_order_suffix_gives_watched_slot_free_list_depth |].
   split; [exact same_slot_pyramid_allocation_store_trace_from_receipt |].
   split; [exact same_slot_pyramid_allocation_store_trace_from_linked_assign_locs |].
+  split; [exact level_cmd_place_object_real_path_active_area_receipt |].
+  split; [exact spawninfo_active_area_read_preserved_by_disjoint_store |].
   exact generated_same_slot_assignment_inversion_audit_holds.
 Qed.
 

@@ -88,10 +88,20 @@ executions.
   if `sCurrAreaIndex` reads Pyramid area 2 and `_spawnInfo` is the concrete
   destination spawn pointer, the generated `_t'17 = sCurrAreaIndex;
   spawnInfo->activeAreaIndex = _t'17` stores/then reads back area 2 from that
-  spawn struct. Remaining seam: plug this exact substatement into the full
-  `f_level_cmd_place_object` execution, carry the allocated `spawnInfo` pointer
-  into the destination spawn list, and connect that list element to the later
-  `geo_obj_init_spawninfo` call.
+  spawn struct.
+  Newer receipt: `level_cmd_place_object_real_path_active_area_receipt` packages
+  that semantic read together with the generated real-path spine:
+  `level_cmd_place_object` writes active area before linking `_spawnInfo` into
+  `gAreas[sCurrAreaIndex].objectSpawnInfos`, and `load_area` reads that area
+  spawn-list head before calling `spawn_objects_from_info`.
+  Also new: `spawninfo_active_area_read_preserved_by_disjoint_store` proves the
+  source spawn active-area byte survives any later concrete store whose byte
+  range is disjoint from `spawnInfo->activeAreaIndex`; this is the frame lemma
+  we need for the `spawnInfo->next` and `area.objectSpawnInfos` list-link
+  stores once their generated lvalues are normalized.
+  Remaining seam: prove byte-level/list preservation for the same allocated
+  `spawnInfo` pointer through the full `f_level_cmd_place_object` execution and
+  into the later `geo_obj_init_spawninfo` call.
 - [ ] Derive `generated_unload_execution_trace` from the real
   `f_unload_objects_from_area` 13-list loop. The certificate adapter and
   index-based suffix split are done; the remaining beast is proving the loop
@@ -276,6 +286,20 @@ prove the scary thing?"
   now proves the generated level-script active-area copy itself produces
   `spawninfo_active_area_read ... ssl_pyramid_area` for a concrete `_spawnInfo`
   pointer, assuming the generated read of `sCurrAreaIndex` is Pyramid area 2.
+- `level_cmd_place_object_links_active_area_spawninfo_into_area_list` pins the
+  real generated order inside `level_cmd_place_object`: active-area write,
+  `spawnInfo->next = oldHead`, then `gAreas[area].objectSpawnInfos = spawnInfo`.
+- `load_area_passes_area_spawn_list_to_spawn_objects_from_info` pins the later
+  generated path: `load_area` reads the area's `objectSpawnInfos` head and calls
+  `spawn_objects_from_info` with that pointer.
+- `level_cmd_place_object_real_path_active_area_receipt` packages the concrete
+  `spawninfo_active_area_read ... ssl_pyramid_area` result with those real-path
+  order facts, so the remaining work is pointer/list preservation rather than
+  finding the generated statements again.
+- `spawninfo_active_area_read_preserved_by_disjoint_store` is the byte-level
+  frame lemma for that remaining pointer/list preservation work: disjoint
+  stores after the active-area write do not clobber the source spawn struct's
+  `activeAreaIndex = 2` receipt.
 - `generated_loop_reaches_watched_slot_if_target_list_at_most_70` proves the
   count/depth side in friendly terms: if the whole outside unload target list
   is no longer than the 70 Pyramid allocations before `init_mario`, then any
