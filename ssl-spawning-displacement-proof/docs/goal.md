@@ -82,8 +82,15 @@ spawns a non-surface cannon.
 
 `proofs/ClosedWorldDisproof.v` is now the route-level disproof under explicit
 ordinary-gameplay assumptions.  The closed world consists of original spawned
-surface overlap, modeled source-platform transport, and the investigated
-desync/clone leads.  The theorem
+surface overlap, modeled source-platform transport, ordinary Mario-speed
+timing, and the investigated desync/clone leads.  `proofs/MarioSpeedWarp.v`
+rules out the ordinary-speed loophole: object-warp collision is sampled before
+Mario action movement, interactions are processed before action movement
+dispatch, and `update_mario_platform()` recomputes the pointer after the action
+copy.  Running from a source platform to a warp is therefore too late for that
+frame's object collision and clears/recomputes the platform pointer before a
+later warp; starting in the warp preempts normal movement with
+`ACT_DISAPPEARED`.  The theorem
 `no_closed_world_ssl_spawning_displacement_route_to_spindel` proves that no
 mechanism in that closed world can both seed `gMarioPlatform` at an Area 1 ->
 Area 2 warp and satisfy the Spindel depth-60 allocation obligation.
