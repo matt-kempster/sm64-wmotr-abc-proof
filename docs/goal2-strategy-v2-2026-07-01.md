@@ -240,6 +240,16 @@ All of §2–4 is arithmetic over **binary32**. Plan:
    `20−2·timer` exact small ints). The magnitudes here (≤ ~10⁴, integers and
    quarter-integers) are *exactly representable* territory — most steps are
    exact, which should keep the intervals tight and the automation simple.
+
+   *Feasibility probed 2026-07-02: the toolchain's Flocq exposes
+   `Bplus_correct`/`Bminus_correct`/`Bmult_correct` (`IEEE754/Binary.v:1052`
+   and the `BinarySingleNaN` flavor) and `Generic_fmt.round_le`; CompCert's
+   own `Floats.v` proofs already work in `B2R` terms (precedent for the
+   style). The brick recipe: from `Bplus_correct`'s no-overflow branch,
+   `B2R (add x y) = round (B2R x + B2R y)`; then `round_le` +
+   `round_generic` (a representable bound rounds to itself) give
+   `≤ bx + by` when the bound is representable. `Float32.add` unfolds to
+   `Bplus` directly (`Floats.v:283`-region).*
 2. **NaN/Inf hygiene:** Φ's bounds imply finiteness inductively (bounded op
    on bounded finite inputs is finite); state it inside the interval brick.
 3. **Where it bites:** `pos[1] += vel[1]/4` (×4), `vel[1] −= 4` +
