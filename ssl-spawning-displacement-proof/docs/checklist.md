@@ -112,6 +112,13 @@
   source-backed positive routes.  Found one missed source-platform candidate,
   `bhvCannonClosed`; folded it into the model and ruled it out.  No remaining
   source-backed positive route candidate was found in this pass.
+- [x] Check the castle SSL painting checkpoint route.  An active SSL checkpoint
+  can redirect the castle SSL painting to SSL area 2, but painting entry uses
+  `gMarioState->floor` and requires a painting-warp surface type.  Ordinary
+  `gMarioPlatform` seeding requires the selected floor to be object-owned, and
+  the audited castle object surfaces are not painting-warp floors.  The theorem
+  `castle_checkpoint_painting_route_cannot_seed_spawning_displacement` rules
+  out this route under the synchronized ordinary-floor model.
 - [x] If no such mechanism exists, reframe the final result as a disproof of
   SSL spawning displacement under the modeled ordinary gameplay assumptions,
   while retaining the conditional inside-pyramid Spindel theorem.

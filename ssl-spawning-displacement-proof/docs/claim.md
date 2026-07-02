@@ -69,3 +69,15 @@ transport, and investigated desync/clone leads, SSL cannot both seed
 `gMarioPlatform` at the warp and place that stale slot at Spindel's depth-60
 allocation position.  No remaining source-backed positive route candidate is
 currently known from the source audit.
+
+The castle SSL painting checkpoint idea is also ruled out under ordinary floor
+selection.  The checkpoint can redirect the castle SSL painting entry to SSL
+area 2, but the entry still depends on `gMarioState->floor` being a
+painting-warp surface.  A platform seed depends on the selected floor having an
+owning object.  In the synchronized case, those are the same floor test: the
+static castle painting floor has no object owner, and the audited castle
+object-owned surfaces are not painting-warp floors.  This is formalized as
+`castle_checkpoint_painting_route_cannot_seed_spawning_displacement`.  Any
+positive castle checkpoint route would therefore need a genuine post-floor
+desync or a new object-owned painting-warp surface outside the audited source
+model.

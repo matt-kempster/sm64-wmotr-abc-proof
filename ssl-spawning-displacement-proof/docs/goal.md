@@ -79,6 +79,20 @@ desync/clone leads.  The theorem
 mechanism in that closed world can both seed `gMarioPlatform` at an Area 1 ->
 Area 2 warp and satisfy the Spindel depth-60 allocation obligation.
 
+The castle SSL painting checkpoint route is now modeled separately in
+`proofs/CastleCheckpoint.v`.  If Mario dies after entering SSL area 2 through a
+checkpoint-setting warp, the checkpoint machinery can redirect the castle SSL
+painting entry to SSL area 2.  That makes the destination plausible, but not
+the seed: painting entry uses `gMarioState->floor` and requires that floor to
+have a painting-warp surface type, while `update_mario_platform()` sets
+`gMarioPlatform` only when the selected floor is object-owned.  Under ordinary
+synchronized floor selection, standing on an audited castle object surface
+prevents the floor from being a painting-warp floor, and the static painting
+floor itself has no owning object.  The theorem
+`castle_checkpoint_painting_route_cannot_seed_spawning_displacement` rules out
+this castle checkpoint route unless a future mechanism supplies a real
+floor/position desync or an object-owned painting-warp surface.
+
 The fixed area-1 warps are loaded at level start, so the proof should not assume
 that a warp can be transported to an easier platform.  Instead, any positive
 route needs an overlap mechanism, clone/transport mechanism, or a carefully
@@ -98,7 +112,10 @@ slot at Spindel's depth-60 free-list position.
 The latest pass searched for routes outside the first closed-world enumeration.
 The only missed source-backed candidate found was `bhvCannonClosed`; it is now
 inside the model and ruled out.  No remaining source-backed positive route
-candidate is currently known from the decomp source audit.
+candidate is currently known from the decomp source audit.  The later castle
+checkpoint pass did not find a positive route either; it shifts any remaining
+castle-based possibility to the same kind of outside-model desync/memory
+corruption opening.
 
 The target is still not full star collection.  The target is either:
 
