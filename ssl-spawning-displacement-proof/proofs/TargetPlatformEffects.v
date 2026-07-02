@@ -218,6 +218,11 @@ Definition ssl_area2_top_entry_mario_spawn : ssl_object := {|
   ssl_object_z := 256
 |}.
 
+Definition ssl_pyramid_elevator_top_local_y : Z := 256.
+
+Definition ssl_pyramid_elevator_top_world_y : Z :=
+  ssl_object_y ssl_pyramid_elevator + ssl_pyramid_elevator_top_local_y.
+
 Definition square (n : Z) : Z := n * n.
 
 Definition horizontal_distance2 (a b : ssl_object) : Z :=
@@ -226,6 +231,20 @@ Definition horizontal_distance2 (a b : ssl_object) : Z :=
 
 Definition vertical_delta (a b : ssl_object) : Z :=
   ssl_object_y a - ssl_object_y b.
+
+Theorem top_entry_mario_spawn_is_airborne_above_pyramid_elevator :
+  ssl_object_x ssl_area2_top_entry_mario_spawn =
+    ssl_object_x ssl_pyramid_elevator /\
+  ssl_object_z ssl_area2_top_entry_mario_spawn =
+    ssl_object_z ssl_pyramid_elevator /\
+  ssl_pyramid_elevator_top_world_y = 5222 /\
+  vertical_delta ssl_area2_top_entry_mario_spawn
+    ssl_pyramid_elevator = 534 /\
+  ssl_object_y ssl_area2_top_entry_mario_spawn -
+    ssl_pyramid_elevator_top_world_y = 278.
+Proof.
+  vm_compute. repeat split.
+Qed.
 
 Theorem target_horizontal_distances_to_inside_ancient_pyramid_star :
   horizontal_distance2 ssl_pyramid_elevator
