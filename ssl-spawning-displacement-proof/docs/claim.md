@@ -71,10 +71,22 @@ The source-platform set itself has been widened from the first notes.  SSL area
 `bhvMessagePanel` wooden signpost surfaces.  A later pass found one more missed
 surface candidate, the `bhvCannonClosed` cannon lid.  Their fixed/built-in
 positions are also ruled out for both Area 1 -> Area 2 warps, and the cannon lid
-only spawns a non-surface cannon when opened.  The current route-level theorem
-is therefore `no_closed_world_ssl_spawning_displacement_route_to_spindel`: under
-the explicit closed world of original spawned surfaces, modeled source-platform
-transport, and investigated desync/clone leads, SSL cannot both seed
+only spawns a non-surface cannon when opened.
+
+Ordinary Mario speed is also ruled out as a way to split the seed and warp
+positions across frame phases.  Object collision detection samples the Mario
+object before normal Mario action movement; Mario processes warp interactions
+before that movement dispatch; and `update_mario_platform()` recomputes the
+pointer after MarioState is copied back to the Mario object.  So running from a
+source platform into a warp is too late for that frame's collision and gets
+recomputed at the warp-side position, while starting in the warp changes Mario
+to `ACT_DISAPPEARED` before normal movement can run.  This is formalized as
+`ordinary_mario_speed_cannot_replace_platform_warp_overlap`.
+
+The current route-level theorem is therefore
+`no_closed_world_ssl_spawning_displacement_route_to_spindel`: under the explicit
+closed world of original spawned surfaces, modeled source-platform transport,
+ordinary Mario speed, and investigated desync/clone leads, SSL cannot both seed
 `gMarioPlatform` at the warp and place that stale slot at Spindel's depth-60
 allocation position.  No remaining source-backed positive route candidate is
 currently known from the source audit.

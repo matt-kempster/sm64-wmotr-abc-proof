@@ -109,13 +109,26 @@ that bounded result.  This is intentionally not a global theorem against
 arbitrary memory corruption; it says the source-backed candidates found in this
 decomp pass do not provide the missing warp/platform overlap.
 
+`proofs/MarioSpeedWarp.v` closes the ordinary-speed loophole.  The generated JP
+Clight order facts show that object collision detection runs before non-terrain
+object updates, `bhv_mario_update()` executes Mario's action before copying
+MarioState position back to `gMarioObject`, and `execute_mario_action()`
+processes interactions before action movement dispatch.  Therefore ordinary
+horizontal speed cannot replace overlap: if Mario runs from a distant source
+platform into the warp, the warp collision was sampled too early and
+`update_mario_platform()` recomputes at the warp-side position; if Mario starts
+inside the non-fading warp and tries to run back onto a platform, the warp
+interaction changes Mario to `ACT_DISAPPEARED` before normal action movement.
+The theorem is `ordinary_mario_speed_cannot_replace_platform_warp_overlap`.
+
 `proofs/ClosedWorldDisproof.v` combines those obstruction layers.  Its theorem
 `no_closed_world_ssl_spawning_displacement_route_to_spindel` says that no route
 in the explicit closed world can both seed `gMarioPlatform` at an Area 1 ->
 Area 2 warp and satisfy the Spindel depth-60 reuse obligation.  The closed world
 is the union of original spawned surfaces, modeled source-platform transport,
-and the investigated desync/clone mechanisms.  The conditional inside-pyramid
-Spindel theorem remains available for any future mechanism outside that set.
+ordinary Mario speed, and the investigated desync/clone mechanisms.  The
+conditional inside-pyramid Spindel theorem remains available for any future
+mechanism outside that set.
 
 `proofs/CastleCheckpoint.v` handles the separate castle-painting checkpoint
 idea.  The source confirms that an active SSL checkpoint can redirect the castle
@@ -301,9 +314,12 @@ preserving the conditional Spindel theorem for any future source-backed seed.
 transport candidates: pyramid-top motion, Tox Box path motion, collision-loaded
 exclamation-box motion, large breakable-box fixed position, wooden-signpost
 fixed X/Z position, fake-object grab/drop, and no-drop held-box behavior.
-The closed-world theorem now packages these negatives; any remaining positive
-route would need a stronger, source-backed clone/transport or
-Mario/object-position desync mechanism than the ones modeled here.
+`proofs/MarioSpeedWarp.v` adds that ordinary Mario speed cannot bridge the
+distance either: collision is sampled before action movement, and the platform
+pointer is recomputed after action movement.  The closed-world theorem now
+packages these negatives; any remaining positive route would need a stronger,
+source-backed clone/transport or Mario/object-position desync mechanism than
+the ones modeled here.
 
 After that theorem was introduced, one outside-closed-world source-platform
 candidate was found: the closed cannon lid.  It has now been folded into the
@@ -346,5 +362,5 @@ only break into loot; the cannon lid only spawns the non-surface cannon.
 `proofs/ClosedWorldDisproof.v` is the current route-level conclusion:
 `no_closed_world_ssl_spawning_displacement_route_to_spindel` refutes the
 Spindel-depth route under the closed-world assumption that the seed must arise
-from one of the enumerated spawned-position, modeled-transport, or investigated
-desync/clone mechanisms.
+from one of the enumerated spawned-position, modeled-transport, ordinary-speed,
+or investigated desync/clone mechanisms.

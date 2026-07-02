@@ -4,7 +4,7 @@ From SSLSpawning.Generated Require Import
   jp_area jp_level_update jp_level_script jp_ssl_script
   jp_ssl_area1_macro jp_ssl_area2_macro jp_behavior_data
   jp_object_list_processor jp_platform_displacement jp_spawn_object
-  jp_obj_behaviors.
+  jp_obj_behaviors jp_mario jp_interaction.
 From SSLSpawning.Proofs Require Import ASTFacts.
 
 Import ListNotations.
@@ -23,6 +23,8 @@ Module SSL := jp_ssl_script.
 Module M1 := jp_ssl_area1_macro.
 Module M2 := jp_ssl_area2_macro.
 Module BD := jp_behavior_data.
+Module MJ := jp_mario.
+Module IX := jp_interaction.
 
 Definition id_clear_mario_platform : ident := $"clear_mario_platform".
 
@@ -155,6 +157,45 @@ Theorem generated_update_objects_call_order :
      O._unload_deactivated_objects;
      O._update_mario_platform]
     (direct_callees_s (fn_body O.f_update_objects)) = true.
+Proof.
+  vm_compute.
+  reflexivity.
+Qed.
+
+Theorem generated_update_objects_detects_collisions_before_nonterrain_update :
+  ident_subsequenceb
+    [O._detect_object_collisions;
+     O._update_non_terrain_objects;
+     O._update_mario_platform]
+    (direct_callees_s (fn_body O.f_update_objects)) = true.
+Proof.
+  vm_compute.
+  reflexivity.
+Qed.
+
+Theorem generated_bhv_mario_update_executes_action_before_copy :
+  ident_subsequenceb
+    [O._execute_mario_action; O._copy_mario_state_to_object]
+    (direct_callees_s (fn_body O.f_bhv_mario_update)) = true.
+Proof.
+  vm_compute.
+  reflexivity.
+Qed.
+
+Theorem generated_execute_mario_action_processes_interactions_before_action_dispatch :
+  ident_subsequenceb
+    [MJ._update_mario_inputs;
+     MJ._mario_process_interactions;
+     MJ._mario_execute_stationary_action]
+    (direct_callees_s (fn_body MJ.f_execute_mario_action)) = true.
+Proof.
+  vm_compute.
+  reflexivity.
+Qed.
+
+Theorem generated_nonfading_interact_warp_sets_mario_action :
+  calls_ident_s IX._set_mario_action
+    (fn_body IX.f_interact_warp) = true.
 Proof.
   vm_compute.
   reflexivity.

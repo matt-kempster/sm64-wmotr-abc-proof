@@ -82,6 +82,14 @@
   Spindel-depth seed obligation.  The theorem
   `no_modeled_transport_spindel_depth_route` rules out the current modeled
   mechanisms before the free-list depth condition can matter.
+- [x] Check the ordinary Mario-speed loophole.  Generated JP Clight order facts
+  show object collision detection occurs before non-terrain/Mario action
+  updates, `execute_mario_action()` processes interactions before normal action
+  movement dispatch, and `bhv_mario_update()` copies MarioState back to
+  `gMarioObject` before `update_mario_platform()`.  The theorem
+  `ordinary_mario_speed_cannot_replace_platform_warp_overlap` rules out using
+  speed alone to stand on a distant source platform and still trigger an
+  Area 1 -> Area 2 object warp with the stale platform pointer intact.
 - [x] Investigate Astral Projection Glitch as a Mario/object-position desync
   lead.  The proof records that visible-model desync alone is ignored by the
   seed checks: object hitbox collision and `update_mario_platform()` use
@@ -112,9 +120,10 @@
   exclamation boxes, large breakable boxes, wooden signposts, or the cannon
   lid.  No positive mechanism was found in the source-backed set considered
   here.  The spawned positions, modeled built-in/fake-object transport routes,
-  APG/tornado leads, direct post-copy writer candidate, and source-platform
-  spawned-clone audit are all ruled out in their modeled forms.  The project has
-  moved to a closed-world disproof under explicit assumptions:
+  ordinary Mario-speed timing, APG/tornado leads, direct post-copy writer
+  candidate, and source-platform spawned-clone audit are all ruled out in their
+  modeled forms.  The project has moved to a closed-world disproof under
+  explicit assumptions:
   `no_closed_world_ssl_spawning_displacement_route_to_spindel`.  Any remaining
   positive route must be outside the enumerated closed world.
 - [x] Search outside the first closed-world enumeration for missed

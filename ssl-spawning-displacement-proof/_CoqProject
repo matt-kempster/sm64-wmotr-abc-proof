@@ -32,6 +32,7 @@ proofs/ClonedPlatformWarp.v
 proofs/SSLStartCloneRoute.v
 proofs/SourcePlatformOverlap.v
 proofs/SourcePlatformTransport.v
+proofs/MarioSpeedWarp.v
 proofs/DesyncMechanismSearch.v
 proofs/CastleCheckpoint.v
 proofs/ClosedWorldDisproof.v
