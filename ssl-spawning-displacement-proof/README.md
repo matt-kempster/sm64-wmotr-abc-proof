@@ -33,27 +33,30 @@ conditions:
 - overlap one of the fixed Area 1 -> Area 2 warp hitboxes;
 - be within 4 units of an object-owned floor from a source platform.
 
-The relevant source platform kinds are `bhvPyramidTop`, `bhvToxBox`, and
-`bhvExclamationBox`.  These objects, and the warps, are all loaded from the level
-script or macro data at area start, so a proof must either find a real overlap,
-prove a source-backed clone/transport/desync mechanism, or rule the route out
-under explicitly modeled ordinary-position assumptions.
+The initial route notes focused on `bhvPyramidTop`, `bhvToxBox`, and
+`bhvExclamationBox`.  A later source audit widened the fixed area-1
+object-owned surface set to include the large no-coin `bhvBreakableBox` macros
+and `bhvMessagePanel` wooden signposts as well.  These objects, and the warps,
+are all loaded from the level script or macro data at area start, so a proof
+must either find a real overlap, prove a source-backed clone/transport/desync
+mechanism, or rule the route out under explicitly modeled ordinary-position
+assumptions.
 
 `proofs/SourcePlatformOverlap.v` now proves the first generalized outside
 result.  It models both fixed Area 1 -> Area 2 warp hitboxes and conservative
-bounding boxes for all three source platform kinds.  The theorem
+bounding boxes for the audited source-surface kinds.  The theorem
 `original_area1_seed_platforms_do_not_overlap_area1_to_area2_warps` shows that
-the pyramid top, all three Tox Boxes, and all five area-1 exclamation boxes do
-not overlap either warp as spawned.  Since these boxes over-approximate the
-relevant collision extents, the ordinary fixed-position seed is ruled out at
-this level of modeling.
+the pyramid top, all three Tox Boxes, all five area-1 exclamation boxes, the two
+large breakable boxes, and the three wooden signposts do not overlap either warp
+as spawned.  Since these boxes over-approximate the relevant collision extents,
+the ordinary fixed-position seed is ruled out at this level of modeling.
 
 It also proves
-`transported_source_platform_kind_bbox_can_overlap_top_entry_warp`: for any of
-the three source platform kinds, if gameplay could actually transport or clone
-that source platform surface to the top-entry warp height and position, the
-coarse platform/warp geometry would no longer block the seed.  This is a
-geometry witness only, not yet a source-backed transport route.
+`transported_source_platform_kind_bbox_can_overlap_top_entry_warp`: for any
+audited source-surface kind, if gameplay could actually transport or clone that
+source platform surface to the top-entry warp height and position, the coarse
+platform/warp geometry would no longer block the seed.  This is a geometry
+witness only, not yet a source-backed transport route.
 
 The same file also keeps the positive side conditional and generalized.  The
 theorem `any_area1_source_platform_seed_feeds_spindel_if_reused` says that if
@@ -69,6 +72,9 @@ models the ordinary source-backed mechanisms considered so far:
 
 - pyramid-top built-in motion;
 - all three Tox Box action-table path envelopes;
+- fixed large breakable-box envelopes;
+- fixed wooden-signpost X/Z envelopes, with broad Y because the behavior drops
+  them to floor;
 - exclamation-box collision-loaded motion;
 - fake-object grab/drop of a non-holdable exclamation box;
 - the no-drop held-box variant at the warp proper.
@@ -92,13 +98,22 @@ adds temporary offsets only for `obj_turn_toward_object()` and subtracts them
 before returning, and SSL area 1 has no butterfly or triplet-butterfly source.
 
 The same audit checks the source-platform clone side.  Pyramid top spawns only
-pillar touch detectors and dirt fragments; Tox Boxes do not spawn objects; and
-exclamation boxes spawn a fixed contents table of caps, shell, coins, 1-ups,
-and stars rather than another standable source-platform object.  The theorem
+pillar touch detectors and dirt fragments; Tox Boxes and wooden signposts do
+not spawn objects; exclamation boxes spawn a fixed contents table of caps,
+shell, coins, 1-ups, and stars; and large breakable boxes only break into loot,
+not another standable source-platform object.  The theorem
 `no_source_backed_memory_corruption_clone_candidate_found_in_audit` captures
 that bounded result.  This is intentionally not a global theorem against
 arbitrary memory corruption; it says the source-backed candidates found in this
 decomp pass do not provide the missing warp/platform overlap.
+
+`proofs/ClosedWorldDisproof.v` combines those obstruction layers.  Its theorem
+`no_closed_world_ssl_spawning_displacement_route_to_spindel` says that no route
+in the explicit closed world can both seed `gMarioPlatform` at an Area 1 ->
+Area 2 warp and satisfy the Spindel depth-60 reuse obligation.  The closed world
+is the union of original spawned surfaces, modeled source-platform transport,
+and the investigated desync/clone mechanisms.  The conditional inside-pyramid
+Spindel theorem remains available for any future mechanism outside that set.
 
 ## Source configuration
 
@@ -246,16 +261,18 @@ pyramid, while keeping the conditional inside-pyramid Spindel result as the
 expected consequence of any hypothetical outside seed.
 
 `proofs/SourcePlatformOverlap.v` extends that route search to pyramid top, Tox
-Boxes, and exclamation boxes together.  It proves that none of their original
-spawned positions has even bounding-box overlap with either Area 1 -> Area 2
-warp, while preserving the conditional Spindel theorem for any future
-source-backed seed.
+Boxes, exclamation boxes, large breakable boxes, and wooden signposts together.
+It proves that none of their original spawned positions has even bounding-box
+overlap with either Area 1 -> Area 2 warp, while preserving the conditional
+Spindel theorem for any future source-backed seed.
 
 `proofs/SourcePlatformTransport.v` further rules out the modeled ordinary
 transport candidates: pyramid-top motion, Tox Box path motion, collision-loaded
-exclamation-box motion, fake-object grab/drop, and no-drop held-box behavior.
-The remaining open route would need a stronger, source-backed clone/transport
-or Mario/object-position desync mechanism than the ones modeled here.
+exclamation-box motion, large breakable-box fixed position, wooden-signpost
+fixed X/Z position, fake-object grab/drop, and no-drop held-box behavior.
+The closed-world theorem now packages these negatives; any remaining positive
+route would need a stronger, source-backed clone/transport or
+Mario/object-position desync mechanism than the ones modeled here.
 
 `proofs/DesyncMechanismSearch.v` investigates the stronger leads currently
 under discussion:
@@ -285,5 +302,12 @@ That code temporarily offsets `gMarioObject->oPos`, calls
 `obj_turn_toward_object()`, then restores the position before returning; SSL
 area 1 also has no butterfly or triplet-butterfly source.  The clone/corruption
 audit checks the source platform behaviors themselves: pyramid top only spawns
-pillar detectors and fragments, Tox Boxes spawn nothing, and exclamation boxes
-spawn their fixed contents table, not another standable source platform.
+pillar detectors and fragments, Tox Boxes and signposts spawn nothing,
+exclamation boxes spawn their fixed contents table, and large breakable boxes
+only break into loot, not another standable source platform.
+
+`proofs/ClosedWorldDisproof.v` is the current route-level conclusion:
+`no_closed_world_ssl_spawning_displacement_route_to_spindel` refutes the
+Spindel-depth route under the closed-world assumption that the seed must arise
+from one of the enumerated spawned-position, modeled-transport, or investigated
+desync/clone mechanisms.

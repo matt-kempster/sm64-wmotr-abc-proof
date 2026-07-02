@@ -88,6 +88,72 @@ Inductive tox_box_builtin_motion_envelope_for :
     tox_box_builtin_motion_envelope_for
       ssl_tox_box_3 tox_box_3_builtin_motion_envelope.
 
+Definition breakable_box_1_builtin_motion_envelope : platform_center_envelope := {|
+  envelope_min_x := 5900;
+  envelope_max_x := 5900;
+  envelope_min_y := 51;
+  envelope_max_y := 51;
+  envelope_min_z := 4400;
+  envelope_max_z := 4400
+|}.
+
+Definition breakable_box_2_builtin_motion_envelope : platform_center_envelope := {|
+  envelope_min_x := 5900;
+  envelope_max_x := 5900;
+  envelope_min_y := 51;
+  envelope_max_y := 51;
+  envelope_min_z := 2311;
+  envelope_max_z := 2311
+|}.
+
+Inductive breakable_box_builtin_motion_envelope_for :
+    ssl_object -> platform_center_envelope -> Prop :=
+| BreakableBox1BuiltinMotionEnvelope :
+    breakable_box_builtin_motion_envelope_for
+      ssl_breakable_box_no_coins_1 breakable_box_1_builtin_motion_envelope
+| BreakableBox2BuiltinMotionEnvelope :
+    breakable_box_builtin_motion_envelope_for
+      ssl_breakable_box_no_coins_2 breakable_box_2_builtin_motion_envelope.
+
+Definition message_panel_1_builtin_motion_envelope : platform_center_envelope := {|
+  envelope_min_x := 5702;
+  envelope_max_x := 5702;
+  envelope_min_y := -100000;
+  envelope_max_y := 100000;
+  envelope_min_z := 2974;
+  envelope_max_z := 2974
+|}.
+
+Definition message_panel_2_builtin_motion_envelope : platform_center_envelope := {|
+  envelope_min_x := -3260;
+  envelope_max_x := -3260;
+  envelope_min_y := -100000;
+  envelope_max_y := 100000;
+  envelope_min_z := 800;
+  envelope_max_z := 800
+|}.
+
+Definition message_panel_3_builtin_motion_envelope : platform_center_envelope := {|
+  envelope_min_x := 5130;
+  envelope_max_x := 5130;
+  envelope_min_y := -100000;
+  envelope_max_y := 100000;
+  envelope_min_z := -370;
+  envelope_max_z := -370
+|}.
+
+Inductive message_panel_builtin_motion_envelope_for :
+    ssl_object -> platform_center_envelope -> Prop :=
+| MessagePanel1BuiltinMotionEnvelope :
+    message_panel_builtin_motion_envelope_for
+      ssl_message_panel_1 message_panel_1_builtin_motion_envelope
+| MessagePanel2BuiltinMotionEnvelope :
+    message_panel_builtin_motion_envelope_for
+      ssl_message_panel_2 message_panel_2_builtin_motion_envelope
+| MessagePanel3BuiltinMotionEnvelope :
+    message_panel_builtin_motion_envelope_for
+      ssl_message_panel_3 message_panel_3_builtin_motion_envelope.
+
 Theorem pyramid_top_builtin_motion_does_not_overlap_area1_to_area2_warps :
   forall warp,
     In warp ssl_area1_to_area2_warps ->
@@ -115,6 +181,36 @@ Proof.
     solve_no_platform_envelope_warp_overlap.
 Qed.
 
+Theorem breakable_box_builtin_motion_envelopes_do_not_overlap_area1_to_area2_warps :
+  forall obj envelope warp,
+    In obj ssl_area1_breakable_box_sources ->
+    breakable_box_builtin_motion_envelope_for obj envelope ->
+    In warp ssl_area1_to_area2_warps ->
+    ~ platform_envelope_overlaps_warp_bbox
+        envelope breakable_box_bbox warp cloned_route_mario_hitbox_height.
+Proof.
+  intros obj envelope warp Hobj Henvelope Hwarp.
+  destruct Hobj as [Hobj | [Hobj | []]]; subst obj;
+    inversion Henvelope; subst envelope;
+    destruct Hwarp as [Hwarp | [Hwarp | []]]; subst warp;
+    solve_no_platform_envelope_warp_overlap.
+Qed.
+
+Theorem message_panel_builtin_motion_envelopes_do_not_overlap_area1_to_area2_warps :
+  forall obj envelope warp,
+    In obj ssl_area1_message_panel_sources ->
+    message_panel_builtin_motion_envelope_for obj envelope ->
+    In warp ssl_area1_to_area2_warps ->
+    ~ platform_envelope_overlaps_warp_bbox
+        envelope message_panel_bbox warp cloned_route_mario_hitbox_height.
+Proof.
+  intros obj envelope warp Hobj Henvelope Hwarp.
+  destruct Hobj as [Hobj | [Hobj | [Hobj | []]]]; subst obj;
+    inversion Henvelope; subst envelope;
+    destruct Hwarp as [Hwarp | [Hwarp | []]]; subst warp;
+    solve_no_platform_envelope_warp_overlap.
+Qed.
+
 Definition exclamation_box_collision_loaded_position_is_home : bool := true.
 
 Theorem exclamation_box_collision_loaded_motion_does_not_overlap_area1_to_area2_warps :
@@ -133,6 +229,8 @@ Qed.
 Inductive modeled_source_platform_transport : Type :=
 | BuiltInPyramidTopMotion
 | BuiltInToxBoxMotion
+| BuiltInBreakableBoxMotion
+| BuiltInMessagePanelMotion
 | BuiltInExclamationBoxCollisionMotion
 | FakeObjectGrabDropExclamationBox
 | NoDropHeldExclamationBox.
@@ -153,6 +251,20 @@ Definition modeled_transport_can_leave_standable_surface_at_area2_warp
         In warp ssl_area1_to_area2_warps /\
         platform_envelope_overlaps_warp_bbox
           envelope tox_box_bbox warp cloned_route_mario_hitbox_height
+  | BuiltInBreakableBoxMotion =>
+      exists obj envelope warp,
+        In obj ssl_area1_breakable_box_sources /\
+        breakable_box_builtin_motion_envelope_for obj envelope /\
+        In warp ssl_area1_to_area2_warps /\
+        platform_envelope_overlaps_warp_bbox
+          envelope breakable_box_bbox warp cloned_route_mario_hitbox_height
+  | BuiltInMessagePanelMotion =>
+      exists obj envelope warp,
+        In obj ssl_area1_message_panel_sources /\
+        message_panel_builtin_motion_envelope_for obj envelope /\
+        In warp ssl_area1_to_area2_warps /\
+        platform_envelope_overlaps_warp_bbox
+          envelope message_panel_bbox warp cloned_route_mario_hitbox_height
   | BuiltInExclamationBoxCollisionMotion =>
       exists obj warp,
         In obj ssl_area1_exclamation_box_sources /\
@@ -178,6 +290,14 @@ Proof.
   - destruct Hseed as (obj & envelope & warp & Hobj & Henvelope & Hwarp & Hoverlap).
     exact
       (tox_box_builtin_motion_envelopes_do_not_overlap_area1_to_area2_warps
+        obj envelope warp Hobj Henvelope Hwarp Hoverlap).
+  - destruct Hseed as (obj & envelope & warp & Hobj & Henvelope & Hwarp & Hoverlap).
+    exact
+      (breakable_box_builtin_motion_envelopes_do_not_overlap_area1_to_area2_warps
+        obj envelope warp Hobj Henvelope Hwarp Hoverlap).
+  - destruct Hseed as (obj & envelope & warp & Hobj & Henvelope & Hwarp & Hoverlap).
+    exact
+      (message_panel_builtin_motion_envelopes_do_not_overlap_area1_to_area2_warps
         obj envelope warp Hobj Henvelope Hwarp Hoverlap).
   - destruct Hseed as (obj & warp & Hobj & Hwarp & Hoverlap).
     destruct exclamation_box_collision_loaded_motion_does_not_overlap_area1_to_area2_warps

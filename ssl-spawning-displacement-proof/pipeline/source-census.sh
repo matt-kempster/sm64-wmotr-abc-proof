@@ -27,18 +27,22 @@ update_source="$SOURCE_ROOT/src/game/object_list_processor.c"
 ssl_script="$SOURCE_ROOT/levels/ssl/script.c"
 ssl_area1_macro="$SOURCE_ROOT/levels/ssl/areas/1/macro.inc.c"
 ssl_area2_macro="$SOURCE_ROOT/levels/ssl/areas/2/macro.inc.c"
+macro_presets="$SOURCE_ROOT/include/macro_presets.inc.c"
 spindel="$SOURCE_ROOT/src/game/behaviors/spindel.inc.c"
 pyramid_top="$SOURCE_ROOT/src/game/behaviors/pyramid_top.inc.c"
 tox_box="$SOURCE_ROOT/src/game/behaviors/tox_box.inc.c"
 tweester="$SOURCE_ROOT/src/game/behaviors/tweester.inc.c"
 butterfly="$SOURCE_ROOT/src/game/behaviors/butterfly.inc.c"
 triplet_butterfly="$SOURCE_ROOT/src/game/behaviors/triplet_butterfly.inc.c"
+breakable_box="$SOURCE_ROOT/src/game/behaviors/breakable_box.inc.c"
 behavior_data="$SOURCE_ROOT/data/behavior_data.c"
 exclamation_box="$SOURCE_ROOT/src/game/behaviors/exclamation_box.inc.c"
 surface_load="$SOURCE_ROOT/src/engine/surface_load.c"
 exclamation_box_collision="$SOURCE_ROOT/actors/exclamation_box_outline/collision.inc.c"
 pyramid_top_collision="$SOURCE_ROOT/levels/ssl/pyramid_top/collision.inc.c"
 tox_box_collision="$SOURCE_ROOT/levels/ssl/tox_box/collision.inc.c"
+breakable_box_collision="$SOURCE_ROOT/actors/breakable_box/collision.inc.c"
+message_panel_collision="$SOURCE_ROOT/actors/wooden_signpost/collision.inc.c"
 interaction="$SOURCE_ROOT/src/game/interaction.c"
 object_collision="$SOURCE_ROOT/src/game/object_collision.c"
 object_helpers="$SOURCE_ROOT/src/game/object_helpers.c"
@@ -140,6 +144,13 @@ require_pattern "$ssl_area1_macro" 'macro_box_wing_cap.*-3000,[[:space:]]*500,[[
 require_pattern "$ssl_area1_macro" 'macro_box_koopa_shell.*5840,[[:space:]]*940,[[:space:]]*2500'
 require_pattern "$ssl_area1_macro" 'macro_box_wing_cap.*5860,[[:space:]]*940,[[:space:]]*4180'
 require_pattern "$ssl_area1_macro" 'macro_box_1up_running_away.*-1200,[[:space:]]*500,[[:space:]]*800'
+require_pattern "$ssl_area1_macro" 'macro_breakable_box_no_coins.*5900,[[:space:]]*51,[[:space:]]*4400'
+require_pattern "$ssl_area1_macro" 'macro_breakable_box_no_coins.*5900,[[:space:]]*51,[[:space:]]*2311'
+require_pattern "$ssl_area1_macro" 'macro_wooden_signpost.*5702,[[:space:]]*614,[[:space:]]*2974'
+require_pattern "$ssl_area1_macro" 'macro_wooden_signpost.*-3260,[[:space:]]*256,[[:space:]]*800'
+require_pattern "$ssl_area1_macro" 'macro_wooden_signpost.*5130,[[:space:]]*26,[[:space:]]*-370'
+require_pattern "$macro_presets" 'macro_breakable_box_no_coins.*bhvBreakableBox.*MODEL_BREAKABLE_BOX'
+require_pattern "$macro_presets" 'macro_wooden_signpost.*bhvMessagePanel.*MODEL_WOODEN_SIGNPOST'
 require_pattern "$spindel" 'o->oVelZ = 20 / sp18;'
 require_pattern "$spindel" 'o->oAngleVelPitch = 1024 / sp18;'
 require_pattern "$spindel" 'o->oVelZ = -20 / sp18;'
@@ -220,6 +231,19 @@ require_order "$behavior_data" \
   'SET_FLOAT\(oCollisionDistance, 300\)' \
   'CALL_NATIVE\(bhv_exclamation_box_loop\)'
 require_order "$behavior_data" \
+  '^const BehaviorScript bhvBreakableBox\[\]' \
+  'BEGIN\(OBJ_LIST_SURFACE\)' \
+  'LOAD_COLLISION_DATA\(breakable_box_seg8_collision_08012D70\)' \
+  'SET_FLOAT\(oCollisionDistance, 500\)' \
+  'CALL_NATIVE\(bhv_breakable_box_loop\)' \
+  'CALL_NATIVE\(load_object_collision_model\)'
+require_order "$behavior_data" \
+  '^const BehaviorScript bhvMessagePanel\[\]' \
+  'BEGIN\(OBJ_LIST_SURFACE\)' \
+  'LOAD_COLLISION_DATA\(wooden_signpost_seg3_collision_0302DD80\)' \
+  'DROP_TO_FLOOR\(\)' \
+  'CALL_NATIVE\(load_object_collision_model\)'
+require_order "$behavior_data" \
   '^const BehaviorScript bhvWarp\[\]' \
   'BEGIN\(OBJ_LIST_LEVEL\)' \
   'SET_INT\(oInteractType, INTERACT_WARP\)' \
@@ -241,6 +265,13 @@ require_order "$exclamation_box" \
 require_order "$exclamation_box" \
   '^void exclamation_box_act_3\(void\)' \
   'cur_obj_move_using_fvel_and_gravity\(\);'
+require_order "$breakable_box" \
+  '^void bhv_breakable_box_loop\(void\)' \
+  'obj_set_hitbox\(o, &sBreakableBoxHitbox\);' \
+  'cur_obj_set_model\(MODEL_BREAKABLE_BOX_SMALL\);' \
+  'breakable_box_init\(\);' \
+  'cur_obj_was_attacked_or_ground_pounded\(\)'
+require_absent "$breakable_box" 'o->oPos[XYZ][[:space:]]*[-+]?='
 require_order "$exclamation_box" \
   '^struct ExclamationBoxContents sExclamationBoxContents\[\]' \
   'bhvWingCap' \
@@ -390,5 +421,9 @@ require_pattern "$pyramid_top_collision" 'COL_VERTEX\(0, 256, 0\)'
 require_pattern "$tox_box_collision" 'COL_VERTEX\(-255, 256, 256\)'
 require_pattern "$tox_box_collision" 'COL_VERTEX\(256, 256, -255\)'
 require_pattern "$tox_box_collision" 'COL_VERTEX\(256, -255, -255\)'
+require_pattern "$breakable_box_collision" 'COL_VERTEX\(-100, 0, -100\)'
+require_pattern "$breakable_box_collision" 'COL_VERTEX\(100, 200, 100\)'
+require_pattern "$message_panel_collision" 'COL_VERTEX\(-44, -9, -12\)'
+require_pattern "$message_panel_collision" 'COL_VERTEX\(45, 126, 20\)'
 
 echo "JP spawning displacement source census matches expected source facts."

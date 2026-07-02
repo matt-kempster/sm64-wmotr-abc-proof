@@ -9,6 +9,8 @@ Inductive object_kind : Type :=
 | KindPyramidTop
 | KindToxBox
 | KindExclamationBox
+| KindBreakableBox
+| KindMessagePanel
 | KindPyramidElevator
 | KindMovingPyramidWall
 | KindSpindel

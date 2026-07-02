@@ -151,9 +151,11 @@ Qed.
 Inductive audited_source_platform_clone_candidate : Type :=
 | PyramidTopPillarTouchDetector
 | PyramidTopFragment
-| ExclamationBoxSpawnedContents.
+| ExclamationBoxSpawnedContents
+| BreakableBoxSpawnedCoins.
 
 Definition tox_box_spawns_objects : bool := false.
+Definition message_panel_spawns_objects : bool := false.
 
 Definition audited_clone_candidate_is_standable_source_platform_surface
     (candidate : audited_source_platform_clone_candidate) : bool :=
@@ -161,6 +163,7 @@ Definition audited_clone_candidate_is_standable_source_platform_surface
   | PyramidTopPillarTouchDetector => false
   | PyramidTopFragment => false
   | ExclamationBoxSpawnedContents => false
+  | BreakableBoxSpawnedCoins => false
   end.
 
 Definition audited_source_platform_clone_candidate_can_seed_overlap
@@ -169,11 +172,18 @@ Definition audited_source_platform_clone_candidate_can_seed_overlap
 
 Definition source_backed_memory_corruption_clone_route_found_in_audit : Prop :=
   tox_box_spawns_objects = true \/
+  message_panel_spawns_objects = true \/
   exists candidate,
     audited_source_platform_clone_candidate_can_seed_overlap candidate.
 
 Theorem tox_box_behavior_spawns_no_clone_candidate :
   tox_box_spawns_objects = false.
+Proof.
+  reflexivity.
+Qed.
+
+Theorem message_panel_behavior_spawns_no_clone_candidate :
+  message_panel_spawns_objects = false.
 Proof.
   reflexivity.
 Qed.
@@ -188,8 +198,10 @@ Qed.
 Theorem no_source_backed_memory_corruption_clone_candidate_found_in_audit :
   ~ source_backed_memory_corruption_clone_route_found_in_audit.
 Proof.
-  intros [Htox | [candidate Hcandidate]].
+  intros [Htox | [Hmessage | [candidate Hcandidate]]].
   - unfold tox_box_spawns_objects in Htox.
+    discriminate.
+  - unfold message_panel_spawns_objects in Hmessage.
     discriminate.
   - exact
       (audited_source_platform_behaviors_do_not_spawn_standable_clone
