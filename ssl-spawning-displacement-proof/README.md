@@ -230,6 +230,11 @@ Spindel stale displacement gives approximately `(0, 5458, 344)`, about 981
 horizontal units from the star.  Thus the first Spindel effect is real, but it
 does not move Mario closer to "Inside the Ancient Pyramid."
 
+That top-entry spawn is airborne above the pyramid elevator, not on a pyramid
+floor.  The elevator is at `(0, 4966, 256)`, its modeled top surface is at
+world `y = 5222`, and the top-entry Mario spawn shares its X/Z while sitting
+`278` units above that top surface.
+
 The generated-Clight grounding is now explicit.  `proofs/GeneratedClightFacts.v`
 exports `generated_jp_clight_source_certificate`, a `vm_compute` certificate
 over the JP `generated/jp_*.v` modules for the central source facts: JP spawn

@@ -77,6 +77,11 @@ in `TargetPlatformEffects.v`.
   about 981 horizontal units and 1062 three-dimensional units from the star.
   So the first Spindel displacement moves Mario slightly farther from the star,
   not closer.
+- This top-entry spawn is above the pyramid elevator, not on it.  The elevator
+  object is at `(0, 4966, 256)`, its modeled top surface is at world
+  `y = 5222`, and Mario spawns at the same X/Z but `278` units above that top
+  surface.  He is therefore airborne over the elevator shaft, not standing on
+  the elevator or on a static pyramid floor.
 - For the lower-entry destination node, Mario spawns at `(0, 300, 6451)`, about
   6969 horizontal units and 8434 three-dimensional units from the star.
   Spindel's first stale displacement leaves him roughly 6927 horizontal units
