@@ -1,5 +1,5 @@
-From Coq Require Import Bool List PArith.BinPos.
-From compcert Require Import AST Ctypes Clight.
+From Coq Require Import Bool List PArith.BinPos ZArith.
+From compcert Require Import AST Ctypes Clight Integers.
 
 Import ListNotations.
 
@@ -48,12 +48,28 @@ Fixpoint expression_mentions_ident (needle : ident) (e : expr) : bool :=
   | Evar id _ => Pos.eqb id needle
   | Etempvar id _ => Pos.eqb id needle
   | Ederef inner _ | Eaddrof inner _ | Eunop _ inner _
-  | Ecast inner _ | Efield inner _ _ =>
+  | Ecast inner _ =>
       expression_mentions_ident needle inner
+  | Efield inner field _ =>
+      expression_mentions_ident needle inner || Pos.eqb field needle
   | Ebinop _ lhs rhs _ =>
       expression_mentions_ident needle lhs ||
       expression_mentions_ident needle rhs
   | Esizeof _ _ | Ealignof _ _ | Econst_int _ _
+  | Econst_float _ _ | Econst_single _ _ | Econst_long _ _ =>
+      false
+  end.
+
+Fixpoint expression_mentions_int (needle : Z) (e : expr) : bool :=
+  match e with
+  | Econst_int found _ => Int.eq found (Int.repr needle)
+  | Ederef inner _ | Eaddrof inner _ | Eunop _ inner _
+  | Ecast inner _ | Efield inner _ _ =>
+      expression_mentions_int needle inner
+  | Ebinop _ lhs rhs _ =>
+      expression_mentions_int needle lhs ||
+      expression_mentions_int needle rhs
+  | Evar _ _ | Etempvar _ _ | Esizeof _ _ | Ealignof _ _
   | Econst_float _ _ | Econst_single _ _ | Econst_long _ _ =>
       false
   end.
@@ -95,6 +111,44 @@ with statement_mentions_ident_ls
   | LScons _ body rest =>
       statement_mentions_ident_s needle body ||
       statement_mentions_ident_ls needle rest
+  end.
+
+Fixpoint statement_mentions_int_s (needle : Z) (s : statement) : bool :=
+  match s with
+  | Sskip => false
+  | Sassign lhs rhs =>
+      expression_mentions_int needle lhs || expression_mentions_int needle rhs
+  | Sset _ rhs => expression_mentions_int needle rhs
+  | Scall _ fn args =>
+      expression_mentions_int needle fn ||
+      existsb (expression_mentions_int needle) args
+  | Sbuiltin _ _ _ args =>
+      existsb (expression_mentions_int needle) args
+  | Ssequence s1 s2 =>
+      statement_mentions_int_s needle s1 ||
+      statement_mentions_int_s needle s2
+  | Sifthenelse cond s1 s2 =>
+      expression_mentions_int needle cond ||
+      statement_mentions_int_s needle s1 ||
+      statement_mentions_int_s needle s2
+  | Sloop s1 s2 =>
+      statement_mentions_int_s needle s1 ||
+      statement_mentions_int_s needle s2
+  | Sbreak | Scontinue | Sreturn None => false
+  | Sreturn (Some e) => expression_mentions_int needle e
+  | Sswitch e cases =>
+      expression_mentions_int needle e ||
+      statement_mentions_int_ls needle cases
+  | Slabel _ body => statement_mentions_int_s needle body
+  | Sgoto _ => false
+  end
+with statement_mentions_int_ls
+       (needle : Z) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      statement_mentions_int_s needle body ||
+      statement_mentions_int_ls needle rest
   end.
 
 Fixpoint assigns_field_named_s (field : ident) (s : statement) : bool :=
@@ -153,3 +207,45 @@ Fixpoint ident_subsequenceb (needle haystack : list ident) : bool :=
           else ident_subsequenceb needle haystack_rest
       end
   end.
+
+Definition initializer_mentions_addrof
+    (needle : ident) (data : init_data) : bool :=
+  match data with
+  | Init_addrof found _ => Pos.eqb found needle
+  | _ => false
+  end.
+
+Definition initializer_mentions_int (needle : Z) (data : init_data) : bool :=
+  match data with
+  | Init_int8 found | Init_int16 found | Init_int32 found =>
+      Int.eq found (Int.repr needle)
+  | _ => false
+  end.
+
+Definition initializer_list_mentions_addrof
+    (needle : ident) (init : list init_data) : bool :=
+  existsb (initializer_mentions_addrof needle) init.
+
+Definition initializer_list_mentions_int
+    (needle : Z) (init : list init_data) : bool :=
+  existsb (initializer_mentions_int needle) init.
+
+Definition initializer_addrofs (init : list init_data) : list ident :=
+  fold_right
+    (fun data acc =>
+       match data with
+       | Init_addrof found _ => found :: acc
+       | _ => acc
+       end)
+    [] init.
+
+Definition program_global_initializer
+    (program : Clight.program) (needle : ident) : option (list init_data) :=
+  fold_right
+    (fun definition acc =>
+       match definition with
+       | (found, Gvar variable) =>
+           if Pos.eqb found needle then Some (gvar_init variable) else acc
+       | _ => acc
+       end)
+    None (prog_defs program).

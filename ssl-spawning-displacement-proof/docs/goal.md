@@ -15,6 +15,15 @@ The core engine theorem remains:
 5. If the reused object is Spindel in an active movement state, the displacement
    uses nonzero `oVelZ` and `oAngleVelPitch` from that Spindel object.
 
+The core engine/source facts are now backed by generated JP Clight certificates.
+`proofs/GeneratedClightFacts.v` proves `vm_compute` facts over the generated
+`jp_*.v` modules and packages them as
+`generated_jp_clight_source_certificate`.  `proofs/ClightCapstone.v` then proves
+`generated_jp_clight_conditional_spindel_capstone` and
+`generated_jp_clight_concrete_spindel_depth_capstone`, lifting the conditional
+Spindel result through that generated source certificate.  This is a Clight
+AST/source-certificate bridge, not a full CompCert small-step execution proof.
+
 The main open route question is outside the pyramid: can area 1 put Mario in an
 Area 1 -> Area 2 warp hitbox while `update_mario_platform()` also sees an
 object-owned floor from an area-1 source platform?
