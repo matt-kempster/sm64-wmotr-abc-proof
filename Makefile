@@ -30,7 +30,8 @@ GENERATED := generated/toy.v generated/shadow.v \
   generated/interaction.v \
   generated/mario_actions_submerged.v generated/mario_actions_stationary.v \
   generated/mario_actions_cutscene.v generated/mario_actions_object.v \
-  generated/mario_step.v generated/mario_misc.v
+  generated/mario_step.v generated/mario_misc.v \
+  generated/math_util.v generated/surface_collision.v
 
 .PHONY: all generated proofs regen clean
 
@@ -91,6 +92,18 @@ generated/mario_step.v: $(SM64)/src/game/mario_step.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(SM64_CG)
 
 generated/mario_misc.v: $(SM64)/src/game/mario_misc.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+# The C1 boundary shrink (director-roadmap-2026-07-01 P1): the two engine TUs
+# whose bodies stand behind ~16 assumed call_pres_ext_* rows on the capstone
+# (vec3f_*/approach_*/atan2s in math_util.c; find_floor/find_ceil/
+# find_wall_collisions/find_water_level in surface_collision.c). clightgen'ing
+# them makes those functions Internal in lp, so the gated specs become WALKED
+# lemmas instead of trust rows.
+generated/math_util.v: $(SM64)/src/engine/math_util.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/surface_collision.v: $(SM64)/src/engine/surface_collision.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(SM64_CG)
 
 $(COQMAKEFILE): _CoqProject

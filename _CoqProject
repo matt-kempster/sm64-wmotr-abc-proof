@@ -20,6 +20,8 @@ generated/mario_actions_cutscene.v
 generated/mario_actions_object.v
 generated/mario_step.v
 generated/mario_misc.v
+generated/math_util.v
+generated/surface_collision.v
 
 # --- shared infrastructure (used by GOAL 1; reusable) ---
 proofs/Generic/Frame.v
