@@ -43,10 +43,10 @@
   Mario to `ACT_DISAPPEARED`, so `act_picking_up()` does not run.
 - [x] Generalize the outside seed search from exclamation boxes to the audited
   area-1 source-surface kinds: pyramid top, Tox Boxes, exclamation boxes, large
-  breakable boxes, and wooden signposts.
+  breakable boxes, wooden signposts, and the closed cannon lid.
 - [x] Model the fixed Area 1 -> Area 2 warps and conservative platform
   bounding boxes for pyramid top, Tox Boxes, exclamation boxes, large breakable
-  boxes, and wooden signposts.
+  boxes, wooden signposts, and the closed cannon lid.
 - [x] Prove the conservative fixed-position overlap result: as spawned, none of
   the area-1 source platform bounding boxes overlaps either Area 1 -> Area 2
   warp hitbox.  Because these boxes over-approximate the relevant collision
@@ -64,7 +64,8 @@
   oscillates slightly in X and then rises/spins; Tox Boxes follow bounded
   table-driven paths; exclamation boxes load collision only while at their
   source position; large breakable boxes are fixed; wooden signposts are fixed
-  in X/Z after `DROP_TO_FLOOR`.  The theorem
+  in X/Z after `DROP_TO_FLOOR`; the cannon lid only drops slightly and slides in
+  X before deactivating.  The theorem
   `modeled_source_platform_transport_mechanisms_do_not_seed_warp` proves these
   modeled routes do not leave a standable source-platform surface at either
   Area 1 -> Area 2 warp.
@@ -92,20 +93,25 @@
   `gMarioObject->oPos` before returning and SSL has no butterfly source.
   Pyramid top spawns only detector/fragment children, Tox Boxes spawn no
   objects, exclamation boxes spawn only their fixed contents table, large
-  breakable boxes only break into loot, and wooden signposts spawn no objects.
-  The theorem `investigated_desync_mechanisms_do_not_currently_seed_overlap`
-  now includes these audited candidate families.
+  breakable boxes only break into loot, wooden signposts spawn no objects, and
+  the cannon lid spawns a non-surface cannon.  The theorem
+  `investigated_desync_mechanisms_do_not_currently_seed_overlap` now includes
+  these audited candidate families.
 - [x] Resolve the clone/transport/desync route search for a standable
   source-platform surface at an Area 1 -> Area 2 warp while placing that slot at
   Spindel's depth-60 allocation position.  This may use pyramid top, Tox Boxes,
-  exclamation boxes, large breakable boxes, or wooden signposts.  No positive
-  mechanism was found in the source-backed set considered here.  The spawned
-  positions, modeled built-in/fake-object transport routes, APG/tornado leads,
-  direct post-copy writer candidate, and source-platform spawned-clone audit are
-  all ruled out in their modeled forms.  The project has moved to a closed-world
-  disproof under explicit assumptions:
+  exclamation boxes, large breakable boxes, wooden signposts, or the cannon
+  lid.  No positive mechanism was found in the source-backed set considered
+  here.  The spawned positions, modeled built-in/fake-object transport routes,
+  APG/tornado leads, direct post-copy writer candidate, and source-platform
+  spawned-clone audit are all ruled out in their modeled forms.  The project has
+  moved to a closed-world disproof under explicit assumptions:
   `no_closed_world_ssl_spawning_displacement_route_to_spindel`.  Any remaining
   positive route must be outside the enumerated closed world.
+- [x] Search outside the first closed-world enumeration for missed
+  source-backed positive routes.  Found one missed source-platform candidate,
+  `bhvCannonClosed`; folded it into the model and ruled it out.  No remaining
+  source-backed positive route candidate was found in this pass.
 - [x] If no such mechanism exists, reframe the final result as a disproof of
   SSL spawning displacement under the modeled ordinary gameplay assumptions,
   while retaining the conditional inside-pyramid Spindel theorem.

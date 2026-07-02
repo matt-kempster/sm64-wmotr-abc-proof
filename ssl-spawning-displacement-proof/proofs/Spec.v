@@ -11,6 +11,7 @@ Inductive object_kind : Type :=
 | KindExclamationBox
 | KindBreakableBox
 | KindMessagePanel
+| KindCannonLid
 | KindPyramidElevator
 | KindMovingPyramidWall
 | KindSpindel

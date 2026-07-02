@@ -92,6 +92,14 @@ Definition message_panel_bbox : platform_bbox := {|
   platform_bbox_max_relative_y := 126
 |}.
 
+Definition cannon_lid_bbox : platform_bbox := {|
+  platform_bbox_kind := KindCannonLid;
+  platform_bbox_half_x := 112;
+  platform_bbox_half_z := 112;
+  platform_bbox_min_relative_y := 0;
+  platform_bbox_max_relative_y := 0
+|}.
+
 Definition point_in_platform_bbox
     (obj : ssl_object) (bbox : platform_bbox) (x y z : Z) : Prop :=
   within_axis x (ssl_object_x obj) (platform_bbox_half_x bbox) /\
@@ -221,6 +229,13 @@ Definition ssl_area1_message_panel_sources : list ssl_object := [
   ssl_message_panel_3
 ].
 
+Definition ssl_cannon_lid : ssl_object := {|
+  ssl_object_kind := KindCannonLid;
+  ssl_object_x := 6863;
+  ssl_object_y := 0;
+  ssl_object_z := -6860
+|}.
+
 Theorem original_breakable_boxes_do_not_overlap_area1_to_area2_warps :
   forall obj warp,
     In obj ssl_area1_breakable_box_sources ->
@@ -244,6 +259,17 @@ Proof.
   intros obj warp Hobj Hwarp.
   destruct Hobj as [Hobj | [Hobj | [Hobj | []]]]; subst obj;
     destruct Hwarp as [Hwarp | [Hwarp | []]]; subst warp;
+    solve_no_platform_warp_bbox_overlap.
+Qed.
+
+Theorem original_cannon_lid_does_not_overlap_area1_to_area2_warps :
+  forall warp,
+    In warp ssl_area1_to_area2_warps ->
+    ~ platform_bbox_overlaps_warp_bbox
+        ssl_cannon_lid cannon_lid_bbox warp cloned_route_mario_hitbox_height.
+Proof.
+  intros warp Hwarp.
+  destruct Hwarp as [Hwarp | [Hwarp | []]]; subst warp;
     solve_no_platform_warp_bbox_overlap.
 Qed.
 
@@ -272,7 +298,12 @@ Theorem original_area1_seed_platforms_do_not_overlap_area1_to_area2_warps :
       In obj ssl_area1_message_panel_sources ->
       In warp ssl_area1_to_area2_warps ->
       ~ platform_bbox_overlaps_warp_bbox
-          obj message_panel_bbox warp cloned_route_mario_hitbox_height).
+          obj message_panel_bbox warp cloned_route_mario_hitbox_height) /\
+  (forall warp,
+      In warp ssl_area1_to_area2_warps ->
+      ~ platform_bbox_overlaps_warp_bbox
+          ssl_cannon_lid cannon_lid_bbox warp
+          cloned_route_mario_hitbox_height).
 Proof.
   repeat split.
   - intros warp Hwarp.
@@ -283,6 +314,7 @@ Proof.
   - apply original_exclamation_boxes_do_not_overlap_area1_to_area2_warps.
   - apply original_breakable_boxes_do_not_overlap_area1_to_area2_warps.
   - apply original_message_panels_do_not_overlap_area1_to_area2_warps.
+  - apply original_cannon_lid_does_not_overlap_area1_to_area2_warps.
 Qed.
 
 Definition original_area1_source_platform_overlap : Prop :=
@@ -310,25 +342,31 @@ Definition original_area1_source_platform_overlap : Prop :=
       In obj ssl_area1_message_panel_sources /\
       In warp ssl_area1_to_area2_warps /\
       platform_bbox_overlaps_warp_bbox
-        obj message_panel_bbox warp cloned_route_mario_hitbox_height).
+        obj message_panel_bbox warp cloned_route_mario_hitbox_height) \/
+  (exists warp,
+      In warp ssl_area1_to_area2_warps /\
+      platform_bbox_overlaps_warp_bbox
+        ssl_cannon_lid cannon_lid_bbox warp cloned_route_mario_hitbox_height).
 
 Theorem original_area1_source_platform_overlap_is_impossible :
   ~ original_area1_source_platform_overlap.
 Proof.
   intros Hoverlap.
   destruct original_area1_seed_platforms_do_not_overlap_area1_to_area2_warps
-    as [Hpyramid [Htox [Hexclamation [Hbreakable Hmessage]]]].
+    as [Hpyramid [Htox [Hexclamation [Hbreakable [Hmessage Hcannon]]]]].
   destruct Hoverlap as
     [(warp & Hwarp & Hoverlap) |
      [(obj & warp & Hobj & Hwarp & Hoverlap) |
       [(obj & warp & Hobj & Hwarp & Hoverlap) |
        [(obj & warp & Hobj & Hwarp & Hoverlap) |
-        (obj & warp & Hobj & Hwarp & Hoverlap)]]]].
+        [(obj & warp & Hobj & Hwarp & Hoverlap) |
+         (warp & Hwarp & Hoverlap)]]]]].
   - exact (Hpyramid warp Hwarp Hoverlap).
   - exact (Htox obj warp Hobj Hwarp Hoverlap).
   - exact (Hexclamation obj warp Hobj Hwarp Hoverlap).
   - exact (Hbreakable obj warp Hobj Hwarp Hoverlap).
   - exact (Hmessage obj warp Hobj Hwarp Hoverlap).
+  - exact (Hcannon warp Hwarp Hoverlap).
 Qed.
 
 Definition cloned_pyramid_top_at_top_warp : ssl_object := {|
@@ -357,6 +395,7 @@ Definition area1_source_platform_kind (kind : object_kind) : bool :=
   | KindExclamationBox => true
   | KindBreakableBox => true
   | KindMessagePanel => true
+  | KindCannonLid => true
   | _ => false
   end.
 
@@ -368,6 +407,7 @@ Definition platform_bbox_for_source_platform_kind
   | KindExclamationBox => exclamation_box_bbox
   | KindBreakableBox => breakable_box_bbox
   | KindMessagePanel => message_panel_bbox
+  | KindCannonLid => cannon_lid_bbox
   | _ => exclamation_box_bbox
   end.
 

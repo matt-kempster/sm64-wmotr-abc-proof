@@ -152,7 +152,8 @@ Inductive audited_source_platform_clone_candidate : Type :=
 | PyramidTopPillarTouchDetector
 | PyramidTopFragment
 | ExclamationBoxSpawnedContents
-| BreakableBoxSpawnedCoins.
+| BreakableBoxSpawnedCoins
+| CannonLidSpawnedCannon.
 
 Definition tox_box_spawns_objects : bool := false.
 Definition message_panel_spawns_objects : bool := false.
@@ -164,6 +165,7 @@ Definition audited_clone_candidate_is_standable_source_platform_surface
   | PyramidTopFragment => false
   | ExclamationBoxSpawnedContents => false
   | BreakableBoxSpawnedCoins => false
+  | CannonLidSpawnedCannon => false
   end.
 
 Definition audited_source_platform_clone_candidate_can_seed_overlap
