@@ -59,10 +59,13 @@ to a closed-world disproof under explicit ordinary-gameplay assumptions.
 
 The source-platform set itself has been widened from the first notes.  SSL area
 1 also has two large no-coin `bhvBreakableBox` surfaces and three
-`bhvMessagePanel` wooden signpost surfaces.  Their fixed/built-in positions are
-also ruled out for both Area 1 -> Area 2 warps.  The current route-level theorem
+`bhvMessagePanel` wooden signpost surfaces.  A later pass found one more missed
+surface candidate, the `bhvCannonClosed` cannon lid.  Their fixed/built-in
+positions are also ruled out for both Area 1 -> Area 2 warps, and the cannon lid
+only spawns a non-surface cannon when opened.  The current route-level theorem
 is therefore `no_closed_world_ssl_spawning_displacement_route_to_spindel`: under
 the explicit closed world of original spawned surfaces, modeled source-platform
 transport, and investigated desync/clone leads, SSL cannot both seed
 `gMarioPlatform` at the warp and place that stale slot at Spindel's depth-60
-allocation position.
+allocation position.  No remaining source-backed positive route candidate is
+currently known from the source audit.

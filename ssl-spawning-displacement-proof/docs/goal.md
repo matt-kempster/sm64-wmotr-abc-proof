@@ -26,25 +26,26 @@ The candidate source platforms are:
 - `bhvExclamationBox`
 - `bhvBreakableBox` for the two large no-coin boxes
 - `bhvMessagePanel` for the three wooden signposts
+- `bhvCannonClosed` for the cannon lid
 
 Current status: the original spawned positions are ruled out by the conservative
 fixed-warp model in `proofs/SourcePlatformOverlap.v`.  The model records both
 Area 1 -> Area 2 warp hitboxes and bounding boxes that over-approximate the
 source platform collision extents.  It proves that the pyramid top, the three
 Tox Boxes, the five area-1 exclamation boxes, the two large breakable boxes, and
-the three wooden signposts do not overlap either warp as spawned.  The same file
-also proves that a transported or cloned source platform surface of any audited
-kind could have bounding-box overlap with the top-entry warp if a real gameplay
-mechanism can place it there.
+the three wooden signposts, and the closed cannon lid do not overlap either warp
+as spawned.  The same file also proves that a transported or cloned source
+platform surface of any audited kind could have bounding-box overlap with the
+top-entry warp if a real gameplay mechanism can place it there.
 
 `proofs/SourcePlatformTransport.v` now checks the ordinary source-backed
 mechanisms considered so far.  It models pyramid-top built-in motion, the three
 Tox Box action-table path envelopes, fixed large breakable-box positions,
 wooden-signpost fixed X/Z positions, exclamation-box collision-loaded motion,
-the fake-object grab/drop route, and the no-drop held-box variant.  These
-modeled mechanisms do not leave a standable source-platform surface at either
-Area 1 -> Area 2 warp, so they also cannot satisfy the full Spindel depth-60
-seed route.
+cannon-lid opening motion, the fake-object grab/drop route, and the no-drop
+held-box variant.  These modeled mechanisms do not leave a standable
+source-platform surface at either Area 1 -> Area 2 warp, so they also cannot
+satisfy the full Spindel depth-60 seed route.
 
 `proofs/DesyncMechanismSearch.v` checks the two stronger leads currently under
 discussion.  Astral Projection Glitch has the right general flavor only if it
@@ -67,7 +68,8 @@ butterfly or triplet-butterfly source.  On the clone side, the audited source
 platform behaviors do not spawn a standable source-platform clone: pyramid top
 spawns pillar touch detectors and dirt fragments, Tox Boxes spawn no objects,
 exclamation boxes spawn only their fixed contents table, large breakable boxes
-only break into loot, and wooden signposts spawn no objects.
+only break into loot, wooden signposts spawn no objects, and the cannon lid
+spawns a non-surface cannon.
 
 `proofs/ClosedWorldDisproof.v` is now the route-level disproof under explicit
 ordinary-gameplay assumptions.  The closed world consists of original spawned
@@ -92,6 +94,11 @@ Mario/object-position desync or a concrete memory-corruption primitive that is
 specified precisely enough to add to the model, while still placing an
 object-owned platform surface at one of the fixed warps and putting that stale
 slot at Spindel's depth-60 free-list position.
+
+The latest pass searched for routes outside the first closed-world enumeration.
+The only missed source-backed candidate found was `bhvCannonClosed`; it is now
+inside the model and ruled out.  No remaining source-backed positive route
+candidate is currently known from the decomp source audit.
 
 The target is still not full star collection.  The target is either:
 

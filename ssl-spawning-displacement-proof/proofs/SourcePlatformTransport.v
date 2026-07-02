@@ -154,6 +154,15 @@ Inductive message_panel_builtin_motion_envelope_for :
     message_panel_builtin_motion_envelope_for
       ssl_message_panel_3 message_panel_3_builtin_motion_envelope.
 
+Definition cannon_lid_builtin_motion_envelope : platform_center_envelope := {|
+  envelope_min_x := 6863;
+  envelope_max_x := 7063;
+  envelope_min_y := -15;
+  envelope_max_y := 0;
+  envelope_min_z := -6860;
+  envelope_max_z := -6860
+|}.
+
 Theorem pyramid_top_builtin_motion_does_not_overlap_area1_to_area2_warps :
   forall warp,
     In warp ssl_area1_to_area2_warps ->
@@ -211,6 +220,18 @@ Proof.
     solve_no_platform_envelope_warp_overlap.
 Qed.
 
+Theorem cannon_lid_builtin_motion_does_not_overlap_area1_to_area2_warps :
+  forall warp,
+    In warp ssl_area1_to_area2_warps ->
+    ~ platform_envelope_overlaps_warp_bbox
+        cannon_lid_builtin_motion_envelope
+        cannon_lid_bbox warp cloned_route_mario_hitbox_height.
+Proof.
+  intros warp Hwarp.
+  destruct Hwarp as [Hwarp | [Hwarp | []]]; subst warp;
+    solve_no_platform_envelope_warp_overlap.
+Qed.
+
 Definition exclamation_box_collision_loaded_position_is_home : bool := true.
 
 Theorem exclamation_box_collision_loaded_motion_does_not_overlap_area1_to_area2_warps :
@@ -231,6 +252,7 @@ Inductive modeled_source_platform_transport : Type :=
 | BuiltInToxBoxMotion
 | BuiltInBreakableBoxMotion
 | BuiltInMessagePanelMotion
+| BuiltInCannonLidMotion
 | BuiltInExclamationBoxCollisionMotion
 | FakeObjectGrabDropExclamationBox
 | NoDropHeldExclamationBox.
@@ -265,6 +287,12 @@ Definition modeled_transport_can_leave_standable_surface_at_area2_warp
         In warp ssl_area1_to_area2_warps /\
         platform_envelope_overlaps_warp_bbox
           envelope message_panel_bbox warp cloned_route_mario_hitbox_height
+  | BuiltInCannonLidMotion =>
+      exists warp,
+        In warp ssl_area1_to_area2_warps /\
+        platform_envelope_overlaps_warp_bbox
+          cannon_lid_builtin_motion_envelope
+          cannon_lid_bbox warp cloned_route_mario_hitbox_height
   | BuiltInExclamationBoxCollisionMotion =>
       exists obj warp,
         In obj ssl_area1_exclamation_box_sources /\
@@ -299,6 +327,10 @@ Proof.
     exact
       (message_panel_builtin_motion_envelopes_do_not_overlap_area1_to_area2_warps
         obj envelope warp Hobj Henvelope Hwarp Hoverlap).
+  - destruct Hseed as [warp [Hwarp Hoverlap]].
+    exact
+      (cannon_lid_builtin_motion_does_not_overlap_area1_to_area2_warps
+        warp Hwarp Hoverlap).
   - destruct Hseed as (obj & warp & Hobj & Hwarp & Hoverlap).
     destruct exclamation_box_collision_loaded_motion_does_not_overlap_area1_to_area2_warps
       as [_ Hno_overlap].

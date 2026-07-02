@@ -35,6 +35,7 @@ tweester="$SOURCE_ROOT/src/game/behaviors/tweester.inc.c"
 butterfly="$SOURCE_ROOT/src/game/behaviors/butterfly.inc.c"
 triplet_butterfly="$SOURCE_ROOT/src/game/behaviors/triplet_butterfly.inc.c"
 breakable_box="$SOURCE_ROOT/src/game/behaviors/breakable_box.inc.c"
+cannon_door="$SOURCE_ROOT/src/game/behaviors/cannon_door.inc.c"
 behavior_data="$SOURCE_ROOT/data/behavior_data.c"
 exclamation_box="$SOURCE_ROOT/src/game/behaviors/exclamation_box.inc.c"
 surface_load="$SOURCE_ROOT/src/engine/surface_load.c"
@@ -43,6 +44,7 @@ pyramid_top_collision="$SOURCE_ROOT/levels/ssl/pyramid_top/collision.inc.c"
 tox_box_collision="$SOURCE_ROOT/levels/ssl/tox_box/collision.inc.c"
 breakable_box_collision="$SOURCE_ROOT/actors/breakable_box/collision.inc.c"
 message_panel_collision="$SOURCE_ROOT/actors/wooden_signpost/collision.inc.c"
+cannon_lid_collision="$SOURCE_ROOT/actors/cannon_lid/collision.inc.c"
 interaction="$SOURCE_ROOT/src/game/interaction.c"
 object_collision="$SOURCE_ROOT/src/game/object_collision.c"
 object_helpers="$SOURCE_ROOT/src/game/object_helpers.c"
@@ -149,8 +151,10 @@ require_pattern "$ssl_area1_macro" 'macro_breakable_box_no_coins.*5900,[[:space:
 require_pattern "$ssl_area1_macro" 'macro_wooden_signpost.*5702,[[:space:]]*614,[[:space:]]*2974'
 require_pattern "$ssl_area1_macro" 'macro_wooden_signpost.*-3260,[[:space:]]*256,[[:space:]]*800'
 require_pattern "$ssl_area1_macro" 'macro_wooden_signpost.*5130,[[:space:]]*26,[[:space:]]*-370'
+require_pattern "$ssl_area1_macro" 'macro_cannon_closed.*6863,[[:space:]]*0,[[:space:]]*-6860'
 require_pattern "$macro_presets" 'macro_breakable_box_no_coins.*bhvBreakableBox.*MODEL_BREAKABLE_BOX'
 require_pattern "$macro_presets" 'macro_wooden_signpost.*bhvMessagePanel.*MODEL_WOODEN_SIGNPOST'
+require_pattern "$macro_presets" 'macro_cannon_closed.*bhvCannonClosed.*MODEL_DL_CANNON_LID'
 require_pattern "$spindel" 'o->oVelZ = 20 / sp18;'
 require_pattern "$spindel" 'o->oAngleVelPitch = 1024 / sp18;'
 require_pattern "$spindel" 'o->oVelZ = -20 / sp18;'
@@ -244,6 +248,18 @@ require_order "$behavior_data" \
   'DROP_TO_FLOOR\(\)' \
   'CALL_NATIVE\(load_object_collision_model\)'
 require_order "$behavior_data" \
+  '^const BehaviorScript bhvCannonClosed\[\]' \
+  'BEGIN\(OBJ_LIST_SURFACE\)' \
+  'LOAD_COLLISION_DATA\(cannon_lid_seg8_collision_08004950\)' \
+  'CALL_NATIVE\(bhv_cannon_closed_init\)' \
+  'CALL_NATIVE\(bhv_cannon_closed_loop\)' \
+  'CALL_NATIVE\(load_object_collision_model\)'
+require_order "$behavior_data" \
+  '^const BehaviorScript bhvCannon\[\]' \
+  'BEGIN\(OBJ_LIST_LEVEL\)' \
+  'SPAWN_CHILD\(/\*Model\*/ MODEL_CANNON_BARREL, /\*Behavior\*/ bhvCannonBarrel\)' \
+  'SET_INT\(oInteractType, INTERACT_CANNON_BASE\)'
+require_order "$behavior_data" \
   '^const BehaviorScript bhvWarp\[\]' \
   'BEGIN\(OBJ_LIST_LEVEL\)' \
   'SET_INT\(oInteractType, INTERACT_WARP\)' \
@@ -272,6 +288,19 @@ require_order "$breakable_box" \
   'breakable_box_init\(\);' \
   'cur_obj_was_attacked_or_ground_pounded\(\)'
 require_absent "$breakable_box" 'o->oPos[XYZ][[:space:]]*[-+]?='
+require_order "$cannon_door" \
+  '^void bhv_cannon_closed_init\(void\)' \
+  'spawn_object\(o, MODEL_CANNON_BASE, bhvCannon\);' \
+  'cannon->oPosX = o->oHomeX;' \
+  'cannon->oPosY = o->oHomeY;' \
+  'cannon->oPosZ = o->oHomeZ;' \
+  'o->activeFlags = ACTIVE_FLAG_DEACTIVATED;'
+require_order "$cannon_door" \
+  '^void cannon_door_act_opening\(void\)' \
+  'o->oVelY = -0.5f;' \
+  'o->oPosY \+= o->oVelY;' \
+  'o->oVelX = 4.0f;' \
+  'o->oPosX \+= o->oVelX;'
 require_order "$exclamation_box" \
   '^struct ExclamationBoxContents sExclamationBoxContents\[\]' \
   'bhvWingCap' \
@@ -425,5 +454,7 @@ require_pattern "$breakable_box_collision" 'COL_VERTEX\(-100, 0, -100\)'
 require_pattern "$breakable_box_collision" 'COL_VERTEX\(100, 200, 100\)'
 require_pattern "$message_panel_collision" 'COL_VERTEX\(-44, -9, -12\)'
 require_pattern "$message_panel_collision" 'COL_VERTEX\(45, 126, 20\)'
+require_pattern "$cannon_lid_collision" 'COL_VERTEX\(112, 0, -111\)'
+require_pattern "$cannon_lid_collision" 'COL_VERTEX\(-111, 0, 112\)'
 
 echo "JP spawning displacement source census matches expected source facts."
