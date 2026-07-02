@@ -63,7 +63,8 @@ The same file also keeps the positive side conditional and generalized.  The
 theorem `any_area1_source_platform_seed_feeds_spindel_if_reused` says that if
 any area-1 source platform kind does set `gMarioPlatform` and that stale slot is
 later reused by the area-2 Spindel allocation, the first displacement update
-observes Spindel's active `oVelZ = 20` and `oAngleVelPitch = 1024`.  Thus the
+observes Spindel's first active values, `oVelZ = 5` and
+`oAngleVelPitch = 256` (`0x100`).  Thus the
 remaining hard problem is outside the pyramid: find or rule out a real
 clone/transport/desync mechanism that creates the required platform/warp
 overlap while arranging the depth-60 slot reuse.
@@ -215,9 +216,19 @@ bash pipeline/check.sh
 The hand-written files under `proofs/` mirror the sibling project's style:
 small AST walkers, a compact specification/model layer, and named theorems for
 each source fact.  The current capstone is conditional rather than a full route
-theorem: if the old platform slot is reused by the SSL Spindel and Spindel is in
-an active movement state, the first object update applies displacement from
-Spindel fields before `update_mario_platform()` recomputes the pointer.
+theorem: if the old platform slot is reused by SSL Spindel, the modeled first
+object update is Spindel's active divisor-4 movement state, so platform
+displacement observes `oVelZ = 5` and `oAngleVelPitch = 0x100` before
+`update_mario_platform()` recomputes the pointer.  A separate rest-state theorem
+shows that resting Spindel would contribute no useful Spindel Z/pitch
+displacement.
+
+`proofs/TargetPlatformEffects.v` also records the Mario-centered target facts.
+The top-entry Area 2 destination spawns Mario at `(0, 5500, 256)`, about 906
+horizontal units from the Act 3 star at `(500, 5050, -500)`.  Applying the first
+Spindel stale displacement gives approximately `(0, 5458, 344)`, about 981
+horizontal units from the star.  Thus the first Spindel effect is real, but it
+does not move Mario closer to "Inside the Ancient Pyramid."
 
 The generated-Clight grounding is now explicit.  `proofs/GeneratedClightFacts.v`
 exports `generated_jp_clight_source_certificate`, a `vm_compute` certificate

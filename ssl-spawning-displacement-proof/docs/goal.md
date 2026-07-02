@@ -12,8 +12,10 @@ The core engine theorem remains:
    of a later SSL area-2 object.
 4. On the first object update after the transition, platform displacement runs
    before `update_mario_platform()` recomputes the pointer.
-5. If the reused object is Spindel in an active movement state, the displacement
-   uses nonzero `oVelZ` and `oAngleVelPitch` from that Spindel object.
+5. If the reused object is Spindel on its first active movement tick, the
+   displacement uses `oVelZ = 5` and `oAngleVelPitch = 0x100` from that Spindel
+   object.  If Spindel is in its rest branch, the useful Spindel fields are
+   zero.
 
 The core engine/source facts are now backed by generated JP Clight certificates.
 `proofs/GeneratedClightFacts.v` proves `vm_compute` facts over the generated

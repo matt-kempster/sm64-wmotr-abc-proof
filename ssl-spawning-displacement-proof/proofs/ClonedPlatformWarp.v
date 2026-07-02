@@ -268,7 +268,7 @@ Definition cloned_route_spindel_first_update_state : game_state := {|
   state_time_stop_active := false;
   state_object_memory :=
     object_memory_with cloned_platform_slot
-      (spindel_active_fields 1 SpindelForward);
+      (spindel_active_fields 4 SpindelForward);
   state_free_list := []
 |}.
 
@@ -315,14 +315,14 @@ Theorem cloned_platform_route_can_feed_spindel_displacement :
     apply_mario_platform_displacement_model first_update_state =
       Some observation /\
     observation_slot observation = cloned_platform_slot /\
-    observation_oVelZ observation = 20 /\
-    observation_oAngleVelPitch observation = 1024.
+    observation_oVelZ observation = 5 /\
+    observation_oAngleVelPitch observation = 256.
 Proof.
   exists cloned_route_seed_state.
   exists (spawn_objects_from_info_jp_model cloned_route_seed_state).
   exists cloned_route_spindel_first_update_state.
   exists (observe_platform_fields cloned_platform_slot
-    (spindel_active_fields 1 SpindelForward)).
+    (spindel_active_fields 4 SpindelForward)).
   split.
   - apply cloned_route_seed_state_is_seed_route.
   - split.

@@ -7,9 +7,17 @@ object before the first object update, then
 slot.  It does not first validate that the object is active, loaded, a platform,
 owned by Mario's current floor, or the same object Mario stood on previously.
 
-For SSL, Spindel is the most interesting target because active Spindel movement
-sets both `oVelZ` and `oAngleVelPitch`; the elevator and moving walls are mostly
-vertical displacement targets.
+For SSL, Spindel is the most interesting first-update target because its first
+active movement tick sets `oVelZ = 5` and `oAngleVelPitch = 0x100`.  If it were
+in its rest branch, those useful fields would be zero.  The near-star elevator
+and the moving pyramid walls are vertical-displacement targets, and the JP
+platform displacement helper does not use `oVelY`.
+
+For the top-entry Area 2 destination, Mario spawns at `(0, 5500, 256)`, about
+906 horizontal units from the "Inside the Ancient Pyramid" star at
+`(500, 5050, -500)`.  The first Spindel stale displacement moves that Mario
+position to approximately `(0, 5458, 344)`, about 981 horizontal units from the
+star, so the first Spindel effect does not move Mario closer to the star.
 
 The central source facts are now checked against generated JP Clight modules.
 `generated_jp_clight_source_certificate` packages the JP no-clear spawn fact,
