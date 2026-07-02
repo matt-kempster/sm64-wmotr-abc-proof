@@ -1,5 +1,12 @@
 # GOAL 2 — the general height bound: a one-frame inductive invariant, not a catalogue of tricks
 
+> **SUPERSEDED (2026-07-01) by `goal2-strategy-v2-2026-07-01.md`.** The
+> one-frame-induction skeleton and the y-target survive, but this doc's
+> scalar `C_pos` invariant and its "grounded ⇒ reachable-floor-max" dominator
+> row are circular, its apex-based envelope misses the attach windows
+> (landing snap +78 / ledge grab +238), and it never addresses f32
+> arithmetic. See v2 §0 for the autopsy. Kept for history.
+
 *Exploratory strategy note (no Coq yet). This is the methodological backbone that
 makes GOAL 2 a theorem instead of an endless "what about mechanism Z" hunt. It
 supersedes the per-mechanism framing of the squish-cancel dig (`§5` of

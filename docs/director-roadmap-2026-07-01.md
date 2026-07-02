@@ -186,8 +186,14 @@ hypotheses; plain `cbn` eats `Pos.eqb`; `Archi.ptr64` is opaque —
 
 ## 4. GOAL 2 — the design agenda (director track)
 
-The strategy is frozen (`goal2-general-height-invariant.md`). The open design
-questions, in the order they must be answered:
+> **UPDATE (same night):** on Matt's instruction the v1 strategy was
+> re-derived from scratch — see `goal2-strategy-v2-2026-07-01.md` (the
+> attach-window / floor-ladder architecture, the episode graph, the float
+> layer). The v2 §7 execution order (E1–E7) replaces the agenda below;
+> the items below survive only where v2 references them.
+
+The v1 strategy (`goal2-general-height-invariant.md`, now superseded) posed
+these design questions, re-scoped by v2 as follows:
 
 1. **The action-cycle/danger-class enumeration (the crux).** Enumerate every
    transition in the airborne/hanging/submerged action graph that (re)sets
