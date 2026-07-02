@@ -206,10 +206,24 @@ theorem: if the old platform slot is reused by the SSL Spindel and Spindel is in
 an active movement state, the first object update applies displacement from
 Spindel fields before `update_mario_platform()` recomputes the pointer.
 
-The generated-Clight grounding is kept in the build pipeline and source census.
-Future work should replace the remaining model-level source certificates with
-`vm_compute` facts over the generated JP modules, following the pattern in
-`ssl-pyramid-item-proof/proofs/*Facts.v`.
+The generated-Clight grounding is now explicit.  `proofs/GeneratedClightFacts.v`
+exports `generated_jp_clight_source_certificate`, a `vm_compute` certificate
+over the JP `generated/jp_*.v` modules for the central source facts: JP spawn
+does not call `clear_mario_platform()`, platform displacement reads
+`gMarioPlatform` and does not check active flags/behavior/collision data, the
+`update_objects()` call order puts displacement before `update_mario_platform`,
+free-list deallocation/allocation functions contain the expected source hooks,
+the SSL area-2 macro count is 50, the area-2 script contains the Spindel target,
+and the generated behavior data links Spindel collision, loop, and collision
+loader commands.
+
+`proofs/ClightCapstone.v` is the linked source-certificate bridge.  The theorem
+`generated_jp_clight_conditional_spindel_capstone` supplies the generated JP
+Clight certificate to the conditional Spindel theorem, and
+`generated_jp_clight_concrete_spindel_depth_capstone` does the same for the
+depth-60/61st-allocation version.  This is intentionally a Clight AST/source
+certificate bridge into the existing model, not a full CompCert small-step
+execution proof of a gameplay route.
 
 ## Pyramid top entry warp
 

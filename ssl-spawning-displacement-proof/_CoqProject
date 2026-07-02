@@ -36,3 +36,4 @@ proofs/DesyncMechanismSearch.v
 proofs/CastleCheckpoint.v
 proofs/ClosedWorldDisproof.v
 proofs/SpawningDisplacement.v
+proofs/ClightCapstone.v

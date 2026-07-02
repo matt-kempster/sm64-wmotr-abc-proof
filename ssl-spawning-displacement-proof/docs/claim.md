@@ -11,6 +11,15 @@ For SSL, Spindel is the most interesting target because active Spindel movement
 sets both `oVelZ` and `oAngleVelPitch`; the elevator and moving walls are mostly
 vertical displacement targets.
 
+The central source facts are now checked against generated JP Clight modules.
+`generated_jp_clight_source_certificate` packages the JP no-clear spawn fact,
+the blind platform-displacement pointer use, update order, free-list hooks, SSL
+macro/script facts, and Spindel behavior-data facts.  The linked bridge theorem
+`generated_jp_clight_concrete_spindel_depth_capstone` states the conditional
+Spindel-depth result using that certificate.  The bridge is deliberately at the
+Clight AST/source-certificate level rather than a full small-step gameplay
+execution proof.
+
 The outside pyramid top remains a valid object-owned seed platform in general,
 but not via the top-entry warp while standing on it.  The top-entry warp's
 hitbox is horizontally centered near the pyramid top, yet vertically spans only

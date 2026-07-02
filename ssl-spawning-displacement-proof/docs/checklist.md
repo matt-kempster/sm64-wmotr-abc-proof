@@ -15,9 +15,18 @@
 - [x] Record SSL area-2 regular spawn order and Spindel's position after macros.
 - [x] Add JP-specific Clight generation targets.
 - [x] Add hand-written proof stack for the conditional core theorem.
-- [ ] Replace model-level source facts with generated JP Clight `vm_compute`
-  facts.
-- [ ] Lift the conditional capstone through linked Clight semantics.
+- [x] Replace the core model-level source facts with generated JP Clight
+  `vm_compute` facts.  `proofs/GeneratedClightFacts.v` now exports
+  `generated_jp_clight_source_certificate`, which checks the JP spawn/no-clear
+  fact, platform-displacement trust facts, update order, free-list source
+  hooks, area macro counts, SSL script behavior entries, and Spindel behavior
+  data against the generated `jp_*.v` modules.
+- [x] Lift the conditional capstone through the generated JP Clight certificate.
+  `proofs/ClightCapstone.v` proves
+  `generated_jp_clight_conditional_spindel_capstone` and
+  `generated_jp_clight_concrete_spindel_depth_capstone`.  This is a linked
+  Clight/source-certificate bridge into the existing model theorem, not a full
+  CompCert small-step execution proof.
 - [x] Prove enough allocation/order detail for a concrete SSL route candidate:
   if the stale slot is at depth 60 in the post-unload free list, the 61st
   area-2 allocation is the Spindel allocation.
