@@ -127,6 +127,21 @@ once, including the two new TUs — don't do section surgery twice). P4
 opportunistic. P5 after P3 (concrete `lp` makes the B-rows computable). P6
 runs continuously on director time. P7 last, as the announcement draft.
 
+> **COURSE CORRECTION (same night, after the P1 scout):** P1 is NOT a cheap
+> ~16-row kill. `exempt_callees` (`CensusV2.v:601`) overlaps the new TUs'
+> internals, so adding `LO_mat`/`LO_scol` contradicts `Hrest_ext_only`
+> (jointly-unsatisfiable capstone hypotheses — vacuity); and the rest-surface
+> `body_pres` shape is phantom-false for non-`MarioState*` signatures
+> (`marg_exempt` is syntactic on the first param). The honest shape is an
+> **exempt-callee retirement arc** (P1'): per-call-site gates at every
+> whitelist call site (bricks exist), body walks against the gated specs, and
+> the RestSurface negative-pin restructure. Multi-slice. **Therefore P3 runs
+> FIRST with the 12-TU link** (no exempt conflict; gets the "THE program"
+> headline soonest); P1' follows as a strengthening arc that then re-links at
+> 14 TUs. The two new `generated/` TUs stay: they are P1''s raw material, and
+> `surface_collision.v` independently feeds GOAL-2's E5 (find_floor value
+> contract) with no linking needed.
+
 ### What I would *not* do
 - Don't start writing GOAL-2 Coq before the danger-class enumeration is
   complete on paper. A wrong `Φ` costs a re-walk of everything.
