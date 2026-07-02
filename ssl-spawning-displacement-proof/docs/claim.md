@@ -56,3 +56,13 @@ fragments, Tox Boxes spawn no objects, and exclamation boxes spawn their fixed
 contents table rather than a standable source-platform clone.  This narrows the
 remaining opening to a new mechanism outside the audited source candidates, or
 to a closed-world disproof under explicit ordinary-gameplay assumptions.
+
+The source-platform set itself has been widened from the first notes.  SSL area
+1 also has two large no-coin `bhvBreakableBox` surfaces and three
+`bhvMessagePanel` wooden signpost surfaces.  Their fixed/built-in positions are
+also ruled out for both Area 1 -> Area 2 warps.  The current route-level theorem
+is therefore `no_closed_world_ssl_spawning_displacement_route_to_spindel`: under
+the explicit closed world of original spawned surfaces, modeled source-platform
+transport, and investigated desync/clone leads, SSL cannot both seed
+`gMarioPlatform` at the warp and place that stale slot at Spindel's depth-60
+allocation position.
