@@ -58,11 +58,23 @@ what the real hard problems are.*
    statement about CompCert/Flocq `binary32` arithmetic, not ℤ. GOAL 1 never
    had to bound a float; GOAL 2 is *made of* float bounds. This is the
    biggest qualitative jump and it needs its own layer, designed up front.
-5. **Wrong target coin.** v1 aimed at the lowest high coin (3140). We need
-   only ONE uncollectable coin — aim at the *highest* (4600) and the numeric
-   slack is ~2700 units instead of ~1200. (If the ladder fixpoint tops out at
-   the spawn island, all four high coins die at once; but state the capstone
-   against the most-slack coin.)
+5. **Target coin (REVISED TWICE — final: coin #2, y=3140).** v1 aimed at
+   3140; this doc's first draft re-aimed at the highest (4600) for slack.
+   The pole correction reverses that (Matt, 2026-07-02): coins 3/8 at 4600
+   float **directly above the summit pole tops (≈4404–4409) at the same
+   x,z, within the +238 ledge window** — they are the coins *closest* to a
+   failure mode, and precluding them would additionally require proving
+   every pole-top exit A-gated. **Coin #2 (y=3140, at (2735,−3085) — the
+   opposite side of the level, ~5800u from the pole cluster) is the
+   target**: its unreachability is pure floor-ladder envelope
+   (`Y_MAX = H*+Δ_pot ≤ 2772 < 3140−window`), independent of pole-exit
+   semantics. Note honestly: the pole-gate lemma (no grab window within
+   Δ_pot of the reachable set) stays load-bearing for ANY target — an
+   absorbed pole blows the height-only envelope past every coin — but
+   coin #2 needs nothing else, and if the pole-gate margin (622 vs 273)
+   ever tightens it alone has the horizontal-separation fallback (a
+   pole-top launch cannot cross ~5800u while falling ~1264u at no-A
+   airspeeds; the 4600 coins, directly above the poles, never can).
 
 **Kept from v1:** the chain-is-the-induction principle (one-frame invariant,
 tricks become branches); y as the sole tracked quantity (no (x,z) in Φ — see
@@ -74,7 +86,9 @@ Mario-as-state-machine (now formalized as the episode graph, §4).
 
 **G2-I (the numeric core):** for every no-A run from the WMotR spawn state,
 every reachable memory satisfies `B2R(pos[1]) ≤ Y_MAX`, where
-`Y_MAX = H* + Δ_pot` (≈ 1675 + 238 = **1913**, to be pinned exactly).
+`Y_MAX = H* + Δ_pot` (entry-seeded worst case ≈ 2372 + 273 = **2645**,
+< 3140 − collect-window: the bound is stated against **coin #2** — see
+§0.5, revised after the pole correction).
 
 **G2-II (the completion chain, GOAL-1-shaped):** `pos[1] ≤ Y_MAX` ⇒ the
 highest red coin (y = 4600, interaction window ~±100) is never collected ⇒
