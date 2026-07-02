@@ -35,13 +35,25 @@ what the real hard problems are.*
    discrete apex **+128**) → mid-air ground-pound windup (**+110** over 10
    frames, `yOffset = 20−2·timer`, ceiling-gated but WMotR's sky has no
    ceiling) → landing snap **+78** ⇒ attachable floor up to
-   **launch + 316**. The WMotR wing-cap box tops (the only dynamic floors)
-   sit at oHomeY+52 ≈ **+337** above the spawn floor — the theorem holds by
-   **~21 units**, and only because ledge-grab (+238 window) requires a wall
-   hit at `y+150` that the box underside (+315) stays above at rollout apex,
-   and the GP-then-land chain tops out at +316 < +337. v1's constants were
-   not merely imprecise; they were *the wrong kind of object*. The margins
-   are real and thin, so the mechanism windows must be first-class.
+   **launch + 316** *if the chain composes*. The WMotR wing-cap box tops
+   (the only dynamic floors) sit at oHomeY+52 ≈ **+337** above the spawn
+   floor. v1's constants were not merely imprecise; they were *the wrong
+   kind of object*. The margins are real and thin, so the mechanism windows
+   must be first-class.
+
+   > **E2 CORRECTIONS (2026-07-01, `goal2-attach-launch-census-e2.md`):**
+   > (a) the ledge-grab wall gate as first written here was INVERTED —
+   > `check_ledge_grab` is reached only when the **upper** wall probe
+   > (`y+150`) finds NOTHING and the **lower** probe (`y+30`) hits
+   > (`mario_step.c:471`); (b) the +316 chain likely does NOT compose under
+   > no-A: `act_dive`/rollouts expose no `Z→ground-pound` cancel — GP enters
+   > only from `act_freefall` (`airborne.c:532`), so rollout apex and GP
+   > windup are (pending the E3 rollout→freefall-mid-air edge adjudication)
+   > disjoint episodes, giving **Δ_pot ≈ +238** (ledge) / **+206**
+   > (apex+land-snap) and a **~99-unit** box-top margin; (c) discrete apexes
+   > are `dive +60`, `rollout +128` (not `v²/8`). E1 ran the ladder at
+   > Δ ∈ {316, 366, 400} — all conservative upper bounds — and the gap fact
+   > held at every one, so these corrections only ADD slack.
 4. **Floats were never mentioned.** `pos`/`vel` are f32. Every bound is a
    statement about CompCert/Flocq `binary32` arithmetic, not ℤ. GOAL 1 never
    had to bound a float; GOAL 2 is *made of* float bounds. This is the
@@ -79,9 +91,11 @@ Everything hangs on two numbers and one geometric fact.
 - **Δ_pot (dynamics, level-independent):** the maximum height above the
   launch floor at which Mario can *attach* to a new floor, under no-A.
   Computed from the **attach-window census** (§3) + the **episode potential
-  budget** (§4). Current best estimate: `max(apex 128 + GP 110 + land 78,
-  apex 128 + ledge 238 [wall-gated], …) = 316..366`, to be pinned per
-  mechanism.
+  budget** (§4). Best estimate after E2: **+238** (ledge window from a
+  vel≤0 state near launch height) or **+206** (rollout apex 128 + land snap
+  78) — the +316 GP-composition chain appears dead (no Z→GP from
+  dive/rollout; E3 must confirm the rollout→freefall mid-air edge). E1 ran
+  the ladder at conservative Δ ∈ {316, 366, 400}; the gap fact held at all.
 - **H\* (geometry, one decidable computation):** the least fixpoint of the
   floor ladder: start from the spawn floor set; a floor F' is ladder-reachable
   from F if `h(F') ≤ h(F) + Δ_pot` (air) or `h(F') ≤ h(F) + 78`-chained
@@ -233,6 +247,16 @@ All of §2–4 is arithmetic over **binary32**. Plan:
    the induction must survive `level_update`'s warp path (TU already
    generated) — Φ re-established at spawn. Multi-life runs are still one
    induction.
+
+   **5b. The airborne ENTRY (found by E1).** WMotR is entered through an
+   airborne warp at y≈2669 — Mario's initial state is a fall from ABOVE
+   `H* + Δ_pot`, so `Φ_air` as first stated is false at spawn. Fix: seed
+   the ladder with every floor ≤ entry_y + land window (2669+78 = 2747);
+   E1's Δ=366/400 rows effectively computed this case — H* becomes 2372
+   (box#6 top), envelope 2372+238 = 2610, coin#2 margin +530. The invariant
+   carries `Pot ≤ max(entry_Pot, H* + Δ_pot)` with the entry-seeded H*.
+   Verdict unchanged; slack reduced. Re-run the ladder with explicit entry
+   seeding when pinning constants.
 6. **The GOAL-1 dependency is real but partial:** Φ_act reuses the taint
    machinery; the *step-function* walks (paqs/pgqs/pas/pws already walked
    for non-interference) need a second, *value-tracking* pass over the ~30
