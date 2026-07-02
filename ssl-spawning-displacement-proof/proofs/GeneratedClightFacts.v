@@ -4,7 +4,7 @@ From SSLSpawning.Generated Require Import
   jp_area jp_level_update jp_level_script jp_ssl_script
   jp_ssl_area1_macro jp_ssl_area2_macro jp_behavior_data
   jp_object_list_processor jp_platform_displacement jp_spawn_object
-  jp_obj_behaviors jp_mario jp_interaction.
+  jp_obj_behaviors jp_behavior_actions jp_mario jp_interaction.
 From SSLSpawning.Proofs Require Import ASTFacts.
 
 Import ListNotations.
@@ -23,6 +23,7 @@ Module SSL := jp_ssl_script.
 Module M1 := jp_ssl_area1_macro.
 Module M2 := jp_ssl_area2_macro.
 Module BD := jp_behavior_data.
+Module BA := jp_behavior_actions.
 Module MJ := jp_mario.
 Module IX := jp_interaction.
 
@@ -251,6 +252,78 @@ Proof.
   repeat split.
 Qed.
 
+Theorem generated_spindel_init_sets_first_motion_phase_markers :
+  statement_mentions_int_s 27
+    (fn_body B.f_bhv_spindel_init) = true /\
+  statement_mentions_int_s 28
+    (fn_body B.f_bhv_spindel_init) = true /\
+  statement_mentions_int_s 0
+    (fn_body B.f_bhv_spindel_init) = true.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Theorem generated_spindel_loop_contains_rest_and_active_markers :
+  statement_mentions_int_s 32
+    (fn_body B.f_bhv_spindel_loop) = true /\
+  statement_mentions_int_s 11
+    (fn_body B.f_bhv_spindel_loop) = true /\
+  statement_mentions_int_s 35
+    (fn_body B.f_bhv_spindel_loop) = true /\
+  statement_mentions_int_s 20
+    (fn_body B.f_bhv_spindel_loop) = true /\
+  statement_mentions_int_s 1024
+    (fn_body B.f_bhv_spindel_loop) = true.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Theorem generated_pyramid_elevator_loop_has_idle_and_vertical_markers :
+  statement_mentions_ident_s B._gMarioObject
+    (fn_body B.f_bhv_pyramid_elevator_loop) = true /\
+  statement_mentions_ident_s B._platform
+    (fn_body B.f_bhv_pyramid_elevator_loop) = true /\
+  statement_mentions_int_s 49
+    (fn_body B.f_bhv_pyramid_elevator_loop) = true /\
+  statement_mentions_int_s 10
+    (fn_body B.f_bhv_pyramid_elevator_loop) = true /\
+  statement_mentions_int_s 4096
+    (fn_body B.f_bhv_pyramid_elevator_loop) = true.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Theorem generated_moving_pyramid_wall_loop_has_vertical_markers :
+  statement_mentions_int_s 49
+    (fn_body B.f_bhv_ssl_moving_pyramid_wall_loop) = true /\
+  statement_mentions_int_s 51
+    (fn_body B.f_bhv_ssl_moving_pyramid_wall_loop) = true /\
+  statement_mentions_int_s 10
+    (fn_body B.f_bhv_ssl_moving_pyramid_wall_loop) = true /\
+  statement_mentions_int_s 100
+    (fn_body B.f_bhv_ssl_moving_pyramid_wall_loop) = true.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Theorem generated_grindel_thwomp_loop_uses_action_table :
+  calls_ident_s BA._cur_obj_call_action_function
+    (fn_body BA.f_bhv_grindel_thwomp_loop) = true /\
+  initializer_list_mentions_addrof BA._grindel_thwomp_act_raise
+    (gvar_init BA.v_sGrindelThwompActions) = true /\
+  initializer_list_mentions_addrof BA._grindel_thwomp_act_lower
+    (gvar_init BA.v_sGrindelThwompActions) = true /\
+  statement_mentions_int_s 10
+    (fn_body BA.f_grindel_thwomp_act_lower) = true.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
 Theorem generated_load_area_calls_spawn_objects_from_info :
   calls_ident_s A._spawn_objects_from_info
     (fn_body A.f_load_area) = true.
@@ -404,6 +477,20 @@ Theorem generated_bhv_pyramid_top_and_tox_box_name_collision_data :
     (gvar_init BD.v_bhvToxBox) = true /\
   initializer_list_mentions_addrof BD._bhv_tox_box_loop
     (gvar_init BD.v_bhvToxBox) = true.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Theorem generated_bhv_horizontal_grindel_loads_collision_and_update :
+  initializer_list_mentions_addrof BD._ssl_seg7_collision_grindel
+    (gvar_init BD.v_bhvHorizontalGrindel) = true /\
+  initializer_list_mentions_addrof BD._bhv_horizontal_grindel_init
+    (gvar_init BD.v_bhvHorizontalGrindel) = true /\
+  initializer_list_mentions_addrof BD._bhv_horizontal_grindel_update
+    (gvar_init BD.v_bhvHorizontalGrindel) = true /\
+  initializer_list_mentions_addrof BD._load_object_collision_model
+    (gvar_init BD.v_bhvHorizontalGrindel) = true.
 Proof.
   vm_compute.
   repeat split.

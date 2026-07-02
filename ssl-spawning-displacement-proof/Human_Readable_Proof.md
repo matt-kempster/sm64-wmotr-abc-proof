@@ -52,10 +52,62 @@ The proof establishes:
   Clight certificate, if the stale slot is reused by active Spindel, the first
   displacement update reads Spindel `oVelZ` and `oAngleVelPitch` before
   `update_mario_platform()` recomputes the pointer.
+- `ssl_spindel_first_update_is_active_motion`: the relevant first Spindel
+  update is modeled as active movement, with `oVelZ = 5` and
+  `oAngleVelPitch = 256` (`0x100`), not the rest state.
+- `ssl_spindel_rest_state_has_no_useful_displacement`: if Spindel were in its
+  rest branch, the useful fields for this proof, `oVelZ` and
+  `oAngleVelPitch`, would be zero.
 
 Thus the inside-pyramid mechanism is proved conditionally: a valid outside seed
 plus the depth-60 stale slot setup would produce the expected Spindel
 displacement effect.
+
+## Inside-Pyramid Target Effects
+
+The Act 3 "Inside the Ancient Pyramid" star is at `(500, 5050, -500)` in
+`levels/ssl/script.c`.  The Mario spawn and target-platform facts are recorded
+in `TargetPlatformEffects.v`.
+
+- Spindel starts in active movement on its first update after spawn.  Its first
+  useful fields are `oVelZ = 5` and `oAngleVelPitch = 0x100`.
+- For the top-entry destination node, Mario spawns at `(0, 5500, 256)`, about
+  906 horizontal units and 1012 three-dimensional units from the star.  Applying
+  Spindel's first stale displacement gives approximately `(0, 5458, 344)`,
+  about 981 horizontal units and 1062 three-dimensional units from the star.
+  So the first Spindel displacement moves Mario slightly farther from the star,
+  not closer.
+- For the lower-entry destination node, Mario spawns at `(0, 300, 6451)`, about
+  6969 horizontal units and 8434 three-dimensional units from the star.
+  Spindel's first stale displacement leaves him roughly 6927 horizontal units
+  away and 8510 three-dimensional units away, still nowhere near the star.
+- If Spindel is in its rest branch, spawning displacement still blindly reads
+  the pointer, but the modeled useful Spindel fields are zero.  In that state it
+  contributes no useful Z velocity or pitch rotation.
+- The pyramid elevator is the closest scripted moving target to the star:
+  its X/Z matches the top-entry Mario spawn, but on the relevant first update it
+  is idle.  Even if the stale platform pointer causes its idle action to
+  transition, that same tick does not write useful displacement fields.  Its
+  later constant motion is vertical only, and `apply_platform_displacement()`
+  does not use `oVelY`.
+- Moving pyramid walls are vertical-only targets.  For Mario, this means the
+  first displacement update leaves the spawn position unchanged in the simplified
+  velocity-component model.
+- The upper horizontal Grindel is the next closest moving platform, about 1498
+  horizontal units from the star as an object, but Mario remains at the warp
+  spawn on the first update because the first horizontal-Grindel update has no
+  useful displacement fields.  A later jump can produce horizontal velocity, but
+  the stale platform pointer is recomputed after the first displacement update
+  unless Mario is actually standing on that object.
+- The regular Grindel moves vertically in the checked behavior model, so it does
+  not move Mario toward the star through spawning displacement.
+
+These facts support a stronger practical reading: even granting the conditional
+engine mechanism, the known SSL area-2 targets do not presently give a clear
+theoretical route to collect "Inside the Ancient Pyramid."  Spindel is the only
+first-update target with useful Z/pitch fields, and its first displacement moves
+top-entry Mario farther from the star; the near-star elevator is not a useful
+spawning-displacement target.
 
 ## Outside-Pyramid Route Search
 
@@ -114,8 +166,12 @@ The proof is explicit about these assumptions:
   full CompCert small-step execution proof of gameplay.
 - The free-list depth theorem assumes the modeled unload/allocation order and no
   unmodeled intervening allocation that changes the required depth.
-- The positive Spindel capstone assumes Spindel is in an active movement state,
-  not its rest state.
+- The first-update Spindel state is modeled from the source as active movement,
+  with a separate rest-state theorem showing that rest would contribute no
+  useful Spindel Z/pitch displacement.
+- The target-effect model tracks the displacement fields used by
+  `apply_platform_displacement()`, not a full floating-point proof of the final
+  matrix-rotated Mario position.
 - The fixed-position and transport refutations use conservative bounding boxes
   and explicitly modeled movement envelopes.
 - The closed-world disproof covers the enumerated source-backed mechanisms:

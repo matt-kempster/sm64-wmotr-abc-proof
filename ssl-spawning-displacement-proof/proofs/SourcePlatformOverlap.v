@@ -456,7 +456,7 @@ Definition source_seed_spindel_first_update_state
   state_time_stop_active := false;
   state_object_memory :=
     object_memory_with watched
-      (spindel_active_fields 1 SpindelForward);
+      (spindel_active_fields 4 SpindelForward);
   state_free_list := []
 |}.
 
@@ -473,14 +473,14 @@ Theorem any_area1_source_platform_seed_feeds_spindel_if_reused :
       apply_mario_platform_displacement_model first_update_state =
         Some observation /\
       observation_slot observation = watched /\
-      observation_oVelZ observation = 20 /\
-      observation_oAngleVelPitch observation = 1024.
+      observation_oVelZ observation = 5 /\
+      observation_oAngleVelPitch observation = 256.
 Proof.
   intros seed_state watched kind free_list Hseed _Hreuse.
   exists (spawn_objects_from_info_jp_model seed_state).
   exists (source_seed_spindel_first_update_state seed_state watched).
   exists (observe_platform_fields watched
-    (spindel_active_fields 1 SpindelForward)).
+    (spindel_active_fields 4 SpindelForward)).
   destruct Hseed as [_ Hplatform].
   split.
   - reflexivity.

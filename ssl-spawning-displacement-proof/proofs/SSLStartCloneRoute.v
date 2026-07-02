@@ -256,8 +256,8 @@ Theorem source_verified_standable_clone_obligation_is_engine_sufficient :
     apply_mario_platform_displacement_model first_update_state =
       Some observation /\
     observation_slot observation = cloned_platform_slot /\
-    observation_oVelZ observation = 20 /\
-    observation_oAngleVelPitch observation = 1024.
+    observation_oVelZ observation = 5 /\
+    observation_oAngleVelPitch observation = 256.
 Proof.
   intros _.
   apply cloned_platform_route_can_feed_spindel_displacement.
