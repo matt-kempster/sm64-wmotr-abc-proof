@@ -117,6 +117,21 @@ is the union of original spawned surfaces, modeled source-platform transport,
 and the investigated desync/clone mechanisms.  The conditional inside-pyramid
 Spindel theorem remains available for any future mechanism outside that set.
 
+`proofs/CastleCheckpoint.v` handles the separate castle-painting checkpoint
+idea.  The source confirms that an active SSL checkpoint can redirect the castle
+SSL painting entry to SSL area 2, so this is a real full-level entry path rather
+than the outside-pyramid Area 1 -> Area 2 transition.  However, painting entry
+is gated by `gMarioState->floor` having a painting-warp surface type, while
+`update_mario_platform()` can set `gMarioPlatform` only from a floor whose
+`floor->object` is non-null.  Under the ordinary synchronized floor model, the
+same floor cannot be both the static castle painting-warp floor and one of the
+audited object-owned castle surfaces.  The theorem
+`castle_checkpoint_painting_route_cannot_seed_spawning_displacement` therefore
+rules out the castle checkpoint route for the audited ordinary mechanisms.  A
+positive route would need a stronger floor/position desync or a new object-owned
+painting-warp surface, neither of which is present in the current source-backed
+model.
+
 ## Source configuration
 
 The generated Clight files are JP-specific and live under `generated/jp_*.v`.
