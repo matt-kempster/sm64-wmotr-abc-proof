@@ -16,6 +16,19 @@
 > blocks P3 slice 2. This is exactly the failure mode the discipline skill
 > exists to catch, found exactly the way it should be: by re-deriving an
 > assumed row from structure and letting `vm_compute` refuse to certify it.
+>
+> **Follow-up (same day):** the systematic consistency audit
+> (`goal1-hypothesis-consistency-audit.md`) confirms `vec3f_find_ceil` is
+> the ONLY vacuity bug in the 12-TU link (only three `¬resolves-Internal`
+> assertions exist tree-wide; `WL_exempt` checked safe; globals clean).
+> The single-id repair (spec: `scratchpad/task95_spec.md`) is running.
+> New ledger items: NINE more exempt ids go refutation-class when
+> math_util/surface_collision join the link (P1' must generalize the pin
+> — only 7 of 16 "truly external" ids survive a 14-TU link), and NINE
+> behavioral rows labeled "terminal external" are actually linked-Internal
+> unwalked bodies (~446 lines of walk debt, task #96 — including
+> `Hcpx_ibcd_real`/`Hcpx_tbs_real`, whose mario_step bodies our ledger
+> mislabeled as model boundary).
 
 *Written by Fable 5 in a director capacity: (1) where the proof actually stands,
 (2) my professional opinion on what to do next and in what order, (3) how to
