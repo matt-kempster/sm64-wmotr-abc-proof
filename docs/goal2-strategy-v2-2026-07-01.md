@@ -107,10 +107,14 @@ Everything hangs on two numbers and one geometric fact.
   (walk — subsumed by the air window). H* = the max floor height in the
   closure, over the **full WMotR floor inventory: static collision mesh +
   the 6 exclamation-box collision models** (tops at oHomeY+52).
-- **The gap fact:** *no WMotR floor has height in `(H*, H* + Δ_pot]`.* This
-  single leveldata lemma is what makes the frame induction close without any
-  horizontal reasoning: any floor Mario can attach to from height ≤ H* is
-  itself ≤ H*.
+- **The gap fact (pole-corrected):** *no WMotR floor top AND no pole
+  grab-window bottom lies in `(H*, H* + Δ_pot]`* — where the rung set is
+  floors (absorb = contribute = top) ∪ poles (absorb = grab-window bottom
+  `base−160`, contribute = pole top, since climbing is free). This single
+  leveldata lemma is what makes the frame induction close without any
+  horizontal reasoning: anything Mario can attach to from height ≤ H* is
+  itself ≤ H* (a grabbed pole would contribute its top — none is
+  reachable in WMotR; the moat to the nearest pole window is 622).
 
 Why no (x,z) tracking is *sound* (not just convenient): we over-approximate
 by ignoring horizontal feasibility entirely — if a floor's height is within
@@ -152,12 +156,29 @@ above the current airborne y — each row verified against the real step code:
 | landing snap | `paqs` `nextPos[1] ≤ floorHeight` branch | always during air steps | **+78** (find_floor buffer) |
 | ledge grab | `check_ledge_grab` | `vel[1] ≤ 0` ∧ upper-wall hit (probe y+150) ∧ displacement-against-vel ∧ ledge−y ∈ (100, 238] | **+238** |
 | ground step-up | `pgqs` snap | grounded | **+78** per quarter-step, onto real floors (ladder-subsumed) |
-| ceiling hang | `paqs` AIR_STEP_GRABBED_CEILING | hangable ceiling exists | **absent in WMotR** (leveldata) |
+| ceiling hang | `paqs` AIR_STEP_GRABBED_CEILING | hangable ceiling exists | present at y=1536 (below spawn); grab+persist are A_DOWN-gated (E3) |
 | squish up/down-warp | act_squished | reachable ≤150 dynamic squish spot | **dead** (census: none reachable) |
 | wall-kick re-launch | A-gated | dead (GOAL-1 `input_grounds_noA`) | — |
 | cannon shot | A-gated fire | dead (GOAL-1 taint incl. cannon) | — |
-| pole/tree grab | ACT_HOLDING_POLE entry | pole/tree object exists | **absent in WMotR** (verify in object list) |
+| **pole grab** | `interact_pole` (`interaction.c:1510`) | Mario in the airborne action-id band `[0x080,0x0A0)` touches the pole hitbox — **NO button gate**; then CLIMBING to the top needs no A (only the top-of-pole handstand *jump* is A-gated) | window = the pole's grab segment `[base−160, base+10·BPARAM2]`; **once grabbed the rung value is the pole TOP** |
 | warp/teleport nodes | level script | WMotR warp set (death/entry only?) | leveldata row |
+
+> **POLE CORRECTION (2026-07-02, caught by Matt).** WMotR has SIX
+> `bhvPoleGrabbing` objects (`script.c:19-24`) — this doc's original row
+> said "absent," and E1's checklist dismissed them as "A-gated"; both
+> wrong. Five of the six stand at the NW summit — the designed no-wing
+> climbing route to the y=4600 coins, with tops ≈4404–4409 and red coin #1
+> grabbable from pole 5's base. Consequences: (1) **the gap fact must
+> quantify over floors ∪ pole grab-windows**, with an absorbed pole
+> contributing its TOP as the new rung (the tool now does this); (2) the
+> real moat above the reachable set is **622 units** (to pole 4's grab
+> window at 2994), NOT E1's 2163 — the poles, not the summit floors, are
+> the binding constraint: any Δ_pot ≥ 622 kills the theorem via
+> pole 4 → top 4404 → coins within the +238 window. With Δ_pot = 273 the
+> margin through the pole gate is 349. (3) `Φ_special` needs a
+> pole-anchored mode (`y ≤ pole top + handstand offset`; exits: A-gated
+> jump = dead, slide-down = descend). Re-run verdict (both seedings,
+> Δ ∈ {316,366,400}): **GAP FACT HOLDS**; binding coin margin ≥ +368.
 
 The census is *self-policing the same way GOAL 1's was*: the per-handler walk
 of the air-step family must classify every path that sets `m->floor`/returns

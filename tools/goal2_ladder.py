@@ -67,7 +67,27 @@ RED_COINS = [  # (x, y, z, macro.inc.c line)
     (-2560, 4600, -4800, 23),
 ]
 
+# script.c:19-24 bhvPoleGrabbing objects: pos = pole BASE; BPARAM2 = tenth of
+# hitbox height (pole.inc.c:21 hitboxHeight = tenthHitboxHeight * 10).
+# POLE GRAB IS NOT A-GATED: interact_pole (interaction.c:1510) fires for ANY
+# action with id in the airborne band [0x080, 0x0A0) touching the hitbox --
+# no button in the gate.  A pole is therefore a LADDER RUNG: grabbable when
+# airborne y reaches [base - MARIO_GRAB_SLACK, base + height], and once
+# grabbed Mario can climb to the TOP without A (only the top-of-pole
+# handstand JUMP is A-gated).  Conservatively a grabbed pole contributes a
+# pseudo-floor at its top.
+POLES = [  # (x, base_y, z, bparam2, script.c line)
+    ( 3996, -2739,  5477,  82, 19),
+    (-2911,  3564, -3967,  84, 20),
+    (-3258,  3359, -3946, 105, 21),
+    (-2639,  3154, -4369, 125, 22),
+    (-2980,  4048, -4248,  36, 23),
+    (-3290,  3636, -4477,  77, 24),
+]
+MARIO_GRAB_SLACK = 160  # conservative Mario hitbox height for hitbox overlap
+
 DELTAS = [316, 366, 400]
+ENTRY_Y = 2669  # the airborne entry warp height (E1 §object checklist)
 
 # ---------------------------------------------------------------------------
 def parse_collision(path):
@@ -153,19 +173,23 @@ def point_in_tri_xz(v1, v2, v3, px, pz):
 
 
 # ---------------------------------------------------------------------------
-def ladder(sorted_heights, start_max, delta):
-    """Fixpoint: H starts at start_max, absorb any floor <= H+delta, repeat.
-    Returns (Hstar, first_excluded_height_or_None)."""
+def ladder(rungs, start_max, delta):
+    """Generalized fixpoint over RUNGS = [(absorb_h, contribute_h, tag)]:
+    a rung joins the reachable set when absorb_h <= H + delta, and then
+    contributes contribute_h (for a floor both are its maxY; for a pole
+    absorb = grab-window bottom, contribute = pole top).
+    Returns (Hstar, first_excluded_absorb_or_None, absorbed_pole_tags)."""
     H = start_max
     while True:
-        cand = [h for h in sorted_heights if h <= H + delta]
-        newH = max(cand) if cand else H
+        cand = [ch for (ah, ch, _) in rungs if ah <= H + delta]
+        newH = max(cand + [H])
         if newH <= H:
             break
         H = newH
-    above = [h for h in sorted_heights if h > H]
+    absorbed_poles = [tag for (ah, _, tag) in rungs if tag and ah <= H + delta]
+    above = [ah for (ah, _, _) in rungs if ah > H]
     first_excl = min(above) if above else None
-    return H, first_excl
+    return H, first_excl, absorbed_poles
 
 
 def main():
@@ -202,6 +226,20 @@ def main():
     # full floor set = static floor maxY multiset + box tops
     all_floor_heights = sorted(floor_heights + [t for t, _, _ in box_tops])
 
+    # pole rungs: absorb at the grab-window bottom, contribute the pole top
+    pole_rungs = []
+    print("\n# bhvPoleGrabbing rungs (grab NOT A-gated, interaction.c:1510):")
+    for (x, by, z, bp2, ln) in POLES:
+        top = by + bp2 * 10
+        grab_bot = by - MARIO_GRAB_SLACK
+        tag = f"pole@script.c:{ln}"
+        pole_rungs.append((grab_bot, top, tag))
+        print(f"#   {tag}: base={by} top={top} grab-window-bottom={grab_bot}"
+              f"  (pos x,z=({x},{z}))")
+
+    # generalized rung set: floors (absorb = contribute = maxY) + poles
+    rungs = [(h, h, None) for h in all_floor_heights] + pole_rungs
+
     # --- spawn floor: find floor triangles containing (spawn.x, spawn.z) ---
     px, pz = SPAWN[0], SPAWN[2]
     spawn_candidates = []
@@ -232,39 +270,50 @@ def main():
     print(f"\n# ladder start set: floors with height <= spawn_floor+100 = {start_thresh:.2f}")
     print(f"# start_max (H before laddering) = {start_max}")
 
-    # --- run the ladder for each DELTA ---
-    max_airborne_extra = 238  # ledge-grab window; box-top margin vs H*+238
+    # --- run the ladder for each DELTA, in both seedings ---
+    entry_thresh = ENTRY_Y + 78  # entry fall can land on any floor <= entry+snap
+    entry_start = max([h for h in all_floor_heights if h <= entry_thresh])
+    seedings = [
+        ("spawn-seeded", start_max),
+        (f"entry-seeded (floors <= {entry_thresh})", max(start_max, entry_start)),
+    ]
     print("\n" + "=" * 72)
-    for delta in DELTAS:
-        Hstar, first_excl = ladder(all_floor_heights, start_max, delta)
-        gap = (first_excl - Hstar) if first_excl is not None else None
-        holds = (first_excl is None) or (first_excl - Hstar > delta)
-        print(f"\nDELTA = {delta}")
-        print(f"  H* (max reachable floor height) = {Hstar}")
-        if first_excl is None:
-            print("  first excluded floor above H*: NONE (H* is the global max floor)")
-            print("  GAP FACT for this DELTA: HOLDS (no floor above H*)")
-        else:
-            print(f"  first excluded floor above H*  = {first_excl}   (gap = {gap})")
-            print(f"  GAP FACT for this DELTA: {'HOLDS' if holds else 'FAILS'}"
-                  f"  (need gap > {delta}; gap = {gap})")
-        # per-coin margins vs H* + delta and vs H* + 238 (airborne envelope)
-        y_max_air = Hstar + delta
-        print(f"  Y_MAX(air) = H*+DELTA = {y_max_air}")
-        for idx, (x, y, z, ln) in enumerate(RED_COINS, 1):
-            margin = y - y_max_air
-            tag = "OK(unreachable)" if margin >= 200 else ("<200!" if margin > 0 else "*** BELOW ENVELOPE ***")
-            print(f"    coin#{idx} y={y:6d} (macro.inc.c:{ln}) margin vs Y_MAX = {margin:+d}  {tag}")
-        # box-top margins vs max airborne y = H*+238
-        y_air238 = Hstar + max_airborne_extra
-        print(f"  box-top margins vs H*+238={y_air238}:")
-        for top, bln, pos in sorted(box_tops):
-            m = top - y_air238
-            print(f"    box top y={top:6d} (macro.inc.c:{bln}) margin = {m:+d}")
+    for seed_name, seed_max in seedings:
+        print(f"\n### SEEDING: {seed_name}, start H = {seed_max}")
+        for delta in DELTAS:
+            Hstar, first_excl, poles_in = ladder(rungs, seed_max, delta)
+            gap = (first_excl - Hstar) if first_excl is not None else None
+            holds = (first_excl is None) or (first_excl - Hstar > delta)
+            print(f"\nDELTA = {delta}")
+            print(f"  H* (max reachable rung height) = {Hstar}")
+            print(f"  poles absorbed: {poles_in if poles_in else 'NONE'}")
+            if first_excl is None:
+                print("  first excluded rung above H*: NONE (H* is the global max)")
+                print("  GAP FACT for this DELTA: HOLDS (nothing above H*)")
+            else:
+                print(f"  first excluded rung-absorb above H* = {first_excl}   (gap = {gap})")
+                print(f"  GAP FACT for this DELTA: {'HOLDS' if holds else 'FAILS'}"
+                      f"  (need gap > {delta}; gap = {gap})")
+            y_max_air = Hstar + delta
+            print(f"  Y_MAX(air) = H*+DELTA = {y_max_air}")
+            for idx, (x, y, z, ln) in enumerate(RED_COINS, 1):
+                margin = y - y_max_air
+                tag = ("OK(unreachable)" if margin >= 200
+                       else ("<200!" if margin > 0 else "*** BELOW ENVELOPE ***"))
+                print(f"    coin#{idx} y={y:6d} (macro.inc.c:{ln}) "
+                      f"margin vs Y_MAX = {margin:+d}  {tag}")
+            print(f"  pole grab-window margins vs Y_MAX={y_max_air}:")
+            for (gb, top, tag) in pole_rungs:
+                m = gb - y_max_air
+                note = "unreachable" if m > 0 else "*** GRABBABLE ***"
+                print(f"    {tag}: grab-bottom {gb:6d} margin = {m:+d}  {note}"
+                      f"  (would contribute top {top})")
 
     print("\n" + "=" * 72)
     print("# NOTE: the ladder ignores horizontal feasibility (sound over-approx).")
-    print("# A DELTA whose gap-fact FAILS means some floor is within DELTA of the")
+    print("# Rungs = floor tris + box tops + POLE grab windows (contribute their")
+    print("# tops: pole grab/climb is NOT A-gated, only the top handstand jump is).")
+    print("# A DELTA whose gap-fact FAILS means some rung is within DELTA of the")
     print("# reachable set purely by height -- a counterexample to investigate.")
 
 

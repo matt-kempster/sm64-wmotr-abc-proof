@@ -237,3 +237,31 @@ Every WMotR object, with a no-A-height verdict and cite:
    at the 4600 coin for slack; numerically the *lowest* high coin (3140) is the true
    constraint, and at Δ_pot=400 its margin is only +368 — the place to watch if E2
    grows Δ_pot.
+
+---
+
+## CORRECTION (2026-07-02, caught by Matt; verified by Fable against the code)
+
+The object checklist above is WRONG about the poles, in two ways:
+
+1. **"A-gated" — false.** `interact_pole` (`interaction.c:1510`) fires for
+   any Mario action with id in the airborne band `[0x080, 0x0A0)` touching
+   the pole hitbox — there is no button in the gate, and climbing to the
+   top needs no A either (only the top-of-pole handstand *jump* is A-gated).
+2. **"across void" — misleading.** Five of the six `bhvPoleGrabbing`
+   objects (`script.c:20-24`) stand at the NW summit — the designed
+   no-wing climbing route to the y=4600 red coins. Segments
+   (base → top = base + 10·BPARAM2, `pole.inc.c:21`): [3564,4404],
+   [3359,4409], [3154,4404], [4048,4408], [3636,4406]; red coin #1
+   (y=3990) is grabbable from pole 5's base. Only pole 1
+   ([−2739,−1919], SE) is low.
+
+**Impact on the ladder:** poles are RUNGS (absorb at grab-window bottom
+`base−160`, contribute their TOP). `tools/goal2_ladder.py` now includes
+them. Re-run verdict: **GAP FACT still HOLDS** in both seedings for
+Δ ∈ {316, 366, 400}, but the robustness threshold DROPS from this doc's
+"Δ < 2163" to **Δ < 622**: the first excluded rung above H\*=2372 is pole
+4's grab window at 2994, and any mechanism reaching it converts to top
+4404, putting the 4600 coins inside the +238 ledge window. The poles, not
+the summit floors, are the binding constraint. With E3's Δ_pot = 273 the
+margin through the pole gate is 349; binding coin margin ≥ +368.
