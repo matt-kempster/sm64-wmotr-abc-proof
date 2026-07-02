@@ -91,11 +91,16 @@ Everything hangs on two numbers and one geometric fact.
 - **Δ_pot (dynamics, level-independent):** the maximum height above the
   launch floor at which Mario can *attach* to a new floor, under no-A.
   Computed from the **attach-window census** (§3) + the **episode potential
-  budget** (§4). Best estimate after E2: **+238** (ledge window from a
-  vel≤0 state near launch height) or **+206** (rollout apex 128 + land snap
-  78) — the +316 GP-composition chain appears dead (no Z→GP from
-  dive/rollout; E3 must confirm the rollout→freefall mid-air edge). E1 ran
-  the ladder at conservative Δ ∈ {316, 366, 400}; the gap fact held at all.
+  budget** (§4). **SETTLED by E3 (`goal2-episode-graph-e3.md`): Δ_pot =
+  273** — the dominant mechanism is the butt-slide-air / slide-kick landing
+  BOUNCE (`vel[1] = -vel[1]/2`, `airborne.c:1445/:1604`; at terminal −75 →
+  re-launch 37.5 → ballistic 195 + land snap 78), a non-constant vel write
+  that E2's constants-only census missed. The bounce is single-shot
+  contracting (÷2 each time), and E3 found NO potential-increasing cycle;
+  the +316 GP chain is dead (rollout never becomes freefall mid-air).
+  273 < 337 (E1 floor gap from spawn) and < 668 (coin-safe): the gap fact
+  holds with H* = 1675 (or ≈2017 with §6.5b entry seeding — envelope 2290,
+  coin#2 margin +850).
 - **H\* (geometry, one decidable computation):** the least fixpoint of the
   floor ladder: start from the spawn floor set; a floor F' is ladder-reachable
   from F if `h(F') ≤ h(F) + Δ_pot` (air) or `h(F') ≤ h(F) + 78`-chained
