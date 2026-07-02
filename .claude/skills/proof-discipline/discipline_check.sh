@@ -33,13 +33,19 @@ source pipeline/env.sh >/dev/null 2>&1 || true
 # v2 grounded capstone (concrete reached set; engine contract PROVED via
 # EngineV2Consumer), AND the MWF-grounded capstone (concrete run invariant
 # MWF_real; all 14 MWF projection/stability hypotheses PROVED via MWFReal --
-# the sharpest of the four).
+# the sharpest of the four, but see the VACUITY note below).
 if [ "$#" -eq 0 ]; then
   set -- SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFlyLinked noA_no_spawn_never_flying_lp \
          SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFlyLinked noA_no_spawn_never_flying_real \
          SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFlyLinked noA_no_spawn_never_flying_real_v2 \
          SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFlyLinked noA_no_spawn_never_flying_real_mwf
 fi
+# NOTE 2026-07-02: the planned fifth capstone (NoAImpliesNoFlyTwelve
+# noA_no_spawn_never_flying_linked12) is STAGED, not live -- LinkedTwelve's
+# capstone_negative_pin_refuted PROVED the real_mwf capstone's
+# Hrest_ext_only is false for every twelve-TU link (vec3f_find_ceil is
+# Internal in mario.prog), so real_mwf is VACUOUS-as-stated and the
+# twelve-TU corollary is blocked on the negative-pin repair.
 
 # The standard, sound axioms a CompCert proof of the REAL program legitimately
 # rests on. TWO groups:

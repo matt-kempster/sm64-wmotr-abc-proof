@@ -57,6 +57,12 @@ proofs/MarioModel/EngineV2Consumer.v
 #     negative pin reduce Hrest_pres to 11 per-real-body residuals) ---
 proofs/MarioModel/RestSurface.v
 
+# --- GOAL 1 / the twelve-TU link (SPINE, P3 slice 1: derives the 12 LO_*
+#     pins + Hrest_ext_only from ONE chain-link premise linked12 lp; the
+#     linking-metatheory inverse direction; consumed by the linked12
+#     capstone corollary) ---
+proofs/MarioModel/LinkedTwelve.v
+
 # --- GOAL 1 / the airborne dispatcher walked (SPINE: Hpres_air PROVED from
 #     per-leaf-callee residuals via the dispatch kill; 43-id census) ---
 proofs/MarioModel/AirborneSurface.v
@@ -183,6 +189,12 @@ proofs/Shadow/ShadowSpec.v
 
 # --- GOAL 1 capstone: no-A => no-fly (NON-VACUOUS, over the linked program lp) ---
 proofs/NoAImpliesNoFly/NoAImpliesNoFlyLinked.v
+
+# --- GOAL 1 capstone, TWELVE-TU form (P3 slice 2) -- STAGED, NOT BUILT:
+#     blocked on the vec3f_find_ceil negative-pin repair (LinkedTwelve
+#     PROVED the capstone's Hrest_ext_only is refutable for any 12-TU
+#     link, so the corollary as drafted cannot be discharged -- correctly).
+# proofs/NoAImpliesNoFly/NoAImpliesNoFlyTwelve.v
 
 # --- GOAL 1 / the superseded VACUOUS mario_ge capstone (kept for history) ---
 proofs/NoAImpliesNoFly/Unwired/NoAImpliesNoFlyVacuous.v

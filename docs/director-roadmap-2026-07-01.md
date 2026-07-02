@@ -1,5 +1,22 @@
 # State of the proof & the director's roadmap — 2026-07-01
 
+> ## ⚠ OVERNIGHT UPDATE (2026-07-02, machine-checked): the sharpest capstone is VACUOUS as stated
+> While deriving the link pins from structure (`LinkedTwelve.v`), the twelve
+> per-TU `vm_compute` checks **refuted** the capstone's negative pin:
+> `vec3f_find_ceil` is an **Internal** function of `mario.prog` itself
+> (`mario.c:547`) yet sits on the `exempt_callees` whitelist — so `LO_mario`
+> and `Hrest_ext_only` are **jointly unsatisfiable** for every twelve-TU
+> link (`LinkedTwelve.capstone_negative_pin_refuted`, a Qed'd theorem).
+> `noA_no_spawn_never_flying_real_mwf` is therefore vacuously true, and the
+> v2 capstone's `Hrest_pres` is unsatisfiable-in-the-intended-model for the
+> same symbol. The earlier three capstones (lp/real/v2-minus-that-row
+> lineage) and ALL the per-body walk lemmas remain sound — the defect is
+> ONE wrong whitelist row, not the engine. Repair is task **#95** (route
+> `vec3f_find_ceil` through a pinned, oc-gated 13th rest case) and it
+> blocks P3 slice 2. This is exactly the failure mode the discipline skill
+> exists to catch, found exactly the way it should be: by re-deriving an
+> assumed row from structure and letting `vm_compute` refuse to certify it.
+
 *Written by Fable 5 in a director capacity: (1) where the proof actually stands,
 (2) my professional opinion on what to do next and in what order, (3) how to
 delegate the work across model tiers so expensive tokens go only to the hard
