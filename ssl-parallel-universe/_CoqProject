@@ -6,3 +6,6 @@
 generated/pu_model.v
 
 # Hand-written proof files will be listed here as the proof develops.
+proofs/ASTFacts.v
+proofs/Spec.v
+proofs/ParallelUniverse.v

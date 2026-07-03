@@ -47,5 +47,17 @@ coordinate.
 
 The isolated project scaffold exists. `inputs/pu_model.c` contains the first C
 model for bounded SSL area 2 movement and PU detection, and
-`generated/pu_model.v` is the corresponding committed CompCert Clight AST. The
-Rocq proof layer is not added yet.
+`generated/pu_model.v` is the corresponding committed CompCert Clight AST.
+
+`proofs/ASTFacts.v` pins generated-program shape facts: the capstone wrapper
+calls the normal step and then the PU detector; the normal step calls the delta
+and coordinate clamps; and it writes `x` and `z` without assigning `area`.
+
+`proofs/Spec.v` proves the arithmetic invariant: any coordinate inside
+`[-8192, 8191]` has absolute value below `32768`, and the modeled normal
+area-2 step clamps both horizontal coordinates back into that interval.
+
+`proofs/ParallelUniverse.v` states the current capstone theorem
+`ssl_area2_no_parallel_universe`. This is a generated-model theorem over the
+bounded SSL area 2 transition certificate, not yet a full semantic lowering of
+the real SM64 movement engine.
