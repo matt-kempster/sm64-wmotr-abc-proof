@@ -360,3 +360,177 @@ Proof.
   unfold horizontal_distance2, square.
   simpl. repeat split; lia.
 Qed.
+
+Inductive ssl_area2_platform_target : Type :=
+| Area2MacroExclamationBox
+| Area2PyramidElevator
+| Area2MovingWallHigh
+| Area2MovingWallMiddleLowerX
+| Area2MovingWallMiddleUpperX
+| Area2MovingWallLow
+| Area2Spindel
+| Area2RegularGrindel
+| Area2HorizontalGrindelUpper
+| Area2HorizontalGrindelLower.
+
+Definition ssl_area2_platform_first_update_fields
+    (target : ssl_area2_platform_target) : object_fields :=
+  match target with
+  | Area2MacroExclamationBox =>
+      vertical_only_platform_fields KindExclamationBox 0
+  | Area2PyramidElevator =>
+      pyramid_elevator_first_update_fields
+  | Area2MovingWallHigh =>
+      vertical_only_platform_fields KindMovingPyramidWall (-512)
+  | Area2MovingWallMiddleLowerX =>
+      vertical_only_platform_fields KindMovingPyramidWall (-512)
+  | Area2MovingWallMiddleUpperX =>
+      vertical_only_platform_fields KindMovingPyramidWall (-512)
+  | Area2MovingWallLow =>
+      vertical_only_platform_fields KindMovingPyramidWall 512
+  | Area2Spindel =>
+      ssl_spindel_first_update_fields
+  | Area2RegularGrindel =>
+      vertical_only_platform_fields KindGrindel 0
+  | Area2HorizontalGrindelUpper =>
+      horizontal_grindel_first_update_fields
+  | Area2HorizontalGrindelLower =>
+      horizontal_grindel_first_update_fields
+  end.
+
+Definition ssl_area2_top_entry_after_spindel_first_displacement
+    : ssl_object := {|
+  ssl_object_kind := KindOther;
+  ssl_object_x := 0;
+  ssl_object_y := 5458;
+  ssl_object_z := 344
+|}.
+
+Definition ssl_area2_top_entry_after_platform_displacement
+    (target : ssl_area2_platform_target) : ssl_object :=
+  match target with
+  | Area2Spindel =>
+      ssl_area2_top_entry_after_spindel_first_displacement
+  | _ =>
+      ssl_area2_top_entry_mario_spawn
+  end.
+
+Definition ssl_elevator_shaft_min_x : Z := -511.
+Definition ssl_elevator_shaft_max_x : Z := 512.
+Definition ssl_elevator_shaft_min_z : Z := -255.
+Definition ssl_elevator_shaft_max_z : Z := 768.
+
+Definition in_elevator_shaft_footprint (p : ssl_object) : Prop :=
+  ssl_elevator_shaft_min_x <= ssl_object_x p <=
+    ssl_elevator_shaft_max_x /\
+  ssl_elevator_shaft_min_z <= ssl_object_z p <=
+    ssl_elevator_shaft_max_z.
+
+Definition ssl_elevator_cage_top_y : Z := 5734.
+Definition ssl_elevator_cage_outer_min_x : Z := -409.
+Definition ssl_elevator_cage_outer_max_x : Z := 410.
+Definition ssl_elevator_cage_outer_min_z : Z := -153.
+Definition ssl_elevator_cage_outer_max_z : Z := 666.
+Definition ssl_elevator_cage_inner_hole_min_x : Z := -101.
+Definition ssl_elevator_cage_inner_hole_max_x : Z := 102.
+Definition ssl_elevator_cage_inner_hole_min_z : Z := 154.
+Definition ssl_elevator_cage_inner_hole_max_z : Z := 358.
+
+Definition in_elevator_cage_outer_footprint (p : ssl_object) : Prop :=
+  ssl_elevator_cage_outer_min_x <= ssl_object_x p <=
+    ssl_elevator_cage_outer_max_x /\
+  ssl_elevator_cage_outer_min_z <= ssl_object_z p <=
+    ssl_elevator_cage_outer_max_z.
+
+Definition in_elevator_cage_inner_hole (p : ssl_object) : Prop :=
+  ssl_elevator_cage_inner_hole_min_x <= ssl_object_x p <=
+    ssl_elevator_cage_inner_hole_max_x /\
+  ssl_elevator_cage_inner_hole_min_z <= ssl_object_z p <=
+    ssl_elevator_cage_inner_hole_max_z.
+
+Definition reaches_elevator_cage_top (p : ssl_object) : Prop :=
+  in_elevator_cage_outer_footprint p /\
+  ~ in_elevator_cage_inner_hole p /\
+  ssl_elevator_cage_top_y <= ssl_object_y p.
+
+Theorem ssl_area2_first_update_platform_displacement_classification :
+  ~ platform_has_useful_spawning_displacement
+      (ssl_area2_platform_first_update_fields Area2MacroExclamationBox) /\
+  ~ platform_has_useful_spawning_displacement
+      (ssl_area2_platform_first_update_fields Area2PyramidElevator) /\
+  ~ platform_has_useful_spawning_displacement
+      (ssl_area2_platform_first_update_fields Area2MovingWallHigh) /\
+  ~ platform_has_useful_spawning_displacement
+      (ssl_area2_platform_first_update_fields Area2MovingWallMiddleLowerX) /\
+  ~ platform_has_useful_spawning_displacement
+      (ssl_area2_platform_first_update_fields Area2MovingWallMiddleUpperX) /\
+  ~ platform_has_useful_spawning_displacement
+      (ssl_area2_platform_first_update_fields Area2MovingWallLow) /\
+  platform_has_useful_spawning_displacement
+      (ssl_area2_platform_first_update_fields Area2Spindel) /\
+  ~ platform_has_useful_spawning_displacement
+      (ssl_area2_platform_first_update_fields Area2RegularGrindel) /\
+  ~ platform_has_useful_spawning_displacement
+      (ssl_area2_platform_first_update_fields Area2HorizontalGrindelUpper) /\
+  ~ platform_has_useful_spawning_displacement
+      (ssl_area2_platform_first_update_fields Area2HorizontalGrindelLower).
+Proof.
+  vm_compute.
+  repeat split; try tauto.
+  left. discriminate.
+Qed.
+
+Theorem ssl_area2_top_entry_spindel_first_displacement_delta :
+  ssl_object_x ssl_area2_top_entry_after_spindel_first_displacement -
+    ssl_object_x ssl_area2_top_entry_mario_spawn = 0 /\
+  ssl_object_y ssl_area2_top_entry_after_spindel_first_displacement -
+    ssl_object_y ssl_area2_top_entry_mario_spawn = -42 /\
+  ssl_object_z ssl_area2_top_entry_after_spindel_first_displacement -
+    ssl_object_z ssl_area2_top_entry_mario_spawn = 88.
+Proof.
+  vm_compute. repeat split.
+Qed.
+
+Theorem ssl_area2_all_first_update_platform_displacements_stay_in_elevator_shaft :
+  forall target,
+    in_elevator_shaft_footprint
+      (ssl_area2_top_entry_after_platform_displacement target).
+Proof.
+  destruct target;
+    unfold in_elevator_shaft_footprint,
+      ssl_area2_top_entry_after_platform_displacement,
+      ssl_area2_top_entry_after_spindel_first_displacement,
+      ssl_area2_top_entry_mario_spawn,
+      ssl_elevator_shaft_min_x, ssl_elevator_shaft_max_x,
+      ssl_elevator_shaft_min_z, ssl_elevator_shaft_max_z;
+    simpl; repeat split; lia.
+Qed.
+
+Theorem ssl_area2_all_first_update_platform_displacements_do_not_reach_cage_top :
+  forall target,
+    ~ reaches_elevator_cage_top
+        (ssl_area2_top_entry_after_platform_displacement target).
+Proof.
+  destruct target;
+    unfold reaches_elevator_cage_top,
+      ssl_area2_top_entry_after_platform_displacement,
+      ssl_area2_top_entry_after_spindel_first_displacement,
+      ssl_area2_top_entry_mario_spawn,
+      ssl_elevator_cage_top_y;
+    simpl; intros [_ [_ Hy]]; lia.
+Qed.
+
+Theorem ssl_area2_useful_first_update_platform_displacements_stay_in_shaft :
+  forall target,
+    platform_has_useful_spawning_displacement
+      (ssl_area2_platform_first_update_fields target) ->
+    in_elevator_shaft_footprint
+      (ssl_area2_top_entry_after_platform_displacement target) /\
+    ~ reaches_elevator_cage_top
+        (ssl_area2_top_entry_after_platform_displacement target).
+Proof.
+  intros target _.
+  split.
+  - apply ssl_area2_all_first_update_platform_displacements_stay_in_elevator_shaft.
+  - apply ssl_area2_all_first_update_platform_displacements_do_not_reach_cage_top.
+Qed.

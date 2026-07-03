@@ -16,6 +16,11 @@ The core engine theorem remains:
    displacement uses `oVelZ = 5` and `oAngleVelPitch = 0x100` from that Spindel
    object.  If Spindel is in its rest branch, the useful Spindel fields are
    zero.
+6. Even if the stale slot is reused by any audited SSL area-2
+   surface/platform object on the first stale update, Mario does not leave the
+   top-entry elevator shaft and does not reach the high cage/rim top.  Spindel
+   is the only first-load target with useful fields, and its effect is too
+   small to escape the shaft.
 
 The core engine/source facts are now backed by generated JP Clight certificates.
 `proofs/GeneratedClightFacts.v` proves `vm_compute` facts over the generated
@@ -25,6 +30,19 @@ The core engine/source facts are now backed by generated JP Clight certificates.
 `generated_jp_clight_concrete_spindel_depth_capstone`, lifting the conditional
 Spindel result through that generated source certificate.  This is a Clight
 AST/source-certificate bridge, not a full CompCert small-step execution proof.
+
+`proofs/TargetPlatformEffects.v` now also closes the inside-pyramid target
+question for the first stale update.  It enumerates the audited area-2
+surface/platform targets: macro exclamation boxes, pyramid elevator, moving
+pyramid walls, Spindel, regular Grindel, and horizontal Grindels.  The theorem
+`ssl_area2_first_update_platform_displacement_classification` records which
+targets have useful first-tick displacement fields, and the only useful
+first-load target is Spindel.  The theorems
+`ssl_area2_all_first_update_platform_displacements_stay_in_elevator_shaft` and
+`ssl_area2_all_first_update_platform_displacements_do_not_reach_cage_top` prove
+that all modeled first-tick outcomes remain inside the elevator shaft and do
+not put Mario on the cage/rim bars.  The table and source explanation are in
+`docs/area2-platform-displacement.md`.
 
 The main open route question is outside the pyramid: can area 1 put Mario in an
 Area 1 -> Area 2 warp hitbox while `update_mario_platform()` also sees an
