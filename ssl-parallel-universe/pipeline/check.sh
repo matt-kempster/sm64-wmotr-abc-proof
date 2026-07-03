@@ -9,3 +9,6 @@ if grep -RInE '\b(Admitted|Axiom|admit|sorry)\b' proofs; then
 fi
 
 bash pipeline/assumptions.sh
+bash pipeline/assumptions.sh \
+  SSLPU.Proofs.MovementSourceFacts \
+  bounded_certificate_does_not_cover_movement_sources

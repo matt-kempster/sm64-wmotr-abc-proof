@@ -22,10 +22,36 @@ with direct_callees_ls (cases : labeled_statements) : list ident :=
       direct_callees_s body ++ direct_callees_ls rest
   end.
 
+Fixpoint ident_mem (needle : ident) (ids : list ident) : bool :=
+  match ids with
+  | [] => false
+  | id :: rest => Pos.eqb needle id || ident_mem needle rest
+  end.
+
 Definition lvalue_top_field (e : expr) : option ident :=
   match e with
   | Efield _ field _ => Some field
   | _ => None
+  end.
+
+Fixpoint expr_mentions_field (field : ident) (e : expr) : bool :=
+  match e with
+  | Evar _ _ => false
+  | Etempvar _ _ => false
+  | Econst_int _ _ => false
+  | Econst_float _ _ => false
+  | Econst_single _ _ => false
+  | Econst_long _ _ => false
+  | Ederef inner _ => expr_mentions_field field inner
+  | Eaddrof inner _ => expr_mentions_field field inner
+  | Eunop _ inner _ => expr_mentions_field field inner
+  | Ebinop _ lhs rhs _ =>
+      expr_mentions_field field lhs || expr_mentions_field field rhs
+  | Ecast inner _ => expr_mentions_field field inner
+  | Efield inner found _ =>
+      Pos.eqb found field || expr_mentions_field field inner
+  | Esizeof _ _ => false
+  | Ealignof _ _ => false
   end.
 
 Fixpoint assigns_field_s (field : ident) (s : statement) : bool :=
@@ -50,6 +76,28 @@ with assigns_field_ls (field : ident) (cases : labeled_statements) : bool :=
   | LSnil => false
   | LScons _ body rest =>
       assigns_field_s field body || assigns_field_ls field rest
+  end.
+
+Fixpoint assigns_through_field_s (field : ident) (s : statement) : bool :=
+  match s with
+  | Sassign lhs _ => expr_mentions_field field lhs
+  | Ssequence s1 s2 =>
+      assigns_through_field_s field s1 || assigns_through_field_s field s2
+  | Sifthenelse _ s1 s2 =>
+      assigns_through_field_s field s1 || assigns_through_field_s field s2
+  | Sloop s1 s2 =>
+      assigns_through_field_s field s1 || assigns_through_field_s field s2
+  | Slabel _ body => assigns_through_field_s field body
+  | Sswitch _ cases => assigns_through_field_ls field cases
+  | _ => false
+  end
+with assigns_through_field_ls
+    (field : ident) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      assigns_through_field_s field body ||
+      assigns_through_field_ls field rest
   end.
 
 Record generated_pu_model_shape : Prop := {

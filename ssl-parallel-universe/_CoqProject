@@ -11,3 +11,4 @@ generated/platform_displacement.v
 proofs/ASTFacts.v
 proofs/Spec.v
 proofs/ParallelUniverse.v
+proofs/MovementSourceFacts.v

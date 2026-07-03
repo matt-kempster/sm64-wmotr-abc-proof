@@ -38,10 +38,28 @@ can lower that certificate toward generated SM64 movement and collision code.
 
 ## Counterexample exit ramp
 
-If the generated C model or later SM64-derived lowering permits a transition
-from the area-2 invariant to `abs x >= 32768` or `abs z >= 32768`, stop the
-impossibility proof and document the concrete setup, transition, and resulting
-coordinate.
+The unqualified claim that every Area 2 movement source preserves the bound is
+now false at this abstraction level. The generated movement-source audit found
+real Clight paths that write Mario's position without the bounded-step clamp:
+
+- `perform_air_step` calls `perform_air_quarter_step`, and the quarter-step
+  body assigns through `MarioState.pos`.
+- `apply_mario_platform_displacement` calls `apply_platform_displacement`,
+  which calls `set_mario_pos`, and `set_mario_pos` assigns through
+  `MarioState.pos`.
+
+`proofs/MovementSourceFacts.v` formalizes two counterexample-shaped source
+models:
+
+- starting at `x = 8191`, a horizontal air velocity whose quarter-step delta is
+  `32768 - 8191` lands at the first PU threshold;
+- starting at `x = 8191`, a platform displacement of `32768 - 8191` lands at
+  the first PU threshold.
+
+These are counterexamples to the bounded certificate as a complete account of
+Area 2 movement. They are not yet a full in-game route: the remaining question
+is whether SSL Area 2 can reach the required velocity or platform displacement
+state from normal gameplay/glitch actions.
 
 ## Current status
 
@@ -64,3 +82,8 @@ the real SM64 movement engine.
 
 The next audit layer targets the actual SM64 movement-source translation units:
 `src/game/mario_step.c` and `src/game/platform_displacement.c`.
+
+`proofs/MovementSourceFacts.v` is the first result of that audit. It checks the
+generated Clight AST shape for those translation units and proves
+`bounded_certificate_does_not_cover_movement_sources`, which packages the
+source-shape facts with the two arithmetic counterexamples above.
