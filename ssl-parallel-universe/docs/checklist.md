@@ -20,6 +20,8 @@ large float positions can therefore alias lower coordinate cells.
 - [x] Add the C model and generate the first Clight AST with `clightgen`.
   `generated/pu_model.v` was produced from `inputs/pu_model.c` by the local
   `pipeline/clightgen.sh` route.
+- [x] Generate real movement-source Clight for `mario_step.c` and
+  `platform_displacement.c`.
 - [x] Prove generated-program shape facts for the step function and PU
   detector.
 - [x] Prove the arithmetic invariant: bounded SSL area 2 positions stay below
@@ -59,3 +61,7 @@ large float positions can therefore alias lower coordinate cells.
   dotted temp `.aux` file.
 - 2026-07-03: Extended `make clean` to remove generated/proof dotted `.aux`
   artifacts.
+- 2026-07-03: Added generation targets for the real SM64 movement-source
+  translation units `mario_step.c` and `platform_displacement.c`.
+- 2026-07-03: Generated committed Clight for `mario_step.c` and
+  `platform_displacement.c`.

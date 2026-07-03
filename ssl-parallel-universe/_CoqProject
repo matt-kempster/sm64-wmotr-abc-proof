@@ -4,6 +4,8 @@
 -R proofs SSLPU.Proofs
 
 generated/pu_model.v
+generated/mario_step.v
+generated/platform_displacement.v
 
 # Hand-written proof files will be listed here as the proof develops.
 proofs/ASTFacts.v

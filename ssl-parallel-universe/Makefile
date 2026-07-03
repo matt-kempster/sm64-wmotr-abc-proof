@@ -9,7 +9,35 @@
 COQMAKEFILE := CoqMakefile
 CLIGHTGEN   := pipeline/clightgen.sh
 
-GENERATED := generated/pu_model.v
+SM64 ?= $(SM64_SOURCE)
+ifeq ($(strip $(SM64)),)
+SM64 := $(firstword $(wildcard ../../reference-sm64-decomp ../vendor/sm64))
+endif
+ifeq ($(strip $(SM64)),)
+SM64 := ../../reference-sm64-decomp
+endif
+
+SM64_CG := -nostdinc -fstruct-passing \
+  -I$(SM64)/include \
+  -I$(SM64)/build/us \
+  -I$(SM64)/build/us/include \
+  -I$(SM64)/src \
+  -I$(SM64)/src/game \
+  -I$(SM64) \
+  -I$(SM64)/include/libc \
+  -DVERSION_US=1 \
+  -DF3DEX_GBI_2=1 \
+  -DF3DEX_GBI_SHARED=1 \
+  -D_FINALROM=1 \
+  -DTARGET_N64=1 \
+  -DNON_MATCHING=1 \
+  -DAVOID_UB=1 \
+  -D_LANGUAGE_C=1
+
+GENERATED := \
+  generated/pu_model.v \
+  generated/mario_step.v \
+  generated/platform_displacement.v
 
 .PHONY: all generated proofs regen clean check
 
@@ -19,6 +47,12 @@ generated: $(GENERATED)
 
 generated/pu_model.v: inputs/pu_model.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@
+
+generated/mario_step.v: $(SM64)/src/game/mario_step.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/platform_displacement.v: $(SM64)/src/game/platform_displacement.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
 
 $(COQMAKEFILE): _CoqProject
 	coq_makefile -f _CoqProject -o $@

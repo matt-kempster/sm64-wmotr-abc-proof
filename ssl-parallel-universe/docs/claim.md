@@ -61,3 +61,6 @@ area-2 step clamps both horizontal coordinates back into that interval.
 `ssl_area2_no_parallel_universe`. This is a generated-model theorem over the
 bounded SSL area 2 transition certificate, not yet a full semantic lowering of
 the real SM64 movement engine.
+
+The next audit layer targets the actual SM64 movement-source translation units:
+`src/game/mario_step.c` and `src/game/platform_displacement.c`.
