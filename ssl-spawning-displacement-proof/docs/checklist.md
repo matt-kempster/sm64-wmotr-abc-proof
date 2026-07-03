@@ -137,6 +137,14 @@
   the audited castle object surfaces are not painting-warp floors.  The theorem
   `castle_checkpoint_painting_route_cannot_seed_spawning_displacement` rules
   out this route under the synchronized ordinary-floor model.
+- [x] Prove the inside-pyramid displacement bound for every audited SSL area-2
+  surface/platform target on the first stale update.  The theorem
+  `ssl_area2_all_first_update_platform_displacements_stay_in_elevator_shaft`
+  shows that all modeled first-update outcomes remain inside the top-entry
+  elevator shaft footprint, and
+  `ssl_area2_all_first_update_platform_displacements_do_not_reach_cage_top`
+  shows that none reaches the high cage/rim top.  The companion writeup is
+  `docs/area2-platform-displacement.md`.
 - [x] If no such mechanism exists, reframe the final result as a disproof of
   SSL spawning displacement under the modeled ordinary gameplay assumptions,
   while retaining the conditional inside-pyramid Spindel theorem.

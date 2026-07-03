@@ -19,6 +19,18 @@ For the top-entry Area 2 destination, Mario spawns at `(0, 5500, 256)`, about
 position to approximately `(0, 5458, 344)`, about 981 horizontal units from the
 star, so the first Spindel effect does not move Mario closer to the star.
 
+The target-platform analysis is now closed for the first stale update inside
+SSL Area 2.  All audited area-2 surface/platform targets either provide no
+useful displacement fields on that first tick or, for Spindel, provide only the
+bounded first active displacement above.  Formally,
+`ssl_area2_all_first_update_platform_displacements_stay_in_elevator_shaft`
+proves that every modeled first-update result remains inside the top-entry
+elevator shaft footprint, and
+`ssl_area2_all_first_update_platform_displacements_do_not_reach_cage_top`
+proves that none reaches the high cage/rim top.  Thus even a visible spawning
+displacement effect in SSL Area 2 does not, in this model, eject Mario from the
+elevator shaft or put him on the cage bars.
+
 The central source facts are now checked against generated JP Clight modules.
 `generated_jp_clight_source_certificate` packages the JP no-clear spawn fact,
 the blind platform-displacement pointer use, update order, free-list hooks, SSL
