@@ -7,12 +7,17 @@ build behavior must update this file in the same commit.
 
 ## Current verdict
 
-No counterexample is known yet.
+The bounded-step impossibility theorem is not enough for the full Area 2
+claim.
 
-The working proof route is an impossibility theorem for normal SSL area 2 play
-under a concrete bounded-position invariant. The model must stay honest about
-the actual PU mechanism: SM64 collision queries cast positions to `s16`, and
-large float positions can therefore alias lower coordinate cells.
+The generated real-source audit found movement-source paths that write Mario's
+position outside the bounded certificate: `perform_air_step` reaches
+`perform_air_quarter_step`, which assigns through `MarioState.pos`, and
+`apply_mario_platform_displacement` reaches `set_mario_pos`, which writes the
+same position field. A formal counterexample now shows that an unbounded
+horizontal velocity or platform displacement can move a bounded Area 2 state to
+the first PU threshold. This is not yet a full gameplay route proving that the
+required velocity/displacement is reachable inside SSL Area 2.
 
 ## Active next steps
 
@@ -28,6 +33,12 @@ large float positions can therefore alias lower coordinate cells.
   the first PU threshold.
 - [x] State the capstone theorem, or replace it with a counterexample if the
   model admits one.
+- [x] Audit generated movement-source ASTs for real position-writing paths.
+- [x] Formalize the first counterexample-shaped source path outside the
+  bounded-step certificate.
+- [ ] Lower the counterexample from an unbounded source state to a reachable
+  SSL Area 2 gameplay/glitch setup, or prove source-level bounds that rule it
+  out.
 
 ## Build and hygiene
 
@@ -65,3 +76,7 @@ large float positions can therefore alias lower coordinate cells.
   translation units `mario_step.c` and `platform_displacement.c`.
 - 2026-07-03: Generated committed Clight for `mario_step.c` and
   `platform_displacement.c`.
+- 2026-07-03: Added `MovementSourceFacts.v`, proving generated AST facts for
+  air-step/platform-displacement position-writing paths and formalizing
+  velocity/platform displacement counterexamples to the unqualified Area 2
+  no-PU claim.

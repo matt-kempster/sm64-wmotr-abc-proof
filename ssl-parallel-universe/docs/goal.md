@@ -28,6 +28,13 @@ normal SSL area 2 transition certificate, not the full SM64 movement engine.
 The current capstone theorem is
 `SSLPU.Proofs.ParallelUniverse.ssl_area2_no_parallel_universe`.
 
+The active frontier is now the real movement-source boundary. The generated
+AST audit proves that `mario_step.c` and `platform_displacement.c` contain
+position-writing paths outside the bounded-step clamp, and
+`SSLPU.Proofs.MovementSourceFacts.bounded_certificate_does_not_cover_movement_sources`
+packages formal counterexamples for unbounded horizontal air velocity and
+platform displacement.
+
 ## Repository workflow constraints
 
 - Work on branch `codex/ssl-pyramid-item-proof` in the proof repository.
