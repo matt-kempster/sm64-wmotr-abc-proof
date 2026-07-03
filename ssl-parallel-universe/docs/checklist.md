@@ -20,11 +20,11 @@ large float positions can therefore alias lower coordinate cells.
 - [x] Add the C model and generate the first Clight AST with `clightgen`.
   `generated/pu_model.v` was produced from `inputs/pu_model.c` by the local
   `pipeline/clightgen.sh` route.
-- [ ] Prove generated-program shape facts for the step function and PU
+- [x] Prove generated-program shape facts for the step function and PU
   detector.
-- [ ] Prove the arithmetic invariant: bounded SSL area 2 positions stay below
+- [x] Prove the arithmetic invariant: bounded SSL area 2 positions stay below
   the first PU threshold.
-- [ ] State the capstone theorem, or replace it with a counterexample if the
+- [x] State the capstone theorem, or replace it with a counterexample if the
   model admits one.
 
 ## Build and hygiene
@@ -47,3 +47,13 @@ large float positions can therefore alias lower coordinate cells.
 - 2026-07-03: Generated the first CompCert Clight AST for the PU model.
 - 2026-07-03: Added the empty proof-directory marker so `_CoqProject` path
   mapping is quiet before the first proof module.
+- 2026-07-03: Added `ASTFacts.v`, `Spec.v`, and `ParallelUniverse.v`.
+  The capstone `ssl_area2_no_parallel_universe` proves that the generated
+  bounded-step model cannot reach a PU from an SSL area 2 bounded-state
+  certificate.
+- 2026-07-03: Tightened `pipeline/assumptions.sh` so it checks the local
+  `SSLPU` logical paths with `coqc` and fails on import or assumption errors.
+- 2026-07-03: Removed the proof-directory placeholder after adding real proof
+  modules.
+- 2026-07-03: Updated the assumptions-check cleanup trap to remove Coq's
+  dotted temp `.aux` file.

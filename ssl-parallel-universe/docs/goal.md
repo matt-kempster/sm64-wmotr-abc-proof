@@ -25,6 +25,8 @@ source C model
 
 The first source model is `inputs/pu_model.c`. It models only the bounded
 normal SSL area 2 transition certificate, not the full SM64 movement engine.
+The current capstone theorem is
+`SSLPU.Proofs.ParallelUniverse.ssl_area2_no_parallel_universe`.
 
 ## Repository workflow constraints
 
