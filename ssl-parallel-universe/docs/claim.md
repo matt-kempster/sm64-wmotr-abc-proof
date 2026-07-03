@@ -61,6 +61,25 @@ Area 2 movement. They are not yet a full in-game route: the remaining question
 is whether SSL Area 2 can reach the required velocity or platform displacement
 state from normal gameplay/glitch actions.
 
+The next source-level lowering targets the air-velocity side through BLJ. In
+the generated `mario.c` AST, the `ACT_LONG_JUMP` branch of
+`set_mario_action_airborne` assigns through `forwardVel`, contains the `1.5f`
+multiplier, and contains the `48.0f` positive-speed cap. That is exactly the
+US-source asymmetry needed for negative BLJ speed growth. In the generated
+`mario_actions_moving.c` AST, `act_long_jump_land` calls
+`common_landing_cancels`, passes the `set_jumping_action` callback and
+`sLongJumpLandAction`, and does not directly assign `forwardVel`.
+
+`proofs/BLJRoute.v` formalizes the finite lowering envelope. It models repeated
+negative BLJ speed growth by exact dyadic magnitudes: each recycle multiplies
+speed magnitude by `3/2`. Starting from a `-16` speed magnitude, 22 recycles
+exceed the `98304` horizontal velocity needed for one air step from
+`x = -8192` to reach `x = -32768`. This refutes a source-level claim that all
+reachable Mario horizontal velocities are uniformly bounded by the normal
+movement constants. It still leaves a narrower route obligation: prove that
+SSL Area 2 geometry and inputs can realize the 22 recycles while Mario remains
+within the Area 2 setup bounds.
+
 ## Current status
 
 The isolated project scaffold exists. `inputs/pu_model.c` contains the first C
@@ -87,3 +106,9 @@ The next audit layer targets the actual SM64 movement-source translation units:
 generated Clight AST shape for those translation units and proves
 `bounded_certificate_does_not_cover_movement_sources`, which packages the
 source-shape facts with the two arithmetic counterexamples above.
+
+`proofs/BLJRoute.v` is the second result. It proves
+`ssl_area2_blj_source_counterexample_envelope`, a source-level counterexample
+envelope for the air-velocity path. The project should now either discharge the
+remaining SSL Area 2 BLJ geometry/input certificate, or prove that the pyramid
+interior prevents the recycle loop before the required 22 iterations.

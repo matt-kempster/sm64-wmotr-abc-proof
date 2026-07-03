@@ -35,6 +35,13 @@ position-writing paths outside the bounded-step clamp, and
 packages formal counterexamples for unbounded horizontal air velocity and
 platform displacement.
 
+The air-velocity branch has been lowered to the generated-source BLJ envelope:
+`SSLPU.Proofs.BLJRoute.ssl_area2_blj_source_counterexample_envelope` proves
+that the US long-jump source admits negative-speed growth and that 22 repeated
+recycles can supply the velocity needed to reach the first PU threshold from
+the negative Area 2 edge. The remaining open obligation is geometry/input
+reachability for those recycles inside SSL Area 2.
+
 ## Repository workflow constraints
 
 - Work on branch `codex/ssl-pyramid-item-proof` in the proof repository.

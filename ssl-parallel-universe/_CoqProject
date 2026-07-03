@@ -6,9 +6,12 @@
 generated/pu_model.v
 generated/mario_step.v
 generated/platform_displacement.v
+generated/mario.v
+generated/mario_actions_moving.v
 
 # Hand-written proof files will be listed here as the proof develops.
 proofs/ASTFacts.v
 proofs/Spec.v
 proofs/ParallelUniverse.v
 proofs/MovementSourceFacts.v
+proofs/BLJRoute.v
