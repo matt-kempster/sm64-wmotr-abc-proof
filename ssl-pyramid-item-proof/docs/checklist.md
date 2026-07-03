@@ -1,6 +1,6 @@
 # SSL Pyramid item proof checklist
 
-Last updated: 2026-06-30
+Last updated: 2026-07-03
 
 Tiny vibe check: this is the readable TODO map for the SSL Pyramid item/stale
 pointer proof. The Coq files are the machine truth; this file is the Discord
@@ -96,12 +96,20 @@ executions.
   spawn-list head before calling `spawn_objects_from_info`.
   Also new: `spawninfo_active_area_read_preserved_by_disjoint_store` proves the
   source spawn active-area byte survives any later concrete store whose byte
-  range is disjoint from `spawnInfo->activeAreaIndex`; this is the frame lemma
-  we need for the `spawnInfo->next` and `area.objectSpawnInfos` list-link
-  stores once their generated lvalues are normalized.
-  Remaining seam: prove byte-level/list preservation for the same allocated
-  `spawnInfo` pointer through the full `f_level_cmd_place_object` execution and
-  into the later `geo_obj_init_spawninfo` call.
+  range is disjoint from `spawnInfo->activeAreaIndex`.
+  Fresh receipt: the generated target layout says `SpawnInfo.next` is byte 28
+  on this CompCert target, `eval_level_cmd_place_object_spawn_next_lvalue_normalizes`
+  pins `spawnInfo->next` to that exact address, and
+  `level_cmd_place_object_spawn_next_store_preserves_active_area_read` says the
+  `spawnInfo->next = oldHead` pointer store preserves the already-copied
+  active-area byte when the field-offset order is not wrapping around the
+  pointer address space.
+  Remaining seam: normalize/thread the later `area.objectSpawnInfos = spawnInfo`
+  store with the different-block frame lemma, discharge the no-wrap condition
+  for the `spawnInfo->next` store from the real allocation/valid-lvalue facts,
+  then carry the same allocated `spawnInfo` pointer through the full
+  `f_level_cmd_place_object` execution and into the later
+  `geo_obj_init_spawninfo` call.
 - [ ] Derive `generated_unload_execution_trace` from the real
   `f_unload_objects_from_area` 13-list loop. The certificate adapter and
   index-based suffix split are done; the remaining beast is proving the loop
