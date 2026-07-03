@@ -45,5 +45,7 @@ coordinate.
 
 ## Current status
 
-The isolated project scaffold exists. The C model, generated Clight AST, and
-Rocq proofs are not added yet.
+The isolated project scaffold exists. `inputs/pu_model.c` contains the first C
+model for bounded SSL area 2 movement and PU detection, and
+`generated/pu_model.v` is the corresponding committed CompCert Clight AST. The
+Rocq proof layer is not added yet.

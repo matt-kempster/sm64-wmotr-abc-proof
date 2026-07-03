@@ -23,6 +23,9 @@ source C model
   -> no-PU capstone theorem
 ```
 
+The first source model is `inputs/pu_model.c`. It models only the bounded
+normal SSL area 2 transition certificate, not the full SM64 movement engine.
+
 ## Repository workflow constraints
 
 - Work on branch `codex/ssl-pyramid-item-proof` in the proof repository.

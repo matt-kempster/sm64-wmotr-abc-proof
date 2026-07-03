@@ -9,13 +9,16 @@
 COQMAKEFILE := CoqMakefile
 CLIGHTGEN   := pipeline/clightgen.sh
 
-GENERATED :=
+GENERATED := generated/pu_model.v
 
 .PHONY: all generated proofs regen clean check
 
 all: generated proofs
 
 generated: $(GENERATED)
+
+generated/pu_model.v: inputs/pu_model.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@
 
 $(COQMAKEFILE): _CoqProject
 	coq_makefile -f _CoqProject -o $@

@@ -17,7 +17,9 @@ large float positions can therefore alias lower coordinate cells.
 ## Active next steps
 
 - [x] Create the isolated `ssl-parallel-universe/` project scaffold.
-- [ ] Add the C model and generate the first Clight AST with `clightgen`.
+- [x] Add the C model and generate the first Clight AST with `clightgen`.
+  `generated/pu_model.v` was produced from `inputs/pu_model.c` by the local
+  `pipeline/clightgen.sh` route.
 - [ ] Prove generated-program shape facts for the step function and PU
   detector.
 - [ ] Prove the arithmetic invariant: bounded SSL area 2 positions stay below
@@ -40,3 +42,8 @@ large float positions can therefore alias lower coordinate cells.
 
 - 2026-07-03: Project scaffold, local build files, pipeline helpers, and docs
   created.
+- 2026-07-03: Added the first C model for bounded SSL area 2 movement and PU
+  detection.
+- 2026-07-03: Generated the first CompCert Clight AST for the PU model.
+- 2026-07-03: Added the empty proof-directory marker so `_CoqProject` path
+  mapping is quiet before the first proof module.
