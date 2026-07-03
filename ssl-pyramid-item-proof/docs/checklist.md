@@ -132,12 +132,19 @@ executions.
   `gAreas[_t'7].objectSpawnInfos = spawnInfo`. It carries the `_t'6` / `_t'7`
   temp facts, Area-vs-SpawnInfo block separation, and the `spawnInfo->next`
   no-wrap bound through both stores.
-  Remaining seam: lift that two-store fragment to the surrounding generated
-  `f_level_cmd_place_object` tail, including the `_t'8/_t'9/_t'10` and
-  `_t'6/_t'7` `Sset` statements, the `gAreas` / `sCurrAreaIndex` global reads,
-  and the intervening post-active-area stores to `behaviorArg`,
-  `behaviorScript`, and `model`. After that, feed the surviving same allocated
-  `spawnInfo` pointer into the later `geo_obj_init_spawninfo` call.
+  Even newer receipt:
+  `exec_level_cmd_place_object_intervening_spawninfo_assignments_preserves_active_area_read`
+  now composes the intervening `behaviorArg`, `behaviorScript`, and `model`
+  stores as a generated fragment. The proof pins their `SpawnInfo` offsets
+  (`16`, `20`, `24`), extracts the concrete stores, and frames them as
+  later-same-block writes after `activeAreaIndex`.
+  Remaining seam: lift the intervening-store fragment plus the two-store
+  list-link fragment to the surrounding generated `f_level_cmd_place_object`
+  tail, including the `_t'15/_t'16`, `_t'13/_t'14`, `_t'11/_t'12`,
+  `_t'8/_t'9/_t'10`, and `_t'6/_t'7` `Sset` statements plus the
+  `sCurrentCmd`, `gLoadedGraphNodes`, `gAreas`, and `sCurrAreaIndex` global
+  reads. After that, feed the surviving same allocated `spawnInfo` pointer into
+  the later `geo_obj_init_spawninfo` call.
 - [ ] Derive `generated_unload_execution_trace` from the real
   `f_unload_objects_from_area` 13-list loop. The certificate adapter and
   index-based suffix split are done; the remaining beast is proving the loop
