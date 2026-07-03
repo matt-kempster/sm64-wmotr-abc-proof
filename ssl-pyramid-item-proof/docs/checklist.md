@@ -115,13 +115,21 @@ executions.
   concrete pointer store into the Area block preserves the source
   `spawnInfo->activeAreaIndex` byte when the Area block is different from the
   SpawnInfo block.
-  Remaining seam: prove the generated
-  `gAreas[sCurrAreaIndex].objectSpawnInfos = spawnInfo` lvalue/store extraction
-  in a performance-safe way, then thread both list-link stores through the full
-  `f_level_cmd_place_object` execution and into the later
-  `geo_obj_init_spawninfo` call. I tried the direct inversion route for the Area
-  lvalue; Coq started unfolding too much generated structure, so do this with a
-  specialized pointer-add/lvalue helper instead of broad `cbn in *`.
+  Freshest receipt: the performance-safe helper path is now done.
+  `sem_add_tptr_tshort_preserves_block` and
+  `eval_level_cmd_place_object_area_spawninfos_base_preserves_block` avoid
+  unfolding the giant generated environment while proving the
+  `gAreas + sCurrAreaIndex` pointer-add stays in the Area block.
+  `eval_level_cmd_place_object_area_spawninfos_lvalue_store_block_normalizes`
+  then pins the generated `gAreas[sCurrAreaIndex].objectSpawnInfos` lvalue to
+  that Area block, and
+  `exec_level_cmd_place_object_area_spawninfos_assign_preserves_active_area_read`
+  wraps the concrete generated `Sassign`.
+  Remaining seam: thread both list-link stores through the full
+  `f_level_cmd_place_object` execution, carrying the `_t'6` / `_t'7` temp facts,
+  the Area-vs-SpawnInfo block separation, and the `spawnInfo->next` no-wrap
+  bound, then feed the surviving same allocated `spawnInfo` pointer into the
+  later `geo_obj_init_spawninfo` call.
 - [ ] Derive `generated_unload_execution_trace` from the real
   `f_unload_objects_from_area` 13-list loop. The certificate adapter and
   index-based suffix split are done; the remaining beast is proving the loop
