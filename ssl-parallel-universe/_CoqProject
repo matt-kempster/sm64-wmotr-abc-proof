@@ -3,6 +3,6 @@
 -R generated SSLPU.Generated
 -R proofs SSLPU.Proofs
 
-# Generated Clight files will be listed here once the C model is added.
+generated/pu_model.v
 
 # Hand-written proof files will be listed here as the proof develops.
