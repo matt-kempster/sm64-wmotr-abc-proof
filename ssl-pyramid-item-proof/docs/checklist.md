@@ -125,11 +125,19 @@ executions.
   that Area block, and
   `exec_level_cmd_place_object_area_spawninfos_assign_preserves_active_area_read`
   wraps the concrete generated `Sassign`.
-  Remaining seam: thread both list-link stores through the full
-  `f_level_cmd_place_object` execution, carrying the `_t'6` / `_t'7` temp facts,
-  the Area-vs-SpawnInfo block separation, and the `spawnInfo->next` no-wrap
-  bound, then feed the surviving same allocated `spawnInfo` pointer into the
-  later `geo_obj_init_spawninfo` call.
+  Newest receipt:
+  `exec_level_cmd_place_object_list_link_assignments_preserves_active_area_read`
+  composes the two concrete list-link `Sassign`s as an executable generated
+  fragment: first `spawnInfo->next = _t'10`, then
+  `gAreas[_t'7].objectSpawnInfos = spawnInfo`. It carries the `_t'6` / `_t'7`
+  temp facts, Area-vs-SpawnInfo block separation, and the `spawnInfo->next`
+  no-wrap bound through both stores.
+  Remaining seam: lift that two-store fragment to the surrounding generated
+  `f_level_cmd_place_object` tail, including the `_t'8/_t'9/_t'10` and
+  `_t'6/_t'7` `Sset` statements, the `gAreas` / `sCurrAreaIndex` global reads,
+  and the intervening post-active-area stores to `behaviorArg`,
+  `behaviorScript`, and `model`. After that, feed the surviving same allocated
+  `spawnInfo` pointer into the later `geo_obj_init_spawninfo` call.
 - [ ] Derive `generated_unload_execution_trace` from the real
   `f_unload_objects_from_area` 13-list loop. The certificate adapter and
   index-based suffix split are done; the remaining beast is proving the loop

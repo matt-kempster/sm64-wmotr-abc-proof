@@ -818,6 +818,10 @@ Definition level_cmd_place_object_area_spawninfos_assign : statement :=
   Sassign level_cmd_place_object_area_spawninfos_lhs
     level_cmd_place_object_area_spawninfos_rhs.
 
+Definition level_cmd_place_object_list_link_assignments : statement :=
+  Ssequence level_cmd_place_object_spawn_next_assign
+    level_cmd_place_object_area_spawninfos_assign.
+
 Lemma level_script_spawn_info_struct_deref_loc_pointer_same :
   forall memory spawn_block spawn_offset loc ofs,
     deref_loc (Tstruct LS._SpawnInfo noattr) memory spawn_block
@@ -1558,6 +1562,70 @@ Proof.
   - repeat split; assumption.
 Qed.
 
+Theorem exec_level_cmd_place_object_list_link_assignments_preserves_active_area_read :
+  forall e le before after trace le' outcome
+      spawn_block spawn_offset area areas_block areas_offset area_raw,
+    le ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
+    spawn_block <> areas_block ->
+    Ptrofs.unsigned spawn_offset <=
+      Ptrofs.max_unsigned - spawn_info_next_offset ->
+    le ! LS._t'6 = Some (Vptr areas_block areas_offset) ->
+    le ! LS._t'7 = Some (Vint area_raw) ->
+    spawninfo_active_area_read before spawn_block spawn_offset area ->
+    exec_stmt function_entry2 level_script_ge e le before
+      level_cmd_place_object_list_link_assignments trace le' after outcome ->
+    spawninfo_active_area_read after spawn_block spawn_offset area /\
+    trace = E0 /\ le' = le /\ outcome = Out_normal.
+Proof.
+  intros e le before after trace le' outcome
+    spawn_block spawn_offset area areas_block areas_offset area_raw
+    Hspawn Hdiff Hfits Hareas Harea_raw Hread Hexec.
+  unfold level_cmd_place_object_list_link_assignments in Hexec.
+  inv Hexec.
+  - match goal with
+    | Hnext :
+        exec_stmt function_entry2 level_script_ge e le before
+          level_cmd_place_object_spawn_next_assign _ _ _ _ |- _ =>
+        destruct
+          (exec_level_script_sassign_effect_from_exec_stmt
+            e le before level_cmd_place_object_spawn_next_lhs
+            level_cmd_place_object_spawn_next_rhs _ _ _ _ Hnext)
+          as (Hnext_effect & Htrace_next & Hle_next & Hout_next);
+        subst
+    end.
+    pose proof
+      (level_cmd_place_object_spawn_next_store_preserves_active_area_read_from_no_wrap
+        e le before _ spawn_block spawn_offset area
+        Hspawn Hfits Hnext_effect Hread)
+      as Hread_after_next.
+    match goal with
+    | Harea :
+        exec_stmt function_entry2 level_script_ge e le ?after_next
+          level_cmd_place_object_area_spawninfos_assign _ _ _ _ |- _ =>
+        destruct
+          (exec_level_cmd_place_object_area_spawninfos_assign_preserves_active_area_read
+            e le after_next after _ _ _
+            spawn_block spawn_offset area areas_block areas_offset area_raw
+            Hdiff Hareas Harea_raw Hread_after_next Harea)
+          as (Hread_after & Htrace_area & Hle_area & Hout_area);
+        subst
+    end.
+    split; [exact Hread_after |].
+    repeat split; simpl; reflexivity.
+  - match goal with
+    | Hnext :
+        exec_stmt function_entry2 level_script_ge e le before
+          level_cmd_place_object_spawn_next_assign _ _ _ _ |- _ =>
+        destruct
+          (exec_level_script_sassign_effect_from_exec_stmt
+            e le before level_cmd_place_object_spawn_next_lhs
+            level_cmd_place_object_spawn_next_rhs _ _ _ _ Hnext)
+          as (_ & _ & _ & Hout_next);
+        subst
+    end.
+    contradiction.
+Qed.
+
 Theorem exec_level_cmd_place_object_active_area_copy_gives_spawninfo_active_area_read :
   forall e le before after trace le' outcome spawn_block spawn_offset,
     le ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
@@ -2144,6 +2212,8 @@ Definition same_slot_reuse_generated_order_receipt_audit : Prop :=
     level_cmd_place_object_area_spawninfos_store_preserves_active_area_read /\
   proposition_of
     exec_level_cmd_place_object_area_spawninfos_assign_preserves_active_area_read /\
+  proposition_of
+    exec_level_cmd_place_object_list_link_assignments_preserves_active_area_read /\
   proposition_of generated_same_slot_assignment_inversion_audit_holds.
 
 Theorem ssl_pyramid_destination_allocations_reach_slot_if_depth_below_70 :
@@ -2473,6 +2543,7 @@ Proof.
   split; [exact level_cmd_place_object_area_spawninfos_sassign_effect_store |].
   split; [exact level_cmd_place_object_area_spawninfos_store_preserves_active_area_read |].
   split; [exact exec_level_cmd_place_object_area_spawninfos_assign_preserves_active_area_read |].
+  split; [exact exec_level_cmd_place_object_list_link_assignments_preserves_active_area_read |].
   exact generated_same_slot_assignment_inversion_audit_holds.
 Qed.
 
