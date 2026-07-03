@@ -36,3 +36,4 @@ check:
 clean:
 	-$(MAKE) -f $(COQMAKEFILE) clean 2>/dev/null || true
 	rm -f $(COQMAKEFILE) $(COQMAKEFILE).conf .*.aux
+	rm -f generated/.*.aux proofs/.*.aux
