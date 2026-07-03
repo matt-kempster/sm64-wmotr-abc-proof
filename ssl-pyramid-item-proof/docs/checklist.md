@@ -104,12 +104,24 @@ executions.
   `spawnInfo->next = oldHead` pointer store preserves the already-copied
   active-area byte when the field-offset order is not wrapping around the
   pointer address space.
-  Remaining seam: normalize/thread the later `area.objectSpawnInfos = spawnInfo`
-  store with the different-block frame lemma, discharge the no-wrap condition
-  for the `spawnInfo->next` store from the real allocation/valid-lvalue facts,
-  then carry the same allocated `spawnInfo` pointer through the full
+  Newer receipt: `spawn_info_next_store_after_active_area_from_no_wrap` turns
+  that no-wrap side condition into the simple bound
+  `spawn_offset <= max_unsigned - 28`, and
+  `level_cmd_place_object_spawn_next_store_preserves_active_area_read_from_no_wrap`
+  packages it for the generated `spawnInfo->next` store.
+  Area-list side: `level_script_area_object_spawn_infos_layout` pins
+  `Area.objectSpawnInfos` at byte 32, and
+  `area_object_spawninfos_direct_store_preserves_active_area_read` proves any
+  concrete pointer store into the Area block preserves the source
+  `spawnInfo->activeAreaIndex` byte when the Area block is different from the
+  SpawnInfo block.
+  Remaining seam: prove the generated
+  `gAreas[sCurrAreaIndex].objectSpawnInfos = spawnInfo` lvalue/store extraction
+  in a performance-safe way, then thread both list-link stores through the full
   `f_level_cmd_place_object` execution and into the later
-  `geo_obj_init_spawninfo` call.
+  `geo_obj_init_spawninfo` call. I tried the direct inversion route for the Area
+  lvalue; Coq started unfolding too much generated structure, so do this with a
+  specialized pointer-add/lvalue helper instead of broad `cbn in *`.
 - [ ] Derive `generated_unload_execution_trace` from the real
   `f_unload_objects_from_area` 13-list loop. The certificate adapter and
   index-based suffix split are done; the remaining beast is proving the loop

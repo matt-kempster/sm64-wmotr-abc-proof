@@ -553,6 +553,8 @@ Definition spawn_info_active_area_offset : Z := 13.
 
 Definition spawn_info_next_offset : Z := 28.
 
+Definition area_object_spawn_infos_offset : Z := 32.
+
 Theorem generated_graph_node_object_active_area_layout :
   field_offset graph_node_ce G._activeAreaIndex
     generated_graph_node_object_members =
@@ -724,6 +726,12 @@ Definition level_script_spawn_info_members : members :=
   | None => nil
   end.
 
+Definition level_script_area_members : members :=
+  match level_script_ce ! LS._Area with
+  | Some composite => co_members composite
+  | None => nil
+  end.
+
 Theorem level_script_spawn_info_active_area_layout :
   field_offset level_script_ce LS._activeAreaIndex
     level_script_spawn_info_members =
@@ -734,6 +742,12 @@ Theorem level_script_spawn_info_next_layout :
   field_offset level_script_ce LS._next
     level_script_spawn_info_members =
   OK (spawn_info_next_offset, Full).
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem level_script_area_object_spawn_infos_layout :
+  field_offset level_script_ce LS._objectSpawnInfos
+    level_script_area_members =
+  OK (area_object_spawn_infos_offset, Full).
 Proof. vm_compute; reflexivity. Qed.
 
 Definition level_cmd_place_object_current_area_read
@@ -784,6 +798,26 @@ Definition level_cmd_place_object_spawn_next_assign : statement :=
   Sassign level_cmd_place_object_spawn_next_lhs
     level_cmd_place_object_spawn_next_rhs.
 
+Definition level_cmd_place_object_area_spawninfos_base : expr :=
+  Ebinop Cop.Oadd
+    (Etempvar LS._t'6 (tptr (Tstruct LS._Area noattr)))
+    (Etempvar LS._t'7 tshort)
+    (tptr (Tstruct LS._Area noattr)).
+
+Definition level_cmd_place_object_area_spawninfos_lhs : expr :=
+  Efield
+    (Ederef level_cmd_place_object_area_spawninfos_base
+      (Tstruct LS._Area noattr))
+    LS._objectSpawnInfos
+    (tptr (Tstruct LS._SpawnInfo noattr)).
+
+Definition level_cmd_place_object_area_spawninfos_rhs : expr :=
+  Etempvar LS._spawnInfo (tptr (Tstruct LS._SpawnInfo noattr)).
+
+Definition level_cmd_place_object_area_spawninfos_assign : statement :=
+  Sassign level_cmd_place_object_area_spawninfos_lhs
+    level_cmd_place_object_area_spawninfos_rhs.
+
 Lemma level_script_spawn_info_struct_deref_loc_pointer_same :
   forall memory spawn_block spawn_offset loc ofs,
     deref_loc (Tstruct LS._SpawnInfo noattr) memory spawn_block
@@ -791,6 +825,19 @@ Lemma level_script_spawn_info_struct_deref_loc_pointer_same :
     loc = spawn_block /\ ofs = spawn_offset.
 Proof.
   intros memory spawn_block spawn_offset loc ofs Hderef.
+  inv Hderef;
+    simpl in *;
+    try discriminate.
+  split; reflexivity.
+Qed.
+
+Lemma level_script_area_struct_deref_loc_pointer_same :
+  forall memory area_block area_offset loc ofs,
+    deref_loc (Tstruct LS._Area noattr) memory area_block
+      area_offset Full (Vptr loc ofs) ->
+    loc = area_block /\ ofs = area_offset.
+Proof.
+  intros memory area_block area_offset loc ofs Hderef.
   inv Hderef;
     simpl in *;
     try discriminate.
@@ -1195,6 +1242,28 @@ Definition spawn_info_next_store_after_active_area
     (Ptrofs.add spawn_offset
       (Ptrofs.repr spawn_info_next_offset)).
 
+Theorem spawn_info_next_store_after_active_area_from_no_wrap :
+  forall spawn_offset,
+    Ptrofs.unsigned spawn_offset <=
+      Ptrofs.max_unsigned - spawn_info_next_offset ->
+    spawn_info_next_store_after_active_area spawn_offset.
+Proof.
+  intros spawn_offset Hfits.
+  pose proof (Ptrofs.unsigned_range spawn_offset) as Hrange.
+  unfold spawn_info_next_offset in Hfits.
+  unfold spawn_info_next_store_after_active_area,
+    spawn_info_active_area_offset, spawn_info_next_offset.
+  rewrite !Ptrofs.add_unsigned.
+  assert (Hrepr13 : Ptrofs.unsigned (Ptrofs.repr 13) = 13)
+    by (vm_compute; reflexivity).
+  assert (Hrepr28 : Ptrofs.unsigned (Ptrofs.repr 28) = 28)
+    by (vm_compute; reflexivity).
+  rewrite Hrepr13, Hrepr28.
+  rewrite !Ptrofs.unsigned_repr by lia.
+  change (size_chunk Mint8signed) with 1.
+  lia.
+Qed.
+
 Theorem level_cmd_place_object_spawn_next_store_preserves_active_area_read :
   forall e le before after spawn_block spawn_offset area,
     le ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
@@ -1214,6 +1283,45 @@ Proof.
     as (stored_value & Hstore).
   eapply spawninfo_active_area_read_preserved_by_later_same_block_store.
   - exact Hafter.
+  - exact Hstore.
+  - exact Hread.
+Qed.
+
+Theorem level_cmd_place_object_spawn_next_store_preserves_active_area_read_from_no_wrap :
+  forall e le before after spawn_block spawn_offset area,
+    le ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
+    Ptrofs.unsigned spawn_offset <=
+      Ptrofs.max_unsigned - spawn_info_next_offset ->
+    level_script_sassign_effect
+      level_cmd_place_object_spawn_next_lhs
+      level_cmd_place_object_spawn_next_rhs
+      e le before after ->
+    spawninfo_active_area_read before spawn_block spawn_offset area ->
+    spawninfo_active_area_read after spawn_block spawn_offset area.
+Proof.
+  intros e le before after spawn_block spawn_offset area
+    Hspawn Hfits Heffect Hread.
+  eapply level_cmd_place_object_spawn_next_store_preserves_active_area_read.
+  - exact Hspawn.
+  - apply spawn_info_next_store_after_active_area_from_no_wrap.
+    exact Hfits.
+  - exact Heffect.
+  - exact Hread.
+Qed.
+
+Theorem area_object_spawninfos_direct_store_preserves_active_area_read :
+  forall before after spawn_block spawn_offset area
+      areas_block store_offset stored_value,
+    spawn_block <> areas_block ->
+    Mem.store Mptr before areas_block store_offset stored_value =
+      Some after ->
+    spawninfo_active_area_read before spawn_block spawn_offset area ->
+    spawninfo_active_area_read after spawn_block spawn_offset area.
+Proof.
+  intros before after spawn_block spawn_offset area
+    areas_block store_offset stored_value Hdiff Hstore Hread.
+  eapply spawninfo_active_area_read_preserved_by_different_block_store.
+  - exact Hdiff.
   - exact Hstore.
   - exact Hread.
 Qed.
@@ -1785,6 +1893,13 @@ Definition same_slot_reuse_generated_order_receipt_audit : Prop :=
     level_cmd_place_object_spawn_next_sassign_effect_store /\
   proposition_of
     level_cmd_place_object_spawn_next_store_preserves_active_area_read /\
+  proposition_of
+    spawn_info_next_store_after_active_area_from_no_wrap /\
+  proposition_of
+    level_cmd_place_object_spawn_next_store_preserves_active_area_read_from_no_wrap /\
+  proposition_of level_script_area_object_spawn_infos_layout /\
+  proposition_of
+    area_object_spawninfos_direct_store_preserves_active_area_read /\
   proposition_of generated_same_slot_assignment_inversion_audit_holds.
 
 Theorem ssl_pyramid_destination_allocations_reach_slot_if_depth_below_70 :
@@ -2104,6 +2219,10 @@ Proof.
   split; [exact eval_level_cmd_place_object_spawn_next_lvalue_normalizes |].
   split; [exact level_cmd_place_object_spawn_next_sassign_effect_store |].
   split; [exact level_cmd_place_object_spawn_next_store_preserves_active_area_read |].
+  split; [exact spawn_info_next_store_after_active_area_from_no_wrap |].
+  split; [exact level_cmd_place_object_spawn_next_store_preserves_active_area_read_from_no_wrap |].
+  split; [exact level_script_area_object_spawn_infos_layout |].
+  split; [exact area_object_spawninfos_direct_store_preserves_active_area_read |].
   exact generated_same_slot_assignment_inversion_audit_holds.
 Qed.
 
