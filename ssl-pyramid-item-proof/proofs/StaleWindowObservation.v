@@ -1100,6 +1100,156 @@ Proof.
     repeat split; reflexivity.
 Qed.
 
+Lemma sem_add_tptr_tshort_preserves_block :
+  forall cenv pointee memory ptr_block ptr_offset raw_index value,
+    Cop.sem_binary_operation cenv Cop.Oadd
+      (Vptr ptr_block ptr_offset) (tptr pointee)
+      (Vint raw_index) tshort memory = Some value ->
+    exists result_offset,
+      value = Vptr ptr_block result_offset.
+Proof.
+  intros cenv pointee memory ptr_block ptr_offset raw_index value Hsem.
+  cbn in Hsem.
+  inv Hsem.
+  eexists.
+  reflexivity.
+Qed.
+
+Lemma eval_level_cmd_place_object_area_spawninfos_base_preserves_block :
+  forall e le memory areas_block areas_offset area_raw base_block base_ofs,
+    le ! LS._t'6 = Some (Vptr areas_block areas_offset) ->
+    le ! LS._t'7 = Some (Vint area_raw) ->
+    eval_expr level_script_ge e le memory
+      level_cmd_place_object_area_spawninfos_base
+      (Vptr base_block base_ofs) ->
+    base_block = areas_block.
+Proof.
+  intros e le memory areas_block areas_offset area_raw
+    base_block base_ofs Hareas Harea_raw Hbase.
+  unfold level_cmd_place_object_area_spawninfos_base in Hbase.
+  inv Hbase;
+    try (match goal with
+         | Hl : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ =>
+             solve [inv Hl]
+         end).
+  match goal with
+  | Htemp :
+      eval_expr level_script_ge e le memory
+        (Etempvar LS._t'6 _) ?value |- _ =>
+      inv Htemp;
+      try (match goal with
+           | Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ =>
+               solve [inv Hl]
+           end)
+  end.
+  match goal with
+  | Hlookup : le ! LS._t'6 = Some ?value |- _ =>
+      assert (value = Vptr areas_block areas_offset) by congruence;
+      subst value
+  end.
+  match goal with
+  | Htemp :
+      eval_expr level_script_ge e le memory
+        (Etempvar LS._t'7 _) ?value |- _ =>
+      inv Htemp;
+      try (match goal with
+           | Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ =>
+               solve [inv Hl]
+           end)
+  end.
+  match goal with
+  | Hlookup : le ! LS._t'7 = Some ?value |- _ =>
+      assert (value = Vint area_raw) by congruence;
+      subst value
+  end.
+  match goal with
+  | Hsem :
+      Cop.sem_binary_operation _ Cop.Oadd
+        (Vptr areas_block areas_offset) _ (Vint area_raw) _
+        memory = Some (Vptr base_block base_ofs) |- _ =>
+      destruct
+        (sem_add_tptr_tshort_preserves_block
+          _ _ memory areas_block areas_offset area_raw
+          (Vptr base_block base_ofs) Hsem)
+        as (result_offset & Hresult);
+      inv Hresult
+  end.
+  reflexivity.
+Qed.
+
+Lemma eval_level_cmd_place_object_area_spawninfos_lvalue_store_block_normalizes :
+  forall e le memory areas_block areas_offset area_raw loc ofs bf,
+    le ! LS._t'6 = Some (Vptr areas_block areas_offset) ->
+    le ! LS._t'7 = Some (Vint area_raw) ->
+    eval_lvalue level_script_ge e le memory
+      level_cmd_place_object_area_spawninfos_lhs loc ofs bf ->
+    loc = areas_block /\ bf = Full.
+Proof.
+  intros e le memory areas_block areas_offset area_raw loc ofs bf
+    Hareas Harea_raw Hlv.
+  unfold level_cmd_place_object_area_spawninfos_lhs in Hlv.
+  inv Hlv;
+    [ | match goal with Hut : typeof _ = Tunion _ _ |- _ => inv Hut end ].
+  match goal with
+  | Hbase :
+      eval_expr level_script_ge e le memory
+        (Ederef level_cmd_place_object_area_spawninfos_base
+          (Tstruct LS._Area noattr))
+        (Vptr ?base_block ?base_ofs) |- _ =>
+      inv Hbase
+  end.
+  match goal with
+  | Hptr : eval_lvalue _ _ _ _
+      (Ederef level_cmd_place_object_area_spawninfos_base _) _ _ _ |- _ =>
+      inv Hptr
+  end.
+  match goal with
+  | Hbase_expr :
+      eval_expr level_script_ge e le memory
+        level_cmd_place_object_area_spawninfos_base
+        (Vptr ?base_block ?base_ofs) |- _ =>
+      pose proof
+        (eval_level_cmd_place_object_area_spawninfos_base_preserves_block
+          e le memory areas_block areas_offset area_raw
+          base_block base_ofs Hareas Harea_raw Hbase_expr)
+        as Hbase_block;
+      subst base_block
+  end.
+  rewrite level_script_genv_cenv in *.
+  repeat match goal with
+  | H : context[typeof (Ederef _ _)] |- _ => progress (cbn [typeof] in H)
+  | H : context[typeof (Ebinop _ _ _ _)] |- _ =>
+      progress (cbn [typeof] in H)
+  | H : context[typeof (Etempvar _ _)] |- _ =>
+      progress (cbn [typeof] in H)
+  end.
+  match goal with Hty : Tstruct _ _ = Tstruct _ _ |- _ => inv Hty end.
+  match goal with
+  | Hco : level_script_ce ! LS._Area = Some ?co,
+    Hfield :
+      field_offset level_script_ce LS._objectSpawnInfos
+        (co_members ?co) =
+      OK (?delta, ?field_bf) |- _ =>
+      assert (Hmembers : co_members co = level_script_area_members) by
+        (unfold level_script_area_members;
+         rewrite Hco; reflexivity);
+      rewrite Hmembers in Hfield;
+      rewrite level_script_area_object_spawn_infos_layout in Hfield;
+      inv Hfield
+  end.
+  match goal with
+  | Hderef :
+      deref_loc (Tstruct LS._Area noattr) memory areas_block
+        ?area_offset Full (Vptr loc ?field_base_ofs) |- _ =>
+      pose proof
+        (level_script_area_struct_deref_loc_pointer_same
+          memory areas_block area_offset loc field_base_ofs Hderef)
+        as (Hloc & _);
+      subst loc
+  end.
+  split; reflexivity.
+Qed.
+
 Definition level_script_sassign_effect
     (lhs rhs : expr) (e : env) (le : temp_env)
     (before after : mem) : Prop :=
@@ -1324,6 +1474,88 @@ Proof.
   - exact Hdiff.
   - exact Hstore.
   - exact Hread.
+Qed.
+
+Theorem level_cmd_place_object_area_spawninfos_sassign_effect_store :
+  forall e le before after areas_block areas_offset area_raw,
+    le ! LS._t'6 = Some (Vptr areas_block areas_offset) ->
+    le ! LS._t'7 = Some (Vint area_raw) ->
+    level_script_sassign_effect
+      level_cmd_place_object_area_spawninfos_lhs
+      level_cmd_place_object_area_spawninfos_rhs
+      e le before after ->
+    exists store_offset stored_value,
+      Mem.store Mptr before areas_block store_offset stored_value =
+      Some after.
+Proof.
+  intros e le before after areas_block areas_offset area_raw
+    Hareas Harea_raw Heffect.
+  destruct Heffect as
+    (loc & ofs & bf & _raw_value & stored_value &
+      Hlv & _Hrhs & _Hcast & Hassign).
+  pose proof
+    (eval_level_cmd_place_object_area_spawninfos_lvalue_store_block_normalizes
+      e le before areas_block areas_offset area_raw loc ofs bf
+      Hareas Harea_raw Hlv)
+    as (Hloc & Hbf).
+  subst loc bf.
+  exists (Ptrofs.unsigned ofs), stored_value.
+  eapply assign_loc_tptr_store.
+  exact Hassign.
+Qed.
+
+Theorem level_cmd_place_object_area_spawninfos_store_preserves_active_area_read :
+  forall e le before after spawn_block spawn_offset area
+      areas_block areas_offset area_raw,
+    spawn_block <> areas_block ->
+    le ! LS._t'6 = Some (Vptr areas_block areas_offset) ->
+    le ! LS._t'7 = Some (Vint area_raw) ->
+    level_script_sassign_effect
+      level_cmd_place_object_area_spawninfos_lhs
+      level_cmd_place_object_area_spawninfos_rhs
+      e le before after ->
+    spawninfo_active_area_read before spawn_block spawn_offset area ->
+    spawninfo_active_area_read after spawn_block spawn_offset area.
+Proof.
+  intros e le before after spawn_block spawn_offset area
+    areas_block areas_offset area_raw Hdiff Hareas Harea_raw Heffect Hread.
+  destruct
+    (level_cmd_place_object_area_spawninfos_sassign_effect_store
+      e le before after areas_block areas_offset area_raw
+      Hareas Harea_raw Heffect)
+    as (store_offset & stored_value & Hstore).
+  eapply area_object_spawninfos_direct_store_preserves_active_area_read.
+  - exact Hdiff.
+  - exact Hstore.
+  - exact Hread.
+Qed.
+
+Theorem exec_level_cmd_place_object_area_spawninfos_assign_preserves_active_area_read :
+  forall e le before after trace le' outcome
+      spawn_block spawn_offset area areas_block areas_offset area_raw,
+    spawn_block <> areas_block ->
+    le ! LS._t'6 = Some (Vptr areas_block areas_offset) ->
+    le ! LS._t'7 = Some (Vint area_raw) ->
+    spawninfo_active_area_read before spawn_block spawn_offset area ->
+    exec_stmt function_entry2 level_script_ge e le before
+      level_cmd_place_object_area_spawninfos_assign trace le' after outcome ->
+    spawninfo_active_area_read after spawn_block spawn_offset area /\
+    trace = E0 /\ le' = le /\ outcome = Out_normal.
+Proof.
+  intros e le before after trace le' outcome
+    spawn_block spawn_offset area areas_block areas_offset area_raw
+    Hdiff Hareas Harea_raw Hread Hexec.
+  unfold level_cmd_place_object_area_spawninfos_assign in Hexec.
+  destruct
+    (exec_level_script_sassign_effect_from_exec_stmt
+      e le before level_cmd_place_object_area_spawninfos_lhs
+      level_cmd_place_object_area_spawninfos_rhs
+      trace le' after outcome Hexec)
+    as (Heffect & Htrace & Hle' & Houtcome).
+  split.
+  - eapply level_cmd_place_object_area_spawninfos_store_preserves_active_area_read;
+      eauto.
+  - repeat split; assumption.
 Qed.
 
 Theorem exec_level_cmd_place_object_active_area_copy_gives_spawninfo_active_area_read :
@@ -1900,6 +2132,18 @@ Definition same_slot_reuse_generated_order_receipt_audit : Prop :=
   proposition_of level_script_area_object_spawn_infos_layout /\
   proposition_of
     area_object_spawninfos_direct_store_preserves_active_area_read /\
+  proposition_of
+    sem_add_tptr_tshort_preserves_block /\
+  proposition_of
+    eval_level_cmd_place_object_area_spawninfos_base_preserves_block /\
+  proposition_of
+    eval_level_cmd_place_object_area_spawninfos_lvalue_store_block_normalizes /\
+  proposition_of
+    level_cmd_place_object_area_spawninfos_sassign_effect_store /\
+  proposition_of
+    level_cmd_place_object_area_spawninfos_store_preserves_active_area_read /\
+  proposition_of
+    exec_level_cmd_place_object_area_spawninfos_assign_preserves_active_area_read /\
   proposition_of generated_same_slot_assignment_inversion_audit_holds.
 
 Theorem ssl_pyramid_destination_allocations_reach_slot_if_depth_below_70 :
@@ -2223,6 +2467,12 @@ Proof.
   split; [exact level_cmd_place_object_spawn_next_store_preserves_active_area_read_from_no_wrap |].
   split; [exact level_script_area_object_spawn_infos_layout |].
   split; [exact area_object_spawninfos_direct_store_preserves_active_area_read |].
+  split; [exact sem_add_tptr_tshort_preserves_block |].
+  split; [exact eval_level_cmd_place_object_area_spawninfos_base_preserves_block |].
+  split; [exact eval_level_cmd_place_object_area_spawninfos_lvalue_store_block_normalizes |].
+  split; [exact level_cmd_place_object_area_spawninfos_sassign_effect_store |].
+  split; [exact level_cmd_place_object_area_spawninfos_store_preserves_active_area_read |].
+  split; [exact exec_level_cmd_place_object_area_spawninfos_assign_preserves_active_area_read |].
   exact generated_same_slot_assignment_inversion_audit_holds.
 Qed.
 
