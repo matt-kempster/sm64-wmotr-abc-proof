@@ -57,3 +57,5 @@ large float positions can therefore alias lower coordinate cells.
   modules.
 - 2026-07-03: Updated the assumptions-check cleanup trap to remove Coq's
   dotted temp `.aux` file.
+- 2026-07-03: Extended `make clean` to remove generated/proof dotted `.aux`
+  artifacts.
