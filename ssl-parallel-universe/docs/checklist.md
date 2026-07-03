@@ -8,7 +8,8 @@ build behavior must update this file in the same commit.
 ## Current verdict
 
 The bounded-step impossibility theorem is not enough for the full Area 2
-claim.
+claim, and an unconditional source-level horizontal-speed bound is false for
+the US source.
 
 The generated real-source audit found movement-source paths that write Mario's
 position outside the bounded certificate: `perform_air_step` reaches
@@ -16,8 +17,17 @@ position outside the bounded certificate: `perform_air_step` reaches
 `apply_mario_platform_displacement` reaches `set_mario_pos`, which writes the
 same position field. A formal counterexample now shows that an unbounded
 horizontal velocity or platform displacement can move a bounded Area 2 state to
-the first PU threshold. This is not yet a full gameplay route proving that the
-required velocity/displacement is reachable inside SSL Area 2.
+the first PU threshold.
+
+The next lowering found the source-level BLJ route envelope: the generated
+`mario.c` AST contains the US long-jump branch that multiplies `forwardVel` by
+`1.5f` and only caps positive speed at `48.0f`, and the generated
+`mario_actions_moving.c` AST shows `act_long_jump_land` recycles through
+`set_jumping_action` without directly resetting `forwardVel`. The formal model
+proves that 22 repeated BLJ recycles from a `-16` speed magnitude can supply
+the air-step velocity needed to cross from the negative Area 2 edge to the
+first PU threshold. The remaining geometric obligation is a collision/input
+certificate that SSL Area 2 supports those repeated recycles in-bounds.
 
 ## Active next steps
 
@@ -36,9 +46,10 @@ required velocity/displacement is reachable inside SSL Area 2.
 - [x] Audit generated movement-source ASTs for real position-writing paths.
 - [x] Formalize the first counterexample-shaped source path outside the
   bounded-step certificate.
-- [ ] Lower the counterexample from an unbounded source state to a reachable
-  SSL Area 2 gameplay/glitch setup, or prove source-level bounds that rule it
-  out.
+- [x] Lower the unbounded air-velocity counterexample to the generated-source
+  BLJ recycle envelope.
+- [ ] Prove or refute the remaining SSL Area 2 geometry/input certificate for
+  repeated BLJ recycles.
 
 ## Build and hygiene
 
@@ -80,3 +91,11 @@ required velocity/displacement is reachable inside SSL Area 2.
   air-step/platform-displacement position-writing paths and formalizing
   velocity/platform displacement counterexamples to the unqualified Area 2
   no-PU claim.
+- 2026-07-03: Added generated `mario.c` and `mario_actions_moving.c` Clight
+  targets plus `BLJRoute.v`. The new theorem
+  `ssl_area2_blj_source_counterexample_envelope` packages generated-source BLJ
+  shape facts with the arithmetic proof that 22 recycles supply the threshold
+  air velocity.
+- 2026-07-03: Updated the local `clightgen` wrapper to strip trailing
+  horizontal whitespace from generated artifacts so regenerated Clight remains
+  diff-clean.

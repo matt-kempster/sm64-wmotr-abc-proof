@@ -1210,7 +1210,7 @@ Definition f_mario_update_quicksand := {|
                                              tint)
                                 (Ssequence
                                   (Scall None
-                                    (Evar _update_mario_sound_and_camera 
+                                    (Evar _update_mario_sound_and_camera
                                     (Tfunction
                                       ((tptr (Tstruct _MarioState noattr)) ::
                                        nil) tvoid cc_default))
@@ -1218,7 +1218,7 @@ Definition f_mario_update_quicksand := {|
                                      nil))
                                   (Ssequence
                                     (Scall (Some _t'4)
-                                      (Evar _drop_and_set_mario_action 
+                                      (Evar _drop_and_set_mario_action
                                       (Tfunction
                                         ((tptr (Tstruct _MarioState noattr)) ::
                                          tuint :: tuint :: nil) tint
@@ -1234,7 +1234,7 @@ Definition f_mario_update_quicksand := {|
                             (LScons (Some 45)
                               (Ssequence
                                 (Scall None
-                                  (Evar _update_mario_sound_and_camera 
+                                  (Evar _update_mario_sound_and_camera
                                   (Tfunction
                                     ((tptr (Tstruct _MarioState noattr)) ::
                                      nil) tvoid cc_default))
@@ -1243,7 +1243,7 @@ Definition f_mario_update_quicksand := {|
                                 (Ssequence
                                   (Ssequence
                                     (Scall (Some _t'6)
-                                      (Evar _drop_and_set_mario_action 
+                                      (Evar _drop_and_set_mario_action
                                       (Tfunction
                                         ((tptr (Tstruct _MarioState noattr)) ::
                                          tuint :: tuint :: nil) tint
@@ -4035,7 +4035,7 @@ Definition f_apply_gravity := {|
                           Sskip)))
                     (Ssequence
                       (Scall (Some _t'4)
-                        (Evar _should_strengthen_gravity_for_jump_ascent 
+                        (Evar _should_strengthen_gravity_for_jump_ascent
                         (Tfunction
                           ((tptr (Tstruct _MarioState noattr)) :: nil) tuint
                           cc_default))
@@ -5782,7 +5782,5 @@ Definition public_idents : list ident :=
  ___compcert_va_composite :: ___compcert_va_float64 ::
  ___compcert_va_int64 :: ___compcert_va_int32 :: nil).
 
-Definition prog : Clight.program := 
+Definition prog : Clight.program :=
   mkprogram composites global_definitions public_idents _main Logic.I.
-
-

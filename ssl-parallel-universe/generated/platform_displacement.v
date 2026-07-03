@@ -1302,7 +1302,7 @@ Definition f_apply_platform_displacement := {|
                                                     tint))))
                                             (Ssequence
                                               (Scall None
-                                                (Evar _mtxf_rotate_zxy_and_translate 
+                                                (Evar _mtxf_rotate_zxy_and_translate
                                                 (Tfunction
                                                   ((tptr (tarray tfloat 4)) ::
                                                    (tptr tfloat) ::
@@ -1314,7 +1314,7 @@ Definition f_apply_platform_displacement := {|
                                                  nil))
                                               (Ssequence
                                                 (Scall None
-                                                  (Evar _linear_mtxf_transpose_mul_vec3f 
+                                                  (Evar _linear_mtxf_transpose_mul_vec3f
                                                   (Tfunction
                                                     ((tptr (tarray tfloat 4)) ::
                                                      (tptr tfloat) ::
@@ -1409,7 +1409,7 @@ Definition f_apply_platform_displacement := {|
                                                           (Etempvar _t'15 tint)))
                                                       (Ssequence
                                                         (Scall None
-                                                          (Evar _mtxf_rotate_zxy_and_translate 
+                                                          (Evar _mtxf_rotate_zxy_and_translate
                                                           (Tfunction
                                                             ((tptr (tarray tfloat 4)) ::
                                                              (tptr tfloat) ::
@@ -1422,7 +1422,7 @@ Definition f_apply_platform_displacement := {|
                                                            nil))
                                                         (Ssequence
                                                           (Scall None
-                                                            (Evar _linear_mtxf_mul_vec3f 
+                                                            (Evar _linear_mtxf_mul_vec3f
                                                             (Tfunction
                                                               ((tptr (tarray tfloat 4)) ::
                                                                (tptr tfloat) ::
@@ -2380,7 +2380,5 @@ Definition public_idents : list ident :=
  ___compcert_va_composite :: ___compcert_va_float64 ::
  ___compcert_va_int64 :: ___compcert_va_int32 :: nil).
 
-Definition prog : Clight.program := 
+Definition prog : Clight.program :=
   mkprogram composites global_definitions public_idents _main Logic.I.
-
-

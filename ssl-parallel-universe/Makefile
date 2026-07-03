@@ -37,7 +37,9 @@ SM64_CG := -nostdinc -fstruct-passing \
 GENERATED := \
   generated/pu_model.v \
   generated/mario_step.v \
-  generated/platform_displacement.v
+  generated/platform_displacement.v \
+  generated/mario.v \
+  generated/mario_actions_moving.v
 
 .PHONY: all generated proofs regen clean check
 
@@ -52,6 +54,12 @@ generated/mario_step.v: $(SM64)/src/game/mario_step.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(SM64_CG)
 
 generated/platform_displacement.v: $(SM64)/src/game/platform_displacement.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/mario.v: $(SM64)/src/game/mario.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/mario_actions_moving.v: $(SM64)/src/game/mario_actions_moving.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(SM64_CG)
 
 $(COQMAKEFILE): _CoqProject
