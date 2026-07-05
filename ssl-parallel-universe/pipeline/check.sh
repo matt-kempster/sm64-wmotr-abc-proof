@@ -15,3 +15,6 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   SSLPU.Proofs.BLJRoute \
   ssl_area2_blj_source_counterexample_envelope
+bash pipeline/assumptions.sh \
+  SSLPU.Proofs.BLJGeometry \
+  ssl_area2_lower_entry_geometry_input_status

@@ -42,6 +42,16 @@ recycles can supply the velocity needed to reach the first PU threshold from
 the negative Area 2 edge. The remaining open obligation is geometry/input
 reachability for those recycles inside SSL Area 2.
 
+The first geometry/input lowering is now
+`SSLPU.Proofs.BLJGeometry.ssl_area2_lower_entry_geometry_input_status`. It
+proves generated-source A/Z landing-gate facts and records the lower-entry
+Area 2 stair band as concrete in-bounds static treads. That certificate is
+formally too short: it has capacity 8, below the 22 BLJ recycles required by
+the current source-level envelope. This refutes the direct lower-entry
+static-stair route. The next frontier is dynamic repeated reuse of the same
+collision setup, another Area 2 setup with a higher starting speed or more
+certified recycles, or source-backed bounds ruling those out.
+
 ## Repository workflow constraints
 
 - Work on branch `codex/ssl-pyramid-item-proof` in the proof repository.
