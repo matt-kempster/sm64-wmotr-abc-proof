@@ -80,6 +80,20 @@ movement constants. It still leaves a narrower route obligation: prove that
 SSL Area 2 geometry and inputs can realize the 22 recycles while Mario remains
 within the Area 2 setup bounds.
 
+`proofs/BLJGeometry.v` now checks the first geometry/input lowering. The
+generated `mario_actions_moving.c` AST contains the landing input gate:
+`common_landing_cancels` checks `INPUT_A_PRESSED`, and `act_long_jump_land`
+checks `INPUT_Z_DOWN` before preserving the A-press recycle path. The SSL Area
+2 collision audit records the lower-entry stair band as concrete in-bounds
+static treads. That candidate is too small: the source-backed narrow tread
+certificate has capacity 8, while `BLJRoute.v` requires 22 recycles from the
+modeled `-16` starting magnitude. The theorem
+`ssl_area2_lower_entry_geometry_input_status` proves this mismatch. So the
+direct lower-entry static-stair counterexample is refuted; a full positive
+route would need a stronger dynamic collision certificate, a reusable
+wall/ceiling/stair setup, or a source-backed way to start with much more
+negative speed.
+
 ## Current status
 
 The isolated project scaffold exists. `inputs/pu_model.c` contains the first C
@@ -109,6 +123,15 @@ source-shape facts with the two arithmetic counterexamples above.
 
 `proofs/BLJRoute.v` is the second result. It proves
 `ssl_area2_blj_source_counterexample_envelope`, a source-level counterexample
-envelope for the air-velocity path. The project should now either discharge the
-remaining SSL Area 2 BLJ geometry/input certificate, or prove that the pyramid
-interior prevents the recycle loop before the required 22 iterations.
+envelope for the air-velocity path.
+
+`proofs/BLJGeometry.v` is the third result. It proves
+`ssl_area2_lower_entry_geometry_input_status`: the generated input/action gate
+for BLJ recycling exists, the audited lower-entry static treads are inside the
+modeled Area 2 bounds, and that finite static-tread certificate cannot provide
+the 22 recycles needed by the BLJ envelope.
+
+The remaining route question is narrower than before: mechanize a dynamic
+repeated-reuse collision certificate, identify another Area 2 setup with enough
+initial negative speed or enough certified recycles, or prove source-backed
+bounds excluding those stronger setups.

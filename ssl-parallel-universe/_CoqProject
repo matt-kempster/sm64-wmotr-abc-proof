@@ -15,3 +15,4 @@ proofs/Spec.v
 proofs/ParallelUniverse.v
 proofs/MovementSourceFacts.v
 proofs/BLJRoute.v
+proofs/BLJGeometry.v

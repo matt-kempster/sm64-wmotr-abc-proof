@@ -1,6 +1,6 @@
 # SSL Parallel Universe proof checklist
 
-Last updated: 2026-07-03
+Last updated: 2026-07-04
 
 Rule for Codex rounds: every commit that changes proof scope, proof code, or
 build behavior must update this file in the same commit.
@@ -29,6 +29,17 @@ the air-step velocity needed to cross from the negative Area 2 edge to the
 first PU threshold. The remaining geometric obligation is a collision/input
 certificate that SSL Area 2 supports those repeated recycles in-bounds.
 
+The first geometry/input lowering is now checked in
+`proofs/BLJGeometry.v`. The generated-source input gate is present:
+`common_landing_cancels` checks `INPUT_A_PRESSED`, and
+`act_long_jump_land` checks `INPUT_Z_DOWN` before preserving the A press path.
+The audited lower-entry stair band provides concrete in-bounds static treads,
+but only eight narrow same-footprint treads from the collision mesh. The formal
+theorem `ssl_area2_lower_entry_geometry_input_status` proves that this static
+tread certificate does not discharge the 22-recycle source-level BLJ envelope.
+This refutes the direct lower-entry static-stair certificate, not every
+possible dynamic wall/ceiling/stair-reuse setup.
+
 ## Active next steps
 
 - [x] Create the isolated `ssl-parallel-universe/` project scaffold.
@@ -48,8 +59,13 @@ certificate that SSL Area 2 supports those repeated recycles in-bounds.
   bounded-step certificate.
 - [x] Lower the unbounded air-velocity counterexample to the generated-source
   BLJ recycle envelope.
-- [ ] Prove or refute the remaining SSL Area 2 geometry/input certificate for
-  repeated BLJ recycles.
+- [x] Audit and formalize the first SSL Area 2 geometry/input certificate
+  candidate for repeated BLJ recycles.
+- [x] Refute the direct lower-entry static-stair certificate: it has only eight
+  certified narrow treads, below the 22 recycles required by the BLJ envelope.
+- [ ] Prove a stronger dynamic collision certificate for repeated stair/wall
+  reuse, find another Area 2 setup with enough initial speed/recycles, or close
+  that route under source-backed bounds.
 
 ## Build and hygiene
 
@@ -99,3 +115,9 @@ certificate that SSL Area 2 supports those repeated recycles in-bounds.
 - 2026-07-03: Updated the local `clightgen` wrapper to strip trailing
   horizontal whitespace from generated artifacts so regenerated Clight remains
   diff-clean.
+- 2026-07-04: Added `pipeline/audit_area2_collision.py` and
+  `BLJGeometry.v`. The new theorem
+  `ssl_area2_lower_entry_geometry_input_status` packages the generated A/Z
+  input-gate facts with the lower-entry stair-band mesh audit and proves that
+  this direct static-tread certificate is too short for the 22-cycle BLJ
+  envelope.
