@@ -38,14 +38,13 @@ if [ "$#" -eq 0 ]; then
   set -- SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFlyLinked noA_no_spawn_never_flying_lp \
          SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFlyLinked noA_no_spawn_never_flying_real \
          SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFlyLinked noA_no_spawn_never_flying_real_v2 \
-         SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFlyLinked noA_no_spawn_never_flying_real_mwf
+         SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFlyLinked noA_no_spawn_never_flying_real_mwf \
+         SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFlyTwelve noA_no_spawn_never_flying_linked12
 fi
-# NOTE 2026-07-02: the planned fifth capstone (NoAImpliesNoFlyTwelve
-# noA_no_spawn_never_flying_linked12) is STAGED, not live -- LinkedTwelve's
-# capstone_negative_pin_refuted PROVED the real_mwf capstone's
-# Hrest_ext_only is false for every twelve-TU link (vec3f_find_ceil is
-# Internal in mario.prog), so real_mwf is VACUOUS-as-stated and the
-# twelve-TU corollary is blocked on the negative-pin repair.
+# NOTE: the fifth capstone went LIVE with the #95 repair (2026-07-05): the
+# negative pin now covers only the 16 genuinely-external whitelist ids and
+# vec3f_find_ceil is a PROVED thirteenth rest case (RestSurface.vfc_pres);
+# the old exempt-wide pin was refutable (capstone_negative_pin_refuted).
 
 # The standard, sound axioms a CompCert proof of the REAL program legitimately
 # rests on. TWO groups:

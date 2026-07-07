@@ -791,8 +791,15 @@ Section NoARealInputMWF.
   Hypothesis LO_beh : linkorder behavior_actions.prog lp.
   Hypothesis LO_lvl : linkorder level_update.prog lp.
   Hypothesis LO_stp : linkorder mario_step.prog lp.
+  (* #95 REPAIR: the pin covers the SIXTEEN genuinely-external whitelist
+     ids only -- vec3f_find_ceil (Internal in mario.prog, mario.c:547) is
+     now a PINNED thirteenth rest case whose preservation is PROVED
+     (RestSurface.vfc_pres, consuming only existing trust rows).  The old
+     exempt_callees-wide pin was REFUTABLE for every twelve-TU link
+     (LinkedTwelve.capstone_negative_pin_refuted) and made this capstone
+     vacuous. *)
   Hypothesis Hrest_ext_only : forall fid f,
-      mem_id fid exempt_callees = true \/
+      mem_id fid exempt_ext_ids = true \/
       fid = mario._play_infinite_stairs_music ->
       ~ resolves_lp lp fid (Internal f).
   (* the stationary dispatcher is WALKED (StationarySurface.stationary_pres
@@ -2472,7 +2479,7 @@ Section NoARealInputMWF.
                 HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
              (mwf_real_umbi lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
              WL_exempt
-             (rest_pres_decompose lp LO_sta LO_mov LO_air LO_sub LO_cut
+             (rest_pres_decompose lp LO_mario LO_sta LO_mov LO_air LO_sub LO_cut
                 LO_aut LO_obj LO_int LO_beh LO_lvl LO_stp Hrest_ext_only
                 (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) bm
                 (stationary_pres lp LO_mario LO_sta LO_stp bm (NoA_real bm)
@@ -3247,7 +3254,23 @@ Section NoARealInputMWF.
                    (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                       Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                    (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
-                   Hpres_warp_ext))
+                   Hpres_warp_ext)
+                (* the #95 thirteenth body: vec3f_find_ceil WALKED, zero
+                   new trust (alloc/free bricks + the repaired pin's
+                   find_ceil instance + the reached-external rows) *)
+                (vfc_pres lp (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) bm
+                   (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
+                   (mwf_real_free lp bm bc oc0 SafeB Hbc_bm)
+                   (fun f => Hrest_ext_only mario._find_ceil f
+                               (or_introl find_ceil_in_ext))
+                   (fun ef targs tres cc vargs mx tx vresx mx' Hres Hec =>
+                      Hext_action ef targs tres cc vargs mx tx vresx mx'
+                        (or_intror (or_intror (ex_intro _ mario._find_ceil
+                           (conj (or_introl find_ceil_in_exempt) Hres)))) Hec)
+                   (fun ef targs tres cc vargs mx tx vresx mx' Hres Hec Hvv HMM =>
+                      Hmwf_ext ef targs tres cc vargs mx tx vresx mx'
+                        (or_intror (or_intror (ex_intro _ mario._find_ceil
+                           (conj (or_introl find_ceil_in_exempt) Hres)))) Hec Hvv HMM)))
              Hret_unsafe Hext_action Hmwf_ext
              (mwf_real_entry lp bm bc oc0 SafeB Hbc_bm)
              (mwf_real_free lp bm bc oc0 SafeB Hbc_bm)

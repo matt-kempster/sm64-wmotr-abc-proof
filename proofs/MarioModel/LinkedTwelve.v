@@ -1,7 +1,6 @@
-(* kept: P3 slice-1 producer (linked12 LO-pin + ext-pin derivations) AND the
-   machine-checked vacuity witness capstone_negative_pin_refuted; its spine
-   consumer (NoAImpliesNoFlyTwelve) is blocked on the task-#95 negative-pin
-   repair. *)
+(* P3 slice-1 producer (linked12 LO-pin + ext-pin derivations) AND the
+   machine-checked vacuity witness capstone_negative_pin_refuted; consumed
+   by the spine capstone NoAImpliesNoFlyTwelve since the #95 repair. *)
 (* ====================================================================== *)
 (* THE TWELVE-TU LINK (SPINE: P3 slice 1, director-roadmap-2026-07-01).    *)
 (*                                                                        *)
@@ -28,9 +27,10 @@
 (*    for SIXTEEN of the seventeen whitelist ids (linked12_ext_pin) --    *)
 (*    and REFUTE it for the seventeenth: vec3f_find_ceil is Internal in   *)
 (*    mario.prog, so the capstone's Hrest_ext_only AS STATED is false     *)
-(*    for every twelve-TU link (capstone_negative_pin_refuted): the live  *)
-(*    real_mwf capstone is VACUOUS until that pin is repaired.  THE       *)
-(*    machine-checked vacuity finding of 2026-07-02.                      *)
+(*    for every twelve-TU link (capstone_negative_pin_refuted) -- the     *)
+(*    machine-checked vacuity finding of 2026-07-02, REPAIRED 07-05/06:   *)
+(*    the capstone pin now covers exempt_ext_ids only and vec3f_find_ceil *)
+(*    is a PROVED thirteenth rest case (RestSurface.vfc_pres).            *)
 (*                                                                        *)
 (* NON-VACUITY (stated honestly): this file does NOT prove that the       *)
 (* twelve TUs actually link (that `linked12` is inhabited).  That is the  *)
@@ -54,7 +54,7 @@ From SM64.Generated Require mario mario_actions_stationary
   mario_actions_cutscene mario_actions_automatic mario_actions_object
   interaction behavior_actions level_update mario_step.
 From SM64.Proofs Require Import SymbolicLinking CensusV2 RealFrameLinked
-  EngineV2Consumer.
+  EngineV2Consumer RestSurface.
 
 Import ListNotations.
 
@@ -330,9 +330,7 @@ Qed.
    then this file proves the pin for the SIXTEEN genuinely-external ids
    (truly_ext_pin_ids). *)
 Definition truly_ext_pin_ids : list ident :=
-  mario._play_infinite_stairs_music
-    :: filter (fun i => negb (Pos.eqb i mario._vec3f_find_ceil))
-         exempt_callees.
+  mario._play_infinite_stairs_music :: exempt_ext_ids.
 
 (* the twelve cheap computations (each a per-TU defmap sweep) *)
 Lemma no_internal_mario :
@@ -392,10 +390,16 @@ Qed.
 Theorem linked12_ext_pin :
   forall lp, linked12 lp ->
   forall (fid : ident) (f : Clight.function),
-    mem_id fid truly_ext_pin_ids = true ->
+    mem_id fid exempt_ext_ids = true \/
+    fid = mario._play_infinite_stairs_music ->
     ~ resolves_lp lp fid (Internal f).
 Proof.
-  intros lp H12 fid f Hmem Hres.
+  intros lp H12 fid f Hcover Hres.
+  assert (Hmem : mem_id fid truly_ext_pin_ids = true).
+  { unfold truly_ext_pin_ids, mem_id in *. cbn [existsb].
+    destruct Hcover as [Hc | ->].
+    - rewrite Hc. rewrite orb_true_r. reflexivity.
+    - rewrite Pos.eqb_refl. reflexivity. }
   apply resolves_defmap in Hres.
   destruct (link_chain_internal_origin _ _ _ _ _ H12 Hres)
     as [Hbase | (q & Hq & Hqdm)].
@@ -423,10 +427,7 @@ Qed.
 (* the theorem is VACUOUS until the pin is repaired.                       *)
 (* ---------------------------------------------------------------------- *)
 
-Lemma mario_defmap_vfc :
-  (prog_defmap mario.prog) ! mario._vec3f_find_ceil
-    = Some (Gfun (Internal mario.f_vec3f_find_ceil)).
-Proof. vm_compute. reflexivity. Qed.
+(* mario_defmap_vfc now comes from RestSurface (the #95 repair home) *)
 
 Lemma vfc_in_exempt :
   mem_id mario._vec3f_find_ceil exempt_callees = true.

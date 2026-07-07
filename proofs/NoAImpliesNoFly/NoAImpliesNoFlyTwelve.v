@@ -1,14 +1,10 @@
-(* kept: staged P3 slice-2 corollary, excluded from _CoqProject; blocked on
-   the task-#95 negative-pin repair (see header below). *)
+(* spine-root: the TWELVE-TU GOAL-1 capstone -- the sharpest statement:
+   the 12 LO pins + the 16-id negative pin are DERIVED from the single
+   linked12 chain premise (LinkedTwelve), live since the #95 repair. *)
 (* ====================================================================== *)
-(* STAGED, NOT BUILT (excluded from _CoqProject): P3 slice 2 as drafted    *)
-(* consumes linked12_rest_ext_only -- which turned out to be REFUTABLE     *)
-(* (LinkedTwelve.capstone_negative_pin_refuted: vec3f_find_ceil is         *)
-(* Internal in mario.prog, so the real_mwf capstone's Hrest_ext_only is    *)
-(* false for every twelve-TU link and that capstone is VACUOUS as          *)
-(* stated).  This file becomes buildable after the negative-pin repair:    *)
-(* route vec3f_find_ceil through a pinned 13th rest case with a gated      *)
-(* (non-phantom) obligation, then swap linked12_ext_pin in here.           *)
+(* LIVE since the #95 repair: the negative pin now covers only the         *)
+(* sixteen genuinely-external whitelist ids (exempt_ext_ids), so           *)
+(* linked12_ext_pin discharges it for any twelve-TU link.                  *)
 (* ====================================================================== *)
 (* THE TWELVE-TU CAPSTONE (SPINE: P3 slice 2, the sharpest GOAL-1          *)
 (* statement).                                                             *)
@@ -46,7 +42,8 @@ From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame Reacha
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer.
 From SM64.Proofs Require Import MWFReal RestSurface FloorsSurface
   OutParamSurface RetSurface StationaryLeafSurface MovingLeafSurface
-  ObjectLeafSurface CutsceneLeafSurface WindSurface WarpSurface.
+  ObjectLeafSurface CutsceneLeafSurface WindSurface WarpSurface
+  FloorsLeafSurface.
 From SM64.Proofs Require Import LinkedTwelve.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked.
 
@@ -227,7 +224,7 @@ Section NoAImpliesNoFlyTwelve.
              (linked12_LO_obj lp H12) (linked12_LO_int lp H12)
              (linked12_LO_beh lp H12) (linked12_LO_lvl lp H12)
              (linked12_LO_stp lp H12)
-             (linked12_rest_ext_only lp H12)
+             (linked12_ext_pin lp H12)
              Hpres_sta_ext Hpres_mov_ext Hcpx_approach_f32_real
              Hw1cp_v3sset_real Hglob_obj_root Hpres_obj_ext Hpres_cut_ext
              Hxcp_fwl_real Hscp_geo_real Hocp_rai_real Hcpx_approach_real
