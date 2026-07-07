@@ -17,6 +17,25 @@
 > exists to catch, found exactly the way it should be: by re-deriving an
 > assumed row from structure and letting `vm_compute` refuse to certify it.
 >
+> **RESOLVED (2026-07-06, commit `7093673`):** the #95 repair landed —
+> `vec3f_find_ceil` is a PROVED thirteenth rest case (`RestSurface.vfc_pres`,
+> zero new trust), the pin covers the 16 genuinely-external ids, and the
+> **fifth capstone went live** (`noA_no_spawn_never_flying_linked12`:
+> 12 LO pins + the negative pin DERIVED from `linked12`; 56 → 43 rows;
+> audit green across all five capstones).
+>
+> **NEW FINDING (same day, `07cb00e`): a SECOND phantom-false pair.** The
+> #96 store-level scout proved `Hcpx_ibcd_real`/`Hcpx_tbs_real` (the bully
+> "terminal externals" — actually mario_step Internals) are FALSE of the
+> real semantics as stated: `BullyCollisionData.posZ` collides with
+> `MarioState.action` at struct offset 12, so an ungated pointer arg
+> clobbers the action cell under the rows' own premises. The capstones are
+> vacuous-in-the-intended-model until the rows are restated GATED
+> (fresh-local args — the real caller passes its own fn_vars; task #97).
+> The consistency audit had classed these "sound behavioral" — correct
+> about refutability-in-isolation, wrong about the intended model; only a
+> store-level scout catches this class.
+>
 > **Follow-up (same day):** the systematic consistency audit
 > (`goal1-hypothesis-consistency-audit.md`) confirms `vec3f_find_ceil` is
 > the ONLY vacuity bug in the 12-TU link (only three `¬resolves-Internal`
