@@ -175,10 +175,10 @@ Section NoAImpliesNoFlyTwelve.
   Hypothesis Hcp_savefile_real :
     call_pres_ext lp bm (NoA_real bm) MWF interaction._save_file_set_cap_pos.
   Hypothesis Hcpx_ibcd_real :
-    call_pres_ext lp bm (NoA_real bm) MWF
+    call_pres_ext_wl lp bm (NoA_real bm) MWF SafeB
       interaction._init_bully_collision_data.
   Hypothesis Hcpx_tbs_real :
-    call_pres_ext lp bm (NoA_real bm) MWF
+    call_pres_ext_ol lp bm (NoA_real bm) MWF SafeB
       interaction._transfer_bully_speed.
   Hypothesis Hpres_warp_ext : forall fid,
       mem_id fid warp_ext_ids = true ->

@@ -1661,14 +1661,22 @@ Section NoARealInputMWF.
      a self-contained mid-walk keyed to interaction._mario since the param is
      `mario` not the canonical _m=86): the opaque whole-body assumption is
      GONE, replaced by the proved row resting only on the 2 static-helper
-     externals init_bully_collision_data / transfer_bully_speed -- terminal
-     boundary rows (EF_external in interaction.prog), the same accepted
-     external-call model class as atan2s/sqrtf/spawn_object. *)
+     callees init_bully_collision_data / transfer_bully_speed.  These are
+     mario_step-INTERNAL bodies (Internal in the linked mario_step.prog, only
+     EF_external in interaction.prog alone -- 07cb00e), and the plain
+     call_pres_ext form for them was PHANTOM-FALSE (docs/goal1-class-b-walks.md:
+     both store THROUGH a BullyCollisionData pointer arg whose posZ@12 aliases
+     MarioState.action@12, so `forall vargs` admits the arg = bm and lands a
+     tainted action).  The honest form is the GATED row: init_bully writes only
+     through arg0 -> the arg0-local (wl) gate; transfer writes through both
+     pointer args -> the every-pointer-arg-local (ol) gate.  bkbm_row supplies
+     each gate from its entry alloc bookkeeping (the args are &marioData /
+     &bullyData, its own fresh fn_var stack locals, provably bm/bc-disjoint). *)
   Hypothesis Hcpx_ibcd_real :
-    call_pres_ext lp bm (NoA_real bm) MWF
+    call_pres_ext_wl lp bm (NoA_real bm) MWF SafeB
       interaction._init_bully_collision_data.
   Hypothesis Hcpx_tbs_real :
-    call_pres_ext lp bm (NoA_real bm) MWF
+    call_pres_ext_ol lp bm (NoA_real bm) MWF SafeB
       interaction._transfer_bully_speed.
   Lemma Hcpra_bkbm_real :
     call_pres_ret_act lp bm (NoA_real bm) MWF
@@ -1685,6 +1693,8 @@ Section NoARealInputMWF.
              (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
              (fun m l m' Hf HM =>
                 mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
+             (mwf_real_safe_valid lp bm bc oc0 SafeB)
+             Hglob_valid
              Hcpx_ibcd_real Hcpx_tbs_real
              (Hpres_obj_ext interaction._atan2s eq_refl)
              (Hpres_obj_ext interaction._sqrtf eq_refl)).

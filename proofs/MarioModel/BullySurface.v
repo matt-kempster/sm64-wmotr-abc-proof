@@ -60,12 +60,31 @@ Section BkbmSurface.
       Mem.alloc m lo hi = (m', b) -> MWF m -> MWF m'.
   Hypothesis HMWF_free : forall m l m',
       Mem.free_list m l = Some m' -> MWF m -> MWF m'.
+  (* SafeB / global blocks are valid in any watched memory -- needed to
+     derive local_blk for the freshly-allocated marioData / bullyData stack
+     frames (alloc_variables_hlocal).  Discharged at the capstone by MWFReal
+     (mwf_real_safe_valid) and the global-validity pin. *)
+  Hypothesis HSafeValid :
+    forall m, MWF m -> forall b, SafeB b -> Mem.valid_block m b.
+  Hypothesis HGlobValid :
+    forall m, MWF m -> forall gid bg,
+        Genv.find_symbol (lp_ge lp) gid = Some bg -> Mem.valid_block m bg.
 
-  (* the 4 external callees: accepted boundary rows *)
+  (* the 2 static-bully-helper callees: GATED boundary rows -- the honest
+     replacement for the phantom-false plain call_pres_ext refuted in
+     docs/goal1-class-b-walks.md.  init_bully_collision_data stores 6 fields
+     THROUGH arg0 (a BullyCollisionData pointer) whose struct offset 12 (posZ) aliases
+     MarioState.action@12; the real caller always passes &marioData / &bullyData
+     (fresh fn_var stack locals), so the arg0-local gate (wl) holds per call
+     site.  transfer_bully_speed writes velX/velZ THROUGH BOTH pointer args, so
+     it takes the every-pointer-arg-local gate (ol).  atan2s/sqrtf are pointer-
+     free math externals -- plain call_pres_ext (no phantom). *)
   Hypothesis Hcpx_ibcd :
-    call_pres_ext lp bm NoA MWF interaction._init_bully_collision_data.
+    call_pres_ext_wl lp bm NoA MWF SafeB
+      interaction._init_bully_collision_data.
   Hypothesis Hcpx_tbs :
-    call_pres_ext lp bm NoA MWF interaction._transfer_bully_speed.
+    call_pres_ext_ol lp bm NoA MWF SafeB
+      interaction._transfer_bully_speed.
   Hypothesis Hcpx_atan2s :
     call_pres_ext lp bm NoA MWF interaction._atan2s.
   Hypothesis Hcpx_sqrtf :
@@ -83,6 +102,40 @@ Section BkbmSurface.
     interaction._init_bully_collision_data
       :: interaction._transfer_bully_speed
       :: interaction._atan2s :: interaction._sqrtf :: nil.
+  (* the pointer-free math externals (plain call_pres_ext, no gate) *)
+  Definition bk_math_ids : list ident :=
+    interaction._atan2s :: interaction._sqrtf :: nil.
+  (* the two BullyCollisionData stack locals whose addresses are the gated
+     pointer args passed to init_bully_collision_data / transfer_bully_speed. *)
+  Definition bk_lids : list ident :=
+    interaction._marioData :: interaction._bullyData :: nil.
+  Definition bcd_ty : type := Tstruct interaction._BullyCollisionData noattr.
+
+  (* an &(a bk_lids BullyCollisionData stack local) argument. *)
+  Definition bk_ol_arg (a : expr) : bool :=
+    match a with
+    | Eaddrof (Evar l lty) aty =>
+        mem_id l bk_lids
+        && proj_sumbool (type_eq lty bcd_ty)
+        && proj_sumbool (type_eq aty (tptr bcd_ty))
+    | _ => false
+    end.
+
+  (* the init_bully_collision_data call: void 7-arg, arg0 = &local BCD. *)
+  Definition bk_ibcd_ok (fty : type) (al : list expr) : bool :=
+    proj_sumbool (type_eq fty
+      (Tfunction (tptr bcd_ty :: tfloat :: tfloat :: tfloat
+                  :: tshort :: tfloat :: tfloat :: nil) tvoid cc_default))
+    && match al with a0 :: _ => bk_ol_arg a0 | _ => false end.
+
+  (* the transfer_bully_speed call: void 2-arg, both args = &local BCD. *)
+  Definition bk_tbs_ok (fty : type) (al : list expr) : bool :=
+    proj_sumbool (type_eq fty
+      (Tfunction (tptr bcd_ty :: tptr bcd_ty :: nil) tvoid cc_default))
+    && match al with
+       | a0 :: a1 :: nil => bk_ol_arg a0 && bk_ol_arg a1
+       | _ => false
+       end.
 
   (* ---- recognizer ---- *)
   (* chase-load: bully = mario->interactObj (chase_root_chk shape, keyed
@@ -134,8 +187,11 @@ Section BkbmSurface.
      ALL threaded temp invariants -- not a chase temp, not _mario, not
      bonkAction, not an nptr-tracked temp (those are only seeded by the
      sub-word cast above). *)
-  Definition bk_call_chk (optid : option ident) (fid : ident) : bool :=
-    mem_id fid bk_xids
+  Definition bk_call_chk (optid : option ident) (fid : ident)
+      (fty : type) (al : list expr) : bool :=
+    ( (Pos.eqb fid interaction._init_bully_collision_data && bk_ibcd_ok fty al)
+      || (Pos.eqb fid interaction._transfer_bully_speed && bk_tbs_ok fty al)
+      || mem_id fid bk_math_ids )
     && match optid with
        | None => true
        | Some t =>
@@ -161,7 +217,7 @@ Section BkbmSurface.
         || idx_mfield_store bk_mario a1
         || idx16_mfield_store bk_mario a1
         || bk_chase_chk a1 a2
-    | Scall optid (Evar fid fty) al => is_tfun fty && bk_call_chk optid fid
+    | Scall optid (Evar fid fty) al => is_tfun fty && bk_call_chk optid fid fty al
     | _ => false
     end.
 
@@ -707,19 +763,119 @@ Section BkbmSurface.
   (* ================================================================== *)
   (* THE EXTERNAL-CALL BRICK + xids dispatch.                            *)
   (* ================================================================== *)
-  Lemma bk_xids_pres : forall fid,
-      mem_id fid bk_xids = true -> call_pres_ext lp bm NoA MWF fid.
+  (* the pointer-free math externals stay plain call_pres_ext boundary rows. *)
+  Lemma bk_math_pres : forall fid,
+      mem_id fid bk_math_ids = true -> call_pres_ext lp bm NoA MWF fid.
   Proof.
-    intros fid H. unfold bk_xids in H. cbn [mem_id] in H.
-    apply orb_true_iff in H as [H | H];
-      [ apply Pos.eqb_eq in H; subst fid; exact Hcpx_ibcd | ].
-    apply orb_true_iff in H as [H | H];
-      [ apply Pos.eqb_eq in H; subst fid; exact Hcpx_tbs | ].
+    intros fid H. unfold bk_math_ids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [H | H];
       [ apply Pos.eqb_eq in H; subst fid; exact Hcpx_atan2s | ].
     apply orb_true_iff in H as [H | H];
-      [ apply Pos.eqb_eq in H; subst fid; exact Hcpx_sqrtf | ].
-    discriminate H.
+      [ apply Pos.eqb_eq in H; subst fid; exact Hcpx_sqrtf | discriminate H ].
+  Qed.
+
+  (* ---- the gated-arg decoders / recognizers ---- *)
+  Lemma bk_ol_arg_decode : forall a,
+      bk_ol_arg a = true ->
+      exists l, mem_id l bk_lids = true /\
+                a = Eaddrof (Evar l bcd_ty) (tptr bcd_ty).
+  Proof.
+    intros a H.
+    destruct a as [ | | | | | | | einner aoty | | | | | | ];
+      try discriminate H.
+    destruct einner as [ | | | | l evty | | | | | | | | | ];
+      try discriminate H.
+    unfold bk_ol_arg in H.
+    apply andb_true_iff in H as [H Haty].
+    apply andb_true_iff in H as [Hl Hlty].
+    destruct (type_eq evty bcd_ty) as [-> | ]; [ | discriminate Hlty ].
+    destruct (type_eq aoty (tptr bcd_ty)) as [-> | ]; [ | discriminate Haty ].
+    exists l. split; [ exact Hl | reflexivity ].
+  Qed.
+
+  (* the ibcd gate: arg0 = &(a local BCD) makes vargs arg0-local (the 6
+     trailing float/short args are left unconstrained). *)
+  Lemma bk_ibcd_arg0_local :
+    forall l lb lty e le m altail vargs,
+      e ! l = Some (lb, lty) -> local_blk lp bm SafeB lb ->
+      eval_exprlist (lp_ge lp) e le m
+        (Eaddrof (Evar l bcd_ty) (tptr bcd_ty) :: altail)
+        (tptr bcd_ty :: tfloat :: tfloat :: tfloat
+         :: tshort :: tfloat :: tfloat :: nil) vargs ->
+      arg0_local lp bm SafeB vargs.
+  Proof.
+    intros l lb lty e le m altail vargs Hb Hloc Hvl.
+    inversion Hvl as [ | a1 bl1 ty1 tyl1 v1a v2a vl1 Hev_a Hsc_a Htl1 ];
+      subst; clear Hvl.
+    inv Hev_a;
+      [ | match goal with
+          | H : eval_lvalue _ _ _ _ (Eaddrof _ _) _ _ _ |- _ => inv H
+          end ].
+    match goal with
+    | H : eval_lvalue _ _ _ _ (Evar l _) _ _ _ |- _ => inv H
+    end;
+      [ | match goal with
+          | Hn : e ! l = None |- _ => rewrite Hb in Hn; discriminate Hn
+          end ].
+    match goal with
+    | Hbb : e ! l = Some (?loc, _) |- _ =>
+        rewrite Hb in Hbb; injection Hbb as <- _
+    end.
+    cbn in Hsc_a; injection Hsc_a as <-.
+    exists lb, Ptrofs.zero, vl1. split; [ reflexivity | exact Hloc ].
+  Qed.
+
+  (* the tbs gate: both args = &(a local BCD) makes every pointer arg local. *)
+  Lemma bk_tbs_args_local :
+    forall l0 l1 lb0 lty0 lb1 lty1 e le m vargs,
+      e ! l0 = Some (lb0, lty0) -> local_blk lp bm SafeB lb0 ->
+      e ! l1 = Some (lb1, lty1) -> local_blk lp bm SafeB lb1 ->
+      eval_exprlist (lp_ge lp) e le m
+        (Eaddrof (Evar l0 bcd_ty) (tptr bcd_ty)
+         :: Eaddrof (Evar l1 bcd_ty) (tptr bcd_ty) :: nil)
+        (tptr bcd_ty :: tptr bcd_ty :: nil) vargs ->
+      args_all_local lp bm SafeB vargs.
+  Proof.
+    intros l0 l1 lb0 lty0 lb1 lty1 e le m vargs Hb0 Hloc0 Hb1 Hloc1 Hvl.
+    inversion Hvl as [ | a1 bl1 ty1 tyl1 v1a v2a vl1 Hev_a Hsc_a Htl1 ];
+      subst; clear Hvl.
+    inversion Htl1 as [ | a2 bl2 ty2 tyl2 v1b v2b vl2 Hev_b Hsc_b Htl2 ];
+      subst; clear Htl1.
+    inversion Htl2; subst; clear Htl2.
+    (* arg0 *)
+    inv Hev_a;
+      [ | match goal with
+          | H : eval_lvalue _ _ _ _ (Eaddrof _ _) _ _ _ |- _ => inv H
+          end ].
+    match goal with
+    | H : eval_lvalue _ _ _ _ (Evar l0 _) _ _ _ |- _ => inv H
+    end;
+      [ | match goal with
+          | Hn : e ! l0 = None |- _ => rewrite Hb0 in Hn; discriminate Hn
+          end ].
+    match goal with
+    | Hbb : e ! l0 = Some (?loc, _) |- _ =>
+        rewrite Hb0 in Hbb; injection Hbb as <- _
+    end.
+    cbn in Hsc_a; injection Hsc_a as <-.
+    (* arg1 *)
+    inv Hev_b;
+      [ | match goal with
+          | H : eval_lvalue _ _ _ _ (Eaddrof _ _) _ _ _ |- _ => inv H
+          end ].
+    match goal with
+    | H : eval_lvalue _ _ _ _ (Evar l1 _) _ _ _ |- _ => inv H
+    end;
+      [ | match goal with
+          | Hn : e ! l1 = None |- _ => rewrite Hb1 in Hn; discriminate Hn
+          end ].
+    match goal with
+    | Hbb : e ! l1 = Some (?loc, _) |- _ =>
+        rewrite Hb1 in Hbb; injection Hbb as <- _
+    end.
+    cbn in Hsc_b; injection Hsc_b as <-.
+    intros bb oo Hin; cbn in Hin.
+    destruct Hin as [E | [E | []]]; injection E; intros; subst; assumption.
   Qed.
 
   Lemma bk_scall_ext_pres :
@@ -768,6 +924,9 @@ Section BkbmSurface.
       exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
       bkbm_chk s = true ->
       (forall fid, mem_id fid bk_xids = true -> e ! fid = None) ->
+      (forall l, mem_id l bk_lids = true ->
+         exists lblk tyenv, e ! l = Some (lblk, tyenv) /\
+                            local_blk lp bm SafeB lblk) ->
       (forall b o, le ! bk_mario = Some (Vptr b o) ->
                    b = bm /\ o = Ptrofs.zero) ->
       chase_inv SafeB bk_cact le ->
@@ -783,7 +942,7 @@ Section BkbmSurface.
       wret_ok true out.
   Proof.
     intros s e le m0 tr le' m' out Hexec.
-    induction Hexec; intros Hchk Hxe Hm Hch Hbonk Hnpi Hc.
+    induction Hexec; intros Hchk Hxe Hlids Hm Hch Hbonk Hnpi Hc.
     - (* Sskip *)
       exact (conj Hc (conj Hm (conj Hch (conj Hbonk (conj Hnpi I))))).
     - (* Sassign *)
@@ -938,15 +1097,85 @@ Section BkbmSurface.
         try discriminate Hchk.
       apply andb_true_iff in Hchk as [Htf Hchk].
       unfold bk_call_chk in Hchk.
-      apply andb_true_iff in Hchk as [Hfid Hopt].
+      apply andb_true_iff in Hchk as [Hcallees Hopt].
       assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
                       (Scall optid (Evar fid fty) al) t
                       (set_opttemp optid vres le) m' Out_normal)
         by (econstructor; eauto).
-      destruct (bk_scall_ext_pres optid fid fty al e le m _ _ _ _
-                  Htf (Hxe fid Hfid) (bk_xids_pres fid Hfid) Hex Hc)
-        as (Hc' & _ & vr & Hle1).
-      rewrite Hle1.
+      (* the carried-preservation splits by callee: ibcd (wl gate),
+         tbs (ol gate), atan2s/sqrtf (plain).  le' = set_opttemp optid vres le
+         invariants are handled uniformly below. *)
+      assert (Hc' : carried bm NoA MWF m').
+      { apply orb_true_iff in Hcallees as [Hcallees | Hms].
+        apply orb_true_iff in Hcallees as [Hibcd | Htbs].
+        - (* init_bully_collision_data: arg0-local (wl) *)
+          apply andb_true_iff in Hibcd as [Hfeq Hok].
+          apply Pos.eqb_eq in Hfeq. subst fid.
+          unfold bk_ibcd_ok in Hok.
+          apply andb_true_iff in Hok as [Hfty Harg].
+          destruct (type_eq fty
+              (Tfunction (tptr bcd_ty :: tfloat :: tfloat :: tfloat
+                          :: tshort :: tfloat :: tfloat :: nil)
+                 tvoid cc_default)) as [-> | ]; [ | discriminate Hfty ].
+          destruct al as [ | a0 altail ]; [ discriminate Harg | ].
+          destruct (bk_ol_arg_decode _ Harg) as (l & Hlmem & ->).
+          destruct (Hlids l Hlmem) as (lb & lty & Hbind & Hloc).
+          assert (Hgate : forall vargs,
+                     eval_exprlist (lp_ge lp) e le m
+                       (Eaddrof (Evar l bcd_ty) (tptr bcd_ty) :: altail)
+                       (tptr bcd_ty :: tfloat :: tfloat :: tfloat
+                        :: tshort :: tfloat :: tfloat :: nil) vargs ->
+                     arg0_local lp bm SafeB vargs).
+          { intros vs Hvl.
+            exact (bk_ibcd_arg0_local l lb lty e le m altail vs
+                     Hbind Hloc Hvl). }
+          exact (proj1 (wl_scall_pres lp bm NoA MWF SafeB optid
+                      interaction._init_bully_collision_data _ _ _ _
+                      e le m _ _ m' _
+                      (Hxe interaction._init_bully_collision_data
+                         ltac:(vm_compute; reflexivity))
+                      Hcpx_ibcd Hgate Hex Hc)).
+        - (* transfer_bully_speed: all-pointer-args-local (ol) *)
+          apply andb_true_iff in Htbs as [Hfeq Hok].
+          apply Pos.eqb_eq in Hfeq. subst fid.
+          unfold bk_tbs_ok in Hok.
+          apply andb_true_iff in Hok as [Hfty Harg].
+          destruct (type_eq fty
+              (Tfunction (tptr bcd_ty :: tptr bcd_ty :: nil)
+                 tvoid cc_default)) as [-> | ]; [ | discriminate Hfty ].
+          destruct al as [ | a0 [ | a1 [ | a2 al3 ] ] ];
+            try discriminate Harg.
+          apply andb_true_iff in Harg as [Harg0 Harg1].
+          destruct (bk_ol_arg_decode _ Harg0) as (l0 & Hl0mem & ->).
+          destruct (bk_ol_arg_decode _ Harg1) as (l1 & Hl1mem & ->).
+          destruct (Hlids l0 Hl0mem) as (lb0 & lty0 & Hbind0 & Hloc0).
+          destruct (Hlids l1 Hl1mem) as (lb1 & lty1 & Hbind1 & Hloc1).
+          assert (Hgate : forall vargs,
+                     eval_exprlist (lp_ge lp) e le m
+                       (Eaddrof (Evar l0 bcd_ty) (tptr bcd_ty)
+                        :: Eaddrof (Evar l1 bcd_ty) (tptr bcd_ty) :: nil)
+                       (tptr bcd_ty :: tptr bcd_ty :: nil) vargs ->
+                     args_all_local lp bm SafeB vargs).
+          { intros vs Hvl.
+            exact (bk_tbs_args_local l0 l1 lb0 lty0 lb1 lty1 e le m vs
+                     Hbind0 Hloc0 Hbind1 Hloc1 Hvl). }
+          exact (proj1 (ol_scall_pres lp bm NoA MWF SafeB optid
+                      interaction._transfer_bully_speed _ _ _ _
+                      e le m _ _ m' _
+                      (Hxe interaction._transfer_bully_speed
+                         ltac:(vm_compute; reflexivity))
+                      Hcpx_tbs Hgate Hex Hc)).
+        - (* atan2s / sqrtf: plain call_pres_ext *)
+          assert (Hxids : mem_id fid bk_xids = true).
+          { pose proof Hms as Hm2.
+            unfold bk_math_ids, mem_id in Hm2; cbn [existsb] in Hm2.
+            apply orb_true_iff in Hm2 as [E | Hm2].
+            - apply Pos.eqb_eq in E; subst fid; vm_compute; reflexivity.
+            - apply orb_true_iff in Hm2 as [E | F]; [ | discriminate F ].
+              apply Pos.eqb_eq in E; subst fid; vm_compute; reflexivity. }
+          destruct (bk_scall_ext_pres optid fid fty al e le m _ _ _ _
+                      Htf (Hxe fid Hxids) (bk_math_pres fid Hms) Hex Hc)
+            as (Hcc & _ & _). exact Hcc. }
       destruct optid as [oid | ]; cbn [set_opttemp] in *.
       + apply andb_true_iff in Hopt as [Hopt Hnid].
         apply andb_true_iff in Hopt as [Hopt Hob].
@@ -978,13 +1207,13 @@ Section BkbmSurface.
     - (* Sseq_1 *)
       cbn [bkbm_chk] in Hchk.
       apply andb_true_iff in Hchk as [H1 H2].
-      destruct (IHHexec1 H1 Hxe Hm Hch Hbonk Hnpi Hc)
+      destruct (IHHexec1 H1 Hxe Hlids Hm Hch Hbonk Hnpi Hc)
         as (Hc1 & Hm1 & Hch1 & Hb1 & Hn1 & _).
-      exact (IHHexec2 H2 Hxe Hm1 Hch1 Hb1 Hn1 Hc1).
+      exact (IHHexec2 H2 Hxe Hlids Hm1 Hch1 Hb1 Hn1 Hc1).
     - (* Sseq_2 *)
       cbn [bkbm_chk] in Hchk.
       apply andb_true_iff in Hchk as [H1 _].
-      exact (IHHexec H1 Hxe Hm Hch Hbonk Hnpi Hc).
+      exact (IHHexec H1 Hxe Hlids Hm Hch Hbonk Hnpi Hc).
     - (* Sifthenelse *)
       cbn [bkbm_chk] in Hchk. apply andb_true_iff in Hchk as [H1 H2].
       apply IHHexec; try assumption.
@@ -1119,9 +1348,24 @@ Section BkbmSurface.
                  (fn_vars interaction.f_bully_knock_back_mario)
                  empty_env eloc mpost Halloc fid Hnin).
       apply PTree.gempty. }
+    (* the marioData / bullyData fn_vars are watched-disjoint stack blocks:
+       the gate the two static-bully helpers ride at their call sites *)
+    pose proof (alloc_variables_hlocal lp bm SafeB m0
+                  (fn_vars interaction.f_bully_knock_back_mario) eloc mpost
+                  bk_lids Halloc HV (HSafeValid m0 HM) (HGlobValid m0 HM)
+                  ltac:(intros lid Hmem;
+                        unfold bk_lids, mem_id in Hmem; cbn [existsb] in Hmem;
+                        apply Bool.orb_true_iff in Hmem as [He | Hmem];
+                        [ apply Pos.eqb_eq in He; subst lid;
+                          vm_compute; left; reflexivity | ];
+                        apply Bool.orb_true_iff in Hmem as [He | F];
+                        [ apply Pos.eqb_eq in He; subst lid;
+                          vm_compute; right; left; reflexivity
+                        | discriminate F ]))
+      as Hlids.
     (* run the walk *)
     destruct (bkbm_walk_pres _ _ _ _ _ _ _ _ Hbody bkbm_chk_body
-                Hxe Hm0 Hch0 Hbonk0 Hnpi0 Hca)
+                Hxe Hlids Hm0 Hch0 Hbonk0 Hnpi0 Hca)
       as (Hcar' & _ & _ & _ & _ & Hret').
     destruct Hcar' as (HVb & HSb & HMb & HNb).
     (* exit: free the fresh local blocks (each misses bm) *)
