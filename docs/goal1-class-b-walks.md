@@ -254,8 +254,163 @@ This is the same class of defect as the bully pair, now known to also arise from
 **external return values**, not only pointer params. (Left for a follow-up like
 #97.)
 
-### 5.3 The `play_mario_*_sound*` / `play_sound_if_no_flag` cluster (target #3) — not attempted
+### 5.3 The `play_mario_*_sound*` / `play_sound_if_no_flag` cluster (target #3) — SCOUTED in §6
 
-Deferred: these take `MarioState*` arg0 and require the store-level scout of §4
-(confirm no write into `action`/pinned cells) before a walk. Not reached in this
-pass.
+Deferred here; the full store-level scout and the per-body verdict are in §6.
+
+---
+
+## 6. The `play_mario_*_sound*` / `play_sound_if_no_flag` cluster (task #96 target #3) — SCOUTED
+
+**Bottom line (one airtight phantom + four unverified marg-drops; NO `.v` edited):**
+
+* **`play_sound_if_no_flag` — PHANTOM-FALSE, airtight.** Its store `m->flags |= flags`
+  ORs an **adversary-controlled** value, so the bare `call_pres_ext` lands a tainted
+  action constant on `action`@12. It is in **both** `sta_ext_ids` **and** `mov_ext_ids`,
+  so **both** capstone rows `Hpres_sta_ext` and `Hpres_mov_ext`
+  (`NoAImpliesNoFlyLinked.v:823,862`) are **false as stated** — latent phantom-false,
+  the critical class (same defect family as the bully pair §1–3).
+* **`play_mario_landing_sound`, `play_mario_heavy_landing_sound`,
+  `play_mario_landing_sound_once`, `play_mario_heavy_landing_sound_once` —
+  UNVERIFIED marg-gate-drops, NOT provably phantom, NOT walkable-as-external.**
+  They store nothing themselves but forward arg0 into the Internal m-writers
+  `play_sound_and_spawn_particles` / `play_mario_action_sound`, whose stores are
+  **fixed single-bit ORs** on bits `{8,12,14,15,16}` of `flags`@4 / `particleFlags`@8.
+  A precise bit census (§6.3) shows those bits **cannot** taint `action`@12, and the
+  wide-struct reads (`marioObj`, `terrainSoundAddend`) **overflow the small controller
+  block**, killing the R3/`ctl_a_clear` alias — so **no airtight refutation exists**.
+  These bare rows merely **drop the marg gate** the real program always supplies; the
+  gated `call_pres` versions are already **proved** for two of them (`pmls_row`,
+  `pmhls_row`). Left for a director-decided marg-gated repair (#97-style), **not** walked.
+
+**No `.v` file was edited** (per the phantom-false protocol of §0–3). The
+`play_sound_if_no_flag` row cannot be walked (it is not a theorem); the four landing
+variants are not external-only (they route through Internal m-writers) so the
+`vfc_pres` external-only template of §5.1 does not apply to them either.
+
+### 6.0 Scope — the exact in-scope boundary ids
+
+Only bodies covered by an **assumed** ext-row are in scope. Membership (positives are
+shared across TUs, so the TU qualifier is cosmetic — all resolve to the single
+`mario.prog` Internal body in `lp`):
+
+| body (`mario.v`) | store census | boundary row(s) that assume it |
+|---|---|---|
+| `f_play_sound_if_no_flag`  (2126) | **1 store `m->flags`@4**, value `t'2 \| flags_arg` (**adversary** arg) | `sta_ext_ids`, `mov_ext_ids` → `Hpres_sta_ext`, `Hpres_mov_ext` |
+| `f_play_mario_landing_sound`  (2562) | **0 own stores**; tail-calls `psasp(m,…)` | `mov_ext_ids` → `Hpres_mov_ext` |
+| `f_play_mario_heavy_landing_sound` (2644) | **0 own stores**; tail-calls `psasp(m,…)` | `sta_ext_ids` → `Hpres_sta_ext` |
+| `f_play_mario_landing_sound_once` (2603) | **0 own stores**; tail-calls `pmas(m,…)` | `mov_ext_ids` → `Hpres_mov_ext`; cutscene `Hcpx_pmlso` (`CutsceneLeafSurface.v:1454`) |
+| `f_play_mario_heavy_landing_sound_once` (2685) | **0 own stores**; tail-calls `pmas(m,…)` | `mov_ext_ids` → `Hpres_mov_ext` |
+
+Callees reached (Internal, `mario.prog`) and their stores:
+
+* `f_play_mario_action_sound` (2523): calls `psasp(m,…)` then **1 store `m->flags`@4**,
+  value `t'2 \| 65536` (bit 16, **const**).
+* `f_play_sound_and_spawn_particles` (`psasp`, 2339): **stores `m->particleFlags`@8**,
+  each value `t'k \| (1<<b)` for **const** `b ∈ {12,8,15,14}` (mario.v:2373,2385,2405,2425);
+  then two `play_sound` externals. No `action`/`flags` store.
+
+Out of scope (not in any ext_ids list — already walked as **gated** `call_pres`):
+`play_mario_jump_sound` (`pmjs_row`), `play_mario_action_sound` (only reached as a
+callee, not a boundary row), `play_mario_sound` (`air_pms_row`).
+
+### 6.1 `play_sound_if_no_flag` — PHANTOM-FALSE (airtight)
+
+AST `mario.v:2126`. `fn_vars = nil`. The single store (2167–2171):
+`Sassign (Efield (Ederef (Etempvar _m) …) _flags tuint) (Oor t'2 flags)`,
+guarded by `!(t'1 & flags)`, where `t'1 = t'2 = m->flags` and `flags` is **param arg2**.
+
+**Refutation witness.** Instantiate the bare `call_pres_ext` (`FloorsSurface.v:242`,
+`forall … vargs0 …`) with
+`vargs0 = [Vptr bm (Ptrofs.repr 8); soundBits; Vint ACT_SHOT_FROM_CANNON]`
+(`ACT_SHOT_FROM_CANNON = Int.repr 8915096`, `Taint.v:63`) and any `m0` meeting the four
+premises with `action`@12 `= Vint Int.zero` (`0` is non-tainted, so `action_sat`/R4 hold)
+and a valid `Object` placed at `(bm, 8 + off_marioObj)` (adversary's choice of `m0`;
+the MWF `marioObj` chase root is pinned at `(bm, off_marioObj)` — a **different**
+address — so no premise is violated).
+
+* arg0 `= (bm, 8)` ⇒ `m->flags` (struct offset 4) is the cell `(bm, 12)` = **`action`**.
+* Guard `!(t'1 & flags) = !(0 & T) = !(0)` ⇒ **true**, branch entered.
+* `play_sound` runs (external; its arg `t'3->…cameraToObject` reads the placed Object).
+* Store: `m->flags = t'2 | flags = 0 | T = T` at `(bm, 12)`; `T` is `Mint32`/non-pointer,
+  so `Mem.load Mint32 m1 bm 12 = Vint T`.
+* `action_sat not_tainted m1 bm` then demands `is_tainted T = false`, but
+  `is_tainted ACT_SHOT_FROM_CANNON = true` (`Taint.v:66,83`). **Conclusion false,
+  premises true ⇒ the row is not a theorem.** (Airtight, no MWF dependency — hits
+  `action_sat` directly, exactly like §1.)
+
+**Consequence for the capstone.** `play_sound_if_no_flag ∈ sta_ext_ids ∩ mov_ext_ids`,
+so the universally-quantified capstone hypotheses
+`Hpres_sta_ext : ∀ fid ∈ sta_ext_ids, call_pres_ext … fid` and its `mov` twin are each
+**false** (they assert a false instance). GOAL-1's live `real*`/`linked12` capstones
+rest on both. Latent phantom-false, critical class.
+
+### 6.2 The four landing variants — UNVERIFIED marg-drops (no airtight refutation)
+
+None stores `m` itself; each forwards its (adversarial) arg0 into `psasp` or `pmas`.
+The `init`-style `action`@12 kill would need those forwarded stores to land a **tainted**
+value on `(bm, 12)`. They cannot — see §6.3. The controller-block route (R3 /
+`ctl_a_clear`, A-bit `0x8000`) also fails: to reach `psasp`/`pmas` the callee first
+reads `m->marioObj` and `m->terrainSoundAddend` (offsets ≫ a `Controller`'s size), so
+any `arg0 = (bc, oc0+k)` alias **overflows `bc`** on those loads and `eval_funcall`
+gets stuck — not a witness (dual of the §2 underflow). And `input`@2 (R1, bit `0x2`)
+needs a store bit `≡1 (mod 8)`, which `{8,12,14,15,16}` never are.
+
+So these bare rows are **not demonstrably phantom** — plausibly true, but **unproven**:
+they silently **drop the marg gate** (`arg0 = (bm,0)`) that every real caller supplies.
+This is honest walk-debt of the "trusted-external that is really a gated-Internal body"
+kind, **not** a proven falsehood. The gated `call_pres` versions are **already proved**
+for `play_mario_landing_sound` (`AirborneLeafSurface.pmls_row`,
+`CutsceneLeafSurface.pmls_row`, `StationaryLeafSurface.sta_pmls_row`,
+`AutomaticLeafSurface`) and `play_mario_heavy_landing_sound`
+(`AirborneLeafSurface`/`CutsceneLeafSurface.pmhls_row`); the two `_once` variants have
+no gated walk yet (they route through `pmas`).
+
+### 6.3 The taint-bit lemma (reproducible)
+
+The taint set is the three constants (`Flying.v:53,54`, `Taint.v:63`) — note the
+`0x10808899` **hex comment on `Flying.v:53` is a typo**; the real `Int.repr 277350553`
+is `0x10880899`:
+
+| constant | value | bits set |
+|---|---|---|
+| `ACT_FLYING` | `277350553` = `0x10880899` | 0,3,4,7,11,19,23,28 |
+| `ACT_FLYING_TRIPLE_JUMP` | `50333844` = `0x03000894` | 2,4,7,11,24,25 |
+| `ACT_SHOT_FROM_CANNON` | `8915096` = `0x00880898` | 3,4,7,11,19,23 |
+
+Union of tainted bits = `{0,2,3,4,7,11,19,23,24,25,28}`. The const-OR store bits are
+`{8,12,14,15,16}` (`psasp` `1<<{12,8,15,14}`, `pmas` `65536 = 1<<16`) — **disjoint**
+from the union. Hence for every non-tainted `old`, `old | (1<<b)` (which forces bit
+`b ∈ {8,12,14,15,16}` to `1`, but every tainted constant has bit `b = 0`) can **never**
+equal a tainted constant. `action`@12 therefore survives every const-OR store.
+(Check: `is_tainted (Int.or v (Int.repr 32768)) = false` etc. by `vm_compute` over the
+three constants; big-endian ppc32 places bit `k` of a `Mint32` store at byte
+`A + (3 - k/8)`, bit `k mod 8`, which is why the R3/R1 halfword A-bits — bit 31 / bit 9
+of the stored word — are out of reach of bits `{8,12,14,15,16}`.)
+
+### 6.4 Verdict table and director options
+
+| id | store scout | verdict | `.v` action |
+|---|---|---|---|
+| `play_sound_if_no_flag` | `m->flags`@4, **adversary** value | **PHANTOM-FALSE (airtight)** | none — cannot be walked; makes `Hpres_{sta,mov}_ext` false |
+| `play_mario_landing_sound` | →`psasp` `particleFlags`@8, const bits | **UNVERIFIED marg-drop** (gated `call_pres` proved) | none — director |
+| `play_mario_heavy_landing_sound` | →`psasp` `particleFlags`@8, const bits | **UNVERIFIED marg-drop** (gated `call_pres` proved) | none — director |
+| `play_mario_landing_sound_once` | →`pmas`→`psasp`, const bits | **UNVERIFIED marg-drop** (no gated walk yet) | none — director |
+| `play_mario_heavy_landing_sound_once` | →`pmas`→`psasp`, const bits | **UNVERIFIED marg-drop** (no gated walk yet) | none — director |
+
+**Director options for the honest repair (a #97-style arc, not done here):**
+
+1. **Restate the sound boundaries as marg-gated `call_pres`** (arg0 pinned to `(bm,0)`)
+   and discharge each call site with the marg gate the walked action bodies already
+   carry — turning `Hpres_sta_ext`/`Hpres_mov_ext`/`Hcpx_pmlso` from
+   (false / unverified) bare rows into proved gated ones. `play_mario_landing_sound`
+   and `play_mario_heavy_landing_sound` can consume the **existing** `pmls_row`/`pmhls_row`
+   directly; `play_sound_if_no_flag` and the two `_once` variants need fresh gated walks
+   (all bottom out in `play_sound`/`psasp`, already-understood bodies).
+2. Or keep them external **but move the ids off the "honest model-boundary" comment** —
+   they are Internal `mario.prog` bodies that write Mario state, not pure externals; the
+   current `mov_ext_ids`/`sta_ext_ids` comments ("pure audio externals … writes no Mario
+   state") are **factually wrong** and must not be trusted as-is.
+
+The `play_sound_if_no_flag` phantom is the priority: unlike the four landing variants
+(possibly-sound), it is a **proven falsehood** sitting under the live capstones.
