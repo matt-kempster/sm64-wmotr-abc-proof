@@ -38,7 +38,8 @@ From Coq Require Import ZArith Lia List.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
 From SM64.Generated Require mario mario_step interaction
-  mario_actions_airborne mario_actions_object mario_actions_cutscene.
+  mario_actions_airborne mario_actions_object mario_actions_cutscene
+  level_update.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
   ActionValueFrame RealFrameValue RealFrameLinked AGates.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface
@@ -151,6 +152,12 @@ Definition obj_ext_ids : list ident :=
        save buffer (no args, returns the flag word, no Mario pointer) --
        the same model class as the other no-pointer externals here. *)
     :: interaction._save_file_get_flags
+    (* TASK #96: save_file_get_star_flags -- the twin save-buffer READER
+       (two scalar course-range args, no Mario pointer), reached by the
+       now-walked load_level_init_text (StationaryLeafSurface.llit_row).
+       EF_external in every generated TU (no Internal body anywhere), the
+       SAME honest model class as save_file_get_flags above. *)
+    :: level_update._save_file_get_star_flags
     (* slice 5 ob arc (cap / koopa_shell): the two music-sequencer
        externals (scalar args, no Mario pointer) -- the same model
        class as play_sound above. *)

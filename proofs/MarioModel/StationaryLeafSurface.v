@@ -921,11 +921,10 @@ Definition sta_ext_ids : list ident :=
        every linked TU (verified Internal/External probe), write no Mario state,
        the SAME honest model-boundary class. *)
     :: mario_actions_stationary._play_mario_heavy_landing_sound
-    :: mario_actions_stationary._play_sound_if_no_flag
-    (* SLICE 16: check_common_stationary_cancels's dialog-text IO external
-       (load_level_init_text) -- EF_external in every TU, writes no Mario
-       state; the SAME honest model boundary. *)
-    :: mario_actions_stationary._load_level_init_text :: nil.
+    :: mario_actions_stationary._play_sound_if_no_flag :: nil.
+    (* TASK #96: load_level_init_text REMOVED from this "external" boundary --
+       it is an INTERNAL body of level_update.prog and is now WALKED (llit_row),
+       not trusted as external.  See the LO_lvl / Hcpx_* block above. *)
 
 (* act_waking_up's two externals (subset of sta_ext_ids) *)
 Definition sta_waking_xids : list ident :=
@@ -2030,6 +2029,25 @@ Section StationaryLeafRows.
      Hw1cp_v3fset_real row act_in_cannon uses (NO new trust). *)
   Hypothesis Hw1cp_v3fset :
     call_pres_ext_w1 lp bm NoA MWF mario._vec3f_set.
+
+  (* TASK #96 (class-B walk): check_common_stationary_cancels calls
+     load_level_init_text, an INTERNAL body of level_update.prog (level_update.c)
+     -- NOT an "EF_external in every TU" as the old sta_ext_ids comment claimed.
+     It is now WALKED below (llit_row) via the generic non-Mario-param walker,
+     bottoming out in genuinely-external save-buffer readers + the dialog-box
+     constructor + level_set_transition (itself an internal glob-setter, walked
+     here as lst_row -- the same body CutsceneLeafSurface.lst_row walks).  These
+     four rows are the honest terminal externals it reaches; all are supplied at
+     the capstone from EXISTING boundary hypotheses (save_file_get_flags /
+     save_file_get_star_flags via Hpres_obj_ext, create_dialog_box via
+     Hpres_cut_ext), so the capstone signature is UNCHANGED (NO new trust). *)
+  Hypothesis LO_lvl : linkorder level_update.prog lp.
+  Hypothesis Hcpx_sfgf :
+    call_pres_ext lp bm NoA MWF level_update._save_file_get_flags.
+  Hypothesis Hcpx_sfgsf :
+    call_pres_ext lp bm NoA MWF level_update._save_file_get_star_flags.
+  Hypothesis Hcpx_cdb :
+    call_pres_ext lp bm NoA MWF level_update._create_dialog_box.
 
   (* the keystone, instantiated once *)
   Let Hsmact : call_pres_act lp bm NoA MWF mario._set_mario_action :=
@@ -4478,14 +4496,102 @@ Section StationaryLeafRows.
     discriminate H.
   Qed.
 
-  (* ccss's xids = load_level_init_text (sta_ext IO boundary) *)
+  (* TASK #96: level_set_transition -- an INTERNAL glob-setter of
+     level_update.prog (2 stores into bm-disjoint statics sTransitionTimer /
+     sTransitionUpdate in stored_globals; NON-Mario params; no callees).
+     Walked via the marg-free non-Mario-param producer, exactly like
+     CutsceneLeafSurface.lst_row. *)
+  Example sta_lst_pin :
+    (prog_defmap level_update.prog) ! level_update._level_set_transition
+    = Some (Gfun (Internal level_update.f_level_set_transition)).
+  Proof. vm_compute. reflexivity. Qed.
+  Example sta_lst_vars : fn_vars level_update.f_level_set_transition = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example sta_lst_no_m :
+    negb (mem_id mario_actions_airborne._m
+            (map fst (fn_params level_update.f_level_set_transition))) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example sta_lst_walk :
+    wwalk_chk false nil nil nil nil nil nil nil
+      (fn_body level_update.f_level_set_transition) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma sta_lst_row :
+    call_pres_ext lp bm NoA MWF level_update._level_set_transition.
+  Proof.
+    apply (call_pres_ext_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             level_update.prog level_update._level_set_transition
+             level_update.f_level_set_transition nil nil nil nil
+             LO_lvl sta_lst_pin sta_lst_vars sta_lst_no_m).
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - exact sta_lst_walk.
+  Qed.
+
+  (* TASK #96: load_level_init_text -- the INTERNAL body ccss reaches (dialog
+     text load).  NON-Mario param (_arg tuint), fn_vars nil, NO stores of its
+     own; four callees: save_file_get_flags / save_file_get_star_flags
+     (genuinely-external save-buffer readers), level_set_transition (walked
+     above), create_dialog_box (genuinely-external dialog constructor). *)
+  Definition sta_llit_xids : list ident :=
+    level_update._save_file_get_flags
+      :: level_update._save_file_get_star_flags
+      :: level_update._level_set_transition
+      :: level_update._create_dialog_box :: nil.
+  Example sta_llit_pin :
+    (prog_defmap level_update.prog) ! level_update._load_level_init_text
+    = Some (Gfun (Internal level_update.f_load_level_init_text)).
+  Proof. vm_compute. reflexivity. Qed.
+  Example sta_llit_vars : fn_vars level_update.f_load_level_init_text = nil.
+  Proof. vm_compute. reflexivity. Qed.
+  Example sta_llit_no_m :
+    negb (mem_id mario_actions_airborne._m
+            (map fst (fn_params level_update.f_load_level_init_text))) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example sta_llit_walk :
+    wwalk_chk false nil nil nil nil sta_llit_xids nil nil
+      (fn_body level_update.f_load_level_init_text) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma sta_llit_xids_rows : forall fid, mem_id fid sta_llit_xids = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold sta_llit_xids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_sfgf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_sfgsf | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact sta_lst_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_cdb | ].
+    discriminate H.
+  Qed.
+  Lemma llit_row :
+    call_pres_ext lp bm NoA MWF level_update._load_level_init_text.
+  Proof.
+    apply (call_pres_ext_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             level_update.prog level_update._load_level_init_text
+             level_update.f_load_level_init_text nil nil sta_llit_xids nil
+             LO_lvl sta_llit_pin sta_llit_vars sta_llit_no_m).
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - exact sta_llit_xids_rows.
+    - intros fid' H; discriminate H.
+    - exact sta_llit_walk.
+  Qed.
+
+  (* ccss's xids = load_level_init_text -- now WALKED (llit_row), not trusted *)
   Lemma sta_ccss_xids_rows : forall fid, mem_id fid sta_ccss_xids = true ->
       call_pres_ext lp bm NoA MWF fid.
   Proof.
     intros fid H. unfold sta_ccss_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid;
-        apply Hpres_sta_ext; vm_compute; reflexivity | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact llit_row | ].
     discriminate H.
   Qed.
 

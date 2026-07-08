@@ -2604,6 +2604,18 @@ Section NoARealInputMWF.
                          -- the SAME w1 dst-window terminal-external row the
                          cannon uses (vec3f_set is EF_external in every TU). *)
                       Hw1cp_v3fset_real
+                      (* TASK #96: check_common_stationary_cancels's
+                         load_level_init_text is now WALKED (llit_row) rather
+                         than trusted as external.  Its four terminal callees
+                         are supplied here from EXISTING boundaries -- NO new
+                         capstone hypothesis: LO_lvl (already assumed), the two
+                         save-buffer readers via Hpres_obj_ext (save_file_get_
+                         star_flags newly added to obj_ext_ids, same reader
+                         class), and create_dialog_box via Hpres_cut_ext. *)
+                      LO_lvl
+                      (Hpres_obj_ext level_update._save_file_get_flags eq_refl)
+                      (Hpres_obj_ext level_update._save_file_get_star_flags eq_refl)
+                      (Hpres_cut_ext level_update._create_dialog_box eq_refl)
                       Hpres_sta_rest)
                    Hpres_qsand)
                 (moving_pres lp LO_mario LO_mov LO_stp bm (NoA_real bm)
@@ -2948,8 +2960,33 @@ Section NoARealInputMWF.
                       Hcp_pas
                       (Hpres_obj_ext mario._set_camera_mode eq_refl)
                       (Hpres_obj_ext interaction._set_camera_shake_from_hit eq_refl)
-                      (Hpres_sta_ext
-                         mario_actions_stationary._load_level_init_text eq_refl)
+                      (* TASK #96: the cutscene save-dialog leaf's
+                         load_level_init_text callee is now the WALKED
+                         StationaryLeafSurface.llit_row (bricks + LO_lvl + the
+                         three genuine-external callee rows), NOT the old
+                         Hpres_sta_ext trust row. *)
+                      (StationaryLeafSurface.llit_row lp LO_mario bm
+                         (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
+                         (mwf_real_ctl lp bm bc oc0 SafeB)
+                         (mwf_real_window lp bm bc oc0 SafeB Hbc_bm
+                            HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                         (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+                         (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm
+                            HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                         SafeB HSafeB_not_bm
+                         (mwf_real_chase_root lp bm bc oc0 SafeB)
+                         (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm
+                            HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                         (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm
+                            HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                         (mwf_real_sglob lp bm bc oc0 SafeB)
+                         (mwf_real_chase_step lp bm bc oc0 SafeB)
+                         (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm
+                            HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                         LO_lvl
+                         (Hpres_obj_ext level_update._save_file_get_flags eq_refl)
+                         (Hpres_obj_ext level_update._save_file_get_star_flags eq_refl)
+                         (Hpres_cut_ext level_update._create_dialog_box eq_refl))
                       (Hpres_mov_ext
                          mario_actions_moving._play_mario_landing_sound_once
                          eq_refl)

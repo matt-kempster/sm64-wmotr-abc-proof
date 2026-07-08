@@ -191,3 +191,71 @@ is neither `MarioState*` (so `bm` is not its intended target) nor gated (so the
 adversary may point it at `bm`/`bc`). The remaining 7 are genuine walk debt and
 can be discharged with the #95-style approach (adjusted for the `MarioState*`
 callees, which are walked, not kept external).
+
+---
+
+## 5. Second batch (task #96 cont'd): `load_level_init_text` WALKED; `bhv_spawn_star_no_level_exit` is a NEW store-through-return phantom
+
+### 5.1 `load_level_init_text` — WALKED (DONE)
+
+`StationaryLeafSurface.llit_row` now proves
+`call_pres_ext lp bm NoA MWF level_update._load_level_init_text` for the real
+body (`generated/level_update.v:2389`), replacing the old `Hpres_sta_ext`
+boundary trust. Mechanism (generic non-Mario-param walker
+`call_pres_ext_of_wwalk` + `wwalk_chk` decision procedure):
+
+* arg0 `tuint`, `fn_vars = nil`, **no `Sassign` of its own** — the body only
+  writes temps and calls four functions: `save_file_get_flags`,
+  `save_file_get_star_flags` (genuine save-buffer readers, external in every
+  TU), `create_dialog_box` (genuine external), and **`level_set_transition`**
+  (Internal in `level_update.prog`, a one-level cascade).
+* `level_set_transition` is walked in the same file as `sta_lst_row` (the twin
+  of the already-proved `CutsceneLeafSurface.lst_row`): its only effects are two
+  stores into the bm-disjoint statics `sTransitionTimer` / `sTransitionUpdate`
+  (both in `stored_globals`), no callees. `wwalk_chk` accepts it.
+* the three genuine externals are supplied at the capstone from **existing**
+  boundaries — `save_file_get_flags` / `save_file_get_star_flags` via
+  `Hpres_obj_ext` (the latter newly added to `obj_ext_ids`, same save-reader
+  class), `create_dialog_box` via `Hpres_cut_ext` — and `LO_lvl` was already a
+  capstone term. **The `real_mwf` capstone signature is UNCHANGED (zero new
+  capstone hypothesis); Twelve is untouched.** Net trust-ledger change: one
+  mislabeled-Internal boundary id (`load_level_init_text`) plus its hidden
+  Internal glob-setter (`level_set_transition`) move from *trusted-external* to
+  *walked*, bottoming out in three genuine externals (one newly surfaced).
+
+The audit's "no pointer param ⇒ ordinary walk debt" call was correct; the only
+wrinkle it missed is the one-level internal cascade into `level_set_transition`,
+which is bounded (that body has no callees).
+
+### 5.2 `bhv_spawn_star_no_level_exit` — PHANTOM (store through an EXTERNAL's return), NOT walkable
+
+The audit's "no pointer param ⇒ no phantom" call is **WRONG** for this body, and
+`wwalk_chk` **rejects** it (mechanically verified). AST
+`generated/behavior_actions.v:21423`: arg0 `tuint`, `fn_vars = nil`, but the
+body does `_t'1 := spawn_object(gCurrentObject, 122, &bhvSpawnedStarNoLevelExit)`
+then `_star := _t'1` and **stores through `_star`**:
+`_star->rawData.asS32[64] = starIndex << 24` and `_star->rawData.asU32[66] =
+1024`, finally `obj_set_angle(_star, …)`.
+
+`_star` is the **return value of the external `spawn_object`**. The abstract
+`external_call` model does **not** pin that returned pointer off Mario's block
+`bm` (nor the controller block `bc`), so the generic walker cannot classify the
+store target as bm-safe and refuses the store (exactly the mechanism that made
+the two bully bodies phantom-false, but via an external *return* rather than a
+*param*). The bare `call_pres_ext bhv_spawn_star_no_level_exit` is therefore
+another **latent phantom-false** boundary row: its `obj_ext_ids` comment ("the
+pool is SafeB-disjoint from Mario's state") is precisely the unverified gate the
+model does not supply.
+
+**Verdict: NOT walked; no `.v` weakening.** The honest repair is the #97-style
+GATED row — `spawn_object`'s return confined to a fresh / `SafeB` object-pool
+block `≠ bm` (`≠ bc`) — supplied from the object-pool allocation bookkeeping.
+This is the same class of defect as the bully pair, now known to also arise from
+**external return values**, not only pointer params. (Left for a follow-up like
+#97.)
+
+### 5.3 The `play_mario_*_sound*` / `play_sound_if_no_flag` cluster (target #3) — not attempted
+
+Deferred: these take `MarioState*` arg0 and require the store-level scout of §4
+(confirm no write into `action`/pinned cells) before a walk. Not reached in this
+pass.
