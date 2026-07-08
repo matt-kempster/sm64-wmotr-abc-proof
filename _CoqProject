@@ -89,6 +89,11 @@ proofs/MarioModel/WarpSurface.v
 #     discharges; consumed by the MWF-grounded capstone in NoAImpliesNoFlyLinked) ---
 proofs/MarioModel/MWFReal.v
 
+# --- GOAL 1 / P5 init grounding (kept: producer for the twelve-TU bucket-B
+#     distinctness rows -- spawn_ok + the CHEAP genv_vars_inj corollaries +
+#     the init anchor; consumed by the director's SafeB integration) ---
+proofs/MarioModel/SpawnInit.v
+
 # --- GOAL 1 / the local-vars walker arc, FOUNDATIONAL FRAME LAYER (SPINE:
 #     stack-frame frame lemmas -- entry alloc_variables / exit free_list /
 #     local store all preserve the carried run facts on watched-disjoint
