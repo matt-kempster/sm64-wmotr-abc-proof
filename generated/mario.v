@@ -3,7 +3,7 @@
    Produced by: pipeline/clightgen.sh
    From source: vendor/sm64/src/game/mario.c
    clightgen:   The CompCert CompCert AST generator, version 3.15
-   Flags:       -normalize -nostdinc -fstruct-passing -Ivendor/sm64/include -Ivendor/sm64/build/us -Ivendor/sm64/build/us/include -Ivendor/sm64/src -Ivendor/sm64 -Ivendor/sm64/include/libc -DVERSION_US=1 -DF3DEX_GBI_2=1 -DF3DEX_GBI_SHARED=1 -D_FINALROM=1 -DTARGET_N64=1 -DNON_MATCHING=1 -DAVOID_UB=1 -D_LANGUAGE_C=1
+   Flags:       -normalize -nostdinc -fstruct-passing -Ivendor/sm64/include -Ivendor/sm64/build/us -Ivendor/sm64/build/us/include -Ivendor/sm64/src -Ivendor/sm64 -Ivendor/sm64/include/libc -DVERSION_US=1 -DF3DEX_GBI_2=1 -DF3DEX_GBI_SHARED=1 -D_FINALROM=1 -DTARGET_N64=1 -DNON_MATCHING=1 -DAVOID_UB=1 -D_LANGUAGE_C=1 (+ __stringlit_ -> __stringlit_mario_)
    Regenerate:  make regen   (output must be byte-identical)
    ====================================================================== *)
 From Coq Require Import String List ZArith.
@@ -153,9 +153,9 @@ Definition ___compcert_va_composite : ident := $"__compcert_va_composite".
 Definition ___compcert_va_float64 : ident := $"__compcert_va_float64".
 Definition ___compcert_va_int32 : ident := $"__compcert_va_int32".
 Definition ___compcert_va_int64 : ident := $"__compcert_va_int64".
-Definition ___stringlit_1 : ident := $"__stringlit_1".
-Definition ___stringlit_2 : ident := $"__stringlit_2".
-Definition ___stringlit_3 : ident := $"__stringlit_3".
+Definition ___stringlit_1 : ident := $"__stringlit_mario_1".
+Definition ___stringlit_2 : ident := $"__stringlit_mario_2".
+Definition ___stringlit_3 : ident := $"__stringlit_mario_3".
 Definition _absForwardVel : ident := $"absForwardVel".
 Definition _accel : ident := $"accel".
 Definition _acceleratedFrame : ident := $"acceleratedFrame".

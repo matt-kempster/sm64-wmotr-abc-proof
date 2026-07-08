@@ -3,7 +3,7 @@
    Produced by: pipeline/clightgen.sh
    From source: vendor/sm64/src/game/behavior_actions.c
    clightgen:   The CompCert CompCert AST generator, version 3.15
-   Flags:       -normalize -nostdinc -fstruct-passing -Ivendor/sm64/include -Ivendor/sm64/build/us -Ivendor/sm64/build/us/include -Ivendor/sm64/src -Ivendor/sm64 -Ivendor/sm64/include/libc -DVERSION_US=1 -DF3DEX_GBI_2=1 -DF3DEX_GBI_SHARED=1 -D_FINALROM=1 -DTARGET_N64=1 -DNON_MATCHING=1 -DAVOID_UB=1 -D_LANGUAGE_C=1
+   Flags:       -normalize -nostdinc -fstruct-passing -Ivendor/sm64/include -Ivendor/sm64/build/us -Ivendor/sm64/build/us/include -Ivendor/sm64/src -Ivendor/sm64 -Ivendor/sm64/include/libc -DVERSION_US=1 -DF3DEX_GBI_2=1 -DF3DEX_GBI_SHARED=1 -D_FINALROM=1 -DTARGET_N64=1 -DNON_MATCHING=1 -DAVOID_UB=1 -D_LANGUAGE_C=1 (+ __stringlit_ -> __stringlit_behavior_actions_)
    Regenerate:  make regen   (output must be byte-identical)
    ====================================================================== *)
 From Coq Require Import String List ZArith.
@@ -201,16 +201,16 @@ Definition ___compcert_va_composite : ident := $"__compcert_va_composite".
 Definition ___compcert_va_float64 : ident := $"__compcert_va_float64".
 Definition ___compcert_va_int32 : ident := $"__compcert_va_int32".
 Definition ___compcert_va_int64 : ident := $"__compcert_va_int64".
-Definition ___stringlit_1 : ident := $"__stringlit_1".
-Definition ___stringlit_10 : ident := $"__stringlit_10".
-Definition ___stringlit_2 : ident := $"__stringlit_2".
-Definition ___stringlit_3 : ident := $"__stringlit_3".
-Definition ___stringlit_4 : ident := $"__stringlit_4".
-Definition ___stringlit_5 : ident := $"__stringlit_5".
-Definition ___stringlit_6 : ident := $"__stringlit_6".
-Definition ___stringlit_7 : ident := $"__stringlit_7".
-Definition ___stringlit_8 : ident := $"__stringlit_8".
-Definition ___stringlit_9 : ident := $"__stringlit_9".
+Definition ___stringlit_1 : ident := $"__stringlit_behavior_actions_1".
+Definition ___stringlit_10 : ident := $"__stringlit_behavior_actions_10".
+Definition ___stringlit_2 : ident := $"__stringlit_behavior_actions_2".
+Definition ___stringlit_3 : ident := $"__stringlit_behavior_actions_3".
+Definition ___stringlit_4 : ident := $"__stringlit_behavior_actions_4".
+Definition ___stringlit_5 : ident := $"__stringlit_behavior_actions_5".
+Definition ___stringlit_6 : ident := $"__stringlit_behavior_actions_6".
+Definition ___stringlit_7 : ident := $"__stringlit_behavior_actions_7".
+Definition ___stringlit_8 : ident := $"__stringlit_behavior_actions_8".
+Definition ___stringlit_9 : ident := $"__stringlit_behavior_actions_9".
 Definition __g : ident := $"_g".
 Definition __g__1 : ident := $"_g__1".
 Definition _a : ident := $"a".
