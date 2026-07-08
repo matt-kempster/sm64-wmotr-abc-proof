@@ -278,3 +278,33 @@ non-vacuous via the concrete `init_mem lp` witness.
 Slices 0-2 are the tractable, high-confidence init-grounding win (bulk of the 11
 rows' *layout* content). Slices 3-5 are the SafeB reach-closure research brick —
 flag them as such, do not round up.
+
+---
+
+## Director's addendum (2026-07-09): slices 3-5 design entry points
+
+The bm-is-a-symbol-block discovery reframes SafeB concretization. The FIRST
+question for the design is: **where does the object pool live relative to the
+twelve TUs?** SafeB's intended denotation is "blocks of the object system"
+(spawn_object returns, gMarioObject chase targets, interaction objects). If
+the pool (`gObjectPool` / object node arrays, decomp: object_list_processor.c
+/ spawn_object.c) is a DEFINED static in one of the twelve TUs, SafeB can be
+the STATIC block set of those symbols and the closure rows become
+genv_vars_inj-class (cheap, like today's bucket-B win). If it lives OUTSIDE
+the link (likely — those TUs are not among the twelve), then SafeB stays
+semantically abstract and the honest concretization is: SafeB := "blocks
+reachable from the object-system model boundary," grounded by (i) the
+SafeB-return rows already assumed for spawn_object/mgco (unchanged trust),
+(ii) closure under ptr-loads (HchaseStep becomes part of the DEFINITION, not
+an assumption), (iii) the ~SafeB conjuncts discharged by showing symbol
+blocks are NOT reach-generated (needs an inversion principle: everything in
+the closure originates at a model-boundary return — an inductive
+characterization, provable). Sketch: `Inductive SafeB_gen (roots : block ->
+Prop) (m-history?) : block -> Prop` — CAUTION: memory-indexing SafeB changes
+MWF's type; prefer a HISTORY-FREE greatest-or-least set parameterized by the
+boundary-returns trace, or keep SafeB abstract + ADD the inversion axiom-shape
+as ONE new honest row replacing several. Decide after the pool-location scout.
+Also fold in: #94's option-B (R11-at-spawn via spawn_ok + the
+spawn_object_abs_with_rot SafeB-return row) belongs to this same campaign;
+and the MWF R0 strengthening (Ple genv_next nextblock) should ride the same
+MWFReal-touching commit to pay the ripple once.
