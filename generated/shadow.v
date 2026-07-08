@@ -3,7 +3,7 @@
    Produced by: pipeline/clightgen.sh
    From source: vendor/sm64/src/game/shadow.c
    clightgen:   The CompCert CompCert AST generator, version 3.15
-   Flags:       -normalize -nostdinc -fstruct-passing -Ivendor/sm64/include -Ivendor/sm64/build/us -Ivendor/sm64/build/us/include -Ivendor/sm64/src -Ivendor/sm64 -Ivendor/sm64/include/libc -DVERSION_US=1 -DF3DEX_GBI_2=1 -DF3DEX_GBI_SHARED=1 -D_FINALROM=1 -DTARGET_N64=1 -DNON_MATCHING=1 -DAVOID_UB=1 -D_LANGUAGE_C=1
+   Flags:       -normalize -nostdinc -fstruct-passing -Ivendor/sm64/include -Ivendor/sm64/build/us -Ivendor/sm64/build/us/include -Ivendor/sm64/src -Ivendor/sm64 -Ivendor/sm64/include/libc -DVERSION_US=1 -DF3DEX_GBI_2=1 -DF3DEX_GBI_SHARED=1 -D_FINALROM=1 -DTARGET_N64=1 -DNON_MATCHING=1 -DAVOID_UB=1 -D_LANGUAGE_C=1 (+ __stringlit_ -> __stringlit_shadow_)
    Regenerate:  make regen   (output must be byte-identical)
    ====================================================================== *)
 From Coq Require Import String List ZArith.
@@ -39,14 +39,14 @@ Definition _Shadow : ident := $"Shadow".
 Definition _SpawnInfo : ident := $"SpawnInfo".
 Definition _Surface : ident := $"Surface".
 Definition _Waypoint : ident := $"Waypoint".
-Definition __215 : ident := $"_215".
-Definition __217 : ident := $"_217".
-Definition __219 : ident := $"_219".
-Definition __2245 : ident := $"_2245".
-Definition __303 : ident := $"_303".
-Definition __305 : ident := $"_305".
-Definition __764 : ident := $"_764".
-Definition __769 : ident := $"_769".
+Definition __215 : ident := $"_anon_c9b4bb0e4774".
+Definition __217 : ident := $"_anon_e8b0a4cbb468".
+Definition __219 : ident := $"_anon_3c05f577debd".
+Definition __2245 : ident := $"_anon_3ca4fa941078".
+Definition __303 : ident := $"_anon_50f496f0a47e".
+Definition __305 : ident := $"_anon_131e7c54ee22".
+Definition __764 : ident := $"_anon_2a845cdd6eb9".
+Definition __769 : ident := $"_anon_7dce1c6c6ad3".
 Definition ___builtin_ais_annot : ident := $"__builtin_ais_annot".
 Definition ___builtin_annot : ident := $"__builtin_annot".
 Definition ___builtin_annot_intval : ident := $"__builtin_annot_intval".

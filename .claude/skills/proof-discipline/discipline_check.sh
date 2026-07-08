@@ -39,7 +39,8 @@ if [ "$#" -eq 0 ]; then
          SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFlyLinked noA_no_spawn_never_flying_real \
          SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFlyLinked noA_no_spawn_never_flying_real_v2 \
          SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFlyLinked noA_no_spawn_never_flying_real_mwf \
-         SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFlyTwelve noA_no_spawn_never_flying_linked12
+         SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFlyTwelve noA_no_spawn_never_flying_linked12 \
+         SM64.Proofs.MarioModel.Linked12Sat linked12_inhabited
 fi
 # NOTE: the fifth capstone went LIVE with the #95 repair (2026-07-05): the
 # negative pin now covers only the 16 genuinely-external whitelist ids and

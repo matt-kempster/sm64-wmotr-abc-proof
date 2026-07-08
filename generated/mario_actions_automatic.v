@@ -3,7 +3,7 @@
    Produced by: pipeline/clightgen.sh
    From source: vendor/sm64/src/game/mario_actions_automatic.c
    clightgen:   The CompCert CompCert AST generator, version 3.15
-   Flags:       -normalize -nostdinc -fstruct-passing -Ivendor/sm64/include -Ivendor/sm64/build/us -Ivendor/sm64/build/us/include -Ivendor/sm64/src -Ivendor/sm64 -Ivendor/sm64/include/libc -DVERSION_US=1 -DF3DEX_GBI_2=1 -DF3DEX_GBI_SHARED=1 -D_FINALROM=1 -DTARGET_N64=1 -DNON_MATCHING=1 -DAVOID_UB=1 -D_LANGUAGE_C=1
+   Flags:       -normalize -nostdinc -fstruct-passing -Ivendor/sm64/include -Ivendor/sm64/build/us -Ivendor/sm64/build/us/include -Ivendor/sm64/src -Ivendor/sm64 -Ivendor/sm64/include/libc -DVERSION_US=1 -DF3DEX_GBI_2=1 -DF3DEX_GBI_SHARED=1 -D_FINALROM=1 -DTARGET_N64=1 -DNON_MATCHING=1 -DAVOID_UB=1 -D_LANGUAGE_C=1 (+ __stringlit_ -> __stringlit_mario_actions_automatic_)
    Regenerate:  make regen   (output must be byte-identical)
    ====================================================================== *)
 From Coq Require Import String List ZArith.
@@ -52,10 +52,10 @@ Definition _UnusedArea28 : ident := $"UnusedArea28".
 Definition _WarpNode : ident := $"WarpNode".
 Definition _Waypoint : ident := $"Waypoint".
 Definition _Whirlpool : ident := $"Whirlpool".
-Definition __317 : ident := $"_317".
-Definition __319 : ident := $"_319".
-Definition __764 : ident := $"_764".
-Definition __769 : ident := $"_769".
+Definition __317 : ident := $"_anon_ae165a813d32".
+Definition __319 : ident := $"_anon_e4bae3b10b78".
+Definition __764 : ident := $"_anon_2a845cdd6eb9".
+Definition __769 : ident := $"_anon_7dce1c6c6ad3".
 Definition ___builtin_ais_annot : ident := $"__builtin_ais_annot".
 Definition ___builtin_annot : ident := $"__builtin_annot".
 Definition ___builtin_annot_intval : ident := $"__builtin_annot_intval".

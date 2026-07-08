@@ -63,6 +63,11 @@ proofs/MarioModel/RestSurface.v
 #     capstone corollary) ---
 proofs/MarioModel/LinkedTwelve.v
 
+# --- GOAL 1 / linked12 satisfiability (SPINE, P3 slice 3: the NON-VACUITY
+#     certificate -- the twelve TUs actually link; pairwise vm certificate
+#     + link-compat stability metatheory) ---
+proofs/MarioModel/Linked12Sat.v
+
 # --- GOAL 1 / the airborne dispatcher walked (SPINE: Hpres_air PROVED from
 #     per-leaf-callee residuals via the dispatch kill; 43-id census) ---
 proofs/MarioModel/AirborneSurface.v

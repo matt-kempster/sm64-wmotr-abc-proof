@@ -3,7 +3,7 @@
    Produced by: pipeline/clightgen.sh
    From source: vendor/sm64/src/game/mario_actions_cutscene.c
    clightgen:   The CompCert CompCert AST generator, version 3.15
-   Flags:       -normalize -nostdinc -fstruct-passing -Ivendor/sm64/include -Ivendor/sm64/build/us -Ivendor/sm64/build/us/include -Ivendor/sm64/src -Ivendor/sm64 -Ivendor/sm64/include/libc -DVERSION_US=1 -DF3DEX_GBI_2=1 -DF3DEX_GBI_SHARED=1 -D_FINALROM=1 -DTARGET_N64=1 -DNON_MATCHING=1 -DAVOID_UB=1 -D_LANGUAGE_C=1
+   Flags:       -normalize -nostdinc -fstruct-passing -Ivendor/sm64/include -Ivendor/sm64/build/us -Ivendor/sm64/build/us/include -Ivendor/sm64/src -Ivendor/sm64 -Ivendor/sm64/include/libc -DVERSION_US=1 -DF3DEX_GBI_2=1 -DF3DEX_GBI_SHARED=1 -D_FINALROM=1 -DTARGET_N64=1 -DNON_MATCHING=1 -DAVOID_UB=1 -D_LANGUAGE_C=1 (+ __stringlit_ -> __stringlit_mario_actions_cutscene_)
    Regenerate:  make regen   (output must be byte-identical)
    ====================================================================== *)
 From Coq Require Import String List ZArith.
@@ -59,30 +59,30 @@ Definition _UnusedArea28 : ident := $"UnusedArea28".
 Definition _WarpNode : ident := $"WarpNode".
 Definition _Waypoint : ident := $"Waypoint".
 Definition _Whirlpool : ident := $"Whirlpool".
-Definition __381 : ident := $"_381".
-Definition __383 : ident := $"_383".
-Definition __533 : ident := $"_533".
-Definition __538 : ident := $"_538".
-Definition __540 : ident := $"_540".
-Definition __574 : ident := $"_574".
-Definition __576 : ident := $"_576".
-Definition __578 : ident := $"_578".
-Definition __580 : ident := $"_580".
-Definition __582 : ident := $"_582".
-Definition __584 : ident := $"_584".
-Definition __586 : ident := $"_586".
-Definition __588 : ident := $"_588".
-Definition __590 : ident := $"_590".
-Definition __592 : ident := $"_592".
-Definition __594 : ident := $"_594".
-Definition __596 : ident := $"_596".
-Definition __598 : ident := $"_598".
-Definition __600 : ident := $"_600".
-Definition __602 : ident := $"_602".
-Definition __611 : ident := $"_611".
-Definition __613 : ident := $"_613".
-Definition __828 : ident := $"_828".
-Definition __833 : ident := $"_833".
+Definition __381 : ident := $"_anon_ae165a813d32".
+Definition __383 : ident := $"_anon_e4bae3b10b78".
+Definition __533 : ident := $"_anon_492449ad5917".
+Definition __538 : ident := $"_anon_2d9bf9a5de4b".
+Definition __540 : ident := $"_anon_b6569c0833ae".
+Definition __574 : ident := $"_anon_b68c7cd607b8".
+Definition __576 : ident := $"_anon_cc23475d879a".
+Definition __578 : ident := $"_anon_582ea1ea7a16".
+Definition __580 : ident := $"_anon_1f056269c846".
+Definition __582 : ident := $"_anon_e728cafb3139_0".
+Definition __584 : ident := $"_anon_e728cafb3139_1".
+Definition __586 : ident := $"_anon_082533b0d3da".
+Definition __588 : ident := $"_anon_326d1d817e71".
+Definition __590 : ident := $"_anon_93f6c6d42751".
+Definition __592 : ident := $"_anon_7fe8a69a4b23".
+Definition __594 : ident := $"_anon_4f0efebcc12b".
+Definition __596 : ident := $"_anon_aa3f148f9bf1".
+Definition __598 : ident := $"_anon_336f2d3e0b53".
+Definition __600 : ident := $"_anon_5b5ce0cbc558".
+Definition __602 : ident := $"_anon_f17a035c1639".
+Definition __611 : ident := $"_anon_50f496f0a47e".
+Definition __613 : ident := $"_anon_56e646c222b2".
+Definition __828 : ident := $"_anon_2a845cdd6eb9".
+Definition __833 : ident := $"_anon_7dce1c6c6ad3".
 Definition ___builtin_ais_annot : ident := $"__builtin_ais_annot".
 Definition ___builtin_annot : ident := $"__builtin_annot".
 Definition ___builtin_annot_intval : ident := $"__builtin_annot_intval".

@@ -3,7 +3,7 @@
    Produced by: pipeline/clightgen.sh
    From source: vendor/sm64/src/game/mario_misc.c
    clightgen:   The CompCert CompCert AST generator, version 3.15
-   Flags:       -normalize -nostdinc -fstruct-passing -Ivendor/sm64/include -Ivendor/sm64/build/us -Ivendor/sm64/build/us/include -Ivendor/sm64/src -Ivendor/sm64 -Ivendor/sm64/include/libc -DVERSION_US=1 -DF3DEX_GBI_2=1 -DF3DEX_GBI_SHARED=1 -D_FINALROM=1 -DTARGET_N64=1 -DNON_MATCHING=1 -DAVOID_UB=1 -D_LANGUAGE_C=1
+   Flags:       -normalize -nostdinc -fstruct-passing -Ivendor/sm64/include -Ivendor/sm64/build/us -Ivendor/sm64/build/us/include -Ivendor/sm64/src -Ivendor/sm64 -Ivendor/sm64/include/libc -DVERSION_US=1 -DF3DEX_GBI_2=1 -DF3DEX_GBI_SHARED=1 -D_FINALROM=1 -DTARGET_N64=1 -DNON_MATCHING=1 -DAVOID_UB=1 -D_LANGUAGE_C=1 (+ __stringlit_ -> __stringlit_mario_misc_)
    Regenerate:  make regen   (output must be byte-identical)
    ====================================================================== *)
 From Coq Require Import String List ZArith.
@@ -62,29 +62,29 @@ Definition _WarpTransition : ident := $"WarpTransition".
 Definition _WarpTransitionData : ident := $"WarpTransitionData".
 Definition _Waypoint : ident := $"Waypoint".
 Definition _Whirlpool : ident := $"Whirlpool".
-Definition __1192 : ident := $"_1192".
-Definition __317 : ident := $"_317".
-Definition __319 : ident := $"_319".
-Definition __469 : ident := $"_469".
-Definition __510 : ident := $"_510".
-Definition __512 : ident := $"_512".
-Definition __514 : ident := $"_514".
-Definition __516 : ident := $"_516".
-Definition __518 : ident := $"_518".
-Definition __520 : ident := $"_520".
-Definition __522 : ident := $"_522".
-Definition __524 : ident := $"_524".
-Definition __526 : ident := $"_526".
-Definition __528 : ident := $"_528".
-Definition __530 : ident := $"_530".
-Definition __532 : ident := $"_532".
-Definition __534 : ident := $"_534".
-Definition __536 : ident := $"_536".
-Definition __538 : ident := $"_538".
-Definition __547 : ident := $"_547".
-Definition __549 : ident := $"_549".
-Definition __764 : ident := $"_764".
-Definition __769 : ident := $"_769".
+Definition __1192 : ident := $"_anon_a968579a3e46".
+Definition __317 : ident := $"_anon_ae165a813d32".
+Definition __319 : ident := $"_anon_e4bae3b10b78".
+Definition __469 : ident := $"_anon_492449ad5917".
+Definition __510 : ident := $"_anon_b68c7cd607b8".
+Definition __512 : ident := $"_anon_cc23475d879a".
+Definition __514 : ident := $"_anon_582ea1ea7a16".
+Definition __516 : ident := $"_anon_1f056269c846".
+Definition __518 : ident := $"_anon_e728cafb3139_0".
+Definition __520 : ident := $"_anon_e728cafb3139_1".
+Definition __522 : ident := $"_anon_082533b0d3da".
+Definition __524 : ident := $"_anon_326d1d817e71".
+Definition __526 : ident := $"_anon_93f6c6d42751".
+Definition __528 : ident := $"_anon_7fe8a69a4b23".
+Definition __530 : ident := $"_anon_4f0efebcc12b".
+Definition __532 : ident := $"_anon_aa3f148f9bf1".
+Definition __534 : ident := $"_anon_336f2d3e0b53".
+Definition __536 : ident := $"_anon_5b5ce0cbc558".
+Definition __538 : ident := $"_anon_f17a035c1639".
+Definition __547 : ident := $"_anon_50f496f0a47e".
+Definition __549 : ident := $"_anon_56e646c222b2".
+Definition __764 : ident := $"_anon_2a845cdd6eb9".
+Definition __769 : ident := $"_anon_7dce1c6c6ad3".
 Definition ___builtin_ais_annot : ident := $"__builtin_ais_annot".
 Definition ___builtin_annot : ident := $"__builtin_annot".
 Definition ___builtin_annot_intval : ident := $"__builtin_annot_intval".
@@ -741,7 +741,7 @@ Definition v_gPlayer1Controller := {|
 |}.
 
 Definition v_gMarioStates := {|
-  gvar_info := (tarray (Tstruct _MarioState noattr) 0);
+  gvar_info := (tarray (Tstruct _MarioState noattr) 1);
   gvar_init := nil;
   gvar_readonly := false;
   gvar_volatile := false

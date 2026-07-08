@@ -43,6 +43,33 @@ clightgen -normalize "$@" -o "$TMP" "$INPUT"
 TUNAME="$(basename "$OUTPUT" .v)"
 sed -i "s/\\\$\"__stringlit_/\\\$\"__stringlit_${TUNAME}_/g" "$TMP"
 
+# Anonymous-composite canonicalization: clightgen numbers anonymous C
+# structs/unions per TU, making structurally identical shared composites
+# (Controller/Object/Surface, via ultra64's typedef'd anonymous structs)
+# syntactically unequal across TUs -- CompCert's equality-based composite
+# linker then refuses the link.  Rename them to structural-hash names
+# (identical structure => identical name in every TU).  Deterministic,
+# content-only, per-file.  See pipeline/canonicalize_anon.py.
+python3 "$(dirname "$0")/canonicalize_anon.py" "$TMP"
+
+# Extern-incomplete-array completion (documented one-entry table): C's
+# `extern struct MarioState gMarioStates[];` yields Tarray..0 while the
+# definer (level_update.c) has Tarray..1 -- CompCert's equality-based
+# vardef linker refuses.  Complete the DECL side to the definer's type
+# (exactly what a system linker's symbol resolution does; init stays nil,
+# link_varinit takes the definer's).  Found by the linked12 certificate.
+python3 - "$TMP" <<'PYEOF'
+import re, sys
+path = sys.argv[1]
+s = open(path).read()
+s2 = re.sub(
+    r'(Definition v_gMarioStates := \{\|\s*gvar_info := \(tarray \(Tstruct _MarioState noattr\)) 0\)',
+    r'\1 1)', s)
+if s2 != s:
+    open(path, 'w').write(s2)
+    print(f"extern-array completion: gMarioStates 0 -> 1 in {path}")
+PYEOF
+
 {
   echo "(* ======================================================================"
   echo "   GENERATED FILE -- DO NOT EDIT."
