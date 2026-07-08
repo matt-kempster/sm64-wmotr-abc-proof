@@ -32,13 +32,24 @@ trap 'rm -f "$TMP"' EXIT
 # -normalize: put memory accesses in normalized form, recommended for program proof.
 clightgen -normalize "$@" -o "$TMP" "$INPUT"
 
+# Stringlit disambiguation: clightgen names compiler-generated string-literal
+# constants __stringlit_N, numbered PER TU -- so any two TUs containing string
+# literals define colliding non-public Gvars, and CompCert's link_prog refuses
+# to link them (the public gate).  Prefix them with the TU name.  This is a
+# deterministic, purely mechanical rename of TU-local (static) symbols; it
+# changes no semantics and no public symbol.  (Found by the linked12
+# inhabitation probe, 2026-07-08: the ONLY link obstruction across the twelve
+# TUs was exactly these ids.)
+TUNAME="$(basename "$OUTPUT" .v)"
+sed -i "s/\\\$\"__stringlit_/\\\$\"__stringlit_${TUNAME}_/g" "$TMP"
+
 {
   echo "(* ======================================================================"
   echo "   GENERATED FILE -- DO NOT EDIT."
   echo "   Produced by: pipeline/clightgen.sh"
   echo "   From source: $INPUT"
   echo "   clightgen:   $CGVERSION"
-  echo "   Flags:       -normalize $*"
+  echo "   Flags:       -normalize $* (+ __stringlit_ -> __stringlit_${TUNAME}_)"
   echo "   Regenerate:  make regen   (output must be byte-identical)"
   echo "   ====================================================================== *)"
   cat "$TMP"
