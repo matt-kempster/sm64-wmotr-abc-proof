@@ -1,0 +1,164 @@
+(* kept: P1' Unwired pre-stage — standalone math/geometry body facts, consumed at the future atomic fourteen-TU link commit; NOT yet capstone-wired. *)
+
+(* ====================================================================== *)
+(* P1' PRE-STAGE (task #90).  Two of the three PURE geometry bodies of      *)
+(* surface_collision, proved as STANDALONE facts about the generated AST    *)
+(* objects -- provable WITHOUT linking surface_collision into lp (they      *)
+(* quantify over an arbitrary Clight genv `ge`, touch `lp` NOWHERE).        *)
+(*                                                                        *)
+(* Per docs/p1prime-fourteen-tu-design.md §7.3, the retire-first ordering  *)
+(* is impossible: the widen + the 9 exempt-list retirements must be ONE     *)
+(* atomic commit.  This file is the freely-committable Unwired pre-stage of *)
+(* that commit -- honest facts about the real bodies (the CONTENT the       *)
+(* atomic commit consumes), NOT yet consumed by any capstone.  The wiring   *)
+(* step (future) instantiates `ge := lp_ge lp` (the widened 14-TU link) and *)
+(* feeds these as the new `body_pres` cases of RestSurface.rest_pres_decompose. *)
+(*                                                                        *)
+(* STORE-SCOUT VERDICT (per-Sassign classification against the generated    *)
+(* AST, not audit-by-comment):                                              *)
+(*   - find_water_level      (surface_collision.v:3339): fn_vars := nil,    *)
+(*       0 Sassign, 0 Scall, reads gEnvironmentRegions -> PURE-SCALAR.      *)
+(*       Memory-IDENTITY across the whole funcall (m' = m).                  *)
+(*   - find_poison_gas_level (surface_collision.v:3494): fn_vars :=          *)
+(*       [(_filler, tarray tuchar 4)] (one entry alloc, vec3f_find_ceil     *)
+(*       shape), 0 Sassign, 0 Scall -> PURE + own-frame filler.  NOT a      *)
+(*       memory identity (alloc+free), but valid_block/action_sat/MWF are   *)
+(*       PRESERVED across the funcall (the vfc_pres alloc/free frame, minus  *)
+(*       the find_ceil call).                                               *)
+(* ====================================================================== *)
+
+From Coq Require Import ZArith List.
+From compcert Require Import Coqlib Maps AST Integers Values Events Memory
+  Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking.
+From SM64.Generated Require surface_collision.
+From SM64.Proofs Require Import ActionValueFrame Taint MarioStepSurface RestSurface.
+
+Import ListNotations.
+
+(* ====================================================================== *)
+(* 1. find_water_level: PURE, fn_vars = nil => MEMORY IDENTITY.            *)
+(* ====================================================================== *)
+
+(* NON-VACUITY: the pure_chk recognizer accepts the REAL generated body. *)
+Lemma find_water_pure_chk :
+  pure_chk (fn_body surface_collision.f_find_water_level) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* THE SHARP FACT: the whole funcall returns the SAME memory.
+   Entry allocs nothing (fn_vars = nil => empty_env), the body is
+   memory-pure (pure_walk), and the exit frees the empty env (nothing). *)
+Lemma find_water_level_memid :
+  forall (ge : genv) m vargs t m' vres,
+    eval_funcall function_entry2 ge m
+      (Internal surface_collision.f_find_water_level) vargs t m' vres ->
+    m' = m.
+Proof.
+  intros ge m vargs t m' vres Hevf.
+  unfold surface_collision.f_find_water_level in Hevf.
+  inv Hevf.
+  match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+  match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+  match goal with Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfree end.
+  inv Hentry.
+  match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+    cbn [fn_vars] in Ha; inv Ha end.
+  pose proof (pure_walk _ _ _ _ _ _ _ _ _ Hbody find_water_pure_chk) as Em.
+  subst m1.
+  assert (Hben : blocks_of_env ge empty_env = nil) by reflexivity.
+  rewrite Hben in Hfree. cbn [Mem.free_list] in Hfree.
+  injection Hfree as <-. reflexivity.
+Qed.
+
+(* THE CONSUMER-FACING FRAME COROLLARY (body_pres shape, ge-generic).
+   Drop-in for RestSurface.body_pres at the widened link: instantiate
+   ge := lp_ge lp; the marg premise of body_pres is dropped (the body
+   writes no memory, so it is irrelevant). *)
+Lemma find_water_level_body_frame :
+  forall (ge : genv) (NoA MWF : mem -> Prop) (bm : block) m vargs t m' vres,
+    eval_funcall function_entry2 ge m
+      (Internal surface_collision.f_find_water_level) vargs t m' vres ->
+    NoA m -> MWF m -> Mem.valid_block m bm -> action_sat not_tainted m bm ->
+    Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
+Proof.
+  intros ge NoA MWF bm m vargs t m' vres Hevf Hno Hmwf Hv Hsat.
+  rewrite (find_water_level_memid ge m vargs t m' vres Hevf).
+  exact (conj Hv (conj Hsat Hmwf)).
+Qed.
+
+(* ====================================================================== *)
+(* 2. find_poison_gas_level: PURE, one own-frame _filler alloc.           *)
+(*    NOT a memory identity (alloc+free), but valid_block/action_sat/MWF  *)
+(*    are PRESERVED -- the vfc_pres frame, minus the find_ceil call.       *)
+(* ====================================================================== *)
+
+(* NON-VACUITY: the pure_chk recognizer accepts the REAL generated body. *)
+Lemma find_poison_pure_chk :
+  pure_chk (fn_body surface_collision.f_find_poison_gas_level) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* blocks_of_env of the singleton _filler env (the sole entry var). *)
+Lemma blocks_of_env_sc_filler : forall ge bfil,
+  blocks_of_env ge
+    (PTree.set surface_collision._filler (bfil, tarray tuchar 4) empty_env)
+    = (bfil, 0, sizeof ge (tarray tuchar 4)) :: nil.
+Proof.
+  intros ge bfil. unfold blocks_of_env.
+  replace (PTree.elements
+             (PTree.set surface_collision._filler
+                (bfil, tarray tuchar 4) empty_env))
+    with ((surface_collision._filler, (bfil, tarray tuchar 4))
+            :: (@nil (positive * (block*type))))
+    by (vm_compute; reflexivity).
+  cbn [map block_of_binding]. reflexivity.
+Qed.
+
+(* THE CONSUMER-FACING FRAME (body_pres shape, ge-generic).  The alloc/free
+   MWF-preservation bricks are the SAME two the capstone already supplies to
+   vfc_pres (RestSurface.vfc_pres premises 1-2); NO external-call bricks are
+   needed because this body performs NO calls. *)
+Lemma find_poison_gas_level_body_frame :
+  forall (ge : genv) (NoA MWF : mem -> Prop) (bm : block),
+    (forall m lo hi m'' b, Mem.alloc m lo hi = (m'', b) -> MWF m -> MWF m'') ->
+    (forall m2 m3 l, Mem.free_list m2 l = Some m3 -> MWF m2 -> MWF m3) ->
+    forall m vargs t m' vres,
+      eval_funcall function_entry2 ge m
+        (Internal surface_collision.f_find_poison_gas_level) vargs t m' vres ->
+      NoA m -> MWF m -> Mem.valid_block m bm -> action_sat not_tainted m bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
+Proof.
+  intros ge NoA MWF bm Halloc Hfree m vargs t m' vres Hevf Hno Hmwf Hv Hsat.
+  unfold surface_collision.f_find_poison_gas_level in Hevf.
+  inv Hevf.
+  match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+  match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+  match goal with Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfl end.
+  (* ENTRY: one alloc of the filler *)
+  inv Hentry.
+  match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+    cbn [fn_vars] in Ha; inv Ha end.
+  match goal with Ha : alloc_variables _ _ _ nil _ _ |- _ => inv Ha end.
+  match goal with Hal : Mem.alloc _ _ _ = _ |- _ => rename Hal into Halc end.
+  match goal with Halc : Mem.alloc _ _ _ = (?mA, ?bfil) |- _ =>
+    assert (HmwfA : MWF mA) by (eapply Halloc; [ exact Halc | exact Hmwf ]);
+    assert (HvA : Mem.valid_block mA bm)
+      by (eapply Mem.valid_block_alloc; [ exact Halc | exact Hv ]);
+    assert (Hunch_al : Mem.unchanged_on (action_cell bm) m mA)
+      by (eapply Mem.alloc_unchanged_on; exact Halc);
+    assert (Hbfil_ne : bfil <> bm)
+      by (intro EE; subst bfil;
+          exact (Mem.fresh_block_alloc _ _ _ _ _ Halc Hv));
+    assert (HsatA : action_sat not_tainted mA bm)
+      by (eapply action_sat_unchanged_on; [ exact Hunch_al | exact Hv | exact Hsat ])
+  end.
+  (* BODY: memory-pure => the body leaves mA untouched *)
+  pose proof (pure_walk _ _ _ _ _ _ _ _ _ Hbody find_poison_pure_chk) as Em.
+  subst m1.
+  (* EXIT: free the sole filler block (bm-distinct) *)
+  rewrite blocks_of_env_sc_filler in Hfl.
+  split; [ | split ].
+  - refine (proj1 (vfc_free_list_frame not_tainted bm _ _ _ _ Hfl HvA HsatA)).
+    constructor; [ exact Hbfil_ne | constructor ].
+  - refine (proj2 (vfc_free_list_frame not_tainted bm _ _ _ _ Hfl HvA HsatA)).
+    constructor; [ exact Hbfil_ne | constructor ].
+  - exact (Hfree _ _ _ Hfl HmwfA).
+Qed.
