@@ -260,9 +260,22 @@ Deferred here; the full store-level scout and the per-body verdict are in §6.
 
 ---
 
-## 6. The `play_mario_*_sound*` / `play_sound_if_no_flag` cluster (task #96 target #3) — SCOUTED
+## 6. The `play_mario_*_sound*` / `play_sound_if_no_flag` cluster (task #96 target #3) — SCOUTED, then REPAIRED in #98
 
-**Bottom line (one airtight phantom + four unverified marg-drops; NO `.v` edited):**
+> **UPDATE (task #98, REPAIRED):** all five sound ids were REMOVED from
+> `sta_ext_ids` / `mov_ext_ids` (director option 1 below, adopted) and are now
+> WALKED as GATED `call_pres` (marg, arg0 = m) via each caller's `ids` arm.
+> `ObjectLeafSurface` gained four reusable rows `pmls_row` / `pmhls_row` /
+> `pmlso_row` / `pmhlso_row` (bottoming in the existing `psasp_row` / `pmas_row`,
+> which route `play_sound` through the obj_ext boundary — NO new external trust).
+> `Hpres_sta_ext` / `Hpres_mov_ext` are now TRUE-as-stated (the phantom `psinf`
+> and the four landing helpers are gone from their scope). The cutscene
+> `Hcpx_pmlso` (bare `call_pres_ext` = unverified marg-drop) was restated as the
+> gated `Hcp_pmlso`, supplied at the `real*` capstone by `pmlso_row`. Every walk
+> vm_computes and the six-target discipline audit is green. The scout below is
+> retained as the record of the defect.
+
+**Bottom line of the SCOUT (one airtight phantom + four unverified marg-drops; NO `.v` edited AT SCOUT TIME):**
 
 * **`play_sound_if_no_flag` — PHANTOM-FALSE, airtight.** Its store `m->flags |= flags`
   ORs an **adversary-controlled** value, so the bare `call_pres_ext` lands a tainted

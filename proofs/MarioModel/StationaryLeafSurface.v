@@ -134,12 +134,14 @@ Definition sta_sleep_ids : list ident :=
   mario._set_mario_animation
     :: mario._is_anim_at_end
     :: mario._find_floor_height_relative_polar
-    :: mario_step._stationary_ground_step :: nil.
+    :: mario_step._stationary_ground_step
+    (* TASK #98: the two audio helpers moved OFF the (false) external boundary
+       into the marg-gated ids arm -- both are called with arg0 = m. *)
+    :: mario._play_mario_heavy_landing_sound
+    :: mario._play_sound_if_no_flag :: nil.
 Definition sta_sleep_xids : list ident :=
   mario._play_sound
-    :: mario_actions_stationary._lower_background_noise
-    :: mario_actions_stationary._play_mario_heavy_landing_sound
-    :: mario_actions_stationary._play_sound_if_no_flag :: nil.
+    :: mario_actions_stationary._lower_background_noise :: nil.
 Definition sta_sleep_cact : list ident := mario._t'19 :: nil.
 
 (* ---- SLICE 16: check_common_stationary_cancels (ccss) -- the "other" idle
@@ -916,15 +918,19 @@ Proof. vm_compute. reflexivity. Qed.
 Definition sta_ext_ids : list ident :=
   mario_actions_stationary._raise_background_noise
     :: mario_actions_stationary._lower_background_noise
-    :: mario_actions_stationary._stop_sound
-    (* SLICE 15: act_sleeping's two extra audio externals -- both EF_external in
-       every linked TU (verified Internal/External probe), write no Mario state,
-       the SAME honest model-boundary class. *)
-    :: mario_actions_stationary._play_mario_heavy_landing_sound
-    :: mario_actions_stationary._play_sound_if_no_flag :: nil.
+    :: mario_actions_stationary._stop_sound :: nil.
     (* TASK #96: load_level_init_text REMOVED from this "external" boundary --
        it is an INTERNAL body of level_update.prog and is now WALKED (llit_row),
-       not trusted as external.  See the LO_lvl / Hcpx_* block above. *)
+       not trusted as external.  See the LO_lvl / Hcpx_* block above.
+       TASK #98: play_mario_heavy_landing_sound + play_sound_if_no_flag REMOVED
+       too -- they are INTERNAL mario.prog bodies that WRITE Mario state (heavy_
+       landing -> psasp particleFlags@8; psinf -> flags@4), NOT pure audio
+       externals as the old comment falsely claimed (docs/goal1-class-b-walks.md
+       sec 6).  A bare call_pres_ext for psinf is in fact PHANTOM-FALSE (its
+       adversary-valued flags|=arg OR lands a tainted action under an aliasing
+       vargs).  Both are now WALKED as GATED call_pres (Hpmhls / Hpsinf below,
+       reusing ObjectLeafSurface.pmhls_row / psinf_row), dispatched via
+       act_sleeping's ids arm. *)
 
 (* act_waking_up's two externals (subset of sta_ext_ids) *)
 Definition sta_waking_xids : list ident :=
@@ -3652,6 +3658,18 @@ Section StationaryLeafRows.
     - exact sta_pmls_walk.
   Qed.
 
+  (* TASK #98: act_sleeping's two ex-external audio helpers, now GATED
+     call_pres (REUSED from ObjectLeafSurface; play_sound routes via
+     Hcpx_psound).  Replaces the (false / narrowed) Hpres_sta_ext trust. *)
+  Let Hpsinf : call_pres lp bm NoA MWF mario._play_sound_if_no_flag :=
+    ObjectLeafSurface.psinf_row lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+      HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase HMWF_root
+      HMWF_sglob HchaseStep HMWF_chase_safe Hcpx_psound.
+  Let Hpmhls : call_pres lp bm NoA MWF mario._play_mario_heavy_landing_sound :=
+    ObjectLeafSurface.pmhls_row lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+      HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase HMWF_root
+      HMWF_sglob HchaseStep HMWF_chase_safe Hcpx_psound.
+
   (* the leaf-callee helper census discharged by the rows above *)
   Lemma sta_leaf_ids_rows : forall fid, mem_id fid sta_leaf_ids = true ->
       call_pres lp bm NoA MWF fid.
@@ -4375,24 +4393,24 @@ Section StationaryLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hffhrp_sta | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact sta_sgs_row | ].
+    (* TASK #98: the two gated audio helpers *)
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hpmhls | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hpsinf | ].
     discriminate H.
   Qed.
 
-  (* act_sleeping's xids = play_sound (Hcpx_psound) + three sta_ext audio
-     externals (lower_background_noise / play_mario_heavy_landing_sound /
-     play_sound_if_no_flag, all in the extended sta_ext_ids) *)
+  (* act_sleeping's xids = play_sound (Hcpx_psound) + lower_background_noise
+     (the sole remaining sta_ext audio external).  TASK #98: play_mario_heavy_
+     landing_sound / play_sound_if_no_flag moved OFF this external boundary into
+     the marg-gated ids arm above. *)
   Lemma sta_sleep_xids_rows : forall fid, mem_id fid sta_sleep_xids = true ->
       call_pres_ext lp bm NoA MWF fid.
   Proof.
     intros fid H. unfold sta_sleep_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | ].
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid;
-        apply Hpres_sta_ext; vm_compute; reflexivity | ].
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid;
-        apply Hpres_sta_ext; vm_compute; reflexivity | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid;
         apply Hpres_sta_ext; vm_compute; reflexivity | ].

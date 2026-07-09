@@ -162,9 +162,11 @@ Definition ssl_ids : list ident :=
 Definition ssl_xids : list ident := C._load_level_init_text :: nil.
 Definition snsl_ids : list ident :=
   mario._set_mario_animation :: mario_step._stop_and_set_height_to_floor
-    :: mario._is_anim_at_end :: nil.
+    :: mario._is_anim_at_end
+    (* TASK #98: play_mario_landing_sound_once, gated (arg0 = m) *)
+    :: C._play_mario_landing_sound_once :: nil.
 Definition snsl_xids : list ident :=
-  C._load_level_init_text :: C._play_mario_landing_sound_once :: nil.
+  C._load_level_init_text :: nil.
 (* act_standing_death (body_pres_of_wwalk, cact=nil -- the marioObj deep
    animFrame read is NOT stored through): psinf + common_death_handler +
    play_mario_landing_sound, sids=set_mario_action (const 135956, result
@@ -1446,13 +1448,18 @@ Section CutsceneLeafRows.
     call_pres_ext lp bm NoA MWF interaction._set_camera_shake_from_hit.
   (* load_level_init_text: the dialog-text IO external (in sta_ext_ids; the
      capstone feeds it via Hpres_sta_ext) -- EF_external in every TU, writes no
-     Mario state.  play_mario_landing_sound_once: the once-guarded landing-sound
-     external (in mov_ext_ids; fed via Hpres_mov_ext).  Both honest model
-     boundaries; consumed only by the two spawn-landing leaves. *)
+     Mario state.  Consumed only by the two spawn-landing leaves. *)
   Hypothesis Hcpx_llit :
     call_pres_ext lp bm NoA MWF C._load_level_init_text.
-  Hypothesis Hcpx_pmlso :
-    call_pres_ext lp bm NoA MWF C._play_mario_landing_sound_once.
+  (* TASK #98: play_mario_landing_sound_once is an INTERNAL mario.prog body that
+     WRITES Mario state (via play_mario_action_sound -> flags@4 / psasp
+     particleFlags@8), NOT a pure external -- the old bare call_pres_ext was an
+     unverified marg-drop (docs/goal1-class-b-walks.md sec 6).  Restated as a
+     GATED call_pres (arg0 = m); the two spawn-landing leaves + eld dispatch it
+     via their marg ids arm.  Supplied at the capstone by
+     ObjectLeafSurface.pmlso_row (NO new external trust; play_sound only). *)
+  Hypothesis Hcp_pmlso :
+    call_pres lp bm NoA MWF C._play_mario_landing_sound_once.
   (* SLICE 12 dialog cluster.  Hcut_ext = the new cutscene dialog/time-stop
      external boundary (cut_ext_ids): EF_external in every linked TU, fed at
      the capstone by Hpres_cut_ext (the honest model boundary, same class as
@@ -2663,7 +2670,7 @@ Section CutsceneLeafRows.
   Qed.
 
   (* act_spawn_no_spin_landing: same shape + play_mario_landing_sound_once
-     (Hcpx_pmlso) in xids. *)
+     (TASK #98: gated Hcp_pmlso in the ids arm). *)
   Lemma snsl_ids_rows : forall fid, mem_id fid snsl_ids = true ->
       call_pres lp bm NoA MWF fid.
   Proof.
@@ -2673,16 +2680,16 @@ Section CutsceneLeafRows.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sashf | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact cut_iae_row | discriminate H ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cut_iae_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pmlso | discriminate H ].
   Qed.
   Lemma snsl_xids_rows : forall fid, mem_id fid snsl_xids = true ->
       call_pres_ext lp bm NoA MWF fid.
   Proof.
     intros fid H. unfold snsl_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_llit | ].
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_pmlso | discriminate H ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_llit | discriminate H ].
   Qed.
   Example snsl_vars : fn_vars C.f_act_spawn_no_spin_landing = nil.
   Proof. vm_compute. reflexivity. Qed.
@@ -5559,12 +5566,13 @@ Section CutsceneLeafRows.
     mario_step._stationary_ground_step :: mario._set_mario_animation
       :: mario._is_anim_past_end :: C._spawn_obj_at_mario_rel_yaw
       :: C._handle_save_menu :: C._cutscene_take_cap_off
-      :: C._cutscene_put_cap_on :: nil.
+      :: C._cutscene_put_cap_on
+      (* TASK #98: play_mario_landing_sound_once, gated (arg0 = m) *)
+      :: C._play_mario_landing_sound_once :: nil.
   Definition eld_cact : list ident :=
     C._t'17 :: C._t'16 :: C._t'11 :: nil.
   Definition eld_xids : list ident :=
-    C._play_mario_landing_sound_once :: C._enable_time_stop
-      :: C._set_menu_mode :: mario._play_sound :: nil.
+    C._enable_time_stop :: C._set_menu_mode :: mario._play_sound :: nil.
   Example eld_walk :
     wwalk_chk false nil eld_ids nil eld_cact eld_xids nil nil
       (fn_body C.f_act_exit_land_save_dialog) = true.
@@ -5586,14 +5594,15 @@ Section CutsceneLeafRows.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact ctco_row | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact cpco_row | discriminate H ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact cpco_row | ].
+    (* TASK #98: play_mario_landing_sound_once, gated *)
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pmlso | discriminate H ].
   Qed.
   Lemma eld_xids_rows : forall fid, mem_id fid eld_xids = true ->
       call_pres_ext lp bm NoA MWF fid.
   Proof.
     intros fid H. unfold eld_xids in H. cbn [mem_id existsb] in H.
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_pmlso | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; apply Hcut_ext; reflexivity | ].
     apply orb_true_iff in H as [Hm | H];

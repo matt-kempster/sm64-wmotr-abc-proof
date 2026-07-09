@@ -45,18 +45,20 @@ Local Notation tyMSp := (tptr (Tstruct M._MarioState noattr)).
 (* set_mario_action with a vm-checkably untainted constant 2nd arg *)
 Definition mov_sids : list ident := mario._set_mario_action :: nil.
 
-(* the moving family's pure audio externals -- EF_external in every linked
-   TU, write no Mario state: the honest model-boundary class (like the
-   stationary sta_ext_ids / the obj_ext audio rows). *)
+(* the moving family's terminal math externals -- EF_external in every linked
+   TU, write no Mario state: the honest model-boundary class.
+   TASK #98: the four play_mario_*_sound* helpers REMOVED -- they are INTERNAL
+   mario.prog bodies that WRITE Mario state (particleFlags@8 / flags@4), NOT
+   pure audio externals as the old comment falsely claimed (docs/goal1-class-b-
+   walks.md sec 6; a bare call_pres_ext for play_sound_if_no_flag is in fact
+   PHANTOM-FALSE).  They are now WALKED as GATED call_pres (Hpsinf / Hpmls /
+   Hpmlso / Hpmhlso, reusing ObjectLeafSurface rows), dispatched via each
+   caller's marg-gated ids arm. *)
 Definition mov_ext_ids : list ident :=
-  mario_actions_moving._play_mario_heavy_landing_sound_once
-    :: mario_actions_moving._play_sound_if_no_flag
-    :: mario_actions_moving._play_mario_landing_sound_once
-    :: mario_actions_moving._play_mario_landing_sound
     (* the float `approach` math builtin: EF_external in every TU, 4
        tfloat args, no Mario pointer -- the SAME honest pure-math model
        boundary as approach_s32 / sqrtf / atan2s. *)
-    :: mario_actions_moving._approach_f32
+    mario_actions_moving._approach_f32
     (* mtxf_align_terrain_triangle: EF_external in every TU (align_with_floor's
        terrain-matrix builtin).  Writes only the SafeB sFloorAlignMatrix global
        (floats, never a pointer) and reads m->pos -- touches NO bm/MWF-relevant
@@ -81,22 +83,30 @@ Definition mov_ala_ids : list ident :=
   mario_actions_moving._apply_slope_accel
     :: mario._mario_floor_is_slope :: mario._mario_set_forward_vel :: nil.
 
-(* common_ground_knockback_action's internal ids + audio xids *)
+(* common_ground_knockback_action's internal ids (TASK #98: + the two gated
+   audio helpers pmhlso / psinf it calls, moved off the false xids boundary). *)
 Definition mov_cgka_ids : list ident :=
   mario_actions_moving._apply_landing_accel
     :: mario._is_anim_at_end :: mario._mario_set_forward_vel
-    :: mario_step._perform_ground_step :: mario._set_mario_animation :: nil.
-Definition mov_cgka_xids : list ident :=
-  mario_actions_moving._play_mario_heavy_landing_sound_once
-    :: mario_actions_moving._play_sound_if_no_flag :: nil.
+    :: mario_step._perform_ground_step :: mario._set_mario_animation
+    :: mario_actions_moving._play_mario_heavy_landing_sound_once
+    :: mario._play_sound_if_no_flag :: nil.
+Definition mov_cgka_xids : list ident := nil.
 
 (* each knockback leaf calls common_ground_knockback_action (call_pres) *)
 Definition mov_cgka_only : list ident :=
   mario_actions_moving._common_ground_knockback_action :: nil.
+(* TASK #98: act_hard_backward_ground_kb also calls play_mario_landing_sound_once
+   (gated ids arm now, not xids); act_ground_bonk calls play_mario_landing_sound. *)
+Definition mov_hard_back_ids : list ident :=
+  mario_actions_moving._common_ground_knockback_action
+    :: mario_actions_moving._play_mario_landing_sound_once :: nil.
 Definition mov_hard_back_xids : list ident :=
-  mario_actions_moving._play_mario_landing_sound_once :: mario._play_sound :: nil.
-Definition mov_gbonk_xids : list ident :=
-  mario_actions_moving._play_mario_landing_sound :: nil.
+  mario._play_sound :: nil.
+Definition mov_gbonk_ids : list ident :=
+  mario_actions_moving._common_ground_knockback_action
+    :: mario_actions_moving._play_mario_landing_sound :: nil.
+Definition mov_gbonk_xids : list ident := nil.
 
 (* SLICE M2: act_death_exit_land -- the ONE landing-family leaf that does
    NOT route through common_landing_cancels (the AGates-blocked FTJ gate).
@@ -107,11 +117,12 @@ Definition mov_gbonk_xids : list ident :=
    the engine's wact_const gate confirms non-flying). *)
 Definition mov_del_ids : list ident :=
   mario_actions_moving._apply_landing_accel
-    :: mario._set_mario_animation :: mario._is_anim_at_end :: nil.
-Definition mov_del_xids : list ident :=
-  mario._play_sound
+    :: mario._set_mario_animation :: mario._is_anim_at_end
+    (* TASK #98: the two audio helpers moved off the false xids boundary *)
     :: mario_actions_moving._play_mario_heavy_landing_sound_once
-    :: mario_actions_moving._play_mario_landing_sound :: nil.
+    :: mario._play_mario_landing_sound :: nil.
+Definition mov_del_xids : list ident :=
+  mario._play_sound :: nil.
 
 (* SLICE M3: act_finish_turning_around -- the FIRST walking-cluster leaf.
    KEY: set_jumping_action is call_pres_act (it threads its _action arg to
@@ -600,9 +611,10 @@ Definition mov_asd_xids : list ident := mario_actions_moving._approach_f32 :: ni
 Definition cla_ids : list ident :=
   mario_step._perform_ground_step :: mario_actions_moving._apply_landing_accel
     :: mario_actions_moving._apply_slope_decel :: mario._set_mario_animation
-    :: nil.
-Definition cla_xids : list ident :=
-  mario_actions_moving._play_mario_landing_sound_once :: nil.
+    (* TASK #98: play_mario_landing_sound_once moved off the false xids
+       boundary into the marg-gated ids arm (called with arg0 = m). *)
+    :: mario_actions_moving._play_mario_landing_sound_once :: nil.
+Definition cla_xids : list ident := nil.
 Definition cla_sids : list ident := mario._set_mario_action :: nil.
 
 (* QUICKSAND keystone (quicksand_jump_land_action): TWO param-action seeds
@@ -978,7 +990,7 @@ Proof. vm_compute. reflexivity. Qed.
 Example mov_hbkb_pok : mov_pok mario_actions_moving.f_act_hard_backward_ground_kb = true.
 Proof. vm_compute. reflexivity. Qed.
 Example mov_hbkb_walk :
-  wwalk_chk false nil mov_cgka_only nil nil mov_hard_back_xids mov_sids nil
+  wwalk_chk false nil mov_hard_back_ids nil nil mov_hard_back_xids mov_sids nil
     (fn_body mario_actions_moving.f_act_hard_backward_ground_kb) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -1004,7 +1016,7 @@ Proof. vm_compute. reflexivity. Qed.
 Example mov_gbonk_pok : mov_pok mario_actions_moving.f_act_ground_bonk = true.
 Proof. vm_compute. reflexivity. Qed.
 Example mov_gbonk_walk :
-  wwalk_chk false nil mov_cgka_only nil nil mov_gbonk_xids nil nil
+  wwalk_chk false nil mov_gbonk_ids nil nil mov_gbonk_xids nil nil
     (fn_body mario_actions_moving.f_act_ground_bonk) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -1657,6 +1669,24 @@ Section MovingLeafRows.
       HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase HMWF_root
       HMWF_sglob HchaseStep HMWF_chase_safe Hcpx_psound.
 
+  (* TASK #98: the three landing-sound helpers the moving family calls, GATED
+     call_pres (REUSED from ObjectLeafSurface; the sound chain bottoms out in
+     play_sound via Hcpx_psound).  Replace the (false / narrowed) Hpres_mov_ext
+     trust for play_mario_landing_sound{,_once} / play_mario_heavy_landing_sound_
+     once (psinf = Hpsinf above). *)
+  Let Hpmls : call_pres lp bm NoA MWF mario._play_mario_landing_sound :=
+    ObjectLeafSurface.pmls_row lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+      HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase HMWF_root
+      HMWF_sglob HchaseStep HMWF_chase_safe Hcpx_psound.
+  Let Hpmlso : call_pres lp bm NoA MWF mario._play_mario_landing_sound_once :=
+    ObjectLeafSurface.pmlso_row lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+      HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase HMWF_root
+      HMWF_sglob HchaseStep HMWF_chase_safe Hcpx_psound.
+  Let Hpmhlso : call_pres lp bm NoA MWF mario._play_mario_heavy_landing_sound_once :=
+    ObjectLeafSurface.pmhlso_row lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+      HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase HMWF_root
+      HMWF_sglob HchaseStep HMWF_chase_safe Hcpx_psound.
+
   Lemma mov_sids_rows : forall fid, mem_id fid mov_sids = true ->
       call_pres_act lp bm NoA MWF fid.
   Proof.
@@ -1684,39 +1714,30 @@ Section MovingLeafRows.
     discriminate H.
   Qed.
 
+  (* TASK #98: mov_cgka_xids is now nil (pmhlso / psinf moved to mov_cgka_ids) *)
   Lemma mov_cgka_xids_rows : forall fid, mem_id fid mov_cgka_xids = true ->
       call_pres_ext lp bm NoA MWF fid.
   Proof.
-    intros fid H. unfold mov_cgka_xids in H. cbn [mem_id existsb] in H.
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid;
-        apply Hpres_mov_ext; vm_compute; reflexivity | ].
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid;
-        apply Hpres_mov_ext; vm_compute; reflexivity | ].
-    discriminate H.
+    intros fid H. unfold mov_cgka_xids in H. discriminate H.
   Qed.
 
+  (* TASK #98: mov_hard_back_xids = [play_sound]; pmlso moved to mov_hard_back_ids *)
+  (* TASK #98: mov_hard_back_xids = [play_sound]; pmlso moved to mov_hard_back_ids
+     (the ids_rows are AFTER mov_cgka_row, which they consume). *)
   Lemma mov_hard_back_xids_rows : forall fid, mem_id fid mov_hard_back_xids = true ->
       call_pres_ext lp bm NoA MWF fid.
   Proof.
     intros fid H. unfold mov_hard_back_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid;
-        apply Hpres_mov_ext; vm_compute; reflexivity | ].
-    apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | ].
     discriminate H.
   Qed.
 
+  (* TASK #98: mov_gbonk_xids is now nil (pmls moved to mov_gbonk_ids) *)
   Lemma mov_gbonk_xids_rows : forall fid, mem_id fid mov_gbonk_xids = true ->
       call_pres_ext lp bm NoA MWF fid.
   Proof.
-    intros fid H. unfold mov_gbonk_xids in H. cbn [mem_id existsb] in H.
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid;
-        apply Hpres_mov_ext; vm_compute; reflexivity | ].
-    discriminate H.
+    intros fid H. unfold mov_gbonk_xids in H. discriminate H.
   Qed.
 
   (* ---- the shared mario.prog / mario_step.prog helper rows ---- *)
@@ -1911,6 +1932,11 @@ Section MovingLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pgs | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact mov_sma_row | ].
+    (* TASK #98: the two gated audio helpers cgka calls *)
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hpmhlso | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hpsinf | ].
     discriminate H.
   Qed.
 
@@ -1939,6 +1965,28 @@ Section MovingLeafRows.
     intros fid H. unfold mov_cgka_only in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact mov_cgka_row | ].
+    discriminate H.
+  Qed.
+
+  (* TASK #98: hard_back / gbonk leaf ids = cgka + a gated landing-sound helper *)
+  Lemma mov_hard_back_ids_rows : forall fid, mem_id fid mov_hard_back_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_hard_back_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_cgka_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hpmlso | ].
+    discriminate H.
+  Qed.
+  Lemma mov_gbonk_ids_rows : forall fid, mem_id fid mov_gbonk_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold mov_gbonk_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact mov_cgka_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hpmls | ].
     discriminate H.
   Qed.
 
@@ -2014,9 +2062,9 @@ Section MovingLeafRows.
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              mario_actions_moving.f_act_hard_backward_ground_kb
-             mov_cgka_only nil mov_hard_back_xids mov_sids nil
+             mov_hard_back_ids nil mov_hard_back_xids mov_sids nil
              mov_hbkb_vars mov_hbkb_pok).
-    - exact mov_cgka_only_rows.
+    - exact mov_hard_back_ids_rows.
     - intros fid' H. discriminate H.
     - exact mov_hard_back_xids_rows.
     - exact mov_sids_rows.
@@ -2048,9 +2096,9 @@ Section MovingLeafRows.
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              mario_actions_moving.f_act_ground_bonk
-             mov_cgka_only nil mov_gbonk_xids nil nil
+             mov_gbonk_ids nil mov_gbonk_xids nil nil
              mov_gbonk_vars mov_gbonk_pok).
-    - exact mov_cgka_only_rows.
+    - exact mov_gbonk_ids_rows.
     - intros fid' H. discriminate H.
     - exact mov_gbonk_xids_rows.
     - intros fid' H. discriminate H.
@@ -2069,21 +2117,21 @@ Section MovingLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact mov_sma_row | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact mov_iae_row | ].
+    (* TASK #98: the two gated audio helpers *)
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hpmhlso | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hpmls | ].
     discriminate H.
   Qed.
 
+  (* TASK #98: mov_del_xids = [play_sound]; the two audio helpers moved to ids *)
   Lemma mov_del_xids_rows : forall fid, mem_id fid mov_del_xids = true ->
       call_pres_ext lp bm NoA MWF fid.
   Proof.
     intros fid H. unfold mov_del_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | ].
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid;
-        apply Hpres_mov_ext; vm_compute; reflexivity | ].
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid;
-        apply Hpres_mov_ext; vm_compute; reflexivity | ].
     discriminate H.
   Qed.
 
@@ -3532,18 +3580,16 @@ Section MovingLeafRows.
     - exact mov_ala_row.
     - exact mov_asd_row.
     - exact mov_sma_row.
+    (* TASK #98: play_mario_landing_sound_once, gated *)
+    - exact Hpmlso.
     - discriminate H.
   Qed.
 
+  (* TASK #98: cla_xids is now nil (pmlso moved to cla_ids) *)
   Lemma cla_xids_rows : forall fid, mem_id fid cla_xids = true ->
       call_pres_ext lp bm NoA MWF fid.
   Proof.
-    intros fid H. unfold cla_xids in H. cbn [mem_id existsb] in H.
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid
-      | discriminate H ].
-    exact (Hpres_mov_ext mario_actions_moving._play_mario_landing_sound_once
-             eq_refl).
+    intros fid H. unfold cla_xids in H. discriminate H.
   Qed.
 
   Lemma cla_sids_rows : forall fid, mem_id fid cla_sids = true ->
@@ -9161,8 +9207,11 @@ Proof. vm_compute. reflexivity. Qed.
   Definition dive_wact : list ident := M._t'1 :: nil.
   Definition dive_ids : list ident :=
     M._update_sliding :: M._is_anim_at_end :: M._mario_set_forward_vel
-    :: M._mario_check_object_grab :: M._mario_grab_used_object :: nil.
-  Definition dive_xids : list ident := M._play_mario_landing_sound_once :: nil.
+    :: M._mario_check_object_grab :: M._mario_grab_used_object
+    (* TASK #98: play_mario_landing_sound_once moved off the false xids
+       boundary into the marg-gated ids arm (called with arg0 = m). *)
+    :: M._play_mario_landing_sound_once :: nil.
+  Definition dive_xids : list ident := nil.
   Definition dive_sids : list ident := M._set_mario_action :: nil.
   Definition dive_cact : list ident := M._t'8 :: nil.
 
@@ -9373,16 +9422,16 @@ Proof. vm_compute. reflexivity. Qed.
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hmcog | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hmguo | ].
+    (* TASK #98: play_mario_landing_sound_once, gated *)
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hpmlso | ].
     discriminate H.
   Qed.
+  (* TASK #98: dive_xids is now nil (pmlso moved to dive_ids) *)
   Lemma dive_xids_rows : forall fid, mem_id fid dive_xids = true ->
       call_pres_ext lp bm NoA MWF fid.
   Proof.
-    intros fid H. unfold dive_xids in H. cbn [mem_id existsb] in H.
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid;
-        exact (Hpres_mov_ext mario_actions_moving._play_mario_landing_sound_once eq_refl)
-      | discriminate H ].
+    intros fid H. unfold dive_xids in H. discriminate H.
   Qed.
   Lemma dive_sids_rows : forall fid, mem_id fid dive_sids = true ->
       call_pres_act lp bm NoA MWF fid.

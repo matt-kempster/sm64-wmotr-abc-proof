@@ -817,9 +817,12 @@ Section NoARealInputMWF.
      the assumed surface here shrinks to the FILTERED remainder sta_rest_ids
      (27 leaves).  Finishing the family deletes this hypothesis entirely. *)
   (* the stationary family's audio externals (raise/lower_background_noise,
-     stop_sound, play_mario_heavy_landing_sound, play_sound_if_no_flag) --
-     EF_external in every linked TU, write no Mario state: the SAME honest
-     model-boundary class as the obj_ext audio rows. *)
+     stop_sound) -- EF_external in every linked TU, write no Mario state: the
+     SAME honest model-boundary class as the obj_ext audio rows.
+     TASK #98: play_mario_heavy_landing_sound / play_sound_if_no_flag REMOVED
+     from sta_ext_ids -- they are INTERNAL mario.prog bodies that WRITE Mario
+     state, now WALKED as gated call_pres inside StationaryLeafSurface (a bare
+     call_pres_ext for psinf was in fact PHANTOM-FALSE). *)
   Hypothesis Hpres_sta_ext : forall fid,
       mem_id fid StationaryLeafSurface.sta_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
@@ -856,9 +859,12 @@ Section NoARealInputMWF.
         = Some (Gfun (Internal f)) ->
       body_pres lp (NoA_real bm) MWF bm f.
   Proof. intros fid f H _; vm_compute in H; discriminate H. Qed.
-  (* the moving family's pure audio externals (mov_ext_ids): the honest
-     model boundary -- play_mario_{heavy_,}landing_sound{,_once} /
-     play_sound_if_no_flag.  Discharged via the obj_ext boundary below. *)
+  (* the moving family's terminal math externals (mov_ext_ids): approach_f32 /
+     mtxf_align_terrain_triangle -- the honest model boundary.
+     TASK #98: the four play_mario_*_sound* helpers REMOVED from mov_ext_ids --
+     they are INTERNAL mario.prog bodies that WRITE Mario state, now WALKED as
+     gated call_pres inside MovingLeafSurface (psinf's bare call_pres_ext was
+     PHANTOM-FALSE). *)
   Hypothesis Hpres_mov_ext : forall fid,
       mem_id fid MovingLeafSurface.mov_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
@@ -2987,9 +2993,30 @@ Section NoARealInputMWF.
                          (Hpres_obj_ext level_update._save_file_get_flags eq_refl)
                          (Hpres_obj_ext level_update._save_file_get_star_flags eq_refl)
                          (Hpres_cut_ext level_update._create_dialog_box eq_refl))
-                      (Hpres_mov_ext
-                         mario_actions_moving._play_mario_landing_sound_once
-                         eq_refl)
+                      (* TASK #98: play_mario_landing_sound_once restated as a
+                         GATED call_pres (was a bare mov_ext call_pres_ext =
+                         unverified marg-drop); supplied by the WALKED
+                         ObjectLeafSurface.pmlso_row (mwf_real bricks + play_sound
+                         via Hpres_obj_ext -- NO new external trust). *)
+                      (ObjectLeafSurface.pmlso_row lp LO_mario bm
+                         (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
+                         (mwf_real_ctl lp bm bc oc0 SafeB)
+                         (mwf_real_window lp bm bc oc0 SafeB Hbc_bm
+                            HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                         (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+                         (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm
+                            HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                         SafeB HSafeB_not_bm
+                         (mwf_real_chase_root lp bm bc oc0 SafeB)
+                         (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm
+                            HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                         (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm
+                            HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                         (mwf_real_sglob lp bm bc oc0 SafeB)
+                         (mwf_real_chase_step lp bm bc oc0 SafeB)
+                         (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm
+                            HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                         (Hpres_obj_ext mario._play_sound eq_refl))
                       Hpres_cut_ext
                       (Hpres_obj_ext interaction._atan2s eq_refl)
                       (* SLICE 20 (act_reading_npc_dialog): approach_s32 rides

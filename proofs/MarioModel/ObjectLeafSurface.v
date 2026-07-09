@@ -985,6 +985,98 @@ Example pmas_walk :
     (fn_body mario.f_play_mario_action_sound) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* TASK #98: the four landing-sound helpers (play_mario_{,heavy_}landing_sound
+   {,_once}).  None stores Mario state itself: each reads m->flags and tail-calls
+   play_sound_and_spawn_particles (landing/heavy) or play_mario_action_sound (the
+   _once variants) with arg0 = m.  Walked as GATED call_pres (marg-gated ids arm),
+   NOT as bare call_pres_ext -- their real callers always pass Mario's own pointer,
+   and the callee stores land off action@12 (particleFlags@8 / flags@4 const-OR
+   bits {8,12,14,15,16}, disjoint from every tainted action constant -- see
+   docs/goal1-class-b-walks.md sec 6.3).  ids = [psasp] (landing/heavy) or [pmas]
+   (once). *)
+Definition pmls_ids : list ident := mario._play_sound_and_spawn_particles :: nil.
+Definition pmlso_ids : list ident := mario._play_mario_action_sound :: nil.
+
+Example pmls_pin :
+  (prog_defmap mario.prog) ! mario._play_mario_landing_sound
+  = Some (Gfun (Internal mario.f_play_mario_landing_sound)).
+Proof. vm_compute. reflexivity. Qed.
+Example pmls_vars : fn_vars mario.f_play_mario_landing_sound = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example pmls_params_ok :
+  match fn_params mario.f_play_mario_landing_sound with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example pmls_walk :
+  wwalk_chk false nil pmls_ids nil nil nil nil nil
+    (fn_body mario.f_play_mario_landing_sound) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example pmhls_pin :
+  (prog_defmap mario.prog) ! mario._play_mario_heavy_landing_sound
+  = Some (Gfun (Internal mario.f_play_mario_heavy_landing_sound)).
+Proof. vm_compute. reflexivity. Qed.
+Example pmhls_vars : fn_vars mario.f_play_mario_heavy_landing_sound = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example pmhls_params_ok :
+  match fn_params mario.f_play_mario_heavy_landing_sound with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example pmhls_walk :
+  wwalk_chk false nil pmls_ids nil nil nil nil nil
+    (fn_body mario.f_play_mario_heavy_landing_sound) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example pmlso_pin :
+  (prog_defmap mario.prog) ! mario._play_mario_landing_sound_once
+  = Some (Gfun (Internal mario.f_play_mario_landing_sound_once)).
+Proof. vm_compute. reflexivity. Qed.
+Example pmlso_vars : fn_vars mario.f_play_mario_landing_sound_once = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example pmlso_params_ok :
+  match fn_params mario.f_play_mario_landing_sound_once with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example pmlso_walk :
+  wwalk_chk false nil pmlso_ids nil nil nil nil nil
+    (fn_body mario.f_play_mario_landing_sound_once) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example pmhlso_pin :
+  (prog_defmap mario.prog) ! mario._play_mario_heavy_landing_sound_once
+  = Some (Gfun (Internal mario.f_play_mario_heavy_landing_sound_once)).
+Proof. vm_compute. reflexivity. Qed.
+Example pmhlso_vars : fn_vars mario.f_play_mario_heavy_landing_sound_once = nil.
+Proof. vm_compute. reflexivity. Qed.
+Example pmhlso_params_ok :
+  match fn_params mario.f_play_mario_heavy_landing_sound_once with
+  | (i, ty) :: ps =>
+      Pos.eqb i mario_actions_airborne._m
+      && proj_sumbool (type_eq ty tyMSp)
+      && negb (mem_id mario_actions_airborne._m (map fst ps))
+  | nil => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
+Example pmhlso_walk :
+  wwalk_chk false nil pmlso_ids nil nil nil nil nil
+    (fn_body mario.f_play_mario_heavy_landing_sound_once) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* mario_check_object_grab: the fused pair (usedObj <- interactObj),
    the faceAngle[1] idx16 store, and a TEMP-carried untainted action *)
 Definition mcog_ids : list ident :=
@@ -1969,6 +2061,93 @@ Section ObjectLeafRows.
     - intros fid' H. discriminate H.
     - intros fid' H. discriminate H.
     - exact pmas_walk.
+  Qed.
+
+  (* TASK #98: the four landing-sound helpers, GATED (marg) call_pres. *)
+  Lemma pmls_ids_rows : forall fid, mem_id fid pmls_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold pmls_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact psasp_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma pmlso_ids_rows : forall fid, mem_id fid pmlso_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold pmlso_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact pmas_row | ].
+    discriminate H.
+  Qed.
+
+  Lemma pmls_row :
+    call_pres lp bm NoA MWF mario._play_mario_landing_sound.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._play_mario_landing_sound
+             mario.f_play_mario_landing_sound
+             pmls_ids nil nil nil
+             LO_mario pmls_pin pmls_vars pmls_params_ok).
+    - exact pmls_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact pmls_walk.
+  Qed.
+
+  Lemma pmhls_row :
+    call_pres lp bm NoA MWF mario._play_mario_heavy_landing_sound.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._play_mario_heavy_landing_sound
+             mario.f_play_mario_heavy_landing_sound
+             pmls_ids nil nil nil
+             LO_mario pmhls_pin pmhls_vars pmhls_params_ok).
+    - exact pmls_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact pmhls_walk.
+  Qed.
+
+  Lemma pmlso_row :
+    call_pres lp bm NoA MWF mario._play_mario_landing_sound_once.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._play_mario_landing_sound_once
+             mario.f_play_mario_landing_sound_once
+             pmlso_ids nil nil nil
+             LO_mario pmlso_pin pmlso_vars pmlso_params_ok).
+    - exact pmlso_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact pmlso_walk.
+  Qed.
+
+  Lemma pmhlso_row :
+    call_pres lp bm NoA MWF mario._play_mario_heavy_landing_sound_once.
+  Proof.
+    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             mario.prog mario._play_mario_heavy_landing_sound_once
+             mario.f_play_mario_heavy_landing_sound_once
+             pmlso_ids nil nil nil
+             LO_mario pmhlso_pin pmhlso_vars pmhlso_params_ok).
+    - exact pmlso_ids_rows.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - intros fid' H. discriminate H.
+    - exact pmhlso_walk.
   Qed.
 
   Lemma mcog_row :
