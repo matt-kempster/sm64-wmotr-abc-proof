@@ -169,3 +169,41 @@ never generalize before one concrete instance is green).
 ∀vargs); every side condition (`generic_format`, the bpow-100 cushion) is
 discharged at concrete game values; the ATTACH row is a named boundary
 with the ladder census behind it.
+
+---
+
+## §6 The thread-execute horizon (Matt's direction, 2026-07-09)
+
+The composition (§0) is the STARTING RUNG, not the destination. The
+`seg_rest` spec — "nothing else in the frame writes Mario's memory" — is
+one line covering every other behavior in the level; censusable and
+believed true, but the largest single trusted claim in the frame. The
+eventual frame root is **`game_loop_one_iteration`** (the thread-execute
+function): one real execution from controller-read to frame-end.
+
+**What makes this finite: WMotR-specialization.** The level's object list
+is ~10 known behaviors (6 pole volumes, wing-cap boxes, hidden star,
+airborne warp, coins/1-up — E1's inventory). `update_objects` here is a
+bounded loop over known scripts, not the open SM64 universe.
+
+**The ladder (each rung replaces a spec with walked code; the segment
+interfaces are designed to make each swap local):**
+1. DONE — Mario's slice executed, three censused flanking specs.
+2. `seg_level` → walked (already-linked level_update code; cheapest).
+3. `seg_platform` → walked (clightgen platform_displacement.c ~200L; its
+   mtxf_* callees are already generated; kills 2 boundary premises).
+4. `seg_rest` → the WMotR OBJECT CENSUS: store-scout every behavior that
+   can run in this level for gMarioStates/Mario-block writes → per-behavior
+   "provably none" or the short walk list. (The methodology that caught
+   5 bad claims this week, applied level-wide.)
+5. THE BIG RUNG — the behavior-script VM: update_objects dispatches via
+   the script interpreter (behavior_script.c); symbolic execution = an
+   interpreter-loop walk over the ~10 WMotR scripts. The one genuinely
+   new research object beyond the value walk; GOAL-1-handler-census-sized.
+6. Root at game_loop_one_iteration: the thread-execute theorem for WMotR.
+
+Sequencing: rungs 2-3 can interleave with T3/T4 whenever convenient; rung
+4's census is delegable today and would already harden `seg_rest` from
+"spec" to "spec with a per-behavior audit behind it"; rung 5 waits until
+the y-invariant works end-to-end on the current frame (no point executing
+the whole frame before the invariant it carries is proven).
