@@ -45,6 +45,7 @@ From SM64.Generated Require mario mario_actions_stationary
 From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame ReachableRun
   RealFrameValue RealFrameLinked AGates SymbolicLinking FieldNonInterference.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer.
+From SM64.Proofs Require Import SpawnInit.
 From SM64.Proofs Require Import MWFReal RestSurface AirborneSurface
   DispatchKit CutsceneSurface AutomaticSurface StationarySurface
   MovingSurface ObjectSurface SubmergedSurface FloorsSurface WarpSurface
@@ -668,44 +669,80 @@ Section NoARealInputMWF.
      genv symbol blocks are distinct from both). Satisfiable, and
      per-symbol dischargeable from the run's initialization. ---- *)
   Hypothesis Hbc_bm : bc <> bm.
-  Hypothesis HSafeB_not_bm : forall b, SafeB b -> b <> bm.
-  Hypothesis HSafeB_not_bc : ~ SafeB bc.
-  Hypothesis Hgms_blk : forall gb,
+
+  (* ---- P5 SLICE 3: the CONSOLIDATED SafeB honest-boundary row.  ONE row
+     (HSafeB_sym_iff) plus the faithful spawn condition (Hspawn, pinning
+     bm/bc as the gMarioStates/gControllers symbol blocks) REPLACE the eight
+     scattered SafeB rows (HSafeB_not_bm, HSafeB_not_bc, the five ~SafeB
+     conjuncts of the *_blk rows, and Hsfam_safe), which are now DERIVED as
+     the Lemmas below (from the SpawnInit exports).  The consolidation is an honest
+     REFINEMENT, not laundering: HSafeB_sym_iff says the intersection of SafeB
+     with the LINKED symbol table is exactly {sFloorAlignMatrix} -- the object
+     pool being external/runtime and never a mario.prog-family symbol
+     (docs/p5-safeb-design.md) -- and every one of the eight rows follows from
+     it by genv symbol injectivity / range.  Non-vacuity: SpawnInit.safeb_wit_sat
+     exhibits a concrete SafeB (object graph UNION the sFloorAlignMatrix block)
+     satisfying the iff.  See docs/p5-safeb-design.md, section 3. ---- *)
+  Hypothesis HSafeB_sym_iff :
+    forall id b,
+      Genv.find_symbol (lp_ge lp) id = Some b ->
+      (SafeB b <-> id = mario_actions_moving._sFloorAlignMatrix).
+  Hypothesis Hspawn : exists init, spawn_ok lp init bm bc oc0.
+
+  Lemma HSafeB_not_bm : forall b, SafeB b -> b <> bm.
+  Proof.
+    destruct Hspawn as (init & Hs).
+    exact (safeb_not_bm lp init bm bc oc0 SafeB Hs HSafeB_sym_iff).
+  Qed.
+  Lemma HSafeB_not_bc : ~ SafeB bc.
+  Proof.
+    destruct Hspawn as (init & Hs).
+    exact (safeb_not_bc lp init bm bc oc0 SafeB Hs HSafeB_sym_iff).
+  Qed.
+  Lemma Hgms_blk : forall gb,
       Genv.find_symbol (lp_ge lp) mario._gMarioState = Some gb ->
       gb <> bm /\ gb <> bc /\ ~ SafeB gb.
-  Hypothesis Hglob_blk : forall gid bg,
+  Proof.
+    destruct Hspawn as (init & Hs).
+    exact (gms_blk lp init bm bc oc0 SafeB Hs HSafeB_sym_iff).
+  Qed.
+  Lemma Hglob_blk : forall gid bg,
       mem_id gid stored_globals = true ->
       Genv.find_symbol (lp_ge lp) gid = Some bg ->
       bg <> bm /\ bg <> bc /\ ~ SafeB bg.
-  Hypothesis Hgtimer_blk : forall gb,
+  Proof.
+    destruct Hspawn as (init & Hs).
+    exact (glob_blk lp init bm bc oc0 SafeB Hs HSafeB_sym_iff).
+  Qed.
+  Lemma Hgtimer_blk : forall gb,
       Genv.find_symbol (lp_ge lp) interaction._gGlobalTimer = Some gb ->
       gb <> bm /\ gb <> bc /\ ~ SafeB gb.
-  (* the sInteractionHandlers table block: a static interaction.c global,
-     distinct from Mario's runtime block / the controller struct / the
-     object pool -- same trust class and discharge path as Hgtimer_blk *)
-  Hypothesis Htable_blk : forall tb,
+  Proof.
+    destruct Hspawn as (init & Hs).
+    exact (gtimer_blk lp init bm bc oc0 SafeB Hs HSafeB_sym_iff).
+  Qed.
+  Lemma Htable_blk : forall tb,
       Genv.find_symbol (lp_ge lp) interaction._sInteractionHandlers = Some tb ->
       tb <> bm /\ tb <> bc /\ ~ SafeB tb.
-  (* the knockback-table blocks (sBackward/sForwardKnockbackActions):
-     static interaction.c globals, distinct from Mario's runtime block /
-     the controller struct / the object pool -- same trust class and
-     discharge path as Hgtimer_blk / Htable_blk.  Grounds MWF_real's R10
-     (untainted knockback-table contents, the dka return-value row). *)
-  Hypothesis Hktab_blk : forall gid kb,
+  Proof.
+    destruct Hspawn as (init & Hs).
+    exact (table_blk lp init bm bc oc0 SafeB Hs HSafeB_sym_iff).
+  Qed.
+  Lemma Hktab_blk : forall gid kb,
       mem_id gid knockback_table_ids = true ->
       Genv.find_symbol (lp_ge lp) gid = Some kb ->
       kb <> bm /\ kb <> bc /\ ~ SafeB kb.
-  (* sFloorAlignMatrix IS in the SafeB reach closure: a static f32[2][4][4]
-     global whose address Mario's gfx legitimately holds (the real code does
-     `marioObj->gfx.throwMatrix = &sFloorAlignMatrix[i]` in align_with_floor).
-     The POSITIVE dual of the ~SafeB rows above -- a distinct static global
-     (so consistent with them via genv-symbol injectivity: its block is none
-     of bm / bc / gMarioState / gtimer / table / ktab) and bm-disjoint (bm is
-     the runtime gMarioState block).  Grounds MovingLeafSurface's Hsfam_safe;
-     dischargeable when SafeB is concretized as the chase/reach closure. *)
-  Hypothesis Hsfam_safe : forall gb,
+  Proof.
+    destruct Hspawn as (init & Hs).
+    exact (ktab_blk lp init bm bc oc0 SafeB Hs HSafeB_sym_iff).
+  Qed.
+  Lemma Hsfam_safe : forall gb,
       Genv.find_symbol (lp_ge lp) mario_actions_moving._sFloorAlignMatrix
         = Some gb -> SafeB gb.
+  Proof.
+    destruct Hspawn as (init & Hs).
+    exact (sfam_safe lp init bm bc oc0 SafeB Hs HSafeB_sym_iff).
+  Qed.
 
   (* ---- the OUT-PARAM ARC residuals (find_floor phantom -> honest swap).
      Two TRUE, standard-CompCert, per-symbol-dischargeable facts that let

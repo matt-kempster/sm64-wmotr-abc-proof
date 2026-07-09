@@ -45,6 +45,7 @@ From SM64.Proofs Require Import MWFReal RestSurface FloorsSurface
   ObjectLeafSurface CutsceneLeafSurface WindSurface WarpSurface
   FloorsLeafSurface.
 From SM64.Proofs Require Import LinkedTwelve.
+From SM64.Proofs Require Import SpawnInit.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked.
 
 Section NoAImpliesNoFlyTwelve.
@@ -67,28 +68,18 @@ Section NoAImpliesNoFlyTwelve.
      absent -- those are now theorems of LinkedTwelve. ---- *)
 
   Hypothesis Hbc_bm : bc <> bm.
-  Hypothesis HSafeB_not_bm : forall b, SafeB b -> b <> bm.
-  Hypothesis HSafeB_not_bc : ~ SafeB bc.
-  Hypothesis Hgms_blk : forall gb,
-      Genv.find_symbol (lp_ge lp) mario._gMarioState = Some gb ->
-      gb <> bm /\ gb <> bc /\ ~ SafeB gb.
-  Hypothesis Hglob_blk : forall gid bg,
-      mem_id gid stored_globals = true ->
-      Genv.find_symbol (lp_ge lp) gid = Some bg ->
-      bg <> bm /\ bg <> bc /\ ~ SafeB bg.
-  Hypothesis Hgtimer_blk : forall gb,
-      Genv.find_symbol (lp_ge lp) interaction._gGlobalTimer = Some gb ->
-      gb <> bm /\ gb <> bc /\ ~ SafeB gb.
-  Hypothesis Htable_blk : forall tb,
-      Genv.find_symbol (lp_ge lp) interaction._sInteractionHandlers = Some tb ->
-      tb <> bm /\ tb <> bc /\ ~ SafeB tb.
-  Hypothesis Hktab_blk : forall gid kb,
-      mem_id gid knockback_table_ids = true ->
-      Genv.find_symbol (lp_ge lp) gid = Some kb ->
-      kb <> bm /\ kb <> bc /\ ~ SafeB kb.
-  Hypothesis Hsfam_safe : forall gb,
-      Genv.find_symbol (lp_ge lp) mario_actions_moving._sFloorAlignMatrix
-        = Some gb -> SafeB gb.
+  (* P5 SLICE 3: ONE consolidated SafeB honest-boundary row + the faithful
+     spawn condition REPLACE the eight scattered SafeB rows (HSafeB_not_bm,
+     HSafeB_not_bc, the five ~SafeB conjuncts of the *_blk rows, Hsfam_safe).
+     The real_mwf capstone derives all eight internally (SpawnInit exports).
+     HSafeB_sym_iff: the intersection of SafeB with the linked symbol table is
+     exactly {sFloorAlignMatrix} (the object pool is external/runtime -- see
+     docs/p5-safeb-design.md); non-vacuous via SpawnInit.safeb_wit_sat. *)
+  Hypothesis HSafeB_sym_iff :
+    forall id b,
+      Genv.find_symbol (lp_ge lp) id = Some b ->
+      (SafeB b <-> id = mario_actions_moving._sFloorAlignMatrix).
+  Hypothesis Hspawn : exists init, spawn_ok lp init bm bc oc0.
   Hypothesis Hbc_sym :
     exists gid, Genv.find_symbol (lp_ge lp) gid = Some bc.
   Hypothesis Hglob_valid :
@@ -213,8 +204,7 @@ Section NoAImpliesNoFlyTwelve.
     exact (noA_no_spawn_never_flying_real_mwf lp
              (linked12_LO_mario lp H12)
              bm bc oc0 SafeB spawn_flying
-             Hbc_bm HSafeB_not_bm HSafeB_not_bc
-             Hgms_blk Hglob_blk Hgtimer_blk Htable_blk Hktab_blk Hsfam_safe
+             Hbc_bm HSafeB_sym_iff Hspawn
              Hbc_sym Hglob_valid
              Hocp_find_floor Hocp_find_ceil Hwolcp_fwc Hscp_v3f Hscp_v3s
              Hwlcp_v3f_real WL_exempt
