@@ -1,0 +1,20 @@
+Activated opam switch 'sm64-proof'.
+  clightgen: /home/matt/.opam/sm64-proof/bin/clightgen
+  coqc:      The Coq Proof Assistant, version 8.19.2
+  vcap:      ulimit -S -v 6815744 KiB (disable: SM64_PROOF_VCAP_KB=0)
+make -f CoqMakefile
+make[1]: Entering directory '/home/matt/git/sm64-wmotr-abc-proof'
+COQDEP VFILES
+COQC proofs/MarioModel/SpawnInit.v
+COQC proofs/MarioModel/InterSurface.v
+COQC proofs/MarioModel/BullySurface.v
+COQC proofs/MarioModel/LandingBricks.v
+COQC proofs/MarioModel/MovingLeafSurface.v
+COQC proofs/MarioModel/AirborneLeafSurface.v
+COQC proofs/MarioModel/MboCSurface.v
+COQC proofs/MarioModel/SubmergedLeafSurface.v
+COQC proofs/MarioModel/SpawnObjSurface.v
+COQC proofs/MarioModel/CutsceneLeafSurface.v
+COQC proofs/NoAImpliesNoFly/NoAImpliesNoFlyLinked.v
+COQC proofs/NoAImpliesNoFly/NoAImpliesNoFlyTwelve.v
+make[1]: Leaving directory '/home/matt/git/sm64-wmotr-abc-proof'
