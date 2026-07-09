@@ -376,3 +376,157 @@ the two `LO_*` pins are added — else the widened link re-vacuifies the exact r
 the last week repaired. The link machinery itself (91-pair cert, init-mem cert,
 LO pins) is a mechanical widening of length-generic lemmas; the campaign is the
 9+5 body accounting, not the plumbing.
+
+---
+
+## 7. Ordering resolution — RETIRE-FIRST IS IMPOSSIBLE; the widen + 9 retirements are ONE ATOMIC COMMIT (task #90, 2026-07-09)
+
+§4 orders the campaign **retire-first, then grow**. Slices A+B (task #90) were an
+attempt to execute the *first* increment of that order — retire the 3 pure ids
+(`atan2s`, `find_water_level`, `find_poison_gas_level`) against the **current
+12-TU link**, before widening. **That increment cannot exist.** The retire-first
+ordering is internally contradictory; the correct campaign structure is a single
+atomic widen-and-retire commit (with an optional Unwired pre-stage). This section
+is the machine-checked confirmation the director requested, with the exact cite
+chain.
+
+### 7.1 The three facts that close the question
+
+**FACT 1 — the two TUs are absent from the current link.** `tu_rest`
+(`LinkedTwelve.v:77–88`) has exactly **11** members
+(`mario_actions_{stationary,moving,airborne,submerged,cutscene,automatic,object}`,
+`interaction`, `behavior_actions`, `level_update`, `mario_step`). **Neither
+`math_util.prog` nor `surface_collision.prog` is in it.** Stronger: `math_util` /
+`surface_collision` are imported by **no** file under `proofs/` (`grep -rln` over
+`proofs/**.v` returns nothing) and appear in **no** `_CoqProject`/`pipeline`
+build input. They are clightgen'd (`generated/math_util.v`,
+`generated/surface_collision.v`) but wholly outside the spine.
+
+**FACT 2 — all 9 ids resolve EXTERNAL in the current `lp`.** In `mario.prog`'s
+defmap every one of the 9 is `Gfun(External (EF_external …))` — verified for the
+three pure ids at `generated/mario.v:12222` (`_atan2s`), `:12252`
+(`_find_water_level`), `:12257` (`_find_poison_gas_level`); the six writers
+likewise (`:12227` `_f32_find_wall_collision`, `:12238` `_find_ceil`, `:12245`
+`_find_floor`, and `vec3f_set`/`vec3f_copy`/`vec3s_copy`). Their **only** Internal
+bodies (`Definition f_atan2s`, `f_find_water_level`, `f_find_poison_gas_level`,
+…) live in `generated/math_util.v` / `generated/surface_collision.v` — the two
+**unlinked** TUs. `lp = link_chain mario.prog tu_rest` (`LinkedTwelve.v:90–91`) is
+therefore, for each of the 9, a link of **agreeing Externals across all 12 TUs =
+that External**. So in the current `lp` **there is no Internal body of any of the
+9 to walk**, and the negative pin `Hrest_ext_only` (`RestSurface.v:155–158`,
+covering `exempt_ext_ids` ∪ `{_play_infinite_stairs_music}`) is currently
+**satisfiable/true** for all 9. (The 1-id refutation once either TU is linked is
+machine-witnessed: `LinkedTwelve.capstone_negative_pin_refuted`,
+`LinkedTwelve.v:436`.)
+
+**FACT 3 — SLICE A fails for ALL THREE pure ids: removing them from
+`exempt_callees` opens a coverage gap.** The census recognizer arm that catches
+these call sites is `call_callee_exempt` (`CensusV2.v:654–658`): it matches
+`Evar fid (Tfunction …)` **iff `mem_id fid exempt_callees = true`**. This is a
+**purely syntactic** test on the *static* callee ident of the call site — it does
+**not** consult `lp`'s resolution. The three pure ids have call sites *densely* in
+the **linked, walked** bodies:
+
+| id | `Evar` call-callee sites in linked TUs |
+|---|---|
+| `atan2s` | mario 6, moving 5, airborne 6, submerged 4, cutscene 9, interaction 6, behavior_actions 3, mario_step 5 (≈44) |
+| `find_water_level` | mario 2, behavior_actions 14, mario_step 2 (18) |
+| `find_poison_gas_level` | mario 1 |
+
+Every one of these sites is recognized **only** through the exempt arm: the ids
+are pure (no `MarioState*` head arg ⇒ **not** on `mptr_callees`, so no class-M
+arm) and take no out-param (so no `oc/wc/sc/wl/wol` arm applies). Remove any of
+the three from `exempt_callees` and `call_callee_exempt` returns `false` at all
+its sites, the recognizer has **no** matching arm, and the walk of those bodies
+**fails to typecheck**. Per the task rule ("if removing them from
+`exempt_callees` WOULD open a coverage gap … STOP for that id"), **all three are
+blocked** — including the "cleanest of all 9", `find_water_level`.
+
+### 7.2 The paradox, stated precisely
+
+- **Retire-first (remove from the exempt list *now*) is impossible.** By FACT 3
+  the removal breaks recognizer coverage at dozens of walked call sites; and by
+  FACT 2 there is no Internal body in `lp` for a replacement "walk" arm to
+  discharge — a `body_pres`/`rest_internal_cases` case for `atan2s`
+  (`RestSurface.v:182`) fires only on `rest_fd lp (Internal f)`, which for these
+  ids is **never** inhabited at the 12-TU link. §4's S1 ("remove from
+  `exempt_callees`, add `atan2s_pres` as a new `body_pres` case") is thus
+  self-contradictory: the new case is dead while the removal is breaking.
+- **Walk-now (SLICE B as literally scoped) is impossible.** You cannot walk the
+  Internal body of `atan2s`/`find_water_level`/`find_poison_gas_level` in `lp`
+  because `lp` has no such Internal body (FACT 2). The generated `f_atan2s` etc.
+  can be reasoned about as **standalone AST facts**, but that is not a *walk in
+  the capstone's `lp`*, and nothing consumes it.
+- **Link-first re-vacuifies (§0).** Adding `LO_math`/`LO_surf` forces the 9
+  Internal in `lp`, contradicting `Hrest_ext_only` (still naming them via
+  `exempt_ext_ids`) → jointly unsatisfiable → the exact #95 vacuity, ninefold.
+
+There is **no committed state** in which (a) the exempt list excludes the 9, (b)
+the walked bodies still typecheck, and (c) the negative pin is satisfiable — for
+any partial ordering. **VERDICT: the link-widen and the 9 retirements must be one
+atomic commit.** Retire-first, as an incremental committable step, does not exist.
+
+### 7.3 Recommended atomic-commit structure for the full 14-body campaign
+
+Split the work into a **safe pre-stage** (freely committable, non-vacuous, adds
+zero capstone trust) and **one atomic wiring commit**. This shrinks the atomic
+commit to plumbing only, so it is reviewable and its green build is meaningful.
+
+**Pre-stage (Unwired/, N commits, each green + `Print Assumptions`-clean):** prove
+the 14 body facts as **standalone lemmas about the generated AST objects** in
+`math_util.v` / `surface_collision.v`, with **no** edit to `tu_rest`,
+`exempt_callees`, or the negative pin. These are honest facts about real bodies
+(not vacuous, not disconnected in the harmful sense — they are the *content* the
+atomic commit consumes) and touch `lp` nowhere:
+  - 3 pure: `atan2s_pres`, `find_water_pres`, `find_poison_pres` via the
+    `pure_walk`/`pure_chk` memory-identity walker (`MarioStepSurface.v`) and the
+    `vfc_pres` alloc/free frame bricks (`RestSurface.v:96,122`) for the one with a
+    `_filler` alloc.
+  - 6 writers: the `call_pres_ext_oc/_wc/_sc/_wl/_wol` gated discharges
+    (`OutParamSurface.v`) — reusing the SPP/resolve keystones (`Hocp_find_floor`,
+    `Hwcp_fwc`, …).
+  - 5 ripple (`atan2_lookup`, `find_{floor,ceil}_from_list`,
+    `find_wall_collisions[_from_list]`) — pure walk / out-param gate.
+  Because the two TUs are unlinked, these lemmas live in `Unwired/` (the firewall
+  forbids the spine importing them) until the atomic commit promotes them.
+
+**Atomic commit (single, green, `discipline_check` clean, negative pin
+satisfiable at close):** in ONE step —
+  1. `tu_rest` → 13 (`+ math_util.prog ; surface_collision.prog`); add
+     `linked14_LO_math`/`_surf` (`LinkedTwelve.v`); add `LO_math`/`LO_surf` to
+     `Section RestSurface` (`RestSurface.v:133`).
+  2. **Shrink `exempt_callees`** (`CensusV2.v:601`) by the 9 **and** re-route each
+     of their call sites: the 3 pure move to a new "pure internal callee" arm
+     that discharges via the pre-staged `*_pres` (now that `lp` resolves them
+     Internal); the 6 writers move onto the `oc/wc/sc/wl/wol` census lists so
+     `call_callee_exempt` no longer needs them (this is §6-point-1's coverage
+     surgery — it MUST be done in the same commit as the exempt-list edit, never
+     before, or coverage breaks; never after, or the pin is unsatisfiable).
+  3. **Restate the negative pin** so `exempt_ext_ids` excludes all 9 (the domain
+     shrinks 16→7, `truly_ext_pin_ids` per §3); widen the
+     `no_internal_math`/`no_internal_surface` sweeps over the 7 survivors (they
+     now pass — the 7 are genuinely absent from both TUs).
+  4. Add the 9 (+5 ripple) as new proved `rest_internal_cases` /
+     `rest_pres_decompose` cases (pure) or gated consumer rows (writers),
+     consuming the pre-staged Unwired lemmas.
+  5. Widen the 3 certs (`fourteen_head`/`fourteen_tail` `Linked12Sat.v`,
+     `fourteen_gvars_ok` `InitMemSat.v`) — time with `-time` first (§1b PERF LAW;
+     the 25 `math_util`/`surface_collision` pairs may exceed 0.19 s each).
+  6. Re-derive `linked14_ext_pin`/`_inhabited`/`_init_mem`; repoint the capstones;
+     `discipline_check.sh` on all six targets; `Print Assumptions` clean.
+
+At the close of step 6 the negative pin is satisfiable (it names no
+Internal-in-`math_util`/`surface_collision` id) and every one of the 9 is
+discharged by a consumed pre-staged lemma — so the capstone is non-vacuous at the
+single commit boundary, and at **no** committed point is it vacuous.
+
+**Amendment to §4:** the S0–S5 table's premise ("RETIRE FIRST, then GROW") is
+withdrawn as a *committable* ordering. S1–S3 (the walks/gates) survive **only as
+the Unwired pre-stage above**; S4 (widen) and the exempt-list/negative-pin edits
+of S1–S3 collapse into the single atomic commit. The dependency §0 identified is
+real; the resolution is atomicity, not sequencing.
+
+**Task #90 outcome:** slices A+B produced **no `.v` code** (correctly — forcing
+either would have broken coverage or re-vacuified the pin). Deliverable = this
+§7. Next actionable unit = the Unwired pre-stage of the 3 pure `*_pres` lemmas
+(zero-trust, zero-`lp`, freely committable), then the atomic wiring commit.
