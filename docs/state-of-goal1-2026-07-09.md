@@ -28,7 +28,7 @@ admit/axiom/sorry, **standard CompCert axioms only**, firewall clean.
 
 ## What got proved since 07-01 (the week's landslide)
 
-**Three intended-model vacuities found and repaired.** Each was a row that
+**Four intended-model vacuities found and repaired.** Each was a row that
 was true-in-isolation but false of the real semantics — the exact failure
 class the discipline skill exists to catch:
 - `vec3f_find_ceil` was Internal in mario.prog yet on the "stays external"
@@ -39,9 +39,21 @@ class the discipline skill exists to catch:
 - `play_sound_if_no_flag` ORed an adversary-controlled value into
   `m->flags`, live on *both* the stationary and moving external rows →
   the whole sound cluster marg-gated (#98).
-The lesson, now a standing rule: **audit-by-comment is worthless; only
-per-store classification against the generated AST is sound.** Every
-"pure external, writes no Mario state" comment checked (3/3) was false.
+- `Hret_unsafe` demanded every reached function's pointer return avoid
+  `bm`, but the reached vec3 helpers (`(tptr tvoid)` externals) return
+  their Mario-interior destination `= Vptr bm` → the row was
+  unsatisfiable, the same false-`forall ef` shape as the deleted
+  `Hret_ext`. Turned out to be **dead plumbing** (the census forces
+  call-result temps untabled, so the taint tracker never consumed the
+  return fact) → deleted outright, −35 lines, zero residuals (#99).
+Two standing rules, now load-bearing: **(1) audit-by-comment is worthless;
+only per-store classification against the generated AST is sound** (every
+"pure external, writes no Mario state" comment checked, 3/3, was false);
+**(2) every row over an abstract `external_call` or a `forall`-quantified
+reachable set is a vacuity suspect until its satisfiability is checked
+against a concrete witness.** Four vacuities, all found by asking one
+question of an assumed row: *is this actually satisfiable in the intended
+model?* Green-and-audited never meant non-vacuous.
 
 **P3 complete — the link is real and inhabited.** `linked12_inhabited`
 closes the last structural question: the capstone quantifies over a
@@ -92,17 +104,17 @@ After all the above, GOAL-1's entire trust surface is:
 
 ## What's actually left to *do* (all off the honest boundary)
 
-- **#50** — `Hret_unsafe`: ~4 getters + 7 dispatchers whose I32 status
-  flows through a `Scall`→`switch`→return; needs a call-aware `fd_is_vint`.
-  A bounded engine refinement (scout running). The one remaining *engine*
-  residual.
 - **P1'** — grow the faithful link to fourteen TUs (add math_util +
   surface_collision, walking their bodies), retiring ~9 exempt-callee rows
   the 12-TU pin currently covers only because those TUs aren't linked. The
-  canonicalizer already handles both new TUs.
+  canonicalizer already handles both new TUs. **The main remaining
+  structural front.**
 - **Optional** — the `bm`/`bc` existential tightening (#2 above);
   `Hglob_obj_root` full concretization (only via the rejected 230-site
   engine change or a cutscene re-walk — not worth it for a boundary row).
+
+(#50/`Hret_unsafe` is **done** — it was a dead-plumbing vacuity, deleted in
+#99, not a residual to discharge.)
 
 ## Bottom line
 
