@@ -132,6 +132,20 @@ Lemma landtab_init_int32_untainted :
      ++ gvar_init mario_actions_moving.v_sBackflipLandAction) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* nextblock monotonicity from valid-block preservation: if every block valid
+   in m stays valid in m', nextblock does not decrease.  Feeds the R0
+   nextblock-bound preservation in MWF_real_transfer -- every operation that
+   preserves valid blocks preserves the genv_next <= nextblock bound. *)
+Lemma valid_mono_nextblock : forall m m',
+    (forall b, Mem.valid_block m b -> Mem.valid_block m' b) ->
+    Ple (Mem.nextblock m) (Mem.nextblock m').
+Proof.
+  intros m m' H.
+  destruct (plt (Mem.nextblock m') (Mem.nextblock m)) as [Hlt | Hge].
+  - exfalso. apply (Plt_strict (Mem.nextblock m')). apply H. exact Hlt.
+  - unfold Ple, Plt in *. lia.
+Qed.
+
 Section MWFReal.
   Variable lp : Clight.program.
   Hypothesis LO_mario : linkorder mario.prog lp.
@@ -203,7 +217,13 @@ Section MWFReal.
             Mem.valid_block m tb)
      /\ (forall gid kb, mem_id gid knockback_table_ids = true ->
             Genv.find_symbol (lp_ge lp) gid = Some kb ->
-            Mem.valid_block m kb))
+            Mem.valid_block m kb)
+     (* R0-nextbound: the genv symbol range sits below nextblock m.  True at
+        init (init_mem_genv_next) and run-monotone (every op only grows
+        nextblock), so it is preserved by all the store/alloc/free/unchanged
+        bricks below.  Grounds the GENERAL Hglob_valid (forall m, MWF m -> ...)
+        via SpawnInit.glob_valid_of_nextbound. *)
+     /\ Ple (Genv.genv_next (lp_ge lp)) (Mem.nextblock m))
     (* R1: the input A-bit is clear (conditional). *)
     /\ input_a_clear m bm
     (* R2: the controller pointer cell, IF a pointer, is (bc, oc0). *)
@@ -296,6 +316,16 @@ Section MWFReal.
   Lemma mwf_real_safe_valid :
     forall m, MWF_real m -> forall b, SafeB b -> Mem.valid_block m b.
   Proof. intros m M. exact (proj1 (proj2 (proj2 (proj2 (proj1 M))))). Qed.
+
+  (* R0's nextblock-bound conjunct: the genv symbol range is below nextblock m.
+     Feeds the GENERAL Hglob_valid discharge (glob_valid_of_nextbound). *)
+  Lemma mwf_real_nextbound :
+    forall m, MWF_real m ->
+      Ple (Genv.genv_next (lp_ge lp)) (Mem.nextblock m).
+  Proof.
+    intros m M.
+    exact (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj1 M)))))))).
+  Qed.
 
   (* Hmwf_inp *)
   Lemma mwf_real_inp : forall m, MWF_real m -> input_a_clear m bm.
@@ -474,7 +504,7 @@ Section MWFReal.
       MWF_real m -> MWF_real m'.
   Proof.
     intros m m' Hval Hinp' Htr Hsafe'
-           ((Vbm & Vbc & Vgms & Vsafe & Vgt & Vtb & Vkt)
+           ((Vbm & Vbc & Vgms & Vsafe & Vgt & Vtb & Vkt & Hnb)
             & _ & R2 & R3 & R4 & R5 & R6 & R7 & R8 & R9 & R10).
     split;
       [ | split; [ exact Hinp'
@@ -483,12 +513,13 @@ Section MWFReal.
     - (* R0 *)
       split; [ exact (Hval _ Vbm)
              | split; [ exact (Hval _ Vbc)
-                      | split; [ | split; [ | split; [ | split ] ] ] ] ].
+                      | split; [ | split; [ | split; [ | split; [ | split ] ] ] ] ] ].
       + intros gb Hfs. exact (Hval _ (Vgms _ Hfs)).
       + intros b Hb. exact (Hval _ (Vsafe _ Hb)).
       + intros gb Hfs. exact (Hval _ (Vgt _ Hfs)).
       + intros tb Hfs. exact (Hval _ (Vtb _ Hfs)).
       + intros gid kb Hgid Hfs. exact (Hval _ (Vkt _ _ Hgid Hfs)).
+      + eapply Ple_trans; [ exact Hnb | apply valid_mono_nextblock; exact Hval ].
     - (* R2 *)
       intros b' o' Hld. apply R2.
       apply (Htr Mptr bm 156 (Vptr b' o')); [ | exact Hld ].
@@ -668,14 +699,14 @@ Section MWFReal.
       Mem.store Mint32 mm bm 12 vv = Some mm' -> MWF_real mm'.
   Proof.
     intros mm mm' vv M Hnoptr Hst.
-    destruct M as ((Vbm & Vbc & Vgms & Vsafe & Vgt & Vtb & Vkt)
+    destruct M as ((Vbm & Vbc & Vgms & Vsafe & Vgt & Vtb & Vkt & Hnb)
                    & R1 & R2 & R3 & R4 & R5 & R6 & R7 & R8 & R9 & R10).
     split; [ | split; [ | split; [ | split; [ | split;
       [ | split; [ | split; [ | split; [ | split; [ | split ]]]]]]]]].
     - (* R0: validity is store-stable *)
       split; [ eapply Mem.store_valid_block_1; eauto | ].
       split; [ eapply Mem.store_valid_block_1; eauto | ].
-      split; [ | split; [ | split; [ | split ] ] ].
+      split; [ | split; [ | split; [ | split; [ | split ] ] ] ].
       + intros gb Hfs. eapply Mem.store_valid_block_1;
           [ exact Hst | exact (Vgms _ Hfs) ].
       + intros b Hb. eapply Mem.store_valid_block_1;
@@ -686,6 +717,7 @@ Section MWFReal.
           [ exact Hst | exact (Vtb _ Hfs) ].
       + intros gid kb Hgid Hfs. eapply Mem.store_valid_block_1;
           [ exact Hst | exact (Vkt _ _ Hgid Hfs) ].
+      + rewrite (Mem.nextblock_store _ _ _ _ _ _ Hst). exact Hnb.
     - (* R1: [2,4) ends before the store's [12,16) *)
       intros v Hld. apply R1.
       rewrite <- Hld. symmetry.
@@ -842,14 +874,14 @@ Section MWFReal.
   Proof.
     intros mm mm' fld delta vv Hmem Hfo Hsafe M Hst.
     pose proof (chase_root_offsets _ _ Hmem Hfo) as Hd7.
-    destruct M as ((Vbm & Vbc & Vgms & Vsafe & Vgt & Vtb & Vkt)
+    destruct M as ((Vbm & Vbc & Vgms & Vsafe & Vgt & Vtb & Vkt & Hnb)
                    & R1 & R2 & R3 & R4 & R5 & R6 & R7 & R8 & R9 & R10).
     split; [ | split; [ | split; [ | split; [ | split;
       [ | split; [ | split; [ | split; [ | split; [ | split ]]]]]]]]].
     - (* R0: validity is store-stable *)
       split; [ eapply Mem.store_valid_block_1; eauto | ].
       split; [ eapply Mem.store_valid_block_1; eauto | ].
-      split; [ | split; [ | split; [ | split ] ] ].
+      split; [ | split; [ | split; [ | split; [ | split ] ] ] ].
       + intros gb Hfs. eapply Mem.store_valid_block_1;
           [ exact Hst | exact (Vgms _ Hfs) ].
       + intros b Hb. eapply Mem.store_valid_block_1;
@@ -860,6 +892,7 @@ Section MWFReal.
           [ exact Hst | exact (Vtb _ Hfs) ].
       + intros gid kb Hgid Hfs. eapply Mem.store_valid_block_1;
           [ exact Hst | exact (Vkt _ _ Hgid Hfs) ].
+      + rewrite (Mem.nextblock_store _ _ _ _ _ _ Hst). exact Hnb.
     - (* R1: [2,4) ends before every root cell *)
       intros v Hld. apply R1.
       rewrite <- Hld. symmetry.
@@ -1426,7 +1459,7 @@ Section MWFReal.
       input_a_clear mm' bm -> MWF_real mm'.
   Proof.
     intros mm mm' M Hunch Hinp'.
-    pose proof M as ((Vbm & Vbc & Vgms & Vsafe & Vgt & Vtb & Vkt) & _).
+    pose proof M as ((Vbm & Vbc & Vgms & Vsafe & Vgt & Vtb & Vkt & _) & _).
     apply (MWF_real_transfer mm mm'); [ .. | exact M ].
     - intros b Hv. eapply Mem.valid_block_unchanged_on; eauto.
     - exact Hinp'.
@@ -1461,7 +1494,7 @@ Section MWFReal.
       MWF_real m -> MWF_real m1.
   Proof.
     intros f vargs m e le m1 Hentry M.
-    pose proof M as ((Vbm & Vbc & Vgms & Vsafe & Vgt & Vtb & Vkt) & _).
+    pose proof M as ((Vbm & Vbc & Vgms & Vsafe & Vgt & Vtb & Vkt & _) & _).
     assert (Hunch : Mem.unchanged_on (fun b _ => Mem.valid_block m b) m m1)
       by (eapply FieldNonInterference.function_entry2_unchanged_on; eauto).
     apply (MWF_real_transfer m m1); [ .. | exact M ].
@@ -1538,7 +1571,7 @@ Section MWFReal.
       Mem.alloc m lo hi = (m', b) -> MWF_real m -> MWF_real m'.
   Proof.
     intros m lo hi m' b Ha M.
-    pose proof M as ((Vbm & Vbc & Vgms & Vsafe & Vgt & Vtb & Vkt) & _).
+    pose proof M as ((Vbm & Vbc & Vgms & Vsafe & Vgt & Vtb & Vkt & _) & _).
     apply (MWF_real_transfer m m'); [ .. | exact M ].
     - intros bb Hv. eapply Mem.valid_block_alloc; eauto.
     - intros v Hld. pose proof M as (_ & R1 & _). apply R1.

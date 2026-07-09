@@ -82,9 +82,9 @@ Section NoAImpliesNoFlyTwelve.
   Hypothesis Hspawn : exists init, spawn_ok lp init bm bc oc0.
   Hypothesis Hbc_sym :
     exists gid, Genv.find_symbol (lp_ge lp) gid = Some bc.
-  Hypothesis Hglob_valid :
-    forall m, MWF m -> forall gid bg,
-        Genv.find_symbol (lp_ge lp) gid = Some bg -> Mem.valid_block m bg.
+  (* P5 SLICE 4: Hglob_valid is DISCHARGED at the real_mwf capstone (from the
+     R0 nextblock-bound conjunct via glob_valid_of_nextbound), so it is no
+     longer an assumed row here either. *)
   Hypothesis Hocp_find_floor :
     call_pres_ext_oc lp bm (NoA_real bm) MWF SafeB mario._find_floor.
   Hypothesis Hocp_find_ceil :
@@ -205,7 +205,7 @@ Section NoAImpliesNoFlyTwelve.
              (linked12_LO_mario lp H12)
              bm bc oc0 SafeB spawn_flying
              Hbc_bm HSafeB_sym_iff Hspawn
-             Hbc_sym Hglob_valid
+             Hbc_sym
              Hocp_find_floor Hocp_find_ceil Hwolcp_fwc Hscp_v3f Hscp_v3s
              Hwlcp_v3f_real WL_exempt
              (linked12_LO_sta lp H12) (linked12_LO_mov lp H12)

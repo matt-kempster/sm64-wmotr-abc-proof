@@ -756,9 +756,20 @@ Section NoARealInputMWF.
          prove a fresh stack local is disjoint from every global block. ---- *)
   Hypothesis Hbc_sym :
     exists gid, Genv.find_symbol (lp_ge lp) gid = Some bc.
-  Hypothesis Hglob_valid :
+  (* P5 SLICE 4: Hglob_valid is now DISCHARGED (was assumed).  The general
+     "every genv symbol block is valid in any MWF memory" follows from the R0
+     nextblock-bound conjunct (mwf_real_nextbound) + glob_valid_of_nextbound
+     (genv symbols sit below genv_next <= nextblock m).  No longer part of the
+     assumed surface. *)
+  Lemma Hglob_valid :
     forall m, MWF m -> forall gid bg,
         Genv.find_symbol (lp_ge lp) gid = Some bg -> Mem.valid_block m bg.
+  Proof.
+    intros m HM gid bg Hs.
+    eapply glob_valid_of_nextbound with (lp := lp).
+    - eapply mwf_real_nextbound. exact HM.
+    - exact Hs.
+  Qed.
   (* find_floor as a faithful OUT-PARAM writer: carried-preservation GATED
      on the out-param being a caller stack local (local_blk).  TRUE in the
      intended model; replaces the FALSE `call_pres_ext find_floor`. *)
