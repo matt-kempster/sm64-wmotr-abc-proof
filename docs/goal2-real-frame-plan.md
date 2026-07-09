@@ -124,3 +124,48 @@ All 40 pos[1] writers fall into classes; each class gets ONE treatment:
 - **GOAL-1 untouchable**: nothing in this plan edits the GOAL-1 spine;
   the sandbox firewall (playground/ + Unwired/) is the boundary, and the
   six-theorem audit must stay green after every promotion.
+
+---
+
+## §5 T3 design brief: the interval-environment value walk (Fable, post-T2)
+
+T0/T1/T2 are landed (playground/: CompositionFrame.v, PlatformInert.v,
+FloatBrick.v — all compiling, zero admits, standard axioms). What remains
+open in the one-frame y-theorem is `Hseg_action_y`: the action segment
+keeps y ≤ YMAX. The mechanism, designed against T2's delivered shapes:
+
+**The new engine idea — track VALUES, not just avoidance.** GOAL-1's walks
+thread a taint/avoidance invariant through `exec_stmt` induction ("no store
+hits (bm,12)"). T3 threads an **interval environment**: a partial map from
+temps to real-valued upper bounds (`ienv : ident -> option R`), with the
+invariant "if `le!t = Some (Vsingle v)` and `ienv t = Some B` then
+`B2R v ≤ B` (and finite)". Walk arms:
+- `Sset t (load of pos[1]/vel[1])` → bind `t` to the carried Y/V bound
+  (from the y_le/vel_le entry facts).
+- `Sset t (arith)` → the T2 bricks: `f32_add_le_bound`,
+  `f32_quarter_exact`/`f32_quarter_step_y_bound` (div-by-4.0f), `f32_sub4_*`
+  (gravity), the −75 clamp only raises → bound preserved.
+- `Sassign (pos[1]) (Etempvar t)` with `ienv t = Some B ≤ YMAX` → the
+  commit is bounded. This is the BALLISTIC arm.
+- Landing/ceiling branches commit a FLOOR HEIGHT instead → the ATTACH arm:
+  consume the `find_floor` value-contract row (boundary until linked) +
+  the ladder fact (every WMotR floor ≤ H*).
+- Calls: the quarter-step helpers get value-aware call rows (the paqs walk
+  already exists for avoidance; the value variant re-walks the SAME body
+  with the richer invariant — the avoidance walk is the template, the
+  interval env is the addition).
+
+**Prototype scope (first increment, playground/ValueWalk.v):** ONE
+quarter-step's ballistic branch — from `intendedPos[1] = pos[1]+vel[1]/4`
+(mario_step.c:620, the generated `f_perform_air_step` ~L4529) through the
+AIR_STEP_NONE commit — proving the committed y ≤ Y + V/4 via
+`f32_quarter_step_y_bound`. Straight-line + one branch; no loop yet. The
+loop (4 quarter-steps) then composes the bound 4× (Y + V with the gravity
+step interleaved — the per-frame budget from the strategy doc). Only after
+the prototype threads do we generalize an engine arm (the P1' lesson:
+never generalize before one concrete instance is green).
+
+**Vacuity guards baked in:** the ienv rows are arg/entry-gated (never
+∀vargs); every side condition (`generic_format`, the bpow-100 cushion) is
+discharged at concrete game values; the ATTACH row is a named boundary
+with the ladder census behind it.
