@@ -207,3 +207,39 @@ Sequencing: rungs 2-3 can interleave with T3/T4 whenever convenient; rung
 "spec" to "spec with a per-behavior audit behind it"; rung 5 waits until
 the y-invariant works end-to-end on the current frame (no point executing
 the whole frame before the invariant it carries is proven).
+
+---
+
+## §7 Rung-4 census result (2026-07-09): bare seg_rest FALSIFIED, refined spec survives
+
+The level-wide behavior census (docs/goal2-wmotr-behavior-census.md) proved
+the bare `seg_rest` claim ("nothing else in the frame writes Mario's
+block") **FALSE** — the fifth would-be phantom caught by store-scouting,
+this time PREEMPTIVELY in the sandbox. Three object-side writers exist in
+WMotR (all verified at source):
+1. `cur_obj_push_mario_away` (the 6 poles): writes pos[0]/pos[2] only —
+   never y, never action.
+2. `bhv_1up_interact`: writes numLives only.
+3. **`set_mario_npc_dialog` (the cannon's bob-omb buddy,
+   macro.inc.c:5)**: writes `action := ACT_READING_NPC_DIALOG` + usedObj
+   (mario_actions_cutscene.c:361-362) — the ONLY object-side action write
+   in the level, and its value is non-flying/non-tainted.
+
+**The refined seg_rest spec (true, and what T0 must adopt):** no object-side
+write to pos[1]; object-side action writes confined to
+{ACT_READING_NPC_DIALOG}; pos[0]/[2] and numLives writes permitted. Both
+invariants survive: y untouched object-side; the action write is a
+non-flying value so no-fly preservation holds through it.
+
+**Honest GOAL-1 scope note:** GOAL-1's theorem quantifies over ITS step
+relation (the Mario slice) — the buddy's action write is a real-game
+transition outside that step model. GOAL-1's statement is true as stated
+(about its step); the REAL-GAME no-fly claim additionally needs exactly
+this refined seg_rest fact — which is precisely what the composition
+formalizes, and the written value being non-flying is why the headline
+survives. This is the composition earning its keep: the gap was invisible
+at the Mario-slice frame and became a named, checked fact at rung 4.
+
+**Dogs that didn't bark (verified absent):** heave-ho, chuckya,
+recovery-heart, butterfly — every object-side upward launcher in the game
+is absent from WMotR. Nothing in this level lifts Mario.
