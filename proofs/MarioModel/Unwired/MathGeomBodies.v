@@ -1980,3 +1980,425 @@ Proof.
   rewrite Hben in Hfl. cbn [Mem.free_list] in Hfl. injection Hfl as <-.
   exact (conj Hvb (conj Hsatb Hmwfb)).
 Qed.
+
+(* ====================================================================== *)
+(* 9. find_floor / find_ceil: the LAST TWO of the 14 P1' pre-stage bodies  *)
+(*    (task #90).  Straight-line-with-Sif (NO Sloop of their own; the loop  *)
+(*    is inside find_{floor,ceil}_from_list, carried as a callee oracle).   *)
+(*    Both have EARLY Sreturns (out-of-range guards) — handled uniformly by *)
+(*    the induction-based walker.                                           *)
+(*                                                                        *)
+(* STORE-SCOUT VERDICT (per-Sassign against the generated surface_collision *)
+(* AST, verified LINE BY LINE — NOT trusted from design §8):                *)
+(*   find_floor (surface_collision.v:3050):                                 *)
+(*     fn_params := (_xPos,_yPos,_zPos, _pfloor : Surface ptr-ptr) GATE = the*)
+(*       4th param _pfloor (nth_error vargs 3).                              *)
+(*     fn_vars := [(_height,tfloat); (_dynamicHeight,tfloat)]  (2 OWN        *)
+(*       locals — NOT nil; entry allocs 2, exit frees 2).                    *)
+(*     8 Sassign:                                                           *)
+(*       #1 :3070 Evar _height        (own-frame local, direct Evar)         *)
+(*       #2 :3073 Evar _dynamicHeight (own-frame local, direct Evar)         *)
+(*       #3 :3082 *_pfloor = 0        (OUT-PARAM gate, chain_root_l=_pfloor) *)
+(*       #4 :3281 Evar _gFindFloorIncludeSurfaceIntangible (STATIC, direct   *)
+(*                                     Evar — NOT an Efield!)                *)
+(*       #5 :3293 Evar _gNumFindFloorMisses (STATIC, direct Evar)            *)
+(*       #6 :3316 *_pfloor = floor    (OUT-PARAM gate)                       *)
+(*       #7 :3312 Evar _height        (own-frame local)                      *)
+(*       #8 :3327 Efield(Evar _gNumCalls)._floor (STATIC, Efield)            *)
+(*     3 Scall to _find_floor_from_list (:3173/:3211/:3260).                 *)
+(*   find_ceil (surface_collision.v:2270): the twin.  GATE = _pceil (4th).   *)
+(*     fn_vars := [(_height,tfloat); (_dynamicHeight,tfloat)] (same 2).      *)
+(*     6 Sassign:  #1 :2288 Evar _height | #2 :2290 Evar _dynamicHeight      *)
+(*       (own-frame) | #3 :2298 *_pceil=0 (gate) | #4 :2458 Evar _height     *)
+(*       (own-frame) | #5 :2462 *_pceil=ceil (gate) | #6 :2473               *)
+(*       Efield(Evar _gNumCalls)._ceil (STATIC).  2 Scall to                 *)
+(*       _find_ceil_from_list (:2389/:2427).                                 *)
+(*                                                                        *)
+(* DEVIATION FROM §8 (store-scout is BINDING): §8 modelled the 3 static      *)
+(* stores as three `is_global_store` (Efield-of-Evar) oracles.  The AST      *)
+(* shows only #8/#6 (gNumCalls dot field) is an Efield store; gFindFloor...   *)
+(* and gNumFindFloorMisses are DIRECT `Evar` stores, and §8 did not account  *)
+(* for the 3 own-frame DIRECT `Evar` local stores (_height/_dynamicHeight).  *)
+(* All of #1,#2,#4,#5,#7,#8 (find_floor) / #1,#2,#4,#6 (find_ceil) share ONE *)
+(* shape: a By_value store whose lvalue is based at a symbol —               *)
+(* `Evar id ty` (local OR global) or `Efield (Evar id _) fld fty` — and      *)
+(* their target block is <> bm (fresh stack local, or a static global block  *)
+(* distinct from Mario runtime block).  We therefore fold the [3 static +    *)
+(* 3 own-frame] stores into ONE `is_symbase_store` recognizer + ONE          *)
+(* symbol-store oracle (the twin of §8's `is_global_store`/Hglob, widened    *)
+(* to the direct-Evar shape and to own-frame locals), plus the single        *)
+(* find_{floor,ceil}_from_list callee oracle.  gate_walk/wc_walk was BUILT   *)
+(* for exactly this (out-param + callee + symbol arms) — we reuse its        *)
+(* induction skeleton verbatim, swapping is_global_store -> is_symbase_store.*)
+(* ====================================================================== *)
+
+(* a store into a symbol-based lvalue: `Evar id ty` (By_value) — direct
+   global or own-frame local — OR `Efield (Evar id _) fld fty` (By_value).
+   chain_root_l returns None for all of these (they root at an Evar, not a
+   temp), so they fall through the gate arm to this recognizer. *)
+Definition is_symbase_store (lv : expr) : bool :=
+  match lv with
+  | Evar _ ty =>
+      match access_mode ty with By_value _ => true | _ => false end
+  | Efield (Evar _ _) _ fty =>
+      match access_mode fty with By_value _ => true | _ => false end
+  | _ => false
+  end.
+
+(* recognizer: gate stores (chain-root g), symbol-based stores
+   (is_symbase_store), calls to cid (optid <> g), Sset(<>g),
+   Sreturn/Sskip/breaks, and Ssequence/Sifthenelse/Sloop scaffolding.
+   The exact wc_chk shape with is_global_store gsym -> is_symbase_store. *)
+Fixpoint sg_chk (g cid : ident) (s : statement) : bool :=
+  match s with
+  | Sskip | Sbreak | Scontinue | Sreturn _ => true
+  | Sset id _ => negb (Pos.eqb id g)
+  | Scall optid a _ =>
+      is_cid_call cid a &&
+      (match optid with Some ti => negb (Pos.eqb ti g) | None => true end)
+  | Sassign lv _ =>
+      match CensusV2.chain_root_l lv with
+      | Some t =>
+          Pos.eqb t g &&
+          (match access_mode (typeof lv) with By_value _ => true | _ => false end)
+      | None => is_symbase_store lv
+      end
+  | Ssequence s1 s2 => sg_chk g cid s1 && sg_chk g cid s2
+  | Sifthenelse _ s1 s2 => sg_chk g cid s1 && sg_chk g cid s2
+  | Sloop s1 s2 => sg_chk g cid s1 && sg_chk g cid s2
+  | _ => false
+  end.
+
+(* THE WALK: a sg_chk-accepted body preserves the frame and the gate binding
+   across the WHOLE execution, GIVEN the cid callee oracle (Hcall) and the
+   symbol-store oracle (Hsafe).  The exact wc_walk induction, with the
+   global-store arm generalized to is_symbase_store. *)
+Lemma sg_walk :
+  forall (MWF : mem -> Prop) (Q : int -> Prop) (bm b_out : block) (oo : ptrofs)
+    (g cid : ident)
+    (Hstore : forall ch b0 o0 v0 m1 m2,
+        b0 <> bm -> Mem.store ch m1 b0 o0 v0 = Some m2 -> MWF m1 -> MWF m2)
+    (Hbne : b_out <> bm)
+    ge
+    (Hcall : forall e0 le0 m0 a vf f vargs t0 m0' vres,
+        is_cid_call cid a = true ->
+        eval_expr ge e0 le0 m0 a vf ->
+        Genv.find_funct ge vf = Some f ->
+        eval_funcall function_entry2 ge m0 f vargs t0 m0' vres ->
+        Mem.valid_block m0 bm -> action_sat Q m0 bm -> MWF m0 ->
+        Mem.valid_block m0' bm /\ action_sat Q m0' bm /\ MWF m0')
+    (Hsafe : forall lv rhs e0 le0 m0 t0 le0' m0' out0,
+        is_symbase_store lv = true ->
+        exec_stmt function_entry2 ge e0 le0 m0 (Sassign lv rhs) t0 le0' m0' out0 ->
+        Mem.valid_block m0 bm -> action_sat Q m0 bm -> MWF m0 ->
+        Mem.valid_block m0' bm /\ action_sat Q m0' bm /\ MWF m0'
+          /\ le0' = le0 /\ out0 = Out_normal)
+    e s le m t le' m' out,
+    exec_stmt function_entry2 ge e le m s t le' m' out ->
+    sg_chk g cid s = true ->
+    le ! g = Some (Vptr b_out oo) ->
+    Mem.valid_block m bm -> action_sat Q m bm -> MWF m ->
+    Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m'
+      /\ le' ! g = Some (Vptr b_out oo).
+Proof.
+  intros MWF Q bm b_out oo g cid Hstore Hbne ge Hcall Hsafe
+         e s le m t le' m' out Hexec.
+  induction Hexec; intros Hchk Hg Hv Hsat Hmwf;
+    try discriminate Hchk.
+  - (* Sskip *) repeat split; assumption.
+  - (* Sassign : gate store OR symbol-based store *)
+    cbn [sg_chk] in Hchk.
+    destruct (CensusV2.chain_root_l a1) as [t0|] eqn:Hcr.
+    + (* gate store *)
+      apply andb_prop in Hchk as [Hpe Hbv].
+      apply Pos.eqb_eq in Hpe; subst t0.
+      assert (HH : exec_stmt function_entry2 ge e le m (Sassign a1 a2) E0 le m' Out_normal)
+        by (eapply exec_Sassign; eassumption).
+      edestruct (gate_assign_pres MWF Q bm b_out oo g a1 a2 ge e le m E0 le m' Out_normal
+                   Hstore Hcr Hbv Hg Hbne HH Hv Hsat Hmwf)
+        as (Hv' & Hsat' & Hmwf' & _ & _).
+      repeat split; assumption.
+    + (* symbol-based store *)
+      assert (HH : exec_stmt function_entry2 ge e le m (Sassign a1 a2) E0 le m' Out_normal)
+        by (eapply exec_Sassign; eassumption).
+      edestruct (Hsafe a1 a2 e le m E0 le m' Out_normal Hchk HH Hv Hsat Hmwf)
+        as (Hv' & Hsat' & Hmwf' & _ & _).
+      repeat split; assumption.
+  - (* Sset *)
+    cbn [sg_chk] in Hchk.
+    apply negb_true_iff, Pos.eqb_neq in Hchk.
+    repeat split; try assumption.
+    rewrite PTree.gso by (apply not_eq_sym; exact Hchk); exact Hg.
+  - (* Scall *)
+    cbn [sg_chk] in Hchk.
+    apply andb_prop in Hchk as [Hcid Hopt].
+    edestruct (Hcall e le m a vf f vargs t m' vres Hcid H0 H2 H4 Hv Hsat Hmwf)
+      as (Hv' & Hsat' & Hmwf').
+    repeat split; try assumption.
+    destruct optid as [ti|]; cbn [set_opttemp].
+    + apply negb_true_iff, Pos.eqb_neq in Hopt.
+      rewrite PTree.gso by (apply not_eq_sym; exact Hopt); exact Hg.
+    + exact Hg.
+  - (* Sseq_1 *)
+    cbn [sg_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
+    destruct (IHHexec1 H1 Hg Hv Hsat Hmwf) as (Hv1 & Hsat1 & Hmwf1 & Hg1).
+    exact (IHHexec2 H2 Hg1 Hv1 Hsat1 Hmwf1).
+  - (* Sseq_2 *)
+    cbn [sg_chk] in Hchk. apply andb_prop in Hchk as [H1 _].
+    exact (IHHexec H1 Hg Hv Hsat Hmwf).
+  - (* Sifthenelse *)
+    cbn [sg_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
+    apply IHHexec; [ destruct b; assumption | assumption .. ].
+  - (* Sreturn_none *) repeat split; assumption.
+  - (* Sreturn_some *) repeat split; assumption.
+  - (* Sbreak *) repeat split; assumption.
+  - (* Scontinue *) repeat split; assumption.
+  - (* Sloop_stop1 *)
+    cbn [sg_chk] in Hchk. apply andb_prop in Hchk as [H1 _].
+    exact (IHHexec H1 Hg Hv Hsat Hmwf).
+  - (* Sloop_stop2 *)
+    cbn [sg_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
+    destruct (IHHexec1 H1 Hg Hv Hsat Hmwf) as (Hv1 & Hsat1 & Hmwf1 & Hg1).
+    exact (IHHexec2 H2 Hg1 Hv1 Hsat1 Hmwf1).
+  - (* Sloop_loop *)
+    cbn [sg_chk] in Hchk.
+    pose proof Hchk as Hchk0.
+    apply andb_prop in Hchk as [H1 H2].
+    destruct (IHHexec1 H1 Hg Hv Hsat Hmwf) as (Hv1 & Hsat1 & Hmwf1 & Hg1).
+    destruct (IHHexec2 H2 Hg1 Hv1 Hsat1 Hmwf1) as (Hv2 & Hsat2 & Hmwf2 & Hg2).
+    exact (IHHexec3 Hchk0 Hg2 Hv2 Hsat2 Hmwf2).
+Qed.
+
+(* le!_pfloor / le!_pceil = the 4th argument (params norepet). *)
+Lemma sc_bind_pfloor :
+  forall a0 a1 a2 a3 t0 t1 t2 t3 te le,
+    bind_parameter_temps
+      ((surface_collision._xPos, t0) :: (surface_collision._yPos, t1) ::
+       (surface_collision._zPos, t2) :: (surface_collision._pfloor, t3) :: nil)
+      (a0 :: a1 :: a2 :: a3 :: nil) te = Some le ->
+    le ! surface_collision._pfloor = Some a3.
+Proof.
+  intros a0 a1 a2 a3 t0 t1 t2 t3 te le Hbp.
+  cbn [bind_parameter_temps] in Hbp. injection Hbp as <-. apply PTree.gss.
+Qed.
+
+Lemma sc_bind_pceil :
+  forall a0 a1 a2 a3 t0 t1 t2 t3 te le,
+    bind_parameter_temps
+      ((surface_collision._posX, t0) :: (surface_collision._posY, t1) ::
+       (surface_collision._posZ, t2) :: (surface_collision._pceil, t3) :: nil)
+      (a0 :: a1 :: a2 :: a3 :: nil) te = Some le ->
+    le ! surface_collision._pceil = Some a3.
+Proof.
+  intros a0 a1 a2 a3 t0 t1 t2 t3 te le Hbp.
+  cbn [bind_parameter_temps] in Hbp. injection Hbp as <-. apply PTree.gss.
+Qed.
+
+(* blocks_of_env of the shared 2-var env of find_floor/find_ceil
+   ([_height; _dynamicHeight]; element order _height then _dynamicHeight,
+   verified by vm_compute). *)
+Lemma blocks_of_env_ff2 : forall ge b1 b2,
+  blocks_of_env ge
+    (PTree.set surface_collision._dynamicHeight (b2, tfloat)
+       (PTree.set surface_collision._height (b1, tfloat) empty_env))
+    = (b1, 0, sizeof ge tfloat) :: (b2, 0, sizeof ge tfloat) :: nil.
+Proof.
+  intros ge b1 b2. unfold blocks_of_env.
+  replace (PTree.elements
+             (PTree.set surface_collision._dynamicHeight (b2, tfloat)
+                (PTree.set surface_collision._height (b1, tfloat) empty_env)))
+    with ((surface_collision._height, (b1, tfloat)) ::
+          (surface_collision._dynamicHeight, (b2, tfloat)) ::
+          (@nil (positive * (block*type))))
+    by (vm_compute; reflexivity).
+  cbn [map block_of_binding]. reflexivity.
+Qed.
+
+Lemma find_floor_sg_chk :
+  sg_chk surface_collision._pfloor surface_collision._find_floor_from_list
+    (fn_body surface_collision.f_find_floor) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma find_ceil_sg_chk :
+  sg_chk surface_collision._pceil surface_collision._find_ceil_from_list
+    (fn_body surface_collision.f_find_ceil) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---------------------------------------------------------------------- *)
+(* find_floor body frame: gated on the _pfloor Surface** out-param (a       *)
+(* caller block <> bm); carries the find_floor_from_list callee oracle and  *)
+(* the symbol-store oracle (covering the 3 own-frame local + 3 static       *)
+(* stores).  2 fn_vars => alloc/free oracles (as in find_poison / f32).     *)
+(* ge-generic; consumed at the atomic 14-TU wiring commit where             *)
+(* ge := lp_ge lp: the out-param is find_floor's caller's own local         *)
+(* (dynamicHeight/floor slot, <> bm by the local gate); the callee oracle   *)
+(* discharges from find_floor_from_list_body_frame; the symbol-store oracle *)
+(* discharges from stored_globals (statics <> bm) + fresh-local distinctness*)
+(* (own-frame blocks <> bm).                                                *)
+(* ---------------------------------------------------------------------- *)
+Lemma find_floor_body_frame :
+  forall (ge : genv) (MWF : mem -> Prop) (bm b_out : block) (oo : ptrofs),
+    (forall m lo hi m'' b, Mem.alloc m lo hi = (m'', b) -> MWF m -> MWF m'') ->
+    (forall m2 m3 l, Mem.free_list m2 l = Some m3 -> MWF m2 -> MWF m3) ->
+    (forall ch b0 o0 v0 m1 m2,
+        b0 <> bm -> Mem.store ch m1 b0 o0 v0 = Some m2 -> MWF m1 -> MWF m2) ->
+    (forall e0 le0 m0 a vf f vargs t0 m0' vres,
+        is_cid_call surface_collision._find_floor_from_list a = true ->
+        eval_expr ge e0 le0 m0 a vf ->
+        Genv.find_funct ge vf = Some f ->
+        eval_funcall function_entry2 ge m0 f vargs t0 m0' vres ->
+        Mem.valid_block m0 bm -> action_sat not_tainted m0 bm -> MWF m0 ->
+        Mem.valid_block m0' bm /\ action_sat not_tainted m0' bm /\ MWF m0') ->
+    (forall lv rhs e0 le0 m0 t0 le0' m0' out0,
+        is_symbase_store lv = true ->
+        exec_stmt function_entry2 ge e0 le0 m0 (Sassign lv rhs) t0 le0' m0' out0 ->
+        Mem.valid_block m0 bm -> action_sat not_tainted m0 bm -> MWF m0 ->
+        Mem.valid_block m0' bm /\ action_sat not_tainted m0' bm /\ MWF m0'
+          /\ le0' = le0 /\ out0 = Out_normal) ->
+    forall m vargs t m' vres,
+      eval_funcall function_entry2 ge m
+        (Internal surface_collision.f_find_floor) vargs t m' vres ->
+      nth_error vargs 3 = Some (Vptr b_out oo) ->
+      b_out <> bm ->
+      Mem.valid_block m bm -> action_sat not_tainted m bm -> MWF m ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
+Proof.
+  intros ge MWF bm b_out oo Halloc Hfree Hstore Hcall Hsafe
+         m vargs t m' vres Hevf Hn3 Hbne Hv Hsat Hmwf.
+  unfold surface_collision.f_find_floor in Hevf.
+  inv Hevf.
+  match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+  match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+  match goal with Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfl end.
+  (* ENTRY: alloc _height then _dynamicHeight, bind the 4 params *)
+  inv Hentry.
+  match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ => cbn [fn_vars] in Ha; inv Ha end.
+  match goal with Ha : alloc_variables _ _ _ (_ :: nil) _ _ |- _ => inv Ha end.
+  match goal with Ha : alloc_variables _ _ _ nil _ _ |- _ => inv Ha end.
+  match goal with
+  | H1 : Mem.alloc ?ma 0 _ = (?mid, ?bb1),
+    H2 : Mem.alloc ?mid 0 _ = (?mfin, ?bb2) |- _ =>
+      assert (Hb1_bm : bb1 <> bm)
+        by (intro EE; subst bb1; exact (Mem.fresh_block_alloc _ _ _ _ _ H1 Hv));
+      assert (HmwfA1 : MWF mid) by (eapply Halloc; [ exact H1 | exact Hmwf ]);
+      assert (HvA1 : Mem.valid_block mid bm)
+        by (eapply Mem.valid_block_alloc; [ exact H1 | exact Hv ]);
+      assert (HsatA1 : action_sat not_tainted mid bm)
+        by (eapply action_sat_unchanged_on;
+            [ eapply Mem.alloc_unchanged_on; exact H1 | exact Hv | exact Hsat ]);
+      assert (Hb2_bm : bb2 <> bm)
+        by (intro EE; subst bb2; exact (Mem.fresh_block_alloc _ _ _ _ _ H2 HvA1));
+      assert (HmwfA2 : MWF mfin) by (eapply Halloc; [ exact H2 | exact HmwfA1 ]);
+      assert (HvA2 : Mem.valid_block mfin bm)
+        by (eapply Mem.valid_block_alloc; [ exact H2 | exact HvA1 ]);
+      assert (HsatA2 : action_sat not_tainted mfin bm)
+        by (eapply action_sat_unchanged_on;
+            [ eapply Mem.alloc_unchanged_on; exact H2 | exact HvA1 | exact HsatA1 ])
+  end.
+  match goal with Hbp : bind_parameter_temps _ vargs _ = Some ?LE |- _ =>
+    cbn [fn_params fn_temps] in Hbp;
+    destruct vargs as [|a0 [|a1 [|a2 [|a3 [|a4 vr]]]]];
+      try (cbn [bind_parameter_temps] in Hbp; discriminate Hbp);
+    cbn [nth_error] in Hn3; injection Hn3 as ->;
+    assert (Hled : LE ! surface_collision._pfloor = Some (Vptr b_out oo))
+      by (eapply sc_bind_pfloor; exact Hbp)
+  end.
+  cbn [fn_body] in Hbody.
+  destruct (sg_walk MWF not_tainted bm b_out oo surface_collision._pfloor
+              surface_collision._find_floor_from_list
+              Hstore Hbne ge Hcall Hsafe _ _ _ _ _ _ _ _ Hbody
+              find_floor_sg_chk Hled HvA2 HsatA2 HmwfA2)
+    as (Hvb & Hsatb & Hmwfb & _).
+  (* EXIT: free the 2 own-frame blocks (both bm-distinct) *)
+  rewrite blocks_of_env_ff2 in Hfl.
+  assert (Hforall : Forall (fun blh => let '(b,_,_) := blh in b <> bm)
+                      ((_, 0, sizeof ge tfloat) :: (_, 0, sizeof ge tfloat) :: nil))
+    by (constructor; [ exact Hb1_bm | constructor; [ exact Hb2_bm | constructor ] ]).
+  destruct (vfc_free_list_frame not_tainted bm _ _ _ Hforall Hfl Hvb Hsatb) as (Hvf & Hsf).
+  split; [ exact Hvf | split; [ exact Hsf | eapply Hfree; [ exact Hfl | exact Hmwfb ] ] ].
+Qed.
+
+(* ---------------------------------------------------------------------- *)
+(* find_ceil body frame: the ceil twin — GATE = _pceil, callee oracle =     *)
+(* find_ceil_from_list, single Efield static (gNumCalls.ceil) + own-frame   *)
+(* locals folded into the same symbol-store oracle; same 2 fn_vars.         *)
+(* ---------------------------------------------------------------------- *)
+Lemma find_ceil_body_frame :
+  forall (ge : genv) (MWF : mem -> Prop) (bm b_out : block) (oo : ptrofs),
+    (forall m lo hi m'' b, Mem.alloc m lo hi = (m'', b) -> MWF m -> MWF m'') ->
+    (forall m2 m3 l, Mem.free_list m2 l = Some m3 -> MWF m2 -> MWF m3) ->
+    (forall ch b0 o0 v0 m1 m2,
+        b0 <> bm -> Mem.store ch m1 b0 o0 v0 = Some m2 -> MWF m1 -> MWF m2) ->
+    (forall e0 le0 m0 a vf f vargs t0 m0' vres,
+        is_cid_call surface_collision._find_ceil_from_list a = true ->
+        eval_expr ge e0 le0 m0 a vf ->
+        Genv.find_funct ge vf = Some f ->
+        eval_funcall function_entry2 ge m0 f vargs t0 m0' vres ->
+        Mem.valid_block m0 bm -> action_sat not_tainted m0 bm -> MWF m0 ->
+        Mem.valid_block m0' bm /\ action_sat not_tainted m0' bm /\ MWF m0') ->
+    (forall lv rhs e0 le0 m0 t0 le0' m0' out0,
+        is_symbase_store lv = true ->
+        exec_stmt function_entry2 ge e0 le0 m0 (Sassign lv rhs) t0 le0' m0' out0 ->
+        Mem.valid_block m0 bm -> action_sat not_tainted m0 bm -> MWF m0 ->
+        Mem.valid_block m0' bm /\ action_sat not_tainted m0' bm /\ MWF m0'
+          /\ le0' = le0 /\ out0 = Out_normal) ->
+    forall m vargs t m' vres,
+      eval_funcall function_entry2 ge m
+        (Internal surface_collision.f_find_ceil) vargs t m' vres ->
+      nth_error vargs 3 = Some (Vptr b_out oo) ->
+      b_out <> bm ->
+      Mem.valid_block m bm -> action_sat not_tainted m bm -> MWF m ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
+Proof.
+  intros ge MWF bm b_out oo Halloc Hfree Hstore Hcall Hsafe
+         m vargs t m' vres Hevf Hn3 Hbne Hv Hsat Hmwf.
+  unfold surface_collision.f_find_ceil in Hevf.
+  inv Hevf.
+  match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+  match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+  match goal with Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfl end.
+  inv Hentry.
+  match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ => cbn [fn_vars] in Ha; inv Ha end.
+  match goal with Ha : alloc_variables _ _ _ (_ :: nil) _ _ |- _ => inv Ha end.
+  match goal with Ha : alloc_variables _ _ _ nil _ _ |- _ => inv Ha end.
+  match goal with
+  | H1 : Mem.alloc ?ma 0 _ = (?mid, ?bb1),
+    H2 : Mem.alloc ?mid 0 _ = (?mfin, ?bb2) |- _ =>
+      assert (Hb1_bm : bb1 <> bm)
+        by (intro EE; subst bb1; exact (Mem.fresh_block_alloc _ _ _ _ _ H1 Hv));
+      assert (HmwfA1 : MWF mid) by (eapply Halloc; [ exact H1 | exact Hmwf ]);
+      assert (HvA1 : Mem.valid_block mid bm)
+        by (eapply Mem.valid_block_alloc; [ exact H1 | exact Hv ]);
+      assert (HsatA1 : action_sat not_tainted mid bm)
+        by (eapply action_sat_unchanged_on;
+            [ eapply Mem.alloc_unchanged_on; exact H1 | exact Hv | exact Hsat ]);
+      assert (Hb2_bm : bb2 <> bm)
+        by (intro EE; subst bb2; exact (Mem.fresh_block_alloc _ _ _ _ _ H2 HvA1));
+      assert (HmwfA2 : MWF mfin) by (eapply Halloc; [ exact H2 | exact HmwfA1 ]);
+      assert (HvA2 : Mem.valid_block mfin bm)
+        by (eapply Mem.valid_block_alloc; [ exact H2 | exact HvA1 ]);
+      assert (HsatA2 : action_sat not_tainted mfin bm)
+        by (eapply action_sat_unchanged_on;
+            [ eapply Mem.alloc_unchanged_on; exact H2 | exact HvA1 | exact HsatA1 ])
+  end.
+  match goal with Hbp : bind_parameter_temps _ vargs _ = Some ?LE |- _ =>
+    cbn [fn_params fn_temps] in Hbp;
+    destruct vargs as [|a0 [|a1 [|a2 [|a3 [|a4 vr]]]]];
+      try (cbn [bind_parameter_temps] in Hbp; discriminate Hbp);
+    cbn [nth_error] in Hn3; injection Hn3 as ->;
+    assert (Hled : LE ! surface_collision._pceil = Some (Vptr b_out oo))
+      by (eapply sc_bind_pceil; exact Hbp)
+  end.
+  cbn [fn_body] in Hbody.
+  destruct (sg_walk MWF not_tainted bm b_out oo surface_collision._pceil
+              surface_collision._find_ceil_from_list
+              Hstore Hbne ge Hcall Hsafe _ _ _ _ _ _ _ _ Hbody
+              find_ceil_sg_chk Hled HvA2 HsatA2 HmwfA2)
+    as (Hvb & Hsatb & Hmwfb & _).
+  rewrite blocks_of_env_ff2 in Hfl.
+  assert (Hforall : Forall (fun blh => let '(b,_,_) := blh in b <> bm)
+                      ((_, 0, sizeof ge tfloat) :: (_, 0, sizeof ge tfloat) :: nil))
+    by (constructor; [ exact Hb1_bm | constructor; [ exact Hb2_bm | constructor ] ]).
+  destruct (vfc_free_list_frame not_tainted bm _ _ _ Hforall Hfl Hvb Hsatb) as (Hvf & Hsf).
+  split; [ exact Hvf | split; [ exact Hsf | eapply Hfree; [ exact Hfl | exact Hmwfb ] ] ].
+Qed.
