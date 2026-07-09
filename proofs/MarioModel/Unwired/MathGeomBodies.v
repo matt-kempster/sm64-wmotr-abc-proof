@@ -30,7 +30,7 @@
 From Coq Require Import ZArith List.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking.
-From SM64.Generated Require surface_collision.
+From SM64.Generated Require surface_collision math_util.
 From SM64.Proofs Require Import ActionValueFrame Taint MarioStepSurface RestSurface.
 
 Import ListNotations.
@@ -161,4 +161,183 @@ Proof.
   - refine (proj2 (vfc_free_list_frame not_tainted bm _ _ _ _ Hfl HvA HsatA)).
     constructor; [ exact Hbfil_ne | constructor ].
   - exact (Hfree _ _ _ Hfl HmwfA).
+Qed.
+
+(* ====================================================================== *)
+(* 3. atan2_lookup: PURE, fn_vars = nil => MEMORY IDENTITY.               *)
+(*    (math_util.v:12515).  Body is nested Sifthenelse over Sset temps     *)
+(*    reading the static gArctanTable, then Sreturn -- 0 Sassign,          *)
+(*    0 Scall.  Store class: PURE-SCALAR (same as find_water_level).       *)
+(* ====================================================================== *)
+
+(* NON-VACUITY: the pure_chk recognizer accepts the REAL generated body. *)
+Lemma atan2_lookup_pure_chk :
+  pure_chk (fn_body math_util.f_atan2_lookup) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* THE SHARP FACT: the whole funcall returns the SAME memory. *)
+Lemma atan2_lookup_memid :
+  forall (ge : genv) m vargs t m' vres,
+    eval_funcall function_entry2 ge m
+      (Internal math_util.f_atan2_lookup) vargs t m' vres ->
+    m' = m.
+Proof.
+  intros ge m vargs t m' vres Hevf.
+  unfold math_util.f_atan2_lookup in Hevf.
+  inv Hevf.
+  match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+  match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+  match goal with Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfree end.
+  inv Hentry.
+  match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+    cbn [fn_vars] in Ha; inv Ha end.
+  pose proof (pure_walk _ _ _ _ _ _ _ _ _ Hbody atan2_lookup_pure_chk) as Em.
+  subst m1.
+  assert (Hben : blocks_of_env ge empty_env = nil) by reflexivity.
+  rewrite Hben in Hfree. cbn [Mem.free_list] in Hfree.
+  injection Hfree as <-. reflexivity.
+Qed.
+
+(* THE CONSUMER-FACING FRAME COROLLARY (body_pres shape, ge-generic). *)
+Lemma atan2_lookup_body_frame :
+  forall (ge : genv) (NoA MWF : mem -> Prop) (bm : block) m vargs t m' vres,
+    eval_funcall function_entry2 ge m
+      (Internal math_util.f_atan2_lookup) vargs t m' vres ->
+    NoA m -> MWF m -> Mem.valid_block m bm -> action_sat not_tainted m bm ->
+    Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
+Proof.
+  intros ge NoA MWF bm m vargs t m' vres Hevf Hno Hmwf Hv Hsat.
+  rewrite (atan2_lookup_memid ge m vargs t m' vres Hevf).
+  exact (conj Hv (conj Hsat Hmwf)).
+Qed.
+
+(* ====================================================================== *)
+(* 4. atan2s: PURE-SCALAR (fn_vars = nil, 0 Sassign) but its 8 octant     *)
+(*    leaves each call atan2_lookup (math_util.v:12546).  Store class:     *)
+(*    PURE-SCALAR-WITH-INTERNAL-CALL.  In a ge-GENERIC setting the symbol  *)
+(*    _atan2_lookup cannot be resolved, so the funcall in the Scall case   *)
+(*    is opaque.  We therefore carry a SPECIFIC call-memory-identity       *)
+(*    oracle for the _atan2_lookup callee expression (SATISFIABLE, unlike  *)
+(*    a blanket all-calls oracle): at the wiring point ge := lp_ge lp the  *)
+(*    symbol resolves to Internal f_atan2_lookup and the oracle is         *)
+(*    discharged from atan2_lookup_memid.  This is the exact analogue of   *)
+(*    find_poison_gas_level_body_frame carrying its alloc/free oracles.     *)
+(* ====================================================================== *)
+
+(* Recognizer for the _atan2_lookup callee expression. *)
+Definition is_atan2_lookup_call (a : expr) : bool :=
+  match a with
+  | Evar id _ => Pos.eqb id math_util._atan2_lookup
+  | _ => false
+  end.
+
+(* pure_chk widened to accept Scall to _atan2_lookup (no Sswitch/Sassign). *)
+Fixpoint cpure_chk (s : statement) : bool :=
+  match s with
+  | Sskip | Sbreak | Scontinue | Sreturn _ => true
+  | Sset _ _ => true
+  | Scall _ a _ => is_atan2_lookup_call a
+  | Ssequence s1 s2 => cpure_chk s1 && cpure_chk s2
+  | Sifthenelse _ s1 s2 => cpure_chk s1 && cpure_chk s2
+  | Sloop s1 s2 => cpure_chk s1 && cpure_chk s2
+  | _ => false
+  end.
+
+(* NON-VACUITY: the widened recognizer accepts the REAL generated body. *)
+Lemma atan2s_cpure_chk :
+  cpure_chk (fn_body math_util.f_atan2s) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* THE CALL-AWARE WALK: a cpure_chk-accepted statement leaves memory
+   IDENTICAL, GIVEN the _atan2_lookup callee preserves memory (Hcall). *)
+Lemma cpure_walk :
+  forall (ge : genv)
+    (Hcall : forall e le m a vf f vargs t m' vres,
+        is_atan2_lookup_call a = true ->
+        eval_expr ge e le m a vf ->
+        Genv.find_funct ge vf = Some f ->
+        eval_funcall function_entry2 ge m f vargs t m' vres -> m' = m)
+    s e le m tr le' m' out,
+    exec_stmt function_entry2 ge e le m s tr le' m' out ->
+    cpure_chk s = true -> m' = m.
+Proof.
+  intros ge Hcall s e le m tr le' m' out Hexec.
+  induction Hexec; intros Hchk; try reflexivity; try discriminate Hchk.
+  - (* Scall *)
+    cbn [cpure_chk] in Hchk.
+    eapply Hcall; [ exact Hchk | eassumption | eassumption | eassumption ].
+  - (* Sseq_1 *)
+    cbn [cpure_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
+    rewrite (IHHexec2 H2). exact (IHHexec1 H1).
+  - (* Sseq_2 *)
+    cbn [cpure_chk] in Hchk. apply andb_prop in Hchk as [H1 _].
+    exact (IHHexec H1).
+  - (* Sifthenelse *)
+    cbn [cpure_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
+    apply IHHexec. destruct b; assumption.
+  - (* Sloop stop1 *)
+    cbn [cpure_chk] in Hchk. apply andb_prop in Hchk as [H1 _].
+    exact (IHHexec H1).
+  - (* Sloop stop2 *)
+    cbn [cpure_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
+    rewrite (IHHexec2 H2). exact (IHHexec1 H1).
+  - (* Sloop loop *)
+    cbn [cpure_chk] in Hchk.
+    pose proof Hchk as Hchk0.
+    apply andb_prop in Hchk as [H1 H2].
+    rewrite (IHHexec3 Hchk0), (IHHexec2 H2). exact (IHHexec1 H1).
+Qed.
+
+(* THE SHARP FACT: given the _atan2_lookup call oracle, the whole atan2s
+   funcall returns the SAME memory (fn_vars = nil => empty_env, exit frees
+   nothing). *)
+Lemma atan2s_memid :
+  forall (ge : genv)
+    (Hcall : forall e le m a vf f vargs t m' vres,
+        is_atan2_lookup_call a = true ->
+        eval_expr ge e le m a vf ->
+        Genv.find_funct ge vf = Some f ->
+        eval_funcall function_entry2 ge m f vargs t m' vres -> m' = m)
+    m vargs t m' vres,
+    eval_funcall function_entry2 ge m
+      (Internal math_util.f_atan2s) vargs t m' vres ->
+    m' = m.
+Proof.
+  intros ge Hcall m vargs t m' vres Hevf.
+  unfold math_util.f_atan2s in Hevf.
+  inv Hevf.
+  match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+  match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+  match goal with Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfree end.
+  inv Hentry.
+  match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+    cbn [fn_vars] in Ha; inv Ha end.
+  pose proof (cpure_walk ge Hcall _ _ _ _ _ _ _ _ Hbody atan2s_cpure_chk) as Em.
+  subst m1.
+  assert (Hben : blocks_of_env ge empty_env = nil) by reflexivity.
+  rewrite Hben in Hfree. cbn [Mem.free_list] in Hfree.
+  injection Hfree as <-. reflexivity.
+Qed.
+
+(* THE CONSUMER-FACING FRAME COROLLARY (body_pres shape, ge-generic).
+   Carries the _atan2_lookup call oracle as a premise -- the exact analogue
+   of find_poison_gas_level_body_frame's alloc/free oracles.  At the wiring
+   point the oracle is discharged from atan2_lookup_memid (once the symbol
+   _atan2_lookup resolves to Internal f_atan2_lookup in lp_ge). *)
+Lemma atan2s_body_frame :
+  forall (ge : genv) (NoA MWF : mem -> Prop) (bm : block),
+    (forall e le m a vf f vargs t m' vres,
+        is_atan2_lookup_call a = true ->
+        eval_expr ge e le m a vf ->
+        Genv.find_funct ge vf = Some f ->
+        eval_funcall function_entry2 ge m f vargs t m' vres -> m' = m) ->
+    forall m vargs t m' vres,
+      eval_funcall function_entry2 ge m
+        (Internal math_util.f_atan2s) vargs t m' vres ->
+      NoA m -> MWF m -> Mem.valid_block m bm -> action_sat not_tainted m bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
+Proof.
+  intros ge NoA MWF bm Hcall m vargs t m' vres Hevf Hno Hmwf Hv Hsat.
+  rewrite (atan2s_memid ge Hcall m vargs t m' vres Hevf).
+  exact (conj Hv (conj Hsat Hmwf)).
 Qed.
