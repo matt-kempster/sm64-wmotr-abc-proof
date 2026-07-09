@@ -1410,3 +1410,573 @@ Proof.
   destruct (vfc_free_list_frame not_tainted bm _ _ _ Hforall Hfl Hv11 Hs11) as (Hvf & Hsf).
   split; [ exact Hvf | split; [ exact Hsf | eapply Hfree; [ exact Hfl | exact Hm11 ] ] ].
 Qed.
+
+(* ====================================================================== *)
+(* 7. LOOP-TOLERANT OUT-PARAM WALKER (task #90, P1' pre-stage).            *)
+(*                                                                        *)
+(* STORE-SCOUT VERDICT (per-Sassign against the generated AST, verified): *)
+(*   - find_floor_from_list (surface_collision.v:2654): fn_vars := nil,    *)
+(*       ONE Sassign `*_pheight = _height` through the `_pheight` float*   *)
+(*       out-param (param#4), 0 Scall, 0 statics, inside a `Swhile` over   *)
+(*       the surface linked list.  Gate: _pheight = Vptr b_out oo, b_out   *)
+(*       <> bm.  Every loop iteration writes the SAME out-param (never     *)
+(*       rebinds _pheight), so the invariant holds each iteration.         *)
+(*   - find_ceil_from_list (:1987): the ceil twin, identical shape.        *)
+(*   - find_wall_collisions_from_list (:709): fn_vars := nil, FOUR Sassign *)
+(*       all through the `_data` WallCollisionData* out-param (param#1)     *)
+(*       (`->x`,`->z`,`->numWalls`, and the indexed `->walls[t'6]`), 0     *)
+(*       Scall, 0 statics, inside a `Swhile`.  Gate: _data = Vptr b_out.   *)
+(*                                                                        *)
+(* The straight-line peelers (sl_chk/slc_chk) do NOT cross the `Sloop` of  *)
+(* the `Swhile`.  We build a loop-tolerant frame walker by induction on    *)
+(* the exec_stmt derivation (the SAME instrument as cpure_walk above, but  *)
+(* carrying a FRAME + GATE invariant instead of memory identity): every    *)
+(* store's lvalue chain roots at the gate temp `g` (CensusV2.chain_root_l) *)
+(* and no Sset/Scall rebinds `g`, so across the whole execution            *)
+(* `le!g = Vptr b_out oo` with `b_out <> bm`, and every store lands in     *)
+(* `b_out` — off the action cell.                                          *)
+(* ====================================================================== *)
+
+(* recognizer: every store chain-roots at g and is By_value; no Sset of g;
+   no Scall/Sbuiltin/Sswitch/Sgoto/Slabel.  Accepts Sset(<>g)/Sreturn/
+   Sskip/Sbreak/Scontinue and the Ssequence/Sifthenelse/Sloop scaffolding. *)
+Fixpoint gate_chk (g : ident) (s : statement) : bool :=
+  match s with
+  | Sskip | Sbreak | Scontinue | Sreturn _ => true
+  | Sset id _ => negb (Pos.eqb id g)
+  | Sassign lv _ =>
+      match CensusV2.chain_root_l lv with
+      | Some t =>
+          Pos.eqb t g &&
+          (match access_mode (typeof lv) with By_value _ => true | _ => false end)
+      | None => false
+      end
+  | Ssequence s1 s2 => gate_chk g s1 && gate_chk g s2
+  | Sifthenelse _ s1 s2 => gate_chk g s1 && gate_chk g s2
+  | Sloop s1 s2 => gate_chk g s1 && gate_chk g s2
+  | _ => false
+  end.
+
+(* ONE gate store `Sassign lv rhs` with `chain_root_l lv = Some g`,
+   `le!g = Vptr b_out oo`, `b_out <> bm`: the store lands in b_out (via
+   chain_root_l_block), frame preserved, temps unchanged.  All three
+   assign_loc modes bottom out in a storev into b_out (By_copy refuted by
+   the By_value recognizer bit; store_bitfield ends in a storev too). *)
+Lemma gate_assign_pres :
+  forall (MWF : mem -> Prop) (Q : int -> Prop) (bm b_out : block) (oo : ptrofs)
+    g lv rhs ge e le m t le' m' out,
+    (forall ch b0 o0 v0 m1 m2,
+        b0 <> bm -> Mem.store ch m1 b0 o0 v0 = Some m2 -> MWF m1 -> MWF m2) ->
+    CensusV2.chain_root_l lv = Some g ->
+    (match access_mode (typeof lv) with By_value _ => true | _ => false end) = true ->
+    le ! g = Some (Vptr b_out oo) ->
+    b_out <> bm ->
+    exec_stmt function_entry2 ge e le m (Sassign lv rhs) t le' m' out ->
+    Mem.valid_block m bm -> action_sat Q m bm -> MWF m ->
+    Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m' /\ le' = le /\ out = Out_normal.
+Proof.
+  intros MWF Q bm b_out oo g lv rhs ge e le m t le' m' out
+         Hstore Hcr Hac Hg Hbne Hexec Hv Hsat Hmwf.
+  inv Hexec.
+  match goal with Hlv : eval_lvalue _ _ _ _ lv ?loc _ _ |- _ =>
+    destruct (CensusV2.chain_root_l_block _ _ _ _ _ _ _ _ _ Hcr Hlv) as (o0 & Hleg);
+    assert (Hloc : loc = b_out) by congruence; subst loc end.
+  match goal with Hass : assign_loc _ (typeof lv) _ _ _ _ _ _ |- _ => inv Hass end.
+  - (* value *)
+    match goal with Hsv : Mem.storev _ _ _ _ = Some m' |- _ =>
+      unfold Mem.storev in Hsv;
+      destruct (store_off_bm_pres MWF Q bm b_out _ _ _ m m' Hstore Hbne Hsv Hv Hsat Hmwf)
+        as (Hv' & Hsat' & Hmwf') end.
+    split;[exact Hv'|split;[exact Hsat'|split;[exact Hmwf'|split;reflexivity]]].
+  - (* copy: access_mode = By_copy contradicts the By_value recognizer bit *)
+    match goal with Hco : access_mode (typeof lv) = By_copy |- _ =>
+      rewrite Hco in Hac; discriminate Hac end.
+  - (* bitfield: store_bitfield ends in a storev into b_out *)
+    match goal with Hsb : store_bitfield _ _ _ _ _ _ _ _ _ _ |- _ => inv Hsb end.
+    match goal with Hsv : Mem.storev _ _ _ _ = Some m' |- _ =>
+      unfold Mem.storev in Hsv;
+      destruct (store_off_bm_pres MWF Q bm b_out _ _ _ m m' Hstore Hbne Hsv Hv Hsat Hmwf)
+        as (Hv' & Hsat' & Hmwf') end.
+    split;[exact Hv'|split;[exact Hsat'|split;[exact Hmwf'|split;reflexivity]]].
+Qed.
+
+(* THE LOOP-TOLERANT WALK: a gate_chk-accepted body preserves the frame and
+   the gate binding across the WHOLE execution (loops included).  Proved by
+   induction on the exec_stmt derivation; the Sloop cases thread the
+   invariant through each iteration exactly as cpure_walk threads memory
+   identity. *)
+Lemma gate_walk :
+  forall (MWF : mem -> Prop) (Q : int -> Prop) (bm b_out : block) (oo : ptrofs) (g : ident)
+    (Hstore : forall ch b0 o0 v0 m1 m2,
+        b0 <> bm -> Mem.store ch m1 b0 o0 v0 = Some m2 -> MWF m1 -> MWF m2)
+    (Hbne : b_out <> bm)
+    ge e s le m t le' m' out,
+    exec_stmt function_entry2 ge e le m s t le' m' out ->
+    gate_chk g s = true ->
+    le ! g = Some (Vptr b_out oo) ->
+    Mem.valid_block m bm -> action_sat Q m bm -> MWF m ->
+    Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m'
+      /\ le' ! g = Some (Vptr b_out oo).
+Proof.
+  intros MWF Q bm b_out oo g Hstore Hbne ge e s le m t le' m' out Hexec.
+  induction Hexec; intros Hchk Hg Hv Hsat Hmwf;
+    try discriminate Hchk.
+  - (* Sskip *) repeat split; assumption.
+  - (* Sassign *)
+    cbn [gate_chk] in Hchk.
+    destruct (CensusV2.chain_root_l a1) as [t0|] eqn:Hcr; [ | discriminate Hchk ].
+    apply andb_prop in Hchk as [Hpe Hbv].
+    apply Pos.eqb_eq in Hpe; subst t0.
+    assert (HH : exec_stmt function_entry2 ge e le m (Sassign a1 a2) E0 le m' Out_normal)
+      by (eapply exec_Sassign; eassumption).
+    edestruct (gate_assign_pres MWF Q bm b_out oo g a1 a2 ge e le m E0 le m' Out_normal
+                 Hstore Hcr Hbv Hg Hbne HH Hv Hsat Hmwf)
+      as (Hv' & Hsat' & Hmwf' & _ & _).
+    repeat split; assumption.
+  - (* Sset *)
+    cbn [gate_chk] in Hchk.
+    apply negb_true_iff, Pos.eqb_neq in Hchk.
+    repeat split; try assumption.
+    rewrite PTree.gso by (apply not_eq_sym; exact Hchk); exact Hg.
+  - (* Sseq_1 *)
+    cbn [gate_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
+    destruct (IHHexec1 H1 Hg Hv Hsat Hmwf) as (Hv1 & Hsat1 & Hmwf1 & Hg1).
+    exact (IHHexec2 H2 Hg1 Hv1 Hsat1 Hmwf1).
+  - (* Sseq_2 *)
+    cbn [gate_chk] in Hchk. apply andb_prop in Hchk as [H1 _].
+    exact (IHHexec H1 Hg Hv Hsat Hmwf).
+  - (* Sifthenelse *)
+    cbn [gate_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
+    apply IHHexec; [ destruct b; assumption | assumption .. ].
+  - (* Sreturn_none *) repeat split; assumption.
+  - (* Sreturn_some *) repeat split; assumption.
+  - (* Sbreak *) repeat split; assumption.
+  - (* Scontinue *) repeat split; assumption.
+  - (* Sloop_stop1 *)
+    cbn [gate_chk] in Hchk. apply andb_prop in Hchk as [H1 _].
+    exact (IHHexec H1 Hg Hv Hsat Hmwf).
+  - (* Sloop_stop2 *)
+    cbn [gate_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
+    destruct (IHHexec1 H1 Hg Hv Hsat Hmwf) as (Hv1 & Hsat1 & Hmwf1 & Hg1).
+    exact (IHHexec2 H2 Hg1 Hv1 Hsat1 Hmwf1).
+  - (* Sloop_loop *)
+    cbn [gate_chk] in Hchk.
+    pose proof Hchk as Hchk0.
+    apply andb_prop in Hchk as [H1 H2].
+    destruct (IHHexec1 H1 Hg Hv Hsat Hmwf) as (Hv1 & Hsat1 & Hmwf1 & Hg1).
+    destruct (IHHexec2 H2 Hg1 Hv1 Hsat1 Hmwf1) as (Hv2 & Hsat2 & Hmwf2 & Hg2).
+    exact (IHHexec3 Hchk0 Hg2 Hv2 Hsat2 Hmwf2).
+Qed.
+
+(* le!_pheight = the 5th argument (params norepet, _pheight is the last of
+   the 5-param find_{floor,ceil}_from_list signature). *)
+Lemma sc_bind_pheight :
+  forall a0 a1 a2 a3 a4 t0 t1 t2 t3 t4 te le,
+    bind_parameter_temps
+      ((surface_collision._surfaceNode, t0) :: (surface_collision._x, t1) ::
+       (surface_collision._y, t2) :: (surface_collision._z, t3) ::
+       (surface_collision._pheight, t4) :: nil)
+      (a0 :: a1 :: a2 :: a3 :: a4 :: nil) te = Some le ->
+    le ! surface_collision._pheight = Some a4.
+Proof.
+  intros a0 a1 a2 a3 a4 t0 t1 t2 t3 t4 te le Hbp.
+  cbn [bind_parameter_temps] in Hbp. injection Hbp as <-.
+  apply PTree.gss.
+Qed.
+
+(* le!_data = the 2nd argument of find_wall_collisions_from_list. *)
+Lemma sc_bind_data :
+  forall a0 a1 t0 t1 te le,
+    bind_parameter_temps
+      ((surface_collision._surfaceNode, t0) ::
+       (surface_collision._data, t1) :: nil)
+      (a0 :: a1 :: nil) te = Some le ->
+    le ! surface_collision._data = Some a1.
+Proof.
+  intros a0 a1 t0 t1 te le Hbp.
+  cbn [bind_parameter_temps] in Hbp. injection Hbp as <-.
+  apply PTree.gss.
+Qed.
+
+(* ---------------------------------------------------------------------- *)
+(* find_floor_from_list body frame: gated on the _pheight float* out-param *)
+(* (a caller block <> bm).  fn_vars = nil, so NO alloc/free oracle needed  *)
+(* (empty_env; exit frees nothing).  ge-generic; consumed at the atomic    *)
+(* wiring commit as the find_floor_from_list ripple case (the out-param is *)
+(* find_floor's own local `dynamicHeight`, <> bm by the local gate).       *)
+(* ---------------------------------------------------------------------- *)
+Lemma find_floor_from_list_pheight_chk :
+  gate_chk surface_collision._pheight
+    (fn_body surface_collision.f_find_floor_from_list) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma find_floor_from_list_body_frame :
+  forall (ge : genv) (MWF : mem -> Prop) (bm b_out : block) (oo : ptrofs),
+    (forall ch b0 o0 v0 m1 m2,
+        b0 <> bm -> Mem.store ch m1 b0 o0 v0 = Some m2 -> MWF m1 -> MWF m2) ->
+    forall m vargs t m' vres,
+      eval_funcall function_entry2 ge m
+        (Internal surface_collision.f_find_floor_from_list) vargs t m' vres ->
+      nth_error vargs 4 = Some (Vptr b_out oo) ->
+      b_out <> bm ->
+      Mem.valid_block m bm -> action_sat not_tainted m bm -> MWF m ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
+Proof.
+  intros ge MWF bm b_out oo Hstore m vargs t m' vres Hevf Hn4 Hbne Hv Hsat Hmwf.
+  unfold surface_collision.f_find_floor_from_list in Hevf.
+  inv Hevf.
+  match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+  match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+  match goal with Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfl end.
+  inv Hentry.
+  match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+    cbn [fn_vars] in Ha; inv Ha end.
+  match goal with Hbp : bind_parameter_temps _ vargs _ = Some ?LE |- _ =>
+    cbn [fn_params fn_temps] in Hbp;
+    destruct vargs as [|a0 [|a1 [|a2 [|a3 [|a4 [|a5 vr]]]]]];
+      try (cbn [bind_parameter_temps] in Hbp; discriminate Hbp);
+    cbn [nth_error] in Hn4; injection Hn4 as ->;
+    assert (Hled : LE ! surface_collision._pheight = Some (Vptr b_out oo))
+      by (eapply sc_bind_pheight; exact Hbp)
+  end.
+  cbn [fn_body] in Hbody.
+  destruct (gate_walk MWF not_tainted bm b_out oo surface_collision._pheight
+              Hstore Hbne _ _ _ _ _ _ _ _ _ Hbody
+              find_floor_from_list_pheight_chk Hled Hv Hsat Hmwf)
+    as (Hvb & Hsatb & Hmwfb & _).
+  (* EXIT: free_list of empty_env = nil => m' = post-body memory *)
+  assert (Hben : blocks_of_env ge empty_env = nil) by reflexivity.
+  rewrite Hben in Hfl. cbn [Mem.free_list] in Hfl. injection Hfl as <-.
+  exact (conj Hvb (conj Hsatb Hmwfb)).
+Qed.
+
+(* ---------------------------------------------------------------------- *)
+(* find_ceil_from_list body frame: the ceil twin, identical gate/shape.    *)
+(* ---------------------------------------------------------------------- *)
+Lemma find_ceil_from_list_pheight_chk :
+  gate_chk surface_collision._pheight
+    (fn_body surface_collision.f_find_ceil_from_list) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma find_ceil_from_list_body_frame :
+  forall (ge : genv) (MWF : mem -> Prop) (bm b_out : block) (oo : ptrofs),
+    (forall ch b0 o0 v0 m1 m2,
+        b0 <> bm -> Mem.store ch m1 b0 o0 v0 = Some m2 -> MWF m1 -> MWF m2) ->
+    forall m vargs t m' vres,
+      eval_funcall function_entry2 ge m
+        (Internal surface_collision.f_find_ceil_from_list) vargs t m' vres ->
+      nth_error vargs 4 = Some (Vptr b_out oo) ->
+      b_out <> bm ->
+      Mem.valid_block m bm -> action_sat not_tainted m bm -> MWF m ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
+Proof.
+  intros ge MWF bm b_out oo Hstore m vargs t m' vres Hevf Hn4 Hbne Hv Hsat Hmwf.
+  unfold surface_collision.f_find_ceil_from_list in Hevf.
+  inv Hevf.
+  match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+  match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+  match goal with Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfl end.
+  inv Hentry.
+  match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+    cbn [fn_vars] in Ha; inv Ha end.
+  match goal with Hbp : bind_parameter_temps _ vargs _ = Some ?LE |- _ =>
+    cbn [fn_params fn_temps] in Hbp;
+    destruct vargs as [|a0 [|a1 [|a2 [|a3 [|a4 [|a5 vr]]]]]];
+      try (cbn [bind_parameter_temps] in Hbp; discriminate Hbp);
+    cbn [nth_error] in Hn4; injection Hn4 as ->;
+    assert (Hled : LE ! surface_collision._pheight = Some (Vptr b_out oo))
+      by (eapply sc_bind_pheight; exact Hbp)
+  end.
+  cbn [fn_body] in Hbody.
+  destruct (gate_walk MWF not_tainted bm b_out oo surface_collision._pheight
+              Hstore Hbne _ _ _ _ _ _ _ _ _ Hbody
+              find_ceil_from_list_pheight_chk Hled Hv Hsat Hmwf)
+    as (Hvb & Hsatb & Hmwfb & _).
+  assert (Hben : blocks_of_env ge empty_env = nil) by reflexivity.
+  rewrite Hben in Hfl. cbn [Mem.free_list] in Hfl. injection Hfl as <-.
+  exact (conj Hvb (conj Hsatb Hmwfb)).
+Qed.
+
+(* ---------------------------------------------------------------------- *)
+(* find_wall_collisions_from_list body frame: gated on the _data           *)
+(* WallCollisionData* out-param (param#1, a caller block <> bm).  All 4     *)
+(* Sassign write through _data; fn_vars = nil.  ge-generic; consumed at     *)
+(* the atomic wiring commit as the find_wall_collisions callee oracle       *)
+(* (at that call site _data = find_wall_collisions' _colData, <> bm).       *)
+(* ---------------------------------------------------------------------- *)
+Lemma find_wall_collisions_from_list_data_chk :
+  gate_chk surface_collision._data
+    (fn_body surface_collision.f_find_wall_collisions_from_list) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma find_wall_collisions_from_list_body_frame :
+  forall (ge : genv) (MWF : mem -> Prop) (bm b_out : block) (oo : ptrofs),
+    (forall ch b0 o0 v0 m1 m2,
+        b0 <> bm -> Mem.store ch m1 b0 o0 v0 = Some m2 -> MWF m1 -> MWF m2) ->
+    forall m vargs t m' vres,
+      eval_funcall function_entry2 ge m
+        (Internal surface_collision.f_find_wall_collisions_from_list) vargs t m' vres ->
+      nth_error vargs 1 = Some (Vptr b_out oo) ->
+      b_out <> bm ->
+      Mem.valid_block m bm -> action_sat not_tainted m bm -> MWF m ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
+Proof.
+  intros ge MWF bm b_out oo Hstore m vargs t m' vres Hevf Hn1 Hbne Hv Hsat Hmwf.
+  unfold surface_collision.f_find_wall_collisions_from_list in Hevf.
+  inv Hevf.
+  match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+  match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+  match goal with Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfl end.
+  inv Hentry.
+  match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+    cbn [fn_vars] in Ha; inv Ha end.
+  match goal with Hbp : bind_parameter_temps _ vargs _ = Some ?LE |- _ =>
+    cbn [fn_params fn_temps] in Hbp;
+    destruct vargs as [|a0 [|a1 [|a2 vr]]];
+      try (cbn [bind_parameter_temps] in Hbp; discriminate Hbp);
+    cbn [nth_error] in Hn1; injection Hn1 as ->;
+    assert (Hled : LE ! surface_collision._data = Some (Vptr b_out oo))
+      by (eapply sc_bind_data; exact Hbp)
+  end.
+  cbn [fn_body] in Hbody.
+  destruct (gate_walk MWF not_tainted bm b_out oo surface_collision._data
+              Hstore Hbne _ _ _ _ _ _ _ _ _ Hbody
+              find_wall_collisions_from_list_data_chk Hled Hv Hsat Hmwf)
+    as (Hvb & Hsatb & Hmwfb & _).
+  assert (Hben : blocks_of_env ge empty_env = nil) by reflexivity.
+  rewrite Hben in Hfl. cbn [Mem.free_list] in Hfl. injection Hfl as <-.
+  exact (conj Hvb (conj Hsatb Hmwfb)).
+Qed.
+
+(* ====================================================================== *)
+(* 8. find_wall_collisions: STRAIGHT-LINE (no loop) but MIXED store class   *)
+(*    (task #90, §8-style heavier fact — NOT the clean out-param-only body  *)
+(*    the design assumed; store-scout is binding).                          *)
+(*                                                                        *)
+(* STORE-SCOUT VERDICT (surface_collision.v:1808, verified against AST):    *)
+(*   fn_vars := nil.  2 Sassign:                                            *)
+(*   (a) OUT-PARAM `_colData->numWalls = 0` through the _colData            *)
+(*       WallCollisionData* param#0 (gate store, chain_root_l = _colData);  *)
+(*   (b) STATIC GLOBAL `gNumCalls.wall = t'5+1` (Efield of Evar _gNumCalls) *)
+(*       — a static write, so a pure data-ptr gate is PHANTOM-FALSE (as in  *)
+(*       §8's find_floor/find_ceil correction); it needs a gNumCalls        *)
+(*       stored-globals oracle (gNumCalls <> bm), discharged at wiring.     *)
+(*   2 Scall to _find_wall_collisions_from_list(_node, _colData) (RIPPLE,   *)
+(*       carried as a callee oracle, discharged at wiring from              *)
+(*       find_wall_collisions_from_list_body_frame).  Early returns via     *)
+(*       Sifthenelse->Sreturn (handled automatically by the induction).     *)
+(* We extend the gate walker with a callee-oracle arm and a                 *)
+(* global-store-oracle arm — the exact analogue of atan2s's callee oracle   *)
+(* and f32's find_wall_collisions oracle.                                   *)
+(* ====================================================================== *)
+
+Definition is_cid_call (cid : ident) (a : expr) : bool :=
+  match a with Evar id _ => Pos.eqb id cid | _ => false end.
+
+(* a store into a named GLOBAL's By_value field: `Efield (Evar gsym _) _ fty`. *)
+Definition is_global_store (gsym : ident) (lv : expr) : bool :=
+  match lv with
+  | Efield (Evar id _) _ fty =>
+      Pos.eqb id gsym &&
+      (match access_mode fty with By_value _ => true | _ => false end)
+  | _ => false
+  end.
+
+(* recognizer: gate stores (chain-root g), global stores (is_global_store),
+   calls to cid (optid <> g), Sset(<>g), Sreturn/Sskip/breaks, and the
+   Ssequence/Sifthenelse/Sloop scaffolding. *)
+Fixpoint wc_chk (g cid gsym : ident) (s : statement) : bool :=
+  match s with
+  | Sskip | Sbreak | Scontinue | Sreturn _ => true
+  | Sset id _ => negb (Pos.eqb id g)
+  | Scall optid a _ =>
+      is_cid_call cid a &&
+      (match optid with Some ti => negb (Pos.eqb ti g) | None => true end)
+  | Sassign lv _ =>
+      match CensusV2.chain_root_l lv with
+      | Some t =>
+          Pos.eqb t g &&
+          (match access_mode (typeof lv) with By_value _ => true | _ => false end)
+      | None => is_global_store gsym lv
+      end
+  | Ssequence s1 s2 => wc_chk g cid gsym s1 && wc_chk g cid gsym s2
+  | Sifthenelse _ s1 s2 => wc_chk g cid gsym s1 && wc_chk g cid gsym s2
+  | Sloop s1 s2 => wc_chk g cid gsym s1 && wc_chk g cid gsym s2
+  | _ => false
+  end.
+
+Lemma wc_walk :
+  forall (MWF : mem -> Prop) (Q : int -> Prop) (bm b_out : block) (oo : ptrofs)
+    (g cid gsym : ident)
+    (Hstore : forall ch b0 o0 v0 m1 m2,
+        b0 <> bm -> Mem.store ch m1 b0 o0 v0 = Some m2 -> MWF m1 -> MWF m2)
+    (Hbne : b_out <> bm)
+    ge
+    (Hcall : forall e0 le0 m0 a vf f vargs t0 m0' vres,
+        is_cid_call cid a = true ->
+        eval_expr ge e0 le0 m0 a vf ->
+        Genv.find_funct ge vf = Some f ->
+        eval_funcall function_entry2 ge m0 f vargs t0 m0' vres ->
+        Mem.valid_block m0 bm -> action_sat Q m0 bm -> MWF m0 ->
+        Mem.valid_block m0' bm /\ action_sat Q m0' bm /\ MWF m0')
+    (Hglob : forall lv rhs e0 le0 m0 t0 le0' m0' out0,
+        is_global_store gsym lv = true ->
+        exec_stmt function_entry2 ge e0 le0 m0 (Sassign lv rhs) t0 le0' m0' out0 ->
+        Mem.valid_block m0 bm -> action_sat Q m0 bm -> MWF m0 ->
+        Mem.valid_block m0' bm /\ action_sat Q m0' bm /\ MWF m0'
+          /\ le0' = le0 /\ out0 = Out_normal)
+    e s le m t le' m' out,
+    exec_stmt function_entry2 ge e le m s t le' m' out ->
+    wc_chk g cid gsym s = true ->
+    le ! g = Some (Vptr b_out oo) ->
+    Mem.valid_block m bm -> action_sat Q m bm -> MWF m ->
+    Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m'
+      /\ le' ! g = Some (Vptr b_out oo).
+Proof.
+  intros MWF Q bm b_out oo g cid gsym Hstore Hbne ge Hcall Hglob
+         e s le m t le' m' out Hexec.
+  induction Hexec; intros Hchk Hg Hv Hsat Hmwf;
+    try discriminate Hchk.
+  - (* Sskip *) repeat split; assumption.
+  - (* Sassign : gate store OR global store *)
+    cbn [wc_chk] in Hchk.
+    destruct (CensusV2.chain_root_l a1) as [t0|] eqn:Hcr.
+    + (* gate store *)
+      apply andb_prop in Hchk as [Hpe Hbv].
+      apply Pos.eqb_eq in Hpe; subst t0.
+      assert (HH : exec_stmt function_entry2 ge e le m (Sassign a1 a2) E0 le m' Out_normal)
+        by (eapply exec_Sassign; eassumption).
+      edestruct (gate_assign_pres MWF Q bm b_out oo g a1 a2 ge e le m E0 le m' Out_normal
+                   Hstore Hcr Hbv Hg Hbne HH Hv Hsat Hmwf)
+        as (Hv' & Hsat' & Hmwf' & _ & _).
+      repeat split; assumption.
+    + (* global store *)
+      assert (HH : exec_stmt function_entry2 ge e le m (Sassign a1 a2) E0 le m' Out_normal)
+        by (eapply exec_Sassign; eassumption).
+      edestruct (Hglob a1 a2 e le m E0 le m' Out_normal Hchk HH Hv Hsat Hmwf)
+        as (Hv' & Hsat' & Hmwf' & _ & _).
+      repeat split; assumption.
+  - (* Sset *)
+    cbn [wc_chk] in Hchk.
+    apply negb_true_iff, Pos.eqb_neq in Hchk.
+    repeat split; try assumption.
+    rewrite PTree.gso by (apply not_eq_sym; exact Hchk); exact Hg.
+  - (* Scall *)
+    cbn [wc_chk] in Hchk.
+    apply andb_prop in Hchk as [Hcid Hopt].
+    edestruct (Hcall e le m a vf f vargs t m' vres Hcid H0 H2 H4 Hv Hsat Hmwf)
+      as (Hv' & Hsat' & Hmwf').
+    repeat split; try assumption.
+    destruct optid as [ti|]; cbn [set_opttemp].
+    + apply negb_true_iff, Pos.eqb_neq in Hopt.
+      rewrite PTree.gso by (apply not_eq_sym; exact Hopt); exact Hg.
+    + exact Hg.
+  - (* Sseq_1 *)
+    cbn [wc_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
+    destruct (IHHexec1 H1 Hg Hv Hsat Hmwf) as (Hv1 & Hsat1 & Hmwf1 & Hg1).
+    exact (IHHexec2 H2 Hg1 Hv1 Hsat1 Hmwf1).
+  - (* Sseq_2 *)
+    cbn [wc_chk] in Hchk. apply andb_prop in Hchk as [H1 _].
+    exact (IHHexec H1 Hg Hv Hsat Hmwf).
+  - (* Sifthenelse *)
+    cbn [wc_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
+    apply IHHexec; [ destruct b; assumption | assumption .. ].
+  - (* Sreturn_none *) repeat split; assumption.
+  - (* Sreturn_some *) repeat split; assumption.
+  - (* Sbreak *) repeat split; assumption.
+  - (* Scontinue *) repeat split; assumption.
+  - (* Sloop_stop1 *)
+    cbn [wc_chk] in Hchk. apply andb_prop in Hchk as [H1 _].
+    exact (IHHexec H1 Hg Hv Hsat Hmwf).
+  - (* Sloop_stop2 *)
+    cbn [wc_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
+    destruct (IHHexec1 H1 Hg Hv Hsat Hmwf) as (Hv1 & Hsat1 & Hmwf1 & Hg1).
+    exact (IHHexec2 H2 Hg1 Hv1 Hsat1 Hmwf1).
+  - (* Sloop_loop *)
+    cbn [wc_chk] in Hchk.
+    pose proof Hchk as Hchk0.
+    apply andb_prop in Hchk as [H1 H2].
+    destruct (IHHexec1 H1 Hg Hv Hsat Hmwf) as (Hv1 & Hsat1 & Hmwf1 & Hg1).
+    destruct (IHHexec2 H2 Hg1 Hv1 Hsat1 Hmwf1) as (Hv2 & Hsat2 & Hmwf2 & Hg2).
+    exact (IHHexec3 Hchk0 Hg2 Hv2 Hsat2 Hmwf2).
+Qed.
+
+(* le!_colData = the sole argument of find_wall_collisions. *)
+Lemma sc_bind_colData :
+  forall a0 t0 te le,
+    bind_parameter_temps ((surface_collision._colData, t0) :: nil)
+      (a0 :: nil) te = Some le ->
+    le ! surface_collision._colData = Some a0.
+Proof.
+  intros a0 t0 te le Hbp.
+  cbn [bind_parameter_temps] in Hbp. injection Hbp as <-. apply PTree.gss.
+Qed.
+
+Lemma find_wall_collisions_wc_chk :
+  wc_chk surface_collision._colData
+    surface_collision._find_wall_collisions_from_list surface_collision._gNumCalls
+    (fn_body surface_collision.f_find_wall_collisions) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---------------------------------------------------------------------- *)
+(* find_wall_collisions body frame: gated on the _colData out-param        *)
+(* (caller block <> bm), the find_wall_collisions_from_list callee oracle,  *)
+(* and the gNumCalls static-global oracle.  ge-generic; consumed at the     *)
+(* atomic wiring commit where ge := lp_ge lp — the callee oracle discharges *)
+(* from find_wall_collisions_from_list_body_frame and the gNumCalls oracle  *)
+(* from stored_globals (gNumCalls <> bm).  This lemma is what               *)
+(* f32_find_wall_collision_body_frame's own callee oracle needs.            *)
+(* ---------------------------------------------------------------------- *)
+Lemma find_wall_collisions_body_frame :
+  forall (ge : genv) (MWF : mem -> Prop) (bm b_out : block) (oo : ptrofs),
+    (forall ch b0 o0 v0 m1 m2,
+        b0 <> bm -> Mem.store ch m1 b0 o0 v0 = Some m2 -> MWF m1 -> MWF m2) ->
+    (forall e0 le0 m0 a vf f vargs t0 m0' vres,
+        is_cid_call surface_collision._find_wall_collisions_from_list a = true ->
+        eval_expr ge e0 le0 m0 a vf ->
+        Genv.find_funct ge vf = Some f ->
+        eval_funcall function_entry2 ge m0 f vargs t0 m0' vres ->
+        Mem.valid_block m0 bm -> action_sat not_tainted m0 bm -> MWF m0 ->
+        Mem.valid_block m0' bm /\ action_sat not_tainted m0' bm /\ MWF m0') ->
+    (forall lv rhs e0 le0 m0 t0 le0' m0' out0,
+        is_global_store surface_collision._gNumCalls lv = true ->
+        exec_stmt function_entry2 ge e0 le0 m0 (Sassign lv rhs) t0 le0' m0' out0 ->
+        Mem.valid_block m0 bm -> action_sat not_tainted m0 bm -> MWF m0 ->
+        Mem.valid_block m0' bm /\ action_sat not_tainted m0' bm /\ MWF m0'
+          /\ le0' = le0 /\ out0 = Out_normal) ->
+    forall m vargs t m' vres,
+      eval_funcall function_entry2 ge m
+        (Internal surface_collision.f_find_wall_collisions) vargs t m' vres ->
+      nth_error vargs 0 = Some (Vptr b_out oo) ->
+      b_out <> bm ->
+      Mem.valid_block m bm -> action_sat not_tainted m bm -> MWF m ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
+Proof.
+  intros ge MWF bm b_out oo Hstore Hcall Hglob m vargs t m' vres
+         Hevf Hn0 Hbne Hv Hsat Hmwf.
+  unfold surface_collision.f_find_wall_collisions in Hevf.
+  inv Hevf.
+  match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+  match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+  match goal with Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfl end.
+  inv Hentry.
+  match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+    cbn [fn_vars] in Ha; inv Ha end.
+  match goal with Hbp : bind_parameter_temps _ vargs _ = Some ?LE |- _ =>
+    cbn [fn_params fn_temps] in Hbp;
+    destruct vargs as [|a0 [|a1 vr]];
+      try (cbn [bind_parameter_temps] in Hbp; discriminate Hbp);
+    cbn [nth_error] in Hn0; injection Hn0 as ->;
+    assert (Hled : LE ! surface_collision._colData = Some (Vptr b_out oo))
+      by (eapply sc_bind_colData; exact Hbp)
+  end.
+  cbn [fn_body] in Hbody.
+  destruct (wc_walk MWF not_tainted bm b_out oo surface_collision._colData
+              surface_collision._find_wall_collisions_from_list surface_collision._gNumCalls
+              Hstore Hbne ge Hcall Hglob _ _ _ _ _ _ _ _ Hbody
+              find_wall_collisions_wc_chk Hled Hv Hsat Hmwf)
+    as (Hvb & Hsatb & Hmwfb & _).
+  assert (Hben : blocks_of_env ge empty_env = nil) by reflexivity.
+  rewrite Hben in Hfl. cbn [Mem.free_list] in Hfl. injection Hfl as <-.
+  exact (conj Hvb (conj Hsatb Hmwfb)).
+Qed.
