@@ -530,3 +530,39 @@ real; the resolution is atomicity, not sequencing.
 either would have broken coverage or re-vacuified the pin). Deliverable = this
 §7. Next actionable unit = the Unwired pre-stage of the 3 pure `*_pres` lemmas
 (zero-trust, zero-`lp`, freely committable), then the atomic wiring commit.
+
+---
+
+## §8 CORRECTION (2026-07-09, store-scout of find_floor/find_ceil)
+
+§2b/§5 misclassified `find_floor`/`find_ceil` as "out-param-pointer-field,
+`call_pres_ext_oc`". STORE-SCOUT (against the AST, verified) shows both also
+write **static global counters**, so a pure `oc`-gated ge-generic fact is
+PHANTOM-FALSE (nothing refutes `find_symbol ge gNumCalls = Some bm` at an
+arbitrary `ge`; the `gNumCalls.floor` short-store could then hit `bm+12` and
+break `action_sat`):
+
+- `find_floor` (surface_collision.v:3050): 8 Sassign — 3 own-frame fn_var,
+  **2** out-param `*_pfloor` (not 1), and **3 STATIC** writes:
+  `gFindFloorIncludeSurfaceIntangible=0` (:3281), `gNumFindFloorMisses+=1`
+  (:3293), `gNumCalls.floor+=1` (:3327). Calls `find_floor_from_list` ×3.
+- `find_ceil` (:2270): 6 Sassign — own-frame + 2 out-param + **1 STATIC**
+  (`gNumCalls.ceil+=1`, :2473). Calls `find_ceil_from_list` ×2.
+- (All three globals are defined Gvars: v_gNumFindFloorMisses:625,
+  v_gNumCalls:632, v_gFindFloorIncludeSurfaceIntangible:681.)
+- `find_{floor,ceil}_from_list`: fn_vars=nil, exactly ONE out-param store
+  `*_pheight` through a **float\*** (the `ol`/local-float class, NOT oc's
+  Surface\*\*-last-arg), inside a **loop** (needs a loop-tolerant out-param
+  walker — the oc bricks are straight-line). Clean, but their only consumers
+  are find_floor/find_ceil, so premature to prove before the correction.
+
+**Corrected fact shape:** find_floor/find_ceil need, IN ADDITION to the oc
+out-param gate, per-static `stored_globals`-style ORACLE premises
+(`find_symbol ge sym = Some b_sym /\ b_sym <> bm /\ store-into-b_sym-preserves-MWF`)
+for the 3 counters — the exact analogue of atan2s's callee oracle, discharged
+at the atomic wiring commit over `lp_ge` (where `Hglob_blk`/`stored_globals`
+prove the counters `<> bm`). This is a heavier fact than the scoped oc class;
+it is an honest refinement, not a blocker. ORDER: do the vec3 writers
+(vec3f_set/copy/vec3s_copy — verify THEY are out-param-only, no statics) and
+f32_find_wall_collision first; return to find_floor/ceil + their _from_list
+loops with the oracle-augmented shape.
