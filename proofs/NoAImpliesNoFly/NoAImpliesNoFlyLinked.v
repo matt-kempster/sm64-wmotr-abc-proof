@@ -667,8 +667,10 @@ Section NoARealInputMWF.
      run's concrete blocks (bm is a runtime block -- gMarioState has
      gvar_init nil -- and bc is the controller block row R2 points to;
      genv symbol blocks are distinct from both). Satisfiable, and
-     per-symbol dischargeable from the run's initialization. ---- *)
-  Hypothesis Hbc_bm : bc <> bm.
+     per-symbol dischargeable from the run's initialization.
+     P5 SLICE (task #92 tail): Hbc_bm is now DERIVED from Hspawn (bm/bc are
+     the gMarioStates/gControllers symbol blocks, distinct by global-address
+     injectivity) -- see the Lemma just below Hspawn.  No longer assumed. ---- *)
 
   (* ---- P5 SLICE 3: the CONSOLIDATED SafeB honest-boundary row.  ONE row
      (HSafeB_sym_iff) plus the faithful spawn condition (Hspawn, pinning
@@ -689,6 +691,14 @@ Section NoARealInputMWF.
       (SafeB b <-> id = mario_actions_moving._sFloorAlignMatrix).
   Hypothesis Hspawn : exists init, spawn_ok lp init bm bc oc0.
 
+  (* task #92 tail: Hbc_bm DERIVED from the faithful spawn condition (was an
+     assumed row) -- bc (gControllers) <> bm (gMarioStates) by SpawnInit's
+     global-address injectivity. *)
+  Lemma Hbc_bm : bc <> bm.
+  Proof.
+    destruct Hspawn as (init & Hs).
+    exact (spawn_Hbc_bm lp init bm bc oc0 Hs).
+  Qed.
   Lemma HSafeB_not_bm : forall b, SafeB b -> b <> bm.
   Proof.
     destruct Hspawn as (init & Hs).
@@ -754,8 +764,14 @@ Section NoARealInputMWF.
        - Hglob_valid: every genv symbol block is valid in any MWF memory
          (globals come from init_mem and validity is monotone) -- needed to
          prove a fresh stack local is disjoint from every global block. ---- *)
-  Hypothesis Hbc_sym :
+  (* task #92 tail: Hbc_sym DERIVED from the faithful spawn condition (was an
+     assumed row) -- bc IS the gControllers symbol block. *)
+  Lemma Hbc_sym :
     exists gid, Genv.find_symbol (lp_ge lp) gid = Some bc.
+  Proof.
+    destruct Hspawn as (init & Hs).
+    exact (spawn_Hbc_sym lp init bm bc oc0 Hs).
+  Qed.
   (* P5 SLICE 4: Hglob_valid is now DISCHARGED (was assumed).  The general
      "every genv symbol block is valid in any MWF memory" follows from the R0
      nextblock-bound conjunct (mwf_real_nextbound) + glob_valid_of_nextbound
@@ -1475,7 +1491,7 @@ Section NoARealInputMWF.
     destruct Hlb as (Hbm & HnS & Hglob).
     destruct Hbc_sym as (gidc & Hfindc).
     pose proof (Hglob _ _ Hfindc) as Hbc.
-    eapply mwf_real_local_store; eauto.
+    eapply mwf_real_local_store; eauto using Hbc_bm.
   Qed.
 
   (* push_mario_out_of_object, WALKED (InterSurface.pmoo_cp): chase loads

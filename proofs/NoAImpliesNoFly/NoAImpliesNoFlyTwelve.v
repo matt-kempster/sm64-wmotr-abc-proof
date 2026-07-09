@@ -67,7 +67,9 @@ Section NoAImpliesNoFlyTwelve.
      per-row commentary); ONLY the 12 LO_* pins and Hrest_ext_only are
      absent -- those are now theorems of LinkedTwelve. ---- *)
 
-  Hypothesis Hbc_bm : bc <> bm.
+  (* task #92 tail: Hbc_bm and Hbc_sym are no longer assumed here -- the
+     real_mwf capstone DERIVES both internally from the faithful spawn
+     condition (Hspawn), so they are absent from this consolidated surface. *)
   (* P5 SLICE 3: ONE consolidated SafeB honest-boundary row + the faithful
      spawn condition REPLACE the eight scattered SafeB rows (HSafeB_not_bm,
      HSafeB_not_bc, the five ~SafeB conjuncts of the *_blk rows, Hsfam_safe).
@@ -80,8 +82,6 @@ Section NoAImpliesNoFlyTwelve.
       Genv.find_symbol (lp_ge lp) id = Some b ->
       (SafeB b <-> id = mario_actions_moving._sFloorAlignMatrix).
   Hypothesis Hspawn : exists init, spawn_ok lp init bm bc oc0.
-  Hypothesis Hbc_sym :
-    exists gid, Genv.find_symbol (lp_ge lp) gid = Some bc.
   (* P5 SLICE 4: Hglob_valid is DISCHARGED at the real_mwf capstone (from the
      R0 nextblock-bound conjunct via glob_valid_of_nextbound), so it is no
      longer an assumed row here either. *)
@@ -204,8 +204,7 @@ Section NoAImpliesNoFlyTwelve.
     exact (noA_no_spawn_never_flying_real_mwf lp
              (linked12_LO_mario lp H12)
              bm bc oc0 SafeB spawn_flying
-             Hbc_bm HSafeB_sym_iff Hspawn
-             Hbc_sym
+             HSafeB_sym_iff Hspawn
              Hocp_find_floor Hocp_find_ceil Hwolcp_fwc Hscp_v3f Hscp_v3s
              Hwlcp_v3f_real WL_exempt
              (linked12_LO_sta lp H12) (linked12_LO_mov lp H12)
