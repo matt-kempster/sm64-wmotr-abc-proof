@@ -3,6 +3,17 @@
 (*  (docs/goal2-real-frame-plan.md §0/§3-T0; scout cites =                  *)
 (*   docs/goal2-frame-boundary-scout.md)                                    *)
 (*                                                                          *)
+(*  T0-RETOOL (2026-07-09, plan §1 correction): the platform segment now    *)
+(*  consumes T1's WIDENED spec (playground/PlatformInert.v,                 *)
+(*  seg_platform_yact_inert) — the y-cell and action-cell LOADS are         *)
+(*  unchanged, UNCONDITIONALLY — instead of the first draft's               *)
+(*  gplat_null-conditioned no-op.  Reason: "gMarioPlatform ≡ NULL" is       *)
+(*  FALSE in WMotR (the 6 wing-cap exclamation boxes are dynamic object     *)
+(*  floors, 3 reachable no-A); the honest invariant is NULL-OR-BOX and      *)
+(*  BOTH arms are y/action-inert.  That case analysis lives behind T1's     *)
+(*  boundary premises (BP-INIT/BP-SEG-NULL/BP-SEG-BOX/BP-SURF-OBJ), NOT     *)
+(*  in T0's interface: the theorems below take NO gplat_null premise.       *)
+(*                                                                          *)
 (*  THIS FILE IS A SANDBOX (same regime as FramePlayground.v): outside      *)
 (*  proofs/, NOT in _CoqProject, invisible to `make proofs` and to the      *)
 (*  discipline audit's admit-grep.  Admitted would be allowed here, but     *)
@@ -80,7 +91,15 @@ Section CompositionFrame.
      honestly by the BLOCK holding the cell; a C global's storage starts at
      offset 0 of its own block, so the cell is (bplat, 0).  T1 keeps this a
      labeled boundary row unless/until platform_displacement.c joins the
-     clightgen pipeline (at which point bplat becomes a find_symbol fact). *)
+     clightgen pipeline (at which point bplat becomes a find_symbol fact).
+
+     T0-RETOOL: bplat/gplat_null are retained for DOCUMENTATION only — no
+     definition or theorem below consumes them.  T1's correction
+     (PlatformInert.v §4) shows the cell is NULL-OR-BOX in WMotR, not NULL;
+     the case analysis, the cell-carry lemmas (platform_null_carry) and the
+     writer census all live in PlatformInert.v behind its named boundary
+     premises.  T0's interface sees only the unconditional widened
+     conclusion (seg_platform_spec below). *)
   Variable bplat : block.
 
   Definition gplat_null (m : mem) : Prop :=
@@ -95,24 +114,34 @@ Section CompositionFrame.
 
   (* ===================================================================== *)
   (* 1. THE SEGMENT SPECS (predicates over (m, m')).                        *)
-  (*    Per plan §0 every flanking spec carries "does not write the action  *)
-  (*    cell" UNCONDITIONALLY — that is what makes GOAL-1 transfer          *)
-  (*    compositional.                                                      *)
+  (*    Per plan §0 every flanking spec carries does-not-change-the-action- *)
+  (*    cell UNCONDITIONALLY — that is what makes GOAL-1 transfer           *)
+  (*    compositional (for seg_platform, as a load-equality).               *)
   (* ===================================================================== *)
 
   (* seg_platform: apply_mario_platform_displacement
-     (platform_displacement.c:171).  Its only m->pos writer is
-     apply_platform_displacement (line 91), which never touches m->action
-     (scout §4) — hence the unconditional action-cell clause.  Its guard
-     requires gMarioPlatform != NULL (line 174); WMotR has NO dynamic
-     surfaces, so under the NULL invariant the segment is memory-inert on
-     Mario's block (in fact a full no-op — T1 may strengthen the conclusion
-     to m' = m) and the NULL cell survives (the body writes gMarioPlatform
-     only to NULL, line 184). *)
+     (platform_displacement.c:171).  THE WIDENED SPEC — clauses 1-2 are
+     T1's seg_platform_yact_inert COPIED VERBATIM from
+     playground/PlatformInert.v (playground has no -R mapping, so
+     playground files cannot Require each other; the duplication is
+     deliberate and credited).  Unconditionally: whatever the platform
+     phase did, the y-cell (bm,POSY,Mfloat32) and action-cell
+     (bm,12,Mint32 — GOAL-1's action_cell offset) LOADS are unchanged.
+     Grounding (PlatformInert.v §4): the NULL arm is the :174 early
+     return (no store at all, BP-SEG-NULL); the box arm's y-write is
+     IDENTITY (a ridden exclamation box has oVel* = oAngleVel* = 0, so
+     the displacement stores back the loaded y) and never touches action
+     (BP-SEG-BOX).  Note the box arm DOES store to pos — which is why
+     the spec is "the LOAD is unchanged", not unchanged_on/no-store.
+     Clause 3 is block-validity transport: loads alone cannot carry
+     Mem.valid_block across the segment (mem_ok needs it); it is
+     dischargeable on both T1 arms — NULL from BP-SEG-NULL's
+     unchanged_on (Mem.valid_block_unchanged_on), box because the phase
+     is a real execution (nextblock-monotone). *)
   Definition seg_platform_spec (m m' : mem) : Prop :=
-    Mem.unchanged_on (action_cell bm) m m'
-    /\ (gplat_null m ->
-        Mem.unchanged_on mario_block m m' /\ gplat_null m').
+    Mem.load Mfloat32 m' bm POSY = Mem.load Mfloat32 m bm POSY
+    /\ Mem.load Mint32 m' bm 12 = Mem.load Mint32 m bm 12
+    /\ (Mem.valid_block m bm -> Mem.valid_block m' bm).
 
   (* seg_level: the warp/level phase (check_instant_warp level_update.c:530
      + the delayed/painting warp initiators).  None of them writes
@@ -137,12 +166,16 @@ Section CompositionFrame.
      (other objects' behaviors, unload, update_mario_platform) + gfx.  Spec:
      unchanged on bm ENTIRELY (no non-Mario code writes Mario's state;
      copy_mario_state_to_object copies state->object, not the reverse —
-     scout §1), and the gMarioPlatform-NULL cell is preserved
-     (update_mario_platform writes gMarioPlatform, but in WMotR every floor
-     has object == NULL so it only ever writes NULL — scout §4). *)
+     scout §1).  NOTE (T0-retool): the first draft also carried
+     "gplat_null m -> gplat_null m'", justified by "every WMotR floor has
+     object == NULL" — that claim is FALSE (T1's correction: the 6
+     exclamation boxes are dynamic object floors, so update_mario_platform
+     CAN write a box pointer, writer platform_displacement.c:59).  The
+     honest gMarioPlatform evolution (NULL-or-box) is T1's business
+     (PlatformInert.v BP-SURF-OBJ + the §4(b) writer census); T0 no longer
+     threads the cell, so the clause is DROPPED, not repaired. *)
   Definition seg_rest_spec (m m' : mem) : Prop :=
-    Mem.unchanged_on mario_block m m'
-    /\ (gplat_null m -> gplat_null m').
+    Mem.unchanged_on mario_block m m'.
 
   (* ===================================================================== *)
   (* 2. THE FRAME: existential composition (plan §0).  seg_action is        *)
@@ -185,13 +218,21 @@ Section CompositionFrame.
      PROVED at the MWF_real grounding (mwf_real_ctl).  NOT new trust. *)
   Hypothesis Hnoa_of_mwf : forall m, MWF m -> NoA m.
 
-  (* OPEN (T1): MWF survives the platform segment.  Under gplat_null the
-     segment is semantically a full no-op (early return at
-     platform_displacement.c:174), so the honest discharge is to strengthen
-     seg_platform_spec's NULL conclusion to m' = m (then this row is
-     trivial).  Kept as a row so T0 needs no spec-strength decision. *)
+  (* OPEN (T1 boundary): MWF survives the platform segment.  T1's
+     deliverable (PlatformInert.v seg_platform_transfer + the boundary
+     premises BP-INIT/BP-SEG-NULL/BP-SEG-BOX/BP-SURF-OBJ) discharges the
+     y_le/action_sat transfer — that part T0 now consumes directly through
+     the widened seg_platform_spec, no case analysis here.  MWF is the
+     residue: MWF_real watches cells BEYOND the two yact-inert loads (bc,
+     oc0, the stored globals), so this row is the platform analogue of
+     Hmwf_rest.  Discharge: widen T1's segment conclusion to "unchanged on
+     the MWF-watched cells" — immediate on the NULL arm (BP-SEG-NULL's
+     unchanged_on is block-wise), and on the box arm the phase writes only
+     m->pos[0..2] (set_mario_pos, platform_displacement.c:81-85; PlatformInert.v
+     §4(d)) so the same census closes it — or keep it as the labeled
+     un-generated-TU boundary. *)
   Hypothesis Hmwf_platform :
-    forall m m', gplat_null m -> seg_platform_spec m m' -> MWF m -> MWF m'.
+    forall m m', seg_platform_spec m m' -> MWF m -> MWF m'.
 
   (* OPEN (T4 + boundary): MWF survives the level phase.  check_instant_warp
      is in the LINKED level_update TU, so this is walkable with GOAL-1's
@@ -232,6 +273,17 @@ Section CompositionFrame.
     intros b ofs Hc _. destruct Hc as [Hb _]. exact Hb.
   Qed.
 
+  (* a LOAD-EQUAL action cell transports action_sat outright — no
+     valid_block needed (the mirror of PlatformInert.v's
+     transfer_of_yact_inert, action leg). *)
+  Lemma action_sat_load_eq :
+    forall Q m m',
+      Mem.load Mint32 m' bm 12 = Mem.load Mint32 m bm 12 ->
+      action_sat Q m bm -> action_sat Q m' bm.
+  Proof.
+    intros Q m m' Heq Hsat v Hl. apply Hsat. congruence.
+  Qed.
+
   (* a mario_block-unchanged flank transports valid_block + action_sat
      (the action_sat leg is ActionValueFrame.action_sat_unchanged_on). *)
   Lemma flank_transfers_bundle :
@@ -248,27 +300,29 @@ Section CompositionFrame.
 
   (* ===================================================================== *)
   (* 4. THE GOAL-1 TRANSFER THEOREM: frame_step preserves the GOAL-1        *)
-  (*    invariant bundle.  PROVED — the flanking segments' action-cell      *)
-  (*    clauses transport action_sat (action_sat_unchanged_on), their       *)
-  (*    nextblock monotonicity transports valid_block, the middle is        *)
-  (*    GOAL-1's proved frame lemma (the Hmiddle row), and MWF crosses the  *)
-  (*    flanks via the three OPEN rows above.                               *)
+  (*    invariant bundle.  PROVED — the platform flank's widened spec       *)
+  (*    transports action_sat by load-equality (action_sat_load_eq) and     *)
+  (*    valid_block by its transport clause; the level/rest flanks'         *)
+  (*    action-cell clauses transport action_sat (action_sat_unchanged_on); *)
+  (*    the middle is GOAL-1's proved frame lemma (the Hmiddle row); MWF    *)
+  (*    crosses the flanks via the three OPEN rows above.  NO gplat_null    *)
+  (*    premise (T0-retool): the NULL-or-box analysis is T1-internal.       *)
   (* ===================================================================== *)
   Theorem frame_step_preserves_mem_ok :
     forall m m',
-      gplat_null m ->
       mem_ok m ->
       frame_step m m' ->
       mem_ok m'.
   Proof.
-    intros m m' Hnull (Hv & Hsat & Hmwf)
+    intros m m' (Hv & Hsat & Hmwf)
            (m1 & m2 & m3 & Hplat & Hact & Hlvl & Hrest).
-    (* --- seg_platform flank --- *)
+    (* --- seg_platform flank: the widened yact-inert spec --- *)
     pose proof Hplat as Hplat0.
-    destruct Hplat as [_ Hcond1].
-    destruct (Hcond1 Hnull) as [Hunch1 Hnull1].
-    destruct (flank_transfers_bundle m m1 Hunch1 Hv Hsat) as [Hv1 Hsat1].
-    assert (Hmwf1 : MWF m1) by exact (Hmwf_platform m m1 Hnull Hplat0 Hmwf).
+    destruct Hplat as (Hyeq1 & Haeq1 & Hvb1).
+    assert (Hv1 : Mem.valid_block m1 bm) by exact (Hvb1 Hv).
+    assert (Hsat1 : action_sat not_tainted m1 bm)
+      by (eapply action_sat_load_eq; [ exact Haeq1 | exact Hsat ]).
+    assert (Hmwf1 : MWF m1) by exact (Hmwf_platform m m1 Hplat0 Hmwf).
     (* --- seg_action = GOAL-1's frame --- *)
     assert (Hok2 : mem_ok m2).
     { eapply Hmiddle;
@@ -286,10 +340,8 @@ Section CompositionFrame.
           [ exact Hact_unch3 | exact Hv2 | exact Hsat2 ]).
     assert (Hmwf3 : MWF m3) by exact (Hmwf_level m2 m3 Hlvl0 Hmwf2).
     (* --- seg_rest flank --- *)
-    pose proof Hrest as Hrest0.
-    destruct Hrest as [Hunch4 _].
-    destruct (flank_transfers_bundle m3 m' Hunch4 Hv3 Hsat3) as [Hv4 Hsat4].
-    exact (conj Hv4 (conj Hsat4 (Hmwf_rest m3 m' Hrest0 Hmwf3))).
+    destruct (flank_transfers_bundle m3 m' Hrest Hv3 Hsat3) as [Hv4 Hsat4].
+    exact (conj Hv4 (conj Hsat4 (Hmwf_rest m3 m' Hrest Hmwf3))).
   Qed.
 
   (* ===================================================================== *)
@@ -304,6 +356,16 @@ Section CompositionFrame.
   Definition y_le (Y : R) (m : mem) : Prop :=
     forall v, Mem.load Mfloat32 m bm POSY = Some (Vsingle v) ->
               (B2R _ _ v <= Y)%R.
+
+  (* a LOAD-EQUAL y cell transports y_le outright — the mirror of
+     PlatformInert.v's transfer_of_yact_inert, y leg. *)
+  Lemma y_le_load_eq :
+    forall Y m m',
+      Mem.load Mfloat32 m' bm POSY = Mem.load Mfloat32 m bm POSY ->
+      y_le Y m -> y_le Y m'.
+  Proof.
+    intros Y m m' Heq Hy v Hl. apply Hy. congruence.
+  Qed.
 
   Lemma y_le_unchanged_on :
     forall Y m m',
@@ -351,24 +413,22 @@ Section CompositionFrame.
   Theorem frame_step_keeps_y_le :
     forall m m',
       NoA m ->
-      gplat_null m ->
       mem_ok m ->
       y_le YMAX m ->
       frame_step m m' ->
       y_le YMAX m'.
   Proof.
-    intros m m' HnoA Hnull (Hv & Hsat & Hmwf) Hy
+    intros m m' HnoA (Hv & Hsat & Hmwf) Hy
            (m1 & m2 & m3 & Hplat & Hact & Hlvl & Hrest).
-    (* --- seg_platform flank --- *)
+    (* --- seg_platform flank: the widened yact-inert spec --- *)
     pose proof Hplat as Hplat0.
-    destruct Hplat as [_ Hcond1].
-    destruct (Hcond1 Hnull) as [Hunch1 Hnull1].
-    destruct (flank_transfers_bundle m m1 Hunch1 Hv Hsat) as [Hv1 Hsat1].
-    assert (Hmwf1 : MWF m1) by exact (Hmwf_platform m m1 Hnull Hplat0 Hmwf).
-    assert (Hy1 : y_le YMAX m1).
-    { eapply y_le_unchanged_on;
-        [ apply unchanged_mario_pos_y_cell; exact Hunch1
-        | exact Hv | exact Hy ]. }
+    destruct Hplat as (Hyeq1 & Haeq1 & Hvb1).
+    assert (Hv1 : Mem.valid_block m1 bm) by exact (Hvb1 Hv).
+    assert (Hsat1 : action_sat not_tainted m1 bm)
+      by (eapply action_sat_load_eq; [ exact Haeq1 | exact Hsat ]).
+    assert (Hmwf1 : MWF m1) by exact (Hmwf_platform m m1 Hplat0 Hmwf).
+    assert (Hy1 : y_le YMAX m1)
+      by (eapply y_le_load_eq; [ exact Hyeq1 | exact Hy ]).
     assert (Hok1 : mem_ok m1) by exact (conj Hv1 (conj Hsat1 Hmwf1)).
     (* --- seg_action: the T2/T3 crux row --- *)
     assert (Hy2 : y_le YMAX m2)
@@ -388,9 +448,8 @@ Section CompositionFrame.
         injection Hld as Hveq. subst v'.
         exact (Hteleport_y v Htgt). }
     (* --- seg_rest flank --- *)
-    destruct Hrest as [Hunch4 _].
     eapply y_le_unchanged_on;
-      [ apply unchanged_mario_pos_y_cell; exact Hunch4
+      [ apply unchanged_mario_pos_y_cell; exact Hrest
       | exact Hv3 | exact Hy3 ].
   Qed.
 
@@ -403,17 +462,28 @@ End CompositionFrame.
 (*   - mario_pos_offset_concrete : pos @ 60 in MarioState, vm-pinned from   *)
 (*     mario.prog's composite env (so POSY = 64 is AST-grounded, not        *)
 (*     bespoke).                                                            *)
-(*   - the three segment specs (seg_platform_spec / seg_level_spec /        *)
-(*     seg_rest_spec), gplat_null, frame_step (the plan-§0 existential      *)
-(*     composition with seg_action := execute_mario_action_step_lp lp,      *)
-(*     GOAL-1's frame verbatim), mem_ok (= mem_ok_lp's bundle shape),       *)
-(*     y_le (concrete: Flocq B2R of the Mfloat32 at (bm, 64)).              *)
+(*   - the three segment specs: seg_platform_spec is the WIDENED T1 shape   *)
+(*     (T0-retool: clauses 1-2 = PlatformInert.v's seg_platform_yact_inert  *)
+(*     copied verbatim — y-cell + action-cell LOADS unchanged,              *)
+(*     UNCONDITIONALLY, both NULL-or-box arms concluding it behind T1's     *)
+(*     boundary premises — plus a block-validity-transport clause 3);       *)
+(*     seg_level_spec / seg_rest_spec (the latter shed its false            *)
+(*     gplat_null-carry clause, see its comment); frame_step (the plan-§0   *)
+(*     existential composition with seg_action :=                           *)
+(*     execute_mario_action_step_lp lp, GOAL-1's frame verbatim), mem_ok    *)
+(*     (= mem_ok_lp's bundle shape), y_le (concrete: Flocq B2R of the       *)
+(*     Mfloat32 at (bm, 64)).                                               *)
+(*   - action_sat_load_eq / y_le_load_eq — the load-equality transport      *)
+(*     glue (mirrors of PlatformInert.v's transfer_of_yact_inert legs).     *)
 (*   - frame_step_preserves_mem_ok  — THE GOAL-1 TRANSFER THEOREM, proved   *)
-(*     as composition glue (flanks: action_sat_unchanged_on +               *)
-(*     valid_block_unchanged_on; middle: the Hmiddle row).                  *)
+(*     as composition glue (platform flank: action_sat_load_eq + the        *)
+(*     validity clause; level/rest flanks: action_sat_unchanged_on +        *)
+(*     valid_block_unchanged_on; middle: the Hmiddle row).  NO gplat_null   *)
+(*     premise (T0-retool).                                                 *)
 (*   - frame_step_keeps_y_le       — THE ONE-FRAME Y-THEOREM, proved as     *)
-(*     glue over the two OPEN y-rows (flanks transport y_le; teleport       *)
-(*     disjunct bounded by the census row).                                 *)
+(*     glue over the two OPEN y-rows (platform flank transports y_le by     *)
+(*     y_le_load_eq, the others by unchanged_on; teleport disjunct bounded  *)
+(*     by the census row).  NO gplat_null premise (T0-retool).              *)
 (*                                                                          *)
 (* NO Admitted; the open surface is the named Hypothesis rows:              *)
 (*   - Hmiddle        : NOT open — GOAL-1's frame_preserves_mem_ok_lp,      *)
@@ -422,10 +492,19 @@ End CompositionFrame.
 (*                      in a sandbox.  Promotion wires the real lemma.      *)
 (*   - Hnoa_of_mwf    : NOT open — the capstone's own row, PROVED at        *)
 (*                      MWF_real (mwf_real_ctl).                            *)
-(*   - Hmwf_platform  : OPEN — T1.  Discharge: strengthen the NULL branch   *)
-(*                      of seg_platform_spec to m' = m (the early return    *)
-(*                      at platform_displacement.c:174 is a full no-op),    *)
-(*                      grounded by the T1 gMarioPlatform-NULL invariant.   *)
+(*   - Hmwf_platform  : OPEN — T1 boundary.  The y_le/action_sat legs are   *)
+(*                      ALREADY covered: T1's seg_platform_transfer +       *)
+(*                      boundary premises (BP-INIT / BP-SEG-NULL /          *)
+(*                      BP-SEG-BOX / BP-SURF-OBJ, PlatformInert.v) conclude *)
+(*                      the widened spec T0 now consumes directly.  What    *)
+(*                      remains is MWF alone (MWF_real watches bc/oc0/      *)
+(*                      stored globals beyond the two loads): discharge =   *)
+(*                      widen T1's segment conclusion to unchanged-on-the-  *)
+(*                      MWF-watched-cells (NULL arm immediate from          *)
+(*                      BP-SEG-NULL's unchanged_on; box arm writes only     *)
+(*                      m->pos[0..2] per PlatformInert.v §4(d)), or keep    *)
+(*                      it as the labeled un-generated-TU boundary — the    *)
+(*                      platform analogue of Hmwf_rest.                     *)
 (*   - Hmwf_level     : OPEN — T4/boundary.  check_instant_warp is in the   *)
 (*                      LINKED level_update TU: walkable with the GOAL-1    *)
 (*                      walker kit, or killed by the WMotR census (no       *)
@@ -448,15 +527,20 @@ End CompositionFrame.
 (* GMARIOPLATFORM LINKAGE FINDING: not a linked global — zero occurrences   *)
 (* in generated/ (platform_displacement.c is un-generated); parameterized   *)
 (* here as an abstract block (bplat, cell at offset 0), NOT a find_symbol   *)
-(* lookup.  See the FLAG comment at the Variable.                           *)
+(* lookup.  See the FLAG comment at the Variable.  T0-RETOOL: bplat /       *)
+(* gplat_null are now DOCUMENTATION ONLY — nothing below the Variable       *)
+(* consumes them; the cell's per-frame evolution (NULL-or-box) lives        *)
+(* entirely in T1 (PlatformInert.v: platform_null_carry, BP-SURF-OBJ, the   *)
+(* §4(b) writer census).                                                    *)
 (*                                                                          *)
 (* WHAT T1/T2/T3/T4 MUST DELIVER (to discharge each admit-analogue):        *)
-(*   T1 -> Hmwf_platform (+ the frame-to-frame gplat_null re-establishment: *)
-(*         T0's theorems CONSUME gplat_null m but do not re-derive          *)
-(*         gplat_null m'; seg_rest_spec carries the preservation clause,    *)
-(*         and threading it through seg_action/seg_level — mario.prog       *)
-(*         cannot even NAME gMarioPlatform, so a bplat-distinctness row     *)
-(*         like the stored_globals pattern — is T1's remaining glue).       *)
+(*   T1 -> DELIVERED the widened spec + transfer glue this retool consumes  *)
+(*         (seg_platform_yact_inert / seg_platform_transfer /               *)
+(*         transfer_of_yact_inert behind BP-INIT / BP-SEG-NULL /            *)
+(*         BP-SEG-BOX / BP-SURF-OBJ).  Remaining T1-side: the MWF residue   *)
+(*         of Hmwf_platform (widen the segment conclusion to the            *)
+(*         MWF-watched cells) and clause 3's validity transport on the box  *)
+(*         arm (nextblock-monotonicity of the real phase).                  *)
 (*   T2 -> the Flocq interval brick consumed inside Hseg_action_y.          *)
 (*   T3 -> Hseg_action_y itself (the ballistic value walk).                 *)
 (*   T4 -> Hteleport_y + Hmwf_level (census: WMotR instant-warp set).       *)
