@@ -48,15 +48,23 @@ frame_step m m' :=
 
 ## 1. Why the flanking segments are cheap in WMotR (scout facts)
 
-- **Platform displacement is provably inert.** WMotR's level script has NO
-  moving platforms / carpets / object surfaces (verified: zero matches in
-  `levels/wmotr/script.c`; the carpets are Rainbow Ride). `gMarioPlatform`
-  is only set non-NULL when a floor has `->object != NULL`; WMotR's terrain
-  is entirely static ⇒ `gMarioPlatform ≡ NULL` ⇒
-  `apply_mario_platform_displacement` early-returns
-  (`platform_displacement.c:174`). `seg_platform`'s spec = "if the
-  gMarioPlatform cell is NULL, memory is unchanged on Mario's block", plus
-  a carried NULL-invariant. One lemma, no new TU.
+- **Platform displacement is provably Y-INERT (corrected by T1, 2c4b80c).**
+  The first draft claimed `gMarioPlatform ≡ NULL`; that is FALSE — the six
+  wing-cap exclamation boxes are DYNAMIC object floors, three reachable
+  no-A (tops −1028/−2428/572 below spawn), and standing on one fires the
+  non-NULL writer. The honest invariant is **NULL-or-box**, and BOTH arms
+  are y-inert: NULL ⇒ the `:174` early-return (memory no-op); box ⇒ the
+  displacement's y-write (`platform_displacement.c:83`) passes the current
+  y through IDENTITY unless the platform has angular velocity
+  (`oAngleVel*`, `:107-142`), which the box behavior never writes
+  (Fable-verified at source). So `seg_platform`'s spec is the widened
+  `seg_platform_yact_inert` — "the y cell and the action cell load
+  unchanged" — proved-consumable glue in `playground/PlatformInert.v`,
+  with four NAMED boundary premises (init-NULL, the early-return spec,
+  the box-arm y-identity, floor→object only-for-boxes) whose full
+  discharge would need clightgen'ing platform_displacement.c (deferred;
+  the boundary is honest and small). T0's skeleton must swap its
+  `gplat_null` rows for this widened spec (sandbox retool, queued).
 - **The TELEPORT writers are enumerable**: `init_mario` (spawn — one-time,
   the run's antecedent) and `check_instant_warp` (level_update, LINKED —
   WMotR's instant-warp table is censusable from the level data; expected
