@@ -94,6 +94,11 @@ proofs/MarioModel/MWFReal.v
 #     the init anchor; consumed by the director's SafeB integration) ---
 proofs/MarioModel/SpawnInit.v
 
+# --- GOAL 1 / P5 init-mem satisfiability (SPINE, slice 6 / task #92: proves
+#     `exists m, init_mem lp = Some m` for every twelve-TU link -- the analogue
+#     of linked12_inhabited; discharges the init_mem residual inside Hspawn) ---
+proofs/MarioModel/InitMemSat.v
+
 # --- GOAL 1 / the local-vars walker arc, FOUNDATIONAL FRAME LAYER (SPINE:
 #     stack-frame frame lemmas -- entry alloc_variables / exit free_list /
 #     local store all preserve the carried run facts on watched-disjoint

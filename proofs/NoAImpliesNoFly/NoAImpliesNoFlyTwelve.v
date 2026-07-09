@@ -46,6 +46,7 @@ From SM64.Proofs Require Import MWFReal RestSurface FloorsSurface
   FloorsLeafSurface.
 From SM64.Proofs Require Import LinkedTwelve.
 From SM64.Proofs Require Import SpawnInit.
+From SM64.Proofs Require Import InitMemSat.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked.
 
 Section NoAImpliesNoFlyTwelve.
@@ -81,7 +82,30 @@ Section NoAImpliesNoFlyTwelve.
     forall id b,
       Genv.find_symbol (lp_ge lp) id = Some b ->
       (SafeB b <-> id = mario_actions_moving._sFloorAlignMatrix).
-  Hypothesis Hspawn : exists init, spawn_ok lp init bm bc oc0.
+  (* task #92 slice 6: Hspawn is NO LONGER assumed.  The `exists init,
+     init_mem lp = Some init` conjunct of spawn_ok is now a THEOREM for every
+     twelve-TU link (InitMemSat.linked12_init_mem, the certificate-shaped
+     analogue of linked12_inhabited).  What remains are the three FAITHFUL
+     instantiation choices pinning bm/bc/oc0 to the gMarioStates / gControllers
+     symbol blocks and offset zero -- each itself provable from linked12
+     (SpawnInit.spawn_symbols_resolve) but supplied here because bm/bc/oc0 are
+     the capstone's free run-blocks.  From them + linked12_init_mem, Hspawn is
+     DERIVED as a Lemma below.  Net: the last dischargeable bucket-B residual
+     (init_mem existence) is removed from the assumed surface. *)
+  Hypothesis Hbm_sym :
+    Genv.find_symbol (lp_ge lp) level_update._gMarioStates = Some bm.
+  Hypothesis Hbc_sym :
+    Genv.find_symbol (lp_ge lp) mario._gControllers = Some bc.
+  Hypothesis Hoc0 : oc0 = Ptrofs.zero.
+
+  Lemma Hspawn : exists init, spawn_ok lp init bm bc oc0.
+  Proof.
+    destruct (linked12_init_mem lp H12) as (init & Hinit).
+    exists init. unfold spawn_ok.
+    split; [ exact Hinit | ].
+    split; [ exact Hbm_sym | ].
+    split; [ exact Hbc_sym | exact Hoc0 ].
+  Qed.
   (* P5 SLICE 4: Hglob_valid is DISCHARGED at the real_mwf capstone (from the
      R0 nextblock-bound conjunct via glob_valid_of_nextbound), so it is no
      longer an assumed row here either. *)
