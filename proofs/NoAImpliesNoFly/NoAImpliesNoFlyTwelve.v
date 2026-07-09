@@ -198,12 +198,9 @@ Section NoAImpliesNoFlyTwelve.
   Hypothesis Hpres_warp_ext : forall fid,
       mem_id fid warp_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
-  Hypothesis Hret_unsafe : forall fd m0 vargs0 t0 m0' vres0,
-      reached_v2 lp fd ->
-      RetSurface.ret_fd_safe fd = false ->
-      RetSurface.fd_is_vint fd = false ->
-      eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m0' vres0 ->
-      forall b o, vres0 = Vptr b o -> b <> bm.
+  (* Hret_unsafe REMOVED (task #99): the v2 engine no longer consumes any
+     return-value row (it was dead plumbing / a latent vacuity -- see
+     NoAImpliesNoFlyLinked). *)
   Hypothesis Hext_action : forall ef targs tres cc vargs m t vres m',
       reached_v2 lp (External ef targs tres cc) ->
       external_call ef (lp_ge lp) vargs m t vres m' ->
@@ -244,7 +241,7 @@ Section NoAImpliesNoFlyTwelve.
              Holcp_fwc_real Hw1cp_v3f_real Hwolcp_v3f_real Hw1cp_v3fset_real
              Hscp_v3fset_real Hpres_floors_ext
              Hcp_spawn_real Hcp_savefile_real Hcpx_ibcd_real Hcpx_tbs_real
-             Hpres_warp_ext Hret_unsafe Hext_action Hmwf_ext).
+             Hpres_warp_ext Hext_action Hmwf_ext).
   Qed.
 
 End NoAImpliesNoFlyTwelve.

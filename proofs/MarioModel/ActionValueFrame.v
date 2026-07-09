@@ -1736,9 +1736,15 @@ Theorem exec_funcall_reach_value_v2 :
     (forall i e le m id a v,
        MWF m -> action_sat Q m bm -> eval_expr ge e le m a v ->
        TI i e le -> C i (Sset id a) -> TI i e (PTree.set id v le)) ->
+    (* HTI_optc V2: TI is preserved across a censused call's set_opttemp with
+       NO return-value premise. The census (call_optid_ok, checked by chk) has
+       already forced the result temp to be UNTABLED, so TI_of tracks nothing
+       about it -- the value the callee returns is irrelevant (see task #99).
+       The former `(forall b o, v = Vptr b o -> b <> bm)` premise was dead
+       plumbing at the sole consumer and a latent vacuity as a standalone row
+       (reached Externals CAN return Vptr bm), so it is removed here. *)
     (forall i e optid a al v le,
        C i (Scall optid a al) -> TI i e le ->
-       (forall b o, v = Vptr b o -> b <> bm) ->
        TI i e (set_opttemp optid v le)) ->
     (* HCbuiltin: the census FORBIDS builtins (every censused body has
        none), so the Sbuiltin case is REFUTED outright. This removes the
@@ -1747,10 +1753,15 @@ Theorem exec_funcall_reach_value_v2 :
        (EF_vload Mptr on gMarioState's cell returns Vptr bm 0). *)
     (forall i optid ef tyargs al,
        C i (Sbuiltin optid ef tyargs al) -> False) ->
-    (forall fd m0 vargs0 t0 m0' vres0,
-       Reached_fd fd ->
-       eval_funcall function_entry2 ge m0 fd vargs0 t0 m0' vres0 ->
-       forall b o, vres0 = Vptr b o -> b <> bm) ->
+    (* NOTE (task #99): the Scall RETURN-VALUE row (Hret_call: for every
+       reached fd the funcall result avoids bm) has been REMOVED. It was dead
+       plumbing -- the census consumer's HTI_optc proof (CensusV2.chk_ti_optc)
+       never used it, because a censused call's result temp is UNTABLED
+       (call_optid_ok), so TI_of is preserved for ANY result value. As a
+       standalone hypothesis it was also a latent vacuity: reached Externals
+       (e.g. the vec3 dst-returning helpers) CAN return Vptr bm. With HTI_optc
+       no longer taking a ret premise, nothing demands this row, so it is
+       gone -- eliminating the capstone's unsatisfiable Hret_unsafe. *)
     (forall i e le m optid a al vf fd,
        TI i e le -> C i (Scall optid a al) ->
        eval_expr ge e le m a vf -> Genv.find_funct ge vf = Some fd ->
@@ -1837,7 +1848,7 @@ Theorem exec_funcall_reach_value_v2 :
 Proof.
   intros Q bm ge NoA MWF writer W bridged Reached_fd I TI C
          Hbody Hbridged Hassign Hcallmarg Hexempt HTI_set HTI_optc HCbuiltin
-         Hret_call Hcall_reached Hcallwriter Hw
+         Hcall_reached Hcallwriter Hw
          Hext Hmwf_ext Hmwf_entry Hmwf_free Hmwf_noa HCseq1 HCseq2 HCif HCloop HCsw.
   assert (MAIN :
     (forall e le m s t le' m' out,
@@ -1896,9 +1907,7 @@ Proof.
         exact (eval_exprlist_sub32i_vint ge e le m al tyargs vargs Hel Hs v0 Hin). }
       destruct (IHfun Hreached HnoA HMWF Hv Hsat Hmarg Hwargs Hsargs) as (Hv' & Hsat' & HMWF').
       split; [ exact Hv' | split; [ exact Hsat' | split; [ exact HMWF' |
-        eapply HTI_optc;
-          [ exact HC | exact HTI
-          | exact (Hret_call f m vargs t m' vres Hreached Hfd) ] ] ] ].
+        eapply HTI_optc; [ exact HC | exact HTI ] ] ] ].
     - (* Sbuiltin: REFUTED -- the census forbids builtins *)
       intros e le m optid ef al tyargs vargs t m' vres Hel Hec HnoA HMWF Hv Hsat i HTI HC.
       destruct (HCbuiltin _ _ _ _ _ HC).

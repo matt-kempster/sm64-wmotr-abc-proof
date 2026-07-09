@@ -205,11 +205,12 @@ Section V2Consumer.
       NoA m -> MWF m -> Mem.valid_block m bm -> action_sat not_tainted m bm ->
       Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
 
-  (* return values never alias Mario's block *)
-  Hypothesis Hret_call : forall fd m0 vargs0 t0 m0' vres0,
-      reached_v2 fd ->
-      eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m0' vres0 ->
-      forall b o, vres0 = Vptr b o -> b <> bm.
+  (* NOTE (task #99): the return-value hypothesis (Hret_call: every reached
+     funcall result avoids bm) is GONE. The v2 engine no longer takes it --
+     TI is preserved across a censused call's set_opttemp purely because the
+     census forces the result temp UNTABLED (chk_ti_optc uses call_optid_ok,
+     never the ret value). The standalone row was a latent vacuity (reached
+     Externals CAN return Vptr bm), so removing it de-vacuifies the capstone. *)
 
   (* externals, REACHED-GATED: with builtins census-refuted, the engine's
      only external_call site is a reached External fundef, and
@@ -811,15 +812,13 @@ Section V2Consumer.
         exact (chk_ti_set lp LO_mario not_tainted MWF bm SafeB bc e le m0
                  id a v HactVint HPgms HchaseRoot HchaseStep
                  Hmwf0 (Hmwf_inp _ Hmwf0) Hsat0 Hev0 HTI HC).
-      - (* HTI_optc *)
-        intros bc e optid a al v le HC [HTI Hee] _.
+      - (* HTI_optc: no ret premise -- the census keeps the result temp untabled *)
+        intros bc e optid a al v le HC [HTI Hee].
         split; [ | exact Hee ].
         exact (chk_ti_optc not_tainted bm SafeB bc e optid a al v le HC HTI).
       - (* HCbuiltin: censused bodies have no builtins *)
         intros bc optid ef tyargs al HC.
         cbn in HC. discriminate HC.
-      - (* Hret_call *)
-        exact Hret_call.
       - (* Hcall_reached: PROVED -- the per-symbol resolution closure *)
         intros bc e le m0 optid a al vf fd0 [_ Hee] HC Hevf Hff.
         subst e.

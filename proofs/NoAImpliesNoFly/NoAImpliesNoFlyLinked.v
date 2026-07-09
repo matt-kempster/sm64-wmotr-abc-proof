@@ -477,35 +477,15 @@ Section NoARealInputV2.
       action_sat not_tainted m bm ->
       Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
 
-  (* RETURN-VALUE NON-ALIASING, REFINED (RetSurface): identical to the
-     real_mwf section's refinement below.  The opaque forall-reached row is
-     PROVED for every reached fundef whose return type cannot carry a Vptr
-     through the return cast (Tvoid / Tint I8/I16/IBool / Tfloat,
-     ret_fd_safe = true, ZERO new trust on ptr64 = false), AND -- sharper
-     still -- for every Internal whose return value is a vint-tracked
-     "computed int" (fd_is_vint = true: an I32 result temp only ever
-     assigned int constants / bitwise-shift / comparison / sub-word casts,
-     never a pointer or call result -- RetSurface.ret_avoids_bm_of_vint,
-     also ZERO new trust).  fd_is_vint computes to true for both I32
-     getters mario_get_floor_class / mario_get_terrain_sound_addend, so they
-     are now DISCHARGED.  What stays assumed is the still-sharper residual:
-     the Tint I32 returns that are NOT vint-tracked (the 7 dispatchers, whose
-     status int flows through a switch the syntactic check does not yet
-     track) and the External fundefs. *)
-  Hypothesis Hret_unsafe : forall fd m0 vargs0 t0 m0' vres0,
-      reached_v2 lp fd ->
-      RetSurface.ret_fd_safe fd = false ->
-      RetSurface.fd_is_vint fd = false ->
-      eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m0' vres0 ->
-      forall b o, vres0 = Vptr b o -> b <> bm.
-  (* section-local Let (not a persistent Lemma -- the real_mwf section below
-     defines its own module-level Lemma Hret_call) *)
-  Let Hret_call : forall fd m0 vargs0 t0 m0' vres0,
-      reached_v2 lp fd ->
-      eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m0' vres0 ->
-      forall b o, vres0 = Vptr b o -> b <> bm :=
-    RetSurface.ret_avoids_bm_of_unsafe_vint (lp_ge lp) bm
-      (reached_v2 lp) Hret_unsafe.
+  (* RETURN-VALUE NON-ALIASING: REMOVED (task #99). The v2 engine no longer
+     consumes any return-value row -- TI is preserved across a censused call's
+     set_opttemp purely because the census forces the result temp UNTABLED
+     (CensusV2.chk_ti_optc, via call_optid_ok), independent of what the callee
+     returns. The former Hret_unsafe hypothesis was a LATENT VACUITY: it
+     ranged over reached Externals (e.g. the vec3f_copy/vec3f_set/vec3s_copy
+     dst-returning helpers) which CAN return Vptr bm on ptr64 = false, so the
+     capstone rested on a false assumption. Dropping it de-vacuifies the
+     capstone at ZERO cost (no new residual, no atan2s boundary row). *)
 
   (* externals, REACHED-GATED (per-symbol surface: reached_v2 lp (External
      ef) carries a named rest symbol resolving to ef). The forall-ef forms
@@ -606,7 +586,7 @@ Section NoARealInputV2.
                 (NoA_real bm) MWF
                 Hmwf_inp Hmwf_ctl HactVint HPgms HchaseRoot HchaseStep
                 HSafeNotBm Hmwf_window Hmwf_input Hmwf_glob Hmwf_chase
-                Hmwf_umbi WL_exempt Hrest_pres Hret_call
+                Hmwf_umbi WL_exempt Hrest_pres
                 Hext_action Hmwf_ext Hmwf_entry Hmwf_free Hmwf_ctl)
              Hmwf_ctl Hmobj_of_mwf Hgms_of_mwf Hchase_safe Hstore_safe
              (root_call_resolves lp LO_mario)
@@ -637,10 +617,12 @@ End NoARealInputV2.
 (*     genv symbol block);                                                 *)
 (*   - the per-symbol callee surface: WL_exempt + Hrest_pres (THE          *)
 (*     REMAINING CRUX -- the 7 dispatch handlers, where the A-gating       *)
-(*     taint closure gets consumed), return non-aliasing (Hret_call/       *)
-(*     return non-aliasing (Hret_call), the reached-gated externals       *)
-(*     (Hext_action, Hmwf_ext); the funcall rest row Hrest and the         *)
-(*     forall-ef Hext / forall-le store rows are GONE (FALSE or            *)
+(*     taint closure gets consumed), the reached-gated externals           *)
+(*     (Hext_action, Hmwf_ext); the return-value row (Hret_unsafe/         *)
+(*     Hret_call) is GONE (task #99: dead plumbing + latent vacuity --     *)
+(*     the census keeps a call's result temp untabled, so TI is preserved  *)
+(*     regardless of the returned value); the funcall rest row Hrest and    *)
+(*     the forall-ef Hext / forall-le store rows are GONE (FALSE or        *)
 (*     undischargeable -- restated 2026-06-10).                            *)
 (*                                                                        *)
 (* The 24-hypothesis surface above becomes 15 here, and the initial        *)
@@ -2103,37 +2085,15 @@ Section NoARealInputMWF.
   Hypothesis Hpres_warp_ext : forall fid,
       mem_id fid warp_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
-  (* RETURN-VALUE NON-ALIASING, REFINED (RetSurface): the opaque
-     forall-reached row is now PROVED for every reached fundef whose
-     return type cannot carry a Vptr through the return cast
-     (Tvoid / Tint I8/I16/IBool / Tfloat -- ret_fd_safe = true: ~17 of
-     the reached functions, with ZERO new trust, since on ptr64 = false
-     only a Tint I32 / Tpointer target selects cast_case_pointer), AND --
-     sharper still -- for every Internal whose return value is a vint-
-     tracked "computed int" (fd_is_vint = true: an I32 result temp only
-     ever assigned int constants / bitwise-shift / comparison / sub-word
-     casts, never a pointer or call result -- ret_avoids_bm_of_vint, also
-     ZERO new trust).  fd_is_vint computes to true for both I32 getters
-     mario_get_floor_class / mario_get_terrain_sound_addend, so they are
-     now DISCHARGED.  What stays assumed is the still-sharper residual: the
-     Tint I32 returns that are NOT vint-tracked (the 7 dispatchers, whose
-     status int flows through a switch the syntactic check does not yet
-     track) and the External fundefs (the honest terminal-external model
-     boundary, e.g. EF_vload). *)
-  Hypothesis Hret_unsafe : forall fd m0 vargs0 t0 m0' vres0,
-      reached_v2 lp fd ->
-      RetSurface.ret_fd_safe fd = false ->
-      RetSurface.fd_is_vint fd = false ->
-      eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m0' vres0 ->
-      forall b o, vres0 = Vptr b o -> b <> bm.
-  Lemma Hret_call : forall fd m0 vargs0 t0 m0' vres0,
-      reached_v2 lp fd ->
-      eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m0' vres0 ->
-      forall b o, vres0 = Vptr b o -> b <> bm.
-  Proof.
-    exact (RetSurface.ret_avoids_bm_of_unsafe_vint (lp_ge lp) bm
-             (reached_v2 lp) Hret_unsafe).
-  Qed.
+  (* RETURN-VALUE NON-ALIASING: REMOVED (task #99). The v2 engine no longer
+     consumes a return-value row; the former Hret_unsafe hypothesis (and the
+     Hret_call lemma derived from it via ret_avoids_bm_of_unsafe_vint) were a
+     LATENT VACUITY -- they ranged over reached Externals (the vec3 dst-
+     returning helpers) which CAN return Vptr bm on ptr64 = false. TI survives
+     a censused call's set_opttemp because the census forces the result temp
+     UNTABLED (CensusV2.chk_ti_optc), never using the returned value, so this
+     row was dead plumbing. Its removal de-vacuifies the capstone at zero
+     cost. *)
 
   (* externals, REACHED-GATED (per-symbol surface: reached_v2 lp (External
      ef) carries a named rest symbol resolving to ef). The forall-ef forms
@@ -3409,7 +3369,7 @@ Section NoARealInputMWF.
                       Hmwf_ext ef targs tres cc vargs mx tx vresx mx'
                         (or_intror (or_intror (ex_intro _ mario._find_ceil
                            (conj (or_introl find_ceil_in_exempt) Hres)))) Hec Hvv HMM)))
-             Hret_unsafe Hext_action Hmwf_ext
+             Hext_action Hmwf_ext
              (mwf_real_entry lp bm bc oc0 SafeB Hbc_bm)
              (mwf_real_free lp bm bc oc0 SafeB Hbc_bm)
              (fun gb Hgb => proj2 (proj2 (Hgms_blk gb Hgb)))
