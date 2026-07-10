@@ -2,7 +2,7 @@
 
 This project targets the Japanese (`VERSION_JP`) Super Mario 64 behavior behind
 spawning displacement.  It is intentionally separate from
-`ssl-pyramid-item-proof/`, whose generated Clight artifacts target the US
+`SSL-Cog/ssl-pyramid-item-proof/`, whose generated Clight artifacts target the US
 configuration.
 
 The goal is not to prove a full star route.  The first capstone is the engine
@@ -150,7 +150,7 @@ model.
 
 The generated Clight files are JP-specific and live under `generated/jp_*.v`.
 They must be regenerated with `VERSION_JP=1` and `F3D_OLD=1`; do not substitute
-the US generated files from `ssl-pyramid-item-proof/`.
+the US generated files from `SSL-Cog/ssl-pyramid-item-proof/`.
 
 The Makefile searches for the SM64 decompilation source in the same locations
 as the sibling proof project.  Override it with:

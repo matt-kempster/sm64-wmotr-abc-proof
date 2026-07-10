@@ -5,13 +5,13 @@ if [ -n "${SM64_SOURCE:-}" ]; then
   SM64="$SM64_SOURCE"
 else
   SM64=""
-  for candidate in ../reference-sm64-decomp ../../reference-sm64-decomp; do
+  for candidate in ../../../reference-sm64-decomp ../../reference-sm64-decomp ../reference-sm64-decomp; do
     if [ -d "$candidate/src" ]; then
       SM64="$candidate"
       break
     fi
   done
-  SM64="${SM64:-../reference-sm64-decomp}"
+  SM64="${SM64:-../../../reference-sm64-decomp}"
 fi
 OUT="build/source"
 

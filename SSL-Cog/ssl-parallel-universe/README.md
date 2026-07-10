@@ -9,8 +9,8 @@ The durable recovery copy of the active proof objective is tracked in
 `docs/goal.md`.
 
 This directory is intentionally self-contained. Build and proof files live
-under `ssl-parallel-universe/`, while the existing `ssl-pyramid-item-proof/`
-project is used only as a style reference.
+under `SSL-Cog/ssl-parallel-universe/`, while the existing
+`SSL-Cog/ssl-pyramid-item-proof/` project is used only as a style reference.
 
 ## Intended route
 
