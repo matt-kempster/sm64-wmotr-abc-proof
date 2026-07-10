@@ -1,0 +1,226 @@
+<title>WMotR ABC proof — status</title>
+<style>
+  :root{
+    --paper:#FBFAF7; --ink:#1F2430; --ink-soft:#5A6172;
+    --proved:#2E7D4F; --proved-bg:#E8F2EB;
+    --assumed:#B07A18; --assumed-bg:#F7EEDC;
+    --boundary:#4A5FA5; --boundary-bg:#E9ECF6;
+    --dead:#B3452F;
+    --rule:#E3DFD6; --code-bg:#F1EFE9;
+  }
+  html{background:var(--paper);}
+  body{color:var(--ink); font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;
+       margin:0; padding:2.5rem 1.25rem 5rem;}
+  main{max-width:880px; margin:0 auto;}
+  h1,h2,h3{font-family:"Iowan Old Style",Palatino,"Palatino Linotype",Georgia,serif;
+           text-wrap:balance; line-height:1.2;}
+  h1{font-size:2rem; margin:0 0 .25rem;}
+  h2{font-size:1.4rem; margin:2.8rem 0 .8rem; padding-top:1.6rem; border-top:1px solid var(--rule);}
+  h3{font-size:1.05rem; margin:1.6rem 0 .5rem;}
+  p{max-width:70ch; margin:.6rem 0;}
+  code,.mono{font-family:ui-monospace,"Cascadia Mono",Menlo,Consolas,monospace; font-size:.86em;
+       background:var(--code-bg); padding:.08em .3em; border-radius:3px;}
+  .eyebrow{font-size:.72rem; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-soft);}
+  .statusline{display:flex; flex-wrap:wrap; gap:.5rem 1.4rem; margin:.9rem 0 0; align-items:baseline;
+              font-size:.9rem; color:var(--ink-soft);}
+  .pill{display:inline-block; font-size:.72rem; font-weight:600; letter-spacing:.05em;
+        padding:.12em .6em; border-radius:999px; white-space:nowrap; vertical-align:baseline;}
+  .p-proved{background:var(--proved-bg); color:var(--proved);}
+  .p-assumed{background:var(--assumed-bg); color:var(--assumed);}
+  .p-boundary{background:var(--boundary-bg); color:var(--boundary);}
+  .p-open{background:#F3E4E0; color:var(--dead);}
+  .flow{display:flex; flex-wrap:wrap; gap:.5rem; align-items:stretch; margin:1rem 0;}
+  .flow .box{flex:1 1 150px; min-width:140px; border:1px solid var(--rule); border-radius:6px;
+             background:#fff; padding:.6rem .75rem; font-size:.85rem;}
+  .flow .box b{display:block; font-size:.9rem;}
+  .flow .arrow{align-self:center; color:var(--ink-soft); font-size:1.1rem; padding:0 .1rem;}
+  .box .sub{color:var(--ink-soft); font-size:.78rem; display:block; margin-top:.2rem;}
+  .seg{border-top:3px solid var(--boundary);}
+  .seg.proved-core{border-top-color:var(--proved);}
+  table{border-collapse:collapse; width:100%; font-size:.88rem; margin:.8rem 0;}
+  th{text-align:left; font-size:.72rem; letter-spacing:.08em; text-transform:uppercase;
+     color:var(--ink-soft); font-weight:600; padding:.4rem .6rem; border-bottom:2px solid var(--rule);}
+  td{padding:.45rem .6rem; border-bottom:1px solid var(--rule); vertical-align:top;}
+  td:first-child{white-space:nowrap;}
+  .num{font-variant-numeric:tabular-nums;}
+  .tablewrap{overflow-x:auto;}
+  .callout{border:1px solid var(--rule); border-left:4px solid var(--boundary); background:#fff;
+           border-radius:0 6px 6px 0; padding:.9rem 1.1rem; margin:1.2rem 0; max-width:74ch;}
+  .callout.warn{border-left-color:var(--assumed);}
+  .callout h3{margin:.1rem 0 .4rem;}
+  ul{max-width:72ch; padding-left:1.2rem;}
+  li{margin:.3rem 0;}
+  .small{font-size:.82rem; color:var(--ink-soft);}
+  footer{margin-top:3.5rem; padding-top:1rem; border-top:1px solid var(--rule);
+         font-size:.8rem; color:var(--ink-soft);}
+  a{color:var(--boundary);}
+</style>
+
+<main>
+<p class="eyebrow">Super Mario 64 · A-Button-Challenge impossibility · Rocq + CompCert</p>
+<h1>Can “Wing Mario over the Rainbow” be beaten without pressing&nbsp;A?</h1>
+<p>The project aims at a machine-checked <em>no</em>: a Coq theorem, grounded in the
+mechanically-translated (<code>clightgen</code>) C of the actual game, that WMotR’s star is
+unreachable under never-press-A inputs. It splits into two goals.</p>
+<div class="statusline">
+  <span><span class="pill p-proved">GOAL 1 · COMPLETE</span>&ensp;no-A ⇒ Mario never enters a flying action</span>
+  <span><span class="pill p-open">GOAL 2 · ACTIVE</span>&ensp;without flying, Mario’s height stays below the star</span>
+  <span>Last updated <b>2026-07-10</b></span>
+</div>
+
+<h2>How a fact about SM64 becomes a theorem (the pipeline)</h2>
+<div class="flow">
+  <div class="box"><b>vendor C</b><span class="sub">decomp source of SM64 (N64, ppc32, ptr64=false)</span></div>
+  <div class="arrow">→</div>
+  <div class="box"><b>clightgen</b><span class="sub">CompCert’s mechanical C→Clight translator; never hand-edited</span></div>
+  <div class="arrow">→</div>
+  <div class="box"><b><code>generated/</code></b><span class="sub">16 translation units as Coq ASTs — the only source of game facts</span></div>
+  <div class="arrow">→</div>
+  <div class="box"><b><code>proofs/</code></b><span class="sub">hand-written math over those ASTs; CI firewall keeps the spine honest</span></div>
+</div>
+<p class="small">Rule “PIPELINE, not bespoke”: no hand-written model of the game is ever trusted.
+Every offset, constant, and function body cited in a proof is read off the generated AST.</p>
+
+<h2>GOAL 1 — no-A ⇒ no-fly <span class="pill p-proved">proved</span></h2>
+<p>Six audited theorems, all passing the discipline audit (build · no admits ·
+<b>standard CompCert axioms only</b> · firewall clean). The sharpest form:</p>
+<div class="callout">
+  <h3><code>noA_no_spawn_never_flying_linked12</code></h3>
+  <p style="margin:.2rem 0">For <b>any</b> CompCert link of the twelve clightgen’d action TUs: a run that
+  starts in a well-formed WMotR spawn state, under inputs that never press A and never
+  spawn flying, never reaches a flying action. Companion theorems
+  <code>linked12_inhabited</code> (the twelve TUs <b>provably link</b> — zero hypotheses) and
+  <code>linked12_init_mem</code> (its initial memory exists) make the quantification non-vacuous.</p>
+</div>
+
+<h3>Structure (one frame)</h3>
+<div class="flow">
+  <div class="box"><b>taint invariant</b><span class="sub">action ∉ T (flying ∪ FTJ ∪ cannon), carried per frame</span></div>
+  <div class="arrow">+</div>
+  <div class="box"><b>A-gate census</b><span class="sub">every entry into T is A-gated — proved per real call site (<code>AGates.v</code>)</span></div>
+  <div class="arrow">+</div>
+  <div class="box"><b>value/taint engine</b><span class="sub">walks every reached store in every reached body; MWF anti-aliasing keeps chased pointers off the action cell</span></div>
+  <div class="arrow">⇒</div>
+  <div class="box seg proved-core"><b>frame preserves “never flying”</b><span class="sub">over the real <code>eval_funcall</code> of <code>execute_mario_action</code></span></div>
+</div>
+
+<h3>What GOAL 1 still <em>assumes</em> — the 36-hypothesis ledger</h3>
+<p>The capstone is a conditional: its named <code>Hypothesis</code> rows are the whole trust
+surface (there are no hidden <code>Admitted</code>s — the audit checks this). Grouped:</p>
+<div class="tablewrap"><table>
+  <tr><th>Group</th><th class="num">Rows</th><th>Status</th><th>What it says / why it’s there</th></tr>
+  <tr><td>Link premise</td><td class="num">1</td>
+      <td><span class="pill p-proved">satisfiable — proved</span></td>
+      <td><code>H12 : linked12 lp</code>. Not assumed hopefully: <code>linked12_inhabited</code> proves a witness exists.</td></tr>
+  <tr><td>Layout pins</td><td class="num">3</td>
+      <td><span class="pill p-boundary">honest boundary</span></td>
+      <td><code>Hbm_sym</code>/<code>Hbc_sym</code>/<code>Hoc0</code> — Mario’s state and the controllers live at the
+      <code>gMarioStates</code>/<code>gControllers</code> symbol blocks, offset 0. The caller’s run-layout choice; optionally tightenable to existentials.</td></tr>
+  <tr><td>Object system</td><td class="num">2</td>
+      <td><span class="pill p-boundary">honest boundary</span></td>
+      <td><code>HSafeB_sym_iff</code>, <code>Hglob_obj_root</code> — the object pool is genuinely external to the
+      twelve TUs (<code>spawn_object</code> is <code>EF_external</code>). Non-vacuity certified (<code>safeb_wit_sat</code>).</td></tr>
+  <tr><td>Math / geometry externals</td><td class="num">≈17</td>
+      <td><span class="pill p-assumed">dischargeable — P1′ (#90)</span></td>
+      <td>Gated contracts for <code>find_floor</code>/<code>find_ceil</code>, <code>vec3f_*</code>, <code>approach_*</code>,
+      <code>find_wall_collisions</code>, … — external only because <code>math_util</code>/<code>surface_collision</code>
+      aren’t in the 12-TU link yet. The P1′ arc (grow to 14 TUs, bodies already proved in
+      <code>Unwired/MathGeomBodies.v</code>) retires most of this group. <b>The main remaining GOAL-1 front.</b></td></tr>
+  <tr><td>Family “rest” externals</td><td class="num">7</td>
+      <td><span class="pill p-assumed">shrinks with P1′</span></td>
+      <td><code>Hpres_{sta,mov,obj,cut,floors,warp}_ext</code> + <code>WL_exempt</code> — per-family rows saying the few
+      still-external callees preserve the invariant; each names a finite id list, not a ∀.</td></tr>
+  <tr><td>Named gated externals</td><td class="num">4</td>
+      <td><span class="pill p-boundary">honest boundary</span></td>
+      <td><code>Hcp_spawn_real</code>, <code>Hcp_savefile_real</code>, <code>Hcpx_ibcd_real</code>/<code>Hcpx_tbs_real</code> (bully) —
+      restated <em>gated</em> after the phantom-false sweep found the bare versions false (action/posZ offset-12 collision).</td></tr>
+  <tr><td>External-call model</td><td class="num">2</td>
+      <td><span class="pill p-boundary">permanent edge</span></td>
+      <td><code>Hext_action</code>, <code>Hmwf_ext</code> — CompCert’s abstract external-call model for the labeled
+      audio/dialog/save/object boundary. This is where formal verification of one program honestly ends.</td></tr>
+</table></div>
+<div class="callout warn">
+  <h3>The antecedent is not a hypothesis row</h3>
+  <p style="margin:.2rem 0"><code>mem_ok_lp init</code> — “the run starts in a well-formed WMotR spawn state” — is the
+  theorem’s <em>conditional</em>. Discharging it would mean modeling boot + level-load outside the
+  twelve TUs (inventing the initial state). The honest form is the conditional we have.</p>
+</div>
+<p class="small">History worth remembering: four hypothesis rows that <em>looked</em> fine were found
+<b>false of the real game</b> (vacuous capstone, bully aliasing, sound-flag OR, dead return-plumbing)
+and repaired — green-and-axiom-clean never means non-vacuous. The store-scout audit
+(classify every store against the generated AST) is the only method that caught them.</p>
+
+<h2>GOAL 2 — WMotR requires A <span class="pill p-open">active</span></h2>
+<p>Remaining gap: even without flying, could no-A Mario climb to the star some other way?
+The target invariant is a <b>height bound</b>: <code>m→pos[1] ≤ H*</code> for every reachable frame,
+with the star’s grab window above <code>H*</code> (real moat ≈ 622 units, margin ≈ 349 after the
+pole-grab correction). The frame is widened to the <em>real game frame</em> by composition:</p>
+<div class="flow">
+  <div class="box seg"><b>seg_platform</b><span class="sub">platform displacement<br>spec: y-inert (NULL-or-wingcap-box)</span></div>
+  <div class="arrow">∘</div>
+  <div class="box seg proved-core"><b>seg_action</b><span class="sub">GOAL-1’s proven frame, verbatim<br><code>execute_mario_action_step_lp</code></span></div>
+  <div class="arrow">∘</div>
+  <div class="box seg"><b>seg_level</b><span class="sub">level script / warps<br>spec: teleport writers censused</span></div>
+  <div class="arrow">∘</div>
+  <div class="box seg"><b>seg_rest</b><span class="sub">object interactions<br>spec: no y-write; action unchanged <em>or</em> := READING_NPC_DIALOG (grounded, non-flying)</span></div>
+</div>
+<p class="small">Both glue theorems (<code>frame_step_preserves_mem_ok</code>, <code>frame_step_keeps_y_le</code>)
+are proved in the sandbox, zero admits. The flanking specs were <em>falsified twice</em> by censuses
+(carpets ≠ WMotR; the bobomb-buddy action write) and refined — five phantom rows caught before they were assumed.</p>
+
+<h3>Open hypothesis rows (the GOAL-2 scoreboard)</h3>
+<div class="tablewrap"><table>
+  <tr><th>Row</th><th>Track</th><th>Status</th><th>What discharges it</th></tr>
+  <tr><td><code>Hseg_action_y</code></td><td>T3</td>
+      <td><span class="pill p-open">the crux</span></td>
+      <td>GOAL-1’s frame also bounds the y it writes. Prototype <b>landed</b>: one ballistic
+      quarter-step walked end-to-end, stored value ≤ Y+V/4 via exact binary32 Flocq bricks.
+      Next: loop generalization (×4 quarter-steps + gravity) — where the interval-env design earns its keep.</td></tr>
+  <tr><td><code>Hmiddle</code></td><td>T0</td>
+      <td><span class="pill p-assumed">restatement</span></td>
+      <td>seg_action really is GOAL-1’s step relation — definitional glue, discharged when the frame is rooted at the real caller.</td></tr>
+  <tr><td><code>Hmwf_platform / _level / _rest</code></td><td>T0/T1</td>
+      <td><span class="pill p-assumed">transport rows</span></td>
+      <td>Flank segments preserve the MWF invariant’s watched cells — walkable once each flank’s code is in the link (rungs 2–3).</td></tr>
+  <tr><td><code>Hteleport_y</code></td><td>T4</td>
+      <td><span class="pill p-assumed">census next</span></td>
+      <td>Level-phase teleport writers (<code>check_instant_warp</code> linked; <code>init_mario</code> is the antecedent) land below H*.</td></tr>
+  <tr><td><code>BP-INIT / BP-SEG-NULL / BP-SEG-BOX / BP-SURF-OBJ</code></td><td>T1</td>
+      <td><span class="pill p-boundary">platform boundary</span></td>
+      <td><code>gMarioPlatform</code> starts NULL and only ever names a wing-cap box whose y-write is
+      inert (boxes never spin). <code>BP-INIT</code> becomes a <code>gvar_init</code> fact after clightgen’ing
+      <code>platform_displacement.c</code> (rung 3); box-motionless half walkable today.</td></tr>
+  <tr><td><code>Hnoa_of_mwf</code></td><td>T0</td>
+      <td><span class="pill p-assumed">plumbing</span></td>
+      <td>Interface glue between the sandbox’s MWF bundle and the no-A input fact.</td></tr>
+</table></div>
+
+<h3>The ladder to the real per-frame entry point</h3>
+<p class="small">Matt’s direction: think in terms of the thread-execute / <code>game_loop_one_iteration</code>
+frame eventually — Mario’s section alone is not the endgame.</p>
+<div class="tablewrap"><table>
+  <tr><th class="num">Rung</th><th>Step</th><th>Status</th></tr>
+  <tr><td class="num">1</td><td>Segment composition around GOAL-1’s core (T0)</td><td><span class="pill p-proved">done</span> incl. §7 seg_rest refinement</td></tr>
+  <tr><td class="num">2</td><td>Walk <code>seg_level</code> against already-linked code</td><td><span class="pill p-open">queued</span></td></tr>
+  <tr><td class="num">3</td><td>clightgen <code>platform_displacement.c</code> (~200 lines) → discharge BP rows</td><td><span class="pill p-open">queued</span></td></tr>
+  <tr><td class="num">4</td><td>WMotR behavior census (which objects can touch Mario)</td><td><span class="pill p-proved">done</span> — 3 writers, spec refined</td></tr>
+  <tr><td class="num">5</td><td>Behavior-VM walk of the ~10 WMotR scripts</td><td><span class="pill p-assumed">waits on y-invariant working end-to-end</span></td></tr>
+  <tr><td class="num">6</td><td>Root the theorem at <code>game_loop_one_iteration</code></td><td><span class="pill p-assumed">horizon</span></td></tr>
+</table></div>
+
+<h2>Reading the colors</h2>
+<ul class="small">
+  <li><span class="pill p-proved">proved</span> — a Qed’d theorem on the spine, standard axioms only.</li>
+  <li><span class="pill p-assumed">assumed — dischargeable</span> — a named hypothesis with a concrete discharge plan; the working scoreboard.</li>
+  <li><span class="pill p-boundary">honest boundary</span> — assumed <em>by design</em>: facts outside the verified TUs (object pool, run layout, CompCert’s external-call model). These are what the final theorem will ask a reader to accept.</li>
+  <li><span class="pill p-open">active front</span> — where current work is aimed.</li>
+</ul>
+
+<footer>
+  Source of truth: <code>docs/state-of-goal1-2026-07-09.md</code>, the <code>Hypothesis</code> rows of
+  <code>proofs/NoAImpliesNoFly/NoAImpliesNoFlyTwelve.v</code>, and <code>playground/CompositionFrame.v</code>’s
+  STATUS block. This page is regenerated from those — if they disagree, they win.
+  Page source lives at <code>docs/proof-status.html</code>; ask Claude to “update the proof status
+  artifact” after a milestone.
+</footer>
+</main>
