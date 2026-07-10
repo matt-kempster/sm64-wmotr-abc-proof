@@ -105,9 +105,6 @@ Section CompositionFrame.
   Definition gplat_null (m : mem) : Prop :=
     Mem.load Mptr m bplat 0 = Some Vnullptr.
 
-  (* Mario's whole block, as a watched region. *)
-  Definition mario_block : block -> Z -> Prop := fun b _ => b = bm.
-
   (* The y-cell: 4 bytes at (bm, POSY). *)
   Definition pos_y_cell : block -> Z -> Prop :=
     fun b z => b = bm /\ POSY <= z < POSY + size_chunk Mfloat32.
@@ -163,19 +160,68 @@ Section CompositionFrame.
     /\ (Mem.unchanged_on pos_y_cell m m' \/ teleport_write m m').
 
   (* seg_rest: the non-Mario phase boundary — the rest of update_objects
-     (other objects' behaviors, unload, update_mario_platform) + gfx.  Spec:
-     unchanged on bm ENTIRELY (no non-Mario code writes Mario's state;
-     copy_mario_state_to_object copies state->object, not the reverse —
-     scout §1).  NOTE (T0-retool): the first draft also carried
-     "gplat_null m -> gplat_null m'", justified by "every WMotR floor has
-     object == NULL" — that claim is FALSE (T1's correction: the 6
-     exclamation boxes are dynamic object floors, so update_mario_platform
-     CAN write a box pointer, writer platform_displacement.c:59).  The
-     honest gMarioPlatform evolution (NULL-or-box) is T1's business
-     (PlatformInert.v BP-SURF-OBJ + the §4(b) writer census); T0 no longer
-     threads the cell, so the clause is DROPPED, not repaired. *)
+     (other objects' behaviors, unload, update_mario_platform) + gfx.  NOTE
+     (T0-retool, prior draft): the first draft also carried "gplat_null m ->
+     gplat_null m'", justified by "every WMotR floor has object == NULL" —
+     that claim is FALSE (T1's correction: the 6 exclamation boxes are
+     dynamic object floors, so update_mario_platform CAN write a box
+     pointer, writer platform_displacement.c:59).  The honest gMarioPlatform
+     evolution (NULL-or-box) is T1's business (PlatformInert.v BP-SURF-OBJ +
+     the §4(b) writer census); T0 no longer threads the cell.
+
+     RETOOL §7 (2026-07-09, plan §7 + docs/goal2-wmotr-behavior-census.md):
+     the bare "unchanged_on mario_block ENTIRELY" claim is ALSO FALSE of the
+     real game — the level-wide WMotR object census (rung 4) found exactly
+     THREE object-side Mario-block writers reachable in this level:
+       1. cur_obj_push_mario_away (the 6 pole volumes): writes pos[0]/pos[2]
+          only — never y, never action.
+       2. bhv_1up_interact (the 1-ups): writes numLives only.
+       3. set_mario_npc_dialog, via the cannon's bob-omb buddy
+          (mario_actions_cutscene.c:361-362, generated as
+          f_set_mario_npc_dialog in generated/mario_actions_cutscene.v):
+          writes action := ACT_READING_NPC_DIALOG and usedObj — the ONLY
+          object-side write to the action cell anywhere in the level.
+     None of the three ever writes pos[1] (y).  The refined spec: the
+     y-load is unchanged (as before, unconditionally); the action-load is
+     EITHER unchanged OR set to the single grounded value
+     ACT_READING_NPC_DIALOG (a non-flying, not_tainted cutscene action —
+     proved below by vm_compute against the real Taint.is_tainted, not
+     assumed); validity transport, as the other two flanks carry. *)
+
+  (* ACT_READING_NPC_DIALOG, grounded at the generated AST (PIPELINE, not
+     the C header): generated/mario_actions_cutscene.v:2276, inside
+     f_set_mario_npc_dialog's own early-return guard
+     "if (gMarioState->action == ACT_READING_NPC_DIALOG) return -1;"
+     (mario_actions_cutscene.c:349) —
+       (Sifthenelse (Ebinop Oeq (Etempvar _t'4 tuint)
+                      (Econst_int (Int.repr 536875782) tint) tint) ...).
+     The SAME literal 536875782 also appears at
+     mario_actions_cutscene.v:2361 (the set_mario_action call argument —
+     the real write site, source mario_actions_cutscene.c:362) and in the
+     dispatch switch tables of mario.v:8828 and
+     mario_actions_cutscene.v:16950 (LScons (Some 536875782) ...) — so it
+     is the ONE value clightgen assigned this action constant everywhere it
+     is mentioned, not an isolated occurrence.  (vendor/sm64/include/sm64.h:343
+     independently says 0x20001306 = 536875782, so the header and the
+     compiled AST agree for this constant — unlike ACT_FLYING's
+     stale-nibble case documented in Flying.v.) *)
+  Definition ACT_READING_NPC_DIALOG : int := Int.repr 536875782.
+
+  (* not_tainted is ALREADY concrete in this file (Taint is Require Import'd
+     above, not abstracted behind a section Variable), so this is a real
+     proof, not a Hypothesis: unfolding is_tainted, ACT_READING_NPC_DIALOG is
+     neither ACT_FLYING nor ACT_FLYING_TRIPLE_JUMP (Flying.v) nor
+     ACT_SHOT_FROM_CANNON (Taint.v) — three closed Int.eq comparisons on
+     Int.repr literals, safe to vm_compute (never a genv/program constant;
+     this is bare Int arithmetic, per the build-rules guardrail). *)
+  Lemma dialog_action_not_tainted : not_tainted ACT_READING_NPC_DIALOG.
+  Proof. vm_compute. reflexivity. Qed.
+
   Definition seg_rest_spec (m m' : mem) : Prop :=
-    Mem.unchanged_on mario_block m m'.
+    Mem.load Mfloat32 m' bm POSY = Mem.load Mfloat32 m bm POSY
+    /\ (Mem.load Mint32 m' bm 12 = Mem.load Mint32 m bm 12
+        \/ Mem.load Mint32 m' bm 12 = Some (Vint ACT_READING_NPC_DIALOG))
+    /\ (Mem.valid_block m bm -> Mem.valid_block m' bm).
 
   (* ===================================================================== *)
   (* 2. THE FRAME: existential composition (plan §0).  seg_action is        *)
@@ -253,26 +299,6 @@ Section CompositionFrame.
 
   (* ---- proved composition glue ---------------------------------------- *)
 
-  Lemma unchanged_mario_action_cell :
-    forall m m',
-      Mem.unchanged_on mario_block m m' ->
-      Mem.unchanged_on (action_cell bm) m m'.
-  Proof.
-    intros m m' H.
-    eapply Mem.unchanged_on_implies; [ exact H | ].
-    intros b ofs Hc _. destruct Hc as [Hb _]. exact Hb.
-  Qed.
-
-  Lemma unchanged_mario_pos_y_cell :
-    forall m m',
-      Mem.unchanged_on mario_block m m' ->
-      Mem.unchanged_on pos_y_cell m m'.
-  Proof.
-    intros m m' H.
-    eapply Mem.unchanged_on_implies; [ exact H | ].
-    intros b ofs Hc _. destruct Hc as [Hb _]. exact Hb.
-  Qed.
-
   (* a LOAD-EQUAL action cell transports action_sat outright — no
      valid_block needed (the mirror of PlatformInert.v's
      transfer_of_yact_inert, action leg). *)
@@ -284,18 +310,21 @@ Section CompositionFrame.
     intros Q m m' Heq Hsat v Hl. apply Hsat. congruence.
   Qed.
 
-  (* a mario_block-unchanged flank transports valid_block + action_sat
-     (the action_sat leg is ActionValueFrame.action_sat_unchanged_on). *)
-  Lemma flank_transfers_bundle :
-    forall m m',
-      Mem.unchanged_on mario_block m m' ->
-      Mem.valid_block m bm -> action_sat not_tainted m bm ->
-      Mem.valid_block m' bm /\ action_sat not_tainted m' bm.
+  (* the §7 seg_rest action clause is a DISJUNCTION (load-equal OR set to
+     one grounded value v0) rather than a bare equality — this is the
+     generalization action_sat_load_eq specializes to the empty-disjunct
+     case.  Consumed with v0 := ACT_READING_NPC_DIALOG and the Q-side
+     premise supplied by dialog_action_not_tainted. *)
+  Lemma action_sat_load_eq_or_val :
+    forall Q v0 m m',
+      (Mem.load Mint32 m' bm 12 = Mem.load Mint32 m bm 12
+       \/ Mem.load Mint32 m' bm 12 = Some (Vint v0)) ->
+      Q v0 ->
+      action_sat Q m bm -> action_sat Q m' bm.
   Proof.
-    intros m m' Hu Hv Hsat. split.
-    - eapply Mem.valid_block_unchanged_on; eauto.
-    - eapply action_sat_unchanged_on;
-        [ apply unchanged_mario_action_cell; exact Hu | exact Hv | exact Hsat ].
+    intros Q v0 m m' [Heq | Heq] Hv0 Hsat v Hl.
+    - apply Hsat. congruence.
+    - rewrite Heq in Hl. injection Hl as Hveq. subst v. exact Hv0.
   Qed.
 
   (* ===================================================================== *)
@@ -339,9 +368,14 @@ Section CompositionFrame.
       by (eapply action_sat_unchanged_on;
           [ exact Hact_unch3 | exact Hv2 | exact Hsat2 ]).
     assert (Hmwf3 : MWF m3) by exact (Hmwf_level m2 m3 Hlvl0 Hmwf2).
-    (* --- seg_rest flank --- *)
-    destruct (flank_transfers_bundle m3 m' Hrest Hv3 Hsat3) as [Hv4 Hsat4].
-    exact (conj Hv4 (conj Hsat4 (Hmwf_rest m3 m' Hrest Hmwf3))).
+    (* --- seg_rest flank: the §7 census-refined spec --- *)
+    pose proof Hrest as Hrest0.
+    destruct Hrest as (_ & Hact4 & Hvb4).
+    assert (Hv4 : Mem.valid_block m' bm) by exact (Hvb4 Hv3).
+    assert (Hsat4 : action_sat not_tainted m' bm)
+      by (eapply action_sat_load_eq_or_val;
+          [ exact Hact4 | exact dialog_action_not_tainted | exact Hsat3 ]).
+    exact (conj Hv4 (conj Hsat4 (Hmwf_rest m3 m' Hrest0 Hmwf3))).
   Qed.
 
   (* ===================================================================== *)
@@ -447,10 +481,11 @@ Section CompositionFrame.
       - intros v' Hld'. rewrite Hld' in Hld.
         injection Hld as Hveq. subst v'.
         exact (Hteleport_y v Htgt). }
-    (* --- seg_rest flank --- *)
-    eapply y_le_unchanged_on;
-      [ apply unchanged_mario_pos_y_cell; exact Hrest
-      | exact Hv3 | exact Hy3 ].
+    (* --- seg_rest flank: the §7 census-refined spec's y-load-equal
+       clause transports y_le directly (load-equality, not unchanged_on —
+       the pole/1-up writers touch other cells, never pos[1]). --- *)
+    destruct Hrest as (Hyeq4 & _ & _).
+    eapply y_le_load_eq; [ exact Hyeq4 | exact Hy3 ].
   Qed.
 
 End CompositionFrame.
@@ -467,23 +502,39 @@ End CompositionFrame.
 (*     copied verbatim — y-cell + action-cell LOADS unchanged,              *)
 (*     UNCONDITIONALLY, both NULL-or-box arms concluding it behind T1's     *)
 (*     boundary premises — plus a block-validity-transport clause 3);       *)
-(*     seg_level_spec / seg_rest_spec (the latter shed its false            *)
-(*     gplat_null-carry clause, see its comment); frame_step (the plan-§0   *)
-(*     existential composition with seg_action :=                           *)
-(*     execute_mario_action_step_lp lp, GOAL-1's frame verbatim), mem_ok    *)
-(*     (= mem_ok_lp's bundle shape), y_le (concrete: Flocq B2R of the       *)
-(*     Mfloat32 at (bm, 64)).                                               *)
+(*     seg_level_spec (unchanged); seg_rest_spec — RETOOLED §7 (2026-07-09,  *)
+(*     plan §7 + docs/goal2-wmotr-behavior-census.md): shed both the false   *)
+(*     gplat_null-carry clause AND the false bare "unchanged_on mario_block" *)
+(*     shape.  Now: y-load unchanged (unconditional); action-load unchanged  *)
+(*     OR := ACT_READING_NPC_DIALOG (the ONE grounded object-side action     *)
+(*     write in WMotR, generated/mario_actions_cutscene.v:2276); validity    *)
+(*     transport.  frame_step (the plan-§0 existential composition with      *)
+(*     seg_action := execute_mario_action_step_lp lp, GOAL-1's frame         *)
+(*     verbatim), mem_ok (= mem_ok_lp's bundle shape), y_le (concrete:       *)
+(*     Flocq B2R of the Mfloat32 at (bm, 64)).                               *)
+(*   - ACT_READING_NPC_DIALOG := Int.repr 536875782, grounded at             *)
+(*     generated/mario_actions_cutscene.v:2276 (see the Definition's         *)
+(*     comment for the full multi-site citation) — NOT the C header alone.  *)
+(*   - dialog_action_not_tainted : not_tainted ACT_READING_NPC_DIALOG — a    *)
+(*     REAL proof (vm_compute over Taint.is_tainted, which this file already *)
+(*     imports concretely), not a Hypothesis: no new trust was added for     *)
+(*     the §7 retool.                                                       *)
 (*   - action_sat_load_eq / y_le_load_eq — the load-equality transport      *)
 (*     glue (mirrors of PlatformInert.v's transfer_of_yact_inert legs).     *)
+(*   - action_sat_load_eq_or_val — the §7 generalization (load-equal OR     *)
+(*     set-to-v0) consumed by the seg_rest flank with v0 :=                 *)
+(*     ACT_READING_NPC_DIALOG.                                              *)
 (*   - frame_step_preserves_mem_ok  — THE GOAL-1 TRANSFER THEOREM, proved   *)
 (*     as composition glue (platform flank: action_sat_load_eq + the        *)
-(*     validity clause; level/rest flanks: action_sat_unchanged_on +        *)
-(*     valid_block_unchanged_on; middle: the Hmiddle row).  NO gplat_null   *)
-(*     premise (T0-retool).                                                 *)
+(*     validity clause; level flank: action_sat_unchanged_on +              *)
+(*     valid_block_unchanged_on; rest flank: action_sat_load_eq_or_val +    *)
+(*     the validity-transport clause; middle: the Hmiddle row).  NO         *)
+(*     gplat_null premise (T0-retool).                                      *)
 (*   - frame_step_keeps_y_le       — THE ONE-FRAME Y-THEOREM, proved as     *)
 (*     glue over the two OPEN y-rows (platform flank transports y_le by     *)
-(*     y_le_load_eq, the others by unchanged_on; teleport disjunct bounded  *)
-(*     by the census row).  NO gplat_null premise (T0-retool).              *)
+(*     y_le_load_eq, level flank by unchanged_on / the teleport census row, *)
+(*     rest flank by y_le_load_eq off seg_rest_spec's first clause).  NO    *)
+(*     gplat_null premise (T0-retool).                                      *)
 (*                                                                          *)
 (* NO Admitted; the open surface is the named Hypothesis rows:              *)
 (*   - Hmiddle        : NOT open — GOAL-1's frame_preserves_mem_ok_lp,      *)
@@ -509,10 +560,13 @@ End CompositionFrame.
 (*                      LINKED level_update TU: walkable with the GOAL-1    *)
 (*                      walker kit, or killed by the WMotR census (no       *)
 (*                      instant-warp regions).                              *)
-(*   - Hmwf_rest      : OPEN — boundary.  Needs seg_rest_spec widened to    *)
-(*                      "unchanged on the MWF-watched cells" (bc, oc0,      *)
-(*                      stored globals) or stays the labeled non-Mario      *)
-(*                      model boundary.                                     *)
+(*   - Hmwf_rest      : OPEN — boundary.  Needs seg_rest_spec's rest-of-MWF *)
+(*                      residue (bc, oc0, stored globals — beyond the two   *)
+(*                      §7-covered loads) widened to unchanged-on-the-      *)
+(*                      MWF-watched-cells (the numLives/pos[0,2]/usedObj    *)
+(*                      writes from §7 are outside MWF's watch set per the  *)
+(*                      census) or stays the labeled non-Mario model        *)
+(*                      boundary.                                           *)
 (*   - Hseg_action_y  : OPEN — T2 + T3, THE CRUX.  The BALLISTIC value      *)
 (*                      walk: a value-tracking variant of the paqs walk     *)
 (*                      bounding the stored y (Flocq add/round brick T2 +   *)
