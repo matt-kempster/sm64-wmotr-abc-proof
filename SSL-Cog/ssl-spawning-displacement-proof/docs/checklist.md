@@ -1,6 +1,6 @@
 # Checklist
 
-- [x] Locate and inspect the existing `ssl-pyramid-item-proof/` structure.
+- [x] Locate and inspect the existing `SSL-Cog/ssl-pyramid-item-proof/` structure.
 - [x] Verify the JP-only `#ifndef VERSION_JP` guard around
   `clear_mario_platform()` in `spawn_objects_from_info()`.
 - [x] Verify `apply_mario_platform_displacement()` reads `gMarioPlatform` and

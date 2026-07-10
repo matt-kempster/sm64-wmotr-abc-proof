@@ -7,7 +7,7 @@ on memory.
 ## Active objective
 
 Build a formal Rocq/Coq + CompCert `clightgen` proof, following the structure
-of `ssl-pyramid-item-proof`, for SSL area 2 parallel-universe impossibility:
+of `SSL-Cog/ssl-pyramid-item-proof`, for SSL area 2 parallel-universe impossibility:
 
 - prove that Mario cannot enter a parallel universe in normal SSL area 2 play
   under the mechanized bounds and transition model; or
@@ -55,9 +55,9 @@ certified recycles, or source-backed bounds ruling those out.
 ## Repository workflow constraints
 
 - Work on branch `codex/ssl-pyramid-item-proof` in the proof repository.
-- Keep all new work inside `ssl-parallel-universe/` unless minimal build wiring
+- Keep all new work inside `SSL-Cog/ssl-parallel-universe/` unless minimal build wiring
   outside the folder is required.
-- Do not modify `ssl-pyramid-item-proof/` contents except to inspect and mirror
+- Do not modify `SSL-Cog/ssl-pyramid-item-proof/` contents except to inspect and mirror
   structure.
 - Commit after each logical change, and update docs in every commit.
 - Do not push without explicit user approval.

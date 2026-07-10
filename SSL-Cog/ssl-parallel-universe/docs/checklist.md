@@ -42,7 +42,7 @@ possible dynamic wall/ceiling/stair-reuse setup.
 
 ## Active next steps
 
-- [x] Create the isolated `ssl-parallel-universe/` project scaffold.
+- [x] Create the isolated `SSL-Cog/ssl-parallel-universe/` project scaffold.
 - [x] Add the C model and generate the first Clight AST with `clightgen`.
   `generated/pu_model.v` was produced from `inputs/pu_model.c` by the local
   `pipeline/clightgen.sh` route.

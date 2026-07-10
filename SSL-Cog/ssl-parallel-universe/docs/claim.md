@@ -4,7 +4,7 @@
 
 - Super Mario 64, North American release (`VERSION_US=1`)
 - Reference decompilation source is the same source family used by
-  `ssl-pyramid-item-proof`
+  `SSL-Cog/ssl-pyramid-item-proof`
 - CompCert `clightgen` is the translation path for any C model committed here
 
 ## Boundary being studied
