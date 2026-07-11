@@ -51,3 +51,6 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   DemoWarp.Proofs.AuthorizedWriterExec \
   exec_run_increment_source_load_sets_safe_temp
+bash pipeline/assumptions.sh \
+  DemoWarp.Proofs.AuthorizedWriterExec \
+  exec_title_install_source_load_sets_safe_temp

@@ -197,6 +197,13 @@ lvalue, inverts `deref_loc`, identifies the concrete `Mptr` load, and shows
 the `Sset` updates `_t'5` with exactly the value read from the safe linked
 global cell while leaving memory unchanged.
 
+For title, `exec_title_install_source_load_sets_safe_temp` performs the
+corresponding derivation for the generated
+`_t'6 = gDemoInputsBuf.bufTarget` statement. Using the linked composite
+certificate, it derives `bufTarget` at byte offset 8, resolves the handler
+global, identifies the concrete `Mptr` load, and proves `_t'6` receives exactly
+that safe demo-block pointer without changing memory.
+
 ## Conditional impossibility result
 
 `separated_demo_pointer_cannot_change_mario_y` combines the generated direct-
