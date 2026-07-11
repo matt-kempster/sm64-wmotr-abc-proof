@@ -2,7 +2,8 @@ From Coq Require Import Bool List PArith.BinPos.
 From compcert Require Import AST Ctypes Clight.
 From DemoWarp.Generated Require Import
   game_init title_screen level_update memory camera
-  behavior_actions rumble_init save_file.
+  behavior_actions rumble_init save_file
+  os_cont_start_read_data os_si_raw_start_dma.
 
 Local Open Scope nat_scope.
 
@@ -14,6 +15,8 @@ Module C := camera.
 Module B := behavior_actions.
 Module R := rumble_init.
 Module S := save_file.
+Module OC := os_cont_start_read_data.
+Module SI := os_si_raw_start_dma.
 
 Fixpoint addrof_global_e (wanted : ident) (a : expr) : nat :=
   (match a with
@@ -114,7 +117,9 @@ Definition curr_addrof_surface : nat :=
   addrof_global_defs G._gCurrDemoInput (prog_defs C.prog) +
   addrof_global_defs G._gCurrDemoInput (prog_defs B.prog) +
   addrof_global_defs G._gCurrDemoInput (prog_defs R.prog) +
-  addrof_global_defs G._gCurrDemoInput (prog_defs S.prog).
+  addrof_global_defs G._gCurrDemoInput (prog_defs S.prog) +
+  addrof_global_defs G._gCurrDemoInput (prog_defs OC.prog) +
+  addrof_global_defs G._gCurrDemoInput (prog_defs SI.prog).
 
 Definition curr_direct_assign_surface : nat :=
   direct_global_assigns_defs G._gCurrDemoInput (prog_defs G.prog) +
@@ -124,7 +129,9 @@ Definition curr_direct_assign_surface : nat :=
   direct_global_assigns_defs G._gCurrDemoInput (prog_defs C.prog) +
   direct_global_assigns_defs G._gCurrDemoInput (prog_defs B.prog) +
   direct_global_assigns_defs G._gCurrDemoInput (prog_defs R.prog) +
-  direct_global_assigns_defs G._gCurrDemoInput (prog_defs S.prog).
+  direct_global_assigns_defs G._gCurrDemoInput (prog_defs S.prog) +
+  direct_global_assigns_defs G._gCurrDemoInput (prog_defs OC.prog) +
+  direct_global_assigns_defs G._gCurrDemoInput (prog_defs SI.prog).
 
 Definition handler_addrof_surface : nat :=
   addrof_global_defs G._gDemoInputsBuf (prog_defs G.prog) +
@@ -134,7 +141,9 @@ Definition handler_addrof_surface : nat :=
   addrof_global_defs G._gDemoInputsBuf (prog_defs C.prog) +
   addrof_global_defs G._gDemoInputsBuf (prog_defs B.prog) +
   addrof_global_defs G._gDemoInputsBuf (prog_defs R.prog) +
-  addrof_global_defs G._gDemoInputsBuf (prog_defs S.prog).
+  addrof_global_defs G._gDemoInputsBuf (prog_defs S.prog) +
+  addrof_global_defs G._gDemoInputsBuf (prog_defs OC.prog) +
+  addrof_global_defs G._gDemoInputsBuf (prog_defs SI.prog).
 
 Theorem generated_curr_pointer_cell_address_never_escapes :
   curr_addrof_surface = 0.
