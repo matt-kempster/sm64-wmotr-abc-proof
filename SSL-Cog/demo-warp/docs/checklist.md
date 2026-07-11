@@ -67,6 +67,8 @@
       recursively checking every reached internal body.
     - [x] Instantiate the authorized-sequence recognizer on all generated
       target-surface units and prove its closed-world count is exactly two.
+    - [x] Bind authorization to a node-local semantic certificate for the
+      exact generated sequence, excluding unproved look-alike ASTs.
   - [x] Generate the libultra controller ingestion and SI DMA implementation
     that resolves `osContGetReadData`/`osContStartReadData` below the game loop.
   - [x] Certify the controller parser's exact five-store surface and the

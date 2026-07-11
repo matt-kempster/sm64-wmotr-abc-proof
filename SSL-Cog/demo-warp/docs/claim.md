@@ -218,6 +218,12 @@ body execution, and `free_list`. Certified generated load/write sequences are
 handled as atomic authorized updates; all remaining assignments and reached
 externals must preserve the chosen target invariant.
 
+Authority is node-local: when the recognizer marks a sequence, that exact
+sequence's certificate contains its `statement_preserves` proof. The induction
+does not rely on a global promise about every statement a shape recognizer
+might accept, so a hypothetical look-alike AST with changed types receives no
+authority from the two generated proofs.
+
 `generated_authorized_pair_certificate` instantiates that mechanism on the
 generated program. Its recognizer identifies the exact playback and title
 source-load/write shapes, proves one occurrence in each corresponding body,
