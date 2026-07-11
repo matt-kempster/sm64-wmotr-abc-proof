@@ -53,6 +53,8 @@
     and prove distinct/disjoint protected regions are preserved.
   - [x] State the normal N64 external pointer-locality contract and prove its
     non-vacuity independently of the SI/PI writes.
+  - [x] Prove the CompCert value/store kernel: null, demo-buffer installation,
+    and record increment preserve the demo block provenance.
 - [ ] Prove whole-program memory safety for every input-reachable gameplay path
   (sufficient, but no longer presented as necessary for the narrower target
   integrity claim).

@@ -136,6 +136,14 @@ remaining spine obligation is to prove from the generated call arguments and
 global-symbol blocks that each reached external falls into the disjoint-argument
 case or the authorized SI/PI case.
 
+`generated_pointer_provenance_kernel_certificate` composes the generated writer
+and non-escape surfaces with the hardware frame. At the CompCert value/memory
+level it proves that null is safe, adding an integer (including the generated
+one-record increment) to a demo pointer preserves its block, and storing a safe
+pointer into the pointer cell establishes a safe loaded value. Thus none of the
+three authorized writer forms can manufacture the Mario global's block; the
+remaining interprocedural obligation is exclusion of unauthorized stores.
+
 ## Conditional impossibility result
 
 `separated_demo_pointer_cannot_change_mario_y` combines the generated direct-
