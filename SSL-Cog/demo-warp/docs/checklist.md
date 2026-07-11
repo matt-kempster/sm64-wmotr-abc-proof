@@ -28,6 +28,11 @@
 - [x] Prove that the generated assignment uses `Mint8unsigned`.
 - [x] Construct and prove the `0xC5 -> 0xC4` one-byte memory witness.
 - [x] Certify the direct `gCurrDemoInput` writer shapes.
+- [x] Certify the generated controller-to-demo call boundary and absence of
+  direct controller-reader assignments to the demo pointer/handler.
+- [ ] Prove whole-program memory safety for every input-reachable gameplay path
+  (explicitly outside the current proof; documented UB sites make this a
+  separate project-scale obligation).
 - [x] Wire all results into a capstone theorem.
 - [x] Prove the distinct-block conditional impossibility theorem.
 - [x] Prove that a matching Mario-Y byte change requires block aliasing.

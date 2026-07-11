@@ -14,5 +14,6 @@ proofs/LayoutFacts.v
 proofs/ByteStore.v
 proofs/ASTReachabilityFacts.v
 proofs/NormalInitialization.v
+proofs/GameplayInputBoundary.v
 proofs/ReachabilityBoundary.v
 proofs/Counterexample.v

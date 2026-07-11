@@ -60,6 +60,28 @@ The theorem is not a whole-program proof that every possible SM64 glitch is
 memory-safe. A positive DOTA_Teabag explanation through this decrement would
 need some earlier event to break the proved pointer provenance.
 
+## Controller-input boundary
+
+`normal_controller_path_preserves_no_alias_boundary` extends the checked
+boundary through the generated `read_controller_inputs` / `run_demo_inputs`
+path. The generated AST certifies that the reader calls demo playback, directly
+assigns neither `gCurrDemoInput` nor `gDemoInputsBuf`, and that demo playback
+itself has no callees. Its only direct pointer assignment is the already checked
+one-record increment, and its only `DemoInput.timer` assignment is the checked
+one-byte decrement. Thus ordinary controller values do not select or rewrite
+the demo pointer or DMA destination on this path. During playback, the source
+preserves only the Start bit; the remaining player-one values come from the
+authenticated demo record, while player two is cleared.
+
+This is deliberately not promoted into a whole-game "user input can never
+trigger memory corruption" theorem. The pinned decompile contains multiple
+documented undefined-behavior and out-of-bounds sites outside this call path,
+and this project translates with `AVOID_UB=1`. Establishing that none is
+reachable from any controller sequence in the matching US executable would
+require a complete gameplay callgraph plus semantic memory-safety proof. Until
+that obligation is discharged, prior indirect corruption remains an explicit
+out-of-scope premise, not something this proof silently rules out.
+
 ## Conditional impossibility result
 
 `separated_demo_pointer_cannot_change_mario_y` combines the generated direct-

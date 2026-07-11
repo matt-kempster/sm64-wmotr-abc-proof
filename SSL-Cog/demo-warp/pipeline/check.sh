@@ -17,3 +17,6 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   DemoWarp.Proofs.NormalInitialization \
   normal_initialization_forbids_demo_pointer_mario_y_alias
+bash pipeline/assumptions.sh \
+  DemoWarp.Proofs.GameplayInputBoundary \
+  normal_controller_path_preserves_no_alias_boundary
