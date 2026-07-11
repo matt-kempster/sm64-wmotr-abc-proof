@@ -22,5 +22,6 @@ proofs/ASTReachabilityFacts.v
 proofs/NormalInitialization.v
 proofs/GameplayInputBoundary.v
 proofs/TargetUseCensus.v
+proofs/ControllerInputSurface.v
 proofs/ReachabilityBoundary.v
 proofs/Counterexample.v
