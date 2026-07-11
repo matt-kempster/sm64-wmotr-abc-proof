@@ -22,6 +22,8 @@
 - [x] Construct and prove the `0xC5 -> 0xC4` one-byte memory witness.
 - [x] Certify the direct `gCurrDemoInput` writer shapes.
 - [x] Wire all results into a capstone theorem.
+- [x] Prove the distinct-block conditional impossibility theorem.
+- [x] Prove that a matching Mario-Y byte change requires block aliasing.
 - [x] Check `Print Assumptions` and reject proof holes.
 
 ## Integration
@@ -46,3 +48,7 @@
   counterexample capstone. The strict end-to-end check is green.
 - SSL-Cog integration: added `demo-warp/` to the parent project index with the
   local-counterexample/gameplay-reachability distinction intact.
+- Reachability boundary: proved that distinct demo/Mario memory blocks forbid
+  the byte change and that any matching change requires block equality. The
+  only open route-level issue is whether generated gameplay can establish that
+  alias.
