@@ -27,5 +27,6 @@ proofs/HardwareContracts.v
 proofs/PointerProvenanceKernel.v
 proofs/TargetCapabilitySet.v
 proofs/TargetSymbolicLinking.v
+proofs/AuthorizedWriterExec.v
 proofs/ReachabilityBoundary.v
 proofs/Counterexample.v

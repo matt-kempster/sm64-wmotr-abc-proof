@@ -39,3 +39,6 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   DemoWarp.Proofs.TargetSymbolicLinking \
   linked_target_calls_resolve_to_internal_bodies
+bash pipeline/assumptions.sh \
+  DemoWarp.Proofs.AuthorizedWriterExec \
+  generated_writer_rhs_execution_preserves_demo_block

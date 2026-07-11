@@ -50,6 +50,8 @@
       temporary used only in a null comparison, never a dereference/store/call.
     - [x] Prove OOM-safe symbolic resolution of every target-capable cross-TU
       call to its generated internal body in an abstract linked program.
+    - [x] Prove from actual `eval_expr` derivations that the generated title and
+      playback writer RHSs preserve the block of their loaded pointer temps.
   - [x] Generate the libultra controller ingestion and SI DMA implementation
     that resolves `osContGetReadData`/`osContStartReadData` below the game loop.
   - [x] Certify the controller parser's exact five-store surface and the
