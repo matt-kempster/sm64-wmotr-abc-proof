@@ -62,25 +62,39 @@ need some earlier event to break the proved pointer provenance.
 
 ## Controller-input boundary
 
-`normal_controller_path_preserves_no_alias_boundary` extends the checked
-boundary through the generated `read_controller_inputs` / `run_demo_inputs`
-path. The generated AST certifies that the reader calls demo playback, directly
-assigns neither `gCurrDemoInput` nor `gDemoInputsBuf`, and that demo playback
-itself has no callees. Its only direct pointer assignment is the already checked
-one-record increment, and its only `DemoInput.timer` assignment is the checked
-one-byte decrement. Thus ordinary controller values do not select or rewrite
-the demo pointer or DMA destination on this path. During playback, the source
-preserves only the Start bit; the remaining player-one values come from the
-authenticated demo record, while player two is cleared.
+`generated_controller_boundary_and_normal_initialization` is a conjunction of
+two static certificates. The generated AST certifies that the reader contains a
+call to demo playback, directly assigns neither `gCurrDemoInput` nor
+`gDemoInputsBuf`, and that the scanner finds no direct calls in demo playback.
+Its only direct pointer assignment is the already checked one-record increment,
+and its only recognized `DemoInput.timer` assignment is the checked one-byte
+decrement. Separately, the source shows that playback preserves only the Start
+bit; the remaining player-one values come from the demo record, while player two
+is cleared.
+
+This certificate does **not** prove that executing `read_controller_inputs` or
+a gameplay frame preserves pointer provenance. It has no Clight execution
+relation, no before/after memories, and no reachable-callgraph frame theorem.
+Likewise, `normal_initialization_reachability_claim` combines generated AST,
+ROM/linker receipts, and an arithmetic model of states satisfying the intended
+invariants; it does not yet prove that the generated initialization code reaches
+that record through Clight semantics. A clean `Print Assumptions` result proves
+only that these static propositions use no additional axioms.
 
 This is deliberately not promoted into a whole-game "user input can never
 trigger memory corruption" theorem. The pinned decompile contains multiple
 documented undefined-behavior and out-of-bounds sites outside this call path,
 and this project translates with `AVOID_UB=1`. Establishing that none is
 reachable from any controller sequence in the matching US executable would
-require a complete gameplay callgraph plus semantic memory-safety proof. Until
-that obligation is discharged, prior indirect corruption remains an explicit
-out-of-scope premise, not something this proof silently rules out.
+be sufficient but is stronger than necessary. A target-specific frame proof can
+instead enumerate input-reachable stores that might alias the demo pointer,
+handler, or allocation. Covering behavior after C undefined behavior in the
+matching executable requires machine-level store-address reasoning. Until one
+of those obligations is discharged, prior indirect corruption remains an
+explicit out-of-scope premise, not something this proof silently rules out.
+
+The more precise assessment and smaller proof options are recorded in
+`docs/input-provenance-investigation.md`.
 
 ## Conditional impossibility result
 
@@ -100,7 +114,7 @@ Thus the formal split is now exact:
 
 ## Verification status
 
-`pipeline/check.sh` regenerates as needed, builds all seven proof modules,
+`pipeline/check.sh` regenerates as needed, builds all eight proof modules,
 rejects proof-hole keywords, checks the source census, and compiles a strict
 `Print Assumptions` query. The capstone currently reports only the standard
 classical and functional-extensionality axioms inherited from CompCert. The

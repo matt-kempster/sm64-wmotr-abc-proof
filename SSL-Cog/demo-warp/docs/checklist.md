@@ -30,9 +30,15 @@
 - [x] Certify the direct `gCurrDemoInput` writer shapes.
 - [x] Certify the generated controller-to-demo call boundary and absence of
   direct controller-reader assignments to the demo pointer/handler.
+- [x] Audit that certificate's statement and retract the unsupported semantic
+  preservation interpretation.
+- [ ] Prove a Clight execution invariant for the clean-boot title/demo path.
+- [ ] Prove a target-specific frame invariant for `gCurrDemoInput`,
+  `gDemoInputsBuf`, and the allocated demo buffer across the desired gameplay
+  scope.
 - [ ] Prove whole-program memory safety for every input-reachable gameplay path
-  (explicitly outside the current proof; documented UB sites make this a
-  separate project-scale obligation).
+  (sufficient, but no longer presented as necessary for the narrower target
+  integrity claim).
 - [x] Wire all results into a capstone theorem.
 - [x] Prove the distinct-block conditional impossibility theorem.
 - [x] Prove that a matching Mario-Y byte change requires block aliasing.
