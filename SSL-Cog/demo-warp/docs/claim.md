@@ -204,6 +204,12 @@ certificate, it derives `bufTarget` at byte offset 8, resolves the handler
 global, identifies the concrete `Mptr` load, and proves `_t'6` receives exactly
 that safe demo-block pointer without changing memory.
 
+`generated_authorized_update_pairs_preserve_demo_block` composes each source
+load with its immediately following generated assignment under `exec_stmt`.
+The playback pair starts from the pointer stored in `gCurrDemoInput`; the title
+pair starts from the pointer stored in linked `gDemoInputsBuf.bufTarget`.
+Neither paired theorem retains a free assumption about `_t'5` or `_t'6`.
+
 ## Conditional impossibility result
 
 `separated_demo_pointer_cannot_change_mario_y` combines the generated direct-
