@@ -25,10 +25,12 @@ The intended first capstone will combine:
 - the CompCert `Mint8unsigned` store effect; and
 - a concrete before/after memory witness.
 
-The generated inputs are committed as `generated/game_init.v` and
-`generated/title_screen.v`. Both are produced directly from the pinned source
-units by `pipeline/clightgen.sh`; no extracted or hand-written C model sits
-between the decompile and Clight.
+The generated inputs are committed as `generated/game_init.v`,
+`generated/title_screen.v`, and `generated/mario.v`. They are produced
+directly from the pinned source units by `pipeline/clightgen.sh`; no extracted
+or hand-written C model sits between the decompile and Clight. The Mario unit
+supplies the complete generated `MarioState` composite needed for the Y-field
+layout certificate.
 
 ## Reachability boundary
 
