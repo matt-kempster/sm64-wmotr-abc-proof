@@ -45,6 +45,8 @@
     the finite callgraph.
   - [x] Generate the libultra controller ingestion and SI DMA implementation
     that resolves `osContGetReadData`/`osContStartReadData` below the game loop.
+  - [x] Certify the controller parser's exact five-store surface and the
+    game-side `&gControllerPads[0]` argument.
   - [ ] Specify the SI hardware DMA external effect: on controller reads it may
     update only the 64-byte `__osContPifRam` destination.
 - [ ] Prove whole-program memory safety for every input-reachable gameplay path

@@ -110,6 +110,14 @@ the remaining step is a semantic non-escape result and a finite-callgraph lift
 showing that concrete Clight executions preserve the protected blocks except at
 the enumerated authorized operations.
 
+The controller-value entry point is also generated and checked.
+`generated_controller_input_surface_certificate` proves that the real libultra
+`osContGetReadData` body is call-free and contains exactly one stack-local
+response copy followed by four stores through its `pad` parameter. The generated
+game body calls it exactly once with `&gControllerPads[0]`. This pins arbitrary
+button/stick bytes to the controller-pad object at ingestion; a semantic
+parameter-provenance lemma is still needed to lift that syntax through the loop.
+
 ## Conditional impossibility result
 
 `separated_demo_pointer_cannot_change_mario_y` combines the generated direct-

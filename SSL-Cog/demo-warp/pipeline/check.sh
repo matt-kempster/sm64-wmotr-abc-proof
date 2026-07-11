@@ -24,3 +24,6 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   DemoWarp.Proofs.TargetUseCensus \
   generated_target_use_surface_certificate
+bash pipeline/assumptions.sh \
+  DemoWarp.Proofs.ControllerInputSurface \
+  generated_controller_input_surface_certificate
