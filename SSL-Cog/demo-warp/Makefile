@@ -9,6 +9,7 @@ SM64_CG := -nostdinc -fstruct-passing \
   -I$(SM64)/build/us/include \
   -I$(SM64)/src \
   -I$(SM64)/src/game \
+  -I$(SM64)/lib/src \
   -I$(SM64) \
   -I$(SM64)/include/libc \
   -DVERSION_US=1 \
@@ -31,6 +32,8 @@ GENERATED := \
   generated/behavior_actions.v \
   generated/rumble_init.v \
   generated/save_file.v \
+  generated/os_cont_start_read_data.v \
+  generated/os_si_raw_start_dma.v \
   generated/reachability_facts.v
 
 .PHONY: all generated proofs check clean
@@ -67,6 +70,12 @@ generated/rumble_init.v: $(SM64)/src/game/rumble_init.c pipeline/clightgen.sh
 	bash pipeline/clightgen.sh $< $@ $(SM64_CG)
 
 generated/save_file.v: $(SM64)/src/game/save_file.c pipeline/clightgen.sh
+	bash pipeline/clightgen.sh $< $@ $(SM64_CG)
+
+generated/os_cont_start_read_data.v: $(SM64)/lib/src/osContStartReadData.c pipeline/clightgen.sh
+	bash pipeline/clightgen.sh $< $@ $(SM64_CG)
+
+generated/os_si_raw_start_dma.v: $(SM64)/lib/src/__osSiRawStartDma.c pipeline/clightgen.sh
 	bash pipeline/clightgen.sh $< $@ $(SM64_CG)
 
 generated/reachability_facts.v: pipeline/generate-reachability-facts.py

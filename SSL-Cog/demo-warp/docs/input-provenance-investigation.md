@@ -104,3 +104,18 @@ it, and two address-takings of the handler. The outstanding semantic question is
 whether pointer values derived from the handler/allocation can reach an
 unauthorized store through calls or memory; the next lemma must answer that over
 actual `exec_stmt`/`eval_funcall` derivations.
+
+The controller external boundary can be narrowed using the pinned libultra
+sources. `osContStartReadData` and `osContGetReadData` are C implementations;
+the former DMA-transfers through the dedicated `__osContPifRam`, and the latter
+copies parsed integer button/stick fields into its `OSContPad *` argument. The
+game passes `&gControllerPads[0]`. These units are now generated as Clight and
+included in the target-use census. The remaining input-specific environmental
+contract is the SI hardware DMA effect on that 64-byte PIF buffer.
+
+This boundary matters because stock CompCert declares `external_functions_sem`
+as an abstract parameter. Its generic properties do not say that an external
+call preserves an arbitrary writable global. Consequently an unconditional
+arbitrary-gameplay frame theorem cannot be derived from stock Clight semantics
+alone; the SI/PI hardware and any still-reached external functions need explicit
+target-frame contracts or linked implementations.

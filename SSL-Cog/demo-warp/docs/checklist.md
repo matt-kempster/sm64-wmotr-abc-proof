@@ -43,6 +43,10 @@
     address escape.
   - [ ] Lift the occurrence certificate through concrete Clight executions and
     the finite callgraph.
+  - [x] Generate the libultra controller ingestion and SI DMA implementation
+    that resolves `osContGetReadData`/`osContStartReadData` below the game loop.
+  - [ ] Specify the SI hardware DMA external effect: on controller reads it may
+    update only the 64-byte `__osContPifRam` destination.
 - [ ] Prove whole-program memory safety for every input-reachable gameplay path
   (sufficient, but no longer presented as necessary for the narrower target
   integrity claim).
