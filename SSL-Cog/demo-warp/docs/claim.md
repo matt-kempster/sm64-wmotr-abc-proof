@@ -154,6 +154,13 @@ source are absent because the generated US target has `ENABLE_RUMBLE=0`. This is
 the concrete function set consumed by the semantic capability-preservation
 induction.
 
+The same certificate now checks use context, not merely names: every one of the
+nine read-only functions loads `gCurrDemoInput` into a temporary whose only use
+is equality/inequality against the null pointer. The loaded capability is never
+dereferenced, stored, returned, or passed to a callee. Therefore these functions
+do not extend the alias graph; the semantic writer cases are reduced to playback
+and title, with setup/title as the only handler-capable functions.
+
 ## Conditional impossibility result
 
 `separated_demo_pointer_cannot_change_mario_y` combines the generated direct-
