@@ -32,6 +32,11 @@ blocks imply preservation of Mario's Y byte, while a matching change implies
 block aliasing. What remains is specifically the real-program proof of which
 block `gDemoInputsBuf.bufTarget` can inhabit over reachable executions.
 
+The next reachability layer asks whether ordinary controller input can break
+that provenance. The tractable formal goal is the concrete title/demo input
+path. A universal claim over all gameplay is tracked separately because it is
+equivalent to a substantially larger whole-program memory-safety obligation.
+
 The reachability decision is complete for normal initialization. No authentic
 US demo stream advances the pointer beyond offset 1408 of the 2048-byte
 destination buffer; a successful left-side allocation keeps that buffer below
