@@ -92,3 +92,8 @@ concrete generated functions and memories, not another conjunction of syntax
 checks. After that, a separate target-frame theorem can broaden the allowed
 history to ordinary gameplay. The matching-ROM/UB question should remain a
 clearly separate machine-semantics track.
+
+Work on the broader target-frame theorem begins by generating every source unit
+whose function bodies name the pointer or handler. This closes the direct-use
+surface before proving the semantic non-escape and callgraph preservation
+lemmas; it is an input to that proof, not yet the proof itself.
