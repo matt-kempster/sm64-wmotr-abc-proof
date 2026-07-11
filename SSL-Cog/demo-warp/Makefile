@@ -28,7 +28,7 @@ GENERATED := \
   generated/memory.v \
   generated/level_update.v \
   generated/camera.v \
-  generated/object_list_processor.v \
+  generated/behavior_actions.v \
   generated/rumble_init.v \
   generated/save_file.v \
   generated/reachability_facts.v
@@ -60,7 +60,7 @@ generated/level_update.v: $(SM64)/src/game/level_update.c pipeline/clightgen.sh
 generated/camera.v: $(SM64)/src/game/camera.c pipeline/clightgen.sh
 	bash pipeline/clightgen.sh $< $@ $(SM64_CG)
 
-generated/object_list_processor.v: $(SM64)/src/game/object_list_processor.c pipeline/clightgen.sh
+generated/behavior_actions.v: $(SM64)/src/game/behavior_actions.c pipeline/clightgen.sh
 	bash pipeline/clightgen.sh $< $@ $(SM64_CG)
 
 generated/rumble_init.v: $(SM64)/src/game/rumble_init.c pipeline/clightgen.sh

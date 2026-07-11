@@ -96,6 +96,20 @@ explicit out-of-scope premise, not something this proof silently rules out.
 The more precise assessment and smaller proof options are recorded in
 `docs/input-provenance-investigation.md`.
 
+The broader target-frame track now has a mechanically generated closed-world
+direct-use surface. `generated_target_use_surface_certificate` checks every
+function body in the generated init, title, level, memory, camera, behavior,
+rumble, and save-file units. Across that surface the `gCurrDemoInput` global
+cell's address is never taken, exactly three runtime assignments target the
+cell, and the `gDemoInputsBuf` address is taken exactly twice. The build also
+locks the source-file census, including `bowser.inc.c` through
+`behavior_actions.c`.
+
+This advances the provenance premise but is not yet the target-frame theorem:
+the remaining step is a semantic non-escape result and a finite-callgraph lift
+showing that concrete Clight executions preserve the protected blocks except at
+the enumerated authorized operations.
+
 ## Conditional impossibility result
 
 `separated_demo_pointer_cannot_change_mario_y` combines the generated direct-
