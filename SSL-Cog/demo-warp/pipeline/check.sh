@@ -45,3 +45,6 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   DemoWarp.Proofs.AuthorizedWriterExec \
   generated_writer_statement_execution_preserves_demo_block
+bash pipeline/assumptions.sh \
+  DemoWarp.Proofs.AuthorizedWriterExec \
+  exec_run_increment_source_load_sets_safe_temp

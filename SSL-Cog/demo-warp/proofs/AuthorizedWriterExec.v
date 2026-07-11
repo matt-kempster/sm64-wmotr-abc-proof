@@ -17,6 +17,10 @@ Definition run_increment_statement : statement :=
   Sassign (Evar G._gCurrDemoInput (Tpointer (Tstruct G._DemoInput noattr) noattr))
     run_increment_rhs.
 
+Definition run_increment_source_load_statement : statement :=
+  Sset G._t'5
+    (Evar G._gCurrDemoInput (Tpointer (Tstruct G._DemoInput noattr) noattr)).
+
 Definition title_install_rhs : expr :=
   Ebinop Oadd
     (Ecast (Etempvar T._t'6 (Tpointer Tvoid noattr))
@@ -42,6 +46,54 @@ Lemma eval_const_int_value :
 Proof.
   intros. inv H; auto.
   match goal with Hlv : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ => inv Hlv end.
+Qed.
+
+Lemma exec_run_increment_source_load_sets_safe_temp :
+  forall (ge : genv) (e : env) (le : temp_env) (m : mem)
+      (trace : Events.trace) (le' : temp_env) (m' : mem) (out : outcome)
+      demo_block cell_block loaded,
+    e ! G._gCurrDemoInput = None ->
+    Genv.find_symbol ge G._gCurrDemoInput = Some cell_block ->
+    Mem.load Mptr m cell_block 0 = Some loaded ->
+    safe_demo_pointer_value demo_block loaded ->
+    exec_stmt function_entry2 ge e le m run_increment_source_load_statement
+      trace le' m' out ->
+    m' = m /\ le' ! G._t'5 = Some loaded /\
+    safe_demo_pointer_value demo_block loaded.
+Proof.
+  intros ge e le m trace le' m' out demo_block cell_block loaded
+    Hnotlocal Hsymbol Hload Hsafe Hexec.
+  unfold run_increment_source_load_statement in Hexec.
+  inv Hexec.
+  match goal with Heval : eval_expr _ _ _ _ (Evar G._gCurrDemoInput _) ?value |- _ =>
+    inv Heval
+  end.
+  all: try match goal with
+    Hlv : eval_lvalue _ _ _ _ (Evar G._gCurrDemoInput _) _ _ _ |- _ => inv Hlv
+  end.
+  - match goal with Hlocal : e ! G._gCurrDemoInput = Some _ |- _ =>
+      rewrite Hnotlocal in Hlocal; discriminate
+    end.
+  - match goal with Hfound : Genv.find_symbol _ G._gCurrDemoInput = Some _ |- _ =>
+      rewrite Hsymbol in Hfound; inv Hfound
+    end.
+    match goal with Hderef : deref_loc _ ?current_m ?actual_block Ptrofs.zero Full _ |- _ =>
+      inv Hderef
+    end.
+    + match goal with Hmode : access_mode _ = By_value _ |- _ =>
+        cbn in Hmode; inv Hmode
+      end.
+      unfold Mem.loadv in H1; cbn in H1.
+      change (Mem.load Mptr m' loc 0 = Some v) in H1.
+      rewrite Hload in H1; inv H1.
+      split; [reflexivity |].
+      split; [apply PTree.gss | exact Hsafe].
+    + match goal with Hmode : access_mode _ = By_reference |- _ =>
+        cbn in Hmode; discriminate
+      end.
+    + match goal with Hmode : access_mode _ = By_copy |- _ =>
+        cbn in Hmode; discriminate
+      end.
 Qed.
 
 Lemma eval_run_increment_rhs_preserves_block :

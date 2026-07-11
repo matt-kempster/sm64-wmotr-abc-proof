@@ -184,6 +184,13 @@ CompCert memory semantics. Both playback and title therefore establish a safe
 same-demo-block value in the concrete `gCurrDemoInput` cell whenever their
 immediately preceding generated temp load has demo-block provenance.
 
+For playback, `exec_run_increment_source_load_sets_safe_temp` now discharges
+that local provenance premise from the immediately preceding generated
+`_t'5 = gCurrDemoInput` statement itself: the proof resolves the global
+lvalue, inverts `deref_loc`, identifies the concrete `Mptr` load, and shows
+the `Sset` updates `_t'5` with exactly the value read from the safe linked
+global cell while leaving memory unchanged.
+
 ## Conditional impossibility result
 
 `separated_demo_pointer_cannot_change_mario_y` combines the generated direct-
