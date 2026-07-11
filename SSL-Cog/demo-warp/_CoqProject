@@ -7,6 +7,10 @@ generated/mario.v
 generated/main.v
 generated/memory.v
 generated/level_update.v
+generated/camera.v
+generated/object_list_processor.v
+generated/rumble_init.v
+generated/save_file.v
 generated/reachability_facts.v
 
 proofs/GeneratedFacts.v

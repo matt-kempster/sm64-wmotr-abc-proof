@@ -36,6 +36,13 @@
 - [ ] Prove a target-specific frame invariant for `gCurrDemoInput`,
   `gDemoInputsBuf`, and the allocated demo buffer across the desired gameplay
   scope.
+  - [x] Generate every translation unit whose body names `gCurrDemoInput` or
+    `gDemoInputsBuf` (camera, object aggregation, rumble, and save-file added to
+    the existing init/title/level/memory units).
+  - [ ] Certify all generated occurrence shapes and absence of pointer-cell
+    address escape.
+  - [ ] Lift the occurrence certificate through concrete Clight executions and
+    the finite callgraph.
 - [ ] Prove whole-program memory safety for every input-reachable gameplay path
   (sufficient, but no longer presented as necessary for the narrower target
   integrity claim).

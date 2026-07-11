@@ -27,6 +27,10 @@ GENERATED := \
   generated/main.v \
   generated/memory.v \
   generated/level_update.v \
+  generated/camera.v \
+  generated/object_list_processor.v \
+  generated/rumble_init.v \
+  generated/save_file.v \
   generated/reachability_facts.v
 
 .PHONY: all generated proofs check clean
@@ -51,6 +55,18 @@ generated/memory.v: $(SM64)/src/game/memory.c pipeline/clightgen.sh
 	bash pipeline/clightgen.sh $< $@ $(SM64_CG)
 
 generated/level_update.v: $(SM64)/src/game/level_update.c pipeline/clightgen.sh
+	bash pipeline/clightgen.sh $< $@ $(SM64_CG)
+
+generated/camera.v: $(SM64)/src/game/camera.c pipeline/clightgen.sh
+	bash pipeline/clightgen.sh $< $@ $(SM64_CG)
+
+generated/object_list_processor.v: $(SM64)/src/game/object_list_processor.c pipeline/clightgen.sh
+	bash pipeline/clightgen.sh $< $@ $(SM64_CG)
+
+generated/rumble_init.v: $(SM64)/src/game/rumble_init.c pipeline/clightgen.sh
+	bash pipeline/clightgen.sh $< $@ $(SM64_CG)
+
+generated/save_file.v: $(SM64)/src/game/save_file.c pipeline/clightgen.sh
 	bash pipeline/clightgen.sh $< $@ $(SM64_CG)
 
 generated/reachability_facts.v: pipeline/generate-reachability-facts.py
