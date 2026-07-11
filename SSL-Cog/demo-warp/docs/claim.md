@@ -218,6 +218,13 @@ body execution, and `free_list`. Certified generated load/write sequences are
 handled as atomic authorized updates; all remaining assignments and reached
 externals must preserve the chosen target invariant.
 
+`generated_authorized_pair_certificate` instantiates that mechanism on the
+generated program. Its recognizer identifies the exact playback and title
+source-load/write shapes, proves one occurrence in each corresponding body,
+and computes exactly two occurrences across all ten generated target-surface
+translation units. Thus no third assignment sequence is silently granted
+authorized-update status.
+
 ## Conditional impossibility result
 
 `separated_demo_pointer_cannot_change_mario_y` combines the generated direct-

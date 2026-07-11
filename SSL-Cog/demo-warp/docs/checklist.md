@@ -65,6 +65,8 @@
     - [x] Prove the mutual `exec_stmt`/`eval_funcall` invariant lift, treating
       certified load/write sequences as authorized atomic updates and
       recursively checking every reached internal body.
+    - [x] Instantiate the authorized-sequence recognizer on all generated
+      target-surface units and prove its closed-world count is exactly two.
   - [x] Generate the libultra controller ingestion and SI DMA implementation
     that resolves `osContGetReadData`/`osContStartReadData` below the game loop.
   - [x] Certify the controller parser's exact five-store surface and the
