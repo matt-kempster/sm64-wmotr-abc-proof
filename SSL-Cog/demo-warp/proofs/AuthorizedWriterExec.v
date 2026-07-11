@@ -37,6 +37,12 @@ Definition title_install_source_load_statement : statement :=
     (Efield (Evar T._gDemoInputsBuf (Tstruct T._DmaHandlerList noattr))
       T._bufTarget (Tpointer Tvoid noattr)).
 
+Definition run_increment_pair : statement :=
+  Ssequence run_increment_source_load_statement run_increment_statement.
+
+Definition title_install_pair : statement :=
+  Ssequence title_install_source_load_statement title_install_statement.
+
 Lemma linked_buf_target_field_offset :
   forall ce : composite_env,
     field_offset ce T._bufTarget target_dma_handler_members = OK (8, Full).
@@ -371,4 +377,107 @@ Theorem generated_writer_statement_execution_preserves_demo_block :
 Proof.
   split; [apply exec_run_increment_stores_safe_pointer |
           apply exec_title_install_stores_safe_pointer].
+Qed.
+
+Theorem exec_run_increment_pair_preserves_demo_block :
+  forall (ge : genv) (e : env) (le : temp_env) (before : mem)
+      (trace : Events.trace) (le' : temp_env) (after : mem) (out : outcome)
+      demo_block ofs cell_block,
+    e ! G._gCurrDemoInput = None ->
+    Genv.find_symbol ge G._gCurrDemoInput = Some cell_block ->
+    Mem.load Mptr before cell_block 0 = Some (Vptr demo_block ofs) ->
+    exec_stmt function_entry2 ge e le before run_increment_pair
+      trace le' after out ->
+    exists loaded,
+      Mem.load Mptr after cell_block 0 = Some loaded /\
+      safe_demo_pointer_value demo_block loaded.
+Proof.
+  intros ge e le before trace le' after out demo_block ofs cell_block
+    Hnotlocal Hsymbol Hload Hexec.
+  unfold run_increment_pair in Hexec.
+  inv Hexec.
+  - match goal with Hfirst : exec_stmt _ _ _ _ _ run_increment_source_load_statement _ _ _ _ |- _ =>
+      pose proof (exec_run_increment_source_load_sets_safe_temp
+        ge e le before _ _ _ _ demo_block cell_block
+        (Vptr demo_block ofs) Hnotlocal Hsymbol Hload
+        (or_intror (ex_intro _ ofs eq_refl)) Hfirst) as Hsource
+    end.
+    destruct Hsource as [Hmem [Htemp _]]. subst.
+    match goal with Hsecond : exec_stmt _ _ _ _ _ run_increment_statement _ _ _ _ |- _ =>
+      eapply exec_run_increment_stores_safe_pointer; eauto
+    end.
+  - match goal with Hfirst : exec_stmt _ _ _ _ _ run_increment_source_load_statement _ _ _ _ |- _ =>
+      inv Hfirst
+    end.
+    match goal with Hnotnormal : Out_normal <> Out_normal |- _ => contradiction end.
+Qed.
+
+Theorem exec_title_install_pair_preserves_demo_block :
+  forall (ge : genv) (e : env) (le : temp_env) (before : mem)
+      (trace : Events.trace) (le' : temp_env) (after : mem) (out : outcome)
+      demo_block handler_block handler_co cell_block ofs,
+    e ! T._gDemoInputsBuf = None ->
+    e ! T._gCurrDemoInput = None ->
+    Genv.find_symbol ge T._gDemoInputsBuf = Some handler_block ->
+    Genv.find_symbol ge T._gCurrDemoInput = Some cell_block ->
+    ge.(genv_cenv) ! T._DmaHandlerList = Some handler_co ->
+    co_members handler_co = target_dma_handler_members ->
+    Mem.load Mptr before handler_block 8 = Some (Vptr demo_block ofs) ->
+    exec_stmt function_entry2 ge e le before title_install_pair
+      trace le' after out ->
+    exists loaded,
+      Mem.load Mptr after cell_block 0 = Some loaded /\
+      safe_demo_pointer_value demo_block loaded.
+Proof.
+  intros ge e le before trace le' after out demo_block handler_block handler_co
+    cell_block ofs Hhandler_notlocal Hcurr_notlocal Hhandler_symbol Hcurr_symbol
+    Hco Hmembers Hload Hexec.
+  unfold title_install_pair in Hexec.
+  inv Hexec.
+  - match goal with Hfirst : exec_stmt _ _ _ _ _ title_install_source_load_statement _ _ _ _ |- _ =>
+      pose proof (exec_title_install_source_load_sets_safe_temp
+        ge e le before _ _ _ _ demo_block handler_block handler_co
+        (Vptr demo_block ofs) Hhandler_notlocal Hhandler_symbol Hco Hmembers
+        Hload (or_intror (ex_intro _ ofs eq_refl)) Hfirst) as Hsource
+    end.
+    destruct Hsource as [Hmem [Htemp _]]. subst.
+    match goal with Hsecond : exec_stmt _ _ _ _ _ title_install_statement _ _ _ _ |- _ =>
+      eapply exec_title_install_stores_safe_pointer; eauto
+    end.
+  - match goal with Hfirst : exec_stmt _ _ _ _ _ title_install_source_load_statement _ _ _ _ |- _ =>
+      inv Hfirst
+    end.
+    match goal with Hnotnormal : Out_normal <> Out_normal |- _ => contradiction end.
+Qed.
+
+Theorem generated_authorized_update_pairs_preserve_demo_block :
+  (forall (ge : genv) (e : env) (le : temp_env) (before : mem)
+      (trace : Events.trace) (le' : temp_env) (after : mem) (out : outcome)
+      demo_block ofs cell_block,
+    e ! G._gCurrDemoInput = None ->
+    Genv.find_symbol ge G._gCurrDemoInput = Some cell_block ->
+    Mem.load Mptr before cell_block 0 = Some (Vptr demo_block ofs) ->
+    exec_stmt function_entry2 ge e le before run_increment_pair
+      trace le' after out ->
+    exists loaded,
+      Mem.load Mptr after cell_block 0 = Some loaded /\
+      safe_demo_pointer_value demo_block loaded) /\
+  (forall (ge : genv) (e : env) (le : temp_env) (before : mem)
+      (trace : Events.trace) (le' : temp_env) (after : mem) (out : outcome)
+      demo_block handler_block handler_co cell_block ofs,
+    e ! T._gDemoInputsBuf = None ->
+    e ! T._gCurrDemoInput = None ->
+    Genv.find_symbol ge T._gDemoInputsBuf = Some handler_block ->
+    Genv.find_symbol ge T._gCurrDemoInput = Some cell_block ->
+    ge.(genv_cenv) ! T._DmaHandlerList = Some handler_co ->
+    co_members handler_co = target_dma_handler_members ->
+    Mem.load Mptr before handler_block 8 = Some (Vptr demo_block ofs) ->
+    exec_stmt function_entry2 ge e le before title_install_pair
+      trace le' after out ->
+    exists loaded,
+      Mem.load Mptr after cell_block 0 = Some loaded /\
+      safe_demo_pointer_value demo_block loaded).
+Proof.
+  split; [apply exec_run_increment_pair_preserves_demo_block |
+          apply exec_title_install_pair_preserves_demo_block].
 Qed.
