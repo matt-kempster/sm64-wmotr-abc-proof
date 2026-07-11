@@ -210,6 +210,14 @@ The playback pair starts from the pointer stored in `gCurrDemoInput`; the title
 pair starts from the pointer stored in linked `gDemoInputsBuf.bufTarget`.
 Neither paired theorem retains a free assumption about `_t'5` or `_t'6`.
 
+`exec_stmt_eval_funcall_target_lift` supplies the interprocedural semantic
+induction. It is proved with CompCert's combined `exec_stmt`/`eval_funcall`
+induction, composes sequencing/branches/loops/switches, descends into every
+internal function body after `function_entry2`, and composes frame allocation,
+body execution, and `free_list`. Certified generated load/write sequences are
+handled as atomic authorized updates; all remaining assignments and reached
+externals must preserve the chosen target invariant.
+
 ## Conditional impossibility result
 
 `separated_demo_pointer_cannot_change_mario_y` combines the generated direct-

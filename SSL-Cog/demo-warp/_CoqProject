@@ -28,5 +28,6 @@ proofs/PointerProvenanceKernel.v
 proofs/TargetCapabilitySet.v
 proofs/TargetSymbolicLinking.v
 proofs/AuthorizedWriterExec.v
+proofs/OperationalCallgraph.v
 proofs/ReachabilityBoundary.v
 proofs/Counterexample.v

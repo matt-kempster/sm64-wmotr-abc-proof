@@ -62,6 +62,9 @@
       copies the safe linked handler-field value into its writer temporary.
     - [x] Compose each generated source-load/assignment pair into a single
       authorized semantic update with no free temporary-provenance premise.
+    - [x] Prove the mutual `exec_stmt`/`eval_funcall` invariant lift, treating
+      certified load/write sequences as authorized atomic updates and
+      recursively checking every reached internal body.
   - [x] Generate the libultra controller ingestion and SI DMA implementation
     that resolves `osContGetReadData`/`osContStartReadData` below the game loop.
   - [x] Certify the controller parser's exact five-store surface and the
