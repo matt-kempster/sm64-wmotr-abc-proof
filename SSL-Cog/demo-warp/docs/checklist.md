@@ -47,8 +47,12 @@
     that resolves `osContGetReadData`/`osContStartReadData` below the game loop.
   - [x] Certify the controller parser's exact five-store surface and the
     game-side `&gControllerPads[0]` argument.
-  - [ ] Specify the SI hardware DMA external effect: on controller reads it may
+  - [x] Specify the SI hardware DMA external effect: on controller reads it may
     update only the 64-byte `__osContPifRam` destination.
+  - [x] Specify PI DMA as a concrete destination-range `Mem.storebytes` effect
+    and prove distinct/disjoint protected regions are preserved.
+  - [x] State the normal N64 external pointer-locality contract and prove its
+    non-vacuity independently of the SI/PI writes.
 - [ ] Prove whole-program memory safety for every input-reachable gameplay path
   (sufficient, but no longer presented as necessary for the narrower target
   integrity claim).

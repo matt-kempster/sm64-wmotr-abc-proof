@@ -118,6 +118,24 @@ game body calls it exactly once with `&gControllerPads[0]`. This pins arbitrary
 button/stick bytes to the controller-pad object at ingestion; a semantic
 parameter-provenance lemma is still needed to lift that syntax through the loop.
 
+## Normal N64 hardware boundary
+
+`HardwareContracts.v` now gives the approved external-world boundary a concrete
+CompCert memory meaning. SI controller DMA is exactly a 64-byte
+`Mem.storebytes` into its PIF destination. PI DMA is a `Mem.storebytes` into its
+explicit destination range. Both are proved to preserve every protected region
+on a distinct block, and PI DMA also preserves disjoint ranges on the same
+block. The generic external locality condition applies only when pointer
+arguments do not reach the protected region; the intentional PI demo-buffer
+write is handled by its separate range rule.
+
+These are environment specifications, not claims that stock CompCert's opaque
+`external_functions_sem` already supplies the behavior. The memory frame
+consequences are proved and the locality contract is shown satisfiable. The
+remaining spine obligation is to prove from the generated call arguments and
+global-symbol blocks that each reached external falls into the disjoint-argument
+case or the authorized SI/PI case.
+
 ## Conditional impossibility result
 
 `separated_demo_pointer_cannot_change_mario_y` combines the generated direct-
