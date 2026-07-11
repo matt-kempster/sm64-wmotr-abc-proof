@@ -9,8 +9,8 @@
 ## Source and generation
 
 - [x] Pin the inspected decompile revision and target configuration.
-- [ ] Generate `game_init.c` Clight.
-- [ ] Generate `title_screen.c` Clight.
+- [x] Generate `game_init.c` Clight.
+- [x] Generate `title_screen.c` Clight.
 - [ ] Add a reproducible direct-writer source census.
 
 ## Mechanized proof
@@ -32,4 +32,6 @@
 
 - Scaffold: established the source pin, counterexample boundary, proof route,
   and isolated build layout.
-
+- Generated Clight: translated the real US `game_init.c` and
+  `title_screen.c` units with CompCert 3.15; generated files are committed and
+  reproducible through `make generated`.
