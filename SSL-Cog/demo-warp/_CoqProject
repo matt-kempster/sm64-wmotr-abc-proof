@@ -26,5 +26,6 @@ proofs/ControllerInputSurface.v
 proofs/HardwareContracts.v
 proofs/PointerProvenanceKernel.v
 proofs/TargetCapabilitySet.v
+proofs/TargetSymbolicLinking.v
 proofs/ReachabilityBoundary.v
 proofs/Counterexample.v

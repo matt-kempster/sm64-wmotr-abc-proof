@@ -161,6 +161,14 @@ dereferenced, stored, returned, or passed to a callee. Therefore these functions
 do not extend the alias graph; the semantic writer cases are reduced to playback
 and title, with setup/title as the only handler-capable functions.
 
+`linked_target_calls_resolve_to_internal_bodies` supplies the linking half of the
+operational lift without normalizing a huge merged AST. Given the per-member
+`linkorder` facts of the real linked program, setup, title, playback, controller
+ingestion, DMA-list setup/load, and SI DMA all resolve through
+`Genv.find_funct` to their generated `Internal` bodies. Consequently the final
+`eval_funcall` induction traverses these bodies rather than treating them as
+arbitrary externals.
+
 ## Conditional impossibility result
 
 `separated_demo_pointer_cannot_change_mario_y` combines the generated direct-
