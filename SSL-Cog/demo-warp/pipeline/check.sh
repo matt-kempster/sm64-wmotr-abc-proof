@@ -57,3 +57,6 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   DemoWarp.Proofs.AuthorizedWriterExec \
   generated_authorized_update_pairs_preserve_demo_block
+bash pipeline/assumptions.sh \
+  DemoWarp.Proofs.OperationalCallgraph \
+  exec_stmt_eval_funcall_target_lift
