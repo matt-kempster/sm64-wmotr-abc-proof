@@ -71,6 +71,9 @@
       exact generated sequence, excluding unproved look-alike ASTs.
     - [x] Tie the function-exit `free_list` frame to its allocating
       `function_entry2` derivation and fresh callee environment.
+    - [x] Instantiate a concrete invariant over the current-pointer cell,
+      handler `bufTarget` field, and live demo block; prove function entry/free
+      frames and connect normal external locality to it.
   - [x] Generate the libultra controller ingestion and SI DMA implementation
     that resolves `osContGetReadData`/`osContStartReadData` below the game loop.
   - [x] Certify the controller parser's exact five-store surface and the

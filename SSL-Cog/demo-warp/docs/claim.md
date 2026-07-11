@@ -236,6 +236,15 @@ and computes exactly two occurrences across all ten generated target-surface
 translation units. Thus no third assignment sequence is silently granted
 authorized-update status.
 
+`target_pointer_invariant` is the concrete state consumed by the callgraph
+lift. It requires the demo, current-pointer-cell, and handler blocks to remain
+valid; the current cell to contain null or a pointer into the demo block; and
+`bufTarget` at linked offset 8 to contain a pointer into that same demo block.
+`target_frame_boundary_certificate` proves `function_entry2` allocation and
+the matching fresh-local `free_list` preserve this state. Normal N64 external
+locality yields the same result once the reached external arguments are shown
+not to carry either protected cell address.
+
 ## Conditional impossibility result
 
 `separated_demo_pointer_cannot_change_mario_y` combines the generated direct-
