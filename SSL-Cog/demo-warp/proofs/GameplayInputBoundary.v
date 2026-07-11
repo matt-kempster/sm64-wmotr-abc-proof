@@ -81,7 +81,9 @@ Proof.
             generated_run_demo_inputs_has_one_timer_store))))).
 Qed.
 
-Theorem normal_controller_path_preserves_no_alias_boundary :
+(* This is a conjunction of two static certificates.  It deliberately does
+   not claim a before/after execution preservation property. *)
+Theorem generated_controller_boundary_and_normal_initialization :
   generated_controller_demo_boundary /\
   normal_initialization_reachability_claim.
 Proof.
