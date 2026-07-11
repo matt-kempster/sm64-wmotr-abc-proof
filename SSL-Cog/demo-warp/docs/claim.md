@@ -177,6 +177,13 @@ same block at Clight's `sizeof(DemoInput)`-scaled one-record offset. This is no 
 shape or a standalone `Val.add` fact; it connects the generated expressions to
 their Clight evaluation.
 
+`generated_writer_statement_execution_preserves_demo_block` continues through
+the actual `Sassign` rule. It resolves the global lvalue, checks the pointer
+cast/access mode, inverts `assign_loc`, and reads the stored value back with
+CompCert memory semantics. Both playback and title therefore establish a safe
+same-demo-block value in the concrete `gCurrDemoInput` cell whenever their
+immediately preceding generated temp load has demo-block provenance.
+
 ## Conditional impossibility result
 
 `separated_demo_pointer_cannot_change_mario_y` combines the generated direct-
