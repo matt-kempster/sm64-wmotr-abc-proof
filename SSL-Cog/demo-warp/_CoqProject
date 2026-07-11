@@ -30,5 +30,6 @@ proofs/TargetSymbolicLinking.v
 proofs/AuthorizedWriterExec.v
 proofs/OperationalCallgraph.v
 proofs/GeneratedCallgraphCertificate.v
+proofs/TargetInvariant.v
 proofs/ReachabilityBoundary.v
 proofs/Counterexample.v
