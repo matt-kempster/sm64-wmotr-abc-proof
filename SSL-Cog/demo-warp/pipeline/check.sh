@@ -42,3 +42,6 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   DemoWarp.Proofs.AuthorizedWriterExec \
   generated_writer_rhs_execution_preserves_demo_block
+bash pipeline/assumptions.sh \
+  DemoWarp.Proofs.AuthorizedWriterExec \
+  generated_writer_statement_execution_preserves_demo_block

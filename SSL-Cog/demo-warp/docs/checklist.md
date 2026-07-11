@@ -52,6 +52,8 @@
       call to its generated internal body in an abstract linked program.
     - [x] Prove from actual `eval_expr` derivations that the generated title and
       playback writer RHSs preserve the block of their loaded pointer temps.
+    - [x] Lift both generated writer `Sassign` executions into safe loads from
+      the concrete linked `gCurrDemoInput` global cell.
   - [x] Generate the libultra controller ingestion and SI DMA implementation
     that resolves `osContGetReadData`/`osContStartReadData` below the game loop.
   - [x] Certify the controller parser's exact five-store surface and the
