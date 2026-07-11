@@ -19,8 +19,8 @@ could fail:
 
 - `demo-warp/` studies whether the demo-input timer decrement can make the
   proposed one-byte change to Mario's Y float. It contains a local generated-
-  Clight counterexample and keeps gameplay reachability as a separate open
-  obligation.
+  Clight aliasing counterexample, but refutes reachability of that alias from
+  the authentic normal-initialization/demo path.
 - `ssl-parallel-universe/` studies whether movement inside the Pyramid can
   reach a parallel universe and break the usual reachability argument.
 - `ssl-spawning-displacement-proof/` studies the JP spawning-displacement and

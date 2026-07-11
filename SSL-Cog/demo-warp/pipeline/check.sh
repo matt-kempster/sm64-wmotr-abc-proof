@@ -14,3 +14,6 @@ bash pipeline/assumptions.sh
 bash pipeline/assumptions.sh \
   DemoWarp.Proofs.ReachabilityBoundary \
   separated_demo_pointer_cannot_change_mario_y
+bash pipeline/assumptions.sh \
+  DemoWarp.Proofs.NormalInitialization \
+  normal_initialization_forbids_demo_pointer_mario_y_alias

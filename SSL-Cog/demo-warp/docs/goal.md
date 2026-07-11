@@ -32,7 +32,13 @@ blocks imply preservation of Mario's Y byte, while a matching change implies
 block aliasing. What remains is specifically the real-program proof of which
 block `gDemoInputsBuf.bufTarget` can inhabit over reachable executions.
 
-The authentic data side is now discharged: no normal US demo stream advances
-the pointer beyond offset 1408 of the 2048-byte destination buffer. The
-remaining mechanized composition is allocator provenance plus the generated
-linker separation receipt.
+The reachability decision is complete for normal initialization. No authentic
+US demo stream advances the pointer beyond offset 1408 of the 2048-byte
+destination buffer; a successful left-side allocation keeps that buffer below
+`SEG_POOL_END`; and the audited linker places Mario's state in later main BSS.
+Consequently, the normal demo pointer cannot equal Mario's Y address.
+
+This conclusion does not claim whole-program memory safety under arbitrary
+undefined behavior or prior corruption. Such an event would be exactly what
+is needed to escape the proved initialization invariant and realize the local
+byte-store counterexample.

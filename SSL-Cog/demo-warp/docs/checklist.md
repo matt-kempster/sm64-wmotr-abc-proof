@@ -4,7 +4,7 @@
 
 - [x] Reject the unconditional no-byte-store claim at the proposed local
   aliasing boundary.
-- [ ] Prove or refute reachability of the alias from normal initialization.
+- [x] Refute reachability of the alias from normal initialization.
 
 ## Source and generation
 
@@ -33,6 +33,8 @@
 - [x] Prove that a matching Mario-Y byte change requires block aliasing.
 - [x] Certify the generated normal-initialization pointer provenance chain.
 - [x] Certify that `load_patchable_table` cannot rewrite `bufTarget`.
+- [x] Compose the allocator, authentic-stream, and linker receipts into the
+  normal-initialization reachability capstone.
 - [x] Check `Print Assumptions` and reject proof holes.
 
 ## Integration
@@ -75,3 +77,8 @@
   the sole `bufTarget = buffer` store, absence of `bufTarget` writes during
   patch loading, title-screen buffer origin, and the concrete Mario-state
   global.
+- Reachability verdict: composed the generated facts into
+  `normal_initialization_forbids_demo_pointer_mario_y_alias`, proved the
+  normal-state predicate inhabited, and refuted existence of a normal state
+  where the demo pointer equals Mario's Y address. The capstone is closed under
+  the global context.
