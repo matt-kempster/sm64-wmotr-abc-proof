@@ -169,6 +169,14 @@ ingestion, DMA-list setup/load, and SI DMA all resolve through
 `eval_funcall` induction traverses these bodies rather than treating them as
 arbitrary externals.
 
+`generated_writer_rhs_execution_preserves_demo_block` is the first direct
+operational-semantics rung. It inverts actual `eval_expr` derivations for the
+literal generated playback and title RHS expressions. If `_t'5` or `_t'6`
+contains a pointer into the demo block, the evaluated value is a pointer in the
+same block at Clight's `sizeof(DemoInput)`-scaled one-record offset. This is no longer only an AST
+shape or a standalone `Val.add` fact; it connects the generated expressions to
+their Clight evaluation.
+
 ## Conditional impossibility result
 
 `separated_demo_pointer_cannot_change_mario_y` combines the generated direct-
