@@ -69,6 +69,8 @@
       target-surface units and prove its closed-world count is exactly two.
     - [x] Bind authorization to a node-local semantic certificate for the
       exact generated sequence, excluding unproved look-alike ASTs.
+    - [x] Tie the function-exit `free_list` frame to its allocating
+      `function_entry2` derivation and fresh callee environment.
   - [x] Generate the libultra controller ingestion and SI DMA implementation
     that resolves `osContGetReadData`/`osContStartReadData` below the game loop.
   - [x] Certify the controller parser's exact five-store surface and the
