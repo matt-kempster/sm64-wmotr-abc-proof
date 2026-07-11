@@ -43,6 +43,9 @@
     address escape.
   - [ ] Lift the occurrence certificate through concrete Clight executions and
     the finite callgraph.
+    - [x] Compute the exact finite capability-bearing set: 11 active US
+      functions read or write `gCurrDemoInput`; only setup and title name the
+      handler global (`ENABLE_RUMBLE=0` removes four source-only readers).
   - [x] Generate the libultra controller ingestion and SI DMA implementation
     that resolves `osContGetReadData`/`osContStartReadData` below the game loop.
   - [x] Certify the controller parser's exact five-store surface and the

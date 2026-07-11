@@ -33,3 +33,6 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   DemoWarp.Proofs.PointerProvenanceKernel \
   generated_pointer_provenance_kernel_certificate
+bash pipeline/assumptions.sh \
+  DemoWarp.Proofs.TargetCapabilitySet \
+  generated_target_capability_set_certificate

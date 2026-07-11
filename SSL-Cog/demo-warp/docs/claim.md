@@ -144,6 +144,16 @@ pointer into the pointer cell establishes a safe loaded value. Thus none of the
 three authorized writer forms can manufacture the Mario global's block; the
 remaining interprocedural obligation is exclusion of unauthorized stores.
 
+`generated_target_capability_set_certificate` replaces the vague whole-game
+callgraph quantifier with the exact generated finite surface. Eleven active US
+functions name `gCurrDemoInput`; nine are read-only users, while playback and title
+are the two runtime writers already classified. Only `setup_game_memory` and
+`run_level_id_or_demo` name the handler global. The controller/libultra units
+add no target-capable function. Four rumble readers visible in unpreprocessed
+source are absent because the generated US target has `ENABLE_RUMBLE=0`. This is
+the concrete function set consumed by the semantic capability-preservation
+induction.
+
 ## Conditional impossibility result
 
 `separated_demo_pointer_cannot_change_mario_y` combines the generated direct-
