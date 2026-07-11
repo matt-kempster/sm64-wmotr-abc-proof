@@ -60,3 +60,6 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   DemoWarp.Proofs.OperationalCallgraph \
   exec_stmt_eval_funcall_target_lift
+bash pipeline/assumptions.sh \
+  DemoWarp.Proofs.GeneratedCallgraphCertificate \
+  generated_authorized_pair_certificate
