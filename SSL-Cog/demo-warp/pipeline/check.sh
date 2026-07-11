@@ -30,3 +30,6 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   DemoWarp.Proofs.HardwareContracts \
   normal_n64_hardware_frame_certificate
+bash pipeline/assumptions.sh \
+  DemoWarp.Proofs.PointerProvenanceKernel \
+  generated_pointer_provenance_kernel_certificate
