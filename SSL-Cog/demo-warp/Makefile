@@ -20,7 +20,13 @@ SM64_CG := -nostdinc -fstruct-passing \
   -DAVOID_UB=1 \
   -D_LANGUAGE_C=1
 
-GENERATED := generated/game_init.v generated/title_screen.v generated/mario.v
+GENERATED := \
+  generated/game_init.v \
+  generated/title_screen.v \
+  generated/mario.v \
+  generated/main.v \
+  generated/memory.v \
+  generated/level_update.v
 
 .PHONY: all generated proofs check clean
 
@@ -35,6 +41,15 @@ generated/title_screen.v: $(SM64)/src/menu/title_screen.c pipeline/clightgen.sh
 	bash pipeline/clightgen.sh $< $@ $(SM64_CG)
 
 generated/mario.v: $(SM64)/src/game/mario.c pipeline/clightgen.sh
+	bash pipeline/clightgen.sh $< $@ $(SM64_CG)
+
+generated/main.v: $(SM64)/src/game/main.c pipeline/clightgen.sh
+	bash pipeline/clightgen.sh $< $@ $(SM64_CG)
+
+generated/memory.v: $(SM64)/src/game/memory.c pipeline/clightgen.sh
+	bash pipeline/clightgen.sh $< $@ $(SM64_CG)
+
+generated/level_update.v: $(SM64)/src/game/level_update.c pipeline/clightgen.sh
 	bash pipeline/clightgen.sh $< $@ $(SM64_CG)
 
 CoqMakefile: _CoqProject
