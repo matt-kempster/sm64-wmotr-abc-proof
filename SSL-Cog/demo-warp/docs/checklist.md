@@ -26,7 +26,7 @@
 
 ## Integration
 
-- [ ] Add this project to `SSL-Cog/README.md`.
+- [x] Add this project to `SSL-Cog/README.md`.
 - [x] Run the end-to-end Ubuntu build and check pipeline.
 
 ## Commit log
@@ -44,3 +44,5 @@
   facts, unsigned-byte `assign_loc` semantics, an allocated-memory
   `0xC5 -> 0xC4` witness with a disjoint-byte frame, and the composed
   counterexample capstone. The strict end-to-end check is green.
+- SSL-Cog integration: added `demo-warp/` to the parent project index with the
+  local-counterexample/gameplay-reachability distinction intact.
