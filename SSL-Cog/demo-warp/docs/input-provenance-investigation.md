@@ -97,3 +97,10 @@ Work on the broader target-frame theorem begins by generating every source unit
 whose function bodies name the pointer or handler. This closes the direct-use
 surface before proving the semantic non-escape and callgraph preservation
 lemmas; it is an input to that proof, not yet the proof itself.
+
+The generated direct-use certificate is now complete for the pinned source
+surface: zero address-takings of the pointer cell, three runtime assignments to
+it, and two address-takings of the handler. The outstanding semantic question is
+whether pointer values derived from the handler/allocation can reach an
+unauthorized store through calls or memory; the next lemma must answer that over
+actual `exec_stmt`/`eval_funcall` derivations.

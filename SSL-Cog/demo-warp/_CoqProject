@@ -8,7 +8,7 @@ generated/main.v
 generated/memory.v
 generated/level_update.v
 generated/camera.v
-generated/object_list_processor.v
+generated/behavior_actions.v
 generated/rumble_init.v
 generated/save_file.v
 generated/reachability_facts.v
@@ -19,5 +19,6 @@ proofs/ByteStore.v
 proofs/ASTReachabilityFacts.v
 proofs/NormalInitialization.v
 proofs/GameplayInputBoundary.v
+proofs/TargetUseCensus.v
 proofs/ReachabilityBoundary.v
 proofs/Counterexample.v

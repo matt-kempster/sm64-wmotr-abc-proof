@@ -10,6 +10,7 @@ if grep -RInE '\b(Admitted|Axiom|admit|sorry)\b' proofs; then
 fi
 
 bash pipeline/source-census.sh
+bash pipeline/target-surface-census.sh
 bash pipeline/assumptions.sh
 bash pipeline/assumptions.sh \
   DemoWarp.Proofs.ReachabilityBoundary \
@@ -20,3 +21,6 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   DemoWarp.Proofs.GameplayInputBoundary \
   generated_controller_boundary_and_normal_initialization
+bash pipeline/assumptions.sh \
+  DemoWarp.Proofs.TargetUseCensus \
+  generated_target_use_surface_certificate

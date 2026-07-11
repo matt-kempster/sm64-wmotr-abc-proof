@@ -37,9 +37,9 @@
   `gDemoInputsBuf`, and the allocated demo buffer across the desired gameplay
   scope.
   - [x] Generate every translation unit whose body names `gCurrDemoInput` or
-    `gDemoInputsBuf` (camera, object aggregation, rumble, and save-file added to
+    `gDemoInputsBuf` (camera, behavior aggregation, rumble, and save-file added to
     the existing init/title/level/memory units).
-  - [ ] Certify all generated occurrence shapes and absence of pointer-cell
+  - [x] Certify all generated occurrence shapes and absence of pointer-cell
     address escape.
   - [ ] Lift the occurrence certificate through concrete Clight executions and
     the finite callgraph.
