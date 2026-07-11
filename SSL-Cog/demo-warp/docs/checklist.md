@@ -31,6 +31,8 @@
 - [x] Wire all results into a capstone theorem.
 - [x] Prove the distinct-block conditional impossibility theorem.
 - [x] Prove that a matching Mario-Y byte change requires block aliasing.
+- [x] Certify the generated normal-initialization pointer provenance chain.
+- [x] Certify that `load_patchable_table` cannot rewrite `bufTarget`.
 - [x] Check `Print Assumptions` and reject proof holes.
 
 ## Integration
@@ -68,3 +70,8 @@
   streams and terminal records, the 0x800 DMA bound, fixed pool constants,
   linker section order, and the concrete `gMarioStates[1]` definition. The
   generated Coq receipt records only metadata and hashes.
+- Generated provenance: certified fixed pool initialization, allocator
+  align/header and left-result shapes, the 2048-byte demo allocation handoff,
+  the sole `bufTarget = buffer` store, absence of `bufTarget` writes during
+  patch loading, title-screen buffer origin, and the concrete Mario-state
+  global.
