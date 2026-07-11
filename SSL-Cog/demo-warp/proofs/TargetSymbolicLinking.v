@@ -81,6 +81,45 @@ Lemma si_defmap_raw_start_dma :
     Some (Gfun (Internal SI.f___osSiRawStartDma)).
 Proof. vm_compute. reflexivity. Qed.
 
+Definition target_dma_handler_members : members :=
+  Member_plain T._dmaTable (Tpointer (Tstruct T._DmaTable noattr) noattr) ::
+  Member_plain T._currentAddr (Tpointer Tvoid noattr) ::
+  Member_plain T._bufTarget (Tpointer Tvoid noattr) :: nil.
+
+Lemma title_dma_handler_definition_is_generated :
+  In (Composite T._DmaHandlerList Struct target_dma_handler_members noattr)
+    (prog_types T.prog).
+Proof. vm_compute. do 5 right. left. reflexivity. Qed.
+
+Lemma title_dma_handler_composite_is_generated :
+  exists co,
+    (prog_comp_env T.prog) ! T._DmaHandlerList = Some co /\
+    co_members co = target_dma_handler_members.
+Proof.
+  destruct (build_composite_env_charact
+    T._DmaHandlerList Struct target_dma_handler_members noattr
+    (prog_types T.prog) (prog_comp_env T.prog)
+    (prog_comp_env_eq T.prog) title_dma_handler_definition_is_generated)
+    as (co & Hlookup & Hmembers & _).
+  exists co. split; assumption.
+Qed.
+
+Lemma linkorder_preserves_title_dma_handler_layout :
+  forall lp : Clight.program,
+    linkorder T.prog lp ->
+    exists co,
+      (prog_comp_env lp) ! T._DmaHandlerList = Some co /\
+      co_members co = target_dma_handler_members.
+Proof.
+  intros lp LO.
+  Local Transparent Linker_program.
+  unfold linkorder, Linker_program, linkorder_program in LO.
+  destruct LO as [_ LOtypes].
+  destruct title_dma_handler_composite_is_generated
+    as (co & Hsource & Hmembers).
+  exists co. split; [eapply LOtypes; exact Hsource | exact Hmembers].
+Qed.
+
 Section LinkedTargetProgram.
   Variable lp : Clight.program.
   Hypothesis LO_game : linkorder G.prog lp.
@@ -125,5 +164,17 @@ Section LinkedTargetProgram.
           split.
           { eapply target_linkorder_resolves_internal; [exact LO_controller | exact controller_defmap_start_read_data]. }
           eapply target_linkorder_resolves_internal; [exact LO_si | exact si_defmap_raw_start_dma].
+  Qed.
+
+  Theorem linked_target_composite_layouts :
+    exists co,
+      (genv_cenv (globalenv lp)) ! T._DmaHandlerList = Some co /\
+      co_members co = target_dma_handler_members.
+  Proof.
+    change (exists co,
+      (prog_comp_env lp) ! T._DmaHandlerList = Some co /\
+      co_members co = target_dma_handler_members).
+    apply linkorder_preserves_title_dma_handler_layout.
+    exact LO_title.
   Qed.
 End LinkedTargetProgram.
