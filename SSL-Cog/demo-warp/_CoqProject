@@ -7,6 +7,7 @@ generated/mario.v
 generated/main.v
 generated/memory.v
 generated/level_update.v
+generated/reachability_facts.v
 
 proofs/GeneratedFacts.v
 proofs/LayoutFacts.v

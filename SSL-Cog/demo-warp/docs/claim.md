@@ -88,3 +88,11 @@ ASTs. It will certify the fixed US main-pool bounds, the path from
 linker ordering and authentic demo-stream termination are necessarily audited
 alongside Clight because neither final addresses nor ROM bytes are represented
 inside a translation-unit AST.
+
+The generated bridge is now present as `generated/reachability_facts.v`. For
+the canonical US ROM, the active table order is BITDW, WF, CCM, BBH, JRB, HMC,
+and PSS. Their first zero timers occur at byte offsets 1408, 668, 1316, 984,
+616, 976, and 744 respectively; every DMA size is at most 2048 bytes. The
+generator also verifies that `level_update.o(.bss*)` is linked in main NOLOAD
+after `SEG_BUFFERS = SEG_POOL_END`, and that `level_update.c` concretely
+defines `gMarioStates[1]`.

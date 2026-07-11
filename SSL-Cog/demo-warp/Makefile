@@ -26,7 +26,8 @@ GENERATED := \
   generated/mario.v \
   generated/main.v \
   generated/memory.v \
-  generated/level_update.v
+  generated/level_update.v \
+  generated/reachability_facts.v
 
 .PHONY: all generated proofs check clean
 
@@ -51,6 +52,9 @@ generated/memory.v: $(SM64)/src/game/memory.c pipeline/clightgen.sh
 
 generated/level_update.v: $(SM64)/src/game/level_update.c pipeline/clightgen.sh
 	bash pipeline/clightgen.sh $< $@ $(SM64_CG)
+
+generated/reachability_facts.v: pipeline/generate-reachability-facts.py
+	python3 pipeline/generate-reachability-facts.py $(SM64) $@
 
 CoqMakefile: _CoqProject
 	coq_makefile -f _CoqProject -o CoqMakefile

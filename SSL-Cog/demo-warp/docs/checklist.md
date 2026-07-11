@@ -16,6 +16,10 @@
 - [x] Generate `main.c` Clight for the fixed pool bounds.
 - [x] Generate `memory.c` Clight for allocator and DMA-list provenance.
 - [x] Generate `level_update.c` Clight for the concrete Mario-state global.
+- [x] Generate a canonical-US demo stream certificate without committing ROM
+  bytes.
+- [x] Generate a linker-order certificate placing `level_update` BSS after the
+  main-pool interval.
 
 ## Mechanized proof
 
@@ -60,3 +64,7 @@
   `level_update`).
 - Generated reachability ASTs: translated all three units successfully with
   the pinned CompCert target and committed them without hand edits.
+- ROM/linker bridge: verified the canonical US ROM SHA-1, all seven table
+  streams and terminal records, the 0x800 DMA bound, fixed pool constants,
+  linker section order, and the concrete `gMarioStates[1]` definition. The
+  generated Coq receipt records only metadata and hashes.

@@ -31,3 +31,8 @@ The memory-frame side of that decision is also complete: distinct CompCert
 blocks imply preservation of Mario's Y byte, while a matching change implies
 block aliasing. What remains is specifically the real-program proof of which
 block `gDemoInputsBuf.bufTarget` can inhabit over reachable executions.
+
+The authentic data side is now discharged: no normal US demo stream advances
+the pointer beyond offset 1408 of the 2048-byte destination buffer. The
+remaining mechanized composition is allocator provenance plus the generated
+linker separation receipt.
