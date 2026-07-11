@@ -26,6 +26,20 @@ Definition us_main_pool_size : Z := 1462272.
 Definition us_main_pool_end : Z := 2149322752.
 Definition us_demo_buffer_size : Z := 2048.
 
+Inductive us_link_region : Type :=
+| Us_main_pool_region
+| Us_main_noload_region.
+
+Definition generated_demo_buffer_link_region : us_link_region :=
+  Us_main_pool_region.
+Definition generated_mario_states_link_region : us_link_region :=
+  Us_main_noload_region.
+
+Theorem generated_demo_and_mario_link_regions_distinct :
+  generated_demo_buffer_link_region <>
+  generated_mario_states_link_region.
+Proof. discriminate. Qed.
+
 Definition us_demo_stream_receipts : list demo_stream_receipt := [
   {| receipt_data_size := 1412; receipt_dma_size := 1412; receipt_terminal_offset := 1408; receipt_prefix_nonzero := true |};
   {| receipt_data_size := 672; receipt_dma_size := 1040; receipt_terminal_offset := 668; receipt_prefix_nonzero := true |};

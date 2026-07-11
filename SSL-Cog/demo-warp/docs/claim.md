@@ -39,21 +39,26 @@ or hand-written C model sits between the decompile and Clight. The Mario unit
 supplies the complete generated `MarioState` composite needed for the Y-field
 layout certificate.
 
-## Reachability boundary
+## Reachability verdict
 
-This is not yet a proof that an ordinary run from SM64 initialization reaches
-the alias. The direct source writers found so far set `gCurrDemoInput` to
-`NULL`, set it to `gDemoInputsBuf.bufTarget + 1`, or increment it by one
-`DemoInput`. A separate generated-AST census will certify those shapes.
+The alias is unreachable from the proved normal initialization/demo path.
+`normal_initialization_forbids_demo_pointer_mario_y_alias` combines the exact
+generated writers with the allocator invariant, canonical US demo streams,
+and linker ordering. A successful 2048-byte left allocation stays below
+`SEG_POOL_END`; playback never advances beyond offset 1408; and
+`gMarioStates`, defined in `level_update.o(.bss*)`, is linked in later main
+NOLOAD. Hence the demo pointer is strictly below the Mario-Y region.
 
-Closing the stronger gameplay question requires proving one of:
+`normal_initialization_refutes_alias_reachability` states the negative result
+directly. The normal-state predicate is proved inhabited, so the theorem is
+not vacuous.
 
-1. the demo buffer and Mario-state blocks remain disjoint in every reachable
-   execution, yielding an impossibility theorem; or
-2. a real generated execution path corrupts or constructs the alias, yielding
-   a reachable counterexample.
-
-The local counterexample must not be reported as satisfying item 2.
+Scope is literal: "normal" means the authentic US ROM, the generated
+initialization/demo dataflow, a successful allocator state satisfying the
+generated pool invariant, and no prior undefined out-of-bounds corruption.
+The theorem is not a whole-program proof that every possible SM64 glitch is
+memory-safe. A positive DOTA_Teabag explanation through this decrement would
+need some earlier event to break the proved pointer provenance.
 
 ## Conditional impossibility result
 
@@ -68,21 +73,23 @@ Thus the formal split is now exact:
 - distinct blocks: the proposed timer mechanism cannot change Mario Y;
 - same block at the Y-byte offset: the checked `0xC5 -> 0xC4` counterexample
   exists;
-- still open: whether a real gameplay execution can violate the expected
-  demo-buffer/Mario-state block separation.
+- normal initialization: the generated provenance and address bounds rule out
+  that block alias.
 
 ## Verification status
 
-`pipeline/check.sh` regenerates as needed, builds all five proof modules,
+`pipeline/check.sh` regenerates as needed, builds all seven proof modules,
 rejects proof-hole keywords, checks the source census, and compiles a strict
 `Print Assumptions` query. The capstone currently reports only the standard
 classical and functional-extensionality axioms inherited from CompCert. The
 same strict assumption check also runs for the separated-block safety theorem.
+It additionally checks the normal-initialization no-alias capstone, which is
+closed under the global context.
 
-## Reachability extension in progress
+## Reachability receipts
 
-The next spine layer uses generated `main.c`, `memory.c`, and `level_update.c`
-ASTs. It will certify the fixed US main-pool bounds, the path from
+Generated `main.c`, `memory.c`, and `level_update.c` ASTs certify the fixed US
+main-pool bounds and the path from
 `main_pool_alloc(0x800, MEMORY_POOL_LEFT)` through `setup_dma_table_list` into
 `gDemoInputsBuf.bufTarget`, and the concrete `gMarioStates` global. Physical
 linker ordering and authentic demo-stream termination are necessarily audited
