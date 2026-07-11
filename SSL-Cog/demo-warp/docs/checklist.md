@@ -50,6 +50,8 @@
       temporary used only in a null comparison, never a dereference/store/call.
     - [x] Prove OOM-safe symbolic resolution of every target-capable cross-TU
       call to its generated internal body in an abstract linked program.
+    - [x] Prove `linkorder` carries the generated `DmaHandlerList` definition
+      and exact member list into the linked program's composite environment.
     - [x] Prove from actual `eval_expr` derivations that the generated title and
       playback writer RHSs preserve the block of their loaded pointer temps.
     - [x] Lift both generated writer `Sassign` executions into safe loads from

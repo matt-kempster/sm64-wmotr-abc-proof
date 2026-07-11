@@ -169,6 +169,12 @@ ingestion, DMA-list setup/load, and SI DMA all resolve through
 `eval_funcall` induction traverses these bodies rather than treating them as
 arbitrary externals.
 
+`linked_target_composite_layouts` also derives from CompCert `linkorder` that
+the generated three-field `DmaHandlerList` definition survives into the linked
+program's actual composite environment. The title proof can therefore derive
+the `bufTarget` address through linked Clight field evaluation instead of
+assuming an independently stated handler layout.
+
 `generated_writer_rhs_execution_preserves_demo_block` is the first direct
 operational-semantics rung. It inverts actual `eval_expr` derivations for the
 literal generated playback and title RHS expressions. If `_t'5` or `_t'6`
