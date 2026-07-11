@@ -11,6 +11,7 @@
 - [x] Pin the inspected decompile revision and target configuration.
 - [x] Generate `game_init.c` Clight.
 - [x] Generate `title_screen.c` Clight.
+- [x] Generate `mario.c` Clight for the concrete `MarioState` layout.
 - [ ] Add a reproducible direct-writer source census.
 
 ## Mechanized proof
@@ -35,3 +36,7 @@
 - Generated Clight: translated the real US `game_init.c` and
   `title_screen.c` units with CompCert 3.15; generated files are committed and
   reproducible through `make generated`.
+- Layout input: added the real `mario.c` translation unit to the generation
+  set so the proof can compute the Mario-Y offset from a generated composite.
+- Generated Mario layout: translated `mario.c` successfully with the same
+  pinned CompCert target and flags.
