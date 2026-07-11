@@ -1,3 +1,11 @@
 -R generated DemoWarp.Generated
 -R proofs DemoWarp.Proofs
 
+generated/game_init.v
+generated/title_screen.v
+generated/mario.v
+
+proofs/GeneratedFacts.v
+proofs/LayoutFacts.v
+proofs/ByteStore.v
+proofs/Counterexample.v

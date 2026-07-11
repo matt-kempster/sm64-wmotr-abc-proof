@@ -22,3 +22,7 @@ Success requires generated-AST receipts, no proof holes, an assumption audit,
 and documentation that distinguishes a local Clight execution witness from a
 gameplay-reachable execution.
 
+The first milestone is complete: the project has a checked local byte-store
+counterexample and direct-writer census. The remaining research goal is the
+stronger reachability decision—prove the demo-buffer/Mario-state separation
+invariant for real executions or find a generated path that breaks it.

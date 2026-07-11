@@ -12,22 +12,22 @@
 - [x] Generate `game_init.c` Clight.
 - [x] Generate `title_screen.c` Clight.
 - [x] Generate `mario.c` Clight for the concrete `MarioState` layout.
-- [ ] Add a reproducible direct-writer source census.
+- [x] Add a reproducible direct-writer source census.
 
 ## Mechanized proof
 
-- [ ] Certify the generated decrement/dataflow shape.
-- [ ] Certify `DemoInput.timer` and Mario-Y layout offsets.
-- [ ] Prove that the generated assignment uses `Mint8unsigned`.
-- [ ] Construct and prove the `0xC5 -> 0xC4` one-byte memory witness.
-- [ ] Certify the direct `gCurrDemoInput` writer shapes.
-- [ ] Wire all results into a capstone theorem.
-- [ ] Check `Print Assumptions` and reject proof holes.
+- [x] Certify the generated decrement/dataflow shape.
+- [x] Certify `DemoInput.timer` and Mario-Y layout offsets.
+- [x] Prove that the generated assignment uses `Mint8unsigned`.
+- [x] Construct and prove the `0xC5 -> 0xC4` one-byte memory witness.
+- [x] Certify the direct `gCurrDemoInput` writer shapes.
+- [x] Wire all results into a capstone theorem.
+- [x] Check `Print Assumptions` and reject proof holes.
 
 ## Integration
 
 - [ ] Add this project to `SSL-Cog/README.md`.
-- [ ] Run the end-to-end Ubuntu build and check pipeline.
+- [x] Run the end-to-end Ubuntu build and check pipeline.
 
 ## Commit log
 
@@ -40,3 +40,7 @@
   set so the proof can compute the Mario-Y offset from a generated composite.
 - Generated Mario layout: translated `mario.c` successfully with the same
   pinned CompCert target and flags.
+- Proof spine: added generated AST/dataflow and writer facts, concrete layout
+  facts, unsigned-byte `assign_loc` semantics, an allocated-memory
+  `0xC5 -> 0xC4` witness with a disjoint-byte frame, and the composed
+  counterexample capstone. The strict end-to-end check is green.

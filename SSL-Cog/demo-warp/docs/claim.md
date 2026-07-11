@@ -17,13 +17,20 @@ byte is `0xC5`, the store writes `0xC4` to exactly that byte. Because the new
 timer value is nonzero, the subsequent conditional pointer increment is not
 taken.
 
-The intended first capstone will combine:
+The capstone `demo_timer_mario_y_counterexample_capstone` combines:
 
 - the exact generated-AST decrement certificate;
 - generated layout facts (`DemoInput.timer` at offset 0 and Mario Y at the
   `MarioState.pos` offset plus one `float`);
 - the CompCert `Mint8unsigned` store effect; and
 - a concrete before/after memory witness.
+
+The proof additionally shows that the generated `run_demo_inputs` body has
+exactly one assignment to a `DemoInput.timer` lvalue, that `0xC5 - 1 = 0xC4`,
+and that `0xC4` is nonzero. The concrete CompCert store witness changes the
+watched byte and preserves every disjoint unsigned-byte load. The separate
+corollary `unconditional_no_matching_byte_store_is_false` refutes the narrow
+unconditional no-store proposition.
 
 The generated inputs are committed as `generated/game_init.v`,
 `generated/title_screen.v`, and `generated/mario.v`. They are produced
@@ -47,3 +54,10 @@ Closing the stronger gameplay question requires proving one of:
    a reachable counterexample.
 
 The local counterexample must not be reported as satisfying item 2.
+
+## Verification status
+
+`pipeline/check.sh` regenerates as needed, builds all four proof modules,
+rejects proof-hole keywords, checks the source census, and compiles a strict
+`Print Assumptions` query. The capstone currently reports only the standard
+classical and functional-extensionality axioms inherited from CompCert.
