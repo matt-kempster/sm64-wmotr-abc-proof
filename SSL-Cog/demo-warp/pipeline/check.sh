@@ -36,3 +36,6 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   DemoWarp.Proofs.TargetCapabilitySet \
   generated_target_capability_set_certificate
+bash pipeline/assumptions.sh \
+  DemoWarp.Proofs.TargetSymbolicLinking \
+  linked_target_calls_resolve_to_internal_bodies

@@ -48,6 +48,8 @@
       handler global (`ENABLE_RUMBLE=0` removes four source-only readers).
     - [x] Certify that all nine active read-only users load the pointer into a
       temporary used only in a null comparison, never a dereference/store/call.
+    - [x] Prove OOM-safe symbolic resolution of every target-capable cross-TU
+      call to its generated internal body in an abstract linked program.
   - [x] Generate the libultra controller ingestion and SI DMA implementation
     that resolves `osContGetReadData`/`osContStartReadData` below the game loop.
   - [x] Certify the controller parser's exact five-store surface and the
