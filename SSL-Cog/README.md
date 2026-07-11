@@ -14,9 +14,13 @@ analysis, a reproducible model, and machine-checked proof work rather than a
 
 ## Projects in this folder
 
-The three current projects cover the main ways the expected impossibility
+The four current projects cover the main ways the expected impossibility
 could fail:
 
+- `demo-warp/` studies whether the demo-input timer decrement can make the
+  proposed one-byte change to Mario's Y float. It contains a local generated-
+  Clight counterexample and keeps gameplay reachability as a separate open
+  obligation.
 - `ssl-parallel-universe/` studies whether movement inside the Pyramid can
   reach a parallel universe and break the usual reachability argument.
 - `ssl-spawning-displacement-proof/` studies the JP spawning-displacement and
