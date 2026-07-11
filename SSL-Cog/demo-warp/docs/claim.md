@@ -25,6 +25,11 @@ The intended first capstone will combine:
 - the CompCert `Mint8unsigned` store effect; and
 - a concrete before/after memory witness.
 
+The generated inputs are committed as `generated/game_init.v` and
+`generated/title_screen.v`. Both are produced directly from the pinned source
+units by `pipeline/clightgen.sh`; no extracted or hand-written C model sits
+between the decompile and Clight.
+
 ## Reachability boundary
 
 This is not yet a proof that an ordinary run from SM64 initialization reaches
@@ -40,4 +45,3 @@ Closing the stronger gameplay question requires proving one of:
    a reachable counterexample.
 
 The local counterexample must not be reported as satisfying item 2.
-
