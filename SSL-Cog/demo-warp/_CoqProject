@@ -8,4 +8,5 @@ generated/mario.v
 proofs/GeneratedFacts.v
 proofs/LayoutFacts.v
 proofs/ByteStore.v
+proofs/ReachabilityBoundary.v
 proofs/Counterexample.v

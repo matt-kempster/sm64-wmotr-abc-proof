@@ -22,6 +22,13 @@ pointer-writer certificate. `unconditional_no_matching_byte_store_is_false`
 records the narrow counterexample result. Both compile without proof holes;
 their assumption footprint is the standard axioms inherited from CompCert.
 
+The companion theorem `separated_demo_pointer_cannot_change_mario_y` proves
+the conditional impossibility direction: an unsigned-byte timer store in a
+demo-buffer block cannot change the Mario-Y byte in a distinct Mario-state
+block. `alias_is_necessary_for_demo_timer_mario_y_byte_change` makes the proof
+frontier explicit—a matching change requires the two pointers to share a
+CompCert memory block.
+
 ## Proof route
 
 ```text

@@ -55,9 +55,26 @@ Closing the stronger gameplay question requires proving one of:
 
 The local counterexample must not be reported as satisfying item 2.
 
+## Conditional impossibility result
+
+`separated_demo_pointer_cannot_change_mario_y` combines the generated direct-
+writer certificate with a CompCert memory-frame theorem: a one-byte store in
+a demo block preserves Mario's Y byte whenever the demo and Mario blocks are
+distinct. `alias_is_necessary_for_demo_timer_mario_y_byte_change` proves the
+contrapositive boundary—a changed Mario-Y byte requires block equality.
+
+Thus the formal split is now exact:
+
+- distinct blocks: the proposed timer mechanism cannot change Mario Y;
+- same block at the Y-byte offset: the checked `0xC5 -> 0xC4` counterexample
+  exists;
+- still open: whether a real gameplay execution can violate the expected
+  demo-buffer/Mario-state block separation.
+
 ## Verification status
 
-`pipeline/check.sh` regenerates as needed, builds all four proof modules,
+`pipeline/check.sh` regenerates as needed, builds all five proof modules,
 rejects proof-hole keywords, checks the source census, and compiles a strict
 `Print Assumptions` query. The capstone currently reports only the standard
-classical and functional-extensionality axioms inherited from CompCert.
+classical and functional-extensionality axioms inherited from CompCert. The
+same strict assumption check also runs for the separated-block safety theorem.

@@ -26,3 +26,8 @@ The first milestone is complete: the project has a checked local byte-store
 counterexample and direct-writer census. The remaining research goal is the
 stronger reachability decision—prove the demo-buffer/Mario-state separation
 invariant for real executions or find a generated path that breaks it.
+
+The memory-frame side of that decision is also complete: distinct CompCert
+blocks imply preservation of Mario's Y byte, while a matching change implies
+block aliasing. What remains is specifically the real-program proof of which
+block `gDemoInputsBuf.bufTarget` can inhabit over reachable executions.
