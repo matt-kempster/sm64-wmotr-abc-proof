@@ -61,9 +61,10 @@ Definition function_entries_preserve (I : mem -> Prop) (ge : genv) : Prop :=
     I before -> I after.
 
 Definition function_frees_preserve (I : mem -> Prop) (ge : genv) : Prop :=
-  forall e before after,
-    Mem.free_list before (blocks_of_env ge e) = Some after ->
-    I before -> I after.
+  forall f vargs call_before e le after_entry before_free after,
+    function_entry2 ge f vargs call_before e le after_entry ->
+    Mem.free_list before_free (blocks_of_env ge e) = Some after ->
+    I call_before -> I before_free -> I after.
 
 Lemma selected_default_certificate :
   forall authorized I ge e cases,
@@ -189,10 +190,12 @@ Proof.
     exact Hcert.
   - intros before f vargs trace e le1 le2 after_entry after_body out result after
       Hentry_call Hbody IHbody Hresult Hfree_call HI.
-    apply Hfree with (e := e) (before := after_body); [exact Hfree_call |].
-    apply IHbody.
-    + eapply Hbodies; exact Hentry_call.
-    + eapply Hentry; eauto.
+    assert (HIentry : I after_entry) by (eapply Hentry; eauto).
+    assert (HIbody : I after_body).
+    { apply IHbody.
+      - eapply Hbodies; exact Hentry_call.
+      - exact HIentry. }
+    eapply Hfree; eauto.
   - intros before ef targs tres cc vargs trace result after Hcall HI.
     eapply Hexternals; eauto.
 Qed.

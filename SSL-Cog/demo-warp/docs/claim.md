@@ -224,6 +224,11 @@ does not rely on a global promise about every statement a shape recognizer
 might accept, so a hypothetical look-alike AST with changed types receives no
 authority from the two generated proofs.
 
+The exit-frame premise is also tied to the same `function_entry2` derivation
+that allocated the callee environment. This freshness link is essential:
+`free_list` is proved safe for those callee-local blocks, not postulated safe
+for an arbitrary environment that could name a protected global.
+
 `generated_authorized_pair_certificate` instantiates that mechanism on the
 generated program. Its recognizer identifies the exact playback and title
 source-load/write shapes, proves one occurrence in each corresponding body,
