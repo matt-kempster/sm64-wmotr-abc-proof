@@ -96,3 +96,12 @@ and PSS. Their first zero timers occur at byte offsets 1408, 668, 1316, 984,
 generator also verifies that `level_update.o(.bss*)` is linked in main NOLOAD
 after `SEG_BUFFERS = SEG_POOL_END`, and that `level_update.c` concretely
 defines `gMarioStates[1]`.
+
+`proofs/ASTReachabilityFacts.v` now supplies the generated-AST half of the
+composition. Its certificate follows the exact temporary carrying the
+2048-byte allocation into `gDemoInputsMemAlloc`, reloads that global into the
+third argument of `setup_dma_table_list`, proves the setup function stores its
+`buffer` parameter into `bufTarget` exactly once, and proves
+`load_patchable_table` reads but never assigns that field. The title-screen
+certificate then follows the same loaded `bufTarget` temporary into
+`gCurrDemoInput = buffer + 1 DemoInput`.
