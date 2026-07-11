@@ -1,8 +1,8 @@
 From Coq Require Import List.
-From compcert Require Import Coqlib Maps AST Integers Values Events Memory Globalenvs
+From compcert Require Import Coqlib Errors Maps AST Integers Values Events Memory Globalenvs
   Ctypes Cop Clight ClightBigstep.
 From DemoWarp.Generated Require Import game_init title_screen.
-From DemoWarp.Proofs Require Import PointerProvenanceKernel.
+From DemoWarp.Proofs Require Import PointerProvenanceKernel TargetSymbolicLinking.
 
 Module G := game_init.
 Module T := title_screen.
@@ -31,6 +31,16 @@ Definition title_install_rhs : expr :=
 Definition title_install_statement : statement :=
   Sassign (Evar T._gCurrDemoInput (Tpointer (Tstruct T._DemoInput noattr) noattr))
     title_install_rhs.
+
+Definition title_install_source_load_statement : statement :=
+  Sset T._t'6
+    (Efield (Evar T._gDemoInputsBuf (Tstruct T._DmaHandlerList noattr))
+      T._bufTarget (Tpointer Tvoid noattr)).
+
+Lemma linked_buf_target_field_offset :
+  forall ce : composite_env,
+    field_offset ce T._bufTarget target_dma_handler_members = OK (8, Full).
+Proof. intros; reflexivity. Qed.
 
 Lemma eval_tempvar_binding :
   forall ge e le m id ty value,
@@ -94,6 +104,83 @@ Proof.
     + match goal with Hmode : access_mode _ = By_copy |- _ =>
         cbn in Hmode; discriminate
       end.
+Qed.
+
+Lemma exec_title_install_source_load_sets_safe_temp :
+  forall (ge : genv) (e : env) (le : temp_env) (m : mem)
+      (trace : Events.trace) (le' : temp_env) (m' : mem) (out : outcome)
+      demo_block handler_block handler_co loaded,
+    e ! T._gDemoInputsBuf = None ->
+    Genv.find_symbol ge T._gDemoInputsBuf = Some handler_block ->
+    ge.(genv_cenv) ! T._DmaHandlerList = Some handler_co ->
+    co_members handler_co = target_dma_handler_members ->
+    Mem.load Mptr m handler_block 8 = Some loaded ->
+    safe_demo_pointer_value demo_block loaded ->
+    exec_stmt function_entry2 ge e le m title_install_source_load_statement
+      trace le' m' out ->
+    m' = m /\ le' ! T._t'6 = Some loaded /\
+    safe_demo_pointer_value demo_block loaded.
+Proof.
+  intros ge e le m trace le' m' out demo_block handler_block handler_co loaded
+    Hnotlocal Hsymbol Hco Hmembers Hload Hsafe Hexec.
+  unfold title_install_source_load_statement in Hexec.
+  inv Hexec.
+  match goal with Heval : eval_expr _ _ _ _ (Efield _ T._bufTarget _) _ |- _ =>
+    inv Heval
+  end.
+  all: try match goal with
+    Hlv : eval_lvalue _ _ _ _ (Efield _ T._bufTarget _) _ _ _ |- _ => inv Hlv
+  end.
+  - match goal with Hbase : eval_expr _ _ _ _ (Evar T._gDemoInputsBuf _) _ |- _ =>
+      inv Hbase
+    end.
+    all: try match goal with
+      Hbase_lv : eval_lvalue _ _ _ _ (Evar T._gDemoInputsBuf _) _ _ _ |- _ =>
+        inv Hbase_lv
+    end.
+    + match goal with Hlocal : e ! T._gDemoInputsBuf = Some _ |- _ =>
+        rewrite Hnotlocal in Hlocal; discriminate
+      end.
+    + match goal with Hfound : Genv.find_symbol _ T._gDemoInputsBuf = Some _ |- _ =>
+        rewrite Hsymbol in Hfound; inv Hfound
+      end.
+      match goal with Hbase_deref : deref_loc _ _ _ Ptrofs.zero Full _ |- _ =>
+        inv Hbase_deref
+      end.
+      * match goal with Hmode : access_mode _ = By_value _ |- _ =>
+           cbn in Hmode; discriminate
+         end.
+      * match goal with Hmode : access_mode _ = By_reference |- _ =>
+           cbn in Hmode; discriminate
+         end.
+      * clear H3.
+        match goal with Hty : typeof (Evar T._gDemoInputsBuf _) = Tstruct _ _ |- _ =>
+          cbn in Hty; inv Hty
+        end.
+        match goal with Hlinked_co : ge.(genv_cenv) ! T._DmaHandlerList = Some _ |- _ =>
+          rewrite Hco in Hlinked_co; inv Hlinked_co
+        end.
+        rewrite Hmembers, linked_buf_target_field_offset in H10; inv H10.
+        match goal with Hresult_deref : deref_loc _ _ _ _ Full _ |- _ =>
+          inv Hresult_deref
+        end.
+        -- match goal with Hmode : access_mode _ = By_value _ |- _ =>
+             cbn in Hmode; inv Hmode
+           end.
+           unfold Mem.loadv in H1; cbn in H1.
+           change (Mem.load Mptr m' loc 8 = Some v) in H1.
+           rewrite Hload in H1; inv H1.
+           split; [reflexivity |].
+           split; [apply PTree.gss | exact Hsafe].
+        -- match goal with Hmode : access_mode _ = By_reference |- _ =>
+             cbn in Hmode; discriminate
+           end.
+         -- match goal with Hmode : access_mode _ = By_copy |- _ =>
+              cbn in Hmode; discriminate
+            end.
+  - match goal with Hty : typeof (Evar T._gDemoInputsBuf _) = Tunion _ _ |- _ =>
+      cbn in Hty; discriminate
+    end.
 Qed.
 
 Lemma eval_run_increment_rhs_preserves_block :

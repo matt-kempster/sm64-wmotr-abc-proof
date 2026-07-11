@@ -58,6 +58,8 @@
       the concrete linked `gCurrDemoInput` global cell.
     - [x] Prove the generated playback `_t'5 = gCurrDemoInput` `Sset` copies
       the safe linked-cell value into the writer's actual source temporary.
+    - [x] Prove the generated title `_t'6 = gDemoInputsBuf.bufTarget` `Sset`
+      copies the safe linked handler-field value into its writer temporary.
   - [x] Generate the libultra controller ingestion and SI DMA implementation
     that resolves `osContGetReadData`/`osContStartReadData` below the game loop.
   - [x] Certify the controller parser's exact five-store surface and the
