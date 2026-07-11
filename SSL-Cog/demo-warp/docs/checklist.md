@@ -13,6 +13,9 @@
 - [x] Generate `title_screen.c` Clight.
 - [x] Generate `mario.c` Clight for the concrete `MarioState` layout.
 - [x] Add a reproducible direct-writer source census.
+- [x] Generate `main.c` Clight for the fixed pool bounds.
+- [x] Generate `memory.c` Clight for allocator and DMA-list provenance.
+- [x] Generate `level_update.c` Clight for the concrete Mario-state global.
 
 ## Mechanized proof
 
@@ -52,3 +55,8 @@
   the byte change and that any matching change requires block equality. The
   only open route-level issue is whether generated gameplay can establish that
   alias.
+- Reachability inputs: added the three real translation units needed to move
+  that issue onto the generated proof spine (`main`, `memory`, and
+  `level_update`).
+- Generated reachability ASTs: translated all three units successfully with
+  the pinned CompCert target and committed them without hand edits.

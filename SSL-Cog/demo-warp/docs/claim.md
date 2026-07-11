@@ -78,3 +78,13 @@ rejects proof-hole keywords, checks the source census, and compiles a strict
 `Print Assumptions` query. The capstone currently reports only the standard
 classical and functional-extensionality axioms inherited from CompCert. The
 same strict assumption check also runs for the separated-block safety theorem.
+
+## Reachability extension in progress
+
+The next spine layer uses generated `main.c`, `memory.c`, and `level_update.c`
+ASTs. It will certify the fixed US main-pool bounds, the path from
+`main_pool_alloc(0x800, MEMORY_POOL_LEFT)` through `setup_dma_table_list` into
+`gDemoInputsBuf.bufTarget`, and the concrete `gMarioStates` global. Physical
+linker ordering and authentic demo-stream termination are necessarily audited
+alongside Clight because neither final addresses nor ROM bytes are represented
+inside a translation-unit AST.

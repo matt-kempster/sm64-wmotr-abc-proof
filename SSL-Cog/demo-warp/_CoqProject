@@ -4,6 +4,9 @@
 generated/game_init.v
 generated/title_screen.v
 generated/mario.v
+generated/main.v
+generated/memory.v
+generated/level_update.v
 
 proofs/GeneratedFacts.v
 proofs/LayoutFacts.v
