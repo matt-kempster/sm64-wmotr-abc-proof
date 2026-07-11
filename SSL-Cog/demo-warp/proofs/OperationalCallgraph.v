@@ -11,13 +11,19 @@ Definition assignment_preserves
     assign_loc ge (typeof lhs) before loc ofs bf stored after ->
     I before -> I after.
 
+Definition statement_preserves
+    (I : mem -> Prop) (ge : genv) (e : env) (s : statement) : Prop :=
+  forall le before trace le' after out,
+    exec_stmt function_entry2 ge e le before s trace le' after out ->
+    I before -> I after.
+
 Fixpoint target_stmt_certificate
     (authorized : statement -> bool) (I : mem -> Prop)
     (ge : genv) (e : env) (s : statement) : Prop :=
   match s with
   | Sassign lhs rhs => assignment_preserves I ge e lhs rhs
   | Ssequence first second =>
-      if authorized s then True
+      if authorized s then statement_preserves I ge e s
       else target_stmt_certificate authorized I ge e first /\
            target_stmt_certificate authorized I ge e second
   | Sifthenelse _ yes no | Sloop yes no =>
@@ -33,6 +39,7 @@ with target_ls_certificate
   match cases with
   | LSnil => True
   | LScons _ body rest =>
+      authorized (Ssequence body (seq_of_labeled_statement rest)) = false /\
       target_stmt_certificate authorized I ge e body /\
       target_ls_certificate authorized I ge e rest
   end.
@@ -42,13 +49,6 @@ Definition reached_internal_bodies_certified
   forall f vargs before e le after_entry,
     function_entry2 ge f vargs before e le after_entry ->
     target_stmt_certificate authorized I ge e (fn_body f).
-
-Definition authorized_sequences_preserve
-    (authorized : statement -> bool) (I : mem -> Prop) (ge : genv) : Prop :=
-  forall e le before s trace le' after out,
-    authorized s = true ->
-    exec_stmt function_entry2 ge e le before s trace le' after out ->
-    I before -> I after.
 
 Definition reached_externals_preserve (I : mem -> Prop) (ge : genv) : Prop :=
   forall ef vargs before trace result after,
@@ -71,10 +71,10 @@ Lemma selected_default_certificate :
     target_ls_certificate authorized I ge e (select_switch_default cases).
 Proof.
   induction cases as [| option body rest IH]; simpl; intros H; auto.
-  destruct H as [Hbody Hrest].
+  destruct H as [Hauth [Hbody Hrest]].
   destruct option as [case_value |].
   - apply IH. exact Hrest.
-  - simpl. split; assumption.
+  - simpl. repeat split; assumption.
 Qed.
 
 Lemma selected_case_certificate :
@@ -85,10 +85,10 @@ Lemma selected_case_certificate :
 Proof.
   induction cases as [| option body rest IH]; simpl; intros selected Hcert Hselect;
     try discriminate.
-  destruct Hcert as [Hbody Hrest].
+  destruct Hcert as [Hauth [Hbody Hrest]].
   destruct option as [case_value |].
   - destruct (zeq case_value n).
-    + inv Hselect. simpl. auto.
+    + inv Hselect. simpl. repeat split; assumption.
     + eapply IH; eauto.
   - eapply IH; eauto.
 Qed.
@@ -112,15 +112,13 @@ Lemma seq_of_ls_certificate :
       (seq_of_labeled_statement cases).
 Proof.
   induction cases as [| option body rest IH]; simpl; intros Hcert; auto.
-  destruct Hcert as [Hbody Hrest].
-  destruct (authorized
-    (Ssequence body (seq_of_labeled_statement rest))) eqn:Hauth; simpl; auto.
+  destruct Hcert as [Hauth [Hbody Hrest]].
+  rewrite Hauth. split; [exact Hbody | apply IH; exact Hrest].
 Qed.
 
 Theorem exec_stmt_eval_funcall_target_lift :
   forall (authorized : statement -> bool) (I : mem -> Prop) (ge : genv),
     reached_internal_bodies_certified authorized I ge ->
-    authorized_sequences_preserve authorized I ge ->
     reached_externals_preserve I ge ->
     function_entries_preserve I ge ->
     function_frees_preserve I ge ->
@@ -132,7 +130,7 @@ Theorem exec_stmt_eval_funcall_target_lift :
       eval_funcall function_entry2 ge before fd vargs trace after result ->
       I before -> I after).
 Proof.
-  intros authorized I ge Hbodies Hauthorized Hexternals Hentry Hfree.
+  intros authorized I ge Hbodies Hexternals Hentry Hfree.
   apply (exec_stmt_funcall_ind function_entry2 ge
     (fun e le before s trace le' after out =>
       target_stmt_certificate authorized I ge e s ->
@@ -153,7 +151,7 @@ Proof.
       Hfirst IHfirst Hsecond IHsecond Hcert HI.
     simpl in Hcert.
     destruct (authorized (Ssequence first second)) eqn:Hauth.
-    + eapply Hauthorized; [exact Hauth | econstructor; eauto | exact HI].
+    + eapply Hcert; [econstructor; eauto | exact HI].
     + destruct Hcert as [Hcert1 Hcert2].
       apply IHsecond; [exact Hcert2 |].
       apply IHfirst; assumption.
@@ -161,7 +159,7 @@ Proof.
       Hcert HI.
     simpl in Hcert.
     destruct (authorized (Ssequence first second)) eqn:Hauth.
-    + eapply Hauthorized; [exact Hauth | eapply exec_Sseq_2; eauto | exact HI].
+    + eapply Hcert; [eapply exec_Sseq_2; eauto | exact HI].
     + apply IHfirst; [exact (proj1 Hcert) | exact HI].
   - intros e le before condition yes no value branch trace le' after out
       Hcondition Hbool Hbranch IH Hcert HI.
