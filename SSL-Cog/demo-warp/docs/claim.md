@@ -254,6 +254,13 @@ the matching fresh-local `free_list` preserve this state. Normal N64 external
 locality yields the same result once the reached external arguments are shown
 not to carry either protected cell address.
 
+The authorized-update theorems now preserve that complete invariant, not only
+the value reloaded from `gCurrDemoInput`. Their concrete current-cell store
+preserves the distinct handler field by `Mem.load_store_other` and preserves
+all three live blocks. The title theorem obtains its pointer from invariant
+`bufTarget`; the playback theorem deliberately requires the non-null
+demo-pointer load established by the generated outer branch.
+
 For the counterfactual rumble configuration, the build also generates
 `rumble_enabled.v` from the same `rumble_init.c`, with the N64/US flags retained
 and the `VERSION_SH` feature bit used to make `config.h` select
