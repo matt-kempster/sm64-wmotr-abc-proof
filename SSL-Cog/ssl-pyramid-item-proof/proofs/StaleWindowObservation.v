@@ -782,8 +782,23 @@ Definition level_cmd_place_object_current_area_read
     Mem.loadv Mint16signed memory (Vptr area_block Ptrofs.zero) =
       Some (Vint (Int.repr area)).
 
+(* The final list insertion reads gAreas directly from its global cell.  Keep
+   that read distinct from the Area object itself: the former is the pointer
+   fetch performed by Evar, while the latter is the block reached through it. *)
+Definition level_cmd_place_object_areas_read
+    (e : env) (memory : mem) (areas_block : block) (areas_offset : ptrofs) :
+    Prop :=
+  exists areas_global_block,
+    e ! LS._gAreas = None /\
+    Genv.find_symbol level_script_ge LS._gAreas = Some areas_global_block /\
+    Mem.loadv Mptr memory (Vptr areas_global_block Ptrofs.zero) =
+      Some (Vptr areas_block areas_offset).
+
 Definition level_cmd_place_object_active_area_source : expr :=
   Evar LS._sCurrAreaIndex tshort.
+
+Definition level_cmd_place_object_areas_source : expr :=
+  Evar LS._gAreas (tptr (Tstruct LS._Area noattr)).
 
 Definition level_cmd_place_object_active_area_lhs : expr :=
   Efield
@@ -897,6 +912,141 @@ Definition level_cmd_place_object_list_link_assignments : statement :=
   Ssequence level_cmd_place_object_spawn_next_assign
     level_cmd_place_object_area_spawninfos_assign.
 
+(* This is the store-only suffix of the generated post-activeArea tail.  The
+   Sset plumbing around it is named separately below, so that the concrete
+   frame argument stays usable while we peel the generated sequence apart. *)
+Definition level_cmd_place_object_post_active_area_assignments : statement :=
+  Ssequence level_cmd_place_object_intervening_spawninfo_assignments
+    level_cmd_place_object_list_link_assignments.
+
+(* These are the exact generated temporary reads surrounding the stores above.
+   Their values matter only for executing the generated statement; the frame
+   proof below uses the two gAreas / sCurrAreaIndex reads that feed the final
+   Area-list write. *)
+Definition level_cmd_place_object_current_cmd_source : expr :=
+  Evar LS._sCurrentCmd (tptr (Tstruct LS._LevelCommand noattr)).
+
+Definition level_cmd_place_object_behavior_arg_source : expr :=
+  Ederef
+    (Ecast
+      (Ebinop Cop.Oadd
+        (Ebinop Cop.Oor
+          (Ebinop Cop.Oand
+            (Econst_int (Int.repr 16) tint)
+            (Econst_int (Int.repr 3) tint) tint)
+          (Ebinop Cop.Oshl
+            (Ebinop Cop.Oand
+              (Econst_int (Int.repr 16) tint)
+              (Eunop Cop.Onotint (Econst_int (Int.repr 3) tint) tint) tint)
+            (Ebinop Cop.Oshr
+              (Esizeof (tptr tvoid) tuint)
+              (Econst_int (Int.repr 3) tint) tuint) tint) tint)
+        (Ecast
+          (Etempvar LS._t'15 (tptr (Tstruct LS._LevelCommand noattr)))
+          (tptr tuchar))
+        (tptr tuchar))
+      (tptr tuint)) tuint.
+
+Definition level_cmd_place_object_behavior_script_source : expr :=
+  Ederef
+    (Ecast
+      (Ebinop Cop.Oadd
+        (Ebinop Cop.Oor
+          (Ebinop Cop.Oand
+            (Econst_int (Int.repr 20) tint)
+            (Econst_int (Int.repr 3) tint) tint)
+          (Ebinop Cop.Oshl
+            (Ebinop Cop.Oand
+              (Econst_int (Int.repr 20) tint)
+              (Eunop Cop.Onotint (Econst_int (Int.repr 3) tint) tint) tint)
+            (Ebinop Cop.Oshr
+              (Esizeof (tptr tvoid) tuint)
+              (Econst_int (Int.repr 3) tint) tuint) tint) tint)
+        (Ecast
+          (Etempvar LS._t'13 (tptr (Tstruct LS._LevelCommand noattr)))
+          (tptr tuchar))
+        (tptr tuchar))
+      (tptr (tptr tvoid)))
+    (tptr tvoid).
+
+Definition level_cmd_place_object_model_source : expr :=
+  Ederef
+    (Ebinop Cop.Oadd
+      (Etempvar LS._t'11
+        (tptr (tptr (Tstruct LS._GraphNode noattr))))
+      (Etempvar LS._model tushort)
+      (tptr (tptr (Tstruct LS._GraphNode noattr))))
+    (tptr (Tstruct LS._GraphNode noattr)).
+
+Definition level_cmd_place_object_area_spawninfos_source : expr :=
+  Efield
+    (Ederef
+      (Ebinop Cop.Oadd
+        (Etempvar LS._t'8 (tptr (Tstruct LS._Area noattr)))
+        (Etempvar LS._t'9 tshort)
+        (tptr (Tstruct LS._Area noattr)))
+      (Tstruct LS._Area noattr))
+    LS._objectSpawnInfos
+    (tptr (Tstruct LS._SpawnInfo noattr)).
+
+Definition level_cmd_place_object_behavior_arg_sets : statement :=
+  Ssequence
+    (Sset LS._t'15 level_cmd_place_object_current_cmd_source)
+    (Sset LS._t'16 level_cmd_place_object_behavior_arg_source).
+
+Definition level_cmd_place_object_behavior_script_sets : statement :=
+  Ssequence
+    (Sset LS._t'13 level_cmd_place_object_current_cmd_source)
+    (Sset LS._t'14 level_cmd_place_object_behavior_script_source).
+
+Definition level_cmd_place_object_model_sets : statement :=
+  Ssequence
+    (Sset LS._t'11
+      (Evar LS._gLoadedGraphNodes
+        (tptr (tptr (Tstruct LS._GraphNode noattr)))))
+    (Sset LS._t'12 level_cmd_place_object_model_source).
+
+Definition level_cmd_place_object_spawn_next_sets : statement :=
+  Ssequence
+    (Sset LS._t'8 level_cmd_place_object_areas_source)
+    (Ssequence
+      (Sset LS._t'9 level_cmd_place_object_active_area_source)
+      (Sset LS._t'10 level_cmd_place_object_area_spawninfos_source)).
+
+Definition level_cmd_place_object_area_list_sets : statement :=
+  Ssequence
+    (Sset LS._t'6 level_cmd_place_object_areas_source)
+    (Sset LS._t'7 level_cmd_place_object_active_area_source).
+
+Definition level_cmd_place_object_generated_behavior_arg_stage : statement :=
+  Ssequence level_cmd_place_object_behavior_arg_sets
+    level_cmd_place_object_behavior_arg_assign.
+
+Definition level_cmd_place_object_generated_behavior_script_stage : statement :=
+  Ssequence level_cmd_place_object_behavior_script_sets
+    level_cmd_place_object_behavior_script_assign.
+
+Definition level_cmd_place_object_generated_model_stage : statement :=
+  Ssequence level_cmd_place_object_model_sets
+    level_cmd_place_object_model_assign.
+
+Definition level_cmd_place_object_generated_intervening_tail : statement :=
+  Ssequence level_cmd_place_object_generated_behavior_arg_stage
+    (Ssequence level_cmd_place_object_generated_behavior_script_stage
+      level_cmd_place_object_generated_model_stage).
+
+Definition level_cmd_place_object_generated_list_link_tail : statement :=
+  Ssequence level_cmd_place_object_spawn_next_sets
+    (Ssequence level_cmd_place_object_spawn_next_assign
+      (Ssequence level_cmd_place_object_area_list_sets
+        level_cmd_place_object_area_spawninfos_assign)).
+
+(* This syntactically mirrors the post-activeArea suffix in the generated
+   f_level_cmd_place_object body, ending at the gAreas list insertion. *)
+Definition level_cmd_place_object_generated_post_active_area_tail : statement :=
+  Ssequence level_cmd_place_object_generated_intervening_tail
+    level_cmd_place_object_generated_list_link_tail.
+
 Lemma level_script_spawn_info_struct_deref_loc_pointer_same :
   forall memory spawn_block spawn_offset loc ofs,
     deref_loc (Tstruct LS._SpawnInfo noattr) memory spawn_block
@@ -933,6 +1083,25 @@ Proof.
   intros e le memory area Hread.
   destruct Hread as (area_block & Hlocal & Hsymbol & Hload).
   unfold level_cmd_place_object_active_area_source.
+  eapply eval_Elvalue.
+  - apply eval_Evar_global.
+    + exact Hlocal.
+    + exact Hsymbol.
+  - econstructor.
+    + reflexivity.
+    + exact Hload.
+Qed.
+
+Lemma eval_level_cmd_place_object_areas_source :
+  forall e le memory areas_block areas_offset,
+    level_cmd_place_object_areas_read e memory areas_block areas_offset ->
+    eval_expr level_script_ge e le memory
+      level_cmd_place_object_areas_source
+      (Vptr areas_block areas_offset).
+Proof.
+  intros e le memory areas_block areas_offset Hread.
+  destruct Hread as (areas_global_block & Hlocal & Hsymbol & Hload).
+  unfold level_cmd_place_object_areas_source.
   eapply eval_Elvalue.
   - apply eval_Evar_global.
     + exact Hlocal.
@@ -980,6 +1149,55 @@ Proof.
     match goal with
     | Hmem :
         Mem.loadv Mint16signed memory (Vptr area_block Ptrofs.zero) =
+        Some raw_value |- _ =>
+        rewrite Hload in Hmem;
+        inv Hmem
+    end.
+    reflexivity.
+Qed.
+
+Lemma eval_level_cmd_place_object_areas_source_value :
+  forall e le memory areas_block areas_offset raw_value,
+    level_cmd_place_object_areas_read e memory areas_block areas_offset ->
+    eval_expr level_script_ge e le memory
+      level_cmd_place_object_areas_source raw_value ->
+    raw_value = Vptr areas_block areas_offset.
+Proof.
+  intros e le memory areas_block areas_offset raw_value Hread Hexpr.
+  destruct Hread as
+    (areas_global_block & Hlocal & Hsymbol & Hload).
+  unfold level_cmd_place_object_areas_source in Hexpr.
+  inv Hexpr.
+  match goal with
+  | Hlv : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ => inv Hlv
+  end.
+  - congruence.
+  - assert (loc = areas_global_block) by congruence.
+    subst loc.
+    inv H0;
+      match goal with
+      | Haccess :
+          access_mode
+            (typeof (Evar LS._gAreas
+              (tptr (Tstruct LS._Area noattr)))) = By_value ?chunk |- _ =>
+          cbn [typeof access_mode] in Haccess;
+          inv Haccess
+      | Haccess :
+          access_mode
+            (typeof (Evar LS._gAreas
+              (tptr (Tstruct LS._Area noattr)))) = By_reference |- _ =>
+          cbn [typeof access_mode] in Haccess;
+          discriminate
+      | Haccess :
+          access_mode
+            (typeof (Evar LS._gAreas
+              (tptr (Tstruct LS._Area noattr)))) = By_copy |- _ =>
+          cbn [typeof access_mode] in Haccess;
+          discriminate
+      end.
+    match goal with
+    | Hmem :
+        Mem.loadv Mptr memory (Vptr areas_global_block Ptrofs.zero) =
         Some raw_value |- _ =>
         rewrite Hload in Hmem;
         inv Hmem
@@ -1473,6 +1691,367 @@ Proof.
   inv Hexec.
   exists v.
   repeat split; reflexivity || assumption.
+Qed.
+
+(* A SpawnInfo-field write can never change a direct global-cell read when
+   their CompCert blocks are distinct.  This is the small raw-memory bridge
+   needed before the generated tail rereads sCurrAreaIndex and gAreas. *)
+Lemma loadv_preserved_by_different_block_store :
+  forall read_chunk store_chunk before after
+      read_block read_offset store_block store_offset stored_value read_value,
+    read_block <> store_block ->
+    Mem.store store_chunk before store_block store_offset stored_value =
+      Some after ->
+    Mem.loadv read_chunk before (Vptr read_block read_offset) =
+      Some read_value ->
+    Mem.loadv read_chunk after (Vptr read_block read_offset) =
+      Some read_value.
+Proof.
+  intros read_chunk store_chunk before after
+    read_block read_offset store_block store_offset stored_value read_value
+    Hdiff Hstore Hload.
+  unfold Mem.loadv in *.
+  erewrite Mem.load_store_other.
+  - exact Hload.
+  - exact Hstore.
+  - left; exact Hdiff.
+Qed.
+
+Lemma level_cmd_place_object_current_area_read_preserved_by_different_block_store :
+  forall e before after area store_chunk store_block store_offset stored_value,
+    (forall area_block,
+      Genv.find_symbol level_script_ge LS._sCurrAreaIndex = Some area_block ->
+      area_block <> store_block) ->
+    Mem.store store_chunk before store_block store_offset stored_value =
+      Some after ->
+    level_cmd_place_object_current_area_read e before area ->
+    level_cmd_place_object_current_area_read e after area.
+Proof.
+  intros e before after area store_chunk store_block store_offset stored_value
+    Hseparated Hstore Hread.
+  destruct Hread as (area_block & Hlocal & Hsymbol & Hload).
+  exists area_block.
+  repeat split; try assumption.
+  eapply loadv_preserved_by_different_block_store; eauto.
+Qed.
+
+Lemma level_cmd_place_object_areas_read_preserved_by_different_block_store :
+  forall e before after areas_block areas_offset
+      store_chunk store_block store_offset stored_value,
+    (forall areas_global_block,
+      Genv.find_symbol level_script_ge LS._gAreas = Some areas_global_block ->
+      areas_global_block <> store_block) ->
+    Mem.store store_chunk before store_block store_offset stored_value =
+      Some after ->
+    level_cmd_place_object_areas_read e before areas_block areas_offset ->
+    level_cmd_place_object_areas_read e after areas_block areas_offset.
+Proof.
+  intros e before after areas_block areas_offset
+    store_chunk store_block store_offset stored_value
+    Hseparated Hstore Hread.
+  destruct Hread as
+    (areas_global_block & Hlocal & Hsymbol & Hload).
+  exists areas_global_block.
+  repeat split; try assumption.
+  eapply loadv_preserved_by_different_block_store; eauto.
+Qed.
+
+Lemma level_cmd_place_object_global_reads_preserved_by_spawn_block_store :
+  forall e before after area areas_block areas_offset
+      store_chunk spawn_block store_offset stored_value,
+    (forall area_global_block,
+      Genv.find_symbol level_script_ge LS._sCurrAreaIndex =
+        Some area_global_block ->
+      area_global_block <> spawn_block) ->
+    (forall areas_global_block,
+      Genv.find_symbol level_script_ge LS._gAreas = Some areas_global_block ->
+      areas_global_block <> spawn_block) ->
+    Mem.store store_chunk before spawn_block store_offset stored_value =
+      Some after ->
+    level_cmd_place_object_current_area_read e before area ->
+    level_cmd_place_object_areas_read e before areas_block areas_offset ->
+    level_cmd_place_object_current_area_read e after area /\
+    level_cmd_place_object_areas_read e after areas_block areas_offset.
+Proof.
+  intros e before after area areas_block areas_offset
+    store_chunk spawn_block store_offset stored_value
+    Harea_separated Hareas_separated Hstore Harea Hareas.
+  split.
+  - eapply
+      level_cmd_place_object_current_area_read_preserved_by_different_block_store;
+      eauto.
+  - eapply
+      level_cmd_place_object_areas_read_preserved_by_different_block_store;
+      eauto.
+Qed.
+
+Lemma exec_level_script_two_ssets_keeps_unrelated_temp :
+  forall e le before after trace le' outcome
+      target1 rhs1 target2 rhs2 watched watched_value,
+    target1 <> watched ->
+    target2 <> watched ->
+    le ! watched = Some watched_value ->
+    exec_stmt function_entry2 level_script_ge e le before
+      (Ssequence (Sset target1 rhs1) (Sset target2 rhs2))
+      trace le' after outcome ->
+    le' ! watched = Some watched_value /\
+    after = before /\ trace = E0 /\ outcome = Out_normal.
+Proof.
+  intros e le before after trace le' outcome
+    target1 rhs1 target2 rhs2 watched watched_value
+    Htarget1 Htarget2 Hwatched Hexec.
+  inv Hexec.
+  - match goal with
+    | Hfirst :
+        exec_stmt function_entry2 level_script_ge e le before
+          (Sset target1 rhs1) _ _ _ _ |- _ =>
+        destruct
+          (exec_level_script_sset_effect_from_exec_stmt
+            e le before target1 rhs1 _ _ _ _ Hfirst)
+          as (value1 & _ & Htrace1 & Hle1 & Hmemory1 & Hout1)
+    end.
+    match goal with
+    | Hsecond :
+        exec_stmt function_entry2 level_script_ge e ?mid_le ?mid_memory
+          (Sset target2 rhs2) _ _ _ _ |- _ =>
+        destruct
+          (exec_level_script_sset_effect_from_exec_stmt
+            e mid_le mid_memory target2 rhs2
+            _ _ _ _ Hsecond)
+          as (value2 & _ & Htrace2 & Hle2 & Hmemory2 & Hout2)
+    end.
+    split.
+    + rewrite Hle2, Hle1.
+      rewrite PTree.gso by (intro Heq; apply Htarget2; symmetry; exact Heq).
+      rewrite PTree.gso by (intro Heq; apply Htarget1; symmetry; exact Heq).
+      exact Hwatched.
+    + split.
+      * rewrite Hmemory2, Hmemory1; reflexivity.
+      * split.
+        -- rewrite Htrace2, Htrace1; reflexivity.
+        -- exact Hout2.
+  - match goal with
+    | Hfirst :
+        exec_stmt function_entry2 level_script_ge e le before
+          (Sset target1 rhs1) _ _ _ _ |- _ =>
+        destruct
+          (exec_level_script_sset_effect_from_exec_stmt
+            e le before target1 rhs1 _ _ _ _ Hfirst)
+          as (_ & _ & _ & _ & _ & Hout1);
+        subst
+    end.
+    contradiction.
+Qed.
+
+Lemma exec_level_script_three_ssets_keeps_unrelated_temp :
+  forall e le before after trace le' outcome
+      target1 rhs1 target2 rhs2 target3 rhs3 watched watched_value,
+    target1 <> watched ->
+    target2 <> watched ->
+    target3 <> watched ->
+    le ! watched = Some watched_value ->
+    exec_stmt function_entry2 level_script_ge e le before
+      (Ssequence (Sset target1 rhs1)
+        (Ssequence (Sset target2 rhs2) (Sset target3 rhs3)))
+      trace le' after outcome ->
+    le' ! watched = Some watched_value /\
+    after = before /\ trace = E0 /\ outcome = Out_normal.
+Proof.
+  intros e le before after trace le' outcome
+    target1 rhs1 target2 rhs2 target3 rhs3 watched watched_value
+    Htarget1 Htarget2 Htarget3 Hwatched Hexec.
+  inv Hexec.
+  - match goal with
+    | Hfirst :
+        exec_stmt function_entry2 level_script_ge e le before
+          (Sset target1 rhs1) _ _ _ _ |- _ =>
+        destruct
+          (exec_level_script_sset_effect_from_exec_stmt
+            e le before target1 rhs1 _ _ _ _ Hfirst)
+          as (value1 & _ & Htrace1 & Hle1 & Hmemory1 & Hout1)
+    end.
+    assert (Hwatched_after_first :
+      (PTree.set target1 value1 le) ! watched = Some watched_value).
+    { rewrite PTree.gso by (intro Heq; apply Htarget1; symmetry; exact Heq).
+      exact Hwatched. }
+    match goal with
+    | Htail :
+        exec_stmt function_entry2 level_script_ge e ?mid_le ?mid_memory
+          (Ssequence (Sset target2 rhs2) (Sset target3 rhs3))
+          _ _ _ _ |- _ =>
+        assert (Hmid_le : mid_le = PTree.set target1 value1 le)
+          by exact Hle1;
+        assert (Hmid_memory : mid_memory = before)
+          by exact Hmemory1;
+        subst mid_le mid_memory;
+        destruct
+          (exec_level_script_two_ssets_keeps_unrelated_temp
+            e (PTree.set target1 value1 le) before after _ le' outcome
+            target2 rhs2 target3 rhs3 watched watched_value
+            Htarget2 Htarget3 Hwatched_after_first Htail)
+          as (Hwatched_after & Hmemory_after & Htrace_after & Hout_after)
+    end.
+    split; [exact Hwatched_after |].
+    split.
+    + rewrite Hmemory_after; reflexivity.
+    + split.
+      * rewrite Htrace_after, Htrace1; reflexivity.
+      * exact Hout_after.
+  - match goal with
+    | Hfirst :
+        exec_stmt function_entry2 level_script_ge e le before
+          (Sset target1 rhs1) _ _ _ _ |- _ =>
+        destruct
+          (exec_level_script_sset_effect_from_exec_stmt
+            e le before target1 rhs1 _ _ _ _ Hfirst)
+          as (_ & _ & _ & _ & _ & Hout1);
+        subst
+    end.
+    contradiction.
+Qed.
+
+Lemma exec_level_cmd_place_object_area_list_sets_produce_area_temps :
+  forall e le before after trace le' outcome
+      spawn_block spawn_offset areas_block areas_offset area,
+    le ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
+    level_cmd_place_object_areas_read e before areas_block areas_offset ->
+    level_cmd_place_object_current_area_read e before area ->
+    exec_stmt function_entry2 level_script_ge e le before
+      level_cmd_place_object_area_list_sets trace le' after outcome ->
+    le' ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) /\
+    le' ! LS._t'6 = Some (Vptr areas_block areas_offset) /\
+    le' ! LS._t'7 = Some (Vint (Int.repr area)) /\
+    after = before /\ trace = E0 /\ outcome = Out_normal.
+Proof.
+  intros e le before after trace le' outcome
+    spawn_block spawn_offset areas_block areas_offset area
+    Hspawn Hareas Harea Hexec.
+  unfold level_cmd_place_object_area_list_sets in Hexec.
+  inv Hexec.
+  - match goal with
+    | Hareas_set :
+        exec_stmt function_entry2 level_script_ge e le before
+          (Sset LS._t'6 level_cmd_place_object_areas_source) _ _ _ _ |- _ =>
+        destruct
+          (exec_level_script_sset_effect_from_exec_stmt
+            e le before LS._t'6 level_cmd_place_object_areas_source
+            _ _ _ _ Hareas_set)
+          as (areas_value & Hareas_eval & Htrace_areas & Hle_areas
+              & Hmemory_areas & Hout_areas)
+    end.
+    assert (Hareas_value_eq :
+      areas_value = Vptr areas_block areas_offset).
+    { eapply eval_level_cmd_place_object_areas_source_value; eauto. }
+    subst areas_value.
+    match goal with
+    | Harea_set :
+        exec_stmt function_entry2 level_script_ge e ?mid_le ?mid_memory
+          (Sset LS._t'7 level_cmd_place_object_active_area_source)
+          _ _ _ _ |- _ =>
+        destruct
+          (exec_level_script_sset_effect_from_exec_stmt
+            e mid_le mid_memory LS._t'7
+            level_cmd_place_object_active_area_source _ _ _ _ Harea_set)
+          as (area_value & Harea_eval & Htrace_area & Hle_area
+              & Hmemory_area & Hout_area)
+    end.
+    assert (Harea_value_eq : area_value = Vint (Int.repr area)).
+    { rewrite Hmemory_areas in Harea_eval.
+      eapply eval_level_cmd_place_object_current_area_source_value; eauto. }
+    subst area_value.
+    split.
+    + rewrite Hle_area, Hle_areas.
+      rewrite PTree.gso by (vm_compute; discriminate).
+      rewrite PTree.gso by (vm_compute; discriminate).
+      exact Hspawn.
+    + split.
+      * rewrite Hle_area, Hle_areas.
+      rewrite PTree.gso by (vm_compute; discriminate).
+      rewrite PTree.gss; reflexivity.
+      * split.
+        -- rewrite Hle_area; rewrite PTree.gss; reflexivity.
+        -- split.
+           ++ rewrite Hmemory_area, Hmemory_areas; reflexivity.
+           ++ split.
+              ** rewrite Htrace_area, Htrace_areas; reflexivity.
+              ** exact Hout_area.
+  - match goal with
+    | Hareas_set :
+        exec_stmt function_entry2 level_script_ge e le before
+          (Sset LS._t'6 level_cmd_place_object_areas_source) _ _ _ _ |- _ =>
+        destruct
+          (exec_level_script_sset_effect_from_exec_stmt
+            e le before LS._t'6 level_cmd_place_object_areas_source
+            _ _ _ _ Hareas_set)
+          as (_ & _ & _ & _ & _ & Hout_areas);
+        subst
+    end.
+    contradiction.
+Qed.
+
+Lemma exec_level_cmd_place_object_behavior_arg_sets_preserve_spawninfo :
+  forall e le before after trace le' outcome spawn_block spawn_offset,
+    le ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
+    exec_stmt function_entry2 level_script_ge e le before
+      level_cmd_place_object_behavior_arg_sets trace le' after outcome ->
+    le' ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) /\
+    after = before /\ trace = E0 /\ outcome = Out_normal.
+Proof.
+  intros e le before after trace le' outcome spawn_block spawn_offset
+    Hspawn Hexec.
+  unfold level_cmd_place_object_behavior_arg_sets in Hexec.
+  eapply exec_level_script_two_ssets_keeps_unrelated_temp; eauto.
+  - vm_compute; discriminate.
+  - vm_compute; discriminate.
+Qed.
+
+Lemma exec_level_cmd_place_object_behavior_script_sets_preserve_spawninfo :
+  forall e le before after trace le' outcome spawn_block spawn_offset,
+    le ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
+    exec_stmt function_entry2 level_script_ge e le before
+      level_cmd_place_object_behavior_script_sets trace le' after outcome ->
+    le' ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) /\
+    after = before /\ trace = E0 /\ outcome = Out_normal.
+Proof.
+  intros e le before after trace le' outcome spawn_block spawn_offset
+    Hspawn Hexec.
+  unfold level_cmd_place_object_behavior_script_sets in Hexec.
+  eapply exec_level_script_two_ssets_keeps_unrelated_temp; eauto.
+  - vm_compute; discriminate.
+  - vm_compute; discriminate.
+Qed.
+
+Lemma exec_level_cmd_place_object_model_sets_preserve_spawninfo :
+  forall e le before after trace le' outcome spawn_block spawn_offset,
+    le ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
+    exec_stmt function_entry2 level_script_ge e le before
+      level_cmd_place_object_model_sets trace le' after outcome ->
+    le' ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) /\
+    after = before /\ trace = E0 /\ outcome = Out_normal.
+Proof.
+  intros e le before after trace le' outcome spawn_block spawn_offset
+    Hspawn Hexec.
+  unfold level_cmd_place_object_model_sets in Hexec.
+  eapply exec_level_script_two_ssets_keeps_unrelated_temp; eauto.
+  - vm_compute; discriminate.
+  - vm_compute; discriminate.
+Qed.
+
+Lemma exec_level_cmd_place_object_spawn_next_sets_preserve_spawninfo :
+  forall e le before after trace le' outcome spawn_block spawn_offset,
+    le ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
+    exec_stmt function_entry2 level_script_ge e le before
+      level_cmd_place_object_spawn_next_sets trace le' after outcome ->
+    le' ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) /\
+    after = before /\ trace = E0 /\ outcome = Out_normal.
+Proof.
+  intros e le before after trace le' outcome spawn_block spawn_offset
+    Hspawn Hexec.
+  unfold level_cmd_place_object_spawn_next_sets in Hexec.
+  eapply exec_level_script_three_ssets_keeps_unrelated_temp; eauto.
+  - vm_compute; discriminate.
+  - vm_compute; discriminate.
+  - vm_compute; discriminate.
 Qed.
 
 Lemma assign_loc_tptr_store :
@@ -2212,6 +2791,254 @@ Proof.
             e le before level_cmd_place_object_spawn_next_lhs
             level_cmd_place_object_spawn_next_rhs _ _ _ _ Hnext)
           as (_ & _ & _ & Hout_next);
+        subst
+    end.
+    contradiction.
+Qed.
+
+Theorem exec_level_cmd_place_object_post_active_area_assignments_preserves_active_area_read :
+  forall e le before after trace le' outcome
+      spawn_block spawn_offset area areas_block areas_offset area_raw,
+    le ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
+    spawn_block <> areas_block ->
+    Ptrofs.unsigned spawn_offset <=
+      Ptrofs.max_unsigned - spawn_info_next_offset ->
+    le ! LS._t'6 = Some (Vptr areas_block areas_offset) ->
+    le ! LS._t'7 = Some (Vint area_raw) ->
+    spawninfo_active_area_read before spawn_block spawn_offset area ->
+    exec_stmt function_entry2 level_script_ge e le before
+      level_cmd_place_object_post_active_area_assignments
+      trace le' after outcome ->
+    spawninfo_active_area_read after spawn_block spawn_offset area /\
+    trace = E0 /\ le' = le /\ outcome = Out_normal.
+Proof.
+  intros e le before after trace le' outcome
+    spawn_block spawn_offset area areas_block areas_offset area_raw
+    Hspawn Hdiff Hfits_next Hareas Harea_raw Hread Hexec.
+  assert (Hfits_model :
+    Ptrofs.unsigned spawn_offset <=
+      Ptrofs.max_unsigned - spawn_info_model_offset).
+  { unfold spawn_info_model_offset, spawn_info_next_offset in *.
+    lia. }
+  unfold level_cmd_place_object_post_active_area_assignments in Hexec.
+  inv Hexec.
+  - match goal with
+    | Hintervening :
+        exec_stmt function_entry2 level_script_ge e le before
+          level_cmd_place_object_intervening_spawninfo_assignments
+          _ _ _ _ |- _ =>
+        destruct
+          (exec_level_cmd_place_object_intervening_spawninfo_assignments_preserves_active_area_read
+            e le before _ _ _ _ spawn_block spawn_offset area
+            Hspawn Hfits_model Hread Hintervening)
+          as (Hread_after_intervening & Htrace_intervening
+              & Hle_intervening & Hout_intervening);
+        subst
+    end.
+    match goal with
+    | Hlinks :
+        exec_stmt function_entry2 level_script_ge e le ?after_intervening
+          level_cmd_place_object_list_link_assignments _ _ _ _ |- _ =>
+        destruct
+          (exec_level_cmd_place_object_list_link_assignments_preserves_active_area_read
+            e le after_intervening after _ _ _
+            spawn_block spawn_offset area areas_block areas_offset area_raw
+            Hspawn Hdiff Hfits_next Hareas Harea_raw
+            Hread_after_intervening Hlinks)
+          as (Hread_after & Htrace_links & Hle_links & Hout_links);
+        subst
+    end.
+    split; [exact Hread_after |].
+    repeat split; simpl; reflexivity.
+  - match goal with
+    | Hintervening :
+        exec_stmt function_entry2 level_script_ge e le before
+          level_cmd_place_object_intervening_spawninfo_assignments
+          _ _ _ _ |- _ =>
+        destruct
+          (exec_level_cmd_place_object_intervening_spawninfo_assignments_preserves_active_area_read
+            e le before _ _ _ _ spawn_block spawn_offset area
+            Hspawn Hfits_model Hread Hintervening)
+          as (_ & _ & _ & Hout_intervening);
+        subst
+    end.
+    contradiction.
+Qed.
+
+(* This is the concrete generated list-link suffix, including its three
+   pre-next Ssets and the final gAreas/sCurrAreaIndex Ssets.  The two direct
+   global reads are framed across spawnInfo->next before they are used to
+   populate _t'6 and _t'7. *)
+Theorem exec_level_cmd_place_object_generated_list_link_tail_preserves_active_area_read :
+  forall e le before after trace le' outcome
+      spawn_block spawn_offset area areas_block areas_offset,
+    le ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
+    spawn_block <> areas_block ->
+    Ptrofs.unsigned spawn_offset <=
+      Ptrofs.max_unsigned - spawn_info_next_offset ->
+    (forall area_global_block,
+      Genv.find_symbol level_script_ge LS._sCurrAreaIndex =
+        Some area_global_block ->
+      area_global_block <> spawn_block) ->
+    (forall areas_global_block,
+      Genv.find_symbol level_script_ge LS._gAreas = Some areas_global_block ->
+      areas_global_block <> spawn_block) ->
+    level_cmd_place_object_current_area_read e before area ->
+    level_cmd_place_object_areas_read e before areas_block areas_offset ->
+    spawninfo_active_area_read before spawn_block spawn_offset area ->
+    exec_stmt function_entry2 level_script_ge e le before
+      level_cmd_place_object_generated_list_link_tail
+      trace le' after outcome ->
+    spawninfo_active_area_read after spawn_block spawn_offset area /\
+    le' ! LS._t'6 = Some (Vptr areas_block areas_offset) /\
+    le' ! LS._t'7 = Some (Vint (Int.repr area)) /\
+    trace = E0 /\ outcome = Out_normal.
+Proof.
+  intros e le before after trace le' outcome
+    spawn_block spawn_offset area areas_block areas_offset
+    Hspawn Hdiff Hfits_next Harea_separated Hareas_separated
+    Harea Hareas Hread Hexec.
+  unfold level_cmd_place_object_generated_list_link_tail in Hexec.
+  inv Hexec.
+  - match goal with
+    | Hsets :
+        exec_stmt function_entry2 level_script_ge e le before
+          level_cmd_place_object_spawn_next_sets _ _ _ _ |- _ =>
+        destruct
+          (exec_level_cmd_place_object_spawn_next_sets_preserve_spawninfo
+            e le before _ _ _ _ spawn_block spawn_offset Hspawn Hsets)
+          as (Hspawn_after_sets & Hmemory_sets & Htrace_sets & Hout_sets)
+    end.
+    assert (Harea_after_sets :
+      level_cmd_place_object_current_area_read e m1 area).
+    { rewrite Hmemory_sets; exact Harea. }
+    assert (Hareas_after_sets :
+      level_cmd_place_object_areas_read e m1 areas_block areas_offset).
+    { rewrite Hmemory_sets; exact Hareas. }
+    assert (Hread_after_sets :
+      spawninfo_active_area_read m1 spawn_block spawn_offset area).
+    { rewrite Hmemory_sets; exact Hread. }
+    match goal with
+    | Htail :
+        exec_stmt function_entry2 level_script_ge e ?next_le ?next_memory
+          (Ssequence level_cmd_place_object_spawn_next_assign
+            (Ssequence level_cmd_place_object_area_list_sets
+              level_cmd_place_object_area_spawninfos_assign))
+          _ _ _ _ |- _ =>
+        inv Htail
+    end.
+    + match goal with
+      | Hnext :
+          exec_stmt function_entry2 level_script_ge e ?next_le ?next_memory
+            level_cmd_place_object_spawn_next_assign _ _ _ _ |- _ =>
+          destruct
+            (exec_level_script_sassign_effect_from_exec_stmt
+              e next_le next_memory
+              level_cmd_place_object_spawn_next_lhs
+              level_cmd_place_object_spawn_next_rhs _ _ _ _ Hnext)
+            as (Hnext_effect & Htrace_next & Hle_next & Hout_next)
+      end.
+      assert (Hspawn_next :
+        le1 ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset)).
+      { exact Hspawn_after_sets. }
+      destruct
+        (level_cmd_place_object_spawn_next_sassign_effect_store
+          e le1 _ _ spawn_block spawn_offset
+          Hspawn_next Hnext_effect)
+        as (next_value & Hnext_store).
+      assert (Hread_after_next :
+        spawninfo_active_area_read m0 spawn_block spawn_offset area).
+      { eapply
+          level_cmd_place_object_spawn_next_store_preserves_active_area_read_from_no_wrap;
+          eauto. }
+      destruct
+        (level_cmd_place_object_global_reads_preserved_by_spawn_block_store
+          e before m0 area areas_block areas_offset
+          _ spawn_block _ next_value Harea_separated Hareas_separated
+          Hnext_store Harea_after_sets Hareas_after_sets)
+        as (Harea_after_next & Hareas_after_next).
+      match goal with
+      | Harea_tail :
+          exec_stmt function_entry2 level_script_ge e ?area_le ?area_memory
+            (Ssequence level_cmd_place_object_area_list_sets
+              level_cmd_place_object_area_spawninfos_assign)
+            _ _ _ _ |- _ =>
+          inv Harea_tail
+      end.
+      * match goal with
+        | Harea_sets :
+            exec_stmt function_entry2 level_script_ge e le1 m0
+              level_cmd_place_object_area_list_sets _ _ _ _ |- _ =>
+            assert (Hspawn_after_next :
+              le1 ! LS._spawnInfo =
+                Some (Vptr spawn_block spawn_offset))
+              by exact Hspawn_next;
+            destruct
+              (exec_level_cmd_place_object_area_list_sets_produce_area_temps
+                e le1 m0 _ _ _ _
+                spawn_block spawn_offset areas_block areas_offset area
+                Hspawn_after_next Hareas_after_next Harea_after_next Harea_sets)
+              as (Hspawn_after_area_sets & Ht6 & Ht7
+                  & Hmemory_area_sets & Htrace_area_sets & Hout_area_sets)
+        end.
+        try clear Hnext; try clear Harea_sets.
+        assert (Hread_before_area_assign :
+          spawninfo_active_area_read m1 spawn_block spawn_offset area)
+          by (rewrite Hmemory_area_sets; exact Hread_after_next).
+        destruct
+          (exec_level_cmd_place_object_area_spawninfos_assign_preserves_active_area_read
+            e le3 m1 after _ le' outcome
+            spawn_block spawn_offset area areas_block areas_offset
+            (Int.repr area)
+            Hdiff Ht6 Ht7 Hread_before_area_assign H12)
+          as (Hread_after & Htrace_area_assign & Hle_area_assign
+              & Hout_area_assign).
+        split; [exact Hread_after |].
+        split.
+        -- rewrite Hle_area_assign; exact Ht6.
+        -- split.
+           ++ rewrite Hle_area_assign; exact Ht7.
+           ++ split.
+              ** rewrite Htrace_area_assign, Htrace_area_sets; reflexivity.
+              ** exact Hout_area_assign.
+      * match goal with
+        | Harea_sets :
+            exec_stmt function_entry2 level_script_ge e le1 m0
+              level_cmd_place_object_area_list_sets _ _ _ _ |- _ =>
+            assert (Hspawn_after_next :
+              le1 ! LS._spawnInfo =
+                Some (Vptr spawn_block spawn_offset))
+              by exact Hspawn_next;
+            destruct
+              (exec_level_cmd_place_object_area_list_sets_produce_area_temps
+                e le1 m0 _ _ _ _
+                spawn_block spawn_offset areas_block areas_offset area
+                Hspawn_after_next Hareas_after_next Harea_after_next Harea_sets)
+              as (_ & _ & _ & _ & _ & Hout_area_sets);
+            subst
+        end.
+        contradiction.
+    + match goal with
+      | Hnext :
+          exec_stmt function_entry2 level_script_ge e ?next_le ?next_memory
+            level_cmd_place_object_spawn_next_assign _ _ _ _ |- _ =>
+          destruct
+            (exec_level_script_sassign_effect_from_exec_stmt
+              e next_le next_memory
+              level_cmd_place_object_spawn_next_lhs
+              level_cmd_place_object_spawn_next_rhs _ _ _ _ Hnext)
+            as (_ & _ & _ & Hout_next);
+          subst
+      end.
+      contradiction.
+  - match goal with
+    | Hsets :
+        exec_stmt function_entry2 level_script_ge e le before
+          level_cmd_place_object_spawn_next_sets _ _ _ _ |- _ =>
+        destruct
+          (exec_level_cmd_place_object_spawn_next_sets_preserve_spawninfo
+            e le before _ _ _ _ spawn_block spawn_offset Hspawn Hsets)
+          as (_ & _ & _ & Hout_sets);
         subst
     end.
     contradiction.
