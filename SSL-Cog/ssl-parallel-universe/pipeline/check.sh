@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SM64="${SM64_SOURCE:-../../../reference-sm64-decomp}"
+PYTHONDONTWRITEBYTECODE=1 python3 pipeline/check_grindel_route.py "$SM64"
+
 make proofs
 
 if grep -RInE '\b(Admitted|Axiom|admit|sorry)\b' proofs; then
@@ -18,3 +21,6 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   SSLPU.Proofs.BLJGeometry \
   ssl_area2_lower_entry_geometry_input_status
+bash pipeline/assumptions.sh \
+  SSLPU.Proofs.BLJDynamic \
+  ssl_area2_grindel_dynamic_counterexample_certificate

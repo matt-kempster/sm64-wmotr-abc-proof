@@ -1,70 +1,61 @@
 # Goal recovery note
 
-This file backs up the active objective for the SSL Parallel Universe proof.
-If app-level goal state is lost, recreate it from this note rather than relying
-on memory.
+This file is the durable recovery copy of the SSL Parallel Universe objective.
 
-## Active objective
+## Objective
 
-Build a formal Rocq/Coq + CompCert `clightgen` proof, following the structure
-of `SSL-Cog/ssl-pyramid-item-proof`, for SSL area 2 parallel-universe impossibility:
+Build a formal Rocq/Coq + CompCert `clightgen` project, following the structure
+of `SSL-Cog/ssl-pyramid-item-proof`, that either proves Mario cannot enter a
+parallel universe in SSL Area 2 or supplies a concrete counterexample.
 
-- prove that Mario cannot enter a parallel universe in normal SSL area 2 play
-  under the mechanized bounds and transition model; or
-- if that claim is false, provide a concrete counterexample.
+## Result
 
-## Working proof route
+The project found a counterexample in its source-shaped execution model.
+The capstone is:
 
 ```text
-source C model
-  -> CompCert clightgen-generated Clight AST
-  -> generated-program shape facts
-  -> arithmetic invariant over SSL area 2 positions
-  -> no-PU capstone theorem
+SSLPU.Proofs.BLJDynamic.
+  ssl_area2_grindel_dynamic_counterexample_certificate
 ```
 
-The first source model is `inputs/pu_model.c`. It models only the bounded
-normal SSL area 2 transition certificate, not the full SM64 movement engine.
-The current capstone theorem is
-`SSLPU.Proofs.ParallelUniverse.ssl_area2_no_parallel_universe`.
+It uses the Area 2 vertical Grindel at `(3297, 0, 95)`. A bounded normal long
+jump reaches `-8.4` speed as the Grindel begins rising; nine immediate
+rising-floor recycles fit on its top, and the tenth releases Mario toward the
+positive X edge. The release establishes a floor-null landing anchor, repeated
+BLJs grow speed, and target 21 reaches X `522262`. Its signed-16 alias `-2026`
+lies in a concrete Area 2 floor triangle, so the final state satisfies the
+project's PU predicate.
 
-The active frontier is now the real movement-source boundary. The generated
-AST audit proves that `mario_step.c` and `platform_displacement.c` contain
-position-writing paths outside the bounded-step clamp, and
-`SSLPU.Proofs.MovementSourceFacts.bounded_certificate_does_not_cover_movement_sources`
-packages formal counterexamples for unbounded horizontal air velocity and
-platform displacement.
+## Proof route
 
-The air-velocity branch has been lowered to the generated-source BLJ envelope:
-`SSLPU.Proofs.BLJRoute.ssl_area2_blj_source_counterexample_envelope` proves
-that the US long-jump source admits negative-speed growth and that 22 repeated
-recycles can supply the velocity needed to reach the first PU threshold from
-the negative Area 2 edge. The remaining open obligation is geometry/input
-reachability for those recycles inside SSL Area 2.
+```text
+pinned US source and SSL collision literals
+  -> clightgen-generated CompCert Clight ASTs
+  -> generated-program shape facts
+  -> exact bootstrap and Grindel recycle recurrence
+  -> audited static-floor release and floor-null arcs
+  -> signed-16 Area 2 floor alias at a PU coordinate
+  -> dynamic counterexample capstone
+```
 
-The first geometry/input lowering is now
-`SSLPU.Proofs.BLJGeometry.ssl_area2_lower_entry_geometry_input_status`. It
-proves generated-source A/Z landing-gate facts and records the lower-entry
-Area 2 stair band as concrete in-bounds static treads. That certificate is
-formally too short: it has capacity 8, below the 22 BLJ recycles required by
-the current source-level envelope. This refutes the direct lower-entry
-static-stair route. The next frontier is dynamic repeated reuse of the same
-collision setup, another Area 2 setup with a higher starting speed or more
-certified recycles, or source-backed bounds ruling those out.
+The earlier conditional theorem
+`SSLPU.Proofs.ParallelUniverse.ssl_area2_no_parallel_universe` remains valid
+for the bounded/clamped transition model. It does not imply the unqualified
+gameplay claim because the dynamic Grindel route leaves that certificate.
 
-The selected dynamic candidate is the Area 2 vertical Grindel. The level
-placement and collision mesh provide a concrete in-bounds moving floor, and
-the canonical behavior's 10-unit rising frames can overtake the 7.5-unit first
-air quarter step. The immediate goal is to package the generated-source facts,
-the Grindel geometry/timing certificate, and a finite BLJ speed recurrence into
-a counterexample theorem.
+## Verification boundary
+
+The capstone combines generated Clight AST shape checks, exact rational
+arithmetic, and an independent source/mesh audit. It has no admitted proof
+holes or project-added axioms. A future strengthening may replace the rational
+trace bridge with a full CompCert operational-semantics proof of the float32
+execution, but that is not required to recover the current result.
 
 ## Repository workflow constraints
 
 - Work on branch `codex/ssl-pyramid-item-proof` in the proof repository.
-- Keep all new work inside `SSL-Cog/ssl-parallel-universe/` unless minimal build wiring
-  outside the folder is required.
-- Do not modify `SSL-Cog/ssl-pyramid-item-proof/` contents except to inspect and mirror
-  structure.
-- Commit after each logical change, and update docs in every commit.
+- Keep work inside `SSL-Cog/ssl-parallel-universe/` unless minimal external
+  build wiring is required.
+- Do not modify `SSL-Cog/ssl-pyramid-item-proof/` except to inspect its style.
+- Commit after each logical change and update all files in `docs/` each time.
 - Do not push without explicit user approval.

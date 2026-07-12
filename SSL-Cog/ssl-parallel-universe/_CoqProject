@@ -19,3 +19,4 @@ proofs/ParallelUniverse.v
 proofs/MovementSourceFacts.v
 proofs/BLJRoute.v
 proofs/BLJGeometry.v
+proofs/BLJDynamic.v

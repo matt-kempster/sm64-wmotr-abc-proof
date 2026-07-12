@@ -1,51 +1,34 @@
 # SSL Parallel Universe proof checklist
 
-Last updated: 2026-07-04
+Last updated: 2026-07-12
 
 Rule for Codex rounds: every commit that changes proof scope, proof code, or
 build behavior must update this file in the same commit.
 
 ## Current verdict
 
-The bounded-step impossibility theorem is not enough for the full Area 2
-claim, and an unconditional source-level horizontal-speed bound is false for
-the US source.
+The unqualified SSL Area 2 impossibility claim is false in the project's
+source-shaped execution model. `proofs/BLJDynamic.v` now proves
+`ssl_area2_grindel_dynamic_counterexample_certificate` for the vertical
+Grindel at `(3297, 0, 95)`.
 
-The generated real-source audit found movement-source paths that write Mario's
-position outside the bounded certificate: `perform_air_step` reaches
-`perform_air_quarter_step`, which assigns through `MarioState.pos`, and
-`apply_mario_platform_displacement` reaches `set_mario_pos`, which writes the
-same position field. A formal counterexample now shows that an unbounded
-horizontal velocity or platform displacement can move a bounded Area 2 state to
-the first PU threshold.
+The finite route starts a normal `11`-speed long jump during the Grindel's
+bottom wait. Sixteen generated-source air updates with full backward input
+leave magnitude `8.4`; the first 10-unit rise catches quarter step 3. Nine
+rising-floor BLJ recycles remain on the audited 448-unit top. The tenth long
+jump leaves the top, and its four accepted static-floor quarter steps truncate
+to X coordinates `3609`, `3726`, `3842`, and `3958`. The next target truncates
+to `4074`, beyond the Area 2 static mesh, so the floor-null path freezes X
+until landing.
 
-The next lowering found the source-level BLJ route envelope: the generated
-`mario.c` AST contains the US long-jump branch that multiplies `forwardVel` by
-`1.5f` and only caps positive speed at `48.0f`, and the generated
-`mario_actions_moving.c` AST shows `act_long_jump_land` recycles through
-`set_jumping_action` without directly resetting `forwardVel`. The formal model
-proves that 22 repeated BLJ recycles from a `-16` speed magnitude can supply
-the air-step velocity needed to cross from the negative Area 2 edge to the
-first PU threshold. The remaining geometric obligation is a collision/input
-certificate that SSL Area 2 supports those repeated recycles in-bounds.
+Twenty subsequent out-of-bounds recycle targets have signed-16 aliases outside
+the static mesh envelope. Target 21 reaches X `522262`, whose signed-16 alias
+is `-2026`; that point lies in a concrete Area 2 floor triangle. The resulting
+state is beyond the first PU threshold.
 
-The first geometry/input lowering is now checked in
-`proofs/BLJGeometry.v`. The generated-source input gate is present:
-`common_landing_cancels` checks `INPUT_A_PRESSED`, and
-`act_long_jump_land` checks `INPUT_Z_DOWN` before preserving the A press path.
-The audited lower-entry stair band provides concrete in-bounds static treads,
-but only eight narrow same-footprint treads from the collision mesh. The formal
-theorem `ssl_area2_lower_entry_geometry_input_status` proves that this static
-tread certificate does not discharge the 22-recycle source-level BLJ envelope.
-This refutes the direct lower-entry static-stair certificate, not every
-possible dynamic wall/ceiling/stair-reuse setup.
-
-The dynamic audit has identified a stronger Area 2 source candidate: the
-vertical Grindel placed by the level script at `(3297, 0, 95)`. Its canonical
-behavior raises the object by 10 units per frame for a parameter-controlled
-run, while a long jump advances 7.5 vertical units in its first quarter step.
-Generated Clight inputs now cover the Grindel behavior, airborne drag, and the
-terrain-object/platform update ordering needed to lower that candidate.
+The theorem combines generated Clight AST shape checks, exact rational
+arithmetic, and a source/mesh literal audit. It is not yet a full CompCert
+operational-semantics proof of every float32 instruction and collision call.
 
 ## Active next steps
 
@@ -70,23 +53,28 @@ terrain-object/platform update ordering needed to lower that candidate.
   candidate for repeated BLJ recycles.
 - [x] Refute the direct lower-entry static-stair certificate: it has only eight
   certified narrow treads, below the 22 recycles required by the BLJ envelope.
-- [ ] Prove a stronger dynamic collision certificate for repeated stair/wall
+- [x] Prove a stronger dynamic collision certificate for repeated stair/wall
   reuse, find another Area 2 setup with enough initial speed/recycles, or close
-  that route under source-backed bounds.
+  that route under source-backed bounds. The Area 2 vertical Grindel supplies
+  the dynamic counterexample certificate.
 - [x] Generate the additional real-source Clight needed for the dynamic
   Grindel candidate: airborne action updates, object/platform update ordering,
   and the canonical Grindel/Thwomp behavior.
+- [x] Prove the finite Grindel bootstrap, nine in-footprint recycles, release,
+  floor-null loops, and concrete PU-alias landing certificate.
+- [ ] Optional strengthening: connect the finite rational trace to a full
+  CompCert execution semantics proof for the generated float32 Clight.
 
 ## Build and hygiene
 
-- [ ] Keep generated Clight files unedited.
-- [ ] Keep work isolated to this folder unless top-level build wiring becomes
+- [x] Keep generated Clight files unedited.
+- [x] Keep work isolated to this folder unless top-level build wiring becomes
   necessary.
-- [ ] Run `make proofs` and `bash pipeline/check.sh` when Rocq/Coq and
+- [x] Run `make proofs` and `bash pipeline/check.sh` when Rocq/Coq and
   CompCert are available.
-- [ ] Keep `Print Assumptions` output free of project-added axioms or admitted
+- [x] Keep `Print Assumptions` output free of project-added axioms or admitted
   proof holes.
-- [ ] Do not push without explicit user approval.
+- [x] Do not push without explicit user approval.
 
 ## Done receipts
 
@@ -136,3 +124,8 @@ terrain-object/platform update ordering needed to lower that candidate.
   `thwomp.inc.c`; the build also generates `mario_actions_airborne.c` and
   `object_list_processor.c` so the next theorem can pin the rising-floor,
   drag, and update-order facts to generated ASTs.
+- 2026-07-12: Added the independent Grindel source/mesh audit and
+  `BLJDynamic.v`. The capstone
+  `ssl_area2_grindel_dynamic_counterexample_certificate` proves the finite
+  dynamic route described above and replaces the unqualified impossibility
+  target with a concrete counterexample in the current model.

@@ -3,144 +3,96 @@
 ## Game version
 
 - Super Mario 64, North American release (`VERSION_US=1`)
-- Reference decompilation source is the same source family used by
+- Reference decompilation source is from the same source family used by
   `SSL-Cog/ssl-pyramid-item-proof`
-- CompCert `clightgen` is the translation path for any C model committed here
+- CompCert `clightgen` is the translation path for committed C inputs
 
 ## Boundary being studied
 
-The target is SSL area 2, the Pyramid interior.
+The target is SSL Area 2, the Pyramid interior. The project uses the following
+conservative first-PU abstraction:
 
-For this project, "entering a parallel universe" means reaching a position
-whose horizontal coordinate is outside the modeled base world copy by a
-non-zero multiple of the SM64 signed-16-bit coordinate period. The first
-mechanized version will use a conservative integer abstraction:
-
-- base area bound: `-8192 <= x,z <= 8191`
+- modeled Area 2 bound: `-8192 <= x,z <= 8191`
 - signed coordinate period: `65536`
 - first PU threshold: `32768`
-- entering a PU requires `abs x >= 32768` or `abs z >= 32768`
+- a PU state has `abs x >= 32768` or `abs z >= 32768`
 
-The actual source-level motivation is `surface_collision.c`: floor, wall, and
-ceiling lookup cast float positions to `TerrainData`/`s16` before collision
-cell selection, which is the documented source of PU aliasing.
+The source-level mechanism is the float-position to signed-16 collision lookup
+conversion. Static floor and ceiling lookup therefore reuses Area 2 collision
+at signed-16 aliases of distant coordinates.
 
-## Candidate formal statement
+## Bounded theorem
 
-If Mario begins a normal SSL area 2 frame inside the modeled interior bound,
-and the generated step model applies only a bounded per-frame displacement
-whose result is clamped back to the area-2 interior, then the resulting state
-is not in a parallel universe.
+`proofs/ParallelUniverse.v` proves
+`ssl_area2_no_parallel_universe`: a modeled normal Area 2 step that clamps both
+horizontal coordinates back into the bounded interval cannot enter a PU. That
+conditional theorem remains valid, but it does not cover every real movement
+source.
 
-The first capstone will be conditional on a certificate that the frame is a
-normal SSL area 2 frame and that the bounded-area invariant holds. Later work
-can lower that certificate toward generated SM64 movement and collision code.
+Generated Clight audits then established that `perform_air_quarter_step` and
+platform displacement write Mario's position outside that clamp. The US
+long-jump branch multiplies `forwardVel` by `1.5f` without a negative hard cap,
+and the A+Z landing path permits repeated long-jump recycling.
 
-## Counterexample exit ramp
+## Dynamic counterexample
 
-The unqualified claim that every Area 2 movement source preserves the bound is
-now false at this abstraction level. The generated movement-source audit found
-real Clight paths that write Mario's position without the bounded-step clamp:
+The unqualified impossibility claim is false in the current source-shaped
+model. `proofs/BLJDynamic.v` proves
+`ssl_area2_grindel_dynamic_counterexample_certificate` using the vertical
+Grindel placed at `(3297, 0, 95)` with behavior parameter 28.
 
-- `perform_air_step` calls `perform_air_quarter_step`, and the quarter-step
-  body assigns through `MarioState.pos`.
-- `apply_mario_platform_displacement` calls `apply_platform_displacement`,
-  which calls `set_mario_pos`, and `set_mario_pos` assigns through
-  `MarioState.pos`.
+The certificate fixes this finite trace:
 
-`proofs/MovementSourceFacts.v` formalizes two counterexample-shaped source
-models:
+1. Mario begins on the Grindel at its bottom with forward speed `11`, facing
+   along the X route, and starts a normal long jump during the bottom idle
+   window.
+2. Sixteen full-back air updates apply the source order `.35` approach,
+   `1.5` analog acceleration, then the `-16` soft-cap correction. Speed becomes
+   `-8.4`.
+3. The first 10-unit Grindel rise overtakes the long jump's third quarter step:
+   quarter step 2 remains above the floor, while quarter step 3 is below it.
+4. Nine immediate A+Z recycles remain inside the Grindel top footprint. The
+   tenth long jump crosses the top edge.
+5. Its first frame reaches static-floor X coordinates `3609`, `3726`, `3842`,
+   and `3958`. The next quarter-step target truncates to `4074`, beyond the
+   audited static mesh maximum `3994`, so the floor-null path keeps X fixed
+   while Mario completes the arc.
+6. The release lands with negative speed magnitude above `400`. Each later
+   floor-null long-jump arc has 16 air updates, so its landing recurrence is
+   `m' = 3/2*m - 16*(17/20)`.
+7. The first 20 target aliases lie outside the static mesh X envelope. Target
+   21 reaches X `522262`, aliases to `-2026`, and finds the audited Area 2
+   floor triangle with vertices `(-2546,-101,-25)`, `(-1522,-101,230)`, and
+   `(-1522,-101,-25)`.
 
-- starting at `x = 8191`, a horizontal air velocity whose quarter-step delta is
-  `32768 - 8191` lands at the first PU threshold;
-- starting at `x = 8191`, a platform displacement of `32768 - 8191` lands at
-  the first PU threshold.
+The final modeled state is in SSL Area 2 and beyond the first PU threshold.
 
-These are counterexamples to the bounded certificate as a complete account of
-Area 2 movement. They are not yet a full in-game route: the remaining question
-is whether SSL Area 2 can reach the required velocity or platform displacement
-state from normal gameplay/glitch actions.
+## Source certificate
 
-The next source-level lowering targets the air-velocity side through BLJ. In
-the generated `mario.c` AST, the `ACT_LONG_JUMP` branch of
-`set_mario_action_airborne` assigns through `forwardVel`, contains the `1.5f`
-multiplier, and contains the `48.0f` positive-speed cap. That is exactly the
-US-source asymmetry needed for negative BLJ speed growth. In the generated
-`mario_actions_moving.c` AST, `act_long_jump_land` calls
-`common_landing_cancels`, passes the `set_jumping_action` callback and
-`sLongJumpLandAction`, and does not directly assign `forwardVel`.
+The capstone packages generated AST checks for:
 
-`proofs/BLJRoute.v` formalizes the finite lowering envelope. It models repeated
-negative BLJ speed growth by exact dyadic magnitudes: each recycle multiplies
-speed magnitude by `3/2`. Starting from a `-16` speed magnitude, 22 recycles
-exceed the `98304` horizontal velocity needed for one air step from
-`x = -8192` to reach `x = -32768`. This refutes a source-level claim that all
-reachable Mario horizontal velocities are uniformly bounded by the normal
-movement constants. It still leaves a narrower route obligation: prove that
-SSL Area 2 geometry and inputs can realize the 22 recycles while Mario remains
-within the Area 2 setup bounds.
+- the Grindel bottom timing and 10-unit rising behavior;
+- terrain-object update before platform displacement and Mario action update;
+- the platform-displacement omission of vertical velocity;
+- the action executor's subframe transition loop;
+- long-jump vertical speed `30` and horizontal multiplier `1.5`;
+- airborne approach, analog acceleration, soft-cap constants, and velocity
+  assignment;
+- four air quarter steps, floor lookup, landing return, position/floor writes,
+  and post-step gravity.
 
-`proofs/BLJGeometry.v` now checks the first geometry/input lowering. The
-generated `mario_actions_moving.c` AST contains the landing input gate:
-`common_landing_cancels` checks `INPUT_A_PRESSED`, and `act_long_jump_land`
-checks `INPUT_Z_DOWN` before preserving the A-press recycle path. The SSL Area
-2 collision audit records the lower-entry stair band as concrete in-bounds
-static treads. That candidate is too small: the source-backed narrow tread
-certificate has capacity 8, while `BLJRoute.v` requires 22 recycles from the
-modeled `-16` starting magnitude. The theorem
-`ssl_area2_lower_entry_geometry_input_status` proves this mismatch. So the
-direct lower-entry static-stair counterexample is refuted; a full positive
-route would need a stronger dynamic collision certificate, a reusable
-wall/ceiling/stair setup, or a source-backed way to start with much more
-negative speed.
+`pipeline/check_grindel_route.py` independently checks the level placement,
+canonical source literals, exact Grindel top triangles, Area 2 mesh envelope,
+four release-floor points, first floor-null point, and final alias triangle.
 
-The next candidate is now source-identified rather than hypothetical. SSL Area
-2 places a vertical Grindel at `(3297, 0, 95)` with behavior parameter 28. The
-canonical Grindel behavior has a long rising phase in 10-unit increments. This
-is larger than the 7.5-unit first quarter-step rise of a long jump, so it can
-provide the repeated rising-floor interruption used by an elevator BLJ. The
-additional generated Clight units needed to formalize that dynamic certificate
-are now part of the project; the certificate itself remains the active proof
-obligation.
+## Formal boundary
 
-## Current status
+This is a generated-Clight source-shape certificate composed with an exact
+rational execution model and audited collision literals. It is stronger than
+an unbounded source-state witness: its initial speed, timing, moving floor,
+recycles, release, floor-null arcs, and final alias are finite and concrete.
 
-The isolated project scaffold exists. `inputs/pu_model.c` contains the first C
-model for bounded SSL area 2 movement and PU detection, and
-`generated/pu_model.v` is the corresponding committed CompCert Clight AST.
-
-`proofs/ASTFacts.v` pins generated-program shape facts: the capstone wrapper
-calls the normal step and then the PU detector; the normal step calls the delta
-and coordinate clamps; and it writes `x` and `z` without assigning `area`.
-
-`proofs/Spec.v` proves the arithmetic invariant: any coordinate inside
-`[-8192, 8191]` has absolute value below `32768`, and the modeled normal
-area-2 step clamps both horizontal coordinates back into that interval.
-
-`proofs/ParallelUniverse.v` states the current capstone theorem
-`ssl_area2_no_parallel_universe`. This is a generated-model theorem over the
-bounded SSL area 2 transition certificate, not yet a full semantic lowering of
-the real SM64 movement engine.
-
-The next audit layer targets the actual SM64 movement-source translation units:
-`src/game/mario_step.c` and `src/game/platform_displacement.c`.
-
-`proofs/MovementSourceFacts.v` is the first result of that audit. It checks the
-generated Clight AST shape for those translation units and proves
-`bounded_certificate_does_not_cover_movement_sources`, which packages the
-source-shape facts with the two arithmetic counterexamples above.
-
-`proofs/BLJRoute.v` is the second result. It proves
-`ssl_area2_blj_source_counterexample_envelope`, a source-level counterexample
-envelope for the air-velocity path.
-
-`proofs/BLJGeometry.v` is the third result. It proves
-`ssl_area2_lower_entry_geometry_input_status`: the generated input/action gate
-for BLJ recycling exists, the audited lower-entry static treads are inside the
-modeled Area 2 bounds, and that finite static-tread certificate cannot provide
-the 22 recycles needed by the BLJ envelope.
-
-The remaining route question is narrower than before: mechanize a dynamic
-repeated-reuse collision certificate, identify another Area 2 setup with enough
-initial negative speed or enough certified recycles, or prove source-backed
-bounds excluding those stronger setups.
+It is not yet a full CompCert operational-semantics derivation of the complete
+float32 gameplay execution. Such a lowering is optional follow-up work; the
+current project verdict is the concrete dynamic counterexample, not the
+original unqualified impossibility claim.

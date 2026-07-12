@@ -60,6 +60,17 @@ def triangle_normal(
     return nx / norm, ny / norm, nz / norm
 
 
+def point_in_triangle_xz(point: tuple[int, int], triangle: Triangle) -> bool:
+    """Match find_floor_from_list's three projected edge tests."""
+    x, z = point
+    projected = [(vertex[0], vertex[2]) for vertex in triangle.points]
+    for index, (x1, z1) in enumerate(projected):
+        x2, z2 = projected[(index + 1) % 3]
+        if (z1 - z) * (x2 - x1) - (x1 - x) * (z2 - z1) < 0:
+            return False
+    return True
+
+
 def parse_collision(path: Path) -> tuple[list[tuple[int, int, int]], list[Triangle]]:
     vertices: list[tuple[int, int, int]] = []
     triangles: list[Triangle] = []
