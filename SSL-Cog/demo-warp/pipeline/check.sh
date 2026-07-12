@@ -75,3 +75,6 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   DemoWarp.Proofs.RumbleEnabledSurface \
   enabled_rumble_pointer_capability_certificate
+bash pipeline/assumptions.sh \
+  DemoWarp.Proofs.RunBodyLift \
+  generated_run_demo_inputs_body_path_lift

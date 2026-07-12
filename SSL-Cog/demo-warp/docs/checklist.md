@@ -83,6 +83,8 @@
       frames and connect normal external locality to it.
     - [x] Prove both authorized pairs preserve the full three-block invariant;
       playback consumes its path-specific non-null pointer fact.
+    - [x] Lift the generated playback body's outer `!= NULL` guard through
+      `exec_stmt`, refining safe-or-null state before the active branch.
   - [x] Generate the libultra controller ingestion and SI DMA implementation
     that resolves `osContGetReadData`/`osContStartReadData` below the game loop.
   - [x] Certify the controller parser's exact five-store surface and the
