@@ -252,6 +252,16 @@ and the `VERSION_SH` feature bit used to make `config.h` select
 and exists solely to audit how enabling the feature changes the capability
 surface.
 
+`enabled_rumble_pointer_capability_certificate` gives the result. Enabling
+rumble adds exactly four users: `queue_rumble_data`, `reset_rumble_timers`,
+`reset_rumble_timers_2`, and `func_sh_8024CA04`. Each loads
+`gCurrDemoInput` into one temporary and uses it only in `!= NULL` to return
+early during demo playback. Across the enabled translation unit there are
+zero assignments to the pointer, zero address-of escapes of its cell, and zero
+recognized authorized update pairs. Thus rumble does not add a direct or
+capability-mediated way to change `gCurrDemoInput`; it expands the read-only
+callgraph surface that the ordinary-store frame proof must cover.
+
 ## Conditional impossibility result
 
 `separated_demo_pointer_cannot_change_mario_y` combines the generated direct-

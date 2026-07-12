@@ -41,6 +41,9 @@
     the existing init/title/level/memory units).
   - [x] Generate a counterfactual N64 `ENABLE_RUMBLE=1` Clight variant of
     `rumble_init.c` for a separate capability audit.
+  - [x] Certify that rumble-enabled code adds exactly four null-test-only
+    readers, zero assignments, zero address escapes, and zero authorized
+    update pairs for `gCurrDemoInput`.
   - [x] Certify all generated occurrence shapes and absence of pointer-cell
     address escape.
   - [ ] Lift the occurrence certificate through concrete Clight executions and
