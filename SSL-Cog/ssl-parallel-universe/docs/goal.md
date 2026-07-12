@@ -52,6 +52,13 @@ static-stair route. The next frontier is dynamic repeated reuse of the same
 collision setup, another Area 2 setup with a higher starting speed or more
 certified recycles, or source-backed bounds ruling those out.
 
+The selected dynamic candidate is the Area 2 vertical Grindel. The level
+placement and collision mesh provide a concrete in-bounds moving floor, and
+the canonical behavior's 10-unit rising frames can overtake the 7.5-unit first
+air quarter step. The immediate goal is to package the generated-source facts,
+the Grindel geometry/timing certificate, and a finite BLJ speed recurrence into
+a counterexample theorem.
+
 ## Repository workflow constraints
 
 - Work on branch `codex/ssl-pyramid-item-proof` in the proof repository.

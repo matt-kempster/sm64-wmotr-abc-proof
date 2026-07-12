@@ -8,6 +8,9 @@ generated/mario_step.v
 generated/platform_displacement.v
 generated/mario.v
 generated/mario_actions_moving.v
+generated/mario_actions_airborne.v
+generated/object_list_processor.v
+generated/grindel_behavior.v
 
 # Hand-written proof files will be listed here as the proof develops.
 proofs/ASTFacts.v

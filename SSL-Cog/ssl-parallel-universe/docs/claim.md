@@ -94,6 +94,15 @@ route would need a stronger dynamic collision certificate, a reusable
 wall/ceiling/stair setup, or a source-backed way to start with much more
 negative speed.
 
+The next candidate is now source-identified rather than hypothetical. SSL Area
+2 places a vertical Grindel at `(3297, 0, 95)` with behavior parameter 28. The
+canonical Grindel behavior has a long rising phase in 10-unit increments. This
+is larger than the 7.5-unit first quarter-step rise of a long jump, so it can
+provide the repeated rising-floor interruption used by an elevator BLJ. The
+additional generated Clight units needed to formalize that dynamic certificate
+are now part of the project; the certificate itself remains the active proof
+obligation.
+
 ## Current status
 
 The isolated project scaffold exists. `inputs/pu_model.c` contains the first C

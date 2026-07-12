@@ -39,7 +39,10 @@ GENERATED := \
   generated/mario_step.v \
   generated/platform_displacement.v \
   generated/mario.v \
-  generated/mario_actions_moving.v
+  generated/mario_actions_moving.v \
+  generated/mario_actions_airborne.v \
+  generated/object_list_processor.v \
+  generated/grindel_behavior.v
 
 .PHONY: all generated proofs regen clean check
 
@@ -60,6 +63,15 @@ generated/mario.v: $(SM64)/src/game/mario.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(SM64_CG)
 
 generated/mario_actions_moving.v: $(SM64)/src/game/mario_actions_moving.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/mario_actions_airborne.v: $(SM64)/src/game/mario_actions_airborne.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/object_list_processor.v: $(SM64)/src/game/object_list_processor.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/grindel_behavior.v: inputs/grindel_behavior.c $(SM64)/src/game/behaviors/thwomp.inc.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(SM64_CG)
 
 $(COQMAKEFILE): _CoqProject

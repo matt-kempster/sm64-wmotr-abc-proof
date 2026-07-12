@@ -40,6 +40,13 @@ tread certificate does not discharge the 22-recycle source-level BLJ envelope.
 This refutes the direct lower-entry static-stair certificate, not every
 possible dynamic wall/ceiling/stair-reuse setup.
 
+The dynamic audit has identified a stronger Area 2 source candidate: the
+vertical Grindel placed by the level script at `(3297, 0, 95)`. Its canonical
+behavior raises the object by 10 units per frame for a parameter-controlled
+run, while a long jump advances 7.5 vertical units in its first quarter step.
+Generated Clight inputs now cover the Grindel behavior, airborne drag, and the
+terrain-object/platform update ordering needed to lower that candidate.
+
 ## Active next steps
 
 - [x] Create the isolated `SSL-Cog/ssl-parallel-universe/` project scaffold.
@@ -66,6 +73,9 @@ possible dynamic wall/ceiling/stair-reuse setup.
 - [ ] Prove a stronger dynamic collision certificate for repeated stair/wall
   reuse, find another Area 2 setup with enough initial speed/recycles, or close
   that route under source-backed bounds.
+- [x] Generate the additional real-source Clight needed for the dynamic
+  Grindel candidate: airborne action updates, object/platform update ordering,
+  and the canonical Grindel/Thwomp behavior.
 
 ## Build and hygiene
 
@@ -121,3 +131,8 @@ possible dynamic wall/ceiling/stair-reuse setup.
   input-gate facts with the lower-entry stair-band mesh audit and proves that
   this direct static-tread certificate is too short for the 22-cycle BLJ
   envelope.
+- 2026-07-12: Added Clight generation inputs for the dynamic Area 2 Grindel
+  route. `inputs/grindel_behavior.c` is a translation shim over the canonical
+  `thwomp.inc.c`; the build also generates `mario_actions_airborne.c` and
+  `object_list_processor.c` so the next theorem can pin the rising-floor,
+  drag, and update-order facts to generated ASTs.
