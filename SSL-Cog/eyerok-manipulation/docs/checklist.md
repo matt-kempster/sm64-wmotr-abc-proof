@@ -1,11 +1,12 @@
 # Eyerok manipulation proof checklist
 
-Last updated: 2026-07-12 (project scaffold).
+Last updated: 2026-07-12 (pinned source-ingestion commit).
 
 ## Verdict
 
-Open. Project structure and the exact proof boundary are established; source
-ingestion and formal proof work remain.
+Open. Pinned source ingestion and collision/source auditing are reproducible.
+The gravity-zero runaway seed is isolated; its unreachability and the global
+height bound remain to be machine-checked.
 
 ## Completed
 
@@ -19,12 +20,17 @@ ingestion and formal proof work remain.
 
 ## Source and generation
 
-- [ ] Audit relevant files at the canonical revision and compare the available
+- [x] Audit relevant files at the canonical revision and compare the available
   checkout byte-for-byte where it is used for generation.
-- [ ] Audit both paired instant warps and their special collision triangles.
+- [x] Audit both paired instant warps and their special collision triangles.
 - [ ] Add an executable vertical model and generate its Clight AST.
-- [ ] Generate the authentic `obj_behaviors_2.c` Clight AST containing Eyerok.
-- [ ] Generate or otherwise pin the authentic object-motion helper semantics.
+- [x] Generate the authentic `obj_behaviors_2.c` Clight AST containing Eyerok.
+- [x] Generate the authentic object-motion helper after documented CompCert
+  long-double literal compatibility edits.
+- [x] Generate behavior dispatch, object-list order, spawn insertion,
+  `find_floor`, and SSL-script Clight surfaces.
+- [x] Audit the gravity-zero setup corridor against static and sibling dynamic
+  collision geometry.
 
 ## Formal proof
 
@@ -48,3 +54,5 @@ ingestion and formal proof work remain.
 
 - Scaffold: standard project layout, proof boundary, state-machine overview,
   and SSL-Cog registration.
+- Source ingestion: exact pinned top-level C extraction, authentic Clight ASTs,
+  source/collision audit, and explicit gravity-zero counterexample tripwire.

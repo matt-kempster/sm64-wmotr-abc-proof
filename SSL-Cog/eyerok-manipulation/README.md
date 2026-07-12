@@ -29,9 +29,17 @@ Generated Clight files are never hand-edited.
 
 ## Current status
 
-The project structure and proof boundary are in place. Source ingestion,
-Clight generation, and the machine-checked boundedness theorem are the next
-commits; no gameplay conclusion is claimed by this scaffold.
+The pinned source-ingestion pipeline now generates Clight for the authentic
+Eyerok translation unit, object motion, behavior dispatch, object-list order,
+spawn/list insertion, floor queries, and the SSL script. A deterministic audit
+checks the source pin, vertical writer census, paired instant warps, collision
+bounds, and the geometry needed to exclude a gravity-zero ground launch.
+
+The audit exposes one critical counterexample tripwire: the local C state
+`DOUBLE_POUND + grounded + gravity=0` would launch at velocity 100 without
+ever installing negative gravity. The source schedule appears to make that
+state unreachable; the next proof commits must establish that invariant and
+must not assume it silently. No boundedness conclusion is claimed yet.
 
 ## Build
 

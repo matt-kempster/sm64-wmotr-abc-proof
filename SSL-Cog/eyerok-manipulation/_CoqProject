@@ -2,3 +2,11 @@
 
 -R generated SSLEyerok.Generated
 -R proofs SSLEyerok.Proofs
+
+generated/obj_behaviors_2.v
+generated/object_helpers.v
+generated/behavior_script.v
+generated/object_list_processor.v
+generated/spawn_object.v
+generated/surface_collision.v
+generated/ssl_script.v
