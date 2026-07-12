@@ -38,9 +38,10 @@ GENERATED := \
   generated/interaction.v \
   generated/mario_actions_airborne.v \
   generated/mario_step.v \
-  generated/object_list_processor.v
+  generated/object_list_processor.v \
+  generated/pole_transfer_audit.txt
 
-.PHONY: all generated proofs regen clean
+.PHONY: all generated proofs audit regen clean
 
 all: generated proofs
 
@@ -72,6 +73,12 @@ generated/mario_step.v: $(SM64)/src/game/mario_step.c pipeline/clightgen.sh
 
 generated/object_list_processor.v: $(SM64)/src/game/object_list_processor.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/pole_transfer_audit.txt: pipeline/audit_pole_transfer.py
+	PYTHONDONTWRITEBYTECODE=1 python3 pipeline/audit_pole_transfer.py $(SM64) > $@
+
+audit: generated/pole_transfer_audit.txt
+	@cat generated/pole_transfer_audit.txt
 
 $(COQMAKEFILE): _CoqProject
 	coq_makefile -f _CoqProject -o $@

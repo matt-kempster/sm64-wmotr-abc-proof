@@ -1,13 +1,14 @@
 # SSL Pyramid pole-bypass checklist
 
-Last updated: 2026-07-12 (Clight model and generation commit).
+Last updated: 2026-07-12 (source and collision audit commit).
 
 Every commit must update this file and the other two files in `docs/`.
 
 ## Current verdict
 
 Open. The project now contains an executable conservative pole-route model and
-an isolated `clightgen` pipeline. Machine-checked proof modules are next.
+an isolated `clightgen` pipeline. The independent source/collision audit is
+also reproducible. Machine-checked proof modules are next.
 
 ## Project setup
 
@@ -24,9 +25,9 @@ an isolated `clightgen` pipeline. Machine-checked proof modules are next.
 - [x] Generate authentic Clight for the SSL level script, pole behavior,
   automatic pole actions, input/action setup, interaction, airborne action,
   and air-step source units.
-- [ ] Audit the Area 2 collision mesh for the fifth-floor pole platform and
+- [x] Audit the Area 2 collision mesh for the fifth-floor pole platform and
   sixth-floor hole.
-- [ ] Pin the pole placement `(0,3200,1331)`, parameter 92, hitbox height 920,
+- [x] Pin the pole placement `(0,3200,1331)`, parameter 92, hitbox height 920,
   effective top Y 4020, and upward-facing sixth-floor Y 3942.
 - [ ] Pin A-button mapping and the A/Z pole action branches in generated ASTs.
 
@@ -50,3 +51,7 @@ an isolated `clightgen` pipeline. Machine-checked proof modules are next.
 - 2026-07-12: added the conservative C pole-route model, local CompCert 3.15
   generation wrapper, authentic source-unit targets, and committed generated
   Clight AST surface.
+- 2026-07-12: added a deterministic source/collision audit and receipt. It
+  verifies 1080 vertices, 1558 triangles, the exact fifth support and eight
+  sixth-floor ring triangles, the 203-by-205 opening, source action/physics
+  literals, pole push, and update order.

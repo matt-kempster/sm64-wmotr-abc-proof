@@ -1,6 +1,6 @@
 # Goal recovery note
 
-Last updated: 2026-07-12 (Clight model and generation commit).
+Last updated: 2026-07-12 (source and collision audit commit).
 
 ## Objective
 
@@ -47,6 +47,13 @@ him at the radius before applying the two-unit soft-bonk motion. This
 over-approximates radial escape for the local no-A calculation. The one-A
 witness uses a 22-unit per-frame lower bound for the first five frames, below
 the source's 24-unit launch minimum after allowing for air drag.
+
+The source/mesh audit now derives the two relevant floor regions directly from
+the pinned collision array. In particular, Y 3712 is downward-facing
+underside geometry; the sixth-floor landing ring is the eight upward-facing Y
+3942 triangles. The 101-unit quantity is the minimum cardinal clearance from
+the pole center to the rectangular hole boundary. It is sound as a no-A
+inside-hole bound; an existence witness must also choose a direction.
 
 ## Repository constraints
 
