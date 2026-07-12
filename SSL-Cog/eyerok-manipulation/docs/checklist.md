@@ -1,12 +1,12 @@
 # Eyerok manipulation proof checklist
 
-Last updated: 2026-07-12 (executable vertical-model commit).
+Last updated: 2026-07-12 (closed-world proof commit).
 
 ## Verdict
 
-Open. Pinned source ingestion and collision/source auditing are reproducible.
-The gravity-zero runaway seed is isolated; its unreachability and the global
-height bound remain to be machine-checked.
+Closed for the source-shaped adversarial model: the runaway seed is
+unreachable and all modeled heights are at most 2003. Whole-program Clight
+execution refinement remains open and is stated explicitly.
 
 ## Completed
 
@@ -34,12 +34,16 @@ height bound remain to be machine-checked.
 
 ## Formal proof
 
-- [ ] Pin generated model constants and source action/vertical-write shapes.
-- [ ] Formalize adversarial action choices and partial updates.
-- [ ] Prove the one-step vertical invariant.
-- [ ] Lift the invariant to finite prefixes and infinite runs.
-- [ ] Prove the no-unbounded-rise capstone without project-added assumptions.
-- [ ] State the authentic source-to-model lifting boundary explicitly.
+- [x] Pin generated model constants and source action/vertical-write shapes.
+- [x] Formalize adversarial action choices and partial-update stuttering.
+- [x] Prove grounded double-pound implies gravity at most `-15` and exclude the
+  gravity-zero runaway seed from scheduler reachability.
+- [x] Prove the one-step vertical invariant.
+- [x] Lift the invariant to finite prefixes and infinite runs.
+- [x] Prove the closed-world no-unbounded-rise capstone.
+- [x] Prove the counterfactual runaway seed grows without bound.
+- [x] State the authentic source-to-model lifting boundary explicitly.
+- [ ] Discharge authentic whole-program Clight execution refinement.
 
 ## Verification and handoff
 
@@ -59,3 +63,6 @@ height bound remain to be machine-checked.
 - Executable model: source-shaped action constants, asymmetric hand-support
   ceilings, finite ascent budgets, safe-envelope check, and explicit runaway
   branch, translated by CompCert Clight.
+- Closed-world proof: generated AST facts, scheduler unreachability, preserved
+  height envelope, finite/infinite-run bounds, runaway lasso, and explicit
+  authentic-refinement boundary.

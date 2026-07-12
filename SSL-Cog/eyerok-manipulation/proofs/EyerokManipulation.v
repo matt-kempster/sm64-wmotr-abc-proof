@@ -1,0 +1,25 @@
+From Coq Require Import ZArith.
+From SSLEyerok.Proofs Require Import GeneratedFacts SchedulerInvariant Spec
+  StateMachine VerticalBound.
+
+Local Open Scope Z_scope.
+
+Theorem eyerok_no_unbounded_rise_certificate :
+  generated_model_shape /\
+  generated_critical_source_shape /\
+  (forall scheduler,
+      scheduler_reachable scheduler -> ~ runaway_seed scheduler) /\
+  (forall rank state,
+      vertically_reachable rank state -> state_y state <= global_height_ceiling) /\
+  (forall rank run,
+      vertical_run rank run -> ~ rises_unboundedly run) /\
+  (forall initial_y bound,
+      exists frames, bound < runaway_height_after frames initial_y).
+Proof.
+  refine (conj generated_model_shape_holds _).
+  refine (conj generated_critical_source_shape_holds _).
+  refine (conj reachable_scheduler_excludes_runaway_seed _).
+  refine (conj every_reachable_hand_below_2003 _).
+  refine (conj no_safe_vertical_run_rises_unboundedly _).
+  exact runaway_lasso_is_unbounded.
+Qed.

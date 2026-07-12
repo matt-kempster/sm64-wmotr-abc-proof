@@ -98,6 +98,28 @@ gravity-zero grounded double-pound seed. That branch is intentional: generated
 model facts and the Rocq proof can distinguish “the local lasso exists” from
 “the authentic scheduler cannot reach it.”
 
+## Machine-checked impact
+
+The Rocq scheduler has nondeterministic stutter, exit, normalize, air, land,
+pound, and launch edges. It therefore does not depend on a favorable player or
+RNG choice. Its invariant says both:
+
+```text
+DOUBLE_POUND and gravity = 0  -> not grounded
+DOUBLE_POUND and grounded     -> gravity <= -15
+```
+
+The vertical transition system treats controlled positioning, landing,
+impulse selection, rising, falling, partial-update stuttering, and deletion as
+separate cases. The quantity `Y + remaining ascent budget` never exceeds the
+rank-specific ceiling. Reachability induction gives Y <= 1196 for the earlier
+hand and Y <= 2003 for the later hand, hence an infinite run cannot be
+unbounded.
+
+For contrast, the proved runaway recurrence is
+`Y(n) = Y(0) + 100*n`, which is unbounded. The proof therefore addresses the
+dangerous branch rather than erasing it from the model.
+
 ## Proof relevance
 
 The desired refutation of the route is a uniform home-relative height bound

@@ -1,6 +1,6 @@
 # Goal recovery note
 
-Last updated: 2026-07-12 (executable vertical-model commit).
+Last updated: 2026-07-12 (closed-world proof commit).
 
 ## Objective
 
@@ -41,6 +41,17 @@ consume a finite ascent budget, while the forbidden grounded/gravity-zero
 double-pound state enters an explicit runaway mode. The next proof layer must
 show that every modeled source-shaped transition preserves the safe envelope
 and that every authentic scheduling case maps to the safe side of this split.
+
+The closed-world half is now machine checked. `SchedulerInvariant.v` excludes
+the runaway seed from every scheduler-reachable state, `StateMachine.v` proves
+one-step preservation of the ascent envelope, and `VerticalBound.v` lifts the
+result to all finite prefixes and infinite runs. The local capstone is
+`eyerok_no_unbounded_rise_certificate`.
+
+The remaining global work is deliberately narrower than the original search:
+prove a Clight execution refinement from authentic object/boss frames to the
+two formal transition systems. `GlobalBoundary.v` already proves that this
+refinement implies the original no-unbounded-rise statement.
 
 ## Repository constraints
 
