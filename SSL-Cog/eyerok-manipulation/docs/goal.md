@@ -1,6 +1,6 @@
 # Goal recovery note
 
-Last updated: 2026-07-12 (closed-world proof commit).
+Last updated: 2026-07-12 (verified end-to-end proof commit).
 
 ## Objective
 
@@ -52,6 +52,11 @@ The remaining global work is deliberately narrower than the original search:
 prove a Clight execution refinement from authentic object/boss frames to the
 two formal transition systems. `GlobalBoundary.v` already proves that this
 refinement implies the original no-unbounded-rise statement.
+
+The recovery path has now been exercised with the required Ubuntu commands.
+Generation is byte-reproducible, the source audit diff is clean, every Clight
+and handwritten module compiles, the proof-hole scan is empty, and the four
+public theorem assumption reports contain no project-defined assumptions.
 
 ## Repository constraints
 

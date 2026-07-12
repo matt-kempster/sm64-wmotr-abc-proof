@@ -16,4 +16,17 @@ if grep -RInE '\b(Admitted|Axiom|admit|sorry)\b' proofs; then
   exit 1
 fi
 
-echo "Eyerok source-ingestion checks: OK"
+bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.EyerokManipulation \
+  eyerok_no_unbounded_rise_certificate
+bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.SchedulerInvariant \
+  reachable_scheduler_excludes_runaway_seed
+bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.VerticalBound \
+  no_safe_vertical_run_rises_unboundedly
+bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.GlobalBoundary \
+  authentic_no_unbounded_rise_from_refinement
+
+echo "Eyerok manipulation checks: OK"

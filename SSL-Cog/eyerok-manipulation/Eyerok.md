@@ -120,6 +120,15 @@ For contrast, the proved runaway recurrence is
 `Y(n) = Y(0) + 100*n`, which is unbounded. The proof therefore addresses the
 dangerous branch rather than erasing it from the model.
 
+The end-to-end check recompiles these theorems and uses `Print Assumptions` on
+the capstone, scheduler invariant, infinite-run bound, and global lifting
+theorem. They introduce no project-defined logical assumptions. The combined
+capstone inherits standard Coq/CompCert classical and functional-extensionality
+dependencies from mentioning the authentic binary32 Clight AST; the three core
+transition/boundary theorems are closed under the global context. The global
+lifting theorem remains conditional because refinement is an ordinary theorem
+argument, not because it is postulated.
+
 ## Proof relevance
 
 The desired refutation of the route is a uniform home-relative height bound

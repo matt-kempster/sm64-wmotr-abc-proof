@@ -50,52 +50,48 @@ with cases_mentions_int_bits (bits : Z) (cases : labeled_statements) : bool :=
       stmt_mentions_int_bits bits body || cases_mentions_int_bits bits rest
   end.
 
-Fixpoint expr_mentions_float32_bits (bits : Z) (e : expr) : bool :=
+Fixpoint expr_count_single (e : expr) : nat :=
   match e with
-  | Econst_single value _ => Int.eq (Float32.to_bits value) (Int.repr bits)
+  | Econst_single _ _ => 1%nat
   | Ederef inner _ | Eaddrof inner _ | Eunop _ inner _ | Ecast inner _ =>
-      expr_mentions_float32_bits bits inner
+      expr_count_single inner
   | Ebinop _ lhs rhs _ =>
-      expr_mentions_float32_bits bits lhs || expr_mentions_float32_bits bits rhs
-  | Efield inner _ _ => expr_mentions_float32_bits bits inner
-  | _ => false
+      (expr_count_single lhs + expr_count_single rhs)%nat
+  | Efield inner _ _ => expr_count_single inner
+  | _ => 0%nat
   end.
 
-Fixpoint exprs_mentions_float32_bits (bits : Z) (args : list expr) : bool :=
+Fixpoint exprs_count_single (args : list expr) : nat :=
   match args with
-  | [] => false
+  | [] => 0%nat
   | arg :: rest =>
-      expr_mentions_float32_bits bits arg ||
-      exprs_mentions_float32_bits bits rest
+      (expr_count_single arg + exprs_count_single rest)%nat
   end.
 
-Fixpoint stmt_mentions_float32_bits (bits : Z) (s : statement) : bool :=
+Fixpoint stmt_count_single (s : statement) : nat :=
   match s with
   | Sassign lhs rhs =>
-      expr_mentions_float32_bits bits lhs || expr_mentions_float32_bits bits rhs
-  | Sset _ rhs => expr_mentions_float32_bits bits rhs
+      (expr_count_single lhs + expr_count_single rhs)%nat
+  | Sset _ rhs => expr_count_single rhs
   | Scall _ fn args =>
-      expr_mentions_float32_bits bits fn ||
-      exprs_mentions_float32_bits bits args
+      (expr_count_single fn + exprs_count_single args)%nat
   | Ssequence s1 s2 =>
-      stmt_mentions_float32_bits bits s1 || stmt_mentions_float32_bits bits s2
+      (stmt_count_single s1 + stmt_count_single s2)%nat
   | Sifthenelse test s1 s2 =>
-      expr_mentions_float32_bits bits test ||
-      stmt_mentions_float32_bits bits s1 || stmt_mentions_float32_bits bits s2
+      (expr_count_single test + stmt_count_single s1 + stmt_count_single s2)%nat
   | Sloop s1 s2 =>
-      stmt_mentions_float32_bits bits s1 || stmt_mentions_float32_bits bits s2
-  | Sreturn (Some value) => expr_mentions_float32_bits bits value
+      (stmt_count_single s1 + stmt_count_single s2)%nat
+  | Sreturn (Some value) => expr_count_single value
   | Sswitch key cases =>
-      expr_mentions_float32_bits bits key || cases_mentions_float32_bits bits cases
-  | Slabel _ body => stmt_mentions_float32_bits bits body
-  | _ => false
+      (expr_count_single key + cases_count_single cases)%nat
+  | Slabel _ body => stmt_count_single body
+  | _ => 0%nat
   end
-with cases_mentions_float32_bits (bits : Z) (cases : labeled_statements) : bool :=
+with cases_count_single (cases : labeled_statements) : nat :=
   match cases with
-  | LSnil => false
+  | LSnil => 0%nat
   | LScons _ body rest =>
-      stmt_mentions_float32_bits bits body ||
-      cases_mentions_float32_bits bits rest
+      (stmt_count_single body + cases_count_single rest)%nat
   end.
 
 Fixpoint expr_mentions_neg (e : expr) : bool :=
@@ -166,26 +162,18 @@ Theorem generated_model_shape_holds : generated_model_shape.
 Proof. vm_compute. repeat split; reflexivity. Qed.
 
 Definition generated_critical_source_shape : Prop :=
-  stmt_mentions_float32_bits 1106247680
-    (fn_body obj_behaviors_2.f_eyerok_hand_check_attacked) = true /\
-  stmt_mentions_float32_bits 1112014848
-    (fn_body obj_behaviors_2.f_eyerok_hand_check_attacked) = true /\
-  stmt_mentions_float32_bits 1082130432
-    (fn_body obj_behaviors_2.f_eyerok_hand_check_attacked) = true /\
+  stmt_count_single
+    (fn_body obj_behaviors_2.f_eyerok_hand_check_attacked) = 4%nat /\
   stmt_mentions_neg
     (fn_body obj_behaviors_2.f_eyerok_hand_check_attacked) = true /\
-  stmt_mentions_float32_bits 1120403456
-    (fn_body obj_behaviors_2.f_eyerok_hand_act_double_pound) = true /\
-  stmt_mentions_float32_bits 1097859072
-    (fn_body obj_behaviors_2.f_eyerok_hand_act_double_pound) = true /\
-  stmt_mentions_float32_bits 1101004800
-    (fn_body obj_behaviors_2.f_eyerok_hand_act_double_pound) = true /\
+  stmt_count_single
+    (fn_body obj_behaviors_2.f_eyerok_hand_act_double_pound) = 7%nat /\
   stmt_mentions_neg
     (fn_body obj_behaviors_2.f_eyerok_hand_act_double_pound) = true /\
   ident_mem obj_behaviors_2._cur_obj_move_standard
     (direct_callees_s (fn_body obj_behaviors_2.f_bhv_eyerok_hand_loop)) = true /\
-  stmt_mentions_float32_bits 1117519872
-    (fn_body object_helpers.f_cur_obj_move_y_and_get_water_level) = true /\
+  stmt_count_single
+    (fn_body object_helpers.f_cur_obj_move_y_and_get_water_level) = 2%nat /\
   stmt_mentions_neg
     (fn_body object_helpers.f_cur_obj_move_y_and_get_water_level) = true /\
   ident_mem object_helpers._cur_obj_move_y

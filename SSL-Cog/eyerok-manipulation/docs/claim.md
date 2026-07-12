@@ -1,6 +1,6 @@
 # Working claim and scope
 
-Last updated: 2026-07-12 (closed-world proof commit).
+Last updated: 2026-07-12 (verified end-to-end proof commit).
 
 ## Game and source boundary
 
@@ -86,6 +86,23 @@ syntactic Clight certificates, not whole-program execution semantics.
 that a per-frame refinement to reachable model states implies absolute Y <=
 2003 and rules out unbounded rise. The project does not yet inhabit that
 refinement premise, so the unqualified original-binary theorem is not claimed.
+
+The final Ubuntu check passes with Coq 8.16.1 and CompCert 3.15. `Print
+Assumptions` reports no project-defined assumptions for
+`eyerok_no_unbounded_rise_certificate`,
+`reachable_scheduler_excludes_runaway_seed`,
+`no_safe_vertical_run_rises_unboundedly`, or
+`authentic_no_unbounded_rise_from_refinement`. The last statement is a
+conditional implication whose refinement premise remains visible in its type.
+The combined capstone reports the standard Coq/CompCert classical real,
+functional-extensionality, and classical-proposition dependencies inherited
+from the authentic binary32 Clight AST. The scheduler, infinite-run, and global
+lifting theorems each report `Closed under the global context`.
+
+The source audit, rather than a noncomputable float equality inside Rocq, pins
+the exact authentic values `30`, `50`, `100`, `-4`, `-15`, and `-20` against
+normalized hashes. `GeneratedFacts.v` independently pins the corresponding
+Clight functions' float-constant counts, negation shapes, and call edges.
 
 No `Admitted`, `Axiom`, `admit`, `sorry`, or equivalent project-added proof
 hole may enter a capstone.
