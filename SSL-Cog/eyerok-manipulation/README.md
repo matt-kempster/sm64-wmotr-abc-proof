@@ -53,9 +53,10 @@ not a claim that the original game stores an `ascentBudget` field.
 
 `proofs/EyerokManipulation.v` proves the closed-world certificate:
 
-- the generated model and critical authentic-source Clight shapes contain the
-  audited constants, impulses, gravity magnitudes, movement call, and dynamic-
-  surface update order;
+- the generated model contains the envelope constants, while the critical
+  authentic-source Clight shapes pin float-constant counts, the movement call,
+  and dynamic-surface update order; the source audit pins the exact impulse and
+  gravity values;
 - every reachable scheduler state excludes the runaway seed;
 - the first surface-list hand is bounded by absolute Y 1196 and the second by
   absolute Y 2003; and
@@ -81,9 +82,14 @@ explicitly because the default WSL distribution is not usable:
 wsl.exe -d Ubuntu
 ```
 
-The completed project will use:
+Run generation followed by the complete source/proof check:
 
 ```sh
 opam exec --switch sm64-item-proof -- make generated
 opam exec --switch sm64-item-proof -- bash pipeline/check.sh
 ```
+
+The check diff-verifies the source audit, compiles every generated and
+handwritten module, rejects proof-hole keywords, and prints the assumptions of
+the local capstone, scheduler invariant, infinite-run theorem, and authentic
+lifting theorem.

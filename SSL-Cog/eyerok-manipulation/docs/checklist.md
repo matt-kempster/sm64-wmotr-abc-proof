@@ -1,6 +1,6 @@
 # Eyerok manipulation proof checklist
 
-Last updated: 2026-07-12 (closed-world proof commit).
+Last updated: 2026-07-12 (verified end-to-end proof commit).
 
 ## Verdict
 
@@ -47,11 +47,13 @@ execution refinement remains open and is stated explicitly.
 
 ## Verification and handoff
 
-- [ ] Run `make generated` in the Ubuntu `sm64-item-proof` switch.
-- [ ] Run `bash pipeline/check.sh` in the same switch.
-- [ ] Confirm generated artifacts reproduce exactly.
-- [ ] Confirm proof-hole grep is empty and `Print Assumptions` is clean.
-- [ ] Keep `Eyerok.md`, all three planning docs, and project README current.
+- [x] Run `make generated` in the Ubuntu `sm64-item-proof` switch.
+- [x] Run `bash pipeline/check.sh` in the same switch.
+- [x] Confirm generated artifacts reproduce exactly.
+- [x] Confirm proof-hole grep is empty, the three core theorems are closed, and
+  the combined authentic-AST capstone has only documented standard
+  Coq/CompCert classical dependencies.
+- [x] Keep `Eyerok.md`, all three planning docs, and project README current.
 - [ ] Do not push without explicit user approval.
 
 ## Commit ledger
@@ -66,3 +68,5 @@ execution refinement remains open and is stated explicitly.
 - Closed-world proof: generated AST facts, scheduler unreachability, preserved
   height envelope, finite/infinite-run bounds, runaway lasso, and explicit
   authentic-refinement boundary.
+- Verification: reproducible generation, complete Ubuntu build, proof-hole
+  rejection, and clean assumption reports for all public boundary theorems.
