@@ -67,6 +67,8 @@
       copies the safe linked handler-field value into its writer temporary.
     - [x] Compose each generated source-load/assignment pair into a single
       authorized semantic update with no free temporary-provenance premise.
+    - [x] Extract each authorized pair's sole `Mptr` store to the current cell;
+      identify the playback non-null branch fact as required path context.
     - [x] Prove the mutual `exec_stmt`/`eval_funcall` invariant lift, treating
       certified load/write sequences as authorized atomic updates and
       recursively checking every reached internal body.
