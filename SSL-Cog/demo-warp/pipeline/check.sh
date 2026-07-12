@@ -66,3 +66,6 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   DemoWarp.Proofs.TargetInvariant \
   target_frame_boundary_certificate
+bash pipeline/assumptions.sh \
+  DemoWarp.Proofs.RumbleEnabledSurface \
+  enabled_rumble_pointer_capability_certificate
