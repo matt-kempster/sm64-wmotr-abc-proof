@@ -1,6 +1,6 @@
 # Goal recovery note
 
-Last updated: 2026-07-12 (project scaffold commit).
+Last updated: 2026-07-12 (Clight model and generation commit).
 
 ## Objective
 
@@ -40,6 +40,13 @@ presses hidden in the prefix.
 4. Prove an inductive minimum-A result for the closed-world pole-route model.
 5. Audit bypass mechanisms and either derive model completeness from reachable
    gameplay states or produce a concrete zero-A counterexample.
+
+The executable C model now uses a conservative pole-object push abstraction:
+while Mario is inside the source's 70-unit push radius, the model may place
+him at the radius before applying the two-unit soft-bonk motion. This
+over-approximates radial escape for the local no-A calculation. The one-A
+witness uses a 22-unit per-frame lower bound for the first five frames, below
+the source's 24-unit launch minimum after allowing for air drag.
 
 ## Repository constraints
 
