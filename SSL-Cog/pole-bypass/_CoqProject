@@ -1,0 +1,4 @@
+# Rocq/Coq logical paths for the SSL Pyramid pole-bypass proof.
+
+-R generated SSLPoleBypass.Generated
+-R proofs SSLPoleBypass.Proofs
