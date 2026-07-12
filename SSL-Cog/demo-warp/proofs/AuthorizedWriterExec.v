@@ -412,6 +412,107 @@ Proof.
     match goal with Hnotnormal : Out_normal <> Out_normal |- _ => contradiction end.
 Qed.
 
+Lemma exec_run_increment_statement_store_witness :
+  forall (ge : genv) (e : env) (le : temp_env) (before : mem)
+      trace le' after out cell_block,
+    e ! G._gCurrDemoInput = None ->
+    Genv.find_symbol ge G._gCurrDemoInput = Some cell_block ->
+    exec_stmt function_entry2 ge e le before run_increment_statement
+      trace le' after out ->
+    exists stored,
+      Mem.store Mptr before cell_block 0 stored = Some after.
+Proof.
+  intros ge e le before trace le' after out cell_block Hnotlocal Hsymbol Hexec.
+  unfold run_increment_statement in Hexec. inv Hexec.
+  match goal with Hlv : eval_lvalue _ _ _ _ (Evar G._gCurrDemoInput _) _ _ _ |- _ =>
+    inv Hlv
+  end.
+  - match goal with Hlocal : e ! G._gCurrDemoInput = Some _ |- _ =>
+      rewrite Hnotlocal in Hlocal; discriminate
+    end.
+  - match goal with Hfound : Genv.find_symbol _ G._gCurrDemoInput = Some _ |- _ =>
+      rewrite Hsymbol in Hfound; inv Hfound
+    end.
+    match goal with Hassign : assign_loc _ _ _ _ _ _ _ after |- _ => inv Hassign end.
+    + match goal with Hmode : access_mode _ = By_value _ |- _ => cbn in Hmode; inv Hmode end.
+      match goal with Hstore : Mem.storev Mptr before (Vptr _ _) ?stored = Some after |- _ =>
+        unfold Mem.storev in Hstore; exists stored; exact Hstore
+      end.
+    + match goal with Hmode : access_mode _ = By_copy |- _ => cbn in Hmode; discriminate end.
+Qed.
+
+Lemma exec_title_install_statement_store_witness :
+  forall (ge : genv) (e : env) (le : temp_env) (before : mem)
+      trace le' after out cell_block,
+    e ! T._gCurrDemoInput = None ->
+    Genv.find_symbol ge T._gCurrDemoInput = Some cell_block ->
+    exec_stmt function_entry2 ge e le before title_install_statement
+      trace le' after out ->
+    exists stored,
+      Mem.store Mptr before cell_block 0 stored = Some after.
+Proof.
+  intros ge e le before trace le' after out cell_block Hnotlocal Hsymbol Hexec.
+  unfold title_install_statement in Hexec. inv Hexec.
+  match goal with Hlv : eval_lvalue _ _ _ _ (Evar T._gCurrDemoInput _) _ _ _ |- _ =>
+    inv Hlv
+  end.
+  - match goal with Hlocal : e ! T._gCurrDemoInput = Some _ |- _ =>
+      rewrite Hnotlocal in Hlocal; discriminate
+    end.
+  - match goal with Hfound : Genv.find_symbol _ T._gCurrDemoInput = Some _ |- _ =>
+      rewrite Hsymbol in Hfound; inv Hfound
+    end.
+    match goal with Hassign : assign_loc _ _ _ _ _ _ _ after |- _ => inv Hassign end.
+    + match goal with Hmode : access_mode _ = By_value _ |- _ => cbn in Hmode; inv Hmode end.
+      match goal with Hstore : Mem.storev Mptr before (Vptr _ _) ?stored = Some after |- _ =>
+        unfold Mem.storev in Hstore; exists stored; exact Hstore
+      end.
+    + match goal with Hmode : access_mode _ = By_copy |- _ => cbn in Hmode; discriminate end.
+Qed.
+
+Theorem exec_authorized_pairs_store_only_current_cell :
+  (forall (ge : genv) (e : env) (le : temp_env) (before : mem)
+      trace le' after out cell_block,
+    e ! G._gCurrDemoInput = None ->
+    Genv.find_symbol ge G._gCurrDemoInput = Some cell_block ->
+    exec_stmt function_entry2 ge e le before run_increment_pair
+      trace le' after out ->
+    exists stored, Mem.store Mptr before cell_block 0 stored = Some after) /\
+  (forall (ge : genv) (e : env) (le : temp_env) (before : mem)
+      trace le' after out cell_block,
+    e ! T._gCurrDemoInput = None ->
+    Genv.find_symbol ge T._gCurrDemoInput = Some cell_block ->
+    exec_stmt function_entry2 ge e le before title_install_pair
+      trace le' after out ->
+    exists stored, Mem.store Mptr before cell_block 0 stored = Some after).
+Proof.
+  split.
+  - intros ge e le before trace le' after out cell_block Hnotlocal Hsymbol Hexec.
+    unfold run_increment_pair in Hexec. inv Hexec.
+    + match goal with Hfirst : exec_stmt _ _ _ _ _ run_increment_source_load_statement _ _ _ _ |- _ =>
+        inv Hfirst
+      end.
+      match goal with Hsecond : exec_stmt _ _ _ _ _ run_increment_statement _ _ _ _ |- _ =>
+        eapply exec_run_increment_statement_store_witness; eauto
+      end.
+    + match goal with Hfirst : exec_stmt _ _ _ _ _ run_increment_source_load_statement _ _ _ _ |- _ =>
+        inv Hfirst
+      end.
+      match goal with Hnotnormal : Out_normal <> Out_normal |- _ => contradiction end.
+  - intros ge e le before trace le' after out cell_block Hnotlocal Hsymbol Hexec.
+    unfold title_install_pair in Hexec. inv Hexec.
+    + match goal with Hfirst : exec_stmt _ _ _ _ _ title_install_source_load_statement _ _ _ _ |- _ =>
+        inv Hfirst
+      end.
+      match goal with Hsecond : exec_stmt _ _ _ _ _ title_install_statement _ _ _ _ |- _ =>
+        eapply exec_title_install_statement_store_witness; eauto
+      end.
+    + match goal with Hfirst : exec_stmt _ _ _ _ _ title_install_source_load_statement _ _ _ _ |- _ =>
+        inv Hfirst
+      end.
+      match goal with Hnotnormal : Out_normal <> Out_normal |- _ => contradiction end.
+Qed.
+
 Theorem exec_title_install_pair_preserves_demo_block :
   forall (ge : genv) (e : env) (le : temp_env) (before : mem)
       (trace : Events.trace) (le' : temp_env) (after : mem) (out : outcome)

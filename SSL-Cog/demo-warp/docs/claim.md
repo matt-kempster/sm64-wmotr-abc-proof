@@ -210,6 +210,15 @@ The playback pair starts from the pointer stored in `gCurrDemoInput`; the title
 pair starts from the pointer stored in linked `gDemoInputsBuf.bufTarget`.
 Neither paired theorem retains a free assumption about `_t'5` or `_t'6`.
 
+The paired store certificate inverts both authorized executions to one
+concrete `Mem.store Mptr` at offset 0 of the linked `gCurrDemoInput` cell. This
+exposes the exact frame needed to preserve `bufTarget` and all live block
+identities. A crucial path-sensitivity point was also checked: on the 32-bit
+target, CompCert can evaluate pointer-typed `Vint 0 + 1` to the integer-scaled
+address `sizeof(DemoInput)`. Therefore the playback pair is not safe from an
+arbitrary null state; its enclosing generated `gCurrDemoInput != NULL` branch
+must supply the non-null provenance fact in the whole-body proof.
+
 `exec_stmt_eval_funcall_target_lift` supplies the interprocedural semantic
 induction. It is proved with CompCert's combined `exec_stmt`/`eval_funcall`
 induction, composes sequencing/branches/loops/switches, descends into every
