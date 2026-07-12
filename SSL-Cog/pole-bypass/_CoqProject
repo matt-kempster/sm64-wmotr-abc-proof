@@ -12,3 +12,9 @@ generated/interaction.v
 generated/mario_actions_airborne.v
 generated/mario_step.v
 generated/object_list_processor.v
+
+proofs/GeneratedFacts.v
+proofs/Spec.v
+proofs/PoleArithmetic.v
+proofs/PoleRoute.v
+proofs/PoleBypass.v

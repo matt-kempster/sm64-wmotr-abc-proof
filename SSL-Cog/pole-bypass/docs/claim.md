@@ -1,6 +1,6 @@
 # Working claim and scope
 
-Last updated: 2026-07-12 (source and collision audit commit).
+Last updated: 2026-07-12 (machine-checked pole-route proof commit).
 
 ## Game and source boundary
 
@@ -54,8 +54,10 @@ the pole or carry prepared motion/object/platform state into the region.
 
 ## Current verdict
 
-Open. No zero-A counterexample is established. No global impossibility theorem
-is claimed at model-generation time.
+The ordinary, normalized pole route has machine-checked minimum A count one in
+the project's closed-world transition system. No zero-A counterexample is
+established. The unqualified bottom-to-sixth gameplay claim remains open
+because global bypass/model completeness is not yet proved.
 
 The source audit already identifies the ordinary route's key asymmetry: A from
 the pole selects `ACT_WALL_KICK_AIR` or `ACT_TOP_OF_POLE_JUMP`, whereas the
@@ -80,6 +82,19 @@ fifth/sixth triangle indices and vertices, the rectangular opening, pole
 placement/height, authentic velocity clearing, A/Z action branches, jump
 setup, air drag/gravity, pole push formula, and object-list update order. Its
 committed receipt pins normalized SHA-256 hashes of every audited source file.
+
+`proofs/PoleArithmetic.v` grants the non-A exit the maximum pole height and a
+conservative radial over-approximation: 70 units of pole push plus two units
+per eligible air frame. Gravity puts the last above-floor frame at index 6,
+so radius is at most 82, below the 101-unit nearest hole edge. The one-A
+witness faces west, has a five-frame displacement lower bound 110, remains
+above the ring, and crosses the Y=3942 plane between frames 33 and 34 while
+its 24-per-frame displacement upper bound remains inside the west outer edge.
+
+`proofs/PoleRoute.v` proves every modeled route to `SixthFloor` contains an A
+edge and constructs a route with exactly one. `proofs/PoleBypass.v` packages
+that theorem with generated Clight shape certificates. This capstone is not a
+simulation theorem for every authentic state/action from the Pyramid bottom.
 
 ## Known boundaries to keep explicit
 
