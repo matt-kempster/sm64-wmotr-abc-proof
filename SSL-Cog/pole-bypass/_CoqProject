@@ -17,4 +17,5 @@ proofs/GeneratedFacts.v
 proofs/Spec.v
 proofs/PoleArithmetic.v
 proofs/PoleRoute.v
+proofs/GlobalBoundary.v
 proofs/PoleBypass.v
