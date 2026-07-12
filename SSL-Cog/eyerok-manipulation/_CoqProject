@@ -3,6 +3,7 @@
 -R generated SSLEyerok.Generated
 -R proofs SSLEyerok.Proofs
 
+generated/eyerok_model.v
 generated/obj_behaviors_2.v
 generated/object_helpers.v
 generated/behavior_script.v

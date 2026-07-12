@@ -1,6 +1,6 @@
 # Goal recovery note
 
-Last updated: 2026-07-12 (pinned source-ingestion commit).
+Last updated: 2026-07-12 (executable vertical-model commit).
 
 ## Objective
 
@@ -35,6 +35,12 @@ branch creates an unbounded ascent. The intended impossibility proof therefore
 has to derive that this state is unreachable from the authentic hand/boss
 schedule, including dynamic hand collision and partial-update cases. The audit
 now checks the static facts supporting that derivation.
+
+The executable model now represents the proof split directly. Safe impulses
+consume a finite ascent budget, while the forbidden grounded/gravity-zero
+double-pound state enters an explicit runaway mode. The next proof layer must
+show that every modeled source-shaped transition preserves the safe envelope
+and that every authentic scheduling case maps to the safe side of this split.
 
 ## Repository constraints
 

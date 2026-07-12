@@ -1,6 +1,6 @@
 # Working claim and scope
 
-Last updated: 2026-07-12 (pinned source-ingestion commit).
+Last updated: 2026-07-12 (executable vertical-model commit).
 
 ## Game and source boundary
 
@@ -66,6 +66,14 @@ The object-helper Clight input applies the sibling project's seven literal-
 suffix compatibility edits because CompCert 3.15 rejects long-double
 constants. None of those edits occurs in the audited vertical integration,
 ground comparison, or `cur_obj_move_standard` control path.
+
+The executable C model is an explicit abstraction boundary. Its
+`ascentBudget` and surface rank are ghost-style proof state, not SM64 object
+fields. The budgets 98, 288, and 285 are the sums of the positive post-gravity
+vertical increments for the source's `30/-4`, `50/-4`, and `100/-15`
+impulses. The uniform budget 300 is conservative. The model's safety predicate
+requires `Y + ascentBudget` to stay below 1196 for the first hand or 2003 for
+the second and excludes the explicit runaway mode.
 
 No `Admitted`, `Axiom`, `admit`, `sorry`, or equivalent project-added proof
 hole may enter a capstone.
