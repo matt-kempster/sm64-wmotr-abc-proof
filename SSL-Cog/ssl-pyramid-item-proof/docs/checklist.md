@@ -150,11 +150,24 @@ executions.
   `Sassign`. This needs the explicit global-cell-vs-SpawnInfo block-separation
   hypotheses; deriving those from the actual allocation/global-memory
   invariant is still a named future receipt, not magic.
-  Remaining seam is now smaller: thread the earlier generated
-  `_t'15/_t'16`, `_t'13/_t'14`, and `_t'11/_t'12` Sset-plus-store stages
-  through the same global-read frame, compose them with this concrete list-link
-  tail, and identify that composed suffix in the full generated
-  `f_level_cmd_place_object` execution. Then feed the surviving same allocated
+  Fresh receipt: the earlier temp/store plumbing is joined up too.
+  `exec_level_cmd_place_object_generated_behavior_arg_stage_preserves_receipts`,
+  `...behavior_script_stage...`, and `...model_stage...` run the generated
+  `_t'15/_t'16`, `_t'13/_t'14`, and `_t'11/_t'12` Ssets plus their real
+  stores. A generic stage theorem proves those temp-only prefixes keep
+  `_spawnInfo`, while each concrete store preserves both the watched area-2
+  byte and the future `sCurrAreaIndex`/`gAreas` reads.
+  `exec_level_cmd_place_object_generated_intervening_tail_preserves_receipts`
+  composes those three stages, and
+  `exec_level_cmd_place_object_generated_post_active_area_tail_preserves_active_area_read`
+  finally bolts that result onto the concrete list-link suffix. So the whole
+  generated post-`activeAreaIndex` tail now carries the area-2 SpawnInfo read
+  through every surrounding Sset/store and proves the final `_t'6`/`_t'7`
+  values.
+  Remaining seam is narrower again: identify this exact composed suffix inside
+  the complete generated `f_level_cmd_place_object.fn_body`, derive its
+  global-cell-vs-allocated-SpawnInfo block separation from the actual CompCert
+  global/allocation invariant, then feed the surviving same allocated
   `spawnInfo` pointer into the later `geo_obj_init_spawninfo` call.
 - [ ] Derive `generated_unload_execution_trace` from the real
   `f_unload_objects_from_area` 13-list loop. The certificate adapter and
@@ -162,10 +175,9 @@ executions.
   really reads the circular lists and calls `unload_object` exactly for
   `unload_targets area snapshot`.
 
-In Discord goblin terms: the final `gAreas` paperwork now has dashcam footage.
-The remaining goblin chore is walking the three earlier temp/store pit stops
-into that same tape, then proving the heap SpawnInfo cannot secretly be one of
-the global parking spots.
+In Discord goblin terms: every post-area-byte pit stop is on the same dashcam
+tape now. Next we staple that tape to the giant generated function body and
+prove the heap SpawnInfo cannot secretly be one of the global parking spots.
 
 ## Open tasks by category
 
