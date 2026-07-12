@@ -14,7 +14,7 @@ analysis, a reproducible model, and machine-checked proof work rather than a
 
 ## Projects in this folder
 
-The four current projects cover the main ways the expected impossibility
+The five current projects cover the main ways the expected impossibility
 could fail:
 
 - `demo-warp/` studies whether the demo-input timer decrement can make the
@@ -28,6 +28,10 @@ could fail:
   reused by an inside object such as Spindel.
 - `ssl-pyramid-item-proof/` studies whether an object, item, or useful object
   reference from outside the Pyramid can survive the area transition.
+- `pole-bypass/` studies whether the fifth-floor-to-sixth-floor transfer can
+  be completed without an A press. It currently proves the normalized pole
+  route has exact minimum one in a source-shaped closed-world model and keeps
+  the global prepared-state bypass-completeness obligation explicit.
 
 Start with the README in the project matching the route you care about. Each
 project is self-contained because the hypotheses use different game versions,

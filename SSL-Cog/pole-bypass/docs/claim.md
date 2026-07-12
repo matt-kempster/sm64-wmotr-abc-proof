@@ -1,6 +1,6 @@
 # Working claim and scope
 
-Last updated: 2026-07-12 (global boundary interface commit).
+Last updated: 2026-07-12 (verified build and README integration commit).
 
 ## Game and source boundary
 
@@ -103,6 +103,14 @@ runs and requires every bottom-starting sixth-floor run to produce a modeled
 `global_lower_bound_from_bypass_model_complete` then proves the global lower
 bound. The project does not inhabit that premise yet; no axiom is introduced
 to pretend otherwise.
+
+The complete local check passes under Coq 8.16.1 and CompCert 3.15. `Print
+Assumptions` reports no project-added assumptions for
+`pole_route_minimum_a_certificate`,
+`closed_world_pole_route_minimum_a_is_one`, or
+`global_lower_bound_from_bypass_model_complete`. The last theorem remains a
+conditional implication because its completeness premise is an ordinary
+theorem argument, not an axiom.
 
 ## Known boundaries to keep explicit
 

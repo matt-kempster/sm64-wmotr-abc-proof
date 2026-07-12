@@ -1,6 +1,6 @@
 # Goal recovery note
 
-Last updated: 2026-07-12 (global boundary interface commit).
+Last updated: 2026-07-12 (verified build and README integration commit).
 
 ## Objective
 
@@ -68,6 +68,11 @@ not an informal shrug. If every authentic bottom-to-sixth run is simulated by
 a modeled pole trace whose A count is no greater than the physical count, the
 closed-world lower bound lifts to every authentic run. Supplying that
 `bypass_model_complete` premise remains the central open proof obligation.
+
+The recovery path is now executable end to end: `make generated` reproduces
+the Clight/audit artifacts and `bash pipeline/check.sh` rebuilds the proofs,
+diff-checks the audit receipt, rejects proof-hole keywords, and prints the
+assumptions of the local capstone and global boundary theorem.
 
 ## Repository constraints
 
