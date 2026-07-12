@@ -138,21 +138,34 @@ executions.
   stores as a generated fragment. The proof pins their `SpawnInfo` offsets
   (`16`, `20`, `24`), extracts the concrete stores, and frames them as
   later-same-block writes after `activeAreaIndex`.
-  Remaining seam: lift the intervening-store fragment plus the two-store
-  list-link fragment to the surrounding generated `f_level_cmd_place_object`
-  tail, including the `_t'15/_t'16`, `_t'13/_t'14`, `_t'11/_t'12`,
-  `_t'8/_t'9/_t'10`, and `_t'6/_t'7` `Sset` statements plus the
-  `sCurrentCmd`, `gLoadedGraphNodes`, `gAreas`, and `sCurrAreaIndex` global
-  reads. After that, feed the surviving same allocated `spawnInfo` pointer into
-  the later `geo_obj_init_spawninfo` call.
+  Newest-newest receipt: the scary final list-link plumbing is no longer an
+  abstract call frame. `level_cmd_place_object_generated_list_link_tail` is
+  the actual generated `_t'8/_t'9/_t'10`, `spawnInfo->next`,
+  `_t'6/_t'7`, `gAreas[...].objectSpawnInfos` suffix. Its theorem
+  `exec_level_cmd_place_object_generated_list_link_tail_preserves_active_area_read`
+  proves the three pre-`next` temps do not disturb the watched SpawnInfo,
+  frames the `spawnInfo->next` store across the direct `gAreas` and
+  `sCurrAreaIndex` global-cell reads, proves those final two Ssets really put
+  the Area pointer/current area in `_t'6`/`_t'7`, then runs the real Area-list
+  `Sassign`. This needs the explicit global-cell-vs-SpawnInfo block-separation
+  hypotheses; deriving those from the actual allocation/global-memory
+  invariant is still a named future receipt, not magic.
+  Remaining seam is now smaller: thread the earlier generated
+  `_t'15/_t'16`, `_t'13/_t'14`, and `_t'11/_t'12` Sset-plus-store stages
+  through the same global-read frame, compose them with this concrete list-link
+  tail, and identify that composed suffix in the full generated
+  `f_level_cmd_place_object` execution. Then feed the surviving same allocated
+  `spawnInfo` pointer into the later `geo_obj_init_spawninfo` call.
 - [ ] Derive `generated_unload_execution_trace` from the real
   `f_unload_objects_from_area` 13-list loop. The certificate adapter and
   index-based suffix split are done; the remaining beast is proving the loop
   really reads the circular lists and calls `unload_object` exactly for
   `unload_targets area snapshot`.
 
-In Discord goblin terms: the map now has tire tracks for the two final stores.
-Next we need the dashcam footage showing the generated code drove there.
+In Discord goblin terms: the final `gAreas` paperwork now has dashcam footage.
+The remaining goblin chore is walking the three earlier temp/store pit stops
+into that same tape, then proving the heap SpawnInfo cannot secretly be one of
+the global parking spots.
 
 ## Open tasks by category
 
