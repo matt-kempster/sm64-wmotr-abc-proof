@@ -31,6 +31,7 @@ GENERATED := \
   generated/camera.v \
   generated/behavior_actions.v \
   generated/rumble_init.v \
+  generated/rumble_enabled.v \
   generated/save_file.v \
   generated/os_cont_start_read_data.v \
   generated/os_si_raw_start_dma.v \
@@ -68,6 +69,11 @@ generated/behavior_actions.v: $(SM64)/src/game/behavior_actions.c pipeline/cligh
 
 generated/rumble_init.v: $(SM64)/src/game/rumble_init.c pipeline/clightgen.sh
 	bash pipeline/clightgen.sh $< $@ $(SM64_CG)
+
+# Counterfactual US-target feature variant: VERSION_SH contributes only the
+# config.h ENABLE_RUMBLE feature bit needed to expose this translation unit.
+generated/rumble_enabled.v: $(SM64)/src/game/rumble_init.c pipeline/clightgen.sh
+	bash pipeline/clightgen.sh $< $@ $(SM64_CG) -DVERSION_SH=1
 
 generated/save_file.v: $(SM64)/src/game/save_file.c pipeline/clightgen.sh
 	bash pipeline/clightgen.sh $< $@ $(SM64_CG)

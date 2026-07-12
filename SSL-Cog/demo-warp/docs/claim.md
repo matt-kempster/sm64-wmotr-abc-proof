@@ -245,6 +245,13 @@ the matching fresh-local `free_list` preserve this state. Normal N64 external
 locality yields the same result once the reached external arguments are shown
 not to carry either protected cell address.
 
+For the counterfactual rumble configuration, the build also generates
+`rumble_enabled.v` from the same `rumble_init.c`, with the N64/US flags retained
+and the `VERSION_SH` feature bit used to make `config.h` select
+`ENABLE_RUMBLE=1`. This variant is kept separate from the canonical US program
+and exists solely to audit how enabling the feature changes the capability
+surface.
+
 ## Conditional impossibility result
 
 `separated_demo_pointer_cannot_change_mario_y` combines the generated direct-

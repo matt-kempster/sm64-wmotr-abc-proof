@@ -39,6 +39,8 @@
   - [x] Generate every translation unit whose body names `gCurrDemoInput` or
     `gDemoInputsBuf` (camera, behavior aggregation, rumble, and save-file added to
     the existing init/title/level/memory units).
+  - [x] Generate a counterfactual N64 `ENABLE_RUMBLE=1` Clight variant of
+    `rumble_init.c` for a separate capability audit.
   - [x] Certify all generated occurrence shapes and absence of pointer-cell
     address escape.
   - [ ] Lift the occurrence certificate through concrete Clight executions and

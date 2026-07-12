@@ -10,6 +10,7 @@ generated/level_update.v
 generated/camera.v
 generated/behavior_actions.v
 generated/rumble_init.v
+generated/rumble_enabled.v
 generated/save_file.v
 generated/os_cont_start_read_data.v
 generated/os_si_raw_start_dma.v
