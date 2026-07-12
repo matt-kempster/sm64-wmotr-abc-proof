@@ -41,7 +41,21 @@ GENERATED := \
   generated/object_list_processor.v \
   generated/pole_transfer_audit.txt
 
-.PHONY: all generated proofs audit regen clean
+AUDITED_SOURCES := \
+  $(SM64)/levels/ssl/script.c \
+  $(SM64)/levels/ssl/areas/2/collision.inc.c \
+  $(SM64)/data/behavior_data.c \
+  $(SM64)/src/game/behaviors/pole.inc.c \
+  $(SM64)/src/game/behaviors/pole_base.inc.c \
+  $(SM64)/src/game/mario_actions_automatic.c \
+  $(SM64)/src/game/interaction.c \
+  $(SM64)/src/game/mario.c \
+  $(SM64)/src/game/mario_actions_airborne.c \
+  $(SM64)/src/game/mario_step.c \
+  $(SM64)/src/game/object_helpers.c \
+  $(SM64)/src/game/object_list_processor.c
+
+.PHONY: all generated proofs audit check regen clean
 
 all: generated proofs
 
@@ -74,7 +88,7 @@ generated/mario_step.v: $(SM64)/src/game/mario_step.c pipeline/clightgen.sh
 generated/object_list_processor.v: $(SM64)/src/game/object_list_processor.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(SM64_CG)
 
-generated/pole_transfer_audit.txt: pipeline/audit_pole_transfer.py
+generated/pole_transfer_audit.txt: pipeline/audit_pole_transfer.py $(AUDITED_SOURCES)
 	PYTHONDONTWRITEBYTECODE=1 python3 pipeline/audit_pole_transfer.py $(SM64) > $@
 
 audit: generated/pole_transfer_audit.txt
@@ -85,6 +99,9 @@ $(COQMAKEFILE): _CoqProject
 
 proofs: $(COQMAKEFILE)
 	$(MAKE) -f $(COQMAKEFILE)
+
+check: generated
+	bash pipeline/check.sh
 
 regen:
 	rm -f $(GENERATED)

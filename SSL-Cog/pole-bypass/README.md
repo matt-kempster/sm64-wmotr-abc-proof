@@ -28,18 +28,52 @@ pinned US SM64 source and SSL Area 2 collision literals
 
 Generated Clight files are never hand-edited.
 
-## Current status
+## Current result
 
-The isolated project scaffold and durable claim documents exist. Model,
-generated Clight, proofs, and end-to-end checks are the next commits.
+The ordinary normalized pole route has a machine-checked minimum of exactly
+one A press in the project's closed-world transition model.
+
+- `proofs/GeneratedFacts.v` pins the generated C model and authentic SM64
+  source shapes: pole height, A/Z exits, velocity clearing, jump setup, air
+  drag/gravity, and object-list order.
+- `pipeline/audit_pole_transfer.py` checks the exact fifth-floor support and
+  eight-triangle sixth-floor ring. The ring is at Y 3942 and has a rectangular
+  hole whose nearest edge is 101 units from the pole center.
+- `proofs/PoleArithmetic.v` proves that a conservative non-A soft-bonk exit is
+  still at most 82 units from the pole before falling below the ring.
+- `proofs/PoleRoute.v` proves every modeled sixth-floor trace contains an A
+  edge and constructs a westward trace with exactly one.
+- `proofs/PoleBypass.v` packages those facts as
+  `pole_route_minimum_a_certificate`.
+
+This is not yet the unqualified bottom-to-sixth gameplay proof. The hard open
+obligation is to show that every authentic zero-A state prepared from the
+Pyramid bottom, including pole bypasses and object/platform/warp mechanisms,
+is simulated by the closed-world model. `proofs/GlobalBoundary.v` states and
+machine-checks the exact lifting theorem with that completeness premise kept
+explicit.
+
+The result concerns minimum A count, not literal action uniqueness. Authentic
+source has A-gated exits both while holding/climbing (`ACT_WALL_KICK_AIR`) and
+at the top (`ACT_TOP_OF_POLE_JUMP`).
 
 ## Build
 
 The toolchain is Coq 8.16.1 and CompCert 3.15 in the `sm64-item-proof` opam
-switch. Once the model and proof modules land, the normal commands will be:
+switch. The normal commands are:
 
 ```sh
 source pipeline/env.sh
 make generated
 bash pipeline/check.sh
 ```
+
+From PowerShell, select the Ubuntu WSL distribution explicitly:
+
+```powershell
+wsl.exe -d Ubuntu
+```
+
+Then change to this directory and run the shell commands above. Generated
+Clight files and the source/collision audit receipt are committed and are
+checked for reproducibility.

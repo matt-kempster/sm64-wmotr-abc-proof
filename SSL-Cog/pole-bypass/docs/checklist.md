@@ -1,6 +1,6 @@
 # SSL Pyramid pole-bypass checklist
 
-Last updated: 2026-07-12 (global boundary interface commit).
+Last updated: 2026-07-12 (verified build and README integration commit).
 
 Every commit must update this file and the other two files in `docs/`.
 
@@ -16,8 +16,8 @@ completeness bridge covers every bottom-reachable zero-A bypass state.
 - [x] Record the preparation quantifier and zero-A counting convention.
 - [x] Record toolchain, source baseline, and local generation checkout.
 - [x] Add the isolated Clight generation pipeline.
-- [ ] Add the end-to-end proof/check pipeline.
-- [ ] Update `SSL-Cog/README.md` after the project is buildable.
+- [x] Add the end-to-end proof/check pipeline.
+- [x] Update `SSL-Cog/README.md` after the project is buildable.
 
 ## Source and geometry certificates
 
@@ -43,7 +43,7 @@ completeness bridge covers every bottom-reachable zero-A bypass state.
   Use the conservative five-frame speed lower bound 22, not a constant-speed
   reading of the source's initial 24-unit minimum.
 - [x] Prove the closed-world pole-route minimum-A capstone.
-- [ ] Check capstone assumptions and reject proof holes.
+- [x] Check capstone assumptions and reject proof holes.
 - [ ] Either prove the global prepared-state model-completeness bridge or
   replace the global hypothesis with a concrete zero-A counterexample.
 - [x] State the global lifting theorem with model completeness as an explicit
@@ -66,3 +66,6 @@ completeness bridge covers every bottom-reachable zero-A bypass state.
 - 2026-07-12: added `GlobalBoundary.v`, which machine-checks the reduction from
   the authentic global lower bound to the named bypass-model-completeness
   obligation and keeps that still-open premise visible.
+- 2026-07-12: added the end-to-end audit/proof/assumption check, documented the
+  result and its boundary in the project README, and registered the fifth
+  project in `SSL-Cog/README.md`.
