@@ -46,6 +46,41 @@ The formal model will over-approximate these choices rather than assume a
 cooperative player. Its open source-to-model obligations are tracked in
 `docs/claim.md`.
 
+## The gravity-zero tripwire
+
+`BEGIN_DOUBLE_POUND` sets gravity to zero. Later, `DOUBLE_POUND` contains a
+grounded branch that writes vertical velocity 100 without changing gravity.
+As an isolated C state, grounded double-pound with gravity zero is a genuine
+runaway seed: after the ground flag is cleared, every active movement frame
+would add 100 to Y and the `velY <= 0` branch would never install gravity.
+
+The normal source schedule prevents that state in three ways that the formal
+proof must retain:
+
+- gravity-zero movement at the arena floor uses a strict `posY < floorHeight`
+  ground test, so equality clears stale landed/on-ground bits;
+- hand collision data becomes non-null on its first update and its room stays
+  `-1`, excluding the far-away/different-room partial-movement guards; and
+- during double-pound setup the hand centers remain at least 280 units apart
+  even under a conservative mixed-frame interpolation bound,
+  outside the earlier hand's closed collision footprint, while raised static
+  floors do not intersect the setup corridor.
+
+After the first descent/pound, gravity is `-15` before the velocity-100 branch
+can be selected. The source audit checks the constants and geometry; the Rocq
+work must still prove the schedule invariant.
+
+## Conservative height envelope
+
+For the eventual global bound, the audit records three deliberately loose
+ceilings. Area 3's largest static collision vertex Y is 896. An authentic
+upward impulse gains less than 300 units once the gravity-zero seed is
+excluded. An Eyerok collision model reaches at most 507 units above its
+origin after scale. Because dynamic surfaces are cleared and the first-spawned
+hand updates before the second, the first hand can use static floors only and
+the second can use at most the first hand's current surface. This yields
+candidate absolute bounds 1196 and 2003 respectively.
+
 ## Proof relevance
 
 The desired refutation of the route is a uniform home-relative height bound

@@ -1,6 +1,6 @@
 # Goal recovery note
 
-Last updated: 2026-07-12 (project scaffold).
+Last updated: 2026-07-12 (pinned source-ingestion commit).
 
 ## Objective
 
@@ -28,6 +28,13 @@ impossibility target with a concrete action and movement trace.
    infinite run has unbounded height.
 6. Keep the source-to-model simulation boundary explicit; close it against
    generated Clight execution or leave the global gameplay theorem conditional.
+
+The source audit has identified the exact counterexample fork for steps 3--5.
+If `DOUBLE_POUND` is reached while grounded with gravity zero, its velocity-100
+branch creates an unbounded ascent. The intended impossibility proof therefore
+has to derive that this state is unreachable from the authentic hand/boss
+schedule, including dynamic hand collision and partial-update cases. The audit
+now checks the static facts supporting that derivation.
 
 ## Repository constraints
 

@@ -1,6 +1,6 @@
 # Working claim and scope
 
-Last updated: 2026-07-12 (project scaffold).
+Last updated: 2026-07-12 (pinned source-ingestion commit).
 
 ## Game and source boundary
 
@@ -10,10 +10,9 @@ Last updated: 2026-07-12 (project scaffold).
 - Available sibling checkout:
   `36fbf8d693a9fc2bdec0c77402f8e96d07d2f461`.
 - The Eyerok implementation, object fields, action constants, and movement
-  helper must be verified identical to the baseline before generated Clight
-  from the sibling checkout is admitted as evidence. The sibling SSL script
-  is known to contain later conditional instrumentation and is not silently
-  treated as the pinned script.
+  helper are checked byte-for-byte against the baseline before generation.
+  The sibling SSL script contains later conditional instrumentation, so the
+  pipeline extracts the canonical script directly from the pinned Git object.
 - Coq 8.16.1; CompCert 3.15 configured for 32-bit big-endian `ppc-eabi`.
 
 ## Definitions
@@ -47,7 +46,26 @@ showing that every authentic Eyerok hand frame is simulated by the model.
 
 ## Current verdict
 
-Open. The scaffold contains no boundedness theorem and no counterexample.
+Open, with the only syntactic runaway seed isolated. The source permits an
+unbounded local lasso if `DOUBLE_POUND` enters its velocity-100 grounded branch
+while gravity is zero. The audit supports, but does not itself prove, the
+reachable-state invariant excluding that seed:
+
+```text
+reachable hand && action = DOUBLE_POUND && gravity = 0
+  -> velocity <= 0 && not grounded
+```
+
+The generated Clight surface and audit receipt are now reproducible. The
+planned conservative absolute-height envelope is 1196 for the earlier surface-
+list hand and 2003 for the later hand: static vertex ceiling 896, upward-flight
+allowance 300, and scaled hand-collision top offset 507. These numbers are not
+yet a proved reachable-state theorem.
+
+The object-helper Clight input applies the sibling project's seven literal-
+suffix compatibility edits because CompCert 3.15 rejects long-double
+constants. None of those edits occurs in the audited vertical integration,
+ground comparison, or `cur_obj_move_standard` control path.
 
 No `Admitted`, `Axiom`, `admit`, `sorry`, or equivalent project-added proof
 hole may enter a capstone.
