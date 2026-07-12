@@ -1,14 +1,14 @@
 # SSL Pyramid pole-bypass checklist
 
-Last updated: 2026-07-12 (source and collision audit commit).
+Last updated: 2026-07-12 (machine-checked pole-route proof commit).
 
 Every commit must update this file and the other two files in `docs/`.
 
 ## Current verdict
 
-Open. The project now contains an executable conservative pole-route model and
-an isolated `clightgen` pipeline. The independent source/collision audit is
-also reproducible. Machine-checked proof modules are next.
+The normalized closed-world pole route now has a machine-checked exact minimum
+of one A press. The global gameplay verdict remains open until the model-
+completeness bridge covers every bottom-reachable zero-A bypass state.
 
 ## Project setup
 
@@ -29,17 +29,20 @@ also reproducible. Machine-checked proof modules are next.
   sixth-floor hole.
 - [x] Pin the pole placement `(0,3200,1331)`, parameter 92, hitbox height 920,
   effective top Y 4020, and upward-facing sixth-floor Y 3942.
-- [ ] Pin A-button mapping and the A/Z pole action branches in generated ASTs.
+- [x] Pin A-button mapping and the A/Z pole action branches in generated ASTs.
 
 ## Proof obligations
 
-- [ ] Define complete-trace A-press counting and prepared fifth-floor entry.
-- [ ] Prove the non-A `-2` soft-bonk exit cannot clear the hole before falling
+- [x] Define A-edge counting for the closed-world pole-route trace.
+- [ ] Extend that count to an authentic complete bottom-to-sixth trace and
+  prepared fifth-floor entry.
+- [x] Prove the non-A `-2` soft-bonk exit cannot clear the hole before falling
   through the sixth-floor Y plane.
-- [ ] Prove the A-gated jump clears the hole and supplies a one-A witness.
+- [x] Prove the A-gated westward jump clears the hole and supplies a one-A
+  witness.
   Use the conservative five-frame speed lower bound 22, not a constant-speed
   reading of the source's initial 24-unit minimum.
-- [ ] Prove the closed-world pole-route minimum-A capstone.
+- [x] Prove the closed-world pole-route minimum-A capstone.
 - [ ] Check capstone assumptions and reject proof holes.
 - [ ] Either prove the global prepared-state model-completeness bridge or
   replace the global hypothesis with a concrete zero-A counterexample.
@@ -55,3 +58,6 @@ also reproducible. Machine-checked proof modules are next.
   verifies 1080 vertices, 1558 triangles, the exact fifth support and eight
   sixth-floor ring triangles, the 203-by-205 opening, source action/physics
   literals, pole push, and update order.
+- 2026-07-12: added generated-AST shape facts, exact conservative pole-exit
+  arithmetic, A-edge trace semantics, a zero-A invariant, a one-A westward
+  witness, and the closed-world `pole_route_minimum_a_certificate` capstone.

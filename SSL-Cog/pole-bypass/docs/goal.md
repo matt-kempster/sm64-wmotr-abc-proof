@@ -1,6 +1,6 @@
 # Goal recovery note
 
-Last updated: 2026-07-12 (source and collision audit commit).
+Last updated: 2026-07-12 (machine-checked pole-route proof commit).
 
 ## Objective
 
@@ -54,6 +54,14 @@ underside geometry; the sixth-floor landing ring is the eight upward-facing Y
 3942 triangles. The 101-unit quantity is the minimum cardinal clearance from
 the pole center to the rectangular hole boundary. It is sound as a no-A
 inside-hole bound; an existence witness must also choose a direction.
+
+The first formal capstone is now
+`SSLPoleBypass.Proofs.PoleBypass.pole_route_minimum_a_certificate`.
+It proves that the exact minimum is one inside the explicitly named
+closed-world pole-route transition system, packages generated-model and
+authentic-source AST shape facts, and proves the conservative soft-bonk and
+westward jump arithmetic. The final global step remains the bottom-reachable
+bypass-completeness theorem in item 5 above.
 
 ## Repository constraints
 
