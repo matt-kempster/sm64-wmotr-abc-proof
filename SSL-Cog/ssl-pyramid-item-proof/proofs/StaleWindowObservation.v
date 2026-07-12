@@ -3044,6 +3044,499 @@ Proof.
     contradiction.
 Qed.
 
+Theorem exec_level_cmd_place_object_generated_spawninfo_store_stage_preserves_receipts :
+  forall sets lhs rhs e le before after trace le' outcome
+      spawn_block spawn_offset area areas_block areas_offset,
+    le ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
+    (forall area_global_block,
+      Genv.find_symbol level_script_ge LS._sCurrAreaIndex =
+        Some area_global_block ->
+      area_global_block <> spawn_block) ->
+    (forall areas_global_block,
+      Genv.find_symbol level_script_ge LS._gAreas = Some areas_global_block ->
+      areas_global_block <> spawn_block) ->
+    level_cmd_place_object_current_area_read e before area ->
+    level_cmd_place_object_areas_read e before areas_block areas_offset ->
+    spawninfo_active_area_read before spawn_block spawn_offset area ->
+    (forall sets_trace sets_le sets_after sets_outcome,
+      exec_stmt function_entry2 level_script_ge e le before sets
+        sets_trace sets_le sets_after sets_outcome ->
+      sets_le ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) /\
+      sets_after = before /\ sets_trace = E0 /\
+      sets_outcome = Out_normal) ->
+    (forall stage_le stage_before stage_after,
+      stage_le ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
+      level_script_sassign_effect lhs rhs e stage_le
+        stage_before stage_after ->
+      spawninfo_active_area_read stage_before
+        spawn_block spawn_offset area ->
+      spawninfo_active_area_read stage_after
+        spawn_block spawn_offset area) ->
+    (forall stage_le stage_before stage_after,
+      stage_le ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
+      level_script_sassign_effect lhs rhs e stage_le
+        stage_before stage_after ->
+      exists store_chunk store_offset stored_value,
+        Mem.store store_chunk stage_before spawn_block
+          store_offset stored_value = Some stage_after) ->
+    exec_stmt function_entry2 level_script_ge e le before
+      (Ssequence sets (Sassign lhs rhs)) trace le' after outcome ->
+    spawninfo_active_area_read after spawn_block spawn_offset area /\
+    level_cmd_place_object_current_area_read e after area /\
+    level_cmd_place_object_areas_read e after areas_block areas_offset /\
+    le' ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) /\
+    trace = E0 /\ outcome = Out_normal.
+Proof.
+  intros sets lhs rhs e le before after trace le' outcome
+    spawn_block spawn_offset area areas_block areas_offset
+    Hspawn Harea_separated Hareas_separated Harea Hareas Hread
+    Hsets_receipt Hactive_frame Hstore_receipt Hexec.
+  inv Hexec.
+  - match goal with
+    | Hsets :
+        exec_stmt function_entry2 level_script_ge e le before sets
+          _ _ _ _ |- _ =>
+        destruct (Hsets_receipt _ _ _ _ Hsets)
+          as (Hspawn_after_sets & Hmemory_sets
+              & Htrace_sets & Hout_sets)
+    end.
+    assert (Hread_after_sets :
+      spawninfo_active_area_read m1 spawn_block spawn_offset area).
+    { rewrite Hmemory_sets; exact Hread. }
+    assert (Harea_after_sets :
+      level_cmd_place_object_current_area_read e m1 area).
+    { rewrite Hmemory_sets; exact Harea. }
+    assert (Hareas_after_sets :
+      level_cmd_place_object_areas_read e m1 areas_block areas_offset).
+    { rewrite Hmemory_sets; exact Hareas. }
+    match goal with
+    | Hassign :
+        exec_stmt function_entry2 level_script_ge e ?stage_le ?stage_before
+          (Sassign lhs rhs) _ _ _ _ |- _ =>
+        destruct
+          (exec_level_script_sassign_effect_from_exec_stmt
+            e stage_le stage_before lhs rhs _ _ _ _ Hassign)
+          as (Hassign_effect & Htrace_assign & Hle_assign & Hout_assign)
+    end.
+    assert (Hread_after :
+      spawninfo_active_area_read after spawn_block spawn_offset area).
+    { eapply Hactive_frame; eauto. }
+    destruct (Hstore_receipt _ _ _ Hspawn_after_sets Hassign_effect)
+      as (store_chunk & store_offset & stored_value & Hstore).
+    destruct
+      (level_cmd_place_object_global_reads_preserved_by_spawn_block_store
+        e m1 after area areas_block areas_offset
+        store_chunk spawn_block store_offset stored_value
+        Harea_separated Hareas_separated Hstore
+        Harea_after_sets Hareas_after_sets)
+      as (Harea_after & Hareas_after).
+    split; [exact Hread_after |].
+    split; [exact Harea_after |].
+    split; [exact Hareas_after |].
+    split.
+    + rewrite Hle_assign; exact Hspawn_after_sets.
+    + split.
+      * rewrite Htrace_assign, Htrace_sets; reflexivity.
+      * exact Hout_assign.
+  - match goal with
+    | Hsets :
+        exec_stmt function_entry2 level_script_ge e le before sets
+          _ _ _ _ |- _ =>
+        destruct (Hsets_receipt _ _ _ _ Hsets)
+          as (_ & _ & _ & Hout_sets);
+        subst
+    end.
+    contradiction.
+Qed.
+
+Theorem exec_level_cmd_place_object_generated_behavior_arg_stage_preserves_receipts :
+  forall e le before after trace le' outcome
+      spawn_block spawn_offset area areas_block areas_offset,
+    le ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
+    Ptrofs.unsigned spawn_offset <=
+      Ptrofs.max_unsigned - spawn_info_behavior_arg_offset ->
+    (forall area_global_block,
+      Genv.find_symbol level_script_ge LS._sCurrAreaIndex =
+        Some area_global_block ->
+      area_global_block <> spawn_block) ->
+    (forall areas_global_block,
+      Genv.find_symbol level_script_ge LS._gAreas = Some areas_global_block ->
+      areas_global_block <> spawn_block) ->
+    level_cmd_place_object_current_area_read e before area ->
+    level_cmd_place_object_areas_read e before areas_block areas_offset ->
+    spawninfo_active_area_read before spawn_block spawn_offset area ->
+    exec_stmt function_entry2 level_script_ge e le before
+      level_cmd_place_object_generated_behavior_arg_stage
+      trace le' after outcome ->
+    spawninfo_active_area_read after spawn_block spawn_offset area /\
+    level_cmd_place_object_current_area_read e after area /\
+    level_cmd_place_object_areas_read e after areas_block areas_offset /\
+    le' ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) /\
+    trace = E0 /\ outcome = Out_normal.
+Proof.
+  intros e le before after trace le' outcome
+    spawn_block spawn_offset area areas_block areas_offset
+    Hspawn Hfits Harea_separated Hareas_separated
+    Harea Hareas Hread Hexec.
+  unfold level_cmd_place_object_generated_behavior_arg_stage,
+    level_cmd_place_object_behavior_arg_assign in Hexec.
+  eapply
+    exec_level_cmd_place_object_generated_spawninfo_store_stage_preserves_receipts
+      with (sets := level_cmd_place_object_behavior_arg_sets)
+        (lhs := level_cmd_place_object_behavior_arg_lhs)
+        (rhs := level_cmd_place_object_behavior_arg_rhs);
+    eauto.
+  - intros sets_trace sets_le sets_after sets_outcome Hsets.
+    eapply exec_level_cmd_place_object_behavior_arg_sets_preserve_spawninfo;
+      eauto.
+  - intros stage_le stage_before stage_after
+      Hstage_spawn Hstage_effect Hstage_read.
+    eapply level_cmd_place_object_behavior_arg_store_preserves_active_area_read;
+      eauto.
+  - intros stage_le stage_before stage_after Hstage_spawn Hstage_effect.
+    destruct
+      (level_cmd_place_object_behavior_arg_sassign_effect_store
+        e stage_le stage_before stage_after spawn_block spawn_offset
+        Hstage_spawn Hstage_effect)
+      as (stored_value & Hstore).
+    exists Mint32,
+      (Ptrofs.unsigned
+        (Ptrofs.add spawn_offset
+          (Ptrofs.repr spawn_info_behavior_arg_offset))),
+      stored_value.
+    exact Hstore.
+Qed.
+
+Theorem exec_level_cmd_place_object_generated_behavior_script_stage_preserves_receipts :
+  forall e le before after trace le' outcome
+      spawn_block spawn_offset area areas_block areas_offset,
+    le ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
+    Ptrofs.unsigned spawn_offset <=
+      Ptrofs.max_unsigned - spawn_info_behavior_script_offset ->
+    (forall area_global_block,
+      Genv.find_symbol level_script_ge LS._sCurrAreaIndex =
+        Some area_global_block ->
+      area_global_block <> spawn_block) ->
+    (forall areas_global_block,
+      Genv.find_symbol level_script_ge LS._gAreas = Some areas_global_block ->
+      areas_global_block <> spawn_block) ->
+    level_cmd_place_object_current_area_read e before area ->
+    level_cmd_place_object_areas_read e before areas_block areas_offset ->
+    spawninfo_active_area_read before spawn_block spawn_offset area ->
+    exec_stmt function_entry2 level_script_ge e le before
+      level_cmd_place_object_generated_behavior_script_stage
+      trace le' after outcome ->
+    spawninfo_active_area_read after spawn_block spawn_offset area /\
+    level_cmd_place_object_current_area_read e after area /\
+    level_cmd_place_object_areas_read e after areas_block areas_offset /\
+    le' ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) /\
+    trace = E0 /\ outcome = Out_normal.
+Proof.
+  intros e le before after trace le' outcome
+    spawn_block spawn_offset area areas_block areas_offset
+    Hspawn Hfits Harea_separated Hareas_separated
+    Harea Hareas Hread Hexec.
+  unfold level_cmd_place_object_generated_behavior_script_stage,
+    level_cmd_place_object_behavior_script_assign in Hexec.
+  eapply
+    exec_level_cmd_place_object_generated_spawninfo_store_stage_preserves_receipts
+      with (sets := level_cmd_place_object_behavior_script_sets)
+        (lhs := level_cmd_place_object_behavior_script_lhs)
+        (rhs := level_cmd_place_object_behavior_script_rhs);
+    eauto.
+  - intros sets_trace sets_le sets_after sets_outcome Hsets.
+    eapply
+      exec_level_cmd_place_object_behavior_script_sets_preserve_spawninfo;
+      eauto.
+  - intros stage_le stage_before stage_after
+      Hstage_spawn Hstage_effect Hstage_read.
+    eapply
+      level_cmd_place_object_behavior_script_store_preserves_active_area_read;
+      eauto.
+  - intros stage_le stage_before stage_after Hstage_spawn Hstage_effect.
+    destruct
+      (level_cmd_place_object_behavior_script_sassign_effect_store
+        e stage_le stage_before stage_after spawn_block spawn_offset
+        Hstage_spawn Hstage_effect)
+      as (stored_value & Hstore).
+    exists Mptr,
+      (Ptrofs.unsigned
+        (Ptrofs.add spawn_offset
+          (Ptrofs.repr spawn_info_behavior_script_offset))),
+      stored_value.
+    exact Hstore.
+Qed.
+
+Theorem exec_level_cmd_place_object_generated_model_stage_preserves_receipts :
+  forall e le before after trace le' outcome
+      spawn_block spawn_offset area areas_block areas_offset,
+    le ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
+    Ptrofs.unsigned spawn_offset <=
+      Ptrofs.max_unsigned - spawn_info_model_offset ->
+    (forall area_global_block,
+      Genv.find_symbol level_script_ge LS._sCurrAreaIndex =
+        Some area_global_block ->
+      area_global_block <> spawn_block) ->
+    (forall areas_global_block,
+      Genv.find_symbol level_script_ge LS._gAreas = Some areas_global_block ->
+      areas_global_block <> spawn_block) ->
+    level_cmd_place_object_current_area_read e before area ->
+    level_cmd_place_object_areas_read e before areas_block areas_offset ->
+    spawninfo_active_area_read before spawn_block spawn_offset area ->
+    exec_stmt function_entry2 level_script_ge e le before
+      level_cmd_place_object_generated_model_stage
+      trace le' after outcome ->
+    spawninfo_active_area_read after spawn_block spawn_offset area /\
+    level_cmd_place_object_current_area_read e after area /\
+    level_cmd_place_object_areas_read e after areas_block areas_offset /\
+    le' ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) /\
+    trace = E0 /\ outcome = Out_normal.
+Proof.
+  intros e le before after trace le' outcome
+    spawn_block spawn_offset area areas_block areas_offset
+    Hspawn Hfits Harea_separated Hareas_separated
+    Harea Hareas Hread Hexec.
+  unfold level_cmd_place_object_generated_model_stage,
+    level_cmd_place_object_model_assign in Hexec.
+  eapply
+    exec_level_cmd_place_object_generated_spawninfo_store_stage_preserves_receipts
+      with (sets := level_cmd_place_object_model_sets)
+        (lhs := level_cmd_place_object_model_lhs)
+        (rhs := level_cmd_place_object_model_rhs);
+    eauto.
+  - intros sets_trace sets_le sets_after sets_outcome Hsets.
+    eapply exec_level_cmd_place_object_model_sets_preserve_spawninfo;
+      eauto.
+  - intros stage_le stage_before stage_after
+      Hstage_spawn Hstage_effect Hstage_read.
+    eapply level_cmd_place_object_model_store_preserves_active_area_read;
+      eauto.
+  - intros stage_le stage_before stage_after Hstage_spawn Hstage_effect.
+    destruct
+      (level_cmd_place_object_model_sassign_effect_store
+        e stage_le stage_before stage_after spawn_block spawn_offset
+        Hstage_spawn Hstage_effect)
+      as (stored_value & Hstore).
+    exists Mptr,
+      (Ptrofs.unsigned
+        (Ptrofs.add spawn_offset
+          (Ptrofs.repr spawn_info_model_offset))),
+      stored_value.
+    exact Hstore.
+Qed.
+
+Theorem exec_level_cmd_place_object_generated_intervening_tail_preserves_receipts :
+  forall e le before after trace le' outcome
+      spawn_block spawn_offset area areas_block areas_offset,
+    le ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
+    Ptrofs.unsigned spawn_offset <=
+      Ptrofs.max_unsigned - spawn_info_model_offset ->
+    (forall area_global_block,
+      Genv.find_symbol level_script_ge LS._sCurrAreaIndex =
+        Some area_global_block ->
+      area_global_block <> spawn_block) ->
+    (forall areas_global_block,
+      Genv.find_symbol level_script_ge LS._gAreas = Some areas_global_block ->
+      areas_global_block <> spawn_block) ->
+    level_cmd_place_object_current_area_read e before area ->
+    level_cmd_place_object_areas_read e before areas_block areas_offset ->
+    spawninfo_active_area_read before spawn_block spawn_offset area ->
+    exec_stmt function_entry2 level_script_ge e le before
+      level_cmd_place_object_generated_intervening_tail
+      trace le' after outcome ->
+    spawninfo_active_area_read after spawn_block spawn_offset area /\
+    level_cmd_place_object_current_area_read e after area /\
+    level_cmd_place_object_areas_read e after areas_block areas_offset /\
+    le' ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) /\
+    trace = E0 /\ outcome = Out_normal.
+Proof.
+  intros e le before after trace le' outcome
+    spawn_block spawn_offset area areas_block areas_offset
+    Hspawn Hfits_model Harea_separated Hareas_separated
+    Harea Hareas Hread Hexec.
+  assert (Hfits_behavior_arg :
+    Ptrofs.unsigned spawn_offset <=
+      Ptrofs.max_unsigned - spawn_info_behavior_arg_offset).
+  { unfold spawn_info_behavior_arg_offset, spawn_info_model_offset in *.
+    lia. }
+  assert (Hfits_behavior_script :
+    Ptrofs.unsigned spawn_offset <=
+      Ptrofs.max_unsigned - spawn_info_behavior_script_offset).
+  { unfold spawn_info_behavior_script_offset, spawn_info_model_offset in *.
+    lia. }
+  unfold level_cmd_place_object_generated_intervening_tail in Hexec.
+  inv Hexec.
+  - match goal with
+    | Harg :
+        exec_stmt function_entry2 level_script_ge e le before
+          level_cmd_place_object_generated_behavior_arg_stage
+          _ _ _ _ |- _ =>
+        destruct
+          (exec_level_cmd_place_object_generated_behavior_arg_stage_preserves_receipts
+            e le before _ _ _ _ spawn_block spawn_offset area
+            areas_block areas_offset Hspawn Hfits_behavior_arg
+            Harea_separated Hareas_separated Harea Hareas Hread Harg)
+          as (Hread_after_arg & Harea_after_arg & Hareas_after_arg
+              & Hspawn_after_arg & Htrace_arg & Hout_arg)
+    end.
+    match goal with
+    | Htail :
+        exec_stmt function_entry2 level_script_ge e ?script_le ?script_before
+          (Ssequence level_cmd_place_object_generated_behavior_script_stage
+            level_cmd_place_object_generated_model_stage)
+          _ _ _ _ |- _ =>
+        inv Htail
+    end.
+    + match goal with
+      | Hscript :
+          exec_stmt function_entry2 level_script_ge e ?script_le ?script_before
+            level_cmd_place_object_generated_behavior_script_stage
+            _ _ _ _ |- _ =>
+          destruct
+            (exec_level_cmd_place_object_generated_behavior_script_stage_preserves_receipts
+              e script_le script_before _ _ _ _ spawn_block spawn_offset area
+              areas_block areas_offset Hspawn_after_arg Hfits_behavior_script
+              Harea_separated Hareas_separated Harea_after_arg Hareas_after_arg
+              Hread_after_arg Hscript)
+            as (Hread_after_script & Harea_after_script & Hareas_after_script
+                & Hspawn_after_script & Htrace_script & Hout_script)
+      end.
+      match goal with
+      | Hmodel :
+          exec_stmt function_entry2 level_script_ge e ?model_le ?model_before
+            level_cmd_place_object_generated_model_stage _ _ _ _ |- _ =>
+          destruct
+            (exec_level_cmd_place_object_generated_model_stage_preserves_receipts
+              e model_le model_before after _ le' outcome
+              spawn_block spawn_offset area areas_block areas_offset
+              Hspawn_after_script Hfits_model Harea_separated Hareas_separated
+              Harea_after_script Hareas_after_script Hread_after_script Hmodel)
+            as (Hread_after & Harea_after & Hareas_after & Hspawn_after
+                & Htrace_model & Hout_model)
+      end.
+      split; [exact Hread_after |].
+      split; [exact Harea_after |].
+      split; [exact Hareas_after |].
+      split; [exact Hspawn_after |].
+      split.
+      * rewrite Htrace_model, Htrace_script; reflexivity.
+      * exact Hout_model.
+    + match goal with
+      | Hscript :
+          exec_stmt function_entry2 level_script_ge e ?script_le ?script_before
+            level_cmd_place_object_generated_behavior_script_stage
+            _ _ _ _ |- _ =>
+          destruct
+            (exec_level_cmd_place_object_generated_behavior_script_stage_preserves_receipts
+              e script_le script_before _ _ _ _ spawn_block spawn_offset area
+              areas_block areas_offset Hspawn_after_arg Hfits_behavior_script
+              Harea_separated Hareas_separated Harea_after_arg Hareas_after_arg
+              Hread_after_arg Hscript)
+            as (_ & _ & _ & _ & _ & Hout_script);
+          subst
+      end.
+      contradiction.
+  - match goal with
+    | Harg :
+        exec_stmt function_entry2 level_script_ge e le before
+          level_cmd_place_object_generated_behavior_arg_stage
+          _ _ _ _ |- _ =>
+        destruct
+          (exec_level_cmd_place_object_generated_behavior_arg_stage_preserves_receipts
+            e le before _ _ _ _ spawn_block spawn_offset area
+            areas_block areas_offset Hspawn Hfits_behavior_arg
+            Harea_separated Hareas_separated Harea Hareas Hread Harg)
+          as (_ & _ & _ & _ & _ & Hout_arg);
+        subst
+    end.
+    contradiction.
+Qed.
+
+Theorem exec_level_cmd_place_object_generated_post_active_area_tail_preserves_active_area_read :
+  forall e le before after trace le' outcome
+      spawn_block spawn_offset area areas_block areas_offset,
+    le ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
+    spawn_block <> areas_block ->
+    Ptrofs.unsigned spawn_offset <=
+      Ptrofs.max_unsigned - spawn_info_next_offset ->
+    (forall area_global_block,
+      Genv.find_symbol level_script_ge LS._sCurrAreaIndex =
+        Some area_global_block ->
+      area_global_block <> spawn_block) ->
+    (forall areas_global_block,
+      Genv.find_symbol level_script_ge LS._gAreas = Some areas_global_block ->
+      areas_global_block <> spawn_block) ->
+    level_cmd_place_object_current_area_read e before area ->
+    level_cmd_place_object_areas_read e before areas_block areas_offset ->
+    spawninfo_active_area_read before spawn_block spawn_offset area ->
+    exec_stmt function_entry2 level_script_ge e le before
+      level_cmd_place_object_generated_post_active_area_tail
+      trace le' after outcome ->
+    spawninfo_active_area_read after spawn_block spawn_offset area /\
+    le' ! LS._t'6 = Some (Vptr areas_block areas_offset) /\
+    le' ! LS._t'7 = Some (Vint (Int.repr area)) /\
+    trace = E0 /\ outcome = Out_normal.
+Proof.
+  intros e le before after trace le' outcome
+    spawn_block spawn_offset area areas_block areas_offset
+    Hspawn Hdiff Hfits_next Harea_separated Hareas_separated
+    Harea Hareas Hread Hexec.
+  assert (Hfits_model :
+    Ptrofs.unsigned spawn_offset <=
+      Ptrofs.max_unsigned - spawn_info_model_offset).
+  { unfold spawn_info_model_offset, spawn_info_next_offset in *.
+    lia. }
+  unfold level_cmd_place_object_generated_post_active_area_tail in Hexec.
+  inv Hexec.
+  - match goal with
+    | Hintervening :
+        exec_stmt function_entry2 level_script_ge e le before
+          level_cmd_place_object_generated_intervening_tail
+          _ _ _ _ |- _ =>
+        destruct
+          (exec_level_cmd_place_object_generated_intervening_tail_preserves_receipts
+            e le before _ _ _ _ spawn_block spawn_offset area
+            areas_block areas_offset Hspawn Hfits_model
+            Harea_separated Hareas_separated Harea Hareas Hread Hintervening)
+          as (Hread_after_intervening & Harea_after_intervening
+              & Hareas_after_intervening & Hspawn_after_intervening
+              & Htrace_intervening & Hout_intervening)
+    end.
+    match goal with
+    | Hlinks :
+        exec_stmt function_entry2 level_script_ge e ?links_le ?links_before
+          level_cmd_place_object_generated_list_link_tail _ _ _ _ |- _ =>
+        destruct
+          (exec_level_cmd_place_object_generated_list_link_tail_preserves_active_area_read
+            e links_le links_before after _ le' outcome
+            spawn_block spawn_offset area areas_block areas_offset
+            Hspawn_after_intervening Hdiff Hfits_next
+            Harea_separated Hareas_separated Harea_after_intervening
+            Hareas_after_intervening Hread_after_intervening Hlinks)
+          as (Hread_after & Ht6 & Ht7 & Htrace_links & Hout_links)
+    end.
+    split; [exact Hread_after |].
+    split; [exact Ht6 |].
+    split; [exact Ht7 |].
+    split.
+    + rewrite Htrace_links, Htrace_intervening; reflexivity.
+    + exact Hout_links.
+  - match goal with
+    | Hintervening :
+        exec_stmt function_entry2 level_script_ge e le before
+          level_cmd_place_object_generated_intervening_tail
+          _ _ _ _ |- _ =>
+        destruct
+          (exec_level_cmd_place_object_generated_intervening_tail_preserves_receipts
+            e le before _ _ _ _ spawn_block spawn_offset area
+            areas_block areas_offset Hspawn Hfits_model
+            Harea_separated Hareas_separated Harea Hareas Hread Hintervening)
+          as (_ & _ & _ & _ & _ & Hout_intervening);
+        subst
+    end.
+    contradiction.
+Qed.
+
 Theorem exec_level_cmd_place_object_active_area_copy_gives_spawninfo_active_area_read :
   forall e le before after trace le' outcome spawn_block spawn_offset,
     le ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
