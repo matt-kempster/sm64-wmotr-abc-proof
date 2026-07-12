@@ -33,5 +33,6 @@ proofs/OperationalCallgraph.v
 proofs/GeneratedCallgraphCertificate.v
 proofs/TargetInvariant.v
 proofs/RumbleEnabledSurface.v
+proofs/RunBodyLift.v
 proofs/ReachabilityBoundary.v
 proofs/Counterexample.v

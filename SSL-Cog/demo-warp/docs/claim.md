@@ -261,6 +261,15 @@ all three live blocks. The title theorem obtains its pointer from invariant
 `bufTarget`; the playback theorem deliberately requires the non-null
 demo-pointer load established by the generated outer branch.
 
+`generated_run_demo_inputs_body_path_lift` now proves that branch refinement
+from the actual generated body. It mechanically decomposes the outer prefix,
+`_t'2 = gCurrDemoInput` load, and `!= NULL` test; the true branch converts the
+safe-or-null cell value into a concrete `Vptr` in the demo block before the
+active playback subtree executes. This avoids the false context-free null
+claim. Its remaining playback-local obligations are narrowed to preservation
+by the generated controller-button prefix and the active subtree's ordinary
+stores plus the already proved authorized pair.
+
 For the counterfactual rumble configuration, the build also generates
 `rumble_enabled.v` from the same `rumble_init.c`, with the N64/US flags retained
 and the `VERSION_SH` feature bit used to make `config.h` select
