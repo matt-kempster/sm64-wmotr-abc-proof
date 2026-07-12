@@ -41,6 +41,13 @@ ever installing negative gravity. The source schedule appears to make that
 state unreachable; the next proof commits must establish that invariant and
 must not assume it silently. No boundedness conclusion is claimed yet.
 
+`inputs/eyerok_model.c` now makes the vertical abstraction executable. It
+tracks surface-list rank, controlled positioning, static or earlier-hand
+support, finite ascent budget, partial-update stuttering, deletion, and the
+runaway seed as a distinct mode. Its Clight AST is generated alongside the
+authentic source surface. The model is an over-approximate proof interface,
+not a claim that the original game stores an `ascentBudget` field.
+
 ## Build
 
 The intended toolchain is Coq 8.16.1 and CompCert 3.15 in the

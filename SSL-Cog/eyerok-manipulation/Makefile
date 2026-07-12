@@ -38,6 +38,7 @@ PREPARED := \
   build/source/ssl_script.c
 
 GENERATED := \
+  generated/eyerok_model.v \
   generated/obj_behaviors_2.v \
   generated/object_helpers.v \
   generated/behavior_script.v \
@@ -97,6 +98,9 @@ generated/ssl_script.v: build/source/ssl_script.c pipeline/clightgen.sh
 
 generated/source_audit.txt: pipeline/audit_eyerok_source.py $(AUDITED_SOURCES)
 	PYTHONDONTWRITEBYTECODE=1 python3 pipeline/audit_eyerok_source.py $(SM64) > $@
+
+generated/eyerok_model.v: inputs/eyerok_model.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@
 
 audit: generated/source_audit.txt
 	@cat generated/source_audit.txt

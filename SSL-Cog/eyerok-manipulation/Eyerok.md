@@ -81,6 +81,23 @@ hand updates before the second, the first hand can use static floors only and
 the second can use at most the first hand's current surface. This yields
 candidate absolute bounds 1196 and 2003 respectively.
 
+## Executable proof model
+
+`inputs/eyerok_model.c` packages this reasoning as a small C transition
+interface. A state records which hand updates first, its current action and Y,
+a remaining positive-ascent budget, gravity, and grounded status. Controlled
+source assignments are capped at home plus 600. Landing support is capped at
+896 for the first hand and at `1196 + 507 = 1703` for the second. A safe
+ballistic step transfers units from the remaining budget to Y, preserving
+`Y + budget`.
+
+The three authentic positive impulses receive conservative budgets 98
+(`ATTACKED`), 288 (`DIE`), and 285 (`DOUBLE_POUND`); the common proof ceiling
+is 300. The C model also enters a separate `RUNAWAY` mode for the forbidden
+gravity-zero grounded double-pound seed. That branch is intentional: generated
+model facts and the Rocq proof can distinguish “the local lasso exists” from
+“the authentic scheduler cannot reach it.”
+
 ## Proof relevance
 
 The desired refutation of the route is a uniform home-relative height bound

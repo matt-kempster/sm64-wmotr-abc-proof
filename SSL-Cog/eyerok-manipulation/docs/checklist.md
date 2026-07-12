@@ -1,6 +1,6 @@
 # Eyerok manipulation proof checklist
 
-Last updated: 2026-07-12 (pinned source-ingestion commit).
+Last updated: 2026-07-12 (executable vertical-model commit).
 
 ## Verdict
 
@@ -23,7 +23,7 @@ height bound remain to be machine-checked.
 - [x] Audit relevant files at the canonical revision and compare the available
   checkout byte-for-byte where it is used for generation.
 - [x] Audit both paired instant warps and their special collision triangles.
-- [ ] Add an executable vertical model and generate its Clight AST.
+- [x] Add an executable vertical model and generate its Clight AST.
 - [x] Generate the authentic `obj_behaviors_2.c` Clight AST containing Eyerok.
 - [x] Generate the authentic object-motion helper after documented CompCert
   long-double literal compatibility edits.
@@ -56,3 +56,6 @@ height bound remain to be machine-checked.
   and SSL-Cog registration.
 - Source ingestion: exact pinned top-level C extraction, authentic Clight ASTs,
   source/collision audit, and explicit gravity-zero counterexample tripwire.
+- Executable model: source-shaped action constants, asymmetric hand-support
+  ceilings, finite ascent budgets, safe-envelope check, and explicit runaway
+  branch, translated by CompCert Clight.
