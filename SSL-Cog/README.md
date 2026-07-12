@@ -14,7 +14,7 @@ analysis, a reproducible model, and machine-checked proof work rather than a
 
 ## Projects in this folder
 
-The five current projects cover the main ways the expected impossibility
+The six current projects cover the main ways the expected impossibility
 could fail:
 
 - `demo-warp/` studies whether the demo-input timer decrement can make the
@@ -32,6 +32,9 @@ could fail:
   be completed without an A press. It currently proves the normalized pole
   route has exact minimum one in a source-shaped closed-world model and keeps
   the global prepared-state bypass-completeness obligation explicit.
+- `eyerok-manipulation/` studies whether player-controlled action selection,
+  eye attacks, or partial updates can make an Eyerok hand rise without bound
+  above the instant-warp triangles between the Pyramid and boss arena.
 
 Start with the README in the project matching the route you care about. Each
 project is self-contained because the hypotheses use different game versions,

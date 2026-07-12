@@ -1,0 +1,4 @@
+# Rocq/Coq logical paths for the Eyerok manipulation proof.
+
+-R generated SSLEyerok.Generated
+-R proofs SSLEyerok.Proofs
