@@ -11,3 +11,11 @@ generated/object_list_processor.v
 generated/spawn_object.v
 generated/surface_collision.v
 generated/ssl_script.v
+
+proofs/GeneratedFacts.v
+proofs/Spec.v
+proofs/StateMachine.v
+proofs/SchedulerInvariant.v
+proofs/VerticalBound.v
+proofs/GlobalBoundary.v
+proofs/EyerokManipulation.v
