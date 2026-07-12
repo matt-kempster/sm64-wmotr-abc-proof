@@ -1,26 +1,27 @@
 # SSL Pyramid pole-bypass checklist
 
-Last updated: 2026-07-12 (project scaffold commit).
+Last updated: 2026-07-12 (Clight model and generation commit).
 
 Every commit must update this file and the other two files in `docs/`.
 
 ## Current verdict
 
-Open. The project currently contains its isolated structure and precise scope,
-but no generated model or machine-checked theorem yet.
+Open. The project now contains an executable conservative pole-route model and
+an isolated `clightgen` pipeline. Machine-checked proof modules are next.
 
 ## Project setup
 
 - [x] Create `SSL-Cog/pole-bypass/` with the standard project layout.
 - [x] Record the preparation quantifier and zero-A counting convention.
 - [x] Record toolchain, source baseline, and local generation checkout.
-- [ ] Add the isolated Clight generation and proof build pipeline.
+- [x] Add the isolated Clight generation pipeline.
+- [ ] Add the end-to-end proof/check pipeline.
 - [ ] Update `SSL-Cog/README.md` after the project is buildable.
 
 ## Source and geometry certificates
 
-- [ ] Generate the small pole-route C model with CompCert `clightgen`.
-- [ ] Generate authentic Clight for the SSL level script, pole behavior,
+- [x] Generate the small pole-route C model with CompCert `clightgen`.
+- [x] Generate authentic Clight for the SSL level script, pole behavior,
   automatic pole actions, input/action setup, interaction, airborne action,
   and air-step source units.
 - [ ] Audit the Area 2 collision mesh for the fifth-floor pole platform and
@@ -35,6 +36,8 @@ but no generated model or machine-checked theorem yet.
 - [ ] Prove the non-A `-2` soft-bonk exit cannot clear the hole before falling
   through the sixth-floor Y plane.
 - [ ] Prove the A-gated jump clears the hole and supplies a one-A witness.
+  Use the conservative five-frame speed lower bound 22, not a constant-speed
+  reading of the source's initial 24-unit minimum.
 - [ ] Prove the closed-world pole-route minimum-A capstone.
 - [ ] Check capstone assumptions and reject proof holes.
 - [ ] Either prove the global prepared-state model-completeness bridge or
@@ -44,3 +47,6 @@ but no generated model or machine-checked theorem yet.
 
 - 2026-07-12: created the isolated scaffold and durable goal/claim/checklist;
   no proof verdict claimed.
+- 2026-07-12: added the conservative C pole-route model, local CompCert 3.15
+  generation wrapper, authentic source-unit targets, and committed generated
+  Clight AST surface.

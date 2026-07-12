@@ -1,6 +1,6 @@
 # Working claim and scope
 
-Last updated: 2026-07-12 (project scaffold commit).
+Last updated: 2026-07-12 (Clight model and generation commit).
 
 ## Game and source boundary
 
@@ -47,13 +47,25 @@ the pole or carry prepared motion/object/platform state into the region.
 ## Current verdict
 
 Open. No zero-A counterexample is established. No global impossibility theorem
-is claimed at scaffold time.
+is claimed at model-generation time.
 
 The source audit already identifies the ordinary route's key asymmetry: A from
 the pole selects `ACT_WALL_KICK_AIR` or `ACT_TOP_OF_POLE_JUMP`, whereas the
 US non-A Z/low-health exit selects `ACT_SOFT_BONK` with forward speed `-2`.
 Those observations become machine-checked claims only after the generated AST
-and proof commits land.
+and proof commits land. The committed `inputs/pole_model.c` now makes the
+local abstraction executable. Its non-A branch over-approximates the pole
+object's radial push by snapping any sub-70-unit radius to 70 before adding the
+two-unit soft-bonk motion; the proof must justify this bound against the real
+push formula and update order. Its A branch uses horizontal speed 22 as a
+five-frame lower bound rather than treating the source's initial minimum speed
+24 as constant through airborne drag.
+
+The generated source surface is intentionally wider than the model: it
+contains the authentic SSL script, pole behavior, pole actions, button/action
+setup, pole interaction, airborne actions, air step, and object-list update
+order. This supports source-shape certificates but is not yet a linked
+whole-program execution proof.
 
 ## Known boundaries to keep explicit
 
