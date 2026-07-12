@@ -1,6 +1,6 @@
 # Goal recovery note
 
-Last updated: 2026-07-12 (machine-checked pole-route proof commit).
+Last updated: 2026-07-12 (global boundary interface commit).
 
 ## Objective
 
@@ -62,6 +62,12 @@ closed-world pole-route transition system, packages generated-model and
 authentic-source AST shape facts, and proves the conservative soft-bonk and
 westward jump arithmetic. The final global step remains the bottom-reachable
 bypass-completeness theorem in item 5 above.
+
+`proofs/GlobalBoundary.v` now states that final step as a reusable theorem,
+not an informal shrug. If every authentic bottom-to-sixth run is simulated by
+a modeled pole trace whose A count is no greater than the physical count, the
+closed-world lower bound lifts to every authentic run. Supplying that
+`bypass_model_complete` premise remains the central open proof obligation.
 
 ## Repository constraints
 

@@ -1,6 +1,6 @@
 # Working claim and scope
 
-Last updated: 2026-07-12 (machine-checked pole-route proof commit).
+Last updated: 2026-07-12 (global boundary interface commit).
 
 ## Game and source boundary
 
@@ -95,6 +95,14 @@ its 24-per-frame displacement upper bound remains inside the west outer edge.
 edge and constructs a route with exactly one. `proofs/PoleBypass.v` packages
 that theorem with generated Clight shape certificates. This capstone is not a
 simulation theorem for every authentic state/action from the Pyramid bottom.
+
+`proofs/GlobalBoundary.v` formalizes the missing implication. Its
+`bypass_model_complete` premise quantifies over an abstract type of authentic
+runs and requires every bottom-starting sixth-floor run to produce a modeled
+`SixthFloor` trace with modeled A count no larger than the physical count.
+`global_lower_bound_from_bypass_model_complete` then proves the global lower
+bound. The project does not inhabit that premise yet; no axiom is introduced
+to pretend otherwise.
 
 ## Known boundaries to keep explicit
 

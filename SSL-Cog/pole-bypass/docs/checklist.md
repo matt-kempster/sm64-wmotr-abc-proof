@@ -1,6 +1,6 @@
 # SSL Pyramid pole-bypass checklist
 
-Last updated: 2026-07-12 (machine-checked pole-route proof commit).
+Last updated: 2026-07-12 (global boundary interface commit).
 
 Every commit must update this file and the other two files in `docs/`.
 
@@ -46,6 +46,8 @@ completeness bridge covers every bottom-reachable zero-A bypass state.
 - [ ] Check capstone assumptions and reject proof holes.
 - [ ] Either prove the global prepared-state model-completeness bridge or
   replace the global hypothesis with a concrete zero-A counterexample.
+- [x] State the global lifting theorem with model completeness as an explicit
+  premise, without adding an axiom for that premise.
 
 ## Commit receipts
 
@@ -61,3 +63,6 @@ completeness bridge covers every bottom-reachable zero-A bypass state.
 - 2026-07-12: added generated-AST shape facts, exact conservative pole-exit
   arithmetic, A-edge trace semantics, a zero-A invariant, a one-A westward
   witness, and the closed-world `pole_route_minimum_a_certificate` capstone.
+- 2026-07-12: added `GlobalBoundary.v`, which machine-checks the reduction from
+  the authentic global lower bound to the named bypass-model-completeness
+  obligation and keeps that still-open premise visible.
