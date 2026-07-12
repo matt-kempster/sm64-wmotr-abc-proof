@@ -81,6 +81,8 @@
     - [x] Instantiate a concrete invariant over the current-pointer cell,
       handler `bufTarget` field, and live demo block; prove function entry/free
       frames and connect normal external locality to it.
+    - [x] Prove both authorized pairs preserve the full three-block invariant;
+      playback consumes its path-specific non-null pointer fact.
   - [x] Generate the libultra controller ingestion and SI DMA implementation
     that resolves `osContGetReadData`/`osContStartReadData` below the game loop.
   - [x] Certify the controller parser's exact five-store surface and the

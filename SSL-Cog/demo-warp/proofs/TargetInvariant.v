@@ -2,10 +2,13 @@ From Coq Require Import List ZArith Lia.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Clight ClightBigstep.
 From DemoWarp.Proofs Require Import PointerProvenanceKernel HardwareContracts
-  OperationalCallgraph.
+  OperationalCallgraph AuthorizedWriterExec TargetSymbolicLinking.
 
 Import ListNotations.
 Local Open Scope Z_scope.
+
+Module G := game_init.
+Module T := title_screen.
 
 Definition target_pointer_cells
     (curr_cell handler_block : block) : memory_region :=
@@ -52,6 +55,88 @@ Proof.
       - exact Hhandler.
       - intros i Hi. right. split; [reflexivity | exact Hi]. }
     rewrite Heq. exact Hbuf.
+Qed.
+
+Lemma current_cell_store_preserves_target_invariant :
+  forall demo_block curr_cell handler_block before after stored,
+    curr_cell <> handler_block ->
+    Mem.store Mptr before curr_cell 0 stored = Some after ->
+    target_pointer_invariant demo_block curr_cell handler_block before ->
+    (exists current_after,
+      Mem.load Mptr after curr_cell 0 = Some current_after /\
+      safe_demo_pointer_value demo_block current_after) ->
+    target_pointer_invariant demo_block curr_cell handler_block after.
+Proof.
+  intros demo_block curr_cell handler_block before after stored Hseparate Hstore
+    [Hdemo [Hcurr [Hhandler [[current [Hcurrent Hcurrent_safe]]
+      [handler_ofs Hhandler_load]]]]] [current_after [Hafter Hafter_safe]].
+  repeat split.
+  - eapply Mem.store_valid_block_1; eauto.
+  - eapply Mem.store_valid_block_1; eauto.
+  - eapply Mem.store_valid_block_1; eauto.
+  - exists current_after. split; assumption.
+  - exists handler_ofs.
+    assert (Heq : Mem.load Mptr after handler_block 8 =
+        Mem.load Mptr before handler_block 8).
+    { eapply Mem.load_store_other; [exact Hstore |].
+      left. intro Heq. apply Hseparate. symmetry. exact Heq. }
+    rewrite Heq. exact Hhandler_load.
+Qed.
+
+Theorem run_authorized_pair_preserves_target_invariant :
+  forall (ge : genv) (e : env) (le : temp_env) before trace le' after out
+      demo_block curr_cell handler_block current_ofs,
+    e ! G._gCurrDemoInput = None ->
+    Genv.find_symbol ge G._gCurrDemoInput = Some curr_cell ->
+    curr_cell <> handler_block ->
+    target_pointer_invariant demo_block curr_cell handler_block before ->
+    Mem.load Mptr before curr_cell 0 = Some (Vptr demo_block current_ofs) ->
+    exec_stmt function_entry2 ge e le before run_increment_pair
+      trace le' after out ->
+    target_pointer_invariant demo_block curr_cell handler_block after.
+Proof.
+  intros ge e le before trace le' after out demo_block curr_cell handler_block
+    current_ofs Hnotlocal Hsymbol Hseparate Hinvariant Hcurrent Hexec.
+  destruct (exec_run_increment_pair_preserves_demo_block ge e le before trace
+    le' after out demo_block current_ofs curr_cell Hnotlocal Hsymbol Hcurrent
+    Hexec) as [loaded [Hafter Hsafe]].
+  destruct (proj1 exec_authorized_pairs_store_only_current_cell ge e le before
+    trace le' after out curr_cell Hnotlocal Hsymbol Hexec) as [stored Hstore].
+  eapply current_cell_store_preserves_target_invariant; eauto.
+Qed.
+
+Theorem title_authorized_pair_preserves_target_invariant :
+  forall (ge : genv) (e : env) (le : temp_env) before trace le' after out
+      demo_block curr_cell handler_block handler_co,
+    e ! T._gDemoInputsBuf = None ->
+    e ! T._gCurrDemoInput = None ->
+    Genv.find_symbol ge T._gDemoInputsBuf = Some handler_block ->
+    Genv.find_symbol ge T._gCurrDemoInput = Some curr_cell ->
+    ge.(genv_cenv) ! T._DmaHandlerList = Some handler_co ->
+    co_members handler_co = target_dma_handler_members ->
+    curr_cell <> handler_block ->
+    target_pointer_invariant demo_block curr_cell handler_block before ->
+    exec_stmt function_entry2 ge e le before title_install_pair
+      trace le' after out ->
+    target_pointer_invariant demo_block curr_cell handler_block after.
+Proof.
+  intros ge e le before trace le' after out demo_block curr_cell handler_block
+    handler_co Hhandler_notlocal Hcurr_notlocal Hhandler_symbol Hcurr_symbol
+    Hco Hmembers Hseparate Hinvariant Hexec.
+  destruct Hinvariant as [Hdemo [Hcurr [Hhandler [Hcurrent
+    [handler_ofs Hhandler_load]]]]].
+  assert (Hinvariant' : target_pointer_invariant demo_block curr_cell
+      handler_block before).
+  { exact (conj Hdemo (conj Hcurr (conj Hhandler
+      (conj Hcurrent (ex_intro _ handler_ofs Hhandler_load))))). }
+  destruct (exec_title_install_pair_preserves_demo_block ge e le before trace
+    le' after out demo_block handler_block handler_co curr_cell handler_ofs
+    Hhandler_notlocal Hcurr_notlocal Hhandler_symbol Hcurr_symbol Hco Hmembers
+    Hhandler_load Hexec) as [loaded [Hafter Hsafe]].
+  destruct (proj2 exec_authorized_pairs_store_only_current_cell ge e le before
+    trace le' after out curr_cell Hcurr_notlocal Hcurr_symbol Hexec)
+    as [stored Hstore].
+  eapply current_cell_store_preserves_target_invariant; eauto.
 Qed.
 
 Lemma target_alloc_variables_unchanged :
