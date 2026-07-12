@@ -1,6 +1,6 @@
 # Working claim and scope
 
-Last updated: 2026-07-12 (Clight model and generation commit).
+Last updated: 2026-07-12 (source and collision audit commit).
 
 ## Game and source boundary
 
@@ -28,6 +28,14 @@ Last updated: 2026-07-12 (Clight model and generation commit).
   `update_mario_button_inputs` maps to `INPUT_A_PRESSED`.
 - **Zero-A trace:** a trace whose complete bottom-to-sixth input history has no
   A press, including its preparation prefix.
+
+The collision audit identifies the sixth floor as eight exact
+`SURFACE_CAMERA_FREE_ROAM` triangles. Their inner boundary is the rectangle
+`x=[-101,102]`, `z=[1229,1434]`; from the pole center the four cardinal
+clearances are 101, 102, 102, and 103. Therefore radial distance below 101 is
+sufficient to prove Mario remains in the hole. Radial distance at least 101 is
+not sufficient for an arbitrary direction, so the one-A witness will use the
+westward direction explicitly.
 
 ## Target theorems
 
@@ -66,6 +74,12 @@ contains the authentic SSL script, pole behavior, pole actions, button/action
 setup, pole interaction, airborne actions, air step, and object-list update
 order. This supports source-shape certificates but is not yet a linked
 whole-program execution proof.
+
+`pipeline/audit_pole_transfer.py` now checks all collision group counts, exact
+fifth/sixth triangle indices and vertices, the rectangular opening, pole
+placement/height, authentic velocity clearing, A/Z action branches, jump
+setup, air drag/gravity, pole push formula, and object-list update order. Its
+committed receipt pins normalized SHA-256 hashes of every audited source file.
 
 ## Known boundaries to keep explicit
 
