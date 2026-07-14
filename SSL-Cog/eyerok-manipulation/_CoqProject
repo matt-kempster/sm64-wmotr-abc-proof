@@ -11,6 +11,13 @@ generated/object_list_processor.v
 generated/spawn_object.v
 generated/surface_collision.v
 generated/ssl_script.v
+generated/area.v
+generated/level_update.v
+generated/mario.v
+generated/mario_step.v
+generated/mario_actions_airborne.v
+generated/platform_displacement.v
+generated/interaction.v
 
 proofs/GeneratedFacts.v
 proofs/Spec.v

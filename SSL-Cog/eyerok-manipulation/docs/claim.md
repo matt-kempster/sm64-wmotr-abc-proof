@@ -1,6 +1,6 @@
 # Working claim and scope
 
-Last updated: 2026-07-14 (plain-English proof-boundary clarification).
+Last updated: 2026-07-14 (Mario/Area 2 source-ingestion phase).
 
 ## Game and source boundary
 
@@ -160,3 +160,28 @@ Clight functions' float-constant counts, negation shapes, and call edges.
 
 No `Admitted`, `Axiom`, `admit`, `sorry`, or equivalent project-added proof
 hole may enter a capstone.
+
+## Route source now pinned
+
+The project now generates Clight ASTs for the pinned Mario, airborne-step,
+area-change, interaction, and platform-displacement translation units.  A
+separate reproducible audit establishes these source facts without yet
+claiming their full operational semantics:
+
+- `check_instant_warp` runs before `area_update_objects`, reads Mario's saved
+  floor pointer, and the SSL Area 3 slot maps surface `1D` to Area 2 with zero
+  displacement;
+- the corresponding Area 2 `1D` slot is inactive, while adjacent `1E` is the
+  return warp, so the change does not immediately bounce back;
+- a normal Area 2 floor at Y `896` covers the complete arrival footprint, an
+  upper platform at Y `4429` overlaps part of it, and the star platform is at
+  Y `4815`;
+- the target star is at `(500, 5050, -500)`, with combined horizontal Mario
+  and star interaction radius `117` and Mario-base interaction band
+  `[4890, 5100]`; and
+- platform displacement adds the platform's X/Z velocity but has no direct
+  `oVelY` addition, so a rising hand does not automatically carry Mario.
+
+The formal verdict on useful landing height remains open at this commit.  In
+particular, the existing `1196`/`2003` hand-origin ceilings must not be used as
+reachable Mario heights.

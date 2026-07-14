@@ -1,0 +1,29 @@
+Eyerok/Mario/Area-2 route source audit
+pin: 9921382a68bb0c865e5e45eb594d9c64db59b1af
+normal-frame-order: warp_area -> check_instant_warp -> area_update_objects
+instant-warp-trigger: selected Mario floor surface type
+area3-to-area2: surface 1D/index 2, displacement (0,0,0)
+area2-to-area3: surface 1E/index 3, displacement (0,0,0)
+area2-matching-1D-slot: unconfigured (no immediate return)
+warp-footprint-x: [-191,192]
+warp-footprint-z: [-1222,-1023]
+warp-plane: y = 286 + 98*(z+1222)/199
+area2-floor-over-warp: y=896 covers entire footprint
+area2-upper-overlap-platform: y=4429, x=[-204,512], z=[-1125,-767]
+area2-star-platform: y=4815, x=[387,643], z=[-1125,-409]
+area2-mid-platform: y=1967, x=[131,387], z=[-716,-460]
+inside-ancient-pyramid-star: (500,5050,-500)
+star-interaction-horizontal-radius-sum: 117
+star-interaction-Mario-base-y: [4890,5100]
+area3-upward-floor-vertex-max: 384
+platform-displacement-direct-vertical-add: no
+audited-sha256:
+  d169438ffe43dbe89a24d7577730a0fa247ba741744799adb44ffab6a5666084  src/game/level_update.c
+  79c96544f072b74029936d44d280799e6614dee65d4770200cb8101b06e559ac  src/game/area.c
+  a16936e42951b0ecf232fbbdb50d9f596bb8f59d13cf5269e5ba9537bca9b26e  src/game/mario.c
+  db2b0acc0f6f48550b8edb8ff332b1b4635edc2359ae6e212fb7fb9a69a0ab57  src/game/mario_step.c
+  6c662c1fe740620cec44488c56917063296e2180363727ade709f11b84fe7368  src/game/platform_displacement.c
+  4c78e27752d1e50258124b9a505618fcc42014a2ab79c1eb1f383cf6c7227b99  src/game/interaction.c
+  b05cccfe091f1e3c419ac215357152cacb077f84dcd436e6dc1167d2927a2f5c  levels/ssl/script.c
+  c4a791bc92980bab13874aecf0af42273b1799ee78e52cc7e0ae3ad381dd1574  levels/ssl/areas/2/collision.inc.c
+  8c3d2b06d636a7cad71ec23ea73d8b23c1827d3356a9b84c562d50484fe15ffb  levels/ssl/areas/3/collision.inc.c

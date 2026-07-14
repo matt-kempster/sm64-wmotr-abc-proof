@@ -3,11 +3,16 @@ set -euo pipefail
 
 SM64="${SM64_SOURCE:-../../../reference-sm64-decomp}"
 AUDIT_TMP="$(mktemp --tmpdir=. eyerok-auditXXXXXX.txt)"
-trap 'rm -f "$AUDIT_TMP"' EXIT
+ROUTE_AUDIT_TMP="$(mktemp --tmpdir=. eyerok-route-auditXXXXXX.txt)"
+trap 'rm -f "$AUDIT_TMP" "$ROUTE_AUDIT_TMP"' EXIT
 
 PYTHONDONTWRITEBYTECODE=1 python3 pipeline/audit_eyerok_source.py \
   "$SM64" > "$AUDIT_TMP"
 diff -u generated/source_audit.txt "$AUDIT_TMP"
+
+PYTHONDONTWRITEBYTECODE=1 python3 pipeline/audit_route_source.py \
+  "$SM64" > "$ROUTE_AUDIT_TMP"
+diff -u generated/route_audit.txt "$ROUTE_AUDIT_TMP"
 
 make proofs
 
