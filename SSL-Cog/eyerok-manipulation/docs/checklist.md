@@ -1,12 +1,15 @@
 # Eyerok manipulation proof checklist
 
-Last updated: 2026-07-12 (verified end-to-end proof commit).
+Last updated: 2026-07-14 (plain-English proof-boundary clarification).
 
 ## Verdict
 
-Closed for the source-shaped adversarial model: the runaway seed is
-unreachable and all modeled heights are at most 2003. Whole-program Clight
-execution refinement remains open and is stated explicitly.
+Closed only for the handwritten Rocq relations: the scheduler cannot reach the
+runaway seed, and vertical-relation heights are at most 2003. The executable C
+abstraction, original-game Clight, rank/update-order mapping, and Area 2 route
+are not semantically connected to those results. The proved runaway recurrence
+uses mathematical integers; it is not an unbounded binary32 or 32-bit C
+execution.
 
 ## Completed
 
@@ -23,7 +26,7 @@ execution refinement remains open and is stated explicitly.
 - [x] Audit relevant files at the canonical revision and compare the available
   checkout byte-for-byte where it is used for generation.
 - [x] Audit both paired instant warps and their special collision triangles.
-- [x] Add an executable vertical model and generate its Clight AST.
+- [x] Add an executable C abstraction and generate its Clight AST.
 - [x] Generate the authentic `obj_behaviors_2.c` Clight AST containing Eyerok.
 - [x] Generate the authentic object-motion helper after documented CompCert
   long-double literal compatibility edits.
@@ -34,16 +37,30 @@ execution refinement remains open and is stated explicitly.
 
 ## Formal proof
 
-- [x] Pin generated model constants and source action/vertical-write shapes.
-- [x] Formalize adversarial action choices and partial-update stuttering.
+- [x] Pin generated C-abstraction constants and source action/vertical-write
+  shapes.
+- [x] Formalize nondeterministic vertical choices and partial-update
+  stuttering.
 - [x] Prove grounded double-pound implies gravity at most `-15` and exclude the
   gravity-zero runaway seed from scheduler reachability.
 - [x] Prove the one-step vertical invariant.
 - [x] Lift the invariant to finite prefixes and infinite runs.
 - [x] Prove the closed-world no-unbounded-rise capstone.
-- [x] Prove the counterfactual runaway seed grows without bound.
-- [x] State the authentic source-to-model lifting boundary explicitly.
+- [x] Prove the idealized mathematical-integer runaway recurrence grows
+  without bound.
+- [x] State the original-game-to-Rocq lifting boundary explicitly.
+- [x] Explain in plain English that the abstract Rocq scheduler excludes the
+  runaway seed but the corresponding whole-program game-code result remains
+  open.
 - [ ] Discharge authentic whole-program Clight execution refinement.
+- [ ] Prove that the executable C abstraction implements `vertical_step`, or
+  explicitly remove it from the semantic proof chain; its public calls can
+  currently violate the Rocq launch precondition.
+- [ ] Replace or justify the mathematical-integer height abstraction with a
+  faithful relation to original-game binary32 position, including rounding
+  stagnation and non-finite-value exclusions.
+- [ ] Couple the scheduler and vertical abstractions to every relevant
+  original-game controller, collision, and partial-update transition.
 
 ## Verification and handoff
 
@@ -54,6 +71,15 @@ execution refinement remains open and is stated explicitly.
   the combined authentic-AST capstone has only documented standard
   Coq/CompCert classical dependencies.
 - [x] Keep `Eyerok.md`, all three planning docs, and project README current.
+- [x] Distinguish absolute Y from home-relative rise and give worked impulse,
+  runaway, and height-bound examples.
+- [x] Record that an Area 2 transition is not representable in the vertical
+  relation and that the real Mario/floor/instant-warp interaction is outside
+  the current theorem.
+- [x] Distinguish the C abstraction, abstract scheduler, and handwritten
+  vertical relation, including the missing semantic links among them.
+- [ ] If a route-level conclusion is required, model and prove whether Mario
+  can use a raised hand to select the Area 3 warp floor at a useful height.
 - [ ] Do not push without explicit user approval.
 
 ## Commit ledger
@@ -62,11 +88,13 @@ execution refinement remains open and is stated explicitly.
   and SSL-Cog registration.
 - Source ingestion: exact pinned top-level C extraction, authentic Clight ASTs,
   source/collision audit, and explicit gravity-zero counterexample tripwire.
-- Executable model: source-shaped action constants, asymmetric hand-support
-  ceilings, finite ascent budgets, safe-envelope check, and explicit runaway
-  branch, translated by CompCert Clight.
+- Executable C abstraction: source-shaped action constants, asymmetric
+  hand-support ceilings, finite ascent budgets, safe-envelope check, and
+  explicit runaway branch, translated by CompCert Clight.
 - Closed-world proof: generated AST facts, scheduler unreachability, preserved
-  height envelope, finite/infinite-run bounds, runaway lasso, and explicit
-  authentic-refinement boundary.
+  height envelope, finite/infinite-run bounds, idealized Z runaway recurrence,
+  and explicit original-game refinement boundary.
 - Verification: reproducible generation, complete Ubuntu build, proof-hole
   rejection, and clean assumption reports for all public boundary theorems.
+- Documentation clarification: plain-English state-machine guide, precise
+  modeled-versus-original-game verdict, and explicit Area 2 transition scope.
