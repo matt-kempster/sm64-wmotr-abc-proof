@@ -1,6 +1,6 @@
 # Eyerok manipulation proof checklist
 
-Last updated: 2026-07-14 (plain-English proof-boundary clarification).
+Last updated: 2026-07-14 (Mario/Area 2 source-ingestion phase).
 
 ## Verdict
 
@@ -34,6 +34,11 @@ execution.
   `find_floor`, and SSL-script Clight surfaces.
 - [x] Audit the gravity-zero setup corridor against static and sibling dynamic
   collision geometry.
+- [x] Generate pinned Clight for area change, instant-warp dispatch, Mario
+  floor input, airborne stepping, platform displacement, and interactions.
+- [x] Audit the exact Area 3 warp quad, the non-returning Area 2 counterpart,
+  destination floor tiers, star platform, star coordinates, and interaction
+  cylinder.
 
 ## Formal proof
 
@@ -61,6 +66,13 @@ execution.
   stagnation and non-finite-value exclusions.
 - [ ] Couple the scheduler and vertical abstractions to every relevant
   original-game controller, collision, and partial-update transition.
+- [ ] Add the Mario/Area relation and prove the exact floor-selected warp rule
+  with zero-displacement state preservation.
+- [ ] Prove or refute direct reachability of each audited Area 2 landing tier;
+  do not treat a hand-origin upper bound as an attainable Mario state.
+- [ ] Prove the finite-binary32 non-unboundedness theorem and the exact
+  `2^31 + 100 = 2^31` stagnation fact, keeping the Clight-to-ROM conversion
+  boundary explicit.
 
 ## Verification and handoff
 

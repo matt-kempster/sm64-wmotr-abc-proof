@@ -35,7 +35,14 @@ PREPARED := \
   build/source/object_list_processor.c \
   build/source/spawn_object.c \
   build/source/surface_collision.c \
-  build/source/ssl_script.c
+  build/source/ssl_script.c \
+  build/source/area.c \
+  build/source/level_update.c \
+  build/source/mario.c \
+  build/source/mario_step.c \
+  build/source/mario_actions_airborne.c \
+  build/source/platform_displacement.c \
+  build/source/interaction.c
 
 GENERATED := \
   generated/eyerok_model.v \
@@ -46,7 +53,15 @@ GENERATED := \
   generated/spawn_object.v \
   generated/surface_collision.v \
   generated/ssl_script.v \
-  generated/source_audit.txt
+  generated/area.v \
+  generated/level_update.v \
+  generated/mario.v \
+  generated/mario_step.v \
+  generated/mario_actions_airborne.v \
+  generated/platform_displacement.v \
+  generated/interaction.v \
+  generated/source_audit.txt \
+  generated/route_audit.txt
 
 AUDITED_SOURCES := \
   $(SM64)/src/game/behaviors/eyerok.inc.c \
@@ -56,6 +71,14 @@ AUDITED_SOURCES := \
   $(SM64)/src/game/object_list_processor.c \
   $(SM64)/src/game/spawn_object.c \
   $(SM64)/src/engine/surface_collision.c \
+  $(SM64)/src/game/area.c \
+  $(SM64)/src/game/level_update.c \
+  $(SM64)/src/game/mario.c \
+  $(SM64)/src/game/mario_step.c \
+  $(SM64)/src/game/mario_actions_airborne.c \
+  $(SM64)/src/game/platform_displacement.c \
+  $(SM64)/src/game/interaction.c \
+  $(SM64)/src/game/behaviors/spawn_star.inc.c \
   $(SM64)/include/object_constants.h \
   $(SM64)/include/object_fields.h \
   $(SM64)/data/behavior_data.c \
@@ -96,8 +119,32 @@ generated/surface_collision.v: build/source/surface_collision.c pipeline/clightg
 generated/ssl_script.v: build/source/ssl_script.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(SM64_CG)
 
+generated/area.v: build/source/area.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/level_update.v: build/source/level_update.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/mario.v: build/source/mario.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/mario_step.v: build/source/mario_step.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/mario_actions_airborne.v: build/source/mario_actions_airborne.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/platform_displacement.v: build/source/platform_displacement.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/interaction.v: build/source/interaction.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
 generated/source_audit.txt: pipeline/audit_eyerok_source.py $(AUDITED_SOURCES)
 	PYTHONDONTWRITEBYTECODE=1 python3 pipeline/audit_eyerok_source.py $(SM64) > $@
+
+generated/route_audit.txt: pipeline/audit_route_source.py $(AUDITED_SOURCES)
+	PYTHONDONTWRITEBYTECODE=1 python3 pipeline/audit_route_source.py $(SM64) > $@
 
 generated/eyerok_model.v: inputs/eyerok_model.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@

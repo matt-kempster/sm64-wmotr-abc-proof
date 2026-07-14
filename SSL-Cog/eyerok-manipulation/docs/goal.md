@@ -1,6 +1,6 @@
 # Goal recovery note
 
-Last updated: 2026-07-14 (plain-English proof-boundary clarification).
+Last updated: 2026-07-14 (Mario/Area 2 source-ingestion phase).
 
 ## Objective
 
@@ -31,6 +31,17 @@ impossibility target with a concrete action and movement trace.
 6. Keep the source-to-Rocq simulation boundary explicit; close it against
    generated Clight execution and binary32 arithmetic, or leave the global
    gameplay theorem conditional.
+7. Model Mario, the Area 3 instant-warp floor, the corresponding Area 2
+   collision, and the `Inside the Ancient Pyramid` star.  Decide separately
+   whether a hand can create the required Mario state, what Area 2 floor that
+   state can reach, and whether the hand itself can rise without bound.
+
+The route phase now pins and translates `area.c`, `level_update.c`, `mario.c`,
+`mario_step.c`, `mario_actions_airborne.c`, `platform_displacement.c`, and
+`interaction.c`.  Its independent source audit fixes the zero-displacement
+Area 3-to-2 warp, the destination collision tiers, and the star at
+`(500, 5050, -500)`.  Formal route and binary32 conclusions are the next
+proof steps; source ingestion alone is not being counted as either result.
 
 The source audit identified the critical fork for steps 3--5. If
 `DOUBLE_POUND` is reached while grounded with gravity zero, its velocity-100
@@ -71,15 +82,13 @@ model and connect the original Clight program directly to the Rocq relations.
 The abstract scheduler and vertical relation must also be coupled where their
 properties are used together.
 
-The route-level area question is a second boundary. An Area 3 to Area 2
-transition is not representable in the current vertical relation because it
-has no Mario, floor, or area state. This is not an impossibility result. The
-pinned source changes area only when Mario's selected floor is the Area 3
-instant-warp surface; Eyerok height alone does not trigger it.
-After the hand-height refinement, a complete route analysis would separately
-need to model Mario/hand contact, floor selection, horizontal alignment, the
-zero-displacement area change, and whether the resulting finite Y is useful in
-Area 2.
+The route-level area question is a second boundary. The newly ingested source
+shows that the transition is driven by Mario's selected floor, checked before
+the current frame's object update, and preserves Mario's XYZ and velocity.
+The existing vertical relation still has no Mario, floor, area, or collision
+state, so the new evidence is not yet a theorem that a hand can create the
+required warp state.  That bridge is now an explicit proof target rather than
+an undocumented assumption.
 
 `Eyerok.md` now gives the intended senior-engineer explanation, concrete
 finite-impulse and runaway examples, an explicit answer about the Area 2

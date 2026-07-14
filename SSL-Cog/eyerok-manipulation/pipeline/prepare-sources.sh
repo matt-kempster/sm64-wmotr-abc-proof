@@ -21,6 +21,13 @@ extract src/game/object_list_processor.c object_list_processor.c
 extract src/game/spawn_object.c spawn_object.c
 extract src/engine/surface_collision.c surface_collision.c
 extract levels/ssl/script.c ssl_script.c
+extract src/game/area.c area.c
+extract src/game/level_update.c level_update.c
+extract src/game/mario.c mario.c
+extract src/game/mario_step.c mario_step.c
+extract src/game/mario_actions_airborne.c mario_actions_airborne.c
+extract src/game/platform_displacement.c platform_displacement.c
+extract src/game/interaction.c interaction.c
 
 patch --silent --forward \
   "$OUT/object_helpers.c" \
