@@ -1,6 +1,6 @@
 # Eyerok manipulation proof checklist
 
-Last updated: 2026-07-14 (double-pound and partial-update closure).
+Last updated: 2026-07-14 (ordinary no-A Y=1280 barrier).
 
 ## Current verdict
 
@@ -46,6 +46,15 @@ select the static warp, the original controller inputs, or all intervening C
 collision steps. Surface Y=1179 without another impulse misses the Y=1280
 query threshold by 23.
 
+For never-A, the B-only speed kick is now refuted as a direct ordinary
+speed-at-most-48 route to Y=1280. Its 60-unit rise peaks at Y=1239, leaving 35
+eligible quarter-steps and at most 420 units of path. The platform wall needs
+base Y above 1255 to clear vertically, more than 540 units around the east,
+or more than 2060 around the west. Rocq proves that every seam-free
+wall-avoiding path in this classification is impossible. Faster input,
+post-bonk recovery, seams/quantum tunneling, and authentic departure remain
+open.
+
 ## Repository and source
 
 - [x] Confirm repository and branch `codex/ssl-pyramid-item-proof`.
@@ -67,6 +76,8 @@ query threshold by 23.
 - [x] Audit Area 2 floor tiers and target star coordinates/hitbox.
 - [x] Audit four airborne quarter steps, the fresh quarter-step floor query,
   TerrainData Y cast, landing snap, and 78-unit floor buffer.
+- [x] Audit that upper/lower wall resolution precedes each airborne floor
+  query and that a dive wall hit enters `BACKWARD_AIR_KB`.
 - [x] Parse Area 2 upward triangles and verify exact selected-floor heights at
   the lower Y=1280 and upper-route quarter-steps, star-platform landing, and
   every modeled ground-reposition point.
@@ -95,6 +106,8 @@ query threshold by 23.
   not misreported as behaviorally inert input.
 - [x] Audit the no-A B-only speed-kick dive and the fresh-edge triple-jump
   chain; prove the triple-jump/backflip rise envelopes are 630/512.
+- [x] Audit the Y=1280 platform's south/east wall rectangles and their
+  Y=1152..1280 span.
 
 ## Vertical proof
 
@@ -167,6 +180,12 @@ query threshold by 23.
   query `(0,1264,-829) -> Y=1280`; prove the modeled Y=1280 snap.
 - [x] Prove Y=1809 cannot query Y=1967 and unboosted surface Y=1179 misses the
   Y=1280 query minimum by 23.
+- [x] Prove the conditional B-only speed-kick rise is 60, peak Y=1239, and its
+  Y=1280 query window contains 35 quarter-steps.
+- [x] Prove any arbitrary-steering, seam-free speed-48 path has length at most
+  420, cannot clear over the wall, and cannot complete either wall detour.
+- [x] Conclude the ordinary no-A candidate must resolve a wall before Y=1280;
+  keep this separate from unrestricted no-A reachability.
 - [x] Give 1179, 1467, 1974, and 2604 distinct observation predicates.
 - [x] Define authentic A press edges with a pre-interval bit and prove that
   always-released and continuously-held schedules have no new edge.
@@ -181,6 +200,8 @@ query threshold by 23.
 - [ ] Authenticate or refute the conditional Y=1280 trace separately for a
   fresh-A jump chain, already-held A, and never-A, including dynamic-hand exit,
   every airborne collision substep, and the landing.
+- [ ] For never-A, refine the ordinary wall barrier and investigate speed over
+  48, post-bonk actions, seams, quantum tunneling, and PU casts.
 - [ ] If required, optimize authentic remaining frames to star collection and
   prove or disprove the claim that Y=1967 is globally fastest.
 
@@ -229,3 +250,6 @@ query threshold by 23.
 - Exact positive-double sibling-floor near-miss and source-shaped live-hand
   partial-update exclusion, replacing the false global 280-unit separation
   shortcut.
+- Ordinary no-A Y=1280 barrier: B-only rise is numerically sufficient, but a
+  seam-free speed-48 path cannot clear or detour around the platform wall in
+  its 35-quarter-step eligibility window.
