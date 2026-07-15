@@ -36,5 +36,11 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   SSLEyerok.Proofs.RouteCertificate \
   eyerok_area2_route_certificate
+bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.Binary32Boundary \
+  finite_binary32_stream_not_unbounded
+bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.Binary32Boundary \
+  binary32_boundary_certificate_holds
 
 echo "Eyerok manipulation checks: OK"

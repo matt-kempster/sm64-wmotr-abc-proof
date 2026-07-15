@@ -26,10 +26,14 @@ The current machine-checked results are:
   peak is `2604`;
 - `2604` is too low for a direct landing at Y `2940`, the upper warp-overlap
   platform at Y `4429`, the star platform at Y `4815`, or direct interaction
-  with the star at Y `5050`; and
+  with the star at Y `5050`;
 - the combined abstract route model does admit a conditional landing on the
   Y `1967` platform at `(387, 1967, -500)`. That is the point on that platform
-  with minimum horizontal distance to the star.
+  with minimum horizontal distance to the star;
+- no stream of finite IEEE binary32 hand positions can be unbounded as real
+  heights; and
+- binary32 addition has the exact fixed point `2^31 + 100 = 2^31`, and the
+  modeled recurrence remains there once started at `2^31`.
 
 The word **conditional** is important. The handwritten vertical relation
 admits the starting hand height, but it has no X/Z state and does not prove
@@ -190,11 +194,27 @@ states. That is a proof about the scheduler relation, not yet a whole-program
 proof about the two hands, boss controller, collision engine, and original
 compiled game.
 
-The original position field is IEEE binary32, not an unbounded integer. At
-`2^31`, binary32 spacing is 256, so round-to-nearest makes `2^31 + 100` equal
-to `2^31`. The exact binary32 theorem is handled separately from the small
-height bound because representation-level stagnation says nothing about
-whether the hand first reaches a route-useful finite height.
+The original position field is IEEE binary32, not an unbounded integer. Rocq
+now proves two representation facts, separate from gameplay reachability.
+First, every finite binary32 value is at most `2^128 - 2^104`, so no stream of
+finite binary32 hand heights can rise above every real bound. Second, at
+exactly `2^31`, binary32 addition satisfies `2^31 + 100 = 2^31`; repeating
+that same addition remains fixed there.
+
+This disproves literal unbounded finite Y even if the dangerous seed were
+reachable. It does not prove that a run starting from Eyerok's normal height
+reaches `2^31`, identify the first rounded fixed point of that run, or show
+that the hand's action or positive velocity stops. A control state may persist
+while rounded Y no longer changes.
+
+There is a second numeric boundary. Every active hand update passes `oPosY`
+through a float-to-integer conversion while preparing wall collision. At
+`2^31`, CompCert's `Float32.to_int` returns `None`. A CompCert Clight execution
+that reaches that cast with exactly this value therefore has no semantic
+result for the conversion. This is conditional CompCert behavior: the proof
+neither shows that an authentic run reaches that cast nor specifies the
+original IDO/MIPS out-of-range conversion. It is not a theorem that the ROM
+stops there.
 
 ## The corrected hand-height bound
 
@@ -318,12 +338,16 @@ below the rank's support ceiling. For the second rank that support is `1179`.
 If the original game could repeatedly give the hand a fresh 285-unit
 double-pound impulse after it had already climbed far above `1179`, those
 frames would not refine the relation and its `1467` origin bound would not
-apply.
+apply. Such a trace would be a counterexample to the **small route-useful
+height bound**, not to the separate theorem that finite binary32 values have a
+representation ceiling.
 
 No constructor in `vertical_step` permits that replenishment. The executable C
 abstraction's public API can be called in an unsafe sequence, so it is not a
 proof that the game cannot do so. A whole-program refinement must show that
-every source transition falls on the safe side of this split.
+every source transition falls on the safe side of this split. In other words,
+authentic replenishment has not been ruled out; only the handwritten relation's
+version of it has.
 
 ## Exactly what is proved
 
@@ -336,6 +360,10 @@ The project now machine-checks these statements:
 - every state reachable in the refined vertical relation has hand-origin Y at
   most `672` for the first rank or `1467` for the second;
 - no infinite run of that relation has unbounded integer Y;
+- no arbitrary stream has unbounded finite binary32 height observations;
+- `Float32.add 2^31 100 = 2^31`, and iterating the same addition from `2^31`
+  remains fixed there;
+- CompCert's checked `Float32.to_int 2^31` conversion returns `None`;
 - a hand floor cannot trigger the modeled instant warp;
 - a selected Area 3 warp floor changes to Area 2 with Mario's coordinates,
   velocity, and motion state unchanged;
@@ -359,12 +387,16 @@ The project still does not prove:
 - that Y `1967` is the globally fastest or most useful post-warp state for the
   star, rather than only the highest audited tier admitted by this restricted
   height calculation;
-- that the gravity-zero seed is unreachable in every original-game run; or
+- that the gravity-zero seed is unreachable in every original-game run;
+- that an authentic run follows the isolated `+100` recurrence to `2^31`,
+  how high such a run gets, or that its action and positive velocity exit; or
 - a source-to-ROM proof for out-of-range floating-point conversions in the
   original IDO-compiled MIPS binary.
 
 In short: the Area 3 to Area 2 mechanic is now represented, the finite bound's
-route consequences are proved for the explicit adversarial model, and the
-remaining uncertainty is no longer "what does Area 2 look like?" It is the
-authentic reachability of the hand/Mario starting state and the whole-program
-connection from the pinned source to the relations.
+route consequences are proved for the explicit adversarial model, and literal
+unbounded finite binary32 Y is disproved. The remaining uncertainty is no
+longer "what does Area 2 look like?" It is the authentic reachability of the
+hand/Mario starting state, possible persistence of the dangerous control
+state, and the whole-program connection from the pinned source to the
+relations.
