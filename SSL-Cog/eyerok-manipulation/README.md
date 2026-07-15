@@ -27,7 +27,8 @@ pinned US SM64 Eyerok, Mario, area, SSL script, and collision source
   -> handwritten Eyerok, Mario/warp, and Area 2 transition systems
   -> hand-height invariant + route-threshold theorems
   -> relation-level and binary32 representation bounds
-  -> conditional Y=1280 landing + refuted Y=1967 premise + high-route counterfactual
+  -> conditional Y=1280 landing + ordinary no-A wall barrier
+  -> refuted Y=1967 premise + high-route counterfactual
   -> original-game refinement (open)
 ```
 
@@ -128,6 +129,15 @@ cannot query Y=1967 and that surface Y=1179 without another impulse misses
 Y=1280 by 23. This is not an authentic hand pose, controller/Clight trace,
 fresh-A predecessor proof, never-A route, or held-A route.
 
+`proofs/NoA1280Barrier.v` addresses the direct B-only alternative. Conditional
+on surface Y=1179, the speed kick rises 60 units to Y=1239. Although that is
+numerically high enough for a Y=1280 query, the platform's south/east walls
+block a direct wall-avoiding approach: only 35 eligible quarter-steps and 420
+units of path are available at speed 48, versus base Y above 1255 to pass over
+or more than 540 units to pass east. Rocq proves every seam-free wall-avoiding
+path in this classification impossible. It does not cover faster speed, post-bonk
+recovery, seams/tunneling, PU casts, or authentic hand/warp preparation.
+
 `inputs/eyerok_model.c` makes a vertical abstraction executable. It
 tracks surface-list rank, controlled positioning, static or earlier-hand
 support, finite ascent budget, partial-update stuttering, deletion, and the
@@ -160,6 +170,9 @@ violation but does not prevent it.
 - the conditional lower-route certificate uses the Y=1809 ceiling to select
   and model-land on the audited Y=1280 floor, while excluding Y=1967 and
   leaving authentic hand/controller reachability explicit;
+- the ordinary never-A B-only candidate is wall-blocked under a seam-free
+  speed-48 route classification, without claiming unrestricted no-A
+  impossibility;
 - the older geometry-relaxed vertical relation bounds hand origins at absolute
   Y 672 for `FirstHand` and 1467 for `SecondHand`; and
 - no infinite execution of that handwritten relation is unbounded above.

@@ -186,6 +186,24 @@ def require_vertices(
         fail(f"{label} missing vertices: {missing}")
 
 
+def require_rectangular_wall(
+    triangles: list[Triangle],
+    corners: set[tuple[int, int, int]],
+    label: str,
+) -> None:
+    matching = [
+        triangle
+        for triangle in triangles
+        if set(triangle.points).issubset(corners)
+    ]
+    covered = {point for triangle in matching for point in triangle.points}
+    if len(matching) != 2 or covered != corners:
+        fail(
+            f"{label} is not the expected two-triangle wall; "
+            f"matches={matching}, covered={covered}"
+        )
+
+
 def sha256(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
@@ -204,6 +222,7 @@ def main() -> None:
     object_helpers = pinned(sm64, "src/game/object_helpers.c")
     mario_step = pinned(sm64, "src/game/mario_step.c")
     mario_moving = pinned(sm64, "src/game/mario_actions_moving.c")
+    mario_airborne = pinned(sm64, "src/game/mario_actions_airborne.c")
     mario_object = pinned(sm64, "src/game/mario_actions_object.c")
     mario_stationary = pinned(sm64, "src/game/mario_actions_stationary.c")
     surface_collision = pinned(sm64, "src/engine/surface_collision.c")
@@ -233,19 +252,24 @@ def main() -> None:
     require(mario_moving, "if (m->actionState == 0 && (m->input & INPUT_A_DOWN)) { return set_mario_action(m, ACT_JUMP_KICK, 0);", "moving punch held-A jump-kick gate")
     require(mario_moving, "if (m->forwardVel >= 29.0f && m->controller->stickMag > 48.0f)", "B-only speed-kick condition")
     require(mario_moving, "m->vel[1] = 20.0f; return set_mario_action(m, ACT_DIVE, 1);", "B-only speed-kick result")
+    require(mario_airborne, "case AIR_STEP_HIT_WALL: mario_bonk_reflection(m, TRUE);", "dive wall-hit reflection")
+    require(mario_airborne, "drop_and_set_mario_action(m, ACT_BACKWARD_AIR_KB, 0);", "dive wall-hit action")
     require(mario, "case ACT_BACKFLIP: m->marioObj->header.gfx.animInfo.animID = -1; m->forwardVel = -16.0f; set_mario_y_vel_based_on_fspeed(m, 62.0f, 0.0f);", "backflip vertical velocity")
     require(mario, "case ACT_TRIPLE_JUMP: set_mario_y_vel_based_on_fspeed(m, 69.0f, 0.0f);", "triple-jump vertical velocity")
     require(mario_moving, "if (m->input & INPUT_A_PRESSED) { return setAPressAction(m, landingAction->aPressedAction, 0);", "landing jump fresh-A gate")
     require(mario_step, "for (i = 0; i < 4; i++)", "four air quarter steps")
     require(mario_step, "intendedPos[1] = m->pos[1] + m->vel[1] / 4.0f;", "air quarter-step Y")
     require(mario_step, "floorHeight = find_floor(nextPos[0], nextPos[1], nextPos[2], &floor);", "quarter-step floor query")
+    require(mario_step, "upperWall = resolve_and_return_wall_collisions(nextPos, 150.0f, 50.0f); lowerWall = resolve_and_return_wall_collisions(nextPos, 30.0f, 50.0f); floorHeight = find_floor(nextPos[0], nextPos[1], nextPos[2], &floor);", "wall resolution before quarter-step floor query")
     require(mario_step, "if (nextPos[1] <= floorHeight)", "quarter-step landing comparison")
     require(mario_step, "m->pos[1] = m->floorHeight;", "Mario landing snap")
     require(surface_collision, "TerrainData y = (TerrainData) yPos;", "floor-query Y integer cast")
     require(surface_collision, "if (y - (height + -78.0f) < 0.0f)", "floor-query 78-unit buffer")
+    require(surface_collision, "if (y < surf->lowerY || y > surf->upperY)", "wall vertical-range test")
     require(surface_load, "sortDir = 1; // highest to lowest, then insertion order", "floor-list descending sort")
     require(surface_load, "surfacePriority = surface->vertex1[1] * sortDir;", "floor-list first-vertex priority")
     require(surface_load, "if (surfacePriority > priority)", "floor-list stable priority insertion")
+    require(surface_load, "surface->lowerY = minY - 5; surface->upperY = maxY + 5;", "wall vertical-range margin")
     require(platform, "x += platform->oVelX;", "platform X displacement")
     require(platform, "z += platform->oVelZ;", "platform Z displacement")
     if compact("y += platform->oVelY") in compact(platform):
@@ -275,6 +299,25 @@ def main() -> None:
     ]
     require_vertices(area2_vertices, warp_vertices, "Area 2 matching warp quad")
     require_vertices(area3_vertices, warp_vertices, "Area 3 active warp quad")
+
+    y1280_south_wall = {
+        (-2201, 1152, -844),
+        (-2201, 1280, -844),
+        (205, 1152, -844),
+        (205, 1280, -844),
+    }
+    y1280_east_wall = {
+        (205, 1152, -844),
+        (205, 1280, -844),
+        (205, 1152, -537),
+        (205, 1280, -537),
+    }
+    require_rectangular_wall(
+        area2_triangles, y1280_south_wall, "Y=1280 south perimeter wall"
+    )
+    require_rectangular_wall(
+        area2_triangles, y1280_east_wall, "Y=1280 east perimeter wall"
+    )
 
     area3_warp = [t for t in area3_triangles if t.surface == "SURFACE_INSTANT_WARP_1D"]
     area2_inert = [t for t in area2_triangles if t.surface == "SURFACE_INSTANT_WARP_1D"]
@@ -397,6 +440,10 @@ def main() -> None:
     print("area2-upper-overlap-platform: y=4429, x=[-204,512], z=[-1125,-767]")
     print("air-step-substeps: 4; fresh floor query each quarter-step")
     print("floor-query-y: TerrainData integer cast; 78-unit buffer")
+    print("air-qstep-order: upper/lower wall resolution before floor query")
+    print("no-a-speed-kick: B-only velY=20; wall hit enters BACKWARD_AIR_KB")
+    print("area2-y1280-south-wall: x=[-2201,205], z=-844, y=[1152,1280]")
+    print("area2-y1280-east-wall: x=205, z=[-844,-537], y=[1152,1280]")
     print("upper-route-first-qstep-floor: (192,4351,-1021) -> y=4429")
     print("lower-route-area3-departure: (0,1809,-1024) -> instant-warp 1D")
     print("lower-route-first-qstep-floor: (0,1264,-829) -> y=1280")

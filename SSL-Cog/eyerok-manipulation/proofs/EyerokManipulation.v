@@ -1,7 +1,8 @@
 From Coq Require Import ZArith.
 From SSLEyerok.Proofs Require Import AuthenticReachability Binary32Boundary
   DoublePoundTrace FirstHandBarrier GeneratedFacts SchedulerInvariant Spec
-  StateMachine LowerArea2Entry MarioHandContact PartialUpdateBoundary
+  StateMachine LowerArea2Entry MarioHandContact NoA1280Barrier
+  PartialUpdateBoundary
   TwoHandBarrier VerticalBound.
 
 Local Open Scope Z_scope.
@@ -12,6 +13,7 @@ Theorem eyerok_no_unbounded_rise_certificate :
   first_hand_barrier_certificate /\
   two_hand_barrier_certificate /\
   mario_hand_contact_certificate /\
+  no_a_1280_barrier_certificate /\
   double_pound_trace_certificate /\
   partial_update_boundary_certificate /\
   lower_area2_entry_certificate /\
@@ -31,6 +33,7 @@ Proof.
   refine (conj first_hand_barrier_certificate_holds _).
   refine (conj two_hand_barrier_certificate_holds _).
   refine (conj mario_hand_contact_certificate_holds _).
+  refine (conj no_a_1280_barrier_certificate_holds _).
   refine (conj double_pound_trace_certificate_holds _).
   refine (conj partial_update_boundary_certificate_holds _).
   refine (conj lower_area2_entry_certificate_holds _).

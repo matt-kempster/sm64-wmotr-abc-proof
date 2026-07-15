@@ -33,6 +33,7 @@ proofs/Area2Route.v
 proofs/TwoHandBarrier.v
 proofs/MarioHandContact.v
 proofs/LowerArea2Entry.v
+proofs/NoA1280Barrier.v
 proofs/DoublePoundTrace.v
 proofs/PartialUpdateBoundary.v
 proofs/UpperRoute.v

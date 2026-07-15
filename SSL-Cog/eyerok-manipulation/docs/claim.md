@@ -1,6 +1,6 @@
 # Working claim and exact scope
 
-Last updated: 2026-07-14 (double-pound and partial-update closure).
+Last updated: 2026-07-14 (ordinary no-A Y=1280 barrier).
 
 ## Source and toolchain boundary
 
@@ -217,6 +217,33 @@ calculation. Never-A and
 held-before-start witnesses remain open; no fresh A edge does not exclude the
 source's B-only speed-kick dive or held-A jump kick.
 
+### Ordinary no-A Y=1280 barrier
+
+`NoA1280Barrier.v` analyzes the B-only speed-kick candidate separately from
+the fresh-A triple-jump certificate. Conditional on starting from the Y=1179
+surface ceiling, velocity 20 gives the exact positive steps
+`20,16,12,8,4`, total rise 60, and peak Y=1239. If the first Area 3 dive frame
+selects the warp, the Area 2 state is Y=1199 with vertical velocity 16.
+
+The pinned Area 2 geometry has a south wall at Z=-844, X `[-2201,205]`, and
+an east continuation at X=205 through Z=-537; both span Y=1152..1280. Wall
+resolution runs before the quarter-step floor query, and a dive wall hit
+switches Mario to `BACKWARD_AIR_KB`. The Y=1280 query remains eligible for 35
+quarter-steps. Even granting arbitrary steering at horizontal speed 48 gives
+only `35*12=420` units of path. Mario cannot pass over, because his peak 1239
+is below the strict base-Y clearance 1255. The best east detour needs squared
+displacement at least `63^2+537^2 > 420^2`; the west detour needs more than
+2060 horizontal units.
+
+Rocq therefore proves that no wall-avoiding path exists in this ordinary,
+seam-free, speed-at-most-48 classification: the direct B-only candidate must
+resolve against the perimeter before it can enter the Y=1280 top. This does
+not prove unrestricted no-A impossibility. Surface-ceiling equality, authentic
+speed-kick preparation and warp-floor selection, source exhaustiveness of the
+wall classification, post-bonk recovery, faster incoming speed, seams,
+quantum tunneling, and parallel-universe casts remain open. The held-A jump
+kick is also a different action trace.
+
 ## Verdict on the three requested questions
 
 ### 1. Raised hand and Area 3 to Area 2
@@ -275,6 +302,12 @@ landing quarter-step queries `(0,1264,-829)`. This proves that Y=1280 is not
 rejected by the finite bound. It does not prove that the ceiling equality,
 Mario action history, hand-to-static-warp transition, or controlled air frames
 are authentic original-game transitions.
+
+For never-A, the obvious B-only speed-kick substitute does not realize that
+same landing in the ordinary speed-48 model. Its 60-unit rise is numerically
+enough to keep Y=1280 query-eligible, but the perimeter-wall proof forces a
+collision before entry. Faster or collision-glitch no-A traces are not ruled
+out, and the assumed Y=1179 departure surface is not authenticated.
 
 ### 2. Are the finite bounds high enough?
 
@@ -366,6 +399,9 @@ API as original gameplay.
   threshold, including every quarter-step collision response and the landing;
   then test whether any original-game action/speed history reaches a higher
   lower tier.
+- Refine the seam-free speed-48 no-A wall barrier to source/Clight semantics;
+  separately analyze post-bonk recovery, higher incoming speed, and collision
+  seams before making an unrestricted no-A claim.
 - Prove the exact controller/action trace and new-A-press count for any claimed
   Area 2 landing; the current high-hand no-go is A-policy-independent, but the
   Mario route witnesses over-approximate controller behavior.

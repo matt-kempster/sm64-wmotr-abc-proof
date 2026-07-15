@@ -46,6 +46,9 @@ The current machine-checked results are:
   and the full triple-jump envelope, a lower route enters Area 2 at Mario Y
   `1809` and its audited quarter-step selects and snaps to floor Y `1280`;
   this is a handwritten route witness, not authentic reachability;
+- the obvious never-A substitute, a B-only speed-kick dive, cannot reach that
+  Y `1280` top by a direct wall-avoiding, seam-free speed-at-most-48 approach:
+  its height window is too short to clear or detour around the platform walls;
 - `2604` is too low for a direct landing at Y `2940`, the upper warp-overlap
   platform at Y `4429`, the star platform at Y `4815`, or direct interaction
   with the star at Y `5050`;
@@ -567,6 +570,62 @@ restricted model conditionally lands on Y `1280` while formally excluding
 Y `1967`. It does not prove Y `1280` globally fastest, most useful, or closest
 to the star after ordinary movement.
 
+## Why the straightforward never-A speed kick hits a wall
+
+The B-only speed kick is important for the A Button Challenge because it can
+launch Mario without pressing A. Its source preconditions require forward
+speed at least 29 and strong stick input, then it writes vertical velocity 20
+and enters the dive action.
+
+At first, the height arithmetic looks promising. Starting conditionally from
+the hand-surface ceiling Y `1179`, ordinary gravity gives positive movements:
+
+```text
+20 + 16 + 12 + 8 + 4 = 60
+conditional peak: 1179 + 60 = 1239
+Y=1280 query minimum: 1202
+```
+
+So the no-A jump is high enough by 37 units. If Mario uses the first 20-unit
+movement to leave the hand and select the Area 3 warp, he appears in Area 2 at
+Y `1199` with vertical velocity `16`.
+
+The obstacle is horizontal geometry, not height. The Y=1280 platform has a
+south wall at Z `-844`, running from X `-2201` to `205`, and an east wall at
+X `205`, continuing north to Z `-537`. Both walls extend from Y `1152` to
+`1280`. SM64 resolves those walls before it searches for the floor on each
+airborne quarter-step. A dive that hits a wall bonks and switches to backward
+air knockback.
+
+`NoA1280Barrier.v` deliberately gives Mario more steering freedom than the
+ordinary dive code. Y=1280 remains query-eligible for 35 quarter-steps. At
+full horizontal speed 48, each quarter-step can cover at most 12 units, so the
+entire available path is at most 420 units.
+
+There are only three ordinary ways past the perimeter:
+
+- **Over:** wall loading extends the upper test to Y `1285`, and Mario's lower
+  wall sample is 30 units above his base. Clearing it requires base Y greater
+  than `1255`; the conditional speed-kick peak is only `1239`.
+- **East:** even starting at the best warp X `192`, Mario must clear to about
+  `(255,-487)`. The displacement is at least
+  `sqrt(63^2 + 537^2)`, about 541 units, beyond the 420-unit budget.
+- **West:** clearing past X `-2251` from the best west warp point needs more
+  than 2060 units.
+
+Rocq proves that no wall-avoiding path exists in this explicitly ordinary,
+seam-free, speed-at-most-48 classification. In practical terms, the simple
+plan "B-dive north from the warp and land on Y=1280" must hit the perimeter
+while the top is still eligible.
+
+What this does **not** prove is equally important. The Y=1179 surface is still
+an upper bound, not a reached pose. The proof assumes the speed kick can leave
+the dynamic hand and select the static warp. It does not exhaust recovery
+after the bonk, incoming horizontal speed above 48, collision seams, quantum
+tunneling, parallel-universe coordinate casts, or a linked execution of the
+source wall code. It also says nothing directly about the already-held-A jump
+kick, whose action history and horizontal motion differ.
+
 ## A counterfactual height that would be useful
 
 It is useful to separate two questions:
@@ -786,6 +845,10 @@ The project now machine-checks these statements:
   `(0,1264,-829)` selects and model-snaps to floor Y `1280`;
 - the same certificate proves Y `1809` cannot query floor Y `1967`, while
   surface-only Y `1179` misses the Y `1280` query minimum by 23;
+- for the conditional never-A B-only speed kick, rise is 60 and peak Y is
+  `1239`; its 35 eligible quarter-steps give at most 420 units at speed 48,
+  which is insufficient to go over or around the audited Y=1280 walls in the
+  seam-free ordinary-path classification;
 - modeled Mario peak `2604` cannot reach the Y `2940`, Y `4429`, Y `4815`, or
   direct-star thresholds; and
 - counterfactually, a hand origin at Y `3627` is sufficient in the integer
@@ -818,6 +881,9 @@ The project still does not prove:
 - authentic realization of the conditional Y `1280` landing: equality at the
   surface ceiling, hand boarding, the jump/action predecessor, movement off
   the dynamic hand onto the static warp, and every source collision substep;
+- unrestricted no-A impossibility. The ordinary speed-48 B-dive is blocked,
+  but faster input, post-bonk recovery, seams, tunneling, PU casts, and the
+  model-to-source geometry classification remain open;
 - how many new A presses an authentic route uses. The high-hand impossibility
   is A-policy-independent, but the generous `+630` Mario rise and both route
   witnesses are not controller-accurate ABC proofs;
@@ -839,7 +905,8 @@ unbounded finite binary32 Y is disproved. We have additionally disproved the
 old first-hand Y `1179`, second-origin Y `1467`, second-surface Y `1974`, and
 modeled Mario Y `2604` constructions in source-shaped reachability barriers.
 The lower Y `1280` landing is now a machine-checked conditional route rather
-than an unknown numerical threshold. The remaining work is to authenticate or
-refute its Mario/hand predecessor, build controller-accurate
+than an unknown numerical threshold, and its straightforward ordinary no-A
+speed-kick substitute is wall-blocked. The remaining work is to authenticate
+or refute its Mario/hand predecessor, build controller-accurate
 released/held/pressed-A traces, and connect the source-shaped steps to linked
 Clight and, if needed, the original ROM.

@@ -12,6 +12,10 @@ area2-floor-over-warp: y=896 covers entire footprint
 area2-upper-overlap-platform: y=4429, x=[-204,512], z=[-1125,-767]
 air-step-substeps: 4; fresh floor query each quarter-step
 floor-query-y: TerrainData integer cast; 78-unit buffer
+air-qstep-order: upper/lower wall resolution before floor query
+no-a-speed-kick: B-only velY=20; wall hit enters BACKWARD_AIR_KB
+area2-y1280-south-wall: x=[-2201,205], z=-844, y=[1152,1280]
+area2-y1280-east-wall: x=205, z=[-844,-537], y=[1152,1280]
 upper-route-first-qstep-floor: (192,4351,-1021) -> y=4429
 lower-route-area3-departure: (0,1809,-1024) -> instant-warp 1D
 lower-route-first-qstep-floor: (0,1264,-829) -> y=1280

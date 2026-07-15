@@ -1,6 +1,6 @@
 # Goal recovery note
 
-Last updated: 2026-07-14 (double-pound and partial-update closure).
+Last updated: 2026-07-14 (ordinary no-A Y=1280 barrier).
 
 ## Objective
 
@@ -151,6 +151,27 @@ backflip route witness has been constructed. Released-A and held-before-start
 routes remain open; held A can still enable a jump kick, and never-A can still
 enable the smaller B-only dive under its source preconditions.
 
+`NoA1280Barrier.v` now resolves the straightforward B-only dive candidate
+inside an explicitly ordinary, seam-free, horizontal-speed-at-most-48 model.
+Conditionally starting from surface ceiling Y=1179, the speed kick writes
+vertical velocity 20, rises only 60 units to peak Y=1239, and would enter Area
+2 after the first Area 3 air frame at Y=1199 with velocity 16. Height alone is
+enough for the Y=1280 query minimum, but the platform's south/east walls block
+the approach. Mario has 35 eligible quarter-steps, hence at most 420 units of
+path at 12 units per quarter-step. Going over requires base Y greater than
+1255; going around the best east side needs more than 540 units; the west side
+needs more than 2060. Rocq proves that every wall-avoiding path in this
+classification is impossible, so an ordinary route must resolve against the
+wall before reaching the top.
+
+This is a meaningful no-A refutation, not an unrestricted original-game
+theorem. The starting surface is still only a ceiling, speed-kick preparation
+and static-warp selection are assumed, and the geometric classification still
+needs linked source refinement. The theorem excludes seams, quantum tunneling,
+parallel-universe casts, horizontal speed above 48, and any later recovery
+after the source dive bonks into `BACKWARD_AIR_KB`. The already-held-A jump
+kick remains a separate action trace.
+
 The Mario/area relation proves:
 
 - a hand floor does not trigger the instant warp;
@@ -204,7 +225,9 @@ reachability is now closed.
 4. Authenticate or refute the conditional Y=1280 landing under the Y=1809
    ceiling: prove the hand/Mario predecessor, all quarter-step collision and
    controller transitions, and the actual landing. Compare fresh-A triple
-   jump, backflip, held-A jump-kick, and never-A speed-kick cases.
+   jump, backflip, and held-A jump-kick cases. For never-A, refine the new
+   ordinary speed-48 wall barrier and separately investigate faster or
+   collision-glitch traces.
 5. Optimize an authentic remaining Area 2 route to the star and count new A
    presses.
    The present work rules out the proposed higher Eyerok shortcut inside the

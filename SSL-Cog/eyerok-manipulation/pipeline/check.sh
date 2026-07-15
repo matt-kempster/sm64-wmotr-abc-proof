@@ -49,6 +49,9 @@ bash pipeline/assumptions.sh \
   SSLEyerok.Proofs.MarioHandContact \
   mario_hand_contact_certificate_holds
 bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.NoA1280Barrier \
+  no_a_1280_barrier_certificate_holds
+bash pipeline/assumptions.sh \
   SSLEyerok.Proofs.DoublePoundTrace \
   double_pound_trace_certificate_holds
 bash pipeline/assumptions.sh \
