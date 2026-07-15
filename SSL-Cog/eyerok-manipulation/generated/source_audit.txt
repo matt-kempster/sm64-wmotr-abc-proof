@@ -11,6 +11,9 @@ ground-mask: LANDED|ON_GROUND
 zero-gravity-floor-equality: clears grounded
 hand-bounciness: zero
 partial-update-guards: FAR_AWAY|IN_DIFFERENT_ROOM
+hand-native-before-visibility: yes
+first-hand-sleep-update-collision: nonnull before visibility
+time-stop-hand-update: whole update frozen unless explicitly unfrozen
 hand-list-before-boss: yes
 hand-spawn-and-surface-order: side -1, then side +1
 surface-list-append-order: yes
@@ -27,7 +30,10 @@ second-hand-support-ceiling: 384
 second-hand-finite-origin-peak: 672
 second-hand-open-surface-peak: 1179
 second-hand-modeled-mario-peak: 1809
-begin-double-center-separation-audit-assumption: 280 (mixed-frame controller phase)
+positive-double-setup-min-separation: 360
+positive-double-last-vertical-query: relative (-120,255), outside closed top
+positive-double-first-horizontal-query: relative (-90,210), 18 below threshold
+positive-double-sibling-floor-selection: none in audited no-wall trace
 closed-hand-horizontal-radius-max: 256.223535
 closed-hand-top-offset: 306
 closed-hand-upward-local-top: 204 (scaled 306)

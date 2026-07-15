@@ -1,6 +1,6 @@
 # Working claim and exact scope
 
-Last updated: 2026-07-14 (conditional lower Area 2 landing).
+Last updated: 2026-07-14 (double-pound and partial-update closure).
 
 ## Source and toolchain boundary
 
@@ -109,6 +109,36 @@ starts from classified support and carries at most 288 remaining rise; no
 event replenishes that budget while already airborne. The source audits and
 launch kernel support this premise, but the event-by-event linked Clight
 theorem remains open.
+
+### Double-pound and partial-update refinement
+
+The earlier 280-unit mixed-frame hand-separation claim was false: the hands
+can get closer during attacks. `DoublePoundTrace.v` proves the narrower fact
+actually needed for the reusable positive-double approach. The audited setup
+starts the later hand 360 units behind at relative Z=0. The closed top's
+conservative scaled/cast X slice is `[-108,102]`, and floor eligibility needs
+relative Y at least `306-78=228`. In the exact trace:
+
+```text
+... -> (-120,255) -> (-90,210) -> ...
+```
+
+`(-120,255)` is the last vertically eligible query but remains outside the
+closed top. `(-90,210)` is the first horizontally eligible query but is 18
+units too low. Rocq proves that the complete audited free-flight list has no
+simultaneously eligible point. The theorem is phase-local and source-shaped;
+it does not prove arbitrary hand noncollision or a linked Clight controller
+trace, and its no-wall conservatism still needs a semantic wall-response
+bridge.
+
+`PartialUpdateBoundary.v` separately proves that a live hand cannot reach the
+movement-only partial guard in the no-external-writer lifecycle. The native
+sleep update installs nonnull collision before visibility; later collision
+writes remain nonnull; room remains -1; visibility therefore sets neither
+FAR_AWAY nor IN_DIFFERENT_ROOM; and time stop stutters the complete object
+update. The source audit pins each ordering/writer premise. This closes the
+partial-update branch inside the finite lifecycle model, not yet for every
+linked Clight or ROM execution.
 
 ### Mario contact and A-edge refinement
 
@@ -228,10 +258,11 @@ rather than merely conjoining two unrelated bounds. It is specifically a
 kernel-controlled runaway gate on a safe vertical abstraction: ordinary
 finite vertical steps are not yet paired event-by-event with kernel steps, and
 the two components do not share a proved absolute-height field. The remaining
-source bridge is still open. In particular, the old 280-unit mixed-frame
-separation calculation is not a global noncollision invariant; the exact
-double-pound phase trace and the zero-velocity/floor-ready premises still need
-formal source-to-model refinement.
+source bridge is still open. The old 280-unit mixed-frame separation has been
+removed; the replacement exact phase trace and no-external-writer lifecycle
+are now machine checked. Their correspondence to linked Clight, plus the
+zero-velocity/floor-ready premise, still needs formal source-to-model
+refinement.
 
 The exact conditional Y=1467 pose used above is now refuted by the two-hand
 barrier, rather than merely unproved. This answers the requested
@@ -318,7 +349,11 @@ API as original gameplay.
   semantic Clight lemmas if a fully linked theorem is required.
 - Prove the linked finite-episode classification used by the two-hand barrier:
   all positive second-hand writes start from classified support, carry at most
-  288 remaining rise, and cannot replenish that rise while airborne.
+  288 remaining rise, and cannot replenish that rise while airborne. Refine
+  the exact double-pound trace and conservative wall response.
+- Prove that the linked object's complete writer set refines the partial-update
+  lifecycle, including time-stop classification and absence of external room,
+  collision-null, FAR_AWAY, or IN_DIFFERENT_ROOM writes.
 - Prove Mario's actual platform selection and vertical following. The source
   does not add a platform's vertical velocity to Mario; a moving hand must be
   reselected within the 78-unit buffer on every relevant frame.

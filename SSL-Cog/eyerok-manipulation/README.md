@@ -59,6 +59,20 @@ The A value is a ghost input because the Eyerok hand code does not read it. It
 shows that changing only A cannot alter this hand-control invariant; it does
 not model new press edges or construct a legal no-A Mario route.
 
+The former 280-unit global hand-separation argument was incorrect and has been
+removed. `proofs/DoublePoundTrace.v` uses the exact phase-local positive-double
+trace instead. The setup begins 360 units behind; at relative Z=0 the last
+vertically eligible query `(-120,255)` is outside the closed top, while the
+first horizontally eligible query `(-90,210)` is 18 units too low. Rocq proves
+that no audited trace point satisfies both conditions.
+
+`proofs/PartialUpdateBoundary.v` closes the other source-shaped stutter route.
+It models native collision loading before visibility, persistent room -1, and
+whole-update time-stop freezing, then proves that no reachable live hand in
+the no-external-writer lifecycle enters the FAR_AWAY/IN_DIFFERENT_ROOM movement
+guard. These are audited source-shaped theorems; linked Clight writer/order
+refinement remains open.
+
 The audit now also separates the Area 3 collision into arena floors, whose
 maximum Y is `-1150`, and tunnel floors, whose minimum Y is `-562`. There are
 no upward-facing floor triangles between them. `proofs/FirstHandBarrier.v`
@@ -140,6 +154,9 @@ violation but does not prevent it.
 - the Mario-contact arithmetic proves the ride/filter, hitbox, bounce, and
   fresh-A-edge facts above, while leaving X/Z contact and action execution
   explicit;
+- the exact positive-double trace has no sibling-floor candidate, and the
+  no-external-writer lifecycle has no movement-only partial update; neither is
+  yet a linked whole-program theorem;
 - the conditional lower-route certificate uses the Y=1809 ceiling to select
   and model-land on the audited Y=1280 floor, while excluding Y=1967 and
   leaving authentic hand/controller reachability explicit;

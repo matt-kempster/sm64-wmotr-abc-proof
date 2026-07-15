@@ -21,6 +21,12 @@ The current machine-checked results are:
 - the executable audited source-shaped kernel excludes
   `DOUBLE_POUND + grounded + gravity 0` for every modeled Mario-input policy,
   including never pressing A and continuously holding A;
+- the old 280-unit global separation argument is false and removed; an exact
+  phase-local trace proves the approaching second hand misses the sibling
+  closed top, first horizontally and then vertically;
+- a separate source-shaped lifecycle proves that live hands cannot acquire the
+  FAR_AWAY or IN_DIFFERENT_ROOM bits that would skip movement while still
+  advancing the hand action;
 - the older, geometry-relaxed relation bounds the first hand's origin at
   `672`, the second hand's origin at `1467`, the second surface at `1974`, and
   Mario's generously modeled peak at `2604`;
@@ -287,14 +293,16 @@ using source-audited boundary premises:
 
 - there is no raised static floor in the begin-double corridor. The hands are
   not globally separated by 280 units, as an earlier draft claimed. In the
-  relevant double-pound approach, the manual source trace puts the moving hand
+  relevant double-pound approach, the audited trace puts the moving hand
   at relative `(X,Y)=(-120,255)` and then `(-90,210)`. The first point is still
   outside the other closed top; the second is 18 units below its floor-query
-  threshold. A formal phase-trace refinement is still required; and
+  threshold. `DoublePoundTrace.v` proves that no sample satisfies both tests;
+  the linked phase/wall refinement is still required; and
 - a live hand cannot receive a movement-only partial update: its collision
   pointer is non-null, its room remains `-1`, and time stop freezes the entire
-  hand update rather than just its movement. This lifecycle is still a manual
-  pinned-source argument pending the formal boundary module.
+  hand update rather than just its movement. `PartialUpdateBoundary.v` proves
+  this for the no-external-writer lifecycle; generated-Clight writer
+  completeness remains open.
 
 This result is player-adversarial inside the abstraction: the kernel has event
 cases for every boss or Mario-dependent choice relevant to this launch, while
@@ -711,10 +719,12 @@ equated with the vertical relation's absolute Y. Those missing event/height
 correspondence facts belong to the linked refinement obligation.
 
 There is still a trust boundary. The old 280-unit mixed-frame separation is
-not a valid global invariant. The narrower double-pound near-miss trace above,
-the kernel's zero-velocity/floor-ready premise, collision lifetime, and the
-claim that the local Area 3 object set contains no other surface provider are
-syntax-backed arguments, not linked semantic lemmas. The project has not linked all generated Clight
+not a valid global invariant and has been removed from the proof. The narrower
+double-pound near-miss and no-external-writer lifecycle are now machine
+checked, but their source correspondence, the kernel's
+zero-velocity/floor-ready premise, collision lifetime, and the claim that the
+local Area 3 object set contains no other surface provider are not linked
+semantic lemmas. The project has not linked all generated Clight
 translation units and proved that every whole-program execution refines the
 coupled model. Here, **audited source-shaped** means that the transition cases
 were manually extracted from pinned source and protected by deterministic
@@ -746,6 +756,13 @@ The project now machine-checks these statements:
 - the two-hand result strictly excludes second origin Y `1467`, second surface
   Y `1974`, and modeled Mario Y `2604`, and `1809` is below the `1889` query
   threshold for the Area 2 Y `1967` floor;
+- in the audited positive-double trace, setup separation is 360, the last
+  vertically eligible sibling-floor query `(-120,255)` is outside the closed
+  top, the first horizontally eligible query `(-90,210)` is 18 units too low,
+  and no trace point passes both tests;
+- in the no-external-writer lifecycle, native collision loading occurs before
+  visibility, room remains -1, complete time-stop frames stutter, and no live
+  hand reaches the movement-only partial-update guard;
 - direct platform velocity displacement leaves Mario Y unchanged; the death
   and attacked rises and the 20-unit target lift pass the 78-unit height filter,
   while the first 85-unit double-pound step, a 100-unit runaway step, and the
