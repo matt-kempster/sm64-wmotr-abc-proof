@@ -23,7 +23,7 @@ pinned US SM64 Eyerok, Mario, area, SSL script, and collision source
   -> reproducible source audit + CompCert clightgen
   -> generated Clight AST shape certificates
   -> executable source-shaped launch kernel under arbitrary A input
-  -> audited arena/tunnel split + source-shaped first-hand barrier
+  -> audited arena/tunnel split + source-shaped two-hand barriers
   -> handwritten Eyerok, Mario/warp, and Area 2 transition systems
   -> hand-height invariant + route-threshold theorems
   -> relation-level and binary32 representation bounds
@@ -66,12 +66,20 @@ uses the 78-unit floor-query tolerance and first-hand update rank to prove that
 the first hand's maximum finite origin is `-862`, its open surface top is
 `-355`, and it cannot select the tunnel floor. Thus the older first-hand
 surface Y `1179` construction is not reachable in this source-shaped barrier.
-The linked Clight refinement and the second-hand/Mario cases remain open.
+The linked finite-episode refinement and the Mario-contact cases remain open.
 
 `proofs/HeightMilestones.v` keeps Y `1179`, `1467`, `1974`, and `2604` as four
 different observations rather than interchangeable heights. It also defines
 controller schedules with a pre-interval A bit, so always-released A,
 continuously-held A, and a fresh press-and-hold can be distinguished.
+
+`proofs/TwoHandBarrier.v` grants the second hand every static Area 3 floor and
+every possible contact with the first hand's tallest collision. The first
+dynamic surface ceiling `-355` is below the static upward-floor maximum `384`,
+so the second hand's support ceiling remains `384`. Rocq obtains second origin
+ceiling `672`, surface ceiling `1179`, and modeled Mario peak `1809`. This
+strictly excludes the old `1467`, `1974`, and `2604` milestones and is below
+the `1889` query threshold for Area 2's Y=1967 floor.
 
 `inputs/eyerok_model.c` makes a vertical abstraction executable. It
 tracks surface-list rank, controlled positioning, static or earlier-hand
@@ -94,6 +102,8 @@ violation but does not prevent it.
   kernel excludes the runaway seed, independent of Mario's A-button policy;
 - the source-shaped first-hand barrier bounds its origin at absolute Y `-862`,
   prevents tunnel-floor selection, and bounds its open surface at `-355`;
+- the source-shaped two-hand barrier bounds the second origin at `672`, its
+  open surface at `1179`, and the generously modeled Mario peak at `1809`;
 - the older geometry-relaxed vertical relation bounds hand origins at absolute
   Y 672 for `FirstHand` and 1467 for `SecondHand`; and
 - no infinite execution of that handwritten relation is unbounded above.
@@ -109,6 +119,10 @@ for arbitrary, never-A, and held-A input. Even the no-A case receives the full
 Those positive bounds remain useful route thresholds, but the new first-hand
 barrier shows that their original `384 + 288` starting construction is not an
 authentic first-hand trace inside the source-shaped model.
+The two-hand barrier goes further: even granting all dynamic contact, the
+conditional Y=1467 hand pose and resulting Y=1967 landing premise cannot be
+supplied by this source-shaped relation. An event-by-event linked Clight proof
+of the finite-episode premise remains open.
 
 `proofs/RouteCertificate.v` adds a separate Mario/Area 2 result. A hand floor
 does not trigger the modeled instant warp; a selected Area 3 warp floor enters
@@ -118,13 +132,16 @@ Mario peak ceiling of 2604. That is too low for the audited Y=2940 and higher
 shortcut tiers or direct star collection. The combined abstract relations do,
 however, admit a **conditional** landing at `(387,1967,-500)`, the point on the
 Y=1967 platform horizontally closest to the star. The original game has not
-been proved to realize the witness's starting hand pose.
+been proved to realize the witness's starting hand pose; the new two-hand
+barrier now refutes that pose inside the source-shaped height relation. The
+trace remains a checked counterfactual about the older geometry-relaxed model.
 
 `proofs/UpperRoute.v` establishes why a genuinely high hand would matter. A
 counterfactual hand origin at Y=3627 supplies a modeled Y=4354 Area 2 entry;
 its first quarter-step query truncates to Y=4351, selects the Y=4429 platform,
 and permits a landing on the Y=4815 star platform.
-The source-shaped ceiling is Y=1467, so the model cannot supply that premise.
+The older coupled ceiling is Y=1467 and the stricter two-hand barrier ceiling
+is Y=672, so neither model can supply that premise.
 This eliminates the proposed high-Eyerok alternative inside the audited model;
 it does not prove the conditional Y=1967 route authentic, globally fastest, or
 lowest in A presses.

@@ -353,6 +353,26 @@ def main() -> None:
     if first_hand_open_surface_peak != -355:
         fail(f"unexpected first-hand open-surface peak: {first_hand_open_surface_peak}")
 
+    # The second-updated hand may see the first hand's current dynamic
+    # collision.  Even granting the first hand's highest possible open top at
+    # every X/Z, that support is below the already-audited static Area 3
+    # upward-floor maximum.  Thus dynamic support cannot raise the second
+    # hand's support ceiling above 384.
+    second_hand_support_ceiling = max(
+        max_upward_floor_vertex_y, first_hand_open_surface_peak
+    )
+    second_hand_finite_peak = second_hand_support_ceiling + 288
+    second_hand_open_surface_peak = second_hand_finite_peak + dynamic_top_offset
+    second_hand_modeled_mario_peak = second_hand_open_surface_peak + 630
+    if second_hand_support_ceiling != 384:
+        fail(f"unexpected second-hand support ceiling: {second_hand_support_ceiling}")
+    if second_hand_finite_peak != 672:
+        fail(f"unexpected second-hand finite origin peak: {second_hand_finite_peak}")
+    if second_hand_open_surface_peak != 1179:
+        fail(f"unexpected second-hand open-surface peak: {second_hand_open_surface_peak}")
+    if second_hand_modeled_mario_peak != 1809:
+        fail(f"unexpected second-hand modeled Mario peak: {second_hand_modeled_mario_peak}")
+
     print("Eyerok source audit")
     print(f"pin: {PIN}")
     print(f"checkout-head: {head}")
@@ -378,6 +398,10 @@ def main() -> None:
     print(f"first-hand-finite-origin-peak: {first_hand_finite_peak}")
     print(f"first-hand-tunnel-query-min: {first_hand_tunnel_query_min}")
     print(f"first-hand-open-surface-peak: {first_hand_open_surface_peak}")
+    print(f"second-hand-support-ceiling: {second_hand_support_ceiling}")
+    print(f"second-hand-finite-origin-peak: {second_hand_finite_peak}")
+    print(f"second-hand-open-surface-peak: {second_hand_open_surface_peak}")
+    print(f"second-hand-modeled-mario-peak: {second_hand_modeled_mario_peak}")
     print("begin-double-center-separation-audit-assumption: 280 (mixed-frame controller phase)")
     print(f"closed-hand-horizontal-radius-max: {1.5 * math.sqrt(max_closed_radius_sq):.6f}")
     print(f"closed-hand-top-offset: {closed_top_offset}")
