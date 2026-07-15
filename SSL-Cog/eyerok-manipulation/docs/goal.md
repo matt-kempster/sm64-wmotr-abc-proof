@@ -1,6 +1,6 @@
 # Goal recovery note
 
-Last updated: 2026-07-14 (audited source-shaped reachability proof).
+Last updated: 2026-07-14 (first-hand arena-to-tunnel barrier).
 
 ## Objective
 
@@ -59,6 +59,22 @@ The refined vertical relation uses exact maximum finite ascent budget 288. It
 proves hand-origin ceilings 672 and 1467. Adding the collision top and modeled
 triple-jump allowance gives a second-hand Mario peak ceiling of 2604.
 
+Those are geometry-relaxed bounds, not authentic reachability witnesses. The
+new Area 3 audit proves that the first hand's available static arena floors top
+out at Y=-1150, while the tunnel begins at Y=-562 with no upward floor between
+them. Because the floor query accepts a floor at most 78 units above the hand,
+the full finite rise reaches only origin Y=-862 and misses tunnel eligibility
+by 222 units. `FirstHandBarrier.v` proves that every state in the source-shaped
+first-hand relation stays at or below -862, never selects the tunnel, and has
+open collision top at or below -355. Therefore the old first-surface Y=1179
+construction is unreachable in this barrier.
+
+`HeightMilestones.v` now represents first surface Y=1179, second origin
+Y=1467, second surface Y=1974, and Mario Y=2604 as distinct observations. It
+also distinguishes always-released A, A held before the measured interval,
+and a fresh press edge. No authentic Mario route is inferred from these
+definitions.
+
 The Mario/area relation proves:
 
 - a hand floor does not trigger the instant warp;
@@ -98,15 +114,22 @@ reachability is now closed.
 1. Link the generated translation units and prove that every relevant Clight
    frame refines the source-shaped kernel, including update rank, dynamic
    surfaces, time stop, Mario contact, and floor-pointer lifetime.
-2. Prove or refute the exact conditional Y=1467 hand pose at the required X/Z,
+2. Prove that the second-updated hand cannot compound height using the first
+   hand's phase-specific dynamic collision, or construct a concrete authentic
+   counterexample. Keep origin, surface, and terminal-death states separate.
+3. Prove Mario's contact lifecycle on the hand: boarding, per-frame floor
+   reselection, attack-hitbox compatibility, dismount, and selection of the
+   static Area 3 warp floor. Decide released-A, held-before-start, and fresh
+   press-and-hold schedules separately.
+4. Prove or refute the exact conditional Y=1467 hand pose at the required X/Z,
    together with Mario contact and a controller-accurate Y=1967 launch.
-3. Optimize an authentic Area 2 route to the star and count new A presses.
+5. Optimize an authentic Area 2 route to the star and count new A presses.
    The present work rules out the proposed higher Eyerok shortcut inside the
    audited model, but does not prove Y=1967 globally fastest or even
    authentically reachable.
-4. Determine whether any machine behavior outside the source-shaped kernel can
+6. Determine whether any machine behavior outside the source-shaped kernel can
    preserve the dangerous action/velocity after binary32 Y stops changing.
-5. Add an IDO/MIPS semantic boundary for the out-of-range float-to-integer
+7. Add an IDO/MIPS semantic boundary for the out-of-range float-to-integer
    conversion if a ROM-level execution claim is required.
 
 ## Repository constraints

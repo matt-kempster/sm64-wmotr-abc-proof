@@ -1,6 +1,6 @@
 # Working claim and exact scope
 
-Last updated: 2026-07-14 (audited source-shaped reachability proof).
+Last updated: 2026-07-14 (first-hand arena-to-tunnel barrier).
 
 ## Source and toolchain boundary
 
@@ -56,6 +56,32 @@ is backed by a deterministic pinned-source audit of order and geometry. The
 audit does not itself prove the semantic correspondence. A whole-program
 Clight proof of that mapping and source-to-model transition refinement remains
 open.
+
+### First-hand reachability refinement
+
+The Y=384 premise above is an intentionally geometry-relaxed maximum. The
+pinned collision audit now proves that Y=384 belongs to the tunnel, whereas
+the first-updated hand initially has access only to static arena floors at or
+below Y=-1150. The first hand queries before either hand's current-frame
+dynamic collision can support it. The lowest tunnel floor is Y=-562 and needs
+query Y at least -640 because of the 78-unit floor buffer.
+
+Even the largest finite rise yields `-1150 + 288 = -862`. Rocq therefore
+proves, for the source-shaped first-hand barrier:
+
+- origin Y is at most -862;
+- no floor at Y=-562 or above is query-eligible;
+- the open-eye collision top is at most `-862 + 507 = -355`; and
+- the old first-surface Y=1179 milestone is unreachable.
+
+This is stronger than the geometry-relaxed first-rank bound, but narrower in
+scope: a linked Clight frame refinement, the second hand's access to the first
+hand's dynamic collision, and Mario's contact trace remain open.
+
+The four legacy numbers are now separate formal predicates: 1179 observes the
+first transformed surface, 1467 the second object origin, 1974 the second
+transformed surface, and 2604 Mario's position. Disproving one predicate does
+not silently substitute for a proof of the others.
 
 The executable finite kernel proves that the only control seed capable of
 repeated zero-gravity 100-unit launches is unreachable. The proof quantifies
@@ -174,11 +200,19 @@ API as original gameplay.
   time stop, and floor-pointer lifetime.
 - Replace the audit-backed first/second rank and 78-unit floor-query facts with
   semantic Clight lemmas if a fully linked theorem is required.
+- Close the second-hand dynamic-support cases with phase-specific collision
+  meshes, X/Z overlap, update order, and terminal/deletion behavior.
+- Prove Mario's actual platform selection and vertical following. The source
+  does not add a platform's vertical velocity to Mario; a moving hand must be
+  reselected within the 78-unit buffer on every relevant frame.
 - Prove or refute reachability of the conditional Y=1467 hand origin at the
   route's X/Z and Mario's launch from it.
 - Prove the exact controller/action trace and new-A-press count for any claimed
   Area 2 landing; the current high-hand no-go is A-policy-independent, but the
   Mario route witnesses over-approximate controller behavior.
+- Treat always-released A, continuously held A with no new edge, and a fresh
+  press-and-hold as different schedules. The first two are machine-proved to
+  contain no A press edge, but no route verdict follows from that fact alone.
 - Prove route timing before calling Y=1967 globally fastest.
 - Add an IDO/MIPS boundary if the claim is about the original ROM rather than
   CompCert Clight source semantics.

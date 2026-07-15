@@ -21,12 +21,17 @@ The current machine-checked results are:
 - the executable audited source-shaped kernel excludes
   `DOUBLE_POUND + grounded + gravity 0` for every modeled Mario-input policy,
   including never pressing A and continuously holding A;
-- the refined handwritten Eyerok relation bounds the first-updated hand's
-  origin at absolute Y `672` and the second-updated hand's origin at `1467`;
-- after adding the hand's maximum `507`-unit collision top, Mario's modeled
-  standing height is at most `1974` on the second hand;
-- after adding a generous ordinary triple-jump rise of `630`, Mario's modeled
-  peak is `2604`;
+- the older, geometry-relaxed relation bounds the first hand's origin at
+  `672`, the second hand's origin at `1467`, the second surface at `1974`, and
+  Mario's generously modeled peak at `2604`;
+- a new source-shaped first-hand barrier proves that the first hand cannot
+  realize the premise behind those positive heights: its origin is at most
+  `-862`, its open collision top is at most `-355`, and it cannot select even
+  the lowest tunnel floor;
+- consequently, the proposed first-hand surface at Y `1179` is unreachable in
+  that barrier model. The second-hand Y `1467`, surface Y `1974`, and Mario Y
+  `2604` constructions remain conditional until the two-hand and Mario-contact
+  refinements are completed;
 - `2604` is too low for a direct landing at Y `2940`, the upper warp-overlap
   platform at Y `4429`, the star platform at Y `4815`, or direct interaction
   with the star at Y `5050`;
@@ -38,14 +43,15 @@ The current machine-checked results are:
 - binary32 addition has the exact fixed point `2^31 + 100 = 2^31`, and the
   modeled recurrence remains there once started at `2^31`.
 
-The word **conditional** is important. The handwritten vertical relation
-admits the starting hand height, but it has no X/Z state and does not prove
-that the original game can put the hand at the required position. The route
-model also over-approximates Mario's air steering. It is a counterexample to
-"the formal height bound is numerically too low for every useful landing," not
-a verified controller-input movie for the original game. The new coupled
-audited model rules out every hand height high enough for the direct Y `2940`,
-`4429`, or `4815` shortcut tiers **inside that model**.
+The word **conditional** is important. The geometry-relaxed vertical relation
+admits the old starting hand heights, but it has no X/Z state and lets a hand
+use any upward Area 3 floor regardless of whether that hand can reach it. The
+new barrier closes that abstraction gap for the first-updated hand. It does
+not yet close the second-hand, Mario-contact, or exact-controller gaps. The
+route model also over-approximates Mario's air steering. Its Y `1967` trace is
+a counterexample to "the old formal height bound is numerically too low for
+every useful landing," not a verified controller-input movie for the original
+game.
 
 That qualification is essential. The project does not yet prove that every
 linked Clight or original-ROM frame refines the kernel and vertical relation.
@@ -249,6 +255,20 @@ half-press conventions. The no-A height theorem is conservative: it still
 grants Mario the model's generous 630-unit jump allowance. That makes the
 impossibility stronger, but it does not construct a legal no-A jump.
 
+`HeightMilestones.v` now supplies the controller vocabulary needed for the
+next refinement. An A schedule records the bit immediately before the measured
+interval and the bit on every frame. A press is a false-to-true edge. This
+separates three cases that are often conflated:
+
+```text
+always released:        A was up before the interval and stays up
+continuously held:      A was already down and stays down
+press and keep holding: A starts up, then has one false-to-true edge
+```
+
+Rocq proves that the first two schedules contain no new A press. It does not
+yet prove a Mario route for any of the three schedules.
+
 There are useful sensitivity checks. If the source comparison were `<=`
 instead of `<`, or if movement could partial-stutter across the two action
 changes, the dangerous seed would be reachable in two frames. Those variants
@@ -277,14 +297,14 @@ neither shows that an authentic run reaches that cast nor specifies the
 original IDO/MIPS out-of-range conversion. It is not a theorem that the ROM
 stops there.
 
-## The corrected hand-height bound
+## The geometry-relaxed bounds and the first-hand barrier
 
 The earlier `1196`/`2003` numbers used the largest Y of **any** Area 3
 collision vertex, `896`. That included walls. Floor support requires an
 upward-facing triangle. The audited maximum vertex of an upward-facing Area 3
 floor is only `384`.
 
-The refined relation uses this arithmetic:
+The older refined relation uses this arithmetic:
 
 1. The first-updated hand can use static Area 3 floor support at most `384`.
 2. Its maximum finite impulse adds `288`, so its origin is at most `672`.
@@ -309,6 +329,62 @@ These remain **upper bounds**, not measurements of a normal fight. The
 relation conservatively allows the second hand to land on the first hand's
 maximum collision top even though the original game's 78-unit floor-query
 tolerance and X/Z alignment may make that exact stack unreachable.
+
+There is a more basic problem with the first line of that arithmetic. The
+Y `384` floor is in the upper tunnel, not in the boss arena. The pinned Area 3
+collision separates its upward-facing floors into two groups:
+
+| Region | Relevant floor Y |
+| --- | ---: |
+| highest arena floor | `-1150` |
+| lowest tunnel floor | `-562` |
+| no upward floor triangles | strictly between `-1150` and `-562` |
+
+A hand can select a floor above it only if its query Y is no more than 78
+units below that floor. Selecting the lowest tunnel floor at Y `-562`
+therefore requires hand Y at least `-640`.
+
+The first-updated hand cannot use the other hand as a platform. At the start
+of a normal frame the engine clears dynamic surfaces. It then updates the
+first hand, including its floor query, before loading that hand's new
+collision. Only afterward does it update the second hand. The first hand thus
+sees static Area 3 floors, not a sibling hand surface.
+
+Even granting the first hand the highest arena floor and the largest finite
+rise gives:
+
+```text
+highest arena support              -1150
+largest finite rise                  +288
+first-hand origin peak               -862
+minimum query Y for tunnel floor      -640
+shortfall                              222
+```
+
+Its maximum open-eye collision top is 507 units above its origin, so that top
+can reach only Y `-355`. This does not help the hand's own floor query: the
+query is made at the object's origin, and an object cannot use the collision
+surface it has not loaded yet as its own support.
+
+`FirstHandBarrier.v` formalizes this source-shaped over-approximation and
+proves that every reachable first-hand state has origin Y at most `-862`, can
+never query a tunnel floor, and has open surface Y below `1179`. This disproves
+authentic reachability of the old first-surface Y `1179` construction within
+the new barrier. It is still not a linked Clight or original-ROM theorem.
+
+The four requested numbers now have deliberately separate predicates in
+`HeightMilestones.v`:
+
+| Milestone | What it observes | Current status |
+| --- | --- | --- |
+| `1179` | first hand's transformed surface | disproved in the first-hand barrier |
+| `1467` | second hand's object origin | open pending two-hand refinement |
+| `1974` | second hand's transformed surface | open pending two-hand refinement |
+| `2604` | Mario's position | open pending authentic contact/action refinement |
+
+Numerically, the latter three depend on the now-disproved first-hand `1179`
+premise in the old stacking construction. A formal two-hand proof is still
+needed before calling them unreachable in every source-shaped run.
 
 ## Area 2 floors relevant to the route
 
@@ -376,15 +452,14 @@ purpose is to establish that Y
 `3627` would be high enough to matter: it would skip the Y `1967` route and
 reach the star platform.
 
-Inside the audited coupled model, the second question has the opposite answer.
-That model
-bounds every hand origin at Y `1467`, which is `2160` units below the modeled
-minimum Y `3627`. It therefore cannot supply the premise of this
-counterfactual. This
-rules out the proposed **high-Eyerok** alternative; it does not prove that the
-conditional Y `1967` route is authentic or globally fastest. A lower arrival
-can still traverse Area 2 by ordinary gameplay, and comparing completion
-times requires a controller-accurate timing proof.
+Inside the older audited coupled model, the second question has the opposite
+answer. That model bounds every hand origin at Y `1467`, which is `2160` units
+below the modeled minimum Y `3627`. The new first-hand barrier is stronger for
+the first rank, but the exact two-hand and Mario refinement is not complete.
+Accordingly, the high route is ruled out in the existing coupled abstraction,
+not yet by an end-to-end theorem about every original-game frame. A lower
+arrival can still traverse Area 2 by ordinary gameplay, and comparing
+completion times requires a controller-accurate timing proof.
 
 ## The conditional Y=1967 trace
 
@@ -502,8 +577,14 @@ The project now machine-checks these statements:
 - the executable source-shaped kernel cannot reach
   `DOUBLE_POUND + grounded + gravity 0` under any modeled event or A-button
   policy, including never pressing A and continuously holding A;
-- every state reachable in the refined vertical relation has hand-origin Y at
-  most `672` for the first rank or `1467` for the second;
+- the exact controller-schedule definitions distinguish unrestricted input,
+  always-released A, continuously-held A, and a fresh A press, and released or
+  already-held schedules have no fresh press edge;
+- every state reachable in the geometry-relaxed vertical relation has
+  hand-origin Y at most `672` for the first rank or `1467` for the second;
+- every state reachable in the source-shaped first-hand barrier has origin Y
+  at most `-862`, cannot query a tunnel floor at Y `-562` or above, and has
+  open collision top at most `-355`, hence strictly below Y `1179`;
 - the coupled kernel/vertical relation cannot
   supply a hand high enough for direct selection of the Y `2940`, `4429`, or
   `4815` Area 2 tiers;
@@ -531,8 +612,14 @@ The project still does not prove:
   source-shaped kernel, vertical relation, and Mario route relation;
 - a semantic Clight proof, rather than the current deterministic source audit,
   of the original hands' update order and dynamic-floor choices;
-- that the original game reaches the conditional hand pose used by the Y
-  `1967` route witness;
+- whether the second hand can use any authentic first-hand collision state to
+  exceed the first-hand barrier, including all action/mesh/update-order cases;
+- that the original game reaches the conditional second-hand pose used by the
+  Y `1967` route witness;
+- that Mario can board and remain selected on the relevant moving hand. In
+  particular, vertical platform velocity is not inherited, an 85-unit first
+  double-pound step exceeds the 78-unit floor tolerance, and standing on the
+  normal hand top is above the eye's attack hitbox;
 - an exact original-controller trace from the hand through the warp to that
   landing;
 - how many new A presses an authentic route uses. The high-hand impossibility
@@ -549,11 +636,12 @@ The project still does not prove:
 - a source-to-ROM proof for out-of-range floating-point conversions in the
   original IDO-compiled MIPS binary.
 
-In short: the Area 3 to Area 2 mechanic is now represented, the finite bound's
+In short: the Area 3 to Area 2 mechanic is represented, the old finite bound's
 route consequences are proved for the explicit adversarial model, the
 source-shaped repeated-launch seed is excluded for every A policy, and literal
-unbounded finite binary32 Y is disproved. The high-Eyerok star-platform route
-is therefore unavailable in this model. The remaining questions are whether
-the conditional Y `1967` hand/Mario pose is authentic, which lower route is
-actually fastest and uses the fewest new A presses, and whether a linked
-whole-program/ROM semantics validates every source-shaped step used here.
+unbounded finite binary32 Y is disproved. We have additionally disproved the
+old first-hand Y `1179` construction in a source-shaped reachability barrier.
+The remaining work is to close the second-hand and Mario-contact cases, decide
+the conditional Y `1967` pose, build controller-accurate released/held/pressed
+A traces, and connect the source-shaped steps to linked Clight and, if needed,
+the original ROM.

@@ -40,6 +40,9 @@ bash pipeline/assumptions.sh \
   SSLEyerok.Proofs.AuthenticKernel \
   no_player_policy_reaches_gravity_zero_runaway_seed
 bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.FirstHandBarrier \
+  first_hand_barrier_certificate_holds
+bash pipeline/assumptions.sh \
   SSLEyerok.Proofs.AuthenticReachability \
   audited_coupled_reachability_certificate_holds
 bash pipeline/assumptions.sh \
