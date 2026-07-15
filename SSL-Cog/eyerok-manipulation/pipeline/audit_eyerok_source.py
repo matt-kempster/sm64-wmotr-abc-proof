@@ -21,9 +21,12 @@ IDENTICAL_PATHS = [
     "src/game/object_list_processor.c",
     "src/game/spawn_object.c",
     "src/engine/surface_collision.c",
+    "src/engine/surface_load.c",
     "include/object_constants.h",
     "include/object_fields.h",
     "data/behavior_data.c",
+    "actors/eyerok/anims/anim_0500DF50.inc.c",
+    "actors/eyerok/anims/anim_0500E99C.inc.c",
     "levels/ssl/areas/2/collision.inc.c",
     "levels/ssl/areas/3/collision.inc.c",
     "levels/ssl/areas/3/macro.inc.c",
@@ -77,6 +80,30 @@ def parse_collision(text: str) -> tuple[list[tuple[int, int, int]], list[tuple[i
     return vertices, triangles
 
 
+def named_collision_block(text: str, name: str) -> str:
+    match = re.search(
+        rf"const\s+Collision\s+{re.escape(name)}\[\]\s*=\s*\{{(.*?)\n\}};",
+        text,
+        re.DOTALL,
+    )
+    if match is None:
+        fail(f"missing collision array: {name}")
+    return match.group(1)
+
+
+def upward_triangle_top(
+    vertices: list[tuple[int, int, int]], triangles: list[tuple[int, int, int]]
+) -> int:
+    upward = [
+        triangle
+        for triangle in triangles
+        if normal_y(*(vertices[index] for index in triangle)) > 0
+    ]
+    if not upward:
+        fail("collision array has no upward triangle")
+    return max(max(vertices[index][1] for index in triangle) for triangle in upward)
+
+
 def normal_y(a: tuple[int, int, int], b: tuple[int, int, int], c: tuple[int, int, int]) -> int:
     abx, _, abz = b[0] - a[0], b[1] - a[1], b[2] - a[2]
     acx, _, acz = c[0] - a[0], c[1] - a[1], c[2] - a[2]
@@ -115,11 +142,14 @@ def main() -> None:
     object_lists = pinned(sm64, "src/game/object_list_processor.c")
     spawn_object = pinned(sm64, "src/game/spawn_object.c")
     surface_collision = pinned(sm64, "src/engine/surface_collision.c")
+    surface_load = pinned(sm64, "src/engine/surface_load.c")
     ssl_script = pinned(sm64, "levels/ssl/script.c")
     area2 = pinned(sm64, "levels/ssl/areas/2/collision.inc.c")
     area3 = pinned(sm64, "levels/ssl/areas/3/collision.inc.c")
     area3_macros = pinned(sm64, "levels/ssl/areas/3/macro.inc.c")
     hand_collision = pinned(sm64, "levels/ssl/eyerok_col/collision.inc.c")
+    die_animation = pinned(sm64, "actors/eyerok/anims/anim_0500DF50.inc.c")
+    attacked_animation = pinned(sm64, "actors/eyerok/anims/anim_0500E99C.inc.c")
 
     actions = re.findall(r"#define\s+EYEROK_HAND_ACT_[A-Z_]+\s+(\d+)", constants)
     if list(map(int, actions)) != list(range(16)):
@@ -174,6 +204,10 @@ def main() -> None:
     require(spawn_object, "obj->collisionData = NULL;", "collision starts null")
     require(spawn_object, "obj->oRoom = -1;", "room starts minus one")
     require(surface_collision, "if (y - (height + -78.0f) < 0.0f)", "find-floor 78-unit buffer")
+    require(surface_load, "*vertexData++ = (TerrainData)(vx * m[0][0] + vy * m[1][0] + vz * m[2][0] + m[3][0]);", "dynamic collision X transform")
+    require(surface_load, "*vertexData++ = (TerrainData)(vx * m[0][1] + vy * m[1][1] + vz * m[2][1] + m[3][1]);", "dynamic collision Y transform")
+    require(die_animation, "0x28, ANIMINDEX_NUMPARTS(eyerok_seg5_animindex_0500DD4C)", "40-frame die animation")
+    require(attacked_animation, "0x19, ANIMINDEX_NUMPARTS(eyerok_seg5_animindex_0500E798)", "25-frame attacked animation")
 
     require(ssl_script, "OBJECT(/*model*/ MODEL_NONE, /*pos*/ 0, -1534, -3693", "boss spawn")
     require(ssl_script, "INSTANT_WARP(/*index*/ 3, /*destArea*/ 3, /*displace*/ 0, 0, 0)", "area 2 to 3 instant warp")
@@ -210,6 +244,55 @@ def main() -> None:
             f"{max_upward_floor_vertex_y}"
         )
 
+    upward_area3: list[tuple[tuple[int, int, int], list[tuple[int, int, int]]]] = []
+    for triangle in area3_triangles:
+        points = [area3_vertices[index] for index in triangle]
+        if normal_y(*points) > 0:
+            upward_area3.append((triangle, points))
+
+    arena_upward = [
+        (triangle, points)
+        for triangle, points in upward_area3
+        if max(point[1] for point in points) <= -1150
+    ]
+    tunnel_upward = [
+        (triangle, points)
+        for triangle, points in upward_area3
+        if min(point[1] for point in points) >= -562
+    ]
+    unclassified_upward = [
+        (triangle, points)
+        for triangle, points in upward_area3
+        if (triangle, points) not in arena_upward
+        and (triangle, points) not in tunnel_upward
+    ]
+    if unclassified_upward:
+        fail(f"upward Area 3 triangles cross the arena/tunnel gap: {unclassified_upward}")
+    max_arena_upward_y = max(
+        max(point[1] for point in points) for _, points in arena_upward
+    )
+    min_tunnel_upward_y = min(
+        min(point[1] for point in points) for _, points in tunnel_upward
+    )
+    if max_arena_upward_y != -1150:
+        fail(f"unexpected arena upward-floor maximum: {max_arena_upward_y}")
+    if min_tunnel_upward_y != -562:
+        fail(f"unexpected tunnel upward-floor minimum: {min_tunnel_upward_y}")
+    arena_peak_triangles = sorted(
+        triangle
+        for triangle, points in arena_upward
+        if max(point[1] for point in points) == -1150
+    )
+    if arena_peak_triangles != [(52, 100, 99), (52, 101, 100)]:
+        fail(f"unexpected arena peak triangles: {arena_peak_triangles}")
+    tunnel_entry_triangles = sorted(
+        triangle
+        for triangle, points in tunnel_upward
+        if min(point[1] for point in points) == -562
+    )
+    if tunnel_entry_triangles != [(11, 14, 15), (11, 15, 12)]:
+        fail(f"unexpected tunnel entry triangles: {tunnel_entry_triangles}")
+
     raised_path_overlaps: list[tuple[int, int, int]] = []
     for triangle in area3_triangles:
         points = [area3_vertices[index] for index in triangle]
@@ -245,6 +328,31 @@ def main() -> None:
         fail(f"unexpected closed-hand local Y maximum: {max_closed_local_y}")
     closed_top_offset = max_closed_local_y * 3 // 2
 
+    open_vertices, open_triangles = parse_collision(
+        named_collision_block(hand_collision, "ssl_seg7_collision_070282F8")
+    )
+    closed_mesh_vertices, closed_mesh_triangles = parse_collision(
+        named_collision_block(hand_collision, "ssl_seg7_collision_07028274")
+    )
+    open_upward_top = upward_triangle_top(open_vertices, open_triangles)
+    closed_upward_top = upward_triangle_top(closed_mesh_vertices, closed_mesh_triangles)
+    if open_upward_top != 338:
+        fail(f"unexpected open-hand upward top: {open_upward_top}")
+    if closed_upward_top != 204:
+        fail(f"unexpected closed-hand upward top: {closed_upward_top}")
+    if (1, 3, 4) not in open_triangles or (1, 4, 2) not in open_triangles:
+        fail("open-hand top triangles changed")
+
+    first_hand_finite_peak = max_arena_upward_y + 288
+    first_hand_tunnel_query_min = min_tunnel_upward_y - 78
+    if first_hand_finite_peak != -862 or first_hand_tunnel_query_min != -640:
+        fail("unexpected first-hand barrier arithmetic")
+    if first_hand_finite_peak >= first_hand_tunnel_query_min:
+        fail("finite arena ascent reaches tunnel floor eligibility")
+    first_hand_open_surface_peak = first_hand_finite_peak + dynamic_top_offset
+    if first_hand_open_surface_peak != -355:
+        fail(f"unexpected first-hand open-surface peak: {first_hand_open_surface_peak}")
+
     print("Eyerok source audit")
     print(f"pin: {PIN}")
     print(f"checkout-head: {head}")
@@ -264,9 +372,19 @@ def main() -> None:
     print("area3-local-objects: Eyerok boss only; macro list empty")
     print("area3-water-boxes: none")
     print("find-floor-buffer: 78")
+    print(f"area3-arena-upward-floor-max: {max_arena_upward_y}")
+    print(f"area3-tunnel-upward-floor-min: {min_tunnel_upward_y}")
+    print("area3-upward-floor-gap: (-1150,-562), no triangles")
+    print(f"first-hand-finite-origin-peak: {first_hand_finite_peak}")
+    print(f"first-hand-tunnel-query-min: {first_hand_tunnel_query_min}")
+    print(f"first-hand-open-surface-peak: {first_hand_open_surface_peak}")
     print("begin-double-center-separation-audit-assumption: 280 (mixed-frame controller phase)")
     print(f"closed-hand-horizontal-radius-max: {1.5 * math.sqrt(max_closed_radius_sq):.6f}")
     print(f"closed-hand-top-offset: {closed_top_offset}")
+    print("closed-hand-upward-local-top: 204 (scaled 306)")
+    print("open-hand-upward-local-top: 338 (scaled 507)")
+    print("attacked-animation-frames: 25")
+    print("die-animation-frames: 40")
     print("raised-static-floor-overlap-with-begin-corridor: none")
     print(f"area3-static-vertex-y-max: {max_static_vertex_y}")
     print(f"area3-upward-floor-vertex-y-max: {max_upward_floor_vertex_y}")

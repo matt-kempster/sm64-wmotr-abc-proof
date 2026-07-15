@@ -21,9 +21,11 @@ generated/interaction.v
 
 proofs/GeneratedFacts.v
 proofs/Spec.v
+proofs/HeightMilestones.v
 proofs/StateMachine.v
 proofs/SchedulerInvariant.v
 proofs/AuthenticKernel.v
+proofs/FirstHandBarrier.v
 proofs/VerticalBound.v
 proofs/GlobalBoundary.v
 proofs/RouteModel.v

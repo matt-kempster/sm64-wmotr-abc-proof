@@ -72,6 +72,8 @@ AUDITED_SOURCES := \
   $(SM64)/src/game/spawn_object.c \
   $(SM64)/src/engine/surface_collision.c \
   $(SM64)/src/engine/surface_load.c \
+  $(SM64)/actors/eyerok/anims/anim_0500DF50.inc.c \
+  $(SM64)/actors/eyerok/anims/anim_0500E99C.inc.c \
   $(SM64)/src/game/area.c \
   $(SM64)/src/game/level_update.c \
   $(SM64)/src/game/mario.c \

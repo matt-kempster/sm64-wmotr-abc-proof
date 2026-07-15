@@ -1,10 +1,10 @@
 # Eyerok manipulation proof checklist
 
-Last updated: 2026-07-14 (audited source-shaped reachability proof).
+Last updated: 2026-07-14 (first-hand arena-to-tunnel barrier).
 
 ## Current verdict
 
-The refined handwritten relation bounds hand origins at 672/1467. The
+The geometry-relaxed handwritten relation bounds hand origins at 672/1467. The
 Mario/Area 2 model proves that a hand floor itself cannot warp, that a selected
 warp floor preserves Mario's state across Area 3 to Area 2, and that modeled
 peak 2604 is too low for Y=2940 or higher route tiers. A conditional trace
@@ -15,6 +15,13 @@ counterfactual origin Y=3627 route
 would reach the star platform, but the source-shaped origin ceiling is Y=1467.
 Literal unbounded finite binary32 Y is also disproved. Linked Clight/ROM
 refinement and route optimality remain open.
+
+The new source-shaped first-hand barrier is stricter: the arena floor maximum
+is -1150, the tunnel floor minimum is -562, and the first hand's full finite
+rise reaches only origin -862 and open surface -355. Rocq proves that it cannot
+query the tunnel or reach the legacy first-surface milestone 1179. The
+second-hand 1467/1974 and Mario 2604 predicates remain open authentic
+reachability obligations, not proved reachable states.
 
 ## Repository and source
 
@@ -51,6 +58,10 @@ refinement and route optimality remain open.
 - [x] Audit the Area 3 local object/macro set, absence of water, begin-double
   corridor floors, closed-hand radius, and positioning constants; keep the
   280-unit controller-phase separation labeled as a manual invariant.
+- [x] Partition every upward Area 3 triangle into arena (maximum Y=-1150) and
+  tunnel (minimum Y=-562), and prove that no triangle crosses the gap.
+- [x] Audit the open/closed upward collision tops, scale transform, and the
+  25/40-frame attacked/death animation lengths.
 
 ## Vertical proof
 
@@ -71,6 +82,10 @@ refinement and route optimality remain open.
   a hand-insensitive ghost input, not an ABC press counter.
 - [ ] Prove every linked whole-program Clight frame refines the source-shaped
   kernel, or provide a concrete counterexample trace.
+- [x] Prove the source-shaped first-hand origin ceiling -862, tunnel-query
+  impossibility, open-surface ceiling -355, and failure of milestone 1179.
+- [ ] Prove or refute second-hand compounding using the first hand's dynamic
+  surface, with action/mesh/XZ/deletion compatibility.
 
 ## Mario and Area 2 proof
 
@@ -91,8 +106,14 @@ refinement and route optimality remain open.
   counterfactual premise or directly select any tier above Y=1967.
 - [x] State that an invariant upper bound is not an authentic reachability
   witness.
+- [x] Give 1179, 1467, 1974, and 2604 distinct observation predicates.
+- [x] Define authentic A press edges with a pre-interval bit and prove that
+  always-released and continuously-held schedules have no new edge.
 - [ ] Prove or refute the original game's ability to realize the conditional
   Y=1467 hand pose and Mario launch for the Y=1967 route.
+- [ ] Prove Mario can board, follow, attack or dismount from a raised hand and
+  then select the static Area 3 warp floor, including the 78-unit reselection
+  tolerance and phase-specific hitbox/collision separation.
 - [ ] Prove a controller-accurate Area 2 route and count new A presses.
 - [ ] If required, optimize authentic remaining frames to star collection and
   prove or disprove the claim that Y=1967 is globally fastest.
@@ -130,3 +151,5 @@ refinement and route optimality remain open.
   CompCert/ROM conversion boundary.
 - Audited source-shaped dangerous-seed exclusion for arbitrary/no-A/held-A
   input, plus counterfactual star-platform route and source-height no-go.
+- Audited arena/tunnel split, exact A-schedule/milestone vocabulary, and
+  source-shaped first-hand tunnel barrier.

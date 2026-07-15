@@ -23,6 +23,7 @@ pinned US SM64 Eyerok, Mario, area, SSL script, and collision source
   -> reproducible source audit + CompCert clightgen
   -> generated Clight AST shape certificates
   -> executable source-shaped launch kernel under arbitrary A input
+  -> audited arena/tunnel split + source-shaped first-hand barrier
   -> handwritten Eyerok, Mario/warp, and Area 2 transition systems
   -> hand-height invariant + route-threshold theorems
   -> relation-level and binary32 representation bounds
@@ -58,6 +59,20 @@ The A value is a ghost input because the Eyerok hand code does not read it. It
 shows that changing only A cannot alter this hand-control invariant; it does
 not model new press edges or construct a legal no-A Mario route.
 
+The audit now also separates the Area 3 collision into arena floors, whose
+maximum Y is `-1150`, and tunnel floors, whose minimum Y is `-562`. There are
+no upward-facing floor triangles between them. `proofs/FirstHandBarrier.v`
+uses the 78-unit floor-query tolerance and first-hand update rank to prove that
+the first hand's maximum finite origin is `-862`, its open surface top is
+`-355`, and it cannot select the tunnel floor. Thus the older first-hand
+surface Y `1179` construction is not reachable in this source-shaped barrier.
+The linked Clight refinement and the second-hand/Mario cases remain open.
+
+`proofs/HeightMilestones.v` keeps Y `1179`, `1467`, `1974`, and `2604` as four
+different observations rather than interchangeable heights. It also defines
+controller schedules with a pre-interval A bit, so always-released A,
+continuously-held A, and a fresh press-and-hold can be distinguished.
+
 `inputs/eyerok_model.c` makes a vertical abstraction executable. It
 tracks surface-list rank, controlled positioning, static or earlier-hand
 support, finite ascent budget, partial-update stuttering, deletion, and the
@@ -77,8 +92,10 @@ violation but does not prevent it.
   impulse, gravity, strict-ground, list-order, and collision-lifetime facts;
 - every state reachable in the scheduler and the executable source-shaped
   kernel excludes the runaway seed, independent of Mario's A-button policy;
-- the refined handwritten vertical relation bounds hand origins at absolute Y
-  672 for `FirstHand` and 1467 for `SecondHand`; and
+- the source-shaped first-hand barrier bounds its origin at absolute Y `-862`,
+  prevents tunnel-floor selection, and bounds its open surface at `-355`;
+- the older geometry-relaxed vertical relation bounds hand origins at absolute
+  Y 672 for `FirstHand` and 1467 for `SecondHand`; and
 - no infinite execution of that handwritten relation is unbounded above.
 
 `proofs/AuthenticReachability.v` couples the launch kernel with the conservative
@@ -89,6 +106,9 @@ is not yet a shared-height or event-by-event Clight refinement. The module
 proves a hand-surface ceiling of 1974 and a generous modeled Mario peak of 2604
 for arbitrary, never-A, and held-A input. Even the no-A case receives the full
 630-unit rise; this is a conservative impossibility bound, not a no-A witness.
+Those positive bounds remain useful route thresholds, but the new first-hand
+barrier shows that their original `384 + 288` starting construction is not an
+authentic first-hand trace inside the source-shaped model.
 
 `proofs/RouteCertificate.v` adds a separate Mario/Area 2 result. A hand floor
 does not trigger the modeled instant warp; a selected Area 3 warp floor enters

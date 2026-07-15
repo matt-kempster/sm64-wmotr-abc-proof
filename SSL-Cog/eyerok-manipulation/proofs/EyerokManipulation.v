@@ -1,12 +1,14 @@
 From Coq Require Import ZArith.
 From SSLEyerok.Proofs Require Import AuthenticReachability Binary32Boundary
-  GeneratedFacts SchedulerInvariant Spec StateMachine VerticalBound.
+  FirstHandBarrier GeneratedFacts SchedulerInvariant Spec StateMachine
+  VerticalBound.
 
 Local Open Scope Z_scope.
 
 Theorem eyerok_no_unbounded_rise_certificate :
   generated_model_shape /\
   generated_critical_source_shape /\
+  first_hand_barrier_certificate /\
   (forall scheduler,
       scheduler_reachable scheduler -> ~ runaway_seed scheduler) /\
   (forall rank state,
@@ -20,6 +22,7 @@ Theorem eyerok_no_unbounded_rise_certificate :
 Proof.
   refine (conj generated_model_shape_holds _).
   refine (conj generated_critical_source_shape_holds _).
+  refine (conj first_hand_barrier_certificate_holds _).
   refine (conj reachable_scheduler_excludes_runaway_seed _).
   refine (conj every_reachable_hand_below_global_ceiling _).
   refine (conj no_safe_vertical_run_rises_unboundedly _).
