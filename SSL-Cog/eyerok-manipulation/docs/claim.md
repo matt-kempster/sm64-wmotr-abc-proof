@@ -1,6 +1,6 @@
 # Working claim and exact scope
 
-Last updated: 2026-07-14 (two-hand dynamic-support barrier).
+Last updated: 2026-07-14 (Mario/hand vertical-contact boundary).
 
 ## Source and toolchain boundary
 
@@ -109,6 +109,43 @@ starts from classified support and carries at most 288 remaining rise; no
 event replenishes that budget while already airborne. The source audits and
 launch kernel support this premise, but the event-by-event linked Clight
 theorem remains open.
+
+### Mario contact and A-edge refinement
+
+The pinned Mario/platform audit and `MarioHandContact.v` now separate three
+interfaces:
+
+- direct platform displacement adds hand X/Z velocity but no hand Y velocity;
+- vertical following therefore requires a fresh floor query and snap within
+  the 78-unit buffer; and
+- attacking the hand requires vertical interaction-hitbox overlap, not merely
+  standing on a collision triangle.
+
+Rocq proves that every positive attacked/death increment and the 20-unit
+target lift pass the height filter. It also proves that a stationary Mario
+fails it on the first 85-unit double-pound step, the 100-unit runaway step, and
+the 201-unit closed-to-open mesh switch. These are height-only statements;
+triangle X/Z containment, floor priority, and Mario action execution remain
+required.
+
+The scaled Eyerok hitbox top is origin+150, while the closed/open standing
+floors are origin+306 and origin+507. Mario standing on either has no vertical
+hitbox overlap and cannot attack the eye from that pose. The ordinary bounce
+places Mario at origin+150 with velocity 30; even granting that full rise
+before the hand's first +46 death increment leaves the new open surface outside
+the floor buffer. Exotic predecessor/re-entry traces are not yet exhaustively
+excluded.
+
+Controller schedules now include the pre-interval A bit. Always released and
+already-held A have no new press edge; press-and-hold beginning on frame zero
+has exactly one. This is not a no-A reachability theorem because Mario might
+enter the interval in an action launched earlier. It is not a held-A
+nonmovement theorem either: the pinned punch actions can launch a jump kick
+from `INPUT_A_DOWN` without a fresh press.
+Never-A also permits a B-only speed-kick dive with vertical velocity 20 under
+its speed/stick preconditions. The 630-unit model allowance is the exact
+ordinary triple-jump sequence and requires a fresh-A predecessor chain for an
+authentic witness; the backflip envelope is 512.
 
 The executable finite kernel proves that the only control seed capable of
 repeated zero-gravity 100-unit launches is unreachable. The proof quantifies
@@ -239,6 +276,11 @@ API as original gameplay.
 - Prove Mario's actual platform selection and vertical following. The source
   does not add a platform's vertical velocity to Mario; a moving hand must be
   reselected within the 78-unit buffer on every relevant frame.
+- Construct or refute an X/Z-valid initial boarding and dismount trace. The
+  vertical filter results are conditional on transformed-triangle containment
+  and selected-floor priority.
+- Exhaust the airborne predecessor states if claiming that no attack/re-entry
+  can board a lethal rise; the ordinary attack bounce alone is ruled out.
 - Determine the highest authentic lower Area 2 landing below the Y=1967 query
   threshold and prove or refute its controller trace.
 - Prove the exact controller/action trace and new-A-press count for any claimed

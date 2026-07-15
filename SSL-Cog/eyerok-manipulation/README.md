@@ -81,6 +81,28 @@ ceiling `672`, surface ceiling `1179`, and modeled Mario peak `1809`. This
 strictly excludes the old `1467`, `1974`, and `2604` milestones and is below
 the `1889` query threshold for Area 2's Y=1967 floor.
 
+`proofs/MarioHandContact.v` separates platform displacement, vertical floor
+eligibility, and interaction hitboxes. The source directly adds only a
+platform's X/Z velocity to Mario. The attacked/death increments and 20-unit
+target lift fit the 78-unit floor buffer if Mario is already supported; the
+85-unit first double-pound step, 100-unit runaway step, and 201-unit
+closed-to-open mesh switch do not. Standing on the closed/open top also puts
+Mario above the hand's scaled 150-unit attack hitbox, so he cannot simply
+stand on the hand, attack the eye, and ride the lethal rise.
+
+The same module distinguishes A held before the interval from a fresh press:
+released and already-held schedules have no new edge, while pressing and
+holding from frame zero has exactly one. This does not yet prove boarding or a
+no-A route; a carried-in airborne action is still possible unless its
+predecessor trace is constrained.
+Held A is not otherwise inert: the pinned punch actions can enter a jump kick
+from `INPUT_A_DOWN` without a fresh edge, so each action gate must be audited
+separately.
+Never-A input can still obtain a smaller B-only speed-kick dive. The checked
+630-unit and 512-unit envelopes are specifically the ordinary triple jump and
+backflip; the former needs a fresh-edge jump chain and neither is a no-A route
+witness merely because an upper-bound theorem grants it.
+
 `inputs/eyerok_model.c` makes a vertical abstraction executable. It
 tracks surface-list rank, controlled positioning, static or earlier-hand
 support, finite ascent budget, partial-update stuttering, deletion, and the
@@ -104,6 +126,9 @@ violation but does not prevent it.
   prevents tunnel-floor selection, and bounds its open surface at `-355`;
 - the source-shaped two-hand barrier bounds the second origin at `672`, its
   open surface at `1179`, and the generously modeled Mario peak at `1809`;
+- the Mario-contact arithmetic proves the ride/filter, hitbox, bounce, and
+  fresh-A-edge facts above, while leaving X/Z contact and action execution
+  explicit;
 - the older geometry-relaxed vertical relation bounds hand origins at absolute
   Y 672 for `FirstHand` and 1467 for `SecondHand`; and
 - no infinite execution of that handwritten relation is unbounded above.

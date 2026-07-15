@@ -1,6 +1,6 @@
 # Eyerok manipulation proof checklist
 
-Last updated: 2026-07-14 (two-hand dynamic-support barrier).
+Last updated: 2026-07-14 (Mario/hand vertical-contact boundary).
 
 ## Current verdict
 
@@ -66,6 +66,13 @@ unreachable in this source-shaped relation.
   tunnel (minimum Y=-562), and prove that no triangle crosses the gap.
 - [x] Audit the open/closed upward collision tops, scale transform, and the
   25/40-frame attacked/death animation lengths.
+- [x] Audit controller A-edge calculation, INPUT_A_PRESSED/INPUT_A_DOWN,
+  backflip's fresh-A gate, direct platform X/Z-only velocity displacement,
+  hitbox separation, and ordinary bounce placement.
+- [x] Audit the held-A `INPUT_A_DOWN` punch-to-jump-kick gates so no-edge is
+  not misreported as behaviorally inert input.
+- [x] Audit the no-A B-only speed-kick dive and the fresh-edge triple-jump
+  chain; prove the triple-jump/backflip rise envelopes are 630/512.
 
 ## Vertical proof
 
@@ -117,6 +124,15 @@ unreachable in this source-shaped relation.
   witness.
 - [x] Recompute the source-shaped two-hand Mario peak as 1809 and prove it is
   below the 1889 floor-query threshold for Y=1967.
+- [x] Prove attacked/death and target-lift increments pass the 78-unit
+  height-only filter when Mario is already supported.
+- [x] Prove a stationary Mario fails the height filter on the first 85-unit
+  double-pound step, a 100-unit runaway step, and the 201-unit mesh switch.
+- [x] Prove standing on closed/open hand tops does not vertically overlap the
+  scaled eye hitbox and the ordinary attack bounce cannot immediately follow
+  the first lethal-rise surface.
+- [x] Prove released/held-before-start schedules have no new A edge and fresh
+  press-and-hold has exactly one frame-zero edge.
 - [x] Give 1179, 1467, 1974, and 2604 distinct observation predicates.
 - [x] Define authentic A press edges with a pre-interval bit and prove that
   always-released and continuously-held schedules have no new edge.
@@ -125,6 +141,8 @@ unreachable in this source-shaped relation.
 - [ ] Prove Mario can board, follow, attack or dismount from a raised hand and
   then select the static Area 3 warp floor, including the 78-unit reselection
   tolerance and phase-specific hitbox/collision separation.
+- [ ] Constrain predecessor actions before treating "held A" or "no A in the
+  measured suffix" as a complete no-new-A route.
 - [ ] Prove a controller-accurate Area 2 route and count new A presses.
 - [ ] If required, optimize authentic remaining frames to star collection and
   prove or disprove the claim that Y=1967 is globally fastest.
@@ -166,3 +184,4 @@ unreachable in this source-shaped relation.
   source-shaped first-hand tunnel barrier.
 - Conservative two-hand dynamic-support barrier refuting the 1467/1974/2604
   construction and the conditional Y=1967 premise.
+- Mario/hand height-filter, hitbox, bounce, and authentic A-edge boundary.

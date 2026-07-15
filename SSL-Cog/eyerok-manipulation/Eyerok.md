@@ -189,9 +189,11 @@ when the floor query runs, that surface is rejected.
 Examples:
 
 - a 20-unit scripted lift is small enough to remain a candidate;
-- the normal double-pound sequence starts with 85, then 70, 55, and so on, so
-  the first step needs Mario to have enough upward motion to bridge the
-  7-unit excess over the 78-unit tolerance; and
+- every positive death-rise increment is at most 46, so height alone does not
+  reject the hand if Mario was already supported and remains over its X/Z;
+- the normal double-pound sequence starts with 85, then 70, 55, and so on. A
+  stationary Mario is seven units too low after the first step, so that hand
+  is rejected by the 78-unit filter; and
 - a gravity-zero runaway that moves the hand by 100 every frame does not, by
   itself, carry a stationary Mario upward forever.
 
@@ -199,6 +201,44 @@ Hand collision is also loaded only while Mario remains near the hand. A hand
 that escapes far above Mario eventually stops providing a usable dynamic
 surface. This is why "the hand rises" and "Mario gets a high warp state" are
 separate proof obligations.
+
+There is also a 201-unit discontinuity when the hand changes from the closed
+collision mesh (top offset 306) to the open-eye mesh (top offset 507). A Mario
+standing on the old closed top cannot follow that mesh switch by ordinary
+floor reselection because 201 exceeds 78.
+
+`MarioHandContact.v` proves these statements as **height-only** conditions.
+Passing the 78-unit inequality is necessary, not sufficient: Mario must also
+remain inside the transformed triangle in X/Z, the hand must still load that
+collision, it must win floor priority, and Mario's action must execute the
+appropriate snap or landing.
+
+## Why standing on the hand does not attack the eye
+
+Eyerok's interaction hitbox is 100 units tall before the hand's 1.5 scale, so
+its top is 150 units above the object origin. The closed collision top is 306
+units above the origin and the open collision top is 507 units above it.
+
+The object-overlap code rejects two vertical cylinders when the bottom of one
+is strictly above the top of the other. Mario standing on either normal hand
+top has his hitbox bottom above Y=150:
+
+```text
+hand hitbox top:       origin + 150
+closed standing floor: origin + 306
+open standing floor:   origin + 507
+```
+
+Rocq proves that neither standing pose vertically overlaps the attack hitbox,
+regardless of Mario's own hitbox height. Thus the simple plan "stand on the
+hand, damage the eye, and ride its lethal rise" does not work.
+
+An ordinary attack-from-above bounce places Mario at origin+150 with vertical
+velocity 30. The lethal hand's first positive displacement is 46, so its new
+open top is origin+553. Even generously adding the full 30 to Mario first puts
+him at only origin+180, far outside the 78-unit floor buffer. This is a proved
+arithmetic obstruction, not yet a complete update-order theorem excluding
+every exotic airborne re-entry.
 
 ## The dangerous gravity-zero branch
 
@@ -272,7 +312,27 @@ press and keep holding: A starts up, then has one false-to-true edge
 ```
 
 Rocq proves that the first two schedules contain no new A press. It does not
-yet prove a Mario route for any of the three schedules.
+yet prove a Mario route for any of the three schedules. It also proves that
+the third schedule has exactly one fresh edge, on frame zero.
+
+No fresh edge does not imply "Mario cannot be airborne." Mario may enter the
+measured interval in an action launched earlier. A no-A or held-A route proof
+must constrain the complete predecessor trace, not merely inspect buttons
+inside a convenient suffix.
+
+Continuously held A is also not the same as inert input. The pinned action code
+can turn a first-frame punch into a jump kick when `INPUT_A_DOWN` is set; that
+path does not require `INPUT_A_PRESSED`. The no-new-edge theorem rules out
+press-gated jumps such as a newly initiated backflip, not every vertical action
+that can occur while A remains down.
+
+Likewise, never pressing A does not imply zero upward velocity: a sufficiently
+fast B-only speed-kick dive writes vertical velocity 20. Conversely, the
+model's generous 630-unit rise is specifically the ordinary triple-jump
+sequence `69,65,...,1`, and authentic initiation from a landing requires a
+fresh A edge and the preceding jump chain. Rocq now checks both that total and
+the 512-unit backflip sequence `62,58,...,2`; it does not grant either as an
+authentic no-A witness.
 
 There are useful sensitivity checks. If the source comparison were `<=`
 instead of `<`, or if movement could partial-stutter across the two action
@@ -606,7 +666,8 @@ The project now machine-checks these statements:
   policy, including never pressing A and continuously holding A;
 - the exact controller-schedule definitions distinguish unrestricted input,
   always-released A, continuously-held A, and a fresh A press, and released or
-  already-held schedules have no fresh press edge;
+  already-held schedules have no fresh press edge, while press-and-hold from
+  frame zero has exactly one;
 - every state reachable in the geometry-relaxed vertical relation has
   hand-origin Y at most `672` for the first rank or `1467` for the second;
 - every state reachable in the source-shaped first-hand barrier has origin Y
@@ -619,6 +680,12 @@ The project now machine-checks these statements:
 - the two-hand result strictly excludes second origin Y `1467`, second surface
   Y `1974`, and modeled Mario Y `2604`, and `1809` is below the `1889` query
   threshold for the Area 2 Y `1967` floor;
+- direct platform velocity displacement leaves Mario Y unchanged; the death
+  and attacked rises and the 20-unit target lift pass the 78-unit height filter,
+  while the first 85-unit double-pound step, a 100-unit runaway step, and the
+  201-unit closed-to-open switch do not;
+- Mario standing on the 306- or 507-unit hand top has no vertical hitbox
+  overlap with Eyerok's 150-unit interaction cylinder; and
 - the coupled kernel/vertical relation cannot
   supply a hand high enough for direct selection of the Y `2940`, `4429`, or
   `4815` Area 2 tiers;
@@ -654,6 +721,9 @@ The project still does not prove:
   particular, vertical platform velocity is not inherited, an 85-unit first
   double-pound step exceeds the 78-unit floor tolerance, and standing on the
   normal hand top is above the eye's attack hitbox;
+- a complete scheduling theorem that excludes every airborne way to attack an
+  open hand and later re-enter its rising collision. The ordinary bounce
+  arithmetic fails, but all predecessor actions have not yet been eliminated;
 - an exact original-controller trace from the hand through the warp to that
   landing;
 - how many new A presses an authentic route uses. The high-hand impossibility

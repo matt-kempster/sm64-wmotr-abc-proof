@@ -22,15 +22,32 @@ star-interaction-horizontal-radius-sum: 117
 star-interaction-Mario-base-y: [4890,5100]
 area3-upward-floor-vertex-max: 384
 platform-displacement-direct-vertical-add: no
+controller-a-pressed: new-down & (new-down ^ previous-down)
+mario-input-a: buttonPressed -> INPUT_A_PRESSED; buttonDown -> INPUT_A_DOWN
+backflip-launch-gate: INPUT_A_PRESSED
+punch-to-jump-kick-gate: INPUT_A_DOWN (fresh edge not required)
+no-a-b-dive: INPUT_B_PRESSED with speed/stick -> velY=20
+backflip-envelope: velY=62, ordinary rise=512
+triple-jump-envelope: velY=69, ordinary rise=630; landing gate uses INPUT_A_PRESSED
+eyerok-scaled-hitbox-top-offset: 150
+standing-closed/open-top-above-hitbox: 306/507 > 150
+ordinary-attack-bounce: hand-origin+150, velY=30
 audited-sha256:
   d169438ffe43dbe89a24d7577730a0fa247ba741744799adb44ffab6a5666084  src/game/level_update.c
   79c96544f072b74029936d44d280799e6614dee65d4770200cb8101b06e559ac  src/game/area.c
   a16936e42951b0ecf232fbbdb50d9f596bb8f59d13cf5269e5ba9537bca9b26e  src/game/mario.c
+  5b8e3626c98e917931f350379e3a30705100113d670e726272a8db57ec556525  src/game/game_init.c
+  5977c3aaaeacebbc24a7c0f6e4c06cd839f1a3a006efad781b90f775e66fbf64  src/game/object_collision.c
+  f25b45830541914ee18628e023ff8b7bb93a08559196f5896b85db135b633663  src/game/object_helpers.c
   db2b0acc0f6f48550b8edb8ff332b1b4635edc2359ae6e212fb7fb9a69a0ab57  src/game/mario_step.c
+  977d91f24c55912df5d90ce56bad1f304646dee8efe4266eed2ccaedd78a6d02  src/game/mario_actions_moving.c
+  c1cc213394cf481f36012d5b86dfa710fdc7ee9dfa40613723daeab331a31d3b  src/game/mario_actions_object.c
+  946f24a27128cfc8d9b2ba2d1ff497318fbe03e96939c95e90ab19f8e6d8dc3f  src/game/mario_actions_stationary.c
   148a61bd623c7320e5dbf69c95264287b0a057369edb204dc24ace49cfae2916  src/engine/surface_collision.c
   8c8ebdb88ee1485f8c031d1493ea82cbcf8928d79de951d6dc90a7f97d78068c  src/engine/surface_load.c
   6c662c1fe740620cec44488c56917063296e2180363727ade709f11b84fe7368  src/game/platform_displacement.c
   4c78e27752d1e50258124b9a505618fcc42014a2ab79c1eb1f383cf6c7227b99  src/game/interaction.c
+  8d6cfd5bbb8579cb681bcf7cb589a28d880f99ed8bdf3a8d0264045e6bb780d0  src/game/behaviors/eyerok.inc.c
   b05cccfe091f1e3c419ac215357152cacb077f84dcd436e6dc1167d2927a2f5c  levels/ssl/script.c
   c4a791bc92980bab13874aecf0af42273b1799ee78e52cc7e0ae3ad381dd1574  levels/ssl/areas/2/collision.inc.c
   8c3d2b06d636a7cad71ec23ea73d8b23c1827d3356a9b84c562d50484fe15ffb  levels/ssl/areas/3/collision.inc.c
