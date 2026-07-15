@@ -1,7 +1,7 @@
 From Coq Require Import ZArith.
 From SSLEyerok.Proofs Require Import AuthenticReachability Binary32Boundary
   FirstHandBarrier GeneratedFacts SchedulerInvariant Spec StateMachine
-  MarioHandContact TwoHandBarrier VerticalBound.
+  LowerArea2Entry MarioHandContact TwoHandBarrier VerticalBound.
 
 Local Open Scope Z_scope.
 
@@ -11,6 +11,7 @@ Theorem eyerok_no_unbounded_rise_certificate :
   first_hand_barrier_certificate /\
   two_hand_barrier_certificate /\
   mario_hand_contact_certificate /\
+  lower_area2_entry_certificate /\
   (forall scheduler,
       scheduler_reachable scheduler -> ~ runaway_seed scheduler) /\
   (forall rank state,
@@ -27,6 +28,7 @@ Proof.
   refine (conj first_hand_barrier_certificate_holds _).
   refine (conj two_hand_barrier_certificate_holds _).
   refine (conj mario_hand_contact_certificate_holds _).
+  refine (conj lower_area2_entry_certificate_holds _).
   refine (conj reachable_scheduler_excludes_runaway_seed _).
   refine (conj every_reachable_hand_below_global_ceiling _).
   refine (conj no_safe_vertical_run_rises_unboundedly _).

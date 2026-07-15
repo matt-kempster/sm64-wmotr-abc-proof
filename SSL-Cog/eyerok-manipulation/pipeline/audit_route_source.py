@@ -122,8 +122,9 @@ def require_selected_floor_height(
     x: int,
     query_y: int,
     z: int,
-    expected_height: int,
+    expected_height: int | Fraction,
     label: str,
+    expected_surface: str | None = None,
 ) -> None:
     """Require exact upward-triangle coverage at one modeled floor query.
 
@@ -169,6 +170,11 @@ def require_selected_floor_height(
             f"{label} selected Y={selected_height} from {selected_surface} "
             f"triangle {selected_indices}, expected Y={expected_height}; "
             f"eligible={eligible}"
+        )
+    if expected_surface is not None and selected_surface != expected_surface:
+        fail(
+            f"{label} selected {selected_surface} triangle {selected_indices}, "
+            f"expected {expected_surface}; eligible={eligible}"
         )
 
 
@@ -315,6 +321,33 @@ def main() -> None:
         "UpperRoute first Area 2 quarter-step",
     )
 
+    # The north edge at z=-1023 overlaps a default Area 3 floor triangle that
+    # precedes the instant-warp triangle in the source floor list.  Put the
+    # lower witness one unit inside the quad and require the selected surface
+    # itself, not merely a point inside the quad's bounding rectangle.
+    require_selected_floor_height(
+        area3_triangles,
+        0,
+        1809,
+        -1024,
+        Fraction(76318, 199),
+        "LowerArea2Entry Area 3 departure floor",
+        "SURFACE_INSTANT_WARP_1D",
+    )
+
+    # LowerArea2Entry.v starts from the conservative two-hand/Mario ceiling.
+    # Sixteen controlled frames place Mario at (0,1281,-832) with vy=-67;
+    # the next quarter-step is cast to (0,1264,-829).  Pin the exact selected
+    # floor at that point rather than inferring it from a bounding rectangle.
+    require_selected_floor_height(
+        area2_triangles,
+        0,
+        1264,
+        -829,
+        1280,
+        "LowerArea2Entry first landing quarter-step",
+    )
+
     # The modeled upper-platform jump reaches its landing query at
     # (480, 4813, -1021).  The Y=4815 floor is only two units above that query,
     # so the source landing comparison snaps Mario to it.
@@ -365,6 +398,8 @@ def main() -> None:
     print("air-step-substeps: 4; fresh floor query each quarter-step")
     print("floor-query-y: TerrainData integer cast; 78-unit buffer")
     print("upper-route-first-qstep-floor: (192,4351,-1021) -> y=4429")
+    print("lower-route-area3-departure: (0,1809,-1024) -> instant-warp 1D")
+    print("lower-route-first-qstep-floor: (0,1264,-829) -> y=1280")
     print("area2-star-platform: y=4815, x=[387,643], z=[-1125,-409]")
     print("upper-route-star-landing-floor: (480,4813,-1021) -> y=4815")
     print(

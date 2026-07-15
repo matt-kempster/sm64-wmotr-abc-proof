@@ -27,7 +27,7 @@ pinned US SM64 Eyerok, Mario, area, SSL script, and collision source
   -> handwritten Eyerok, Mario/warp, and Area 2 transition systems
   -> hand-height invariant + route-threshold theorems
   -> relation-level and binary32 representation bounds
-  -> conditional Y=1967 witness + counterfactual high-route witness
+  -> conditional Y=1280 landing + refuted Y=1967 premise + high-route counterfactual
   -> original-game refinement (open)
 ```
 
@@ -103,6 +103,17 @@ Never-A input can still obtain a smaller B-only speed-kick dive. The checked
 backflip; the former needs a fresh-edge jump chain and neither is a no-A route
 witness merely because an upper-bound theorem grants it.
 
+`proofs/LowerArea2Entry.v` tests the stricter two-hand ceiling. It deliberately
+assumes equality at second-hand surface ceiling Y=1179 and adds the 630-unit
+triple-jump envelope to obtain conditional Mario Y=1809. The pinned audit
+checks that `(0,1809,-1024)` selects the Area 3 warp; this avoids a floor-list
+priority conflict at the Z=-1023 edge. Sixteen controlled Area 2 frames lead
+to `(0,1281,-832)`, and the next query `(0,1264,-829)` selects Y=1280. A
+handwritten landing relation snaps to that floor. Rocq also proves Y=1809
+cannot query Y=1967 and that surface Y=1179 without another impulse misses
+Y=1280 by 23. This is not an authentic hand pose, controller/Clight trace,
+fresh-A predecessor proof, never-A route, or held-A route.
+
 `inputs/eyerok_model.c` makes a vertical abstraction executable. It
 tracks surface-list rank, controlled positioning, static or earlier-hand
 support, finite ascent budget, partial-update stuttering, deletion, and the
@@ -129,6 +140,9 @@ violation but does not prevent it.
 - the Mario-contact arithmetic proves the ride/filter, hitbox, bounce, and
   fresh-A-edge facts above, while leaving X/Z contact and action execution
   explicit;
+- the conditional lower-route certificate uses the Y=1809 ceiling to select
+  and model-land on the audited Y=1280 floor, while excluding Y=1967 and
+  leaving authentic hand/controller reachability explicit;
 - the older geometry-relaxed vertical relation bounds hand origins at absolute
   Y 672 for `FirstHand` and 1467 for `SecondHand`; and
 - no infinite execution of that handwritten relation is unbounded above.

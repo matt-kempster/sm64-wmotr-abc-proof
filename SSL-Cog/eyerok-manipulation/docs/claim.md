@@ -1,6 +1,6 @@
 # Working claim and exact scope
 
-Last updated: 2026-07-14 (Mario/hand vertical-contact boundary).
+Last updated: 2026-07-14 (conditional lower Area 2 landing).
 
 ## Source and toolchain boundary
 
@@ -154,6 +154,39 @@ A and continuously holding A are explicit corollaries. A is a ghost parameter
 because the hand code does not read it; this is not a controller-accurate ABC
 or new-press-count theorem.
 
+### Conditional lower Area 2 threshold
+
+`LowerArea2Entry.v` proves the route arithmetic available at the stricter
+two-hand ceiling while keeping ceiling and reachability separate:
+
+```text
+conditional hand surface:                 1179
+conditional triple-jump peak / entry:     1809
+Area 3 selected warp point:       (0,1809,-1024)
+after 16 controlled frames:       (0,1281, -832), vy=-67
+next integer quarter-step query:  (0,1264, -829) -> floor Y=1280
+```
+
+The pinned audit checks both that the Area 3 departure point selects
+`SURFACE_INSTANT_WARP_1D` and that the exact Area 2 query selects Y=1280 in
+the real floor-list order. Z=-1024 is intentional: at the Z=-1023 north edge,
+an overlapping ordinary Area 3 triangle can win floor-list priority.
+
+Rocq proves that query Y=1809 is below the Y=1967 floor's minimum 1889 and
+that surface Y=1179, without a further upward impulse, is 23 units below the
+Y=1280 query minimum 1202. The checked backflip envelope reaches Y=1691 and is
+also numerically high enough for Y=1280, but no exact backflip witness exists.
+
+This result does not prove equality at the hand ceiling, authentic boarding,
+moving off the hand so the static warp beats its dynamic floor, the
+triple-jump predecessor chain, source execution of all sixteen controlled
+frames, or absence of an earlier source collision response. Its landing step
+is a handwritten relation mirroring the audited query and snap condition, not
+a linked Clight execution. It is therefore a conditional fresh-A route
+calculation. Never-A and
+held-before-start witnesses remain open; no fresh A edge does not exclude the
+source's B-only speed-kick dive or held-A jump kick.
+
 ## Verdict on the three requested questions
 
 ### 1. Raised hand and Area 3 to Area 2
@@ -195,14 +228,22 @@ rather than merely conjoining two unrelated bounds. It is specifically a
 kernel-controlled runaway gate on a safe vertical abstraction: ordinary
 finite vertical steps are not yet paired event-by-event with kernel steps, and
 the two components do not share a proved absolute-height field. The remaining
-source bridge is still open: the 280-unit mixed-frame hand separation and
-the zero-velocity/floor-ready premises are audit-backed controller, collision,
-and geometry arguments, not linked Clight semantic lemmas.
+source bridge is still open. In particular, the old 280-unit mixed-frame
+separation calculation is not a global noncollision invariant; the exact
+double-pound phase trace and the zero-velocity/floor-ready premises still need
+formal source-to-model refinement.
 
 The exact conditional Y=1467 pose used above is now refuted by the two-hand
 barrier, rather than merely unproved. This answers the requested
 **star-useful higher-hand** reachability question inside the source-shaped
 model, not yet for linked Clight or the original ROM.
+
+At the stricter Y=1809 Mario ceiling, the conditional lower witness instead
+enters at `(0,1809,-1024)` and reaches a modeled Y=1280 landing whose first
+landing quarter-step queries `(0,1264,-829)`. This proves that Y=1280 is not
+rejected by the finite bound. It does not prove that the ceiling equality,
+Mario action history, hand-to-static-warp transition, or controlled air frames
+are authentic original-game transitions.
 
 ### 2. Are the finite bounds high enough?
 
@@ -234,8 +275,13 @@ can still reach the star, and no frame/A-press optimization has been proved.
 
 For the new two-hand barrier, the modeled peak is only 1809. That is below the
 1889 query threshold for the Y=1967 floor, so the old conditional landing is
-not available at all. The next route question is which lower Area 2 floor can
-be selected by an authentic dismount/warp trace.
+not available at all. The new conditional calculation reaches an exact Y=1280
+floor query and modeled snap: Y=1280 needs query Y at least 1202, and the
+modeled query is 1264. Under the current controlled-speed/no-new-boost
+calculation this is the highest demonstrated lower landing tier. It is not a
+global optimum or an authentic controller trace; Y=896 remains directly below
+the warp, and unmodeled action, collision, or speed histories require separate
+analysis.
 
 ### 3. Unqualified original-game indefinite ascent
 
@@ -281,8 +327,10 @@ API as original gameplay.
   and selected-floor priority.
 - Exhaust the airborne predecessor states if claiming that no attack/re-entry
   can board a lethal rise; the ordinary attack bounce alone is ruled out.
-- Determine the highest authentic lower Area 2 landing below the Y=1967 query
-  threshold and prove or refute its controller trace.
+- Authenticate or refute the conditional Y=1280 route below the Y=1967 query
+  threshold, including every quarter-step collision response and the landing;
+  then test whether any original-game action/speed history reaches a higher
+  lower tier.
 - Prove the exact controller/action trace and new-A-press count for any claimed
   Area 2 landing; the current high-hand no-go is A-policy-independent, but the
   Mario route witnesses over-approximate controller behavior.

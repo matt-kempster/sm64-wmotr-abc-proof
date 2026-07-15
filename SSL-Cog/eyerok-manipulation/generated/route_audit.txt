@@ -13,6 +13,8 @@ area2-upper-overlap-platform: y=4429, x=[-204,512], z=[-1125,-767]
 air-step-substeps: 4; fresh floor query each quarter-step
 floor-query-y: TerrainData integer cast; 78-unit buffer
 upper-route-first-qstep-floor: (192,4351,-1021) -> y=4429
+lower-route-area3-departure: (0,1809,-1024) -> instant-warp 1D
+lower-route-first-qstep-floor: (0,1264,-829) -> y=1280
 area2-star-platform: y=4815, x=[387,643], z=[-1125,-409]
 upper-route-star-landing-floor: (480,4813,-1021) -> y=4815
 upper-route-star-reposition-floor-points: 12, all -> y=4815

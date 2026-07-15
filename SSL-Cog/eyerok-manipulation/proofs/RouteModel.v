@@ -86,7 +86,13 @@ Inductive arrival_floor_selection : mario_route_state -> route_floor -> Prop :=
     in_area3_warp_footprint state ->
     (~ in_area2_upper_overlap state \/ route_y state < 4351) ->
     floor_query_eligible (route_y state) 896 ->
-    arrival_floor_selection state Area2Base896.
+    arrival_floor_selection state Area2Base896
+| arrival_select_mid1280_audited : forall state,
+    route_area state = Area2 ->
+    route_x state = 0 ->
+    route_y state = 1264 ->
+    route_z state = -829 ->
+    arrival_floor_selection state Area2Mid1280.
 
 Definition controlled_air_frame
     (dx dz gravity : Z) (before : mario_route_state) : mario_route_state :=
