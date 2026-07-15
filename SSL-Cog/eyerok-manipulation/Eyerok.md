@@ -49,6 +49,10 @@ The current machine-checked results are:
 - the obvious never-A substitute, a B-only speed-kick dive, cannot reach that
   Y `1280` top by a direct wall-avoiding, seam-free speed-at-most-48 approach:
   its height window is too short to clear or detour around the platform walls;
+- an already-held-A punch can become a jump kick without a new A press. It has
+  the same 20-unit vertical launch. If its inherited forward speed is at most
+  48, even a generous 455-unit path cannot clear or detour around those walls;
+  higher inherited speed and post-wall continuation remain open;
 - `2604` is too low for a direct landing at Y `2940`, the upper warp-overlap
   platform at Y `4429`, the star platform at Y `4815`, or direct interaction
   with the star at Y `5050`;
@@ -64,8 +68,9 @@ The word **conditional** is important. The geometry-relaxed vertical relation
 admits the old starting hand heights, but it has no X/Z state and lets a hand
 use any upward Area 3 floor regardless of whether that hand can reach it. The
 new barriers close that abstraction gap for both hand-height calculations.
-They do not yet prove a linked Clight frame, Mario contact, or an exact
-controller trace. The route model also over-approximates Mario's air steering.
+They do not yet prove a linked Clight frame, source-semantic Mario contact, or
+an exact controller trace. The route model also over-approximates Mario's air
+steering.
 Its Y `1967` trace is
 a counterexample to "the old formal height bound is numerically too low for
 every useful landing," not a verified controller-input movie for the original
@@ -626,6 +631,47 @@ tunneling, parallel-universe coordinate casts, or a linked execution of the
 source wall code. It also says nothing directly about the already-held-A jump
 kick, whose action history and horizontal motion differ.
 
+## Why already-held A is a separate bounded-speed case
+
+Holding A before the measured interval creates no new A-button press edge, but
+it is not inert. If Mario is in the first frame of a punch, the original action
+code tests the held-state bit `INPUT_A_DOWN` and can change the action to jump
+kick immediately. The generated Clight AST now machine-checks that the named
+moving and object punch functions contain this held-A gate and the
+`ACT_JUMP_KICK` transition.
+
+The jump kick starts with vertical velocity 20. From the same conditional
+surface Y `1179`, its vertical trace therefore matches the B-only speed kick:
+
+```text
+launch-frame Area 2 entry: Y=1199, vertical velocity 16
+conditional peak:          Y=1239
+Y=1280-eligible window:    35 quarter-steps
+```
+
+The horizontal behavior is different. Jump kick inherits Mario's incoming
+`forwardVel`, and the air update does not impose a global speed-48 cap. The
+new held-A theorem therefore states its predecessor and per-step assumptions
+explicitly:
+
+```text
+assumed inherited |forwardVel|: at most 48
+generous quarter-step length:  at most 13
+35-step path allowance:        at most 455
+east detour lower bound:       about 541
+```
+
+Rocq proves that Y `1239` is too low to pass over the wall and that neither the
+east nor west seam-free detour fits in 455 units. A conditional stationary
+predecessor submodel is tighter still: 35 steps at four units give 140 total.
+
+This does **not** prove unrestricted held-A impossibility. A faster incoming
+punch is outside the theorem. A jump kick that hits the wall also stays in
+jump kick with forward speed reset, rather than taking the dive's backward
+knockback action, so later wall contacts and recovery need a separate proof.
+The assumed Y `1179` hand surface and hand-to-warp departure are still not
+authenticated either.
+
 ## A counterfactual height that would be useful
 
 It is useful to separate two questions:
@@ -795,7 +841,11 @@ The project now machine-checks these statements:
 
 - the generated Clight ASTs contain the selected pinned source functions and
   call edges for Eyerok, Mario floor input, instant-warp handling, area change,
-  airborne stepping, platform displacement, and star interaction;
+  airborne stepping, platform displacement, and star interaction; they also
+  check the controller XOR/AND edge expression, B-only launch constants,
+  held-A jump-kick gates, press-gated backflip call, per-unit name resolution,
+  the jump-kick case's vertical-slot-1 value 20, and critical AST call-site
+  traversal order;
 - the executable source-shaped kernel cannot reach
   `DOUBLE_POUND + grounded + gravity 0` under any modeled event or A-button
   policy, including never pressing A and continuously holding A;
@@ -849,6 +899,17 @@ The project now machine-checks these statements:
   `1239`; its 35 eligible quarter-steps give at most 420 units at speed 48,
   which is insufficient to go over or around the audited Y=1280 walls in the
   seam-free ordinary-path classification;
+- for the conditional already-held-A jump kick with inherited
+  `|forwardVel| <= 48` and the explicit 13-unit quarter-step budget, the same
+  peak and 35-step window permit at most 455 units, also insufficient to go
+  over or around those walls; the stationary predecessor submodel permits at
+  most 140;
+- `RequestedHeightVerdict.v` packages the four differently typed legacy
+  milestone exclusions, the conditional fresh-edge Y=1280 landing, and the
+  restricted no-A wall result without conflating their scopes;
+- `ClightRefinementBoundary.v` defines a coherent CompCert small-step run and
+  proves the 1467/1974/2604 and no-unbounded-rise transfers **if** a complete
+  linked program and height refinement are supplied;
 - modeled Mario peak `2604` cannot reach the Y `2940`, Y `4429`, Y `4815`, or
   direct-star thresholds; and
 - counterfactually, a hand origin at Y `3627` is sufficient in the integer
@@ -864,6 +925,9 @@ The project still does not prove:
 
 - a whole-program Clight refinement from every original game frame to the
   source-shaped kernel, vertical relation, and Mario route relation;
+- a complete linked Clight program, a proof that chosen small-step states are
+  game-frame boundaries, or an observer that reads the correct live hand's
+  binary32 `oPosY` from memory and justifies its conversion to integer height;
 - a semantic Clight proof, rather than the current deterministic source audit,
   of the original hands' update order and dynamic-floor choices;
 - the event-by-event linked Clight theorem that every second-hand positive
@@ -884,6 +948,9 @@ The project still does not prove:
 - unrestricted no-A impossibility. The ordinary speed-48 B-dive is blocked,
   but faster input, post-bonk recovery, seams, tunneling, PU casts, and the
   model-to-source geometry classification remain open;
+- unrestricted held-A impossibility. The inherited-speed-at-most-48 jump kick
+  is blocked, but faster predecessors and the jump kick's post-wall
+  continuation are not classified;
 - how many new A presses an authentic route uses. The high-hand impossibility
   is A-policy-independent, but the generous `+630` Mario rise and both route
   witnesses are not controller-accurate ABC proofs;
@@ -905,8 +972,9 @@ unbounded finite binary32 Y is disproved. We have additionally disproved the
 old first-hand Y `1179`, second-origin Y `1467`, second-surface Y `1974`, and
 modeled Mario Y `2604` constructions in source-shaped reachability barriers.
 The lower Y `1280` landing is now a machine-checked conditional route rather
-than an unknown numerical threshold, and its straightforward ordinary no-A
-speed-kick substitute is wall-blocked. The remaining work is to authenticate
-or refute its Mario/hand predecessor, build controller-accurate
+than an unknown numerical threshold. Its straightforward ordinary no-A
+speed-kick substitute and bounded-speed held-A jump kick are wall-blocked. The
+remaining work is to authenticate or refute its Mario/hand predecessor,
+classify higher-speed and post-wall traces, build controller-accurate
 released/held/pressed-A traces, and connect the source-shaped steps to linked
 Clight and, if needed, the original ROM.

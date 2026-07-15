@@ -38,9 +38,13 @@ PREPARED := \
   build/source/ssl_script.c \
   build/source/area.c \
   build/source/level_update.c \
+  build/source/game_init.c \
   build/source/mario.c \
   build/source/mario_step.c \
   build/source/mario_actions_airborne.c \
+  build/source/mario_actions_moving.c \
+  build/source/mario_actions_object.c \
+  build/source/mario_actions_stationary.c \
   build/source/platform_displacement.c \
   build/source/interaction.c
 
@@ -55,9 +59,13 @@ GENERATED := \
   generated/ssl_script.v \
   generated/area.v \
   generated/level_update.v \
+  generated/game_init.v \
   generated/mario.v \
   generated/mario_step.v \
   generated/mario_actions_airborne.v \
+  generated/mario_actions_moving.v \
+  generated/mario_actions_object.v \
+  generated/mario_actions_stationary.v \
   generated/platform_displacement.v \
   generated/interaction.v \
   generated/source_audit.txt \
@@ -133,6 +141,9 @@ generated/area.v: build/source/area.c pipeline/clightgen.sh
 generated/level_update.v: build/source/level_update.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(SM64_CG)
 
+generated/game_init.v: build/source/game_init.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
 generated/mario.v: build/source/mario.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(SM64_CG)
 
@@ -140,6 +151,15 @@ generated/mario_step.v: build/source/mario_step.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(SM64_CG)
 
 generated/mario_actions_airborne.v: build/source/mario_actions_airborne.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/mario_actions_moving.v: build/source/mario_actions_moving.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/mario_actions_object.v: build/source/mario_actions_object.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/mario_actions_stationary.v: build/source/mario_actions_stationary.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(SM64_CG)
 
 generated/platform_displacement.v: build/source/platform_displacement.c pipeline/clightgen.sh

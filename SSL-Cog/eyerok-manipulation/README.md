@@ -27,7 +27,7 @@ pinned US SM64 Eyerok, Mario, area, SSL script, and collision source
   -> handwritten Eyerok, Mario/warp, and Area 2 transition systems
   -> hand-height invariant + route-threshold theorems
   -> relation-level and binary32 representation bounds
-  -> conditional Y=1280 landing + ordinary no-A wall barrier
+  -> requested-height verdict + conditional Y=1280 route barriers
   -> refuted Y=1967 premise + high-route counterfactual
   -> original-game refinement (open)
 ```
@@ -38,8 +38,9 @@ Generated Clight files are never hand-edited.
 
 The pinned source-ingestion pipeline now generates Clight for the authentic
 Eyerok translation unit, object motion, behavior dispatch, object-list order,
-spawn/list insertion, floor queries, area change, Mario and airborne stepping,
-platform displacement, interactions, and the SSL script. Deterministic audits
+spawn/list insertion, controller input, floor queries, area change, Mario's
+moving/object/stationary/airborne actions, platform displacement, interactions,
+and the SSL script. Deterministic audits
 check the source pin, vertical writer census, paired instant warps, collision
 bounds, Area 2 landing tiers, and the target star. Those checks do not
 themselves prove an authentic route. They now also pin the strict ground test,
@@ -138,6 +139,22 @@ or more than 540 units to pass east. Rocq proves every seam-free wall-avoiding
 path in this classification impossible. It does not cover faster speed, post-bonk
 recovery, seams/tunneling, PU casts, or authentic hand/warp preparation.
 
+`proofs/HeldA1280Barrier.v` treats the already-held-A punch-to-jump-kick
+alternative separately. The jump kick has the same 20-unit vertical launch,
+but inherits uncapped forward speed. Under the explicit predecessor bound
+`|forwardVel| <= 48` and an explicit conservative 13-unit quarter-step budget,
+Rocq bounds the total at 455 and proves the same ordinary seam-free
+wall-avoiding route impossible. This
+does not cover a faster predecessor or prove what happens after the jump kick
+hits the wall.
+
+`proofs/RequestedHeightVerdict.v` packages the four requested milestones
+without mixing their meanings: first surface 1179, second origin 1467, second
+surface 1974, and Mario Y 2604 are all excluded in the source-shaped barrier
+relations. It separately records the conditional Y=1280 fresh-edge witness
+and the restricted no-A wall theorem; it does not promote either to an
+original-game trace.
+
 `inputs/eyerok_model.c` makes a vertical abstraction executable. It
 tracks surface-list rank, controlled positioning, static or earlier-hand
 support, finite ascent budget, partial-update stuttering, deletion, and the
@@ -147,14 +164,24 @@ abstraction to the handwritten Rocq `vertical_step` relation. Its public API
 can violate the Rocq launch precondition; its safety predicate reports such a
 violation but does not prevent it.
 
+`proofs/ClightRefinementBoundary.v` now states the semantic gap as a theorem
+premise rather than prose. It checks generated-unit name resolution and
+AST call-site traversal order, defines a coherent run from genuine CompCert
+Clight small steps, and conditionally transfers the 1467/1974/2604 bounds and
+no-unbounded-rise result. The project does **not** construct the complete
+linked program or prove the required refinement, binary32-to-integer observer,
+or equivalence to the IDO-compiled MIPS ROM.
+
 ## Current result
 
 `proofs/EyerokManipulation.v` packages these independent closed-world facts:
 
 - the generated model contains the envelope constants, while the critical
   authentic-source Clight shapes pin float-constant counts, the movement call,
-  and relevant dynamic-surface/list call sites; the source audit pins the exact
-  impulse, gravity, strict-ground, list-order, and collision-lifetime facts;
+  controller edge expression, A/B action gates, per-unit name resolution, and
+  relevant dynamic-surface/list call-site traversal; the source audit pins the
+  exact impulse, gravity, strict-ground, list-order, and collision-lifetime
+  facts;
 - every state reachable in the scheduler and the executable source-shaped
   kernel excludes the runaway seed, independent of Mario's A-button policy;
 - the source-shaped first-hand barrier bounds its origin at absolute Y `-862`,
@@ -173,6 +200,11 @@ violation but does not prevent it.
 - the ordinary never-A B-only candidate is wall-blocked under a seam-free
   speed-48 route classification, without claiming unrestricted no-A
   impossibility;
+- the already-held-A jump-kick candidate is likewise wall-blocked when its
+  inherited forward speed is at most 48, without claiming an unrestricted
+  held-A result;
+- the requested-height package preserves the separate observation types and
+  the separate source-shaped, conditional-route, and no-A scopes; and
 - the older geometry-relaxed vertical relation bounds hand origins at absolute
   Y 672 for `FirstHand` and 1467 for `SecondHand`; and
 - no infinite execution of that handwritten relation is unbounded above.

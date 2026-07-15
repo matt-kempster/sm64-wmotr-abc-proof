@@ -1,6 +1,6 @@
 # Goal recovery note
 
-Last updated: 2026-07-14 (ordinary no-A Y=1280 barrier).
+Last updated: 2026-07-15 (requested-height package and Clight/A boundaries).
 
 ## Objective
 
@@ -24,8 +24,8 @@ collision, and star interaction are separate interfaces.
 The project pins source revision
 `9921382a68bb0c865e5e45eb594d9c64db59b1af` and generates CompCert Clight for
 Eyerok behavior, object motion and collision, area change, instant-warp
-dispatch, Mario state input, airborne stepping, platform displacement,
-interactions, and the SSL level script.
+dispatch, controller input, Mario moving/object/stationary/airborne actions,
+platform displacement, interactions, and the SSL level script.
 
 The deterministic source audits now pin:
 
@@ -172,6 +172,35 @@ parallel-universe casts, horizontal speed above 48, and any later recovery
 after the source dive bonks into `BACKWARD_AIR_KB`. The already-held-A jump
 kick remains a separate action trace.
 
+`HeldA1280Barrier.v` now resolves the bounded-speed form of that separate
+trace. A continuously held schedule has no fresh A edge, but the punch action
+can still enter jump kick through `INPUT_A_DOWN`. The jump kick reuses the
+20-unit launch, Y=1239 peak, and 35 eligible quarter-steps. Because inherited
+forward speed is uncapped in the source, the theorem explicitly assumes
+`|forwardVel| <= 48` plus a conservative 13-unit quarter-step premise, bounds
+the total at 455, and proves that neither vertical clearance nor the east/west
+detours fit. A
+conditional stationary-predecessor budget is 140. Faster predecessors,
+post-wall jump-kick continuation, and authentic hand/warp preparation remain
+open.
+
+`RequestedHeightVerdict.v` packages the completed arithmetic without changing
+scope: the four legacy observations are impossible in the source-shaped
+barriers; the Y=1280 fresh-edge landing remains conditional; and the ordinary
+no-A wall theorem remains seam-free and speed bounded.
+
+The generated Clight surface now includes `game_init.c` and Mario's moving,
+object, and stationary action units. Rocq checks per-unit name resolution,
+critical AST call-site traversal order, the controller's AND/XOR edge
+expression, the B-only launch constants, the held-A jump-kick case's
+vertical-slot-1 value 20, and the press-gated backflip call.
+`ClightRefinementBoundary.v` defines a coherent execution from genuine Clight
+small steps and transfers the older 1467/1974/2604 bounds and no-unbounded-rise
+theorem **if** a complete linked program and height refinement are supplied.
+Those premises remain open: no theorem yet reads the correct live hand's
+binary32 `oPosY`, identifies game-frame boundaries, or connects PPC32 Clight
+semantics to the IDO-compiled MIPS ROM.
+
 The Mario/area relation proves:
 
 - a hand floor does not trigger the instant warp;
@@ -227,7 +256,8 @@ reachability is now closed.
    controller transitions, and the actual landing. Compare fresh-A triple
    jump, backflip, and held-A jump-kick cases. For never-A, refine the new
    ordinary speed-48 wall barrier and separately investigate faster or
-   collision-glitch traces.
+   collision-glitch traces. For held A, prove the incoming-speed bound or
+   analyze faster predecessors and the jump kick's post-wall continuation.
 5. Optimize an authentic remaining Area 2 route to the star and count new A
    presses.
    The present work rules out the proposed higher Eyerok shortcut inside the

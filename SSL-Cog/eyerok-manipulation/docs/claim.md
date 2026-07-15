@@ -1,6 +1,6 @@
 # Working claim and exact scope
 
-Last updated: 2026-07-14 (ordinary no-A Y=1280 barrier).
+Last updated: 2026-07-15 (requested-height package and Clight/A boundaries).
 
 ## Source and toolchain boundary
 
@@ -13,8 +13,8 @@ Last updated: 2026-07-14 (ordinary no-A Y=1280 barrier).
 - Coq 8.16.1, CompCert 3.15, PPC32 EABI big-endian.
 
 Generated Clight shape facts and source audits pin syntax, constants, call
-edges, and collision data. They are not a linked whole-program execution
-refinement.
+edges/order, controller/action gates, per-unit name resolution, and collision
+data. They are not a linked whole-program execution refinement.
 
 ## Definitions
 
@@ -244,6 +244,36 @@ wall classification, post-bonk recovery, faster incoming speed, seams,
 quantum tunneling, and parallel-universe casts remain open. The held-A jump
 kick is also a different action trace.
 
+### Bounded-speed held-A Y=1280 barrier
+
+`HeldA1280Barrier.v` analyzes that different trace. A continuously held A
+schedule has no new press edge, but the punch action can use `INPUT_A_DOWN` to
+enter jump kick. The jump kick's vertical velocity 20 gives the same Y=1239
+peak and 35 eligible quarter-steps as the no-A dive.
+
+Unlike the dive abstraction, jump kick inherits uncapped `forwardVel`.
+Therefore the theorem explicitly assumes inherited `|forwardVel| <= 48` and a
+conservative bound of 13 units per quarter-step, or 455 total. Peak Y=1239 is
+still below the strict base-Y wall-clearance threshold 1255, the east detour still
+needs squared displacement at least `63^2+537^2 > 455^2`, and the west detour
+still needs more than 2060 units. Rocq proves no ordinary seam-free
+wall-avoiding entry in this bounded-speed class. A separately conditional
+stationary-predecessor budget is at most 140.
+
+This is not unrestricted held-A impossibility. Faster inherited speed,
+authentic predecessor/hand/warp reachability, source derivation of the
+horizontal budget, seams/glitches, and continuation after a jump-kick wall hit
+remain open. A wall hit zeros forward speed but leaves Mario in jump kick, so
+the no-A dive's post-bonk action argument does not transfer.
+
+### Packaged requested-height verdict
+
+`RequestedHeightVerdict.v` preserves three different scopes in one checked
+record: source-shaped impossibility of the four legacy milestones and the
+Y=1967 query, a conditional modeled Y=1280 landing accompanied by one fresh A
+edge but not causally derived from it, and the ordinary seam-free no-A wall
+barrier. It does not turn those scopes into an original-game theorem.
+
 ## Verdict on the three requested questions
 
 ### 1. Raised hand and Area 3 to Area 2
@@ -309,6 +339,12 @@ enough to keep Y=1280 query-eligible, but the perimeter-wall proof forces a
 collision before entry. Faster or collision-glitch no-A traces are not ruled
 out, and the assumed Y=1179 departure surface is not authenticated.
 
+For already-held A, the jump-kick substitute is also wall-blocked under the
+explicit inherited-speed-at-most-48 and 13-unit-quarter-step classification,
+with 455 units of path. The source does not globally cap inherited jump-kick
+speed, and post-wall continuation remains unclassified, so the unrestricted
+held-A verdict is open.
+
 ### 2. Are the finite bounds high enough?
 
 For the older geometry-relaxed relation and modeled Mario rise:
@@ -364,6 +400,29 @@ every whole-program Clight execution refines the kernel, and the separate ROM
 semantics. CompCert's `Float32.to_int 2^31 = None` is not a statement about how
 the original IDO/MIPS binary handles its out-of-range conversion.
 
+## Explicit Clight refinement boundary
+
+The project now generates `game_init.c` and Mario's moving, object, and
+stationary action units in addition to the earlier units. Rocq checks the
+controller AND/XOR edge expression, B-only speed-kick constants, held-A
+jump-kick calls, press-gated backflip call, per-unit program resolution, and
+critical AST call-site traversal order. The generated jump-kick switch case
+also ties action `25168044` to vertical array slot 1 and binary32 value 20.
+
+`ClightRefinementBoundary.v` defines a coherent run whose consecutive selected
+states are connected by nonempty sequences of genuine CompCert
+`Clight.step2` steps. If a complete linked program contains the selected
+generated bodies **and** its observed hand height refines the audited coupled
+model, Rocq transfers origin <=1467, surface <=1974, modeled Mario envelope
+<=2604, and no unbounded ascent.
+
+The refinement is a premise, not a proved fact. The project has not assembled
+the complete linked program, identified normal game-frame boundaries in the
+small-step run, read the intended live hand's binary32 `oPosY` from Clight
+memory, justified its conversion to the model's integer height, or proved
+PPC32 CompCert equivalent to the IDO-compiled MIPS ROM. Python pin/hash audits
+are deterministic build evidence, not Rocq semantic proof terms.
+
 ## C abstraction boundary
 
 `inputs/eyerok_model.c` is an executable interface model. Its public functions
@@ -402,6 +461,8 @@ API as original gameplay.
 - Refine the seam-free speed-48 no-A wall barrier to source/Clight semantics;
   separately analyze post-bonk recovery, higher incoming speed, and collision
   seams before making an unrestricted no-A claim.
+- Prove a held-A predecessor speed bound or analyze inherited speed above 48,
+  and classify jump-kick continuation after its first wall response.
 - Prove the exact controller/action trace and new-A-press count for any claimed
   Area 2 landing; the current high-hand no-go is A-policy-independent, but the
   Mario route witnesses over-approximate controller behavior.

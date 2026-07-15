@@ -52,6 +52,9 @@ bash pipeline/assumptions.sh \
   SSLEyerok.Proofs.NoA1280Barrier \
   no_a_1280_barrier_certificate_holds
 bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.HeldA1280Barrier \
+  ordinary_capped_held_a_wall_verdict_holds
+bash pipeline/assumptions.sh \
   SSLEyerok.Proofs.DoublePoundTrace \
   double_pound_trace_certificate_holds
 bash pipeline/assumptions.sh \
@@ -60,6 +63,15 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   SSLEyerok.Proofs.LowerArea2Entry \
   lower_area2_entry_certificate_holds
+bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.GeneratedFacts \
+  generated_controller_action_shape_holds
+bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.ClightRefinementBoundary \
+  clight_refinement_boundary_certificate_holds
+bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.RequestedHeightVerdict \
+  requested_height_verdict_package_holds
 bash pipeline/assumptions.sh \
   SSLEyerok.Proofs.AuthenticReachability \
   audited_coupled_reachability_certificate_holds
