@@ -1,110 +1,79 @@
 # Goal recovery note
 
-Last updated: 2026-07-14 (Mario/Area 2 source-ingestion phase).
+Last updated: 2026-07-14 (Mario/Area 2 route proof).
 
 ## Objective
 
-Build an isolated Rocq/Coq + CompCert Clight project that decides the claim:
+Decide three related but separate questions for the pinned North American
+Super Mario 64 source:
 
-> It is not possible to trigger a glitch and manipulate Eyerok's movements so
-> that an Eyerok hand rises indefinitely above the floor triangles that toggle
-> the Pyramid interior and Eyerok arena.
+1. Can Mario use a raised Eyerok hand to select the Area 3 instant-warp floor
+   and enter Area 2 at a useful height?
+2. Are the finite Rocq hand-height bounds high enough for a useful Area 2
+   landing, especially near the `Inside the Ancient Pyramid` star?
+3. Can original-game Eyerok Y be manipulated into an unbounded ascent?
 
-The intended proof must quantify over adversarial player position, attacks,
-timing, and boss random choices. If the statement is false, replace the
-impossibility target with a concrete action and movement trace.
+The proof must not infer Mario reachability from a hand-origin upper bound.
+Hand movement, Mario/platform contact, floor selection, area change, Area 2
+collision, and star interaction are separate interfaces.
 
-## Proof route
+## Completed proof layers
 
-1. Pin the US source revision and audit the Eyerok action handlers, object
-   movement helper, paired SSL instant warps, and transition triangles.
-2. Generate CompCert Clight for an executable C abstraction and the pinned
-   Eyerok translation unit.
-3. Prove selected generated-AST shape facts about source mechanisms that can
-   assign Y, vertical velocity, or gravity.
-4. Define a nondeterministic transition relation intended to over-approximate
-   the original action choices and partial-update behavior, keeping that
-   intended coverage as an explicit open obligation.
-5. Prove a uniform Z-valued invariant, intended to represent absolute Y, and
-   derive that no run of the handwritten Rocq vertical relation has unbounded
-   height.
-6. Keep the source-to-Rocq simulation boundary explicit; close it against
-   generated Clight execution and binary32 arithmetic, or leave the global
-   gameplay theorem conditional.
-7. Model Mario, the Area 3 instant-warp floor, the corresponding Area 2
-   collision, and the `Inside the Ancient Pyramid` star.  Decide separately
-   whether a hand can create the required Mario state, what Area 2 floor that
-   state can reach, and whether the hand itself can rise without bound.
+The project pins source revision
+`9921382a68bb0c865e5e45eb594d9c64db59b1af` and generates CompCert Clight for
+Eyerok behavior, object motion and collision, area change, instant-warp
+dispatch, Mario state input, airborne stepping, platform displacement,
+interactions, and the SSL level script.
 
-The route phase now pins and translates `area.c`, `level_update.c`, `mario.c`,
-`mario_step.c`, `mario_actions_airborne.c`, `platform_displacement.c`, and
-`interaction.c`.  Its independent source audit fixes the zero-displacement
-Area 3-to-2 warp, the destination collision tiers, and the star at
-`(500, 5050, -500)`.  Formal route and binary32 conclusions are the next
-proof steps; source ingestion alone is not being counted as either result.
+The source audits now establish:
 
-The source audit identified the critical fork for steps 3--5. If
-`DOUBLE_POUND` is reached while grounded with gravity zero, its velocity-100
-branch can preserve positive velocity and produce a very large rise. The Rocq
-project proves only an idealized mathematical-integer `Y + 100*n` recurrence
-is unbounded. Original hand position is binary32; repeated binary32 `+100`
-eventually stops changing Y because of rounding. The intended reachability
-proof still has to derive whether the seed is reachable from the original
-hand/boss schedule, including dynamic collision and partial-update cases,
-because a huge finite ascent could be enough for the route.
+- the exact Area 3 warp quad and zero-displacement destination;
+- the inactive matching Area 2 slot and adjacent return warp;
+- the Area 2 Y=896, 1280, 1967, 2940, 4429, and 4815 route tiers;
+- the star at `(500,5050,-500)` and its interaction bounds;
+- that the largest upward-facing Area 3 floor vertex is 384 (the old value 896
+  was the maximum of every vertex, including walls); and
+- that platform displacement has no direct vertical-velocity addition.
 
-The executable C abstraction represents the proof split directly. Safe
-impulses consume a finite ascent budget, while the grounded/gravity-zero
-double-pound state enters an explicit runaway mode. The handwritten Rocq
-relation separately proves preservation of a safe envelope. There is not yet a
-semantic theorem connecting C-abstraction calls to that relation, and its
-public C functions can be called in sequences that make the safety predicate
-false. Every original-game scheduling case must still be mapped to the safe
-side of the Rocq split.
+The refined vertical relation uses exact maximum finite ascent budget 288. It
+proves hand-origin ceilings 672 and 1467. Adding the collision top and modeled
+triple-jump allowance gives a second-hand Mario peak ceiling of 2604.
 
-The closed-world half is now machine checked. `SchedulerInvariant.v` excludes
-the runaway seed from every scheduler-reachable state, `StateMachine.v` proves
-one-step preservation of the ascent envelope, and `VerticalBound.v` lifts the
-result to all finite prefixes and infinite runs. The local capstone is
-`eyerok_no_unbounded_rise_certificate`. Its runaway theorem is over Rocq `Z`,
-not authentic binary32 or the C abstraction's 32-bit `int`.
+The Mario/area relation proves:
 
-The remaining no-unbounded-rise bridge is narrower than the original search:
-prove a Clight execution refinement from authentic object/boss frames to the
-two formal transition systems. `GlobalBoundary.v` already proves that this
-refinement implies a bound for an abstract Z-valued height observation. It does
-not mention Clight or binary32 directly; a faithful instantiation must define
-and justify that numeric observation.
+- a hand floor does not trigger the instant warp;
+- a selected Area 3 warp floor changes to Area 2 while preserving Mario's
+  coordinates, velocity, and motion state;
+- peak 2604 cannot reach the Y=2940 or higher audited tiers or collect the
+  star; and
+- a conditional adversarial trace reaches `(387,1967,-500)`, the point on the
+  Y=1967 platform horizontally closest to the star.
 
-An internal bridge is also open: prove that the executable C abstraction
-implements `vertical_step`, or stop treating that C interface as a semantic
-model and connect the original Clight program directly to the Rocq relations.
-The abstract scheduler and vertical relation must also be coupled where their
-properties are used together.
+The trace starts at the maximum hand state admitted by the vertical relation.
+It is not yet an original-game trace because hand X/Z, Mario contact, and
+controller input have not been refined from the pinned Clight program.
 
-The route-level area question is a second boundary. The newly ingested source
-shows that the transition is driven by Mario's selected floor, checked before
-the current frame's object update, and preserves Mario's XYZ and velocity.
-The existing vertical relation still has no Mario, floor, area, or collision
-state, so the new evidence is not yet a theorem that a hand can create the
-required warp state.  That bridge is now an explicit proof target rather than
-an undocumented assumption.
+## Remaining proof route
 
-`Eyerok.md` now gives the intended senior-engineer explanation, concrete
-finite-impulse and runaway examples, an explicit answer about the Area 2
-transition, and separate lists of proved and unproved statements.
-
-The recovery path has now been exercised with the required Ubuntu commands.
-Generation is byte-reproducible, the source audit diff is clean, every Clight
-and handwritten module compiles, the proof-hole scan is empty, and the four
-public theorem assumption reports contain no project-defined assumptions.
+1. Add the exact binary32 representation theorem: every finite binary32 Y has
+   a global real bound, and `2^31 + 100` is an exact fixed point.
+2. State separately the Clight source boundary at out-of-range float-to-int
+   conversion and the original IDO/MIPS ROM boundary.
+3. Couple boss scheduling, both hand states, update rank, dynamic surfaces,
+   Mario contact, and floor selection in one authentic frame relation.
+4. Prove or refute reachability of the conditional hand pose. If unreachable,
+   replace the Y=1967 trace with the highest reachable landing or a no-useful-
+   landing theorem.
+5. If route optimality is required, minimize authentic frames from Area 2
+   entry to star collection; geometric distance is only a lower bound.
 
 ## Repository constraints
 
-- Work only in `SSL-Cog/eyerok-manipulation/`, except for the required project
+- Work only in `SSL-Cog/eyerok-manipulation/`, apart from the existing project
   entry in `SSL-Cog/README.md`.
 - Inspect but do not modify `SSL-Cog/ssl-pyramid-item-proof/`.
 - Update `docs/goal.md`, `docs/claim.md`, and `docs/checklist.md` in every
   commit.
 - Commit each coherent change.
+- Use the Ubuntu WSL distribution and the `sm64-item-proof` opam switch.
 - Do not push without explicit user approval.

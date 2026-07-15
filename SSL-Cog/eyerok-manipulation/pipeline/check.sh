@@ -33,5 +33,8 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   SSLEyerok.Proofs.GlobalBoundary \
   authentic_no_unbounded_rise_from_refinement
+bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.RouteCertificate \
+  eyerok_area2_route_certificate
 
 echo "Eyerok manipulation checks: OK"

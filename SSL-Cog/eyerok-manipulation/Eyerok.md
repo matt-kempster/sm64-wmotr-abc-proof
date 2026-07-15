@@ -1,440 +1,370 @@
-# Eyerok movement and proof status
+# Eyerok movement, Mario's warp, and the proof boundary
 
-This document explains the Eyerok hypothesis without assuming prior knowledge
-of Super Mario 64. It separates three things that are easy to confuse:
+This document is written for a software engineer who does not know Super
+Mario 64. It explains the game mechanism, the state machines in this project,
+the new Area 2 route calculation, and the line between proved results and
+plausible game behavior.
 
-1. what the original game source does;
-2. what the smaller formal artifacts allow; and
-3. what has been connected by a machine-checked theorem.
+## Executive summary
 
-## Bottom line
+Eyerok is a boss made from two independently updated hand objects. The boss
+arena is Area 3. The inside of the pyramid is Area 2. A pair of sloped tunnel
+floors switches Mario between those areas.
 
-| Question | Current answer |
-| --- | --- |
-| Can a hand rise forever in the handwritten Rocq vertical relation? | **No.** Rocq proves that the `FirstHand` rank stays at or below absolute Y = 1196 and the `SecondHand` rank stays at or below absolute Y = 2003. These ranks are intended to represent update order; that connection to the game is not yet proved. |
-| What can an unrestricted execution of the C abstraction do? | It can enter `Runaway` and replenish an impulse above the safety ceiling. The safety predicate detects an invalid state but does not prevent it. Its Y field is a 32-bit `int`, however, so the mathematical unboundedness theorem is not about C execution. |
-| Can the abstract Rocq scheduler reach the dangerous `DOUBLE_POUND`, grounded, gravity-zero state? | **No.** This is proved for that scheduler relation. Given grounded, gravity-zero input and a double-pound request, the C abstraction intentionally maps the request to `Runaway`; it does not return the same grounded seed state. |
-| Does the original binary32 `Y += 100` operation produce mathematically unbounded Y? | **No under IEEE binary32 arithmetic, although this is not yet a theorem in the project.** At large values, adding 100 rounds back to the same value. The branch can still produce a very large finite rise if it is reachable. |
-| Has the same result been proved for every execution of the pinned SM64 game code? | **No.** The audit supplies supporting source facts, but the C-to-Rocq and game-to-Rocq semantic bridges are both open. |
-| Can raising a hand make the formal artifacts change from Area 3 to Area 2? | **Not representable.** They have no Mario state, floor pointer, or area transition. This is an omission, not an impossibility result. |
-| Has this project proved whether Mario can use a raised hand to enter Area 2 at a useful height in the real game? | **No.** The level's warp configuration is audited and the engine trigger was source-inspected, but the Mario/hand/warp interaction is not modeled or proved. |
+The switch is based on **Mario's selected floor**, not on Eyerok touching the
+floor. If Mario's saved floor is the Area 3 instant-warp surface, the next
+normal frame changes to Area 2 and preserves Mario's position and velocity.
+If Mario's floor is a hand surface, no area change occurs.
 
-The precise result is therefore:
+The current machine-checked results are:
 
-> Every execution admitted by the handwritten Rocq vertical relation has
-> bounded hand height. If every frame of the pinned game can be represented by
-> a reachable state of that relation, the pinned game also has bounded hand
-> height. The first sentence is proved; the premise of the second sentence is
-> not yet proved.
+- the refined handwritten Eyerok relation bounds the first-updated hand's
+  origin at absolute Y `672` and the second-updated hand's origin at `1467`;
+- after adding the hand's maximum `507`-unit collision top, Mario's modeled
+  standing height is at most `1974` on the second hand;
+- after adding a generous ordinary triple-jump rise of `630`, Mario's modeled
+  peak is `2604`;
+- `2604` is too low for a direct landing at Y `2940`, the upper warp-overlap
+  platform at Y `4429`, the star platform at Y `4815`, or direct interaction
+  with the star at Y `5050`; and
+- the combined abstract route model does admit a conditional landing on the
+  Y `1967` platform at `(387, 1967, -500)`. That is the point on that platform
+  with minimum horizontal distance to the star.
 
-The earlier shorthand “the player-adversarial model proves the first hand is
-at or below 1196 and the second is at or below 2003” refers only to this
-handwritten Rocq relation. It is too broad if read as a claim about arbitrary
-C-abstraction calls or the original game.
+The word **conditional** is important. The handwritten vertical relation
+admits the starting hand height, but it has no X/Z state and does not prove
+that the original game can put the hand at the required position. The route
+model also over-approximates Mario's air steering. It is a counterexample to
+"the formal height bound is numerically too low for every useful landing," not
+a verified controller-input movie for the original game.
 
-In this document, “rises indefinitely” means that Y is unbounded above: for
-every proposed ceiling, some later frame is higher. A very long but finite
-climb, or a positive velocity whose binary32 position has stopped changing, is
-not unbounded ascent.
+## Coordinate system and target
 
-## Game setup
+SM64 positions use X, Y, and Z. Y is height.
 
-Super Mario 64 represents locations with X, Y, and Z coordinates. Y is height.
-The Eyerok boss arena uses two animated hand objects plus a non-moving boss
-controller. Each hand has its own action, position, velocity, gravity, and
-collision surface. The controller decides when a hand attacks and when the two
-hands perform their coordinated pound.
-
-The inside of the pyramid is Area 2. The Eyerok arena is Area 3. They are
-separate copies of the world, but the tunnel contains special floor triangles
-that switch between them. The audited Area 3 triangles form a small sloped
-rectangle with approximately these limits:
+The Area 3 to Area 2 warp floor is the quadrilateral with:
 
 ```text
 X: -191 to 192
-Y:  286 to 384
 Z: -1222 to -1023
+Y: 286 + 98 * (Z + 1222) / 199
 ```
 
-Inspection of the pinned engine source shows that `check_instant_warp` looks
-at **Mario's current floor surface**. If that floor is the Area 3
-`SURFACE_INSTANT_WARP_1D` surface, the game changes to Area 2. The configured
-displacement is `(0, 0, 0)`, so the area changes while Mario's X, Y, and Z
-coordinates are preserved. The automated project audit checks the level
-configuration and triangle declarations; it does not currently audit or
-generate `check_instant_warp` itself.
+Its Y values run from `286` to `384`. Area 3 configures this surface as
+instant-warp slot 2, whose destination is Area 2 with displacement `(0,0,0)`.
+Area 2 contains the same surface geometry but does not configure slot 2, so
+Mario does not immediately bounce back. The active return warp is the
+adjacent lower strip in slot 3.
 
-This is not a generic “anything crossed the triangle” trigger. Moving an
-Eyerok hand over the triangle does not itself change areas. Mario must have the
-special triangle recorded as his current floor.
+The "Inside the Ancient Pyramid" star is a normal star object at:
 
-For example, suppose Mario is at `(0, 1500, -1100)`:
+```text
+(X, Y, Z) = (500, 5050, -500)
+```
 
-- if Mario's current floor is an Eyerok collision surface, the instant-warp
-  check does not switch areas; but
-- if the engine has selected the Area 3 instant-warp triangle as Mario's
-  current floor, the check switches to Area 2 and preserves Y = 1500.
+Mario and the star have a combined horizontal interaction radius of `117`.
+With Mario's normal 160-unit interaction height, Mario's base Y must be in
+`[4890, 5100]` to collect it.
 
-This project has not proved whether the first situation can be turned into the
-second at that height by stepping or falling off a raised hand.
+## What actually triggers the area change
 
-## The hand state machine
+The relevant normal-frame order in the pinned source is:
 
-The original hand behavior has 16 named actions. A useful high-level view is:
+```text
+warp_area()
+check_instant_warp()
+area_update_objects()
+```
+
+`check_instant_warp` reads the floor pointer saved by Mario's preceding
+update. For the Area 3 tunnel surface, it changes the current area and adds
+the configured displacement to Mario's position. The displacement is zero,
+so X, Y, Z, action, and velocity are preserved.
+
+Example:
+
+```text
+Mario state before check:
+  area = 3
+  position = (0, 1500, -1100)
+  floor = Area3 instant-warp surface 1D
+
+Mario state after check:
+  area = 2
+  position = (0, 1500, -1100)
+  velocity unchanged
+```
+
+The same coordinates with `floor = Eyerok hand surface` do not trigger the
+warp. A raised hand can only help indirectly: Mario must leave the hand's
+footprint, remain over the warp's X/Z footprint, and have the static warp
+surface become his selected floor.
+
+SM64's floor search has no maximum downward search distance. A high Mario can
+therefore select a floor thousands of units below him. A surface more than 78
+units above the query point is rejected, and a higher dynamic floor beats a
+lower static one. This explains both sides of the hand-to-warp transition:
+
+- while the hand is the higher selected floor, no warp occurs;
+- after Mario leaves the hand and no higher dynamic surface covers him, the
+  low tunnel floor can become his selected floor and the next frame warps.
+
+## Eyerok's state machine
+
+Each hand has 16 source actions. The useful high-level graph is:
 
 ```text
 sleep -> idle
 
-idle -> open -> show eye -> close -> idle or retreat
+idle -> open -> show eye -> close -> idle/retreat
                     |\
-                    +-- hit -> attacked -> recover -> become active -> retreat
+                    +-- hit -> attacked -> recover -> active -> retreat
                     +-- final hit -> die
 
-idle -> target Mario -> smash -> retreat or fist sweep -> retreat
+idle -> target Mario -> smash -> retreat/fist sweep -> retreat
 idle -> fist push -> fist sweep -> retreat
 idle -> begin double pound -> double pound -> retreat
 ```
 
-The real graph has timing and controller guards, so this diagram is a guide,
-not an executable specification. The source action names are `SLEEP`, `IDLE`,
-`OPEN`, `SHOW_EYE`, `CLOSE`, `RETREAT`, `TARGET_MARIO`, `SMASH`, `FIST_PUSH`,
-`FIST_SWEEP`, `BEGIN_DOUBLE_POUND`, `DOUBLE_POUND`, `ATTACKED`, `RECOVER`,
-`BECOME_ACTIVE`, and `DIE`.
+Mario influences target direction, attack selection, eye damage, wall/edge
+outcomes, and boss timing. Those inputs select action handlers; they do not
+directly write hand Y.
 
-Mario can influence which path is taken:
+There are three normal ways Y changes:
 
-- his X and Z coordinates affect targeting and retreat checks;
-- attacking an exposed eye selects the damaged or dying path;
-- walls and platform edges can end an attack; and
-- the boss controller uses Mario's position, timers, and random choices to
-  select an attacking hand or a double pound.
+1. **Direct positioning.** Sleep and targeting code assign or approach a
+   home-relative height. Home Y is `-1534`; the largest direct source value is
+   home plus 600, or `-934`.
+2. **Finite impulses.** Damage, death, and a normal double pound set positive
+   velocity under negative gravity.
+3. **No rise.** Many states animate, move laterally, descend, wait, or delete
+   the hand.
 
-Those inputs do not directly assign a hand's Y coordinate, vertical velocity,
-or gravity. They influence the action handler that performs those writes.
-After every non-sleep handler, the game calls the shared object-movement
-helper. Unless partial-update guards suppress physics, the helper applies
-gravity, adds vertical velocity to Y, and performs floor handling.
+The exact positive finite budgets are:
 
-## The three ways a hand changes height
+| Action | Per-frame positive Y increments | Total |
+| --- | --- | ---: |
+| `ATTACKED` (`30`, gravity `-4`) | 26, 22, 18, 14, 10, 6, 2 | 98 |
+| `DIE` (`50`, gravity `-4`) | 46, 42, ..., 6, 2 | 288 |
+| normal `DOUBLE_POUND` (`100`, gravity `-15`) | 85, 70, 55, 40, 25, 10 | 285 |
 
-### 1. Scripted positioning
+The relation now uses `288`, the exact maximum of those three totals. The old
+project version rounded this to 300.
 
-Some actions move directly toward a height relative to the hand's home
-position. Eyerok's home Y is -1534. The largest direct-position ceiling encoded
-in the abstractions is home plus 600, or -934.
+## Why a moving hand does not automatically carry Mario
 
-Example: `TARGET_MARIO` approaches home plus 300, which is Y = -1234. This is
-scripted positioning, not a launch that can accumulate forever.
+SM64's platform-displacement code adds a platform's X and Z velocity to
+Mario. It does **not** directly add the platform's vertical velocity.
 
-### 2. A finite upward impulse
+Mario follows a vertically moving surface through repeated floor selection
+and landing/snap logic. If the new hand top is more than 78 units above Mario
+when the floor query runs, that surface is rejected.
 
-Being hit and dying set a positive vertical velocity together with negative
-gravity. The normal double-pound launch writes velocity 100 after an earlier
-frame has established gravity -15. In each case, negative gravity reduces the
-upward velocity each movement frame until the hand stops rising.
+Examples:
 
-| Case | Initial velocity and gravity | Positive per-frame rises | Encoded ascent budget |
-| --- | --- | --- | ---: |
-| Hit (`ATTACKED`) | velocity 30, gravity -4 | 26, 22, 18, 14, 10, 6, 2 | 98 |
-| Final hit (`DIE`) | velocity 50, gravity -4 | 46 down to 2 in steps of 4 | 288 |
-| Normal double pound | velocity 100, gravity -15 | 85, 70, 55, 40, 25, 10 | 285 |
+- a 20-unit scripted lift is small enough to remain a candidate;
+- the normal double-pound sequence starts with 85, then 70, 55, and so on, so
+  the first step needs Mario to have enough upward motion to bridge the
+  7-unit excess over the 78-unit tolerance; and
+- a gravity-zero runaway that moves the hand by 100 every frame does not, by
+  itself, carry a stationary Mario upward forever.
 
-The proof rounds all three cases up to one conservative allowance of 300.
-This is deliberately larger than every audited finite impulse.
+Hand collision is also loaded only while Mario remains near the hand. A hand
+that escapes far above Mario eventually stops providing a usable dynamic
+surface. This is why "the hand rises" and "Mario gets a high warp state" are
+separate proof obligations.
 
-### 3. No rise
+## The dangerous gravity-zero branch
 
-Many actions only animate, move horizontally, fall, remain still, or delete
-the object. A partial update can suppress the movement helper's physics
-integration, but it does not suppress Y assignments already made by the action
-handler. Skipping the helper does not convert stored velocity into extra
-height.
-
-## Three formal artifacts, not one “model”
-
-The project currently contains three different formal artifacts:
-
-1. **Generated Clight syntax for selected original-game source files.** The
-   source audit and `GeneratedFacts.v` check hashes, constants, function-body
-   shapes, and selected call sites. They do not execute the game or prove its
-   frame semantics.
-2. **An executable C abstraction in `inputs/eyerok_model.c`.** It exposes
-   functions for landing, launching, rising, stuttering, deletion, and the
-   runaway case. `eyerok_safe_envelope` reports whether a state is safe, but
-   the C API does not prevent a caller from making an unsafe call sequence.
-   Its `int` fields have 32-bit machine semantics, not mathematical-integer
-   semantics.
-3. **Two handwritten Rocq relations.** `scheduler_step` describes the
-   double-pound schedule, while `vertical_step` describes bounded vertical
-   motion. These relations are the subjects of the reachability and height
-   theorems.
-
-No semantic theorem currently connects executions of the C abstraction to
-`vertical_step`. The two handwritten relations are also not coupled to each
-other by a theorem. The capstone places their independently proved properties
-side by side; it does not turn them into one combined operational semantics.
-
-This distinction has a concrete consequence. Starting from the C abstraction,
-a caller can land a `SecondHand` state at Y = 1703, request the `DIE` impulse,
-rise by its 288-unit budget to Y = 1991, request another `DIE` impulse at that
-height, and repeat. The safety checker becomes false, but it does not block the
-calls. The handwritten `vertical_step` relation forbids this because its launch
-constructor requires the starting Y to be at or below the support ceiling.
-
-## The dangerous gravity-zero state
-
-`BEGIN_DOUBLE_POUND` sets gravity to zero. A later grounded branch of
-`DOUBLE_POUND` writes vertical velocity 100 without also changing gravity.
-If the hand could enter that branch while both grounded and at gravity zero,
-the idealized mathematical-integer recurrence used by the Rocq theorem would
-be:
+`BEGIN_DOUBLE_POUND` can set gravity to zero. A grounded branch of
+`DOUBLE_POUND` writes vertical velocity 100 without changing gravity. If a
+hand reached that branch while grounded with gravity zero, the idealized
+integer recurrence would be:
 
 ```text
-initial Y, initial Y + 100, initial Y + 200, initial Y + 300, ...
+Y, Y + 100, Y + 200, Y + 300, ...
 ```
 
-Once the ground flag is cleared, velocity remains positive, so the branch that
-installs falling gravity is not selected. This is a dangerous source-level
-state for the local movement logic. The C abstraction maps such an input to a
-separate `Runaway` mode instead of assuming it away, and Rocq separately proves
-the mathematical-integer recurrence shown above is unbounded. That recurrence
-theorem is not a Clight execution theorem for either C program.
+The handwritten scheduler relation excludes that seed in its own reachable
+states. That is a proof about the scheduler relation, not yet a whole-program
+proof about the two hands, boss controller, collision engine, and original
+compiled game.
 
-The original hand fields are binary32 floating-point values. Exact repeated
-addition by 100 is therefore not valid forever. For example, the spacing
-between binary32 values at `2^31` is 256, so round-to-nearest evaluates
-`2^31 + 100` as `2^31`. Under the isolated repeated operation, the position
-eventually stops changing even though the stored velocity can remain 100 and
-gravity can remain zero. The C abstraction has a different mismatch: its Y
-field is a finite-width `int`.
+The original position field is IEEE binary32, not an unbounded integer. At
+`2^31`, binary32 spacing is 256, so round-to-nearest makes `2^31 + 100` equal
+to `2^31`. The exact binary32 theorem is handled separately from the small
+height bound because representation-level stagnation says nothing about
+whether the hand first reaches a route-useful finite height.
 
-The reachability question still matters. A reachable gravity-zero launch could
-raise the hand to an enormous but finite height—potentially enough to be
-relevant to the proposed route—before binary32 rounding stalls it. This project
-has not proved whether the original game can reach that launch.
+## The corrected hand-height bound
 
-The abstract scheduler proves that this combination is unreachable in its own
-transition system. Its intended normal sequence is:
+The earlier `1196`/`2003` numbers used the largest Y of **any** Area 3
+collision vertex, `896`. That included walls. Floor support requires an
+upward-facing triangle. The audited maximum vertex of an upward-facing Area 3
+floor is only `384`.
+
+The refined relation uses this arithmetic:
+
+1. The first-updated hand can use static Area 3 floor support at most `384`.
+2. Its maximum finite impulse adds `288`, so its origin is at most `672`.
+3. Its scaled collision can reach `507` above its origin, so the next hand's
+   conservative support is `1179`.
+4. The second hand can add another `288`, so its origin is at most `1467`.
+5. Mario standing at the highest collision point is at most `1974`.
+6. Adding the modeled 630-unit triple-jump rise gives Mario peak Y `2604`.
+
+| Quantity | Absolute Y |
+| --- | ---: |
+| Eyerok home | -1534 |
+| Largest direct scripted hand position | -934 |
+| Highest upward-facing Area 3 floor vertex | 384 |
+| First-hand origin ceiling | 672 |
+| First-hand surface ceiling | 1179 |
+| Second-hand origin ceiling | 1467 |
+| Second-hand surface / Mario standing ceiling | 1974 |
+| Modeled Mario peak after triple jump | 2604 |
+
+These remain **upper bounds**, not measurements of a normal fight. The
+relation conservatively allows the second hand to land on the first hand's
+maximum collision top even though the original game's 78-unit floor-query
+tolerance and X/Z alignment may make that exact stack unreachable.
+
+## Area 2 floors relevant to the route
+
+The audited destination geometry gives these milestones:
+
+| Surface | Y | Relationship to the warp |
+| --- | ---: | --- |
+| ordinary floor covering the full warp footprint | 896 | directly below every arrival point |
+| lower mid-level floor | 1280 | minimum horizontal gap 179 |
+| square nearest the star in X/Z | 1967 | gap 307; X `[131,387]`, Z `[-716,-460]` |
+| next square | 2940 | gap 307 |
+| upper platform | 4429 | overlaps the northern warp footprint |
+| star platform | 4815 | minimum horizontal gap 195 |
+| star interaction center | 5050 | Mario base must reach at least 4890 |
+
+Because floor lookup accepts a floor up to 78 units above Mario, the Y `2940`
+floor first becomes eligible at query Y `2862`; the Y `4429` platform at
+`4351`; and the star platform at `4737`.
+
+The modeled peak `2604` is therefore:
+
+- high enough that the height inequality alone does not reject Y `1967`;
+- too low for Y `2940` or any higher listed shortcut tier; and
+- far too low for direct star collection.
+
+## The conditional Y=1967 trace
+
+`Area2Route.v` contains an executable integer route witness. It deliberately
+starts from the maximum state admitted by the handwritten relation:
 
 ```text
-idle and grounded, gravity 0
-  -> begin double pound, not grounded, gravity 0
-  -> double pound, not grounded, gravity 0
-  -> first descent, not grounded, gravity -20
-  -> land and pound, gravity -15
-  -> launch with velocity 100 under negative gravity
+second-hand origin: 1467
+collision top / Mario base: 1974
+assumed X,Z: (192,-1993)
+long-jump vertical velocity: 30
 ```
 
-The source audit supplies evidence for this sequence. In particular, it checks
-the strict ground comparison at the initial floor, relevant partial-update
-guards, dynamic-surface clearing, presence of the surface-list update, the
-append-order allocation code, and collision geometry that could otherwise
-provide an unexpected floor during setup. These facts motivate the scheduler;
-they do not constitute a semantic proof of the complete two-hand update order.
+Twenty modeled long-jump frames move 48 units toward the tunnel per frame and
+use long-jump gravity 2. The resulting pre-warp state is:
 
-There are three relevant answers:
+```text
+(X,Y,Z) = (192,2194,-1033)
+vertical velocity = -10
+```
 
-- **Inside the abstract scheduler: yes, by a Rocq reachability proof.**
-- **For every execution of the original game: reachability is not yet ruled
-  out by a semantic proof.**
-- **As a claim of unbounded original-game Y: the exact-integer recurrence is
-  inapplicable because original Y is binary32.**
+That point is inside the Area 3 warp footprint. After the model marks the warp
+floor as selected, the proved instant-warp rule enters Area 2 without changing
+position or velocity.
 
-The missing work includes a proof that every relevant execution of the pinned
-Clight program follows the cases represented by the abstract scheduler and
-vertical relation, plus a faithful relation between binary32 and the formal
-numeric state.
+The Area 2 steering witness then uses 11 frames of `(dX,dZ)=(16,45)` and one
+final frame `(19,38)`. Both vectors have length at most 48. Mario crosses the
+Y `1967` platform on the final step and lands at:
 
-## How the height bound works
+```text
+(387,1967,-500)
+```
 
-The handwritten Rocq vertical state records a mathematical-integer (`Z`) hand
-Y, whether it is controlled or in flight, and a proof-only “ascent budget.”
-The C abstraction has analogous fields, but, as explained above, its call
-semantics have not been proved to implement the Rocq relation. In the Rocq
-relation, the budget is fuel for future upward travel. For example, after a
-normal double pound, a state can spend at most 285 units of upward movement.
-Every rise adds an amount to Y and subtracts the same amount from the budget,
-so `Y + remaining budget` does not increase.
+For every point on that platform, horizontal distance to the star center is at
+least 113. The witness achieves exactly 113, so Rocq proves it is the
+horizontally closest landing point on that platform. It is still 2923 units
+below the bottom of the star's vertical interaction band (`4890`). It is not a
+star collection.
 
-The Rocq relation encodes conservative support heights, using the following
-source-based rationale:
+What this witness proves:
 
-1. Dynamic surfaces are cleared before the two hands update.
-2. The rank intended to represent the first-updated hand is assigned static
-   Area 3 support only. The audit's largest static vertex Y is 896.
-3. Adding the common 300-unit ascent allowance gives the `FirstHand` bound:
-   `896 + 300 = 1196`.
-4. The rank intended to represent the second-updated hand is allowed to use the
-   first rank as a dynamic floor. A hand's scaled collision reaches at most 507
-   units above its origin, so its support bound is `1196 + 507 = 1703`.
-5. Adding another 300 units gives the `SecondHand` bound:
-   `1703 + 300 = 2003`.
+- the refined relation's finite bound is numerically high enough for a
+  Y `1967` landing in the explicit adversarial Mario/Area 2 relation; and
+- the same bound is too low for the higher audited shortcut tiers.
 
-The arithmetic is proved for those abstract ranks. The claims that the ranks
-match the game's update order and that these are all original-game supports
-belong to the still-open game-to-Rocq bridge. That bridge must also relate the
-game's binary32 position to the relation's mathematical-integer Y.
+What it does not prove:
 
-These are formal upper bounds, not predictions of heights seen during an
-ordinary fight. Their Z values are intended to represent absolute world Y,
-subject to the still-open binary32 observation bridge:
+- that an original Eyerok hand reaches origin Y `1467` at `(192,-1993)`;
+- that Mario can prepare exactly this long jump on that hand;
+- that every abstract steering vector is realizable by the original analog
+  input and action code; or
+- that the Y `1967` landing improves the intended A-press route.
 
-| Quantity | Absolute Y | Height above the home Y of -1534 |
-| --- | ---: | ---: |
-| Home position | -1534 | 0 |
-| Largest scripted position | -934 | 600 |
-| Largest audited Area 3 static vertex | 896 | 2430 |
-| `FirstHand` relation bound | 1196 | 2730 |
-| `SecondHand` relation bound | 2003 | 3537 |
+The first missing item is especially important: an invariant ceiling is not a
+reachability witness.
 
-Rocq proves that every state reachable through the handwritten vertical
-relation stays within the appropriate bound. It then proves that an infinite
-run of that relation cannot have unbounded height. Separately, it proves that
-the excluded mathematical-integer `Runaway` recurrence grows without bound.
+## What "an authentic transition above the bound" means
 
-## Does raising a hand allow an Area 3 to Area 2 transition?
+An authentic transition is one frame produced by the pinned original-game
+code, rather than a constructor in a handwritten relation.
 
-### In the formal abstractions: the transition is not represented
+The refined vertical relation permits a fresh finite launch only from at or
+below the rank's support ceiling. For the second rank that support is `1179`.
+If the original game could repeatedly give the hand a fresh 285-unit
+double-pound impulse after it had already climbed far above `1179`, those
+frames would not refine the relation and its `1467` origin bound would not
+apply.
 
-Neither the executable C abstraction nor the handwritten Rocq relations can
-change areas because they contain only hand-vertical state. They have no Mario
-position, Mario floor, current-area identifier, collision contact between
-Mario and a hand, or instant-warp rule. “Player-adversarial” means that the
-represented choices do not assume a cooperative player; it does **not** mean
-that the formal system contains the whole player and level engine.
-
-Therefore the statements “the `SecondHand` rank is at or below Y = 2003” and
-“the system transitions to Area 2” cannot be combined: the second statement is
-not expressible. This neither enables nor forbids the real route. The fact that
-2003 is numerically above the warp triangles' Y range also does not establish
-horizontal alignment, Mario's floor selection, or an area change.
-
-### In the original game: the basic warp exists, but the raised-hand route is open
-
-The automated source audit verifies that Area 3's special floor is configured
-to map to Area 2 with zero coordinate displacement. Separate inspection of the
-pinned `check_instant_warp` source shows that the code changes area when Mario's
-current floor has that surface type. That engine function and Mario's floor
-selection are not generated or machine-connected in this project. Eyerok
-height alone is not the trigger.
-
-The pinned floor-search source also has no maximum distance for a floor below
-Mario. It finds dynamic and static candidates, rejects a surface more than 78
-units above the query point, and prefers the dynamic candidate when it is
-higher than the static candidate. Consequently, if the warp triangle is the
-selected static candidate and no higher hand surface wins, a Mario positioned
-high over its X/Z footprint can have the much lower triangle recorded as his
-floor. This makes a high, zero-displacement area change mechanically plausible,
-but it does not prove that Eyerok can put Mario into that situation.
-
-This project has not modeled or proved the sequence needed for the proposed
-route: Mario riding or leaving a hand, being above the triangle in X/Z, the
-engine selecting the triangle as Mario's floor, and the area change preserving
-the useful elevated position. It has therefore proved neither that a raised
-hand enables this high transition nor that it cannot do so.
-
-Even after the hand-height refinement is completed, a route-level result would
-need an additional Mario/floor/area argument. It would also need to compare any
-reachable finite height with the height actually required inside Area 2. The
-current 1196 and 2003 bounds answer “unbounded?” only for the handwritten
-relation; they do not by themselves answer “high enough for the route?”
-
-## What the unclear “authentic transition” sentence meant
-
-Here, “authentic transition” meant one frame transition made by the pinned
-original game code, as opposed to a rule in a smaller formal relation.
-“Replenish upward motion above the bound” meant giving a hand a fresh upward
-impulse after it had already climbed above the support height from which the
-Rocq `vertical_step` relation permits a launch.
-
-For example, `vertical_step` lets the `SecondHand` rank launch at Y = 1703 with
-at most 300 units of upward travel, so it stays at or below Y = 2003. Imagine
-that the original game can instead give the hand another 285-unit double-pound
-impulse at Y = 1950. It could then reach Y = 2235, and that execution would not
-be covered by the current Rocq relation or its 2003 bound.
-
-No `vertical_step` transition does this. As noted above, the executable C
-abstraction does permit an unrestricted caller to replenish a budget; its
-safety checker detects the resulting invariant violation but does not prevent
-it. Neither the C-to-Rocq connection nor the game-to-Rocq connection is proved.
-Finding one such original-game transition would invalidate this particular
-bound; it would not, by itself, prove infinite ascent. A counterexample to the
-idealized integer claim would require a repeatable sequence that obtains new
-upward motion at ever greater heights. Under authentic binary32 arithmetic,
-repeated addition eventually stagnates; the same transition could instead be
-evidence for a very high finite route or for persistent attempted motion.
+No constructor in `vertical_step` permits that replenishment. The executable C
+abstraction's public API can be called in an unsafe sequence, so it is not a
+proof that the game cannot do so. A whole-program refinement must show that
+every source transition falls on the safe side of this split.
 
 ## Exactly what is proved
 
-The machine-checked project proves all of the following about its formal
-systems:
+The project now machine-checks these statements:
 
-- generated Clight syntax contains the audited C-abstraction constants and
-  selected control-flow shapes from the pinned Eyerok-related source;
-- every state reachable in the abstract scheduler excludes
-  `DOUBLE_POUND + grounded + gravity 0`;
-- every state reachable in the handwritten vertical relation has Y at most
-  1196 for `FirstHand` or 2003 for `SecondHand`;
-- no infinite execution of that relation rises without bound; and
-- the explicit gravity-zero runaway recurrence rises by 100 per frame and is
-  arithmetically unbounded over mathematical integers.
-
-The source audit additionally checks the pinned source revision, all positive
-vertical-velocity writes, relevant gravity writes, partial-update guards,
-source text relevant to surface-list ordering, collision limits, and the two
-instant-warp definitions. Those checks are strong evidence about the source
-surface, but they do not prove the complete two-hand semantic update order, and
-syntax and constant checks are not a whole-program execution theorem.
-
-`proofs/GlobalBoundary.v` proves a generic conditional lemma. Despite its
-variable names, it imports no original-game execution semantics: `authentic_run`
-is an arbitrary type, and `authentic_height` is an arbitrary Z-valued function.
-Its intended reading is:
-
-> If a sound Z-valued observation of every frame of every valid original-game
-> run has the same value as some reachable handwritten Rocq vertical state,
-> then that observed height is at most 2003 and cannot be unbounded.
-
-The theorem contains no project-added axiom, but its “if” premise has not been
-filled with a proof about the generated original-game Clight program. A real
-instantiation also needs a sound observation or abstraction from binary32 hand
-position to Z, including rounding and any non-finite values. A closed proof of
-an implication does not prove its premise.
+- the generated Clight ASTs contain the selected pinned source functions and
+  call edges for Eyerok, Mario floor input, instant-warp handling, area change,
+  airborne stepping, platform displacement, and star interaction;
+- the abstract scheduler cannot reach `DOUBLE_POUND + grounded + gravity 0`;
+- every state reachable in the refined vertical relation has hand-origin Y at
+  most `672` for the first rank or `1467` for the second;
+- no infinite run of that relation has unbounded integer Y;
+- a hand floor cannot trigger the modeled instant warp;
+- a selected Area 3 warp floor changes to Area 2 with Mario's coordinates,
+  velocity, and motion state unchanged;
+- modeled Mario peak `2604` cannot reach the Y `2940`, Y `4429`, Y `4815`, or
+  direct-star thresholds; and
+- the conditional combined relation reaches the closest point on the Y `1967`
+  platform but does not collect the star.
 
 ## What is not proved
 
-The project does **not** currently prove:
+The project still does not prove:
 
-- that every execution of the pinned SM64 Clight program is represented by the
-  abstract scheduler and handwritten vertical relation;
-- that executions of `inputs/eyerok_model.c` or its generated Clight implement
-  the handwritten `vertical_step` relation;
-- that `scheduler_step` and `vertical_step` form one coupled transition system;
-- that the abstract `FirstHand` and `SecondHand` ranks correspond to the
-  original-game two-hand update order and support choices;
-- that binary32 original-game position is soundly represented by the
-  mathematical-integer Y used in `vertical_step` and `GlobalBoundary.v`;
-- that the dangerous gravity-zero grounded state is unreachable in every
-  original-game execution;
-- that the two separate abstractions correctly preserve all interactions among
-  controller timing, object ordering, dynamic collision, partial updates, and
-  hand height;
-- that Mario can or cannot use a raised Eyerok hand to trigger the Area 3 to
-  Area 2 warp at a useful height;
-- that the finite Rocq-relation bounds are too low or high enough for the
-  proposed route through Area 2; or
-- the unqualified statement that the original game cannot be manipulated into
-  an indefinite Eyerok ascent.
+- a whole-program Clight refinement from every original game frame to the
+  scheduler, vertical relation, and Mario route relation;
+- that the original hands' update order and actual dynamic-floor choices
+  realize the abstract first/second ranks;
+- that the original game reaches the conditional hand pose used by the Y
+  `1967` route witness;
+- an exact original-controller trace from the hand through the warp to that
+  landing;
+- that Y `1967` is the globally fastest or most useful post-warp state for the
+  star, rather than only the highest audited tier admitted by this restricted
+  height calculation;
+- that the gravity-zero seed is unreachable in every original-game run; or
+- a source-to-ROM proof for out-of-range floating-point conversions in the
+  original IDO-compiled MIPS binary.
 
-It also does not prove that the source's gravity-zero branch has unbounded
-height. The existing unbounded theorem is deliberately about an idealized Z
-recurrence; repeated binary32 `+100` eventually stagnates. If “rises
-indefinitely” is intended to mean persistent positive velocity or a persistent
-action state rather than unbounded Y, that is a different property and has not
-been formalized here.
-
-One way to view the gap is as an interface-conformance problem. We proved an
-invariant for every input accepted by a small reference state machine. We have
-not yet proved that the production game can produce only transitions accepted
-by that reference state machine. Until that bridge is complete, the original
-gameplay claim remains conditional.
+In short: the Area 3 to Area 2 mechanic is now represented, the finite bound's
+route consequences are proved for the explicit adversarial model, and the
+remaining uncertainty is no longer "what does Area 2 look like?" It is the
+authentic reachability of the hand/Mario starting state and the whole-program
+connection from the pinned source to the relations.

@@ -19,7 +19,7 @@ Proof.
   refine (conj generated_model_shape_holds _).
   refine (conj generated_critical_source_shape_holds _).
   refine (conj reachable_scheduler_excludes_runaway_seed _).
-  refine (conj every_reachable_hand_below_2003 _).
+  refine (conj every_reachable_hand_below_global_ceiling _).
   refine (conj no_safe_vertical_run_rises_unboundedly _).
   exact runaway_lasso_is_unbounded.
 Qed.

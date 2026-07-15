@@ -1,187 +1,127 @@
-# Working claim and scope
+# Working claim and exact scope
 
-Last updated: 2026-07-14 (Mario/Area 2 source-ingestion phase).
+Last updated: 2026-07-14 (Mario/Area 2 route proof).
 
-## Game and source boundary
+## Source and toolchain boundary
 
-- Super Mario 64, North American release (`VERSION_US=1`).
-- Canonical reference source baseline:
+- Super Mario 64 North American source (`VERSION_US=1`).
+- Canonical revision:
   `9921382a68bb0c865e5e45eb594d9c64db59b1af`.
 - Available sibling checkout:
-  `36fbf8d693a9fc2bdec0c77402f8e96d07d2f461`.
-- The Eyerok implementation, object fields, action constants, and movement
-  helper are checked byte-for-byte against the baseline before generation.
-  The sibling SSL script contains later conditional instrumentation, so the
-  pipeline extracts the canonical script directly from the pinned Git object.
-- Coq 8.16.1; CompCert 3.15 configured for 32-bit big-endian `ppc-eabi`.
+  `36fbf8d693a9fc2bdec0c77402f8e96d07d2f461`; audited files must match the
+  pin or are extracted directly from it.
+- Coq 8.16.1, CompCert 3.15, PPC32 EABI big-endian.
+
+Generated Clight shape facts and source audits pin syntax, constants, call
+edges, and collision data. They are not a linked whole-program execution
+refinement.
 
 ## Definitions
 
-- **Eyerok** means either spawned Eyerok hand unless a statement explicitly
-  names the non-moving boss controller.
-- **Height in the formal state** is a mathematical integer intended to
-  represent the hand's absolute world Y coordinate. Eyerok's spawn/home Y is
-  `-1534`; a home-relative rise is therefore intended as
-  `absolute Y - (-1534)`. The proved `1196` and `2003` ceilings are Z values;
-  their connection to original-game binary32 is open.
-- **Adversarial modeled choices** are all nondeterministic edges allowed by the
-  handwritten relations. It remains open whether they correctly cover every
-  legal player position, attack, wall/edge outcome, and boss random selection
-  in the original game.
-- **Rises indefinitely** means that the heights along one infinite execution
-  are unbounded above. A single high but finite jump is not an infinite rise.
-  The handwritten relation uses mathematical integers for this definition;
-  original-game hand position is binary32 and requires a separate observation
-  relation.
-- **Partial update** is the `cur_obj_move_standard` path where far-away or
-  different-room flags suppress physical movement after the behavior state
-  has updated.
-- **Area transition** means the original engine changing areas when Mario's
-  current floor is an instant-warp surface. It is not part of the vertical
-  relation.
+- **Hand height** is the hand object's origin Y. It is not the top of its
+  collision and not Mario's Y.
+- **Hand surface ceiling** adds the audited 507-unit maximum collision offset
+  to a hand-origin ceiling.
+- **Modeled Mario peak** adds a 630-unit triple-jump rise to the hand surface
+  ceiling. This route model excludes caps and external boosts and is not an
+  unrestricted original-game speed theorem.
+- **Useful direct tier** means one of the audited Y=1280, 1967, 2940, 4429, or
+  4815 floors, or direct star interaction. The route theorem identifies the
+  highest admitted audited tier; it does not prove globally minimum star time.
+- **Rises unboundedly** means that for every real/integer ceiling, some later
+  frame has greater Y. Persistent positive velocity with a rounded, unchanged
+  position is a different property.
 
-## Target theorem and proof boundary
+## Refined vertical result
 
-The local capstone proves a closed-world statement about the handwritten Rocq
-vertical relation:
+The old 1196/2003 origin bounds are superseded. They used Area 3's maximum
+vertex Y=896, which includes non-floor walls, and rounded every finite impulse
+to 300.
+
+The refined relation uses upward-floor maximum 384 and exact finite ascent
+maximum 288:
 
 ```text
-every execution of the handwritten Rocq vertical relation
-  -> every reachable hand height is at most one uniform bound
-  -> the execution is not unbounded above
+FirstHand origin:        384 + 288 = 672
+FirstHand surface:       672 + 507 = 1179
+SecondHand origin:      1179 + 288 = 1467
+SecondHand surface:     1467 + 507 = 1974
+modeled Mario peak:     1974 + 630 = 2604
 ```
 
-Generated Clight and source-audit facts justify selected constants and syntax
-shapes. They are not a semantics theorem for either the executable C
-abstraction or the original game. The final gameplay claim requires a bridge
-showing that every original-game Eyerok hand frame is represented by a
-reachable state of the handwritten Rocq relation.
+Rocq proves every reachable vertical-relation state stays below the applicable
+origin ceiling and no infinite run of that relation is unbounded. Rank/update-
+order correspondence and original binary32 observation remain refinement
+obligations.
 
-## Current verdict
+## Verdict on the three requested questions
 
-Proved only for the handwritten Rocq relations; neither the executable C
-abstraction nor the original game is semantically connected to them. The
-source contains a gravity-zero branch that can preserve velocity 100 after a
-grounded `DOUBLE_POUND`. The project proves an idealized mathematical-integer
-recurrence for that branch is unbounded. This is not an authentic binary32
-execution theorem: repeated binary32 `+100` eventually rounds to no position
-change. The audit supports, but does not itself prove, the original-game
-reachable-state invariant excluding the seed:
+### 1. Raised hand and Area 3 to Area 2
+
+Proved in the explicit Mario/area relation:
+
+- `HandSurface` cannot trigger the instant warp.
+- `Area3Warp1D` changes to Area 2 and preserves Mario X/Y/Z, velocity, and
+  airborne/grounded state.
+- the matching Area 2 surface does not immediately invoke this entry rule.
+
+The combined abstract relations admit this conditional trace:
 
 ```text
-reachable hand && action = DOUBLE_POUND && gravity = 0
-  -> not grounded
+hand origin 1467 -> Mario base 1974
+20 modeled long-jump frames -> warp at (192,2194,-1033)
+zero-displacement Area 2 entry
+12 modeled steering/fall frames -> land at (387,1967,-500)
 ```
 
-The formal scheduler proves this invariant for every state reachable in that
-scheduler and proves the stronger grounded form has gravity at most `-15`.
-The separate vertical relation proves the conservative absolute-height
-envelope: 1196 for `FirstHand` and 2003 for `SecondHand`, from static vertex
-ceiling 896, upward-flight allowance 300, and scaled hand-collision top offset
-507. Those ranks are intended to represent surface-list update order, but that
-mapping is part of the open bridge. Every infinite run of the vertical
-relation is therefore not unbounded above.
+This disproves "the formal finite bound is too low for any mid-level route."
+It does **not** prove the original game can create the starting hand pose.
+Therefore authentic raised-hand reachability remains undecided.
 
-The object-helper Clight input applies the sibling project's seven literal-
-suffix compatibility edits because CompCert 3.15 rejects long-double
-constants. None of those edits occurs in the audited vertical integration,
-ground comparison, or `cur_obj_move_standard` control path.
+### 2. Are the finite bounds high enough?
 
-The executable C abstraction is an explicit boundary. Its
-`ascentBudget` and surface rank are ghost-style proof state, not SM64 object
-fields. The budgets 98, 288, and 285 are the sums of the positive post-gravity
-vertical increments for the source's `30/-4`, `50/-4`, and `100/-15`
-impulses. The uniform budget 300 is conservative. The C abstraction's safety
-predicate requires `Y + ascentBudget` to stay below 1196 for the first hand or
-2003 for the second and excludes the explicit runaway mode. Its fields use
-32-bit C `int`, not the mathematical integers used by the Rocq relations.
+For the refined relation and modeled Mario rise:
 
-The C functions do not enforce the same transition preconditions as the
-handwritten Rocq `vertical_step` relation. For example, an unrestricted caller
-can request another `DIE` impulse after rising above the support ceiling; the C
-safety predicate then returns false, but the call is not blocked. No semantic
-theorem connects C-abstraction executions to `vertical_step`. Likewise,
-`scheduler_step` and `vertical_step` are separate relations with independently
-proved invariants, not a coupled operational semantics.
+- Y=1967 is numerically and kinematically admitted by the conditional trace.
+- Y=2940 first becomes floor-query eligible at Y=2862, above peak 2604.
+- Y=4429 first becomes eligible at 4351.
+- Y=4815 first becomes eligible at 4737.
+- direct star interaction requires Mario base Y at least 4890.
 
-`proofs/EyerokManipulation.v` packages generated-model shape, authentic-source
-shape, scheduler unreachability, finite height boundedness, infinite-run
-boundedness, and the runaway-lasso counterfactual. Generated shape facts are
-syntactic Clight certificates, not whole-program execution semantics.
+Thus the bound is high enough for the conditional Y=1967 landing and too low
+for every higher audited shortcut tier. `(387,1967,-500)` is proved to minimize
+horizontal distance to the star over that platform, at distance 113, but it is
+2923 units below the star's vertical interaction band.
 
-`proofs/GlobalBoundary.v` is a generic lemma over an arbitrary run type and an
-arbitrary Z-valued height function; it contains no Clight or binary32 execution
-semantics. It proves that representing every frame with a reachable handwritten
-Rocq vertical state implies Z height <= 2003 and rules out unbounded Z height.
-The project does not yet instantiate that premise. A real bridge must also
-define and justify a binary32-to-Z observation or change the boundary to use a
-faithful numeric relation, so the unqualified original-binary theorem is not
-claimed.
+### 3. Unqualified original-game indefinite ascent
 
-No handwritten Rocq `vertical_step` transition can add a fresh ascent budget
-above its rank-specific support ceiling. The executable C abstraction does not
-enforce this restriction, and it has not been proved complete for every
-transition of the pinned game. For example, a real transition that launched
-the second hand from absolute Y `1950` would fall outside the Rocq relation;
-one such transition would invalidate the `2003` bound and could support a high
-finite route. Repetition at increasing heights would refute the idealized Z
-bound, but authentic binary32 addition eventually stagnates and therefore
-needs its own precisely stated property.
+Already proved: no run of the handwritten integer vertical relation is
+unbounded.
 
-## Area-transition boundary
+Not yet claimed at this commit: the final finite-binary32 theorem and an
+original-ROM semantic refinement. The isolated binary32 `+100` operation is
+known to stagnate at `2^31`, but that fact must be checked in Rocq and stated
+without confusing CompCert's stuck out-of-range cast with original MIPS
+behavior.
 
-An Area 3 to Area 2 transition is not representable in the vertical relation:
-it has no Mario position, Mario floor pointer, current area, or instant-warp
-rule. This omission neither enables nor rules out the game route. The source
-audit verifies the Area 3 `SURFACE_INSTANT_WARP_1D` level
-configuration mapping to Area 2 with displacement `(0, 0, 0)`. Separate manual
-inspection confirms that pinned `check_instant_warp` uses Mario's current
-floor, but that engine function is not in the generated/audited surface. The
-project does not prove whether Mario can use a raised Eyerok hand to make the
-warp surface become his current floor at a useful elevated Y. The hand-height
-claim and proposed high-warp route are related but distinct proof obligations.
+## C abstraction boundary
 
-The final Ubuntu check passes with Coq 8.16.1 and CompCert 3.15. `Print
-Assumptions` reports no project-defined assumptions for
-`eyerok_no_unbounded_rise_certificate`,
-`reachable_scheduler_excludes_runaway_seed`,
-`no_safe_vertical_run_rises_unboundedly`, or
-`authentic_no_unbounded_rise_from_refinement`. The last statement is a
-conditional implication whose refinement premise remains visible in its type.
-The combined capstone reports the standard Coq/CompCert classical real,
-functional-extensionality, and classical-proposition dependencies inherited
-from the authentic binary32 Clight AST. The scheduler, infinite-run, and global
-lifting theorems each report `Closed under the global context`.
+`inputs/eyerok_model.c` is an executable interface model. Its public functions
+do not enforce the same preconditions as the handwritten relation; an
+unrestricted caller can request new impulses from unsafe heights. Its safety
+predicate reports the violation. No theorem treats arbitrary calls to that C
+API as original gameplay.
 
-The source audit, rather than a noncomputable float equality inside Rocq, pins
-the exact authentic values `30`, `50`, `100`, `-4`, `-15`, and `-20` against
-normalized hashes. `GeneratedFacts.v` independently pins the corresponding
-Clight functions' float-constant counts, negation shapes, and call edges.
+## Open authentic obligations
 
-No `Admitted`, `Axiom`, `admit`, `sorry`, or equivalent project-added proof
-hole may enter a capstone.
+- Link the generated translation units and define a complete original frame.
+- Couple boss controller, both hands, list order, dynamic collision, Mario,
+  time stop, and floor-pointer lifetime.
+- Prove the first/second rank abstraction and the 78-unit floor-query cases.
+- Prove or refute reachability of the Y=1467 hand origin at the route's X/Z.
+- Prove the exact controller/action trace for any claimed Area 2 landing.
+- Add an IDO/MIPS boundary if the claim is about the original ROM rather than
+  CompCert Clight source semantics.
 
-## Route source now pinned
-
-The project now generates Clight ASTs for the pinned Mario, airborne-step,
-area-change, interaction, and platform-displacement translation units.  A
-separate reproducible audit establishes these source facts without yet
-claiming their full operational semantics:
-
-- `check_instant_warp` runs before `area_update_objects`, reads Mario's saved
-  floor pointer, and the SSL Area 3 slot maps surface `1D` to Area 2 with zero
-  displacement;
-- the corresponding Area 2 `1D` slot is inactive, while adjacent `1E` is the
-  return warp, so the change does not immediately bounce back;
-- a normal Area 2 floor at Y `896` covers the complete arrival footprint, an
-  upper platform at Y `4429` overlaps part of it, and the star platform is at
-  Y `4815`;
-- the target star is at `(500, 5050, -500)`, with combined horizontal Mario
-  and star interaction radius `117` and Mario-base interaction band
-  `[4890, 5100]`; and
-- platform displacement adds the platform's X/Z velocity but has no direct
-  `oVelY` addition, so a rising hand does not automatically carry Mario.
-
-The formal verdict on useful landing height remains open at this commit.  In
-particular, the existing `1196`/`2003` hand-origin ceilings must not be used as
-reachable Mario heights.
+No project-added `Admitted`, `Axiom`, `admit`, `sorry`, or equivalent proof
+hole may occur in a capstone.

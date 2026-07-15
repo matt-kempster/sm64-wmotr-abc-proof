@@ -1,11 +1,11 @@
 #define EYEROK_HOME_Y (-1534)
 #define EYEROK_DIRECT_POSITION_Y_MAX (-934)
-#define AREA3_STATIC_Y_MAX 896
+#define AREA3_UPWARD_FLOOR_Y_MAX 384
 #define HAND_COLLISION_TOP_MAX 507
-#define UPWARD_TRAVEL_MAX 300
-#define FIRST_HAND_Y_MAX 1196
-#define SECOND_HAND_SUPPORT_MAX 1703
-#define SECOND_HAND_Y_MAX 2003
+#define UPWARD_TRAVEL_MAX 288
+#define FIRST_HAND_Y_MAX 672
+#define SECOND_HAND_SUPPORT_MAX 1179
+#define SECOND_HAND_Y_MAX 1467
 #define HEIGHT_MIN (-12000)
 
 #define ATTACKED_ASCENT_BUDGET 98
@@ -56,7 +56,7 @@ struct EyerokVerticalState {
 
 int eyerok_support_ceiling(int rank) {
     if (rank == EYEROK_FIRST_HAND) {
-        return AREA3_STATIC_Y_MAX;
+        return AREA3_UPWARD_FLOOR_Y_MAX;
     }
     return SECOND_HAND_SUPPORT_MAX;
 }

@@ -83,14 +83,14 @@ Proof.
   - split; [discriminate |]. split.
     + split; [apply Z.le_refl | exact upward_travel_max_nonnegative].
     + destruct (state_rank before); cbv [direct_position_y_max height_ceiling
-        support_ceiling upward_travel_max area3_static_y_max] in *; cbn; lia.
+        support_ceiling upward_travel_max area3_upward_floor_y_max] in *; cbn; lia.
   - split; [discriminate |]. split.
     + split; [apply Z.le_refl | exact upward_travel_max_nonnegative].
     + destruct (state_rank before); cbv [height_ceiling support_ceiling
-        upward_travel_max area3_static_y_max] in *; cbn; lia.
+        upward_travel_max area3_upward_floor_y_max] in *; cbn; lia.
   - split; [discriminate |]. split; [exact H0 |].
     destruct (state_rank before); cbv [height_ceiling support_ceiling
-      upward_travel_max area3_static_y_max] in *; cbn; lia.
+      upward_travel_max area3_upward_floor_y_max] in *; cbn; lia.
   - cbn. split; [discriminate |]. split.
     + split.
       * change (0 <= state_budget before - delta). lia.

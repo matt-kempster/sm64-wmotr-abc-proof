@@ -29,7 +29,7 @@ Proof.
   lia.
 Qed.
 
-Theorem every_reachable_hand_below_2003 : forall rank state,
+Theorem every_reachable_hand_below_global_ceiling : forall rank state,
   vertically_reachable rank state -> state_y state <= global_height_ceiling.
 Proof.
   intros rank state Hreach.
@@ -60,7 +60,7 @@ Proof.
   intros rank run Hrun Hunbounded.
   destruct (Hunbounded global_height_ceiling) as (frame & Hhigher).
   pose proof (vertical_run_state_reachable rank run frame Hrun) as Hreach.
-  pose proof (every_reachable_hand_below_2003 rank (run frame) Hreach).
+  pose proof (every_reachable_hand_below_global_ceiling rank (run frame) Hreach).
   lia.
 Qed.
 
