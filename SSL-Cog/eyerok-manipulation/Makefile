@@ -71,6 +71,7 @@ AUDITED_SOURCES := \
   $(SM64)/src/game/object_list_processor.c \
   $(SM64)/src/game/spawn_object.c \
   $(SM64)/src/engine/surface_collision.c \
+  $(SM64)/src/engine/surface_load.c \
   $(SM64)/src/game/area.c \
   $(SM64)/src/game/level_update.c \
   $(SM64)/src/game/mario.c \

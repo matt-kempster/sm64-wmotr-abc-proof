@@ -65,8 +65,8 @@ Definition in_area3_warp_footprint (state : mario_route_state) : Prop :=
   between (-1222) (route_z state) (-1023).
 
 Definition in_area2_upper_overlap (state : mario_route_state) : Prop :=
-  between (-191) (route_x state) 192 /\
-  between (-1125) (route_z state) (-1023).
+  between (-204) (route_x state) 512 /\
+  between (-1125) (route_z state) (-767).
 
 Definition in_area2_mid1967 (state : mario_route_state) : Prop :=
   between 131 (route_x state) 387 /\

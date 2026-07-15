@@ -1,16 +1,25 @@
 Eyerok source audit
 pin: 9921382a68bb0c865e5e45eb594d9c64db59b1af
 checkout-head: 36fbf8d693a9fc2bdec0c77402f8e96d07d2f461
-pin-identical-files: 13
+pin-identical-files: 14
 hand-actions: 0..15
 positive-velY-writes: 30,50,100
-gravity-writes-cover: 0,-4,-15,-20
+gravity-writer-sequence: -4,0,0,-4,-4,-20,-15,-20
+live-hand-collision-writes: 6, all nonnull
+hand-room-writes: none (spawn default -1)
+ground-mask: LANDED|ON_GROUND
+zero-gravity-floor-equality: clears grounded
+hand-bounciness: zero
 partial-update-guards: FAR_AWAY|IN_DIFFERENT_ROOM
 hand-list-before-boss: yes
+hand-spawn-and-surface-order: side -1, then side +1
 surface-list-append-order: yes
+area3-local-objects: Eyerok boss only; macro list empty
+area3-water-boxes: none
 find-floor-buffer: 78
-begin-double-center-separation-min: 280 (mixed-frame conservative)
+begin-double-center-separation-audit-assumption: 280 (mixed-frame controller phase)
 closed-hand-horizontal-radius-max: 256.223535
+closed-hand-top-offset: 306
 raised-static-floor-overlap-with-begin-corridor: none
 area3-static-vertex-y-max: 896
 area3-upward-floor-vertex-y-max: 384
@@ -31,4 +40,5 @@ normalized-sha256:
   56c69f1bf604818fb892dcd4cf01bea74a58393e2d8872c9183f8cddf6b90657  data/behavior_data.c
   c4a791bc92980bab13874aecf0af42273b1799ee78e52cc7e0ae3ad381dd1574  levels/ssl/areas/2/collision.inc.c
   8c3d2b06d636a7cad71ec23ea73d8b23c1827d3356a9b84c562d50484fe15ffb  levels/ssl/areas/3/collision.inc.c
+  9e45e3409cd24c6907c56af33084c4ceb9c659bd71b20c24e76f4eccd2a28efb  levels/ssl/areas/3/macro.inc.c
   f13ee3f14d6516731c352f48cae7615c3ba38309907bb8cd4a9cc94b95893b66  levels/ssl/eyerok_col/collision.inc.c

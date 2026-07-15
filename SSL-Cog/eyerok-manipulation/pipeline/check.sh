@@ -37,6 +37,12 @@ bash pipeline/assumptions.sh \
   SSLEyerok.Proofs.RouteCertificate \
   eyerok_area2_route_certificate
 bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.AuthenticKernel \
+  no_player_policy_reaches_gravity_zero_runaway_seed
+bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.AuthenticReachability \
+  audited_coupled_reachability_certificate_holds
+bash pipeline/assumptions.sh \
   SSLEyerok.Proofs.Binary32Boundary \
   finite_binary32_stream_not_unbounded
 bash pipeline/assumptions.sh \
