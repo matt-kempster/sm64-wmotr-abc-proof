@@ -31,6 +31,7 @@ proofs/GlobalBoundary.v
 proofs/RouteModel.v
 proofs/Area2Route.v
 proofs/TwoHandBarrier.v
+proofs/MarioHandContact.v
 proofs/UpperRoute.v
 proofs/AuthenticReachability.v
 proofs/RouteCertificate.v

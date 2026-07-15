@@ -42,6 +42,40 @@ Proof.
   - rewrite Hheld in Hprevious. discriminate.
 Qed.
 
+Lemma continuously_held_still_supplies_down_bit : forall schedule frame,
+  continuously_held_a schedule -> a_down_at schedule frame = true.
+Proof.
+  intros schedule frame (_ & Hheld). exact (Hheld frame).
+Qed.
+
+(** Pressing A on the first measured frame and then continuing to hold it is
+    different from entering the interval with A already held. *)
+Definition press_and_hold_from_start : a_schedule :=
+  {| a_before_start := false;
+     a_down_at := fun _ => true |}.
+
+Lemma press_and_hold_has_exactly_frame_zero_edge : forall frame,
+  a_press_edge press_and_hold_from_start frame <-> frame = O.
+Proof.
+  intros [| previous]; unfold a_press_edge, press_and_hold_from_start; cbn.
+  - split; [reflexivity | intros; split; reflexivity].
+  - split.
+    + intros (_ & Hprevious). discriminate.
+    + discriminate.
+Qed.
+
+Corollary press_and_hold_has_one_fresh_edge :
+  a_press_edge press_and_hold_from_start O /\
+  forall frame, frame <> O ->
+    ~ a_press_edge press_and_hold_from_start frame.
+Proof.
+  split.
+  - apply (proj2 (press_and_hold_has_exactly_frame_zero_edge O)). reflexivity.
+  - intros frame Hnonzero Hedge.
+    apply Hnonzero.
+    exact (proj1 (press_and_hold_has_exactly_frame_zero_edge frame) Hedge).
+Qed.
+
 Inductive observed_area : Type := ObservedArea2 | ObservedArea3.
 
 Inductive observed_mario_floor : Type :=

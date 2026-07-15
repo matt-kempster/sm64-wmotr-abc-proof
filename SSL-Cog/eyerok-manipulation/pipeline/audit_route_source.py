@@ -193,11 +193,18 @@ def main() -> None:
     level_update = pinned(sm64, "src/game/level_update.c")
     area = pinned(sm64, "src/game/area.c")
     mario = pinned(sm64, "src/game/mario.c")
+    game_init = pinned(sm64, "src/game/game_init.c")
+    object_collision = pinned(sm64, "src/game/object_collision.c")
+    object_helpers = pinned(sm64, "src/game/object_helpers.c")
     mario_step = pinned(sm64, "src/game/mario_step.c")
+    mario_moving = pinned(sm64, "src/game/mario_actions_moving.c")
+    mario_object = pinned(sm64, "src/game/mario_actions_object.c")
+    mario_stationary = pinned(sm64, "src/game/mario_actions_stationary.c")
     surface_collision = pinned(sm64, "src/engine/surface_collision.c")
     surface_load = pinned(sm64, "src/engine/surface_load.c")
     platform = pinned(sm64, "src/game/platform_displacement.c")
     interaction = pinned(sm64, "src/game/interaction.c")
+    eyerok = pinned(sm64, "src/game/behaviors/eyerok.inc.c")
     ssl_script = pinned(sm64, "levels/ssl/script.c")
     area2_text = pinned(sm64, "levels/ssl/areas/2/collision.inc.c")
     area3_text = pinned(sm64, "levels/ssl/areas/3/collision.inc.c")
@@ -212,6 +219,17 @@ def main() -> None:
     require(area, "unload_area();", "old-area unload")
     require(area, "load_area(index);", "new-area load")
     require(mario, "m->floorHeight = find_floor(m->pos[0], m->pos[1], m->pos[2], &m->floor);", "Mario floor query")
+    require(game_init, "controller->buttonPressed = controller->controllerData->button & (controller->controllerData->button ^ controller->buttonDown);", "controller rising-edge buttons")
+    require(mario, "if (m->controller->buttonPressed & A_BUTTON)", "Mario A-pressed input")
+    require(mario, "if (m->controller->buttonDown & A_BUTTON)", "Mario A-down input")
+    require(mario_stationary, "if (m->input & INPUT_A_PRESSED) { return set_jumping_action(m, ACT_BACKFLIP, 0);", "backflip fresh-A gate")
+    require(mario_object, "if (m->actionState == 0 && (m->input & INPUT_A_DOWN)) { return set_mario_action(m, ACT_JUMP_KICK, 0);", "stationary punch held-A jump-kick gate")
+    require(mario_moving, "if (m->actionState == 0 && (m->input & INPUT_A_DOWN)) { return set_mario_action(m, ACT_JUMP_KICK, 0);", "moving punch held-A jump-kick gate")
+    require(mario_moving, "if (m->forwardVel >= 29.0f && m->controller->stickMag > 48.0f)", "B-only speed-kick condition")
+    require(mario_moving, "m->vel[1] = 20.0f; return set_mario_action(m, ACT_DIVE, 1);", "B-only speed-kick result")
+    require(mario, "case ACT_BACKFLIP: m->marioObj->header.gfx.animInfo.animID = -1; m->forwardVel = -16.0f; set_mario_y_vel_based_on_fspeed(m, 62.0f, 0.0f);", "backflip vertical velocity")
+    require(mario, "case ACT_TRIPLE_JUMP: set_mario_y_vel_based_on_fspeed(m, 69.0f, 0.0f);", "triple-jump vertical velocity")
+    require(mario_moving, "if (m->input & INPUT_A_PRESSED) { return setAPressAction(m, landingAction->aPressedAction, 0);", "landing jump fresh-A gate")
     require(mario_step, "for (i = 0; i < 4; i++)", "four air quarter steps")
     require(mario_step, "intendedPos[1] = m->pos[1] + m->vel[1] / 4.0f;", "air quarter-step Y")
     require(mario_step, "floorHeight = find_floor(nextPos[0], nextPos[1], nextPos[2], &floor);", "quarter-step floor query")
@@ -227,6 +245,12 @@ def main() -> None:
     if compact("y += platform->oVelY") in compact(platform):
         fail("unexpected direct vertical platform displacement")
     require(interaction, "bounce_off_object(m, o, 30.0f);", "ordinary bounce velocity")
+    require(interaction, "m->pos[1] = o->oPosY + o->hitboxHeight;", "bounce placement at hitbox top")
+    require(object_collision, "if (sp3C > sp1C) { return 0;", "vertical hitbox separation above object")
+    require(eyerok, "/* height:            */ 100,", "Eyerok unscaled hitbox height")
+    require(eyerok, "spawn_object_relative_with_scale(side, -500 * side, 0, 300, 1.5f", "Eyerok spawn scale")
+    require(object_helpers, "obj->header.gfx.scale[1] = scale;", "uniform object Y scale")
+    require(object_helpers, "obj->hitboxHeight = obj->header.gfx.scale[1] * hitbox->height;", "scaled object hitbox height")
 
     require(ssl_script, "INSTANT_WARP(/*index*/ 3, /*destArea*/ 3, /*displace*/ 0, 0, 0)", "Area 2 return warp")
     require(ssl_script, "INSTANT_WARP(/*index*/ 2, /*destArea*/ 2, /*displace*/ 0, 0, 0)", "Area 3 entry warp")
@@ -353,16 +377,33 @@ def main() -> None:
     print("star-interaction-Mario-base-y: [4890,5100]")
     print("area3-upward-floor-vertex-max: 384")
     print("platform-displacement-direct-vertical-add: no")
+    print("controller-a-pressed: new-down & (new-down ^ previous-down)")
+    print("mario-input-a: buttonPressed -> INPUT_A_PRESSED; buttonDown -> INPUT_A_DOWN")
+    print("backflip-launch-gate: INPUT_A_PRESSED")
+    print("punch-to-jump-kick-gate: INPUT_A_DOWN (fresh edge not required)")
+    print("no-a-b-dive: INPUT_B_PRESSED with speed/stick -> velY=20")
+    print("backflip-envelope: velY=62, ordinary rise=512")
+    print("triple-jump-envelope: velY=69, ordinary rise=630; landing gate uses INPUT_A_PRESSED")
+    print("eyerok-scaled-hitbox-top-offset: 150")
+    print("standing-closed/open-top-above-hitbox: 306/507 > 150")
+    print("ordinary-attack-bounce: hand-origin+150, velY=30")
     print("audited-sha256:")
     for path, text in [
         ("src/game/level_update.c", level_update),
         ("src/game/area.c", area),
         ("src/game/mario.c", mario),
+        ("src/game/game_init.c", game_init),
+        ("src/game/object_collision.c", object_collision),
+        ("src/game/object_helpers.c", object_helpers),
         ("src/game/mario_step.c", mario_step),
+        ("src/game/mario_actions_moving.c", mario_moving),
+        ("src/game/mario_actions_object.c", mario_object),
+        ("src/game/mario_actions_stationary.c", mario_stationary),
         ("src/engine/surface_collision.c", surface_collision),
         ("src/engine/surface_load.c", surface_load),
         ("src/game/platform_displacement.c", platform),
         ("src/game/interaction.c", interaction),
+        ("src/game/behaviors/eyerok.inc.c", eyerok),
         ("levels/ssl/script.c", ssl_script),
         ("levels/ssl/areas/2/collision.inc.c", area2_text),
         ("levels/ssl/areas/3/collision.inc.c", area3_text),

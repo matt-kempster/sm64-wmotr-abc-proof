@@ -1,6 +1,6 @@
 # Goal recovery note
 
-Last updated: 2026-07-14 (two-hand dynamic-support barrier).
+Last updated: 2026-07-14 (Mario/hand vertical-contact boundary).
 
 ## Objective
 
@@ -86,6 +86,26 @@ also distinguishes always-released A, A held before the measured interval,
 and a fresh press edge. No authentic Mario route is inferred from these
 definitions.
 
+`MarioHandContact.v` proves the next source-shaped interface facts. Direct
+platform velocity adds X/Z but not Y. The attacked and death increments and
+the 20-unit target lift pass the 78-unit vertical floor filter if Mario is
+already supported. A stationary Mario fails that filter on the 85-unit first
+double-pound step, a 100-unit runaway step, and the 201-unit closed-to-open
+mesh switch. The closed/open standing floors (origin+306/+507) are strictly
+above Eyerok's scaled hitbox top (origin+150), so standing on either top cannot
+attack the eye. The ordinary origin+150, velocity-30 bounce also cannot satisfy
+the height filter for the first lethal-rise surface.
+
+The A schedule now proves that press-and-hold from frame zero has exactly one
+fresh edge. Released A and A held before the interval have none. These facts do
+not exclude an airborne action launched before the interval and do not yet
+construct an X/Z-valid boarding trace. Held A is not inert: a punch can enter
+a jump kick from `INPUT_A_DOWN` without a fresh edge.
+Never-A can also obtain positive velocity from a B-only speed-kick dive. The
+630-unit envelope is the checked triple-jump sequence and requires an
+authenticated fresh-A landing chain when used as a witness; the 512-unit
+backflip envelope is checked separately.
+
 The Mario/area relation proves:
 
 - a hand floor does not trigger the instant warp;
@@ -127,8 +147,8 @@ reachability is now closed.
 1. Link the generated translation units and prove that every relevant Clight
    frame refines the source-shaped kernel, including update rank, dynamic
    surfaces, time stop, Mario contact, and floor-pointer lifetime.
-2. Prove Mario's contact lifecycle on the hand: boarding, per-frame floor
-   reselection, attack-hitbox compatibility, dismount, and selection of the
+2. Prove Mario's remaining contact lifecycle on the hand: an X/Z-valid initial
+   boarding state, per-frame selected-floor priority, dismount, and selection of the
    static Area 3 warp floor. Decide released-A, held-before-start, and fresh
    press-and-hold schedules separately.
 3. Prove an event-by-event Clight bridge for the two-hand finite-episode

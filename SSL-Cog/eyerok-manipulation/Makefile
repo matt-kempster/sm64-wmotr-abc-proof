@@ -77,8 +77,13 @@ AUDITED_SOURCES := \
   $(SM64)/src/game/area.c \
   $(SM64)/src/game/level_update.c \
   $(SM64)/src/game/mario.c \
+  $(SM64)/src/game/game_init.c \
+  $(SM64)/src/game/object_collision.c \
   $(SM64)/src/game/mario_step.c \
   $(SM64)/src/game/mario_actions_airborne.c \
+  $(SM64)/src/game/mario_actions_moving.c \
+  $(SM64)/src/game/mario_actions_object.c \
+  $(SM64)/src/game/mario_actions_stationary.c \
   $(SM64)/src/game/platform_displacement.c \
   $(SM64)/src/game/interaction.c \
   $(SM64)/src/game/behaviors/spawn_star.inc.c \
