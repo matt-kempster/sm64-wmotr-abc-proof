@@ -1,6 +1,6 @@
 # Eyerok manipulation proof checklist
 
-Last updated: 2026-07-14 (ordinary no-A Y=1280 barrier).
+Last updated: 2026-07-15 (requested-height package and Clight/A boundaries).
 
 ## Current verdict
 
@@ -55,6 +55,19 @@ wall-avoiding path in this classification is impossible. Faster input,
 post-bonk recovery, seams/quantum tunneling, and authentic departure remain
 open.
 
+For already-held A, the jump kick has the same Y=1239 peak and 35 eligible
+quarter-steps. Under the explicit inherited-speed bound
+`|forwardVel| <= 48` plus the explicit 13-unit-per-step premise, Rocq bounds
+the total at 455, still too little to clear or detour around the wall. The
+stationary-predecessor submodel has a 140-unit budget. Faster predecessors and
+jump-kick continuation after a wall hit remain open.
+
+The requested-height package keeps the four legacy observation types and the
+three proof scopes separate. The explicit Clight boundary now uses coherent
+CompCert small-step runs, but its complete-program/height refinement remains a
+premise; generated AST resolution and call-site-traversal facts do not
+discharge it.
+
 ## Repository and source
 
 - [x] Confirm repository and branch `codex/ssl-pyramid-item-proof`.
@@ -70,6 +83,11 @@ open.
   collision, and SSL script Clight.
 - [x] Generate pinned area change, level update, Mario, airborne step,
   platform displacement, and interaction Clight.
+- [x] Generate pinned controller input and Mario moving, object, and
+  stationary action Clight.
+- [x] Prove per-unit name resolution, critical AST call-site traversal order,
+  controller AND/XOR edge shape, the jump-kick case's vertical-slot-1 value
+  20, and exact B-only/held-A/backflip call shapes.
 - [x] Audit all 16 hand actions, positive velocity/gravity writers, finite
   ascent budgets, and the gravity-zero tripwire.
 - [x] Audit the paired instant warps and exact Area 3 warp quad.
@@ -117,6 +135,9 @@ open.
 - [x] Prove first/second hand-origin ceilings 672 and 1467.
 - [x] Lift the invariant to all finite prefixes and infinite relation runs.
 - [x] Keep original-game refinement explicit and conditional.
+- [x] Define a coherent Clight frame run and conditionally transfer the
+  1467/1974/2604 and no-unbounded-rise results from an explicit refinement
+  premise; do not claim that premise is discharged.
 - [x] Prove the executable audited source-shaped seed invariant for every
   modeled event sequence.
 - [x] Compute the start-double ground bit through the strict floor comparison
@@ -186,7 +207,15 @@ open.
   420, cannot clear over the wall, and cannot complete either wall detour.
 - [x] Conclude the ordinary no-A candidate must resolve a wall before Y=1280;
   keep this separate from unrestricted no-A reachability.
+- [x] Prove the held-A jump-kick reuses the 20-unit vertical launch and 35-step
+  window; under inherited speed at most 48 and an explicit 13-unit-per-step
+  premise, bound path by 455 and exclude the same seam-free wall-avoiding
+  route.
+- [x] Prove the conditional stationary held-A predecessor budget is at most
+  140, without treating it as a linked source theorem.
 - [x] Give 1179, 1467, 1974, and 2604 distinct observation predicates.
+- [x] Package the source-shaped milestone exclusions, conditional fresh-edge
+  landing, and restricted no-A barrier without conflating their scopes.
 - [x] Define authentic A press edges with a pre-interval bit and prove that
   always-released and continuously-held schedules have no new edge.
 - [ ] Prove or refute the original game's ability to realize the conditional
@@ -202,6 +231,8 @@ open.
   every airborne collision substep, and the landing.
 - [ ] For never-A, refine the ordinary wall barrier and investigate speed over
   48, post-bonk actions, seams, quantum tunneling, and PU casts.
+- [ ] For held A, prove the predecessor speed bound or analyze speed over 48,
+  then classify jump-kick continuation after its first wall response.
 - [ ] If required, optimize authentic remaining frames to star collection and
   prove or disprove the claim that Y=1967 is globally fastest.
 
@@ -253,3 +284,6 @@ open.
 - Ordinary no-A Y=1280 barrier: B-only rise is numerically sufficient, but a
   seam-free speed-48 path cannot clear or detour around the platform wall in
   its 35-quarter-step eligibility window.
+- Generated controller/Mario action Clight facts, coherent conditional Clight
+  refinement boundary, typed requested-height verdict package, and bounded-
+  speed held-A Y=1280 wall barrier.

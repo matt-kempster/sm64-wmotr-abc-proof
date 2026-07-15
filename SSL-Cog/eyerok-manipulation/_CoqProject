@@ -13,9 +13,13 @@ generated/surface_collision.v
 generated/ssl_script.v
 generated/area.v
 generated/level_update.v
+generated/game_init.v
 generated/mario.v
 generated/mario_step.v
 generated/mario_actions_airborne.v
+generated/mario_actions_moving.v
+generated/mario_actions_object.v
+generated/mario_actions_stationary.v
 generated/platform_displacement.v
 generated/interaction.v
 
@@ -34,10 +38,13 @@ proofs/TwoHandBarrier.v
 proofs/MarioHandContact.v
 proofs/LowerArea2Entry.v
 proofs/NoA1280Barrier.v
+proofs/HeldA1280Barrier.v
+proofs/RequestedHeightVerdict.v
 proofs/DoublePoundTrace.v
 proofs/PartialUpdateBoundary.v
 proofs/UpperRoute.v
 proofs/AuthenticReachability.v
+proofs/ClightRefinementBoundary.v
 proofs/RouteCertificate.v
 proofs/Binary32Boundary.v
 proofs/EyerokManipulation.v
