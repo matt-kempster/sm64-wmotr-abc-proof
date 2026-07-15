@@ -1,27 +1,31 @@
 # Eyerok manipulation proof checklist
 
-Last updated: 2026-07-14 (first-hand arena-to-tunnel barrier).
+Last updated: 2026-07-14 (two-hand dynamic-support barrier).
 
 ## Current verdict
 
-The geometry-relaxed handwritten relation bounds hand origins at 672/1467. The
+The geometry-relaxed handwritten relation bounds hand origins at 672/1467. Its
 Mario/Area 2 model proves that a hand floor itself cannot warp, that a selected
-warp floor preserves Mario's state across Area 3 to Area 2, and that modeled
-peak 2604 is too low for Y=2940 or higher route tiers. A conditional trace
-lands at `(387,1967,-500)`. Its starting hand pose remains conditional. The
+warp floor preserves Mario's state across Area 3 to Area 2, and that its old
+modeled peak 2604 is too low for Y=2940 or higher route tiers. Its conditional
+trace lands at `(387,1967,-500)`, but the new two-hand barrier refutes the
+starting hand pose. The
 audited source-shaped kernel now excludes the dangerous repeated-launch seed
 for arbitrary A input, no A, and held A inside the abstraction. A
-counterfactual origin Y=3627 route
-would reach the star platform, but the source-shaped origin ceiling is Y=1467.
+counterfactual origin Y=3627 route would reach the star platform, but the
+stricter two-hand origin ceiling is Y=672.
 Literal unbounded finite binary32 Y is also disproved. Linked Clight/ROM
 refinement and route optimality remain open.
 
-The new source-shaped first-hand barrier is stricter: the arena floor maximum
+The source-shaped first-hand barrier is stricter: the arena floor maximum
 is -1150, the tunnel floor minimum is -562, and the first hand's full finite
 rise reaches only origin -862 and open surface -355. Rocq proves that it cannot
 query the tunnel or reach the legacy first-surface milestone 1179. The
-second-hand 1467/1974 and Mario 2604 predicates remain open authentic
-reachability obligations, not proved reachable states.
+two-hand barrier grants every static floor and every possible first-hand
+contact; dynamic support -355 is still below static maximum 384. It proves
+second origin <=672, second surface <=1179, and generously modeled Mario peak
+<=1809. Thus 1467/1974/2604 and the Y=1967 floor-query threshold 1889 are
+unreachable in this source-shaped relation.
 
 ## Repository and source
 
@@ -84,8 +88,13 @@ reachability obligations, not proved reachable states.
   kernel, or provide a concrete counterexample trace.
 - [x] Prove the source-shaped first-hand origin ceiling -862, tunnel-query
   impossibility, open-surface ceiling -355, and failure of milestone 1179.
-- [ ] Prove or refute second-hand compounding using the first hand's dynamic
-  surface, with action/mesh/XZ/deletion compatibility.
+- [x] Prove that even granting all X/Z overlap, phase meshes, and first-hand
+  contact, dynamic support cannot exceed the static support ceiling; derive
+  second origin 672 and surface 1179.
+- [x] Refute legacy second origin 1467, second surface 1974, modeled Mario
+  2604, and modeled selection of the Area 2 Y=1967 floor.
+- [ ] Prove the event-by-event linked Clight finite-episode premise, including
+  no airborne replenishment and the source phase reset before another launch.
 
 ## Mario and Area 2 proof
 
@@ -102,10 +111,12 @@ reachability obligations, not proved reachable states.
   lands on the Y=4815 star platform.
 - [x] Prove Y=3627 is the exact minimum for the fixed 20-frame model after the
   first descending quarter-step query; Y=3626 truncates one unit too low.
-- [x] Prove the audited source-shaped Y=1467 origin ceiling cannot supply that
-  counterfactual premise or directly select any tier above Y=1967.
+- [x] Prove the older coupled Y=1467 and stricter two-hand Y=672 ceilings
+  cannot supply that counterfactual premise.
 - [x] State that an invariant upper bound is not an authentic reachability
   witness.
+- [x] Recompute the source-shaped two-hand Mario peak as 1809 and prove it is
+  below the 1889 floor-query threshold for Y=1967.
 - [x] Give 1179, 1467, 1974, and 2604 distinct observation predicates.
 - [x] Define authentic A press edges with a pre-interval bit and prove that
   always-released and continuously-held schedules have no new edge.
@@ -153,3 +164,5 @@ reachability obligations, not proved reachable states.
   input, plus counterfactual star-platform route and source-height no-go.
 - Audited arena/tunnel split, exact A-schedule/milestone vocabulary, and
   source-shaped first-hand tunnel barrier.
+- Conservative two-hand dynamic-support barrier refuting the 1467/1974/2604
+  construction and the conditional Y=1967 premise.

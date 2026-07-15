@@ -43,6 +43,9 @@ bash pipeline/assumptions.sh \
   SSLEyerok.Proofs.FirstHandBarrier \
   first_hand_barrier_certificate_holds
 bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.TwoHandBarrier \
+  two_hand_barrier_certificate_holds
+bash pipeline/assumptions.sh \
   SSLEyerok.Proofs.AuthenticReachability \
   audited_coupled_reachability_certificate_holds
 bash pipeline/assumptions.sh \

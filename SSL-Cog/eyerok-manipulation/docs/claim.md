@@ -1,6 +1,6 @@
 # Working claim and exact scope
 
-Last updated: 2026-07-14 (first-hand arena-to-tunnel barrier).
+Last updated: 2026-07-14 (two-hand dynamic-support barrier).
 
 ## Source and toolchain boundary
 
@@ -83,6 +83,33 @@ first transformed surface, 1467 the second object origin, 1974 the second
 transformed surface, and 2604 Mario's position. Disproving one predicate does
 not silently substitute for a proof of the others.
 
+### Two-hand reachability refinement
+
+The second-updated hand can see the first hand's current dynamic collision.
+`TwoHandBarrier.v` deliberately grants every such contact without requiring
+X/Z overlap, floor-query eligibility, or the correct phase-specific mesh. Any
+granted first-hand support is at most -355, while the maximum audited upward
+static Area 3 floor is 384. Dynamic support therefore does not increase the
+second hand's support ceiling.
+
+With at most 288 units of remaining finite rise, Rocq proves:
+
+```text
+SecondHand support:       max(384, -355) = 384
+SecondHand origin:                  384 + 288 = 672
+SecondHand surface:                 672 + 507 = 1179
+modeled Mario peak:                1179 + 630 = 1809
+Area 2 Y=1967 query minimum:      1967 - 78 = 1889
+```
+
+Thus the source-shaped barrier strictly excludes second origin 1467, second
+surface 1974, modeled Mario Y=2604, and even selection of the Area 2 Y=1967
+floor. The load-bearing refinement premise is that every new positive episode
+starts from classified support and carries at most 288 remaining rise; no
+event replenishes that budget while already airborne. The source audits and
+launch kernel support this premise, but the event-by-event linked Clight
+theorem remains open.
+
 The executable finite kernel proves that the only control seed capable of
 repeated zero-gravity 100-unit launches is unreachable. The proof quantifies
 over every modeled boss/player event and every A-button policy. Never pressing
@@ -117,9 +144,10 @@ For the proposed higher route, the result is a no-go in the coupled audited
 model. The strict end-of-frame ground test clears stale grounding
 when `IDLE` starts `BEGIN_DOUBLE_POUND` with gravity zero. The hand reaches
 `DOUBLE_POUND` airborne, installs negative gravity before it can land, and
-never reaches `DOUBLE_POUND + grounded + gravity=0`. Consequently its largest
-finite source impulse is 288 and its conservative global origin ceiling is
-1467. This conclusion is independent of whether A is pressed, never pressed,
+never reaches `DOUBLE_POUND + grounded + gravity=0`. The older relation then
+gave a conservative global origin ceiling of 1467. The new two-hand barrier
+uses the first-hand reachability result and lowers the second origin ceiling to
+672. This conclusion is independent of whether A is pressed, never pressed,
 or held continuously inside the model. The no-A case conservatively receives
 the same 630-unit Mario-rise allowance, so it proves impossibility without
 claiming that such a jump is a legal no-A move.
@@ -134,15 +162,14 @@ source bridge is still open: the 280-unit mixed-frame hand separation and
 the zero-velocity/floor-ready premises are audit-backed controller, collision,
 and geometry arguments, not linked Clight semantic lemmas.
 
-The exact conditional Y=1467 pose used above is still not proved authentic.
-The new result answers the requested **star-useful higher-hand** reachability
-question only inside the coupled audited model, not for linked Clight or the
-original ROM. It also does not answer the lower Y=1967 witness's controller
-reachability.
+The exact conditional Y=1467 pose used above is now refuted by the two-hand
+barrier, rather than merely unproved. This answers the requested
+**star-useful higher-hand** reachability question inside the source-shaped
+model, not yet for linked Clight or the original ROM.
 
 ### 2. Are the finite bounds high enough?
 
-For the refined relation and modeled Mario rise:
+For the older geometry-relaxed relation and modeled Mario rise:
 
 - Y=1967 is numerically and kinematically admitted by the conditional trace.
 - Y=2940 first becomes floor-query eligible at Y=2862, above peak 2604.
@@ -159,13 +186,19 @@ The route model also supplies a useful counterfactual threshold. For its fixed
 20-frame approach, hand origin Y=3627 is the proved minimum; its collision top
 places Mario at Y=4134. The modeled trace enters Area 2 at Y=4354. Its first
 quarter-step query truncates to Y=4351, selects the Y=4429 platform, and lands
-on the Y=4815 star platform. The source-shaped Y=1467 ceiling is 2160 units too
-low to supply this premise.
+on the Y=4815 star platform. The older coupled Y=1467 ceiling is 2160 units too
+low, and the stricter two-hand Y=672 ceiling is 2955 units too low, to supply
+this premise.
 
 Therefore the proposed high-Eyerok route cannot displace Y=1967 in this model.
 This is not a proof that Y=1967 is globally fastest or most useful: its own
 starting pose remains conditional, ordinary movement from lower Area 2 floors
 can still reach the star, and no frame/A-press optimization has been proved.
+
+For the new two-hand barrier, the modeled peak is only 1809. That is below the
+1889 query threshold for the Y=1967 floor, so the old conditional landing is
+not available at all. The next route question is which lower Area 2 floor can
+be selected by an authentic dismount/warp trace.
 
 ### 3. Unqualified original-game indefinite ascent
 
@@ -200,13 +233,14 @@ API as original gameplay.
   time stop, and floor-pointer lifetime.
 - Replace the audit-backed first/second rank and 78-unit floor-query facts with
   semantic Clight lemmas if a fully linked theorem is required.
-- Close the second-hand dynamic-support cases with phase-specific collision
-  meshes, X/Z overlap, update order, and terminal/deletion behavior.
+- Prove the linked finite-episode classification used by the two-hand barrier:
+  all positive second-hand writes start from classified support, carry at most
+  288 remaining rise, and cannot replenish that rise while airborne.
 - Prove Mario's actual platform selection and vertical following. The source
   does not add a platform's vertical velocity to Mario; a moving hand must be
   reselected within the 78-unit buffer on every relevant frame.
-- Prove or refute reachability of the conditional Y=1467 hand origin at the
-  route's X/Z and Mario's launch from it.
+- Determine the highest authentic lower Area 2 landing below the Y=1967 query
+  threshold and prove or refute its controller trace.
 - Prove the exact controller/action trace and new-A-press count for any claimed
   Area 2 landing; the current high-hand no-go is A-policy-independent, but the
   Mario route witnesses over-approximate controller behavior.

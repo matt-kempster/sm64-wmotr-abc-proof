@@ -23,6 +23,10 @@ area3-upward-floor-gap: (-1150,-562), no triangles
 first-hand-finite-origin-peak: -862
 first-hand-tunnel-query-min: -640
 first-hand-open-surface-peak: -355
+second-hand-support-ceiling: 384
+second-hand-finite-origin-peak: 672
+second-hand-open-surface-peak: 1179
+second-hand-modeled-mario-peak: 1809
 begin-double-center-separation-audit-assumption: 280 (mixed-frame controller phase)
 closed-hand-horizontal-radius-max: 256.223535
 closed-hand-top-offset: 306
