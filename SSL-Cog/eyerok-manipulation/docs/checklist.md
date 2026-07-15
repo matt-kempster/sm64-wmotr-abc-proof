@@ -1,6 +1,6 @@
 # Eyerok manipulation proof checklist
 
-Last updated: 2026-07-14 (binary32 boundary proof).
+Last updated: 2026-07-14 (audited source-shaped reachability proof).
 
 ## Current verdict
 
@@ -8,9 +8,13 @@ The refined handwritten relation bounds hand origins at 672/1467. The
 Mario/Area 2 model proves that a hand floor itself cannot warp, that a selected
 warp floor preserves Mario's state across Area 3 to Area 2, and that modeled
 peak 2604 is too low for Y=2940 or higher route tiers. A conditional trace
-lands at `(387,1967,-500)`. Authentic reachability of its starting hand pose is
-still open. Literal unbounded finite binary32 Y is now disproved; authentic
-dangerous-seed reachability and persistent control state remain open.
+lands at `(387,1967,-500)`. Its starting hand pose remains conditional. The
+audited source-shaped kernel now excludes the dangerous repeated-launch seed
+for arbitrary A input, no A, and held A inside the abstraction. A
+counterfactual origin Y=3627 route
+would reach the star platform, but the source-shaped origin ceiling is Y=1467.
+Literal unbounded finite binary32 Y is also disproved. Linked Clight/ROM
+refinement and route optimality remain open.
 
 ## Repository and source
 
@@ -31,9 +35,22 @@ dangerous-seed reachability and persistent control state remain open.
   ascent budgets, and the gravity-zero tripwire.
 - [x] Audit the paired instant warps and exact Area 3 warp quad.
 - [x] Audit Area 2 floor tiers and target star coordinates/hitbox.
+- [x] Audit four airborne quarter steps, the fresh quarter-step floor query,
+  TerrainData Y cast, landing snap, and 78-unit floor buffer.
+- [x] Parse Area 2 upward triangles and verify exact selected-floor heights at
+  the upper-route quarter-step, star-platform landing, and every modeled
+  ground-reposition point.
 - [x] Distinguish maximum collision vertex 896 from maximum upward-floor
   vertex 384.
 - [x] Confirm platform displacement has no direct vertical velocity add.
+- [x] Audit strict ground comparison and equality clearing both ground flags.
+- [x] Audit exact gravity-writer sequence, collision-pointer writers, room
+  default, bounciness, and movement partial-update guards; keep the lifecycle
+  exclusion labeled as a manual source argument.
+- [x] Audit hand spawn/append/update order and dynamic-surface clearing.
+- [x] Audit the Area 3 local object/macro set, absence of water, begin-double
+  corridor floors, closed-hand radius, and positioning constants; keep the
+  280-unit controller-phase separation labeled as a manual invariant.
 
 ## Vertical proof
 
@@ -43,8 +60,17 @@ dangerous-seed reachability and persistent control state remain open.
 - [x] Prove first/second hand-origin ceilings 672 and 1467.
 - [x] Lift the invariant to all finite prefixes and infinite relation runs.
 - [x] Keep original-game refinement explicit and conditional.
-- [ ] Prove the coupled source-level seed invariant for every authentic frame,
-  or provide a concrete counterexample trace.
+- [x] Prove the executable audited source-shaped seed invariant for every
+  modeled event sequence.
+- [x] Compute the start-double ground bit through the strict floor comparison
+  rather than assigning the invariant's desired result.
+- [x] Couple the kernel and vertical relation so a reachable seed would enable
+  an explicit runaway transition and invalidate the height bound.
+- [x] Quantify the seed and useful-height results over arbitrary A input, with
+  explicit never-A and continuously-held-A corollaries; keep A documented as
+  a hand-insensitive ghost input, not an ABC press counter.
+- [ ] Prove every linked whole-program Clight frame refines the source-shaped
+  kernel, or provide a concrete counterexample trace.
 
 ## Mario and Area 2 proof
 
@@ -57,11 +83,19 @@ dangerous-seed reachability and persistent control state remain open.
   collect the star.
 - [x] Construct the conditional Y=1967 landing at the platform point closest
   to the star in X/Z.
+- [x] Construct a counterfactual origin Y=3627 route that selects Y=4429 and
+  lands on the Y=4815 star platform.
+- [x] Prove Y=3627 is the exact minimum for the fixed 20-frame model after the
+  first descending quarter-step query; Y=3626 truncates one unit too low.
+- [x] Prove the audited source-shaped Y=1467 origin ceiling cannot supply that
+  counterfactual premise or directly select any tier above Y=1967.
 - [x] State that an invariant upper bound is not an authentic reachability
   witness.
-- [ ] Prove or refute the original game's ability to realize the starting hand
-  pose and Mario launch.
-- [ ] If required, optimize authentic remaining frames to star collection.
+- [ ] Prove or refute the original game's ability to realize the conditional
+  Y=1467 hand pose and Mario launch for the Y=1967 route.
+- [ ] Prove a controller-accurate Area 2 route and count new A presses.
+- [ ] If required, optimize authentic remaining frames to star collection and
+  prove or disprove the claim that Y=1967 is globally fastest.
 
 ## Binary32 and original-game theorem
 
@@ -77,7 +111,8 @@ dangerous-seed reachability and persistent control state remain open.
 - [x] Use Ubuntu WSL and the `sm64-item-proof` opam switch.
 - [x] Run reproducible generation after source-ingestion changes.
 - [x] Compile the route proof modules with no proof holes.
-- [x] Run the final complete `pipeline/check.sh` after binary32 integration.
+- [x] Run the final complete `pipeline/check.sh` after source-shaped
+  reachability integration.
 - [x] Update `Eyerok.md`, project README, and all three planning documents.
 - [ ] Do not push without explicit user approval.
 
@@ -93,3 +128,5 @@ dangerous-seed reachability and persistent control state remain open.
   closest Y=1967 landing certificate.
 - Finite-binary32 global bound, exact `2^31 + 100` fixed point, and explicit
   CompCert/ROM conversion boundary.
+- Audited source-shaped dangerous-seed exclusion for arbitrary/no-A/held-A
+  input, plus counterfactual star-platform route and source-height no-go.

@@ -117,6 +117,61 @@ def floor_candidates_at(
     return sorted(result, reverse=True)
 
 
+def require_selected_floor_height(
+    triangles: list[Triangle],
+    x: int,
+    query_y: int,
+    z: int,
+    expected_height: int,
+    label: str,
+) -> None:
+    """Require exact upward-triangle coverage at one modeled floor query.
+
+    Mario's floor query first casts X/Y/Z to TerrainData integers, rejects
+    floors more than 78 units above the integer Y, and returns the first
+    eligible triangle in the static floor list.  The loader sorts that list by
+    first-vertex Y (descending), retaining source insertion order on ties.  The
+    route points below are all static Area 2 queries, so checking that exact
+    order prevents a rectangle inferred only from disconnected corner vertices
+    from silently supporting the proof model.
+    """
+
+    candidates = []
+    for source_order, triangle in enumerate(triangles):
+        if triangle.normal_y <= 0 or not point_in_triangle_xz(
+            (Fraction(x), Fraction(z)), triangle
+        ):
+            continue
+        candidates.append(
+            (
+                triangle.points[0][1],
+                source_order,
+                floor_height_at(triangle, Fraction(x), Fraction(z)),
+                triangle.surface,
+                triangle.indices,
+            )
+        )
+    candidates.sort(key=lambda candidate: (-candidate[0], candidate[1]))
+    eligible = [
+        candidate
+        for candidate in candidates
+        if candidate[2] - 78 <= query_y
+    ]
+    if not eligible:
+        fail(
+            f"{label} has no eligible upward floor at "
+            f"({x}, {query_y}, {z}); candidates={candidates}"
+        )
+
+    _, _, selected_height, selected_surface, selected_indices = eligible[0]
+    if selected_height != expected_height:
+        fail(
+            f"{label} selected Y={selected_height} from {selected_surface} "
+            f"triangle {selected_indices}, expected Y={expected_height}; "
+            f"eligible={eligible}"
+        )
+
+
 def require_vertices(
     vertices: list[tuple[int, int, int]], expected: list[tuple[int, int, int]], label: str
 ) -> None:
@@ -139,6 +194,8 @@ def main() -> None:
     area = pinned(sm64, "src/game/area.c")
     mario = pinned(sm64, "src/game/mario.c")
     mario_step = pinned(sm64, "src/game/mario_step.c")
+    surface_collision = pinned(sm64, "src/engine/surface_collision.c")
+    surface_load = pinned(sm64, "src/engine/surface_load.c")
     platform = pinned(sm64, "src/game/platform_displacement.c")
     interaction = pinned(sm64, "src/game/interaction.c")
     ssl_script = pinned(sm64, "levels/ssl/script.c")
@@ -155,7 +212,16 @@ def main() -> None:
     require(area, "unload_area();", "old-area unload")
     require(area, "load_area(index);", "new-area load")
     require(mario, "m->floorHeight = find_floor(m->pos[0], m->pos[1], m->pos[2], &m->floor);", "Mario floor query")
+    require(mario_step, "for (i = 0; i < 4; i++)", "four air quarter steps")
+    require(mario_step, "intendedPos[1] = m->pos[1] + m->vel[1] / 4.0f;", "air quarter-step Y")
+    require(mario_step, "floorHeight = find_floor(nextPos[0], nextPos[1], nextPos[2], &floor);", "quarter-step floor query")
+    require(mario_step, "if (nextPos[1] <= floorHeight)", "quarter-step landing comparison")
     require(mario_step, "m->pos[1] = m->floorHeight;", "Mario landing snap")
+    require(surface_collision, "TerrainData y = (TerrainData) yPos;", "floor-query Y integer cast")
+    require(surface_collision, "if (y - (height + -78.0f) < 0.0f)", "floor-query 78-unit buffer")
+    require(surface_load, "sortDir = 1; // highest to lowest, then insertion order", "floor-list descending sort")
+    require(surface_load, "surfacePriority = surface->vertex1[1] * sortDir;", "floor-list first-vertex priority")
+    require(surface_load, "if (surfacePriority > priority)", "floor-list stable priority insertion")
     require(platform, "x += platform->oVelX;", "platform X displacement")
     require(platform, "z += platform->oVelZ;", "platform Z displacement")
     if compact("y += platform->oVelY") in compact(platform):
@@ -211,6 +277,47 @@ def main() -> None:
         "Y=1967 mid-level platform",
     )
 
+    # UpperRoute.v enters Area 2 at (192, 4354, -1033) with vertical velocity
+    # -10 and horizontal Z velocity 48.  The first air quarter-step therefore
+    # casts its fresh floor query to (192, 4351, -1021).  Verify that an actual
+    # upward collision triangle covers that point and that Y=4429 is the
+    # highest eligible floor, rather than relying on corner vertices alone.
+    require_selected_floor_height(
+        area2_triangles,
+        192,
+        4351,
+        -1021,
+        4429,
+        "UpperRoute first Area 2 quarter-step",
+    )
+
+    # The modeled upper-platform jump reaches its landing query at
+    # (480, 4813, -1021).  The Y=4815 floor is only two units above that query,
+    # so the source landing comparison snaps Mario to it.
+    require_selected_floor_height(
+        area2_triangles,
+        480,
+        4813,
+        -1021,
+        4815,
+        "UpperRoute star-platform landing",
+    )
+
+    # UpperRoute then keeps X=480 and moves ten 48-unit ground frames from
+    # Z=-1021 to Z=-541, followed by one 41-unit frame to Z=-500.  Check every
+    # state used by the recursive ground-path certificate, including both
+    # endpoints, against parsed upward floor triangles at Y=4815.
+    star_reposition_z = [-1021 + 48 * step for step in range(11)] + [-500]
+    for step, z in enumerate(star_reposition_z):
+        require_selected_floor_height(
+            area2_triangles,
+            480,
+            4815,
+            z,
+            4815,
+            f"UpperRoute star-platform reposition point {step}",
+        )
+
     static_upward_max = max(
         max(point[1] for point in triangle.points)
         for triangle in area3_triangles
@@ -231,7 +338,15 @@ def main() -> None:
     print("warp-plane: y = 286 + 98*(z+1222)/199")
     print("area2-floor-over-warp: y=896 covers entire footprint")
     print("area2-upper-overlap-platform: y=4429, x=[-204,512], z=[-1125,-767]")
+    print("air-step-substeps: 4; fresh floor query each quarter-step")
+    print("floor-query-y: TerrainData integer cast; 78-unit buffer")
+    print("upper-route-first-qstep-floor: (192,4351,-1021) -> y=4429")
     print("area2-star-platform: y=4815, x=[387,643], z=[-1125,-409]")
+    print("upper-route-star-landing-floor: (480,4813,-1021) -> y=4815")
+    print(
+        "upper-route-star-reposition-floor-points: "
+        f"{len(star_reposition_z)}, all -> y=4815"
+    )
     print("area2-mid-platform: y=1967, x=[131,387], z=[-716,-460]")
     print("inside-ancient-pyramid-star: (500,5050,-500)")
     print("star-interaction-horizontal-radius-sum: 117")
@@ -244,6 +359,8 @@ def main() -> None:
         ("src/game/area.c", area),
         ("src/game/mario.c", mario),
         ("src/game/mario_step.c", mario_step),
+        ("src/engine/surface_collision.c", surface_collision),
+        ("src/engine/surface_load.c", surface_load),
         ("src/game/platform_displacement.c", platform),
         ("src/game/interaction.c", interaction),
         ("levels/ssl/script.c", ssl_script),

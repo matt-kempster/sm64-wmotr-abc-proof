@@ -1,6 +1,6 @@
 # Working claim and exact scope
 
-Last updated: 2026-07-14 (binary32 boundary proof).
+Last updated: 2026-07-14 (audited source-shaped reachability proof).
 
 ## Source and toolchain boundary
 
@@ -52,7 +52,17 @@ modeled Mario peak:     1974 + 630 = 2604
 Rocq proves every reachable vertical-relation state stays below the applicable
 origin ceiling and no infinite run of that relation is unbounded. The binary32
 representation bound is proved independently; rank/update-order correspondence
-and source-to-model transition refinement remain open.
+is backed by a deterministic pinned-source audit of order and geometry. The
+audit does not itself prove the semantic correspondence. A whole-program
+Clight proof of that mapping and source-to-model transition refinement remains
+open.
+
+The executable finite kernel proves that the only control seed capable of
+repeated zero-gravity 100-unit launches is unreachable. The proof quantifies
+over every modeled boss/player event and every A-button policy. Never pressing
+A and continuously holding A are explicit corollaries. A is a ghost parameter
+because the hand code does not read it; this is not a controller-accurate ABC
+or new-press-count theorem.
 
 ## Verdict on the three requested questions
 
@@ -76,7 +86,33 @@ zero-displacement Area 2 entry
 
 This disproves "the formal finite bound is too low for any mid-level route."
 It does **not** prove the original game can create the starting hand pose.
-Therefore authentic raised-hand reachability remains undecided.
+
+For the proposed higher route, the result is a no-go in the coupled audited
+model. The strict end-of-frame ground test clears stale grounding
+when `IDLE` starts `BEGIN_DOUBLE_POUND` with gravity zero. The hand reaches
+`DOUBLE_POUND` airborne, installs negative gravity before it can land, and
+never reaches `DOUBLE_POUND + grounded + gravity=0`. Consequently its largest
+finite source impulse is 288 and its conservative global origin ceiling is
+1467. This conclusion is independent of whether A is pressed, never pressed,
+or held continuously inside the model. The no-A case conservatively receives
+the same 630-unit Mario-rise allowance, so it proves impossibility without
+claiming that such a jump is a legal no-A move.
+
+The coupled relation has an explicit `Runaway` transition if the dangerous
+kernel seed exists; its height invariant therefore depends on the kernel proof
+rather than merely conjoining two unrelated bounds. It is specifically a
+kernel-controlled runaway gate on a safe vertical abstraction: ordinary
+finite vertical steps are not yet paired event-by-event with kernel steps, and
+the two components do not share a proved absolute-height field. The remaining
+source bridge is still open: the 280-unit mixed-frame hand separation and
+the zero-velocity/floor-ready premises are audit-backed controller, collision,
+and geometry arguments, not linked Clight semantic lemmas.
+
+The exact conditional Y=1467 pose used above is still not proved authentic.
+The new result answers the requested **star-useful higher-hand** reachability
+question only inside the coupled audited model, not for linked Clight or the
+original ROM. It also does not answer the lower Y=1967 witness's controller
+reachability.
 
 ### 2. Are the finite bounds high enough?
 
@@ -93,6 +129,18 @@ for every higher audited shortcut tier. `(387,1967,-500)` is proved to minimize
 horizontal distance to the star over that platform, at distance 113, but it is
 2923 units below the star's vertical interaction band.
 
+The route model also supplies a useful counterfactual threshold. For its fixed
+20-frame approach, hand origin Y=3627 is the proved minimum; its collision top
+places Mario at Y=4134. The modeled trace enters Area 2 at Y=4354. Its first
+quarter-step query truncates to Y=4351, selects the Y=4429 platform, and lands
+on the Y=4815 star platform. The source-shaped Y=1467 ceiling is 2160 units too
+low to supply this premise.
+
+Therefore the proposed high-Eyerok route cannot displace Y=1967 in this model.
+This is not a proof that Y=1967 is globally fastest or most useful: its own
+starting pose remains conditional, ordinary movement from lower Area 2 floors
+can still reach the star, and no frame/A-press optimization has been proved.
+
 ### 3. Unqualified original-game indefinite ascent
 
 For the project's defined property `rises unboundedly`, the literal
@@ -103,11 +151,12 @@ when started there. This conclusion does not depend on excluding the dangerous
 scheduler seed.
 
 This is not a proof that the authentic game never reaches
-`DOUBLE_POUND + grounded + gravity=0`, that its action or positive velocity
-cannot persist, or that an authentic run reaches exactly `2^31`. CompCert's
-`Float32.to_int 2^31 = None` is also not a statement about how the original
-IDO/MIPS binary handles its out-of-range conversion. Those control-state and
-ROM-semantics questions remain open.
+`2^31`. Separately, the source-shaped kernel now proves that it never reaches
+`DOUBLE_POUND + grounded + gravity=0`, so the isolated `+100` recurrence has no
+source-shaped starting state. What remains open is the linked theorem that
+every whole-program Clight execution refines the kernel, and the separate ROM
+semantics. CompCert's `Float32.to_int 2^31 = None` is not a statement about how
+the original IDO/MIPS binary handles its out-of-range conversion.
 
 ## C abstraction boundary
 
@@ -120,11 +169,17 @@ API as original gameplay.
 ## Open authentic obligations
 
 - Link the generated translation units and define a complete original frame.
-- Couple boss controller, both hands, list order, dynamic collision, Mario,
+- Prove that linked Clight executions refine the audited source-shaped kernel,
+  coupling boss controller, both hands, list order, dynamic collision, Mario,
   time stop, and floor-pointer lifetime.
-- Prove the first/second rank abstraction and the 78-unit floor-query cases.
-- Prove or refute reachability of the Y=1467 hand origin at the route's X/Z.
-- Prove the exact controller/action trace for any claimed Area 2 landing.
+- Replace the audit-backed first/second rank and 78-unit floor-query facts with
+  semantic Clight lemmas if a fully linked theorem is required.
+- Prove or refute reachability of the conditional Y=1467 hand origin at the
+  route's X/Z and Mario's launch from it.
+- Prove the exact controller/action trace and new-A-press count for any claimed
+  Area 2 landing; the current high-hand no-go is A-policy-independent, but the
+  Mario route witnesses over-approximate controller behavior.
+- Prove route timing before calling Y=1967 globally fastest.
 - Add an IDO/MIPS boundary if the claim is about the original ROM rather than
   CompCert Clight source semantics.
 

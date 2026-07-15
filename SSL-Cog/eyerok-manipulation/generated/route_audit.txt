@@ -10,7 +10,12 @@ warp-footprint-z: [-1222,-1023]
 warp-plane: y = 286 + 98*(z+1222)/199
 area2-floor-over-warp: y=896 covers entire footprint
 area2-upper-overlap-platform: y=4429, x=[-204,512], z=[-1125,-767]
+air-step-substeps: 4; fresh floor query each quarter-step
+floor-query-y: TerrainData integer cast; 78-unit buffer
+upper-route-first-qstep-floor: (192,4351,-1021) -> y=4429
 area2-star-platform: y=4815, x=[387,643], z=[-1125,-409]
+upper-route-star-landing-floor: (480,4813,-1021) -> y=4815
+upper-route-star-reposition-floor-points: 12, all -> y=4815
 area2-mid-platform: y=1967, x=[131,387], z=[-716,-460]
 inside-ancient-pyramid-star: (500,5050,-500)
 star-interaction-horizontal-radius-sum: 117
@@ -22,6 +27,8 @@ audited-sha256:
   79c96544f072b74029936d44d280799e6614dee65d4770200cb8101b06e559ac  src/game/area.c
   a16936e42951b0ecf232fbbdb50d9f596bb8f59d13cf5269e5ba9537bca9b26e  src/game/mario.c
   db2b0acc0f6f48550b8edb8ff332b1b4635edc2359ae6e212fb7fb9a69a0ab57  src/game/mario_step.c
+  148a61bd623c7320e5dbf69c95264287b0a057369edb204dc24ace49cfae2916  src/engine/surface_collision.c
+  8c8ebdb88ee1485f8c031d1493ea82cbcf8928d79de951d6dc90a7f97d78068c  src/engine/surface_load.c
   6c662c1fe740620cec44488c56917063296e2180363727ade709f11b84fe7368  src/game/platform_displacement.c
   4c78e27752d1e50258124b9a505618fcc42014a2ab79c1eb1f383cf6c7227b99  src/game/interaction.c
   b05cccfe091f1e3c419ac215357152cacb077f84dcd436e6dc1167d2927a2f5c  levels/ssl/script.c

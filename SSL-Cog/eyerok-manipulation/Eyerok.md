@@ -18,6 +18,9 @@ If Mario's floor is a hand surface, no area change occurs.
 
 The current machine-checked results are:
 
+- the executable audited source-shaped kernel excludes
+  `DOUBLE_POUND + grounded + gravity 0` for every modeled Mario-input policy,
+  including never pressing A and continuously holding A;
 - the refined handwritten Eyerok relation bounds the first-updated hand's
   origin at absolute Y `672` and the second-updated hand's origin at `1467`;
 - after adding the hand's maximum `507`-unit collision top, Mario's modeled
@@ -40,7 +43,15 @@ admits the starting hand height, but it has no X/Z state and does not prove
 that the original game can put the hand at the required position. The route
 model also over-approximates Mario's air steering. It is a counterexample to
 "the formal height bound is numerically too low for every useful landing," not
-a verified controller-input movie for the original game.
+a verified controller-input movie for the original game. The new coupled
+audited model rules out every hand height high enough for the direct Y `2940`,
+`4429`, or `4815` shortcut tiers **inside that model**.
+
+That qualification is essential. The project does not yet prove that every
+linked Clight or original-ROM frame refines the kernel and vertical relation.
+The pinned-source audit makes the no-go result substantially stronger than a
+free-standing toy model, but the unqualified original-game reachability
+question remains open at this source-to-model bridge.
 
 ## Coordinate system and target
 
@@ -189,10 +200,60 @@ integer recurrence would be:
 Y, Y + 100, Y + 200, Y + 300, ...
 ```
 
-The handwritten scheduler relation excludes that seed in its own reachable
-states. That is a proof about the scheduler relation, not yet a whole-program
-proof about the two hands, boss controller, collision engine, and original
-compiled game.
+The audited source-shaped kernel now excludes that seed. The easy-to-miss
+detail is how SM64 updates an object's ground flags. At the end of every
+non-sleep hand update, `cur_obj_move_standard` integrates vertical motion and
+then regards the hand as grounded only when its new Y is **strictly below** its
+selected floor. If hand Y is exactly equal to floor Y, the code clears the old
+`LANDED` and `ON_GROUND` bits.
+
+Here is the relevant frame sequence in plain English:
+
+```text
+Frame 0: IDLE chooses BEGIN_DOUBLE_POUND and writes gravity = 0.
+         Vertical velocity is 0 and hand Y equals its floor.
+         End-of-frame movement clears the stale ground flag.
+
+Frame 1: BEGIN_DOUBLE_POUND changes the action to DOUBLE_POUND.
+         Zero motion again leaves the hand ungrounded.
+
+Frame 2: DOUBLE_POUND sees "not grounded" and velocity <= 0.
+         It writes gravity = -20 before movement.
+```
+
+When the hand later lands with gravity `-20`, the first grounded branch changes
+gravity to `-15` and clears the boss's active-hand selection without writing
+velocity `100`. A later selected grounded branch may write velocity `100`, but
+gravity is then already `-15`. The actual positive increments are therefore
+only `85, 70, 55, 40, 25, 10`, totaling `285`.
+
+The audit-backed premise and Rocq kernel also close the two modeled ways stale
+grounding might have survived:
+
+- there is no raised static floor in the begin-double corridor, and the two
+  closed hands stay far enough apart that one hand's center cannot select the
+  other as a floor while gravity is zero; and
+- a live hand cannot receive a movement-only partial update: its collision
+  pointer is non-null, its room remains `-1`, and time stop freezes the entire
+  hand update rather than just its movement.
+
+This result is player-adversarial inside the abstraction: the kernel has event
+cases for every boss or Mario-dependent choice relevant to this launch, while
+its A-button argument is arbitrary. Rocq proves separate corollaries for never
+pressing A and for continuously holding A. No relevant Eyerok hand branch
+reads the A button, so changing only A cannot restore the cleared ground flag.
+
+The A argument is deliberately a ghost input, not a full ABC controller model.
+It records whether A is down, but it does not count press edges, carry-in, or
+half-press conventions. The no-A height theorem is conservative: it still
+grants Mario the model's generous 630-unit jump allowance. That makes the
+impossibility stronger, but it does not construct a legal no-A jump.
+
+There are useful sensitivity checks. If the source comparison were `<=`
+instead of `<`, or if movement could partial-stutter across the two action
+changes, the dangerous seed would be reachable in two frames. Those variants
+are proved as counterexamples to the weakened model; the pinned source audit
+rules both variants out.
 
 The original position field is IEEE binary32, not an unbounded integer. Rocq
 now proves two representation facts, separate from gameplay reachability.
@@ -273,6 +334,58 @@ The modeled peak `2604` is therefore:
 - too low for Y `2940` or any higher listed shortcut tier; and
 - far too low for direct star collection.
 
+## A counterfactual height that would be useful
+
+It is useful to separate two questions:
+
+1. How high would Eyerok need to be for the proposed shortcut to work in the
+   route model?
+2. Can the audited Eyerok state machine actually reach that height?
+
+`UpperRoute.v` answers the first question with a concrete counterfactual. For
+the fixed 20-frame approach in that model, the minimum hand origin is Y
+`3627`; its audited 507-unit collision top would put Mario's departure base at
+Y `4134`. The modeled sequence is:
+
+```text
+Area 3 departure:       (192, 4134, -1993), vertical velocity 30
+after 20 air frames:    (192, 4354, -1033), vertical velocity -10
+first Area 2 qstep:     query at (192, 4351, -1021), select Y 4429
+after the upper jump:   land on the star platform at (480, 4815, -1021)
+after reposition/jump:  enter the star interaction band at (480, 4895, -500)
+```
+
+Why is the minimum `3627` rather than the simpler pre-warp threshold `3624`?
+Mario's airborne update divides movement into four substeps and performs a new
+floor query after the first quarter-step. Starting from entry Y `4354` with
+vertical velocity `-10`, that query occurs at real Y `4351.5`, which the C
+query truncates to integer Y `4351`. That is exactly 78 units below the Y
+`4429` floor, so the floor is accepted. Reducing the hand origin to `3626`
+makes the same query truncate to `4350`, one unit too low. Rocq proves this
+scaled-by-four threshold arithmetic and checks the modeled quarter-step at
+`(192,4351,-1021)`.
+
+This is an intentionally generous integer route model, not an original-input
+movie. In particular, it treats horizontal steering and the short walk along
+the star platform as controlled motion. The first Area 2 landing has an
+explicit quarter-step query. The source audit parses the actual Area 2
+triangles and checks the selected Y `4429` floor there, the Y `4815` landing,
+and every modeled ground-reposition point. The later controlled frames are
+still not a linked proof of every wall, ceiling, or controller update. Its
+purpose is to establish that Y
+`3627` would be high enough to matter: it would skip the Y `1967` route and
+reach the star platform.
+
+Inside the audited coupled model, the second question has the opposite answer.
+That model
+bounds every hand origin at Y `1467`, which is `2160` units below the modeled
+minimum Y `3627`. It therefore cannot supply the premise of this
+counterfactual. This
+rules out the proposed **high-Eyerok** alternative; it does not prove that the
+conditional Y `1967` route is authentic or globally fastest. A lower arrival
+can still traverse Area 2 by ordinary gameplay, and comparing completion
+times requires a controller-accurate timing proof.
+
 ## The conditional Y=1967 trace
 
 `Area2Route.v` contains an executable integer route witness. It deliberately
@@ -328,26 +441,56 @@ What it does not prove:
 The first missing item is especially important: an invariant ceiling is not a
 reachability witness.
 
-## What "an authentic transition above the bound" means
+## Why repeated upward launches are now ruled out in the audited model
 
-An authentic transition is one frame produced by the pinned original-game
-code, rather than a constructor in a handwritten relation.
+The earlier phrase "an authentic transition can replenish upward motion while
+already above the bound" meant this hypothetical failure mode:
 
-The refined vertical relation permits a fresh finite launch only from at or
-below the rank's support ceiling. For the second rank that support is `1179`.
-If the original game could repeatedly give the hand a fresh 285-unit
-double-pound impulse after it had already climbed far above `1179`, those
-frames would not refine the relation and its `1467` origin bound would not
-apply. Such a trace would be a counterexample to the **small route-useful
-height bound**, not to the separate theorem that finite binary32 values have a
-representation ceiling.
+```text
+the hand completes one finite jump
+-> the game gives it another upward launch without returning to safe support
+-> the hand repeats this process at progressively greater heights
+```
 
-No constructor in `vertical_step` permits that replenishment. The executable C
-abstraction's public API can be called in an unsafe sequence, so it is not a
-proof that the game cannot do so. A whole-program refinement must show that
-every source transition falls on the safe side of this split. In other words,
-authentic replenishment has not been ruled out; only the handwritten relation's
-version of it has.
+That would invalidate the Y `1467` bound. The important update is that this
+failure mode is now ruled out in the audited source-shaped state machine. The
+only source write large enough to create the proposed repeated ascent is the
+100-unit double-pound launch. A launch with gravity `-15` is finite. A
+repeating launch needs the hand to reach `DOUBLE_POUND` while both grounded
+and still at gravity zero. The strict ground-flag update described above makes
+that three-field state unreachable.
+
+This is stronger than merely omitting an unsafe constructor from
+`vertical_step`. `AuthenticKernel.v` gives the relevant source actions,
+gravity values, ground flag, relative floor premise, event choices, and
+A-button policy an executable transition function. Its start-double step
+computes the ground bit with the same strict comparison; it does not simply
+assign `false`. Rocq proves the invariant for every kernel event sequence.
+
+`AuthenticReachability.v` then couples that kernel to the vertical relation. A
+dangerous seed would select an explicit `Runaway` transition and break the
+height invariant, so the Y `1467` proof now genuinely depends on excluding the
+seed. The source audit checks the comparison, writers, call order,
+surface-list order, collision/room syntax, local level objects, and collision
+geometry on which the abstraction relies.
+
+More precisely, this is a **kernel-controlled runaway gate on a safe vertical
+abstraction**. Ordinary finite `vertical_step` choices are still admitted
+independently of the kernel event, and the kernel's local floor probe is not
+equated with the vertical relation's absolute Y. Those missing event/height
+correspondence facts belong to the linked refinement obligation.
+
+There is still a trust boundary. The 280-unit mixed-frame hand separation uses
+a manually derived controller-phase invariant whose constants are checked by
+the audit. The kernel's zero-velocity move also assumes that bounciness-zero
+ground response has normalized the idle hand and that no newly selected floor
+is above it. Collision lifetime and the claim that the local Area 3 object set
+contains no other surface provider are likewise syntax-backed arguments, not
+linked semantic lemmas. The project has not linked all generated Clight
+translation units and proved that every whole-program execution refines the
+coupled model. Here, **audited source-shaped** means that the transition cases
+were manually extracted from pinned source and protected by deterministic
+checks. It is not yet a theorem over the IDO-compiled ROM.
 
 ## Exactly what is proved
 
@@ -356,9 +499,14 @@ The project now machine-checks these statements:
 - the generated Clight ASTs contain the selected pinned source functions and
   call edges for Eyerok, Mario floor input, instant-warp handling, area change,
   airborne stepping, platform displacement, and star interaction;
-- the abstract scheduler cannot reach `DOUBLE_POUND + grounded + gravity 0`;
+- the executable source-shaped kernel cannot reach
+  `DOUBLE_POUND + grounded + gravity 0` under any modeled event or A-button
+  policy, including never pressing A and continuously holding A;
 - every state reachable in the refined vertical relation has hand-origin Y at
   most `672` for the first rank or `1467` for the second;
+- the coupled kernel/vertical relation cannot
+  supply a hand high enough for direct selection of the Y `2940`, `4429`, or
+  `4815` Area 2 tiers;
 - no infinite run of that relation has unbounded integer Y;
 - no arbitrary stream has unbounded finite binary32 height observations;
 - `Float32.add 2^31 100 = 2^31`, and iterating the same addition from `2^31`
@@ -369,6 +517,9 @@ The project now machine-checks these statements:
   velocity, and motion state unchanged;
 - modeled Mario peak `2604` cannot reach the Y `2940`, Y `4429`, Y `4815`, or
   direct-star thresholds; and
+- counterfactually, a hand origin at Y `3627` is sufficient in the integer
+  route model to enter Area 2 on Y `4429` and land on the star platform, while
+  the audited source-shaped ceiling is only Y `1467`; and
 - the conditional combined relation reaches the closest point on the Y `1967`
   platform but does not collect the star.
 
@@ -377,26 +528,32 @@ The project now machine-checks these statements:
 The project still does not prove:
 
 - a whole-program Clight refinement from every original game frame to the
-  scheduler, vertical relation, and Mario route relation;
-- that the original hands' update order and actual dynamic-floor choices
-  realize the abstract first/second ranks;
+  source-shaped kernel, vertical relation, and Mario route relation;
+- a semantic Clight proof, rather than the current deterministic source audit,
+  of the original hands' update order and dynamic-floor choices;
 - that the original game reaches the conditional hand pose used by the Y
   `1967` route witness;
 - an exact original-controller trace from the hand through the warp to that
   landing;
+- how many new A presses an authentic route uses. The high-hand impossibility
+  is A-policy-independent, but the generous `+630` Mario rise and both route
+  witnesses are not controller-accurate ABC proofs;
 - that Y `1967` is the globally fastest or most useful post-warp state for the
   star, rather than only the highest audited tier admitted by this restricted
   height calculation;
-- that the gravity-zero seed is unreachable in every original-game run;
-- that an authentic run follows the isolated `+100` recurrence to `2^31`,
-  how high such a run gets, or that its action and positive velocity exit; or
+- a linked whole-program or ROM theorem that the gravity-zero seed is
+  unreachable in every machine execution. It is unreachable in the audited
+  source-shaped kernel;
+- that a hypothetical execution outside that kernel follows the isolated
+  `+100` recurrence to `2^31`, how high it gets, or how the ROM handles it; or
 - a source-to-ROM proof for out-of-range floating-point conversions in the
   original IDO-compiled MIPS binary.
 
 In short: the Area 3 to Area 2 mechanic is now represented, the finite bound's
-route consequences are proved for the explicit adversarial model, and literal
-unbounded finite binary32 Y is disproved. The remaining uncertainty is no
-longer "what does Area 2 look like?" It is the authentic reachability of the
-hand/Mario starting state, possible persistence of the dangerous control
-state, and the whole-program connection from the pinned source to the
-relations.
+route consequences are proved for the explicit adversarial model, the
+source-shaped repeated-launch seed is excluded for every A policy, and literal
+unbounded finite binary32 Y is disproved. The high-Eyerok star-platform route
+is therefore unavailable in this model. The remaining questions are whether
+the conditional Y `1967` hand/Mario pose is authentic, which lower route is
+actually fastest and uses the fewest new A presses, and whether a linked
+whole-program/ROM semantics validates every source-shaped step used here.
