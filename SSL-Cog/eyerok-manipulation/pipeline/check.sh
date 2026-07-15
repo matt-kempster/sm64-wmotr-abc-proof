@@ -49,6 +49,12 @@ bash pipeline/assumptions.sh \
   SSLEyerok.Proofs.MarioHandContact \
   mario_hand_contact_certificate_holds
 bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.DoublePoundTrace \
+  double_pound_trace_certificate_holds
+bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.PartialUpdateBoundary \
+  partial_update_boundary_certificate_holds
+bash pipeline/assumptions.sh \
   SSLEyerok.Proofs.LowerArea2Entry \
   lower_area2_entry_certificate_holds
 bash pipeline/assumptions.sh \

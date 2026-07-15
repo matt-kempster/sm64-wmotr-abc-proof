@@ -110,6 +110,20 @@ def normal_y(a: tuple[int, int, int], b: tuple[int, int, int], c: tuple[int, int
     return abz * acx - abx * acz
 
 
+def point_in_triangle_xz(
+    point: tuple[int, int],
+    a: tuple[int, int, int],
+    b: tuple[int, int, int],
+    c: tuple[int, int, int],
+) -> bool:
+    px, pz = point
+    projected = [(a[0], a[2]), (b[0], b[2]), (c[0], c[2])]
+    signs = []
+    for (ax, az), (bx, bz) in zip(projected, projected[1:] + projected[:1]):
+        signs.append((bx - ax) * (pz - az) - (bz - az) * (px - ax))
+    return all(value >= 0 for value in signs) or all(value <= 0 for value in signs)
+
+
 def bbox_overlaps_path(points: list[tuple[int, int, int]]) -> bool:
     xs = [point[0] for point in points]
     zs = [point[2] for point in points]
@@ -170,6 +184,13 @@ def main() -> None:
         fail("hand behavior clears collisionData")
     if "oRoom" in eyerok:
         fail("hand behavior unexpectedly writes oRoom")
+    if "activeFlags" in eyerok:
+        fail("hand behavior unexpectedly writes active flags")
+
+    behavior_execution_pos = behavior_script.find("// Execute the behavior script.")
+    visibility_pos = behavior_script.find("// Handle visibility of object")
+    if behavior_execution_pos < 0 or visibility_pos < 0 or behavior_execution_pos >= visibility_pos:
+        fail("behavior native no longer executes before visibility postprocessing")
 
     require(eyerok, "o->oGravity = -4.0f;", "attack gravity -4")
     require(eyerok, "o->oGravity = 0.0f;", "begin/target gravity zero")
@@ -191,7 +212,12 @@ def main() -> None:
     require(constants, "#define OBJ_MOVE_MASK_ON_GROUND (OBJ_MOVE_LANDED | OBJ_MOVE_ON_GROUND)", "ground mask definition")
     require(behavior_script, "gCurrentObject->collisionData == NULL", "far-away collision-data guard")
     require(behavior_script, "gCurrentObject->oRoom != -1", "room-flag guard")
+    require(behavior_script, "// Execute the behavior script. gCurBhvCommand = gCurrentObject->curBhvCommand;", "behavior execution before postprocessing")
+    require(behavior_script, "// Handle visibility of object if (gCurrentObject->oRoom != -1)", "visibility postprocessing")
     require(behavior_data, "BEGIN(OBJ_LIST_SURFACE)", "hand surface list")
+    require(behavior_data, "const BehaviorScript bhvEyerokHand[] = { BEGIN(OBJ_LIST_SURFACE)", "Eyerok hand surface behavior")
+    require(behavior_data, "BEGIN_LOOP(), CALL_NATIVE(bhv_eyerok_hand_loop), END_LOOP()", "Eyerok native loop command")
+    require(behavior_data, "const BehaviorScript bhvEyerokBoss[] = { BEGIN(OBJ_LIST_GENACTOR)", "Eyerok boss genactor behavior")
     require(behavior_data, "SET_OBJ_PHYSICS(/*Wall hitbox radius*/ 150, /*Gravity*/ 0, /*Bounciness*/ 0", "hand zero gravity and bounciness")
     require(eyerok, "eyerok_spawn_hand(-1, MODEL_EYEROK_LEFT_HAND, bhvEyerokHand); eyerok_spawn_hand(1, MODEL_EYEROK_RIGHT_HAND, bhvEyerokHand);", "hand spawn order")
     require(eyerok, "spawn_object_relative_with_scale(side, -500 * side, 0, 300, 1.5f", "hand home X offsets")
@@ -201,8 +227,12 @@ def main() -> None:
     require(object_lists, "update_objects_in_list(&gObjectLists[OBJ_LIST_SURFACE])", "surface-list update")
     require(object_lists, "OBJ_LIST_SURFACE, OBJ_LIST_POLELIKE, OBJ_LIST_PLAYER, OBJ_LIST_PUSHABLE, OBJ_LIST_GENACTOR", "surface-before-boss order")
     require(spawn_object, "Insert at the end of destination list", "append-order allocation")
+    require(spawn_object, "obj->activeFlags = ACTIVE_FLAG_ACTIVE | ACTIVE_FLAG_UNK8;", "spawn active flags exclude partial bits")
     require(spawn_object, "obj->collisionData = NULL;", "collision starts null")
     require(spawn_object, "obj->oRoom = -1;", "room starts minus one")
+    require(object_lists, "if (unfrozen) { gCurrentObject->header.gfx.node.flags |= GRAPH_RENDER_HAS_ANIMATION; cur_obj_update(); } else { gCurrentObject->header.gfx.node.flags &= ~GRAPH_RENDER_HAS_ANIMATION; }", "time stop freezes whole object update")
+    require(eyerok, "if (o->oTimer == 0) { eyerok_spawn_hand(-1", "boss spawns hands without same-tick wake transition")
+    require(eyerok, "if (o->oBhvParams2ndByte < 0) { o->collisionData = segmented_to_virtual(&ssl_seg7_collision_070284B0); } else { o->collisionData = segmented_to_virtual(&ssl_seg7_collision_07028370); }", "first sleep update assigns collision")
     require(surface_collision, "if (y - (height + -78.0f) < 0.0f)", "find-floor 78-unit buffer")
     require(surface_load, "*vertexData++ = (TerrainData)(vx * m[0][0] + vy * m[1][0] + vz * m[2][0] + m[3][0]);", "dynamic collision X transform")
     require(surface_load, "*vertexData++ = (TerrainData)(vx * m[0][1] + vy * m[1][1] + vz * m[2][1] + m[3][1]);", "dynamic collision Y transform")
@@ -315,14 +345,15 @@ def main() -> None:
         for match in re.findall(r"COL_VERTEX\(\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*\)", closed_block)
     ]
     max_closed_radius_sq = max(x * x + z * z for x, _, z in closed_vertices)
-    # The mixed-frame 280 value is the conservative controller-phase result
-    # derived from the audited home/target constants: 500 - (400 - 180).
-    # A future linked proof must still establish the phase invariant itself.
-    mixed_frame_center_separation = 500 - (400 - 180)
-    if mixed_frame_center_separation != 280:
-        fail(f"unexpected mixed-frame separation arithmetic: {mixed_frame_center_separation}")
-    if 9 * max_closed_radius_sq >= 4 * mixed_frame_center_separation * mixed_frame_center_separation:
-        fail("closed-hand collision radius reaches sibling center separation")
+    # Both positive-double targets are evaluated at the same interpolation
+    # value.  Their 1000-unit home separation shrinks by at most 640, so the
+    # reusable launch begins 360 units behind, not at the old mixed-frame 280.
+    positive_double_setup_min_separation = 1000 - 640
+    if positive_double_setup_min_separation != 360:
+        fail(
+            "unexpected positive-double setup separation: "
+            f"{positive_double_setup_min_separation}"
+        )
     max_closed_local_y = max(y for _, y, _ in closed_vertices)
     if max_closed_local_y != 204:
         fail(f"unexpected closed-hand local Y maximum: {max_closed_local_y}")
@@ -340,8 +371,69 @@ def main() -> None:
         fail(f"unexpected open-hand upward top: {open_upward_top}")
     if closed_upward_top != 204:
         fail(f"unexpected closed-hand upward top: {closed_upward_top}")
+    if (1, 3, 4) not in closed_mesh_triangles or (1, 4, 5) not in closed_mesh_triangles:
+        fail("closed-hand top triangles changed")
     if (1, 3, 4) not in open_triangles or (1, 4, 2) not in open_triangles:
         fail("open-hand top triangles changed")
+
+    # Audit the no-wall relative query trace for the only dangerous reusable
+    # sibling approach.  The later-updated hand starts 360 units behind.  Its
+    # first launch uses gravity -15; once velocity is nonpositive, the action
+    # installs gravity -20 before movement.  At relative Z=0 the closed top's
+    # scaled/cast footprint excludes X=-120 but includes X=-90.
+    closed_scaled_vertices = [
+        tuple(math.trunc(1.5 * coordinate) for coordinate in vertex)
+        for vertex in closed_mesh_vertices
+    ]
+    closed_top_triangles = [(1, 3, 4), (1, 4, 5)]
+
+    def on_closed_top(x: int, z: int) -> bool:
+        return any(
+            point_in_triangle_xz(
+                (x, z), *(closed_scaled_vertices[index] for index in triangle)
+            )
+            for triangle in closed_top_triangles
+        )
+
+    double_trace = [(-360, 0)]
+    relative_x = -360
+    relative_y = 0
+    velocity_y = 100
+    gravity = -15
+    while relative_y >= 0:
+        if velocity_y <= 0:
+            gravity = -20
+        velocity_y += gravity
+        relative_x += 30
+        relative_y += velocity_y
+        double_trace.append((relative_x, relative_y))
+
+    expected_trace_prefix = [
+        (-360, 0),
+        (-330, 85),
+        (-300, 155),
+        (-270, 210),
+        (-240, 250),
+        (-210, 275),
+        (-180, 285),
+        (-150, 280),
+        (-120, 255),
+        (-90, 210),
+    ]
+    if double_trace[: len(expected_trace_prefix)] != expected_trace_prefix:
+        fail(f"unexpected positive-double relative trace: {double_trace}")
+
+    closed_query_y_min = closed_top_offset - 78
+    vertically_eligible = [point for point in double_trace if point[1] >= closed_query_y_min]
+    horizontally_inside = [point for point in double_trace if on_closed_top(point[0], 0)]
+    if not vertically_eligible or vertically_eligible[-1] != (-120, 255):
+        fail(f"unexpected last vertically eligible double query: {vertically_eligible}")
+    if not horizontally_inside or horizontally_inside[0] != (-90, 210):
+        fail(f"unexpected first horizontally inside double query: {horizontally_inside}")
+    if any(y >= closed_query_y_min and on_closed_top(x, 0) for x, y in double_trace):
+        fail("positive-double trace can select the sibling closed top")
+    if closed_query_y_min - 210 != 18:
+        fail("unexpected first-inside vertical shortfall")
 
     first_hand_finite_peak = max_arena_upward_y + 288
     first_hand_tunnel_query_min = min_tunnel_upward_y - 78
@@ -386,6 +478,9 @@ def main() -> None:
     print("zero-gravity-floor-equality: clears grounded")
     print("hand-bounciness: zero")
     print("partial-update-guards: FAR_AWAY|IN_DIFFERENT_ROOM")
+    print("hand-native-before-visibility: yes")
+    print("first-hand-sleep-update-collision: nonnull before visibility")
+    print("time-stop-hand-update: whole update frozen unless explicitly unfrozen")
     print("hand-list-before-boss: yes")
     print("hand-spawn-and-surface-order: side -1, then side +1")
     print("surface-list-append-order: yes")
@@ -402,7 +497,10 @@ def main() -> None:
     print(f"second-hand-finite-origin-peak: {second_hand_finite_peak}")
     print(f"second-hand-open-surface-peak: {second_hand_open_surface_peak}")
     print(f"second-hand-modeled-mario-peak: {second_hand_modeled_mario_peak}")
-    print("begin-double-center-separation-audit-assumption: 280 (mixed-frame controller phase)")
+    print("positive-double-setup-min-separation: 360")
+    print("positive-double-last-vertical-query: relative (-120,255), outside closed top")
+    print("positive-double-first-horizontal-query: relative (-90,210), 18 below threshold")
+    print("positive-double-sibling-floor-selection: none in audited no-wall trace")
     print(f"closed-hand-horizontal-radius-max: {1.5 * math.sqrt(max_closed_radius_sq):.6f}")
     print(f"closed-hand-top-offset: {closed_top_offset}")
     print("closed-hand-upward-local-top: 204 (scaled 306)")

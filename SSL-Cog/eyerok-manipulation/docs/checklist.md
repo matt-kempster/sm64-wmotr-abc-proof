@@ -1,6 +1,6 @@
 # Eyerok manipulation proof checklist
 
-Last updated: 2026-07-14 (conditional lower Area 2 landing).
+Last updated: 2026-07-14 (double-pound and partial-update closure).
 
 ## Current verdict
 
@@ -16,6 +16,15 @@ counterfactual origin Y=3627 route would reach the star platform, but the
 stricter two-hand origin ceiling is Y=672.
 Literal unbounded finite binary32 Y is also disproved. Linked Clight/ROM
 refinement and route optimality remain open.
+
+The false global 280-unit hand-separation shortcut has been removed. The
+replacement phase trace starts 360 units behind: `(-120,255)` is the last
+vertically eligible closed-top query but remains horizontally outside, while
+`(-90,210)` is horizontally inside but 18 units too low. The source-shaped
+partial-update lifecycle also proves that native-before-visibility collision
+loading, room -1, and whole-update time-stop freezing keep both movement-only
+partial flags clear. Both conclusions remain conditional on a linked Clight
+refinement of their audited boundary premises.
 
 The source-shaped first-hand barrier is stricter: the arena floor maximum
 is -1150, the tunnel floor minimum is -562, and the first hand's full finite
@@ -66,12 +75,15 @@ query threshold by 23.
 - [x] Confirm platform displacement has no direct vertical velocity add.
 - [x] Audit strict ground comparison and equality clearing both ground flags.
 - [x] Audit exact gravity-writer sequence, collision-pointer writers, room
-  default, bounciness, and movement partial-update guards; keep the lifecycle
-  exclusion labeled as a manual source argument.
+  default, bounciness, native-before-visibility order, first sleep collision
+  assignment, whole-update time-stop branch, and movement partial guards.
 - [x] Audit hand spawn/append/update order and dynamic-surface clearing.
 - [x] Audit the Area 3 local object/macro set, absence of water, begin-double
   corridor floors, closed-hand radius, and positioning constants; reject the
   old 280-unit mixed-frame calculation as a global separation invariant.
+- [x] Audit the phase-specific 360-unit positive-double setup, exact relative
+  trace, Z=0 closed-top footprint, 228 query threshold, and
+  `(-120,255) -> (-90,210)` near miss.
 - [x] Partition every upward Area 3 triangle into arena (maximum Y=-1150) and
   tunnel (minimum Y=-562), and prove that no triangle crosses the gap.
 - [x] Audit the open/closed upward collision tops, scale transform, and the
@@ -110,8 +122,14 @@ query threshold by 23.
   second origin 672 and surface 1179.
 - [x] Refute legacy second origin 1467, second surface 1974, modeled Mario
   2604, and modeled selection of the Area 2 Y=1967 floor.
+- [x] Prove no sample of the audited positive-double free-flight trace can
+  select the sibling closed top; do not generalize this to global hand
+  separation.
+- [x] Prove the no-external-writer live-hand lifecycle cannot set FAR_AWAY or
+  IN_DIFFERENT_ROOM and therefore cannot take a movement-only partial update.
 - [ ] Prove the event-by-event linked Clight finite-episode premise, including
-  no airborne replenishment and the source phase reset before another launch.
+  no airborne replenishment, exact double-pound/wall refinement, lifecycle
+  writer completeness, and the source phase reset before another launch.
 
 ## Mario and Area 2 proof
 
@@ -208,3 +226,6 @@ query threshold by 23.
   an exact source-audited Y=1280 floor selection and modeled snap; surface-only
   Y=1179 remains 23 units short and authentic controller reachability remains
   open.
+- Exact positive-double sibling-floor near-miss and source-shaped live-hand
+  partial-update exclusion, replacing the false global 280-unit separation
+  shortcut.

@@ -260,17 +260,6 @@ Proof.
     continuously_hold_a).
 Qed.
 
-(** Exact closed-hand geometry fact used by the audit-backed floor premise.
-    Squaring is scaled by four to avoid fractions from the 1.5 hand scale. *)
-Definition audited_begin_double_center_separation_min : Z := 280.
-Definition closed_hand_local_radius_squared_max : Z := 29178.
-
-Lemma audited_closed_hand_radius_below_separation :
-  9 * closed_hand_local_radius_squared_max <
-  4 * audited_begin_double_center_separation_min *
-      audited_begin_double_center_separation_min.
-Proof. vm_compute. reflexivity. Qed.
-
 (** Sensitivity model.  If movement/ground clearing can stutter across the two
     action changes, the stale ground bit survives and the seed is reached by
     an actual two-step trace. *)

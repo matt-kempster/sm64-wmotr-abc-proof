@@ -1,6 +1,6 @@
 # Goal recovery note
 
-Last updated: 2026-07-14 (conditional lower Area 2 landing).
+Last updated: 2026-07-14 (double-pound and partial-update closure).
 
 ## Objective
 
@@ -41,13 +41,14 @@ The deterministic source audits now pin:
   comparison;
 - the complete relevant gravity-writer order, hand spawn/update order, and
   dynamic-surface clear order;
-- the live hand's nonnull collision-pointer writers, room default `-1`, and
-  movement partial-update guards. The conclusion that their whole lifecycle
-  excludes a partial update is still a manual source argument; and
+- the live hand's nonnull collision-pointer writers, room default `-1`, native
+  execution before visibility, first sleep collision assignment, time-stop
+  whole-update branch, and movement partial-update guards; and
 - the Area 3 local object/macro data, closed-hand radius, and positioning
   constants. The previously quoted 280-unit mixed-frame calculation is not a
-  valid global hand-separation invariant; an exact double-pound phase trace is
-  required instead.
+  valid global hand-separation invariant. The replacement audit derives a
+  360-unit positive-double setup separation and the exact no-wall relative
+  query trace.
 
 `AuthenticKernel.v` extracts those audit-backed premises into an executable
 finite transition function. Its start step computes the ground bit using the
@@ -56,6 +57,24 @@ strict comparison. Rocq proves that no event sequence reaches
 the hand-control result separately covers never pressing A and continuously
 holding A. This argument is a ghost input because the hand code does not read
 A; it is not an ABC press-edge or controller model.
+
+`DoublePoundTrace.v` replaces the false global separation shortcut with a
+phase-local proof. At relative Z=0, the scaled/cast closed-top slice is
+conservatively inside X `[-108,102]` and needs relative query Y at least 228.
+The last vertically eligible trace point is `(-120,255)`, still outside that
+slice; the first horizontally eligible point is `(-90,210)`, 18 units too
+low. Rocq proves no point in the audited free-flight trace satisfies both
+conditions. This is not a theorem for arbitrary phases or a linked proof that
+wall resolution can only make the approach less favorable.
+
+`PartialUpdateBoundary.v` formalizes the no-external-writer lifecycle. Spawn
+starts with null collision, room -1, and both partial flags clear. A complete
+running frame executes the native sleep body first, making collision nonnull,
+then visibility cannot set FAR_AWAY and the default room cannot set
+IN_DIFFERENT_ROOM. A time-stopped frame stutters the whole hand update. Rocq
+therefore proves that no reachable live state in this source-shaped lifecycle
+enters the movement-only partial guard. Linking the generated Clight scheduler
+and all possible external writers to this lifecycle remains open.
 
 The refined vertical relation uses exact maximum finite ascent budget 288. It
 proves hand-origin ceilings 672 and 1467. Adding the collision top and modeled
@@ -125,7 +144,8 @@ The proof does not show that the hand reaches its ceiling, that Mario boards
 it, that the triple-jump predecessor chain is possible there, that every one
 of the sixteen frames refines the source collision/controller loop, or that no
 earlier source collision changes the trace. The proved snap is a handwritten
-landing relation tied to the audited query, not a linked Clight step. A backflip envelope
+landing relation tied to the audited query, not a linked Clight step. A
+backflip envelope
 would peak at Y=1691 and is numerically high enough for Y=1280, but no exact
 backflip route witness has been constructed. Released-A and held-before-start
 routes remain open; held A can still enable a jump kick, and never-A can still
@@ -171,14 +191,16 @@ reachability is now closed.
 
 1. Link the generated translation units and prove that every relevant Clight
    frame refines the source-shaped kernel, including update rank, dynamic
-   surfaces, time stop, Mario contact, and floor-pointer lifetime.
+   surfaces, the no-external-writer partial lifecycle, time stop, Mario
+   contact, and floor-pointer lifetime.
 2. Prove Mario's remaining contact lifecycle on the hand: an X/Z-valid initial
    boarding state, per-frame selected-floor priority, dismount, and selection of the
    static Area 3 warp floor. Decide released-A, held-before-start, and fresh
    press-and-hold schedules separately.
 3. Prove an event-by-event Clight bridge for the two-hand finite-episode
    premise: every positive episode starts from classified support and has at
-   most 288 remaining rise, with no airborne replenishment.
+   most 288 remaining rise, with no airborne replenishment. Include the exact
+   positive-double near-miss and dynamic-wall response.
 4. Authenticate or refute the conditional Y=1280 landing under the Y=1809
    ceiling: prove the hand/Mario predecessor, all quarter-step collision and
    controller transitions, and the actual landing. Compare fresh-A triple
