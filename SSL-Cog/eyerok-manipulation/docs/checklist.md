@@ -1,6 +1,6 @@
 # Eyerok manipulation proof checklist
 
-Last updated: 2026-07-14 (Mario/hand vertical-contact boundary).
+Last updated: 2026-07-14 (conditional lower Area 2 landing).
 
 ## Current verdict
 
@@ -27,6 +27,16 @@ second origin <=672, second surface <=1179, and generously modeled Mario peak
 <=1809. Thus 1467/1974/2604 and the Y=1967 floor-query threshold 1889 are
 unreachable in this source-shaped relation.
 
+A new conditional certificate assumes equality at surface ceiling 1179 and
+the full 630-unit triple-jump envelope. It enters Area 2 at
+`(0,1809,-1024)`, reaches `(0,1281,-832)` with vertical velocity -67, and
+uses an exact quarter-step query `(0,1264,-829)` that the pinned audit resolves
+to floor Y=1280. The handwritten landing relation snaps to that floor. This
+does not authenticate either ceiling equality, moving off the dynamic hand to
+select the static warp, the original controller inputs, or all intervening C
+collision steps. Surface Y=1179 without another impulse misses the Y=1280
+query threshold by 23.
+
 ## Repository and source
 
 - [x] Confirm repository and branch `codex/ssl-pyramid-item-proof`.
@@ -49,8 +59,8 @@ unreachable in this source-shaped relation.
 - [x] Audit four airborne quarter steps, the fresh quarter-step floor query,
   TerrainData Y cast, landing snap, and 78-unit floor buffer.
 - [x] Parse Area 2 upward triangles and verify exact selected-floor heights at
-  the upper-route quarter-step, star-platform landing, and every modeled
-  ground-reposition point.
+  the lower Y=1280 and upper-route quarter-steps, star-platform landing, and
+  every modeled ground-reposition point.
 - [x] Distinguish maximum collision vertex 896 from maximum upward-floor
   vertex 384.
 - [x] Confirm platform displacement has no direct vertical velocity add.
@@ -60,8 +70,8 @@ unreachable in this source-shaped relation.
   exclusion labeled as a manual source argument.
 - [x] Audit hand spawn/append/update order and dynamic-surface clearing.
 - [x] Audit the Area 3 local object/macro set, absence of water, begin-double
-  corridor floors, closed-hand radius, and positioning constants; keep the
-  280-unit controller-phase separation labeled as a manual invariant.
+  corridor floors, closed-hand radius, and positioning constants; reject the
+  old 280-unit mixed-frame calculation as a global separation invariant.
 - [x] Partition every upward Area 3 triangle into arena (maximum Y=-1150) and
   tunnel (minimum Y=-562), and prove that no triangle crosses the gap.
 - [x] Audit the open/closed upward collision tops, scale transform, and the
@@ -108,7 +118,7 @@ unreachable in this source-shaped relation.
 - [x] Represent Mario position, velocity, motion state, selected floor, and
   current area.
 - [x] Prove hand-floor non-trigger and zero-displacement Area 3 to 2 entry.
-- [x] Represent Area 2 Y=896, 1967, 2940, 4429, and 4815 thresholds.
+- [x] Represent Area 2 Y=896, 1280, 1967, 2940, 4429, and 4815 thresholds.
 - [x] Add hand collision top and modeled triple-jump rise to obtain peak 2604.
 - [x] Prove peak 2604 cannot reach Y=2940 or higher audited tiers or directly
   collect the star.
@@ -133,6 +143,12 @@ unreachable in this source-shaped relation.
   the first lethal-rise surface.
 - [x] Prove released/held-before-start schedules have no new A edge and fresh
   press-and-hold has exactly one frame-zero edge.
+- [x] Construct the conditional Y=1809 Area 2 entry and 16-frame state
+  `(0,1281,-832)` with vertical velocity -67.
+- [x] Audit the selected Area 3 warp at `(0,1809,-1024)` and the exact Area 2
+  query `(0,1264,-829) -> Y=1280`; prove the modeled Y=1280 snap.
+- [x] Prove Y=1809 cannot query Y=1967 and unboosted surface Y=1179 misses the
+  Y=1280 query minimum by 23.
 - [x] Give 1179, 1467, 1974, and 2604 distinct observation predicates.
 - [x] Define authentic A press edges with a pre-interval bit and prove that
   always-released and continuously-held schedules have no new edge.
@@ -144,6 +160,9 @@ unreachable in this source-shaped relation.
 - [ ] Constrain predecessor actions before treating "held A" or "no A in the
   measured suffix" as a complete no-new-A route.
 - [ ] Prove a controller-accurate Area 2 route and count new A presses.
+- [ ] Authenticate or refute the conditional Y=1280 trace separately for a
+  fresh-A jump chain, already-held A, and never-A, including dynamic-hand exit,
+  every airborne collision substep, and the landing.
 - [ ] If required, optimize authentic remaining frames to star collection and
   prove or disprove the claim that Y=1967 is globally fastest.
 
@@ -185,3 +204,7 @@ unreachable in this source-shaped relation.
 - Conservative two-hand dynamic-support barrier refuting the 1467/1974/2604
   construction and the conditional Y=1967 premise.
 - Mario/hand height-filter, hitbox, bounce, and authentic A-edge boundary.
+- Conditional lower Area 2 certificate: Y=1809 excludes Y=1967 but supplies
+  an exact source-audited Y=1280 floor selection and modeled snap; surface-only
+  Y=1179 remains 23 units short and authentic controller reachability remains
+  open.

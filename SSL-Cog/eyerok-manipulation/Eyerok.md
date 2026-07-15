@@ -36,6 +36,10 @@ The current machine-checked results are:
 - consequently, the requested first-surface Y `1179`, second-origin Y `1467`,
   second-surface Y `1974`, and Mario Y `2604` constructions are all
   unreachable in the source-shaped barrier relations;
+- conditional on attaining the stricter second-hand surface ceiling `1179`
+  and the full triple-jump envelope, a lower route enters Area 2 at Mario Y
+  `1809` and its audited quarter-step selects and snaps to floor Y `1280`;
+  this is a handwritten route witness, not authentic reachability;
 - `2604` is too low for a direct landing at Y `2940`, the upper warp-overlap
   platform at Y `4429`, the star platform at Y `4815`, or direct interaction
   with the star at Y `5050`;
@@ -278,15 +282,19 @@ velocity `100`. A later selected grounded branch may write velocity `100`, but
 gravity is then already `-15`. The actual positive increments are therefore
 only `85, 70, 55, 40, 25, 10`, totaling `285`.
 
-The audit-backed premise and Rocq kernel also close the two modeled ways stale
-grounding might have survived:
+The Rocq kernel also closes two modeled ways stale grounding might survive,
+using source-audited boundary premises:
 
-- there is no raised static floor in the begin-double corridor, and the two
-  closed hands stay far enough apart that one hand's center cannot select the
-  other as a floor while gravity is zero; and
+- there is no raised static floor in the begin-double corridor. The hands are
+  not globally separated by 280 units, as an earlier draft claimed. In the
+  relevant double-pound approach, the manual source trace puts the moving hand
+  at relative `(X,Y)=(-120,255)` and then `(-90,210)`. The first point is still
+  outside the other closed top; the second is 18 units below its floor-query
+  threshold. A formal phase-trace refinement is still required; and
 - a live hand cannot receive a movement-only partial update: its collision
   pointer is non-null, its room remains `-1`, and time stop freezes the entire
-  hand update rather than just its movement.
+  hand update rather than just its movement. This lifecycle is still a manual
+  pinned-source argument pending the formal boundary module.
 
 This result is player-adversarial inside the abstraction: the kernel has event
 cases for every boss or Mario-dependent choice relevant to this launch, while
@@ -475,9 +483,10 @@ The audited destination geometry gives these milestones:
 | star platform | 4815 | minimum horizontal gap 195 |
 | star interaction center | 5050 | Mario base must reach at least 4890 |
 
-Because floor lookup accepts a floor up to 78 units above Mario, the Y `2940`
-floor first becomes eligible at query Y `2862`; the Y `4429` platform at
-`4351`; and the star platform at `4737`.
+Because floor lookup accepts a floor up to 78 units above Mario, the Y `1280`
+floor first becomes eligible at query Y `1202`; the Y `1967` floor at `1889`;
+the Y `2940` floor at `2862`; the Y `4429` platform at `4351`; and the star
+platform at `4737`.
 
 The older geometry-relaxed peak `2604` is:
 
@@ -490,6 +499,65 @@ Y `1967` floor first becomes query-eligible at Y `1889`, even the generous
 630-unit modeled rise is 80 units too low to select it. It can still be high
 enough for lower Area 2 geometry; deciding an exact lower landing requires the
 Mario/warp trace developed next.
+
+## A conditional lower route lands on Y=1280
+
+The numbers `1179` and `1809` are limits, not coordinates from a demonstrated
+playthrough. The two-hand proof says the second hand's open surface cannot
+exceed Y `1179`. Adding the checked 630-unit ordinary triple-jump rise gives a
+Mario ceiling of Y `1809`. It does not say the hand reaches exactly `1179` or
+that Mario can perform the jump from it.
+
+`LowerArea2Entry.v` asks what follows if both upper bounds are attained:
+
+```text
+conditional Area 3 entry: (0,1809,-1024), velocity (0,-3,12)
+after the instant warp:   same position and velocity in Area 2
+after 16 modeled frames:  (0,1281,-832), vertical velocity -67
+next quarter-step query:  (0,1264,-829)
+audited selected floor:   Y=1280
+modeled landing state:    (0,1280,-829), grounded
+```
+
+The Z coordinate `-1024` is intentional. At the north edge, Z `-1023`, an
+ordinary Area 3 triangle overlaps the warp and wins the source floor-list
+order. The pinned audit checks that `(0,1809,-1024)` actually selects
+`SURFACE_INSTANT_WARP_1D`; the proof does not merely assign a point inside a
+bounding rectangle.
+
+On the landing quarter-step, Mario's mathematical Y is
+`1281 - 67/4 = 1264.25`. The floor query converts that positive value to
+integer `1264`. The Y=1280 floor is 16 units above the query, within the
+game's 78-unit allowance, and the pinned collision audit confirms that it is
+the first eligible floor at this exact X/Z. The handwritten Rocq landing
+relation then applies the source-shaped `next Y <= floor Y` test and snaps
+Mario to Y `1280`.
+
+This proves an exact **conditional modeled landing**. It does not prove the
+assumed hand surface, Mario's boarding or launch, or the crucial move off the
+dynamic hand while staying over the static warp. It also does not prove that
+the constant horizontal velocity comes from `update_air_without_turn`, that
+no earlier source wall/floor/ceiling response changes a frame, or that the
+sixteen controlled frames form a linked Clight execution.
+
+The arithmetic separates several A-button cases:
+
+- No new impulse leaves Mario at Y `1179`, 23 units below the Y=1280 query
+  minimum `1202`.
+- The checked backflip envelope gives conditional Y `1691`, enough by height,
+  but backflip requires a fresh A edge and has no exact hand-to-warp witness.
+- The Y `1809` certificate uses the full triple-jump envelope. An authentic
+  triple jump needs its fresh-A predecessor chain and A held through the
+  ascent; this certificate constructs neither.
+- Already-held A and never-A remain distinct open cases. Held A can launch a
+  jump kick through `INPUT_A_DOWN`, while never-A can launch a B-only
+  speed-kick dive with vertical velocity 20. Neither source fact is yet an
+  authenticated hand-to-Y=1280 trace.
+
+Finally, Y `1809` is below the Y=1967 floor's query minimum `1889`. Thus this
+restricted model conditionally lands on Y `1280` while formally excluding
+Y `1967`. It does not prove Y `1280` globally fastest, most useful, or closest
+to the star after ordinary movement.
 
 ## A counterfactual height that would be useful
 
@@ -642,13 +710,11 @@ independently of the kernel event, and the kernel's local floor probe is not
 equated with the vertical relation's absolute Y. Those missing event/height
 correspondence facts belong to the linked refinement obligation.
 
-There is still a trust boundary. The 280-unit mixed-frame hand separation uses
-a manually derived controller-phase invariant whose constants are checked by
-the audit. The kernel's zero-velocity move also assumes that bounciness-zero
-ground response has normalized the idle hand and that no newly selected floor
-is above it. Collision lifetime and the claim that the local Area 3 object set
-contains no other surface provider are likewise syntax-backed arguments, not
-linked semantic lemmas. The project has not linked all generated Clight
+There is still a trust boundary. The old 280-unit mixed-frame separation is
+not a valid global invariant. The narrower double-pound near-miss trace above,
+the kernel's zero-velocity/floor-ready premise, collision lifetime, and the
+claim that the local Area 3 object set contains no other surface provider are
+syntax-backed arguments, not linked semantic lemmas. The project has not linked all generated Clight
 translation units and proved that every whole-program execution refines the
 coupled model. Here, **audited source-shaped** means that the transition cases
 were manually extracted from pinned source and protected by deterministic
@@ -697,6 +763,12 @@ The project now machine-checks these statements:
 - a hand floor cannot trigger the modeled instant warp;
 - a selected Area 3 warp floor changes to Area 2 with Mario's coordinates,
   velocity, and motion state unchanged;
+- conditional on surface ceiling Y `1179` plus the full triple-jump envelope,
+  the corrected Area 3 point `(0,1809,-1024)` selects the warp, sixteen
+  controlled frames reach `(0,1281,-832)`, and the next audited query
+  `(0,1264,-829)` selects and model-snaps to floor Y `1280`;
+- the same certificate proves Y `1809` cannot query floor Y `1967`, while
+  surface-only Y `1179` misses the Y `1280` query minimum by 23;
 - modeled Mario peak `2604` cannot reach the Y `2940`, Y `4429`, Y `4815`, or
   direct-star thresholds; and
 - counterfactually, a hand origin at Y `3627` is sufficient in the integer
@@ -726,6 +798,9 @@ The project still does not prove:
   arithmetic fails, but all predecessor actions have not yet been eliminated;
 - an exact original-controller trace from the hand through the warp to that
   landing;
+- authentic realization of the conditional Y `1280` landing: equality at the
+  surface ceiling, hand boarding, the jump/action predecessor, movement off
+  the dynamic hand onto the static warp, and every source collision substep;
 - how many new A presses an authentic route uses. The high-hand impossibility
   is A-policy-independent, but the generous `+630` Mario rise and both route
   witnesses are not controller-accurate ABC proofs;
@@ -746,6 +821,8 @@ source-shaped repeated-launch seed is excluded for every A policy, and literal
 unbounded finite binary32 Y is disproved. We have additionally disproved the
 old first-hand Y `1179`, second-origin Y `1467`, second-surface Y `1974`, and
 modeled Mario Y `2604` constructions in source-shaped reachability barriers.
-The remaining work is to model actual Mario contact and the lower warp route,
-build controller-accurate released/held/pressed-A traces, and connect the
-source-shaped steps to linked Clight and, if needed, the original ROM.
+The lower Y `1280` landing is now a machine-checked conditional route rather
+than an unknown numerical threshold. The remaining work is to authenticate or
+refute its Mario/hand predecessor, build controller-accurate
+released/held/pressed-A traces, and connect the source-shaped steps to linked
+Clight and, if needed, the original ROM.

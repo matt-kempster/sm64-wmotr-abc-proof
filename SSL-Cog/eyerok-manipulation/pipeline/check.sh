@@ -49,6 +49,9 @@ bash pipeline/assumptions.sh \
   SSLEyerok.Proofs.MarioHandContact \
   mario_hand_contact_certificate_holds
 bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.LowerArea2Entry \
+  lower_area2_entry_certificate_holds
+bash pipeline/assumptions.sh \
   SSLEyerok.Proofs.AuthenticReachability \
   audited_coupled_reachability_certificate_holds
 bash pipeline/assumptions.sh \

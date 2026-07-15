@@ -1,6 +1,6 @@
 # Goal recovery note
 
-Last updated: 2026-07-14 (Mario/hand vertical-contact boundary).
+Last updated: 2026-07-14 (conditional lower Area 2 landing).
 
 ## Objective
 
@@ -31,7 +31,8 @@ The deterministic source audits now pin:
 
 - the exact Area 3 warp quad and zero-displacement destination;
 - the inactive matching Area 2 slot and adjacent return warp;
-- the Area 2 Y=896, 1280, 1967, 2940, 4429, and 4815 route tiers;
+- the Area 2 Y=896, 1280, 1967, 2940, 4429, and 4815 route tiers, including
+  exact floor-list selection at the lower witness's Y=1280 query;
 - the star at `(500,5050,-500)` and its interaction bounds;
 - that the largest upward-facing Area 3 floor vertex is 384 (the old value 896
   was the maximum of every vertex, including walls); and
@@ -44,8 +45,9 @@ The deterministic source audits now pin:
   movement partial-update guards. The conclusion that their whole lifecycle
   excludes a partial update is still a manual source argument; and
 - the Area 3 local object/macro data, closed-hand radius, and positioning
-  constants. The 280-unit mixed-frame separation is a manual controller-phase
-  invariant over those audited constants, not a linked semantic theorem.
+  constants. The previously quoted 280-unit mixed-frame calculation is not a
+  valid global hand-separation invariant; an exact double-pound phase trace is
+  required instead.
 
 `AuthenticKernel.v` extracts those audit-backed premises into an executable
 finite transition function. Its start step computes the ground bit using the
@@ -106,6 +108,29 @@ Never-A can also obtain positive velocity from a B-only speed-kick dive. The
 authenticated fresh-A landing chain when used as a witness; the 512-unit
 backflip envelope is checked separately.
 
+`LowerArea2Entry.v` resolves the next numerical route threshold without
+claiming authentic hand reachability. Conditional on equality at the
+source-shaped surface ceiling Y=1179 and on the full 630-unit triple-jump
+envelope, Mario enters Area 2 at `(0,1809,-1024)`. The source audit verifies
+that this interior point selects the Area 3 instant-warp surface; the north
+edge at Z=-1023 is deliberately avoided because floor-list priority can select
+an overlapping ordinary triangle there. Sixteen controlled arithmetic frames
+reach `(0,1281,-832)` with vertical velocity -67, and the next quarter-step
+query `(0,1264,-829)` selects the actual Y=1280 floor. Rocq separately proves
+that Y=1809 cannot query Y=1967, and that a Mario left at surface Y=1179 with
+no new impulse misses the Y=1280 query minimum 1202 by 23 units.
+
+This is a conditional A-using route calculation, not an authentic execution.
+The proof does not show that the hand reaches its ceiling, that Mario boards
+it, that the triple-jump predecessor chain is possible there, that every one
+of the sixteen frames refines the source collision/controller loop, or that no
+earlier source collision changes the trace. The proved snap is a handwritten
+landing relation tied to the audited query, not a linked Clight step. A backflip envelope
+would peak at Y=1691 and is numerically high enough for Y=1280, but no exact
+backflip route witness has been constructed. Released-A and held-before-start
+routes remain open; held A can still enable a jump kick, and never-A can still
+enable the smaller B-only dive under its source preconditions.
+
 The Mario/area relation proves:
 
 - a hand floor does not trigger the instant warp;
@@ -154,8 +179,10 @@ reachability is now closed.
 3. Prove an event-by-event Clight bridge for the two-hand finite-episode
    premise: every positive episode starts from classified support and has at
    most 288 remaining rise, with no airborne replenishment.
-4. Determine the highest authentic lower Area 2 landing admitted by the
-   Y=1809 Mario ceiling and construct or refute its exact controller trace.
+4. Authenticate or refute the conditional Y=1280 landing under the Y=1809
+   ceiling: prove the hand/Mario predecessor, all quarter-step collision and
+   controller transitions, and the actual landing. Compare fresh-A triple
+   jump, backflip, held-A jump-kick, and never-A speed-kick cases.
 5. Optimize an authentic remaining Area 2 route to the star and count new A
    presses.
    The present work rules out the proposed higher Eyerok shortcut inside the
