@@ -17,12 +17,12 @@ live proof status.
 ## Project route
 
 ```text
-pinned US SM64 Eyerok, object-motion, SSL script, and collision source
+pinned US SM64 Eyerok, Mario, area, SSL script, and collision source
   -> reproducible source audit + CompCert clightgen
   -> generated Clight AST shape certificates
-  -> handwritten nondeterministic vertical transition system
-  -> uniform height invariant
-  -> no-unbounded-rise theorem for that relation
+  -> handwritten Eyerok, Mario/warp, and Area 2 transition systems
+  -> hand-height invariant + route-threshold theorems
+  -> no-unbounded-rise theorem + conditional Area 2 landing witness
   -> original-game refinement (open)
 ```
 
@@ -32,10 +32,11 @@ Generated Clight files are never hand-edited.
 
 The pinned source-ingestion pipeline now generates Clight for the authentic
 Eyerok translation unit, object motion, behavior dispatch, object-list order,
-spawn/list insertion, floor queries, and the SSL script. A deterministic audit
-checks the source pin, vertical writer census, paired instant warps, collision
-bounds, and selected geometry used in the argument about a gravity-zero ground
-launch. Those checks do not themselves prove the launch unreachable.
+spawn/list insertion, floor queries, area change, Mario and airborne stepping,
+platform displacement, interactions, and the SSL script. Deterministic audits
+check the source pin, vertical writer census, paired instant warps, collision
+bounds, Area 2 landing tiers, and the target star. Those checks do not
+themselves prove an authentic route or make the dangerous launch unreachable.
 
 The audit exposes one critical tripwire: the local C state
 `DOUBLE_POUND + grounded + gravity=0` would launch at velocity 100 without
@@ -61,9 +62,19 @@ violation but does not prevent it.
   and relevant dynamic-surface/list call sites; the source audit pins the exact
   impulse and gravity values but does not prove complete semantic update order;
 - every state reachable in the abstract scheduler excludes the runaway seed;
-- the handwritten vertical relation bounds `FirstHand` by absolute Y 1196 and
-  `SecondHand` by absolute Y 2003; and
+- the refined handwritten vertical relation bounds hand origins at absolute Y
+  672 for `FirstHand` and 1467 for `SecondHand`; and
 - no infinite execution of that handwritten relation is unbounded above.
+
+`proofs/RouteCertificate.v` adds a separate Mario/Area 2 result. A hand floor
+does not trigger the modeled instant warp; a selected Area 3 warp floor enters
+Area 2 with Mario's coordinates and velocity unchanged. Adding the maximum
+507-unit hand collision top and a modeled 630-unit triple-jump rise gives a
+Mario peak ceiling of 2604. That is too low for the audited Y=2940 and higher
+shortcut tiers or direct star collection. The combined abstract relations do,
+however, admit a **conditional** landing at `(387,1967,-500)`, the point on the
+Y=1967 platform horizontally closest to the star. The original game has not
+been proved to realize the witness's starting hand pose.
 
 The rank-to-update-order mapping, scheduler-to-vertical coupling, C-to-Rocq
 semantics, and original-game refinement are all open. The project separately
@@ -96,7 +107,6 @@ opam exec --switch sm64-item-proof -- make generated
 opam exec --switch sm64-item-proof -- bash pipeline/check.sh
 ```
 
-The check diff-verifies the source audit, compiles every generated and
+The check diff-verifies both source audits, compiles every generated and
 handwritten module, rejects proof-hole keywords, and prints the assumptions of
-the local capstone, scheduler invariant, infinite-run theorem, and authentic
-lifting theorem.
+the Eyerok, route, scheduler, infinite-run, and authentic-lifting theorems.

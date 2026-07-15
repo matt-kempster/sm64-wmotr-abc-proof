@@ -159,6 +159,16 @@ def main() -> None:
     max_static_vertex_y = max(vertex[1] for vertex in area3_vertices)
     if max_static_vertex_y != 896:
         fail(f"unexpected Area 3 maximum vertex Y: {max_static_vertex_y}")
+    max_upward_floor_vertex_y = max(
+        max(area3_vertices[index][1] for index in triangle)
+        for triangle in area3_triangles
+        if normal_y(*(area3_vertices[index] for index in triangle)) > 0
+    )
+    if max_upward_floor_vertex_y != 384:
+        fail(
+            "unexpected Area 3 upward-floor vertex Y: "
+            f"{max_upward_floor_vertex_y}"
+        )
 
     raised_path_overlaps: list[tuple[int, int, int]] = []
     for triangle in area3_triangles:
@@ -200,6 +210,7 @@ def main() -> None:
     print(f"closed-hand-horizontal-radius-max: {1.5 * math.sqrt(max_closed_radius_sq):.6f}")
     print("raised-static-floor-overlap-with-begin-corridor: none")
     print(f"area3-static-vertex-y-max: {max_static_vertex_y}")
+    print(f"area3-upward-floor-vertex-y-max: {max_upward_floor_vertex_y}")
     print(f"hand-dynamic-top-offset-max: {dynamic_top_offset}")
     print("area2-active-warp: surface-1E -> area3, displacement (0,0,0)")
     print("area3-active-warp: surface-1D -> area2, displacement (0,0,0)")

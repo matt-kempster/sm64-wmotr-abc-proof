@@ -175,9 +175,9 @@ Definition f_eyerok_support_ceiling := {|
 (Ssequence
   (Sifthenelse (Ebinop Oeq (Etempvar _rank tint)
                  (Econst_int (Int.repr 0) tint) tint)
-    (Sreturn (Some (Econst_int (Int.repr 896) tint)))
+    (Sreturn (Some (Econst_int (Int.repr 384) tint)))
     Sskip)
-  (Sreturn (Some (Econst_int (Int.repr 1703) tint))))
+  (Sreturn (Some (Econst_int (Int.repr 1179) tint))))
 |}.
 
 Definition f_eyerok_height_ceiling := {|
@@ -190,9 +190,9 @@ Definition f_eyerok_height_ceiling := {|
 (Ssequence
   (Sifthenelse (Ebinop Oeq (Etempvar _rank tint)
                  (Econst_int (Int.repr 0) tint) tint)
-    (Sreturn (Some (Econst_int (Int.repr 1196) tint)))
+    (Sreturn (Some (Econst_int (Int.repr 672) tint)))
     Sskip)
-  (Sreturn (Some (Econst_int (Int.repr 2003) tint))))
+  (Sreturn (Some (Econst_int (Int.repr 1467) tint))))
 |}.
 
 Definition f_eyerok_clamp_height := {|
@@ -765,7 +765,7 @@ Definition f_eyerok_safe_envelope := {|
               (Sset _t'3
                 (Ecast
                   (Ebinop Ole (Etempvar _t'9 tint)
-                    (Econst_int (Int.repr 300) tint) tint) tbool)))
+                    (Econst_int (Int.repr 288) tint) tint) tbool)))
             (Sset _t'3 (Econst_int (Int.repr 0) tint))))
         (Sifthenelse (Etempvar _t'3 tint)
           (Ssequence

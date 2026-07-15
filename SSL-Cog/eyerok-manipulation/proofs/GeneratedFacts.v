@@ -1,7 +1,8 @@
 From Coq Require Import Bool List PArith.BinPos ZArith.
 From compcert Require Import AST Clight Floats Integers.
-From SSLEyerok.Generated Require behavior_script eyerok_model
-  obj_behaviors_2 object_helpers object_list_processor.
+From SSLEyerok.Generated Require area behavior_script eyerok_model interaction
+  level_update mario mario_actions_airborne mario_step obj_behaviors_2
+  object_helpers object_list_processor platform_displacement.
 
 Import ListNotations.
 
@@ -148,15 +149,15 @@ Fixpoint ident_mem (needle : ident) (ids : list ident) : bool :=
   end.
 
 Definition generated_model_shape : Prop :=
-  stmt_mentions_int_bits 896 (fn_body eyerok_model.f_eyerok_support_ceiling) = true /\
-  stmt_mentions_int_bits 1703 (fn_body eyerok_model.f_eyerok_support_ceiling) = true /\
-  stmt_mentions_int_bits 1196 (fn_body eyerok_model.f_eyerok_height_ceiling) = true /\
-  stmt_mentions_int_bits 2003 (fn_body eyerok_model.f_eyerok_height_ceiling) = true /\
+  stmt_mentions_int_bits 384 (fn_body eyerok_model.f_eyerok_support_ceiling) = true /\
+  stmt_mentions_int_bits 1179 (fn_body eyerok_model.f_eyerok_support_ceiling) = true /\
+  stmt_mentions_int_bits 672 (fn_body eyerok_model.f_eyerok_height_ceiling) = true /\
+  stmt_mentions_int_bits 1467 (fn_body eyerok_model.f_eyerok_height_ceiling) = true /\
   stmt_mentions_int_bits 98 (fn_body eyerok_model.f_eyerok_action_ascent_budget) = true /\
   stmt_mentions_int_bits 288 (fn_body eyerok_model.f_eyerok_action_ascent_budget) = true /\
   stmt_mentions_int_bits 285 (fn_body eyerok_model.f_eyerok_action_ascent_budget) = true /\
   stmt_mentions_int_bits 100 (fn_body eyerok_model.f_eyerok_runaway_frame) = true /\
-  stmt_mentions_int_bits 300 (fn_body eyerok_model.f_eyerok_safe_envelope) = true.
+  stmt_mentions_int_bits 288 (fn_body eyerok_model.f_eyerok_safe_envelope) = true.
 
 Theorem generated_model_shape_holds : generated_model_shape.
 Proof. vm_compute. repeat split; reflexivity. Qed.
@@ -182,4 +183,34 @@ Definition generated_critical_source_shape : Prop :=
     (direct_callees_s (fn_body object_list_processor.f_update_objects)) = true.
 
 Theorem generated_critical_source_shape_holds : generated_critical_source_shape.
+Proof. vm_compute. repeat split; reflexivity. Qed.
+
+Definition generated_route_source_shape : Prop :=
+  ident_mem level_update._check_instant_warp
+    (direct_callees_s (fn_body level_update.f_play_mode_normal)) = true /\
+  ident_mem level_update._area_update_objects
+    (direct_callees_s (fn_body level_update.f_play_mode_normal)) = true /\
+  ident_mem level_update._change_area
+    (direct_callees_s (fn_body level_update.f_check_instant_warp)) = true /\
+  ident_mem area._unload_area
+    (direct_callees_s (fn_body area.f_change_area)) = true /\
+  ident_mem area._load_area
+    (direct_callees_s (fn_body area.f_change_area)) = true /\
+  ident_mem mario._find_floor
+    (direct_callees_s (fn_body mario.f_update_mario_geometry_inputs)) = true /\
+  ident_mem mario_step._apply_gravity
+    (direct_callees_s (fn_body mario_step.f_perform_air_step)) = true /\
+  ident_mem mario_actions_airborne._perform_air_step
+    (direct_callees_s
+      (fn_body mario_actions_airborne.f_common_air_action_step)) = true /\
+  ident_mem platform_displacement._get_mario_pos
+    (direct_callees_s
+      (fn_body platform_displacement.f_apply_platform_displacement)) = true /\
+  ident_mem platform_displacement._set_mario_pos
+    (direct_callees_s
+      (fn_body platform_displacement.f_apply_platform_displacement)) = true /\
+  ident_mem interaction._save_file_collect_star_or_key
+    (direct_callees_s (fn_body interaction.f_interact_star_or_key)) = true.
+
+Theorem generated_route_source_shape_holds : generated_route_source_shape.
 Proof. vm_compute. repeat split; reflexivity. Qed.

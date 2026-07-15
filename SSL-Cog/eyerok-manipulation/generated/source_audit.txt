@@ -13,6 +13,7 @@ begin-double-center-separation-min: 280 (mixed-frame conservative)
 closed-hand-horizontal-radius-max: 256.223535
 raised-static-floor-overlap-with-begin-corridor: none
 area3-static-vertex-y-max: 896
+area3-upward-floor-vertex-y-max: 384
 hand-dynamic-top-offset-max: 507
 area2-active-warp: surface-1E -> area3, displacement (0,0,0)
 area3-active-warp: surface-1D -> area2, displacement (0,0,0)

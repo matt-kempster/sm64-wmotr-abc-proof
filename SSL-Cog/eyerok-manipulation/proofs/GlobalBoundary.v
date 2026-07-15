@@ -29,7 +29,8 @@ Section AuthenticBoundary.
     intros Hrefines run frame Hvalid.
     destruct (Hrefines run frame Hvalid) as (state & Hreach & Hheight).
     rewrite Hheight.
-    exact (every_reachable_hand_below_2003 (authentic_rank run) state Hreach).
+    exact (every_reachable_hand_below_global_ceiling
+      (authentic_rank run) state Hreach).
   Qed.
 
   Theorem authentic_no_unbounded_rise_from_refinement :
