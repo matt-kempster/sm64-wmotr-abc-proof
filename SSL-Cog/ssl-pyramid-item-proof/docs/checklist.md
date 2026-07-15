@@ -1,6 +1,6 @@
 # SSL Pyramid item proof checklist
 
-Last updated: 2026-07-03
+Last updated: 2026-07-14
 
 Tiny vibe check: this is the readable TODO map for the SSL Pyramid item/stale
 pointer proof. The Coq files are the machine truth; this file is the Discord
@@ -147,9 +147,7 @@ executions.
   frames the `spawnInfo->next` store across the direct `gAreas` and
   `sCurrAreaIndex` global-cell reads, proves those final two Ssets really put
   the Area pointer/current area in `_t'6`/`_t'7`, then runs the real Area-list
-  `Sassign`. This needs the explicit global-cell-vs-SpawnInfo block-separation
-  hypotheses; deriving those from the actual allocation/global-memory
-  invariant is still a named future receipt, not magic.
+  `Sassign`. This needs explicit global-cell-vs-SpawnInfo block separation.
   Fresh receipt: the earlier temp/store plumbing is joined up too.
   `exec_level_cmd_place_object_generated_behavior_arg_stage_preserves_receipts`,
   `...behavior_script_stage...`, and `...model_stage...` run the generated
@@ -164,20 +162,44 @@ executions.
   generated post-`activeAreaIndex` tail now carries the area-2 SpawnInfo read
   through every surrounding Sset/store and proves the final `_t'6`/`_t'7`
   values.
-  Remaining seam is narrower again: identify this exact composed suffix inside
-  the complete generated `f_level_cmd_place_object.fn_body`, derive its
-  global-cell-vs-allocated-SpawnInfo block separation from the actual CompCert
-  global/allocation invariant, then feed the surviving same allocated
-  `spawnInfo` pointer into the later `geo_obj_init_spawninfo` call.
+  Fresh body receipt: `level_cmd_place_object_fn_body_contains_generated_tail_footprint`
+  ties the exact generated Clight-shaped tail to the already checked full-body
+  active-area/next/list-head event order. This avoids making Coq flatten the
+  enormous body just to rediscover the same suffix.
+  Fresh pointer handoff receipts:
+  `level_cmd_place_object_area_spawninfos_sassign_effect_stores_spawninfo`
+  proves the Area-list store writes the exact allocated `Vptr`,
+  `spawn_objects_from_info_function_entry_binds_same_spawninfo` proves the
+  callee entry binds that same pointer to its `_spawnInfo` parameter, and
+  `level_cmd_place_object_effect_hands_same_spawninfo_through_function_entry`
+  carries it to the exact `_spawnInfo` argument used by
+  `geo_obj_init_spawninfo`.
+  Allocator plot twist: generated `memory.c` confirms this is not a CompCert
+  `Mem.alloc` per SpawnInfo. `alloc_only_pool_init` gets one region from
+  SM64's manual main pool, and `alloc_only_pool_alloc` bump-returns
+  `pool->freePtr`. `spawninfo_in_level_pool_arena_inherits_global_separation`
+  proves suballocations inherit the arena block's separation, while
+  `fresh_compcert_block_differs_from_global_symbol` proves the standard fresh
+  `Mem.alloc` fact generically.
+- [ ] Pin the one honest allocator foundation premise: the N64 main-pool arena
+  supplied through `SEG_POOL_START` / `SEG_POOL_END` is a CompCert memory block
+  distinct from the `sCurrAreaIndex` and `gAreas` global-cell blocks. The C
+  allocator uses raw absolute N64 addresses and manual pointer arithmetic, so
+  this does **not** follow from `Genv.init_mem` plus `Mem.alloc` alone. It needs
+  the project's N64 absolute-address/linker memory bridge (or an explicit
+  main-pool arena invariant). A ROM is not needed for this; it is a memory-model
+  boundary, not missing asset data.
 - [ ] Derive `generated_unload_execution_trace` from the real
   `f_unload_objects_from_area` 13-list loop. The certificate adapter and
   index-based suffix split are done; the remaining beast is proving the loop
   really reads the circular lists and calls `unload_object` exactly for
   `unload_targets area snapshot`.
 
-In Discord goblin terms: every post-area-byte pit stop is on the same dashcam
-tape now. Next we staple that tape to the giant generated function body and
-prove the heap SpawnInfo cannot secretly be one of the global parking spots.
+In Discord goblin terms: the SpawnInfo dashcam is stapled to the generated
+route and we followed the same pointer into the spawn call. The only allocator
+goblin left here is older than the level: standard CompCert does not know what
+SM64 means by raw address `0x8005C000`, so we need the N64 memory-map bridge
+before claiming that arena/global separation came from thin air.
 
 ## Open tasks by category
 
@@ -377,17 +399,20 @@ prove the scary thing?"
   stores, producing the audited technical counterexample for held grabbables:
   the stale held pointer aliases a live Pyramid-area slot before cleanup, while
   the audited generated path still does not observe/use it before `init_mario`.
-- The remaining missing receipt is now the full source-construction plumbing:
-  connect that exact `level_cmd_place_object` subexecution to the real
-  `f_level_cmd_place_object` allocation/list insertion path, then prove the
-  same spawn pointer is what the later destination spawn loop passes to
-  `geo_obj_init_spawninfo`.
+- The exact post-active-area tail is now pinned to the generated
+  `f_level_cmd_place_object` body receipt, and the Area-list `Mem.store` writes
+  the exact allocated SpawnInfo pointer.
+- The same pointer is proven through `spawn_objects_from_info` parameter
+  binding and the exact second argument of `geo_obj_init_spawninfo`.
+- The remaining allocator foundation is not another SpawnInfo store inversion:
+  it is the N64 raw-address/main-pool-to-CompCert-block bridge described in the
+  active bite above.
 
 ## Things that are probably proof grind, not counterexample smell
 
 - The remaining `geo_remove_child` `_graphNode` / parent-child unlink paperwork.
-- Full-path plumbing from `level_cmd_place_object` spawn-info construction to
-  the later `geo_obj_init_spawninfo` call.
+- The eventual whole-linked caller/callee execution wrapper around the now
+  proven SpawnInfo store/parameter/call-argument handoff.
 - The all-valid-slot cleanup-tail frame once helper calls are linked properly.
 
 Still keep the tripwire: if any outside object pointer or outside graph edge

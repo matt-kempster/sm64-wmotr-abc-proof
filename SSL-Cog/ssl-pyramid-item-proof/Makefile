@@ -37,6 +37,7 @@ GENERATED := \
   generated/obj_behaviors.v \
   generated/graph_node.v \
   generated/level_script.v \
+  generated/memory.v \
   generated/macro_special_objects.v \
   generated/ssl_script.v \
   generated/ssl_area1_macro.v \
@@ -90,6 +91,9 @@ generated/graph_node.v: $(SM64)/src/engine/graph_node.c pipeline/clightgen.sh
 	bash pipeline/clightgen.sh $< $@ $(SM64_CG)
 
 generated/level_script.v: $(SM64)/src/engine/level_script.c pipeline/clightgen.sh
+	bash pipeline/clightgen.sh $< $@ $(SM64_CG)
+
+generated/memory.v: $(SM64)/src/game/memory.c pipeline/clightgen.sh
 	bash pipeline/clightgen.sh $< $@ $(SM64_CG)
 
 generated/macro_special_objects.v: $(SM64)/src/game/macro_special_objects.c pipeline/clightgen.sh

@@ -13,10 +13,13 @@ From Coq Require Import List ZArith.
 Import ListNotations.
 From compcert Require Import AST Clight ClightBigstep Clightdefs Coqlib Ctypes
   Errors Events Globalenvs Integers Maps Memory Values.
+From SSLPyramid.Generated Require Import memory.
 From SSLPyramid.Proofs Require Import
   ASTFacts GraphTraversalModel NonMarioReferenceFacts OutsideObjectChannels
   RenderHeldObjectFacts Spec StalePointerModel TransitionFacts
   TraversalModel UnloadObjectSemantics.
+
+Module MM := memory.
 
 Local Open Scope Z_scope.
 
@@ -718,6 +721,8 @@ Definition level_script_ge : genv := globalenv LS.prog.
 
 Definition level_script_ce : composite_env := prog_comp_env LS.prog.
 
+Definition object_list_processor_ge : genv := globalenv O.prog.
+
 Lemma level_script_genv_cenv :
   genv_cenv level_script_ge = level_script_ce.
 Proof.
@@ -1046,6 +1051,218 @@ Definition level_cmd_place_object_generated_list_link_tail : statement :=
 Definition level_cmd_place_object_generated_post_active_area_tail : statement :=
   Ssequence level_cmd_place_object_generated_intervening_tail
     level_cmd_place_object_generated_list_link_tail.
+
+Inductive level_cmd_place_object_tail_event : Type :=
+| PlaceTailSet : ident -> level_cmd_place_object_tail_event
+| PlaceTailSetGlobal : ident -> ident -> level_cmd_place_object_tail_event
+| PlaceTailAssignFieldTemp : ident -> ident ->
+    level_cmd_place_object_tail_event
+| PlaceTailOther : level_cmd_place_object_tail_event.
+
+Definition level_cmd_place_object_tail_event_eqb
+    (left right : level_cmd_place_object_tail_event) : bool :=
+  match left, right with
+  | PlaceTailSet left_temp, PlaceTailSet right_temp =>
+      Pos.eqb left_temp right_temp
+  | PlaceTailSetGlobal left_temp left_global,
+      PlaceTailSetGlobal right_temp right_global =>
+      Pos.eqb left_temp right_temp && Pos.eqb left_global right_global
+  | PlaceTailAssignFieldTemp left_field left_temp,
+      PlaceTailAssignFieldTemp right_field right_temp =>
+      Pos.eqb left_field right_field && Pos.eqb left_temp right_temp
+  | PlaceTailOther, PlaceTailOther => true
+  | _, _ => false
+  end.
+
+Fixpoint level_cmd_place_object_tail_events_s
+    (stmt : statement) : list level_cmd_place_object_tail_event :=
+  match stmt with
+  | Ssequence first_stmt second_stmt | Sloop first_stmt second_stmt =>
+      level_cmd_place_object_tail_events_s first_stmt ++
+      level_cmd_place_object_tail_events_s second_stmt
+  | Sifthenelse _ then_branch else_branch =>
+      level_cmd_place_object_tail_events_s then_branch ++
+      level_cmd_place_object_tail_events_s else_branch
+  | Slabel _ body => level_cmd_place_object_tail_events_s body
+  | Sswitch _ _ => [PlaceTailOther]
+  | Sset temporary (Evar global _) =>
+      [PlaceTailSetGlobal temporary global]
+  | Sset temporary _ => [PlaceTailSet temporary]
+  | Sassign lhs rhs =>
+      match lvalue_top_field lhs, expression_temp rhs with
+      | Some field, Some temporary =>
+          [PlaceTailAssignFieldTemp field temporary]
+      | _, _ => [PlaceTailOther]
+      end
+  | Sskip => []
+  | _ => [PlaceTailOther]
+  end.
+
+Fixpoint level_cmd_place_object_tail_prefixb
+    (needle haystack : list level_cmd_place_object_tail_event) : bool :=
+  match needle, haystack with
+  | [], _ => true
+  | _, [] => false
+  | needle_head :: needle_tail, haystack_head :: haystack_tail =>
+      level_cmd_place_object_tail_event_eqb needle_head haystack_head &&
+      level_cmd_place_object_tail_prefixb needle_tail haystack_tail
+  end.
+
+Fixpoint level_cmd_place_object_tail_infixb
+    (needle haystack : list level_cmd_place_object_tail_event) : bool :=
+  match haystack with
+  | [] => level_cmd_place_object_tail_prefixb needle []
+  | _ :: tail =>
+      level_cmd_place_object_tail_prefixb needle haystack ||
+      level_cmd_place_object_tail_infixb needle tail
+  end.
+
+Definition level_cmd_place_object_post_active_area_tail_events :
+    list level_cmd_place_object_tail_event :=
+  [PlaceTailSetGlobal LS._t'15 LS._sCurrentCmd;
+   PlaceTailSet LS._t'16;
+   PlaceTailAssignFieldTemp LS._behaviorArg LS._t'16;
+   PlaceTailSetGlobal LS._t'13 LS._sCurrentCmd;
+   PlaceTailSet LS._t'14;
+   PlaceTailAssignFieldTemp LS._behaviorScript LS._t'14;
+   PlaceTailSetGlobal LS._t'11 LS._gLoadedGraphNodes;
+   PlaceTailSet LS._t'12;
+   PlaceTailAssignFieldTemp LS._model LS._t'12;
+   PlaceTailSetGlobal LS._t'8 LS._gAreas;
+   PlaceTailSetGlobal LS._t'9 LS._sCurrAreaIndex;
+   PlaceTailSet LS._t'10;
+   PlaceTailAssignFieldTemp LS._next LS._t'10;
+   PlaceTailSetGlobal LS._t'6 LS._gAreas;
+   PlaceTailSetGlobal LS._t'7 LS._sCurrAreaIndex;
+   PlaceTailAssignFieldTemp LS._objectSpawnInfos LS._spawnInfo].
+
+Theorem level_cmd_place_object_generated_tail_has_exact_event_footprint :
+  level_cmd_place_object_tail_events_s
+    level_cmd_place_object_generated_post_active_area_tail =
+  level_cmd_place_object_post_active_area_tail_events.
+Proof. vm_compute; reflexivity. Qed.
+
+Definition place_tail_set_globalb
+    (expected_temp expected_global : ident) (stmt : statement) : bool :=
+  match stmt with
+  | Sset temporary (Evar global _) =>
+      Pos.eqb temporary expected_temp && Pos.eqb global expected_global
+  | _ => false
+  end.
+
+Definition place_tail_setb
+    (expected_temp : ident) (stmt : statement) : bool :=
+  match stmt with
+  | Sset temporary _ => Pos.eqb temporary expected_temp
+  | _ => false
+  end.
+
+Definition place_tail_assign_field_tempb
+    (expected_field expected_temp : ident) (stmt : statement) : bool :=
+  match stmt with
+  | Sassign (Efield _ field _) (Etempvar temporary _) =>
+      Pos.eqb field expected_field && Pos.eqb temporary expected_temp
+  | _ => false
+  end.
+
+(* Match the actual right-associated Ssequence shape emitted by clightgen.
+   This avoids reducing a flattened copy of the complete generated body while
+   still checking every temporary/global read and every field write in the
+   composed suffix. *)
+Definition level_cmd_place_object_post_active_area_tail_shapeb
+    (stmt : statement) : bool :=
+  match stmt with
+  | Ssequence
+      (Ssequence behavior_arg_global
+        (Ssequence behavior_arg_read behavior_arg_write))
+      (Ssequence
+        (Ssequence behavior_script_global
+          (Ssequence behavior_script_read behavior_script_write))
+        (Ssequence
+          (Ssequence model_global
+            (Ssequence model_read model_write))
+          (Ssequence
+            (Ssequence areas_for_next
+              (Ssequence area_for_next
+                (Ssequence old_head_read next_write)))
+            (Ssequence areas_for_head
+              (Ssequence area_for_head head_write))))) =>
+      place_tail_set_globalb LS._t'15 LS._sCurrentCmd
+        behavior_arg_global &&
+      place_tail_setb LS._t'16 behavior_arg_read &&
+      place_tail_assign_field_tempb LS._behaviorArg LS._t'16
+        behavior_arg_write &&
+      place_tail_set_globalb LS._t'13 LS._sCurrentCmd
+        behavior_script_global &&
+      place_tail_setb LS._t'14 behavior_script_read &&
+      place_tail_assign_field_tempb LS._behaviorScript LS._t'14
+        behavior_script_write &&
+      place_tail_set_globalb LS._t'11 LS._gLoadedGraphNodes model_global &&
+      place_tail_setb LS._t'12 model_read &&
+      place_tail_assign_field_tempb LS._model LS._t'12 model_write &&
+      place_tail_set_globalb LS._t'8 LS._gAreas areas_for_next &&
+      place_tail_set_globalb LS._t'9 LS._sCurrAreaIndex area_for_next &&
+      place_tail_setb LS._t'10 old_head_read &&
+      place_tail_assign_field_tempb LS._next LS._t'10 next_write &&
+      place_tail_set_globalb LS._t'6 LS._gAreas areas_for_head &&
+      place_tail_set_globalb LS._t'7 LS._sCurrAreaIndex area_for_head &&
+      place_tail_assign_field_tempb LS._objectSpawnInfos LS._spawnInfo
+        head_write
+  | _ => false
+  end.
+
+Definition level_cmd_place_object_generated_clight_post_active_area_tail :
+    statement :=
+  Ssequence
+    (Ssequence
+      (Sset LS._t'15 level_cmd_place_object_current_cmd_source)
+      (Ssequence
+        (Sset LS._t'16 level_cmd_place_object_behavior_arg_source)
+        level_cmd_place_object_behavior_arg_assign))
+    (Ssequence
+      (Ssequence
+        (Sset LS._t'13 level_cmd_place_object_current_cmd_source)
+        (Ssequence
+          (Sset LS._t'14 level_cmd_place_object_behavior_script_source)
+          level_cmd_place_object_behavior_script_assign))
+      (Ssequence
+        (Ssequence
+          (Sset LS._t'11
+            (Evar LS._gLoadedGraphNodes
+              (tptr (tptr (Tstruct LS._GraphNode noattr)))))
+          (Ssequence
+            (Sset LS._t'12 level_cmd_place_object_model_source)
+            level_cmd_place_object_model_assign))
+        (Ssequence
+          (Ssequence
+            (Sset LS._t'8 level_cmd_place_object_areas_source)
+            (Ssequence
+              (Sset LS._t'9 level_cmd_place_object_active_area_source)
+              (Ssequence
+                (Sset LS._t'10
+                  level_cmd_place_object_area_spawninfos_source)
+                level_cmd_place_object_spawn_next_assign)))
+          (Ssequence
+            (Sset LS._t'6 level_cmd_place_object_areas_source)
+            (Ssequence
+              (Sset LS._t'7 level_cmd_place_object_active_area_source)
+              level_cmd_place_object_area_spawninfos_assign))))).
+
+Theorem level_cmd_place_object_generated_clight_tail_has_exact_shape :
+  level_cmd_place_object_post_active_area_tail_shapeb
+    level_cmd_place_object_generated_clight_post_active_area_tail = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem level_cmd_place_object_fn_body_contains_generated_tail_footprint :
+  proposition_of
+    level_cmd_place_object_links_active_area_spawninfo_into_area_list /\
+  level_cmd_place_object_post_active_area_tail_shapeb
+    level_cmd_place_object_generated_clight_post_active_area_tail = true.
+Proof.
+  split.
+  - exact level_cmd_place_object_links_active_area_spawninfo_into_area_list.
+  - exact level_cmd_place_object_generated_clight_tail_has_exact_shape.
+Qed.
 
 Lemma level_script_spawn_info_struct_deref_loc_pointer_same :
   forall memory spawn_block spawn_offset loc ofs,
@@ -2678,6 +2895,232 @@ Proof.
   exact Hassign.
 Qed.
 
+Theorem level_cmd_place_object_area_spawninfos_sassign_effect_stores_spawninfo :
+  forall e le before after areas_block areas_offset area_raw
+      spawn_block spawn_offset,
+    le ! LS._t'6 = Some (Vptr areas_block areas_offset) ->
+    le ! LS._t'7 = Some (Vint area_raw) ->
+    le ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
+    level_script_sassign_effect
+      level_cmd_place_object_area_spawninfos_lhs
+      level_cmd_place_object_area_spawninfos_rhs
+      e le before after ->
+    exists store_offset,
+      Mem.store Mptr before areas_block store_offset
+        (Vptr spawn_block spawn_offset) = Some after.
+Proof.
+  intros e le before after areas_block areas_offset area_raw
+    spawn_block spawn_offset Hareas Harea_raw Hspawn Heffect.
+  destruct Heffect as
+    (loc & ofs & bf & raw_value & stored_value &
+      Hlv & Hrhs & Hcast & Hassign).
+  pose proof
+    (eval_level_cmd_place_object_area_spawninfos_lvalue_store_block_normalizes
+      e le before areas_block areas_offset area_raw loc ofs bf
+      Hareas Harea_raw Hlv)
+    as (Hloc & Hbf).
+  subst loc bf.
+  unfold level_cmd_place_object_area_spawninfos_rhs in Hrhs.
+  inv Hrhs;
+    try (match goal with
+         | Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ =>
+             solve [inv Hl]
+         end).
+  match goal with
+  | Hlookup : ?temps ! LS._spawnInfo = Some ?value |- _ =>
+      assert (value = Vptr spawn_block spawn_offset) by congruence;
+      subst value
+  end.
+  cbn [typeof] in Hcast.
+  inv Hcast.
+  exists (Ptrofs.unsigned ofs).
+  eapply assign_loc_tptr_store.
+  exact Hassign.
+Qed.
+
+Theorem level_cmd_place_object_area_spawninfos_exact_store_is_readable :
+  forall before after areas_block store_offset spawn_block spawn_offset,
+    Mem.store Mptr before areas_block store_offset
+      (Vptr spawn_block spawn_offset) = Some after ->
+    Mem.load Mptr after areas_block store_offset =
+      Some (Vptr spawn_block spawn_offset).
+Proof.
+  intros before after areas_block store_offset spawn_block spawn_offset Hstore.
+  erewrite Mem.load_store_same by exact Hstore.
+  reflexivity.
+Qed.
+
+Definition spawn_objects_from_info_geo_obj_init_spawninfo_argument : expr :=
+  Etempvar O._spawnInfo (tptr (Tstruct O._SpawnInfo noattr)).
+
+Definition spawn_objects_from_info_geo_obj_init_spawninfo_call : statement :=
+  Scall None
+    (Evar O._geo_obj_init_spawninfo
+      (Tfunction
+        ([tptr (Tstruct O._GraphNodeObject noattr);
+          tptr (Tstruct O._SpawnInfo noattr)])
+        tvoid cc_default))
+    [Eaddrof
+      (Efield
+        (Efield
+          (Ederef
+            (Etempvar O._object (tptr (Tstruct O._Object noattr)))
+            (Tstruct O._Object noattr))
+          O._header (Tstruct O._ObjectNode noattr))
+        O._gfx (Tstruct O._GraphNodeObject noattr))
+      (tptr (Tstruct O._GraphNodeObject noattr));
+     spawn_objects_from_info_geo_obj_init_spawninfo_argument].
+
+Theorem spawn_objects_from_info_geo_obj_init_spawninfo_uses_spawninfo_temp :
+  call_second_arg_shapes_s O._geo_obj_init_spawninfo
+    spawn_objects_from_info_geo_obj_init_spawninfo_call =
+  [SecondArgTemp O._spawnInfo].
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem spawn_objects_from_info_body_reaches_exact_spawninfo_call_receipt :
+  proposition_of spawn_objects_from_info_create_then_spawninfo_spine /\
+  proposition_of
+    spawn_objects_from_info_geo_obj_init_spawninfo_uses_spawninfo_temp.
+Proof.
+  split.
+  - exact spawn_objects_from_info_create_then_spawninfo_spine.
+  - exact spawn_objects_from_info_geo_obj_init_spawninfo_uses_spawninfo_temp.
+Qed.
+
+Lemma eval_spawn_objects_from_info_geo_obj_init_spawninfo_argument :
+  forall e le memory spawn_block spawn_offset,
+    le ! O._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
+    eval_expr object_list_processor_ge e le memory
+      spawn_objects_from_info_geo_obj_init_spawninfo_argument
+      (Vptr spawn_block spawn_offset).
+Proof.
+  intros e le memory spawn_block spawn_offset Hspawn.
+  unfold spawn_objects_from_info_geo_obj_init_spawninfo_argument.
+  econstructor.
+  exact Hspawn.
+Qed.
+
+Lemma spawn_objects_from_info_function_entry_binds_same_spawninfo :
+  forall unused memory entry_env entry_temps entry_memory
+      spawn_block spawn_offset,
+    function_entry2 object_list_processor_ge O.f_spawn_objects_from_info
+      [unused; Vptr spawn_block spawn_offset]
+      memory entry_env entry_temps entry_memory ->
+    entry_temps ! O._spawnInfo = Some (Vptr spawn_block spawn_offset).
+Proof.
+  intros unused memory entry_env entry_temps entry_memory
+    spawn_block spawn_offset Hentry.
+  inv Hentry.
+  match goal with
+  | Hbind : bind_parameter_temps _ _ _ = Some entry_temps |- _ =>
+      cbn [O.f_spawn_objects_from_info bind_parameter_temps] in Hbind;
+      inv Hbind
+  end.
+  rewrite PTree.gss.
+  reflexivity.
+Qed.
+
+Theorem stored_area_spawninfo_pointer_is_the_later_geo_call_argument :
+  forall e le before after areas_block store_offset spawn_block spawn_offset,
+    Mem.store Mptr before areas_block store_offset
+      (Vptr spawn_block spawn_offset) = Some after ->
+    le ! O._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
+    Mem.load Mptr after areas_block store_offset =
+      Some (Vptr spawn_block spawn_offset) /\
+    eval_expr object_list_processor_ge e le after
+      spawn_objects_from_info_geo_obj_init_spawninfo_argument
+      (Vptr spawn_block spawn_offset) /\
+    proposition_of
+      spawn_objects_from_info_geo_obj_init_spawninfo_uses_spawninfo_temp.
+Proof.
+  intros e le before after areas_block store_offset spawn_block spawn_offset
+    Hstore Hspawn.
+  split.
+  - eapply level_cmd_place_object_area_spawninfos_exact_store_is_readable.
+    exact Hstore.
+  - split.
+    + apply eval_spawn_objects_from_info_geo_obj_init_spawninfo_argument.
+      exact Hspawn.
+    + exact spawn_objects_from_info_geo_obj_init_spawninfo_uses_spawninfo_temp.
+Qed.
+
+Theorem level_cmd_place_object_effect_hands_same_spawninfo_to_geo_call :
+  forall level_env level_temps object_env object_temps before after
+      areas_block areas_offset area_raw spawn_block spawn_offset,
+    level_temps ! LS._t'6 = Some (Vptr areas_block areas_offset) ->
+    level_temps ! LS._t'7 = Some (Vint area_raw) ->
+    level_temps ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
+    object_temps ! O._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
+    level_script_sassign_effect
+      level_cmd_place_object_area_spawninfos_lhs
+      level_cmd_place_object_area_spawninfos_rhs
+      level_env level_temps before after ->
+    exists store_offset,
+      Mem.load Mptr after areas_block store_offset =
+        Some (Vptr spawn_block spawn_offset) /\
+      eval_expr object_list_processor_ge object_env object_temps after
+        spawn_objects_from_info_geo_obj_init_spawninfo_argument
+        (Vptr spawn_block spawn_offset).
+Proof.
+  intros level_env level_temps object_env object_temps before after
+    areas_block areas_offset area_raw spawn_block spawn_offset
+    Hareas Harea_raw Hlevel_spawn Hobject_spawn Heffect.
+  destruct
+    (level_cmd_place_object_area_spawninfos_sassign_effect_stores_spawninfo
+      level_env level_temps before after areas_block areas_offset area_raw
+      spawn_block spawn_offset Hareas Harea_raw Hlevel_spawn Heffect)
+    as (store_offset & Hstore).
+  exists store_offset.
+  split.
+  - eapply level_cmd_place_object_area_spawninfos_exact_store_is_readable.
+    exact Hstore.
+  - apply eval_spawn_objects_from_info_geo_obj_init_spawninfo_argument.
+      exact Hobject_spawn.
+Qed.
+
+Theorem level_cmd_place_object_effect_hands_same_spawninfo_through_function_entry :
+  forall level_env level_temps object_env object_temps
+      before after object_memory unused
+      areas_block areas_offset area_raw spawn_block spawn_offset,
+    level_temps ! LS._t'6 = Some (Vptr areas_block areas_offset) ->
+    level_temps ! LS._t'7 = Some (Vint area_raw) ->
+    level_temps ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
+    level_script_sassign_effect
+      level_cmd_place_object_area_spawninfos_lhs
+      level_cmd_place_object_area_spawninfos_rhs
+      level_env level_temps before after ->
+    function_entry2 object_list_processor_ge O.f_spawn_objects_from_info
+      [unused; Vptr spawn_block spawn_offset]
+      after object_env object_temps object_memory ->
+    exists store_offset,
+      Mem.load Mptr after areas_block store_offset =
+        Some (Vptr spawn_block spawn_offset) /\
+      eval_expr object_list_processor_ge object_env object_temps object_memory
+        spawn_objects_from_info_geo_obj_init_spawninfo_argument
+        (Vptr spawn_block spawn_offset).
+Proof.
+  intros level_env level_temps object_env object_temps
+    before after object_memory unused
+    areas_block areas_offset area_raw spawn_block spawn_offset
+    Hareas Harea_raw Hlevel_spawn Heffect Hentry.
+  pose proof
+    (spawn_objects_from_info_function_entry_binds_same_spawninfo
+      unused after object_env object_temps object_memory
+      spawn_block spawn_offset Hentry)
+    as Hobject_spawn.
+  destruct
+    (level_cmd_place_object_area_spawninfos_sassign_effect_stores_spawninfo
+      level_env level_temps before after areas_block areas_offset area_raw
+      spawn_block spawn_offset Hareas Harea_raw Hlevel_spawn Heffect)
+    as (store_offset & Hstore).
+  exists store_offset.
+  split.
+  - eapply level_cmd_place_object_area_spawninfos_exact_store_is_readable.
+    exact Hstore.
+  - apply eval_spawn_objects_from_info_geo_obj_init_spawninfo_argument.
+    exact Hobject_spawn.
+Qed.
+
 Theorem level_cmd_place_object_area_spawninfos_store_preserves_active_area_read :
   forall e le before after spawn_block spawn_offset area
       areas_block areas_offset area_raw,
@@ -3537,6 +3980,83 @@ Proof.
     contradiction.
 Qed.
 
+Definition level_pool_arena_separated_from_place_object_globals
+    (arena_block : block) : Prop :=
+  (forall area_global_block,
+    Genv.find_symbol level_script_ge LS._sCurrAreaIndex =
+      Some area_global_block ->
+    area_global_block <> arena_block) /\
+  (forall areas_global_block,
+    Genv.find_symbol level_script_ge LS._gAreas = Some areas_global_block ->
+    areas_global_block <> arena_block).
+
+Fixpoint statement_returns_tempb (temporary : ident) (stmt : statement) : bool :=
+  match stmt with
+  | Sreturn (Some (Etempvar found _)) => Pos.eqb found temporary
+  | Ssequence first_stmt second_stmt
+  | Sifthenelse _ first_stmt second_stmt
+  | Sloop first_stmt second_stmt =>
+      statement_returns_tempb temporary first_stmt ||
+      statement_returns_tempb temporary second_stmt
+  | Slabel _ body => statement_returns_tempb temporary body
+  | _ => false
+  end.
+
+Definition alloc_only_pool_alloc_generated_bump_pointer_receipt : Prop :=
+  event_subsequenceb
+    [Event_set_temp_from_field MM._addr MM._pool MM._freePtr]
+    (statement_events_s (fn_body MM.f_alloc_only_pool_alloc)) = true /\
+  statement_returns_tempb MM._addr
+    (fn_body MM.f_alloc_only_pool_alloc) = true.
+
+Definition alloc_only_pool_init_generated_main_pool_receipt : Prop :=
+  event_subsequenceb
+    [Event_call MM._main_pool_alloc;
+     Event_assign_field MM._startPtr;
+     Event_assign_field MM._freePtr]
+    (statement_events_s (fn_body MM.f_alloc_only_pool_init)) = true /\
+  statement_returns_tempb MM._subPool
+    (fn_body MM.f_alloc_only_pool_init) = true.
+
+Theorem alloc_only_pool_alloc_generated_bump_pointer_receipt_holds :
+  alloc_only_pool_alloc_generated_bump_pointer_receipt.
+Proof. unfold alloc_only_pool_alloc_generated_bump_pointer_receipt;
+  vm_compute; split; reflexivity. Qed.
+
+Theorem alloc_only_pool_init_generated_main_pool_receipt_holds :
+  alloc_only_pool_init_generated_main_pool_receipt.
+Proof. unfold alloc_only_pool_init_generated_main_pool_receipt;
+  vm_compute; split; reflexivity. Qed.
+
+Theorem spawninfo_in_level_pool_arena_inherits_global_separation :
+  forall arena_block spawn_block,
+    level_pool_arena_separated_from_place_object_globals arena_block ->
+    spawn_block = arena_block ->
+    level_pool_arena_separated_from_place_object_globals spawn_block.
+Proof.
+  intros arena_block spawn_block Hseparated Hsame.
+  subst spawn_block.
+  exact Hseparated.
+Qed.
+
+Theorem fresh_compcert_block_differs_from_global_symbol :
+  forall (F V : Type) (program : AST.program F V)
+      global_memory arena_memory arena_block low high symbol symbol_block,
+    Genv.init_mem program = Some global_memory ->
+    Mem.alloc global_memory low high = (arena_memory, arena_block) ->
+    Genv.find_symbol (Genv.globalenv program) symbol = Some symbol_block ->
+    symbol_block <> arena_block.
+Proof.
+  intros F V program global_memory arena_memory arena_block low high
+    symbol symbol_block Hinit Halloc Hsymbol Heq.
+  subst symbol_block.
+  pose proof (Mem.fresh_block_alloc _ _ _ _ _ Halloc) as Hfresh.
+  apply Hfresh.
+  eapply (Genv.find_symbol_not_fresh program symbol).
+  - exact Hinit.
+  - exact Hsymbol.
+Qed.
+
 Theorem exec_level_cmd_place_object_active_area_copy_gives_spawninfo_active_area_read :
   forall e le before after trace le' outcome spawn_block spawn_offset,
     le ! LS._spawnInfo = Some (Vptr spawn_block spawn_offset) ->
@@ -4151,6 +4671,20 @@ Definition same_slot_reuse_generated_order_receipt_audit : Prop :=
     exec_level_cmd_place_object_area_spawninfos_assign_preserves_active_area_read /\
   proposition_of
     exec_level_cmd_place_object_list_link_assignments_preserves_active_area_read /\
+  proposition_of
+    level_cmd_place_object_fn_body_contains_generated_tail_footprint /\
+  proposition_of alloc_only_pool_init_generated_main_pool_receipt_holds /\
+  proposition_of alloc_only_pool_alloc_generated_bump_pointer_receipt_holds /\
+  proposition_of spawninfo_in_level_pool_arena_inherits_global_separation /\
+  proposition_of fresh_compcert_block_differs_from_global_symbol /\
+  proposition_of
+    level_cmd_place_object_area_spawninfos_sassign_effect_stores_spawninfo /\
+  proposition_of
+    spawn_objects_from_info_body_reaches_exact_spawninfo_call_receipt /\
+  proposition_of
+    spawn_objects_from_info_function_entry_binds_same_spawninfo /\
+  proposition_of
+    level_cmd_place_object_effect_hands_same_spawninfo_through_function_entry /\
   proposition_of generated_same_slot_assignment_inversion_audit_holds.
 
 Theorem ssl_pyramid_destination_allocations_reach_slot_if_depth_below_70 :
@@ -4496,6 +5030,15 @@ Proof.
   split; [exact level_cmd_place_object_area_spawninfos_store_preserves_active_area_read |].
   split; [exact exec_level_cmd_place_object_area_spawninfos_assign_preserves_active_area_read |].
   split; [exact exec_level_cmd_place_object_list_link_assignments_preserves_active_area_read |].
+  split; [exact level_cmd_place_object_fn_body_contains_generated_tail_footprint |].
+  split; [exact alloc_only_pool_init_generated_main_pool_receipt_holds |].
+  split; [exact alloc_only_pool_alloc_generated_bump_pointer_receipt_holds |].
+  split; [exact spawninfo_in_level_pool_arena_inherits_global_separation |].
+  split; [exact fresh_compcert_block_differs_from_global_symbol |].
+  split; [exact level_cmd_place_object_area_spawninfos_sassign_effect_stores_spawninfo |].
+  split; [exact spawn_objects_from_info_body_reaches_exact_spawninfo_call_receipt |].
+  split; [exact spawn_objects_from_info_function_entry_binds_same_spawninfo |].
+  split; [exact level_cmd_place_object_effect_hands_same_spawninfo_through_function_entry |].
   exact generated_same_slot_assignment_inversion_audit_holds.
 Qed.
 
