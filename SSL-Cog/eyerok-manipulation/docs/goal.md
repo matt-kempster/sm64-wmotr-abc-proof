@@ -1,6 +1,6 @@
 # Goal recovery note
 
-Last updated: 2026-07-14 (Mario/Area 2 route proof).
+Last updated: 2026-07-14 (binary32 boundary proof).
 
 ## Objective
 
@@ -11,7 +11,8 @@ Super Mario 64 source:
    and enter Area 2 at a useful height?
 2. Are the finite Rocq hand-height bounds high enough for a useful Area 2
    landing, especially near the `Inside the Ancient Pyramid` star?
-3. Can original-game Eyerok Y be manipulated into an unbounded ascent?
+3. Can finite binary32 Eyerok Y be manipulated into an unbounded ascent, and
+   can the dangerous upward-control state persist in an authentic run?
 
 The proof must not infer Mario reachability from a hand-origin upper bound.
 Hand movement, Mario/platform contact, floor selection, area change, Area 2
@@ -53,17 +54,25 @@ The trace starts at the maximum hand state admitted by the vertical relation.
 It is not yet an original-game trace because hand X/Z, Mario contact, and
 controller input have not been refined from the pinned Clight program.
 
+The binary32 boundary proof establishes that every finite binary32 height is
+at most `2^128 - 2^104`. It also proves the exact fixed point
+`Float32.add 2^31 100 = 2^31`, stagnation when the recurrence is started
+there, and CompCert's `Float32.to_int 2^31 = None`. Thus literal unbounded
+finite Y is closed independently of scheduler reachability. Persistent action
+or positive velocity, authentic reachability of the dangerous seed, and the
+original ROM's out-of-range conversion remain separate questions.
+
 ## Remaining proof route
 
-1. Add the exact binary32 representation theorem: every finite binary32 Y has
-   a global real bound, and `2^31 + 100` is an exact fixed point.
-2. State separately the Clight source boundary at out-of-range float-to-int
-   conversion and the original IDO/MIPS ROM boundary.
-3. Couple boss scheduling, both hand states, update rank, dynamic surfaces,
+1. Couple boss scheduling, both hand states, update rank, dynamic surfaces,
    Mario contact, and floor selection in one authentic frame relation.
-4. Prove or refute reachability of the conditional hand pose. If unreachable,
+2. Prove or refute reachability of the conditional hand pose. If unreachable,
    replace the Y=1967 trace with the highest reachable landing or a no-useful-
    landing theorem.
+3. Determine whether the dangerous action/positive-velocity state can persist
+   in an authentic run even after binary32 Y stops changing.
+4. Add an IDO/MIPS semantic boundary for the out-of-range float-to-integer
+   conversion if a ROM-level execution claim is required.
 5. If route optimality is required, minimize authentic frames from Area 2
    entry to star collection; geometric distance is only a lower bound.
 

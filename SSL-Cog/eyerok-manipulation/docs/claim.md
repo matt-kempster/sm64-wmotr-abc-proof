@@ -1,6 +1,6 @@
 # Working claim and exact scope
 
-Last updated: 2026-07-14 (Mario/Area 2 route proof).
+Last updated: 2026-07-14 (binary32 boundary proof).
 
 ## Source and toolchain boundary
 
@@ -50,9 +50,9 @@ modeled Mario peak:     1974 + 630 = 2604
 ```
 
 Rocq proves every reachable vertical-relation state stays below the applicable
-origin ceiling and no infinite run of that relation is unbounded. Rank/update-
-order correspondence and original binary32 observation remain refinement
-obligations.
+origin ceiling and no infinite run of that relation is unbounded. The binary32
+representation bound is proved independently; rank/update-order correspondence
+and source-to-model transition refinement remain open.
 
 ## Verdict on the three requested questions
 
@@ -95,14 +95,19 @@ horizontal distance to the star over that platform, at distance 113, but it is
 
 ### 3. Unqualified original-game indefinite ascent
 
-Already proved: no run of the handwritten integer vertical relation is
-unbounded.
+For the project's defined property `rises unboundedly`, the literal
+finite-height claim is disproved at the representation level. Every finite
+binary32 value has the common real upper bound `2^128 - 2^104`. Rocq also
+proves `Float32.add 2^31 100 = 2^31` and that the recurrence remains fixed
+when started there. This conclusion does not depend on excluding the dangerous
+scheduler seed.
 
-Not yet claimed at this commit: the final finite-binary32 theorem and an
-original-ROM semantic refinement. The isolated binary32 `+100` operation is
-known to stagnate at `2^31`, but that fact must be checked in Rocq and stated
-without confusing CompCert's stuck out-of-range cast with original MIPS
-behavior.
+This is not a proof that the authentic game never reaches
+`DOUBLE_POUND + grounded + gravity=0`, that its action or positive velocity
+cannot persist, or that an authentic run reaches exactly `2^31`. CompCert's
+`Float32.to_int 2^31 = None` is also not a statement about how the original
+IDO/MIPS binary handles its out-of-range conversion. Those control-state and
+ROM-semantics questions remain open.
 
 ## C abstraction boundary
 

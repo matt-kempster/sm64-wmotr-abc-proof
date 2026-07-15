@@ -1,6 +1,6 @@
 # Eyerok manipulation proof checklist
 
-Last updated: 2026-07-14 (Mario/Area 2 route proof).
+Last updated: 2026-07-14 (binary32 boundary proof).
 
 ## Current verdict
 
@@ -9,7 +9,8 @@ Mario/Area 2 model proves that a hand floor itself cannot warp, that a selected
 warp floor preserves Mario's state across Area 3 to Area 2, and that modeled
 peak 2604 is too low for Y=2940 or higher route tiers. A conditional trace
 lands at `(387,1967,-500)`. Authentic reachability of its starting hand pose is
-still open.
+still open. Literal unbounded finite binary32 Y is now disproved; authentic
+dangerous-seed reachability and persistent control state remain open.
 
 ## Repository and source
 
@@ -64,9 +65,9 @@ still open.
 
 ## Binary32 and original-game theorem
 
-- [ ] Prove every finite binary32 height stream is real-bounded.
-- [ ] Prove exact `Float32.add 2^31 100 = 2^31` and recurrence stagnation.
-- [ ] Record CompCert's undefined conversion at `2^31` without treating
+- [x] Prove every finite binary32 height stream is real-bounded.
+- [x] Prove exact `Float32.add 2^31 100 = 2^31` and recurrence stagnation.
+- [x] Record CompCert's undefined conversion at `2^31` without treating
   Clight stuckness as an original-ROM theorem.
 - [ ] Add a linked whole-program Clight refinement.
 - [ ] Add an IDO/MIPS correspondence boundary for a ROM-level claim.
@@ -76,7 +77,7 @@ still open.
 - [x] Use Ubuntu WSL and the `sm64-item-proof` opam switch.
 - [x] Run reproducible generation after source-ingestion changes.
 - [x] Compile the route proof modules with no proof holes.
-- [ ] Run the final complete `pipeline/check.sh` after binary32 integration.
+- [x] Run the final complete `pipeline/check.sh` after binary32 integration.
 - [x] Update `Eyerok.md`, project README, and all three planning documents.
 - [ ] Do not push without explicit user approval.
 
@@ -90,3 +91,5 @@ still open.
 - Mario/Area 2 source ingestion.
 - Refined 672/1467 height proof, floor-selected warp model, and conditional
   closest Y=1967 landing certificate.
+- Finite-binary32 global bound, exact `2^31 + 100` fixed point, and explicit
+  CompCert/ROM conversion boundary.

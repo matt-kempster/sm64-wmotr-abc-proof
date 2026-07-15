@@ -22,7 +22,8 @@ pinned US SM64 Eyerok, Mario, area, SSL script, and collision source
   -> generated Clight AST shape certificates
   -> handwritten Eyerok, Mario/warp, and Area 2 transition systems
   -> hand-height invariant + route-threshold theorems
-  -> no-unbounded-rise theorem + conditional Area 2 landing witness
+  -> relation-level and binary32 representation bounds
+  -> conditional Area 2 landing witness
   -> original-game refinement (open)
 ```
 
@@ -76,19 +77,28 @@ however, admit a **conditional** landing at `(387,1967,-500)`, the point on the
 Y=1967 platform horizontally closest to the star. The original game has not
 been proved to realize the witness's starting hand pose.
 
+`proofs/Binary32Boundary.v` proves an independent representation bound:
+finite binary32 hand positions cannot be unbounded as real heights. It also
+proves the exact fixed point `Float32.add 2^31 100 = 2^31` and stagnation of
+the recurrence when started there. These facts disprove literal unbounded
+finite Y; they do not make the dangerous seed unreachable or prove that an
+authentic hand reaches the fixed point. The same module proves
+`Float32.to_int 2^31 = None` in CompCert. Any resulting Clight stuckness is
+conditional on reaching that cast and is not a theorem about the IDO-compiled
+MIPS ROM.
+
 The rank-to-update-order mapping, scheduler-to-vertical coupling, C-to-Rocq
 semantics, and original-game refinement are all open. The project separately
 proves that an idealized mathematical-integer recurrence `Y + 100*n` is
-unbounded. This is not a C execution theorem: the C abstraction uses 32-bit
-`int`, while original Eyerok position is binary32. Repeated original-game
-binary32 `+100` eventually rounds to no position change, although it could
-produce an enormous finite rise if the seed were reachable.
+unbounded. That integer counterexample demonstrates why the scheduler
+precondition matters, but it is not a C execution theorem and does not
+override the binary32 representation bound.
 
 This is not yet a whole-program CompCert simulation of every original SM64
 frame. `proofs/GlobalBoundary.v` is a generic lemma over an arbitrary run type
-and arbitrary Z-valued height function; it does not itself mention Clight or
-binary32. A faithful original-game instantiation, including a sound numeric
-observation, remains open.
+and arbitrary Z-valued height function; it does not itself mention Clight.
+Coupling authentic source transitions and binary32 observations to the small
+route-useful height relation remains open.
 
 ## Build
 
@@ -109,4 +119,5 @@ opam exec --switch sm64-item-proof -- bash pipeline/check.sh
 
 The check diff-verifies both source audits, compiles every generated and
 handwritten module, rejects proof-hole keywords, and prints the assumptions of
-the Eyerok, route, scheduler, infinite-run, and authentic-lifting theorems.
+the Eyerok, route, scheduler, infinite-run, binary32, and authentic-lifting
+theorems.
