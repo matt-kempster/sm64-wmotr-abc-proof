@@ -57,6 +57,15 @@ that equality with the floor clears stale grounding on the frame that starts
 the double pound. No linked theorem yet proves that every whole-program Clight
 or original-ROM execution is represented by this kernel.
 
+`proofs/IdleVelocityInvariant.v` closes the separate inherited-velocity
+candidate. The audit finds exactly three entries into `IDLE` and two
+zero-gravity exits. The Rocq relation preserves the source fact that `IDLE`
+does not necessarily clear velocity, but proves every reachable inherited
+value is nonpositive. It therefore excludes
+`DOUBLE_POUND + airborne + gravity=0 + positive velocity`. This result uses
+the attacked-animation delay and the boss active-hand/terminal handshake; a
+linked whole-program/ROM refinement is still a separate obligation.
+
 The A value is a ghost input because the Eyerok hand code does not read it. It
 shows that changing only A cannot alter this hand-control invariant; it does
 not model new press edges or construct a legal no-A Mario route.

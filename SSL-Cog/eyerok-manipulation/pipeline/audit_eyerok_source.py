@@ -62,6 +62,24 @@ def require(text: str, fragment: str, label: str) -> None:
         fail(f"missing {label}")
 
 
+def c_function_body(text: str, name: str) -> str:
+    """Return a named C function's brace-balanced body."""
+    match = re.search(rf"\b{re.escape(name)}\s*\([^;{{]*\)\s*\{{", text)
+    if match is None:
+        fail(f"missing C function: {name}")
+
+    opening = text.find("{", match.start())
+    depth = 0
+    for index in range(opening, len(text)):
+        if text[index] == "{":
+            depth += 1
+        elif text[index] == "}":
+            depth -= 1
+            if depth == 0:
+                return text[opening + 1 : index]
+    fail(f"unterminated C function: {name}")
+
+
 def sha256(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
@@ -169,9 +187,163 @@ def main() -> None:
     if list(map(int, actions)) != list(range(16)):
         fail(f"unexpected Eyerok hand action values: {actions}")
 
+    hand_functions = {
+        name: c_function_body(eyerok, name)
+        for name in [
+            "eyerok_hand_check_attacked",
+            "eyerok_hand_act_sleep",
+            "eyerok_hand_act_idle",
+            "eyerok_hand_act_show_eye",
+            "eyerok_hand_act_close",
+            "eyerok_hand_act_attacked",
+            "eyerok_hand_act_retreat",
+            "eyerok_hand_act_double_pound",
+        ]
+    }
+    idle_assignment_pattern = r"o->oAction\s*=\s*EYEROK_HAND_ACT_IDLE\s*;"
+    idle_assignment_sources = [
+        name
+        for name, body in hand_functions.items()
+        if re.search(idle_assignment_pattern, body)
+    ]
+    if len(re.findall(idle_assignment_pattern, eyerok)) != 3:
+        fail("IDLE assignment count is not exactly three")
+    if idle_assignment_sources != [
+        "eyerok_hand_act_sleep",
+        "eyerok_hand_act_close",
+        "eyerok_hand_act_retreat",
+    ]:
+        fail(f"unexpected IDLE assignment sources: {idle_assignment_sources}")
+    if any("oVelY" in hand_functions[name] for name in idle_assignment_sources):
+        fail("an IDLE-entry handler unexpectedly reads or writes oVelY")
+
+    idle_body = hand_functions["eyerok_hand_act_idle"]
+    zero_gravity_writes = re.findall(r"o->oGravity\s*=\s*0\.0f\s*;", eyerok)
+    if len(zero_gravity_writes) != 2 or len(
+        re.findall(r"o->oGravity\s*=\s*0\.0f\s*;", idle_body)
+    ) != 2:
+        fail("zero-gravity writes are not exactly the two IDLE exits")
+    require(
+        idle_body,
+        "o->oAction = EYEROK_HAND_ACT_BEGIN_DOUBLE_POUND; o->oGravity = 0.0f;",
+        "IDLE to BEGIN_DOUBLE_POUND zero-gravity exit",
+    )
+    if re.search(
+        r"o->oAction\s*=\s*EYEROK_HAND_ACT_TARGET_MARIO\s*;"
+        r".*?o->oGravity\s*=\s*0\.0f\s*;",
+        idle_body,
+        re.DOTALL,
+    ) is None:
+        fail("missing IDLE to TARGET_MARIO zero-gravity exit")
+
+    all_vel_writes = re.findall(r"o->oVelY\s*=\s*([^;]+);", eyerok)
+    if all_vel_writes != ["30.0f", "50.0f", "100.0f"]:
+        fail(f"unexpected direct vertical-velocity writers: {all_vel_writes}")
     vel_writes = re.findall(r"o->oVelY\s*=\s*([0-9]+(?:\.[0-9]+)?)f", eyerok)
     if vel_writes != ["30.0", "50.0", "100.0"]:
         fail(f"unexpected positive vertical-velocity writers: {vel_writes}")
+    if re.findall(
+        r"o->oVelY\s*=\s*([0-9]+(?:\.[0-9]+)?)f",
+        hand_functions["eyerok_hand_check_attacked"],
+    ) != ["30.0", "50.0"]:
+        fail("ATTACKED/DIE positive-velocity writers changed")
+    if re.findall(
+        r"o->oVelY\s*=\s*([0-9]+(?:\.[0-9]+)?)f",
+        hand_functions["eyerok_hand_act_double_pound"],
+    ) != ["100.0"]:
+        fail("DOUBLE_POUND positive-velocity writer changed")
+    require(
+        hand_functions["eyerok_hand_check_attacked"],
+        "o->oAction = EYEROK_HAND_ACT_ATTACKED; o->oVelY = 30.0f;",
+        "ATTACKED positive-velocity transition",
+    )
+    require(
+        hand_functions["eyerok_hand_check_attacked"],
+        "o->oAction = EYEROK_HAND_ACT_DIE; o->oVelY = 50.0f;",
+        "DIE positive-velocity transition",
+    )
+
+    attacked_body = hand_functions["eyerok_hand_act_attacked"]
+    require(
+        attacked_body,
+        "if (cur_obj_init_anim_and_check_if_end(3)) { o->oAction = EYEROK_HAND_ACT_RECOVER;",
+        "ATTACKED animation-gated RECOVER transition",
+    )
+    if "oVelY" in attacked_body or "oGravity" in attacked_body:
+        fail("ATTACKED handler unexpectedly changes vertical velocity or gravity")
+    attacked_animation_match = re.search(
+        r"0x([0-9A-Fa-f]+),\s*ANIMINDEX_NUMPARTS\(eyerok_seg5_animindex_0500E798\)",
+        attacked_animation,
+    )
+    if attacked_animation_match is None:
+        fail("missing ATTACKED animation length")
+    attacked_animation_frames = int(attacked_animation_match.group(1), 16)
+    attacked_positive_integrations = math.ceil(30 / 4)
+    if attacked_animation_frames < attacked_positive_integrations:
+        fail(
+            "ATTACKED can reach RECOVER before positive velocity expires: "
+            f"{attacked_animation_frames} < {attacked_positive_integrations}"
+        )
+
+    boss_fight_body = c_function_body(eyerok, "eyerok_boss_act_fight")
+    terminal_guard = re.search(
+        r"else\s+if\s*\(o->oEyerokBossUnk1AC\s*==\s*0\s*&&\s*"
+        r"o->oEyerokBossActiveHand\s*==\s*0\)\s*\{(.*)\}\s*$",
+        boss_fight_body,
+        re.DOTALL,
+    )
+    if terminal_guard is None:
+        fail("missing boss zero-active-hand scheduler guard")
+    terminal_guard_body = terminal_guard.group(1)
+    outside_terminal_guard = (
+        boss_fight_body[: terminal_guard.start()] + boss_fight_body[terminal_guard.end() :]
+    )
+    if re.search(
+        r"(?:\+\+o->oEyerokBossUnk104|o->oEyerokBossUnk104--|"
+        r"o->oEyerokBossUnk104\s*=\s*1\s*;)",
+        outside_terminal_guard,
+    ):
+        fail("a terminal Unk104 mutation occurs outside the zero-active-hand guard")
+    require(
+        terminal_guard_body,
+        "if (!eyerok_check_mario_relative_z(400) && ++o->oEyerokBossUnk104 == 0) { o->oEyerokBossUnk104 = 1;",
+        "negative double terminal request",
+    )
+    require(
+        terminal_guard_body,
+        "} else { o->oEyerokBossUnk104--; }",
+        "positive double terminal countdown",
+    )
+    double_body = hand_functions["eyerok_hand_act_double_pound"]
+    if re.search(
+        r"if\s*\(o->parentObj->oEyerokBossUnk104\s*==\s*1\)\s*\{"
+        r".*?o->oAction\s*=\s*EYEROK_HAND_ACT_RETREAT\s*;"
+        r".*?\}\s*else\s+if\s*\(o->parentObj->oEyerokBossActiveHand\s*==\s*"
+        r"o->oBhvParams2ndByte\)",
+        double_body,
+        re.DOTALL,
+    ) is None:
+        fail("DOUBLE_POUND terminal RETREAT check no longer precedes active branch")
+
+    active_clear_pattern = r"o->parentObj->oEyerokBossActiveHand\s*=\s*0\s*;"
+    active_clear_sources = [
+        name
+        for name, body in hand_functions.items()
+        if re.search(active_clear_pattern, body)
+    ]
+    if len(re.findall(active_clear_pattern, eyerok)) != 2 or active_clear_sources != [
+        "eyerok_hand_act_show_eye",
+        "eyerok_hand_act_double_pound",
+    ]:
+        fail(f"unexpected active-hand zero writers: {active_clear_sources}")
+    if re.search(
+        r"if\s*\(o->oMoveFlags\s*&\s*OBJ_MOVE_MASK_ON_GROUND\)\s*\{"
+        r"\s*if\s*\(o->oGravity\s*<\s*-15\.0f\)\s*\{"
+        r"\s*o->parentObj->oEyerokBossActiveHand\s*=\s*0\s*;",
+        double_body,
+        re.DOTALL,
+    ) is None:
+        fail("DOUBLE_POUND active-hand clear is not grounded with gravity < -15")
 
     gravity_writes = re.findall(r"o->oGravity\s*=\s*(-?[0-9]+(?:\.[0-9]+)?)f", eyerok)
     if gravity_writes != ["-4.0", "0.0", "0.0", "-4.0", "-4.0", "-20.0", "-15.0", "-20.0"]:
@@ -470,7 +642,21 @@ def main() -> None:
     print(f"checkout-head: {head}")
     print(f"pin-identical-files: {len(IDENTICAL_PATHS)}")
     print("hand-actions: 0..15")
+    print("idle-entry-writers: SLEEP, CLOSE, RETREAT (exactly 3; none clears oVelY)")
+    print("idle-zero-gravity-exits: BEGIN_DOUBLE_POUND, TARGET_MARIO (exactly 2)")
     print("positive-velY-writes: 30,50,100")
+    print("positive-velY-writer-actions: ATTACKED=30, DIE=50, DOUBLE_POUND=100 (only)")
+    print(
+        "attacked-positive-velocity-expiry: "
+        f"{attacked_positive_integrations} gravity integrations; "
+        f"RECOVER is gated by {attacked_animation_frames}-frame animation "
+        f"({attacked_animation_frames} >= {attacked_positive_integrations})"
+    )
+    print("attacked-handler-vertical-writes: none")
+    print("double-terminal-request: boss Unk104 reaches 1 only behind Unk1AC=0 && active-hand=0")
+    print("double-terminal-consumer: RETREAT check precedes active DOUBLE_POUND branch")
+    print("active-hand-zero-writers: SHOW_EYE and DOUBLE_POUND only")
+    print("double-active-hand-clear: grounded mask && gravity < -15 (only DOUBLE_POUND clear)")
     print("gravity-writer-sequence: -4,0,0,-4,-4,-20,-15,-20")
     print("live-hand-collision-writes: 6, all nonnull")
     print("hand-room-writes: none (spawn default -1)")

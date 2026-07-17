@@ -1,6 +1,6 @@
 # Goal recovery note
 
-Last updated: 2026-07-15 (requested-height package and Clight/A boundaries).
+Last updated: 2026-07-16 (IDLE inherited-velocity invariant).
 
 ## Objective
 
@@ -57,6 +57,15 @@ strict comparison. Rocq proves that no event sequence reaches
 the hand-control result separately covers never pressing A and continuously
 holding A. This argument is a ghost input because the hand code does not read
 A; it is not an ABC press-edge or controller model.
+
+`IdleVelocityInvariant.v` addresses the distinct airborne candidate that the
+kernel did not represent. It tracks `oVelY`, gravity, action, grounding, the
+boss active-hand lock, and the double-pound terminal state. The source audit
+now exhaustively checks all three assignments into `IDLE`, both zero-gravity
+exits, every direct positive `oVelY` writer, the attacked animation delay, and
+the boss lock/terminal guards. Rocq proves every reachable `IDLE` state has
+nonpositive velocity and excludes
+`DOUBLE_POUND + airborne + gravity=0 + positive velocity`.
 
 `DoublePoundTrace.v` replaces the false global separation shortcut with a
 phase-local proof. At relative Z=0, the scaled/cast closed-top slice is
@@ -249,8 +258,10 @@ reachability is now closed.
    press-and-hold schedules separately.
 3. Prove an event-by-event Clight bridge for the two-hand finite-episode
    premise: every positive episode starts from classified support and has at
-   most 288 remaining rise, with no airborne replenishment. Include the exact
-   positive-double near-miss and dynamic-wall response.
+   most 288 remaining rise. The grounded and inherited-positive-velocity
+   zero-gravity seeds are now excluded by source-shaped Rocq invariants; link
+   those invariants to Clight/ROM frames and include the exact positive-double
+   near-miss and dynamic-wall response.
 4. Authenticate or refute the conditional Y=1280 landing under the Y=1809
    ceiling: prove the hand/Mario predecessor, all quarter-step collision and
    controller transitions, and the actual landing. Compare fresh-A triple

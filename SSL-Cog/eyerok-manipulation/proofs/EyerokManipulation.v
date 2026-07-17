@@ -1,7 +1,7 @@
 From Coq Require Import ZArith.
 From SSLEyerok.Proofs Require Import AuthenticReachability Binary32Boundary
   ClightRefinementBoundary DoublePoundTrace FirstHandBarrier GeneratedFacts
-  HeldA1280Barrier SchedulerInvariant Spec StateMachine LowerArea2Entry
+  HeldA1280Barrier IdleVelocityInvariant SchedulerInvariant Spec StateMachine LowerArea2Entry
   MarioHandContact NoA1280Barrier
   PartialUpdateBoundary RequestedHeightVerdict
   TwoHandBarrier VerticalBound.
@@ -20,6 +20,7 @@ Theorem eyerok_no_unbounded_rise_certificate :
   ordinary_capped_held_a_wall_verdict /\
   double_pound_trace_certificate /\
   partial_update_boundary_certificate /\
+  idle_velocity_invariant_certificate /\
   lower_area2_entry_certificate /\
   requested_height_verdict_package /\
   (forall scheduler,
@@ -44,6 +45,7 @@ Proof.
   refine (conj ordinary_capped_held_a_wall_verdict_holds _).
   refine (conj double_pound_trace_certificate_holds _).
   refine (conj partial_update_boundary_certificate_holds _).
+  refine (conj idle_velocity_invariant_certificate_holds _).
   refine (conj lower_area2_entry_certificate_holds _).
   refine (conj requested_height_verdict_package_holds _).
   refine (conj reachable_scheduler_excludes_runaway_seed _).

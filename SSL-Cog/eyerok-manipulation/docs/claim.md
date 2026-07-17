@@ -1,6 +1,6 @@
 # Working claim and exact scope
 
-Last updated: 2026-07-15 (requested-height package and Clight/A boundaries).
+Last updated: 2026-07-16 (IDLE inherited-velocity invariant).
 
 ## Source and toolchain boundary
 
@@ -110,6 +110,15 @@ event replenishes that budget while already airborne. The source audits and
 launch kernel support this premise, but the event-by-event linked Clight
 theorem remains open.
 
+The proposed `DOUBLE_POUND + airborne + gravity=0 + oVelY>0` route is now
+handled explicitly rather than hidden inside that premise. The pinned source
+has exactly three `IDLE` writers—`SLEEP`, `CLOSE`, and `RETREAT`—and none
+clears or positively writes `oVelY`. The new velocity-aware relation preserves
+that source behavior and proves the inherited value is always nonpositive.
+The `DOUBLE_POUND -> RETREAT` case uses the boss active-hand lock: its terminal
+request is available only with no active hand, while a positive double-pound
+episode retains the lock until grounded under negative gravity.
+
 ### Double-pound and partial-update refinement
 
 The earlier 280-unit mixed-frame hand-separation claim was false: the hands
@@ -177,12 +186,14 @@ its speed/stick preconditions. The 630-unit model allowance is the exact
 ordinary triple-jump sequence and requires a fresh-A predecessor chain for an
 authentic witness; the backflip envelope is 512.
 
-The executable finite kernel proves that the only control seed capable of
-repeated zero-gravity 100-unit launches is unreachable. The proof quantifies
-over every modeled boss/player event and every A-button policy. Never pressing
-A and continuously holding A are explicit corollaries. A is a ghost parameter
-because the hand code does not read it; this is not a controller-accurate ABC
-or new-press-count theorem.
+The executable finite kernel proves that the grounded zero-gravity launch seed
+is unreachable. `IdleVelocityInvariant.v` separately proves that the airborne
+zero-gravity, positive-velocity seed is unreachable. Together they close both
+identified control paths to repeated zero-gravity ascent in the audited
+source-shaped models. The kernel result quantifies over every modeled
+boss/player event and every A-button policy. A is a ghost parameter because
+the hand code does not read it; this is not a controller-accurate ABC or
+new-press-count theorem.
 
 ### Conditional lower Area 2 threshold
 
@@ -441,8 +452,10 @@ API as original gameplay.
   semantic Clight lemmas if a fully linked theorem is required.
 - Prove the linked finite-episode classification used by the two-hand barrier:
   all positive second-hand writes start from classified support, carry at most
-  288 remaining rise, and cannot replenish that rise while airborne. Refine
-  the exact double-pound trace and conservative wall response.
+  288 remaining rise, and cannot replenish that rise while airborne. The two
+  identified zero-gravity seeds are closed in source-shaped Rocq relations;
+  what remains is their linked Clight/ROM refinement plus the exact
+  double-pound trace and conservative wall response.
 - Prove that the linked object's complete writer set refines the partial-update
   lifecycle, including time-stop classification and absence of external room,
   collision-null, FAR_AWAY, or IN_DIFFERENT_ROOM writes.
