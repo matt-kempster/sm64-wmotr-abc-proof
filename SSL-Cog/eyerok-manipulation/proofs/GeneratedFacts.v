@@ -375,6 +375,48 @@ Definition generated_critical_source_shape : Prop :=
 Theorem generated_critical_source_shape_holds : generated_critical_source_shape.
 Proof. vm_compute. repeat split; reflexivity. Qed.
 
+(** Syntactic Clight witnesses for the audited nonlethal lifecycle.  These
+    facts pin the generated translation unit to the named handlers and action
+    constants used by [NonlethalNoStacking].  They do not replace a dynamic
+    Clight-to-lifecycle refinement. *)
+Definition generated_nonlethal_lifecycle_shape : Prop :=
+  stmt_mentions_int_bits 2
+    (fn_body obj_behaviors_2.f_eyerok_hand_check_attacked) = true /\
+  stmt_mentions_int_bits 12
+    (fn_body obj_behaviors_2.f_eyerok_hand_check_attacked) = true /\
+  stmt_mentions_int_bits 15
+    (fn_body obj_behaviors_2.f_eyerok_hand_check_attacked) = true /\
+  ident_mem obj_behaviors_2._eyerok_hand_check_attacked
+    (direct_callees_s
+      (fn_body obj_behaviors_2.f_eyerok_hand_act_show_eye)) = true /\
+  stmt_mentions_int_bits 13
+    (fn_body obj_behaviors_2.f_eyerok_hand_act_attacked) = true /\
+  stmt_mentions_int_bits 14
+    (fn_body obj_behaviors_2.f_eyerok_hand_act_recover) = true /\
+  stmt_mentions_int_bits 5
+    (fn_body obj_behaviors_2.f_eyerok_hand_act_become_active) = true /\
+  ident_mem obj_behaviors_2._approach_f32_ptr
+    (direct_callees_s
+      (fn_body obj_behaviors_2.f_eyerok_hand_act_retreat)) = true /\
+  stmt_mentions_int_bits 1
+    (fn_body obj_behaviors_2.f_eyerok_hand_act_retreat) = true /\
+  stmt_mentions_int_bits 2
+    (fn_body obj_behaviors_2.f_eyerok_hand_act_idle) = true /\
+  stmt_mentions_int_bits 3
+    (fn_body obj_behaviors_2.f_eyerok_hand_act_open) = true /\
+  ident_mem obj_behaviors_2._obj_set_hitbox
+    (direct_callees_s (fn_body obj_behaviors_2.f_obj_check_attacks)) = true /\
+  ident_before obj_behaviors_2._eyerok_hand_act_show_eye
+    obj_behaviors_2._obj_check_attacks
+    (direct_callees_s (fn_body obj_behaviors_2.f_bhv_eyerok_hand_loop)) = true /\
+  ident_before obj_behaviors_2._obj_check_attacks
+    obj_behaviors_2._cur_obj_move_standard
+    (direct_callees_s (fn_body obj_behaviors_2.f_bhv_eyerok_hand_loop)) = true.
+
+Theorem generated_nonlethal_lifecycle_shape_holds :
+  generated_nonlethal_lifecycle_shape.
+Proof. vm_compute. repeat split; reflexivity. Qed.
+
 Definition generated_route_source_shape : Prop :=
   ident_mem level_update._check_instant_warp
     (direct_callees_s (fn_body level_update.f_play_mode_normal)) = true /\

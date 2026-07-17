@@ -169,6 +169,7 @@ def main() -> None:
     eyerok = pinned(sm64, "src/game/behaviors/eyerok.inc.c")
     constants = pinned(sm64, "include/object_constants.h")
     helpers = pinned(sm64, "src/game/object_helpers.c")
+    object_behaviors = pinned(sm64, "src/game/obj_behaviors_2.c")
     behavior_script = pinned(sm64, "src/engine/behavior_script.c")
     behavior_data = pinned(sm64, "data/behavior_data.c")
     object_lists = pinned(sm64, "src/game/object_list_processor.c")
@@ -197,11 +198,55 @@ def main() -> None:
             "eyerok_hand_act_show_eye",
             "eyerok_hand_act_close",
             "eyerok_hand_act_attacked",
+            "eyerok_hand_act_recover",
+            "eyerok_hand_act_become_active",
             "eyerok_hand_act_die",
             "eyerok_hand_act_retreat",
             "eyerok_hand_act_double_pound",
         ]
     }
+
+    hitbox_match = re.search(
+        r"struct\s+ObjectHitbox\s+sEyerokHitbox\s*=\s*\{(.*?)\};",
+        eyerok,
+        re.DOTALL,
+    )
+    if hitbox_match is None:
+        fail("missing Eyerok hitbox")
+    hitbox_body = hitbox_match.group(1)
+    require(hitbox_body, "/* health: */ 4,", "Eyerok initial health 4")
+
+    set_hitbox_body = c_function_body(helpers, "obj_set_hitbox")
+    require(
+        set_hitbox_body,
+        "if (!(obj->oFlags & OBJ_FLAG_30)) { obj->oFlags |= OBJ_FLAG_30;",
+        "one-time hitbox initialization guard",
+    )
+    require(
+        set_hitbox_body,
+        "obj->oHealth = hitbox->health;",
+        "one-time hitbox health initialization",
+    )
+
+    attacked_check_body = hand_functions["eyerok_hand_check_attacked"]
+    if len(re.findall(r"--o->oHealth", eyerok)) != 1:
+        fail("Eyerok health predecrement count is not exactly one")
+    if len(re.findall(r"o->oHealth", eyerok)) != 1:
+        fail("Eyerok hand behavior has an unexpected health access")
+    require(
+        attacked_check_body,
+        "if (--o->oHealth >= 2) { "
+        "o->oAction = EYEROK_HAND_ACT_ATTACKED; o->oVelY = 30.0f; "
+        "} else { o->parentObj->oEyerokBossNumHands--; "
+        "o->oAction = EYEROK_HAND_ACT_DIE; o->oVelY = 50.0f; }",
+        "health 4/3 nonlethal and health 2 lethal branch",
+    )
+
+    show_eye_body = hand_functions["eyerok_hand_act_show_eye"]
+    if show_eye_body.count("eyerok_hand_check_attacked()") != 1:
+        fail("SHOW_EYE does not call the attack consumer exactly once")
+    if len(re.findall(r"\beyerok_hand_check_attacked\s*\(\s*\)", eyerok)) != 1:
+        fail("attack response is called outside SHOW_EYE")
     idle_assignment_pattern = r"o->oAction\s*=\s*EYEROK_HAND_ACT_IDLE\s*;"
     idle_assignment_sources = [
         name
@@ -286,6 +331,150 @@ def main() -> None:
             "ATTACKED can reach RECOVER before positive velocity expires: "
             f"{attacked_animation_frames} < {attacked_positive_integrations}"
         )
+
+    # The ordinary arena-floor schedule reaches equality on movement 14 and
+    # triggers the strict-below-floor snap with zero bounciness on movement
+    # 15.  This is stronger than merely waiting for velocity to become
+    # nonpositive after eight integrations.
+    attacked_velocity = 30
+    attacked_relative_y = 0
+    attacked_ground_trace: list[tuple[int, int, bool]] = []
+    for _ in range(attacked_animation_frames):
+        attacked_velocity -= 4
+        candidate_y = attacked_relative_y + attacked_velocity
+        grounded = candidate_y < 0
+        if grounded:
+            attacked_relative_y = 0
+            if attacked_velocity < 0:
+                attacked_velocity = 0
+        else:
+            attacked_relative_y = candidate_y
+        attacked_ground_trace.append(
+            (attacked_relative_y, attacked_velocity, grounded)
+        )
+        if grounded:
+            break
+    expected_attacked_ground_trace = [
+        (26, 26, False),
+        (48, 22, False),
+        (66, 18, False),
+        (80, 14, False),
+        (90, 10, False),
+        (96, 6, False),
+        (98, 2, False),
+        (96, -2, False),
+        (90, -6, False),
+        (80, -10, False),
+        (66, -14, False),
+        (48, -18, False),
+        (26, -22, False),
+        (0, -26, False),
+        (0, 0, True),
+    ]
+    if attacked_ground_trace != expected_attacked_ground_trace:
+        fail(f"unexpected nonlethal ground trace: {attacked_ground_trace}")
+    attacked_ground_integrations = len(attacked_ground_trace)
+    if attacked_animation_frames < attacked_ground_integrations:
+        fail(
+            "ATTACKED can recover before the ordinary ground reset: "
+            f"{attacked_animation_frames} < {attacked_ground_integrations}"
+        )
+
+    recover_body = hand_functions["eyerok_hand_act_recover"]
+    become_active_body = hand_functions["eyerok_hand_act_become_active"]
+    retreat_body = hand_functions["eyerok_hand_act_retreat"]
+    close_body = hand_functions["eyerok_hand_act_close"]
+    require(
+        recover_body,
+        "if (cur_obj_init_anim_and_check_if_end(0)) { "
+        "o->oAction = EYEROK_HAND_ACT_BECOME_ACTIVE; }",
+        "RECOVER to BECOME_ACTIVE transition",
+    )
+    require(
+        become_active_body,
+        "if (o->parentObj->oEyerokBossActiveHand == 0 || "
+        "o->parentObj->oEyerokBossNumHands != 2) { "
+        "o->oAction = EYEROK_HAND_ACT_RETREAT;",
+        "BECOME_ACTIVE to RETREAT transition",
+    )
+    require(
+        retreat_body,
+        "if (approach_f32_ptr(&o->oPosY, o->oHomeY, 20.0f) "
+        "&& distToHome == 0.0f && o->oFaceAngleYaw == 0) { "
+        "o->oAction = EYEROK_HAND_ACT_IDLE;",
+        "RETREAT exact-home IDLE guard",
+    )
+    require(
+        close_body,
+        "if (o->parentObj->oEyerokBossNumHands != 2) { "
+        "o->oAction = EYEROK_HAND_ACT_RETREAT; "
+        "o->parentObj->oEyerokBossActiveHand = o->oBhvParams2ndByte; "
+        "} else if (o->parentObj->oEyerokBossActiveHand == 0) { "
+        "o->oAction = EYEROK_HAND_ACT_IDLE;",
+        "CLOSE retreat-or-idle recovery branch",
+    )
+
+    action_writer_expectations = {
+        "ATTACKED": ["eyerok_hand_check_attacked"],
+        "RECOVER": ["eyerok_hand_act_attacked"],
+        "BECOME_ACTIVE": ["eyerok_hand_act_recover"],
+        "OPEN": ["eyerok_hand_act_idle"],
+        "SHOW_EYE": ["eyerok_hand_act_open"],
+    }
+    for action, expected_sources in action_writer_expectations.items():
+        pattern = rf"o->oAction\s*=\s*EYEROK_HAND_ACT_{action}\s*;"
+        actual_sources = [
+            name for name, body in hand_functions.items() if re.search(pattern, body)
+        ]
+        if actual_sources != expected_sources:
+            fail(f"unexpected {action} action writers: {actual_sources}")
+
+    approach_body = c_function_body(object_behaviors, "approach_f32_ptr")
+    require(
+        approach_body,
+        "if (*px > target) { delta = -delta; } *px += delta;",
+        "approach direction and update",
+    )
+    require(
+        approach_body,
+        "if ((*px - target) * delta >= 0) { "
+        "*px = target; return TRUE; } return FALSE;",
+        "approach exact-target success clamp",
+    )
+
+    hand_loop_body = c_function_body(eyerok, "bhv_eyerok_hand_loop")
+    if len(re.findall(r"o->oEyerokReceivedAttack\s*=", eyerok)) != 1:
+        fail("attack latch overwrite count is not exactly one")
+    if len(re.findall(r"o->oEyerokReceivedAttack", eyerok)) != 2:
+        fail("attack latch has an unexpected read or write")
+    require(
+        hand_loop_body,
+        "o->oEyerokReceivedAttack = "
+        "obj_check_attacks(&sEyerokHitbox, o->oAction); "
+        "cur_obj_move_standard(-78);",
+        "handler then attack-latch overwrite then movement order",
+    )
+
+    check_attacks_body = c_function_body(object_behaviors, "obj_check_attacks")
+    require(
+        check_attacks_body,
+        "obj_set_hitbox(o, hitbox);",
+        "attack check initializes hitbox",
+    )
+    if check_attacks_body.count("o->oInteractStatus = 0;") != 2:
+        fail("obj_check_attacks interaction-status clear count changed")
+    require(
+        check_attacks_body,
+        "attackType = o->oInteractStatus & INT_STATUS_ATTACK_MASK; "
+        "obj_die_if_health_non_positive(); o->oInteractStatus = 0; "
+        "return attackType;",
+        "current-frame attack-mask return",
+    )
+    require(
+        check_attacks_body,
+        "o->oInteractStatus = 0; return 0;",
+        "no-attack latch overwrite value",
+    )
 
     boss_fight_body = c_function_body(eyerok, "eyerok_boss_act_fight")
     terminal_guard = re.search(
@@ -676,6 +865,19 @@ def main() -> None:
     print(f"checkout-head: {head}")
     print(f"pin-identical-files: {len(IDENTICAL_PATHS)}")
     print("hand-actions: 0..15")
+    print("hand-health: initialized once to 4; accepted hits are 4->3, 3->2, 2->1")
+    print("nonlethal-health-branches: 4->3 and 3->2; 2->1 enters DIE")
+    print("attack-consumer: exactly one call, inside SHOW_EYE")
+    print("attack-latch: overwritten after each non-SLEEP handler; interaction status cleared")
+    print(
+        "nonlethal-reexposure-chain: "
+        "ATTACKED->RECOVER->BECOME_ACTIVE->RETREAT->IDLE->OPEN->SHOW_EYE"
+    )
+    print(
+        "post-exposure-close: "
+        "CLOSE->RETREAT in one-hand phase; CLOSE->IDLE in two-hand phase"
+    )
+    print("retreat-idle-gate: approach clamps Y exactly to home before IDLE")
     print("idle-entry-writers: SLEEP, CLOSE, RETREAT (exactly 3; none clears oVelY)")
     print("idle-zero-gravity-exits: BEGIN_DOUBLE_POUND, TARGET_MARIO (exactly 2)")
     print("positive-velY-writes: 30,50,100")
@@ -685,6 +887,12 @@ def main() -> None:
         f"{attacked_positive_integrations} gravity integrations; "
         f"RECOVER is gated by {attacked_animation_frames}-frame animation "
         f"({attacked_animation_frames} >= {attacked_positive_integrations})"
+    )
+    print(
+        "attacked-home-ground-reset: "
+        f"{attacked_ground_integrations} gravity integrations; "
+        f"animation gate {attacked_animation_frames} >= "
+        f"{attacked_ground_integrations}"
     )
     print("attacked-handler-vertical-writes: none")
     print("double-terminal-request: boss Unk104 reaches 1 only behind Unk1AC=0 && active-hand=0")

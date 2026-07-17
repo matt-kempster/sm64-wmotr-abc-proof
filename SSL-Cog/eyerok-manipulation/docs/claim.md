@@ -1,6 +1,6 @@
 # Working claim and exact scope
 
-Last updated: 2026-07-16 (US-ROM attack/reboarding and steering probes).
+Last updated: 2026-07-16 (nonlethal recovery/no-stacking theorem).
 
 ## Source and toolchain boundary
 
@@ -104,11 +104,13 @@ Area 2 Y=1967 query minimum:      1967 - 78 = 1889
 
 Thus the source-shaped barrier strictly excludes second origin 1467, second
 surface 1974, modeled Mario Y=2604, and even selection of the Area 2 Y=1967
-floor. The load-bearing refinement premise is that every new positive episode
+floor. The remaining load-bearing refinement premise is that every new positive episode
 starts from classified support and carries at most 288 remaining rise; no
 event replenishes that budget while already airborne. The source audits and
-launch kernel support this premise, but the event-by-event linked Clight
-theorem remains open.
+launch kernel support this premise, and the source-shaped nonlethal
+`ATTACKED` reset subcase is now proved. The broader event-by-event linked
+Clight theorem remains open for support classification and the other positive
+episodes.
 
 The proposed `DOUBLE_POUND + airborne + gravity=0 + oVelY>0` route is now
 handled explicitly rather than hidden inside that premise. The pinned source
@@ -126,6 +128,28 @@ latch, and the boss may advance its double-pound scheduler only when both
 `ActiveHand` and `Unk1AC` are zero. The audit enumerates every `Unk1AC`
 assignment and checks this two-field guard, so clearing `ActiveHand` alone
 cannot create the candidate cross-hand sequence.
+
+### Nonlethal impulses do not stack
+
+`NonlethalNoStacking.v` packages the repeated-hit argument as one labeled
+source-shaped lifecycle. The post-initialization hand begins at health 4.
+Accepted hits `4->3` and `3->2` enter `ATTACKED` with velocity 30 and gravity
+-4; the audited `2->1` branch is lethal. The relation tracks relative Y,
+velocity, gravity, grounding, ATTACKED age, the previous-frame attack flag,
+accepted-hit count, and whether the accepted hit still owes a home reset.
+
+Rocq proves that each airborne nonlethal impulse contributes at most 98 units
+above its own origin. It also proves that every trace from one accepted
+nonlethal hit to another contains `RETREAT -> IDLE`, where the pinned handler
+has clamped Y exactly to `oHomeY` and inherited velocity is nonpositive. This
+rules out `+98 +98` accumulation from nonlethal impulses themselves.
+
+The conclusion is deliberately an intervening-reset statement. It does not
+assert that the second hit must occur at home if another hand, floor snap, or
+later action raises it after the reset. Those are separately bounded support
+episodes. Generated-Clight shape facts and the deterministic source audit pin
+the handler graph and constants, but a dynamic whole-program Clight/ROM
+refinement remains open.
 
 ### Double-pound and partial-update refinement
 

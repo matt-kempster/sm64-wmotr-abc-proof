@@ -478,7 +478,69 @@ positive one. `IdleVelocityInvariant.v` formalizes this control/velocity lock
 and proves the airborne zero-gravity positive-velocity seed unreachable in
 its over-approximating relation.
 
-Here is the relevant frame sequence in plain English:
+### Can two nonlethal hits stack their height?
+
+No. A single hand starts with health 4. Its first accepted eye hit changes
+health from 4 to 3 and starts `ATTACKED`; its second changes 3 to 2 and starts
+another `ATTACKED`; a third changes 2 to 1 and enters `DIE`. There are two
+nonlethal rises per hand, not an unlimited supply.
+
+More importantly, the second nonlethal hit cannot be accepted while the first
+rise or its recovery is still in progress. The only handler that consumes the
+one-frame attack flag is `SHOW_EYE`. After an accepted nonlethal hit, the only
+route back to an action that can expose and consume another hit is:
+
+```text
+ATTACKED -> RECOVER -> BECOME_ACTIVE -> RETREAT
+         -> IDLE -> OPEN -> SHOW_EYE
+```
+
+`BECOME_ACTIVE` may wait for the boss, but it cannot skip `RETREAT`. The
+`RETREAT -> IDLE` branch runs only after `approach_f32_ptr` has clamped the
+hand's Y exactly to its home Y. At that point inherited vertical velocity is
+nonpositive. The attack flag is recomputed after each non-sleep handler, so a
+hit detected during recovery is not a persistent request that can bypass this
+chain. A hit detected on the final `OPEN -> SHOW_EYE` frame may be consumed on
+the next frame, but that is already after the reset.
+
+If the eye closes without accepting that next hit, `CLOSE` returns either to
+`IDLE` in the two-hand phase or to `RETREAT` in the one-hand phase. The latter
+route performs another exact-home reset before the hand can reopen; neither
+branch bypasses the reset already required after `ATTACKED`.
+
+`NonlethalNoStacking.v` combines these facts in one axiom-free, labeled Rocq
+lifecycle. It tracks health, Y, velocity, gravity, grounding, attack age, the
+attack flag, accepted-hit count, and a proof-only “home reset owed” bit. An
+accepted nonlethal hit sets that bit. Only the genuine `RETREAT -> IDLE` event
+clears it. Rocq proves that every trace between two accepted nonlethal hits
+contains that reset event. It separately proves that the airborne part of each
+velocity-30, gravity-`-4` response rises at most 98 units above that hit's
+origin.
+
+For example, an ordinary hit beginning at home Y `-1534` peaks at `-1436`,
+then the lifecycle passes through home Y `-1534` before another hit can be
+accepted. With no other raising mechanism, the second hit also peaks at
+`-1436`, not `-1338`.
+
+There is an important limit to that example. After the required home reset,
+another hand, a floor snap, or a later boss action could in principle put the
+hand on a different support before its eye is hit again. If that happened,
+the next 98-unit impulse would be measured from the new support. That would be
+a separate support/geometry mechanism, not retained height from the first
+nonlethal impulse. The first- and two-hand barriers are responsible for
+bounding those supports. The new theorem therefore proves **a home-Y reset
+occurs between successive nonlethal hits**; it does not claim every later hit
+must itself occur at home under every possible intervening geometry.
+
+The generated Clight AST is machine-checked for the named handlers, action
+constants, hitbox call, and handler/attack-check/movement call order. The
+source audit additionally checks health initialization, the unique attack
+consumer, the exact recovery graph, attack-flag overwrite, the 15-movement
+ordinary ground return, and the 25-frame ATTACKED gate. What remains open is a
+dynamic whole-program Clight/ROM refinement showing every real frame is
+represented by this lifecycle.
+
+Here is the relevant double-pound frame sequence in plain English:
 
 ```text
 Frame 0: IDLE chooses BEGIN_DOUBLE_POUND and writes gravity = 0.
@@ -1074,6 +1136,10 @@ The project now machine-checks these statements:
 - the velocity-aware `IDLE` relation proves every reachable `IDLE` entry has
   `oVelY <= 0`, and therefore no reachable modeled state is
   `DOUBLE_POUND + airborne + gravity 0 + oVelY > 0`;
+- the unified nonlethal lifecycle proves two nonlethal health transitions per
+  hand, at most 98 units of airborne rise per nonlethal impulse, and a genuine
+  exact-home `RETREAT -> IDLE` reset with nonpositive velocity between any two
+  accepted nonlethal hits;
 - the exact controller-schedule definitions distinguish unrestricted input,
   always-released A, continuously-held A, and a fresh A press, and released or
   already-held schedules have no fresh press edge, while press-and-hold from
@@ -1173,7 +1239,9 @@ The project still does not prove:
   of the original hands' update order and dynamic-floor choices;
 - the event-by-event linked Clight theorem that every second-hand positive
   episode begins on classified support with at most 288 remaining rise. The
-  two-hand barrier proves the consequence of that source-shaped premise;
+  two-hand barrier proves the consequence of that source-shaped premise. The
+  source-shaped nonlethal reset subcase is now proved, but its whole-program
+  Clight/ROM refinement and the other positive episodes remain open;
 - an authentic controller trace that first boards the closed hand in the
   held-A or speed-at-least-29 B-only predecessor, synchronizes the timer-2
   preparation and its two Mario updates with the selected double pound, and

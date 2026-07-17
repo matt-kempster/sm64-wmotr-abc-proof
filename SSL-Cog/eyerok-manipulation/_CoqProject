@@ -45,6 +45,7 @@ proofs/HeldA1280Barrier.v
 proofs/RequestedHeightVerdict.v
 proofs/DoublePoundTrace.v
 proofs/PartialUpdateBoundary.v
+proofs/NonlethalNoStacking.v
 proofs/UpperRoute.v
 proofs/AuthenticReachability.v
 proofs/ClightRefinementBoundary.v

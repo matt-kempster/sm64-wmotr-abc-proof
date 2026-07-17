@@ -58,6 +58,9 @@ bash pipeline/assumptions.sh \
   SSLEyerok.Proofs.AttackedReboard \
   attacked_reboard_certificate_holds
 bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.NonlethalNoStacking \
+  nonlethal_no_stacking_certificate_holds
+bash pipeline/assumptions.sh \
   SSLEyerok.Proofs.NoA1280Barrier \
   no_a_1280_barrier_certificate_holds
 bash pipeline/assumptions.sh \

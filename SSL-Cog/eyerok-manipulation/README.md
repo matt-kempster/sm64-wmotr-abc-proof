@@ -23,6 +23,7 @@ pinned US SM64 Eyerok, Mario, area, SSL script, and collision source
   -> reproducible source audit + CompCert clightgen
   -> generated Clight AST shape certificates
   -> executable source-shaped launch kernel under arbitrary A input
+  -> nonlethal health/recovery lifecycle + no-stacking theorem
   -> audited arena/tunnel split + source-shaped two-hand barriers
   -> handwritten Eyerok, Mario/warp, and Area 2 transition systems
   -> hand-height invariant + route-threshold theorems
@@ -70,6 +71,20 @@ active-hand lock only in the one-hand phase, retains the independent nonzero
 `Unk1AC` exposure latch, and a one-hand double pound reasserts its own
 active-hand lock before branching. The boss scheduler requires both locks to
 be zero.
+
+`proofs/NonlethalNoStacking.v` closes the repeated-nonlethal question inside
+a unified source-shaped lifecycle. It tracks initialized health, action,
+relative Y, vertical velocity, gravity, grounding, the one-frame attack latch,
+ATTACKED age, impulse rise, accepted-hit count, and whether a home reset is
+owed. Each hand permits two nonlethal hits (`4->3` and `3->2`); `2->1` is
+lethal. Rocq proves that each airborne nonlethal impulse contributes at most
+98 Y and that every trace from one accepted nonlethal hit to another contains
+the genuine `RETREAT -> IDLE` event that clamps Y to `oHomeY` with
+nonpositive inherited velocity. Thus the two `+98` impulses do not stack.
+This does not claim that another hand or later boss action cannot raise the
+hand again after the reset. Generated-Clight AST facts and the deterministic
+source audit pin the lifecycle graph; dynamic whole-program Clight/ROM
+refinement remains open.
 
 The A value is a ghost input because the Eyerok hand code does not read it. It
 shows that changing only A cannot alter this hand-control invariant; it does
@@ -285,6 +300,9 @@ or equivalence to the IDO-compiled MIPS ROM.
   facts;
 - every state reachable in the scheduler and the executable source-shaped
   kernel excludes the runaway seed, independent of Mario's A-button policy;
+- the unified per-hand nonlethal lifecycle permits two nonlethal health
+  transitions, bounds each airborne impulse to origin+98, and requires an
+  exact-home `RETREAT -> IDLE` reset before another accepted nonlethal hit;
 - the source-shaped first-hand barrier bounds its origin at absolute Y `-862`,
   prevents tunnel-floor selection, and bounds its open surface at `-355`;
 - the source-shaped two-hand barrier bounds the second origin at `672`, its

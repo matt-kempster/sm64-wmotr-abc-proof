@@ -3,11 +3,19 @@ pin: 9921382a68bb0c865e5e45eb594d9c64db59b1af
 checkout-head: 36fbf8d693a9fc2bdec0c77402f8e96d07d2f461
 pin-identical-files: 17
 hand-actions: 0..15
+hand-health: initialized once to 4; accepted hits are 4->3, 3->2, 2->1
+nonlethal-health-branches: 4->3 and 3->2; 2->1 enters DIE
+attack-consumer: exactly one call, inside SHOW_EYE
+attack-latch: overwritten after each non-SLEEP handler; interaction status cleared
+nonlethal-reexposure-chain: ATTACKED->RECOVER->BECOME_ACTIVE->RETREAT->IDLE->OPEN->SHOW_EYE
+post-exposure-close: CLOSE->RETREAT in one-hand phase; CLOSE->IDLE in two-hand phase
+retreat-idle-gate: approach clamps Y exactly to home before IDLE
 idle-entry-writers: SLEEP, CLOSE, RETREAT (exactly 3; none clears oVelY)
 idle-zero-gravity-exits: BEGIN_DOUBLE_POUND, TARGET_MARIO (exactly 2)
 positive-velY-writes: 30,50,100
 positive-velY-writer-actions: ATTACKED=30, DIE=50, DOUBLE_POUND=100 (only)
 attacked-positive-velocity-expiry: 8 gravity integrations; RECOVER is gated by 25-frame animation (25 >= 8)
+attacked-home-ground-reset: 15 gravity integrations; animation gate 25 >= 15
 attacked-handler-vertical-writes: none
 double-terminal-request: boss Unk104 reaches 1 only behind Unk1AC=0 && active-hand=0
 double-terminal-consumer: RETREAT check precedes active DOUBLE_POUND branch
