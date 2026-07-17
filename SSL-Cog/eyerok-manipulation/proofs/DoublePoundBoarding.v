@@ -34,9 +34,11 @@ Definition standing_on_hand (origin : Z) : boarding_vertical_state :=
      boarding_mario_y := origin;
      boarding_mario_vy := 0 |}.
 
-(** The authenticated US-ROM schedule enters the launch action early enough
-    for two complete Mario updates before the hand's +85 update.  The action
-    entry frame moves Mario by +20 and leaves velocity 16. *)
+(** In the hash-authenticated US-ROM local fixture, the observed continuation
+    enters the launch action early enough for two complete Mario updates before
+    the hand's +85 update.  The action-entry frame moves Mario by +20 and
+    leaves velocity 16.  The predecessor state is injected by the probe, so
+    this is not by itself a controller-from-reset route. *)
 Definition first_prelaunch_player_update
     (state : boarding_vertical_state) : boarding_vertical_state :=
   {| boarding_hand_top_y := boarding_hand_top_y state;
@@ -53,7 +55,7 @@ Definition second_prelaunch_player_update
        boarding_mario_y state + first_wait_frame_vertical_velocity;
      boarding_mario_vy := launch_frame_vertical_velocity |}.
 
-Definition authenticated_prelaunch
+Definition observed_local_prelaunch
     (state : boarding_vertical_state) : boarding_vertical_state :=
   second_prelaunch_player_update (first_prelaunch_player_update state).
 
@@ -95,7 +97,9 @@ Lemma first_air_quarter_displacement_is_three :
   first_air_quarter_displacement = 3.
 Proof. reflexivity. Qed.
 
-Lemma stationary_mario_loses_first_rise : forall origin,
+(** This lemma proves the vertical filter failure.  The separate ROM trace
+    supplies the actual floor loss, ceiling selection, and squish action. *)
+Lemma stationary_mario_fails_first_rise_vertical_filter : forall origin,
   hand_above_mario_gap
     (hand_first_launch_step (standing_on_hand origin)) = 85 /\
   ~ hand_floor_query_eligible
@@ -114,28 +118,28 @@ Proof.
   - reflexivity.
 Qed.
 
-Lemma authenticated_prelaunch_moves_mario_thirty_six : forall origin,
+Lemma observed_local_prelaunch_moves_mario_thirty_six : forall origin,
   boarding_mario_y
-    (authenticated_prelaunch (standing_on_hand origin)) = origin + 36 /\
+    (observed_local_prelaunch (standing_on_hand origin)) = origin + 36 /\
   boarding_mario_vy
-    (authenticated_prelaunch (standing_on_hand origin)) = 12.
+    (observed_local_prelaunch (standing_on_hand origin)) = 12.
 Proof.
   intros origin.
-  unfold authenticated_prelaunch, second_prelaunch_player_update,
+  unfold observed_local_prelaunch, second_prelaunch_player_update,
     first_prelaunch_player_update, standing_on_hand,
     prelaunch_vertical_impulse, first_wait_frame_vertical_velocity,
     launch_frame_vertical_velocity; cbn.
   split; lia.
 Qed.
 
-Lemma authenticated_prelaunch_leaves_gap_forty_nine : forall origin,
+Lemma observed_local_pre_player_update_gap_is_forty_nine : forall origin,
   hand_above_mario_gap
     (hand_first_launch_step
-      (authenticated_prelaunch (standing_on_hand origin))) = 49.
+      (observed_local_prelaunch (standing_on_hand origin))) = 49.
 Proof.
   intros origin.
   unfold hand_above_mario_gap, hand_first_launch_step,
-    authenticated_prelaunch, second_prelaunch_player_update,
+    observed_local_prelaunch, second_prelaunch_player_update,
     first_prelaunch_player_update, standing_on_hand,
     double_pound_first_rise, prelaunch_vertical_impulse,
     first_wait_frame_vertical_velocity; cbn.
@@ -145,7 +149,7 @@ Qed.
 Lemma first_quarter_leaves_eligible_gap_forty_six : forall origin,
   let query := mario_first_air_quarter
     (hand_first_launch_step
-      (authenticated_prelaunch (standing_on_hand origin))) in
+      (observed_local_prelaunch (standing_on_hand origin))) in
   hand_above_mario_gap query = 46 /\
   46 <= floor_query_vertical_buffer /\
   hand_floor_query_eligible query /\
@@ -155,7 +159,7 @@ Proof.
   intros origin; cbn.
   unfold hand_above_mario_gap, hand_floor_query_eligible,
     ordinary_vertical_snap, mario_first_air_quarter,
-    hand_first_launch_step, authenticated_prelaunch,
+    hand_first_launch_step, observed_local_prelaunch,
     second_prelaunch_player_update, first_prelaunch_player_update,
     standing_on_hand,
     double_pound_first_rise, prelaunch_vertical_impulse,
@@ -182,13 +186,17 @@ Proof.
   repeat constructor; lia.
 Qed.
 
-(** Both routes arrange action entry early enough for the two player updates
-    modeled above.  The first has A already held on entry (the ABC 0.5-A
-    classification); the second keeps A released throughout (the zero-A
-    B-only speed-kick classification). *)
+(** Both local-fixture continuations arrange action entry early enough for the
+    two player updates modeled above.  The first is 0.5-A-style because A is
+    already held and no new A edge occurs in the measured suffix; on its
+    MOVE_PUNCHING -> JUMP_KICK entry frame B is up.  Any earlier punch-entry B
+    is outside this record because the probe injects MOVE_PUNCHING.  The
+    second keeps A released and supplies the observed B edge.  Neither label
+    certifies a complete ABC route because the probe injects the predecessor
+    pose and action. *)
 Record boarding_input_frame : Type := {
   boarding_a_schedule : a_schedule;
-  boarding_b_pressed : bool
+  boarding_b_pressed_on_action_entry : bool
 }.
 
 Definition boarding_held_a_schedule : a_schedule :=
@@ -197,7 +205,7 @@ Definition boarding_held_a_schedule : a_schedule :=
 
 Definition held_a_jump_kick_input : boarding_input_frame :=
   {| boarding_a_schedule := boarding_held_a_schedule;
-     boarding_b_pressed := true |}.
+     boarding_b_pressed_on_action_entry := false |}.
 
 Definition boarding_never_a_schedule : a_schedule :=
   {| a_before_start := false;
@@ -205,17 +213,17 @@ Definition boarding_never_a_schedule : a_schedule :=
 
 Definition b_only_speed_kick_input : boarding_input_frame :=
   {| boarding_a_schedule := boarding_never_a_schedule;
-     boarding_b_pressed := true |}.
+     boarding_b_pressed_on_action_entry := true |}.
 
 Definition held_a_jump_kick_class
     (input : boarding_input_frame) : Prop :=
   continuously_held_a (boarding_a_schedule input) /\
-  boarding_b_pressed input = true.
+  boarding_b_pressed_on_action_entry input = false.
 
 Definition b_only_speed_kick_class
     (input : boarding_input_frame) : Prop :=
   always_released_a (boarding_a_schedule input) /\
-  boarding_b_pressed input = true.
+  boarding_b_pressed_on_action_entry input = true.
 
 Lemma held_a_jump_kick_is_preheld_without_fresh_edge :
   held_a_jump_kick_class held_a_jump_kick_input /\
@@ -248,7 +256,7 @@ Qed.
 
 (** The pinned collision audit checks these scaled-thousandth X/Z points
     directly against the two transformed closed-top triangles.  The list is
-    the B-only witness around the authenticated catch and the five remaining
+    the B-only witness around the observed local catch and the five remaining
     positive hand steps.  This Rocq predicate records the
     strict interior box containing those audited points; it is not a generic
     polygon-refinement theorem. *)
@@ -307,17 +315,17 @@ Definition double_pound_boarding_certificate : Prop :=
       (hand_first_launch_step (standing_on_hand origin)) = None) /\
   (forall origin,
     boarding_mario_y
-      (authenticated_prelaunch (standing_on_hand origin)) = origin + 36 /\
+      (observed_local_prelaunch (standing_on_hand origin)) = origin + 36 /\
     boarding_mario_vy
-      (authenticated_prelaunch (standing_on_hand origin)) = 12) /\
+      (observed_local_prelaunch (standing_on_hand origin)) = 12) /\
   (forall origin,
     hand_above_mario_gap
       (hand_first_launch_step
-        (authenticated_prelaunch (standing_on_hand origin))) = 49) /\
+        (observed_local_prelaunch (standing_on_hand origin))) = 49) /\
   (forall origin,
     let query := mario_first_air_quarter
       (hand_first_launch_step
-        (authenticated_prelaunch (standing_on_hand origin))) in
+        (observed_local_prelaunch (standing_on_hand origin))) in
     hand_above_mario_gap query = 46 /\
     hand_floor_query_eligible query /\
     ordinary_vertical_snap query = Some (boarding_hand_top_y query)) /\
@@ -337,9 +345,9 @@ Theorem double_pound_boarding_certificate_holds :
   double_pound_boarding_certificate.
 Proof.
   unfold double_pound_boarding_certificate.
-  refine (conj stationary_mario_loses_first_rise _).
-  refine (conj authenticated_prelaunch_moves_mario_thirty_six _).
-  refine (conj authenticated_prelaunch_leaves_gap_forty_nine _).
+  refine (conj stationary_mario_fails_first_rise_vertical_filter _).
+  refine (conj observed_local_prelaunch_moves_mario_thirty_six _).
+  refine (conj observed_local_pre_player_update_gap_is_forty_nine _).
   split.
   - intros origin.
     pose proof (first_quarter_leaves_eligible_gap_forty_six origin)

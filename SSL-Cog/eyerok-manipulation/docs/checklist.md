@@ -1,6 +1,6 @@
 # Eyerok manipulation proof checklist
 
-Last updated: 2026-07-16 (authenticated US-ROM Mario/hand contact probes).
+Last updated: 2026-07-16 (US-ROM attack/reboarding and steering probes).
 
 ## Current verdict
 
@@ -21,7 +21,7 @@ Literal unbounded finite binary32 Y is also disproved. Linked Clight/ROM
 refinement and route optimality remain open.
 
 A debugger-enabled Mupen64Plus run now checks the critical action boundary on
-the authentic US ROM. After both genuinely spawned hands were validated at
+the hash-authenticated US ROM. After both genuinely spawned hands were validated at
 home Y=-1534 with zero velocity/gravity and a real collision mesh, the
 disclosed fixture changed only their actions from SLEEP to IDLE. One ordinary
 update populated real floor pointers at -1534 before the boss scheduler fields
@@ -29,24 +29,39 @@ were installed. The observed sequence was IDLE -> BEGIN_DOUBLE_POUND ->
 DOUBLE_POUND; the first eligible airborne handler installed gravity -20 at
 nonpositive velocity, and the first positive movement was +85 with gravity
 -15. The analyzer found zero airborne DOUBLE_POUND/gravity-zero/positive-
-velocity rows. This is authentic ROM execution from a source-reachable local
+velocity rows. This is a real ROM continuation from a source-reachable local
 precondition, not a from-reset controller-only fight trace or a refinement
 proof.
 
-The normal finite double-pound now has authenticated-US-ROM local contact
-traces. At observed action timer 2, retail jump-kick or dive code moves Mario
+The normal finite double-pound now has hash-authenticated-US-ROM continuations
+from disclosed local fixtures. At observed action timer 2, retail jump-kick or dive code moves Mario
 `+20` and then `+16` before the selected hand launches. The resulting
-pre-query gap is 49; ordinary collision selects the same hand and both modes
+pre-player-update gap is 49; Mario's first air quarter-step reduces the
+modeled floor-query gap to 46. Ordinary collision selects the same hand and both modes
 remain attached through `+85,+70,+55,+40,+25,+10` to top Y=-943. Same-frame
 entry fails at gap 85 and produces hand-ceiling squish. The held-A input has
 `A_DOWN` without a new edge; the B-only input has A always released. The probe
 still injects the local predecessor pose/action and boss synchronization.
 
-Under the proved standard `-4` Mario-gravity falling-hit schedule, nonlethal
-reboarding occurs only eleven frames after grounding at Y=-1228, and the
-lethal open mesh has minimum gaps 153/229. This does not cover inherited
-`ACT_LONG_JUMP`: its `-2` gravity can produce lethal candidate gaps 63/7, with
-open-side-wall and first-quarter horizontal entry now the unresolved blocker.
+The standard `-4` attack certificate is arithmetic over explicit lists. It
+proves the nonlethal open mesh fails the vertical filter during +98 and that a
+later closed-top query would have a conditional 46-unit gap at Y=-1228; it
+does not prove a snap. The lethal minimum airborne gap is 153 and the
+first-grounded gap is 191.
+
+The strict-US attack probe supplies a separate runtime result. An inherited
+low-speed long-jump fixture really reboards the nonlethal home-height open
+hand at Y=-1027 while it still has velocity -26 and no ground flag; the flag
+sets next frame. It later reacquires closed Y=-1228 and rides `TARGET_MARIO`
+to -928. It does not ride the +98 attacked ascent. Ordinary long-jump entry
+requires a prior fresh-A edge, but this fixture injects the action and leaves
+that predecessor unproved. In lethal mode the early gaps 63/7 are X/Z-blocked.
+Clean full-stick steering later selects the hand only as a floor; even a
+braking schedule that remains over the top through timer39 never gets a
+platform, because Mario is still 43 units high and deletion precedes the
+crossing update. The first post-deletion floor address is stale: the hand is
+inactive and the platform is null. B-only slide kick is no-A enterable, but its tested first wall
+unconditionally exits to backward air knockback in both health modes.
 
 The false global 280-unit hand-separation shortcut has been removed. The
 replacement phase trace starts 360 units behind: `(-120,255)` is the last
@@ -258,19 +273,37 @@ discharge it.
 - [x] Define authentic A press edges with a pre-interval bit and prove that
   always-released and continuously-held schedules have no new edge.
 - [x] Prove a height-only early-action catch witness, then authenticate the
-  concrete two-update (`+20,+16`) schedule and 49-unit pre-query gap on the US
+  concrete two-update (`+20,+16`) schedule, 49-unit pre-player-update gap, and
+  46-unit first-quarter query gap on the US
   ROM, including strict-interior X/Z and every later positive hand step.
-- [x] Separate the 0.5-A held jump kick from the zero-A B-only speed kick and
-  prove the same-frame B attempt is blocked by underside squish.
-- [x] Prove the standard `-4` falling-hit nonlethal schedule lands only after
-  grounding at Y=-1228 and its lethal schedule remains ineligible.
+- [x] Separate the already-held-A/no-new-edge local suffix from the
+  A-always-released B-only suffix, without treating either injected predecessor
+  as a complete 0.5-A or zero-A route; prove the same-frame B attempt is
+  blocked by underside squish.
+- [x] Prove the standard `-4` falling-hit trace-list facts: the nonlethal open
+  top is vertically rejected during ascent, its recovery query is only
+  conditionally height-eligible, and the listed lethal airborne plus first-
+  grounded rows remain vertically ineligible.
 - [x] State that the attack/reboard Rocq result is arithmetic over explicit
   trace lists, not yet an operational linked-Clight trace derivation.
-- [ ] Resolve inherited long-jump/high-speed lethal entry: vertical gaps 63/7
-  pass the buffer, but ordinary open-side-wall/first-quarter X/Z entry remains
-  unproved.
+- [x] Instrument the inherited long-jump modes without a fallback latch:
+  reproduce the retail nonlethal home-height open reboard one frame before
+  grounding and the lethal 63/7
+  early X/Z miss.
+- [x] Clear and disclose the local Mario squish timer, then run bounded
+  full-stick/side-escape/yaw/braking lethal schedules. Record later hand-floor
+  selection, no platform, final 43-unit clearance, and deletion before the
+  crossing update.
+- [x] Audit the no-A crouch-slide to slide-kick entry, minimum speed 32, and
+  unconditional slide-kick wall exit; reproduce no reboard in nonlethal and
+  lethal local modes.
+- [ ] Construct or refute controller reachability of the successful
+  nonlethal long-jump predecessor and classify its prior fresh A edge.
+- [ ] Generalize the lethal no-platform result beyond the tested front-side
+  local pose and bounded steering/yaw schedules.
 - [x] Add strict-hash Ubuntu-24.04 wrappers, analyzers, fixture manifests, and
-  narrow CSVs for stationary, never-A B-only, and no-new-edge held-A contact.
+  narrow CSVs for stationary, B-only, already-held-A, attack, and steering
+  contact.
 - [x] Ignore project-local `build/`, Python `__pycache__/`, and bytecode so
   generated instrumentation/audit caches remain isolated.
 - [ ] Prove or refute the original game's ability to realize the conditional
@@ -303,11 +336,16 @@ discharge it.
 ## Verification and handoff
 
 - [x] Use Ubuntu WSL and the `sm64-item-proof` opam switch.
-- [x] Use Ubuntu-24.04 for the Mupen64Plus runtime probe and authenticate the
-  US ROM by MD5, SHA-1, SHA-256, and header CRC.
+- [x] Use Ubuntu-24.04 for the Mupen64Plus runtime probes. The idle wrapper
+  rejects the wrong MD5; the contact wrapper rejects the wrong MD5 or SHA-256;
+  the attack wrapper additionally rejects the wrong header CRC. No SHA-1 check
+  is claimed.
 - [x] Reproduce the initialized-local-precondition IDLE-to-double trace and
   mechanically reject the alternate airborne seed in all 476 captured hand
   rows.
+- [x] Reproduce the four attack modes and bounded lethal steering/braking
+  witness on the hash-authenticated US ROM, asserting retail hit/response,
+  mesh, selected-floor, platform, and deletion fields.
 - [ ] Reproduce the same result from reset using controller input only, with
   no travel or scheduler fixture.
 - [x] Run reproducible generation after source-ingestion changes.
@@ -351,5 +389,11 @@ discharge it.
   speed held-A Y=1280 wall barrier.
 - Exhaustive `IDLE`-entry velocity audit and Rocq exclusion of the alternate
   airborne zero-gravity positive-velocity seed.
-- Source-audited/Rocq normal-double catch plus nonlethal/lethal ordinary
-  attack-reboard classification for held-A and never-A schedules.
+- Source-audited/Rocq normal-double catch plus standard-gravity attack/reboard
+  trace-list arithmetic, with local already-held-A and A-always-released
+  suffixes kept separate from complete ABC route claims.
+- Strict-US-ROM attack/reboarding probe: nonlethal inherited-long-jump
+  home-height open reboard one frame before grounding, lethal early X/Z and
+  late deletion blocker, and
+  nonlethal/lethal no-A slide-kick wall exit, with the arithmetic certificate
+  narrowed to its actual scope.

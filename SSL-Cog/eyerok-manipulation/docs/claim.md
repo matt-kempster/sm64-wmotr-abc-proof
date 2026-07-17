@@ -1,6 +1,6 @@
 # Working claim and exact scope
 
-Last updated: 2026-07-16 (authenticated US-ROM Mario/hand contact probes).
+Last updated: 2026-07-16 (US-ROM attack/reboarding and steering probes).
 
 ## Source and toolchain boundary
 
@@ -183,12 +183,14 @@ before the hand's first +46 death increment leaves the new open surface outside
 the floor buffer. Exotic predecessor/re-entry traces are not yet exhaustively
 excluded.
 
-`DoublePoundBoarding.v` gives a height-eligibility witness. The authenticated
-ROM microtrace fixes the concrete update timing: input at observed hand action
+`DoublePoundBoarding.v` gives a height-eligibility witness. The hash-
+authenticated local-fixture ROM continuation fixes the concrete update timing:
+input at observed hand action
 timer 2 lets retail Mario code complete `+20` and `+16` updates, leaving Mario
 at Y=-1192 with velocity 12. Surface objects update first on the next frame;
-the closed top rises to -1143, so the pre-query gap is 49. Ordinary collision
-selects and snaps to the same hand. Both the rear-interior B-only dive and the
+the closed top rises to -1143, so the pre-player-update gap is 49. Mario's
+first air quarter-step moves 3 units, making the modeled floor-query gap 46.
+Ordinary collision selects and snaps to the same hand. Both the rear-interior B-only dive and the
 held-A jump kick remain same-hand floor/platform through
 `+85,+70,+55,+40,+25,+10` and peak at Y=-943. Starting on the launch frame is
 blocked at gap 85: the arena floor wins and the hand underside's 89.5-unit
@@ -202,28 +204,50 @@ entry itself is not controller-authentic. The never-A fixture injects
 real B edge; retail code enters `ACT_DIVE`. Neither trace constructs the
 earlier controller route onto the hand or naturally synchronizes the boss.
 
-`AttackedReboard.v` classifies the standard `-4` Mario-gravity falling-hit
-schedule. The open
-mesh is never floor-eligible during the nonlethal 98-unit rise. Eleven frames
-after the hand grounds, `ATTACKED -> RECOVER` installs the closed mesh and a
-46-unit gap snaps Mario onto the ordinary floor at absolute Y -1228. The
-lethal hand never closes: in this schedule its airborne gap minimum is 153
-and the grounded bounce still leaves 229. Thus the standard-gravity nonlethal
-case reboards only after the useful ascent is over, and its lethal case cannot
-reboard.
+`AttackedReboard.v` classifies an explicit standard `-4` Mario-gravity
+falling-hit schedule. Its nonlethal open mesh fails the above-query 78-unit
+filter throughout the 98-unit rise. After recovery, the listed query is 46
+units below the closed top at absolute Y -1228. That is conditional vertical
+eligibility only: it does not prove X/Z containment, floor priority, a snap,
+or operational reachability. The listed lethal schedule has minimum airborne
+gap 153 and first-grounded gap 191; both exceed 78.
 
-That theorem does not cover every inherited action. `ACT_LONG_JUMP` persists
-through the automatic bounce and uses `-2` gravity, producing late lethal
-vertical candidate gaps 63 and 7. The next ordinary blocker is horizontal:
-entry around the open side wall during the first quarter-step needs roughly a
-200-unit component from outside center. Authentic long-jump/high-speed entry
-is open, so no unrestricted lethal no-reboard claim follows for all held-A or
-never-A histories.
+A separate hash-authenticated US-ROM continuation starts from a disclosed
+low-speed inherited `ACT_LONG_JUMP` pose, with A and B released and no hand
+post-hit writes. In the nonlethal mode, retail code performs the hit and
+`ATTACKED` response. After the hand has completed its +98 episode and returned
+to home height, Mario actually ledge-grabs/selects the open top at Y -1027 as
+floor and platform. The hand still has velocity -26 and no ground flag on
+that row; it grounds on the next frame. The recovery swap temporarily loses support, the closed top is
+reacquired at -1228, and later `TARGET_MARIO` movement carries that top to
+-928. The trace therefore disproves the old universal open-mesh-reboard
+wording, but it does not ride the attacked rise.
 
-This theorem is an arithmetic certificate over explicit trace lists. Source
-audits check the update-order, interaction, animation, collision-mesh, and
-deletion branches used to construct them; a linked-Clight operational
-derivation of the trace is still absent.
+In lethal mode, retail code performs the health 2->1 hit and `DIE` response.
+The conservative pre-player-update gaps 63 and 7 pass vertically, but the front wall
+leaves the tested pose at hand-relative world Z about 127 while the open top
+ends at 76.5. With fixture `squishTimer=0`, full-stick steering later makes
+the hand Mario's selected floor, not his platform. A braking schedule keeps
+X/Z over the top through timer 39, yet Mario is still 43 units above it; one
+projected update leaves 21 units, and deletion occurs before the following
+crossing update. The first post-deletion row retains a stale stored floor
+address, but the hand is inactive and the platform is null; the address clears
+before Mario crosses the old top. No bounded tested schedule reboards the lethal hand.
+
+`ACT_SLIDE_KICK` is B-only/no-A enterable from `ACT_CROUCH_SLIDE`, but its
+initializer writes vertical velocity 12 and clamps forward speed to at least
+32. On the tested front-side attack, its first open-wall result unconditionally
+changes the action to `ACT_BACKWARD_AIR_KB` before either the nonlethal or
+lethal response; neither trace reboards. The injected speed-5 slide-kick pose
+is not an ordinary entry state. The inherited long jump normally requires a
+fresh A edge at its own entry, so the successful nonlethal local suffix is not
+a zero- or 0.5-A route witness.
+
+The Rocq result remains an arithmetic certificate over explicit lists and
+recorded constants. Source audits check update order, action gates, animation,
+collision meshes, and deletion; the ROM analyzer checks retail transitions
+and actual floor/platform owners. A linked-Clight operational derivation and
+controller predecessor are still absent.
 
 Controller schedules now include the pre-interval A bit. Always released and
 already-held A have no new press edge; press-and-hold beginning on frame zero
@@ -246,7 +270,7 @@ the hand code does not read it; this is not a controller-accurate ABC or
 new-press-count theorem.
 
 A matching-build-addressed Mupen64Plus probe supplies independent runtime
-evidence on the authentic US ROM. It first validates genuinely initialized
+evidence on the hash-authenticated US ROM. It first validates genuinely initialized
 hands at home Y=-1534, zero velocity/gravity, and non-null collision. The
 fixture writes only SLEEP-to-IDLE action changes, waits for an ordinary update
 to populate real floor fields, and then writes the disclosed boss scheduling
@@ -254,7 +278,7 @@ precondition without touching hand physics or actions. The resulting
 IDLE -> BEGIN_DOUBLE_POUND -> DOUBLE_POUND trace installs gravity -20 before
 the first positive motion; the first +85 observation has gravity -15. Across
 476 hand rows the analyzer finds no airborne gravity-zero positive-velocity
-DOUBLE_POUND row. This is authentic ROM execution from a source-reachable
+DOUBLE_POUND row. This is a real ROM continuation from a source-reachable
 initialized local precondition. It is not a from-reset controller-only trace,
 does not prove that the natural boss schedule reaches that exact local state,
 and does not discharge the Clight/IDO/ROM refinement boundary.
@@ -262,12 +286,21 @@ and does not discharge the Clight/IDO/ROM refinement boundary.
 The separate contact probe checks the stationary, B-only, and held-A local
 transitions with the same ROM authentication. It never writes any hand field.
 Its analyzer records Mario/hand X/Z, hand yaw, transformed-top containment,
-pre-query gap/78 eligibility, floor and ceiling object owners, platform owner,
+conservative pre-player gap/78 eligibility, floor and ceiling object owners, platform owner,
 collision pointer, input bits, and snap classification. The strict-hash
 Ubuntu-24.04 wrapper reproduces all three concise traces. Raw logs, shared
 objects, screenshots, `build/`, and Python cache files are excluded by the
 project-local `.gitignore`; only the analyzer-derived witnesses and complete
 fixture manifest are versioned.
+
+The attack wrapper separately runs nonlethal/lethal long-jump and slide-kick
+modes plus a bounded steering/braking witness on Ubuntu-24.04. It rejects any
+ROM whose MD5, SHA-256, or header CRC differs from the North-American ROM. Its
+fixture manifest records every Mario/boss write; nonlethal modes never write
+the target hand, and lethal modes write only health 2 to represent two prior
+hits. The analyzer rejects fallback attack-latch text and requires the retail
+interaction latch, hand response, velocity/gravity, mesh lifetime, actual
+floor/platform ownership, and deletion rows.
 
 ### Conditional lower Area 2 threshold
 
@@ -538,10 +571,13 @@ API as original gameplay.
   B-only predecessor, boss synchronization, and dismount onto the static warp.
 - Link the local transformed-triangle, floor-priority, squish, mesh-swap, and
   automatic-bounce schedules to whole-program Clight/ROM frames.
-- Resolve the inherited long-jump/high-speed lethal candidate, including its
-  roughly 200-unit open-side-wall/first-quarter horizontal entry, before
-  promoting the standard-gravity lethal no-go to an unrestricted theorem;
-  treat seams, tunneling, caps/shells, and other glitch geometry separately.
+- Construct or refute a controller-reachable predecessor for the successful
+  nonlethal inherited-long-jump fixture and classify its prior fresh A edge;
+  then determine whether any resulting dismount reaches the static warp.
+- Generalize the lethal result beyond the tested front-side pose and bounded
+  analog/yaw/braking schedules. Other initial positions, action changes,
+  seams, tunneling, caps/shells, and other glitch geometry remain separate;
+  do not promote the present local no-platform observation to a global theorem.
 - Authenticate or refute the conditional Y=1280 route below the Y=1967 query
   threshold, including every quarter-step collision response and the landing;
   then test whether any original-game action/speed history reaches a higher
