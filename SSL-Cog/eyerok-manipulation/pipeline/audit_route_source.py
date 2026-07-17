@@ -316,6 +316,7 @@ def main() -> None:
     require(mario_step, "if (nextPos[1] <= floorHeight)", "quarter-step landing comparison")
     require(mario_step, "m->pos[1] = m->floorHeight;", "Mario landing snap")
     require(mario_step, "if (nextPos[1] + 160.0f > ceilHeight) { if (m->vel[1] >= 0.0f) { m->vel[1] = 0.0f;", "upward air-step ceiling response")
+    require(mario_step, "else if (m->action == ACT_LONG_JUMP || m->action == ACT_SLIDE_KICK || m->action == ACT_BBH_ENTER_SPIN) { m->vel[1] -= 2.0f;", "long-jump gravity")
     require(mario, "if ((0.0f <= ceilToFloorDist) && (ceilToFloorDist <= 150.0f)) { m->input |= INPUT_SQUISHED;", "dynamic 150-unit squish input")
     require(surface_collision, "TerrainData y = (TerrainData) yPos;", "floor-query Y integer cast")
     require(surface_collision, "if (y - (height + -78.0f) < 0.0f)", "floor-query 78-unit buffer")
@@ -411,17 +412,63 @@ def main() -> None:
     if double_rises != [85, 70, 55, 40, 25, 10]:
         fail(f"unexpected normal DOUBLE_POUND rises: {double_rises}")
 
-    mario_launch_velocity = 20
-    mario_post_launch_velocity = mario_launch_velocity - 4
-    first_launch_gap = double_rises[0] - mario_launch_velocity
-    first_launch_qstep_gap = first_launch_gap - mario_post_launch_velocity // 4
+    mario_action_entry_velocity = 20
+    first_wait_frame_velocity = mario_action_entry_velocity - 4
+    launch_frame_velocity = first_wait_frame_velocity - 4
+    # The authenticated local scheduler trace gives Mario two complete player
+    # updates before the selected hand's +85 surface update: +20 on action
+    # entry and +16 on the intervening frame.  On the launch frame, the first
+    # intended quarter step uses velocity 12.
+    launch_prequery_gap = (
+        double_rises[0] - mario_action_entry_velocity - first_wait_frame_velocity
+    )
+    launch_first_qstep_gap = launch_prequery_gap - launch_frame_velocity // 4
     if (
-        mario_post_launch_velocity != 16
-        or first_launch_gap != 65
-        or first_launch_qstep_gap != 61
-        or first_launch_qstep_gap > 78
+        first_wait_frame_velocity != 16
+        or launch_frame_velocity != 12
+        or launch_prequery_gap != 49
+        or launch_first_qstep_gap != 46
+        or launch_first_qstep_gap > 78
     ):
-        fail("unexpected held-A/B-only pre-hop contact arithmetic")
+        fail("unexpected authenticated held-A/B-only contact arithmetic")
+
+    # ACT_LONG_JUMP is preserved by the ordinary bounce branch and receives
+    # -2 rather than -4 gravity.  Recompute the two late vertical windows that
+    # invalidate a universal standard-gravity lethal-reboard exclusion.
+    def ballistic_positions(start_y: int, start_velocity: int, gravity: int, count: int) -> list[int]:
+        positions: list[int] = []
+        position = start_y
+        velocity = start_velocity
+        for _ in range(count):
+            velocity += gravity
+            position += velocity
+            positions.append(position)
+        return positions
+
+    def mario_air_positions(start_y: int, start_velocity: int, gravity: int, count: int) -> list[int]:
+        positions: list[int] = []
+        position = start_y
+        velocity = start_velocity
+        for _ in range(count):
+            position += velocity
+            positions.append(position)
+            velocity += gravity
+        return positions
+
+    lethal_origin_positions = ballistic_positions(0, 50, -4, 22)
+    # On global lethal frame 16 the hand-origin offset is 270, so an ordinary
+    # hit from above bounces Mario from the scaled hitbox top 270+150=420.
+    long_jump_after_second_bounce = mario_air_positions(420, 30, -2, 7)
+    lethal_long_jump_late_gaps = [
+        lethal_origin_positions[20] + 507 - long_jump_after_second_bounce[5],
+        lethal_origin_positions[21] + 507 - long_jump_after_second_bounce[6],
+    ]
+    if (
+        lethal_origin_positions[14] != 270
+        or long_jump_after_second_bounce[5:] != [570, 588]
+        or lethal_long_jump_late_gaps != [63, 7]
+    ):
+        fail("unexpected inherited-long-jump lethal re-entry arithmetic")
 
     attacked_body = c_function_body(eyerok, "eyerok_hand_act_attacked")
     require(
@@ -736,7 +783,9 @@ def main() -> None:
     print("b-only-contact-launch: velY=20; same-frame DIVE air step; no A condition in speed-kick branch")
     print("double-pound-normal-rises: 85,70,55,40,25,10")
     print("stationary-first-rise-floor-gap: 85 > 78 (closed top rejected)")
-    print("pre-hop-first-rise-floor-gap: 85-20-4=61 <= 78 (closed top eligible on first qstep)")
+    print("authenticated-prelaunch-mario-steps: +20,+16; launch-entry velY=12")
+    print("authenticated-first-rise-prequery-gap: 85-20-16=49 <= 78")
+    print("authenticated-first-qstep-intended-gap: 49-3=46 <= 78 (closed top eligible)")
     print("b-only-closed-top-triangles: transformed source triangles (1,3,4) and (1,4,5)")
     print(
         "b-only-closed-top-xz-witness-milli: "
@@ -777,9 +826,13 @@ def main() -> None:
     print("standing-closed/open-top-above-hitbox: 306/507 > 150")
     print("ordinary-attack-bounce: hand-origin+150, velY=30")
     print("automatic-top-hit: INT_HIT_FROM_ABOVE uses ordinary bounce placement/velocity")
+    print("ordinary-bounce-action: non-twirl branch preserves Mario's current action")
+    print("long-jump-gravity-after-bounce: -2 per player frame")
     print("attacked-recovery: 25-frame ATTACKED animation, then collision swaps open -> closed")
     print("lethal-die-collision: DIE writes no mesh; inherited open mesh persists until deletion")
     print("lethal-die-deletion: animation-end helper marks hand for deletion")
+    print("lethal-long-jump-late-open-top-gaps: 63,7 (both pass the 78-unit vertical filter)")
+    print("lethal-long-jump-next-blocker: open side wall; >200 horizontal component is a candidate threshold")
     print("reboard-xz-witness-local: (0,100) strict inside closed top, outside open top")
     print("reboard-xz-witness-margins: closed-front=70.5; open-wall=73.5>50")
     print("reboard-xz-witness-hitbox: scaled radius=150 < combined hitbox radius=262")

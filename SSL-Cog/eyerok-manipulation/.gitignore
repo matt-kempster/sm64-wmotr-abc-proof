@@ -8,3 +8,5 @@ CoqMakefile.conf
 *.glob
 *.cache
 build/
+__pycache__/
+*.py[cod]

@@ -24,7 +24,9 @@ b-only-contact-entry: WALKING, fresh B, forwardVel>=29, stickMag>48 -> DIVE(arg=
 b-only-contact-launch: velY=20; same-frame DIVE air step; no A condition in speed-kick branch
 double-pound-normal-rises: 85,70,55,40,25,10
 stationary-first-rise-floor-gap: 85 > 78 (closed top rejected)
-pre-hop-first-rise-floor-gap: 85-20-4=61 <= 78 (closed top eligible on first qstep)
+authenticated-prelaunch-mario-steps: +20,+16; launch-entry velY=12
+authenticated-first-rise-prequery-gap: 85-20-16=49 <= 78
+authenticated-first-qstep-intended-gap: 49-3=46 <= 78 (closed top eligible)
 b-only-closed-top-triangles: transformed source triangles (1,3,4) and (1,4,5)
 b-only-closed-top-xz-witness-milli: (0,-55850),(30000,-45150),(30000,-5774),(30000,30452),(30000,63780),(30000,94442),(30000,122651)
 b-only-closed-top-xz-witnesses: 7/7 strict interior before and after TerrainData cast
@@ -58,9 +60,13 @@ eyerok-hitbox-radius: 150*1.5=225; Mario radius=37; combined horizontal radius=2
 standing-closed/open-top-above-hitbox: 306/507 > 150
 ordinary-attack-bounce: hand-origin+150, velY=30
 automatic-top-hit: INT_HIT_FROM_ABOVE uses ordinary bounce placement/velocity
+ordinary-bounce-action: non-twirl branch preserves Mario's current action
+long-jump-gravity-after-bounce: -2 per player frame
 attacked-recovery: 25-frame ATTACKED animation, then collision swaps open -> closed
 lethal-die-collision: DIE writes no mesh; inherited open mesh persists until deletion
 lethal-die-deletion: animation-end helper marks hand for deletion
+lethal-long-jump-late-open-top-gaps: 63,7 (both pass the 78-unit vertical filter)
+lethal-long-jump-next-blocker: open side wall; >200 horizontal component is a candidate threshold
 reboard-xz-witness-local: (0,100) strict inside closed top, outside open top
 reboard-xz-witness-margins: closed-front=70.5; open-wall=73.5>50
 reboard-xz-witness-hitbox: scaled radius=150 < combined hitbox radius=262

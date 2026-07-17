@@ -46,14 +46,16 @@ The current machine-checked results are:
 - consequently, the requested first-surface Y `1179`, second-origin Y `1467`,
   second-surface Y `1974`, and Mario Y `2604` constructions are all
   unreachable in the source-shaped barrier relations;
-- the normal finite double-pound rise is locally boardable in ordinary
-  collision if Mario starts a +20 action one frame before the hand's first
-  +85 step. A held-A jump kick gives a 0.5-A candidate; a B-only speed kick
-  gives a never-A candidate under its speed/stick predecessor conditions;
-- neither attack rise is rideable while the hand is rising. A nonlethal hand
-  can be reboarded eleven frames after grounding when its mesh closes, at the
-  ordinary absolute floor Y `-1228`. A lethal hand keeps the open mesh until
-  deletion and never becomes floor-eligible;
+- authentic-US-ROM microtraces now show that the normal finite double-pound
+  rise is locally boardable in ordinary collision when Mario completes two
+  prepared air updates before the hand's first +85 step. Both a held-A jump
+  kick (no new A edge) and a B-only speed kick (A always released) stay on all
+  six positive steps and reach closed-top Y `-943`;
+- under the proved standard `-4` Mario-gravity falling-hit schedule, a
+  nonlethal hand can be reboarded eleven frames after grounding when its mesh
+  closes, at absolute floor Y `-1228`, while the lethal open mesh remains
+  ineligible. Inherited long-jump `-2` gravity is outside that theorem and is
+  an open lethal-reboard candidate whose next obstacle is X/Z entry;
 - conditional on attaining the stricter second-hand surface ceiling `1179`
   and the full triple-jump envelope, a lower route enters Area 2 at Mario Y
   `1809` and its audited quarter-step selects and snaps to floor Y `1280`;
@@ -227,25 +229,26 @@ Examples:
 - a gravity-zero runaway that moves the hand by 100 every frame does not, by
   itself, carry a stationary Mario upward forever.
 
-The 85-unit result changes if Mario prepares one frame early. Both relevant
-source actions write vertical velocity 20 and move Mario up by 20 on that
-preparation frame. Gravity leaves velocity 16 for the launch frame:
+The 85-unit result changes if the action begins early enough in the observed
+boss schedule. Surface objects update before Mario, and vertical platform
+velocity is not copied to Mario. In the authenticated local trace the input is
+given at hand action timer 2. Retail Mario code then completes two air updates
+before the selected hand launches:
 
 ```text
-hand's first movement:                +85
-Mario's previous-frame movement:      +20
-gap before Mario's launch-frame step:  65
-Mario's first quarter-step:             +4
-gap at floor query:                     61
+prepared Mario update 1:  Y -1228 -> -1208, velocity 20 -> 16
+prepared Mario update 2:  Y -1208 -> -1192, velocity 16 -> 12
+hand's next update:       closed top -1228 -> -1143 (+85)
+pre-Mario floor query:    -1143 - (-1192) = 49
 ```
 
-Since 61 is within the 78-unit floor buffer, ordinary floor logic selects and
-snaps Mario to the closed hand top. The later hand increments are only 70, 55,
-40, 25, and 10, so each remains eligible. The audited B-only X/Z trace stays
-strictly inside the transformed top triangles; this is not a seam or
-tunneling construction. It does use the engine's ordinary upward floor-buffer
-snap, so "stay on" means lose continuous geometric contact briefly and regain
-the same dynamic floor during the first quarter-step.
+Since 49 is within the 78-unit floor buffer, ordinary floor logic selects and
+snaps Mario to the closed hand top at `-1143`. The later hand increments are
+70, 55, 40, 25, and 10. In both authenticated traces Mario's selected floor
+owner and platform are the same hand on every positive step, and he reaches
+top Y `-943`. The analyzer inverse-transforms Mario X/Z into the actual closed
+top triangles and reports strict ordinary eligibility throughout; this is not
+a seam or tunneling construction.
 
 Timing is essential. Pressing B on the +85 frame is too late in the ordinary
 central setup. The moved hand top is rejected, the arena floor wins, and the
@@ -254,19 +257,22 @@ requires 150 units, so it sets `INPUT_SQUISHED` before the walking speed-kick
 branch runs. Even without that input cancellation, the upward ceiling branch
 would zero Mario's velocity.
 
-For the A Button Challenge, the successful local schedules are different:
+For the A Button Challenge, the two successful local modes are different:
 
-- hold A before the measured interval and press B on the preparation frame:
-  the punch handler enters jump kick from `INPUT_A_DOWN` without a fresh A
-  edge. This is the 0.5-A candidate;
-- never hold or press A, approach in `ACT_WALKING` with forward speed at least
-  29 and stick magnitude above 48, and press B on the preparation frame: the
-  speed-kick branch enters `ACT_DIVE` with velocity 20. This is the zero-A
-  candidate.
+- held A: the fixture injects the source-valid `ACT_MOVE_PUNCHING`, state-0
+  predecessor while A has already been down since Area 3 entry. This is not a
+  controller-authentic punch entry. Retail code observes `INPUT_A_DOWN` with
+  no `INPUT_A_PRESSED` edge, enters `ACT_JUMP_KICK`, and writes velocity 20;
+- never A: the fixture injects an interior `ACT_WALKING` predecessor with
+  forward speed 29 and stick magnitude above 48, then supplies one B edge.
+  Retail code itself enters `ACT_DIVE` and writes velocity 20. No A-down or
+  A-pressed bit appears.
 
-The local proof starts with Mario already on the closed hand. Reaching that
-pose in the required action and speed, and synchronizing it with the boss's
-launch selection, still needs an original-controller trace.
+Both modes first require the ROM to report the hand as Mario's actual floor
+owner and platform. The probe never writes hand position, velocity, gravity,
+movement flags, floor, collision, action, or timer. It does inject Mario's
+local predecessor and the boss schedule, so reaching those states and
+synchronizing them from controller-only play remain open.
 
 Hand collision is also loaded only while Mario remains near the hand. A hand
 that escapes far above Mario eventually stops providing a usable dynamic
@@ -311,8 +317,9 @@ him at only origin+180, far outside the 78-unit floor buffer. This is a proved
 arithmetic obstruction, not yet a complete update-order theorem excluding
 every exotic airborne re-entry.
 
-The source-level scheduling analysis now resolves the ordinary falling-hit
-case. At an interior front-side point such as hand-local `(0,100)`, a
+The source-level scheduling analysis resolves the standard-gravity
+falling-hit case represented in `AttackedReboard.v`. At an interior front-side
+point such as hand-local `(0,100)`, a
 descending Mario can attack without A. The attack response is delayed by two
 object-list frames. During a nonlethal attack the open collision top remains
 more than 78 units above Mario throughout the 98-unit rise. The hand grounds
@@ -322,12 +329,25 @@ mesh. Mario is then at relative Y 260, the closed top is 306, and the 46-unit
 gap snaps him onto it. This is ordinary interior collision, but it boards the
 grounded hand at absolute Y `-1534 + 306 = -1228`, not an elevated hand.
 
-The lethal response is different. It reaches a 288-unit origin apex but never
-installs the closed mesh. Across every airborne frame, the smallest favorable
-open-top gap is 153; after grounding, an automatic bounce peaks at relative Y
-278 below the open top at 507, leaving 229. Both exceed 78, and the hand is
-deleted while still using the open mesh. Therefore ordinary collision cannot
-reboard the lethal rise, whether A is held or never pressed.
+Under that same standard `-4` Mario-gravity schedule, the lethal response
+reaches a 288-unit origin apex but never installs the closed mesh. Its smallest
+modeled airborne open-top gap is 153; after grounding, the modeled automatic
+bounce leaves 229. That schedule cannot reboard before deletion.
+
+This is not a theorem for every inherited Mario action. In particular,
+`ACT_LONG_JUMP` survives the automatic attack bounce and uses `-2` gravity.
+The resulting candidate can reduce late `DIE` vertical gaps to 63 and then 7,
+both inside 78. Its next ordinary-geometry obstacle is horizontal: the open
+side wall and first-quarter entry require roughly a 200-unit horizontal
+component from an outside-center approach. Whether an authentic high-speed or
+long-jump trace crosses that obstacle is open. The project therefore does not
+claim that lethal reboarding is impossible for all held-A or never-A actions.
+
+The proof boundary matters here: `AttackedReboard.v` checks the integer
+arithmetic of explicitly listed frame values. The deterministic source audit
+checks the functions and constants used to construct those values. There is
+not yet a linked-Clight operational theorem deriving every listed frame from
+the previous game state.
 
 ## The dangerous gravity-zero branch
 
@@ -1024,15 +1044,17 @@ The project now machine-checks these statements:
   and attacked rises and the 20-unit target lift pass the 78-unit height filter,
   while the first 85-unit double-pound step, a 100-unit runaway step, and the
   201-unit closed-to-open switch do not;
-- starting a +20 jump kick or speed kick one frame early changes the first
-  double-pound gap to 65 and its first-quarter query gap to 61, after which all
-  remaining finite-rise steps are floor-eligible; the same-frame speed-kick is
-  blocked by the 89.5-unit underside clearance and squish input;
+- in the authenticated local schedule, jump kick or speed kick completes
+  `+20` and `+16` Mario updates before the `+85` hand launch, leaving a
+  pre-query gap of 49; both ordinary traces remain same-hand floor/platform on
+  all positive steps to top Y `-943`. Same-frame entry is blocked at gap 85 by
+  the 78-unit filter and the 89.5-unit underside squish condition;
 - the held-A local catch has no fresh A edge, while the B-only local catch has
   A always released; both still assume their stated predecessor pose;
-- a nonlethal falling hit can reboard only after grounding through a 46-unit
-  recovery-mesh snap at ordinary floor Y `-1228`, while every lethal open-mesh
-  gap remains above 78 through deletion;
+- under the standard `-4` falling-hit schedule, nonlethal reboarding occurs
+  only after grounding through a 46-unit recovery-mesh snap at Y `-1228`, and
+  the lethal open mesh remains ineligible. Inherited long-jump `-2` gravity
+  reaches candidate gaps 63/7 and remains open at the horizontal-entry step;
 - Mario standing on the 306- or 507-unit hand top has no vertical hitbox
   overlap with Eyerok's 150-unit interaction cylinder; and
 - the coupled kernel/vertical relation cannot
@@ -1091,14 +1113,14 @@ The project still does not prove:
   episode begins on classified support with at most 288 remaining rise. The
   two-hand barrier proves the consequence of that source-shaped premise;
 - an authentic controller trace that first boards the closed hand in the
-  held-A or speed-at-least-29 B-only predecessor, synchronizes the one-frame
-  prelaunch action with the selected double pound, and then leaves the hand for
-  the static warp. The local update/collision continuation is proved from that
-  pose;
+  held-A or speed-at-least-29 B-only predecessor, synchronizes the timer-2
+  preparation and its two Mario updates with the selected double pound, and
+  then leaves the hand for the static warp. The local ROM continuation is
+  observed from the injected pose;
 - a global exclusion of exotic attack/re-entry geometries. The complete
-  ordinary falling-hit schedules are classified, but seams, tunneling,
-  externally supplied caps/shells, and unrelated glitches are outside this
-  result;
+  standard `-4` falling-hit schedules are classified, but inherited
+  long-jump/high-speed entry, seams, tunneling, externally supplied
+  caps/shells, and unrelated glitches are outside this result;
 - an exact original-controller trace from the hand through the warp to that
   landing;
 - authentic realization of the conditional Y `1280` landing: equality at the
