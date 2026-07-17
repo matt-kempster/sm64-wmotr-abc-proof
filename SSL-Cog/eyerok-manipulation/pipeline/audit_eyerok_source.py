@@ -193,9 +193,11 @@ def main() -> None:
             "eyerok_hand_check_attacked",
             "eyerok_hand_act_sleep",
             "eyerok_hand_act_idle",
+            "eyerok_hand_act_open",
             "eyerok_hand_act_show_eye",
             "eyerok_hand_act_close",
             "eyerok_hand_act_attacked",
+            "eyerok_hand_act_die",
             "eyerok_hand_act_retreat",
             "eyerok_hand_act_double_pound",
         ]
@@ -357,6 +359,25 @@ def main() -> None:
         "o->parentObj->oEyerokBossActiveHand = o->oBhvParams2ndByte; }",
         "single-hand DOUBLE_POUND active-hand reassertion",
     )
+    exposure_latch_writes = re.findall(
+        r"o->parentObj->oEyerokBossUnk1AC\s*(?<![=!<>])=(?!=)\s*([^;]+);",
+        eyerok,
+    )
+    if exposure_latch_writes != [
+        "o->oBhvParams2ndByte",
+        "0",
+        "0",
+        "0",
+        "o->oBhvParams2ndByte",
+    ]:
+        fail(f"unexpected Unk1AC writer sequence: {exposure_latch_writes}")
+    require(
+        hand_functions["eyerok_hand_act_open"],
+        "o->parentObj->oEyerokBossUnk1AC = o->oBhvParams2ndByte;",
+        "OPEN exposure-latch acquisition",
+    )
+    if "oEyerokBossUnk1AC" in hand_functions["eyerok_hand_act_show_eye"]:
+        fail("SHOW_EYE unexpectedly changes the exposure latch")
 
     gravity_writes = re.findall(r"o->oGravity\s*=\s*(-?[0-9]+(?:\.[0-9]+)?)f", eyerok)
     if gravity_writes != ["-4.0", "0.0", "0.0", "-4.0", "-4.0", "-20.0", "-15.0", "-20.0"]:
@@ -672,6 +693,8 @@ def main() -> None:
     print("double-active-hand-clear: grounded mask && gravity < -15 (only DOUBLE_POUND clear)")
     print("show-eye-active-hand-clear: guarded by NumHands != 2 (no live sibling hand)")
     print("single-hand-double-lock: DOUBLE_POUND reasserts its side before terminal/active branches")
+    print("exposure-latch-writers: OPEN=side; CLOSE/DIE/RETREAT=0; terminal DOUBLE_POUND=side")
+    print("show-eye-exposure-latch: retained nonzero; boss Unk104 scheduler remains blocked")
     print("gravity-writer-sequence: -4,0,0,-4,-4,-20,-15,-20")
     print("live-hand-collision-writes: 6, all nonnull")
     print("hand-room-writes: none (spawn default -1)")

@@ -66,8 +66,10 @@ value is nonpositive. It therefore excludes
 the attacked-animation delay and the boss active-hand/terminal handshake; a
 linked whole-program/ROM refinement is still a separate obligation. The audit
 also closes the apparent sibling exception: `SHOW_EYE` can clear the global
-lock only in the one-hand phase, and a one-hand double pound reasserts its own
-lock before branching.
+active-hand lock only in the one-hand phase, retains the independent nonzero
+`Unk1AC` exposure latch, and a one-hand double pound reasserts its own
+active-hand lock before branching. The boss scheduler requires both locks to
+be zero.
 
 The A value is a ghost input because the Eyerok hand code does not read it. It
 shows that changing only A cannot alter this hand-control invariant; it does

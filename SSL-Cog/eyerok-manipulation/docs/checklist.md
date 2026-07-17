@@ -1,6 +1,6 @@
 # Eyerok manipulation proof checklist
 
-Last updated: 2026-07-16 (Mario double-pound and attack reboarding).
+Last updated: 2026-07-16 (two-field Eyerok scheduler-lock audit).
 
 ## Current verdict
 
@@ -110,7 +110,9 @@ discharge it.
 - [x] Exhaust the three `IDLE` writers, both zero-gravity exits, attacked
   recovery timing, and the double-pound active-hand/terminal handshake.
 - [x] Audit the apparent sibling `SHOW_EYE` lock clear: it is one-hand-only,
-  and single-hand `DOUBLE_POUND` reasserts its side before branching.
+  `OPEN` keeps the independent `Unk1AC` exposure latch nonzero throughout
+  `SHOW_EYE`, and single-hand `DOUBLE_POUND` reasserts its active-hand side
+  before branching.
 - [x] Audit the paired instant warps and exact Area 3 warp quad.
 - [x] Audit Area 2 floor tiers and target star coordinates/hitbox.
 - [x] Audit four airborne quarter steps, the fresh quarter-step floor query,

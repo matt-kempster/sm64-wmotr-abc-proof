@@ -15,6 +15,8 @@ active-hand-zero-writers: SHOW_EYE and DOUBLE_POUND only
 double-active-hand-clear: grounded mask && gravity < -15 (only DOUBLE_POUND clear)
 show-eye-active-hand-clear: guarded by NumHands != 2 (no live sibling hand)
 single-hand-double-lock: DOUBLE_POUND reasserts its side before terminal/active branches
+exposure-latch-writers: OPEN=side; CLOSE/DIE/RETREAT=0; terminal DOUBLE_POUND=side
+show-eye-exposure-latch: retained nonzero; boss Unk104 scheduler remains blocked
 gravity-writer-sequence: -4,0,0,-4,-4,-20,-15,-20
 live-hand-collision-writes: 6, all nonnull
 hand-room-writes: none (spawn default -1)
