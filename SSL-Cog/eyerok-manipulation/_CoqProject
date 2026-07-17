@@ -28,6 +28,7 @@ proofs/Spec.v
 proofs/HeightMilestones.v
 proofs/StateMachine.v
 proofs/SchedulerInvariant.v
+proofs/IdleVelocityInvariant.v
 proofs/AuthenticKernel.v
 proofs/FirstHandBarrier.v
 proofs/VerticalBound.v

@@ -21,6 +21,10 @@ The current machine-checked results are:
 - the executable audited source-shaped kernel excludes
   `DOUBLE_POUND + grounded + gravity 0` for every modeled Mario-input policy,
   including never pressing A and continuously holding A;
+- a separate velocity-aware Rocq relation now closes the stronger proposed
+  seed, `DOUBLE_POUND + airborne + gravity 0 + positive velocity`. It audits
+  every source entry into `IDLE` and proves that `IDLE` can inherit only zero
+  or negative vertical velocity;
 - the old 280-unit global separation argument is false and removed; an exact
   phase-local trace proves the approaching second hand misses the sibling
   closed top, first horizontally and then vertically;
@@ -275,6 +279,41 @@ non-sleep hand update, `cur_obj_move_standard` integrates vertical motion and
 then regards the hand as grounded only when its new Y is **strictly below** its
 selected floor. If hand Y is exactly equal to floor Y, the code clears the old
 `LANDED` and `ON_GROUND` bits.
+
+There is a second, more subtle candidate. Suppose some earlier action left the
+hand airborne with positive vertical velocity, then changed to `IDLE` without
+clearing that velocity. `IDLE` could select `BEGIN_DOUBLE_POUND`, which writes
+gravity zero; `BEGIN_DOUBLE_POUND` could then select `DOUBLE_POUND`. In that
+case the hand would continue adding its positive velocity every frame because
+the `DOUBLE_POUND` handler changes gravity to `-20` only when velocity is zero
+or negative.
+
+The pinned source does not permit that sequence. There are exactly three
+assignments to `EYEROK_HAND_ACT_IDLE`:
+
+- `SLEEP -> IDLE`. A newly spawned sleeping hand starts with zero vertical
+  velocity, and no sleep handler writes a positive velocity.
+- `CLOSE -> IDLE`. The open/show-eye/close path contains no positive vertical
+  writer. If the eye is hit, control goes to `ATTACKED` or `DIE`, not to
+  `CLOSE -> IDLE`.
+- `RETREAT -> IDLE`. Retreat itself writes no positive velocity. `ATTACKED`
+  cannot reach recovery until its 25-frame animation has outlasted the eight
+  `-4` gravity integrations needed to make its initial velocity 30
+  nonpositive. `DIE` deletes the hand. The only potentially dangerous
+  `DOUBLE_POUND -> RETREAT` transition requires the boss's terminal value
+  `Unk104 == 1`; the boss can produce that terminal value only while its
+  active-hand field is zero. A positively rising double-pound hand owns that
+  active-hand lock, and the double-pound handler clears the lock only after a
+  grounded frame with gravity below `-15`, where zero bounciness has already
+  removed downward velocity.
+
+These transitions do not all execute an explicit `oVelY = 0`. That is not the
+invariant. The invariant is that they can preserve only a value `<= 0`.
+Consequently the two zero-gravity exits from `IDLE`—`BEGIN_DOUBLE_POUND` and
+`TARGET_MARIO`—may preserve zero or negative velocity but cannot preserve a
+positive one. `IdleVelocityInvariant.v` formalizes this control/velocity lock
+and proves the airborne zero-gravity positive-velocity seed unreachable in
+its over-approximating relation.
 
 Here is the relevant frame sequence in plain English:
 
@@ -795,13 +834,14 @@ the hand completes one finite jump
 -> the hand repeats this process at progressively greater heights
 ```
 
-That would invalidate the Y `1467` bound. The important update is that this
-failure mode is now ruled out in the audited source-shaped state machine. The
-only source write large enough to create the proposed repeated ascent is the
-100-unit double-pound launch. A launch with gravity `-15` is finite. A
-repeating launch needs the hand to reach `DOUBLE_POUND` while both grounded
-and still at gravity zero. The strict ground-flag update described above makes
-that three-field state unreachable.
+That would invalidate the Y `1467` bound. The important update is that both
+known ways of entering a gravity-zero double pound with upward motion are now
+ruled out in audited source-shaped relations. The original grounded candidate
+needs `DOUBLE_POUND + grounded + gravity 0`; strict ground-flag updating
+excludes it. The new inherited-velocity candidate needs
+`DOUBLE_POUND + airborne + gravity 0 + positive velocity`; the complete
+`IDLE`-entry/active-lock invariant excludes it. A normal 100-unit launch has
+gravity `-15` and is finite.
 
 This is stronger than merely omitting an unsafe constructor from
 `vertical_step`. `AuthenticKernel.v` gives the relevant source actions,
@@ -849,6 +889,9 @@ The project now machine-checks these statements:
 - the executable source-shaped kernel cannot reach
   `DOUBLE_POUND + grounded + gravity 0` under any modeled event or A-button
   policy, including never pressing A and continuously holding A;
+- the velocity-aware `IDLE` relation proves every reachable `IDLE` entry has
+  `oVelY <= 0`, and therefore no reachable modeled state is
+  `DOUBLE_POUND + airborne + gravity 0 + oVelY > 0`;
 - the exact controller-schedule definitions distinguish unrestricted input,
   always-released A, continuously-held A, and a fresh A press, and released or
   already-held schedules have no fresh press edge, while press-and-hold from
@@ -958,8 +1001,8 @@ The project still does not prove:
   star, rather than only the highest audited tier admitted by this restricted
   height calculation;
 - a linked whole-program or ROM theorem that the gravity-zero seed is
-  unreachable in every machine execution. It is unreachable in the audited
-  source-shaped kernel;
+  unreachable in every machine execution. Both the grounded and inherited-
+  velocity variants are unreachable in the audited source-shaped relations;
 - that a hypothetical execution outside that kernel follows the isolated
   `+100` recurrence to `2^31`, how high it gets, or how the ROM handles it; or
 - a source-to-ROM proof for out-of-range floating-point conversions in the

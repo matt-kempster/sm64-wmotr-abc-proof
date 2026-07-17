@@ -3,7 +3,16 @@ pin: 9921382a68bb0c865e5e45eb594d9c64db59b1af
 checkout-head: 36fbf8d693a9fc2bdec0c77402f8e96d07d2f461
 pin-identical-files: 17
 hand-actions: 0..15
+idle-entry-writers: SLEEP, CLOSE, RETREAT (exactly 3; none clears oVelY)
+idle-zero-gravity-exits: BEGIN_DOUBLE_POUND, TARGET_MARIO (exactly 2)
 positive-velY-writes: 30,50,100
+positive-velY-writer-actions: ATTACKED=30, DIE=50, DOUBLE_POUND=100 (only)
+attacked-positive-velocity-expiry: 8 gravity integrations; RECOVER is gated by 25-frame animation (25 >= 8)
+attacked-handler-vertical-writes: none
+double-terminal-request: boss Unk104 reaches 1 only behind Unk1AC=0 && active-hand=0
+double-terminal-consumer: RETREAT check precedes active DOUBLE_POUND branch
+active-hand-zero-writers: SHOW_EYE and DOUBLE_POUND only
+double-active-hand-clear: grounded mask && gravity < -15 (only DOUBLE_POUND clear)
 gravity-writer-sequence: -4,0,0,-4,-4,-20,-15,-20
 live-hand-collision-writes: 6, all nonnull
 hand-room-writes: none (spawn default -1)

@@ -28,6 +28,9 @@ bash pipeline/assumptions.sh \
   SSLEyerok.Proofs.SchedulerInvariant \
   reachable_scheduler_excludes_runaway_seed
 bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.IdleVelocityInvariant \
+  idle_velocity_invariant_certificate_holds
+bash pipeline/assumptions.sh \
   SSLEyerok.Proofs.VerticalBound \
   no_safe_vertical_run_rises_unboundedly
 bash pipeline/assumptions.sh \

@@ -1,6 +1,6 @@
 # Eyerok manipulation proof checklist
 
-Last updated: 2026-07-15 (requested-height package and Clight/A boundaries).
+Last updated: 2026-07-16 (IDLE inherited-velocity invariant).
 
 ## Current verdict
 
@@ -12,6 +12,9 @@ trace lands at `(387,1967,-500)`, but the new two-hand barrier refutes the
 starting hand pose. The
 audited source-shaped kernel now excludes the dangerous repeated-launch seed
 for arbitrary A input, no A, and held A inside the abstraction. A
+velocity-aware companion relation additionally excludes the airborne seed
+`DOUBLE_POUND + gravity 0 + positive oVelY` by proving every reachable `IDLE`
+entry has nonpositive inherited velocity. A
 counterfactual origin Y=3627 route would reach the star platform, but the
 stricter two-hand origin ceiling is Y=672.
 Literal unbounded finite binary32 Y is also disproved. Linked Clight/ROM
@@ -90,6 +93,8 @@ discharge it.
   20, and exact B-only/held-A/backflip call shapes.
 - [x] Audit all 16 hand actions, positive velocity/gravity writers, finite
   ascent budgets, and the gravity-zero tripwire.
+- [x] Exhaust the three `IDLE` writers, both zero-gravity exits, attacked
+  recovery timing, and the double-pound active-hand/terminal handshake.
 - [x] Audit the paired instant warps and exact Area 3 warp quad.
 - [x] Audit Area 2 floor tiers and target star coordinates/hitbox.
 - [x] Audit four airborne quarter steps, the fresh quarter-step floor query,
@@ -130,6 +135,8 @@ discharge it.
 ## Vertical proof
 
 - [x] Formalize the scheduler and exclude its grounded/gravity-zero seed.
+- [x] Track inherited vertical velocity across every `IDLE` entry and exclude
+  the airborne/gravity-zero/positive-velocity `DOUBLE_POUND` seed.
 - [x] Formalize finite ascent budgets and partial-update stuttering.
 - [x] Refine support/ascent constants to 384 and 288.
 - [x] Prove first/second hand-origin ceilings 672 and 1467.
@@ -287,3 +294,5 @@ discharge it.
 - Generated controller/Mario action Clight facts, coherent conditional Clight
   refinement boundary, typed requested-height verdict package, and bounded-
   speed held-A Y=1280 wall barrier.
+- Exhaustive `IDLE`-entry velocity audit and Rocq exclusion of the alternate
+  airborne zero-gravity positive-velocity seed.
