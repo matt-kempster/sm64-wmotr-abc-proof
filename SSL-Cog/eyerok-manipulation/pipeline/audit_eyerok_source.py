@@ -344,6 +344,19 @@ def main() -> None:
         re.DOTALL,
     ) is None:
         fail("DOUBLE_POUND active-hand clear is not grounded with gravity < -15")
+    if re.search(
+        r"if\s*\(o->parentObj->oEyerokBossNumHands\s*!=\s*2\)\s*\{"
+        r".*?o->parentObj->oEyerokBossActiveHand\s*=\s*0\s*;",
+        hand_functions["eyerok_hand_act_show_eye"],
+        re.DOTALL,
+    ) is None:
+        fail("SHOW_EYE active-hand clear is no longer guarded by one-hand phase")
+    require(
+        double_body,
+        "if (o->parentObj->oEyerokBossNumHands != 2) { "
+        "o->parentObj->oEyerokBossActiveHand = o->oBhvParams2ndByte; }",
+        "single-hand DOUBLE_POUND active-hand reassertion",
+    )
 
     gravity_writes = re.findall(r"o->oGravity\s*=\s*(-?[0-9]+(?:\.[0-9]+)?)f", eyerok)
     if gravity_writes != ["-4.0", "0.0", "0.0", "-4.0", "-4.0", "-20.0", "-15.0", "-20.0"]:
@@ -657,6 +670,8 @@ def main() -> None:
     print("double-terminal-consumer: RETREAT check precedes active DOUBLE_POUND branch")
     print("active-hand-zero-writers: SHOW_EYE and DOUBLE_POUND only")
     print("double-active-hand-clear: grounded mask && gravity < -15 (only DOUBLE_POUND clear)")
+    print("show-eye-active-hand-clear: guarded by NumHands != 2 (no live sibling hand)")
+    print("single-hand-double-lock: DOUBLE_POUND reasserts its side before terminal/active branches")
     print("gravity-writer-sequence: -4,0,0,-4,-4,-20,-15,-20")
     print("live-hand-collision-writes: 6, all nonnull")
     print("hand-room-writes: none (spawn default -1)")

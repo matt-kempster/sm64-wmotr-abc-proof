@@ -374,6 +374,13 @@ assignments to `EYEROK_HAND_ACT_IDLE`:
   grounded frame with gravity below `-15`, where zero bounciness has already
   removed downward velocity.
 
+There is one apparent sibling exception: `SHOW_EYE` also contains an
+`ActiveHand = 0` write. Its surrounding guard is `NumHands != 2`, so it runs
+only after the other hand has died; there is then no sibling double pound to
+unlock. In the same one-hand phase, the surviving hand's `DOUBLE_POUND`
+handler reasserts its own side into `ActiveHand` before any terminal or active
+branch. The source audit checks both guards explicitly.
+
 These transitions do not all execute an explicit `oVelY = 0`. That is not the
 invariant. The invariant is that they can preserve only a value `<= 0`.
 Consequently the two zero-gravity exits from `IDLE`—`BEGIN_DOUBLE_POUND` and

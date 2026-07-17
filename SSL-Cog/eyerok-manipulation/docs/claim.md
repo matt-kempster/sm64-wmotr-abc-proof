@@ -118,6 +118,9 @@ that source behavior and proves the inherited value is always nonpositive.
 The `DOUBLE_POUND -> RETREAT` case uses the boss active-hand lock: its terminal
 request is available only with no active hand, while a positive double-pound
 episode retains the lock until grounded under negative gravity.
+The other global clear is inside `SHOW_EYE`, but only under `NumHands != 2`,
+when no sibling exists; single-hand `DOUBLE_POUND` reasserts its own lock
+before its remaining branches. Both cross-hand guards are audited.
 
 ### Double-pound and partial-update refinement
 
