@@ -3,7 +3,7 @@ From SSLEyerok.Proofs Require Import AttackedReboard AuthenticReachability
   Binary32Boundary ClightRefinementBoundary DoublePoundBoarding
   DoublePoundTrace FirstHandBarrier GeneratedFacts
   HeldA1280Barrier IdleVelocityInvariant SchedulerInvariant Spec StateMachine LowerArea2Entry
-  MarioHandContact NoA1280Barrier
+  MarioHandContact NoA1280Barrier NonlethalNoStacking
   PartialUpdateBoundary RequestedHeightVerdict
   TwoHandBarrier VerticalBound.
 
@@ -19,6 +19,7 @@ Theorem eyerok_no_unbounded_rise_certificate :
   mario_hand_contact_certificate /\
   double_pound_boarding_certificate /\
   attacked_reboard_certificate /\
+  nonlethal_no_stacking_certificate /\
   no_a_1280_barrier_certificate /\
   ordinary_capped_held_a_wall_verdict /\
   double_pound_trace_certificate /\
@@ -46,6 +47,7 @@ Proof.
   refine (conj mario_hand_contact_certificate_holds _).
   refine (conj double_pound_boarding_certificate_holds _).
   refine (conj attacked_reboard_certificate_holds _).
+  refine (conj nonlethal_no_stacking_certificate_holds _).
   refine (conj no_a_1280_barrier_certificate_holds _).
   refine (conj ordinary_capped_held_a_wall_verdict_holds _).
   refine (conj double_pound_trace_certificate_holds _).

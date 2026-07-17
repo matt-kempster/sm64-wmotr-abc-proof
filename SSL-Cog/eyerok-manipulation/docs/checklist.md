@@ -1,6 +1,6 @@
 # Eyerok manipulation proof checklist
 
-Last updated: 2026-07-16 (US-ROM attack/reboarding and steering probes).
+Last updated: 2026-07-16 (nonlethal recovery/no-stacking theorem).
 
 ## Current verdict
 
@@ -32,6 +32,15 @@ nonpositive velocity, and the first positive movement was +85 with gravity
 velocity rows. This is a real ROM continuation from a source-reachable local
 precondition, not a from-reset controller-only fight trace or a refinement
 proof.
+
+The unified nonlethal lifecycle now tracks health, action, relative Y,
+velocity, gravity, grounding, attack age/latch, accepted-hit count, and the
+pending home reset. It proves that a hand has only the `4->3` and `3->2`
+nonlethal responses, that each airborne impulse contributes at most +98, and
+that every path to another accepted nonlethal hit contains the exact-home
+`RETREAT -> IDLE` reset. This closes nonlethal impulse stacking in the
+source-shaped relation. It does not close the broader linked Clight/ROM
+finite-episode refinement or forbid a separate support mechanism after reset.
 
 The normal finite double-pound now has hash-authenticated-US-ROM continuations
 from disclosed local fixtures. At observed action timer 2, retail jump-kick or dive code moves Mario
@@ -138,6 +147,13 @@ discharge it.
   ascent budgets, and the gravity-zero tripwire.
 - [x] Exhaust the three `IDLE` writers, both zero-gravity exits, attacked
   recovery timing, and the double-pound active-hand/terminal handshake.
+- [x] Audit health initialization at 4, the `4->3`, `3->2`, and `2->1`
+  branches, the unique `SHOW_EYE` attack consumer, per-update latch overwrite,
+  the full recovery/re-exposure graph (including both `CLOSE` exits),
+  exact-home retreat guard, and the 15-movement ground return before the
+  25-frame ATTACKED gate.
+- [x] Prove generated-Clight AST shape facts for the nonlethal handler chain,
+  hitbox initialization call, action constants, and handler/check/move order.
 - [x] Audit the apparent sibling `SHOW_EYE` lock clear: it is one-hand-only,
   `OPEN` keeps the independent `Unk1AC` exposure latch nonzero throughout
   `SHOW_EYE`, and single-hand `DOUBLE_POUND` reasserts its active-hand side
@@ -184,6 +200,9 @@ discharge it.
 - [x] Formalize the scheduler and exclude its grounded/gravity-zero seed.
 - [x] Track inherited vertical velocity across every `IDLE` entry and exclude
   the airborne/gravity-zero/positive-velocity `DOUBLE_POUND` seed.
+- [x] Track health, Y, velocity, gravity, grounding, attack latch/age, and the
+  complete nonlethal recovery graph; prove at most two nonlethal hits, +98 per
+  airborne impulse, and an intervening exact-home reset before another hit.
 - [x] Formalize finite ascent budgets and partial-update stuttering.
 - [x] Refine support/ascent constants to 384 and 288.
 - [x] Prove first/second hand-origin ceilings 672 and 1467.
@@ -217,7 +236,9 @@ discharge it.
   IN_DIFFERENT_ROOM and therefore cannot take a movement-only partial update.
 - [ ] Prove the event-by-event linked Clight finite-episode premise, including
   no airborne replenishment, exact double-pound/wall refinement, lifecycle
-  writer completeness, and the source phase reset before another launch.
+  writer completeness, and support classification before another launch. The
+  nonlethal `ATTACKED` reset/no-stacking subcase is closed in the source-shaped
+  lifecycle, but not yet transferred from whole-program Clight/ROM frames.
 
 ## Mario and Area 2 proof
 

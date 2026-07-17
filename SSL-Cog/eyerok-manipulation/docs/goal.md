@@ -1,6 +1,6 @@
 # Goal recovery note
 
-Last updated: 2026-07-16 (US-ROM attack/reboarding and steering probes).
+Last updated: 2026-07-16 (nonlethal recovery/no-stacking theorem).
 
 ## Objective
 
@@ -72,6 +72,19 @@ latch, and that a single-hand double pound reasserts its active-hand lock. Rocq
 proves every reachable `IDLE` state has
 nonpositive velocity and excludes
 `DOUBLE_POUND + airborne + gravity=0 + positive velocity`.
+
+`NonlethalNoStacking.v` closes the repeated-nonlethal subproblem in one
+source-shaped lifecycle. It tracks initialized health, relative Y, vertical
+velocity, gravity, grounding, ATTACKED age, the one-frame attack latch,
+accepted-hit count, and an owed-home-reset flag. Rocq proves that health 4
+permits two nonlethal responses (`4->3` and `3->2`), each airborne impulse adds
+at most 98 Y, and any path to another accepted nonlethal hit contains the
+exact-home `RETREAT -> IDLE` reset with nonpositive inherited velocity. The
+source audit now checks the full handler graph, health initialization and
+decrement, latch overwrite, 15-movement ordinary ground return, and 25-frame
+animation gate; generated Clight facts check the corresponding AST shape.
+This does not forbid a different support mechanism after the reset, and its
+dynamic whole-program Clight/ROM refinement remains open.
 
 The new Ubuntu-24.04 Mupen64Plus probe checks this boundary on the hash-authenticated
 US ROM as a separate evidence layer. It authenticates the ROM, discovers live
@@ -353,8 +366,9 @@ reachability is now closed.
 4. Prove an event-by-event Clight bridge for the two-hand finite-episode
    premise: every positive episode starts from classified support and has at
    most 288 remaining rise. The grounded and inherited-positive-velocity
-   zero-gravity seeds are now excluded by source-shaped Rocq invariants; link
-   those invariants to Clight/ROM frames and include the exact positive-double
+   zero-gravity seeds and nonlethal impulse stacking are now excluded by
+   source-shaped Rocq invariants. Link those invariants to Clight/ROM frames,
+   classify the other positive actions, and include the exact positive-double
    near-miss and dynamic-wall response.
 5. Authenticate or refute the conditional Y=1280 landing under the Y=1809
    ceiling: prove the hand/Mario predecessor, all quarter-step collision and
