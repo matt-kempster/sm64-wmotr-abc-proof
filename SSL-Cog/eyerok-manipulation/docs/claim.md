@@ -1,6 +1,6 @@
 # Working claim and exact scope
 
-Last updated: 2026-07-16 (Mario double-pound and attack reboarding).
+Last updated: 2026-07-16 (two-field Eyerok scheduler-lock audit).
 
 ## Source and toolchain boundary
 
@@ -120,7 +120,12 @@ request is available only with no active hand, while a positive double-pound
 episode retains the lock until grounded under negative gravity.
 The other global clear is inside `SHOW_EYE`, but only under `NumHands != 2`,
 when no sibling exists; single-hand `DOUBLE_POUND` reasserts its own lock
-before its remaining branches. Both cross-hand guards are audited.
+before its remaining branches. More importantly, `OPEN` writes the hand's
+side to the separate `Unk1AC` exposure latch, `SHOW_EYE` never clears that
+latch, and the boss may advance its double-pound scheduler only when both
+`ActiveHand` and `Unk1AC` are zero. The audit enumerates every `Unk1AC`
+assignment and checks this two-field guard, so clearing `ActiveHand` alone
+cannot create the candidate cross-hand sequence.
 
 ### Double-pound and partial-update refinement
 

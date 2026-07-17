@@ -1,6 +1,6 @@
 # Goal recovery note
 
-Last updated: 2026-07-16 (Mario double-pound and attack reboarding).
+Last updated: 2026-07-16 (two-field Eyerok scheduler-lock audit).
 
 ## Objective
 
@@ -41,6 +41,9 @@ The deterministic source audits now pin:
   comparison;
 - the complete relevant gravity-writer order, hand spawn/update order, and
   dynamic-surface clear order;
+- every `Unk1AC` exposure-latch writer, the `OPEN` acquisition and
+  `SHOW_EYE` preservation of that latch, and the boss requirement that both
+  the exposure latch and active-hand lock be zero before scheduling advances;
 - the live hand's nonnull collision-pointer writers, room default `-1`, native
   execution before visibility, first sleep collision assignment, time-stop
   whole-update branch, and movement partial-update guards; and
@@ -63,8 +66,9 @@ kernel did not represent. It tracks `oVelY`, gravity, action, grounding, the
 boss active-hand lock, and the double-pound terminal state. The source audit
 now exhaustively checks all three assignments into `IDLE`, both zero-gravity
 exits, every direct positive `oVelY` writer, the attacked animation delay, and
-the boss lock/terminal guards. It also checks that the `SHOW_EYE` lock clear is
-one-hand-only and that a single-hand double pound reasserts its lock. Rocq
+the boss lock/terminal guards. It also checks that the `SHOW_EYE` active-hand
+clear is one-hand-only, that `SHOW_EYE` retains the independent exposure
+latch, and that a single-hand double pound reasserts its active-hand lock. Rocq
 proves every reachable `IDLE` state has
 nonpositive velocity and excludes
 `DOUBLE_POUND + airborne + gravity=0 + positive velocity`.

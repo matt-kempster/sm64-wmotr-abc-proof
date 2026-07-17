@@ -19,7 +19,9 @@ Local Open Scope Z_scope.
       negative gravity and zero bounciness has cleared [oVelY].  The only
       other source clear is in SHOW_EYE under [NumHands != 2], where no sibling
       hand exists; a surviving single-hand DOUBLE_POUND reasserts its own lock
-      before testing the terminal and active branches. *)
+      before testing the terminal and active branches.  OPEN also owns the
+      parent's nonzero Unk1AC exposure latch throughout SHOW_EYE, independently
+      preventing the boss's double-pound scheduler from advancing. *)
 
 Inductive idle_velocity_action : Type :=
 | IVSleep

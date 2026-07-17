@@ -379,7 +379,19 @@ There is one apparent sibling exception: `SHOW_EYE` also contains an
 only after the other hand has died; there is then no sibling double pound to
 unlock. In the same one-hand phase, the surviving hand's `DOUBLE_POUND`
 handler reasserts its own side into `ActiveHand` before any terminal or active
-branch. The source audit checks both guards explicitly.
+branch.
+
+There is also a second, independent boss lock. When a hand opens its eye,
+`OPEN` records that hand's side in `Unk1AC`. Think of `ActiveHand` as “a hand
+is currently executing the selected attack” and `Unk1AC` as “an eye-exposure
+sequence still owns the boss.” The boss is allowed to advance the
+double-pound schedule only when **both** fields are zero. `SHOW_EYE` can clear
+`ActiveHand` in the one-hand case, but it does not clear `Unk1AC`; that field
+is released later by `CLOSE`, completed death cleanup, or `RETREAT`. For
+example, a surviving hand that is visibly showing its eye may appear idle to
+the first lock, but the second lock still prevents a new double pound. The
+source audit enumerates every assignment to this second lock and checks the
+two-field scheduler condition.
 
 These transitions do not all execute an explicit `oVelY = 0`. That is not the
 invariant. The invariant is that they can preserve only a value `<= 0`.
