@@ -24,9 +24,9 @@ b-only-contact-entry: WALKING, fresh B, forwardVel>=29, stickMag>48 -> DIVE(arg=
 b-only-contact-launch: velY=20; same-frame DIVE air step; no A condition in speed-kick branch
 double-pound-normal-rises: 85,70,55,40,25,10
 stationary-first-rise-floor-gap: 85 > 78 (closed top rejected)
-authenticated-prelaunch-mario-steps: +20,+16; launch-entry velY=12
-authenticated-first-rise-prequery-gap: 85-20-16=49 <= 78
-authenticated-first-qstep-intended-gap: 49-3=46 <= 78 (closed top eligible)
+observed-local-prelaunch-mario-steps: +20,+16; launch-entry velY=12
+observed-local-first-rise-preplayer-gap: 85-20-16=49 <= 78
+observed-local-first-qstep-intended-gap: 49-3=46 <= 78 (closed top eligible)
 b-only-closed-top-triangles: transformed source triangles (1,3,4) and (1,4,5)
 b-only-closed-top-xz-witness-milli: (0,-55850),(30000,-45150),(30000,-5774),(30000,30452),(30000,63780),(30000,94442),(30000,122651)
 b-only-closed-top-xz-witnesses: 7/7 strict interior before and after TerrainData cast
@@ -62,14 +62,26 @@ ordinary-attack-bounce: hand-origin+150, velY=30
 automatic-top-hit: INT_HIT_FROM_ABOVE uses ordinary bounce placement/velocity
 ordinary-bounce-action: non-twirl branch preserves Mario's current action
 long-jump-gravity-after-bounce: -2 per player frame
+slow-long-jump-wall-hit: forwardVel<=16 is zeroed; LONG_JUMP action is preserved
+no-a-slide-kick-entry: CROUCH_SLIDE + fresh B + forwardVel>=10; no A gate in that branch
+slide-kick-initialization: velY=12; forwardVel raised to at least 32
+slide-kick-wall-hit: unconditionally enters BACKWARD_AIR_KB before later boss update
+steering-fixture-squish-timer: zero selects intendedMag=mag/2 rather than inherited mag/8
 attacked-recovery: 25-frame ATTACKED animation, then collision swaps open -> closed
 lethal-die-collision: DIE writes no mesh; inherited open mesh persists until deletion
 lethal-die-deletion: animation-end helper marks hand for deletion
 lethal-long-jump-late-open-top-gaps: 63,7 (both pass the 78-unit vertical filter)
-lethal-long-jump-next-blocker: open side wall; >200 horizontal component is a candidate threshold
-reboard-xz-witness-local: (0,100) strict inside closed top, outside open top
-reboard-xz-witness-margins: closed-front=70.5; open-wall=73.5>50
-reboard-xz-witness-hitbox: scaled radius=150 < combined hitbox radius=262
+standard-gravity-lethal-airborne-gap-min: 153
+standard-gravity-lethal-first-grounded-gap: 191
+recorded-nonlethal-long-jump-open-floor: -1534+507=-1027
+recorded-nonlethal-long-jump-recovery-floor: -1534+306=-1228
+target-mario-origin-height: source approaches home+300 in both branches
+recorded-nonlethal-long-jump-target-floor: -1534+300+306=-928
+recorded-lethal-long-jump-xz: world z=127 is outside scaled open-top z<=76.5 (254>153 doubled)
+recorded-lethal-long-jump-final-live: Mario=-984, open-top=-1027, Mario is 43 above
+recorded-lethal-long-jump-after-one-more-update: Mario=-1006, still 21 above open top
+recorded-lethal-long-jump-second-projected-update: Mario=-1030 would cross only after DIE deletion
+lethal-long-jump-next-blocker: bounded front-side steering reaches floor-only selection; other poses/actions and unrestricted schedules remain open
 audited-sha256:
   d169438ffe43dbe89a24d7577730a0fa247ba741744799adb44ffab6a5666084  src/game/level_update.c
   79c96544f072b74029936d44d280799e6614dee65d4770200cb8101b06e559ac  src/game/area.c

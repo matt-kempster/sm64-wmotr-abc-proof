@@ -1,0 +1,51 @@
+Eyerok attack/reboarding probe summary
+ROM MD5: 20B854B239203BAF6C961B850A4A51A2
+ROM SHA-256: 17CE077343C6133F8C9F2D6D6D9A4AB62C8CD2AA57C40AEA1F490B4C8BB21D91
+ROM CRC: 635A2BFF 8B022326
+Emulator: Ubuntu-24.04 Mupen64Plus 2.5.9, debugger pure interpreter.
+Scope: fixture-assisted local Mario states followed by retail interaction, Eyerok actions, physics, collision, floor/platform selection, and deletion.
+Not scope: controller-only/from-reset reachability of the Mario pose; ordinary long-jump entry requires a prior fresh-A edge, but this fixture injects the action; the speed-5 slide-kick fixture is not an ordinary entry state.
+Hand writes: none in nonlethal modes; lethal writes health=2 only to represent two prior hits.
+Fallback attack-latch or post-hit action/velocity/gravity writes: none.
+
+[nonlethal_long_jump5]
+- Retail hit/latch/response: c003 -> received=3 -> ATTACKED, health 4->3, post-move hand vY=26, gravity=-4.
+- Open reboard: poll 495, hand at home height but still airborne (vY=-26, ground flag 0), Mario/floor Y=-1027.000, ordinary open triangles=true, floor+platform=target, ACT_LEDGE_GRAB; the hand grounds on poll 496.
+- Recovery: 201-unit open-to-closed swap temporarily loses platform; closed top is reacquired at poll 514.
+- Later retail TARGET motion carries the same selected hand to Mario Y=-928.000.
+
+[lethal_long_jump5]
+- Retail hit/latch/response: c003 -> received=3 -> DIE, health 2->1, post-move hand vY=46, gravity=-4.
+- Second retail bounce: poll 495 vY=-2.000 -> poll 496 vY=28.000; ACT_LONG_JUMP remains active.
+- Real update-order candidates: conservative pre-player-update hand-top gaps are 63.000 and 7.000 (both within +78), but both are outside the open top in X/Z and select neither target floor nor platform.
+- Final live timer-39 frame: post-frame Mario is 43.000 above the hand top; local Z=127.000 world units, inside open top=false, floor/platform not target.
+- The target is absent on later logged frames: deletion wins before this X/Z-blocked trace can reboard.
+
+[nonlethal_slide_kick5]
+- The open front wall is the first blocker: first post-pose frame changes ACT_SLIDE_KICK to ACT_BACKWARD_AIR_KB and gravity becomes -4.
+- Retail interaction still succeeds: c005 -> received=5 -> ATTACKED, health 4->3, post-move hand vY=26, gravity=-4.
+- No later row selects the target as Mario floor or platform.
+- Source boundary: B from ACT_CROUCH_SLIDE enters slide kick without A, but entry writes vY=12 and clamps forward speed to at least 32; ordinary flight does not produce this injected speed-5 state.
+
+[lethal_slide_kick5]
+- The open front wall is the first blocker: first post-pose frame changes ACT_SLIDE_KICK to ACT_BACKWARD_AIR_KB and gravity becomes -4.
+- Retail interaction still succeeds: c005 -> received=5 -> DIE, health 2->1, post-move hand vY=46, gravity=-4.
+- No later row selects the target as Mario floor or platform.
+- Source boundary: B from ACT_CROUCH_SLIDE enters slide kick without A, but entry writes vY=12 and clamps forward speed to at least 32; ordinary flight does not produce this injected speed-5 state.
+
+[lethal_steering_sweep]
+- Eight full-stick cardinal/diagonal cases plus one inward-then-reverse braking schedule start only after the first retail wall frame; A and B stay released.
+- No sampled direction ever sets gMarioPlatform to the target hand. Analog direction can change whether Mario gets the second hit-from-above bounce, so the +63/+7 sequence is asserted for the no-stick base, continuous inward-y, and brake32 traces, not all eight directions.
+- Continuous stick (0,+127) later enters X/Z and first selects the target as floor at poll 509, DIE timer 27; Mario Y=-876.000, vY=2.000, floor Y=-1027.000. The hand is already grounded with vY=-0.000.
+- That y_plus trace passes out the far side after DIE timer 36, remains airborne at timer 39 (Y=-984.000, vY=-22.000, 43 above top), and the target is absent on the next observed frame. Projected Y is -1006 then -1030, so the first top crossing would occur only after deletion.
+- Brake32 holds (0,+127) for relative polls [1,32), then (0,-127). It solves X/Z: at DIE timer 39 the target is still Mario's selected floor at local Z=20.156, but platform remains null and Mario is 43 above the top. On poll 522 the target is gone while Mario Y=-1006.000 (21 above); poll 523 is the first top crossing at Y=-1030.000, with no target floor/platform.
+- This is a bounded direction/schedule sweep, not a proof over all analog sequences.
+
+Verdict:
+- The local nonlethal low-speed long jump is an open-top ledge/floor/platform counterexample to the former universal reboard exclusion; it does not contradict the -4-gravity arithmetic certificate.
+- The local lethal low-speed long jump has conservative pre-player-update +63 and +7 height-buffer opportunities, but the open front wall leaves Mario outside the top in X/Z at those times.
+- Continuous inward stick later makes the grounded hand Mario's selected floor, but never his platform: Mario crosses the far edge before reaching the top, remains airborne through DIE timer 39, and the hand is deleted.
+- The brake32 schedule keeps X/Z valid and the target selected as floor through timer 39, but Mario is still 43 above it with platform null; deletion occurs while he is 21 above, one frame before the first top crossing.
+- Both nonlethal and lethal slide-kick fixtures receive their retail hand responses, but the first open-mesh wall hit unconditionally exits Mario to backward air knockback and neither trace reboards.
+- Slide kick is no-A enterable in source, but the injected descending speed-5 state is not an ordinary no-A entry state.
+- Authentic controller reachability, useful Area-3 warp departure, and a zero/0.5-A route remain open.

@@ -66,8 +66,9 @@ becomes a dynamic ceiling, and retail code selects `ACT_SQUISHED`.
 Both prepared-action modes start at hand action timer 2. Retail code completes
 two Mario air updates before the hand launch: Y `-1208`, velocity `16`, then Y
 `-1192`, velocity `12`. Because surface objects update before Mario, the hand
-then rises to top Y `-1143`; the pre-query gap is 49, inside the 78-unit
-allowance, and ordinary collision snaps Mario to the same hand.
+then rises to top Y `-1143`; this makes the conservative pre-player-update gap
+49. Mario's first air quarter-step adds 3, making the modeled query gap 46,
+inside the 78-unit allowance. Ordinary collision snaps Mario to the same hand.
 
 - In `b_only`, the probe injects the local source-valid `ACT_WALKING`, speed
   29, rear-interior predecessor and sends one B edge with A always up. It does
@@ -81,9 +82,56 @@ allowance, and ordinary collision snaps Mario to the same hand.
 The analyzer logs Mario/hand X/Z and hand yaw, inverse-transforms the query
 into the real closed-top triangles, and emits explicit `insideClosedTopXZ`,
 `verticalGap`, `within78`, floor-owner, platform-owner, and contact-class
-columns. `within78` is a conservative pre-query buffer test based on the
-previous completed Mario Y; the ROM-reported floor and platform owners are the
+columns. `within78` is a conservative pre-player-update buffer test based on
+the previous completed Mario Y; the ROM-reported floor and platform owners are the
 decisive contact evidence. See `results/contact_manifest.md` for every setup
 write and the exact scope. The results prove the local contact transition, not
 controller-only reachability of the injected predecessor pose or a useful warp
 dismount.
+
+## Attack and reboarding probe
+
+`run_attack_probe.sh` checks fixture-assisted nonlethal/lethal long-jump and
+slide-kick attacks, followed by the retail hand response, Mario collision,
+floor/platform choice, and deletion. It also runs eight fixed lethal steering
+directions and an inward-then-reverse braking schedule:
+
+~~~powershell
+wsl.exe -d Ubuntu-24.04 -- bash -lc "\
+cd '/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-wmotr-abc-proof/SSL-Cog/eyerok-manipulation' && \
+bash instrumentation/mupen64plus/run_attack_probe.sh \
+  '/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-decomp/baserom.us.z64'"
+~~~
+
+The wrapper rejects any ROM whose MD5, SHA-256, or header CRC differs from the
+authenticated US release. The local Mario fixture explicitly clears and logs
+`squishTimer` and `quicksandDepth`; the lethal fixture writes only hand health
+`2` to represent two prior hits. There is no attack-latch fallback or
+post-response hand-state injection.
+
+The nonlethal low-speed long jump is a local ordinary-geometry reboard
+witness: Mario selects the home-height open top as both floor and platform
+while the hand still has velocity `-26` and no ground flag; the flag sets on
+the next frame. Mario survives the recovery mesh swap and later rides the
+same hand upward. The lethal neutral trace reaches conservative
+pre-player-update hand-top gaps `+63` and `+7`, but remains outside
+the open top in X/Z at those moments.
+
+Continuous inward stick `(0,+127)` later enters the lethal hand footprint and
+selects it as floor only after the hand has grounded; it never becomes Mario's
+platform. More decisively, `brake32` holds inward stick on pose-relative polls
+`[1,32)`, then reverses it. This keeps the target selected as floor through
+DIE timer 39 while X/Z remains valid, but Mario is still 43 above the top and
+the platform is null. The hand is deleted while Mario is 21 above; his first
+top crossing is the following frame, after the target is gone. Thus deletion,
+not just lateral drift, blocks this bounded lethal reboard candidate.
+
+Neither nonlethal nor lethal slide kick reboards: the first open-front-wall
+hit forces `ACT_BACKWARD_AIR_KB` before the hand response. See
+`results/attack_reboard_manifest.md` for exact fixtures, controller schedules,
+source/geometry boundaries, and ABC interpretation.
+`results/attack_reboard_trace.csv` contains the four base witnesses, while
+`results/lethal_steering_sweep.csv` distinguishes height candidates, selected
+floor, platform/landing, deletion, and the first post-deletion crossing. These
+are local microtraces, not controller-only reachability proofs or a zero/0.5-A
+route.

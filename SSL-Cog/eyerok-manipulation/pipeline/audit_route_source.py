@@ -309,6 +309,27 @@ def main() -> None:
     require(mario, "case ACT_BACKFLIP: m->marioObj->header.gfx.animInfo.animID = -1; m->forwardVel = -16.0f; set_mario_y_vel_based_on_fspeed(m, 62.0f, 0.0f);", "backflip vertical velocity")
     require(mario, "case ACT_TRIPLE_JUMP: set_mario_y_vel_based_on_fspeed(m, 69.0f, 0.0f);", "triple-jump vertical velocity")
     require(mario_moving, "if (m->input & INPUT_A_PRESSED) { return setAPressAction(m, landingAction->aPressedAction, 0);", "landing jump fresh-A gate")
+    crouch_slide_body = c_function_body(mario_moving, "act_crouch_slide")
+    require(
+        crouch_slide_body,
+        "if (m->input & INPUT_B_PRESSED) { if (m->forwardVel >= 10.0f) { return set_mario_action(m, ACT_SLIDE_KICK, 0); } else { return set_mario_action(m, ACT_MOVE_PUNCHING, 0x0009); } }",
+        "crouch-slide B-only SLIDE_KICK entry branch",
+    )
+    require(
+        mario,
+        "case ACT_SLIDE_KICK: m->vel[1] = 12.0f; if (m->forwardVel < 32.0f) { m->forwardVel = 32.0f; }",
+        "SLIDE_KICK initial vertical velocity and minimum speed",
+    )
+    require(
+        sm64_header,
+        "#define ACT_SLIDE_KICK                 0x018008AA // (0x0AA | ACT_FLAG_AIR | ACT_FLAG_ATTACKING | ACT_FLAG_ALLOW_VERTICAL_WIND_ACTION)",
+        "SLIDE_KICK action flags",
+    )
+    require(
+        c_function_body(mario, "update_mario_joystick_inputs"),
+        "if (m->squishTimer == 0) { m->intendedMag = mag / 2.0f; } else { m->intendedMag = mag / 8.0f; }",
+        "squish-timer joystick magnitude branch",
+    )
     require(mario_step, "for (i = 0; i < 4; i++)", "four air quarter steps")
     require(mario_step, "intendedPos[1] = m->pos[1] + m->vel[1] / 4.0f;", "air quarter-step Y")
     require(mario_step, "floorHeight = find_floor(nextPos[0], nextPos[1], nextPos[2], &floor);", "quarter-step floor query")
@@ -342,6 +363,8 @@ def main() -> None:
     require(object_helpers, "obj->hitboxRadius = obj->header.gfx.scale[0] * hitbox->radius;", "scaled object hitbox radius")
     require(object_helpers, "o->oVelY += gravity + buoyancy;", "hand gravity integration")
     require(object_helpers, "o->oPosY += o->oVelY;", "hand vertical position integration")
+    require(object_helpers, "if (o->oPosY < o->oFloorHeight)", "strict hand ground comparison")
+    require(object_helpers, "o->oPosY = o->oFloorHeight;", "hand ground-position snap")
     require(object_lists, "OBJ_LIST_SURFACE, OBJ_LIST_POLELIKE, OBJ_LIST_PLAYER, OBJ_LIST_PUSHABLE, OBJ_LIST_GENACTOR", "surface-before-player-before-boss order")
 
     require(ssl_script, "INSTANT_WARP(/*index*/ 3, /*destArea*/ 3, /*displace*/ 0, 0, 0)", "Area 2 return warp")
@@ -374,6 +397,21 @@ def main() -> None:
         c_function_body(mario_airborne, "act_dive"),
         "update_air_without_turn(m); switch (perform_air_step(m, 0))",
         "DIVE performs same-frame air step",
+    )
+    require(
+        c_function_body(mario_airborne, "common_air_action_step"),
+        "} else { mario_set_forward_vel(m, 0.0f); } break; case AIR_STEP_GRABBED_LEDGE:",
+        "slow LONG_JUMP wall hit preserves the action",
+    )
+    require(
+        c_function_body(mario_airborne, "act_slide_kick"),
+        "case AIR_STEP_HIT_WALL: if (m->vel[1] > 0.0f) { m->vel[1] = 0.0f; } m->particleFlags |= PARTICLE_VERTICAL_STAR; set_mario_action(m, ACT_BACKWARD_AIR_KB, 0); break;",
+        "SLIDE_KICK wall hit exits to BACKWARD_AIR_KB",
+    )
+    require(
+        c_function_body(mario_step, "apply_gravity"),
+        "} else { m->vel[1] -= 4.0f; if (m->vel[1] < -75.0f)",
+        "ordinary Mario air gravity -4",
     )
     bounce_top_body = c_function_body(interaction, "interact_bounce_top")
     require(
@@ -415,7 +453,7 @@ def main() -> None:
     mario_action_entry_velocity = 20
     first_wait_frame_velocity = mario_action_entry_velocity - 4
     launch_frame_velocity = first_wait_frame_velocity - 4
-    # The authenticated local scheduler trace gives Mario two complete player
+    # The observed local-fixture scheduler continuation gives Mario two complete player
     # updates before the selected hand's +85 surface update: +20 on action
     # entry and +16 on the intervening frame.  On the launch frame, the first
     # intended quarter step uses velocity 12.
@@ -430,7 +468,7 @@ def main() -> None:
         or launch_first_qstep_gap != 46
         or launch_first_qstep_gap > 78
     ):
-        fail("unexpected authenticated held-A/B-only contact arithmetic")
+        fail("unexpected observed-local held-A/B-only contact arithmetic")
 
     # ACT_LONG_JUMP is preserved by the ordinary bounce branch and receives
     # -2 rather than -4 gravity.  Recompute the two late vertical windows that
@@ -458,17 +496,86 @@ def main() -> None:
     lethal_origin_positions = ballistic_positions(0, 50, -4, 22)
     # On global lethal frame 16 the hand-origin offset is 270, so an ordinary
     # hit from above bounces Mario from the scaled hitbox top 270+150=420.
-    long_jump_after_second_bounce = mario_air_positions(420, 30, -2, 7)
+    long_jump_after_second_bounce = mario_air_positions(420, 30, -2, 28)
     lethal_long_jump_late_gaps = [
         lethal_origin_positions[20] + 507 - long_jump_after_second_bounce[5],
         lethal_origin_positions[21] + 507 - long_jump_after_second_bounce[6],
     ]
     if (
         lethal_origin_positions[14] != 270
-        or long_jump_after_second_bounce[5:] != [570, 588]
+        or long_jump_after_second_bounce[5:7] != [570, 588]
         or lethal_long_jump_late_gaps != [63, 7]
     ):
         fail("unexpected inherited-long-jump lethal re-entry arithmetic")
+
+    # Reconstruct the separately listed ordinary [-4]-gravity lethal schedule.
+    # The hand reaches exact floor equality on airborne row 24; the source's
+    # strict '<' ground test sets the flag only after the next attempted -50
+    # step is snapped back to zero.  The first Mario arc starts after the
+    # initial hit-top placement (150) and +30 update.  Row 7 is the second
+    # retail hit-top placement at current hand origin +150, followed by the
+    # ordinary +30/-4 arc.  This ties the formal 153/191 constants to the
+    # source-audited update order rather than merely asserting them.
+    standard_hand_airborne_origins = ballistic_positions(0, 50, -4, 24)
+    standard_hand_unclamped_next = ballistic_positions(0, 50, -4, 25)[-1]
+    standard_first_arc = mario_air_positions(180, 26, -4, 6)
+    standard_second_bounce_y = standard_hand_airborne_origins[6] + 150
+    standard_second_arc = mario_air_positions(standard_second_bounce_y, 30, -4, 18)
+    standard_mario_positions = (
+        standard_first_arc + [standard_second_bounce_y] + standard_second_arc
+    )
+    standard_hand_positions = standard_hand_airborne_origins + [0]
+    standard_lethal_gaps = [
+        hand_y + 507 - mario_y
+        for hand_y, mario_y in zip(standard_hand_positions, standard_mario_positions)
+    ]
+    expected_standard_airborne_gaps = [
+        347, 367, 387, 407, 427, 447, 357, 345, 333, 321, 309, 297,
+        285, 273, 261, 249, 237, 225, 213, 201, 189, 177, 165, 153,
+    ]
+    if (
+        standard_hand_airborne_origins[-1] != 0
+        or standard_hand_unclamped_next != -50
+        or standard_first_arc != [206, 228, 246, 260, 270, 276]
+        or standard_second_bounce_y != 388
+        or standard_second_arc[-1] != 316
+        or standard_lethal_gaps[:-1] != expected_standard_airborne_gaps
+        or standard_lethal_gaps[-1] != 191
+    ):
+        fail("unexpected standard-gravity lethal through-first-ground schedule")
+
+    # The recorded front-side schedule later reaches the open top's X/Z
+    # footprint, but its long-jump Y schedule is still above the grounded top
+    # on the final live hand row.  It would need two further Mario updates to
+    # cross that top.  Source order is SURFACE before PLAYER, and the DIE
+    # animation helper deletes the hand before either update can use it.
+    lethal_final_live_mario_relative_y = long_jump_after_second_bounce[25]
+    lethal_projected_next_mario_relative_y = long_jump_after_second_bounce[26]
+    lethal_projected_second_mario_relative_y = long_jump_after_second_bounce[27]
+    if (
+        lethal_final_live_mario_relative_y != 550
+        or lethal_final_live_mario_relative_y - 507 != 43
+        or lethal_projected_next_mario_relative_y != 528
+        or lethal_projected_next_mario_relative_y - 507 != 21
+        or lethal_projected_second_mario_relative_y != 504
+        or lethal_projected_second_mario_relative_y >= 507
+    ):
+        fail("unexpected inherited-long-jump final-live/deletion arithmetic")
+
+    # Exact absolute-height arithmetic from the separately recorded local
+    # inherited-LONG_JUMP fixture.  These checks only keep the emitted audit
+    # synchronized with the source-derived mesh offsets; they are not a
+    # controller-reachability or C-semantics derivation of that trace.
+    eyerok_home_y = -1534
+    recorded_nonlethal_open_floor_y = eyerok_home_y + 507
+    recorded_recovery_closed_floor_y = eyerok_home_y + 306
+    recorded_target_mario_closed_floor_y = eyerok_home_y + 300 + 306
+    if (
+        recorded_nonlethal_open_floor_y != -1027
+        or recorded_recovery_closed_floor_y != -1228
+        or recorded_target_mario_closed_floor_y != -928
+    ):
+        fail("unexpected recorded nonlethal long-jump height arithmetic")
 
     attacked_body = c_function_body(eyerok, "eyerok_hand_act_attacked")
     require(
@@ -485,6 +592,10 @@ def main() -> None:
     attacked_animation_frames = int(attacked_animation_match.group(1), 16)
     if attacked_animation_frames != 25:
         fail(f"unexpected ATTACKED animation length: {attacked_animation_frames}")
+
+    target_mario_body = c_function_body(eyerok, "eyerok_hand_act_target_mario")
+    if compact(target_mario_body).count(compact("o->oHomeY + 300.0f")) != 2:
+        fail("TARGET_MARIO no longer approaches home Y + 300 in both branches")
 
     open_body = c_function_body(eyerok, "eyerok_hand_act_open")
     require(
@@ -550,6 +661,12 @@ def main() -> None:
     closed_underside_offset = closed_local_underside * hand_scale
     if closed_top_offset != 306 or closed_underside_offset != Fraction(9, 2):
         fail("unexpected scaled closed-hand top/underside")
+    open_local_top = max(
+        max(point[1] for point in triangle.points) for triangle in open_upward
+    )
+    open_top_offset = open_local_top * hand_scale
+    if open_local_top != 338 or open_top_offset != 507:
+        fail(f"unexpected scaled open-hand top: {open_local_top}/{open_top_offset}")
 
     # Collision vertices are transformed by scale 1.5 and cast to TerrainData.
     # Check the exact two top triangles used by floor queries, both at the
@@ -595,30 +712,21 @@ def main() -> None:
                 f"{cast_point}"
             )
 
-    reboard_local_point = (Fraction(0), Fraction(100))
-    if not any(
-        point_strictly_in_triangle_xz(reboard_local_point, triangle)
-        for triangle in closed_upward
-    ):
-        fail("local (0,100) is not strictly inside the closed-hand top")
-    if any(
-        point_in_triangle_xz(reboard_local_point, triangle) for triangle in open_upward
-    ):
-        fail("local (0,100) unexpectedly lies inside the open-hand top")
     open_front_local_z = max(z for _, _, z in open_vertices)
-    closed_front_local_z = max(z for _, _, z in closed_vertices)
-    open_wall_clearance = (reboard_local_point[1] - open_front_local_z) * hand_scale
-    closed_front_margin = (closed_front_local_z - reboard_local_point[1]) * hand_scale
-    reboard_world_radius = reboard_local_point[1] * hand_scale
+
+    # The recorded lethal fixture's two vertically eligible queries occur at
+    # hand-relative world Z=127.  The open top stops at source Z=51, or 76.5
+    # after scale 1.5.  Compare exact doubled world coordinates so the
+    # half-unit transform is not rounded away.
+    recorded_lethal_world_z_twice = 2 * 127
+    scaled_open_top_front_z_twice = int(2 * hand_scale * open_front_local_z)
     if (
         open_front_local_z != 51
-        or closed_front_local_z != 147
-        or open_wall_clearance != Fraction(147, 2)
-        or closed_front_margin != Fraction(141, 2)
-        or reboard_world_radius >= combined_hitbox_radius
-        or open_wall_clearance <= 50
+        or recorded_lethal_world_z_twice != 254
+        or scaled_open_top_front_z_twice != 153
+        or recorded_lethal_world_z_twice <= scaled_open_top_front_z_twice
     ):
-        fail("unexpected local (0,100) reboarding witness geometry")
+        fail("unexpected recorded lethal long-jump open-top Z exclusion")
 
     area2_vertices, area2_triangles = parse_collision(area2_text)
     area3_vertices, area3_triangles = parse_collision(area3_text)
@@ -783,9 +891,9 @@ def main() -> None:
     print("b-only-contact-launch: velY=20; same-frame DIVE air step; no A condition in speed-kick branch")
     print("double-pound-normal-rises: 85,70,55,40,25,10")
     print("stationary-first-rise-floor-gap: 85 > 78 (closed top rejected)")
-    print("authenticated-prelaunch-mario-steps: +20,+16; launch-entry velY=12")
-    print("authenticated-first-rise-prequery-gap: 85-20-16=49 <= 78")
-    print("authenticated-first-qstep-intended-gap: 49-3=46 <= 78 (closed top eligible)")
+    print("observed-local-prelaunch-mario-steps: +20,+16; launch-entry velY=12")
+    print("observed-local-first-rise-preplayer-gap: 85-20-16=49 <= 78")
+    print("observed-local-first-qstep-intended-gap: 49-3=46 <= 78 (closed top eligible)")
     print("b-only-closed-top-triangles: transformed source triangles (1,3,4) and (1,4,5)")
     print(
         "b-only-closed-top-xz-witness-milli: "
@@ -828,14 +936,26 @@ def main() -> None:
     print("automatic-top-hit: INT_HIT_FROM_ABOVE uses ordinary bounce placement/velocity")
     print("ordinary-bounce-action: non-twirl branch preserves Mario's current action")
     print("long-jump-gravity-after-bounce: -2 per player frame")
+    print("slow-long-jump-wall-hit: forwardVel<=16 is zeroed; LONG_JUMP action is preserved")
+    print("no-a-slide-kick-entry: CROUCH_SLIDE + fresh B + forwardVel>=10; no A gate in that branch")
+    print("slide-kick-initialization: velY=12; forwardVel raised to at least 32")
+    print("slide-kick-wall-hit: unconditionally enters BACKWARD_AIR_KB before later boss update")
+    print("steering-fixture-squish-timer: zero selects intendedMag=mag/2 rather than inherited mag/8")
     print("attacked-recovery: 25-frame ATTACKED animation, then collision swaps open -> closed")
     print("lethal-die-collision: DIE writes no mesh; inherited open mesh persists until deletion")
     print("lethal-die-deletion: animation-end helper marks hand for deletion")
     print("lethal-long-jump-late-open-top-gaps: 63,7 (both pass the 78-unit vertical filter)")
-    print("lethal-long-jump-next-blocker: open side wall; >200 horizontal component is a candidate threshold")
-    print("reboard-xz-witness-local: (0,100) strict inside closed top, outside open top")
-    print("reboard-xz-witness-margins: closed-front=70.5; open-wall=73.5>50")
-    print("reboard-xz-witness-hitbox: scaled radius=150 < combined hitbox radius=262")
+    print("standard-gravity-lethal-airborne-gap-min: 153")
+    print("standard-gravity-lethal-first-grounded-gap: 191")
+    print("recorded-nonlethal-long-jump-open-floor: -1534+507=-1027")
+    print("recorded-nonlethal-long-jump-recovery-floor: -1534+306=-1228")
+    print("target-mario-origin-height: source approaches home+300 in both branches")
+    print("recorded-nonlethal-long-jump-target-floor: -1534+300+306=-928")
+    print("recorded-lethal-long-jump-xz: world z=127 is outside scaled open-top z<=76.5 (254>153 doubled)")
+    print("recorded-lethal-long-jump-final-live: Mario=-984, open-top=-1027, Mario is 43 above")
+    print("recorded-lethal-long-jump-after-one-more-update: Mario=-1006, still 21 above open top")
+    print("recorded-lethal-long-jump-second-projected-update: Mario=-1030 would cross only after DIE deletion")
+    print("lethal-long-jump-next-blocker: bounded front-side steering reaches floor-only selection; other poses/actions and unrestricted schedules remain open")
     print("audited-sha256:")
     for path, text in [
         ("src/game/level_update.c", level_update),
