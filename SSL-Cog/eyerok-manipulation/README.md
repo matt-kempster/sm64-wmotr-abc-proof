@@ -128,6 +128,23 @@ Never-A input can still obtain a smaller B-only speed-kick dive. The checked
 backflip; the former needs a fresh-edge jump chain and neither is a no-A route
 witness merely because an upper-bound theorem grants it.
 
+`proofs/DoublePoundBoarding.v` proves a positive local contact result. Starting
+the +20 action one frame before the hand's +85 movement leaves a 65-unit gap;
+Mario's first +4 quarter-step reduces it to 61, so the closed top is selected
+and snapped. Every later finite double-pound increment is at most 70. This
+works as either an already-held-A jump kick with no fresh edge or a never-A
+B-only speed kick under its speed/stick preconditions. Pressing B on the launch
+frame is too late: the hand underside leaves only 89.5 units of clearance and
+sets squish input before the speed-kick branch. Authentic predecessor boarding
+and boss synchronization are still open.
+
+`proofs/AttackedReboard.v` proves that ordinary attack reboarding is not a
+useful elevated ride. The nonlethal open mesh stays outside the floor buffer
+during its 98-unit ascent, then a recovery mesh swap snaps Mario onto the
+already-grounded closed hand at absolute Y -1228. The lethal hand never closes;
+its minimum airborne gap is 153 and its best grounded-bounce gap is 229, so it
+is deleted before ordinary reboarding.
+
 `proofs/LowerArea2Entry.v` tests the stricter two-hand ceiling. It deliberately
 assumes equality at second-hand surface ceiling Y=1179 and adds the 630-unit
 triple-jump envelope to obtain conditional Mario Y=1809. The pinned audit
@@ -200,6 +217,9 @@ or equivalence to the IDO-compiled MIPS ROM.
 - the Mario-contact arithmetic proves the ride/filter, hitbox, bounce, and
   fresh-A-edge facts above, while leaving X/Z contact and action execution
   explicit;
+- the local normal-double trace proves a one-frame-prelaunch 0.5-A or zero-A
+  catch, and the ordinary attack trace proves only a post-ground nonlethal
+  reboard while excluding lethal reboard through deletion;
 - the exact positive-double trace has no sibling-floor candidate, and the
   no-external-writer lifecycle has no movement-only partial update; neither is
   yet a linked whole-program theorem;

@@ -1,6 +1,6 @@
 # Working claim and exact scope
 
-Last updated: 2026-07-16 (IDLE inherited-velocity invariant).
+Last updated: 2026-07-16 (Mario double-pound and attack reboarding).
 
 ## Source and toolchain boundary
 
@@ -174,6 +174,29 @@ places Mario at origin+150 with velocity 30; even granting that full rise
 before the hand's first +46 death increment leaves the new open surface outside
 the floor buffer. Exotic predecessor/re-entry traces are not yet exhaustively
 excluded.
+
+`DoublePoundBoarding.v` adds the missing update-order arithmetic. If the +20
+action begins one frame before the +85 hand movement, Mario is already 20
+units higher, so the launch-frame gap is 65. His inherited velocity 16 moves
+him 4 units on the first air quarter-step, leaving a 61-unit eligible gap and
+an ordinary snap to the closed top. Every later positive hand step is at most
+70. The pinned X/Z witness remains strictly inside the top triangles. Starting
+the speed kick on the launch frame instead is blocked in the central setup:
+the hand underside is 89.5 units above the arena floor, below Mario's 150-unit
+clearance, so squish input is set before the B branch.
+
+The local held-A schedule has A already down and no fresh edge; the never-A
+schedule uses the B-only speed-kick preconditions. Neither theorem constructs
+the earlier controller route onto the hand or synchronizes the boss selection.
+
+`AttackedReboard.v` classifies the ordinary falling-hit schedule. The open
+mesh is never floor-eligible during the nonlethal 98-unit rise. Eleven frames
+after the hand grounds, `ATTACKED -> RECOVER` installs the closed mesh and a
+46-unit gap snaps Mario onto the ordinary floor at absolute Y -1228. The
+lethal hand never closes: every airborne open-top gap is greater than 78 and,
+after grounding, the best automatic bounce still leaves 229 units. Thus the
+nonlethal case reboards only after the useful ascent is over, and the lethal
+case cannot reboard by ordinary collision.
 
 Controller schedules now include the pre-interval A bit. Always released and
 already-held A have no new press edge; press-and-hold beginning on frame zero
@@ -459,14 +482,14 @@ API as original gameplay.
 - Prove that the linked object's complete writer set refines the partial-update
   lifecycle, including time-stop classification and absence of external room,
   collision-null, FAR_AWAY, or IN_DIFFERENT_ROOM writes.
-- Prove Mario's actual platform selection and vertical following. The source
-  does not add a platform's vertical velocity to Mario; a moving hand must be
-  reselected within the 78-unit buffer on every relevant frame.
-- Construct or refute an X/Z-valid initial boarding and dismount trace. The
-  vertical filter results are conditional on transformed-triangle containment
-  and selected-floor priority.
-- Exhaust the airborne predecessor states if claiming that no attack/re-entry
-  can board a lethal rise; the ordinary attack bounce alone is ruled out.
+- Construct an authentic controller trace into the proved local prelaunch
+  catch: initial closed-hand boarding, held-A jump-kick or speed-at-least-29
+  B-only predecessor, boss synchronization, and dismount onto the static warp.
+- Link the local transformed-triangle, floor-priority, squish, mesh-swap, and
+  automatic-bounce schedules to whole-program Clight/ROM frames.
+- Treat seams, tunneling, externally supplied caps/shells, or other glitch
+  geometry separately before promoting the ordinary lethal reboard no-go to
+  an unrestricted theorem.
 - Authenticate or refute the conditional Y=1280 route below the Y=1967 query
   threshold, including every quarter-step collision response and the landing;
   then test whether any original-game action/speed history reaches a higher

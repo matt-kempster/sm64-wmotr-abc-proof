@@ -1,6 +1,6 @@
 # Eyerok manipulation proof checklist
 
-Last updated: 2026-07-16 (IDLE inherited-velocity invariant).
+Last updated: 2026-07-16 (Mario double-pound and attack reboarding).
 
 ## Current verdict
 
@@ -19,6 +19,20 @@ counterfactual origin Y=3627 route would reach the star platform, but the
 stricter two-hand origin ceiling is Y=672.
 Literal unbounded finite binary32 Y is also disproved. Linked Clight/ROM
 refinement and route optimality remain open.
+
+The normal finite double-pound has a successful local contact trace. A +20
+held-A jump kick or never-A B-only speed kick begun one frame before +85 leaves
+a 65-unit gap; the launch frame's first +4 quarter-step reduces it to 61 and
+snaps Mario to the closed top. Later steps are all at most 70. Same-frame B is
+too late because the 89.5-unit underside triggers the 150-unit squish test.
+The held-A trace has no fresh edge; the B-only trace has A always released.
+Both still assume an authentic predecessor pose and boss synchronization.
+
+Ordinary attack reboarding does not preserve useful rise. The nonlethal open
+mesh remains ineligible during its 98-unit impulse, then closes eleven frames
+after grounding and snaps Mario onto normal absolute floor Y=-1228. The lethal
+mesh never closes; its minimum airborne gap is 153 and its best grounded bounce
+gap is 229, both above 78.
 
 The false global 280-unit hand-separation shortcut has been removed. The
 replacement phase trace starts 360 units behind: `(-120,255)` is the last
@@ -225,6 +239,14 @@ discharge it.
   landing, and restricted no-A barrier without conflating their scopes.
 - [x] Define authentic A press edges with a pre-interval bit and prove that
   always-released and continuously-held schedules have no new edge.
+- [x] Prove the one-frame-prelaunch +20 catch for the normal +85 double pound,
+  including the 65/61-unit gaps, later finite steps, and strict-interior B-only
+  X/Z witness.
+- [x] Separate the 0.5-A held jump kick from the zero-A B-only speed kick and
+  prove the same-frame B attempt is blocked by underside squish.
+- [x] Prove the complete ordinary nonlethal reboard schedule lands only after
+  grounding at Y=-1228 and the lethal open mesh remains ineligible through
+  deletion.
 - [ ] Prove or refute the original game's ability to realize the conditional
   Y=1467 hand pose and Mario launch for the Y=1967 route.
 - [ ] Prove Mario can board, follow, attack or dismount from a raised hand and
@@ -296,3 +318,5 @@ discharge it.
   speed held-A Y=1280 wall barrier.
 - Exhaustive `IDLE`-entry velocity audit and Rocq exclusion of the alternate
   airborne zero-gravity positive-velocity seed.
+- Source-audited/Rocq normal-double catch plus nonlethal/lethal ordinary
+  attack-reboard classification for held-A and never-A schedules.
