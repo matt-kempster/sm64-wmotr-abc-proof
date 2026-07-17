@@ -6,9 +6,13 @@ Local Open Scope Z_scope.
 
 (** Exact integer arithmetic for the source-audited attack/reboard schedules.
     Heights are relative to the hand's home Y unless a theorem says
-    [absolute].  This module proves the timing, floor-buffer, and interior
-    witness arithmetic; the source audit supplies the update order, mesh
-    writes, animation length, and interaction branches. *)
+    [absolute].  The negative lethal result in this module is deliberately
+    scoped to Mario's ordinary -4-gravity bounce trace.  In particular,
+    ACT_LONG_JUMP keeps -2 gravity after [interact_bounce_top], so it has a
+    later vertical re-entry window formalized below.  This module proves the
+    timing, floor-buffer, and interior-witness arithmetic; the source audit
+    supplies the update order, mesh writes, animation length, interaction
+    branches, and action-specific gravity constants. *)
 
 Definition reboard_floor_eligible (mario_y floor_y : Z) : Prop :=
   0 <= floor_y - mario_y <= floor_query_vertical_buffer.
@@ -34,7 +38,18 @@ Definition lethal_airborne_floor_gaps : list Z :=
    273; 261; 249; 237; 225; 213; 201; 189; 177; 165; 153; 191].
 
 Definition grounded_open_top_y : Z := 507.
-Definition maximum_automatic_bounce_y : Z := 278.
+Definition maximum_standard_gravity_bounce_y : Z := 278.
+
+(** In an inherited ACT_LONG_JUMP, Mario keeps -2 gravity after the automatic
+    30-unit bounce.  The source-shaped lethal schedule has late open-top gaps
+    63 and 7.  Both pass the vertical 78-unit filter, so the standard-gravity
+    153-unit argument is not a universal impossibility proof. *)
+Definition lethal_long_jump_late_open_top_gaps : list Z := [63; 7].
+
+Definition open_side_wall_entry_distance : Z := 50.
+Definition air_quarter_divisor : Z := 4.
+Definition strict_wall_entry_speed_threshold : Z :=
+  air_quarter_divisor * open_side_wall_entry_distance.
 
 Definition eyerok_home_y : Z := -1534.
 Definition closed_reboard_relative_y : Z := 306.
@@ -87,9 +102,31 @@ Proof.
   repeat constructor; lia.
 Qed.
 
-Lemma lethal_grounded_open_mesh_never_passes_floor_buffer :
+Lemma standard_gravity_lethal_grounded_open_mesh_never_passes_floor_buffer :
   floor_query_vertical_buffer <
-    grounded_open_top_y - maximum_automatic_bounce_y.
+    grounded_open_top_y - maximum_standard_gravity_bounce_y.
+Proof. reflexivity. Qed.
+
+Lemma long_jump_late_open_top_gaps_pass_vertical_filter :
+  Forall
+    (fun gap => 0 <= gap <= floor_query_vertical_buffer)
+    lethal_long_jump_late_open_top_gaps.
+Proof.
+  unfold lethal_long_jump_late_open_top_gaps,
+    floor_query_vertical_buffer.
+  repeat constructor; lia.
+Qed.
+
+(** Crossing strictly more than Mario's 50-unit wall radius in one of four
+    equal quarter steps requires a horizontal component above 200.  This is
+    only a necessary arithmetic threshold for the long-jump candidate, not a
+    proof that a speed above it selects the open top in the ROM. *)
+Lemma strict_wall_entry_speed_threshold_is_two_hundred :
+  strict_wall_entry_speed_threshold = 200.
+Proof. reflexivity. Qed.
+
+Lemma two_hundred_four_exceeds_wall_entry_speed_threshold :
+  strict_wall_entry_speed_threshold < 204.
 Proof. reflexivity. Qed.
 
 (** A doubled-coordinate certificate for the interior X/Z witness described
@@ -139,7 +176,12 @@ Definition attacked_reboard_certificate : Prop :=
   Forall (fun gap => floor_query_vertical_buffer < gap)
     lethal_airborne_floor_gaps /\
   floor_query_vertical_buffer <
-    grounded_open_top_y - maximum_automatic_bounce_y /\
+    grounded_open_top_y - maximum_standard_gravity_bounce_y /\
+  Forall
+    (fun gap => 0 <= gap <= floor_query_vertical_buffer)
+    lethal_long_jump_late_open_top_gaps /\
+  strict_wall_entry_speed_threshold = 200 /\
+  strict_wall_entry_speed_threshold < 204 /\
   witness_scaled_radius < combined_interaction_radius /\
   mario_wall_radius_twice < open_wall_clearance_twice /\
   0 < closed_top_margin_twice /\
@@ -157,7 +199,11 @@ Proof.
   refine (conj (proj2 recover_mesh_swap_accepts_closed_top) _).
   refine (conj nonlethal_reboard_is_at_ordinary_grounded_height _).
   refine (conj lethal_airborne_open_mesh_never_passes_floor_buffer _).
-  refine (conj lethal_grounded_open_mesh_never_passes_floor_buffer _).
+  refine (conj
+    standard_gravity_lethal_grounded_open_mesh_never_passes_floor_buffer _).
+  refine (conj long_jump_late_open_top_gaps_pass_vertical_filter _).
+  refine (conj strict_wall_entry_speed_threshold_is_two_hundred _).
+  refine (conj two_hundred_four_exceeds_wall_entry_speed_threshold _).
   destruct ordinary_interior_reboard_witness as (Hradius & Hwall & Hmargin).
   repeat split; assumption || reflexivity.
 Qed.

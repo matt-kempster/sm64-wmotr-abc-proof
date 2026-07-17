@@ -1,0 +1,26 @@
+Eyerok/Mario contact probe summary
+ROM MD5: 20B854B239203BAF6C961B850A4A51A2
+ROM CRC: 635A2BFF 8B022326
+Scope: source-shaped local setup plus retail hand physics, update order, collision, Mario actions, and controller transitions.
+Not scope: a controller-only trace from reset to the staged predecessor pose.
+
+[stationary]
+prelaunch: MarioY=-1228.000 floorH=-1228.000 platform=80342088
++85 frame: gap=85.000 within78=false insideTopXZ=true
+classification: arena_floor_hand_ceiling; MarioY=-1534.000 floorH=-1534.000 platform=null ACT_SQUISHED
+
+[b_only]
+ROM entry: action=ACT_DIVE MarioY=-1208.000 velY=16.000 input=0x2001 (A always up)
++85 catch: gap=49.000 within78=true insideTopXZ=true class=same_hand_snap
+retention: rear-interior start stays attached for +85,+70,+55,+40,+25,+10; maximum MarioY=-943
+
+[held_a]
+ROM entry: action=ACT_JUMP_KICK MarioY=-1208.000 velY=16.000 input=0x00a0
+A evidence: INPUT_A_DOWN is set; INPUT_A_PRESSED is clear (no new edge)
++85 catch: gap=49.000 within78=true insideTopXZ=true class=same_hand_snap
+retention: attached for +85,+70,+55,+40,+25,+10; maximum MarioY=-943
+
+First blocker for same-frame action entry:
+surface objects (the hand) update before Mario; vertical platform velocity is not applied to Mario;
+the +85 top is 7 units beyond find_floor's +78 buffer, the arena floor wins, and the
+raised hand underside forms a dynamic ceiling only 89.5/90 units above it, setting INPUT_SQUISHED.

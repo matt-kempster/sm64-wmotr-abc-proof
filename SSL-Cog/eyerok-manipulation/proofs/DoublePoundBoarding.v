@@ -17,7 +17,8 @@ Local Open Scope Z_scope.
 
 Definition double_pound_first_rise : Z := 85.
 Definition prelaunch_vertical_impulse : Z := 20.
-Definition launch_frame_vertical_velocity : Z := 16.
+Definition first_wait_frame_vertical_velocity : Z := 16.
+Definition launch_frame_vertical_velocity : Z := 12.
 Definition air_quarters_per_frame : Z := 4.
 Definition first_air_quarter_displacement : Z :=
   launch_frame_vertical_velocity / air_quarters_per_frame.
@@ -33,14 +34,28 @@ Definition standing_on_hand (origin : Z) : boarding_vertical_state :=
      boarding_mario_y := origin;
      boarding_mario_vy := 0 |}.
 
-(** The launch action was entered on the preceding frame.  That frame moves
-    Mario by the full +20 impulse and ends, after gravity, with velocity 16. *)
-Definition one_frame_earlier_launch
+(** The authenticated US-ROM schedule enters the launch action early enough
+    for two complete Mario updates before the hand's +85 update.  The action
+    entry frame moves Mario by +20 and leaves velocity 16. *)
+Definition first_prelaunch_player_update
     (state : boarding_vertical_state) : boarding_vertical_state :=
   {| boarding_hand_top_y := boarding_hand_top_y state;
      boarding_mario_y :=
        boarding_mario_y state + prelaunch_vertical_impulse;
+     boarding_mario_vy := first_wait_frame_vertical_velocity |}.
+
+(** The intervening player update moves Mario by the inherited +16 and then
+    gravity leaves velocity 12 for the hand-launch frame. *)
+Definition second_prelaunch_player_update
+    (state : boarding_vertical_state) : boarding_vertical_state :=
+  {| boarding_hand_top_y := boarding_hand_top_y state;
+     boarding_mario_y :=
+       boarding_mario_y state + first_wait_frame_vertical_velocity;
      boarding_mario_vy := launch_frame_vertical_velocity |}.
+
+Definition authenticated_prelaunch
+    (state : boarding_vertical_state) : boarding_vertical_state :=
+  second_prelaunch_player_update (first_prelaunch_player_update state).
 
 (** On the DOUBLE_POUND launch frame the hand update precedes Mario's update. *)
 Definition hand_first_launch_step
@@ -76,8 +91,8 @@ Definition ordinary_vertical_snap
   then Some (boarding_hand_top_y state)
   else None.
 
-Lemma first_air_quarter_displacement_is_four :
-  first_air_quarter_displacement = 4.
+Lemma first_air_quarter_displacement_is_three :
+  first_air_quarter_displacement = 3.
 Proof. reflexivity. Qed.
 
 Lemma stationary_mario_loses_first_rise : forall origin,
@@ -99,24 +114,40 @@ Proof.
   - reflexivity.
 Qed.
 
-Lemma prelaunch_impulse_leaves_gap_sixty_five : forall origin,
+Lemma authenticated_prelaunch_moves_mario_thirty_six : forall origin,
+  boarding_mario_y
+    (authenticated_prelaunch (standing_on_hand origin)) = origin + 36 /\
+  boarding_mario_vy
+    (authenticated_prelaunch (standing_on_hand origin)) = 12.
+Proof.
+  intros origin.
+  unfold authenticated_prelaunch, second_prelaunch_player_update,
+    first_prelaunch_player_update, standing_on_hand,
+    prelaunch_vertical_impulse, first_wait_frame_vertical_velocity,
+    launch_frame_vertical_velocity; cbn.
+  split; lia.
+Qed.
+
+Lemma authenticated_prelaunch_leaves_gap_forty_nine : forall origin,
   hand_above_mario_gap
     (hand_first_launch_step
-      (one_frame_earlier_launch (standing_on_hand origin))) = 65.
+      (authenticated_prelaunch (standing_on_hand origin))) = 49.
 Proof.
   intros origin.
   unfold hand_above_mario_gap, hand_first_launch_step,
-    one_frame_earlier_launch, standing_on_hand,
-    double_pound_first_rise, prelaunch_vertical_impulse; cbn.
+    authenticated_prelaunch, second_prelaunch_player_update,
+    first_prelaunch_player_update, standing_on_hand,
+    double_pound_first_rise, prelaunch_vertical_impulse,
+    first_wait_frame_vertical_velocity; cbn.
   lia.
 Qed.
 
-Lemma first_quarter_leaves_eligible_gap_sixty_one : forall origin,
+Lemma first_quarter_leaves_eligible_gap_forty_six : forall origin,
   let query := mario_first_air_quarter
     (hand_first_launch_step
-      (one_frame_earlier_launch (standing_on_hand origin))) in
-  hand_above_mario_gap query = 61 /\
-  61 <= floor_query_vertical_buffer /\
+      (authenticated_prelaunch (standing_on_hand origin))) in
+  hand_above_mario_gap query = 46 /\
+  46 <= floor_query_vertical_buffer /\
   hand_floor_query_eligible query /\
   ordinary_vertical_snap query =
     Some (boarding_hand_top_y query).
@@ -124,12 +155,15 @@ Proof.
   intros origin; cbn.
   unfold hand_above_mario_gap, hand_floor_query_eligible,
     ordinary_vertical_snap, mario_first_air_quarter,
-    hand_first_launch_step, one_frame_earlier_launch, standing_on_hand,
+    hand_first_launch_step, authenticated_prelaunch,
+    second_prelaunch_player_update, first_prelaunch_player_update,
+    standing_on_hand,
     double_pound_first_rise, prelaunch_vertical_impulse,
-    launch_frame_vertical_velocity, air_quarters_per_frame,
+    first_wait_frame_vertical_velocity, launch_frame_vertical_velocity,
+    air_quarters_per_frame,
     floor_query_vertical_buffer, floor_query_eligible; cbn.
   repeat split; try lia.
-  destruct (Z.leb (origin + 85 - 78) (origin + 20 + 4))
+  destruct (Z.leb (origin + 85 - 78) (origin + 20 + 16 + 3))
     eqn:Heligible.
   - reflexivity.
   - apply Z.leb_gt in Heligible. lia.
@@ -148,9 +182,10 @@ Proof.
   repeat constructor; lia.
 Qed.
 
-(** Both routes press B one frame before the hand launch.  The first has A
-    already held on entry (the ABC 0.5-A classification); the second keeps A
-    released throughout (the zero-A B-only speed-kick classification). *)
+(** Both routes arrange action entry early enough for the two player updates
+    modeled above.  The first has A already held on entry (the ABC 0.5-A
+    classification); the second keeps A released throughout (the zero-A
+    B-only speed-kick classification). *)
 Record boarding_input_frame : Type := {
   boarding_a_schedule : a_schedule;
   boarding_b_pressed : bool
@@ -213,8 +248,8 @@ Qed.
 
 (** The pinned collision audit checks these scaled-thousandth X/Z points
     directly against the two transformed closed-top triangles.  The list is
-    the B-only witness after the prelaunch frame, the catch quarter-step, and
-    the five remaining positive hand steps.  This Rocq predicate records the
+    the B-only witness around the authenticated catch and the five remaining
+    positive hand steps.  This Rocq predicate records the
     strict interior box containing those audited points; it is not a generic
     polygon-refinement theorem. *)
 Definition b_only_closed_top_xz_trace : list (Z * Z) :=
@@ -271,14 +306,19 @@ Definition double_pound_boarding_certificate : Prop :=
     ordinary_vertical_snap
       (hand_first_launch_step (standing_on_hand origin)) = None) /\
   (forall origin,
+    boarding_mario_y
+      (authenticated_prelaunch (standing_on_hand origin)) = origin + 36 /\
+    boarding_mario_vy
+      (authenticated_prelaunch (standing_on_hand origin)) = 12) /\
+  (forall origin,
     hand_above_mario_gap
       (hand_first_launch_step
-        (one_frame_earlier_launch (standing_on_hand origin))) = 65) /\
+        (authenticated_prelaunch (standing_on_hand origin))) = 49) /\
   (forall origin,
     let query := mario_first_air_quarter
       (hand_first_launch_step
-        (one_frame_earlier_launch (standing_on_hand origin))) in
-    hand_above_mario_gap query = 61 /\
+        (authenticated_prelaunch (standing_on_hand origin))) in
+    hand_above_mario_gap query = 46 /\
     hand_floor_query_eligible query /\
     ordinary_vertical_snap query = Some (boarding_hand_top_y query)) /\
   height_only_followable double_pound_steps_after_first /\
@@ -298,10 +338,11 @@ Theorem double_pound_boarding_certificate_holds :
 Proof.
   unfold double_pound_boarding_certificate.
   refine (conj stationary_mario_loses_first_rise _).
-  refine (conj prelaunch_impulse_leaves_gap_sixty_five _).
+  refine (conj authenticated_prelaunch_moves_mario_thirty_six _).
+  refine (conj authenticated_prelaunch_leaves_gap_forty_nine _).
   split.
   - intros origin.
-    pose proof (first_quarter_leaves_eligible_gap_sixty_one origin)
+    pose proof (first_quarter_leaves_eligible_gap_forty_six origin)
       as (Hgap & _ & Heligible & Hsnap).
     exact (conj Hgap (conj Heligible Hsnap)).
   - refine (conj (proj2 remaining_double_pound_steps_are_floor_eligible) _).

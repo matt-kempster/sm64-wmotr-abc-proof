@@ -1,6 +1,6 @@
 # Goal recovery note
 
-Last updated: 2026-07-16 (US-ROM initialized-local-precondition probe).
+Last updated: 2026-07-16 (authenticated US-ROM Mario/hand contact probes).
 
 ## Objective
 
@@ -85,6 +85,19 @@ rows. The fixture shortens area travel and scheduling, so this is not a
 from-reset controller-only trace and does not close the source-to-ROM proof
 boundary.
 
+The companion contact wrapper runs three hash-authenticated ROM modes and
+never writes a hand field. Stationary Mario is inside the closed top but loses
+it at pre-query gap 85, after which the arena floor/hand underside produces
+`ACT_SQUISHED`. In the successful schedules, retail Mario code first produces
+Y=-1208/vY=16 and then Y=-1192/vY=12; the next +85 hand update leaves gap 49
+and ordinary collision snaps to that same hand. A rear-interior B-only dive
+with A always released and an already-held-A jump kick with no new edge both
+remain floor/platform on every positive step to Y=-943. The B trace starts
+from an injected walking/speed/stick predecessor; the held-A trace starts from
+injected MOVE_PUNCHING state 0, so authentic predecessor reachability remains
+open. Analyzer-derived X/Z/triangle, floor-owner, platform-owner, and fixture
+evidence is versioned; build output and Python caches are locally ignored.
+
 `DoublePoundTrace.v` replaces the false global separation shortcut with a
 phase-local proof. At relative Z=0, the scaled/cast closed-top slice is
 conservatively inside X `[-108,102]` and needs relative query Y at least 228.
@@ -154,23 +167,27 @@ Never-A can also obtain positive velocity from a B-only speed-kick dive. The
 authenticated fresh-A landing chain when used as a witness; the 512-unit
 backflip envelope is checked separately.
 
-`DoublePoundBoarding.v` resolves the normal finite-rise contact question from
-an explicit predecessor pose. A stationary Mario loses the hand on +85. If a
-held-A jump kick or B-only speed kick starts one frame earlier, however, its
-+20 movement leaves a 65-unit launch gap; the inherited velocity-16 first
-quarter-step adds 4, leaving an eligible 61-unit gap. Mario snaps to the closed
-top and every remaining +70/+55/+40/+25/+10 step is followable. The held-A
-case has no fresh edge (0.5 A), and the B-only case has A always released
-(zero A). Same-frame B is blocked by the 89.5-unit underside/squish condition.
-Authentic predecessor boarding and boss synchronization remain open.
+`DoublePoundBoarding.v` supplies the height-eligibility witness, and the ROM
+probe resolves the concrete local timing. A stationary Mario loses the hand
+on +85. Starting at observed hand timer 2 lets retail jump-kick or dive code
+complete +20 and +16 Mario updates before launch. The +85 frame therefore
+queries at gap 49, snaps to the closed top, and both recorded modes follow
+every +70/+55/+40/+25/+10 step to Y=-943. The held-A input has no fresh edge
+(0.5 A); the B-only input has A always released (zero A). Same-frame entry is
+blocked at gap 85 by the 78-unit filter and underside squish. Authentic
+predecessor boarding and boss synchronization remain open.
 
-`AttackedReboard.v` resolves ordinary attack/re-entry timing. A no-A falling
-hit can reboard the nonlethal hand only after it grounds and the recovery frame
-closes the mesh; the snap is at normal absolute Y -1228. The lethal hand keeps
-the open mesh, whose complete airborne gap trace has minimum 153; grounded
-automatic bounces still leave 229. It cannot be reboarded before deletion by
-ordinary collision. These results exclude seams/tunneling and injected exotic
-power-up states.
+`AttackedReboard.v` resolves the standard `-4` Mario-gravity falling-hit
+schedule. Its nonlethal hand can reboard only after grounding and mesh close,
+at Y=-1228. Its lethal open mesh has airborne minimum gap 153 and grounded
+bounce gap 229. This does not cover inherited `ACT_LONG_JUMP`, which survives
+the bounce with `-2` gravity and reaches late lethal candidate gaps 63/7. The
+open side wall and roughly 200-unit first-quarter horizontal entry are the
+next blocker; authentic long-jump/high-speed entry remains open.
+
+The corresponding Rocq result checks explicit arithmetic trace lists. It is
+not yet an operational linked-Clight derivation of hit detection, timers,
+grounding, repeated bounce, mesh selection, and deletion.
 
 `LowerArea2Entry.v` resolves the next numerical route threshold without
 claiming authentic hand reachability. Conditional on equality at the
@@ -290,7 +307,8 @@ reachability is now closed.
    contact, and floor-pointer lifetime.
 2. Authenticate the proved local hand-contact traces: reach an X/Z-valid
    closed-hand predecessor with held A or B-only speed at least 29, synchronize
-   the one-frame prelaunch action, confirm selected-floor priority, then
+   the observed timer-2 action and two prepared Mario updates, confirm
+   selected-floor priority, then
    dismount and select the static Area 3 warp. Keep zero-A and 0.5-A schedules
    separate.
 3. Prove an event-by-event Clight bridge for the two-hand finite-episode
