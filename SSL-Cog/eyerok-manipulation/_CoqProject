@@ -37,6 +37,8 @@ proofs/RouteModel.v
 proofs/Area2Route.v
 proofs/TwoHandBarrier.v
 proofs/MarioHandContact.v
+proofs/DoublePoundBoarding.v
+proofs/AttackedReboard.v
 proofs/LowerArea2Entry.v
 proofs/NoA1280Barrier.v
 proofs/HeldA1280Barrier.v

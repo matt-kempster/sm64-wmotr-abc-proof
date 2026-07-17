@@ -1,6 +1,6 @@
 # Goal recovery note
 
-Last updated: 2026-07-16 (IDLE inherited-velocity invariant).
+Last updated: 2026-07-16 (Mario double-pound and attack reboarding).
 
 ## Objective
 
@@ -136,6 +136,24 @@ Never-A can also obtain positive velocity from a B-only speed-kick dive. The
 authenticated fresh-A landing chain when used as a witness; the 512-unit
 backflip envelope is checked separately.
 
+`DoublePoundBoarding.v` resolves the normal finite-rise contact question from
+an explicit predecessor pose. A stationary Mario loses the hand on +85. If a
+held-A jump kick or B-only speed kick starts one frame earlier, however, its
++20 movement leaves a 65-unit launch gap; the inherited velocity-16 first
+quarter-step adds 4, leaving an eligible 61-unit gap. Mario snaps to the closed
+top and every remaining +70/+55/+40/+25/+10 step is followable. The held-A
+case has no fresh edge (0.5 A), and the B-only case has A always released
+(zero A). Same-frame B is blocked by the 89.5-unit underside/squish condition.
+Authentic predecessor boarding and boss synchronization remain open.
+
+`AttackedReboard.v` resolves ordinary attack/re-entry timing. A no-A falling
+hit can reboard the nonlethal hand only after it grounds and the recovery frame
+closes the mesh; the snap is at normal absolute Y -1228. The lethal hand keeps
+the open mesh, whose complete airborne gap trace has minimum 153; grounded
+automatic bounces still leave 229. It cannot be reboarded before deletion by
+ordinary collision. These results exclude seams/tunneling and injected exotic
+power-up states.
+
 `LowerArea2Entry.v` resolves the next numerical route threshold without
 claiming authentic hand reachability. Conditional on equality at the
 source-shaped surface ceiling Y=1179 and on the full 630-unit triple-jump
@@ -252,10 +270,11 @@ reachability is now closed.
    frame refines the source-shaped kernel, including update rank, dynamic
    surfaces, the no-external-writer partial lifecycle, time stop, Mario
    contact, and floor-pointer lifetime.
-2. Prove Mario's remaining contact lifecycle on the hand: an X/Z-valid initial
-   boarding state, per-frame selected-floor priority, dismount, and selection of the
-   static Area 3 warp floor. Decide released-A, held-before-start, and fresh
-   press-and-hold schedules separately.
+2. Authenticate the proved local hand-contact traces: reach an X/Z-valid
+   closed-hand predecessor with held A or B-only speed at least 29, synchronize
+   the one-frame prelaunch action, confirm selected-floor priority, then
+   dismount and select the static Area 3 warp. Keep zero-A and 0.5-A schedules
+   separate.
 3. Prove an event-by-event Clight bridge for the two-hand finite-episode
    premise: every positive episode starts from classified support and has at
    most 288 remaining rise. The grounded and inherited-positive-velocity

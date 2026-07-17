@@ -52,6 +52,12 @@ bash pipeline/assumptions.sh \
   SSLEyerok.Proofs.MarioHandContact \
   mario_hand_contact_certificate_holds
 bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.DoublePoundBoarding \
+  double_pound_boarding_certificate_holds
+bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.AttackedReboard \
+  attacked_reboard_certificate_holds
+bash pipeline/assumptions.sh \
   SSLEyerok.Proofs.NoA1280Barrier \
   no_a_1280_barrier_certificate_holds
 bash pipeline/assumptions.sh \
