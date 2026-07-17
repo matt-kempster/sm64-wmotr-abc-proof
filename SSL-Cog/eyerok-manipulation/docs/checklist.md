@@ -1,6 +1,6 @@
 # Eyerok manipulation proof checklist
 
-Last updated: 2026-07-16 (two-field Eyerok scheduler-lock audit).
+Last updated: 2026-07-16 (US-ROM initialized-local-precondition probe).
 
 ## Current verdict
 
@@ -19,6 +19,19 @@ counterfactual origin Y=3627 route would reach the star platform, but the
 stricter two-hand origin ceiling is Y=672.
 Literal unbounded finite binary32 Y is also disproved. Linked Clight/ROM
 refinement and route optimality remain open.
+
+A debugger-enabled Mupen64Plus run now checks the critical action boundary on
+the authentic US ROM. After both genuinely spawned hands were validated at
+home Y=-1534 with zero velocity/gravity and a real collision mesh, the
+disclosed fixture changed only their actions from SLEEP to IDLE. One ordinary
+update populated real floor pointers at -1534 before the boss scheduler fields
+were installed. The observed sequence was IDLE -> BEGIN_DOUBLE_POUND ->
+DOUBLE_POUND; the first eligible airborne handler installed gravity -20 at
+nonpositive velocity, and the first positive movement was +85 with gravity
+-15. The analyzer found zero airborne DOUBLE_POUND/gravity-zero/positive-
+velocity rows. This is authentic ROM execution from a source-reachable local
+precondition, not a from-reset controller-only fight trace or a refinement
+proof.
 
 The normal finite double-pound has a successful local contact trace. A +20
 held-A jump kick or never-A B-only speed kick begun one frame before +85 leaves
@@ -281,6 +294,13 @@ discharge it.
 ## Verification and handoff
 
 - [x] Use Ubuntu WSL and the `sm64-item-proof` opam switch.
+- [x] Use Ubuntu-24.04 for the Mupen64Plus runtime probe and authenticate the
+  US ROM by MD5, SHA-1, SHA-256, and header CRC.
+- [x] Reproduce the initialized-local-precondition IDLE-to-double trace and
+  mechanically reject the alternate airborne seed in all 476 captured hand
+  rows.
+- [ ] Reproduce the same result from reset using controller input only, with
+  no travel or scheduler fixture.
 - [x] Run reproducible generation after source-ingestion changes.
 - [x] Compile the route proof modules with no proof holes.
 - [x] Run the final complete `pipeline/check.sh` after source-shaped

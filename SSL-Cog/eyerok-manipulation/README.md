@@ -75,6 +75,18 @@ The A value is a ghost input because the Eyerok hand code does not read it. It
 shows that changing only A cannot alter this hand-control invariant; it does
 not model new press edges or construct a legal no-A Mario route.
 
+The project now includes a reproducible Ubuntu-24.04 Mupen64Plus probe of this
+exact boundary on the authentic US ROM. It waits for genuine Eyerok hand
+initialization, changes only SLEEP to IDLE, lets an ordinary update populate
+the real arena floor fields, and then installs a disclosed boss scheduler
+precondition without writing hand physics or double-pound actions. The
+observed IDLE -> BEGIN_DOUBLE_POUND -> DOUBLE_POUND trace writes gravity -20
+at nonpositive velocity before the first +85 movement, which has gravity -15.
+The analyzer found no alternate seed in 476 hand rows. See
+[instrumentation/README.md](instrumentation/README.md). This is authentic ROM
+execution from a source-reachable initialized local precondition, not a
+from-reset controller-only fight trace or a discharged ROM refinement.
+
 The former 280-unit global hand-separation argument was incorrect and has been
 removed. `proofs/DoublePoundTrace.v` uses the exact phase-local positive-double
 trace instead. The setup begins 360 units behind; at relative Z=0 the last
