@@ -1,6 +1,6 @@
 # Goal recovery note
 
-Last updated: 2026-07-16 (two-field Eyerok scheduler-lock audit).
+Last updated: 2026-07-16 (US-ROM initialized-local-precondition probe).
 
 ## Objective
 
@@ -72,6 +72,18 @@ latch, and that a single-hand double pound reasserts its active-hand lock. Rocq
 proves every reachable `IDLE` state has
 nonpositive velocity and excludes
 `DOUBLE_POUND + airborne + gravity=0 + positive velocity`.
+
+The new Ubuntu-24.04 Mupen64Plus probe checks this boundary on the authentic
+US ROM as a separate evidence layer. It authenticates the ROM, discovers live
+Eyerok objects by behavior, waits for genuine hand initialization and an
+ordinary real-floor update, then installs a fully disclosed local scheduler
+precondition without writing any hand physics field or either double-pound
+action. The trace reaches IDLE, BEGIN_DOUBLE_POUND, and DOUBLE_POUND with zero
+velocity; the next selected airborne handler writes gravity -20, while the
+first +85 movement has gravity -15. No alternate seed occurs in 476 hand
+rows. The fixture shortens area travel and scheduling, so this is not a
+from-reset controller-only trace and does not close the source-to-ROM proof
+boundary.
 
 `DoublePoundTrace.v` replaces the false global separation shortcut with a
 phase-local proof. At relative Z=0, the scaled/cast closed-top slice is

@@ -1,6 +1,6 @@
 # Working claim and exact scope
 
-Last updated: 2026-07-16 (two-field Eyerok scheduler-lock audit).
+Last updated: 2026-07-16 (US-ROM initialized-local-precondition probe).
 
 ## Source and toolchain boundary
 
@@ -225,6 +225,20 @@ source-shaped models. The kernel result quantifies over every modeled
 boss/player event and every A-button policy. A is a ghost parameter because
 the hand code does not read it; this is not a controller-accurate ABC or
 new-press-count theorem.
+
+A matching-build-addressed Mupen64Plus probe supplies independent runtime
+evidence on the authentic US ROM. It first validates genuinely initialized
+hands at home Y=-1534, zero velocity/gravity, and non-null collision. The
+fixture writes only SLEEP-to-IDLE action changes, waits for an ordinary update
+to populate real floor fields, and then writes the disclosed boss scheduling
+precondition without touching hand physics or actions. The resulting
+IDLE -> BEGIN_DOUBLE_POUND -> DOUBLE_POUND trace installs gravity -20 before
+the first positive motion; the first +85 observation has gravity -15. Across
+476 hand rows the analyzer finds no airborne gravity-zero positive-velocity
+DOUBLE_POUND row. This is authentic ROM execution from a source-reachable
+initialized local precondition. It is not a from-reset controller-only trace,
+does not prove that the natural boss schedule reaches that exact local state,
+and does not discharge the Clight/IDO/ROM refinement boundary.
 
 ### Conditional lower Area 2 threshold
 

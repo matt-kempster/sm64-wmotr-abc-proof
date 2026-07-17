@@ -415,6 +415,25 @@ Frame 2: DOUBLE_POUND sees "not grounded" and velocity <= 0.
          It writes gravity = -20 before movement.
 ```
 
+The same three-frame boundary was also observed in a debugger-enabled
+Mupen64Plus run of the authentic US ROM. The probe first found the real hand
+objects and required home Y and position -1534, velocity and gravity zero, and
+a non-null collision mesh. It changed only each action from SLEEP to IDLE,
+then waited for an ordinary update to select real arena floors at -1534.
+After a disclosed boss-scheduler fixture, the log showed IDLE at timer 365,
+BEGIN_DOUBLE_POUND at 366, DOUBLE_POUND at 367, gravity -20 with nonpositive
+velocity at 368, and the first +85 movement with gravity -15 at 372. Its
+analyzer found zero alternate-seed rows in 476 hand observations.
+
+That experiment is stronger than arithmetic alone but narrower than a natural
+TAS trace. Area travel and the local boss schedule were shortened with
+documented RAM writes. No hand position, velocity, gravity, movement flag,
+floor, collision mesh, timer, previous action, positive velocity, or
+double-pound action was injected. It is therefore authentic ROM execution
+from an initialized, source-reachable local precondition, not proof that
+controller input from reset naturally reaches the same scheduling state.
+The complete write manifest and concise CSV are under `instrumentation/`.
+
 When the hand later lands with gravity `-20`, the first grounded branch changes
 gravity to `-15` and clears the boss's active-hand selection without writing
 velocity `100`. A later selected grounded branch may write velocity `100`, but
