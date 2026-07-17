@@ -64,7 +64,10 @@ does not necessarily clear velocity, but proves every reachable inherited
 value is nonpositive. It therefore excludes
 `DOUBLE_POUND + airborne + gravity=0 + positive velocity`. This result uses
 the attacked-animation delay and the boss active-hand/terminal handshake; a
-linked whole-program/ROM refinement is still a separate obligation.
+linked whole-program/ROM refinement is still a separate obligation. The audit
+also closes the apparent sibling exception: `SHOW_EYE` can clear the global
+lock only in the one-hand phase, and a one-hand double pound reasserts its own
+lock before branching.
 
 The A value is a ghost input because the Eyerok hand code does not read it. It
 shows that changing only A cannot alter this hand-control invariant; it does

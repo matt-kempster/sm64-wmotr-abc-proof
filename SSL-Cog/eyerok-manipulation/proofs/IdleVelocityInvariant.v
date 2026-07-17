@@ -16,7 +16,10 @@ Local Open Scope Z_scope.
     - DOUBLE_POUND can launch only while the hand owns ActiveHand;
     - the boss can make Unk104 terminal only while ActiveHand is clear; and
     - ActiveHand is cleared only after the selected hand has landed with
-      negative gravity and zero bounciness has cleared [oVelY]. *)
+      negative gravity and zero bounciness has cleared [oVelY].  The only
+      other source clear is in SHOW_EYE under [NumHands != 2], where no sibling
+      hand exists; a surviving single-hand DOUBLE_POUND reasserts its own lock
+      before testing the terminal and active branches. *)
 
 Inductive idle_velocity_action : Type :=
 | IVSleep

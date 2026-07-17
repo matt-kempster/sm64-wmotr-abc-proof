@@ -63,7 +63,9 @@ kernel did not represent. It tracks `oVelY`, gravity, action, grounding, the
 boss active-hand lock, and the double-pound terminal state. The source audit
 now exhaustively checks all three assignments into `IDLE`, both zero-gravity
 exits, every direct positive `oVelY` writer, the attacked animation delay, and
-the boss lock/terminal guards. Rocq proves every reachable `IDLE` state has
+the boss lock/terminal guards. It also checks that the `SHOW_EYE` lock clear is
+one-hand-only and that a single-hand double pound reasserts its lock. Rocq
+proves every reachable `IDLE` state has
 nonpositive velocity and excludes
 `DOUBLE_POUND + airborne + gravity=0 + positive velocity`.
 

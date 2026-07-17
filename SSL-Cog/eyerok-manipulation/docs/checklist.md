@@ -109,6 +109,8 @@ discharge it.
   ascent budgets, and the gravity-zero tripwire.
 - [x] Exhaust the three `IDLE` writers, both zero-gravity exits, attacked
   recovery timing, and the double-pound active-hand/terminal handshake.
+- [x] Audit the apparent sibling `SHOW_EYE` lock clear: it is one-hand-only,
+  and single-hand `DOUBLE_POUND` reasserts its side before branching.
 - [x] Audit the paired instant warps and exact Area 3 warp quad.
 - [x] Audit Area 2 floor tiers and target star coordinates/hitbox.
 - [x] Audit four airborne quarter steps, the fresh quarter-step floor query,
