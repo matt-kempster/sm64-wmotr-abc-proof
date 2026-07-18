@@ -38,6 +38,7 @@ GENERATED := \
   generated/pu_model.v \
   generated/mario_step.v \
   generated/platform_displacement.v \
+  generated/level_update.v \
   generated/mario.v \
   generated/mario_actions_moving.v \
   generated/mario_actions_airborne.v \
@@ -57,6 +58,9 @@ generated/mario_step.v: $(SM64)/src/game/mario_step.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(SM64_CG)
 
 generated/platform_displacement.v: $(SM64)/src/game/platform_displacement.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/level_update.v: $(SM64)/src/game/level_update.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(SM64_CG)
 
 generated/mario.v: $(SM64)/src/game/mario.c pipeline/clightgen.sh

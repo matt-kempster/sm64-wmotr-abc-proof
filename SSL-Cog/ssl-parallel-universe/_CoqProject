@@ -6,6 +6,7 @@
 generated/pu_model.v
 generated/mario_step.v
 generated/platform_displacement.v
+generated/level_update.v
 generated/mario.v
 generated/mario_actions_moving.v
 generated/mario_actions_airborne.v
@@ -20,3 +21,4 @@ proofs/MovementSourceFacts.v
 proofs/BLJRoute.v
 proofs/BLJGeometry.v
 proofs/BLJDynamic.v
+proofs/NoAPressed.v
