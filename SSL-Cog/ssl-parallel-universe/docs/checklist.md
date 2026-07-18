@@ -30,17 +30,25 @@ The theorem combines generated Clight AST shape checks, exact rational
 arithmetic, and a source/mesh literal audit. It is not yet a full CompCert
 operational-semantics proof of every float32 instruction and collision call.
 
-The requested no-new-A subclaim is now a separate active obligation. The
-Grindel counterexample does not satisfy it because every recycle consumes
-`INPUT_A_PRESSED`. An authentic C-up-only fixture probe now covers the broad
-ramp, bottom bevels, and top bevels. All six traces have zero A-pressed and
-A-down frames. The largest observed magnitude is `235.222733` on the longest
-bottom bevel, after which the enclosing wall ends braking. This validates the
-mechanism but is not yet the formal global no-A verdict.
+The requested no-new-A subclaim is now proved under the same source/mesh
+certificate boundary. `proofs/NoAPressed.v` proves
+`ssl_area2_no_new_a_parallel_universe_certificate` for every per-frame
+`INPUT_A_DOWN` schedule while `INPUT_A_PRESSED` remains clear. This includes
+A-up, continuously held A, and held-then-released input.
+
+The generated Clight facts pin the area-warp speed reset, edge-versus-held A
+input distinction, fresh-A BLJ gate, C-up braking path, slope constants,
+ordinary slide cap, held-A jump-kick initialization, and floor quarter steps.
+The independent audit partitions all 32 very-slippery triangles into nine
+finite components. Their largest certified path cost is `12368`, below the
+`16384` budget. The resulting conservative speed bound is `1024`, hence an
+accepted quarter step moves at most `256`; the first reusable static-floor
+alias is at least `54630` units away. Floor-null steps freeze X/Z, and Area 2's
+bounded dynamic horizontal writers remain local.
 
 ## Active next steps
 
-- [x] Create the isolated `SSL-Cog/ssl-parallel-universe/` project scaffold.
+- [x] Create the isolated `SSL-Coq/ssl-parallel-universe/` project scaffold.
 - [x] Add the C model and generate the first Clight AST with `clightgen`.
   `generated/pu_model.v` was produced from `inputs/pu_model.c` by the local
   `pipeline/clightgen.sh` route.
@@ -75,10 +83,12 @@ mechanism but is not yet the formal global no-A verdict.
 - [x] Add a reproducible authentic-US C-up fixture probe for all three Area 2
   very-slippery geometry families and confirm every recorded A input bit is
   clear.
-- [ ] Prove the source/mesh C-up speed bound, including yaw and wall endings,
-  and compare it with the first static-floor alias gap.
-- [ ] Audit the additional `INPUT_A_DOWN` action branches and state the no-A
-  capstone for both continuously held A and A-up policies.
+- [x] Prove the source/mesh C-up speed bound, including fixed yaw, finite
+  slippery components, and wall termination, and compare it with the first
+  static-floor alias gap.
+- [x] Audit all 18 `INPUT_A_DOWN` source occurrences and state the no-A
+  capstone for an arbitrary A-down schedule, including continuously held A,
+  A-up, and held-then-released input.
 - [ ] Optional strengthening: connect the finite rational trace to a full
   CompCert execution semantics proof for the generated float32 Clight.
 
@@ -151,3 +161,9 @@ mechanism but is not yet the formal global no-A verdict.
   C-up after setup, records the retail action/floor state, and reports zero
   `INPUT_A_PRESSED` and `INPUT_A_DOWN` frames. The longest bottom-bevel run
   reaches magnitude `235.222733` before its wall terminates braking.
+- 2026-07-17: Added generated Clight for `level_update.c`, the independent
+  no-A source/mesh audit, and `NoAPressed.v`. The new capstone proves that a
+  certified Area 2 execution with `INPUT_A_PRESSED = 0` cannot reach a PU for
+  any A-down schedule. The proof covers all nine slippery components, the
+  regular-slide cap, held-A branches, floor-null freezing, bounded dynamic
+  writers, and the `54630`-unit first-alias gap.

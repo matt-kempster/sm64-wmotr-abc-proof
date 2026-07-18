@@ -4,7 +4,7 @@
 
 - Super Mario 64, North American release (`VERSION_US=1`)
 - Reference decompilation source is from the same source family used by
-  `SSL-Cog/ssl-pyramid-item-proof`
+  `SSL-Coq/ssl-pyramid-item-proof`
 - CompCert `clightgen` is the translation path for committed C inputs
 
 ## Boundary being studied
@@ -97,24 +97,66 @@ float32 gameplay execution. Such a lowering is optional follow-up work; the
 current project verdict is the concrete dynamic counterexample, not the
 original unqualified impossibility claim.
 
-## No-new-A subclaim
+## No-new-A theorem
 
 The stricter policy requires `INPUT_A_PRESSED` to remain clear after Area 2
-entry. `INPUT_A_DOWN` may independently be clear or set by carrying a held A
-button across the area transition. The dynamic Grindel route above is not a
-counterexample to this subclaim: normal long-jump entry and each recycle are
-selected by `INPUT_A_PRESSED`.
+entry. `INPUT_A_DOWN` may vary independently in the formal overapproximation,
+so the theorem includes A-up, continuously held A, held-then-released A, and
+any other down-bit schedule that never materializes the pressed bit. The
+dynamic Grindel route above is not a counterexample because normal long-jump
+entry and every recycle require `INPUT_A_PRESSED`.
 
-The current C-up evidence is source-compatible but still intermediate.
-`instrumentation/mupen64plus/c_up_probe.c` enters retail-US Area 2, arms
-braking on a normal flat floor, transfers the resulting state to transparent
-collision fixtures, and supplies C-up without A. The six recorded geometry
-fixtures cover the broad interior ramp, representative long bottom bevels,
-and top-star bevels. Every trace records zero A-pressed and A-down frames. The
-largest observed speed magnitude is `235.222733` on the west bottom bevel;
-the enclosing wall then selects braking-stop and zeros the speed.
+`proofs/NoAPressed.v` proves
+`ssl_area2_no_new_a_parallel_universe_certificate`. Its generated Clight
+source-shape layer establishes:
 
-This establishes that C-up must be included rather than dismissed by the old
-BLJ audit. It does not yet prove the universal no-A result: the next theorem
-must connect all 32 slippery triangles, yaw/wall termination, held-A action
-branches, and the signed-16 alias gap in one source/mesh certificate.
+- `init_mario_after_warp` calls `init_mario`, whose generated body resets
+  `forwardVel` and the velocity vector;
+- button-edge and button-held fields separately materialize
+  `INPUT_A_PRESSED` and `INPUT_A_DOWN`;
+- walking checks the first-person braking path before the A-press jump path;
+- braking applies the very-slippery `0.2 * 2.0` deceleration and `5.3` slope
+  acceleration before each four-quarter-step ground move, without turning
+  Mario's facing yaw;
+- ordinary sliding has the one-frame `100` slide-vector cap;
+- the held-A move-punching branch selects jump kick, whose initialization adds
+  vertical speed `20` without assigning `forwardVel`;
+- long-jump landing recycling still passes through the fresh-A input gate;
+- ground and air quarter steps both consult `find_floor`.
+
+`pipeline/check_no_a_route.py` independently checks the corresponding source
+and collision literals. Area 2 has exactly 32 very-slippery triangles: 24
+bottom/perimeter bevel triangles, two broad-ramp triangles, and six top-star
+bevel triangles. Shared-vertex connectivity partitions them into nine finite
+components. Braking keeps fixed yaw, and a wall hit either permits a bounded
+side traversal or exits through braking-stop. Twice each component's
+Manhattan envelope is below the conservative path budget `16384`; the largest
+actual certificate cost is `12368`.
+
+For speed magnitude `v` and charged path distance `d`, the Rocq model uses the
+conservative energy inequality
+
+```text
+v^2 <= 32^2 + 16*d,  with d <= 16384.
+```
+
+The coefficient `16` safely exceeds `2 * 5.3 / 0.7`, using the audited minimum
+slippery-floor normal Y. This puts C-up below the deliberately loose
+horizontal speed bound `1024`; the retail fixture maximum `235.222733` is
+supporting evidence, not a premise of the theorem.
+
+The uniform Area 2 collision window is `[-4148, 6758]`. Signed-16 floor reuse
+therefore has a `65536 - (6758 - (-4148)) = 54630`-unit dead zone. A no-A
+ground or air quarter step is bounded by `1024 / 4 = 256`, while audited
+dynamic horizontal writers are bounded by `64`. A static-floor-accepted step
+cannot change alias period; a floor-null air step changes only Y, and a
+floor-null ground step changes no position. Induction over these certified
+position writers keeps X and Z in the local mesh window, which lies strictly
+inside the first-PU threshold.
+
+This is a source/mesh certificate theorem, consistent with the project's
+existing counterexample boundary. It is not a full CompCert operational proof
+that every instruction of the retail gameplay loop refines the compact
+transition relation. Within that stated boundary, the verdict is: the
+unrestricted claim is false, but entering a PU with no new A press is ruled
+out.
