@@ -1,4 +1,4 @@
-# SSL-Cog
+# SSL-Coq
 
 Welcome to the SSL 0A research folder.
 
@@ -46,7 +46,7 @@ README and `docs/` files should always make that boundary clear.
 
 ## Standard project structure
 
-New proof projects under `SSL-Cog/` should follow this layout:
+New proof projects under `SSL-Coq/` should follow this layout:
 
 ```text
 ssl-<route-name>-proof/
