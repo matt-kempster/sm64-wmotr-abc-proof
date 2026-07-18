@@ -51,6 +51,21 @@ holes or project-added axioms. A future strengthening may replace the rational
 trace bridge with a full CompCert operational-semantics proof of the float32
 execution, but that is not required to recover the current result.
 
+## Current extension: no new A press
+
+The active extension asks whether a PU remains reachable when
+`INPUT_A_PRESSED` is always zero after entering Area 2, while
+`INPUT_A_DOWN` may be either zero or continuously set. This excludes the
+existing Grindel BLJ counterexample.
+
+The first completed step is a retail movement probe for C-up hyperspeed on the
+three Area 2 very-slippery geometry families. It confirms that C-up braking is
+available with no A input and reaches magnitude `235.222733` on the longest
+tested bottom bevel before wall collision terminates the action. The remaining
+goal is to turn the complete 32-triangle mesh audit and held-A action census
+into a Rocq theorem comparing every allowed no-A speed source with the first
+signed-16 floor-alias gap.
+
 ## Repository workflow constraints
 
 - Work on branch `codex/ssl-pyramid-item-proof` in the proof repository.
