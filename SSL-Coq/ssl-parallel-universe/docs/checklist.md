@@ -167,3 +167,6 @@ bounded dynamic horizontal writers remain local.
   any A-down schedule. The proof covers all nine slippery components, the
   regular-slide cap, held-A branches, floor-null freezing, bounded dynamic
   writers, and the `54630`-unit first-alias gap.
+- 2026-07-17: Recorded the repository root rename from `SSL-Cog/` to
+  `SSL-Coq/`. The rename commit preserves sibling project blobs and leaves
+  unrelated working-tree edits unstaged.
