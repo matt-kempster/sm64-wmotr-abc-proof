@@ -160,3 +160,9 @@ that every instruction of the retail gameplay loop refines the compact
 transition relation. Within that stated boundary, the verdict is: the
 unrestricted claim is false, but entering a PU with no new A press is ruled
 out.
+
+## Repository path
+
+The proof project is tracked at `SSL-Coq/ssl-parallel-universe/`. The root
+rename from `SSL-Cog/` changes repository paths only and does not alter the
+claim or proof boundary.

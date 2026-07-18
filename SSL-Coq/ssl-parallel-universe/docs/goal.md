@@ -88,3 +88,7 @@ result.
 - Do not modify `SSL-Coq/ssl-pyramid-item-proof/` except to inspect its style.
 - Commit after each logical change and update all files in `docs/` each time.
 - Do not push without explicit user approval.
+
+The repository root rename from `SSL-Cog/` to `SSL-Coq/` was committed as a
+path-only migration, apart from the required documentation receipts in this
+folder.
