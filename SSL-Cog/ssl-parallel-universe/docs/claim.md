@@ -96,3 +96,25 @@ It is not yet a full CompCert operational-semantics derivation of the complete
 float32 gameplay execution. Such a lowering is optional follow-up work; the
 current project verdict is the concrete dynamic counterexample, not the
 original unqualified impossibility claim.
+
+## No-new-A subclaim
+
+The stricter policy requires `INPUT_A_PRESSED` to remain clear after Area 2
+entry. `INPUT_A_DOWN` may independently be clear or set by carrying a held A
+button across the area transition. The dynamic Grindel route above is not a
+counterexample to this subclaim: normal long-jump entry and each recycle are
+selected by `INPUT_A_PRESSED`.
+
+The current C-up evidence is source-compatible but still intermediate.
+`instrumentation/mupen64plus/c_up_probe.c` enters retail-US Area 2, arms
+braking on a normal flat floor, transfers the resulting state to transparent
+collision fixtures, and supplies C-up without A. The six recorded geometry
+fixtures cover the broad interior ramp, representative long bottom bevels,
+and top-star bevels. Every trace records zero A-pressed and A-down frames. The
+largest observed speed magnitude is `235.222733` on the west bottom bevel;
+the enclosing wall then selects braking-stop and zeros the speed.
+
+This establishes that C-up must be included rather than dismissed by the old
+BLJ audit. It does not yet prove the universal no-A result: the next theorem
+must connect all 32 slippery triangles, yaw/wall termination, held-A action
+branches, and the signed-16 alias gap in one source/mesh certificate.

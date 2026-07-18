@@ -1,6 +1,6 @@
 # SSL Parallel Universe proof checklist
 
-Last updated: 2026-07-12
+Last updated: 2026-07-17
 
 Rule for Codex rounds: every commit that changes proof scope, proof code, or
 build behavior must update this file in the same commit.
@@ -29,6 +29,14 @@ state is beyond the first PU threshold.
 The theorem combines generated Clight AST shape checks, exact rational
 arithmetic, and a source/mesh literal audit. It is not yet a full CompCert
 operational-semantics proof of every float32 instruction and collision call.
+
+The requested no-new-A subclaim is now a separate active obligation. The
+Grindel counterexample does not satisfy it because every recycle consumes
+`INPUT_A_PRESSED`. An authentic C-up-only fixture probe now covers the broad
+ramp, bottom bevels, and top bevels. All six traces have zero A-pressed and
+A-down frames. The largest observed magnitude is `235.222733` on the longest
+bottom bevel, after which the enclosing wall ends braking. This validates the
+mechanism but is not yet the formal global no-A verdict.
 
 ## Active next steps
 
@@ -62,6 +70,15 @@ operational-semantics proof of every float32 instruction and collision call.
   and the canonical Grindel/Thwomp behavior.
 - [x] Prove the finite Grindel bootstrap, nine in-footprint recycles, release,
   floor-null loops, and concrete PU-alias landing certificate.
+- [x] Separate `INPUT_A_PRESSED = 0` from the older unqualified result and
+  identify that the Grindel BLJ route is unavailable under that policy.
+- [x] Add a reproducible authentic-US C-up fixture probe for all three Area 2
+  very-slippery geometry families and confirm every recorded A input bit is
+  clear.
+- [ ] Prove the source/mesh C-up speed bound, including yaw and wall endings,
+  and compare it with the first static-floor alias gap.
+- [ ] Audit the additional `INPUT_A_DOWN` action branches and state the no-A
+  capstone for both continuously held A and A-up policies.
 - [ ] Optional strengthening: connect the finite rational trace to a full
   CompCert execution semantics proof for the generated float32 Clight.
 
@@ -129,3 +146,8 @@ operational-semantics proof of every float32 instruction and collision call.
   `ssl_area2_grindel_dynamic_counterexample_certificate` proves the finite
   dynamic route described above and replaces the unqualified impossibility
   target with a concrete counterexample in the current model.
+- 2026-07-17: Added the isolated Mupen C-up probe and six retail-US fixture
+  runs. The probe enters Area 2 through the normal level machinery, uses only
+  C-up after setup, records the retail action/floor state, and reports zero
+  `INPUT_A_PRESSED` and `INPUT_A_DOWN` frames. The longest bottom-bevel run
+  reaches magnitude `235.222733` before its wall terminates braking.
