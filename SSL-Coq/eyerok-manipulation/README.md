@@ -3,7 +3,7 @@
 This project studies the proposed Shifting Sand Land route in which an Eyerok
 hand is manipulated into rising without bound above the instant-warp floor
 triangles between the Pyramid interior and the boss arena. It follows the
-Rocq/Coq + CompCert Clight structure used by the sibling SSL-Cog projects.
+Rocq/Coq + CompCert Clight structure used by the sibling SSL-Coq projects.
 
 The intended target is deliberately adversarial: player position, attacks,
 timing, and the boss's random choices may select any original-game action
@@ -19,7 +19,7 @@ live proof status.
 ## Project route
 
 ```text
-pinned US SM64 Eyerok, Mario, area, SSL script, and collision source
+pinned common SM64 source plus US/original-JP area and platform behavior
   -> reproducible source audit + CompCert clightgen
   -> generated Clight AST shape certificates
   -> executable source-shaped launch kernel under arbitrary A input
@@ -35,13 +35,59 @@ pinned US SM64 Eyerok, Mario, area, SSL script, and collision source
 
 Generated Clight files are never hand-edited.
 
+## Pedro and particle-platform verdict
+
+The source audit finds two real Pedro geometries in the two configurations
+analyzed here, while the Rocq proof keeps
+geometry, entry, and usefulness separate. The stationary sleeping-hand strip
+has a 38-unit gap, but ordinary exterior entry is behind a greater-than-100
+quarter-step wall band. A US-ROM local fixture reaches it with preloaded speed
+424; speed 48 does not. The injected fixture establishes no A-press count.
+During the one-time wake, the two palms have valid
+gaps on updates 5--11, and update 11 admits an exact one-unit local entry.
+Update 12 has gap 162, so ordinary entry permits only one cancellation and at
+most one air-speed update, not a repeatable grind. For the common with-turn and
+without-turn air helpers, the ideal-arithmetic Rocq envelope is 3.85 on that
+update; retail binary32 witnesses require the conservative value 4. The Float32
+bound is not yet machine-checked. Authentic controller
+reachability of the update-11 airborne prestate, especially with no new A
+press, remains open. Other action families, hand phases, seams, and
+moving-boundary entries have not been exhaustively classified.
+
+The pinned-source audit blocks the same-area Eyerok-fragment construction in
+both checked versions. Each hand allocates its particles before freeing its
+own slot, and the exclusive eye lock prevents the sibling from exploding in
+the next-active-update stale-pointer window. The Rocq lifecycle relation
+formalizes those audited premises; it is not a linked whole-program refinement.
+
+The cross-area result is version-specific. US clears Mario's saved platform
+pointer while loading Area 2. Original JP omits that call, retains the raw slot
+address, and consumes a nonnull address before the first Area 2 update refreshes
+it. An ordinary coherent JP warp carries `NULL`; an authentic stale cached warp
+floor plus freshly saved hand pointer remains open. In a disclosed injected
+comparison, the authentic JP ROM reused hand slot 32 for a zero-motion
+`bhvWaterDroplet`. Source/Clight order implies one unchecked application; the
+probe observed effective delta `(0,0,0)` and unchanged Mario speed. No explosion
+or 0/0.5-A route was staged. Platform displacement changes position/facing, not stored speed, so a
+hypothetical large result would depend on positional lever arm rather than
+normal versus PU stored speed.
+
+See `proofs/PedroSpot.v`, `proofs/EyerokParticleDisplacement.v`,
+`proofs/JPPlatformPersistence.v`, the US Pedro trace in
+`instrumentation/results/pedro_entry_trace.csv`, and the JP evidence manifest
+in `instrumentation/results/jp_platform_manifest.md`.
+
 ## Current status
 
-The pinned source-ingestion pipeline now generates Clight for the authentic
-Eyerok translation unit, object motion, behavior dispatch, object-list order,
-spawn/list insertion, controller input, floor queries, area change, Mario's
-moving/object/stationary/airborne actions, platform displacement, interactions,
-and the SSL script. Deterministic audits
+The source-ingestion pipeline generates shared Clight units from files identical
+to the pinned revision, plus version-specific US and original-JP area/platform
+units. The available 36fb checkout adds disabled TAS-hack blocks to three JP
+source functions; the audit proves their normalized disabled bodies equal the
+pinned revision, and a separate clean pinned `VERSION=jp COMPARE=1` build is
+byte-identical to the canonical JP ROM. The generated surface covers Eyerok,
+object motion and scheduling, controller input, floor queries, area change,
+Mario actions, platform displacement, interactions, and the SSL script.
+Deterministic audits
 check the source pin, vertical writer census, paired instant warps, collision
 bounds, Area 2 landing tiers, and the target star. Those checks do not
 themselves prove an authentic route. They now also pin the strict ground test,
@@ -353,7 +399,10 @@ of the finite-episode premise remains open.
 
 `proofs/RouteCertificate.v` adds a separate Mario/Area 2 result. A hand floor
 does not trigger the modeled instant warp; a selected Area 3 warp floor enters
-Area 2 with Mario's coordinates and velocity unchanged. Adding the maximum
+Area 2 with Mario's coordinates and velocity unchanged during the abstract
+warp step. Original JP may subsequently apply a retained raw platform address
+in the same frame, unless the ordinary coherent prestate carried `NULL`.
+Adding the maximum
 507-unit hand collision top and a modeled 630-unit triple-jump rise gives a
 Mario peak ceiling of 2604. That is too low for the audited Y=2940 and higher
 shortcut tiers or direct star collection. The combined abstract relations do,

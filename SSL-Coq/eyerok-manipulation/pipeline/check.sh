@@ -79,6 +79,9 @@ bash pipeline/assumptions.sh \
   SSLEyerok.Proofs.GeneratedFacts \
   generated_controller_action_shape_holds
 bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.GeneratedFacts \
+  generated_exploit_source_shape_holds
+bash pipeline/assumptions.sh \
   SSLEyerok.Proofs.ClightRefinementBoundary \
   clight_refinement_boundary_certificate_holds
 bash pipeline/assumptions.sh \
@@ -93,5 +96,50 @@ bash pipeline/assumptions.sh \
 bash pipeline/assumptions.sh \
   SSLEyerok.Proofs.Binary32Boundary \
   binary32_boundary_certificate_holds
+bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.PedroSpot \
+  pedro_scenario_certificate_holds
+bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.EyerokParticleDisplacement \
+  eyerok_fragment_ppd_certificate_holds
+bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.EyerokParticleDisplacement \
+  us_eyerok_particle_displacement_certificate_holds
+bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.EyerokParticleDisplacement \
+  eyerok_particle_displacement_certificate_holds
+bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.JPPlatformPersistence \
+  jp_saved_slot_payload_consumed_once
+bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.JPPlatformPersistence \
+  jp_freed_residual_payload_consumes_one_displacement
+bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.JPPlatformPersistence \
+  jp_zero_motion_other_object_is_consumed_without_effect
+bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.JPPlatformPersistence \
+  jp_platform_persistence_certificate_holds
+bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.GeneratedFacts \
+  generated_exploit_common_source_shape_holds
+bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.GeneratedFacts \
+  generated_us_area_clear_shape_holds
+bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.GeneratedFacts \
+  generated_jp_platform_source_shape_holds
+bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.ExploitScenarioVerdict \
+  exploit_scenario_common_verdict_holds
+bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.ExploitScenarioVerdict \
+  exploit_scenario_us_verdict_holds
+bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.ExploitScenarioVerdict \
+  exploit_scenario_jp_verdict_holds
+bash pipeline/assumptions.sh \
+  SSLEyerok.Proofs.ExploitScenarioVerdict \
+  exploit_scenario_verdict_holds
 
 echo "Eyerok manipulation checks: OK"

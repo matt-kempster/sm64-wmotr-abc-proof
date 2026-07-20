@@ -1,0 +1,16 @@
+rom: authenticated US Super Mario 64
+rom-md5: 20b854b239203baf6c961b850a4a51a2
+rom-sha256: 17ce077343c6133f8c9f2d6d6d9a4ab62c8cd2aa57c40aea1f490b4c8bb21d91
+rom-header-crc: 635a2bff8b022326
+ordinary-speed: 48
+ordinary-pedro-witnesses: 0
+wall-tunnel-speed: 424
+wall-tunnel-witness-timer: 365
+witness-position: (254.750, -1459.000, -3115.500)
+witness-forward-speed: 422.650
+witness-stored-floor-height: -1534.000
+witness-floor-object: 00000000
+witness-boss-action: SLEEP
+witness-hand-action: SLEEP
+result: the outer radius-50 wall blocks ordinary speed 48; preloaded speed 424 crosses the >100-unit rejection band and reaches the Pedro branch
+scope: state-injected collision-semantic fixtures, not controller-only speed-424 reachability, an A-press classification, or a sustained speed-grinding trace

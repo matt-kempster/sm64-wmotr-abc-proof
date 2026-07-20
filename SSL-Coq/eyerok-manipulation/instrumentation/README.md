@@ -9,7 +9,7 @@ Run it inside the Ubuntu-24.04 WSL distribution:
 
 ~~~powershell
 wsl.exe -d Ubuntu-24.04 -- bash -lc "\
-cd '/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-wmotr-abc-proof/SSL-Cog/eyerok-manipulation' && \
+cd '/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-wmotr-abc-proof/SSL-Coq/eyerok-manipulation' && \
 bash instrumentation/mupen64plus/run_idle_double_probe.sh \
   '/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-decomp/baserom.us.z64'"
 ~~~
@@ -52,7 +52,7 @@ interpreter:
 
 ~~~powershell
 wsl.exe -d Ubuntu-24.04 -- bash -lc "\
-cd '/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-wmotr-abc-proof/SSL-Cog/eyerok-manipulation' && \
+cd '/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-wmotr-abc-proof/SSL-Coq/eyerok-manipulation' && \
 bash instrumentation/mupen64plus/run_contact_probe.sh \
   '/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-decomp/baserom.us.z64'"
 ~~~
@@ -98,7 +98,7 @@ directions and an inward-then-reverse braking schedule:
 
 ~~~powershell
 wsl.exe -d Ubuntu-24.04 -- bash -lc "\
-cd '/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-wmotr-abc-proof/SSL-Cog/eyerok-manipulation' && \
+cd '/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-wmotr-abc-proof/SSL-Coq/eyerok-manipulation' && \
 bash instrumentation/mupen64plus/run_attack_probe.sh \
   '/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-decomp/baserom.us.z64'"
 ~~~
@@ -135,3 +135,74 @@ source/geometry boundaries, and ABC interpretation.
 floor, platform/landing, deletion, and the first post-deletion crossing. These
 are local microtraces, not controller-only reachability proofs or a zero/0.5-A
 route.
+
+## Sleeping-hand Pedro collision probe
+
+`run_pedro_probe.sh` compares two disclosed local Mario fixtures against an
+otherwise untouched sleeping right hand on the authenticated US ROM:
+
+~~~powershell
+wsl.exe -d Ubuntu-24.04 -- bash -lc "\
+cd '/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-wmotr-abc-proof/SSL-Coq/eyerok-manipulation' && \
+bash instrumentation/mupen64plus/run_pedro_probe.sh \
+  '/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-decomp/baserom.us.z64'"
+~~~
+
+Both fixtures write Mario's position, long-jump action, facing, and starting
+speed. They never write the hand. Speed 48 is resolved onto the hand's upper
+thumb floor and never takes the Pedro branch. Preloaded speed 424 crosses the
+entire greater-than-100-unit wall band in one intended quarter-step. Retail
+collision then snaps Mario's Y from `-1532` to the lower floor at `-1459`
+while preserving the old X/Z and old static floor height `-1534`. That is the
+characteristic Pedro result.
+
+This is a collision-semantic counterexample to unconditional sleeping-strip
+entry impossibility. It does not construct speed 424, an authentic controller
+predecessor, a repeatable speed-grinding loop, or any A-press classification:
+the injected `ACT_LONG_JUMP` suffix proves neither 0 A nor 0.5 A. The separate
+source audit also finds a one-unit local entry into the two-hand wake sandwich
+on wake frame 11; that fixture has not been replayed as a controller-only TAS,
+and the gap becomes 162 on the next frame.
+
+## Original-JP retained-platform probe
+
+`run_jp_platform_probe.sh` checks the version-specific `gMarioPlatform`
+behavior on the authentic original-JP ROM:
+
+~~~powershell
+wsl.exe -d Ubuntu-24.04 -- bash -lc "\
+cd '/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-wmotr-abc-proof/SSL-Coq/eyerok-manipulation' && \
+bash instrumentation/mupen64plus/run_jp_platform_probe.sh \
+  '/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-decomp/baserom.jp.z64'"
+~~~
+
+The wrapper requires Ubuntu-24.04 and refuses a ROM unless all of these
+identifiers match:
+
+```text
+MD5:        85d61f5525af708c9f1e84dce6dc10e9
+SHA-1:      8a20a5c83d6ceb0f0506cfc9fa20d8f438cafe51
+SHA-256:    9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317
+header CRC: 4eaa3d0e 74757c24
+country:    J
+revision:   0
+```
+
+A clean pinned-revision `VERSION=jp COMPARE=1` build, with the local TAS hack
+disabled, was byte-identical to this ROM. The probe uses matching JP addresses
+and Mupen64Plus 2.5.9's cached interpreter.
+
+Both cases place Mario on the genuine static Area 3 warp floor. The natural
+case has a null floor owner and null `gMarioPlatform`, then reaches Area 2 with
+zero displacement. The injected comparison writes only the genuine hand-slot
+address (slot 32) to `gMarioPlatform` immediately before the warp. Area 2
+reuses that address for `bhvWaterDroplet`, whose X/Z and angular velocities
+are zero. The source/Clight order establishes one unchecked mid-update
+platform-displacement call; the callback observes its zero effective delta,
+unchanged `forwardVel`, and the later pointer refresh to null.
+
+The input callback cannot observe inside `update_objects`, so source/Clight—not
+the trace alone—establishes the application before refresh. No Eyerok explosion,
+rotating replacement, controller-authentic stale-floor/hand-pointer state, or
+0/0.5-A route was staged. Full setup and scope are recorded in
+`results/jp_platform_manifest.md`.
