@@ -534,3 +534,189 @@ Proof.
   - apply ssl_area2_all_first_update_platform_displacements_stay_in_elevator_shaft.
   - apply ssl_area2_all_first_update_platform_displacements_do_not_reach_cage_top.
 Qed.
+
+Definition platform_fields_can_affect_displacement
+    (fields : object_fields) : Prop :=
+  field_oVelX fields <> 0 \/
+  field_oVelZ fields <> 0 \/
+  platform_has_rotation fields.
+
+Definition counterfactual_direct_velocity_fields
+    (vel_x vel_z : Z) : object_fields := {|
+  field_kind := KindOther;
+  field_active := true;
+  field_oVelX := vel_x;
+  field_oVelY := 0;
+  field_oVelZ := vel_z;
+  field_oAngleVelPitch := 0;
+  field_oAngleVelYaw := 0;
+  field_oAngleVelRoll := 0;
+  field_oFaceAnglePitch := 0;
+  field_oFaceAngleYaw := 0;
+  field_oFaceAngleRoll := 0
+|}.
+
+Definition counterfactual_top_entry_after_direct_velocity
+    (vel_x vel_z : Z) : ssl_object := {|
+  ssl_object_kind := KindOther;
+  ssl_object_x := ssl_object_x ssl_area2_top_entry_mario_spawn + vel_x;
+  ssl_object_y := ssl_object_y ssl_area2_top_entry_mario_spawn;
+  ssl_object_z := ssl_object_z ssl_area2_top_entry_mario_spawn + vel_z
+|}.
+
+Theorem counterfactual_direct_velocity_at_most_40_stays_in_elevator_shaft :
+  forall vel_x vel_z,
+    -40 <= vel_x <= 40 ->
+    -40 <= vel_z <= 40 ->
+    in_elevator_shaft_footprint
+      (counterfactual_top_entry_after_direct_velocity vel_x vel_z).
+Proof.
+  intros vel_x vel_z Hx Hz.
+  destruct Hx as [Hx_min Hx_max].
+  destruct Hz as [Hz_min Hz_max].
+  unfold in_elevator_shaft_footprint,
+    counterfactual_top_entry_after_direct_velocity,
+    ssl_area2_top_entry_mario_spawn,
+    ssl_elevator_shaft_min_x, ssl_elevator_shaft_max_x,
+    ssl_elevator_shaft_min_z, ssl_elevator_shaft_max_z.
+  simpl.
+  change (((-511 <= vel_x)%Z /\ (vel_x <= 512)%Z) /\
+          ((-255 <= 256 + vel_z)%Z /\ (256 + vel_z <= 768)%Z)).
+  split; split; lia.
+Qed.
+
+Definition counterfactual_recovery_heart_yaw_1000_fields : object_fields := {|
+  field_kind := KindOther;
+  field_active := true;
+  field_oVelX := 0;
+  field_oVelY := 0;
+  field_oVelZ := 0;
+  field_oAngleVelPitch := 0;
+  field_oAngleVelYaw := 1000;
+  field_oAngleVelRoll := 0;
+  field_oFaceAnglePitch := 0;
+  field_oFaceAngleYaw := 1000;
+  field_oFaceAngleRoll := 0
+|}.
+
+Definition counterfactual_recovery_heart_yaw_3000_fields : object_fields := {|
+  field_kind := KindOther;
+  field_active := true;
+  field_oVelX := 0;
+  field_oVelY := 0;
+  field_oVelZ := 0;
+  field_oAngleVelPitch := 0;
+  field_oAngleVelYaw := 3000;
+  field_oAngleVelRoll := 0;
+  field_oFaceAnglePitch := 0;
+  field_oFaceAngleYaw := 3000;
+  field_oFaceAngleRoll := 0
+|}.
+
+Definition counterfactual_top_entry_after_recovery_heart_yaw_1000
+    : ssl_object := {|
+  ssl_object_kind := KindOther;
+  ssl_object_x := 238;
+  ssl_object_y := 5500;
+  ssl_object_z := 206
+|}.
+
+Definition counterfactual_top_entry_after_recovery_heart_yaw_3000
+    : ssl_object := {|
+  ssl_object_kind := KindOther;
+  ssl_object_x := 695;
+  ssl_object_y := 5500;
+  ssl_object_z := 40
+|}.
+
+Definition counterfactual_hidden_1up_pitch_fields : object_fields := {|
+  field_kind := KindOther;
+  field_active := true;
+  field_oVelX := 0;
+  field_oVelY := 0;
+  field_oVelZ := 0;
+  field_oAngleVelPitch := -4096;
+  field_oAngleVelYaw := 0;
+  field_oAngleVelRoll := 0;
+  field_oFaceAnglePitch := 0;
+  field_oFaceAngleYaw := 0;
+  field_oFaceAngleRoll := 0
+|}.
+
+Definition counterfactual_top_entry_after_hidden_1up_pitch
+    : ssl_object := {|
+  ssl_object_kind := KindOther;
+  ssl_object_x := 0;
+  ssl_object_y := 5694;
+  ssl_object_z := -2003
+|}.
+
+Theorem counterfactual_recovery_heart_low_yaw_stays_in_elevator_shaft :
+  platform_fields_can_affect_displacement
+    counterfactual_recovery_heart_yaw_1000_fields /\
+  in_elevator_shaft_footprint
+    counterfactual_top_entry_after_recovery_heart_yaw_1000.
+Proof.
+  split.
+  - unfold platform_fields_can_affect_displacement,
+      platform_has_rotation,
+      counterfactual_recovery_heart_yaw_1000_fields.
+    simpl. right. right. right. left. lia.
+  - unfold in_elevator_shaft_footprint,
+      counterfactual_top_entry_after_recovery_heart_yaw_1000,
+      ssl_elevator_shaft_min_x, ssl_elevator_shaft_max_x,
+      ssl_elevator_shaft_min_z, ssl_elevator_shaft_max_z.
+    simpl.
+    split.
+    + split; lia.
+    + split; lia.
+Qed.
+
+Theorem counterfactual_recovery_heart_high_yaw_leaves_elevator_shaft :
+  platform_fields_can_affect_displacement
+    counterfactual_recovery_heart_yaw_3000_fields /\
+  ~ in_elevator_shaft_footprint
+      counterfactual_top_entry_after_recovery_heart_yaw_3000.
+Proof.
+  split.
+  - unfold platform_fields_can_affect_displacement,
+      platform_has_rotation,
+      counterfactual_recovery_heart_yaw_3000_fields.
+    simpl. right. right. right. left. lia.
+  - unfold in_elevator_shaft_footprint,
+      counterfactual_top_entry_after_recovery_heart_yaw_3000,
+      ssl_elevator_shaft_min_x, ssl_elevator_shaft_max_x.
+    simpl. intros [[_ Hx_max] _]. lia.
+Qed.
+
+Theorem counterfactual_hidden_1up_pitch_leaves_elevator_shaft :
+  platform_fields_can_affect_displacement
+    counterfactual_hidden_1up_pitch_fields /\
+  ~ in_elevator_shaft_footprint
+      counterfactual_top_entry_after_hidden_1up_pitch.
+Proof.
+  split.
+  - unfold platform_fields_can_affect_displacement,
+      platform_has_rotation,
+      counterfactual_hidden_1up_pitch_fields.
+    simpl. right. right. left. lia.
+  - unfold in_elevator_shaft_footprint,
+      counterfactual_top_entry_after_hidden_1up_pitch,
+      ssl_elevator_shaft_min_z.
+    simpl. intros [_ [Hz_min _]]. lia.
+Qed.
+
+Theorem counterfactual_later_initialized_fields_can_escape_elevator_shaft :
+  (platform_fields_can_affect_displacement
+      counterfactual_recovery_heart_yaw_3000_fields /\
+   ~ in_elevator_shaft_footprint
+       counterfactual_top_entry_after_recovery_heart_yaw_3000) /\
+  (platform_fields_can_affect_displacement
+      counterfactual_hidden_1up_pitch_fields /\
+   ~ in_elevator_shaft_footprint
+       counterfactual_top_entry_after_hidden_1up_pitch).
+Proof.
+  split.
+  - apply counterfactual_recovery_heart_high_yaw_leaves_elevator_shaft.
+  - apply counterfactual_hidden_1up_pitch_leaves_elevator_shaft.
+Qed.
