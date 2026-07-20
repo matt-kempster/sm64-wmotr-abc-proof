@@ -1,20 +1,87 @@
 # Working claim and exact scope
 
-Last updated: 2026-07-16 (nonlethal recovery/no-stacking theorem).
+Last updated: 2026-07-19 (US/JP particle-platform version split).
 
 ## Source and toolchain boundary
 
-- Super Mario 64 North American source (`VERSION_US=1`).
+- Shared Super Mario 64 source plus North American (`VERSION_US=1`) and
+  original Japanese (`VERSION_JP=1`) area/platform behavior.
 - Canonical revision:
   `9921382a68bb0c865e5e45eb594d9c64db59b1af`.
 - Available sibling checkout:
   `36fbf8d693a9fc2bdec0c77402f8e96d07d2f461`; audited files must match the
-  pin or are extracted directly from it.
+  pin, be extracted directly from it, or pass the explicit normalized
+  pin-equivalence check. The three JP-sensitive function bodies in `area.c`
+  and `level_update.c` match the pin after the disabled local TAS-hack blocks
+  are removed.
+- Original-JP ROM SHA-1:
+  `8a20a5c83d6ceb0f0506cfc9fa20d8f438cafe51`; a clean pinned
+  `VERSION=jp COMPARE=1` build is byte-identical.
 - Coq 8.16.1, CompCert 3.15, PPC32 EABI big-endian.
 
 Generated Clight shape facts and source audits pin syntax, constants, call
 edges/order, controller/action gates, per-unit name resolution, and collision
 data. They are not a linked whole-program execution refinement.
+
+## Exploit-specific claim
+
+`PedroSpot.v` proves three deliberately scoped facts. First, the stationary
+sleep mesh contains a 38-unit Pedro floor/ceiling overlap, but exterior entry
+to its wall-free half requires a quarter-step greater than 100; the US-ROM
+fixture supplies a counterexample only after injecting speed 424. Second, the
+staggered wake has audited Pedro gaps on updates 5--11 and an exact local
+one-unit entry state on update 11. Third, the next update's gap is 162, so
+ordinary update-11 entry has only one air-speed update. In the common
+with-turn/without-turn helper relation, arbitrary signed `forwardVel` rises by
+at most 3.85 on that update (1.50 from a nonnegative start), and even granting
+all seven calls gives 26.95. Those are ideal-arithmetic model theorems. Retail
+binary32 witnesses slightly exceed 3.85 and attain 4/28 at coarse spacing, so
+4 per call and 28 over seven calls are the conservative ROM-facing figures;
+their universal Float32 derivation is still open. This is also not an
+exhaustive bound over every air-action entry write. The result disproves
+"Eyerok never forms Pedro geometry," but does not authenticate Mario's
+controller path to the wake prestate or establish a repeatable speed-grinding
+loop.
+
+`EyerokParticleDisplacement.v` proves the common no-replacement result in an
+explicit Eyerok lifecycle relation. The exploding hand allocates particles
+before its slot is freed; the first dying hand retains the exclusive eye lock;
+and after release the sibling needs at least its 30-frame open and 40-frame
+death animations. Therefore neither hand can provide an Eyerok fragment in the
+one-active-update same-area stale-pointer window. The result applies to US and
+JP, but does not exclude unrelated particles or every stale-slot construction.
+
+The cross-area result is versioned. US calls `clear_mario_platform` while
+loading Area 2, so the saved hand address cannot survive. Original JP omits
+that call. `JPPlatformPersistence.v` models the audited policy: a nonnull raw
+slot address is retained and consumed once before end-frame refresh, regardless
+of slot identity. The model permits either a residual-slot payload or a
+rotating replacement to produce a positional transform **if** the supplied
+summarized delta is nonzero; it does not derive those deltas from an authentic
+allocation trace. The transform preserves all stored speed fields. The theorem
+is conditional on the address, runtime gates, and summarized payload delta; it
+is not a Float32 rotation derivation or an authentic-trace theorem.
+
+An ordinary coherent JP warp has a static selected floor and therefore carries
+`NULL`. The matching-ROM natural probe observes exactly that. A separate
+injected comparison writes the real hand-slot address 32; Area 2 reuses it for
+zero-motion `bhvWaterDroplet`, the source-level function is applied once with
+effective delta `(0,0,0)`, and Mario's speed is unchanged. No Eyerok explosion,
+rotating replacement, or 0/0.5-A route was staged. Authentic reachability of a
+stale cached warp floor together with a freshly saved hand pointer remains open.
+
+The Pedro, common fragment, US policy, and JP pointer-policy certificates are
+assumption-free for their explicit handwritten relations. The combined verdict
+imports generated AST facts and inherits the standard CompCert/classical axioms
+printed by Rocq. The AST checks and pinned-source audit validate selected source
+premises; they do not constitute a linked whole-program CompCert refinement.
+
+The wake proof is a source-level collision-state counterexample, not a
+controller-from-reset trace. The sleep ROM probe writes Mario's local state
+and is likewise not controller reachability or evidence for any A-press count,
+including 0 A and 0.5 A. Seams, moving-boundary entry in other action phases,
+and a prior authentic source of speed above 400 remain outside the
+stationary-strip theorem.
 
 ## Definitions
 
@@ -424,7 +491,8 @@ Proved in the explicit Mario/area relation:
 
 - `HandSurface` cannot trigger the instant warp.
 - `Area3Warp1D` changes to Area 2 and preserves Mario X/Y/Z, velocity, and
-  airborne/grounded state.
+  airborne/grounded state during the abstract warp step. Original JP may later
+  apply a retained raw platform address in the same frame.
 - the matching Area 2 surface does not immediately invoke this entry rule.
 
 The combined abstract relations admit this conditional trace:
@@ -602,6 +670,11 @@ API as original gameplay.
   analog/yaw/braking schedules. Other initial positions, action changes,
   seams, tunneling, caps/shells, and other glitch geometry remain separate;
   do not promote the present local no-platform observation to a global theorem.
+- Construct or refute an authentic original-JP frame with a stale cached warp
+  floor and a freshly saved Eyerok-hand address. If reachable, derive actual
+  explosion/allocation slot alignment, residual or replacement-object fields,
+  Float32 rotational displacement, normal-coordinate versus PU-scale positional
+  requirements, and separate never-A/already-held-A predecessors.
 - Authenticate or refute the conditional Y=1280 route below the Y=1967 query
   threshold, including every quarter-step collision response and the landing;
   then test whether any original-game action/speed history reaches a higher

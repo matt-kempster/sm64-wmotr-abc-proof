@@ -1,9 +1,11 @@
 From Coq Require Import Bool List PArith.BinPos ZArith.
 From compcert Require Import AST Clight Cop Ctypes Floats Integers Maps.
-From SSLEyerok.Generated Require area behavior_script eyerok_model game_init
-  interaction level_update mario mario_actions_airborne mario_actions_moving
-  mario_actions_object mario_actions_stationary mario_step obj_behaviors_2
-  object_helpers object_list_processor platform_displacement.
+From SSLEyerok.Generated Require area area_jp behavior_script eyerok_model
+  game_init interaction level_update level_update_jp mario
+  mario_actions_airborne mario_actions_moving mario_actions_object
+  mario_actions_stationary mario_step obj_behaviors_2 object_helpers
+  object_list_processor object_list_processor_jp platform_displacement
+  platform_displacement_jp spawn_object.
 
 Import ListNotations.
 
@@ -265,6 +267,118 @@ Fixpoint ident_before
   | id :: rest =>
       (Pos.eqb first id && ident_mem second rest) ||
       ident_before first second rest
+  end.
+
+(** Syntactic write classifiers.  These deliberately inspect only assignment
+    lvalues; mentioning a field on the right-hand side is not a write. *)
+Fixpoint lvalue_mentions_field (field : ident) (e : expr) : bool :=
+  match e with
+  | Efield inner actual _ =>
+      Pos.eqb actual field || lvalue_mentions_field field inner
+  | Ederef inner _ | Eaddrof inner _ | Eunop _ inner _ | Ecast inner _ =>
+      lvalue_mentions_field field inner
+  | Ebinop _ lhs rhs _ =>
+      lvalue_mentions_field field lhs || lvalue_mentions_field field rhs
+  | _ => false
+  end.
+
+Definition lvalue_is_global (variable : ident) (e : expr) : bool :=
+  match e with
+  | Evar actual _ => Pos.eqb actual variable
+  | _ => false
+  end.
+
+(** Syntactic read classifier used to pin the three guards on the saved JP
+    platform pointer.  Unlike [lvalue_is_global], this walks every expression
+    position, including tests and call arguments. *)
+Fixpoint expr_mentions_global (variable : ident) (e : expr) : bool :=
+  match e with
+  | Evar actual _ => Pos.eqb actual variable
+  | Ederef inner _ | Eaddrof inner _ | Eunop _ inner _ | Ecast inner _ =>
+      expr_mentions_global variable inner
+  | Ebinop _ lhs rhs _ =>
+      expr_mentions_global variable lhs || expr_mentions_global variable rhs
+  | Efield inner _ _ => expr_mentions_global variable inner
+  | _ => false
+  end.
+
+Fixpoint exprs_mention_global
+    (variable : ident) (args : list expr) : bool :=
+  match args with
+  | [] => false
+  | arg :: rest =>
+      expr_mentions_global variable arg ||
+      exprs_mention_global variable rest
+  end.
+
+Fixpoint stmt_mentions_global (variable : ident) (s : statement) : bool :=
+  match s with
+  | Sassign lhs rhs =>
+      expr_mentions_global variable lhs || expr_mentions_global variable rhs
+  | Sset _ rhs => expr_mentions_global variable rhs
+  | Scall _ fn args =>
+      expr_mentions_global variable fn || exprs_mention_global variable args
+  | Ssequence s1 s2 =>
+      stmt_mentions_global variable s1 || stmt_mentions_global variable s2
+  | Sifthenelse test s1 s2 =>
+      expr_mentions_global variable test ||
+      stmt_mentions_global variable s1 || stmt_mentions_global variable s2
+  | Sloop s1 s2 =>
+      stmt_mentions_global variable s1 || stmt_mentions_global variable s2
+  | Sreturn (Some value) => expr_mentions_global variable value
+  | Sswitch key cases =>
+      expr_mentions_global variable key || cases_mention_global variable cases
+  | Slabel _ body => stmt_mentions_global variable body
+  | _ => false
+  end
+with cases_mention_global
+    (variable : ident) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      stmt_mentions_global variable body ||
+      cases_mention_global variable rest
+  end.
+
+Fixpoint stmt_assigns_field (field : ident) (s : statement) : bool :=
+  match s with
+  | Sassign lhs _ => lvalue_mentions_field field lhs
+  | Ssequence s1 s2 =>
+      stmt_assigns_field field s1 || stmt_assigns_field field s2
+  | Sifthenelse _ s1 s2 =>
+      stmt_assigns_field field s1 || stmt_assigns_field field s2
+  | Sloop s1 s2 =>
+      stmt_assigns_field field s1 || stmt_assigns_field field s2
+  | Sswitch _ cases => cases_assign_field field cases
+  | Slabel _ body => stmt_assigns_field field body
+  | _ => false
+  end
+with cases_assign_field (field : ident) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      stmt_assigns_field field body || cases_assign_field field rest
+  end.
+
+Fixpoint stmt_assigns_global (variable : ident) (s : statement) : bool :=
+  match s with
+  | Sassign lhs _ => lvalue_is_global variable lhs
+  | Ssequence s1 s2 =>
+      stmt_assigns_global variable s1 || stmt_assigns_global variable s2
+  | Sifthenelse _ s1 s2 =>
+      stmt_assigns_global variable s1 || stmt_assigns_global variable s2
+  | Sloop s1 s2 =>
+      stmt_assigns_global variable s1 || stmt_assigns_global variable s2
+  | Sswitch _ cases => cases_assign_global variable cases
+  | Slabel _ body => stmt_assigns_global variable body
+  | _ => false
+  end
+with cases_assign_global
+    (variable : ident) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      stmt_assigns_global variable body || cases_assign_global variable rest
   end.
 
 Fixpoint stmt_calls_with_two_int_args
@@ -570,4 +684,161 @@ Definition generated_controller_action_shape : Prop :=
 
 Theorem generated_controller_action_shape_holds :
   generated_controller_action_shape.
+Proof. vm_compute. repeat split; reflexivity. Qed.
+
+(** Syntactic witnesses for the Pedro and version-independent fragment
+    investigations.  These ASTs are generated with the US headers from source
+    files that the audit proves pin-identical; the version-sensitive JP
+    area/platform units are checked separately below.  Call-list order is a
+    deterministic traversal fact; the source audit pins the corresponding
+    straight-line execution order and field writers. *)
+Definition generated_exploit_common_source_shape : Prop :=
+  stmt_mentions_single_bits 1126170624
+    (fn_body mario_step.f_perform_air_quarter_step) = true /\
+  stmt_mentions_single_bits 1125515264
+    (fn_body mario_step.f_perform_air_quarter_step) = true /\
+  stmt_mentions_single_bits 1112014848
+    (fn_body mario_step.f_perform_air_quarter_step) = true /\
+  stmt_mentions_single_bits 1106247680
+    (fn_body mario_step.f_perform_air_quarter_step) = true /\
+  ident_before mario_step._resolve_and_return_wall_collisions
+    mario_step._find_floor
+    (direct_callees_s
+      (fn_body mario_step.f_perform_air_quarter_step)) = true /\
+  ident_before mario_step._find_floor mario_step._vec3f_find_ceil
+    (direct_callees_s
+      (fn_body mario_step.f_perform_air_quarter_step)) = true /\
+  ident_before object_helpers._spawn_mist_particles_variable
+    object_helpers._spawn_triangle_break_particles
+    (direct_callees_s
+      (fn_body object_helpers.f_obj_explode_and_spawn_coins)) = true /\
+  ident_before object_helpers._spawn_triangle_break_particles
+    object_helpers._obj_mark_for_deletion
+    (direct_callees_s
+      (fn_body object_helpers.f_obj_explode_and_spawn_coins)) = true /\
+  ident_mem obj_behaviors_2._obj_explode_and_spawn_coins
+    (direct_callees_s (fn_body obj_behaviors_2.f_eyerok_hand_act_die)) = true /\
+  ident_before object_list_processor._apply_mario_platform_displacement
+    object_list_processor._unload_deactivated_objects
+    (direct_callees_s
+      (fn_body object_list_processor.f_update_objects)) = true /\
+  ident_before object_list_processor._unload_deactivated_objects
+    object_list_processor._update_mario_platform
+    (direct_callees_s
+      (fn_body object_list_processor.f_update_objects)) = true /\
+  ident_before platform_displacement._get_mario_pos
+    platform_displacement._set_mario_pos
+    (direct_callees_s
+      (fn_body platform_displacement.f_apply_platform_displacement)) = true /\
+  stmt_assigns_field object_helpers._activeFlags
+    (fn_body object_helpers.f_obj_mark_for_deletion) = true /\
+  ident_mem spawn_object._deallocate_object
+    (direct_callees_s
+      (fn_body object_helpers.f_obj_mark_for_deletion)) = false /\
+  ident_mem object_list_processor._unload_object
+    (direct_callees_s
+      (fn_body object_list_processor.f_unload_deactivated_objects_in_list)) = true /\
+  ident_mem spawn_object._deallocate_object
+    (direct_callees_s (fn_body spawn_object.f_unload_object)) = true /\
+  ident_mem spawn_object._try_allocate_object
+    (direct_callees_s (fn_body spawn_object.f_allocate_object)) = true /\
+  ident_before object_list_processor._clear_dynamic_surfaces
+    object_list_processor._update_terrain_objects
+    (direct_callees_s (fn_body object_list_processor.f_update_objects)) = true /\
+  ident_before object_list_processor._update_terrain_objects
+    object_list_processor._apply_mario_platform_displacement
+    (direct_callees_s (fn_body object_list_processor.f_update_objects)) = true /\
+  stmt_assigns_global platform_displacement._gMarioPlatform
+    (fn_body platform_displacement.f_update_mario_platform) = true /\
+  ident_mem platform_displacement._apply_platform_displacement
+    (direct_callees_s
+      (fn_body platform_displacement.f_apply_mario_platform_displacement)) = true /\
+  stmt_assigns_field platform_displacement._vel
+    (fn_body platform_displacement.f_apply_platform_displacement) = false /\
+  stmt_assigns_field platform_displacement._forwardVel
+    (fn_body platform_displacement.f_apply_platform_displacement) = false /\
+  stmt_assigns_field platform_displacement._vel
+    (fn_body platform_displacement.f_set_mario_pos) = false /\
+  stmt_assigns_field platform_displacement._forwardVel
+    (fn_body platform_displacement.f_set_mario_pos) = false.
+
+Definition generated_us_area_clear_shape : Prop :=
+  ident_mem object_list_processor._clear_mario_platform
+    (direct_callees_s
+      (fn_body object_list_processor.f_spawn_objects_from_info)) = true.
+
+(** Backward-compatible aggregate for the original US-facing theorem. *)
+Definition generated_exploit_source_shape : Prop :=
+  generated_exploit_common_source_shape /\ generated_us_area_clear_shape.
+
+Theorem generated_exploit_common_source_shape_holds :
+  generated_exploit_common_source_shape.
+Proof. vm_compute. repeat split; reflexivity. Qed.
+
+Theorem generated_us_area_clear_shape_holds : generated_us_area_clear_shape.
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem generated_exploit_source_shape_holds :
+  generated_exploit_source_shape.
+Proof.
+  split.
+  - exact generated_exploit_common_source_shape_holds.
+  - exact generated_us_area_clear_shape_holds.
+Qed.
+
+(** Version-specific Clight witnesses for the Japanese spawning-displacement
+    behavior.  The exact direct-call list is exhaustive for the normalized JP
+    [spawn_objects_from_info] body: unlike the US body above, it contains no
+    area-load call that could clear Mario's saved platform pointer. *)
+Definition generated_jp_platform_source_shape : Prop :=
+  ident_mem object_list_processor._clear_mario_platform
+    (direct_callees_s
+      (fn_body object_list_processor.f_spawn_objects_from_info)) = true /\
+  direct_callees_s
+      (fn_body object_list_processor_jp.f_spawn_objects_from_info) =
+    [ object_list_processor_jp._segmented_to_virtual;
+      object_list_processor_jp._create_object;
+      object_list_processor_jp._geo_make_first_child;
+      object_list_processor_jp._geo_obj_init_spawninfo ] /\
+  ident_before level_update_jp._check_instant_warp
+    level_update_jp._area_update_objects
+    (direct_callees_s (fn_body level_update_jp.f_play_mode_normal)) = true /\
+  ident_mem level_update_jp._change_area
+    (direct_callees_s (fn_body level_update_jp.f_check_instant_warp)) = true /\
+  ident_before area_jp._unload_area area_jp._load_area
+    (direct_callees_s (fn_body area_jp.f_change_area)) = true /\
+  ident_before object_list_processor_jp._clear_dynamic_surfaces
+    object_list_processor_jp._update_terrain_objects
+    (direct_callees_s
+      (fn_body object_list_processor_jp.f_update_objects)) = true /\
+  ident_before object_list_processor_jp._update_terrain_objects
+    object_list_processor_jp._apply_mario_platform_displacement
+    (direct_callees_s
+      (fn_body object_list_processor_jp.f_update_objects)) = true /\
+  ident_before object_list_processor_jp._apply_mario_platform_displacement
+    object_list_processor_jp._unload_deactivated_objects
+    (direct_callees_s
+      (fn_body object_list_processor_jp.f_update_objects)) = true /\
+  ident_before object_list_processor_jp._unload_deactivated_objects
+    object_list_processor_jp._update_mario_platform
+    (direct_callees_s
+      (fn_body object_list_processor_jp.f_update_objects)) = true /\
+  stmt_mentions_global platform_displacement_jp._gTimeStopState
+    (fn_body platform_displacement_jp.f_apply_mario_platform_displacement) =
+      true /\
+  stmt_mentions_global platform_displacement_jp._gMarioObject
+    (fn_body platform_displacement_jp.f_apply_mario_platform_displacement) =
+      true /\
+  stmt_mentions_global platform_displacement_jp._gMarioPlatform
+    (fn_body platform_displacement_jp.f_apply_mario_platform_displacement) =
+      true /\
+  ident_mem platform_displacement_jp._apply_platform_displacement
+    (direct_callees_s
+      (fn_body platform_displacement_jp.f_apply_mario_platform_displacement)) =
+      true /\
+  stmt_assigns_global platform_displacement_jp._gMarioPlatform
+    (fn_body platform_displacement_jp.f_update_mario_platform) = true.
+
+Theorem generated_jp_platform_source_shape_holds :
+  generated_jp_platform_source_shape.
 Proof. vm_compute. repeat split; reflexivity. Qed.

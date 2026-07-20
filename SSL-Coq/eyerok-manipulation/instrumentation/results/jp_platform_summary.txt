@@ -1,0 +1,12 @@
+Original-JP Eyerok platform-pointer fixture: validated
+ROM MD5: 85d61f5525af708c9f1e84dce6dc10e9
+ROM CRC1/CRC2: 4eaa3d0e 74757c24
+natural seed: static Area-3 warp floor, null object owner, null gMarioPlatform
+injected seed: same static floor plus explicitly written hand-slot address 32
+Area-2 slot 32 payload: bhvWaterDroplet (virtual behavior 800ead50)
+replacement motion: zero linear X/Z velocity and zero angular velocity
+observed displacement: (0,0,0) in both cases
+observed forwardVel: 0 before and after
+scope: conditional address-retention fixture; not an authentic stale-floor trace
+scope: no Eyerok explosion was staged, so this is not a PPD execution
+scope: no controller/A-press reachability claim

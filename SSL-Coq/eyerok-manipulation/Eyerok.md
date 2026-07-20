@@ -11,10 +11,13 @@ Eyerok is a boss made from two independently updated hand objects. The boss
 arena is Area 3. The inside of the pyramid is Area 2. A pair of sloped tunnel
 floors switches Mario between those areas.
 
-The switch is based on **Mario's selected floor**, not on Eyerok touching the
-floor. If Mario's saved floor is the Area 3 instant-warp surface, the next
-normal frame changes to Area 2 and preserves Mario's position and velocity.
-If Mario's floor is a hand surface, no area change occurs.
+The switch is based on **Mario's cached selected floor**, not on Eyerok
+touching the floor. If that cached floor is the Area 3 instant-warp surface,
+the instant-warp operation changes to Area 2 without changing Mario's
+coordinates or velocity. In an ordinary coherent state, a hand floor instead
+means no area change. Original JP has an additional same-frame hazard described
+below: after the warp operation, a retained raw `gMarioPlatform` address may
+still displace Mario during Area 2's object update.
 
 The current machine-checked results are:
 
@@ -56,7 +59,7 @@ The current machine-checked results are:
 - the standard `-4` attack certificate proves only the vertical arithmetic of
   an explicit schedule. It does **not** prove its conditional 46-unit recovery
   query becomes a reboard. A separate local inherited-long-jump ROM
-continuation really reboards the nonlethal hand after it reaches home height,
+  continuation really reboards the nonlethal hand after it reaches home height,
   later reaching top Y `-928` in `TARGET_MARIO`. Its lethal counterpart never
   becomes a platform: early vertical windows miss in X/Z, later steering gets
   the hand only as a floor below Mario, and deletion wins before landing;
@@ -78,9 +81,19 @@ continuation really reboards the nonlethal hand after it reaches home height,
   Y `1967` platform at `(387, 1967, -500)`. That is the point on that platform
   with minimum horizontal distance to the star;
 - no stream of finite IEEE binary32 hand positions can be unbounded as real
-  heights; and
+  heights;
 - binary32 addition has the exact fixed point `2^31 + 100 = 2^31`, and the
-  modeled recurrence remains there once started at `2^31`.
+  modeled recurrence remains there once started at `2^31`;
+- Eyerok forms two real Pedro configurations, but neither checked
+  configuration is an authenticated useful 0-A or 0.5-A speed engine;
+- a hand's own explosion fragments cannot reuse that hand's slot, and the
+  sibling cannot explode soon enough to reuse it in the one-active-update
+  stale-pointer window. This same-area result applies to both US and JP; and
+- US clears `gMarioPlatform` when Area 2 loads. Original JP does not: it keeps
+  the raw slot address until the first Area 2 object update consumes and then
+  refreshes it. An ordinary coherent JP warp carries `NULL`, while authentic
+  construction of the required stale floor plus nonnull hand address remains
+  open.
 
 The word **conditional** is important. The geometry-relaxed vertical relation
 admits the old starting hand heights, but it has no X/Z state and lets a hand
@@ -99,6 +112,187 @@ linked Clight or original-ROM frame refines the kernel and vertical relation.
 The pinned-source audit makes the no-go result substantially stronger than a
 free-standing toy model, but the unqualified original-game reachability
 question remains open at this source-to-model bridge.
+
+## Pedro spots and particle platform displacement
+
+Two proposed speed-building ideas were checked separately. Eyerok really can
+form Pedro geometry, but neither checked form is a useful authenticated speed
+engine. The hands' own explosion particles cannot produce the required
+same-area slot replacement. Cross-area behavior is version-specific: US closes
+it by clearing the saved platform pointer, while original JP leaves a broader
+stale-slot displacement candidate open.
+
+### Sleeping-hand Pedro strip
+
+A sleeping right hand has a narrow place where a lower floor at Y `-1459`
+and a ceiling at Y `-1421` overlap. The 38-unit gap is small enough for the
+Pedro branch. This is real collision geometry, not an approximation.
+
+Mario does not normally reach it from the outside. Air movement resolves two
+50-unit-radius wall cylinders before it asks for a floor or ceiling. The outer
+thumb wall leaves Mario at world Z `-3116`; the useful internal part begins
+strictly beyond Z `-3216`. Crossing from outside therefore needs a single
+quarter-step longer than 100 units, corresponding to horizontal speed above
+400 along that direction.
+
+Example: the US-ROM probe injects the same local long-jump state twice. At
+speed 48, wall handling wins and Mario lands on the ordinary upper hand floor.
+At preloaded speed 424, the intended step crosses the whole wall band. Retail
+code reports a landing, changes only Y to `-1459`, and preserves Mario's old
+X/Z and old arena-floor reference. That is a genuine Pedro landing. It is not
+a route to speed 424; assuming the high speed needed to enter would be
+circular if the proposed purpose of the spot is to create that speed. Because
+the fixture injects both `ACT_LONG_JUMP` and its starting speed, it proves no
+A-press count: not 0 A, not 0.5 A, and not a fresh-A route.
+
+### Two-hand wake sandwich
+
+The hands wake on different updates. The right hand begins moving three
+updates before the left, so from wake updates 5 through 11 the left palm is a
+floor below the right palm's ceiling. The audited gaps are:
+
+```text
+16, 39, 63, 84, 105, 126, 144
+```
+
+On update 12 the gap is 162, which is too large for the 160-unit Pedro test.
+There is an exact local entry counterexample on update 11:
+
+```text
+old Mario X/Z:      (-121, -3240)
+intended X/Z:       (-121, -3241)
+intended Y:         -1304
+selected floor:     -1284
+selected ceiling:   -1140
+```
+
+At this Y, the lower wall query is above the left hand's walls and the upper
+wall query is below the right hand's walls. A one-unit ordinary quarter-step
+therefore reaches the overlap and takes the Pedro branch. Triggering Eyerok's
+wake itself needs only Mario's position; it reads neither A nor RNG.
+
+What remains unproved is Mario's controller-only path to that exact airborne
+state on exactly update 11. A direct B-only speed kick and an already-held-A
+jump kick each rise 60 units, while the first wake query window starts 99
+units above the arena; those direct setups miss by 39. Boarding a hand first,
+carrying another air action into the window, seams, and other setups have not
+been exhaustively excluded.
+
+Even granting the update-11 entry, it is not a speed grinder. The Pedro gap
+fails on the following update, so ordinary entry permits at most one air-speed
+update rather than a repeatable grind. For the common
+`update_air_with_turn`/`update_air_without_turn` family, the ideal-arithmetic
+relation proves at most 3.85 per call and 26.95 over seven
+calls; the 3.85 branch starts below `-16` and actually reduces backward-speed
+magnitude. If the starting speed is nonnegative, its per-call bound is 1.50.
+Retail binary32 rounding can slightly exceed 3.85, and a coarse-spacing witness
+gains exactly 4 per call and 28 over seven calls. We therefore use 4/28 as the
+conservative original-ROM-facing envelope, but have not proved that envelope
+as a CompCert Float32 theorem. Other air-action entry writes have also not been
+exhaustively bounded. The one-update geometry, rather than the exact decimal
+envelope, is what rules out sustained Pedro grinding through this wake witness.
+
+### Why Eyerok's own fragments cannot replace the hand slot
+
+Particle platform displacement needs this exact object-slot sequence:
+
+```text
+Mario stands on object slot S
+-> that object unloads and S becomes free
+-> before next frame's platform-displacement call, a rotating particle takes S
+```
+
+An Eyerok hand creates mist particles and 30 rotating dirt triangles
+before it marks itself for deletion. Its own slot is still occupied during all
+of those allocations, so its own fragments cannot take that slot.
+
+The other hand cannot supply a fragment on the required next frame. Only a
+visible eye accepts the lethal hit. Opening an eye claims the boss's exclusive
+eye lock, and a dying hand retains that lock for its entire 40-frame death
+animation. The lock is cleared in the same block that explodes the first hand.
+Only then can the sibling begin its 30-frame open animation, after which it
+still needs a lethal hit and another 40-frame death animation. That delay is
+far longer than the one-frame stale-platform window. Area 3 contains no third
+surface object that can fill the role.
+
+That proves a narrow, version-independent result: neither Eyerok hand can
+supply the rotating Eyerok fragment needed by this exact same-area stale-slot
+construction. It does not prove that every particle or stale-slot technique in
+the level is impossible.
+
+### US and JP differ at the Area 3-to-Area 2 load
+
+Eyerok exists in Area 3, not Area 2. In US, PAL, Shindou, and iQue builds,
+loading the new area calls `clear_mario_platform`. A saved hand pointer is
+therefore cleared before Area 2 can use it. That is the additional US blocker.
+
+Original JP intentionally omits that call. Its frame order is:
+
+```text
+read Mario's cached Area 3 warp floor and change area
+-> unload Area 3 and load Area 2, retaining the raw slot address
+-> update Area 2 terrain objects
+-> apply platform displacement through that address
+-> later unload inactive objects and refresh gMarioPlatform
+```
+
+The application checks only that time stop is inactive, Mario exists, and the
+pointer is nonnull. It does not check the slot's active flag, behavior, or area.
+The retained value is therefore an **address**, not a surviving Eyerok hand.
+At application time the address can contain residual freed-hand fields or a
+new Area 2 object.
+
+There is an important ordinary-case blocker. The instant warp is a static
+floor, so a coherent floor query stores no platform object. If the hand is the
+selected dynamic floor, `gMarioPlatform` can point at it, but the warp does not
+trigger. The natural JP emulator case confirms this ordinary state: Mario was
+placed on the genuine Area 3 warp floor, its owner and `gMarioPlatform` were
+both null, and Area 2 produced no displacement.
+
+That is not an unconditional impossibility proof. `check_instant_warp` reads a
+cached floor from Mario's preceding update, whereas platform refresh performs
+another floor query. Pedro collision can report a landing while retaining an
+old floor reference. We have not proved or demonstrated an authentic frame in
+which the cached floor is the static warp triangle while the freshly saved
+platform address is an Eyerok hand. That stale-floor/hand-pointer mismatch is
+the first open JP prerequisite.
+
+For a controlled comparison, the JP probe injected only the genuine hand slot
+address before taking the real warp. Area 2 reused slot 32 for
+`bhvWaterDroplet`, whose linear and angular motion fields were zero. Source and
+Clight order imply one unchecked application through that address; the probe
+observed effective delta `(0, 0, 0)`, unchanged stored speed, and the later
+pointer refresh to null. This was not an Eyerok explosion,
+not an authentic stale-floor setup, and not a 0-A or 0.5-A route.
+
+The original JP ROM used by the probe has SHA-1
+`8a20a5c83d6ceb0f0506cfc9fa20d8f438cafe51`. A clean pinned-revision
+`VERSION=jp COMPARE=1` build was byte-identical to it. The checked common
+Clight units come from pin-identical source; the JP area/platform units come
+from the available 36fb source with its TAS hack disabled. The audit proves
+the three relevant normalized function bodies are identical to the pinned
+revision, and a separate pinned build authenticates the ROM.
+
+### Normal speed versus PU speed
+
+Platform displacement writes Mario's position and facing, not his stored
+velocity or `forwardVel`. Thus it is not a mechanism for accumulating stored
+normal or PU speed. A large *positional* jump could still arise from rotating
+about a very long lever arm, potentially a PU-scale coordinate, but no such JP
+payload or lever arm was reached here. The concrete JP trace moved Mario by
+zero. We therefore have not proved that normal displacement can leave Area 2,
+that PU-scale position is necessary, or that either route is authentic.
+
+The corresponding Rocq certificates are in `PedroSpot.v`,
+`EyerokParticleDisplacement.v`, `JPPlatformPersistence.v`, and
+`ExploitScenarioVerdict.v`. They separate the common fragment result, the US
+area-clear result, and the JP pointer-policy model. The handwritten certificates
+are assumption-free. The combined verdict imports generated Clight AST facts
+and therefore inherits the standard CompCert/classical assumptions reported by
+`Print Assumptions`. These are source-audited AST-shape and abstract-model
+theorems, not a linked whole-program Clight refinement. The JP ordinary-null
+theorem assumes floor/platform coherence; it does not prove that every
+authentic prewarp frame is coherent.
 
 ## Coordinate system and target
 
@@ -141,7 +335,9 @@ area_update_objects()
 `check_instant_warp` reads the floor pointer saved by Mario's preceding
 update. For the Area 3 tunnel surface, it changes the current area and adds
 the configured displacement to Mario's position. The displacement is zero,
-so X, Y, Z, action, and velocity are preserved.
+so that operation preserves X, Y, Z, action, and velocity. On original JP,
+the later object-update phase can still apply a retained platform address as
+described above.
 
 Example:
 
@@ -157,10 +353,13 @@ Mario state after check:
   velocity unchanged
 ```
 
-The same coordinates with `floor = Eyerok hand surface` do not trigger the
-warp. A raised hand can only help indirectly: Mario must leave the hand's
-footprint, remain over the warp's X/Z footprint, and have the static warp
-surface become his selected floor.
+In an ordinary coherent state, the same coordinates with
+`floor = Eyerok hand surface` do not trigger the warp. A raised hand can only
+help the ordinary route indirectly: Mario must leave the hand's footprint,
+remain over the warp's X/Z footprint, and have the static warp surface become
+his selected floor. The unresolved JP alternative is deliberately incoherent:
+the cached floor would still be the warp while the separately refreshed
+platform address points to the hand.
 
 SM64's floor search has no maximum downward search distance. A high Mario can
 therefore select a floor thousands of units below him. A surface more than 78

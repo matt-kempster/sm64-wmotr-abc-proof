@@ -4,7 +4,7 @@ From SSLEyerok.Proofs Require Import AttackedReboard AuthenticReachability
   DoublePoundTrace FirstHandBarrier GeneratedFacts
   HeldA1280Barrier IdleVelocityInvariant SchedulerInvariant Spec StateMachine LowerArea2Entry
   MarioHandContact NoA1280Barrier NonlethalNoStacking
-  PartialUpdateBoundary RequestedHeightVerdict
+  PartialUpdateBoundary RequestedHeightVerdict ExploitScenarioVerdict
   TwoHandBarrier VerticalBound.
 
 Local Open Scope Z_scope.
@@ -35,6 +35,7 @@ Theorem eyerok_no_unbounded_rise_certificate :
       vertical_run rank run -> ~ rises_unboundedly run) /\
   audited_coupled_reachability_certificate /\
   binary32_boundary_certificate /\
+  exploit_scenario_verdict /\
   (forall initial_y bound,
       exists frames, bound < runaway_height_after frames initial_y).
 Proof.
@@ -60,5 +61,6 @@ Proof.
   refine (conj no_safe_vertical_run_rises_unboundedly _).
   refine (conj audited_coupled_reachability_certificate_holds _).
   refine (conj binary32_boundary_certificate_holds _).
+  refine (conj exploit_scenario_verdict_holds _).
   exact runaway_lasso_is_unbounded.
 Qed.

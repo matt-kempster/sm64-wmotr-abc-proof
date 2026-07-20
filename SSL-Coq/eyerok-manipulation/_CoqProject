@@ -8,11 +8,14 @@ generated/obj_behaviors_2.v
 generated/object_helpers.v
 generated/behavior_script.v
 generated/object_list_processor.v
+generated/object_list_processor_jp.v
 generated/spawn_object.v
 generated/surface_collision.v
 generated/ssl_script.v
 generated/area.v
+generated/area_jp.v
 generated/level_update.v
+generated/level_update_jp.v
 generated/game_init.v
 generated/mario.v
 generated/mario_step.v
@@ -21,6 +24,7 @@ generated/mario_actions_moving.v
 generated/mario_actions_object.v
 generated/mario_actions_stationary.v
 generated/platform_displacement.v
+generated/platform_displacement_jp.v
 generated/interaction.v
 
 proofs/GeneratedFacts.v
@@ -51,4 +55,8 @@ proofs/AuthenticReachability.v
 proofs/ClightRefinementBoundary.v
 proofs/RouteCertificate.v
 proofs/Binary32Boundary.v
+proofs/PedroSpot.v
+proofs/EyerokParticleDisplacement.v
+proofs/JPPlatformPersistence.v
+proofs/ExploitScenarioVerdict.v
 proofs/EyerokManipulation.v

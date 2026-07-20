@@ -28,6 +28,26 @@ SM64_CG := -nostdinc -fstruct-passing \
   -DAVOID_UB=1 \
   -D_LANGUAGE_C=1
 
+# The Japanese translation units intentionally use the JP generated headers
+# and VERSION_JP.  In particular, this compiles out clear_mario_platform from
+# spawn_objects_from_info so that the version difference is visible in Clight.
+SM64_CG_JP := -nostdinc -fstruct-passing \
+  -I$(SM64)/include \
+  -I$(SM64)/build/jp \
+  -I$(SM64)/build/jp/include \
+  -I$(SM64)/src \
+  -I$(SM64)/src/engine \
+  -I$(SM64)/src/game \
+  -I$(SM64) \
+  -I$(SM64)/include/libc \
+  -DVERSION_JP=1 \
+  -DF3D_OLD=1 \
+  -D_FINALROM=1 \
+  -DTARGET_N64=1 \
+  -DNON_MATCHING=1 \
+  -DAVOID_UB=1 \
+  -D_LANGUAGE_C=1
+
 PREPARED := \
   build/source/obj_behaviors_2.c \
   build/source/object_helpers.c \
@@ -54,11 +74,14 @@ GENERATED := \
   generated/object_helpers.v \
   generated/behavior_script.v \
   generated/object_list_processor.v \
+  generated/object_list_processor_jp.v \
   generated/spawn_object.v \
   generated/surface_collision.v \
   generated/ssl_script.v \
   generated/area.v \
+  generated/area_jp.v \
   generated/level_update.v \
+  generated/level_update_jp.v \
   generated/game_init.v \
   generated/mario.v \
   generated/mario_step.v \
@@ -67,11 +90,14 @@ GENERATED := \
   generated/mario_actions_object.v \
   generated/mario_actions_stationary.v \
   generated/platform_displacement.v \
+  generated/platform_displacement_jp.v \
   generated/interaction.v \
   generated/source_audit.txt \
   generated/route_audit.txt
 
 AUDITED_SOURCES := \
+  $(SM64)/Makefile \
+  $(SM64)/sm64.jp.sha1 \
   $(SM64)/src/game/behaviors/eyerok.inc.c \
   $(SM64)/src/game/obj_behaviors_2.c \
   $(SM64)/src/game/object_helpers.c \
@@ -82,6 +108,8 @@ AUDITED_SOURCES := \
   $(SM64)/src/engine/surface_load.c \
   $(SM64)/actors/eyerok/anims/anim_0500DF50.inc.c \
   $(SM64)/actors/eyerok/anims/anim_0500E99C.inc.c \
+  $(SM64)/actors/eyerok/anims/anim_0500F3D8.inc.c \
+  $(SM64)/actors/eyerok/anims/anim_050116CC.inc.c \
   $(SM64)/src/game/area.c \
   $(SM64)/src/game/level_update.c \
   $(SM64)/src/game/mario.c \
@@ -93,6 +121,8 @@ AUDITED_SOURCES := \
   $(SM64)/src/game/mario_actions_object.c \
   $(SM64)/src/game/mario_actions_stationary.c \
   $(SM64)/src/game/platform_displacement.c \
+  $(SM64)/src/game/behaviors/break_particles.inc.c \
+  $(SM64)/src/engine/math_util.c \
   $(SM64)/src/game/interaction.c \
   $(SM64)/src/game/behaviors/spawn_star.inc.c \
   $(SM64)/include/object_constants.h \
@@ -126,6 +156,9 @@ generated/behavior_script.v: build/source/behavior_script.c pipeline/clightgen.s
 generated/object_list_processor.v: build/source/object_list_processor.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(SM64_CG)
 
+generated/object_list_processor_jp.v: build/source/object_list_processor.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG_JP)
+
 generated/spawn_object.v: build/source/spawn_object.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(SM64_CG)
 
@@ -138,8 +171,14 @@ generated/ssl_script.v: build/source/ssl_script.c pipeline/clightgen.sh
 generated/area.v: build/source/area.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(SM64_CG)
 
+generated/area_jp.v: build/source/area.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG_JP)
+
 generated/level_update.v: build/source/level_update.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/level_update_jp.v: build/source/level_update.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG_JP)
 
 generated/game_init.v: build/source/game_init.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(SM64_CG)
@@ -164,6 +203,9 @@ generated/mario_actions_stationary.v: build/source/mario_actions_stationary.c pi
 
 generated/platform_displacement.v: build/source/platform_displacement.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/platform_displacement_jp.v: build/source/platform_displacement.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG_JP)
 
 generated/interaction.v: build/source/interaction.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(SM64_CG)

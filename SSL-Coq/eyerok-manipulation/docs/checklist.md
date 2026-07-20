@@ -1,12 +1,40 @@
 # Eyerok manipulation proof checklist
 
-Last updated: 2026-07-16 (nonlethal recovery/no-stacking theorem).
+Last updated: 2026-07-19 (US/JP particle-platform version split).
 
 ## Current verdict
 
+The Pedro investigation is mixed but not route-positive. Eyerok has two real
+Pedro configurations: a stationary sleep-mesh strip that needs a preloaded
+greater-than-400-speed entry, and a two-hand wake sandwich with a one-unit
+local entry on wake update 11. The latter disappears on update 12 and permits
+only one air-speed update. In the common with-turn/without-turn helper model,
+the ideal-arithmetic increase is at most 3.85 for that call (1.50 from
+nonnegative speed). Retail binary32 witnesses require a conservative 4, and
+that universal Float32 ceiling is not machine-checked. This is not a global
+bound over every air-action entry write. Controller-only reachability of the
+exact airborne prestate remains open. This classifies those two configurations
+only; other hand action phases, seams, and moving-boundary entries remain open.
+
+The same-area Eyerok-fragment PPD construction is closed negatively in both
+US and JP by the pinned-source audit plus an explicit Rocq lifecycle relation.
+Particles are allocated before the exploding hand frees its slot, while the
+exclusive eye lock delays a sibling explosion beyond the one-active-update
+stale-pointer window. US additionally clears `gMarioPlatform` on area load.
+Original JP does not: it retains a raw slot address and can consume a nonnull
+payload before pointer refresh. An ordinary coherent warp carries `NULL`; the
+injected matching-ROM comparison reused slot 32 for zero-motion
+`bhvWaterDroplet` and produced delta `(0,0,0)`. An authentic stale cached warp
+floor plus freshly saved hand pointer, rotating/residual useful payload, and
+0/0.5-A route remain open. The displacement helper preserves stored speed;
+the unresolved magnitude question concerns positional lever arm, not normal
+versus PU stored speed. These are source-audited relation and AST-shape results,
+not a linked whole-program refinement.
+
 The geometry-relaxed handwritten relation bounds hand origins at 672/1467. Its
 Mario/Area 2 model proves that a hand floor itself cannot warp, that a selected
-warp floor preserves Mario's state across Area 3 to Area 2, and that its old
+  warp floor preserves Mario's state during the abstract Area 3-to-Area 2 warp
+  step, and that its old
 modeled peak 2604 is too low for Y=2940 or higher route tiers. Its conditional
 trace lands at `(387,1967,-500)`, but the new two-hand barrier refutes the
 starting hand pose. The
@@ -126,8 +154,8 @@ discharge it.
 ## Repository and source
 
 - [x] Confirm repository and branch `codex/ssl-pyramid-item-proof`.
-- [x] Keep work isolated in `SSL-Cog/eyerok-manipulation/`.
-- [x] Register the project in `SSL-Cog/README.md`.
+- [x] Keep work isolated in `SSL-Coq/eyerok-manipulation/`.
+- [x] Register the project in `SSL-Coq/README.md`.
 - [x] Pin canonical source revision `9921382a...`.
 - [x] Record sibling checkout revision `36fbf8d6...` and audit equality.
 - [x] Do not modify the existing pyramid proof.
@@ -376,9 +404,65 @@ discharge it.
 - [x] Update `Eyerok.md`, project README, and all three planning documents.
 - [ ] Do not push without explicit user approval.
 
+## Pedro and particle-platform investigation
+
+- [x] Parse both sleeping-hand collision meshes and classify the lower floor,
+  ceiling sliver, inner seam, and outer radius-50 wall.
+- [x] Prove the stationary 38-unit Pedro overlap exists and that ordinary
+  exterior entry cannot reach its wall-free half under the 13-unit qstep
+  bound.
+- [x] Authenticate a US-ROM collision fixture: speed 48 does not take the
+  Pedro branch; injected speed 424 does and preserves old X/Z and floor.
+- [x] Keep that injected high-speed result separate from controller
+  reachability and from a speed-building bootstrap.
+- [x] Audit the deterministic staggered wake poses and exact Pedro gaps on
+  updates 5--11; prove update 12's gap 162 closes the window.
+- [x] Formalize the update-11 local one-unit Pedro quarter-step and its
+  preserved-X/Z/floor result.
+- [x] Prove update-11 ordinary entry allows only one update; for the common air
+  helper's ideal-arithmetic relation, prove 3.85 per call and 26.95 over seven
+  calls (1.50/10.50 from a nonnegative start).
+- [x] Add binary32 witnesses that slightly exceed 3.85 and attain 4/28 at
+  coarse spacing; use 4/28 in original-ROM-facing prose.
+- [ ] Prove the universal 4/28 envelope in CompCert Float32 semantics.
+- [ ] Bound every other air-action entry write, if a route needs a global
+  Mario-speed theorem rather than the no-repeat geometry result.
+- [x] Prove a direct 60-unit B-only or held-A jump-kick rise misses the first
+  wake query window by 39.
+- [ ] Construct or refute a controller-only update-11 airborne predecessor,
+  keeping fresh-A, never-A, and already-held-A cases separate.
+- [x] Audit explosion allocation/deletion order, the exclusive eye lock,
+  30-frame OPEN, 40-frame DIE, and one-frame stale-platform schedule.
+- [x] Prove an exploding hand cannot reuse its own slot and its sibling cannot
+  produce a fragment in the stale window.
+- [x] Prove platform displacement preserves stored velocity and forward speed;
+  document that hypothetical PU-scale displacement uses position, not speed.
+- [x] Audit the pinned US area-load call to `clear_mario_platform`; a stale
+  Eyerok pointer cannot survive the Area 3-to-Area 2 load.
+- [x] Audit original JP's omission of `clear_mario_platform`, its
+  consume-before-refresh order, runtime gates, and pin-equivalent disabled-hack
+  function bodies.
+- [x] Build pinned `VERSION=jp COMPARE=1` byte-identically to the canonical JP
+  ROM and record its hashes.
+- [x] Add JP-specific generated Clight AST witnesses and an assumption-free
+  raw-address/payload policy certificate, including residual, rotating, and
+  zero-motion payload cases.
+- [x] Run the matching-ROM JP natural case: static warp floor, null owner,
+  null saved platform, and zero displacement.
+- [x] Run the disclosed injected-address comparison: slot 32 becomes
+  zero-motion `bhvWaterDroplet`; source/Clight order implies one unchecked
+  application, while the probe observes zero effect and refresh to null.
+- [ ] Construct or refute an authentic stale cached warp floor plus freshly
+  saved Eyerok-hand pointer, keeping Pedro and non-Pedro entries separate.
+- [ ] If that prestate is reachable, stage authentic explosion/allocation slot
+  alignment and determine actual displacement magnitude, normal-coordinate
+  sufficiency, PU-scale positional requirements, and 0/0.5-A reachability.
+- [x] Add assumption-free Rocq certificates and generated-Clight AST shape
+  witnesses for the common, US, and JP exploit verdicts.
+
 ## Commit ledger
 
-- Scaffold and SSL-Cog registration.
+- Scaffold and SSL-Coq registration.
 - Pinned Eyerok source ingestion and Clight generation.
 - Executable vertical C abstraction.
 - Closed-world scheduler/vertical proof and explicit global boundary.
@@ -418,3 +502,8 @@ discharge it.
   late deletion blocker, and
   nonlethal/lethal no-A slide-kick wall exit, with the arithmetic certificate
   narrowed to its actual scope.
+- Pedro/PPD verdict: real but transient wake-frame Pedro counterexample,
+  circular high-speed stationary-strip fixture, finite speed-gain bounds, and
+  a source-audited same-area Eyerok-fragment blocker; US area-clear proof;
+  original-JP retained-address model, byte-identical build, and zero-effect
+  water-droplet probe, with authentic stale-floor reachability left open.

@@ -1,11 +1,11 @@
 # Goal recovery note
 
-Last updated: 2026-07-16 (nonlethal recovery/no-stacking theorem).
+Last updated: 2026-07-19 (US/JP particle-platform version split).
 
 ## Objective
 
-Decide three related but separate questions for the pinned North American
-Super Mario 64 source:
+Decide the following related but separate questions for the pinned shared
+source and the North American/original-Japanese version-specific behavior:
 
 1. Can Mario use a raised Eyerok hand to select the Area 3 instant-warp floor
    and enter Area 2 at a useful height?
@@ -14,18 +14,42 @@ Super Mario 64 source:
 3. Can finite binary32 Eyerok Y be manipulated into an unbounded ascent, and
    can the dangerous upward-control state persist in an audited source-shaped
    run, a linked Clight run, or the original ROM?
+4. Can either hand, or the two hands together, create a Pedro spot that Mario
+   can use to build route-relevant speed?
+5. Can an exploding hand replace a stale Eyerok slot with its rotating fragment
+   and cause particle platform displacement? Separately, can the Area 3-to-Area
+   2 load leave another stale raw payload that causes spawning/platform
+   displacement?
 
 The proof must not infer Mario reachability from a hand-origin upper bound.
 Hand movement, Mario/platform contact, floor selection, area change, Area 2
 collision, and star interaction are separate interfaces.
 
+The new exploit layer resolves the same-area Eyerok-fragment form of question 5
+negatively in both versions, and the cross-area form negatively in US because
+US clears `gMarioPlatform`. Original JP retains a raw slot address, so a broader
+cross-area candidate remains open. An ordinary coherent warp carries `NULL`,
+and the matching-ROM injected comparison reused the address for a zero-motion
+water droplet, but no authentic stale-floor/hand-pointer trace or rotating
+replacement has been reached. For question 4 it finds real geometry, but the
+two analyzed configurations do
+not establish a useful speed engine: the stationary strip needs preloaded
+speed above 400, while the ordinary local wake entry exists only on the last
+valid update and therefore cannot provide a repeatable grind. The common air
+helper's ideal-arithmetic bound is 3.85 for that one update; retail binary32
+requires the conservative figure 4, whose universal Float32 proof remains
+open. Other action-entry writes are not globally bounded here. Authentic 0/0.5-A
+reachability of the exact wake prestate remains open, and other action phases
+or seam-assisted entries have not been exhaustively classified.
+
 ## Completed proof layers
 
 The project pins source revision
 `9921382a68bb0c865e5e45eb594d9c64db59b1af` and generates CompCert Clight for
-Eyerok behavior, object motion and collision, area change, instant-warp
-dispatch, controller input, Mario moving/object/stationary/airborne actions,
-platform displacement, interactions, and the SSL level script.
+shared behavior plus US/original-JP area and platform units. Shared generated
+units come from pin-identical files. The available 36fb JP units use disabled
+TAS-hack blocks; the audit verifies the relevant normalized function bodies
+against the pin, and a clean pinned JP build matches the canonical ROM.
 
 The deterministic source audits now pin:
 
@@ -37,6 +61,8 @@ The deterministic source audits now pin:
 - that the largest upward-facing Area 3 floor vertex is 384 (the old value 896
   was the maximum of every vertex, including walls); and
 - that platform displacement has no direct vertical-velocity addition;
+- the US area-load platform clear, the original-JP omission, and JP's
+  consume-before-refresh object-update order and three runtime gates;
 - that floor equality clears both ground bits because grounding uses a strict
   comparison;
 - the complete relevant gravity-writer order, hand spawn/update order, and
@@ -313,7 +339,9 @@ The Mario/area relation proves:
 
 - a hand floor does not trigger the instant warp;
 - a selected Area 3 warp floor changes to Area 2 while preserving Mario's
-  coordinates, velocity, and motion state;
+  coordinates, velocity, and motion state during the abstract warp step;
+- original JP can subsequently consume a retained nonnull raw platform address
+  in the same frame, while the ordinary coherent prestate carries `NULL`;
 - peak 2604 cannot reach the Y=2940 or higher audited tiers or collect the
   star; and
 - a conditional adversarial trace reaches `(387,1967,-500)`, the point on the
@@ -377,20 +405,25 @@ reachability is now closed.
    ordinary speed-48 wall barrier and separately investigate faster or
    collision-glitch traces. For held A, prove the incoming-speed bound or
    analyze faster predecessors and the jump kick's post-wall continuation.
-6. Optimize an authentic remaining Area 2 route to the star and count new A
+6. Construct or refute the authentic original-JP stale-floor/hand-pointer
+   prestate. If reachable, stage the explosion/allocation order, identify the
+   exact residual or Area 2 slot payload, derive the actual Float32 rotational
+   displacement, and distinguish ordinary coordinates from a PU-scale lever
+   arm. Keep never-A and already-held-A predecessors separate.
+7. Optimize an authentic remaining Area 2 route to the star and count new A
    presses.
    The present work rules out the proposed higher Eyerok shortcut inside the
    source-shaped model; the old Y=1967 witness is now refuted there.
-6. Determine whether any machine behavior outside the source-shaped kernel can
+8. Determine whether any machine behavior outside the source-shaped kernel can
    preserve the dangerous action/velocity after binary32 Y stops changing.
-7. Add an IDO/MIPS semantic boundary for the out-of-range float-to-integer
+9. Add an IDO/MIPS semantic boundary for the out-of-range float-to-integer
    conversion if a ROM-level execution claim is required.
 
 ## Repository constraints
 
-- Work only in `SSL-Cog/eyerok-manipulation/`, apart from the existing project
-  entry in `SSL-Cog/README.md`.
-- Inspect but do not modify `SSL-Cog/ssl-pyramid-item-proof/`.
+- Work only in `SSL-Coq/eyerok-manipulation/`, apart from the existing project
+  entry in `SSL-Coq/README.md`.
+- Inspect but do not modify `SSL-Coq/ssl-pyramid-item-proof/`.
 - Update `docs/goal.md`, `docs/claim.md`, and `docs/checklist.md` in every
   commit.
 - Commit each coherent change.

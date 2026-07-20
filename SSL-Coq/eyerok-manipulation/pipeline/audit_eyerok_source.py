@@ -6,12 +6,14 @@ from __future__ import annotations
 import hashlib
 import math
 import re
+import struct
 import subprocess
 import sys
 from pathlib import Path
 
 
 PIN = "9921382a68bb0c865e5e45eb594d9c64db59b1af"
+JP_ROM_SHA1 = "8a20a5c83d6ceb0f0506cfc9fa20d8f438cafe51"
 
 IDENTICAL_PATHS = [
     "src/game/behaviors/eyerok.inc.c",
@@ -20,6 +22,13 @@ IDENTICAL_PATHS = [
     "src/engine/behavior_script.c",
     "src/game/object_list_processor.c",
     "src/game/spawn_object.c",
+    "src/game/mario_step.c",
+    "src/game/mario_actions_airborne.c",
+    "src/game/mario.c",
+    "src/game/game_init.c",
+    "src/game/platform_displacement.c",
+    "src/game/behaviors/break_particles.inc.c",
+    "src/engine/math_util.c",
     "src/engine/surface_collision.c",
     "src/engine/surface_load.c",
     "include/object_constants.h",
@@ -27,6 +36,8 @@ IDENTICAL_PATHS = [
     "data/behavior_data.c",
     "actors/eyerok/anims/anim_0500DF50.inc.c",
     "actors/eyerok/anims/anim_0500E99C.inc.c",
+    "actors/eyerok/anims/anim_0500F3D8.inc.c",
+    "actors/eyerok/anims/anim_050116CC.inc.c",
     "levels/ssl/areas/2/collision.inc.c",
     "levels/ssl/areas/3/collision.inc.c",
     "levels/ssl/areas/3/macro.inc.c",
@@ -57,9 +68,58 @@ def compact(text: str) -> str:
     return re.sub(r"\s+", "", text)
 
 
+def strip_disabled_tas_hack_blocks(text: str) -> str:
+    """Remove positive SSL TAS-hack blocks, matching the default-disabled build."""
+    kept: list[str] = []
+    skipped_depth = 0
+    for line in text.splitlines(keepends=True):
+        directive = re.match(r"\s*#\s*(if|ifdef|ifndef|endif)\b(.*)", line)
+        if skipped_depth:
+            if directive and directive.group(1) in {"if", "ifdef", "ifndef"}:
+                skipped_depth += 1
+            elif directive and directive.group(1) == "endif":
+                skipped_depth -= 1
+            continue
+        if re.match(
+            r"\s*#\s*if\s+SSL_SPAWNING_DISPLACEMENT_TAS_HACK\s*(?://.*)?$",
+            line,
+        ):
+            skipped_depth = 1
+            continue
+        kept.append(line)
+    if skipped_depth:
+        fail("unterminated SSL TAS-hack preprocessor block")
+    return "".join(kept)
+
+
 def require(text: str, fragment: str, label: str) -> None:
     if compact(fragment) not in compact(text):
         fail(f"missing {label}")
+
+
+def binary32(value: float) -> float:
+    """Round a host float through IEEE-754 binary32."""
+    return struct.unpack(">f", struct.pack(">f", value))[0]
+
+
+def binary32_air_update_full_forward(value: float) -> float:
+    """Exercise the audited non-wind branch with full aligned stick input."""
+    current = binary32(value)
+    step = binary32(0.35)
+    if current < 0.0:
+        current = binary32(current + step)
+        if current > 0.0:
+            current = 0.0
+    else:
+        current = binary32(current - step)
+        if current < 0.0:
+            current = 0.0
+    current = binary32(current + binary32(1.5))
+    if current > 32.0:
+        current = binary32(current - binary32(1.0))
+    if current < -16.0:
+        current = binary32(current + binary32(2.0))
+    return current
 
 
 def c_function_body(text: str, name: str) -> str:
@@ -174,6 +234,23 @@ def main() -> None:
     behavior_data = pinned(sm64, "data/behavior_data.c")
     object_lists = pinned(sm64, "src/game/object_list_processor.c")
     spawn_object = pinned(sm64, "src/game/spawn_object.c")
+    mario_step = pinned(sm64, "src/game/mario_step.c")
+    mario_airborne = pinned(sm64, "src/game/mario_actions_airborne.c")
+    mario = pinned(sm64, "src/game/mario.c")
+    game_init = pinned(sm64, "src/game/game_init.c")
+    platform_displacement = pinned(sm64, "src/game/platform_displacement.c")
+    area_source = pinned(sm64, "src/game/area.c")
+    level_update = pinned(sm64, "src/game/level_update.c")
+    working_area_source = strip_disabled_tas_hack_blocks(
+        working(sm64, "src/game/area.c")
+    )
+    working_level_update = strip_disabled_tas_hack_blocks(
+        working(sm64, "src/game/level_update.c")
+    )
+    makefile = pinned(sm64, "Makefile")
+    jp_sha1_manifest = pinned(sm64, "sm64.jp.sha1")
+    break_particles = pinned(sm64, "src/game/behaviors/break_particles.inc.c")
+    math_util = pinned(sm64, "src/engine/math_util.c")
     surface_collision = pinned(sm64, "src/engine/surface_collision.c")
     surface_load = pinned(sm64, "src/engine/surface_load.c")
     ssl_script = pinned(sm64, "levels/ssl/script.c")
@@ -183,6 +260,8 @@ def main() -> None:
     hand_collision = pinned(sm64, "levels/ssl/eyerok_col/collision.inc.c")
     die_animation = pinned(sm64, "actors/eyerok/anims/anim_0500DF50.inc.c")
     attacked_animation = pinned(sm64, "actors/eyerok/anims/anim_0500E99C.inc.c")
+    open_animation = pinned(sm64, "actors/eyerok/anims/anim_0500F3D8.inc.c")
+    wake_animation = pinned(sm64, "actors/eyerok/anims/anim_050116CC.inc.c")
 
     actions = re.findall(r"#define\s+EYEROK_HAND_ACT_[A-Z_]+\s+(\d+)", constants)
     if list(map(int, actions)) != list(range(16)):
@@ -416,6 +495,7 @@ def main() -> None:
 
     action_writer_expectations = {
         "ATTACKED": ["eyerok_hand_check_attacked"],
+        "DIE": ["eyerok_hand_check_attacked"],
         "RECOVER": ["eyerok_hand_act_attacked"],
         "BECOME_ACTIVE": ["eyerok_hand_act_recover"],
         "OPEN": ["eyerok_hand_act_idle"],
@@ -631,6 +711,316 @@ def main() -> None:
     require(surface_collision, "if (y - (height + -78.0f) < 0.0f)", "find-floor 78-unit buffer")
     require(surface_load, "*vertexData++ = (TerrainData)(vx * m[0][0] + vy * m[1][0] + vz * m[2][0] + m[3][0]);", "dynamic collision X transform")
     require(surface_load, "*vertexData++ = (TerrainData)(vx * m[0][1] + vy * m[1][1] + vz * m[2][1] + m[3][1]);", "dynamic collision Y transform")
+
+    quarter_step_body = c_function_body(mario_step, "perform_air_quarter_step")
+    require(
+        quarter_step_body,
+        "upperWall = resolve_and_return_wall_collisions(nextPos, 150.0f, 50.0f); "
+        "lowerWall = resolve_and_return_wall_collisions(nextPos, 30.0f, 50.0f); "
+        "floorHeight = find_floor(nextPos[0], nextPos[1], nextPos[2], &floor); "
+        "ceilHeight = vec3f_find_ceil(nextPos, floorHeight, &ceil);",
+        "Pedro wall/floor/ceiling query order",
+    )
+    require(
+        quarter_step_body,
+        "if (ceilHeight - floorHeight > 160.0f) { "
+        "m->pos[0] = nextPos[0]; m->pos[2] = nextPos[2]; "
+        "m->floor = floor; m->floorHeight = floorHeight; }",
+        "Pedro conditional XZ and floor update",
+    )
+    require(
+        quarter_step_body,
+        "m->pos[1] = floorHeight; return AIR_STEP_LANDED;",
+        "Pedro unconditional Y snap and landed result",
+    )
+    air_without_turn = c_function_body(mario_airborne, "update_air_without_turn")
+    require(
+        air_without_turn,
+        "m->forwardVel = approach_f32(m->forwardVel, 0.0f, 0.35f, 0.35f);",
+        "air-speed drag",
+    )
+    require(
+        air_without_turn,
+        "m->forwardVel += intendedMag * coss(intendedDYaw) * 1.5f;",
+        "maximum forward air input",
+    )
+    require(
+        air_without_turn,
+        "if (m->forwardVel > dragThreshold) { m->forwardVel -= 1.0f; }",
+        "above-threshold air drag",
+    )
+    require(
+        air_without_turn,
+        "if (m->forwardVel < -16.0f) { m->forwardVel += 2.0f; }",
+        "negative-speed recovery",
+    )
+    require(
+        air_without_turn,
+        "if (!check_horizontal_wind(m))",
+        "non-wind guard for audited air-speed helper",
+    )
+    approach_body = c_function_body(math_util, "approach_f32")
+    require(
+        approach_body,
+        "if (current < target) { current += inc; if (current > target) { "
+        "current = target; } } else { current -= dec; if (current < target) { "
+        "current = target; } }",
+        "piecewise approach_f32 semantics",
+    )
+    stick_body = c_function_body(game_init, "adjust_analog_stick")
+    require(
+        stick_body,
+        "if (controller->stickMag > 64) { controller->stickX *= 64 / "
+        "controller->stickMag; controller->stickY *= 64 / controller->stickMag; "
+        "controller->stickMag = 64; }",
+        "retail stick magnitude cap",
+    )
+    joystick_body = c_function_body(mario, "update_mario_joystick_inputs")
+    require(
+        joystick_body,
+        "if (m->squishTimer == 0) { m->intendedMag = mag / 2.0f; } "
+        "else { m->intendedMag = mag / 8.0f; }",
+        "intended magnitude division",
+    )
+    if "SURFACE_HORIZONTAL_WIND" in area3 or "SURFACE_HORIZONTAL_WIND" in hand_collision:
+        fail("Area 3 or Eyerok collision unexpectedly contains horizontal wind")
+    require(hand_collision, "COL_TRI_INIT(SURFACE_DEFAULT", "default Eyerok surfaces")
+
+    rounded_start = binary32(-32.0)
+    rounded_after = binary32_air_update_full_forward(rounded_start)
+    rounded_delta = rounded_after - rounded_start
+    if not (3.85 < rounded_delta <= 4.0):
+        fail(f"unexpected binary32 -32 air-speed witness: {rounded_delta}")
+    coarse_start = binary32(-5_000_000.0)
+    coarse_after_one = binary32_air_update_full_forward(coarse_start)
+    coarse_after_seven = coarse_start
+    for _ in range(7):
+        coarse_after_seven = binary32_air_update_full_forward(coarse_after_seven)
+    if coarse_after_one - coarse_start != 4.0 \
+       or coarse_after_seven - coarse_start != 28.0:
+        fail("unexpected coarse-binary32 4/28 speed witnesses")
+
+    explode_body = c_function_body(helpers, "obj_explode_and_spawn_coins")
+    explode_order = [
+        explode_body.find("spawn_mist_particles_variable"),
+        explode_body.find("spawn_triangle_break_particles"),
+        explode_body.find("obj_mark_for_deletion"),
+        explode_body.find("obj_spawn_loot_yellow_coins"),
+    ]
+    if any(index < 0 for index in explode_order) or explode_order != sorted(explode_order):
+        fail(f"unexpected Eyerok explosion allocation/deletion order: {explode_order}")
+    require(
+        explode_body,
+        "spawn_triangle_break_particles(30, MODEL_DIRT_ANIMATION, 3.0f, 4);",
+        "thirty rotating Eyerok fragments",
+    )
+    mark_body = c_function_body(helpers, "obj_mark_for_deletion")
+    require(
+        mark_body,
+        "obj->activeFlags = ACTIVE_FLAG_DEACTIVATED;",
+        "deletion mark only clears active flags",
+    )
+    if "unload_object" in mark_body or "deallocate_object" in mark_body:
+        fail("obj_mark_for_deletion unexpectedly frees the object slot")
+
+    unload_deactivated_body = c_function_body(
+        object_lists, "unload_deactivated_objects_in_list"
+    )
+    require(
+        unload_deactivated_body,
+        "if ((gCurrentObject->activeFlags & ACTIVE_FLAG_ACTIVE) "
+        "!= ACTIVE_FLAG_ACTIVE) {",
+        "end-of-frame inactive-object test",
+    )
+    require(
+        unload_deactivated_body,
+        "unload_object(gCurrentObject);",
+        "end-of-frame inactive-object unload",
+    )
+    unload_object_body = c_function_body(spawn_object, "unload_object")
+    require(
+        unload_object_body,
+        "deallocate_object(&gFreeObjectList, &obj->header);",
+        "unload returns object slot to free list",
+    )
+    deallocate_body = c_function_body(spawn_object, "deallocate_object")
+    require(
+        deallocate_body,
+        "obj->next = freeList->next; freeList->next = obj;",
+        "deallocation pushes slot at free-list head",
+    )
+    allocate_body = c_function_body(spawn_object, "try_allocate_object")
+    require(
+        allocate_body,
+        "if ((nextObj = freeList->next) != NULL) {",
+        "allocation reads slot from free-list head",
+    )
+    require(
+        allocate_body,
+        "freeList->next = nextObj->next;",
+        "allocation pops selected free-list head",
+    )
+    require(
+        hand_functions["eyerok_hand_act_open"],
+        "o->parentObj->oEyerokBossUnk1AC = o->oBhvParams2ndByte;",
+        "OPEN claims exclusive eye lock",
+    )
+    require(
+        hand_functions["eyerok_hand_act_idle"],
+        "else if (o->parentObj->oEyerokBossUnk1AC == 0 && "
+        "o->parentObj->oEyerokBossActiveHand != 0)",
+        "IDLE action selection is gated by the free eye lock",
+    )
+    require(
+        hand_functions["eyerok_hand_act_die"],
+        "o->parentObj->oEyerokBossUnk1AC = 0; "
+        "obj_explode_and_spawn_coins(150.0f, 1);",
+        "DIE clears eye lock only at explosion",
+    )
+    require(open_animation, "0x1E, ANIMINDEX_NUMPARTS", "30-frame OPEN animation")
+    require(wake_animation, "0x50, ANIMINDEX_NUMPARTS", "80-frame wake animation")
+    require(
+        break_particles,
+        "triangle->oAngleVelPitch = 0xF00; "
+        "triangle->oAngleVelYaw = 0x500; triangle->oForwardVel = 30.0f;",
+        "dirt fragment rotational velocity",
+    )
+
+    update_objects_body = c_function_body(object_lists, "update_objects")
+    update_order = [
+        update_objects_body.find("clear_dynamic_surfaces();"),
+        update_objects_body.find("update_terrain_objects();"),
+        update_objects_body.find("apply_mario_platform_displacement();"),
+        update_objects_body.find("update_non_terrain_objects();"),
+        update_objects_body.find("unload_deactivated_objects();"),
+        update_objects_body.find("update_mario_platform();"),
+    ]
+    if any(index < 0 for index in update_order) or update_order != sorted(update_order):
+        fail(f"unexpected PPD frame order: {update_order}")
+    clear_dynamic_body = c_function_body(surface_load, "clear_dynamic_surfaces")
+    require(
+        clear_dynamic_body,
+        "if (!(gTimeStopState & TIME_STOP_ACTIVE)) { "
+        "gSurfacesAllocated = gNumStaticSurfaces; "
+        "gSurfaceNodesAllocated = gNumStaticSurfaceNodes; "
+        "clear_spatial_partition(&gDynamicSurfacePartition[0][0]);",
+        "active-frame dynamic-surface clear",
+    )
+    update_platform_body = c_function_body(
+        platform_displacement, "update_mario_platform"
+    )
+    require(
+        update_platform_body,
+        "floorHeight = find_floor(marioX, marioY, marioZ, &floor);",
+        "platform refresh floor query",
+    )
+    require(
+        update_platform_body,
+        "gMarioPlatform = floor->object; gMarioObject->platform = floor->object;",
+        "platform refresh saves selected dynamic object",
+    )
+    if update_platform_body.count("gMarioPlatform = NULL;") != 2:
+        fail("update_mario_platform no longer clears the saved pointer on both misses")
+    apply_mario_body = c_function_body(
+        platform_displacement, "apply_mario_platform_displacement"
+    )
+    require(
+        apply_mario_body,
+        "struct Object *platform = gMarioPlatform;",
+        "platform displacement consumes prior saved pointer",
+    )
+    require(
+        apply_mario_body,
+        "if (!(gTimeStopState & TIME_STOP_ACTIVE) && "
+        "gMarioObject != NULL && platform != NULL)",
+        "time stop suppresses stale-platform displacement",
+    )
+    require(
+        apply_mario_body,
+        "platform != NULL) { apply_platform_displacement(TRUE, platform); }",
+        "saved platform pointer displacement call",
+    )
+    platform_body = c_function_body(platform_displacement, "apply_platform_displacement")
+    require(platform_body, "gMarioStates[0].faceAngle[1] += rotation[1];", "platform yaw write")
+    require(platform_body, "set_mario_pos(x, y, z);", "platform position write")
+    if "forwardVel" in platform_body or "gMarioStates[0].vel" in platform_body:
+        fail("platform displacement unexpectedly writes Mario stored speed")
+    clear_platform_body = c_function_body(platform_displacement, "clear_mario_platform")
+    require(
+        clear_platform_body,
+        "gMarioPlatform = NULL;",
+        "explicit Mario platform clear",
+    )
+    spawn_area_objects_body = c_function_body(object_lists, "spawn_objects_from_info")
+    require(
+        spawn_area_objects_body,
+        "#ifndef VERSION_JP clear_mario_platform(); #endif",
+        "US/non-JP area load clears Mario platform",
+    )
+    require(
+        spawn_area_objects_body,
+        "gObjectLists = gObjectListArray; gTimeStopState = 0;",
+        "area spawn resets time stop before the next object update",
+    )
+
+    # Pin the scheduler facts that make the Japanese omission materially
+    # different from the US build.  The instant warp unloads and loads the new
+    # area before that frame's object update.  JP compiles out the explicit
+    # saved-platform clear, and spawn setup resets time stop, so the ordinary
+    # apply gate can consume the stale pointer before the end-frame refresh.
+    play_normal_body = c_function_body(level_update, "play_mode_normal")
+    play_normal_order = [
+        play_normal_body.find("warp_area();"),
+        play_normal_body.find("check_instant_warp();"),
+        play_normal_body.find("area_update_objects();"),
+    ]
+    if any(index < 0 for index in play_normal_order) \
+       or play_normal_order != sorted(play_normal_order):
+        fail(f"unexpected JP instant-warp/object-update order: {play_normal_order}")
+
+    instant_warp_body = c_function_body(level_update, "check_instant_warp")
+    require(
+        instant_warp_body,
+        "change_area(warp->area); gMarioState->area = gCurrentArea;",
+        "instant warp changes area before returning to the frame scheduler",
+    )
+    change_area_body = c_function_body(area_source, "change_area")
+    change_area_order = [
+        change_area_body.find("unload_area();"),
+        change_area_body.find("load_area(index);"),
+        change_area_body.find("gMarioObject->oActiveParticleFlags = 0;"),
+    ]
+    if any(index < 0 for index in change_area_order) \
+       or change_area_order != sorted(change_area_order):
+        fail(f"unexpected JP change-area order: {change_area_order}")
+
+    # The available 36fb checkout adds only disabled TAS-hack blocks to these
+    # version-sensitive functions.  Compare their normalized, default-disabled
+    # bodies with the pinned revision so the JP Clight witnesses cannot silently
+    # inherit a research-only hook.
+    for label, pinned_text, checkout_text in [
+        ("change_area", area_source, working_area_source),
+        ("check_instant_warp", level_update, working_level_update),
+        ("play_mode_normal", level_update, working_level_update),
+    ]:
+        if compact(c_function_body(pinned_text, label)) != compact(
+            c_function_body(checkout_text, label)
+        ):
+            fail(f"default-disabled checkout body differs from pin: {label}")
+
+    require(
+        makefile,
+        "ifeq ($(VERSION),jp) DEFINES += VERSION_JP=1",
+        "JP build selects VERSION_JP",
+    )
+    require(
+        makefile,
+        "COMPARE ?= 1",
+        "matching-ROM comparison defaults on",
+    )
+    expected_jp_manifest = f"{JP_ROM_SHA1}  build/jp/sm64.jp.z64\n"
+    if jp_sha1_manifest != expected_jp_manifest:
+        fail(f"unexpected canonical JP SHA-1 manifest: {jp_sha1_manifest!r}")
     require(die_animation, "0x28, ANIMINDEX_NUMPARTS(eyerok_seg5_animindex_0500DD4C)", "40-frame die animation")
     require(attacked_animation, "0x19, ANIMINDEX_NUMPARTS(eyerok_seg5_animindex_0500E798)", "25-frame attacked animation")
 
@@ -770,6 +1160,75 @@ def main() -> None:
         fail("closed-hand top triangles changed")
     if (1, 3, 4) not in open_triangles or (1, 4, 2) not in open_triangles:
         fail("open-hand top triangles changed")
+
+    right_sleep_vertices, right_sleep_triangles = parse_collision(
+        named_collision_block(hand_collision, "ssl_seg7_collision_07028370")
+    )
+    left_sleep_vertices, left_sleep_triangles = parse_collision(
+        named_collision_block(hand_collision, "ssl_seg7_collision_070284B0")
+    )
+    expected_right_sleep = {
+        "lower_floor": [(7, 10, 11), (12, 7, 11)],
+        "outer_wall": [(11, 10, 14)],
+        "ceiling_sliver": [(17, 16, 11), (16, 12, 11)],
+    }
+    for label, triangles in expected_right_sleep.items():
+        if any(triangle not in right_sleep_triangles for triangle in triangles):
+            fail(f"right sleep-hand {label} triangles changed")
+    if right_sleep_vertices[11] != (151, 50, -21) \
+       or right_sleep_vertices[16] != (100, 75, -20) \
+       or right_sleep_vertices[17] != (151, 75, -20):
+        fail("right sleep-hand Pedro sliver vertices changed")
+    if (2, 1, 4) not in left_sleep_triangles or (6, 9, 4) not in right_sleep_triangles:
+        fail("wake-sandwich palm triangles changed")
+
+    sleep_pedro_floor = -1534 + 50 * 3 // 2
+    sleep_pedro_ceiling = -1421
+    sleep_pedro_gap = sleep_pedro_ceiling - sleep_pedro_floor
+    sleep_pedro_query_window = (-1537, -1500)
+    sleep_outer_wall_z = -3166
+    sleep_outer_resolved_z = sleep_outer_wall_z + 50
+    sleep_wall_free_inner_z = sleep_outer_wall_z - 50
+    if (sleep_pedro_floor, sleep_pedro_ceiling, sleep_pedro_gap) != (-1459, -1421, 38):
+        fail("unexpected stationary sleep-hand Pedro heights")
+    if sleep_outer_resolved_z != -3116 or sleep_wall_free_inner_z != -3216:
+        fail("unexpected stationary sleep-hand wall band")
+
+    wake_height_pairs = [
+        (-1357, -1341),
+        (-1344, -1305),
+        (-1332, -1269),
+        (-1319, -1235),
+        (-1307, -1202),
+        (-1295, -1169),
+        (-1284, -1140),
+    ]
+    wake_gaps = [ceiling - floor for floor, ceiling in wake_height_pairs]
+    wake_points = [
+        (33, -3406),
+        (47, -3383),
+        (61, -3377),
+        (79, -3385),
+        (97, -3396),
+        (115, -3401),
+        (130, -3391),
+    ]
+    if wake_gaps != [16, 39, 63, 84, 105, 126, 144]:
+        fail(f"unexpected wake Pedro gaps: {wake_gaps}")
+    if len(wake_points) != len(wake_gaps) or not all(2 <= gap <= 160 for gap in wake_gaps):
+        fail("wake Pedro witness table is malformed")
+    wake_next_gap = 162
+    if wake_next_gap != 162 or wake_next_gap <= 160:
+        fail("wake Pedro window unexpectedly extends through frame 12")
+    wake_frame11_query_y = -1304
+    wake_frame11_start = (-121, -3240)
+    wake_frame11_target = (-121, -3241)
+    if not (-1284 - 25 < wake_frame11_query_y <= -1284 + 144 - 156):
+        fail("frame-11 vertical wall-bypass lane changed")
+    wake_frame11_dx = wake_frame11_target[0] - wake_frame11_start[0]
+    wake_frame11_dz = wake_frame11_target[1] - wake_frame11_start[1]
+    if (wake_frame11_dx, wake_frame11_dz, wake_frame11_dx ** 2 + wake_frame11_dz ** 2) != (0, -1, 1):
+        fail("frame-11 ordinary-qstep witness changed")
 
     # Audit the no-wall relative query trace for the only dangerous reusable
     # sibling approach.  The later-updated hand starts 360 units behind.  Its
@@ -919,6 +1378,24 @@ def main() -> None:
     print("area3-local-objects: Eyerok boss only; macro list empty")
     print("area3-water-boxes: none")
     print("find-floor-buffer: 78")
+    print("pedro-query-order: upper wall, lower wall, floor, ceiling")
+    print("pedro-cancel-branch: Y snaps; X/Z and referenced floor remain old")
+    print("sleep-pedro-strip: floor -1459, ceiling -1421, gap 38")
+    print("sleep-pedro-query-window: [-1537,-1500]")
+    print("sleep-pedro-outer-wall: Z=-3166 resolves to -3116")
+    print("sleep-pedro-wall-free-interior: Z < -3216; exterior entry qstep >100")
+    print("wake-pedro-gaps-frames-5-through-11: 16,39,63,84,105,126,144")
+    print("wake-pedro-frame-12-gap: 162")
+    print("wake-pedro-wall-free-interior-witnesses: 7")
+    print("wake-pedro-frames-5-through-10: no vertical two-wall bypass")
+    print("wake-pedro-frame-11-exterior-witness: (-121,-3240)->(-121,-3241), squared qstep 1")
+    print("wake-pedro-direct-60-rise: misses first query window by 39")
+    print("wake-pedro-ideal-signed-speed-envelope: 3.85/call, 26.95/seven calls")
+    print("wake-pedro-ideal-nonnegative-envelope: 1.50/call")
+    print("wake-pedro-1.15-precondition: incoming forwardVel >= 0.35")
+    print(f"wake-pedro-binary32-minus32-witness-delta: {rounded_delta:.10f}")
+    print("wake-pedro-binary32-coarse-witness: 4/call, 28/seven calls")
+    print("wake-pedro-binary32-global-bound-status: not a CompCert Float32 theorem")
     print(f"area3-arena-upward-floor-max: {max_arena_upward_y}")
     print(f"area3-tunnel-upward-floor-min: {min_tunnel_upward_y}")
     print("area3-upward-floor-gap: (-1150,-562), no triangles")
@@ -939,6 +1416,34 @@ def main() -> None:
     print("open-hand-upward-local-top: 338 (scaled 507)")
     print("attacked-animation-frames: 25")
     print("die-animation-frames: 40")
+    print("open-animation-frames: 30")
+    print("wake-animation-frames: 80")
+    print("eyerok-explosion-order: mist, 30 rotating triangles, mark hand deleted, coins, end-frame unload")
+    print("eyerok-deletion-mark: active flags cleared; slot not yet freed")
+    print("eyerok-hand-slot-free: unload calls deallocate at end of frame")
+    print("object-free-list-reuse: deallocate pushes head; allocate pops head")
+    print("eyerok-own-fragment-slot-reuse: impossible (allocation precedes actual free)")
+    print("eyerok-sibling-fragment-delay-after-unlock: at least 30+40 frames")
+    print("ppd-stale-platform-window: next active frame only; time stop suppresses apply")
+    print("ppd-update-order: clear dynamic surfaces, terrain, apply displacement, nonterrain, unload, refresh platform")
+    print("ppd-platform-pointer: prior pointer consumed before end-frame floor refresh")
+    print("ppd-dynamic-surfaces: cleared at start of each active frame")
+    print("us-area-load-platform-pointer: cleared (non-JP clear_mario_platform)")
+    print("jp-area-load-platform-pointer: not cleared (VERSION_JP omission)")
+    print("jp-instant-warp-order: change area before current-frame object update")
+    print("jp-change-area-order: unload Area 3, load Area 2, then write Mario object")
+    print("jp-area-spawn-time-stop: reset to zero before displacement apply")
+    print("jp-ppd-required-gates: time stop clear, Mario object nonnull, saved platform nonnull")
+    print(
+        "jp-version-sensitive-function-bodies: pin-equivalent with the "
+        "36fb TAS hack disabled (change_area, check_instant_warp, play_mode_normal)"
+    )
+    print(f"jp-canonical-rom-sha1: {JP_ROM_SHA1}")
+    print(
+        "jp-matching-build-record: separately observed pinned make "
+        f"VERSION=jp COMPARE=1 byte-identical build ({JP_ROM_SHA1})"
+    )
+    print("platform-displacement-speed-writes: none")
     print("raised-static-floor-overlap-with-begin-corridor: none")
     print(f"area3-static-vertex-y-max: {max_static_vertex_y}")
     print(f"area3-upward-floor-vertex-y-max: {max_upward_floor_vertex_y}")
