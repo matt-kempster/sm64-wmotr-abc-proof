@@ -22,6 +22,16 @@ The core engine theorem remains:
    is the only first-load target with useful fields, and its effect is too
    small to escape the shaft.
 
+The engine goal now also covers the unreused-slot case observed in the hacked
+pyramid-top test.  A platform slot freed on the final normal frame can retain
+its raw displacement fields while later bulk unloads bury it beneath newer
+free slots.  If destination allocation does not reach that slot, JP platform
+displacement reads the old Area 1 fields directly.  The concrete observed-slot
+model uses Klepto 55, pyramid top 60, and node-1E warp 63 and proves allocation
+order 63, 55, 60 under the stated bulk-order premise.  This is formalized in
+`proofs/PyramidTopSlotPersistence.v`; it is an engine/timing theorem for the
+modified warp-overlap test, not a stock route to move node 1E.
+
 The core engine/source facts are now backed by generated JP Clight certificates.
 `proofs/GeneratedClightFacts.v` proves `vm_compute` facts over the generated
 `jp_*.v` modules and packages them as
@@ -167,6 +177,16 @@ The formal capstone is
 `generated_jp_clight_node1e_control_flow_capstone`.  It closes the enumerated
 stock holding and behavior-command routes, not arbitrary pointer writes and not
 the independent stale-`gMarioPlatform` mechanism.
+
+`proofs/MovedWarpPortal.v` now proves the counterfactual continuation.  Given
+the unavailable `heldObj == 1E` pointer, a drop moves the entrance's live
+coordinates and preserves its first-contact warp fields.  If Mario activates
+that entrance while on an object-owned moving floor, the later platform update
+sets `gMarioPlatform`; repeated selection keeps it set during disappearance,
+and the JP load preserves it.  Node routing is position-independent, so the
+destination remains area-2 node 14 `(0, 5500, 256)`.  This establishes that a
+hypothetically movable 1E would be sufficient for the outside seed, while
+leaving the stock reachability obstruction intact.
 
 The target is still not full star collection.  The target is either:
 

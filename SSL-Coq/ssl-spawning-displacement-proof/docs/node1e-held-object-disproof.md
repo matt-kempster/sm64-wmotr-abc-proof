@@ -14,6 +14,32 @@ routes.  No observation build or input search is needed for these hypotheses.
 | Redirect 1E to `bhvCarrySomething3` | Mechanically works if `heldObj == 1E` already; it is not an independent way to obtain that pointer. |
 | Let `bhvWarp` redirect itself | Its behavior data and native loop contain no carry-command or behavior-command redirect. |
 
+## Counterfactual downstream result
+
+`proofs/MovedWarpPortal.v` grants `heldObj == 1E` only to determine what follows.
+It distinguishes three operations:
+
+- grab changes the current behavior command but does not write `oPosX/Y/Z`;
+- drop writes live X/Z from `heldObjLastPosition` and live Y from Mario's Y,
+  without changing the node parameter, interaction type, hitbox, or permanent
+  behavior;
+- warp contact sets `usedObj`, `interactObj`, and `ACT_DISAPPEARED`, but does not
+  write `gMarioPlatform`.
+
+Consequently, merely carrying the rendered object away does not move its
+collision hitbox.  Dropping it does move the live entrance.  If the resulting
+contact happens while Mario stands on an object-owned moving platform,
+`update_mario_platform()` later in the object-update frame sets
+`gMarioPlatform` to that floor owner.  Repeated owned-floor updates preserve
+the pointer during the disappearance interval, and JP area spawning does not
+clear it.
+
+The source entrance position is not part of warp routing.  Node 1E still maps
+to SSL area 2 node 14, and destination Mario initializes from that target
+object at `(0, 5500, 256)`.  Therefore the hypothetical moves the entrance and
+can seed spawning displacement; it does not move the destination and does not
+make the initial held pointer reachable in stock control flow.
+
 ## Generated JP source certificate
 
 `generated_jp_node1e_control_flow_source_certificate` is proved by
@@ -59,7 +85,9 @@ function is unchanged by that compatibility step.
 - `hypothetical_held_node1e_redirect_preserves_permanent_behavior`;
 - `node1e_warp_loop_does_not_self_redirect`;
 - `no_enumerated_stock_route_holds_or_redirects_node1e`;
-- `generated_jp_clight_node1e_control_flow_capstone`.
+- `generated_jp_clight_node1e_control_flow_capstone`;
+- `generated_jp_clight_moved_node1e_capstone`;
+- `generated_jp_clight_moved_node1e_platform_seed_capstone`.
 
 The capstone links the generated JP source certificate to the finite route
 model.  The model deliberately grants the strongest stale-slot premise: after

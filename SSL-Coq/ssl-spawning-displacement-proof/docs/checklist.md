@@ -156,3 +156,22 @@
   warp behavior.  The capstone is
   `generated_jp_clight_node1e_control_flow_capstone`; no observation build or
   input search is needed for this route family.
+- [x] Prove the counterfactual mechanics after granting `heldObj == 1E`.
+  Grabbing alone leaves the live hitbox at its old position; dropping relocates
+  its coordinates while preserving the first-contact warp fields.  Warp code
+  does not write `gMarioPlatform`, but an object-owned moving floor selected by
+  the later `update_mario_platform()` call does.  The seed survives arbitrary
+  modeled disappearance frames and JP area loading, while destination Mario
+  still appears at area-2 node 14 `(0, 5500, 256)`.  The capstone is
+  `generated_jp_clight_moved_node1e_platform_seed_capstone`.
+- [x] Explain the observed Klepto-55, pyramid-top-60, and node-1E-warp-63
+  slot pattern.  The proof distinguishes fixed pool addresses from object-list
+  traversal, proves that an ordinary list-9 bulk unload would put the top ahead
+  of the list-6 warp, and proves the synchronized early-free alternative.  If
+  the top deactivates on the final normal frame, same-frame collision can
+  reselect its already-free slot; the subsequent bulk unload buries it.  Under
+  the observed bulk ordering, allocation reaches slots 63, 55, and 60 in that
+  order.  Unreused slot 60 retains the top's `oAngleVelYaw = 0x1800`, which JP
+  displacement reads without an active check.  See
+  `generated_jp_clight_observed_pyramid_top_slot_capstone` and
+  `docs/pyramid-top-slot-persistence.md`.

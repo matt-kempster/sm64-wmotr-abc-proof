@@ -194,6 +194,7 @@ The JP generation targets cover:
 - `src/game/mario_actions_object.c`
 - `src/game/mario_actions_cutscene.c`
 - `src/game/mario_actions_submerged.c`
+- `src/game/mario_step.c`
 - `src/engine/surface_load.c`
 - `src/game/macro_special_objects.c`
 - `src/game/behavior_actions.c`
@@ -413,6 +414,53 @@ cutscene-action, submerged-action, spawn, level-update, behavior-data, and
 behavior-action modules.  The capstone is
 `generated_jp_clight_node1e_control_flow_capstone`.  Full details and scope are
 in `docs/node1e-held-object-disproof.md`.
+
+`proofs/MovedWarpPortal.v` separately answers what would happen if the missing
+`heldObj == 1E` premise were granted.  Grabbing alone does not change 1E's live
+coordinates.  Dropping writes X/Z from Mario's held-object-last-position and Y
+from Mario's position, while preserving the warp node parameter, interaction
+type, hitbox, and permanent behavior.  Thus a drop can mechanically relocate
+the live entrance for its first contact, even though stock control flow cannot
+produce the required held pointer.
+
+Warp contact sets `usedObj`, `interactObj`, and `ACT_DISAPPEARED`; it does not
+write `gMarioPlatform`.  However, if Mario contacts the relocated entrance
+while standing on an object-owned moving-platform floor, the normal
+end-of-frame `update_mario_platform()` call sets `gMarioPlatform` to that floor
+owner.  Re-selecting the same floor preserves the seed through any number of
+modeled disappearance frames, and JP spawning preserves it across the area
+load.  The source-side disappearance keeps Mario's X/Z at the live entrance,
+while routing uses 1E's node parameter and destination Mario initializes at SSL
+area-2 node 14, `(0, 5500, 256)`.  Moving 1E therefore moves the entrance, not
+the destination.  The conditional capstone is
+`generated_jp_clight_moved_node1e_platform_seed_capstone`.
+
+## Pyramid-top slot persistence
+
+`proofs/PyramidTopSlotPersistence.v` explains the observed Area 1 pool slots
+Klepto 55, pyramid top 60, and node-1E warp 63.  Pool-slot numbers are runtime
+allocation-history facts; object-list numbers are traversal categories.  JP
+behavior data places those objects in lists 4, 9, and 6 respectively.
+
+The area unload scans lists 0 through 12 and every deallocation pushes to the
+free-list front.  Consequently a pyramid top freed normally in the list-9 bulk
+pass would be *ahead* of the list-6 warp, not behind it.  The snapshot pattern
+is instead explained by synchronizing pyramid-top deactivation with the last
+normal object-update frame before the area-change pause.  The top is freed,
+its collision loaded earlier in that same terrain pass can still be selected
+by `update_mario_platform()`, and then the pause prevents another platform
+recomputation.  The later bulk unload pushes the remaining Area 1 slots ahead
+of slot 60.
+
+The formal free-list layout proves that if the bulk sequence contains Klepto
+55 before warp 63, destination allocation reaches the three slots in the order
+63, 55, 60.  Thus 63 can be overwritten while 55 and 60 remain free.  Unload
+does not clear object `rawData`; allocation does.  An unreused slot 60 therefore
+retains the top's fully accelerated `oAngleVelYaw = 0x1800`, and the first JP
+Area 2 displacement reads it despite `activeFlags == 0`.  The generated-Clight
+capstone is `generated_jp_clight_observed_pyramid_top_slot_capstone`; detailed
+scope and timing assumptions are in
+`docs/pyramid-top-slot-persistence.md`.
 
 Generating `jp_object_helpers.v` translates seven CompCert-unsupported C
 `long double` constants as `double`; all are outside the audited

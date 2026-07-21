@@ -6,7 +6,7 @@ From SSLSpawning.Generated Require Import
   jp_object_list_processor jp_platform_displacement jp_spawn_object
   jp_obj_behaviors jp_behavior_actions jp_mario jp_interaction
   jp_object_helpers jp_mario_actions_object jp_mario_actions_cutscene
-  jp_mario_actions_submerged.
+  jp_mario_actions_submerged jp_mario_step.
 From SSLSpawning.Proofs Require Import ASTFacts.
 
 Import ListNotations.
@@ -32,6 +32,7 @@ Module OH := jp_object_helpers.
 Module MAO := jp_mario_actions_object.
 Module MAC := jp_mario_actions_cutscene.
 Module MAS := jp_mario_actions_submerged.
+Module MS := jp_mario_step.
 
 Definition id_clear_mario_platform : ident := $"clear_mario_platform".
 
@@ -518,6 +519,249 @@ Proof.
   constructor; vm_compute; repeat split.
 Qed.
 
+Theorem generated_grab_only_does_not_move_held_object :
+  assigns_array_slot_s IX._asF32 6
+    (fn_body IX.f_mario_grab_used_object) = false /\
+  assigns_array_slot_s IX._asF32 7
+    (fn_body IX.f_mario_grab_used_object) = false /\
+  assigns_array_slot_s IX._asF32 8
+    (fn_body IX.f_mario_grab_used_object) = false.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Theorem generated_drop_writes_live_object_position :
+  assigns_array_slot_s IX._asF32 6
+    (fn_body IX.f_mario_drop_held_object) = true /\
+  assigns_array_slot_s IX._asF32 7
+    (fn_body IX.f_mario_drop_held_object) = true /\
+  assigns_array_slot_s IX._asF32 8
+    (fn_body IX.f_mario_drop_held_object) = true /\
+  statement_mentions_ident_s IX._heldObjLastPosition
+    (fn_body IX.f_mario_drop_held_object) = true /\
+  statement_mentions_ident_s IX._pos
+    (fn_body IX.f_mario_drop_held_object) = true.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Theorem generated_throw_writes_live_object_position :
+  assigns_array_slot_s IX._asF32 6
+    (fn_body IX.f_mario_throw_held_object) = true /\
+  assigns_array_slot_s IX._asF32 7
+    (fn_body IX.f_mario_throw_held_object) = true /\
+  assigns_array_slot_s IX._asF32 8
+    (fn_body IX.f_mario_throw_held_object) = true /\
+  statement_mentions_ident_s IX._heldObjLastPosition
+    (fn_body IX.f_mario_throw_held_object) = true.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Theorem generated_drop_preserves_warp_identity_fields :
+  assigns_array_slot_s IX._asS32 64
+    (fn_body IX.f_mario_drop_held_object) = false /\
+  assigns_array_slot_s IX._asU32 42
+    (fn_body IX.f_mario_drop_held_object) = false /\
+  assigns_array_slot_s IX._asS32 43
+    (fn_body IX.f_mario_drop_held_object) = false /\
+  assigns_field_named_s IX._hitboxRadius
+    (fn_body IX.f_mario_drop_held_object) = false /\
+  assigns_field_named_s IX._hitboxHeight
+    (fn_body IX.f_mario_drop_held_object) = false /\
+  assigns_field_named_s IX._behavior
+    (fn_body IX.f_mario_drop_held_object) = false.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Theorem generated_interact_warp_does_not_move_live_object :
+  assigns_array_slot_s IX._asF32 6 (fn_body IX.f_interact_warp) = false /\
+  assigns_array_slot_s IX._asF32 7 (fn_body IX.f_interact_warp) = false /\
+  assigns_array_slot_s IX._asF32 8 (fn_body IX.f_interact_warp) = false.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Theorem generated_disappeared_action_stops_at_floor_then_triggers_warp :
+  ident_subsequenceb
+    [MAC._stop_and_set_height_to_floor; MAC._level_trigger_warp]
+    (direct_callees_s (fn_body MAC.f_act_disappeared)) = true.
+Proof.
+  vm_compute.
+  reflexivity.
+Qed.
+
+Theorem generated_stop_at_floor_preserves_mario_xz :
+  assigns_array_slot_s MS._pos 0
+    (fn_body MS.f_stop_and_set_height_to_floor) = false /\
+  assigns_array_slot_s MS._pos 1
+    (fn_body MS.f_stop_and_set_height_to_floor) = true /\
+  assigns_array_slot_s MS._pos 2
+    (fn_body MS.f_stop_and_set_height_to_floor) = false /\
+  statement_mentions_ident_s MS._floorHeight
+    (fn_body MS.f_stop_and_set_height_to_floor) = true.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Theorem generated_warp_object_routes_from_used_object_parameter :
+  statement_mentions_ident_s L._usedObj
+    (fn_body L.f_level_trigger_warp) = true /\
+  statement_mentions_array_slot_s L._asS32 64
+    (fn_body L.f_level_trigger_warp) = true /\
+  statement_mentions_ident_s L._sSourceWarpNodeId
+    (fn_body L.f_level_trigger_warp) = true /\
+  statement_mentions_array_slot_s L._asF32 6
+    (fn_body L.f_level_trigger_warp) = false /\
+  statement_mentions_array_slot_s L._asF32 7
+    (fn_body L.f_level_trigger_warp) = false /\
+  statement_mentions_array_slot_s L._asF32 8
+    (fn_body L.f_level_trigger_warp) = false.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Theorem generated_delayed_warp_looks_up_source_node_then_initiates_destination :
+  ident_subsequenceb
+    [L._area_get_warp_node; L._initiate_warp]
+    (direct_callees_s (fn_body L.f_initiate_delayed_warp)) = true.
+Proof.
+  vm_compute.
+  reflexivity.
+Qed.
+
+Theorem generated_init_after_warp_uses_destination_node_object_position :
+  calls_ident_s L._area_get_warp_node
+    (fn_body L.f_init_mario_after_warp) = true /\
+  statement_mentions_ident_s L._object
+    (fn_body L.f_init_mario_after_warp) = true /\
+  statement_mentions_array_slot_s L._asF32 6
+    (fn_body L.f_init_mario_after_warp) = true /\
+  statement_mentions_array_slot_s L._asF32 7
+    (fn_body L.f_init_mario_after_warp) = true /\
+  statement_mentions_array_slot_s L._asF32 8
+    (fn_body L.f_init_mario_after_warp) = true /\
+  assigns_array_slot_s L._startPos 0
+    (fn_body L.f_init_mario_after_warp) = true /\
+  assigns_array_slot_s L._startPos 1
+    (fn_body L.f_init_mario_after_warp) = true /\
+  assigns_array_slot_s L._startPos 2
+    (fn_body L.f_init_mario_after_warp) = true.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Theorem generated_grab_warp_pipeline_does_not_write_gMarioPlatform :
+  statement_mentions_ident_s P._gMarioPlatform
+    (fn_body IX.f_mario_grab_used_object) = false /\
+  statement_mentions_ident_s P._gMarioPlatform
+    (fn_body IX.f_mario_drop_held_object) = false /\
+  statement_mentions_ident_s P._gMarioPlatform
+    (fn_body IX.f_mario_throw_held_object) = false /\
+  statement_mentions_ident_s P._gMarioPlatform
+    (fn_body IX.f_interact_warp) = false /\
+  statement_mentions_ident_s P._gMarioPlatform
+    (fn_body MAC.f_act_disappeared) = false /\
+  statement_mentions_ident_s P._gMarioPlatform
+    (fn_body MS.f_stop_and_set_height_to_floor) = false /\
+  statement_mentions_ident_s P._gMarioPlatform
+    (fn_body L.f_level_trigger_warp) = false /\
+  statement_mentions_ident_s P._gMarioPlatform
+    (fn_body L.f_initiate_delayed_warp) = false /\
+  statement_mentions_ident_s P._gMarioPlatform
+    (fn_body L.f_init_mario_after_warp) = false.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Record jp_moved_node1e_source_certificate : Prop := {
+  cert_grab_only_preserves_live_position :
+    assigns_array_slot_s IX._asF32 6
+      (fn_body IX.f_mario_grab_used_object) = false /\
+    assigns_array_slot_s IX._asF32 7
+      (fn_body IX.f_mario_grab_used_object) = false /\
+    assigns_array_slot_s IX._asF32 8
+      (fn_body IX.f_mario_grab_used_object) = false;
+  cert_drop_relocates_live_position :
+    assigns_array_slot_s IX._asF32 6
+      (fn_body IX.f_mario_drop_held_object) = true /\
+    assigns_array_slot_s IX._asF32 7
+      (fn_body IX.f_mario_drop_held_object) = true /\
+    assigns_array_slot_s IX._asF32 8
+      (fn_body IX.f_mario_drop_held_object) = true;
+  cert_drop_preserves_node_parameter_and_hitbox :
+    assigns_array_slot_s IX._asS32 64
+      (fn_body IX.f_mario_drop_held_object) = false /\
+    assigns_array_slot_s IX._asU32 42
+      (fn_body IX.f_mario_drop_held_object) = false /\
+    assigns_array_slot_s IX._asS32 43
+      (fn_body IX.f_mario_drop_held_object) = false /\
+    assigns_field_named_s IX._hitboxRadius
+      (fn_body IX.f_mario_drop_held_object) = false /\
+    assigns_field_named_s IX._hitboxHeight
+      (fn_body IX.f_mario_drop_held_object) = false;
+  cert_disappeared_preserves_source_xz :
+    ident_subsequenceb
+      [MAC._stop_and_set_height_to_floor; MAC._level_trigger_warp]
+      (direct_callees_s (fn_body MAC.f_act_disappeared)) = true /\
+    assigns_array_slot_s MS._pos 0
+      (fn_body MS.f_stop_and_set_height_to_floor) = false /\
+    assigns_array_slot_s MS._pos 1
+      (fn_body MS.f_stop_and_set_height_to_floor) = true /\
+    assigns_array_slot_s MS._pos 2
+      (fn_body MS.f_stop_and_set_height_to_floor) = false;
+  cert_route_uses_parameter_not_source_position :
+    statement_mentions_array_slot_s L._asS32 64
+      (fn_body L.f_level_trigger_warp) = true /\
+    statement_mentions_array_slot_s L._asF32 6
+      (fn_body L.f_level_trigger_warp) = false /\
+    statement_mentions_array_slot_s L._asF32 7
+      (fn_body L.f_level_trigger_warp) = false /\
+    statement_mentions_array_slot_s L._asF32 8
+      (fn_body L.f_level_trigger_warp) = false /\
+    ident_subsequenceb
+      [L._area_get_warp_node; L._initiate_warp]
+      (direct_callees_s (fn_body L.f_initiate_delayed_warp)) = true;
+  cert_destination_uses_destination_node_position :
+    calls_ident_s L._area_get_warp_node
+      (fn_body L.f_init_mario_after_warp) = true /\
+    assigns_array_slot_s L._startPos 0
+      (fn_body L.f_init_mario_after_warp) = true /\
+    assigns_array_slot_s L._startPos 1
+      (fn_body L.f_init_mario_after_warp) = true /\
+    assigns_array_slot_s L._startPos 2
+      (fn_body L.f_init_mario_after_warp) = true;
+  cert_warp_pipeline_has_no_platform_write :
+    statement_mentions_ident_s P._gMarioPlatform
+      (fn_body IX.f_mario_grab_used_object) = false /\
+    statement_mentions_ident_s P._gMarioPlatform
+      (fn_body IX.f_mario_drop_held_object) = false /\
+    statement_mentions_ident_s P._gMarioPlatform
+      (fn_body IX.f_interact_warp) = false /\
+    statement_mentions_ident_s P._gMarioPlatform
+      (fn_body MAC.f_act_disappeared) = false /\
+    statement_mentions_ident_s P._gMarioPlatform
+      (fn_body L.f_level_trigger_warp) = false /\
+    statement_mentions_ident_s P._gMarioPlatform
+      (fn_body L.f_init_mario_after_warp) = false
+}.
+
+Theorem generated_jp_moved_node1e_source_certificate :
+  jp_moved_node1e_source_certificate.
+Proof.
+  constructor; vm_compute; repeat split.
+Qed.
+
 Theorem generated_unload_object_calls_deallocate_object :
   calls_ident_s S._deallocate_object (fn_body S.f_unload_object) = true.
 Proof.
@@ -539,6 +783,185 @@ Theorem generated_try_allocate_object_mentions_free_list_next :
 Proof.
   vm_compute.
   reflexivity.
+Qed.
+
+Theorem generated_deallocation_does_not_clear_object_raw_data :
+  statement_mentions_ident_s S._rawData
+    (fn_body S.f_unload_object) = false /\
+  statement_mentions_ident_s S._rawData
+    (fn_body S.f_deallocate_object) = false /\
+  calls_ident_s O._clear_dynamic_surfaces
+    (fn_body S.f_unload_object) = false.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Theorem generated_allocation_clears_raw_s32_array :
+  assigns_array_field_zero_s S._asS32
+    (fn_body S.f_allocate_object) = true.
+Proof.
+  vm_compute.
+  reflexivity.
+Qed.
+
+Theorem generated_area_unload_scans_object_lists_zero_through_twelve :
+  contains_counting_loop_s O._i 0 13 1
+    (fn_body O.f_unload_objects_from_area) = true /\
+  calls_ident_s O._unload_object
+    (fn_body O.f_unload_objects_from_area) = true.
+Proof.
+  vm_compute.
+  split; reflexivity.
+Qed.
+
+Theorem generated_relevant_ssl_behavior_object_lists :
+  behavior_begin_list_index (gvar_init BD.v_bhvKlepto) = Some 4%Z /\
+  behavior_begin_list_index (gvar_init BD.v_bhvWarp) = Some 6%Z /\
+  behavior_begin_list_index (gvar_init BD.v_bhvPyramidTop) = Some 9%Z.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Theorem generated_pyramid_top_reaches_explode_and_deactivates :
+  statement_mentions_int_s 150
+    (fn_body B.f_bhv_pyramid_top_spinning) = true /\
+  statement_mentions_int_s 6144
+    (fn_body B.f_bhv_pyramid_top_spinning) = true /\
+  calls_ident_s B._bhv_pyramid_top_explode
+    (fn_body B.f_bhv_pyramid_top_loop) = true /\
+  assigns_field_zero_s B._activeFlags
+    (fn_body B.f_bhv_pyramid_top_explode) = true /\
+  calls_ident_s B._spawn_object
+    (fn_body B.f_bhv_pyramid_top_explode) = true /\
+  statement_mentions_int_s 30
+    (fn_body B.f_bhv_pyramid_top_explode) = true.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Theorem generated_pyramid_top_loop_precedes_collision_load :
+  ident_subsequenceb
+    [BD._bhv_pyramid_top_loop; BD._load_object_collision_model]
+    (initializer_addrofs (gvar_init BD.v_bhvPyramidTop)) = true.
+Proof.
+  vm_compute.
+  reflexivity.
+Qed.
+
+Theorem generated_spawned_children_inherit_parent_area :
+  assigns_field_named_s OH._activeAreaIndex
+    (fn_body OH.f_spawn_object_at_origin) = true /\
+  statement_mentions_ident_s OH._areaIndex
+    (fn_body OH.f_spawn_object_at_origin) = true.
+Proof.
+  vm_compute.
+  split; reflexivity.
+Qed.
+
+Theorem generated_update_mario_platform_does_not_check_active_flags :
+  statement_mentions_ident_s P._activeFlags
+    (fn_body P.f_update_mario_platform) = false.
+Proof.
+  vm_compute.
+  reflexivity.
+Qed.
+
+Theorem generated_normal_frame_updates_before_delayed_warp_transition :
+  ident_subsequenceb
+    [L._warp_area; L._area_update_objects; L._initiate_delayed_warp]
+    (direct_callees_s (fn_body L.f_play_mode_normal)) = true.
+Proof.
+  vm_compute.
+  reflexivity.
+Qed.
+
+Theorem generated_change_area_pause_has_no_object_update :
+  calls_ident_s L._area_update_objects
+    (fn_body L.f_play_mode_change_area) = false.
+Proof.
+  vm_compute.
+  reflexivity.
+Qed.
+
+Theorem generated_object_warp_delay_and_area_pause_markers :
+  statement_mentions_int_s 20
+    (fn_body L.f_level_trigger_warp) = true /\
+  calls_ident_s L._level_set_transition
+    (fn_body L.f_initiate_delayed_warp) = true /\
+  statement_mentions_int_s 2
+    (fn_body L.f_initiate_delayed_warp) = true.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Record jp_pyramid_top_slot_source_certificate : Prop := {
+  cert_deallocation_keeps_raw_data :
+    statement_mentions_ident_s S._rawData
+      (fn_body S.f_unload_object) = false /\
+    statement_mentions_ident_s S._rawData
+      (fn_body S.f_deallocate_object) = false /\
+    calls_ident_s O._clear_dynamic_surfaces
+      (fn_body S.f_unload_object) = false;
+  cert_allocation_resets_raw_data :
+    assigns_array_field_zero_s S._asS32
+      (fn_body S.f_allocate_object) = true;
+  cert_area_unload_list_scan :
+    contains_counting_loop_s O._i 0 13 1
+      (fn_body O.f_unload_objects_from_area) = true /\
+    calls_ident_s O._unload_object
+      (fn_body O.f_unload_objects_from_area) = true;
+  cert_relevant_object_lists :
+    behavior_begin_list_index (gvar_init BD.v_bhvKlepto) = Some 4%Z /\
+    behavior_begin_list_index (gvar_init BD.v_bhvWarp) = Some 6%Z /\
+    behavior_begin_list_index (gvar_init BD.v_bhvPyramidTop) = Some 9%Z;
+  cert_top_explosion :
+    statement_mentions_int_s 150
+      (fn_body B.f_bhv_pyramid_top_spinning) = true /\
+    statement_mentions_int_s 6144
+      (fn_body B.f_bhv_pyramid_top_spinning) = true /\
+    calls_ident_s B._bhv_pyramid_top_explode
+      (fn_body B.f_bhv_pyramid_top_loop) = true /\
+    assigns_field_zero_s B._activeFlags
+      (fn_body B.f_bhv_pyramid_top_explode) = true /\
+    calls_ident_s B._spawn_object
+      (fn_body B.f_bhv_pyramid_top_explode) = true /\
+    statement_mentions_int_s 30
+      (fn_body B.f_bhv_pyramid_top_explode) = true;
+  cert_top_collision_after_loop :
+    ident_subsequenceb
+      [BD._bhv_pyramid_top_loop; BD._load_object_collision_model]
+      (initializer_addrofs (gvar_init BD.v_bhvPyramidTop)) = true;
+  cert_spawned_children_inherit_area :
+    assigns_field_named_s OH._activeAreaIndex
+      (fn_body OH.f_spawn_object_at_origin) = true /\
+    statement_mentions_ident_s OH._areaIndex
+      (fn_body OH.f_spawn_object_at_origin) = true;
+  cert_final_source_frame_order :
+    ident_subsequenceb
+      [O._clear_dynamic_surfaces;
+       O._update_terrain_objects;
+       O._apply_mario_platform_displacement;
+       O._unload_deactivated_objects;
+       O._update_mario_platform]
+      (direct_callees_s (fn_body O.f_update_objects)) = true /\
+    statement_mentions_ident_s P._activeFlags
+      (fn_body P.f_update_mario_platform) = false;
+  cert_transition_stops_recomputation :
+    ident_subsequenceb
+      [L._warp_area; L._area_update_objects; L._initiate_delayed_warp]
+      (direct_callees_s (fn_body L.f_play_mode_normal)) = true /\
+    calls_ident_s L._area_update_objects
+      (fn_body L.f_play_mode_change_area) = false
+}.
+
+Theorem generated_jp_pyramid_top_slot_source_certificate :
+  jp_pyramid_top_slot_source_certificate.
+Proof.
+  constructor; vm_compute; repeat split.
 Qed.
 
 Theorem generated_obj_behaviors_contains_spindel_loop :

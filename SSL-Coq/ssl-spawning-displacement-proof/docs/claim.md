@@ -137,3 +137,27 @@ does not independently create the missing pointer.  This is formalized by
 `generated_jp_clight_node1e_control_flow_capstone`.  The result does not rule
 out stale `gMarioPlatform` equality or arbitrary writes outside the enumerated
 stock writer set.
+
+The downstream counterfactual is positive.  If `heldObj == 1E` is granted,
+grabbing alone leaves the warp hitbox at its prior coordinates, but dropping
+the non-holdable object writes new live coordinates while preserving its warp
+node parameter, interaction type, hitbox, and permanent behavior.  Contact at
+that relocated entrance sets `ACT_DISAPPEARED` but does not itself write
+`gMarioPlatform`.  If Mario is standing on an object-owned moving-platform
+floor, the normal end-of-frame floor update sets that pointer and repeated
+floor selection preserves it through disappearance and the JP load.  Routing
+still ends at SSL area-2 node 14 `(0, 5500, 256)`.  This conditional result is
+`generated_jp_clight_moved_node1e_platform_seed_capstone`; it does not overturn
+the proof that stock control flow cannot obtain the initial held pointer.
+
+The observed hacked pyramid-top test has a second positive engine explanation
+that does not require area-2 slot reuse.  Given the supplied runtime identities
+Klepto 55, pyramid top 60, and node-1E warp 63, a synchronized pyramid-top
+deactivation on the final normal frame can free slot 60 and then reselect its
+same-frame collision as `gMarioPlatform`.  The later bulk unload buries 60; its
+push-front reversal reaches the three observed slots in the order 63, 55, 60.
+If destination allocation reaches 63 but not 60, slot 60 retains the top's
+`oAngleVelYaw = 0x1800` and stale origin, which the first JP displacement reads
+despite the slot being inactive and free.  This conditional snapshot theorem
+is `generated_jp_clight_observed_pyramid_top_slot_capstone`.  It explains the
+test result but does not make the relocated warp reachable in stock gameplay.
