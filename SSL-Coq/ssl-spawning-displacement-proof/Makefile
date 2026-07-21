@@ -30,6 +30,10 @@ GENERATED := \
   generated/jp_level_update.v \
   generated/jp_mario.v \
   generated/jp_interaction.v \
+  generated/jp_object_helpers.v \
+  generated/jp_mario_actions_object.v \
+  generated/jp_mario_actions_cutscene.v \
+  generated/jp_mario_actions_submerged.v \
   generated/jp_surface_load.v \
   generated/jp_macro_special_objects.v \
   generated/jp_behavior_actions.v \
@@ -67,6 +71,26 @@ generated/jp_mario.v: $(SM64)/src/game/mario.c pipeline/clightgen.sh
 
 generated/jp_interaction.v: $(SM64)/src/game/interaction.c pipeline/clightgen.sh
 	bash pipeline/clightgen.sh $< $@ $(JP_CG)
+
+generated/jp_object_helpers.v: $(SM64)/src/game/object_helpers.c \
+    pipeline/clightgen-long-double-as-double.sh pipeline/normalize-generated.sh
+	bash pipeline/clightgen-long-double-as-double.sh $< $@ $(JP_CG)
+	bash pipeline/normalize-generated.sh $@
+
+generated/jp_mario_actions_object.v: $(SM64)/src/game/mario_actions_object.c \
+    pipeline/clightgen.sh pipeline/normalize-generated.sh
+	bash pipeline/clightgen.sh $< $@ $(JP_CG)
+	bash pipeline/normalize-generated.sh $@
+
+generated/jp_mario_actions_cutscene.v: $(SM64)/src/game/mario_actions_cutscene.c \
+    pipeline/clightgen.sh pipeline/normalize-generated.sh
+	bash pipeline/clightgen.sh $< $@ $(JP_CG)
+	bash pipeline/normalize-generated.sh $@
+
+generated/jp_mario_actions_submerged.v: $(SM64)/src/game/mario_actions_submerged.c \
+    pipeline/clightgen.sh pipeline/normalize-generated.sh
+	bash pipeline/clightgen.sh $< $@ $(JP_CG)
+	bash pipeline/normalize-generated.sh $@
 
 generated/jp_surface_load.v: $(SM64)/src/engine/surface_load.c pipeline/clightgen.sh
 	bash pipeline/clightgen.sh $< $@ $(JP_CG)

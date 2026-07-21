@@ -190,6 +190,10 @@ The JP generation targets cover:
 - `src/game/level_update.c`
 - `src/game/mario.c`
 - `src/game/interaction.c`
+- `src/game/object_helpers.c`
+- `src/game/mario_actions_object.c`
+- `src/game/mario_actions_cutscene.c`
+- `src/game/mario_actions_submerged.c`
 - `src/engine/surface_load.c`
 - `src/game/macro_special_objects.c`
 - `src/game/behavior_actions.c`
@@ -380,3 +384,38 @@ only break into loot; the cannon lid only spawns the non-surface cannon.
 Spindel-depth route under the closed-world assumption that the seed must arise
 from one of the enumerated spawned-position, modeled-transport, ordinary-speed,
 or investigated desync/clone mechanisms.
+
+## Node 1E held-object route
+
+`proofs/Node1EWarpControlFlow.v` closes the separate proposal of relocating the
+Area 1 node-1E warp through Mario's held-object system.  Touching 1E really does
+set `interactObj` and `usedObj` to the warp object, but it also sets
+`ACT_DISAPPEARED` before Mario action dispatch.  The pickup action therefore
+cannot copy that transient pointer to `heldObj`, and a simultaneous grabbable
+collision is later in the interaction table and is skipped after the successful
+warp handler.
+
+The proof also grants the strongest stale-held-slot premise.  Even if area
+loading makes an old held pointer alias the newly allocated node-1E slot,
+normal `init_mario()` clears it before a controllable update.  Setting Mario's
+action to zero skips that clear only by also skipping destination Mario
+initialization and action execution.  Finally, `obj_set_held_state()` can
+mechanically redirect a non-holdable 1E object's current command, but every
+direct stock caller is one of Mario's grab, drop, or throw helpers and already
+operates on `heldObj`; this is a consequence of the missing alias, not an
+independent route.  The same warp preemption applies to the special Bowser
+pickup action, which also calls the common grab helper only when dispatched.
+
+The source bridge is
+`generated_jp_node1e_control_flow_source_certificate`, proved by `vm_compute`
+over the generated JP interaction, Mario, object-helper, object-action,
+cutscene-action, submerged-action, spawn, level-update, behavior-data, and
+behavior-action modules.  The capstone is
+`generated_jp_clight_node1e_control_flow_capstone`.  Full details and scope are
+in `docs/node1e-held-object-disproof.md`.
+
+Generating `jp_object_helpers.v` translates seven CompCert-unsupported C
+`long double` constants as `double`; all are outside the audited
+`obj_set_held_state()` function.  The compatibility step is isolated in
+`pipeline/clightgen-long-double-as-double.sh` and leaves the source tree
+unchanged.

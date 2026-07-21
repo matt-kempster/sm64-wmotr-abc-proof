@@ -4,7 +4,9 @@ From SSLSpawning.Generated Require Import
   jp_area jp_level_update jp_level_script jp_ssl_script
   jp_ssl_area1_macro jp_ssl_area2_macro jp_behavior_data
   jp_object_list_processor jp_platform_displacement jp_spawn_object
-  jp_obj_behaviors jp_behavior_actions jp_mario jp_interaction.
+  jp_obj_behaviors jp_behavior_actions jp_mario jp_interaction
+  jp_object_helpers jp_mario_actions_object jp_mario_actions_cutscene
+  jp_mario_actions_submerged.
 From SSLSpawning.Proofs Require Import ASTFacts.
 
 Import ListNotations.
@@ -26,6 +28,10 @@ Module BD := jp_behavior_data.
 Module BA := jp_behavior_actions.
 Module MJ := jp_mario.
 Module IX := jp_interaction.
+Module OH := jp_object_helpers.
+Module MAO := jp_mario_actions_object.
+Module MAC := jp_mario_actions_cutscene.
+Module MAS := jp_mario_actions_submerged.
 
 Definition id_clear_mario_platform : ident := $"clear_mario_platform".
 
@@ -200,6 +206,316 @@ Theorem generated_nonfading_interact_warp_sets_mario_action :
 Proof.
   vm_compute.
   reflexivity.
+Qed.
+
+Theorem generated_interact_warp_stores_object_in_interact_and_used :
+  assigns_field_from_ident_s IX._interactObj IX._o
+    (fn_body IX.f_interact_warp) = true /\
+  assigns_field_from_ident_s IX._usedObj IX._o
+    (fn_body IX.f_interact_warp) = true.
+Proof.
+  vm_compute.
+  split; reflexivity.
+Qed.
+
+Theorem generated_nonfading_interact_warp_uses_disappeared_action :
+  statement_mentions_int_s 4864
+    (fn_body IX.f_interact_warp) = true.
+Proof.
+  vm_compute.
+  reflexivity.
+Qed.
+
+Theorem generated_warp_handler_index_is_4 :
+  ident_index IX._interact_warp
+    (initializer_addrofs (gvar_init IX.v_sInteractionHandlers)) = Some 4%nat.
+Proof.
+  vm_compute.
+  reflexivity.
+Qed.
+
+Theorem generated_grabbable_handler_index_is_29 :
+  ident_index IX._interact_grabbable
+    (initializer_addrofs (gvar_init IX.v_sInteractionHandlers)) = Some 29%nat.
+Proof.
+  vm_compute.
+  reflexivity.
+Qed.
+
+Theorem generated_interaction_dispatch_contains_success_break :
+  statement_contains_break_s
+    (fn_body IX.f_mario_process_interactions) = true.
+Proof.
+  vm_compute.
+  reflexivity.
+Qed.
+
+Theorem generated_set_mario_action_returns_true :
+  returns_int_s 1 (fn_body MJ.f_set_mario_action) = true.
+Proof.
+  vm_compute.
+  reflexivity.
+Qed.
+
+Theorem generated_interaction_dispatch_checks_intangible_action_flag :
+  statement_mentions_ident_s IX._action
+    (fn_body IX.f_mario_process_interactions) = true /\
+  statement_mentions_int_s 12
+    (fn_body IX.f_mario_process_interactions) = true.
+Proof.
+  vm_compute.
+  split; reflexivity.
+Qed.
+
+Theorem generated_mario_grab_used_object_copies_used_to_held :
+  copies_field_via_temp_s IX._heldObj IX._usedObj
+    (fn_body IX.f_mario_grab_used_object) = true /\
+  calls_ident_s IX._obj_set_held_state
+    (fn_body IX.f_mario_grab_used_object) = true.
+Proof.
+  vm_compute.
+  split; reflexivity.
+Qed.
+
+Theorem generated_picking_up_action_calls_grab_used_object :
+  calls_ident_s MAO._mario_grab_used_object
+    (fn_body MAO.f_act_picking_up) = true.
+Proof.
+  vm_compute.
+  reflexivity.
+Qed.
+
+Theorem generated_bowser_pickup_action_calls_grab_used_object :
+  calls_ident_s MAO._mario_grab_used_object
+    (fn_body MAO.f_act_picking_up_bowser) = true.
+Proof.
+  vm_compute.
+  reflexivity.
+Qed.
+
+Definition id_mario_grab_used_object : ident := $"mario_grab_used_object".
+
+Theorem generated_disappeared_action_does_not_grab_used_object :
+  calls_ident_s id_mario_grab_used_object
+    (fn_body MAC.f_act_disappeared) = false.
+Proof.
+  vm_compute.
+  reflexivity.
+Qed.
+
+Theorem generated_water_grab_selects_grabbable_before_grab :
+  ident_subsequenceb
+    [MAS._mario_get_collided_object; MAS._mario_grab_used_object]
+    (direct_callees_s (fn_body MAS.f_check_water_grab)) = true /\
+  assigns_field_named_s MAS._usedObj
+    (fn_body MAS.f_check_water_grab) = true.
+Proof.
+  vm_compute.
+  split; reflexivity.
+Qed.
+
+Theorem generated_init_mario_clears_object_pointers :
+  assigns_field_zero_s MJ._heldObj (fn_body MJ.f_init_mario) = true /\
+  assigns_field_zero_s MJ._riddenObj (fn_body MJ.f_init_mario) = true /\
+  assigns_field_zero_s MJ._usedObj (fn_body MJ.f_init_mario) = true.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Theorem generated_warp_area_loads_before_mario_initialization :
+  ident_subsequenceb
+    [L._unload_mario_area; L._load_area; L._init_mario_after_warp]
+    (direct_callees_s (fn_body L.f_warp_area)) = true.
+Proof.
+  vm_compute.
+  reflexivity.
+Qed.
+
+Theorem generated_init_after_warp_loads_mario_then_clears_state :
+  ident_subsequenceb
+    [L._load_mario_area; L._init_mario; L._set_mario_initial_action]
+    (direct_callees_s (fn_body L.f_init_mario_after_warp)) = true /\
+  statement_mentions_ident_s L._action
+    (fn_body L.f_init_mario_after_warp) = true /\
+  statement_mentions_int_s 0
+    (fn_body L.f_init_mario_after_warp) = true.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Theorem generated_execute_mario_action_has_action_zero_guard :
+  statement_mentions_ident_s MJ._action
+    (fn_body MJ.f_execute_mario_action) = true /\
+  statement_mentions_int_s 0
+    (fn_body MJ.f_execute_mario_action) = true.
+Proof.
+  vm_compute.
+  split; reflexivity.
+Qed.
+
+Theorem generated_obj_set_held_state_can_redirect_nonholdable_command :
+  assigns_field_named_s OH._curBhvCommand
+    (fn_body OH.f_obj_set_held_state) = true /\
+  assigns_field_named_s OH._bhvStackIndex
+    (fn_body OH.f_obj_set_held_state) = true /\
+  statement_mentions_ident_s OH._heldBehavior
+    (fn_body OH.f_obj_set_held_state) = true /\
+  assigns_field_named_s OH._behavior
+    (fn_body OH.f_obj_set_held_state) = false.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Theorem generated_obj_set_held_state_direct_callers_are_held_helpers :
+  direct_callers IX.prog IX._obj_set_held_state =
+    [IX._mario_grab_used_object;
+     IX._mario_drop_held_object;
+     IX._mario_throw_held_object] /\
+  statement_mentions_ident_s IX._heldObj
+    (fn_body IX.f_mario_grab_used_object) = true /\
+  statement_mentions_ident_s IX._heldObj
+    (fn_body IX.f_mario_drop_held_object) = true /\
+  statement_mentions_ident_s IX._heldObj
+    (fn_body IX.f_mario_throw_held_object) = true.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Theorem generated_create_object_overwrites_behavior_pointers :
+  assigns_field_named_s S._curBhvCommand
+    (fn_body S.f_create_object) = true /\
+  assigns_field_named_s S._behavior
+    (fn_body S.f_create_object) = true.
+Proof.
+  vm_compute.
+  split; reflexivity.
+Qed.
+
+Theorem generated_warp_behavior_calls_only_warp_native_of_relevant_targets :
+  initializer_list_mentions_addrof BD._bhv_warp_loop
+    (gvar_init BD.v_bhvWarp) = true /\
+  initializer_list_mentions_addrof BD._bhvCarrySomething3
+    (gvar_init BD.v_bhvWarp) = false /\
+  initializer_list_mentions_addrof BD._bhvCarrySomething4
+    (gvar_init BD.v_bhvWarp) = false.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Theorem generated_warp_native_does_not_redirect_behavior_command :
+  assigns_field_named_s BA._curBhvCommand
+    (fn_body BA.f_bhv_warp_loop) = false /\
+  assigns_field_named_s BA._behavior
+    (fn_body BA.f_bhv_warp_loop) = false.
+Proof.
+  vm_compute.
+  split; reflexivity.
+Qed.
+
+Record jp_node1e_control_flow_source_certificate : Prop := {
+  cert_node1e_warp_stores_interaction_pointers :
+    assigns_field_from_ident_s IX._interactObj IX._o
+      (fn_body IX.f_interact_warp) = true /\
+    assigns_field_from_ident_s IX._usedObj IX._o
+      (fn_body IX.f_interact_warp) = true;
+  cert_node1e_warp_sets_disappeared :
+    calls_ident_s IX._set_mario_action
+      (fn_body IX.f_interact_warp) = true /\
+    statement_mentions_int_s 4864
+      (fn_body IX.f_interact_warp) = true /\
+    returns_int_s 1 (fn_body MJ.f_set_mario_action) = true;
+  cert_warp_precedes_grabbable :
+    ident_index IX._interact_warp
+      (initializer_addrofs (gvar_init IX.v_sInteractionHandlers)) = Some 4%nat /\
+    ident_index IX._interact_grabbable
+      (initializer_addrofs (gvar_init IX.v_sInteractionHandlers)) = Some 29%nat /\
+    statement_contains_break_s
+      (fn_body IX.f_mario_process_interactions) = true /\
+    statement_mentions_ident_s IX._action
+      (fn_body IX.f_mario_process_interactions) = true /\
+    statement_mentions_int_s 12
+      (fn_body IX.f_mario_process_interactions) = true;
+  cert_interactions_precede_action_dispatch :
+    ident_subsequenceb
+      [MJ._update_mario_inputs;
+       MJ._mario_process_interactions;
+       MJ._mario_execute_stationary_action]
+      (direct_callees_s (fn_body MJ.f_execute_mario_action)) = true;
+  cert_grab_copies_used_to_held :
+    copies_field_via_temp_s IX._heldObj IX._usedObj
+      (fn_body IX.f_mario_grab_used_object) = true /\
+    calls_ident_s IX._obj_set_held_state
+      (fn_body IX.f_mario_grab_used_object) = true;
+  cert_pickup_and_disappeared_actions :
+    calls_ident_s MAO._mario_grab_used_object
+      (fn_body MAO.f_act_picking_up) = true /\
+    calls_ident_s MAO._mario_grab_used_object
+      (fn_body MAO.f_act_picking_up_bowser) = true /\
+    calls_ident_s id_mario_grab_used_object
+      (fn_body MAC.f_act_disappeared) = false;
+  cert_water_grab_selects_grabbable :
+    ident_subsequenceb
+      [MAS._mario_get_collided_object; MAS._mario_grab_used_object]
+      (direct_callees_s (fn_body MAS.f_check_water_grab)) = true /\
+    assigns_field_named_s MAS._usedObj
+      (fn_body MAS.f_check_water_grab) = true;
+  cert_init_clears_held_ridden_used :
+    assigns_field_zero_s MJ._heldObj (fn_body MJ.f_init_mario) = true /\
+    assigns_field_zero_s MJ._riddenObj (fn_body MJ.f_init_mario) = true /\
+    assigns_field_zero_s MJ._usedObj (fn_body MJ.f_init_mario) = true;
+  cert_area_load_then_init :
+    ident_subsequenceb
+      [L._unload_mario_area; L._load_area; L._init_mario_after_warp]
+      (direct_callees_s (fn_body L.f_warp_area)) = true /\
+    ident_subsequenceb
+      [L._load_mario_area; L._init_mario; L._set_mario_initial_action]
+      (direct_callees_s (fn_body L.f_init_mario_after_warp)) = true;
+  cert_action_zero_guards_init_and_execution :
+    statement_mentions_ident_s L._action
+      (fn_body L.f_init_mario_after_warp) = true /\
+    statement_mentions_int_s 0
+      (fn_body L.f_init_mario_after_warp) = true /\
+    statement_mentions_ident_s MJ._action
+      (fn_body MJ.f_execute_mario_action) = true /\
+    statement_mentions_int_s 0
+      (fn_body MJ.f_execute_mario_action) = true;
+  cert_nonholdable_redirect_and_allocation_reset :
+    assigns_field_named_s OH._curBhvCommand
+      (fn_body OH.f_obj_set_held_state) = true /\
+    assigns_field_named_s OH._bhvStackIndex
+      (fn_body OH.f_obj_set_held_state) = true /\
+    assigns_field_named_s OH._behavior
+      (fn_body OH.f_obj_set_held_state) = false /\
+    direct_callers IX.prog IX._obj_set_held_state =
+      [IX._mario_grab_used_object;
+       IX._mario_drop_held_object;
+       IX._mario_throw_held_object] /\
+    assigns_field_named_s S._curBhvCommand
+      (fn_body S.f_create_object) = true /\
+    assigns_field_named_s S._behavior
+      (fn_body S.f_create_object) = true;
+  cert_warp_behavior_does_not_self_redirect :
+    initializer_list_mentions_addrof BD._bhv_warp_loop
+      (gvar_init BD.v_bhvWarp) = true /\
+    initializer_list_mentions_addrof BD._bhvCarrySomething3
+      (gvar_init BD.v_bhvWarp) = false /\
+    initializer_list_mentions_addrof BD._bhvCarrySomething4
+      (gvar_init BD.v_bhvWarp) = false /\
+    assigns_field_named_s BA._curBhvCommand
+      (fn_body BA.f_bhv_warp_loop) = false /\
+    assigns_field_named_s BA._behavior
+      (fn_body BA.f_bhv_warp_loop) = false
+}.
+
+Theorem generated_jp_node1e_control_flow_source_certificate :
+  jp_node1e_control_flow_source_certificate.
+Proof.
+  constructor; vm_compute; repeat split.
 Qed.
 
 Theorem generated_unload_object_calls_deallocate_object :

@@ -280,7 +280,7 @@ Inductive interaction_kind : Type :=
 Definition interaction_handler_index (kind : interaction_kind) : nat :=
   match kind with
   | InteractionWarp => 4%nat
-  | InteractionGrabbable => 28%nat
+  | InteractionGrabbable => 29%nat
   | InteractionOther => 99%nat
   end.
 

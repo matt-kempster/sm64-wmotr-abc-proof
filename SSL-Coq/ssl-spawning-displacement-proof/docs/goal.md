@@ -153,6 +153,21 @@ checkpoint pass did not find a positive route either; it shifts any remaining
 castle-based possibility to the same kind of outside-model desync/memory
 corruption opening.
 
+The node-1E warp-relocation proposal is now closed separately by
+`proofs/Node1EWarpControlFlow.v`.  The source-backed control-flow chain is
+`warp touch -> usedObj/interactObj = 1E -> ACT_DISAPPEARED`, with no execution of
+the old pickup action.  The generated table places warp before grabbable and
+the dispatcher stops after a successful warp handler.  Stale held-slot reuse is
+cleared by normal Mario initialization; action zero avoids the clear only in an
+unloaded, non-dispatchable Mario state.  Redirecting 1E's current behavior
+command through `obj_set_held_state()` already requires the held pointer that
+these routes cannot produce.
+
+The formal capstone is
+`generated_jp_clight_node1e_control_flow_capstone`.  It closes the enumerated
+stock holding and behavior-command routes, not arbitrary pointer writes and not
+the independent stale-`gMarioPlatform` mechanism.
+
 The target is still not full star collection.  The target is either:
 
 - a future concrete outside-pyramid seed theorem feeding the already-proved
