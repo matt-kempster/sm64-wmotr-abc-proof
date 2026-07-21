@@ -113,7 +113,8 @@ spawns a non-surface cannon.
 `proofs/ClosedWorldDisproof.v` is now the route-level disproof under explicit
 ordinary-gameplay assumptions.  The closed world consists of original spawned
 surface overlap, modeled source-platform transport, ordinary Mario-speed
-timing, and the investigated desync/clone leads.  `proofs/MarioSpeedWarp.v`
+timing, the investigated desync/clone leads, and the explicit stock-node-1E
+stale-alias/coordinate-split candidates.  `proofs/MarioSpeedWarp.v`
 rules out the ordinary-speed loophole: object-warp collision is sampled before
 Mario action movement, interactions are processed before action movement
 dispatch, and `update_mario_platform()` recomputes the pointer after the action
@@ -129,6 +130,19 @@ contact cannot reach that floor before the final platform re-query.  The proof
 also shows that this re-query clears or replaces an old top pointer, so merely
 arriving at the warp with a stale value does not preserve it through the
 normal trigger frame.
+
+`proofs/StockNode1EBypasses.v` now closes the two focused valid-memory
+candidates.  JP preservation plus allocation can conditionally create a stale
+slot alias in SSL area 1, but node 1E's static unowned floor makes the preceding
+platform query write `NULL`, and allocation cannot create a global pointer
+from `NULL`.  Platform displacement also creates a real transient
+MarioState/Mario-object split: state moves before collision reads the old
+object coordinates, then the state-to-object copy runs before platform
+selection.  This would be sufficient only if a non-null platform pointer were
+already present at node 1E.  The same preceding query removes that prerequisite,
+and `ACT_DISAPPEARED` prevents ordinary movement from adding it afterward.
+The combined theorem is
+`stock_node1e_stale_alias_and_coordinate_desync_capstone`.
 
 The theorem
 `no_closed_world_ssl_spawning_displacement_route_to_spindel` proves that no

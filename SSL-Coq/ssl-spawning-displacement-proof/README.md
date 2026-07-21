@@ -91,7 +91,7 @@ Spindel depth-60 reuse obligation.  This is not a global theorem against every
 possible memory-corruption or Mario/object-position desync; it is a
 source-backed narrowing of where a positive route would have to come from.
 
-`proofs/DesyncMechanismSearch.v` records the next source audit.  A useful
+`proofs/DesyncMechanismSearch.v` records the next source audit.  One attempted
 Mario/object-position route would need a write to `gMarioObject->oPos` after
 `bhv_mario_update()` copies `MarioState.pos` into the Mario object and before
 `update_mario_platform()` reads the object position.  The direct write census in
@@ -122,12 +122,34 @@ inside the non-fading warp and tries to run back onto a platform, the warp
 interaction changes Mario to `ACT_DISAPPEARED` before normal action movement.
 The theorem is `ordinary_mario_speed_cannot_replace_platform_warp_overlap`.
 
+`proofs/StockNode1EBypasses.v` handles valid stale-slot aliasing and the earlier
+MarioState/Mario-object phase split directly.  A stale alias can conditionally
+form during JP area loading when allocation reaches a slot named by the
+preserved pointer.  It cannot survive at stock node 1E: the node is centered
+on static area terrain, the audited object-owned surfaces do not overlap it,
+and the end-of-frame platform query overwrites any prior pointer with `NULL`.
+Allocation can replace slot contents, but cannot create a pointer from that
+null global.
+
+The same proof establishes a real conditional coordinate effect.  Platform
+displacement updates `MarioState.pos`; collision then reads the old Mario
+object position; Mario's behavior copies state back to the object; and the
+platform query reads the copied position.  A preexisting pointer could
+therefore let collision see node 1E while selection saw the pyramid top.  The
+stock route cannot supply that prerequisite because the preceding node-1E
+platform query has already cleared the pointer, and `ACT_DISAPPEARED` prevents
+normal movement from creating the split afterward.  The focused writeup is
+`docs/stock-node1e-alias-desync.md`; the negative theorems are
+`stale_slot_alias_does_not_solve_stock_node1e` and
+`coordinate_desync_does_not_solve_stock_node1e`.
+
 `proofs/ClosedWorldDisproof.v` combines those obstruction layers.  Its theorem
 `no_closed_world_ssl_spawning_displacement_route_to_spindel` says that no route
 in the explicit closed world can both seed `gMarioPlatform` at an Area 1 ->
 Area 2 warp and satisfy the Spindel depth-60 reuse obligation.  The closed world
 is the union of original spawned surfaces, modeled source-platform transport,
-ordinary Mario speed, and the investigated desync/clone mechanisms.  The
+ordinary Mario speed, the investigated desync/clone mechanisms, and the
+explicit stock-node-1E stale-alias and coordinate-split candidates.  The
 conditional inside-pyramid Spindel theorem remains available for any future
 mechanism outside that set.
 
@@ -185,6 +207,7 @@ The JP generation targets cover:
 
 - `src/game/platform_displacement.c`
 - `src/game/object_list_processor.c`
+- `src/game/object_collision.c`
 - `src/game/spawn_object.c`
 - `src/game/area.c`
 - `src/game/level_update.c`

@@ -188,6 +188,16 @@ help at stock node 1E: the warp pipeline never writes the global, and the
 end-of-frame platform update clears or replaces even an old top pointer unless
 its current floor query returns the top.  This is proved by
 `stock_warp_update_cannot_preserve_or_create_top_pointer`.
+- Valid stale-slot alias: JP preservation plus front-list allocation can make
+  an old pointer name a newly allocated area-1 object.  At stock node 1E, the
+  static unowned floor causes the preceding platform query to overwrite that
+  pointer with `NULL`; allocation cannot recreate the global from `NULL`.
+- MarioState/Mario-object phase split: platform displacement really does move
+  `MarioState.pos` before collision reads the old Mario-object position, then
+  Mario's update copies state back before platform selection.  This would be
+  sufficient if a non-null pointer already existed at node 1E, but the prior
+  static-floor query rules out that prerequisite.  See
+  `stock_node1e_stale_alias_and_coordinate_desync_capstone`.
 - Known APG-style visible desync: visible model position is not enough because
   warp/platform checks use `gMarioObject->oPos`; the known Chuckya APG source is
   absent in SSL area 1.
@@ -283,13 +293,19 @@ The proof is explicit about these assumptions:
   matrix-rotated Mario position.
 - The fixed-position and transport refutations use conservative bounding boxes
   and explicitly modeled movement envelopes.
+- The stock-node-1E alias/desync theorem assumes the normal synchronized frame
+  boundary and the audited SSL area-1 writer set.  Its static-floor fact comes
+  from the area-1 collision square centered at `(-2048, 768, -1024)`.  The
+  separate conditional theorem deliberately grants a non-null pointer to show
+  that state-only displacement would otherwise have the right phase shape.
 - The closed-world disproof covers the enumerated source-backed mechanisms:
   original placements, modeled built-in transport, ordinary Mario speed,
-  APG/tornado leads, audited post-copy writers, audited spawned clones, and the
-  castle checkpoint idea.
-- Arbitrary memory corruption, a new post-copy Mario/object-position desync, or
-  a new source-backed clone/transport mechanism outside the audit is not ruled
-  out by the closed-world theorem.
+  APG/tornado leads, audited post-copy writers, audited spawned clones, the
+  stock-node-1E stale-alias/coordinate-split candidates, and the castle
+  checkpoint idea.
+- A new persistent MarioState/Mario-object desync or a new source-backed
+  clone/transport mechanism outside the audited writer set is not ruled out by
+  the closed-world theorem.
 - The node-1E held-object theorem assumes valid memory, stock object lifecycle,
   and the enumerated stock pickup/load/behavior-command writers.  It does not
   rule out an independently established arbitrary pointer writer, and it does

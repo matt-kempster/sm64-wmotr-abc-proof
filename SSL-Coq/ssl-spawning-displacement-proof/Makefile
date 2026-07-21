@@ -25,6 +25,7 @@ JP_CG := -nostdinc -fstruct-passing \
 GENERATED := \
   generated/jp_platform_displacement.v \
   generated/jp_object_list_processor.v \
+  generated/jp_object_collision.v \
   generated/jp_spawn_object.v \
   generated/jp_area.v \
   generated/jp_level_update.v \
@@ -57,6 +58,9 @@ generated/jp_platform_displacement.v: $(SM64)/src/game/platform_displacement.c p
 	bash pipeline/clightgen.sh $< $@ $(JP_CG)
 
 generated/jp_object_list_processor.v: $(SM64)/src/game/object_list_processor.c pipeline/clightgen.sh
+	bash pipeline/clightgen.sh $< $@ $(JP_CG)
+
+generated/jp_object_collision.v: $(SM64)/src/game/object_collision.c pipeline/clightgen.sh
 	bash pipeline/clightgen.sh $< $@ $(JP_CG)
 
 generated/jp_spawn_object.v: $(SM64)/src/game/spawn_object.c pipeline/clightgen.sh

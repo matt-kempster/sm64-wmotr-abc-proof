@@ -96,13 +96,23 @@
   snaps the stock-warp contact position to a floor far below the top, and the
   same normal update clears or replaces any prior top pointer.  The focused
   theorem is `stock_warp_update_cannot_preserve_or_create_top_pointer`.
+- [x] Check valid stale-slot aliasing and the pre-collision
+  MarioState/Mario-object phase split at stock node 1E.  JP preservation and
+  allocation can conditionally form an alias, and state-only platform
+  displacement really can let collision read the old object position before
+  platform selection reads the copied state position.  The route still fails:
+  the preceding query on node 1E's static, unowned floor writes `NULL`, and
+  allocation cannot create a pointer from `NULL`.  The theorems are
+  `stale_slot_alias_does_not_solve_stock_node1e`,
+  `coordinate_desync_does_not_solve_stock_node1e`, and the combined
+  `stock_node1e_stale_alias_and_coordinate_desync_capstone`.
 - [x] Investigate Astral Projection Glitch as a Mario/object-position desync
   lead.  The proof records that visible-model desync alone is ignored by the
   seed checks: object hitbox collision and `update_mario_platform()` use
   `gMarioObject->oPos`, while the visible model uses `header.gfx.pos`.
-  A useful route would need a post-copy `gMarioObject->oPos` desync.  The known
-  Chuckya-based APG setup is unavailable in SSL because SSL area 1 has no
-  Chuckya source.
+  One possible route would need a post-copy `gMarioObject->oPos` desync.  The
+  known Chuckya-based APG setup is unavailable in SSL because SSL area 1 has
+  no Chuckya source.
 - [x] Investigate SSL tornado transportation / rapid home oscillation.  The
   proof records that Tweesters are `OBJ_LIST_POLELIKE` interaction objects, not
   source platform surfaces, and that they hide once farther than 3000 units from

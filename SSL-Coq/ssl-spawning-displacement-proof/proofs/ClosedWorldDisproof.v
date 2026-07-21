@@ -1,7 +1,7 @@
 From Coq Require Import List ZArith.
 From SSLSpawning.Proofs Require Import FreeListReuse SSLFacts
   SourcePlatformOverlap SourcePlatformTransport MarioSpeedWarp
-  DesyncMechanismSearch.
+  DesyncMechanismSearch StockNode1EBypasses.
 
 Local Open Scope Z_scope.
 
@@ -11,7 +11,9 @@ Inductive closed_world_seed_mechanism : Type :=
     (mechanism : modeled_source_platform_transport)
 | ClosedWorldOrdinaryMarioSpeed
 | ClosedWorldInvestigatedDesync
-    (mechanism : investigated_desync_mechanism).
+    (mechanism : investigated_desync_mechanism)
+| ClosedWorldStockNode1EStaleAlias
+| ClosedWorldStockNode1ECoordinateDesync.
 
 Definition closed_world_seed_mechanism_can_set_platform_at_area2_warp
     (mechanism : closed_world_seed_mechanism) : Prop :=
@@ -24,6 +26,10 @@ Definition closed_world_seed_mechanism_can_set_platform_at_area2_warp
       ordinary_mario_speed_can_seed_warp_platform_overlap
   | ClosedWorldInvestigatedDesync mechanism =>
       investigated_mechanism_can_seed_warp_platform_overlap mechanism
+  | ClosedWorldStockNode1EStaleAlias =>
+      stale_slot_alias_solves_stock_node1e
+  | ClosedWorldStockNode1ECoordinateDesync =>
+      coordinate_desync_solves_stock_node1e
   end.
 
 Theorem closed_world_seed_mechanisms_do_not_set_platform_at_area2_warp :
@@ -31,13 +37,15 @@ Theorem closed_world_seed_mechanisms_do_not_set_platform_at_area2_warp :
     ~ closed_world_seed_mechanism_can_set_platform_at_area2_warp mechanism.
 Proof.
   intros mechanism Hseed.
-  destruct mechanism as [| mechanism | | mechanism].
+  destruct mechanism as [| mechanism | | mechanism | |].
   - exact (original_area1_source_platform_overlap_is_impossible Hseed).
   - exact (modeled_source_platform_transport_mechanisms_do_not_seed_warp
       mechanism Hseed).
   - exact (ordinary_mario_speed_cannot_replace_platform_warp_overlap Hseed).
   - exact (investigated_desync_mechanisms_do_not_currently_seed_overlap
       mechanism Hseed).
+  - exact (stale_slot_alias_does_not_solve_stock_node1e Hseed).
+  - exact (coordinate_desync_does_not_solve_stock_node1e Hseed).
 Qed.
 
 Record closed_world_spindel_depth_route

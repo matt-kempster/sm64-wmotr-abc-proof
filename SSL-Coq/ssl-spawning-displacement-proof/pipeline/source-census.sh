@@ -25,6 +25,7 @@ object_list_processor="$SOURCE_ROOT/src/game/object_list_processor.c"
 platform_displacement="$SOURCE_ROOT/src/game/platform_displacement.c"
 update_source="$SOURCE_ROOT/src/game/object_list_processor.c"
 ssl_script="$SOURCE_ROOT/levels/ssl/script.c"
+ssl_area1_collision="$SOURCE_ROOT/levels/ssl/areas/1/collision.inc.c"
 ssl_area1_macro="$SOURCE_ROOT/levels/ssl/areas/1/macro.inc.c"
 ssl_area2_macro="$SOURCE_ROOT/levels/ssl/areas/2/macro.inc.c"
 macro_presets="$SOURCE_ROOT/include/macro_presets.inc.c"
@@ -440,6 +441,11 @@ require_order "$object_list_processor" \
   'gCurrentObject->oPosX = gMarioStates\[i\]\.pos\[0\];' \
   'gCurrentObject->oPosY = gMarioStates\[i\]\.pos\[1\];' \
   'gCurrentObject->oPosZ = gMarioStates\[i\]\.pos\[2\];'
+require_order "$platform_displacement" \
+  '^void set_mario_pos\(f32 x, f32 y, f32 z\)' \
+  'gMarioStates\[0\]\.pos\[0\] = x;' \
+  'gMarioStates\[0\]\.pos\[1\] = y;' \
+  'gMarioStates\[0\]\.pos\[2\] = z;'
 require_order "$object_collision" \
   '^s32 detect_object_hitbox_overlap\(struct Object \*a, struct Object \*b\)' \
   'f32 dx = a->oPosX - b->oPosX;' \
@@ -507,5 +513,11 @@ require_pattern "$message_panel_collision" 'COL_VERTEX\(-44, -9, -12\)'
 require_pattern "$message_panel_collision" 'COL_VERTEX\(45, 126, 20\)'
 require_pattern "$cannon_lid_collision" 'COL_VERTEX\(112, 0, -111\)'
 require_pattern "$cannon_lid_collision" 'COL_VERTEX\(-111, 0, 112\)'
+require_pattern "$ssl_area1_collision" 'COL_VERTEX\(-1945, 768, -921\)'
+require_pattern "$ssl_area1_collision" 'COL_VERTEX\(-1945, 768, -1125\)'
+require_pattern "$ssl_area1_collision" 'COL_VERTEX\(-2149, 768, -1125\)'
+require_pattern "$ssl_area1_collision" 'COL_VERTEX\(-2149, 768, -921\)'
+require_pattern "$ssl_area1_collision" 'COL_TRI\(498, 500, 501\)'
+require_pattern "$ssl_area1_collision" 'COL_TRI\(498, 501, 502\)'
 
 echo "JP spawning displacement source census matches expected source facts."

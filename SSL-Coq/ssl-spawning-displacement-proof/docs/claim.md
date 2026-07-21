@@ -112,10 +112,29 @@ update runs before the delayed transition, it also clears or replaces an old
 top pointer.  The focused theorem is
 `stock_warp_update_cannot_preserve_or_create_top_pointer`.
 
+A valid stale-slot alias does not change that conclusion.  JP preservation and
+front-list reuse can conditionally make an old pointer name a newly allocated
+SSL area-1 object, but allocation only changes slot contents.  Node 1E is on a
+static, unowned floor, so the preceding `update_mario_platform()` query writes
+`NULL`; allocation cannot recreate a pointer from that null global.  This is
+`stale_slot_alias_does_not_solve_stock_node1e`.
+
+There is a genuine temporary MarioState/Mario-object split in the update
+order.  Platform displacement writes `MarioState.pos`, collision reads the old
+Mario-object coordinates, and the later state-to-object copy makes platform
+selection read the displaced coordinates.  This is conditionally the right
+shape for collision at node 1E and selection at the top.  It still needs a
+non-null platform pointer at the start of the warp frame, exactly what the
+preceding static-floor query removes.  Warp interaction then selects
+`ACT_DISAPPEARED`, so ordinary movement cannot create the split afterward.
+The result is `coordinate_desync_does_not_solve_stock_node1e` under the audited
+stock writer/lifecycle assumptions.
+
 The current route-level theorem is therefore
 `no_closed_world_ssl_spawning_displacement_route_to_spindel`: under the explicit
 closed world of original spawned surfaces, modeled source-platform transport,
-ordinary Mario speed, and investigated desync/clone leads, SSL cannot both seed
+ordinary Mario speed, investigated desync/clone leads, and the explicit
+stock-node stale-alias/coordinate-split candidates, SSL cannot both seed
 `gMarioPlatform` at the warp and place that stale slot at Spindel's depth-60
 allocation position.  No remaining source-backed positive route candidate is
 currently known from the source audit.

@@ -3,7 +3,8 @@ From compcert Require Import AST Clight Clightdefs.
 From SSLSpawning.Generated Require Import
   jp_area jp_level_update jp_level_script jp_ssl_script
   jp_ssl_area1_macro jp_ssl_area2_macro jp_behavior_data
-  jp_object_list_processor jp_platform_displacement jp_spawn_object
+  jp_object_list_processor jp_object_collision jp_platform_displacement
+  jp_spawn_object
   jp_obj_behaviors jp_behavior_actions jp_mario jp_interaction
   jp_object_helpers jp_mario_actions_object jp_mario_actions_cutscene
   jp_mario_actions_submerged jp_mario_step jp_surface_collision.
@@ -15,6 +16,7 @@ Local Open Scope string_scope.
 Local Open Scope clight_scope.
 
 Module O := jp_object_list_processor.
+Module OC := jp_object_collision.
 Module P := jp_platform_displacement.
 Module S := jp_spawn_object.
 Module B := jp_obj_behaviors.
@@ -189,6 +191,55 @@ Theorem generated_bhv_mario_update_executes_action_before_copy :
 Proof.
   vm_compute.
   reflexivity.
+Qed.
+
+Theorem generated_collision_reads_mario_object_position_slots :
+  statement_mentions_array_slot_s OC._asF32 6
+    (fn_body OC.f_detect_object_hitbox_overlap) = true /\
+  statement_mentions_array_slot_s OC._asF32 7
+    (fn_body OC.f_detect_object_hitbox_overlap) = true /\
+  statement_mentions_array_slot_s OC._asF32 8
+    (fn_body OC.f_detect_object_hitbox_overlap) = true.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Theorem generated_set_mario_pos_writes_state_and_not_mario_object :
+  assigns_array_slot_s P._pos 0 (fn_body P.f_set_mario_pos) = true /\
+  assigns_array_slot_s P._pos 1 (fn_body P.f_set_mario_pos) = true /\
+  assigns_array_slot_s P._pos 2 (fn_body P.f_set_mario_pos) = true /\
+  statement_mentions_ident_s P._gMarioObject
+    (fn_body P.f_set_mario_pos) = false.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Theorem generated_copy_mario_state_to_object_writes_object_position_slots :
+  statement_mentions_ident_s O._gMarioStates
+    (fn_body O.f_copy_mario_state_to_object) = true /\
+  assigns_array_slot_s O._asF32 6
+    (fn_body O.f_copy_mario_state_to_object) = true /\
+  assigns_array_slot_s O._asF32 7
+    (fn_body O.f_copy_mario_state_to_object) = true /\
+  assigns_array_slot_s O._asF32 8
+    (fn_body O.f_copy_mario_state_to_object) = true.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Theorem generated_platform_query_reads_mario_object_position_slots :
+  statement_mentions_array_slot_s P._asF32 6
+    (fn_body P.f_update_mario_platform) = true /\
+  statement_mentions_array_slot_s P._asF32 7
+    (fn_body P.f_update_mario_platform) = true /\
+  statement_mentions_array_slot_s P._asF32 8
+    (fn_body P.f_update_mario_platform) = true.
+Proof.
+  vm_compute.
+  repeat split.
 Qed.
 
 Theorem generated_execute_mario_action_processes_interactions_before_action_dispatch :

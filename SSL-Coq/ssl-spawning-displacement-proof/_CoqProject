@@ -3,6 +3,7 @@
 
 generated/jp_platform_displacement.v
 generated/jp_object_list_processor.v
+generated/jp_object_collision.v
 generated/jp_spawn_object.v
 generated/jp_area.v
 generated/jp_level_update.v
@@ -45,6 +46,7 @@ proofs/SourcePlatformTransport.v
 proofs/MarioSpeedWarp.v
 proofs/StaticPyramidTopWarp.v
 proofs/DesyncMechanismSearch.v
+proofs/StockNode1EBypasses.v
 proofs/CastleCheckpoint.v
 proofs/ClosedWorldDisproof.v
 proofs/SpawningDisplacement.v
