@@ -195,6 +195,7 @@ The JP generation targets cover:
 - `src/game/mario_actions_cutscene.c`
 - `src/game/mario_actions_submerged.c`
 - `src/game/mario_step.c`
+- `src/engine/surface_collision.c`
 - `src/engine/surface_load.c`
 - `src/game/macro_special_objects.c`
 - `src/game/behavior_actions.c`
@@ -269,6 +270,18 @@ spinning, so the checked theorem
 `cannot_enter_top_entry_warp_while_standing_on_spinning_pyramid_top` shows this
 particular warp cannot be entered while `update_mario_platform()` is selecting
 the spinning pyramid-top surface.
+
+`proofs/StaticPyramidTopWarp.v` closes the apparent delayed-movement loophole.
+Mario need not have a standing action to seed a platform: the engine only
+tests whether `gMarioObject->oPos` is within four units of an object-owned
+floor.  But stock node-1E contact bounds Mario's base Y to `608..818`,
+`ACT_DISAPPEARED` immediately zeros movement and snaps to the current floor,
+and each `find_floor()` query can look only 78 units upward.  Even the final
+platform query can reach at most Y `974`, below the top's minimum Y `1281`.
+The same live-Mario update also clears or replaces an old top pointer unless
+the current floor observation is actually owned by the top.  See
+`docs/static-pyramid-top-warp.md` and
+`stock_warp_update_cannot_preserve_or_create_top_pointer`.
 
 ## Cloned platform entry route
 

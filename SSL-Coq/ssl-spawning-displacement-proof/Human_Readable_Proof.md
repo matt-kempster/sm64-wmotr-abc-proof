@@ -160,6 +160,11 @@ The following are ruled out:
 
 - Standing on the spinning pyramid top while entering the top pyramid warp:
   the warp is at Y `768..818`, while pyramid-top collision starts at Y `1281`.
+- Triggering the stock top warp and then rising to the exploding top: warp
+  contact changes Mario immediately to `ACT_DISAPPEARED`; that action zeros
+  movement and snaps to the queried floor.  Starting from the warp-contact
+  range, two 78-unit floor-query allowances still reach only Y `974`, below
+  the top's minimum Y `1281`.
 - Original spawned source platforms overlapping either Area 1 -> Area 2 warp:
   pyramid top, Tox Boxes, exclamation boxes, large breakable boxes, wooden
   signposts, and the closed cannon lid do not overlap the warps in the
@@ -175,6 +180,14 @@ The following are ruled out:
 - Ordinary Mario speed: collision with the warp is sampled before normal action
   movement, and `update_mario_platform()` recomputes after action movement, so
   speed alone cannot split the seed and warp positions across frame phases.
+
+The platform test is geometric, not an action-state test.  Mario can be
+airborne, intangible, or disappeared and still set `gMarioPlatform` if
+`gMarioObject->oPos` is within four units of a top-owned floor.  This does not
+help at stock node 1E: the warp pipeline never writes the global, and the
+end-of-frame platform update clears or replaces even an old top pointer unless
+its current floor query returns the top.  This is proved by
+`stock_warp_update_cannot_preserve_or_create_top_pointer`.
 - Known APG-style visible desync: visible model position is not enough because
   warp/platform checks use `gMarioObject->oPos`; the known Chuckya APG source is
   absent in SSL area 1.

@@ -1,5 +1,5 @@
 From Coq Require Import Bool List PArith.BinPos ZArith.
-From compcert Require Import AST Ctypes Clight Integers.
+From compcert Require Import AST Ctypes Clight Floats Integers.
 
 Import ListNotations.
 
@@ -149,6 +149,60 @@ with statement_mentions_int_ls
   | LScons _ body rest =>
       statement_mentions_int_s needle body ||
       statement_mentions_int_ls needle rest
+  end.
+
+Fixpoint expression_mentions_single_bits (bits : Z) (e : expr) : bool :=
+  match e with
+  | Econst_single value _ =>
+      Int.eq (Float32.to_bits value) (Int.repr bits)
+  | Ederef inner _ | Eaddrof inner _ | Eunop _ inner _
+  | Ecast inner _ | Efield inner _ _ =>
+      expression_mentions_single_bits bits inner
+  | Ebinop _ lhs rhs _ =>
+      expression_mentions_single_bits bits lhs ||
+      expression_mentions_single_bits bits rhs
+  | Evar _ _ | Etempvar _ _ | Esizeof _ _ | Ealignof _ _
+  | Econst_int _ _ | Econst_float _ _ | Econst_long _ _ => false
+  end.
+
+Fixpoint statement_mentions_single_bits_s
+    (bits : Z) (s : statement) : bool :=
+  match s with
+  | Sskip => false
+  | Sassign lhs rhs =>
+      expression_mentions_single_bits bits lhs ||
+      expression_mentions_single_bits bits rhs
+  | Sset _ rhs => expression_mentions_single_bits bits rhs
+  | Scall _ fn args =>
+      expression_mentions_single_bits bits fn ||
+      existsb (expression_mentions_single_bits bits) args
+  | Sbuiltin _ _ _ args =>
+      existsb (expression_mentions_single_bits bits) args
+  | Ssequence s1 s2 =>
+      statement_mentions_single_bits_s bits s1 ||
+      statement_mentions_single_bits_s bits s2
+  | Sifthenelse cond s1 s2 =>
+      expression_mentions_single_bits bits cond ||
+      statement_mentions_single_bits_s bits s1 ||
+      statement_mentions_single_bits_s bits s2
+  | Sloop s1 s2 =>
+      statement_mentions_single_bits_s bits s1 ||
+      statement_mentions_single_bits_s bits s2
+  | Sbreak | Scontinue | Sreturn None => false
+  | Sreturn (Some e) => expression_mentions_single_bits bits e
+  | Sswitch e cases =>
+      expression_mentions_single_bits bits e ||
+      statement_mentions_single_bits_ls bits cases
+  | Slabel _ body => statement_mentions_single_bits_s bits body
+  | Sgoto _ => false
+  end
+with statement_mentions_single_bits_ls
+       (bits : Z) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      statement_mentions_single_bits_s bits body ||
+      statement_mentions_single_bits_ls bits rest
   end.
 
 Fixpoint expression_const_int_z (e : expr) : option Z :=

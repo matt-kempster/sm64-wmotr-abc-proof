@@ -103,6 +103,15 @@ recomputed at the warp-side position, while starting in the warp changes Mario
 to `ACT_DISAPPEARED` before normal movement can run.  This is formalized as
 `ordinary_mario_speed_cannot_replace_platform_warp_overlap`.
 
+Platform selection does not require Mario's action to say that he is
+standing.  A fresh pyramid-top pointer requires only that
+`gMarioObject->oPos` be within four units of a floor triangle owned by that
+top.  At stock node 1E, warp contact and the disappeared floor snap remain too
+low for either floor query to return the top.  Because the live-Mario platform
+update runs before the delayed transition, it also clears or replaces an old
+top pointer.  The focused theorem is
+`stock_warp_update_cannot_preserve_or_create_top_pointer`.
+
 The current route-level theorem is therefore
 `no_closed_world_ssl_spawning_displacement_route_to_spindel`: under the explicit
 closed world of original spawned surfaces, modeled source-platform transport,

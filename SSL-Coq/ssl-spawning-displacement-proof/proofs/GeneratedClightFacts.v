@@ -6,7 +6,7 @@ From SSLSpawning.Generated Require Import
   jp_object_list_processor jp_platform_displacement jp_spawn_object
   jp_obj_behaviors jp_behavior_actions jp_mario jp_interaction
   jp_object_helpers jp_mario_actions_object jp_mario_actions_cutscene
-  jp_mario_actions_submerged jp_mario_step.
+  jp_mario_actions_submerged jp_mario_step jp_surface_collision.
 From SSLSpawning.Proofs Require Import ASTFacts.
 
 Import ListNotations.
@@ -33,6 +33,7 @@ Module MAO := jp_mario_actions_object.
 Module MAC := jp_mario_actions_cutscene.
 Module MAS := jp_mario_actions_submerged.
 Module MS := jp_mario_step.
+Module SC := jp_surface_collision.
 
 Definition id_clear_mario_platform : ident := $"clear_mario_platform".
 
@@ -609,6 +610,169 @@ Theorem generated_stop_at_floor_preserves_mario_xz :
 Proof.
   vm_compute.
   repeat split.
+Qed.
+
+Theorem generated_stop_at_floor_zeros_motion_and_uses_floor_height :
+  calls_ident_s MS._mario_set_forward_vel
+    (fn_body MS.f_stop_and_set_height_to_floor) = true /\
+  assigns_array_slot_s MS._vel 1
+    (fn_body MS.f_stop_and_set_height_to_floor) = true /\
+  statement_mentions_single_bits_s 0
+    (fn_body MS.f_stop_and_set_height_to_floor) = true /\
+  assigns_array_slot_s MS._pos 1
+    (fn_body MS.f_stop_and_set_height_to_floor) = true /\
+  statement_mentions_ident_s MS._floorHeight
+    (fn_body MS.f_stop_and_set_height_to_floor) = true.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Theorem generated_disappeared_action_keeps_action_and_skips_movement_steps :
+  assigns_field_named_s MAC._action
+    (fn_body MAC.f_act_disappeared) = false /\
+  calls_ident_s MAC._set_mario_action
+    (fn_body MAC.f_act_disappeared) = false /\
+  calls_ident_s MAC._perform_ground_step
+    (fn_body MAC.f_act_disappeared) = false /\
+  calls_ident_s MAC._perform_air_step
+    (fn_body MAC.f_act_disappeared) = false /\
+  returns_int_s 0 (fn_body MAC.f_act_disappeared) = true.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Theorem generated_static_warp_interaction_dispatches_disappeared_same_frame :
+  ident_subsequenceb
+    [MJ._update_mario_inputs;
+     MJ._mario_process_interactions;
+     MJ._mario_execute_cutscene_action]
+    (direct_callees_s (fn_body MJ.f_execute_mario_action)) = true /\
+  calls_ident_s IX._set_mario_action
+    (fn_body IX.f_interact_warp) = true /\
+  statement_mentions_int_s 4864
+    (fn_body IX.f_interact_warp) = true.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Theorem generated_mario_geometry_and_platform_updates_call_find_floor :
+  calls_ident_s MJ._find_floor
+    (fn_body MJ.f_update_mario_geometry_inputs) = true /\
+  calls_ident_s P._find_floor
+    (fn_body P.f_update_mario_platform) = true.
+Proof.
+  vm_compute.
+  split; reflexivity.
+Qed.
+
+Theorem generated_update_platform_uses_proximity_and_not_mario_action :
+  statement_mentions_single_bits_s 1082130432
+    (fn_body P.f_update_mario_platform) = true /\
+  statement_mentions_ident_s P._object
+    (fn_body P.f_update_mario_platform) = true /\
+  statement_mentions_ident_s P._gMarioObject
+    (fn_body P.f_update_mario_platform) = true /\
+  statement_mentions_ident_s P._action
+    (fn_body P.f_update_mario_platform) = false.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Theorem generated_find_floor_uses_78_unit_upward_buffer :
+  statement_mentions_single_bits_s 1117519872
+    (fn_body SC.f_find_floor_from_list) = true.
+Proof.
+  vm_compute.
+  reflexivity.
+Qed.
+
+Theorem generated_warp_behavior_initializes_radius_and_height :
+  assigns_field_named_s BA._hitboxRadius
+    (fn_body BA.f_bhv_warp_loop) = true /\
+  assigns_field_named_s BA._hitboxHeight
+    (fn_body BA.f_bhv_warp_loop) = true /\
+  statement_mentions_single_bits_s 1112014848
+    (fn_body BA.f_bhv_warp_loop) = true.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+Record jp_static_pyramid_top_warp_source_certificate : Prop := {
+  static_warp_cert_hitbox_initialization :
+    assigns_field_named_s BA._hitboxRadius
+      (fn_body BA.f_bhv_warp_loop) = true /\
+    assigns_field_named_s BA._hitboxHeight
+      (fn_body BA.f_bhv_warp_loop) = true;
+  static_warp_cert_same_frame_action_replacement :
+    ident_subsequenceb
+      [MJ._update_mario_inputs;
+       MJ._mario_process_interactions;
+       MJ._mario_execute_cutscene_action]
+      (direct_callees_s (fn_body MJ.f_execute_mario_action)) = true /\
+    statement_mentions_int_s 4864
+      (fn_body IX.f_interact_warp) = true;
+  static_warp_cert_disappeared_floor_snap :
+    ident_subsequenceb
+      [MAC._stop_and_set_height_to_floor; MAC._level_trigger_warp]
+      (direct_callees_s (fn_body MAC.f_act_disappeared)) = true /\
+    calls_ident_s MS._mario_set_forward_vel
+      (fn_body MS.f_stop_and_set_height_to_floor) = true /\
+    assigns_array_slot_s MS._vel 1
+      (fn_body MS.f_stop_and_set_height_to_floor) = true /\
+    assigns_array_slot_s MS._pos 1
+      (fn_body MS.f_stop_and_set_height_to_floor) = true /\
+    statement_mentions_ident_s MS._floorHeight
+      (fn_body MS.f_stop_and_set_height_to_floor) = true;
+  static_warp_cert_no_disappeared_movement :
+    assigns_field_named_s MAC._action
+      (fn_body MAC.f_act_disappeared) = false /\
+    calls_ident_s MAC._perform_ground_step
+      (fn_body MAC.f_act_disappeared) = false /\
+    calls_ident_s MAC._perform_air_step
+      (fn_body MAC.f_act_disappeared) = false;
+  static_warp_cert_floor_queries_and_buffer :
+    calls_ident_s MJ._find_floor
+      (fn_body MJ.f_update_mario_geometry_inputs) = true /\
+    calls_ident_s P._find_floor
+      (fn_body P.f_update_mario_platform) = true /\
+    statement_mentions_single_bits_s 1117519872
+      (fn_body SC.f_find_floor_from_list) = true;
+  static_warp_cert_platform_selection_is_geometric :
+    statement_mentions_single_bits_s 1082130432
+      (fn_body P.f_update_mario_platform) = true /\
+    statement_mentions_ident_s P._object
+      (fn_body P.f_update_mario_platform) = true /\
+    statement_mentions_ident_s P._gMarioObject
+      (fn_body P.f_update_mario_platform) = true /\
+    statement_mentions_ident_s P._action
+      (fn_body P.f_update_mario_platform) = false;
+  static_warp_cert_top_collision_lifetime :
+    ident_subsequenceb
+      [BD._bhv_pyramid_top_loop; BD._load_object_collision_model]
+      (initializer_addrofs (gvar_init BD.v_bhvPyramidTop)) = true /\
+    assigns_field_zero_s B._activeFlags
+      (fn_body B.f_bhv_pyramid_top_explode) = true;
+  static_warp_cert_final_frame_order :
+    ident_subsequenceb
+      [O._clear_dynamic_surfaces;
+       O._update_terrain_objects;
+       O._apply_mario_platform_displacement;
+       O._detect_object_collisions;
+       O._update_non_terrain_objects;
+       O._unload_deactivated_objects;
+       O._update_mario_platform]
+      (direct_callees_s (fn_body O.f_update_objects)) = true
+}.
+
+Theorem generated_jp_static_pyramid_top_warp_source_certificate :
+  jp_static_pyramid_top_warp_source_certificate.
+Proof.
+  constructor; vm_compute; repeat split.
 Qed.
 
 Theorem generated_warp_object_routes_from_used_object_parameter :

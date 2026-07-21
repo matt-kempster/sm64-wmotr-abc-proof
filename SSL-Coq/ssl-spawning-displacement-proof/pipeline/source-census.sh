@@ -39,6 +39,7 @@ cannon_door="$SOURCE_ROOT/src/game/behaviors/cannon_door.inc.c"
 behavior_data="$SOURCE_ROOT/data/behavior_data.c"
 exclamation_box="$SOURCE_ROOT/src/game/behaviors/exclamation_box.inc.c"
 surface_load="$SOURCE_ROOT/src/engine/surface_load.c"
+surface_collision="$SOURCE_ROOT/src/engine/surface_collision.c"
 exclamation_box_collision="$SOURCE_ROOT/actors/exclamation_box_outline/collision.inc.c"
 pyramid_top_collision="$SOURCE_ROOT/levels/ssl/pyramid_top/collision.inc.c"
 tox_box_collision="$SOURCE_ROOT/levels/ssl/tox_box/collision.inc.c"
@@ -51,6 +52,8 @@ object_helpers="$SOURCE_ROOT/src/game/object_helpers.c"
 mario="$SOURCE_ROOT/src/game/mario.c"
 mario_actions_automatic="$SOURCE_ROOT/src/game/mario_actions_automatic.c"
 mario_actions_cutscene="$SOURCE_ROOT/src/game/mario_actions_cutscene.c"
+mario_step="$SOURCE_ROOT/src/game/mario_step.c"
+warp_behavior="$SOURCE_ROOT/src/game/behaviors/warp.inc.c"
 
 require_pattern() {
   local file="$1"
@@ -468,7 +471,28 @@ if [ "$state_sync_mario_object_pos_writes" != "6" ]; then
 fi
 require_order "$mario_actions_cutscene" \
   '^s32 act_disappeared\(struct MarioState \*m\)' \
+  'stop_and_set_height_to_floor\(m\);' \
   'level_trigger_warp\(m, m->actionArg >> 16\);'
+require_order "$mario_step" \
+  '^void stop_and_set_height_to_floor\(struct MarioState \*m\)' \
+  'mario_set_forward_vel\(m, 0\.0f\);' \
+  'm->vel\[1\] = 0\.0f;' \
+  'm->pos\[1\] = m->floorHeight;'
+require_pattern "$surface_collision" 'y - \(height \+ -78\.0f\) < 0\.0f'
+require_order "$warp_behavior" \
+  '^void bhv_warp_loop\(void\)' \
+  'o->hitboxRadius = 50\.0f;' \
+  'o->hitboxRadius = 10000\.0f;' \
+  'o->hitboxRadius = bhvParams1stByte \* 10\.0;' \
+  'o->hitboxHeight = 50\.0f;'
+gmario_platform_assignments="$(
+  grep -RhoE 'gMarioPlatform[[:space:]]*=' \
+    "$SOURCE_ROOT/src" "$SOURCE_ROOT/include" | awk 'END { print NR }'
+)"
+if [ "$gmario_platform_assignments" != "5" ]; then
+  echo "gMarioPlatform assignment count changed: $gmario_platform_assignments" >&2
+  exit 1
+fi
 require_pattern "$exclamation_box_collision" 'COL_VERTEX\(-26, 52, -26\)'
 require_pattern "$exclamation_box_collision" 'COL_VERTEX\(26, 52, 26\)'
 require_pattern "$pyramid_top_collision" 'COL_VERTEX\(-511, -255, 512\)'
