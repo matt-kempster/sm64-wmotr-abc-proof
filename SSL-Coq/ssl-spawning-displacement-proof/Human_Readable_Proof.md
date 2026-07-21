@@ -161,6 +161,32 @@ enumerated closed world, no route both seeds `gMarioPlatform` at an Area 1 ->
 Area 2 warp and places that stale slot at Spindel's depth-60 allocation
 position.
 
+## Node 1E Cannot Be Moved Through the Stock Holding Path
+
+Touching the Area 1 node-1E warp does temporarily set both `usedObj` and
+`interactObj` to 1E.  This is not enough to hold it.  Interaction processing
+runs before Mario's action function, the warp handler sets
+`ACT_DISAPPEARED`, and `act_disappeared()` does not call the grab helper.
+Warp is handler 4, grabbable is handler 29, and a successful handler breaks the
+loop, so a simultaneous grabbable collision does not preserve a pickup action.
+The special Bowser pickup action uses the same grab helper and is preempted by
+the same action replacement.
+
+The stale-held-slot alternative also fails under normal lifecycle ordering.
+Destination objects can reuse the old held slot, but `init_mario()` then clears
+`heldObj`, `riddenObj`, and `usedObj` before Mario gets a controllable update.
+Action zero can skip that clear only by also skipping destination Mario loading
+and action execution.  `obj_set_held_state()` would redirect 1E's current
+behavior command if `heldObj` already pointed to it, while preserving its
+permanent warp behavior, but stock calls do not independently create that
+pointer.
+
+These facts are proved by
+`generated_jp_clight_node1e_control_flow_capstone`.  The negative theorem is
+closed-world: it does not exclude arbitrary writes or stale
+`gMarioPlatform` slot aliasing, and `gCurrentObject == 1E` naturally occurs
+while the warp behavior itself runs.
+
 ## Assumptions
 
 The proof is explicit about these assumptions:
@@ -186,6 +212,10 @@ The proof is explicit about these assumptions:
 - Arbitrary memory corruption, a new post-copy Mario/object-position desync, or
   a new source-backed clone/transport mechanism outside the audit is not ruled
   out by the closed-world theorem.
+- The node-1E held-object theorem assumes valid memory, stock object lifecycle,
+  and the enumerated stock pickup/load/behavior-command writers.  It does not
+  rule out an independently established arbitrary pointer writer, and it does
+  not rule out the separate stale-`gMarioPlatform` mechanism.
 
 ## Final Conclusion
 

@@ -122,3 +122,18 @@ object-owned surfaces are not painting-warp floors.  This is formalized as
 positive castle checkpoint route would therefore need a genuine post-floor
 desync or a new object-owned painting-warp surface outside the audited source
 model.
+
+The separate proposal to move the Area 1 node-1E warp through Mario's held
+object system is now ruled out under stock control flow.  Warp contact does set
+`usedObj` and `interactObj` to 1E, but changes Mario to `ACT_DISAPPEARED` before
+the pickup action can call `mario_grab_used_object()`.  Handler ordering also
+prevents a same-frame grabbable interaction from rescuing that pointer.  Normal
+area loading clears any stale held-slot alias before control, while action zero
+leaves Mario uninitialized and unable to execute a drop.
+
+`obj_set_held_state()` can redirect 1E's current behavior command only if
+`heldObj == 1E` is already true; it preserves the permanent warp behavior and
+does not independently create the missing pointer.  This is formalized by
+`generated_jp_clight_node1e_control_flow_capstone`.  The result does not rule
+out stale `gMarioPlatform` equality or arbitrary writes outside the enumerated
+stock writer set.

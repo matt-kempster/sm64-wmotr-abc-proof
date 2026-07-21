@@ -148,3 +148,11 @@
 - [x] If no such mechanism exists, reframe the final result as a disproof of
   SSL spawning displacement under the modeled ordinary gameplay assumptions,
   while retaining the conditional inside-pyramid Spindel theorem.
+- [x] Close the proposed node-1E held-object/behavior-command relocation route
+  by static JP Clight analysis.  The proof establishes the transient
+  `usedObj`/`interactObj` aliases, warp-before-action and warp-before-grabbable
+  barriers, normal area-load pointer clear, unusable action-zero exception,
+  held-pointer dependency of `obj_set_held_state()`, and non-self-redirecting
+  warp behavior.  The capstone is
+  `generated_jp_clight_node1e_control_flow_capstone`; no observation build or
+  input search is needed for this route family.

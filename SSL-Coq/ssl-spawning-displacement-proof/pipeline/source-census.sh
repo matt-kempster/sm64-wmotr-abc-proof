@@ -85,6 +85,32 @@ require_order() {
   done
 }
 
+stock_source_stream() {
+  local file
+  while IFS= read -r -d '' file; do
+    awk '
+      /^[[:space:]]*#if[[:space:]]+SSL_SPAWNING_DISPLACEMENT_TAS_HACK[[:space:]]*$/ {
+        skip = 1
+        depth = 1
+        next
+      }
+      skip && /^[[:space:]]*#if(n?def)?([[:space:]]|$)/ {
+        depth++
+        next
+      }
+      skip && /^[[:space:]]*#endif([[:space:]]|$)/ {
+        depth--
+        if (depth == 0) {
+          skip = 0
+        }
+        next
+      }
+      !skip { print }
+    ' "$file"
+  done < <(find "$SOURCE_ROOT/src" "$SOURCE_ROOT/include" \
+    -type f \( -name '*.c' -o -name '*.h' \) -print0)
+}
+
 require_order "$object_list_processor" \
   '^[[:space:]]*//! \(Spawning Displacement\)' \
   '^[[:space:]]*#ifndef VERSION_JP' \
@@ -423,8 +449,9 @@ require_order "$platform_displacement" \
   'marioZ = gMarioObject->oPosZ;' \
   'floorHeight = find_floor\(marioX, marioY, marioZ, &floor\);'
 direct_mario_object_pos_writes="$(
-  grep -RInE 'gMarioObject->oPos[XYZ][[:space:]]*[-+]?=' \
-    "$SOURCE_ROOT/src" "$SOURCE_ROOT/include" | awk 'END { print NR }'
+  stock_source_stream |
+    grep -E 'gMarioObject->oPos[XYZ][[:space:]]*[-+]?=' |
+    awk 'END { print NR }'
 )"
 if [ "$direct_mario_object_pos_writes" != "6" ]; then
   echo "direct gMarioObject->oPos write count changed: $direct_mario_object_pos_writes" >&2
