@@ -151,6 +151,115 @@ with statement_mentions_int_ls
       statement_mentions_int_ls needle rest
   end.
 
+Fixpoint expression_const_int_z (e : expr) : option Z :=
+  match e with
+  | Econst_int found _ => Some (Int.signed found)
+  | Ecast inner _ => expression_const_int_z inner
+  | Ebinop Oadd lhs rhs _ =>
+      match expression_const_int_z lhs, expression_const_int_z rhs with
+      | Some lhs_value, Some rhs_value => Some (lhs_value + rhs_value)%Z
+      | _, _ => None
+      end
+  | _ => None
+  end.
+
+Definition expression_is_array_slot
+    (array_field : ident) (index : Z) (e : expr) : bool :=
+  match e with
+  | Ederef (Ebinop Oadd (Efield _ found_field _) offset _) _ =>
+      Pos.eqb found_field array_field &&
+      match expression_const_int_z offset with
+      | Some found_index => Z.eqb found_index index
+      | None => false
+      end
+  | _ => false
+  end.
+
+Fixpoint expression_mentions_array_slot
+    (array_field : ident) (index : Z) (e : expr) : bool :=
+  expression_is_array_slot array_field index e ||
+  match e with
+  | Ederef inner _ | Eaddrof inner _ | Eunop _ inner _
+  | Ecast inner _ =>
+      expression_mentions_array_slot array_field index inner
+  | Efield inner _ _ =>
+      expression_mentions_array_slot array_field index inner
+  | Ebinop _ lhs rhs _ =>
+      expression_mentions_array_slot array_field index lhs ||
+      expression_mentions_array_slot array_field index rhs
+  | Evar _ _ | Etempvar _ _ | Esizeof _ _ | Ealignof _ _
+  | Econst_int _ _ | Econst_float _ _ | Econst_single _ _
+  | Econst_long _ _ => false
+  end.
+
+Fixpoint statement_mentions_array_slot_s
+    (array_field : ident) (index : Z) (s : statement) : bool :=
+  match s with
+  | Sskip => false
+  | Sassign lhs rhs =>
+      expression_mentions_array_slot array_field index lhs ||
+      expression_mentions_array_slot array_field index rhs
+  | Sset _ rhs => expression_mentions_array_slot array_field index rhs
+  | Scall _ fn args =>
+      expression_mentions_array_slot array_field index fn ||
+      existsb (expression_mentions_array_slot array_field index) args
+  | Sbuiltin _ _ _ args =>
+      existsb (expression_mentions_array_slot array_field index) args
+  | Ssequence s1 s2 =>
+      statement_mentions_array_slot_s array_field index s1 ||
+      statement_mentions_array_slot_s array_field index s2
+  | Sifthenelse cond s1 s2 =>
+      expression_mentions_array_slot array_field index cond ||
+      statement_mentions_array_slot_s array_field index s1 ||
+      statement_mentions_array_slot_s array_field index s2
+  | Sloop s1 s2 =>
+      statement_mentions_array_slot_s array_field index s1 ||
+      statement_mentions_array_slot_s array_field index s2
+  | Sbreak | Scontinue | Sreturn None => false
+  | Sreturn (Some e) =>
+      expression_mentions_array_slot array_field index e
+  | Sswitch e cases =>
+      expression_mentions_array_slot array_field index e ||
+      statement_mentions_array_slot_ls array_field index cases
+  | Slabel _ body =>
+      statement_mentions_array_slot_s array_field index body
+  | Sgoto _ => false
+  end
+with statement_mentions_array_slot_ls
+       (array_field : ident) (index : Z) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      statement_mentions_array_slot_s array_field index body ||
+      statement_mentions_array_slot_ls array_field index rest
+  end.
+
+Fixpoint assigns_array_slot_s
+    (array_field : ident) (index : Z) (s : statement) : bool :=
+  match s with
+  | Sassign lhs _ => expression_is_array_slot array_field index lhs
+  | Ssequence s1 s2 =>
+      assigns_array_slot_s array_field index s1 ||
+      assigns_array_slot_s array_field index s2
+  | Sifthenelse _ s1 s2 =>
+      assigns_array_slot_s array_field index s1 ||
+      assigns_array_slot_s array_field index s2
+  | Sloop s1 s2 =>
+      assigns_array_slot_s array_field index s1 ||
+      assigns_array_slot_s array_field index s2
+  | Slabel _ body => assigns_array_slot_s array_field index body
+  | Sswitch _ cases => assigns_array_slot_ls array_field index cases
+  | _ => false
+  end
+with assigns_array_slot_ls
+       (array_field : ident) (index : Z) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      assigns_array_slot_s array_field index body ||
+      assigns_array_slot_ls array_field index rest
+  end.
+
 Fixpoint assigns_field_named_s (field : ident) (s : statement) : bool :=
   match s with
   | Sassign (Efield _ found _) _ => Pos.eqb found field
@@ -181,6 +290,42 @@ Fixpoint expression_is_zero (e : expr) : bool :=
   | Econst_int found _ => Int.eq found Int.zero
   | Ecast inner _ => expression_is_zero inner
   | _ => false
+  end.
+
+Definition expression_is_array_field_element
+    (array_field : ident) (e : expr) : bool :=
+  match e with
+  | Ederef (Ebinop Oadd (Efield _ found_field _) _ _) _ =>
+      Pos.eqb found_field array_field
+  | _ => false
+  end.
+
+Fixpoint assigns_array_field_zero_s
+    (array_field : ident) (s : statement) : bool :=
+  match s with
+  | Sassign lhs rhs =>
+      expression_is_array_field_element array_field lhs &&
+      expression_is_zero rhs
+  | Ssequence s1 s2 =>
+      assigns_array_field_zero_s array_field s1 ||
+      assigns_array_field_zero_s array_field s2
+  | Sifthenelse _ s1 s2 =>
+      assigns_array_field_zero_s array_field s1 ||
+      assigns_array_field_zero_s array_field s2
+  | Sloop s1 s2 =>
+      assigns_array_field_zero_s array_field s1 ||
+      assigns_array_field_zero_s array_field s2
+  | Slabel _ body => assigns_array_field_zero_s array_field body
+  | Sswitch _ cases => assigns_array_field_zero_ls array_field cases
+  | _ => false
+  end
+with assigns_array_field_zero_ls
+       (array_field : ident) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      assigns_array_field_zero_s array_field body ||
+      assigns_array_field_zero_ls array_field rest
   end.
 
 Fixpoint assigns_field_zero_s (field : ident) (s : statement) : bool :=
@@ -308,6 +453,59 @@ with returns_int_ls (value : Z) (cases : labeled_statements) : bool :=
       returns_int_s value body || returns_int_ls value rest
   end.
 
+Definition statement_is_counting_loop
+    (counter : ident) (start bound step : Z) (s : statement) : bool :=
+  match s with
+  | Ssequence
+      (Sset initialized (Econst_int initial_value _))
+      (Sloop
+        (Ssequence
+          (Sifthenelse
+            (Ebinop Olt (Etempvar guarded _) (Econst_int bound_value _) _)
+            Sskip Sbreak)
+          _)
+        (Sset incremented
+          (Ebinop Oadd (Etempvar read_counter _)
+            (Econst_int step_value _) _))) =>
+      Pos.eqb initialized counter &&
+      Pos.eqb guarded counter &&
+      Pos.eqb incremented counter &&
+      Pos.eqb read_counter counter &&
+      Int.eq initial_value (Int.repr start) &&
+      Int.eq bound_value (Int.repr bound) &&
+      Int.eq step_value (Int.repr step)
+  | _ => false
+  end.
+
+Fixpoint contains_counting_loop_s
+    (counter : ident) (start bound step : Z) (s : statement) : bool :=
+  statement_is_counting_loop counter start bound step s ||
+  match s with
+  | Ssequence s1 s2 =>
+      contains_counting_loop_s counter start bound step s1 ||
+      contains_counting_loop_s counter start bound step s2
+  | Sifthenelse _ s1 s2 =>
+      contains_counting_loop_s counter start bound step s1 ||
+      contains_counting_loop_s counter start bound step s2
+  | Sloop s1 s2 =>
+      contains_counting_loop_s counter start bound step s1 ||
+      contains_counting_loop_s counter start bound step s2
+  | Slabel _ body =>
+      contains_counting_loop_s counter start bound step body
+  | Sswitch _ cases =>
+      contains_counting_loop_ls counter start bound step cases
+  | _ => false
+  end
+with contains_counting_loop_ls
+       (counter : ident) (start bound step : Z)
+       (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      contains_counting_loop_s counter start bound step body ||
+      contains_counting_loop_ls counter start bound step rest
+  end.
+
 Definition internal_functions
     (definitions : list (ident * globdef fundef type))
     : list (ident * function) :=
@@ -370,6 +568,20 @@ Definition initializer_mentions_int (needle : Z) (data : init_data) : bool :=
       Int.eq found (Int.repr needle)
   | _ => false
   end.
+
+Definition initializer_head_int_unsigned
+    (init : list init_data) : option Z :=
+  match init with
+  | Init_int8 found :: _
+  | Init_int16 found :: _
+  | Init_int32 found :: _ => Some (Int.unsigned found)
+  | _ => None
+  end.
+
+Definition behavior_begin_list_index
+    (init : list init_data) : option Z :=
+  option_map (fun packed => (packed / 65536)%Z)
+    (initializer_head_int_unsigned init).
 
 Definition initializer_list_mentions_addrof
     (needle : ident) (init : list init_data) : bool :=

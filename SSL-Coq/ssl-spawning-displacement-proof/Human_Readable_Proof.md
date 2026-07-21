@@ -114,6 +114,42 @@ first-update target with useful Z/pitch fields, and its first displacement moves
 top-entry Mario farther from the star; the near-star elevator is not a useful
 spawning-displacement target.
 
+## Why an Unreused Pyramid-Top Slot Still Works
+
+The runtime snapshots identify Klepto at pool slot 55, pyramid top at slot 60,
+and the Area 1 node-1E warp at slot 63.  These slot numbers are observations,
+not fixed behavior properties.  Generated JP behavior data places the objects
+in object lists 4, 9, and 6 respectively.
+
+Area unloading scans object lists from 0 through 12, while each deallocation
+pushes its slot to the front of `gFreeObjectList`.  The free list therefore
+reverses unload order.  If all three objects were freed in the bulk pass, the
+list-9 pyramid top would be allocated before the list-6 warp.  Thus the claim
+that the top survives merely because it is a surface object is false.
+
+The source admits the observed result at a precise timing boundary.  On the
+last normal object-update frame before the area-change pause, pyramid-top
+explosion can set `activeFlags = 0`; its next behavior command still loads its
+collision.  `unload_deactivated_objects()` then frees slot 60, and the later
+`update_mario_platform()` can select the still-loaded floor owner at that same
+address.  No object update runs during the two pause frames.  The subsequent
+bulk Area 1 unload pushes every remaining slot ahead of the already-free top.
+
+If the bulk unload sequence contains Klepto 55 before warp 63, reversal gives
+the allocation order 63, then 55, then 60.  Hence destination allocations may
+overwrite 63 while leaving 55 and 60 free.  `unload_object()` does not clear
+object `rawData`, whereas `allocate_object()` does.  Unreused slot 60 retains
+the fully accelerated top's `oAngleVelYaw = 0x1800` and stale position.  JP
+preserves `gMarioPlatform`, and the first Area 2 displacement reads those
+fields without checking that slot 60 is active or allocated.
+
+This is proved by
+`generated_jp_clight_observed_pyramid_top_slot_capstone`.  It assumes the
+snapshot slot identities, a duplicate-free free list, synchronization to that
+final normal frame, and Mario remaining within four units of the top-owned
+floor.  Moving node 1E to the top is still a test modification, not a stock
+route.  See `docs/pyramid-top-slot-persistence.md` for the exact layout.
+
 ## Outside-Pyramid Route Search
 
 The proof then checks known ways to obtain the outside seed.  A seed requires
@@ -187,6 +223,26 @@ closed-world: it does not exclude arbitrary writes or stale
 `gMarioPlatform` slot aliasing, and `gCurrentObject == 1E` naturally occurs
 while the warp behavior itself runs.
 
+## What a Hypothetically Held Node 1E Would Do
+
+`proofs/MovedWarpPortal.v` grants the otherwise unreachable premise
+`heldObj == 1E`.  A grab alone does not move 1E's coordinates.  A drop does:
+X/Z come from Mario's held-object-last-position and Y comes from Mario's
+position.  The drop preserves 1E's node parameter, warp interaction type,
+hitbox, and permanent behavior, so its first live warp contact occurs at the
+new coordinates.
+
+That contact does not itself assign `gMarioPlatform`.  If Mario is also
+standing on an object-owned moving-platform floor, the later
+`update_mario_platform()` call does assign the floor owner.  The proof preserves
+that seed through arbitrary modeled `ACT_DISAPPEARED` frames and the JP area
+load.  Routing still uses node 1E's parameter, and destination Mario is placed
+at area-2 node 14, `(0, 5500, 256)`, not at either the old or moved entrance.
+Thus the hypothetical is sufficient to move the entrance and seed spawning
+displacement, but it does not supply a stock-game way to obtain the held
+pointer.  The capstone is
+`generated_jp_clight_moved_node1e_platform_seed_capstone`.
+
 ## Assumptions
 
 The proof is explicit about these assumptions:
@@ -197,6 +253,15 @@ The proof is explicit about these assumptions:
   full CompCert small-step execution proof of gameplay.
 - The free-list depth theorem assumes the modeled unload/allocation order and no
   unmodeled intervening allocation that changes the required depth.
+- The pyramid-top slot-persistence theorem treats pool slots 55, 60, and 63 as
+  supplied runtime observations.  Its concrete layout assumes a duplicate-free
+  free list, Klepto preceding node 1E in the bulk unload, and enough destination
+  allocations to reach 63 but not 55.
+- The stale-top timing theorem assumes pyramid-top deactivation occurs on the
+  final normal object-update frame before the area-change pause and that the
+  collision selected at that frame is still the top-owned floor.  Earlier
+  deactivation permits a later platform recomputation; ordinary bulk
+  deactivation puts the surface slot nearer the free-list front.
 - The first-update Spindel state is modeled from the source as active movement,
   with a separate rest-state theorem showing that rest would contribute no
   useful Spindel Z/pitch displacement.
@@ -216,11 +281,18 @@ The proof is explicit about these assumptions:
   and the enumerated stock pickup/load/behavior-command writers.  It does not
   rule out an independently established arbitrary pointer writer, and it does
   not rule out the separate stale-`gMarioPlatform` mechanism.
+- The moved-node-1E theorem is deliberately counterfactual: it assumes the
+  unavailable held pointer, a successful drop, first-contact-ready warp fields,
+  and an object-owned floor that remains selected during the disappearance
+  frames.  It proves the downstream engine result, not reachability of those
+  premises.
 
 ## Final Conclusion
 
-The JP engine mechanism is real and formally proved conditionally: if a stale
-platform slot reaches active SSL Spindel, Spindel's displacement fields are used
-on the first update.  What is refuted is the known SSL route to create that
-condition under ordinary, source-backed gameplay mechanisms.  Any future
+The JP engine mechanism is real in both formally modeled forms: a stale slot
+reused by active SSL Spindel uses Spindel's fields, while an unreused free slot
+retains and uses the old platform fields.  The supplied pyramid-top snapshot is
+explained by the latter under the synchronized final-frame assumptions.  What
+is refuted is the known stock SSL route to create the required warp/platform
+overlap under ordinary, source-backed gameplay mechanisms.  Any future stock
 positive route must supply a new mechanism outside the closed world above.

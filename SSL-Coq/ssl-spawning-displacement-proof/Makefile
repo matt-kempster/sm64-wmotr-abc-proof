@@ -34,6 +34,7 @@ GENERATED := \
   generated/jp_mario_actions_object.v \
   generated/jp_mario_actions_cutscene.v \
   generated/jp_mario_actions_submerged.v \
+  generated/jp_mario_step.v \
   generated/jp_surface_load.v \
   generated/jp_macro_special_objects.v \
   generated/jp_behavior_actions.v \
@@ -88,6 +89,11 @@ generated/jp_mario_actions_cutscene.v: $(SM64)/src/game/mario_actions_cutscene.c
 	bash pipeline/normalize-generated.sh $@
 
 generated/jp_mario_actions_submerged.v: $(SM64)/src/game/mario_actions_submerged.c \
+    pipeline/clightgen.sh pipeline/normalize-generated.sh
+	bash pipeline/clightgen.sh $< $@ $(JP_CG)
+	bash pipeline/normalize-generated.sh $@
+
+generated/jp_mario_step.v: $(SM64)/src/game/mario_step.c \
     pipeline/clightgen.sh pipeline/normalize-generated.sh
 	bash pipeline/clightgen.sh $< $@ $(JP_CG)
 	bash pipeline/normalize-generated.sh $@
