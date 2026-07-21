@@ -1,0 +1,19 @@
+Eyerok IDLE-to-DOUBLE US-ROM probe summary
+ROM MD5: 20B854B239203BAF6C961B850A4A51A2
+ROM CRC: 635A2BFF 8B022326
+Scope: authentic ROM execution from an initialized, source-reachable local precondition;
+       not a from-reset controller-only gameplay trace.
+Parsed hand rows: 476
+Alternate seed rows (DOUBLE_POUND, airborne, gravity 0, velY > 0): 0
+First negative-gravity install: timer=368 action=11 velY=-0.000 gravity=-20.000 moveFlags=00000001
+First positive launch observation: timer=372 action=11 posY=-1449.000 velY=85.000 gravity=-15.000
+
+Fixture and validation transcript:
+UI-Console Status: activated cheat code 1: Have\Level Select
+UI-Console Status: activated cheat code 5: Have\Debug Mode
+FIXTURE area1_to_area2 writes=sWarpDest{type=2,level=8,area=2,node=0x0a,arg=0}
+FIXTURE area2_instant_warp writes=MarioState{pos=(0,450,-1320),vel=(0,0,0)},MarioObject{pos=(0,450,-1320),velY=0}; selection=real_SURFACE_INSTANT_WARP_1D
+VALIDATED initialized hands boss=803467c8 hand0=80342088 hand1=803481e8 homeY=-1534,posY=homeY,velY=0,gravity=0,collision=nonnull
+FIXTURE initialized_sleep_to_idle writes=hand[0].action=1,hand[1].action=1 untouched=posY,velY,gravity,moveFlags,floor,collision,timer,prevAction
+VALIDATED ordinary IDLE update floor0=801946d0 floor1=801946a0 floorHeight0=-1534.000 floorHeight1=-1534.000 posY=-1534,velY=0,gravity=0,collision=nonnull
+FIXTURE scheduler writes=boss{action=3,numHands=2,activeHand=0,unk104=-8,unk108=0,unk110=1,unk1AC=0} untouched=all_hand_physics,all_hand_actions

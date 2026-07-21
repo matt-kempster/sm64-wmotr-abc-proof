@@ -1,0 +1,24 @@
+# Rocq logical-path map for the SSL Parallel Universe proof.
+
+-R generated SSLPU.Generated
+-R proofs SSLPU.Proofs
+
+generated/pu_model.v
+generated/mario_step.v
+generated/platform_displacement.v
+generated/level_update.v
+generated/mario.v
+generated/mario_actions_moving.v
+generated/mario_actions_airborne.v
+generated/object_list_processor.v
+generated/grindel_behavior.v
+
+# Hand-written proof files will be listed here as the proof develops.
+proofs/ASTFacts.v
+proofs/Spec.v
+proofs/ParallelUniverse.v
+proofs/MovementSourceFacts.v
+proofs/BLJRoute.v
+proofs/BLJGeometry.v
+proofs/BLJDynamic.v
+proofs/NoAPressed.v

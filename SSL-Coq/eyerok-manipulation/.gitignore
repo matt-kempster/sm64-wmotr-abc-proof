@@ -1,0 +1,12 @@
+CoqMakefile
+CoqMakefile.conf
+.CoqMakefile.d
+.*.aux
+*.vo
+*.vos
+*.vok
+*.glob
+*.cache
+build/
+__pycache__/
+*.py[cod]

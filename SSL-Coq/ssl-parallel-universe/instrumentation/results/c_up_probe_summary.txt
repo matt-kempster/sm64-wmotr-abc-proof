@@ -1,0 +1,14 @@
+C-up-only Area 2 fixture probe
+US ROM MD5: 20b854b239203baf6c961b850a4a51a2
+
+name                 max_abs_forward_speed  max_abs_horizontal  A_pressed_frames  A_down_frames
+broad_ramp_east                46.4547958             2867.000                 0              0
+broad_ramp_west                46.4547958             2867.150                 0              0
+east_bevel_long               141.487946              3095.931                 0              0
+top_bevel_north                73.2312698             1021.861                 0              0
+top_bevel_west                 24.0000000              500.000                 0              0
+west_bevel_long               235.222733              3162.000                 0              0
+
+These are transparent position/action fixtures for validating retail movement,
+input, and collision behavior. They are not reachability certificates by
+themselves. The proof and source/mesh audit establish the route preconditions.

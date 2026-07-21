@@ -1,0 +1,137 @@
+Eyerok source audit
+pin: 9921382a68bb0c865e5e45eb594d9c64db59b1af
+checkout-head: 36fbf8d693a9fc2bdec0c77402f8e96d07d2f461
+pin-identical-files: 26
+hand-actions: 0..15
+hand-health: initialized once to 4; accepted hits are 4->3, 3->2, 2->1
+nonlethal-health-branches: 4->3 and 3->2; 2->1 enters DIE
+attack-consumer: exactly one call, inside SHOW_EYE
+attack-latch: overwritten after each non-SLEEP handler; interaction status cleared
+nonlethal-reexposure-chain: ATTACKED->RECOVER->BECOME_ACTIVE->RETREAT->IDLE->OPEN->SHOW_EYE
+post-exposure-close: CLOSE->RETREAT in one-hand phase; CLOSE->IDLE in two-hand phase
+retreat-idle-gate: approach clamps Y exactly to home before IDLE
+idle-entry-writers: SLEEP, CLOSE, RETREAT (exactly 3; none clears oVelY)
+idle-zero-gravity-exits: BEGIN_DOUBLE_POUND, TARGET_MARIO (exactly 2)
+positive-velY-writes: 30,50,100
+positive-velY-writer-actions: ATTACKED=30, DIE=50, DOUBLE_POUND=100 (only)
+attacked-positive-velocity-expiry: 8 gravity integrations; RECOVER is gated by 25-frame animation (25 >= 8)
+attacked-home-ground-reset: 15 gravity integrations; animation gate 25 >= 15
+attacked-handler-vertical-writes: none
+double-terminal-request: boss Unk104 reaches 1 only behind Unk1AC=0 && active-hand=0
+double-terminal-consumer: RETREAT check precedes active DOUBLE_POUND branch
+active-hand-zero-writers: SHOW_EYE and DOUBLE_POUND only
+double-active-hand-clear: grounded mask && gravity < -15 (only DOUBLE_POUND clear)
+show-eye-active-hand-clear: guarded by NumHands != 2 (no live sibling hand)
+single-hand-double-lock: DOUBLE_POUND reasserts its side before terminal/active branches
+exposure-latch-writers: OPEN=side; CLOSE/DIE/RETREAT=0; terminal DOUBLE_POUND=side
+show-eye-exposure-latch: retained nonzero; boss Unk104 scheduler remains blocked
+gravity-writer-sequence: -4,0,0,-4,-4,-20,-15,-20
+live-hand-collision-writes: 6, all nonnull
+hand-room-writes: none (spawn default -1)
+ground-mask: LANDED|ON_GROUND
+zero-gravity-floor-equality: clears grounded
+hand-bounciness: zero
+partial-update-guards: FAR_AWAY|IN_DIFFERENT_ROOM
+hand-native-before-visibility: yes
+first-hand-sleep-update-collision: nonnull before visibility
+time-stop-hand-update: whole update frozen unless explicitly unfrozen
+hand-list-before-boss: yes
+hand-spawn-and-surface-order: side -1, then side +1
+surface-list-append-order: yes
+area3-local-objects: Eyerok boss only; macro list empty
+area3-water-boxes: none
+find-floor-buffer: 78
+pedro-query-order: upper wall, lower wall, floor, ceiling
+pedro-cancel-branch: Y snaps; X/Z and referenced floor remain old
+sleep-pedro-strip: floor -1459, ceiling -1421, gap 38
+sleep-pedro-query-window: [-1537,-1500]
+sleep-pedro-outer-wall: Z=-3166 resolves to -3116
+sleep-pedro-wall-free-interior: Z < -3216; exterior entry qstep >100
+wake-pedro-gaps-frames-5-through-11: 16,39,63,84,105,126,144
+wake-pedro-frame-12-gap: 162
+wake-pedro-wall-free-interior-witnesses: 7
+wake-pedro-frames-5-through-10: no vertical two-wall bypass
+wake-pedro-frame-11-exterior-witness: (-121,-3240)->(-121,-3241), squared qstep 1
+wake-pedro-direct-60-rise: misses first query window by 39
+wake-pedro-ideal-signed-speed-envelope: 3.85/call, 26.95/seven calls
+wake-pedro-ideal-nonnegative-envelope: 1.50/call
+wake-pedro-1.15-precondition: incoming forwardVel >= 0.35
+wake-pedro-binary32-minus32-witness-delta: 3.8500003815
+wake-pedro-binary32-coarse-witness: 4/call, 28/seven calls
+wake-pedro-binary32-global-bound-status: not a CompCert Float32 theorem
+area3-arena-upward-floor-max: -1150
+area3-tunnel-upward-floor-min: -562
+area3-upward-floor-gap: (-1150,-562), no triangles
+first-hand-finite-origin-peak: -862
+first-hand-tunnel-query-min: -640
+first-hand-open-surface-peak: -355
+second-hand-support-ceiling: 384
+second-hand-finite-origin-peak: 672
+second-hand-open-surface-peak: 1179
+second-hand-modeled-mario-peak: 1809
+positive-double-setup-min-separation: 360
+positive-double-last-vertical-query: relative (-120,255), outside closed top
+positive-double-first-horizontal-query: relative (-90,210), 18 below threshold
+positive-double-sibling-floor-selection: none in audited no-wall trace
+closed-hand-horizontal-radius-max: 256.223535
+closed-hand-top-offset: 306
+closed-hand-upward-local-top: 204 (scaled 306)
+open-hand-upward-local-top: 338 (scaled 507)
+attacked-animation-frames: 25
+die-animation-frames: 40
+open-animation-frames: 30
+wake-animation-frames: 80
+eyerok-explosion-order: mist, 30 rotating triangles, mark hand deleted, coins, end-frame unload
+eyerok-deletion-mark: active flags cleared; slot not yet freed
+eyerok-hand-slot-free: unload calls deallocate at end of frame
+object-free-list-reuse: deallocate pushes head; allocate pops head
+eyerok-own-fragment-slot-reuse: impossible (allocation precedes actual free)
+eyerok-sibling-fragment-delay-after-unlock: at least 30+40 frames
+ppd-stale-platform-window: next active frame only; time stop suppresses apply
+ppd-update-order: clear dynamic surfaces, terrain, apply displacement, nonterrain, unload, refresh platform
+ppd-platform-pointer: prior pointer consumed before end-frame floor refresh
+ppd-dynamic-surfaces: cleared at start of each active frame
+us-area-load-platform-pointer: cleared (non-JP clear_mario_platform)
+jp-area-load-platform-pointer: not cleared (VERSION_JP omission)
+jp-instant-warp-order: change area before current-frame object update
+jp-change-area-order: unload Area 3, load Area 2, then write Mario object
+jp-area-spawn-time-stop: reset to zero before displacement apply
+jp-ppd-required-gates: time stop clear, Mario object nonnull, saved platform nonnull
+jp-version-sensitive-function-bodies: pin-equivalent with the 36fb TAS hack disabled (change_area, check_instant_warp, play_mode_normal)
+jp-canonical-rom-sha1: 8a20a5c83d6ceb0f0506cfc9fa20d8f438cafe51
+jp-matching-build-record: separately observed pinned make VERSION=jp COMPARE=1 byte-identical build (8a20a5c83d6ceb0f0506cfc9fa20d8f438cafe51)
+platform-displacement-speed-writes: none
+raised-static-floor-overlap-with-begin-corridor: none
+area3-static-vertex-y-max: 896
+area3-upward-floor-vertex-y-max: 384
+hand-dynamic-top-offset-max: 507
+area2-active-warp: surface-1E -> area3, displacement (0,0,0)
+area3-active-warp: surface-1D -> area2, displacement (0,0,0)
+runaway-tripwire: DOUBLE_POUND + grounded + gravity=0 must remain unreachable
+normalized-sha256:
+  8d6cfd5bbb8579cb681bcf7cb589a28d880f99ed8bdf3a8d0264045e6bb780d0  src/game/behaviors/eyerok.inc.c
+  6ca1c8e343658640dee2af51741d0fd2fc2d340fd85b874a729bfc6a6ed5481e  src/game/obj_behaviors_2.c
+  f25b45830541914ee18628e023ff8b7bb93a08559196f5896b85db135b633663  src/game/object_helpers.c
+  f648bd72f34714c86aba5bb5d1d413ca6c1e5b564e062ab2d8128523e9beb3b3  src/engine/behavior_script.c
+  195b221a831459e0f5f948b7c8e2d9741cc5718f6917fa97c5cc579cc5e9c659  src/game/object_list_processor.c
+  108e2d896e632fb405a36e15e519d593f7f5f1ffd0a57fad6b2414c3ceab4f56  src/game/spawn_object.c
+  db2b0acc0f6f48550b8edb8ff332b1b4635edc2359ae6e212fb7fb9a69a0ab57  src/game/mario_step.c
+  09d3b62625a7bb282aab99a9b9c8b77e1da95d3474fbf28e486fd72434c2e1bc  src/game/mario_actions_airborne.c
+  a16936e42951b0ecf232fbbdb50d9f596bb8f59d13cf5269e5ba9537bca9b26e  src/game/mario.c
+  5b8e3626c98e917931f350379e3a30705100113d670e726272a8db57ec556525  src/game/game_init.c
+  6c662c1fe740620cec44488c56917063296e2180363727ade709f11b84fe7368  src/game/platform_displacement.c
+  45d79f5f77b7d6fc7f3519a6efbb843e3d755b5bf8990207730dbe918f52d9d4  src/game/behaviors/break_particles.inc.c
+  9cca7513caf9831a9525ff2ea6869b1fbeab2d09731a0b18f46b81d08c6dc119  src/engine/math_util.c
+  148a61bd623c7320e5dbf69c95264287b0a057369edb204dc24ace49cfae2916  src/engine/surface_collision.c
+  8c8ebdb88ee1485f8c031d1493ea82cbcf8928d79de951d6dc90a7f97d78068c  src/engine/surface_load.c
+  3cf9b8fe2b5b85870342a62d42da8e4b91cd0b7ee7f3558d14a20c5111f44ab7  include/object_constants.h
+  e22b4bab378399d3bd42623de2b3068460206d92317c164f0da267e81c06796a  include/object_fields.h
+  56c69f1bf604818fb892dcd4cf01bea74a58393e2d8872c9183f8cddf6b90657  data/behavior_data.c
+  ddb26b21e4da58a8a1d2589b95c6bc5312c78470c20cfafb5b35797fcd5a3638  actors/eyerok/anims/anim_0500DF50.inc.c
+  6ddd4bae939cef38ff685892eebf0973a7191848224093f8d01ea2ebf802f690  actors/eyerok/anims/anim_0500E99C.inc.c
+  a51980043a56989d273831b07f6dbbb5d2ff0ad2e094e22d7ab12adbfbf332a2  actors/eyerok/anims/anim_0500F3D8.inc.c
+  26f154eaa37213cbde3ebc5095b3650605c8c824c5905937955aff42ee3c1897  actors/eyerok/anims/anim_050116CC.inc.c
+  c4a791bc92980bab13874aecf0af42273b1799ee78e52cc7e0ae3ad381dd1574  levels/ssl/areas/2/collision.inc.c
+  8c3d2b06d636a7cad71ec23ea73d8b23c1827d3356a9b84c562d50484fe15ffb  levels/ssl/areas/3/collision.inc.c
+  9e45e3409cd24c6907c56af33084c4ceb9c659bd71b20c24e76f4eccd2a28efb  levels/ssl/areas/3/macro.inc.c
+  f13ee3f14d6516731c352f48cae7615c3ba38309907bb8cd4a9cc94b95893b66  levels/ssl/eyerok_col/collision.inc.c

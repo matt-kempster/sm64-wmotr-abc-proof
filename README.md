@@ -115,6 +115,8 @@ proofs/          hand-written Rocq over generated/ (see proofs/README.md):
   NoAImpliesNoFly/ GOAL 1 capstones (NoAImpliesNoFlyLinked.v) + sub-areas
   WMotRRequiresA/  GOAL 2 (not started)
   Toy/ Shadow/     the original M0/M1 pipeline demos
+SSL-Cog/        SSL 0A proof projects: parallel universes, spawning
+                displacement, and pyramid item/object transfer.
 _CoqProject      Rocq logical-path map
 Makefile         top-level: regenerate + build proofs
 ```
