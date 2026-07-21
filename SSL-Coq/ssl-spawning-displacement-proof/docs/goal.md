@@ -120,7 +120,17 @@ dispatch, and `update_mario_platform()` recomputes the pointer after the action
 copy.  Running from a source platform to a warp is therefore too late for that
 frame's object collision and clears/recomputes the platform pointer before a
 later warp; starting in the warp preempts normal movement with
-`ACT_DISAPPEARED`.  The theorem
+`ACT_DISAPPEARED`.
+
+`proofs/StaticPyramidTopWarp.v` further separates standing state from the
+actual platform test.  Any Mario action may seed the top if the Mario object's
+coordinates are within four units of its owned floor, but stock node-1E
+contact cannot reach that floor before the final platform re-query.  The proof
+also shows that this re-query clears or replaces an old top pointer, so merely
+arriving at the warp with a stale value does not preserve it through the
+normal trigger frame.
+
+The theorem
 `no_closed_world_ssl_spawning_displacement_route_to_spindel` proves that no
 mechanism in that closed world can both seed `gMarioPlatform` at an Area 1 ->
 Area 2 warp and satisfy the Spindel depth-60 allocation obligation.

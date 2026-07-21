@@ -90,6 +90,12 @@
   `ordinary_mario_speed_cannot_replace_platform_warp_overlap` rules out using
   speed alone to stand on a distant source platform and still trigger an
   Area 1 -> Area 2 object warp with the stale platform pointer intact.
+- [x] Check whether standing state is required and whether a stale top pointer
+  can survive touching stock node 1E.  Only `gMarioObject->oPos` proximity to
+  an owned floor matters, not Mario's action.  However, `ACT_DISAPPEARED`
+  snaps the stock-warp contact position to a floor far below the top, and the
+  same normal update clears or replaces any prior top pointer.  The focused
+  theorem is `stock_warp_update_cannot_preserve_or_create_top_pointer`.
 - [x] Investigate Astral Projection Glitch as a Mario/object-position desync
   lead.  The proof records that visible-model desync alone is ignored by the
   seed checks: object hitbox collision and `update_mario_platform()` use

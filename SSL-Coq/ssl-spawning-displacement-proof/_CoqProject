@@ -13,6 +13,7 @@ generated/jp_mario_actions_object.v
 generated/jp_mario_actions_cutscene.v
 generated/jp_mario_actions_submerged.v
 generated/jp_mario_step.v
+generated/jp_surface_collision.v
 generated/jp_surface_load.v
 generated/jp_macro_special_objects.v
 generated/jp_behavior_actions.v
@@ -42,6 +43,7 @@ proofs/MovedWarpPortal.v
 proofs/SourcePlatformOverlap.v
 proofs/SourcePlatformTransport.v
 proofs/MarioSpeedWarp.v
+proofs/StaticPyramidTopWarp.v
 proofs/DesyncMechanismSearch.v
 proofs/CastleCheckpoint.v
 proofs/ClosedWorldDisproof.v
