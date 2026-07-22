@@ -125,10 +125,10 @@ Proof.
       * exact platform_displacement_raw_pointer_source_shape_jp.
       * exact spawning_clears_platform_us_but_not_jp.
   - unfold CurrentPyramidLifecycleEvidence.
-    split; [exact change_area_unloads_before_loading_us |].
-    split; [exact change_area_unloads_before_loading_jp |].
-    split; [exact area_object_unload_traverses_and_calls_unload_us |].
-    split; [exact area_object_unload_traverses_and_calls_unload_jp |].
+    split; [exact change_area_direct_callee_order_us |].
+    split; [exact change_area_direct_callee_order_jp |].
+    split; [exact area_object_unload_source_shape_us |].
+    split; [exact area_object_unload_source_shape_jp |].
     exact fresh_slot_reuse_is_not_object_identity.
   - unfold CurrentParallelUniverseSubcaseEvidence.
     split; [exact no_a_movement_source_shape_us |].

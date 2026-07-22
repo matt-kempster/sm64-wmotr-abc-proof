@@ -20,6 +20,9 @@ From LessThanOneAPress.Proofs Require Import
 
 Import ListNotations.
 
+(* A finite Clight step fragment.  A future concrete target theorem must also
+   connect its endpoints to Clight initial_state/final_state; this record alone
+   does not do so. *)
 Record ImportedClightRun := {
   run_program : Clight.program;
   run_start : Clight.state;
@@ -68,6 +71,8 @@ Definition target_main_ident (version : GameVersion) : ident :=
   | VersionJP => jp_game_init._main
   end.
 
+(* Interface certificate only: no iterated link construction is supplied in
+   this project. *)
 Record TargetLinkedProgram
     (version : GameVersion) (linked : Clight.program) : Prop := {
   target_links_every_translation_unit :
@@ -77,6 +82,8 @@ Record TargetLinkedProgram
     Ctypes.prog_main linked = target_main_ident version
 }.
 
+(* These functions remain abstract until a concrete memory/trace projection
+   and the obligations below are proved. *)
 Record ClightObservationProjection := {
   projection_version : GameVersion;
   projection_program : Clight.program;

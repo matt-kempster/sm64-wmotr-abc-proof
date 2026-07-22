@@ -96,7 +96,7 @@ Theorem mario_input_distinguishes_a_pressed_from_a_down_jp :
   statement_mentions_int_s 128 (fn_body JMI.f_update_mario_button_inputs) = true.
 Proof. vm_compute. repeat split. Qed.
 
-Theorem star_interaction_extracts_index_and_calls_save_us :
+Theorem star_interaction_index_save_source_shape_us :
   statement_mentions_ident_s UI._rawData
     (fn_body UI.f_interact_star_or_key) = true /\
   statement_mentions_ident_s UI._asS32
@@ -107,7 +107,7 @@ Theorem star_interaction_extracts_index_and_calls_save_us :
     (fn_body UI.f_interact_star_or_key) = true.
 Proof. vm_compute. repeat split. Qed.
 
-Theorem star_interaction_extracts_index_and_calls_save_jp :
+Theorem star_interaction_index_save_source_shape_jp :
   statement_mentions_ident_s JI._rawData
     (fn_body JI.f_interact_star_or_key) = true /\
   statement_mentions_ident_s JI._asS32
@@ -118,29 +118,29 @@ Theorem star_interaction_extracts_index_and_calls_save_jp :
     (fn_body JI.f_interact_star_or_key) = true.
 Proof. vm_compute. repeat split. Qed.
 
-Theorem save_collection_reaches_star_flag_writer_us :
+Theorem save_collection_writer_call_source_shape_us :
   calls_ident_s USF._save_file_set_star_flags
     (fn_body USF.f_save_file_collect_star_or_key) = true.
 Proof. vm_compute. reflexivity. Qed.
 
-Theorem save_collection_reaches_star_flag_writer_jp :
+Theorem save_collection_writer_call_source_shape_jp :
   calls_ident_s JSF._save_file_set_star_flags
     (fn_body JSF.f_save_file_collect_star_or_key) = true.
 Proof. vm_compute. reflexivity. Qed.
 
-Theorem hundred_coin_spawn_uses_index_six_us :
+Theorem hundred_coin_spawn_index_source_shape_us :
   calls_ident_s UI._bhv_spawn_star_no_level_exit
     (fn_body UI.f_interact_coin) = true /\
   statement_mentions_int_s 6 (fn_body UI.f_interact_coin) = true.
 Proof. vm_compute. repeat split. Qed.
 
-Theorem hundred_coin_spawn_uses_index_six_jp :
+Theorem hundred_coin_spawn_index_source_shape_jp :
   calls_ident_s JI._bhv_spawn_star_no_level_exit
     (fn_body JI.f_interact_coin) = true /\
   statement_mentions_int_s 6 (fn_body JI.f_interact_coin) = true.
 Proof. vm_compute. repeat split. Qed.
 
-Theorem hidden_star_controller_requires_five_and_spawns_us :
+Theorem hidden_star_controller_five_spawn_source_shape_us :
   statement_mentions_ident_s UOB._rawData
     (fn_body UOB.f_bhv_hidden_star_loop) = true /\
   statement_mentions_ident_s UOB._asS32
@@ -151,7 +151,7 @@ Theorem hidden_star_controller_requires_five_and_spawns_us :
     (fn_body UOB.f_bhv_hidden_star_loop) = true.
 Proof. vm_compute. repeat split. Qed.
 
-Theorem hidden_star_controller_requires_five_and_spawns_jp :
+Theorem hidden_star_controller_five_spawn_source_shape_jp :
   statement_mentions_ident_s JOB._rawData
     (fn_body JOB.f_bhv_hidden_star_loop) = true /\
   statement_mentions_ident_s JOB._asS32
@@ -162,7 +162,7 @@ Theorem hidden_star_controller_requires_five_and_spawns_jp :
     (fn_body JOB.f_bhv_hidden_star_loop) = true.
 Proof. vm_compute. repeat split. Qed.
 
-Theorem hidden_trigger_uses_collision_and_deactivates_us :
+Theorem hidden_trigger_collision_deactivate_source_shape_us :
   calls_ident_s UOB._obj_check_if_collided_with_object
     (fn_body UOB.f_bhv_hidden_star_trigger_loop) = true /\
   statement_mentions_int_s 27
@@ -171,7 +171,7 @@ Theorem hidden_trigger_uses_collision_and_deactivates_us :
     (fn_body UOB.f_bhv_hidden_star_trigger_loop) = true.
 Proof. vm_compute. repeat split. Qed.
 
-Theorem hidden_trigger_uses_collision_and_deactivates_jp :
+Theorem hidden_trigger_collision_deactivate_source_shape_jp :
   calls_ident_s JOB._obj_check_if_collided_with_object
     (fn_body JOB.f_bhv_hidden_star_trigger_loop) = true /\
   statement_mentions_int_s 27
@@ -180,19 +180,19 @@ Theorem hidden_trigger_uses_collision_and_deactivates_jp :
     (fn_body JOB.f_bhv_hidden_star_trigger_loop) = true.
 Proof. vm_compute. repeat split. Qed.
 
-Theorem object_pool_allocation_reinitializes_identity_fields_us :
+Theorem object_pool_allocation_assignment_source_shape_us :
   assigns_field_named_s USO._activeFlags (fn_body USO.f_allocate_object) = true /\
   assigns_field_named_s USO._respawnInfoType (fn_body USO.f_allocate_object) = true /\
   assigns_field_named_s USO._respawnInfo (fn_body USO.f_allocate_object) = true.
 Proof. vm_compute. repeat split. Qed.
 
-Theorem object_pool_allocation_reinitializes_identity_fields_jp :
+Theorem object_pool_allocation_assignment_source_shape_jp :
   assigns_field_named_s JSO._activeFlags (fn_body JSO.f_allocate_object) = true /\
   assigns_field_named_s JSO._respawnInfoType (fn_body JSO.f_allocate_object) = true /\
   assigns_field_named_s JSO._respawnInfo (fn_body JSO.f_allocate_object) = true.
 Proof. vm_compute. repeat split. Qed.
 
-Theorem macro_spawn_records_respawn_pointer_us :
+Theorem macro_spawn_respawn_field_source_shape_us :
   calls_ident_s UMS._spawn_object_abs_with_rot
     (fn_body UMS.f_spawn_macro_objects) = true /\
   assigns_field_named_s UMS._respawnInfoType
@@ -201,7 +201,7 @@ Theorem macro_spawn_records_respawn_pointer_us :
     (fn_body UMS.f_spawn_macro_objects) = true.
 Proof. vm_compute. repeat split. Qed.
 
-Theorem macro_spawn_records_respawn_pointer_jp :
+Theorem macro_spawn_respawn_field_source_shape_jp :
   calls_ident_s JMS._spawn_object_abs_with_rot
     (fn_body JMS.f_spawn_macro_objects) = true /\
   assigns_field_named_s JMS._respawnInfoType
@@ -210,7 +210,7 @@ Theorem macro_spawn_records_respawn_pointer_jp :
     (fn_body JMS.f_spawn_macro_objects) = true.
 Proof. vm_compute. repeat split. Qed.
 
-Theorem update_objects_collision_phase_order_us :
+Theorem update_objects_direct_callee_order_us :
   ident_subsequenceb
     [UOL._apply_mario_platform_displacement;
      UOL._detect_object_collisions;
@@ -220,7 +220,7 @@ Theorem update_objects_collision_phase_order_us :
     (direct_callees_s (fn_body UOL.f_update_objects)) = true.
 Proof. vm_compute. reflexivity. Qed.
 
-Theorem update_objects_collision_phase_order_jp :
+Theorem update_objects_direct_callee_order_jp :
   ident_subsequenceb
     [JOL._apply_mario_platform_displacement;
      JOL._detect_object_collisions;
@@ -230,27 +230,27 @@ Theorem update_objects_collision_phase_order_jp :
     (direct_callees_s (fn_body JOL.f_update_objects)) = true.
 Proof. vm_compute. reflexivity. Qed.
 
-Theorem player_collision_populates_collision_lists_us :
+Theorem player_collision_list_source_shape_us :
   statement_mentions_ident_s UOC._collidedObjs
     (fn_body UOC.f_detect_object_hitbox_overlap) = true /\
   assigns_field_named_s UOC._numCollidedObjs
     (fn_body UOC.f_detect_object_hitbox_overlap) = true.
 Proof. vm_compute. repeat split. Qed.
 
-Theorem player_collision_populates_collision_lists_jp :
+Theorem player_collision_list_source_shape_jp :
   statement_mentions_ident_s JOC._collidedObjs
     (fn_body JOC.f_detect_object_hitbox_overlap) = true /\
   assigns_field_named_s JOC._numCollidedObjs
     (fn_body JOC.f_detect_object_hitbox_overlap) = true.
 Proof. vm_compute. repeat split. Qed.
 
-Theorem instant_warp_changes_area_us :
+Theorem instant_warp_area_change_call_source_shape_us :
   calls_ident_s ULU._change_area (fn_body ULU.f_check_instant_warp) = true /\
   calls_ident_s UAR._unload_area (fn_body UAR.f_change_area) = true /\
   calls_ident_s UAR._load_area (fn_body UAR.f_change_area) = true.
 Proof. vm_compute. repeat split. Qed.
 
-Theorem instant_warp_changes_area_jp :
+Theorem instant_warp_area_change_call_source_shape_jp :
   calls_ident_s JLU._change_area (fn_body JLU.f_check_instant_warp) = true /\
   calls_ident_s JAR._unload_area (fn_body JAR.f_change_area) = true /\
   calls_ident_s JAR._load_area (fn_body JAR.f_change_area) = true.
@@ -310,37 +310,37 @@ Theorem platform_recompute_source_shape_jp :
     (fn_body JPD.f_update_mario_platform) = true.
 Proof. vm_compute. repeat split. Qed.
 
-Theorem change_area_unloads_before_loading_us :
+Theorem change_area_direct_callee_order_us :
   ident_subsequenceb [UAR._unload_area; UAR._load_area]
     (direct_callees_s (fn_body UAR.f_change_area)) = true.
 Proof. vm_compute. reflexivity. Qed.
 
-Theorem change_area_unloads_before_loading_jp :
+Theorem change_area_direct_callee_order_jp :
   ident_subsequenceb [JAR._unload_area; JAR._load_area]
     (direct_callees_s (fn_body JAR.f_change_area)) = true.
 Proof. vm_compute. reflexivity. Qed.
 
-Theorem area_object_unload_traverses_and_calls_unload_us :
+Theorem area_object_unload_source_shape_us :
   statement_mentions_ident_s UOL._next
     (fn_body UOL.f_unload_objects_from_area) = true /\
   calls_ident_s UOL._unload_object
     (fn_body UOL.f_unload_objects_from_area) = true.
 Proof. vm_compute. split; reflexivity. Qed.
 
-Theorem area_object_unload_traverses_and_calls_unload_jp :
+Theorem area_object_unload_source_shape_jp :
   statement_mentions_ident_s JOL._next
     (fn_body JOL.f_unload_objects_from_area) = true /\
   calls_ident_s JOL._unload_object
     (fn_body JOL.f_unload_objects_from_area) = true.
 Proof. vm_compute. split; reflexivity. Qed.
 
-Theorem unload_object_deactivates_and_deallocates_us :
+Theorem unload_object_source_shape_us :
   assigns_field_named_s USO._activeFlags (fn_body USO.f_unload_object) = true /\
   statement_mentions_ident_s USO._prevObj (fn_body USO.f_unload_object) = true /\
   calls_ident_s USO._deallocate_object (fn_body USO.f_unload_object) = true.
 Proof. vm_compute. repeat split. Qed.
 
-Theorem unload_object_deactivates_and_deallocates_jp :
+Theorem unload_object_source_shape_jp :
   assigns_field_named_s JSO._activeFlags (fn_body JSO.f_unload_object) = true /\
   statement_mentions_ident_s JSO._prevObj (fn_body JSO.f_unload_object) = true /\
   calls_ident_s JSO._deallocate_object (fn_body JSO.f_unload_object) = true.

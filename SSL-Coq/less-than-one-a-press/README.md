@@ -13,8 +13,9 @@ project's certified event semantics, and syntax-level facts are proved about
 the generated Clight ASTs.  A separate, current-source-rechecked
 `ArchivedProofIntegrationKernel` incorporates narrow lessons from all six
 archived investigations without importing their old ASTs.  The whole-program
-Clight-to-event refinement and every lower/upper geometric reachability
-obligation remain open.  None of the six archived projects closes either gap.
+Clight-to-event/collision projection and every lower/upper collision-observation
+non-overlap obligation remain open.  None of the six archived projects closes
+either gap.
 
 ## Exact target and input definition
 
@@ -134,17 +135,33 @@ project-by-project evidence boundary.
 The fully proved result is an abstract event-reduction theorem:
 
 ```coq
-Theorem collection_provenance_reduction :
+Definition CollectionProvenanceReductionClaim : Prop :=
   forall initial events final,
     CleanPyramidEntry initial ->
     CertifiedExecution initial events final ->
-    (newly_collected (state_save_flags initial)
-       (state_save_flags final) act3_index ->
-       exists star phase, (* active index-2 static star and Act 3 overlap *)) /\
-    (newly_collected (state_save_flags initial)
-       (state_save_flags final) act6_index ->
-       (* active index-5 controller-origin star, its spawn, and an upper
-          hidden-trigger overlap all occur *));
+    (newly_collected
+       (state_save_flags initial) (state_save_flags final) act3_index ->
+      exists star phase,
+        In (EventCollectAct3 star phase) events /\
+        active_star_or_key act3_index star /\
+        object_origin star = StaticAct3PyramidStar /\
+        act3_star_interaction_region phase star) /\
+    (newly_collected
+       (state_save_flags initial) (state_save_flags final) act6_index ->
+      (exists star phase,
+        In (EventCollectAct6 star phase) events /\
+        active_star_or_key act6_index star /\
+        object_origin star = PyramidHiddenStarController /\
+        overlaps_object phase star) /\
+      (exists spawned_star,
+        In (EventSpawnAct6 spawned_star) events) /\
+      all_five_trigger_consumption_events events /\
+      (exists trigger_object phase,
+        In (EventConsumeTrigger TriggerUpper trigger_object phase) events /\
+        upper_hidden_trigger_overlap phase trigger_object)).
+
+Theorem collection_provenance_reduction :
+  CollectionProvenanceReductionClaim.
 ```
 
 Within `CertifiedExecution`, it proves:
@@ -154,7 +171,8 @@ Within `CertifiedExecution`, it proves:
   interaction overlap;
 - a new Act 6 bit requires an active index-5 star-or-key object with hidden
   controller origin tag;
-- the Act 6 star was spawned only after all five triggers were consumed;
+- the trace contains an Act 6 spawn and a collision-backed consumption event
+  for each of the five abstract trigger labels;
 - the trigger event labeled `TriggerUpper` has an abstract registered
   player/object overlap in its collision phase.
 

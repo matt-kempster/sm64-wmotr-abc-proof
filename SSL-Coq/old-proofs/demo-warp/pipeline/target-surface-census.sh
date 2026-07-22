@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SOURCE_ROOT="${1:-${SM64_SOURCE:-../../../reference-sm64-decomp}}"
+SOURCE_ROOT="${1:-${SM64_SOURCE:-../../../../reference-sm64-decomp}}"
 
 mapfile -t ACTUAL < <(
   grep -RIl --include='*.c' -E 'gCurrDemoInput|gDemoInputsBuf' "$SOURCE_ROOT/src" |

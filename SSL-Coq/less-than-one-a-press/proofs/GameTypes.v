@@ -41,10 +41,11 @@ Record ObjectRef := {
   object_epoch : nat
 }.
 
-(* gMarioPlatform is a raw pointer into the object pool, not an allocation
-   identity.  The captured epoch is ghost provenance used to distinguish a
-   live same-allocation pointer from an inactive or reused slot; the C code
-   dereferences only platform_slot. *)
+(* Intended abstraction of gMarioPlatform, which source inspection identifies
+   as a raw pointer into the object pool rather than an allocation identity.
+   The captured epoch is ghost provenance used to distinguish a live
+   same-allocation pointer from an inactive or reused slot.  A concrete Clight
+   memory projection and capture-history theorem remain pending. *)
 Record RawPlatformPointer := {
   platform_slot : nat;
   platform_captured_epoch : nat

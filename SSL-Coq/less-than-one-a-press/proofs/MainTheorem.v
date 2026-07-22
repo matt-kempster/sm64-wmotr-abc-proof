@@ -26,6 +26,7 @@ Definition CollectionProvenanceReductionClaim : Prop :=
         overlaps_object phase star) /\
       (exists spawned_star,
         In (EventSpawnAct6 spawned_star) events) /\
+      all_five_trigger_consumption_events events /\
       (exists trigger_object phase,
         In (EventConsumeTrigger TriggerUpper trigger_object phase) events /\
         upper_hidden_trigger_overlap phase trigger_object)).
@@ -41,11 +42,14 @@ Proof.
         (initial := initial) (final := final).
       * exact Hexec.
       * exact Hnew.
-    + apply spawning_act6_requires_all_five_and_upper_overlap with
-        (initial := initial) (final := final).
-      * exact Hclean.
-      * exact Hexec.
-      * exact Hnew.
+    + destruct (spawning_act6_requires_all_five_and_upper_overlap
+        initial events final Hclean Hexec Hnew) as [Hspawn Hupper].
+      split.
+      * exact Hspawn.
+      * split.
+        -- eapply newly_collected_act6_from_clean_requires_all_five_trigger_consumptions;
+          eauto.
+        -- exact Hupper.
 Qed.
 
 (* This packages the current checked archive kernels with the certified-event

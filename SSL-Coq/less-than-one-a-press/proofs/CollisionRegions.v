@@ -16,8 +16,9 @@ Definition hitbox_bottom (position : Vec3f) (hitbox : Hitbox) : float32 :=
 Definition hitbox_top (position : Vec3f) (hitbox : Hitbox) : float32 :=
   Float32.add (hitbox_height hitbox) (hitbox_bottom position hitbox).
 
-(* Exact shape of detect_object_hitbox_overlap, including strict radius and
-   inclusive vertical boundary checks, under single-precision operations. *)
+(* Handwritten Float32 formula intended to mirror detect_object_hitbox_overlap,
+   including strict radius and inclusive vertical boundary checks.  Its
+   execution-level refinement from generated Clight remains pending. *)
 Definition hitboxes_overlap
     (a_position : Vec3f) (a_hitbox : Hitbox)
     (b_position : Vec3f) (b_hitbox : Hitbox) : bool :=

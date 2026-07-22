@@ -8,11 +8,11 @@ is false, the project will instead contain a concrete counterexample.
 The durable recovery copy of the active proof objective is tracked in
 `docs/goal.md`.
 
-This directory is intended to live inside the WMotR proof repository as
-`SSL-Cog/ssl-pyramid-item-proof/`. To reproduce the generated Clight, provide a separate
-checkout of the SM64 decompilation source pinned at commit
+This archived directory now lives inside the WMotR proof repository as
+`SSL-Coq/old-proofs/ssl-pyramid-item-proof/`. To reproduce the generated
+Clight, provide a separate checkout of the SM64 decompilation source pinned at commit
 `9921382a68bb0c865e5e45eb594d9c64db59b1af`. By default, the scripts look for
-that checkout at `../../../reference-sm64-decomp`, as a sibling of the containing
+that checkout at `../../../../reference-sm64-decomp`, as a sibling of the containing
 proof repository. Set `SM64_SOURCE=/path/to/sm64` for shell scripts or
 `SM64=/path/to/sm64` for `make` if your checkout uses a different layout.
 

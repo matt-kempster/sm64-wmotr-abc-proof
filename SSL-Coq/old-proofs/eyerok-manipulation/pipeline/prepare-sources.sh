@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SM64="${1:-${SM64_SOURCE:-../../../reference-sm64-decomp}}"
+SM64="${1:-${SM64_SOURCE:-../../../../reference-sm64-decomp}}"
 PIN="9921382a68bb0c865e5e45eb594d9c64db59b1af"
 OUT="build/source"
 

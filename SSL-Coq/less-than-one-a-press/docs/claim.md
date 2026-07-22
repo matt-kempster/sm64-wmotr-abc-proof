@@ -12,9 +12,10 @@
   bit has an active index-2 star carrying the abstract static-origin tag and an
   abstract interaction overlap.
 - In `CertifiedExecution`, a newly collected Act 6 bit has an active
-  controller-origin-tagged index-5 star, a spawn event, and an abstract overlap
-  for the consumption event labeled upper.  The step constructors assume these
-  facts; they are not derived from Clight here.
+  controller-origin-tagged index-5 star, a spawn event, collision-backed
+  consumption events for all five abstract trigger labels, and an abstract
+  overlap for the event labeled upper.  The step constructors assume the
+  underlying facts; they are not derived from Clight here.
 - The 100-coin index `6` differs from target indices `2` and `5`.
 - `archived_proof_integration_kernel_holds` proves a
   `ArchivedProofIntegrationKernel` whose generated-source fields are rechecked

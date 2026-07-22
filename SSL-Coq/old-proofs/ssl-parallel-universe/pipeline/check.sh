@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SM64="${SM64_SOURCE:-../../../reference-sm64-decomp}"
+SM64="${SM64_SOURCE:-../../../../reference-sm64-decomp}"
 PYTHONDONTWRITEBYTECODE=1 python3 pipeline/check_grindel_route.py "$SM64"
 PYTHONDONTWRITEBYTECODE=1 python3 pipeline/check_no_a_route.py "$SM64"
 

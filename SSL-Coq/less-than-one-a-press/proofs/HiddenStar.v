@@ -103,6 +103,42 @@ Proof.
   - right. apply (proj2 Hpuzzle watched).
 Qed.
 
+Lemma step_spawn6_all_five_or_history_preserved :
+  forall before event after,
+    CertifiedStep before event after ->
+    (exists star,
+      event = EventSpawnAct6 star /\
+      active_star_or_key act6_index star /\
+      object_origin star = PyramidHiddenStarController /\
+      all_five_consumed (state_triggers after) /\
+      state_puzzle_star_spawned after = true) \/
+    state_puzzle_star_spawned after = state_puzzle_star_spawned before.
+Proof.
+  intros before event after Hstep.
+  destruct Hstep as
+    [ before after event Hnon_target Hbits Hpuzzle Hwf
+    | before after star Hactive Horigin Hstatic Hin Hbits Hpuzzle Hwf
+    | before after star Hactive Horigin Hin Hall Hnot_spawned Hspawned
+        Htriggers Hbits Hwf
+    | before after trigger trigger_object phase Hin_trigger Hin_object
+        Hactive Hbehavior Horigin Hoverlap Hupper Hnot_consumed Hconsumed
+        Hother Hspawned Hbits Hwf
+    | before after star phase Hin Hactive Horigin Hstatic Hoverlap Hset
+        Hother_bit Hpuzzle Hwf
+    | before after star phase Hin Hactive Horigin Hoverlap Hspawned Hset
+        Hother_bit Hpuzzle Hwf ].
+  - right. apply (proj1 Hpuzzle).
+  - right. apply (proj1 Hpuzzle).
+  - left. exists star. split; [reflexivity|].
+    split; [exact Hactive|]. split; [exact Horigin|]. split.
+    + intros trigger Hin_trigger. rewrite Htriggers.
+      apply Hall. exact Hin_trigger.
+    + exact Hspawned.
+  - right. exact Hspawned.
+  - right. apply (proj1 Hpuzzle).
+  - right. apply (proj1 Hpuzzle).
+Qed.
+
 Lemma execution_preserves_consumed_trigger :
   forall trigger initial events final,
     CertifiedExecution initial events final ->
@@ -187,13 +223,14 @@ Proof.
   intros initial events final Hexec Hfalse Htrue.
   induction Hexec as [state|before middle after event events Hstep Htail IH].
   - rewrite Hfalse in Htrue. discriminate.
-  - destruct (step_spawn6_or_history_preserved before event middle Hstep)
-      as [(star & -> & Hactive & Horigin & Hall & Hbecame & Hupper) | Hpreserved].
+  - destruct (step_spawn6_all_five_or_history_preserved
+      before event middle Hstep)
+      as [(star & -> & Hactive & Horigin & Hall & Hbecame) | Hpreserved].
     + split.
       * exists star. split; [simpl; auto|]. exact (conj Hactive Horigin).
       * apply execution_preserves_consumed_upper with (initial := middle) (events := events).
         -- exact Htail.
-        -- exact Hupper.
+        -- apply Hall. unfold all_hidden_triggers. simpl. tauto.
     + destruct (IH (eq_trans Hpreserved Hfalse) Htrue)
         as ((found & Hin & Hfound_active & Hfound_origin) & Hupper_final).
       split.
@@ -216,8 +253,9 @@ Proof.
   intros initial events final Hexec Hfalse Htrue.
   induction Hexec as [state|before middle after event events Hstep Htail IH].
   - rewrite Hfalse in Htrue. discriminate.
-  - destruct (step_spawn6_or_history_preserved before event middle Hstep)
-      as [(star & -> & Hactive & Horigin & Hall & Hbecame & Hupper) | Hpreserved].
+  - destruct (step_spawn6_all_five_or_history_preserved
+      before event middle Hstep)
+      as [(star & -> & Hactive & Horigin & Hall & Hbecame) | Hpreserved].
     + split.
       * exists star. split; [simpl; auto|]. exact (conj Hactive Horigin).
       * intros trigger Hin_trigger.
@@ -289,11 +327,12 @@ Proof.
     In trigger all_hidden_triggers ->
     trigger_consumption_event trigger events).
   { intros trigger Hin_trigger.
-    eapply trigger_change_requires_consumption_event; eauto.
+    eapply trigger_change_requires_consumption_event.
+    - exact Hexec.
     - apply clean_triggers. exact Hclean.
     - apply Hall_final. exact Hin_trigger. }
   unfold all_five_trigger_consumption_events.
-  repeat split; apply Heach; simpl; auto.
+  repeat split; apply Heach; unfold all_hidden_triggers; simpl; tauto.
 Qed.
 
 Theorem newly_collected_act6_from_clean_requires_all_five_trigger_consumptions :

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SM64="${SM64_SOURCE:-../../../reference-sm64-decomp}"
+SM64="${SM64_SOURCE:-../../../../reference-sm64-decomp}"
 AUDIT_TMP="$(mktemp --tmpdir=. eyerok-auditXXXXXX.txt)"
 ROUTE_AUDIT_TMP="$(mktemp --tmpdir=. eyerok-route-auditXXXXXX.txt)"
 trap 'rm -f "$AUDIT_TMP" "$ROUTE_AUDIT_TMP"' EXIT

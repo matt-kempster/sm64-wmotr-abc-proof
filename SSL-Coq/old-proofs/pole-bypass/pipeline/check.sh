@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SM64="${SM64_SOURCE:-../../../reference-sm64-decomp}"
+SM64="${SM64_SOURCE:-../../../../reference-sm64-decomp}"
 AUDIT_TMP="$(mktemp --tmpdir=. pole-auditXXXXXX.txt)"
 trap 'rm -f "$AUDIT_TMP"' EXIT
 

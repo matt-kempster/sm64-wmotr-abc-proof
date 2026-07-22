@@ -16,9 +16,11 @@ Definition NoUpperTriggerOverlap
       observations ->
     ~ upper_hidden_trigger_overlap phase trigger_object.
 
-(* This is a pending geometric theorem, not an assumed global fact.  Its
-   predicates expose the exact per-frame hitboxes and collision phase through
-   CollisionRegions, and do not mention an informal floor number. *)
+(* Pending geometric theorem over a concrete run's projected collision
+   observations.  Its predicates expose Float32 hitboxes and phase fields
+   through CollisionRegions and do not mention an informal floor number.
+   Defining and proving completeness of that projection is part of the open
+   Clight refinement. *)
 Definition LowerEntranceReachabilityObligation
     (projection : ClightObservationProjection) : Prop :=
   forall run initial

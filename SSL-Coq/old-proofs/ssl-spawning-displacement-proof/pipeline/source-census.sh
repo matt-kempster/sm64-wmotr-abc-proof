@@ -7,13 +7,13 @@ elif [ -n "${SM64_SOURCE:-}" ]; then
   SOURCE_ROOT="$SM64_SOURCE"
 else
   SOURCE_ROOT=""
-  for candidate in ../../../reference-sm64-decomp ../../vendor/sm64 ../../reference-sm64-decomp ../reference-sm64-decomp ../vendor/sm64 vendor/sm64; do
+  for candidate in ../../../../reference-sm64-decomp ../../../vendor/sm64 ../../../reference-sm64-decomp ../../reference-sm64-decomp ../../vendor/sm64 vendor/sm64; do
     if [ -d "$candidate/src" ]; then
       SOURCE_ROOT="$candidate"
       break
     fi
   done
-  SOURCE_ROOT="${SOURCE_ROOT:-../../../reference-sm64-decomp}"
+  SOURCE_ROOT="${SOURCE_ROOT:-../../../../reference-sm64-decomp}"
 fi
 
 if [ ! -d "$SOURCE_ROOT/src" ]; then

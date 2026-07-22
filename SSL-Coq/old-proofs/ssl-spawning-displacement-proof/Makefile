@@ -1,9 +1,9 @@
 SM64 ?= $(SM64_SOURCE)
 ifeq ($(strip $(SM64)),)
-SM64 := $(firstword $(wildcard ../../../reference-sm64-decomp ../../vendor/sm64 ../../reference-sm64-decomp ../reference-sm64-decomp ../vendor/sm64 vendor/sm64))
+SM64 := $(firstword $(wildcard ../../../../reference-sm64-decomp ../../../vendor/sm64 ../../../reference-sm64-decomp ../../reference-sm64-decomp ../../vendor/sm64 vendor/sm64))
 endif
 ifeq ($(strip $(SM64)),)
-SM64 := ../../../reference-sm64-decomp
+SM64 := ../../../../reference-sm64-decomp
 endif
 
 JP_CG := -nostdinc -fstruct-passing \

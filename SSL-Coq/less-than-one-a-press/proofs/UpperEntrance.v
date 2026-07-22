@@ -16,10 +16,11 @@ Definition UpperUSReachabilityObligation
     NoUpperTriggerOverlap
       (project_collision_observations projection run).
 
-(* JP does not execute clear_mario_platform during the relevant area object
-   spawn.  state_mario_platform therefore retains a raw pool-slot pointer,
-   with a ghost capture epoch used only for provenance.  This obligation must
-   cover null, live same-epoch, inactive same-epoch, and reused-slot cases. *)
+(* The generated JP spawn body has no direct clear_mario_platform call, unlike
+   US.  The abstract state therefore permits a retained pool-slot value with a
+   ghost capture epoch.  A concrete execution/refinement theorem is pending;
+   this obligation must cover null, live same-epoch, inactive same-epoch, and
+   reused-slot cases. *)
 Definition UpperJPReachabilityObligation
     (projection : ClightObservationProjection) : Prop :=
   forall run initial

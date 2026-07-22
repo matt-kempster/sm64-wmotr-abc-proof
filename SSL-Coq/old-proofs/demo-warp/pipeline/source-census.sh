@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SOURCE_ROOT="${1:-${SM64_SOURCE:-../../../reference-sm64-decomp}}"
+SOURCE_ROOT="${1:-${SM64_SOURCE:-../../../../reference-sm64-decomp}}"
 
 test -f "$SOURCE_ROOT/src/game/game_init.c"
 test -f "$SOURCE_ROOT/src/menu/title_screen.c"
