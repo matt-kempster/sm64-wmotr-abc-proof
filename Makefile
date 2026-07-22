@@ -32,7 +32,7 @@ GENERATED := generated/toy.v generated/shadow.v \
   generated/mario_actions_cutscene.v generated/mario_actions_object.v \
   generated/mario_step.v generated/mario_misc.v
 
-.PHONY: all generated proofs regen clean
+.PHONY: all generated proofs regen clean ssl-less-than-one-a-press
 
 all: generated proofs
 
@@ -112,3 +112,8 @@ regen:
 clean:
 	-$(MAKE) -f $(COQMAKEFILE) clean 2>/dev/null || true
 	rm -f $(COQMAKEFILE) $(COQMAKEFILE).conf .*.aux
+
+# Current Shifting Sand Land proof project.  This target does not build the
+# archived proof attempts under SSL-Coq/old-proofs/.
+ssl-less-than-one-a-press:
+	$(MAKE) -C SSL-Coq/less-than-one-a-press check

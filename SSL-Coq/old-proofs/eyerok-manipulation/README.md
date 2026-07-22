@@ -136,8 +136,8 @@ The A value is a ghost input because the Eyerok hand code does not read it. It
 shows that changing only A cannot alter this hand-control invariant; it does
 not model new press edges or construct a legal no-A Mario route.
 
-The project now includes a reproducible Ubuntu-24.04 Mupen64Plus probe of this
-exact boundary on the hash-authenticated US ROM. It waits for genuine Eyerok hand
+The project now includes a reproducible Mupen64Plus probe of this exact
+boundary on the hash-authenticated US ROM. It waits for genuine Eyerok hand
 initialization, changes only SLEEP to IDLE, lets an ordinary update populate
 the real arena floor fields, and then installs a disclosed boss scheduler
 precondition without writing hand physics or double-pound actions. The
@@ -450,12 +450,7 @@ source-shaped kernel and small route-useful height relation remains open.
 ## Build
 
 The intended toolchain is Coq 8.16.1 and CompCert 3.15 in the
-`sm64-item-proof` opam switch. From PowerShell, use the Ubuntu distribution
-explicitly because the default WSL distribution is not usable:
-
-```powershell
-wsl.exe -d Ubuntu
-```
+`sm64-item-proof` opam switch. Activate that switch in a supported POSIX shell.
 
 Run generation followed by the complete source/proof check:
 

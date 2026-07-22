@@ -1,0 +1,10 @@
+/build/
+/CoqMakefile
+/CoqMakefile.conf
+.*.aux
+*.aux
+*.glob
+*.vo
+*.vok
+*.vos
+

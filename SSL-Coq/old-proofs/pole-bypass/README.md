@@ -68,12 +68,7 @@ make generated
 bash pipeline/check.sh
 ```
 
-From PowerShell, select the Ubuntu WSL distribution explicitly:
-
-```powershell
-wsl.exe -d Ubuntu
-```
-
-Then change to this directory and run the shell commands above. Generated
+From a supported POSIX shell, change to this directory and run the commands
+above. Generated
 Clight files and the source/collision audit receipt are committed and are
 checked for reproducibility.

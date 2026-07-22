@@ -5,13 +5,11 @@ IDLE -> BEGIN_DOUBLE_POUND -> DOUBLE_POUND velocity question on the
 authentic North-American ROM. It is deliberately separate from the Rocq proof
 and does not replace the source audit.
 
-Run it inside the Ubuntu-24.04 WSL distribution:
+Run it from the project directory in the supported POSIX environment:
 
-~~~powershell
-wsl.exe -d Ubuntu-24.04 -- bash -lc "\
-cd '/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-wmotr-abc-proof/SSL-Coq/eyerok-manipulation' && \
+~~~sh
 bash instrumentation/mupen64plus/run_idle_double_probe.sh \
-  '/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-decomp/baserom.us.z64'"
+  /path/to/baserom.us.z64
 ~~~
 
 The wrapper refuses any ROM whose MD5 is not
@@ -46,15 +44,13 @@ DOUBLE_POUND.
 
 `run_contact_probe.sh` runs three additional authenticated-US-ROM modes:
 stationary Mario, a never-A B-only speed kick, and an already-held-A jump
-kick. The wrapper requires `WSL_DISTRO_NAME=Ubuntu-24.04`, checks both MD5 and
-SHA-256, builds three debugger input plugins, and runs Mupen64Plus in the pure
-interpreter:
+kick. The wrapper validates the supported execution environment, checks both
+MD5 and SHA-256, builds three debugger input plugins, and runs Mupen64Plus in
+the pure interpreter:
 
-~~~powershell
-wsl.exe -d Ubuntu-24.04 -- bash -lc "\
-cd '/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-wmotr-abc-proof/SSL-Coq/eyerok-manipulation' && \
+~~~sh
 bash instrumentation/mupen64plus/run_contact_probe.sh \
-  '/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-decomp/baserom.us.z64'"
+  /path/to/baserom.us.z64
 ~~~
 
 The stationary mode authenticates Mario's selected dynamic floor and platform
@@ -96,11 +92,9 @@ slide-kick attacks, followed by the retail hand response, Mario collision,
 floor/platform choice, and deletion. It also runs eight fixed lethal steering
 directions and an inward-then-reverse braking schedule:
 
-~~~powershell
-wsl.exe -d Ubuntu-24.04 -- bash -lc "\
-cd '/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-wmotr-abc-proof/SSL-Coq/eyerok-manipulation' && \
+~~~sh
 bash instrumentation/mupen64plus/run_attack_probe.sh \
-  '/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-decomp/baserom.us.z64'"
+  /path/to/baserom.us.z64
 ~~~
 
 The wrapper rejects any ROM whose MD5, SHA-256, or header CRC differs from the
@@ -141,11 +135,9 @@ route.
 `run_pedro_probe.sh` compares two disclosed local Mario fixtures against an
 otherwise untouched sleeping right hand on the authenticated US ROM:
 
-~~~powershell
-wsl.exe -d Ubuntu-24.04 -- bash -lc "\
-cd '/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-wmotr-abc-proof/SSL-Coq/eyerok-manipulation' && \
+~~~sh
 bash instrumentation/mupen64plus/run_pedro_probe.sh \
-  '/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-decomp/baserom.us.z64'"
+  /path/to/baserom.us.z64
 ~~~
 
 Both fixtures write Mario's position, long-jump action, facing, and starting
@@ -169,15 +161,13 @@ and the gap becomes 162 on the next frame.
 `run_jp_platform_probe.sh` checks the version-specific `gMarioPlatform`
 behavior on the authentic original-JP ROM:
 
-~~~powershell
-wsl.exe -d Ubuntu-24.04 -- bash -lc "\
-cd '/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-wmotr-abc-proof/SSL-Coq/eyerok-manipulation' && \
+~~~sh
 bash instrumentation/mupen64plus/run_jp_platform_probe.sh \
-  '/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-decomp/baserom.jp.z64'"
+  /path/to/baserom.jp.z64
 ~~~
 
-The wrapper requires Ubuntu-24.04 and refuses a ROM unless all of these
-identifiers match:
+The wrapper validates its supported execution environment and refuses a ROM
+unless all of these identifiers match:
 
 ```text
 MD5:        85d61f5525af708c9f1e84dce6dc10e9
