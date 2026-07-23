@@ -69,3 +69,17 @@ closes either class of obligation.
 See the
 [`archived-proof evidence map`](../docs/archived-proof-evidence.md) for the
 project-by-project support and non-support boundary.
+
+## Transcript route-model boundary
+
+`proofs/TranscriptRouteModel.v` is handwritten.  It formalizes a chronological
+route-observation contract extracted from the supplied transcript and the
+task's stronger post-gate proposal.  It is not generated Clight and is not
+presented as one.  `TranscriptRouteGateModel`, the elevator/second-pole closure
+properties, and both downstream-completeness definitions remain obligations.
+No theorem currently projects Mario actions, exact collision surfaces, or gate
+ordering from a Clight run into `RouteTrace`.
+
+The generated `ssl_script` units use the normal preprocessing configuration.
+The source's experimental `SSL_SPAWNING_DISPLACEMENT_TAS_HACK` branch is not
+enabled and supplies no target-version reachability evidence.

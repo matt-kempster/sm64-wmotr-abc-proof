@@ -57,6 +57,7 @@ proofs/ClightFacts.v
 proofs/GameTypes.v
 proofs/InputSemantics.v
 proofs/RouteEvidence.v
+proofs/TranscriptRouteModel.v
 proofs/ObjectProvenance.v
 proofs/CollisionRegions.v
 proofs/CleanEntry.v

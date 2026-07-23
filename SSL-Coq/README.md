@@ -57,6 +57,15 @@ null/live/inactive/reused case split, without a Clight projection theorem.
 These results guide the remaining proof; they do not establish authentic route
 completeness.
 
+`TranscriptRouteModel.v` now formalizes the two-gate contract suggested by the
+supplied source text: the contract requires a modeled upper route to leave the
+elevator and a modeled lower route to get above the second pole.  Its logical
+lemmas show that no-A target-region access exposes a corresponding bypass, and
+that spawning displacement or above-pole access becomes complete for the two
+reduction nodes only under explicit downstream-continuation premises.  No
+Clight-to-route projection, gate closure,
+or downstream-completeness premise has been proved.
+
 The ultimate less-than-one-A-press impossibility theorem is **not complete**.
 `conditional_less_than_one_a_press_impossibility` requires a concrete
 observation projection, a per-run Clight refinement certificate, and the named
@@ -65,6 +74,7 @@ linked program/projection, whole-program semantic refinement, or Layer B
 obligation is proved.  These gaps are explicit and are not presented as proved
 geometry or as a complete ROM theorem.  See the
 [project README](less-than-one-a-press/README.md) and the
+[human-readable proof](less-than-one-a-press/human-readable-proof.md), plus the
 [archived-proof evidence map](less-than-one-a-press/docs/archived-proof-evidence.md)
 for the exact boundary.  None of the six archived projects closes the
 whole-program Layer A refinement or any Layer B obligation.

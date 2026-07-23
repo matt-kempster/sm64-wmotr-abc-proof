@@ -23,6 +23,11 @@
   well-formedness; its C-memory projection remains open.
 - [x] Document what each archived project supports and does not support in
   [`archived-proof-evidence.md`](archived-proof-evidence.md).
+- [x] Encode the transcript's elevator/second-pole route contract and prove its
+  gate, bypass-refutation, and conditional downstream-access lemmas without
+  presenting the graph as a target-ROM refinement.
+- [x] Add a software-engineer-oriented
+  [`human-readable-proof.md`](../human-readable-proof.md).
 - [x] No-hole source scan and assumption reports are part of `make check`.
 - [ ] Construct an iterated link of the imported translation units and prove
   the `TargetLinkedProgram` link-order certificate.
@@ -41,6 +46,11 @@
   collision-phase reasoning plus a complete lower-route case split.
 - [ ] Prove which JP raw-platform cases are reachable and bound every reachable
   spawning displacement.
+- [ ] Project chronological Mario/action/surface observations from Clight and
+  prove the transcript route contract complete for both entrances.
+- [ ] Define the elevator and second-pole cuts over exact collision surfaces,
+  prove both no-A gate closures, and validate separate downstream continuations
+  to the Act 3 region and all five Act 6 triggers.
 - [ ] Prove `LowerEntranceReachabilityObligation`.
 - [ ] Prove `UpperUSReachabilityObligation`.
 - [ ] Prove `UpperJPReachabilityObligation`.

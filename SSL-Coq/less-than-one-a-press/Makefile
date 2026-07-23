@@ -35,6 +35,24 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  conditional_target_clight_run_impossibility
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  transcript_route_gate_reduction
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.TranscriptRouteModel \
+	  no_a_target_access_requires_gate_bypass
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.TranscriptRouteModel \
+	  no_a_target_access_requires_preceding_gate_bypass
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.TranscriptRouteModel \
+	  closed_route_model_requires_one_a
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.TranscriptRouteModel \
+	  spawning_displacement_escape_opens_both_target_regions
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.TranscriptRouteModel \
+	  above_second_pole_access_opens_both_target_regions
 
 clean:
 	-$(MAKE) -f $(COQMAKEFILE) clean

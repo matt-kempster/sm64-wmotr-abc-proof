@@ -17,6 +17,10 @@ Clight-to-event/collision projection and every lower/upper collision-observation
 non-overlap obligation remain open.  None of the six archived projects closes
 either gap.
 
+For a software-engineering-oriented explanation of the game state, the two
+route gates, the exact proved reductions, and the contribution of each archived
+project, see [`human-readable-proof.md`](human-readable-proof.md).
+
 ## Exact target and input definition
 
 The pinned source names the edge field `Controller.buttonPressed` and the held
@@ -131,6 +135,51 @@ between them and does not use the kernel as a substitute for refinement or
 reachability.  See
 [`docs/archived-proof-evidence.md`](docs/archived-proof-evidence.md) for the
 project-by-project evidence boundary.
+
+`TranscriptRouteModel.v` separately formalizes the route argument extracted
+from the supplied transcript and the task's stronger post-gate completeness
+proposal.  Its target nodes are the Act 3 interaction region and the upper
+hidden-star trigger, not save-bit updates.  It proves:
+
+```coq
+Theorem no_a_target_access_requires_gate_bypass :
+  forall initial trace,
+    TranscriptRouteGateModel initial trace ->
+    fewer_than_one_a_press (route_inputs trace) ->
+    reaches_any_target_region trace ->
+    (state_entrance initial = UpperEntrance /\
+       elevator_escape_observed trace) \/
+    (state_entrance initial = LowerEntrance /\
+       above_second_pole_observed trace).
+```
+
+The stronger
+`no_a_target_access_requires_preceding_gate_bypass` theorem retains concrete
+frame indices and proves that the selected bypass occurrence precedes the
+selected target occurrence.  The capstone-facing corollary above drops those
+indices after preserving the existence of the bypass.
+
+It also proves that excluding both bypass observations on a supplied trace
+forces an A edge in that route model.  Under explicit `UpperDownstreamCompleteness` or
+`LowerDownstreamCompleteness` premises, a spawning-displacement escape or a
+no-A state above the second pole yields separate no-A continuations to the two
+target regions.  Those premises avoid claiming both stars are collected in one
+course visit.
+
+Each route frame pairs its input with that frame's ordered observations.
+`RealizedRouteTrace` additionally requires an abstract `CertifiedExecution`
+with the same frame count and backs target observations by same-index Act 3
+collection or upper-trigger-consumption events.  This rules out a bare appended
+target label, but remains an abstract event certificate rather than a Clight
+execution refinement.
+
+`TranscriptRouteGateModel`, global US/JP bypass closure, both
+downstream-completeness premises, and the projection from Clight frames to synchronized route
+observations are **not proved**.  Thus these are checked logical cut lemmas, not
+a proof that the route contract exhausts target-ROM behavior.  An authentic no-A elevator
+escape or above-second-pole witness would refute the respective gate closure;
+it would become a zero-A target-route capability only after downstream
+continuations are validated.
 
 The fully proved result is an abstract event-reduction theorem:
 
@@ -259,7 +308,7 @@ make check
 
 This builds all committed generated modules and proofs, rejects proof-hole and
 unconstrained-declaration keywords in Rocq source, and prints assumptions for
-the five checked integration, reduction, and conditional theorems.
+the named integration, reduction, route, and conditional theorems.
 
 Regenerate from a Git checkout containing the pinned commit:
 
@@ -309,6 +358,10 @@ clightgen -normalize -nostdinc -fstruct-passing \
   projected Float32 collision observations rather than an informal floor
   number, but completeness of that observation stream is itself part of the
   missing concrete refinement.
+- The transcript route model has no Clight projection or collision-surface
+  completeness theorem.  In particular, "above the second pole" and "outside
+  the elevator" still require chronological predicates over exact surfaces,
+  actions, platform state, and collision phases rather than a bare Y bound.
 - `ArchivedProofIntegrationKernel` is a proved package of current-source facts
   and narrow route lemmas, but it proves neither
   `TargetClightRefinementObligation` nor any Layer B premise.  Building or

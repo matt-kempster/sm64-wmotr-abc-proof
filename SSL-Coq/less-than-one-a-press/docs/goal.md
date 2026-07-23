@@ -19,6 +19,14 @@ narrow
 parallel-universe and normalized-pole subcases, held-A input semantics, Eyerok
 source-shape facts, and a generic CompCert memory-block lemma.
 
+`TranscriptRouteModel.v` now encodes the transcript's two proposed cut points:
+upper entry must leave the elevator, while lower entry must get above the
+second pole.  The machine-checked contract lemmas show that a no-A target route
+must expose the corresponding bypass, and that a spawning-displacement escape
+or above-pole state supports separate target-region continuations if the
+explicit downstream-completeness premise holds.  The route model is not yet a
+projection of a Clight execution.
+
 This incorporation does not complete the goal.  The route lemmas lack the
 whole-program writer, Float32 collision, model-completeness, and memory
 provenance bridges needed to apply them globally.  The platform model uses an
@@ -28,4 +36,5 @@ projection, authentic reachability, and displacement bounds remain open.  None
 of the six archived projects discharges the current
 whole-program Layer A refinement or any Layer B obligation.  See the
 [`archived-proof evidence map`](archived-proof-evidence.md) for the exact
-project-by-project boundary.
+project-by-project boundary.  The non-specialist explanation is
+[`../human-readable-proof.md`](../human-readable-proof.md).

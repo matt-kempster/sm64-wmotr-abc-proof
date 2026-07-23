@@ -2,7 +2,7 @@ From Coq Require Import List.
 From LessThanOneAPress.Proofs Require Import
   GameTypes InputSemantics CleanEntry ObjectProvenance StarCollection
   CollisionRegions AreaTransitions HiddenStar LowerEntrance UpperEntrance
-  ClightRefinement ArchivedProofIntegration.
+  ClightRefinement ArchivedProofIntegration TranscriptRouteModel.
 
 Import ListNotations.
 
@@ -62,6 +62,24 @@ Proof.
   split.
   - exact archived_proof_integration_kernel_holds.
   - exact collection_provenance_reduction.
+Qed.
+
+(* Capstone exposure of the transcript-derived route-gate reduction.  The
+   [TranscriptRouteGateModel] premise is an unproved abstract route-coverage
+   certificate, not a consequence of the generated Clight modules.  Likewise,
+   the separate downstream-completeness premises used by the sufficiency
+   theorems remain open. *)
+Theorem transcript_route_gate_reduction :
+  forall initial trace,
+    TranscriptRouteGateModel initial trace ->
+    fewer_than_one_a_press (route_inputs trace) ->
+    reaches_any_target_region trace ->
+    (state_entrance initial = UpperEntrance /\
+       elevator_escape_observed trace) \/
+    (state_entrance initial = LowerEntrance /\
+       above_second_pole_observed trace).
+Proof.
+  exact no_a_target_access_requires_gate_bypass.
 Qed.
 
 Theorem conditional_less_than_one_a_press_impossibility :

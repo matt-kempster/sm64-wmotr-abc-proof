@@ -27,6 +27,14 @@
   parallel-universe coordinate; the normalized integer soft-bonk model cannot
   clear its modeled pole route; and a store to one CompCert block preserves a
   load from a different block.
+- `TranscriptRouteModel.v` proves the route-gate logic extracted from
+  the supplied transcript and the task's route-completeness proposal.  In that
+  model, no-A target-region access exposes either an elevator escape or an
+  above-second-pole observation, and excluding both bypasses makes a target
+  route contain an A edge.  Under separately named downstream-completeness
+  premises, spawning-displacement escape or above-pole access gives separate
+  no-A continuations to the Act 3 region and upper Puzzle trigger, provided
+  each continuation also carries the model's abstract execution certificate.
 - The abstract `gMarioPlatform` model uses a pool slot plus a ghost capture
   epoch.  For a non-null pointer satisfying its slot-well-formedness premise,
   the live-same-epoch,
@@ -45,6 +53,10 @@
   corresponding C memory facts.
 - A proof that `ArchivedProofIntegrationKernel` implies that refinement or any
   entrance reachability obligation.  It does not.
+- A projection from an actual Clight execution to `RouteTrace`, proof of
+  `TranscriptRouteGateModel`, either global gate-closure property, or either
+  downstream-completeness premise.  The route theorem establishes its logical
+  cut, not that the contract is complete for a target ROM.
 - Complete position-writer coverage for the parallel-universe subcase,
   Float32 and collision-phase completeness for the pole subcase, an authentic
   Eyerok height/refinement theorem, or demo/Mario block provenance.
@@ -62,4 +74,5 @@ impossibility result.  None of `ssl-spawning-displacement-proof`,
 `eyerok-manipulation`, or `demo-warp` closes the whole-program Layer A
 refinement or a Layer B obligation.  See
 [`archived-proof-evidence.md`](archived-proof-evidence.md) for the detailed
-support matrix.
+support matrix and [`../human-readable-proof.md`](../human-readable-proof.md)
+for the route-gate argument in software-engineering terms.
