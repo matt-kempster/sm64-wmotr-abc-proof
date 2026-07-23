@@ -8,6 +8,9 @@ The ultimate result is not complete.  A constructor-inversion reduction is
 proved for the handwritten certified-event semantics.  A concrete linked
 Clight run/projection, derivation of those event-constructor premises, complete
 collision observations, and the lower/upper non-overlap obligations remain.
+The clean-entry model now fixes exact entry kinematics and static target/trigger
+identities and closes the active/backup-save reload loophole, but those fields
+still require a concrete C-memory projection.
 
 The current project now generates 25 translation units for each target
 version (50 Clight modules), including Mario action and movement code,
@@ -27,6 +30,15 @@ or above-pole state supports separate target-region continuations if the
 explicit downstream-completeness premise holds.  The route model is not yet a
 projection of a Clight execution.
 
+A second route theorem works at the exact first target occurrence.  Its
+entrance-specific finite sums name nine alternative class tags--platform
+displacement, moving objects, warps, clips, out-of-bounds movement, target
+substitution, lifecycle anomalies, save anomalies, and memory/undefined
+behavior.  The tags carry no state/event evidence.
+`FirstTargetCutClassificationObligation` is the plainly named broad premise
+that already assumes this split covers every first access; deriving
+evidence-bearing coverage for US/JP executions remains open.
+
 This incorporation does not complete the goal.  The route lemmas lack the
 whole-program writer, Float32 collision, model-completeness, and memory
 provenance bridges needed to apply them globally.  The platform model uses an
@@ -37,4 +49,6 @@ of the six archived projects discharges the current
 whole-program Layer A refinement or any Layer B obligation.  See the
 [`archived-proof evidence map`](archived-proof-evidence.md) for the exact
 project-by-project boundary.  The non-specialist explanation is
-[`../human-readable-proof.md`](../human-readable-proof.md).
+[`../human-readable-proof.md`](../human-readable-proof.md), and the route
+coverage question is isolated in
+[`route-exhaustiveness.md`](route-exhaustiveness.md).

@@ -10,6 +10,7 @@ Inductive PyramidEntrance := LowerEntrance | UpperEntrance.
 Definition ssl_level_id : Int.int := Int.repr 8.
 Definition ssl_course_id : Int.int := Int.repr 8.
 Definition pyramid_area_id : Int.int := Int.repr 2.
+Definition pyramid_boss_area_id : Int.int := Int.repr 3.
 
 (* The C behavior parameter is zero based: Act 3 is 2 and Act 6 is 5. *)
 Definition act3_index : Z := 2.
@@ -30,11 +31,51 @@ Record Vec3f := {
   vec_z : float32
 }.
 
+Definition f32_bits (bits : Z) : float32 :=
+  Float32.of_bits (Int.repr bits).
+
+Definition f32_zero : float32 := f32_bits 0.
+
+Definition vec3f_zero : Vec3f :=
+  {| vec_x := f32_zero; vec_y := f32_zero; vec_z := f32_zero |}.
+
+(* These are the exact single-precision encodings emitted by the level
+   script.  They are deliberately not mathematical-real coordinates. *)
+Definition lower_entry_position : Vec3f :=
+  {| vec_x := f32_zero;
+     vec_y := f32_bits 1133903872;       (* 300.0f *)
+     vec_z := f32_bits 1170839552 |}.    (* 6451.0f *)
+
+Definition upper_entry_position : Vec3f :=
+  {| vec_x := f32_zero;
+     vec_y := f32_bits 1168891904;       (* 5500.0f *)
+     vec_z := f32_bits 1132462080 |}.    (* 256.0f *)
+
+Definition act3_static_position : Vec3f :=
+  {| vec_x := f32_bits 1140457472;       (* 500.0f *)
+     vec_y := f32_bits 1167970304;       (* 5050.0f *)
+     vec_z := f32_bits 3287941120 |}.    (* -500.0f *)
+
+Definition hidden_controller_position : Vec3f :=
+  {| vec_x := f32_bits 1147207680;       (* 900.0f *)
+     vec_y := f32_bits 1152319488;       (* 1400.0f *)
+     vec_z := f32_bits 1158864896 |}.    (* 2350.0f *)
+
 Record Hitbox := {
   hitbox_radius : float32;
   hitbox_height : float32;
   hitbox_down_offset : float32
 }.
+
+Definition collect_star_hitbox : Hitbox :=
+  {| hitbox_radius := f32_bits 1117782016; (* 80.0f *)
+     hitbox_height := f32_bits 1112014848; (* 50.0f *)
+     hitbox_down_offset := f32_zero |}.
+
+Definition hidden_trigger_hitbox : Hitbox :=
+  {| hitbox_radius := f32_bits 1120403456; (* 100.0f *)
+     hitbox_height := f32_bits 1120403456; (* 100.0f *)
+     hitbox_down_offset := f32_zero |}.
 
 Record ObjectRef := {
   object_slot : nat;
@@ -51,6 +92,59 @@ Record RawPlatformPointer := {
   platform_captured_epoch : nat
 }.
 
+(* A stable name assigned by the Clight projection to one collision surface.
+   The index is not a C pointer and must be justified by the projection. *)
+Record SurfaceRef := {
+  surface_area : Int.int;
+  surface_index : nat
+}.
+
+Record MarioKinematics := {
+  mario_position : Vec3f;
+  mario_velocity : Vec3f;
+  mario_forward_velocity : float32;
+  mario_action : Int.int;
+  mario_floor : SurfaceRef;
+  mario_floor_height : float32;
+  mario_room : Int.int
+}.
+
+Record EntrySnapshot := {
+  entry_warp_node : Int.int;
+  entry_facing_yaw : Int.int;
+  entry_kinematics : MarioKinematics
+}.
+
+Definition airborne_warp_action : Int.int := Int.repr 6450. (* 0x1932 *)
+Definition lower_entry_warp_node : Int.int := Int.repr 10. (* 0x0A *)
+Definition upper_entry_warp_node : Int.int := Int.repr 20. (* 0x14 *)
+(* The level-script s16 yaw 0x8000 is sign-extended when projected to the
+   32-bit MarioState field. *)
+Definition airborne_entry_facing_yaw : Int.int := Int.repr (-32768).
+
+Definition entry_floor_well_formed (kinematics : MarioKinematics) : Prop :=
+  surface_area (mario_floor kinematics) = pyramid_area_id /\
+  mario_room kinematics = Int.zero /\
+  Float32.cmp Ceq
+    (mario_floor_height kinematics)
+    (mario_floor_height kinematics) = true.
+
+Definition entry_snapshot_for
+    (entrance : PyramidEntrance) (snapshot : EntrySnapshot) : Prop :=
+  entry_facing_yaw snapshot = airborne_entry_facing_yaw /\
+  entry_floor_well_formed (entry_kinematics snapshot) /\
+  mario_velocity (entry_kinematics snapshot) = vec3f_zero /\
+  mario_forward_velocity (entry_kinematics snapshot) = f32_zero /\
+  mario_action (entry_kinematics snapshot) = airborne_warp_action /\
+  match entrance with
+  | LowerEntrance =>
+      entry_warp_node snapshot = lower_entry_warp_node /\
+      mario_position (entry_kinematics snapshot) = lower_entry_position
+  | UpperEntrance =>
+      entry_warp_node snapshot = upper_entry_warp_node /\
+      mario_position (entry_kinematics snapshot) = upper_entry_position
+  end.
+
 Inductive BehaviorTag :=
 | BehaviorStarOrKey
 | BehaviorHiddenStarController
@@ -62,18 +156,6 @@ Inductive ObjectOrigin :=
 | PyramidHiddenStarController
 | PyramidMacroTrigger
 | RuntimeOtherOrigin.
-
-Record ObjectState := {
-  object_ref : ObjectRef;
-  object_active : bool;
-  object_area : Int.int;
-  object_behavior : BehaviorTag;
-  object_star_index : option Z;
-  object_origin : ObjectOrigin;
-  object_position : Vec3f;
-  object_hitbox : Hitbox;
-  object_macro_respawn_consumed : bool
-}.
 
 Inductive HiddenTrigger :=
 | TriggerLowerWest
@@ -95,6 +177,45 @@ Definition trigger_eqb (a b : HiddenTrigger) : bool :=
   | TriggerUpper, TriggerUpper => true
   | _, _ => false
   end.
+
+Definition hidden_trigger_position (trigger : HiddenTrigger) : Vec3f :=
+  match trigger with
+  | TriggerLowerWest =>
+      {| vec_x := f32_bits 3280076800;   (* -260.0f *)
+         vec_y := f32_bits 1161281536;   (* 2940.0f *)
+         vec_z := f32_bits 3289776128 |} (* -600.0f *)
+  | TriggerLowerEast =>
+      {| vec_x := f32_bits 1132593152;   (* 260.0f *)
+         vec_y := f32_bits 1156964352;   (* 1967.0f *)
+         vec_z := f32_bits 3289776128 |}
+  | TriggerMiddleWest =>
+      {| vec_x := f32_bits 3304226816;   (* -1940.0f *)
+         vec_y := f32_bits 1150918656;   (* 1229.0f *)
+         vec_z := f32_bits 3289776128 |}
+  | TriggerMiddleNorth =>
+      {| vec_x := f32_bits 3304226816;
+         vec_y := f32_bits 1150918656;
+         vec_z := f32_bits 1158742016 |} (* 2320.0f *)
+  | TriggerUpper =>
+      {| vec_x := f32_bits 1132593152;   (* 260.0f *)
+         vec_y := f32_bits 1165266944;   (* 3913.0f *)
+         vec_z := f32_bits 3289776128 |}
+  end.
+
+Record ObjectState := {
+  object_ref : ObjectRef;
+  object_active : bool;
+  object_area : Int.int;
+  object_behavior : BehaviorTag;
+  object_star_index : option Z;
+  object_origin : ObjectOrigin;
+  object_parent_ref : option ObjectRef;
+  object_trigger_kind : option HiddenTrigger;
+  object_position : Vec3f;
+  object_home_position : Vec3f;
+  object_hitbox : Hitbox;
+  object_macro_respawn_consumed : bool
+}.
 
 Definition TriggerState := HiddenTrigger -> bool.
 
@@ -137,19 +258,33 @@ Record GameState := {
   state_act : Int.int;
   state_area : Int.int;
   state_save_flags : Int.int;
+  state_backup_save_flags : Int.int;
   state_object_pool : list ObjectState;
   state_static_act3_ref : ObjectRef;
+  state_hidden_controller_ref : ObjectRef;
+  state_hidden_trigger_refs : HiddenTrigger -> ObjectRef;
   state_triggers : TriggerState;
   state_puzzle_star_spawned : bool;
-  state_macro_spawn_valid : bool;
+  state_macro_respawn_state : TriggerState;
   state_pool_well_formed : bool;
   state_lists_well_formed : bool;
   state_pending_star_interaction : bool;
   state_delayed_star_exit : bool;
-  state_previous_buttons : Int.int;
-  state_current_buttons : Int.int;
-  state_mario_platform : option RawPlatformPointer
+  (* Actual Controller.buttonDown at the execution boundary. *)
+  state_entry_button_down : Int.int;
+  (* Ghost seed used as the previous-down value of the first modeled frame;
+     it is not an earlier temporal controller sample. *)
+  state_first_frame_previous_down_seed : Int.int;
+  state_mario_platform : option RawPlatformPointer;
+  state_entry_snapshot : EntrySnapshot;
+  state_mario_kinematics : MarioKinematics
 }.
+
+Definition target_save_coherent (s : GameState) : Prop :=
+  star_bit (state_save_flags s) act3_index =
+    star_bit (state_backup_save_flags s) act3_index /\
+  star_bit (state_save_flags s) act6_index =
+    star_bit (state_backup_save_flags s) act6_index.
 
 Definition active_object (o : ObjectState) : Prop := object_active o = true.
 

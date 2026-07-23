@@ -116,7 +116,7 @@ Record ClightFrameRefinementCertificate
     length (project_inputs projection run) =
     length (project_events projection run);
   refined_input_history :
-    coherent_input_history (state_previous_buttons initial)
+    coherent_input_history (state_first_frame_previous_down_seed initial)
       (project_inputs projection run);
   refined_act3_collections_observed :
     forall star phase,

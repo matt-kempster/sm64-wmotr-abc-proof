@@ -7,9 +7,16 @@ Local Open Scope Z_scope.
 Definition valid_target_origin (s : GameState) (o : ObjectState) : Prop :=
   (active_star_or_key act3_index o ->
      object_origin o = StaticAct3PyramidStar /\
-     object_ref_equal (object_ref o) (state_static_act3_ref s)) /\
+     object_ref_equal (object_ref o) (state_static_act3_ref s) /\
+     object_area o = pyramid_area_id /\
+     object_position o = act3_static_position /\
+     object_hitbox o = collect_star_hitbox) /\
   (active_star_or_key act6_index o ->
-     object_origin o = PyramidHiddenStarController).
+     object_origin o = PyramidHiddenStarController /\
+     object_parent_ref o = Some (state_hidden_controller_ref s) /\
+     object_area o = pyramid_area_id /\
+     object_home_position o = hidden_controller_position /\
+     object_hitbox o = collect_star_hitbox).
 
 Definition target_provenance (s : GameState) : Prop :=
   forall o, In o (state_object_pool s) -> valid_target_origin s o.
@@ -40,7 +47,10 @@ Definition act3_static_object_present (s : GameState) : Prop :=
     In o (state_object_pool s) /\
     active_star_or_key act3_index o /\
     object_origin o = StaticAct3PyramidStar /\
-    object_ref_equal (object_ref o) (state_static_act3_ref s).
+    object_ref_equal (object_ref o) (state_static_act3_ref s) /\
+    object_area o = pyramid_area_id /\
+    object_position o = act3_static_position /\
+    object_hitbox o = collect_star_hitbox.
 
 Definition no_preexisting_act3_substitute (s : GameState) : Prop :=
   forall o,
@@ -54,7 +64,95 @@ Definition hidden_controller_present (s : GameState) : Prop :=
     active_object o /\
     object_behavior o = BehaviorHiddenStarController /\
     object_star_index o = Some act6_index /\
-    object_origin o = PyramidHiddenStarController.
+    object_origin o = PyramidHiddenStarController /\
+    object_ref_equal
+      (object_ref o) (state_hidden_controller_ref s) /\
+    object_area o = pyramid_area_id /\
+    object_position o = hidden_controller_position.
+
+Definition macro_spawn_state_valid (s : GameState) : Prop :=
+  forall trigger,
+    In trigger all_hidden_triggers ->
+    state_macro_respawn_state s trigger = state_triggers s trigger.
+
+Definition valid_hidden_trigger_object
+    (s : GameState) (trigger : HiddenTrigger) (o : ObjectState) : Prop :=
+  In trigger all_hidden_triggers /\
+  In o (state_object_pool s) /\
+  active_object o /\
+  object_behavior o = BehaviorHiddenStarTrigger /\
+  object_origin o = PyramidMacroTrigger /\
+  object_trigger_kind o = Some trigger /\
+  object_ref_equal (object_ref o) (state_hidden_trigger_refs s trigger) /\
+  object_area o = pyramid_area_id /\
+  object_position o = hidden_trigger_position trigger /\
+  object_hitbox o = hidden_trigger_hitbox /\
+  state_triggers s trigger = false /\
+  state_macro_respawn_state s trigger = false /\
+  object_macro_respawn_consumed o = false.
+
+(* This projection invariant makes the macro preset identity explicit.  In
+   particular an arbitrary trigger-shaped object cannot be relabeled as the
+   upper trigger merely because Mario overlaps it. *)
+Definition hidden_trigger_provenance (s : GameState) : Prop :=
+  forall o,
+    In o (state_object_pool s) ->
+    active_object o ->
+    object_behavior o = BehaviorHiddenStarTrigger ->
+    exists trigger, valid_hidden_trigger_object s trigger o.
+
+Definition all_hidden_trigger_objects_present (s : GameState) : Prop :=
+  forall trigger,
+    In trigger all_hidden_triggers ->
+    exists o, valid_hidden_trigger_object s trigger o.
+
+Definition hidden_trigger_refs_distinct (s : GameState) : Prop :=
+  forall first second,
+    In first all_hidden_triggers ->
+    In second all_hidden_triggers ->
+    first <> second ->
+    ~ object_ref_equal
+        (state_hidden_trigger_refs s first)
+        (state_hidden_trigger_refs s second).
+
+Definition no_active_hidden_trigger_kind
+    (s : GameState) (trigger : HiddenTrigger) : Prop :=
+  forall o,
+    In o (state_object_pool s) ->
+    active_object o ->
+    object_behavior o = BehaviorHiddenStarTrigger ->
+    object_trigger_kind o = Some trigger ->
+    False.
+
+Theorem valid_upper_trigger_has_static_identity :
+  forall s o,
+    valid_hidden_trigger_object s TriggerUpper o ->
+    object_trigger_kind o = Some TriggerUpper /\
+    object_ref_equal
+      (object_ref o) (state_hidden_trigger_refs s TriggerUpper) /\
+    object_position o = hidden_trigger_position TriggerUpper.
+Proof.
+  intros s o
+    (_ & _ & _ & _ & _ & Hkind & Href & _ & Hposition & _).
+  exact (conj Hkind (conj Href Hposition)).
+Qed.
+
+Theorem consumed_trigger_has_no_active_object :
+  forall s trigger,
+    hidden_trigger_provenance s ->
+    state_triggers s trigger = true ->
+    no_active_hidden_trigger_kind s trigger.
+Proof.
+  intros s trigger Hprovenance Hconsumed
+    o Hin Hactive Hbehavior Hkind.
+  destruct (Hprovenance o Hin Hactive Hbehavior)
+    as (actual & _ & _ & _ & _ & _ & Hactual_kind & _ & _ &
+        _ & _ & Hactual_clear & _).
+  rewrite Hkind in Hactual_kind.
+  inversion Hactual_kind; subst actual.
+  rewrite Hconsumed in Hactual_clear.
+  discriminate.
+Qed.
 
 Theorem target_object_has_required_origin :
   forall s o index,
@@ -69,5 +167,5 @@ Proof.
   - left. split; [reflexivity|].
     exact (proj1 (proj1 (Hprov o Hin) Hactive)).
   - right. split; [reflexivity|].
-    apply (proj2 (Hprov o Hin)); exact Hactive.
+    exact (proj1 (proj2 (Hprov o Hin) Hactive)).
 Qed.

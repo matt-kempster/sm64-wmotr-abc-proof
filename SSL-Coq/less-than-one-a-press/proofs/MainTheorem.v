@@ -82,6 +82,46 @@ Proof.
   exact no_a_target_access_requires_gate_bypass.
 Qed.
 
+(* This is the stronger first-crossing formulation.  Its coverage premise is
+   deliberately named [FirstTargetCutClassificationObligation]: proving that
+   premise from Clight plus the collision mesh is the still-open route
+   exhaustiveness task.  The conclusion identifies the exact preceding gate A
+   edge or a finite entrance-specific bypass class tag.  Those tags are
+   payload-free bookkeeping, not evidence of the classified trajectory. *)
+Theorem first_target_cut_coverage_reduction :
+  forall initial trace,
+    FirstTargetCutClassificationObligation initial trace ->
+    reaches_any_target_region trace ->
+    exists region target_frame target_observation,
+      first_target_observation_at
+        trace region target_frame target_observation /\
+      ((state_entrance initial = UpperEntrance /\
+        (gate_a_press_precedes_exact_target trace ElevatorJumpOutGate
+           region target_frame target_observation \/
+         exists witness,
+           upper_bypass_precedes_exact_target trace witness
+             region target_frame target_observation)) \/
+       (state_entrance initial = LowerEntrance /\
+        (gate_a_press_precedes_exact_target trace SecondPoleJumpOffGate
+           region target_frame target_observation \/
+         exists witness,
+           lower_bypass_precedes_exact_target trace witness
+             region target_frame target_observation))).
+Proof.
+  exact first_target_access_requires_gate_a_or_explicit_bypass.
+Qed.
+
+Theorem first_target_cut_with_all_bypasses_excluded_requires_a_edge :
+  forall initial trace,
+    FirstTargetCutClassificationObligation initial trace ->
+    reaches_any_target_region trace ->
+    ExcludesAllUpperBypassWitnesses trace ->
+    ExcludesAllLowerBypassWitnesses trace ->
+    trace_contains_a_press trace.
+Proof.
+  exact first_target_access_with_all_bypasses_excluded_requires_a_edge.
+Qed.
+
 Theorem conditional_less_than_one_a_press_impossibility :
   forall projection,
   LowerEntranceReachabilityObligation projection ->

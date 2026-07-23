@@ -128,6 +128,47 @@ Theorem save_collection_writer_call_source_shape_jp :
     (fn_body JSF.f_save_file_collect_star_or_key) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* A target-bit transition theorem must distinguish star collection from the
+   game-over path that restores the active save slot from its backup.  These
+   facts only establish that both operations occur in the generated syntax;
+   their active/backup effect is modeled separately, while the Clight memory
+   refinement remains pending. *)
+Theorem game_over_save_reload_source_shape_us :
+  calls_ident_s USF._bcopy (fn_body USF.f_save_file_reload) = true /\
+  statement_mentions_ident_s USF._files
+    (fn_body USF.f_save_file_reload) = true /\
+  calls_ident_s ULU._save_file_reload
+    (fn_body ULU.f_initiate_delayed_warp) = true.
+Proof. vm_compute. repeat split. Qed.
+
+Theorem game_over_save_reload_source_shape_jp :
+  calls_ident_s JSF._bcopy (fn_body JSF.f_save_file_reload) = true /\
+  statement_mentions_ident_s JSF._files
+    (fn_body JSF.f_save_file_reload) = true /\
+  calls_ident_s JLU._save_file_reload
+    (fn_body JLU.f_initiate_delayed_warp) = true.
+Proof. vm_compute. repeat split. Qed.
+
+Definition act_spawn_no_spin_airborne_bits : Z := 6450.
+
+(* Both SSL area-2 entry objects use [bhvAirborneWarp].  The level-script
+   initializer facts below identify their positions; this check anchors the
+   corresponding spawn type to the action selected by set_mario_initial_action.
+   It remains a source-shape fact, not a proof that a run begins at that case. *)
+Theorem airborne_entry_action_source_shape_us :
+  calls_ident_s ULU._set_mario_action
+    (fn_body ULU.f_set_mario_initial_action) = true /\
+  statement_mentions_int_s act_spawn_no_spin_airborne_bits
+    (fn_body ULU.f_set_mario_initial_action) = true.
+Proof. vm_compute. split; reflexivity. Qed.
+
+Theorem airborne_entry_action_source_shape_jp :
+  calls_ident_s JLU._set_mario_action
+    (fn_body JLU.f_set_mario_initial_action) = true /\
+  statement_mentions_int_s act_spawn_no_spin_airborne_bits
+    (fn_body JLU.f_set_mario_initial_action) = true.
+Proof. vm_compute. split; reflexivity. Qed.
+
 Theorem hundred_coin_spawn_index_source_shape_us :
   calls_ident_s UI._bhv_spawn_star_no_level_exit
     (fn_body UI.f_interact_coin) = true /\
@@ -465,6 +506,48 @@ Definition eyerok_lifecycle_source_shape_jp_claim : Prop :=
 Theorem eyerok_lifecycle_source_shape_jp :
   eyerok_lifecycle_source_shape_jp_claim.
 Proof. unfold eyerok_lifecycle_source_shape_jp_claim; vm_compute; repeat split. Qed.
+
+(* Exact consecutive area-2 airborne-warp object records in level_ssl_entry.
+   The packed integer words are the preprocessed OBJECT macro representation:
+   lower node 0x0A at (0,300,6451), then upper node 0x14 at
+   (0,5500,256), both with yaw 180 and bhvAirborneWarp. *)
+Definition ssl_area2_entry_objects_us : list init_data :=
+  [ Init_int32 (Int.repr 605560576);
+    Init_int32 (Int.repr 300);
+    Init_int32 (Int.repr 422772736);
+    Init_int32 (Int.repr 11796480);
+    Init_int32 (Int.repr 655360);
+    Init_addrof USS._bhvAirborneWarp (Ptrofs.repr 0);
+    Init_int32 (Int.repr 605560576);
+    Init_int32 (Int.repr 5500);
+    Init_int32 (Int.repr 16777216);
+    Init_int32 (Int.repr 11796480);
+    Init_int32 (Int.repr 1310720);
+    Init_addrof USS._bhvAirborneWarp (Ptrofs.repr 0) ].
+
+Definition ssl_area2_entry_objects_jp : list init_data :=
+  [ Init_int32 (Int.repr 605560576);
+    Init_int32 (Int.repr 300);
+    Init_int32 (Int.repr 422772736);
+    Init_int32 (Int.repr 11796480);
+    Init_int32 (Int.repr 655360);
+    Init_addrof JSS._bhvAirborneWarp (Ptrofs.repr 0);
+    Init_int32 (Int.repr 605560576);
+    Init_int32 (Int.repr 5500);
+    Init_int32 (Int.repr 16777216);
+    Init_int32 (Int.repr 11796480);
+    Init_int32 (Int.repr 1310720);
+    Init_addrof JSS._bhvAirborneWarp (Ptrofs.repr 0) ].
+
+Theorem ssl_area2_entry_objects_exact_us :
+  firstn 12 (skipn 110 (gvar_init USS.v_level_ssl_entry)) =
+    ssl_area2_entry_objects_us.
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem ssl_area2_entry_objects_exact_jp :
+  firstn 12 (skipn 110 (gvar_init JSS.v_level_ssl_entry)) =
+    ssl_area2_entry_objects_jp.
+Proof. vm_compute. reflexivity. Qed.
 
 Definition static_target_objects : list init_data :=
   [ Init_int32 (Int.repr 605568890);

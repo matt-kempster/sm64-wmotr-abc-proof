@@ -25,6 +25,34 @@ Inductive ElevatorEscapeMechanism :=
 | SpawningDisplacementEscape
 | OtherElevatorEscape.
 
+(* Despite the historical [Witness] names, these values are payload-free class
+   tags, not evidence of a concrete bypass.  They make the intended case
+   vocabulary reviewable.  A future Clight/collision-mesh projection must give
+   each tag state/event semantics and prove that every non-gate first crossing
+   produces one.  The two entrance-specific types are separate because the
+   elevator and pole cuts have different obligations. *)
+Inductive UpperBypassWitness :=
+| UpperPlatformDisplacementBypass
+| UpperObjectPushOrMovingGeometryBypass
+| UpperWarpOrArea3Bypass
+| UpperCollisionClipOrTunnelBypass
+| UpperParallelUniverseOrOutOfBoundsBypass
+| UpperTargetRelocationOrSubstitutionBypass
+| UpperMacroOrLifecycleAnomalyBypass
+| UpperSaveReloadOrCorruptionBypass
+| UpperMemoryOrUndefinedBehaviorBypass.
+
+Inductive LowerBypassWitness :=
+| LowerPlatformDisplacementBypass
+| LowerObjectPushOrMovingGeometryBypass
+| LowerWarpOrArea3Bypass
+| LowerCollisionClipOrTunnelBypass
+| LowerParallelUniverseOrOutOfBoundsBypass
+| LowerTargetRelocationOrSubstitutionBypass
+| LowerMacroOrLifecycleAnomalyBypass
+| LowerSaveReloadOrCorruptionBypass
+| LowerMemoryOrUndefinedBehaviorBypass.
+
 (* [ObservedGateAPress gate] is gate-labelled evidence.  [RouteFrame] below
    pairs it with the input for that same modeled frame.  The label still needs
    a Clight control-flow refinement to show that the press performs the stated
@@ -33,6 +61,8 @@ Inductive RouteObservation :=
 | ObservedGateAPress : TranscriptRouteGate -> RouteObservation
 | ObservedElevatorEscape : ElevatorEscapeMechanism -> RouteObservation
 | ObservedAboveSecondPole : RouteObservation
+| ObservedUpperBypass : UpperBypassWitness -> RouteObservation
+| ObservedLowerBypass : LowerBypassWitness -> RouteObservation
 | ObservedTargetRegion : TargetRouteRegion -> RouteObservation.
 
 Record RouteFrame := {
@@ -78,6 +108,49 @@ Definition target_region_observed_at
   nth_error (route_frames trace) target_index = Some target_frame /\
   In (ObservedTargetRegion region) (route_frame_observations target_frame).
 
+(* A position identifies one exact observation occurrence, including its
+   within-frame position.  This is stronger than [In]: duplicate labels in a
+   frame cannot be substituted for the selected first target occurrence. *)
+Definition observation_at
+    (trace : RouteTrace) (frame_index observation_index : nat)
+    (observation : RouteObservation) : Prop :=
+  exists frame,
+    nth_error (route_frames trace) frame_index = Some frame /\
+    nth_error (route_frame_observations frame) observation_index =
+      Some observation.
+
+Definition target_observation_at
+    (trace : RouteTrace) (frame_index observation_index : nat)
+    (region : TargetRouteRegion) : Prop :=
+  observation_at trace frame_index observation_index
+    (ObservedTargetRegion region).
+
+Definition route_position_precedes
+    (earlier_frame earlier_observation later_frame later_observation : nat)
+    : Prop :=
+  (earlier_frame < later_frame)%nat \/
+  (earlier_frame = later_frame /\
+   (earlier_observation < later_observation)%nat).
+
+Definition exact_observation_precedes_target
+    (trace : RouteTrace)
+    (earlier_frame earlier_observation target_frame target_observation : nat)
+    (earlier : RouteObservation) (region : TargetRouteRegion) : Prop :=
+  observation_at trace earlier_frame earlier_observation earlier /\
+  target_observation_at trace target_frame target_observation region /\
+  route_position_precedes
+    earlier_frame earlier_observation target_frame target_observation.
+
+Definition first_target_observation_at
+    (trace : RouteTrace) (region : TargetRouteRegion)
+    (target_frame target_observation : nat) : Prop :=
+  target_observation_at trace target_frame target_observation region /\
+  forall earlier_region earlier_frame earlier_observation,
+    target_observation_at trace earlier_frame earlier_observation
+      earlier_region ->
+    ~ route_position_precedes
+        earlier_frame earlier_observation target_frame target_observation.
+
 (* The earlier occurrence is tied to a concrete frame/index.  If both
    observations are in one frame, their order is checked inside that frame. *)
 Definition observation_occurrence_precedes_target
@@ -101,6 +174,30 @@ Definition reaches_target_region
 Definition reaches_any_target_region (trace : RouteTrace) : Prop :=
   exists region, reaches_target_region trace region.
 
+Definition route_observation_eq_dec :
+  forall left right : RouteObservation, {left = right} + {left <> right}.
+Proof. repeat decide equality. Defined.
+
+Definition target_observation_in_list_dec
+    (observations : list RouteObservation) :
+    {exists region,
+      In (ObservedTargetRegion region) observations} +
+    {~ exists region,
+      In (ObservedTargetRegion region) observations}.
+Proof.
+  destruct (in_dec route_observation_eq_dec
+    (ObservedTargetRegion Act3InteractionRegionNode) observations)
+    as [Hact3 | Hnot_act3].
+  - left. exists Act3InteractionRegionNode. exact Hact3.
+  - destruct (in_dec route_observation_eq_dec
+      (ObservedTargetRegion UpperHiddenStarTriggerNode) observations)
+      as [Hupper | Hnot_upper].
+    + left. exists UpperHiddenStarTriggerNode. exact Hupper.
+    + right. intros [region Htarget]. destruct region.
+      * exact (Hnot_act3 Htarget).
+      * exact (Hnot_upper Htarget).
+Defined.
+
 Lemma reaches_target_region_has_occurrence :
   forall trace region,
     reaches_target_region trace region ->
@@ -116,6 +213,189 @@ Proof.
     + exists 0%nat, frame. split; [reflexivity | exact Hhere].
     + specialize (IH Hrest) as [index [target_frame [Hnth Hin]]].
       exists (S index), target_frame. split; [simpl; exact Hnth | exact Hin].
+Qed.
+
+Lemma first_target_in_observation_list :
+  forall observations,
+    (exists region,
+      In (ObservedTargetRegion region) observations) ->
+    exists region observation_index,
+      nth_error observations observation_index =
+        Some (ObservedTargetRegion region) /\
+      forall earlier_region earlier_index,
+        (earlier_index < observation_index)%nat ->
+        nth_error observations earlier_index <>
+          Some (ObservedTargetRegion earlier_region).
+Proof.
+  induction observations as [|observation rest IH]; intros Htarget.
+  - destruct Htarget as [region Htarget]. contradiction.
+  - destruct observation as
+      [gate | mechanism | | upper_witness | lower_witness | region].
+    + assert (Hrest :
+        exists region, In (ObservedTargetRegion region) rest).
+      {
+        destruct Htarget as [region [Hhead | Htail]].
+        - discriminate.
+        - exists region. exact Htail.
+      }
+      destruct (IH Hrest) as
+        [target_region [observation_index [Hat Hfirst]]].
+      exists target_region, (S observation_index). split.
+      * simpl. exact Hat.
+      * intros earlier_region earlier_index Hbefore.
+        destruct earlier_index as [|earlier_index].
+        -- discriminate.
+        -- simpl. apply Hfirst. lia.
+    + assert (Hrest :
+        exists region, In (ObservedTargetRegion region) rest).
+      {
+        destruct Htarget as [region [Hhead | Htail]].
+        - discriminate.
+        - exists region. exact Htail.
+      }
+      destruct (IH Hrest) as
+        [target_region [observation_index [Hat Hfirst]]].
+      exists target_region, (S observation_index). split.
+      * simpl. exact Hat.
+      * intros earlier_region earlier_index Hbefore.
+        destruct earlier_index as [|earlier_index].
+        -- discriminate.
+        -- simpl. apply Hfirst. lia.
+    + assert (Hrest :
+        exists region, In (ObservedTargetRegion region) rest).
+      {
+        destruct Htarget as [region [Hhead | Htail]].
+        - discriminate.
+        - exists region. exact Htail.
+      }
+      destruct (IH Hrest) as
+        [target_region [observation_index [Hat Hfirst]]].
+      exists target_region, (S observation_index). split.
+      * simpl. exact Hat.
+      * intros earlier_region earlier_index Hbefore.
+        destruct earlier_index as [|earlier_index].
+        -- discriminate.
+        -- simpl. apply Hfirst. lia.
+    + assert (Hrest :
+        exists region, In (ObservedTargetRegion region) rest).
+      {
+        destruct Htarget as [region [Hhead | Htail]].
+        - discriminate.
+        - exists region. exact Htail.
+      }
+      destruct (IH Hrest) as
+        [target_region [observation_index [Hat Hfirst]]].
+      exists target_region, (S observation_index). split.
+      * simpl. exact Hat.
+      * intros earlier_region earlier_index Hbefore.
+        destruct earlier_index as [|earlier_index].
+        -- discriminate.
+        -- simpl. apply Hfirst. lia.
+    + assert (Hrest :
+        exists region, In (ObservedTargetRegion region) rest).
+      {
+        destruct Htarget as [region [Hhead | Htail]].
+        - discriminate.
+        - exists region. exact Htail.
+      }
+      destruct (IH Hrest) as
+        [target_region [observation_index [Hat Hfirst]]].
+      exists target_region, (S observation_index). split.
+      * simpl. exact Hat.
+      * intros earlier_region earlier_index Hbefore.
+        destruct earlier_index as [|earlier_index].
+        -- discriminate.
+        -- simpl. apply Hfirst. lia.
+    + exists region, 0%nat. split; [reflexivity |].
+      intros earlier_region earlier_index Hbefore. lia.
+Qed.
+
+Lemma first_target_in_frame_list :
+  forall frames,
+    (exists region,
+      In (ObservedTargetRegion region)
+        (concat (map route_frame_observations frames))) ->
+    exists region frame_index observation_index,
+      (exists frame,
+        nth_error frames frame_index = Some frame /\
+        nth_error (route_frame_observations frame) observation_index =
+          Some (ObservedTargetRegion region)) /\
+      forall earlier_region earlier_frame earlier_observation,
+        (exists frame,
+          nth_error frames earlier_frame = Some frame /\
+          nth_error (route_frame_observations frame) earlier_observation =
+            Some (ObservedTargetRegion earlier_region)) ->
+        ~ route_position_precedes
+            earlier_frame earlier_observation frame_index observation_index.
+Proof.
+  induction frames as [|frame rest IH]; intros Htarget.
+  - destruct Htarget as [region Htarget]. contradiction.
+  - destruct (target_observation_in_list_dec
+      (route_frame_observations frame))
+      as [Htarget_here | Hno_target_here].
+    + destruct (first_target_in_observation_list
+        (route_frame_observations frame) Htarget_here)
+        as [region [observation_index [Hat Hfirst]]].
+      exists region, 0%nat, observation_index. split.
+      * exists frame. split; [reflexivity | exact Hat].
+      * intros earlier_region earlier_frame earlier_observation
+          [selected_frame [Hframe Hobservation]] Hprecedes.
+        destruct Hprecedes as [Hframe_before |
+          [Hsame_frame Hobservation_before]].
+        -- lia.
+        -- subst earlier_frame. simpl in Hframe.
+           inversion Hframe; subst selected_frame.
+           eapply (Hfirst earlier_region earlier_observation
+             Hobservation_before).
+           exact Hobservation.
+    + assert (Htarget_rest :
+        exists region,
+          In (ObservedTargetRegion region)
+            (concat (map route_frame_observations rest))).
+      {
+        destruct Htarget as [region Htarget].
+        simpl in Htarget. apply in_app_iff in Htarget.
+        destruct Htarget as [Hhere | Hrest].
+        - exfalso. apply Hno_target_here.
+          exists region. exact Hhere.
+        - exists region. exact Hrest.
+      }
+      destruct (IH Htarget_rest) as
+        [region [frame_index [observation_index [Hat Hfirst]]]].
+      exists region, (S frame_index), observation_index. split.
+      * destruct Hat as [selected_frame [Hframe Hobservation]].
+        exists selected_frame. split; [simpl; exact Hframe |].
+        exact Hobservation.
+      * intros earlier_region earlier_frame earlier_observation
+          [selected_frame [Hframe Hobservation]] Hprecedes.
+        destruct earlier_frame as [|earlier_frame].
+        -- simpl in Hframe. inversion Hframe; subst selected_frame.
+           apply Hno_target_here. exists earlier_region.
+           eapply nth_error_In. exact Hobservation.
+        -- apply (Hfirst earlier_region earlier_frame earlier_observation).
+           ++ exists selected_frame. split.
+              ** simpl in Hframe. exact Hframe.
+              ** exact Hobservation.
+           ++ destruct Hprecedes as [Hframe_before |
+                [Hsame_frame Hobservation_before]].
+              ** left. lia.
+              ** right. split; [lia | exact Hobservation_before].
+Qed.
+
+Theorem reaches_any_target_has_first_exact_occurrence :
+  forall trace,
+    reaches_any_target_region trace ->
+    exists region frame_index observation_index,
+      first_target_observation_at
+        trace region frame_index observation_index.
+Proof.
+  intros [frames] [region Htarget].
+  unfold reaches_target_region, route_observations in Htarget. simpl in Htarget.
+  destruct (first_target_in_frame_list frames)
+    as [first_region [frame_index [observation_index [Hat Hfirst]]]].
+  - exists region. exact Htarget.
+  - exists first_region, frame_index, observation_index.
+    split; [exact Hat | exact Hfirst].
 Qed.
 
 Definition elevator_escape_observed (trace : RouteTrace) : Prop :=
@@ -266,29 +546,420 @@ Proof.
   exists frame. auto.
 Qed.
 
-(* This certificate prevents route observations from being free-standing
-   labels.  Each route frame has one event slot in a [CertifiedExecution], and
-   each target-region observation is backed by the corresponding collection
-   or trigger-consumption event at the same list index.  It is still an
+Inductive TargetEventForRegion :
+    TargetRouteRegion -> FrameEvent -> Prop :=
+| TargetEventForAct3 : forall star phase,
+    TargetEventForRegion Act3InteractionRegionNode
+      (EventCollectAct3 star phase)
+| TargetEventForUpperTrigger : forall trigger_object phase,
+    TargetEventForRegion UpperHiddenStarTriggerNode
+      (EventConsumeTrigger TriggerUpper trigger_object phase).
+
+(* The alignment is deliberately bidirectional at the exact frame index.
+   Consequently neither a target observation nor a target event can be
+   appended without its same-frame counterpart.  This is still an
    abstract-event certificate, not yet a Clight execution/refinement proof. *)
-Definition RealizedRouteTrace
-    (initial : GameState) (trace : RouteTrace) : Prop :=
-  exists final events,
-    CertifiedExecution initial events final /\
-    length (route_frames trace) = length events /\
-    (forall index frame,
+Record RouteTraceExecutionAlignment
+    (initial : GameState) (trace : RouteTrace)
+    (events : list FrameEvent) (final : GameState) : Prop := {
+  aligned_certified_execution :
+    CertifiedExecution initial events final;
+  aligned_frame_event_lengths :
+    length (route_frames trace) = length events;
+  aligned_act3_observation_to_event :
+    forall index frame,
       nth_error (route_frames trace) index = Some frame ->
       In (ObservedTargetRegion Act3InteractionRegionNode)
         (route_frame_observations frame) ->
       exists star phase,
-        nth_error events index = Some (EventCollectAct3 star phase)) /\
-    (forall index frame,
+        nth_error events index = Some (EventCollectAct3 star phase);
+  aligned_upper_observation_to_event :
+    forall index frame,
       nth_error (route_frames trace) index = Some frame ->
       In (ObservedTargetRegion UpperHiddenStarTriggerNode)
         (route_frame_observations frame) ->
       exists trigger_object phase,
         nth_error events index = Some (EventConsumeTrigger
-          TriggerUpper trigger_object phase)).
+          TriggerUpper trigger_object phase);
+  aligned_act3_event_to_observation :
+    forall index star phase,
+      nth_error events index = Some (EventCollectAct3 star phase) ->
+      exists frame,
+        nth_error (route_frames trace) index = Some frame /\
+        In (ObservedTargetRegion Act3InteractionRegionNode)
+          (route_frame_observations frame);
+  aligned_upper_event_to_observation :
+    forall index trigger_object phase,
+      nth_error events index = Some (EventConsumeTrigger
+        TriggerUpper trigger_object phase) ->
+      exists frame,
+        nth_error (route_frames trace) index = Some frame /\
+        In (ObservedTargetRegion UpperHiddenStarTriggerNode)
+          (route_frame_observations frame)
+}.
+
+Definition RealizedRouteTrace
+    (initial : GameState) (trace : RouteTrace) : Prop :=
+  exists final events,
+    RouteTraceExecutionAlignment initial trace events final.
+
+Theorem aligned_target_event_iff_observation_at_same_frame :
+  forall initial trace events final,
+    RouteTraceExecutionAlignment initial trace events final ->
+    forall index region,
+      (exists event,
+        nth_error events index = Some event /\
+        TargetEventForRegion region event) <->
+      (exists frame,
+        nth_error (route_frames trace) index = Some frame /\
+        In (ObservedTargetRegion region)
+          (route_frame_observations frame)).
+Proof.
+  intros initial trace events final Haligned index region.
+  split.
+  - intros [event [Hevent Htarget_event]].
+    inversion Htarget_event; subst.
+    + eapply aligned_act3_event_to_observation; eauto.
+    + eapply aligned_upper_event_to_observation; eauto.
+  - intros [frame [Hframe Hobservation]].
+    destruct region.
+    + destruct (aligned_act3_observation_to_event
+        initial trace events final Haligned index frame
+        Hframe Hobservation) as [star [phase Hevent]].
+      exists (EventCollectAct3 star phase). split; [exact Hevent |].
+      constructor.
+    + destruct (aligned_upper_observation_to_event
+        initial trace events final Haligned index frame
+        Hframe Hobservation) as [trigger_object [phase Hevent]].
+      exists (EventConsumeTrigger TriggerUpper trigger_object phase).
+      split; [exact Hevent |]. constructor.
+Qed.
+
+Definition truncate_route_frame_after
+    (frame : RouteFrame) (observation_index : nat) : RouteFrame :=
+  {| route_frame_input := route_frame_input frame;
+     route_frame_observations :=
+       firstn (S observation_index) (route_frame_observations frame) |}.
+
+Definition route_prefix_through_observation
+    (trace : RouteTrace) (frame_index observation_index : nat) : RouteTrace :=
+  {| route_frames :=
+      firstn frame_index (route_frames trace) ++
+      match nth_error (route_frames trace) frame_index with
+      | Some frame =>
+          [truncate_route_frame_after frame observation_index]
+      | None => []
+      end |}.
+
+Definition event_prefix_through_frame
+    (events : list FrameEvent) (frame_index : nat) : list FrameEvent :=
+  firstn (S frame_index) events.
+
+(* A canonical paired prefix: the final route observation is the exact first
+   target occurrence, and the final included event slot is its same-frame
+   target event.  The equality fields make "prefix" computational rather than
+   an unconstrained predicate. *)
+Record FirstTargetObservationEventPrefix
+    (trace prefix : RouteTrace)
+    (events event_prefix : list FrameEvent)
+    (region : TargetRouteRegion)
+    (frame_index observation_index : nat) : Prop := {
+  first_prefix_target :
+    first_target_observation_at
+      trace region frame_index observation_index;
+  first_prefix_route_exact :
+    prefix =
+      route_prefix_through_observation trace frame_index observation_index;
+  first_prefix_events_exact :
+    event_prefix = event_prefix_through_frame events frame_index;
+  first_prefix_target_event :
+    exists event,
+      nth_error events frame_index = Some event /\
+      TargetEventForRegion region event
+}.
+
+Theorem aligned_first_target_has_exact_observation_event_prefix :
+  forall initial trace events final region frame_index observation_index,
+    RouteTraceExecutionAlignment initial trace events final ->
+    first_target_observation_at
+      trace region frame_index observation_index ->
+    FirstTargetObservationEventPrefix
+      trace
+      (route_prefix_through_observation
+        trace frame_index observation_index)
+      events (event_prefix_through_frame events frame_index)
+      region frame_index observation_index.
+Proof.
+  intros initial trace events final region frame_index observation_index
+    Haligned Hfirst.
+  constructor; [exact Hfirst | reflexivity | reflexivity |].
+  apply (proj2 (aligned_target_event_iff_observation_at_same_frame
+    initial trace events final Haligned frame_index region)).
+  destruct Hfirst as
+    [[frame [Hframe Hobservation]] Hno_earlier].
+  exists frame. split; [exact Hframe |].
+  eapply nth_error_In. exact Hobservation.
+Qed.
+
+Theorem realized_route_with_target_has_exact_first_prefix :
+  forall initial trace,
+    RealizedRouteTrace initial trace ->
+    reaches_any_target_region trace ->
+    exists final events region frame_index observation_index
+        prefix event_prefix,
+      RouteTraceExecutionAlignment initial trace events final /\
+      FirstTargetObservationEventPrefix trace prefix events event_prefix
+        region frame_index observation_index.
+Proof.
+  intros initial trace
+    [final [events Haligned]] Htarget.
+  destruct (reaches_any_target_has_first_exact_occurrence trace Htarget)
+    as [region [frame_index [observation_index Hfirst]]].
+  exists final, events, region, frame_index, observation_index,
+    (route_prefix_through_observation trace frame_index observation_index),
+    (event_prefix_through_frame events frame_index).
+  split; [exact Haligned |].
+  eapply aligned_first_target_has_exact_observation_event_prefix; eauto.
+Qed.
+
+Definition gate_a_press_precedes_exact_target
+    (trace : RouteTrace) (gate : TranscriptRouteGate)
+    (region : TargetRouteRegion)
+    (target_frame target_observation : nat) : Prop :=
+  exists gate_frame gate_observation frame,
+    nth_error (route_frames trace) gate_frame = Some frame /\
+    nth_error (route_frame_observations frame) gate_observation =
+      Some (ObservedGateAPress gate) /\
+    a_button_pressed
+      (frame_current_down (route_frame_input frame))
+      (frame_previous_down (route_frame_input frame)) = true /\
+    target_observation_at
+      trace target_frame target_observation region /\
+    route_position_precedes
+      gate_frame gate_observation target_frame target_observation.
+
+Definition upper_bypass_precedes_exact_target
+    (trace : RouteTrace) (witness : UpperBypassWitness)
+    (region : TargetRouteRegion)
+    (target_frame target_observation : nat) : Prop :=
+  exists bypass_frame bypass_observation,
+    exact_observation_precedes_target trace
+      bypass_frame bypass_observation target_frame target_observation
+      (ObservedUpperBypass witness) region.
+
+Definition lower_bypass_precedes_exact_target
+    (trace : RouteTrace) (witness : LowerBypassWitness)
+    (region : TargetRouteRegion)
+    (target_frame target_observation : nat) : Prop :=
+  exists bypass_frame bypass_observation,
+    exact_observation_precedes_target trace
+      bypass_frame bypass_observation target_frame target_observation
+      (ObservedLowerBypass witness) region.
+
+Definition explicit_upper_bypass_observed
+    (trace : RouteTrace) (witness : UpperBypassWitness) : Prop :=
+  In (ObservedUpperBypass witness) (route_observations trace).
+
+Definition explicit_lower_bypass_observed
+    (trace : RouteTrace) (witness : LowerBypassWitness) : Prop :=
+  In (ObservedLowerBypass witness) (route_observations trace).
+
+Definition ExcludesAllUpperBypassWitnesses (trace : RouteTrace) : Prop :=
+  forall witness, ~ explicit_upper_bypass_observed trace witness.
+
+Definition ExcludesAllLowerBypassWitnesses (trace : RouteTrace) : Prop :=
+  forall witness, ~ explicit_lower_bypass_observed trace witness.
+
+(* These predicates currently exclude observation tags only.  They are not
+   geometric or Clight non-reachability results. *)
+
+Lemma exact_gate_a_press_is_trace_press :
+  forall trace gate region target_frame target_observation,
+    gate_a_press_precedes_exact_target
+      trace gate region target_frame target_observation ->
+    trace_contains_a_press trace.
+Proof.
+  intros trace gate region target_frame target_observation
+    [gate_frame [gate_observation [frame
+      [Hframe [Hgate [Hpressed [Htarget Hprecedes]]]]]]].
+  exists frame. split.
+  - eapply nth_error_In. exact Hframe.
+  - exact Hpressed.
+Qed.
+
+Lemma upper_bypass_before_target_is_observed :
+  forall trace witness region target_frame target_observation,
+    upper_bypass_precedes_exact_target
+      trace witness region target_frame target_observation ->
+    explicit_upper_bypass_observed trace witness.
+Proof.
+  intros trace witness region target_frame target_observation
+    [bypass_frame [bypass_observation
+      [[frame [Hframe Hobservation]] [Htarget Hprecedes]]]].
+  eapply route_frame_observation_is_observed.
+  - eapply nth_error_In. exact Hframe.
+  - eapply nth_error_In. exact Hobservation.
+Qed.
+
+Lemma lower_bypass_before_target_is_observed :
+  forall trace witness region target_frame target_observation,
+    lower_bypass_precedes_exact_target
+      trace witness region target_frame target_observation ->
+    explicit_lower_bypass_observed trace witness.
+Proof.
+  intros trace witness region target_frame target_observation
+    [bypass_frame [bypass_observation
+      [[frame [Hframe Hobservation]] [Htarget Hprecedes]]]].
+  eapply route_frame_observation_is_observed.
+  - eapply nth_error_In. exact Hframe.
+  - eapply nth_error_In. exact Hobservation.
+Qed.
+
+(* This is a broad coverage premise, not a proved or narrow Layer-B result.
+   Its classification fields already assume the gate-or-tag split used by the
+   theorem below.  It is intentionally named [Obligation]: no theorem here
+   derives it from the transcript, the abstract event model, Clight, or the
+   collision mesh.  The payload-free tags above still need evidence semantics. *)
+Record FirstTargetCutClassificationObligation
+    (initial : GameState) (trace : RouteTrace) : Prop := {
+  first_target_cut_clean_entry : CleanPyramidEntry initial;
+  first_target_cut_input_history :
+    coherent_input_history (state_first_frame_previous_down_seed initial)
+      (route_inputs trace);
+  first_target_cut_realized : RealizedRouteTrace initial trace;
+  classify_upper_first_target :
+    forall region target_frame target_observation,
+      state_entrance initial = UpperEntrance ->
+      first_target_observation_at
+        trace region target_frame target_observation ->
+      gate_a_press_precedes_exact_target trace ElevatorJumpOutGate
+        region target_frame target_observation \/
+      exists witness,
+        upper_bypass_precedes_exact_target trace witness
+          region target_frame target_observation;
+  classify_lower_first_target :
+    forall region target_frame target_observation,
+      state_entrance initial = LowerEntrance ->
+      first_target_observation_at
+        trace region target_frame target_observation ->
+      gate_a_press_precedes_exact_target trace SecondPoleJumpOffGate
+        region target_frame target_observation \/
+      exists witness,
+        lower_bypass_precedes_exact_target trace witness
+          region target_frame target_observation
+}.
+
+Theorem first_target_access_requires_gate_a_or_explicit_bypass :
+  forall initial trace,
+    FirstTargetCutClassificationObligation initial trace ->
+    reaches_any_target_region trace ->
+    exists region target_frame target_observation,
+      first_target_observation_at
+        trace region target_frame target_observation /\
+      ((state_entrance initial = UpperEntrance /\
+        (gate_a_press_precedes_exact_target trace ElevatorJumpOutGate
+           region target_frame target_observation \/
+         exists witness,
+           upper_bypass_precedes_exact_target trace witness
+             region target_frame target_observation)) \/
+       (state_entrance initial = LowerEntrance /\
+        (gate_a_press_precedes_exact_target trace SecondPoleJumpOffGate
+           region target_frame target_observation \/
+         exists witness,
+           lower_bypass_precedes_exact_target trace witness
+             region target_frame target_observation))).
+Proof.
+  intros initial trace Hcoverage Htarget.
+  destruct (reaches_any_target_has_first_exact_occurrence trace Htarget)
+    as [region [target_frame [target_observation Hfirst]]].
+  exists region, target_frame, target_observation. split; [exact Hfirst |].
+  destruct (state_entrance initial) eqn:Hentrance.
+  - right. split; [reflexivity |].
+    exact (classify_lower_first_target initial trace Hcoverage
+      region target_frame target_observation Hentrance Hfirst).
+  - left. split; [reflexivity |].
+    exact (classify_upper_first_target initial trace Hcoverage
+      region target_frame target_observation Hentrance Hfirst).
+Qed.
+
+Theorem first_target_access_with_all_bypasses_excluded_requires_a_edge :
+  forall initial trace,
+    FirstTargetCutClassificationObligation initial trace ->
+    reaches_any_target_region trace ->
+    ExcludesAllUpperBypassWitnesses trace ->
+    ExcludesAllLowerBypassWitnesses trace ->
+    trace_contains_a_press trace.
+Proof.
+  intros initial trace Hcoverage Htarget Hexclude_upper Hexclude_lower.
+  destruct (first_target_access_requires_gate_a_or_explicit_bypass
+    initial trace Hcoverage Htarget)
+    as [region [target_frame [target_observation
+      [Hfirst Hclassification]]]].
+  destruct Hclassification as
+    [[Hupper Hupper_case] | [Hlower Hlower_case]].
+  - destruct Hupper_case as [Hpress | [witness Hbypass]].
+    + eapply exact_gate_a_press_is_trace_press. exact Hpress.
+    + exfalso. eapply (Hexclude_upper witness).
+      eapply upper_bypass_before_target_is_observed. exact Hbypass.
+  - destruct Hlower_case as [Hpress | [witness Hbypass]].
+    + eapply exact_gate_a_press_is_trace_press. exact Hpress.
+    + exfalso. eapply (Hexclude_lower witness).
+      eapply lower_bypass_before_target_is_observed. exact Hbypass.
+Qed.
+
+Theorem no_a_first_target_access_requires_explicit_bypass :
+  forall initial trace,
+    FirstTargetCutClassificationObligation initial trace ->
+    fewer_than_one_a_press (route_inputs trace) ->
+    reaches_any_target_region trace ->
+    exists region target_frame target_observation,
+      first_target_observation_at
+        trace region target_frame target_observation /\
+      ((state_entrance initial = UpperEntrance /\
+        exists witness,
+          upper_bypass_precedes_exact_target trace witness
+            region target_frame target_observation) \/
+       (state_entrance initial = LowerEntrance /\
+        exists witness,
+          lower_bypass_precedes_exact_target trace witness
+            region target_frame target_observation)).
+Proof.
+  intros initial trace Hcoverage Hnoa Htarget.
+  destruct (first_target_access_requires_gate_a_or_explicit_bypass
+    initial trace Hcoverage Htarget)
+    as [region [target_frame [target_observation
+      [Hfirst Hclassification]]]].
+  destruct Hclassification as
+    [[Hupper Hupper_case] | [Hlower Hlower_case]].
+  - destruct Hupper_case as [Hpress | Hbypass].
+    + exfalso.
+      apply (no_a_trace_has_no_gate_a_press
+        trace ElevatorJumpOutGate Hnoa).
+      destruct Hpress as
+        [gate_frame [gate_observation [frame
+          [Hframe [Hgate [Hpressed [Htarget_at Hprecedes]]]]]]].
+      exists frame. split.
+      * eapply nth_error_In. exact Hframe.
+      * split.
+        -- eapply nth_error_In. exact Hgate.
+        -- exact Hpressed.
+    + exists region, target_frame, target_observation.
+      split; [exact Hfirst |]. left. auto.
+  - destruct Hlower_case as [Hpress | Hbypass].
+    + exfalso.
+      apply (no_a_trace_has_no_gate_a_press
+        trace SecondPoleJumpOffGate Hnoa).
+      destruct Hpress as
+        [gate_frame [gate_observation [frame
+          [Hframe [Hgate [Hpressed [Htarget_at Hprecedes]]]]]]].
+      exists frame. split.
+      * eapply nth_error_In. exact Hframe.
+      * split.
+        -- eapply nth_error_In. exact Hgate.
+        -- exact Hpressed.
+    + exists region, target_frame, target_observation.
+      split; [exact Hfirst |]. right. auto.
+Qed.
 
 (* This record is the transcript's two-gate reduction, stated as an explicit
    obligation rather than asserted as a theorem of the imported C program.
@@ -299,7 +970,7 @@ Record TranscriptRouteGateModel
     (initial : GameState) (trace : RouteTrace) : Prop := {
   transcript_route_clean_entry : CleanPyramidEntry initial;
   transcript_route_input_history :
-    coherent_input_history (state_previous_buttons initial)
+    coherent_input_history (state_first_frame_previous_down_seed initial)
       (route_inputs trace);
   transcript_route_realized : RealizedRouteTrace initial trace;
   upper_target_access_gate :
@@ -502,14 +1173,14 @@ Definition ZeroATargetRouteCapability
       prefix act3_complete Act3InteractionRegionNode /\
     RealizedRouteTrace initial act3_complete /\
     fewer_than_one_a_press (route_inputs act3_complete) /\
-    coherent_input_history (state_previous_buttons initial)
+    coherent_input_history (state_first_frame_previous_down_seed initial)
       (route_inputs act3_complete)) /\
   (exists trigger_complete,
     RouteTraceExtensionToTarget
       prefix trigger_complete UpperHiddenStarTriggerNode /\
     RealizedRouteTrace initial trigger_complete /\
     fewer_than_one_a_press (route_inputs trigger_complete) /\
-    coherent_input_history (state_previous_buttons initial)
+    coherent_input_history (state_first_frame_previous_down_seed initial)
       (route_inputs trigger_complete)).
 
 (* These are precisely the transcript's "everything else is traversable"
@@ -518,7 +1189,7 @@ Definition UpperDownstreamCompleteness (initial : GameState) : Prop :=
   forall prefix,
     CleanPyramidEntry initial ->
     state_entrance initial = UpperEntrance ->
-    coherent_input_history (state_previous_buttons initial)
+    coherent_input_history (state_first_frame_previous_down_seed initial)
       (route_inputs prefix) ->
     fewer_than_one_a_press (route_inputs prefix) ->
     elevator_escape_observed prefix ->
@@ -528,7 +1199,7 @@ Definition LowerDownstreamCompleteness (initial : GameState) : Prop :=
   forall prefix,
     CleanPyramidEntry initial ->
     state_entrance initial = LowerEntrance ->
-    coherent_input_history (state_previous_buttons initial)
+    coherent_input_history (state_first_frame_previous_down_seed initial)
       (route_inputs prefix) ->
     fewer_than_one_a_press (route_inputs prefix) ->
     above_second_pole_observed prefix ->
@@ -540,7 +1211,7 @@ Theorem spawning_displacement_escape_opens_both_target_regions :
     CleanPyramidEntry initial ->
     state_entrance initial = UpperEntrance ->
     state_version initial = VersionJP ->
-    coherent_input_history (state_previous_buttons initial)
+    coherent_input_history (state_first_frame_previous_down_seed initial)
       (route_inputs prefix) ->
     fewer_than_one_a_press (route_inputs prefix) ->
     spawning_displacement_escape_observed prefix ->
@@ -561,7 +1232,7 @@ Theorem above_second_pole_access_opens_both_target_regions :
     LowerDownstreamCompleteness initial ->
     CleanPyramidEntry initial ->
     state_entrance initial = LowerEntrance ->
-    coherent_input_history (state_previous_buttons initial)
+    coherent_input_history (state_first_frame_previous_down_seed initial)
       (route_inputs prefix) ->
     fewer_than_one_a_press (route_inputs prefix) ->
     above_second_pole_observed prefix ->

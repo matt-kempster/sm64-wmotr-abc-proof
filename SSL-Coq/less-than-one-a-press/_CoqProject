@@ -55,6 +55,7 @@ generated/jp_ssl_area2_macro.v
 proofs/ASTFacts.v
 proofs/ClightFacts.v
 proofs/GameTypes.v
+proofs/SourceExhaustiveness.v
 proofs/InputSemantics.v
 proofs/RouteEvidence.v
 proofs/TranscriptRouteModel.v

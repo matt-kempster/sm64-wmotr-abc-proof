@@ -74,3 +74,12 @@ Selected kernels have now been regenerated or reproved in the current project.
 They remain supporting evidence because the checked semantic bridges and route
 completeness theorems are still missing. They must not be cited as completing
 the ultimate fewer-than-one-A-press impossibility theorem.
+
+The strengthened first-target theorem makes that relationship explicit:
+spawning displacement, object/lifecycle transfer, parallel-universe movement,
+pole avoidance, area-3/Eyerok travel, and memory aliasing land in named bypass
+constructors.  The archived results narrow selected constructors or expose
+their hazards; none proves the Clight coverage theorem that every first target
+access has been classified, and none excludes every constructor from a clean
+US/JP entry.  See
+[`route-exhaustiveness.md`](route-exhaustiveness.md) for that finite case split.

@@ -23,7 +23,7 @@ or a whole-program semantic effect.
 | `src/game/mario_actions_stationary.c` | `*_mario_actions_stationary.v` | stationary action handlers imported for Layer B action/writer coverage; no complete execution refinement yet |
 | `src/game/mario_step.c` | `*_mario_step.v` | ground and air quarter-step loops, `find_floor` calls, and gravity source shape |
 | `src/game/interaction.c` | `*_interaction.v` | `interact_star_or_key` field/constant occurrences and direct save call; `interact_coin` spawn call/index constant; extraction dataflow is pending |
-| `src/game/save_file.c` | `*_save_file.v` | direct call from `save_file_collect_star_or_key` to `save_file_set_star_flags`; the bit-update expression is not yet checked |
+| `src/game/save_file.c` | `*_save_file.v` | direct call from `save_file_collect_star_or_key` to `save_file_set_star_flags`; `save_file_reload` backup-copy/file source shape; the bit-update and copy memory effects are not yet proved |
 | `src/game/object_collision.c` | `*_object_collision.v` | `detect_object_hitbox_overlap` collision-list field occurrence/assignment; execution and the handwritten collision projection are pending |
 | `src/game/object_list_processor.c` | `*_object_list_processor.v` | direct-callee order in `update_objects`, platform-clear call split, and unload-body identifier/call occurrences; loop/state effects are pending |
 | `src/game/spawn_object.c` | `*_spawn_object.v` | allocation/unload assignment and call occurrences relevant to activation, respawn fields, and reuse; memory effects are pending |
@@ -33,12 +33,12 @@ or a whole-program semantic effect.
 | `src/game/behavior_actions.c` | `*_behavior_actions.v` | `bhv_pole_init` hitbox-field assignment shape used by the normalized-pole source audit |
 | `data/behavior_data.c` | `*_behavior_data.v` | star, hidden-controller and hidden-trigger behavior bindings |
 | `src/game/area.c` | `*_area.v` | direct `unload_area`/`load_area` call order in `change_area`; lifecycle execution is pending |
-| `src/game/level_update.c` | `*_level_update.v` | direct `change_area` call occurrence in `check_instant_warp` |
+| `src/game/level_update.c` | `*_level_update.v` | direct `change_area` occurrence in `check_instant_warp`, game-over reload call, and airborne entry-action constant/call source shape |
 | `src/game/platform_displacement.c` | `*_platform_displacement.v` | `gMarioPlatform`/validation-field identifier occurrences, direct displacement/floor calls, and global assignment shape; pointer dataflow is pending |
 | `src/engine/surface_collision.c` | `*_surface_collision.v` | floor and surface query implementation used by Mario stepping and platform recomputation; imported for future semantic refinement |
 | `src/game/macro_special_objects.c` | `*_macro_special_objects.v` | spawn call and respawn-field assignment occurrences; persistence semantics are pending |
-| `levels/ssl/script.c` | `*_ssl_script.v` | raw initializer tuples for the area-2 static star, hidden controller, and instant-warp declarations |
-| `levels/ssl/areas/2/macro.inc.c` via `inputs/ssl_area2_macro.c` | `*_ssl_area2_macro.v` | raw initializer tuples for five Puzzle trigger records/coordinates; connection to abstract trigger labels is pending |
+| `levels/ssl/script.c` | `*_ssl_script.v` | raw initializer tuples for lower/upper airborne entry objects, the area-2 static star, hidden controller, and instant-warp declarations |
+| `levels/ssl/areas/2/macro.inc.c` via `inputs/ssl_area2_macro.c` | `*_ssl_area2_macro.v` | raw initializer tuples for five Puzzle trigger records/coordinates; the abstract state now assigns exact kinds/references/positions, while their concrete spawn-memory projection remains pending |
 
 ## Archive-derived integration boundary
 
@@ -70,15 +70,30 @@ See the
 [`archived-proof evidence map`](../docs/archived-proof-evidence.md) for the
 project-by-project support and non-support boundary.
 
+## Finite source-inventory boundary
+
+`proofs/SourceExhaustiveness.v` is an executable handwritten inventory, not a
+generated Clight module.  It proves the seven normal SSL source/index mappings,
+the five distinct trigger kinds, coherent active/backup reload preservation,
+and the first-target writer classification.  Its general classifier retains
+an explicit corruption/unmodeled writer, and its stronger normal-star theorem
+requires every writer in the prefix to be one of the modeled normal
+interaction/reload cases.  A future Clight theorem must show that every
+relevant concrete writer projects into this finite inventory.
+
 ## Transcript route-model boundary
 
 `proofs/TranscriptRouteModel.v` is handwritten.  It formalizes a chronological
 route-observation contract extracted from the supplied transcript and the
 task's stronger post-gate proposal.  It is not generated Clight and is not
 presented as one.  `TranscriptRouteGateModel`, the elevator/second-pole closure
-properties, and both downstream-completeness definitions remain obligations.
-No theorem currently projects Mario actions, exact collision surfaces, or gate
-ordering from a Clight run into `RouteTrace`.
+properties, `FirstTargetCutClassificationObligation`, and both
+downstream-completeness definitions remain obligations.  The first-target
+contract enumerates nine bypass class tags for each entrance; this makes the
+case vocabulary finite, but the tags carry no state/event evidence and do not
+prove that they exhaust a ROM execution.
+No theorem currently projects Mario actions, exact collision surfaces, gate
+ordering, or those bypass classifications from a Clight run into `RouteTrace`.
 
 The generated `ssl_script` units use the normal preprocessing configuration.
 The source's experimental `SSL_SPAWNING_DISPLACEMENT_TAS_HACK` branch is not

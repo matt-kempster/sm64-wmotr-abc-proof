@@ -8,6 +8,16 @@
   units cover Mario airborne, automatic, moving, object, and stationary
   actions, `mario_step`, `obj_behaviors_2`, and `surface_collision`.
 - Finite-width, edge-triggered input definition allows A to be initially held.
+- `CleanPyramidEntry` fixes the lower/upper airborne entry snapshot, coherent
+  active/backup target bits, the static Act 3 identity/position, and five
+  distinct designated macro-trigger identities/positions without assuming
+  target-region non-reachability.
+- `SourceExhaustiveness.v` proves a finite seven-source normal SSL inventory:
+  only the static pyramid source has index `2`, only Pyramid Puzzle has index
+  `5`, and indices `0`, `1`, `3`, `4`, and `6` alias neither target.  Its
+  executable writer model proves that coherent reload cannot newly set a
+  target and that, absent an explicit anomaly writer, the first target-bit
+  transition is the uniquely matching normal star source.
 - By constructor inversion in `CertifiedExecution`, a newly collected Act 3
   bit has an active index-2 star carrying the abstract static-origin tag and an
   abstract interaction overlap.
@@ -35,6 +45,13 @@
   premises, spawning-displacement escape or above-pole access gives separate
   no-A continuations to the Act 3 region and upper Puzzle trigger, provided
   each continuation also carries the model's abstract execution certificate.
+- The strengthened first-target model selects one exact earliest target
+  observation, synchronizes its route/event prefix, and proves that it is
+  preceded by the entrance-specific A gate or one of nine bypass class tags.
+  Under the same broad classification premise, absence of every tag implies an
+  A edge; with no A edge, some tag precedes the target.  The tags carry no
+  state/event evidence, so this is logical bookkeeping rather than a proved
+  route classification.
 - The abstract `gMarioPlatform` model uses a pool slot plus a ghost capture
   epoch.  For a non-null pointer satisfying its slot-well-formedness premise,
   the live-same-epoch,
@@ -54,9 +71,14 @@
 - A proof that `ArchivedProofIntegrationKernel` implies that refinement or any
   entrance reachability obligation.  It does not.
 - A projection from an actual Clight execution to `RouteTrace`, proof of
-  `TranscriptRouteGateModel`, either global gate-closure property, or either
-  downstream-completeness premise.  The route theorem establishes its logical
-  cut, not that the contract is complete for a target ROM.
+  `TranscriptRouteGateModel` or
+  `FirstTargetCutClassificationObligation`, any global bypass exclusion, or
+  either downstream-completeness premise.  The route theorems establish the
+  logical cut/classification, not that either contract is complete for a
+  target ROM.
+- Clight-to-writer coverage for the normal SSL source/save inventory.  Its
+  corruption/unmodeled constructor remains explicit until that bridge is
+  proved.
 - Complete position-writer coverage for the parallel-universe subcase,
   Float32 and collision-phase completeness for the pole subcase, an authentic
   Eyerok height/refinement theorem, or demo/Mario block provenance.
@@ -75,4 +97,6 @@ impossibility result.  None of `ssl-spawning-displacement-proof`,
 refinement or a Layer B obligation.  See
 [`archived-proof-evidence.md`](archived-proof-evidence.md) for the detailed
 support matrix and [`../human-readable-proof.md`](../human-readable-proof.md)
-for the route-gate argument in software-engineering terms.
+for the route-gate argument in software-engineering terms.  The alternative
+route classification is detailed in
+[`route-exhaustiveness.md`](route-exhaustiveness.md).

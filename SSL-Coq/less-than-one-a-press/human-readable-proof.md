@@ -5,10 +5,11 @@ engineering but does not know *Super Mario 64*.
 
 > **Current status:** the project does not yet prove the retail-game theorem.
 > It proves a collection/provenance reduction in an abstract event model, a
-> logical route-gate theorem extracted from the supplied transcript, and
-> selected facts about generated US and JP Clight syntax.  The refinement from
-> complete game executions to those models, and the decisive collision
-> reachability results, remain open obligations.
+> finite normal-star/save-writer classification, exact first-target
+> gate-or-named-bypass theorems, and selected facts about generated US and JP
+> Clight syntax.  The refinement from complete game executions to those models,
+> route-classification coverage, bypass exclusion, and the decisive collision
+> reachability results remain open obligations.
 
 ## The problem in software terms
 
@@ -44,7 +45,18 @@ The pyramid interior is area 2.  A clean execution can begin through either:
 Puzzle triggers to be unconsumed, no substitute target star to be waiting in
 the object pool, valid spawn/list state, no pending collection or exit, enough
 controller history to compute the first edge, and the version-specific
-platform-pointer state needed by US and JP.
+platform-pointer state needed by US and JP.  It now also requires the backup
+save slot to agree on both target bits.  This matters because the game-over
+path can copy the backup slot over the active one; without coherence, a model
+could "collect" a target merely by reloading an already-set backup.
+
+The two entrances are not represented by a label alone.  The entry snapshot
+records source warp node `0x0A` or `0x14`, exact Float32 position, 180-degree
+facing, zero velocity, zero forward speed, and the airborne-spawn action
+`0x1932`.  It also identifies the static Act 3 star and all five macro triggers
+by allocation reference, macro kind, and exact Float32 position.  The concrete
+surface pointer behind the abstract floor reference still needs a Clight
+projection.
 
 The pinned area definitions provide concrete landmarks for the future geometry
 proof: the lower and upper entry warp objects are at `(0, 300, 6451)` and
@@ -57,9 +69,9 @@ do not prove that Mario can or cannot reach them.
 
 ## The route argument in one diagram
 
-The supplied transcript, together with the route-completeness refinement in
-the task request, describes years of route construction as a graph with two
-remaining cut points:
+The supplied transcript, together with the route-completeness hypothesis
+proposed in the task request, describes years of route construction as a graph
+with two candidate remaining cut points:
 
 ```text
 clean upper entry
@@ -90,15 +102,56 @@ This is a control-flow-cut argument:
    nodes--the Act 3 region and upper trigger--is the task's proposed reduction
    and still needs a checked continuation for each node.
 
-The Rocq route-gate model proves the logical case split itself.  For a trace
-satisfying its explicit route-coverage premise, excluding both bypass
-observations makes target-region access imply at least one A edge.  Under the corresponding downstream-completeness
-premise, a spawning-displacement elevator escape enables no-A modeled access
-from the upper entrance, while a no-A seed above the second pole does the same
-from the lower entrance.  Conversely, any no-A modeled target route exposes
-the corresponding bypass capability.
+The Rocq route-gate model proves the logical case split itself.  The strengthened
+version first selects the exact earliest target observation, including its
+position within a frame, and synchronizes the route prefix with the event
+prefix.  For a trace satisfying its explicit route-coverage premise, that first
+access has one of two entrance-specific forms:
 
-The capstone-facing statement is:
+- an A edge occurred at the elevator or second-pole gate before the target; or
+- one bypass class tag occurred before the target.
+
+The finite tags name platform displacement, object pushes/moving geometry,
+warps or area 3, collision clips/tunneling, parallel-universe/out-of-bounds
+states, target relocation/substitution, macro or object-lifecycle anomalies,
+save reload/corruption, and memory/undefined behavior.  They are vocabulary,
+not evidence: a tag currently carries no Mario/object state, collision phase,
+or Clight event.
+
+Assuming all tags absent makes target access imply an A edge.  Conversely, a
+no-A target trace satisfying the same classification contains one of those
+tags.  Both statements remain oracle-like until the broad coverage field is
+derived and each tag is given precise state/event semantics.  Under the
+separate downstream-completeness premise, a
+spawning-displacement elevator escape enables no-A modeled access from the
+upper entrance, while a no-A seed above the second pole does the same from the
+lower entrance.
+
+The strengthened theorem is:
+
+```coq
+Theorem first_target_access_requires_gate_a_or_explicit_bypass :
+  forall initial trace,
+    FirstTargetCutClassificationObligation initial trace ->
+    reaches_any_target_region trace ->
+    exists region target_frame target_observation,
+      first_target_observation_at
+        trace region target_frame target_observation /\
+      ((state_entrance initial = UpperEntrance /\
+        (gate_a_press_precedes_exact_target trace ElevatorJumpOutGate
+           region target_frame target_observation \/
+         exists witness,
+           upper_bypass_precedes_exact_target trace witness
+             region target_frame target_observation)) \/
+       (state_entrance initial = LowerEntrance /\
+        (gate_a_press_precedes_exact_target trace SecondPoleJumpOffGate
+           region target_frame target_observation \/
+         exists witness,
+           lower_bypass_precedes_exact_target trace witness
+             region target_frame target_observation))).
+```
+
+The older, coarser capstone-facing statement is:
 
 ```coq
 Theorem transcript_route_gate_reduction :
@@ -134,9 +187,14 @@ regions matter.
 
 The route contract is a formal transcription of the supplied strategy
 argument, not a projection of the retail executable.  Its gate-necessity
-fields encode two important completeness claims that are still unproved:
+fields and `FirstTargetCutClassificationObligation` encode important
+completeness claims that are still unproved:
 
-- no retail route goes around the elevator and second-pole cuts; and
+- give every bypass class tag a concrete state/event meaning;
+- prove every retail route around the elevator or second-pole cut produces one
+  of those evidence-bearing classes;
+- prove each class impossible from a clean US/JP entry, or else produce a real
+  counterexample trace; and
 - after either cut, the transcript's remaining no-A strategies work under the
   actual Float32 movement, collision, object, and version semantics.
 
@@ -167,6 +225,10 @@ in one run.  The archived spawning-displacement work is evidence about one
 such candidate mechanism; it is not a witness that the mechanism is reachable
 on entry to the pyramid.
 
+The full alternative-route inventory and its present proof boundary are
+spelled out in
+[`docs/route-exhaustiveness.md`](docs/route-exhaustiveness.md).
+
 ## Why reaching those regions is relevant
 
 The collection/provenance layer treats the save file like a protected data
@@ -177,11 +239,26 @@ star-or-key object with index `2`, the static pyramid-star origin, and a
 registered Mario/star collision in the Act 3 interaction region.
 
 For Act 6, a newly set bit requires an active star-or-key object with index
-`5`, originating from the hidden-star controller.  Spawning it requires all
-five hidden-star triggers to have been consumed.  Consumption of the upper
-trigger requires a registered Mario/trigger collision in the relevant
-collision phase.  The 100-coin star uses index `6`, so it cannot directly set
-either target bit even though it may be useful as a movement resource.
+`5`, originating from the designated hidden-star controller.  Its parent
+reference, home position, and collection hitbox are fixed in the abstract
+provenance invariant; its current position is fixed only at spawn because the
+spawn animation moves it.  Spawning it requires all five hidden-star triggers
+to have been consumed.  Consumption of the upper trigger requires the
+designated macro object, its exact trigger hitbox, and a registered
+Mario/trigger collision in the relevant collision phase.  The consumed
+trigger's macro state is then set and no active same-kind trigger remains.
+The 100-coin star uses index `6`, so it cannot directly set either target bit
+even though it may be useful as a movement resource.
+
+An executable finite source inventory separately lists all seven normal SSL
+star sources.  It proves that indices `0`, `1`, `3`, `4`, and `6` cannot alias
+target indices `2` or `5`.  Its first-writer classifier has three exhaustive
+causes: the matching normal star interaction, an incoherent backup reload, or
+an explicit corruption/unmodeled writer.  Starting from coherent active and
+backup target bits and allowing no anomaly writer rules out the latter two.
+This closes the logical save-reload loophole in the finite model, but a
+Clight-to-writer-inventory theorem is still needed before it becomes a
+whole-program result.
 
 These statements are proved by inversion over `CertifiedExecution`.  That is
 useful, but it is not yet a whole-program Clight proof: the event constructors
@@ -195,16 +272,17 @@ Combining the intended layers gives this proof plan:
 new target bit
     => authorized target collection event                 (collection layer)
     => Act 3 collision or upper-trigger collision          (provenance reduction)
-    => upper elevator gate or lower second-pole gate       (route completeness)
-    => at least one edge-triggered A press                 (gate geometry)
+    => upper elevator gate or lower second-pole gate       (OPEN: route completeness)
+    => at least one edge-triggered A press                 (OPEN: gate geometry)
 ```
 
 Only the first two arrows are currently proved inside the abstract certified
-event model.  The third arrow is a field of `TranscriptRouteGateModel`, not a
-derived geometry theorem.  Given that field, the route lemma derives the last
-arrow only after the relevant bypass is excluded for the supplied trace; no
-global US/JP bypass exclusion is proved.  The reverse direction--bypass to
-target access--is conditional on separate downstream and abstract-execution
+event model.  The third arrow is a field of `TranscriptRouteGateModel`, or the
+more precise `FirstTargetCutClassificationObligation`, not a derived geometry
+theorem.  Given that field, the route lemma derives the last arrow only after
+every explicit bypass class tag is excluded for the supplied trace; no global
+US/JP bypass exclusion is proved.  The reverse direction--bypass to target
+access--is conditional on separate downstream and abstract-execution
 certificates.  The semantic bridges between all of these statements are
 pending.
 
@@ -293,6 +371,8 @@ The most useful entry points are:
 - `proofs/TranscriptRouteModel.v`: route-observation contract and gate/bypass
   lemmas;
 - `proofs/InputSemantics.v`: edge-triggered A definition;
+- `proofs/SourceExhaustiveness.v`: finite normal-star and target-save writer
+  inventory;
 - `proofs/StarCollection.v` and `proofs/HiddenStar.v`: collection reduction;
 - `proofs/ClightFacts.v`: checked generated-AST source facts;
 - `proofs/ClightRefinement.v`: the explicit missing semantic bridge;

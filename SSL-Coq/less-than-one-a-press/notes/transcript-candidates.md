@@ -55,3 +55,26 @@ following facts remain separate obligations:
 This separation is important: proving a cut theorem from a formal route
 contract is a useful reduction, but it is not a proof that the contract is
 complete for the game executable.
+
+## Routes not assumed by the transcript
+
+The strengthened model does not equate “not the ordinary elevator/pole route”
+with impossibility.  At the exact first target occurrence it records a finite
+entrance-specific class tag for platform displacement, object or
+moving-geometry help, warp/area-3 travel, collision clipping/tunneling,
+parallel-universe/out-of-bounds movement, target relocation/substitution,
+macro/object-lifecycle anomalies, save reload/corruption, or
+memory/undefined behavior.  These are payload-free tags, not execution
+evidence.
+
+`FirstTargetCutClassificationObligation` is the pending statement that this
+list covers every first target access in a projected US/JP execution.  The
+theorems prove:
+
+- coverage implies “gate A edge or named bypass before the first target”;
+- coverage plus absence of every tag implies an A edge; and
+- coverage plus no A edge and target access yields a named tag.
+
+The project does not yet prove coverage, tag semantics, or global class
+exclusion.  See
+[`../docs/route-exhaustiveness.md`](../docs/route-exhaustiveness.md).
