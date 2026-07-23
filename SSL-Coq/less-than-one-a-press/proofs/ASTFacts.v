@@ -186,6 +186,31 @@ with statements_mention_float32_bits
       statements_mention_float32_bits bits rest
   end.
 
+Fixpoint calls_ident_with_float32_arg_s
+    (callee : ident) (bits : Z) (s : statement) : bool :=
+  match s with
+  | Scall _ (Evar id _) args =>
+      Pos.eqb id callee && expressions_mention_float32_bits bits args
+  | Ssequence a b | Sloop a b =>
+      calls_ident_with_float32_arg_s callee bits a ||
+      calls_ident_with_float32_arg_s callee bits b
+  | Sifthenelse _ a b =>
+      calls_ident_with_float32_arg_s callee bits a ||
+      calls_ident_with_float32_arg_s callee bits b
+  | Sswitch _ cases =>
+      calls_ident_with_float32_arg_ls callee bits cases
+  | Slabel _ body => calls_ident_with_float32_arg_s callee bits body
+  | _ => false
+  end
+with calls_ident_with_float32_arg_ls
+    (callee : ident) (bits : Z) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      calls_ident_with_float32_arg_s callee bits body ||
+      calls_ident_with_float32_arg_ls callee bits rest
+  end.
+
 Fixpoint expression_mentions_field (field : ident) (e : expr) : bool :=
   match e with
   | Ederef inner _ | Eaddrof inner _ | Eunop _ inner _ | Ecast inner _ =>

@@ -1,0 +1,45 @@
+# Authentic original-JP ROM, fixture replay.
+#
+# This is a compact extract.  run.sh retains all 360 traced frames under
+# build/instrumentation/stale-top-trigger/.
+
+ROM MD5:    85d61f5525af708c9f1e84dce6dc10e9
+ROM SHA256: 9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317
+
+Area-2 boundary fixture:
+
+rel  controller          MarioState.input  Mario position                    upper trigger  controller count
+0    buttons=0, (0,-127) 0x0024            (0,5500,256)                      active          0
+1    buttons=0, (0,-127) 0x0005            (365.592773,5496,-1096.802734)    active          0
+23   buttons=0, (0,-127) 0x0001            (337,4441,-1075)                  active          0
+24   buttons=0, (0,-127) 0x0001            (337,4429,-1075)                  active          0
+39   buttons=0, (0,-127) 0x0001            (337,4429,-1075)                  active          0
+40   buttons=0, (0,-127) 0x0001            (337,4429,-1075)                  active          0
+59   buttons=0, (0,-127) 0x0001            (342.243042,4429,-771.412048)     active          0
+60   buttons=0, neutral  0x0001            (342.940918,4429,-748.670349)     active          0
+76   buttons=0, neutral  0x0024            (349.176636,4065,-545.477783)     active          0
+77   buttons=0, neutral  0x0024            (349.468140,4009,-535.979980)     active          0
+78   buttons=0, neutral  0x0020            (349.748901,3949,-526.831787)     inactive        1
+79   buttons=0, neutral  0x0020            (349.951416,3913,-520.233032)     slot reused     1
+
+Expected boundary summary:
+
+frames=360
+aPressedFrames=0
+aDownFrames=0
+controllerAFrames=0
+act3RegionFrames=0
+triggerEverInactive=1
+initialCounter=0
+finalCounter=1
+maxCounter=1
+
+Expected pre-transition-only observation at the first Area-2 input boundary:
+
+slot 60 active=257
+slot 60 behavior=0x800eca2c
+slot 60 pos=(-3638,-0,1928)
+slot 60 vel=(-0,2,0)
+slot 60 face=(0,-512,0)
+slot 60 angleVel=(0,-512,0)
+gMarioPlatform=NULL

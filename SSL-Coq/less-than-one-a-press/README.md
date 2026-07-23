@@ -12,12 +12,18 @@ not been proved**.  The collection/provenance reduction is proved for the
 project's certified event semantics, and syntax-level facts are proved about
 the generated Clight ASTs.  A finite writer model now classifies the first
 target-bit transition as the matching normal star, an incoherent backup reload,
-or an explicit corruption/unmodeled writer.  A first-target route theorem
-likewise classifies access as the entrance-specific A gate or one of nine
-bypass class tags under a broad coverage premise.  The tags carry no state or
-Clight evidence, and neither classification has yet been proved complete for
-every linked US/JP Clight execution.  A separate,
-current-source-rechecked
+or an explicit corruption/unmodeled writer.  The historical first-target
+theorem still classifies access as the entrance-specific A gate or one of nine
+payload-free bypass tags only under the unproved
+`FirstTargetCutClassificationObligation`.
+
+`FirstTargetRefinement.v` now defines a stronger evidence-bearing interface:
+each classified frame carries actual before/after Clight states, a CompCert
+trace segment, projected states, an exact indexed `CertifiedStep`, and a
+crossing of a concrete `CollisionSupportCut`.  It proves several limited
+eliminations inside the certified semantics, but no concrete linked run
+constructs that classifier and the remaining movement classes are not closed.
+A separate, current-source-rechecked
 `ArchivedProofIntegrationKernel` incorporates narrow lessons from all six
 archived investigations without importing their old ASTs.  The whole-program
 Clight-to-event/collision projection and every lower/upper collision-observation
@@ -99,7 +105,33 @@ JP entries permit all four cases, so the separate JP upper obligation must
 handle elevator containment and spawning displacement for each case.  The AST
 checks establish a direct `clear_mario_platform` call in the US spawn body and
 its absence from the JP body; an execution-level clearing/retention theorem is
-pending.
+pending.  The abstract clean-state predicate by itself does not prove that a
+JP non-null pointer has a stock predecessor.  The concrete Clight nonvacuity
+obligation consequently asks for actual projected clean runs rather than
+claiming that every handwritten clean state is source-reachable.
+
+This distinction matters for a model-only JP candidate: an inactive,
+unreused pyramid-top slot with yaw delta `0x1800` can displace the abstract
+upper-entry Mario state from `(0, 5500, 256)` to approximately
+`(365.593, 5500, -1096.803)` with no A edge.  The payload and displacement
+formula are source-shaped.  A fixture-assisted replay in the authentic JP ROM
+installs the same raw transform payload once at the Area-2 boundary and, with
+no A held or pressed, consumes the upper hidden-star trigger.  It is not a
+target-bit counterexample: the trace has no Act 3 overlap, does not spawn the
+Act 6 star, and does not directly read save RAM.  The same payload prepared
+only before the Area-1
+transition is cleared or reused and produces no displacement, so no stock
+prehistory retaining that pointer has been established.
+
+The conditional source path uses Area-1 warp node `0x1E` while the spinning
+top owns Mario's floor, then arrives at Area-2 node `0x14`.  The warp normally
+loads on area entry, but that observation is not an exhaustiveness proof.  The
+proof must account for moving/loading the warp onto the top, moving the top to
+the warp, and any collision-preserving cloning construction; it must not rule
+them out by strengthening clean entry to assume a null or harmless pointer.
+The formal evidence therefore puts capture, unload, and optional reuse in a
+separate pre-entry Clight run whose final concrete state is exactly the clean
+Area-2 run's starting state.
 
 ## Proof architecture and exact proved theorem
 
@@ -216,6 +248,31 @@ logical bookkeeping: the broad
 `FirstTargetCutClassificationObligation` already assumes gate-or-tag coverage
 and is not yet derived from the collision mesh or Clight.
 
+`FirstTargetRefinement.v` makes the intended replacement precise.
+`ClightFrameEvidence` binds a classification to the actual before/after
+Clight states, a prefix/segment/suffix trace decomposition, projected
+before/after game states, and the exact indexed certified step.
+`MotionCrossesCollisionCutEvidence` uses finite static support references,
+dynamic object references, and binary32 open cells to witness a source-side to
+target-side crossing.  The event writer inventory is total and includes an
+ordinary Mario/static-geometry class that the historical nine tags omitted.
+The proved reductions eliminate, within the certified event semantics:
+
+- direct displacement by the zero-offset area-2/area-3 instant warp;
+- target identity/provenance anomalies at certified collection steps;
+- invalid hidden-star macro/controller lifecycle steps;
+- coherent save reload as a new target-bit writer; and
+- projection mismatch once an indexed frame certificate exists.
+
+The bounded static quarter-step lemma closes only one coordinate-alias
+subcase.  Ordinary Mario/static-support motion, platform displacement, object
+or moving geometry, clips/tunneling, general coordinate aliasing, and normal
+reload/entry motion remain open.  Thus
+`EvidenceBearingFirstTargetCutClassification` is a specification to construct,
+not a completed US/JP classification, and its bridge does not prove
+`FirstTargetCutClassificationObligation` without the still-open
+ordinary/static class exclusion.
+
 The older, coarser transcript contract also proves:
 
 ```coq
@@ -243,6 +300,14 @@ no-A state above the second pole yields separate no-A continuations to the two
 target regions.  Those premises avoid claiming both stars are collected in one
 course visit.
 
+The `above_second_pole_observed` predicate is retained only as a historical
+transcript node.  It is not the final lower collision cut: the pole grip top is
+at Y `4020`, while the target-side support ring is at Y `3942` and the upper
+Puzzle trigger is at Y `3913`.  A correct lower proof must classify first
+collision-phase entry into the enumerated target-side support/open-cell
+component around the pole hole, not use `marioY > 4020` or an informal floor
+number.
+
 Each route frame pairs its input with that frame's ordered observations.
 `RealizedRouteTrace` additionally requires an abstract `CertifiedExecution`
 with the same frame count and backs target observations by same-index Act 3
@@ -255,9 +320,9 @@ downstream-completeness premises, `FirstTargetCutClassificationObligation`,
 and the projection from Clight frames to synchronized route observations are
 **not proved**.  Thus these are checked logical cut/classification lemmas, not
 a proof that either contract exhausts target-ROM behavior.  An authentic no-A
-elevator escape, above-second-pole witness, or other bypass constructor would
-refute the respective closure claim; it would become a zero-A target-route
-capability only after downstream continuations are validated.
+elevator escape, target-side lower-cut crossing, or other bypass constructor
+would refute the respective closure claim; it would become a zero-A
+target-route capability only after downstream continuations are validated.
 
 The fully proved result is an abstract event-reduction theorem:
 
@@ -363,18 +428,21 @@ conditional theorem is the ultimate target theorem.
   `_FINALROM`, `TARGET_N64`, `NON_MATCHING`, `AVOID_UB`, and `_LANGUAGE_C`.
 - Generator: CompCert `clightgen` 3.15.
 
-Twenty-five translation units are generated for each version, for 50 Clight
-modules total: `game_init.c`, `mario.c`, the five
-`mario_actions_{airborne,automatic,moving,object,stationary}.c` units,
+Twenty-seven translation units are generated for each version, for 54 Clight
+modules total: `game_init.c`, `mario.c`, the six
+`mario_actions_{airborne,automatic,cutscene,moving,object,stationary}.c` units,
 `mario_step.c`, `interaction.c`, `save_file.c`, `object_collision.c`,
 `object_list_processor.c`, `spawn_object.c`, `object_helpers.c`,
 `obj_behaviors.c`, `obj_behaviors_2.c`, `behavior_actions.c`,
 `behavior_data.c`, `area.c`, `level_update.c`,
 `platform_displacement.c`, `surface_collision.c`,
 `macro_special_objects.c`, `levels/ssl/script.c`, and a project wrapper for
-`levels/ssl/areas/2/macro.inc.c`.  This expands the imported surface for
-movement, action dispatch, Mario quarter steps, Eyerok behavior, and floor or
-surface collision analysis.  `clightgen` translates every function and global
+`levels/ssl/areas/2/macro.inc.c`, plus `inputs/ssl_collision.c`, a project
+wrapper importing the area-1/area-2/area-3 collision arrays and the
+route-relevant pyramid-top, tox-box, grindel, spindel, moving-wall, elevator,
+and Eyerok arrays.  This expands the imported surface for movement, entry
+action dispatch, Mario quarter steps, Eyerok behavior, and static/dynamic
+collision analysis.  `clightgen` translates every function and global
 definition retained by preprocessing in each whole translation unit; the
 proofs inspect only the named functions and shapes listed in the exact
 source/function map in
@@ -401,7 +469,7 @@ SM64_SOURCE=/path/to/sm64 make verify-generated
 
 The pipeline exports the pinned commit with `git archive`, so uncommitted files
 in the source checkout are not translated.  `verify-generated` hashes the
-committed output, regenerates all 50 modules, and requires byte-for-byte
+committed output, regenerates all 54 modules, and requires byte-for-byte
 identity.
 
 The command executed per unit is structurally:
@@ -432,11 +500,14 @@ clightgen -normalize -nostdinc -fstruct-passing \
   conclusion about ROM reachability.
 - No concrete `TargetLinkedProgram`, `ClightObservationProjection`, or
   `ClightFrameRefinementCertificate` is provided.  The link record asks for
-  `linkorder` witnesses above all 25 units; it does not construct an iterated
+  `linkorder` witnesses above all 27 units; it does not construct an iterated
   CompCert link.  `ImportedClightRun` is a finite `Smallstep.star` fragment and
   is not yet required to begin at `initial_state` or end at `final_state`.
-- `WholeProgramClightRefinementObligation` and the strong, nonvacuous
-  `CleanEntryProjectionCoverageObligation` are both open.  Until a concrete
+- `WholeProgramClightRefinementObligation` and
+  `CleanEntryProjectionNonvacuityObligation` are both open.  The latter asks
+  for actual projected clean US/JP lower/upper starts; it deliberately does
+  not assert the false surjectivity claim that every handwritten
+  `CleanPyramidEntry` is source-reachable.  Until a concrete
   projection and certificate are proved, projected inputs, events, collision
   observations, and abstract states are uninterpreted functions.
 - All three Layer B reachability propositions are open.  They are phrased over
@@ -446,11 +517,12 @@ clightgen -normalize -nostdinc -fstruct-passing \
 - The transcript route model has no Clight projection or collision-surface
   completeness theorem.  `FirstTargetCutClassificationObligation` makes the
   missing exhaustiveness result explicit and its tag sums make the intended
-  case vocabulary finite.  The tags have no state semantics, so coverage and
-  tag exclusion remain oracle-like until a concrete projection derives them.
-  In particular, "above the second pole" and "outside the elevator" require
-  chronological predicates over exact surfaces, actions, platform state, and
-  collision phases rather than a bare Y bound.
+  historical case vocabulary finite.  Those tags have no state semantics.
+  `FirstTargetRefinement.v` defines evidence-bearing replacements, but no
+  concrete projection constructs them and the surviving writer classes are
+  not excluded.  In particular, the lower cut is first collision-phase entry
+  into enumerated target-side supports or binary32 open cells, not “above the
+  second pole,” an informal floor number, or a bare Y bound.
 - `ArchivedProofIntegrationKernel` is a proved package of current-source facts
   and narrow route lemmas, but it proves neither
   `TargetClightRefinementObligation` nor any Layer B premise.  Building or
@@ -459,7 +531,13 @@ clightgen -normalize -nostdinc -fstruct-passing \
 - The JP `gMarioPlatform` analysis currently classifies null, live,
   inactive, and reused slots with a ghost capture epoch.  It does not yet prove
   that the abstract slot/epoch was projected from the C pointer, which cases
-  are reachable, or the displacement produced by every reachable payload.
+  are reachable, or the displacement produced by every reachable payload.  In
+  particular, the model admits the stale pyramid-top payload described above.
+  Proving source-backed prehistory must preserve the conditional
+  upper-warp/top-unload route and separately analyze warp-to-top,
+  top-to-warp, and collision-preserving clone constructions; setting the JP
+  pointer to `None` or assuming every retained displacement is safe would not
+  be a valid repair.
 - The finite normal-SSL inventory proves unique abstract sources for indices
   `2` and `5` and non-aliasing of `0`, `1`, `3`, `4`, and `6`.  The raw
   initializer/constant checks support the target constants, but no proved
@@ -478,13 +556,14 @@ clightgen -normalize -nostdinc -fstruct-passing \
 - `Print Assumptions` reports CompCert's standard classical real-number and
   dependent functional-extensionality foundations for the float model.  The
   project declares no new logical axioms.
-- A model audit found a counterexample to an earlier, over-permissive Layer B
-  formulation: a continuously held-A/no-edge input list could be paired with a
-  handcrafted immediate overlap/collection step because inputs and events were
-  unrelated.  This was an abstraction-only witness, not an actual ROM trace.
-  The current obligations instead quantify over a projected Clight run and
-  explicit collision observations, with event/observation coverage carried by
-  its refinement certificate.
+- `ModelGapAudit.v` proves that the current endpoint-only certificate still
+  accepts arbitrary Mario-motion endpoints and can pair a clean US or JP
+  entry with a synthetic immediate Act 3 overlap/collection event.  Separately,
+  `endpoint_only_alignment_does_not_imply_cut_classification` shows that
+  endpoint/event alignment cannot derive the first-cut classification.  These
+  are abstraction counterexamples, not actual ROM traces.  The
+  evidence-bearing frame interface states the needed repair, but its
+  construction from a linked Clight run remains open.
 - A second audit found that an active target bit could be clear while the
   backup slot already held it; the real game-over reload path could then set
   the active bit without a star event in the older abstraction.  Clean entry
@@ -492,8 +571,13 @@ clightgen -normalize -nostdinc -fstruct-passing \
   copies the backup, and the finite writer theorem classifies incoherent reload
   and corruption rather than hiding them.  This was also an abstraction
   loophole, not a demonstrated clean ROM state.
-- No actual US or JP ROM counterexample was found during source inspection; no
-  exhaustive ROM reachability search was run.
+- No stock-reachable US or JP ROM counterexample has been established.  The
+  fixture-assisted JP stale-top run does reach and consume the upper hidden
+  trigger with zero A edges, but it has no Act 3 overlap, does not spawn the
+  Act 6 star, and does not directly read save RAM.  No stock-reachable
+  predecessor for the setup has been established.  Other finite schedules
+  found no target witness; neither result is an exhaustive controller-only
+  reachability proof.
 
 The supplied A-press transcript was used only to identify candidate routes and
 version-sensitive behavior.  The pinned source and formal definitions control

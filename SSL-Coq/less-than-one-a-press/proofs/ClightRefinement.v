@@ -2,19 +2,21 @@ From Coq Require Import List.
 From compcert Require Import AST Clight Events Linking Smallstep.
 From LessThanOneAPress.Generated Require Import
   us_game_init us_mario us_mario_actions_airborne us_mario_actions_automatic
+  us_mario_actions_cutscene
   us_mario_actions_moving us_mario_actions_object us_mario_actions_stationary
   us_mario_step us_interaction us_save_file us_object_collision
   us_object_list_processor us_spawn_object us_object_helpers us_obj_behaviors
   us_obj_behaviors_2 us_behavior_actions us_behavior_data us_area
   us_level_update us_platform_displacement us_surface_collision
-  us_macro_special_objects us_ssl_script us_ssl_area2_macro
+  us_macro_special_objects us_ssl_script us_ssl_area2_macro us_ssl_collision
   jp_game_init jp_mario jp_mario_actions_airborne jp_mario_actions_automatic
+  jp_mario_actions_cutscene
   jp_mario_actions_moving jp_mario_actions_object jp_mario_actions_stationary
   jp_mario_step jp_interaction jp_save_file jp_object_collision
   jp_object_list_processor jp_spawn_object jp_object_helpers jp_obj_behaviors
   jp_obj_behaviors_2 jp_behavior_actions jp_behavior_data jp_area
   jp_level_update jp_platform_displacement jp_surface_collision
-  jp_macro_special_objects jp_ssl_script jp_ssl_area2_macro.
+  jp_macro_special_objects jp_ssl_script jp_ssl_area2_macro jp_ssl_collision.
 From LessThanOneAPress.Proofs Require Import
   GameTypes InputSemantics CleanEntry AreaTransitions.
 
@@ -35,7 +37,8 @@ Record ImportedClightRun := {
 
 Definition us_translation_units : list Clight.program :=
   [ us_game_init.prog; us_mario.prog; us_mario_actions_airborne.prog;
-    us_mario_actions_automatic.prog; us_mario_actions_moving.prog;
+    us_mario_actions_automatic.prog; us_mario_actions_cutscene.prog;
+    us_mario_actions_moving.prog;
     us_mario_actions_object.prog; us_mario_actions_stationary.prog;
     us_mario_step.prog; us_interaction.prog; us_save_file.prog;
     us_object_collision.prog; us_object_list_processor.prog;
@@ -44,11 +47,12 @@ Definition us_translation_units : list Clight.program :=
     us_behavior_data.prog; us_area.prog; us_level_update.prog;
     us_platform_displacement.prog; us_surface_collision.prog;
     us_macro_special_objects.prog; us_ssl_script.prog;
-    us_ssl_area2_macro.prog ].
+    us_ssl_area2_macro.prog; us_ssl_collision.prog ].
 
 Definition jp_translation_units : list Clight.program :=
   [ jp_game_init.prog; jp_mario.prog; jp_mario_actions_airborne.prog;
-    jp_mario_actions_automatic.prog; jp_mario_actions_moving.prog;
+    jp_mario_actions_automatic.prog; jp_mario_actions_cutscene.prog;
+    jp_mario_actions_moving.prog;
     jp_mario_actions_object.prog; jp_mario_actions_stationary.prog;
     jp_mario_step.prog; jp_interaction.prog; jp_save_file.prog;
     jp_object_collision.prog; jp_object_list_processor.prog;
@@ -57,7 +61,7 @@ Definition jp_translation_units : list Clight.program :=
     jp_behavior_data.prog; jp_area.prog; jp_level_update.prog;
     jp_platform_displacement.prog; jp_surface_collision.prog;
     jp_macro_special_objects.prog; jp_ssl_script.prog;
-    jp_ssl_area2_macro.prog ].
+    jp_ssl_area2_macro.prog; jp_ssl_collision.prog ].
 
 Definition target_translation_units (version : GameVersion) : list Clight.program :=
   match version with
@@ -142,10 +146,13 @@ Definition WholeProgramClightRefinementObligation
     exists certificate :
       ClightFrameRefinementCertificate projection run initial, True.
 
-(* This separate condition prevents the all-None state projection from
-   satisfying the advertised target bridge vacuously.  Constructing a run for
-   each abstract clean entry is deliberately strong and remains pending. *)
-Definition CleanEntryProjectionCoverageObligation
+(* The earlier project version required a run for every inhabitant of the
+   handwritten [CleanPyramidEntry] record.  That was false in principle:
+   ghost object epochs and, in particular, arbitrary JP raw-platform slots
+   describe more abstract states than the pinned program can reach.  Keep the
+   old surjectivity statement available as an audit target, but do not use it
+   in the advertised Clight obligation. *)
+Definition AbstractCleanEntrySurjectivityObligation
     (projection : ClightObservationProjection) : Prop :=
   forall initial,
     CleanPyramidEntry initial ->
@@ -154,10 +161,24 @@ Definition CleanEntryProjectionCoverageObligation
       RunUsesProjection projection run /\
       project_state projection (run_start run) = Some initial.
 
+(* Non-vacuity now asks only for one actual projected run at each selected
+   entrance.  It does not claim that a fabricated abstract raw-pointer seed is
+   source-reachable.  Proving source-backed JP platform capture for a specific
+   run remains part of the first-target platform-displacement obligation. *)
+Definition CleanEntryProjectionNonvacuityObligation
+    (projection : ClightObservationProjection) : Prop :=
+  forall entrance,
+    exists run initial,
+      RunUsesProjection projection run /\
+      project_state projection (run_start run) = Some initial /\
+      CleanPyramidEntry initial /\
+      state_version initial = projection_version projection /\
+      state_entrance initial = entrance.
+
 Definition TargetClightRefinementObligation
     (projection : ClightObservationProjection) : Prop :=
   WholeProgramClightRefinementObligation projection /\
-  CleanEntryProjectionCoverageObligation projection.
+  CleanEntryProjectionNonvacuityObligation projection.
 
 (* No linked program, memory projection, or certificate is supplied.  The
    generated-AST source-shape facts do not establish these obligations. *)

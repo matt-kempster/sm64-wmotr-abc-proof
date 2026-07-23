@@ -36,6 +36,15 @@ check: proofs
 	  LessThanOneAPress.Proofs.ClightFacts \
 	  game_over_save_reload_source_shape_jp
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  no_spin_airborne_entry_update_source_shape_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  no_spin_airborne_entry_update_source_shape_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CollisionMeshFacts \
+	  route_collision_initializers_are_version_identical
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  collection_provenance_reduction
 	bash pipeline/assumptions.sh \
@@ -110,6 +119,51 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.TranscriptRouteModel \
 	  no_a_first_target_access_requires_explicit_bypass
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.FirstTargetRefinement \
+	  projected_event_writer_inventory_is_total
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.FirstTargetRefinement \
+	  direct_instant_warp_displacement_is_impossible
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.FirstTargetRefinement \
+	  target_identity_anomaly_is_impossible
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.FirstTargetRefinement \
+	  macro_lifecycle_anomaly_is_impossible
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.FirstTargetRefinement \
+	  save_reload_target_mutation_is_impossible
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.FirstTargetRefinement \
+	  projection_mismatch_is_impossible_with_certificate
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.FirstTargetRefinement \
+	  evidence_bypass_reduces_to_open_route_writer_classes
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.FirstTargetRefinement \
+	  endpoint_only_alignment_does_not_imply_cut_classification
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.FirstTargetRefinement \
+	  prelude_retained_inactive_top_slot_is_a_raw_platform_case
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.FirstTargetRefinement \
+	  prelude_reused_top_slot_is_a_raw_platform_case
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.FirstTargetRefinement \
+	  prelude_bridge_enters_clean_jp_upper_with_retained_platform
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.FirstTargetRefinement \
+	  prelude_bridge_exposes_exact_platform_payload
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.FirstTargetRefinement \
+	  upper_warp_stale_top_conditional_path_is_platform_evidence
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ModelGapAudit \
+	  current_certified_motion_accepts_arbitrary_endpoint
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ModelGapAudit \
+	  current_abstract_counterexample_exists_for_every_target_entry
 
 clean:
 	-$(MAKE) -f $(COQMAKEFILE) clean

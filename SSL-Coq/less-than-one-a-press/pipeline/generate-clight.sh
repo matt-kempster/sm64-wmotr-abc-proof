@@ -42,6 +42,7 @@ TRANSLATION_UNITS=(
   "mario:src/game/mario.c"
   "mario_actions_airborne:src/game/mario_actions_airborne.c"
   "mario_actions_automatic:src/game/mario_actions_automatic.c"
+  "mario_actions_cutscene:src/game/mario_actions_cutscene.c"
   "mario_actions_moving:src/game/mario_actions_moving.c"
   "mario_actions_object:src/game/mario_actions_object.c"
   "mario_actions_stationary:src/game/mario_actions_stationary.c"
@@ -63,6 +64,7 @@ TRANSLATION_UNITS=(
   "macro_special_objects:src/game/macro_special_objects.c"
   "ssl_script:levels/ssl/script.c"
   "ssl_area2_macro:PROJECT_INPUT"
+  "ssl_collision:PROJECT_COLLISION_INPUT"
 )
 
 generate_one() {
@@ -74,10 +76,16 @@ generate_one() {
   local output="$PROJECT_ROOT/generated/${version}_${stem}.v"
   local version_flags=()
 
-  if [ "$source_path" = "PROJECT_INPUT" ]; then
-    input="$PROJECT_ROOT/inputs/ssl_area2_macro.c"
-    source_label="levels/ssl/areas/2/macro.inc.c (project wrapper)"
-  fi
+  case "$source_path" in
+    PROJECT_INPUT)
+      input="$PROJECT_ROOT/inputs/ssl_area2_macro.c"
+      source_label="levels/ssl/areas/2/macro.inc.c (project wrapper)"
+      ;;
+    PROJECT_COLLISION_INPUT)
+      input="$PROJECT_ROOT/inputs/ssl_collision.c"
+      source_label="levels/ssl collision data (project wrapper)"
+      ;;
+  esac
 
   case "$version" in
     us)

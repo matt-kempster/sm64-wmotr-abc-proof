@@ -5,6 +5,7 @@ generated/us_game_init.v
 generated/us_mario.v
 generated/us_mario_actions_airborne.v
 generated/us_mario_actions_automatic.v
+generated/us_mario_actions_cutscene.v
 generated/us_mario_actions_moving.v
 generated/us_mario_actions_object.v
 generated/us_mario_actions_stationary.v
@@ -26,10 +27,12 @@ generated/us_surface_collision.v
 generated/us_macro_special_objects.v
 generated/us_ssl_script.v
 generated/us_ssl_area2_macro.v
+generated/us_ssl_collision.v
 generated/jp_game_init.v
 generated/jp_mario.v
 generated/jp_mario_actions_airborne.v
 generated/jp_mario_actions_automatic.v
+generated/jp_mario_actions_cutscene.v
 generated/jp_mario_actions_moving.v
 generated/jp_mario_actions_object.v
 generated/jp_mario_actions_stationary.v
@@ -51,8 +54,10 @@ generated/jp_surface_collision.v
 generated/jp_macro_special_objects.v
 generated/jp_ssl_script.v
 generated/jp_ssl_area2_macro.v
+generated/jp_ssl_collision.v
 
 proofs/ASTFacts.v
+proofs/CollisionMeshFacts.v
 proofs/ClightFacts.v
 proofs/GameTypes.v
 proofs/SourceExhaustiveness.v
@@ -69,4 +74,6 @@ proofs/ClightRefinement.v
 proofs/LowerEntrance.v
 proofs/UpperEntrance.v
 proofs/ArchivedProofIntegration.v
+proofs/FirstTargetRefinement.v
+proofs/ModelGapAudit.v
 proofs/MainTheorem.v

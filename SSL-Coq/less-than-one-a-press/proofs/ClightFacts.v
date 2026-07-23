@@ -2,21 +2,23 @@ From Coq Require Import List ZArith.
 From compcert Require Import AST Clight Integers.
 From LessThanOneAPress.Generated Require Import
   us_game_init us_mario us_mario_actions_airborne us_mario_actions_automatic
+  us_mario_actions_cutscene
   us_mario_actions_moving us_mario_actions_object us_mario_actions_stationary
   us_mario_step us_interaction us_save_file us_object_collision
   us_object_list_processor us_spawn_object us_object_helpers us_obj_behaviors
   us_obj_behaviors_2 us_behavior_actions us_behavior_data us_area
   us_level_update us_platform_displacement us_surface_collision
   us_macro_special_objects us_ssl_script
-  us_ssl_area2_macro
+  us_ssl_area2_macro us_ssl_collision
   jp_game_init jp_mario jp_mario_actions_airborne jp_mario_actions_automatic
+  jp_mario_actions_cutscene
   jp_mario_actions_moving jp_mario_actions_object jp_mario_actions_stationary
   jp_mario_step jp_interaction jp_save_file jp_object_collision
   jp_object_list_processor jp_spawn_object jp_object_helpers jp_obj_behaviors
   jp_obj_behaviors_2 jp_behavior_actions jp_behavior_data jp_area
   jp_level_update jp_platform_displacement jp_surface_collision
   jp_macro_special_objects jp_ssl_script
-  jp_ssl_area2_macro.
+  jp_ssl_area2_macro jp_ssl_collision.
 From LessThanOneAPress.Proofs Require Import ASTFacts.
 
 Import ListNotations.
@@ -26,6 +28,7 @@ Module UGI := us_game_init.
 Module UMI := us_mario.
 Module UAir := us_mario_actions_airborne.
 Module UAuto := us_mario_actions_automatic.
+Module UCutscene := us_mario_actions_cutscene.
 Module UMove := us_mario_actions_moving.
 Module UObjectActions := us_mario_actions_object.
 Module UStationary := us_mario_actions_stationary.
@@ -44,11 +47,13 @@ Module UPD := us_platform_displacement.
 Module UMS := us_macro_special_objects.
 Module USS := us_ssl_script.
 Module UAM := us_ssl_area2_macro.
+Module UCollision := us_ssl_collision.
 
 Module JGI := jp_game_init.
 Module JMI := jp_mario.
 Module JAir := jp_mario_actions_airborne.
 Module JAuto := jp_mario_actions_automatic.
+Module JCutscene := jp_mario_actions_cutscene.
 Module JMove := jp_mario_actions_moving.
 Module JObjectActions := jp_mario_actions_object.
 Module JStationary := jp_mario_actions_stationary.
@@ -67,6 +72,7 @@ Module JPD := jp_platform_displacement.
 Module JMS := jp_macro_special_objects.
 Module JSS := jp_ssl_script.
 Module JAM := jp_ssl_area2_macro.
+Module JCollision := jp_ssl_collision.
 
 Theorem controller_pressed_operator_source_shape_us :
   assigns_pressed_operator_shape_s UGI._buttonPressed
@@ -168,6 +174,31 @@ Theorem airborne_entry_action_source_shape_jp :
   statement_mentions_int_s act_spawn_no_spin_airborne_bits
     (fn_body JLU.f_set_mario_initial_action) = true.
 Proof. vm_compute. split; reflexivity. Qed.
+
+(* The selected entry action is dispatched in mario_actions_cutscene.c, not
+   in the airborne-action unit.  Its helper is called with the exact binary32
+   value 0.0f on every action update, and that helper writes forward velocity
+   before calling perform_air_step.  These are syntax/dataflow anchors only;
+   the small-step and collision-surface effects remain refinement obligations. *)
+Theorem no_spin_airborne_entry_update_source_shape_us :
+  calls_ident_with_float32_arg_s
+    UCutscene._launch_mario_until_land 0
+    (fn_body UCutscene.f_act_spawn_no_spin_airborne) = true /\
+  calls_ident_s UCutscene._mario_set_forward_vel
+    (fn_body UCutscene.f_launch_mario_until_land) = true /\
+  calls_ident_s UCutscene._perform_air_step
+    (fn_body UCutscene.f_launch_mario_until_land) = true.
+Proof. vm_compute. repeat split. Qed.
+
+Theorem no_spin_airborne_entry_update_source_shape_jp :
+  calls_ident_with_float32_arg_s
+    JCutscene._launch_mario_until_land 0
+    (fn_body JCutscene.f_act_spawn_no_spin_airborne) = true /\
+  calls_ident_s JCutscene._mario_set_forward_vel
+    (fn_body JCutscene.f_launch_mario_until_land) = true /\
+  calls_ident_s JCutscene._perform_air_step
+    (fn_body JCutscene.f_launch_mario_until_land) = true.
+Proof. vm_compute. repeat split. Qed.
 
 Theorem hundred_coin_spawn_index_source_shape_us :
   calls_ident_s UI._bhv_spawn_star_no_level_exit

@@ -2,8 +2,8 @@
 
 All rows are translated twice, once with `VERSION_US` and once with
 `VERSION_JP`, from decomp commit
-`9921382a68bb0c865e5e45eb594d9c64db59b1af`.  There are 25 translation
-units per version and therefore 50 generated Clight modules.
+`9921382a68bb0c865e5e45eb594d9c64db59b1af`.  There are 27 translation
+units per version and therefore 54 generated Clight modules.
 
 Each row is a whole translation unit: every function/global retained by the
 preprocessor is translated, not only the functions named below.  The
@@ -18,6 +18,7 @@ or a whole-program semantic effect.
 | `src/game/mario.c` | `*_mario.v` | `update_mario_button_inputs`; pressed/down field and input-bit constant occurrences |
 | `src/game/mario_actions_airborne.c` | `*_mario_actions_airborne.v` | airborne action handlers and movement writers imported for Layer B callgraph and writer coverage; no complete execution refinement yet |
 | `src/game/mario_actions_automatic.c` | `*_mario_actions_automatic.v` | pole positioning, holding-pole and top-of-pole source shapes used by the normalized-pole subcase |
+| `src/game/mario_actions_cutscene.c` | `*_mario_actions_cutscene.v` | `act_spawn_no_spin_airborne` and `launch_mario_until_land`; checked call/Float32-argument shapes anchor the zero-forward-speed entry update before `perform_air_step` |
 | `src/game/mario_actions_moving.c` | `*_mario_actions_moving.v` | walking, braking, slope deceleration, ground-step and move-punching source shapes used by the parallel-universe completeness audit |
 | `src/game/mario_actions_object.c` | `*_mario_actions_object.v` | object-interaction action handlers imported for Layer B action/writer coverage; no complete execution refinement yet |
 | `src/game/mario_actions_stationary.c` | `*_mario_actions_stationary.v` | stationary action handlers imported for Layer B action/writer coverage; no complete execution refinement yet |
@@ -39,6 +40,7 @@ or a whole-program semantic effect.
 | `src/game/macro_special_objects.c` | `*_macro_special_objects.v` | spawn call and respawn-field assignment occurrences; persistence semantics are pending |
 | `levels/ssl/script.c` | `*_ssl_script.v` | raw initializer tuples for lower/upper airborne entry objects, the area-2 static star, hidden controller, and instant-warp declarations |
 | `levels/ssl/areas/2/macro.inc.c` via `inputs/ssl_area2_macro.c` | `*_ssl_area2_macro.v` | raw initializer tuples for five Puzzle trigger records/coordinates; the abstract state now assigns exact kinds/references/positions, while their concrete spawn-memory projection remains pending |
+| SSL collision arrays via `inputs/ssl_collision.c` | `*_ssl_collision.v` | area 1/2/3 static arrays plus pyramid-top, tox-box, grindel, spindel, moving-wall, elevator, and Eyerok object collision arrays; checked word counts and US/JP initializer identity, but no parsed-surface or connected-component theorem |
 
 ## Archive-derived integration boundary
 
@@ -92,8 +94,28 @@ downstream-completeness definitions remain obligations.  The first-target
 contract enumerates nine bypass class tags for each entrance; this makes the
 case vocabulary finite, but the tags carry no state/event evidence and do not
 prove that they exhaust a ROM execution.
-No theorem currently projects Mario actions, exact collision surfaces, gate
-ordering, or those bypass classifications from a Clight run into `RouteTrace`.
+`proofs/FirstTargetRefinement.v` replaces those tags at the semantic boundary
+with indexed before/after Clight states, trace decomposition, projected frame
+states, concrete collision-support cuts, and a total abstract event-writer
+inventory.  It proves several administrative/anomaly classes impossible and
+reduces the remaining work to ordinary/static movement, platform displacement,
+object impulses, clips, general coordinate aliasing, and normal reload/entry
+movement.  It also proves that endpoint/event alignment alone cannot imply the
+old classifier.  No theorem yet constructs this evidence from every target
+Clight run or validates a cut against the extracted collision arrays.
+
+The same module deliberately preserves the conditional JP
+upper-warp/spinning-pyramid-top route.  Its evidence records how the warp and
+an object-owned top surface could coincide at Area-1 source node `0x1E`,
+platform capture, unload retention, inactive-versus-reused slot epochs, and a
+later platform-displacement cut crossing after arrival at Area-2 node `0x14`.
+The Area-1 capture/unload history is a separate Clight prelude whose final
+Clight state must equal the clean Area-2 run's start; it is not fabricated as
+an event after clean entry.  The three named coincidence
+families are moving/loading the warp onto the top, moving the top to the warp,
+and a collision-preserving clone.  These are evidence constructors, not
+reachability results.  No source-backed predecessor or global impossibility
+proof for those families has been supplied.
 
 The generated `ssl_script` units use the normal preprocessing configuration.
 The source's experimental `SSL_SPAWNING_DISPLACEMENT_TAS_HACK` branch is not

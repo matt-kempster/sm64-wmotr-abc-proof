@@ -4,9 +4,17 @@
 
 - Reproducible US/JP Clight AST source-shape facts listed in
   `proofs/ClightFacts.v`, over
-  25 pinned translation units per version (50 generated modules).  The added
-  units cover Mario airborne, automatic, moving, object, and stationary
-  actions, `mario_step`, `obj_behaviors_2`, and `surface_collision`.
+  27 pinned translation units per version (54 generated modules).  The units
+  cover Mario airborne, automatic, cutscene, moving, object, and stationary
+  actions, `mario_step`, `obj_behaviors_2`, and `surface_collision`, plus the
+  route-relevant SSL static and dynamic collision arrays.
+- Generated source-shape facts show that the no-spin airborne entry handler
+  calls `launch_mario_until_land` with binary32 zero, and that helper calls
+  `mario_set_forward_vel` and `perform_air_step`.  These are call/constant
+  facts, not an execution or containment theorem.
+- `CollisionMeshFacts.v` checks initializer lengths and exact US/JP equality
+  for the imported area-2/area-3 and route-relevant dynamic collision arrays.
+  It does not yet parse those words into a proved surface graph.
 - Finite-width, edge-triggered input definition allows A to be initially held.
 - `CleanPyramidEntry` fixes the lower/upper airborne entry snapshot, coherent
   active/backup target bits, the static Act 3 identity/position, and five
@@ -45,18 +53,34 @@
   premises, spawning-displacement escape or above-pole access gives separate
   no-A continuations to the Act 3 region and upper Puzzle trigger, provided
   each continuation also carries the model's abstract execution certificate.
-- The strengthened first-target model selects one exact earliest target
-  observation, synchronizes its route/event prefix, and proves that it is
-  preceded by the entrance-specific A gate or one of nine bypass class tags.
-  Under the same broad classification premise, absence of every tag implies an
-  A edge; with no A edge, some tag precedes the target.  The tags carry no
-  state/event evidence, so this is logical bookkeeping rather than a proved
-  route classification.
+  The above-pole observation is a coarse transcript node, not the final lower
+  collision cut.
+- The historical strengthened first-target model selects one exact earliest
+  target observation, synchronizes its route/event prefix, and proves that it
+  is preceded by the entrance-specific A gate or one of nine bypass class tags
+  only under `FirstTargetCutClassificationObligation`.  The tags carry no
+  state/event evidence, so this remains logical bookkeeping.
+- `FirstTargetRefinement.v` defines an evidence-bearing replacement using
+  actual before/after Clight states, trace segments, exact indexed certified
+  steps, and source-side/target-side crossings of a `CollisionSupportCut`.
+  Within the certified semantics it proves that direct zero-offset
+  area-2/area-3 warp displacement, invalid target provenance, invalid
+  trigger/controller lifecycle, coherent target mutation by save reload, and
+  certificate projection mismatch cannot be the bypass.  It also closes only
+  the bounded static quarter-step coordinate-alias subcase.
 - The abstract `gMarioPlatform` model uses a pool slot plus a ghost capture
   epoch.  For a non-null pointer satisfying its slot-well-formedness premise,
   the live-same-epoch,
   inactive-same-epoch, and reused-slot cases are exhaustive; `None` supplies
   the null case.
+- The source-backed-prehistory interface for the conditional JP pyramid-top
+  path requires an object-owned upper-warp floor, an actual predecessor Clight
+  segment, pointer capture, unload retention, and optional fresh slot reuse.
+  It preserves the possible path rather than proving it reachable or harmless.
+- `ModelGapAudit.v` proves that the current endpoint-only abstract certificate
+  accepts arbitrary motion and synthetic immediate Act 3 collection from
+  explicit clean US/JP entries.  This is a model counterexample, not a retail
+  trace.
 
 ## Not proved
 
@@ -84,11 +108,25 @@
   Eyerok height/refinement theorem, or demo/Mario block provenance.
 - Reachability classification and displacement bounds for every null, live,
   inactive, or reused JP platform-slot case.
+- Stock reachability or impossibility of the stale pyramid-top upper-entry
+  displacement.  An authentic-JP boundary fixture with the raw payload moves
+  Mario outside the shaft and consumes the upper trigger with no A edge, but
+  has no Act 3 overlap, does not spawn the Act 6 star, and does not directly
+  inspect save RAM.  No controller-only retail predecessor has been
+  established.  The open cases include moving/loading the Area-1 node-`0x1E`
+  warp onto the spinning top, moving the top to the warp, and
+  collision-preserving cloning.
 - A complete collision-observation projection, and lower-entrance no-A
-  non-overlap over that projection.
+  non-overlap over that projection.  The lower cut must use collision-phase
+  entry into enumerated target-side supports/open cells, not a height predicate
+  above the second pole.
 - US upper-entrance containment/non-overlap.
 - JP upper-entrance containment with retained-platform spawning displacement.
 - The unconditional target-ROM impossibility theorem.
+- Either the existence or the impossibility of a stock-reachable
+  counterexample.  The fixture-assisted upper-trigger witness falsifies the
+  state-only bypass-exclusion claim, but not the stock game theorem; other
+  finite schedule checks are not exhaustive.
 
 Consequently, `collection_provenance_reduction` is not described as the final
 impossibility result.  None of `ssl-spawning-displacement-proof`,

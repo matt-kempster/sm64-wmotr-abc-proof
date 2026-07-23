@@ -1,12 +1,17 @@
 # Shifting Sand Land Rocq proofs
 
+The repository's pre-existing proof root is named `SSL-Coq` with this exact
+casing.  The reorganization keeps that path rather than creating a parallel
+`ssl-coq` tree.
+
 `less-than-one-a-press/` is the current proof project.  It targets the US and
 Japanese versions of Super Mario 64 at decomp revision
 `9921382a68bb0c865e5e45eb594d9c64db59b1af` and uses CompCert Clight generated
-by `clightgen` 3.15.  It generates 25 translation units per version, for 50
-Clight modules total, including the Mario action, movement, `mario_step`,
-`obj_behaviors_2`, and `surface_collision` units needed to investigate the
-archived route families against the current source.
+by `clightgen` 3.15.  It generates 27 translation units per version, for 54
+Clight modules total.  The coverage includes the Mario action, movement,
+`mario_step`, `obj_behaviors_2`, and `surface_collision` units, the cutscene
+action containing `ACT_SPAWN_NO_SPIN_AIRBORNE`, and a project wrapper that
+imports the route-relevant SSL static and dynamic collision arrays.
 
 `old-proofs/` contains archived proof attempts.  They are retained for
 historical context, reusable lemmas, and future reference; they are not part of
@@ -69,16 +74,41 @@ completeness.
 
 `TranscriptRouteModel.v` now formalizes the two-gate contract suggested by the
 supplied source text: the contract requires a modeled upper route to leave the
-elevator and a modeled lower route to get above the second pole.  Its logical
-lemmas show that no-A target-region access exposes a corresponding bypass, and
-that spawning displacement or above-pole access becomes complete for the two
-reduction nodes only under explicit downstream-continuation premises.  No
-Clight-to-route projection, gate closure, or downstream-completeness premise
-has been proved.  A stronger first-target theorem now enumerates nine explicit
-bypass class tags for each entrance and proves “A gate or named tag” under the
-visibly open `FirstTargetCutClassificationObligation`.  The tags carry no
-state evidence and the broad obligation already assumes their coverage; it is
-not a ROM route-completeness proof.
+elevator and a modeled lower route to pass the second-pole gate.  The old
+“above the second pole” observation is only a coarse transcript abstraction:
+the real lower cut must be first collision-phase entry into an enumerated
+target-side support or open-cell component, because target-side floor and
+trigger geometry lie below the pole's top-grip height.
+
+`FirstTargetRefinement.v` now supplies an evidence-bearing interface with
+actual before/after Clight states, trace segments, exact indexed certified
+steps, and `CollisionSupportCut` crossing witnesses.  Within the certified
+event semantics it eliminates direct displacement by the zero-offset
+area-2/area-3 warp, invalid target provenance, invalid controller/trigger
+lifecycle, coherent save-reload mutation, and projection mismatch; it also
+retains only a bounded static subcase of the parallel-universe exclusion.  The
+ordinary/static, platform, moving-object, clip, general coordinate-alias, and
+normal reload/entry writer classes remain open.  In particular,
+`FirstTargetCutClassificationObligation` is still unproved.
+
+The current endpoint certificate and handwritten clean-state model are too
+permissive to establish route exhaustiveness: they admit arbitrary motion, and
+the JP raw-platform case admits a model-only stale pyramid-top displacement
+outside the upper shaft.  An authentic-JP fixture replay installs the same raw
+transform payload once at the Area-2 boundary and goes further: with no A held
+or pressed, it consumes the upper Pyramid Puzzle trigger.  The trace has no
+Act 3 overlap and does not spawn the Act 6 star.  The probe does not directly
+read the save bits, so it is not a newly-set-bit witness.
+Preparing the same slot only before the Area-1 transition fails because the
+slot is cleared or reused, so this is a compiled-mechanism/model-boundary
+counterexample, not a stock-controller-reachable game counterexample.
+
+A conditional stock setup remains open in which Mario uses Area-1 warp node
+`0x1E` while the spinning pyramid top owns the floor and unloads, then arrives
+at Area-2 node `0x14`.  Moving or loading the warp onto the top, moving the top
+to the warp, and collision-preserving cloning are unresolved possibilities.
+Source-backed prehistory evidence must validate or refute those cases, not
+assume them away.
 
 The ultimate less-than-one-A-press impossibility theorem is **not complete**.
 `conditional_less_than_one_a_press_impossibility` requires a concrete

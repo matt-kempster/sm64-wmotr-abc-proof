@@ -10,11 +10,15 @@ Clight run/projection, derivation of those event-constructor premises, complete
 collision observations, and the lower/upper non-overlap obligations remain.
 The clean-entry model now fixes exact entry kinematics and static target/trigger
 identities and closes the active/backup-save reload loophole, but those fields
-still require a concrete C-memory projection.
+still require a concrete C-memory projection.  The current endpoint-only
+certificate accepts arbitrary motion and synthetic immediate collection from
+clean abstract entries, so it cannot establish first-cut exhaustiveness.
 
-The current project now generates 25 translation units for each target
-version (50 Clight modules), including Mario action and movement code,
-`mario_step`, `obj_behaviors_2`, and `surface_collision`.  It also proves
+The current project now generates 27 translation units for each target
+version (54 Clight modules), including Mario action and movement code,
+`mario_actions_cutscene`, `mario_step`, `obj_behaviors_2`,
+`surface_collision`, and a wrapper importing route-relevant SSL static and
+dynamic collision arrays.  It also proves
 `archived_proof_integration_kernel_holds`, a current-source-rechecked package
 of the useful boundaries identified by the six archived investigations.  The
 package includes `gMarioPlatform` and object-lifecycle source-shape facts,
@@ -22,30 +26,44 @@ narrow
 parallel-universe and normalized-pole subcases, held-A input semantics, Eyerok
 source-shape facts, and a generic CompCert memory-block lemma.
 
-`TranscriptRouteModel.v` now encodes the transcript's two proposed cut points:
-upper entry must leave the elevator, while lower entry must get above the
-second pole.  The machine-checked contract lemmas show that a no-A target route
-must expose the corresponding bypass, and that a spawning-displacement escape
-or above-pole state supports separate target-region continuations if the
-explicit downstream-completeness premise holds.  The route model is not yet a
-projection of a Clight execution.
+`TranscriptRouteModel.v` encodes the transcript's two proposed gate nodes:
+upper entry must leave the elevator, while lower entry passes the second-pole
+gate.  Its `above_second_pole_observed` node is only a coarse historical
+abstraction.  Because the target-side floor ring and upper Puzzle trigger are
+below the pole's top-grip height, the real lower cut must be collision-phase
+entry into enumerated target-side supports or binary32 open cells around the
+pole hole.  The route model is not yet a projection of a Clight execution.
 
-A second route theorem works at the exact first target occurrence.  Its
-entrance-specific finite sums name nine alternative class tags--platform
-displacement, moving objects, warps, clips, out-of-bounds movement, target
-substitution, lifecycle anomalies, save anomalies, and memory/undefined
-behavior.  The tags carry no state/event evidence.
-`FirstTargetCutClassificationObligation` is the plainly named broad premise
-that already assumes this split covers every first access; deriving
-evidence-bearing coverage for US/JP executions remains open.
+The historical exact-first-target theorem uses nine payload-free class tags
+under the broad `FirstTargetCutClassificationObligation`.
+`FirstTargetRefinement.v` now defines the stronger interface needed to justify
+that split: actual Clight trace segments, projected states, exact indexed
+certified steps, a total event-writer inventory, and collision-support cut
+crossings.  Within the certified semantics it eliminates zero-offset instant
+warp displacement, invalid target identity/provenance, invalid hidden-star
+lifecycle, coherent save reload, and projection mismatch; a bounded static
+coordinate-alias subcase is also closed.  Ordinary/static motion, platform
+displacement, moving objects, clips, general coordinate aliasing, and normal
+reload/entry displacement remain open.  Consequently
+`FirstTargetCutClassificationObligation` is still unproved.
 
 This incorporation does not complete the goal.  The route lemmas lack the
 whole-program writer, Float32 collision, model-completeness, and memory
 provenance bridges needed to apply them globally.  The platform model uses an
 abstract pool slot with a ghost capture epoch and distinguishes null, live,
 inactive, and reused cases under a slot-well-formedness premise, but its C
-projection, authentic reachability, and displacement bounds remain open.  None
-of the six archived projects discharges the current
+projection, authentic reachability, and displacement bounds remain open.  It
+currently admits a model-only stale pyramid-top displacement outside the upper
+shaft.  A fixture-assisted authentic-JP replay consumes the upper trigger with
+no A edge, but has no Act 3 overlap, does not spawn the Act 6 star, and does not
+directly inspect save RAM.  Preparing the payload only before the Area-1
+transition fails, so no controller-only retail predecessor has been
+established.  The
+conditional Area-1 node-`0x1E` warp/spinning-top unload construction remains
+open, including warp-to-top, top-to-warp, and collision-preserving clone
+possibilities.  Source-backed prehistory must preserve that case rather than
+assume it away.  Accordingly, none of the six archived projects
+discharges the current
 whole-program Layer A refinement or any Layer B obligation.  See the
 [`archived-proof evidence map`](archived-proof-evidence.md) for the exact
 project-by-project boundary.  The non-specialist explanation is

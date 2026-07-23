@@ -6,10 +6,15 @@ engineering but does not know *Super Mario 64*.
 > **Current status:** the project does not yet prove the retail-game theorem.
 > It proves a collection/provenance reduction in an abstract event model, a
 > finite normal-star/save-writer classification, exact first-target
-> gate-or-named-bypass theorems, and selected facts about generated US and JP
-> Clight syntax.  The refinement from complete game executions to those models,
-> route-classification coverage, bypass exclusion, and the decisive collision
-> reachability results remain open obligations.
+> gate-or-named-bypass theorems, selected facts about generated US and JP
+> Clight syntax, and exact equality/count facts for the generated route-relevant
+> collision arrays.  `FirstTargetRefinement.v` now gives bypasses concrete
+> Clight-frame, projected-state, writer, and collision-cut evidence and rules
+> out several classes inside the certified model.  It does **not** construct
+> that evidence from a complete retail execution or close the remaining
+> movement classes.  `ModelGapAudit.v` proves that the older abstract event
+> relation admits a spurious one-frame collection from a clean entry, so that
+> relation cannot by itself establish the retail theorem.
 
 ## The problem in software terms
 
@@ -50,6 +55,15 @@ save slot to agree on both target bits.  This matters because the game-over
 path can copy the backup slot over the active one; without coherence, a model
 could "collect" a target merely by reloading an already-set backup.
 
+There is an important current abstraction gap here.  The abstract JP branch
+accepts a non-null platform pointer when its pool slot is merely well formed;
+it does not yet prove the gameplay prehistory that made Mario stand on that
+surface or that preserved the pointer across the load.  This is deliberately
+reported rather than hidden by strengthening clean entry to require `None`.
+The concrete clean-entry refinement must instead recover the pointer, slot,
+allocation epoch, raw platform fields, unload, and possible reuse from an
+actual predecessor Clight execution.
+
 The two entrances are not represented by a label alone.  The entry snapshot
 records source warp node `0x0A` or `0x14`, exact Float32 position, 180-degree
 facing, zero velocity, zero forward speed, and the airborne-spawn action
@@ -69,38 +83,48 @@ do not prove that Mario can or cannot reach them.
 
 ## The route argument in one diagram
 
-The supplied transcript, together with the route-completeness hypothesis
-proposed in the task request, describes years of route construction as a graph
-with two candidate remaining cut points:
+The transcript suggests two normal-route gates.  The formal cut cannot be
+defined only as "outside the elevator" or "above the second pole," because
+those phrases omit collision phase, moving support, and passage topology.
+The current evidence interface therefore describes each cut by source-side
+and target-side static surface identifiers, dynamic object identifiers, and
+Float32 open cells:
 
 ```text
 clean upper entry
        |
        v
- elevator cage -- A jump or genuine no-A elevator escape --+
-                                                           |
-clean lower entry                                          |
-       |                                                   v
-       +-- previously solved no-A trials --> second pole --+--> shared upper region
-                                             A jump or            |          |
-                                             genuine bypass       v          v
-                                                            Act 3 region  upper Puzzle trigger
+ spawn shaft / elevator supports
+       |
+       +-- first collision-phase crossing of the upper cut --+
+                                                              |
+clean lower entry                                             v
+       |                                             shared target-side supports
+       +-- ordinary lower route --> second-pole area --+      |             |
+                                                       |      v             v
+                                                       +--> Act 3 region  upper trigger
+                          first crossing of the lower target-side cut
 ```
 
-The "second pole" here is the upper of the two poles encountered by the normal
-bottom-up route.  It is trial 3 in the transcript's five-trial terminology.
+The "second pole" is still the likely normal control-flow gate, but its grip
+top is at Y `4020`, while real target-side support and the upper trigger are
+lower (support Y `3942`, trigger Y `3913`).  A predicate such as
+`marioY > 4020` would therefore miss a genuine route.  The lower proof
+obligation is the first collision-phase transition into the target-side
+support/open-cell component around the access hole, not a height threshold.
 
 This is a control-flow-cut argument:
 
-1. On the modeled upper route, access to either relevant region requires at
-   least one A edge unless an elevator-escape capability is available.
-2. On the modeled lower route, access to either relevant region requires at
-   least one A edge unless a state above the second pole is available without
-   an A edge.
-3. The transcript says that the other four named trials have no-A solutions.
-   The stronger statement that either bypass gives access to both reduction
-   nodes--the Act 3 region and upper trigger--is the task's proposed reduction
-   and still needs a checked continuation for each node.
+1. Select the first collision observation of the Act 3 star region or upper
+   hidden-star trigger.
+2. Recover the last source-side and first target-side states before that
+   observation from an actual Clight segment.
+3. Classify the writer responsible for the crossing: ordinary Mario/static
+   geometry, platform displacement, object or moving geometry, warp,
+   clip/tunnel, coordinate alias, target/lifecycle anomaly, save mutation, or
+   projection/memory failure.
+4. Prove the applicable writer cannot cross the entrance-specific cut without
+   an A edge, or record its exact reachable witness.
 
 The Rocq route-gate model proves the logical case split itself.  The strengthened
 version first selects the exact earliest target observation, including its
@@ -111,47 +135,44 @@ access has one of two entrance-specific forms:
 - an A edge occurred at the elevator or second-pole gate before the target; or
 - one bypass class tag occurred before the target.
 
-The finite tags name platform displacement, object pushes/moving geometry,
-warps or area 3, collision clips/tunneling, parallel-universe/out-of-bounds
-states, target relocation/substitution, macro or object-lifecycle anomalies,
-save reload/corruption, and memory/undefined behavior.  They are vocabulary,
-not evidence: a tag currently carries no Mario/object state, collision phase,
-or Clight event.
+The historical route tags are still only vocabulary.  The new
+`EvidenceBearingBypassAt` record does carry the missing payload: an indexed
+Clight segment, projected before/after `GameState`s, an exact certified event,
+a writer class, a collision-support cut crossing, and alignment to the route
+tag.  It also adds the previously omitted ordinary Mario/static-geometry
+class.  `EvidenceBearingFirstTargetCutClassification` is the narrow remaining
+coverage interface that must be constructed from the linked program.
 
-Assuming all tags absent makes target access imply an A edge.  Conversely, a
-no-A target trace satisfying the same classification contains one of those
-tags.  Both statements remain oracle-like until the broad coverage field is
-derived and each tag is given precise state/event semantics.  Under the
-separate downstream-completeness premise, a
-spawning-displacement elevator escape enables no-A modeled access from the
-upper entrance, while a no-A seed above the second pole does the same from the
-lower entrance.
+Inside the present certified semantics, the proof eliminates direct area-2/3
+warp displacement, invalid target identity/provenance, invalid hidden-star
+lifecycle, coherent save-reload mutation, and projection mismatch once the
+indexed certificate exists.  A bounded static quarter-step cannot make the
+modeled 65536-unit coordinate alias.  Six writer families remain open:
+ordinary Mario/static geometry, platform displacement, object/moving
+geometry, collision clips, general coordinate alias/out-of-bounds behavior,
+and normal lifecycle/entry displacement.
 
-The strengthened theorem is:
+The evidence-bearing conditional theorem is:
 
 ```coq
-Theorem first_target_access_requires_gate_a_or_explicit_bypass :
-  forall initial trace,
-    FirstTargetCutClassificationObligation initial trace ->
+Theorem evidence_classifier_with_open_writers_closed_requires_a_edge :
+  forall projection run initial certificate trace,
+    CleanPyramidEntry initial ->
+    ClightRouteTraceProjection
+      projection run initial certificate trace ->
+    EvidenceBearingFirstTargetCutClassification
+      projection run initial certificate trace ->
+    OpenRouteWriterClassesUnreachable
+      projection run initial certificate trace ->
     reaches_any_target_region trace ->
-    exists region target_frame target_observation,
-      first_target_observation_at
-        trace region target_frame target_observation /\
-      ((state_entrance initial = UpperEntrance /\
-        (gate_a_press_precedes_exact_target trace ElevatorJumpOutGate
-           region target_frame target_observation \/
-         exists witness,
-           upper_bypass_precedes_exact_target trace witness
-             region target_frame target_observation)) \/
-       (state_entrance initial = LowerEntrance /\
-        (gate_a_press_precedes_exact_target trace SecondPoleJumpOffGate
-           region target_frame target_observation \/
-         exists witness,
-           lower_bypass_precedes_exact_target trace witness
-             region target_frame target_observation))).
+    trace_contains_a_press trace.
 ```
 
-The older, coarser capstone-facing statement is:
+Every substantial premise in this statement is visible.  In particular, it is
+not the unconditional retail theorem: writer coverage and the six
+unreachability families are exactly the work still required.
+
+The older, coarser capstone-facing statement remains:
 
 ```coq
 Theorem transcript_route_gate_reduction :
@@ -183,18 +204,70 @@ The model deliberately targets the **Act 3 interaction region** and the
 floor writes a save bit.  The collection layer separately explains why those
 regions matter.
 
+### Conditional stale pyramid-top route
+
+The user's additional route observation is represented explicitly rather than
+ruled out by definition.  The relevant source is Area-1 warp node `0x1E` at
+`(-2048, 768, -1024)`; it enters Area 2 at node `0x14`,
+`(0, 5500, 256)`.  On JP, if Mario can trigger source node `0x1E` while his
+floor is the spinning pyramid-top object, and that object unloads while
+`gMarioPlatform` retains its slot, Area 2 can read the inactive or reused
+slot's old displacement fields.  The current source-shaped payload with
+position `(-2047, *, -1023)` and yaw delta `0x1800` maps upper-entry Mario from
+approximately `(0, 5500, 256)` to
+`(365.592773, 5500, -1096.8027)`.  That leaves the ordinary shaft/cage region
+without an A edge and is therefore a serious platform-displacement
+constructor in the current abstraction.
+
+This is not yet a retail counterexample.  No controller-authentic predecessor
+has been found that makes the upper warp and the spinning top's collision
+coincide.  The unresolved constructions include moving/loading the warp onto
+the top, moving the top down to the already-loaded warp, and cloning that
+preserves usable collision.  The fact that some cloning attempts lose
+collision is a candidate obstruction, not an exhaustiveness proof.
+
+`UpperWarpTopCoincidenceMechanism`,
+`UpperWarpTopPreludeCaptureEvidence`,
+`UpperWarpTopPreludeToCleanEntryBridge`, unload-retention/reuse evidence, and
+`UpperWarpStaleTopConditionalPathEvidence` name this conditional path.  A
+source-backed clean-entry theorem must either construct such evidence or prove
+all three coincidence families unreachable; it must not simply decree the JP
+platform pointer null or safe.
+
+The mechanism was also tested in the authentic JP executable with the exact
+top-derived raw payload installed once in a reused slot at the modeled Area-2
+boundary.  With
+buttons always zero and the stick held straight for 60 frames, the first
+platform update moved Mario to approximately
+`(365.592773, 5496, -1096.802734)`.  Mario later fell through the upper-trigger
+hitbox, whose controller count changed from zero to one.  The trace contained
+zero `A_BUTTON_DOWN` and zero `A_BUTTON_PRESSED` frames.  No Act 3 overlap
+occurred, and the Act 6 controller remained at one of five, so the Act 6 star
+was not spawned; the probe did not directly read save bits.
+Preparing the payload only before the Area-1 transition instead left a
+different reused slot and a null platform pointer at Area-2 entry, so the
+displacement and trigger contact did not occur.
+
+This trace is a concrete counterexample to “every bypass constructor is
+unreachable from the current state-only clean boundary.”  It is not a
+counterexample to the retail theorem, because the one-time fixture supplies
+the Area-2 boundary pointer/payload state whose stock controller prehistory has
+not yet been constructed.  The exact RAM fields and frame trace are recorded in
+[`docs/model-counterexample.md`](docs/model-counterexample.md).
+
 ### What the route theorem does not establish
 
 The route contract is a formal transcription of the supplied strategy
-argument, not a projection of the retail executable.  Its gate-necessity
-fields and `FirstTargetCutClassificationObligation` encode important
-completeness claims that are still unproved:
+argument, not yet a derived projection of the retail executable.  The new
+evidence structures make the required projection checkable, but their
+coverage and the entrance cuts are still unproved:
 
-- give every bypass class tag a concrete state/event meaning;
-- prove every retail route around the elevator or second-pole cut produces one
-  of those evidence-bearing classes;
-- prove each class impossible from a clean US/JP entry, or else produce a real
-  counterexample trace; and
+- extract the collision arrays into exact surface identifiers and prove the
+  source/target connected-component cuts;
+- prove every first crossing in a linked US/JP execution produces one of the
+  evidence-bearing writer classes;
+- prove the six surviving classes impossible from a source-backed clean entry,
+  or else produce an exact reachable counterexample trace; and
 - after either cut, the transcript's remaining no-A strategies work under the
   actual Float32 movement, collision, object, and version semantics.
 
@@ -206,24 +279,23 @@ label.  `CertifiedExecution` is still the handwritten event model, so this is
 not a replacement for the missing Clight refinement.
 
 Likewise, `SpawningDisplacementEscape` is currently a route-observation tag.
-The JP-only sufficiency lemma does not calculate displacement or prove a
-retained platform state reachable; it combines that tag with the explicit
-downstream premise.
+The new stale-top evidence interface records the predecessor, unload,
+retention/reuse, and cut crossing separately, but no theorem constructs all of
+those records from retail controller input.
 
 The transcript's rollout measurements--six units short in the observed setup
 and a hypothetical seven-unit lift escaping--are candidate geometric facts, not
 premises of the current theorem.  They need a checked state/mesh calculation
 before they can support elevator closure.
 
-Consequently, finding an authentic no-A elevator escape or any authentic no-A
-state above the second pole would invalidate the corresponding lower-bound
-case.  If the downstream-completeness claim is also validated, that witness
-would provide the missing capability for a zero-A route to each relevant
-region in separate executions.  The separation matters because collecting a
-star normally exits the course; the claim is not that both stars are collected
-in one run.  The archived spawning-displacement work is evidence about one
-such candidate mechanism; it is not a witness that the mechanism is reachable
-on entry to the pyramid.
+Consequently, finding an authentic no-A crossing of either entrance-specific
+collision cut would invalidate that lower-bound case.  If the downstream
+continuation claim is also validated, the witness would provide the missing
+capability for a zero-A route to each relevant region in separate executions.
+The separation matters because collecting a star normally exits the course;
+the claim is not that both stars are collected in one run.  The conditional
+stale pyramid-top calculation is evidence about one such mechanism, not yet a
+witness that its required upper-warp/top coincidence is retail-reachable.
 
 The full alternative-route inventory and its present proof boundary are
 spelled out in
@@ -272,25 +344,26 @@ Combining the intended layers gives this proof plan:
 new target bit
     => authorized target collection event                 (collection layer)
     => Act 3 collision or upper-trigger collision          (provenance reduction)
-    => upper elevator gate or lower second-pole gate       (OPEN: route completeness)
+    => first target-side collision-support cut crossing    (OPEN: Clight/mesh coverage)
+    => every crossing writer requires an A edge            (OPEN: six writer families)
     => at least one edge-triggered A press                 (OPEN: gate geometry)
 ```
 
 Only the first two arrows are currently proved inside the abstract certified
-event model.  The third arrow is a field of `TranscriptRouteGateModel`, or the
-more precise `FirstTargetCutClassificationObligation`, not a derived geometry
-theorem.  Given that field, the route lemma derives the last arrow only after
-every explicit bypass class tag is excluded for the supplied trace; no global
-US/JP bypass exclusion is proved.  The reverse direction--bypass to target
-access--is conditional on separate downstream and abstract-execution
-certificates.  The semantic bridges between all of these statements are
-pending.
+event model, and `ModelGapAudit.v` shows why that model cannot stand in for the
+retail execution.  `FirstTargetRefinement.v` defines the third and fourth
+arrows as evidence-bearing obligations and proves several finite
+eliminations, but it does not establish mesh connectivity, total writer
+coverage, or the six remaining exclusions.  No global US/JP bypass exclusion
+is proved.  The reverse direction--a cut bypass continuing to a target--also
+remains conditional on separate downstream and abstract-execution
+certificates.
 
 ## What the generated source already confirms
 
 The current project regenerates CompCert Clight ASTs for both target versions
-from the pinned decomp revision.  Direct inspection of that pinned C source
-shows:
+from the pinned decomp revision: 27 translation units per version, 54 modules
+in total.  Direct inspection of that pinned C source shows:
 
 - the controller input calculation distinguishes `buttonPressed` from
   `buttonDown`;
@@ -302,6 +375,9 @@ shows:
   object collisions;
 - the US spawn path directly clears `gMarioPlatform`, while the JP path does
   not contain that direct clear call; and
+- the no-spin airborne entry handler calls the launch helper with single-
+  precision zero, and that helper calls forward-velocity setup and
+  `perform_air_step`;
 - target collection, hidden-star, area transition, object lifecycle, and
   collision functions are present in the generated source set.
 
@@ -310,6 +386,13 @@ identifier, constant, direct-call, and direct-callee-order shapes.  In
 particular, the pole AST theorem checks occurrences of the relevant input and
 action constants; it does not prove branch control dependence or that those
 branches exhaust every way past the pole.
+
+The generated collision wrapper contains the area 1/2/3 static arrays and the
+pyramid-top, Tox Box, Grindel, Spindel, moving-wall, elevator, and Eyerok
+arrays.  Rocq proves their checked initializer word counts and that the
+route-relevant US and JP initializers are identical.  It does not yet parse
+those words into triangles, resolve dynamic transforms, or prove a surface
+connected-component theorem.
 
 The area script also contains a conditional
 `SSL_SPAWNING_DISPLACEMENT_TAS_HACK` branch used for experiments.  The target
@@ -328,10 +411,10 @@ are regenerated or reproved in the current namespace.
 
 | Prior project | Evidence in favor of the route argument | What it still does not prove |
 | --- | --- | --- |
-| `ssl-spawning-displacement-proof` | Identifies the JP stale-platform mechanism that could move Mario during an area load, enumerates modeled first-frame displacements, and motivates explicit object-slot/epoch cases.  This is the principal candidate for a no-A elevator escape. | That an authentic clean pyramid entry can retain a suitable platform, that every pointer payload is covered, or that any retail displacement escapes the elevator. |
+| `ssl-spawning-displacement-proof` | Identifies the JP stale-platform mechanism, retained inactive/reused slot cases, and the exact spinning-top payload that can move upper-entry Mario outside the shaft in the present abstraction.  It motivates the new predecessor, floor-owner, allocation-epoch, unload, reuse, and collision-phase evidence. | A controller-authentic upper-warp/top coincidence.  In particular it does not exhaust moving/loading the warp onto the top, moving the top to the warp, or collision-preserving cloning; nor does it provide a retail continuation to a target region. |
 | `ssl-pyramid-item-proof` | Shows the proof shape needed for area unload/reload, object deletion, free-list slot reuse, and allocation identity.  This supports the claim that outside objects do not simply survive as substitute target stars. | A linked execution proof of the unload loop, target-star provenance, or either route gate. |
 | `ssl-parallel-universe` | Correctly models continuously held A as zero new edges and warns that a bounded-position proof must cover every movement writer.  It tests a possible way of bypassing ordinary geometry. | Complete movement-writer coverage or non-reachability of either target region. |
-| `pole-bypass` | Proves a one-A lower bound for a restricted normalized pole model and isolates `bypass_model_complete` as the missing global premise.  This is the closest prior result to the second-pole gate. | Every approach state, pole avoidance route, object/platform interaction, Float32 collision phase, or JP execution. |
+| `pole-bypass` | Proves a one-A lower bound for a restricted normalized pole model and isolates `bypass_model_complete` as the missing global premise.  This is evidence about the normal second-pole route. | Every approach state, pole avoidance route, object/platform interaction, Float32 collision phase, JP execution, or the actual target-side support cut.  Its pole-height abstraction is not route-exhaustive. |
 | `eyerok-manipulation` | Provides negative evidence against using the area-3 boss and platform state to manufacture unbounded height, and records the US/JP platform-state split. | A complete exclusion of every area-2/area-3 high-entry technique or a route to either target. |
 | `demo-warp` | Demonstrates why memory provenance matters: a byte store can alter Mario state under an aliasing premise, while normal initialization can rule out that alias in a narrower model. | Any direct pyramid route result, or a current-revision whole-program memory proof. |
 
@@ -350,14 +433,14 @@ The ultimate theorem needs all of the following:
 3. Prove that the projection produces `CertifiedExecution`, including object
    provenance, behavior-parameter decoding, deletion/reuse, macro respawn,
    unload/reload, instant-warp, and collision-list timing.
-4. Prove the route-gate contract complete for every clean upper and lower
-   entry, or
-   replace it with an equivalent exhaustive collision-phase case analysis.
-5. Prove elevator containment for US and every reachable JP platform-pointer
-   case when no A edge occurs.
-6. Prove that no lower-entry execution crosses the second-pole cut without an
-   A edge, including pole avoidance, amp, goomba, parallel-universe, Eyerok,
-   stale-slot, and prepared-state cases.
+4. Parse the generated collision arrays into surfaces and prove exact
+   source/target support and open-cell cuts for both entrances.
+5. Prove first-crossing writer coverage and eliminate ordinary motion,
+   platform displacement, object/moving geometry, clip/tunnel, general
+   coordinate alias/out-of-bounds, and lifecycle/entry displacement.
+6. For JP platform displacement, derive every admissible raw pointer from an
+   actual predecessor, including inactive/reused slot epochs and the
+   upper-warp/spinning-top coincidence families.
 7. Validate the claimed no-A downstream paths from each successful bypass to
    the Act 3 region and all five Act 6 triggers.
 
@@ -376,6 +459,12 @@ The most useful entry points are:
 - `proofs/StarCollection.v` and `proofs/HiddenStar.v`: collection reduction;
 - `proofs/ClightFacts.v`: checked generated-AST source facts;
 - `proofs/ClightRefinement.v`: the explicit missing semantic bridge;
+- `proofs/CollisionMeshFacts.v`: generated collision-array counts and
+  cross-version equality;
+- `proofs/FirstTargetRefinement.v`: indexed Clight-frame evidence, collision
+  cuts, concrete bypass classes, and conditional stale-top path;
+- `proofs/ModelGapAudit.v`: executable countermodels to the old abstraction
+  boundary;
 - `proofs/LowerEntrance.v` and `proofs/UpperEntrance.v`: open Layer B
   obligations;
 - `proofs/MainTheorem.v`: proved reduction and conditional capstone; and
