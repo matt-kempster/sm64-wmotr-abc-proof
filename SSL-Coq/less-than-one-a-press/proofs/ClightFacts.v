@@ -41,9 +41,11 @@ Module USO := us_spawn_object.
 Module UOB := us_obj_behaviors.
 Module UEye := us_obj_behaviors_2.
 Module UBA := us_behavior_actions.
+Module UBD := us_behavior_data.
 Module UAR := us_area.
 Module ULU := us_level_update.
 Module UPD := us_platform_displacement.
+Module USurface := us_surface_collision.
 Module UMS := us_macro_special_objects.
 Module USS := us_ssl_script.
 Module UAM := us_ssl_area2_macro.
@@ -66,9 +68,11 @@ Module JSO := jp_spawn_object.
 Module JOB := jp_obj_behaviors.
 Module JEye := jp_obj_behaviors_2.
 Module JBA := jp_behavior_actions.
+Module JBD := jp_behavior_data.
 Module JAR := jp_area.
 Module JLU := jp_level_update.
 Module JPD := jp_platform_displacement.
+Module JSurface := jp_surface_collision.
 Module JMS := jp_macro_special_objects.
 Module JSS := jp_ssl_script.
 Module JAM := jp_ssl_area2_macro.
@@ -284,7 +288,9 @@ Proof. vm_compute. repeat split. Qed.
 
 Theorem update_objects_direct_callee_order_us :
   ident_subsequenceb
-    [UOL._apply_mario_platform_displacement;
+    [UOL._clear_dynamic_surfaces;
+     UOL._update_terrain_objects;
+     UOL._apply_mario_platform_displacement;
      UOL._detect_object_collisions;
      UOL._update_non_terrain_objects;
      UOL._unload_deactivated_objects;
@@ -294,7 +300,9 @@ Proof. vm_compute. reflexivity. Qed.
 
 Theorem update_objects_direct_callee_order_jp :
   ident_subsequenceb
-    [JOL._apply_mario_platform_displacement;
+    [JOL._clear_dynamic_surfaces;
+     JOL._update_terrain_objects;
+     JOL._apply_mario_platform_displacement;
      JOL._detect_object_collisions;
      JOL._update_non_terrain_objects;
      JOL._unload_deactivated_objects;
@@ -380,6 +388,335 @@ Theorem platform_recompute_source_shape_jp :
     (fn_body JPD.f_update_mario_platform) = true /\
   assigns_global_ident_s JPD._gMarioPlatform
     (fn_body JPD.f_update_mario_platform) = true.
+Proof. vm_compute. repeat split. Qed.
+
+(* [find_floor] narrows all three binary32 inputs through signed 16-bit
+   TerrainData temporaries.  The generated syntax records the source cast; a
+   separate compiled-cast refinement is still required for out-of-range C
+   inputs. *)
+Theorem find_floor_s16_coordinate_cast_source_shape_us :
+  sets_temp_from_float_cast_to_s16_s USurface._x USurface._xPos
+    (fn_body USurface.f_find_floor) = true /\
+  sets_temp_from_float_cast_to_s16_s USurface._y USurface._yPos
+    (fn_body USurface.f_find_floor) = true /\
+  sets_temp_from_float_cast_to_s16_s USurface._z USurface._zPos
+    (fn_body USurface.f_find_floor) = true.
+Proof. vm_compute. repeat split. Qed.
+
+Theorem find_floor_s16_coordinate_cast_source_shape_jp :
+  sets_temp_from_float_cast_to_s16_s JSurface._x JSurface._xPos
+    (fn_body JSurface.f_find_floor) = true /\
+  sets_temp_from_float_cast_to_s16_s JSurface._y JSurface._yPos
+    (fn_body JSurface.f_find_floor) = true /\
+  sets_temp_from_float_cast_to_s16_s JSurface._z JSurface._zPos
+    (fn_body JSurface.f_find_floor) = true.
+Proof. vm_compute. repeat split. Qed.
+
+(* Platform displacement mutates MarioState first.  The immediately following
+   object-collision pass still reads the Mario object, and the player behavior
+   copies the state position to that object only later.  These are syntax and
+   call-order facts; the corresponding Clight memory-execution theorem remains
+   a named refinement obligation. *)
+Theorem mario_state_object_phase_split_source_shape_us :
+  calls_ident_s UPD._get_mario_pos
+    (fn_body UPD.f_apply_platform_displacement) = true /\
+  calls_ident_s UPD._set_mario_pos
+    (fn_body UPD.f_apply_platform_displacement) = true /\
+  assigns_array_slot_s UPD._pos 0 (fn_body UPD.f_set_mario_pos) = true /\
+  assigns_array_slot_s UPD._pos 1 (fn_body UPD.f_set_mario_pos) = true /\
+  assigns_array_slot_s UPD._pos 2 (fn_body UPD.f_set_mario_pos) = true /\
+  statement_mentions_ident_s UPD._gMarioObject
+    (fn_body UPD.f_set_mario_pos) = false /\
+  statement_mentions_array_slot_s UOC._asF32 6
+    (fn_body UOC.f_detect_object_hitbox_overlap) = true /\
+  statement_mentions_array_slot_s UOC._asF32 7
+    (fn_body UOC.f_detect_object_hitbox_overlap) = true /\
+  statement_mentions_array_slot_s UOC._asF32 8
+    (fn_body UOC.f_detect_object_hitbox_overlap) = true /\
+  ident_subsequenceb
+    [UOL._execute_mario_action; UOL._copy_mario_state_to_object]
+    (direct_callees_s (fn_body UOL.f_bhv_mario_update)) = true /\
+  assigns_array_slot_s UOL._asF32 6
+    (fn_body UOL.f_copy_mario_state_to_object) = true /\
+  assigns_array_slot_s UOL._asF32 7
+    (fn_body UOL.f_copy_mario_state_to_object) = true /\
+  assigns_array_slot_s UOL._asF32 8
+    (fn_body UOL.f_copy_mario_state_to_object) = true /\
+  statement_mentions_array_slot_s UPD._asF32 6
+    (fn_body UPD.f_update_mario_platform) = true /\
+  statement_mentions_array_slot_s UPD._asF32 7
+    (fn_body UPD.f_update_mario_platform) = true /\
+  statement_mentions_array_slot_s UPD._asF32 8
+    (fn_body UPD.f_update_mario_platform) = true.
+Proof. vm_compute. repeat split. Qed.
+
+Theorem mario_state_object_phase_split_source_shape_jp :
+  calls_ident_s JPD._get_mario_pos
+    (fn_body JPD.f_apply_platform_displacement) = true /\
+  calls_ident_s JPD._set_mario_pos
+    (fn_body JPD.f_apply_platform_displacement) = true /\
+  assigns_array_slot_s JPD._pos 0 (fn_body JPD.f_set_mario_pos) = true /\
+  assigns_array_slot_s JPD._pos 1 (fn_body JPD.f_set_mario_pos) = true /\
+  assigns_array_slot_s JPD._pos 2 (fn_body JPD.f_set_mario_pos) = true /\
+  statement_mentions_ident_s JPD._gMarioObject
+    (fn_body JPD.f_set_mario_pos) = false /\
+  statement_mentions_array_slot_s JOC._asF32 6
+    (fn_body JOC.f_detect_object_hitbox_overlap) = true /\
+  statement_mentions_array_slot_s JOC._asF32 7
+    (fn_body JOC.f_detect_object_hitbox_overlap) = true /\
+  statement_mentions_array_slot_s JOC._asF32 8
+    (fn_body JOC.f_detect_object_hitbox_overlap) = true /\
+  ident_subsequenceb
+    [JOL._execute_mario_action; JOL._copy_mario_state_to_object]
+    (direct_callees_s (fn_body JOL.f_bhv_mario_update)) = true /\
+  assigns_array_slot_s JOL._asF32 6
+    (fn_body JOL.f_copy_mario_state_to_object) = true /\
+  assigns_array_slot_s JOL._asF32 7
+    (fn_body JOL.f_copy_mario_state_to_object) = true /\
+  assigns_array_slot_s JOL._asF32 8
+    (fn_body JOL.f_copy_mario_state_to_object) = true /\
+  statement_mentions_array_slot_s JPD._asF32 6
+    (fn_body JPD.f_update_mario_platform) = true /\
+  statement_mentions_array_slot_s JPD._asF32 7
+    (fn_body JPD.f_update_mario_platform) = true /\
+  statement_mentions_array_slot_s JPD._asF32 8
+    (fn_body JPD.f_update_mario_platform) = true.
+Proof. vm_compute. repeat split. Qed.
+
+(* Direct inspection of the pinned C source gives the warp/top phase account:
+   geometry is recomputed from displaced MarioState before interaction, a
+   normal warp selects ACT_DISAPPEARED, that action snaps State Y to cached
+   floor, and state/object copy and final platform query occur later.  The
+   theorem below checks only path- and base-insensitive AST anchors for that
+   account; it is not a Clight memory/dataflow execution theorem. *)
+Theorem upper_warp_phase_pipeline_source_shape_us :
+  ident_subsequenceb
+    [UMI._update_mario_inputs;
+     UMI._mario_process_interactions;
+     UMI._mario_execute_cutscene_action]
+    (direct_callees_s (fn_body UMI.f_execute_mario_action)) = true /\
+  calls_ident_s UMI._update_mario_geometry_inputs
+    (fn_body UMI.f_update_mario_inputs) = true /\
+  calls_ident_s UMI._find_floor
+    (fn_body UMI.f_update_mario_geometry_inputs) = true /\
+  statement_mentions_int_s 4864 (fn_body UI.f_interact_warp) = true /\
+  ident_subsequenceb
+    [UCutscene._stop_and_set_height_to_floor;
+     UCutscene._level_trigger_warp]
+    (direct_callees_s (fn_body UCutscene.f_act_disappeared)) = true /\
+  assigns_array_slot_s UStep._pos 1
+    (fn_body UStep.f_stop_and_set_height_to_floor) = true /\
+  statement_mentions_ident_s UStep._floorHeight
+    (fn_body UStep.f_stop_and_set_height_to_floor) = true.
+Proof. vm_compute. repeat split. Qed.
+
+Theorem upper_warp_phase_pipeline_source_shape_jp :
+  ident_subsequenceb
+    [JMI._update_mario_inputs;
+     JMI._mario_process_interactions;
+     JMI._mario_execute_cutscene_action]
+    (direct_callees_s (fn_body JMI.f_execute_mario_action)) = true /\
+  calls_ident_s JMI._update_mario_geometry_inputs
+    (fn_body JMI.f_update_mario_inputs) = true /\
+  calls_ident_s JMI._find_floor
+    (fn_body JMI.f_update_mario_geometry_inputs) = true /\
+  statement_mentions_int_s 4864 (fn_body JI.f_interact_warp) = true /\
+  ident_subsequenceb
+    [JCutscene._stop_and_set_height_to_floor;
+     JCutscene._level_trigger_warp]
+    (direct_callees_s (fn_body JCutscene.f_act_disappeared)) = true /\
+  assigns_array_slot_s JStep._pos 1
+    (fn_body JStep.f_stop_and_set_height_to_floor) = true /\
+  statement_mentions_ident_s JStep._floorHeight
+    (fn_body JStep.f_stop_and_set_height_to_floor) = true.
+Proof. vm_compute. repeat split. Qed.
+
+(* Direct inspection of the pinned C source shows that the object warp is
+   delayed: object updates precede each normal-play timer decrement, two
+   change-area frames omit object updates, and the next normal frame runs
+   [warp_area] before its object update.  The theorem below checks only generic
+   direct-callee and literal anchors; it does not associate node 0x1E with a
+   particular branch or prove that timing in Clight. *)
+Theorem object_warp_delayed_lifetime_source_shape_us :
+  ident_subsequenceb
+    [ULU._warp_area; ULU._area_update_objects; ULU._initiate_delayed_warp]
+    (direct_callees_s (fn_body ULU.f_play_mode_normal)) = true /\
+  statement_mentions_int_s 20 (fn_body ULU.f_level_trigger_warp) = true /\
+  calls_ident_s ULU._level_set_transition
+    (fn_body ULU.f_initiate_delayed_warp) = true /\
+  statement_mentions_int_s 2
+    (fn_body ULU.f_initiate_delayed_warp) = true.
+Proof. vm_compute. repeat split. Qed.
+
+Theorem object_warp_delayed_lifetime_source_shape_jp :
+  ident_subsequenceb
+    [JLU._warp_area; JLU._area_update_objects; JLU._initiate_delayed_warp]
+    (direct_callees_s (fn_body JLU.f_play_mode_normal)) = true /\
+  statement_mentions_int_s 20 (fn_body JLU.f_level_trigger_warp) = true /\
+  calls_ident_s JLU._level_set_transition
+    (fn_body JLU.f_initiate_delayed_warp) = true /\
+  statement_mentions_int_s 2
+    (fn_body JLU.f_initiate_delayed_warp) = true.
+Proof. vm_compute. repeat split. Qed.
+
+(** Exact packed level-script records for the Area-1 source warp and pyramid
+    top.  The numeric equalities below expose the signed high/low coordinate
+    fields and the two behavior-parameter bytes.  A general LevelScript decoder
+    and execution refinement remain separate obligations. *)
+Definition ssl_area1_upper_warp_object_us : list init_data :=
+  [ Init_int32 (Int.repr 605560576);
+    Init_int32 (Int.repr (-134216960));
+    Init_int32 (Int.repr (-67108864));
+    Init_int32 (Int.repr 0);
+    Init_int32 (Int.repr 253624320);
+    Init_addrof USS._bhvWarp (Ptrofs.repr 0) ].
+
+Definition ssl_area1_upper_warp_object_jp : list init_data :=
+  [ Init_int32 (Int.repr 605560576);
+    Init_int32 (Int.repr (-134216960));
+    Init_int32 (Int.repr (-67108864));
+    Init_int32 (Int.repr 0);
+    Init_int32 (Int.repr 253624320);
+    Init_addrof JSS._bhvWarp (Ptrofs.repr 0) ].
+
+Theorem ssl_area1_upper_warp_object_exact_us :
+  firstn 6 (skipn 62 (gvar_init USS.v_level_ssl_entry)) =
+    ssl_area1_upper_warp_object_us.
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem ssl_area1_upper_warp_object_exact_jp :
+  firstn 6 (skipn 62 (gvar_init JSS.v_level_ssl_entry)) =
+    ssl_area1_upper_warp_object_jp.
+Proof. vm_compute. reflexivity. Qed.
+
+Definition ssl_area1_pyramid_top_object_us : list init_data :=
+  [ Init_int32 (Int.repr 605560634);
+    Init_int32 (Int.repr (-134150656));
+    Init_int32 (Int.repr (-67043328));
+    Init_int32 (Int.repr 0);
+    Init_int32 (Int.repr 0);
+    Init_addrof USS._bhvPyramidTop (Ptrofs.repr 0);
+    Init_int32 (Int.repr 117702656) ].
+
+Definition ssl_area1_pyramid_top_object_jp : list init_data :=
+  [ Init_int32 (Int.repr 605560634);
+    Init_int32 (Int.repr (-134150656));
+    Init_int32 (Int.repr (-67043328));
+    Init_int32 (Int.repr 0);
+    Init_int32 (Int.repr 0);
+    Init_addrof JSS._bhvPyramidTop (Ptrofs.repr 0);
+    Init_int32 (Int.repr 117702656) ].
+
+Theorem ssl_area1_pyramid_top_object_exact_us :
+  gvar_init USS.v_script_func_local_1 =
+    ssl_area1_pyramid_top_object_us.
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem ssl_area1_pyramid_top_object_exact_jp :
+  gvar_init JSS.v_script_func_local_1 =
+    ssl_area1_pyramid_top_object_jp.
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem ssl_pu_packed_field_arithmetic :
+  -134216960 = -2048 * 65536 + 768 /\
+  -67108864 = -1024 * 65536 /\
+  253624320 = 15 * 16777216 + 30 * 65536 /\
+  -134150656 = -2047 * 65536 + 1536 /\
+  -67043328 = -1023 * 65536.
+Proof. repeat split; reflexivity. Qed.
+
+Definition ssl_pu_level_script_claim : Prop :=
+  firstn 6 (skipn 62 (gvar_init USS.v_level_ssl_entry)) =
+    ssl_area1_upper_warp_object_us /\
+  firstn 6 (skipn 62 (gvar_init JSS.v_level_ssl_entry)) =
+    ssl_area1_upper_warp_object_jp /\
+  gvar_init USS.v_script_func_local_1 =
+    ssl_area1_pyramid_top_object_us /\
+  gvar_init JSS.v_script_func_local_1 =
+    ssl_area1_pyramid_top_object_jp /\
+  (-134216960 = -2048 * 65536 + 768 /\
+   -67108864 = -1024 * 65536 /\
+   253624320 = 15 * 16777216 + 30 * 65536 /\
+   -134150656 = -2047 * 65536 + 1536 /\
+   -67043328 = -1023 * 65536).
+
+Theorem ssl_pu_level_script_checked :
+  ssl_pu_level_script_claim.
+Proof.
+  unfold ssl_pu_level_script_claim.
+  split; [exact ssl_area1_upper_warp_object_exact_us |].
+  split; [exact ssl_area1_upper_warp_object_exact_jp |].
+  split; [exact ssl_area1_pyramid_top_object_exact_us |].
+  split; [exact ssl_area1_pyramid_top_object_exact_jp |].
+  exact ssl_pu_packed_field_arithmetic.
+Qed.
+
+Definition float32_fifty_bits : Z := 1112014848.
+Definition float32_seventy_eight_bits : Z := 1117519872.
+
+Theorem pyramid_top_warp_geometry_source_shape_us :
+  assigns_field_named_s UBA._hitboxRadius
+    (fn_body UBA.f_bhv_warp_loop) = true /\
+  assigns_field_named_s UBA._hitboxHeight
+    (fn_body UBA.f_bhv_warp_loop) = true /\
+  statement_mentions_float32_bits_s float32_fifty_bits
+    (fn_body UBA.f_bhv_warp_loop) = true /\
+  statement_mentions_float32_bits_s float32_seventy_eight_bits
+    (fn_body USurface.f_find_floor_from_list) = true /\
+  initializer_list_mentions_addrof UBD._bhv_pyramid_top_loop
+    (gvar_init UBD.v_bhvPyramidTop) = true /\
+  initializer_list_mentions_addrof UBD._load_object_collision_model
+    (gvar_init UBD.v_bhvPyramidTop) = true.
+Proof. vm_compute. repeat split. Qed.
+
+Theorem pyramid_top_warp_geometry_source_shape_jp :
+  assigns_field_named_s JBA._hitboxRadius
+    (fn_body JBA.f_bhv_warp_loop) = true /\
+  assigns_field_named_s JBA._hitboxHeight
+    (fn_body JBA.f_bhv_warp_loop) = true /\
+  statement_mentions_float32_bits_s float32_fifty_bits
+    (fn_body JBA.f_bhv_warp_loop) = true /\
+  statement_mentions_float32_bits_s float32_seventy_eight_bits
+    (fn_body JSurface.f_find_floor_from_list) = true /\
+  initializer_list_mentions_addrof JBD._bhv_pyramid_top_loop
+    (gvar_init JBD.v_bhvPyramidTop) = true /\
+  initializer_list_mentions_addrof JBD._load_object_collision_model
+    (gvar_init JBD.v_bhvPyramidTop) = true.
+Proof. vm_compute. repeat split. Qed.
+
+(* In the stock top's spinning function, the platform transform writes yaw but
+   neither pitch nor roll.  The displacement function reads X/Z platform
+   velocity slots but not the Y velocity slot.  Matrix-helper semantics are
+   external to this translation, so exact yaw-preserves-Y execution remains a
+   refinement lemma rather than being inferred from these occurrence checks. *)
+Theorem stock_pyramid_top_yaw_only_source_shape_us :
+  assigns_array_slot_s UOB._asS32 36
+    (fn_body UOB.f_bhv_pyramid_top_spinning) = true /\
+  assigns_array_slot_s UOB._asS32 35
+    (fn_body UOB.f_bhv_pyramid_top_spinning) = false /\
+  assigns_array_slot_s UOB._asS32 37
+    (fn_body UOB.f_bhv_pyramid_top_spinning) = false /\
+  statement_mentions_array_slot_s UPD._asF32 9
+    (fn_body UPD.f_apply_platform_displacement) = true /\
+  statement_mentions_array_slot_s UPD._asF32 10
+    (fn_body UPD.f_apply_platform_displacement) = false /\
+  statement_mentions_array_slot_s UPD._asF32 11
+    (fn_body UPD.f_apply_platform_displacement) = true.
+Proof. vm_compute. repeat split. Qed.
+
+Theorem stock_pyramid_top_yaw_only_source_shape_jp :
+  assigns_array_slot_s JOB._asS32 36
+    (fn_body JOB.f_bhv_pyramid_top_spinning) = true /\
+  assigns_array_slot_s JOB._asS32 35
+    (fn_body JOB.f_bhv_pyramid_top_spinning) = false /\
+  assigns_array_slot_s JOB._asS32 37
+    (fn_body JOB.f_bhv_pyramid_top_spinning) = false /\
+  statement_mentions_array_slot_s JPD._asF32 9
+    (fn_body JPD.f_apply_platform_displacement) = true /\
+  statement_mentions_array_slot_s JPD._asF32 10
+    (fn_body JPD.f_apply_platform_displacement) = false /\
+  statement_mentions_array_slot_s JPD._asF32 11
+    (fn_body JPD.f_apply_platform_displacement) = true.
 Proof. vm_compute. repeat split. Qed.
 
 Theorem change_area_direct_callee_order_us :

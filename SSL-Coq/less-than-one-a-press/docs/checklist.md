@@ -52,6 +52,16 @@
 - [x] Preserve the conditional JP upper-warp/pyramid-top stale-pointer path in
   a source-backed predecessor/unload/reuse evidence interface rather than
   assuming a null or harmless retained pointer.
+- [x] Recheck syntax anchors for the PU floor cast, State/Object fields, warp
+  action/floor-snap pipeline, final platform query, and delayed warp against
+  both generated Clight versions; document that direct source inspection, not
+  those path/base-insensitive AST checks, supplies the update-order account.
+- [x] Check the exact 39-word pyramid-top collision initializer, parse its five
+  vertices and six triangles, and prove the modeled same-sample contradiction
+  plus conditional Y-preserving stock-yaw exclusion.  Also record the
+  admission-free two-sample coordinate/alias model, which requires a
+  three-dimensional writer and proves neither dynamic-surface selection nor
+  reachability.
 - [x] Record the authentic-JP boundary-fixture constructor: the exact stale
   top raw transform payload, a zero-A input schedule, platform displacement out
   of the shaft, upper-trigger consumption with no Act 3 overlap or Act 6 star
@@ -82,9 +92,12 @@
 - [ ] Replace the legacy integer pole subcase with current Float32,
   collision-phase reasoning plus a complete lower-route case split.
 - [ ] Prove which JP raw-platform cases are reachable and bound every reachable
-  spawning displacement.  In particular, prove or refute the conditional
-  upper-warp/spinning-top unload setup, including warp-to-top, top-to-warp, and
-  collision-preserving clone possibilities.
+  spawning displacement.  Refine the Y-preserving stock-yaw arithmetic
+  exclusion through matrix helpers and dynamic surfaces.  Prove or refute a
+  reachable three-dimensional State/Object phase split, its JP delayed-warp
+  pointer retention/recapture, the US spawn-clear Clight effect, and the
+  remaining warp-to-top, top-to-warp, and collision-preserving clone
+  possibilities.
 - [ ] Project chronological Mario/action/surface observations from Clight and
   prove the transcript route contract complete for both entrances.
 - [ ] Construct `EvidenceBearingFirstTargetCutClassification` from that

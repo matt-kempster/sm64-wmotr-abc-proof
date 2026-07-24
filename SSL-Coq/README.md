@@ -72,6 +72,14 @@ null/live/inactive/reused case split, without a Clight projection theorem.
 These results guide the remaining proof; they do not establish authentic route
 completeness.
 
+`PyramidTopPU.v` adds a bounded admission-free result.  It proves a
+same-sample contradiction and, under explicit Y-preservation and floor-bound
+premises, excludes the stock-yaw arithmetic bootstrap from Area-1 node
+`0x1E`.  It also proves a two-sample coordinate/alias model for the candidate
+that a separate three-dimensional State-only writer would have to realize.
+The matrix, dynamic-surface, Clight execution, reachability, and JP
+delayed-warp pointer-lifetime refinements remain open.
+
 `TranscriptRouteModel.v` now formalizes the two-gate contract suggested by the
 supplied source text: the contract requires a modeled upper route to leave the
 elevator and a modeled lower route to pass the second-pole gate.  The old
@@ -103,12 +111,20 @@ Preparing the same slot only before the Area-1 transition fails because the
 slot is cleared or reused, so this is a compiled-mechanism/model-boundary
 counterexample, not a stock-controller-reachable game counterexample.
 
-A conditional stock setup remains open in which Mario uses Area-1 warp node
-`0x1E` while the spinning pyramid top owns the floor and unloads, then arrives
-at Area-2 node `0x14`.  Moving or loading the warp onto the top, moving the top
-to the warp, and collision-preserving cloning are unresolved possibilities.
-Source-backed prehistory evidence must validate or refute those cases, not
-assume them away.
+The arithmetic model rules out one coordinate satisfying both warp contact and
+top-height platform proximity, and rules out a Y-preserving stock-yaw
+bootstrap.  Proving that the stock Clight execution supplies those premises
+still requires matrix-helper and transformed-surface refinement.  A broader
+conditional setup remains open in which collision samples Mario's old object
+at node `0x1E` while a separate three-dimensional writer moves MarioState to a
+PU top candidate before geometry and final platform selection.  That
+two-sample model still needs surface selection, gameplay reachability, and
+JP retention or recapture through the delayed warp to Area-2 node `0x14`.
+For US, a small state lemma excludes retaining the same platform epoch after
+the spawn clear; deriving that clear's memory effect from Clight remains open.
+Moving/loading the warp onto the top, moving the top to the warp, and
+collision-preserving cloning are also unresolved.  Source-backed prehistory
+evidence must validate or refute those cases, not assume them away.
 
 The ultimate less-than-one-A-press impossibility theorem is **not complete**.
 `conditional_less_than_one_a_press_impossibility` requires a concrete
@@ -121,5 +137,6 @@ geometry or as a complete ROM theorem.  See the
 [human-readable proof](less-than-one-a-press/human-readable-proof.md), plus the
 [archived-proof evidence map](less-than-one-a-press/docs/archived-proof-evidence.md)
 and [route-exhaustiveness analysis](less-than-one-a-press/docs/route-exhaustiveness.md)
-for the exact boundary.  None of the six archived projects closes the
+and [pyramid-top PU audit](less-than-one-a-press/docs/pyramid-top-pu.md) for
+the exact boundary.  None of the six archived projects closes the
 whole-program Layer A refinement or any Layer B obligation.

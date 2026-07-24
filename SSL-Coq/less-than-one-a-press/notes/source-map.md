@@ -10,37 +10,56 @@ preprocessor is translated, not only the functions named below.  The
 "Inspected boundary" column identifies why the unit is imported and which
 source shapes are currently queried.  Identifier/constant/assignment/call
 checks do not by themselves prove dataflow, control dependence, loop execution,
-or a whole-program semantic effect.
+or a whole-program semantic effect.  The array-slot recognizer is
+base-insensitive and direct-callee/literal checks are path-insensitive.
 
 | Source | Generated stems | Inspected boundary |
 | --- | --- | --- |
 | `src/game/game_init.c` | `*_game_init.v` | `read_controller_inputs`; assignment operator shape for `buttonPressed` only, not operand/dataflow identity |
-| `src/game/mario.c` | `*_mario.v` | `update_mario_button_inputs`; pressed/down field and input-bit constant occurrences |
+| `src/game/mario.c` | `*_mario.v` | `update_mario_button_inputs`; pressed/down field and input-bit constant occurrences; `execute_mario_action`, `update_mario_inputs`, and `update_mario_geometry_inputs` call order for the PU State/Object phase audit |
 | `src/game/mario_actions_airborne.c` | `*_mario_actions_airborne.v` | airborne action handlers and movement writers imported for Layer B callgraph and writer coverage; no complete execution refinement yet |
 | `src/game/mario_actions_automatic.c` | `*_mario_actions_automatic.v` | pole positioning, holding-pole and top-of-pole source shapes used by the normalized-pole subcase |
-| `src/game/mario_actions_cutscene.c` | `*_mario_actions_cutscene.v` | `act_spawn_no_spin_airborne` and `launch_mario_until_land`; checked call/Float32-argument shapes anchor the zero-forward-speed entry update before `perform_air_step` |
+| `src/game/mario_actions_cutscene.c` | `*_mario_actions_cutscene.v` | `act_spawn_no_spin_airborne` and `launch_mario_until_land`; checked call/Float32-argument shapes anchor the zero-forward-speed entry update before `perform_air_step`; `act_disappeared` floor-snap/warp call order for the node-`0x1E` audit |
 | `src/game/mario_actions_moving.c` | `*_mario_actions_moving.v` | walking, braking, slope deceleration, ground-step and move-punching source shapes used by the parallel-universe completeness audit |
 | `src/game/mario_actions_object.c` | `*_mario_actions_object.v` | object-interaction action handlers imported for Layer B action/writer coverage; no complete execution refinement yet |
 | `src/game/mario_actions_stationary.c` | `*_mario_actions_stationary.v` | stationary action handlers imported for Layer B action/writer coverage; no complete execution refinement yet |
-| `src/game/mario_step.c` | `*_mario_step.v` | ground and air quarter-step loops, `find_floor` calls, and gravity source shape |
-| `src/game/interaction.c` | `*_interaction.v` | `interact_star_or_key` field/constant occurrences and direct save call; `interact_coin` spawn call/index constant; extraction dataflow is pending |
+| `src/game/mario_step.c` | `*_mario_step.v` | ground and air quarter-step loops, `find_floor` calls, gravity source shape, and `stop_and_set_height_to_floor` State-Y assignment from cached `floorHeight` |
+| `src/game/interaction.c` | `*_interaction.v` | `interact_star_or_key` field/constant occurrences and direct save call; `interact_coin` spawn call/index constant; `interact_warp` action constant in the PU phase pipeline; extraction dataflow is pending |
 | `src/game/save_file.c` | `*_save_file.v` | direct call from `save_file_collect_star_or_key` to `save_file_set_star_flags`; `save_file_reload` backup-copy/file source shape; the bit-update and copy memory effects are not yet proved |
-| `src/game/object_collision.c` | `*_object_collision.v` | `detect_object_hitbox_overlap` collision-list field occurrence/assignment; execution and the handwritten collision projection are pending |
-| `src/game/object_list_processor.c` | `*_object_list_processor.v` | direct-callee order in `update_objects`, platform-clear call split, and unload-body identifier/call occurrences; loop/state effects are pending |
+| `src/game/object_collision.c` | `*_object_collision.v` | `detect_object_hitbox_overlap` collision-list field occurrence/assignment and full object-position slot reads; execution and the handwritten collision projection are pending |
+| `src/game/object_list_processor.c` | `*_object_list_processor.v` | full direct-callee order from dynamic-surface rebuild through final platform query, State-to-object copy slots, platform-clear call split, and unload-body identifier/call occurrences; loop/state effects are pending |
 | `src/game/spawn_object.c` | `*_spawn_object.v` | allocation/unload assignment and call occurrences relevant to activation, respawn fields, and reuse; memory effects are pending |
 | `src/game/object_helpers.c` | `*_object_helpers.v` | default/no-exit star spawn helpers and target behavior parameters |
-| `src/game/obj_behaviors.c` | `*_obj_behaviors.v` | hidden controller/trigger constant, field, assignment and direct-call shapes; no checked five-count control dependence |
+| `src/game/obj_behaviors.c` | `*_obj_behaviors.v` | hidden controller/trigger constant, field, assignment and direct-call shapes; pyramid-top spinning yaw-versus-pitch/roll write shape; no checked five-count control dependence |
 | `src/game/obj_behaviors_2.c` | `*_obj_behaviors_2.v` | Eyerok hand attack check, movement/update order, death, and coin-spawn source shapes |
 | `src/game/behavior_actions.c` | `*_behavior_actions.v` | `bhv_pole_init` hitbox-field assignment shape used by the normalized-pole source audit |
-| `data/behavior_data.c` | `*_behavior_data.v` | star, hidden-controller and hidden-trigger behavior bindings |
+| `data/behavior_data.c` | `*_behavior_data.v` | star, hidden-controller and hidden-trigger behavior bindings; pyramid-top loop/collision-loader initializer references |
 | `src/game/area.c` | `*_area.v` | direct `unload_area`/`load_area` call order in `change_area`; lifecycle execution is pending |
-| `src/game/level_update.c` | `*_level_update.v` | direct `change_area` occurrence in `check_instant_warp`, game-over reload call, and airborne entry-action constant/call source shape |
-| `src/game/platform_displacement.c` | `*_platform_displacement.v` | `gMarioPlatform`/validation-field identifier occurrences, direct displacement/floor calls, and global assignment shape; pointer dataflow is pending |
-| `src/engine/surface_collision.c` | `*_surface_collision.v` | floor and surface query implementation used by Mario stepping and platform recomputation; imported for future semantic refinement |
+| `src/game/level_update.c` | `*_level_update.v` | direct `change_area` occurrence in `check_instant_warp`, game-over reload call, airborne entry-action constant/call source shape, and normal-update/delayed-object-warp ordering |
+| `src/game/platform_displacement.c` | `*_platform_displacement.v` | `gMarioPlatform`/validation-field identifier occurrences, State position writes, object-position reads for final selection, X/Z-but-not-Y velocity slot reads, direct displacement/floor calls, and global assignment shape; pointer/matrix dataflow is pending |
+| `src/engine/surface_collision.c` | `*_surface_collision.v` | `find_floor` binary32-to-signed-16 cast shape and 78-unit floor buffer, plus the floor/surface query implementation used by Mario stepping and platform recomputation; compiled-cast and execution refinement remain pending |
 | `src/game/macro_special_objects.c` | `*_macro_special_objects.v` | spawn call and respawn-field assignment occurrences; persistence semantics are pending |
-| `levels/ssl/script.c` | `*_ssl_script.v` | raw initializer tuples for lower/upper airborne entry objects, the area-2 static star, hidden controller, and instant-warp declarations |
+| `levels/ssl/script.c` | `*_ssl_script.v` | raw initializer tuples for lower/upper airborne entry objects, the area-2 static star, hidden controller, and instant-warp declarations; exact packed records for the Area-1 node-`0x1E` warp and stock pyramid top, with checked coordinate/behavior-byte arithmetic |
 | `levels/ssl/areas/2/macro.inc.c` via `inputs/ssl_area2_macro.c` | `*_ssl_area2_macro.v` | raw initializer tuples for five Puzzle trigger records/coordinates; the abstract state now assigns exact kinds/references/positions, while their concrete spawn-memory projection remains pending |
-| SSL collision arrays via `inputs/ssl_collision.c` | `*_ssl_collision.v` | area 1/2/3 static arrays plus pyramid-top, tox-box, grindel, spindel, moving-wall, elevator, and Eyerok object collision arrays; checked word counts and US/JP initializer identity, but no parsed-surface or connected-component theorem |
+| SSL collision arrays via `inputs/ssl_collision.c` | `*_ssl_collision.v` | area 1/2/3 static arrays plus pyramid-top, tox-box, grindel, spindel, moving-wall, elevator, and Eyerok object collision arrays; checked word counts and US/JP initializer identity; the complete 39-word top initializer is parsed into five vertices and six triangle-index triples, but no transformed dynamic `Surface`, `find_floor` selection, general parsed-surface, or connected-component theorem exists |
+
+## Pyramid-top PU boundary
+
+`proofs/PyramidTopPU.v` bundles exact packed US/JP LevelScript records and the
+parsed top mesh alongside a handwritten integer arithmetic kernel; its three
+binary32 comparison lemmas are checked separately.  The bundle deliberately
+does not connect them by an execution refinement.  It
+proves a same-sample contradiction and a conditional Y-preserving stock-yaw
+exclusion, plus a two-sample coordinate/alias model with a generated
+triangle-edge arithmetic witness.  It does not claim a stale slot, live
+surface selection, or Clight step.  The translation leaves the matrix helpers
+and `sqrtf` external, and out-of-range C-to-signed-16 conversion needs a
+compiled-behavior refinement.  Generated files use `AVOID_UB=1` for the missing
+hitbox return; the direct JP target audit and identical US/JP preprocessed-unit
+hash are documented evidence, not a Rocq target-code refinement.  Gameplay
+reachability and pointer retention/recapture through the delayed node-`0x1E`
+warp also remain open.  See
+[`../docs/pyramid-top-pu.md`](../docs/pyramid-top-pu.md).
 
 ## Archive-derived integration boundary
 

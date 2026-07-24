@@ -14,7 +14,16 @@
   facts, not an execution or containment theorem.
 - `CollisionMeshFacts.v` checks initializer lengths and exact US/JP equality
   for the imported area-2/area-3 and route-relevant dynamic collision arrays.
-  It does not yet parse those words into a proved surface graph.
+  It now also checks every word of the 39-word pyramid-top collision stream
+  and parses its five vertices and six triangle-index triples.  It does not
+  yet construct dynamic surfaces or parse the general area arrays into a
+  proved surface graph.
+- `PyramidTopPU.v` proves that one full-coordinate sample cannot both overlap
+  the handwritten Area-1 upper-warp predicate and satisfy the modeled
+  top-height platform predicate.  Under explicit Y-preservation and floor-bound
+  premises, the numeric floor query cannot succeed.  It separately proves a
+  two-sample coordinate/alias model requiring a 1023-unit Y writer.  It is not
+  a stale-slot, dynamic-surface, Clight, or reachable execution theorem.
 - Finite-width, edge-triggered input definition allows A to be initially held.
 - `CleanPyramidEntry` fixes the lower/upper airborne entry snapshot, coherent
   active/backup target bits, the static Act 3 identity/position, and five
@@ -109,12 +118,17 @@
 - Reachability classification and displacement bounds for every null, live,
   inactive, or reused JP platform-slot case.
 - Stock reachability or impossibility of the stale pyramid-top upper-entry
-  displacement.  An authentic-JP boundary fixture with the raw payload moves
-  Mario outside the shaft and consumes the upper trigger with no A edge, but
-  has no Act 3 overlap, does not spawn the Act 6 star, and does not directly
-  inspect save RAM.  No controller-only retail predecessor has been
-  established.  The open cases include moving/loading the Area-1 node-`0x1E`
-  warp onto the spinning top, moving the top to the warp, and
+  displacement.  The Y-preserving stock-yaw arithmetic case is excluded, but
+  its matrix/dynamic-surface/Clight refinement and a three-dimensional
+  stale/reused-slot phase split with JP delayed node-`0x1E` pointer lifetime
+  remain open.  The US state model blocks same-epoch retention after a
+  successful spawn clear, whose Clight memory effect is still pending.  An
+  authentic-JP boundary
+  fixture with the raw payload moves Mario outside the shaft and consumes the
+  upper trigger with no A edge, but has no Act 3 overlap, does not spawn the
+  Act 6 star, and does not directly inspect save RAM.  No controller-only
+  retail predecessor has been established.  Other open cases include
+  moving/loading the warp onto the top, moving the top to the warp, and
   collision-preserving cloning.
 - A complete collision-observation projection, and lower-entrance no-A
   non-overlap over that projection.  The lower cut must use collision-phase

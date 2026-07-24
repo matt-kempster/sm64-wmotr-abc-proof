@@ -66,6 +66,7 @@ proofs/RouteEvidence.v
 proofs/TranscriptRouteModel.v
 proofs/ObjectProvenance.v
 proofs/CollisionRegions.v
+proofs/PyramidTopPU.v
 proofs/CleanEntry.v
 proofs/AreaTransitions.v
 proofs/StarCollection.v

@@ -1,5 +1,5 @@
 From Coq Require Import Bool List PArith.BinPos ZArith.
-From compcert Require Import AST Clight Floats Integers.
+From compcert Require Import AST Clight Ctypes Floats Integers.
 
 Import ListNotations.
 
@@ -334,6 +334,161 @@ with assigns_global_ident_ls
   | LSnil => false
   | LScons _ body rest =>
       assigns_global_ident_s global body || assigns_global_ident_ls global rest
+  end.
+
+(* Array-field accessors emitted by clightgen for expressions such as
+   [object->rawData.asF32[6]] and [marioState->pos[0]].  These checkers were
+   useful in an archived spawning-displacement investigation; they are
+   redefined here so the current project checks its own generated ASTs rather
+   than importing an old translation. *)
+Fixpoint expression_const_int_z (e : expr) : option Z :=
+  match e with
+  | Econst_int found _ => Some (Int.signed found)
+  | Ecast inner _ => expression_const_int_z inner
+  | Ebinop Oadd lhs rhs _ =>
+      match expression_const_int_z lhs, expression_const_int_z rhs with
+      | Some lhs_value, Some rhs_value => Some (lhs_value + rhs_value)%Z
+      | _, _ => None
+      end
+  | _ => None
+  end.
+
+Definition expression_is_array_slot
+    (array_field : ident) (index : Z) (e : expr) : bool :=
+  match e with
+  | Ederef (Ebinop Oadd (Efield _ found_field _) offset _) _ =>
+      Pos.eqb found_field array_field &&
+      match expression_const_int_z offset with
+      | Some found_index => Z.eqb found_index index
+      | None => false
+      end
+  | _ => false
+  end.
+
+Fixpoint expression_mentions_array_slot
+    (array_field : ident) (index : Z) (e : expr) : bool :=
+  expression_is_array_slot array_field index e ||
+  match e with
+  | Ederef inner _ | Eaddrof inner _ | Eunop _ inner _ | Ecast inner _ =>
+      expression_mentions_array_slot array_field index inner
+  | Efield inner _ _ =>
+      expression_mentions_array_slot array_field index inner
+  | Ebinop _ lhs rhs _ =>
+      expression_mentions_array_slot array_field index lhs ||
+      expression_mentions_array_slot array_field index rhs
+  | _ => false
+  end.
+
+Fixpoint statement_mentions_array_slot_s
+    (array_field : ident) (index : Z) (s : statement) : bool :=
+  match s with
+  | Sskip | Sbreak | Scontinue | Sreturn None | Sgoto _ => false
+  | Sassign lhs rhs =>
+      expression_mentions_array_slot array_field index lhs ||
+      expression_mentions_array_slot array_field index rhs
+  | Sset _ rhs => expression_mentions_array_slot array_field index rhs
+  | Scall _ fn args =>
+      expression_mentions_array_slot array_field index fn ||
+      existsb (expression_mentions_array_slot array_field index) args
+  | Sbuiltin _ _ _ args =>
+      existsb (expression_mentions_array_slot array_field index) args
+  | Ssequence a b | Sloop a b =>
+      statement_mentions_array_slot_s array_field index a ||
+      statement_mentions_array_slot_s array_field index b
+  | Sifthenelse cond a b =>
+      expression_mentions_array_slot array_field index cond ||
+      statement_mentions_array_slot_s array_field index a ||
+      statement_mentions_array_slot_s array_field index b
+  | Sreturn (Some value) =>
+      expression_mentions_array_slot array_field index value
+  | Sswitch value cases =>
+      expression_mentions_array_slot array_field index value ||
+      statement_mentions_array_slot_ls array_field index cases
+  | Slabel _ body =>
+      statement_mentions_array_slot_s array_field index body
+  end
+with statement_mentions_array_slot_ls
+    (array_field : ident) (index : Z) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      statement_mentions_array_slot_s array_field index body ||
+      statement_mentions_array_slot_ls array_field index rest
+  end.
+
+Fixpoint assigns_array_slot_s
+    (array_field : ident) (index : Z) (s : statement) : bool :=
+  match s with
+  | Sassign lhs _ => expression_is_array_slot array_field index lhs
+  | Ssequence a b | Sloop a b =>
+      assigns_array_slot_s array_field index a ||
+      assigns_array_slot_s array_field index b
+  | Sifthenelse _ a b =>
+      assigns_array_slot_s array_field index a ||
+      assigns_array_slot_s array_field index b
+  | Sswitch _ cases => assigns_array_slot_ls array_field index cases
+  | Slabel _ body => assigns_array_slot_s array_field index body
+  | _ => false
+  end
+with assigns_array_slot_ls
+    (array_field : ident) (index : Z) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      assigns_array_slot_s array_field index body ||
+      assigns_array_slot_ls array_field index rest
+  end.
+
+(* [find_floor] is translated with a nested cast from binary32 to signed
+   16-bit TerrainData.  This deliberately narrow recognizer avoids pretending
+   that arbitrary out-of-range ISO C casts have already been semantically
+   refined to the target MIPS instruction. *)
+Definition type_is_s16 (ty : type) : bool :=
+  match ty with
+  | Tint I16 Signed _ => true
+  | _ => false
+  end.
+
+Definition type_is_float32 (ty : type) : bool :=
+  match ty with
+  | Tfloat F32 _ => true
+  | _ => false
+  end.
+
+Definition rhs_is_float_temp_cast_to_s16 (source : ident) (rhs : expr) : bool :=
+  match rhs with
+  | Ecast (Ecast (Etempvar found source_type) inner_type) outer_type =>
+      Pos.eqb found source &&
+      type_is_float32 source_type &&
+      type_is_s16 inner_type &&
+      type_is_s16 outer_type
+  | _ => false
+  end.
+
+Fixpoint sets_temp_from_float_cast_to_s16_s
+    (destination source : ident) (s : statement) : bool :=
+  match s with
+  | Sset found rhs =>
+      Pos.eqb found destination && rhs_is_float_temp_cast_to_s16 source rhs
+  | Ssequence a b | Sloop a b =>
+      sets_temp_from_float_cast_to_s16_s destination source a ||
+      sets_temp_from_float_cast_to_s16_s destination source b
+  | Sifthenelse _ a b =>
+      sets_temp_from_float_cast_to_s16_s destination source a ||
+      sets_temp_from_float_cast_to_s16_s destination source b
+  | Sswitch _ cases =>
+      sets_temp_from_float_cast_to_s16_ls destination source cases
+  | Slabel _ body =>
+      sets_temp_from_float_cast_to_s16_s destination source body
+  | _ => false
+  end
+with sets_temp_from_float_cast_to_s16_ls
+    (destination source : ident) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      sets_temp_from_float_cast_to_s16_s destination source body ||
+      sets_temp_from_float_cast_to_s16_ls destination source rest
   end.
 
 Definition initializer_mentions_addrof (needle : ident) (datum : init_data) : bool :=

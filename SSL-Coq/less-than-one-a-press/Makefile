@@ -45,6 +45,117 @@ check: proofs
 	  LessThanOneAPress.Proofs.CollisionMeshFacts \
 	  route_collision_initializers_are_version_identical
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CollisionMeshFacts \
+	  pyramid_top_collision_words_exact_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CollisionMeshFacts \
+	  pyramid_top_collision_words_exact_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CollisionMeshFacts \
+	  pyramid_top_source_mesh_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CollisionMeshFacts \
+	  pyramid_top_source_edge_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  ssl_pu_level_script_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.PyramidTopPU \
+	  pyramid_top_pu_modeled_source_constants_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  find_floor_s16_coordinate_cast_source_shape_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  find_floor_s16_coordinate_cast_source_shape_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  mario_state_object_phase_split_source_shape_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  mario_state_object_phase_split_source_shape_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  update_objects_direct_callee_order_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  update_objects_direct_callee_order_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  platform_displacement_raw_pointer_source_shape_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  platform_displacement_raw_pointer_source_shape_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  platform_recompute_source_shape_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  platform_recompute_source_shape_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  spawning_clears_platform_us_but_not_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  upper_warp_phase_pipeline_source_shape_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  upper_warp_phase_pipeline_source_shape_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  object_warp_delayed_lifetime_source_shape_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  object_warp_delayed_lifetime_source_shape_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  pyramid_top_warp_geometry_source_shape_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  pyramid_top_warp_geometry_source_shape_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  stock_pyramid_top_yaw_only_source_shape_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  stock_pyramid_top_yaw_only_source_shape_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.PyramidTopPU \
+	  one_coordinate_cannot_contact_warp_and_capture_live_top
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.PyramidTopPU \
+	  upper_warp_center_overlaps_in_float32_model
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.PyramidTopPU \
+	  pu_top_candidate_does_not_overlap_warp_in_float32_model
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.PyramidTopPU \
+	  float32_warp_top_is_below_platform_capture_lower_bound
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.PyramidTopPU \
+	  stock_yaw_only_top_cannot_seed_upper_warp_bridge
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.PyramidTopPU \
+	  pu_top_candidate_alias_floor_arithmetic
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.PyramidTopPU \
+	  phase_split_countermodel_exists
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.PyramidTopPU \
+	  phase_split_candidate_requires_vertical_displacement
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.PyramidTopPU \
+	  xz_only_displacement_cannot_realize_phase_split_candidate
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.PyramidTopPU \
+	  us_spawn_clear_blocks_retained_epoch_before_first_apply
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.PyramidTopPU \
+	  pyramid_top_pu_arithmetic_kernel
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.PyramidTopPU \
+	  pyramid_top_pu_checked_bundle
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  collection_provenance_reduction
 	bash pipeline/assumptions.sh \

@@ -28,20 +28,38 @@ The work did settle three narrower questions:
 
 The third item is an over-permissive-model counterexample, not yet a retail-ROM
 counterexample.  It must not be excluded merely because no stock setup is
-currently known.  One conditional setup is to trigger the upper warp while
-standing on the spinning pyramid top as that object unloads.  The unresolved
-ways to create that coincidence are moving/loading the upper warp onto the
-top, or moving the top down to the upper warp.  The warp is normally created
-on area entry, and object cloning may remove the clone's collision, but neither
-fact is yet a proof that all such setups are impossible.
+currently known.  The new `PyramidTopPU.v` audit proves that an **intact
+Y-preserving stock-yaw arithmetic model cannot bootstrap the setup**: warp
+contact has Mario Y at most `818`, the modeled top-floor bound is `1281`, the
+platform tolerance is strictly less than four, and the floor query permits
+only 78 units above its query Y.  Exact packed LevelScript records and parsed
+top vertices/triangles are checked for US and JP, but the matrix and
+dynamic-surface Clight refinement that derives those premises remains open.
+
+That result is not a global stale-slot exclusion.  The source update order can
+sample the old Mario object for warp collision and the displaced MarioState
+for geometry, floor snap, state/object copy, and final platform selection.
+`phase_split_countermodel_exists` checks a two-sample coordinate/alias model at
+`(-2048,768,-1024)` and `(63488,1791,-1024)`.  It requires a 1023-unit Y
+change, so neither an X/Z alias alone nor any Y-preserving transform realizes
+it.  It does not model a stale slot or prove dynamic-surface selection.  A
+stale/reused object payload with a three-dimensional transform remains outside
+the narrow arithmetic theorem.
+
+Moving/loading the upper warp onto the top, moving the top down to the warp,
+and collision-preserving cloning remain unresolved constructions.  The phase
+split adds a fourth family: a separate three-dimensional writer while the
+top's collision is loaded.  Node `0x1E` is delayed, so any successful frame
+also needs pointer retention or recapture through the later object updates.
 
 The Clight nonvacuity obligation no longer claims that every handwritten clean
 state is source-reachable.  A retained JP pointer must be connected to its
-actual source floor, the warp/top collision coincidence, allocation epoch,
-unload/reuse trace, raw displacement fields, and first Area-2 memory before it
-can be used in the evidence-bearing classifier.  That qualification validates
-the conditional path; it does not define the path away or assume its
-displacement is safe.
+actual source floor or phase-separated geometry sample, allocation epoch,
+unload/reuse trace, raw displacement fields, delayed-warp lifetime, and first
+Area-2 memory before it can be used in the evidence-bearing classifier.  That
+qualification validates the conditional path; it does not define the path
+away or assume its displacement is safe.  See
+[`pyramid-top-pu.md`](pyramid-top-pu.md) for the complete source audit.
 
 ## Correct cuts
 
@@ -158,6 +176,39 @@ top, moving the top to the warp, or a collision-preserving clone mechanism.
 The concrete ROM replay is therefore a fixture-assisted mechanism test unless
 a controller-only predecessor trace is later found.
 
+## Pyramid-top PU result
+
+Syntax anchors behind the newest proof are checked against both generated
+versions.  Direct inspection of the pinned source supplies the stronger update
+account: `find_floor` contains the binary32-to-signed-16 casts; platform
+displacement writes MarioState; object collision reads the old Mario object;
+Mario geometry refresh precedes warp interaction; `ACT_DISAPPEARED` snaps to
+the refreshed floor; the later copy and platform query use the new object
+position; object updates precede each of the 20 normal-play timer decrements;
+two change-area frames omit object updates; and the next normal frame runs
+`warp_area` before the first Area-2 update.  The AST slot/literal recognizers
+are base- and path-insensitive, so this is not yet a Clight
+execution/dataflow theorem.
+
+The proved split is:
+
+- `one_coordinate_cannot_contact_warp_and_capture_live_top`: the ordinary
+  handwritten full-coordinate overlap and modeled platform conditions
+  contradict;
+- `stock_yaw_only_top_cannot_seed_upper_warp_bridge`: preserving warp-altitude
+  Y cannot make the numeric floor query accept the modeled top bound;
+- `phase_split_countermodel_exists`: a collision sample and a later
+  coordinate/alias sample can satisfy the handwritten conditions separately;
+  this is not a stale-slot or surface-selection theorem; and
+- `phase_split_candidate_requires_vertical_displacement`: the concrete model
+  needs a Y writer, not just a 65536-unit X alias.
+
+This closes only the same-sample arithmetic contradiction and the conditional
+Y-preserving bootstrap.  It leaves the matrix/cast/dynamic-surface Clight
+refinement, three-dimensional writer reachability, and
+`delayed_warp_top_lifetime_obligation` open.  It is neither a stock-game
+counterexample nor proof that all alternative upper routes are impossible.
+
 ## Emulator search boundary
 
 The authenticated US and original-JP ROMs were checked with debugger input
@@ -225,6 +276,12 @@ To prove route exhaustiveness, the project still needs:
 4. unreachability of each remaining movement class under no A edge; and
 5. a proof that the ordinary elevator/pole A-labelled observations correspond
    to the actual action branches that cross those cuts.
+
+For the node-`0x1E` candidate, item 3 specifically includes a reachable
+three-dimensional State/Object phase split and multi-frame pointer
+retention/recapture through the delayed warp.  A Y-preserving writer cannot
+realize the concrete 1023-unit-Y candidate; source-level stock-top exclusion
+still needs matrix and dynamic-surface refinement.
 
 Alternatively, a stock-reachable constructor must be recorded with its exact
 clean initial RAM state, controller frames, object/global trace, and target

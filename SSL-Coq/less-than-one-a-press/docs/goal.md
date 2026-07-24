@@ -58,15 +58,23 @@ shaft.  A fixture-assisted authentic-JP replay consumes the upper trigger with
 no A edge, but has no Act 3 overlap, does not spawn the Act 6 star, and does not
 directly inspect save RAM.  Preparing the payload only before the Area-1
 transition fails, so no controller-only retail predecessor has been
-established.  The
-conditional Area-1 node-`0x1E` warp/spinning-top unload construction remains
-open, including warp-to-top, top-to-warp, and collision-preserving clone
-possibilities.  Source-backed prehistory must preserve that case rather than
-assume it away.  Accordingly, none of the six archived projects
+established.  `PyramidTopPU.v` proves a same-sample contradiction and,
+conditional on Y preservation and the modeled floor bound, excludes the
+stock-yaw arithmetic bootstrap.  It also proves a two-sample coordinate/alias
+model for the different three-dimensional State-only writer a stale/reused
+slot might realize; it does not construct such a slot or select a live dynamic
+surface.  Reachability, signed-cast/matrix/dynamic-surface Clight refinement,
+and JP pointer retention or recapture through the delayed warp remain open.
+The US state model blocks retention after a successful spawn clear, but its
+Clight memory effect remains pending.  Warp-to-top, top-to-warp, and
+collision-preserving clone possibilities also remain.  Source-backed prehistory must
+preserve those cases rather than assume them away.  Accordingly, none of the
+six archived projects
 discharges the current
 whole-program Layer A refinement or any Layer B obligation.  See the
 [`archived-proof evidence map`](archived-proof-evidence.md) for the exact
 project-by-project boundary.  The non-specialist explanation is
 [`../human-readable-proof.md`](../human-readable-proof.md), and the route
 coverage question is isolated in
-[`route-exhaustiveness.md`](route-exhaustiveness.md).
+[`route-exhaustiveness.md`](route-exhaustiveness.md).  The focused newest
+result is documented in [`pyramid-top-pu.md`](pyramid-top-pu.md).

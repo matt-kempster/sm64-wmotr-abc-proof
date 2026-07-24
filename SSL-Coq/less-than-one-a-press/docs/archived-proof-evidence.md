@@ -65,13 +65,26 @@ The spawning-displacement archive does not rule out every source prehistory for
 a stale pyramid-top pointer.  The current abstract model admits an inactive
 pyramid-top payload whose source-shaped yaw displacement exits the upper
 shaft, but no stock-reachable predecessor trace reaching a target region has
-been established.  In particular, the archive's ordinary-position and enumerated
-seed results do not prove impossible a setup that moves or loads the upper warp
-onto the spinning top, moves the top to the warp, or creates a
-collision-preserving clone.  A future source-backed predecessor proof must
-track object-owned floor collision, pointer capture, unload, slot epoch/reuse,
-and the first area-2 displacement.  It must preserve this conditional route
-for analysis rather than assume the pointer is null or safe.
+been established.  The current `PyramidTopPU.v` audit proves the same-sample
+arithmetic contradiction and conditionally excludes a Y-preserving stock-yaw
+bootstrap; matrix, dynamic-surface, and Clight refinements remain open.  Its
+separate two-sample coordinate model shows that the archive's old
+same-coordinate argument cannot exclude a different three-dimensional
+State/Object phase arrangement.  Such a split still needs a gameplay-reachable
+writer, live-surface selection, and (for the retained-pointer construction) JP
+pointer retention or recapture through the delayed node-`0x1E` warp.  The US
+spawn clear blocks same-epoch retention in the state model, but its Clight
+memory effect remains to be derived.
+
+In particular, the archive's ordinary-position and enumerated seed results do
+not prove impossible a setup that moves or loads the upper warp onto the
+spinning top, moves the top to the warp, creates a collision-preserving clone,
+or uses a distinct stale/reused transform while the top collision is loaded.
+A future source-backed predecessor proof must track collision-object and
+geometry-State samples separately, pointer capture, unload, slot epoch/reuse,
+the delayed-warp lifetime, and the first area-2 displacement.  It must preserve
+these conditional routes for analysis rather than assume the pointer is null
+or safe.
 
 ## Cross-project verdict
 
