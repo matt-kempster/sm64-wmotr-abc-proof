@@ -2,7 +2,8 @@ From Coq Require Import List.
 From LessThanOneAPress.Proofs Require Import
   GameTypes InputSemantics CleanEntry ObjectProvenance StarCollection
   CollisionRegions AreaTransitions HiddenStar LowerEntrance UpperEntrance
-  ClightRefinement ArchivedProofIntegration TranscriptRouteModel.
+  ClightRefinement ArchivedProofIntegration TranscriptRouteModel
+  FirstTargetRefinement.
 
 Import ListNotations.
 
@@ -120,6 +121,75 @@ Theorem first_target_cut_with_all_bypasses_excluded_requires_a_edge :
     trace_contains_a_press trace.
 Proof.
   exact first_target_access_with_all_bypasses_excluded_requires_a_edge.
+Qed.
+
+(* This is the target-bit-facing route capstone.  In contrast with the older
+   payload-free cut theorem above, every bypass alternative carries a concrete
+   Clight frame segment and projected before/after states.  The remaining
+   premises are explicit: constructing that evidence-bearing classification
+   and proving the six open writer/geometry classes unreachable are the Layer-B
+   residuals; constructing the frame certificate and route projection remains
+   part of the whole-program refinement residual. *)
+Theorem evidence_bearing_route_cut_blocks_new_target_bits :
+  forall projection run initial certificate trace,
+    CleanPyramidEntry initial ->
+    ClightRouteTraceProjection projection run initial certificate trace ->
+    EvidenceBearingFirstTargetCutClassification
+      projection run initial certificate trace ->
+    OpenRouteWriterClassesUnreachable
+      projection run initial certificate trace ->
+    fewer_than_one_a_press (project_inputs projection run) ->
+    ~ newly_collected
+        (state_save_flags initial)
+        (state_save_flags
+          (refined_final_state projection run initial certificate))
+        act3_index /\
+    ~ newly_collected
+        (state_save_flags initial)
+        (state_save_flags
+          (refined_final_state projection run initial certificate))
+        act6_index.
+Proof.
+  exact evidence_classifier_with_open_writers_closed_blocks_new_target_bits.
+Qed.
+
+(* Whole-program exposure of the evidence-bearing route path.  This theorem
+   deliberately keeps three independent residuals visible:
+
+   - construct the ordinary Clight frame/event refinement certificate;
+   - construct an evidence-bearing first-cut classification for its route;
+   - exclude the six surviving writer/geometry classes under no A edge.
+
+   The first residual includes Layer A.  The latter two are the current Layer B
+   route-exhaustiveness boundary. *)
+Theorem conditional_evidence_bearing_clight_run_impossibility :
+  forall projection,
+    WholeProgramClightRefinementObligation projection ->
+    EvidenceBearingRouteClassificationRefinementObligation projection ->
+    NoAOpenRouteWriterClassesUnreachableObligation projection ->
+    forall run initial,
+      RunUsesProjection projection run ->
+      project_state projection (run_start run) = Some initial ->
+      CleanPyramidEntry initial ->
+      fewer_than_one_a_press (project_inputs projection run) ->
+      exists final,
+        project_state projection (run_final run) = Some final /\
+        ~ newly_collected
+            (state_save_flags initial) (state_save_flags final) act3_index /\
+        ~ newly_collected
+            (state_save_flags initial) (state_save_flags final) act6_index.
+Proof.
+  intros projection Hwhole Hclassify Hclose run initial
+    Huses Hstart Hclean Hnoa.
+  destruct (Hwhole run initial Huses Hstart) as [certificate _].
+  destruct (Hclassify run initial certificate Hclean)
+    as [trace [Hroute Hclassifier]].
+  pose proof (Hclose run initial certificate trace
+    Hclean Hroute Hclassifier Hnoa) as Hclosed.
+  exists (refined_final_state projection run initial certificate).
+  split.
+  - exact (refined_final_matches projection run initial certificate).
+  - eapply evidence_bearing_route_cut_blocks_new_target_bits; eauto.
 Qed.
 
 Theorem conditional_less_than_one_a_press_impossibility :

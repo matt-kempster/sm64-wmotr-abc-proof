@@ -130,6 +130,36 @@ proved impossible:
 - a projected event with no indexed certified step, once a refinement
   certificate is supplied.
 
+The target-bit connection is now load-bearing rather than merely adjacent to
+that classification.  `aligned_newly_collected_act3_reaches_act3_cut` proves
+that a newly set Act 3 bit in an aligned certified execution entails an
+Act-3-region observation.  The Act 6 analogue,
+`aligned_newly_collected_act6_reaches_upper_trigger_cut`, uses the clean-entry
+hidden-star lifecycle theorem to entail an upper-trigger-region observation.
+These implications intentionally run in only one direction: entering a region
+does not by itself prove that the corresponding star was collected.
+
+`evidence_bearing_route_cut_blocks_new_target_bits` then connects those Layer-A
+facts to the evidence-bearing first-cut classifier.  Under no A edge, a
+classification for the concrete Clight run, and unreachability of the six open
+writer classes below, neither target bit can be newly set.  This capstone does
+not use the payload-free `FirstTargetCutClassificationObligation`.
+
+The whole-run form,
+`conditional_evidence_bearing_clight_run_impossibility`, keeps three residuals
+explicit:
+
+1. `WholeProgramClightRefinementObligation`, which must construct the
+   Clight-to-certified-event certificate, including Layer A;
+2. `EvidenceBearingRouteClassificationRefinementObligation`, which must
+   construct the aligned route and evidence-bearing first-cut classification
+   from that same run; and
+3. `NoAOpenRouteWriterClassesUnreachableObligation`, which must eliminate the
+   six surviving writer/geometry classes under the actual projected no-A
+   inputs.
+
+This is a sharper theorem boundary, not a discharge of those residuals.
+
 The remaining open route-writer classes are:
 
 - ordinary Mario physics and static support transitions;
@@ -269,13 +299,18 @@ graph or show that a proposed `CollisionSupportCut` matches every triangle.
 
 To prove route exhaustiveness, the project still needs:
 
-1. a linked-program frame projection that constructs `ClightFrameEvidence`;
+1. a linked-program frame projection that constructs the ordinary refinement
+   certificate and `ClightFrameEvidence`, thereby discharging
+   `WholeProgramClightRefinementObligation` and the projection part of
+   `EvidenceBearingRouteClassificationRefinementObligation`;
 2. a checked parser/refinement from the generated collision arrays to exact
    surface IDs, dynamic owners, and target-side components;
 3. source-backed JP platform-capture and slot-reuse classification;
-4. unreachability of each remaining movement class under no A edge; and
+4. unreachability of each remaining movement class under no A edge, exactly
+   the content of `NoAOpenRouteWriterClassesUnreachableObligation`; and
 5. a proof that the ordinary elevator/pole A-labelled observations correspond
-   to the actual action branches that cross those cuts.
+   to the actual action branches that cross those cuts, completing the
+   classification residual.
 
 For the node-`0x1E` candidate, item 3 specifically includes a reachable
 three-dimensional State/Object phase split and multi-frame pointer

@@ -4,7 +4,8 @@ From compcert Require Import AST Clight Events Floats Globalenvs Integers
 From LessThanOneAPress.Generated Require Import jp_platform_displacement.
 From LessThanOneAPress.Proofs Require Import
   GameTypes InputSemantics ObjectProvenance CleanEntry CollisionRegions
-  AreaTransitions ClightRefinement RouteEvidence TranscriptRouteModel.
+  AreaTransitions StarCollection HiddenStar ClightRefinement RouteEvidence
+  TranscriptRouteModel.
 
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -1904,6 +1905,190 @@ Proof.
       exact (Hclosed UpperEntrance class region target_frame
         target_observation Hopen Hevidence).
 Qed.
+
+(** * Target-bit bridge to the evidence-bearing route cut
+
+    This is the direction needed by the impossibility theorem.  It does not
+    claim that merely observing a region sets a save bit.  Instead, the
+    certified Layer-A execution first supplies the required collection or
+    upper-trigger event, and the bidirectional route alignment places that
+    event at the matching collision-region cut. *)
+
+Theorem aligned_newly_collected_act3_reaches_act3_cut :
+  forall initial trace events final,
+    RouteTraceExecutionAlignment initial trace events final ->
+    newly_collected
+      (state_save_flags initial) (state_save_flags final) act3_index ->
+    reaches_target_region trace Act3InteractionRegionNode.
+Proof.
+  intros initial trace events final Haligned Hnew.
+  destruct (newly_collected_act3_requires_collection_event
+    initial events final
+    (aligned_certified_execution initial trace events final Haligned)
+    Hnew) as
+    [star [phase [Hin [Hactive [Horigin Hoverlap]]]]].
+  apply In_nth_error in Hin.
+  destruct Hin as [index Hevent].
+  destruct (aligned_act3_event_to_observation
+    initial trace events final Haligned index star phase Hevent)
+    as [frame [Hframe Hobservation]].
+  unfold reaches_target_region.
+  eapply route_frame_observation_is_observed.
+  - eapply nth_error_In. exact Hframe.
+  - exact Hobservation.
+Qed.
+
+Theorem aligned_newly_collected_act6_reaches_upper_trigger_cut :
+  forall initial trace events final,
+    CleanPyramidEntry initial ->
+    RouteTraceExecutionAlignment initial trace events final ->
+    newly_collected
+      (state_save_flags initial) (state_save_flags final) act6_index ->
+    reaches_target_region trace UpperHiddenStarTriggerNode.
+Proof.
+  intros initial trace events final Hclean Haligned Hnew.
+  destruct (spawning_act6_requires_all_five_and_upper_overlap
+    initial events final Hclean
+    (aligned_certified_execution initial trace events final Haligned)
+    Hnew) as
+    [Hspawn [trigger_object [phase [Hin Hoverlap]]]].
+  apply In_nth_error in Hin.
+  destruct Hin as [index Hevent].
+  destruct (aligned_upper_event_to_observation
+    initial trace events final Haligned index trigger_object phase Hevent)
+    as [frame [Hframe Hobservation]].
+  unfold reaches_target_region.
+  eapply route_frame_observation_is_observed.
+  - eapply nth_error_In. exact Hframe.
+  - exact Hobservation.
+Qed.
+
+Theorem aligned_newly_collected_target_reaches_first_cut_domain :
+  forall initial trace events final,
+    CleanPyramidEntry initial ->
+    RouteTraceExecutionAlignment initial trace events final ->
+    (newly_collected
+       (state_save_flags initial) (state_save_flags final) act3_index \/
+     newly_collected
+       (state_save_flags initial) (state_save_flags final) act6_index) ->
+    reaches_any_target_region trace.
+Proof.
+  intros initial trace events final Hclean Haligned [Hact3 | Hact6].
+  - exists Act3InteractionRegionNode.
+    eapply aligned_newly_collected_act3_reaches_act3_cut; eauto.
+  - exists UpperHiddenStarTriggerNode.
+    eapply aligned_newly_collected_act6_reaches_upper_trigger_cut; eauto.
+Qed.
+
+Lemma fewer_than_one_a_press_excludes_trace_press :
+  forall trace,
+    fewer_than_one_a_press (route_inputs trace) ->
+    ~ trace_contains_a_press trace.
+Proof.
+  intros trace Hnoa
+    [frame [Hframe Hpressed]].
+  unfold fewer_than_one_a_press in Hnoa.
+  rewrite Forall_forall in Hnoa.
+  specialize (Hnoa (route_frame_input frame)).
+  assert (Hinput :
+      In (route_frame_input frame) (route_inputs trace)).
+  { unfold route_inputs. apply in_map. exact Hframe. }
+  specialize (Hnoa Hinput).
+  unfold frame_has_no_a_press in Hnoa.
+  rewrite Hnoa in Hpressed. discriminate.
+Qed.
+
+(** Unlike [first_target_cut_with_all_bypasses_excluded_requires_a_edge],
+    this capstone never passes through the payload-free
+    [FirstTargetCutClassificationObligation].  Its residuals name the actual
+    Clight run/certificate projection, the evidence-bearing classification,
+    and the six still-open writer/geometry classes. *)
+Theorem evidence_classifier_with_open_writers_closed_blocks_new_target_bits :
+  forall projection run initial certificate trace,
+    CleanPyramidEntry initial ->
+    ClightRouteTraceProjection projection run initial certificate trace ->
+    EvidenceBearingFirstTargetCutClassification
+      projection run initial certificate trace ->
+    OpenRouteWriterClassesUnreachable
+      projection run initial certificate trace ->
+    fewer_than_one_a_press (project_inputs projection run) ->
+    ~ newly_collected
+        (state_save_flags initial)
+        (state_save_flags
+          (refined_final_state projection run initial certificate))
+        act3_index /\
+    ~ newly_collected
+        (state_save_flags initial)
+        (state_save_flags
+          (refined_final_state projection run initial certificate))
+        act6_index.
+Proof.
+  intros projection run initial certificate trace Hclean Hroute
+    Hclassifier Hclosed Hnoa.
+  assert (Hnoa_trace :
+      fewer_than_one_a_press (route_inputs trace)).
+  {
+    rewrite (clight_route_inputs_exact
+      projection run initial certificate trace Hroute).
+    exact Hnoa.
+  }
+  assert (Hno_trace_press : ~ trace_contains_a_press trace).
+  {
+    eapply fewer_than_one_a_press_excludes_trace_press.
+    exact Hnoa_trace.
+  }
+  split; intro Hnew.
+  - apply Hno_trace_press.
+    eapply evidence_classifier_with_open_writers_closed_requires_a_edge;
+      eauto.
+    exists Act3InteractionRegionNode.
+    eapply aligned_newly_collected_act3_reaches_act3_cut.
+    + exact (clight_route_execution_alignment
+        projection run initial certificate trace Hroute).
+    + exact Hnew.
+  - apply Hno_trace_press.
+    eapply evidence_classifier_with_open_writers_closed_requires_a_edge;
+      eauto.
+    exists UpperHiddenStarTriggerNode.
+    eapply aligned_newly_collected_act6_reaches_upper_trigger_cut.
+    + exact Hclean.
+    + exact (clight_route_execution_alignment
+        projection run initial certificate trace Hroute).
+    + exact Hnew.
+Qed.
+
+(** These two residuals expose the exact route-classification work needed on
+    top of [WholeProgramClightRefinementObligation].  The first must construct
+    a frame-aligned route and evidence-bearing first-cut classification for the
+    concrete imported run.  The second must eliminate only the six writer and
+    geometry classes that remain after the checked Layer-A exclusions.  Neither
+    residual assumes that a target bit stays clear. *)
+Definition EvidenceBearingRouteClassificationRefinementObligation
+    (projection : ClightObservationProjection) : Prop :=
+  forall run initial
+      (certificate :
+        ClightFrameRefinementCertificate projection run initial),
+    CleanPyramidEntry initial ->
+    exists trace,
+      ClightRouteTraceProjection
+        projection run initial certificate trace /\
+      EvidenceBearingFirstTargetCutClassification
+        projection run initial certificate trace.
+
+Definition NoAOpenRouteWriterClassesUnreachableObligation
+    (projection : ClightObservationProjection) : Prop :=
+  forall run initial
+      (certificate :
+        ClightFrameRefinementCertificate projection run initial)
+      trace,
+    CleanPyramidEntry initial ->
+    ClightRouteTraceProjection
+      projection run initial certificate trace ->
+    EvidenceBearingFirstTargetCutClassification
+      projection run initial certificate trace ->
+    fewer_than_one_a_press (project_inputs projection run) ->
+    OpenRouteWriterClassesUnreachable
+      projection run initial certificate trace.
 
 (** * Endpoint-only insufficiency countermodel schema
 

@@ -177,6 +177,12 @@ check: proofs
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  first_target_cut_with_all_bypasses_excluded_requires_a_edge
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  evidence_bearing_route_cut_blocks_new_target_bits
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  conditional_evidence_bearing_clight_run_impossibility
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.TranscriptRouteModel \
 	  no_a_target_access_requires_gate_bypass
 	bash pipeline/assumptions.sh \
@@ -251,6 +257,12 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.FirstTargetRefinement \
 	  evidence_bypass_reduces_to_open_route_writer_classes
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.FirstTargetRefinement \
+	  aligned_newly_collected_target_reaches_first_cut_domain
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.FirstTargetRefinement \
+	  evidence_classifier_with_open_writers_closed_blocks_new_target_bits
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.FirstTargetRefinement \
 	  endpoint_only_alignment_does_not_imply_cut_classification
