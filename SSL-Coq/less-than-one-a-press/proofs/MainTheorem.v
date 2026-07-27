@@ -3,7 +3,7 @@ From LessThanOneAPress.Proofs Require Import
   GameTypes InputSemantics CleanEntry ObjectProvenance StarCollection
   CollisionRegions AreaTransitions HiddenStar LowerEntrance UpperEntrance
   ClightRefinement ArchivedProofIntegration TranscriptRouteModel
-  FirstTargetRefinement.
+  FirstTargetRefinement JPSlotLifetime.
 
 Import ListNotations.
 
@@ -53,16 +53,21 @@ Proof.
         -- exact Hupper.
 Qed.
 
-(* This packages the current checked archive kernels with the certified-event
-   reduction so the integration is on the project verification spine.  The
-   conjunction is intentionally not described as a semantic bridge between
-   them, and is not the ultimate gameplay theorem. *)
+(* This packages the current checked archive kernels and the JP slot-lifetime
+   staging boundary with the certified-event reduction so they are on the
+   project verification spine.  The conjunction is intentionally not
+   described as a semantic bridge between them, and is not the ultimate
+   gameplay theorem. *)
 Theorem current_verified_evidence_and_collection_reduction :
-  ArchivedProofIntegrationKernel /\ CollectionProvenanceReductionClaim.
+  ArchivedProofIntegrationKernel /\
+  JPDelayedWarpSlotBoundaryClaim /\
+  CollectionProvenanceReductionClaim.
 Proof.
   split.
   - exact archived_proof_integration_kernel_holds.
-  - exact collection_provenance_reduction.
+  - split.
+    + exact jp_delayed_warp_slot_boundary_checked.
+    + exact collection_provenance_reduction.
 Qed.
 
 (* Capstone exposure of the transcript-derived route-gate reduction.  The

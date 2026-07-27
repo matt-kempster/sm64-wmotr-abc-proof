@@ -7,11 +7,12 @@ casing.  The reorganization keeps that path rather than creating a parallel
 `less-than-one-a-press/` is the current proof project.  It targets the US and
 Japanese versions of Super Mario 64 at decomp revision
 `9921382a68bb0c865e5e45eb594d9c64db59b1af` and uses CompCert Clight generated
-by `clightgen` 3.15.  It generates 27 translation units per version, for 54
+by `clightgen` 3.15.  It generates 29 translation units per version, for 58
 Clight modules total.  The coverage includes the Mario action, movement,
-`mario_step`, `obj_behaviors_2`, and `surface_collision` units, the cutscene
-action containing `ACT_SPAWN_NO_SPIN_AIRBORNE`, and a project wrapper that
-imports the route-relevant SSL static and dynamic collision arrays.
+`mario_step`, `obj_behaviors_2`, `math_util`, `surface_collision`, and
+`surface_load` units, the cutscene action containing
+`ACT_SPAWN_NO_SPIN_AIRBORNE`, and a project wrapper that imports the
+route-relevant SSL static and dynamic collision arrays.
 
 `old-proofs/` contains archived proof attempts.  They are retained for
 historical context, reusable lemmas, and future reference; they are not part of
@@ -72,13 +73,24 @@ null/live/inactive/reused case split, without a Clight projection theorem.
 These results guide the remaining proof; they do not establish authentic route
 completeness.
 
-`PyramidTopPU.v` adds a bounded admission-free result.  It proves a
-same-sample contradiction and, under explicit Y-preservation and floor-bound
-premises, excludes the stock-yaw arithmetic bootstrap from Area-1 node
-`0x1E`.  It also proves a two-sample coordinate/alias model for the candidate
-that a separate three-dimensional State-only writer would have to realize.
-The matrix, dynamic-surface, Clight execution, reachability, and JP
-delayed-warp pointer-lifetime refinements remain open.
+`PyramidTopSurface.v` and `PyramidTopPU.v` add a bounded admission-free result.
+They import the matrix and dynamic-surface construction bodies, check the
+concrete CompCert short casts and partition cells, link the parsed face to
+manually translated zero-yaw home vertices, and evaluate hand-mirrored
+binary32 transform and signed-edge arithmetic.  The dynamic checker finds a
+guarded `floor := dynamicFloor` assignment source shape; it does not prove
+assignment exclusivity or the complete height update.  The modules also prove
+the same-sample and Y-preserving stock-yaw exclusions and a two-sample
+coordinate/alias model for the candidate that a separate three-dimensional
+State-only writer would have to realize.  The finite signed-16 arithmetic also
+proves that an upper-warp overlap followed by an admissible numeric floor query
+at height 1281 or above needs at least 385 units of upward State displacement.
+This is not yet a linked memory execution, proof that the live top surface is
+selected by `find_floor`, or a
+reachability/lifetime theorem.  Authenticated US/JP retail disassembly plus
+Rocq instruction-fragment arithmetic verifies the exact
+`(63488, 1791, -1024) -> (-2048, 1791, -1024)` conversions; this is not a
+general theorem about arbitrary out-of-range conversions.
 
 `TranscriptRouteModel.v` now formalizes the two-gate contract suggested by the
 supplied source text: the contract requires a modeled upper route to leave the
@@ -96,8 +108,23 @@ area-2/area-3 warp, invalid target provenance, invalid controller/trigger
 lifecycle, coherent save-reload mutation, and projection mismatch; it also
 retains only a bounded static subcase of the parallel-universe exclusion.  The
 ordinary/static, platform, moving-object, clip, general coordinate-alias, and
-normal reload/entry writer classes remain open.  In particular,
-`FirstTargetCutClassificationObligation` is still unproved.
+normal reload/entry writer classes remain open.  It now proves the direction
+needed by the target-bit theorem: under route/event alignment, a newly set Act
+3 bit reaches the Act 3 cut and a newly set Act 6 bit reaches the upper-trigger
+cut.  `evidence_bearing_route_cut_blocks_new_target_bits` consequently blocks
+both bits when the evidence-bearing classifier and all six open writer-family
+exclusions are supplied.  Constructing those premises from a linked US or JP
+run remains open; the older payload-free
+`FirstTargetCutClassificationObligation` is also still unproved.
+
+`JPSlotLifetime.v` checks the JP allocation/unload source anchors, the
+free-list push/pop shapes, and the loop/literal/write syntax for clearing 80
+raw words, plus the
+50 packed Area-2 macro records.  It proves a finite LIFO recurrence and the
+clean upper-entry live/inactive/reused slot trichotomy.  The exact reachable
+allocation count and linked Clight memory trace at the first Area-2 platform
+apply remain explicit obligations, so this does not prove retention, reuse, or
+a three-dimensional payload.
 
 The current endpoint certificate and handwritten clean-state model are too
 permissive to establish route exhaustiveness: they admit arbitrary motion, and
@@ -113,8 +140,12 @@ counterexample, not a stock-controller-reachable game counterexample.
 
 The arithmetic model rules out one coordinate satisfying both warp contact and
 top-height platform proximity, and rules out a Y-preserving stock-yaw
-bootstrap.  Proving that the stock Clight execution supplies those premises
-still requires matrix-helper and transformed-surface refinement.  A broader
+bootstrap.  The matrix and surface-loader bodies, concrete CompCert casts,
+partition cells, parsed-to-manual zero-yaw home-face link, and hand-mirrored
+transform/edge tests are now checked.  Proving that a stock execution supplies
+the premises still requires linked live-memory execution, surface
+ownership/list order, and actual `find_floor` selection.  The exact three
+concrete retail conversions have been checked separately.  A broader
 conditional setup remains open in which collision samples Mario's old object
 at node `0x1E` while a separate three-dimensional writer moves MarioState to a
 PU top candidate before geometry and final platform selection.  That
@@ -138,5 +169,11 @@ geometry or as a complete ROM theorem.  See the
 [archived-proof evidence map](less-than-one-a-press/docs/archived-proof-evidence.md)
 and [route-exhaustiveness analysis](less-than-one-a-press/docs/route-exhaustiveness.md)
 and [pyramid-top PU audit](less-than-one-a-press/docs/pyramid-top-pu.md) for
-the exact boundary.  None of the six archived projects closes the
-whole-program Layer A refinement or any Layer B obligation.
+the exact boundary.  The narrower
+[surface-refinement](less-than-one-a-press/docs/pyramid-top-surface-refinement.md)
+and [JP slot-lifetime](less-than-one-a-press/docs/jp-slot-lifetime.md) notes
+record the newest checked kernels; the
+[retail cast receipt](less-than-one-a-press/docs/retail-find-floor-cast.md)
+records the authenticated instructions and exact three-input arithmetic.
+None of the six archived projects closes the whole-program Layer A refinement
+or any Layer B obligation.

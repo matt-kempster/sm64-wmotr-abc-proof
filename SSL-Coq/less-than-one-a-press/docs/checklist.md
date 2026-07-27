@@ -2,10 +2,11 @@
 
 - [x] Exact decomp commit pinned.
 - [x] US and JP macros generated separately.
-- [x] Generate 27 translation units per version (54 Clight modules), including
+- [x] Generate 29 translation units per version (58 Clight modules), including
   the Mario action units (with `mario_actions_cutscene`), movement code,
-  `mario_step`, `obj_behaviors_2`, `surface_collision`, and a wrapper for the
-  route-relevant SSL static and dynamic collision arrays.
+  `mario_step`, `obj_behaviors_2`, `math_util`, `surface_collision`,
+  `surface_load`, and a wrapper for the route-relevant SSL static and dynamic
+  collision arrays.
 - [x] Check generated no-spin-airborne entry call shape, collision initializer
   lengths, and exact US/JP equality for the imported route-relevant collision
   arrays.
@@ -60,8 +61,26 @@
   vertices and six triangles, and prove the modeled same-sample contradiction
   plus conditional Y-preserving stock-yaw exclusion.  Also record the
   admission-free two-sample coordinate/alias model, which requires a
-  three-dimensional writer and proves neither dynamic-surface selection nor
-  reachability.
+  three-dimensional writer, and prove the 385-unit upward lower bound for an
+  upper-warp overlap followed by a height-at-least-1281 numeric floor query
+  whose post-copy Y remains in signed-16 range.  These results
+  prove neither dynamic-surface selection nor reachability.
+- [x] Import the complete `math_util.c` and `surface_load.c` Clight bodies and
+  check the concrete CompCert signed-short sample and partition cells.  Link the
+  selected zero-yaw home face to the parsed generated mesh, evaluate manually
+  mirrored transform/edge formulas, and check a guarded dynamic-floor
+  assignment shape.  Authenticated US/JP retail disassembly plus Rocq fragment
+  arithmetic verifies the same concrete casts.  Keep generated-expression
+  extraction, linked live-surface memory, list order, and actual `find_floor`
+  selection open.
+- [x] Prove that aligned newly set Act 3 and Act 6 bits reach the matching
+  target-region route cuts, and prove
+  `evidence_bearing_route_cut_blocks_new_target_bits` under the explicit
+  evidence-bearing classifier and six writer-family exclusions.
+- [x] Check JP allocation/unload/free-list source anchors, prove the 50-record
+  Area-2 macro bound, finite LIFO recurrence, and Before/At/After allocation
+  count split.  Keep the exact first-Area-2-apply memory trace and payload as a
+  named obligation.
 - [x] Record the authentic-JP boundary-fixture constructor: the exact stale
   top raw transform payload, a zero-A input schedule, platform displacement out
   of the shaft, upper-trigger consumption with no Act 3 overlap or Act 6 star
@@ -92,9 +111,12 @@
 - [ ] Replace the legacy integer pole subcase with current Float32,
   collision-phase reasoning plus a complete lower-route case split.
 - [ ] Prove which JP raw-platform cases are reachable and bound every reachable
-  spawning displacement.  Refine the Y-preserving stock-yaw arithmetic
-  exclusion through matrix helpers and dynamic surfaces.  Prove or refute a
-  reachable three-dimensional State/Object phase split, its JP delayed-warp
+  spawning displacement.  Execute the imported matrix/surface helpers over live
+  Clight memory, extract the mirrored expressions from generated Clight, and
+  prove actual surface ownership/list selection.  Extract the exact JP
+  allocation/free trace, identify the first destination-area apply, and tie its
+  concrete pointer/payload to the abstract slot/epoch.  Prove or refute
+  a reachable three-dimensional State/Object phase split, its JP delayed-warp
   pointer retention/recapture, the US spawn-clear Clight effect, and the
   remaining warp-to-top, top-to-warp, and collision-preserving clone
   possibilities.

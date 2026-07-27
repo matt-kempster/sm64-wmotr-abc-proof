@@ -109,8 +109,18 @@ collision.
 `CollisionMeshFacts.v` now checks the complete 39-word US and JP top-collision
 initializers, parses the five vertices and six triangle-index triples from
 those words, and proves that the parsed vertex Y values have minimum `-255`.
-It does not yet construct transformed dynamic `Surface` records or prove what
-`find_floor` selects.
+`PyramidTopSurface.v` goes one step further against newly generated
+`math_util.c` and `surface_load.c` units.  It checks that the matrix and
+surface-construction functions are internal, evaluates the exact CompCert
+signed-short casts and partition cells for the phase-split sample, and connects
+face `(1,4,3)` and its zero-yaw home vertices to the parsed generated mesh.  It
+then evaluates manually mirrored binary32 transform and signed-edge formulas
+and checks that both generated `find_floor` bodies contain the guarded
+dynamic-floor assignment shape.  That recognizer establishes existence of the
+guarded assignment only, not assignment exclusivity or the complete height
+update.  The module does not yet extract the transform/edge expressions from
+generated Clight, execute them over live object/surface memory, prove
+partition-list ownership/order, or prove what `find_floor` actually selects.
 
 `ClightFacts.v` now proves syntax/call-order facts for both versions:
 
@@ -175,10 +185,23 @@ the displacement code does not add its Y velocity.  Under the explicitly
 modeled yaw-preserves-Y and floor-bound premises,
 `stock_yaw_only_top_cannot_seed_upper_warp_bridge` proves that a synchronized
 node-`0x1E` sample cannot become an admissible top-height floor query.  The
-generated AST supplies supporting source-shape facts, but matrix-helper,
-initial-angle, dynamic-surface, and Clight execution refinements remain open.
+matrix and dynamic-surface helper bodies, parsed zero-yaw home-face link, and
+mirrored arithmetic are now checked as described above.
+Generated-expression extraction, initial-angle/state refinement, linked
+live-memory execution, surface ownership/list order, and actual floor selection
+remain open.
 Thus the arithmetic makes a huge X/Z search pointless for the narrow
 yaw-preserving stock model; it is not yet a retail US/JP impossibility theorem.
+
+The pinned stock payload also has zero X/Z velocity, a pivot X in
+`[-2087,-2007]`, pivot Z `-1023`, and no pitch or roll.  Consequently an
+upper-warp-overlapping synchronized sample is within about 228 horizontal
+units of that pivot, while the concrete PU candidate is at least 65,495 units
+away.  Exact-real yaw preserves the pivot radius.  A linked theorem still has
+to bound the generated binary32 sine-table and multiply/add rounding before
+this horizontal margin is advertised as a completed Rocq execution theorem.
+It applies only to stock lineage or an inactive, unreused payload; a reused
+slot can contain a different pivot, velocity, pitch, or roll.
 
 ### Phase-separated countermodel
 
@@ -198,10 +221,16 @@ signed16(63488) = -2048
 ```
 
 Relative to the top home position, the wrapped X/Z point is `(-1,-1)`.
-The Rocq model checks the generated triangle `(1,4,3)`, an exact scaled edge
-witness for local point `(-1,255,-1)`, world Y `1791`, signed-16 aliasing, and
-the 78-unit numeric floor-query test.  It does **not** prove that a loaded
-dynamic surface owns the sample or that `find_floor` selects that triangle.
+The Rocq model links triangle `(1,4,3)` and its zero-yaw vertices to the
+generated mesh, checks the concrete CompCert casts and partition cells, and
+evaluates all three manually mirrored transformed-face edge tests, world Y
+`1791`, and the 78-unit numeric floor-query test.  Authenticated US/JP retail
+disassembly identifies the byte-identical `trunc.w.s; mfc1; sh; lh` fragments,
+and `concrete_retail_cast_fragment_arithmetic` verifies their exact
+three-input value arithmetic; see
+[`retail-find-floor-cast.md`](retail-find-floor-cast.md).  It does **not** prove
+that a loaded dynamic surface owns the sample or that `find_floor` selects that
+triangle.
 The old object sample overlaps the handwritten full-float warp predicate; the
 new State and copied-object sample satisfies the handwritten proximity and
 alias arithmetic.
@@ -215,25 +244,34 @@ stale-slot, ROM, or Clight execution.
 `phase_split_candidate_requires_vertical_displacement` proves that this
 candidate needs a Y change of `1023`.  Therefore a signed-16 X/Z alias alone
 does not realize this candidate, and a Y-preserving stock-yaw transform cannot
-supply the missing writer.  A stale or reused slot with different pitch, roll,
-or transform data is outside the conditional arithmetic theorem.
+supply the missing writer.  The more general
+`upper_warp_to_live_top_query_requires_385_y_units` theorem proves that any
+post-copy sample still in signed-16 Y range needs at least 385 units of upward
+State displacement to turn an upper-warp overlap into an admissible numeric
+floor query at height 1281 or above.  Despite its historical name, this theorem
+does not establish a live, owned, or selected top surface.  A stale or reused
+slot with different pitch, roll, or transform data is outside the conditional
+stock-yaw theorem, but its concrete payload
+must meet this quantitative bound.
 
 ## What remains open
 
-The countermodel does not prove a route.  A complete witness still needs:
+The concrete retail cast is now verified.  A complete route witness still
+needs:
 
-1. a Clight/compiled refinement for the signed-16 conversion on the exact
-   out-of-range values;
-2. specifications/refinement for the external matrix helpers and `sqrtf`;
-3. a gameplay-reachable writer that creates the required three-dimensional
+1. generated-expression extraction and a linked Clight memory execution for
+   the now-imported matrix and surface
+   helpers, including live surface ownership/list order and actual
+   `find_floor` selection (`sqrtf` remains external where relevant);
+2. a gameplay-reachable writer that creates the required three-dimensional
    State/Object split while the top collision is loaded;
-4. confirmation that wall/geometry processing preserves the candidate sample;
-5. a multi-frame trace retaining or recapturing a valid top/surface allocation
+3. confirmation that wall/geometry processing preserves the candidate sample;
+4. a multi-frame trace retaining or recapturing a valid top/surface allocation
    epoch through the `ACT_DISAPPEARED` countdown and delayed object warp; and
-6. the exact Area-2 continuation to a target region and, ultimately, a newly
+5. the exact Area-2 continuation to a target region and, ultimately, a newly
    set target save bit.
 
-`delayed_warp_top_lifetime_obligation` names item 5 with exact sampled phases:
+`delayed_warp_top_lifetime_obligation` names item 4 with exact sampled phases:
 the collision frame ends with action argument `1`; the trigger frame ends after
 the same-frame timer decrement at `19`; the remaining timer decrements occur
 after object updates; two `PLAY_MODE_CHANGE_AREA` frames run without object
@@ -248,6 +286,18 @@ effect remains a refinement obligation.  The JP trace predicate likewise
 awaits derivation from Clight, so one successful collision frame is
 insufficient.
 
+`JPSlotLifetime.v` narrows the JP subproblem without claiming that result.  It
+checks the load/spawn/allocation/unload/free-list source anchors, confirms
+the loop/literal/indexed-write syntax for an 80-word allocation clear and 50
+packed Area-2 macro records, and proves the corresponding finite LIFO and
+Before/At/After allocation-count case split.  Respawn filtering,
+SpawnInfo/terrain/first-update allocations, the
+exact reachable count, the concrete watched slot/payload, and the linked memory
+loads at a reachable clean JP upper platform apply remain
+`JPCleanUpperPlatformApplyMemoryRefinementObligation`, given an explicit
+proved-first control-point witness.  Constructing that witness from the
+Area-1 delayed warp and Area-2 source order is separately pending.
+
 The prior same-sample
 `UpperWarpTopCoincidenceMechanism` evidence in `FirstTargetRefinement.v` does
 not encode this phase split.  Future route evidence must carry separate
@@ -258,7 +308,14 @@ Thus the current result is:
 
 - the same-sample contradiction and Y-preserving stock-transform exclusion are
   proved in the arithmetic model;
-- their matrix, dynamic-surface, and Clight execution refinements remain open;
+- the relevant generated matrix/surface bodies and concrete CompCert casts are
+  checked; the zero-yaw face is linked to the parsed mesh, and mirrored
+  transform/edge arithmetic evaluates;
+- authenticated retail US/JP disassembly and Rocq fragment arithmetic verify
+  the same three concrete cast results;
+- generated-expression extraction, linked live-memory execution,
+  dynamic-surface ownership/list order, and actual `find_floor` selection remain
+  open;
 - a three-dimensional stale/reused-slot realization is neither constructed nor
   ruled out;
 - no stock-reachable counterexample has been found; and

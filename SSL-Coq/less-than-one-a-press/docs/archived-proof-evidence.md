@@ -26,11 +26,12 @@ the current finite-width input semantics, narrow route subcase lemmas, and a
 revision-neutral CompCert memory-separation lemma. No archived generated module
 is imported.
 
-The current generator now translates 27 units for each target version (54
+The current generator now translates 29 units for each target version (58
 generated modules total), including the Mario action files,
 `mario_actions_cutscene.c`, `mario_step.c`, `obj_behaviors_2.c`,
-`surface_collision.c`, and a wrapper importing the route-relevant SSL static
-and dynamic collision arrays. The integration kernel is a checked evidence
+`math_util.c`, `surface_collision.c`, `surface_load.c`, and a wrapper importing
+the route-relevant SSL static and dynamic collision arrays. The integration
+kernel is a checked evidence
 bundle, not a linked-Clight-to-`CertifiedExecution` bridge and not a proof of
 any entrance reachability obligation.
 

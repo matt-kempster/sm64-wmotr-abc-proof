@@ -10,15 +10,20 @@
     - reachability/lifetime, which is not proved here.
 
     The integer coordinates below are exactly representable in binary32.
-    The generated-AST checks live in [ClightFacts].  Connecting this arithmetic
-    kernel to all Clight memory states, the matrix helper externals, and the
-    target MIPS out-of-range conversion remains an explicit refinement
-    obligation. *)
+    The generated-AST checks live in [ClightFacts].  Authenticated US/JP retail
+    disassembly and the arithmetic in [PyramidTopSurface] close the exact
+    [trunc.w.s; mfc1; sh; lh] results for the three concrete inputs; they do not
+    establish a general out-of-range compiler theorem.  Connecting the
+    hand-mirrored transform/edge arithmetic to linked Clight memory execution
+    and actual [find_floor] surface selection remains open.  The relevant
+    matrix and dynamic-surface helper bodies are now generated in
+    [PyramidTopSurface]. *)
 
 From Coq Require Import List ZArith Lia.
 From compcert Require Import Floats Integers.
 From LessThanOneAPress.Proofs Require Import
-  ClightFacts CollisionMeshFacts GameTypes CollisionRegions.
+  ClightFacts CollisionMeshFacts GameTypes CollisionRegions
+  PyramidTopSurface.
 
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -208,14 +213,39 @@ Proof.
   lia.
 Qed.
 
+(** Quantitative form of the phase-split residual.  Once the post-copy Y
+    coordinate is still in the signed-16 range, a full-coordinate upper-warp
+    overlap followed by an accepted numeric floor query at height 1281 or
+    above requires at least 385 units of upward State displacement.  The
+    historical theorem name does not assert a live, owned, or selected top
+    surface.  Nor does the theorem assert that such a writer is reachable; it
+    states the narrow lower bound that a reused-slot payload would have to
+    meet. *)
+Theorem upper_warp_to_live_top_query_requires_385_y_units :
+  forall before after floor_y,
+    upper_warp_contact before ->
+    -32768 <= position_y after < 32768 ->
+    pyramid_top_floor_min_y <= floor_y ->
+    floor_query_can_return after floor_y ->
+    384 < position_y after - position_y before.
+Proof.
+  intros before after floor_y Hwarp Hafter_range Hfloor Hquery.
+  pose proof (upper_warp_contact_y_bounds before Hwarp) as Hbefore.
+  unfold floor_query_can_return in Hquery.
+  rewrite signed16_in_range in Hquery by exact Hafter_range.
+  unfold pyramid_top_floor_min_y, find_floor_upward_buffer in *.
+  lia.
+Qed.
+
 Definition yaw_only_state_displacement
     (before after : PositionZ) : Prop :=
   position_y after = position_y before.
 
 (** Arithmetic exclusion under the explicit premise that displacement
     preserves Y.  [ClightFacts] checks the stock top's yaw-only source shape,
-    but connecting the external matrix helpers to this premise remains an
-    execution-refinement obligation. *)
+    and [PyramidTopSurface] imports the concrete matrix-helper bodies and checks
+    the concrete home transform.  Connecting their linked Clight memory
+    execution to this premise remains an execution-refinement obligation. *)
 Theorem stock_yaw_only_top_cannot_seed_upper_warp_bridge :
   forall before after floor_y,
     upper_warp_contact before ->
@@ -289,7 +319,9 @@ Proof. vm_compute. repeat split; reflexivity. Qed.
 
 (** The candidate local point [-1,255,-1] lies on the edge from generated
     vertex 4 [-511,-255,-511] to vertex 3 [0,256,0] of generated triangle
-    [1,4,3].  The scale 511 avoids introducing mathematical reals. *)
+    [1,4,3].  The scale 511 avoids introducing mathematical reals.  This is
+    source-parsed, manually mirrored arithmetic, not extracted Clight
+    transform or edge-test execution. *)
 Definition pyramid_top_negative_z_edge_witness : Prop :=
   pyramid_top_negative_z_edge_claim
     pyramid_top_triangles pyramid_top_vertices /\
@@ -590,6 +622,12 @@ Definition pyramid_top_pu_arithmetic_claim : Prop :=
       False) /\
   (forall before after floor_y,
       upper_warp_contact before ->
+      -32768 <= position_y after < 32768 ->
+      pyramid_top_floor_min_y <= floor_y ->
+      floor_query_can_return after floor_y ->
+      384 < position_y after - position_y before) /\
+  (forall before after floor_y,
+      upper_warp_contact before ->
       yaw_only_state_displacement before after ->
       pyramid_top_floor_min_y <= floor_y ->
       ~ floor_query_can_return after floor_y) /\
@@ -608,26 +646,30 @@ Proof.
   split.
   - exact one_coordinate_cannot_contact_warp_and_capture_live_top.
   - split.
-    + exact stock_yaw_only_top_cannot_seed_upper_warp_bridge.
+    + exact upper_warp_to_live_top_query_requires_385_y_units.
     + split.
-      * exact (proj1 phase_split_countermodel_exists).
+      * exact stock_yaw_only_top_cannot_seed_upper_warp_bridge.
       * split.
-        -- exact pu_top_candidate_is_a_capture_sample.
+        -- exact (proj1 phase_split_countermodel_exists).
         -- split.
-           ++ exact pu_top_candidate_is_not_a_full_float_warp_contact.
-           ++ exact pu_top_candidate_alias_floor_arithmetic.
+           ++ exact pu_top_candidate_is_a_capture_sample.
+           ++ split.
+              ** exact pu_top_candidate_is_not_a_full_float_warp_contact.
+              ** exact pu_top_candidate_alias_floor_arithmetic.
 Qed.
 
 (** Checked bundle, deliberately not a refinement theorem: the exact packed
-    LevelScript records, parsed US/JP mesh words, and handwritten integer
-    arithmetic kernel all hold side by side.  The missing
-    theorem is what connects those source anchors to a Clight execution and
-    dynamic-surface selection. *)
+    LevelScript records, parsed US/JP mesh words, concrete Clight/retail cast
+    values, helper-body and guarded-assignment source shapes, and manually
+    mirrored transform/edge/integer arithmetic all hold side by side.  The
+    missing theorem is what connects those source anchors to one linked Clight
+    memory execution and actual live dynamic-surface selection. *)
 Theorem pyramid_top_pu_checked_bundle :
   ssl_pu_level_script_claim /\
   pyramid_top_pu_modeled_source_constants /\
   pyramid_top_source_mesh_claim /\
   pyramid_top_source_edge_claim /\
+  pyramid_top_surface_semantic_claim /\
   pyramid_top_pu_arithmetic_claim.
 Proof.
   split.
@@ -638,5 +680,7 @@ Proof.
       * exact pyramid_top_source_mesh_checked.
       * split.
         -- exact pyramid_top_source_edge_checked.
-        -- exact pyramid_top_pu_arithmetic_kernel.
+        -- split.
+           ++ exact pyramid_top_surface_semantic_kernel.
+           ++ exact pyramid_top_pu_arithmetic_kernel.
 Qed.

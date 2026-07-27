@@ -4,10 +4,11 @@
 
 - Reproducible US/JP Clight AST source-shape facts listed in
   `proofs/ClightFacts.v`, over
-  27 pinned translation units per version (54 generated modules).  The units
+  29 pinned translation units per version (58 generated modules).  The units
   cover Mario airborne, automatic, cutscene, moving, object, and stationary
-  actions, `mario_step`, `obj_behaviors_2`, and `surface_collision`, plus the
-  route-relevant SSL static and dynamic collision arrays.
+  actions, `mario_step`, `obj_behaviors_2`, `math_util`,
+  `surface_collision`, and `surface_load`, plus the route-relevant SSL static
+  and dynamic collision arrays.
 - Generated source-shape facts show that the no-spin airborne entry handler
   calls `launch_mario_until_land` with binary32 zero, and that helper calls
   `mario_set_forward_vel` and `perform_air_step`.  These are call/constant
@@ -22,8 +23,21 @@
   the handwritten Area-1 upper-warp predicate and satisfy the modeled
   top-height platform predicate.  Under explicit Y-preservation and floor-bound
   premises, the numeric floor query cannot succeed.  It separately proves a
-  two-sample coordinate/alias model requiring a 1023-unit Y writer.  It is not
-  a stale-slot, dynamic-surface, Clight, or reachable execution theorem.
+  two-sample coordinate/alias model requiring a 1023-unit Y writer, and a
+  general signed-16-range lower bound of 385 upward units between upper-warp
+  overlap and an admissible numeric floor query at height 1281 or above.  It
+  is not a stale-slot,
+  dynamic-surface, Clight, or reachable execution theorem.
+- `PyramidTopSurface.v` proves that the generated US/JP `find_floor` bodies
+  have the exact signed-short cast prefix, evaluates the concrete CompCert
+  casts and partition cells, and connects the parsed generated mesh to the
+  selected zero-yaw home face.  It evaluates manually mirrored transform/edge
+  formulas, checks a guarded dynamic-floor assignment source shape, and
+  confirms the matrix/surface helper bodies are internal.  Authenticated
+  US/JP retail disassembly plus Rocq fragment arithmetic verifies the same
+  three concrete cast results.  It does not prove generated-expression
+  extraction, linked live-memory execution, surface ownership/list order, or
+  actual `find_floor` selection.
 - Finite-width, edge-triggered input definition allows A to be initially held.
 - `CleanPyramidEntry` fixes the lower/upper airborne entry snapshot, coherent
   active/backup target bits, the static Act 3 identity/position, and five
@@ -77,6 +91,11 @@
   trigger/controller lifecycle, coherent target mutation by save reload, and
   certificate projection mismatch cannot be the bypass.  It also closes only
   the bounded static quarter-step coordinate-alias subcase.
+- Under `ClightRouteTraceProjection`, a newly set Act 3 bit implies the Act 3
+  route cut and a newly set Act 6 bit implies the upper-trigger route cut.
+  `evidence_bearing_route_cut_blocks_new_target_bits` blocks both bits when the
+  evidence-bearing classifier and the six open writer-family exclusions are
+  supplied.  The implication is proved; those retail-program premises are not.
 - The abstract `gMarioPlatform` model uses a pool slot plus a ghost capture
   epoch.  For a non-null pointer satisfying its slot-well-formedness premise,
   the live-same-epoch,
@@ -86,6 +105,12 @@
   path requires an object-owned upper-warp floor, an actual predecessor Clight
   segment, pointer capture, unload retention, and optional fresh slot reuse.
   It preserves the possible path rather than proving it reachable or harmless.
+- `JPSlotLifetime.v` checks the JP load/spawn/allocation/unload/free-list source
+  anchors, including the loop/literal/indexed-zero-write shape for an 80-word
+  allocation clear, and the 50-record Area-2 macro bound.  It proves the finite
+  LIFO depth and Before/At/After allocation-count
+  split plus the clean upper-entry live/inactive/reused classification.  These
+  are staged source/list theorems, not the missing reachable memory trace.
 - `ModelGapAudit.v` proves that the current endpoint-only abstract certificate
   accepts arbitrary motion and synthetic immediate Act 3 collection from
   explicit clean US/JP entries.  This is a model counterexample, not a retail
@@ -118,10 +143,16 @@
 - Reachability classification and displacement bounds for every null, live,
   inactive, or reused JP platform-slot case.
 - Stock reachability or impossibility of the stale pyramid-top upper-entry
-  displacement.  The Y-preserving stock-yaw arithmetic case is excluded, but
-  its matrix/dynamic-surface/Clight refinement and a three-dimensional
+  displacement.  The Y-preserving stock-yaw arithmetic case is excluded and
+  the relevant matrix/surface bodies, parsed zero-yaw home-face link, and
+  manually mirrored arithmetic are checked.  The exact concrete retail cast is
+  also verified.  Generated-expression extraction, linked live-memory
+  execution, dynamic-surface ownership/list selection, and a three-dimensional
   stale/reused-slot phase split with JP delayed node-`0x1E` pointer lifetime
-  remain open.  The US state model blocks same-epoch retention after a
+  remain open.  The exact destination-area allocation/free trace, first-apply
+  identification, and payload are also open despite the finite LIFO
+  classification.  The US state model
+  blocks same-epoch retention after a
   successful spawn clear, whose Clight memory effect is still pending.  An
   authentic-JP boundary
   fixture with the raw payload moves Mario outside the shaft and consumes the

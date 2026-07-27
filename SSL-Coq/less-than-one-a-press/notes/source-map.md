@@ -2,8 +2,8 @@
 
 All rows are translated twice, once with `VERSION_US` and once with
 `VERSION_JP`, from decomp commit
-`9921382a68bb0c865e5e45eb594d9c64db59b1af`.  There are 27 translation
-units per version and therefore 54 generated Clight modules.
+`9921382a68bb0c865e5e45eb594d9c64db59b1af`.  There are 29 translation
+units per version and therefore 58 generated Clight modules.
 
 Each row is a whole translation unit: every function/global retained by the
 preprocessor is translated, not only the functions named below.  The
@@ -37,7 +37,9 @@ base-insensitive and direct-callee/literal checks are path-insensitive.
 | `src/game/area.c` | `*_area.v` | direct `unload_area`/`load_area` call order in `change_area`; lifecycle execution is pending |
 | `src/game/level_update.c` | `*_level_update.v` | direct `change_area` occurrence in `check_instant_warp`, game-over reload call, airborne entry-action constant/call source shape, and normal-update/delayed-object-warp ordering |
 | `src/game/platform_displacement.c` | `*_platform_displacement.v` | `gMarioPlatform`/validation-field identifier occurrences, State position writes, object-position reads for final selection, X/Z-but-not-Y velocity slot reads, direct displacement/floor calls, and global assignment shape; pointer/matrix dataflow is pending |
-| `src/engine/surface_collision.c` | `*_surface_collision.v` | `find_floor` binary32-to-signed-16 cast shape and 78-unit floor buffer, plus the floor/surface query implementation used by Mario stepping and platform recomputation; compiled-cast and execution refinement remain pending |
+| `src/engine/math_util.c` | `*_math_util.v` | full `mtxf_rotate_zxy_and_translate` body and `gSineTable` initializer; the linked memory execution that constructs the platform matrix remains pending |
+| `src/engine/surface_collision.c` | `*_surface_collision.v` | `find_floor` binary32-to-signed-16 cast shape and 78-unit floor buffer, plus the floor/surface query implementation used by Mario stepping and platform recomputation; the concrete CompCert result and matching authenticated US/JP retail instruction fragment are checked, while linked execution and actual surface-selection refinements remain pending |
+| `src/engine/surface_load.c` | `*_surface_load.v` | surface allocation/insertion, object-vertex transformation, object-surface loading, normal construction, and collision-model loading; live object/surface memory execution and list ownership/order remain pending |
 | `src/game/macro_special_objects.c` | `*_macro_special_objects.v` | spawn call and respawn-field assignment occurrences; persistence semantics are pending |
 | `levels/ssl/script.c` | `*_ssl_script.v` | raw initializer tuples for lower/upper airborne entry objects, the area-2 static star, hidden controller, and instant-warp declarations; exact packed records for the Area-1 node-`0x1E` warp and stock pyramid top, with checked coordinate/behavior-byte arithmetic |
 | `levels/ssl/areas/2/macro.inc.c` via `inputs/ssl_area2_macro.c` | `*_ssl_area2_macro.v` | raw initializer tuples for five Puzzle trigger records/coordinates; the abstract state now assigns exact kinds/references/positions, while their concrete spawn-memory projection remains pending |
@@ -50,16 +52,27 @@ parsed top mesh alongside a handwritten integer arithmetic kernel; its three
 binary32 comparison lemmas are checked separately.  The bundle deliberately
 does not connect them by an execution refinement.  It
 proves a same-sample contradiction and a conditional Y-preserving stock-yaw
-exclusion, plus a two-sample coordinate/alias model with a generated
-triangle-edge arithmetic witness.  It does not claim a stale slot, live
-surface selection, or Clight step.  The translation leaves the matrix helpers
-and `sqrtf` external, and out-of-range C-to-signed-16 conversion needs a
-compiled-behavior refinement.  Generated files use `AVOID_UB=1` for the missing
+exclusion, plus a two-sample coordinate/alias model with a manually mirrored
+triangle-edge arithmetic witness linked to the parsed generated mesh.
+`proofs/PyramidTopSurface.v` now imports the
+previously missing rotation and dynamic-surface helper bodies, proves the
+concrete CompCert short-cast result, links the chosen zero-yaw home vertices to
+the parsed generated mesh, and evaluates manually mirrored finite-width
+cell/edge/transform arithmetic.  Authenticated US/JP retail disassembly plus
+Rocq fragment arithmetic verifies the same three concrete cast results.
+The dynamic recognizer finds a guarded assignment source shape only; it does
+not prove exclusivity or full floor/height update semantics.  The kernel does
+not claim a stale slot, live surface selection, or Clight step; extracting the
+full edge/transform expressions from Clight and executing them over memory
+remain open.  `sqrtf` remains external.  Generated files use `AVOID_UB=1` for the missing
 hitbox return; the direct JP target audit and identical US/JP preprocessed-unit
 hash are documented evidence, not a Rocq target-code refinement.  Gameplay
 reachability and pointer retention/recapture through the delayed node-`0x1E`
 warp also remain open.  See
-[`../docs/pyramid-top-pu.md`](../docs/pyramid-top-pu.md).
+[`../docs/pyramid-top-pu.md`](../docs/pyramid-top-pu.md) and
+[`../docs/pyramid-top-surface-refinement.md`](../docs/pyramid-top-surface-refinement.md);
+the target-code receipt is
+[`../docs/retail-find-floor-cast.md`](../docs/retail-find-floor-cast.md).
 
 ## Archive-derived integration boundary
 

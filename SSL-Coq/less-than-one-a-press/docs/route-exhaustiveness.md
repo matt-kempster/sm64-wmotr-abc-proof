@@ -33,8 +33,16 @@ Y-preserving stock-yaw arithmetic model cannot bootstrap the setup**: warp
 contact has Mario Y at most `818`, the modeled top-floor bound is `1281`, the
 platform tolerance is strictly less than four, and the floor query permits
 only 78 units above its query Y.  Exact packed LevelScript records and parsed
-top vertices/triangles are checked for US and JP, but the matrix and
-dynamic-surface Clight refinement that derives those premises remains open.
+top vertices/triangles are checked for US and JP.
+`PyramidTopSurface.v` now also imports the matrix/surface-loader bodies and
+checks the concrete CompCert casts and partition cells, connects the selected
+zero-yaw home face to the parsed generated mesh, and evaluates manually mirrored
+transform/edge formulas.  Authenticated US/JP disassembly plus Rocq fragment
+arithmetic verifies the same concrete retail casts.  Generated-expression
+extraction, linked live-memory execution, dynamic-surface ownership/list order,
+and actual `find_floor` selection remain open.  The dynamic checker finds one
+guarded assignment source shape; it proves neither assignment exclusivity nor
+the complete floor/height update.
 
 That result is not a global stale-slot exclusion.  The source update order can
 sample the old Mario object for warp collision and the displaced MarioState
@@ -59,7 +67,11 @@ unload/reuse trace, raw displacement fields, delayed-warp lifetime, and first
 Area-2 memory before it can be used in the evidence-bearing classifier.  That
 qualification validates the conditional path; it does not define the path
 away or assume its displacement is safe.  See
-[`pyramid-top-pu.md`](pyramid-top-pu.md) for the complete source audit.
+[`pyramid-top-pu.md`](pyramid-top-pu.md),
+[`pyramid-top-surface-refinement.md`](pyramid-top-surface-refinement.md), and
+[`jp-slot-lifetime.md`](jp-slot-lifetime.md) for the complete current boundary.
+The authenticated cast receipt is
+[`retail-find-floor-cast.md`](retail-find-floor-cast.md).
 
 ## Correct cuts
 
@@ -227,17 +239,39 @@ The proved split is:
   contradict;
 - `stock_yaw_only_top_cannot_seed_upper_warp_bridge`: preserving warp-altitude
   Y cannot make the numeric floor query accept the modeled top bound;
+- `pyramid_top_surface_semantic_kernel`: both generated versions contain the
+  needed helper bodies and cast/guarded-assignment source shape; the guarded
+  checker is not an exclusivity/full-update theorem; the concrete casts/cells
+  evaluate, the zero-yaw face is tied to the parsed mesh, and the mirrored
+  transform/edge formulas evaluate without linked Clight execution;
 - `phase_split_countermodel_exists`: a collision sample and a later
   coordinate/alias sample can satisfy the handwritten conditions separately;
   this is not a stale-slot or surface-selection theorem; and
 - `phase_split_candidate_requires_vertical_displacement`: the concrete model
-  needs a Y writer, not just a 65536-unit X alias.
+  needs a Y writer, not just a 65536-unit X alias; and
+- `upper_warp_to_live_top_query_requires_385_y_units`: any post-copy sample
+  still in signed-16 Y range needs at least 385 units of upward State
+  displacement between upper-warp overlap and an accepted numeric floor query
+  at height 1281 or above.  Its historical name does not establish live
+  surface ownership or selection.
 
-This closes only the same-sample arithmetic contradiction and the conditional
-Y-preserving bootstrap.  It leaves the matrix/cast/dynamic-surface Clight
-refinement, three-dimensional writer reachability, and
+This closes only the same-sample arithmetic contradiction, the conditional
+Y-preserving bootstrap, and the concrete CompCert/source arithmetic kernel.  It
+also verifies the exact concrete retail cast.  It leaves generated-expression
+extraction, linked live-memory execution, surface ownership/list selection,
+three-dimensional writer reachability, and
 `delayed_warp_top_lifetime_obligation` open.  It is neither a stock-game
 counterexample nor proof that all alternative upper routes are impossible.
+
+`JPSlotLifetime.v` further checks the JP load/spawn/allocation/unload/free-list
+anchors, the loop/literal/indexed-write syntax for an 80-word allocation clear,
+and the 50-record Area-2 macro input.  Its finite LIFO recurrence and
+Before/At/After allocation-count cases
+do not determine the exact reachable allocation/free trace or payload at the
+relevant clean JP upper platform apply; those loads remain
+`JPCleanUpperPlatformApplyMemoryRefinementObligation`, given an explicit
+proved-first control-point witness.  Constructing that witness from the
+Area-1 delayed warp and Area-2 source order is part of the pending refinement.
 
 ## Emulator search boundary
 
@@ -305,7 +339,8 @@ To prove route exhaustiveness, the project still needs:
    `EvidenceBearingRouteClassificationRefinementObligation`;
 2. a checked parser/refinement from the generated collision arrays to exact
    surface IDs, dynamic owners, and target-side components;
-3. source-backed JP platform-capture and slot-reuse classification;
+3. source-backed JP platform capture plus the exact reachable allocation/free
+   trace, slot reuse, payload loads, and delayed-warp retention/recapture;
 4. unreachability of each remaining movement class under no A edge, exactly
    the content of `NoAOpenRouteWriterClassesUnreachableObligation`; and
 5. a proof that the ordinary elevator/pole A-labelled observations correspond
@@ -315,8 +350,10 @@ To prove route exhaustiveness, the project still needs:
 For the node-`0x1E` candidate, item 3 specifically includes a reachable
 three-dimensional State/Object phase split and multi-frame pointer
 retention/recapture through the delayed warp.  A Y-preserving writer cannot
-realize the concrete 1023-unit-Y candidate; source-level stock-top exclusion
-still needs matrix and dynamic-surface refinement.
+realize the concrete 1023-unit-Y candidate.  The helper bodies and concrete
+zero-yaw home-face link/mirrored arithmetic are checked, and the concrete retail
+cast is verified.  Generated-expression extraction, linked live-surface memory,
+list selection, and the exact JP allocation trace remain open.
 
 Alternatively, a stock-reachable constructor must be recorded with its exact
 clean initial RAM state, controller frames, object/global trace, and target

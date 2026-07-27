@@ -120,6 +120,9 @@ check: proofs
 	  LessThanOneAPress.Proofs.ClightFacts \
 	  stock_pyramid_top_yaw_only_source_shape_jp
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.PyramidTopSurface \
+	  pyramid_top_surface_semantic_kernel
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.PyramidTopPU \
 	  one_coordinate_cannot_contact_warp_and_capture_live_top
 	bash pipeline/assumptions.sh \
@@ -134,6 +137,9 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.PyramidTopPU \
 	  stock_yaw_only_top_cannot_seed_upper_warp_bridge
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.PyramidTopPU \
+	  upper_warp_to_live_top_query_requires_385_y_units
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.PyramidTopPU \
 	  pu_top_candidate_alias_floor_arithmetic
@@ -281,6 +287,9 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.FirstTargetRefinement \
 	  upper_warp_stale_top_conditional_path_is_platform_evidence
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPSlotLifetime \
+	  jp_delayed_warp_slot_boundary_checked
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.ModelGapAudit \
 	  current_certified_motion_accepts_arbitrary_endpoint

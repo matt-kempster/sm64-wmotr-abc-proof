@@ -14,11 +14,11 @@ still require a concrete C-memory projection.  The current endpoint-only
 certificate accepts arbitrary motion and synthetic immediate collection from
 clean abstract entries, so it cannot establish first-cut exhaustiveness.
 
-The current project now generates 27 translation units for each target
-version (54 Clight modules), including Mario action and movement code,
-`mario_actions_cutscene`, `mario_step`, `obj_behaviors_2`,
-`surface_collision`, and a wrapper importing route-relevant SSL static and
-dynamic collision arrays.  It also proves
+The current project now generates 29 translation units for each target
+version (58 Clight modules), including Mario action and movement code,
+`mario_actions_cutscene`, `mario_step`, `obj_behaviors_2`, `math_util`,
+`surface_collision`, `surface_load`, and a wrapper importing route-relevant
+SSL static and dynamic collision arrays.  It also proves
 `archived_proof_integration_kernel_holds`, a current-source-rechecked package
 of the useful boundaries identified by the six archived investigations.  The
 package includes `gMarioPlatform` and object-lifecycle source-shape facts,
@@ -45,7 +45,11 @@ lifecycle, coherent save reload, and projection mismatch; a bounded static
 coordinate-alias subcase is also closed.  Ordinary/static motion, platform
 displacement, moving objects, clips, general coordinate aliasing, and normal
 reload/entry displacement remain open.  Consequently
-`FirstTargetCutClassificationObligation` is still unproved.
+`FirstTargetCutClassificationObligation` is still unproved.  The new
+target-bit bridge nevertheless proves that, under route/event alignment, newly
+setting Act 3 reaches the Act 3 cut and newly setting Act 6 reaches the upper
+trigger cut.  It therefore blocks both bits when the evidence-bearing
+classifier and exclusions for all six open writer families are supplied.
 
 This incorporation does not complete the goal.  The route lemmas lack the
 whole-program writer, Float32 collision, model-completeness, and memory
@@ -62,9 +66,21 @@ established.  `PyramidTopPU.v` proves a same-sample contradiction and,
 conditional on Y preservation and the modeled floor bound, excludes the
 stock-yaw arithmetic bootstrap.  It also proves a two-sample coordinate/alias
 model for the different three-dimensional State-only writer a stale/reused
-slot might realize; it does not construct such a slot or select a live dynamic
-surface.  Reachability, signed-cast/matrix/dynamic-surface Clight refinement,
-and JP pointer retention or recapture through the delayed warp remain open.
+slot might realize, plus a 385-unit upward lower bound from upper-warp overlap
+to an admissible numeric floor query at height 1281 or above when post-copy Y
+remains in signed-16 range; it does not construct such a slot or select a live
+dynamic surface.  Reachability and JP pointer retention or recapture through
+the delayed warp remain open.  The complete matrix and surface-loader bodies are
+now imported, and the concrete CompCert casts and partition cells are checked.
+The chosen zero-yaw home face is linked to the parsed generated mesh, and
+manually mirrored edge/transform arithmetic evaluates as expected.
+Authenticated retail US/JP disassembly plus Rocq fragment arithmetic verifies
+the same three concrete cast results.  What remains is generated-expression
+extraction, linked live-memory execution, surface ownership/list order, and
+actual `find_floor` selection.  A separate JP audit
+checks the free-list source shapes and 50 Area-2 macro records and proves a
+finite LIFO/count case split; it does not extract the exact reachable
+allocation trace or payload.
 The US state model blocks retention after a successful spawn clear, but its
 Clight memory effect remains pending.  Warp-to-top, top-to-warp, and
 collision-preserving clone possibilities also remain.  Source-backed prehistory must
@@ -77,4 +93,7 @@ project-by-project boundary.  The non-specialist explanation is
 [`../human-readable-proof.md`](../human-readable-proof.md), and the route
 coverage question is isolated in
 [`route-exhaustiveness.md`](route-exhaustiveness.md).  The focused newest
-result is documented in [`pyramid-top-pu.md`](pyramid-top-pu.md).
+results are documented in [`pyramid-top-pu.md`](pyramid-top-pu.md),
+[`pyramid-top-surface-refinement.md`](pyramid-top-surface-refinement.md), and
+[`jp-slot-lifetime.md`](jp-slot-lifetime.md).  The retail instruction receipt
+is [`retail-find-floor-cast.md`](retail-find-floor-cast.md).

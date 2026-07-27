@@ -23,7 +23,9 @@ generated/us_behavior_data.v
 generated/us_area.v
 generated/us_level_update.v
 generated/us_platform_displacement.v
+generated/us_math_util.v
 generated/us_surface_collision.v
+generated/us_surface_load.v
 generated/us_macro_special_objects.v
 generated/us_ssl_script.v
 generated/us_ssl_area2_macro.v
@@ -50,7 +52,9 @@ generated/jp_behavior_data.v
 generated/jp_area.v
 generated/jp_level_update.v
 generated/jp_platform_displacement.v
+generated/jp_math_util.v
 generated/jp_surface_collision.v
+generated/jp_surface_load.v
 generated/jp_macro_special_objects.v
 generated/jp_ssl_script.v
 generated/jp_ssl_area2_macro.v
@@ -66,6 +70,7 @@ proofs/RouteEvidence.v
 proofs/TranscriptRouteModel.v
 proofs/ObjectProvenance.v
 proofs/CollisionRegions.v
+proofs/PyramidTopSurface.v
 proofs/PyramidTopPU.v
 proofs/CleanEntry.v
 proofs/AreaTransitions.v
@@ -76,5 +81,6 @@ proofs/LowerEntrance.v
 proofs/UpperEntrance.v
 proofs/ArchivedProofIntegration.v
 proofs/FirstTargetRefinement.v
+proofs/JPSlotLifetime.v
 proofs/ModelGapAudit.v
 proofs/MainTheorem.v
