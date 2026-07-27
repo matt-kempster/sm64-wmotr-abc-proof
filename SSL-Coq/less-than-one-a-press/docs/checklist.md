@@ -83,6 +83,15 @@
 - [x] Prove at the phase boundary that a platform pointer captured from the
   stock top cannot bootstrap node-`0x1E` collision on the next frame when the
   collision pass preserves the prior copied MarioObject sample.
+- [x] Import the breakable-box, exclamation-box-outline, cannon-lid, and
+  wooden-signpost collision meshes and prove their exact generated local bounds
+  for US and JP.  Enumerate the fifteen modeled stock Area-1 dynamic-floor
+  owners and prove every source-bounded completed-query, US spawn-clear,
+  retained-inbound-pointer, or frozen-carry platform origin null at node `0x1E`.
+  Record that `[top, box]` is not a unique schedule: the generic source audit
+  has top-yaw, dirt-triangle, and cartoon-triangle angular classes with
+  depth/mist/zero-allocation/FIFO variants.  Generic controller/free-list
+  lineage is no longer a Layer-B obligation.
 - [x] Prove that aligned newly set Act 3 and Act 6 bits reach the matching
   target-region route cuts, and prove
   `evidence_bearing_route_cut_blocks_new_target_bits` under the explicit
@@ -123,14 +132,17 @@
 - [ ] Prove which JP raw-platform cases are reachable and bound every reachable
   spawning displacement.  Execute the imported matrix/surface helpers over live
   Clight memory, extract the mirrored expressions from generated Clight, and
-  prove actual surface ownership/list selection.  Extract the exact JP
+  prove actual surface ownership/list selection.  Prove
+  `Area1StockPreapplyProjectionSound`, connecting every relevant linked Area-1
+  memory state to the finite owner/pre-apply relation; do not reopen a generic
+  fragment controller-lineage search already made irrelevant by the node-`0x1E`
+  null result.  Extract the exact JP destination-area
   allocation/free trace, identify the first destination-area apply, and tie its
   concrete pointer/payload to the abstract slot/epoch.  Prove or refute
-  whether the now-demonstrated Area-1 fragment payload has a reachable
-  stale-pointer allocation/RNG lineage, its JP delayed-warp pointer
-  retention/recapture, the US spawn-clear Clight effect, and the
-  remaining warp-to-top, top-to-warp, and collision-preserving clone
-  possibilities.
+  JP delayed-warp pointer retention/recapture, the US spawn-clear Clight effect,
+  and whether the remaining warp-to-top, top-to-warp, and
+  collision-preserving-clone possibilities project into the bounded relation or
+  are unreachable.
 - [ ] Project chronological Mario/action/surface observations from Clight and
   prove the transcript route contract complete for both entrances.
 - [ ] Construct `EvidenceBearingFirstTargetCutClassification` from that

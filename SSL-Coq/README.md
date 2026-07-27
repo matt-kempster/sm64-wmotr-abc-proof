@@ -13,7 +13,9 @@ Clight modules total.  The coverage includes the Mario action, movement,
 `surface_load` units, the cutscene action containing
 `ACT_SPAWN_NO_SPIN_AIRBORNE`, and a project wrapper that imports the
 route-relevant SSL static and dynamic collision arrays.  A separate wrapper
-imports the Area-1 macro stream used by the phase-split writer audit.
+imports the Area-1 macro stream used by the phase-split writer audit.  The
+collision wrapper also imports the breakable-box, exclamation-box-outline,
+cannon-lid, and wooden-signpost meshes used by the stock Area-1 owner bounds.
 
 `old-proofs/` contains archived proof attempts.  They are retained for
 historical context, reusable lemmas, and future reference; they are not part of
@@ -127,20 +129,25 @@ allocation count and linked Clight memory trace at the first Area-2 platform
 apply remain explicit obligations, so this does not prove retention, reuse, or
 a three-dimensional payload.
 
-`Area1PhaseSplit.v` settles a narrower Area-1 priority question.  A generic
-three-dimensional writer cannot be excluded: generated fragment code, exact
-Area-1 macro records, and generated sine-table words admit a concrete
-CompCert-binary32 payload that changes MarioState in X/Y/Z and raises Y by
-about 1110.67 units.  `Area1SurfaceWitness.v` checks the corresponding
-signed-short query, parsed top/static face edges, exact binary32 candidate
-heights, and 78-unit floor buffer.  This is a payload-and-geometry capability
-counterexample, not a proved reachable stale-slot trace or actual live-list
-selection.  Independently, a pointer captured from the ordinary pyramid top
-cannot bootstrap the upper warp on the next frame: top capture places the
-copied MarioObject above Y 1277, and the subsequent collision pass still
-samples that Object, while node-`0x1E` overlap requires Y at most 818.  The
-linked Clight phase refinement and allocation/free-list prehistory remain
-open.
+`Area1PhaseSplit.v` proves that stock triangle fragments provide a genuine
+three-dimensional payload, and `Area1SurfaceWitness.v` checks one exact
+binary32/mesh arithmetic candidate.  `[top, box]` is not a unique allocator
+schedule: the source audit identifies three pre-apply angular-payload
+classes—pyramid-top yaw, dirt triangles, and cartoon triangles—with
+free-list-depth, mist-count, zero-allocation, and FIFO-eviction variants.
+
+`Area1PlatformExhaustiveness.v` now proves the route-relevant source-bounded
+result.  Its finite model enumerates fifteen stock Area-1 dynamic-floor owners,
+pairs exact generated local bounds for four newly imported collision meshes
+with conservative world-space envelopes, and proves that a completed final
+query at node `0x1E` cannot return any modeled non-null stock owner.  The
+completed-query, US spawn-clear, retained-inbound-pointer, and frozen-carry
+pre-apply origins consequently all yield a null platform there.
+Thus zero stock route-relevant schedules survive in this model, and generic
+fragment controller/free-list lineage is no longer a Layer-B obligation.
+Proving that every linked Clight memory state projects into this bounded
+owner/origin relation—including derivation of the world-space envelopes and
+live surface ownership/list selection—remains open.
 
 The current endpoint certificate and handwritten clean-state model are too
 permissive to establish route exhaustiveness: they admit arbitrary motion, and
@@ -158,20 +165,19 @@ The arithmetic model rules out one coordinate satisfying both warp contact and
 top-height platform proximity, and rules out a Y-preserving stock-yaw
 bootstrap.  The matrix and surface-loader bodies, concrete CompCert casts,
 partition cells, parsed-to-manual zero-yaw home-face link, and hand-mirrored
-transform/edge tests are now checked.  Proving that a stock execution supplies
-the premises still requires linked live-memory execution, surface
+transform/edge tests are now checked.  The finite Area-1 owner theorem also
+rules out the broader platform-created split for every bounded stock pre-apply
+origin at the old-object node-`0x1E` sample.  Proving that this relation covers
+the linked retail execution still requires live-memory execution, surface
 ownership/list order, and actual `find_floor` selection.  The exact three
-concrete retail conversions have been checked separately.  A broader
-conditional setup remains open in which collision samples Mario's old object
-at node `0x1E` while a separate three-dimensional writer moves MarioState to a
-PU top candidate before geometry and final platform selection.  That
-two-sample model still needs surface selection, gameplay reachability, and
-JP retention or recapture through the delayed warp to Area-2 node `0x14`.
+concrete retail conversions have been checked separately.  JP retention or
+recapture through the delayed warp to Area-2 node `0x14` remains open.
 For US, a small state lemma excludes retaining the same platform epoch after
 the spawn clear; deriving that clear's memory effect from Clight remains open.
 Moving/loading the warp onto the top, moving the top to the warp, and
-collision-preserving cloning are also unresolved.  Source-backed prehistory
-evidence must validate or refute those cases, not assume them away.
+collision-preserving cloning must still be shown to fall inside the bounded
+source relation or be ruled out separately.  Source-backed prehistory evidence
+must validate or refute those cases, not assume them away.
 
 The ultimate less-than-one-A-press impossibility theorem is **not complete**.
 `conditional_less_than_one_a_press_impossibility` requires a concrete

@@ -42,12 +42,14 @@ evaluates to approximately
 `(-2350.8427734375,1878.6683349609375,-714.5823974609375)`: a Y rise of
 about `1110.6683`, above the proved 385-unit necessary bound.  Its exact
 binary32 words are `[3306351996,1156240739,3291653446]`, and the corresponding
-signed-short floor query is `(-2350,1878,-714)`.  In the
-attacked-breakable-box path,
-having more than 210 objects suppresses the preceding mist allocation, so the
-first triangle allocation is a concrete source-backed candidate for reuse of
-a just-freed slot.  This establishes a real primitive and arithmetic
-possibility, not a reachable free-list lineage.
+signed-short floor query is `(-2350,1878,-714)`.
+
+That selected allocator prefix is not unique.  `[top, box]` is only one
+example in a parametric source schedule.  The generic pre-apply angular
+payloads fall into three stock classes: pyramid-top yaw, breakable-box dirt
+triangles, and exclamation-box cartoon triangles.  Free-list depth, the
+`20`/`10`/`0` mist branches, intervening zero-angular allocations, and FIFO
+eviction create variants without creating another angular class.
 The proof also checks the exact Area-1 macro parents and selects the middle
 wing-cap box.  Its action-4 object position is `(-3000,540,800)`, and the
 fragment's extra 100-unit Y offset makes the transform pivot
@@ -67,26 +69,31 @@ numeric candidates only.  The current theorem does not execute the live
 surface lists or prove which face the real `find_floor` traversal owns or
 selects.
 
-That primitive still cannot bootstrap the ordinary node-`0x1E` construction
-from a normal capture of the pyramid top.  A final platform query can record
-the top's slot only while the copied Mario object is within four units of a
-top-owned floor, hence above Y `1277`.  On the following frame, platform
-displacement changes MarioState, but object collision still samples that old
-Mario object.  It therefore cannot overlap the upper warp, whose overlap
-interval ends at Y `818`.  If the top deactivates, its slot is not placed on
-the free list until after that frame's platform apply.  Reuse can occur only
-during a later frame, after `clear_dynamic_surfaces` has removed the old top
-surfaces.  Reuse therefore cannot combine an ordinary top capture, the old
-top-owned surface, and a same-frame node-`0x1E` collision.
+`Area1PlatformExhaustiveness.v` shows why none of those stock schedule variants
+solves the route bootstrap in its source-bounded model.  Its finite inventory
+has fifteen modeled dynamic-floor owners: one top, three Tox Boxes, two large breakables, five
+exclamation boxes, one cannon lid, and three message panels.  The proof imports
+four additional generated meshes—breakable-box, exclamation-box outline,
+cannon lid, and wooden signpost—and checks their exact local bounds.
 
-The admission-free theorems
+Every non-top owner is horizontally disjoint from node `0x1E`.  The top is the
+only owner that overlaps horizontally, but its stock floor is too high for the
+warp collision and platform tolerance.  Static floors have a null object
+owner.  A completed final query at warp overlap must therefore return `None`.
+The bounded pre-apply relation then covers completed final queries, the US
+spawn clear, retained pointers at one of the three in-scope stock inbound
+Area-1 positions, and frozen carry.  `stock_area1_upper_warp_preapply_platform_null` proves that
+all four cases are null at node `0x1E`, so zero stock route-relevant schedules
+survive, regardless of the controller/free-list lineage.
+
+The older admission-free theorems
 `captured_top_epoch_cannot_bootstrap_upper_warp_collision` and
-`captured_top_epoch_cannot_realize_route_relevant_phase_split` state this
-Area-1 bootstrap exclusion at the project's explicit phase/epoch boundary.
-They do not prove that the boundary is reached by every relevant Clight run.
-In particular, they do not exclude a separately moved warp, moved top,
-collision-preserving clone, direct post-query pointer/object writer, or some
-other source of a platform pointer already valid at warp altitude.
+`captured_top_epoch_cannot_realize_route_relevant_phase_split` remain useful
+special cases.  The stronger result still does not prove that every relevant
+Clight memory state projects into the bounded owner/pre-apply relation.
+A separately moved warp, moved top, collision-preserving clone, direct
+post-query pointer/object writer, or other platform source must be connected to
+that relation or excluded separately.
 
 The second response's rendering detail names the wrong write.  The later
 `copy_mario_state_to_object` updates Mario's `oPos*`, not
@@ -321,10 +328,10 @@ needs:
    the now-imported matrix and surface
    helpers, including live surface ownership/list order and actual
    `find_floor` selection (`sqrtf` remains external where relevant);
-2. a linked small-step/free-list execution proving which triangle-fragment
-   allocation, if any, reuses the watched slot, with the exact object-count
-   branch, predecessor allocations, epoch, cleared raw fields, and payload
-   loads at the following platform apply;
+2. a linked small-step proof of `Area1StockPreapplyProjectionSound`, showing
+   that every relevant retail Area-1 platform pointer and final query projects
+   into the fifteen-owner/source-origin relation.  A generic fragment
+   controller/free-list lineage is no longer a separate Layer-B obligation;
 3. confirmation that wall/geometry processing preserves the candidate sample;
 4. a multi-frame trace retaining or recapturing a valid top/surface allocation
    epoch through the `ACT_DISAPPEARED` countdown and delayed object warp; and
@@ -346,16 +353,14 @@ effect remains a refinement obligation.  The JP trace predicate likewise
 awaits derivation from Clight, so one successful collision frame is
 insufficient.
 
-`Area1PhaseSplit.v` closes the ordinary Area-1 top-capture bootstrap in the
-explicit finite phase model.  `area1_fragment_writer_source_checked` checks the
-nonzero triangle-fragment angular fields against the imported source, and
-`concrete_area1_fragment_displacement_is_route_sized_3d` evaluates the concrete
-binary32 three-dimensional displacement.  The remaining refinement must
-execute the allocation/free-list and platform code over live Clight memory,
-prove the object-count-dependent allocation order, connect the concrete
-pointer to the abstract slot/epoch, and show whether the candidate allocation
-can occur after a source-reachable clean prehistory.  The arithmetic witness
-does not provide those facts.
+`Area1PlatformExhaustiveness.v` supersedes the generic fragment-lineage
+question at the source-bounded route boundary.  It retains the exact
+three-dimensional fragment capability, but proves every stock pre-apply
+platform origin null at node `0x1E`; depth, mist, FIFO, and controller variants
+cannot change that conclusion.  The remaining refinement must execute the
+platform and surface code over live Clight memory and prove that the concrete
+pointer/owner/query states project into the bounded relation.  The arithmetic
+witness by itself does not provide that linked-memory fact.
 
 `JPSlotLifetime.v` narrows the separate JP destination-area subproblem without
 claiming that result.  It
@@ -388,14 +393,13 @@ Thus the current result is:
 - generated-expression extraction, linked live-memory execution,
   dynamic-surface ownership/list order, and actual `find_floor` selection remain
   open;
-- an Area-1 triangle fragment is a source-backed three-dimensional raw-payload
-  candidate, and its exact-binary32 displacement is checked;
-- ordinary capture and later reuse of the pyramid-top slot cannot bootstrap a
-  node-`0x1E` collision in the project's phase/epoch model: capture leaves the
-  old collision object above `1277`, and next-frame collision cannot see the
-  warp at or below `818`; the old top surfaces have also been cleared before a
-  later reuse;
-- a live Clight small-step/free-list derivation of every relevant capture,
-  deallocation, allocation, payload load, and collision remains open;
+- the stock source has three pre-apply angular-payload classes—top yaw, dirt
+  triangles, and cartoon triangles—with depth, mist, zero-allocation, and FIFO
+  variants; `[top, box]` is only one example;
+- every source-bounded stock pre-apply platform origin is proved null at node
+  `0x1E`, so zero route-relevant schedules survive in that model and generic
+  controller/free-list lineage is not a remaining Layer-B obligation;
+- a linked Clight derivation that validates the finite owner/origin projection,
+  live ownership, list selection, and collision loads remains open;
 - no stock-reachable counterexample has been found; and
 - the ultimate less-than-one-A theorem remains unproved.

@@ -41,10 +41,10 @@ base-insensitive and direct-callee/literal checks are path-insensitive.
 | `src/engine/surface_collision.c` | `*_surface_collision.v` | `find_floor` binary32-to-signed-16 cast shape and 78-unit floor buffer, plus the floor/surface query implementation used by Mario stepping and platform recomputation; the concrete CompCert result and matching authenticated US/JP retail instruction fragment are checked, while linked execution and actual surface-selection refinements remain pending |
 | `src/engine/surface_load.c` | `*_surface_load.v` | surface allocation/insertion, object-vertex transformation, object-surface loading, normal construction, and collision-model loading; live object/surface memory execution and list ownership/order remain pending |
 | `src/game/macro_special_objects.c` | `*_macro_special_objects.v` | spawn call and respawn-field assignment occurrences; persistence semantics are pending |
-| `levels/ssl/script.c` | `*_ssl_script.v` | raw initializer tuples for lower/upper airborne entry objects, the area-2 static star, hidden controller, and instant-warp declarations; exact packed records for the Area-1 node-`0x1E` warp and stock pyramid top, with checked coordinate/behavior-byte arithmetic |
-| `levels/ssl/areas/1/macro.inc.c` via `inputs/ssl_area1_macro.c` | `*_ssl_area1_macro.v` | exact Area-1 wing-cap/exclamation and breakable-box parent records used by the three-dimensional fragment-payload audit; live allocation, RNG timing, and stale-pointer reachability remain pending |
+| `levels/ssl/script.c` | `*_ssl_script.v` | raw initializer tuples for lower/upper airborne entry objects, the area-2 static star, hidden controller, and instant-warp declarations; exact packed records for the Area-1 `0x0A`, `0x1E`, `0x1F`, and `0x20` warp objects, all five local warp-node routes, and the stock pyramid top, with checked coordinate/behavior-byte arithmetic |
+| `levels/ssl/areas/1/macro.inc.c` via `inputs/ssl_area1_macro.c` | `*_ssl_area1_macro.v` | exact Area-1 wing-cap/exclamation, breakable-box, message-panel, cannon, and shell-box records used by the fragment and finite stock-owner audits; generic top-yaw/dirt-triangle/cartoon-triangle schedule lineage is no longer a Layer-B obligation, while linked-memory projection remains pending |
 | `levels/ssl/areas/2/macro.inc.c` via `inputs/ssl_area2_macro.c` | `*_ssl_area2_macro.v` | raw initializer tuples for five Puzzle trigger records/coordinates; the abstract state now assigns exact kinds/references/positions, while their concrete spawn-memory projection remains pending |
-| SSL collision arrays via `inputs/ssl_collision.c` | `*_ssl_collision.v` | area 1/2/3 static arrays plus pyramid-top, tox-box, grindel, spindel, moving-wall, elevator, and Eyerok object collision arrays; checked word counts and US/JP initializer identity; the complete 39-word top initializer is parsed into five vertices and six triangle-index triples, but no transformed dynamic `Surface`, `find_floor` selection, general parsed-surface, or connected-component theorem exists |
+| SSL collision arrays via `inputs/ssl_collision.c` | `*_ssl_collision.v` | area 1/2/3 static arrays plus pyramid-top, tox-box, grindel, spindel, moving-wall, elevator, Eyerok, breakable-box, exclamation-box-outline, cannon-lid, and wooden-signpost object collision arrays; checked word counts and US/JP initializer identity; the complete 39-word top initializer is parsed into five vertices and six triangle-index triples, and exact local X/Y/Z bounds are proved for the four newly imported Area-1 fixed-owner meshes, but no linked transformed dynamic `Surface`, actual `find_floor` selection, general parsed-surface, or connected-component theorem exists |
 
 ## Pyramid-top PU boundary
 
@@ -83,6 +83,19 @@ normal/plane height, 78-unit buffer test, and a competing static-face
 candidate.  These modules do not execute the linked helpers over live Clight
 memory or prove object-pool lineage, surface ownership/list order, or actual
 `find_floor` selection.
+
+`proofs/Area1PlatformExhaustiveness.v` adds a finite stock owner and pre-apply
+origin boundary.  Generated Area-1 script/macro records and the four new mesh
+bounds support a fifteen-owner inventory.  The theorem
+`stock_area1_upper_warp_preapply_platform_null` proves that completed-query, US
+spawn-clear, retained-inbound-pointer, and frozen-carry origins are all null
+when Mario's old collision object overlaps node `0x1E`.  `[top, box]` is only
+one allocator example; source-audited top-yaw, dirt-triangle, and
+cartoon-triangle schedules may vary by depth, mist count, zero-angular
+allocations, and FIFO eviction without surviving that owner exclusion.  The
+open boundary is `Area1StockPreapplyProjectionSound`: no linked Clight memory
+theorem yet proves that every relevant retail pre-apply state projects into
+this finite relation.
 
 ## Archive-derived integration boundary
 

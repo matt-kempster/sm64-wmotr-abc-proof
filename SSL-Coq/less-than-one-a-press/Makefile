@@ -57,6 +57,39 @@ check: proofs
 	  LessThanOneAPress.Proofs.CollisionMeshFacts \
 	  pyramid_top_source_edge_checked
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CollisionMeshFacts \
+	  ssl_collision_array_word_counts_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CollisionMeshFacts \
+	  ssl_collision_array_word_counts_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CollisionMeshFacts \
+	  area1_actor_collision_initializers_are_version_identical
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CollisionMeshFacts \
+	  breakable_box_generated_vertex_bounds_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CollisionMeshFacts \
+	  breakable_box_generated_vertex_bounds_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CollisionMeshFacts \
+	  exclamation_box_generated_vertex_bounds_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CollisionMeshFacts \
+	  exclamation_box_generated_vertex_bounds_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CollisionMeshFacts \
+	  cannon_lid_generated_vertex_bounds_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CollisionMeshFacts \
+	  cannon_lid_generated_vertex_bounds_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CollisionMeshFacts \
+	  wooden_signpost_generated_vertex_bounds_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CollisionMeshFacts \
+	  wooden_signpost_generated_vertex_bounds_jp
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.ClightFacts \
 	  ssl_pu_level_script_checked
 	bash pipeline/assumptions.sh \
@@ -323,6 +356,54 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.Area1SurfaceWitness \
 	  area1_surface_capability_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PlatformExhaustiveness \
+	  area1_macro_surface_owner_source_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PlatformExhaustiveness \
+	  area1_regular_surface_source_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PlatformExhaustiveness \
+	  area1_inbound_and_route_source_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PlatformExhaustiveness \
+	  area1_inbound_and_route_packed_arithmetic
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PlatformExhaustiveness \
+	  area1_surface_owner_finite_inventory
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PlatformExhaustiveness \
+	  upper_warp_has_no_stock_dynamic_floor_candidate
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PlatformExhaustiveness \
+	  stock_upper_warp_final_query_clears_platform
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PlatformExhaustiveness \
+	  stock_area1_preapply_schedule_classified
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PlatformExhaustiveness \
+	  stock_area1_upper_warp_preapply_platform_null
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PlatformExhaustiveness \
+	  sound_projected_upper_warp_preapply_platform_null
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PlatformExhaustiveness \
+	  stock_upper_warp_has_no_platform_created_route_split
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PlatformExhaustiveness \
+	  area1_candidate_free_list_alignment
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PlatformExhaustiveness \
+	  area1_candidate_count_arithmetic_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PlatformExhaustiveness \
+	  area1_candidate_cannot_trigger_upper_warp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PlatformExhaustiveness \
+	  concrete_area1_candidate_is_three_dimensional
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PlatformExhaustiveness \
+	  area1_platform_source_model_checked
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.ModelGapAudit \
 	  current_certified_motion_accepts_arbitrary_endpoint

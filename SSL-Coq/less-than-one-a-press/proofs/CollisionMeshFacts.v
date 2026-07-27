@@ -24,6 +24,15 @@ Theorem ssl_collision_array_word_counts_us :
     39%nat /\
   collision_word_count us_ssl_collision.v_ssl_seg7_collision_tox_box =
     138%nat /\
+  collision_word_count
+    us_ssl_collision.v_breakable_box_seg8_collision_08012D70 = 66%nat /\
+  collision_word_count
+    us_ssl_collision.v_exclamation_box_outline_seg8_collision_08025F78 =
+      66%nat /\
+  collision_word_count
+    us_ssl_collision.v_cannon_lid_seg8_collision_08004950 = 24%nat /\
+  collision_word_count
+    us_ssl_collision.v_wooden_signpost_seg3_collision_0302DD80 = 66%nat /\
   collision_word_count us_ssl_collision.v_ssl_seg7_area_2_collision =
     8098%nat /\
   collision_word_count us_ssl_collision.v_ssl_seg7_area_3_collision =
@@ -53,6 +62,15 @@ Theorem ssl_collision_array_word_counts_jp :
     39%nat /\
   collision_word_count jp_ssl_collision.v_ssl_seg7_collision_tox_box =
     138%nat /\
+  collision_word_count
+    jp_ssl_collision.v_breakable_box_seg8_collision_08012D70 = 66%nat /\
+  collision_word_count
+    jp_ssl_collision.v_exclamation_box_outline_seg8_collision_08025F78 =
+      66%nat /\
+  collision_word_count
+    jp_ssl_collision.v_cannon_lid_seg8_collision_08004950 = 24%nat /\
+  collision_word_count
+    jp_ssl_collision.v_wooden_signpost_seg3_collision_0302DD80 = 66%nat /\
   collision_word_count jp_ssl_collision.v_ssl_seg7_area_2_collision =
     8098%nat /\
   collision_word_count jp_ssl_collision.v_ssl_seg7_area_3_collision =
@@ -73,6 +91,25 @@ Theorem ssl_collision_array_word_counts_jp :
     159%nat /\
   collision_word_count jp_ssl_collision.v_ssl_seg7_collision_070284B0 =
     159%nat.
+Proof. vm_compute. repeat split. Qed.
+
+Theorem area1_actor_collision_initializers_are_version_identical :
+  gvar_init
+    us_ssl_collision.v_breakable_box_seg8_collision_08012D70 =
+      gvar_init
+        jp_ssl_collision.v_breakable_box_seg8_collision_08012D70 /\
+  gvar_init
+    us_ssl_collision.v_exclamation_box_outline_seg8_collision_08025F78 =
+      gvar_init
+        jp_ssl_collision.v_exclamation_box_outline_seg8_collision_08025F78 /\
+  gvar_init
+    us_ssl_collision.v_cannon_lid_seg8_collision_08004950 =
+      gvar_init
+        jp_ssl_collision.v_cannon_lid_seg8_collision_08004950 /\
+  gvar_init
+    us_ssl_collision.v_wooden_signpost_seg3_collision_0302DD80 =
+      gvar_init
+        jp_ssl_collision.v_wooden_signpost_seg3_collision_0302DD80.
 Proof. vm_compute. repeat split. Qed.
 
 (* The geometry wrapper has no version-dependent preprocessing branch in the
@@ -127,6 +164,10 @@ Fixpoint triples_from_words (words : list Z) : list (Z * Z * Z) :=
   | x :: y :: z :: rest => (x, y, z) :: triples_from_words rest
   | _ => []
   end.
+
+Definition collision_vertices_from_words
+    (vertex_count : nat) (words : list Z) : list (Z * Z * Z) :=
+  triples_from_words (firstn (3 * vertex_count) (skipn 2 words)).
 
 Definition pyramid_top_vertices : list (Z * Z * Z) :=
   [(-511, -255, 512);
@@ -301,3 +342,100 @@ Proof.
           [subst local_y; lia |]).
   contradiction.
 Qed.
+
+(* Exact local-space bounds for the four stock Area-1 actor collision meshes.
+   Each receipt evaluates the vertices directly from the generated CompCert
+   initializer, after the COL_INIT and COL_VERTEX_INIT words. *)
+Definition vertex_x (vertex : Z * Z * Z) : Z :=
+  let '(x, _, _) := vertex in x.
+
+Definition vertex_z (vertex : Z * Z * Z) : Z :=
+  let '(_, _, z) := vertex in z.
+
+Definition projected_bounds
+    (projection : Z * Z * Z -> Z)
+    (vertices : list (Z * Z * Z)) : option (Z * Z) :=
+  match vertices with
+  | [] => None
+  | first :: rest =>
+      Some
+        (fold_left Z.min (map projection rest) (projection first),
+         fold_left Z.max (map projection rest) (projection first))
+  end.
+
+Definition collision_vertex_bounds (vertices : list (Z * Z * Z)) :=
+  (projected_bounds vertex_x vertices,
+   projected_bounds vertex_y vertices,
+   projected_bounds vertex_z vertices).
+
+Theorem breakable_box_generated_vertex_bounds_us :
+  collision_vertex_bounds
+    (collision_vertices_from_words 8
+      (init_int16_values
+        (gvar_init
+          us_ssl_collision.v_breakable_box_seg8_collision_08012D70))) =
+  (Some (-100, 100), Some (0, 200), Some (-100, 100)).
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem breakable_box_generated_vertex_bounds_jp :
+  collision_vertex_bounds
+    (collision_vertices_from_words 8
+      (init_int16_values
+        (gvar_init
+          jp_ssl_collision.v_breakable_box_seg8_collision_08012D70))) =
+  (Some (-100, 100), Some (0, 200), Some (-100, 100)).
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem exclamation_box_generated_vertex_bounds_us :
+  collision_vertex_bounds
+    (collision_vertices_from_words 8
+      (init_int16_values
+        (gvar_init
+          us_ssl_collision.v_exclamation_box_outline_seg8_collision_08025F78))) =
+  (Some (-26, 26), Some (30, 52), Some (-26, 26)).
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem exclamation_box_generated_vertex_bounds_jp :
+  collision_vertex_bounds
+    (collision_vertices_from_words 8
+      (init_int16_values
+        (gvar_init
+          jp_ssl_collision.v_exclamation_box_outline_seg8_collision_08025F78))) =
+  (Some (-26, 26), Some (30, 52), Some (-26, 26)).
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem cannon_lid_generated_vertex_bounds_us :
+  collision_vertex_bounds
+    (collision_vertices_from_words 4
+      (init_int16_values
+        (gvar_init
+          us_ssl_collision.v_cannon_lid_seg8_collision_08004950))) =
+  (Some (-111, 112), Some (0, 0), Some (-111, 112)).
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem cannon_lid_generated_vertex_bounds_jp :
+  collision_vertex_bounds
+    (collision_vertices_from_words 4
+      (init_int16_values
+        (gvar_init
+          jp_ssl_collision.v_cannon_lid_seg8_collision_08004950))) =
+  (Some (-111, 112), Some (0, 0), Some (-111, 112)).
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem wooden_signpost_generated_vertex_bounds_us :
+  collision_vertex_bounds
+    (collision_vertices_from_words 8
+      (init_int16_values
+        (gvar_init
+          us_ssl_collision.v_wooden_signpost_seg3_collision_0302DD80))) =
+  (Some (-44, 45), Some (-9, 126), Some (-12, 20)).
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem wooden_signpost_generated_vertex_bounds_jp :
+  collision_vertex_bounds
+    (collision_vertices_from_words 8
+      (init_int16_values
+        (gvar_init
+          jp_ssl_collision.v_wooden_signpost_seg3_collision_0302DD80))) =
+  (Some (-44, 45), Some (-9, 126), Some (-12, 20)).
+Proof. vm_compute. reflexivity. Qed.

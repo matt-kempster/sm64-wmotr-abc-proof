@@ -122,6 +122,9 @@ Definition ___compcert_va_composite : ident := $"__compcert_va_composite".
 Definition ___compcert_va_float64 : ident := $"__compcert_va_float64".
 Definition ___compcert_va_int32 : ident := $"__compcert_va_int32".
 Definition ___compcert_va_int64 : ident := $"__compcert_va_int64".
+Definition _breakable_box_seg8_collision_08012D70 : ident := $"breakable_box_seg8_collision_08012D70".
+Definition _cannon_lid_seg8_collision_08004950 : ident := $"cannon_lid_seg8_collision_08004950".
+Definition _exclamation_box_outline_seg8_collision_08025F78 : ident := $"exclamation_box_outline_seg8_collision_08025F78".
 Definition _main : ident := $"main".
 Definition _ssl_seg7_area_1_collision : ident := $"ssl_seg7_area_1_collision".
 Definition _ssl_seg7_area_2_collision : ident := $"ssl_seg7_area_2_collision".
@@ -136,6 +139,7 @@ Definition _ssl_seg7_collision_pyramid_elevator : ident := $"ssl_seg7_collision_
 Definition _ssl_seg7_collision_pyramid_top : ident := $"ssl_seg7_collision_pyramid_top".
 Definition _ssl_seg7_collision_spindel : ident := $"ssl_seg7_collision_spindel".
 Definition _ssl_seg7_collision_tox_box : ident := $"ssl_seg7_collision_tox_box".
+Definition _wooden_signpost_seg3_collision_0302DD80 : ident := $"wooden_signpost_seg3_collision_0302DD80".
 
 Definition v_ssl_seg7_area_1_collision := {|
   gvar_info := (tarray tshort 4945);
@@ -2934,6 +2938,143 @@ Definition v_ssl_seg7_collision_tox_box := {|
                 Init_int16 (Int.repr 8) :: Init_int16 (Int.repr 12) ::
                 Init_int16 (Int.repr 15) :: Init_int16 (Int.repr 14) ::
                 Init_int16 (Int.repr 8) :: Init_int16 (Int.repr 15) ::
+                Init_int16 (Int.repr 65) :: Init_int16 (Int.repr 66) :: nil);
+  gvar_readonly := true;
+  gvar_volatile := false
+|}.
+
+Definition v_breakable_box_seg8_collision_08012D70 := {|
+  gvar_info := (tarray tshort 66);
+  gvar_init := (Init_int16 (Int.repr 64) :: Init_int16 (Int.repr 8) ::
+                Init_int16 (Int.repr (-100)) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr (-100)) ::
+                Init_int16 (Int.repr (-100)) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr 100) :: Init_int16 (Int.repr (-100)) ::
+                Init_int16 (Int.repr 200) :: Init_int16 (Int.repr 100) ::
+                Init_int16 (Int.repr 100) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr 100) :: Init_int16 (Int.repr 100) ::
+                Init_int16 (Int.repr 200) :: Init_int16 (Int.repr 100) ::
+                Init_int16 (Int.repr 100) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr (-100)) :: Init_int16 (Int.repr 100) ::
+                Init_int16 (Int.repr 200) :: Init_int16 (Int.repr (-100)) ::
+                Init_int16 (Int.repr (-100)) :: Init_int16 (Int.repr 200) ::
+                Init_int16 (Int.repr (-100)) :: Init_int16 (Int.repr 118) ::
+                Init_int16 (Int.repr 12) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr 1) :: Init_int16 (Int.repr 2) ::
+                Init_int16 (Int.repr 1) :: Init_int16 (Int.repr 3) ::
+                Init_int16 (Int.repr 4) :: Init_int16 (Int.repr 1) ::
+                Init_int16 (Int.repr 4) :: Init_int16 (Int.repr 2) ::
+                Init_int16 (Int.repr 5) :: Init_int16 (Int.repr 3) ::
+                Init_int16 (Int.repr 1) :: Init_int16 (Int.repr 5) ::
+                Init_int16 (Int.repr 1) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr 6) :: Init_int16 (Int.repr 4) ::
+                Init_int16 (Int.repr 3) :: Init_int16 (Int.repr 6) ::
+                Init_int16 (Int.repr 3) :: Init_int16 (Int.repr 5) ::
+                Init_int16 (Int.repr 7) :: Init_int16 (Int.repr 4) ::
+                Init_int16 (Int.repr 6) :: Init_int16 (Int.repr 7) ::
+                Init_int16 (Int.repr 2) :: Init_int16 (Int.repr 4) ::
+                Init_int16 (Int.repr 0) :: Init_int16 (Int.repr 2) ::
+                Init_int16 (Int.repr 7) :: Init_int16 (Int.repr 7) ::
+                Init_int16 (Int.repr 6) :: Init_int16 (Int.repr 5) ::
+                Init_int16 (Int.repr 7) :: Init_int16 (Int.repr 5) ::
+                Init_int16 (Int.repr 0) :: Init_int16 (Int.repr 65) ::
+                Init_int16 (Int.repr 66) :: nil);
+  gvar_readonly := true;
+  gvar_volatile := false
+|}.
+
+Definition v_exclamation_box_outline_seg8_collision_08025F78 := {|
+  gvar_info := (tarray tshort 66);
+  gvar_init := (Init_int16 (Int.repr 64) :: Init_int16 (Int.repr 8) ::
+                Init_int16 (Int.repr (-26)) :: Init_int16 (Int.repr 30) ::
+                Init_int16 (Int.repr (-26)) :: Init_int16 (Int.repr (-26)) ::
+                Init_int16 (Int.repr 30) :: Init_int16 (Int.repr 26) ::
+                Init_int16 (Int.repr (-26)) :: Init_int16 (Int.repr 52) ::
+                Init_int16 (Int.repr 26) :: Init_int16 (Int.repr 26) ::
+                Init_int16 (Int.repr 30) :: Init_int16 (Int.repr 26) ::
+                Init_int16 (Int.repr 26) :: Init_int16 (Int.repr 52) ::
+                Init_int16 (Int.repr 26) :: Init_int16 (Int.repr 26) ::
+                Init_int16 (Int.repr 30) :: Init_int16 (Int.repr (-26)) ::
+                Init_int16 (Int.repr 26) :: Init_int16 (Int.repr 52) ::
+                Init_int16 (Int.repr (-26)) :: Init_int16 (Int.repr (-26)) ::
+                Init_int16 (Int.repr 52) :: Init_int16 (Int.repr (-26)) ::
+                Init_int16 (Int.repr 0) :: Init_int16 (Int.repr 12) ::
+                Init_int16 (Int.repr 0) :: Init_int16 (Int.repr 1) ::
+                Init_int16 (Int.repr 2) :: Init_int16 (Int.repr 1) ::
+                Init_int16 (Int.repr 3) :: Init_int16 (Int.repr 4) ::
+                Init_int16 (Int.repr 1) :: Init_int16 (Int.repr 4) ::
+                Init_int16 (Int.repr 2) :: Init_int16 (Int.repr 5) ::
+                Init_int16 (Int.repr 3) :: Init_int16 (Int.repr 1) ::
+                Init_int16 (Int.repr 5) :: Init_int16 (Int.repr 1) ::
+                Init_int16 (Int.repr 0) :: Init_int16 (Int.repr 6) ::
+                Init_int16 (Int.repr 4) :: Init_int16 (Int.repr 3) ::
+                Init_int16 (Int.repr 6) :: Init_int16 (Int.repr 3) ::
+                Init_int16 (Int.repr 5) :: Init_int16 (Int.repr 7) ::
+                Init_int16 (Int.repr 4) :: Init_int16 (Int.repr 6) ::
+                Init_int16 (Int.repr 7) :: Init_int16 (Int.repr 2) ::
+                Init_int16 (Int.repr 4) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr 2) :: Init_int16 (Int.repr 7) ::
+                Init_int16 (Int.repr 7) :: Init_int16 (Int.repr 6) ::
+                Init_int16 (Int.repr 5) :: Init_int16 (Int.repr 7) ::
+                Init_int16 (Int.repr 5) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr 65) :: Init_int16 (Int.repr 66) :: nil);
+  gvar_readonly := true;
+  gvar_volatile := false
+|}.
+
+Definition v_cannon_lid_seg8_collision_08004950 := {|
+  gvar_info := (tarray tshort 24);
+  gvar_init := (Init_int16 (Int.repr 64) :: Init_int16 (Int.repr 4) ::
+                Init_int16 (Int.repr 112) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr (-111)) ::
+                Init_int16 (Int.repr (-111)) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr (-111)) ::
+                Init_int16 (Int.repr (-111)) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr 112) :: Init_int16 (Int.repr 112) ::
+                Init_int16 (Int.repr 0) :: Init_int16 (Int.repr 112) ::
+                Init_int16 (Int.repr 0) :: Init_int16 (Int.repr 2) ::
+                Init_int16 (Int.repr 0) :: Init_int16 (Int.repr 1) ::
+                Init_int16 (Int.repr 2) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr 2) :: Init_int16 (Int.repr 3) ::
+                Init_int16 (Int.repr 65) :: Init_int16 (Int.repr 66) :: nil);
+  gvar_readonly := true;
+  gvar_volatile := false
+|}.
+
+Definition v_wooden_signpost_seg3_collision_0302DD80 := {|
+  gvar_info := (tarray tshort 66);
+  gvar_init := (Init_int16 (Int.repr 64) :: Init_int16 (Int.repr 8) ::
+                Init_int16 (Int.repr (-44)) :: Init_int16 (Int.repr (-9)) ::
+                Init_int16 (Int.repr (-12)) :: Init_int16 (Int.repr (-44)) ::
+                Init_int16 (Int.repr 126) :: Init_int16 (Int.repr 20) ::
+                Init_int16 (Int.repr (-44)) :: Init_int16 (Int.repr 126) ::
+                Init_int16 (Int.repr (-12)) :: Init_int16 (Int.repr 45) ::
+                Init_int16 (Int.repr 126) :: Init_int16 (Int.repr 20) ::
+                Init_int16 (Int.repr 45) :: Init_int16 (Int.repr 126) ::
+                Init_int16 (Int.repr (-12)) :: Init_int16 (Int.repr 45) ::
+                Init_int16 (Int.repr (-9)) :: Init_int16 (Int.repr (-12)) ::
+                Init_int16 (Int.repr (-44)) :: Init_int16 (Int.repr (-9)) ::
+                Init_int16 (Int.repr 20) :: Init_int16 (Int.repr 45) ::
+                Init_int16 (Int.repr (-9)) :: Init_int16 (Int.repr 20) ::
+                Init_int16 (Int.repr 0) :: Init_int16 (Int.repr 12) ::
+                Init_int16 (Int.repr 0) :: Init_int16 (Int.repr 1) ::
+                Init_int16 (Int.repr 2) :: Init_int16 (Int.repr 2) ::
+                Init_int16 (Int.repr 1) :: Init_int16 (Int.repr 3) ::
+                Init_int16 (Int.repr 2) :: Init_int16 (Int.repr 3) ::
+                Init_int16 (Int.repr 4) :: Init_int16 (Int.repr 5) ::
+                Init_int16 (Int.repr 0) :: Init_int16 (Int.repr 2) ::
+                Init_int16 (Int.repr 5) :: Init_int16 (Int.repr 2) ::
+                Init_int16 (Int.repr 4) :: Init_int16 (Int.repr 6) ::
+                Init_int16 (Int.repr 3) :: Init_int16 (Int.repr 1) ::
+                Init_int16 (Int.repr 0) :: Init_int16 (Int.repr 6) ::
+                Init_int16 (Int.repr 1) :: Init_int16 (Int.repr 7) ::
+                Init_int16 (Int.repr 4) :: Init_int16 (Int.repr 3) ::
+                Init_int16 (Int.repr 6) :: Init_int16 (Int.repr 7) ::
+                Init_int16 (Int.repr 3) :: Init_int16 (Int.repr 7) ::
+                Init_int16 (Int.repr 5) :: Init_int16 (Int.repr 4) ::
+                Init_int16 (Int.repr 5) :: Init_int16 (Int.repr 7) ::
+                Init_int16 (Int.repr 6) :: Init_int16 (Int.repr 5) ::
+                Init_int16 (Int.repr 6) :: Init_int16 (Int.repr 0) ::
                 Init_int16 (Int.repr 65) :: Init_int16 (Int.repr 66) :: nil);
   gvar_readonly := true;
   gvar_volatile := false
@@ -8929,6 +9070,10 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (_ssl_seg7_area_1_collision, Gvar v_ssl_seg7_area_1_collision) ::
  (_ssl_seg7_collision_pyramid_top, Gvar v_ssl_seg7_collision_pyramid_top) ::
  (_ssl_seg7_collision_tox_box, Gvar v_ssl_seg7_collision_tox_box) ::
+ (_breakable_box_seg8_collision_08012D70, Gvar v_breakable_box_seg8_collision_08012D70) ::
+ (_exclamation_box_outline_seg8_collision_08025F78, Gvar v_exclamation_box_outline_seg8_collision_08025F78) ::
+ (_cannon_lid_seg8_collision_08004950, Gvar v_cannon_lid_seg8_collision_08004950) ::
+ (_wooden_signpost_seg3_collision_0302DD80, Gvar v_wooden_signpost_seg3_collision_0302DD80) ::
  (_ssl_seg7_area_2_collision, Gvar v_ssl_seg7_area_2_collision) ::
  (_ssl_seg7_area_3_collision, Gvar v_ssl_seg7_area_3_collision) ::
  (_ssl_seg7_collision_grindel, Gvar v_ssl_seg7_collision_grindel) ::
@@ -8946,19 +9091,22 @@ Definition public_idents : list ident :=
  _ssl_seg7_collision_pyramid_elevator :: _ssl_seg7_collision_0702808C ::
  _ssl_seg7_collision_spindel :: _ssl_seg7_collision_grindel ::
  _ssl_seg7_area_3_collision :: _ssl_seg7_area_2_collision ::
- _ssl_seg7_collision_tox_box :: _ssl_seg7_collision_pyramid_top ::
- _ssl_seg7_area_1_collision :: ___builtin_debug ::
- ___builtin_sync_fetch_and_add :: ___builtin_atomic_compare_exchange ::
- ___builtin_atomic_load :: ___builtin_atomic_exchange :: ___builtin_nop ::
- ___builtin_bsel :: ___builtin_uisel64 :: ___builtin_isel64 ::
- ___builtin_uisel :: ___builtin_isel :: ___builtin_return_address ::
- ___builtin_call_frame :: ___builtin_mr :: ___builtin_set_spr64 ::
- ___builtin_get_spr64 :: ___builtin_set_spr :: ___builtin_get_spr ::
- ___builtin_dcbz :: ___builtin_icbtls :: ___builtin_dcbtls ::
- ___builtin_prefetch :: ___builtin_icbi :: ___builtin_dcbi ::
- ___builtin_dcbf :: ___builtin_trap :: ___builtin_mbar ::
- ___builtin_lwsync :: ___builtin_isync :: ___builtin_sync ::
- ___builtin_eieio :: ___builtin_write64_reversed ::
+ _wooden_signpost_seg3_collision_0302DD80 ::
+ _cannon_lid_seg8_collision_08004950 ::
+ _exclamation_box_outline_seg8_collision_08025F78 ::
+ _breakable_box_seg8_collision_08012D70 :: _ssl_seg7_collision_tox_box ::
+ _ssl_seg7_collision_pyramid_top :: _ssl_seg7_area_1_collision ::
+ ___builtin_debug :: ___builtin_sync_fetch_and_add ::
+ ___builtin_atomic_compare_exchange :: ___builtin_atomic_load ::
+ ___builtin_atomic_exchange :: ___builtin_nop :: ___builtin_bsel ::
+ ___builtin_uisel64 :: ___builtin_isel64 :: ___builtin_uisel ::
+ ___builtin_isel :: ___builtin_return_address :: ___builtin_call_frame ::
+ ___builtin_mr :: ___builtin_set_spr64 :: ___builtin_get_spr64 ::
+ ___builtin_set_spr :: ___builtin_get_spr :: ___builtin_dcbz ::
+ ___builtin_icbtls :: ___builtin_dcbtls :: ___builtin_prefetch ::
+ ___builtin_icbi :: ___builtin_dcbi :: ___builtin_dcbf :: ___builtin_trap ::
+ ___builtin_mbar :: ___builtin_lwsync :: ___builtin_isync ::
+ ___builtin_sync :: ___builtin_eieio :: ___builtin_write64_reversed ::
  ___builtin_read64_reversed :: ___builtin_write32_reversed ::
  ___builtin_write16_reversed :: ___builtin_read32_reversed ::
  ___builtin_read16_reversed :: ___builtin_fcti :: ___builtin_fsel ::

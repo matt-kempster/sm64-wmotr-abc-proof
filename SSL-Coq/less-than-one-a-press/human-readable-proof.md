@@ -19,28 +19,31 @@ engineering but does not know *Super Mario 64*.
 > spurious one-frame collection from a clean entry, so that relation cannot by
 > itself establish the retail theorem.
 
-> **Newest bounded result:** `Area1PhaseSplit.v` and
-> `Area1SurfaceWitness.v` prioritize the disputed State/Object split inside
-> Area 1 itself.  They check that breakable-box and
-> exclamation-box triangle fragments provide a real nonzero-pitch raw payload,
-> and exact CompCert binary32 arithmetic shows a concrete payload moving
-> all three MarioState coordinates with a route-sized Y rise.  But ordinary
-> pyramid-top slot capture cannot bootstrap node `0x1E`: final capture requires
-> the copied Mario object above Y `1277`, the next collision still samples that
-> old object, and upper-warp overlap ends at Y `818`.  A reused top slot becomes
-> available only on a later frame after `clear_dynamic_surfaces` has removed the
-> old top collision.  The admission-free result therefore blocks this ordinary
-> bootstrap, not every imaginable stale-pointer construction.
+> **Newest bounded result:** `Area1PlatformExhaustiveness.v` replaces the
+> earlier focus on one `[top, box]` free-list prefix with a finite stock Area-1
+> platform-owner model.  The source audit finds three pre-apply angular-payload
+> classes—pyramid-top yaw, breakable-box dirt triangles, and exclamation-box
+> cartoon triangles—with parameterized depth, mist-count, and FIFO-eviction
+> variants.  `[top, box]` is therefore one example, not a unique schedule.
+> Nevertheless, every stock pre-apply platform-origin case in the bounded model
+> has a null platform when Mario's old collision object overlaps warp node
+> `0x1E`.  Non-top dynamic owners are horizontally disjoint from the warp; the
+> pyramid top is vertically disjoint; static floors carry no object owner; and
+> the US clear, retained stock inbound positions, completed-query, and
+> frozen-carry cases all reduce to null.  Thus no stock route-relevant schedule
+> in this model
+> can create the needed State/Object split.
 >
 > `PyramidTopSurface.v` and `PyramidTopPU.v` retain the exact cast, mesh,
 > partition-cell, and arithmetic kernel.  The retail cast question is closed
 > for the exact candidate inputs: authenticated US/JP disassembly uses
 > `trunc.w.s; mfc1; sh; lh`, and Rocq checks its signed-halfword arithmetic.
-> Linked Clight memory execution, live-surface ownership and selection, the
-> exact Area-1 object-count/free-list lineage, alternative warp/top/clone
-> bootstraps, and JP delayed-warp lifetime remain open.  `JPSlotLifetime.v`
-> narrows the destination-area question but does not extract the reachable
-> memory trace.
+> The new null result is conditional on the linked Clight state projecting into
+> the finite stock-owner/pre-apply relation.  That live-memory refinement,
+> actual surface ownership and list selection, alternative constructions outside
+> the bounded relation, and JP delayed-warp lifetime remain open.
+> `JPSlotLifetime.v` narrows the destination-area question but does not extract
+> the reachable memory trace.  The ultimate theorem is still incomplete.
 
 ## The problem in software terms
 
@@ -372,6 +375,42 @@ attacked breakable box, an object count above 210 suppresses the mist
 allocation, so the first triangle
 allocation becomes a concrete candidate for reuse of a just-freed slot.
 
+That first-allocation example is not exhaustive and is not intended to be.
+Deallocation pushes a slot onto the free-list head, while allocation pops the
+head; `[top, box]` is only the shortest illustrative prefix.  The generic
+source schedule has three stock angular-payload classes before platform apply:
+
+1. the pyramid top's live/retained yaw payload;
+2. breakable-box dirt-triangle pitch/yaw payloads; and
+3. exclamation-box cartoon-triangle pitch payloads.
+
+Each class admits different free-list depths.  The fragment classes also admit
+the source's `20`, `10`, or `0` mist-allocation branches, and pool exhaustion
+can substitute FIFO eviction for an ordinary free-list pop.  Coin-formation and
+other zero-angular allocations shift depths without adding a fourth angular
+class.  This is why proving one controller history for `[top, box]` would never
+have established schedule exhaustiveness.
+
+More precisely, let `A` be the number of earlier allocations in the frame,
+`d` the watched slot's zero-based free-list depth, and
+`m ∈ {20,10,0}` the source-selected mist count.  With `M`, `D`, `C`, and `T`
+standing for mist, dirt-triangle, contents, and cartoon-triangle allocations,
+the two fragment bursts have these words:
+
+```text
+large breakable:    M^m D^30 S
+exclamation box:    C M^m T^20 S
+```
+
+Here `S` is a trailing zero-angular allocation.  The watched slot receives a
+dirt payload exactly when `A + m <= d < A + m + 30`, and a cartoon payload
+exactly when `A + 1 + m <= d < A + 1 + m + 20`.  A nearby coin formation may
+add `k` zero-angular allocations for `0 <= k <= 5`; other zero-angular
+allocations shift `A`.  If the free list empties, the allocator evicts the
+oldest eligible unimportant object, replacing the depth condition with the
+corresponding FIFO-rank condition.  These variants change which payload reaches
+a slot, not the node-`0x1E` owner-null conclusion.
+
 The arithmetic witness is reproducible rather than existential.  Rocq checks
 the packed US and JP Area-1 macro records for all three wing-cap/exclamation
 boxes and both no-coin breakable boxes, then selects the middle wing-cap box.
@@ -380,8 +419,11 @@ initializer's 100-unit Y offset makes the transform pivot
 `(-3000,640,800)`.  It also evaluates the stock 16-bit PRNG recurrence for the
 seed-0 payload and checks the selected sine-table words in both generated
 versions.  This proves that the chosen angular payload is compatible with the
-source formulas.  It deliberately does not prove that seed 0, the required
-object count, or the watched free-list head is reachable together.
+source formulas.  It deliberately does not claim that seed 0, the required
+object count, or the watched free-list head occur together; that concrete
+lineage is no longer needed as a Layer-B route obligation because the generic
+stock pre-apply result below rules out every bounded platform origin at the
+warp collision sample.
 The breakable-box "fragment can be first" case and the middle-wing-cap-box
 numeric pivot are separate source-backed subcases; the proof does not combine
 them into a fabricated execution.
@@ -393,7 +435,37 @@ height `1483.603515625`.  A static face has signed edge values
 a proof that either face is live, owns the relevant list entry, wins the real
 list traversal, or came from a reachable object-pool state.
 
-That sounds like the missing writer, but it does not solve the bootstrap:
+That sounds like the missing writer, but `Area1PlatformExhaustiveness.v`
+eliminates the bootstrap more generally than the original top-slot argument.
+It defines and checks a finite inventory of fifteen modeled stock Area-1
+dynamic-floor owners:
+the pyramid top, three Tox Boxes, two large breakable boxes, five exclamation
+boxes, the cannon lid, and three message panels.  Four newly imported generated
+collision meshes—breakable-box, exclamation-box outline, cannon lid, and wooden
+signpost—supply exact local bounds for the fixed owners.
+
+At node `0x1E`, every non-top owner is excluded by its horizontal envelope.
+The top overlaps horizontally but its lowest stock floor is at least Y `1281`,
+which cannot satisfy the warp's Y interval and platform-query tolerance.
+Static floors have a null object owner.  Therefore
+`stock_upper_warp_final_query_clears_platform` proves that a completed stock
+final query at the warp returns `None`.
+
+The theorem then classifies every modeled pre-apply platform origin as a
+completed final query, the US spawn clear, a retained pointer at one of the
+three in-scope stock inbound Area-1 positions, or frozen carry from one of
+those cases.  The retained case covers JP cross-area entry and US/JP same-area
+`0x1F`/`0x20` warps.
+Generated LevelScript receipts prove that the clean, non-credits inbound node
+set is `0x0A`, `0x1F`, and `0x20`; node `0x1E` only exits Area 1, to Area 2
+node `0x14`.
+`stock_area1_upper_warp_preapply_platform_null` proves that every such case is
+null when the old collision object overlaps node `0x1E`.  Consequently
+`stock_upper_warp_has_no_platform_created_route_split` leaves **zero** stock
+route-relevant schedules in that model, regardless of payload class, depth,
+mist branch, FIFO behavior, or controller lineage.
+
+The older top-specific explanation remains a useful sanity check:
 
 1. At the end of a frame, `update_mario_platform` can save the pyramid-top
    pointer only if the copied Mario object is within four vertical units of a
@@ -409,19 +481,20 @@ That sounds like the missing writer, but it does not solve the bootstrap:
 The admission-free theorems
 `captured_top_epoch_cannot_bootstrap_upper_warp_collision` and
 `captured_top_epoch_cannot_realize_route_relevant_phase_split` formalize that
-finite phase/epoch argument.  In software terms, the project now has a real
-"replacement object mutates all three coordinates" primitive, but the ordinary
-"capture pointer from top, free slot, reuse slot, collide with warp" dataflow
-cannot satisfy its producer/consumer preconditions.
+finite phase/epoch argument.  The newer owner theorem subsumes the
+route-relevant conclusion for all stock owners in its source-bounded relation.
+In software terms, Area 1 has real "replacement object mutates all three
+coordinates" primitives, but none has a non-null platform producer at the
+required old-object warp sample.
 
 This is still not a retail counterexample or a whole-program impossibility
-proof.  The proof has not executed the relevant object-count branch,
-deallocation, free-list pop, raw-data clearing, fragment initialization, and
-platform loads as one linked Clight small-step trace.  Nor does it rule out
-moving/loading the warp onto the top, moving the top down to the warp,
-collision-preserving cloning, or a direct post-query pointer/object writer.
-Those alternative bootstraps need their own source-backed construction or
-unreachability proof.
+proof.  `Area1StockPreapplyProjectionSound` is a stated refinement premise, not
+yet a construction from linked Clight memory.  The proof has not executed the
+surface loaders and final floor selection over a live object pool or shown that
+every retail pre-apply state projects into the fifteen-owner relation.
+Moving/loading the warp onto the top, moving the top down to the warp,
+collision-preserving cloning, or a direct post-query pointer/object writer must
+either be shown to project into the excluded cases or handled separately.
 
 Even one successful collision frame would be insufficient: node
 `0x1E` uses an action countdown followed by a delayed warp.  The trigger frame
@@ -462,10 +535,11 @@ and exact payload loads at a reachable clean JP upper
 `JPCleanUpperPlatformApplyMemoryRefinementObligation`, given an explicit
 proved-first control-point witness.  Constructing that witness from the
 Area-1 delayed warp and Area-2 source order remains a separate refinement.
-A nonzero pitch/roll angular delta is one sufficient family for a
-three-dimensional writer, and the Area-1 fragment candidate now instantiates
-that family arithmetically.  A tilted payload with yaw can also change Y, so
-the fragment result is not a complete writer census.
+For Area 1 proper, the newer audit classifies the stock pre-apply angular
+payloads into top yaw, dirt triangles, and cartoon triangles.  It does not need
+to decide which generic controller schedule realizes a fragment because all
+bounded stock platform origins are null at the old-object warp sample.  The
+separate JP destination-area pointer/payload census above remains open.
 
 Moving/loading the warp onto the top, moving the top down to the already-loaded
 warp, collision-preserving cloning, and direct post-query writers remain
@@ -545,10 +619,12 @@ The separation matters because collecting a star normally exits the course;
 the claim is not that both stars are collected in one run.  The conditional
 stale pyramid-top calculations are evidence about one such mechanism.  The
 Y-preserving stock-yaw arithmetic case is excluded; its execution refinement
-is open.  The Area-1 fragment supplies a three-dimensional raw-payload
-primitive, but its exact free-list lineage is not a retail-reachable witness,
-and ordinary top capture cannot bootstrap its old-object warp collision.
-Alternative bootstrap and delayed-lifetime questions remain open.
+is open.  Area 1 supplies three stock pre-apply angular-payload classes, but
+the source-bounded owner/provenance theorem leaves none with a non-null platform
+at the node-`0x1E` collision sample.  A generic fragment controller/free-list
+lineage is therefore no longer a Layer-B obligation.  The linked-Clight
+projection of that theorem, constructions outside its bounded owner relation,
+and delayed-lifetime questions remain open.
 
 The full alternative-route inventory and its present proof boundary are
 spelled out in
@@ -643,6 +719,9 @@ in total.  Direct inspection of that pinned C source shows:
 - the generated fragment helpers contain the nonzero pitch/yaw fields, the
   object-count `210` mist-suppression threshold, and the fresh-allocation
   80-word clearing shapes used by the Area-1 candidate;
+- the stock source audit classifies pre-apply angular payloads as pyramid-top
+  yaw, dirt triangles, or cartoon triangles, with parametric free-list depth,
+  mist-count, zero-allocation, and FIFO-eviction variants;
 - the normal warp interaction, geometry refresh, disappeared-action floor
   snap, state/object copy, and final platform query occur in the phase order
   used by the new PU countermodel;
@@ -666,17 +745,19 @@ also base-insensitive, so the phase pipeline is a direct-source inspection
 backed by separate syntax anchors, not an AST-level dataflow theorem.
 
 The generated collision wrapper contains the area 1/2/3 static arrays and the
-pyramid-top, Tox Box, Grindel, Spindel, moving-wall, elevator, and Eyerok
-arrays.  Rocq proves their checked initializer word counts and that the
-route-relevant US and JP initializers are identical.  The new audit checks all
-39 pyramid-top words exactly and parses its five vertices and six triangle
-indices.  For the selected top face, it links those parsed words to manually
-translated zero-yaw home vertices and evaluates signed-short casts, partition
-cells, and hand-mirrored binary32 transform and edge arithmetic.  Generated
-helper bodies are present, but the arithmetic is not extracted from or
-executed through those bodies.  The general area arrays are not yet parsed
-into surfaces, and no linked live-surface construction, actual `find_floor`
-list selection, or surface connected-component theorem is proved.
+pyramid-top, Tox Box, Grindel, Spindel, moving-wall, elevator, Eyerok,
+breakable-box, exclamation-box outline, cannon-lid, and wooden-signpost arrays.
+Rocq proves their checked initializer word counts and that the route-relevant
+US and JP initializers are identical.  The new Area-1 owner audit also proves
+the exact local X/Y/Z bounds of the last four meshes.  The pyramid audit checks
+all 39 top words exactly and parses its five vertices and six triangle indices.
+For the selected top face, it links those parsed words to manually translated
+zero-yaw home vertices and evaluates signed-short casts, partition cells, and
+hand-mirrored binary32 transform and edge arithmetic.  Generated helper bodies
+are present, but the arithmetic is not extracted from or executed through those
+bodies.  The general area arrays are not yet parsed into surfaces, and no
+linked live-surface construction, actual `find_floor` list selection, or
+surface connected-component theorem is proved.
 
 The area script also contains a conditional
 `SSL_SPAWNING_DISPLACEMENT_TAS_HACK` branch used for experiments.  The target
@@ -695,7 +776,7 @@ are regenerated or reproved in the current namespace.
 
 | Prior project | Evidence in favor of the route argument | What it still does not prove |
 | --- | --- | --- |
-| `ssl-spawning-displacement-proof` | Identifies the JP stale-platform mechanism, retained inactive/reused slot cases, and the exact spinning-top payload that can move upper-entry Mario outside the shaft in the present abstraction.  Its State/Object timing observations motivated the newly rechecked phase-split source facts and countermodel.  The current project now reproves the allocation/free-list shapes, checks a real Area-1 triangle-fragment three-dimensional payload, and proves that ordinary top capture plus later reuse cannot bootstrap a node-`0x1E` collision. | A linked small-step trace establishing every relevant capture/free/reuse/load, any alternative source of the old-object warp collision, survival or recapture through the delayed warp, or a retail continuation to a target region.  The archive's hand-selected unowned-floor observation is not a proof of stock provenance. |
+| `ssl-spawning-displacement-proof` | Identifies the JP stale-platform mechanism, retained inactive/reused slot cases, and the exact spinning-top payload that can move upper-entry Mario outside the shaft in the present abstraction.  Its State/Object timing observations motivated the newly rechecked phase-split source facts and countermodel.  The current project now classifies the stock Area-1 angular-payload families and proves every bounded stock pre-apply platform origin null at node `0x1E`, not merely the earlier `[top, box]` case. | A linked Clight proof that the finite owner/origin relation covers every retail Area-1 pre-apply state, any construction outside that relation, survival or recapture through the delayed warp, or a retail continuation to a target region.  The archive's hand-selected unowned-floor observation is not a proof of stock provenance. |
 | `ssl-pyramid-item-proof` | Shows the proof shape needed for area unload/reload, object deletion, free-list slot reuse, and allocation identity.  This supports the claim that outside objects do not simply survive as substitute target stars. | A linked execution proof of the unload loop, target-star provenance, or either route gate. |
 | `ssl-parallel-universe` | Correctly models continuously held A as zero new edges and warns that a bounded-position proof must cover every movement writer.  It tests a possible way of bypassing ordinary geometry. | Complete movement-writer coverage or non-reachability of either target region. |
 | `pole-bypass` | Proves a one-A lower bound for a restricted normalized pole model and isolates `bypass_model_complete` as the missing global premise.  This is evidence about the normal second-pole route. | Every approach state, pole avoidance route, object/platform interaction, Float32 collision phase, JP execution, or the actual target-side support cut.  Its pole-height abstraction is not route-exhaustive. |
@@ -729,14 +810,15 @@ The ultimate theorem needs all of the following:
    actual predecessor, including inactive/reused slot epochs and the
    upper-warp/spinning-top coincidence families.  The source-level LIFO shape,
    50 packed macro records, and Before/At/After count cases are proved.  The
-   Area-1 fragment writer and one exact-binary32 three-dimensional displacement
-   whose Y rise exceeds the necessary bound are checked, while ordinary top
-   capture plus later slot reuse
-   is excluded as the node-`0x1E` bootstrap in the phase/epoch model.  The exact
-   reachable object count, mist-suppression branch, allocation/free-list memory
-   trace, watched pointer/payload loads, alternative bootstrap families, and
-   delayed-warp retention/recapture remain open.  The concrete candidate cast
-   is verified for both retail versions.
+   Area-1 audit classifies the three stock pre-apply angular-payload classes and
+   proves that every source-bounded stock platform origin is null at node
+   `0x1E`; generic fragment controller/free-list lineage is therefore no longer
+   a Layer-B obligation.  What remains is the linked-Clight proof that every
+   retail Area-1 pre-apply state projects into that owner/origin relation, plus
+   live surface construction/list selection, alternative constructions outside
+   the bounded relation, the exact JP destination-area allocation state, and
+   delayed-warp retention/recapture.  The concrete candidate cast is verified
+   for both retail versions.
 7. Validate the claimed no-A downstream paths from each successful bypass to
    the Act 3 region and all five Act 6 triggers.
 
@@ -758,7 +840,9 @@ The most useful entry points are:
 - `proofs/ClightFacts.v`: checked generated-AST source facts;
 - `proofs/ClightRefinement.v`: the explicit missing semantic bridge;
 - `proofs/CollisionMeshFacts.v`: generated collision-array counts and
-  cross-version equality, plus the exact 39-word pyramid-top initializer;
+  cross-version equality, the exact 39-word pyramid-top initializer, and exact
+  local bounds for the breakable-box, exclamation-box-outline, cannon-lid, and
+  wooden-signpost meshes;
 - `proofs/PyramidTopSurface.v`: generated matrix/surface bodies and checked
   concrete Clight/retail-fragment cast values, parsed-to-manual zero-yaw
   face link, hand-mirrored cell/transform/edge arithmetic, and guarded
@@ -772,6 +856,9 @@ The most useful entry points are:
 - `proofs/Area1SurfaceWitness.v`: exact signed-short query, parsed top-face and
   static-face edge tests, binary32 plane height, 78-unit floor-buffer test, and
   candidate-height comparison, without claiming live list selection;
+- `proofs/Area1PlatformExhaustiveness.v`: the fifteen-owner stock Area-1
+  inventory, source-bounded pre-apply provenance cases, node-`0x1E` null
+  platform result, and checked three-dimensional fragment capability;
 - `proofs/JPSlotLifetime.v`: the JP allocation/free-list source boundary,
   50-record macro count, finite LIFO recurrence, and exact open first-apply
   memory obligation;
