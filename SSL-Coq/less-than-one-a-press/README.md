@@ -54,6 +54,26 @@ contains a direct platform clear,
 and a state-level lemma excludes retaining the same epoch after a successful
 clear; the Clight memory-effect refinement is still pending.
 
+`Area1PhaseSplit.v` prioritizes the disputed three-dimensional State/Object
+split inside Area 1.  It checks source-backed nonzero-pitch triangle-fragment
+payloads from breakable and exclamation boxes and evaluates a concrete
+X/Y/Z displacement with exact CompCert binary32 operations.  The selected
+sample rises from Y `768` to approximately `1878.668`, exceeding the proved
+385-unit necessary bound.  `Area1SurfaceWitness.v` proves that the result
+short-casts to query `(-2350,1878,-714)`, passes the parsed top-face edge and
+78-unit buffer tests, and has exact binary32 candidate height
+`1483.603515625`; it deliberately does not assert live surface ownership or
+actual `find_floor` selection.
+Nevertheless, an ordinary pyramid-top slot capture cannot bootstrap the
+node-`0x1E` collision: capture requires the copied Mario object above Y `1277`,
+the following collision still reads that old object, and upper-warp overlap
+ends at Y `818`.  If the top slot is freed and reused, reuse occurs only in a
+later frame after `clear_dynamic_surfaces` has removed the old top collision.
+These admission-free phase/epoch results do not yet derive the capture,
+deallocation, object-count branch, free-list pop, or payload loads from a
+linked Clight small-step execution, and they do not exclude other
+warp/top/clone or post-query-writer constructions.
+
 `JPSlotLifetime.v` checks allocation, unload, free-list, and delayed-warp
 source anchors, proves that the packed Area-2 macro list has 50 records, and
 proves the corresponding finite LIFO and clean-slot case splits.  It does not
@@ -187,9 +207,29 @@ instruction-fragment arithmetic.  A separate finite-width theorem proves
 that an upper-warp overlap followed by an admissible numeric floor query at
 height 1281 or above, with post-copy Y still in signed-16 range, needs at
 least 385 units of upward State displacement.  A reachable three-dimensional
-stale/reused-slot writer and, for JP, pointer retention or
-recapture through the delayed warp remain open, as do moving/loading the warp
-onto the top, moving the top to the warp, and collision-preserving cloning.
+stale/reused-slot writer was therefore the next priority.
+
+The Area-1 source contains a real candidate primitive: breakable-box and
+exclamation-box triangle fragments write nonzero pitch angular velocity, and
+one exact-binary32 payload changes MarioState in all three dimensions by
+amounts whose Y component exceeds the 385-unit necessary bound.  For the
+breakable-box path, an object count above 210
+suppresses the preceding mist allocation, making the first triangle allocation
+a concrete source-backed slot-reuse candidate.  The concrete transform uses a
+different, middle-wing-cap-box pivot at `(-3000,640,800)`; those subcases are
+not claimed as one reachable trace.  Neither supplies the needed node-`0x1E`
+bootstrap.  An
+ordinary final query captures the top slot
+only with the copied Mario object above Y `1277`; next-frame collision still
+samples that old object, outside the warp's Y interval.  Reuse happens on a
+later frame after the old top surfaces are cleared.
+
+The corresponding phase/epoch theorems exclude ordinary top capture plus
+later reuse as the relevant Area-1 bootstrap.  They do not execute the exact
+object-count/free-list path over linked Clight memory.  JP pointer retention or
+recapture through the delayed warp remains open, as do moving/loading the warp
+onto the top, moving the top to the warp, collision-preserving cloning, and
+direct post-query pointer/object writers.
 The checked 50-record macro count and LIFO recurrence narrow the first Area-2
 slot question but do not determine the reachable allocation count or memory
 payload.  The US state model blocks retaining the same epoch after a successful
@@ -366,8 +406,24 @@ fragment arithmetic closes the exact three candidate conversions, but does
 not establish a general retail compiler refinement.  Linked memory execution,
 dynamic-surface ownership/list order, and actual `find_floor` selection remain
 open.  The bundle is not a stale-slot or reachable ROM execution, and its
-three-dimensional writer and JP delayed-warp lifetime remain named
+three-dimensional-writer reachability and JP delayed-warp lifetime remain named
 obligations.
+
+`Area1PhaseSplit.v` then refines the three-dimensional-writer question without
+claiming a stock trace.  `area1_fragment_writer_source_checked` checks the
+triangle-fragment angular payload fields,
+`concrete_area1_fragment_displacement_is_route_sized_3d` evaluates one concrete
+CompCert binary32 transform.  `Area1SurfaceWitness.v` proves its short query is
+`(-2350,1878,-714)`, the mirrored transformed-top face has edge values
+`[207669,313344,2763]` and height `1483.603515625`, and a checked static face
+has edge values `[2460,77749,76821]` and height `1280`.  These are candidate
+arithmetic, not a live-list selection theorem.  The theorems
+`captured_top_epoch_cannot_bootstrap_upper_warp_collision` and
+`captured_top_epoch_cannot_realize_route_relevant_phase_split` exclude the
+ordinary captured-top epoch as the node-`0x1E` bootstrap in the finite phase
+model.  A linked small-step proof must still establish actual surface
+ownership, the object-count branch, free-list lineage, raw-field initialization
+and clearing, pointer identity/epoch, and platform/collision loads.
 
 `JPSlotLifetime.v` proves a source-and-finite-list boundary for that lifetime
 question: the checked JP bodies have the expected load-before-spawn,
@@ -564,7 +620,7 @@ conditional theorem is the ultimate target theorem.
   `_FINALROM`, `TARGET_N64`, `NON_MATCHING`, `AVOID_UB`, and `_LANGUAGE_C`.
 - Generator: CompCert `clightgen` 3.15.
 
-Twenty-nine translation units are generated for each version, for 58 Clight
+Thirty translation units are generated for each version, for 60 Clight
 modules total: `game_init.c`, `mario.c`, the six
 `mario_actions_{airborne,automatic,cutscene,moving,object,stationary}.c` units,
 `mario_step.c`, `interaction.c`, `save_file.c`, `object_collision.c`,
@@ -573,8 +629,9 @@ modules total: `game_init.c`, `mario.c`, the six
 `behavior_data.c`, `area.c`, `level_update.c`,
 `platform_displacement.c`, `math_util.c`, `surface_collision.c`,
 `surface_load.c`,
-`macro_special_objects.c`, `levels/ssl/script.c`, and a project wrapper for
-`levels/ssl/areas/2/macro.inc.c`, plus `inputs/ssl_collision.c`, a project
+`macro_special_objects.c`, `levels/ssl/script.c`, project wrappers for
+`levels/ssl/areas/1/macro.inc.c` and `levels/ssl/areas/2/macro.inc.c`, plus
+`inputs/ssl_collision.c`, a project
 wrapper importing the area-1/area-2/area-3 collision arrays and the
 route-relevant pyramid-top, tox-box, grindel, spindel, moving-wall, elevator,
 and Eyerok arrays.  This expands the imported surface for movement, entry
@@ -609,8 +666,8 @@ SM64_SOURCE=/path/to/sm64 make verify-generated
 
 The pipeline exports the pinned commit with `git archive`, so uncommitted files
 in the source checkout are not translated.  `verify-generated` requires
-exactly 29 modules per version, rejects extra generated `.v` files, hashes the
-committed output, regenerates all 58 modules, and requires byte-for-byte
+exactly 30 modules per version, rejects extra generated `.v` files, hashes the
+committed output, regenerates all 60 modules, and requires byte-for-byte
 identity.
 
 The command executed per unit is structurally:
@@ -641,7 +698,7 @@ clightgen -normalize -nostdinc -fstruct-passing \
   conclusion about ROM reachability.
 - No concrete `TargetLinkedProgram`, `ClightObservationProjection`, or
   `ClightFrameRefinementCertificate` is provided.  The link record asks for
-  `linkorder` witnesses above all 29 units; it does not construct an iterated
+  `linkorder` witnesses above all 30 units; it does not construct an iterated
   CompCert link.  `ImportedClightRun` is a finite `Smallstep.star` fragment and
   is not yet required to begin at `initial_state` or end at `final_state`.
 - `WholeProgramClightRefinementObligation` and
@@ -682,11 +739,18 @@ clightgen -normalize -nostdinc -fstruct-passing \
   arithmetic.  Linked memory execution, live-surface ownership, and actual
   `find_floor` selection remain open.  `JPSlotLifetime.v` checks the allocation
   source shapes, 50 macro records, and finite LIFO case split; it does not
-  extract the exact reachable allocation/free trace or payload.  A different
-  three-dimensional stale/reused-slot State/Object phase split also remains
-  open.  Proving source-backed prehistory must cover JP delayed-warp
+  extract the exact reachable allocation/free trace or payload.
+  `Area1PhaseSplit.v` checks a real nonzero-pitch triangle-fragment payload and
+  exact X/Y/Z displacement with a route-sized Y rise, but proves that ordinary
+  top capture plus later slot reuse cannot bootstrap the node-`0x1E`
+  collision: the captured old object is above Y `1277`, collision still
+  samples it outside the warp, and the old top surfaces are cleared before
+  reuse.  The linked Clight
+  allocation/free-list lineage and every alternative source of a warp-altitude
+  old object remain open.  Proving source-backed prehistory must cover JP delayed-warp
   retention/recapture, derive the US clear effect, and separately analyze
-  warp-to-top, top-to-warp, and collision-preserving clone constructions;
+  warp-to-top, top-to-warp, collision-preserving clone, and post-query-writer
+  constructions;
   setting the JP pointer to `None` or assuming every retained displacement is
   safe would not be a valid repair.
 - The finite normal-SSL inventory proves unique abstract sources for indices

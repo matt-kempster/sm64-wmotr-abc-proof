@@ -2,8 +2,8 @@
 
 All rows are translated twice, once with `VERSION_US` and once with
 `VERSION_JP`, from decomp commit
-`9921382a68bb0c865e5e45eb594d9c64db59b1af`.  There are 29 translation
-units per version and therefore 58 generated Clight modules.
+`9921382a68bb0c865e5e45eb594d9c64db59b1af`.  There are 30 translation
+units per version and therefore 60 generated Clight modules.
 
 Each row is a whole translation unit: every function/global retained by the
 preprocessor is translated, not only the functions named below.  The
@@ -32,7 +32,7 @@ base-insensitive and direct-callee/literal checks are path-insensitive.
 | `src/game/object_helpers.c` | `*_object_helpers.v` | default/no-exit star spawn helpers and target behavior parameters |
 | `src/game/obj_behaviors.c` | `*_obj_behaviors.v` | hidden controller/trigger constant, field, assignment and direct-call shapes; pyramid-top spinning yaw-versus-pitch/roll write shape; no checked five-count control dependence |
 | `src/game/obj_behaviors_2.c` | `*_obj_behaviors_2.v` | Eyerok hand attack check, movement/update order, death, and coin-spawn source shapes |
-| `src/game/behavior_actions.c` | `*_behavior_actions.v` | `bhv_pole_init` hitbox-field assignment shape used by the normalized-pole source audit |
+| `src/game/behavior_actions.c` | `*_behavior_actions.v` | `bhv_pole_init` hitbox-field assignment shape used by the normalized-pole source audit; Area-1 Tox Box angle-slot writes and breakable/exclamation fragment allocation, PRNG, face-angle, and angular-velocity source shapes |
 | `data/behavior_data.c` | `*_behavior_data.v` | star, hidden-controller and hidden-trigger behavior bindings; pyramid-top loop/collision-loader initializer references |
 | `src/game/area.c` | `*_area.v` | direct `unload_area`/`load_area` call order in `change_area`; lifecycle execution is pending |
 | `src/game/level_update.c` | `*_level_update.v` | direct `change_area` occurrence in `check_instant_warp`, game-over reload call, airborne entry-action constant/call source shape, and normal-update/delayed-object-warp ordering |
@@ -42,6 +42,7 @@ base-insensitive and direct-callee/literal checks are path-insensitive.
 | `src/engine/surface_load.c` | `*_surface_load.v` | surface allocation/insertion, object-vertex transformation, object-surface loading, normal construction, and collision-model loading; live object/surface memory execution and list ownership/order remain pending |
 | `src/game/macro_special_objects.c` | `*_macro_special_objects.v` | spawn call and respawn-field assignment occurrences; persistence semantics are pending |
 | `levels/ssl/script.c` | `*_ssl_script.v` | raw initializer tuples for lower/upper airborne entry objects, the area-2 static star, hidden controller, and instant-warp declarations; exact packed records for the Area-1 node-`0x1E` warp and stock pyramid top, with checked coordinate/behavior-byte arithmetic |
+| `levels/ssl/areas/1/macro.inc.c` via `inputs/ssl_area1_macro.c` | `*_ssl_area1_macro.v` | exact Area-1 wing-cap/exclamation and breakable-box parent records used by the three-dimensional fragment-payload audit; live allocation, RNG timing, and stale-pointer reachability remain pending |
 | `levels/ssl/areas/2/macro.inc.c` via `inputs/ssl_area2_macro.c` | `*_ssl_area2_macro.v` | raw initializer tuples for five Puzzle trigger records/coordinates; the abstract state now assigns exact kinds/references/positions, while their concrete spawn-memory projection remains pending |
 | SSL collision arrays via `inputs/ssl_collision.c` | `*_ssl_collision.v` | area 1/2/3 static arrays plus pyramid-top, tox-box, grindel, spindel, moving-wall, elevator, and Eyerok object collision arrays; checked word counts and US/JP initializer identity; the complete 39-word top initializer is parsed into five vertices and six triangle-index triples, but no transformed dynamic `Surface`, `find_floor` selection, general parsed-surface, or connected-component theorem exists |
 
@@ -73,6 +74,15 @@ warp also remain open.  See
 [`../docs/pyramid-top-surface-refinement.md`](../docs/pyramid-top-surface-refinement.md);
 the target-code receipt is
 [`../docs/retail-find-floor-cast.md`](../docs/retail-find-floor-cast.md).
+
+`proofs/Area1PhaseSplit.v` checks the Area-1 fragment writers, macro parents,
+rebound source shape, exact PRNG/table values, and one route-sized binary32
+three-coordinate displacement.  `proofs/Area1SurfaceWitness.v` proves the
+corresponding signed-short query, parsed top-face edge tests, binary32
+normal/plane height, 78-unit buffer test, and a competing static-face
+candidate.  These modules do not execute the linked helpers over live Clight
+memory or prove object-pool lineage, surface ownership/list order, or actual
+`find_floor` selection.
 
 ## Archive-derived integration boundary
 

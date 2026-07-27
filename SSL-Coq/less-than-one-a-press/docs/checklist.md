@@ -2,11 +2,11 @@
 
 - [x] Exact decomp commit pinned.
 - [x] US and JP macros generated separately.
-- [x] Generate 29 translation units per version (58 Clight modules), including
+- [x] Generate 30 translation units per version (60 Clight modules), including
   the Mario action units (with `mario_actions_cutscene`), movement code,
   `mario_step`, `obj_behaviors_2`, `math_util`, `surface_collision`,
-  `surface_load`, and a wrapper for the route-relevant SSL static and dynamic
-  collision arrays.
+  `surface_load`, wrappers for the Area-1 and Area-2 macro streams, and a
+  wrapper for the route-relevant SSL static and dynamic collision arrays.
 - [x] Check generated no-spin-airborne entry call shape, collision initializer
   lengths, and exact US/JP equality for the imported route-relevant collision
   arrays.
@@ -73,6 +73,16 @@
   arithmetic verifies the same concrete casts.  Keep generated-expression
   extraction, linked live-surface memory, list order, and actual `find_floor`
   selection open.
+- [x] Import the Area-1 macro stream, check the fragment-producing generated
+  source paths and exact parent records, and exhibit a CompCert-binary32
+  fragment payload that changes X/Y/Z while raising Y by about 1110.67 units.
+  Check its signed-short query, parsed top/static face edges, exact binary32
+  candidate heights, and 78-unit floor buffer.  Treat this as a payload and
+  geometry capability counterexample, not a reachable stale-pointer trace or
+  live-list selection proof.
+- [x] Prove at the phase boundary that a platform pointer captured from the
+  stock top cannot bootstrap node-`0x1E` collision on the next frame when the
+  collision pass preserves the prior copied MarioObject sample.
 - [x] Prove that aligned newly set Act 3 and Act 6 bits reach the matching
   target-region route cuts, and prove
   `evidence_bearing_route_cut_blocks_new_target_bits` under the explicit
@@ -116,8 +126,9 @@
   prove actual surface ownership/list selection.  Extract the exact JP
   allocation/free trace, identify the first destination-area apply, and tie its
   concrete pointer/payload to the abstract slot/epoch.  Prove or refute
-  a reachable three-dimensional State/Object phase split, its JP delayed-warp
-  pointer retention/recapture, the US spawn-clear Clight effect, and the
+  whether the now-demonstrated Area-1 fragment payload has a reachable
+  stale-pointer allocation/RNG lineage, its JP delayed-warp pointer
+  retention/recapture, the US spawn-clear Clight effect, and the
   remaining warp-to-top, top-to-warp, and collision-preserving clone
   possibilities.
 - [ ] Project chronological Mario/action/surface observations from Clight and

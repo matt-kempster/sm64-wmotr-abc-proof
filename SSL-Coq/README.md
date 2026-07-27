@@ -7,12 +7,13 @@ casing.  The reorganization keeps that path rather than creating a parallel
 `less-than-one-a-press/` is the current proof project.  It targets the US and
 Japanese versions of Super Mario 64 at decomp revision
 `9921382a68bb0c865e5e45eb594d9c64db59b1af` and uses CompCert Clight generated
-by `clightgen` 3.15.  It generates 29 translation units per version, for 58
+by `clightgen` 3.15.  It generates 30 translation units per version, for 60
 Clight modules total.  The coverage includes the Mario action, movement,
 `mario_step`, `obj_behaviors_2`, `math_util`, `surface_collision`, and
 `surface_load` units, the cutscene action containing
 `ACT_SPAWN_NO_SPIN_AIRBORNE`, and a project wrapper that imports the
-route-relevant SSL static and dynamic collision arrays.
+route-relevant SSL static and dynamic collision arrays.  A separate wrapper
+imports the Area-1 macro stream used by the phase-split writer audit.
 
 `old-proofs/` contains archived proof attempts.  They are retained for
 historical context, reusable lemmas, and future reference; they are not part of
@@ -125,6 +126,21 @@ clean upper-entry live/inactive/reused slot trichotomy.  The exact reachable
 allocation count and linked Clight memory trace at the first Area-2 platform
 apply remain explicit obligations, so this does not prove retention, reuse, or
 a three-dimensional payload.
+
+`Area1PhaseSplit.v` settles a narrower Area-1 priority question.  A generic
+three-dimensional writer cannot be excluded: generated fragment code, exact
+Area-1 macro records, and generated sine-table words admit a concrete
+CompCert-binary32 payload that changes MarioState in X/Y/Z and raises Y by
+about 1110.67 units.  `Area1SurfaceWitness.v` checks the corresponding
+signed-short query, parsed top/static face edges, exact binary32 candidate
+heights, and 78-unit floor buffer.  This is a payload-and-geometry capability
+counterexample, not a proved reachable stale-slot trace or actual live-list
+selection.  Independently, a pointer captured from the ordinary pyramid top
+cannot bootstrap the upper warp on the next frame: top capture places the
+copied MarioObject above Y 1277, and the subsequent collision pass still
+samples that Object, while node-`0x1E` overlap requires Y at most 818.  The
+linked Clight phase refinement and allocation/free-list prehistory remain
+open.
 
 The current endpoint certificate and handwritten clean-state model are too
 permissive to establish route exhaustiveness: they admit arbitrary motion, and

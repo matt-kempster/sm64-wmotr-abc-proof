@@ -6,7 +6,7 @@ The two transcript routes have **not** been proved exhaustive for the retail
 US and JP programs, and no stock-reachable no-A counterexample was found in
 this investigation.
 
-The work did settle three narrower questions:
+The work did settle four narrower questions:
 
 1. The old `FirstTargetCutClassificationObligation` cannot follow from the
    endpoint/event certificate.  `endpoint_only_alignment_does_not_imply_cut_classification`
@@ -25,6 +25,22 @@ The work did settle three narrower questions:
    raw payload and displacement mechanism are source-shaped; what remains
    unproved is the stock prehistory that retains the pointer at the upper
    warp.
+4. Area 1 contains a genuine source-backed three-dimensional raw-payload
+   family: triangle fragments from breakable and exclamation boxes have
+   nonzero pitch angular velocity.  Exact CompCert binary32 evaluation shows
+   a concrete member moving MarioState from `(-2048,768,-1024)` to
+   approximately
+   `(-2350.8427734375,1878.6683349609375,-714.5823974609375)`, changing X,
+   Y, and Z and raising Y by about `1110.6683`.  Its signed-short floor query
+   is `(-2350,1878,-714)`.
+   The first-allocation breakable-box subcase and this middle-wing-cap-box
+   numeric pivot are not claimed to be one reachable execution.
+   However, ordinary pyramid-top capture cannot bootstrap that payload into a
+   node-`0x1E` warp collision.  Capturing the top slot at the final platform
+   query requires the copied Mario object above Y `1277`; next-frame collision
+   still samples that object, while warp overlap ends at Y `818`.  Slot reuse
+   occurs only on a later frame after `clear_dynamic_surfaces` has removed the
+   old top collision.
 
 The third item is an over-permissive-model counterexample, not yet a retail-ROM
 counterexample.  It must not be excluded merely because no stock setup is
@@ -44,7 +60,8 @@ and actual `find_floor` selection remain open.  The dynamic checker finds one
 guarded assignment source shape; it proves neither assignment exclusivity nor
 the complete floor/height update.
 
-That result is not a global stale-slot exclusion.  The source update order can
+The earlier same-sample result is not a global stale-slot exclusion.  The
+source update order can
 sample the old Mario object for warp collision and the displaced MarioState
 for geometry, floor snap, state/object copy, and final platform selection.
 `phase_split_countermodel_exists` checks a two-sample coordinate/alias model at
@@ -52,13 +69,22 @@ for geometry, floor snap, state/object copy, and final platform selection.
 change, so neither an X/Z alias alone nor any Y-preserving transform realizes
 it.  It does not model a stale slot or prove dynamic-surface selection.  A
 stale/reused object payload with a three-dimensional transform remains outside
-the narrow arithmetic theorem.
+the narrow arithmetic theorem.  `Area1PhaseSplit.v` addresses the next
+bootstrap question: it checks a real triangle-fragment writer and exact
+binary32 three-dimensional displacement, then proves
+`captured_top_epoch_cannot_bootstrap_upper_warp_collision` and
+`captured_top_epoch_cannot_realize_route_relevant_phase_split` for ordinary
+top capture and later slot reuse.  Those are phase/epoch-model results, not
+yet a linked Clight free-list execution or global stale-pointer exclusion.
 
 Moving/loading the upper warp onto the top, moving the top down to the warp,
-and collision-preserving cloning remain unresolved constructions.  The phase
-split adds a fourth family: a separate three-dimensional writer while the
-top's collision is loaded.  Node `0x1E` is delayed, so any successful frame
-also needs pointer retention or recapture through the later object updates.
+collision-preserving cloning, and direct post-query pointer/object writers
+remain unresolved constructions.  A generic three-dimensional writer is now
+source-backed, but the ordinary top-capture route cannot arrange for its old
+collision object to be at node `0x1E`.  Any different successful construction
+must first explain that pointer/collision bootstrap.  Node `0x1E` is delayed,
+so it must then retain or recapture the relevant pointer through the later
+object updates.
 
 The Clight nonvacuity obligation no longer claims that every handwritten clean
 state is source-reachable.  A retained JP pointer must be connected to its
@@ -253,13 +279,33 @@ The proved split is:
   still in signed-16 Y range needs at least 385 units of upward State
   displacement between upper-warp overlap and an accepted numeric floor query
   at height 1281 or above.  Its historical name does not establish live
-  surface ownership or selection.
+  surface ownership or selection;
+- `area1_fragment_writer_source_checked`: the imported Area-1 source contains
+  the nonzero triangle-fragment angular fields used by the candidate; and
+- `concrete_area1_fragment_displacement_is_route_sized_3d`: exact CompCert
+  binary32 arithmetic for the selected payload changes X, Y, and Z, and its Y
+  rise exceeds the route's 385-unit necessary lower bound; and
+- `area1_surface_capability_checked` in `Area1SurfaceWitness.v`: at short query
+  `(-2350,1878,-714)`, the mirrored transformed-top face has signed edges
+  `[207669,313344,2763]` and height `1483.603515625`; a checked static face has
+  edges `[2460,77749,76821]` and height `1280`.  This checks numeric
+  candidates, not live-list ownership or final selection.
 
 This closes only the same-sample arithmetic contradiction, the conditional
-Y-preserving bootstrap, and the concrete CompCert/source arithmetic kernel.  It
-also verifies the exact concrete retail cast.  It leaves generated-expression
-extraction, linked live-memory execution, surface ownership/list selection,
-three-dimensional writer reachability, and
+Y-preserving bootstrap, and the concrete CompCert/source arithmetic kernel.
+The attacked-breakable-box path can suppress its mist allocation once the
+object count exceeds 210, making the first triangle allocation a concrete
+source-backed reuse candidate.  Nevertheless, the ordinary captured-top epoch
+cannot provide the required old object at warp altitude:
+`captured_top_epoch_cannot_bootstrap_upper_warp_collision` and
+`captured_top_epoch_cannot_realize_route_relevant_phase_split` prove that
+finite phase/epoch-model exclusion.  Reuse also occurs after a later
+`clear_dynamic_surfaces`, so it cannot keep the prior frame's top surface.
+
+The project also verifies the exact concrete retail cast.  It leaves
+generated-expression extraction, linked live-memory execution, surface
+ownership/list selection, the exact object-count/free-list lineage of any
+fragment allocation, and
 `delayed_warp_top_lifetime_obligation` open.  It is neither a stock-game
 counterexample nor proof that all alternative upper routes are impossible.
 
@@ -340,20 +386,27 @@ To prove route exhaustiveness, the project still needs:
 2. a checked parser/refinement from the generated collision arrays to exact
    surface IDs, dynamic owners, and target-side components;
 3. source-backed JP platform capture plus the exact reachable allocation/free
-   trace, slot reuse, payload loads, and delayed-warp retention/recapture;
+   trace, slot reuse, payload loads, and delayed-warp retention/recapture.
+   For the Area-1 fragment candidate this includes the object-count branch,
+   mist suppression, allocation index, clearing writes, captured pointer
+   identity, and concrete slot epoch;
 4. unreachability of each remaining movement class under no A edge, exactly
    the content of `NoAOpenRouteWriterClassesUnreachableObligation`; and
 5. a proof that the ordinary elevator/pole A-labelled observations correspond
    to the actual action branches that cross those cuts, completing the
    classification residual.
 
-For the node-`0x1E` candidate, item 3 specifically includes a reachable
-three-dimensional State/Object phase split and multi-frame pointer
-retention/recapture through the delayed warp.  A Y-preserving writer cannot
-realize the concrete 1023-unit-Y candidate.  The helper bodies and concrete
-zero-yaw home-face link/mirrored arithmetic are checked, and the concrete retail
-cast is verified.  Generated-expression extraction, linked live-surface memory,
-list selection, and the exact JP allocation trace remain open.
+For the node-`0x1E` candidate, item 3 no longer asks whether Area 1 contains
+*any* three-dimensional raw-payload primitive: the triangle-fragment source
+fields and one exact binary32 displacement are checked.  It asks whether a
+reachable Clight free-list execution can put such a payload in the relevant
+watched slot while also establishing the old-object warp collision and the
+required allocation epoch.  Ordinary pyramid-top capture cannot do so in the
+phase/epoch model because it leaves that old object above Y `1277`, outside the
+warp interval.  A Y-preserving writer also cannot realize the concrete
+1023-unit-Y candidate.  Generated-expression extraction, linked live-surface
+memory, list selection, every alternative bootstrap construction, and the
+exact JP allocation trace remain open.
 
 Alternatively, a stock-reachable constructor must be recorded with its exact
 clean initial RAM state, controller frames, object/global trace, and target

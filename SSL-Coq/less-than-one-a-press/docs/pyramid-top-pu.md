@@ -7,7 +7,9 @@ in which an intact stock top supplies only a huge X/Z PU displacement and that
 same displaced sample must newly touch the warp.  The first paragraph's
 bottom line is correct for that proposal.  The second response is wrong to call
 the first paragraph incorrect, but its full-float collision, vertical-gap, and
-pre-displacement collision-timing observations are also correct.
+pre-displacement collision-timing observations are also correct.  Its broader
+suggestion that the update order rules out every State/Object phase split is
+too strong.
 
 The new result explores a different, broader question: could Mario's old object
 already overlap the warp while a separate three-dimensional, State-only writer
@@ -29,6 +31,62 @@ It is not a stale-slot, surface-selection, Clight-execution, or reachability
 counterexample.  It does **not** supply the required gameplay-reachable
 three-dimensional displacement or prove that a platform pointer survives the
 delayed warp into Area 2.
+
+The Area-1 audit now separates two questions that were previously conflated.
+A three-dimensional replacement payload is not merely hypothetical:
+breakable-box and exclamation-box triangle fragments write nonzero pitch
+angular velocity, and the checked exact-binary32 countermodel in
+`Area1PhaseSplit.v` shows that such a payload can change all three MarioState
+coordinates.  From old sample `(-2048,768,-1024)`, the selected payload
+evaluates to approximately
+`(-2350.8427734375,1878.6683349609375,-714.5823974609375)`: a Y rise of
+about `1110.6683`, above the proved 385-unit necessary bound.  Its exact
+binary32 words are `[3306351996,1156240739,3291653446]`, and the corresponding
+signed-short floor query is `(-2350,1878,-714)`.  In the
+attacked-breakable-box path,
+having more than 210 objects suppresses the preceding mist allocation, so the
+first triangle allocation is a concrete source-backed candidate for reuse of
+a just-freed slot.  This establishes a real primitive and arithmetic
+possibility, not a reachable free-list lineage.
+The proof also checks the exact Area-1 macro parents and selects the middle
+wing-cap box.  Its action-4 object position is `(-3000,540,800)`, and the
+fragment's extra 100-unit Y offset makes the transform pivot
+`(-3000,640,800)`.  It checks the seed-0 PRNG payload and the selected US/JP
+sine-table words used by the transform.  It does not assert that this seed,
+object count, and free-list state coincide in a reachable run.  The
+breakable-box mist-suppression case and the middle-wing-cap-box numeric pivot
+are separate source-backed subcases; the theorem does not silently splice
+them into one execution.
+
+For the resulting short query, `Area1SurfaceWitness.v` proves that the mirrored
+transformed-top face has signed edge values `[207669,313344,2763]` and
+binary32 plane height
+`1483.603515625`.  A competing static face has signed edge values
+`[2460,77749,76821]` and height `1280`.  These concrete checks establish
+numeric candidates only.  The current theorem does not execute the live
+surface lists or prove which face the real `find_floor` traversal owns or
+selects.
+
+That primitive still cannot bootstrap the ordinary node-`0x1E` construction
+from a normal capture of the pyramid top.  A final platform query can record
+the top's slot only while the copied Mario object is within four units of a
+top-owned floor, hence above Y `1277`.  On the following frame, platform
+displacement changes MarioState, but object collision still samples that old
+Mario object.  It therefore cannot overlap the upper warp, whose overlap
+interval ends at Y `818`.  If the top deactivates, its slot is not placed on
+the free list until after that frame's platform apply.  Reuse can occur only
+during a later frame, after `clear_dynamic_surfaces` has removed the old top
+surfaces.  Reuse therefore cannot combine an ordinary top capture, the old
+top-owned surface, and a same-frame node-`0x1E` collision.
+
+The admission-free theorems
+`captured_top_epoch_cannot_bootstrap_upper_warp_collision` and
+`captured_top_epoch_cannot_realize_route_relevant_phase_split` state this
+Area-1 bootstrap exclusion at the project's explicit phase/epoch boundary.
+They do not prove that the boundary is reached by every relevant Clight run.
+In particular, they do not exclude a separately moved warp, moved top,
+collision-preserving clone, direct post-query pointer/object writer, or some
+other source of a platform pointer already valid at warp altitude.
 
 The second response's rendering detail names the wrong write.  The later
 `copy_mario_state_to_object` updates Mario's `oPos*`, not
@@ -263,8 +321,10 @@ needs:
    the now-imported matrix and surface
    helpers, including live surface ownership/list order and actual
    `find_floor` selection (`sqrtf` remains external where relevant);
-2. a gameplay-reachable writer that creates the required three-dimensional
-   State/Object split while the top collision is loaded;
+2. a linked small-step/free-list execution proving which triangle-fragment
+   allocation, if any, reuses the watched slot, with the exact object-count
+   branch, predecessor allocations, epoch, cleared raw fields, and payload
+   loads at the following platform apply;
 3. confirmation that wall/geometry processing preserves the candidate sample;
 4. a multi-frame trace retaining or recapturing a valid top/surface allocation
    epoch through the `ACT_DISAPPEARED` countdown and delayed object warp; and
@@ -286,7 +346,19 @@ effect remains a refinement obligation.  The JP trace predicate likewise
 awaits derivation from Clight, so one successful collision frame is
 insufficient.
 
-`JPSlotLifetime.v` narrows the JP subproblem without claiming that result.  It
+`Area1PhaseSplit.v` closes the ordinary Area-1 top-capture bootstrap in the
+explicit finite phase model.  `area1_fragment_writer_source_checked` checks the
+nonzero triangle-fragment angular fields against the imported source, and
+`concrete_area1_fragment_displacement_is_route_sized_3d` evaluates the concrete
+binary32 three-dimensional displacement.  The remaining refinement must
+execute the allocation/free-list and platform code over live Clight memory,
+prove the object-count-dependent allocation order, connect the concrete
+pointer to the abstract slot/epoch, and show whether the candidate allocation
+can occur after a source-reachable clean prehistory.  The arithmetic witness
+does not provide those facts.
+
+`JPSlotLifetime.v` narrows the separate JP destination-area subproblem without
+claiming that result.  It
 checks the load/spawn/allocation/unload/free-list source anchors, confirms
 the loop/literal/indexed-write syntax for an 80-word allocation clear and 50
 packed Area-2 macro records, and proves the corresponding finite LIFO and
@@ -316,7 +388,14 @@ Thus the current result is:
 - generated-expression extraction, linked live-memory execution,
   dynamic-surface ownership/list order, and actual `find_floor` selection remain
   open;
-- a three-dimensional stale/reused-slot realization is neither constructed nor
-  ruled out;
+- an Area-1 triangle fragment is a source-backed three-dimensional raw-payload
+  candidate, and its exact-binary32 displacement is checked;
+- ordinary capture and later reuse of the pyramid-top slot cannot bootstrap a
+  node-`0x1E` collision in the project's phase/epoch model: capture leaves the
+  old collision object above `1277`, and next-frame collision cannot see the
+  warp at or below `818`; the old top surfaces have also been cleared before a
+  later reuse;
+- a live Clight small-step/free-list derivation of every relevant capture,
+  deallocation, allocation, payload load, and collision remains open;
 - no stock-reachable counterexample has been found; and
 - the ultimate less-than-one-A theorem remains unproved.

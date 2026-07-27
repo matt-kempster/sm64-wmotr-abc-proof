@@ -291,6 +291,39 @@ check: proofs
 	  LessThanOneAPress.Proofs.JPSlotLifetime \
 	  jp_delayed_warp_slot_boundary_checked
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PhaseSplit \
+	  area1_fragment_writer_source_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PhaseSplit \
+	  area1_fragment_parent_source_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PhaseSplit \
+	  area1_box_rebound_source_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PhaseSplit \
+	  area1_box_action4_and_fragment_pivot_y_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PhaseSplit \
+	  area1_fragment_rng_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PhaseSplit \
+	  area1_fragment_sine_table_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PhaseSplit \
+	  concrete_area1_fragment_displacement_is_route_sized_3d
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PhaseSplit \
+	  captured_top_epoch_cannot_bootstrap_upper_warp_collision
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PhaseSplit \
+	  captured_top_epoch_cannot_realize_route_relevant_phase_split
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PhaseSplit \
+	  area1_phase_split_boundary_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1SurfaceWitness \
+	  area1_surface_capability_checked
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.ModelGapAudit \
 	  current_certified_motion_accepts_arbitrary_endpoint
 	bash pipeline/assumptions.sh \

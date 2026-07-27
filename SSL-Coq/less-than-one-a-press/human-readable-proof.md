@@ -19,21 +19,28 @@ engineering but does not know *Super Mario 64*.
 > spurious one-frame collection from a clean entry, so that relation cannot by
 > itself establish the retail theorem.
 
-> **Newest bounded result:** `PyramidTopSurface.v` imports the actual
-> matrix/surface-loader Clight bodies and checks the concrete CompCert casts,
-> partition cells, the parsed-face link to manually translated zero-yaw home
-> vertices, and hand-mirrored binary32 transform and face-edge arithmetic.
-> Its dynamic checker finds one guarded assignment source shape; it does not
-> establish assignment exclusivity or the complete height update.
-> `PyramidTopPU.v` combines that kernel with the same-sample and conditional
-> Y-preserving exclusions and the two-sample coordinate model.  The retail cast
-> question is now closed for the exact three candidate inputs: authenticated
-> US/JP disassembly uses `trunc.w.s; mfc1; sh; lh`, and Rocq checks its
-> signed-halfword arithmetic.  Linked memory execution, live-surface ownership
-> and selection, a reachable three-dimensional writer, and JP delayed-warp
-> lifetime remain open.  `JPSlotLifetime.v` narrows the last question with checked
-> allocation/free-list source shapes, 50 Area-2 macro records, and a finite
-> LIFO case split, but does not yet extract the reachable memory trace.
+> **Newest bounded result:** `Area1PhaseSplit.v` and
+> `Area1SurfaceWitness.v` prioritize the disputed State/Object split inside
+> Area 1 itself.  They check that breakable-box and
+> exclamation-box triangle fragments provide a real nonzero-pitch raw payload,
+> and exact CompCert binary32 arithmetic shows a concrete payload moving
+> all three MarioState coordinates with a route-sized Y rise.  But ordinary
+> pyramid-top slot capture cannot bootstrap node `0x1E`: final capture requires
+> the copied Mario object above Y `1277`, the next collision still samples that
+> old object, and upper-warp overlap ends at Y `818`.  A reused top slot becomes
+> available only on a later frame after `clear_dynamic_surfaces` has removed the
+> old top collision.  The admission-free result therefore blocks this ordinary
+> bootstrap, not every imaginable stale-pointer construction.
+>
+> `PyramidTopSurface.v` and `PyramidTopPU.v` retain the exact cast, mesh,
+> partition-cell, and arithmetic kernel.  The retail cast question is closed
+> for the exact candidate inputs: authenticated US/JP disassembly uses
+> `trunc.w.s; mfc1; sh; lh`, and Rocq checks its signed-halfword arithmetic.
+> Linked Clight memory execution, live-surface ownership and selection, the
+> exact Area-1 object-count/free-list lineage, alternative warp/top/clone
+> bootstraps, and JP delayed-warp lifetime remain open.  `JPSlotLifetime.v`
+> narrows the destination-area question but does not extract the reachable
+> memory trace.
 
 ## The problem in software terms
 
@@ -318,7 +325,8 @@ rounding still need a conservative coefficient-bound refinement.  The result
 also says nothing about a reused slot whose replacement object installs a new
 pivot, velocity, pitch, or roll.
 
-That does **not** close the broader stale/reused-slot case.  Direct inspection
+That same-sample result does **not** close the broader stale/reused-slot case.
+Direct inspection
 of the pinned source shows that platform displacement
 writes MarioState before collision, while collision still reads the old Mario
 object.  Mario geometry then reads the displaced State, interaction can select
@@ -347,9 +355,75 @@ and platform selection can observe displaced MarioState after collision read
 the old Mario object.  That phase split is only a possible semantic shape, not
 a reachable stale-slot Clight or ROM trace.
 
-This is not yet a retail counterexample.  No controller-authentic
-three-dimensional writer has been found that creates the phase split while the
-top collision is loaded.  Even one successful frame is insufficient: node
+The Area-1-first audit now answers the next question more precisely.  A generic
+three-dimensional raw payload really does exist in stock source.  Triangle
+fragments spawned by breakable and exclamation boxes write nonzero pitch
+angular velocity.  `area1_fragment_writer_source_checked` verifies those
+source fields, and
+`concrete_area1_fragment_displacement_is_route_sized_3d` evaluates one selected
+payload using CompCert binary32 operations: it changes all three MarioState
+coordinates, taking the selected old sample `(-2048,768,-1024)` to
+approximately
+`(-2350.8427734375,1878.6683349609375,-714.5823974609375)`.  The roughly
+`1110.6683`-unit Y rise exceeds the 385-unit necessary lower bound, and the
+three exact binary32 words are `[3306351996,1156240739,3291653446]`.  The
+signed-short collision query is `(-2350,1878,-714)`.  For an
+attacked breakable box, an object count above 210 suppresses the mist
+allocation, so the first triangle
+allocation becomes a concrete candidate for reuse of a just-freed slot.
+
+The arithmetic witness is reproducible rather than existential.  Rocq checks
+the packed US and JP Area-1 macro records for all three wing-cap/exclamation
+boxes and both no-coin breakable boxes, then selects the middle wing-cap box.
+Its real action-4 object position is `(-3000,540,800)`; the fragment
+initializer's 100-unit Y offset makes the transform pivot
+`(-3000,640,800)`.  It also evaluates the stock 16-bit PRNG recurrence for the
+seed-0 payload and checks the selected sine-table words in both generated
+versions.  This proves that the chosen angular payload is compatible with the
+source formulas.  It deliberately does not prove that seed 0, the required
+object count, or the watched free-list head is reachable together.
+The breakable-box "fragment can be first" case and the middle-wing-cap-box
+numeric pivot are separate source-backed subcases; the proof does not combine
+them into a fabricated execution.
+
+The proof then checks both floor candidates at the short query.  The transformed
+top face has signed edge values `[207669,313344,2763]` and binary32 plane
+height `1483.603515625`.  A static face has signed edge values
+`[2460,77749,76821]` and height `1280`.  Those are exact arithmetic facts, not
+a proof that either face is live, owns the relevant list entry, wins the real
+list traversal, or came from a reachable object-pool state.
+
+That sounds like the missing writer, but it does not solve the bootstrap:
+
+1. At the end of a frame, `update_mario_platform` can save the pyramid-top
+   pointer only if the copied Mario object is within four vertical units of a
+   top-owned floor.  The proved bounds put that object above Y `1277`.
+2. On the next frame, platform displacement may change MarioState, but object
+   collision still reads the old Mario object from step 1.
+3. Node-`0x1E` warp overlap requires that old object at or below Y `818`.
+   Those requirements are incompatible.
+4. If the top has deactivated, its slot is freed only after that frame's
+   platform apply.  A fragment can reuse it only in a later terrain-update
+   phase, after `clear_dynamic_surfaces` removed the old top surfaces.
+
+The admission-free theorems
+`captured_top_epoch_cannot_bootstrap_upper_warp_collision` and
+`captured_top_epoch_cannot_realize_route_relevant_phase_split` formalize that
+finite phase/epoch argument.  In software terms, the project now has a real
+"replacement object mutates all three coordinates" primitive, but the ordinary
+"capture pointer from top, free slot, reuse slot, collide with warp" dataflow
+cannot satisfy its producer/consumer preconditions.
+
+This is still not a retail counterexample or a whole-program impossibility
+proof.  The proof has not executed the relevant object-count branch,
+deallocation, free-list pop, raw-data clearing, fragment initialization, and
+platform loads as one linked Clight small-step trace.  Nor does it rule out
+moving/loading the warp onto the top, moving the top down to the warp,
+collision-preserving cloning, or a direct post-query pointer/object writer.
+Those alternative bootstraps need their own source-backed construction or
+unreachability proof.
+
+Even one successful collision frame would be insufficient: node
 `0x1E` uses an action countdown followed by a delayed warp.  The trigger frame
 sets timer `20` transiently during Mario's object update.  After
 `area_update_objects` returns, the same frame decrements it to `19`.  Object
@@ -388,14 +462,14 @@ and exact payload loads at a reachable clean JP upper
 `JPCleanUpperPlatformApplyMemoryRefinementObligation`, given an explicit
 proved-first control-point witness.  Constructing that witness from the
 Area-1 delayed warp and Area-2 source order remains a separate refinement.
-A nonzero pitch/roll angular
-delta is only one sufficient family for a three-dimensional writer; a tilted
-payload with yaw can also change Y, so zero pitch/roll delta is not a global
-exclusion.
+A nonzero pitch/roll angular delta is one sufficient family for a
+three-dimensional writer, and the Area-1 fragment candidate now instantiates
+that family arithmetically.  A tilted payload with yaw can also change Y, so
+the fragment result is not a complete writer census.
 
 Moving/loading the warp onto the top, moving the top down to the already-loaded
-warp, and collision-preserving cloning remain separate unresolved
-constructions.  The full audit and theorem boundary are in
+warp, collision-preserving cloning, and direct post-query writers remain
+separate unresolved constructions.  The full audit and theorem boundary are in
 [`docs/pyramid-top-pu.md`](docs/pyramid-top-pu.md).
 
 `UpperWarpTopCoincidenceMechanism`,
@@ -471,8 +545,10 @@ The separation matters because collecting a star normally exits the course;
 the claim is not that both stars are collected in one run.  The conditional
 stale pyramid-top calculations are evidence about one such mechanism.  The
 Y-preserving stock-yaw arithmetic case is excluded; its execution refinement
-and the phase-separated three-dimensional writer/lifetime are not
-retail-reachable witnesses.
+is open.  The Area-1 fragment supplies a three-dimensional raw-payload
+primitive, but its exact free-list lineage is not a retail-reachable witness,
+and ordinary top capture cannot bootstrap its old-object warp collision.
+Alternative bootstrap and delayed-lifetime questions remain open.
 
 The full alternative-route inventory and its present proof boundary are
 spelled out in
@@ -542,7 +618,7 @@ conditional on separate downstream and abstract-execution certificates.
 ## What the generated source already confirms
 
 The current project regenerates CompCert Clight ASTs for both target versions
-from the pinned decomp revision: 29 translation units per version, 58 modules
+from the pinned decomp revision: 30 translation units per version, 60 modules
 in total.  Direct inspection of that pinned C source shows:
 
 - the controller input calculation distinguishes `buttonPressed` from
@@ -562,6 +638,11 @@ in total.  Direct inspection of that pinned C source shows:
 - `math_util.c` and `surface_load.c` are now imported, so the matrix and
   transformed dynamic-surface helper bodies are no longer unconstrained
   externals in the linked-program obligation;
+- the Area-1 macro wrapper exposes three wing-cap/exclamation-box records and
+  two no-coin breakable-box records at their exact source coordinates;
+- the generated fragment helpers contain the nonzero pitch/yaw fields, the
+  object-count `210` mist-suppression threshold, and the fresh-allocation
+  80-word clearing shapes used by the Area-1 candidate;
 - the normal warp interaction, geometry refresh, disappeared-action floor
   snap, state/object copy, and final platform query occur in the phase order
   used by the new PU countermodel;
@@ -614,7 +695,7 @@ are regenerated or reproved in the current namespace.
 
 | Prior project | Evidence in favor of the route argument | What it still does not prove |
 | --- | --- | --- |
-| `ssl-spawning-displacement-proof` | Identifies the JP stale-platform mechanism, retained inactive/reused slot cases, and the exact spinning-top payload that can move upper-entry Mario outside the shaft in the present abstraction.  Its State/Object timing observations motivated the newly rechecked phase-split source facts and countermodel; the current project now reproves the relevant allocation/free-list source shapes, 50-record macro bound, and finite LIFO classification. | The exact reachable allocation trace, a gameplay-reachable three-dimensional writer, survival or recapture through the delayed node-`0x1E` warp, or a retail continuation to a target region.  Its old same-sample negative argument does not exclude the new phase split. |
+| `ssl-spawning-displacement-proof` | Identifies the JP stale-platform mechanism, retained inactive/reused slot cases, and the exact spinning-top payload that can move upper-entry Mario outside the shaft in the present abstraction.  Its State/Object timing observations motivated the newly rechecked phase-split source facts and countermodel.  The current project now reproves the allocation/free-list shapes, checks a real Area-1 triangle-fragment three-dimensional payload, and proves that ordinary top capture plus later reuse cannot bootstrap a node-`0x1E` collision. | A linked small-step trace establishing every relevant capture/free/reuse/load, any alternative source of the old-object warp collision, survival or recapture through the delayed warp, or a retail continuation to a target region.  The archive's hand-selected unowned-floor observation is not a proof of stock provenance. |
 | `ssl-pyramid-item-proof` | Shows the proof shape needed for area unload/reload, object deletion, free-list slot reuse, and allocation identity.  This supports the claim that outside objects do not simply survive as substitute target stars. | A linked execution proof of the unload loop, target-star provenance, or either route gate. |
 | `ssl-parallel-universe` | Correctly models continuously held A as zero new edges and warns that a bounded-position proof must cover every movement writer.  It tests a possible way of bypassing ordinary geometry. | Complete movement-writer coverage or non-reachability of either target region. |
 | `pole-bypass` | Proves a one-A lower bound for a restricted normalized pole model and isolates `bypass_model_complete` as the missing global premise.  This is evidence about the normal second-pole route. | Every approach state, pole avoidance route, object/platform interaction, Float32 collision phase, JP execution, or the actual target-side support cut.  Its pole-height abstraction is not route-exhaustive. |
@@ -648,9 +729,14 @@ The ultimate theorem needs all of the following:
    actual predecessor, including inactive/reused slot epochs and the
    upper-warp/spinning-top coincidence families.  The source-level LIFO shape,
    50 packed macro records, and Before/At/After count cases are proved.  The
-   exact reachable count/memory trace, a three-dimensional phase-split writer,
-   and delayed-warp retention/recapture are still open.  The concrete candidate
-   cast is verified for both retail versions.
+   Area-1 fragment writer and one exact-binary32 three-dimensional displacement
+   whose Y rise exceeds the necessary bound are checked, while ordinary top
+   capture plus later slot reuse
+   is excluded as the node-`0x1E` bootstrap in the phase/epoch model.  The exact
+   reachable object count, mist-suppression branch, allocation/free-list memory
+   trace, watched pointer/payload loads, alternative bootstrap families, and
+   delayed-warp retention/recapture remain open.  The concrete candidate cast
+   is verified for both retail versions.
 7. Validate the claimed no-A downstream paths from each successful bypass to
    the Act 3 region and all five Act 6 triggers.
 
@@ -680,6 +766,12 @@ The most useful entry points are:
 - `proofs/PyramidTopPU.v`: the modeled same-sample contradiction, conditional
   Y-preserving stock-yaw arithmetic exclusion lemmas, the phase-separated
   coordinate countermodel, and delayed-lifetime obligation;
+- `proofs/Area1PhaseSplit.v`: checked triangle-fragment payload fields, exact
+  binary32 three-dimensional displacement, and the ordinary captured-top epoch
+  bootstrap exclusion for node `0x1E`;
+- `proofs/Area1SurfaceWitness.v`: exact signed-short query, parsed top-face and
+  static-face edge tests, binary32 plane height, 78-unit floor-buffer test, and
+  candidate-height comparison, without claiming live list selection;
 - `proofs/JPSlotLifetime.v`: the JP allocation/free-list source boundary,
   50-record macro count, finite LIFO recurrence, and exact open first-apply
   memory obligation;

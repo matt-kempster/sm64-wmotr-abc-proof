@@ -468,3 +468,24 @@ Status notation: `A` means added, `M` means modified, and `Rnnn` means renamed w
 - `R100` — `SSL-Coq/ssl-spawning-displacement-proof/proofs/UpdateOrder.v` → `SSL-Coq/old-proofs/ssl-spawning-displacement-proof/proofs/UpdateOrder.v`
 - `A` — `SSL-Coq/less-than-one-a-press/docs/changed-paths.md` (this manifest)
 
+## Area-1 phase-split tranche
+
+The later Area-1 State/Object phase-split audit changed:
+
+- `SSL-Coq/README.md`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/docs/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/pyramid-top-pu.md`
+- `SSL-Coq/less-than-one-a-press/docs/route-exhaustiveness.md`
+- `SSL-Coq/less-than-one-a-press/generated/jp_ssl_area1_macro.v`
+- `SSL-Coq/less-than-one-a-press/generated/us_ssl_area1_macro.v`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/inputs/ssl_area1_macro.c`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+- `SSL-Coq/less-than-one-a-press/pipeline/check-generated.sh`
+- `SSL-Coq/less-than-one-a-press/pipeline/generate-clight.sh`
+- `SSL-Coq/less-than-one-a-press/proofs/Area1PhaseSplit.v`
+- `SSL-Coq/less-than-one-a-press/proofs/Area1SurfaceWitness.v`

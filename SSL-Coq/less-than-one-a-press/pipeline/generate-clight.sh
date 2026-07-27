@@ -65,6 +65,7 @@ TRANSLATION_UNITS=(
   "surface_load:src/engine/surface_load.c"
   "macro_special_objects:src/game/macro_special_objects.c"
   "ssl_script:levels/ssl/script.c"
+  "ssl_area1_macro:PROJECT_AREA1_MACRO_INPUT"
   "ssl_area2_macro:PROJECT_INPUT"
   "ssl_collision:PROJECT_COLLISION_INPUT"
 )
@@ -79,6 +80,10 @@ generate_one() {
   local version_flags=()
 
   case "$source_path" in
+    PROJECT_AREA1_MACRO_INPUT)
+      input="$PROJECT_ROOT/inputs/ssl_area1_macro.c"
+      source_label="levels/ssl/areas/1/macro.inc.c (project wrapper)"
+      ;;
     PROJECT_INPUT)
       input="$PROJECT_ROOT/inputs/ssl_area2_macro.c"
       source_label="levels/ssl/areas/2/macro.inc.c (project wrapper)"
