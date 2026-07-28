@@ -1,11 +1,13 @@
-From Coq Require Import List.
+From Coq Require Import List ZArith.
 From LessThanOneAPress.Proofs Require Import
   GameTypes InputSemantics CleanEntry ObjectProvenance StarCollection
   CollisionRegions AreaTransitions HiddenStar LowerEntrance UpperEntrance
-  ClightRefinement ArchivedProofIntegration TranscriptRouteModel
-  FirstTargetRefinement JPSlotLifetime FirstCrossingWriterCoverage.
+  ClightRefinement ArchivedProofIntegration RouteEvidence TranscriptRouteModel
+  FirstTargetRefinement JPSlotLifetime FirstCrossingWriterCoverage
+  OrdinaryMotion.
 
 Import ListNotations.
+Local Open Scope Z_scope.
 
 Definition CollectionProvenanceReductionClaim : Prop :=
   forall initial events final,
@@ -68,6 +70,29 @@ Proof.
   - split.
     + exact jp_delayed_warp_slot_boundary_checked.
     + exact collection_provenance_reduction.
+Qed.
+
+(* The ordinary-motion tranche intentionally exposes both sides of the
+   current upper arithmetic boundary: the non-Wing source/mesh/arithmetic
+   kernel stays below the integer-translation vertical rejection threshold,
+   while the retained-Wing-Cap arithmetic countermodel exceeds the non-Wing
+   rollout bound without a new A edge but still stays below that threshold.
+   The changed gravity is why cap initialization is an explicit refinement
+   obligation.  Neither conjunction is a retail collision-containment or
+   route theorem. *)
+Theorem current_ordinary_motion_evidence_boundary :
+  UpperOrdinaryAscentKernel /\
+  follows_vertical_step
+      wing_cap_held_gravity_step wing_cap_rollout_velocity_trace = true /\
+  wing_cap_rollout_relative_rise = 228 /\
+  220 < wing_cap_rollout_relative_rise /\
+  wing_cap_rollout_relative_rise < pyramid_elevator_cage_clearance /\
+  fewer_than_one_a_press
+    (repeat held_a_frame (length wing_cap_rollout_velocity_trace)).
+Proof.
+  split.
+  - exact upper_ordinary_ascent_kernel_checked.
+  - exact wing_cap_rollout_arithmetic_countermodel.
 Qed.
 
 (* Capstone exposure of the transcript-derived route-gate reduction.  The

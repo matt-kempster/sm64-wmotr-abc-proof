@@ -439,3 +439,162 @@ Theorem wooden_signpost_generated_vertex_bounds_jp :
           jp_ssl_collision.v_wooden_signpost_seg3_collision_0302DD80))) =
   (Some (-44, 45), Some (-9, 126), Some (-12, 20)).
 Proof. vm_compute. reflexivity. Qed.
+
+(** * Selected Area-2 static-mesh receipts
+
+    The generated collision stream begins with [COL_INIT], the declared vertex
+    count, and then 1,080 triples.  The following parser reads exactly those
+    triples.  The selected indices identify the floor ring around the upper
+    pole opening and the lower pole platform used by the route analysis.
+
+    These are raw-initializer receipts only.  They do not prove dynamic surface
+    construction, partition insertion or selection by a live collision query.
+*)
+
+Definition area2_collision_vertex_count : nat := 1080.
+
+Definition area2_collision_vertices_from_words (words : list Z) :
+    list (Z * Z * Z) :=
+  collision_vertices_from_words area2_collision_vertex_count words.
+
+Definition area2_collision_vertices_us : list (Z * Z * Z) :=
+  area2_collision_vertices_from_words
+    (init_int16_values
+      (gvar_init us_ssl_collision.v_ssl_seg7_area_2_collision)).
+
+Definition area2_collision_vertices_jp : list (Z * Z * Z) :=
+  area2_collision_vertices_from_words
+    (init_int16_values
+      (gvar_init jp_ssl_collision.v_ssl_seg7_area_2_collision)).
+
+Definition selected_area2_vertex_receipts
+    (vertices : list (Z * Z * Z)) : Prop :=
+  nth_error vertices 283 = Some (-1535, 3942, 922) /\
+  nth_error vertices 284 = Some (1536, 3942, 922) /\
+  nth_error vertices 285 = Some (102, 3942, 1434) /\
+  nth_error vertices 286 = Some (-101, 3942, 1229) /\
+  nth_error vertices 298 = Some (102, 3942, 1229) /\
+  nth_error vertices 299 = Some (1536, 3942, 1536) /\
+  nth_error vertices 300 = Some (-101, 3942, 1434) /\
+  nth_error vertices 301 = Some (-1535, 3942, 1536) /\
+  nth_error vertices 593 = Some (-204, 3200, 1536) /\
+  nth_error vertices 807 = Some (-204, 3200, 1126) /\
+  nth_error vertices 1010 = Some (205, 3200, 1126).
+
+Theorem area2_collision_vertex_count_exact_us :
+  length area2_collision_vertices_us = area2_collision_vertex_count.
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem area2_collision_vertex_count_exact_jp :
+  length area2_collision_vertices_jp = area2_collision_vertex_count.
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem selected_area2_vertex_receipts_exact_us :
+  selected_area2_vertex_receipts area2_collision_vertices_us.
+Proof.
+  unfold selected_area2_vertex_receipts.
+  vm_compute.
+  repeat split.
+Qed.
+
+Theorem selected_area2_vertex_receipts_exact_jp :
+  selected_area2_vertex_receipts area2_collision_vertices_jp.
+Proof.
+  unfold selected_area2_vertex_receipts.
+  vm_compute.
+  repeat split.
+Qed.
+
+Theorem area2_collision_vertices_are_version_identical :
+  area2_collision_vertices_us = area2_collision_vertices_jp.
+Proof. vm_compute. reflexivity. Qed.
+
+(** * Pyramid-elevator local mesh
+
+    This list is the complete 20-vertex prefix declared by the generated
+    pyramid-elevator collision initializer.  In particular, indices [0..3]
+    form the local-Y-zero base floor, while indices [4..11] are the inner and
+    outer vertices of the local-Y-256 upper rim.  The statements remain about
+    source mesh data, not transformed live surfaces.
+*)
+
+Definition pyramid_elevator_vertices : list (Z * Z * Z) :=
+  [(-511, 0, 512);
+   (512, 0, 512);
+   (512, 0, -511);
+   (-511, 0, -511);
+   (512, 256, -511);
+   (461, 256, 461);
+   (512, 256, 512);
+   (-460, 256, 461);
+   (-511, 256, 512);
+   (-511, 256, -511);
+   (461, 256, -460);
+   (-460, 256, -460);
+   (461, 0, 461);
+   (-460, 0, 461);
+   (461, 0, -460);
+   (-460, 0, -460);
+   (-511, -50, -511);
+   (512, -50, -511);
+   (512, -50, 512);
+   (-511, -50, 512)].
+
+Definition pyramid_elevator_vertices_from_words (words : list Z) :
+    list (Z * Z * Z) :=
+  collision_vertices_from_words 20 words.
+
+Definition pyramid_elevator_vertices_us : list (Z * Z * Z) :=
+  pyramid_elevator_vertices_from_words
+    (init_int16_values
+      (gvar_init
+        us_ssl_collision.v_ssl_seg7_collision_pyramid_elevator)).
+
+Definition pyramid_elevator_vertices_jp : list (Z * Z * Z) :=
+  pyramid_elevator_vertices_from_words
+    (init_int16_values
+      (gvar_init
+        jp_ssl_collision.v_ssl_seg7_collision_pyramid_elevator)).
+
+Theorem pyramid_elevator_vertices_exact_us :
+  pyramid_elevator_vertices_us = pyramid_elevator_vertices.
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem pyramid_elevator_vertices_exact_jp :
+  pyramid_elevator_vertices_jp = pyramid_elevator_vertices.
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem pyramid_elevator_vertices_are_version_identical :
+  pyramid_elevator_vertices_us = pyramid_elevator_vertices_jp.
+Proof. vm_compute. reflexivity. Qed.
+
+Definition pyramid_elevator_base_floor_vertices :
+    list (Z * Z * Z) :=
+  firstn 4 pyramid_elevator_vertices.
+
+Definition pyramid_elevator_upper_rim_vertices :
+    list (Z * Z * Z) :=
+  firstn 8 (skipn 4 pyramid_elevator_vertices).
+
+Theorem pyramid_elevator_base_floor_local_y_is_zero :
+  Forall
+    (fun vertex => vertex_y vertex = 0)
+    pyramid_elevator_base_floor_vertices.
+Proof.
+  vm_compute.
+  repeat constructor.
+Qed.
+
+Theorem pyramid_elevator_upper_rim_local_y_is_256 :
+  Forall
+    (fun vertex => vertex_y vertex = 256)
+    pyramid_elevator_upper_rim_vertices.
+Proof.
+  vm_compute.
+  repeat constructor.
+Qed.
+
+Theorem pyramid_elevator_generated_vertex_bounds :
+  collision_vertex_bounds pyramid_elevator_vertices =
+  (Some (-511, 512), Some (-50, 256), Some (-511, 512)).
+Proof. vm_compute. reflexivity. Qed.

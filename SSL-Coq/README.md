@@ -140,6 +140,29 @@ prove the six no-A motion/domain predicates or the separate support-selection
 predicate for either retail program.  Those predicates are explicitly scoped
 to clean entries and the selected cut family.
 
+`OrdinaryMotion.v` now isolates the ordinary/static writer class.  The proved
+theorem `ordinary_safe_envelope_execution_excludes_target` composes
+caller-supplied finite-cell preservation and target-exclusion obligations;
+it does not discharge them for retail.  The closed capstone
+`current_ordinary_motion_evidence_boundary` packages the source, mesh,
+non-Wing arithmetic, and Wing-Cap countermodel boundary, but not the retail
+exclusion.  In particular, no A edge still permits an already-held-A jump
+kick after B.  The generated elevator initializer has a 256-unit wall/rim,
+dynamic surfaces add a five-unit upper-Y pad, and the lower wall query uses a
+30-unit center offset.  Non-Wing 4-unit-gravity jump kick and a conservatively
+supplied rollout on that branch rise at most 128 and 220 units relative to the
+descending elevator, below the strict 231-unit integer-translation rejection
+threshold.  A Wing-Cap arithmetic countermodel reaches 228: it exceeds the
+non-Wing 220 bound but does not clear the corrected vertical gate.  The retail
+`init_mario` cap reset remains an explicit clean-entry projection/refinement
+requirement.  Live Clight action execution, transformed collision selection,
+intermediate queries, action-state closure, and the full lower route remain
+open.
+The clean upper snapshot itself is above the cage (`5500` versus raw rim top
+`5222`); existing no-spin-airborne AST receipts support a zero-forward-speed
+entry fall, but linked execution and landing on the intended live elevator
+surface are still separate obligations.
+
 `JPSlotLifetime.v` checks the JP allocation/unload source anchors, the
 free-list push/pop shapes, and the loop/literal/write syntax for clearing 80
 raw words, plus the
@@ -216,6 +239,8 @@ the exact boundary.  The narrower
 and [JP slot-lifetime](less-than-one-a-press/docs/jp-slot-lifetime.md) notes
 record the newest checked kernels; the
 [retail cast receipt](less-than-one-a-press/docs/retail-find-floor-cast.md)
-records the authenticated instructions and exact three-input arithmetic.
+records the authenticated instructions and exact three-input arithmetic, and
+the [ordinary-motion audit](less-than-one-a-press/docs/ordinary-motion.md)
+records the newest ordinary/static subkernel and its remaining obligations.
 None of the six archived projects closes the whole-program Layer A refinement
 or any Layer B obligation.

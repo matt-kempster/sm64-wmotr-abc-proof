@@ -108,6 +108,14 @@
   admin preservation, changed-reload entry restoration, conditional reload
   exclusion, and the local-cast alias exclusion without claiming the linked
   construction or no-A geometry predicates.
+- [x] Isolate ordinary motion in `OrdinaryMotion.v`: prove generic composition
+  from explicit finite-cell preservation/target-exclusion obligations, exact
+  US/JP elevator and selected lower-mesh initializer receipts, held-A
+  jump-kick and B-rollout source shapes, and the non-Wing 4-unit-gravity
+  `128 < 231` and `220 < 231` integer-translation upper-elevator arithmetic after the dynamic
+  surface `+5` upper-Y pad.  Record the Wing-Cap `220 < 228 < 231` arithmetic
+  countermodel and cap-state projection requirement without claiming retail
+  action/collision reachability.
 - [x] Check JP allocation/unload/free-list source anchors, prove the 50-record
   Area-2 macro bound, finite LIFO recurrence, and Before/At/After allocation
   count split.  Keep the exact first-Area-2-apply memory trace and payload as a
@@ -141,6 +149,13 @@
   parallel-universe alias-gap subcase globally.
 - [ ] Replace the legacy integer pole subcase with current Float32,
   collision-phase reasoning plus a complete lower-route case split.
+- [ ] Instantiate the ordinary safe envelope for each clean US/JP entrance
+  from linked Clight action execution and live collision surfaces.  Prove
+  controller-memory alignment, cap initialization/preservation, reachable
+  action closure, the upper no-spin entry descent and intended-floor landing,
+  every intermediate floor/wall/ceiling query, and collision observation
+  alignment.  The current jump-kick/rollout arithmetic and normalized Z
+  soft-bonk subcase do not discharge this item.
 - [ ] Prove which JP raw-platform cases are reachable and bound every reachable
   spawning displacement.  Execute the imported matrix/surface helpers over live
   Clight memory, extract the mirrored expressions from generated Clight, and

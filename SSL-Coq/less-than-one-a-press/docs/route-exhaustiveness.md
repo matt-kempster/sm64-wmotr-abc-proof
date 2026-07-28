@@ -264,6 +264,61 @@ The first six are the movement/domain cases.  The final bullet is the separate
 seventh case omitted by the historical classification.  The old bounded static
 quarter-step lemma rules out only one coordinate-alias subcase.
 
+## Ordinary-motion status
+
+Ordinary motion cannot be eliminated by equating no A edge with no movement.
+It includes walking, stored momentum, gravity, falling, sliding, landing, pole
+actions, and normal static floor/wall/ceiling response.  The current abstract
+`MotionPhysicsFrame` also accepts an arbitrary endpoint, so a first-crossing
+event carrying that label is not yet evidence that the generated physics
+produced the crossing.
+
+`OrdinaryMotion.v` replaces that shortcut with a finite-cell safe-envelope
+interface and proves composition from explicit preservation and
+target-exclusion premises.  A concrete proof must enumerate source-side cells
+and prove every linked no-A ordinary step preserves membership.  Endpoint locality is
+insufficient; the refinement must expose the pre-action wall push, graphical
+fallback, up to four ground/air quarter steps, action-local stores, and every
+intermediate floor, wall, and ceiling query.  Earlier nonordinary writers must
+preserve the same envelope, because they may prepare an action or velocity
+whose following ordinary frame becomes the first crossing.
+
+There is a genuine source-backed no-edge ascent.  A may be held at clean
+entry, and punching followed by B can select `ACT_JUMP_KICK` on
+`INPUT_A_DOWN`, without `INPUT_A_PRESSED`.  The checked US/JP source shape
+sets vertical velocity to `20.0f` and calls `perform_air_step(m, 0)`.
+A separate B-driven dive/rollout candidate initializes `30.0f` and also uses
+step argument zero.  Exact generated elevator vertices reach local Y 256;
+dynamic-surface construction adds five to the wall's upper Y, and the lower
+wall query uses a 30-unit center offset.  For an integer-translated wall,
+vertical rejection therefore requires relative center Y strictly above
+`256 + 5 - 30 = 231`.  Closed non-Wing 4-unit-gravity arithmetic bounds jump
+kick by 128 and rollout by 220 relative units.  These numbers do not prove the live wall
+is selected or that the action inventory is closed.
+
+The cap state is load-bearing.  With held-A Wing-Cap flutter after rollout
+turns downward, a closed arithmetic countermodel reaches 228 relative units.
+That refutes the non-Wing 220 bound but remains below 231, so it is not a
+vertical-clearance witness.  Nor is it a clean retail bypass witness: retail
+area-entry initialization resets the special cap state, but `GameState` does
+not yet carry flags/cap timer and the generated initialization effect has not
+been connected to the clean-entry projection.
+
+The upper clean snapshot begins above, not inside, the elevator cage: entry Y
+is 5500 and the initial raw rim top is 5222.  The generated
+`ACT_SPAWN_NO_SPIN_AIRBORNE` path has syntax receipts for a zero-forward-speed
+launch helper followed by an air step.  Those receipts do not yet execute the
+fall, prove all intermediate queries stay on the shaft line, or select the
+live elevator floor.  Landing into the post-entry safe envelope is therefore
+an explicit prerequisite to the ascent subkernel.
+
+For the lower entrance, Z can leave the second pole through `ACT_SOFT_BONK`;
+sliding below its bottom can enter freefall.  The existing normalized
+soft-bonk arithmetic blocks only that restricted trajectory.  The complete
+collision-phase lower safe envelope is still open.  The exact theorem and
+countermodel boundary is in
+[`ordinary-motion.md`](ordinary-motion.md).
+
 ## JP stale pyramid-top candidate
 
 The relevant retail formula in `platform_displacement.c` uses binary32

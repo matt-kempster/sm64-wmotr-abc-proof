@@ -91,4 +91,5 @@ proofs/Area1SurfaceWitness.v
 proofs/Area1PlatformExhaustiveness.v
 proofs/FirstCrossingWriterCoverage.v
 proofs/ModelGapAudit.v
+proofs/OrdinaryMotion.v
 proofs/MainTheorem.v

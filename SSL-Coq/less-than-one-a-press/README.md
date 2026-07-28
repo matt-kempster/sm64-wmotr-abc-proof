@@ -45,6 +45,40 @@ result exposes an additional support-selection obligation that the historical
 six classes missed.  Construction of contracted, ordered crossings and all no-A
 movement/domain/support exclusions remain open for linked US/JP runs.  The
 exclusions now range only over clean entries and the selected cut family.
+
+`OrdinaryMotion.v` now treats the first of those writer families separately.
+The proved theorem `ordinary_safe_envelope_execution_excludes_target` shows
+that caller-supplied finite-cell preservation and target-exclusion
+obligations compose over an ordinary-motion execution; it does not discharge
+those obligations for retail.  The closed capstone
+`current_ordinary_motion_evidence_boundary` packages the checked source,
+mesh, non-Wing arithmetic, and Wing-Cap countermodel boundary.  The current
+abstract `MotionPhysicsFrame` accepts an arbitrary endpoint, so its label
+alone cannot exclude a crossing.  The generated US/JP ASTs also expose a
+concrete reason that "no A edge" must not be read as "no ascent": when A was
+already held, punching can select `ACT_JUMP_KICK` after B without a new A
+edge.  Exact generated elevator-mesh receipts and closed arithmetic put
+non-Wing 4-unit-gravity jump kick at most `128` units and a conservatively
+supplied rollout on that branch at most `220` units relative to the descending
+elevator, below the strict `231`-unit integer-translation wall-rejection
+threshold after the dynamic surface's five-unit upper-Y pad.  These bounds
+still need Clight action/collision execution, live-surface selection,
+intermediate-query, and reachable-action closure.  A retained Wing Cap changes
+the rollout result from `220` to `228`: it refutes reuse of the non-Wing
+4-unit-gravity bound but remains below the corrected vertical threshold.  The
+retail `init_mario` cap reset must nevertheless be connected to the clean-entry
+projection rather than silently assumed.  The lower route remains open beyond
+the existing normalized soft-bonk subcase.  See
+[`docs/ordinary-motion.md`](docs/ordinary-motion.md).
+
+The upper entry also starts at Y `5500`, above the elevator's initial
+raw-mesh rim top Y `5222`.  The ascent bounds apply only after a normal landing
+in the cage.  Generated source-shape receipts show the no-spin airborne spawn
+path repeatedly supplies zero forward velocity before its air step, but no
+Clight/collision theorem yet proves that the entry descent is vertical, lands
+on the intended live elevator floor, and reaches the prestates assumed by the
+ascent kernel.
+
 A separate, current-source-rechecked
 `ArchivedProofIntegrationKernel` incorporates narrow lessons from all six
 archived investigations without importing their old ASTs.  The whole-program
@@ -121,6 +155,8 @@ surface and JP slot boundaries are documented in
 and [`docs/jp-slot-lifetime.md`](docs/jp-slot-lifetime.md).  The authenticated
 retail instruction receipt is
 [`docs/retail-find-floor-cast.md`](docs/retail-find-floor-cast.md).
+The focused ordinary-motion proof boundary is
+[`docs/ordinary-motion.md`](docs/ordinary-motion.md).
 
 ## Exact target and input definition
 
@@ -793,6 +829,15 @@ clightgen -normalize -nostdinc -fstruct-passing \
   projected Float32 collision observations rather than an informal floor
   number, but completeness of that observation stream is itself part of the
   missing concrete refinement.
+- Ordinary motion has not been globally excluded.  The checked jump-kick and
+  rollout arithmetic is a non-Wing upper-elevator subkernel, not an action
+  inventory or collision-execution theorem.  `GameState` does not yet project
+  Mario's flags or cap timer; a Wing-Cap arithmetic countermodel demonstrates
+  that the normal `220` bound is not cap-independent, although its `228`
+  result remains below the corrected `231` vertical threshold.  Retail cap
+  initialization and preservation must still be linked explicitly.
+  The lower Z soft-bonk result remains a normalized subcase rather than a
+  complete second-pole or static-geometry proof.
 - The transcript route model has no Clight projection or collision-surface
   completeness theorem.  `FirstTargetCutClassificationObligation` makes the
   missing exhaustiveness result explicit and its tag sums make the intended

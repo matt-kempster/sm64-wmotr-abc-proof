@@ -48,6 +48,48 @@ check: proofs
 	  LessThanOneAPress.Proofs.ClightFacts \
 	  submerged_position_writer_source_shape_jp
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  held_a_jump_kick_source_shape_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  held_a_jump_kick_source_shape_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  b_rollout_chain_source_shape_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  b_rollout_chain_source_shape_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  retail_entry_cap_reset_source_shape_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  retail_entry_cap_reset_source_shape_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  pyramid_elevator_motion_source_shape_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  pyramid_elevator_motion_source_shape_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  air_quarter_lower_wall_query_source_shape_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  air_quarter_lower_wall_query_source_shape_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  surface_upper_y_padding_source_shape_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  surface_upper_y_padding_source_shape_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  wall_upper_y_strict_rejection_source_shape_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  wall_upper_y_strict_rejection_source_shape_jp
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.ClightRefinement \
 	  us_translation_unit_count
 	bash pipeline/assumptions.sh \
@@ -101,6 +143,18 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.CollisionMeshFacts \
 	  wooden_signpost_generated_vertex_bounds_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CollisionMeshFacts \
+	  selected_area2_vertex_receipts_exact_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CollisionMeshFacts \
+	  selected_area2_vertex_receipts_exact_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CollisionMeshFacts \
+	  pyramid_elevator_vertices_exact_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CollisionMeshFacts \
+	  pyramid_elevator_vertices_exact_jp
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.ClightFacts \
 	  ssl_pu_level_script_checked
@@ -210,8 +264,26 @@ check: proofs
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  collection_provenance_reduction
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.OrdinaryMotion \
+	  upper_entry_descent_source_shape_kernel_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.OrdinaryMotion \
+	  upper_wall_and_cap_source_shape_kernel_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.OrdinaryMotion \
+	  upper_ordinary_source_shape_kernel_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.OrdinaryMotion \
+	  upper_ordinary_ascent_kernel_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.OrdinaryMotion \
+	  wing_cap_rollout_arithmetic_countermodel
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_verified_evidence_and_collection_reduction
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_ordinary_motion_evidence_boundary
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  conditional_less_than_one_a_press_impossibility

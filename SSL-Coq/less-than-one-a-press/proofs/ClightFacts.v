@@ -7,7 +7,7 @@ From LessThanOneAPress.Generated Require Import
   us_mario_actions_submerged us_mario_step us_interaction us_save_file us_object_collision
   us_object_list_processor us_spawn_object us_object_helpers us_obj_behaviors
   us_obj_behaviors_2 us_behavior_actions us_behavior_data us_area
-  us_level_update us_platform_displacement us_surface_collision
+  us_level_update us_platform_displacement us_surface_collision us_surface_load
   us_macro_special_objects us_ssl_script
   us_ssl_area2_macro us_ssl_collision
   jp_game_init jp_mario jp_mario_actions_airborne jp_mario_actions_automatic
@@ -16,7 +16,7 @@ From LessThanOneAPress.Generated Require Import
   jp_mario_actions_submerged jp_mario_step jp_interaction jp_save_file jp_object_collision
   jp_object_list_processor jp_spawn_object jp_object_helpers jp_obj_behaviors
   jp_obj_behaviors_2 jp_behavior_actions jp_behavior_data jp_area
-  jp_level_update jp_platform_displacement jp_surface_collision
+  jp_level_update jp_platform_displacement jp_surface_collision jp_surface_load
   jp_macro_special_objects jp_ssl_script
   jp_ssl_area2_macro jp_ssl_collision.
 From LessThanOneAPress.Proofs Require Import ASTFacts.
@@ -47,6 +47,7 @@ Module UAR := us_area.
 Module ULU := us_level_update.
 Module UPD := us_platform_displacement.
 Module USurface := us_surface_collision.
+Module USurfaceLoad := us_surface_load.
 Module UMS := us_macro_special_objects.
 Module USS := us_ssl_script.
 Module UAM := us_ssl_area2_macro.
@@ -75,6 +76,7 @@ Module JAR := jp_area.
 Module JLU := jp_level_update.
 Module JPD := jp_platform_displacement.
 Module JSurface := jp_surface_collision.
+Module JSurfaceLoad := jp_surface_load.
 Module JMS := jp_macro_special_objects.
 Module JSS := jp_ssl_script.
 Module JAM := jp_ssl_area2_macro.
@@ -759,9 +761,156 @@ Proof. vm_compute. repeat split. Qed.
 
 Definition float32_two_bits : Z := 1073741824.
 Definition float32_four_bits : Z := 1082130432.
+Definition float32_ten_bits : Z := 1092616192.
+Definition float32_twenty_bits : Z := 1101004800.
+Definition float32_twenty_nine_bits : Z := 1105723392.
+Definition float32_thirty_bits : Z := 1106247680.
+Definition float32_forty_eight_bits : Z := 1111490560.
 Definition float32_one_hundred_bits : Z := 1120403456.
+Definition float32_one_hundred_twenty_eight_bits : Z := 1124073472.
 Definition act_soft_bonk_bits : Z := 16910518.
 Definition act_top_of_pole_jump_bits : Z := 50333837.
+Definition act_jump_kick_bits : Z := 25168044.
+Definition act_dive_bits : Z := 25692298.
+Definition act_forward_rollout_bits : Z := 16779430.
+Definition act_backward_rollout_bits : Z := 16779437.
+
+(* Locate a generated switch case and check a Float32 literal in that case's
+   body.  This deliberately says nothing about whether execution reaches the
+   switch or selects the case. *)
+Fixpoint switch_case_mentions_float32_bits_s
+    (case_label bits : Z) (s : statement) : bool :=
+  match s with
+  | Ssequence a b | Sloop a b =>
+      switch_case_mentions_float32_bits_s case_label bits a ||
+      switch_case_mentions_float32_bits_s case_label bits b
+  | Sifthenelse _ a b =>
+      switch_case_mentions_float32_bits_s case_label bits a ||
+      switch_case_mentions_float32_bits_s case_label bits b
+  | Sswitch _ cases =>
+      switch_case_mentions_float32_bits_ls case_label bits cases
+  | Slabel _ body =>
+      switch_case_mentions_float32_bits_s case_label bits body
+  | _ => false
+  end
+with switch_case_mentions_float32_bits_ls
+    (case_label bits : Z) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons label body rest =>
+      (match label with
+       | Some found =>
+           Z.eqb found case_label &&
+           statement_mentions_float32_bits_s bits body
+       | None => false
+       end) ||
+      switch_case_mentions_float32_bits_s case_label bits body ||
+      switch_case_mentions_float32_bits_ls case_label bits rest
+  end.
+
+(* Check an exact direct call whose second argument is an integer literal.
+   This is narrower than separately checking a callee and a constant, which
+   could otherwise witness two unrelated syntax nodes. *)
+Fixpoint calls_ident_with_second_int_literal_s
+    (callee : ident) (literal : Z) (s : statement) : bool :=
+  match s with
+  | Scall _ (Evar id _) (_ :: Econst_int value _ :: _) =>
+      Pos.eqb id callee && Int.eq value (Int.repr literal)
+  | Ssequence a b | Sloop a b =>
+      calls_ident_with_second_int_literal_s callee literal a ||
+      calls_ident_with_second_int_literal_s callee literal b
+  | Sifthenelse _ a b =>
+      calls_ident_with_second_int_literal_s callee literal a ||
+      calls_ident_with_second_int_literal_s callee literal b
+  | Sswitch _ cases =>
+      calls_ident_with_second_int_literal_ls callee literal cases
+  | Slabel _ body =>
+      calls_ident_with_second_int_literal_s callee literal body
+  | _ => false
+  end
+with calls_ident_with_second_int_literal_ls
+    (callee : ident) (literal : Z) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      calls_ident_with_second_int_literal_s callee literal body ||
+      calls_ident_with_second_int_literal_ls callee literal rest
+  end.
+
+(* Recognize the exact generated assignment [field = source + literal]. *)
+Fixpoint assigns_field_from_temp_plus_int_s
+    (field source : ident) (literal : Z) (s : statement) : bool :=
+  match s with
+  | Sassign (Efield _ found_field _)
+      (Ebinop Oadd (Etempvar found_source _) (Econst_int value _) _) =>
+      Pos.eqb found_field field &&
+      Pos.eqb found_source source &&
+      Int.eq value (Int.repr literal)
+  | Ssequence a b | Sloop a b =>
+      assigns_field_from_temp_plus_int_s field source literal a ||
+      assigns_field_from_temp_plus_int_s field source literal b
+  | Sifthenelse _ a b =>
+      assigns_field_from_temp_plus_int_s field source literal a ||
+      assigns_field_from_temp_plus_int_s field source literal b
+  | Sswitch _ cases =>
+      assigns_field_from_temp_plus_int_ls field source literal cases
+  | Slabel _ body =>
+      assigns_field_from_temp_plus_int_s field source literal body
+  | _ => false
+  end
+with assigns_field_from_temp_plus_int_ls
+    (field source : ident) (literal : Z)
+    (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      assigns_field_from_temp_plus_int_s field source literal body ||
+      assigns_field_from_temp_plus_int_ls field source literal rest
+  end.
+
+(* In the generated wall loop, [upperY] is first loaded into a temporary and
+   the next statement computes [y > upperY].  Matching the adjacent statements
+   keeps the field read tied to the strict comparison instead of merely finding
+   the same identifier and operator elsewhere in the function. *)
+Definition is_strict_temp_gt_loaded_field
+    (y field : ident) (load compare : statement) : bool :=
+  match load, compare with
+  | Sset upper_temp (Efield _ found_field _),
+    Sset _ (Ecast
+      (Ebinop Ogt (Etempvar found_y _) (Etempvar compared_upper _) _) _) =>
+      Pos.eqb found_field field &&
+      Pos.eqb found_y y &&
+      Pos.eqb compared_upper upper_temp
+  | _, _ => false
+  end.
+
+Fixpoint contains_strict_temp_gt_loaded_field_s
+    (y field : ident) (s : statement) : bool :=
+  match s with
+  | Ssequence a b =>
+      is_strict_temp_gt_loaded_field y field a b ||
+      contains_strict_temp_gt_loaded_field_s y field a ||
+      contains_strict_temp_gt_loaded_field_s y field b
+  | Sloop a b =>
+      contains_strict_temp_gt_loaded_field_s y field a ||
+      contains_strict_temp_gt_loaded_field_s y field b
+  | Sifthenelse _ a b =>
+      contains_strict_temp_gt_loaded_field_s y field a ||
+      contains_strict_temp_gt_loaded_field_s y field b
+  | Sswitch _ cases =>
+      contains_strict_temp_gt_loaded_field_ls y field cases
+  | Slabel _ body =>
+      contains_strict_temp_gt_loaded_field_s y field body
+  | _ => false
+  end
+with contains_strict_temp_gt_loaded_field_ls
+    (y field : ident) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      contains_strict_temp_gt_loaded_field_s y field body ||
+      contains_strict_temp_gt_loaded_field_ls y field rest
+  end.
 
 (* Selected source-shape facts from the archived pole investigation, now
    checked against both current generated versions.  They remain syntactic
@@ -848,6 +997,265 @@ Definition no_a_movement_source_shape_jp_claim : Prop :=
 Theorem no_a_movement_source_shape_jp :
   no_a_movement_source_shape_jp_claim.
 Proof. unfold no_a_movement_source_shape_jp_claim; vm_compute; repeat split. Qed.
+
+(* Holding A at the modeled entry is permitted by the theorem's edge-triggered
+   input condition.  These generated-AST receipts preserve the corresponding
+   punching -> jump-kick source shapes in both versions: both the moving
+   act_move_punching handler and the object-action act_punching handler contain
+   the A-down mask and jump-kick action constant, their direct set_mario_action
+   calls are present, the matching airborne-action switch case contains the
+   Float32 20 literal, and act_jump_kick directly calls perform_air_step with
+   literal step argument 0.
+
+   These are syntactic checks only.  They prove neither branch/dataflow
+   correspondence nor reachability from CleanPyramidEntry.  In particular,
+   the exact perform_air_step call is the positive fact recorded here; no
+   absence claim about ledge-grab or other semantics is made. *)
+Definition held_a_jump_kick_source_shape_us_claim : Prop :=
+  statement_mentions_int_s 128 (fn_body UMove.f_act_move_punching) = true /\
+  statement_mentions_int_s act_jump_kick_bits
+    (fn_body UMove.f_act_move_punching) = true /\
+  calls_ident_s UMove._set_mario_action
+    (fn_body UMove.f_act_move_punching) = true /\
+  statement_mentions_int_s 128
+    (fn_body UObjectActions.f_act_punching) = true /\
+  statement_mentions_int_s act_jump_kick_bits
+    (fn_body UObjectActions.f_act_punching) = true /\
+  calls_ident_s UObjectActions._set_mario_action
+    (fn_body UObjectActions.f_act_punching) = true /\
+  switch_case_mentions_float32_bits_s
+    act_jump_kick_bits float32_twenty_bits
+    (fn_body UMI.f_set_mario_action_airborne) = true /\
+  calls_ident_with_second_int_literal_s UAir._perform_air_step 0
+    (fn_body UAir.f_act_jump_kick) = true.
+
+Theorem held_a_jump_kick_source_shape_us :
+  held_a_jump_kick_source_shape_us_claim.
+Proof.
+  unfold held_a_jump_kick_source_shape_us_claim.
+  vm_compute. repeat split.
+Qed.
+
+Definition held_a_jump_kick_source_shape_jp_claim : Prop :=
+  statement_mentions_int_s 128 (fn_body JMove.f_act_move_punching) = true /\
+  statement_mentions_int_s act_jump_kick_bits
+    (fn_body JMove.f_act_move_punching) = true /\
+  calls_ident_s JMove._set_mario_action
+    (fn_body JMove.f_act_move_punching) = true /\
+  statement_mentions_int_s 128
+    (fn_body JObjectActions.f_act_punching) = true /\
+  statement_mentions_int_s act_jump_kick_bits
+    (fn_body JObjectActions.f_act_punching) = true /\
+  calls_ident_s JObjectActions._set_mario_action
+    (fn_body JObjectActions.f_act_punching) = true /\
+  switch_case_mentions_float32_bits_s
+    act_jump_kick_bits float32_twenty_bits
+    (fn_body JMI.f_set_mario_action_airborne) = true /\
+  calls_ident_with_second_int_literal_s JAir._perform_air_step 0
+    (fn_body JAir.f_act_jump_kick) = true.
+
+Theorem held_a_jump_kick_source_shape_jp :
+  held_a_jump_kick_source_shape_jp_claim.
+Proof.
+  unfold held_a_jump_kick_source_shape_jp_claim.
+  vm_compute. repeat split.
+Qed.
+
+(* B presses are not excluded by a no-A-edge hypothesis.  The following
+   source-shape receipts therefore retain the high-speed ground-dive and
+   dive-slide rollout chain in the ordinary-motion inventory.  They check the
+   generated constants and direct calls only; they do not prove that the
+   constants lie on one feasible dataflow path, that a clean run reaches the
+   actions, or that a rollout reaches a target region. *)
+Definition b_rollout_chain_source_shape_us_claim : Prop :=
+  statement_mentions_int_s 8192
+    (fn_body UMove.f_check_ground_dive_or_punch) = true /\
+  statement_mentions_float32_bits_s float32_twenty_nine_bits
+    (fn_body UMove.f_check_ground_dive_or_punch) = true /\
+  statement_mentions_float32_bits_s float32_forty_eight_bits
+    (fn_body UMove.f_check_ground_dive_or_punch) = true /\
+  statement_mentions_float32_bits_s float32_twenty_bits
+    (fn_body UMove.f_check_ground_dive_or_punch) = true /\
+  statement_mentions_int_s act_dive_bits
+    (fn_body UMove.f_check_ground_dive_or_punch) = true /\
+  calls_ident_s UMove._set_mario_action
+    (fn_body UMove.f_check_ground_dive_or_punch) = true /\
+  statement_mentions_int_s 8192 (fn_body UMove.f_act_dive_slide) = true /\
+  statement_mentions_int_s act_forward_rollout_bits
+    (fn_body UMove.f_act_dive_slide) = true /\
+  statement_mentions_int_s act_backward_rollout_bits
+    (fn_body UMove.f_act_dive_slide) = true /\
+  calls_ident_s UMove._set_mario_action
+    (fn_body UMove.f_act_dive_slide) = true /\
+  statement_mentions_float32_bits_s float32_thirty_bits
+    (fn_body UAir.f_act_forward_rollout) = true /\
+  calls_ident_with_second_int_literal_s UAir._perform_air_step 0
+    (fn_body UAir.f_act_forward_rollout) = true /\
+  statement_mentions_float32_bits_s float32_thirty_bits
+    (fn_body UAir.f_act_backward_rollout) = true /\
+  calls_ident_with_second_int_literal_s UAir._perform_air_step 0
+    (fn_body UAir.f_act_backward_rollout) = true.
+
+Theorem b_rollout_chain_source_shape_us :
+  b_rollout_chain_source_shape_us_claim.
+Proof.
+  unfold b_rollout_chain_source_shape_us_claim.
+  vm_compute. repeat split.
+Qed.
+
+Definition b_rollout_chain_source_shape_jp_claim : Prop :=
+  statement_mentions_int_s 8192
+    (fn_body JMove.f_check_ground_dive_or_punch) = true /\
+  statement_mentions_float32_bits_s float32_twenty_nine_bits
+    (fn_body JMove.f_check_ground_dive_or_punch) = true /\
+  statement_mentions_float32_bits_s float32_forty_eight_bits
+    (fn_body JMove.f_check_ground_dive_or_punch) = true /\
+  statement_mentions_float32_bits_s float32_twenty_bits
+    (fn_body JMove.f_check_ground_dive_or_punch) = true /\
+  statement_mentions_int_s act_dive_bits
+    (fn_body JMove.f_check_ground_dive_or_punch) = true /\
+  calls_ident_s JMove._set_mario_action
+    (fn_body JMove.f_check_ground_dive_or_punch) = true /\
+  statement_mentions_int_s 8192 (fn_body JMove.f_act_dive_slide) = true /\
+  statement_mentions_int_s act_forward_rollout_bits
+    (fn_body JMove.f_act_dive_slide) = true /\
+  statement_mentions_int_s act_backward_rollout_bits
+    (fn_body JMove.f_act_dive_slide) = true /\
+  calls_ident_s JMove._set_mario_action
+    (fn_body JMove.f_act_dive_slide) = true /\
+  statement_mentions_float32_bits_s float32_thirty_bits
+    (fn_body JAir.f_act_forward_rollout) = true /\
+  calls_ident_with_second_int_literal_s JAir._perform_air_step 0
+    (fn_body JAir.f_act_forward_rollout) = true /\
+  statement_mentions_float32_bits_s float32_thirty_bits
+    (fn_body JAir.f_act_backward_rollout) = true /\
+  calls_ident_with_second_int_literal_s JAir._perform_air_step 0
+    (fn_body JAir.f_act_backward_rollout) = true.
+
+Theorem b_rollout_chain_source_shape_jp :
+  b_rollout_chain_source_shape_jp_claim.
+Proof.
+  unfold b_rollout_chain_source_shape_jp_claim.
+  vm_compute. repeat split.
+Qed.
+
+(* The retail area-entry initializer rewrites Mario's cap flags and resets the
+   cap timer.  These checks are path-insensitive syntax receipts: they do not
+   choose between the cap-worn and lost-cap branches (both are non-Wing), and
+   they do not prove that no later level-script or object action grants a
+   special cap. *)
+Definition retail_entry_cap_reset_source_shape_us_claim : Prop :=
+  calls_ident_s ULU._init_mario
+    (fn_body ULU.f_init_mario_after_warp) = true /\
+  calls_ident_s UMI._save_file_get_flags (fn_body UMI.f_init_mario) = true /\
+  assigns_through_field_s UMI._flags (fn_body UMI.f_init_mario) = true /\
+  statement_mentions_int_s 1 (fn_body UMI.f_init_mario) = true /\
+  statement_mentions_int_s 16 (fn_body UMI.f_init_mario) = true /\
+  assigns_through_field_s UMI._capTimer (fn_body UMI.f_init_mario) = true.
+
+Theorem retail_entry_cap_reset_source_shape_us :
+  retail_entry_cap_reset_source_shape_us_claim.
+Proof.
+  unfold retail_entry_cap_reset_source_shape_us_claim.
+  vm_compute. repeat split.
+Qed.
+
+Definition retail_entry_cap_reset_source_shape_jp_claim : Prop :=
+  calls_ident_s JLU._init_mario
+    (fn_body JLU.f_init_mario_after_warp) = true /\
+  calls_ident_s JMI._save_file_get_flags (fn_body JMI.f_init_mario) = true /\
+  assigns_through_field_s JMI._flags (fn_body JMI.f_init_mario) = true /\
+  statement_mentions_int_s 1 (fn_body JMI.f_init_mario) = true /\
+  statement_mentions_int_s 16 (fn_body JMI.f_init_mario) = true /\
+  assigns_through_field_s JMI._capTimer (fn_body JMI.f_init_mario) = true.
+
+Theorem retail_entry_cap_reset_source_shape_jp :
+  retail_entry_cap_reset_source_shape_jp_claim.
+Proof.
+  unfold retail_entry_cap_reset_source_shape_jp_claim.
+  vm_compute. repeat split.
+Qed.
+
+(* Object-field macros are expanded by preprocessing: [oPosY] is rawData
+   Float32 slot 7 and [oVelY] is slot 10 in these generated units.  The facts
+   below record the elevator loop's writes and its 10.0f/128.0f literals only;
+   they do not prove a per-frame displacement bound or platform containment. *)
+Definition pyramid_elevator_motion_source_shape_us_claim : Prop :=
+  assigns_array_slot_s UOB._asF32 7
+    (fn_body UOB.f_bhv_pyramid_elevator_loop) = true /\
+  assigns_array_slot_s UOB._asF32 10
+    (fn_body UOB.f_bhv_pyramid_elevator_loop) = true /\
+  statement_mentions_float32_bits_s float32_ten_bits
+    (fn_body UOB.f_bhv_pyramid_elevator_loop) = true /\
+  statement_mentions_float32_bits_s float32_one_hundred_twenty_eight_bits
+    (fn_body UOB.f_bhv_pyramid_elevator_loop) = true.
+
+Theorem pyramid_elevator_motion_source_shape_us :
+  pyramid_elevator_motion_source_shape_us_claim.
+Proof.
+  unfold pyramid_elevator_motion_source_shape_us_claim.
+  vm_compute. repeat split.
+Qed.
+
+Definition pyramid_elevator_motion_source_shape_jp_claim : Prop :=
+  assigns_array_slot_s JOB._asF32 7
+    (fn_body JOB.f_bhv_pyramid_elevator_loop) = true /\
+  assigns_array_slot_s JOB._asF32 10
+    (fn_body JOB.f_bhv_pyramid_elevator_loop) = true /\
+  statement_mentions_float32_bits_s float32_ten_bits
+    (fn_body JOB.f_bhv_pyramid_elevator_loop) = true /\
+  statement_mentions_float32_bits_s float32_one_hundred_twenty_eight_bits
+    (fn_body JOB.f_bhv_pyramid_elevator_loop) = true.
+
+Theorem pyramid_elevator_motion_source_shape_jp :
+  pyramid_elevator_motion_source_shape_jp_claim.
+Proof.
+  unfold pyramid_elevator_motion_source_shape_jp_claim.
+  vm_compute. repeat split.
+Qed.
+
+(* The 30.0f lower-wall query offset is checked at the exact direct
+   resolve_and_return_wall_collisions call in perform_air_quarter_step.  This
+   remains path-insensitive and does not yet connect the query to a particular
+   elevator surface or prove the later 256 + 5 - 30 clearance arithmetic. *)
+Theorem air_quarter_lower_wall_query_source_shape_us :
+  calls_ident_with_float32_arg_s
+    UStep._resolve_and_return_wall_collisions float32_thirty_bits
+    (fn_body UStep.f_perform_air_quarter_step) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem air_quarter_lower_wall_query_source_shape_jp :
+  calls_ident_with_float32_arg_s
+    JStep._resolve_and_return_wall_collisions float32_thirty_bits
+    (fn_body JStep.f_perform_air_quarter_step) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* [read_surface_data] pads a triangle's maximum vertex Y by five when it
+   initializes [upperY].  The wall-list loop rejects a wall only for the strict
+   comparison [y > upperY], so equality is not rejected by this height guard.
+   These exact generated-syntax receipts anchor the +5 correction but do not
+   prove a collision or a complete elevator-containment invariant. *)
+Theorem surface_upper_y_padding_source_shape_us :
+  assigns_field_from_temp_plus_int_s
+    USurfaceLoad._upperY USurfaceLoad._maxY 5
+    (fn_body USurfaceLoad.f_read_surface_data) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem surface_upper_y_padding_source_shape_jp :
+  assigns_field_from_temp_plus_int_s
+    JSurfaceLoad._upperY JSurfaceLoad._maxY 5
+    (fn_body JSurfaceLoad.f_read_surface_data) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem wall_upper_y_strict_rejection_source_shape_us :
+  contains_strict_temp_gt_loaded_field_s USurface._y USurface._upperY
+    (fn_body USurface.f_find_wall_collisions_from_list) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem wall_upper_y_strict_rejection_source_shape_jp :
+  contains_strict_temp_gt_loaded_field_s JSurface._y JSurface._upperY
+    (fn_body JSurface.f_find_wall_collisions_from_list) = true.
+Proof. vm_compute. reflexivity. Qed.
 
 (* [execute_mario_action] dispatches submerged actions as well as the six
    action groups imported by the original project.  Keep the direct water and

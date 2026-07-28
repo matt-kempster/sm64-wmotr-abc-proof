@@ -319,6 +319,86 @@ The model deliberately targets the **Act 3 interaction region** and the
 floor writes a save bit.  The collection layer separately explains why those
 regions matter.
 
+### Ordinary motion: what is proved and what is not
+
+“No A press” is not “Mario cannot move.”  The ordinary-motion class includes
+walking, momentum, gravity, falling, sliding, landing, pole actions, and normal
+static floor/wall/ceiling response.  The generated source also exposes a less
+obvious case: A may already be held at clean entry, and stationary or moving
+punching can then select `ACT_JUMP_KICK` after a B press without a new A edge.
+That is a real counterexample to the shortcut “no A edge implies no upward
+motion.”
+
+The current abstract event model cannot decide whether such motion reaches a
+route cut.  A `MotionPhysicsFrame` still accepts an arbitrary endpoint, so its
+label is comparable to a log record whose payload has not been validated
+against the implementation.  Moreover, an earlier platform, object, clip, or
+lifecycle event could prepare the action or velocity used by the later
+ordinary frame.  The sound shape is therefore a preservation proof: define a
+finite, source/mesh-backed safe envelope and prove that every writer class
+preserves it until the first target-side crossing.
+
+The new `OrdinaryMotion.v` module proves that explicit generic preservation
+and target-exclusion obligations compose, and closes two upper-elevator
+arithmetic kernels:
+
+- jump kick starts with vertical velocity `20`, uses the non-Wing fallback
+  gravity of `4`, and
+  has at most `60` units of absolute ascent;
+- while granting the full `10`-unit elevator descent benefit on every frame,
+  jump kick rises at most `128` units relative to the elevator;
+- a conservatively supplied rollout starts at `30` and rises at most `220`
+  units relative to the elevator; and
+- the generated elevator mesh has side vertices through local Y `256`, the
+  dynamic-surface loader adds an upper-Y pad of `5`, and the lower wall query
+  samples Mario at Y offset `30`, so an integer-translated wall is rejected
+  vertically only when relative center Y is strictly greater than
+  `256 + 5 - 30 = 231`.
+
+Thus both modeled ascent chains remain below the wall-clearance threshold:
+`128 < 231` and `220 < 231`, on the non-Wing 4-unit-gravity branch.  Their
+generated US/JP action bodies call
+`perform_air_step` with literal step argument zero, so these actions do not
+request the ledge-grab check.  Exact US/JP mesh receipts also recover the
+20 elevator vertices and the lower-route pole-base and upper-ring vertices.
+`MainTheorem.v` packages this exact checked boundary, together with the
+Wing-Cap arithmetic below, as the closed theorem
+`current_ordinary_motion_evidence_boundary`; that theorem is not a retail
+containment theorem.
+
+Cap state is a necessary engineering precondition, not decorative state.
+With a retained Wing Cap and held A, flutter gravity slows Mario's fall after
+the rollout turns downward while the elevator continues descending.  The
+formal arithmetic countermodel then reaches `228` relative units.  It refutes
+reuse of the non-Wing `220` bound but remains below `231`, so it does not
+establish vertical or horizontal clearance, a collision miss, or a clean
+retail bypass.  Retail area-entry initialization resets special-cap state, but
+the abstract `GameState` currently omits flags and cap timer, so the source
+initialization effect must still be connected to the clean-entry projection.
+
+This is not yet an unconditional elevator-containment proof.  It still needs
+linked Clight execution of the action and gravity paths, live transformed-wall
+ownership and list selection, bounds for every intermediate collision query,
+normal collision rather than a clip/tunnel, cap initialization and
+preservation, and closure of the reachable upper-entry action states.  The
+lower route is less complete: Z can leave the second pole through
+`ACT_SOFT_BONK`, so A is not literally the only pole exit.  The existing
+normalized pole arithmetic blocks that restricted Z-exit model, but does not
+cover every lower-entry ordinary trajectory.
+
+There is also an earlier upper-entry phase that the ascent arithmetic does not
+cover.  Mario's clean snapshot is at Y `5500`, above the elevator's initial
+raw rim top at Y `5222`.  The generated no-spin-airborne action contains the
+expected zero-forward-speed launch-helper and air-step calls, which supports a
+vertical entry fall at the syntax level.  The proof still has to execute that
+path, select the live elevator floor, and establish the post-landing state
+before applying either ascent bound.
+
+The precise result and remaining obligations are documented in
+[`docs/ordinary-motion.md`](docs/ordinary-motion.md).  No retail ordinary-motion
+trace reached either target region in this tranche, and the ultimate theorem
+remains incomplete.
+
 ### Conditional stale pyramid-top route
 
 The user's additional route observation is represented explicitly rather than

@@ -1,0 +1,268 @@
+# Ordinary-motion tranche
+
+## Verdict
+
+Ordinary motion has **not** been eliminated for every clean US or JP
+execution.  This tranche proves a narrower upper-elevator arithmetic and
+source-mesh kernel, exposes the correct preservation theorem needed for a
+retail proof, and identifies two false shortcuts:
+
+1. no `A_BUTTON_PRESSED` edge does not imply that Mario cannot ascend; and
+2. an abstract event labeled `MotionPhysicsFrame` is not evidence that retail
+   physics produced its endpoint.
+
+No retail trace reaching either target region, and no newly set Act 3 or Act 6
+save bit, was found here.
+
+## What counts as ordinary motion
+
+The ordinary class includes controller-directed walking, existing momentum,
+gravity, falling, sliding, landing, pole actions, and normal floor/wall/ceiling
+resolution.  It does not include platform displacement, object impulses,
+area-entry initialization, warp/reload displacement, or a collision
+clip/tunnel.  Those have separate first-crossing classes.
+
+The source writer boundary is larger than a single call to
+`perform_ground_step` or `perform_air_step`.  It also includes:
+
+- the pre-action wall push and graphical-position fallback in
+  `update_mario_geometry_inputs`;
+- stationary floor snaps and four ground or air quarter steps;
+- action-local stores and action changes, including pole, ledge, and water
+  actions; and
+- potentially several action handlers in one `execute_mario_action` loop.
+
+Every relevant control point and intermediate collision query must therefore
+be represented in the eventual Clight refinement.  Constraining only the final
+endpoint is insufficient.
+
+## Why the current abstract event relation cannot prove the exclusion
+
+`ModelGapAudit.current_certified_motion_accepts_arbitrary_endpoint` proves that
+the current certificate accepts a `MotionPhysicsFrame` with any chosen
+kinematic endpoint.  It does not require a gravity update, a reachable action,
+a wall or floor result, a defined signed-short collision query, or execution
+of the generated Clight.
+
+This is an abstraction counterexample, not a ROM counterexample.  It disproves
+the proposed inference
+
+```text
+abstract event is MotionPhysicsFrame
+therefore its endpoint is reachable by ordinary retail motion
+```
+
+and is why `NoALocalOrdinaryFirstCrossing` cannot simply be asserted as the
+next standalone theorem.
+
+There is a second compositional problem.  A platform, object, clip, or
+lifecycle event may prepare Mario's position, action, or velocity without
+crossing a target cut.  The following ordinary frame could then be the first
+crossing.  A sound proof must show that **every** earlier writer preserves one
+common safe envelope, not prove the ordinary label in isolation from all
+possible prestates.
+
+## A real no-edge ascent in the source
+
+The target definition permits A to be held before clean entry.  The generated
+US and JP ASTs preserve the source distinction between `INPUT_A_DOWN` and the
+edge-triggered `INPUT_A_PRESSED`.
+
+Both stationary and moving punching can select `ACT_JUMP_KICK` when A is down.
+That path needs a B press, but no new A edge.  The airborne action initializer
+contains the binary32 value `20.0f` for jump-kick vertical velocity, and
+`act_jump_kick` calls `perform_air_step(m, 0)`.  The literal zero is important:
+this action does not request the air-step ledge-grab check.
+
+This is a source-backed counterexample to “no A edge means no upward ordinary
+motion.”  It is not a counterexample to the two-star claim.
+
+B also keeps a higher candidate in the conservative action inventory.  A
+high-speed ground dive can land in `ACT_DIVE_SLIDE`, and a later B press can
+select a forward or backward rollout.  The rollout action initializes
+vertical velocity to `30.0f` and also calls `perform_air_step(m, 0)`.
+Reachability of that full chain inside the clean elevator cage is not assumed;
+the arithmetic below bounds it even if it is supplied.
+
+## Closed upper-elevator arithmetic
+
+The generated collision initializer is parsed into the exact 20 local
+pyramid-elevator vertices for both target versions.  Relevant facts are:
+
+- the base floor is at local Y `0`;
+- the side/rim vertices reach local Y `256`;
+- dynamic surface construction stores `upperY = maxY + 5`;
+- the lower air wall query samples Mario's center at offset Y `30`; and
+- wall height rejection is strict above the surface's upper Y.
+
+Consequently, for an integer-translated elevator wall, a normally resolved
+airborne center must be strictly above
+
+```text
+256 + 5 - 30 = 231
+```
+
+relative to the elevator floor before the lower wall query rejects the side
+wall vertically.  Equality still lies on the wall's inclusive Y range.
+Nonintegral dynamic translations pass through signed-short transformed
+vertices, so the precise live threshold must be recovered from the linked
+Float32/short execution; `231` is the checked integer-translation arithmetic
+boundary.
+
+The arithmetic model uses the source values for the non-Wing fallback gravity
+(`4` units/frame) and conservatively gives the airborne center the full
+`10`-unit benefit of constant elevator descent on the first and every later
+frame.  These first two sequences assume the non-Wing 4-unit branch:
+
+```text
+jump kick:  (20 + 10) + 26 + 22 + 18 + 14 + 10 + 6 + 2 = 128
+rollout:    (30 + 10) + 36 + 32 + 28 + 24 + 20 + 16 + 12 + 8 + 4 = 220
+```
+
+Rocq proves these sequences saturate at `128` and `220`, respectively, and
+proves:
+
+```coq
+Theorem held_a_jump_kick_elevator_relative_ascent_bound :
+  forall frames,
+    held_a_jump_kick_elevator_relative_ascent frames <= 128.
+
+Theorem rollout_elevator_relative_ascent_bound :
+  forall frames,
+    rollout_elevator_relative_ascent frames <= 220.
+
+Theorem held_a_jump_kick_relative_ascent_below_cage_clearance :
+  128 < pyramid_elevator_cage_clearance.
+
+Theorem rollout_relative_ascent_below_cage_clearance :
+  220 < pyramid_elevator_cage_clearance.
+```
+
+The ordinary jump-kick absolute rise is also proved at most `60`.
+
+These are closed arithmetic theorems, but their retail use is conditional on
+the action and collision execution matching the model.  In particular, they
+do not by themselves prove that:
+
+- the transformed elevator walls are the surfaces selected from live Clight
+  memory;
+- all intermediate Float32 queries have the modeled values and defined
+  signed-short conversions;
+- normal wall resolution occurs rather than a clip, tunnel, or missed wall;
+- the elevator descends by at most ten between the relevant samples;
+- no earlier writer supplies a different action, height, or velocity; or
+- the action inventory from a clean upper entry is closed.
+
+Those points are deliberately retained as refinement obligations.
+
+The upper clean-entry snapshot is not initially inside the cage: Mario starts
+at Y `5500`, while the elevator starts at Y `4966` and its raw local rim
+reaches world Y `5222`.  The generated no-spin-airborne entry action calls its
+launch helper with zero forward speed; that helper writes forward speed and
+then calls `perform_air_step`.  These are syntax receipts only.  A complete
+ordinary proof must execute the spawn action and intermediate collision
+queries, show the fall remains on the shaft line absent an already classified
+nonordinary writer, select the intended live elevator floor, and only then
+enter the post-landing ascent envelope.
+
+Mario's cap state is not harmless bookkeeping.  If a Wing Cap is retained
+while A stays held, `apply_gravity` switches to the two-unit flutter branch
+after vertical velocity becomes negative.  Mario then falls more slowly than
+the elevator descends.  The corresponding closed rollout arithmetic has
+positive relative increments
+
+```text
+40, 36, 32, 28, 24, 20, 16, 12, 8, 6, 4, 2
+```
+
+and reaches `228`.  This is greater than the non-Wing bound `220` but less
+than the corrected integer-translation wall threshold `231`.  It is an
+arithmetic countermodel to reusing the non-Wing gravity bound when
+`MarioState.flags` and `capTimer` are omitted; it is not a vertical-clearance
+or collision-complete bypass trace.  Retail `init_mario` resets the
+special-cap state and `set_mario_initial_cap_powerup` does not grant a cap in
+SSL, but the current abstract `GameState` does not carry those fields.
+`OrdinaryMotionCapFlagsEntryProjectionObligation` therefore keeps the
+initialization-to-clean-entry memory fact explicit.
+
+## Lower entrance and the second pole
+
+The literal claim that A is the only way to leave the second pole is false.
+The pole action source has a Z-triggered `ACT_SOFT_BONK` path with forward
+speed `-2.0f`, and sliding below the pole bottom can also enter freefall.
+
+The existing normalized integer kernel proves that its modeled soft-bonk
+trajectory cannot retain enough height while acquiring the roughly 101 units
+of lateral clearance needed by the upper floor opening.  This tranche also
+extracts the exact generated Area-2 vertices used by that audit:
+
+- the pole-base support vertices at Y `3200`; and
+- the inner and outer boundary vertices of the upper ring at Y `3942`.
+
+That remains a restricted subcase.  A complete lower ordinary-motion proof
+must use a collision-phase safe envelope and cover every reachable approach,
+pole exit, ledge action, slope, static support, and transition state.  It may
+not replace that work with “Mario never reaches floor 3,” a bare Y threshold,
+or the normalized soft-bonk lemma.
+
+## Formal preservation boundary
+
+`OrdinaryMotion.v` defines a finite-cell `OrdinarySafeEnvelope` and proves the
+generic preservation composition:
+
+```coq
+Theorem ordinary_safe_envelope_execution_excludes_target :
+  forall envelope before inputs after,
+    OrdinaryEnvelopePreservationObligation envelope ->
+    OrdinaryEnvelopeTargetExclusionObligation envelope ->
+    fewer_than_one_a_press inputs ->
+    state_in_ordinary_envelope envelope before ->
+    OrdinaryMotionExecution before inputs after ->
+    target_state after ->
+    False.
+```
+
+This is not the retail exclusion.  A future instantiation must define cells
+from parsed surface IDs/open regions plus explicit action, Float32 position,
+velocity, floor, wall, ceiling, pole, and elevator bounds.  It must then prove
+preservation from linked US/JP Clight execution.  The module separately names
+source-execution, intermediate-query, and collision-observation linkage
+obligations so none is hidden inside the arithmetic theorem.
+
+The structural lemmas already prove what follows from existing indexed frame
+evidence: physics endpoints align with projected kinematics, the area is
+unchanged, an indexed projected input with no A edge exists, and an ordinary
+writer label inverts to a `MotionPhysicsFrame`.  The input lemma is list-level
+only; connecting that sample to the controller memory read by the Clight
+segment remains open.
+
+## Current conclusion
+
+The following statements are now justified:
+
+- ordinary motion cannot be equated with “Mario does not move”;
+- ordinary motion cannot be excluded by the current arbitrary-endpoint event
+  model;
+- no-A-edge input still permits held-A jump kick;
+- the generated jump-kick and rollout source shapes use no ledge-grab step
+  flag;
+- in the checked non-Wing 4-unit-gravity integer ascent model, both candidates remain
+  below the modeled integer-translation lower-wall vertical-rejection
+  threshold;
+- the checked Wing-Cap rollout countermodel proves `220 < 228 < 231`, so it
+  does not clear the corrected vertical gate but cap initialization and
+  preservation remain required proof inputs; and
+- the normalized second-pole soft-bonk subcase remains blocked.
+
+`MainTheorem.v` packages the checked source/mesh/arithmetic conjunction and
+the Wing-Cap countermodel boundary in the closed theorem
+`current_ordinary_motion_evidence_boundary`.  Its conclusion stops at
+`220 < 228 < 231` plus the no-A-edge input fact; it contains no retail
+safe-envelope preservation or target-region non-overlap conclusion.
+
+The following statement is **not** yet justified:
+
+> Every ordinary-motion trajectory from a clean US or JP lower or upper entry
+> stays on the entrance side of both target cuts.
+
+Therefore the ultimate less-than-one-A-press theorem remains incomplete.
