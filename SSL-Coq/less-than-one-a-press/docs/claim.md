@@ -4,9 +4,9 @@
 
 - Reproducible US/JP Clight AST source-shape facts listed in
   `proofs/ClightFacts.v`, over
-  29 pinned translation units per version (58 generated modules).  The units
-  cover Mario airborne, automatic, cutscene, moving, object, and stationary
-  actions, `mario_step`, `obj_behaviors_2`, `math_util`,
+  31 pinned translation units per version (62 generated modules).  The units
+  cover Mario airborne, automatic, cutscene, moving, object, stationary, and
+  submerged actions, `mario_step`, `obj_behaviors_2`, `math_util`,
   `surface_collision`, and `surface_load`, plus the route-relevant SSL static
   and dynamic collision arrays.
 - Generated source-shape facts show that the no-spin airborne entry handler
@@ -96,6 +96,22 @@
   `evidence_bearing_route_cut_blocks_new_target_bits` blocks both bits when the
   evidence-bearing classifier and the six open writer-family exclusions are
   supplied.  The implication is proved; those retail-program premises are not.
+- `FirstCrossingWriterCoverage.v` proves that the old unrestricted cut data
+  can be degenerate, parameterizes the result by a selected
+  version/entrance/target cut family, gives each cut an entry contract,
+  requires separation at the actual crossing endpoint,
+  star-orders the crossing before a matching target-event segment, supplies
+  ordered evidence for every earlier index, and proves an exhaustive
+  abstract-event/state-field classification for non-target crossing events.
+  A changed-position event carries one of five labels (ordinary physics,
+  platform, object impulse, collision clip, or reload); unchanged position
+  requires a changed floor/platform selection.  It also proves nonspatial
+  admin preservation, changed-reload entry restoration, a conditional
+  entry-contracted reload exclusion, and a
+  local-cast alias exclusion.  The linked crossing construction, six no-A
+  motion/domain exclusions, and the separate support-selection exclusion are
+  not proved; those exclusions are scoped to clean entries and the selected cut
+  family.
 - The abstract `gMarioPlatform` model uses a pool slot plus a ghost capture
   epoch.  For a non-null pointer satisfying its slot-well-formedness premise,
   the live-same-epoch,

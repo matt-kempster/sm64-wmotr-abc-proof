@@ -7,8 +7,9 @@ casing.  The reorganization keeps that path rather than creating a parallel
 `less-than-one-a-press/` is the current proof project.  It targets the US and
 Japanese versions of Super Mario 64 at decomp revision
 `9921382a68bb0c865e5e45eb594d9c64db59b1af` and uses CompCert Clight generated
-by `clightgen` 3.15.  It generates 30 translation units per version, for 60
-Clight modules total.  The coverage includes the Mario action, movement,
+by `clightgen` 3.15.  It generates 31 translation units per version, for 62
+Clight modules total.  The coverage includes all seven Mario action units
+(including the newly imported submerged-action writers), movement,
 `mario_step`, `obj_behaviors_2`, `math_util`, `surface_collision`, and
 `surface_load` units, the cutscene action containing
 `ACT_SPAWN_NO_SPIN_AIRBORNE`, and a project wrapper that imports the
@@ -119,6 +120,25 @@ both bits when the evidence-bearing classifier and all six open writer-family
 exclusions are supplied.  Constructing those premises from a linked US or JP
 run remains open; the older payload-free
 `FirstTargetCutClassificationObligation` is also still unproved.
+
+`FirstCrossingWriterCoverage.v` now records why that older interface is not
+the final coverage theorem: an unrestricted `CollisionSupportCut` may place
+the same state on both sides.  Its corrected boundary parameterizes the
+construction and exclusions by one selected version/entrance/target cut
+family, gives each cut an entrance/entry contract, requires endpoint-local
+side separation, orders the crossing segment before a matching target-event
+segment, supplies evidence for every earlier index, and proves an exhaustive
+abstract-event split.  A changed-XYZ projected event is labeled ordinary
+physics, platform displacement, object impulse, collision clip, or area
+reload.  Unchanged XYZ can still cross through a changed floor or raw-platform
+selection, which is an additional support-selection case.  Proving that these
+event labels cover the concrete C writers remains part of the open projection.
+The module proves administrative-event preservation, narrows changed reload
+to entry restoration, and excludes coordinate-alias witnesses under a local
+successful-cast invariant.  It does not construct the contracted crossing or
+prove the six no-A motion/domain predicates or the separate support-selection
+predicate for either retail program.  Those predicates are explicitly scoped
+to clean entries and the selected cut family.
 
 `JPSlotLifetime.v` checks the JP allocation/unload source anchors, the
 free-list push/pop shapes, and the loop/literal/write syntax for clearing 80

@@ -4,21 +4,23 @@ From LessThanOneAPress.Generated Require Import
   us_game_init us_mario us_mario_actions_airborne us_mario_actions_automatic
   us_mario_actions_cutscene
   us_mario_actions_moving us_mario_actions_object us_mario_actions_stationary
-  us_mario_step us_interaction us_save_file us_object_collision
+  us_mario_actions_submerged us_mario_step us_interaction us_save_file us_object_collision
   us_object_list_processor us_spawn_object us_object_helpers us_obj_behaviors
   us_obj_behaviors_2 us_behavior_actions us_behavior_data us_area
   us_level_update us_platform_displacement us_math_util us_surface_collision
   us_surface_load
-  us_macro_special_objects us_ssl_script us_ssl_area2_macro us_ssl_collision
+  us_macro_special_objects us_ssl_script
+  us_ssl_area1_macro us_ssl_area2_macro us_ssl_collision
   jp_game_init jp_mario jp_mario_actions_airborne jp_mario_actions_automatic
   jp_mario_actions_cutscene
   jp_mario_actions_moving jp_mario_actions_object jp_mario_actions_stationary
-  jp_mario_step jp_interaction jp_save_file jp_object_collision
+  jp_mario_actions_submerged jp_mario_step jp_interaction jp_save_file jp_object_collision
   jp_object_list_processor jp_spawn_object jp_object_helpers jp_obj_behaviors
   jp_obj_behaviors_2 jp_behavior_actions jp_behavior_data jp_area
   jp_level_update jp_platform_displacement jp_math_util jp_surface_collision
   jp_surface_load
-  jp_macro_special_objects jp_ssl_script jp_ssl_area2_macro jp_ssl_collision.
+  jp_macro_special_objects jp_ssl_script
+  jp_ssl_area1_macro jp_ssl_area2_macro jp_ssl_collision.
 From LessThanOneAPress.Proofs Require Import
   GameTypes InputSemantics CleanEntry AreaTransitions.
 
@@ -42,6 +44,7 @@ Definition us_translation_units : list Clight.program :=
     us_mario_actions_automatic.prog; us_mario_actions_cutscene.prog;
     us_mario_actions_moving.prog;
     us_mario_actions_object.prog; us_mario_actions_stationary.prog;
+    us_mario_actions_submerged.prog;
     us_mario_step.prog; us_interaction.prog; us_save_file.prog;
     us_object_collision.prog; us_object_list_processor.prog;
     us_spawn_object.prog; us_object_helpers.prog; us_obj_behaviors.prog;
@@ -50,13 +53,15 @@ Definition us_translation_units : list Clight.program :=
     us_platform_displacement.prog; us_math_util.prog;
     us_surface_collision.prog; us_surface_load.prog;
     us_macro_special_objects.prog; us_ssl_script.prog;
-    us_ssl_area2_macro.prog; us_ssl_collision.prog ].
+    us_ssl_area1_macro.prog; us_ssl_area2_macro.prog;
+    us_ssl_collision.prog ].
 
 Definition jp_translation_units : list Clight.program :=
   [ jp_game_init.prog; jp_mario.prog; jp_mario_actions_airborne.prog;
     jp_mario_actions_automatic.prog; jp_mario_actions_cutscene.prog;
     jp_mario_actions_moving.prog;
     jp_mario_actions_object.prog; jp_mario_actions_stationary.prog;
+    jp_mario_actions_submerged.prog;
     jp_mario_step.prog; jp_interaction.prog; jp_save_file.prog;
     jp_object_collision.prog; jp_object_list_processor.prog;
     jp_spawn_object.prog; jp_object_helpers.prog; jp_obj_behaviors.prog;
@@ -65,7 +70,16 @@ Definition jp_translation_units : list Clight.program :=
     jp_platform_displacement.prog; jp_math_util.prog;
     jp_surface_collision.prog; jp_surface_load.prog;
     jp_macro_special_objects.prog; jp_ssl_script.prog;
-    jp_ssl_area2_macro.prog; jp_ssl_collision.prog ].
+    jp_ssl_area1_macro.prog; jp_ssl_area2_macro.prog;
+    jp_ssl_collision.prog ].
+
+Theorem us_translation_unit_count :
+  length us_translation_units = 31%nat.
+Proof. reflexivity. Qed.
+
+Theorem jp_translation_unit_count :
+  length jp_translation_units = 31%nat.
+Proof. reflexivity. Qed.
 
 Definition target_translation_units (version : GameVersion) : list Clight.program :=
   match version with

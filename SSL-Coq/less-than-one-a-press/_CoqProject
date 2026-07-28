@@ -9,6 +9,7 @@ generated/us_mario_actions_cutscene.v
 generated/us_mario_actions_moving.v
 generated/us_mario_actions_object.v
 generated/us_mario_actions_stationary.v
+generated/us_mario_actions_submerged.v
 generated/us_mario_step.v
 generated/us_interaction.v
 generated/us_save_file.v
@@ -39,6 +40,7 @@ generated/jp_mario_actions_cutscene.v
 generated/jp_mario_actions_moving.v
 generated/jp_mario_actions_object.v
 generated/jp_mario_actions_stationary.v
+generated/jp_mario_actions_submerged.v
 generated/jp_mario_step.v
 generated/jp_interaction.v
 generated/jp_save_file.v
@@ -87,5 +89,6 @@ proofs/JPSlotLifetime.v
 proofs/Area1PhaseSplit.v
 proofs/Area1SurfaceWitness.v
 proofs/Area1PlatformExhaustiveness.v
+proofs/FirstCrossingWriterCoverage.v
 proofs/ModelGapAudit.v
 proofs/MainTheorem.v

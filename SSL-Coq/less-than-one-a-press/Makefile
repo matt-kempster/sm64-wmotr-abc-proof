@@ -42,6 +42,18 @@ check: proofs
 	  LessThanOneAPress.Proofs.ClightFacts \
 	  no_spin_airborne_entry_update_source_shape_jp
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  submerged_position_writer_source_shape_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  submerged_position_writer_source_shape_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightRefinement \
+	  us_translation_unit_count
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightRefinement \
+	  jp_translation_unit_count
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.CollisionMeshFacts \
 	  route_collision_initializers_are_version_identical
 	bash pipeline/assumptions.sh \
@@ -404,6 +416,39 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.Area1PlatformExhaustiveness \
 	  area1_platform_source_model_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.FirstCrossingWriterCoverage \
+	  an_unvalidated_cut_can_place_one_state_on_both_sides
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.FirstCrossingWriterCoverage \
+	  changed_non_target_position_has_a_complete_writer_class
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.FirstCrossingWriterCoverage \
+	  validated_pre_target_first_crossing_writer_coverage
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.FirstCrossingWriterCoverage \
+	  certified_nonspatial_admin_preserves_kinematics
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.FirstCrossingWriterCoverage \
+	  changed_area_reload_returns_to_entry_snapshot
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.FirstCrossingWriterCoverage \
+	  lifecycle_entry_displacement_is_impossible_for_validated_cut
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.FirstCrossingWriterCoverage \
+	  local_cast_domain_implies_horizontal_coordinates_local
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.FirstCrossingWriterCoverage \
+	  coordinate_alias_is_impossible_if_projected_endpoints_stay_local
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.FirstCrossingWriterCoverage \
+	  no_a_complete_writer_exclusions_rule_out_validated_first_crossing
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.FirstCrossingWriterCoverage \
+	  area1_upper_warp_platform_bootstrap_closed_subcase
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  validated_first_crossing_writer_reduction
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.ModelGapAudit \
 	  current_certified_motion_accepts_arbitrary_endpoint

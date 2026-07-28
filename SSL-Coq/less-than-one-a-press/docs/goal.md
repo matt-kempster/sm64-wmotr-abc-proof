@@ -14,8 +14,9 @@ still require a concrete C-memory projection.  The current endpoint-only
 certificate accepts arbitrary motion and synthetic immediate collection from
 clean abstract entries, so it cannot establish first-cut exhaustiveness.
 
-The current project now generates 29 translation units for each target
-version (58 Clight modules), including Mario action and movement code,
+The current project now generates 31 translation units for each target
+version (62 Clight modules), including all seven Mario action units and
+movement code,
 `mario_actions_cutscene`, `mario_step`, `obj_behaviors_2`, `math_util`,
 `surface_collision`, `surface_load`, and a wrapper importing route-relevant
 SSL static and dynamic collision arrays.  It also proves
@@ -50,6 +51,19 @@ target-bit bridge nevertheless proves that, under route/event alignment, newly
 setting Act 3 reaches the Act 3 cut and newly setting Act 6 reaches the upper
 trigger cut.  It therefore blocks both bits when the evidence-bearing
 classifier and exclusions for all six open writer families are supplied.
+
+`FirstCrossingWriterCoverage.v` now replaces the unused first-writer
+inventory as the next sound boundary.  It requires an entry-contracted,
+endpoint-separated cut selected from a target-cut-family parameter and an
+ordered minimal pre-target Clight crossing, then proves that a non-target
+projected event either has the ordinary-physics, platform-displacement,
+object-impulse, collision-clip, or reload label, or changes the selected
+floor/platform while XYZ stays fixed.  Coordinate
+alias/out-of-bounds is an endpoint cast-domain class, not an independent
+store.  The module proves the structural coverage and narrow admin/reload/local
+alias lemmas, but it does not construct the linked crossings or discharge the
+six no-A motion/domain predicates and additional support-selection predicate.
+Same-frame target crossings still need ordered sub-frame refinement.
 
 This incorporation does not complete the goal.  The route lemmas lack the
 whole-program writer, Float32 collision, model-completeness, and memory

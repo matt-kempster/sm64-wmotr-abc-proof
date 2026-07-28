@@ -2,8 +2,8 @@
 
 All rows are translated twice, once with `VERSION_US` and once with
 `VERSION_JP`, from decomp commit
-`9921382a68bb0c865e5e45eb594d9c64db59b1af`.  There are 30 translation
-units per version and therefore 60 generated Clight modules.
+`9921382a68bb0c865e5e45eb594d9c64db59b1af`.  There are 31 translation
+units per version and therefore 62 generated Clight modules.
 
 Each row is a whole translation unit: every function/global retained by the
 preprocessor is translated, not only the functions named below.  The
@@ -23,6 +23,7 @@ base-insensitive and direct-callee/literal checks are path-insensitive.
 | `src/game/mario_actions_moving.c` | `*_mario_actions_moving.v` | walking, braking, slope deceleration, ground-step and move-punching source shapes used by the parallel-universe completeness audit |
 | `src/game/mario_actions_object.c` | `*_mario_actions_object.v` | object-interaction action handlers imported for Layer B action/writer coverage; no complete execution refinement yet |
 | `src/game/mario_actions_stationary.c` | `*_mario_actions_stationary.v` | stationary action handlers imported for Layer B action/writer coverage; no complete execution refinement yet |
+| `src/game/mario_actions_submerged.c` | `*_mario_actions_submerged.v` | submerged dispatcher coverage; generated-AST receipts check the water full-step helper calls, all three direct whirlpool position slots, and the common water-level clamp.  This closes the missing translation-unit hole, not SSL reachability or callgraph completeness |
 | `src/game/mario_step.c` | `*_mario_step.v` | ground and air quarter-step loops, `find_floor` calls, gravity source shape, and `stop_and_set_height_to_floor` State-Y assignment from cached `floorHeight` |
 | `src/game/interaction.c` | `*_interaction.v` | `interact_star_or_key` field/constant occurrences and direct save call; `interact_coin` spawn call/index constant; `interact_warp` action constant in the PU phase pipeline; extraction dataflow is pending |
 | `src/game/save_file.c` | `*_save_file.v` | direct call from `save_file_collect_star_or_key` to `save_file_set_star_flags`; `save_file_reload` backup-copy/file source shape; the bit-update and copy memory effects are not yet proved |
@@ -158,6 +159,27 @@ object impulses, clips, general coordinate aliasing, and normal reload/entry
 movement.  It also proves that endpoint/event alignment alone cannot imply the
 old classifier.  No theorem yet constructs this evidence from every target
 Clight run or validates a cut against the extracted collision arrays.
+
+`proofs/FirstCrossingWriterCoverage.v` corrects two defects in that boundary.
+It proves that an unvalidated cut descriptor can put the same state on both
+sides, then defines a version/entrance/target-indexed cut family, an
+entrance/entry contract, endpoint-local separation, and a minimal pre-target
+Clight crossing.  For a crossing projected as a non-target event,
+`validated_pre_target_first_crossing_writer_coverage` proves an exhaustive
+abstract-event/state-field split: a changed position carries the ordinary
+physics, platform displacement, object impulse, collision clip, or area
+reload label; an unchanged position must instead change the selected floor or
+platform.  Concrete C-writer-to-event-label completeness remains part of the
+open projection.
+Coordinate alias/out-of-bounds is classified as the cast domain of a physics
+endpoint, not as an independent store.  The module also proves nonspatial
+administrative-event preservation, the preservation-or-entry form of reload,
+a conditional validated-cut reload exclusion, and a local-domain alias
+exclusion.  Constructing contracted, chronologically ordered crossings from
+linked control points,
+proving the family matches the extracted collision mesh and target sample,
+closing the six clean-entry motion/domain predicates, and closing the
+additional support-selection predicate remain open.
 
 The same module deliberately preserves the conditional JP
 upper-warp/spinning-pyramid-top route.  Its evidence records how the warp and

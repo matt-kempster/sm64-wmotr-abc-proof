@@ -2,8 +2,9 @@
 
 - [x] Exact decomp commit pinned.
 - [x] US and JP macros generated separately.
-- [x] Generate 30 translation units per version (60 Clight modules), including
-  the Mario action units (with `mario_actions_cutscene`), movement code,
+- [x] Generate 31 translation units per version (62 Clight modules), including
+  all seven Mario action units (with `mario_actions_cutscene` and the direct
+  writers in `mario_actions_submerged`), movement code,
   `mario_step`, `obj_behaviors_2`, `math_util`, `surface_collision`,
   `surface_load`, wrappers for the Area-1 and Area-2 macro streams, and a
   wrapper for the route-relevant SSL static and dynamic collision arrays.
@@ -96,6 +97,17 @@
   target-region route cuts, and prove
   `evidence_bearing_route_cut_blocks_new_target_bits` under the explicit
   evidence-bearing classifier and six writer-family exclusions.
+- [x] Replace the unused first-writer inventory boundary with
+  `TargetCollisionCutFamily`, `EntranceCollisionCutEntryContract`, and
+  `FirstValidatedCutCrossingAt`; prove that an unvalidated cut may overlap
+  itself and that every contracted, endpoint-separated, pre-target,
+  non-target crossing is a position write by ordinary physics, platform
+  displacement, object impulse, collision clip, or area reload, or else a
+  same-position floor/platform support-selection change.  Scope all no-A
+  exclusions to clean entries and the selected cut family.  Prove nonspatial
+  admin preservation, changed-reload entry restoration, conditional reload
+  exclusion, and the local-cast alias exclusion without claiming the linked
+  construction or no-A geometry predicates.
 - [x] Check JP allocation/unload/free-list source anchors, prove the 50-record
   Area-2 macro bound, finite LIFO recurrence, and Before/At/After allocation
   count split.  Keep the exact first-Area-2-apply memory trace and payload as a
@@ -149,6 +161,12 @@
   projection and the parsed collision mesh; close every remaining writer class
   or record a reachable constructor as a counterexample.  Only then derive
   `FirstTargetCutClassificationObligation`.
+- [ ] Discharge `FirstValidatedCrossingConstructionObligation` for strictly
+  pre-target crossings, instantiate a concrete source/mesh-backed cut family,
+  add ordered sub-frame control points for same-frame target crossings, and
+  prove the six no-A movement/domain predicates plus
+  `NoASupportSelectionFirstCrossing`.  Same-position floor/platform changes
+  must not be discarded as nonspatial lifecycle events.
 - [ ] Define the elevator cut and the lower target-side support/open-cell cut
   over exact collision surfaces, prove both no-A gate closures, and validate
   separate downstream continuations to the Act 3 region and all five Act 6

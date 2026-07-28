@@ -26,7 +26,7 @@ the current finite-width input semantics, narrow route subcase lemmas, and a
 revision-neutral CompCert memory-separation lemma. No archived generated module
 is imported.
 
-The current generator now translates 29 units for each target version (58
+The current generator now translates 31 units for each target version (62
 generated modules total), including the Mario action files,
 `mario_actions_cutscene.c`, `mario_step.c`, `obj_behaviors_2.c`,
 `math_util.c`, `surface_collision.c`, `surface_load.c`, and a wrapper importing

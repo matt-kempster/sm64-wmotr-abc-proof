@@ -6,7 +6,7 @@ The two transcript routes have **not** been proved exhaustive for the retail
 US and JP programs, and no stock-reachable no-A counterexample was found in
 this investigation.
 
-The work did settle four narrower questions:
+The work did settle five narrower questions:
 
 1. The old `FirstTargetCutClassificationObligation` cannot follow from the
    endpoint/event certificate.  `endpoint_only_alignment_does_not_imply_cut_classification`
@@ -41,6 +41,16 @@ The work did settle four narrower questions:
    clean, non-credits inbound node set and make `0x1E` source-only to Area 2
    node `0x14`.  Therefore generic fragment controller/free-list lineage is no
    longer a Layer-B obligation in this model.
+5. `FirstCrossingWriterCoverage.v` gives an admission-free abstract-event
+   coverage theorem for an already-constructed, contracted, ordered,
+   pre-target non-target crossing.  There are five position-writer labels:
+   ordinary physics, platform displacement, object impulse, collision clip,
+   and area reload.  If position is unchanged, endpoint-local separation
+   instead forces a selected-floor or captured-platform change.
+   Splitting ordinary physics into local-cast and nonlocal/failed-cast endpoint
+   domains yields six movement/domain cases plus a separate seventh
+   support-selection case.  Coordinate alias/out-of-bounds is therefore an
+   endpoint domain, not an independent position store.
 
 The third item is an over-permissive-model counterexample, not yet a retail-ROM
 counterexample.  It must not be excluded merely because no stock setup is
@@ -150,11 +160,48 @@ same-frame object collision phase can still sample `MarioObject.oPos`.  A
 single abstract event slot cannot simultaneously stand for both the
 displacement and the later target collision.
 
-The writer inventory is total for `FrameEvent`, including a class missing from
-the historical nine tags: ordinary Mario physics across static geometry.
-That class has no honest legacy bypass tag, so the bridge to
-`FirstTargetCutClassificationObligation` requires its unreachability
-separately instead of silently dropping it.
+The old `FirstTargetWriterCoverageObligation` is unused and too weak for this
+job.  It only asks for some projected event no later than the target; it does
+not require that event to change a cut side or to be the first crossing.  Nor
+is an arbitrary `CollisionSupportCut` a separator:
+`an_unvalidated_cut_can_place_one_state_on_both_sides` constructs a descriptor
+whose source and target support sets overlap.
+
+`FirstCrossingWriterCoverage.v` supplies the corrected boundary:
+
+- `TargetCollisionCutFamily` parameterizes the selected descriptor for each
+  version/entrance/target combination, while
+  `EntranceCollisionCutEntryContract` places every matching clean entry on the
+  source side and excludes the matching entry snapshot from the target side;
+- `FirstValidatedCutCrossingAt` carries an actual projected Clight frame whose
+  before-state is on the source side and after-state is on the target side,
+  requires side separation at that actual endpoint, star-orders that segment
+  before a matching target-event segment, supplies ordered evidence for every
+  earlier index, and excludes every earlier projected endpoint from the target
+  side; and
+- `validated_pre_target_first_crossing_writer_coverage` is an admission-free
+  theorem classifying that crossing.
+
+The theorem has five possible projected position-writer labels: ordinary
+physics, platform displacement, object impulse, collision clip, and area
+reload.  It also finds
+a distinct same-position case: if Mario's coordinates do not change,
+endpoint-local side separation requires the projected floor or captured
+platform to change.
+Ordinary physics is then partitioned into a local coordinate-cast endpoint and
+a nonlocal or failed-cast endpoint.  The corrected no-A boundary therefore has
+six movement/domain exclusions and a separate seventh support-selection
+exclusion.  General coordinate alias/out-of-bounds is a property of the
+ordinary-physics endpoint, not an independent store that writes Mario's
+position.
+
+The module also proves useful bounded eliminations.  Certified ordinary
+administrative events preserve Mario's entire kinematics.  A changed
+`EventAreaReload` returns to the recorded entry snapshot; it cannot cross a
+validated target cut when the post-reload state shares the initial version,
+entrance, and entry snapshot.  The stock Area-1 node-`0x1E` platform-bootstrap
+subcase reduces to the already-proved null-platform theorem.  These statements
+do not prove the corresponding linked-retail exclusions.
 
 Within the certified event semantics, the following proposed bypass causes are
 proved impossible:
@@ -194,19 +241,28 @@ explicit:
    six surviving writer/geometry classes under the actual projected no-A
    inputs.
 
-This is a sharper theorem boundary, not a discharge of those residuals.
+This is a sharper theorem boundary, not a discharge of those residuals.  The
+new first-crossing module does not silently retrofit this older capstone:
+constructing `FirstValidatedCutCrossingAt` from the linked run, connecting the
+target collision to the validated target side, and treating a crossing inside
+the same frame or subframe as the target collision remain explicit refinement
+work.
 
-The remaining open route-writer classes are:
+The linked-retail no-A exclusions still unproved are:
 
-- ordinary Mario physics and static support transitions;
+- local ordinary Mario physics and static geometry;
 - platform displacement, especially JP retained/reused slots;
 - object impulses and moving geometry;
 - collision clips or tunneling;
-- general parallel-universe/out-of-bounds coordinate aliasing; and
-- normal area-reload or entry displacement.
+- ordinary-physics endpoints outside the proved local cast domain, including
+  general parallel-universe/out-of-bounds and failed-conversion cases;
+- normal area-reload or entry displacement outside the conditional theorem's
+  route-context premises; and
+- same-position floor/platform support selection.
 
-The old bounded static quarter-step lemma rules out only one subcase of the
-coordinate-alias class.
+The first six are the movement/domain cases.  The final bullet is the separate
+seventh case omitted by the historical classification.  The old bounded static
+quarter-step lemma rules out only one coordinate-alias subcase.
 
 ## JP stale pyramid-top candidate
 
@@ -381,6 +437,14 @@ wooden-signpost meshes used by the Area-1 owner envelopes.  It does not yet
 parse the general arrays into a proved surface graph or show that a proposed
 `CollisionSupportCut` matches every triangle.
 
+The generated boundary now contains 31 translation units per version, 62
+Clight modules total.  The newly imported `mario_actions_submerged.c` units
+have admission-free AST receipts for the water full-step helper calls, all
+three direct whirlpool position slots, and the common water-level clamp.  This
+repairs a source-coverage omission; it does not prove submerged actions
+reachable or unreachable in SSL, nor does it establish whole-program
+position-writer callgraph completeness.
+
 ## What remains
 
 To prove route exhaustiveness, the project still needs:
@@ -390,15 +454,24 @@ To prove route exhaustiveness, the project still needs:
    `WholeProgramClightRefinementObligation` and the projection part of
    `EvidenceBearingRouteClassificationRefinementObligation`;
 2. a checked parser/refinement from the generated collision arrays to exact
-   surface IDs, dynamic owners, and target-side components;
+   surface IDs, dynamic owners, and target-side components, followed by proofs
+   of their `EntranceCollisionCutEntryContract`, their endpoint-local
+   separation, and their selection by `TargetCollisionCutFamily`;
 3. source-backed JP destination-area platform state plus its exact reachable
    allocation/free trace, slot reuse, payload loads, and delayed-warp
    retention/recapture.  The generic Area-1 fragment controller lineage is no
    longer part of this Layer-B item; instead, the missing proof must connect
    linked Area-1 memory to the finite owner/pre-apply relation;
-4. unreachability of each remaining movement class under no A edge, exactly
-   the content of `NoAOpenRouteWriterClassesUnreachableObligation`; and
-5. a proof that the ordinary elevator/pole A-labelled observations correspond
+4. construction of `FirstValidatedCutCrossingAt` from every linked first
+   target access, including the target-collision-to-cut relation and crossings
+   occurring inside the same frame or subframe as the target collision;
+5. unreachability under no A edge of the six linked movement/domain cases:
+   local ordinary motion, platform displacement, object/moving geometry,
+   clip/tunnel, nonlocal or failed-cast ordinary-physics endpoints, and
+   lifecycle/entry displacement;
+6. unreachability of the separate same-position floor/platform
+   support-selection case; and
+7. a proof that the ordinary elevator/pole A-labelled observations correspond
    to the actual action branches that cross those cuts, completing the
    classification residual.
 

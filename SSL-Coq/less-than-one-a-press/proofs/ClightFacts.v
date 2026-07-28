@@ -4,7 +4,7 @@ From LessThanOneAPress.Generated Require Import
   us_game_init us_mario us_mario_actions_airborne us_mario_actions_automatic
   us_mario_actions_cutscene
   us_mario_actions_moving us_mario_actions_object us_mario_actions_stationary
-  us_mario_step us_interaction us_save_file us_object_collision
+  us_mario_actions_submerged us_mario_step us_interaction us_save_file us_object_collision
   us_object_list_processor us_spawn_object us_object_helpers us_obj_behaviors
   us_obj_behaviors_2 us_behavior_actions us_behavior_data us_area
   us_level_update us_platform_displacement us_surface_collision
@@ -13,7 +13,7 @@ From LessThanOneAPress.Generated Require Import
   jp_game_init jp_mario jp_mario_actions_airborne jp_mario_actions_automatic
   jp_mario_actions_cutscene
   jp_mario_actions_moving jp_mario_actions_object jp_mario_actions_stationary
-  jp_mario_step jp_interaction jp_save_file jp_object_collision
+  jp_mario_actions_submerged jp_mario_step jp_interaction jp_save_file jp_object_collision
   jp_object_list_processor jp_spawn_object jp_object_helpers jp_obj_behaviors
   jp_obj_behaviors_2 jp_behavior_actions jp_behavior_data jp_area
   jp_level_update jp_platform_displacement jp_surface_collision
@@ -32,6 +32,7 @@ Module UCutscene := us_mario_actions_cutscene.
 Module UMove := us_mario_actions_moving.
 Module UObjectActions := us_mario_actions_object.
 Module UStationary := us_mario_actions_stationary.
+Module USubmerged := us_mario_actions_submerged.
 Module UStep := us_mario_step.
 Module UI := us_interaction.
 Module USF := us_save_file.
@@ -59,6 +60,7 @@ Module JCutscene := jp_mario_actions_cutscene.
 Module JMove := jp_mario_actions_moving.
 Module JObjectActions := jp_mario_actions_object.
 Module JStationary := jp_mario_actions_stationary.
+Module JSubmerged := jp_mario_actions_submerged.
 Module JStep := jp_mario_step.
 Module JI := jp_interaction.
 Module JSF := jp_save_file.
@@ -846,6 +848,54 @@ Definition no_a_movement_source_shape_jp_claim : Prop :=
 Theorem no_a_movement_source_shape_jp :
   no_a_movement_source_shape_jp_claim.
 Proof. unfold no_a_movement_source_shape_jp_claim; vm_compute; repeat split. Qed.
+
+(* [execute_mario_action] dispatches submerged actions as well as the six
+   action groups imported by the original project.  Keep the direct water and
+   whirlpool position writers in the generated-program boundary even though a
+   later SSL-specific reachability theorem may prove those actions
+   unreachable.  This is a syntax receipt, not a callgraph or execution
+   refinement theorem. *)
+Definition submerged_position_writer_source_shape_us_claim : Prop :=
+  calls_ident_s USubmerged._vec3f_copy
+    (fn_body USubmerged.f_perform_water_full_step) = true /\
+  calls_ident_s USubmerged._vec3f_set
+    (fn_body USubmerged.f_perform_water_full_step) = true /\
+  assigns_array_slot_s USubmerged._pos 0
+    (fn_body USubmerged.f_act_caught_in_whirlpool) = true /\
+  assigns_array_slot_s USubmerged._pos 1
+    (fn_body USubmerged.f_act_caught_in_whirlpool) = true /\
+  assigns_array_slot_s USubmerged._pos 2
+    (fn_body USubmerged.f_act_caught_in_whirlpool) = true /\
+  assigns_array_slot_s USubmerged._pos 1
+    (fn_body USubmerged.f_check_common_submerged_cancels) = true.
+
+Theorem submerged_position_writer_source_shape_us :
+  submerged_position_writer_source_shape_us_claim.
+Proof.
+  unfold submerged_position_writer_source_shape_us_claim.
+  vm_compute. repeat split.
+Qed.
+
+Definition submerged_position_writer_source_shape_jp_claim : Prop :=
+  calls_ident_s JSubmerged._vec3f_copy
+    (fn_body JSubmerged.f_perform_water_full_step) = true /\
+  calls_ident_s JSubmerged._vec3f_set
+    (fn_body JSubmerged.f_perform_water_full_step) = true /\
+  assigns_array_slot_s JSubmerged._pos 0
+    (fn_body JSubmerged.f_act_caught_in_whirlpool) = true /\
+  assigns_array_slot_s JSubmerged._pos 1
+    (fn_body JSubmerged.f_act_caught_in_whirlpool) = true /\
+  assigns_array_slot_s JSubmerged._pos 2
+    (fn_body JSubmerged.f_act_caught_in_whirlpool) = true /\
+  assigns_array_slot_s JSubmerged._pos 1
+    (fn_body JSubmerged.f_check_common_submerged_cancels) = true.
+
+Theorem submerged_position_writer_source_shape_jp :
+  submerged_position_writer_source_shape_jp_claim.
+Proof.
+  unfold submerged_position_writer_source_shape_jp_claim.
+  vm_compute. repeat split.
+Qed.
 
 (* The Eyerok loop facts are likewise source-shape facts only.  The archived
    height kernel's Clight-to-route refinement premise remains unproved. *)

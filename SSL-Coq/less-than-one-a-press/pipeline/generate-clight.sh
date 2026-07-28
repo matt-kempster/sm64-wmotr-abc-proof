@@ -46,6 +46,7 @@ TRANSLATION_UNITS=(
   "mario_actions_moving:src/game/mario_actions_moving.c"
   "mario_actions_object:src/game/mario_actions_object.c"
   "mario_actions_stationary:src/game/mario_actions_stationary.c"
+  "mario_actions_submerged:src/game/mario_actions_submerged.c"
   "mario_step:src/game/mario_step.c"
   "interaction:src/game/interaction.c"
   "save_file:src/game/save_file.c"

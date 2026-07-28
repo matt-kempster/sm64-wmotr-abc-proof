@@ -19,6 +19,42 @@ engineering but does not know *Super Mario 64*.
 > spurious one-frame collection from a clean entry, so that relation cannot by
 > itself establish the retail theorem.
 
+> **Newest first-crossing result:** `FirstCrossingWriterCoverage.v` repairs a
+> second abstraction boundary.  The older
+> `FirstTargetWriterCoverageObligation` is no longer used: it could name any
+> projected event no later than the target without showing that the event
+> crossed a route cut.  An unrestricted `CollisionSupportCut` was also only a
+> data record; `an_unvalidated_cut_can_place_one_state_on_both_sides` gives an
+> admission-free witness whose source and target sides overlap.
+>
+> The replacement scopes construction and exclusions to a selected
+> `TargetCollisionCutFamily` parameter indexed by version, entrance, and
+> target.  `EntranceCollisionCutEntryContract` puts the clean entry on the
+> source side and excludes the entrance snapshot from the target side.
+> `FirstValidatedCutCrossingAt` then carries the actual source-to-target Clight
+> frame, its non-target event, endpoint-local side separation, a matching
+> target-event segment later in the same Clight run, and ordered evidence for
+> every earlier frame index.  The local separation avoids
+> assuming that arbitrary, independently populated `GameState` fields describe
+> a coherent collision query.
+> `validated_pre_target_first_crossing_writer_coverage` proves, without
+> admissions, that such a crossing has one of five projected abstract-event
+> labels--ordinary physics, platform displacement, object impulse, collision
+> clip, or area reload--or instead changes floor/platform support selection
+> while keeping Mario's position fixed.  Ordinary physics is further split by
+> whether its
+> endpoint is in the local coordinate-cast domain.  Thus the corrected
+> no-A interface has six movement/domain exclusions plus a separate seventh
+> support-selection exclusion.  Coordinate alias/out-of-bounds is an endpoint
+> domain of ordinary physics, not an independent store.
+>
+> This is abstract writer coverage, not the retail route theorem.  Constructing
+> the validated first crossing from linked US/JP execution, connecting the
+> target collision to the validated target side, and representing crossings
+> that occur within the same frame or subframe as the target collision all
+> remain open.  So do all six linked-retail movement/domain exclusions and the
+> separate support-selection exclusion.
+
 > **Newest bounded result:** `Area1PlatformExhaustiveness.v` replaces the
 > earlier focus on one `[top, box]` free-list prefix with a finite stock Area-1
 > platform-owner model.  The source audit finds three pre-apply angular-payload
@@ -146,13 +182,15 @@ This is a control-flow-cut argument:
 
 1. Select the first collision observation of the Act 3 star region or upper
    hidden-star trigger.
-2. Recover the last source-side and first target-side states before that
-   observation from an actual Clight segment.
-3. Classify the writer responsible for the crossing: ordinary Mario/static
-   geometry, platform displacement, object or moving geometry, warp,
-   clip/tunnel, coordinate alias, target/lifecycle anomaly, save mutation, or
-   projection/memory failure.
-4. Prove the applicable writer cannot cross the entrance-specific cut without
+2. Fix the entrance/target-specific cut family, prove its entry contract, and
+   prove source/target separation at the actual projected crossing endpoint.
+3. Recover the minimal pre-target source-to-target crossing from an actual
+   Clight segment.
+4. Classify the cause as local ordinary physics, an ordinary-physics endpoint
+   outside the local cast domain, platform displacement, object impulse,
+   collision clip, area reload, or same-position floor/platform support
+   selection.
+5. Prove the applicable cause cannot cross the entrance-specific cut without
    an A edge, or record its exact reachable witness.
 
 The Rocq route-gate model proves the logical case split itself.  The strengthened
@@ -176,10 +214,21 @@ Inside the present certified semantics, the proof eliminates direct area-2/3
 warp displacement, invalid target identity/provenance, invalid hidden-star
 lifecycle, coherent save-reload mutation, and projection mismatch once the
 indexed certificate exists.  A bounded static quarter-step cannot make the
-modeled 65536-unit coordinate alias.  Six writer families remain open:
-ordinary Mario/static geometry, platform displacement, object/moving
-geometry, collision clips, general coordinate alias/out-of-bounds behavior,
-and normal lifecycle/entry displacement.
+modeled 65536-unit coordinate alias.
+
+The newer first-crossing module proves a different, corrected coverage result.
+Its five position-writer constructors are ordinary physics, platform
+displacement, object impulse, collision clip, and area reload.  If the
+position does not change, a valid source-to-target crossing must instead
+change the selected floor or platform.  It partitions ordinary-physics
+endpoints into local-cast and coordinate-alias/out-of-bounds domains; the
+latter is not a sixth function that writes Mario's coordinates.  Certified
+ordinary administrative events preserve Mario's kinematics.  A changed reload
+must return to the entry snapshot and is excluded from a validated target cut
+when the post-reload state shares the initial version, entrance, and snapshot.
+The bounded Area-1 upper-warp platform bootstrap is also closed.  These
+results do not yet eliminate the six movement/domain cases or the seventh
+same-position support-selection case for linked retail executions.
 
 The evidence-bearing conditional theorem is:
 
@@ -198,8 +247,11 @@ Theorem evidence_classifier_with_open_writers_closed_requires_a_edge :
 ```
 
 Every substantial premise in this statement is visible.  In particular, it is
-not the unconditional retail theorem: writer coverage and the six
-unreachability families are exactly the work still required.
+not the unconditional retail theorem.  This older capstone still uses the
+evidence-bearing bypass interface.  The corrected first-crossing theorem proves
+coverage only after `FirstValidatedCutCrossingAt` has been constructed; the
+linked-run construction, six movement/domain exclusions, and separate
+support-selection exclusion are still required.
 
 The proof now connects this route result to the save bits in the direction an
 impossibility argument needs:
@@ -586,11 +638,15 @@ evidence structures make the required projection checkable, but their
 coverage and the entrance cuts are still unproved:
 
 - extract the collision arrays into exact surface identifiers and prove the
-  source/target connected-component cuts;
-- prove every first crossing in a linked US/JP execution produces one of the
-  evidence-bearing writer classes;
-- prove the six surviving classes impossible from a source-backed clean entry,
-  or else produce an exact reachable counterexample trace; and
+  source/target connected-component cuts, their
+  `EntranceCollisionCutEntryContract`, endpoint-local separation, and their
+  selection by `TargetCollisionCutFamily`;
+- construct `FirstValidatedCutCrossingAt` from each linked US/JP first target
+  access, including target-collision-to-cut refinement and any crossing inside
+  the same frame or subframe as that collision;
+- prove the six movement/domain cases and the separate same-position
+  support-selection case impossible from a source-backed clean entry, or else
+  produce an exact reachable counterexample trace; and
 - after either cut, the transcript's remaining no-A strategies work under the
   actual Float32 movement, collision, object, and version semantics.
 
@@ -675,7 +731,10 @@ new target bit
     => Act 3 collision or upper-trigger collision          (provenance reduction)
     => matching target-region route cut                    (PROVED under route/event alignment)
     => first entrance collision-support cut crossing       (OPEN: Clight/mesh coverage)
-    => every crossing writer requires an A edge            (OPEN: six writer families)
+    => position writer or changed support selection        (PROVED for a validated
+                                                            pre-target non-target frame)
+    => every crossing cause requires an A edge             (OPEN: six movement/domain
+                                                            cases plus support selection)
     => at least one edge-triggered A press                 (OPEN: gate geometry)
 ```
 
@@ -684,17 +743,24 @@ The target-region arrow is now proved by the route/event alignment carried by
 `ClightRouteTraceProjection`; constructing that alignment from a retail
 execution is part of the open whole-program refinement.  `ModelGapAudit.v`
 shows why the old abstract endpoint relation cannot stand in for that
-execution.  `FirstTargetRefinement.v` defines the entrance-cut and writer
-arrows as evidence-bearing obligations and proves several finite eliminations,
-but it does not establish mesh connectivity, total writer coverage, or the six
-remaining exclusions.  No global US/JP bypass exclusion is proved.  The
-reverse direction--a cut bypass continuing to a target--also remains
-conditional on separate downstream and abstract-execution certificates.
+execution.  `FirstTargetRefinement.v` defines the older entrance-cut and
+evidence-bearing bypass arrows and proves several finite eliminations.
+`FirstCrossingWriterCoverage.v` proves admission-free writer coverage for an
+already-constructed `FirstValidatedCutCrossingAt`; unlike the unused
+`FirstTargetWriterCoverageObligation`, the cited frame is star-ordered before
+a matching target-event segment, every earlier index has ordered evidence,
+and none of those earlier endpoints is on the target side.  The selected
+cut-family construction, mesh
+connectivity, target-collision refinement, same-frame/subframe case, six
+movement/domain exclusions, and support-selection exclusion remain open.  No
+global US/JP bypass exclusion is proved.  The reverse direction--a cut bypass
+continuing to a target--also remains conditional on separate downstream and
+abstract-execution certificates.
 
 ## What the generated source already confirms
 
 The current project regenerates CompCert Clight ASTs for both target versions
-from the pinned decomp revision: 30 translation units per version, 60 modules
+from the pinned decomp revision: 31 translation units per version, 62 modules
 in total.  Direct inspection of that pinned C source shows:
 
 - the controller input calculation distinguishes `buttonPressed` from
@@ -733,6 +799,11 @@ in total.  Direct inspection of that pinned C source shows:
 - the no-spin airborne entry handler calls the launch helper with single-
   precision zero, and that helper calls forward-velocity setup and
   `perform_air_step`;
+- `mario_actions_submerged.c` is now imported for both versions.  Admission-free
+  AST receipts cover the water full-step helper calls, all three direct
+  whirlpool position slots, and the common water-level clamp.  This closes the
+  missing translation-unit hole, not SSL action reachability or complete
+  position-writer callgraph refinement; and
 - target collection, hidden-star, area transition, object lifecycle, and
   collision functions are present in the generated source set.
 
@@ -803,10 +874,18 @@ The ultimate theorem needs all of the following:
    pyramid-top home face arithmetic is checked; its live construction, list
    ownership/order, actual `find_floor` selection, and the general support graph
    remain open.
-5. Prove first-crossing writer coverage and eliminate ordinary motion,
-   platform displacement, object/moving geometry, clip/tunnel, general
-   coordinate alias/out-of-bounds, and lifecycle/entry displacement.
-6. For JP platform displacement, derive every admissible raw pointer from an
+5. Construct `FirstValidatedCutCrossingAt` from every linked first target
+   access.  The abstract non-target-frame writer coverage theorem is now
+   proved; the remaining construction must connect the target collision to a
+   selected `TargetCollisionCutFamily` member and account for crossings inside
+   the same frame or subframe as the target collision.
+6. Eliminate, under the linked retail no-A execution, local ordinary motion,
+   platform displacement, object/moving geometry, clip/tunnel,
+   coordinate-alias/out-of-bounds ordinary-physics endpoints, and
+   lifecycle/entry displacement.  Separately eliminate the seventh
+   same-position floor/platform support-selection case.  None of these global
+   exclusions is proved.
+7. For JP platform displacement, derive every admissible raw pointer from an
    actual predecessor, including inactive/reused slot epochs and the
    upper-warp/spinning-top coincidence families.  The source-level LIFO shape,
    50 packed macro records, and Before/At/After count cases are proved.  The
@@ -819,7 +898,7 @@ The ultimate theorem needs all of the following:
    the bounded relation, the exact JP destination-area allocation state, and
    delayed-warp retention/recapture.  The concrete candidate cast is verified
    for both retail versions.
-7. Validate the claimed no-A downstream paths from each successful bypass to
+8. Validate the claimed no-A downstream paths from each successful bypass to
    the Act 3 region and all five Act 6 triggers.
 
 Until these obligations are discharged,

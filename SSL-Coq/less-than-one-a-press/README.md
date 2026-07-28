@@ -17,7 +17,9 @@ theorem now proves that, under route/event alignment, a newly set Act 3 bit
 reaches the Act 3 cut and a newly set Act 6 bit reaches the upper-trigger cut.
 It blocks both bits only when supplied an evidence-bearing first-cut
 classification and unreachability proofs for the six surviving writer
-families.  Those premises are not yet derived from a retail run.  The
+families.  Those older premises are not yet derived from a retail run and,
+because their cut descriptor is unrestricted, are not the final sound
+first-crossing interface.  The
 historical payload-free `FirstTargetCutClassificationObligation` is also
 unproved.
 
@@ -27,6 +29,22 @@ trace segment, projected states, an exact indexed `CertifiedStep`, and a
 crossing of a concrete `CollisionSupportCut`.  It proves several limited
 eliminations inside the certified semantics, but no concrete linked run
 constructs that classifier and the remaining movement classes are not closed.
+`FirstCrossingWriterCoverage.v` now repairs the classification boundary.  It
+proves that an arbitrary `CollisionSupportCut` can be degenerate, introduces
+a `TargetCollisionCutFamily` parameter for the construction and exclusions,
+requires an entrance/entry contract plus
+endpoint-local side separation, identifies an actual minimal pre-target
+Clight crossing, and proves its abstract event-label coverage.  A changed
+Mario position is
+classified by the projected abstract event as ordinary physics, platform
+displacement, object impulse,
+collision clip, or area reload.  If XYZ is unchanged, the selected floor or
+raw platform must have changed instead.  Coordinate alias/out-of-bounds is
+treated as a domain class of the physics endpoint, not a separate store.  The
+result exposes an additional support-selection obligation that the historical
+six classes missed.  Construction of contracted, ordered crossings and all no-A
+movement/domain/support exclusions remain open for linked US/JP runs.  The
+exclusions now range only over clean entries and the selected cut family.
 A separate, current-source-rechecked
 `ArchivedProofIntegrationKernel` incorporates narrow lessons from all six
 archived investigations without importing their old ASTs.  The whole-program
@@ -408,6 +426,37 @@ blocks both target bits under the evidence-bearing classifier and
 `OpenRouteWriterClassesUnreachable`.  It does not prove the older
 `FirstTargetCutClassificationObligation`.
 
+`FirstCrossingWriterCoverage.v` supplies the corrected next layer:
+
+- `an_unvalidated_cut_can_place_one_state_on_both_sides` is a checked
+  counterexample to treating every cut descriptor as a separator;
+- `EntranceCollisionCutEntryContract` requires clean-entry source membership
+  and excludes the selected entry snapshot from the target side;
+- `FirstValidatedCutCrossingAt` binds the minimal crossing to one actual
+  `ClightFrameEvidence` segment, star-orders it before a matching target-event
+  segment, supplies ordered evidence for every earlier index, and requires
+  source/target separation at its actual endpoint, without pretending
+  arbitrary `GameState` field combinations are collision-coherent;
+- `validated_pre_target_first_crossing_writer_coverage` proves that a
+  changed-position non-target event is classified by one of five abstract
+  position-writer labels, while an unchanged-position crossing changes its
+  floor/platform selection;
+- nonspatial admin events preserve Mario kinematics, and a changed
+  `EventAreaReload` returns to the modeled entry snapshot;
+- a reload crossing is impossible once the linked run preserves the initial
+  route context and the entry contract excludes that snapshot; and
+- local successful X/Y/Z cast-domain membership excludes the existing
+  coordinate-alias witness.
+
+`no_a_complete_writer_exclusions_rule_out_validated_first_crossing` composes
+six explicitly named motion/domain exclusions plus the newly exposed
+support-selection exclusion for a clean entry and selected target-cut family.
+It
+is a proved implication; none of those predicates, nor
+`FirstValidatedCrossingConstructionObligation`, is discharged for the retail
+programs.  Crossings inside the same frame as the target collision still
+require ordered sub-frame control points.
+
 `PyramidTopSurface.v` and `PyramidTopPU.v` supply separate admission-free
 surface/arithmetic kernels.  They prove the same-sample vertical contradiction
 and conditional Y-preserving stock-yaw exclusion, then prove a concrete
@@ -647,9 +696,10 @@ conditional theorem is the ultimate target theorem.
   `_FINALROM`, `TARGET_N64`, `NON_MATCHING`, `AVOID_UB`, and `_LANGUAGE_C`.
 - Generator: CompCert `clightgen` 3.15.
 
-Thirty translation units are generated for each version, for 60 Clight
-modules total: `game_init.c`, `mario.c`, the six
-`mario_actions_{airborne,automatic,cutscene,moving,object,stationary}.c` units,
+Thirty-one translation units are generated for each version, for 62 Clight
+modules total: `game_init.c`, `mario.c`, the seven
+`mario_actions_{airborne,automatic,cutscene,moving,object,stationary,submerged}.c`
+units,
 `mario_step.c`, `interaction.c`, `save_file.c`, `object_collision.c`,
 `object_list_processor.c`, `spawn_object.c`, `object_helpers.c`,
 `obj_behaviors.c`, `obj_behaviors_2.c`, `behavior_actions.c`,
@@ -697,8 +747,8 @@ SM64_SOURCE=/path/to/sm64 make verify-generated
 
 The pipeline exports the pinned commit with `git archive`, so uncommitted files
 in the source checkout are not translated.  `verify-generated` requires
-exactly 30 modules per version, rejects extra generated `.v` files, hashes the
-committed output, regenerates all 60 modules, and requires byte-for-byte
+exactly 31 modules per version, rejects extra generated `.v` files, hashes the
+committed output, regenerates all 62 modules, and requires byte-for-byte
 identity.
 
 The command executed per unit is structurally:
@@ -729,7 +779,7 @@ clightgen -normalize -nostdinc -fstruct-passing \
   conclusion about ROM reachability.
 - No concrete `TargetLinkedProgram`, `ClightObservationProjection`, or
   `ClightFrameRefinementCertificate` is provided.  The link record asks for
-  `linkorder` witnesses above all 30 units; it does not construct an iterated
+  `linkorder` witnesses above all 31 units; it does not construct an iterated
   CompCert link.  `ImportedClightRun` is a finite `Smallstep.star` fragment and
   is not yet required to begin at `initial_state` or end at `final_state`.
 - `WholeProgramClightRefinementObligation` and

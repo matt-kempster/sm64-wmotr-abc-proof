@@ -3,7 +3,7 @@ From LessThanOneAPress.Proofs Require Import
   GameTypes InputSemantics CleanEntry ObjectProvenance StarCollection
   CollisionRegions AreaTransitions HiddenStar LowerEntrance UpperEntrance
   ClightRefinement ArchivedProofIntegration TranscriptRouteModel
-  FirstTargetRefinement JPSlotLifetime.
+  FirstTargetRefinement JPSlotLifetime FirstCrossingWriterCoverage.
 
 Import ListNotations.
 
@@ -86,6 +86,28 @@ Theorem transcript_route_gate_reduction :
        above_second_pole_observed trace).
 Proof.
   exact no_a_target_access_requires_gate_bypass.
+Qed.
+
+(* Corrected first-crossing coverage.  Unlike the older unused writer
+   inventory, the premise names an entrance-contracted cut, endpoint-local
+   side separation, an actual source-to-target Clight segment, and its
+   minimality.  The conclusion is exhaustive for non-target projected events:
+   either the position writer is ordinary physics, platform displacement,
+   object impulse, collision clip, or area reload, or unchanged coordinates
+   crossed the cut through a floor/platform support-selection change.
+   Selecting and constructing the target-specific cut from a linked run
+   remains open. *)
+Theorem validated_first_crossing_writer_reduction :
+  forall projection run initial certificate region target_frame
+      (crossing :
+        FirstValidatedCutCrossingAt
+          projection run initial certificate region target_frame),
+    FirstCrossingWriterCause
+      (first_crossing_event _ _ _ _ _ _ crossing)
+      (first_crossing_before _ _ _ _ _ _ crossing)
+      (first_crossing_after _ _ _ _ _ _ crossing).
+Proof.
+  exact validated_pre_target_first_crossing_writer_coverage.
 Qed.
 
 (* This is the stronger first-crossing formulation.  Its coverage premise is
