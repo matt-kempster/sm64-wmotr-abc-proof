@@ -62,7 +62,7 @@ engineering but does not know *Super Mario 64*.
 > The finite null-platform theorem applies only to pre-existing platform
 > origins; it does not eliminate a graphical retry that captures the top
 > afterward.  The focused audit is
-> [`docs/ink-fallback.md`](docs/ink-fallback.md).
+> [`docs/notes/ink-fallback.md`](docs/notes/ink-fallback.md).
 
 > **Newest first-crossing result:** `FirstCrossingWriterCoverage.v` repairs a
 > second abstraction boundary.  The older
@@ -441,7 +441,7 @@ path, select the live elevator floor, and establish the post-landing state
 before applying either ascent bound.
 
 The precise result and remaining obligations are documented in
-[`docs/ordinary-motion.md`](docs/ordinary-motion.md).  No retail ordinary-motion
+[`docs/notes/ordinary-motion.md`](docs/notes/ordinary-motion.md).  No retail ordinary-motion
 trace reached either target region in this tranche, and the ultimate theorem
 remains incomplete.
 
@@ -782,7 +782,7 @@ census above remains open.
 Moving/loading the warp onto the top, moving the top down to the already-loaded
 warp, collision-preserving cloning, and direct post-query writers remain
 separate unresolved constructions.  The full audit and theorem boundary are in
-[`docs/pyramid-top-pu.md`](docs/pyramid-top-pu.md).
+[`docs/notes/pyramid-top-pu.md`](docs/notes/pyramid-top-pu.md).
 
 `UpperWarpTopCoincidenceMechanism`,
 `UpperWarpTopPreludeCaptureEvidence`,
@@ -819,7 +819,7 @@ unreachable from the current state-only clean boundary.”  It is not a
 counterexample to the retail theorem, because the one-time fixture supplies
 the Area-2 boundary pointer/payload state whose stock controller prehistory has
 not yet been constructed.  The exact RAM fields and frame trace are recorded in
-[`docs/model-counterexample.md`](docs/model-counterexample.md).
+[`docs/notes/model-counterexample.md`](docs/notes/model-counterexample.md).
 
 ### What the route theorem does not establish
 
@@ -876,7 +876,7 @@ owner relation, and delayed-lifetime questions remain open.
 
 The full alternative-route inventory and its present proof boundary are
 spelled out in
-[`docs/route-exhaustiveness.md`](docs/route-exhaustiveness.md).
+[`docs/notes/route-exhaustiveness.md`](docs/notes/route-exhaustiveness.md).
 
 ## Why reaching those regions is relevant
 
@@ -1180,17 +1180,17 @@ The most useful entry points are:
 - `proofs/LowerEntrance.v` and `proofs/UpperEntrance.v`: open Layer B
   obligations;
 - `proofs/MainTheorem.v`: proved reduction and conditional capstone; and
-- `docs/archived-proof-evidence.md`: detailed audit of every prior project;
+- `docs/notes/archived-proof-evidence.md`: detailed audit of every prior project;
   and
-- `docs/pyramid-top-pu.md`: source audit and exact boundary of the newest
+- `docs/notes/pyramid-top-pu.md`: source audit and exact boundary of the newest
   pyramid-top PU result;
-- `docs/ink-fallback.md`: the human-readable scheduling verdict, writer census,
+- `docs/notes/ink-fallback.md`: the human-readable scheduling verdict, writer census,
   PU distinction, and remaining reachability/surface obligations;
-- `docs/pyramid-top-surface-refinement.md`: exact checked surface kernel versus
+- `docs/notes/pyramid-top-surface-refinement.md`: exact checked surface kernel versus
   remaining live-memory refinement;
-- `docs/retail-find-floor-cast.md`: authenticated US/JP function offsets,
+- `docs/notes/retail-find-floor-cast.md`: authenticated US/JP function offsets,
   instruction receipt, hashes, and reproduction commands; and
-- `docs/jp-slot-lifetime.md`: exact JP slot-lifetime facts and unresolved
+- `docs/notes/jp-slot-lifetime.md`: exact JP slot-lifetime facts and unresolved
   allocation trace.
 
 Build and run all project checks with:

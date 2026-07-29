@@ -71,11 +71,11 @@ hitbox return; the direct JP target audit and identical US/JP preprocessed-unit
 hash are documented evidence, not a Rocq target-code refinement.  Gameplay
 reachability and pointer retention/recapture through the delayed node-`0x1E`
 warp also remain open.  See
-[`../docs/ink-fallback.md`](../docs/ink-fallback.md),
-[`../docs/pyramid-top-pu.md`](../docs/pyramid-top-pu.md) and
-[`../docs/pyramid-top-surface-refinement.md`](../docs/pyramid-top-surface-refinement.md);
+[`../docs/notes/ink-fallback.md`](../docs/notes/ink-fallback.md),
+[`../docs/notes/pyramid-top-pu.md`](../docs/notes/pyramid-top-pu.md) and
+[`../docs/notes/pyramid-top-surface-refinement.md`](../docs/notes/pyramid-top-surface-refinement.md);
 the target-code receipt is
-[`../docs/retail-find-floor-cast.md`](../docs/retail-find-floor-cast.md).
+[`../docs/notes/retail-find-floor-cast.md`](../docs/notes/retail-find-floor-cast.md).
 
 `proofs/InkFallback.v` refines the scheduling boundary to three independent
 views: collision Object, first-query State, and fallback Graphics.  It proves
@@ -174,7 +174,7 @@ clean-entry coverage obligations.  Layer B non-overlap over the projected
 collision observations also remains open.  None of the six archived projects
 closes either class of obligation.
 See the
-[`archived-proof evidence map`](../docs/archived-proof-evidence.md) for the
+[`archived-proof evidence map`](../docs/notes/archived-proof-evidence.md) for the
 project-by-project support and non-support boundary.
 
 ## Finite source-inventory boundary

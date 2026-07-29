@@ -12,7 +12,7 @@
 
     The ROM hashes, instruction addresses, and bytes authenticating the retail
     fragment are documented outside Rocq in
-    [docs/retail-find-floor-cast.md]; this module does not parse a ROM or prove
+    [docs/notes/retail-find-floor-cast.md]; this module does not parse a ROM or prove
     a general compiler theorem for arbitrary out-of-range conversions.
     It also does not execute the transform/surface bodies over linked memory,
     prove that a reachable object-pool epoch constructs the surface, or prove
@@ -152,7 +152,7 @@ Qed.
     The theorem below checks the instruction-fragment arithmetic.  ROM hashes,
     addresses, words, and the external attribution of that fragment to
     retail [find_floor] are recorded in
-    [docs/retail-find-floor-cast.md]; this module does not parse a ROM. *)
+    [docs/notes/retail-find-floor-cast.md]; this module does not parse a ROM. *)
 Definition modeled_trunc_w_s_sh_lh (bits : Z) : option int :=
   match Float32.to_int (Float32.of_bits (Int.repr bits)) with
   | Some word => Some (Int.sign_ext 16 word)

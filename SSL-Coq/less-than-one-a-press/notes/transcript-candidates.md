@@ -111,4 +111,4 @@ global class exclusion.  No stock-reachable target-region counterexample has
 been found.  A boundary-fixture JP stale-top replay does consume the upper
 trigger with no A edge, while its pre-transition-only preparation fails; this
 settles the current state-only model boundary but not retail reachability.  See
-[`../docs/route-exhaustiveness.md`](../docs/route-exhaustiveness.md).
+[`../docs/notes/route-exhaustiveness.md`](../docs/notes/route-exhaustiveness.md).

@@ -132,13 +132,13 @@ prestate or retail target-bit counterexample has been found, and the ultimate
 theorem remains incomplete.  Accordingly, none of the six archived projects
 discharges the current
 whole-program Layer A refinement or any Layer B obligation.  See the
-[`archived-proof evidence map`](archived-proof-evidence.md) for the exact
+[`archived-proof evidence map`](notes/archived-proof-evidence.md) for the exact
 project-by-project boundary.  The non-specialist explanation is
 [`../human-readable-proof.md`](../human-readable-proof.md), and the route
 coverage question is isolated in
-[`route-exhaustiveness.md`](route-exhaustiveness.md).  The focused newest
-results are documented in [`ink-fallback.md`](ink-fallback.md),
-[`pyramid-top-pu.md`](pyramid-top-pu.md),
-[`pyramid-top-surface-refinement.md`](pyramid-top-surface-refinement.md), and
-[`jp-slot-lifetime.md`](jp-slot-lifetime.md).  The retail instruction receipt
-is [`retail-find-floor-cast.md`](retail-find-floor-cast.md).
+[`notes/route-exhaustiveness.md`](notes/route-exhaustiveness.md).  The focused newest
+results are documented in [`notes/ink-fallback.md`](notes/ink-fallback.md),
+[`notes/pyramid-top-pu.md`](notes/pyramid-top-pu.md),
+[`notes/pyramid-top-surface-refinement.md`](notes/pyramid-top-surface-refinement.md), and
+[`notes/jp-slot-lifetime.md`](notes/jp-slot-lifetime.md).  The retail instruction receipt
+is [`notes/retail-find-floor-cast.md`](notes/retail-find-floor-cast.md).

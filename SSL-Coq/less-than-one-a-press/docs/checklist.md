@@ -35,7 +35,7 @@
   and prove the null/live/inactive/reused case split under explicit slot
   well-formedness; its C-memory projection remains open.
 - [x] Document what each archived project supports and does not support in
-  [`archived-proof-evidence.md`](archived-proof-evidence.md).
+  [`notes/archived-proof-evidence.md`](notes/archived-proof-evidence.md).
 - [x] Encode the transcript's elevator/second-pole route contract and prove its
   gate, bypass-refutation, and conditional downstream-access lemmas without
   presenting the graph as a target-ROM refinement.
@@ -139,7 +139,7 @@
   directly read.  This closes the state-only bypass-unreachability alternative,
   not stock reachability or the newly-set-bit theorem.
 - [x] Document the alternative-route coverage boundary in
-  [`route-exhaustiveness.md`](route-exhaustiveness.md).
+  [`notes/route-exhaustiveness.md`](notes/route-exhaustiveness.md).
 - [x] Add a software-engineer-oriented
   [`human-readable-proof.md`](../human-readable-proof.md).
 - [x] No-hole source scan and assumption reports are part of `make check`.

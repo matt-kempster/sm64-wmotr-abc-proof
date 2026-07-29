@@ -235,8 +235,8 @@ impossibility result.  None of `ssl-spawning-displacement-proof`,
 `ssl-pyramid-item-proof`, `ssl-parallel-universe`, `pole-bypass`,
 `eyerok-manipulation`, or `demo-warp` closes the whole-program Layer A
 refinement or a Layer B obligation.  See
-[`archived-proof-evidence.md`](archived-proof-evidence.md) for the detailed
+[`notes/archived-proof-evidence.md`](notes/archived-proof-evidence.md) for the detailed
 support matrix and [`../human-readable-proof.md`](../human-readable-proof.md)
 for the route-gate argument in software-engineering terms.  The alternative
 route classification is detailed in
-[`route-exhaustiveness.md`](route-exhaustiveness.md).
+[`notes/route-exhaustiveness.md`](notes/route-exhaustiveness.md).

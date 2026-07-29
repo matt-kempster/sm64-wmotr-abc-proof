@@ -535,3 +535,41 @@ The later three-view graphical-fallback audit and its documentation changed:
 - `SSL-Coq/less-than-one-a-press/proofs/InkFallback.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`
 - `SSL-Coq/less-than-one-a-press/proofs/PyramidTopPU.v`
+
+## Documentation notes reorganization
+
+The detailed Markdown investigations moved under `docs/notes/`, while
+`checklist.md`, `claim.md`, and `goal.md` remain directly under `docs/`:
+
+- `SSL-Coq/less-than-one-a-press/docs/archived-proof-evidence.md` →
+  `SSL-Coq/less-than-one-a-press/docs/notes/archived-proof-evidence.md`
+- `SSL-Coq/less-than-one-a-press/docs/changed-paths.md` →
+  `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/docs/ink-fallback.md` →
+  `SSL-Coq/less-than-one-a-press/docs/notes/ink-fallback.md`
+- `SSL-Coq/less-than-one-a-press/docs/jp-slot-lifetime.md` →
+  `SSL-Coq/less-than-one-a-press/docs/notes/jp-slot-lifetime.md`
+- `SSL-Coq/less-than-one-a-press/docs/model-counterexample.md` →
+  `SSL-Coq/less-than-one-a-press/docs/notes/model-counterexample.md`
+- `SSL-Coq/less-than-one-a-press/docs/ordinary-motion.md` →
+  `SSL-Coq/less-than-one-a-press/docs/notes/ordinary-motion.md`
+- `SSL-Coq/less-than-one-a-press/docs/pyramid-top-pu.md` →
+  `SSL-Coq/less-than-one-a-press/docs/notes/pyramid-top-pu.md`
+- `SSL-Coq/less-than-one-a-press/docs/pyramid-top-surface-refinement.md` →
+  `SSL-Coq/less-than-one-a-press/docs/notes/pyramid-top-surface-refinement.md`
+- `SSL-Coq/less-than-one-a-press/docs/retail-find-floor-cast.md` →
+  `SSL-Coq/less-than-one-a-press/docs/notes/retail-find-floor-cast.md`
+- `SSL-Coq/less-than-one-a-press/docs/route-exhaustiveness.md` →
+  `SSL-Coq/less-than-one-a-press/docs/notes/route-exhaustiveness.md`
+
+References were updated in:
+
+- `SSL-Coq/README.md`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/claim.md`
+- `SSL-Coq/less-than-one-a-press/docs/goal.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+- `SSL-Coq/less-than-one-a-press/notes/transcript-candidates.md`
+- `SSL-Coq/less-than-one-a-press/proofs/PyramidTopSurface.v`

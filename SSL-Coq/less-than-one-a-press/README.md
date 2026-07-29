@@ -69,7 +69,7 @@ the rollout result from `220` to `228`: it refutes reuse of the non-Wing
 retail `init_mario` cap reset must nevertheless be connected to the clean-entry
 projection rather than silently assumed.  The lower route remains open beyond
 the existing normalized soft-bonk subcase.  See
-[`docs/ordinary-motion.md`](docs/ordinary-motion.md).
+[`docs/notes/ordinary-motion.md`](docs/notes/ordinary-motion.md).
 
 The upper entry also starts at Y `5500`, above the elevator's initial
 raw-mesh rim top Y `5222`.  The ascent bounds apply only after a normal landing
@@ -178,18 +178,18 @@ For a software-engineering-oriented explanation of the game state, the two
 route gates, the exact proved reductions, and the contribution of each archived
 project, see [`human-readable-proof.md`](human-readable-proof.md).  The precise
 answer about routes outside the transcript is in
-[`docs/route-exhaustiveness.md`](docs/route-exhaustiveness.md), and the focused
+[`docs/notes/route-exhaustiveness.md`](docs/notes/route-exhaustiveness.md), and the focused
 PU/top source audit is
-[`docs/pyramid-top-pu.md`](docs/pyramid-top-pu.md).  The narrower checked
+[`docs/notes/pyramid-top-pu.md`](docs/notes/pyramid-top-pu.md).  The narrower checked
 surface and JP slot boundaries are documented in
-[`docs/pyramid-top-surface-refinement.md`](docs/pyramid-top-surface-refinement.md)
-and [`docs/jp-slot-lifetime.md`](docs/jp-slot-lifetime.md).  The authenticated
+[`docs/notes/pyramid-top-surface-refinement.md`](docs/notes/pyramid-top-surface-refinement.md)
+and [`docs/notes/jp-slot-lifetime.md`](docs/notes/jp-slot-lifetime.md).  The authenticated
 retail instruction receipt is
-[`docs/retail-find-floor-cast.md`](docs/retail-find-floor-cast.md).
+[`docs/notes/retail-find-floor-cast.md`](docs/notes/retail-find-floor-cast.md).
 The focused ordinary-motion proof boundary is
-[`docs/ordinary-motion.md`](docs/ordinary-motion.md).
+[`docs/notes/ordinary-motion.md`](docs/notes/ordinary-motion.md).
 The three-view graphical fallback result is
-[`docs/ink-fallback.md`](docs/ink-fallback.md).
+[`docs/notes/ink-fallback.md`](docs/notes/ink-fallback.md).
 
 ## Exact target and input definition
 
@@ -437,7 +437,7 @@ project build path.  The theorem
 event reduction as a conjunction; it deliberately proves no semantic bridge
 between them and does not use the kernel as a substitute for refinement or
 reachability.  See
-[`docs/archived-proof-evidence.md`](docs/archived-proof-evidence.md) for the
+[`docs/notes/archived-proof-evidence.md`](docs/notes/archived-proof-evidence.md) for the
 project-by-project evidence boundary.
 
 `TranscriptRouteModel.v` separately formalizes the route argument extracted
@@ -819,6 +819,11 @@ five vertex Y values.  It also proves exact generated local X/Y/Z bounds for
 the breakable-box, exclamation-box-outline, cannon-lid, and wooden-signpost
 meshes in both versions.  The larger area arrays are not yet parsed into a
 surface graph.
+
+The three status-facing documents remain at `docs/checklist.md`,
+`docs/claim.md`, and `docs/goal.md`.  Detailed investigation records and
+technique-specific material live under `docs/notes/`; this keeps current
+claims separate from supporting research notes.
 
 ## Build and regeneration
 

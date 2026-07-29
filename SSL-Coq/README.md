@@ -259,18 +259,18 @@ obligation is proved.  These gaps are explicit and are not presented as proved
 geometry or as a complete ROM theorem.  See the
 [project README](less-than-one-a-press/README.md) and the
 [human-readable proof](less-than-one-a-press/human-readable-proof.md), plus the
-[archived-proof evidence map](less-than-one-a-press/docs/archived-proof-evidence.md)
-and [route-exhaustiveness analysis](less-than-one-a-press/docs/route-exhaustiveness.md)
-and [pyramid-top PU audit](less-than-one-a-press/docs/pyramid-top-pu.md) for
+[archived-proof evidence map](less-than-one-a-press/docs/notes/archived-proof-evidence.md)
+and [route-exhaustiveness analysis](less-than-one-a-press/docs/notes/route-exhaustiveness.md)
+and [pyramid-top PU audit](less-than-one-a-press/docs/notes/pyramid-top-pu.md) for
 the exact boundary.  The
-[Ink graphical-fallback audit](less-than-one-a-press/docs/ink-fallback.md)
+[Ink graphical-fallback audit](less-than-one-a-press/docs/notes/ink-fallback.md)
 records the newest conditional mechanism and writer boundary.  The narrower
-[surface-refinement](less-than-one-a-press/docs/pyramid-top-surface-refinement.md)
-and [JP slot-lifetime](less-than-one-a-press/docs/jp-slot-lifetime.md) notes
+[surface-refinement](less-than-one-a-press/docs/notes/pyramid-top-surface-refinement.md)
+and [JP slot-lifetime](less-than-one-a-press/docs/notes/jp-slot-lifetime.md) notes
 record the newest checked kernels; the
-[retail cast receipt](less-than-one-a-press/docs/retail-find-floor-cast.md)
+[retail cast receipt](less-than-one-a-press/docs/notes/retail-find-floor-cast.md)
 records the authenticated instructions and exact three-input arithmetic, and
-the [ordinary-motion audit](less-than-one-a-press/docs/ordinary-motion.md)
+the [ordinary-motion audit](less-than-one-a-press/docs/notes/ordinary-motion.md)
 records the newest ordinary/static subkernel and its remaining obligations.
 None of the six archived projects closes the whole-program Layer A refinement
 or any Layer B obligation.
