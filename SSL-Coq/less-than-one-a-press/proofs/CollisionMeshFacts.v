@@ -440,6 +440,93 @@ Theorem wooden_signpost_generated_vertex_bounds_jp :
   (Some (-44, 45), Some (-9, 126), Some (-12, 20)).
 Proof. vm_compute. reflexivity. Qed.
 
+(** * Selected Area-1 upper-warp mesh receipts
+
+    The graphical-position fallback audit uses the local integer point
+    [(-2200,768,-1024)].  The vertices below are the nearby pillar and upper
+    plateau vertices from the complete generated Area-1 collision stream.
+    The raw word slice records the corresponding triangle-index records.
+
+    These are initializer receipts, not a theorem about spatial-partition
+    insertion, traversal order, a live dynamic-surface owner, or the result of
+    a concrete [find_floor] call. *)
+
+Definition area1_collision_vertex_count : nat := 574.
+
+Definition area1_collision_vertices_from_words (words : list Z) :
+    list (Z * Z * Z) :=
+  collision_vertices_from_words area1_collision_vertex_count words.
+
+Definition area1_collision_words_us : list Z :=
+  init_int16_values
+    (gvar_init us_ssl_collision.v_ssl_seg7_area_1_collision).
+
+Definition area1_collision_words_jp : list Z :=
+  init_int16_values
+    (gvar_init jp_ssl_collision.v_ssl_seg7_area_1_collision).
+
+Definition area1_collision_vertices_us : list (Z * Z * Z) :=
+  area1_collision_vertices_from_words area1_collision_words_us.
+
+Definition area1_collision_vertices_jp : list (Z * Z * Z) :=
+  area1_collision_vertices_from_words area1_collision_words_jp.
+
+Definition selected_ink_area1_vertex_receipts
+    (vertices : list (Z * Z * Z)) : Prop :=
+  nth_error vertices 263 = Some (-1945, 1280, -921) /\
+  nth_error vertices 265 = Some (-2559, 1280, -511) /\
+  nth_error vertices 266 = Some (-2149, 1280, -921) /\
+  nth_error vertices 371 = Some (-1945, 1280, -1125) /\
+  nth_error vertices 372 = Some (-2149, 1280, -1125) /\
+  nth_error vertices 498 = Some (-1945, 768, -921) /\
+  nth_error vertices 500 = Some (-1945, 768, -1125) /\
+  nth_error vertices 501 = Some (-2149, 768, -1125) /\
+  nth_error vertices 502 = Some (-2149, 768, -921).
+
+Theorem area1_collision_vertex_count_exact_us :
+  length area1_collision_vertices_us = area1_collision_vertex_count.
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem area1_collision_vertex_count_exact_jp :
+  length area1_collision_vertices_jp = area1_collision_vertex_count.
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem selected_ink_area1_vertex_receipts_exact_us :
+  selected_ink_area1_vertex_receipts area1_collision_vertices_us.
+Proof. vm_compute. repeat split. Qed.
+
+Theorem selected_ink_area1_vertex_receipts_exact_jp :
+  selected_ink_area1_vertex_receipts area1_collision_vertices_jp.
+Proof. vm_compute. repeat split. Qed.
+
+Definition selected_ink_area1_triangle_word_slice : list Z :=
+  [371; 498; 263;
+   371; 500; 498;
+   498; 500; 501;
+   263; 498; 502;
+   372; 501; 500;
+   266; 502; 501;
+   266; 501; 372;
+   498; 501; 502;
+   263; 502; 266;
+   372; 500; 371].
+
+Theorem selected_ink_area1_triangle_words_exact_us :
+  firstn 30 (skipn 3320 area1_collision_words_us) =
+    selected_ink_area1_triangle_word_slice.
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem selected_ink_area1_triangle_words_exact_jp :
+  firstn 30 (skipn 3320 area1_collision_words_jp) =
+    selected_ink_area1_triangle_word_slice.
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem selected_ink_area1_mesh_is_version_identical :
+  area1_collision_vertices_us = area1_collision_vertices_jp /\
+  firstn 30 (skipn 3320 area1_collision_words_us) =
+    firstn 30 (skipn 3320 area1_collision_words_jp).
+Proof. vm_compute. split; reflexivity. Qed.
+
 (** * Selected Area-2 static-mesh receipts
 
     The generated collision stream begins with [COL_INIT], the declared vertex

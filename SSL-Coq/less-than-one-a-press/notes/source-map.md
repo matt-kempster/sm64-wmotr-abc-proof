@@ -16,14 +16,14 @@ base-insensitive and direct-callee/literal checks are path-insensitive.
 | Source | Generated stems | Inspected boundary |
 | --- | --- | --- |
 | `src/game/game_init.c` | `*_game_init.v` | `read_controller_inputs`; assignment operator shape for `buttonPressed` only, not operand/dataflow identity |
-| `src/game/mario.c` | `*_mario.v` | `update_mario_button_inputs`; pressed/down field and input-bit constant occurrences; `execute_mario_action`, `update_mario_inputs`, and `update_mario_geometry_inputs` call order for the PU State/Object phase audit; jump-kick `20.0f` action-initializer receipt and `init_mario` cap reset source shape for the ordinary-motion boundary |
+| `src/game/mario.c` | `*_mario.v` | `update_mario_button_inputs`; pressed/down field and input-bit constant occurrences; `execute_mario_action`, `update_mario_inputs`, and `update_mario_geometry_inputs` call order for the three-view PU/Ink audit; generated syntax receipts for the guarded floor-null Graphics-to-State copy and retry plus entry-coordinate synchronization; jump-kick `20.0f` action-initializer receipt and `init_mario` cap reset source shape for the ordinary-motion boundary |
 | `src/game/mario_actions_airborne.c` | `*_mario_actions_airborne.v` | jump-kick and forward/backward rollout `perform_air_step(..., 0)` receipts, rollout `30.0f` receipts, and the broader airborne writer inventory; no branch/dataflow or complete execution refinement yet |
 | `src/game/mario_actions_automatic.c` | `*_mario_actions_automatic.v` | pole positioning, holding-pole and top-of-pole source shapes used by the normalized-pole subcase |
 | `src/game/mario_actions_cutscene.c` | `*_mario_actions_cutscene.v` | `act_spawn_no_spin_airborne` and `launch_mario_until_land`; checked call/Float32-argument shapes anchor the zero-forward-speed entry update before `perform_air_step`; `act_disappeared` floor-snap/warp call order for the node-`0x1E` audit |
 | `src/game/mario_actions_moving.c` | `*_mario_actions_moving.v` | walking, braking, slope deceleration, and ground-step shapes; moving-punching held-A jump-kick shape; high-speed B dive and dive-slide B rollout constants/calls; all checks remain path-insensitive |
 | `src/game/mario_actions_object.c` | `*_mario_actions_object.v` | stationary punching's held-A jump-kick constants/call plus other object-interaction action handlers; no complete execution refinement yet |
 | `src/game/mario_actions_stationary.c` | `*_mario_actions_stationary.v` | stationary action handlers imported for Layer B action/writer coverage; no complete execution refinement yet |
-| `src/game/mario_actions_submerged.c` | `*_mario_actions_submerged.v` | submerged dispatcher coverage; generated-AST receipts check the water full-step helper calls, all three direct whirlpool position slots, and the common water-level clamp.  This closes the missing translation-unit hole, not SSL reachability or callgraph completeness |
+| `src/game/mario_actions_submerged.c` | `*_mario_actions_submerged.v` | submerged dispatcher coverage; generated-AST receipts check the water full-step helper calls, all three direct whirlpool position slots, and the common water-level clamp.  The Ink writer audit conservatively allows water pitch below `60` plus a persisted s16-only bob below `148` to compose across the floor-hit branch, represented by the integer bound `208`.  This closes the missing translation-unit hole, not SSL reachability or callgraph completeness |
 | `src/game/mario_step.c` | `*_mario_step.v` | ground and air quarter-step loops, `find_floor` calls, gravity source shape, and `stop_and_set_height_to_floor` State-Y assignment from cached `floorHeight` |
 | `src/game/interaction.c` | `*_interaction.v` | `interact_star_or_key` field/constant occurrences and direct save call; `interact_coin` spawn call/index constant; `interact_warp` action constant in the PU phase pipeline; extraction dataflow is pending |
 | `src/game/save_file.c` | `*_save_file.v` | direct call from `save_file_collect_star_or_key` to `save_file_set_star_flags`; `save_file_reload` backup-copy/file source shape; the bit-update and copy memory effects are not yet proved |
@@ -47,7 +47,7 @@ base-insensitive and direct-callee/literal checks are path-insensitive.
 | `levels/ssl/areas/2/macro.inc.c` via `inputs/ssl_area2_macro.c` | `*_ssl_area2_macro.v` | raw initializer tuples for five Puzzle trigger records/coordinates; the abstract state now assigns exact kinds/references/positions, while their concrete spawn-memory projection remains pending |
 | SSL collision arrays via `inputs/ssl_collision.c` | `*_ssl_collision.v` | area 1/2/3 static arrays plus pyramid-top, tox-box, grindel, spindel, moving-wall, elevator, Eyerok, breakable-box, exclamation-box-outline, cannon-lid, and wooden-signpost object collision arrays; checked word counts and US/JP initializer identity; the complete 39-word top initializer is parsed into five vertices and six triangle-index triples; exact local bounds are proved for four Area-1 fixed-owner meshes; all 20 elevator vertices and selected Area-2 pole/ring vertices have exact receipts, but no linked transformed dynamic `Surface`, actual `find_floor` selection, general parsed-surface, or connected-component theorem exists |
 
-## Pyramid-top PU boundary
+## Pyramid-top PU and graphical-fallback boundary
 
 `proofs/PyramidTopPU.v` bundles exact packed US/JP LevelScript records and the
 parsed top mesh alongside a handwritten integer arithmetic kernel; its three
@@ -71,10 +71,25 @@ hitbox return; the direct JP target audit and identical US/JP preprocessed-unit
 hash are documented evidence, not a Rocq target-code refinement.  Gameplay
 reachability and pointer retention/recapture through the delayed node-`0x1E`
 warp also remain open.  See
+[`../docs/ink-fallback.md`](../docs/ink-fallback.md),
 [`../docs/pyramid-top-pu.md`](../docs/pyramid-top-pu.md) and
 [`../docs/pyramid-top-surface-refinement.md`](../docs/pyramid-top-surface-refinement.md);
 the target-code receipt is
 [`../docs/retail-find-floor-cast.md`](../docs/retail-find-floor-cast.md).
+
+`proofs/InkFallback.v` refines the scheduling boundary to three independent
+views: collision Object, first-query State, and fallback Graphics.  It proves
+conditional local and PU countermodels for the guarded null-floor retry,
+checks the nearby generated Area-1 mesh arithmetic, and proves that arbitrary
+State-only ordinary/platform/PU prefixes preserve Object and Graphics.  A
+retry capable of selecting a top floor at Y at least `1281` requires
+Graphics-minus-Object Y separation of at least `385`; the dry visual-offset
+subcase is at most `45`, while the conservative generic audited writer
+relation uses `208`.  These bounds become a retail exclusion only after
+`Area1InkWriterCoverageObligation` is proved.  The actual first-query null and
+live-top retry are `InkFallbackSurfaceRefinementObligation`, and construction
+of a clean no-A three-view prestate is
+`Area1InkPrestateReachabilityObligation`.
 
 `proofs/Area1PhaseSplit.v` checks the Area-1 fragment writers, macro parents,
 rebound source shape, exact PRNG/table values, and one route-sized binary32
@@ -93,10 +108,12 @@ spawn-clear, retained-inbound-pointer, and frozen-carry origins are all null
 when Mario's old collision object overlaps node `0x1E`.  `[top, box]` is only
 one allocator example; source-audited top-yaw, dirt-triangle, and
 cartoon-triangle schedules may vary by depth, mist count, zero-angular
-allocations, and FIFO eviction without surviving that owner exclusion.  The
-open boundary is `Area1StockPreapplyProjectionSound`: no linked Clight memory
-theorem yet proves that every relevant retail pre-apply state projects into
-this finite relation.
+allocations, and FIFO eviction without surviving that pre-apply owner
+exclusion.  This result excludes pre-existing platform origins only.  It does
+not exclude a null first query followed by a Graphics retry and post-snap top
+capture.  The open pre-apply boundary is
+`Area1StockPreapplyProjectionSound`: no linked Clight memory theorem yet proves
+that every relevant retail pre-apply state projects into this finite relation.
 
 ## Archive-derived integration boundary
 
@@ -194,7 +211,17 @@ The module names source execution, cap state, intermediate-query, and
 collision-observation linkage obligations rather than presenting raw
 initializer and AST receipts as a retail execution theorem.
 
-The same module deliberately preserves the conditional JP
+`proofs/InkFallback.v` supplies a separate writer invariant relevant to the
+same class.  State-only ordinary, platform, and PU-sized writes preserve the
+collision Object and fallback Graphics views, while any execution covered by
+the audited writer relation preserves a Graphics-minus-Object Y gap at most
+`208` and therefore cannot meet the required `385`-unit gap.  The
+route-specific dry source bound is `45`.  Complete Clight
+writer/action/spawn closure is still the explicit
+`Area1InkWriterCoverageObligation`; none of these arithmetic results is
+presented as global ordinary-motion reachability.
+
+`proofs/FirstTargetRefinement.v` deliberately preserves the conditional JP
 upper-warp/spinning-pyramid-top route.  Its evidence records how the warp and
 an object-owned top surface could coincide at Area-1 source node `0x1E`,
 platform capture, unload retention, inactive-versus-reused slot epochs, and a

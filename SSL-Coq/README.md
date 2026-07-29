@@ -96,6 +96,15 @@ Rocq instruction-fragment arithmetic verifies the exact
 `(63488, 1791, -1024) -> (-2048, 1791, -1024)` conversions; this is not a
 general theorem about arbitrary out-of-range conversions.
 
+`InkFallback.v` adds the missing three-view schedule.  Object collision may
+cache node `0x1E` from old `MarioObject.oPos`; a floorless MarioState query can
+then copy `header.gfx.pos` into State and retry.  Rocq proves conditional local
+and PU top-side graphical countermodels, the exact nearby mesh arithmetic, a
+385-unit necessary Graphics/Object Y gap, and preservation of Object/Graphics
+by arbitrary State-only ordinary/platform/PU prefixes.  It does not prove the
+first query returns `NULL`, the retry selects a live top, or a clean retail
+prestate reaches the required split.  No stock counterexample was found.
+
 `TranscriptRouteModel.v` now formalizes the two-gate contract suggested by the
 supplied source text: the contract requires a modeled upper route to leave the
 elevator and a modeled lower route to pass the second-pole gate.  The old
@@ -186,11 +195,14 @@ with conservative world-space envelopes, and proves that a completed final
 query at node `0x1E` cannot return any modeled non-null stock owner.  The
 completed-query, US spawn-clear, retained-inbound-pointer, and frozen-carry
 pre-apply origins consequently all yield a null platform there.
-Thus zero stock route-relevant schedules survive in this model, and generic
-fragment controller/free-list lineage is no longer a Layer-B obligation.
+Thus zero bounded pre-existing platform-origin schedules survive in this
+model, and generic fragment controller/free-list lineage is no longer needed
+for that finite origin theorem.  A null pre-apply platform does not exclude
+Ink's later graphical retry and top capture.
 Proving that every linked Clight memory state projects into this bounded
 owner/origin relation—including derivation of the world-space envelopes and
-live surface ownership/list selection—remains open.
+live surface ownership/list selection—remains open, as do the fallback's
+writer/action closure and two live floor outcomes.
 
 The current endpoint certificate and handwritten clean-state model are too
 permissive to establish route exhaustiveness: they admit arbitrary motion, and
@@ -210,7 +222,9 @@ bootstrap.  The matrix and surface-loader bodies, concrete CompCert casts,
 partition cells, parsed-to-manual zero-yaw home-face link, and hand-mirrored
 transform/edge tests are now checked.  The finite Area-1 owner theorem also
 rules out the broader platform-created split for every bounded stock pre-apply
-origin at the old-object node-`0x1E` sample.  Proving that this relation covers
+origin at the old-object node-`0x1E` sample.  It does not rule out a null-first
+query that copies a separate graphical sample and captures the top afterward.
+Proving that this relation covers
 the linked retail execution still requires live-memory execution, surface
 ownership/list order, and actual `find_floor` selection.  The exact three
 concrete retail conversions have been checked separately.  JP retention or
@@ -234,7 +248,9 @@ geometry or as a complete ROM theorem.  See the
 [archived-proof evidence map](less-than-one-a-press/docs/archived-proof-evidence.md)
 and [route-exhaustiveness analysis](less-than-one-a-press/docs/route-exhaustiveness.md)
 and [pyramid-top PU audit](less-than-one-a-press/docs/pyramid-top-pu.md) for
-the exact boundary.  The narrower
+the exact boundary.  The
+[Ink graphical-fallback audit](less-than-one-a-press/docs/ink-fallback.md)
+records the newest conditional mechanism and writer boundary.  The narrower
 [surface-refinement](less-than-one-a-press/docs/pyramid-top-surface-refinement.md)
 and [JP slot-lifetime](less-than-one-a-press/docs/jp-slot-lifetime.md) notes
 record the newest checked kernels; the

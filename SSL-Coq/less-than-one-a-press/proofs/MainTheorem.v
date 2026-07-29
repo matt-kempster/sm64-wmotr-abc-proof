@@ -4,7 +4,7 @@ From LessThanOneAPress.Proofs Require Import
   CollisionRegions AreaTransitions HiddenStar LowerEntrance UpperEntrance
   ClightRefinement ArchivedProofIntegration RouteEvidence TranscriptRouteModel
   FirstTargetRefinement JPSlotLifetime FirstCrossingWriterCoverage
-  OrdinaryMotion.
+  OrdinaryMotion PyramidTopPU InkFallback.
 
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -93,6 +93,31 @@ Proof.
   split.
   - exact upper_ordinary_ascent_kernel_checked.
   - exact wing_cap_rollout_arithmetic_countermodel.
+Qed.
+
+(* The graphical-fallback tranche settles the scheduling question but not
+   clean-entry reachability.  It provides local and PU conditional
+   countermodels, exact nearby static-mesh arithmetic, the fifteen-owner
+   abstract dynamic-floor exclusion for the first query, and the invariant
+   that State-only ordinary/PU writes preserve Object and Graphics.  The
+   linked writer/action closure and real surface-list selection are explicit
+   obligations in [InkFallback], so this is not the ultimate theorem. *)
+Theorem current_ink_fallback_evidence_boundary :
+  InkFallbackCheckedBoundary /\
+  (forall owner floor_y,
+    ~ stock_dynamic_geometry_floor_candidate
+        owner ink_warp_floor_miss_position floor_y) /\
+  (forall object_position graphics_position floor_y,
+    upper_warp_contact object_position ->
+    -32768 <= position_y graphics_position < 32768 ->
+    position_y graphics_position - position_y object_position <= 45 ->
+    pyramid_top_floor_min_y <= floor_y ->
+    ~ floor_query_can_return graphics_position floor_y).
+Proof.
+  split; [exact ink_fallback_checked_boundary |].
+  split.
+  - exact ink_first_query_has_no_modeled_stock_dynamic_floor_candidate.
+  - exact dry_graphics_offset_cannot_supply_top_retry.
 Qed.
 
 (* Capstone exposure of the transcript-derived route-gate reduction.  The

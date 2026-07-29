@@ -104,6 +104,58 @@ with statement_mentions_ident_ls
       statement_mentions_ident_ls needle rest
   end.
 
+(** Recognize the specific control-flow shape used by Mario's graphical
+    floor-null fallback.  CompCert lowers the source guard to an immediate
+    sequence: load [m->floor] into a temporary, then test that temporary.  The
+    true branch must contain the ordered graphics copy/floor retry and mention
+    the relevant fields.  This remains base- and dataflow-insensitive, but is
+    materially stronger than finding the names somewhere in the whole body. *)
+Fixpoint contains_guarded_graphics_floor_retry_s
+    (floor_field copy_callee retry_callee graphics_field
+      position_field floor_height_field : ident)
+    (s : statement) : bool :=
+  match s with
+  | Ssequence first second =>
+      (match first, second with
+       | Sset guard_temp loaded,
+         Sifthenelse condition yes_branch _ =>
+           expression_mentions_ident floor_field loaded &&
+           expression_mentions_ident guard_temp condition &&
+           ident_subsequenceb [copy_callee; retry_callee]
+             (direct_callees_s yes_branch) &&
+           statement_mentions_ident_s graphics_field yes_branch &&
+           statement_mentions_ident_s position_field yes_branch &&
+           statement_mentions_ident_s floor_field yes_branch &&
+           statement_mentions_ident_s floor_height_field yes_branch
+       | _, _ => false
+       end) ||
+      contains_guarded_graphics_floor_retry_s
+        floor_field copy_callee retry_callee graphics_field
+        position_field floor_height_field first ||
+      contains_guarded_graphics_floor_retry_s
+        floor_field copy_callee retry_callee graphics_field
+        position_field floor_height_field second
+  | Sifthenelse _ yes_branch no_branch =>
+      contains_guarded_graphics_floor_retry_s
+        floor_field copy_callee retry_callee graphics_field
+        position_field floor_height_field yes_branch ||
+      contains_guarded_graphics_floor_retry_s
+        floor_field copy_callee retry_callee graphics_field
+        position_field floor_height_field no_branch
+  | Sloop body increment =>
+      contains_guarded_graphics_floor_retry_s
+        floor_field copy_callee retry_callee graphics_field
+        position_field floor_height_field body ||
+      contains_guarded_graphics_floor_retry_s
+        floor_field copy_callee retry_callee graphics_field
+        position_field floor_height_field increment
+  | Slabel _ body =>
+      contains_guarded_graphics_floor_retry_s
+        floor_field copy_callee retry_callee graphics_field
+        position_field floor_height_field body
+  | _ => false
+  end.
+
 Fixpoint statement_mentions_int_s (needle : Z) (s : statement) : bool :=
   match s with
   | Sskip | Sbreak | Scontinue | Sreturn None | Sgoto _ => false

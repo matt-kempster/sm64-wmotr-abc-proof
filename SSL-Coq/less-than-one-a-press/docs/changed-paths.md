@@ -509,3 +509,27 @@ The later finite-owner/pre-apply classification and its documentation changed:
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
 - `SSL-Coq/less-than-one-a-press/proofs/Area1PlatformExhaustiveness.v`
 - `SSL-Coq/less-than-one-a-press/proofs/CollisionMeshFacts.v`
+
+## Ink graphical-fallback follow-up
+
+The later three-view graphical-fallback audit and its documentation changed:
+
+- `SSL-Coq/README.md`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/docs/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/claim.md`
+- `SSL-Coq/less-than-one-a-press/docs/goal.md`
+- `SSL-Coq/less-than-one-a-press/docs/ink-fallback.md` (new)
+- `SSL-Coq/less-than-one-a-press/docs/ordinary-motion.md`
+- `SSL-Coq/less-than-one-a-press/docs/pyramid-top-pu.md`
+- `SSL-Coq/less-than-one-a-press/docs/route-exhaustiveness.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+- `SSL-Coq/less-than-one-a-press/proofs/ASTFacts.v`
+- `SSL-Coq/less-than-one-a-press/proofs/ClightFacts.v`
+- `SSL-Coq/less-than-one-a-press/proofs/CollisionMeshFacts.v`
+- `SSL-Coq/less-than-one-a-press/proofs/InkFallback.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`

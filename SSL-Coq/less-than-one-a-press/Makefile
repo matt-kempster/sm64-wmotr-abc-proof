@@ -279,11 +279,71 @@ check: proofs
 	  LessThanOneAPress.Proofs.OrdinaryMotion \
 	  wing_cap_rollout_arithmetic_countermodel
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  graphical_floor_fallback_source_shape_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  graphical_floor_fallback_source_shape_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  mario_entry_coordinate_sync_source_shape_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  mario_entry_coordinate_sync_source_shape_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CollisionMeshFacts \
+	  selected_ink_area1_vertex_receipts_exact_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CollisionMeshFacts \
+	  selected_ink_area1_vertex_receipts_exact_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CollisionMeshFacts \
+	  selected_ink_area1_triangle_words_exact_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CollisionMeshFacts \
+	  selected_ink_area1_triangle_words_exact_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkFallback \
+	  ink_geometry_kernel_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkFallback \
+	  ink_first_query_has_no_modeled_stock_dynamic_floor_candidate
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkFallback \
+	  arbitrary_ordinary_or_pu_state_only_prefix_needs_preexisting_split
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkFallback \
+	  dry_graphics_offset_cannot_supply_top_retry
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkFallback \
+	  prepared_landing_quicksand_raise_arithmetic_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkFallback \
+	  audited_graphics_y_gap_bound_is_below_ink_requirement
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkFallback \
+	  audited_area1_writer_execution_cannot_create_ink_ready
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkFallback \
+	  ink_local_conditional_control_flow_countermodel
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkFallback \
+	  ink_pu_conditional_control_flow_countermodel
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkFallback \
+	  ink_fallback_source_shape_kernel_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkFallback \
+	  ink_fallback_checked_boundary
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_verified_evidence_and_collection_reduction
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_ordinary_motion_evidence_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_ink_fallback_evidence_boundary
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  conditional_less_than_one_a_press_impossibility

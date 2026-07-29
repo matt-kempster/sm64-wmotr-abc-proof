@@ -78,28 +78,45 @@ directly inspect save RAM.  Preparing the payload only before the Area-1
 transition fails, so no controller-only retail predecessor has been
 established.  `PyramidTopPU.v` proves a same-sample contradiction and,
 conditional on Y preservation and the modeled floor bound, excludes the
-stock-yaw arithmetic bootstrap.  It also proves a two-sample coordinate/alias
-model for the different three-dimensional State-only writer a stale/reused
-slot might realize, plus a 385-unit upward lower bound from upper-warp overlap
-to an admissible numeric floor query at height 1281 or above when post-copy Y
-remains in signed-16 range; it does not construct such a slot or select a live
-dynamic surface.  Reachability and JP pointer retention or recapture through
-the delayed warp remain open.  The complete matrix and surface-loader bodies are
-now imported, and the concrete CompCert casts and partition cells are checked.
-The chosen zero-yaw home face is linked to the parsed generated mesh, and
-manually mirrored edge/transform arithmetic evaluates as expected.
-Authenticated retail US/JP disassembly plus Rocq fragment arithmetic verifies
-the same three concrete cast results.  What remains is generated-expression
-extraction, linked live-memory execution, surface ownership/list order, and
-actual `find_floor` selection.  A separate JP audit
-checks the free-list source shapes and 50 Area-2 macro records and proves a
-finite LIFO/count case split; it does not extract the exact reachable
-allocation trace or payload.
+stock-yaw arithmetic bootstrap.  Its older two-sample coordinate/alias model
+does not cover the source's graphical-position retry.
+
+`InkFallback.v` now models the three independently sampled coordinate views.
+Object collision can cache node `0x1E` from `MarioObject.oPos`; geometry first
+queries a different `MarioState.pos`; and, when that query returns null, the
+source copies `MarioObject.header.gfx.pos` into State and retries.  Conditional
+local and PU countermodels show that a top-side Graphics sample can coexist
+with the cached warp and later platform capture.  State-only ordinary,
+platform, or PU writers preserve Object and Graphics and cannot create their
+split from synchronized input.  A modeled top retry requires at least `385`
+units of Graphics-minus-Object Y separation.  The dry audited subcase is at
+most `45`, and the conservative generic audited writer relation uses `208`.
+The bounded pre-apply null theorem excludes only pre-existing platform origins;
+it does not exclude this post-query bootstrap.
+
+The remaining graphical-fallback boundary is named without assuming the
+answer: `InkFallbackSurfaceRefinementObligation` covers the real first-query
+miss and live-top retry selection,
+`Area1InkPrestateReachabilityObligation` covers construction of a clean no-A
+State/Object/Graphics prestate, and `Area1InkWriterCoverageObligation` covers
+all reachable position writers.  Reachability, collision-array retention,
+capture/unload timing, and JP pointer retention or recapture through the
+delayed warp remain open.  The complete matrix and surface-loader bodies are
+imported, the concrete CompCert casts and partition cells are checked, the
+chosen zero-yaw home face is linked to the parsed generated mesh, and manually
+mirrored edge/transform arithmetic evaluates as expected.  Authenticated
+retail US/JP disassembly plus Rocq fragment arithmetic verifies the same three
+concrete cast results.  Generated-expression extraction, linked live-memory
+execution, surface ownership/list order, and actual `find_floor` selection
+remain open.  A separate JP audit checks the free-list source shapes and 50
+Area-2 macro records and proves a finite LIFO/count case split; it does not
+extract the exact reachable allocation trace or payload.
 The US state model blocks retention after a successful spawn clear, but its
 Clight memory effect remains pending.  Warp-to-top, top-to-warp, and
 collision-preserving clone possibilities also remain.  Source-backed prehistory must
-preserve those cases rather than assume them away.  Accordingly, none of the
-six archived projects
+preserve those cases rather than assume them away.  No stock-reachable Ink
+prestate or retail target-bit counterexample has been found, and the ultimate
+theorem remains incomplete.  Accordingly, none of the six archived projects
 discharges the current
 whole-program Layer A refinement or any Layer B obligation.  See the
 [`archived-proof evidence map`](archived-proof-evidence.md) for the exact
@@ -107,7 +124,8 @@ project-by-project boundary.  The non-specialist explanation is
 [`../human-readable-proof.md`](../human-readable-proof.md), and the route
 coverage question is isolated in
 [`route-exhaustiveness.md`](route-exhaustiveness.md).  The focused newest
-results are documented in [`pyramid-top-pu.md`](pyramid-top-pu.md),
+results are documented in [`ink-fallback.md`](ink-fallback.md),
+[`pyramid-top-pu.md`](pyramid-top-pu.md),
 [`pyramid-top-surface-refinement.md`](pyramid-top-surface-refinement.md), and
 [`jp-slot-lifetime.md`](jp-slot-lifetime.md).  The retail instruction receipt
 is [`retail-find-floor-cast.md`](retail-find-floor-cast.md).

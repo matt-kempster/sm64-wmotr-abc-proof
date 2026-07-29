@@ -92,4 +92,5 @@ proofs/Area1PlatformExhaustiveness.v
 proofs/FirstCrossingWriterCoverage.v
 proofs/ModelGapAudit.v
 proofs/OrdinaryMotion.v
+proofs/InkFallback.v
 proofs/MainTheorem.v

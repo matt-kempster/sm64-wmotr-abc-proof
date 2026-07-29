@@ -26,8 +26,9 @@ The work did settle five narrower questions:
    unproved is the stock prehistory that retains the pointer at the upper
    warp.
 4. Area 1 contains genuine source-backed three-dimensional raw payloads, but
-   no stock route-relevant pre-apply schedule survives the new source-bounded
-   owner proof.  `[top, box]` is not unique: the generic schedule audit finds
+   no modeled stock pre-existing-platform origin survives the new
+   source-bounded owner proof at the warp sample.  `[top, box]` is not unique:
+   the generic schedule audit finds
    three angular-payload classes—pyramid-top yaw, breakable-box dirt triangles,
    and exclamation-box cartoon triangles—plus free-list-depth,
    `20`/`10`/`0` mist, zero-allocation, and FIFO-eviction variants.
@@ -40,7 +41,8 @@ The work did settle five narrower questions:
    and `0x20` the
    clean, non-credits inbound node set and make `0x1E` source-only to Area 2
    node `0x14`.  Therefore generic fragment controller/free-list lineage is no
-   longer a Layer-B obligation in this model.
+   longer a Layer-B obligation for that pre-apply-platform branch.  This does
+   not cover the null-platform graphical fallback described below.
 5. `FirstCrossingWriterCoverage.v` gives an admission-free abstract-event
    coverage theorem for an already-constructed, contracted, ordered,
    pre-target non-target crossing.  There are five position-writer labels:
@@ -71,28 +73,36 @@ guarded assignment source shape; it proves neither assignment exclusivity nor
 the complete floor/height update.
 
 The earlier same-sample result is not by itself a global stale-slot exclusion.
-The source update order can sample the old Mario object for warp collision and
-the displaced MarioState for geometry, floor snap, state/object copy, and final
-platform selection.  `phase_split_countermodel_exists` checks that two-sample
-coordinate shape, and `Area1PhaseSplit.v` supplies a real three-dimensional
-fragment capability.  The newer result closes the *stock Area-1 platform
-origin* branch at a different point: its finite owner model proves that the
-pre-apply pointer is null whenever the old object is at node `0x1E`, before the
-angular payload matters.
+The source update order can use three independent coordinates in one frame:
+the old `MarioObject.oPos` for cached warp collision, `MarioState.pos` for the
+wall and first floor queries, and `header.gfx.pos` if that first floor query is
+`NULL`.  The fallback copies Graphics into State and retries, after which the
+floor snap, State-to-Object copy, and final platform selection observe later
+samples.  `phase_split_countermodel_exists` checks the older two-sample
+coordinate shape, `Area1PhaseSplit.v` supplies a real three-dimensional
+State-writer capability, and `InkFallback.v` checks the conditional
+Object/State/Graphics shape.  The platform-origin result closes only the
+*pre-existing stock Area-1 platform* branch: its finite owner model proves
+that the pre-apply pointer is null whenever the old object is at node `0x1E`,
+before the angular payload matters.
 
 This conclusion is conditional on `Area1StockPreapplyProjectionSound`.
 No theorem yet derives that projection from linked Clight memory, constructs
 the live dynamic-surface lists, or proves the actual `find_floor` owner
-selection.  Consequently this is a source-bounded schedule exhaustiveness
-theorem, not a global stale-pointer exclusion or a retail route theorem.
+selection.  Consequently this is a source-bounded pre-apply-origin theorem,
+not a global schedule exhaustiveness, stale-pointer exclusion, or retail route
+theorem.
 
 Moving/loading the upper warp onto the top, moving the top down to the warp,
 collision-preserving cloning, and direct post-query pointer/object writers
 must still be proved to project into the excluded owner/origin relation or be
-handled separately.  Any successful construction outside the bounded relation
-must first explain a non-null pointer at the old-object node-`0x1E` sample.
-Node `0x1E` is delayed, so it must then retain or recapture the relevant pointer
-through the later object updates.
+handled separately.  A successful pre-apply-platform construction outside the
+bounded relation must explain a non-null pointer at the old-object node-`0x1E`
+sample.  Ink's distinct construction begins with a null pre-apply platform and
+instead requires a floorless State query, an independently displaced Graphics
+sample, and a top-owned graphical retry.  If either construction captures the
+top, node `0x1E` is delayed, so it must then retain or recapture the relevant
+pointer through the later object updates.
 
 The Clight nonvacuity obligation no longer claims that every handwritten clean
 state is source-reachable.  A retained JP pointer must be connected to its
@@ -121,8 +131,11 @@ y in [5222, 5734]
 The pyramid elevator is at `(0,4966,256)`.  Its collision has a floor at local
 Y `0` and closed side walls up to local Y `256`.  The imported cutscene action
 calls `launch_mario_until_land` with binary32 `0.0f`; that helper writes zero
-forward velocity before `perform_air_step`.  Ordinary entry therefore falls
-vertically into the cage.  JP retained-platform displacement is a distinct
+forward velocity before `perform_air_step`.  That syntax receipt alone does
+not prove a vertical descent, keep every intermediate query on the shaft line,
+or prove selection of the live elevator floor.  Those facts require linked
+execution of the initial action, wall/floor queries, and every earlier writer.
+JP retained-platform displacement is a distinct
 pre-landing writer and cannot be hidden inside “ordinary fall.”
 
 For the lower entrance, the second pole is based at `(0,3200,1331)`, has
@@ -406,15 +419,17 @@ The proved split is:
   `CollisionMeshFacts.v` separately checks the four generated fixed-owner mesh
   bounds used by the audit.  In particular,
   `stock_area1_upper_warp_preapply_platform_null` leaves no non-null stock
-  pre-apply platform at node `0x1E` in the source-bounded model.
+  pre-apply platform at node `0x1E` in the source-bounded model.  It says
+  nothing about capturing a platform later through the graphical retry.
 
 The allocator analysis does not privilege one `[top, box]` prefix.  Its
 parametric stock words contain top-yaw, dirt-triangle, and cartoon-triangle
 angular payloads, with depth, mist-count, zero-allocation, and FIFO variants.
 The exact fragment example remains useful proof that a three-dimensional
 primitive exists, but no controller lineage for that generic primitive needs
-to be solved for Layer B: all source-bounded stock pre-apply platform origins
-are null at the warp sample.
+to be solved for the pre-existing-platform branch: all source-bounded stock
+pre-apply platform origins are null at the warp sample.  The Ink branch has
+different reachability and surface-selection obligations.
 
 The project also verifies the exact concrete retail cast.  It leaves
 generated-expression extraction, linked live-memory execution, surface
@@ -422,6 +437,61 @@ ownership/list selection, proof that the finite owner/pre-apply relation covers
 the linked program, and `delayed_warp_top_lifetime_obligation` open.  It is
 neither a stock-game counterexample nor proof that all alternative upper routes
 are impossible.
+
+## Ink's graphical-fallback scheduling shape
+
+The source admits one additional scheduling shape that the earlier
+State/Object analysis did not represent:
+
+```text
+collision Object C  -- full-float overlap with node 0x1E
+physics State S     -- two wall queries, then first find_floor(S) = NULL
+graphical sample G  -- copied to State, retry find_floor(G) selects live top
+```
+
+The cached warp collision is processed after the fallback.  If its retry floor
+is the top, `ACT_DISAPPEARED` snaps State to that floor, copies the snap to
+Graphics, and the later State-to-Object copy and final platform query can
+capture the top owner.  Thus update order does **not** make this conditional
+primitive impossible.
+
+`InkFallback.v` proves two coordinate/control-flow countermodels: one with a
+local top-side `G`, and one with `G.x = 63488` aliasing the local top through
+the signed-16 floor query.  It also proves:
+
+- selected generated static faces and walls reject the concrete first-query
+  diagnostic `S = (-2200,768,-1024)`;
+- every owner in the fifteen-owner abstract dynamic-floor inventory is
+  rejected for that first query;
+- the retry requires at least 385 units of upward `G.y - C.y` separation;
+- the dry ordinary visual bound `<=45` cannot supply that retry;
+- the generic conservative audited Graphics-writer envelope `<=208` also
+  cannot supply the required `385`-unit retry gap; and
+- any prefix of arbitrary State-only ordinary, platform, or PU displacement
+  preserves C and G, so it cannot create their split from `C = G`.
+
+The `45` figure is the dry route-specific source-census bound.  The `208`
+figure deliberately over-approximates generic water-pitch and swimming-bob
+composition.  Both exclusions still require the open writer/action closure
+and entry-synchronization refinement; the arithmetic theorem does not prove
+that every retail step belongs to the audited writer relation.
+
+The last point explains what PU movement adds: signed-16 aliasing can make a
+pre-existing far-away graphical sample select the local top, but a State-only
+PU displacement does not itself write that graphical sample.
+
+No stock-reachable setup has been found.  The current source census finds no
+clean SSL Area-1 large Graphics writer; the known full-XYZ anchoring writer is
+used by Chuckya/King Bob-omb behavior, absent from stock SSL Area 1.  This is
+not yet a linked Clight action/spawn-closure theorem.  The real static and
+dynamic surface-list traversal is also unproved, so the selected face
+arithmetic is not advertised as an actual first `NULL` or top-owned retry.
+
+Accordingly, this scheduling shape is neither eliminated nor a retail
+counterexample.  `Area1InkPrestateReachabilityObligation`,
+`Area1InkWriterCoverageObligation`, and
+`InkFallbackSurfaceRefinementObligation` state the narrow remaining work.
+See [`ink-fallback.md`](ink-fallback.md).
 
 `JPSlotLifetime.v` further checks the JP load/spawn/allocation/unload/free-list
 anchors, the loop/literal/indexed-write syntax for an 80-word allocation clear,
@@ -539,6 +609,9 @@ question is whether linked retail memory always satisfies that finite
 projection.  Generated-expression extraction, linked live-surface memory, list
 selection, every construction not yet shown to project into the bounded
 relation, and the exact JP destination-area allocation trace remain open.
+This platform-origin result does not remove Ink's null-platform graphical
+retry; its three named reachability, writer-coverage, and surface-refinement
+obligations remain open.
 
 Alternatively, a stock-reachable constructor must be recorded with its exact
 clean initial RAM state, controller frames, object/global trace, and target

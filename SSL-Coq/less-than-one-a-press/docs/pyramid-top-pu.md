@@ -11,10 +11,20 @@ pre-displacement collision-timing observations are also correct.  Its broader
 suggestion that the update order rules out every State/Object phase split is
 too strong.
 
-The new result explores a different, broader question: could Mario's old object
-already overlap the warp while a separate three-dimensional, State-only writer
-moves the later geometry sample to the PU top?  Direct source inspection shows
-this one-frame phase split:
+The newer Ink fallback audit strengthens that correction.  Update order also
+permits a **three-view** conditional schedule: old `MarioObject.oPos` caches
+the warp, floorless `MarioState.pos` triggers the OOB branch, and an
+independently stale `header.gfx.pos` is copied into State for the retry.  If
+that graphical query selects a live top surface, the disappeared action and
+later State/Object copy can complete the snap.  Local and PU graphical
+coordinate countermodels are proved in `InkFallback.v`; no clean retail
+prestate constructing the necessary Object/Graphics split has been found.
+See [`ink-fallback.md`](ink-fallback.md).
+
+The earlier two-view phase-split result explores a different question: could
+Mario's old object already overlap the warp while a separate
+three-dimensional, State-only writer moves the later geometry sample to the PU
+top?  Direct source inspection shows this one-frame phase split:
 
 1. platform displacement writes `MarioState.pos`;
 2. object collision reads the still-old `gMarioObject->oPos`;
@@ -70,7 +80,8 @@ surface lists or prove which face the real `find_floor` traversal owns or
 selects.
 
 `Area1PlatformExhaustiveness.v` shows why none of those stock schedule variants
-solves the route bootstrap in its source-bounded model.  Its finite inventory
+supplies a pre-existing platform at the warp sample in its source-bounded
+model.  Its finite inventory
 has fifteen modeled dynamic-floor owners: one top, three Tox Boxes, two large breakables, five
 exclamation boxes, one cannon lid, and three message panels.  The proof imports
 four additional generated meshes—breakable-box, exclamation-box outline,
@@ -83,8 +94,11 @@ owner.  A completed final query at warp overlap must therefore return `None`.
 The bounded pre-apply relation then covers completed final queries, the US
 spawn clear, retained pointers at one of the three in-scope stock inbound
 Area-1 positions, and frozen carry.  `stock_area1_upper_warp_preapply_platform_null` proves that
-all four cases are null at node `0x1E`, so zero stock route-relevant schedules
-survive, regardless of the controller/free-list lineage.
+all four pre-apply platform-origin cases are null at node `0x1E`, regardless
+of the controller/free-list lineage.  This theorem does not exclude Ink's
+graphical fallback: that schedule starts with a null pre-apply platform and
+attempts to capture the top only after the first State floor query returns
+`NULL` and copies the independent Graphics sample into State for the retry.
 
 The older admission-free theorems
 `captured_top_epoch_cannot_bootstrap_upper_warp_collision` and
@@ -93,7 +107,9 @@ special cases.  The stronger result still does not prove that every relevant
 Clight memory state projects into the bounded owner/pre-apply relation.
 A separately moved warp, moved top, collision-preserving clone, direct
 post-query pointer/object writer, or other platform source must be connected to
-that relation or excluded separately.
+that relation or excluded separately.  A graphical-retry construction instead
+has to satisfy the separate Ink reachability, writer-coverage, and live-surface
+obligations; it need not provide a non-null pre-apply pointer.
 
 The second response's rendering detail names the wrong write.  The later
 `copy_mario_state_to_object` updates Mario's `oPos*`, not
@@ -138,10 +154,11 @@ the spawn code has already destroyed.
   `update_mario_geometry_inputs`:
   geometry and `floorHeight` are recomputed from the displaced MarioState
   before interaction dispatch.  If the first floor query fails, the fallback
-  copies the graphical position back into MarioState and retries, destroying
-  the proposed displaced sample.  A non-null first lookup preserving the
-  displaced sample is therefore indispensable; proving that the selected
-  surface is top-owned remains a separate obligation.
+  copies the graphical position back into MarioState and retries.  This
+  destroys a proposal that needs to preserve the displaced State sample, but
+  it enables Ink's different proposal when Graphics is already a top-side
+  sample.  Proving the first `NULL`, the top-owned retry, and reachability of
+  the required Object/Graphics split are separate obligations.
 - `src/game/interaction.c`, `interact_warp`:
   a normal warp selects `ACT_DISAPPEARED`.
 - `src/game/mario_actions_cutscene.c`, `act_disappeared`, and
@@ -321,8 +338,28 @@ must meet this quantitative bound.
 
 ## What remains open
 
-The concrete retail cast is now verified.  A complete route witness still
-needs:
+The concrete retail cast is now verified, but the route is not.
+
+The three-view fallback has three deliberately named boundaries:
+
+- `Area1InkPrestateReachabilityObligation` asks whether a clean no-A Area-1
+  execution can construct the required collision-Object, first-query-State,
+  and retry-Graphics samples;
+- `Area1InkWriterCoverageObligation` asks whether every reachable writer
+  refines to the audited State-only, synchronizing, or bounded-Graphics
+  relation; and
+- `InkFallbackSurfaceRefinementObligation` asks whether the first live query
+  really returns `NULL` and the graphical retry really selects a top-owned
+  floor.
+
+The dry ordinary source census bounds the relevant positive
+Graphics-minus-Object Y offset by `45`; the generic conservative audited
+writer envelope is `<=208`.  Both are below the `385` units required by the
+retry arithmetic.  Those numeric exclusions are conditional on proving the
+writer/action closure and initial synchronization represented by the
+obligations above; they are not a retail reachability theorem.
+
+A complete route witness still needs:
 
 1. generated-expression extraction and a linked Clight memory execution for
    the now-imported matrix and surface
@@ -331,7 +368,8 @@ needs:
 2. a linked small-step proof of `Area1StockPreapplyProjectionSound`, showing
    that every relevant retail Area-1 platform pointer and final query projects
    into the fifteen-owner/source-origin relation.  A generic fragment
-   controller/free-list lineage is no longer a separate Layer-B obligation;
+   controller/free-list lineage is no longer a separate obligation for this
+   pre-existing-platform branch;
 3. confirmation that wall/geometry processing preserves the candidate sample;
 4. a multi-frame trace retaining or recapturing a valid top/surface allocation
    epoch through the `ACT_DISAPPEARED` countdown and delayed object warp; and
@@ -354,7 +392,8 @@ awaits derivation from Clight, so one successful collision frame is
 insufficient.
 
 `Area1PlatformExhaustiveness.v` supersedes the generic fragment-lineage
-question at the source-bounded route boundary.  It retains the exact
+question at the source-bounded pre-existing-platform boundary.  It retains the
+exact
 three-dimensional fragment capability, but proves every stock pre-apply
 platform origin null at node `0x1E`; depth, mist, FIFO, and controller variants
 cannot change that conclusion.  The remaining refinement must execute the
@@ -377,9 +416,10 @@ Area-1 delayed warp and Area-2 source order is separately pending.
 
 The prior same-sample
 `UpperWarpTopCoincidenceMechanism` evidence in `FirstTargetRefinement.v` does
-not encode this phase split.  Future route evidence must carry separate
-collision-object, geometry-State, post-copy object, and final platform-query
-samples.
+not encode either phase split.  Future route evidence must distinguish at
+least the collision `MarioObject.oPos`, the first-query `MarioState.pos`, and
+the fallback `header.gfx.pos`, followed by the post-snap State/Graphics values,
+the later copied Object, and the final platform-query sample.
 
 Thus the current result is:
 
@@ -397,8 +437,16 @@ Thus the current result is:
   triangles, and cartoon triangles—with depth, mist, zero-allocation, and FIFO
   variants; `[top, box]` is only one example;
 - every source-bounded stock pre-apply platform origin is proved null at node
-  `0x1E`, so zero route-relevant schedules survive in that model and generic
-  controller/free-list lineage is not a remaining Layer-B obligation;
+  `0x1E`, so the pre-existing-platform schedule variants do not survive in
+  that model and generic controller/free-list lineage is not a remaining
+  obligation for that branch; this does not eliminate the null-platform Ink
+  graphical retry;
+- the dry `<=45` and generic conservative `<=208` Graphics-writer bounds are
+  arithmetically too small for the required `385`-unit retry gap, conditional
+  on the still-open writer-coverage and entry-synchronization refinements;
+- `Area1InkPrestateReachabilityObligation`,
+  `Area1InkWriterCoverageObligation`, and
+  `InkFallbackSurfaceRefinementObligation` remain open;
 - a linked Clight derivation that validates the finite owner/origin projection,
   live ownership, list selection, and collision loads remains open;
 - no stock-reachable counterexample has been found; and

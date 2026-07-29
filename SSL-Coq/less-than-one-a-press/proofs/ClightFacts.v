@@ -487,6 +487,105 @@ Theorem mario_state_object_phase_split_source_shape_jp :
     (fn_body JPD.f_update_mario_platform) = true.
 Proof. vm_compute. repeat split. Qed.
 
+(* The OOB branch in [update_mario_geometry_inputs] is deliberately checked
+   as an ordered call trace: two State wall queries, a first floor query, a
+   graphical-position copy into State, and a retry.  These are syntactic AST
+   receipts.  They do not prove that either floor query returns a particular
+   live surface or that the branch is reachable. *)
+Definition graphical_floor_fallback_source_shape_us_claim : Prop :=
+  contains_guarded_graphics_floor_retry_s
+    UMI._floor UMI._vec3f_copy UMI._find_floor UMI._gfx UMI._pos
+    UMI._floorHeight
+    (fn_body UMI.f_update_mario_geometry_inputs) = true /\
+  ident_subsequenceb
+    [UMI._f32_find_wall_collision;
+     UMI._f32_find_wall_collision;
+     UMI._find_floor;
+     UMI._vec3f_copy;
+     UMI._find_floor]
+    (direct_callees_s (fn_body UMI.f_update_mario_geometry_inputs)) = true /\
+  statement_mentions_ident_s UMI._marioObj
+    (fn_body UMI.f_update_mario_geometry_inputs) = true /\
+  statement_mentions_ident_s UMI._gfx
+    (fn_body UMI.f_update_mario_geometry_inputs) = true /\
+  statement_mentions_ident_s UMI._pos
+    (fn_body UMI.f_update_mario_geometry_inputs) = true.
+
+Theorem graphical_floor_fallback_source_shape_us :
+  graphical_floor_fallback_source_shape_us_claim.
+Proof.
+  unfold graphical_floor_fallback_source_shape_us_claim.
+  vm_compute. repeat split.
+Qed.
+
+Definition graphical_floor_fallback_source_shape_jp_claim : Prop :=
+  contains_guarded_graphics_floor_retry_s
+    JMI._floor JMI._vec3f_copy JMI._find_floor JMI._gfx JMI._pos
+    JMI._floorHeight
+    (fn_body JMI.f_update_mario_geometry_inputs) = true /\
+  ident_subsequenceb
+    [JMI._f32_find_wall_collision;
+     JMI._f32_find_wall_collision;
+     JMI._find_floor;
+     JMI._vec3f_copy;
+     JMI._find_floor]
+    (direct_callees_s (fn_body JMI.f_update_mario_geometry_inputs)) = true /\
+  statement_mentions_ident_s JMI._marioObj
+    (fn_body JMI.f_update_mario_geometry_inputs) = true /\
+  statement_mentions_ident_s JMI._gfx
+    (fn_body JMI.f_update_mario_geometry_inputs) = true /\
+  statement_mentions_ident_s JMI._pos
+    (fn_body JMI.f_update_mario_geometry_inputs) = true.
+
+Theorem graphical_floor_fallback_source_shape_jp :
+  graphical_floor_fallback_source_shape_jp_claim.
+Proof.
+  unfold graphical_floor_fallback_source_shape_jp_claim.
+  vm_compute. repeat split.
+Qed.
+
+(* Entry initialization has source-level writes that synchronize MarioState,
+   raw MarioObject coordinates, and graphical coordinates.  The recognizer
+   below checks the relevant calls and raw float slots, but remains
+   base/path-insensitive and is not a Clight memory-state equality proof. *)
+Definition mario_entry_coordinate_sync_source_shape_us_claim : Prop :=
+  ident_subsequenceb
+    [UMI._vec3s_to_vec3f; UMI._find_floor;
+     UMI._mario_reset_bodystate; UMI._update_mario_info_for_cam;
+     UMI._vec3f_copy]
+    (direct_callees_s (fn_body UMI.f_init_mario)) = true /\
+  assigns_array_slot_s UMI._asF32 6 (fn_body UMI.f_init_mario) = true /\
+  assigns_array_slot_s UMI._asF32 7 (fn_body UMI.f_init_mario) = true /\
+  assigns_array_slot_s UMI._asF32 8 (fn_body UMI.f_init_mario) = true /\
+  statement_mentions_ident_s UMI._gfx (fn_body UMI.f_init_mario) = true /\
+  statement_mentions_ident_s UMI._pos (fn_body UMI.f_init_mario) = true.
+
+Theorem mario_entry_coordinate_sync_source_shape_us :
+  mario_entry_coordinate_sync_source_shape_us_claim.
+Proof.
+  unfold mario_entry_coordinate_sync_source_shape_us_claim.
+  vm_compute. repeat split.
+Qed.
+
+Definition mario_entry_coordinate_sync_source_shape_jp_claim : Prop :=
+  ident_subsequenceb
+    [JMI._vec3s_to_vec3f; JMI._find_floor;
+     JMI._mario_reset_bodystate; JMI._update_mario_info_for_cam;
+     JMI._vec3f_copy]
+    (direct_callees_s (fn_body JMI.f_init_mario)) = true /\
+  assigns_array_slot_s JMI._asF32 6 (fn_body JMI.f_init_mario) = true /\
+  assigns_array_slot_s JMI._asF32 7 (fn_body JMI.f_init_mario) = true /\
+  assigns_array_slot_s JMI._asF32 8 (fn_body JMI.f_init_mario) = true /\
+  statement_mentions_ident_s JMI._gfx (fn_body JMI.f_init_mario) = true /\
+  statement_mentions_ident_s JMI._pos (fn_body JMI.f_init_mario) = true.
+
+Theorem mario_entry_coordinate_sync_source_shape_jp :
+  mario_entry_coordinate_sync_source_shape_jp_claim.
+Proof.
+  unfold mario_entry_coordinate_sync_source_shape_jp_claim.
+  vm_compute. repeat split.
+Qed.
+
 (* Direct inspection of the pinned C source gives the warp/top phase account:
    geometry is recomputed from displaced MarioState before interaction, a
    normal warp selects ACT_DISAPPEARED, that action snaps State Y to cached

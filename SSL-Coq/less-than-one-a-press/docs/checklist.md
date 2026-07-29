@@ -92,7 +92,16 @@
   Record that `[top, box]` is not a unique schedule: the generic source audit
   has top-yaw, dirt-triangle, and cartoon-triangle angular classes with
   depth/mist/zero-allocation/FIFO variants.  Generic controller/free-list
-  lineage is no longer a Layer-B obligation.
+  lineage is no longer needed to classify those bounded pre-apply platform
+  origins.  The null result does not discharge a later graphical-fallback
+  bootstrap.
+- [x] Check the US/JP graphical floor-fallback and entry-coordinate-sync source
+  shapes.  Prove conditional local and PU three-view countermodels, the
+  `385`-unit minimum Graphics-minus-Object Y separation, preservation of Object
+  and Graphics by arbitrary State-only ordinary/platform/PU prefixes, the dry
+  `45`-unit exclusion, and the generic audited `208`-unit writer exclusion.
+  Keep live first-query/retry selection, retail writer coverage, clean prestate
+  reachability, and delayed-warp continuation open.
 - [x] Prove that aligned newly set Act 3 and Act 6 bits reach the matching
   target-region route cuts, and prove
   `evidence_bearing_route_cut_blocks_new_target_bits` under the explicit
@@ -155,15 +164,25 @@
   action closure, the upper no-spin entry descent and intended-floor landing,
   every intermediate floor/wall/ceiling query, and collision observation
   alignment.  The current jump-kick/rollout arithmetic and normalized Z
-  soft-bonk subcase do not discharge this item.
+  soft-bonk subcase do not discharge this item.  For the Ink branch, prove
+  `Area1InkWriterCoverageObligation`, including the route-specific dry
+  Graphics-minus-Object bound of at most `45` or the conservative audited bound
+  of at most `208` for every reachable writer.
+- [ ] Prove or refute the three narrow Ink obligations:
+  `InkFallbackSurfaceRefinementObligation` for the first-query null result and
+  live-top retry selection, `Area1InkPrestateReachabilityObligation` for a clean
+  no-A State/Object/Graphics prestate, and
+  `Area1InkWriterCoverageObligation` for complete reachable writer/action/spawn
+  closure.  A null pre-apply platform excludes only a pre-existing platform
+  origin; it must not be used to discard graphical rescue.
 - [ ] Prove which JP raw-platform cases are reachable and bound every reachable
   spawning displacement.  Execute the imported matrix/surface helpers over live
   Clight memory, extract the mirrored expressions from generated Clight, and
   prove actual surface ownership/list selection.  Prove
   `Area1StockPreapplyProjectionSound`, connecting every relevant linked Area-1
-  memory state to the finite owner/pre-apply relation; do not reopen a generic
-  fragment controller-lineage search already made irrelevant by the node-`0x1E`
-  null result.  Extract the exact JP destination-area
+  memory state to the finite owner/pre-apply relation, while keeping that
+  theorem scoped to pre-existing platform origins rather than treating it as a
+  graphical-fallback exclusion.  Extract the exact JP destination-area
   allocation/free trace, identify the first destination-area apply, and tie its
   concrete pointer/payload to the abstract slot/epoch.  Prove or refute
   JP delayed-warp pointer retention/recapture, the US spawn-clear Clight effect,

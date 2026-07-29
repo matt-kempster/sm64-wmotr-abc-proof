@@ -236,6 +236,42 @@ writer label inverts to a `MotionPhysicsFrame`.  The input lemma is list-level
 only; connecting that sample to the controller memory read by the Clight
 segment remains open.
 
+## Ink fallback and PU movement
+
+The pre-action graphical fallback is not harmless bookkeeping.  Object
+collision can cache the upper warp from old `MarioObject.oPos`; a later
+floorless `MarioState.pos` query can copy `header.gfx.pos` into State and
+retry.  If that independently stale graphical sample selects the live pyramid
+top, the disappeared action and later State/Object copy can complete a
+conditional warp/top snap.
+
+`InkFallback.v` now proves the relevant three-view invariant.  Any finite
+prefix of writers that changes only MarioState preserves both the collision
+Object and fallback Graphics samples.  Therefore arbitrary ordinary wall
+motion, platform displacement, or PU-sized State displacement cannot create
+the required Object/Graphics split from a synchronized sample.  PU wrapping
+can affect the retry's floor lookup, but it does not itself write the
+full-float Object or Graphics coordinates.
+
+The retry requires at least 385 units of upward
+`GraphicsY - ObjectY` separation.  The dry ordinary source census finds a
+largest relevant positive visual offset of 45, and the admission-free theorem
+`dry_graphics_offset_cannot_supply_top_retry` closes that arithmetic subcase.
+A conservative cross-action type envelope is below 208 because water pitch
+and swimming bob can compose across a floor-hit branch; the upper warp is dry,
+so that is not the route-specific limit.  A prepared `ACT_LONG_JUMP_LAND`
+state with pre-frame `actionTimer = 4` is a precision exception to any blanket
+claim that quicksand always lowers Graphics.  The checked binary32 calculation
+makes the depth `-2.6500000953674316f`, so the final subtraction raises
+Graphics by `2.6500000953674316f`.  It still stays below 45, requires a prior
+A-edge setup, and does not apply to the upper-warp floor.
+
+This does not yet prove retail ordinary-motion exclusion.  It still needs
+entry-time Object/Graphics equality, complete reachable Graphics-writer and
+spawn closure, and live first-query/retry surface execution.  No clean
+stock-reachable prestate or target-bit counterexample was found.  See
+[`ink-fallback.md`](ink-fallback.md).
+
 ## Current conclusion
 
 The following statements are now justified:
