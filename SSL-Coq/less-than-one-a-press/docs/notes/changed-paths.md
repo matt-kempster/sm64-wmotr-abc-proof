@@ -573,3 +573,25 @@ References were updated in:
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
 - `SSL-Coq/less-than-one-a-press/notes/transcript-candidates.md`
 - `SSL-Coq/less-than-one-a-press/proofs/PyramidTopSurface.v`
+
+## Ink obligation and OOB-death audit
+
+The five-obligation specification audit, exact Y-gap table,
+interaction/action displacement census, strengthened generated-AST receipts,
+retry-null fatal-warp boundary, and documentation status corrections changed:
+
+- `SSL-Coq/README.md`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/claim.md`
+- `SSL-Coq/less-than-one-a-press/docs/goal.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/ink-fallback.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/ordinary-motion.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/pyramid-top-pu.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/route-exhaustiveness.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+- `SSL-Coq/less-than-one-a-press/proofs/ASTFacts.v`
+- `SSL-Coq/less-than-one-a-press/proofs/ClightFacts.v`
+- `SSL-Coq/less-than-one-a-press/proofs/InkFallback.v`

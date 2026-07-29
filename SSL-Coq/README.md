@@ -100,8 +100,9 @@ general theorem about arbitrary out-of-range conversions.
 cache node `0x1E` from old `MarioObject.oPos`; a floorless MarioState query can
 then copy `header.gfx.pos` into State and retry.  Rocq proves conditional local
 and PU top-side pipeline-coordinate witnesses, exact generated null/copy/retry
-syntax/dataflow and nearby mesh receipts, a 385-unit necessary Graphics/Object
-Y gap, and preservation of Object/Graphics by arbitrary State-only
+syntax/dataflow and nearby mesh receipts, a signed-range generic 385-unit
+necessary Graphics/Object Y gap, an exact-candidate `973`-unit gap, and
+preservation of Object/Graphics by arbitrary State-only
 ordinary/platform/PU prefixes.  The handwritten pipeline includes the
 projected Graphics-position quicksand sink and proves its modeled value cannot
 change the Object coordinate copied from State.  The source-shape kernel also
@@ -113,10 +114,15 @@ membership, and retained surface identity remain unproved.  The two closed
 coordinate witnesses use the zero-yaw home top and floor Y `1791`.  They do
 not instantiate the explosion/inactive-slot branch: that branch must recover
 the later translated/rotated pose, transformed surface, and selected floor
-height.  The project also does not prove the first query returns `NULL`,
-throw-matrix non-aliasing, post-copy object/owner preservation, the sink
- depth, or that a clean retail prestate reaches the required split.  No
- stock-reachable US/JP retail trace with a newly set target bit was found.
+height.  The old sink statement was false; its repaired first-return,
+modular-cell form is open.  The current post-copy lifecycle statement is
+unsafe or vacuous and must be replaced.  The retry-null fatal call and abstract
+latch model also show why that schedule needs a non-null retry, conditional on
+still-open linked initial-state and scheduler-aware block-or-reset premises.
+The project does
+not prove the first query returns `NULL`, a loaded top is selected, or a clean
+retail prestate reaches the required split.  No stock-reachable US/JP retail
+trace with a newly set target bit was found.
 
 `TranscriptRouteModel.v` now formalizes the two-gate contract suggested by the
 supplied source text: the contract requires a modeled upper route to leave the
@@ -216,7 +222,8 @@ Proving that every linked Clight memory state projects into this bounded
 owner/origin relation—including derivation of the world-space envelopes and
 loaded-surface ownership/list selection—remains open, as do the fallback's
 writer/action closure, first-query `NULL` result, top-owned retry selection,
-sink-memory refinement, and post-copy object/surface lifecycle.
+repaired sink-memory refinement, and replacement post-copy object/surface
+lifecycle interface.
 
 The current endpoint certificate and handwritten clean-state model are too
 permissive to establish route exhaustiveness: they admit arbitrary motion, and
@@ -264,7 +271,14 @@ and [route-exhaustiveness analysis](less-than-one-a-press/docs/notes/route-exhau
 and [pyramid-top PU audit](less-than-one-a-press/docs/notes/pyramid-top-pu.md) for
 the exact boundary.  The
 [Ink graphical-fallback audit](less-than-one-a-press/docs/notes/ink-fallback.md)
-records the newest conditional mechanism and writer boundary.  The narrower
+records the newest conditional mechanism and writer boundary.  Its latest
+audit proves that the exact proposed prestate needs at least a `973`-unit
+Graphics/Object Y split, checks retry-null fatal-warp priority at the
+source/abstract-latch boundary, repairs a refuted sink specification, and
+identifies the current lifecycle statement as unsafe or vacuous rather than
+proved.  The linked initial-latch and scheduler-aware block-or-reset proof
+remains open.  No
+clean retail counterexample was found.  The narrower
 [surface-refinement](less-than-one-a-press/docs/notes/pyramid-top-surface-refinement.md)
 and [JP slot-lifetime](less-than-one-a-press/docs/notes/jp-slot-lifetime.md) notes
 record the newest checked kernels; the

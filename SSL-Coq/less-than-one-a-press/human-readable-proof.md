@@ -32,16 +32,24 @@ engineering but does not know *Super Mario 64*.
 > coordinates into MarioState in the same update.
 >
 > `InkFallback.v` proves local and Parallel-Universe conditional pipeline
-> coordinate witnesses for that schedule.  It checks nearby generated Area-1 mesh
-> receipts at State `(-2200,768,-1024)`, excludes all fifteen modeled stock
-> dynamic owners for that first query, and proves that the graphical retry
-> needs at least 385 units of upward Graphics/Object separation.  It also
+> coordinate witnesses for that schedule.  It checks nearby generated Area-1
+> mesh receipts at State `(-2200,768,-1024)`, excludes all fifteen modeled
+> stock dynamic owners for that first query, and proves that a generic
+> top-height retry with Graphics Y in signed-16 range needs at least 385 units
+> of upward Graphics/Object
+> separation.  Either exact proposed prestate needs at least `973` units.  It
+> also
 > proves that any sequence of State-only ordinary, platform, or PU writes
 > preserves Object and Graphics, so such writes cannot create their split from
 > synchronized input.  The disappeared-action snap is followed by an
 > unconditional quicksand sink; the projected Graphics-position write cannot
 > change the Object coordinate later copied from State, while the conditional
-> `gfx.throwMatrix` write still needs a memory-provenance proof.  After the
+> `gfx.throwMatrix` write still needs a memory-provenance proof.  The first
+> sink specification was false: an unrestricted execution could pass the
+> first return and call the function again, and a linear interval check missed
+> a concrete 32-bit pointer-wrap alias.  The repaired statement stops at the
+> first matching return and compares the individual modular memory cells, but
+> remains unproved.  After the
 > copy, later object lists and deactivated-object unloading occur before the
 > final platform query.  That order admits a separate explosion-frame
 > inactive-slot candidate, but does not yet prove free-list membership or
@@ -53,12 +61,33 @@ engineering but does not know *Super Mario 64*.
 > required gap, but neither covers retail until reachable writer/action state
 > closure is proved.
 >
+> The retry has a decisive branch.  If the second floor query is also `NULL`,
+> `update_mario_geometry_inputs` requests the death warp before cached object
+> interactions are processed.  The interaction selects a two-count
+> `ACT_DISAPPEARED`; it requests the object warp later.  The delayed-warp state
+> is a first-writer latch, so an uncleared fatal request blocks that later
+> request.  At zero lives, death is rewritten to game-over, which is still
+> fatal and nonzero.  Generated US/JP AST checks establish the exact guarded
+> call shape, guarded-write latch shape, and lexical call order; a closed
+> transition theorem proves the abstract first-writer consequence.
+> This excludes the both-queries-null schedule at the source/transition
+> boundary, not yet for linked retail Clight.  The missing refinement must show
+> that the latch starts empty and then either stays occupied until the later
+> action call or is cleared only in reset/initialization scheduling that
+> destroys the continuation before another Mario update.
+> The surviving Ink case specifically requires a non-null retry floor, with
+> selection of a live top-owned floor still unproved.
+>
 > This is not a reachable game trace.  The project has not proved that a clean
 > execution creates the Object/State/Graphics prestate, that the first live
 > floor query returns `NULL`, that the retry selects a loaded top-owned
 > surface, or that the post-copy lifecycle preserves the needed Object and
-> owner epoch.  No stock-reachable US/JP retail trace with a newly set target
-> bit was found.
+> owner epoch.  The current lifecycle proposition is not a sound proof target:
+> its program link and memory projection are underconstrained, the imported
+> program omits `behavior_script.c`, external effects and pointer-to-slot/epoch
+> linkage are missing, and arbitrary binary32 samples include NaNs.  It must be
+> replaced, not merely discharged.  No stock-reachable US/JP retail trace with
+> a newly set target bit was found.
 > The finite null-platform theorem applies only to pre-existing platform
 > origins; it does not eliminate a graphical retry that captures the top
 > afterward.  The focused audit is
@@ -535,32 +564,107 @@ first-query State     = (-2200,  768, -1024)
 fallback Graphics     = (-2048, 1791, -1024)
 ```
 
+The relevant Object-to-Graphics Y gaps are:
+
+| Case | Object Y | Graphics Y | Gap | Meaning |
+| --- | ---: | ---: | ---: | --- |
+| Synchronized entry | same | same | `0` | Intended starting relationship; linked-memory proof pending |
+| Dry audited envelope | arbitrary | arbitrary | at most `45` | Route-specific source-audit target |
+| Conservative modeled envelope | arbitrary | arbitrary | at most `208` | Preserved by covered abstract writers; retail coverage pending |
+| Signed-range generic top-query threshold | at most `818` | at least `1203` | at least `385` | Necessary for a floor at least `1281`, using the 78-unit query allowance |
+| Exact Ink prestate schema, worst warp-overlap Y | at most `818` | `1791` | at least `973` | Admission-free arithmetic theorem |
+| Displayed witness above | `768` | `1791` | exactly `1023` | Coordinate witness only, not a reachable trace |
+
+The interaction/action side has a separate displacement table:
+
+| Producer | Immediate coordinate effect | Amount |
+| --- | --- | --- |
+| Successful Koopa-shell interaction | Manual source audit finds no direct Mario position write; it changes action/object references | `0` immediate coordinate write under well-formed non-aliasing state; linked call-segment proof pending |
+| Failed Koopa-shell contact | Pushes State X/Z toward a radial target before wall correction | Stock scale-1 target radius `50 + 37 + 2 = 89`; not a proved total bound |
+| Riding-shell air renderer | Graphics Y in the source audit | `+42` source operand/model offset |
+| Riding-shell ground renderer | Graphics Y in the source audit | `+45` source operand/model offset |
+| Object-top bounce | State Y becomes `objectY + hitboxHeight` | Snap is geometry-dependent; callers set Y velocity `30` or `80` |
+| Generic object push | State X/Z radial correction plus wall resolution | `objectRadius + 37 + padding`; no total bound without live walls |
+| Bully response | State X/Z from the two-body solver | No fixed global bound without radii/speed/state closure |
+| Water pitch plus bob | Graphics Y only | Conservative modeled envelope `<=208`, not linked retail coverage |
+| Quicksand sink | Graphics Y, optionally throw-matrix Y | `-depth`; prepared negative-depth example raises a zero base by about `2.65` |
+
+The shell `42`/`45` constants now have US/JP generated-AST occurrence receipts
+and a Rocq arithmetic bound.  The field/formula meaning comes from manual
+source inspection; a statement-level Clight proof and arbitrary-input
+binary32-delta result remain open.  The `89` shell figure is the pre-wall
+radial target, not permission to claim that every shell frame moves Mario by
+at most 89.
+The complete source formulas and caveats are in
+[`docs/notes/ink-fallback.md`](docs/notes/ink-fallback.md#interaction-and-action-displacement-census).
+
 The PU variant uses Graphics X `63488`, which the floor query narrows to
 `-2048`.  Object collision can cache the warp from the first sample.  The wall
 and first floor queries use the second sample.  If that first floor query
 returns `NULL`, `update_mario_geometry_inputs` copies Graphics into State and
 retries.  A loaded top-owned retry floor can then feed `ACT_DISAPPEARED`; State
-is later copied to raw Object.  Remaining object lists and the deactivated
-unload pass run before the final platform query.  The checked syntax therefore
-admits an explosion-frame candidate in which the loop is followed by the
-collision loader and the final query encounters a surface whose owner slot
-has become inactive.  The open lifecycle record brackets the unload-function
-call and asks for the retained surface pointer plus an active or inactive
-same-epoch owner.  It does not encode that the top itself was
-scanned/deallocated; free-list membership is a separate open fact.
+is later copied to raw Object.  If the retry is also `NULL`, however,
+`update_mario_geometry_inputs` requests `WARP_OP_DEATH` before it processes
+the cached object interactions.  The interaction selects `ACT_DISAPPEARED`
+with a two-count argument and requests the object warp later.
+`level_trigger_warp` only writes an empty delayed-warp slot; at zero lives it
+rewrites death to the still-nonzero game-over operation.  In the small model,
+an uncleared fatal request prevents the later node-`0x1E` request from becoming
+pending.  A retail proof must also cover the other timing branch: if a clear
+happens first, it must occur in reset/initialization scheduling that destroys
+the `ACT_DISAPPEARED` continuation before another Mario update can issue a
+useful request.  Thus a surviving schedule must obtain a non-null retry floor
+once that linked scheduler refinement is proved.
+
+The detailed source audit found no retail timing escape from that latch.  The
+retry-null frame still processes the cached interaction and sets
+`ACT_DISAPPEARED`, but `execute_mario_action` returns on the null floor before
+dispatching it.  Later usable-floor frames can decrement its two-count
+argument and eventually request the object warp; meanwhile the normal
+delayed-warp countdown does not directly clear the fatal operation.  Relevant
+clear sites have two orderings: warp-arrival/credits paths reset before clear,
+whereas `init_level` and `lvl_init_from_save_file` clear before reset but admit
+no useful Mario update in between under the intended scheduler.  What prevents
+this source argument from already being a linked theorem is concrete:
+`behavior_script.c` is absent from the generated project, leaving
+`cur_obj_update` external, and the proof still needs that scheduler fact,
+shared-global/frame-condition, and compiled-`find_floor` refinements.
+
+Remaining object lists and the deactivated unload pass run before the final
+platform query.  The checked syntax therefore admits an explosion-frame
+candidate in which the loop is followed by the collision loader and the final
+query encounters a surface whose owner slot has become inactive.  The existing
+lifecycle record tries to describe the retained surface pointer plus an active
+or inactive same-epoch owner, but its current linking, projection, external
+effects, and float premises are not strong enough to make it a valid proof
+target.  It also does not encode that the top itself was scanned/deallocated;
+free-list membership is a separate open fact.
 `ink_local_conditional_pipeline_coordinate_witness` and
 `ink_pu_conditional_pipeline_coordinate_witness` evaluate the handwritten
 pipeline's coordinate arithmetic for these local and PU variants.  The
 generated-AST receipt separately checks the null-test/copy/retry syntax; a
 Clight execution of those outcomes remains open.
 
-The two memory obligations are now narrow execution statements rather than
-opaque predicates.  The sink obligation quantifies over a complete Clight
-call/return segment with concrete State, Object, Graphics, depth, and optional
-throw-matrix loads.  The lifecycle obligation quantifies over exact
-copy/unload/query call and return cuts, including the internal `find_floor`
-return and concrete surface/owner pointers.  Neither obligation is proved or
-given a witness.
+The five-obligation audit produced three different outcomes:
+
+1. The surface, prestate, and writer propositions are predicate-sensitive
+   schemas.  Rocq exhibits interpretations making each accept or reject.  They
+   still need concrete linked-run relations before they can decide retail
+   reachability.
+2. The old sink proposition was refuted.  Its unrestricted `Smallstep.star`
+   could continue past one return into a second invocation, and its aggregate
+   address ranges admitted a concrete modular pointer alias.  The repaired
+   obligation uses a first-return relation and pairwise-disjoint four-byte
+   cells.  It is a plausible concrete memory obligation, but remains unproved.
+3. The lifecycle proposition can be false under a hostile projection/link or
+   vacuous under the current import, where `cur_obj_update` remains external
+   because `behavior_script.c` is absent.  It also lacks external-call frame
+   conditions, pointer-to-pool-slot/epoch linkage, and finite-float premises.
+   It must be replaced by an exact-link, clean-run interface.  The checked NaN
+   counterexample shows why equal Coq-level binary32 values alone do not imply
+   the retail `< 4.0f` platform-tolerance comparison.
+
+These are specification counterexamples, not gameplay counterexamples.
 
 The two closed coordinate witnesses use the zero-yaw home top and floor Y
 `1791`.  They are not explosion-pose witnesses.  A handwritten minimum-pose
@@ -568,8 +672,8 @@ recurrence starts at the home Y and yields the conservative center-Y target
 `1871` by timer `150`.  It is not an exact execution of the timer-59
 smooth-rise state, nor a proved binary32 lower bound for the generated Clight.
 The explosion/inactive-slot branch must therefore recover the actual later
-translated/rotated transform and selected floor height in the generalized
-lifecycle segment.
+translated/rotated transform and selected floor height through the replacement
+linked lifecycle interface.
 
 This answers the chatbot disagreement precisely.  The second chatbot is right
 that object collision does not wrap, the stock warp and top are vertically
@@ -591,7 +695,8 @@ payload using CompCert binary32 operations: it changes all three MarioState
 coordinates, taking the selected old sample `(-2048,768,-1024)` to
 approximately
 `(-2350.8427734375,1878.6683349609375,-714.5823974609375)`.  The roughly
-`1110.6683`-unit Y rise exceeds the 385-unit necessary lower bound, and the
+`1110.6683`-unit Y rise exceeds the signed-range 385-unit necessary lower
+bound, and the
 three exact binary32 words are `[3306351996,1156240739,3291653446]`.  The
 signed-short collision query is `(-2350,1878,-714)`.  For an
 attacked breakable box, an object count above 210 suppresses the mist
@@ -725,9 +830,12 @@ For the graphical-fallback shape, it also has not proved entry-time
 Object/Graphics equality in live memory, complete reachable graphics-writer
 and action/spawn closure, the first-query `NULL`, the loaded-top retry,
 sink-memory provenance, or the post-copy active/inactive-same-epoch owner
-lifecycle.  The current lifecycle obligation brackets the unload-function call
-but does not prove that the top itself is scanned/deallocated or placed on the
-free list.
+lifecycle.  The old sink statement is refuted and its repaired first-return
+form is open.  The lifecycle statement itself must be replaced with an exact
+link, certified projection, anchored clean run, constrained external effects,
+and a pointer-to-slot/epoch relation before any unload or final-owner result
+can be claimed.  It does not prove that the top is scanned/deallocated or
+placed on the free list.
 Moving/loading the warp onto the top, moving the top down to the warp,
 collision-preserving cloning, or a direct post-query pointer/object writer must
 either be shown to project into the excluded cases or handled separately.
@@ -987,16 +1095,27 @@ in total.  Direct inspection of that pinned C source shows:
   run before the final platform query.  The generated source admits a distinct
   explosion-frame inactive-owner candidate, but the home-pose Y `1791`
   witnesses do not instantiate its translated/rotated surface.  Free-list
-  membership, sink pointer-provenance, and post-copy lifecycle refinement
-  remain open;
+  membership and the repaired first-return sink refinement remain open; the
+  current post-copy lifecycle interface is invalid and must be replaced;
 - the geometry refresh has a guarded first-floor-null branch that copies
   `MarioObject.header.gfx.pos` into MarioState and retries `find_floor`, which
   creates the three-view scheduling shape used by `InkFallback.v`;
+- if that retry is also null, the geometry refresh calls
+  `level_trigger_warp(m, WARP_OP_DEATH)` before interaction processing.  The
+  generated US/JP recognizers check this guarded call, the
+  `sDelayedWarpOp == WARP_OP_NONE` first-writer latch, and the call order.
+  `ink_retry_null_fatal_latch_blocks_later_upper_request` proves the corresponding
+  finite fatal-latch transition.  This excludes the both-queries-null
+  upper-warp schedule at the checked source/transition boundary; proving the
+  initial-empty and scheduler-aware block-or-reset disjunction in a linked
+  retail run remains open;
 - arbitrary ordinary, platform, or PU-sized **State-only** writes preserve the
   collision Object and fallback Graphics samples.  The source audit identifies
   `45` as the dry route-specific visual-offset target, while the deliberately
   conservative modeled water/bob writer relation uses `208`; both are below
-  the required `385`, but applying either to every reachable writer is open.
+  the signed-range generic required `385`.  The two exact proposed prestates
+  require
+  `973`; applying any bound to every reachable retail writer is open.
   Complete retail writer/action/spawn closure remains open.  In particular, a
   prepared `ACT_LONG_JUMP_LAND` state with pre-frame timer `4` can produce a
   negative quicksand-depth operand of about `-2.65`; subtracting it can raise
@@ -1097,17 +1216,21 @@ The ultimate theorem needs all of the following:
    coordinate-alias/out-of-bounds ordinary-physics endpoints, and
    lifecycle/entry displacement.  Separately eliminate the seventh
    same-position floor/platform support-selection case.  None of these global
-   exclusions is proved.  For Ink's graphical fallback, discharge
-   `Area1InkWriterCoverageObligation` and
-   `Area1InkPrestateReachabilityObligation`: prove entry-time Object/Graphics
-   synchronization plus complete reachable writer/action/spawn closure, or
-   construct the exact clean no-A three-view prestate.  Also discharge
-   `InkFallbackSinkMemoryRefinementObligation` and
-   `InkFallbackPostCopyLifecycleRefinementObligation` for throw-matrix
-   provenance, later object writers, preservation across the explicit
-   unload-function call, retained surface identity, and the final
-   active/inactive-same-epoch owner.  Separately prove that the top itself is
-   scanned/deallocated and any claimed free-list membership.
+   exclusions is proved.  For Ink's graphical fallback, replace the
+   predicate-sensitive surface, writer, and prestate schemas with concrete
+   linked-run relations.  The surface replacement must execute the real first
+   `find_floor` query and graphical retry over the live static and dynamic
+   lists.  Then prove entry-time Object/Graphics synchronization plus complete
+   reachable writer/action/spawn closure, or construct the exact clean no-A
+   three-view prestate.  Prove the repaired first-return,
+   modular-cell-disjoint `InkFallbackSinkMemoryRefinementObligation`.  Replace
+   `InkFallbackPostCopyLifecycleRefinementObligation` with an exact linked
+   program that imports `behavior_script.c`, an anchored clean run, a certified
+   memory projection, external-call frame conditions, finite transformed
+   surface samples, and concrete pointer-to-slot/epoch linkage.  Only then
+   prove later object writers, unload preservation, retained surface identity,
+   and the final active/inactive-same-epoch owner.  Separately prove that the
+   top itself is scanned/deallocated and any claimed free-list membership.
 7. For JP platform displacement, derive every admissible raw pointer from an
    actual predecessor, including inactive/reused slot epochs and the
    upper-warp/spinning-top coincidence families.  The source-level LIFO shape,
@@ -1120,9 +1243,8 @@ The ultimate theorem needs all of the following:
    live surface construction/list selection, alternative constructions outside
    the bounded relation, the exact JP destination-area allocation state, and
    delayed-warp retention/recapture.  The concrete candidate cast is verified
-   for both retail versions.  `InkFallbackSurfaceRefinementObligation`
-   separately requires executing the real first query and graphical retry over
-   the live static/dynamic surface lists.
+   for both retail versions, but it does not discharge the replacement surface
+   interface described in item 6.
 8. Validate the claimed no-A downstream paths from each successful bypass to
    the Act 3 region and all five Act 6 triggers.
 
@@ -1156,11 +1278,13 @@ The most useful entry points are:
   coordinate countermodel, and delayed-lifetime obligation;
 - `proofs/InkFallback.v`: exact nearby Area-1 mesh arithmetic, local and PU
   three-view conditional pipeline coordinate witnesses, State-only
-  preservation, the `385`-unit necessary gap, a conditional theorem for the
-  dry audit target `45`, a theorem for the modeled `208` writer relation, and
-  five explicitly open retail-refinement obligations: surface selection,
-  clean-prestate reachability, writer coverage, sink-memory/throw-matrix
-  effects, and the post-copy object/surface lifecycle;
+  preservation, the signed-range generic `385`-unit necessary gap, the exact
+  proposed
+  prestate's `973`-unit gap, conditional theorems for the dry audit target `45`
+  and modeled `208` writer relation, the retry-null death-latch transition,
+  schema-sensitivity witnesses, the modular pointer-wrap counterexample, the
+  repaired first-return sink obligation, and the deliberately retained but
+  invalid lifecycle interface that must be replaced;
 - `proofs/Area1PhaseSplit.v`: checked triangle-fragment payload fields, exact
   binary32 three-dimensional displacement, and the ordinary captured-top epoch
   bootstrap exclusion for node `0x1E`;

@@ -1,5 +1,5 @@
 From Coq Require Import Bool List PArith.BinPos ZArith.
-From compcert Require Import AST Clight Ctypes Floats Integers.
+From compcert Require Import AST Clight Cop Ctypes Floats Integers.
 
 Import ListNotations.
 
@@ -390,6 +390,164 @@ Fixpoint contains_guarded_graphics_floor_retry_s
       contains_guarded_graphics_floor_retry_s
         floor_field mario_object_field header_field copy_callee retry_callee
         graphics_field position_field floor_height_field body
+  | _ => false
+  end.
+
+(** Recognize a generated [m->floor] non-null test whose false branch is the
+    exact direct [level_trigger_warp(m, WARP_OP_DEATH)] call.  In the pinned
+    function, source inspection and the separate graphical-retry receipt
+    identify this as the final post-retry test; this recognizer deliberately
+    checks the local guard/call relationship rather than uniqueness or global
+    order. *)
+Definition is_nonnull_test_of_temp
+    (guard_temp : ident) (condition : expr) : bool :=
+  match condition with
+  | Ebinop Cop.One
+      (Etempvar found_temp _)
+      (Ecast (Econst_int zero _) _) _ =>
+      Pos.eqb found_temp guard_temp && Int.eq zero Int.zero
+  | Ebinop Cop.One
+      (Ecast (Econst_int zero _) _)
+      (Etempvar found_temp _) _ =>
+      Pos.eqb found_temp guard_temp && Int.eq zero Int.zero
+  | _ => false
+  end.
+
+Definition is_exact_call_with_temp_and_int_s
+    (callee mario_temp : ident) (argument : Z)
+    (s : statement) : bool :=
+  match s with
+  | Scall None (Evar found_callee _)
+      ((Etempvar found_mario_temp _) ::
+       (Econst_int found_argument _) :: nil) =>
+      Pos.eqb found_callee callee &&
+      Pos.eqb found_mario_temp mario_temp &&
+      Int.eq found_argument (Int.repr argument)
+  | _ => false
+  end.
+
+Fixpoint contains_guarded_floor_null_else_call_s
+    (mario_temp floor_field callee : ident) (argument : Z)
+    (s : statement) : bool :=
+  match s with
+  | Ssequence first second =>
+      (match first, second with
+        | Sset guard_temp
+            (Efield
+              (Ederef (Etempvar found_mario_temp _) _) found_floor_field _),
+          Sifthenelse condition _ no_floor_branch =>
+            Pos.eqb found_mario_temp mario_temp &&
+            Pos.eqb found_floor_field floor_field &&
+            is_nonnull_test_of_temp guard_temp condition &&
+            is_exact_call_with_temp_and_int_s
+              callee mario_temp argument no_floor_branch
+        | _, _ => false
+        end) ||
+      contains_guarded_floor_null_else_call_s
+        mario_temp floor_field callee argument first ||
+      contains_guarded_floor_null_else_call_s
+        mario_temp floor_field callee argument second
+  | Sifthenelse _ yes_branch no_branch =>
+      contains_guarded_floor_null_else_call_s
+        mario_temp floor_field callee argument yes_branch ||
+      contains_guarded_floor_null_else_call_s
+        mario_temp floor_field callee argument no_branch
+  | Sloop body increment =>
+      contains_guarded_floor_null_else_call_s
+        mario_temp floor_field callee argument body ||
+      contains_guarded_floor_null_else_call_s
+        mario_temp floor_field callee argument increment
+  | Slabel _ body =>
+      contains_guarded_floor_null_else_call_s
+        mario_temp floor_field callee argument body
+  | _ => false
+  end.
+
+(** [level_trigger_warp] is a first-writer latch: after a prefix with no direct
+    assignment to [sDelayedWarpOp], the generated body loads that global,
+    tests it against zero, and assigns the requested operation only in the
+    true branch.  The exact recognizer below also requires the false branch to
+    be [Sskip]. *)
+Definition is_zero_test_of_temp
+    (guard_temp : ident) (condition : expr) : bool :=
+  match condition with
+  | Ebinop Oeq
+      (Etempvar found_temp _)
+      (Econst_int zero _) _ =>
+      Pos.eqb found_temp guard_temp && Int.eq zero Int.zero
+  | Ebinop Oeq
+      (Econst_int zero _)
+      (Etempvar found_temp _) _ =>
+      Pos.eqb found_temp guard_temp && Int.eq zero Int.zero
+  | _ => false
+  end.
+
+Fixpoint assigns_ident_from_temp_s
+    (target source : ident) (s : statement) : bool :=
+  match s with
+  | Sassign (Evar found_target _) (Etempvar found_source _) =>
+      Pos.eqb found_target target && Pos.eqb found_source source
+  | Ssequence first second | Sloop first second =>
+      assigns_ident_from_temp_s target source first ||
+      assigns_ident_from_temp_s target source second
+  | Sifthenelse _ yes_branch no_branch =>
+      assigns_ident_from_temp_s target source yes_branch ||
+      assigns_ident_from_temp_s target source no_branch
+  | Sswitch _ cases =>
+      assigns_ident_from_temp_ls target source cases
+  | Slabel _ body => assigns_ident_from_temp_s target source body
+  | _ => false
+  end
+with assigns_ident_from_temp_ls
+    (target source : ident) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      assigns_ident_from_temp_s target source body ||
+      assigns_ident_from_temp_ls target source rest
+  end.
+
+Fixpoint statement_assigns_ident_s
+    (target : ident) (s : statement) : bool :=
+  match s with
+  | Sassign (Evar found_target _) _ =>
+      Pos.eqb found_target target
+  | Ssequence first second | Sloop first second =>
+      statement_assigns_ident_s target first ||
+      statement_assigns_ident_s target second
+  | Sifthenelse _ yes_branch no_branch =>
+      statement_assigns_ident_s target yes_branch ||
+      statement_assigns_ident_s target no_branch
+  | Sswitch _ cases =>
+      statement_assigns_ident_ls target cases
+  | Slabel _ body => statement_assigns_ident_s target body
+  | _ => false
+  end
+with statement_assigns_ident_ls
+    (target : ident) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      statement_assigns_ident_s target body ||
+      statement_assigns_ident_ls target rest
+  end.
+
+Definition is_guarded_first_writer_warp_latch_s
+    (delayed_warp_ident requested_warp_temp : ident)
+    (body : statement) : bool :=
+  match body with
+  | Ssequence prefix
+      (Ssequence
+        (Ssequence
+          (Sset guard_temp (Evar found_delayed_warp_ident _))
+          (Sifthenelse condition yes_branch Sskip))
+        suffix) =>
+      Pos.eqb found_delayed_warp_ident delayed_warp_ident &&
+      is_zero_test_of_temp guard_temp condition &&
+      assigns_ident_from_temp_s
+        delayed_warp_ident requested_warp_temp yes_branch &&
+      negb (statement_assigns_ident_s delayed_warp_ident prefix) &&
+      negb (statement_assigns_ident_s delayed_warp_ident suffix)
   | _ => false
   end.
 

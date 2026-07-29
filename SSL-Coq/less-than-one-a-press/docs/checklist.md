@@ -97,14 +97,17 @@
   bootstrap.
 - [x] Check the US/JP graphical floor-fallback and entry-coordinate-sync source
   shapes.  Prove conditional local and PU three-view coordinate witnesses, the
-  `385`-unit minimum Graphics-minus-Object Y separation, preservation of Object
-  and Graphics by arbitrary State-only ordinary/platform/PU prefixes, the dry
-  `45`-unit conditional exclusion, and the modeled `208`-unit writer-relation
-  exclusion.  Treat the witnesses as handwritten pipeline evaluations and the
-  generated null/copy/retry match as a separate source-shape receipt.
-  Keep the first-query `NULL` result, loaded top-owned retry selection, retail
-  writer coverage, clean prestate reachability, sink-memory refinement,
-  post-copy object/surface lifecycle, and delayed-warp continuation open.
+  signed-range generic `385`-unit and exact-candidate `973`-unit minimum
+  Graphics-minus-Object Y separations, preservation of Object and Graphics by
+  arbitrary State-only ordinary/platform/PU prefixes, the dry `45`-unit
+  conditional exclusion, and the modeled `208`-unit writer-relation exclusion.
+  Treat the witnesses as handwritten pipeline evaluations and the generated
+  null/copy/retry/death-latch matches as separate source-shape receipts.  Keep
+  the first-query `NULL` result, loaded top-owned retry selection, retail
+  writer coverage, clean prestate reachability, repaired sink-memory
+  refinement, replacement post-copy lifecycle interface, linked latch
+  initialization plus block-or-reset scheduling, and delayed-warp continuation
+  open.
 - [x] Prove that aligned newly set Act 3 and Act 6 bits reach the matching
   target-region route cuts, and prove
   `evidence_bearing_route_cut_blocks_new_target_bits` under the explicit
@@ -167,26 +170,38 @@
   action closure, the upper no-spin entry descent and intended-floor landing,
   every intermediate floor/wall/ceiling query, and collision observation
   alignment.  The current jump-kick/rollout arithmetic and normalized Z
-  soft-bonk subcase do not discharge this item.  For the Ink branch, prove
-  `Area1InkWriterCoverageObligation`, including the route-specific dry
+  soft-bonk subcase do not discharge this item.  For the Ink branch, replace
+  the predicate-sensitive `Area1InkWriterCoverageObligation` schema with a
+  concrete linked-run writer-coverage relation deriving the route-specific dry
   Graphics-minus-Object bound of at most `45` or the conservative modeled
   relation bound of at most `208` for every reachable writer.
 - [ ] Prove or refute the five narrow Ink obligations:
-  `InkFallbackSurfaceRefinementObligation` for the first-query null result and
-  loaded-top retry selection, `Area1InkPrestateReachabilityObligation` for a clean
-  no-A State/Object/Graphics prestate,
-  `Area1InkWriterCoverageObligation` for complete reachable writer/action/spawn
-  closure, `InkFallbackSinkMemoryRefinementObligation` for the conditional
-  throw-matrix write, and
-  `InkFallbackPostCopyLifecycleRefinementObligation` for later object writers,
-  preservation across the explicit unload-function call, transformed
-  explosion-pose surface/height, concrete surface identity, and final
-  active/inactive-same-epoch owner identity.  Separately prove that the top is
-  actually scanned/deallocated and any claimed free-list membership.  Do not
-  reuse the closed zero-yaw home-pose Y `1791` witnesses for that branch.  A
-  null pre-apply platform excludes only
-  a pre-existing platform origin; it must not be used to discard graphical
-  rescue.
+  the surface, prestate, and writer forms are now proved predicate-sensitive
+  schemas rather than closed retail statements.  The exact prestate requires
+  at least a `973`-unit Graphics-minus-Object Y gap, and complete audited
+  writer-execution coverage from an audited entry conditionally refutes it.
+  Retail writer and live-list coverage remain open.  The original sink
+  statement was refuted by repeated-return and 32-bit pointer-wrap
+  counterexamples; its current record uses a first-return relation and
+  disjoint modular four-byte cells, but the repaired
+  `InkFallbackSinkMemoryRefinementObligation` remains unproved.  The current
+  `InkFallbackPostCopyLifecycleRefinementObligation` is not a valid proof
+  target: arbitrary projection/linking, omitted `behavior_script.c`, external
+  frame effects, missing pointer-to-slot/epoch linkage, and non-finite float
+  samples make it unsafe or vacuous.  Import the missing unit and replace that
+  interface before proving later object writers, unload preservation,
+  transformed surface/height, concrete surface identity, and final
+  active/inactive-same-epoch identity.  Separately prove that the top is
+  scanned/deallocated and any claimed free-list membership.  The retry-null
+  fatal call and first-writer shape are source-checked, and the closed latch
+  model blocks a later upper-object-warp request.  Add the missing linked proof
+  that the latch begins empty and then either remains occupied through the
+  delayed `ACT_DISAPPEARED` request or is cleared only inside scheduling that
+  resets the continuation before another Mario update; zero lives may store
+  game-over rather than death.  Under those premises only a non-null graphical
+  retry survives.  A null
+  pre-apply platform still excludes only a pre-existing platform origin and
+  must not be used to discard graphical rescue.
 - [ ] Prove which JP raw-platform cases are reachable and bound every reachable
   spawning displacement.  Execute the imported matrix/surface helpers over live
   Clight memory, extract the mirrored expressions from generated Clight, and

@@ -49,9 +49,20 @@
   separately establish the null-test and retry shape.  The module also proves
   that State-only ordinary, platform, or PU prefixes preserve Object and
   Graphics and cannot manufacture their split from a synchronized state.  A
-  top retry requires at least `385` units of Graphics-minus-Object Y
-  separation.  The source audit uses `45` as the dry route-specific target;
-  `208` is a conservative modeled relation pending reachable-writer coverage.
+  generic top retry whose Graphics Y remains in signed-16 range requires at
+  least `385` units of Graphics-minus-Object Y separation, while either exact
+  proposed prestate requires at least `973`.
+  The source audit uses `45` as the dry route-specific target; `208` is a
+  conservative modeled relation pending reachable-writer coverage.
+  If the retry also returns no floor, the checked guarded fatal call occurs
+  before cached warp interactions and the abstract first-writer latch blocks
+  the later upper-warp request.  Zero lives rewrites death to the still-nonzero
+  game-over operation.  The linked proof must show the latch starts empty and
+  then prove the scheduler-aware disjunction: the fatal value either remains
+  occupied through the delayed action call, or any earlier clear belongs to a
+  reset/initialization interval that destroys the continuation before another
+  Mario update.  Under those premises only a non-null retry can support this
+  route.
   These are coordinate and source-shape results, not a proof that the actual
   first query returns `NULL`, the retry selects a loaded top-owned surface, or
   a clean retail run reaches either prestate.  Final surface-owner liveness is
@@ -192,19 +203,23 @@
   retail cast is verified, and the bounded pre-apply owner theorem excludes
   only pre-existing modeled platform origins.  It does not exclude the
   graphical-fallback bootstrap, which can begin with a null platform and
-  capture the top only after the retry.  The remaining boundary is explicit:
-  `InkFallbackSurfaceRefinementObligation` must prove the first-query miss and
-  loaded-top retry selection; `Area1InkPrestateReachabilityObligation` must
-  construct the required clean no-A State/Object/Graphics prestate; and
-  `Area1InkWriterCoverageObligation` must connect every reachable position
-  writer to the audited State-only, synchronized, or bounded-Graphics
-  relation.  `InkFallbackSinkMemoryRefinementObligation` must justify
-  throw-matrix provenance, and
-  `InkFallbackPostCopyLifecycleRefinementObligation` must cover later object
-  writers, preservation across the explicit unload-function call, retained
-  surface identity, and the final active/inactive-same-epoch owner.  A separate
-  linked fact must show that the top itself is scanned/deallocated and establish
-  any claimed free-list membership.
+  capture the top only after a non-null retry.  The five-obligation audit
+  changes how the remaining boundary is stated.  The surface, prestate, and
+  writer propositions are predicate-sensitive schemas; replace them with
+  concrete linked-run relations proving the first-query miss, loaded-top retry,
+  clean no-A prestate reachability, and complete writer closure.  The original
+  sink proposition was false under repeated-return execution and a concrete
+  modular pointer alias.  Its repaired first-return, disjoint-cell
+  `InkFallbackSinkMemoryRefinementObligation` remains open.  The current
+  `InkFallbackPostCopyLifecycleRefinementObligation` is unsafe or vacuous
+  rather than a valid theorem target: replace it with an exact link importing
+  `behavior_script.c`, an anchored clean run, a certified memory projection,
+  external-call frame conditions, finite transformed-surface data, and
+  pointer-to-slot/epoch linkage.  Only then prove later object writers, unload
+  preservation, retained surface identity, and the final
+  active/inactive-same-epoch owner.  A separate linked fact must show that the
+  top itself is scanned/deallocated and establish any claimed free-list
+  membership.
   Generated-expression extraction, linked live-memory execution,
   dynamic-surface ownership/list selection, collision-array retention,
   capture/unload timing, and JP delayed node-`0x1E` pointer lifetime also

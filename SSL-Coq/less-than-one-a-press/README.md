@@ -118,9 +118,26 @@ The generated recognizer checks the null/copy/retry syntax and dataflow, but
 the handwritten pipeline witnesses do not execute it in Clight.  They do not
 prove either live-list result, a reachable clean prestate, or the post-copy
 object/surface-owner lifecycle.
+The generated AST now also checks the retry-null death branch, the
+`sDelayedWarpOp` first-writer latch, and geometry-before-interaction order for
+both versions.  The closed latch theorem proves that if the retry is also
+`NULL`, an earlier fatal request prevents a later upper-object-warp request
+from replacing it in the small model.  Zero lives rewrites death to game-over,
+which remains fatal and nonzero.  This is a source/transition result, not yet a
+linked Clight exclusion.  The missing scheduler-aware refinement must prove
+initial latch state and show either that the fatal value still blocks the
+two-count `ACT_DISAPPEARED` request or that every earlier clear occurs inside
+reset/initialization scheduling that destroys the continuation before another
+Mario update.  Concrete call-path refinement also remains open.  The surviving
+Ink schedule therefore specifically needs a non-null graphical retry once
+those source-backed premises are derived.
 Arbitrary State-only ordinary/platform/PU prefixes preserve Object and
 Graphics and therefore cannot create the needed split from synchronized
-input.  The retry needs at least 385 upward units; the theorem excludes the dry
+input.  A generic retry whose Graphics Y is in signed-16 range needs at least
+385 upward units; either exact
+local/PU prestate proposed here needs at least `973`.  Complete audited writer
+coverage from an audited entry conditionally refutes that prestate, but retail
+coverage remains open.  The theorem excludes the dry
 ordinary `<=45` visual-offset subcase once that premise is derived from a
 reachable execution.  The source-shape kernel also checks that remaining
 non-terrain updates and deactivated-object unloading precede the final platform
@@ -129,14 +146,26 @@ top loop is followed by its collision loader and the slot is later unloaded;
 it does not prove the linked behavior-script execution, free-list membership,
 or that the same concrete surface is selected afterward.  The two closed
 coordinate witnesses use the zero-yaw home top and floor Y `1791`; they do not
-instantiate that later translated/rotated explosion pose.  Sink throw-matrix
-provenance, post-copy raw Object preservation, transformed-surface selection,
-the final owner epoch, and complete writer/action closure remain open.
+instantiate that later translated/rotated explosion pose.
+
+The five-obligation audit found specification defects rather than a retail
+counterexample.  The surface, prestate, and writer statements are
+predicate-sensitive schemas, not closed retail propositions.  The original
+sink statement was false under a repeated-return trace and under a concrete
+32-bit pointer-wrap alias; its current record is repaired to use a first-return
+relation and disjoint modular cells, and remains unproved.  The current
+lifecycle statement is not a sound proof target: `project_state` and the link
+are underconstrained, `behavior_script.c` is not translated, relevant external
+calls lack frame specifications, pointer-to-slot/epoch linkage is missing, and
+equal arbitrary binary32 samples do not imply the platform-tolerance branch.
+That interface must be replaced before post-copy raw Object preservation,
+transformed-surface selection, or a final owner epoch can be claimed.
 
 `Area1PhaseSplit.v` checks source-backed nonzero-pitch triangle-fragment
 payloads and one exact CompCert-binary32 X/Y/Z displacement.  The selected
 sample rises from Y `768` to approximately `1878.668`, exceeding the proved
-385-unit necessary bound.  `Area1SurfaceWitness.v` checks its short query and
+signed-range 385-unit necessary bound.  `Area1SurfaceWitness.v` checks its
+short query and
 candidate face arithmetic without asserting live surface ownership or actual
 `find_floor` selection.
 
@@ -291,8 +320,12 @@ The source order permits three independently sampled coordinates.  Object
 collision can read the old Mario Object at the warp; geometry can first query
 State `(-2200,768,-1024)`; if that query returns `NULL`, the source copies
 Graphics into State and retries.  Graphics may conditionally be the local top
-sample `(-2048,1791,-1024)` or PU sample `(63488,1791,-1024)`.  The cached warp
-then selects `ACT_DISAPPEARED`, which snaps to the retry floor before the
+sample `(-2048,1791,-1024)` or PU sample `(63488,1791,-1024)`.  A non-null
+retry lets the cached warp select and execute `ACT_DISAPPEARED` usefully in
+that frame.  In the retry-null case the fatal request wins the abstract
+delayed-warp latch; a linked retail exclusion still needs initial-state and
+clear/reset scheduler refinement.  The action
+snaps to the retry floor before the
 unconditional quicksand sink and state/object copy.  Remaining object lists
 then update, deactivated objects unload, and only then does the final platform
 query run.  `InkFallback.v` evaluates the handwritten pipeline's coordinate
@@ -303,8 +336,9 @@ collision-loader callback but before final capture.  The two closed
 coordinate witnesses use the zero-yaw home top at floor Y `1791`; the
 explosion/inactive-slot branch instead needs its later translated/rotated
 surface and selected height.  The project does not prove the first-query
-`NULL`, loaded-top retry, sink memory refinement, post-copy lifecycle, or
-prestate reachability in Clight.
+`NULL` or loaded-top retry.  The original sink interface was false and its
+repaired first-return form is open; the post-copy lifecycle interface is
+invalid and must be replaced.  Prestate reachability in Clight remains open.
 
 The older two-sample countermodel still checks a 1023-unit State Y change,
 exact CompCert casts, dynamic-partition cells, generated triangle indices, the
@@ -322,7 +356,8 @@ cannot manufacture their split from synchronized input.
 The Area-1 source contains a real candidate primitive: breakable-box and
 exclamation-box triangle fragments write nonzero pitch angular velocity, and
 one exact-binary32 payload changes MarioState in all three dimensions by
-amounts whose Y component exceeds the 385-unit necessary bound.  For the
+amounts whose Y component exceeds the signed-range 385-unit necessary bound.
+For the
 breakable-box path, an object count above 210
 suppresses the preceding mist allocation, making the first triangle allocation
 a concrete source-backed slot-reuse candidate.  The concrete transform uses a
@@ -342,8 +377,9 @@ is null at warp overlap.
 That result does not exclude post-collision graphical rescue, which can begin
 with a null pointer and capture the top after the retry.  Reachable
 writer/action closure, first-query `NULL`, loaded top-owned retry selection,
-sink-memory refinement, and the post-copy object/surface lifecycle remain
-Layer-B obligations.
+and the repaired sink-memory refinement remain Layer-B obligations.  The
+post-copy object/surface lifecycle statement must be replaced before it can be
+a valid obligation.
 The linked-Clight projection is also open.  JP pointer retention or recapture
 through the delayed warp remains open, as do proving that moving/loading the
 warp onto the top, moving the top to the warp, collision-preserving cloning,
@@ -906,17 +942,21 @@ clightgen -normalize -nostdinc -fstruct-passing \
   target of at most `45`; the conservative generic modeled relation uses
   `208` because a water-pitch term of at most `60` and bob below `148` can
   compose across a water-floor-hit branch.
-  `Area1InkWriterCoverageObligation` remains open, so these bounds are not yet
-  a linked action-closure theorem.  `InkFallbackSinkMemoryRefinementObligation`
-  must additionally justify the real quicksand writer to both
-  `header.gfx.pos[1]` and `throwMatrix[3][1]`.
-  `InkFallbackPostCopyLifecycleRefinementObligation` must connect the
-  post-copy object writers, deactivation/unload sequence, retained dynamic
-  surface, and final platform capture.  Its lifecycle sample and floor height
-  are generalized binary32 data: the home-pose Y `1791` witnesses do not
-  discharge the translated/rotated explosion-pose case.  The checked source
-  shape proves neither free-list membership nor a reachable linked-memory
-  execution.
+  `Area1InkWriterCoverageObligation` is a predicate-sensitive schema, not an
+  ordinary retail obligation.  It must be replaced by a concrete linked-run
+  writer-coverage relation before these bounds become an action-closure
+  theorem.  The repaired
+  `InkFallbackSinkMemoryRefinementObligation` must justify the real quicksand
+  writer to both `header.gfx.pos[1]` and `throwMatrix[3][1]` from a first
+  return with disjoint modular cells.  Its predecessor was refuted.
+  `InkFallbackPostCopyLifecycleRefinementObligation` must not be used in its
+  current form: the projection/link/run interface is unsafe or vacuous and
+  `behavior_script.c` is absent.  A replacement must import the interpreter,
+  use an exact link and clean anchored run, certify the concrete-memory
+  projection and pointer/epoch relation, constrain external effects, and
+  derive a finite translated/rotated explosion-pose sample.  The checked
+  source shape proves neither free-list membership nor a reachable
+  linked-memory execution.
 - The transcript route model has no Clight projection or collision-surface
   completeness theorem.  `FirstTargetCutClassificationObligation` makes the
   missing exhaustiveness result explicit and its tag sums make the intended
@@ -956,7 +996,8 @@ clightgen -normalize -nostdinc -fstruct-passing \
   memory projection into the owner model remains open.  Proving source-backed
   prehistory must still cover the fallback's collision Object, first-query
   State, pre-fallback Graphics, first `NULL`, loaded-top retry, sink pointer
-  provenance, post-copy object/owner lifecycle, final capture,
+  provenance under the repaired first-return interface, a replacement
+  post-copy object/owner lifecycle interface, final capture,
   JP delayed-warp retention/recapture, the US clear effect, and warp-to-top,
   top-to-warp, collision-preserving clone, or post-query-writer constructions;
   setting the JP pointer to `None` or assuming every retained displacement is

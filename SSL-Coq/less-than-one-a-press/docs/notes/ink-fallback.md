@@ -2,8 +2,9 @@
 
 ## Verdict
 
-Ink's proposed engine primitive is **conditionally valid**.  The frame order
-does not rule it out.
+Ink's proposed schedule is **consistent with the inspected source order and is
+not ruled out by the current proofs**.  No linked Clight engine execution of
+the schedule has been proved.
 
 A single frame can use three different Mario coordinate samples:
 
@@ -21,12 +22,122 @@ graphical sample makes the retry select a loaded pyramid-top surface, the
 already cached warp interaction can coexist with the later top-floor snap.
 Whether the subsequent State-to-Object copy survives the remaining object
 lists and whether the final query sees the active or inactive same-epoch owner
-are separate lifecycle obligations.
+require a future replacement lifecycle interface.
 
 No clean US or JP retail execution constructing those three samples has been
 found.  The project therefore records two conditional coordinate witnesses
 for a handwritten pipeline, not a game counterexample, a Clight execution, or
 a proof of the final two-star claim.
+
+## Five-obligation audit checkpoint
+
+The five requested Ink obligations no longer all have the same status:
+
+1. `InkFallbackSurfaceRefinementObligation` is not itself the retail theorem.
+   Its current two predicate arguments can make the proposition true or false
+   by definition; `ink_surface_refinement_schema_is_predicate_sensitive`
+   proves that it is a schema, not a closed live-list theorem.  It must be
+   replaced by concrete `find_floor` call segments.
+2. `Area1InkPrestateReachabilityObligation` is also a predicate schema.
+   `area1_ink_prestate_requires_at_least_973_graphics_y_gap` proves that either
+   exact proposed prestate needs at least `973` units of
+   Graphics-minus-Object Y separation.  This is stronger than the generic
+   signed-range `385`-unit retry lower bound.
+3. `Area1InkWriterCoverageObligation` is likewise predicate-sensitive rather
+   than a concrete retail coverage statement.  The closed theorem
+   `audited_writer_coverage_refutes_area1_ink_prestate` proves that an audited
+   synchronized entry plus complete audited writer-execution coverage rules
+   out the exact Ink prestate.  The missing work is deriving that coverage
+   from reachable US/JP Clight execution.
+4. The original `InkFallbackSinkMemoryRefinementObligation` was **false**.
+   An unrestricted `Smallstep.star` could return from the sink, resume a
+   caller loop, invoke the sink again, and choose the second return as its
+   endpoint.  Its aggregate linear slice test also missed a 32-bit pointer
+   wrap where Graphics Y and `throwMatrix[3][1]` are the same address.
+   `ink_linear_slice_disjointness_misses_pointer_wrap_alias` is the checked
+   modular-address counterexample.  The current record is repaired to stop at
+   the first matching return and to require disjoint individual modular
+   four-byte cells; the repaired obligation is open.
+5. `InkFallbackPostCopyLifecycleRefinementObligation` is **not a sound proof
+   target as currently stated**.  It can be unsafe with an arbitrary
+   `project_state` or hostile extra linked definitions, while the exact
+   current translation can make its interior Mario-copy cut vacuous because
+   `behavior_script.c` is not imported and `cur_obj_update` remains external.
+   It also lacks pointer-to-pool-slot/epoch linkage, writer and external-call
+   frame conditions, and finite-float premises.  The checked theorem
+   `equal_binary32_samples_do_not_imply_platform_tolerance` supplies a quiet
+   NaN counterexample to inferring the `< 4.0f` platform branch from equal Coq
+   values.
+
+These are formal-specification counterexamples, not retail gameplay
+counterexamples.  No clean US/JP trace reaching either target star was found.
+
+## OOB death check and delayed-warp priority
+
+The second floor lookup matters for more than platform capture.  In both
+generated versions, if the retry also leaves `m->floor == NULL`,
+`update_mario_geometry_inputs` calls:
+
+```c
+level_trigger_warp(m, WARP_OP_DEATH);
+```
+
+This happens before `mario_process_interactions` consumes the already cached
+upper-warp collision.  That interaction does not immediately request the
+object warp: it selects `ACT_DISAPPEARED` with a two-count action argument, and
+`act_disappeared` calls `level_trigger_warp` when the count reaches zero.
+`level_trigger_warp` only writes while
+`sDelayedWarpOp == WARP_OP_NONE`.  At zero lives it changes the stored death
+operation to `WARP_OP_GAME_OVER`; both outcomes are nonzero fatal operations.
+
+The generated-AST claims
+`ink_retry_null_death_preemption_source_shape_{us,jp}` check the guarded death
+call with the exact `(m, 18)` argument shape, check that every direct AST
+assignment to the delayed-warp cell in `level_trigger_warp` lies under its zero
+guard, and record the lexical geometry-before-interaction call order.
+`ink_retry_null_fatal_latch_blocks_later_upper_request` proves the corresponding
+closed latch transition using `InkFatalWarp`, which abstracts death and
+game-over.  The current generated recognizers do not themselves check the
+zero-lives rewrite or exact two-count action argument; those are
+pinned-source audit facts pending linked execution.
+
+This is strong source/transition evidence, but not yet a linked Clight
+exclusion.  The remaining refinement must prove that the delayed-warp cell is
+empty when this geometry call begins and establish the scheduler-aware
+disjunction: either the fatal value is still pending when the later
+`act_disappeared` request occurs, or every earlier clear belongs to a
+reset/initialization interval that destroys the disappeared-action
+continuation before another Mario update can use it.  The concrete call/return
+path must also refine to the small latch model.  Under those source-backed
+premises, the **both-queries-null** scheduling shape cannot be the Area-1
+upper-warp route.  Ink's surviving shape requires the first query to be null
+and the graphical retry to return a non-null floor; a top-owned retry is still
+unproved.
+
+The full source timing audit gives a sharper reason:
+
+- the cached interaction still runs on the retry-null frame and sets
+  `ACT_DISAPPEARED` with action argument `(WARP_OP_WARP_OBJECT << 16) + 2`;
+- `execute_mario_action` then returns early because `m->floor == NULL`, so it
+  does not dispatch that new action in the same frame;
+- on later frames with a usable floor, the action decrements the low counter
+  once per Mario update and requests the object warp when it reaches zero;
+- normal-play `initiate_delayed_warp` runs after the object update, decrements
+  the fatal timer, and has no direct assignment to `sDelayedWarpOp`; and
+- relevant clear sites have one of two source orderings: warp-arrival/credits
+  paths reset the action before clearing, while `init_level` and
+  `lvl_init_from_save_file` clear first but reset before the next normal Mario
+  update.  In either case a useful proof needs the scheduler fact that no
+  disappeared-action dispatch occurs in the intervening initialization
+  interval.
+
+This source audit found no retail scheduling counterexample.  The remaining
+formal gap is precise: `behavior_script.c` is not imported, so `cur_obj_update`
+is external and the current generated link does not prove one
+`bhv_mario_update` per well-formed Mario-object visit.  A full theorem also
+needs shared-global linking, external frame conditions, clean normal-play
+scheduler invariants, valid pointers/no undefined behavior, and the compiled
+float-to-s16/`find_floor` refinement that establishes the two null results.
 
 ## Which earlier analysis was right?
 
@@ -66,17 +177,28 @@ For the pinned US and JP source, the relevant normal object-update frame is:
 7. perform two wall queries and the first `find_floor` on `MarioState.pos`;
 8. if the floor pointer is null, copy `header.gfx.pos` to `MarioState.pos` and
    retry `find_floor`;
-9. process the collision array, including the warp cached at step 4;
-10. execute `ACT_DISAPPEARED`, snap State Y to the retry floor, and copy State
-   to Graphics;
-11. run the unconditional `sink_mario_in_quicksand`, which writes Graphics Y
-    and may also write `gfx.throwMatrix[3][1]`;
-12. copy State coordinates to raw `MarioObject.oPos`;
-13. update the pushable, genactor, destructive, level, default, and
+9. if the retry is also null, request the death/game-over warp before
+   interaction processing; under the pending scheduler-aware refinement, that
+   first request either blocks the later object warp or is cleared only by an
+   initialization/reset path that destroys the continuation first;
+10. process the collision array in either case, including the warp cached at
+    step 4; this may select `ACT_DISAPPEARED`, but its later delayed-warp
+    request cannot replace an uncleared fatal latch;
+11. on the useful non-null-retry branch, execute `ACT_DISAPPEARED` in that
+    frame, snap State Y to the retry floor, and copy State to Graphics.  On the
+    retry-null branch, the floor-null early return defers action dispatch.  A
+    later request is blocked if the fatal latch is still occupied; if a clear
+    occurs first, the retail exclusion instead requires the reset/init
+    scheduling proof described above;
+12. on the non-null/action-dispatch branch, run the unconditional
+    `sink_mario_in_quicksand`, which writes Graphics Y and may also write
+    `gfx.throwMatrix[3][1]`; the retry-null early return skips this call;
+13. copy State coordinates to raw `MarioObject.oPos`;
+14. update the pushable, genactor, destructive, level, default, and
     unimportant object lists;
-14. unload deactivated objects; the source deallocates an exploding top's
+15. unload deactivated objects; the source deallocates an exploding top's
     slot without clearing that frame's previously loaded dynamic surface; and
-15. perform the final platform query, which tests `floor->object != NULL` but
+16. perform the final platform query, which tests `floor->object != NULL` but
     does not test the owner's active flags.
 
 The generated receipts prove the literal deactivation, callback order,
@@ -187,15 +309,16 @@ conservative top-center target `1871` by timer `150`; it does not execute the
 timer-59 smooth-rise state or establish the corresponding generated-Clight
 binary32 lower bound.  The top is also rotated, so that branch must recover the
 actual later transformed surface and selected floor height through the
-generalized lifecycle refinement.
+future replacement lifecycle refinement.
 
-The remaining sink and lifecycle statements are not oracle predicates.
-`InkFallbackSinkMemoryRefinementObligation` quantifies over a complete concrete
-Clight call segment with explicit MarioState, Object, Graphics, depth, and
-optional throw-matrix loads.  `InkFallbackPostCopyLifecycleRefinementObligation`
-quantifies over exact call/return cuts through the copy, unload, final platform
-query, and internal `find_floor` return, with concrete memory and projection
-links.  No inhabitant or proof of either record is currently supplied.
+The repaired sink statement is not an oracle predicate:
+`InkFallbackSinkMemoryRefinementObligation` now quantifies over a concrete
+first-return Clight call segment with explicit MarioState, Object, Graphics,
+depth, optional throw-matrix loads, and disjoint modular cells.  It remains
+unproved.  The lifecycle record does quantify over concrete call/return cuts,
+but its current link and projection interfaces are too weak for the universal
+postcondition; it must not be counted as a valid open theorem until the defects
+listed above are repaired.
 
 ## What ordinary and PU movement can and cannot create
 
@@ -237,12 +360,36 @@ relevant positive visual offset of `45`, and
 `dry_graphics_offset_cannot_supply_top_retry` proves the corresponding closed
 arithmetic exclusion.
 
+For the two exact local/PU prestates proposed here, the stronger checked bound
+is:
+
+```text
+GraphicsY - ObjectY >= 973
+```
+
+The object must remain at or below Y `818` to overlap the warp, while both
+graphics samples use Y `1791`.
+
+The displacement figures are easiest to compare in one table.  Here “gap”
+means raw collision-Object Y subtracted from graphical Y; a State-only writer
+does not change either column.
+
+| Case | Collision Object Y | Graphics Y | `GraphicsY - ObjectY` | Status |
+| --- | ---: | ---: | ---: | --- |
+| Synchronized entry | same as Graphics | same as Object | `0` | Required initial relation still needs a linked-memory proof |
+| Dry source-audit envelope | arbitrary | arbitrary | at most `45` | Conditional source-audit target |
+| Conservative modeled writer envelope | arbitrary | arbitrary | at most `208` | Proved invariant for covered abstract writers; retail coverage open |
+| Signed-range generic top-query minimum | at most `818` | at least `1203` | at least `385` | Proved necessary arithmetic bound for a floor at least `1281` with the 78-unit query allowance |
+| Exact Ink prestate schema, worst warp-overlap Y | at most `818` | `1791` | at least `973` | Proved by `area1_ink_prestate_requires_at_least_973_graphics_y_gap` |
+| Displayed local/PU coordinate witness | `768` | `1791` | exactly `1023` | Handwritten-pipeline coordinate witness, not a reachable trace |
+
 For context, the source audit motivates a deliberately conservative generic
 relation bound of `208`: water pitch of at most `60` and swimming bob below
 `148` can compose across the floor-hit branch.  The upper warp is outside the
 checked water boxes, so `208` is not the route-specific audit target.  The
 formal theorem excludes Ink readiness **if** retail writers refine to that
-relation; `Area1InkWriterCoverageObligation` still has to prove they do.
+relation.  A concrete linked-run replacement for the predicate-sensitive
+`Area1InkWriterCoverageObligation` schema still has to derive that coverage.
 
 A prepared `ACT_LONG_JUMP_LAND` state with pre-frame `actionTimer = 4` is a
 precision exception to any claim that quicksand always lowers Graphics.  The
@@ -257,6 +404,67 @@ prior A edge.  The stock static upper-warp
 support is `SURFACE_WALL_MISC`, not quicksand, but that fact does not clear a
 negative depth prepared earlier.  Excluding such persisted state still
 requires clean no-A action/state closure.
+
+## Interaction and action displacement census
+
+There are two different notions of “shell displacement,” and conflating them
+would make the proof unsound:
+
+1. `interact_koopa_shell` may change Mario's action or push Mario out of the
+   shell hitbox.  That affects MarioState/collision physics.
+2. The later riding-shell action adds a small Y offset only to the rendered
+   Graphics coordinate.  It does not lift MarioState or the raw collision
+   Object by `42` or `45`.
+
+A manual audit of the pinned `interaction.c` found only three helper families
+that directly assign MarioState position during interaction processing.  This
+is not yet an exhaustive Clight theorem:
+
+| Interaction-stage writer | Direct coordinate effect | Numeric amount or formula | Current proof status |
+| --- | --- | --- | --- |
+| Bully collision response | Replaces State X/Z with the two-body collision solver's `marioData.posX/posZ` | Depends on both radii, positions, yaw, and speed; there is no source constant giving a global maximum | Not bounded for all clean SSL states |
+| `bounce_off_object` | Sets State Y to `objectY + hitboxHeight` | The snap distance depends on the previous Mario/object geometry; callers set vertical velocity to `30` or `80`, which is velocity, not immediate displacement | Formula is source-backed; retail reachability/bounds remain open |
+| `push_mario_out_of_object` | Moves State X/Z to a radial target, then runs wall collision | `target radius = objectRadius + MarioRadius + padding`; call-site paddings include `5`, `2`, `-5`, and `-10` | Formula is source-backed; wall resolution and object census are needed for a total bound |
+
+For the stock scale-1 Koopa shell, the shell radius is `50`, Mario's behavior
+radius is `37`, and the shell call uses padding `2`, so the pre-wall target
+radius is:
+
+```text
+50 + 37 + 2 = 89
+```
+
+If Mario starts at the shell center, the raw radial correction can be as large
+as `89`; at ordinary overlap distances it is smaller.  This is **not** a
+proved total one-frame displacement bound, because
+`f32_find_wall_collision` may alter the target and the proof has not yet
+classified the live walls.  On the successful ride branch, the audited source
+performs no direct Mario State/Object/Graphics position assignment—it changes
+the action and object references.  The `0` immediate-write statement assumes
+the ordinary well-formed, non-aliasing memory relation and is not yet a Clight
+call-segment theorem.
+
+The follow-on Graphics-only writers relevant to the Ink gap are:
+
+| Follow-on writer | Coordinate written | Positive Y amount | Meaning |
+| --- | --- | ---: | --- |
+| Ordinary action/step synchronization | Graphics := State | resulting gap `0` at that point | Copy, not an independent displacement |
+| Riding shell in air | Graphics Y only in the source audit | `+42` source operand/model offset | US/JP receipt proves the literal occurs in the named body; statement-level Clight semantics remain open |
+| Riding shell on ground | Graphics Y only in the source audit | `+45` source operand/model offset | Same occurrence-level receipt; largest dry audited positive source operand |
+| Positive water pitch | Graphics Y only | source expression at most about `+60` | Part of the conservative model, not a global linked theorem |
+| Surface-swim bob | Graphics Y only | positive contribution below `148` under the audited s16 conditions | Part of the conservative model |
+| Water pitch plus bob | Graphics Y only | modeled integer envelope `<=208` | Proved only for transitions classified by the abstract writer relation |
+| Quicksand sink | Graphics Y and possibly throw-matrix Y | `-quicksandDepth`; can raise Graphics if depth is negative | No global bound without clean action/depth closure; checked prepared example is about `+2.65` from a zero base |
+| Chuckya/King Bob-omb anchor | Full Graphics XYZ | no fixed bound from Mario's prior position | Writer exists, but neither actor is stock SSL Area 1 |
+| Stale platform displacement | State XYZ only | Graphics change `0` in that phase | Cannot itself manufacture the Object/Graphics split |
+
+The Rocq theorem `shell_graphics_y_offsets_fit_dry_audit_bound` checks
+`42 <= 45` and `45 <= 45`; the US/JP source kernel pins the two binary32
+literals in `act_riding_shell_air` and `tilt_body_ground_shell`.  Those
+occurrence checks do not prove the destination field, exact binary32 delta for
+arbitrary inputs, shell reachability, or a complete interaction/action census
+for every clean retail frame; the field/formula interpretation comes from the
+separate pinned-source audit.
 
 ## Writer census and its formal boundary
 
@@ -279,11 +487,13 @@ and raw-slot syntax anchors.  It is deliberately not advertised as a memory
 equality theorem.  The behavior-script interpreter and graph-node spawn
 writer are outside the current generated translation-unit set.
 
-The remaining source-to-semantics obligation is
-`Area1InkWriterCoverageObligation`: every reachable clean no-A Area-1
-position transition must refine to the audited State-only, synchronization,
-or bounded-Graphics writer relation.  The related entry-memory equality and
-action/spawn closure must also be proved.
+The remaining source-to-semantics work is to replace
+`Area1InkWriterCoverageObligation` with a concrete linked-run relation under
+which every reachable clean no-A Area-1 position transition refines to the
+audited State-only, synchronization, or bounded-Graphics writer relation.  The
+related entry-memory equality and action/spawn closure must also be proved.
+`area1_ink_writer_coverage_schema_is_predicate_sensitive` exhibits both
+accepting and rejecting instantiations of the current schema.
 
 ## Remaining obligations
 
@@ -297,20 +507,31 @@ The decisive unfinished work is:
    `NULL` result at a reachable State sample;
 4. execute the retry over a loaded top-owned surface and prove actual
    selection;
-5. prove collision-array retention through the fallback and action change,
-   including the Graphics-position and conditional `throwMatrix` writes in the
-   quicksand sink (`InkFallbackSinkMemoryRefinementObligation`);
-6. prove the copied raw Object survives later object lists and decide the
+5. prove the repaired first-return, modular-cell sink obligation, including
+   the Graphics-position and conditional `throwMatrix` writes
+   (`InkFallbackSinkMemoryRefinementObligation`);
+6. import `behavior_script.c`, construct an exact no-extra-definitions link,
+   anchor the run to a clean `update_objects` frame, certify the concrete
+   memory projection and pointer-to-slot/epoch map, and replace the invalid
+   lifecycle statement with a sound exact-link interface;
+7. prove the copied raw Object survives later object lists and decide the
    final floor owner across active-top and same-frame inactive-owner cases,
    including concrete surface identity, transformed explosion pose, selected
-   floor height, and preservation across the explicit unload-function call
-   (`InkFallbackPostCopyLifecycleRefinementObligation`);
-7. if a top platform is captured, separately prove that the top is actually
+   floor height, and preservation across the explicit unload-function call,
+   using that replacement interface.  The legacy
+   `InkFallbackPostCopyLifecycleRefinementObligation` name remains only as a
+   marker for the interface that must not be proved in its current form;
+8. if a top platform is captured, separately prove that the top is actually
    scanned/deallocated, establish any claimed free-list membership, and prove
    its allocation epoch, unload/reuse, delayed-warp retention or recapture, and
-   destination-area first apply; and
-8. continue to a target collision and newly set Act 3 or Act 6 bit.
+   destination-area first apply;
+9. prove the retry-null latch starts empty and the scheduler-aware exclusion:
+   either its fatal/game-over value persists through the later
+   `ACT_DISAPPEARED` object-warp request, or every earlier clear resets that
+   continuation before another Mario update can issue a useful request; and
+10. continue to a target collision and newly set Act 3 or Act 6 bit.
 
-`Area1InkPrestateReachabilityObligation` names the missing constructor.  No
-reachable clean constructor and no retail target-bit counterexample was found.
-The ultimate theorem remains unproved.
+`Area1InkPrestateReachabilityObligation` is the legacy schema marking the
+missing constructor, not a concrete reachability proposition.  No reachable
+clean constructor and no retail target-bit counterexample was found.  The
+ultimate theorem remains unproved.

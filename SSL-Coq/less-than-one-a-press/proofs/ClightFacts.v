@@ -635,6 +635,97 @@ Proof.
   vm_compute. repeat split.
 Qed.
 
+(** The shell interaction itself changes action/ownership state; these two
+    later action helpers contain the source's direct positive graphical-Y
+    additions.  The receipts pin the exact binary32 literals in the named US
+    and JP functions.  They are syntax anchors, not a proof that either action
+    is reachable from a clean SSL Area-1 entry. *)
+Definition float32_forty_two_bits : Z := 1109917696.
+Definition float32_forty_five_bits : Z := 1110704128.
+
+Definition shell_graphics_y_offsets_source_shape_us_claim : Prop :=
+  statement_mentions_float32_bits_s float32_forty_two_bits
+    (fn_body UAir.f_act_riding_shell_air) = true /\
+  statement_mentions_float32_bits_s float32_forty_five_bits
+    (fn_body UMove.f_tilt_body_ground_shell) = true.
+
+Theorem shell_graphics_y_offsets_source_shape_us :
+  shell_graphics_y_offsets_source_shape_us_claim.
+Proof.
+  unfold shell_graphics_y_offsets_source_shape_us_claim,
+    float32_forty_two_bits, float32_forty_five_bits.
+  vm_compute. split; reflexivity.
+Qed.
+
+Definition shell_graphics_y_offsets_source_shape_jp_claim : Prop :=
+  statement_mentions_float32_bits_s float32_forty_two_bits
+    (fn_body JAir.f_act_riding_shell_air) = true /\
+  statement_mentions_float32_bits_s float32_forty_five_bits
+    (fn_body JMove.f_tilt_body_ground_shell) = true.
+
+Theorem shell_graphics_y_offsets_source_shape_jp :
+  shell_graphics_y_offsets_source_shape_jp_claim.
+Proof.
+  unfold shell_graphics_y_offsets_source_shape_jp_claim,
+    float32_forty_two_bits, float32_forty_five_bits.
+  vm_compute. split; reflexivity.
+Qed.
+
+(** The retry is not a harmless optional branch.  If the copied graphical
+    position also has no floor, the generated function calls
+    [level_trigger_warp(m, WARP_OP_DEATH)] in the false branch of the
+    source-identified final floor-pointer test.  [level_trigger_warp] itself is
+    a first-writer latch:
+    every direct AST assignment to [sDelayedWarpOp] in this body is inside the
+    zero-guarded branch, and that branch contains the direct assignment from
+    the [warpOp] parameter.  This syntactic fact does not exclude alias or
+    callee effects.
+    The final conjunct records lexical call order from the generated AST; it
+    does not prove that both calls execute on one concrete path.
+
+    These are pinned structural anchors, not yet a small-step proof that a
+    concrete retry returns null, that the delayed-warp cell initially contains
+    zero, or that the retail scheduler either preserves a fatal request until
+    the later object-warp request or destroys that continuation across any
+    earlier clear/reset interval.  In the zero-lives case
+    [level_trigger_warp] rewrites death to game-over; either value is nonzero
+    and would block a later request while still pending. *)
+Definition ink_retry_null_death_preemption_source_shape_us_claim : Prop :=
+  contains_guarded_floor_null_else_call_s
+    UMI._m UMI._floor UMI._level_trigger_warp 18
+    (fn_body UMI.f_update_mario_geometry_inputs) = true /\
+  is_guarded_first_writer_warp_latch_s
+    ULU._sDelayedWarpOp ULU._warpOp
+    (fn_body ULU.f_level_trigger_warp) = true /\
+  ident_subsequenceb
+    [UMI._update_mario_inputs; UMI._mario_process_interactions]
+    (direct_callees_s (fn_body UMI.f_execute_mario_action)) = true.
+
+Theorem ink_retry_null_death_preemption_source_shape_us :
+  ink_retry_null_death_preemption_source_shape_us_claim.
+Proof.
+  unfold ink_retry_null_death_preemption_source_shape_us_claim.
+  vm_compute. repeat split.
+Qed.
+
+Definition ink_retry_null_death_preemption_source_shape_jp_claim : Prop :=
+  contains_guarded_floor_null_else_call_s
+    JMI._m JMI._floor JMI._level_trigger_warp 18
+    (fn_body JMI.f_update_mario_geometry_inputs) = true /\
+  is_guarded_first_writer_warp_latch_s
+    JLU._sDelayedWarpOp JLU._warpOp
+    (fn_body JLU.f_level_trigger_warp) = true /\
+  ident_subsequenceb
+    [JMI._update_mario_inputs; JMI._mario_process_interactions]
+    (direct_callees_s (fn_body JMI.f_execute_mario_action)) = true.
+
+Theorem ink_retry_null_death_preemption_source_shape_jp :
+  ink_retry_null_death_preemption_source_shape_jp_claim.
+Proof.
+  unfold ink_retry_null_death_preemption_source_shape_jp_claim.
+  vm_compute. repeat split.
+Qed.
+
 (* Entry initialization has source-level writes that synchronize MarioState,
    raw MarioObject coordinates, and graphical coordinates.  The recognizer
    below checks the relevant calls and raw float slots, but remains
@@ -731,8 +822,10 @@ Proof. vm_compute. repeat split. Qed.
    delayed: object updates precede each normal-play timer decrement, two
    change-area frames omit object updates, and the next normal frame runs
    [warp_area] before its object update.  The theorem below checks only generic
-   direct-callee and literal anchors; it does not associate node 0x1E with a
-   particular branch or prove that timing in Clight. *)
+   direct-callee and literal anchors plus the absence of a direct
+   [sDelayedWarpOp] assignment in [initiate_delayed_warp]; it does not exclude
+   writes through callees, associate node 0x1E with a particular branch, or
+   prove that timing in Clight. *)
 Theorem object_warp_delayed_lifetime_source_shape_us :
   ident_subsequenceb
     [ULU._warp_area; ULU._area_update_objects; ULU._initiate_delayed_warp]
@@ -741,7 +834,9 @@ Theorem object_warp_delayed_lifetime_source_shape_us :
   calls_ident_s ULU._level_set_transition
     (fn_body ULU.f_initiate_delayed_warp) = true /\
   statement_mentions_int_s 2
-    (fn_body ULU.f_initiate_delayed_warp) = true.
+    (fn_body ULU.f_initiate_delayed_warp) = true /\
+  statement_assigns_ident_s ULU._sDelayedWarpOp
+    (fn_body ULU.f_initiate_delayed_warp) = false.
 Proof. vm_compute. repeat split. Qed.
 
 Theorem object_warp_delayed_lifetime_source_shape_jp :
@@ -752,7 +847,9 @@ Theorem object_warp_delayed_lifetime_source_shape_jp :
   calls_ident_s JLU._level_set_transition
     (fn_body JLU.f_initiate_delayed_warp) = true /\
   statement_mentions_int_s 2
-    (fn_body JLU.f_initiate_delayed_warp) = true.
+    (fn_body JLU.f_initiate_delayed_warp) = true /\
+  statement_assigns_ident_s JLU._sDelayedWarpOp
+    (fn_body JLU.f_initiate_delayed_warp) = false.
 Proof. vm_compute. repeat split. Qed.
 
 (** Exact packed level-script records for the Area-1 source warp and pyramid

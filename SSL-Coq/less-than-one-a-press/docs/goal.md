@@ -92,27 +92,38 @@ syntax/dataflow receipts separately recognize the null/copy/retry source
 shape and the post-copy non-terrain/unload/final-query order.  State-only
 ordinary, platform, or PU writers preserve Object and
 Graphics and cannot create their split from synchronized input.  A modeled top
-retry requires at least `385` units of Graphics-minus-Object Y separation.
-The source audit uses `45` as the dry route-specific target; `208` is a
-conservative modeled writer relation pending reachable-writer coverage.  The
-bounded pre-apply null theorem excludes only pre-existing platform origins; it
-does not exclude this post-query bootstrap.
+retry with Graphics Y in signed-16 range requires at least `385` units of
+Graphics-minus-Object Y separation;
+either exact proposed prestate requires `973`.  The source audit uses `45` as
+the dry route-specific target; `208` is a conservative modeled writer relation
+pending reachable-writer coverage.  If the retry is also null, the checked
+fatal request occurs before cached object interactions and wins the abstract
+first-writer delayed-warp latch.  Zero lives rewrites death to game-over.  This
+rules out the both-queries-null case only at the checked source/transition
+boundary: a linked proof of an initially empty latch plus the scheduler-aware
+block-or-reset disjunction remains open.  It must show that the fatal value
+either persists through the delayed action request or is cleared only in an
+initialization interval that resets the continuation before another Mario
+update.  Under those premises only a non-null retry remains.  The bounded
+pre-apply null theorem excludes only pre-existing
+platform origins and does not exclude that post-query bootstrap.
 
-The remaining graphical-fallback boundary is named without assuming the
-answer: `InkFallbackSurfaceRefinementObligation` covers the real first-query
-miss and loaded-top retry selection,
-`Area1InkPrestateReachabilityObligation` covers construction of a clean no-A
-State/Object/Graphics prestate, and `Area1InkWriterCoverageObligation` covers
-all reachable position writers.  `InkFallbackSinkMemoryRefinementObligation`
-covers throw-matrix provenance, and
-`InkFallbackPostCopyLifecycleRefinementObligation` covers later object writers,
-preservation across the explicit unload-function call, concrete surface
-identity, the translated/rotated explosion-pose surface and selected height,
-and the final active/inactive-same-epoch owner.  Proving that the top itself is
-scanned, deallocated, or inserted into the free list is a separate extension
-to that obligation.  The
-closed Y `1791` witnesses are zero-yaw home-pose facts and do not discharge
-that lifecycle branch.  Reachability, collision-array retention,
+The five-obligation audit showed that the remaining boundary needs interface
+repair.  The surface, prestate, and writer propositions are
+predicate-sensitive schemas, so they must be replaced by concrete linked-run
+relations for real first-query selection, clean no-A reachability, and complete
+writer closure.  The original sink statement was false under a
+repeated-return execution and a concrete 32-bit modular alias.  Its repaired
+first-return, disjoint-cell `InkFallbackSinkMemoryRefinementObligation` remains
+open.  The current `InkFallbackPostCopyLifecycleRefinementObligation` is unsafe
+under hostile linking/projection or vacuous under the current import, which
+omits `behavior_script.c`.  Replace it with an exact link, anchored clean run,
+certified memory projection, constrained external effects, finite transformed
+surface samples, and pointer-to-slot/epoch linkage before trying to prove later
+writers, unload preservation, surface identity, or final owner state.  Proving
+that the top itself is scanned, deallocated, or inserted into the free list is
+separate.  The closed Y `1791` witnesses are zero-yaw home-pose facts and do
+not discharge that lifecycle branch.  Reachability, collision-array retention,
 capture/unload timing, and JP pointer retention or recapture through the
 delayed warp remain open.  The complete matrix and surface-loader bodies are
 imported, the concrete CompCert casts and partition cells are checked, the

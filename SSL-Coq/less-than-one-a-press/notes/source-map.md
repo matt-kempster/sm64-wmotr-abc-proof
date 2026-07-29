@@ -16,11 +16,11 @@ base-insensitive and direct-callee/literal checks are path-insensitive.
 | Source | Generated stems | Inspected boundary |
 | --- | --- | --- |
 | `src/game/game_init.c` | `*_game_init.v` | `read_controller_inputs`; assignment operator shape for `buttonPressed` only, not operand/dataflow identity |
-| `src/game/mario.c` | `*_mario.v` | `update_mario_button_inputs`; pressed/down field and input-bit constant occurrences; `execute_mario_action`, `update_mario_inputs`, and `update_mario_geometry_inputs` call order for the three-view PU/Ink audit; generated syntax receipts for the guarded floor-null Graphics-to-State copy and retry plus entry-coordinate synchronization; jump-kick `20.0f` action-initializer receipt and `init_mario` cap reset source shape for the ordinary-motion boundary |
-| `src/game/mario_actions_airborne.c` | `*_mario_actions_airborne.v` | jump-kick and forward/backward rollout `perform_air_step(..., 0)` receipts, rollout `30.0f` receipts, and the broader airborne writer inventory; no branch/dataflow or complete execution refinement yet |
+| `src/game/mario.c` | `*_mario.v` | `update_mario_button_inputs`; pressed/down field and input-bit constant occurrences; `execute_mario_action`, `update_mario_inputs`, and `update_mario_geometry_inputs` call order for the three-view PU/Ink audit; generated syntax receipts for the guarded floor-null Graphics-to-State copy/retry and exact guarded retry-null death call, plus entry-coordinate synchronization; jump-kick `20.0f` action-initializer receipt and `init_mario` cap reset source shape for the ordinary-motion boundary |
+| `src/game/mario_actions_airborne.c` | `*_mario_actions_airborne.v` | jump-kick and forward/backward rollout `perform_air_step(..., 0)` receipts, rollout `30.0f` receipts, the riding-shell-air `42.0f` occurrence receipt, and the broader airborne writer inventory; no branch/dataflow or complete execution refinement yet |
 | `src/game/mario_actions_automatic.c` | `*_mario_actions_automatic.v` | pole positioning, holding-pole and top-of-pole source shapes used by the normalized-pole subcase |
 | `src/game/mario_actions_cutscene.c` | `*_mario_actions_cutscene.v` | `act_spawn_no_spin_airborne` and `launch_mario_until_land`; checked call/Float32-argument shapes anchor the zero-forward-speed entry update before `perform_air_step`; `act_disappeared` floor-snap/warp call order for the node-`0x1E` audit |
-| `src/game/mario_actions_moving.c` | `*_mario_actions_moving.v` | walking, braking, slope deceleration, and ground-step shapes; moving-punching held-A jump-kick shape; high-speed B dive and dive-slide B rollout constants/calls; all checks remain path-insensitive |
+| `src/game/mario_actions_moving.c` | `*_mario_actions_moving.v` | walking, braking, slope deceleration, and ground-step shapes; moving-punching held-A jump-kick shape; high-speed B dive and dive-slide B rollout constants/calls; riding-shell-ground `45.0f` occurrence receipt; all checks remain path-insensitive |
 | `src/game/mario_actions_object.c` | `*_mario_actions_object.v` | stationary punching's held-A jump-kick constants/call plus other object-interaction action handlers; no complete execution refinement yet |
 | `src/game/mario_actions_stationary.c` | `*_mario_actions_stationary.v` | stationary action handlers imported for Layer B action/writer coverage; no complete execution refinement yet |
 | `src/game/mario_actions_submerged.c` | `*_mario_actions_submerged.v` | submerged dispatcher coverage; generated-AST receipts check the water full-step helper calls, all three direct whirlpool position slots, and the common water-level clamp.  The Ink writer audit conservatively allows water pitch at most `60` plus a persisted s16-only bob below `148` to compose across the floor-hit branch, represented by the modeled integer bound `208`.  This closes the missing translation-unit hole, not SSL reachability or callgraph completeness |
@@ -36,7 +36,7 @@ base-insensitive and direct-callee/literal checks are path-insensitive.
 | `src/game/behavior_actions.c` | `*_behavior_actions.v` | `bhv_pole_init` hitbox-field assignment shape used by the normalized-pole source audit; Area-1 Tox Box angle-slot writes and breakable/exclamation fragment allocation, PRNG, face-angle, and angular-velocity source shapes |
 | `data/behavior_data.c` | `*_behavior_data.v` | star, hidden-controller and hidden-trigger behavior bindings; pyramid-top loop/collision-loader initializer references |
 | `src/game/area.c` | `*_area.v` | direct `unload_area`/`load_area` call order in `change_area`; lifecycle execution is pending |
-| `src/game/level_update.c` | `*_level_update.v` | direct `change_area` occurrence in `check_instant_warp`, game-over reload call, airborne entry-action constant/call source shape, normal-update/delayed-object-warp ordering, and the area-entry `init_mario`/initial-cap call shapes needed to exclude retained Wing Cap |
+| `src/game/level_update.c` | `*_level_update.v` | direct `change_area` occurrence in `check_instant_warp`, game-over reload call, airborne entry-action constant/call source shape, guarded direct-assignment first-writer shape for `sDelayedWarpOp`, normal-update/delayed-object-warp ordering, absence of a direct latch assignment in `initiate_delayed_warp`, and the area-entry `init_mario`/initial-cap call shapes needed to exclude retained Wing Cap |
 | `src/game/platform_displacement.c` | `*_platform_displacement.v` | `gMarioPlatform`/validation-field identifier occurrences, State position writes, object-position reads for final selection, X/Z-but-not-Y velocity slot reads, direct displacement/floor calls, and global assignment shape; pointer/matrix dataflow is pending |
 | `src/engine/math_util.c` | `*_math_util.v` | full `mtxf_rotate_zxy_and_translate` body and `gSineTable` initializer; the linked memory execution that constructs the platform matrix remains pending |
 | `src/engine/surface_collision.c` | `*_surface_collision.v` | `find_floor` binary32-to-signed-16 cast shape and 78-unit floor buffer, plus the floor/surface query implementation used by Mario stepping and platform recomputation; ordinary-motion receipts check the wall list's strict `y > upperY` rejection; the concrete CompCert cast result and matching authenticated US/JP retail instruction fragment are checked, while linked execution and actual surface-selection refinements remain pending |
@@ -84,6 +84,14 @@ floor-retry/action/sink/copy pipeline, checks nearby generated Area-1 mesh
 arithmetic, and proves that arbitrary State-only ordinary/platform/PU prefixes
 preserve Object and Graphics.  Separately, generated-AST receipts recognize
 the exact null test, Graphics-to-State copy dataflow, retry, and result store.
+They also recognize the guarded retry-null death request, the
+`sDelayedWarpOp` first-writer latch, and geometry-before-interaction order in
+US and JP.  The closed latch model proves that an earlier fatal request
+prevents a later upper-object-warp request from replacing it.  At zero lives
+the source rewrites death to game-over.  Initial latch emptiness, the
+scheduler-aware disjunction between blocking the later `ACT_DISAPPEARED`
+request and clearing only inside a continuation-destroying reset interval, and
+concrete Clight path refinement remain open.
 Generated initializer receipts locate the selected lower support faces in the
 `SURFACE_WALL_MISC` group, the selected upper face in the `SURFACE_HARD` group,
 and all three Area-1 water boxes.  Further generated receipts check that later
@@ -101,27 +109,29 @@ generated Clight.  Therefore the two closed zero-yaw home-pose floor-Y `1791`
 witnesses do not discharge the translated/rotated explosion branch.
 
 The projected quicksand sink does not change the State-to-Object copy.  Its
-remaining refinement is now a concrete complete Clight call segment with
-explicit MarioState/Object/Graphics/optional-throw-matrix loads, pairwise
-memory slices, and an exact postcondition.  The post-copy lifecycle boundary
-likewise uses ordered Clight call/return cuts, binary32 samples, concrete
-MarioState floor/surface/owner pointers, behavior and collision-data symbols,
-and projected slot/epoch data.  Neither evidence record is constructed.
+original concrete statement was false: an unrestricted segment could continue
+past one return, and aggregate linear slices missed a checked 32-bit
+pointer-wrap alias.  The repaired obligation stops at the first matching
+return, uses the individual modular four-byte cells, and remains unproved.
+The post-copy lifecycle record is not presently a valid proof target despite
+its ordered control points: arbitrary linking/projection can falsify it, while
+the current import can make it vacuous because `behavior_script.c` is absent.
+It also needs external-call frame conditions, a certified memory projection,
+pointer-to-pool-slot/epoch linkage, and finite transformed-surface samples.
 
-A retry capable of selecting a top floor at Y at least `1281` requires
+A retry with Graphics Y in signed-16 range that can select a top floor at Y at
+least `1281` requires
 Graphics-minus-Object Y separation of at least `385`.  The source audit
 identifies `45` as the dry route-specific offset target; `208` is a deliberately
-conservative modeled writer relation, not a source-derived global bound.
-Either becomes a retail exclusion only after the corresponding reachable
-writer coverage is proved by `Area1InkWriterCoverageObligation`.  The actual
-first-query null and loaded-top retry are
-`InkFallbackSurfaceRefinementObligation`, and construction of a clean no-A
-three-view prestate is
-`Area1InkPrestateReachabilityObligation`.  Sink memory provenance and the
-post-copy active/inactive-same-epoch owner lifecycle are
-`InkFallbackSinkMemoryRefinementObligation` and
-`InkFallbackPostCopyLifecycleRefinementObligation`; concrete free-list
-membership remains separate and unproved.
+conservative modeled writer relation, not a source-derived global bound.  The
+two exact proposed prestates require at least `973`.  The surface, prestate, and
+writer obligations are proved predicate-sensitive schemas; each must be
+replaced by a concrete linked-run relation.  Complete audited writer-execution
+coverage from an audited entry conditionally refutes the exact prestate, but
+deriving that coverage from retail US/JP execution is open.  The repaired sink
+memory obligation remains open, and the lifecycle interface must be replaced
+before any post-copy owner claim.  Concrete free-list membership remains
+separate and unproved.
 
 `proofs/Area1PhaseSplit.v` checks the Area-1 fragment writers, macro parents,
 rebound source shape, exact PRNG/table values, and one route-sized binary32
@@ -249,10 +259,14 @@ collision Object and fallback Graphics views, while any execution covered by
 the modeled writer relation preserves a Graphics-minus-Object Y gap at most
 `208` and therefore cannot meet the required `385`-unit gap.  The
 route-specific dry source audit target is `45`, with a conditional arithmetic
-theorem once that premise is derived.  Complete Clight writer/action/spawn
-closure is still the explicit
-`Area1InkWriterCoverageObligation`; none of these arithmetic results is
-presented as global ordinary-motion reachability.
+theorem once that premise is derived.  Either exact proposed prestate needs
+`973`.  The old writer obligation is only a predicate-sensitive schema;
+complete linked Clight writer/action/spawn closure still requires a concrete
+replacement relation.  None of these arithmetic results is presented as
+global ordinary-motion reachability.  A retry that remains null is excluded at
+the source/abstract-latch boundary because the earlier fatal request wins.  A
+linked proof still needs initial latch state and the scheduler-aware
+block-or-reset disjunction.
 
 `proofs/FirstTargetRefinement.v` deliberately preserves the conditional JP
 upper-warp/spinning-pyramid-top route.  Its evidence records how the warp and

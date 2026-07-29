@@ -406,7 +406,7 @@ The proved split is:
   the nonzero triangle-fragment angular fields used by the candidate; and
 - `concrete_area1_fragment_displacement_is_route_sized_3d`: exact CompCert
   binary32 arithmetic for the selected payload changes X, Y, and Z, and its Y
-  rise exceeds the route's 385-unit necessary lower bound; and
+  rise exceeds the route's signed-range 385-unit necessary lower bound; and
 - `area1_surface_capability_checked` in `Area1SurfaceWitness.v`: at short query
   `(-2350,1878,-714)`, the mirrored transformed-top face has signed edges
   `[207669,313344,2763]` and height `1483.603515625`; a checked static face has
@@ -449,16 +449,30 @@ physics State S     -- two wall queries, then first find_floor(S) = NULL
 graphical sample G  -- copied to State, retry selects loaded top surface
 ```
 
-The cached warp collision is processed after the fallback.  If its retry floor
-is the top, `ACT_DISAPPEARED` snaps State to that floor, copies the snap to
-Graphics, the unconditional quicksand-sink call writes Graphics position and
-possibly `gfx.throwMatrix`, and State is later copied to raw Object.  Six more
-object lists then update and deactivated objects unload before the final
-platform query.  That source order admits a distinct explosion-frame
-inactive-owner candidate.  It does not yet prove concrete surface retention or
-free-list membership.  Thus update order does **not** make this conditional
-primitive impossible, but the post-copy object/owner lifecycle is not proved
-by the coordinate witness.
+The cached warp collision is processed after the fallback even if geometry
+processing has already filled the delayed-warp latch.  The interaction may
+select `ACT_DISAPPEARED`; what changes is whether its later object-warp request
+can become pending.  If the retry is also `NULL`,
+`update_mario_geometry_inputs` requests `WARP_OP_DEATH` first.
+At zero lives the stored operation becomes game-over.  An uncleared fatal
+request prevents the later upper-object-warp request from replacing it.
+Generated US/JP recognizers check the exact guarded call, guarded-write latch
+shape, and lexical source order; the closed delayed-warp model proves the
+abstract transition.  The linked proof must show that the latch starts empty
+and then either remains occupied until `act_disappeared` makes its later
+request or is cleared only by reset/initialization scheduling that destroys
+the continuation before another Mario update.  Under those premises the
+both-queries-null schedule cannot save the A press.
+
+If the retry instead selects the top, `ACT_DISAPPEARED` snaps State to that
+floor, copies the snap to Graphics, the unconditional quicksand-sink call
+writes Graphics position and possibly `gfx.throwMatrix`, and State is later
+copied to raw Object.  Six more object lists then update and deactivated
+objects unload before the final platform query.  That source order admits a
+distinct explosion-frame inactive-owner candidate.  It does not yet prove
+concrete surface retention or free-list membership.  Thus update order does
+not eliminate the **non-null-retry** conditional primitive, but the post-copy
+object/owner lifecycle is not proved by the coordinate witness.
 
 `InkFallback.v` proves two handwritten-pipeline coordinate witnesses: one with
 a local top-side `G`, and one with `G.x = 63488` aliasing the local top through
@@ -466,14 +480,16 @@ the signed-16 floor query.  The generated-AST recognizer separately checks the
 null-test/copy/retry dataflow, but no theorem yet executes the branch in
 Clight.  Both witnesses use the zero-yaw home top at floor Y `1791`; they do
 not instantiate the translated/rotated explosion pose, whose transformed
-surface and selected height remain part of the generalized lifecycle
-obligation.  The module also proves:
+surface and selected height must be derived through a replacement linked
+lifecycle interface.  The module also proves:
 
 - selected generated static faces and walls reject the concrete first-query
   diagnostic `S = (-2200,768,-1024)`;
 - every owner in the fifteen-owner abstract dynamic-floor inventory is
   rejected for that first query;
-- the retry requires at least 385 units of upward `G.y - C.y` separation;
+- a retry with `G.y` in signed-16 range requires at least 385 units of upward
+  `G.y - C.y` separation;
+- either exact proposed local/PU prestate requires at least 973 units;
 - the dry ordinary visual bound `<=45` cannot supply that retry;
 - a writer execution classified by the generic conservative modeled
   Graphics-writer relation `<=208` cannot supply the required `385`-unit retry
@@ -498,13 +514,20 @@ not yet a linked Clight action/spawn-closure theorem.  The real static and
 dynamic surface-list traversal is also unproved, so the selected face
 arithmetic is not advertised as an actual first `NULL` or top-owned retry.
 
-Accordingly, this scheduling shape is neither eliminated nor a retail
-counterexample.  `Area1InkPrestateReachabilityObligation`,
-`Area1InkWriterCoverageObligation`, and
-`InkFallbackSurfaceRefinementObligation`,
-`InkFallbackSinkMemoryRefinementObligation`, and
-`InkFallbackPostCopyLifecycleRefinementObligation` state the narrow remaining
-work.
+Accordingly, the non-null-retry scheduling shape is neither eliminated nor a
+retail counterexample.  The five-obligation audit refined the remaining work:
+
+- the prestate, writer, and surface propositions are predicate-sensitive
+  schemas and need concrete linked-run replacements;
+- complete audited writer-execution coverage from an audited entry
+  conditionally refutes either exact prestate, but retail coverage is open;
+- the original sink statement was false under repeated-return execution and a
+  checked 32-bit pointer-wrap alias; its repaired first-return,
+  modular-cell-disjoint form remains unproved; and
+- the lifecycle proposition is unsafe or vacuous under its current
+  link/projection/import interface and must be replaced before any post-copy
+  owner claim.
+
 See [`ink-fallback.md`](ink-fallback.md).
 
 `JPSlotLifetime.v` further checks the JP load/spawn/allocation/unload/free-list
@@ -624,8 +647,13 @@ projection.  Generated-expression extraction, linked live-surface memory, list
 selection, every construction not yet shown to project into the bounded
 relation, and the exact JP destination-area allocation trace remain open.
 This platform-origin result does not remove Ink's null-platform graphical
-retry; its three named reachability, writer-coverage, and surface-refinement
-obligations remain open.
+retry.  The retry-null variant is excluded at the source/abstract-latch
+boundary by fatal-warp priority; linked initial-state and scheduler-aware
+block-or-reset refinement remain open.  For the non-null variant, the three
+old reachability, writer-coverage,
+and surface-refinement names are predicate schemas awaiting concrete
+linked-run replacements; the repaired sink is open and the lifecycle interface
+is invalid.
 
 Alternatively, a stock-reachable constructor must be recorded with its exact
 clean initial RAM state, controller frames, object/global trace, and target

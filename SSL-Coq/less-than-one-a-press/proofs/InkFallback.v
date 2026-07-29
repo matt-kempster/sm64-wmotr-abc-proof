@@ -207,6 +207,61 @@ Definition InkFallbackSurfaceRefinementObligation
   (retry_selects_loaded_top_surface ink_local_top_graphics_position 1791 \/
    retry_selects_loaded_top_surface pu_top_floor_candidate 1791).
 
+(** This legacy interface is a predicate schema, not a closed retail
+    proposition.  The following theorem makes that limitation executable:
+    unconstrained interpretations can make it either true or false.  A future
+    replacement must quantify over concrete [find_floor] call segments and
+    live list memory, as the sink and lifecycle interfaces attempt to do. *)
+Theorem ink_surface_refinement_schema_is_predicate_sensitive :
+  InkFallbackSurfaceRefinementObligation
+    (fun _ => True) (fun _ _ => True) /\
+  ~ InkFallbackSurfaceRefinementObligation
+      (fun _ => False) (fun _ _ => False).
+Proof.
+  unfold InkFallbackSurfaceRefinementObligation.
+  split.
+  - intuition.
+  - intros (Hfalse & _). exact Hfalse.
+Qed.
+
+(** The delayed-warp cell is modeled as a first-writer latch.  [InkFatalWarp]
+    abstracts either the requested death operation or the game-over operation
+    to which [level_trigger_warp] rewrites it at zero lives.  The generated-AST
+    facts below are pinned structural anchors for the retry-null call and the
+    source order; they do not yet refine a concrete multi-frame Clight run to
+    this tiny transition system or prove that its initial cell is empty. *)
+Inductive InkDelayedWarpOperation : Type :=
+| InkFatalWarp
+| InkUpperObjectWarp.
+
+Definition ink_request_delayed_warp
+    (pending : option InkDelayedWarpOperation)
+    (requested : InkDelayedWarpOperation) :
+    option InkDelayedWarpOperation :=
+  match pending with
+  | None => Some requested
+  | Some existing => Some existing
+  end.
+
+Theorem ink_delayed_warp_request_is_first_writer :
+  forall existing requested,
+    ink_request_delayed_warp (Some existing) requested = Some existing.
+Proof. reflexivity. Qed.
+
+Theorem ink_retry_null_fatal_latch_blocks_later_upper_request :
+  ink_request_delayed_warp
+    (ink_request_delayed_warp None InkFatalWarp)
+    InkUpperObjectWarp =
+  Some InkFatalWarp.
+Proof. reflexivity. Qed.
+
+(** This equation assumes an empty latch; a successful graphical retry does
+    not by itself establish that premise. *)
+Theorem ink_empty_latch_accepts_upper_request :
+  ink_request_delayed_warp None InkUpperObjectWarp =
+  Some InkUpperObjectWarp.
+Proof. reflexivity. Qed.
+
 Record MarioThreeView : Type := {
   three_state_position : PositionZ;
   three_object_position : PositionZ;
@@ -360,6 +415,23 @@ Proof.
       (three_object_position views)
       (three_graphics_position views)
       floor_y Hwarp Hgraphics_range Hfloor Hquery).
+Qed.
+
+(** Closed arithmetic for the two direct riding-shell graphical-Y additions
+    found in the pinned source.  The US/JP source-shape kernel separately pins
+    the corresponding binary32 literals in the named air and ground helpers. *)
+Definition riding_shell_air_graphics_y_offset : Z := 42.
+Definition riding_shell_ground_graphics_y_offset : Z := 45.
+
+Theorem shell_graphics_y_offsets_fit_dry_audit_bound :
+  riding_shell_air_graphics_y_offset = 42 /\
+  riding_shell_ground_graphics_y_offset = 45 /\
+  riding_shell_air_graphics_y_offset <= 45 /\
+  riding_shell_ground_graphics_y_offset <= 45.
+Proof.
+  unfold riding_shell_air_graphics_y_offset,
+    riding_shell_ground_graphics_y_offset.
+  repeat split; lia.
 Qed.
 
 (** Closed arithmetic for the largest positive dry ordinary visual offset
@@ -614,6 +686,55 @@ Definition Area1InkPrestateReachabilityObligation
     (three_graphics_position views = ink_local_top_graphics_position \/
      three_graphics_position views = pu_top_floor_candidate).
 
+(** Like the surface schema above, this proposition cannot decide retail
+    reachability until its predicate is tied to a clean linked execution. *)
+Theorem area1_ink_prestate_schema_is_predicate_sensitive :
+  Area1InkPrestateReachabilityObligation
+    (fun views => views = ink_local_conditional_prestate) /\
+  ~ Area1InkPrestateReachabilityObligation (fun _ => False).
+Proof.
+  split.
+  - exists ink_local_conditional_prestate.
+    unfold ink_local_conditional_prestate.
+    cbn.
+    split; [reflexivity |].
+    split; [reflexivity |].
+    split.
+    + unfold upper_warp_contact, horizontal_distance_squared,
+        upper_warp_center, upper_warp_radius, mario_hitbox_radius,
+        upper_warp_y, upper_warp_height, mario_hitbox_height.
+      cbn. repeat split; lia.
+    + left. reflexivity.
+  - intros (views & Hfalse & _). exact Hfalse.
+Qed.
+
+(** Either proposed local/PU graphics sample is at Y=1791.  Any collision
+    Object still overlapping the upper warp is at most Y=818, so the exact
+    reachability schema needs a Graphics-minus-Object gap of at least 973
+    units.  This is stronger than the more general 385-unit
+    [InkFallbackReady] lower bound. *)
+Theorem area1_ink_prestate_requires_at_least_973_graphics_y_gap :
+  forall views,
+    three_state_position views = ink_warp_floor_miss_position ->
+    upper_warp_contact (three_object_position views) ->
+    (three_graphics_position views = ink_local_top_graphics_position \/
+     three_graphics_position views = pu_top_floor_candidate) ->
+    972 <
+      position_y (three_graphics_position views) -
+      position_y (three_object_position views).
+Proof.
+  intros views _ (_ & Hobject_upper & _) Hgraphics.
+  change (position_y (three_object_position views) <= 818)
+    in Hobject_upper.
+  destruct Hgraphics as [Hgraphics | Hgraphics].
+  - rewrite Hgraphics.
+    change (972 < 1791 - position_y (three_object_position views)).
+    lia.
+  - rewrite Hgraphics.
+    change (972 < 1791 - position_y (three_object_position views)).
+    lia.
+Qed.
+
 (** The source census can be connected without baking the target region into
     an oracle.  A retail transition is covered when it is either State-only,
     an exact object/graphics synchronization, or a graphics-specific writer
@@ -722,6 +843,75 @@ Definition Area1InkWriterCoverageObligation
     retail_position_step before after ->
     AuditedArea1PositionWriterStep before after.
 
+(** The writer interface is likewise a schema until [retail_position_step] is
+    a concrete Clight-derived relation.  [True] admits the exact high-Graphics
+    transition that the audited relation rejects. *)
+Definition ink_synchronized_upper_warp_views : MarioThreeView := {|
+  three_state_position := upper_warp_center;
+  three_object_position := upper_warp_center;
+  three_graphics_position := upper_warp_center
+|}.
+
+Lemma ink_high_graphics_transition_is_not_an_audited_writer :
+  ~ AuditedArea1PositionWriterStep
+      ink_synchronized_upper_warp_views ink_local_conditional_prestate.
+Proof.
+  intros Hwriter.
+  inversion Hwriter; subst;
+    unfold ink_synchronized_upper_warp_views,
+      ink_local_conditional_prestate, ink_local_top_graphics_position,
+      ink_warp_floor_miss_position, upper_warp_center, upper_warp_x,
+      upper_warp_y, upper_warp_z, audited_graphics_y_gap_bound in *;
+    cbn in *;
+    try lia;
+    discriminate.
+Qed.
+
+Theorem area1_ink_writer_coverage_schema_is_predicate_sensitive :
+  Area1InkWriterCoverageObligation AuditedArea1PositionWriterStep /\
+  ~ Area1InkWriterCoverageObligation (fun _ _ => True).
+Proof.
+  split.
+  - intros before after Hstep. exact Hstep.
+  - intros Hcoverage.
+    apply ink_high_graphics_transition_is_not_an_audited_writer.
+    apply Hcoverage. exact I.
+Qed.
+
+Definition Area1InkWriterExecutionCoverage
+    (entry : MarioThreeView)
+    (reachable_clean_no_a_area1 : MarioThreeView -> Prop) : Prop :=
+  forall views,
+    reachable_clean_no_a_area1 views ->
+    AuditedArea1WriterExecution entry views.
+
+(** This is the useful direction of the reachability question.  Entry
+    synchronization and complete writer-execution coverage refute the exact
+    Ink prestate schema; the retail work is now isolated to deriving those
+    two premises from the linked US/JP execution. *)
+Theorem audited_writer_coverage_refutes_area1_ink_prestate :
+  forall entry reachable_clean_no_a_area1,
+    graphics_y_gap_is_audited entry ->
+    Area1InkWriterExecutionCoverage
+      entry reachable_clean_no_a_area1 ->
+    ~ Area1InkPrestateReachabilityObligation
+        reachable_clean_no_a_area1.
+Proof.
+  intros entry reachable Hentry Hcoverage
+    (views & Hreachable & Hstate & Hcontact & Hgraphics).
+  pose proof
+    (Hcoverage views Hreachable) as Hexecution.
+  pose proof
+    (audited_area1_writer_execution_preserves_graphics_y_gap
+      entry views Hentry Hexecution) as Hbounded.
+  pose proof
+    (area1_ink_prestate_requires_at_least_973_graphics_y_gap
+      views Hstate Hcontact Hgraphics) as Hrequired.
+  unfold graphics_y_gap_is_audited,
+    audited_graphics_y_gap_bound in Hbounded.
+  lia.
+Qed.
+
 (** * Concrete memory boundaries for the two remaining scheduling gaps *)
 
 Definition ink_address_offset
@@ -785,6 +975,36 @@ Definition ink_slices_disjoint
   ink_slice_start left + ink_slice_bytes left <= ink_slice_start right \/
   ink_slice_start right + ink_slice_bytes right <= ink_slice_start left.
 
+(** Counterexample to using linear aggregate intervals for modular pointers.
+    On 32-bit CompCert pointers, the Graphics aggregate begins four bytes
+    before the modulus and wraps.  The matrix cell begins at zero.  The
+    existing predicate declares the two aggregates disjoint even though
+    Graphics Y and matrix[3][1] are the same concrete address. *)
+Definition ink_wrap_counterexample_block : Values.block := 1%positive.
+Definition ink_wrap_object_offset : Ptrofs.int :=
+  Ptrofs.repr 4294967260.
+Definition ink_wrap_matrix_offset : Ptrofs.int :=
+  Ptrofs.repr 4294967244.
+
+Theorem ink_linear_slice_disjointness_misses_pointer_wrap_alias :
+  ink_slices_disjoint
+    (ink_relative_slice
+      ink_wrap_counterexample_block ink_wrap_object_offset 32 12)
+    (ink_relative_slice
+      ink_wrap_counterexample_block ink_wrap_matrix_offset 52 4) /\
+  ink_address_offset ink_wrap_object_offset 36 =
+    ink_address_offset ink_wrap_matrix_offset 52.
+Proof.
+  split.
+  - unfold ink_slices_disjoint, ink_relative_slice,
+      ink_wrap_counterexample_block, ink_wrap_object_offset,
+      ink_wrap_matrix_offset, ink_address_offset.
+    cbn.
+    right. right.
+    change (4 <= 4294967292). lia.
+  - vm_compute. reflexivity.
+Qed.
+
 Definition InkMemoryAddress : Type := Values.block * Ptrofs.int.
 
 Definition ink_pointer_value
@@ -817,13 +1037,67 @@ Definition ink_sink_layout_slices
       [ink_relative_slice matrix_block matrix_offset 52 4]
   end.
 
+(** Repaired non-aliasing inventory.  Each entry is one actual four-byte load
+    or store cell after modular pointer addition rather than a linear
+    aggregate.  The successful aligned [Mem.load] premises in an inhabited
+    call segment establish that its listed cells are valid; the inventory
+    alone does not rule out every wrapping base offset. *)
+Definition ink_sink_layout_cells
+    (state_block : Values.block) (state_offset : Ptrofs.int)
+    (object_block : Values.block) (object_offset : Ptrofs.int)
+    (throw_target : option InkMemoryAddress) : list InkMemorySlice :=
+  [ ink_relative_slice state_block state_offset 60 4;
+    ink_relative_slice state_block state_offset 64 4;
+    ink_relative_slice state_block state_offset 68 4;
+    ink_relative_slice state_block state_offset 136 4;
+    ink_relative_slice state_block state_offset 192 4;
+    ink_relative_slice object_block object_offset 32 4;
+    ink_relative_slice object_block object_offset 36 4;
+    ink_relative_slice object_block object_offset 40 4;
+    ink_relative_slice object_block object_offset 80 4;
+    ink_relative_slice object_block object_offset 160 4;
+    ink_relative_slice object_block object_offset 164 4;
+    ink_relative_slice object_block object_offset 168 4 ] ++
+  match throw_target with
+  | None => []
+  | Some (matrix_block, matrix_offset) =>
+      [ink_relative_slice matrix_block matrix_offset 52 4]
+  end.
+
+Definition ink_is_sink_return
+    (continuation : Clight.cont) (state : Clight.state) : Prop :=
+  exists memory,
+    state = Clight.Returnstate Values.Vundef continuation memory.
+
+(** Unlike an unrestricted [Smallstep.star], this relation stops at the first
+    matching return.  In particular, it cannot resume a caller loop from that
+    return and execute the sink a second time before choosing its endpoint. *)
+Inductive ink_steps_to_first_sink_return
+    (ge : Clight.genv) (continuation : Clight.cont) :
+    Clight.state -> Events.trace -> Clight.state -> Prop :=
+| InkFirstSinkReturnNow :
+    forall before step_trace after,
+      Clight.step2 ge before step_trace after ->
+      ink_is_sink_return continuation after ->
+      ink_steps_to_first_sink_return
+        ge continuation before step_trace after
+| InkFirstSinkReturnLater :
+    forall before first_trace middle rest_trace after,
+      Clight.step2 ge before first_trace middle ->
+      ~ ink_is_sink_return continuation middle ->
+      ink_steps_to_first_sink_return
+        ge continuation middle rest_trace after ->
+      ink_steps_to_first_sink_return
+        ge continuation before (first_trace ++ rest_trace) after.
+
 (** A candidate is an actual complete Clight call/return segment for the
     selected US or JP [sink_mario_in_quicksand] body.  Its premises recover the
     concrete MarioState pointer, MarioObject pointer, binary32 depth, all three
     position views, and the optional throw-matrix cell from CompCert memory.
-    The pairwise-disjoint layout premise is the missing normal-provenance fact;
-    it rules out the omitted matrix store aliasing State, raw Object, Graphics,
-    the object pointer, or the depth field. *)
+    The original version used an unrestricted [Smallstep.star] and aggregate
+    linear slices.  Those choices admitted a repeated-call trace and a
+    pointer-wrap alias.  The repaired record stops at the first matching
+    return and requires pairwise disjoint actual modular cells. *)
 Record InkFallbackSinkCallSegment : Type := {
   ink_sink_projection : ClightObservationProjection;
   ink_sink_before : Clight.state;
@@ -850,8 +1124,9 @@ Record InkFallbackSinkCallSegment : Type := {
         ink_sink_continuation
         (clight_state_memory ink_sink_before);
   ink_sink_steps :
-    @Smallstep.star _ _ Clight.step2
+    ink_steps_to_first_sink_return
       (Clight.globalenv (projection_program ink_sink_projection))
+      ink_sink_continuation
       ink_sink_before ink_sink_trace ink_sink_after;
   ink_sink_return_state :
     ink_sink_after =
@@ -896,7 +1171,7 @@ Record InkFallbackSinkCallSegment : Type := {
     end;
   ink_sink_layout_disjoint :
     ForallOrdPairs ink_slices_disjoint
-      (ink_sink_layout_slices
+      (ink_sink_layout_cells
         ink_sink_state_block ink_sink_state_offset
         ink_sink_object_block ink_sink_object_offset
         ink_sink_throw_target)
@@ -958,10 +1233,13 @@ Definition InkFallbackSinkMemoryPostcondition
     (clight_state_memory (ink_sink_before segment))
     (clight_state_memory (ink_sink_after segment)).
 
-(** This is now a concrete function-correctness obligation: every linked
+(** This repaired concrete function-correctness obligation quantifies over
+    first-return, modular-cell-disjoint call segments.  Every such linked
     target call segment satisfying the explicit memory-layout premises must
     have exactly the projected Graphics write and optional matrix write above.
-    No predicate parameter can supply the desired result by fiat. *)
+    It remains unproved; the two concrete defects in its predecessor are
+    formally recorded by [ink_linear_slice_disjointness_misses_pointer_wrap_alias]
+    and the first-return relation above. *)
 Definition InkFallbackSinkMemoryRefinementObligation : Prop :=
   forall segment : InkFallbackSinkCallSegment,
     InkFallbackSinkMemoryPostcondition segment.
@@ -1083,6 +1361,21 @@ Definition ink_pyramid_top_home_f32 : Vec3f := {|
   vec_y := f32_of_Z pyramid_top_home_y;
   vec_z := f32_of_Z pyramid_top_home_z
 |}.
+
+(** Equal symbolic Y fields do not by themselves force the retail
+    [absf(marioY - floorHeight) < 4.0f] branch.  A quiet NaN equals itself in
+    Coq's meta-level equality, but the generated binary32 comparison is false.
+    The lifecycle refinement therefore needs a finite coordinate bound (or an
+    exact proof of this comparison) derived from concrete surface geometry. *)
+Definition ink_quiet_nan : float32 :=
+  Float32.of_bits (Int.repr 2143289344).
+
+Theorem equal_binary32_samples_do_not_imply_platform_tolerance :
+  ink_quiet_nan = ink_quiet_nan /\
+  Float32.cmp Clt
+    (Float32.abs (Float32.sub ink_quiet_nan ink_quiet_nan))
+    (f32_of_Z 4) = false.
+Proof. vm_compute. split; reflexivity. Qed.
 
 Definition ink_find_floor_return_control_point
     (projection : ClightObservationProjection)
@@ -1533,11 +1826,16 @@ Definition InkFallbackPostCopyLifecyclePostcondition
           (ink_lifecycle_owner_block segment)
           (ink_lifecycle_owner_offset segment)).
 
-(** This is a universal small-step/memory refinement statement over explicit
-    lifecycle segments.  It requires the copied Object sample, loaded surface
-    owner pointer, same allocation epoch (active or inactive-same-epoch), and
-    final [gMarioPlatform] capture to be derived from the linked run rather
-    than supplied by an unconstrained predicate. *)
+(** Audit status: do not try to prove this current universal statement.
+    [project_state] is not yet a certified memory interpretation, the imported
+    program omits the behavior-script interpreter that calls Mario's behavior,
+    the subtraces are unrestricted stars, external calls lack the needed frame
+    specifications, and equal arbitrary binary32 samples do not force the
+    platform-tolerance branch.  Thus the statement can be unsafe under a
+    hostile linked program/projection and vacuous under the exact current
+    translation.  It is retained under its requested name so those defects
+    remain visible while the repaired exact-link/anchored-run interface is
+    built. *)
 Definition InkFallbackPostCopyLifecycleRefinementObligation : Prop :=
   forall segment : InkFallbackPostCopyLifecycleSegment,
     InkFallbackPostCopyLifecyclePostcondition segment.
@@ -1547,6 +1845,10 @@ Definition InkFallbackPostCopyLifecycleRefinementObligation : Prop :=
 Definition InkFallbackSourceShapeKernel : Prop :=
   graphical_floor_fallback_source_shape_us_claim /\
   graphical_floor_fallback_source_shape_jp_claim /\
+  shell_graphics_y_offsets_source_shape_us_claim /\
+  shell_graphics_y_offsets_source_shape_jp_claim /\
+  ink_retry_null_death_preemption_source_shape_us_claim /\
+  ink_retry_null_death_preemption_source_shape_jp_claim /\
   mario_entry_coordinate_sync_source_shape_us_claim /\
   mario_entry_coordinate_sync_source_shape_jp_claim /\
   pyramid_top_spin_explosion_pose_source_shape_us_claim /\
@@ -1560,6 +1862,10 @@ Proof.
   unfold InkFallbackSourceShapeKernel.
   split; [exact graphical_floor_fallback_source_shape_us |].
   split; [exact graphical_floor_fallback_source_shape_jp |].
+  split; [exact shell_graphics_y_offsets_source_shape_us |].
+  split; [exact shell_graphics_y_offsets_source_shape_jp |].
+  split; [exact ink_retry_null_death_preemption_source_shape_us |].
+  split; [exact ink_retry_null_death_preemption_source_shape_jp |].
   split; [exact mario_entry_coordinate_sync_source_shape_us |].
   split; [exact mario_entry_coordinate_sync_source_shape_jp |].
   split; [exact pyramid_top_spin_explosion_pose_source_shape_us |].

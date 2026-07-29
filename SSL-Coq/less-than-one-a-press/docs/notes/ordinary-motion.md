@@ -247,9 +247,12 @@ coordinate part of a conditional warp/top snap.  The unconditional
 quicksand-sink call occurs between the disappeared-action snap and the
 State/Object copy; the projection models its Graphics-position write and
 proves that modeled write cannot change the copied Object coordinate.  The
-source may also write `gfx.throwMatrix[3][1]`, whose non-aliasing is a memory
-obligation.  Later object lists and deactivated-object unloading occur before
-the final platform query, so owner-slot liveness is a separate obligation.
+source may also write `gfx.throwMatrix[3][1]`.  The original memory obligation
+was false under a repeated-return segment and a checked modular pointer alias;
+its repaired first-return, disjoint-cell form remains open.  Later object lists
+and deactivated-object unloading occur before the final platform query.  The
+current lifecycle proposition is unsafe or vacuous and must be replaced before
+owner-slot liveness can be claimed.
 
 `InkFallback.v` now proves the relevant three-view invariant.  Any finite
 prefix of writers that changes only MarioState preserves both the collision
@@ -259,14 +262,26 @@ the required Object/Graphics split from a synchronized sample.  PU wrapping
 can affect the retry's floor lookup, but it does not itself write the
 full-float Object or Graphics coordinates.
 
-The retry requires at least 385 units of upward
-`GraphicsY - ObjectY` separation.  The dry ordinary source census finds a
+The generic retry, when Graphics Y is in signed-16 range, requires at least
+385 units of upward
+`GraphicsY - ObjectY` separation; either exact local/PU prestate proposed in
+the Ink note requires at least `973`.  The dry ordinary source census finds a
 largest relevant positive visual offset of 45, and the admission-free theorem
 `dry_graphics_offset_cannot_supply_top_retry` closes that arithmetic subcase
 once its `<=45` premise is derived.  The source audit motivates a conservative
 cross-action relation bound of 208 because water pitch of at most 60 and
 swimming bob below 148 can compose across a floor-hit branch; the upper warp
 is outside the checked water boxes, so that is not the route-specific target.
+
+If the graphical retry also returns no floor, the geometry code requests the
+fatal warp before cached object interactions.  The abstract first-writer latch
+prevents a later upper-object-warp request from replacing that value; zero
+lives stores game-over.  A linked proof of initial emptiness and the
+scheduler-aware block-or-reset disjunction remains open: the fatal value must
+either persist through the delayed action call or be cleared only in an
+initialization interval that resets the continuation before another Mario
+update.  Under those premises, ordinary
+or PU movement only matters here if it produces a **non-null** retry floor.
 
 A prepared `ACT_LONG_JUMP_LAND` state with pre-frame `actionTimer = 4` is a
 precision exception to any blanket claim that quicksand always lowers
@@ -281,9 +296,11 @@ no-A action/state closure.
 
 This does not yet prove retail ordinary-motion exclusion.  It still needs
 entry-time Object/Graphics equality, complete reachable Graphics-writer and
-spawn closure, first-query `NULL` plus loaded top-owned retry selection, sink
-pointer provenance, and post-copy object/surface-owner lifecycle refinement.  No clean
-stock-reachable prestate or target-bit counterexample was found.  See
+spawn closure, first-query `NULL` plus loaded top-owned non-null retry
+selection, proof of the repaired sink statement, and a replacement exact-link
+post-copy lifecycle interface.  The old surface/prestate/writer propositions
+are predicate schemas, not those retail refinements.  No clean stock-reachable
+prestate or target-bit counterexample was found.  See
 [`ink-fallback.md`](ink-fallback.md).
 
 ## Current conclusion

@@ -19,8 +19,13 @@ that graphical query selects a loaded top surface, the disappeared action and
 later State/Object copy can complete the coordinate snap.  Local and PU graphical
 coordinate witnesses for a handwritten pipeline are proved in
 `InkFallback.v`; generated syntax/dataflow receipts separately check the
-null/copy/retry source shape.  No clean retail prestate constructing the
-necessary Object/Graphics split has been found.
+null/copy/retry source shape.  If the retry is also null, the checked fatal
+request wins the abstract delayed-warp latch before cached object interaction.
+At zero lives the stored operation becomes game-over.  A linked proof of latch
+initialization and persistence until the later action request remains open;
+under those premises that variant cannot trigger the upper warp.  No clean
+retail prestate constructing the necessary Object/Graphics split and non-null
+top retry has been found.
 See [`ink-fallback.md`](ink-fallback.md).
 
 The earlier two-view phase-split result explores a different question: could
@@ -49,11 +54,12 @@ that surface in the player-list update.  Later
 `unload_deactivated_objects` calls the source deallocator without clearing the
 already built dynamic partitions, and `update_mario_platform` tests only that
 `floor->object` is non-null.  The generated syntax therefore contains the
-deallocation path.  The open lifecycle postcondition is limited to asking that
-a successfully retained owner be active or inactive in the same allocation
-epoch; it does not encode that this top was scanned/deallocated or prove
-concrete free-list membership.  No allocation runs between that unload pass and
-the final platform query, but the exact memory/payload refinement remains open.
+deallocation path.  The existing lifecycle proposition tries to require an
+active or inactive same-epoch owner, but its link/projection/import interface
+is unsafe or vacuous and must be replaced.  It neither proves that this top was
+scanned/deallocated nor proves concrete free-list membership.  No allocation
+runs between that unload pass and the final platform query, but the exact
+memory/payload refinement remains open.
 
 The two closed coordinate witnesses do not instantiate this subcase.  They
 use the zero-yaw home top and floor Y `1791`.  A handwritten minimum-pose
@@ -81,7 +87,8 @@ angular velocity, and the checked exact-binary32 coordinate witness in
 coordinates.  From old sample `(-2048,768,-1024)`, the selected payload
 evaluates to approximately
 `(-2350.8427734375,1878.6683349609375,-714.5823974609375)`: a Y rise of
-about `1110.6683`, above the proved 385-unit necessary bound.  Its exact
+about `1110.6683`, above the proved signed-range 385-unit necessary bound.  Its
+exact
 binary32 words are `[3306351996,1156240739,3291653446]`, and the corresponding
 signed-short floor query is `(-2350,1878,-714)`.
 
@@ -188,8 +195,12 @@ the spawn code has already destroyed.
   copies the graphical position back into MarioState and retries.  This
   destroys a proposal that needs to preserve the displaced State sample, but
   it enables Ink's different proposal when Graphics is already a top-side
-  sample.  Proving the first `NULL`, the top-owned retry, and reachability of
-  the required Object/Graphics split are separate obligations.
+  sample.  If the retry is also null, the earlier fatal request blocks the
+  later object warp in the abstract latch model; linked initialization and the
+  scheduler-aware block-or-reset refinement remain open.  Proving the first
+  `NULL`, a **non-null**
+  top-owned retry, and reachability of the required Object/Graphics split are
+  separate obligations.
 - `src/game/interaction.c`, `interact_warp`:
   a normal warp selects `ACT_DISAPPEARED`.
 - `src/game/mario_actions_cutscene.c`, `act_disappeared`, and
@@ -367,29 +378,32 @@ slot with different pitch, roll, or transform data is outside the conditional
 stock-yaw theorem, but its concrete payload
 must meet this quantitative bound.
 
-## What remains open
+## Ink-obligation audit and what remains open
 
 The concrete retail cast is now verified, but the route is not.
 
-The three-view fallback has five deliberately named boundaries:
+The five named boundaries no longer have a uniform "open theorem" status:
 
-- `Area1InkPrestateReachabilityObligation` asks whether a clean no-A Area-1
-  execution can construct the required collision-Object, first-query-State,
-  and retry-Graphics samples;
-- `Area1InkWriterCoverageObligation` asks whether every reachable writer
-  refines to the audited State-only, synchronizing, or bounded-Graphics
-  relation; and
-- `InkFallbackSurfaceRefinementObligation` asks whether the first query really
-  returns `NULL` and the graphical retry really selects a loaded top-owned
-  floor;
-- `InkFallbackSinkMemoryRefinementObligation` asks for a concrete-memory
-  refinement of the quicksand writer to both graphical Y and, when non-null,
-  `throwMatrix[3][1]`; and
-- `InkFallbackPostCopyLifecycleRefinementObligation` asks for the source-order
-  link through later object writers and the explicit unload-function call,
-  retained dynamic surfaces, an active or inactive same-epoch owner, and the
-  final platform query.  A separate linked fact must establish that the top
-  itself is scanned/deallocated and any claimed free-list insertion.
+- `Area1InkPrestateReachabilityObligation`,
+  `Area1InkWriterCoverageObligation`, and
+  `InkFallbackSurfaceRefinementObligation` are predicate-sensitive schemas.
+  Rocq exhibits accepting and rejecting interpretations.  Replace them with
+  concrete linked-run relations for clean reachability, complete writer
+  coverage, and actual first/retry `find_floor` selection.
+- The original `InkFallbackSinkMemoryRefinementObligation` was false.  It
+  allowed execution past the first return and used linear aggregate intervals
+  that miss a checked 32-bit pointer-wrap alias.  The repaired obligation uses
+  a first-matching-return relation and disjoint modular four-byte cells.  It
+  remains open.
+- `InkFallbackPostCopyLifecycleRefinementObligation` is not a valid current
+  proof target.  Its link and projection permit hostile interpretations, while
+  the exact imported program can make its Mario-copy control point vacuous
+  because `behavior_script.c` is absent.  It also needs external-call frame
+  conditions, certified pointer-to-slot/epoch linkage, and finite
+  transformed-surface samples.  Replace the interface before proving later
+  writers, unload preservation, retained surface identity, or final owner
+  status.  A separate linked fact must establish that the top itself is
+  scanned/deallocated and any claimed free-list insertion.
 
 The dry ordinary source census identifies `45` as the route-specific positive
 Graphics-minus-Object Y audit target; the closed arithmetic theorem excludes
@@ -400,7 +414,27 @@ are conditional on proving the writer/action closure and initial
 synchronization represented by the obligations above; they are not a retail
 reachability theorem.
 
-A complete route witness still needs:
+The two exact proposed local/PU prestates have a stronger checked requirement:
+Graphics Y is `1791` while a warp-overlapping Object is at most `818`, so their
+gap is at least `973`.  Complete audited writer-execution coverage from an
+audited entry conditionally refutes either exact prestate.  Retail coverage is
+still missing.
+
+There is also a source-backed scheduling exclusion.  If the graphical retry
+returns `NULL`, `update_mario_geometry_inputs` requests `WARP_OP_DEATH` before
+cached warp collision processing.  The delayed-warp variable is a first-writer
+latch, so an uncleared fatal value prevents the later upper-warp request.  Zero
+lives rewrites death to game-over.  The US/JP generated recognizers check the
+guarded call, guarded-write latch shape, and lexical order, and the closed
+latch theorem checks the abstract transition.  A linked proof of initial
+emptiness, the scheduler-aware disjunction between an occupied fatal latch and
+a continuation-destroying reset/initialization clear, and the concrete call
+path is still required.  Under those premises only a non-null retry can
+support Ink's route.
+
+A complete route witness still needs the following items in addition to the
+predicate-schema replacements and repaired first-return sink refinement listed
+above:
 
 1. generated-expression extraction and a linked Clight memory execution for
    the now-imported matrix and surface
@@ -486,11 +520,15 @@ Thus the current result is:
   the generic conservative modeled `<=208` writer relation are arithmetically
   too small for the required `385`-unit retry gap, conditional on the
   still-open writer-coverage and entry-synchronization refinements;
-- `Area1InkPrestateReachabilityObligation`,
-  `Area1InkWriterCoverageObligation`, and
-  `InkFallbackSurfaceRefinementObligation`,
-  `InkFallbackSinkMemoryRefinementObligation`, and
-  `InkFallbackPostCopyLifecycleRefinementObligation` remain open;
+- either exact proposed prestate needs a stronger `973`-unit gap, and complete
+  audited writer-execution coverage conditionally refutes it;
+- the surface, prestate, and writer forms are predicate schemas needing
+  concrete linked-run replacements; the repaired first-return sink is open;
+  and the current lifecycle form is invalid and must be replaced;
+- a retry-null fatal request wins the abstract delayed-warp latch before
+  interaction processing; linked initial-state and scheduler-aware
+  block-or-reset refinement remain open, after which the surviving schedule
+  needs a non-null retry floor;
 - a linked Clight derivation that validates the finite owner/origin projection,
   live ownership, list selection, and collision loads remains open;
 - no stock-reachable counterexample has been found; and
