@@ -394,6 +394,97 @@ Theorem platform_recompute_source_shape_jp :
     (fn_body JPD.f_update_mario_platform) = true.
 Proof. vm_compute. repeat split. Qed.
 
+(** The post-Mario lifecycle window matters for Ink's candidate.  The receipts
+    below check the following generated-Clight syntax:
+
+    - the straight-line sequence spine of [update_objects] places the remaining
+      non-terrain update before deactivated-object unloading and the final
+      platform recomputation;
+    - [bhv_pyramid_top_explode] assigns literal zero to [activeFlags];
+    - state 2 of [bhv_pyramid_top_loop] contains the explode call, while the
+      behavior initializer places the loop callback before the collision
+      loader callback;
+    - the unload scan reads [activeFlags] and calls [unload_object], which again
+      assigns literal zero and calls [deallocate_object] with
+      [gFreeObjectList]; and
+    - [update_mario_platform] calls [find_floor], loads the [Surface.object]
+      field, and never mentions [activeFlags].
+
+    The switch-case and initializer facts are only branch/script syntax.  Even
+    the straight-line call spine is not a Clight execution theorem: these facts
+    do not prove that state 2 is reached, that the behavior interpreter
+    executes both callbacks, that a particular surface survives unloading, or
+    that the final query takes its [floor->object] branch. *)
+Definition ink_post_copy_lifecycle_source_shape_us_claim : Prop :=
+  ident_subsequenceb
+    [UOL._update_non_terrain_objects;
+     UOL._unload_deactivated_objects;
+     UOL._update_mario_platform]
+    (straightline_callees_s (fn_body UOL.f_update_objects)) = true /\
+  assigns_field_int_constant_s UOB._activeFlags 0
+    (fn_body UOB.f_bhv_pyramid_top_explode) = true /\
+  switch_case_calls_ident_s 2 UOB._bhv_pyramid_top_explode
+    (fn_body UOB.f_bhv_pyramid_top_loop) = true /\
+  initializer_addrof_subsequenceb
+    [UBD._bhv_pyramid_top_loop; UBD._load_object_collision_model]
+    (gvar_init UBD.v_bhvPyramidTop) = true /\
+  statement_mentions_ident_s UOL._activeFlags
+    (fn_body UOL.f_unload_deactivated_objects_in_list) = true /\
+  calls_ident_s UOL._unload_object
+    (fn_body UOL.f_unload_deactivated_objects_in_list) = true /\
+  assigns_field_int_constant_s USO._activeFlags 0
+    (fn_body USO.f_unload_object) = true /\
+  calls_ident_with_argument_ident_s
+    USO._deallocate_object USO._gFreeObjectList
+    (fn_body USO.f_unload_object) = true /\
+  assigns_field_named_s USO._next
+    (fn_body USO.f_deallocate_object) = true /\
+  calls_ident_s UPD._find_floor
+    (fn_body UPD.f_update_mario_platform) = true /\
+  sets_temp_from_struct_field_s UPD._Surface UPD._object
+    (fn_body UPD.f_update_mario_platform) = true /\
+  statement_mentions_ident_s UPD._activeFlags
+    (fn_body UPD.f_update_mario_platform) = false.
+
+Theorem ink_post_copy_lifecycle_source_shape_us :
+  ink_post_copy_lifecycle_source_shape_us_claim.
+Proof. vm_compute. repeat split. Qed.
+
+Definition ink_post_copy_lifecycle_source_shape_jp_claim : Prop :=
+  ident_subsequenceb
+    [JOL._update_non_terrain_objects;
+     JOL._unload_deactivated_objects;
+     JOL._update_mario_platform]
+    (straightline_callees_s (fn_body JOL.f_update_objects)) = true /\
+  assigns_field_int_constant_s JOB._activeFlags 0
+    (fn_body JOB.f_bhv_pyramid_top_explode) = true /\
+  switch_case_calls_ident_s 2 JOB._bhv_pyramid_top_explode
+    (fn_body JOB.f_bhv_pyramid_top_loop) = true /\
+  initializer_addrof_subsequenceb
+    [JBD._bhv_pyramid_top_loop; JBD._load_object_collision_model]
+    (gvar_init JBD.v_bhvPyramidTop) = true /\
+  statement_mentions_ident_s JOL._activeFlags
+    (fn_body JOL.f_unload_deactivated_objects_in_list) = true /\
+  calls_ident_s JOL._unload_object
+    (fn_body JOL.f_unload_deactivated_objects_in_list) = true /\
+  assigns_field_int_constant_s JSO._activeFlags 0
+    (fn_body JSO.f_unload_object) = true /\
+  calls_ident_with_argument_ident_s
+    JSO._deallocate_object JSO._gFreeObjectList
+    (fn_body JSO.f_unload_object) = true /\
+  assigns_field_named_s JSO._next
+    (fn_body JSO.f_deallocate_object) = true /\
+  calls_ident_s JPD._find_floor
+    (fn_body JPD.f_update_mario_platform) = true /\
+  sets_temp_from_struct_field_s JPD._Surface JPD._object
+    (fn_body JPD.f_update_mario_platform) = true /\
+  statement_mentions_ident_s JPD._activeFlags
+    (fn_body JPD.f_update_mario_platform) = false.
+
+Theorem ink_post_copy_lifecycle_source_shape_jp :
+  ink_post_copy_lifecycle_source_shape_jp_claim.
+Proof. vm_compute. repeat split. Qed.
+
 (* [find_floor] narrows all three binary32 inputs through signed 16-bit
    TerrainData temporaries.  The generated syntax records the source cast; a
    separate compiled-cast refinement is still required for out-of-range C
@@ -494,8 +585,8 @@ Proof. vm_compute. repeat split. Qed.
    live surface or that the branch is reachable. *)
 Definition graphical_floor_fallback_source_shape_us_claim : Prop :=
   contains_guarded_graphics_floor_retry_s
-    UMI._floor UMI._vec3f_copy UMI._find_floor UMI._gfx UMI._pos
-    UMI._floorHeight
+    UMI._floor UMI._marioObj UMI._header UMI._vec3f_copy UMI._find_floor
+    UMI._gfx UMI._pos UMI._floorHeight
     (fn_body UMI.f_update_mario_geometry_inputs) = true /\
   ident_subsequenceb
     [UMI._f32_find_wall_collision;
@@ -520,8 +611,8 @@ Qed.
 
 Definition graphical_floor_fallback_source_shape_jp_claim : Prop :=
   contains_guarded_graphics_floor_retry_s
-    JMI._floor JMI._vec3f_copy JMI._find_floor JMI._gfx JMI._pos
-    JMI._floorHeight
+    JMI._floor JMI._marioObj JMI._header JMI._vec3f_copy JMI._find_floor
+    JMI._gfx JMI._pos JMI._floorHeight
     (fn_body JMI.f_update_mario_geometry_inputs) = true /\
   ident_subsequenceb
     [JMI._f32_find_wall_collision;
@@ -589,9 +680,11 @@ Qed.
 (* Direct inspection of the pinned C source gives the warp/top phase account:
    geometry is recomputed from displaced MarioState before interaction, a
    normal warp selects ACT_DISAPPEARED, that action snaps State Y to cached
-   floor, and state/object copy and final platform query occur later.  The
-   theorem below checks only path- and base-insensitive AST anchors for that
-   account; it is not a Clight memory/dataflow execution theorem. *)
+   floor, and State is later copied to Object.  Remaining lists and unload
+   separate that copy from the final platform query; the separate
+   [ink_post_copy_lifecycle_source_shape_us/jp] receipt checks those anchors.
+   The theorem below checks only path- and base-insensitive AST anchors for the
+   earlier account; it is not a Clight memory/dataflow execution theorem. *)
 Theorem upper_warp_phase_pipeline_source_shape_us :
   ident_subsequenceb
     [UMI._update_mario_inputs;
@@ -820,6 +913,92 @@ Theorem stock_pyramid_top_yaw_only_source_shape_jp :
     (fn_body JPD.f_apply_platform_displacement) = false /\
   statement_mentions_array_slot_s JPD._asF32 11
     (fn_body JPD.f_apply_platform_displacement) = true.
+Proof. vm_compute. repeat split. Qed.
+
+(** The spinning/explosion distinction used by the platform cross-check is
+    visible in both generated units.  Switch state 1 contains the spinning
+    callback and state 2 contains the explosion callback.  In the spinning
+    body, preprocessed object-field macros expose:
+
+    - [oTimer] constants 60 and 150;
+    - the [oAngleVelYaw] cap 0x1800 (6144);
+    - the binary32 literal 5.0f; and
+    - assignments to raw [oPosY], [oVelY], and [oAngleVelYaw] slots 7, 10,
+      and 36 respectively.
+
+    The explosion body assigns literal zero to [activeFlags] and contains no
+    slot-7 or slot-36 assignment.  It does assign Float32 slot 10 on each newly
+    spawned fragment, so the deliberately base-insensitive array recognizer
+    cannot turn that occurrence into a claim about the top's own [oVelY].
+
+    Every conjunct below is an occurrence/source-shape receipt.  In particular,
+    switch labels do not prove reachability, constants do not prove their
+    control dependence, assignments do not establish a frame recurrence, and
+    nothing here executes the behavior interpreter or bounds the live pose. *)
+Definition float32_five_bits : Z := 1084227584.
+
+Definition pyramid_top_spin_explosion_pose_source_shape_us_claim : Prop :=
+  switch_case_calls_ident_s 1 UOB._bhv_pyramid_top_spinning
+    (fn_body UOB.f_bhv_pyramid_top_loop) = true /\
+  switch_case_calls_ident_s 2 UOB._bhv_pyramid_top_explode
+    (fn_body UOB.f_bhv_pyramid_top_loop) = true /\
+  statement_mentions_int_s 60
+    (fn_body UOB.f_bhv_pyramid_top_spinning) = true /\
+  statement_mentions_int_s 150
+    (fn_body UOB.f_bhv_pyramid_top_spinning) = true /\
+  statement_mentions_int_s 6144
+    (fn_body UOB.f_bhv_pyramid_top_spinning) = true /\
+  statement_mentions_float32_bits_s float32_five_bits
+    (fn_body UOB.f_bhv_pyramid_top_spinning) = true /\
+  assigns_array_slot_s UOB._asF32 7
+    (fn_body UOB.f_bhv_pyramid_top_spinning) = true /\
+  assigns_array_slot_s UOB._asF32 10
+    (fn_body UOB.f_bhv_pyramid_top_spinning) = true /\
+  assigns_array_slot_s UOB._asS32 36
+    (fn_body UOB.f_bhv_pyramid_top_spinning) = true /\
+  assigns_field_int_constant_s UOB._activeFlags 0
+    (fn_body UOB.f_bhv_pyramid_top_explode) = true /\
+  assigns_array_slot_s UOB._asF32 7
+    (fn_body UOB.f_bhv_pyramid_top_explode) = false /\
+  assigns_array_slot_s UOB._asS32 36
+    (fn_body UOB.f_bhv_pyramid_top_explode) = false /\
+  assigns_array_slot_s UOB._asF32 10
+    (fn_body UOB.f_bhv_pyramid_top_explode) = true.
+
+Theorem pyramid_top_spin_explosion_pose_source_shape_us :
+  pyramid_top_spin_explosion_pose_source_shape_us_claim.
+Proof. vm_compute. repeat split. Qed.
+
+Definition pyramid_top_spin_explosion_pose_source_shape_jp_claim : Prop :=
+  switch_case_calls_ident_s 1 JOB._bhv_pyramid_top_spinning
+    (fn_body JOB.f_bhv_pyramid_top_loop) = true /\
+  switch_case_calls_ident_s 2 JOB._bhv_pyramid_top_explode
+    (fn_body JOB.f_bhv_pyramid_top_loop) = true /\
+  statement_mentions_int_s 60
+    (fn_body JOB.f_bhv_pyramid_top_spinning) = true /\
+  statement_mentions_int_s 150
+    (fn_body JOB.f_bhv_pyramid_top_spinning) = true /\
+  statement_mentions_int_s 6144
+    (fn_body JOB.f_bhv_pyramid_top_spinning) = true /\
+  statement_mentions_float32_bits_s float32_five_bits
+    (fn_body JOB.f_bhv_pyramid_top_spinning) = true /\
+  assigns_array_slot_s JOB._asF32 7
+    (fn_body JOB.f_bhv_pyramid_top_spinning) = true /\
+  assigns_array_slot_s JOB._asF32 10
+    (fn_body JOB.f_bhv_pyramid_top_spinning) = true /\
+  assigns_array_slot_s JOB._asS32 36
+    (fn_body JOB.f_bhv_pyramid_top_spinning) = true /\
+  assigns_field_int_constant_s JOB._activeFlags 0
+    (fn_body JOB.f_bhv_pyramid_top_explode) = true /\
+  assigns_array_slot_s JOB._asF32 7
+    (fn_body JOB.f_bhv_pyramid_top_explode) = false /\
+  assigns_array_slot_s JOB._asS32 36
+    (fn_body JOB.f_bhv_pyramid_top_explode) = false /\
+  assigns_array_slot_s JOB._asF32 10
+    (fn_body JOB.f_bhv_pyramid_top_explode) = true.
+
+Theorem pyramid_top_spin_explosion_pose_source_shape_jp :
+  pyramid_top_spin_explosion_pose_source_shape_jp_claim.
 Proof. vm_compute. repeat split. Qed.
 
 Theorem change_area_direct_callee_order_us :

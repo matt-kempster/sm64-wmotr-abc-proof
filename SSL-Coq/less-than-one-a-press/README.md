@@ -109,16 +109,29 @@ clear; the Clight memory-effect refinement is still pending.
 `InkFallback.v` checks the guarded US/JP graphical floor-null retry and
 entry-coordinate synchronization source shapes.  It proves a nearby Area-1
 mesh arithmetic kernel at State `(-2200,768,-1024)` and conditional local and
-PU three-view control-flow countermodels.  Their collision Object is at
+PU three-view pipeline-coordinate witnesses.  Their collision Object is at
 `(-2048,768,-1024)`; Graphics is either `(-2048,1791,-1024)` or
 `(63488,1791,-1024)`.  These theorems show that update order permits the
-primitive if the first query returns `NULL` and the retry selects a live top.
-They do not prove either live-list result or a reachable clean prestate.
+primitive if the first query returns `NULL` and the retry selects a loaded
+top-owned surface.
+The generated recognizer checks the null/copy/retry syntax and dataflow, but
+the handwritten pipeline witnesses do not execute it in Clight.  They do not
+prove either live-list result, a reachable clean prestate, or the post-copy
+object/surface-owner lifecycle.
 Arbitrary State-only ordinary/platform/PU prefixes preserve Object and
 Graphics and therefore cannot create the needed split from synchronized
-input.  The retry needs at least 385 upward units; the closed dry ordinary
-`<=45` visual-offset subcase is excluded.  Complete writer/action closure
-remains open.
+input.  The retry needs at least 385 upward units; the theorem excludes the dry
+ordinary `<=45` visual-offset subcase once that premise is derived from a
+reachable execution.  The source-shape kernel also checks that remaining
+non-terrain updates and deactivated-object unloading precede the final platform
+query.  Its checked syntax admits an explosion-frame candidate in which the
+top loop is followed by its collision loader and the slot is later unloaded;
+it does not prove the linked behavior-script execution, free-list membership,
+or that the same concrete surface is selected afterward.  The two closed
+coordinate witnesses use the zero-yaw home top and floor Y `1791`; they do not
+instantiate that later translated/rotated explosion pose.  Sink throw-matrix
+provenance, post-copy raw Object preservation, transformed-surface selection,
+the final owner epoch, and complete writer/action closure remain open.
 
 `Area1PhaseSplit.v` checks source-backed nonzero-pitch triangle-fragment
 payloads and one exact CompCert-binary32 X/Y/Z displacement.  The selected
@@ -280,9 +293,18 @@ State `(-2200,768,-1024)`; if that query returns `NULL`, the source copies
 Graphics into State and retries.  Graphics may conditionally be the local top
 sample `(-2048,1791,-1024)` or PU sample `(63488,1791,-1024)`.  The cached warp
 then selects `ACT_DISAPPEARED`, which snaps to the retry floor before the
-state/object copy and final platform query.  `InkFallback.v` proves this
-coordinate/control-flow arithmetic, not the first-query `NULL`, live-top retry,
-or prestate reachability.
+unconditional quicksand sink and state/object copy.  Remaining object lists
+then update, deactivated objects unload, and only then does the final platform
+query run.  `InkFallback.v` evaluates the handwritten pipeline's coordinate
+arithmetic and proves that its projected Graphics-position sink cannot change
+the copied Object coordinate.  The source can also write `gfx.throwMatrix`,
+and the source order admits an explosion-frame unload after the top's
+collision-loader callback but before final capture.  The two closed
+coordinate witnesses use the zero-yaw home top at floor Y `1791`; the
+explosion/inactive-slot branch instead needs its later translated/rotated
+surface and selected height.  The project does not prove the first-query
+`NULL`, loaded-top retry, sink memory refinement, post-copy lifecycle, or
+prestate reachability in Clight.
 
 The older two-sample countermodel still checks a 1023-unit State Y change,
 exact CompCert casts, dynamic-partition cells, generated triangle indices, the
@@ -319,7 +341,9 @@ is null at warp overlap.
 
 That result does not exclude post-collision graphical rescue, which can begin
 with a null pointer and capture the top after the retry.  Reachable
-writer/action closure and both live floor outcomes remain Layer-B obligations.
+writer/action closure, first-query `NULL`, loaded top-owned retry selection,
+sink-memory refinement, and the post-copy object/surface lifecycle remain
+Layer-B obligations.
 The linked-Clight projection is also open.  JP pointer retention or recapture
 through the delayed warp remains open, as do proving that moving/loading the
 warp onto the top, moving the top to the warp, collision-preserving cloning,
@@ -873,11 +897,21 @@ clightgen -normalize -nostdinc -fstruct-passing \
   The lower Z soft-bonk result remains a normalized subcase rather than a
   complete second-pole or static-geometry proof.
   The Ink audit proves that State-only ordinary/PU prefixes cannot create an
-  Object/Graphics split.  Its source census gives a dry positive Graphics Y
-  offset of at most `45`; the conservative generic water/bob bound is below
-  `208` because those offsets can compose across a water-floor-hit branch.
+  Object/Graphics split.  Its source audit motivates a dry positive Graphics Y
+  target of at most `45`; the conservative generic modeled relation uses
+  `208` because a water-pitch term of at most `60` and bob below `148` can
+  compose across a water-floor-hit branch.
   `Area1InkWriterCoverageObligation` remains open, so these bounds are not yet
-  a linked action-closure theorem.
+  a linked action-closure theorem.  `InkFallbackSinkMemoryRefinementObligation`
+  must additionally justify the real quicksand writer to both
+  `header.gfx.pos[1]` and `throwMatrix[3][1]`.
+  `InkFallbackPostCopyLifecycleRefinementObligation` must connect the
+  post-copy object writers, deactivation/unload sequence, retained dynamic
+  surface, and final platform capture.  Its lifecycle sample and floor height
+  are generalized binary32 data: the home-pose Y `1791` witnesses do not
+  discharge the translated/rotated explosion-pose case.  The checked source
+  shape proves neither free-list membership nor a reachable linked-memory
+  execution.
 - The transcript route model has no Clight projection or collision-surface
   completeness theorem.  `FirstTargetCutClassificationObligation` makes the
   missing exhaustiveness result explicit and its tag sums make the intended
@@ -916,7 +950,8 @@ clightgen -normalize -nostdinc -fstruct-passing \
   exclude Ink's graphical fallback and later top capture.  The linked Clight
   memory projection into the owner model remains open.  Proving source-backed
   prehistory must still cover the fallback's collision Object, first-query
-  State, pre-fallback Graphics, first `NULL`, live-top retry, final capture,
+  State, pre-fallback Graphics, first `NULL`, loaded-top retry, sink pointer
+  provenance, post-copy object/owner lifecycle, final capture,
   JP delayed-warp retention/recapture, the US clear effect, and warp-to-top,
   top-to-warp, collision-preserving clone, or post-query-writer constructions;
   setting the JP pointer to `None` or assuming every retained displacement is

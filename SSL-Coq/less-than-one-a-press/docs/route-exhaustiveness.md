@@ -446,18 +446,28 @@ State/Object analysis did not represent:
 ```text
 collision Object C  -- full-float overlap with node 0x1E
 physics State S     -- two wall queries, then first find_floor(S) = NULL
-graphical sample G  -- copied to State, retry find_floor(G) selects live top
+graphical sample G  -- copied to State, retry selects loaded top surface
 ```
 
 The cached warp collision is processed after the fallback.  If its retry floor
 is the top, `ACT_DISAPPEARED` snaps State to that floor, copies the snap to
-Graphics, and the later State-to-Object copy and final platform query can
-capture the top owner.  Thus update order does **not** make this conditional
-primitive impossible.
+Graphics, the unconditional quicksand-sink call writes Graphics position and
+possibly `gfx.throwMatrix`, and State is later copied to raw Object.  Six more
+object lists then update and deactivated objects unload before the final
+platform query.  That source order admits a distinct explosion-frame
+inactive-owner candidate.  It does not yet prove concrete surface retention or
+free-list membership.  Thus update order does **not** make this conditional
+primitive impossible, but the post-copy object/owner lifecycle is not proved
+by the coordinate witness.
 
-`InkFallback.v` proves two coordinate/control-flow countermodels: one with a
-local top-side `G`, and one with `G.x = 63488` aliasing the local top through
-the signed-16 floor query.  It also proves:
+`InkFallback.v` proves two handwritten-pipeline coordinate witnesses: one with
+a local top-side `G`, and one with `G.x = 63488` aliasing the local top through
+the signed-16 floor query.  The generated-AST recognizer separately checks the
+null-test/copy/retry dataflow, but no theorem yet executes the branch in
+Clight.  Both witnesses use the zero-yaw home top at floor Y `1791`; they do
+not instantiate the translated/rotated explosion pose, whose transformed
+surface and selected height remain part of the generalized lifecycle
+obligation.  The module also proves:
 
 - selected generated static faces and walls reject the concrete first-query
   diagnostic `S = (-2200,768,-1024)`;
@@ -465,16 +475,17 @@ the signed-16 floor query.  It also proves:
   rejected for that first query;
 - the retry requires at least 385 units of upward `G.y - C.y` separation;
 - the dry ordinary visual bound `<=45` cannot supply that retry;
-- the generic conservative audited Graphics-writer envelope `<=208` also
-  cannot supply the required `385`-unit retry gap; and
+- a writer execution classified by the generic conservative modeled
+  Graphics-writer relation `<=208` cannot supply the required `385`-unit retry
+  gap; and
 - any prefix of arbitrary State-only ordinary, platform, or PU displacement
   preserves C and G, so it cannot create their split from `C = G`.
 
-The `45` figure is the dry route-specific source-census bound.  The `208`
-figure deliberately over-approximates generic water-pitch and swimming-bob
-composition.  Both exclusions still require the open writer/action closure
+The `45` figure is the dry route-specific source-audit target.  The `208`
+figure deliberately over-approximates water pitch of at most `60` and swimming
+bob below `148`.  Both exclusions still require the open writer/action closure
 and entry-synchronization refinement; the arithmetic theorem does not prove
-that every retail step belongs to the audited writer relation.
+that every retail step belongs to the modeled writer relation.
 
 The last point explains what PU movement adds: signed-16 aliasing can make a
 pre-existing far-away graphical sample select the local top, but a State-only
@@ -490,7 +501,10 @@ arithmetic is not advertised as an actual first `NULL` or top-owned retry.
 Accordingly, this scheduling shape is neither eliminated nor a retail
 counterexample.  `Area1InkPrestateReachabilityObligation`,
 `Area1InkWriterCoverageObligation`, and
-`InkFallbackSurfaceRefinementObligation` state the narrow remaining work.
+`InkFallbackSurfaceRefinementObligation`,
+`InkFallbackSinkMemoryRefinementObligation`, and
+`InkFallbackPostCopyLifecycleRefinementObligation` state the narrow remaining
+work.
 See [`ink-fallback.md`](ink-fallback.md).
 
 `JPSlotLifetime.v` further checks the JP load/spawn/allocation/unload/free-list

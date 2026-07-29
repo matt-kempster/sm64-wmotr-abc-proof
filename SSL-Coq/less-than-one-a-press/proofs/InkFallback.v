@@ -9,17 +9,19 @@
     - ACT_DISAPPEARED snaps to the retry floor; and
     - the later state-to-object copy and platform query observe that snap.
 
-    This file proves the coordinate/control-flow arithmetic for that primitive,
-    including local and Parallel-Universe graphical samples.  It does not claim
+    This file proves a source-shape receipt and the coordinate arithmetic for a
+    handwritten conditional pipeline, including local and Parallel-Universe
+    graphical samples.  It does not execute that control flow in Clight, claim
     that a clean retail execution can construct the required pre-existing
-    MarioObject/header.gfx.pos split, nor that the live floor lists produce the
-    posited miss/top outcomes. *)
+    MarioObject/header.gfx.pos split, or prove that the live floor lists produce
+    the posited miss/top outcomes. *)
 
 From Coq Require Import List ZArith Lia.
-From compcert Require Import Floats Integers.
+From compcert Require Import
+  AST Clight Events Floats Globalenvs Integers Maps Memory Smallstep Values.
 From LessThanOneAPress.Proofs Require Import
-  ClightFacts CollisionMeshFacts PyramidTopPU PyramidTopSurface
-  Area1PlatformExhaustiveness.
+  GameTypes ClightFacts CollisionMeshFacts PyramidTopPU PyramidTopSurface
+  Area1PlatformExhaustiveness ClightRefinement FirstTargetRefinement.
 
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -68,6 +70,12 @@ Definition ink_geometry_kernel : Prop :=
     selected_ink_area1_triangle_word_slice /\
   firstn 30 (skipn 3320 area1_collision_words_jp) =
     selected_ink_area1_triangle_word_slice /\
+  selected_ink_area1_surface_receipts area1_collision_words_us /\
+  selected_ink_area1_surface_receipts area1_collision_words_jp /\
+  3174 + 2 + 48 * 3 = 3320 /\
+  48 + 10 = 58 /\
+  3628 + 2 + 55 * 3 = 3795 /\
+  55 < 288 /\
   upper_warp_contact ink_warp_floor_miss_position /\
   ink_floor_edge_values
     ink_query_xz ink_vertex_498 ink_vertex_500 ink_vertex_501 =
@@ -99,6 +107,8 @@ Proof.
   split; [exact selected_ink_area1_vertex_receipts_exact_jp |].
   split; [exact selected_ink_area1_triangle_words_exact_us |].
   split; [exact selected_ink_area1_triangle_words_exact_jp |].
+  split; [exact selected_ink_area1_surface_receipts_exact_us |].
+  split; [exact selected_ink_area1_surface_receipts_exact_jp |].
   unfold ink_warp_floor_miss_position, ink_floor_edge_values, ink_query_xz,
     ink_vertex_265, ink_vertex_266, ink_vertex_372, ink_vertex_498,
     ink_vertex_500, ink_vertex_501, ink_vertex_502, ink_vertex_xz,
@@ -109,6 +119,29 @@ Proof.
   vm_compute.
   repeat split; try reflexivity; try lia.
   all: discriminate.
+Qed.
+
+(** The three generated Area-1 water boxes are kept explicit so the
+    route-specific dry bound is not inferred from a picture.  The exact
+    21-word water-box tail is part of [ink_geometry_kernel]. *)
+Definition inside_water_box_xz
+    (position : PositionZ)
+    (min_x min_z max_x max_z : Z) : Prop :=
+  min_x <= position_x position <= max_x /\
+  min_z <= position_z position <= max_z.
+
+Definition inside_checked_area1_water_box
+    (position : PositionZ) : Prop :=
+  inside_water_box_xz position 1024 (-7065) 7578 (-716) \/
+  inside_water_box_xz position (-3993) (-7065) 1024 (-4197) \/
+  inside_water_box_xz position (-6911) (-7167) (-4223) (-4607).
+
+Theorem upper_warp_center_is_outside_checked_area1_water_boxes :
+  ~ inside_checked_area1_water_box upper_warp_center.
+Proof.
+  unfold inside_checked_area1_water_box, inside_water_box_xz,
+    upper_warp_center, upper_warp_x, upper_warp_y, upper_warp_z.
+  cbn. lia.
 Qed.
 
 (** The existing fifteen-owner stock abstraction also excludes every modeled
@@ -169,10 +202,10 @@ Definition ink_local_top_graphics_position : PositionZ := {|
     refinement must derive these outcomes rather than postulate them. *)
 Definition InkFallbackSurfaceRefinementObligation
     (first_query_returns_none : PositionZ -> Prop)
-    (retry_selects_live_top : PositionZ -> Z -> Prop) : Prop :=
+    (retry_selects_loaded_top_surface : PositionZ -> Z -> Prop) : Prop :=
   first_query_returns_none ink_warp_floor_miss_position /\
-  (retry_selects_live_top ink_local_top_graphics_position 1791 \/
-   retry_selects_live_top pu_top_floor_candidate 1791).
+  (retry_selects_loaded_top_surface ink_local_top_graphics_position 1791 \/
+   retry_selects_loaded_top_surface pu_top_floor_candidate 1791).
 
 Record MarioThreeView : Type := {
   three_state_position : PositionZ;
@@ -275,11 +308,31 @@ Definition copy_state_to_object (views : MarioThreeView) : MarioThreeView := {|
   three_graphics_position := three_graphics_position views
 |}.
 
+(** [execute_mario_action] unconditionally calls
+    [sink_mario_in_quicksand] after the disappeared action and before
+    [copy_mario_state_to_object].  The real function writes binary32
+    [marioObj->header.gfx.pos[1]] and, when non-null, also
+    the row-3/column-1 entry of [marioObj->header.gfx.throwMatrix].  This projected integer phase
+    marker records only the first Graphics-position write.  A zero value is
+    used by the concrete coordinate witnesses below.  Proving that value and
+    the normal non-aliasing provenance of [throwMatrix] in live memory remain
+    part of action/state and sink-memory refinement. *)
+Definition modeled_graphics_sink_only
+    (sink_depth : Z) (views : MarioThreeView) : MarioThreeView := {|
+  three_state_position := three_state_position views;
+  three_object_position := three_object_position views;
+  three_graphics_position :=
+    position_with_y
+      (three_graphics_position views)
+      (position_y (three_graphics_position views) - sink_depth)
+|}.
+
 Definition ink_conditional_pipeline
-    (floor_y : Z) (views : MarioThreeView) : MarioThreeView :=
+    (floor_y sink_depth : Z) (views : MarioThreeView) : MarioThreeView :=
   copy_state_to_object
-    (disappeared_snap_to_floor floor_y
-      (copy_graphics_to_state views)).
+    (modeled_graphics_sink_only sink_depth
+      (disappeared_snap_to_floor floor_y
+        (copy_graphics_to_state views))).
 
 (** These are the coordinate arithmetic properties required before the
     branch.  The graphical retry sample need only be within find_floor's
@@ -334,13 +387,18 @@ Qed.
     that [sink_mario_in_quicksand] always lowers Graphics.  In the source-shaped
     prepared [ACT_LONG_JUMP_LAND] case, pre-frame [actionTimer = 4] is
     incremented before the landing adjustment.  Starting from depth [1.1f],
-    the update adds [0.25f], the landing path subtracts [4.0f], and the final
-    Graphics subtraction therefore raises Y by about [2.65].
+    the update adds [0.25f] and the landing path subtracts [4.0f], producing
+    the exact negative-depth operand [-2.6500000953674316f].  The final
+    definition below checks the subtraction from a zero Graphics base, yielding
+    [+2.6500000953674316f].  The actual binary32 delta at another Graphics Y is
+    base-dependent and is left to the writer-range refinement.
 
     These equations check only the exact CompCert binary32 arithmetic.  The
-    prepared action requires a prior A-edge setup, the upper warp is not
-    quicksand, and clean no-A action closure remains part of the writer
-    refinement obligation. *)
+    In the normal action graph the prepared action requires a prior A-edge
+    setup.  Static upper-warp support cannot generate this adjustment, but a
+    previously negative depth may persist into the disappeared-action frame;
+    clean no-A action/state closure remains part of the writer refinement
+    obligation. *)
 Definition prepared_landing_depth_after_update : float32 :=
   Float32.add
     (Float32.of_bits (Int.repr 1066192077))  (* 1.1f *)
@@ -438,20 +496,39 @@ Definition ink_pu_conditional_prestate : MarioThreeView := {|
   three_graphics_position := pu_top_floor_candidate
 |}.
 
-(** A coordinate/control-flow countermodel, conditional on the first floor
-    query returning NULL and the retry selecting the live top at height 1791.
-    It demonstrates that update order does not itself refute Ink's primitive. *)
-Theorem ink_local_conditional_control_flow_countermodel :
+(** Within [MarioThreeView], the projected quicksand sink changes Graphics
+    only.  Consequently its modeled value cannot change the raw Object
+    coordinate copied from snapped State.  This does not prove the omitted
+    [throwMatrix] store is disjoint in Clight memory, nor that later object-list
+    updates and unloading preserve the sample through the final query. *)
+Theorem modeled_graphics_sink_does_not_change_pipeline_object :
+  forall floor_y sink_depth views,
+    three_object_position
+      (ink_conditional_pipeline floor_y sink_depth views) =
+    position_with_y (three_graphics_position views) floor_y.
+Proof. reflexivity. Qed.
+
+(** A coordinate witness for the handwritten conditional pipeline.  The
+    separate source-shape theorem shows that the relevant retry branch exists,
+    while [InkFallbackSurfaceRefinementObligation] records the missing Clight
+    facts that the first query returns NULL and the retry selects a loaded
+    top-owned surface.  The inherited predicate name
+    [live_top_platform_capture] expresses only the capture geometry; it does
+    not assert that the owning object remains active.
+    This theorem therefore refutes an arithmetic/update-order-only objection;
+    it is not a Clight control-flow execution. *)
+Theorem ink_local_conditional_pipeline_coordinate_witness :
   InkFallbackReady ink_local_conditional_prestate 1791 /\
   three_state_position ink_local_conditional_prestate =
     ink_warp_floor_miss_position /\
-  three_object_position (ink_conditional_pipeline 1791
+  three_object_position (ink_conditional_pipeline 1791 0
     ink_local_conditional_prestate) = ink_local_top_graphics_position /\
-  three_graphics_position (ink_conditional_pipeline 1791
+  three_graphics_position (ink_conditional_pipeline 1791 0
     ink_local_conditional_prestate) = ink_local_top_graphics_position /\
   live_top_platform_capture
     (three_object_position
-      (ink_conditional_pipeline 1791 ink_local_conditional_prestate)) 1791 /\
+      (ink_conditional_pipeline 1791 0
+        ink_local_conditional_prestate)) 1791 /\
   pu_top_alias_floor_arithmetic ink_local_top_graphics_position 1791.
 Proof.
   unfold InkFallbackReady, ink_local_conditional_prestate.
@@ -471,6 +548,7 @@ Proof.
         lia.
   - split; [reflexivity |].
     unfold ink_conditional_pipeline, copy_state_to_object,
+      modeled_graphics_sink_only,
       disappeared_snap_to_floor, copy_graphics_to_state, position_with_y.
     cbn.
     split; [reflexivity |].
@@ -480,19 +558,19 @@ Proof.
     + exact ink_local_top_alias_floor_arithmetic.
 Qed.
 
-Theorem ink_pu_conditional_control_flow_countermodel :
+Theorem ink_pu_conditional_pipeline_coordinate_witness :
   InkFallbackReady ink_pu_conditional_prestate 1791 /\
   three_state_position ink_pu_conditional_prestate =
     ink_warp_floor_miss_position /\
   three_object_position
-    (ink_conditional_pipeline 1791 ink_pu_conditional_prestate) =
+    (ink_conditional_pipeline 1791 0 ink_pu_conditional_prestate) =
       pu_top_floor_candidate /\
   three_graphics_position
-    (ink_conditional_pipeline 1791 ink_pu_conditional_prestate) =
+    (ink_conditional_pipeline 1791 0 ink_pu_conditional_prestate) =
       pu_top_floor_candidate /\
   live_top_platform_capture
     (three_object_position
-      (ink_conditional_pipeline 1791 ink_pu_conditional_prestate)) 1791 /\
+      (ink_conditional_pipeline 1791 0 ink_pu_conditional_prestate)) 1791 /\
   pu_top_alias_floor_arithmetic pu_top_floor_candidate 1791.
 Proof.
   unfold InkFallbackReady, ink_pu_conditional_prestate.
@@ -512,6 +590,7 @@ Proof.
         lia.
   - split; [reflexivity |].
     unfold ink_conditional_pipeline, copy_state_to_object,
+      modeled_graphics_sink_only,
       disappeared_snap_to_floor, copy_graphics_to_state, position_with_y.
     cbn.
     split; [reflexivity |].
@@ -525,7 +604,7 @@ Qed.
 
 (** This obligation asks for the missing constructor, rather than assuming it:
     a reachable clean/no-A Area-1 state must exhibit the State/Object/Graphics
-    samples needed by one of the two conditional countermodels. *)
+    samples needed by one of the two conditional coordinate witnesses. *)
 Definition Area1InkPrestateReachabilityObligation
     (reachable_clean_no_a_area1 : MarioThreeView -> Prop) : Prop :=
   exists views,
@@ -538,13 +617,15 @@ Definition Area1InkPrestateReachabilityObligation
 (** The source census can be connected without baking the target region into
     an oracle.  A retail transition is covered when it is either State-only,
     an exact object/graphics synchronization, or a graphics-specific writer
-    whose positive Graphics-minus-Object Y offset is at most this conservative
-    bound. *)
-(** Conservative source/type bound: a water-pitch offset of 60 and the
-    s16-only swimming-bob bound below 148 can compose across the water-step
-    floor branch.  The upper warp is dry (where the exact relevant source
-    maximum is 45), but using 208 here keeps the generic writer relation
-    honest without relying on that action-closure fact. *)
+    whose positive Graphics-minus-Object Y offset is at most the modeled audit
+    target below.
+
+    [208] is deliberately not presented as a derived source bound.  The source
+    audit motivates it because a water-pitch offset at most 60 and an s16-only
+    swimming bob below 148 can compose across the water-step floor branch.
+    [Area1InkWriterCoverageObligation] must still prove that every reachable
+    retail writer refines to this relation.  The upper warp is outside the
+    checked water boxes, where the route-specific audit target is 45. *)
 Definition audited_graphics_y_gap_bound : Z := 208.
 
 Theorem audited_graphics_y_gap_bound_is_below_ink_requirement :
@@ -641,13 +722,837 @@ Definition Area1InkWriterCoverageObligation
     retail_position_step before after ->
     AuditedArea1PositionWriterStep before after.
 
+(** * Concrete memory boundaries for the two remaining scheduling gaps *)
+
+Definition ink_address_offset
+    (base : Ptrofs.int) (delta : Z) : Z :=
+  Ptrofs.unsigned (Ptrofs.add base (Ptrofs.repr delta)).
+
+Definition ink_load_single
+    (memory : Mem.mem) (block : Values.block)
+    (base : Ptrofs.int) (delta : Z) (value : float32) : Prop :=
+  Mem.load AST.Mfloat32 memory block (ink_address_offset base delta) =
+    Some (Values.Vsingle value).
+
+Definition ink_load_pointer
+    (memory : Mem.mem) (block : Values.block)
+    (base : Ptrofs.int) (delta : Z) (value : Values.val) : Prop :=
+  Mem.load AST.Mptr memory block (ink_address_offset base delta) =
+    Some value.
+
+Definition ink_load_vec3f
+    (memory : Mem.mem) (block : Values.block)
+    (base : Ptrofs.int) (delta : Z) (position : Vec3f) : Prop :=
+  ink_load_single memory block base delta (vec_x position) /\
+  ink_load_single memory block base (delta + 4) (vec_y position) /\
+  ink_load_single memory block base (delta + 8) (vec_z position).
+
+Definition ink_position_f32 (position : PositionZ) : Vec3f := {|
+  vec_x := f32_of_Z (position_x position);
+  vec_y := f32_of_Z (position_y position);
+  vec_z := f32_of_Z (position_z position)
+|}.
+
+Definition ink_load_position
+    (memory : Mem.mem) (block : Values.block)
+    (base : Ptrofs.int) (delta : Z) (position : PositionZ) : Prop :=
+  ink_load_vec3f memory block base delta (ink_position_f32 position).
+
+Definition ink_subtract_depth_from_y
+    (position : Vec3f) (depth : float32) : Vec3f := {|
+  vec_x := vec_x position;
+  vec_y := Float32.sub (vec_y position) depth;
+  vec_z := vec_z position
+|}.
+
+Record InkMemorySlice : Type := {
+  ink_slice_block : Values.block;
+  ink_slice_start : Z;
+  ink_slice_bytes : Z
+}.
+
+Definition ink_relative_slice
+    (block : Values.block) (base : Ptrofs.int)
+    (delta bytes : Z) : InkMemorySlice := {|
+  ink_slice_block := block;
+  ink_slice_start := ink_address_offset base delta;
+  ink_slice_bytes := bytes
+|}.
+
+Definition ink_slices_disjoint
+    (left right : InkMemorySlice) : Prop :=
+  ink_slice_block left <> ink_slice_block right \/
+  ink_slice_start left + ink_slice_bytes left <= ink_slice_start right \/
+  ink_slice_start right + ink_slice_bytes right <= ink_slice_start left.
+
+Definition InkMemoryAddress : Type := Values.block * Ptrofs.int.
+
+Definition ink_pointer_value
+    (target : option InkMemoryAddress) : Values.val :=
+  match target with
+  | None => Values.Vnullptr
+  | Some (block, offset) => Values.Vptr block offset
+  end.
+
+Definition ink_sink_function
+    (version : GameVersion) : Clight.function :=
+  match version with
+  | VersionUS => UMI.f_sink_mario_in_quicksand
+  | VersionJP => JMI.f_sink_mario_in_quicksand
+  end.
+
+Definition ink_sink_layout_slices
+    (state_block : Values.block) (state_offset : Ptrofs.int)
+    (object_block : Values.block) (object_offset : Ptrofs.int)
+    (throw_target : option InkMemoryAddress) : list InkMemorySlice :=
+  [ ink_relative_slice state_block state_offset 60 12;
+    ink_relative_slice state_block state_offset 136 4;
+    ink_relative_slice state_block state_offset 192 4;
+    ink_relative_slice object_block object_offset 32 12;
+    ink_relative_slice object_block object_offset 80 4;
+    ink_relative_slice object_block object_offset 160 12 ] ++
+  match throw_target with
+  | None => []
+  | Some (matrix_block, matrix_offset) =>
+      [ink_relative_slice matrix_block matrix_offset 52 4]
+  end.
+
+(** A candidate is an actual complete Clight call/return segment for the
+    selected US or JP [sink_mario_in_quicksand] body.  Its premises recover the
+    concrete MarioState pointer, MarioObject pointer, binary32 depth, all three
+    position views, and the optional throw-matrix cell from CompCert memory.
+    The pairwise-disjoint layout premise is the missing normal-provenance fact;
+    it rules out the omitted matrix store aliasing State, raw Object, Graphics,
+    the object pointer, or the depth field. *)
+Record InkFallbackSinkCallSegment : Type := {
+  ink_sink_projection : ClightObservationProjection;
+  ink_sink_before : Clight.state;
+  ink_sink_after : Clight.state;
+  ink_sink_trace : Events.trace;
+  ink_sink_continuation : Clight.cont;
+  ink_sink_state_block : Values.block;
+  ink_sink_state_offset : Ptrofs.int;
+  ink_sink_object_block : Values.block;
+  ink_sink_object_offset : Ptrofs.int;
+  ink_sink_depth : float32;
+  ink_sink_state_position : Vec3f;
+  ink_sink_raw_object_position : Vec3f;
+  ink_sink_graphics_position : Vec3f;
+  ink_sink_throw_target : option InkMemoryAddress;
+  ink_sink_throw_prior_value : float32;
+  ink_sink_call_state :
+    ink_sink_before =
+      Clight.Callstate
+        (Ctypes.Internal
+          (ink_sink_function
+            (projection_version ink_sink_projection)))
+        [Values.Vptr ink_sink_state_block ink_sink_state_offset]
+        ink_sink_continuation
+        (clight_state_memory ink_sink_before);
+  ink_sink_steps :
+    @Smallstep.star _ _ Clight.step2
+      (Clight.globalenv (projection_program ink_sink_projection))
+      ink_sink_before ink_sink_trace ink_sink_after;
+  ink_sink_return_state :
+    ink_sink_after =
+      Clight.Returnstate Values.Vundef ink_sink_continuation
+        (clight_state_memory ink_sink_after);
+  ink_sink_object_pointer_before :
+    ink_load_pointer
+      (clight_state_memory ink_sink_before)
+      ink_sink_state_block ink_sink_state_offset 136
+      (Values.Vptr ink_sink_object_block ink_sink_object_offset);
+  ink_sink_depth_before :
+    ink_load_single
+      (clight_state_memory ink_sink_before)
+      ink_sink_state_block ink_sink_state_offset 192 ink_sink_depth;
+  ink_sink_state_position_before :
+    ink_load_vec3f
+      (clight_state_memory ink_sink_before)
+      ink_sink_state_block ink_sink_state_offset 60
+      ink_sink_state_position;
+  ink_sink_raw_object_position_before :
+    ink_load_vec3f
+      (clight_state_memory ink_sink_before)
+      ink_sink_object_block ink_sink_object_offset 160
+      ink_sink_raw_object_position;
+  ink_sink_graphics_position_before :
+    ink_load_vec3f
+      (clight_state_memory ink_sink_before)
+      ink_sink_object_block ink_sink_object_offset 32
+      ink_sink_graphics_position;
+  ink_sink_throw_pointer_before :
+    ink_load_pointer
+      (clight_state_memory ink_sink_before)
+      ink_sink_object_block ink_sink_object_offset 80
+      (ink_pointer_value ink_sink_throw_target);
+  ink_sink_throw_cell_before :
+    match ink_sink_throw_target with
+    | None => True
+    | Some (matrix_block, matrix_offset) =>
+        ink_load_single
+          (clight_state_memory ink_sink_before)
+          matrix_block matrix_offset 52 ink_sink_throw_prior_value
+    end;
+  ink_sink_layout_disjoint :
+    ForallOrdPairs ink_slices_disjoint
+      (ink_sink_layout_slices
+        ink_sink_state_block ink_sink_state_offset
+        ink_sink_object_block ink_sink_object_offset
+        ink_sink_throw_target)
+}.
+
+Definition ink_sink_write_location
+    (segment : InkFallbackSinkCallSegment)
+    (block : Values.block) (offset : Z) : Prop :=
+  (block = ink_sink_object_block segment /\
+   ink_address_offset (ink_sink_object_offset segment) 36 <= offset <
+     ink_address_offset (ink_sink_object_offset segment) 36 + 4) \/
+  match ink_sink_throw_target segment with
+  | None => False
+  | Some (matrix_block, matrix_offset) =>
+      block = matrix_block /\
+      ink_address_offset matrix_offset 52 <= offset <
+        ink_address_offset matrix_offset 52 + 4
+  end.
+
+Definition InkFallbackSinkMemoryPostcondition
+    (segment : InkFallbackSinkCallSegment) : Prop :=
+  ink_load_pointer
+    (clight_state_memory (ink_sink_after segment))
+    (ink_sink_state_block segment) (ink_sink_state_offset segment) 136
+    (Values.Vptr
+      (ink_sink_object_block segment) (ink_sink_object_offset segment)) /\
+  ink_load_single
+    (clight_state_memory (ink_sink_after segment))
+    (ink_sink_state_block segment) (ink_sink_state_offset segment) 192
+    (ink_sink_depth segment) /\
+  ink_load_vec3f
+    (clight_state_memory (ink_sink_after segment))
+    (ink_sink_state_block segment) (ink_sink_state_offset segment) 60
+    (ink_sink_state_position segment) /\
+  ink_load_vec3f
+    (clight_state_memory (ink_sink_after segment))
+    (ink_sink_object_block segment) (ink_sink_object_offset segment) 160
+    (ink_sink_raw_object_position segment) /\
+  ink_load_vec3f
+    (clight_state_memory (ink_sink_after segment))
+    (ink_sink_object_block segment) (ink_sink_object_offset segment) 32
+    (ink_subtract_depth_from_y
+      (ink_sink_graphics_position segment) (ink_sink_depth segment)) /\
+  ink_load_pointer
+    (clight_state_memory (ink_sink_after segment))
+    (ink_sink_object_block segment) (ink_sink_object_offset segment) 80
+    (ink_pointer_value (ink_sink_throw_target segment)) /\
+  (match ink_sink_throw_target segment with
+   | None => True
+   | Some (matrix_block, matrix_offset) =>
+       ink_load_single
+         (clight_state_memory (ink_sink_after segment))
+         matrix_block matrix_offset 52
+         (Float32.sub
+           (ink_sink_throw_prior_value segment) (ink_sink_depth segment))
+   end) /\
+  Mem.unchanged_on
+    (fun block offset => ~ ink_sink_write_location segment block offset)
+    (clight_state_memory (ink_sink_before segment))
+    (clight_state_memory (ink_sink_after segment)).
+
+(** This is now a concrete function-correctness obligation: every linked
+    target call segment satisfying the explicit memory-layout premises must
+    have exactly the projected Graphics write and optional matrix write above.
+    No predicate parameter can supply the desired result by fiat. *)
+Definition InkFallbackSinkMemoryRefinementObligation : Prop :=
+  forall segment : InkFallbackSinkCallSegment,
+    InkFallbackSinkMemoryPostcondition segment.
+
+Definition ink_platform_global_ident
+    (version : GameVersion) : ident :=
+  match version with
+  | VersionUS => UPD._gMarioPlatform
+  | VersionJP => JPD._gMarioPlatform
+  end.
+
+Definition ink_mario_object_global_ident
+    (version : GameVersion) : ident :=
+  match version with
+  | VersionUS => UPD._gMarioObject
+  | VersionJP => JPD._gMarioObject
+  end.
+
+Definition ink_mario_states_global_ident
+    (version : GameVersion) : ident :=
+  match version with
+  | VersionUS => UPD._gMarioStates
+  | VersionJP => JPD._gMarioStates
+  end.
+
+Definition ink_pyramid_top_behavior_ident
+    (version : GameVersion) : ident :=
+  match version with
+  | VersionUS => UBD._bhvPyramidTop
+  | VersionJP => JBD._bhvPyramidTop
+  end.
+
+Definition ink_pyramid_top_collision_ident
+    (version : GameVersion) : ident :=
+  match version with
+  | VersionUS => UBD._ssl_seg7_collision_pyramid_top
+  | VersionJP => JBD._ssl_seg7_collision_pyramid_top
+  end.
+
+Definition ink_platform_floor_local_ident
+    (version : GameVersion) : ident :=
+  match version with
+  | VersionUS => UPD._floor
+  | VersionJP => JPD._floor
+  end.
+
+Definition ink_platform_floor_result_temp_ident
+    (version : GameVersion) : ident :=
+  match version with
+  | VersionUS => UPD._t'1
+  | VersionJP => JPD._t'1
+  end.
+
+Definition ink_platform_surface_struct_ident
+    (version : GameVersion) : ident :=
+  match version with
+  | VersionUS => UPD._Surface
+  | VersionJP => JPD._Surface
+  end.
+
+Definition ink_platform_surface_pointer_type
+    (version : GameVersion) : Ctypes.type :=
+  Ctypes.Tpointer
+    (Ctypes.Tstruct
+      (ink_platform_surface_struct_ident version) Ctypes.noattr)
+    Ctypes.noattr.
+
+Definition ink_copy_state_to_object_function
+    (version : GameVersion) : Clight.function :=
+  match version with
+  | VersionUS => UOL.f_copy_mario_state_to_object
+  | VersionJP => JOL.f_copy_mario_state_to_object
+  end.
+
+Definition ink_update_non_terrain_function
+    (version : GameVersion) : Clight.function :=
+  match version with
+  | VersionUS => UOL.f_update_non_terrain_objects
+  | VersionJP => JOL.f_update_non_terrain_objects
+  end.
+
+Definition ink_unload_deactivated_function
+    (version : GameVersion) : Clight.function :=
+  match version with
+  | VersionUS => UOL.f_unload_deactivated_objects
+  | VersionJP => JOL.f_unload_deactivated_objects
+  end.
+
+Definition ink_update_platform_function
+    (version : GameVersion) : Clight.function :=
+  match version with
+  | VersionUS => UPD.f_update_mario_platform
+  | VersionJP => JPD.f_update_mario_platform
+  end.
+
+Definition ink_void_call_entry
+    (function : Clight.function) (continuation : Clight.cont)
+    (state : Clight.state) : Prop :=
+  state =
+    Clight.Callstate (Ctypes.Internal function) [] continuation
+      (clight_state_memory state).
+
+Definition ink_void_call_return
+    (continuation : Clight.cont) (state : Clight.state) : Prop :=
+  state =
+    Clight.Returnstate Values.Vundef continuation
+      (clight_state_memory state).
+
+Definition ink_linked_steps
+    (projection : ClightObservationProjection)
+    (before : Clight.state) (trace : Events.trace)
+    (after : Clight.state) : Prop :=
+  @Smallstep.star _ _ Clight.step2
+    (Clight.globalenv (projection_program projection))
+    before trace after.
+
+Definition ink_pyramid_top_home_f32 : Vec3f := {|
+  vec_x := f32_of_Z pyramid_top_home_x;
+  vec_y := f32_of_Z pyramid_top_home_y;
+  vec_z := f32_of_Z pyramid_top_home_z
+|}.
+
+Definition ink_find_floor_return_control_point
+    (projection : ClightObservationProjection)
+    (state : Clight.state) (floor_height : float32)
+    (caller_env : Clight.env) (caller_temporaries : Clight.temp_env)
+    (rest_continuation : Clight.cont) : Prop :=
+  state =
+    Clight.Returnstate
+      (Values.Vsingle floor_height)
+      (Clight.Kcall
+        (Some
+          (ink_platform_floor_result_temp_ident
+            (projection_version projection)))
+        (ink_update_platform_function (projection_version projection))
+        caller_env caller_temporaries rest_continuation)
+      (clight_state_memory state).
+
+Definition ink_selected_floor_local_pointer
+    (projection : ClightObservationProjection)
+    (state : Clight.state) (caller_env : Clight.env)
+    (floor_local_block surface_block : Values.block)
+    (surface_offset : Ptrofs.int) : Prop :=
+  PTree.get
+    (ink_platform_floor_local_ident (projection_version projection))
+    caller_env =
+    Some
+      (floor_local_block,
+       ink_platform_surface_pointer_type (projection_version projection)) /\
+  Mem.load AST.Mptr (clight_state_memory state) floor_local_block 0 =
+    Some (Values.Vptr surface_block surface_offset).
+
+(** The current projection has no primitive pointer-to-[SurfaceRef] map.
+    This named proposition therefore states the exact co-observation that a
+    later construction must establish: the concrete MarioState floor field
+    contains the selected pointer in the same Clight state that projects to an
+    abstract state whose Mario floor is the given stable surface name. *)
+Definition InkSelectedSurfaceProjectionLink
+    (projection : ClightObservationProjection)
+    (state : Clight.state) (abstract_state : GameState)
+    (mario_state_block : Values.block)
+    (mario_state_offset : Ptrofs.int)
+    (surface_block : Values.block) (surface_offset : Ptrofs.int)
+    (surface_ref : SurfaceRef) : Prop :=
+  project_state projection state = Some abstract_state /\
+  ink_load_pointer
+    (clight_state_memory state)
+    mario_state_block mario_state_offset 104
+    (Values.Vptr surface_block surface_offset) /\
+  mario_floor (state_mario_kinematics abstract_state) = surface_ref.
+
+Inductive InkTopOwnerPostCopyEpochCase
+    (owner_ref : ObjectRef) (current : ObjectState) : Prop :=
+| InkTopOwnerActiveAtPostCopy :
+    object_ref_equal (object_ref current) owner_ref ->
+    object_active current = true ->
+    InkTopOwnerPostCopyEpochCase owner_ref current
+| InkTopOwnerInactiveAtPostCopy :
+    object_ref_equal (object_ref current) owner_ref ->
+    object_active current = false ->
+    InkTopOwnerPostCopyEpochCase owner_ref current.
+
+Inductive InkTopOwnerEpochOutcome
+    (owner_ref : ObjectRef) (pool : list ObjectState) : Prop :=
+| InkTopOwnerStillActive :
+    forall current,
+      nth_error pool (object_slot owner_ref) = Some current ->
+      object_ref_equal (object_ref current) owner_ref ->
+      object_active current = true ->
+      InkTopOwnerEpochOutcome owner_ref pool
+| InkTopOwnerInactiveSameEpoch :
+    forall current,
+      nth_error pool (object_slot owner_ref) = Some current ->
+      object_ref_equal (object_ref current) owner_ref ->
+      object_active current = false ->
+      InkTopOwnerEpochOutcome owner_ref pool.
+
+(** The explicit call/return states below identify four concrete control
+    points inside one imported run.  The non-terrain call encloses the
+    [copy_mario_state_to_object] call; after its return, the run reaches the
+    non-terrain return, then complete calls to
+    [unload_deactivated_objects] and [update_mario_platform].
+
+    The selected sample and floor height are arbitrary binary32 values.  The
+    local/PU home-pose witnesses above use 1791, but an explosion-frame top has
+    a later translated/rotated pose with potentially non-integral coordinates.
+    Constructing this record must recover that concrete transform and selected
+    surface; it may not silently reuse the home-pose floor.  The pre-unload
+    allocation is pinned by exact slot/epoch, Area 1, the static top home
+    coordinates, concrete [bhvPyramidTop] and collision-data symbols, and the
+    loaded surface-owner pointer. *)
+Record InkFallbackPostCopyLifecycleSegment : Type := {
+  ink_lifecycle_projection : ClightObservationProjection;
+  ink_lifecycle_run : ImportedClightRun;
+  ink_lifecycle_uses_projection :
+    RunUsesProjection ink_lifecycle_projection ink_lifecycle_run;
+  ink_lifecycle_sample : Vec3f;
+  ink_lifecycle_floor_height : float32;
+  ink_lifecycle_remaining_entry : Clight.state;
+  ink_lifecycle_copy_entry : Clight.state;
+  ink_lifecycle_copy_return : Clight.state;
+  ink_lifecycle_remaining_return : Clight.state;
+  ink_lifecycle_unload_entry : Clight.state;
+  ink_lifecycle_unload_return : Clight.state;
+  ink_lifecycle_query_entry : Clight.state;
+  ink_lifecycle_find_floor_return : Clight.state;
+  ink_lifecycle_query_return : Clight.state;
+  ink_lifecycle_remaining_continuation : Clight.cont;
+  ink_lifecycle_copy_continuation : Clight.cont;
+  ink_lifecycle_unload_continuation : Clight.cont;
+  ink_lifecycle_query_continuation : Clight.cont;
+  ink_lifecycle_find_floor_caller_env : Clight.env;
+  ink_lifecycle_find_floor_caller_temporaries : Clight.temp_env;
+  ink_lifecycle_find_floor_rest_continuation : Clight.cont;
+  ink_lifecycle_floor_local_block : Values.block;
+  ink_lifecycle_prefix_trace : Events.trace;
+  ink_lifecycle_remaining_to_copy_trace : Events.trace;
+  ink_lifecycle_copy_trace : Events.trace;
+  ink_lifecycle_copy_to_remaining_return_trace : Events.trace;
+  ink_lifecycle_to_unload_trace : Events.trace;
+  ink_lifecycle_unload_trace : Events.trace;
+  ink_lifecycle_to_query_trace : Events.trace;
+  ink_lifecycle_query_to_find_floor_trace : Events.trace;
+  ink_lifecycle_find_floor_to_query_return_trace : Events.trace;
+  ink_lifecycle_query_trace : Events.trace;
+  ink_lifecycle_suffix_trace : Events.trace;
+  ink_lifecycle_prefix_steps :
+    ink_linked_steps ink_lifecycle_projection
+      (run_start ink_lifecycle_run) ink_lifecycle_prefix_trace
+      ink_lifecycle_remaining_entry;
+  ink_lifecycle_remaining_is_entry :
+    ink_void_call_entry
+      (ink_update_non_terrain_function
+        (projection_version ink_lifecycle_projection))
+      ink_lifecycle_remaining_continuation
+      ink_lifecycle_remaining_entry;
+  ink_lifecycle_remaining_to_copy_steps :
+    ink_linked_steps ink_lifecycle_projection
+      ink_lifecycle_remaining_entry ink_lifecycle_remaining_to_copy_trace
+      ink_lifecycle_copy_entry;
+  ink_lifecycle_copy_is_entry :
+    ink_void_call_entry
+      (ink_copy_state_to_object_function
+        (projection_version ink_lifecycle_projection))
+      ink_lifecycle_copy_continuation ink_lifecycle_copy_entry;
+  ink_lifecycle_copy_steps :
+    ink_linked_steps ink_lifecycle_projection
+      ink_lifecycle_copy_entry ink_lifecycle_copy_trace
+      ink_lifecycle_copy_return;
+  ink_lifecycle_copy_is_return :
+    ink_void_call_return
+      ink_lifecycle_copy_continuation ink_lifecycle_copy_return;
+  ink_lifecycle_copy_to_remaining_return_steps :
+    ink_linked_steps ink_lifecycle_projection
+      ink_lifecycle_copy_return
+      ink_lifecycle_copy_to_remaining_return_trace
+      ink_lifecycle_remaining_return;
+  ink_lifecycle_remaining_is_return :
+    ink_void_call_return
+      ink_lifecycle_remaining_continuation
+      ink_lifecycle_remaining_return;
+  ink_lifecycle_to_unload_steps :
+    ink_linked_steps ink_lifecycle_projection
+      ink_lifecycle_remaining_return ink_lifecycle_to_unload_trace
+      ink_lifecycle_unload_entry;
+  ink_lifecycle_unload_is_entry :
+    ink_void_call_entry
+      (ink_unload_deactivated_function
+        (projection_version ink_lifecycle_projection))
+      ink_lifecycle_unload_continuation ink_lifecycle_unload_entry;
+  ink_lifecycle_unload_steps :
+    ink_linked_steps ink_lifecycle_projection
+      ink_lifecycle_unload_entry ink_lifecycle_unload_trace
+      ink_lifecycle_unload_return;
+  ink_lifecycle_unload_is_return :
+    ink_void_call_return
+      ink_lifecycle_unload_continuation ink_lifecycle_unload_return;
+  ink_lifecycle_to_query_steps :
+    ink_linked_steps ink_lifecycle_projection
+      ink_lifecycle_unload_return ink_lifecycle_to_query_trace
+      ink_lifecycle_query_entry;
+  ink_lifecycle_query_is_entry :
+    ink_void_call_entry
+      (ink_update_platform_function
+        (projection_version ink_lifecycle_projection))
+      ink_lifecycle_query_continuation ink_lifecycle_query_entry;
+  ink_lifecycle_query_to_find_floor_steps :
+    ink_linked_steps ink_lifecycle_projection
+      ink_lifecycle_query_entry
+      ink_lifecycle_query_to_find_floor_trace
+      ink_lifecycle_find_floor_return;
+  ink_lifecycle_find_floor_is_return :
+    ink_find_floor_return_control_point
+      ink_lifecycle_projection ink_lifecycle_find_floor_return
+      ink_lifecycle_floor_height
+      ink_lifecycle_find_floor_caller_env
+      ink_lifecycle_find_floor_caller_temporaries
+      ink_lifecycle_find_floor_rest_continuation;
+  ink_lifecycle_find_floor_to_query_return_steps :
+    ink_linked_steps ink_lifecycle_projection
+      ink_lifecycle_find_floor_return
+      ink_lifecycle_find_floor_to_query_return_trace
+      ink_lifecycle_query_return;
+  ink_lifecycle_query_steps :
+    ink_linked_steps ink_lifecycle_projection
+      ink_lifecycle_query_entry ink_lifecycle_query_trace
+      ink_lifecycle_query_return;
+  ink_lifecycle_query_trace_decomposition :
+    ink_lifecycle_query_trace =
+      ink_lifecycle_query_to_find_floor_trace ++
+      ink_lifecycle_find_floor_to_query_return_trace;
+  ink_lifecycle_query_is_return :
+    ink_void_call_return
+      ink_lifecycle_query_continuation ink_lifecycle_query_return;
+  ink_lifecycle_suffix_steps :
+    ink_linked_steps ink_lifecycle_projection
+      ink_lifecycle_query_return ink_lifecycle_suffix_trace
+      (run_final ink_lifecycle_run);
+  ink_lifecycle_trace_decomposition :
+    run_trace ink_lifecycle_run =
+      ink_lifecycle_prefix_trace ++
+      ink_lifecycle_remaining_to_copy_trace ++
+      ink_lifecycle_copy_trace ++
+      ink_lifecycle_copy_to_remaining_return_trace ++
+      ink_lifecycle_to_unload_trace ++
+      ink_lifecycle_unload_trace ++
+      ink_lifecycle_to_query_trace ++
+      ink_lifecycle_query_trace ++
+      ink_lifecycle_suffix_trace;
+  ink_lifecycle_post_copy_game : GameState;
+  ink_lifecycle_after_unload_game : GameState;
+  ink_lifecycle_after_query_game : GameState;
+  ink_lifecycle_post_copy_projection :
+    project_state ink_lifecycle_projection ink_lifecycle_copy_return =
+      Some ink_lifecycle_post_copy_game;
+  ink_lifecycle_after_unload_projection :
+    project_state ink_lifecycle_projection ink_lifecycle_unload_return =
+      Some ink_lifecycle_after_unload_game;
+  ink_lifecycle_after_query_projection :
+    project_state ink_lifecycle_projection ink_lifecycle_query_return =
+      Some ink_lifecycle_after_query_game;
+  ink_lifecycle_mario_state_block : Values.block;
+  ink_lifecycle_mario_state_offset : Ptrofs.int;
+  ink_lifecycle_mario_object_global_block : Values.block;
+  ink_lifecycle_mario_object_block : Values.block;
+  ink_lifecycle_mario_object_offset : Ptrofs.int;
+  ink_lifecycle_surface_block : Values.block;
+  ink_lifecycle_surface_offset : Ptrofs.int;
+  ink_lifecycle_owner_block : Values.block;
+  ink_lifecycle_owner_offset : Ptrofs.int;
+  ink_lifecycle_top_behavior_block : Values.block;
+  ink_lifecycle_top_collision_block : Values.block;
+  ink_lifecycle_surface_ref : SurfaceRef;
+  ink_lifecycle_owner_ref : ObjectRef;
+  ink_lifecycle_owner_before : ObjectState;
+  ink_lifecycle_platform : RawPlatformPointer;
+  ink_lifecycle_mario_state_symbol :
+    Genv.find_symbol
+      (Clight.globalenv
+        (projection_program ink_lifecycle_projection))
+      (ink_mario_states_global_ident
+        (projection_version ink_lifecycle_projection)) =
+      Some ink_lifecycle_mario_state_block;
+  ink_lifecycle_mario_state_is_first :
+    ink_lifecycle_mario_state_offset = Ptrofs.zero;
+  ink_lifecycle_mario_state_position_at_copy :
+    ink_load_vec3f
+      (clight_state_memory ink_lifecycle_copy_return)
+      ink_lifecycle_mario_state_block ink_lifecycle_mario_state_offset 60
+      ink_lifecycle_sample;
+  ink_lifecycle_mario_state_floor_at_copy :
+    ink_load_pointer
+      (clight_state_memory ink_lifecycle_copy_return)
+      ink_lifecycle_mario_state_block ink_lifecycle_mario_state_offset 104
+      (Values.Vptr ink_lifecycle_surface_block ink_lifecycle_surface_offset);
+  ink_lifecycle_mario_state_floor_height_at_copy :
+    ink_load_single
+      (clight_state_memory ink_lifecycle_copy_return)
+      ink_lifecycle_mario_state_block ink_lifecycle_mario_state_offset 112
+      ink_lifecycle_floor_height;
+  ink_lifecycle_mario_state_object_at_copy :
+    ink_load_pointer
+      (clight_state_memory ink_lifecycle_copy_return)
+      ink_lifecycle_mario_state_block ink_lifecycle_mario_state_offset 136
+      (Values.Vptr
+        ink_lifecycle_mario_object_block ink_lifecycle_mario_object_offset);
+  ink_lifecycle_raw_object_at_copy :
+    ink_load_vec3f
+      (clight_state_memory ink_lifecycle_copy_return)
+      ink_lifecycle_mario_object_block ink_lifecycle_mario_object_offset 160
+      ink_lifecycle_sample;
+  ink_lifecycle_disappeared_snap_y :
+    vec_y ink_lifecycle_sample = ink_lifecycle_floor_height;
+  ink_lifecycle_projected_post_copy_position :
+    mario_position
+      (state_mario_kinematics ink_lifecycle_post_copy_game) =
+      ink_lifecycle_sample;
+  ink_lifecycle_selected_surface_projection_link :
+    InkSelectedSurfaceProjectionLink
+      ink_lifecycle_projection ink_lifecycle_copy_return
+      ink_lifecycle_post_copy_game
+      ink_lifecycle_mario_state_block ink_lifecycle_mario_state_offset
+      ink_lifecycle_surface_block ink_lifecycle_surface_offset
+      ink_lifecycle_surface_ref;
+  ink_lifecycle_projected_post_copy_floor_height :
+    mario_floor_height
+      (state_mario_kinematics ink_lifecycle_post_copy_game) =
+      ink_lifecycle_floor_height;
+  ink_lifecycle_mario_object_symbol :
+    Genv.find_symbol
+      (Clight.globalenv
+        (projection_program ink_lifecycle_projection))
+      (ink_mario_object_global_ident
+        (projection_version ink_lifecycle_projection)) =
+      Some ink_lifecycle_mario_object_global_block;
+  ink_lifecycle_query_uses_this_mario_object :
+    Mem.load AST.Mptr
+      (clight_state_memory ink_lifecycle_query_entry)
+      ink_lifecycle_mario_object_global_block 0 =
+      Some
+        (Values.Vptr
+          ink_lifecycle_mario_object_block ink_lifecycle_mario_object_offset);
+  ink_lifecycle_selected_floor_local :
+    ink_selected_floor_local_pointer
+      ink_lifecycle_projection ink_lifecycle_find_floor_return
+      ink_lifecycle_find_floor_caller_env ink_lifecycle_floor_local_block
+      ink_lifecycle_surface_block ink_lifecycle_surface_offset;
+  ink_lifecycle_surface_owner_at_copy :
+    ink_load_pointer
+      (clight_state_memory ink_lifecycle_copy_return)
+      ink_lifecycle_surface_block ink_lifecycle_surface_offset 44
+      (Values.Vptr ink_lifecycle_owner_block ink_lifecycle_owner_offset);
+  ink_lifecycle_selected_surface_owner :
+    ink_load_pointer
+      (clight_state_memory ink_lifecycle_find_floor_return)
+      ink_lifecycle_surface_block ink_lifecycle_surface_offset 44
+      (Values.Vptr ink_lifecycle_owner_block ink_lifecycle_owner_offset);
+  ink_lifecycle_owner_before_lookup :
+    nth_error (state_object_pool ink_lifecycle_post_copy_game)
+      (object_slot ink_lifecycle_owner_ref) =
+      Some ink_lifecycle_owner_before;
+  ink_lifecycle_owner_before_ref :
+    object_ref_equal
+      (object_ref ink_lifecycle_owner_before) ink_lifecycle_owner_ref;
+  ink_lifecycle_owner_position_at_copy :
+    ink_load_vec3f
+      (clight_state_memory ink_lifecycle_copy_return)
+      ink_lifecycle_owner_block ink_lifecycle_owner_offset 160
+      (object_position ink_lifecycle_owner_before);
+  ink_lifecycle_owner_post_copy_epoch_case :
+    InkTopOwnerPostCopyEpochCase
+      ink_lifecycle_owner_ref ink_lifecycle_owner_before;
+  ink_lifecycle_owner_before_area :
+    object_area ink_lifecycle_owner_before = ssl_area1_id;
+  ink_lifecycle_owner_before_behavior :
+    object_behavior ink_lifecycle_owner_before = BehaviorOther;
+  ink_lifecycle_owner_before_origin :
+    object_origin ink_lifecycle_owner_before = RuntimeOtherOrigin;
+  ink_lifecycle_owner_before_home :
+    object_home_position ink_lifecycle_owner_before =
+      ink_pyramid_top_home_f32;
+  ink_lifecycle_top_behavior_symbol :
+    Genv.find_symbol
+      (Clight.globalenv
+        (projection_program ink_lifecycle_projection))
+      (ink_pyramid_top_behavior_ident
+        (projection_version ink_lifecycle_projection)) =
+      Some ink_lifecycle_top_behavior_block;
+  ink_lifecycle_owner_behavior_pointer_at_copy :
+    ink_load_pointer
+      (clight_state_memory ink_lifecycle_copy_return)
+      ink_lifecycle_owner_block ink_lifecycle_owner_offset 524
+      (Values.Vptr ink_lifecycle_top_behavior_block Ptrofs.zero);
+  ink_lifecycle_top_collision_symbol :
+    Genv.find_symbol
+      (Clight.globalenv
+        (projection_program ink_lifecycle_projection))
+      (ink_pyramid_top_collision_ident
+        (projection_version ink_lifecycle_projection)) =
+      Some ink_lifecycle_top_collision_block;
+  ink_lifecycle_owner_collision_pointer_at_copy :
+    ink_load_pointer
+      (clight_state_memory ink_lifecycle_copy_return)
+      ink_lifecycle_owner_block ink_lifecycle_owner_offset 536
+      (Values.Vptr ink_lifecycle_top_collision_block Ptrofs.zero);
+  ink_lifecycle_platform_ref :
+    object_ref_equal
+      (captured_platform_ref ink_lifecycle_platform)
+      ink_lifecycle_owner_ref
+}.
+
+Definition InkFallbackPostCopyLifecyclePostcondition
+    (segment : InkFallbackPostCopyLifecycleSegment) : Prop :=
+  ink_load_vec3f
+    (clight_state_memory
+      (ink_lifecycle_remaining_return segment))
+    (ink_lifecycle_mario_object_block segment)
+    (ink_lifecycle_mario_object_offset segment) 160
+    (ink_lifecycle_sample segment) /\
+  ink_load_vec3f
+    (clight_state_memory (ink_lifecycle_unload_return segment))
+    (ink_lifecycle_mario_object_block segment)
+    (ink_lifecycle_mario_object_offset segment) 160
+    (ink_lifecycle_sample segment) /\
+  ink_load_vec3f
+    (clight_state_memory (ink_lifecycle_query_return segment))
+    (ink_lifecycle_mario_object_block segment)
+    (ink_lifecycle_mario_object_offset segment) 160
+    (ink_lifecycle_sample segment) /\
+  ink_load_pointer
+    (clight_state_memory (ink_lifecycle_unload_return segment))
+    (ink_lifecycle_surface_block segment)
+    (ink_lifecycle_surface_offset segment) 44
+    (Values.Vptr
+      (ink_lifecycle_owner_block segment)
+      (ink_lifecycle_owner_offset segment)) /\
+  ink_load_pointer
+    (clight_state_memory (ink_lifecycle_query_return segment))
+    (ink_lifecycle_surface_block segment)
+    (ink_lifecycle_surface_offset segment) 44
+    (Values.Vptr
+      (ink_lifecycle_owner_block segment)
+      (ink_lifecycle_owner_offset segment)) /\
+  InkTopOwnerEpochOutcome
+    (ink_lifecycle_owner_ref segment)
+    (state_object_pool (ink_lifecycle_after_unload_game segment)) /\
+  mario_floor
+    (state_mario_kinematics
+      (ink_lifecycle_after_query_game segment)) =
+    ink_lifecycle_surface_ref segment /\
+  mario_floor_height
+    (state_mario_kinematics
+      (ink_lifecycle_after_query_game segment)) =
+    ink_lifecycle_floor_height segment /\
+  state_mario_platform (ink_lifecycle_after_query_game segment) =
+    Some (ink_lifecycle_platform segment) /\
+  exists platform_global_block,
+    Genv.find_symbol
+      (Clight.globalenv
+        (projection_program (ink_lifecycle_projection segment)))
+      (ink_platform_global_ident
+        (projection_version (ink_lifecycle_projection segment))) =
+      Some platform_global_block /\
+    Mem.load AST.Mptr
+      (clight_state_memory (ink_lifecycle_query_return segment))
+      platform_global_block 0 =
+      Some
+        (Values.Vptr
+          (ink_lifecycle_owner_block segment)
+          (ink_lifecycle_owner_offset segment)).
+
+(** This is a universal small-step/memory refinement statement over explicit
+    lifecycle segments.  It requires the copied Object sample, loaded surface
+    owner pointer, same allocation epoch (active or inactive-same-epoch), and
+    final [gMarioPlatform] capture to be derived from the linked run rather
+    than supplied by an unconstrained predicate. *)
+Definition InkFallbackPostCopyLifecycleRefinementObligation : Prop :=
+  forall segment : InkFallbackPostCopyLifecycleSegment,
+    InkFallbackPostCopyLifecyclePostcondition segment.
+
 (** Generated-Clight syntax anchors for both versions.  This does not replace
     the small-step memory/dataflow and writer-coverage obligations above. *)
 Definition InkFallbackSourceShapeKernel : Prop :=
   graphical_floor_fallback_source_shape_us_claim /\
   graphical_floor_fallback_source_shape_jp_claim /\
   mario_entry_coordinate_sync_source_shape_us_claim /\
-  mario_entry_coordinate_sync_source_shape_jp_claim.
+  mario_entry_coordinate_sync_source_shape_jp_claim /\
+  pyramid_top_spin_explosion_pose_source_shape_us_claim /\
+  pyramid_top_spin_explosion_pose_source_shape_jp_claim /\
+  ink_post_copy_lifecycle_source_shape_us_claim /\
+  ink_post_copy_lifecycle_source_shape_jp_claim.
 
 Theorem ink_fallback_source_shape_kernel_checked :
   InkFallbackSourceShapeKernel.
@@ -656,7 +1561,11 @@ Proof.
   split; [exact graphical_floor_fallback_source_shape_us |].
   split; [exact graphical_floor_fallback_source_shape_jp |].
   split; [exact mario_entry_coordinate_sync_source_shape_us |].
-  exact mario_entry_coordinate_sync_source_shape_jp.
+  split; [exact mario_entry_coordinate_sync_source_shape_jp |].
+  split; [exact pyramid_top_spin_explosion_pose_source_shape_us |].
+  split; [exact pyramid_top_spin_explosion_pose_source_shape_jp |].
+  split; [exact ink_post_copy_lifecycle_source_shape_us |].
+  exact ink_post_copy_lifecycle_source_shape_jp.
 Qed.
 
 (** Final audited boundary:
@@ -684,9 +1593,9 @@ Proof.
   unfold InkFallbackCheckedBoundary.
   split; [exact ink_geometry_kernel_checked |].
   split.
-  - exact (proj1 ink_local_conditional_control_flow_countermodel).
+  - exact (proj1 ink_local_conditional_pipeline_coordinate_witness).
   - split.
-    + exact (proj1 ink_pu_conditional_control_flow_countermodel).
+    + exact (proj1 ink_pu_conditional_pipeline_coordinate_witness).
     + split; [exact ink_fallback_source_shape_kernel_checked |].
       split.
       * exact (proj1 (proj2 (proj2

@@ -95,12 +95,13 @@ Proof.
   - exact wing_cap_rollout_arithmetic_countermodel.
 Qed.
 
-(* The graphical-fallback tranche settles the scheduling question but not
-   clean-entry reachability.  It provides local and PU conditional
-   countermodels, exact nearby static-mesh arithmetic, the fifteen-owner
-   abstract dynamic-floor exclusion for the first query, and the invariant
-   that State-only ordinary/PU writes preserve Object and Graphics.  The
-   linked writer/action closure and real surface-list selection are explicit
+(* The graphical-fallback tranche shows that update order does not by itself
+   refute the scheduling shape; it does not execute the branch in Clight or
+   settle clean-entry reachability.  It provides local and PU conditional
+   pipeline-coordinate witnesses, exact nearby static-mesh arithmetic, the
+   fifteen-owner abstract dynamic-floor exclusion for the first query, and the
+   invariant that State-only ordinary/PU writes preserve Object and Graphics.
+   The linked branch/surface refinement and writer/action closure are explicit
    obligations in [InkFallback], so this is not the ultimate theorem. *)
 Theorem current_ink_fallback_evidence_boundary :
   InkFallbackCheckedBoundary /\

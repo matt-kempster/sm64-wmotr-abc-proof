@@ -528,8 +528,10 @@ The later three-view graphical-fallback audit and its documentation changed:
 - `SSL-Coq/less-than-one-a-press/docs/route-exhaustiveness.md`
 - `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+- `SSL-Coq/less-than-one-a-press/pipeline/assumptions.sh`
 - `SSL-Coq/less-than-one-a-press/proofs/ASTFacts.v`
 - `SSL-Coq/less-than-one-a-press/proofs/ClightFacts.v`
 - `SSL-Coq/less-than-one-a-press/proofs/CollisionMeshFacts.v`
 - `SSL-Coq/less-than-one-a-press/proofs/InkFallback.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`
+- `SSL-Coq/less-than-one-a-press/proofs/PyramidTopPU.v`

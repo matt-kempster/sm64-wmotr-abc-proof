@@ -521,6 +521,41 @@ Theorem selected_ink_area1_triangle_words_exact_jp :
     selected_ink_area1_triangle_word_slice.
 Proof. vm_compute. reflexivity. Qed.
 
+(** Collision-format receipts around the selected Ink diagnostic.
+
+    Decimal [40] is [SURFACE_WALL_MISC], [48] is [SURFACE_HARD], [45] is
+    [SURFACE_INSTANT_MOVING_QUICKSAND], and [68] is the water-box marker in
+    the pinned source.  The ten-triangle slice above is the tail of the
+    58-triangle wall-misc group.  The upper y=1280 face
+    [(265,266,372)] is the 56th triangle in the following 288-triangle hard
+    group.  These are exact generated-word memberships; interpreting the
+    complete stream as live collision lists remains a separate refinement. *)
+
+Definition selected_ink_area1_water_box_word_slice : list Z :=
+  [68; 3;
+   51; 1024; -7065; 7578; -716; -50;
+   52; -3993; -7065; 1024; -4197; -50;
+   0; -6911; -7167; -4223; -4607; -127;
+   66].
+
+Definition selected_ink_area1_surface_receipts
+    (words : list Z) : Prop :=
+  firstn 2 (skipn 3174 words) = [40; 58] /\
+  firstn 32 (skipn 3320 words) =
+    selected_ink_area1_triangle_word_slice ++ [45; 69] /\
+  firstn 2 (skipn 3628 words) = [48; 288] /\
+  firstn 3 (skipn 3795 words) = [265; 266; 372] /\
+  firstn 21 (skipn 4924 words) =
+    selected_ink_area1_water_box_word_slice.
+
+Theorem selected_ink_area1_surface_receipts_exact_us :
+  selected_ink_area1_surface_receipts area1_collision_words_us.
+Proof. vm_compute. repeat split; reflexivity. Qed.
+
+Theorem selected_ink_area1_surface_receipts_exact_jp :
+  selected_ink_area1_surface_receipts area1_collision_words_jp.
+Proof. vm_compute. repeat split; reflexivity. Qed.
+
 Theorem selected_ink_area1_mesh_is_version_identical :
   area1_collision_vertices_us = area1_collision_vertices_jp /\
   firstn 30 (skipn 3320 area1_collision_words_us) =

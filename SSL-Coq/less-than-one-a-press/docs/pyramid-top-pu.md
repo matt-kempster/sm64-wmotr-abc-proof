@@ -15,10 +15,12 @@ The newer Ink fallback audit strengthens that correction.  Update order also
 permits a **three-view** conditional schedule: old `MarioObject.oPos` caches
 the warp, floorless `MarioState.pos` triggers the OOB branch, and an
 independently stale `header.gfx.pos` is copied into State for the retry.  If
-that graphical query selects a live top surface, the disappeared action and
-later State/Object copy can complete the snap.  Local and PU graphical
-coordinate countermodels are proved in `InkFallback.v`; no clean retail
-prestate constructing the necessary Object/Graphics split has been found.
+that graphical query selects a loaded top surface, the disappeared action and
+later State/Object copy can complete the coordinate snap.  Local and PU graphical
+coordinate witnesses for a handwritten pipeline are proved in
+`InkFallback.v`; generated syntax/dataflow receipts separately check the
+null/copy/retry source shape.  No clean retail prestate constructing the
+necessary Object/Graphics split has been found.
 See [`ink-fallback.md`](ink-fallback.md).
 
 The earlier two-view phase-split result explores a different question: could
@@ -31,21 +33,50 @@ top?  Direct source inspection shows this one-frame phase split:
 3. Mario geometry reads the displaced `MarioState.pos`;
 4. Mario interaction can select `ACT_DISAPPEARED`;
 5. the action snaps State Y to the newly found floor;
-6. MarioState is copied into `gMarioObject`; and
-7. the final platform query reads that copied object position.
+6. the unconditional quicksand sink writes Graphics Y and may also write the
+   graphics throw matrix;
+7. MarioState is copied into `gMarioObject`;
+8. the remaining pushable, genactor, destructive, level, default, and
+   unimportant lists update;
+9. deactivated objects unload; and
+10. the final platform query reads the copied object position and that frame's
+    still-loaded surfaces.
+
+The explosion frame is a distinct lifecycle subcase.  The top sets
+`activeFlags = ACTIVE_FLAG_DEACTIVATED` in its terrain-object update, and its
+behavior script then reaches `load_object_collision_model`.  Mario may query
+that surface in the player-list update.  Later
+`unload_deactivated_objects` calls the source deallocator without clearing the
+already built dynamic partitions, and `update_mario_platform` tests only that
+`floor->object` is non-null.  The generated syntax therefore contains the
+deallocation path.  The open lifecycle postcondition is limited to asking that
+a successfully retained owner be active or inactive in the same allocation
+epoch; it does not encode that this top was scanned/deallocated or prove
+concrete free-list membership.  No allocation runs between that unload pass and
+the final platform query, but the exact memory/payload refinement remains open.
+
+The two closed coordinate witnesses do not instantiate this subcase.  They
+use the zero-yaw home top and floor Y `1791`.  A handwritten minimum-pose
+recurrence starts at home Y and yields the conservative center-Y target `1871`
+by timer `150`; it neither executes the timer-59 smooth-rise state nor proves
+the needed binary32 lower bound for the generated Clight.  The explosion
+branch must recover its actual translated/rotated surface and selected floor
+height.  Concrete free-list membership remains open.
 
 Consequently, the collision sample can be at the ordinary warp while the
 geometry/platform sample is somewhere else.  An admission-free Rocq
 two-sample arithmetic model demonstrates that coordinate-level consistency.
 It is not a stale-slot, surface-selection, Clight-execution, or reachability
-counterexample.  It does **not** supply the required gameplay-reachable
-three-dimensional displacement or prove that a platform pointer survives the
+witness.  It does **not** supply the required gameplay-reachable
+three-dimensional displacement, prove sink/throw-matrix memory refinement,
+prove the post-copy owner epoch, or prove that a platform pointer survives the
 delayed warp into Area 2.
 
 The Area-1 audit now separates two questions that were previously conflated.
-A three-dimensional replacement payload is not merely hypothetical:
+A three-dimensional replacement payload is not merely arithmetically
+hypothetical:
 breakable-box and exclamation-box triangle fragments write nonzero pitch
-angular velocity, and the checked exact-binary32 countermodel in
+angular velocity, and the checked exact-binary32 coordinate witness in
 `Area1PhaseSplit.v` shows that such a payload can change all three MarioState
 coordinates.  From old sample `(-2048,768,-1024)`, the selected payload
 evaluates to approximately
@@ -340,7 +371,7 @@ must meet this quantitative bound.
 
 The concrete retail cast is now verified, but the route is not.
 
-The three-view fallback has three deliberately named boundaries:
+The three-view fallback has five deliberately named boundaries:
 
 - `Area1InkPrestateReachabilityObligation` asks whether a clean no-A Area-1
   execution can construct the required collision-Object, first-query-State,
@@ -348,16 +379,26 @@ The three-view fallback has three deliberately named boundaries:
 - `Area1InkWriterCoverageObligation` asks whether every reachable writer
   refines to the audited State-only, synchronizing, or bounded-Graphics
   relation; and
-- `InkFallbackSurfaceRefinementObligation` asks whether the first live query
-  really returns `NULL` and the graphical retry really selects a top-owned
-  floor.
+- `InkFallbackSurfaceRefinementObligation` asks whether the first query really
+  returns `NULL` and the graphical retry really selects a loaded top-owned
+  floor;
+- `InkFallbackSinkMemoryRefinementObligation` asks for a concrete-memory
+  refinement of the quicksand writer to both graphical Y and, when non-null,
+  `throwMatrix[3][1]`; and
+- `InkFallbackPostCopyLifecycleRefinementObligation` asks for the source-order
+  link through later object writers and the explicit unload-function call,
+  retained dynamic surfaces, an active or inactive same-epoch owner, and the
+  final platform query.  A separate linked fact must establish that the top
+  itself is scanned/deallocated and any claimed free-list insertion.
 
-The dry ordinary source census bounds the relevant positive
-Graphics-minus-Object Y offset by `45`; the generic conservative audited
-writer envelope is `<=208`.  Both are below the `385` units required by the
-retry arithmetic.  Those numeric exclusions are conditional on proving the
-writer/action closure and initial synchronization represented by the
-obligations above; they are not a retail reachability theorem.
+The dry ordinary source census identifies `45` as the route-specific positive
+Graphics-minus-Object Y audit target; the closed arithmetic theorem excludes
+a retry once a reachable writer is proved to satisfy that premise.  The
+generic conservative modeled writer relation uses `<=208`.  Both are below
+the `385` units required by the retry arithmetic.  Those numeric exclusions
+are conditional on proving the writer/action closure and initial
+synchronization represented by the obligations above; they are not a retail
+reachability theorem.
 
 A complete route witness still needs:
 
@@ -441,12 +482,15 @@ Thus the current result is:
   that model and generic controller/free-list lineage is not a remaining
   obligation for that branch; this does not eliminate the null-platform Ink
   graphical retry;
-- the dry `<=45` and generic conservative `<=208` Graphics-writer bounds are
-  arithmetically too small for the required `385`-unit retry gap, conditional
-  on the still-open writer-coverage and entry-synchronization refinements;
+- the conditional theorem for the dry `<=45` audit target and the theorem for
+  the generic conservative modeled `<=208` writer relation are arithmetically
+  too small for the required `385`-unit retry gap, conditional on the
+  still-open writer-coverage and entry-synchronization refinements;
 - `Area1InkPrestateReachabilityObligation`,
   `Area1InkWriterCoverageObligation`, and
-  `InkFallbackSurfaceRefinementObligation` remain open;
+  `InkFallbackSurfaceRefinementObligation`,
+  `InkFallbackSinkMemoryRefinementObligation`, and
+  `InkFallbackPostCopyLifecycleRefinementObligation` remain open;
 - a linked Clight derivation that validates the finite owner/origin projection,
   live ownership, list selection, and collision loads remains open;
 - no stock-reachable counterexample has been found; and

@@ -85,21 +85,34 @@ does not cover the source's graphical-position retry.
 Object collision can cache node `0x1E` from `MarioObject.oPos`; geometry first
 queries a different `MarioState.pos`; and, when that query returns null, the
 source copies `MarioObject.header.gfx.pos` into State and retries.  Conditional
-local and PU countermodels show that a top-side Graphics sample can coexist
-with the cached warp and later platform capture.  State-only ordinary,
-platform, or PU writers preserve Object and Graphics and cannot create their
-split from synchronized input.  A modeled top retry requires at least `385`
-units of Graphics-minus-Object Y separation.  The dry audited subcase is at
-most `45`, and the conservative generic audited writer relation uses `208`.
-The bounded pre-apply null theorem excludes only pre-existing platform origins;
-it does not exclude this post-query bootstrap.
+local and PU coordinate witnesses evaluate a handwritten
+retry/action/sink/copy pipeline in which a top-side Graphics sample coexists
+with the cached warp and a candidate later platform capture.  Generated Clight
+syntax/dataflow receipts separately recognize the null/copy/retry source
+shape and the post-copy non-terrain/unload/final-query order.  State-only
+ordinary, platform, or PU writers preserve Object and
+Graphics and cannot create their split from synchronized input.  A modeled top
+retry requires at least `385` units of Graphics-minus-Object Y separation.
+The source audit uses `45` as the dry route-specific target; `208` is a
+conservative modeled writer relation pending reachable-writer coverage.  The
+bounded pre-apply null theorem excludes only pre-existing platform origins; it
+does not exclude this post-query bootstrap.
 
 The remaining graphical-fallback boundary is named without assuming the
 answer: `InkFallbackSurfaceRefinementObligation` covers the real first-query
-miss and live-top retry selection,
+miss and loaded-top retry selection,
 `Area1InkPrestateReachabilityObligation` covers construction of a clean no-A
 State/Object/Graphics prestate, and `Area1InkWriterCoverageObligation` covers
-all reachable position writers.  Reachability, collision-array retention,
+all reachable position writers.  `InkFallbackSinkMemoryRefinementObligation`
+covers throw-matrix provenance, and
+`InkFallbackPostCopyLifecycleRefinementObligation` covers later object writers,
+preservation across the explicit unload-function call, concrete surface
+identity, the translated/rotated explosion-pose surface and selected height,
+and the final active/inactive-same-epoch owner.  Proving that the top itself is
+scanned, deallocated, or inserted into the free list is a separate extension
+to that obligation.  The
+closed Y `1791` witnesses are zero-yaw home-pose facts and do not discharge
+that lifecycle branch.  Reachability, collision-array retention,
 capture/unload timing, and JP pointer retention or recapture through the
 delayed warp remain open.  The complete matrix and surface-loader bodies are
 imported, the concrete CompCert casts and partition cells are checked, the

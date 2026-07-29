@@ -613,6 +613,84 @@ Proof.
   discriminate.
 Qed.
 
+(** A source-mirrored arithmetic diagnostic for a conservative lower bound on
+    the top's later explosion pose.  At timer 60 the spinning branch begins
+    the accelerating portion from zero angular and vertical velocity.  Its
+    actual center Y was left by timer 59's smooth-rise branch at or above home
+    Y; the mirror deliberately starts it at home Y, so [1871] below is a
+    minimum-pose arithmetic target rather than the exact retail center.
+    Each modeled update adds
+    [0x100] to yaw velocity, caps it at [0x1800], sets vertical velocity to
+    [5.0f] once the uncapped value exceeds that cap, and finally adds the
+    current vertical velocity to Y.  Timers 60 through 150 inclusive give 91
+    updates.
+
+    The generated US/JP source-shape receipts check all constants and written
+    slots used here.  This recurrence is nevertheless handwritten: it neither
+    proves the Float32 lower-bound refinement from timer 59 nor executes Clight
+    or establishes that a clean run reaches timer 150.  Its role is to prevent
+    the zero-yaw home-pose witness at floor Y 1791 from being silently reused
+    as an explosion/inactive-slot witness. *)
+Record PyramidTopSpinMirror : Type := {
+  mirrored_top_angle_velocity_yaw : Z;
+  mirrored_top_velocity_y : float32;
+  mirrored_top_center_y : float32
+}.
+
+Definition mirrored_top_five : float32 :=
+  Float32.of_bits (Int.repr 1084227584).
+
+Definition pyramid_top_spin_mirror_step
+    (state : PyramidTopSpinMirror) : PyramidTopSpinMirror :=
+  let proposed :=
+    mirrored_top_angle_velocity_yaw state + 256 in
+  let capped := 6144 <? proposed in
+  let next_angle := if capped then 6144 else proposed in
+  let next_velocity :=
+    if capped then mirrored_top_five else mirrored_top_velocity_y state in
+  {|
+    mirrored_top_angle_velocity_yaw := next_angle;
+    mirrored_top_velocity_y := next_velocity;
+    mirrored_top_center_y :=
+      Float32.add (mirrored_top_center_y state) next_velocity
+  |}.
+
+Fixpoint iterate_pyramid_top_spin_mirror
+    (updates : nat) (state : PyramidTopSpinMirror)
+    : PyramidTopSpinMirror :=
+  match updates with
+  | O => state
+  | S remaining =>
+      iterate_pyramid_top_spin_mirror remaining
+        (pyramid_top_spin_mirror_step state)
+  end.
+
+Definition pyramid_top_timer60_minimum_mirror : PyramidTopSpinMirror := {|
+  mirrored_top_angle_velocity_yaw := 0;
+  mirrored_top_velocity_y := Float32.of_bits (Int.repr 0);
+  mirrored_top_center_y := Float32.of_bits (Int.repr 1153433600)
+|}.
+
+Definition pyramid_top_timer150_minimum_mirror : PyramidTopSpinMirror :=
+  iterate_pyramid_top_spin_mirror 91 pyramid_top_timer60_minimum_mirror.
+
+Theorem pyramid_top_explosion_minimum_pose_mirror_checked :
+  mirrored_top_angle_velocity_yaw
+    pyramid_top_timer150_minimum_mirror = 6144 /\
+  Float32.to_bits
+    (mirrored_top_velocity_y pyramid_top_timer150_minimum_mirror) =
+      Int.repr 1084227584 /\
+  Float32.to_bits
+    (mirrored_top_center_y pyramid_top_timer150_minimum_mirror) =
+      Int.repr 1156177920 /\ (* 1871.0f *)
+  Float32.to_bits
+    (mirrored_top_center_y pyramid_top_timer150_minimum_mirror) <>
+      Int.repr 1153433600.   (* 1536.0f *)
+Proof.
+  vm_compute.
+  repeat split; discriminate.
+Qed.
+
 (** The admission-free arithmetic proposition exported for assumption
     auditing. *)
 Definition pyramid_top_pu_arithmetic_claim : Prop :=
@@ -637,7 +715,10 @@ Definition pyramid_top_pu_arithmetic_claim : Prop :=
     (pair_object_position phase_split_after_copy) 1791 /\
   ~ upper_warp_contact pu_top_floor_candidate /\
   pu_top_alias_floor_arithmetic
-    (pair_object_position phase_split_after_copy) 1791.
+    (pair_object_position phase_split_after_copy) 1791 /\
+  Float32.to_bits
+    (mirrored_top_center_y pyramid_top_timer150_minimum_mirror) =
+      Int.repr 1156177920.
 
 Theorem pyramid_top_pu_arithmetic_kernel :
   pyramid_top_pu_arithmetic_claim.
@@ -655,7 +736,11 @@ Proof.
            ++ exact pu_top_candidate_is_a_capture_sample.
            ++ split.
               ** exact pu_top_candidate_is_not_a_full_float_warp_contact.
-              ** exact pu_top_candidate_alias_floor_arithmetic.
+              ** split.
+                 --- exact pu_top_candidate_alias_floor_arithmetic.
+                 --- exact
+                       (proj1 (proj2 (proj2
+                         pyramid_top_explosion_minimum_pose_mirror_checked))).
 Qed.
 
 (** Checked bundle, deliberately not a refinement theorem: the exact packed

@@ -23,7 +23,7 @@ base-insensitive and direct-callee/literal checks are path-insensitive.
 | `src/game/mario_actions_moving.c` | `*_mario_actions_moving.v` | walking, braking, slope deceleration, and ground-step shapes; moving-punching held-A jump-kick shape; high-speed B dive and dive-slide B rollout constants/calls; all checks remain path-insensitive |
 | `src/game/mario_actions_object.c` | `*_mario_actions_object.v` | stationary punching's held-A jump-kick constants/call plus other object-interaction action handlers; no complete execution refinement yet |
 | `src/game/mario_actions_stationary.c` | `*_mario_actions_stationary.v` | stationary action handlers imported for Layer B action/writer coverage; no complete execution refinement yet |
-| `src/game/mario_actions_submerged.c` | `*_mario_actions_submerged.v` | submerged dispatcher coverage; generated-AST receipts check the water full-step helper calls, all three direct whirlpool position slots, and the common water-level clamp.  The Ink writer audit conservatively allows water pitch below `60` plus a persisted s16-only bob below `148` to compose across the floor-hit branch, represented by the integer bound `208`.  This closes the missing translation-unit hole, not SSL reachability or callgraph completeness |
+| `src/game/mario_actions_submerged.c` | `*_mario_actions_submerged.v` | submerged dispatcher coverage; generated-AST receipts check the water full-step helper calls, all three direct whirlpool position slots, and the common water-level clamp.  The Ink writer audit conservatively allows water pitch at most `60` plus a persisted s16-only bob below `148` to compose across the floor-hit branch, represented by the modeled integer bound `208`.  This closes the missing translation-unit hole, not SSL reachability or callgraph completeness |
 | `src/game/mario_step.c` | `*_mario_step.v` | ground and air quarter-step loops, `find_floor` calls, gravity source shape, and `stop_and_set_height_to_floor` State-Y assignment from cached `floorHeight` |
 | `src/game/interaction.c` | `*_interaction.v` | `interact_star_or_key` field/constant occurrences and direct save call; `interact_coin` spawn call/index constant; `interact_warp` action constant in the PU phase pipeline; extraction dataflow is pending |
 | `src/game/save_file.c` | `*_save_file.v` | direct call from `save_file_collect_star_or_key` to `save_file_set_star_flags`; `save_file_reload` backup-copy/file source shape; the bit-update and copy memory effects are not yet proved |
@@ -79,17 +79,49 @@ the target-code receipt is
 
 `proofs/InkFallback.v` refines the scheduling boundary to three independent
 views: collision Object, first-query State, and fallback Graphics.  It proves
-conditional local and PU countermodels for the guarded null-floor retry,
-checks the nearby generated Area-1 mesh arithmetic, and proves that arbitrary
-State-only ordinary/platform/PU prefixes preserve Object and Graphics.  A
-retry capable of selecting a top floor at Y at least `1281` requires
-Graphics-minus-Object Y separation of at least `385`; the dry visual-offset
-subcase is at most `45`, while the conservative generic audited writer
-relation uses `208`.  These bounds become a retail exclusion only after
-`Area1InkWriterCoverageObligation` is proved.  The actual first-query null and
-live-top retry are `InkFallbackSurfaceRefinementObligation`, and construction
-of a clean no-A three-view prestate is
-`Area1InkPrestateReachabilityObligation`.
+conditional local and PU coordinate witnesses by evaluating a handwritten
+floor-retry/action/sink/copy pipeline, checks nearby generated Area-1 mesh
+arithmetic, and proves that arbitrary State-only ordinary/platform/PU prefixes
+preserve Object and Graphics.  Separately, generated-AST receipts recognize
+the exact null test, Graphics-to-State copy dataflow, retry, and result store.
+Generated initializer receipts locate the selected lower support faces in the
+`SURFACE_WALL_MISC` group, the selected upper face in the `SURFACE_HARD` group,
+and all three Area-1 water boxes.  Further generated receipts check that later
+non-terrain updates and deactivated-object unloading precede the final
+platform query, that the top explosion writes literal zero to `activeFlags`,
+that the explode switch case and loop-before-collision-loader initializer
+links exist, that unloading calls free-list deallocation, and that final
+platform selection reads typed `Surface.object` without inspecting owner
+active flags.  The spin/explosion-pose receipts also locate timers `60`/`150`,
+yaw cap `0x1800`, vertical speed `5.0f`, and the relevant pose slots.  A
+handwritten minimum-pose recurrence starts at home Y and yields the
+conservative center-Y target `1871` by timer `150`; it neither executes the
+timer-59 smooth-rise state nor proves the needed binary32 lower bound for the
+generated Clight.  Therefore the two closed zero-yaw home-pose floor-Y `1791`
+witnesses do not discharge the translated/rotated explosion branch.
+
+The projected quicksand sink does not change the State-to-Object copy.  Its
+remaining refinement is now a concrete complete Clight call segment with
+explicit MarioState/Object/Graphics/optional-throw-matrix loads, pairwise
+memory slices, and an exact postcondition.  The post-copy lifecycle boundary
+likewise uses ordered Clight call/return cuts, binary32 samples, concrete
+MarioState floor/surface/owner pointers, behavior and collision-data symbols,
+and projected slot/epoch data.  Neither evidence record is constructed.
+
+A retry capable of selecting a top floor at Y at least `1281` requires
+Graphics-minus-Object Y separation of at least `385`.  The source audit
+identifies `45` as the dry route-specific offset target; `208` is a deliberately
+conservative modeled writer relation, not a source-derived global bound.
+Either becomes a retail exclusion only after the corresponding reachable
+writer coverage is proved by `Area1InkWriterCoverageObligation`.  The actual
+first-query null and loaded-top retry are
+`InkFallbackSurfaceRefinementObligation`, and construction of a clean no-A
+three-view prestate is
+`Area1InkPrestateReachabilityObligation`.  Sink memory provenance and the
+post-copy active/inactive-same-epoch owner lifecycle are
+`InkFallbackSinkMemoryRefinementObligation` and
+`InkFallbackPostCopyLifecycleRefinementObligation`; concrete free-list
+membership remains separate and unproved.
 
 `proofs/Area1PhaseSplit.v` checks the Area-1 fragment writers, macro parents,
 rebound source shape, exact PRNG/table values, and one route-sized binary32
@@ -214,10 +246,11 @@ initializer and AST receipts as a retail execution theorem.
 `proofs/InkFallback.v` supplies a separate writer invariant relevant to the
 same class.  State-only ordinary, platform, and PU-sized writes preserve the
 collision Object and fallback Graphics views, while any execution covered by
-the audited writer relation preserves a Graphics-minus-Object Y gap at most
+the modeled writer relation preserves a Graphics-minus-Object Y gap at most
 `208` and therefore cannot meet the required `385`-unit gap.  The
-route-specific dry source bound is `45`.  Complete Clight
-writer/action/spawn closure is still the explicit
+route-specific dry source audit target is `45`, with a conditional arithmetic
+theorem once that premise is derived.  Complete Clight writer/action/spawn
+closure is still the explicit
 `Area1InkWriterCoverageObligation`; none of these arithmetic results is
 presented as global ordinary-motion reachability.
 

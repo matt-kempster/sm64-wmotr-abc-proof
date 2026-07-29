@@ -10,12 +10,26 @@ MODULE="$1"
 THEOREM="$2"
 AUDIT_DIR="$(mktemp -d)"
 TMP="$AUDIT_DIR/AssumptionAudit.v"
-trap 'rm -f "$AUDIT_DIR/AssumptionAudit.v" "$AUDIT_DIR/AssumptionAudit.vo" "$AUDIT_DIR/AssumptionAudit.vos" "$AUDIT_DIR/AssumptionAudit.vok" "$AUDIT_DIR/AssumptionAudit.glob" "$AUDIT_DIR/.AssumptionAudit.aux"; rmdir "$AUDIT_DIR"' EXIT
+OUTPUT="$AUDIT_DIR/AssumptionAudit.out"
+trap 'rm -f "$AUDIT_DIR/AssumptionAudit.v" "$AUDIT_DIR/AssumptionAudit.vo" "$AUDIT_DIR/AssumptionAudit.vos" "$AUDIT_DIR/AssumptionAudit.vok" "$AUDIT_DIR/AssumptionAudit.glob" "$AUDIT_DIR/.AssumptionAudit.aux" "$AUDIT_DIR/AssumptionAudit.out"; rmdir "$AUDIT_DIR"' EXIT
 
 {
   echo "Require Import $MODULE."
   echo "Print Assumptions $THEOREM."
 } > "$TMP"
 
-coqc -q -R generated LessThanOneAPress.Generated \
-  -R proofs LessThanOneAPress.Proofs "$TMP"
+if ! coqc -q -R generated LessThanOneAPress.Generated \
+    -R proofs LessThanOneAPress.Proofs "$TMP" >"$OUTPUT" 2>&1; then
+  cat "$OUTPUT"
+  exit 1
+fi
+
+cat "$OUTPUT"
+
+# CompCert and Coq legitimately expose foundational semantics/classical
+# assumptions.  Reject any dependency declared in this project's own logical
+# namespace; the separate source scan rejects local Axiom/Parameter syntax.
+if grep -Eq '^[[:space:]]*LessThanOneAPress\.' "$OUTPUT"; then
+  echo "project-local theorem assumption found" >&2
+  exit 1
+fi

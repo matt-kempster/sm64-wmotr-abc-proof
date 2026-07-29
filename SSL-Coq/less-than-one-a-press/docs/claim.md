@@ -42,16 +42,20 @@
   object collision reads `MarioObject.oPos`, the first geometry query reads
   `MarioState.pos`, and a null first floor result copies
   `MarioObject.header.gfx.pos` into State for the retry.  It proves conditional
-  local and Parallel-Universe countermodels with the Object at node `0x1E`,
-  State at the checked floor-miss diagnostic, and Graphics at a modeled
-  pyramid-top query.  It also proves that State-only ordinary, platform, or PU
-  prefixes preserve Object and Graphics and cannot manufacture their split
-  from a synchronized state.  A top retry requires at least `385` units of
-  Graphics-minus-Object Y separation; the checked dry visual-offset subcase is
-  at most `45`, and the generic audited writer relation conservatively uses
-  `208`.  These are coordinate, source-shape, and conditional control-flow
-  results, not a proof that the live first query returns null, the retry selects
-  the top, or a clean retail run reaches either prestate.
+  local and Parallel-Universe coordinate witnesses with the Object at node
+  `0x1E`, State at the checked floor-miss diagnostic, and Graphics at a modeled
+  pyramid-top query.  The witnesses evaluate a handwritten
+  retry/action/sink/copy pipeline; generated Clight syntax/dataflow receipts
+  separately establish the null-test and retry shape.  The module also proves
+  that State-only ordinary, platform, or PU prefixes preserve Object and
+  Graphics and cannot manufacture their split from a synchronized state.  A
+  top retry requires at least `385` units of Graphics-minus-Object Y
+  separation.  The source audit uses `45` as the dry route-specific target;
+  `208` is a conservative modeled relation pending reachable-writer coverage.
+  These are coordinate and source-shape results, not a proof that the actual
+  first query returns `NULL`, the retry selects a loaded top-owned surface, or
+  a clean retail run reaches either prestate.  Final surface-owner liveness is
+  separately unresolved.
 - Finite-width, edge-triggered input definition allows A to be initially held.
 - `CleanPyramidEntry` fixes the lower/upper airborne entry snapshot, coherent
   active/backup target bits, the static Act 3 identity/position, and five
@@ -134,11 +138,18 @@
 - The source-backed-prehistory interface for the conditional pyramid-top path
   must preserve three independently sampled coordinates and both floor-query
   outcomes.  A null pre-apply platform is compatible with the first State
-  query returning null, the Graphics retry selecting a live top-owned surface,
-  and the final post-snap query capturing that top.  Any JP stale-slot
-  continuation must then prove the actual predecessor Clight segment, capture,
-  unload retention, and optional fresh slot reuse.  This preserves the
-  possible path rather than proving it reachable or harmless.
+  query returning null and the Graphics retry selecting a loaded top-owned
+  surface.  After the State/Object copy, later object lists and
+  deactivated-object unloading precede the final query.  On an explosion frame
+  the source order admits a loaded-surface candidate with an inactive top-owner
+  slot.  The closed Y `1791` witnesses use the zero-yaw home top and do not
+  instantiate that later translated/rotated pose.  Concrete surface identity,
+  selected explosion-pose floor height, free-list membership, sink pointer
+  provenance, raw-Object preservation, and the exact final owner epoch are
+  explicit obligations.  Any JP stale-slot continuation must then
+  prove the actual predecessor Clight segment, capture, unload retention, and
+  optional fresh slot reuse.  This preserves the possible path rather than
+  proving it reachable or harmless.
 - `JPSlotLifetime.v` checks the JP load/spawn/allocation/unload/free-list source
   anchors, including the loop/literal/indexed-zero-write shape for an 80-word
   allocation clear, and the 50-record Area-2 macro bound.  It proves the finite
@@ -183,11 +194,18 @@
   graphical-fallback bootstrap, which can begin with a null platform and
   capture the top only after the retry.  The remaining boundary is explicit:
   `InkFallbackSurfaceRefinementObligation` must prove the first-query miss and
-  live-top retry selection; `Area1InkPrestateReachabilityObligation` must
+  loaded-top retry selection; `Area1InkPrestateReachabilityObligation` must
   construct the required clean no-A State/Object/Graphics prestate; and
   `Area1InkWriterCoverageObligation` must connect every reachable position
   writer to the audited State-only, synchronized, or bounded-Graphics
-  relation.  Generated-expression extraction, linked live-memory execution,
+  relation.  `InkFallbackSinkMemoryRefinementObligation` must justify
+  throw-matrix provenance, and
+  `InkFallbackPostCopyLifecycleRefinementObligation` must cover later object
+  writers, preservation across the explicit unload-function call, retained
+  surface identity, and the final active/inactive-same-epoch owner.  A separate
+  linked fact must show that the top itself is scanned/deallocated and establish
+  any claimed free-list membership.
+  Generated-expression extraction, linked live-memory execution,
   dynamic-surface ownership/list selection, collision-array retention,
   capture/unload timing, and JP delayed node-`0x1E` pointer lifetime also
   remain open.  The exact destination-area allocation/free trace, first-apply

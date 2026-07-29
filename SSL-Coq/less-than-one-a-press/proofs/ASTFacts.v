@@ -20,6 +20,36 @@ with calls_ident_ls (callee : ident) (cases : labeled_statements) : bool :=
       calls_ident_s callee body || calls_ident_ls callee rest
   end.
 
+(** Locate a direct-call occurrence under a particular switch label.  This
+    records the syntactic link between the label and the call; it says neither
+    that the switch selects the label nor that the call executes. *)
+Fixpoint switch_case_calls_ident_s
+    (tag : Z) (callee : ident) (s : statement) : bool :=
+  match s with
+  | Ssequence a b | Sloop a b =>
+      switch_case_calls_ident_s tag callee a ||
+      switch_case_calls_ident_s tag callee b
+  | Sifthenelse _ a b =>
+      switch_case_calls_ident_s tag callee a ||
+      switch_case_calls_ident_s tag callee b
+  | Sswitch _ cases =>
+      switch_case_calls_ident_ls tag callee cases
+  | Slabel _ body => switch_case_calls_ident_s tag callee body
+  | _ => false
+  end
+with switch_case_calls_ident_ls
+    (tag : Z) (callee : ident) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons label body rest =>
+      (match label with
+       | Some found => Z.eqb found tag && calls_ident_s callee body
+       | None => false
+       end) ||
+      switch_case_calls_ident_s tag callee body ||
+      switch_case_calls_ident_ls tag callee rest
+  end.
+
 Fixpoint direct_callees_s (s : statement) : list ident :=
   match s with
   | Scall _ (Evar id _) _ => [id]
@@ -34,6 +64,19 @@ with direct_callees_ls (cases : labeled_statements) : list ident :=
   match cases with
   | LSnil => []
   | LScons _ body rest => direct_callees_s body ++ direct_callees_ls rest
+  end.
+
+(** Unlike [direct_callees_s], this projection follows only [Ssequence]
+    structure (and transparent labels).  Calls underneath a branch, switch, or
+    loop are deliberately omitted.  A subsequence result over this list is
+    still only a straight-line syntax receipt: it is not a Clight execution or
+    a proof that an earlier return/goto cannot bypass the calls. *)
+Fixpoint straightline_callees_s (s : statement) : list ident :=
+  match s with
+  | Scall _ (Evar id _) _ => [id]
+  | Ssequence a b => straightline_callees_s a ++ straightline_callees_s b
+  | Slabel _ body => straightline_callees_s body
+  | _ => []
   end.
 
 Fixpoint ident_subsequenceb (wanted found : list ident) : bool :=
@@ -62,6 +105,39 @@ Fixpoint expression_mentions_ident (needle : ident) (e : expr) : bool :=
   | Ebinop _ lhs rhs _ =>
       expression_mentions_ident needle lhs || expression_mentions_ident needle rhs
   | _ => false
+  end.
+
+Definition expression_list_mentions_ident
+    (needle : ident) (args : list expr) : bool :=
+  existsb (expression_mentions_ident needle) args.
+
+(** A base-sensitive call/argument receipt.  This is useful for distinguishing
+    [deallocate_object(&gFreeObjectList, ...)] from an unrelated occurrence of
+    either identifier in the same function. *)
+Fixpoint calls_ident_with_argument_ident_s
+    (callee argument : ident) (s : statement) : bool :=
+  match s with
+  | Scall _ (Evar found _) args =>
+      Pos.eqb found callee && expression_list_mentions_ident argument args
+  | Ssequence a b | Sloop a b =>
+      calls_ident_with_argument_ident_s callee argument a ||
+      calls_ident_with_argument_ident_s callee argument b
+  | Sifthenelse _ a b =>
+      calls_ident_with_argument_ident_s callee argument a ||
+      calls_ident_with_argument_ident_s callee argument b
+  | Sswitch _ cases =>
+      calls_ident_with_argument_ident_ls callee argument cases
+  | Slabel _ body =>
+      calls_ident_with_argument_ident_s callee argument body
+  | _ => false
+  end
+with calls_ident_with_argument_ident_ls
+    (callee argument : ident) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      calls_ident_with_argument_ident_s callee argument body ||
+      calls_ident_with_argument_ident_ls callee argument rest
   end.
 
 Fixpoint expression_mentions_int (needle : Z) (e : expr) : bool :=
@@ -105,54 +181,215 @@ with statement_mentions_ident_ls
   end.
 
 (** Recognize the specific control-flow shape used by Mario's graphical
-    floor-null fallback.  CompCert lowers the source guard to an immediate
-    sequence: load [m->floor] into a temporary, then test that temporary.  The
-    true branch must contain the ordered graphics copy/floor retry and mention
-    the relevant fields.  This remains base- and dataflow-insensitive, but is
-    materially stronger than finding the names somewhere in the whole body. *)
+    floor-null fallback. *)
+
+Definition is_null_test_of_temp (guard_temp : ident)
+    (condition : expr) : bool :=
+  match condition with
+  | Ebinop Oeq
+      (Etempvar found_temp _)
+      (Ecast (Econst_int zero _) _) _ =>
+      Pos.eqb found_temp guard_temp && Int.eq zero Int.zero
+  | Ebinop Oeq
+      (Ecast (Econst_int zero _) _)
+      (Etempvar found_temp _) _ =>
+      Pos.eqb found_temp guard_temp && Int.eq zero Int.zero
+  | _ => false
+  end.
+
+Definition is_graphics_copy_from_mario_object_s
+    (state_temp mario_object_field header_field copy_callee graphics_field
+      position_field : ident)
+    (s : statement) : bool :=
+  match s with
+  | Ssequence
+      (Sset object_temp
+        (Efield
+          (Ederef (Etempvar loaded_state_temp _) _)
+          loaded_mario_object_field _))
+      (Scall None (Evar found_callee _)
+        [Efield
+          (Ederef (Etempvar destination_state_temp _) _)
+          destination_position_field _;
+         Efield
+          (Efield
+            (Efield
+              (Ederef (Etempvar source_object_temp _) _)
+              source_header_field _)
+            source_graphics_field _)
+          source_position_field _]) =>
+      Pos.eqb found_callee copy_callee &&
+      Pos.eqb loaded_state_temp state_temp &&
+      Pos.eqb loaded_mario_object_field mario_object_field &&
+      Pos.eqb destination_state_temp state_temp &&
+      Pos.eqb destination_position_field position_field &&
+      Pos.eqb source_object_temp object_temp &&
+      Pos.eqb source_header_field header_field &&
+      Pos.eqb source_graphics_field graphics_field &&
+      Pos.eqb source_position_field position_field
+  | _ => false
+  end.
+
+Definition is_state_position_component_load
+    (state_temp position_field : ident) (component : Z)
+    (loaded : expr) : bool :=
+  match loaded with
+  | Ederef
+      (Ebinop Oadd
+        (Efield
+          (Ederef (Etempvar found_state_temp _) _)
+          found_position_field _)
+        (Econst_int found_component _) _) _ =>
+      Pos.eqb found_state_temp state_temp &&
+      Pos.eqb found_position_field position_field &&
+      Int.eq found_component (Int.repr component)
+  | _ => false
+  end.
+
+Definition is_state_floor_address
+    (state_temp floor_field : ident) (address : expr) : bool :=
+  match address with
+  | Eaddrof
+      (Efield
+        (Ederef (Etempvar found_state_temp _) _)
+        found_floor_field _) _ =>
+      Pos.eqb found_state_temp state_temp &&
+      Pos.eqb found_floor_field floor_field
+  | _ => false
+  end.
+
+Definition is_retry_from_exact_state_position_s
+    (state_temp result_temp retry_callee position_field floor_field : ident)
+    (s : statement) : bool :=
+  match s with
+  | Ssequence
+      (Sset x_temp x_load)
+      (Ssequence
+        (Sset y_temp y_load)
+        (Ssequence
+          (Sset z_temp z_load)
+          (Scall (Some found_result) (Evar found_callee _)
+            [Etempvar x_arg _;
+             Etempvar y_arg _;
+             Etempvar z_arg _;
+             floor_address]))) =>
+      Pos.eqb found_result result_temp &&
+      Pos.eqb found_callee retry_callee &&
+      Pos.eqb x_arg x_temp &&
+      Pos.eqb y_arg y_temp &&
+      Pos.eqb z_arg z_temp &&
+      is_state_position_component_load
+        state_temp position_field 0 x_load &&
+      is_state_position_component_load
+        state_temp position_field 1 y_load &&
+      is_state_position_component_load
+        state_temp position_field 2 z_load &&
+      is_state_floor_address state_temp floor_field floor_address
+  | _ => false
+  end.
+
+Definition is_state_field_lvalue
+    (state_temp field : ident) (destination : expr) : bool :=
+  match destination with
+  | Efield
+      (Ederef (Etempvar found_state_temp _) _)
+      found_field _ =>
+      Pos.eqb found_state_temp state_temp &&
+      Pos.eqb found_field field
+  | _ => false
+  end.
+
+Definition is_retry_floor_height_store_s
+    (state_temp retry_callee position_field floor_field
+      floor_height_field : ident)
+    (s : statement) : bool :=
+  match s with
+  | Ssequence before
+      (Sassign destination (Etempvar result_temp _)) =>
+      is_retry_from_exact_state_position_s
+        state_temp result_temp retry_callee position_field floor_field before &&
+      is_state_field_lvalue state_temp floor_height_field destination
+  | _ => false
+  end.
+
+(** Match the exact linear true-branch shape emitted by [clightgen]: the
+    Graphics-to-State copy is followed on the same execution path by the three
+    State-position loads, retry call, and exact [m->floorHeight] store. *)
+Definition is_exact_graphics_floor_retry_branch_s
+    (state_temp mario_object_field header_field copy_callee retry_callee
+      graphics_field position_field floor_field floor_height_field : ident)
+    (branch : statement) : bool :=
+  match branch with
+  | Ssequence graphics_copy retry_and_store =>
+      is_graphics_copy_from_mario_object_s
+        state_temp mario_object_field header_field copy_callee graphics_field
+        position_field graphics_copy &&
+      is_retry_floor_height_store_s
+        state_temp retry_callee position_field floor_field floor_height_field
+        retry_and_store
+  | _ => false
+  end.
+
+(** CompCert lowers the source guard to an immediate sequence: load
+    [m->floor] into a temporary, then compare that same temporary with a null
+    pointer.  In the true branch this recognizer checks:
+
+    - [m->marioObj] flows into an object temporary;
+    - [vec3f_copy] receives State [pos] as its destination and that object's
+      [gfx.pos] as its source;
+    - the retry [find_floor] mentions the same State [pos] and [floor], returns
+      through a temporary, and that temporary is stored to the same State's
+      [floorHeight]; and
+    - the copy call precedes the retry call.
+
+    Types are left to the generated Clight AST.
+    This is still a decidable syntax/dataflow receipt, not a small-step memory
+    execution. *)
 Fixpoint contains_guarded_graphics_floor_retry_s
-    (floor_field copy_callee retry_callee graphics_field
-      position_field floor_height_field : ident)
+    (floor_field mario_object_field header_field copy_callee retry_callee
+      graphics_field position_field floor_height_field : ident)
     (s : statement) : bool :=
   match s with
   | Ssequence first second =>
       (match first, second with
-       | Sset guard_temp loaded,
-         Sifthenelse condition yes_branch _ =>
-           expression_mentions_ident floor_field loaded &&
-           expression_mentions_ident guard_temp condition &&
-           ident_subsequenceb [copy_callee; retry_callee]
-             (direct_callees_s yes_branch) &&
-           statement_mentions_ident_s graphics_field yes_branch &&
-           statement_mentions_ident_s position_field yes_branch &&
-           statement_mentions_ident_s floor_field yes_branch &&
-           statement_mentions_ident_s floor_height_field yes_branch
+       | Sset guard_temp
+           (Efield
+             (Ederef (Etempvar state_temp _) _) found_floor_field _),
+          Sifthenelse condition yes_branch _ =>
+            Pos.eqb found_floor_field floor_field &&
+            is_null_test_of_temp guard_temp condition &&
+            is_exact_graphics_floor_retry_branch_s
+              state_temp mario_object_field header_field copy_callee
+              retry_callee graphics_field position_field floor_field
+              floor_height_field yes_branch &&
+            ident_subsequenceb [copy_callee; retry_callee]
+              (direct_callees_s yes_branch)
        | _, _ => false
        end) ||
       contains_guarded_graphics_floor_retry_s
-        floor_field copy_callee retry_callee graphics_field
-        position_field floor_height_field first ||
+        floor_field mario_object_field header_field copy_callee retry_callee
+        graphics_field position_field floor_height_field first ||
       contains_guarded_graphics_floor_retry_s
-        floor_field copy_callee retry_callee graphics_field
-        position_field floor_height_field second
+        floor_field mario_object_field header_field copy_callee retry_callee
+        graphics_field position_field floor_height_field second
   | Sifthenelse _ yes_branch no_branch =>
       contains_guarded_graphics_floor_retry_s
-        floor_field copy_callee retry_callee graphics_field
-        position_field floor_height_field yes_branch ||
+        floor_field mario_object_field header_field copy_callee retry_callee
+        graphics_field position_field floor_height_field yes_branch ||
       contains_guarded_graphics_floor_retry_s
-        floor_field copy_callee retry_callee graphics_field
-        position_field floor_height_field no_branch
+        floor_field mario_object_field header_field copy_callee retry_callee
+        graphics_field position_field floor_height_field no_branch
   | Sloop body increment =>
       contains_guarded_graphics_floor_retry_s
-        floor_field copy_callee retry_callee graphics_field
-        position_field floor_height_field body ||
+        floor_field mario_object_field header_field copy_callee retry_callee
+        graphics_field position_field floor_height_field body ||
       contains_guarded_graphics_floor_retry_s
-        floor_field copy_callee retry_callee graphics_field
-        position_field floor_height_field increment
+        floor_field mario_object_field header_field copy_callee retry_callee
+        graphics_field position_field floor_height_field increment
   | Slabel _ body =>
       contains_guarded_graphics_floor_retry_s
-        floor_field copy_callee retry_callee graphics_field
-        position_field floor_height_field body
+        floor_field mario_object_field header_field copy_callee retry_callee
+        graphics_field position_field floor_height_field body
   | _ => false
   end.
 
@@ -363,6 +600,74 @@ with assigns_field_named_ls
       assigns_field_named_s field body || assigns_field_named_ls field rest
   end.
 
+Definition rhs_is_int_constant (value : Z) (rhs : expr) : bool :=
+  match rhs with
+  | Econst_int found _ => Int.eq found (Int.repr value)
+  | _ => false
+  end.
+
+(** Require the complete assignment shape [base.field := value], rather than
+    merely observing the field name somewhere on an assignment's left side. *)
+Fixpoint assigns_field_int_constant_s
+    (field : ident) (value : Z) (s : statement) : bool :=
+  match s with
+  | Sassign lhs rhs =>
+      lhs_field_is field lhs && rhs_is_int_constant value rhs
+  | Ssequence a b | Sloop a b =>
+      assigns_field_int_constant_s field value a ||
+      assigns_field_int_constant_s field value b
+  | Sifthenelse _ a b =>
+      assigns_field_int_constant_s field value a ||
+      assigns_field_int_constant_s field value b
+  | Sswitch _ cases =>
+      assigns_field_int_constant_ls field value cases
+  | Slabel _ body => assigns_field_int_constant_s field value body
+  | _ => false
+  end
+with assigns_field_int_constant_ls
+    (field : ident) (value : Z) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      assigns_field_int_constant_s field value body ||
+      assigns_field_int_constant_ls field value rest
+  end.
+
+(** Recognize a load of a named field from a dereferenced instance of one
+    particular struct.  This distinguishes a [Surface.object] load from a
+    coincidental occurrence of the identifier [_object] elsewhere. *)
+Definition rhs_is_struct_field_read
+    (struct_tag field : ident) (rhs : expr) : bool :=
+  match rhs with
+  | Efield (Ederef _ (Tstruct found_struct _)) found_field _ =>
+      Pos.eqb found_struct struct_tag && Pos.eqb found_field field
+  | _ => false
+  end.
+
+Fixpoint sets_temp_from_struct_field_s
+    (struct_tag field : ident) (s : statement) : bool :=
+  match s with
+  | Sset _ rhs => rhs_is_struct_field_read struct_tag field rhs
+  | Ssequence a b | Sloop a b =>
+      sets_temp_from_struct_field_s struct_tag field a ||
+      sets_temp_from_struct_field_s struct_tag field b
+  | Sifthenelse _ a b =>
+      sets_temp_from_struct_field_s struct_tag field a ||
+      sets_temp_from_struct_field_s struct_tag field b
+  | Sswitch _ cases =>
+      sets_temp_from_struct_field_ls struct_tag field cases
+  | Slabel _ body => sets_temp_from_struct_field_s struct_tag field body
+  | _ => false
+  end
+with sets_temp_from_struct_field_ls
+    (struct_tag field : ident) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      sets_temp_from_struct_field_s struct_tag field body ||
+      sets_temp_from_struct_field_ls struct_tag field rest
+  end.
+
 Definition lhs_global_is (global : ident) (lhs : expr) : bool :=
   match lhs with
   | Evar found _ => Pos.eqb found global
@@ -552,6 +857,20 @@ Definition initializer_mentions_addrof (needle : ident) (datum : init_data) : bo
 Definition initializer_list_mentions_addrof
     (needle : ident) (values : list init_data) : bool :=
   existsb (initializer_mentions_addrof needle) values.
+
+Fixpoint initializer_addrof_idents (values : list init_data) : list ident :=
+  match values with
+  | [] => []
+  | Init_addrof found _ :: rest =>
+      found :: initializer_addrof_idents rest
+  | _ :: rest => initializer_addrof_idents rest
+  end.
+
+(** Check address-initializer order without pretending that a behavior-script
+    interpreter has executed the commands represented by the array. *)
+Definition initializer_addrof_subsequenceb
+    (wanted : list ident) (values : list init_data) : bool :=
+  ident_subsequenceb wanted (initializer_addrof_idents values).
 
 Fixpoint init_int16_values (values : list init_data) : list Z :=
   match values with

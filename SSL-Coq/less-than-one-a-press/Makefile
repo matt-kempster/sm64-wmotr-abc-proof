@@ -219,6 +219,12 @@ check: proofs
 	  LessThanOneAPress.Proofs.ClightFacts \
 	  stock_pyramid_top_yaw_only_source_shape_jp
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  pyramid_top_spin_explosion_pose_source_shape_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  pyramid_top_spin_explosion_pose_source_shape_jp
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.PyramidTopSurface \
 	  pyramid_top_surface_semantic_kernel
 	bash pipeline/assumptions.sh \
@@ -257,6 +263,9 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.PyramidTopPU \
 	  pyramid_top_pu_arithmetic_kernel
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.PyramidTopPU \
+	  pyramid_top_explosion_minimum_pose_mirror_checked
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.PyramidTopPU \
 	  pyramid_top_pu_checked_bundle
@@ -303,8 +312,17 @@ check: proofs
 	  LessThanOneAPress.Proofs.CollisionMeshFacts \
 	  selected_ink_area1_triangle_words_exact_jp
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CollisionMeshFacts \
+	  selected_ink_area1_surface_receipts_exact_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CollisionMeshFacts \
+	  selected_ink_area1_surface_receipts_exact_jp
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.InkFallback \
 	  ink_geometry_kernel_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkFallback \
+	  upper_warp_center_is_outside_checked_area1_water_boxes
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.InkFallback \
 	  ink_first_query_has_no_modeled_stock_dynamic_floor_candidate
@@ -325,10 +343,13 @@ check: proofs
 	  audited_area1_writer_execution_cannot_create_ink_ready
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.InkFallback \
-	  ink_local_conditional_control_flow_countermodel
+	  modeled_graphics_sink_does_not_change_pipeline_object
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.InkFallback \
-	  ink_pu_conditional_control_flow_countermodel
+	  ink_local_conditional_pipeline_coordinate_witness
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkFallback \
+	  ink_pu_conditional_pipeline_coordinate_witness
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.InkFallback \
 	  ink_fallback_source_shape_kernel_checked

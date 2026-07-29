@@ -241,9 +241,15 @@ segment remains open.
 The pre-action graphical fallback is not harmless bookkeeping.  Object
 collision can cache the upper warp from old `MarioObject.oPos`; a later
 floorless `MarioState.pos` query can copy `header.gfx.pos` into State and
-retry.  If that independently stale graphical sample selects the live pyramid
-top, the disappeared action and later State/Object copy can complete a
-conditional warp/top snap.
+retry.  If that independently stale graphical sample selects a loaded pyramid
+top surface, the disappeared action and later State/Object copy satisfy the
+coordinate part of a conditional warp/top snap.  The unconditional
+quicksand-sink call occurs between the disappeared-action snap and the
+State/Object copy; the projection models its Graphics-position write and
+proves that modeled write cannot change the copied Object coordinate.  The
+source may also write `gfx.throwMatrix[3][1]`, whose non-aliasing is a memory
+obligation.  Later object lists and deactivated-object unloading occur before
+the final platform query, so owner-slot liveness is a separate obligation.
 
 `InkFallback.v` now proves the relevant three-view invariant.  Any finite
 prefix of writers that changes only MarioState preserves both the collision
@@ -256,19 +262,27 @@ full-float Object or Graphics coordinates.
 The retry requires at least 385 units of upward
 `GraphicsY - ObjectY` separation.  The dry ordinary source census finds a
 largest relevant positive visual offset of 45, and the admission-free theorem
-`dry_graphics_offset_cannot_supply_top_retry` closes that arithmetic subcase.
-A conservative cross-action type envelope is below 208 because water pitch
-and swimming bob can compose across a floor-hit branch; the upper warp is dry,
-so that is not the route-specific limit.  A prepared `ACT_LONG_JUMP_LAND`
-state with pre-frame `actionTimer = 4` is a precision exception to any blanket
-claim that quicksand always lowers Graphics.  The checked binary32 calculation
-makes the depth `-2.6500000953674316f`, so the final subtraction raises
-Graphics by `2.6500000953674316f`.  It still stays below 45, requires a prior
-A-edge setup, and does not apply to the upper-warp floor.
+`dry_graphics_offset_cannot_supply_top_retry` closes that arithmetic subcase
+once its `<=45` premise is derived.  The source audit motivates a conservative
+cross-action relation bound of 208 because water pitch of at most 60 and
+swimming bob below 148 can compose across a floor-hit branch; the upper warp
+is outside the checked water boxes, so that is not the route-specific target.
+
+A prepared `ACT_LONG_JUMP_LAND` state with pre-frame `actionTimer = 4` is a
+precision exception to any blanket claim that quicksand always lowers
+Graphics.  The checked binary32 calculation makes the depth operand
+`-2.6500000953674316f`; subtracting it from a zero Graphics base produces
+`+2.6500000953674316f`, while the actual delta at another binary32 base is
+rounding-dependent.  In the normal action graph the prepared state requires a
+prior A edge.  The stock static upper-warp support is `SURFACE_WALL_MISC`, so
+it cannot generate this landing adjustment, but it does not clear a negative
+depth prepared earlier.  Excluding persistence requires the still-open clean
+no-A action/state closure.
 
 This does not yet prove retail ordinary-motion exclusion.  It still needs
 entry-time Object/Graphics equality, complete reachable Graphics-writer and
-spawn closure, and live first-query/retry surface execution.  No clean
+spawn closure, first-query `NULL` plus loaded top-owned retry selection, sink
+pointer provenance, and post-copy object/surface-owner lifecycle refinement.  No clean
 stock-reachable prestate or target-bit counterexample was found.  See
 [`ink-fallback.md`](ink-fallback.md).
 

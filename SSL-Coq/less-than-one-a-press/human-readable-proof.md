@@ -22,27 +22,43 @@ engineering but does not know *Super Mario 64*.
 > **Newest Ink fallback result:** the engine can observe three different Mario
 > positions during one frame.  Object collision reads the old raw Object
 > position; ordinary geometry reads MarioState; and, if that State has no
-> floor, the OOB fallback copies the graphical position into MarioState and
-> retries.  This makes Ink's scheduling idea conditionally real: an Object at
-> Area-1 warp node `0x1E`, a floorless State, and Graphics over the live
-> pyramid top can cache the warp and later snap Mario to the top in the same
-> update.
+> floor, the null-floor graphical fallback (often described informally as the
+> OOB fallback) copies the graphical position into MarioState and retries.  It
+> is not specific to the wall-push routine; a wall push is only one candidate
+> producer of the floorless State.  This makes Ink's scheduling idea
+> conditionally real: an Object at
+> Area-1 warp node `0x1E`, a floorless State, and Graphics over a loaded
+> pyramid-top-owned surface can cache the warp and later copy the top-side
+> coordinates into MarioState in the same update.
 >
-> `InkFallback.v` proves local and Parallel-Universe coordinate/control-flow
-> countermodels for that schedule.  It checks nearby generated Area-1 mesh
+> `InkFallback.v` proves local and Parallel-Universe conditional pipeline
+> coordinate witnesses for that schedule.  It checks nearby generated Area-1 mesh
 > receipts at State `(-2200,768,-1024)`, excludes all fifteen modeled stock
 > dynamic owners for that first query, and proves that the graphical retry
 > needs at least 385 units of upward Graphics/Object separation.  It also
 > proves that any sequence of State-only ordinary, platform, or PU writes
 > preserves Object and Graphics, so such writes cannot create their split from
-> synchronized input.  The dry ordinary positive visual bound is `45`; the
-> generic conservative writer envelope is `208`, still below the required
-> gap.
+> synchronized input.  The disappeared-action snap is followed by an
+> unconditional quicksand sink; the projected Graphics-position write cannot
+> change the Object coordinate later copied from State, while the conditional
+> `gfx.throwMatrix` write still needs a memory-provenance proof.  After the
+> copy, later object lists and deactivated-object unloading occur before the
+> final platform query.  That order admits a separate explosion-frame
+> inactive-slot candidate, but does not yet prove free-list membership or
+> retained concrete-surface identity.  The two closed coordinate witnesses
+> use the zero-yaw home top and floor Y `1791`; they do not instantiate the
+> later translated/rotated explosion pose.  The source audit uses
+> `45` as the dry route-specific visual-offset target, while `208` is a
+> deliberately conservative modeled writer relation.  Both are below the
+> required gap, but neither covers retail until reachable writer/action state
+> closure is proved.
 >
 > This is not a reachable game trace.  The project has not proved that a clean
 > execution creates the Object/State/Graphics prestate, that the first live
-> floor query returns `NULL`, or that the retry selects a live top-owned
-> surface.  No stock counterexample or newly set target bit was found.
+> floor query returns `NULL`, that the retry selects a loaded top-owned
+> surface, or that the post-copy lifecycle preserves the needed Object and
+> owner epoch.  No stock-reachable US/JP retail trace with a newly set target
+> bit was found.
 > The finite null-platform theorem applies only to pre-existing platform
 > origins; it does not eliminate a graphical retry that captures the top
 > afterward.  The focused audit is
@@ -95,9 +111,10 @@ engineering but does not know *Super Mario 64*.
 > `0x1E`.  Non-top dynamic owners are horizontally disjoint from the warp; the
 > pyramid top is vertically disjoint; static floors carry no object owner; and
 > the US clear, retained stock inbound positions, completed-query, and
-> frozen-carry cases all reduce to null.  Thus no stock route-relevant schedule
-> in this model
-> can create the needed State/Object split.
+> frozen-carry cases all reduce to null.  Thus no bounded stock schedule whose
+> split starts from a pre-existing platform pointer can create the older
+> State/Object platform-displacement split.  This does not exclude Ink's
+> null-preapply three-view graphical retry.
 >
 > `PyramidTopSurface.v` and `PyramidTopPU.v` retain the exact cast, mesh,
 > partition-cell, and arithmetic kernel.  The retail cast question is closed
@@ -522,21 +539,47 @@ The PU variant uses Graphics X `63488`, which the floor query narrows to
 `-2048`.  Object collision can cache the warp from the first sample.  The wall
 and first floor queries use the second sample.  If that first floor query
 returns `NULL`, `update_mario_geometry_inputs` copies Graphics into State and
-retries.  A live top-owned retry floor can then feed `ACT_DISAPPEARED`; the
-later State-to-Object copy and final platform query can capture the top.
-`ink_local_conditional_control_flow_countermodel` and
-`ink_pu_conditional_control_flow_countermodel` prove the coordinate and
-control-flow arithmetic for these local and PU variants.
+retries.  A loaded top-owned retry floor can then feed `ACT_DISAPPEARED`; State
+is later copied to raw Object.  Remaining object lists and the deactivated
+unload pass run before the final platform query.  The checked syntax therefore
+admits an explosion-frame candidate in which the loop is followed by the
+collision loader and the final query encounters a surface whose owner slot
+has become inactive.  The open lifecycle record brackets the unload-function
+call and asks for the retained surface pointer plus an active or inactive
+same-epoch owner.  It does not encode that the top itself was
+scanned/deallocated; free-list membership is a separate open fact.
+`ink_local_conditional_pipeline_coordinate_witness` and
+`ink_pu_conditional_pipeline_coordinate_witness` evaluate the handwritten
+pipeline's coordinate arithmetic for these local and PU variants.  The
+generated-AST receipt separately checks the null-test/copy/retry syntax; a
+Clight execution of those outcomes remains open.
+
+The two memory obligations are now narrow execution statements rather than
+opaque predicates.  The sink obligation quantifies over a complete Clight
+call/return segment with concrete State, Object, Graphics, depth, and optional
+throw-matrix loads.  The lifecycle obligation quantifies over exact
+copy/unload/query call and return cuts, including the internal `find_floor`
+return and concrete surface/owner pointers.  Neither obligation is proved or
+given a witness.
+
+The two closed coordinate witnesses use the zero-yaw home top and floor Y
+`1791`.  They are not explosion-pose witnesses.  A handwritten minimum-pose
+recurrence starts at the home Y and yields the conservative center-Y target
+`1871` by timer `150`.  It is not an exact execution of the timer-59
+smooth-rise state, nor a proved binary32 lower bound for the generated Clight.
+The explosion/inactive-slot branch must therefore recover the actual later
+translated/rotated transform and selected floor height in the generalized
+lifecycle segment.
 
 This answers the chatbot disagreement precisely.  The second chatbot is right
 that object collision does not wrap, the stock warp and top are vertically
 disjoint at one coordinate, platform displacement cannot newly create the
 same-frame warp collision, and Mario's model moves later.  Its conclusion is
 too broad: the graphical fallback permits three different coordinate samples
-in one frame.  The first chatbot's PU-floor primitive is real, but PU movement
-alone writes State and cannot manufacture the required Object/Graphics split.
-Neither conditional countermodel is a reachable stale-slot Clight or ROM
-trace.
+in one frame.  The PU floor-alias primitive is real, but an audited PU-sized
+State-only displacement writes only State and cannot manufacture the required
+Object/Graphics split.  Neither conditional coordinate witness is a reachable
+stale-slot Clight or ROM trace.
 
 The Area-1-first audit now answers the next question more precisely.  A generic
 three-dimensional raw payload really does exist in stock source.  Triangle
@@ -680,7 +723,11 @@ surface loaders and final floor selection over a live object pool or shown that
 every retail pre-apply state projects into the fifteen-owner relation.
 For the graphical-fallback shape, it also has not proved entry-time
 Object/Graphics equality in live memory, complete reachable graphics-writer
-and action/spawn closure, the first-query `NULL`, or the live-top retry.
+and action/spawn closure, the first-query `NULL`, the loaded-top retry,
+sink-memory provenance, or the post-copy active/inactive-same-epoch owner
+lifecycle.  The current lifecycle obligation brackets the unload-function call
+but does not prove that the top itself is scanned/deallocated or placed on the
+free list.
 Moving/loading the warp onto the top, moving the top down to the warp,
 collision-preserving cloning, or a direct post-query pointer/object writer must
 either be shown to project into the excluded cases or handled separately.
@@ -727,8 +774,10 @@ Area-1 delayed warp and Area-2 source order remains a separate refinement.
 For Area 1 proper, the newer audit classifies the stock pre-apply angular
 payloads into top yaw, dirt triangles, and cartoon triangles.  It does not need
 to decide which generic controller schedule realizes a fragment because all
-bounded stock platform origins are null at the old-object warp sample.  The
-separate JP destination-area pointer/payload census above remains open.
+bounded pre-existing platform origins are null at the old-object warp sample.
+That result does not exclude a null first query followed by Ink's graphical
+retry and a new top capture.  The separate JP destination-area pointer/payload
+census above remains open.
 
 Moving/loading the warp onto the top, moving the top down to the already-loaded
 warp, collision-preserving cloning, and direct post-query writers remain
@@ -739,12 +788,17 @@ separate unresolved constructions.  The full audit and theorem boundary are in
 `UpperWarpTopPreludeCaptureEvidence`,
 `UpperWarpTopPreludeToCleanEntryBridge`, unload-retention/reuse evidence, and
 `UpperWarpStaleTopConditionalPathEvidence` name the older same-sample
-conditional path.  They do not encode the new State/Object phase split.  A
-replacement Clight evidence record must carry the collision-object,
-geometry-State, post-copy object, final platform-query, and delayed-warp
-lifetime samples.  A source-backed clean-entry theorem must either construct
-that evidence or prove every family unreachable; it must not simply decree the
-JP platform pointer null or safe.
+conditional path.  They do not encode the new three-view schedule.  A
+replacement Clight evidence record must carry collision Object C, first-query
+State S, pre-fallback Graphics G, the first-query `NULL`, loaded-top retry
+selection, post-action State/Graphics (including the intervening
+Graphics-position and throw-matrix sink writes), the copied Object, intervening
+object-list/unload lifecycle, an active-or-inactive-same-epoch final
+surface owner, final platform query, and delayed-warp lifetime.  If the
+explosion/free-list branch is claimed, separate evidence must prove that the
+top itself is scanned/deallocated and inserted into that list.  A source-backed
+clean-entry theorem must either construct that evidence or prove every family
+unreachable; it must not simply decree the JP platform pointer null or safe.
 
 The mechanism was also tested in the authentic JP executable with the exact
 top-derived raw payload installed once in a reused slot at the modeled Area-2
@@ -815,9 +869,10 @@ Y-preserving stock-yaw arithmetic case is excluded; its execution refinement
 is open.  Area 1 supplies three stock pre-apply angular-payload classes, but
 the source-bounded owner/provenance theorem leaves none with a non-null platform
 at the node-`0x1E` collision sample.  A generic fragment controller/free-list
-lineage is therefore no longer a Layer-B obligation.  The linked-Clight
-projection of that theorem, constructions outside its bounded owner relation,
-and delayed-lifetime questions remain open.
+lineage is therefore no longer a Layer-B obligation for the bounded
+pre-existing-platform-origin subcase.  The null-preapply graphical retry, the
+linked-Clight projection of that theorem, constructions outside its bounded
+owner relation, and delayed-lifetime questions remain open.
 
 The full alternative-route inventory and its present proof boundary are
 spelled out in
@@ -926,19 +981,29 @@ in total.  Direct inspection of that pinned C source shows:
   yaw, dirt triangles, or cartoon triangles, with parametric free-list depth,
   mist-count, zero-allocation, and FIFO-eviction variants;
 - the normal warp interaction, geometry refresh, disappeared-action floor
-  snap, state/object copy, and final platform query occur in the phase order
-  used by the new PU countermodel;
+  snap, projected Graphics-position quicksand sink, and state/object copy occur
+  in the phase order used by the new PU coordinate witness.  The sink can also
+  write `gfx.throwMatrix`; remaining object lists and deactivated-object unload
+  run before the final platform query.  The generated source admits a distinct
+  explosion-frame inactive-owner candidate, but the home-pose Y `1791`
+  witnesses do not instantiate its translated/rotated surface.  Free-list
+  membership, sink pointer-provenance, and post-copy lifecycle refinement
+  remain open;
 - the geometry refresh has a guarded first-floor-null branch that copies
   `MarioObject.header.gfx.pos` into MarioState and retries `find_floor`, which
   creates the three-view scheduling shape used by `InkFallback.v`;
 - arbitrary ordinary, platform, or PU-sized **State-only** writes preserve the
-  collision Object and fallback Graphics samples.  The audited dry visual
-  writers add at most `45` Y units, while the deliberately conservative
-  water/bob writer relation uses `208`; both are below the required `385`.
+  collision Object and fallback Graphics samples.  The source audit identifies
+  `45` as the dry route-specific visual-offset target, while the deliberately
+  conservative modeled water/bob writer relation uses `208`; both are below
+  the required `385`, but applying either to every reachable writer is open.
   Complete retail writer/action/spawn closure remains open.  In particular, a
-  prepared `ACT_LONG_JUMP_LAND` state with pre-frame timer `4` can make the
-  quicksand calculation raise Graphics by about `2.65`, but that still fits the
-  bound, requires a prior A-edge setup, and the upper warp is not quicksand;
+  prepared `ACT_LONG_JUMP_LAND` state with pre-frame timer `4` can produce a
+  negative quicksand-depth operand of about `-2.65`; subtracting it can raise
+  Graphics by about `2.65`.  In the normal action graph this requires a prior
+  A-edge setup.  Stock upper-warp support is `SURFACE_WALL_MISC` and cannot
+  generate that adjustment, but persisted depth still requires action/state
+  closure;
 - node `0x1E` is delayed: object updates run before each of the 20 normal-play
   timer decrements, two change-area frames omit object updates, and the
   following normal frame loads Area 2 before its first object update;
@@ -1036,7 +1101,13 @@ The ultimate theorem needs all of the following:
    `Area1InkWriterCoverageObligation` and
    `Area1InkPrestateReachabilityObligation`: prove entry-time Object/Graphics
    synchronization plus complete reachable writer/action/spawn closure, or
-   construct the exact clean no-A three-view prestate.
+   construct the exact clean no-A three-view prestate.  Also discharge
+   `InkFallbackSinkMemoryRefinementObligation` and
+   `InkFallbackPostCopyLifecycleRefinementObligation` for throw-matrix
+   provenance, later object writers, preservation across the explicit
+   unload-function call, retained surface identity, and the final
+   active/inactive-same-epoch owner.  Separately prove that the top itself is
+   scanned/deallocated and any claimed free-list membership.
 7. For JP platform displacement, derive every admissible raw pointer from an
    actual predecessor, including inactive/reused slot epochs and the
    upper-warp/spinning-top coincidence families.  The source-level LIFO shape,
@@ -1084,9 +1155,12 @@ The most useful entry points are:
   Y-preserving stock-yaw arithmetic exclusion lemmas, the phase-separated
   coordinate countermodel, and delayed-lifetime obligation;
 - `proofs/InkFallback.v`: exact nearby Area-1 mesh arithmetic, local and PU
-  three-view conditional countermodels, State-only preservation, the
-  `385`-unit necessary gap, audited `45`/`208` exclusions, and three explicitly
-  open retail-refinement obligations;
+  three-view conditional pipeline coordinate witnesses, State-only
+  preservation, the `385`-unit necessary gap, a conditional theorem for the
+  dry audit target `45`, a theorem for the modeled `208` writer relation, and
+  five explicitly open retail-refinement obligations: surface selection,
+  clean-prestate reachability, writer coverage, sink-memory/throw-matrix
+  effects, and the post-copy object/surface lifecycle;
 - `proofs/Area1PhaseSplit.v`: checked triangle-fragment payload fields, exact
   binary32 three-dimensional displacement, and the ordinary captured-top epoch
   bootstrap exclusion for node `0x1E`;

@@ -96,12 +96,15 @@
   origins.  The null result does not discharge a later graphical-fallback
   bootstrap.
 - [x] Check the US/JP graphical floor-fallback and entry-coordinate-sync source
-  shapes.  Prove conditional local and PU three-view countermodels, the
+  shapes.  Prove conditional local and PU three-view coordinate witnesses, the
   `385`-unit minimum Graphics-minus-Object Y separation, preservation of Object
   and Graphics by arbitrary State-only ordinary/platform/PU prefixes, the dry
-  `45`-unit exclusion, and the generic audited `208`-unit writer exclusion.
-  Keep live first-query/retry selection, retail writer coverage, clean prestate
-  reachability, and delayed-warp continuation open.
+  `45`-unit conditional exclusion, and the modeled `208`-unit writer-relation
+  exclusion.  Treat the witnesses as handwritten pipeline evaluations and the
+  generated null/copy/retry match as a separate source-shape receipt.
+  Keep the first-query `NULL` result, loaded top-owned retry selection, retail
+  writer coverage, clean prestate reachability, sink-memory refinement,
+  post-copy object/surface lifecycle, and delayed-warp continuation open.
 - [x] Prove that aligned newly set Act 3 and Act 6 bits reach the matching
   target-region route cuts, and prove
   `evidence_bearing_route_cut_blocks_new_target_bits` under the explicit
@@ -166,15 +169,24 @@
   alignment.  The current jump-kick/rollout arithmetic and normalized Z
   soft-bonk subcase do not discharge this item.  For the Ink branch, prove
   `Area1InkWriterCoverageObligation`, including the route-specific dry
-  Graphics-minus-Object bound of at most `45` or the conservative audited bound
-  of at most `208` for every reachable writer.
-- [ ] Prove or refute the three narrow Ink obligations:
+  Graphics-minus-Object bound of at most `45` or the conservative modeled
+  relation bound of at most `208` for every reachable writer.
+- [ ] Prove or refute the five narrow Ink obligations:
   `InkFallbackSurfaceRefinementObligation` for the first-query null result and
-  live-top retry selection, `Area1InkPrestateReachabilityObligation` for a clean
-  no-A State/Object/Graphics prestate, and
+  loaded-top retry selection, `Area1InkPrestateReachabilityObligation` for a clean
+  no-A State/Object/Graphics prestate,
   `Area1InkWriterCoverageObligation` for complete reachable writer/action/spawn
-  closure.  A null pre-apply platform excludes only a pre-existing platform
-  origin; it must not be used to discard graphical rescue.
+  closure, `InkFallbackSinkMemoryRefinementObligation` for the conditional
+  throw-matrix write, and
+  `InkFallbackPostCopyLifecycleRefinementObligation` for later object writers,
+  preservation across the explicit unload-function call, transformed
+  explosion-pose surface/height, concrete surface identity, and final
+  active/inactive-same-epoch owner identity.  Separately prove that the top is
+  actually scanned/deallocated and any claimed free-list membership.  Do not
+  reuse the closed zero-yaw home-pose Y `1791` witnesses for that branch.  A
+  null pre-apply platform excludes only
+  a pre-existing platform origin; it must not be used to discard graphical
+  rescue.
 - [ ] Prove which JP raw-platform cases are reachable and bound every reachable
   spawning displacement.  Execute the imported matrix/surface helpers over live
   Clight memory, extract the mirrored expressions from generated Clight, and
