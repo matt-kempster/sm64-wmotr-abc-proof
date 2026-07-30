@@ -357,6 +357,24 @@ check: proofs
 	  LessThanOneAPress.Proofs.InkFallback \
 	  ink_fallback_checked_boundary
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  delayed_warp_assignment_census_exact_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  delayed_warp_assignment_census_exact_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  delayed_warp_address_does_not_escape_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  delayed_warp_address_does_not_escape_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.RetailFatalLatch \
+	  retail_fatal_persists_or_reset_destroys_disappeared
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.RetailFatalLatch \
+	  retail_fatal_latch_checked_boundary
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_verified_evidence_and_collection_reduction
 	bash pipeline/assumptions.sh \
@@ -365,6 +383,9 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_ink_fallback_evidence_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_retail_fatal_latch_boundary
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  conditional_less_than_one_a_press_impossibility

@@ -107,4 +107,5 @@ proofs/FirstCrossingWriterCoverage.v
 proofs/ModelGapAudit.v
 proofs/OrdinaryMotion.v
 proofs/InkFallback.v
+proofs/RetailFatalLatch.v
 proofs/MainTheorem.v

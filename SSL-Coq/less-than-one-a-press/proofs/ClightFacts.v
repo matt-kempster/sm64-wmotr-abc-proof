@@ -990,6 +990,168 @@ Theorem object_warp_delayed_lifetime_source_shape_jp :
     (fn_body JLU.f_initiate_delayed_warp) = false.
 Proof. vm_compute. repeat split. Qed.
 
+(** Exhaustive direct-writer and address-escape census for the delayed-warp
+    latch in the generated [level_update.c] translation unit.  The only
+    direct writers are the two destination initializers, the guarded request
+    function, and the two level/save initializers.  No internal function takes
+    the address of the latch. *)
+Definition delayed_warp_assignment_sites_us : list ident :=
+  [ULU._init_mario_after_warp;
+   ULU._warp_credits;
+   ULU._level_trigger_warp;
+   ULU._init_level;
+   ULU._lvl_init_from_save_file].
+
+Definition delayed_warp_assignment_sites_jp : list ident :=
+  [JLU._init_mario_after_warp;
+   JLU._warp_credits;
+   JLU._level_trigger_warp;
+   JLU._init_level;
+   JLU._lvl_init_from_save_file].
+
+Theorem delayed_warp_assignment_census_exact_us :
+  internal_function_assignment_sites ULU._sDelayedWarpOp
+    ULU.global_definitions =
+  delayed_warp_assignment_sites_us.
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem delayed_warp_assignment_census_exact_jp :
+  internal_function_assignment_sites JLU._sDelayedWarpOp
+    JLU.global_definitions =
+  delayed_warp_assignment_sites_jp.
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem delayed_warp_address_does_not_escape_us :
+  internal_function_address_sites ULU._sDelayedWarpOp
+    ULU.global_definitions = [].
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem delayed_warp_address_does_not_escape_jp :
+  internal_function_address_sites JLU._sDelayedWarpOp
+    JLU.global_definitions = [].
+Proof. vm_compute. reflexivity. Qed.
+
+(** The two in-level clear sites run Mario initialization/action replacement
+    before their direct clear.  [init_level] and
+    [lvl_init_from_save_file] are level-script barriers; the latter directly
+    calls the save-file Mario initializer.  These are syntax/order receipts,
+    not a linked Clight small-step trace. *)
+Definition delayed_warp_clear_barrier_source_shape_us_claim : Prop :=
+  ident_subsequenceb
+    [ULU._init_mario; ULU._set_mario_initial_action; ULU._reset_camera]
+    (direct_callees_s (fn_body ULU.f_init_mario_after_warp)) = true /\
+  statement_assigns_ident_s ULU._sDelayedWarpOp
+    (fn_body ULU.f_init_mario_after_warp) = true /\
+  ident_subsequenceb
+    [ULU._load_mario_area; ULU._init_mario;
+     ULU._set_mario_action; ULU._reset_camera]
+    (direct_callees_s (fn_body ULU.f_warp_credits)) = true /\
+  statement_assigns_ident_s ULU._sDelayedWarpOp
+    (fn_body ULU.f_warp_credits) = true /\
+  calls_ident_s ULU._set_play_mode (fn_body ULU.f_init_level) = true /\
+  statement_assigns_ident_s ULU._sDelayedWarpOp
+    (fn_body ULU.f_init_level) = true /\
+  calls_ident_s ULU._init_mario_from_save_file
+    (fn_body ULU.f_lvl_init_from_save_file) = true /\
+  statement_assigns_ident_s ULU._sDelayedWarpOp
+    (fn_body ULU.f_lvl_init_from_save_file) = true.
+
+Theorem delayed_warp_clear_barrier_source_shape_us :
+  delayed_warp_clear_barrier_source_shape_us_claim.
+Proof.
+  unfold delayed_warp_clear_barrier_source_shape_us_claim.
+  vm_compute. repeat split.
+Qed.
+
+Definition delayed_warp_clear_barrier_source_shape_jp_claim : Prop :=
+  ident_subsequenceb
+    [JLU._init_mario; JLU._set_mario_initial_action; JLU._reset_camera]
+    (direct_callees_s (fn_body JLU.f_init_mario_after_warp)) = true /\
+  statement_assigns_ident_s JLU._sDelayedWarpOp
+    (fn_body JLU.f_init_mario_after_warp) = true /\
+  ident_subsequenceb
+    [JLU._load_mario_area; JLU._init_mario;
+     JLU._set_mario_action; JLU._reset_camera]
+    (direct_callees_s (fn_body JLU.f_warp_credits)) = true /\
+  statement_assigns_ident_s JLU._sDelayedWarpOp
+    (fn_body JLU.f_warp_credits) = true /\
+  calls_ident_s JLU._set_play_mode (fn_body JLU.f_init_level) = true /\
+  statement_assigns_ident_s JLU._sDelayedWarpOp
+    (fn_body JLU.f_init_level) = true /\
+  calls_ident_s JLU._init_mario_from_save_file
+    (fn_body JLU.f_lvl_init_from_save_file) = true /\
+  statement_assigns_ident_s JLU._sDelayedWarpOp
+    (fn_body JLU.f_lvl_init_from_save_file) = true.
+
+Theorem delayed_warp_clear_barrier_source_shape_jp :
+  delayed_warp_clear_barrier_source_shape_jp_claim.
+Proof.
+  unfold delayed_warp_clear_barrier_source_shape_jp_claim.
+  vm_compute. repeat split.
+Qed.
+
+(** Source constants and call order for the relevant fatal-versus-object-warp
+    race.  Operation 18 is [WARP_OP_DEATH], operation 20 is
+    [WARP_OP_GAME_OVER], operation 4 is [WARP_OP_WARP_OBJECT], and the fatal
+    timer is 48. *)
+Definition retail_fatal_latch_source_shape_us_claim : Prop :=
+  is_guarded_first_writer_warp_latch_s
+    ULU._sDelayedWarpOp ULU._warpOp
+    (fn_body ULU.f_level_trigger_warp) = true /\
+  contains_guarded_floor_null_else_call_s
+    UMI._m UMI._floor UMI._level_trigger_warp 18
+    (fn_body UMI.f_update_mario_geometry_inputs) = true /\
+  statement_mentions_int_s 20 (fn_body ULU.f_level_trigger_warp) = true /\
+  statement_mentions_int_s 48 (fn_body ULU.f_level_trigger_warp) = true /\
+  statement_mentions_int_s 4 (fn_body UI.f_interact_warp) = true /\
+  statement_mentions_int_s 16 (fn_body UI.f_interact_warp) = true /\
+  statement_mentions_int_s 2 (fn_body UI.f_interact_warp) = true /\
+  ident_subsequenceb
+    [ULU._warp_area; ULU._check_instant_warp;
+     ULU._area_update_objects; ULU._initiate_painting_warp;
+     ULU._initiate_delayed_warp]
+    (direct_callees_s (fn_body ULU.f_play_mode_normal)) = true /\
+  statement_assigns_ident_s ULU._sDelayedWarpOp
+    (fn_body ULU.f_initiate_delayed_warp) = false /\
+  calls_ident_s UCutscene._level_trigger_warp
+    (fn_body UCutscene.f_act_disappeared) = true.
+
+Theorem retail_fatal_latch_source_shape_us :
+  retail_fatal_latch_source_shape_us_claim.
+Proof.
+  unfold retail_fatal_latch_source_shape_us_claim.
+  vm_compute. repeat split.
+Qed.
+
+Definition retail_fatal_latch_source_shape_jp_claim : Prop :=
+  is_guarded_first_writer_warp_latch_s
+    JLU._sDelayedWarpOp JLU._warpOp
+    (fn_body JLU.f_level_trigger_warp) = true /\
+  contains_guarded_floor_null_else_call_s
+    JMI._m JMI._floor JMI._level_trigger_warp 18
+    (fn_body JMI.f_update_mario_geometry_inputs) = true /\
+  statement_mentions_int_s 20 (fn_body JLU.f_level_trigger_warp) = true /\
+  statement_mentions_int_s 48 (fn_body JLU.f_level_trigger_warp) = true /\
+  statement_mentions_int_s 4 (fn_body JI.f_interact_warp) = true /\
+  statement_mentions_int_s 16 (fn_body JI.f_interact_warp) = true /\
+  statement_mentions_int_s 2 (fn_body JI.f_interact_warp) = true /\
+  ident_subsequenceb
+    [JLU._warp_area; JLU._check_instant_warp;
+     JLU._area_update_objects; JLU._initiate_painting_warp;
+     JLU._initiate_delayed_warp]
+    (direct_callees_s (fn_body JLU.f_play_mode_normal)) = true /\
+  statement_assigns_ident_s JLU._sDelayedWarpOp
+    (fn_body JLU.f_initiate_delayed_warp) = false /\
+  calls_ident_s JCutscene._level_trigger_warp
+    (fn_body JCutscene.f_act_disappeared) = true.
+
+Theorem retail_fatal_latch_source_shape_jp :
+  retail_fatal_latch_source_shape_jp_claim.
+Proof.
+  unfold retail_fatal_latch_source_shape_jp_claim.
+  vm_compute. repeat split.
+Qed.
+
 (** Exact packed level-script records for the Area-1 source warp and pyramid
     top.  The numeric equalities below expose the signed high/low coordinate
     fields and the two behavior-parameter bytes.  A general LevelScript decoder
@@ -1019,6 +1181,31 @@ Theorem ssl_area1_upper_warp_object_exact_jp :
   firstn 6 (skipn 62 (gvar_init JSS.v_level_ssl_entry)) =
     ssl_area1_upper_warp_object_jp.
 Proof. vm_compute. reflexivity. Qed.
+
+(** Area 1's node [0xF1] is the fatal/death destination.  It targets level 6
+    (the castle), area 3, node [0x65], so expiration of the accepted fatal
+    request is a change-level boundary rather than a same-area opportunity to
+    clear the latch and continue [ACT_DISAPPEARED]. *)
+Definition ssl_area1_death_warp_record : list init_data :=
+  [Init_int32 (Int.repr 638120198);
+   Init_int32 (Int.repr 56950784)].
+
+Theorem ssl_area1_death_warp_record_exact_us :
+  firstn 2 (skipn 92 (gvar_init USS.v_level_ssl_entry)) =
+    ssl_area1_death_warp_record.
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem ssl_area1_death_warp_record_exact_jp :
+  firstn 2 (skipn 92 (gvar_init JSS.v_level_ssl_entry)) =
+    ssl_area1_death_warp_record.
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem ssl_area1_death_warp_packed_fields :
+  638120198 =
+    38 * 16777216 + 8 * 65536 + 241 * 256 + 6 /\
+  56950784 =
+    3 * 16777216 + 101 * 65536.
+Proof. split; reflexivity. Qed.
 
 Definition ssl_area1_pyramid_top_object_us : list init_data :=
   [ Init_int32 (Int.repr 605560634);

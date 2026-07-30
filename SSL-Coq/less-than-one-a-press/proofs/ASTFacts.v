@@ -621,6 +621,95 @@ with statement_assigns_ident_ls
       statement_assigns_ident_ls target rest
   end.
 
+(** Enumerate every internal function in one generated translation unit that
+    directly assigns a selected global.  This is stronger than checking a
+    hand-picked function list: the result is computed over [prog_defs].
+    It still concerns direct Clight assignments, so the separate address
+    census below is used to rule out writes through an escaped pointer. *)
+Fixpoint internal_function_assignment_sites
+    (target : ident)
+    (definitions : list
+      (ident * globdef (fundef function) type)) : list ident :=
+  match definitions with
+  | [] => []
+  | (id, Gfun (Internal body)) :: rest =>
+      if statement_assigns_ident_s target (fn_body body)
+      then id :: internal_function_assignment_sites target rest
+      else internal_function_assignment_sites target rest
+  | _ :: rest => internal_function_assignment_sites target rest
+  end.
+
+(** Detect an explicit address-of use of a selected global.  Together with an
+    exact direct-assignment census this rules out the ordinary Clight mechanism
+    by which a callee in the same translation unit could receive an alias to
+    the global and mutate it indirectly. *)
+Fixpoint expression_takes_address_of_ident
+    (target : ident) (e : expr) : bool :=
+  match e with
+  | Eaddrof (Evar found _) _ => Pos.eqb found target
+  | Ederef inner _ | Eaddrof inner _ | Eunop _ inner _ | Ecast inner _ =>
+      expression_takes_address_of_ident target inner
+  | Efield inner _ _ =>
+      expression_takes_address_of_ident target inner
+  | Ebinop _ lhs rhs _ =>
+      expression_takes_address_of_ident target lhs ||
+      expression_takes_address_of_ident target rhs
+  | _ => false
+  end.
+
+Definition expression_list_takes_address_of_ident
+    (target : ident) (args : list expr) : bool :=
+  existsb (expression_takes_address_of_ident target) args.
+
+Fixpoint statement_takes_address_of_ident_s
+    (target : ident) (s : statement) : bool :=
+  match s with
+  | Sskip | Sbreak | Scontinue | Sreturn None | Sgoto _ => false
+  | Sassign lhs rhs =>
+      expression_takes_address_of_ident target lhs ||
+      expression_takes_address_of_ident target rhs
+  | Sset _ rhs => expression_takes_address_of_ident target rhs
+  | Scall _ fn args =>
+      expression_takes_address_of_ident target fn ||
+      expression_list_takes_address_of_ident target args
+  | Sbuiltin _ _ _ args =>
+      expression_list_takes_address_of_ident target args
+  | Ssequence first second | Sloop first second =>
+      statement_takes_address_of_ident_s target first ||
+      statement_takes_address_of_ident_s target second
+  | Sifthenelse condition yes_branch no_branch =>
+      expression_takes_address_of_ident target condition ||
+      statement_takes_address_of_ident_s target yes_branch ||
+      statement_takes_address_of_ident_s target no_branch
+  | Sreturn (Some value) =>
+      expression_takes_address_of_ident target value
+  | Sswitch value cases =>
+      expression_takes_address_of_ident target value ||
+      statement_takes_address_of_ident_ls target cases
+  | Slabel _ body => statement_takes_address_of_ident_s target body
+  end
+with statement_takes_address_of_ident_ls
+    (target : ident) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      statement_takes_address_of_ident_s target body ||
+      statement_takes_address_of_ident_ls target rest
+  end.
+
+Fixpoint internal_function_address_sites
+    (target : ident)
+    (definitions : list
+      (ident * globdef (fundef function) type)) : list ident :=
+  match definitions with
+  | [] => []
+  | (id, Gfun (Internal body)) :: rest =>
+      if statement_takes_address_of_ident_s target (fn_body body)
+      then id :: internal_function_address_sites target rest
+      else internal_function_address_sites target rest
+  | _ :: rest => internal_function_address_sites target rest
+  end.
+
 Definition is_guarded_first_writer_warp_latch_s
     (delayed_warp_ident requested_warp_temp : ident)
     (body : statement) : bool :=

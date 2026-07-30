@@ -4,7 +4,7 @@ From LessThanOneAPress.Proofs Require Import
   CollisionRegions AreaTransitions HiddenStar LowerEntrance UpperEntrance
   ClightRefinement ArchivedProofIntegration RouteEvidence TranscriptRouteModel
   FirstTargetRefinement JPSlotLifetime FirstCrossingWriterCoverage
-  OrdinaryMotion PyramidTopPU InkFallback.
+  OrdinaryMotion PyramidTopPU InkFallback RetailFatalLatch.
 
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -119,6 +119,26 @@ Proof.
   split.
   - exact ink_first_query_has_no_modeled_stock_dynamic_floor_candidate.
   - exact dry_graphics_offset_cannot_supply_top_retry.
+Qed.
+
+(* The retail fatal-latch tranche closes the scheduler-level loophole in the
+   double-NULL graphical fallback.  Once death/game-over wins the empty
+   first-writer latch, a later ACT_DISAPPEARED tick cannot replace it.  Every
+   audited clear is represented as an atomic barrier that destroys the old
+   continuation.  The checked boundary includes the complete direct-writer and
+   address-nonescape census for the generated US/JP level-update units, but is
+   not an iterated linked-Clight memory-safety theorem. *)
+Theorem current_retail_fatal_latch_boundary :
+  RetailFatalLatchCheckedBoundary /\
+  forall kind events,
+    retail_fatal_or_old_continuation_destroyed
+      (retail_latch_run events (retail_after_both_null_frame kind)) /\
+    retail_upper_request_accepted
+      (retail_latch_run events (retail_after_both_null_frame kind)) = false.
+Proof.
+  split.
+  - exact retail_fatal_latch_checked_boundary.
+  - exact retail_fatal_persists_or_reset_destroys_disappeared.
 Qed.
 
 (* Capstone exposure of the transcript-derived route-gate reduction.  The
