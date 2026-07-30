@@ -274,9 +274,10 @@ swimming bob below 148 can compose across a floor-hit branch; the upper warp
 is outside the checked water boxes, so that is not the route-specific target.
 
 If the graphical retry also returns no floor, the geometry code requests the
-fatal warp before cached object interactions.  The abstract first-writer latch
-prevents a later upper-object-warp request from replacing that value; zero
-lives stores game-over.  A linked proof of initial emptiness and the
+fatal warp before cached object interactions.  From an empty call-boundary
+latch, the handwritten first-writer model prevents a later upper-object-warp
+request from replacing that value; zero lives stores game-over.  A linked
+proof of initial emptiness and the
 scheduler-aware block-or-reset disjunction remains open: the fatal value must
 either persist through the delayed action call or be cleared only in an
 initialization interval that resets the continuation before another Mario

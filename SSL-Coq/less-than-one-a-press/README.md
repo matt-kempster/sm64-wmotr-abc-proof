@@ -118,19 +118,41 @@ The generated recognizer checks the null/copy/retry syntax and dataflow, but
 the handwritten pipeline witnesses do not execute it in Clight.  They do not
 prove either live-list result, a reachable clean prestate, or the post-copy
 object/surface-owner lifecycle.
+`Area1FirstNull.v` parses the actual generated US/JP Area-1 collision words
+and kernel-computes 574 vertices, 962 triangle records, and the exact
+17-wall/26-floor inventories for cell `(5,7)`.  Its pure source-shaped
+evaluator computes all four wall and both floor decision lists as
+all-rejection, then packages zero-push and
+`Area1FloorNull`/`-11000.0f` records.  Its computed rejection trace derives
+the `12+8+5+1` tally.  It also checks signed-intermediate bounds and exact
+CompCert-binary32 results for the decisive axis-aligned planes and roof
+buffer.  The theorem `area1_q_static_all_rejection_checks_computed` exposes
+all four wall and both floor all-rejection computations directly.  The
+reported zero/`NULL` result is still a record assembled after those pure
+checks, not an independently executed Clight traversal.  Live Clight
+allocation/list execution, input-cast refinement,
+dynamic-list completeness, memory writes, and clean reachability remain
+explicit obligations.  The supported center-floor result remains part of the
+separate audit rather than this new static evaluator theorem.
 The generated AST now also checks the retry-null death branch, the
 `sDelayedWarpOp` first-writer latch, and geometry-before-interaction order for
 both versions.  The closed latch theorem proves that if the retry is also
 `NULL`, an earlier fatal request prevents a later upper-object-warp request
 from replacing it in the small model.  Zero lives rewrites death to game-over,
-which remains fatal and nonzero.  This is a source/transition result, not yet a
-linked Clight exclusion.  The missing scheduler-aware refinement must prove
+which remains fatal and nonzero.  This is a handwritten transition-model
+result under source-audited ordering and empty/persistent-latch premises, not
+yet a linked Clight exclusion.  The missing scheduler-aware refinement must prove
 initial latch state and show either that the fatal value still blocks the
 two-count `ACT_DISAPPEARED` request or that every earlier clear occurs inside
 reset/initialization scheduling that destroys the continuation before another
 Mario update.  Concrete call-path refinement also remains open.  The surviving
 Ink schedule therefore specifically needs a non-null graphical retry once
 those source-backed premises are derived.
+The abstract case split now also captures that a successful retry performs
+only the first of the two `ACT_DISAPPEARED` ticks.  A second floor-supported
+Mario update is required before the upper object warp can be requested; a
+second both-queries-null frame instead lets the fatal first writer win if the
+latch is empty at that call boundary.
 Arbitrary State-only ordinary/platform/PU prefixes preserve Object and
 Graphics and therefore cannot create the needed split from synchronized
 input.  A generic retry whose Graphics Y is in signed-16 range needs at least
@@ -147,6 +169,46 @@ it does not prove the linked behavior-script execution, free-list membership,
 or that the same concrete surface is selected afterward.  The two closed
 coordinate witnesses use the zero-yaw home top and floor Y `1791`; they do not
 instantiate that later translated/rotated explosion pose.
+For shell-specific Graphics writers, a handwritten two-step integer transition
+threads the first result through a State-only interframe write and explicitly
+reanchors the second frame from current State.  Under that model definition,
+`+42` in air and `+45` on ground are re-established rather than accumulated.
+Generated-AST receipts separately pin step-before-add ordering, the two
+literals, and the ground- and air-shell quicksand reset paths.  They do not
+yet refine the handwritten transition.  The
+audited wall loop changes collision-record X/Z while retaining its Y input;
+the inspected shell and interaction callers do not directly pass Graphics,
+and direct pinned-source inspection says successful cached warp contact
+selects `ACT_DISAPPEARED` before action dispatch.  The generated receipts do
+not yet prove the indirect call, handler success, break, or dispatch dataflow.  A
+wall can still enable the floor-miss schedule.  These facts do not yet prove
+binary32 end-to-end behavior, pointer non-aliasing, every wall caller, or
+complete reachable action/writer closure.
+The handwritten three-view model now proves separately that a State-only
+writer has zero Graphics-Y delta and that an arbitrary wall/floor-selected
+State height followed by its shell reanchor leaves at most the one `45`-unit
+modeled gap.  This captures why a wall may raise absolute State/Graphics
+height without amplifying the next-frame Graphics-minus-Object gap; retail
+Clight refinement remains open.
+Rocq also checks that unrestricted binary32 endpoint differences can exceed
+the `42.0f`/`45.0f` source operands by about `0.000061` at a binade crossing;
+those witnesses provide no global bound.  The route-local work is split into
+the `608..818` exact-arithmetic obligation and a live-range refinement
+obligation.
+The ground helper's pre-add float-to-integer casts likewise require a
+reachable speed/yaw bound or direct compiled-behavior treatment.
+
+`EntryMemory.v` proves the exact generated US/JP 32-bit field layouts and a
+projection from a concrete `Mem.load` postcondition: conditional on those
+assumed post-entry loads,
+MarioState, raw Object, and Graphics positions are equal; the entry action is
+`ACT_SPAWN_NO_SPIN_AIRBORNE`; its state/timer/argument, velocities, forward
+velocity, and quicksand depth are zero; `framesSinceA/B` are 255; and the
+throw-matrix pointer is null.  The end-to-end US/JP
+`init_mario_after_warp` execution propositions remain explicitly unproved.
+The clean controller boundary now records the already-live pressed value and
+relates it to actual current/previous down samples; it no longer assumes the
+two samples equal.
 
 The five-obligation audit found specification defects rather than a retail
 counterexample.  The surface, prestate, and writer statements are
@@ -155,9 +217,13 @@ sink statement was false under a repeated-return trace and under a concrete
 32-bit pointer-wrap alias; its current record is repaired to use a first-return
 relation and disjoint modular cells, and remains unproved.  The current
 lifecycle statement is not a sound proof target: `project_state` and the link
-are underconstrained, `behavior_script.c` is not translated, relevant external
-calls lack frame specifications, pointer-to-slot/epoch linkage is missing, and
+are underconstrained.  `behavior_script.c` is now translated, but the exact
+link and indirect Mario callback are not proved; relevant external calls lack
+frame specifications, pointer-to-slot/epoch linkage is missing, and
 equal arbitrary binary32 samples do not imply the platform-tolerance branch.
+The imported retail debug callback contains an object-spawn path; proving its
+page/config/input guard false in every clean run is part of the open
+writer/action/spawn closure.
 That interface must be replaced before post-copy raw Object preservation,
 transformed-surface selection, or a final owner epoch can be claimed.
 
@@ -322,9 +388,11 @@ State `(-2200,768,-1024)`; if that query returns `NULL`, the source copies
 Graphics into State and retries.  Graphics may conditionally be the local top
 sample `(-2048,1791,-1024)` or PU sample `(63488,1791,-1024)`.  A non-null
 retry lets the cached warp select and execute `ACT_DISAPPEARED` usefully in
-that frame.  In the retry-null case the fatal request wins the abstract
-delayed-warp latch; a linked retail exclusion still needs initial-state and
-clear/reset scheduler refinement.  The action
+that frame.  In the retry-null case the fatal request wins the handwritten
+abstract latch only when it is empty at that call.  Excluding the continuation
+also needs the fatal value to persist, or any clear to occur inside a reset
+interval that destroys the continuation; linked retail refinement remains
+open.  The action
 snaps to the retry floor before the
 unconditional quicksand sink and state/object copy.  Remaining object lists
 then update, deactivated objects unload, and only then does the final platform
@@ -826,12 +894,14 @@ conditional theorem is the ultimate target theorem.
   `_FINALROM`, `TARGET_N64`, `NON_MATCHING`, `AVOID_UB`, and `_LANGUAGE_C`.
 - Generator: CompCert `clightgen` 3.15.
 
-Thirty-one translation units are generated for each version, for 62 Clight
+Thirty-seven translation units are generated for each version, for 74 Clight
 modules total: `game_init.c`, `mario.c`, the seven
 `mario_actions_{airborne,automatic,cutscene,moving,object,stationary,submerged}.c`
 units,
 `mario_step.c`, `interaction.c`, `save_file.c`, `object_collision.c`,
-`object_list_processor.c`, `spawn_object.c`, `object_helpers.c`,
+`object_list_processor.c`, `behavior_script.c`, `level_script.c`,
+`graph_node.c`, `spawn_object.c`, `object_helpers.c`, `debug.c`, `memory.c`,
+`mario_misc.c`,
 `obj_behaviors.c`, `obj_behaviors_2.c`, `behavior_actions.c`,
 `behavior_data.c`, `area.c`, `level_update.c`,
 `platform_displacement.c`, `math_util.c`, `surface_collision.c`,
@@ -882,8 +952,8 @@ SM64_SOURCE=/path/to/sm64 make verify-generated
 
 The pipeline exports the pinned commit with `git archive`, so uncommitted files
 in the source checkout are not translated.  `verify-generated` requires
-exactly 31 modules per version, rejects extra generated `.v` files, hashes the
-committed output, regenerates all 62 modules, and requires byte-for-byte
+exactly 37 modules per version, rejects extra generated `.v` files, hashes the
+committed output, regenerates all 74 modules, and requires byte-for-byte
 identity.
 
 The command executed per unit is structurally:
@@ -914,7 +984,7 @@ clightgen -normalize -nostdinc -fstruct-passing \
   conclusion about ROM reachability.
 - No concrete `TargetLinkedProgram`, `ClightObservationProjection`, or
   `ClightFrameRefinementCertificate` is provided.  The link record asks for
-  `linkorder` witnesses above all 31 units; it does not construct an iterated
+  `linkorder` witnesses above all 37 units; it does not construct an iterated
   CompCert link.  `ImportedClightRun` is a finite `Smallstep.star` fragment and
   is not yet required to begin at `initial_state` or end at `final_state`.
 - `WholeProgramClightRefinementObligation` and
@@ -951,8 +1021,8 @@ clightgen -normalize -nostdinc -fstruct-passing \
   return with disjoint modular cells.  Its predecessor was refuted.
   `InkFallbackPostCopyLifecycleRefinementObligation` must not be used in its
   current form: the projection/link/run interface is unsafe or vacuous and
-  `behavior_script.c` is absent.  A replacement must import the interpreter,
-  use an exact link and clean anchored run, certify the concrete-memory
+  importing `behavior_script.c` alone does not resolve the indirect scheduler
+  path.  A replacement must use an exact link and clean anchored run, certify the concrete-memory
   projection and pointer/epoch relation, constrain external effects, and
   derive a finite translated/rotated explosion-pose sample.  The checked
   source shape proves neither free-list membership nor a reachable

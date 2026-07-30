@@ -397,8 +397,8 @@ The five named boundaries no longer have a uniform "open theorem" status:
   remains open.
 - `InkFallbackPostCopyLifecycleRefinementObligation` is not a valid current
   proof target.  Its link and projection permit hostile interpretations, while
-  the exact imported program can make its Mario-copy control point vacuous
-  because `behavior_script.c` is absent.  It also needs external-call frame
+  importing `behavior_script.c` does not itself construct the exact link or
+  resolve the indirect Mario callback at its control point.  It also needs external-call frame
   conditions, certified pointer-to-slot/epoch linkage, and finite
   transformed-surface samples.  Replace the interface before proving later
   writers, unload preservation, retained surface identity, or final owner
@@ -525,10 +525,11 @@ Thus the current result is:
 - the surface, prestate, and writer forms are predicate schemas needing
   concrete linked-run replacements; the repaired first-return sink is open;
   and the current lifecycle form is invalid and must be replaced;
-- a retry-null fatal request wins the abstract delayed-warp latch before
-  interaction processing; linked initial-state and scheduler-aware
-  block-or-reset refinement remain open, after which the surviving schedule
-  needs a non-null retry floor;
+- from an empty call-boundary latch, a retry-null fatal request wins the
+  handwritten abstract latch before interaction processing; linked
+  initial-state and persistent-fatal-or-continuation-destroying-reset
+  refinement remain open, after which the surviving schedule needs a non-null
+  retry floor;
 - a linked Clight derivation that validates the finite owner/origin projection,
   live ownership, list selection, and collision loads remains open;
 - no stock-reachable counterexample has been found; and

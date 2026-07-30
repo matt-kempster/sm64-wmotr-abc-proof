@@ -50,6 +50,95 @@ with switch_case_calls_ident_ls
       switch_case_calls_ident_ls tag callee rest
   end.
 
+(** Match the generated three-argument action-selector call
+
+      callee(m, second, third)
+
+    with a temporary Mario pointer and two exact integer literals.  Keeping
+    both literals at the call site is stronger than finding the callee and
+    constants independently in a large switch. *)
+Definition is_call_with_temp_and_two_int_literals_s
+    (callee : ident) (second third : Z) (s : statement) : bool :=
+  match s with
+  | Scall _ (Evar found_callee _)
+      [Etempvar _ _; Econst_int found_second _; Econst_int found_third _] =>
+      Pos.eqb found_callee callee &&
+      Int.eq found_second (Int.repr second) &&
+      Int.eq found_third (Int.repr third)
+  | _ => false
+  end.
+
+Fixpoint calls_ident_with_two_int_literals_s
+    (callee : ident) (second third : Z) (s : statement) : bool :=
+  match s with
+  | Scall _ _ _ =>
+      is_call_with_temp_and_two_int_literals_s callee second third s
+  | Ssequence a b | Sloop a b =>
+      calls_ident_with_two_int_literals_s callee second third a ||
+      calls_ident_with_two_int_literals_s callee second third b
+  | Sifthenelse _ a b =>
+      calls_ident_with_two_int_literals_s callee second third a ||
+      calls_ident_with_two_int_literals_s callee second third b
+  | Sswitch _ cases =>
+      calls_ident_with_two_int_literals_ls callee second third cases
+  | Slabel _ body =>
+      calls_ident_with_two_int_literals_s callee second third body
+  | _ => false
+  end
+with calls_ident_with_two_int_literals_ls
+    (callee : ident) (second third : Z)
+    (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      calls_ident_with_two_int_literals_s callee second third body ||
+      calls_ident_with_two_int_literals_ls callee second third rest
+  end.
+
+(** Locate the exact call above under a selected generated switch label.  This
+    is a syntax receipt only: it does not prove that execution selects the
+    label. *)
+Fixpoint switch_case_calls_ident_with_two_int_literals_s
+    (tag : Z) (callee : ident) (second third : Z)
+    (s : statement) : bool :=
+  match s with
+  | Ssequence a b | Sloop a b =>
+      switch_case_calls_ident_with_two_int_literals_s
+        tag callee second third a ||
+      switch_case_calls_ident_with_two_int_literals_s
+        tag callee second third b
+  | Sifthenelse _ a b =>
+      switch_case_calls_ident_with_two_int_literals_s
+        tag callee second third a ||
+      switch_case_calls_ident_with_two_int_literals_s
+        tag callee second third b
+  | Sswitch _ cases =>
+      switch_case_calls_ident_with_two_int_literals_ls
+        tag callee second third cases
+  | Slabel _ body =>
+      switch_case_calls_ident_with_two_int_literals_s
+        tag callee second third body
+  | _ => false
+  end
+with switch_case_calls_ident_with_two_int_literals_ls
+    (tag : Z) (callee : ident) (second third : Z)
+    (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons label body rest =>
+      (match label with
+       | Some found =>
+           Z.eqb found tag &&
+           calls_ident_with_two_int_literals_s
+             callee second third body
+       | None => false
+       end) ||
+      switch_case_calls_ident_with_two_int_literals_s
+        tag callee second third body ||
+      switch_case_calls_ident_with_two_int_literals_ls
+        tag callee second third rest
+  end.
+
 Fixpoint direct_callees_s (s : statement) : list ident :=
   match s with
   | Scall _ (Evar id _) _ => [id]
@@ -633,6 +722,40 @@ with statements_mention_float32_bits
       statements_mention_float32_bits bits rest
   end.
 
+(** Find a lexical [Ssequence] whose left side contains a direct call and
+    whose right side contains an exact binary32 literal.  This records the
+    source order used by the shell actions.  It does not prove that an early
+    return or branch permits both syntax nodes to execute on one run. *)
+Fixpoint call_precedes_float32_literal_s
+    (callee : ident) (bits : Z) (s : statement) : bool :=
+  match s with
+  | Ssequence first second =>
+      (calls_ident_s callee first &&
+       statement_mentions_float32_bits_s bits second) ||
+      call_precedes_float32_literal_s callee bits first ||
+      call_precedes_float32_literal_s callee bits second
+  | Sloop body increment =>
+      call_precedes_float32_literal_s callee bits body ||
+      call_precedes_float32_literal_s callee bits increment
+  | Sifthenelse _ yes_branch no_branch =>
+      call_precedes_float32_literal_s callee bits yes_branch ||
+      call_precedes_float32_literal_s callee bits no_branch
+  | Sswitch _ cases =>
+      call_precedes_float32_literal_ls callee bits cases
+  | Slabel _ body =>
+      call_precedes_float32_literal_s callee bits body
+  | _ => false
+  end
+with call_precedes_float32_literal_ls
+    (callee : ident) (bits : Z)
+    (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      call_precedes_float32_literal_s callee bits body ||
+      call_precedes_float32_literal_ls callee bits rest
+  end.
+
 Fixpoint calls_ident_with_float32_arg_s
     (callee : ident) (bits : Z) (s : statement) : bool :=
   match s with
@@ -686,6 +809,40 @@ with assigns_through_field_ls
   | LSnil => false
   | LScons _ body rest =>
       assigns_through_field_s field body || assigns_through_field_ls field rest
+  end.
+
+Definition lhs_is_dereferenced_temp
+    (temporary : ident) (lhs : expr) : bool :=
+  match lhs with
+  | Ederef (Etempvar found _) _ => Pos.eqb found temporary
+  | _ => false
+  end.
+
+(** Recognize a write through a pointer parameter/temporary, such as the
+    wall engine's [*xPtr] and [*zPtr] result writes. *)
+Fixpoint assigns_through_dereferenced_temp_s
+    (temporary : ident) (s : statement) : bool :=
+  match s with
+  | Sassign lhs _ => lhs_is_dereferenced_temp temporary lhs
+  | Ssequence a b | Sloop a b =>
+      assigns_through_dereferenced_temp_s temporary a ||
+      assigns_through_dereferenced_temp_s temporary b
+  | Sifthenelse _ a b =>
+      assigns_through_dereferenced_temp_s temporary a ||
+      assigns_through_dereferenced_temp_s temporary b
+  | Sswitch _ cases =>
+      assigns_through_dereferenced_temp_ls temporary cases
+  | Slabel _ body =>
+      assigns_through_dereferenced_temp_s temporary body
+  | _ => false
+  end
+with assigns_through_dereferenced_temp_ls
+    (temporary : ident) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      assigns_through_dereferenced_temp_s temporary body ||
+      assigns_through_dereferenced_temp_ls temporary rest
   end.
 
 Fixpoint statement_contains_loop_s (s : statement) : bool :=
@@ -789,6 +946,75 @@ with assigns_field_int_constant_ls
   | LScons _ body rest =>
       assigns_field_int_constant_s field value body ||
       assigns_field_int_constant_ls field value rest
+  end.
+
+Definition rhs_is_float32_constant (bits : Z) (rhs : expr) : bool :=
+  match rhs with
+  | Econst_single found _ =>
+      Int.eq (Float32.to_bits found) (Int.repr bits)
+  | _ => false
+  end.
+
+(** Require the complete assignment shape [base.field := binary32(bits)]. *)
+Fixpoint assigns_field_float32_constant_s
+    (field : ident) (bits : Z) (s : statement) : bool :=
+  match s with
+  | Sassign lhs rhs =>
+      lhs_field_is field lhs && rhs_is_float32_constant bits rhs
+  | Ssequence a b | Sloop a b =>
+      assigns_field_float32_constant_s field bits a ||
+      assigns_field_float32_constant_s field bits b
+  | Sifthenelse _ a b =>
+      assigns_field_float32_constant_s field bits a ||
+      assigns_field_float32_constant_s field bits b
+  | Sswitch _ cases =>
+      assigns_field_float32_constant_ls field bits cases
+  | Slabel _ body =>
+      assigns_field_float32_constant_s field bits body
+  | _ => false
+  end
+with assigns_field_float32_constant_ls
+    (field : ident) (bits : Z)
+    (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      assigns_field_float32_constant_s field bits body ||
+      assigns_field_float32_constant_ls field bits rest
+  end.
+
+Definition rhs_is_null_pointer (rhs : expr) : bool :=
+  match rhs with
+  | Ecast (Econst_int found _) (Tpointer _ _) =>
+      Int.eq found Int.zero
+  | _ => false
+  end.
+
+(** Require the generated null-pointer assignment to [base.field]. *)
+Fixpoint assigns_field_null_pointer_s
+    (field : ident) (s : statement) : bool :=
+  match s with
+  | Sassign lhs rhs =>
+      lhs_field_is field lhs && rhs_is_null_pointer rhs
+  | Ssequence a b | Sloop a b =>
+      assigns_field_null_pointer_s field a ||
+      assigns_field_null_pointer_s field b
+  | Sifthenelse _ a b =>
+      assigns_field_null_pointer_s field a ||
+      assigns_field_null_pointer_s field b
+  | Sswitch _ cases =>
+      assigns_field_null_pointer_ls field cases
+  | Slabel _ body =>
+      assigns_field_null_pointer_s field body
+  | _ => false
+  end
+with assigns_field_null_pointer_ls
+    (field : ident) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      assigns_field_null_pointer_s field body ||
+      assigns_field_null_pointer_ls field rest
   end.
 
 (** Recognize a load of a named field from a dereferenced instance of one
@@ -1051,3 +1277,59 @@ Definition record_starts_with (tag : Z) (record : list Z) : bool :=
 
 Definition records_with_tag (tag : Z) (values : list init_data) : list (list Z) :=
   filter (record_starts_with tag) (chunks5 (init_int16_values values)).
+
+(** Recognize the exact flag-gated call shape emitted for behavior-script
+    postprocessing:
+
+      if (objFlags & (1 << bit)) callee(...);
+
+    This remains a syntactic receipt.  In particular it does not prove the
+    value loaded into [objFlags], the identity of the current object, or that
+    the guarded branch executes. *)
+Definition expression_is_one_shifted_by
+    (bit : Z) (value : expr) : bool :=
+  match value with
+  | Ebinop Oshl
+      (Econst_int one _)
+      (Econst_int found_bit _) _ =>
+      Int.eq one Int.one && Z.eqb (Int.signed found_bit) bit
+  | _ => false
+  end.
+
+Definition expression_is_temp_bit_test
+    (temporary : ident) (bit : Z) (condition : expr) : bool :=
+  match condition with
+  | Ebinop Oand (Etempvar found _) mask _ =>
+      Pos.eqb found temporary && expression_is_one_shifted_by bit mask
+  | Ebinop Oand mask (Etempvar found _) _ =>
+      Pos.eqb found temporary && expression_is_one_shifted_by bit mask
+  | _ => false
+  end.
+
+Fixpoint contains_temp_bit_guarded_call_s
+    (temporary : ident) (bit : Z) (callee : ident)
+    (s : statement) : bool :=
+  match s with
+  | Sifthenelse condition yes_branch no_branch =>
+      (expression_is_temp_bit_test temporary bit condition &&
+       calls_ident_s callee yes_branch) ||
+      contains_temp_bit_guarded_call_s temporary bit callee yes_branch ||
+      contains_temp_bit_guarded_call_s temporary bit callee no_branch
+  | Ssequence first second | Sloop first second =>
+      contains_temp_bit_guarded_call_s temporary bit callee first ||
+      contains_temp_bit_guarded_call_s temporary bit callee second
+  | Sswitch _ cases =>
+      contains_temp_bit_guarded_call_ls temporary bit callee cases
+  | Slabel _ body =>
+      contains_temp_bit_guarded_call_s temporary bit callee body
+  | _ => false
+  end
+with contains_temp_bit_guarded_call_ls
+    (temporary : ident) (bit : Z) (callee : ident)
+    (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      contains_temp_bit_guarded_call_s temporary bit callee body ||
+      contains_temp_bit_guarded_call_ls temporary bit callee rest
+  end.

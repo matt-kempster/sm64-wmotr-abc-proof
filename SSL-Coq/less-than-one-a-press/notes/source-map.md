@@ -2,8 +2,8 @@
 
 All rows are translated twice, once with `VERSION_US` and once with
 `VERSION_JP`, from decomp commit
-`9921382a68bb0c865e5e45eb594d9c64db59b1af`.  There are 31 translation
-units per version and therefore 62 generated Clight modules.
+`9921382a68bb0c865e5e45eb594d9c64db59b1af`.  There are 37 translation
+units per version and therefore 74 generated Clight modules.
 
 Each row is a whole translation unit: every function/global retained by the
 preprocessor is translated, not only the functions named below.  The
@@ -17,20 +17,26 @@ base-insensitive and direct-callee/literal checks are path-insensitive.
 | --- | --- | --- |
 | `src/game/game_init.c` | `*_game_init.v` | `read_controller_inputs`; assignment operator shape for `buttonPressed` only, not operand/dataflow identity |
 | `src/game/mario.c` | `*_mario.v` | `update_mario_button_inputs`; pressed/down field and input-bit constant occurrences; `execute_mario_action`, `update_mario_inputs`, and `update_mario_geometry_inputs` call order for the three-view PU/Ink audit; generated syntax receipts for the guarded floor-null Graphics-to-State copy/retry and exact guarded retry-null death call, plus entry-coordinate synchronization; jump-kick `20.0f` action-initializer receipt and `init_mario` cap reset source shape for the ordinary-motion boundary |
-| `src/game/mario_actions_airborne.c` | `*_mario_actions_airborne.v` | jump-kick and forward/backward rollout `perform_air_step(..., 0)` receipts, rollout `30.0f` receipts, the riding-shell-air `42.0f` occurrence receipt, and the broader airborne writer inventory; no branch/dataflow or complete execution refinement yet |
+| `src/game/mario_actions_airborne.c` | `*_mario_actions_airborne.v` | jump-kick and forward/backward rollout `perform_air_step(..., 0)` receipts, rollout `30.0f` receipts, the riding-shell-air `42.0f` occurrence receipt, the common-cancel quicksand-depth zero and dispatcher-order receipt, and the broader airborne writer inventory; no branch/dataflow or complete execution refinement yet |
 | `src/game/mario_actions_automatic.c` | `*_mario_actions_automatic.v` | pole positioning, holding-pole and top-of-pole source shapes used by the normalized-pole subcase |
 | `src/game/mario_actions_cutscene.c` | `*_mario_actions_cutscene.v` | `act_spawn_no_spin_airborne` and `launch_mario_until_land`; checked call/Float32-argument shapes anchor the zero-forward-speed entry update before `perform_air_step`; `act_disappeared` floor-snap/warp call order for the node-`0x1E` audit |
-| `src/game/mario_actions_moving.c` | `*_mario_actions_moving.v` | walking, braking, slope deceleration, and ground-step shapes; moving-punching held-A jump-kick shape; high-speed B dive and dive-slide B rollout constants/calls; riding-shell-ground `45.0f` occurrence receipt; all checks remain path-insensitive |
+| `src/game/mario_actions_moving.c` | `*_mario_actions_moving.v` | walking, braking, slope deceleration, and ground-step shapes; moving-punching held-A jump-kick shape; high-speed B dive and dive-slide B rollout constants/calls; riding-shell-ground `45.0f` occurrence and dispatcher-order receipts; all checks remain path-insensitive |
 | `src/game/mario_actions_object.c` | `*_mario_actions_object.v` | stationary punching's held-A jump-kick constants/call plus other object-interaction action handlers; no complete execution refinement yet |
 | `src/game/mario_actions_stationary.c` | `*_mario_actions_stationary.v` | stationary action handlers imported for Layer B action/writer coverage; no complete execution refinement yet |
 | `src/game/mario_actions_submerged.c` | `*_mario_actions_submerged.v` | submerged dispatcher coverage; generated-AST receipts check the water full-step helper calls, all three direct whirlpool position slots, and the common water-level clamp.  The Ink writer audit conservatively allows water pitch at most `60` plus a persisted s16-only bob below `148` to compose across the floor-hit branch, represented by the modeled integer bound `208`.  This closes the missing translation-unit hole, not SSL reachability or callgraph completeness |
-| `src/game/mario_step.c` | `*_mario_step.v` | ground and air quarter-step loops, `find_floor` calls, gravity source shape, and `stop_and_set_height_to_floor` State-Y assignment from cached `floorHeight` |
-| `src/game/interaction.c` | `*_interaction.v` | `interact_star_or_key` field/constant occurrences and direct save call; `interact_coin` spawn call/index constant; `interact_warp` action constant in the PU phase pipeline; extraction dataflow is pending |
+| `src/game/mario_step.c` | `*_mario_step.v` | ground and air quarter-step loops, `find_floor` calls, gravity source shape, `stop_and_set_height_to_floor` State-Y assignment from cached `floorHeight`, and the riding-shell quicksand-depth zero assignment receipt |
+| `src/game/interaction.c` | `*_interaction.v` | `interact_star_or_key` field/constant occurrences and direct save call; `interact_coin` spawn call/index constant; `interact_warp` action constant in the PU phase pipeline; `push_mario_out_of_object` wall-call/State-position/no-Graphics receipts; extraction dataflow and exact wall-call arguments are pending |
 | `src/game/save_file.c` | `*_save_file.v` | direct call from `save_file_collect_star_or_key` to `save_file_set_star_flags`; `save_file_reload` backup-copy/file source shape; the bit-update and copy memory effects are not yet proved |
 | `src/game/object_collision.c` | `*_object_collision.v` | `detect_object_hitbox_overlap` collision-list field occurrence/assignment and full object-position slot reads; execution and the handwritten collision projection are pending |
 | `src/game/object_list_processor.c` | `*_object_list_processor.v` | full direct-callee order from dynamic-surface rebuild through final platform query, State-to-object copy slots, platform-clear call split, and unload-body identifier/call occurrences; loop/state effects are pending |
+| `src/engine/behavior_script.c` | `*_behavior_script.v` | `cur_obj_update`, behavior-command dispatch, and a generated receipt for the bit-0-guarded call to `obj_update_gfx_pos_and_angle`.  This closes the previously absent scheduler body; the callee's exact dataflow, live Mario flag, and indirect native-call path still require memory/control refinement |
+| `src/engine/level_script.c` | `*_level_script.v` | the interpreter that consumes packed level commands and reaches object/warp/area loaders.  Its body closes an entry/spawn control-flow hole, but the indirect command table, segmented addresses, external native calls, and live memory effects remain to be refined |
+| `src/engine/graph_node.c` | `*_graph_node.v` | `geo_obj_init_spawninfo` and graph-node initialization, including the entry-time Graphics/throw-matrix initialization path.  Function-body coverage does not yet prove Mario-object allocation or non-aliasing |
 | `src/game/spawn_object.c` | `*_spawn_object.v` | allocation/unload assignment and call occurrences relevant to activation, respawn fields, and reuse; memory effects are pending |
 | `src/game/object_helpers.c` | `*_object_helpers.v` | default/no-exit star spawn helpers and target behavior parameters |
+| `src/game/debug.c` | `*_debug.v` | the retail-resident debug object-spawn callback called by `bhvMario`.  The generated receipt finds the page/config/button identifiers and a `spawn_object_relative` call; the exact guard/count interpretation is a separate manual source audit.  A clean live-entry projection must prove the debug-spawn guard false |
+| `src/game/memory.c` | `*_memory.v` | segmented-address and pool helpers used by level/behavior loading.  Pointer-to-integer conversions are implementation-dependent; the generated Clight body is retained as an audit input and is not silently treated as a proof of N64 compiled behavior |
+| `src/game/mario_misc.c` | `*_mario_misc.v` | Mario model/cap/hitbox update callees reached after action dispatch.  Manual source audit finds no direct live-Mario header-Graphics position writer.  The generated receipt only inventories `gMirrorMario`, `gMarioStates`, `vec3f_copy`, and `get_pos_from_transform_mtx` anchors; destination non-aliasing and render-context reachability remain open |
 | `src/game/obj_behaviors.c` | `*_obj_behaviors.v` | hidden controller/trigger constant, field, assignment and direct-call shapes; pyramid-top spinning yaw-versus-pitch/roll write shape; no checked five-count control dependence |
 | `src/game/obj_behaviors_2.c` | `*_obj_behaviors_2.v` | Eyerok hand attack check, movement/update order, death, and coin-spawn source shapes |
 | `src/game/behavior_actions.c` | `*_behavior_actions.v` | `bhv_pole_init` hitbox-field assignment shape used by the normalized-pole source audit; Area-1 Tox Box angle-slot writes and breakable/exclamation fragment allocation, PRNG, face-angle, and angular-velocity source shapes |
@@ -39,7 +45,7 @@ base-insensitive and direct-callee/literal checks are path-insensitive.
 | `src/game/level_update.c` | `*_level_update.v` | direct `change_area` occurrence in `check_instant_warp`, game-over reload call, airborne entry-action constant/call source shape, guarded direct-assignment first-writer shape for `sDelayedWarpOp`, normal-update/delayed-object-warp ordering, absence of a direct latch assignment in `initiate_delayed_warp`, and the area-entry `init_mario`/initial-cap call shapes needed to exclude retained Wing Cap |
 | `src/game/platform_displacement.c` | `*_platform_displacement.v` | `gMarioPlatform`/validation-field identifier occurrences, State position writes, object-position reads for final selection, X/Z-but-not-Y velocity slot reads, direct displacement/floor calls, and global assignment shape; pointer/matrix dataflow is pending |
 | `src/engine/math_util.c` | `*_math_util.v` | full `mtxf_rotate_zxy_and_translate` body and `gSineTable` initializer; the linked memory execution that constructs the platform matrix remains pending |
-| `src/engine/surface_collision.c` | `*_surface_collision.v` | `find_floor` binary32-to-signed-16 cast shape and 78-unit floor buffer, plus the floor/surface query implementation used by Mario stepping and platform recomputation; ordinary-motion receipts check the wall list's strict `y > upperY` rejection; the concrete CompCert cast result and matching authenticated US/JP retail instruction fragment are checked, while linked execution and actual surface-selection refinements remain pending |
+| `src/engine/surface_collision.c` | `*_surface_collision.v` | `find_floor` binary32-to-signed-16 cast shape and 78-unit floor buffer, plus the floor/surface query implementation used by Mario stepping and platform recomputation; ordinary-motion receipts check the wall list's strict `y > upperY` rejection; Ink receipts check the X/Y/Z result-pointer writes, absence of a wall-list Y-field mutation, and absence of direct Graphics references; the concrete CompCert cast result and matching authenticated US/JP retail instruction fragment are checked, while linked execution, pointer disjointness, caller closure, and actual surface-selection refinements remain pending |
 | `src/engine/surface_load.c` | `*_surface_load.v` | surface allocation/insertion, object-vertex transformation, object-surface loading, normal construction, and collision-model loading; exact ordinary-motion receipts check `read_surface_data`'s `upperY = maxY + 5`; live object/surface memory execution and list ownership/order remain pending |
 | `src/game/macro_special_objects.c` | `*_macro_special_objects.v` | spawn call and respawn-field assignment occurrences; persistence semantics are pending |
 | `levels/ssl/script.c` | `*_ssl_script.v` | raw initializer tuples for lower/upper airborne entry objects, the area-2 static star, hidden controller, and instant-warp declarations; exact packed records for the Area-1 `0x0A`, `0x1E`, `0x1F`, and `0x20` warp objects, all five local warp-node routes, and the stock pyramid top, with checked coordinate/behavior-byte arithmetic |
@@ -114,9 +120,10 @@ past one return, and aggregate linear slices missed a checked 32-bit
 pointer-wrap alias.  The repaired obligation stops at the first matching
 return, uses the individual modular four-byte cells, and remains unproved.
 The post-copy lifecycle record is not presently a valid proof target despite
-its ordered control points: arbitrary linking/projection can falsify it, while
-the current import can make it vacuous because `behavior_script.c` is absent.
-It also needs external-call frame conditions, a certified memory projection,
+its ordered control points.  `behavior_script.c` is now imported, but the
+record still permits arbitrary linking/projection and does not construct the
+exact link that resolves `cur_obj_update` to that body.  It also needs
+external-call frame conditions, a certified memory projection,
 pointer-to-pool-slot/epoch linkage, and finite transformed-surface samples.
 
 A retry with Graphics Y in signed-16 range that can select a top floor at Y at
@@ -263,10 +270,23 @@ theorem once that premise is derived.  Either exact proposed prestate needs
 `973`.  The old writer obligation is only a predicate-sensitive schema;
 complete linked Clight writer/action/spawn closure still requires a concrete
 replacement relation.  None of these arithmetic results is presented as
-global ordinary-motion reachability.  A retry that remains null is excluded at
-the source/abstract-latch boundary because the earlier fatal request wins.  A
-linked proof still needs initial latch state and the scheduler-aware
-block-or-reset disjunction.
+global ordinary-motion reachability.  A retry that remains null is excluded by
+the handwritten latch model only from an empty call-boundary latch and under
+the persistent-fatal or continuation-destroying-reset premises.  A linked
+proof of those initial-state and scheduler facts remains open.
+
+`proofs/Area1FirstNull.v` reads the generated US/JP Area-1 collision
+initializers, computes the 574 vertices and 962 triangle records, reconstructs
+the source-ordered 17-wall/26-floor static cell lists, and runs a pure
+source-shaped evaluator for `q = (-2200,768,-1024)`.  The kernel computes all
+four static-wall and both static-floor decision lists as all-rejection, then
+packages zero-push and `Area1FloorNull`/`-11000.0f` records.  It also derives
+the `12/8/5/1` rejection trace, signed-32 bounds, and exact binary32 receipts
+for the decisive axis-aligned faces.  The packaged result is not an
+independently executed traversal, and the evaluator is not yet a small-step
+execution of the
+generated allocator/collision functions: live node construction, dynamic
+lists, casts, pointers, and clean reachability remain explicit refinements.
 
 `proofs/FirstTargetRefinement.v` deliberately preserves the conditional JP
 upper-warp/spinning-pyramid-top route.  Its evidence records how the warp and

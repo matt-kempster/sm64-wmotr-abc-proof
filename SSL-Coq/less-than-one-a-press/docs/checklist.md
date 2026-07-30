@@ -2,12 +2,14 @@
 
 - [x] Exact decomp commit pinned.
 - [x] US and JP macros generated separately.
-- [x] Generate 31 translation units per version (62 Clight modules), including
+- [x] Generate 37 translation units per version (74 Clight modules), including
   all seven Mario action units (with `mario_actions_cutscene` and the direct
   writers in `mario_actions_submerged`), movement code,
   `mario_step`, `obj_behaviors_2`, `math_util`, `surface_collision`,
   `surface_load`, wrappers for the Area-1 and Area-2 macro streams, and a
   wrapper for the route-relevant SSL static and dynamic collision arrays.
+  The boundary also imports `behavior_script`, `level_script`, `graph_node`,
+  `debug`, `memory`, and `mario_misc` for entry and writer-closure work.
 - [x] Check generated no-spin-airborne entry call shape, collision initializer
   lengths, and exact US/JP equality for the imported route-relevant collision
   arrays.
@@ -108,6 +110,32 @@
   refinement, replacement post-copy lifecycle interface, linked latch
   initialization plus block-or-reset scheduling, and delayed-warp continuation
   open.
+- [x] Parse the generated US/JP Area-1 static initializers in Rocq and compute
+  the exact 17-wall/26-floor cell inventories.  Compute all four static-wall
+  and both static-floor decision lists as all-rejection, then package
+  zero-push and `Area1FloorNull`/`-11000.0f` records in the pure evaluator.
+  This is not an independently executed Clight traversal.  Derive the
+  `12+8+5+1` rejection trace/tally with decisive signed-arithmetic and
+  binary32 receipts.
+- [ ] Execute/refine the wall and floor traversals in live Clight memory and
+  include dynamic lists, casts and memory effects, then prove or refute clean
+  reachability of the first-`NULL` sample.
+- [x] Prove generated US/JP entry layout certificates, define a concrete
+  `Mem.load` postcondition including position/action/velocity/depth/controller
+  observations, and prove its State/Object/action/depth/frames/throw-matrix
+  projection in `EntryMemory.v`.  Keep execution of `init_mario_after_warp`
+  and projection of the controller loads into the first modeled frame as
+  named pending refinements.
+- [x] Correct the controller boundary so clean entry records the already-live
+  pressed value computed from actual current/previous down samples, and
+  separately records an empty generic delayed-warp latch.
+- [x] Check source-order/literal receipts and prove that the handwritten
+  two-step shell transition reanchors the second frame and therefore does not
+  accumulate its `+42`/`+45` gap under that definition; also pin the ground-
+  and air-shell quicksand reset paths.
+- [ ] Refine shell/wall behavior to binary32 Clight memory, prove pointer
+  non-aliasing and all relevant callers, disable the debug-spawn path, and
+  close every reachable Graphics/action/flag writer.
 - [x] Prove that aligned newly set Act 3 and Act 6 bits reach the matching
   target-region route cuts, and prove
   `evidence_bearing_route_cut_blocks_new_target_bits` under the explicit
@@ -186,10 +214,11 @@
   disjoint modular four-byte cells, but the repaired
   `InkFallbackSinkMemoryRefinementObligation` remains unproved.  The current
   `InkFallbackPostCopyLifecycleRefinementObligation` is not a valid proof
-  target: arbitrary projection/linking, omitted `behavior_script.c`, external
+  target: arbitrary projection/linking, an unconstructed exact link/indirect
+  callback despite importing `behavior_script.c`, external
   frame effects, missing pointer-to-slot/epoch linkage, and non-finite float
-  samples make it unsafe or vacuous.  Import the missing unit and replace that
-  interface before proving later object writers, unload preservation,
+  samples make it unsafe or vacuous.  Replace that interface before proving
+  later object writers, unload preservation,
   transformed surface/height, concrete surface identity, and final
   active/inactive-same-epoch identity.  Separately prove that the top is
   scanned/deallocated and any claimed free-list membership.  The retry-null

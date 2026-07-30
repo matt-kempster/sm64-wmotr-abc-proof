@@ -608,6 +608,78 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.ModelGapAudit \
 	  current_abstract_counterexample_exists_for_every_target_entry
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.EntryMemory \
+	  us_mario_state_layout
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.EntryMemory \
+	  jp_mario_state_layout
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.EntryMemory \
+	  retail_entry_postcondition_projects
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1FirstNull \
+	  area1_q_static_candidate_inventory_sizes
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1FirstNull \
+	  area1_generated_initializer_inventory_certificate
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1FirstNull \
+	  area1_q_static_floor_signed_arithmetic_receipt
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1FirstNull \
+	  area1_q_decisive_loaded_plane_binary32_receipt
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1FirstNull \
+	  area1_q_static_all_rejection_checks_computed
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1FirstNull \
+	  area1_q_static_traversal_computed
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1FirstNull \
+	  area1_west_wall_minus_2199_is_accepted_and_pushed
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1FirstNull \
+	  area1_west_wall_minus_2200_is_rejected
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkFallback \
+	  thadortin_floor_case_split_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkFallback \
+	  ink_second_null_frame_latches_fatal_before_upper_warp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkFallback \
+	  riding_shell_offsets_do_not_accumulate_across_normal_frames
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkFallback \
+	  abstract_wall_or_floor_selected_height_cannot_enlarge_shell_gap
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkFallback \
+	  shell_binary32_endpoint_delta_can_exceed_source_operand
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  shell_ground_quicksand_reset_source_shape_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  shell_ground_quicksand_reset_source_shape_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  shell_air_quicksand_reset_source_shape_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  shell_air_quicksand_reset_source_shape_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  warp_precedes_shell_interaction_source_shape_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  warp_precedes_shell_interaction_source_shape_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  wall_position_writer_source_shape_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  wall_position_writer_source_shape_jp
 
 clean:
 	-$(MAKE) -f $(COQMAKEFILE) clean

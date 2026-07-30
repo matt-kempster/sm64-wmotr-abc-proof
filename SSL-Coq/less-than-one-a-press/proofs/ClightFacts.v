@@ -5,7 +5,9 @@ From LessThanOneAPress.Generated Require Import
   us_mario_actions_cutscene
   us_mario_actions_moving us_mario_actions_object us_mario_actions_stationary
   us_mario_actions_submerged us_mario_step us_interaction us_save_file us_object_collision
-  us_object_list_processor us_spawn_object us_object_helpers us_obj_behaviors
+  us_object_list_processor us_behavior_script us_level_script us_graph_node
+  us_spawn_object us_object_helpers us_debug us_memory us_mario_misc
+  us_obj_behaviors
   us_obj_behaviors_2 us_behavior_actions us_behavior_data us_area
   us_level_update us_platform_displacement us_surface_collision us_surface_load
   us_macro_special_objects us_ssl_script
@@ -14,7 +16,9 @@ From LessThanOneAPress.Generated Require Import
   jp_mario_actions_cutscene
   jp_mario_actions_moving jp_mario_actions_object jp_mario_actions_stationary
   jp_mario_actions_submerged jp_mario_step jp_interaction jp_save_file jp_object_collision
-  jp_object_list_processor jp_spawn_object jp_object_helpers jp_obj_behaviors
+  jp_object_list_processor jp_behavior_script jp_level_script jp_graph_node
+  jp_spawn_object jp_object_helpers jp_debug jp_memory jp_mario_misc
+  jp_obj_behaviors
   jp_obj_behaviors_2 jp_behavior_actions jp_behavior_data jp_area
   jp_level_update jp_platform_displacement jp_surface_collision jp_surface_load
   jp_macro_special_objects jp_ssl_script
@@ -38,7 +42,13 @@ Module UI := us_interaction.
 Module USF := us_save_file.
 Module UOC := us_object_collision.
 Module UOL := us_object_list_processor.
+Module UBS := us_behavior_script.
+Module ULS := us_level_script.
+Module UGraph := us_graph_node.
 Module USO := us_spawn_object.
+Module UDebug := us_debug.
+Module UMemory := us_memory.
+Module UMisc := us_mario_misc.
 Module UOB := us_obj_behaviors.
 Module UEye := us_obj_behaviors_2.
 Module UBA := us_behavior_actions.
@@ -67,7 +77,13 @@ Module JI := jp_interaction.
 Module JSF := jp_save_file.
 Module JOC := jp_object_collision.
 Module JOL := jp_object_list_processor.
+Module JBS := jp_behavior_script.
+Module JLS := jp_level_script.
+Module JGraph := jp_graph_node.
 Module JSO := jp_spawn_object.
+Module JDebug := jp_debug.
+Module JMemory := jp_memory.
+Module JMisc := jp_mario_misc.
 Module JOB := jp_obj_behaviors.
 Module JEye := jp_obj_behaviors_2.
 Module JBA := jp_behavior_actions.
@@ -635,17 +651,24 @@ Proof.
   vm_compute. repeat split.
 Qed.
 
-(** The shell interaction itself changes action/ownership state; these two
-    later action helpers contain the source's direct positive graphical-Y
-    additions.  The receipts pin the exact binary32 literals in the named US
-    and JP functions.  They are syntax anchors, not a proof that either action
-    is reachable from a clean SSL Area-1 entry. *)
+(** The shell interaction itself changes action/ownership state.  In the air
+    action, [perform_air_step] occurs lexically before the direct +42 graphical
+    Y write.  In the ground action, [perform_ground_step] precedes the call to
+    [tilt_body_ground_shell], whose body contains the direct +45 write.
+    These receipts pin those call/literal relationships in US and JP.  They
+    are syntax anchors, not a proof that both syntax nodes execute on one path,
+    that either action is reachable from a clean SSL Area-1 entry, or that
+    graphical displacement accumulates across frames. *)
 Definition float32_forty_two_bits : Z := 1109917696.
 Definition float32_forty_five_bits : Z := 1110704128.
 
 Definition shell_graphics_y_offsets_source_shape_us_claim : Prop :=
-  statement_mentions_float32_bits_s float32_forty_two_bits
+  call_precedes_float32_literal_s
+    UAir._perform_air_step float32_forty_two_bits
     (fn_body UAir.f_act_riding_shell_air) = true /\
+  ident_subsequenceb
+    [UMove._perform_ground_step; UMove._tilt_body_ground_shell]
+    (direct_callees_s (fn_body UMove.f_act_riding_shell_ground)) = true /\
   statement_mentions_float32_bits_s float32_forty_five_bits
     (fn_body UMove.f_tilt_body_ground_shell) = true.
 
@@ -654,12 +677,16 @@ Theorem shell_graphics_y_offsets_source_shape_us :
 Proof.
   unfold shell_graphics_y_offsets_source_shape_us_claim,
     float32_forty_two_bits, float32_forty_five_bits.
-  vm_compute. split; reflexivity.
+  vm_compute. repeat split.
 Qed.
 
 Definition shell_graphics_y_offsets_source_shape_jp_claim : Prop :=
-  statement_mentions_float32_bits_s float32_forty_two_bits
+  call_precedes_float32_literal_s
+    JAir._perform_air_step float32_forty_two_bits
     (fn_body JAir.f_act_riding_shell_air) = true /\
+  ident_subsequenceb
+    [JMove._perform_ground_step; JMove._tilt_body_ground_shell]
+    (direct_callees_s (fn_body JMove.f_act_riding_shell_ground)) = true /\
   statement_mentions_float32_bits_s float32_forty_five_bits
     (fn_body JMove.f_tilt_body_ground_shell) = true.
 
@@ -668,7 +695,118 @@ Theorem shell_graphics_y_offsets_source_shape_jp :
 Proof.
   unfold shell_graphics_y_offsets_source_shape_jp_claim,
     float32_forty_two_bits, float32_forty_five_bits.
-  vm_compute. split; reflexivity.
+  vm_compute. repeat split.
+Qed.
+
+(** The moving-action dispatcher calls [mario_update_quicksand] before its
+    riding-shell-ground case.  The callee tests action-flag bit 16 and contains
+    the exact binary32-zero assignment to [quicksandDepth].  This rules out a
+    source-level attempt to combine the ground-shell [+45] with a retained
+    negative quicksand depth on the same normal dispatch path.  It remains a
+    syntax/order receipt: live action selection, memory aliasing, and the
+    corresponding end-to-end Clight execution are separate obligations. *)
+Definition shell_ground_quicksand_reset_source_shape_us_claim : Prop :=
+  statement_mentions_int_s 16
+    (fn_body UStep.f_mario_update_quicksand) = true /\
+  assigns_field_float32_constant_s UStep._quicksandDepth 0
+    (fn_body UStep.f_mario_update_quicksand) = true /\
+  ident_subsequenceb
+    [UMove._mario_update_quicksand; UMove._act_riding_shell_ground]
+    (direct_callees_s (fn_body UMove.f_mario_execute_moving_action)) = true.
+
+Theorem shell_ground_quicksand_reset_source_shape_us :
+  shell_ground_quicksand_reset_source_shape_us_claim.
+Proof.
+  unfold shell_ground_quicksand_reset_source_shape_us_claim.
+  vm_compute. repeat split.
+Qed.
+
+Definition shell_ground_quicksand_reset_source_shape_jp_claim : Prop :=
+  statement_mentions_int_s 16
+    (fn_body JStep.f_mario_update_quicksand) = true /\
+  assigns_field_float32_constant_s JStep._quicksandDepth 0
+    (fn_body JStep.f_mario_update_quicksand) = true /\
+  ident_subsequenceb
+    [JMove._mario_update_quicksand; JMove._act_riding_shell_ground]
+    (direct_callees_s (fn_body JMove.f_mario_execute_moving_action)) = true.
+
+Theorem shell_ground_quicksand_reset_source_shape_jp :
+  shell_ground_quicksand_reset_source_shape_jp_claim.
+Proof.
+  unfold shell_ground_quicksand_reset_source_shape_jp_claim.
+  vm_compute. repeat split.
+Qed.
+
+(** The airborne dispatcher has a parallel, simpler reset.  Its common-cancel
+    helper writes binary32 zero to [quicksandDepth] on the non-cancel path
+    before the switch can call [act_riding_shell_air].  Thus the normal
+    shell-air [+42] path cannot amplify a negative retained depth in the final
+    [sink_mario_in_quicksand] call.  As above, this is a generated-AST
+    syntax/order receipt, not yet a linked path-execution theorem. *)
+Definition shell_air_quicksand_reset_source_shape_us_claim : Prop :=
+  assigns_field_float32_constant_s UAir._quicksandDepth 0
+    (fn_body UAir.f_check_common_airborne_cancels) = true /\
+  ident_subsequenceb
+    [UAir._check_common_airborne_cancels; UAir._act_riding_shell_air]
+    (direct_callees_s (fn_body UAir.f_mario_execute_airborne_action)) = true.
+
+Theorem shell_air_quicksand_reset_source_shape_us :
+  shell_air_quicksand_reset_source_shape_us_claim.
+Proof.
+  unfold shell_air_quicksand_reset_source_shape_us_claim.
+  vm_compute. repeat split.
+Qed.
+
+Definition shell_air_quicksand_reset_source_shape_jp_claim : Prop :=
+  assigns_field_float32_constant_s JAir._quicksandDepth 0
+    (fn_body JAir.f_check_common_airborne_cancels) = true /\
+  ident_subsequenceb
+    [JAir._check_common_airborne_cancels; JAir._act_riding_shell_air]
+    (direct_callees_s (fn_body JAir.f_mario_execute_airborne_action)) = true.
+
+Theorem shell_air_quicksand_reset_source_shape_jp :
+  shell_air_quicksand_reset_source_shape_jp_claim.
+Proof.
+  unfold shell_air_quicksand_reset_source_shape_jp_claim.
+  vm_compute. repeat split.
+Qed.
+
+(** The generated interaction table orders the warp handler before the Koopa
+    shell handler.  Together with the source loop's break-on-true behavior,
+    this means a successful nonfading warp interaction preempts a simultaneous
+    shell interaction.  The initializer-order and named-body receipts below
+    are kernel checks; indirect-call execution and the break/dataflow link
+    remain a Clight refinement obligation. *)
+Definition warp_precedes_shell_interaction_source_shape_us_claim : Prop :=
+  initializer_addrof_subsequenceb
+    [UI._interact_warp; UI._interact_koopa_shell]
+    UI.v_sInteractionHandlers.(gvar_init) = true /\
+  calls_ident_s UI._set_mario_action
+    (fn_body UI.f_interact_warp) = true /\
+  statement_mentions_ident_s UI._sInteractionHandlers
+    (fn_body UI.f_mario_process_interactions) = true.
+
+Theorem warp_precedes_shell_interaction_source_shape_us :
+  warp_precedes_shell_interaction_source_shape_us_claim.
+Proof.
+  unfold warp_precedes_shell_interaction_source_shape_us_claim.
+  vm_compute. repeat split.
+Qed.
+
+Definition warp_precedes_shell_interaction_source_shape_jp_claim : Prop :=
+  initializer_addrof_subsequenceb
+    [JI._interact_warp; JI._interact_koopa_shell]
+    JI.v_sInteractionHandlers.(gvar_init) = true /\
+  calls_ident_s JI._set_mario_action
+    (fn_body JI.f_interact_warp) = true /\
+  statement_mentions_ident_s JI._sInteractionHandlers
+    (fn_body JI.f_mario_process_interactions) = true.
+
+Theorem warp_precedes_shell_interaction_source_shape_jp :
+  warp_precedes_shell_interaction_source_shape_jp_claim.
+Proof.
+  unfold warp_precedes_shell_interaction_source_shape_jp_claim.
+  vm_compute. repeat split.
 Qed.
 
 (** The retry is not a harmless optional branch.  If the copied graphical
@@ -1802,3 +1940,445 @@ Theorem ssl_area2_hidden_triggers_exact_jp :
   records_with_tag 45 (gvar_init JAM.v_ssl_seg7_area_2_macro_objs) =
   expected_hidden_triggers.
 Proof. vm_compute. reflexivity. Qed.
+
+(** Additional imported-unit closure receipts.
+
+    These facts make previously uncovered retail bodies visible to the proof.
+    They remain decidable facts about generated Clight syntax and initializers;
+    none by itself proves that a callback executes, that two generated
+    functions share a live memory object, or that an imported C pointer/integer
+    conversion agrees with the target compiler outside its defined range. *)
+
+Definition bhv_mario_initializer_prefix_us : list init_data :=
+  [ Init_int32 (Int.repr 0);
+    Init_int32 (Int.repr 268763136);
+    Init_int32 (Int.repr 285278464);
+    Init_int32 (Int.repr 285409281);
+    Init_int32 (Int.repr 587202560);
+    Init_int32 (Int.repr 2424992);
+    Init_int32 (Int.repr 134217728) ].
+
+Definition bhv_mario_initializer_prefix_jp : list init_data :=
+  [ Init_int32 (Int.repr 0);
+    Init_int32 (Int.repr 268763136);
+    Init_int32 (Int.repr 285278464);
+    Init_int32 (Int.repr 285409281);
+    Init_int32 (Int.repr 587202560);
+    Init_int32 (Int.repr 2424992);
+    Init_int32 (Int.repr 134217728) ].
+
+(** The third word is the packed [OR_INT(oFlags, 0x100)] behavior command:
+    opcode 0x11, raw-data field 1, payload 0x100.  Its payload has bit zero
+    clear.  The arithmetic theorem decodes the pinned word; connecting that
+    command to a particular live object's [objFlags] load still requires the
+    behavior-interpreter execution refinement. *)
+Theorem bhv_mario_o_flags_command_arithmetic :
+  285278464 = 17 * 2 ^ 24 + 1 * 2 ^ 16 + 256 /\
+  Z.land 256 1 = 0 /\
+  Z.testbit 256 0 = false.
+Proof. vm_compute. repeat split. Qed.
+
+Definition bhv_mario_flag_and_callbacks_source_shape_us_claim : Prop :=
+  firstn 7 (gvar_init UBD.v_bhvMario) =
+    bhv_mario_initializer_prefix_us /\
+  initializer_addrof_subsequenceb
+    [UBD._try_print_debug_mario_level_info;
+     UBD._bhv_mario_update;
+     UBD._try_do_mario_debug_object_spawn]
+    (gvar_init UBD.v_bhvMario) = true /\
+  contains_temp_bit_guarded_call_s
+    UBS._objFlags 0 UBS._obj_update_gfx_pos_and_angle
+    (fn_body UBS.f_cur_obj_update) = true.
+
+Theorem bhv_mario_flag_and_callbacks_source_shape_us :
+  bhv_mario_flag_and_callbacks_source_shape_us_claim.
+Proof.
+  unfold bhv_mario_flag_and_callbacks_source_shape_us_claim,
+    bhv_mario_initializer_prefix_us.
+  vm_compute. repeat split.
+Qed.
+
+Definition bhv_mario_flag_and_callbacks_source_shape_jp_claim : Prop :=
+  firstn 7 (gvar_init JBD.v_bhvMario) =
+    bhv_mario_initializer_prefix_jp /\
+  initializer_addrof_subsequenceb
+    [JBD._try_print_debug_mario_level_info;
+     JBD._bhv_mario_update;
+     JBD._try_do_mario_debug_object_spawn]
+    (gvar_init JBD.v_bhvMario) = true /\
+  contains_temp_bit_guarded_call_s
+    JBS._objFlags 0 JBS._obj_update_gfx_pos_and_angle
+    (fn_body JBS.f_cur_obj_update) = true.
+
+Theorem bhv_mario_flag_and_callbacks_source_shape_jp :
+  bhv_mario_flag_and_callbacks_source_shape_jp_claim.
+Proof.
+  unfold bhv_mario_flag_and_callbacks_source_shape_jp_claim,
+    bhv_mario_initializer_prefix_jp.
+  vm_compute. repeat split.
+Qed.
+
+(** [init_mario] writes the entry-local timer/history/depth fields.  Spawn
+    type 0x12 selects the exact no-spin-airborne action/argument pair, and
+    [set_mario_action] contains the action-state reset and argument store.
+    This is the source chain needed by a later live-memory theorem; it is not
+    that theorem. *)
+Definition mario_entry_field_reset_source_shape_us_claim : Prop :=
+  calls_ident_s ULU._init_mario
+    (fn_body ULU.f_init_mario_after_warp) = true /\
+  calls_ident_s ULU._set_mario_initial_action
+    (fn_body ULU.f_init_mario_after_warp) = true /\
+  switch_case_calls_ident_with_two_int_literals_s
+    18 ULU._set_mario_action 6450 0
+    (fn_body ULU.f_set_mario_initial_action) = true /\
+  assigns_field_int_constant_s UMI._actionState 0
+    (fn_body UMI.f_set_mario_action) = true /\
+  assigns_field_int_constant_s UMI._actionTimer 0
+    (fn_body UMI.f_set_mario_action) = true /\
+  assigns_field_named_s UMI._actionArg
+    (fn_body UMI.f_set_mario_action) = true /\
+  assigns_field_int_constant_s UMI._actionTimer 0
+    (fn_body UMI.f_init_mario) = true /\
+  assigns_field_int_constant_s UMI._framesSinceA 255
+    (fn_body UMI.f_init_mario) = true /\
+  assigns_field_int_constant_s UMI._framesSinceB 255
+    (fn_body UMI.f_init_mario) = true /\
+  assigns_field_float32_constant_s UMI._forwardVel 0
+    (fn_body UMI.f_init_mario) = true /\
+  assigns_field_float32_constant_s UMI._quicksandDepth 0
+    (fn_body UMI.f_init_mario) = true.
+
+Theorem mario_entry_field_reset_source_shape_us :
+  mario_entry_field_reset_source_shape_us_claim.
+Proof.
+  unfold mario_entry_field_reset_source_shape_us_claim.
+  vm_compute. repeat split.
+Qed.
+
+Definition mario_entry_field_reset_source_shape_jp_claim : Prop :=
+  calls_ident_s JLU._init_mario
+    (fn_body JLU.f_init_mario_after_warp) = true /\
+  calls_ident_s JLU._set_mario_initial_action
+    (fn_body JLU.f_init_mario_after_warp) = true /\
+  switch_case_calls_ident_with_two_int_literals_s
+    18 JLU._set_mario_action 6450 0
+    (fn_body JLU.f_set_mario_initial_action) = true /\
+  assigns_field_int_constant_s JMI._actionState 0
+    (fn_body JMI.f_set_mario_action) = true /\
+  assigns_field_int_constant_s JMI._actionTimer 0
+    (fn_body JMI.f_set_mario_action) = true /\
+  assigns_field_named_s JMI._actionArg
+    (fn_body JMI.f_set_mario_action) = true /\
+  assigns_field_int_constant_s JMI._actionTimer 0
+    (fn_body JMI.f_init_mario) = true /\
+  assigns_field_int_constant_s JMI._framesSinceA 255
+    (fn_body JMI.f_init_mario) = true /\
+  assigns_field_int_constant_s JMI._framesSinceB 255
+    (fn_body JMI.f_init_mario) = true /\
+  assigns_field_float32_constant_s JMI._forwardVel 0
+    (fn_body JMI.f_init_mario) = true /\
+  assigns_field_float32_constant_s JMI._quicksandDepth 0
+    (fn_body JMI.f_init_mario) = true.
+
+Theorem mario_entry_field_reset_source_shape_jp :
+  mario_entry_field_reset_source_shape_jp_claim.
+Proof.
+  unfold mario_entry_field_reset_source_shape_jp_claim.
+  vm_compute. repeat split.
+Qed.
+
+(** The graph-node SpawnInfo initializer copies all three start-position
+    components into graphical position and clears [throwMatrix].  The raw
+    Mario-object position writes remain covered by
+    [mario_entry_coordinate_sync_source_shape_*]. *)
+Definition graph_spawninfo_position_source_shape_us_claim : Prop :=
+  calls_ident_s UGraph._vec3f_set
+    (fn_body UGraph.f_geo_obj_init_spawninfo) = true /\
+  assigns_array_slot_s UGraph._pos 0
+    (fn_body UGraph.f_geo_obj_init_spawninfo) = true /\
+  assigns_array_slot_s UGraph._pos 1
+    (fn_body UGraph.f_geo_obj_init_spawninfo) = true /\
+  assigns_array_slot_s UGraph._pos 2
+    (fn_body UGraph.f_geo_obj_init_spawninfo) = true /\
+  assigns_field_null_pointer_s UGraph._throwMatrix
+    (fn_body UGraph.f_geo_obj_init_spawninfo) = true.
+
+Theorem graph_spawninfo_position_source_shape_us :
+  graph_spawninfo_position_source_shape_us_claim.
+Proof.
+  unfold graph_spawninfo_position_source_shape_us_claim.
+  vm_compute. repeat split.
+Qed.
+
+Definition graph_spawninfo_position_source_shape_jp_claim : Prop :=
+  calls_ident_s JGraph._vec3f_set
+    (fn_body JGraph.f_geo_obj_init_spawninfo) = true /\
+  assigns_array_slot_s JGraph._pos 0
+    (fn_body JGraph.f_geo_obj_init_spawninfo) = true /\
+  assigns_array_slot_s JGraph._pos 1
+    (fn_body JGraph.f_geo_obj_init_spawninfo) = true /\
+  assigns_array_slot_s JGraph._pos 2
+    (fn_body JGraph.f_geo_obj_init_spawninfo) = true /\
+  assigns_field_null_pointer_s JGraph._throwMatrix
+    (fn_body JGraph.f_geo_obj_init_spawninfo) = true.
+
+Theorem graph_spawninfo_position_source_shape_jp :
+  graph_spawninfo_position_source_shape_jp_claim.
+Proof.
+  unfold graph_spawninfo_position_source_shape_jp_claim.
+  vm_compute. repeat split.
+Qed.
+
+(** The level-script object command allocates and links a [SpawnInfo], writes
+    its position/angle/behavior/model payload, and updates the area's spawn
+    head.  In the generated pinned source it stores the behavior-script word
+    directly; this body does not itself call [segmented_to_virtual]. *)
+Definition level_place_object_source_shape_us_claim : Prop :=
+  calls_ident_s ULS._alloc_only_pool_alloc
+    (fn_body ULS.f_level_cmd_place_object) = true /\
+  calls_ident_s ULS._segmented_to_virtual
+    (fn_body ULS.f_level_cmd_place_object) = false /\
+  assigns_through_field_s ULS._startPos
+    (fn_body ULS.f_level_cmd_place_object) = true /\
+  assigns_through_field_s ULS._startAngle
+    (fn_body ULS.f_level_cmd_place_object) = true /\
+  assigns_through_field_s ULS._behaviorArg
+    (fn_body ULS.f_level_cmd_place_object) = true /\
+  assigns_through_field_s ULS._behaviorScript
+    (fn_body ULS.f_level_cmd_place_object) = true /\
+  assigns_through_field_s ULS._model
+    (fn_body ULS.f_level_cmd_place_object) = true /\
+  assigns_through_field_s ULS._next
+    (fn_body ULS.f_level_cmd_place_object) = true /\
+  statement_mentions_ident_s ULS._objectSpawnInfos
+    (fn_body ULS.f_level_cmd_place_object) = true.
+
+Theorem level_place_object_source_shape_us :
+  level_place_object_source_shape_us_claim.
+Proof.
+  unfold level_place_object_source_shape_us_claim.
+  vm_compute. repeat split.
+Qed.
+
+Definition level_place_object_source_shape_jp_claim : Prop :=
+  calls_ident_s JLS._alloc_only_pool_alloc
+    (fn_body JLS.f_level_cmd_place_object) = true /\
+  calls_ident_s JLS._segmented_to_virtual
+    (fn_body JLS.f_level_cmd_place_object) = false /\
+  assigns_through_field_s JLS._startPos
+    (fn_body JLS.f_level_cmd_place_object) = true /\
+  assigns_through_field_s JLS._startAngle
+    (fn_body JLS.f_level_cmd_place_object) = true /\
+  assigns_through_field_s JLS._behaviorArg
+    (fn_body JLS.f_level_cmd_place_object) = true /\
+  assigns_through_field_s JLS._behaviorScript
+    (fn_body JLS.f_level_cmd_place_object) = true /\
+  assigns_through_field_s JLS._model
+    (fn_body JLS.f_level_cmd_place_object) = true /\
+  assigns_through_field_s JLS._next
+    (fn_body JLS.f_level_cmd_place_object) = true /\
+  statement_mentions_ident_s JLS._objectSpawnInfos
+    (fn_body JLS.f_level_cmd_place_object) = true.
+
+Theorem level_place_object_source_shape_jp :
+  level_place_object_source_shape_jp_claim.
+Proof.
+  unfold level_place_object_source_shape_jp_claim.
+  vm_compute. repeat split.
+Qed.
+
+(** The debug callback is a real behavior-script callback in these builds.  It
+    reads the page/config/button state and contains relative-spawn calls.
+    Clean-entry writer closure must prove the enabling state unreachable or
+    disabled; importing it does not justify silently dropping it. *)
+Definition mario_debug_spawn_source_shape_us_claim : Prop :=
+  statement_mentions_ident_s UDebug._sDebugPage
+    (fn_body UDebug.f_try_do_mario_debug_object_spawn) = true /\
+  statement_mentions_ident_s UDebug._gDebugInfo
+    (fn_body UDebug.f_try_do_mario_debug_object_spawn) = true /\
+  statement_mentions_ident_s UDebug._buttonPressed
+    (fn_body UDebug.f_try_do_mario_debug_object_spawn) = true /\
+  calls_ident_s UDebug._spawn_object_relative
+    (fn_body UDebug.f_try_do_mario_debug_object_spawn) = true.
+
+Theorem mario_debug_spawn_source_shape_us :
+  mario_debug_spawn_source_shape_us_claim.
+Proof.
+  unfold mario_debug_spawn_source_shape_us_claim.
+  vm_compute. repeat split.
+Qed.
+
+Definition mario_debug_spawn_source_shape_jp_claim : Prop :=
+  statement_mentions_ident_s JDebug._sDebugPage
+    (fn_body JDebug.f_try_do_mario_debug_object_spawn) = true /\
+  statement_mentions_ident_s JDebug._gDebugInfo
+    (fn_body JDebug.f_try_do_mario_debug_object_spawn) = true /\
+  statement_mentions_ident_s JDebug._buttonPressed
+    (fn_body JDebug.f_try_do_mario_debug_object_spawn) = true /\
+  calls_ident_s JDebug._spawn_object_relative
+    (fn_body JDebug.f_try_do_mario_debug_object_spawn) = true.
+
+Theorem mario_debug_spawn_source_shape_jp :
+  mario_debug_spawn_source_shape_jp_claim.
+Proof.
+  unfold mario_debug_spawn_source_shape_jp_claim.
+  vm_compute. repeat split.
+Qed.
+
+(** The segmented-address helpers are imported rather than replaced by a
+    handwritten mathematical function.  These receipts preserve the exact
+    masks/shifts/table dependency visible in Clight.  The pointer-to-32-bit
+    integer casts are implementation-dependent C and still need a target
+    compiled-behavior refinement before executable address claims use them. *)
+Definition segmented_address_helpers_source_shape_us_claim : Prop :=
+  statement_mentions_ident_s UMemory._sSegmentTable
+    (fn_body UMemory.f_segmented_to_virtual) = true /\
+  statement_mentions_int_s 24
+    (fn_body UMemory.f_segmented_to_virtual) = true /\
+  statement_mentions_int_s 16777215
+    (fn_body UMemory.f_segmented_to_virtual) = true /\
+  statement_mentions_int_s (-2147483648)
+    (fn_body UMemory.f_segmented_to_virtual) = true /\
+  statement_mentions_ident_s UMemory._sSegmentTable
+    (fn_body UMemory.f_virtual_to_segmented) = true /\
+  statement_mentions_int_s 24
+    (fn_body UMemory.f_virtual_to_segmented) = true /\
+  statement_mentions_int_s 536870911
+    (fn_body UMemory.f_virtual_to_segmented) = true.
+
+Theorem segmented_address_helpers_source_shape_us :
+  segmented_address_helpers_source_shape_us_claim.
+Proof.
+  unfold segmented_address_helpers_source_shape_us_claim.
+  vm_compute. repeat split.
+Qed.
+
+Definition segmented_address_helpers_source_shape_jp_claim : Prop :=
+  statement_mentions_ident_s JMemory._sSegmentTable
+    (fn_body JMemory.f_segmented_to_virtual) = true /\
+  statement_mentions_int_s 24
+    (fn_body JMemory.f_segmented_to_virtual) = true /\
+  statement_mentions_int_s 16777215
+    (fn_body JMemory.f_segmented_to_virtual) = true /\
+  statement_mentions_int_s (-2147483648)
+    (fn_body JMemory.f_segmented_to_virtual) = true /\
+  statement_mentions_ident_s JMemory._sSegmentTable
+    (fn_body JMemory.f_virtual_to_segmented) = true /\
+  statement_mentions_int_s 24
+    (fn_body JMemory.f_virtual_to_segmented) = true /\
+  statement_mentions_int_s 536870911
+    (fn_body JMemory.f_virtual_to_segmented) = true.
+
+Theorem segmented_address_helpers_source_shape_jp :
+  segmented_address_helpers_source_shape_jp_claim.
+Proof.
+  unfold segmented_address_helpers_source_shape_jp_claim.
+  vm_compute. repeat split.
+Qed.
+
+(** The newly imported Mario renderer contains a position-copying mirror
+    callback, but the destination is the distinct [gMirrorMario] global.
+    These syntax anchors inventory the callback; a memory/non-alias theorem,
+    plus SSL render-context reachability, is still required to exclude it as a
+    writer of the live Mario object's graphical position. *)
+Definition mario_misc_graphics_writer_inventory_source_shape_us_claim : Prop :=
+  statement_mentions_ident_s UMisc._gMirrorMario
+    (fn_body UMisc.f_geo_render_mirror_mario) = true /\
+  statement_mentions_ident_s UMisc._gMarioStates
+    (fn_body UMisc.f_geo_render_mirror_mario) = true /\
+  calls_ident_s UMisc._vec3f_copy
+    (fn_body UMisc.f_geo_render_mirror_mario) = true /\
+  calls_ident_s UMisc._get_pos_from_transform_mtx
+    (fn_body UMisc.f_geo_switch_mario_hand_grab_pos) = true.
+
+Theorem mario_misc_graphics_writer_inventory_source_shape_us :
+  mario_misc_graphics_writer_inventory_source_shape_us_claim.
+Proof.
+  unfold mario_misc_graphics_writer_inventory_source_shape_us_claim.
+  vm_compute. repeat split.
+Qed.
+
+Definition mario_misc_graphics_writer_inventory_source_shape_jp_claim : Prop :=
+  statement_mentions_ident_s JMisc._gMirrorMario
+    (fn_body JMisc.f_geo_render_mirror_mario) = true /\
+  statement_mentions_ident_s JMisc._gMarioStates
+    (fn_body JMisc.f_geo_render_mirror_mario) = true /\
+  calls_ident_s JMisc._vec3f_copy
+    (fn_body JMisc.f_geo_render_mirror_mario) = true /\
+  calls_ident_s JMisc._get_pos_from_transform_mtx
+    (fn_body JMisc.f_geo_switch_mario_hand_grab_pos) = true.
+
+Theorem mario_misc_graphics_writer_inventory_source_shape_jp :
+  mario_misc_graphics_writer_inventory_source_shape_jp_claim.
+Proof.
+  unfold mario_misc_graphics_writer_inventory_source_shape_jp_claim.
+  vm_compute. repeat split.
+Qed.
+
+(** Wall resolution writes through caller-supplied coordinate pointers.  The
+    audited air quarter-step calls it on a local [nextPos] buffer, later
+    mentions MarioState [pos], and never mentions [gfx] in that body.  These
+    facts exclude a syntactically direct graphics-only wall writer in the two
+    named imported bodies; they do not prove exact call arguments, pointer
+    disjointness, every caller, later copies, or actual path execution. *)
+Definition wall_position_writer_source_shape_us_claim : Prop :=
+  assigns_through_dereferenced_temp_s USurface._xPtr
+    (fn_body USurface.f_f32_find_wall_collision) = true /\
+  assigns_through_dereferenced_temp_s USurface._yPtr
+    (fn_body USurface.f_f32_find_wall_collision) = true /\
+  assigns_through_dereferenced_temp_s USurface._zPtr
+    (fn_body USurface.f_f32_find_wall_collision) = true /\
+  assigns_through_field_s USurface._y
+    (fn_body USurface.f_find_wall_collisions_from_list) = false /\
+  statement_mentions_ident_s USurface._gfx
+    (fn_body USurface.f_f32_find_wall_collision) = false /\
+  calls_ident_s UStep._resolve_and_return_wall_collisions
+    (fn_body UStep.f_perform_air_quarter_step) = true /\
+  statement_mentions_ident_s UStep._pos
+    (fn_body UStep.f_perform_air_quarter_step) = true /\
+  statement_mentions_ident_s UStep._gfx
+    (fn_body UStep.f_perform_air_quarter_step) = false /\
+  calls_ident_s UI._f32_find_wall_collision
+    (fn_body UI.f_push_mario_out_of_object) = true /\
+  statement_mentions_ident_s UI._pos
+    (fn_body UI.f_push_mario_out_of_object) = true /\
+  statement_mentions_ident_s UI._gfx
+    (fn_body UI.f_push_mario_out_of_object) = false.
+
+Theorem wall_position_writer_source_shape_us :
+  wall_position_writer_source_shape_us_claim.
+Proof.
+  unfold wall_position_writer_source_shape_us_claim.
+  vm_compute. repeat split.
+Qed.
+
+Definition wall_position_writer_source_shape_jp_claim : Prop :=
+  assigns_through_dereferenced_temp_s JSurface._xPtr
+    (fn_body JSurface.f_f32_find_wall_collision) = true /\
+  assigns_through_dereferenced_temp_s JSurface._yPtr
+    (fn_body JSurface.f_f32_find_wall_collision) = true /\
+  assigns_through_dereferenced_temp_s JSurface._zPtr
+    (fn_body JSurface.f_f32_find_wall_collision) = true /\
+  assigns_through_field_s JSurface._y
+    (fn_body JSurface.f_find_wall_collisions_from_list) = false /\
+  statement_mentions_ident_s JSurface._gfx
+    (fn_body JSurface.f_f32_find_wall_collision) = false /\
+  calls_ident_s JStep._resolve_and_return_wall_collisions
+    (fn_body JStep.f_perform_air_quarter_step) = true /\
+  statement_mentions_ident_s JStep._pos
+    (fn_body JStep.f_perform_air_quarter_step) = true /\
+  statement_mentions_ident_s JStep._gfx
+    (fn_body JStep.f_perform_air_quarter_step) = false /\
+  calls_ident_s JI._f32_find_wall_collision
+    (fn_body JI.f_push_mario_out_of_object) = true /\
+  statement_mentions_ident_s JI._pos
+    (fn_body JI.f_push_mario_out_of_object) = true /\
+  statement_mentions_ident_s JI._gfx
+    (fn_body JI.f_push_mario_out_of_object) = false.
+
+Theorem wall_position_writer_source_shape_jp :
+  wall_position_writer_source_shape_jp_claim.
+Proof.
+  unfold wall_position_writer_source_shape_jp_claim.
+  vm_compute. repeat split.
+Qed.

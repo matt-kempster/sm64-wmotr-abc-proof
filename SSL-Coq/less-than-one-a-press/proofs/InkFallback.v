@@ -262,6 +262,103 @@ Theorem ink_empty_latch_accepts_upper_request :
   Some InkUpperObjectWarp.
 Proof. reflexivity. Qed.
 
+(** The source order has three materially different geometry outcomes.  In
+    all three, object collision has already cached the warp before geometry is
+    updated.  A second floor miss requests the fatal warp before interactions;
+    it also causes [execute_mario_action] to skip action dispatch.  The cached
+    interaction can still select [ACT_DISAPPEARED], but cannot advance its
+    two-tick countdown on that frame. *)
+Inductive InkFloorSamplingOutcome : Type :=
+| InkStateFloorFound
+| InkGraphicsRetryFound
+| InkBothFloorQueriesNull.
+
+Record InkGeometryWarpPhaseResult : Type := {
+  ink_graphics_copied_to_state : bool;
+  ink_fatal_request_made : bool;
+  ink_cached_warp_selects_disappeared : bool;
+  ink_action_dispatch_runs : bool
+}.
+
+Definition ink_geometry_warp_phase
+    (outcome : InkFloorSamplingOutcome) : InkGeometryWarpPhaseResult :=
+  match outcome with
+  | InkStateFloorFound => {|
+      ink_graphics_copied_to_state := false;
+      ink_fatal_request_made := false;
+      ink_cached_warp_selects_disappeared := true;
+      ink_action_dispatch_runs := true
+    |}
+  | InkGraphicsRetryFound => {|
+      ink_graphics_copied_to_state := true;
+      ink_fatal_request_made := false;
+      ink_cached_warp_selects_disappeared := true;
+      ink_action_dispatch_runs := true
+    |}
+  | InkBothFloorQueriesNull => {|
+      ink_graphics_copied_to_state := true;
+      ink_fatal_request_made := true;
+      ink_cached_warp_selects_disappeared := true;
+      ink_action_dispatch_runs := false
+    |}
+  end.
+
+Theorem thadortin_floor_case_split_checked :
+  ink_geometry_warp_phase InkStateFloorFound = {|
+    ink_graphics_copied_to_state := false;
+    ink_fatal_request_made := false;
+    ink_cached_warp_selects_disappeared := true;
+    ink_action_dispatch_runs := true
+  |} /\
+  ink_geometry_warp_phase InkGraphicsRetryFound = {|
+    ink_graphics_copied_to_state := true;
+    ink_fatal_request_made := false;
+    ink_cached_warp_selects_disappeared := true;
+    ink_action_dispatch_runs := true
+  |} /\
+  ink_geometry_warp_phase InkBothFloorQueriesNull = {|
+    ink_graphics_copied_to_state := true;
+    ink_fatal_request_made := true;
+    ink_cached_warp_selects_disappeared := true;
+    ink_action_dispatch_runs := false
+  |}.
+Proof. repeat split; reflexivity. Qed.
+
+(** Contact with the non-fading upper warp supplies a countdown of two.  The
+    successful Graphics retry can perform only the first tick.  A second
+    floor-supported dispatch is therefore required before the object-warp
+    request can become the first delayed-warp writer. *)
+Definition ink_disappeared_tick
+    (floor_supported : bool) (ticks_remaining : nat) : nat :=
+  if floor_supported then Nat.pred ticks_remaining else ticks_remaining.
+
+Definition ink_disappeared_requests_object_warp
+    (floor_supported : bool) (ticks_remaining : nat) : bool :=
+  floor_supported && Nat.eqb ticks_remaining 1%nat.
+
+Theorem ink_successful_retry_is_only_first_disappeared_tick :
+  ink_disappeared_tick true 2%nat = 1%nat /\
+  ink_disappeared_requests_object_warp true 2%nat = false.
+Proof. split; reflexivity. Qed.
+
+Theorem ink_second_supported_tick_can_request_upper_warp :
+  ink_disappeared_tick true
+    (ink_disappeared_tick true 2%nat) = 0%nat /\
+  ink_disappeared_requests_object_warp true
+    (ink_disappeared_tick true 2%nat) = true /\
+  ink_request_delayed_warp None InkUpperObjectWarp =
+    Some InkUpperObjectWarp.
+Proof. repeat split; reflexivity. Qed.
+
+Theorem ink_second_null_frame_latches_fatal_before_upper_warp :
+  ink_disappeared_requests_object_warp false
+    (ink_disappeared_tick true 2%nat) = false /\
+  ink_request_delayed_warp
+    (ink_request_delayed_warp None InkFatalWarp)
+    InkUpperObjectWarp =
+    Some InkFatalWarp.
+Proof. split; reflexivity. Qed.
+
 Record MarioThreeView : Type := {
   three_state_position : PositionZ;
   three_object_position : PositionZ;
@@ -333,6 +430,17 @@ Proof.
   apply Hsplit.
   now apply state_only_prefix_cannot_create_object_graphics_split.
 Qed.
+
+(** This is the exact abstract answer for a wall writer once its Clight
+    pointers and dataflow have been refined to [write_state_only]: changing
+    State by any amount, including a PU-sized endpoint, contributes zero
+    Graphics-Y displacement. *)
+Theorem abstract_state_only_writer_has_zero_graphics_y_delta :
+  forall next_state views,
+    position_y (three_graphics_position
+      (write_state_only next_state views)) =
+    position_y (three_graphics_position views).
+Proof. reflexivity. Qed.
 
 (** * The exact conditional fallback schedule *)
 
@@ -433,6 +541,211 @@ Proof.
     riding_shell_ground_graphics_y_offset.
   repeat split; lia.
 Qed.
+
+(** The Z model above records source operands, not an unrestricted theorem
+    about the real-valued difference between arbitrary binary32 inputs and
+    outputs.  Crossing a binade can make the two representable endpoints
+    differ by slightly more than the source operand.  These CompCert
+    computations make that caveat executable rather than leaving it as prose. *)
+Definition shell_air_float32_operand : float32 :=
+  Float32.of_bits (Int.repr float32_forty_two_bits).
+
+Definition shell_ground_float32_operand : float32 :=
+  Float32.of_bits (Int.repr float32_forty_five_bits).
+
+Definition shell_air_rounding_witness_y : float32 :=
+  Float32.of_bits (Int.repr 1148551283).
+
+Definition shell_ground_rounding_witness_y : float32 :=
+  Float32.of_bits (Int.repr 1148502131).
+
+Definition shell_air_rounding_witness_delta : float32 :=
+  Float32.sub
+    (Float32.add shell_air_rounding_witness_y shell_air_float32_operand)
+    shell_air_rounding_witness_y.
+
+Definition shell_ground_rounding_witness_delta : float32 :=
+  Float32.sub
+    (Float32.add shell_ground_rounding_witness_y
+      shell_ground_float32_operand)
+    shell_ground_rounding_witness_y.
+
+Theorem shell_binary32_endpoint_delta_can_exceed_source_operand :
+  Float32.to_bits shell_air_rounding_witness_delta =
+    Int.repr 1109917712 /\
+  Float32.cmp Clt shell_air_float32_operand
+    shell_air_rounding_witness_delta = true /\
+  Float32.to_bits shell_ground_rounding_witness_delta =
+    Int.repr 1110704144 /\
+  Float32.cmp Clt shell_ground_float32_operand
+    shell_ground_rounding_witness_delta = true.
+Proof.
+  vm_compute.
+  repeat split.
+Qed.
+
+(** The relevant route-local replacement is deliberately narrow.  The upper
+    warp's ordinary vertical band stays far below the 1024 binade boundary, so
+    source inspection predicts exact [+42]/[+45] endpoint differences there.
+    Proving this proposition from CompCert binary32 lemmas (and deriving its
+    range premise from a live shell frame) remains part of the linked
+    shell-frame refinement; it is not used as an assumption below. *)
+Definition ShellUpperWarpFloat32DeltaArithmeticObligation : Prop :=
+  forall y,
+    Float32.cmp Cle (Float32.of_int (Int.repr 608)) y = true ->
+    Float32.cmp Cle y (Float32.of_int (Int.repr 818)) = true ->
+    Float32.to_bits
+      (Float32.sub (Float32.add y shell_air_float32_operand) y) =
+        Int.repr float32_forty_two_bits /\
+    Float32.to_bits
+      (Float32.sub (Float32.add y shell_ground_float32_operand) y) =
+        Int.repr float32_forty_five_bits.
+
+Definition ShellUpperWarpFloat32LiveRangeRefinementObligation
+    (live_shell_frame_y : float32 -> Prop) : Prop :=
+  forall y,
+    live_shell_frame_y y ->
+    Float32.cmp Cle (Float32.of_int (Int.repr 608)) y = true /\
+    Float32.cmp Cle y (Float32.of_int (Int.repr 818)) = true.
+
+(** A normal riding-shell action first synchronizes Graphics to MarioState in
+    [perform_air_step]/[perform_ground_step], applies one of the two fixed
+    visual additions, and is followed by [copy_mario_state_to_object].
+    Representing that end-of-frame normal form directly makes the important
+    non-accumulation property explicit. *)
+Inductive RidingShellVisualMode : Type :=
+| RidingShellAir
+| RidingShellGround.
+
+Definition riding_shell_visual_offset
+    (mode : RidingShellVisualMode) : Z :=
+  match mode with
+  | RidingShellAir => riding_shell_air_graphics_y_offset
+  | RidingShellGround => riding_shell_ground_graphics_y_offset
+  end.
+
+Definition riding_shell_normal_frame
+    (mode : RidingShellVisualMode)
+    (state_position : PositionZ) : MarioThreeView := {|
+  three_state_position := state_position;
+  three_object_position := state_position;
+  three_graphics_position :=
+    position_with_y state_position
+      (position_y state_position + riding_shell_visual_offset mode)
+|}.
+
+(** One abstract normal shell step reads the current State position and
+    deliberately replaces both prior Object and Graphics views.  This
+    represents the step helper's Graphics-from-State reanchor and the later
+    State-to-raw-Object copy.  It is still a handwritten transition, not a
+    Clight execution. *)
+Definition riding_shell_normal_step
+    (mode : RidingShellVisualMode)
+    (before : MarioThreeView) : MarioThreeView :=
+  riding_shell_normal_frame mode (three_state_position before).
+
+Theorem riding_shell_normal_frame_gap_is_fixed :
+  forall mode state_position,
+    position_y
+      (three_graphics_position
+        (riding_shell_normal_frame mode state_position)) -
+    position_y
+      (three_object_position
+        (riding_shell_normal_frame mode state_position)) =
+    riding_shell_visual_offset mode /\
+    riding_shell_visual_offset mode <= 45.
+Proof.
+  intros [] state_position;
+    unfold riding_shell_normal_frame, riding_shell_visual_offset,
+      riding_shell_air_graphics_y_offset,
+      riding_shell_ground_graphics_y_offset, position_with_y;
+    cbn; lia.
+Qed.
+
+Theorem riding_shell_offsets_do_not_accumulate_across_normal_frames :
+  forall (initial : MarioThreeView)
+         (first_mode second_mode : RidingShellVisualMode)
+         (second_state : PositionZ),
+    let after_first :=
+      riding_shell_normal_step first_mode initial in
+    let after_interframe_state_write :=
+      write_state_only second_state after_first in
+    let after_second :=
+      riding_shell_normal_step second_mode after_interframe_state_write in
+    position_y
+      (three_graphics_position after_second) -
+    position_y
+      (three_object_position after_second) =
+    riding_shell_visual_offset second_mode /\
+    position_y
+      (three_graphics_position after_second) -
+    position_y
+      (three_object_position after_second) <= 45.
+Proof.
+  intros initial first_mode second_mode second_state.
+  destruct second_mode;
+    unfold riding_shell_normal_step, riding_shell_normal_frame,
+      riding_shell_visual_offset, riding_shell_air_graphics_y_offset,
+      riding_shell_ground_graphics_y_offset, write_state_only,
+      position_with_y;
+    cbn; lia.
+Qed.
+
+(** The State position supplied to the normal shell reanchor is completely
+    arbitrary.  Thus even if wall X/Z resolution indirectly changes which
+    floor height is selected, that absolute State/Graphics movement cannot
+    enlarge the modeled Graphics-minus-Object gap beyond the one shell
+    visual offset.  The retail use of this theorem remains conditional on
+    refining the real wall, floor, copy, and shell bodies to this transition. *)
+Theorem abstract_wall_or_floor_selected_height_cannot_enlarge_shell_gap :
+  forall before selected_state mode,
+    let after_state_write := write_state_only selected_state before in
+    let after_shell := riding_shell_normal_step mode after_state_write in
+    position_y (three_graphics_position after_shell) -
+    position_y (three_object_position after_shell) <= 45.
+Proof.
+  intros before selected_state mode.
+  destruct mode;
+    unfold riding_shell_normal_step, riding_shell_normal_frame,
+      riding_shell_visual_offset, riding_shell_air_graphics_y_offset,
+      riding_shell_ground_graphics_y_offset, write_state_only,
+      position_with_y;
+    cbn; lia.
+Qed.
+
+(** Any writer already proved to satisfy the abstract State-only relation can
+    preserve a pre-existing shell visual gap until interaction dispatch, but
+    cannot enlarge Object-minus-Graphics separation itself.  Applying this
+    theorem to the retail wall routines still needs the pointer/dataflow
+    refinement named below. *)
+Theorem abstract_state_only_writer_preserves_existing_shell_object_graphics_gap :
+  forall next_state mode shell_state,
+    let before := riding_shell_normal_frame mode shell_state in
+    position_y
+      (three_graphics_position (write_state_only next_state before)) -
+    position_y
+      (three_object_position (write_state_only next_state before)) =
+    riding_shell_visual_offset mode.
+Proof.
+  intros next_state mode shell_state.
+  destruct mode;
+    unfold riding_shell_normal_frame, write_state_only,
+      riding_shell_visual_offset, riding_shell_air_graphics_y_offset,
+      riding_shell_ground_graphics_y_offset, position_with_y;
+    cbn; lia.
+Qed.
+
+(** Once cached warp contact selects [ACT_DISAPPEARED], the riding-shell
+    action body is not the dispatched action on that frame.  This tiny control
+    selector records that the shell's +42/+45 writer cannot be added again in
+    the same warp-selection frame. *)
+Definition shell_visual_write_runs_after_interaction
+    (warp_selected_disappeared : bool) : bool :=
+  negb warp_selected_disappeared.
+
+Theorem abstract_cached_warp_selector_disables_shell_visual_write :
+  shell_visual_write_runs_after_interaction true = false.
+Proof. reflexivity. Qed.
 
 (** Closed arithmetic for the largest positive dry ordinary visual offset
     found in the source census: riding-shell ground rendering adds 45 units.
@@ -1827,15 +2140,15 @@ Definition InkFallbackPostCopyLifecyclePostcondition
           (ink_lifecycle_owner_offset segment)).
 
 (** Audit status: do not try to prove this current universal statement.
-    [project_state] is not yet a certified memory interpretation, the imported
-    program omits the behavior-script interpreter that calls Mario's behavior,
-    the subtraces are unrestricted stars, external calls lack the needed frame
-    specifications, and equal arbitrary binary32 samples do not force the
-    platform-tolerance branch.  Thus the statement can be unsafe under a
-    hostile linked program/projection and vacuous under the exact current
-    translation.  It is retained under its requested name so those defects
-    remain visible while the repaired exact-link/anchored-run interface is
-    built. *)
+    [project_state] is not yet a certified memory interpretation.  The
+    behavior-script interpreter is now imported, but the behavior-command to
+    live [objFlags] execution and indirect Mario callback have not been linked
+    to this segment.  The subtraces are unrestricted stars, external calls
+    lack the needed frame specifications, and equal arbitrary binary32
+    samples do not force the platform-tolerance branch.  Thus the statement
+    can be unsafe under a hostile linked program/projection.  It is retained
+    under its requested name so those defects remain visible while the
+    repaired exact-link/anchored-run interface is built. *)
 Definition InkFallbackPostCopyLifecycleRefinementObligation : Prop :=
   forall segment : InkFallbackPostCopyLifecycleSegment,
     InkFallbackPostCopyLifecyclePostcondition segment.
@@ -1847,6 +2160,12 @@ Definition InkFallbackSourceShapeKernel : Prop :=
   graphical_floor_fallback_source_shape_jp_claim /\
   shell_graphics_y_offsets_source_shape_us_claim /\
   shell_graphics_y_offsets_source_shape_jp_claim /\
+  shell_ground_quicksand_reset_source_shape_us_claim /\
+  shell_ground_quicksand_reset_source_shape_jp_claim /\
+  shell_air_quicksand_reset_source_shape_us_claim /\
+  shell_air_quicksand_reset_source_shape_jp_claim /\
+  warp_precedes_shell_interaction_source_shape_us_claim /\
+  warp_precedes_shell_interaction_source_shape_jp_claim /\
   ink_retry_null_death_preemption_source_shape_us_claim /\
   ink_retry_null_death_preemption_source_shape_jp_claim /\
   mario_entry_coordinate_sync_source_shape_us_claim /\
@@ -1854,7 +2173,23 @@ Definition InkFallbackSourceShapeKernel : Prop :=
   pyramid_top_spin_explosion_pose_source_shape_us_claim /\
   pyramid_top_spin_explosion_pose_source_shape_jp_claim /\
   ink_post_copy_lifecycle_source_shape_us_claim /\
-  ink_post_copy_lifecycle_source_shape_jp_claim.
+  ink_post_copy_lifecycle_source_shape_jp_claim /\
+  bhv_mario_flag_and_callbacks_source_shape_us_claim /\
+  bhv_mario_flag_and_callbacks_source_shape_jp_claim /\
+  mario_entry_field_reset_source_shape_us_claim /\
+  mario_entry_field_reset_source_shape_jp_claim /\
+  graph_spawninfo_position_source_shape_us_claim /\
+  graph_spawninfo_position_source_shape_jp_claim /\
+  level_place_object_source_shape_us_claim /\
+  level_place_object_source_shape_jp_claim /\
+  mario_debug_spawn_source_shape_us_claim /\
+  mario_debug_spawn_source_shape_jp_claim /\
+  segmented_address_helpers_source_shape_us_claim /\
+  segmented_address_helpers_source_shape_jp_claim /\
+  mario_misc_graphics_writer_inventory_source_shape_us_claim /\
+  mario_misc_graphics_writer_inventory_source_shape_jp_claim /\
+  wall_position_writer_source_shape_us_claim /\
+  wall_position_writer_source_shape_jp_claim.
 
 Theorem ink_fallback_source_shape_kernel_checked :
   InkFallbackSourceShapeKernel.
@@ -1864,6 +2199,12 @@ Proof.
   split; [exact graphical_floor_fallback_source_shape_jp |].
   split; [exact shell_graphics_y_offsets_source_shape_us |].
   split; [exact shell_graphics_y_offsets_source_shape_jp |].
+  split; [exact shell_ground_quicksand_reset_source_shape_us |].
+  split; [exact shell_ground_quicksand_reset_source_shape_jp |].
+  split; [exact shell_air_quicksand_reset_source_shape_us |].
+  split; [exact shell_air_quicksand_reset_source_shape_jp |].
+  split; [exact warp_precedes_shell_interaction_source_shape_us |].
+  split; [exact warp_precedes_shell_interaction_source_shape_jp |].
   split; [exact ink_retry_null_death_preemption_source_shape_us |].
   split; [exact ink_retry_null_death_preemption_source_shape_jp |].
   split; [exact mario_entry_coordinate_sync_source_shape_us |].
@@ -1871,7 +2212,23 @@ Proof.
   split; [exact pyramid_top_spin_explosion_pose_source_shape_us |].
   split; [exact pyramid_top_spin_explosion_pose_source_shape_jp |].
   split; [exact ink_post_copy_lifecycle_source_shape_us |].
-  exact ink_post_copy_lifecycle_source_shape_jp.
+  split; [exact ink_post_copy_lifecycle_source_shape_jp |].
+  split; [exact bhv_mario_flag_and_callbacks_source_shape_us |].
+  split; [exact bhv_mario_flag_and_callbacks_source_shape_jp |].
+  split; [exact mario_entry_field_reset_source_shape_us |].
+  split; [exact mario_entry_field_reset_source_shape_jp |].
+  split; [exact graph_spawninfo_position_source_shape_us |].
+  split; [exact graph_spawninfo_position_source_shape_jp |].
+  split; [exact level_place_object_source_shape_us |].
+  split; [exact level_place_object_source_shape_jp |].
+  split; [exact mario_debug_spawn_source_shape_us |].
+  split; [exact mario_debug_spawn_source_shape_jp |].
+  split; [exact segmented_address_helpers_source_shape_us |].
+  split; [exact segmented_address_helpers_source_shape_jp |].
+  split; [exact mario_misc_graphics_writer_inventory_source_shape_us |].
+  split; [exact mario_misc_graphics_writer_inventory_source_shape_jp |].
+  split; [exact wall_position_writer_source_shape_us |].
+  exact wall_position_writer_source_shape_jp.
 Qed.
 
 (** Final audited boundary:

@@ -15,8 +15,14 @@ generated/us_interaction.v
 generated/us_save_file.v
 generated/us_object_collision.v
 generated/us_object_list_processor.v
+generated/us_behavior_script.v
+generated/us_level_script.v
+generated/us_graph_node.v
 generated/us_spawn_object.v
 generated/us_object_helpers.v
+generated/us_debug.v
+generated/us_memory.v
+generated/us_mario_misc.v
 generated/us_obj_behaviors.v
 generated/us_obj_behaviors_2.v
 generated/us_behavior_actions.v
@@ -46,8 +52,14 @@ generated/jp_interaction.v
 generated/jp_save_file.v
 generated/jp_object_collision.v
 generated/jp_object_list_processor.v
+generated/jp_behavior_script.v
+generated/jp_level_script.v
+generated/jp_graph_node.v
 generated/jp_spawn_object.v
 generated/jp_object_helpers.v
+generated/jp_debug.v
+generated/jp_memory.v
+generated/jp_mario_misc.v
 generated/jp_obj_behaviors.v
 generated/jp_obj_behaviors_2.v
 generated/jp_behavior_actions.v
@@ -67,6 +79,7 @@ generated/jp_ssl_collision.v
 proofs/ASTFacts.v
 proofs/CollisionMeshFacts.v
 proofs/ClightFacts.v
+proofs/EntryMemory.v
 proofs/GameTypes.v
 proofs/SourceExhaustiveness.v
 proofs/InputSemantics.v
@@ -88,6 +101,7 @@ proofs/FirstTargetRefinement.v
 proofs/JPSlotLifetime.v
 proofs/Area1PhaseSplit.v
 proofs/Area1SurfaceWitness.v
+proofs/Area1FirstNull.v
 proofs/Area1PlatformExhaustiveness.v
 proofs/FirstCrossingWriterCoverage.v
 proofs/ModelGapAudit.v

@@ -4,11 +4,12 @@
 
 - Reproducible US/JP Clight AST source-shape facts listed in
   `proofs/ClightFacts.v`, over
-  31 pinned translation units per version (62 generated modules).  The units
+  37 pinned translation units per version (74 generated modules).  The units
   cover Mario airborne, automatic, cutscene, moving, object, stationary, and
   submerged actions, `mario_step`, `obj_behaviors_2`, `math_util`,
-  `surface_collision`, and `surface_load`, plus the route-relevant SSL static
-  and dynamic collision arrays.
+  `surface_collision`, `surface_load`, `behavior_script`, `level_script`,
+  `graph_node`, `debug`, `memory`, and `mario_misc`, plus the route-relevant
+  SSL static and dynamic collision arrays.
 - Generated source-shape facts show that the no-spin airborne entry handler
   calls `launch_mario_until_land` with binary32 zero, and that helper calls
   `mario_set_forward_vel` and `perform_air_step`.  These are call/constant
@@ -55,9 +56,10 @@
   The source audit uses `45` as the dry route-specific target; `208` is a
   conservative modeled relation pending reachable-writer coverage.
   If the retry also returns no floor, the checked guarded fatal call occurs
-  before cached warp interactions and the abstract first-writer latch blocks
-  the later upper-warp request.  Zero lives rewrites death to the still-nonzero
-  game-over operation.  The linked proof must show the latch starts empty and
+  before cached warp interactions.  From an empty call-boundary latch, the
+  handwritten first-writer model blocks the later upper-warp request.  Zero
+  lives rewrites death to the still-nonzero game-over operation.  The linked
+  proof must show the latch starts empty and
   then prove the scheduler-aware disjunction: the fatal value either remains
   occupied through the delayed action call, or any earlier clear belongs to a
   reset/initialization interval that destroys the continuation before another
@@ -67,11 +69,38 @@
   first query returns `NULL`, the retry selects a loaded top-owned surface, or
   a clean retail run reaches either prestate.  Final surface-owner liveness is
   separately unresolved.
+- `Area1FirstNull.v` parses the generated US/JP collision initializers and
+  kernel-computes the 574 vertices, 962 triangles, and exact 17-wall/26-floor
+  cell inventories.  It computes all four static-wall decision lists and both
+  static-floor decision lists as all-rejection, then packages zero-push and
+  `Area1FloorNull` records.  The record is not an independently executed
+  Clight traversal.  The rejection trace/tally has exact signed-arithmetic and
+  decisive binary32 receipts.  The supported
+  center, live/dynamic-list Clight execution, casts and memory effects, and
+  clean-run reachability remain open.
+- `EntryMemory.v` proves the generated US/JP composite sizes and offsets,
+  defines a post-entry `Mem.load` postcondition (including velocity and
+  controller observations), and proves that postcondition implies the stated
+  State/raw Object/Graphics equality, action fields, frames/depth, and null
+  throw-matrix projection.  It does not derive the postcondition by executing
+  `init_mario_after_warp`; those US/JP refinement propositions remain open.
+- A handwritten two-step shell transition reanchors each modeled frame from
+  current State, so its Graphics Y gap is `42` in air or `45` on ground and
+  does not accumulate under that definition.  Separate generated-AST receipts
+  pin source order/literals and the ground- and air-shell quicksand reset
+  paths; they do not yet refine that transition.
+  The wall and warp conclusions are source/abstract-model facts, not a
+  binary32 small-step proof.  Pointer aliasing, complete wall callers, live
+  action/flag/writer closure, the route-local Float32 arithmetic and live-range
+  obligations and ground
+  float-to-integer cast refinement, and the debug-spawn guard remain open.
 - Finite-width, edge-triggered input definition allows A to be initially held.
 - `CleanPyramidEntry` fixes the lower/upper airborne entry snapshot, coherent
   active/backup target bits, the static Act 3 identity/position, and five
   distinct designated macro-trigger identities/positions without assuming
-  target-region non-reachability.
+  target-region non-reachability.  It separately requires the generic
+  delayed-warp cell to be empty and records current down, actual previous
+  down, and the live pressed value under the source edge formula.
 - `SourceExhaustiveness.v` proves a finite seven-source normal SSL inventory:
   only the static pyramid source has index `2`, only Pyramid Puzzle has index
   `5`, and indices `0`, `1`, `3`, `4`, and `6` alias neither target.  Its

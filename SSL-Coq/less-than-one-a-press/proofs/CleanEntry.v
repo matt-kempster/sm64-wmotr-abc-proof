@@ -9,7 +9,27 @@ Definition valid_act (act : Int.int) : Prop :=
   1 <= Int.unsigned act <= 6.
 
 Definition input_history_well_formed (s : GameState) : Prop :=
-  state_entry_button_down s = state_first_frame_previous_down_seed s.
+  state_entry_button_pressed s =
+    edge_pressed
+      (state_entry_button_down s)
+      (state_first_frame_previous_down_seed s).
+
+Definition entry_controller_has_no_a_edge (s : GameState) : Prop :=
+  Int.testbit (state_entry_button_pressed s) 15 = false.
+
+Theorem well_formed_entry_pressed_matches_edge_definition :
+  forall s,
+    input_history_well_formed s ->
+    (entry_controller_has_no_a_edge s <->
+     a_button_pressed
+       (state_entry_button_down s)
+       (state_first_frame_previous_down_seed s) = false).
+Proof.
+  intros s Hhistory.
+  unfold entry_controller_has_no_a_edge, a_button_pressed.
+  rewrite Hhistory.
+  tauto.
+Qed.
 
 Record CleanPyramidEntry (s : GameState) : Prop := {
   clean_supported_version :
@@ -38,6 +58,7 @@ Record CleanPyramidEntry (s : GameState) : Prop := {
   clean_lists : state_lists_well_formed s = true;
   clean_no_pending_interaction : state_pending_star_interaction s = false;
   clean_no_delayed_exit : state_delayed_star_exit s = false;
+  clean_no_delayed_warp : state_delayed_warp_pending s = false;
   clean_input_history : input_history_well_formed s;
   clean_platform : valid_platform_state s;
   clean_entry_snapshot :

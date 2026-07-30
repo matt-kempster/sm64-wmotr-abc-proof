@@ -270,11 +270,18 @@ Record GameState := {
   state_lists_well_formed : bool;
   state_pending_star_interaction : bool;
   state_delayed_star_exit : bool;
+  (* Abstract projection of [sDelayedWarpOp <> WARP_OP_NONE].  This is kept
+     separate from the star-exit flag: a previously latched death, game-over,
+     or object warp is relevant to the Ink schedule even when no star exit is
+     pending. *)
+  state_delayed_warp_pending : bool;
   (* Actual Controller.buttonDown at the execution boundary. *)
   state_entry_button_down : Int.int;
-  (* Ghost seed used as the previous-down value of the first modeled frame;
-     it is not an earlier temporal controller sample. *)
+  (* Actual previous-down sample used by [read_controller_inputs] to compute
+     the already-live pressed field for the first modeled frame. *)
   state_first_frame_previous_down_seed : Int.int;
+  (* Actual Controller.buttonPressed at that same execution boundary. *)
+  state_entry_button_pressed : Int.int;
   state_mario_platform : option RawPlatformPointer;
   state_entry_snapshot : EntrySnapshot;
   state_mario_kinematics : MarioKinematics

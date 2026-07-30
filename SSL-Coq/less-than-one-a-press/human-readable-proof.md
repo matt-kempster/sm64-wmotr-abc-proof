@@ -63,28 +63,167 @@ engineering but does not know *Super Mario 64*.
 >
 > The retry has a decisive branch.  If the second floor query is also `NULL`,
 > `update_mario_geometry_inputs` requests the death warp before cached object
-> interactions are processed.  The interaction selects a two-count
-> `ACT_DISAPPEARED`; it requests the object warp later.  The delayed-warp state
-> is a first-writer latch, so an uncleared fatal request blocks that later
-> request.  At zero lives, death is rewritten to game-over, which is still
-> fatal and nonzero.  Generated US/JP AST checks establish the exact guarded
-> call shape, guarded-write latch shape, and lexical call order; a closed
-> transition theorem proves the abstract first-writer consequence.
-> This excludes the both-queries-null schedule at the source/transition
-> boundary, not yet for linked retail Clight.  The missing refinement must show
-> that the latch starts empty and then either stays occupied until the later
-> action call or is cleared only in reset/initialization scheduling that
-> destroys the continuation before another Mario update.
-> The surviving Ink case specifically requires a non-null retry floor, with
-> selection of a live top-owned floor still unproved.
+> interactions are processed.  The interaction selects `ACT_DISAPPEARED`; it
+> requests the object warp later.  The delayed-warp state is a first-writer
+> latch: the fatal request is stored only if that latch is empty, and an
+> uncleared stored fatal request blocks the later request.  At zero lives,
+> death is rewritten to game-over, which is still fatal and nonzero.  Generated
+> US/JP AST checks establish the guarded call shape, guarded-write latch shape,
+> and lexical call order.  The exact disappeared count and zero-lives rewrite
+> are still source-audit facts rather than AST-recognizer results.  A closed
+> handwritten transition model evaluates the three abstract cases:
+>
+> | State query | Graphics retry | Source-ordered consequence |
+> | --- | --- | --- |
+> | floor | not run | no fallback and no fatal request; cached warp may select `ACT_DISAPPEARED` |
+> | `NULL` | floor | Graphics is copied to State, no fatal request; cached warp may select `ACT_DISAPPEARED` |
+> | `NULL` | `NULL` | death/game-over is requested before interaction and is stored if the latch is empty; the cached warp may still select `ACT_DISAPPEARED`, but action dispatch is skipped |
+>
+> “Failsafe to Mario’s position” is therefore not a separate first branch:
+> the first branch simply keeps the post-wall State sample.  Also, “trigger
+> the warp” initially means selecting `ACT_DISAPPEARED` with a two-tick
+> argument, not changing areas immediately.  The successful Graphics retry
+> performs only the first tick.  A second floor-supported Mario update is
+> required to request node `0x1E`; on a second both-queries-null frame, an
+> initially empty latch stores the fatal operation before the skipped action
+> could issue that request.  The clean-entry model now separately records that
+> the generic delayed-warp cell is empty, instead of conflating that condition
+> with “no delayed star exit.”  Deriving an empty latch at this exact live
+> Area-1 call boundary remains part of the Clight scheduler refinement.
+>
+> Thadortin is right about the three control-flow cases, but “failsafe” is
+> wrong for the first case, and “trigger the warp” initially means action
+> selection.  Only the non-`NULL` Graphics-retry branch remains usable.  The
+> handwritten latch/countdown model excludes the both-queries-null schedule
+> under the source-audited order plus empty-and-persistent-latch premises;
+> linked retail Clight refinement is not yet proved.  The surviving Ink case
+> specifically requires a non-null retry floor and a second supported action
+> tick.  Selection of a live top-owned floor remains unproved.
+>
+> **Newest wall/floor diagnostic:** Rocq now parses the actual generated US/JP
+> Area-1 initializers, obtains all 574 vertices and 962 triangle records, and
+> computes the exact 17-wall/26-floor static inventories for cell `(5,7)`.
+> At `q = (-2200,768,-1024)`, a pure evaluator computes all four static-wall
+> and both static-floor decision lists as all-rejection, then packages
+> zero-push and `Area1FloorNull`/`-11000.0f` records.  The record is not an
+> independently executed collision traversal.  Its computed trace
+> derives 12 first-edge failures, 8 second-edge failures, 5 third-edge
+> failures, and one height-buffer failure.  Rocq also checks signed-32
+> intermediate bounds and exact CompCert-binary32 planes/offsets for the
+> decisive axis-aligned faces.  A separate theorem states the meaningful
+> executable premises directly: all four wall decision lists and both floor
+> decision lists consist entirely of computed rejections.
+> The sole X/Z-accepting face is the Y=1280 roof and is 434 units too high for
+> the query allowance.
+> At `x=-2199`, the west-wall offset is exactly `-50` and pushes to
+> `x=-2099`, where support exists; at `x=-2200`, offset `-51` is rejected.
+> Thus the wall push does not create this miss.
+>
+> An exhaustive integer scan of the radius-187 warp-contact disk at Y=768
+> found no supported point pushed to `NULL` and no wall-hit point ending at
+> `NULL`.  Every post-wall-null point had no wall hit.  That scan remains an
+> external audit result rather than a committed formal verifier.
+> `Area1FirstNull.v` now derives the exact static diagnostic.  It does **not**
+> yet prove the pure evaluator refines the live Clight allocator/list
+> traversal, exclude extra dynamic entries, justify every cast/pointer effect,
+> prove a clean trajectory reaches `q`, or prove a continuous-binary32
+> neighborhood theorem.  In particular, `q` lies under
+> the Y=1280 roof, so ordinary falling from above lands on the roof instead of
+> reaching the sample.
+>
+> **Shell/wall writer result:** the pinned source puts each shell step before
+> the `+42`/`+45` literal.  A handwritten two-step normal-frame transition
+> threads the first result through an arbitrary State-only interframe write,
+> then explicitly reanchors Object and Graphics from current State; under
+> that model definition the second 42/45 gap replaces rather than adds to the
+> first.  This is not yet a Clight transition theorem.  The ground
+> dispatcher calls the quicksand update first; its riding-shell branch clears
+> quicksand depth.  The airborne common-cancel path likewise clears depth
+> before dispatching the shell-air body.  Those audited continuing source
+> paths would block retained negative depth from amplifying the normal `+45`
+> and `+42` writes.  Generated-AST receipts check the zero assignments and
+> call ordering; linked branch/dataflow execution remains open.  The audited wall
+> loop changes collision-record X/Z; its wrapper copies an unchanged Y back to
+> the caller.  The shell step uses a local `nextPos`, while the interaction
+> push uses State Y plus local X/Z, so neither directly passes Graphics.  A wall
+> can still enable the fallback schedule by changing X/Z or making the later
+> floor lookup miss; it is not a positive Graphics-Y writer in the inspected
+> source.  Exact call arguments, pointer disjointness, every caller, and linked
+> execution remain open.  An abstract State-only writer
+> therefore preserves rather than enlarges an existing gap.  When cached warp
+> contact selects
+> `ACT_DISAPPEARED`, the shell action is not dispatched in that frame, so wall
+> contact cannot combine with a same-frame shell addition.  These are
+> source-shape and normal-form results, not yet a binary32 Clight proof with
+> pointer non-aliasing and every caller covered.
+>
+> An unrestricted binary32 endpoint difference can be about `0.000061` larger
+> than the `42.0f`/`45.0f` source operand when an addition crosses a binade;
+> Rocq now checks concrete witnesses.  Those witnesses establish no general
+> upper bound.  The remaining route-specific work is split into a pending
+> exact-arithmetic lemma for Y in `608..818` and a separate live US/JP
+> refinement that must derive that range.  The ground tilt helper also performs potentially
+> problematic float-to-integer casts before `+45`; a total proof needs a
+> reachable speed/yaw bound or compiled-MIPS semantics.  That issue can stop
+> the source-level path but cannot increase its Graphics-Y add.
+>
+> Direct source inspection finds that the interaction table puts warp before
+> Koopa shell and that the loop stops after a successful handler.  Thus the
+> inspected source path would select the nonfading warp without processing a
+> simultaneous shell collision.  Generated receipts check only the table
+> subsequence and named bodies; indirect-call/break execution remains open.  The generic
+> behavior-interpreter Graphics synchronizer is flag-bit-0 gated, while
+> `bhvMario` ORs bit 8 (`0x100`) and does not itself introduce bit 0.  Retail
+> allocation clears the raw words, but the project has not linked that fact
+> through slot reuse and every live mutation.  An over-permissive state with
+> bit 0 and a positive `oGraphYOffset` can overwrite Graphics and is therefore
+> a formal-model counterexample to closure, not evidence of a retail route. The
+> retail-resident debug callback also contains a guarded spawn path.  Proving
+> live flag initialization/mutations, the debug guard false, and complete
+> writer/action/spawn closure remains open.
+>
+> **Entry-memory result:** `EntryMemory.v` now proves the generated 32-bit
+> US/JP composite layouts, defines a concrete `Mem.load` postcondition, and
+> proves a narrower projection from that postcondition.  The important offsets
+> are:
+>
+> | Structure | Field | Byte offset |
+> | --- | --- | ---: |
+> | `MarioState` (size 200) | action/state/timer/argument | `12 / 24 / 26 / 28` |
+> | `MarioState` | `framesSinceA/B` | `40 / 41` |
+> | `MarioState` | position / velocity / forward velocity | `60 / 72 / 84` |
+> | `MarioState` | floor / floor height | `104 / 112` |
+> | `MarioState` | Mario-object / controller pointers | `136 / 156` |
+> | `MarioState` | quicksand depth | `192` |
+> | `Object` (size 608) | Graphics position / throw matrix | `32 / 80` |
+> | `Object` | raw `oPosX/Y/Z` | `160 / 164 / 168` |
+> | `Controller` (size 28) | down / pressed | `16 / 18` |
+>
+> Given the concrete post-entry loads, Rocq proves State, raw Object, and
+> Graphics carry the same three binary32 coordinates; action is `6450`
+> (`ACT_SPAWN_NO_SPIN_AIRBORNE`); action state, timer, argument, velocities,
+> forward velocity, and quicksand depth are positive zero; both
+> `framesSinceA/B` are 255; and the throw-matrix pointer is null.  This is a
+> real memory-layout/projection theorem, but it is conditional on those loads.
+> The project has **not** yet executed `init_mario_after_warp` to derive them
+> from a clean retail predecessor.  Exact advertised spawn coordinates also
+> require proving the initial floor does not raise Mario.
+>
+> The controller boundary was corrected at the same time.  Controller input is
+> read before the area warp, so the residual entry frame already has a live
+> `buttonPressed`.  `CleanPyramidEntry` now records current `buttonDown`, the
+> actual previous-down sample, and the resulting live `buttonPressed`, and
+> requires the source edge formula relating them.  It no longer manufactures
+> “no edge” by equating current and previous samples.  The separate no-A
+> execution hypothesis must rule out bit 15 of that live pressed value.
 >
 > This is not a reachable game trace.  The project has not proved that a clean
 > execution creates the Object/State/Graphics prestate, that the first live
 > floor query returns `NULL`, that the retry selects a loaded top-owned
 > surface, or that the post-copy lifecycle preserves the needed Object and
 > owner epoch.  The current lifecycle proposition is not a sound proof target:
-> its program link and memory projection are underconstrained, the imported
-> program omits `behavior_script.c`, external effects and pointer-to-slot/epoch
+> its program link and memory projection are underconstrained, and importing
+> `behavior_script.c` does not by itself construct the exact indirect call path; external effects and pointer-to-slot/epoch
 > linkage are missing, and arbitrary binary32 samples include NaNs.  It must be
 > replaced, not merely discharged.  No stock-reachable US/JP retail trace with
 > a newly set target bit was found.
@@ -589,10 +728,33 @@ The interaction/action side has a separate displacement table:
 | Water pitch plus bob | Graphics Y only | Conservative modeled envelope `<=208`, not linked retail coverage |
 | Quicksand sink | Graphics Y, optionally throw-matrix Y | `-depth`; prepared negative-depth example raises a zero base by about `2.65` |
 
+Walls do not supply a hidden `+Y` term to the two shell rows.  In the
+inspected source, wall collision changes X/Z and may indirectly select a
+different floor, so it can change the absolute height to which the step
+synchronizes Mario.  The step then sets Graphics from State and adds exactly
+one shell source operand; the end-of-behavior copy sets raw Object from the
+same State.  Consequently a wall/floor lift moves Object along with State and
+does not enlarge the next-frame Graphics-minus-Object gap.  The ground
+wall-hit branch still reaches the one `+45`; the air wall-hit branch still
+reaches the one `+42`.  On the frame where cached upper-warp interaction
+succeeds, direct source inspection instead selects `ACT_DISAPPEARED` before
+action dispatch, so neither shell body runs.
+
+Rocq proves these statements only in the explicit three-view abstraction:
+an arbitrary State-only writer has zero Graphics-Y delta, and an arbitrary
+wall/floor-selected State height followed by the modeled shell reanchor leaves
+a gap at most `45`.  Applying them to retail requires the still-open Clight
+pointer/dataflow, action-dispatch, object-copy, and flag-closure proofs.  The
+separate bit-0/`oGraphYOffset` behavior-tail overwrite remains a model
+counterexample until retail initialization and all flag mutations are closed;
+it is not caused by wall contact.
+
 The shell `42`/`45` constants now have US/JP generated-AST occurrence receipts
-and a Rocq arithmetic bound.  The field/formula meaning comes from manual
-source inspection; a statement-level Clight proof and arbitrary-input
-binary32-delta result remain open.  The `89` shell figure is the pre-wall
+and a Rocq integer-model bound.  The field/formula meaning comes from manual
+source inspection; a statement-level Clight proof and route-local binary32
+arithmetic/live-range results remain open.  The checked out-of-range witnesses
+show that the source operand is not a valid arbitrary-input endpoint bound.
+The `89` shell figure is the pre-wall
 radial target, not permission to claim that every shell frame moves Mario by
 at most 89.
 The complete source formulas and caveats are in
@@ -626,8 +788,8 @@ clear sites have two orderings: warp-arrival/credits paths reset before clear,
 whereas `init_level` and `lvl_init_from_save_file` clear before reset but admit
 no useful Mario update in between under the intended scheduler.  What prevents
 this source argument from already being a linked theorem is concrete:
-`behavior_script.c` is absent from the generated project, leaving
-`cur_obj_update` external, and the proof still needs that scheduler fact,
+`behavior_script.c` is now generated, but the project does not yet construct
+the exact link or prove the indirect `cur_obj_update` callback.  The proof still needs that scheduler fact,
 shared-global/frame-condition, and compiled-`find_floor` refinements.
 
 Remaining object lists and the deactivated unload pass run before the final
@@ -656,9 +818,9 @@ The five-obligation audit produced three different outcomes:
    address ranges admitted a concrete modular pointer alias.  The repaired
    obligation uses a first-return relation and pairwise-disjoint four-byte
    cells.  It is a plausible concrete memory obligation, but remains unproved.
-3. The lifecycle proposition can be false under a hostile projection/link or
-   vacuous under the current import, where `cur_obj_update` remains external
-   because `behavior_script.c` is absent.  It also lacks external-call frame
+3. The lifecycle proposition can be false under a hostile projection/link.
+   Although `behavior_script.c` is now imported, the interface neither
+   constructs the exact link nor establishes the indirect callback.  It also lacks external-call frame
    conditions, pointer-to-pool-slot/epoch linkage, and finite-float premises.
    It must be replaced by an exact-link, clean-run interface.  The checked NaN
    counterexample shows why equal Coq-level binary32 values alone do not imply
@@ -1060,7 +1222,7 @@ abstract-execution certificates.
 ## What the generated source already confirms
 
 The current project regenerates CompCert Clight ASTs for both target versions
-from the pinned decomp revision: 31 translation units per version, 62 modules
+from the pinned decomp revision: 37 translation units per version, 74 modules
 in total.  Direct inspection of that pinned C source shows:
 
 - the controller input calculation distinguishes `buttonPressed` from
@@ -1105,10 +1267,11 @@ in total.  Direct inspection of that pinned C source shows:
   generated US/JP recognizers check this guarded call, the
   `sDelayedWarpOp == WARP_OP_NONE` first-writer latch, and the call order.
   `ink_retry_null_fatal_latch_blocks_later_upper_request` proves the corresponding
-  finite fatal-latch transition.  This excludes the both-queries-null
-  upper-warp schedule at the checked source/transition boundary; proving the
-  initial-empty and scheduler-aware block-or-reset disjunction in a linked
-  retail run remains open;
+  finite handwritten fatal-latch transition.  Under the source-audited order
+  and empty/persistent-latch premises, that model excludes the
+  both-queries-null upper-warp schedule.  Source-to-model refinement, the
+  initial-empty fact, and the scheduler-aware block-or-reset disjunction in a
+  linked retail run remain open;
 - arbitrary ordinary, platform, or PU-sized **State-only** writes preserve the
   collision Object and fallback Graphics samples.  The source audit identifies
   `45` as the dry route-specific visual-offset target, while the deliberately
@@ -1225,7 +1388,7 @@ The ultimate theorem needs all of the following:
    three-view prestate.  Prove the repaired first-return,
    modular-cell-disjoint `InkFallbackSinkMemoryRefinementObligation`.  Replace
    `InkFallbackPostCopyLifecycleRefinementObligation` with an exact linked
-   program that imports `behavior_script.c`, an anchored clean run, a certified
+   program that exactly links the imported `behavior_script.c`, an anchored clean run, a certified
    memory projection, external-call frame conditions, finite transformed
    surface samples, and concrete pointer-to-slot/epoch linkage.  Only then
    prove later object writers, unload preservation, retained surface identity,
@@ -1269,6 +1432,12 @@ The most useful entry points are:
   cross-version equality, the exact 39-word pyramid-top initializer, and exact
   local bounds for the breakable-box, exclamation-box-outline, cannon-lid, and
   wooden-signpost meshes;
+- `proofs/Area1FirstNull.v`: generated-initializer parser and exact static
+  cell-inventory computation; a pure static wall/floor evaluator with computed
+  rejection trace, signed-32 bounds, and decisive binary32 receipts; plus
+  explicitly separate live-Clight/dynamic-list/reachability obligations;
+- `proofs/EntryMemory.v`: generated layout certificates and the conditional
+  `Mem.load` postcondition-to-projection theorem; entry execution is pending;
 - `proofs/PyramidTopSurface.v`: generated matrix/surface bodies and checked
   concrete Clight/retail-fragment cast values, parsed-to-manual zero-yaw
   face link, hand-mirrored cell/transform/edge arithmetic, and guarded

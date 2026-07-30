@@ -456,9 +456,10 @@ can become pending.  If the retry is also `NULL`,
 `update_mario_geometry_inputs` requests `WARP_OP_DEATH` first.
 At zero lives the stored operation becomes game-over.  An uncleared fatal
 request prevents the later upper-object-warp request from replacing it.
-Generated US/JP recognizers check the exact guarded call, guarded-write latch
-shape, and lexical source order; the closed delayed-warp model proves the
-abstract transition.  The linked proof must show that the latch starts empty
+Generated US/JP recognizers check the guarded call, guarded-write latch shape,
+and lexical source order; the closed handwritten delayed-warp model proves the
+abstract transition under its premises.  The linked proof must show that the
+latch starts empty
 and then either remains occupied until `act_disappeared` makes its later
 request or is cleared only by reset/initialization scheduling that destroys
 the continuation before another Mario update.  Under those premises the
@@ -599,13 +600,18 @@ wooden-signpost meshes used by the Area-1 owner envelopes.  It does not yet
 parse the general arrays into a proved surface graph or show that a proposed
 `CollisionSupportCut` matches every triangle.
 
-The generated boundary now contains 31 translation units per version, 62
+The generated boundary now contains 37 translation units per version, 74
 Clight modules total.  The newly imported `mario_actions_submerged.c` units
 have admission-free AST receipts for the water full-step helper calls, all
 three direct whirlpool position slots, and the common water-level clamp.  This
 repairs a source-coverage omission; it does not prove submerged actions
 reachable or unreachable in SSL, nor does it establish whole-program
 position-writer callgraph completeness.
+The same boundary now also contains `behavior_script.c`, `level_script.c`,
+`graph_node.c`, `debug.c`, `memory.c`, and `mario_misc.c`.  These close
+previously absent source bodies for entry and writer auditing; exact linking,
+indirect callback execution, and live-memory effects remain separate
+obligations.
 
 ## What remains
 

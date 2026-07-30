@@ -60,9 +60,10 @@ The five requested Ink obligations no longer all have the same status:
    four-byte cells; the repaired obligation is open.
 5. `InkFallbackPostCopyLifecycleRefinementObligation` is **not a sound proof
    target as currently stated**.  It can be unsafe with an arbitrary
-   `project_state` or hostile extra linked definitions, while the exact
-   current translation can make its interior Mario-copy cut vacuous because
-   `behavior_script.c` is not imported and `cur_obj_update` remains external.
+   `project_state` or hostile extra linked definitions.  The generator now
+   imports `behavior_script.c`, but the current link record still does not
+   construct the exact link or prove that the indirect `cur_obj_update`
+   callback reaches the one intended Mario update.
    It also lacks pointer-to-pool-slot/epoch linkage, writer and external-call
    frame conditions, and finite-float premises.  The checked theorem
    `equal_binary32_samples_do_not_imply_platform_tolerance` supplies a quiet
@@ -73,6 +74,18 @@ These are formal-specification counterexamples, not retail gameplay
 counterexamples.  No clean US/JP trace reaching either target star was found.
 
 ## OOB death check and delayed-warp priority
+
+Thadortin's three-way summary is substantially correct after tightening two
+phrases.  The first branch is not a “failsafe to Mario's position”; it is the
+ordinary successful query at the post-wall MarioState position.  Also,
+touching the warp does not immediately change areas.  It first selects
+`ACT_DISAPPEARED` with two ticks remaining.
+
+| First State floor query | Graphics retry | Exact consequence |
+| --- | --- | --- |
+| non-`NULL` | not performed | retain State; no death request; cached warp may select disappeared |
+| `NULL` | non-`NULL` | copy Graphics to State; no death request; cached warp may select disappeared |
+| `NULL` | `NULL` | request death/game-over before interactions; cached warp may still select disappeared, but floor-null skips action dispatch |
 
 The second floor lookup matters for more than platform capture.  In both
 generated versions, if the retry also leaves `m->floor == NULL`,
@@ -100,6 +113,14 @@ closed latch transition using `InkFatalWarp`, which abstracts death and
 game-over.  The current generated recognizers do not themselves check the
 zero-lives rewrite or exact two-count action argument; those are
 pinned-source audit facts pending linked execution.
+
+`thadortin_floor_case_split_checked` proves the three abstract outcomes above.
+`ink_successful_retry_is_only_first_disappeared_tick` proves that the
+non-null-retry frame changes the count from two to one but does not request the
+object warp.  `ink_second_supported_tick_can_request_upper_warp` proves the
+second supported tick can issue it, while
+`ink_second_null_frame_latches_fatal_before_upper_warp` proves the second-null
+alternative cannot.
 
 This is strong source/transition evidence, but not yet a linked Clight
 exclusion.  The remaining refinement must prove that the delayed-warp cell is
@@ -132,9 +153,9 @@ The full source timing audit gives a sharper reason:
   interval.
 
 This source audit found no retail scheduling counterexample.  The remaining
-formal gap is precise: `behavior_script.c` is not imported, so `cur_obj_update`
-is external and the current generated link does not prove one
-`bhv_mario_update` per well-formed Mario-object visit.  A full theorem also
+formal gap is precise: `behavior_script.c` is now imported, but the current
+generated link interface does not construct the exact link or prove one
+indirect `bhv_mario_update` per well-formed Mario-object visit.  A full theorem also
 needs shared-global linking, external frame conditions, clean normal-play
 scheduler invariants, valid pointers/no undefined behavior, and the compiled
 float-to-s16/`find_floor` refinement that establishes the two null results.
@@ -260,9 +281,28 @@ Under the existing fifteen-owner stock Area-1 abstraction,
 dynamic owner at `q`: the top is too high for the 78-unit query allowance and
 every non-top owner is horizontally disjoint.
 
-This still does **not** prove that a live retail query returns `NULL`.
-Completeness and order of the real static and dynamic partition lists remain a
-Clight refinement obligation.
+The newer Rocq initializer parser reads the actual generated US/JP words,
+obtains all 574 vertices and 962 triangle records, mirrors the source-shaped
+partition insertion order, and computes exactly 17 wall and 26 floor
+candidates in cell `(5,7)`.  Its pure source-shaped evaluator computes all
+four static-wall and both static-floor decision lists as all-rejection, then
+packages zero-push and `Area1FloorNull`/`-11000.0f` records.  The record is not
+an independently executed collision traversal.  Counting its rejection trace derives
+`12 + 8 + 5 + 1 = 26`, with the only X/Z-accepted face rejected by the height
+buffer.  It also kernel-checks signed-32 intermediate bounds and exact
+CompCert-binary32 planes, offsets, roof height, and `-434` buffer result for
+the decisive axis-aligned faces.  At `x=-2199`, offset `-50` is accepted and
+pushes to `-2099`; at `x=-2200`, offset `-51` is rejected.
+The theorem `area1_q_static_all_rejection_checks_computed` exposes the six
+decisive computations directly: both wall passes for both versions and the
+complete static-floor list for both versions evaluate to all-rejection.
+
+This still does **not** prove a live retail query theorem.  The exact-list
+construction/evaluator is not yet refined to Clight-memory execution,
+dynamic-list completeness and irrelevance are separate, cast/pointer effects
+remain open, and no clean trajectory has been proved to reach `q`.  The point
+also lies below the Y=1280 roof, so ordinary falling from above lands on the
+roof instead of reaching it.
 
 ## Conditional local and PU coordinate witnesses
 
@@ -458,6 +498,32 @@ The follow-on Graphics-only writers relevant to the Ink gap are:
 | Chuckya/King Bob-omb anchor | Full Graphics XYZ | no fixed bound from Mario's prior position | Writer exists, but neither actor is stock SSL Area 1 |
 | Stale platform displacement | State XYZ only | Graphics change `0` in that phase | Cannot itself manufacture the Object/Graphics split |
 
+### Can a wall increase the shell's positive Graphics Y?
+
+Not as an additional Graphics-only term in the pinned source.  A wall can
+change X/Z, alter the floor subsequently selected, and therefore change the
+**absolute** State and Graphics height reached by a shell step.  That is
+different from enlarging the Graphics-minus-raw-Object gap needed by Ink's
+next-frame fallback:
+
+| Scheduling point | Wall-related effect | Relevant Y-gap consequence |
+| --- | --- | --- |
+| `update_mario_geometry_inputs` before interactions | Wall resolution changes the State sample's X/Z and can make the first floor query miss | It does not write Graphics Y; under the State-only refinement its direct Graphics-Y delta is zero |
+| `perform_air_step` inside `act_riding_shell_air` | Wall resolution changes local `nextPos` X/Z and can indirectly change floor selection; `AIR_STEP_HIT_WALL` clears forward speed and the lava case changes action/velocity | The step copies final State to Graphics and the action executes one `+42`; there is no wall-dependent second Graphics add |
+| `perform_ground_step` inside `act_riding_shell_ground` | The same X/Z/floor-selection distinction applies; `GROUND_STEP_HIT_WALL` stops shell riding and selects knockback | Control still reaches `tilt_body_ground_shell`, so this source path executes one `+45`, not `45 + wall bonus` |
+| End of Mario's behavior | `copy_mario_state_to_object` copies final State XYZ to raw Object XYZ | Any absolute wall/floor lift is copied to Object too; only the shell visual offset remains as a gap |
+| A frame with successful cached upper-warp contact | Warp interaction runs before action dispatch and selects `ACT_DISAPPEARED` in the inspected source schedule | The shell action is not dispatched, so a wall inside that shell action cannot create a new same-frame `+42`/`+45`; only a gap retained from the preceding frame could be consumed |
+| Generic behavior tail | If Mario's live `oFlags` unexpectedly contains bit 0, `obj_update_gfx_pos_and_angle` can overwrite Graphics Y with `oPosY + oGraphYOffset` | This is a distinct potential Graphics-only writer, not a wall effect.  Stock initialization/slot-reuse/flag-mutation closure is still open |
+
+The Rocq theorems
+`abstract_state_only_writer_has_zero_graphics_y_delta` and
+`abstract_wall_or_floor_selected_height_cannot_enlarge_shell_gap` prove the
+first and fourth distinctions in the handwritten three-view model, for an
+arbitrary wall/floor-selected State height.  The latter still ends with a gap
+at most `45`.  `riding_shell_offsets_do_not_accumulate_across_normal_frames`
+threads two such abstract frames and reanchors the second one.  None of these
+theorems is yet the missing live Clight pointer/dataflow refinement.
+
 The Rocq theorem `shell_graphics_y_offsets_fit_dry_audit_bound` checks
 `42 <= 45` and `45 <= 45`; the US/JP source kernel pins the two binary32
 literals in `act_riding_shell_air` and `tilt_body_ground_shell`.  Those
@@ -465,6 +531,72 @@ occurrence checks do not prove the destination field, exact binary32 delta for
 arbitrary inputs, shell reachability, or a complete interaction/action census
 for every clean retail frame; the field/formula interpretation comes from the
 separate pinned-source audit.
+
+In fact, “the endpoint moved by at most the source operand” is false for
+unrestricted binary32 inputs.  A binade crossing gives checked deltas of
+`42.00006103515625f` and `45.00006103515625f` for concrete inputs near Y=979.
+`shell_binary32_endpoint_delta_can_exceed_source_operand` proves the exact
+CompCert bit patterns.  Those two witnesses themselves are small; they do
+**not** prove a general upper bound on arbitrary binary32 endpoint
+differences.  The route-specific proof is intentionally split:
+`ShellUpperWarpFloat32DeltaArithmeticObligation` asks for exact `42`/`45`
+endpoint differences when Y is in `608..818`, while
+`ShellUpperWarpFloat32LiveRangeRefinementObligation` is a
+predicate-parameterized schema.  It becomes a live US/JP obligation only when
+instantiated with a concrete linked shell-frame predicate that must derive
+that range.
+
+The handwritten integer normal-frame model expresses an intended
+non-accumulation property under its explicit reanchor transition.  Its
+two-step theorem threads the first frame through an arbitrary State-only
+interframe write; the second abstract shell step then replaces the prior
+Object/Graphics views from current State and installs one 42/45 gap.  This is
+a property of that handwritten transition, not a proof that Clight takes it.
+Separate generated-AST receipts put each shell step before its fixed source
+literal.  The moving dispatcher
+calls `mario_update_quicksand` before its ground-shell case, and the callee's
+riding-shell branch assigns binary32 zero to `quicksandDepth`.  The airborne
+dispatcher similarly runs `check_common_airborne_cancels`, whose continuing
+path assigns binary32 zero before selecting the shell-air body.  These source
+paths are the expected reason negative depth cannot amplify the normal `+45`
+and `+42` writers.  Generated-AST receipts check the assignments and call
+order, but linked branch/dataflow execution remains open.  In the wall loop, accepted walls
+mutate only the collision record's X/Z.  The `f32_find_wall_collision` wrapper
+copies X/Y/Z back through its caller pointers, but its Y value is the unchanged
+input record field.  The audited shell step calls use a local `nextPos`, and
+the interaction push uses State Y plus local X/Z; neither directly passes
+Graphics.  A wall can still be a **schedule enabler** by changing X/Z or making
+a later floor query miss.  It is not, in the audited source, a positive
+Graphics-Y writer.  Generated receipts do not yet prove all call arguments,
+pointer disjointness, or every caller.  The
+abstract State-only relation can preserve an existing gap but cannot enlarge
+it.  Pointer aliasing, the exact call arguments, every caller, and binary32
+small-step execution remain open.  Direct source inspection says that if
+cached warp contact succeeds, interaction processing selects
+`ACT_DISAPPEARED` before action dispatch.  The small abstract selector records
+that expected control result, but the generated receipts do not yet prove the
+indirect dispatch and break/dataflow path.
+The interaction table orders `INTERACT_WARP` before `INTERACT_KOOPA_SHELL`,
+and direct source inspection finds that the loop stops after a successful
+handler.  On that source-level path, simultaneous raw warp and shell collision
+processes the nonfading warp first and never reaches the shell handler.
+Generated initializer receipts check the table subsequence and named bodies;
+indirect-call and break/dataflow execution remain open.
+Inside `act_riding_shell_ground` itself, `GROUND_STEP_HIT_WALL` changes the
+next action but control still reaches `tilt_body_ground_shell`.  Direct source
+inspection therefore gives that frame one `+45`, not an extra wall-dependent
+addition, and shows the next non-shell action re-synchronizing through its own
+step/action path.  The occurrence/order receipts do not yet prove that path as
+a linked Clight execution.
+
+One compiled-semantics caveat precedes the ground `+45`: the tilt helper makes
+float-to-integer casts used for body angles, and the source flags a possible
+speed crash when their intermediates reach signed-32 limits.  Positive shell
+speed is capped, but backward “shell hyperspeed” is not.  A total theorem must
+derive a reachable speed/yaw bound or model the retail compiled behavior
+directly.  This cannot enlarge the Graphics-Y add; it can instead make an ISO
+C/Clight execution fail to represent the retail path before that add.  The
+air-shell body has no analogous cast before `+42`.
 
 ## Writer census and its formal boundary
 
@@ -477,15 +609,33 @@ moves Mario Graphics by the required amount:
 - shell rendering contributes `+42` in air or `+45` on the ground;
 - the large full-XYZ anchor writer is used by Chuckya/King Bob-omb anchoring,
   neither of which belongs to stock SSL Area 1;
-- `bhvMario` does not set `OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE`;
+- the `bhvMario` script ORs bit 8 and does not itself introduce
+  `OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE` bit 0;
 - allocation initialization and SpawnInfo setup occur before `init_mario`,
   which synchronizes State, Object, and Graphics; and
 - a stale `gMarioPlatform` pointer writes State, not Graphics.
 
+The retail debug callback contains a controller/page/config-guarded relative
+spawn path.  Its generated body is now visible, but clean live execution has
+not yet proved the guard false.  It is therefore an explicit spawn-closure
+obligation rather than silently omitted behavior.
+
+The generic behavior-interpreter tail is another important model boundary.
+If the Mario object had bit 0 set, `obj_update_gfx_pos_and_angle` would replace
+Graphics with raw Object position plus `oGraphYOffset`.  Retail allocation
+clears the raw-data words, `bhvMario` only ORs bit 8, and the source census
+found no Mario callback that sets bit 0 or a nonzero graph Y offset.  The
+project does not yet link those facts through allocation, slot reuse, and all
+live mutations.  Therefore an over-permissive formal state with bit 0 and an
+arbitrary positive `oGraphYOffset` is a model counterexample to writer closure,
+not evidence of a retail route.
+
 `mario_entry_coordinate_sync_source_shape_{us,jp}` checks ordered initializer
 and raw-slot syntax anchors.  It is deliberately not advertised as a memory
 equality theorem.  The behavior-script interpreter and graph-node spawn
-writer are outside the current generated translation-unit set.
+writer are now generated, and the project checks their relevant flag/write
+shapes.  Exact entry call execution, allocation/non-aliasing, and live memory
+equality remain open.
 
 The remaining source-to-semantics work is to replace
 `Area1InkWriterCoverageObligation` with a concrete linked-run relation under
@@ -494,6 +644,37 @@ audited State-only, synchronization, or bounded-Graphics writer relation.  The
 related entry-memory equality and action/spawn closure must also be proved.
 `area1_ink_writer_coverage_schema_is_predicate_sensitive` exhibits both
 accepting and rejecting instantiations of the current schema.
+
+## Entry-memory boundary
+
+`EntryMemory.v` now computes and proves the relevant generated US/JP layouts:
+`MarioState` is 200 bytes, `Object` is 608, and `Controller` is 28.  It checks
+State position at offsets `60/64/68`, raw Object position at `160/164/168`,
+Graphics position at `32/36/40`, throw matrix at `80`, action fields at
+`12/24/26/28`, quicksand depth at `192`, and controller down/pressed at
+`16/18`.
+
+Its concrete CompCert-memory postcondition implies:
+
+- State, raw Object, and Graphics carry the same three `float32` values;
+- action is `6450` and action state/timer/argument are zero;
+- XYZ velocity, forward velocity, and quicksand depth are positive zero;
+- `framesSinceA` and `framesSinceB` are 255; and
+- the throw-matrix pointer is null.
+
+This closes layout and projection, not execution.  The named US/JP obligations
+still have to execute `init_mario_after_warp` from a valid retail predecessor
+and derive those loads.  That bridge includes level-script/segmented-address
+semantics, object allocation and non-aliasing, the nonzero incoming-action
+guard, destination warp identity, floor initialization, and external frame
+conditions.
+
+The controller model was repaired at this boundary.  `read_controller_inputs`
+runs before the area warp, so the same residual frame already has a live
+`buttonPressed`.  Clean entry now carries the current down word, the actual
+previous-down word, and the pressed word related by the source edge formula.
+It does not equate current and previous merely to force no edge; the no-A
+hypothesis must test the live pressed bit.
 
 ## Remaining obligations
 
@@ -510,8 +691,8 @@ The decisive unfinished work is:
 5. prove the repaired first-return, modular-cell sink obligation, including
    the Graphics-position and conditional `throwMatrix` writes
    (`InkFallbackSinkMemoryRefinementObligation`);
-6. import `behavior_script.c`, construct an exact no-extra-definitions link,
-   anchor the run to a clean `update_objects` frame, certify the concrete
+6. construct an exact no-extra-definitions link over the now-imported
+   `behavior_script.c`, anchor the run to a clean `update_objects` frame, certify the concrete
    memory projection and pointer-to-slot/epoch map, and replace the invalid
    lifecycle statement with a sound exact-link interface;
 7. prove the copied raw Object survives later object lists and decide the

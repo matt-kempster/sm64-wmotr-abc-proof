@@ -14,11 +14,12 @@ still require a concrete C-memory projection.  The current endpoint-only
 certificate accepts arbitrary motion and synthetic immediate collection from
 clean abstract entries, so it cannot establish first-cut exhaustiveness.
 
-The current project now generates 31 translation units for each target
-version (62 Clight modules), including all seven Mario action units and
+The current project now generates 37 translation units for each target
+version (74 Clight modules), including all seven Mario action units and
 movement code,
 `mario_actions_cutscene`, `mario_step`, `obj_behaviors_2`, `math_util`,
-`surface_collision`, `surface_load`, and a wrapper importing route-relevant
+`surface_collision`, `surface_load`, `behavior_script`, `level_script`,
+`graph_node`, `debug`, `memory`, `mario_misc`, and a wrapper importing route-relevant
 SSL static and dynamic collision arrays.  It also proves
 `archived_proof_integration_kernel_holds`, a current-source-rechecked package
 of the useful boundaries identified by the six archived investigations.  The
@@ -26,6 +27,16 @@ package includes `gMarioPlatform` and object-lifecycle source-shape facts,
 narrow
 parallel-universe and normalized-pole subcases, held-A input semantics, Eyerok
 source-shape facts, and a generic CompCert memory-block lemma.
+
+The newest Ink tranche proves exact US/JP layouts and a conditional
+post-entry `Mem.load` projection, corrects the live controller-pressed and
+generic delayed-warp entry fields, computes the 17-wall/26-floor static
+inventory from the generated initializers, executes a pure static wall/floor
+evaluator for the first-`NULL` candidate, and proves abstract fatal-latch and
+shell normal-form results.  It does not yet derive the entry postcondition,
+refine the traversal to live Clight memory and dynamic lists, prove that a clean
+trajectory reaches the floorless sample, or close all reachable
+writer/action/spawn paths.
 
 `TranscriptRouteModel.v` encodes the transcript's two proposed gate nodes:
 upper entry must leave the elevator, while lower entry passes the second-pole
@@ -97,10 +108,11 @@ Graphics-minus-Object Y separation;
 either exact proposed prestate requires `973`.  The source audit uses `45` as
 the dry route-specific target; `208` is a conservative modeled writer relation
 pending reachable-writer coverage.  If the retry is also null, the checked
-fatal request occurs before cached object interactions and wins the abstract
-first-writer delayed-warp latch.  Zero lives rewrites death to game-over.  This
-rules out the both-queries-null case only at the checked source/transition
-boundary: a linked proof of an initially empty latch plus the scheduler-aware
+fatal request occurs before cached object interactions and, from an empty
+latch, wins the handwritten abstract first-writer model.  Zero lives rewrites
+death to game-over.  This rules out the both-queries-null case only under the
+source-audited order and empty/persistent-latch premises: a linked proof of an
+initially empty latch plus the scheduler-aware
 block-or-reset disjunction remains open.  It must show that the fatal value
 either persists through the delayed action request or is cleared only in an
 initialization interval that resets the continuation before another Mario
@@ -116,8 +128,9 @@ writer closure.  The original sink statement was false under a
 repeated-return execution and a concrete 32-bit modular alias.  Its repaired
 first-return, disjoint-cell `InkFallbackSinkMemoryRefinementObligation` remains
 open.  The current `InkFallbackPostCopyLifecycleRefinementObligation` is unsafe
-under hostile linking/projection or vacuous under the current import, which
-omits `behavior_script.c`.  Replace it with an exact link, anchored clean run,
+under hostile linking/projection.  `behavior_script.c` is imported, but the
+current interface does not link its indirect Mario callback to an anchored
+run.  Replace it with an exact link, anchored clean run,
 certified memory projection, constrained external effects, finite transformed
 surface samples, and pointer-to-slot/epoch linkage before trying to prove later
 writers, unload preservation, surface identity, or final owner state.  Proving

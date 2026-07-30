@@ -7,11 +7,12 @@ casing.  The reorganization keeps that path rather than creating a parallel
 `less-than-one-a-press/` is the current proof project.  It targets the US and
 Japanese versions of Super Mario 64 at decomp revision
 `9921382a68bb0c865e5e45eb594d9c64db59b1af` and uses CompCert Clight generated
-by `clightgen` 3.15.  It generates 31 translation units per version, for 62
+by `clightgen` 3.15.  It generates 37 translation units per version, for 74
 Clight modules total.  The coverage includes all seven Mario action units
 (including the newly imported submerged-action writers), movement,
 `mario_step`, `obj_behaviors_2`, `math_util`, `surface_collision`, and
-`surface_load` units, the cutscene action containing
+`surface_load` units, plus `behavior_script`, `level_script`, `graph_node`,
+`debug`, `memory`, and `mario_misc`, the cutscene action containing
 `ACT_SPAWN_NO_SPIN_AIRBORNE`, and a project wrapper that imports the
 route-relevant SSL static and dynamic collision arrays.  A separate wrapper
 imports the Area-1 macro stream used by the phase-split writer audit.  The
@@ -60,7 +61,10 @@ Layer A theorem derived from linked Clight semantics.
 The current clean-entry model also records the exact lower/upper airborne warp
 snapshot, coherent active/backup target bits, the exact static Act 3 object,
 the exact hidden-star controller, and five distinct designated Pyramid Puzzle
-trigger objects with explicit macro-respawn state.  The executable
+trigger objects with explicit macro-respawn state.  It now also distinguishes
+an empty generic delayed-warp latch from “no delayed star exit” and records
+the live controller pressed word together with the current/previous down
+samples that compute it.  The executable
 `SourceExhaustiveness` kernel proves that the ordinary non-target SSL star
 indices do not alias Act 3 or Act 6, that coherent save reload cannot newly set
 either target, and that an anomaly-free first target-bit transition is caused
@@ -123,6 +127,44 @@ The project does
 not prove the first query returns `NULL`, a loaded top is selected, or a clean
 retail prestate reaches the required split.  No stock-reachable US/JP retail
 trace with a newly set target bit was found.
+
+The latest tranche sharpens this audit.  `Area1FirstNull.v` now parses the
+actual generated US/JP Area-1 collision initializers and kernel-computes the
+17-wall/26-floor static inventories for cell `(5,7)`.  A pure evaluator over
+those generated-data lists computes all four wall decision lists and both
+floor decision lists as all-rejection.  It then packages zero-push and
+`Area1FloorNull`/`-11000.0f` records; this is not an independently executed
+collision traversal.  Its rejection trace derives the `12+8+5+1` tally.
+Exact binary32 receipts cover the decisive axis-aligned planes and roof
+buffer.  This still does not execute the live Clight
+allocator/list traversal, exclude extra dynamic surfaces, or prove clean
+reachability.  `EntryMemory.v` proves the US/JP composite layouts and
+proves a projection *from* an explicitly assumed CompCert-memory
+postcondition.  Executing `init_mario_after_warp` to establish those loads
+remains open.
+
+The fatal-latch model now checks all three State/retry outcomes and the
+two-tick disappeared-action continuation.  Only a non-null Graphics retry
+followed by another floor-supported update can request the upper object warp;
+a both-null retry requests death/game-over and wins the first-writer latch when
+that cell is empty.  A handwritten two-step transition explicitly reanchors
+the second modeled shell frame from current State; under that definition its
+`+42` air or `+45` ground gap does not accumulate.  Generated-AST receipts
+separately establish source ordering and literal occurrences, but no theorem
+yet refines a live shell frame to the handwritten transition.  Generated
+receipts also find quicksand-depth reset paths before both shell writers.
+Direct source inspection finds wall collision-record X/Z writes rather than
+direct Graphics writes and puts successful warp selection before action
+dispatch.  The generated warp facts do not prove indirect-call, success,
+break, or dispatch dataflow.  Pointer
+aliasing, all wall callers, live action paths, debug-spawn disablement, and
+complete writer/flag closure remain unproved.
+The project also records concrete binary32 binade-crossing witnesses where the
+endpoint delta exceeds the shell source operand by about `0.000061`; those
+witnesses provide no global bound.  The route-local Float32 work is split into
+an exact-arithmetic obligation for Y in `608..818` and a predicate-parameterized
+live-range schema.  The ground helper's pre-add cast behavior also remains
+open.
 
 `TranscriptRouteModel.v` now formalizes the two-gate contract suggested by the
 supplied source text: the contract requires a modeled upper route to leave the

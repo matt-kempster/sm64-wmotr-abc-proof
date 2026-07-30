@@ -37,9 +37,11 @@ Definition with_mario_kinematics
      state_pending_star_interaction :=
        state_pending_star_interaction state;
      state_delayed_star_exit := state_delayed_star_exit state;
+     state_delayed_warp_pending := state_delayed_warp_pending state;
      state_entry_button_down := state_entry_button_down state;
      state_first_frame_previous_down_seed :=
        state_first_frame_previous_down_seed state;
+     state_entry_button_pressed := state_entry_button_pressed state;
      state_mario_platform := state_mario_platform state;
      state_entry_snapshot := state_entry_snapshot state;
      state_mario_kinematics := kinematics |}.
@@ -66,9 +68,11 @@ Definition with_save_flags
      state_pending_star_interaction :=
        state_pending_star_interaction state;
      state_delayed_star_exit := state_delayed_star_exit state;
+     state_delayed_warp_pending := state_delayed_warp_pending state;
      state_entry_button_down := state_entry_button_down state;
      state_first_frame_previous_down_seed :=
        state_first_frame_previous_down_seed state;
+     state_entry_button_pressed := state_entry_button_pressed state;
      state_mario_platform := state_mario_platform state;
      state_entry_snapshot := state_entry_snapshot state;
      state_mario_kinematics := state_mario_kinematics state |}.
@@ -331,8 +335,10 @@ Definition audit_clean_entry
      state_lists_well_formed := true;
      state_pending_star_interaction := false;
      state_delayed_star_exit := false;
+     state_delayed_warp_pending := false;
      state_entry_button_down := Int.zero;
      state_first_frame_previous_down_seed := Int.zero;
+     state_entry_button_pressed := Int.zero;
      state_mario_platform := None;
      state_entry_snapshot := audit_entry_snapshot entrance;
      state_mario_kinematics := audit_entry_kinematics entrance |}.
@@ -442,6 +448,7 @@ Proof.
   - apply audit_all_hidden_triggers_present.
   - apply audit_trigger_refs_distinct.
   - intros trigger _. reflexivity.
+  - reflexivity.
   - reflexivity.
   - reflexivity.
   - reflexivity.
