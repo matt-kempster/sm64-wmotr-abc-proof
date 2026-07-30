@@ -12,9 +12,12 @@
 
     A reset barrier deliberately destroys the *old* continuation.  This is the
     essential retail restriction missing from the earlier over-permissive
-    model.  [ClightFacts] independently computes the complete direct-writer and
-    address-escape census for the generated US/JP [level_update.c] units,
-    checks the call-order anchors, and decodes SSL Area 1's fatal destination.
+    model.  [ClightFacts] independently computes the direct-writer and explicit
+    address-taking censuses for the generated US/JP [level_update.c] units,
+    checks call-presence/callee-order and separate clear-presence anchors, and
+    checks the packed SSL Area 1 fatal-destination record.  Those receipts do
+    not prove assignment/call order, destination selection, or whole-program
+    alias safety.
 
     This module does not claim an iterated, linked Clight small-step refinement
     of the event system.  In particular, arbitrary memory corruption is out of
@@ -320,8 +323,8 @@ Definition RetailFatalLatchSourceKernel : Prop :=
     ULU.global_definitions = [] /\
   internal_function_address_sites JLU._sDelayedWarpOp
     JLU.global_definitions = [] /\
-  delayed_warp_clear_barrier_source_shape_us_claim /\
-  delayed_warp_clear_barrier_source_shape_jp_claim /\
+  delayed_warp_clear_site_anchor_source_shape_us_claim /\
+  delayed_warp_clear_site_anchor_source_shape_jp_claim /\
   firstn 2 (skipn 92 (gvar_init USS.v_level_ssl_entry)) =
     ssl_area1_death_warp_record /\
   firstn 2 (skipn 92 (gvar_init JSS.v_level_ssl_entry)) =
@@ -335,10 +338,10 @@ Proof.
   split; [exact retail_fatal_latch_source_shape_jp |].
   split; [exact delayed_warp_assignment_census_exact_us |].
   split; [exact delayed_warp_assignment_census_exact_jp |].
-  split; [exact delayed_warp_address_does_not_escape_us |].
-  split; [exact delayed_warp_address_does_not_escape_jp |].
-  split; [exact delayed_warp_clear_barrier_source_shape_us |].
-  split; [exact delayed_warp_clear_barrier_source_shape_jp |].
+  split; [exact delayed_warp_explicit_address_sites_empty_us |].
+  split; [exact delayed_warp_explicit_address_sites_empty_jp |].
+  split; [exact delayed_warp_clear_site_anchor_source_shape_us |].
+  split; [exact delayed_warp_clear_site_anchor_source_shape_jp |].
   split; [exact ssl_area1_death_warp_record_exact_us |].
   exact ssl_area1_death_warp_record_exact_jp.
 Qed.

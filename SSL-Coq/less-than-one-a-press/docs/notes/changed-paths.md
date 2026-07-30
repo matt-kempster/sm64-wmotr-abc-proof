@@ -595,3 +595,30 @@ retry-null fatal-warp boundary, and documentation status corrections changed:
 - `SSL-Coq/less-than-one-a-press/proofs/ASTFacts.v`
 - `SSL-Coq/less-than-one-a-press/proofs/ClightFacts.v`
 - `SSL-Coq/less-than-one-a-press/proofs/InkFallback.v`
+
+## Retail fatal-latch and Goomba-raising tranche
+
+The finite fatal-latch event invariant, generated delayed-warp writer census,
+corrected action-2 Goomba H/F/R model, Goomba/Spindel source receipts, and
+public status corrections changed:
+
+- `SSL-Coq/README.md`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/claim.md`
+- `SSL-Coq/less-than-one-a-press/docs/goal.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/goomba-raising.md` (new)
+- `SSL-Coq/less-than-one-a-press/docs/notes/ink-fallback.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/ordinary-motion.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/pyramid-top-pu.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/route-exhaustiveness.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+- `SSL-Coq/less-than-one-a-press/proofs/ASTFacts.v`
+- `SSL-Coq/less-than-one-a-press/proofs/ClightFacts.v`
+- `SSL-Coq/less-than-one-a-press/proofs/GoombaRaising.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`
+- `SSL-Coq/less-than-one-a-press/proofs/RetailFatalLatch.v` (new)

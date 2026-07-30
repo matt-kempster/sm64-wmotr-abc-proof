@@ -61,17 +61,16 @@ engineering but does not know *Super Mario 64*.
 > required gap, but neither covers retail until reachable writer/action state
 > closure is proved.
 >
-> The retry has a decisive branch.  If the second floor query is also `NULL`,
-> `update_mario_geometry_inputs` requests the death warp before cached object
-> interactions are processed.  The interaction selects `ACT_DISAPPEARED`; it
-> requests the object warp later.  The delayed-warp state is a first-writer
-> latch: the fatal request is stored only if that latch is empty, and an
-> uncleared stored fatal request blocks the later request.  At zero lives,
-> death is rewritten to game-over, which is still fatal and nonzero.  Generated
-> US/JP AST checks establish the guarded call shape, guarded-write latch shape,
-> and lexical call order.  The exact disappeared count and zero-lives rewrite
-> are still source-audit facts rather than AST-recognizer results.  A closed
-> handwritten transition model evaluates the three abstract cases:
+> **Checked fatal-latch result.** `RetailFatalLatch.v` now proves that, for
+> every trace admitted by the source-audited latch event system, once the
+> both-`NULL` frame has accepted death or game-over, the fatal operation either
+> remains pending or a terminal/reset barrier destroys the old
+> `ACT_DISAPPEARED` continuation.  No such abstract trace accepts the upper
+> object-warp request.  The initial modeled state records the exact audited
+> chronology: fatal timer `48` is installed, cached warp contact selects
+> `ACT_DISAPPEARED` with low count `2`, action dispatch is skipped because the
+> floor remains `NULL`, and the normal-play tail reduces the fatal timer to
+> `47`.  The three abstract floor outcomes are:
 >
 > | State query | Graphics retry | Source-ordered consequence |
 > | --- | --- | --- |
@@ -84,21 +83,102 @@ engineering but does not know *Super Mario 64*.
 > the warp” initially means selecting `ACT_DISAPPEARED` with a two-tick
 > argument, not changing areas immediately.  The successful Graphics retry
 > performs only the first tick.  A second floor-supported Mario update is
-> required to request node `0x1E`; on a second both-queries-null frame, an
-> initially empty latch stores the fatal operation before the skipped action
-> could issue that request.  The clean-entry model now separately records that
+> required to request node `0x1E`.  If the following update instead has both
+> floor queries return `NULL`, an initially empty latch stores the fatal
+> operation before the skipped action could issue that request.  The
+> clean-entry model now separately records that
 > the generic delayed-warp cell is empty, instead of conflating that condition
 > with “no delayed star exit.”  Deriving an empty latch at this exact live
 > Area-1 call boundary remains part of the Clight scheduler refinement.
 >
-> Thadortin is right about the three control-flow cases, but “failsafe” is
-> wrong for the first case, and “trigger the warp” initially means action
-> selection.  Only the non-`NULL` Graphics-retry branch remains usable.  The
-> handwritten latch/countdown model excludes the both-queries-null schedule
-> under the source-audited order plus empty-and-persistent-latch premises;
-> linked retail Clight refinement is not yet proved.  The surviving Ink case
-> specifically requires a non-null retry floor and a second supported action
-> tick.  Selection of a live top-owned floor remains unproved.
+> `retail_fatal_latch_source_kernel_checked` separately packages generated
+> US/JP checks for the guarded first writer, the exact five-function
+> direct-writer census for `sDelayedWarpOp` inside the generated
+> `level_update.c` translation unit, absence of an explicit address-taking use
+> in that unit, clear-site call-presence/callee-order plus separate
+> clear-presence anchors, normal-play call order, and the packed SSL Area-1
+> death-warp record.  The clear-site receipts do not relate assignment position
+> to those calls, and the packed record receipt does not prove command
+> decoding, destination selection, or transition execution.
+> `over_permissive_clear_accepts_upper_counterexample` demonstrates why
+> allowing a clear while retaining `ACT_DISAPPEARED(1)` would be unsound; it is
+> a counterexample to the old abstraction, not a retail-game witness.
+>
+> This closes the finite scheduler invariant, not its linked-program
+> refinement.  The project has not yet proved that a concrete linked US or JP
+> Clight run reaches the both-`NULL` boundary with an empty latch, that every
+> concrete scheduler step projects to the event system, that each concrete
+> clear is followed by reset or object destruction before another Mario
+> behavior update, or that linked memory cannot alter the latch outside the
+> checked direct assignments.  Neither `find_floor` result nor reachability of
+> the required prestate is proved.  The result therefore eliminates the
+> both-`NULL` shape only at the checked source/event boundary; the surviving
+> Ink shape still requires a non-`NULL` retry floor.
+>
+> **Newest Goomba-raising result.** A Goomba is a small enemy whose update can
+> be partially disabled when Mario is far away.  Think of this as an entity
+> whose state-machine callback still runs while its physics component is
+> paused.  The attached proposal tries to alternate one active upward physics
+> tick with paused reset/rearm ticks.
+>
+> Source inspection found a real conditional cycle, but also corrected both
+> chatbot descriptions.  In the selected branch with no preceding
+> notice/random walk jump, the first grounded collision only primes the
+> mechanism.  Because walk action runs before attack handling, another branch
+> may already have velocity `25` and make that collision productive.  After
+> the first productive rise, the repeating ready state is airborne jump action
+> `2`, not walk action `0`:
+>
+> | Phase | State-machine effect | Physics effect |
+> | --- | --- | --- |
+> | H: hit/depart | cached damage selects attacked action `1` | active gravity changes velocity `25` to `21`, then binary32 updates Y by `Y + 21`; FAR becomes set |
+> | F: far reset | action `1` calls the jump initializer, producing action `2` and velocity `25` | old FAR suppresses movement |
+> | R: near rearm | airborne action `2` remains action `2`; FAR clears at the end | old FAR still suppresses movement; the endpoint is positioned for the next frame's collision |
+>
+> Rocq proves the exact CompCert-binary32 velocity result
+> `25 + (-4) = 21` and an idealized integer-position `y + 21*n` formula.
+> Position growth is not exactly 21 for every binary32 Y, so the selected Y
+> `51` runs for 31 and 83 rises are computed separately.  Rocq also supplies a
+> checked binary32 fixed point: at Y `2^29`, adding `21.0f` leaves the stored
+> value unchanged.  This does not prove that the selected Y `51` orbit reaches
+> that fixed point.  For the
+> proposed Area-2 Spindel station, the integer hitbox abstraction maps the
+> audited Mario-height interval `[2036,2336]` to a Goomba collision band
+> `[1961,2496]`, with an idealized final hit to `2517`; the integer-Y `778`
+> singleton cannot use it directly.  Linked binary32 collision/addition bounds
+> remain open.  For Area 1, the
+> post-collision-return H/F/R schedule permits at most 31 productive hits in
+> the 91-frame pyramid-top window, while 83 are needed arithmetically.  A
+> distinct pre-collision raw-Object writer schedule is not excluded.
+>
+> The remaining Rocq schemas are deliberately hard to satisfy accidentally.
+> They require a functional projection from each concrete Clight state, a
+> certificate that the listed trace contains every modeled frame, and no A
+> edge at every projected state.  The pre-collision alternative explicitly
+> separates the raw-Object writer, collision-cache, Goomba-update, and
+> no-collision departure phases; each classified writer is tied to its
+> corresponding trace.  At the named phase boundaries, overlap changes only
+> across those writer phases and the Goomba position remains fixed until the
+> upward update.  Constraining every internal Clight small-step remains part of
+> the missing linked instantiation.  Its cached-hit field means that both retail
+> `INTERACTED` and `ATTACKED_MARIO` are set; geometric overlap is a separate
+> fact.  Every Goomba-carrying raising, transport, and handoff trace preserves
+> the same live singleton slot/epoch throughout.  The Spindel-capture schema
+> starts only after its moving collision is already loaded, so loading that
+> collision is still part of the missing route construction.
+>
+> The source also confirms the crucial limitation.  Goomba interaction and
+> moving-collision loading use full-float object distance; terrain aliasing
+> does not teleport a local Goomba into a PU or keep a PU-distant Spindel
+> loaded.  Transformed dynamic vertices are narrowed back to signed-16 terrain
+> data.  The project has no trace-wide no-A linked witness for the
+> one-segment local-load/PU platform capture, either full-float near/far
+> scheduling shape, physical singleton transport, or the horizontal height
+> handoffs.  Therefore Goomba
+> raising is evidence for a conditional engine primitive, not a counterexample
+> to the no-A claim and not proof that the second pole can be bypassed.  The
+> detailed audit is
+> [`docs/notes/goomba-raising.md`](docs/notes/goomba-raising.md).
 >
 > **Newest wall/floor diagnostic:** Rocq now parses the actual generated US/JP
 > Area-1 initializers, obtains all 574 vertices and 962 triangle records, and
@@ -772,25 +852,32 @@ with a two-count argument and requests the object warp later.
 `level_trigger_warp` only writes an empty delayed-warp slot; at zero lives it
 rewrites death to the still-nonzero game-over operation.  In the small model,
 an uncleared fatal request prevents the later node-`0x1E` request from becoming
-pending.  A retail proof must also cover the other timing branch: if a clear
-happens first, it must occur in reset/initialization scheduling that destroys
-the `ACT_DISAPPEARED` continuation before another Mario update can issue a
-useful request.  Thus a surviving schedule must obtain a non-null retry floor
-once that linked scheduler refinement is proved.
+pending.  `retail_fatal_persists_or_reset_destroys_disappeared` now proves the
+block-or-reset invariant for the explicit event system, and
+`two_supported_disappeared_ticks_cannot_replace_fatal` computes the direct
+two-tick race.  Thus a surviving schedule must obtain a non-null retry floor,
+subject to the still-open linked refinement described below.
 
-The detailed source audit found no retail timing escape from that latch.  The
+No pinned-source scheduling shape outside the checked event alphabet was
+identified.  The
 retry-null frame still processes the cached interaction and sets
 `ACT_DISAPPEARED`, but `execute_mario_action` returns on the null floor before
 dispatching it.  Later usable-floor frames can decrement its two-count
 argument and eventually request the object warp; meanwhile the normal
-delayed-warp countdown does not directly clear the fatal operation.  Relevant
-clear sites have two orderings: warp-arrival/credits paths reset before clear,
-whereas `init_level` and `lvl_init_from_save_file` clear before reset but admit
-no useful Mario update in between under the intended scheduler.  What prevents
-this source argument from already being a linked theorem is concrete:
-`behavior_script.c` is now generated, but the project does not yet construct
-the exact link or prove the indirect `cur_obj_update` callback.  The proof still needs that scheduler fact,
-shared-global/frame-condition, and compiled-`find_floor` refinements.
+delayed-warp countdown does not directly clear the fatal operation.  Pinned
+source inspection sees warp-arrival/credits paths call Mario initialization or
+action replacement before the clear, while `init_level` and
+`lvl_init_from_save_file` are intended initialization barriers.  The generated
+receipts only establish call presence/callee order and separate clear
+presence; they do not prove assignment/call order or that no Mario callback
+can intervene.
+
+The remaining issue is no longer the finite invariant itself.  It is the
+linked refinement showing that the actual US/JP call and memory trace belongs
+to this event system.  That proof must construct the exact link, prove the
+indirect `cur_obj_update` callback and concrete clear-to-reset barriers, provide
+a latch-memory frame condition, and refine compiled `find_floor` to the two
+queried results.
 
 Remaining object lists and the deactivated unload pass run before the final
 platform query.  The checked syntax therefore admits an explosion-frame
@@ -1264,14 +1351,21 @@ in total.  Direct inspection of that pinned C source shows:
   creates the three-view scheduling shape used by `InkFallback.v`;
 - if that retry is also null, the geometry refresh calls
   `level_trigger_warp(m, WARP_OP_DEATH)` before interaction processing.  The
-  generated US/JP recognizers check this guarded call, the
-  `sDelayedWarpOp == WARP_OP_NONE` first-writer latch, and the call order.
-  `ink_retry_null_fatal_latch_blocks_later_upper_request` proves the corresponding
-  finite handwritten fatal-latch transition.  Under the source-audited order
-  and empty/persistent-latch premises, that model excludes the
-  both-queries-null upper-warp schedule.  Source-to-model refinement, the
-  initial-empty fact, and the scheduler-aware block-or-reset disjunction in a
-  linked retail run remain open;
+  generated US/JP recognizers check this guarded call, the direct-assignment
+  first-writer shape, and the call order.
+  `retail_fatal_latch_source_kernel_checked` packages those facts with the
+  five-function direct-writer census, explicit address-taking census,
+  clear-site call-presence/callee-order plus separate clear-presence anchors,
+  and Area-1 death-destination record.  The receipts do not prove
+  assignment/call order or destination selection.
+  `retail_fatal_persists_or_reset_destroys_disappeared` proves the finite
+  event-system invariant; `retail_fatal_latch_checked_boundary` conjoins that
+  theorem with the generated receipts, and
+  `over_permissive_clear_accepts_upper_counterexample` refutes the old
+  clear-with-live-continuation abstraction.  That conjunction is not a
+  source-to-event semantic refinement.  Concrete accepted-fatal
+  initialization, event coverage, clear/reset barriers, linked latch-memory
+  preservation, and both `find_floor` outcomes remain open;
 - arbitrary ordinary, platform, or PU-sized **State-only** writes preserve the
   collision Object and fallback Graphics samples.  The source audit identifies
   `45` as the dry route-specific visual-offset target, while the deliberately

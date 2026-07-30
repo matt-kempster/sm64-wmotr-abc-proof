@@ -27,26 +27,26 @@ base-insensitive and direct-callee/literal checks are path-insensitive.
 | `src/game/mario_step.c` | `*_mario_step.v` | ground and air quarter-step loops, `find_floor` calls, gravity source shape, `stop_and_set_height_to_floor` State-Y assignment from cached `floorHeight`, and the riding-shell quicksand-depth zero assignment receipt |
 | `src/game/interaction.c` | `*_interaction.v` | `interact_star_or_key` field/constant occurrences and direct save call; `interact_coin` spawn call/index constant; `interact_warp` action constant in the PU phase pipeline; `push_mario_out_of_object` wall-call/State-position/no-Graphics receipts; extraction dataflow and exact wall-call arguments are pending |
 | `src/game/save_file.c` | `*_save_file.v` | direct call from `save_file_collect_star_or_key` to `save_file_set_star_flags`; `save_file_reload` backup-copy/file source shape; the bit-update and copy memory effects are not yet proved |
-| `src/game/object_collision.c` | `*_object_collision.v` | `detect_object_hitbox_overlap` collision-list field occurrence/assignment and full object-position slot reads; execution and the handwritten collision projection are pending |
+| `src/game/object_collision.c` | `*_object_collision.v` | `detect_object_hitbox_overlap` collision-list field occurrence/assignment and full object-position slot reads; Goomba receipts reach the generic list/hitbox bodies, find literal 5 in the caller, and find no direct FAR guard in those bodies.  Coupling 5 to the pushable-list call remains a pinned-source audit fact; tangibility, capacity, list membership, execution, and the handwritten collision projection are pending |
 | `src/game/object_list_processor.c` | `*_object_list_processor.v` | full direct-callee order from dynamic-surface rebuild through final platform query, State-to-object copy slots, platform-clear call split, and unload-body identifier/call occurrences; loop/state effects are pending |
-| `src/engine/behavior_script.c` | `*_behavior_script.v` | `cur_obj_update`, behavior-command dispatch, and a generated receipt for the bit-0-guarded call to `obj_update_gfx_pos_and_angle`.  This closes the previously absent scheduler body; the callee's exact dataflow, live Mario flag, and indirect native-call path still require memory/control refinement |
+| `src/engine/behavior_script.c` | `*_behavior_script.v` | `cur_obj_update`, behavior-command dispatch, direct distance call and FAR-field writes used by the Goomba audit, and a generated receipt for the bit-0-guarded call to `obj_update_gfx_pos_and_angle`.  This closes the previously absent scheduler body; branch control, the callee's exact dataflow, live Mario flag, and indirect native-call path still require memory/control refinement |
 | `src/engine/level_script.c` | `*_level_script.v` | the interpreter that consumes packed level commands and reaches object/warp/area loaders.  Its body closes an entry/spawn control-flow hole, but the indirect command table, segmented addresses, external native calls, and live memory effects remain to be refined |
 | `src/engine/graph_node.c` | `*_graph_node.v` | `geo_obj_init_spawninfo` and graph-node initialization, including the entry-time Graphics/throw-matrix initialization path.  Function-body coverage does not yet prove Mario-object allocation or non-aliasing |
-| `src/game/spawn_object.c` | `*_spawn_object.v` | allocation/unload assignment and call occurrences relevant to activation, respawn fields, and reuse; memory effects are pending |
-| `src/game/object_helpers.c` | `*_object_helpers.v` | default/no-exit star spawn helpers and target behavior parameters |
+| `src/game/spawn_object.c` | `*_spawn_object.v` | allocation/unload assignment and call occurrences relevant to activation, respawn fields, and reuse; generic allocation writes exact binary32 `1000.0f` to collision-distance raw slot 67.  Live Spindel allocation and absence of a later overwrite are not coupled by the receipt; memory effects are pending |
+| `src/game/object_helpers.c` | `*_object_helpers.v` | default/no-exit star spawn helpers and target behavior parameters; Goomba/Spindel receipts check full-float X/Y/Z distance and FAR-aware movement-body anchors, without proving the branch executes |
 | `src/game/debug.c` | `*_debug.v` | the retail-resident debug object-spawn callback called by `bhvMario`.  The generated receipt finds the page/config/button identifiers and a `spawn_object_relative` call; the exact guard/count interpretation is a separate manual source audit.  A clean live-entry projection must prove the debug-spawn guard false |
 | `src/game/memory.c` | `*_memory.v` | segmented-address and pool helpers used by level/behavior loading.  Pointer-to-integer conversions are implementation-dependent; the generated Clight body is retained as an audit input and is not silently treated as a proof of N64 compiled behavior |
 | `src/game/mario_misc.c` | `*_mario_misc.v` | Mario model/cap/hitbox update callees reached after action dispatch.  Manual source audit finds no direct live-Mario header-Graphics position writer.  The generated receipt only inventories `gMirrorMario`, `gMarioStates`, `vec3f_copy`, and `get_pos_from_transform_mtx` anchors; destination non-aliasing and render-context reachability remain open |
-| `src/game/obj_behaviors.c` | `*_obj_behaviors.v` | hidden controller/trigger constant, field, assignment and direct-call shapes; pyramid-top spinning yaw-versus-pitch/roll write shape; no checked five-count control dependence |
-| `src/game/obj_behaviors_2.c` | `*_obj_behaviors_2.v` | Eyerok hand attack check, movement/update order, death, and coin-spawn source shapes |
+| `src/game/obj_behaviors.c` | `*_obj_behaviors.v` | hidden controller/trigger constant, field, assignment and direct-call shapes; pyramid-top spinning yaw-versus-pitch/roll write shape; Spindel pitch-slot and `1024` numerator receipts; no checked five-count control dependence or linked Spindel phase execution |
+| `src/game/obj_behaviors_2.c` | `*_obj_behaviors_2.v` | Eyerok hand attack check, movement/update order, death, and coin-spawn source shapes; regular-Goomba property prefix, attacked-action callback, action-2 write, movement-flag access, and lexical update-order receipts |
 | `src/game/behavior_actions.c` | `*_behavior_actions.v` | `bhv_pole_init` hitbox-field assignment shape used by the normalized-pole source audit; Area-1 Tox Box angle-slot writes and breakable/exclamation fragment allocation, PRNG, face-angle, and angular-velocity source shapes |
-| `data/behavior_data.c` | `*_behavior_data.v` | star, hidden-controller and hidden-trigger behavior bindings; pyramid-top loop/collision-loader initializer references |
+| `data/behavior_data.c` | `*_behavior_data.v` | star, hidden-controller and hidden-trigger behavior bindings; pyramid-top loop/collision-loader initializer references; Goomba init/update and Spindel init/loop/collision-loader callback subsequences |
 | `src/game/area.c` | `*_area.v` | direct `unload_area`/`load_area` call order in `change_area`; lifecycle execution is pending |
 | `src/game/level_update.c` | `*_level_update.v` | direct `change_area` occurrence in `check_instant_warp`, game-over reload call, airborne entry-action constant/call source shape, guarded direct-assignment first-writer shape for `sDelayedWarpOp`, normal-update/delayed-object-warp ordering, absence of a direct latch assignment in `initiate_delayed_warp`, and the area-entry `init_mario`/initial-cap call shapes needed to exclude retained Wing Cap |
 | `src/game/platform_displacement.c` | `*_platform_displacement.v` | `gMarioPlatform`/validation-field identifier occurrences, State position writes, object-position reads for final selection, X/Z-but-not-Y velocity slot reads, direct displacement/floor calls, and global assignment shape; pointer/matrix dataflow is pending |
 | `src/engine/math_util.c` | `*_math_util.v` | full `mtxf_rotate_zxy_and_translate` body and `gSineTable` initializer; the linked memory execution that constructs the platform matrix remains pending |
 | `src/engine/surface_collision.c` | `*_surface_collision.v` | `find_floor` binary32-to-signed-16 cast shape and 78-unit floor buffer, plus the floor/surface query implementation used by Mario stepping and platform recomputation; ordinary-motion receipts check the wall list's strict `y > upperY` rejection; Ink receipts check the X/Y/Z result-pointer writes, absence of a wall-list Y-field mutation, and absence of direct Graphics references; the concrete CompCert cast result and matching authenticated US/JP retail instruction fragment are checked, while linked execution, pointer disjointness, caller closure, and actual surface-selection refinements remain pending |
-| `src/engine/surface_load.c` | `*_surface_load.v` | surface allocation/insertion, object-vertex transformation, object-surface loading, normal construction, and collision-model loading; exact ordinary-motion receipts check `read_surface_data`'s `upperY = maxY + 5`; live object/surface memory execution and list ownership/order remain pending |
+| `src/engine/surface_load.c` | `*_surface_load.v` | surface allocation/insertion, object-vertex transformation, object-surface loading, normal construction, and collision-model loading; exact ordinary-motion receipts check `read_surface_data`'s `upperY = maxY + 5`; Goomba/Spindel receipts check full-float distance/collision-distance reads, transform/load calls, float-matrix helpers, and explicit binary32-to-s16 vertex narrowing; live object/surface memory execution, compiled out-of-range cast behavior, and list ownership/order remain pending |
 | `src/game/macro_special_objects.c` | `*_macro_special_objects.v` | spawn call and respawn-field assignment occurrences; persistence semantics are pending |
 | `levels/ssl/script.c` | `*_ssl_script.v` | raw initializer tuples for lower/upper airborne entry objects, the area-2 static star, hidden controller, and instant-warp declarations; exact packed records for the Area-1 `0x0A`, `0x1E`, `0x1F`, and `0x20` warp objects, all five local warp-node routes, and the stock pyramid top, with checked coordinate/behavior-byte arithmetic |
 | `levels/ssl/areas/1/macro.inc.c` via `inputs/ssl_area1_macro.c` | `*_ssl_area1_macro.v` | exact Area-1 wing-cap/exclamation, breakable-box, message-panel, cannon, and shell-box records used by the fragment and finite stock-owner audits; generic top-yaw/dirt-triangle/cartoon-triangle schedule lineage is no longer a Layer-B obligation, while linked-memory projection remains pending |
@@ -92,12 +92,28 @@ preserve Object and Graphics.  Separately, generated-AST receipts recognize
 the exact null test, Graphics-to-State copy dataflow, retry, and result store.
 They also recognize the guarded retry-null death request, the
 `sDelayedWarpOp` first-writer latch, and geometry-before-interaction order in
-US and JP.  The closed latch model proves that an earlier fatal request
-prevents a later upper-object-warp request from replacing it.  At zero lives
-the source rewrites death to game-over.  Initial latch emptiness, the
-scheduler-aware disjunction between blocking the later `ACT_DISAPPEARED`
-request and clearing only inside a continuation-destroying reset interval, and
-concrete Clight path refinement remain open.
+US and JP.
+
+`proofs/RetailFatalLatch.v` is a handwritten finite scheduler model.  It
+imports generated US/JP syntax and packed-data receipts from `ClightFacts.v`,
+proves fatal-latch preservation over its explicit event alphabet, and includes
+an over-permissive-clear counterexample.  It is not generated Clight and does
+not construct a linked small-step execution or memory projection.  The missing
+refinement must connect concrete `level_update.c`, Mario behavior dispatch,
+clear/reset scheduling, and the `sDelayedWarpOp` memory cell to this model.
+
+`proofs/GoombaRaising.v` is a separate handwritten bounded transition and
+binary32-arithmetic model.  It distinguishes a selected no-fresh-walk-jump
+grounded priming branch from the repeating airborne action-2 H/F/R cycle,
+proves exact
+velocity `25.0f + (-4.0f) = 21.0f`, computes selected integer-aligned
+low-height position runs, exhibits binary32 stagnation at `2^29`, and proves
+the conditional Spindel-band and schedule-specific pyramid-top-window bounds.
+It does not claim exact-21 position growth for arbitrary binary32 Y.  The US/JP
+receipts listed above are logically separate source-shape evidence.  No theorem
+links them to the model or inhabits either trace-wide no-A raw-Object schedule,
+same-segment PU capture, singleton transport, or height-handoff obligations.
+
 Generated initializer receipts locate the selected lower support faces in the
 `SURFACE_WALL_MISC` group, the selected upper face in the `SURFACE_HARD` group,
 and all three Area-1 water boxes.  Further generated receipts check that later
@@ -270,10 +286,11 @@ theorem once that premise is derived.  Either exact proposed prestate needs
 `973`.  The old writer obligation is only a predicate-sensitive schema;
 complete linked Clight writer/action/spawn closure still requires a concrete
 replacement relation.  None of these arithmetic results is presented as
-global ordinary-motion reachability.  A retry that remains null is excluded by
-the handwritten latch model only from an empty call-boundary latch and under
-the persistent-fatal or continuation-destroying-reset premises.  A linked
-proof of those initial-state and scheduler facts remains open.
+global ordinary-motion reachability.  For an accepted fatal request, the
+handwritten event system proves the persistent-fatal or
+continuation-destroying-reset invariant and rejects the later upper request.
+The linked proof of accepted fatal initialization, concrete event projection,
+clear/reset barriers, and latch-memory preservation remains open.
 
 `proofs/Area1FirstNull.v` reads the generated US/JP Area-1 collision
 initializers, computes the 574 vertices and 962 triangle records, reconstructs

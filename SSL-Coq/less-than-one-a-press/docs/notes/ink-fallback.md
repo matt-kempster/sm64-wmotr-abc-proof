@@ -122,17 +122,25 @@ second supported tick can issue it, while
 `ink_second_null_frame_latches_fatal_before_upper_warp` proves the second-null
 alternative cannot.
 
-This is strong source/transition evidence, but not yet a linked Clight
-exclusion.  The remaining refinement must prove that the delayed-warp cell is
-empty when this geometry call begins and establish the scheduler-aware
-disjunction: either the fatal value is still pending when the later
-`act_disappeared` request occurs, or every earlier clear belongs to a
-reset/initialization interval that destroys the disappeared-action
-continuation before another Mario update can use it.  The concrete call/return
-path must also refine to the small latch model.  Under those source-backed
-premises, the **both-queries-null** scheduling shape cannot be the Area-1
-upper-warp route.  Ink's surviving shape requires the first query to be null
-and the graphical retry to return a non-null floor; a top-owned retry is still
+`RetailFatalLatch.v` now formalizes the audited scheduler cases rather than
+leaving the block-or-reset disjunction as informal prose.  Starting after an
+accepted both-`NULL` fatal request,
+`retail_fatal_persists_or_reset_destroys_disappeared` proves for every modeled
+event suffix that either the fatal operation remains installed or the old
+continuation has been destroyed, and that the upper request remains
+unaccepted.  The direct two-supported-tick race is computed separately.
+
+The generated source kernel is deliberately separate.  It checks syntax and
+packed data, but does not prove that a concrete Clight trace refines the event
+steps.  In particular, the address census covers explicit address-taking in
+the generated `level_update.c` unit; it is not a whole-program memory-safety
+theorem.  The clear-site receipts check call presence/callee order and
+separate clear presence; they do not relate assignment position to the calls
+and are not small-step proofs.
+A linked execution must establish the clear/reset order, the accepted fatal
+call-boundary state, and the concrete both-`NULL` results.  Subject to that
+refinement, Ink's surviving shape requires the first query to be null and the
+graphical retry to return a non-null floor; a top-owned retry is still
 unproved.
 
 The full source timing audit gives a sharper reason:
@@ -155,10 +163,11 @@ The full source timing audit gives a sharper reason:
 This source audit found no retail scheduling counterexample.  The remaining
 formal gap is precise: `behavior_script.c` is now imported, but the current
 generated link interface does not construct the exact link or prove one
-indirect `bhv_mario_update` per well-formed Mario-object visit.  A full theorem also
-needs shared-global linking, external frame conditions, clean normal-play
-scheduler invariants, valid pointers/no undefined behavior, and the compiled
-float-to-s16/`find_floor` refinement that establishes the two null results.
+indirect `bhv_mario_update` per well-formed Mario-object visit.  A full theorem
+also needs shared-global linking, the clear-to-reset barrier executions,
+external frame conditions, clean normal-play scheduler invariants, valid
+pointers/no undefined behavior, and the compiled float-to-s16/`find_floor`
+refinement that establishes the two null results.
 
 ## Which earlier analysis was right?
 
@@ -199,9 +208,9 @@ For the pinned US and JP source, the relevant normal object-update frame is:
 8. if the floor pointer is null, copy `header.gfx.pos` to `MarioState.pos` and
    retry `find_floor`;
 9. if the retry is also null, request the death/game-over warp before
-   interaction processing; under the pending scheduler-aware refinement, that
-   first request either blocks the later object warp or is cleared only by an
-   initialization/reset path that destroys the continuation first;
+   interaction processing; the checked event invariant proves that an accepted
+   fatal request either blocks the later object warp or a reset destroys the
+   old continuation, while concrete event projection remains open;
 10. process the collision array in either case, including the warp cached at
     step 4; this may select `ACT_DISAPPEARED`, but its later delayed-warp
     request cannot replace an uncleared fatal latch;
@@ -209,8 +218,9 @@ For the pinned US and JP source, the relevant normal object-update frame is:
     frame, snap State Y to the retry floor, and copy State to Graphics.  On the
     retry-null branch, the floor-null early return defers action dispatch.  A
     later request is blocked if the fatal latch is still occupied; if a clear
-    occurs first, the retail exclusion instead requires the reset/init
-    scheduling proof described above;
+    occurs first, the open retail refinement must project it to a reset/init
+    barrier that destroys the old continuation, as required by the checked
+    event system;
 12. on the non-null/action-dispatch branch, run the unconditional
     `sink_mario_in_quicksand`, which writes Graphics Y and may also write
     `gfx.throwMatrix[3][1]`; the retry-null early return skips this call;
@@ -706,10 +716,10 @@ The decisive unfinished work is:
    scanned/deallocated, establish any claimed free-list membership, and prove
    its allocation epoch, unload/reuse, delayed-warp retention or recapture, and
    destination-area first apply;
-9. prove the retry-null latch starts empty and the scheduler-aware exclusion:
-   either its fatal/game-over value persists through the later
-   `ACT_DISAPPEARED` object-warp request, or every earlier clear resets that
-   continuation before another Mario update can issue a useful request; and
+9. construct the linked US/JP refinement proving that the concrete
+   accepted-fatal state and every subsequent scheduler interval project to
+   `RetailFatalLatch.v`, including the clear-to-reset barriers and latch-memory
+   frame condition; and
 10. continue to a target collision and newly set Act 3 or Act 6 bit.
 
 `Area1InkPrestateReachabilityObligation` is the legacy schema marking the

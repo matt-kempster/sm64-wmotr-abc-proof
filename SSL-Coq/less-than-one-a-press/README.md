@@ -79,6 +79,34 @@ Clight/collision theorem yet proves that the entry descent is vertical, lands
 on the intended live elevator floor, and reaches the prestates assumed by the
 ascent kernel.
 
+`GoombaRaising.v` now formalizes the useful part of the attached
+Goomba-raising proposal.  In the selected no-fresh-walk-jump branch, a grounded
+priming sequence precedes the repeatable airborne jump action `2` state.
+Other initial walk-action jump branches remain possible.  The
+conditional H/F/R model has the idealized integer recurrence `y + 21*n`.
+CompCert binary32 proves the velocity update `25 + (-4) = 21`, and concrete
+integer-aligned Y `51` runs for 31 and 83 rises are exact; arbitrary stored Y
+need not gain exactly 21.  Rocq exhibits a binary32 fixed point: at Y `2^29`,
+adding `21.0f` leaves the stored value unchanged; it does not prove that the
+selected Y `51` orbit reaches that point.  The
+conditional integer hitbox abstraction limits a Spindel collision station to
+Goomba Y `[1961,2496]` plus an idealized final hit to `2517`, so the Area-2
+singleton at integer Y `778` cannot use it directly.  Linked binary32
+collision/addition bounds remain open.  A 91-frame Area-1 pyramid-top
+window permits at most 31 productive hits for the post-collision H/F/R
+schedule; 83 are needed arithmetically to reach Y `1791` from Y `51`.
+An alternate pre-collision raw-Object writer schedule remains open.
+
+Generated US/JP receipts separately check Goomba callback/action/movement
+syntax, generic collision bodies without a direct FAR guard, Spindel callback
+and pitch syntax, the generic allocation write of `1000.0f`, full-float object
+distance, and signed-16 narrowing of transformed dynamic vertices.  They do
+not couple every constant to its live branch and are not a semantic link to
+the H/F/R model.  Trace-wide no-A shuttling, both raw-Object scheduling
+shapes, same-segment local-load/PU capture, physical singleton transport,
+collision capacity/liveness, and every later height handoff remain unproved.
+No clean retail counterexample was found.
+
 A separate, current-source-rechecked
 `ArchivedProofIntegrationKernel` incorporates narrow lessons from all six
 archived investigations without importing their old ASTs.  The whole-program
@@ -134,25 +162,27 @@ allocation/list execution, input-cast refinement,
 dynamic-list completeness, memory writes, and clean reachability remain
 explicit obligations.  The supported center-floor result remains part of the
 separate audit rather than this new static evaluator theorem.
-The generated AST now also checks the retry-null death branch, the
-`sDelayedWarpOp` first-writer latch, and geometry-before-interaction order for
-both versions.  The closed latch theorem proves that if the retry is also
-`NULL`, an earlier fatal request prevents a later upper-object-warp request
-from replacing it in the small model.  Zero lives rewrites death to game-over,
-which remains fatal and nonzero.  This is a handwritten transition-model
-result under source-audited ordering and empty/persistent-latch premises, not
-yet a linked Clight exclusion.  The missing scheduler-aware refinement must prove
-initial latch state and show either that the fatal value still blocks the
-two-count `ACT_DISAPPEARED` request or that every earlier clear occurs inside
-reset/initialization scheduling that destroys the continuation before another
-Mario update.  Concrete call-path refinement also remains open.  The surviving
-Ink schedule therefore specifically needs a non-null graphical retry once
-those source-backed premises are derived.
+`RetailFatalLatch.v` now proves the fatal-pending-or-continuation-destroyed
+invariant for an explicit source-audited event system and proves that no trace
+in that system accepts the later upper object-warp request.  Generated US/JP
+receipts separately compute the direct `sDelayedWarpOp` writers in
+`level_update.c`, explicit address-taking sites, call-presence/callee-order
+plus separate clear-presence anchors, and the packed Area-1 death record.
+They do not prove assignment/call order or destination selection.  Zero lives
+is represented by the same nonzero fatal class as ordinary death.
+
+This is a checked source/event boundary, not a linked Clight exclusion.  The
+remaining obligation is a linked Clight/memory refinement from concrete
+execution to the event system, including accepted fatal initialization,
+clear/reset barriers, and exclusion of unmodeled memory writes.  The
+both-`NULL` `find_floor` outcomes and their reachability also remain unproved.
+Subject to that refinement, the surviving Ink schedule specifically requires
+a non-null graphical retry.
 The abstract case split now also captures that a successful retry performs
 only the first of the two `ACT_DISAPPEARED` ticks.  A second floor-supported
-Mario update is required before the upper object warp can be requested; a
-second both-queries-null frame instead lets the fatal first writer win if the
-latch is empty at that call boundary.
+Mario update is required before the upper object warp can be requested.  If
+the following update instead has both floor queries return `NULL`, the fatal
+first writer wins when the latch is empty at that call boundary.
 Arbitrary State-only ordinary/platform/PU prefixes preserve Object and
 Graphics and therefore cannot create the needed split from synchronized
 input.  A generic retry whose Graphics Y is in signed-16 range needs at least
@@ -285,6 +315,8 @@ The focused ordinary-motion proof boundary is
 [`docs/notes/ordinary-motion.md`](docs/notes/ordinary-motion.md).
 The three-view graphical fallback result is
 [`docs/notes/ink-fallback.md`](docs/notes/ink-fallback.md).
+The corrected Goomba/PU/Spindel investigation is
+[`docs/notes/goomba-raising.md`](docs/notes/goomba-raising.md).
 
 ## Exact target and input definition
 
@@ -388,11 +420,12 @@ State `(-2200,768,-1024)`; if that query returns `NULL`, the source copies
 Graphics into State and retries.  Graphics may conditionally be the local top
 sample `(-2048,1791,-1024)` or PU sample `(63488,1791,-1024)`.  A non-null
 retry lets the cached warp select and execute `ACT_DISAPPEARED` usefully in
-that frame.  In the retry-null case the fatal request wins the handwritten
-abstract latch only when it is empty at that call.  Excluding the continuation
-also needs the fatal value to persist, or any clear to occur inside a reset
-interval that destroys the continuation; linked retail refinement remains
-open.  The action
+that frame.  In the retry-null case an accepted fatal request wins the
+handwritten event-system latch when it is empty at that call.  The event
+invariant proves that fatal then persists or a reset destroys the old
+continuation.  Linked retail refinement remains open: it must establish fatal
+acceptance, concrete event coverage, clear/reset barriers, and the latch-memory
+frame condition.  The action
 snaps to the retry floor before the
 unconditional quicksand sink and state/object copy.  Remaining object lists
 then update, deactivated objects unload, and only then does the final platform

@@ -275,14 +275,13 @@ is outside the checked water boxes, so that is not the route-specific target.
 
 If the graphical retry also returns no floor, the geometry code requests the
 fatal warp before cached object interactions.  From an empty call-boundary
-latch, the handwritten first-writer model prevents a later upper-object-warp
-request from replacing that value; zero lives stores game-over.  A linked
-proof of initial emptiness and the
-scheduler-aware block-or-reset disjunction remains open: the fatal value must
-either persist through the delayed action call or be cleared only in an
-initialization interval that resets the continuation before another Mario
-update.  Under those premises, ordinary
-or PU movement only matters here if it produces a **non-null** retry floor.
+latch, `RetailFatalLatch.v` closes the block-or-reset invariant for its
+source-audited event system and proves that no modeled suffix accepts the
+upper-object-warp request; zero lives belongs to the same fatal class.  What
+remains open is the linked Clight/memory refinement establishing that the
+concrete US/JP execution projects to those events and that no unmodeled writer
+changes the latch.  Subject to that refinement, ordinary or PU movement only
+matters here if it produces a **non-null** retry floor.
 
 A prepared `ACT_LONG_JUMP_LAND` state with pre-frame `actionTimer = 4` is a
 precision exception to any blanket claim that quicksand always lowers

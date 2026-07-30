@@ -120,9 +120,13 @@ not instantiate the explosion/inactive-slot branch: that branch must recover
 the later translated/rotated pose, transformed surface, and selected floor
 height.  The old sink statement was false; its repaired first-return,
 modular-cell form is open.  The current post-copy lifecycle statement is
-unsafe or vacuous and must be replaced.  The retry-null fatal call and abstract
-latch model also show why that schedule needs a non-null retry, conditional on
-still-open linked initial-state and scheduler-aware block-or-reset premises.
+unsafe or vacuous and must be replaced.  The project now closes the retry-null
+fatal-latch invariant in a finite source-audited event model: fatal remains
+pending or reset destroys the old disappeared-action continuation, and the
+upper object-warp request is never accepted.  This is not yet a linked US/JP
+Clight theorem.  Concrete event projection, latch-memory preservation,
+clear/reset execution, initial acceptance of the fatal request, and the two
+`find_floor` outcomes remain open.
 The project does
 not prove the first query returns `NULL`, a loaded top is selected, or a clean
 retail prestate reaches the required split.  No stock-reachable US/JP retail
@@ -233,6 +237,22 @@ The clean upper snapshot itself is above the cage (`5500` versus raw rim top
 entry fall, but linked execution and landing on the intended live elevator
 surface are still separate obligations.
 
+`GoombaRaising.v` now proves a bounded conditional collision-raising kernel.
+The corrected repeating state is airborne Goomba action `2`.  Binary32 makes
+the velocity update `25 + (-4) = 21` exact, while the position model adds
+`21` only as an idealized integer recurrence; concrete Y `51` runs for 31 and
+83 rises are checked separately.  Binary32 `2^29` is a checked fixed point for
+adding `21.0f`; no theorem claims the selected Y `51` orbit reaches it.
+The checked integer abstraction rules out direct use of the audited Spindel
+height band by the Area-2 Y `778` singleton; linked binary32 collision bounds
+remain open.  The 31-hit Area-1 bound applies only to
+the post-collision H/F/R schedule; an alternate pre-collision raw-Object writer
+schedule is explicitly open.  Generated US/JP AST receipts support source
+shapes but do not construct trace-wide no-A shuttling, same-segment PU
+platform capture, singleton transport, or geometric handoffs.  This is not a
+saved A press or a retail counterexample; see the
+[Goomba-raising audit](less-than-one-a-press/docs/notes/goomba-raising.md).
+
 `JPSlotLifetime.v` checks the JP allocation/unload source anchors, the
 free-list push/pop shapes, and the loop/literal/write syntax for clearing 80
 raw words, plus the
@@ -318,8 +338,8 @@ audit proves that the exact proposed prestate needs at least a `973`-unit
 Graphics/Object Y split, checks retry-null fatal-warp priority at the
 source/abstract-latch boundary, repairs a refuted sink specification, and
 identifies the current lifecycle statement as unsafe or vacuous rather than
-proved.  The linked initial-latch and scheduler-aware block-or-reset proof
-remains open.  No
+proved.  The finite block-or-reset event invariant is now checked; its linked
+US/JP Clight/memory refinement remains open.  No
 clean retail counterexample was found.  The narrower
 [surface-refinement](less-than-one-a-press/docs/notes/pyramid-top-surface-refinement.md)
 and [JP slot-lifetime](less-than-one-a-press/docs/notes/jp-slot-lifetime.md) notes

@@ -457,13 +457,13 @@ can become pending.  If the retry is also `NULL`,
 At zero lives the stored operation becomes game-over.  An uncleared fatal
 request prevents the later upper-object-warp request from replacing it.
 Generated US/JP recognizers check the guarded call, guarded-write latch shape,
-and lexical source order; the closed handwritten delayed-warp model proves the
-abstract transition under its premises.  The linked proof must show that the
-latch starts empty
-and then either remains occupied until `act_disappeared` makes its later
-request or is cleared only by reset/initialization scheduling that destroys
-the continuation before another Mario update.  Under those premises the
-both-queries-null schedule cannot save the A press.
+and lexical source order.  The finite handwritten event system proves that an
+accepted fatal request remains pending or a reset/terminal barrier destroys
+the old continuation, and that the later upper request is never accepted.
+The linked proof must establish concrete fatal acceptance, project every
+intervening retail step to the event alphabet, prove the clear/reset barriers,
+and preserve the latch memory cell against unmodeled writes.  Under that
+refinement the both-queries-null schedule cannot save the A press.
 
 If the retry instead selects the top, `ACT_DISAPPEARED` snaps State to that
 floor, copies the snap to Graphics, the unconditional quicksand-sink call
@@ -653,9 +653,11 @@ projection.  Generated-expression extraction, linked live-surface memory, list
 selection, every construction not yet shown to project into the bounded
 relation, and the exact JP destination-area allocation trace remain open.
 This platform-origin result does not remove Ink's null-platform graphical
-retry.  The retry-null variant is excluded at the source/abstract-latch
-boundary by fatal-warp priority; linked initial-state and scheduler-aware
-block-or-reset refinement remain open.  For the non-null variant, the three
+retry.  The retry-null variant is excluded by fatal-warp priority in
+`RetailFatalLatch.v`'s checked event system.  What remains open is the linked
+Clight/memory refinement establishing concrete fatal acceptance, projection to
+those events, clear/reset barriers, and absence of unmodeled latch writers.
+For the non-null variant, the three
 old reachability, writer-coverage,
 and surface-refinement names are predicate schemas awaiting concrete
 linked-run replacements; the repaired sink is open and the lifecycle interface

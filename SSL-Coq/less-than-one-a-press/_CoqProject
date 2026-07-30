@@ -106,6 +106,7 @@ proofs/Area1PlatformExhaustiveness.v
 proofs/FirstCrossingWriterCoverage.v
 proofs/ModelGapAudit.v
 proofs/OrdinaryMotion.v
+proofs/GoombaRaising.v
 proofs/InkFallback.v
 proofs/RetailFatalLatch.v
 proofs/MainTheorem.v

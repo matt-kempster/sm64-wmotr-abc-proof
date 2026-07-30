@@ -56,19 +56,34 @@
   The source audit uses `45` as the dry route-specific target; `208` is a
   conservative modeled relation pending reachable-writer coverage.
   If the retry also returns no floor, the checked guarded fatal call occurs
-  before cached warp interactions.  From an empty call-boundary latch, the
-  handwritten first-writer model blocks the later upper-warp request.  Zero
-  lives rewrites death to the still-nonzero game-over operation.  The linked
-  proof must show the latch starts empty and
-  then prove the scheduler-aware disjunction: the fatal value either remains
-  occupied through the delayed action call, or any earlier clear belongs to a
-  reset/initialization interval that destroys the continuation before another
-  Mario update.  Under those premises only a non-null retry can support this
+  before cached warp interactions.  `RetailFatalLatch.v` proves, for its
+  explicit checked event system, that an accepted fatal request either remains
+  pending or a reset/terminal barrier destroys the old disappeared-action
+  continuation; no trace in that system accepts the later upper-warp request.
+  Generated receipts separately compute the direct-writer and explicit
+  address-taking censuses, call-presence/callee-order plus separate
+  clear-presence anchors, and a packed death record.  They do not prove
+  assignment/call order or destination selection.  The block-or-reset
+  invariant is proved for the checked event system, while the linked Clight
+  projection remains open.  It must establish initial fatal acceptance,
+  concrete event coverage, clear/reset barriers, and latch-memory
+  preservation.  Under that refinement only a non-null retry can support this
   route.
   These are coordinate and source-shape results, not a proof that the actual
   first query returns `NULL`, the retry selects a loaded top-owned surface, or
   a clean retail run reaches either prestate.  Final surface-owner liveness is
   separately unresolved.
+- `GoombaRaising.v` proves a bounded conditional H/F/R kernel rather than a
+  pole bypass.  The corrected repeating ready state is airborne action `2`;
+  binary32 proves the exact velocity update to `21.0f`, while arbitrary-Y
+  position increments need not equal exactly 21 and addition stagnates at Y
+  `2^29`.  Conditional integer Spindel-band arithmetic excludes direct use by
+  the Area-2 integer-Y `778` singleton; linked binary32 collision/addition
+  bounds remain open.  The 31-hit Area-1 bound applies to the
+  post-collision H/F/R schedule, not the open pre-collision raw-Object writer
+  schedule.  Trace-wide no-A shuttling, both scheduling shapes, same-segment
+  PU platform capture, physical singleton transport, and all height handoffs
+  are uninhabited obligations.  No retail counterexample follows.
 - `Area1FirstNull.v` parses the generated US/JP collision initializers and
   kernel-computes the 574 vertices, 962 triangles, and exact 17-wall/26-floor
   cell inventories.  It computes all four static-wall decision lists and both

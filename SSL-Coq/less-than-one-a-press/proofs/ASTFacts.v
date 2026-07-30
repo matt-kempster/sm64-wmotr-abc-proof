@@ -624,8 +624,9 @@ with statement_assigns_ident_ls
 (** Enumerate every internal function in one generated translation unit that
     directly assigns a selected global.  This is stronger than checking a
     hand-picked function list: the result is computed over [prog_defs].
-    It still concerns direct Clight assignments, so the separate address
-    census below is used to rule out writes through an escaped pointer. *)
+    It still concerns only direct Clight assignments.  The separate recognizer
+    below enumerates explicit address-of syntax in the same generated unit; it
+    is not a whole-program alias or memory-safety analysis. *)
 Fixpoint internal_function_assignment_sites
     (target : ident)
     (definitions : list
@@ -639,10 +640,10 @@ Fixpoint internal_function_assignment_sites
   | _ :: rest => internal_function_assignment_sites target rest
   end.
 
-(** Detect an explicit address-of use of a selected global.  Together with an
-    exact direct-assignment census this rules out the ordinary Clight mechanism
-    by which a callee in the same translation unit could receive an alias to
-    the global and mutate it indirectly. *)
+(** Detect an explicit address-of use of a selected global.  The result covers
+    only syntactic [Eaddrof] occurrences in the inspected generated internal
+    functions.  It does not rule out cross-translation-unit aliases, linker
+    aliases, undefined behavior, or arbitrary memory corruption. *)
 Fixpoint expression_takes_address_of_ident
     (target : ident) (e : expr) : bool :=
   match e with
@@ -1269,6 +1270,69 @@ with assigns_array_slot_ls
       assigns_array_slot_ls array_field index rest
   end.
 
+(** Couple an object raw-data slot to one exact binary32 assignment.  A
+    conjunction of independent "slot assigned" and "literal occurs" checks
+    would not establish that the literal is the value written to that slot. *)
+Fixpoint assigns_array_slot_float32_constant_s
+    (array_field : ident) (index bits : Z) (s : statement) : bool :=
+  match s with
+  | Sassign lhs rhs =>
+      expression_is_array_slot array_field index lhs &&
+      rhs_is_float32_constant bits rhs
+  | Ssequence a b | Sloop a b =>
+      assigns_array_slot_float32_constant_s array_field index bits a ||
+      assigns_array_slot_float32_constant_s array_field index bits b
+  | Sifthenelse _ a b =>
+      assigns_array_slot_float32_constant_s array_field index bits a ||
+      assigns_array_slot_float32_constant_s array_field index bits b
+  | Sswitch _ cases =>
+      assigns_array_slot_float32_constant_ls
+        array_field index bits cases
+  | Slabel _ body =>
+      assigns_array_slot_float32_constant_s array_field index bits body
+  | _ => false
+  end
+with assigns_array_slot_float32_constant_ls
+    (array_field : ident) (index bits : Z)
+    (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      assigns_array_slot_float32_constant_s
+        array_field index bits body ||
+      assigns_array_slot_float32_constant_ls
+        array_field index bits rest
+  end.
+
+(** Coupled integer counterpart, used to pin object action/raw-data writes. *)
+Fixpoint assigns_array_slot_int_constant_s
+    (array_field : ident) (index value : Z) (s : statement) : bool :=
+  match s with
+  | Sassign lhs rhs =>
+      expression_is_array_slot array_field index lhs &&
+      rhs_is_int_constant value rhs
+  | Ssequence a b | Sloop a b =>
+      assigns_array_slot_int_constant_s array_field index value a ||
+      assigns_array_slot_int_constant_s array_field index value b
+  | Sifthenelse _ a b =>
+      assigns_array_slot_int_constant_s array_field index value a ||
+      assigns_array_slot_int_constant_s array_field index value b
+  | Sswitch _ cases =>
+      assigns_array_slot_int_constant_ls array_field index value cases
+  | Slabel _ body =>
+      assigns_array_slot_int_constant_s array_field index value body
+  | _ => false
+  end
+with assigns_array_slot_int_constant_ls
+    (array_field : ident) (index value : Z)
+    (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      assigns_array_slot_int_constant_s array_field index value body ||
+      assigns_array_slot_int_constant_ls array_field index value rest
+  end.
+
 (* [find_floor] is translated with a nested cast from binary32 to signed
    16-bit TerrainData.  This deliberately narrow recognizer avoids pretending
    that arbitrary out-of-range ISO C casts have already been semantically
@@ -1283,6 +1347,64 @@ Definition type_is_float32 (ty : type) : bool :=
   match ty with
   | Tfloat F32 _ => true
   | _ => false
+  end.
+
+(** Detect any explicit binary32-to-signed-16 cast in a statement.  This is
+    intentionally shape-only: it does not choose semantics for out-of-range
+    conversions. *)
+Fixpoint expression_contains_float32_to_s16_cast (e : expr) : bool :=
+  match e with
+  | Ecast inner target_type =>
+      (type_is_float32 (typeof inner) && type_is_s16 target_type) ||
+      expression_contains_float32_to_s16_cast inner
+  | Ederef inner _ | Eaddrof inner _ | Eunop _ inner _ =>
+      expression_contains_float32_to_s16_cast inner
+  | Efield inner _ _ =>
+      expression_contains_float32_to_s16_cast inner
+  | Ebinop _ lhs rhs _ =>
+      expression_contains_float32_to_s16_cast lhs ||
+      expression_contains_float32_to_s16_cast rhs
+  | _ => false
+  end.
+
+Definition expressions_contain_float32_to_s16_cast
+    (expressions : list expr) : bool :=
+  existsb expression_contains_float32_to_s16_cast expressions.
+
+Fixpoint statement_contains_float32_to_s16_cast_s
+    (s : statement) : bool :=
+  match s with
+  | Sskip | Sbreak | Scontinue | Sreturn None | Sgoto _ => false
+  | Sassign lhs rhs =>
+      expression_contains_float32_to_s16_cast lhs ||
+      expression_contains_float32_to_s16_cast rhs
+  | Sset _ rhs => expression_contains_float32_to_s16_cast rhs
+  | Scall _ fn args =>
+      expression_contains_float32_to_s16_cast fn ||
+      expressions_contain_float32_to_s16_cast args
+  | Sbuiltin _ _ _ args =>
+      expressions_contain_float32_to_s16_cast args
+  | Ssequence a b | Sloop a b =>
+      statement_contains_float32_to_s16_cast_s a ||
+      statement_contains_float32_to_s16_cast_s b
+  | Sifthenelse condition yes_branch no_branch =>
+      expression_contains_float32_to_s16_cast condition ||
+      statement_contains_float32_to_s16_cast_s yes_branch ||
+      statement_contains_float32_to_s16_cast_s no_branch
+  | Sreturn (Some value) =>
+      expression_contains_float32_to_s16_cast value
+  | Sswitch value cases =>
+      expression_contains_float32_to_s16_cast value ||
+      statement_contains_float32_to_s16_cast_ls cases
+  | Slabel _ body => statement_contains_float32_to_s16_cast_s body
+  end
+with statement_contains_float32_to_s16_cast_ls
+    (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      statement_contains_float32_to_s16_cast_s body ||
+      statement_contains_float32_to_s16_cast_ls rest
   end.
 
 Definition rhs_is_float_temp_cast_to_s16 (source : ident) (rhs : expr) : bool :=

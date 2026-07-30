@@ -2,9 +2,10 @@ From Coq Require Import List ZArith.
 From LessThanOneAPress.Proofs Require Import
   GameTypes InputSemantics CleanEntry ObjectProvenance StarCollection
   CollisionRegions AreaTransitions HiddenStar LowerEntrance UpperEntrance
-  ClightRefinement ArchivedProofIntegration RouteEvidence TranscriptRouteModel
+  ClightFacts ClightRefinement ArchivedProofIntegration RouteEvidence
+  TranscriptRouteModel
   FirstTargetRefinement JPSlotLifetime FirstCrossingWriterCoverage
-  OrdinaryMotion PyramidTopPU InkFallback RetailFatalLatch.
+  OrdinaryMotion GoombaRaising PyramidTopPU InkFallback RetailFatalLatch.
 
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -95,6 +96,44 @@ Proof.
   - exact wing_cap_rollout_arithmetic_countermodel.
 Qed.
 
+(* The transcript's regular-Goomba observation is a real but bounded,
+   conditional state-machine primitive.  The idealized Z-valued H/F/R model
+   adds 21 per cycle; binary32 proves the 25 + (-4) velocity update and the
+   concrete integer-aligned Y=51 computations at 31 and 83 rises, but not a
+   universal exact-21 position recurrence.  This capstone also records the
+   binary32 fixed-point witness at 2^29, the integer-abstraction Spindel
+   height-band exclusion for the Area-2 Y=778 singleton, and the 31-hit bound
+   for the specific post-collision H/F/R top-window schedule.  It does not
+   provide linked binary32 hitbox bounds or inhabit the
+   full-float shuttle, alternate pre-collision writer, PU capture/transport,
+   or height-handoff obligations. *)
+Theorem current_goomba_raising_bounded_boundary :
+  goomba_raising_bounded_claim.
+Proof.
+  exact goomba_raising_bounded_kernel.
+Qed.
+
+(* This packages the bounded model beside the generated US/JP source receipts
+   on the verification spine.  It is only a conjunction: no conjunct states
+   that a linked Clight execution refines the H/F/R transition system. *)
+Theorem current_goomba_raising_source_event_boundary :
+  goomba_raising_bounded_claim /\
+  goomba_state_machine_source_shape_us_claim /\
+  goomba_state_machine_source_shape_jp_claim /\
+  goomba_player_collision_source_shape_us_claim /\
+  goomba_player_collision_source_shape_jp_claim /\
+  spindel_pu_station_source_shape_us_claim /\
+  spindel_pu_station_source_shape_jp_claim.
+Proof.
+  split; [exact goomba_raising_bounded_kernel |].
+  split; [exact goomba_state_machine_source_shape_us |].
+  split; [exact goomba_state_machine_source_shape_jp |].
+  split; [exact goomba_player_collision_source_shape_us |].
+  split; [exact goomba_player_collision_source_shape_jp |].
+  split; [exact spindel_pu_station_source_shape_us |].
+  exact spindel_pu_station_source_shape_jp.
+Qed.
+
 (* The graphical-fallback tranche shows that update order does not by itself
    refute the scheduling shape; it does not execute the branch in Clight or
    settle clean-entry reachability.  It provides local and PU conditional
@@ -121,13 +160,14 @@ Proof.
   - exact dry_graphics_offset_cannot_supply_top_retry.
 Qed.
 
-(* The retail fatal-latch tranche closes the scheduler-level loophole in the
-   double-NULL graphical fallback.  Once death/game-over wins the empty
-   first-writer latch, a later ACT_DISAPPEARED tick cannot replace it.  Every
-   audited clear is represented as an atomic barrier that destroys the old
-   continuation.  The checked boundary includes the complete direct-writer and
-   address-nonescape census for the generated US/JP level-update units, but is
-   not an iterated linked-Clight memory-safety theorem. *)
+(* Within the finite event system, the retail fatal-latch tranche closes the
+   scheduler-level loophole in the double-NULL graphical fallback.  Once
+   death/game-over wins the empty first-writer latch, a later ACT_DISAPPEARED
+   tick cannot replace it.  Every modeled clear event is an atomic barrier that
+   destroys the old continuation.  The checked boundary includes the
+   direct-writer and explicit address-taking censuses for the generated US/JP
+   level-update units, but is not an iterated linked-Clight alias,
+   memory-safety, clear-order, or destination-selection theorem. *)
 Theorem current_retail_fatal_latch_boundary :
   RetailFatalLatchCheckedBoundary /\
   forall kind events,

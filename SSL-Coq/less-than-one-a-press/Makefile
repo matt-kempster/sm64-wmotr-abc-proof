@@ -357,6 +357,45 @@ check: proofs
 	  LessThanOneAPress.Proofs.InkFallback \
 	  ink_fallback_checked_boundary
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.GoombaRaising \
+	  goomba_velocity_after_gravity_binary32_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.GoombaRaising \
+	  goomba_position_delta_need_not_be_exact_21
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.GoombaRaising \
+	  pyramid_top_y51_after_31_float32_rises_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.GoombaRaising \
+	  pyramid_top_y51_after_83_float32_rises_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.GoombaRaising \
+	  first_productive_cycle_enters_repeating_ready_state
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.GoombaRaising \
+	  finite_goomba_productive_cycles
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.GoombaRaising \
+	  goomba_raising_bounded_kernel
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  goomba_state_machine_source_shape_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  goomba_state_machine_source_shape_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  goomba_player_collision_source_shape_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  goomba_player_collision_source_shape_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  spindel_pu_station_source_shape_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  spindel_pu_station_source_shape_jp
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.ClightFacts \
 	  delayed_warp_assignment_census_exact_us
 	bash pipeline/assumptions.sh \
@@ -364,10 +403,10 @@ check: proofs
 	  delayed_warp_assignment_census_exact_jp
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.ClightFacts \
-	  delayed_warp_address_does_not_escape_us
+	  delayed_warp_explicit_address_sites_empty_us
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.ClightFacts \
-	  delayed_warp_address_does_not_escape_jp
+	  delayed_warp_explicit_address_sites_empty_jp
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.RetailFatalLatch \
 	  retail_fatal_persists_or_reset_destroys_disappeared
@@ -380,6 +419,12 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_ordinary_motion_evidence_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_goomba_raising_bounded_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_goomba_raising_source_event_boundary
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_ink_fallback_evidence_boundary

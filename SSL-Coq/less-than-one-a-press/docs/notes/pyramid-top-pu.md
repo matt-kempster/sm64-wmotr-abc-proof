@@ -21,9 +21,11 @@ coordinate witnesses for a handwritten pipeline are proved in
 `InkFallback.v`; generated syntax/dataflow receipts separately check the
 null/copy/retry source shape.  If the retry is also null, the checked fatal
 request wins the abstract delayed-warp latch before cached object interaction.
-At zero lives the stored operation becomes game-over.  A linked proof of latch
-initialization and persistence until the later action request remains open;
-under those premises that variant cannot trigger the upper warp.  No clean
+At zero lives the stored operation becomes game-over.  The finite event model
+proves that fatal persists or a reset destroys the old continuation.  A linked
+proof of accepted fatal initialization, concrete event projection, clear/reset
+barriers, and latch-memory preservation remains open; under that refinement
+the retry-null variant cannot trigger the upper warp.  No clean
 retail prestate constructing the necessary Object/Graphics split and non-null
 top retry has been found.
 See [`ink-fallback.md`](ink-fallback.md).
@@ -195,9 +197,10 @@ the spawn code has already destroyed.
   copies the graphical position back into MarioState and retries.  This
   destroys a proposal that needs to preserve the displaced State sample, but
   it enables Ink's different proposal when Graphics is already a top-side
-  sample.  If the retry is also null, the earlier fatal request blocks the
-  later object warp in the abstract latch model; linked initialization and the
-  scheduler-aware block-or-reset refinement remain open.  Proving the first
+  sample.  If the retry is also null, `RetailFatalLatch.v` closes the
+  block-or-reset invariant for its source-audited event system.  What remains
+  open is the linked Clight/memory refinement from the concrete fatal state and
+  scheduler intervals into those events.  Proving the first
   `NULL`, a **non-null**
   top-owned retry, and reachability of the required Object/Graphics split are
   separate obligations.
@@ -425,12 +428,12 @@ returns `NULL`, `update_mario_geometry_inputs` requests `WARP_OP_DEATH` before
 cached warp collision processing.  The delayed-warp variable is a first-writer
 latch, so an uncleared fatal value prevents the later upper-warp request.  Zero
 lives rewrites death to game-over.  The US/JP generated recognizers check the
-guarded call, guarded-write latch shape, and lexical order, and the closed
-latch theorem checks the abstract transition.  A linked proof of initial
-emptiness, the scheduler-aware disjunction between an occupied fatal latch and
-a continuation-destroying reset/initialization clear, and the concrete call
-path is still required.  Under those premises only a non-null retry can
-support Ink's route.
+guarded call, guarded-write latch shape, and lexical order.
+`RetailFatalLatch.v` now proves the block-or-reset invariant and rejection of
+the upper request for its explicit event system.  A linked proof of concrete
+fatal acceptance, scheduler-event projection, clear/reset barriers,
+latch-memory preservation, and the concrete call path is still required.
+Under that refinement only a non-null retry can support Ink's route.
 
 A complete route witness still needs the following items in addition to the
 predicate-schema replacements and repaired first-return sink refinement listed
@@ -526,10 +529,11 @@ Thus the current result is:
   concrete linked-run replacements; the repaired first-return sink is open;
   and the current lifecycle form is invalid and must be replaced;
 - from an empty call-boundary latch, a retry-null fatal request wins the
-  handwritten abstract latch before interaction processing; linked
-  initial-state and persistent-fatal-or-continuation-destroying-reset
-  refinement remain open, after which the surviving schedule needs a non-null
-  retry floor;
+  handwritten event-system latch before interaction processing, and the
+  event invariant proves fatal persistence or continuation destruction;
+  linked accepted-fatal initialization, event projection, concrete clear/reset
+  barriers, and latch-memory preservation remain open, after which the
+  surviving schedule needs a non-null retry floor;
 - a linked Clight derivation that validates the finite owner/origin projection,
   live ownership, list selection, and collision loads remains open;
 - no stock-reachable counterexample has been found; and

@@ -1,5 +1,5 @@
 From Coq Require Import List ZArith.
-From compcert Require Import AST Clight Integers.
+From compcert Require Import AST Clight Floats Integers.
 From LessThanOneAPress.Generated Require Import
   us_game_init us_mario us_mario_actions_airborne us_mario_actions_automatic
   us_mario_actions_cutscene
@@ -46,6 +46,7 @@ Module UBS := us_behavior_script.
 Module ULS := us_level_script.
 Module UGraph := us_graph_node.
 Module USO := us_spawn_object.
+Module UOH := us_object_helpers.
 Module UDebug := us_debug.
 Module UMemory := us_memory.
 Module UMisc := us_mario_misc.
@@ -81,6 +82,7 @@ Module JBS := jp_behavior_script.
 Module JLS := jp_level_script.
 Module JGraph := jp_graph_node.
 Module JSO := jp_spawn_object.
+Module JOH := jp_object_helpers.
 Module JDebug := jp_debug.
 Module JMemory := jp_memory.
 Module JMisc := jp_mario_misc.
@@ -990,11 +992,12 @@ Theorem object_warp_delayed_lifetime_source_shape_jp :
     (fn_body JLU.f_initiate_delayed_warp) = false.
 Proof. vm_compute. repeat split. Qed.
 
-(** Exhaustive direct-writer and address-escape census for the delayed-warp
-    latch in the generated [level_update.c] translation unit.  The only
-    direct writers are the two destination initializers, the guarded request
-    function, and the two level/save initializers.  No internal function takes
-    the address of the latch. *)
+(** Exhaustive direct-writer and explicit-address-taking census for the
+    delayed-warp latch in the generated [level_update.c] translation unit.
+    The only direct writers are the two destination initializers, the guarded
+    request function, and the two level/save initializers.  No generated
+    internal function in this unit contains an explicit address-of expression
+    for the latch.  This is not a whole-program alias or memory-safety result. *)
 Definition delayed_warp_assignment_sites_us : list ident :=
   [ULU._init_mario_after_warp;
    ULU._warp_credits;
@@ -1021,22 +1024,22 @@ Theorem delayed_warp_assignment_census_exact_jp :
   delayed_warp_assignment_sites_jp.
 Proof. vm_compute. reflexivity. Qed.
 
-Theorem delayed_warp_address_does_not_escape_us :
+Theorem delayed_warp_explicit_address_sites_empty_us :
   internal_function_address_sites ULU._sDelayedWarpOp
     ULU.global_definitions = [].
 Proof. vm_compute. reflexivity. Qed.
 
-Theorem delayed_warp_address_does_not_escape_jp :
+Theorem delayed_warp_explicit_address_sites_empty_jp :
   internal_function_address_sites JLU._sDelayedWarpOp
     JLU.global_definitions = [].
 Proof. vm_compute. reflexivity. Qed.
 
-(** The two in-level clear sites run Mario initialization/action replacement
-    before their direct clear.  [init_level] and
-    [lvl_init_from_save_file] are level-script barriers; the latter directly
-    calls the save-file Mario initializer.  These are syntax/order receipts,
-    not a linked Clight small-step trace. *)
-Definition delayed_warp_clear_barrier_source_shape_us_claim : Prop :=
+(** These receipts check call presence or direct-callee order inside each
+    clear-site body, plus separate presence of a direct latch assignment.
+    They do not relate the assignment's statement position to those calls.
+    The clear-to-reset ordering is a pinned-source audit fact whose linked
+    Clight execution/refinement remains open. *)
+Definition delayed_warp_clear_site_anchor_source_shape_us_claim : Prop :=
   ident_subsequenceb
     [ULU._init_mario; ULU._set_mario_initial_action; ULU._reset_camera]
     (direct_callees_s (fn_body ULU.f_init_mario_after_warp)) = true /\
@@ -1056,14 +1059,14 @@ Definition delayed_warp_clear_barrier_source_shape_us_claim : Prop :=
   statement_assigns_ident_s ULU._sDelayedWarpOp
     (fn_body ULU.f_lvl_init_from_save_file) = true.
 
-Theorem delayed_warp_clear_barrier_source_shape_us :
-  delayed_warp_clear_barrier_source_shape_us_claim.
+Theorem delayed_warp_clear_site_anchor_source_shape_us :
+  delayed_warp_clear_site_anchor_source_shape_us_claim.
 Proof.
-  unfold delayed_warp_clear_barrier_source_shape_us_claim.
+  unfold delayed_warp_clear_site_anchor_source_shape_us_claim.
   vm_compute. repeat split.
 Qed.
 
-Definition delayed_warp_clear_barrier_source_shape_jp_claim : Prop :=
+Definition delayed_warp_clear_site_anchor_source_shape_jp_claim : Prop :=
   ident_subsequenceb
     [JLU._init_mario; JLU._set_mario_initial_action; JLU._reset_camera]
     (direct_callees_s (fn_body JLU.f_init_mario_after_warp)) = true /\
@@ -1083,10 +1086,10 @@ Definition delayed_warp_clear_barrier_source_shape_jp_claim : Prop :=
   statement_assigns_ident_s JLU._sDelayedWarpOp
     (fn_body JLU.f_lvl_init_from_save_file) = true.
 
-Theorem delayed_warp_clear_barrier_source_shape_jp :
-  delayed_warp_clear_barrier_source_shape_jp_claim.
+Theorem delayed_warp_clear_site_anchor_source_shape_jp :
+  delayed_warp_clear_site_anchor_source_shape_jp_claim.
 Proof.
-  unfold delayed_warp_clear_barrier_source_shape_jp_claim.
+  unfold delayed_warp_clear_site_anchor_source_shape_jp_claim.
   vm_compute. repeat split.
 Qed.
 
@@ -1182,10 +1185,10 @@ Theorem ssl_area1_upper_warp_object_exact_jp :
     ssl_area1_upper_warp_object_jp.
 Proof. vm_compute. reflexivity. Qed.
 
-(** Area 1's node [0xF1] is the fatal/death destination.  It targets level 6
-    (the castle), area 3, node [0x65], so expiration of the accepted fatal
-    request is a change-level boundary rather than a same-area opportunity to
-    clear the latch and continue [ACT_DISAPPEARED]. *)
+(** Under the source macro encoding, these words are intended to describe
+    Area 1 node [0xF1] targeting level 6, area 3, node [0x65].  The theorems
+    below check only the initializer slice and packed-field arithmetic.  They
+    do not prove command decoding, node selection, or transition execution. *)
 Definition ssl_area1_death_warp_record : list init_data :=
   [Init_int32 (Int.repr 638120198);
    Init_int32 (Int.repr 56950784)].
@@ -2567,5 +2570,294 @@ Theorem wall_position_writer_source_shape_jp :
   wall_position_writer_source_shape_jp_claim.
 Proof.
   unfold wall_position_writer_source_shape_jp_claim.
+  vm_compute. repeat split.
+Qed.
+
+(** Source-syntax receipts for the Goomba-raising investigation.  These
+    statements deliberately expose lexical calls, constants, initializers,
+    and direct field/slot accesses.  They do not prove that a linked execution
+    follows the idealized H/F/R cycle in [GoombaRaising.v]. *)
+
+Definition regular_goomba_property_prefix : list init_data :=
+  [Init_float32 (Float32.of_bits (Int.repr 1069547520));
+   Init_int32 (Int.repr 1348513921);
+   Init_int16 (Int.repr 4000);
+   Init_int8 (Int.repr 1)].
+
+Theorem regular_goomba_property_prefix_exact_us :
+  firstn 4 (gvar_init UEye.v_sGoombaProperties) =
+    regular_goomba_property_prefix.
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem regular_goomba_property_prefix_exact_jp :
+  firstn 4 (gvar_init JEye.v_sGoombaProperties) =
+    regular_goomba_property_prefix.
+Proof. vm_compute. reflexivity. Qed.
+
+Definition goomba_state_machine_source_shape_us_claim : Prop :=
+  initializer_addrof_subsequenceb
+    [UBD._bhv_goomba_init; UBD._bhv_goomba_update]
+    (gvar_init UBD.v_bhvGoomba) = true /\
+  calls_ident_s UEye._goomba_begin_jump
+    (fn_body UEye.f_goomba_act_attacked_mario) = true /\
+  switch_case_calls_ident_s 1 UEye._goomba_act_attacked_mario
+    (fn_body UEye.f_bhv_goomba_update) = true /\
+  switch_case_calls_ident_s 2 UEye._goomba_act_jump
+    (fn_body UEye.f_bhv_goomba_update) = true /\
+  assigns_array_slot_int_constant_s UEye._asS32 49 2
+    (fn_body UEye.f_goomba_begin_jump) = true /\
+  statement_mentions_array_slot_s UEye._asU32 25
+    (fn_body UEye.f_goomba_act_jump) = true /\
+  assigns_array_slot_int_constant_s UEye._asS32 49 0
+    (fn_body UEye.f_goomba_act_jump) = true /\
+  statement_mentions_float32_bits_s 1112014848
+    (fn_body UEye.f_goomba_begin_jump) = true /\
+  statement_mentions_float32_bits_s 1077936128
+    (fn_body UEye.f_goomba_begin_jump) = true /\
+  statement_mentions_float32_bits_s 1090519040
+    (fn_body UEye.f_bhv_goomba_init) = true /\
+  statement_mentions_float32_bits_s 1077936128
+    (fn_body UEye.f_bhv_goomba_init) = true /\
+  ident_subsequenceb
+    [UEye._obj_update_standard_actions;
+     UEye._cur_obj_update_floor_and_walls;
+     UEye._goomba_act_walk;
+     UEye._goomba_act_attacked_mario;
+     UEye._goomba_act_jump;
+     UEye._obj_handle_attacks;
+     UEye._cur_obj_move_standard]
+    (direct_callees_s (fn_body UEye.f_bhv_goomba_update)) = true /\
+  statement_mentions_ident_s UOH._activeFlags
+    (fn_body UOH.f_cur_obj_move_standard) = true /\
+  calls_ident_s UOH._cur_obj_move_y
+    (fn_body UOH.f_cur_obj_move_standard) = true /\
+  calls_ident_s UBS._dist_between_objects
+    (fn_body UBS.f_cur_obj_update) = true /\
+  assigns_field_named_s UBS._activeFlags
+    (fn_body UBS.f_cur_obj_update) = true.
+
+Theorem goomba_state_machine_source_shape_us :
+  goomba_state_machine_source_shape_us_claim.
+Proof.
+  unfold goomba_state_machine_source_shape_us_claim.
+  vm_compute. repeat split.
+Qed.
+
+Definition goomba_state_machine_source_shape_jp_claim : Prop :=
+  initializer_addrof_subsequenceb
+    [JBD._bhv_goomba_init; JBD._bhv_goomba_update]
+    (gvar_init JBD.v_bhvGoomba) = true /\
+  calls_ident_s JEye._goomba_begin_jump
+    (fn_body JEye.f_goomba_act_attacked_mario) = true /\
+  switch_case_calls_ident_s 1 JEye._goomba_act_attacked_mario
+    (fn_body JEye.f_bhv_goomba_update) = true /\
+  switch_case_calls_ident_s 2 JEye._goomba_act_jump
+    (fn_body JEye.f_bhv_goomba_update) = true /\
+  assigns_array_slot_int_constant_s JEye._asS32 49 2
+    (fn_body JEye.f_goomba_begin_jump) = true /\
+  statement_mentions_array_slot_s JEye._asU32 25
+    (fn_body JEye.f_goomba_act_jump) = true /\
+  assigns_array_slot_int_constant_s JEye._asS32 49 0
+    (fn_body JEye.f_goomba_act_jump) = true /\
+  statement_mentions_float32_bits_s 1112014848
+    (fn_body JEye.f_goomba_begin_jump) = true /\
+  statement_mentions_float32_bits_s 1077936128
+    (fn_body JEye.f_goomba_begin_jump) = true /\
+  statement_mentions_float32_bits_s 1090519040
+    (fn_body JEye.f_bhv_goomba_init) = true /\
+  statement_mentions_float32_bits_s 1077936128
+    (fn_body JEye.f_bhv_goomba_init) = true /\
+  ident_subsequenceb
+    [JEye._obj_update_standard_actions;
+     JEye._cur_obj_update_floor_and_walls;
+     JEye._goomba_act_walk;
+     JEye._goomba_act_attacked_mario;
+     JEye._goomba_act_jump;
+     JEye._obj_handle_attacks;
+     JEye._cur_obj_move_standard]
+    (direct_callees_s (fn_body JEye.f_bhv_goomba_update)) = true /\
+  statement_mentions_ident_s JOH._activeFlags
+    (fn_body JOH.f_cur_obj_move_standard) = true /\
+  calls_ident_s JOH._cur_obj_move_y
+    (fn_body JOH.f_cur_obj_move_standard) = true /\
+  calls_ident_s JBS._dist_between_objects
+    (fn_body JBS.f_cur_obj_update) = true /\
+  assigns_field_named_s JBS._activeFlags
+    (fn_body JBS.f_cur_obj_update) = true.
+
+Theorem goomba_state_machine_source_shape_jp :
+  goomba_state_machine_source_shape_jp_claim.
+Proof.
+  unfold goomba_state_machine_source_shape_jp_claim.
+  vm_compute. repeat split.
+Qed.
+
+(** Player-object collision reaches the generic list-collision body; the
+    caller contains literal 5, and the inspected bodies use full-float position
+    raw-data slots with no direct [activeFlags] test.  The current recognizer
+    does not couple that literal to the call argument, so identifying list 5 as
+    the pushable list remains a pinned-source audit fact.  This is not a linked
+    proof of tangibility, list membership, or spare collision capacity. *)
+Definition goomba_player_collision_source_shape_us_claim : Prop :=
+  calls_ident_s UOC._check_player_object_collision
+    (fn_body UOC.f_detect_object_collisions) = true /\
+  calls_ident_s UOC._check_collision_in_list
+    (fn_body UOC.f_check_player_object_collision) = true /\
+  statement_mentions_int_s 5
+    (fn_body UOC.f_check_player_object_collision) = true /\
+  calls_ident_s UOC._detect_object_hitbox_overlap
+    (fn_body UOC.f_check_collision_in_list) = true /\
+  statement_mentions_ident_s UOC._activeFlags
+    (fn_body UOC.f_check_player_object_collision) = false /\
+  statement_mentions_ident_s UOC._activeFlags
+    (fn_body UOC.f_check_collision_in_list) = false /\
+  statement_mentions_ident_s UOC._activeFlags
+    (fn_body UOC.f_detect_object_hitbox_overlap) = false /\
+  statement_mentions_array_slot_s UOC._asF32 6
+    (fn_body UOC.f_detect_object_hitbox_overlap) = true /\
+  statement_mentions_array_slot_s UOC._asF32 7
+    (fn_body UOC.f_detect_object_hitbox_overlap) = true /\
+  statement_mentions_array_slot_s UOC._asF32 8
+    (fn_body UOC.f_detect_object_hitbox_overlap) = true /\
+  statement_mentions_ident_s UOC._asS16
+    (fn_body UOC.f_detect_object_hitbox_overlap) = false.
+
+Theorem goomba_player_collision_source_shape_us :
+  goomba_player_collision_source_shape_us_claim.
+Proof.
+  unfold goomba_player_collision_source_shape_us_claim.
+  vm_compute. repeat split.
+Qed.
+
+Definition goomba_player_collision_source_shape_jp_claim : Prop :=
+  calls_ident_s JOC._check_player_object_collision
+    (fn_body JOC.f_detect_object_collisions) = true /\
+  calls_ident_s JOC._check_collision_in_list
+    (fn_body JOC.f_check_player_object_collision) = true /\
+  statement_mentions_int_s 5
+    (fn_body JOC.f_check_player_object_collision) = true /\
+  calls_ident_s JOC._detect_object_hitbox_overlap
+    (fn_body JOC.f_check_collision_in_list) = true /\
+  statement_mentions_ident_s JOC._activeFlags
+    (fn_body JOC.f_check_player_object_collision) = false /\
+  statement_mentions_ident_s JOC._activeFlags
+    (fn_body JOC.f_check_collision_in_list) = false /\
+  statement_mentions_ident_s JOC._activeFlags
+    (fn_body JOC.f_detect_object_hitbox_overlap) = false /\
+  statement_mentions_array_slot_s JOC._asF32 6
+    (fn_body JOC.f_detect_object_hitbox_overlap) = true /\
+  statement_mentions_array_slot_s JOC._asF32 7
+    (fn_body JOC.f_detect_object_hitbox_overlap) = true /\
+  statement_mentions_array_slot_s JOC._asF32 8
+    (fn_body JOC.f_detect_object_hitbox_overlap) = true /\
+  statement_mentions_ident_s JOC._asS16
+    (fn_body JOC.f_detect_object_hitbox_overlap) = false.
+
+Theorem goomba_player_collision_source_shape_jp :
+  goomba_player_collision_source_shape_jp_claim.
+Proof.
+  unfold goomba_player_collision_source_shape_jp_claim.
+  vm_compute. repeat split.
+Qed.
+
+(** Spindel and moving-collision receipts.  Object-object distance and the
+    collision-load gate use object raw-data float slots.  Constructed dynamic
+    vertices are subsequently narrowed to [TerrainData] by the source; no
+    theorem here presents the transformed surface coordinates as full-float. *)
+Definition spindel_pu_station_source_shape_us_claim : Prop :=
+  initializer_addrof_subsequenceb
+    [UBD._bhv_spindel_init; UBD._bhv_spindel_loop;
+     UBD._load_object_collision_model]
+    (gvar_init UBD.v_bhvSpindel) = true /\
+  assigns_array_slot_s UOB._asS32 35
+    (fn_body UOB.f_bhv_spindel_loop) = true /\
+  statement_mentions_int_s 1024
+    (fn_body UOB.f_bhv_spindel_loop) = true /\
+  statement_mentions_int_s 20
+    (fn_body UOB.f_bhv_spindel_loop) = true /\
+  assigns_array_slot_float32_constant_s
+    USO._asF32 67 1148846080
+    (fn_body USO.f_allocate_object) = true /\
+  statement_mentions_array_slot_s USurfaceLoad._asF32 53
+    (fn_body USurfaceLoad.f_load_object_collision_model) = true /\
+  statement_mentions_array_slot_s USurfaceLoad._asF32 67
+    (fn_body USurfaceLoad.f_load_object_collision_model) = true /\
+  ident_subsequenceb
+    [USurfaceLoad._dist_between_objects;
+     USurfaceLoad._transform_object_vertices;
+     USurfaceLoad._load_object_surfaces]
+    (direct_callees_s
+      (fn_body USurfaceLoad.f_load_object_collision_model)) = true /\
+  statement_mentions_array_slot_s UOH._asF32 6
+    (fn_body UOH.f_dist_between_objects) = true /\
+  statement_mentions_array_slot_s UOH._asF32 7
+    (fn_body UOH.f_dist_between_objects) = true /\
+  statement_mentions_array_slot_s UOH._asF32 8
+    (fn_body UOH.f_dist_between_objects) = true /\
+  statement_mentions_ident_s UOH._asS16
+    (fn_body UOH.f_dist_between_objects) = false /\
+  calls_ident_s UOH._sqrtf
+    (fn_body UOH.f_dist_between_objects) = true /\
+  calls_ident_with_two_int_literals_s
+    USurfaceLoad._obj_build_transform_from_pos_and_angle 6 18
+    (fn_body USurfaceLoad.f_transform_object_vertices) = true /\
+  calls_ident_s USurfaceLoad._obj_apply_scale_to_matrix
+    (fn_body USurfaceLoad.f_transform_object_vertices) = true /\
+  statement_contains_float32_to_s16_cast_s
+    (fn_body USurfaceLoad.f_transform_object_vertices) = true.
+
+Theorem spindel_pu_station_source_shape_us :
+  spindel_pu_station_source_shape_us_claim.
+Proof.
+  unfold spindel_pu_station_source_shape_us_claim.
+  vm_compute. repeat split.
+Qed.
+
+Definition spindel_pu_station_source_shape_jp_claim : Prop :=
+  initializer_addrof_subsequenceb
+    [JBD._bhv_spindel_init; JBD._bhv_spindel_loop;
+     JBD._load_object_collision_model]
+    (gvar_init JBD.v_bhvSpindel) = true /\
+  assigns_array_slot_s JOB._asS32 35
+    (fn_body JOB.f_bhv_spindel_loop) = true /\
+  statement_mentions_int_s 1024
+    (fn_body JOB.f_bhv_spindel_loop) = true /\
+  statement_mentions_int_s 20
+    (fn_body JOB.f_bhv_spindel_loop) = true /\
+  assigns_array_slot_float32_constant_s
+    JSO._asF32 67 1148846080
+    (fn_body JSO.f_allocate_object) = true /\
+  statement_mentions_array_slot_s JSurfaceLoad._asF32 53
+    (fn_body JSurfaceLoad.f_load_object_collision_model) = true /\
+  statement_mentions_array_slot_s JSurfaceLoad._asF32 67
+    (fn_body JSurfaceLoad.f_load_object_collision_model) = true /\
+  ident_subsequenceb
+    [JSurfaceLoad._dist_between_objects;
+     JSurfaceLoad._transform_object_vertices;
+     JSurfaceLoad._load_object_surfaces]
+    (direct_callees_s
+      (fn_body JSurfaceLoad.f_load_object_collision_model)) = true /\
+  statement_mentions_array_slot_s JOH._asF32 6
+    (fn_body JOH.f_dist_between_objects) = true /\
+  statement_mentions_array_slot_s JOH._asF32 7
+    (fn_body JOH.f_dist_between_objects) = true /\
+  statement_mentions_array_slot_s JOH._asF32 8
+    (fn_body JOH.f_dist_between_objects) = true /\
+  statement_mentions_ident_s JOH._asS16
+    (fn_body JOH.f_dist_between_objects) = false /\
+  calls_ident_s JOH._sqrtf
+    (fn_body JOH.f_dist_between_objects) = true /\
+  calls_ident_with_two_int_literals_s
+    JSurfaceLoad._obj_build_transform_from_pos_and_angle 6 18
+    (fn_body JSurfaceLoad.f_transform_object_vertices) = true /\
+  calls_ident_s JSurfaceLoad._obj_apply_scale_to_matrix
+    (fn_body JSurfaceLoad.f_transform_object_vertices) = true /\
+  statement_contains_float32_to_s16_cast_s
+    (fn_body JSurfaceLoad.f_transform_object_vertices) = true.
+
+Theorem spindel_pu_station_source_shape_jp :
+  spindel_pu_station_source_shape_jp_claim.
+Proof.
+  unfold spindel_pu_station_source_shape_jp_claim.
   vm_compute. repeat split.
 Qed.

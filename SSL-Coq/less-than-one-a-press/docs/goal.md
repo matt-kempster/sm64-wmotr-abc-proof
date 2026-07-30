@@ -108,15 +108,15 @@ Graphics-minus-Object Y separation;
 either exact proposed prestate requires `973`.  The source audit uses `45` as
 the dry route-specific target; `208` is a conservative modeled writer relation
 pending reachable-writer coverage.  If the retry is also null, the checked
-fatal request occurs before cached object interactions and, from an empty
-latch, wins the handwritten abstract first-writer model.  Zero lives rewrites
-death to game-over.  This rules out the both-queries-null case only under the
-source-audited order and empty/persistent-latch premises: a linked proof of an
-initially empty latch plus the scheduler-aware
-block-or-reset disjunction remains open.  It must show that the fatal value
-either persists through the delayed action request or is cleared only in an
-initialization interval that resets the continuation before another Mario
-update.  Under those premises only a non-null retry remains.  The bounded
+fatal request occurs before cached object interactions.  `RetailFatalLatch.v`
+proves the block-or-reset invariant for the explicit checked event system:
+fatal remains pending or a reset/terminal barrier destroys the old
+disappeared-action continuation, and no modeled suffix accepts the upper
+object-warp request.  Generated source receipts remain logically separate.
+The linked Clight projection into the event system remains open, including
+initial fatal acceptance, event coverage, concrete clear/reset barriers, and
+latch-memory preservation.  Under that refinement only a non-null retry
+remains.  The bounded
 pre-apply null theorem excludes only pre-existing
 platform origins and does not exclude that post-query bootstrap.
 
@@ -148,6 +148,15 @@ execution, surface ownership/list order, and actual `find_floor` selection
 remain open.  A separate JP audit checks the free-list source shapes and 50
 Area-2 macro records and proves a finite LIFO/count case split; it does not
 extract the exact reachable allocation trace or payload.
+The Goomba-raising proposal supplies another conditional primitive, not a
+closed route.  `GoombaRaising.v` proves the corrected action-2 H/F/R cycle and
+its finite arithmetic, with exact binary32 velocity and selected low-height
+position checks rather than a universal exact-21 position claim.  The
+Area-1/top bound applies only to one H/F/R schedule; a pre-collision raw-Object
+writer schedule remains open.  The project goal still requires trace-wide
+no-A linked witnesses for both shuttles, Spindel collision loading and PU
+capture, same-allocation Goomba transport, intermediate handoffs, and
+continuation to a target collision.  None is assumed by the ultimate theorem.
 The US state model blocks retention after a successful spawn clear, but its
 Clight memory effect remains pending.  Warp-to-top, top-to-warp, and
 collision-preserving clone possibilities also remain.  Source-backed prehistory must
@@ -162,6 +171,7 @@ project-by-project boundary.  The non-specialist explanation is
 coverage question is isolated in
 [`notes/route-exhaustiveness.md`](notes/route-exhaustiveness.md).  The focused newest
 results are documented in [`notes/ink-fallback.md`](notes/ink-fallback.md),
+[`notes/goomba-raising.md`](notes/goomba-raising.md),
 [`notes/pyramid-top-pu.md`](notes/pyramid-top-pu.md),
 [`notes/pyramid-top-surface-refinement.md`](notes/pyramid-top-surface-refinement.md), and
 [`notes/jp-slot-lifetime.md`](notes/jp-slot-lifetime.md).  The retail instruction receipt

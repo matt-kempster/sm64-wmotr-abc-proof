@@ -107,9 +107,32 @@
   null/copy/retry/death-latch matches as separate source-shape receipts.  Keep
   the first-query `NULL` result, loaded top-owned retry selection, retail
   writer coverage, clean prestate reachability, repaired sink-memory
-  refinement, replacement post-copy lifecycle interface, linked latch
-  initialization plus block-or-reset scheduling, and delayed-warp continuation
-  open.
+  refinement, replacement post-copy lifecycle interface, linked latch/event
+  refinement, and delayed-warp continuation open.
+- [x] Compute the exact generated `level_update.c` direct-writer and explicit
+  address-taking census for `sDelayedWarpOp`; check call-presence/callee-order
+  plus separate clear-presence and packed death-record anchors; and prove the
+  finite fatal-pending-or-old-continuation-destroyed invariant for the explicit
+  event system.  The receipts do not prove assignment/call order or
+  destination selection.
+- [ ] Prove the linked US/JP accepted-fatal initialization, concrete event
+  coverage, clear/reset barriers, and latch-memory frame condition that refine
+  a retail execution into `RetailFatalLatch.v`.  The block-or-reset invariant
+  is proved for the event system, not for linked Clight memory.
+- [x] Formalize the corrected bounded Goomba-raising primitive: one-time
+  priming, repeating airborne action-2 H/F/R cycle, exact binary32
+  velocity `25 + (-4) = 21`, idealized integer-cycle formula, concrete
+  low-height binary32 runs, `2^29` stagnation witness, conditional Spindel
+  collision band, and schedule-specific finite Area-1 top-window bound.
+  Compute matching US/JP callback/action/collision/load source-shape receipts.
+- [ ] Construct a linked clean no-A `FullFloatHFRShuttleObligation`,
+  `PreCollisionRawObjectReturnRaisingObligation`,
+  `SpindelSameSegmentPUCaptureObligation`,
+  `GoombaParallelUniverseTransportObligation`, and
+  `RaisedGoombaToSpindelHandoffObligation`; then prove every later
+  collision-preserving height handoff and continuation to the second-pole cut.
+  Every execution trace must satisfy no A edge at all intermediate frames.
+  Do not infer these witnesses from the vertical arithmetic alone.
 - [x] Parse the generated US/JP Area-1 static initializers in Rocq and compute
   the exact 17-wall/26-floor cell inventories.  Compute all four static-wall
   and both static-floor decision lists as all-rejection, then package
@@ -222,13 +245,14 @@
   transformed surface/height, concrete surface identity, and final
   active/inactive-same-epoch identity.  Separately prove that the top is
   scanned/deallocated and any claimed free-list membership.  The retry-null
-  fatal call and first-writer shape are source-checked, and the closed latch
-  model blocks a later upper-object-warp request.  Add the missing linked proof
-  that the latch begins empty and then either remains occupied through the
-  delayed `ACT_DISAPPEARED` request or is cleared only inside scheduling that
-  resets the continuation before another Mario update; zero lives may store
-  game-over rather than death.  Under those premises only a non-null graphical
-  retry survives.  A null
+  fatal call and first-writer shape are source-checked.
+  `RetailFatalLatch.v` proves the fatal-pending-or-continuation-destroyed
+  invariant and rejects the upper request for its explicit event system.  Add
+  the missing linked proof that the concrete accepted-fatal state and every
+  subsequent scheduler interval project to that event system, including the
+  clear-to-reset barriers and latch-memory frame condition; zero lives may
+  store game-over rather than death.  Under that refinement only a non-null
+  graphical retry survives.  A null
   pre-apply platform still excludes only a pre-existing platform origin and
   must not be used to discard graphical rescue.
 - [ ] Prove which JP raw-platform cases are reachable and bound every reachable
