@@ -96,12 +96,16 @@ provenance bridges needed to apply them globally.  The platform model uses an
 abstract pool slot with a ghost capture epoch and distinguishes null, live,
 inactive, and reused cases under a slot-well-formedness premise, but its C
 projection, authentic reachability, and displacement bounds remain open.  It
-currently admits a model-only stale pyramid-top displacement outside the upper
-shaft.  A fixture-assisted authentic-JP replay consumes the upper trigger with
-no A edge, but has no Act 3 overlap, does not spawn the Act 6 star, and does not
-directly inspect save RAM.  Preparing the payload only before the Area-1
-transition fails, so no controller-only retail predecessor has been
-established.  `PyramidTopPU.v` proves a same-sample contradiction and,
+  currently admits a model-only stale pyramid-top displacement outside the upper
+  shaft.  A fixture-assisted authentic-JP replay consumes the upper trigger with
+  no A edge, but has no Act 3 overlap, does not spawn the Act 6 star, and does not
+  directly inspect save RAM.  Its write occurs at the first Area-2 controller
+  poll, after the true first destination platform application, and therefore
+  drives the second application.  The repeated Area-1 numerical-slot-60
+  predecessor fails because that cell is depth 7 and is reused/cleared as
+  macro object #5; it does not reproduce an early-freed top and its fragments.
+  No controller-only retail predecessor has been established.
+  `PyramidTopPU.v` proves a same-sample contradiction and,
 conditional on Y preservation and the modeled floor bound, excludes the
 stock-yaw arithmetic bootstrap.  Its older two-sample coordinate/alias model
 does not cover the source's graphical-position retry.
@@ -149,8 +153,14 @@ certified memory projection, constrained external effects, finite transformed
 surface samples, and pointer-to-slot/epoch linkage before trying to prove later
 writers, unload preservation, surface identity, or final owner state.  Proving
 that the top itself is scanned, deallocated, or inserted into the free list is
-separate.  The closed Y `1791` witnesses are zero-yaw home-pose facts and do
-not discharge that lifecycle branch.  Reachability, collision-array retention,
+  separate.  The closed Y `1791` witnesses are zero-yaw home-pose facts and do
+  not discharge that lifecycle branch.  For the timed Ink/top composition, the
+  collision frame must see top timer `131`, frame 19 must run spinning timer
+  `150`, and frame 20 must run explosion timer `0`; the timer-131 transform and
+  selected surface are still unexecuted.  Ink is one possible payload installer,
+  not the only one.  State-first selection, physical co-location or cloning,
+  post-commit transport, another owner, and frozen carry remain candidates.
+  Reachability, collision-array retention,
 capture/unload timing, and JP pointer retention or recapture through the
 delayed warp remain open.  The complete matrix and surface-loader bodies are
 imported, the concrete CompCert casts and partition cells are checked, the
@@ -159,9 +169,12 @@ mirrored edge/transform arithmetic evaluates as expected.  Authenticated
 retail US/JP disassembly plus Rocq fragment arithmetic verifies the same three
 concrete cast results.  Generated-expression extraction, linked live-memory
 execution, surface ownership/list order, and actual `find_floor` selection
-remain open.  A separate JP audit checks the free-list source shapes and 50
-Area-2 macro records and proves a finite LIFO/count case split; it does not
-extract the exact reachable allocation trace or payload.
+  remain open.  A separate JP audit checks the free-list source shapes and 50
+Area-2 macro records and proves a finite LIFO/count case split.  The corrected
+fresh census is 84 allocations before the true first apply, or 85 with a saved
+cap; Spindel is allocation 64/free-list depth 63.  These conditional arithmetic
+facts do not prove the destination-scoped linked trace, exact early-freed-top
+depth, pointer lineage, or consumed payload.
 The Goomba-raising proposal supplies another conditional primitive, not a
 closed route.  `GoombaRaising.v` proves the corrected action-2 H/F/R cycle and
 its finite arithmetic, with exact binary32 velocity and selected low-height

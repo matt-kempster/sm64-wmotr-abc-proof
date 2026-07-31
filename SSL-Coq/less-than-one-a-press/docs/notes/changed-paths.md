@@ -652,3 +652,30 @@ changed:
 - `SSL-Coq/less-than-one-a-press/proofs/ClightFacts.v`
 - `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`
 - `SSL-Coq/less-than-one-a-press/proofs/TurningAnimation.v` (new)
+
+## JP first-apply and payload-installer tranche
+
+The corrected true-first-apply chronology, conditional fresh allocation
+census, pool-slot/free-list-depth distinction, timed Ink installer split,
+fixture relabeling, and public status corrections changed:
+
+- `SSL-Coq/README.md`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/claim.md`
+- `SSL-Coq/less-than-one-a-press/docs/goal.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/jp-first-apply.md` (new)
+- `SSL-Coq/less-than-one-a-press/docs/notes/jp-slot-lifetime.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/model-counterexample.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/route-exhaustiveness.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/instrumentation/stale-top-trigger/expected-trace.txt`
+- `SSL-Coq/less-than-one-a-press/instrumentation/stale-top-trigger/jp_stale_top_trigger_probe.c`
+- `SSL-Coq/less-than-one-a-press/instrumentation/stale-top-trigger/run.sh`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+- `SSL-Coq/less-than-one-a-press/proofs/InkPayloadInstaller.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPFirstApply.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`

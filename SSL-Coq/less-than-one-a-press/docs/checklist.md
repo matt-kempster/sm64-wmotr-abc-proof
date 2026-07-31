@@ -270,7 +270,13 @@
   store game-over rather than death.  Under that refinement only a non-null
   graphical retry survives.  A null
   pre-apply platform still excludes only a pre-existing platform origin and
-  must not be used to discard graphical rescue.
+  must not be used to discard graphical rescue.  Treat this graphical gap as
+  one possible **installer** for the JP stale-platform payload, not as a rival
+  final route.  The source timer alignment for that composition is now narrow:
+  the collision frame must see spinning-top timer `131`, frame `19` must run
+  spinning timer `150`, and frame `20` must run explosion timer `0`.  Execute
+  the timer-131 transformed top surface; the old home-pose Y=`1791` witness is
+  not the timed surface and cannot discharge the retry-selection obligation.
 - [ ] Prove which JP raw-platform cases are reachable and bound every reachable
   spawning displacement.  Execute the imported matrix/surface helpers over live
   Clight memory, extract the mirrored expressions from generated Clight, and
@@ -284,7 +290,31 @@
   JP delayed-warp pointer retention/recapture, the US spawn-clear Clight effect,
   and whether the remaining warp-to-top, top-to-warp, and
   collision-preserving-clone possibilities project into the bounded relation or
-  are unreachable.
+  are unreachable.  This is currently the highest-priority counterexample
+  tranche because the fixture already validates the destination displacement
+  and continuation once a suitable payload is installed.  Partial discharge:
+
+  - [x] Correct the control point: `warp_area` and the true first Area-2
+    platform application occur before the first controller poll that observes
+    Area 2.  The successful poll-boundary fixture therefore drives the second
+    application, not the first.
+  - [x] Extract the source-backed fresh-destination census under its explicit
+    respawn/capacity premises: `74` loader allocations, no first-pass coin
+    children, ten elevator marker balls, hence `84` allocations without a
+    saved cap and `85` with one.  Spindel is allocation `64`, or zero-based
+    free-list depth `63`; numerical pool slot `60` is not depth `60`.
+  - [x] Identify the old pre-transition fixture's numerical slot `60` as
+    free-list depth `7`, reused by Area-2 macro `#5`.  Its cleared true-first-
+    apply payload and later Goomba fields do not refute an early-freed top with
+    a different depth.
+  - [ ] Construct the linked destination-scoped Clight chronology/allocation
+    certificate, including pointer block/offset, exact early-freed-top depth,
+    memory zeroing or preservation, first terrain updates, and the payload
+    consumed by the true first apply.
+  - [ ] Prove installer coverage.  Ink's non-null graphical retry is one
+    candidate; State-first selection, physical co-location or cloning,
+    post-commit transport, another dynamic owner, and a skipped-query frozen
+    carry must each be proved unreachable or carried into the same trace.
 - [ ] Project chronological Mario/action/surface observations from Clight and
   prove the transcript route contract complete for both entrances.
 - [ ] Construct `EvidenceBearingFirstTargetCutClassification` from that

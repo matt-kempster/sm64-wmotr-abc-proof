@@ -516,7 +516,18 @@ dynamic surface-list traversal is also unproved, so the selected face
 arithmetic is not advertised as an actual first `NULL` or top-owned retry.
 
 Accordingly, the non-null-retry scheduling shape is neither eliminated nor a
-retail counterexample.  The five-obligation audit refined the remaining work:
+retail counterexample.  It is best treated as one possible **installer** for
+the JP stale-platform pointer/payload, not as a rival final route.  The timed
+hybrid requires top timer 131 on the collision frame, spinning timer 150 on
+frame 19, and explosion timer 0 on frame 20.  The home-pose Y=`1791` witness
+cannot be reused for the raised/rotated timer-131 retry surface.  A State-first
+query, warp/top co-location or cloning, post-commit transport, another dynamic
+owner, or a skipped-query frozen carry could install the same final pointer
+without the graphics gap; those alternatives are not yet collectively closed.
+`InkPayloadInstaller.v` formalizes this two-layer case vocabulary and permits a
+same-slot, different-epoch replacement payload without asserting that any
+installer is retail reachable.
+The five-obligation audit refined the remaining work:
 
 - the prestate, writer, and surface propositions are predicate-sensitive
   schemas and need concrete linked-run replacements;
@@ -534,12 +545,14 @@ See [`ink-fallback.md`](ink-fallback.md).
 `JPSlotLifetime.v` further checks the JP load/spawn/allocation/unload/free-list
 anchors, the loop/literal/indexed-write syntax for an 80-word allocation clear,
 and the 50-record Area-2 macro input.  Its finite LIFO recurrence and
-Before/At/After allocation-count cases
-do not determine the exact reachable allocation/free trace or payload at the
-relevant clean JP upper platform apply; those loads remain
-`JPCleanUpperPlatformApplyMemoryRefinementObligation`, given an explicit
-proved-first control-point witness.  Constructing that witness from the
-Area-1 delayed warp and Area-2 source order is part of the pending refinement.
+Before/At/After allocation-count cases are now paired with `JPFirstApply.v`'s
+conditional fresh census: 84 allocations before the true first destination
+application without a saved cap, or 85 with one.  Spindel is allocation 64,
+zero-based free-list depth 63.  The controller poll used by the successful
+fixture occurs after the true first apply and before the second.  These facts do
+not determine the exact early-freed-top depth, ordered linked allocation/free
+trace, or payload at the true first clean JP upper application; those loads and
+the destination-scoped control-point evidence remain pending.
 
 ## Emulator search boundary
 
@@ -560,7 +573,7 @@ executions.  The successful schedule was rerun while successively adding
 object-lifecycle trace fields; those logging reruns are not counted as new
 schedules.
 
-No stock-reachable target region was found.  The boundary-fixture JP replay
+No stock-reachable target region was found.  The post-first-apply fixture JP replay
 did, however, find a model-level `BypassPlatformDisplacement`: slot-60 yaw
 displacement followed by 60 frames of stick input and neutral input consumes
 the upper hidden-star trigger at relative frame 78.  The trace has zero
@@ -569,9 +582,13 @@ hidden-star-controller count from zero to one.  It neither enters the Act 3
 region nor spawns or collects the Act 6 star.  The probe does not directly read
 save RAM, so this is not a newly-set-target-bit witness.
 
-The matching pre-transition-only attempt fails: Area unload/load reuses slot
-60, clears `gMarioPlatform`, and replaces the raw payload before the first
-Area-2 input boundary.  Thus the successful replay refutes bypass
+The matching pre-transition-only attempt fails: numerical pool slot 60 is at
+free-list depth 7, becomes Area-2 macro object #5, and has its useful payload
+cleared before the true first application.  The later final platform query
+clears `gMarioPlatform`; the Goomba velocity/yaw observed at the first Area-2
+input poll were written after the first application.  This does not reproduce
+an early-freed top and its 30 fragments, so it does not refute that hybrid.
+Thus the successful replay refutes bypass
 unreachability under the current over-permissive clean abstraction, but it is
 not a controller-only retail trace.  Exact RAM fields, inputs, frame trace,
 ROM hashes, and the reproducible probe are in
@@ -629,10 +646,14 @@ To prove route exhaustiveness, the project still needs:
    of their `EntranceCollisionCutEntryContract`, their endpoint-local
    separation, and their selection by `TargetCollisionCutFamily`;
 3. source-backed JP destination-area platform state plus its exact reachable
-   allocation/free trace, slot reuse, payload loads, and delayed-warp
-   retention/recapture.  The generic Area-1 fragment controller lineage is no
-   longer part of this Layer-B item; instead, the missing proof must connect
-   linked Area-1 memory to the finite owner/pre-apply relation;
+   early-freed-top depth, destination-scoped chronology, ordered allocation/
+   free trace, slot reuse, payload loads, and delayed-warp retention.  The
+   conditional fresh allocation count is now known (`84` or `85`), but its
+   premises and execution must be projected from linked memory.  The generic
+   Area-1 fragment controller lineage is no longer part of the bounded
+   pre-existing-platform item; instead, the missing proof must connect linked
+   Area-1 memory to the finite owner/pre-apply relation and prove installer
+   coverage for graphical retry and its alternatives;
 4. construction of `FirstValidatedCutCrossingAt` from every linked first
    target access, including the target-collision-to-cut relation and crossings
    occurring inside the same frame or subframe as the target collision;

@@ -73,16 +73,16 @@ run_mode() {
 }
 
 run_mode pre-transition-only 0
-run_mode area2-boundary 1
+run_mode area2-post-first-apply 1
 
 pre_trace="$out_dir/pre-transition-only.trace.txt"
-boundary_trace="$out_dir/area2-boundary.trace.txt"
+boundary_trace="$out_dir/area2-post-first-apply.trace.txt"
 
-grep -q 'AREA2_BEFORE,mode=pre-transition-only.*platform=00000000' \
+grep -q 'AREA2_POST_FIRST_APPLY_BEFORE_STAGE,mode=pre-transition-only.*platform=00000000' \
     "$pre_trace"
 grep -q 'RESULT,version=JP,mode=pre-transition-only.*aPressedFrames=0,aDownFrames=0,controllerAFrames=0' \
     "$pre_trace"
-grep -q 'RESULT,version=JP,mode=area2-boundary,frames=360,aPressedFrames=0,aDownFrames=0,controllerAFrames=0,act3RegionFrames=0' \
+grep -q 'RESULT,version=JP,mode=area2-post-first-apply,frames=360,aPressedFrames=0,aDownFrames=0,controllerAFrames=0,act3RegionFrames=0' \
     "$boundary_trace"
 grep -q 'triggerEverInactive=1,initialCounter=0,finalCounter=1,maxCounter=1' \
     "$boundary_trace"
@@ -91,6 +91,6 @@ printf 'ROM MD5:    %s\n' "$actual_md5"
 printf 'ROM SHA256: %s\n' "$actual_sha256"
 printf 'Pre-transition result:\n'
 grep '^RESULT' "$pre_trace"
-printf 'Boundary-fixture result:\n'
+printf 'Post-first-apply fixture result:\n'
 grep '^RESULT' "$boundary_trace"
 printf 'Traces:\n  %s\n  %s\n' "$pre_trace" "$boundary_trace"

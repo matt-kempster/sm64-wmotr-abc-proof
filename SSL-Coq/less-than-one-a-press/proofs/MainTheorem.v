@@ -4,9 +4,9 @@ From LessThanOneAPress.Proofs Require Import
   CollisionRegions AreaTransitions HiddenStar LowerEntrance UpperEntrance
   ClightFacts ClightRefinement ArchivedProofIntegration RouteEvidence
   TranscriptRouteModel
-  FirstTargetRefinement JPSlotLifetime FirstCrossingWriterCoverage
+  FirstTargetRefinement JPSlotLifetime JPFirstApply FirstCrossingWriterCoverage
   OrdinaryMotion GoombaRaising PyramidTopPU InkFallback RetailFatalLatch
-  TurningAnimation.
+  InkPayloadInstaller TurningAnimation.
 
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -89,6 +89,45 @@ Proof.
   - split.
     + exact jp_delayed_warp_slot_boundary_checked.
     + exact collection_provenance_reduction.
+Qed.
+
+(** This capstone exposes only the corrected finite JP boundary.  The `84/85`
+    totals and free-list windows are conditional arithmetic; the concrete
+    destination-scoped Clight census is still
+    [JPFirstApplySourceProjectionObligation].  In particular, this theorem
+    does not claim that an early-freed top has any selected depth. *)
+Theorem current_jp_first_apply_finite_boundary :
+  jp_loader_fresh_allocations = 74%nat /\
+  jp_pre_true_first_apply_fresh_allocations false = 84%nat /\
+  jp_pre_true_first_apply_fresh_allocations true = 85%nat /\
+  jp_spindel_conditional_free_list_depth_zero_based = 63%nat /\
+  (forall depth,
+    jp_free_list_depth_is_popped false depth <-> (depth <= 83)%nat) /\
+  (forall depth,
+    jp_free_list_depth_survives true depth <-> (85 <= depth)%nat).
+Proof.
+  split; [exact jp_loader_allocation_decomposition_is_74 |].
+  split; [exact jp_pre_true_first_apply_count_without_saved_cap |].
+  split; [exact jp_pre_true_first_apply_count_with_saved_cap |].
+  split; [exact jp_spindel_conditional_free_list_depth_is_63 |].
+  split.
+  - exact jp_no_cap_popped_depths_are_exactly_0_through_83.
+  - exact jp_saved_cap_surviving_depths_begin_at_85.
+Qed.
+
+(** Ink's graphics split is one possible Layer-1 installer; the JP pointer
+    fate is Layer 2.  This capstone exposes only the exact conditional timer
+    arithmetic used by that composition.  It does not inhabit any of the
+    Clight installer or first-apply refinement obligations. *)
+Theorem current_ink_payload_installer_timer_boundary :
+  timer_schedule_is_consistent exact_installer_timer_schedule /\
+  (forall f0_timer,
+    unit_timer_increments 19%nat f0_timer = 150%nat ->
+    f0_timer = 131%nat).
+Proof.
+  split.
+  - exact exact_installer_timer_schedule_is_consistent.
+  - exact f0_top_timer_is_forced_to_131.
 Qed.
 
 (* The ordinary-motion tranche intentionally exposes both sides of the

@@ -106,7 +106,9 @@ static int gUpperRegionFrames;
 static int gTriggerEverInactive;
 
 static const char *fixture_mode(void) {
-    return STAGE_AT_AREA2_BOUNDARY ? "area2-boundary" : "pre-transition-only";
+    return STAGE_AT_AREA2_BOUNDARY
+        ? "area2-post-first-apply"
+        : "pre-transition-only";
 }
 
 static uint32_t fbits(float value) {
@@ -225,8 +227,8 @@ static void stage_stale_top(void) {
     /*
      * Raw fields from the JP exploded-pyramid-top displacement candidate.
      * Activity flags, behavior, collision, and list links are not modified.
-     * update_mario_platform() dereferences these raw fields without checking
-     * those lifecycle fields.
+     * apply_mario_platform_displacement() dereferences these raw fields
+     * without checking those lifecycle fields.
      */
     W32(slot + O_POS_X, fbits(-2047.0f));
     W32(slot + O_POS_Y, fbits(1778.071045f));
@@ -557,11 +559,17 @@ EXPORT void CALL GetKeys(int control, BUTTONS *keys) {
     timer = R32(A_GLOBAL_TIMER);
     if (gWarpRequested && area == 2 && R32(A_MARIO_OBJECT) != 0) {
         if (!gBoundaryObserved) {
+            /*
+             * GetKeys observes Area 2 only after the preceding game loop has
+             * run warp_area(), loaded the destination objects, and completed
+             * the true first destination apply_mario_platform_displacement().
+             * A write here therefore affects the second Area-2 platform apply.
+             */
             find_hidden_star_objects();
-            log_slot("AREA2_BEFORE");
+            log_slot("AREA2_POST_FIRST_APPLY_BEFORE_STAGE");
             if (STAGE_AT_AREA2_BOUNDARY) {
                 stage_stale_top();
-                log_slot("AREA2_STAGED");
+                log_slot("AREA2_POST_FIRST_APPLY_STAGED");
             }
             gBoundaryObserved = 1;
         }

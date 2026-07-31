@@ -1167,7 +1167,8 @@ Area-2 boundary.  The separate
 state-level consequence of a successful US clear; deriving that clear effect
 from Clight execution remains open.
 
-`JPSlotLifetime.v` now makes the JP allocation boundary less vague.  It checks
+`JPSlotLifetime.v` and `JPFirstApply.v` now make the JP allocation boundary
+less vague.  The former checks
 that area terrain loads before SpawnInfo objects, follows the macro and
 SpawnInfo allocation call chains, checks the free-list head push/pop assignment
 shapes, and checks that the selected unload/deallocation bodies do not directly
@@ -1180,23 +1181,40 @@ macro stream contains 50 complete records in both versions and proves the
 finite LIFO recurrence: if the watched slot is released before a later bulk
 release, it is reached exactly after that bulk prefix is allocated.
 
-Those are source-shape and finite-list theorems, not the missing game trace.
-Respawn filtering, SpawnInfo objects, terrain objects, first-update spawns, and
-the exact free/allocation order determine whether the watched slot is still
-inactive, is selected at the boundary, or was already reused.  The
-Before/At/After allocation-count trichotomy is proved, but the concrete count
-and exact payload loads at a reachable clean JP upper
-`apply_mario_platform_displacement` state remain
-`JPCleanUpperPlatformApplyMemoryRefinementObligation`, given an explicit
-proved-first control-point witness.  Constructing that witness from the
-Area-1 delayed warp and Area-2 source order remains a separate refinement.
+The source audit now supplies the conditional fresh destination census.  With
+all 50 macros spawning, enough free slots, and no saved cap, there are 74
+loader allocations followed by ten elevator marker balls before the true
+first platform application: 84 total.  A saved cap makes 85.  The first
+spawner pass creates no coin children because it observes the object's old
+zero flags and initialized distance 19000.  Spindel is SpawnInfo allocation
+64, or zero-based free-list depth 63; allocations 60 through 63 are moving
+walls.  The new Rocq module proves the `74 + 10`, optional-cap, and
+popped/surviving depth arithmetic without pretending that constants are a
+linked execution proof.
+
+The control point was also corrected.  The normal destination frame runs
+`warp_area`, loads Area 2, and reaches the true first
+`apply_mario_platform_displacement` before Mario's first controller poll that
+observes Area 2.  The existing successful fixture stages its payload at that
+poll, so it affects the **second** Area-2 application.  A valid first-apply
+certificate must be destination-scoped; a record that simply forbids every
+earlier platform application from the beginning of an Area-1 prelude would be
+unsatisfiable because ordinary Area-1 frames contain those calls.
+
+These remain source-shape, arithmetic, and fixture-boundary results, not the
+missing game trace.  The exact early-freed top depth depends on the Area-1
+history, active objects, fragments, respawn state, and cap state.  The ordered
+linked allocation execution, pointer block/offset, allocation epoch, memory
+zeroing or preservation, first terrain updates, and exact payload loads at the
+true first application remain explicit obligations.
+
 For Area 1 proper, the newer audit classifies the stock pre-apply angular
 payloads into top yaw, dirt triangles, and cartoon triangles.  It does not need
 to decide which generic controller schedule realizes a fragment because all
 bounded pre-existing platform origins are null at the old-object warp sample.
 That result does not exclude a null first query followed by Ink's graphical
 retry and a new top capture.  The separate JP destination-area pointer/payload
-census above remains open.
+census above narrows, but does not close, that continuation.
 
 Moving/loading the warp onto the top, moving the top down to the already-loaded
 warp, collision-preserving cloning, and direct post-query writers remain
@@ -1219,19 +1237,26 @@ top itself is scanned/deallocated and inserted into that list.  A source-backed
 clean-entry theorem must either construct that evidence or prove every family
 unreachable; it must not simply decree the JP platform pointer null or safe.
 
-The mechanism was also tested in the authentic JP executable with the exact
-top-derived raw payload installed once in a reused slot at the modeled Area-2
-boundary.  With
-buttons always zero and the stick held straight for 60 frames, the first
-platform update moved Mario to approximately
+The mechanism was also tested in the authentic JP executable with a
+top-derived raw payload installed once in a reused slot at the first Area-2
+input poll.  With buttons always zero and the stick held straight for 60
+frames, the following, second platform application moved Mario to approximately
 `(365.592773, 5496, -1096.802734)`.  Mario later fell through the upper-trigger
 hitbox, whose controller count changed from zero to one.  The trace contained
 zero `A_BUTTON_DOWN` and zero `A_BUTTON_PRESSED` frames.  No Act 3 overlap
 occurred, and the Act 6 controller remained at one of five, so the Act 6 star
-was not spawned; the probe did not directly read save bits.
-Preparing the payload only before the Area-1 transition instead left a
-different reused slot and a null platform pointer at Area-2 entry, so the
-displacement and trigger contact did not occur.
+was not spawned; the probe did not directly read save bits.  The payload is
+route-equivalent, not yet proved byte-identical to the natural explosion-frame
+top state.
+
+Preparing it repeatedly in numerical pool slot 60 only while Area 1 remained
+loaded instead put that cell at free-list depth 7.  Area-2 macro object #5
+reused and cleared it before the true first application, and the later final
+floor query cleared the pointer.  The velocity and yaw logged at the controller
+poll were Goomba writes after the first application.  This negative schedule
+does not reproduce a top deactivated before bulk unload or the top's 30
+fragments, so it does not refute an early-freed-top predecessor with a
+different depth.
 
 This trace is a concrete counterexample to “every bypass constructor is
 unreachable from the current state-only clean boundary.”  It is not a
@@ -1239,6 +1264,28 @@ counterexample to the retail theorem, because the one-time fixture supplies
 the Area-2 boundary pointer/payload state whose stock controller prehistory has
 not yet been constructed.  The exact RAM fields and frame trace are recorded in
 [`docs/notes/model-counterexample.md`](docs/notes/model-counterexample.md).
+The corrected chronology, exact fresh allocation table, and two-layer
+installer analysis are in
+[`docs/notes/jp-first-apply.md`](docs/notes/jp-first-apply.md).
+
+This composition is currently the checklist's most promising counterexample
+family.  Ink's Graphics-minus-Object gap is one possible **installer** for the
+Area-1 top owner; it is not a competing final route.  The timed hybrid requires
+the collision frame to see the spinning top at timer 131, frame 19 to run
+spinning timer 150, and frame 20 to run explosion timer 0.  The old zero-yaw
+home-pose Graphics Y=`1791` witness is therefore not the relevant retry surface:
+timer 131 has a raised, rotated top whose binary32 transform and selected face
+must be executed.
+
+The graphics gap may be unnecessary if a State-first top selection, physical
+warp/top co-location or clone, post-commit transport, another dynamic owner,
+or a skipped-query frozen carry installs the same final pointer.  None of those
+alternatives is proved reachable, impossible, or collectively exhaustive in
+linked retail execution.
+`InkPayloadInstaller.v` records this split with data-bearing constructors and
+keeps the captured Area-1 owner distinct from a same-slot, new-epoch Area-2
+replacement owner.  Its theorem is conditional composition, not proof that
+any constructor occurs in the game.
 
 ### What the route theorem does not establish
 

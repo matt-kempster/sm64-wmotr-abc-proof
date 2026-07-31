@@ -357,6 +357,12 @@ check: proofs
 	  LessThanOneAPress.Proofs.InkFallback \
 	  ink_fallback_checked_boundary
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkPayloadInstaller \
+	  exact_installer_timer_schedule_is_consistent
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkPayloadInstaller \
+	  area1_installer_and_first_area2_effect_compose
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.GoombaRaising \
 	  goomba_velocity_after_gravity_binary32_checked
 	bash pipeline/assumptions.sh \
@@ -416,6 +422,12 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_verified_evidence_and_collection_reduction
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_jp_first_apply_finite_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_ink_payload_installer_timer_boundary
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_ordinary_motion_evidence_boundary
@@ -554,6 +566,18 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.JPSlotLifetime \
 	  jp_delayed_warp_slot_boundary_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPFirstApply \
+	  jp_pre_true_first_apply_count_exact
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPFirstApply \
+	  jp_spindel_conditional_ordinal_bundle
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPFirstApply \
+	  pool_slot_60_and_free_list_depth_60_are_not_equivalent
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPFirstApply \
+	  first_poll_fixture_boundary_is_after_first_apply_before_second
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.Area1PhaseSplit \
 	  area1_fragment_writer_source_checked

@@ -223,6 +223,20 @@
   LIFO depth and Before/At/After allocation-count
   split plus the clean upper-entry live/inactive/reused classification.  These
   are staged source/list theorems, not the missing reachable memory trace.
+- `JPFirstApply.v` distinguishes the true first destination platform
+  application from the first Area-2 controller poll and the following, second
+  application.  It proves the conditional finite census `74 + 10 = 84`, or
+  `85` with a saved cap, and the exact popped/surviving depth arithmetic.  The
+  source audit identifies Spindel as allocation 64/free-list depth 63.  The
+  module leaves destination-scoped linked chronology, ordered allocation
+  execution, pointer/block lineage, and payload loads as explicit evidence.
+- `InkPayloadInstaller.v` makes the clarification formal: a final Area-1 owner
+  installer and a first-Area-2 pointer fate/effect are separate data.  The
+  checked timer schedule requires top timer 131 on the collision frame,
+  spinning timer 150 on frame 19, and explosion timer 0 on frame 20.  The
+  composition theorem preserves the original slot while permitting a new
+  allocation epoch in the reused-payload case; no constructor is asserted
+  reachable from retail Clight.
 - `ModelGapAudit.v` proves that the current endpoint-only abstract certificate
   accepts arbitrary motion and synthetic immediate Act 3 collection from
   explicit clean US/JP entries.  This is a model counterexample, not a retail
@@ -254,6 +268,13 @@
   Eyerok height/refinement theorem, or demo/Mario block provenance.
 - Reachability classification and displacement bounds for every null, live,
   inactive, or reused JP platform-slot case.
+- A clean retail installer for the JP stale-platform payload.  Ink's non-null
+  graphical retry is one candidate installer, with the timed top constrained
+  to spinning timer 131 on the collision frame, timer 150 on frame 19, and
+  explosion timer 0 on frame 20.  State-first selection, physical co-location
+  or cloning, post-commit transport, another owner, and frozen carry are not
+  collectively excluded.  The successful fixture writes after the true first
+  Area-2 apply and demonstrates only the second-apply engine effect.
 - Stock reachability or impossibility of the pyramid-top upper-warp path.
   The Y-preserving stock-yaw arithmetic case is excluded, the exact concrete
   retail cast is verified, and the bounded pre-apply owner theorem excludes
@@ -279,12 +300,15 @@
   Generated-expression extraction, linked live-memory execution,
   dynamic-surface ownership/list selection, collision-array retention,
   capture/unload timing, and JP delayed node-`0x1E` pointer lifetime also
-  remain open.  The exact destination-area allocation/free trace, first-apply
-  identification, and payload are open despite the finite LIFO
+  remain open.  The true first destination apply has now been distinguished
+  from the later input-poll boundary, and the conditional fresh allocation
+  count is 84 or 85; the exact destination-scoped linked allocation/free trace,
+  early-freed-top depth, and payload remain open despite that finite
   classification.  The US state model blocks same-epoch retention after a
   successful spawn clear, whose Clight memory effect is still pending.  An
-  authentic-JP boundary fixture with the raw payload moves Mario outside the
-  shaft and consumes the upper trigger with no A edge, but has no Act 3
+  authentic-JP post-first-apply fixture with the raw payload moves Mario
+  outside the shaft on the second Area-2 application and consumes the upper
+  trigger with no A edge, but has no Act 3
   overlap, does not spawn the Act 6 star, and does not directly inspect save
   RAM.  No controller-only retail predecessor has been established.  Other
   open cases include moving/loading the warp onto the top, moving the top to

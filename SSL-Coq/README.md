@@ -266,10 +266,18 @@ saved A press or a retail counterexample; see the
 free-list push/pop shapes, and the loop/literal/write syntax for clearing 80
 raw words, plus the
 50 packed Area-2 macro records.  It proves a finite LIFO recurrence and the
-clean upper-entry live/inactive/reused slot trichotomy.  The exact reachable
-allocation count and linked Clight memory trace at the first Area-2 platform
-apply remain explicit obligations, so this does not prove retention, reuse, or
-a three-dimensional payload.
+clean upper-entry live/inactive/reused slot trichotomy.  `JPFirstApply.v`
+corrects the fixture control point and proves the finite conditional fresh-load
+census: 84 allocations before the true first Area-2 platform apply, or 85 with
+a saved cap; Spindel is allocation 64/free-list depth 63.  The ordered linked
+Clight trace, actual early-freed-top depth, pointer memory lineage, and consumed
+payload remain explicit obligations, so this does not prove a retail
+three-dimensional displacement.  See the
+[first-apply audit](less-than-one-a-press/docs/notes/jp-first-apply.md).
+`InkPayloadInstaller.v` separately formalizes the candidate installer and
+pointer-fate taxonomies plus the exact timer-131/timer-150/explosion-0
+arithmetic.  Its composition is conditional and is not a retail reachability
+or route-exhaustiveness theorem.
 
 `Area1PhaseSplit.v` proves that stock triangle fragments provide a genuine
 three-dimensional payload, and `Area1SurfaceWitness.v` checks one exact

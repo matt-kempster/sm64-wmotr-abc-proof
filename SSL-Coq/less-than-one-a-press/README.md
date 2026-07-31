@@ -312,10 +312,14 @@ the bounded owner relation and the later JP destination-area lifetime.
 
 `JPSlotLifetime.v` checks allocation, unload, free-list, and delayed-warp
 source anchors, proves that the packed Area-2 macro list has 50 records, and
-proves the corresponding finite LIFO and clean-slot case splits.  It does not
-yet extract the exact allocation/free trace from reachable Clight memory or
-decide whether the watched slot is inactive or reused at the first Area-2
-platform apply.
+proves the corresponding finite LIFO and clean-slot case splits.
+`JPFirstApply.v` now separates the true first destination application from the
+later input-poll fixture boundary and checks the conditional fresh-load counts:
+84 allocations without a saved cap, 85 with one.  The source audit places
+Spindel at allocation 64/free-list depth 63.  These arithmetic and chronology
+theorems do not yet extract an ordered linked-Clight allocation/free trace,
+prove an early-freed top's actual depth, or decide its payload at the true
+first Area-2 application.
 
 For a software-engineering-oriented explanation of the game state, the two
 route gates, the exact proved reductions, and the contribution of each archived
@@ -329,6 +333,9 @@ surface and JP slot boundaries are documented in
 and [`docs/notes/jp-slot-lifetime.md`](docs/notes/jp-slot-lifetime.md).  The authenticated
 retail instruction receipt is
 [`docs/notes/retail-find-floor-cast.md`](docs/notes/retail-find-floor-cast.md).
+The corrected first-apply chronology, exact fresh allocation table, and
+installer split are in
+[`docs/notes/jp-first-apply.md`](docs/notes/jp-first-apply.md).
 The focused ordinary-motion proof boundary is
 [`docs/notes/ordinary-motion.md`](docs/notes/ordinary-motion.md).
 The three-view graphical fallback result is
@@ -415,13 +422,17 @@ unreused pyramid-top slot with yaw delta `0x1800` can displace the abstract
 upper-entry Mario state from `(0, 5500, 256)` to approximately
 `(365.593, 5500, -1096.803)` with no A edge.  The payload and displacement
 formula are source-shaped.  A fixture-assisted replay in the authentic JP ROM
-installs the same raw transform payload once at the Area-2 boundary and, with
-no A held or pressed, consumes the upper hidden-star trigger.  It is not a
+installs the same raw transform payload once at the first Area-2 input poll and,
+with no A held or pressed, consumes the upper hidden-star trigger.  The true
+first destination platform application already ran before that poll, so the
+write affects the second application.  It is not a
 target-bit counterexample: the trace has no Act 3 overlap, does not spawn the
 Act 6 star, and does not directly read save RAM.  The same payload prepared
-only before the Area-1
-transition is cleared or reused and produces no displacement, so no stock
-prehistory retaining that pointer has been established.
+only while an unrelated numerical slot 60 object remains in Area 1 is cleared
+by depth-7 reuse as macro object #5 and produces no displacement.  That test
+does not reproduce a top freed before bulk unload and its 30 fragments, so it
+does not refute the early-freed-top hybrid.  No stock prehistory retaining a
+suitable pointer and payload has been established.
 
 The conditional source path uses Area-1 warp node `0x1E` and arrives at Area-2
 node `0x14`.  In the arithmetic model, one synchronized sample cannot satisfy
@@ -458,6 +469,20 @@ surface and selected height.  The project does not prove the first-query
 `NULL` or loaded-top retry.  The original sink interface was false and its
 repaired first-return form is open; the post-copy lifecycle interface is
 invalid and must be replaced.  Prestate reachability in Clight remains open.
+
+Ink's graphics gap is therefore one possible **payload installer** inside the
+JP stale-platform route, not a separate final route.  A timed version must see
+the spinning top at timer `131` on the warp-collision frame, run spinning timer
+`150` on frame 19, and run explosion timer `0` on frame 20.  The timer-131 top
+is raised and rotated, so the old home-pose Graphics Y=`1791` witness cannot be
+reused as its selected surface.  Other installers remain possible in the
+classification: a State-first top query, physical warp/top co-location or
+collision-preserving cloning, post-commit transport, capture of another
+dynamic owner, or a skipped-query frozen carry.  None is proved reachable or
+collectively exhaustive for linked retail execution.  `InkPayloadInstaller.v`
+formalizes the two independent finite taxonomies, the timer arithmetic, and the
+conditional owner/slot composition while leaving the linked-Clight installer
+coverage obligations open.
 
 The older two-sample countermodel still checks a 1023-unit State Y change,
 exact CompCert casts, dynamic-partition cells, generated triangle indices, the
@@ -504,9 +529,10 @@ through the delayed warp remains open, as do proving that moving/loading the
 warp onto the top, moving the top to the warp, collision-preserving cloning,
 graphical rescue, and direct post-query pointer/object writers either fall
 inside a proved relation or are unreachable.
-The checked 50-record macro count and LIFO recurrence narrow the first Area-2
-slot question but do not determine the reachable allocation count or memory
-payload.  The US state model blocks retaining the same epoch after a successful
+The checked 50-record macro count, fresh conditional 84/85 allocation census,
+and LIFO recurrence narrow the true first Area-2 slot question but do not prove
+the linked allocation trace, early-freed top depth, or consumed memory payload.
+The US state model blocks retaining the same epoch after a successful
 spawn clear, whose Clight memory effect remains pending.  The proof must not
 rule these cases out by strengthening clean entry to assume a null or harmless
 pointer.

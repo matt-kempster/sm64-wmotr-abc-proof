@@ -101,6 +101,7 @@ proofs/UpperEntrance.v
 proofs/ArchivedProofIntegration.v
 proofs/FirstTargetRefinement.v
 proofs/JPSlotLifetime.v
+proofs/JPFirstApply.v
 proofs/Area1PhaseSplit.v
 proofs/Area1SurfaceWitness.v
 proofs/Area1FirstNull.v
@@ -110,6 +111,7 @@ proofs/ModelGapAudit.v
 proofs/OrdinaryMotion.v
 proofs/GoombaRaising.v
 proofs/InkFallback.v
+proofs/InkPayloadInstaller.v
 proofs/RetailFatalLatch.v
 proofs/TurningAnimation.v
 proofs/MainTheorem.v

@@ -196,6 +196,38 @@ capture.  The open pre-apply boundary is
 `Area1StockPreapplyProjectionSound`: no linked Clight memory theorem yet proves
 that every relevant retail pre-apply state projects into this finite relation.
 
+## JP first-apply and payload-installer boundary
+
+`proofs/JPSlotLifetime.v` checks generated JP load/spawn/unload/allocation
+source shapes, the US/JP platform-clear split, 608-byte object layout in the
+generated allocation unit, the 50-record Area-2 macro input, and generic LIFO
+list arithmetic.  Its concrete-pointer, linked-layout, current-slot, payload,
+and ghost-epoch evidence records remain uninhabited refinement targets.
+
+`proofs/JPFirstApply.v` separates the true first Area-2 platform application
+from the first Area-2 controller poll and the following application.  It proves
+the conditional finite fresh-load arithmetic: 74 loader allocations plus ten
+elevator marker balls gives 84, or 85 with a saved cap; zero-based depths 0–83
+or 0–84 are popped respectively.  The source audit places Spindel at allocation
+64/free-list depth 63.  The module deliberately leaves a destination-scoped
+linked-Clight chronology and ordered allocation census as explicit evidence;
+the constants are not presented as execution of the generated program.
+
+`proofs/InkPayloadInstaller.v` formalizes the independent Layer-1 installer
+taxonomy and Layer-2 pointer-fate taxonomy.  Its exact finite timer theorem
+checks the conditional `F0:131`, `F19:150`, `F20:explode 0` alignment, and its
+composition theorem keeps the captured Area-1 allocation owner distinct from a
+same-slot replacement payload owner.  The module carries observations and
+epochs as data, but does not construct any installer from Clight or assert that
+the finite taxonomy exhausts linked retail execution; those refinements remain
+named obligations.
+
+The detailed source and fixture audit is
+[`docs/notes/jp-first-apply.md`](../docs/notes/jp-first-apply.md).  It treats
+Ink's Graphics retry as one possible Area-1 payload installer and separately
+classifies the retained JP pointer's destination fate.  No installer is proved
+retail reachable, and the successful fixture writes after the true first apply.
+
 ## Archive-derived integration boundary
 
 `proofs/ArchivedProofIntegration.v` rechecks selected source claims suggested

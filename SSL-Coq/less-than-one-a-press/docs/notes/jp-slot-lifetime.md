@@ -62,6 +62,47 @@ In particular, absence of a direct field mention does not by itself prove that
 a call preserves the old payload. The linked memory trace below must establish
 those effects.
 
+## Corrected control point and finite destination census
+
+The first controller poll that observes Area 2 is **not** the first
+destination platform-application boundary.  On the first normal frame after
+the two change-area frames, `play_mode_normal` runs `warp_area`, loads Area 2,
+initializes Mario, and then calls `area_update_objects`.  The terrain-object
+phase reaches `apply_mario_platform_displacement` before the Mario update and
+its controller-input read.  The successful fixture write at that first poll
+therefore affects the second Area-2 application.  It is useful engine evidence,
+but it is not a witness for the true first application.
+
+For a fresh Area-2 load with all listed objects permitted to spawn, enough free
+slots, and no saved cap, the source census has 84 successful allocations before
+that true first application:
+
+| Allocation | Object(s) |
+|---:|---|
+| 1–3 | three non-null special-geometry objects |
+| 4–53 | fifty macro objects |
+| 54–73 | the twenty reversed `SpawnInfo` objects |
+| 74 | Mario |
+| 75–84 | ten elevator marker balls |
+
+The first spawner pass creates no coin children: the old zero `oFlags` value is
+snapshotted before the behavior script installs its distance-computation flag,
+so the initialized distance `19000` fails the first `< 2000` test.  A saved cap
+adds one allocation after Mario, giving 85 total.
+
+Within the twenty `SpawnInfo` objects, the elevator is allocation 59, the four
+moving walls are 60–63, and Spindel is allocation 64.  Thus Spindel consumes
+zero-based free-list depth 63, not depth 60.  Its first terrain tick is the
+immediate three-dimensional replacement candidate: Z velocity `5`, pitch
+angular velocity `256`, and pitch `256`.  Without a saved cap, depths 0–83 are
+popped and depths at least 84 remain; with a saved cap, depths 0–84 are popped
+and depths at least 85 remain.
+
+These counts are source-backed under the stated fresh-load premises and their
+finite arithmetic is checked in `JPFirstApply.v`.  Constructing the ordered
+linked-Clight allocation certificate, proving the premises from a clean retail
+history, and executing the resulting object payload remain open.
+
 The staged Rocq finite-list recurrence proves that if the watched pyramid-top slot
 is freed before a later bulk unload, it is exactly `length bulk` entries deep
 in the resulting LIFO free list. The first `length bulk` successful pops take
@@ -92,15 +133,14 @@ pitch/roll combined with a yaw delta could also change Y.
 
 ## Remaining narrow obligations
 
-Two concrete refinement tasks remain:
+The concrete refinement tasks now are:
 
-1. Extract the exact Area-1 post-top deallocation order and every successful
-   Area-2 allocation before the first platform-displacement call, then select
-   the appropriate constructor of `JPPreapplyAllocationCountCase`. The 50
-   macro records are only an upper input list: respawn filtering, special
-   objects, SpawnInfo objects, and terrain-object child spawns affect the
-   actual count. If the count equals the bulk depth, the watched slot is the
-   *next* free-list head; it is reused only when the count is greater.
+1. Extract the exact Area-1 post-top deallocation order and prove the actual
+   early-freed top depth.  Then project the destination source census above to
+   an ordered linked-Clight trace.  If the count equals the depth, the watched
+   slot is the *next* free-list head; it is reused only when the count is
+   greater.  Respawn bytes, pool capacity, cap state, behavior-script indirect
+   calls, and every first terrain update must be proved rather than inferred.
 2. `JPFirstArea2PlatformApplyMemoryRefinementObligation` (also exposed under
    the compatibility name
    `JPCleanUpperPlatformApplyMemoryRefinementObligation`): given an explicit
@@ -127,6 +167,15 @@ Two concrete refinement tasks remain:
    - prove the concrete loads for position, velocity, face angles, and angular
      velocities.
 
+`JPFirstApplySourceProjectionObligation` supplies the corrected companion
+interface for the preload trace: a caller identifies the destination
+`warp_area` entry and the true first apply, the projected state at that apply
+must be a clean JP upper entry, and the ordered allocation census is complete
+only over that destination interval.  This avoids the impossible requirement
+that an Area-1 prelude contain no earlier platform applications.  Relating that
+preload certificate to the clean-run pointer/payload evidence above remains a
+separate boundary refinement.
+
 If the exact count leaves the slot inactive, the remaining payload is the
 stock yaw-only top payload only after the pending memory-preservation and
 lineage evidence establishes that fact; it is not a conclusion of the current
@@ -141,3 +190,11 @@ staging. `MainTheorem.current_verified_evidence_and_collection_reduction`
 exposes it only as a separate conjunct on the verification spine, without
 claiming a semantic bridge to collection. It intentionally stops before the
 two obligations above and before any target-star reachability conclusion.
+
+The existing pre-transition fixture is not a general predecessor test.  Its
+numerical pool slot 60 sits at free-list depth 7 in that observed history and
+is reused by Area-2 macro object #5.  Allocation clears the fields relevant to
+the true first apply; the Goomba velocity/Yaw shown at the later controller poll
+was written afterward.  A top that explodes before bulk unload is buried by a
+different set of later frees, including its fragments, so this negative result
+does not refute the timed Ink-to-early-freed-top composition.

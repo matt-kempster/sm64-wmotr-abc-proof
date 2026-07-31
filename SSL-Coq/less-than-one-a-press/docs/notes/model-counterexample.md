@@ -29,13 +29,15 @@ update.  Two setup operations are outside a controller-only execution:
 
 1. a debugger write requests the normal Area-2 upper-entry warp node `0x14`;
 2. in the successful mode, the debugger writes the stale platform payload once
-   at the first Area-2 input boundary.
+   at the first Area-2 input-poll boundary.  The true first Area-2 platform
+   application has already occurred; this write affects the second one.
 
 After that boundary write there are no state writes.  Every subsequent change
 comes from the retail program and the recorded controller input.
 
-The modeled execution begins at that first Area-2 input boundary.  Menu input
-and the warp setup precede it.
+The modeled execution begins at that first Area-2 input-poll boundary, after
+the true first Area-2 platform application.  Menu input, the warp setup, and
+the destination-load update precede it.
 
 ## Exact relevant initial RAM state
 
@@ -86,7 +88,8 @@ and collision mechanism but does not directly inspect those bits.
 
 ## Complete controller schedule
 
-Relative frame `0` is the first Area-2 input boundary.
+Relative frame `0` is the first Area-2 input-poll boundary.  It is after the
+true first destination platform application and before the second.
 
 ```text
 frames 0 through 59: all buttons released, X_AXIS = 0, Y_AXIS = -127
@@ -118,7 +121,8 @@ controller A frames     = 0
 | 78 | no buttons, neutral | `0x0020` | `(349.748901,3949,-526.831787)` | inactive | 1 |
 | 79 | no buttons, neutral | `0x0020` | `(349.951416,3913,-520.233032)` | slot reused | 1 |
 
-At frame 1, the JP platform update has applied the exact binary32 displacement.
+At frame 1, the second JP Area-2 platform application has applied the exact
+binary32 displacement.
 Collision then pushes Mario from `(365.59,-1096.80)` to the nearby valid floor
 at `(337,4429,-1075)`.  Normal no-A movement carries him off that floor and
 through the upper trigger's collision region.  At frame 78 the original
@@ -135,7 +139,8 @@ region/bypass witness, not a newly-set-bit witness.
 
 The second probe mode writes the same pointer and raw fields only while Area 1
 is still loaded, then performs no Area-2 state write.  At the first Area-2
-input boundary the retail unload/load path has produced:
+input-poll boundary, after the true first platform application and the rest of
+that destination update, the retail unload/load path has produced:
 
 ```text
 slot 60 active       = 257
@@ -148,10 +153,17 @@ gMarioPlatform       = NULL
 ```
 
 No displacement or upper-trigger consumption occurs.  This falsifies that
-specific proposed predecessor, not every possible retail predecessor.
-Allocation history reused slot 60 and cleared the pointer.  A retail
-counterexample would still require a controller-only source trace that
-retains a suitable pointer and payload through the upper warp.
+specific proposed predecessor, not every possible retail predecessor.  During
+the observed destination load, numerical pool slot 60 is zero-based free-list
+depth 7 and becomes macro object #5.  Allocation clears its useful raw payload,
+so the retained pointer has no useful effect at the true first application;
+the later `update_mario_platform` query clears the global pointer.  The
+velocity and yaw shown above are Goomba fields written after the true first
+application.  A top deliberately freed before the bulk unload would have a
+different burial depth, especially after its 30 explosion fragments, so this
+test does not refute that hybrid.  A retail counterexample would still require
+a controller-only source trace that installs and retains a suitable pointer
+and payload through the upper warp.
 
 ## Reproduction
 
