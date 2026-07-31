@@ -1,0 +1,32 @@
+# Key lines from the authenticated original-JP default run.
+# JPLifecycleTrace.v stores relevant floats as exact IEEE-754 binary32 words.
+
+INSTALL timer=492 area=1 top-slot=61 top-timer=131 platform=null
+  State-bits=(c5098000,44400000,c4800000)
+  Object-bits=(c5000000,44400000,c4800000)
+  Graphics-bits=(c4e8c000,44de4000,c4618000)
+RETAIL_RETRY timer=493 action=ACT_DISAPPEARED action-arg=00040001
+  platform=top floor-owner=top all-view-bits=(c4e8c000,44defe16,c4618000)
+EXPLOSION_FREE timer=513 area=1 top-active=0 free-depth=0 free-length=109
+  platform=top mario-bits=(c4fa6882,44f09f67,c445cbb7)
+CHANGE_AREA timer=514 area=1 top-active=0 free-depth=0 platform=top
+CHANGE_AREA timer=515 area=1 top-active=0 free-depth=0 platform=top
+BREAKPOINT_ENTRY pc=802c83f0 caller-return=8029cfc8 timer=515 area=2
+  top-active=0 free-depth=47 free-length=156 platform=top
+  State/Object/Graphics-bits=(00000000,45abe000,43800000)
+BREAKPOINT_RETURN pc=8029cfc8 timer=515 area=2 platform=top
+  State-bits=(43b6cbe0,45abe000,c48919af)
+  Object/Graphics-bits=(00000000,45abe000,43800000)
+FIRST_AREA2_POLL timer=516 area=2 top-active=0 free-depth=47 free-length=156
+  platform=null all-view-bits=(43b6cbe0,45abe000,c48919af)
+COLLISION_SAMPLE timer=594 mario-object-bits=(43c335e4,457a9000,c414712a)
+TRIGGER_CONSUMED timer=595 mario-state-bits=(43c3ef84,4576d000,c41334be)
+  hidden-counter=1
+RESULT a-pressed-frames=0 a-down-frames=0 controller-a-frames=0
+  hidden-counter=0->1 first-apply-entry=1 first-apply-return=1
+
+# Alternate Graphics sample (-1641,1456,-783): transient capture only.
+NEGATIVE_RETRY timer=493 platform=top floor-owner=top
+NEGATIVE_LOST_BY timer=498 platform=null static-floor-y=1280
+NEGATIVE_FIRST_APPLY timer=515 entry-bits=return-bits=(00000000,45abe000,43800000)
+NEGATIVE_RESULT hidden-counter=0->0 trigger-consumed=0

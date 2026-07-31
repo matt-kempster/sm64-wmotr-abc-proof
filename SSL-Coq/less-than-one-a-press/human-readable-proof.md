@@ -19,6 +19,45 @@ engineering but does not know *Super Mario 64*.
 > spurious one-frame collection from a clean entry, so that relation cannot by
 > itself establish the retail theorem.
 
+> **Newest timer-131 result, in software-engineering terms:** the JP candidate
+> now has a real conditional integration trace across the difficult lifetime
+> boundary.  Think of `gMarioPlatform` as a cached pointer to a pool object.  A
+> debugger supplies the still-missing precondition: on exactly the useful
+> Area-1 frame, collision sees Mario's old Object at the upper warp, the first
+> State floor query misses, and the Graphics retry lands on the live spinning
+> pyramid top.  Retail code then owns the rest of the tested path: it caches the
+> top pointer, frees the top during its explosion, retains the stale slot through
+> the delayed area change, leaves that slot 47 allocations deep at the first
+> Area-2 platform application, and applies the retained yaw payload to Mario.
+> This is analogous to a reproducible integration test that begins after an
+> unimplemented input adapter: it validates the downstream lifecycle and effect,
+> but it does not show that normal program inputs can reach the injected state.
+>
+> The exact timer-131 collision calculation matters.  The old home-pose sample
+> `(-2048,1791,-1024)` is rejected by the raised and rotated top.  A corrected
+> low-side sample `(-1641,1456,-783)` is accepted, but Mario loses top support
+> before the explosion, so that sample cannot carry the pointer to Area 2.  The
+> strict-interior midpoint `(-1862,1778,-902)` is accepted at returned floor Y
+> `1783.940186f` and stays top-supported through the explosion and delayed warp
+> in the conditional JP run.  It requires Graphics to be at least `960` units
+> above any warp-overlapping Object, or exactly `1010` units above an Object at
+> the warp centre.  The currently modeled `45`- and `208`-unit writer envelopes
+> cannot supply that gap, but applying either envelope to every reachable retail
+> writer remains open.
+>
+> A timer sweep and its Rocq arithmetic classification make timer `131` the
+> unique tested `0..150` timing with the useful shape: earlier installations
+> freeze before the explosion and lose the payload during destination setup;
+> later installations permit another Area-1 update that clears the pointer.
+> This uniqueness is proved for the observed affine schedule, not derived from
+> a complete linked Clight execution.  At the injected boundary, a zero-A
+> controller continuation has now consumed all five Puzzle triggers, spawned
+> the Act-6 star, and used a B/Z slide kick to overlap it by one vertical unit.
+> The authentic JP save byte changes from `00` to `20` while every A counter
+> remains zero.  No clean retail installer for the `>=960` three-view gap is
+> known, so this is neither a stock-game counterexample nor a completed
+> impossibility proof.
+
 > **Newest turning-animation result:** Marbler's `0xBD` observation is a real
 > numerical coincidence, but it is not an animation-induced upwarp.
 > `MARIO_ANIM_TURNING_PART2` is animation-table index 189.  The different
@@ -855,6 +894,9 @@ The relevant Object-to-Graphics Y gaps are:
 | Signed-range generic top-query threshold | at most `818` | at least `1203` | at least `385` | Necessary for a floor at least `1281`, using the 78-unit query allowance |
 | Exact Ink prestate schema, worst warp-overlap Y | at most `818` | `1791` | at least `973` | Admission-free arithmetic theorem |
 | Displayed witness above | `768` | `1791` | exactly `1023` | Coordinate witness only, not a reachable trace |
+| Timer-131 low-side retry | at most `818` | `1456` | at least `638` | Accepted by the exact timer-131 face, but loses top support before explosion |
+| Timer-131 midpoint retry | at most `818` | `1778` | at least `960` | Accepted strict-interior point; conditionally preserves the top pointer to Area 2 |
+| Timer-131 midpoint at warp centre | `768` | `1778` | exactly `1010` | Exact injected Object/Graphics separation; no clean installer is known |
 
 The interaction/action side has a separate displacement table:
 
@@ -942,19 +984,32 @@ a latch-memory frame condition, and refine compiled `find_floor` to the two
 queried results.
 
 Remaining object lists and the deactivated unload pass run before the final
-platform query.  The checked syntax therefore admits an explosion-frame
-candidate in which the loop is followed by the collision loader and the final
-query encounters a surface whose owner slot has become inactive.  The existing
-lifecycle record tries to describe the retained surface pointer plus an active
-or inactive same-epoch owner, but its current linking, projection, external
-effects, and float premises are not strong enough to make it a valid proof
-target.  It also does not encode that the top itself was scanned/deallocated;
-free-list membership is a separate open fact.
+platform query.  The exact timer-131 follow-up separates two accepted retry
+points.  The low-side point `(-1641,1456,-783)` captures the top initially, but
+its support changes to the static Y=`1280` floor at global timer 498 and
+`gMarioPlatform` becomes null.  It therefore cannot carry the stale pointer to
+Area 2.  The midpoint `(-1862,1778,-902)` instead remains on a top-owned floor
+through timer 498; at timer 513 the top is inactive at free-list depth zero,
+yet the final floor owner and platform pointer still name its slot.  After the
+area unload and 84 destination allocations, the slot remains free at depth 47
+and the first Area-2 application produces exact State bits
+`(43b6cbe0,45abe000,c48919af)`.
+
+Those facts come from a hash-gated authentic-JP runtime trace beginning at an
+injected three-view boundary.  The probe does not write the subsequent
+lifecycle, allocation, displacement, collision, or hidden-trigger state.  Its
+execution breakpoints now locate the true first destination application
+directly: authentic JP entry `0x802c83f0` at timer 515 has the stale slot-61
+pointer at free depth 47 and all three Mario views at `(0,5500,256)`; caller
+return `0x8029cfc8` has displaced State bits
+`(43b6cbe0,45abe000,c48919af)` while Object and Graphics still hold the spawn
+coordinates.  The Rocq observation records check the copied bit
+patterns, free-list arithmetic, pointer identities, and zero-A counters; they
+do not turn the emulator trace into a linked Clight small-step execution.
 `ink_local_conditional_pipeline_coordinate_witness` and
-`ink_pu_conditional_pipeline_coordinate_witness` evaluate the handwritten
-pipeline's coordinate arithmetic for these local and PU variants.  The
-generated-AST receipt separately checks the null-test/copy/retry syntax; a
-Clight execution of those outcomes remains open.
+`ink_pu_conditional_pipeline_coordinate_witness` remain handwritten coordinate
+evaluations, while `Timer131Surface.v` supplies the exact raised/rotated surface
+arithmetic for the corrected midpoint.
 
 The five-obligation audit produced three different outcomes:
 
@@ -967,24 +1022,27 @@ The five-obligation audit produced three different outcomes:
    address ranges admitted a concrete modular pointer alias.  The repaired
    obligation uses a first-return relation and pairwise-disjoint four-byte
    cells.  It is a plausible concrete memory obligation, but remains unproved.
-3. The lifecycle proposition can be false under a hostile projection/link.
-   Although `behavior_script.c` is now imported, the interface neither
-   constructs the exact link nor establishes the indirect callback.  It also lacks external-call frame
-   conditions, pointer-to-pool-slot/epoch linkage, and finite-float premises.
-   It must be replaced by an exact-link, clean-run interface.  The checked NaN
-   counterexample shows why equal Coq-level binary32 values alone do not imply
-   the retail `< 4.0f` platform-tolerance comparison.
+3. The old lifecycle proposition can be false under a hostile projection/link.
+   Although `behavior_script.c` is imported, that interface neither constructs
+   the exact link nor establishes the indirect callback.  The new JP trace
+   supplies strong conditional runtime evidence after an injected boundary,
+   including actual explosion/free-list and destination effects, but it is not
+   a repair of that semantic interface.  A linked theorem still needs
+   external-call frame conditions, pointer-to-pool-slot/epoch linkage,
+   finite-float premises, and a clean-run installer.  The checked NaN
+   counterexample explains why equal Coq-level binary32 values alone do not
+   imply the retail `< 4.0f` platform-tolerance comparison.
 
 These are specification counterexamples, not gameplay counterexamples.
 
-The two closed coordinate witnesses use the zero-yaw home top and floor Y
-`1791`.  They are not explosion-pose witnesses.  A handwritten minimum-pose
-recurrence starts at the home Y and yields the conservative center-Y target
-`1871` by timer `150`.  It is not an exact execution of the timer-59
-smooth-rise state, nor a proved binary32 lower bound for the generated Clight.
-The explosion/inactive-slot branch must therefore recover the actual later
-translated/rotated transform and selected floor height through the replacement
-linked lifecycle interface.
+The older closed coordinate witnesses use the zero-yaw home top and floor Y
+`1791`; they are not explosion-pose witnesses.  `Timer131Surface.v` now computes
+the fresh timer-131 pose and collision mesh with CompCert binary32 operations.
+It rejects that old sample, accepts the low-side and midpoint replacements, and
+the conditional JP trace shows why only the midpoint preserves support through
+the tested explosion schedule.  A linked proof must still execute the generated
+matrix/surface helpers over live memory and establish list ownership and
+selection rather than importing the runtime observation as an axiom.
 
 This answers the chatbot disagreement precisely.  The second chatbot is right
 that object collision does not wrap, the stock warp and top are vertically
@@ -993,8 +1051,9 @@ same-frame warp collision, and Mario's model moves later.  Its conclusion is
 too broad: the graphical fallback permits three different coordinate samples
 in one frame.  The PU floor-alias primitive is real, but an audited PU-sized
 State-only displacement writes only State and cannot manufacture the required
-Object/Graphics split.  Neither conditional coordinate witness is a reachable
-stale-slot Clight or ROM trace.
+Object/Graphics split.  The midpoint is now a conditional retail-ROM trace
+after debugger installation, but no clean gameplay trace or linked Clight
+execution constructs its three-view prestate.
 
 The Area-1-first audit now answers the next question more precisely.  A generic
 three-dimensional raw payload really does exist in stock source.  Triangle
@@ -1195,18 +1254,23 @@ linked execution proof.
 The control point was also corrected.  The normal destination frame runs
 `warp_area`, loads Area 2, and reaches the true first
 `apply_mario_platform_displacement` before Mario's first controller poll that
-observes Area 2.  The existing successful fixture stages its payload at that
-poll, so it affects the **second** Area-2 application.  A valid first-apply
+observes Area 2.  The older successful fixture staged its payload at that poll,
+so it affected the **second** Area-2 application.  The newer midpoint fixture
+starts at the post-installer Area-1 boundary and observes the stale payload's
+effect at the true first destination application instead.  A valid first-apply
 certificate must be destination-scoped; a record that simply forbids every
 earlier platform application from the beginning of an Area-1 prelude would be
 unsatisfiable because ordinary Area-1 frames contain those calls.
 
-These remain source-shape, arithmetic, and fixture-boundary results, not the
-missing game trace.  The exact early-freed top depth depends on the Area-1
-history, active objects, fragments, respawn state, and cap state.  The ordered
-linked allocation execution, pointer block/offset, allocation epoch, memory
-zeroing or preservation, first terrain updates, and exact payload loads at the
-true first application remain explicit obligations.
+The midpoint run observes the top freed at depth zero, 131 old-area slots
+pushed ahead of it, 84 destination allocations, and therefore depth 47 at the
+first application; it also records the exact binary32 before/after Mario State.
+`JPLifecycleTrace.v` proves the corresponding finite list arithmetic and the
+internal consistency of the copied observation record.  These are runtime and
+finite-record facts, not the missing clean game trace or linked Clight proof.
+The exact pointer block/offset and epoch projection, ordered linked small-step
+allocation execution, Clight refinement of the confirmed instruction boundary,
+and clean installer remain explicit obligations.
 
 For Area 1 proper, the newer audit classifies the stock pre-apply angular
 payloads into top yaw, dirt triangles, and cartoon triangles.  It does not need
@@ -1237,6 +1301,15 @@ top itself is scanned/deallocated and inserted into that list.  A source-backed
 clean-entry theorem must either construct that evidence or prove every family
 unreachable; it must not simply decree the JP platform pointer null or safe.
 
+The midpoint probe supplies runtime values for each of those lifecycle stages
+after its injected prestate: successful retry, copied State/Object, continuing
+top ownership, explosion and early free, delayed-warp retention, destination
+free-list depth, first application, and downstream trigger observations.  That
+closes the earlier *empirical* question of whether this particular captured
+pointer can survive.  It does not construct the replacement Clight evidence
+record, prove the runtime's clean predecessor, or make the old underconstrained
+lifecycle proposition safe to assume.
+
 The mechanism was also tested in the authentic JP executable with a
 top-derived raw payload installed once in a reused slot at the first Area-2
 input poll.  With buttons always zero and the stick held straight for 60
@@ -1249,6 +1322,27 @@ was not spawned; the probe did not directly read save bits.  The payload is
 route-equivalent, not yet proved byte-identical to the natural explosion-frame
 top state.
 
+The stronger current experiment no longer injects a destination slot.  It
+injects only the timer-131 three-view Area-1 prestate with midpoint Graphics
+`(-1862,1778,-902)`.  Retail JP then selects the live top-owned retry, retains
+that same slot through its explosion/free and delayed warp, and applies the
+stale pure-yaw payload at the first Area-2 application.  The resulting State is
+exactly `(365.5927734375,5500,-1096.8026123046875)`.  A zero-A stick schedule
+then consumes all five triggers.  A refined B/Z continuation spawns the Act-6
+star at timer `949`, reaches it at timer `1342`, and records the initially-clear
+primary SSL byte changing from `00` to `20` at timer `1343`.  Mario's hitbox
+overlaps the star by one vertical unit, `usedObj` is the spawned pointer, and
+the action becomes `ACT_FALL_AFTER_STAR_GRAB`.  The injected three-view split
+remains the decisive non-retail seam.
+
+| Counter after update | Global timer | Mario State after update |
+| ---: | ---: | --- |
+| `1` | `595` | `(391.871216,3949,-588.824097)` |
+| `2` | `693` | `(-254.559387,2940,-602.704346)` |
+| `3` | `748` | `(252.736115,1967,-602.249512)` |
+| `4` | `869` | `(-1807.365845,1229,-600.141235)` |
+| `5` | `1111` | `(-1909.462524,1229,2198.828857)` |
+
 Preparing it repeatedly in numerical pool slot 60 only while Area 1 remained
 loaded instead put that cell at free-list depth 7.  Area-2 macro object #5
 reused and cleared it before the true first application, and the later final
@@ -1260,13 +1354,17 @@ different depth.
 
 This trace is a concrete counterexample to “every bypass constructor is
 unreachable from the current state-only clean boundary.”  It is not a
-counterexample to the retail theorem, because the one-time fixture supplies
-the Area-2 boundary pointer/payload state whose stock controller prehistory has
-not yet been constructed.  The exact RAM fields and frame trace are recorded in
+counterexample to the retail theorem, because each fixture supplies a boundary
+state whose clean controller prehistory has not yet been constructed.  The
+exact RAM fields and earlier frame trace are recorded in
 [`docs/notes/model-counterexample.md`](docs/notes/model-counterexample.md).
 The corrected chronology, exact fresh allocation table, and two-layer
 installer analysis are in
 [`docs/notes/jp-first-apply.md`](docs/notes/jp-first-apply.md).
+The corrected timer-131 face and the conditional retained-slot lifecycle are
+documented in
+[`docs/notes/timer131-surface.md`](docs/notes/timer131-surface.md) and
+[`docs/notes/jp-lifecycle-trace.md`](docs/notes/jp-lifecycle-trace.md).
 
 This composition is currently the checklist's most promising counterexample
 family.  Ink's Graphics-minus-Object gap is one possible **installer** for the
@@ -1274,8 +1372,10 @@ Area-1 top owner; it is not a competing final route.  The timed hybrid requires
 the collision frame to see the spinning top at timer 131, frame 19 to run
 spinning timer 150, and frame 20 to run explosion timer 0.  The old zero-yaw
 home-pose Graphics Y=`1791` witness is therefore not the relevant retry surface:
-timer 131 has a raised, rotated top whose binary32 transform and selected face
-must be executed.
+timer 131 has a raised, rotated top.  The value-level binary32 transform and
+selected midpoint face are now computed, and the conditional JP run observes
+that selection; linked live-memory Clight execution and clean reachability
+remain open.
 
 The graphics gap may be unnecessary if a State-first top selection, physical
 warp/top co-location or clone, post-commit transport, another dynamic owner,
@@ -1451,10 +1551,12 @@ in total.  Direct inspection of that pinned C source shows:
   in the phase order used by the new PU coordinate witness.  The sink can also
   write `gfx.throwMatrix`; remaining object lists and deactivated-object unload
   run before the final platform query.  The generated source admits a distinct
-  explosion-frame inactive-owner candidate, but the home-pose Y `1791`
-  witnesses do not instantiate its translated/rotated surface.  Free-list
-  membership and the repaired first-return sink refinement remain open; the
-  current post-copy lifecycle interface is invalid and must be replaced;
+  explosion-frame inactive-owner candidate.  Exact timer-131 arithmetic rejects
+  the home-pose Y `1791` sample and accepts midpoint
+  `(-1862,1778,-902)`; the injected JP run then observes free-list membership,
+  retained ownership, and first-apply displacement.  The repaired first-return
+  sink refinement, clean installer, and linked post-copy lifecycle interface
+  remain open;
 - the geometry refresh has a guarded first-floor-null branch that copies
   `MarioObject.header.gfx.pos` into MarioState and retries `find_floor`, which
   creates the three-view scheduling shape used by `InkFallback.v`;
@@ -1545,7 +1647,7 @@ are regenerated or reproved in the current namespace.
 
 | Prior project | Evidence in favor of the route argument | What it still does not prove |
 | --- | --- | --- |
-| `ssl-spawning-displacement-proof` | Identifies the JP stale-platform mechanism, retained inactive/reused slot cases, and the exact spinning-top payload that can move upper-entry Mario outside the shaft in the present abstraction.  Its State/Object timing observations motivated the newly rechecked phase-split source facts and countermodel.  The current project now classifies the stock Area-1 angular-payload families and proves every bounded stock pre-apply platform origin null at node `0x1E`, not merely the earlier `[top, box]` case.  Its writer census also helped locate the real graphical fallback. | A linked Clight proof that the finite owner/origin relation covers every retail Area-1 pre-apply state, any construction outside that relation, survival or recapture through the delayed warp, or a retail continuation to a target region.  The archive's hand-selected unowned-floor observation is not a proof of stock provenance.  Its old model omitted the real Graphics-to-State null-floor retry, so its visual-position exclusion cannot rule out Ink's three-view schedule. |
+| `ssl-spawning-displacement-proof` | Identifies the JP stale-platform mechanism, retained inactive/reused slot cases, and the exact spinning-top payload that can move upper-entry Mario outside the shaft. Its State/Object timing observations motivated the rechecked phase-split source facts. The injected-boundary JP trace now observes midpoint capture, explosion/free retention, the first Area-2 apply, all five triggers, star spawn, overlap, and an Act-6 save-bit transition. | A linked Clight proof covering every retail Area-1 pre-apply state, or a clean installer for the required `>=960` Graphics/Object gap. The archive's hand-selected unowned-floor observation is not stock provenance. |
 | `ssl-pyramid-item-proof` | Shows the proof shape needed for area unload/reload, object deletion, free-list slot reuse, and allocation identity.  This supports the claim that outside objects do not simply survive as substitute target stars. | A linked execution proof of the unload loop, target-star provenance, or either route gate. |
 | `ssl-parallel-universe` | Correctly models continuously held A as zero new edges and warns that a bounded-position proof must cover every movement writer.  It tests a possible way of bypassing ordinary geometry. | Complete movement-writer coverage or non-reachability of either target region. |
 | `pole-bypass` | Proves a one-A lower bound for a restricted normalized pole model and isolates `bypass_model_complete` as the missing global premise.  This is evidence about the normal second-pole route. | Every approach state, pole avoidance route, object/platform interaction, Float32 collision phase, JP execution, or the actual target-side support cut.  Its pole-height abstraction is not route-exhaustive. |
@@ -1569,9 +1671,10 @@ The ultimate theorem needs all of the following:
    unload/reload, instant-warp, and collision-list timing.
 4. Parse the generated collision arrays into surfaces and prove exact
    source/target support and open-cell cuts for both entrances.  The selected
-   pyramid-top home face arithmetic is checked; its live construction, list
-   ownership/order, actual `find_floor` selection, and the general support graph
-   remain open.
+   pyramid-top home face and exact timer-131 raised/rotated face arithmetic are
+   checked.  The conditional JP probe observes the corrected face selection,
+   but its linked live construction, list ownership/order, actual Clight
+   `find_floor` traversal, and the general support graph remain open.
 5. Construct `FirstValidatedCutCrossingAt` from every linked first target
    access.  The abstract non-target-frame writer coverage theorem is now
    proved; the remaining construction must connect the target collision to a
@@ -1593,10 +1696,11 @@ The ultimate theorem needs all of the following:
    `InkFallbackPostCopyLifecycleRefinementObligation` with an exact linked
    program that exactly links the imported `behavior_script.c`, an anchored clean run, a certified
    memory projection, external-call frame conditions, finite transformed
-   surface samples, and concrete pointer-to-slot/epoch linkage.  Only then
-   prove later object writers, unload preservation, retained surface identity,
-   and the final active/inactive-same-epoch owner.  Separately prove that the
-   top itself is scanned/deallocated and any claimed free-list membership.
+   surface samples, and concrete pointer-to-slot/epoch linkage.  The conditional
+   midpoint run observes later writers, unload, retained surface identity,
+   explosion/free at depth zero, and the final inactive owner, but those
+   observations are not a linked theorem and begin after debugger installation.
+   Prove the same facts from a clean run rather than assuming the trace record.
 7. For JP platform displacement, derive every admissible raw pointer from an
    actual predecessor, including inactive/reused slot epochs and the
    upper-warp/spinning-top coincidence families.  The source-level LIFO shape,
@@ -1604,15 +1708,24 @@ The ultimate theorem needs all of the following:
    Area-1 audit classifies the three stock pre-apply angular-payload classes and
    proves that every source-bounded stock platform origin is null at node
    `0x1E`; generic fragment controller/free-list lineage is therefore no longer
-   a Layer-B obligation.  What remains is the linked-Clight proof that every
+   a Layer-B obligation.  `JPInstallTimerWindow.v` proves timer 131 unique for
+   the observed affine freeze/explosion schedule, while `JPLifecycleTrace.v`
+   proves the copied depth arithmetic `131 - 84 = 47` and trace consistency.
+   What remains is the linked-Clight proof that every
    retail Area-1 pre-apply state projects into that owner/origin relation, plus
    live surface construction/list selection, alternative constructions outside
-   the bounded relation, the exact JP destination-area allocation state, and
-   delayed-warp retention/recapture.  The concrete candidate cast is verified
-   for both retail versions, but it does not discharge the replacement surface
-   interface described in item 6.
-8. Validate the claimed no-A downstream paths from each successful bypass to
-   the Act 3 region and all five Act 6 triggers.
+   the bounded relation, and a clean installer.  The injected JP run observes
+   delayed-warp retention, the exact early-free depth and destination allocation
+   state, and the first-apply payload; an authentic entry/return receipt now
+   confirms the retail instruction boundary.  The pointer/epoch and linked
+   Clight refinement remain open.  The concrete candidate cast is
+   verified for both retail versions, but it does not discharge the replacement
+   surface interface described in item 6.
+8. Validate the no-A downstream paths from each successful bypass.  The current
+   conditional midpoint route consumes all five Act-6 triggers, spawns and
+   overlaps the star, and newly sets its bit using B/Z/stick without A.
+   Any Act-3 continuation and clean reachability of the injected boundary
+   remain open.
 
 Until these obligations are discharged,
 `conditional_evidence_bearing_clight_run_impossibility` and
@@ -1666,9 +1779,19 @@ The most useful entry points are:
 - `proofs/Area1PlatformExhaustiveness.v`: the fifteen-owner stock Area-1
   inventory, source-bounded pre-apply provenance cases, node-`0x1E` null
   platform result, and checked three-dimensional fragment capability;
+- `proofs/StateFirstInstaller.v`: the source-bounded stock State-first
+  contradiction and the explicit linked-memory projection obligation;
+- `proofs/Timer131Surface.v`: exact timer-131 pose, transformed mesh, rejected
+  old point, two accepted replacement points, midpoint `960`/`1010` gap bounds,
+  and checked conditional JP observation records;
+- `proofs/JPInstallTimerWindow.v`: timer 131 uniqueness inside the observed
+  affine scheduling arithmetic, without claiming linked-run reachability;
 - `proofs/JPSlotLifetime.v`: the JP allocation/free-list source boundary,
   50-record macro count, finite LIFO recurrence, and exact open first-apply
   memory obligation;
+- `proofs/JPLifecycleTrace.v`: generated source-order receipts, exact finite
+  free-list/depth arithmetic, and internal consistency of the injected-boundary
+  JP lifecycle record; not a clean Clight execution theorem;
 - `proofs/FirstTargetRefinement.v`: indexed Clight-frame evidence, collision
   cuts, concrete bypass classes, and conditional stale-top path;
 - `proofs/ModelGapAudit.v`: executable countermodels to the old abstraction
@@ -1687,7 +1810,11 @@ The most useful entry points are:
 - `docs/notes/retail-find-floor-cast.md`: authenticated US/JP function offsets,
   instruction receipt, hashes, and reproduction commands; and
 - `docs/notes/jp-slot-lifetime.md`: exact JP slot-lifetime facts and unresolved
-  allocation trace.
+  allocation trace;
+- `docs/notes/timer131-surface.md`: exact raised/rotated surface calculation and
+  the rejected, transient, and capture-preserving retry points; and
+- `docs/notes/jp-lifecycle-trace.md`: conditional explosion/free, delayed-warp,
+  first-apply, and zero-A continuation observations.
 
 Build and run all project checks with:
 

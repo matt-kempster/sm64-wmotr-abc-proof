@@ -1,0 +1,40 @@
+Authenticated ROM:
+  MD5    85d61f5525af708c9f1e84dce6dc10e9
+  SHA256 9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317
+
+Command (ROM offset 0x1000 loads at virtual address 0x80246000):
+  mips-linux-gnu-objdump -D -b binary -m mips:4300 -EB \
+    --adjust-vma=0x80245000 \
+    --start-address=0x802c83f0 --stop-address=0x802c8460 \
+    /path/to/baserom.jp.z64
+
+00000000802c83f0 <.data+0x833f0>:
+    802c83f0: 27bdffe0  addiu sp,sp,-32
+    802c83f4: afbf0014  sw    ra,20(sp)
+    802c83f8: 3c0e8033  lui   t6,0x8033
+    802c83fc: 8dcefed4  lw    t6,-300(t6)
+    802c8400: afae001c  sw    t6,28(sp)
+    802c8404: 3c0f8034  lui   t7,0x8034
+    802c8408: 8defc110  lw    t7,-16112(t7)
+    802c840c: 31f80040  andi  t8,t7,0x40
+    802c8410: 1700000b  bnez  t8,0x802c8440
+    802c8414: 00000000  nop
+    802c8418: 3c198036  lui   t9,0x8036
+    802c841c: 8f39fde8  lw    t9,-536(t9)
+    802c8420: 13200007  beqz  t9,0x802c8440
+    802c8424: 00000000  nop
+    802c8428: 8fa8001c  lw    t0,28(sp)
+    802c842c: 11000004  beqz  t0,0x802c8440
+    802c8430: 00000000  nop
+    802c8434: 24040001  li    a0,1
+    802c8438: 0c0b203e  jal   0x802c80f8
+    802c843c: 8fa5001c  lw    a1,28(sp)
+    802c8440: 10000001  b     0x802c8448
+    802c8444: 00000000  nop
+    802c8448: 8fbf0014  lw    ra,20(sp)
+    802c844c: 27bd0020  addiu sp,sp,32
+    802c8450: 03e00008  jr    ra
+    802c8454: 00000000  nop
+
+The hash-gated probe stops at 0x802c83f0 and then at the caller return address
+read from register ra. In the default trace that caller return is 0x8029cfc8.

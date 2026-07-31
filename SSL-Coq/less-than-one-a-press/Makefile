@@ -363,6 +363,30 @@ check: proofs
 	  LessThanOneAPress.Proofs.InkPayloadInstaller \
 	  area1_installer_and_first_area2_effect_compose
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Timer131Surface \
+	  timer131_robust_interior_retry_is_accepted
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Timer131Surface \
+	  timer131_surface_checked_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Timer131Surface \
+	  timer131_warp_retry_requires_at_least_632_graphics_y_gap
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Timer131Surface \
+	  timer131_bounded_writer_cannot_install_retry
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Timer131Surface \
+	  timer131_jp_probe_observation_record_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Timer131Surface \
+	  timer131_midface_retry_is_accepted
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Timer131Surface \
+	  timer131_midface_retry_requires_at_least_960_graphics_y_gap
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Timer131Surface \
+	  timer131_jp_midface_capture_observation_record_checked
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.GoombaRaising \
 	  goomba_velocity_after_gravity_binary32_checked
 	bash pipeline/assumptions.sh \
@@ -578,6 +602,42 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.JPFirstApply \
 	  first_poll_fixture_boundary_is_after_first_apply_before_second
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPLifecycleTrace \
+	  jp_lifecycle_clight_shape_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPLifecycleTrace \
+	  jp_state_only_setter_clight_shape_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPLifecycleTrace \
+	  jp_retail_apply_disassembly_receipt_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPLifecycleTrace \
+	  jp_top_survives_true_first_apply_allocations_at_depth_47
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPLifecycleTrace \
+	  authenticated_jp_lifecycle_boundary_trace_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPLifecycleTrace \
+	  observed_true_first_apply_creates_state_object_graphics_phase_split
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPLifecycleTrace \
+	  observed_boundary_closes_lifecycle_and_upper_trigger_continuation
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPLifecycleTrace \
+	  authenticated_jp_full_route_observation_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPLifecycleTrace \
+	  conditional_jp_full_route_reaches_spawn_but_not_collection
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.StateFirstInstaller \
+	  jp_observed_act6_pickup_overlaps_binary32_model
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.StateFirstInstaller \
+	  jp_observed_receipt_is_new_act6_collection
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.StateFirstInstaller \
+	  jp_observed_act6_pickup_projection_has_no_a_edge
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.Area1PhaseSplit \
 	  area1_fragment_writer_source_checked

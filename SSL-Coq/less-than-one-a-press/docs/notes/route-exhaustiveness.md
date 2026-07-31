@@ -6,7 +6,7 @@ The two transcript routes have **not** been proved exhaustive for the retail
 US and JP programs, and no stock-reachable no-A counterexample was found in
 this investigation.
 
-The work did settle five narrower questions:
+The work did settle seven narrower questions:
 
 1. The old `FirstTargetCutClassificationObligation` cannot follow from the
    endpoint/event certificate.  `endpoint_only_alignment_does_not_imply_cut_classification`
@@ -53,6 +53,21 @@ The work did settle five narrower questions:
    domains yields six movement/domain cases plus a separate seventh
    support-selection case.  Coordinate alias/out-of-bounds is therefore an
    endpoint domain, not an independent position store.
+6. The timed top surface is no longer hypothetical value-level geometry.
+   `Timer131Surface.v` computes the exact raised/rotated timer-131 mesh, rejects
+   the old home point `(-2048,1791,-1024)`, and accepts strict-interior midpoint
+   `(-1862,1778,-902)`.  That midpoint requires a Graphics/Object Y gap of at
+   least `960`, exactly `1010` at the warp centre.  A lower accepted point
+   `(-1641,1456,-783)` loses support before explosion; the midpoint does not in
+   the conditional JP run.
+7. Given the debugger-installed midpoint three-view prestate, the authentic JP
+   runtime closes the tested downstream lifecycle: top-owned retry,
+   explosion/free at depth zero, delayed-warp retention, depth 47 after 84
+   destination allocations, true-first-apply displacement, all five hidden-
+   trigger consumptions, Act-6 star spawn, one-unit target overlap, and a newly
+   set Act-6 bit (`00 -> 20`) with zero A edges.  The injected prestate is
+   not a clean stock predecessor, and the Rocq trace checks are not a linked
+   Clight execution theorem.
 
 The third item is an over-permissive-model counterexample, not yet a retail-ROM
 counterexample.  It must not be excluded merely because no stock setup is
@@ -114,6 +129,9 @@ away or assume its displacement is safe.  See
 [`pyramid-top-pu.md`](pyramid-top-pu.md),
 [`pyramid-top-surface-refinement.md`](pyramid-top-surface-refinement.md), and
 [`jp-slot-lifetime.md`](jp-slot-lifetime.md) for the complete current boundary.
+The corrected timed face and conditional downstream lifecycle are in
+[`timer131-surface.md`](timer131-surface.md) and
+[`jp-lifecycle-trace.md`](jp-lifecycle-trace.md).
 The authenticated cast receipt is
 [`retail-find-floor-cast.md`](retail-find-floor-cast.md).
 
@@ -364,7 +382,11 @@ seed census found no enumerated setup that installs this exact stale pointer
 at node `0x14`.  It does not rule out moving/loading the upper warp onto the
 top, moving the top to the warp, or a collision-preserving clone mechanism.
 The concrete ROM replay is therefore a fixture-assisted mechanism test unless
-a controller-only predecessor trace is later found.
+a controller-only predecessor trace is later found.  The newer timer-131
+midpoint fixture is stronger than the old destination-slot fixture: it injects
+only the three-view Area-1 seam, after which retail JP performs top capture,
+explosion/free, delayed-warp retention, and the true first Area-2 displacement.
+It still does not construct that seam from a clean entry.
 
 ## Pyramid-top PU result
 
@@ -438,6 +460,48 @@ the linked program, and `delayed_warp_top_lifetime_obligation` open.  It is
 neither a stock-game counterexample nor proof that all alternative upper routes
 are impossible.
 
+## Exact timer-131 surface and lifecycle
+
+The timed Ink/top composition must collide while the spinning top's behavior
+timer is `131`.  At that update the top is centred at
+`(-2087,1783.071044921875,-1023)`, its low-16 yaw is `0xac00`, and its collision
+mesh is already raised and rotated.  Consequently the old zero-yaw/home sample
+`(-2048,1791,-1024)` is rejected: its selected face height is
+`2005.12890625`, more than the floor query's 78-unit allowance above Graphics.
+
+Two strict-interior replacements separate surface capability from lifecycle
+success:
+
+| Graphics sample | Exact result | Later fate in injected JP run |
+| --- | --- | --- |
+| `(-1641,1456,-783)` | accepted at floor Y `1533.34375` | top support is lost at global timer 498; platform stays null through Area 2 |
+| `(-1862,1778,-902)` | accepted at floor Y `1783.940186` | top support survives through timer 513 explosion/free and the delayed warp |
+
+The midpoint requires Graphics Y `1778` while a warp-overlapping Object has Y
+at most `818`: at least a `960`-unit separation, or exactly `1010` at the warp
+centre Y `768`.  `Timer131Surface.v` proves the pose, transformed signed-16
+vertices, face/plane/buffer arithmetic, and gap bounds using CompCert binary32
+operations.  Its runtime observation records are checked finite data, not
+Clight semantic executions.
+
+The midpoint lifecycle run watches pyramid-top slot 61.  The top is freed at
+depth zero, Area-1 teardown pushes 131 slots, and 84 fresh destination
+allocations leave it at depth 47.  The exact first-apply State changes from
+`(0,5500,256)` to
+`(365.5927734375,5500,-1096.8026123046875)`.  Authentic execution breakpoints
+confirm function entry `0x802c83f0` at timer 515 with the stale pointer and all
+three Mario views at spawn, then caller return `0x8029cfc8` with State displaced
+while Object and Graphics remain at spawn.  `JPLifecycleTrace.v` proves the finite LIFO arithmetic
+and the copied trace record's consistency, not the clean predecessor or linked
+pointer/epoch execution.
+
+`JPInstallTimerWindow.v` proves timer 131 unique in `0..150` for the affine
+global offsets copied from the sweep.  In the observed classification, timers
+at most 130 freeze before explosion, timer 131 freezes immediately after it,
+and timers at least 132 permit another live Area-1 tick that clears the pointer.
+Projecting those offsets and lifecycle classes from a complete linked run is
+still open.
+
 ## Ink's graphical-fallback scheduling shape
 
 The source admits one additional scheduling shape that the earlier
@@ -490,7 +554,10 @@ lifecycle interface.  The module also proves:
   rejected for that first query;
 - a retry with `G.y` in signed-16 range requires at least 385 units of upward
   `G.y - C.y` separation;
-- either exact proposed local/PU prestate requires at least 973 units;
+- either older local/PU home-pose prestate requires at least 973 units, but the
+  home point is rejected at timer 131;
+- the corrected timer-131 midpoint requires at least 960 units, exactly 1010 at
+  the warp centre;
 - the dry ordinary visual bound `<=45` cannot supply that retry;
 - a writer execution classified by the generic conservative modeled
   Graphics-writer relation `<=208` cannot supply the required `385`-unit retry
@@ -508,7 +575,7 @@ The last point explains what PU movement adds: signed-16 aliasing can make a
 pre-existing far-away graphical sample select the local top, but a State-only
 PU displacement does not itself write that graphical sample.
 
-No stock-reachable setup has been found.  The current source census finds no
+No clean stock-reachable installer has been found.  The current source census finds no
 clean SSL Area-1 large Graphics writer; the known full-XYZ anchoring writer is
 used by Chuckya/King Bob-omb behavior, absent from stock SSL Area 1.  This is
 not yet a linked Clight action/spawn-closure theorem.  The real static and
@@ -520,7 +587,9 @@ retail counterexample.  It is best treated as one possible **installer** for
 the JP stale-platform pointer/payload, not as a rival final route.  The timed
 hybrid requires top timer 131 on the collision frame, spinning timer 150 on
 frame 19, and explosion timer 0 on frame 20.  The home-pose Y=`1791` witness
-cannot be reused for the raised/rotated timer-131 retry surface.  A State-first
+cannot be reused for the raised/rotated timer-131 retry surface.  The corrected
+midpoint is exact and conditionally observed, but its `>=960` gap has no clean
+installer.  A State-first
 query, warp/top co-location or cloning, post-commit transport, another dynamic
 owner, or a skipped-query frozen carry could install the same final pointer
 without the graphics gap; those alternatives are not yet collectively closed.
@@ -536,9 +605,10 @@ The five-obligation audit refined the remaining work:
 - the original sink statement was false under repeated-return execution and a
   checked 32-bit pointer-wrap alias; its repaired first-return,
   modular-cell-disjoint form remains unproved; and
-- the lifecycle proposition is unsafe or vacuous under its current
-  link/projection/import interface and must be replaced before any post-copy
-  owner claim.
+- the old lifecycle proposition is unsafe or vacuous under its current
+  link/projection/import interface.  The injected midpoint trace supplies a
+  strong post-copy runtime observation, but does not repair that interface or
+  prove a clean linked run.
 
 See [`ink-fallback.md`](ink-fallback.md).
 
@@ -549,10 +619,12 @@ Before/At/After allocation-count cases are now paired with `JPFirstApply.v`'s
 conditional fresh census: 84 allocations before the true first destination
 application without a saved cap, or 85 with one.  Spindel is allocation 64,
 zero-based free-list depth 63.  The controller poll used by the successful
-fixture occurs after the true first apply and before the second.  These facts do
-not determine the exact early-freed-top depth, ordered linked allocation/free
-trace, or payload at the true first clean JP upper application; those loads and
-the destination-scoped control-point evidence remain pending.
+older fixture occurs after the true first apply and before the second.  The
+midpoint fixture instead observes the top freed at depth zero, depth 47 after
+the 84 destination allocations, and the exact first-apply payload.  These facts
+do not determine a clean linked pointer/epoch and ordered allocation/free trace;
+the instruction receipt is confirmed, while its destination-scoped Clight
+certificate remains pending.
 
 ## Emulator search boundary
 
@@ -563,7 +635,9 @@ plugins.  The search included:
 - six US C-up speed fixtures;
 - upper-entry schedules using idle, eight stick directions, B pulses,
   Z+B/slide-kick-shaped pulses, and already-held-A plus B schedules; and
-- the stale pyramid-top payload above.
+- the stale pyramid-top payload above;
+- the timer-131 three-view midpoint and low-side lifecycle variants; and
+- a feedback-controlled zero-A continuation through the five Act-6 triggers.
 
 All tested schedules kept `A_BUTTON_PRESSED` false.  The clean upper-entry
 search covered 41 schedules per version, 82 total.  The stale-payload search
@@ -571,16 +645,36 @@ covered 25 distinct boundary schedules and one pre-transition-only
 predecessor.  The archived platform and C-up probes add eight fixture
 executions.  The successful schedule was rerun while successively adding
 object-lifecycle trace fields; those logging reruns are not counted as new
-schedules.
+schedules.  A later install-timer sweep and multi-leg continuation search are
+reported separately rather than folded into those historical totals.
 
-No stock-reachable target region was found.  The post-first-apply fixture JP replay
-did, however, find a model-level `BypassPlatformDisplacement`: slot-60 yaw
+No clean stock-reachable target region was found.  The post-first-apply fixture
+JP replay did, however, find a model-level `BypassPlatformDisplacement`: slot-60 yaw
 displacement followed by 60 frames of stick input and neutral input consumes
 the upper hidden-star trigger at relative frame 78.  The trace has zero
 `A_BUTTON_PRESSED` frames, zero `A_BUTTON_DOWN` frames, and changes the
 hidden-star-controller count from zero to one.  It neither enters the Act 3
 region nor spawns or collects the Act 6 star.  The probe does not directly read
 save RAM, so this is not a newly-set-target-bit witness.
+
+The stronger midpoint run begins from an injected timer-131 three-view Area-1
+prestate instead of writing the Area-2 slot.  Retail JP performs the retained-
+top lifecycle and true first application.  The subsequent zero-A route records
+counter transitions at global timers `595`, `693`, `748`, `869`, and `1111`,
+then observes the Act-6 star spawn.  Direct inherited motion passes 11 units
+below it, but a later B/Z slide kick puts Mario at Y `1241`; his 160-unit
+hitbox reaches `1401` while the star begins at `1400`.  At the next timer,
+`usedObj` is the exact spawned star and the primary SSL byte changes `00 -> 20`.
+Thus the payload is conditionally sufficient for collection, but is not yet
+clean-reachable.
+
+| Counter | Timer | Mario State after the trigger update |
+| ---: | ---: | --- |
+| `1` | `595` | `(391.871216,3949,-588.824097)` |
+| `2` | `693` | `(-254.559387,2940,-602.704346)` |
+| `3` | `748` | `(252.736115,1967,-602.249512)` |
+| `4` | `869` | `(-1807.365845,1229,-600.141235)` |
+| `5` | `1111` | `(-1909.462524,1229,2198.828857)` |
 
 The matching pre-transition-only attempt fails: numerical pool slot 60 is at
 free-list depth 7, becomes Area-2 macro object #5, and has its useful payload
@@ -645,11 +739,12 @@ To prove route exhaustiveness, the project still needs:
    surface IDs, dynamic owners, and target-side components, followed by proofs
    of their `EntranceCollisionCutEntryContract`, their endpoint-local
    separation, and their selection by `TargetCollisionCutFamily`;
-3. source-backed JP destination-area platform state plus its exact reachable
-   early-freed-top depth, destination-scoped chronology, ordered allocation/
-   free trace, slot reuse, payload loads, and delayed-warp retention.  The
-   conditional fresh allocation count is now known (`84` or `85`), but its
-   premises and execution must be projected from linked memory.  The generic
+3. a source-backed **clean installer** for the midpoint JP platform state plus
+   its destination-scoped linked chronology, ordered allocation/free trace,
+   pointer/epoch projection, Clight refinement of the confirmed instruction-
+   boundary first-apply load, and delayed-warp retention theorem.  The injected run observes early-free depth
+   zero, 84 allocations, depth 47, payload loads, and retention, but its
+   premises and execution must still be projected from clean linked memory.  The generic
    Area-1 fragment controller lineage is no longer part of the bounded
    pre-existing-platform item; instead, the missing proof must connect linked
    Area-1 memory to the finite owner/pre-apply relation and prove installer
@@ -665,7 +760,11 @@ To prove route exhaustiveness, the project still needs:
    support-selection case; and
 7. a proof that the ordinary elevator/pole A-labelled observations correspond
    to the actual action branches that cross those cuts, completing the
-   classification residual.
+   classification residual; and
+8. for the conditional JP counterexample direction, a zero-A collision with the
+   spawned Act-6 star and an observed newly set bit, or a proof that no such
+   continuation exists.  All five trigger consumptions alone are not target
+   collection.
 
 For the node-`0x1E` candidate, item 3 no longer asks for a particular
 controller sequence, object count, mist branch, or free-list depth.  `[top,
@@ -675,7 +774,7 @@ stock inbound retention, and frozen carry are null at warp overlap.  The open
 question is whether linked retail memory always satisfies that finite
 projection.  Generated-expression extraction, linked live-surface memory, list
 selection, every construction not yet shown to project into the bounded
-relation, and the exact JP destination-area allocation trace remain open.
+relation, and the clean linked JP destination-area allocation trace remain open.
 This platform-origin result does not remove Ink's null-platform graphical
 retry.  The retry-null variant is excluded by fatal-warp priority in
 `RetailFatalLatch.v`'s checked event system.  What remains open is the linked
@@ -684,8 +783,9 @@ those events, clear/reset barriers, and absence of unmodeled latch writers.
 For the non-null variant, the three
 old reachability, writer-coverage,
 and surface-refinement names are predicate schemas awaiting concrete
-linked-run replacements; the repaired sink is open and the lifecycle interface
-is invalid.
+linked-run replacements; the repaired sink is open and the old lifecycle
+interface is invalid.  The midpoint observation answers the conditional runtime
+lifetime question but cannot be substituted for those replacements.
 
 Alternatively, a stock-reachable constructor must be recorded with its exact
 clean initial RAM state, controller frames, object/global trace, and target

@@ -330,6 +330,122 @@ Proof.
     repeat constructor; vm_compute.
 Qed.
 
+(** The complete downstream continuation was subsequently replayed against
+    the same conditional timer-131 boundary.  At timer 1342 an ordinary
+    Z-then-B slide kick puts Mario at the exact binary32 sample below.  The
+    star remains at the hidden-controller position with its retail 80x50
+    hitbox.  Mario's 160-unit hitbox reaches 1401.0f, giving a one-unit
+    vertical overlap with the star whose bottom is 1400.0f.
+
+    This closes the *downstream* geometry question for this fixture.  It does
+    not prove that a clean retail Area-1 execution can install the injected
+    three-view boundary. *)
+Definition jp_observed_act6_pickup_collision_sample : Vec3f := {|
+  vec_x := f32_bits 1147626532;  (* 925.564697265625f *)
+  vec_y := f32_bits 1151016960;  (* 1241.0f *)
+  vec_z := f32_bits 1158849374   (* 2346.21044921875f *)
+|}.
+
+Theorem jp_observed_act6_pickup_overlaps_binary32_model :
+  hitboxes_overlap
+    jp_observed_act6_pickup_collision_sample mario_standard_hitbox_f32
+    hidden_controller_position collect_star_hitbox = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem jp_observed_act6_pickup_has_one_unit_vertical_overlap :
+  Float32.to_bits
+    (hitbox_top
+      jp_observed_act6_pickup_collision_sample mario_standard_hitbox_f32) =
+      Int.repr 1152327680 /\  (* 1401.0f *)
+  Float32.to_bits
+    (hitbox_bottom hidden_controller_position collect_star_hitbox) =
+      Int.repr 1152319488.    (* 1400.0f *)
+Proof. vm_compute. split; reflexivity. Qed.
+
+(** Concrete trace receipt.  These are data copied from the hash-gated
+    authentic-JP replay, rather than premises admitted to a theorem.  The
+    generated-Clight small-step refinement and clean reachability of the
+    injected timer-131 boundary remain separate obligations. *)
+Record JPConditionalAct6PickupReceipt : Type := {
+  jp_pickup_counter_four_timer : Z;
+  jp_pickup_counter_five_timer : Z;
+  jp_pickup_star_spawn_timer : Z;
+  jp_pickup_collision_timer : Z;
+  jp_pickup_save_timer : Z;
+  jp_pickup_star_pointer : Z;
+  jp_pickup_star_params : Z;
+  jp_pickup_pre_action : Z;
+  jp_pickup_post_action : Z;
+  jp_pickup_used_object : Z;
+  jp_pickup_input_bits : Z;
+  jp_pickup_save_before : Z;
+  jp_pickup_save_after : Z;
+  jp_pickup_a_pressed_frames : Z;
+  jp_pickup_a_down_frames : Z;
+  jp_pickup_controller_a_frames : Z
+}.
+
+Definition jp_observed_conditional_act6_pickup :
+    JPConditionalAct6PickupReceipt := {|
+  jp_pickup_counter_four_timer := 834;
+  jp_pickup_counter_five_timer := 945;
+  jp_pickup_star_spawn_timer := 949;
+  jp_pickup_collision_timer := 1342;
+  jp_pickup_save_timer := 1343;
+  jp_pickup_star_pointer := 2150893048;  (* 0x803405f8 *)
+  jp_pickup_star_params := 84148224;     (* 0x05040000 *)
+  jp_pickup_pre_action := 25168042;      (* 0x018008aa, slide kick *)
+  jp_pickup_post_action := 6404;         (* 0x00001904, fall after grab *)
+  jp_pickup_used_object := 2150893048;
+  jp_pickup_input_bits := 1;             (* B held; neither A bit is set *)
+  jp_pickup_save_before := 0;
+  jp_pickup_save_after := 32;            (* Act-6 bit 1 << 5 *)
+  jp_pickup_a_pressed_frames := 0;
+  jp_pickup_a_down_frames := 0;
+  jp_pickup_controller_a_frames := 0
+|}.
+
+Definition jp_pickup_receipt_is_new_act6_collection
+    (receipt : JPConditionalAct6PickupReceipt) : Prop :=
+  Z.testbit (jp_pickup_save_before receipt) 5 = false /\
+  Z.testbit (jp_pickup_save_after receipt) 5 = true /\
+  jp_pickup_used_object receipt = jp_pickup_star_pointer receipt /\
+  jp_pickup_a_pressed_frames receipt = 0 /\
+  jp_pickup_a_down_frames receipt = 0 /\
+  jp_pickup_controller_a_frames receipt = 0.
+
+Theorem jp_observed_receipt_is_new_act6_collection :
+  jp_pickup_receipt_is_new_act6_collection
+    jp_observed_conditional_act6_pickup.
+Proof. vm_compute. repeat split; reflexivity. Qed.
+
+(** This list is only the A-button projection of timers 516..1343.  The
+    replay also contains six B edges, two Z edges, and joystick input; those
+    inputs do not affect the edge-triggered A predicate. *)
+Definition jp_observed_act6_pickup_a_projection : list FrameInput :=
+  repeat zero_a_frame 828.
+
+Lemma repeat_zero_a_frame_has_no_a_edge :
+  forall count,
+    fewer_than_one_a_press (repeat zero_a_frame count).
+Proof.
+  intros count.
+  unfold fewer_than_one_a_press.
+  induction count as [| count IH]; cbn.
+  - constructor.
+  - constructor.
+    + vm_compute. reflexivity.
+    + exact IH.
+Qed.
+
+Theorem jp_observed_act6_pickup_projection_has_no_a_edge :
+  length jp_observed_act6_pickup_a_projection = 828%nat /\
+  fewer_than_one_a_press jp_observed_act6_pickup_a_projection.
+Proof.
+  split; [reflexivity |].
+  apply repeat_zero_a_frame_has_no_a_edge.
+Qed.
+
 (** What is closed, and what remains.  In particular, the downstream witness
     establishes a viable continuation *conditional on installer injection*;
     it does not supply the missing clean-retail Layer-1 installer. *)
@@ -345,8 +461,12 @@ Definition StateFirstCheckedBoundary : Prop :=
   hitboxes_overlap
     jp_observed_act3_height_sample mario_standard_hitbox_f32
     act3_static_position collect_star_hitbox = false /\
+  hitboxes_overlap
+    jp_observed_act6_pickup_collision_sample mario_standard_hitbox_f32
+    hidden_controller_position collect_star_hitbox = true /\
   fewer_than_one_a_press
-    jp_observed_first_apply_to_upper_trigger_inputs.
+    jp_observed_first_apply_to_upper_trigger_inputs /\
+  fewer_than_one_a_press jp_observed_act6_pickup_a_projection.
 
 Theorem state_first_checked_boundary_holds :
   StateFirstCheckedBoundary.
@@ -359,5 +479,7 @@ Proof.
   split; [exact spawn_spin_descent_source_shape_receipts_checked |].
   split; [exact jp_observed_upper_trigger_sample_overlaps_binary32_model |].
   split; [exact jp_observed_act3_height_sample_does_not_collect_act3 |].
-  exact (proj2 jp_observed_downstream_schedule_has_no_a_edge).
+  split; [exact jp_observed_act6_pickup_overlaps_binary32_model |].
+  split; [exact (proj2 jp_observed_downstream_schedule_has_no_a_edge) |].
+  exact (proj2 jp_observed_act6_pickup_projection_has_no_a_edge).
 Qed.

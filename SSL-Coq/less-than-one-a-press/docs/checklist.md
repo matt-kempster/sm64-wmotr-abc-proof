@@ -125,6 +125,20 @@
   writer coverage, clean prestate reachability, repaired sink-memory
   refinement, replacement post-copy lifecycle interface, linked latch/event
   refinement, and delayed-warp continuation open.
+- [x] Compute the exact timer-131 pyramid-top pose and transformed mesh with
+  CompCert binary32 operations.  Reject the old home-pose Graphics point
+  `(-2048,1791,-1024)`; accept strict-interior low-side
+  `(-1641,1456,-783)` and midpoint `(-1862,1778,-902)` points; and prove the
+  midpoint requires a Graphics/Object Y gap of at least `960`, exactly `1010`
+  at the warp centre.  This is value-level surface arithmetic, not linked live-
+  list selection or clean reachability.
+- [x] Record the hash-gated conditional JP timer-131 runs: the low-side capture
+  loses top support before explosion, while the midpoint capture retains the
+  top-owned floor through explosion/free and the delayed warp, survives at
+  free-list depth `47`, and supplies the first Area-2 displacement.  Check the
+  copied bit patterns, owners, depths, zero-A counters, and finite trace
+  consistency in Rocq without presenting the observation record as a Clight
+  small-step theorem.
 - [x] Compute the exact generated `level_update.c` direct-writer and explicit
   address-taking census for `sDelayedWarpOp`; check call-presence/callee-order
   plus separate clear-presence and packed death-record anchors; and prove the
@@ -200,14 +214,18 @@
   action/collision reachability.
 - [x] Check JP allocation/unload/free-list source anchors, prove the 50-record
   Area-2 macro bound, finite LIFO recurrence, and Before/At/After allocation
-  count split.  Keep the exact first-Area-2-apply memory trace and payload as a
-  named obligation.
-- [x] Record the authentic-JP boundary-fixture constructor: the exact stale
-  top raw transform payload, a zero-A input schedule, platform displacement out
-  of the shaft, upper-trigger consumption with no Act 3 overlap or Act 6 star
-  spawn, and the failed pre-transition-only preparation.  Save RAM was not
-  directly read.  This closes the state-only bypass-unreachability alternative,
-  not stock reachability or the newly-set-bit theorem.
+  count split.  The injected midpoint run now supplies exact before/after
+  first-Area-2-apply memory observations, a concrete early-freed-top depth, and
+  an authentic retail instruction-entry/return receipt.  Keep the linked
+  allocation/pointer/epoch trace and clean predecessor as named obligations.
+- [x] Record the authentic-JP boundary-fixture constructors: the older
+  destination-slot payload and the stronger timer-131 midpoint Area-1 prestate.
+  In the latter run, retail execution performs top capture, explosion/free,
+  delayed-warp retention, first-apply platform displacement, all five hidden-
+  trigger consumptions, Act-6 star spawn, one-unit target overlap, and an
+  initially-clear `00` to `20` Act-6 save-bit transition with zero A edges.
+  This closes the conditional downstream continuation, not clean stock
+  reachability of its injected timer-131 boundary.
 - [x] Document the alternative-route coverage boundary in
   [`notes/route-exhaustiveness.md`](notes/route-exhaustiveness.md).
 - [x] Add a software-engineer-oriented
@@ -244,10 +262,14 @@
   relation bound of at most `208` for every reachable writer.
 - [ ] Prove or refute the five narrow Ink obligations:
   the surface, prestate, and writer forms are now proved predicate-sensitive
-  schemas rather than closed retail statements.  The exact prestate requires
-  at least a `973`-unit Graphics-minus-Object Y gap, and complete audited
+  schemas rather than closed retail statements.  The older home-pose schema
+  requires at least a `973`-unit Graphics-minus-Object Y gap but is rejected at
+  timer 131.  The corrected capture-preserving midpoint requires at least
+  `960`, or exactly `1010` at the warp centre.  Complete audited
   writer-execution coverage from an audited entry conditionally refutes it.
-  Retail writer and live-list coverage remain open.  The original sink
+  Retail writer and linked live-list coverage remain open.  The authentic JP
+  probe observes a top-owned midpoint retry after injection, but does not prove
+  its clean predecessor or a Clight traversal.  The original sink
   statement was refuted by repeated-return and 32-bit pointer-wrap
   counterexamples; its current record uses a first-return relation and
   disjoint modular four-byte cells, but the repaired
@@ -274,9 +296,10 @@
   one possible **installer** for the JP stale-platform payload, not as a rival
   final route.  The source timer alignment for that composition is now narrow:
   the collision frame must see spinning-top timer `131`, frame `19` must run
-  spinning timer `150`, and frame `20` must run explosion timer `0`.  Execute
-  the timer-131 transformed top surface; the old home-pose Y=`1791` witness is
-  not the timed surface and cannot discharge the retry-selection obligation.
+  spinning timer `150`, and frame `20` must run explosion timer `0`.  The exact
+  timer-131 transformed surface now rejects the old home-pose Y=`1791` witness
+  and accepts the corrected midpoint.  Its clean installation and linked
+  selection remain open.
 - [ ] Prove which JP raw-platform cases are reachable and bound every reachable
   spawning displacement.  Execute the imported matrix/surface helpers over live
   Clight memory, extract the mirrored expressions from generated Clight, and
@@ -296,8 +319,9 @@
 
   - [x] Correct the control point: `warp_area` and the true first Area-2
     platform application occur before the first controller poll that observes
-    Area 2.  The successful poll-boundary fixture therefore drives the second
-    application, not the first.
+    Area 2.  The older poll-boundary fixture therefore drives the second
+    application, while the midpoint Area-1 fixture observes the true first
+    destination displacement.
   - [x] Extract the source-backed fresh-destination census under its explicit
     respawn/capacity premises: `74` loader allocations, no first-pass coin
     children, ten elevator marker balls, hence `84` allocations without a
@@ -307,14 +331,37 @@
     free-list depth `7`, reused by Area-2 macro `#5`.  Its cleared true-first-
     apply payload and later Goomba fields do not refute an early-freed top with
     a different depth.
+  - [x] Prove the exact timer-131 raised/rotated face arithmetic: reject the old
+    home point, distinguish the accepted-but-transient low-side point from the
+    capture-preserving midpoint, and prove the midpoint `960`/`1010` gap bounds.
+  - [x] In the hash-gated injected-boundary JP run, observe the top freed at
+    depth zero, 131 teardown pushes, 84 destination allocations, depth 47 at
+    first apply, and exact binary32 displacement to
+    `(365.5927734375,5500,-1096.8026123046875)`.  Prove the corresponding finite
+    LIFO arithmetic and observation-record consistency in Rocq.
+  - [x] Confirm the true first application at authentic JP instruction
+    boundaries: entry `0x802c83f0` at timer 515 has slot 61 inactive at depth 47
+    and State/Object/Graphics `(0,5500,256)`; caller return `0x8029cfc8` has the
+    displaced State bits while Object/Graphics remain at spawn.  This is retail
+    runtime evidence, not linked Clight refinement.
+  - [x] Prove timer `131` unique in `0..150` for the observed affine
+    install/freeze/explosion schedule.  Keep projection of those affine offsets
+    from linked execution open.
+  - [x] Continue the conditional zero-A route through all five hidden-star
+    trigger transitions, Act-6 star spawn, exact one-unit target overlap, and
+    a newly set Act-6 bit (`00 -> 20`) using B/Z/stick only.
   - [ ] Construct the linked destination-scoped Clight chronology/allocation
-    certificate, including pointer block/offset, exact early-freed-top depth,
-    memory zeroing or preservation, first terrain updates, and the payload
-    consumed by the true first apply.
+    certificate, including pointer block/offset, allocation epoch, memory
+    zeroing or preservation, first terrain updates, and proof that the observed
+    early-free depth and payload are consumed by the true first apply in linked
+    Clight semantics.
   - [ ] Prove installer coverage.  Ink's non-null graphical retry is one
     candidate; State-first selection, physical co-location or cloning,
     post-commit transport, another dynamic owner, and a skipped-query frozen
     carry must each be proved unreachable or carried into the same trace.
+  - [ ] Find a zero-A continuation that overlaps and collects the spawned Act-6
+    star, record the save-bit transition, or prove that the conditional payload
+    cannot do so.  This does not replace the clean-installer obligation.
 - [ ] Project chronological Mario/action/surface observations from Clight and
   prove the transcript route contract complete for both entrances.
 - [ ] Construct `EvidenceBearingFirstTargetCutClassification` from that
