@@ -274,8 +274,9 @@ Clight trace, actual early-freed-top depth, pointer memory lineage, and consumed
 payload remain explicit obligations, so this does not prove a retail
 three-dimensional displacement.  See the
 [first-apply audit](less-than-one-a-press/docs/notes/jp-first-apply.md).
-`InkPayloadInstaller.v` separately formalizes the candidate installer and
-pointer-fate taxonomies plus the exact timer-131/timer-150/explosion-0
+`InkPayloadInstaller.v` formalizes Ink's graphical retry as one candidate
+installer within this same JP stale-platform route, alongside other possible
+installers and pointer fates, plus the exact timer-131/timer-150/explosion-0
 arithmetic.  Its composition is conditional and is not a retail reachability
 or route-exhaustiveness theorem.
 
@@ -308,13 +309,17 @@ The current endpoint certificate and handwritten clean-state model are too
 permissive to establish route exhaustiveness: they admit arbitrary motion, and
 the JP raw-platform case admits a model-only stale pyramid-top displacement
 outside the upper shaft.  An authentic-JP fixture replay installs the same raw
-transform payload once at the Area-2 boundary and goes further: with no A held
-or pressed, it consumes the upper Pyramid Puzzle trigger.  The trace has no
-Act 3 overlap and does not spawn the Act 6 star.  The probe does not directly
-read the save bits, so it is not a newly-set-bit witness.
-Preparing the same slot only before the Area-1 transition fails because the
-slot is cleared or reused, so this is a compiled-mechanism/model-boundary
-counterexample, not a stock-controller-reachable game counterexample.
+transform payload at the first Area-2 controller poll.  That poll is after the
+true first Area-2 platform application, so the staged payload affects the
+second application; with no A held or pressed, it then consumes the upper
+Pyramid Puzzle trigger.  The trace has no Act 3 overlap and does not spawn the
+Act 6 star.  The probe does not directly read the save bits, so it is not a
+newly-set-bit witness.  In the separate pre-transition-only slot-60 test, the
+numeric slot is free-list depth 7 and is reused by allocation 8, macro-object
+5, before the true first application.  That failure does not refute a pyramid
+top deliberately freed earlier at another depth before bulk unload.  The
+fixture therefore remains a compiled-mechanism/model-boundary counterexample,
+not a stock-controller-reachable game counterexample.
 
 The arithmetic model rules out one coordinate satisfying both warp contact and
 top-height platform proximity, and rules out a Y-preserving stock-yaw

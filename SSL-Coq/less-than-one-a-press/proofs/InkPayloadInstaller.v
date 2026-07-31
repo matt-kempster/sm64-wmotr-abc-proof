@@ -52,9 +52,10 @@ Inductive PhysicalCoLocationKind : Type :=
 | CoLocateCollisionPreservingClone.
 
 (**
-  Exhaustive *candidate-mechanism* taxonomy for installing the final Area-1
-  platform owner.  Constructor arguments retain the distinguishing samples;
-  these are not merely names for cases.
+  Finite named candidate taxonomy for installing the final Area-1 platform
+  owner.  It is exhaustive only for this abstract datatype; semantic coverage
+  of retail writers remains an explicit obligation.  Constructor arguments
+  retain the distinguishing samples, so these are not merely names for cases.
 *)
 Inductive FinalArea1PlatformOwnerInstaller : Type :=
 | InstallByInkGraphicalRetry

@@ -666,6 +666,7 @@ fixture relabeling, and public status corrections changed:
 - `SSL-Coq/less-than-one-a-press/docs/checklist.md`
 - `SSL-Coq/less-than-one-a-press/docs/claim.md`
 - `SSL-Coq/less-than-one-a-press/docs/goal.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/archived-proof-evidence.md`
 - `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
 - `SSL-Coq/less-than-one-a-press/docs/notes/jp-first-apply.md` (new)
 - `SSL-Coq/less-than-one-a-press/docs/notes/jp-slot-lifetime.md`
