@@ -19,6 +19,68 @@ engineering but does not know *Super Mario 64*.
 > spurious one-frame collection from a clean entry, so that relation cannot by
 > itself establish the retail theorem.
 
+> **Newest turning-animation result:** Marbler's `0xBD` observation is a real
+> numerical coincidence, but it is not an animation-induced upwarp.
+> `MARIO_ANIM_TURNING_PART2` is animation-table index 189.  The different
+> field `MarioState.unkB0` is also initialized to 189 and is copied to
+> `AnimInfo.animYTrans` when the animation changes.  The pinned Part-2 asset,
+> like all 209 pinned Mario animations, has `animYTransDivisor = 189`.
+> The renderer therefore computes exact binary32 `189 / 189 = 1`.  This is a
+> normal rendering scale, not “add 189 to Mario's Y.”
+>
+> A useful software analogy is that the same integer appears once as an array
+> index and once as a normalization constant.  They never feed back into each
+> other.  `load_patchable_table` bounds-checks the array index and, when
+> necessary, copies the selected animation bytes into a dedicated cache.  It
+> does not patch code.  `set_mario_animation` then writes animation metadata;
+> it does not directly write the physics position, raw collision-object
+> position, or graphical base position used by the OOB fallback.
+>
+> This project now translates `rendering_graph_node.c` for both US and JP, so
+> the sole `animYTrans` consumer is inside the generated boundary.
+> `geo_set_animation_globals` writes a renderer-global ratio, and
+> `geo_process_animated_part` uses that ratio to construct child matrices.
+> Part 2's visual root Y is bounded to 21.75–71.5 world units relative to
+> `header.gfx.pos`; the renderer does not assign that anchor.  Its X/Z root
+> values are zero, and its flags contain no physical animation-translation
+> bit.
+>
+> The reported turning correlation still has a source-backed explanation.
+> In the ordinary non-stopping turning handler, `perform_ground_step` runs
+> before the code compares `forwardVel` with `18.0f` and selects Part 1 or
+> Part 2.  A floor snap can therefore happen on the same visible turning
+> frame while preceding the animation call.  The finish-turning handler uses
+> the opposite local order, but the animation setter still preserves the
+> three gameplay coordinate views; its later ground step remains the possible
+> displacement source.
+>
+> `TurningAnimation.v` proves the binary32 ratio, asset arithmetic bounds,
+> fresh-frame behavior, absence of physical translation flags, exact visual
+> extrema, and a metadata transition that cannot create Ink's
+> State/Object/Graphics-anchor split from synchronized input.  Generated-AST
+> receipts separately check the exact `18.0f` selector with IDs 188/189, both
+> ground-step orderings, the `unkB0 -> animYTrans` dataflow, loader footprint,
+> and renderer ratio for US and JP.
+>
+> The proof deliberately does not claim that animations globally cannot
+> affect gameplay.  Door/ending cutscenes use an explicit animation-root
+> position helper, pole actions read animation Y, and a rendered hand matrix
+> can update the held-object-last-position used by later throw/drop code.
+> None is a Turning-Part-2 upwarp path: turning calls no physical root-motion
+> helper, Part 2 has no corresponding flags, and the walking path drops a held
+> object before selecting turning.
+>
+> There is one formal abstraction counterexample.  If an unconstrained model
+> allows the animation DMA destination to alias Mario's position, loading
+> bytes can change that position.  Rocq records this one-cell alias witness;
+> it is not a retail state.  The linked proof must still establish the normal
+> `0x4000` animation-buffer separation, converter/table mapping, DMA frame
+> rule, and concrete before/after coordinate projection.  Thus this tranche
+> eliminates the proposed `0xBD` mechanism at the checked
+> source/arithmetic/model boundary, while leaving the real
+> `perform_ground_step`/surface-selection obligation open.  See
+> [`docs/notes/turning-animation-upwarp.md`](docs/notes/turning-animation-upwarp.md).
+>
 > **Newest Ink fallback result:** the engine can observe three different Mario
 > positions during one frame.  Object collision reads the old raw Object
 > position; ordinary geometry reads MarioState; and, if that State has no
@@ -1309,7 +1371,7 @@ abstract-execution certificates.
 ## What the generated source already confirms
 
 The current project regenerates CompCert Clight ASTs for both target versions
-from the pinned decomp revision: 37 translation units per version, 74 modules
+from the pinned decomp revision: 38 translation units per version, 76 modules
 in total.  Direct inspection of that pinned C source shows:
 
 - the controller input calculation distinguishes `buttonPressed` from

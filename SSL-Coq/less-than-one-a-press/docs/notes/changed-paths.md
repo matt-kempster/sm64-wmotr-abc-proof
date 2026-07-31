@@ -622,3 +622,33 @@ public status corrections changed:
 - `SSL-Coq/less-than-one-a-press/proofs/GoombaRaising.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`
 - `SSL-Coq/less-than-one-a-press/proofs/RetailFatalLatch.v` (new)
+
+## Turning-Part-2 animation/upwarp tranche
+
+The `0xBD`/`load_patchable_table` investigation, renderer import, formal
+metadata footprint, DMA-alias counterexample, and public status updates
+changed:
+
+- `SSL-Coq/README.md`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/claim.md`
+- `SSL-Coq/less-than-one-a-press/docs/goal.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/ordinary-motion.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/route-exhaustiveness.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/turning-animation-upwarp.md` (new)
+- `SSL-Coq/less-than-one-a-press/generated/jp_rendering_graph_node.v` (new,
+  generated)
+- `SSL-Coq/less-than-one-a-press/generated/us_rendering_graph_node.v` (new,
+  generated)
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+- `SSL-Coq/less-than-one-a-press/pipeline/check-generated.sh`
+- `SSL-Coq/less-than-one-a-press/pipeline/generate-clight.sh`
+- `SSL-Coq/less-than-one-a-press/proofs/ASTFacts.v`
+- `SSL-Coq/less-than-one-a-press/proofs/ClightFacts.v`
+- `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`
+- `SSL-Coq/less-than-one-a-press/proofs/TurningAnimation.v` (new)

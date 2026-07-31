@@ -23,6 +23,24 @@ first-crossing interface.  The
 historical payload-free `FirstTargetCutClassificationObligation` is also
 unproved.
 
+`TurningAnimation.v` addresses the reported Turning-Part-2 upwarps.  The
+number `0xBD` is used in two unrelated domains: animation ID 189 and the
+default `animYTrans` numerator 189.  The pinned Part-2 animation divisor is
+also 189, so CompCert binary32 proves that the renderer multiplier is exactly
+`1.0f`; it is not a 189-unit Y write.  Generated US/JP receipts check the
+`forwardVel >= 18.0f` branch with IDs 188/189, both local
+ground-step/animation orderings, `unkB0 -> animYTrans`, the
+`load_patchable_table` direct footprint, and the sole renderer consumer now
+imported from `rendering_graph_node.c`.  The proved metadata model preserves
+MarioState, raw Object, and Graphics-anchor coordinates and cannot create
+Ink's split from synchronized input.  A checked alias counterexample shows
+why an unconditional DMA frame rule would be unsound.  Converter/table
+mapping, animation-buffer separation, `dma_read` refinement, and a linked
+Clight before/after projection remain open.  The real `perform_ground_step`
+and surface-selection path remains part of ordinary motion; no retail
+animation-induced upwarp was found.  See
+[`docs/notes/turning-animation-upwarp.md`](docs/notes/turning-animation-upwarp.md).
+
 `FirstTargetRefinement.v` now defines a stronger evidence-bearing interface:
 each classified frame carries actual before/after Clight states, a CompCert
 trace segment, projected states, an exact indexed `CertifiedStep`, and a
@@ -927,7 +945,7 @@ conditional theorem is the ultimate target theorem.
   `_FINALROM`, `TARGET_N64`, `NON_MATCHING`, `AVOID_UB`, and `_LANGUAGE_C`.
 - Generator: CompCert `clightgen` 3.15.
 
-Thirty-seven translation units are generated for each version, for 74 Clight
+Thirty-eight translation units are generated for each version, for 76 Clight
 modules total: `game_init.c`, `mario.c`, the seven
 `mario_actions_{airborne,automatic,cutscene,moving,object,stationary,submerged}.c`
 units,
@@ -986,7 +1004,7 @@ SM64_SOURCE=/path/to/sm64 make verify-generated
 The pipeline exports the pinned commit with `git archive`, so uncommitted files
 in the source checkout are not translated.  `verify-generated` requires
 exactly 37 modules per version, rejects extra generated `.v` files, hashes the
-committed output, regenerates all 74 modules, and requires byte-for-byte
+committed output, regenerates all 76 modules, and requires byte-for-byte
 identity.
 
 The command executed per unit is structurally:

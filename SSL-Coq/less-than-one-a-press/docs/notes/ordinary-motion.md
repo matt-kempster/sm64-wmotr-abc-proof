@@ -14,6 +14,20 @@ retail proof, and identifies two false shortcuts:
 No retail trace reaching either target region, and no newly set Act 3 or Act 6
 save bit, was found here.
 
+## Turning-Part-2 report
+
+The separate animation audit does not add a new ordinary-motion primitive.
+In the non-stopping turning handler, `perform_ground_step` runs before the
+`forwardVel >= 18.0f` selector; in the finish-turning handler, animation
+selection precedes its ground step.  In both orders the Part-2 metadata setter
+preserves MarioState, raw Object, and Graphics-anchor coordinates in the
+proved model.  The repeated value 189 gives renderer scale `189/189 = 1`, not
+a Y displacement.  Consequently a same-frame turning upwarp must still be
+classified through the real ground-step/floor, platform, or OOB writer path.
+The linked animation-buffer/DMA footprint remains a narrow refinement
+obligation.  See
+[`turning-animation-upwarp.md`](turning-animation-upwarp.md).
+
 ## What counts as ordinary motion
 
 The ordinary class includes controller-directed walking, existing momentum,

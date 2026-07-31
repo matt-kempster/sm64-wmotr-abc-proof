@@ -2,8 +2,8 @@
 
 All rows are translated twice, once with `VERSION_US` and once with
 `VERSION_JP`, from decomp commit
-`9921382a68bb0c865e5e45eb594d9c64db59b1af`.  There are 37 translation
-units per version and therefore 74 generated Clight modules.
+`9921382a68bb0c865e5e45eb594d9c64db59b1af`.  There are 38 translation
+units per version and therefore 76 generated Clight modules.
 
 Each row is a whole translation unit: every function/global retained by the
 preprocessor is translated, not only the functions named below.  The
@@ -32,6 +32,7 @@ base-insensitive and direct-callee/literal checks are path-insensitive.
 | `src/engine/behavior_script.c` | `*_behavior_script.v` | `cur_obj_update`, behavior-command dispatch, direct distance call and FAR-field writes used by the Goomba audit, and a generated receipt for the bit-0-guarded call to `obj_update_gfx_pos_and_angle`.  This closes the previously absent scheduler body; branch control, the callee's exact dataflow, live Mario flag, and indirect native-call path still require memory/control refinement |
 | `src/engine/level_script.c` | `*_level_script.v` | the interpreter that consumes packed level commands and reaches object/warp/area loaders.  Its body closes an entry/spawn control-flow hole, but the indirect command table, segmented addresses, external native calls, and live memory effects remain to be refined |
 | `src/engine/graph_node.c` | `*_graph_node.v` | `geo_obj_init_spawninfo` and graph-node initialization, including the entry-time Graphics/throw-matrix initialization path.  Function-body coverage does not yet prove Mario-object allocation or non-aliasing |
+| `src/game/rendering_graph_node.c` | `*_rendering_graph_node.v` | the sole `animYTrans` consumer in `geo_set_animation_globals`, its exact numerator/divisor-to-renderer-global ratio, and the animated-part/shadow/object render bodies.  Direct-assignment receipts exclude `pos` and raw Object-data writes in those inspected bodies.  Matrix-stack/display-list construction is rendering state; external-call frame rules, converter-produced animation data, and linked memory non-aliasing remain separate |
 | `src/game/spawn_object.c` | `*_spawn_object.v` | allocation/unload assignment and call occurrences relevant to activation, respawn fields, and reuse; generic allocation writes exact binary32 `1000.0f` to collision-distance raw slot 67.  Live Spindel allocation and absence of a later overwrite are not coupled by the receipt; memory effects are pending |
 | `src/game/object_helpers.c` | `*_object_helpers.v` | default/no-exit star spawn helpers and target behavior parameters; Goomba/Spindel receipts check full-float X/Y/Z distance and FAR-aware movement-body anchors, without proving the branch executes |
 | `src/game/debug.c` | `*_debug.v` | the retail-resident debug object-spawn callback called by `bhvMario`.  The generated receipt finds the page/config/button identifiers and a `spawn_object_relative` call; the exact guard/count interpretation is a separate manual source audit.  A clean live-entry projection must prove the debug-spawn guard false |
@@ -113,6 +114,21 @@ It does not claim exact-21 position growth for arbitrary binary32 Y.  The US/JP
 receipts listed above are logically separate source-shape evidence.  No theorem
 links them to the model or inhabits either trace-wide no-A raw-Object schedule,
 same-segment PU capture, singleton transport, or height-handoff obligations.
+
+`proofs/TurningAnimation.v` checks Marbler's Turning-Part-2 hypothesis.  The
+US/JP generated receipts couple the `forwardVel >= 18.0f` comparison to
+animation IDs 188/189, record both local ground-step/setter orderings, tie
+`unkB0` to `animYTrans`, inspect the animation-loader footprint, and execute
+the renderer's exact field-ratio recognizer.  Its CompCert binary32 kernel
+proves `189/189 = 1`, and its three-view metadata model preserves MarioState,
+raw Object, and Graphics-anchor coordinates.  The project also records the
+HOLP render callback so it does not overgeneralize to “all animations are
+gameplay-inert.”  A one-cell DMA-alias counterexample refutes unconditional
+memory noninterference in an over-permissive model.  Converter/table mapping,
+the retail animation-buffer separation/frame rule, and the linked Clight
+before/after projection remain explicit obligations.  The detailed boundary
+is in
+[`../docs/notes/turning-animation-upwarp.md`](../docs/notes/turning-animation-upwarp.md).
 
 Generated initializer receipts locate the selected lower support faces in the
 `SURFACE_WALL_MISC` group, the selected upper face in the `SURFACE_HARD` group,

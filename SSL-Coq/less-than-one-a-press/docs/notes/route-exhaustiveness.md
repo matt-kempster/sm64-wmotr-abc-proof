@@ -600,7 +600,7 @@ wooden-signpost meshes used by the Area-1 owner envelopes.  It does not yet
 parse the general arrays into a proved surface graph or show that a proposed
 `CollisionSupportCut` matches every triangle.
 
-The generated boundary now contains 37 translation units per version, 74
+The generated boundary now contains 38 translation units per version, 76
 Clight modules total.  The newly imported `mario_actions_submerged.c` units
 have admission-free AST receipts for the water full-step helper calls, all
 three direct whirlpool position slots, and the common water-level clamp.  This
@@ -608,7 +608,10 @@ repairs a source-coverage omission; it does not prove submerged actions
 reachable or unreachable in SSL, nor does it establish whole-program
 position-writer callgraph completeness.
 The same boundary now also contains `behavior_script.c`, `level_script.c`,
-`graph_node.c`, `debug.c`, `memory.c`, and `mario_misc.c`.  These close
+`graph_node.c`, `rendering_graph_node.c`, `debug.c`, `memory.c`, and
+`mario_misc.c`.  The renderer import checks that Turning Part 2's
+`animYTrans` is consumed as a matrix-translation ratio and supplies no direct
+`pos`/raw-data assignment in the inspected bodies.  These close
 previously absent source bodies for entry and writer auditing; exact linking,
 indirect callback execution, and live-memory effects remain separate
 obligations.

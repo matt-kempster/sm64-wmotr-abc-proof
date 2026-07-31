@@ -6,6 +6,7 @@ From LessThanOneAPress.Generated Require Import
   us_mario_actions_moving us_mario_actions_object us_mario_actions_stationary
   us_mario_actions_submerged us_mario_step us_interaction us_save_file us_object_collision
   us_object_list_processor us_behavior_script us_level_script us_graph_node
+  us_rendering_graph_node
   us_spawn_object us_object_helpers us_debug us_memory us_mario_misc
   us_obj_behaviors
   us_obj_behaviors_2 us_behavior_actions us_behavior_data us_area
@@ -17,6 +18,7 @@ From LessThanOneAPress.Generated Require Import
   jp_mario_actions_moving jp_mario_actions_object jp_mario_actions_stationary
   jp_mario_actions_submerged jp_mario_step jp_interaction jp_save_file jp_object_collision
   jp_object_list_processor jp_behavior_script jp_level_script jp_graph_node
+  jp_rendering_graph_node
   jp_spawn_object jp_object_helpers jp_debug jp_memory jp_mario_misc
   jp_obj_behaviors
   jp_obj_behaviors_2 jp_behavior_actions jp_behavior_data jp_area
@@ -45,6 +47,7 @@ Module UOL := us_object_list_processor.
 Module UBS := us_behavior_script.
 Module ULS := us_level_script.
 Module UGraph := us_graph_node.
+Module URender := us_rendering_graph_node.
 Module USO := us_spawn_object.
 Module UOH := us_object_helpers.
 Module UDebug := us_debug.
@@ -81,6 +84,7 @@ Module JOL := jp_object_list_processor.
 Module JBS := jp_behavior_script.
 Module JLS := jp_level_script.
 Module JGraph := jp_graph_node.
+Module JRender := jp_rendering_graph_node.
 Module JSO := jp_spawn_object.
 Module JOH := jp_object_helpers.
 Module JDebug := jp_debug.
@@ -2859,5 +2863,346 @@ Theorem spindel_pu_station_source_shape_jp :
   spindel_pu_station_source_shape_jp_claim.
 Proof.
   unfold spindel_pu_station_source_shape_jp_claim.
+  vm_compute. repeat split.
+Qed.
+
+(** ** Turning-Part-2 animation/upwarp audit
+
+    These facts couple the exact [18.0f] comparison to its two animation
+    call arguments and record both possible local orderings.  In the ordinary
+    non-stopping turning handler, the ground step precedes animation
+    selection.  The finish-turning handler deliberately has the opposite
+    order.  Neither syntax result claims that an early return is impossible
+    or that either call executes in a linked run. *)
+
+Definition turning_part2_selection_source_shape_us_claim : Prop :=
+  field_ge_float_branch_calls_s
+    UMove._forwardVel 1099956224
+    UMove._set_mario_animation 188 189
+    (fn_body UMove.f_act_turning_around) = true /\
+  ident_subsequenceb
+    [UMove._perform_ground_step; UMove._set_mario_animation]
+    (direct_callees_s (fn_body UMove.f_act_turning_around)) = true /\
+  calls_ident_with_int_literal_s
+    UMove._set_mario_animation 189
+    (fn_body UMove.f_act_finish_turning_around) = true /\
+  ident_subsequenceb
+    [UMove._set_mario_animation; UMove._perform_ground_step]
+    (direct_callees_s
+      (fn_body UMove.f_act_finish_turning_around)) = true /\
+  calls_ident_s UMI._update_mario_pos_for_anim
+    (fn_body UMove.f_act_turning_around) = false /\
+  calls_ident_s UMI._return_mario_anim_y_translation
+    (fn_body UMove.f_act_turning_around) = false /\
+  calls_ident_s UMI._update_mario_pos_for_anim
+    (fn_body UMove.f_act_finish_turning_around) = false /\
+  calls_ident_s UMI._return_mario_anim_y_translation
+    (fn_body UMove.f_act_finish_turning_around) = false.
+
+Theorem turning_part2_selection_source_shape_us :
+  turning_part2_selection_source_shape_us_claim.
+Proof.
+  unfold turning_part2_selection_source_shape_us_claim.
+  vm_compute. repeat split.
+Qed.
+
+Definition turning_part2_selection_source_shape_jp_claim : Prop :=
+  field_ge_float_branch_calls_s
+    JMove._forwardVel 1099956224
+    JMove._set_mario_animation 188 189
+    (fn_body JMove.f_act_turning_around) = true /\
+  ident_subsequenceb
+    [JMove._perform_ground_step; JMove._set_mario_animation]
+    (direct_callees_s (fn_body JMove.f_act_turning_around)) = true /\
+  calls_ident_with_int_literal_s
+    JMove._set_mario_animation 189
+    (fn_body JMove.f_act_finish_turning_around) = true /\
+  ident_subsequenceb
+    [JMove._set_mario_animation; JMove._perform_ground_step]
+    (direct_callees_s
+      (fn_body JMove.f_act_finish_turning_around)) = true /\
+  calls_ident_s JMI._update_mario_pos_for_anim
+    (fn_body JMove.f_act_turning_around) = false /\
+  calls_ident_s JMI._return_mario_anim_y_translation
+    (fn_body JMove.f_act_turning_around) = false /\
+  calls_ident_s JMI._update_mario_pos_for_anim
+    (fn_body JMove.f_act_finish_turning_around) = false /\
+  calls_ident_s JMI._return_mario_anim_y_translation
+    (fn_body JMove.f_act_finish_turning_around) = false.
+
+Theorem turning_part2_selection_source_shape_jp :
+  turning_part2_selection_source_shape_jp_claim.
+Proof.
+  unfold turning_part2_selection_source_shape_jp_claim.
+  vm_compute. repeat split.
+Qed.
+
+(** The direct assignment footprint of [set_mario_animation].  Calls are a
+    separate memory-effect boundary: in particular, this does not give
+    [dma_read] an unconstrained frame rule. *)
+Definition set_mario_animation_footprint_source_shape_us_claim : Prop :=
+  assigns_field_int_constant_s UMI._unkB0 189
+    (fn_body UMI.f_init_mario_from_save_file) = true /\
+  direct_callees_s (fn_body UMI.f_set_mario_animation) =
+    [UMI._load_patchable_table] /\
+  assigns_field_from_field_s UMI._unkB0 UMI._animYTrans
+    (fn_body UMI.f_set_mario_animation) = true /\
+  assigns_field_named_s UMI._animID
+    (fn_body UMI.f_set_mario_animation) = true /\
+  assigns_field_named_s UMI._curAnim
+    (fn_body UMI.f_set_mario_animation) = true /\
+  assigns_field_int_constant_s UMI._animAccel 0
+    (fn_body UMI.f_set_mario_animation) = true /\
+  assigns_field_named_s UMI._animFrame
+    (fn_body UMI.f_set_mario_animation) = true /\
+  assigns_field_named_s UMI._values
+    (fn_body UMI.f_set_mario_animation) = true /\
+  assigns_field_named_s UMI._index
+    (fn_body UMI.f_set_mario_animation) = true /\
+  assigns_array_slot_s UMI._pos 0
+    (fn_body UMI.f_set_mario_animation) = false /\
+  assigns_array_slot_s UMI._pos 1
+    (fn_body UMI.f_set_mario_animation) = false /\
+  assigns_array_slot_s UMI._pos 2
+    (fn_body UMI.f_set_mario_animation) = false /\
+  statement_mentions_array_slot_s UMI._rawData 6
+    (fn_body UMI.f_set_mario_animation) = false /\
+  statement_mentions_array_slot_s UMI._rawData 7
+    (fn_body UMI.f_set_mario_animation) = false /\
+  statement_mentions_array_slot_s UMI._rawData 8
+    (fn_body UMI.f_set_mario_animation) = false /\
+  assigns_field_named_s UMI._floor
+    (fn_body UMI.f_set_mario_animation) = false /\
+  calls_ident_s UMI._update_mario_pos_for_anim
+    (fn_body UMI.f_set_mario_animation) = false /\
+  calls_ident_s UMove._perform_ground_step
+    (fn_body UMI.f_set_mario_animation) = false /\
+  calls_ident_s UMI._find_floor
+    (fn_body UMI.f_set_mario_animation) = false /\
+  calls_ident_s UMI._level_trigger_warp
+    (fn_body UMI.f_set_mario_animation) = false.
+
+Theorem set_mario_animation_footprint_source_shape_us :
+  set_mario_animation_footprint_source_shape_us_claim.
+Proof.
+  unfold set_mario_animation_footprint_source_shape_us_claim.
+  vm_compute. repeat split.
+Qed.
+
+Definition set_mario_animation_footprint_source_shape_jp_claim : Prop :=
+  assigns_field_int_constant_s JMI._unkB0 189
+    (fn_body JMI.f_init_mario_from_save_file) = true /\
+  direct_callees_s (fn_body JMI.f_set_mario_animation) =
+    [JMI._load_patchable_table] /\
+  assigns_field_from_field_s JMI._unkB0 JMI._animYTrans
+    (fn_body JMI.f_set_mario_animation) = true /\
+  assigns_field_named_s JMI._animID
+    (fn_body JMI.f_set_mario_animation) = true /\
+  assigns_field_named_s JMI._curAnim
+    (fn_body JMI.f_set_mario_animation) = true /\
+  assigns_field_int_constant_s JMI._animAccel 0
+    (fn_body JMI.f_set_mario_animation) = true /\
+  assigns_field_named_s JMI._animFrame
+    (fn_body JMI.f_set_mario_animation) = true /\
+  assigns_field_named_s JMI._values
+    (fn_body JMI.f_set_mario_animation) = true /\
+  assigns_field_named_s JMI._index
+    (fn_body JMI.f_set_mario_animation) = true /\
+  assigns_array_slot_s JMI._pos 0
+    (fn_body JMI.f_set_mario_animation) = false /\
+  assigns_array_slot_s JMI._pos 1
+    (fn_body JMI.f_set_mario_animation) = false /\
+  assigns_array_slot_s JMI._pos 2
+    (fn_body JMI.f_set_mario_animation) = false /\
+  statement_mentions_array_slot_s JMI._rawData 6
+    (fn_body JMI.f_set_mario_animation) = false /\
+  statement_mentions_array_slot_s JMI._rawData 7
+    (fn_body JMI.f_set_mario_animation) = false /\
+  statement_mentions_array_slot_s JMI._rawData 8
+    (fn_body JMI.f_set_mario_animation) = false /\
+  assigns_field_named_s JMI._floor
+    (fn_body JMI.f_set_mario_animation) = false /\
+  calls_ident_s JMI._update_mario_pos_for_anim
+    (fn_body JMI.f_set_mario_animation) = false /\
+  calls_ident_s JMove._perform_ground_step
+    (fn_body JMI.f_set_mario_animation) = false /\
+  calls_ident_s JMI._find_floor
+    (fn_body JMI.f_set_mario_animation) = false /\
+  calls_ident_s JMI._level_trigger_warp
+    (fn_body JMI.f_set_mario_animation) = false.
+
+Theorem set_mario_animation_footprint_source_shape_jp :
+  set_mario_animation_footprint_source_shape_jp_claim.
+Proof.
+  unfold set_mario_animation_footprint_source_shape_jp_claim.
+  vm_compute. repeat split.
+Qed.
+
+(** The loader's direct footprint and its sole direct callee.  The destination
+    is read from [bufTarget]; proving that the 0x4000 animation allocation is
+    disjoint from Mario/Object memory is deliberately a separate semantic
+    obligation. *)
+Definition load_patchable_table_source_shape_us_claim : Prop :=
+  direct_callees_s (fn_body UMemory.f_load_patchable_table) =
+    [UMemory._dma_read] /\
+  statement_mentions_ident_s UMemory._count
+    (fn_body UMemory.f_load_patchable_table) = true /\
+  statement_mentions_ident_s UMemory._offset
+    (fn_body UMemory.f_load_patchable_table) = true /\
+  statement_mentions_ident_s UMemory._size
+    (fn_body UMemory.f_load_patchable_table) = true /\
+  statement_mentions_ident_s UMemory._bufTarget
+    (fn_body UMemory.f_load_patchable_table) = true /\
+  assigns_field_named_s UMemory._currentAddr
+    (fn_body UMemory.f_load_patchable_table) = true /\
+  assigns_field_named_s UMemory._bufTarget
+    (fn_body UMemory.f_load_patchable_table) = false /\
+  assigns_field_named_s UMI._pos
+    (fn_body UMemory.f_load_patchable_table) = false /\
+  assigns_field_named_s UMI._rawData
+    (fn_body UMemory.f_load_patchable_table) = false.
+
+Theorem load_patchable_table_source_shape_us :
+  load_patchable_table_source_shape_us_claim.
+Proof.
+  unfold load_patchable_table_source_shape_us_claim.
+  vm_compute. repeat split.
+Qed.
+
+Definition load_patchable_table_source_shape_jp_claim : Prop :=
+  direct_callees_s (fn_body JMemory.f_load_patchable_table) =
+    [JMemory._dma_read] /\
+  statement_mentions_ident_s JMemory._count
+    (fn_body JMemory.f_load_patchable_table) = true /\
+  statement_mentions_ident_s JMemory._offset
+    (fn_body JMemory.f_load_patchable_table) = true /\
+  statement_mentions_ident_s JMemory._size
+    (fn_body JMemory.f_load_patchable_table) = true /\
+  statement_mentions_ident_s JMemory._bufTarget
+    (fn_body JMemory.f_load_patchable_table) = true /\
+  assigns_field_named_s JMemory._currentAddr
+    (fn_body JMemory.f_load_patchable_table) = true /\
+  assigns_field_named_s JMemory._bufTarget
+    (fn_body JMemory.f_load_patchable_table) = false /\
+  assigns_field_named_s JMI._pos
+    (fn_body JMemory.f_load_patchable_table) = false /\
+  assigns_field_named_s JMI._rawData
+    (fn_body JMemory.f_load_patchable_table) = false.
+
+Theorem load_patchable_table_source_shape_jp :
+  load_patchable_table_source_shape_jp_claim.
+Proof.
+  unfold load_patchable_table_source_shape_jp_claim.
+  vm_compute. repeat split.
+Qed.
+
+(** The sole generated [animYTrans] consumer couples it to a renderer-global
+    ratio.  The animated-part body then consumes that global while constructing
+    matrices.  None of these inspected renderer bodies directly assigns a
+    field named [pos] or any raw object-data field. *)
+Definition turning_animation_renderer_source_shape_us_claim : Prop :=
+  assigns_global_from_field_ratio_s
+    URender._gCurrAnimTranslationMultiplier
+    URender._animYTrans URender._animYTransDivisor
+    (fn_body URender.f_geo_set_animation_globals) = true /\
+  statement_mentions_ident_s URender._gCurrAnimTranslationMultiplier
+    (fn_body URender.f_geo_process_animated_part) = true /\
+  statement_mentions_ident_s URender._gCurrAnimTranslationMultiplier
+    (fn_body URender.f_geo_process_shadow) = true /\
+  assigns_field_named_s URender._pos
+    (fn_body URender.f_geo_set_animation_globals) = false /\
+  assigns_field_named_s URender._pos
+    (fn_body URender.f_geo_process_animated_part) = false /\
+  assigns_field_named_s URender._pos
+    (fn_body URender.f_geo_process_shadow) = false /\
+  assigns_field_named_s URender._pos
+    (fn_body URender.f_geo_process_object) = false /\
+  assigns_field_named_s URender._rawData
+    (fn_body URender.f_geo_set_animation_globals) = false /\
+  assigns_field_named_s URender._rawData
+    (fn_body URender.f_geo_process_animated_part) = false /\
+  assigns_field_named_s URender._rawData
+    (fn_body URender.f_geo_process_shadow) = false /\
+  assigns_field_named_s URender._rawData
+    (fn_body URender.f_geo_process_object) = false.
+
+Theorem turning_animation_renderer_source_shape_us :
+  turning_animation_renderer_source_shape_us_claim.
+Proof.
+  unfold turning_animation_renderer_source_shape_us_claim.
+  vm_compute. repeat split.
+Qed.
+
+Definition turning_animation_renderer_source_shape_jp_claim : Prop :=
+  assigns_global_from_field_ratio_s
+    JRender._gCurrAnimTranslationMultiplier
+    JRender._animYTrans JRender._animYTransDivisor
+    (fn_body JRender.f_geo_set_animation_globals) = true /\
+  statement_mentions_ident_s JRender._gCurrAnimTranslationMultiplier
+    (fn_body JRender.f_geo_process_animated_part) = true /\
+  statement_mentions_ident_s JRender._gCurrAnimTranslationMultiplier
+    (fn_body JRender.f_geo_process_shadow) = true /\
+  assigns_field_named_s JRender._pos
+    (fn_body JRender.f_geo_set_animation_globals) = false /\
+  assigns_field_named_s JRender._pos
+    (fn_body JRender.f_geo_process_animated_part) = false /\
+  assigns_field_named_s JRender._pos
+    (fn_body JRender.f_geo_process_shadow) = false /\
+  assigns_field_named_s JRender._pos
+    (fn_body JRender.f_geo_process_object) = false /\
+  assigns_field_named_s JRender._rawData
+    (fn_body JRender.f_geo_set_animation_globals) = false /\
+  assigns_field_named_s JRender._rawData
+    (fn_body JRender.f_geo_process_animated_part) = false /\
+  assigns_field_named_s JRender._rawData
+    (fn_body JRender.f_geo_process_shadow) = false /\
+  assigns_field_named_s JRender._rawData
+    (fn_body JRender.f_geo_process_object) = false.
+
+Theorem turning_animation_renderer_source_shape_jp :
+  turning_animation_renderer_source_shape_jp_claim.
+Proof.
+  unfold turning_animation_renderer_source_shape_jp_claim.
+  vm_compute. repeat split.
+Qed.
+
+(** Broad animation-to-gameplay noninterference would be false: the Mario geo
+    callback writes the held-object-last-position (HOLP) from a render matrix.
+    The walking path that can select turning first calls
+    [mario_drop_held_object].  These are syntax anchors, not a linked proof
+    that the held pointer is null at every later render callback. *)
+Definition turning_animation_holp_caveat_source_shape_us_claim : Prop :=
+  calls_ident_s UMisc._get_pos_from_transform_mtx
+    (fn_body UMisc.f_geo_switch_mario_hand_grab_pos) = true /\
+  statement_mentions_ident_s UMisc._heldObjLastPosition
+    (fn_body UMisc.f_geo_switch_mario_hand_grab_pos) = true /\
+  ident_subsequenceb
+    [UMove._mario_drop_held_object;
+     UMove._analog_stick_held_back;
+     UMove._set_mario_action]
+    (direct_callees_s (fn_body UMove.f_act_walking)) = true.
+
+Theorem turning_animation_holp_caveat_source_shape_us :
+  turning_animation_holp_caveat_source_shape_us_claim.
+Proof.
+  unfold turning_animation_holp_caveat_source_shape_us_claim.
+  vm_compute. repeat split.
+Qed.
+
+Definition turning_animation_holp_caveat_source_shape_jp_claim : Prop :=
+  calls_ident_s JMisc._get_pos_from_transform_mtx
+    (fn_body JMisc.f_geo_switch_mario_hand_grab_pos) = true /\
+  statement_mentions_ident_s JMisc._heldObjLastPosition
+    (fn_body JMisc.f_geo_switch_mario_hand_grab_pos) = true /\
+  ident_subsequenceb
+    [JMove._mario_drop_held_object;
+     JMove._analog_stick_held_back;
+     JMove._set_mario_action]
+    (direct_callees_s (fn_body JMove.f_act_walking)) = true.
+
+Theorem turning_animation_holp_caveat_source_shape_jp :
+  turning_animation_holp_caveat_source_shape_jp_claim.
+Proof.
+  unfold turning_animation_holp_caveat_source_shape_jp_claim.
   vm_compute. repeat split.
 Qed.

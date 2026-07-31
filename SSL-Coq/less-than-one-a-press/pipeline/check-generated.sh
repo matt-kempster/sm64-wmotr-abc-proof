@@ -13,7 +13,7 @@ AFTER="$PROJECT_ROOT/build/generated-after.sha256"
 
 bash "$PROJECT_ROOT/pipeline/generate-clight.sh"
 
-EXPECTED_PER_VERSION=37
+EXPECTED_PER_VERSION=38
 for version in us jp; do
   generated_count="$(
     find "$PROJECT_ROOT/generated" -maxdepth 1 -type f \

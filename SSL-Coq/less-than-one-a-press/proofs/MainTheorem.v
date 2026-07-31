@@ -5,10 +5,28 @@ From LessThanOneAPress.Proofs Require Import
   ClightFacts ClightRefinement ArchivedProofIntegration RouteEvidence
   TranscriptRouteModel
   FirstTargetRefinement JPSlotLifetime FirstCrossingWriterCoverage
-  OrdinaryMotion GoombaRaising PyramidTopPU InkFallback RetailFatalLatch.
+  OrdinaryMotion GoombaRaising PyramidTopPU InkFallback RetailFatalLatch
+  TurningAnimation.
 
 Import ListNotations.
 Local Open Scope Z_scope.
+
+(** This capstone is intentionally local to Marbler's proposed mechanism.  It
+    combines the fully checked US/JP source/arithmetic boundary with the
+    metadata-model theorem.  The DMA/memory and linked-transition refinement
+    obligations in [TurningAnimation.v] remain open, so this is not a global
+    animation or route-exhaustiveness theorem. *)
+Theorem turning_part2_animation_metadata_boundary_excludes_ink_split :
+  turning_animation_source_kernel /\
+  forall before after,
+    TurningPart2MetadataStep before after ->
+    three_views_synchronized before ->
+    three_views_synchronized after.
+Proof.
+  split.
+  - exact turning_animation_source_kernel_checked.
+  - exact turning_part2_metadata_cannot_create_ink_split.
+Qed.
 
 Definition CollectionProvenanceReductionClaim : Prop :=
   forall initial events final,

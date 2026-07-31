@@ -55,6 +55,7 @@ TRANSLATION_UNITS=(
   "behavior_script:src/engine/behavior_script.c"
   "level_script:src/engine/level_script.c"
   "graph_node:src/engine/graph_node.c"
+  "rendering_graph_node:src/game/rendering_graph_node.c"
   "spawn_object:src/game/spawn_object.c"
   "object_helpers:src/game/object_helpers.c"
   "debug:src/game/debug.c"

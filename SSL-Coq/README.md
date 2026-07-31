@@ -7,11 +7,12 @@ casing.  The reorganization keeps that path rather than creating a parallel
 `less-than-one-a-press/` is the current proof project.  It targets the US and
 Japanese versions of Super Mario 64 at decomp revision
 `9921382a68bb0c865e5e45eb594d9c64db59b1af` and uses CompCert Clight generated
-by `clightgen` 3.15.  It generates 37 translation units per version, for 74
+by `clightgen` 3.15.  It generates 38 translation units per version, for 76
 Clight modules total.  The coverage includes all seven Mario action units
 (including the newly imported submerged-action writers), movement,
 `mario_step`, `obj_behaviors_2`, `math_util`, `surface_collision`, and
 `surface_load` units, plus `behavior_script`, `level_script`, `graph_node`,
+`rendering_graph_node`,
 `debug`, `memory`, and `mario_misc`, the cutscene action containing
 `ACT_SPAWN_NO_SPIN_AIRBORNE`, and a project wrapper that imports the
 route-relevant SSL static and dynamic collision arrays.  A separate wrapper
@@ -25,6 +26,14 @@ the current result and may be incomplete, technique-specific, or superseded.
 The current project rechecks selected lessons from all six archived
 investigations in `ArchivedProofIntegrationKernel`; it does not import the old
 generated ASTs or treat an archived capstone as a premise.
+
+The latest focused result imports the renderer and checks the reported
+Turning-Part-2 animation hypothesis.  The repeated value 189 normalizes
+render translation to exact binary32 `1.0f`; it does not write Mario's
+physics, raw Object, or Graphics-anchor position in the proved metadata
+boundary.  Linked animation-buffer/DMA separation and the real ground-step
+collision path remain open, so this is not a complete route or retail-game
+theorem.
 
 ## Build
 

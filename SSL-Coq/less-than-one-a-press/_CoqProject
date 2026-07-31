@@ -18,6 +18,7 @@ generated/us_object_list_processor.v
 generated/us_behavior_script.v
 generated/us_level_script.v
 generated/us_graph_node.v
+generated/us_rendering_graph_node.v
 generated/us_spawn_object.v
 generated/us_object_helpers.v
 generated/us_debug.v
@@ -55,6 +56,7 @@ generated/jp_object_list_processor.v
 generated/jp_behavior_script.v
 generated/jp_level_script.v
 generated/jp_graph_node.v
+generated/jp_rendering_graph_node.v
 generated/jp_spawn_object.v
 generated/jp_object_helpers.v
 generated/jp_debug.v
@@ -109,4 +111,5 @@ proofs/OrdinaryMotion.v
 proofs/GoombaRaising.v
 proofs/InkFallback.v
 proofs/RetailFatalLatch.v
+proofs/TurningAnimation.v
 proofs/MainTheorem.v

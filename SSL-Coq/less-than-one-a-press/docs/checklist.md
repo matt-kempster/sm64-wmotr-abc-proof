@@ -2,17 +2,33 @@
 
 - [x] Exact decomp commit pinned.
 - [x] US and JP macros generated separately.
-- [x] Generate 37 translation units per version (74 Clight modules), including
+- [x] Generate 38 translation units per version (76 Clight modules), including
   all seven Mario action units (with `mario_actions_cutscene` and the direct
   writers in `mario_actions_submerged`), movement code,
   `mario_step`, `obj_behaviors_2`, `math_util`, `surface_collision`,
   `surface_load`, wrappers for the Area-1 and Area-2 macro streams, and a
   wrapper for the route-relevant SSL static and dynamic collision arrays.
   The boundary also imports `behavior_script`, `level_script`, `graph_node`,
-  `debug`, `memory`, and `mario_misc` for entry and writer-closure work.
+  `rendering_graph_node`, `debug`, `memory`, and `mario_misc` for entry,
+  render-footprint, and writer-closure work.
 - [x] Check generated no-spin-airborne entry call shape, collision initializer
   lengths, and exact US/JP equality for the imported route-relevant collision
   arrays.
+- [x] Import `rendering_graph_node.c` for US and JP and check the exact
+  `animYTrans / animYTransDivisor` renderer-global assignment.
+- [x] Prove the Turning-Part-2 source/arithmetic/model boundary: exact
+  `18.0f` selector with IDs 188/189, both local ground-step orders,
+  `unkB0 -> animYTrans`, binary32 `189/189 = 1`, no physical translation
+  flags, and three-view coordinate preservation.
+- [x] Exhibit the over-permissive animation-DMA alias counterexample rather
+  than assuming a universal external-call frame rule.
+- [ ] Connect converter-produced animation entry 189 and its payload size to
+  linked US/JP memory; prove the `0x4000` animation buffer is disjoint from
+  MarioState/Object/Graphics coordinates and give `dma_read` the required
+  frame rule.
+- [ ] Refine the Turning-Part-2 metadata model to actual linked Clight steps
+  and classify any same-frame coordinate change through the real
+  ground-step/platform/OOB writer path.
 - [x] Input edge and held state distinguished.
 - [x] Act 3, Act 6, and 100-coin indices checked from source.
 - [x] Static Act 3 object and five hidden triggers checked from initializers.

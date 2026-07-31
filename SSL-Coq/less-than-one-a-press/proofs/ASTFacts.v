@@ -95,6 +95,118 @@ with calls_ident_with_two_int_literals_ls
       calls_ident_with_two_int_literals_ls callee second third rest
   end.
 
+(** Match a two-argument generated call [callee(temp, literal)].  This is
+    used for animation selectors, where keeping the target ID at the call
+    site avoids conflating it with an unrelated integer in the same action
+    handler. *)
+Definition is_call_with_temp_and_int_literal_s
+    (callee : ident) (literal : Z) (s : statement) : bool :=
+  match s with
+  | Scall _ (Evar found_callee _)
+      [Etempvar _ _; Econst_int found_literal _] =>
+      Pos.eqb found_callee callee &&
+      Int.eq found_literal (Int.repr literal)
+  | _ => false
+  end.
+
+Fixpoint calls_ident_with_int_literal_s
+    (callee : ident) (literal : Z) (s : statement) : bool :=
+  match s with
+  | Scall _ _ _ =>
+      is_call_with_temp_and_int_literal_s callee literal s
+  | Ssequence a b | Sloop a b =>
+      calls_ident_with_int_literal_s callee literal a ||
+      calls_ident_with_int_literal_s callee literal b
+  | Sifthenelse _ a b =>
+      calls_ident_with_int_literal_s callee literal a ||
+      calls_ident_with_int_literal_s callee literal b
+  | Sswitch _ cases =>
+      calls_ident_with_int_literal_ls callee literal cases
+  | Slabel _ body =>
+      calls_ident_with_int_literal_s callee literal body
+  | _ => false
+  end
+with calls_ident_with_int_literal_ls
+    (callee : ident) (literal : Z)
+    (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      calls_ident_with_int_literal_s callee literal body ||
+      calls_ident_with_int_literal_ls callee literal rest
+  end.
+
+(** Recognize the normalized Clight fragment
+
+      temp := base.field;
+      if (temp >= binary32(bits))
+        callee(m, true_literal)
+      else
+        callee(m, false_literal)
+
+    This is still a syntax receipt, but it couples the compared field,
+    threshold, and the two branch-local call arguments. *)
+Definition is_field_ge_float_branch_calls_s
+    (field : ident) (bits : Z)
+    (callee : ident) (true_literal false_literal : Z)
+    (s : statement) : bool :=
+  match s with
+  | Ssequence
+      (Sset loaded
+        (Efield (Ederef _ _) found_field _))
+      (Sifthenelse
+        (Ebinop Oge
+          (Etempvar tested _)
+          (Econst_single threshold _) _)
+        yes_branch no_branch) =>
+      Pos.eqb found_field field &&
+      Pos.eqb loaded tested &&
+      Int.eq (Float32.to_bits threshold) (Int.repr bits) &&
+      calls_ident_with_int_literal_s
+        callee true_literal yes_branch &&
+      calls_ident_with_int_literal_s
+        callee false_literal no_branch
+  | _ => false
+  end.
+
+Fixpoint field_ge_float_branch_calls_s
+    (field : ident) (bits : Z)
+    (callee : ident) (true_literal false_literal : Z)
+    (s : statement) : bool :=
+  is_field_ge_float_branch_calls_s
+    field bits callee true_literal false_literal s ||
+  match s with
+  | Ssequence a b | Sloop a b =>
+      field_ge_float_branch_calls_s
+        field bits callee true_literal false_literal a ||
+      field_ge_float_branch_calls_s
+        field bits callee true_literal false_literal b
+  | Sifthenelse _ a b =>
+      field_ge_float_branch_calls_s
+        field bits callee true_literal false_literal a ||
+      field_ge_float_branch_calls_s
+        field bits callee true_literal false_literal b
+  | Sswitch _ cases =>
+      field_ge_float_branch_calls_ls
+        field bits callee true_literal false_literal cases
+  | Slabel _ body =>
+      field_ge_float_branch_calls_s
+        field bits callee true_literal false_literal body
+  | _ => false
+  end
+with field_ge_float_branch_calls_ls
+    (field : ident) (bits : Z)
+    (callee : ident) (true_literal false_literal : Z)
+    (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      field_ge_float_branch_calls_s
+        field bits callee true_literal false_literal body ||
+      field_ge_float_branch_calls_ls
+        field bits callee true_literal false_literal rest
+  end.
+
 (** Locate the exact call above under a selected generated switch label.  This
     is a syntax receipt only: it does not prove that execution selects the
     label. *)
@@ -1003,6 +1115,109 @@ with assigns_field_named_ls
   | LSnil => false
   | LScons _ body rest =>
       assigns_field_named_s field body || assigns_field_named_ls field rest
+  end.
+
+(** Couple a named field load to a named field assignment through the exact
+    temporary emitted by normalization. *)
+Definition is_field_to_field_assignment_s
+    (source_field target_field : ident)
+    (s : statement) : bool :=
+  match s with
+  | Ssequence
+      (Sset loaded
+        (Efield (Ederef _ _) found_source _))
+      (Sassign lhs (Etempvar used _)) =>
+      Pos.eqb found_source source_field &&
+      lhs_field_is target_field lhs &&
+      Pos.eqb loaded used
+  | _ => false
+  end.
+
+Fixpoint assigns_field_from_field_s
+    (source_field target_field : ident)
+    (s : statement) : bool :=
+  is_field_to_field_assignment_s source_field target_field s ||
+  match s with
+  | Ssequence a b | Sloop a b =>
+      assigns_field_from_field_s source_field target_field a ||
+      assigns_field_from_field_s source_field target_field b
+  | Sifthenelse _ a b =>
+      assigns_field_from_field_s source_field target_field a ||
+      assigns_field_from_field_s source_field target_field b
+  | Sswitch _ cases =>
+      assigns_field_from_field_ls source_field target_field cases
+  | Slabel _ body =>
+      assigns_field_from_field_s source_field target_field body
+  | _ => false
+  end
+with assigns_field_from_field_ls
+    (source_field target_field : ident)
+    (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      assigns_field_from_field_s source_field target_field body ||
+      assigns_field_from_field_ls source_field target_field rest
+  end.
+
+(** Couple two named field loads to the exact normalized global assignment
+
+      target := (float) numerator / (float) denominator.
+
+    The base expressions are intentionally not fixed: the renderer obtains
+    the numerator from [AnimInfo] and the denominator from [Animation].
+    Their field identities and temporary dataflow are checked here. *)
+Definition is_global_field_ratio_assignment_s
+    (target numerator denominator : ident)
+    (s : statement) : bool :=
+  match s with
+  | Ssequence
+      (Sset numerator_temp
+        (Efield (Ederef _ _) found_numerator _))
+      (Ssequence
+        (Sset denominator_temp
+          (Efield (Ederef _ _) found_denominator _))
+        (Sassign (Evar found_target _)
+          (Ebinop Odiv
+            (Ecast (Etempvar used_numerator _) _)
+            (Ecast (Etempvar used_denominator _) _) _))) =>
+      Pos.eqb found_target target &&
+      Pos.eqb found_numerator numerator &&
+      Pos.eqb found_denominator denominator &&
+      Pos.eqb numerator_temp used_numerator &&
+      Pos.eqb denominator_temp used_denominator
+  | _ => false
+  end.
+
+Fixpoint assigns_global_from_field_ratio_s
+    (target numerator denominator : ident)
+    (s : statement) : bool :=
+  is_global_field_ratio_assignment_s target numerator denominator s ||
+  match s with
+  | Ssequence a b | Sloop a b =>
+      assigns_global_from_field_ratio_s target numerator denominator a ||
+      assigns_global_from_field_ratio_s target numerator denominator b
+  | Sifthenelse _ a b =>
+      assigns_global_from_field_ratio_s target numerator denominator a ||
+      assigns_global_from_field_ratio_s target numerator denominator b
+  | Sswitch _ cases =>
+      assigns_global_from_field_ratio_ls
+        target numerator denominator cases
+  | Slabel _ body =>
+      assigns_global_from_field_ratio_s
+        target numerator denominator body
+  | _ => false
+  end
+with assigns_global_from_field_ratio_ls
+    (target numerator denominator : ident)
+    (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      assigns_global_from_field_ratio_s
+        target numerator denominator body ||
+      assigns_global_from_field_ratio_ls
+        target numerator denominator rest
   end.
 
 Definition rhs_is_int_constant (value : Z) (rhs : expr) : bool :=

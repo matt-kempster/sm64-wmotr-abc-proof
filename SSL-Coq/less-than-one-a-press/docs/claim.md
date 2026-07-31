@@ -4,12 +4,24 @@
 
 - Reproducible US/JP Clight AST source-shape facts listed in
   `proofs/ClightFacts.v`, over
-  37 pinned translation units per version (74 generated modules).  The units
+  38 pinned translation units per version (76 generated modules).  The units
   cover Mario airborne, automatic, cutscene, moving, object, stationary, and
   submerged actions, `mario_step`, `obj_behaviors_2`, `math_util`,
   `surface_collision`, `surface_load`, `behavior_script`, `level_script`,
-  `graph_node`, `debug`, `memory`, and `mario_misc`, plus the route-relevant
+  `graph_node`, `rendering_graph_node`, `debug`, `memory`, and `mario_misc`,
+  plus the route-relevant
   SSL static and dynamic collision arrays.
+- `TurningAnimation.v` proves the narrow Turning-Part-2 boundary:
+  generated US/JP receipts couple `forwardVel >= 18.0f` to animation IDs
+  188/189, record both local ground-step/setter orders, tie `unkB0` to
+  `animYTrans`, and check the loader and renderer direct footprints.  CompCert
+  binary32 proves `189/189 = 1`; Part 2 has no gameplay-translation flag; and
+  the metadata model preserves MarioState, raw Object, and Graphics-anchor
+  positions, so it cannot create Ink's three-view split from synchronized
+  input.  A formal one-cell alias witness shows why this is not yet a universal
+  Clight memory theorem: converter/table mapping, the dedicated animation
+  buffer's separation/DMA frame rule, and the linked before/after projection
+  remain open.  No retail animation-induced upwarp was found.
 - Generated source-shape facts show that the no-spin airborne entry handler
   calls `launch_mario_until_land` with binary32 zero, and that helper calls
   `mario_set_forward_vel` and `perform_air_step`.  These are call/constant

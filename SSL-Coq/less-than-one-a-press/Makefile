@@ -746,6 +746,21 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.ClightFacts \
 	  wall_position_writer_source_shape_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.TurningAnimation \
+	  turning_animation_source_kernel_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.TurningAnimation \
+	  turning_part2_metadata_step_preserves_gameplay_coordinates
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.TurningAnimation \
+	  turning_part2_metadata_cannot_create_ink_split
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.TurningAnimation \
+	  over_permissive_animation_dma_alias_counterexample
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  turning_part2_animation_metadata_boundary_excludes_ink_split
 
 clean:
 	-$(MAKE) -f $(COQMAKEFILE) clean

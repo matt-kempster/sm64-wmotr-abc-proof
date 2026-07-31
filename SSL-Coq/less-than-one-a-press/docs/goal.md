@@ -14,12 +14,12 @@ still require a concrete C-memory projection.  The current endpoint-only
 certificate accepts arbitrary motion and synthetic immediate collection from
 clean abstract entries, so it cannot establish first-cut exhaustiveness.
 
-The current project now generates 37 translation units for each target
-version (74 Clight modules), including all seven Mario action units and
+The current project now generates 38 translation units for each target
+version (76 Clight modules), including all seven Mario action units and
 movement code,
 `mario_actions_cutscene`, `mario_step`, `obj_behaviors_2`, `math_util`,
 `surface_collision`, `surface_load`, `behavior_script`, `level_script`,
-`graph_node`, `debug`, `memory`, `mario_misc`, and a wrapper importing route-relevant
+`graph_node`, `rendering_graph_node`, `debug`, `memory`, `mario_misc`, and a wrapper importing route-relevant
 SSL static and dynamic collision arrays.  It also proves
 `archived_proof_integration_kernel_holds`, a current-source-rechecked package
 of the useful boundaries identified by the six archived investigations.  The
@@ -37,6 +37,20 @@ shell normal-form results.  It does not yet derive the entry postcondition,
 refine the traversal to live Clight memory and dynamic lists, prove that a clean
 trajectory reaches the floorless sample, or close all reachable
 writer/action/spawn paths.
+
+The newest turning-animation tranche eliminates one proposed bypass at a
+narrower boundary.  `TurningAnimation.v` proves that the repeated value 189 is
+used once as animation-table index `MARIO_ANIM_TURNING_PART2` and separately
+as the renderer's normal translation numerator.  The pinned Part-2 divisor is
+also 189, so CompCert binary32 evaluates the multiplier to exactly `1.0f`.
+Generated US/JP receipts check the `18.0f` selector, both local
+ground-step/setter orders, setter/loader direct footprints, and the renderer
+ratio.  The metadata model preserves MarioState, raw Object, and
+Graphics-anchor positions and cannot manufacture Ink's split.  This does not
+close ordinary motion: the real `perform_ground_step` and surface selection
+remain possible same-frame displacement sources.  Converter/table mapping,
+animation-buffer separation, the DMA frame rule, and linked Clight coordinate
+projection remain explicit obligations.  No retail counterexample was found.
 
 `TranscriptRouteModel.v` encodes the transcript's two proposed gate nodes:
 upper entry must leave the elevator, while lower entry passes the second-pole
