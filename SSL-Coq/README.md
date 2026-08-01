@@ -35,6 +35,19 @@ boundary.  Linked animation-buffer/DMA separation and the real ground-step
 collision path remain open, so this is not a complete route or retail-game
 theorem.
 
+The newest JP installer tranche asks whether ordinary clean play can create
+the `>=960` Graphics/Object Y gap required by the conditional timer-131
+stale-top route.  No such installer was found.  Rocq proves that a phase
+already refined to State-only preserves the old Object/Graphics gap, computes
+a generated-Clight quicksand-depth writer inventory, and proves nonnegative
+depth for a source-shaped relation that excludes the late long-jump writer.
+It also preserves a real conditional warning: from a zero Graphics base, an
+already-negative depth reaches an endpoint above `960` in a non-reanchoring
+automatic-dialog loop.  The stock Area-1 source
+audit finds no no-A origin for that combination, but complete linked-program
+writer/action/dialog and binary32 refinement remain open.  Bounded JP runtime
+search found no positive gap; it is not an exhaustive proof.
+
 ## Build
 
 With Rocq 8.16.1 and CompCert 3.15 on `PATH`:
@@ -115,8 +128,8 @@ then copy `header.gfx.pos` into State and retry.  Rocq proves conditional local
 and PU top-side pipeline-coordinate witnesses, exact generated null/copy/retry
 syntax/dataflow and nearby mesh receipts, a signed-range generic 385-unit
 necessary Graphics/Object Y gap, an exact-candidate `973`-unit gap, and
-preservation of Object/Graphics by arbitrary State-only
-ordinary/platform/PU prefixes.  The handwritten pipeline includes the
+preservation of Object/Graphics by arbitrary prefixes already refined to
+State-only.  The handwritten pipeline includes the
 projected Graphics-position quicksand sink and proves its modeled value cannot
 change the Object coordinate copied from State.  The source-shape kernel also
 checks that later object lists and deactivated-object unloading precede the
@@ -308,13 +321,19 @@ lifecycle interface.
 The current endpoint certificate and handwritten clean-state model are too
 permissive to establish route exhaustiveness: they admit arbitrary motion, and
 the JP raw-platform case admits a model-only stale pyramid-top displacement
-outside the upper shaft.  An authentic-JP fixture replay installs the same raw
-transform payload at the first Area-2 controller poll.  That poll is after the
-true first Area-2 platform application, so the staged payload affects the
-second application; with no A held or pressed, it then consumes the upper
-Pyramid Puzzle trigger.  The trace has no Act 3 overlap and does not spawn the
-Act 6 star.  The probe does not directly read the save bits, so it is not a
-newly-set-bit witness.  In the separate pre-transition-only slot-60 test, the
+outside the upper shaft.  In the older authentic-JP staged-payload replay, the
+raw transform is first present at the initial Area-2 controller poll.  That
+poll is after the true first platform application, so the payload affects the
+second application and consumes one upper Pyramid Puzzle trigger; that older
+probe does not read save bits.  The stronger current fixture instead injects
+only the timer-131 three-view Area-1 prestate.  Retail execution then captures
+and frees the top, retains its slot through the delayed warp, applies it at the
+true first Area-2 application, consumes all five triggers, and spawns the Act-6
+star.  A refined B/Z continuation overlaps the star and changes the authentic
+JP save byte from `00` to `20` with every A counter zero.  This is still a
+conditional trace, not a stock-game counterexample, because no clean retail
+installer for the injected `>=960` gap has been found.  In the separate
+pre-transition-only slot-60 test, the
 numeric slot is free-list depth 7 and is reused by allocation 8, macro-object
 5, before the true first application.  That failure does not refute a pyramid
 top deliberately freed earlier at another depth before bulk unload.  The

@@ -843,6 +843,42 @@ check: proofs
 	  LessThanOneAPress.Proofs.TurningAnimation \
 	  over_permissive_animation_dma_alias_counterexample
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CleanJPGraphicsGap \
+	  clean_jp_graphics_gap_source_shape_kernel_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CleanJPGraphicsGap \
+	  jp_timer131_midface_requires_writer_coverage_escape
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CleanJPGraphicsGap \
+	  clean_jp_area1_projected_certified_trace_cannot_install_midface
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPQuicksandDepth \
+	  jp_quicksand_direct_writer_inventory_moving
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPQuicksandDepth \
+	  jp_quicksand_direct_writer_inventory_interaction
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPQuicksandDepth \
+	  jp_long_jump_a_edge_source_shape
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPQuicksandDepth \
+	  jp_long_jump_selected_unit_call_inventory
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPQuicksandDepth \
+	  jp_dialog_depth_and_sink_source_shape
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPQuicksandDepth \
+	  jp_negative_common_landing_after_dispatch_is_timer_five
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPQuicksandDepth \
+	  jp_source_shaped_safe_depth_trace_from_zero_is_nonnegative
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPQuicksandDepth \
+	  jp_nonnegative_depth_dialog_cannot_increase_gap
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPQuicksandDepth \
+	  jp_negative_depth_dialog_zero_base_endpoint_binary32_checked
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  turning_part2_animation_metadata_boundary_excludes_ink_split
 

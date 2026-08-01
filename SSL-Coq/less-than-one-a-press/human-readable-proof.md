@@ -19,6 +19,66 @@ engineering but does not know *Super Mario 64*.
 > spurious one-frame collection from a clean entry, so that relation cannot by
 > itself establish the retail theorem.
 
+> **Newest clean-JP gap-installer result:** no clean retail installer for the
+> timer-131 `>=960` Graphics/Object Y gap has been found.  The new checked
+> reduction is stronger than a movement-speed bound.  At the collision phase,
+> an arbitrary sequence of writes already refined to affect
+> `MarioState.pos` alone leaves the old collision Object
+> and Graphics samples unchanged, so it preserves their pre-existing gap
+> exactly.  It can carry a gap, but cannot create one from synchronized entry.
+> Ordinary motion, platform displacement, and PU-scale motion are covered only
+> at phases for which that State-only dataflow premise has been established.
+> The audit now uses `CleanJPArea1GapAuditState`, which fixes JP, SSL Area 1,
+> clear target bits, coherent save state, well-formed pools/lists, no pending
+> interaction or warp, and a well-formed input history with no entry A edge.
+> It is deliberately separate from the Area-2-only `CleanPyramidEntry`.
+> Reaching this audit state from an ordinary castle entry is still open.
+>
+> The generated JP Clight census now computes the direct writers of
+> `MarioState.quicksandDepth` across the selected Mario/action translation
+> units.  A source-shaped relation that excludes the late long-jump writer
+> preserves nonnegative depth from zero.  The source path found that can make
+> the depth negative is a late `ACT_LONG_JUMP_LAND` frame; the sole ordinary constructor
+> of `ACT_LONG_JUMP` is the `INPUT_A_PRESSED` branch of `act_crouch_slide`.
+> This is generated-AST and abstract invariant evidence, not yet a linked
+> whole-program action-provenance theorem.
+>
+> The audit also found a real conditional escape that prevents an unsound
+> per-frame `208` bound: if the prepared `-2.65f` depth were somehow installed
+> and retained during a non-reanchoring automatic-dialog action, the final
+> quicksand sink would repeatedly raise Graphics.  Exact CompCert binary32
+> evaluation reaches a zero-base endpoint at least `960.0f` after 363 sink
+> calls; this is not yet a live-base displacement theorem.  Stock SSL Area 1
+> signs and NPC-dialog handlers reanchor Graphics, but star-milestone call
+> sites mean the automatic-dialog action is not globally absent.  Proving that
+> the combined negative-depth, automatic-dialog, unreanchored state is
+> unreachable, and proving no-long-jump provenance in linked live memory,
+> remain open.
+>
+> A suspected fire-particle writer was checked and rejected.  Mario's render
+> callback guards on `obj == gMarioObject`, but passes `obj->prevObj` (the flame
+> object) to both position helpers.  It moves the flame, not Mario's Graphics
+> anchor.  The remaining positive direct forms are the normal shell offsets
+> (`+42` air, `+45` ground), bounded water visuals, and explicitly modeled
+> writers; none reaches `960` inside the checked relation.
+>
+> A hash-gated JP probe adds bounded evidence only.  Its input plugin performs
+> no game-memory writes, and the zero-A schedules observed no A edge, no A-down
+> frame, and no controller A frame.  The ordinary/B-interaction schedule's
+> maximum positive Graphics/Object gap was `0`; the deliberate quicksand path
+> moved Graphics downward, not upward.  The probe uses an externally enabled
+> level-select bootstrap, so equivalence of its post-entry state to an ordinary
+> castle entry is not proved.  It samples at controller-poll boundaries, so it
+> cannot exclude a split created and consumed entirely within one frame, and
+> finite schedules are not exhaustive.  Modes 4--6 nevertheless found a real
+> zero-A elevation primitive: jumping box into repeated Tweester captures.
+> One, two, and four captures reached synchronized peaks of `1550.83582` and
+> `1654.52148`, but never produced a positive gap, used the upper warp, or put
+> Mario on the pyramid top.  See
+> [`proofs/CleanJPGraphicsGap.v`](proofs/CleanJPGraphicsGap.v),
+> [`proofs/JPQuicksandDepth.v`](proofs/JPQuicksandDepth.v), and
+> [`docs/notes/clean-jp-graphics-gap-source-audit.md`](docs/notes/clean-jp-graphics-gap-source-audit.md).
+
 > **Newest timer-131 result, in software-engineering terms:** the JP candidate
 > now has a real conditional integration trace across the difficult lifetime
 > boundary.  Think of `gMarioPlatform` as a cached pointer to a pool object.  A
@@ -139,10 +199,9 @@ engineering but does not know *Super Mario 64*.
 > top-height retry with Graphics Y in signed-16 range needs at least 385 units
 > of upward Graphics/Object
 > separation.  Either exact proposed prestate needs at least `973` units.  It
-> also
-> proves that any sequence of State-only ordinary, platform, or PU writes
-> preserves Object and Graphics, so such writes cannot create their split from
-> synchronized input.  The disappeared-action snap is followed by an
+> also proves that any sequence already refined to State-only preserves Object
+> and Graphics, so such writes cannot create their split from synchronized
+> input.  The disappeared-action snap is followed by an
 > unconditional quicksand sink; the projected Graphics-position write cannot
 > change the Object coordinate later copied from State, while the conditional
 > `gfx.throwMatrix` write still needs a memory-provenance proof.  The first

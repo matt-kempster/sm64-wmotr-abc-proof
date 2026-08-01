@@ -57,6 +57,24 @@ Rocq checks the value-level
 surface arithmetic, timer-window arithmetic, finite free-list arithmetic, and
 copied runtime records; it does not prove a linked clean Clight execution.
 
+The newest clean-JP installer reduction narrows that missing boundary.
+`CleanJPGraphicsGap.v` defines a clean JP Area-1 audit boundary, proves that a
+synchronized Object/Graphics projection has zero separation, and proves that
+any prefix already refined to State-only preserves this gap regardless of
+displacement magnitude.  Its
+range-certified writer execution stays below the midpoint's `960` requirement.
+`JPQuicksandDepth.v` computes the direct depth-writer inventory over selected
+generated JP units, couples `act_crouch_slide`'s `INPUT_A_PRESSED` test to the
+exact long-jump constructor, and proves nonnegative depth for a source-shaped
+relation that excludes the late long-jump writer.  A linked proof that clean
+no-edge execution refines that relation remains open.  Exact binary32 also
+exposes the necessary caution: an already-installed `-2.650000095f` depth
+reaches a zero-base endpoint at least `960` after 363 non-reanchored
+automatic-dialog sinks.  Stock Area 1 has no identified clean
+zero-A path to that combined state.  Full linked writer/action/dialog closure,
+non-aliasing, entry-memory projection, and binary32 refinement are still open,
+so the retail gap installer has not been proved impossible.
+
 The newest turning-animation tranche eliminates one proposed bypass at a
 narrower boundary.  `TurningAnimation.v` proves that the repeated value 189 is
 used once as animation-table index `MARIO_ANIM_TURNING_PART2` and separately

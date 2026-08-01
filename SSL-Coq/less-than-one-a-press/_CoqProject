@@ -116,6 +116,8 @@ proofs/GoombaRaising.v
 proofs/InkFallback.v
 proofs/InkPayloadInstaller.v
 proofs/Timer131Surface.v
+proofs/CleanJPGraphicsGap.v
+proofs/JPQuicksandDepth.v
 proofs/RetailFatalLatch.v
 proofs/TurningAnimation.v
 proofs/MainTheorem.v

@@ -38,6 +38,40 @@ timer-131 boundary; no clean retail installer has been found.  The Rocq files
 prove arithmetic and check finite observation records;
 they do not turn the injected emulator trace into a linked Clight execution.
 
+The current clean-JP installer audit found no retail source for that gap.
+`CleanJPGraphicsGap.v` defines a clean JP Area-1 audit boundary, proves that
+its synchronized Object/Graphics projection starts with zero separation, that
+arbitrarily large prefixes already refined to State-only preserve the
+separation exactly, and that a trace made from the currently range-certified
+writer forms stays below `960`.
+`JPQuicksandDepth.v` computes the direct `quicksandDepth` writer inventory in
+the generated JP Mario/action units and proves nonnegative depth for a
+source-shaped relation that excludes the late long-jump landing writer.  That
+writer's ordinary source constructor is under `INPUT_A_PRESSED`; proving that
+every real clean no-edge trace refines the safe relation remains open.
+
+This audit also records a conditional countermodel to any naive per-frame
+bound: an already-installed `-2.65f` depth retained in the non-reanchoring
+automatic-dialog action reaches a zero-base endpoint at least `960.0f` after
+363 calls in exact CompCert binary32 arithmetic.  The projected integer model
+also records `961.95` from zero; arbitrary live-base binary32 displacement is
+still a refinement obligation.  Stock signs and NPC-dialog handlers reanchor
+Graphics, while star-milestone automatic-dialog call sites mean the action is
+not globally absent.  The open question is reachability of the combined
+negative-depth, automatic-dialog, unreanchored state.  The generated syntax
+and abstract sign theorem still need linked memory,
+pointer/non-alias, complete writer, action-provenance, dialog-reachability, and
+binary32 projection proofs.  A source review also rejected fire particles as
+a Mario writer: the callback updates Mario's `prevObj` flame, not Mario.
+
+The project-local hash-gated JP search is read-only after its externally
+enabled level-select bootstrap.  Its bounded zero-A schedules observed no
+positive gap (maximum `0`) and no A-derived input bit; this is test evidence,
+not exhaustive reachability and not proof that the bootstrap state is an
+ordinary castle-entered state.  See
+[`docs/notes/clean-jp-graphics-gap-source-audit.md`](docs/notes/clean-jp-graphics-gap-source-audit.md)
+and [`instrumentation/jp-clean-gap-search/`](instrumentation/jp-clean-gap-search/).
+
 `TurningAnimation.v` addresses the reported Turning-Part-2 upwarps.  The
 number `0xBD` is used in two unrelated domains: animation ID 189 and the
 default `animYTrans` numerator 189.  The pinned Part-2 animation divisor is
@@ -216,9 +250,9 @@ only the first of the two `ACT_DISAPPEARED` ticks.  A second floor-supported
 Mario update is required before the upper object warp can be requested.  If
 the following update instead has both floor queries return `NULL`, the fatal
 first writer wins when the latch is empty at that call boundary.
-Arbitrary State-only ordinary/platform/PU prefixes preserve Object and
-Graphics and therefore cannot create the needed split from synchronized
-input.  A generic retry whose Graphics Y is in signed-16 range needs at least
+Arbitrary prefixes already refined to State-only preserve Object and Graphics
+and therefore cannot create the needed split from synchronized input.  A
+generic retry whose Graphics Y is in signed-16 range needs at least
 385 upward units; either exact
 local/PU prestate proposed here needs at least `973`.  Complete audited writer
 coverage from an audited entry conditionally refutes that prestate, but retail
@@ -449,13 +483,15 @@ upper-entry Mario state from `(0, 5500, 256)` to approximately
 formula are source-shaped.  An older authentic-JP fixture installed the raw
 payload at the first Area-2 input poll and therefore exercised the second
 application.  The stronger current fixture injects the timer-131 three-view
-prestate in Area 1.  Retail execution then captures the live top, frees it at
-explosion, retains its slot through the delayed warp, and applies the stale
-payload at the true first destination application.  With no A held or pressed,
-the current route consumes all five hidden triggers and spawns the Act-6 star;
-its observed continuation misses that star vertically by about 11 units.  It
-is not a target-bit counterexample: there is no Act-3 overlap, Act-6 star
-overlap, or observed save-bit transition.  The same payload prepared only while
+  prestate in Area 1.  Retail execution then captures the live top, frees it at
+  explosion, retains its slot through the delayed warp, and applies the stale
+  payload at the true first destination application.  With no A held or pressed,
+  the current route consumes all five hidden triggers and spawns the Act-6 star.
+  A refined B/Z continuation overlaps that star by one vertical unit and changes
+  the authentic JP save byte from `00` to `20`, while every A counter remains
+  zero.  This is a conditional target-bit trace, not a stock-game
+  counterexample: the timer-131 three-view prestate is injected and has no
+  clean retail installer.  There is no Act-3 overlap.  The same payload prepared only while
 an unrelated numerical slot 60 object remains in Area 1 is cleared by depth-7
 reuse as macro object #5 and produces no displacement.  That test does not
 reproduce a top freed before bulk unload and its 30 fragments.  No clean stock
@@ -528,7 +564,7 @@ JP runtime; its Rocq record is evidence, not a semantic refinement theorem.
 The exact casts are independently confirmed by the byte-identical retail
 US/JP `trunc.w.s; mfc1; sh; lh` sequence.  The three-view theorem sharpens the
 necessary writer boundary: signed-range Graphics must be at least 385 units
-above the warp-overlapping Object.  State-only ordinary/platform/PU prefixes
+above the warp-overlapping Object.  Prefixes already refined to State-only
 cannot manufacture their split from synchronized input.
 
 The Area-1 source contains a real candidate primitive: breakable-box and
@@ -777,10 +813,10 @@ dynamic-surface ownership/list order, and actual `find_floor` selection remain
 open.  The bundle is not a stale-slot or reachable ROM execution, and its
 generic three-dimensional-writer question is not globally resolved by the
 source-bounded owner boundary described next.  `InkFallback.v` adds the missing
-Graphics sample and proves that a State-only ordinary/PU prefix preserves both
-Object and Graphics.  A writer execution whose positive Graphics/Object Y gap
-stays at most the conservative bound `208` cannot meet the required gap above
-`384`; proving that every retail writer belongs to that audited relation is
+Graphics sample and proves that a prefix already refined to State-only
+preserves both Object and Graphics.  A writer execution whose positive
+Graphics/Object Y gap stays at most the conservative bound `208` cannot meet
+the required gap above `384`; proving that every retail writer belongs to that audited relation is
 still open.  The linked-memory projection and JP delayed-warp lifetime remain
 named obligations.
 
@@ -1122,10 +1158,10 @@ clightgen -normalize -nostdinc -fstruct-passing \
   initialization and preservation must still be linked explicitly.
   The lower Z soft-bonk result remains a normalized subcase rather than a
   complete second-pole or static-geometry proof.
-  The Ink audit proves that State-only ordinary/PU prefixes cannot create an
-  Object/Graphics split.  Its source audit motivates a dry positive Graphics Y
-  target of at most `45`; the conservative generic modeled relation uses
-  `208` because a water-pitch term of at most `60` and bob below `148` can
+  The Ink audit proves that prefixes already refined to State-only cannot
+  create an Object/Graphics split.  Its source audit motivates a dry positive
+  Graphics Y target of at most `45`; the conservative generic modeled relation
+  uses `208` because a water-pitch term of at most `60` and bob below `148` can
   compose across a water-floor-hit branch.
   `Area1InkWriterCoverageObligation` is a predicate-sensitive schema, not an
   ordinary retail obligation.  It must be replaced by a concrete linked-run
@@ -1233,11 +1269,12 @@ clightgen -normalize -nostdinc -fstruct-passing \
   loophole, not a demonstrated clean ROM state.
 - No stock-reachable US or JP ROM counterexample has been established.  The
   fixture-assisted JP midpoint run reaches and consumes all five hidden
-  triggers and spawns the Act-6 star with zero A edges, but it has no Act-3
-  overlap and its observed continuation misses rather than collects the Act-6
-  star.  No target-bit transition or stock-reachable predecessor for the setup
-  has been established.  Other finite schedules found no target witness;
-  neither result is an exhaustive controller-only reachability proof.
+  triggers, spawns and overlaps the Act-6 star, and records the authentic JP
+  save byte changing from `00` to `20` with zero A edges.  It has no Act-3
+  overlap.  The missing fact is a stock-reachable predecessor for the injected
+  timer-131 three-view setup, so this is a conditional target-bit trace rather
+  than a retail counterexample.  Other finite schedules found no target
+  witness; neither result is an exhaustive controller-only reachability proof.
 
 The supplied A-press transcript was used only to identify candidate routes and
 version-sensitive behavior.  The pinned source and formal definitions control

@@ -117,7 +117,7 @@
   shapes.  Prove conditional local and PU three-view coordinate witnesses, the
   signed-range generic `385`-unit and exact-candidate `973`-unit minimum
   Graphics-minus-Object Y separations, preservation of Object and Graphics by
-  arbitrary State-only ordinary/platform/PU prefixes, the dry `45`-unit
+  arbitrary prefixes already refined to State-only, the dry `45`-unit
   conditional exclusion, and the modeled `208`-unit writer-relation exclusion.
   Treat the witnesses as handwritten pipeline evaluations and the generated
   null/copy/retry/death-latch matches as separate source-shape receipts.  Keep
@@ -300,6 +300,32 @@
   timer-131 transformed surface now rejects the old home-pose Y=`1791` witness
   and accepts the corrected midpoint.  Its clean installation and linked
   selection remain open.
+  Partial clean-JP gap-installer discharge:
+
+  - [x] Prove that arbitrary prefixes already refined to State-only preserve
+    the collision Object/Graphics Y gap exactly and therefore cannot create
+    the timer-131 midpoint sample from synchronized entry.
+  - [x] Compute the direct `quicksandDepth` writer inventory over the selected
+    generated JP Mario/action/interaction units.
+  - [x] Prove nonnegative depth for the source-shaped writer relation that
+    excludes the late long-jump writer, starting at zero, and couple the
+    generated `act_crouch_slide`
+    `INPUT_A_PRESSED` guard to the exact `ACT_LONG_JUMP` constructor call.
+  - [x] Record the exact countermodel to a naive per-frame bound: prepared
+    long-jump landing depth is `-2.650000095f`, and 363 unreanchored
+    automatic-dialog sink calls reach a zero-base endpoint at least `960` in
+    CompCert binary32.  Live-base displacement remains open.
+  - [x] Reject the apparent fire-particle Mario writer: the render callback
+    writes the `prevObj` flame's raw/Graphics position, not Mario's.
+  - [x] Add hash-gated, read-only-after-bootstrap JP zero-A search schedules
+    and record that their maximum observed positive Graphics/Object gap is
+    zero.  This is bounded evidence; the externally enabled level-select
+    bootstrap and finite schedule are not a clean-entry or exhaustive proof.
+  - [ ] Link clean entry to exact Mario raw/Graphics memory equality, prove
+    whole-program writer and action provenance with non-aliasing, refine the
+    sign argument to all live binary32 writes, and prove stock Area-1 dialog
+    source/handler closure.  Until then the `>=960` installer is reduced, not
+    eliminated.
 - [ ] Prove which JP raw-platform cases are reachable and bound every reachable
   spawning displacement.  Execute the imported matrix/surface helpers over live
   Clight memory, extract the mirrored expressions from generated Clight, and

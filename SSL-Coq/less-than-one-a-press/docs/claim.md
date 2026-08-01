@@ -88,8 +88,8 @@
   pyramid-top query.  The witnesses evaluate a handwritten
   retry/action/sink/copy pipeline; generated Clight syntax/dataflow receipts
   separately establish the null-test and retry shape.  The module also proves
-  that State-only ordinary, platform, or PU prefixes preserve Object and
-  Graphics and cannot manufacture their split from a synchronized state.  A
+  that prefixes already refined to State-only preserve Object and Graphics
+  and cannot manufacture their split from a synchronized state.  A
   generic top retry whose Graphics Y remains in signed-16 range requires at
   least `385` units of Graphics-minus-Object Y separation, while either exact
   proposed prestate requires at least `973`.
@@ -312,6 +312,19 @@
   three-view prestate in Area 1; retail execution then performs the capture,
   lifecycle, and true first Area-2 displacement.  It still does not show how a
   clean controller-only run creates the required `>=960` gap.
+  The current clean-JP reduction proves that any phase already refined to
+  State-only preserves the Object/Graphics gap and that its range-certified
+  writer relation cannot reach `960` from synchronized entry.  Generated-JP
+  receipts inventory direct `quicksandDepth` writers in the selected
+  Mario/action units and couple the ordinary long-jump constructor to
+  `INPUT_A_PRESSED`.  The corresponding source-shaped relation excludes that
+  late writer and keeps depth nonnegative.  This is not whole-program closure:
+  proving that clean no-edge execution refines that relation, linked writer/action
+  provenance, pointer non-aliasing, exact binary32 projection, and stock
+  dialog reachability remain open.  An already-negative `-2.650000095f`
+  depth would be a genuine escape; 363 unreanchored automatic-dialog sinks
+  reach a zero-base binary32 endpoint at least `960`, but live-base
+  displacement and a clean zero-A source for that combined state remain open.
 - Stock reachability or impossibility of the pyramid-top upper-warp path.
   The Y-preserving stock-yaw arithmetic case is excluded, the exact concrete
   retail cast is verified, and the bounded pre-apply owner theorem excludes

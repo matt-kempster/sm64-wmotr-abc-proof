@@ -31,8 +31,8 @@ controller input.  Consequently, `inputPluginMemoryWrites=zero` means exactly
 that the input plugin has no game-memory write API; it does **not** mean that
 the whole bootstrap performs no write.  The reported measurements cover
 authentic ROM execution after the resulting Area-1 entry.  Equivalence between
-this level-select-initialized state and a castle-entered `CleanPyramidEntry`
-has not been proved.
+this level-select-initialized state and an ordinary castle-entered state
+satisfying `CleanJPArea1GapAuditState` has not been proved.
 
 The samples are controller-poll boundary observations.  They do not by
 themselves exclude an intraframe split that is both created and consumed
