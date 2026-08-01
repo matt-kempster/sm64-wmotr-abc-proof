@@ -1,4 +1,6 @@
 COQMAKEFILE := CoqMakefile
+COQBIN ?=
+COQMAKEFILE_CMD ?= $(COQBIN)coq_makefile
 
 .PHONY: all generated regenerate verify-generated proofs check clean
 
@@ -13,7 +15,7 @@ verify-generated:
 	bash pipeline/check-generated.sh
 
 $(COQMAKEFILE): _CoqProject
-	coq_makefile -f _CoqProject -o $(COQMAKEFILE)
+	$(COQMAKEFILE_CMD) -f _CoqProject -o $(COQMAKEFILE)
 
 proofs: $(COQMAKEFILE)
 	$(MAKE) -f $(COQMAKEFILE)

@@ -8,6 +8,7 @@ fi
 
 MODULE="$1"
 THEOREM="$2"
+COQC_CMD="${COQBIN:-}coqc"
 AUDIT_DIR="$(mktemp -d)"
 TMP="$AUDIT_DIR/AssumptionAudit.v"
 OUTPUT="$AUDIT_DIR/AssumptionAudit.out"
@@ -18,7 +19,7 @@ trap 'rm -f "$AUDIT_DIR/AssumptionAudit.v" "$AUDIT_DIR/AssumptionAudit.vo" "$AUD
   echo "Print Assumptions $THEOREM."
 } > "$TMP"
 
-if ! coqc -q -R generated LessThanOneAPress.Generated \
+if ! "$COQC_CMD" -q -R generated LessThanOneAPress.Generated \
     -R proofs LessThanOneAPress.Proofs "$TMP" >"$OUTPUT" 2>&1; then
   cat "$OUTPUT"
   exit 1

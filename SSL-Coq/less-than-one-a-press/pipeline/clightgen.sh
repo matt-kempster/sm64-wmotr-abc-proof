@@ -12,12 +12,14 @@ GAME_VERSION="$3"
 OUTPUT="$4"
 shift 4
 
-if ! command -v clightgen >/dev/null 2>&1; then
+CLIGHTGEN_CMD="${CLIGHTGEN:-clightgen}"
+
+if ! command -v "$CLIGHTGEN_CMD" >/dev/null 2>&1; then
   echo "clightgen is not on PATH; source pipeline/env.sh first" >&2
   exit 1
 fi
 
-CLIGHTGEN_VERSION="$(clightgen -version 2>/dev/null | head -1)"
+CLIGHTGEN_VERSION="$("$CLIGHTGEN_CMD" -version 2>/dev/null | head -1)"
 case "$CLIGHTGEN_VERSION" in
   *"version 3.15"*) ;;
   *)
@@ -30,7 +32,7 @@ mkdir -p "$(dirname "$OUTPUT")"
 TMP_V="$(mktemp --suffix=.v)"
 trap 'rm -f "$TMP_V"' EXIT
 
-clightgen -normalize "$@" -o "$TMP_V" "$INPUT"
+"$CLIGHTGEN_CMD" -normalize "$@" -o "$TMP_V" "$INPUT"
 
 DISPLAY_ARGS=()
 for flag in "$@"; do
