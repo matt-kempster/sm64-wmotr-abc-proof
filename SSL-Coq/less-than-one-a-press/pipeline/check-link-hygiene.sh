@@ -131,4 +131,4 @@ for version in us jp; do
       "$PROJECT_ROOT/generated" "$version")
 done
 
-echo "linked external-function and extern/tentative-variable manifests reproduce"
+echo "linked external-constructor and extern/tentative-variable manifests reproduce"

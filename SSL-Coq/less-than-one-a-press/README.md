@@ -24,16 +24,56 @@ historical payload-free `FirstTargetCutClassificationObligation` is also
 unproved.
 
 The project generates 38 Clight translation units for each target version.
-CompCert 3.15's unmodified `link_list` is now proved to fail on both complete
-lists: the first right-associated AST-program failure is the `ssl_script` join
-at index 34, and the first composite-definition failure is the `area` join at
-index 27.  A deterministic audit finds 402 US and 401 JP duplicate public
-variables with unequal generated types.  `NormalizedClightPrograms.v`
-constructs executable US/JP semantic slices by selecting definitions and
-composites deterministically, but these are not official CompCert links and no
-`NormalizedCleanedUnitsOfficialLinkStructuralObligation` inhabitant is assumed
-or proved.  They cannot yet
-serve as the retail whole-program semantics.
+CompCert 3.15's unmodified `link_list` is proved to fail on both original
+complete lists: the first right-associated AST-program failure is the
+`ssl_script` join at index 34, and the first composite-definition failure is
+the `area` join at index 27.  A deterministic audit finds 402 US and 401 JP
+duplicate public variables with unequal generated types.
+`NormalizedClightPrograms.v` constructs executable US/JP semantic candidates
+by selecting definitions and composites deterministically; those values are
+not themselves official CompCert links.  `CleanedClightPrograms.v` separately
+constructs source-owned cleaned unit lists, and the kernel-checked theorems
+`us_normalized_cleaned_units_official_link_structural` and
+`jp_normalized_cleaned_units_official_link_structural` prove that CompCert
+3.15's unmodified `link_list` returns the two official cleaned targets.  These
+inhabit the US and JP `NormalizedCleanedUnitsOfficialLinkStructuralObligation`
+propositions.  This closes only the syntactic program-construction boundary:
+original-to-cleaned execution simulation and target-ROM refinement remain
+separate, unproved obligations.
+
+The declaration and layout audit now proves that every generated function
+declaration has the selected definition's CompCert call ABI, every variable
+declaration except `gDisplayListHead` satisfies the exact-or-incomplete-array
+rule, and the `gDisplayListHead` pointer declarations have equal checked
+storage behavior.  The named residual composite layouts agree.  The one
+material US blocker is the anonymous `__538` atom, which aliases a
+16-byte/alignment-2 viewport structure in the affected `area` and cutscene
+source uses with an 8-byte/alignment-4 graphics-command structure in
+`game_init`.  The actual US official target inherits the latter definition, so
+its `__540` viewport wrapper is 8 bytes while the source viewport
+wrapper/storage is 16 bytes.  Local fresh-tag layout construction is proved,
+but the required whole-AST alpha-renaming of affected types, expressions, and
+globals and its semantic simulation are not.  A composite-table-only repair is
+insufficient.
+
+`ClightLinkExecution.v` specializes exact-definition provenance through the
+cleaned units to both actual official targets.  It proves that every nonlocal
+internal-body `Evar` and every initializer `Init_addrof` occurrence resolves to
+a linked symbol, every retained or reachable global `External` has constructor
+`EF_external`, `EF_builtin`, or `EF_runtime`, and neither actual official target
+contains a direct `Sbuiltin`.  The normalized/source manifests preserve the
+exact external inventories: US `133 EF_external / 75 EF_builtin / 19
+EF_runtime` (227 total) and JP `132 / 75 / 19` (226 total).
+
+The file also transports CompCert external calls under explicit
+`symbols_inject`, `Mem.inject`, and injected-argument hypotheses.  Its conclusions
+include injected result values and memories, injection growth/separation, and
+the standard `loc_unmapped`/`loc_out_of_reach` memory guarantees; separate
+theorems lift external `Callstate` steps and direct `Sbuiltin` steps after
+argument-evaluation injection.  Retail use still requires the concrete global
+interface and public-name relation, initial and current-state `Mem.inject`,
+expression/continuation/internal-step simulation, and writable
+Mario/object/controller frame premises.
 
 The strongest current counterexample candidate is the JP timer-131 stale-top
 route.  Exact CompCert binary32 arithmetic rejects the old home-pose Graphics
@@ -1291,14 +1331,38 @@ clightgen -normalize -nostdinc -fstruct-passing \
   The first AST failure is the `ssl_script`/SSL-data join; the broader audit
   records 402 US and 401 JP duplicate public variables with unequal generated
   types (principally incomplete extern arrays versus complete definitions).
-  No linked `globalenv` or `TargetLinkedProgram` is claimed.  Exact unresolved
-  function and variable atoms, and the required normalized-merge refinement,
-  are documented in `docs/notes/linked-clight-construction.md`.
-- `Print Assumptions` reports, but does not automatically reject, the
-  assumptions of named results.  The current output contains CompCert's
-  standard classical real-number and dependent functional-extensionality
-  foundations for the float model.  The project declares no new logical
-  axioms.
+  Source-owned cleaned US and JP unit lists now have kernel-checked structural
+  inhabitants proving that unmodified `link_list` returns the corresponding
+  official cleaned target.  This is not a completed linked retail execution or
+  a `TargetLinkedProgram` refinement.
+  Exact unresolved function-constructor and variable atoms, and the required
+  original-to-cleaned refinement, are documented in
+  `docs/notes/linked-clight-construction.md`.
+- The normalized candidates contain 227 US and 226 JP global `External`
+  definitions, but those totals are not all `EF_external`: the exact partitions
+  are US `133/75/19` and JP `132/75/19` for
+  `EF_external`/`EF_builtin`/`EF_runtime`.  Generated manifests and Rocq checks
+  agree on those counts.  Direct `Sbuiltin` external calls are not global
+  definitions and are covered by a separate step-inversion theorem.
+- Exact-definition provenance now specializes candidate/source-union audits to
+  both actual official targets.  Every nonlocal internal-body `Evar` and
+  initializer `Init_addrof` occurrence resolves, retained/reachable global
+  externals have one of the three supported constructors, and exhaustive body
+  recursion proves no direct `Sbuiltin` in either target.  This establishes
+  reference and constructor coverage, not initial-memory relocation injection,
+  expression typing/refinement, or retail execution simulation.
+- CompCert external-call execution is transported across `symbols_inject` and
+  `Mem.inject`, with injected results/memories, growing and separated
+  injections, and `loc_unmapped`/`loc_out_of_reach` preservation.  This does not
+  supply a frame for writable Mario, object-pool, or controller cells.  Retail
+  use still needs the global-interface/public-name proof, initial and current
+  memory injections, expression/continuation/internal-step simulation, and a
+  concrete writable frame for every relevant external effect.
+- `Print Assumptions` reports the assumptions of named results, and
+  `pipeline/assumptions.sh` rejects dependencies declared in this project's
+  own logical namespace.  It deliberately permits CompCert's standard
+  classical real-number and dependent functional-extensionality foundations
+  for the float model.  The project declares no new logical axioms.
 - `ModelGapAudit.v` proves that the current endpoint-only certificate still
   accepts arbitrary Mario-motion endpoints and can pair a clean US or JP
   entry with a synthetic immediate Act 3 overlap/collection event.  Separately,

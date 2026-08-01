@@ -63,10 +63,16 @@ and the first composite-definition join is `area` at index 27.  The associated
 audit finds 402 US and 401 JP duplicate public variables with unequal generated
 types.  `proofs/NormalizedClightPrograms.v` can build deterministic semantic
 slices by selecting one generated definition per atom, but those slices are
-not official CompCert links.  Their declaration/composite/global-reference,
-external-frame, and execution-simulation conditions remain open.  The narrower
-cleaned-unit/official-link boundary is
-`NormalizedCleanedUnitsOfficialLinkStructuralObligation`.
+not official CompCert links.  `proofs/CleanedClightPrograms.v` separately
+constructs source-owned cleaned units and proves both
+`NormalizedCleanedUnitsOfficialLinkStructuralObligation` inhabitants: the
+unmodified linker returns actual US and JP cleaned targets.  Declaration ABI
+and storage audits, actual-target global-reference resolution, external
+constructor coverage, and CompCert memory-injection transport are also proved.
+They do not establish retail semantics.  The incompatible US anonymous
+viewport tag still needs a whole-AST repair and simulation; the global/public
+interface, initial and current memory injections, internal-step simulation,
+and concrete writable external-call frames remain open.
 
 `proofs/OrdinaryArea1EntryMemory.v` maps the ordinary Area-1 entry through
 `ssl_script`, `level_script`, `level_update`, `mario`, `object_list_processor`,

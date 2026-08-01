@@ -20,9 +20,45 @@
 - `NormalizedClightPrograms.v` constructs concrete deterministic US/JP
   semantic slices, selects every available internal function and definitive
   variable, and records their residual declaration/composite mismatches.  The
-  construction is not `Linking.link`; no
-  `NormalizedCleanedUnitsOfficialLinkStructuralObligation` inhabitant is
-  assumed or proved, so its executions are not claimed to be retail semantics.
+  construction is not `Linking.link`, so its executions are not claimed to be
+  retail semantics.  `CleanedClightPrograms.v` separately constructs
+  source-owned cleaned units and kernel-checks both US/JP
+  `NormalizedCleanedUnitsOfficialLinkStructuralObligation` inhabitants: the
+  unmodified CompCert linker returns each official cleaned target.  This closes
+  syntactic construction only; semantic refinement remains separate.
+- `CompositeLayoutRefinement.v` proves equal selected call ABIs for every
+  generated function declaration.  Every generated variable declaration
+  satisfies the exact-or-incomplete-array rule except `gDisplayListHead`, and
+  its pointer views have equal checked storage behavior.  The named residual
+  composite layouts agree.  US `__538` is proved to collide between a
+  16-byte/alignment-2 viewport in affected source uses and an
+  8-byte/alignment-4 graphics-command structure selected by the actual
+  official target.  Its `__540` viewport wrapper is therefore 8 bytes against
+  16-byte source wrapper/storage.  A fresh-tag local layout repair is
+  constructed, but the complete whole-AST alpha-renaming and execution
+  simulation are not.
+- `ClightLinkExecution.v` proves generic consequences of a real successful
+  CompCert link: an input `Internal` body resolves to that exact body; source
+  symbols map to target blocks by name; a linked external definition hides no
+  input internal body; and reachable global external `Callstate`s have linked
+  program-definition provenance.  Direct `Sbuiltin` calls have a separate
+  external-step inversion.
+- The same file specializes exact-definition provenance to both actual official
+  targets.  Every nonlocal internal-body `Evar` and initializer `Init_addrof`
+  occurrence resolves to a linked symbol.  Every retained/reachable global
+  `External` has constructor `EF_external`, `EF_builtin`, or `EF_runtime`, and
+  exhaustive body recursion proves that neither target contains a direct
+  `Sbuiltin`.
+- The normalized global-`External` definitions are partitioned exactly as US
+  `133 EF_external`, `75 EF_builtin`, `19 EF_runtime`, and JP
+  `132`, `75`, `19`.  The generated manifests reproduce the same partition.
+  CompCert external calls are transported under explicit CompCert
+  `symbols_inject`, `Mem.inject`, and injected-argument hypotheses, yielding
+  injected results/memories,
+  injection growth/separation, and `loc_unmapped`/`loc_out_of_reach` guarantees.
+  External `Callstate` and generic direct-`Sbuiltin` lifting are proved, the
+  latter after argument-evaluation injection.  These facts do not supply
+  writable Mario/object/controller frames.
 - `TurningAnimation.v` proves the narrow Turning-Part-2 boundary:
   generated US/JP receipts couple `forwardVel >= 18.0f` to animation IDs
   188/189, record both local ground-step/setter orders, tie `unkB0` to
@@ -321,11 +357,21 @@
 
 ## Not proved
 
-- Whole-program semantic refinement from the imported Clight units to each
+- Whole-program semantic refinement from the original imported Clight units to
+  the cleaned official-link target and from that execution to each
   `CertifiedStep` constructor.
-- A concrete linked target program, initial/final whole-program run, state and
-  input/event/collision projections, frame certificate, or clean-entry
-  projection-coverage proof.
+- The normalized/original-to-official declaration, composite, global-reference,
+  and public-name interface needed to instantiate the proved external-call
+  transport; initial and current-state `Mem.inject` under the name-based
+  `symbol_block_map`; expression-evaluation, continuation, and internal-step
+  relations; an initial/final whole-program run; state and
+  input/event/collision projections; writable external-call frame certificates;
+  or a clean-entry projection-coverage proof.
+- A whole-AST US viewport-tag alpha-renaming and semantics proof.  Replacing
+  only the composite table is unsound because the colliding `__538` layouts
+  differ, the official `__540` wrapper is 8 bytes against 16-byte source
+  storage, and affected global/function annotations and expressions still use
+  that atom.
 - A proof that the abstract origin tags, trigger labels, player/object
   references, slot epochs, or pool/list validity flags denote and preserve the
   corresponding C memory facts.

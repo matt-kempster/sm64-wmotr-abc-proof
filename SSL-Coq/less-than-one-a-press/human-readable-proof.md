@@ -25,10 +25,17 @@ engineering but does not know *Super Mario 64*.
 > 34) and the first composite-definition join fails at `area` (index 27).  The
 > audit finds 402 US and 401 JP duplicate public variables whose generated
 > types differ.  The project can mechanically choose one definition per name
-> and build a normalized semantic slice, but that slice is not CompCert's
-> linked semantics.  Its declaration/composite/global-reference/external-call
-> simulation record has no proved inhabitant, so none of the retail conclusions
-> below is derived from that slice.
+> and build a normalized semantic candidate; that value is not itself
+> CompCert's linked semantics.  A separate source-owned cleaning now has
+> kernel-checked US and JP inhabitants showing that CompCert's unmodified
+> `link_list` returns each official cleaned target.  This is a syntactic
+> structural-link result, not a semantics-preservation result.  The declaration
+> and storage audits isolate a concrete incompatible US anonymous-tag choice,
+> described below.  Actual-target global-reference classification and CompCert
+> external-call injection transport are proved, but the retail global
+> interface, initialized/current memory injections, internal-step simulation,
+> and writable-external frames remain open.  No retail conclusion below is
+> derived merely from the normalized candidate or the syntactic link.
 
 > **Newest clean-JP gap-installer result:** no clean retail installer for the
 > timer-131 `>=960` Graphics/Object Y gap has been found.  The new checked
@@ -1635,18 +1642,74 @@ is the `area` join with the suffix beginning at `level_update`.  A deterministic
 census finds 402 US and 401 JP duplicate public variable atoms whose generated
 types differ, mostly because one unit has an incomplete extern array and the
 defining unit has its complete length.  This is a proved linking boundary, not
-a linked whole-program semantics.  The exact unresolved external symbols are
-listed in `docs/notes/linked-symbol-coverage-{us,jp}.txt`.
+a retail whole-program semantics.  The exact unresolved global externals are
+listed by CompCert constructor in
+`docs/notes/linked-symbol-coverage-{us,jp}.txt`: US has 133
+`EF_external`, 75 `EF_builtin`, and 19 `EF_runtime` definitions; JP has
+132, 75, and 19 respectively.
 
 `NormalizedClightPrograms.v` mechanically retains the strongest available
 definition for each global atom and the first generated definition for each
 composite atom, then successfully builds concrete US/JP `Clight.program`
 values.  That construction is called a *normalized semantic slice* on purpose:
-it neither repairs translation-unit-local anonymous tags nor proves that
-incomplete-array uses, global references, or external effects simulate the C
-program.  `NormalizedCleanedUnitsOfficialLinkStructuralObligation` states a
-necessary cleaned-unit/official-link bridge and has no inhabitant in the
-project; a later execution refinement would still be required.
+it does not by itself repair translation-unit-local anonymous tags or prove
+that incomplete-array uses and external effects simulate the C program.
+`CleanedClightPrograms.v` separately builds source-owned cleaned unit lists.
+The kernel-checked
+`us_normalized_cleaned_units_official_link_structural` and
+`jp_normalized_cleaned_units_official_link_structural` theorems inhabit the two
+`NormalizedCleanedUnitsOfficialLinkStructuralObligation` propositions: the
+unmodified CompCert linker returns the official US and JP cleaned targets.
+That result remains syntactic; a later execution refinement is still required.
+
+The declaration audit proves equal CompCert call ABIs for every generated
+function declaration and selected definition.  Variable declarations satisfy
+the exact-or-incomplete-array rule except for `gDisplayListHead`, whose pointer
+views nevertheless have equal checked size, alignment, access mode, and
+volatility.  All named JP residual composite layouts and the five named US
+residual layouts agree.  The remaining US atom `__538` is not cosmetic: it is
+a 16-byte/alignment-2 viewport structure in affected `area` and cutscene source
+uses and an 8-byte/alignment-4 graphics-command structure in `game_init`.  The
+actual official US target inherits the graphics-command `__538`; its `__540`
+viewport wrapper is consequently 8 bytes while the corresponding source
+wrapper/storage is 16 bytes.  This is a checked negative result: structural
+linkability is not composite refinement.  The proof constructs a fresh-tag
+local layout for the viewport uses, but every affected type, expression,
+function/global annotation, and initializer still needs whole-AST
+alpha-renaming and an execution-simulation proof.  Replacing only the target's
+composite table would leave the old annotations behind and is unsound.
+
+`ClightLinkExecution.v` uses exact-definition provenance from each official
+target, through its cleaned unit, back to the source units.  On both actual
+official targets it proves that every nonlocal internal-body `Evar` and every
+global-initializer `Init_addrof` occurrence resolves to a linked symbol.  Every
+retained or reachable global `External` is one of `EF_external`, `EF_builtin`,
+or `EF_runtime`, and exhaustive recursion through the official function bodies
+proves that neither target contains a direct `Sbuiltin`.  The source/normalized
+external inventories remain exactly US 133/75/19 (227 total) and JP 132/75/19
+(226 total) for those three constructors.
+
+There is now one deliberately bounded execution bridge beyond that syntax
+census.  If a global name resolves in the source, the source and target
+function environments both show that the name is not a stack local,
+`NamedSymbolCoverage` supplies its target block, and the current memories are
+already related by the name-based `Mem.inject`, then
+`named_global_evar_lvalue_execution_bridge` constructs the source and target
+`eval_lvalue` derivations for that `Evar` and proves that their zero-offset
+pointers satisfy CompCert `Val.inject`.  It does not recurse through larger
+expressions or relate function environments, composites, continuations, or
+internal steps.
+
+The same file uses CompCert's real external-call simulation interface.  Given
+`symbols_inject`, `Mem.inject`, and injected argument values, it produces an
+injected result and memory, a growing and separated injection, and the standard
+`loc_unmapped` and `loc_out_of_reach` preservation facts.  It lifts external
+`Callstate` steps and, generically, direct `Sbuiltin` steps after separately
+injecting the evaluated arguments.  Those theorems do not manufacture the
+premises needed for the game: the normalized/original-to-official global
+interface and public-name agreement, initial and current-state memory
+injections, expression/continuation/internal-step relation, and writable
+Mario/object/controller frames remain to be proved.
 
 - the controller input calculation distinguishes `buttonPressed` from
   `buttonDown`;
@@ -1789,11 +1852,20 @@ compose into a proof of the final claim.
 
 The ultimate theorem needs all of the following:
 
-1. Prove a normalization/refinement pass for incomplete-array declarations and
-   TU-local composite identifiers, then construct linked US and JP programs.
-   CompCert's unmodified syntactic `link_list` is now proved to fail, so a
-   symbol-index merge must not be presented as linked semantics.  Specify frame
-   conditions for every unresolved external call in the checked manifests.
+1. Build on the proved source-owned US/JP structural links without treating
+   them as retail semantics.  The actual-target `Evar`, `Init_addrof`, external
+   constructor, and no-direct-`Sbuiltin` results are proved.  The incompatible
+   US `__538`/`__540` viewport layout still requires whole-AST alpha-renaming
+   and simulation, not merely a composite-table replacement.  Prove the full
+   normalized/original-to-official declaration, composite, global-reference,
+   and public-name interface; instantiate the name-based `symbol_block_map`;
+   establish initial and current-state `Mem.inject`; and relate expression
+   evaluation, continuations, internal Clight steps, and initial/final
+   executions.  Supply explicit writable-memory frames for every reachable
+   external effect on Mario, object, and controller bytes.  The exact
+   normalized/source coverage inventories remain US 133/75/19 and JP
+   132/75/19; the 75
+   builtins and 19 runtime helpers per version are not `EF_external` calls.
 2. Project Clight memory and traces to `GameState`, frame inputs, lifecycle
    events, and complete collision observations.
 3. Prove that the projection produces `CertifiedExecution`, including object
@@ -1878,6 +1950,23 @@ The most useful entry points are:
   certificates and first failed joins;
 - `proofs/NormalizedClightPrograms.v`: executable normalized semantic slices
   plus the explicit, unproved semantic-refinement boundary;
+- `proofs/CompositeLayoutRefinement.v`: definitions and generic lemmas for
+  declaration ABI/storage checks, residual composite layouts, the exact US
+  `__538` collision, fresh-tag coverage, and local layout repair;
+- the `US*Certificate.v` and `JP*Certificate.v` receipt modules: independently
+  compiled composite, declaration, collision, alpha-renaming, fresh-tag, and
+  whole-body affected-global checks, split so clean builds remain memory-bounded;
+- `proofs/CleanedClightPrograms.v`: source-owned cleaned-unit construction,
+  exact definition/source provenance, and kernel-checked US/JP structural
+  official-link inhabitants;
+- `proofs/CompositeOfficialLinkBridge.v`: kernel bridges from those structural
+  targets to the audited composite environments, including the proved negative
+  result that the current official US target has an incompatible `__538` and an
+  8-byte `__540` viewport wrapper where the affected sources require 16 bytes;
+- `proofs/ClightLinkExecution.v`: actual-official-target `Evar`,
+  `Init_addrof`, external-constructor, and no-direct-`Sbuiltin` checks, plus
+  CompCert `symbols_inject`/`Mem.inject` transport for external `Callstate` and
+  generic direct-`Sbuiltin` execution;
 - `proofs/OrdinaryArea1EntryMemory.v`: ordinary node-`0x0A` entry receipts,
   symbol/layout/slot facts, synchronized memory postcondition, and remaining
   live-entry obligations;

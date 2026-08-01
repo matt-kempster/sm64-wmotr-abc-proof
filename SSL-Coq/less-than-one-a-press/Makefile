@@ -45,6 +45,96 @@ check: proofs
 	  LessThanOneAPress.Proofs.NormalizedClightPrograms \
 	  jp_residual_function_signature_mismatch_count_checked
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CleanedClightPrograms \
+	  us_normalized_cleaned_units_official_link_structural
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CleanedClightPrograms \
+	  jp_normalized_cleaned_units_official_link_structural
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CompositeOfficialLinkBridge \
+	  us_structural_link_precedes_composite_environment_bridge
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CompositeOfficialLinkBridge \
+	  jp_structural_link_precedes_composite_environment_bridge
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CompositeOfficialLinkBridge \
+	  us_official_cleaned_viewport_wrapper_has_wrong_size
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.USClightLinkRefinementCertificates \
+	  us_exact_residual_composite_mismatches_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPClightLinkRefinementCertificates \
+	  jp_named_residuals_have_equal_checked_storage_layouts
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.USClightLinkRefinementCertificates \
+	  us_core_declaration_composite_audit_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPClightLinkRefinementCertificates \
+	  jp_core_declaration_composite_audit_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.USClightLinkRefinementCertificates \
+	  us_all_viewport_538_alpha_renaming_layout_constructed
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.USViewportReferenceCertificates \
+	  us_affected_viewport_globals_audit_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightLinkExecution \
+	  us_official_source_definition_provenance
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightLinkExecution \
+	  jp_official_source_definition_provenance
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightLinkExecution \
+	  us_official_internal_body_evar_resolves
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightLinkExecution \
+	  jp_official_internal_body_evar_resolves
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightLinkExecution \
+	  us_official_init_addrof_identifier_resolves
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightLinkExecution \
+	  jp_official_init_addrof_identifier_resolves
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightLinkExecution \
+	  us_normalized_external_constructor_partition
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightLinkExecution \
+	  jp_normalized_external_constructor_partition
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightLinkExecution \
+	  us_official_external_has_supported_constructor
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightLinkExecution \
+	  jp_official_external_has_supported_constructor
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightLinkExecution \
+	  us_reachable_official_external_callstate_is_classified
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightLinkExecution \
+	  jp_reachable_official_external_callstate_is_classified
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightLinkExecution \
+	  us_official_target_has_no_direct_sbuiltin
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightLinkExecution \
+	  jp_official_target_has_no_direct_sbuiltin
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightLinkExecution \
+	  named_global_evar_lvalue_execution_bridge
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightLinkExecution \
+	  external_call_executes_across_global_interface
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightLinkExecution \
+	  clight_external_callstate_step_injects
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightLinkExecution \
+	  clight_sbuiltin_step_injects_after_argument_evaluation
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightLinkExecution \
+	  clight_sbuiltin_step_obeys_explicit_frame
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.OrdinaryArea1EntryMemory \
 	  ordinary_area1_entry_source_kernel_checked
 	bash pipeline/assumptions.sh \

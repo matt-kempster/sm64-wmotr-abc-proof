@@ -680,3 +680,45 @@ fixture relabeling, and public status corrections changed:
 - `SSL-Coq/less-than-one-a-press/proofs/InkPayloadInstaller.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/JPFirstApply.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`
+
+## Official cleaned-link and execution-boundary tranche
+
+The source-owned cleaned links, declaration/composite audits, US anonymous-tag
+counterexample and local layout repair, actual-target global-reference and
+external-constructor coverage, and bounded CompCert memory-injection transport
+changed:
+
+- `SSL-Coq/README.md`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/claim.md`
+- `SSL-Coq/less-than-one-a-press/docs/goal.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/linked-clight-construction.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/linked-symbol-coverage-jp.txt`
+- `SSL-Coq/less-than-one-a-press/docs/notes/linked-symbol-coverage-us.txt`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+- `SSL-Coq/less-than-one-a-press/pipeline/check-link-hygiene.sh`
+- `SSL-Coq/less-than-one-a-press/pipeline/link-coverage-manifest.py`
+- `SSL-Coq/less-than-one-a-press/proofs/CleanedClightPrograms.v`
+- `SSL-Coq/less-than-one-a-press/proofs/ClightLinkExecution.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/CompositeLayoutRefinement.v`
+- `SSL-Coq/less-than-one-a-press/proofs/CompositeOfficialLinkBridge.v`
+- `SSL-Coq/less-than-one-a-press/proofs/JPClightLinkRefinementCertificates.v`
+- `SSL-Coq/less-than-one-a-press/proofs/JPCompositeCompatibilityCertificate.v`
+- `SSL-Coq/less-than-one-a-press/proofs/JPDeclarationCompatibilityCertificate.v`
+- `SSL-Coq/less-than-one-a-press/proofs/NormalizedClightPrograms.v`
+- `SSL-Coq/less-than-one-a-press/proofs/USAreaViewportAlphaCertificate.v`
+- `SSL-Coq/less-than-one-a-press/proofs/USAreaViewportReferenceCertificate.v`
+- `SSL-Coq/less-than-one-a-press/proofs/USClightLinkRefinementCertificates.v`
+- `SSL-Coq/less-than-one-a-press/proofs/USCompositeCompatibilityCertificate.v`
+- `SSL-Coq/less-than-one-a-press/proofs/USCutsceneViewportAlphaCertificate.v`
+- `SSL-Coq/less-than-one-a-press/proofs/USCutsceneViewportReferenceCertificate.v`
+- `SSL-Coq/less-than-one-a-press/proofs/USDeclarationCompatibilityCertificate.v`
+- `SSL-Coq/less-than-one-a-press/proofs/USViewportCollisionCertificate.v`
+- `SSL-Coq/less-than-one-a-press/proofs/USViewportFreshTagCertificate.v`
+- `SSL-Coq/less-than-one-a-press/proofs/USViewportLayoutCertificates.v`
+- `SSL-Coq/less-than-one-a-press/proofs/USViewportReferenceCertificates.v`

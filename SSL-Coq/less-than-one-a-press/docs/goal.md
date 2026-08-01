@@ -33,10 +33,21 @@ unmodified `link_list` is proved to fail for both versions: the first
 right-associated AST join fails at `ssl_script` (index 34), and the first
 composite-definition join fails at `area` (index 27).  The public-variable
 type census finds 402 US and 401 JP mismatches.  Executable normalized semantic
-slices are constructed for finite coverage work, but they are not official
-CompCert links; their
-`NormalizedCleanedUnitsOfficialLinkStructuralObligation` connection through
-cleaned translation units remains unproved, as does execution refinement.
+slices are constructed for finite coverage work, but they are not themselves
+official CompCert links.  A separate source-owned cleaning has kernel-checked
+US and JP structural inhabitants proving that unmodified `link_list` returns
+each official cleaned target.  This is only syntactic linkability;
+original-to-cleaned and retail execution refinement remain unproved.
+Declaration ABI/storage compatibility is checked, but the actual US target
+inherits the incompatible 8-byte Gfx `__538` and an 8-byte `__540` wrapper where
+affected viewport sources use 16-byte storage.  Whole-AST alpha-renaming and
+simulation are therefore required.  Actual-target `Evar`, `Init_addrof`,
+external-constructor, and no-direct-`Sbuiltin` results are proved.  CompCert
+external-call execution is also transported under explicit CompCert
+`symbols_inject` and `Mem.inject` hypotheses, but the retail global interface,
+initial/current memory
+injections, expression/continuation/internal-step simulation, and concrete
+writable external-call frames are not.
 
 The newest Ink tranche proves exact US/JP layouts and a conditional
 post-entry `Mem.load` projection, corrects the live controller-pressed and

@@ -238,10 +238,40 @@
      composite index 27 (`area`) for both versions, with 402 US and 401 JP
      duplicate-public-variable type mismatches.  Deterministic normalized
      semantic slices are constructed, but they are not official links.
-     [ ] Inhabit `NormalizedCleanedUnitsOfficialLinkStructuralObligation`
-     before treating the slices as official links, then prove the separate
-     declaration/composite/global-reference and external-call execution
-     simulation needed for retail semantics.
+     [x] Prove equal function call ABIs, exact-or-incomplete-array compatibility
+     except for the storage-equivalent `gDisplayListHead` pointer views, named
+     residual layout compatibility, and the exact incompatible US `__538`
+     viewport/Gfx-tag collision.  Construct its local fresh-tag layout repair.
+     [x] Construct source-owned cleaned US/JP unit lists and inhabit both
+     `NormalizedCleanedUnitsOfficialLinkStructuralObligation` propositions:
+     CompCert 3.15's unmodified `link_list` returns the two official cleaned
+     targets.  This is a syntactic result, not retail semantics.
+     [x] Prove exact-definition provenance from both actual official targets to
+     cleaned/source units.  Check every official-target nonlocal internal-body
+     `Evar` and initializer `Init_addrof` occurrence and prove that it resolves
+     to a linked symbol.  Prove the bounded execution bridge for one unshadowed
+     global `Evar`: under explicit `NamedSymbolCoverage`, matching source/target
+     nonlocality, and current `Mem.inject`, construct both `eval_lvalue`
+     derivations and the injected name-mapped global pointers.  This is not a
+     whole-expression or internal-step simulation.
+     [x] Partition normalized global externals exactly: US `133 EF_external`,
+     `75 EF_builtin`, `19 EF_runtime`; JP `132`, `75`, `19`.  Prove global
+     external-`Callstate` provenance, classify every actual-target retained and
+     reachable external constructor, and prove by exhaustive body recursion
+     that both actual official targets contain no direct `Sbuiltin`.
+     [x] Prove CompCert external-call transport under explicit
+     `symbols_inject`, `Mem.inject`, and injected-argument hypotheses, including result/memory injection,
+     injection growth/separation, `loc_unmapped`/`loc_out_of_reach` guarantees,
+     external-`Callstate` lifting, and generic direct-`Sbuiltin` lifting after
+     argument-evaluation injection.
+     [ ] Rewrite every affected US `__538` type/expression/global annotation:
+     the official target currently selects the 8-byte Gfx `__538` and an 8-byte
+     `__540` wrapper, while affected viewport sources use 16-byte storage.
+     Prove the resulting whole-AST alpha-renaming simulation.  Also prove the
+     normalized/original-to-official global-interface and public-name relation,
+     initial/current-state `Mem.inject`, expression/continuation/internal-step
+     simulation, concrete writable-byte frames for every reachable external
+     effect, and initial/final whole-program execution refinement.
   2. [x] Extract ordinary Area-1 node `0x0A`, spin-airborne action, layout,
      symbol, distinct-slot, and synchronized-postcondition facts.
      [ ] Execute the live entry `Smallstep.star`, castle routing, behavior
@@ -263,17 +293,20 @@
   6. [x] Prove named-global storage separation and distinct in-range
      608-byte object-slot non-alias arithmetic at entry.
      [ ] Prove pointer validity, every object access in bounds, absence of
-     harmful aliases, and frame conditions for every unresolved external.
+     harmful aliases, and concrete writable-memory frame conditions for every
+     reachable unresolved `EF_external` and direct `Sbuiltin` effect.  The
+     generic CompCert read-only property is not such a frame.
   7. [x] Compose an assumed entry bound and per-step gap refinement into a
      global `<960` theorem over the parameterized zero-edge relation.
      [ ] Supply the theorem's total-projection and per-step-refinement premises;
      without them the composition does not exclude a retail installer.
-- [ ] Construct a linked program and prove the `TargetLinkedProgram`
-  link-order certificate.  `LinkedClightPrograms.v` now kernel-checks that
-  CompCert 3.15's unmodified `link_list` fails for both 38-unit lists (first
-  AST failure: `ssl_script`, index 34; first composite failure: `area`, index
-  27).  The checked symbol manifests and 402-US/401-JP type-mismatch census
-  define the normalization/refinement work still required.
+- [ ] Prove that an official cleaned target is a retail-refined
+  `TargetLinkedProgram`.  The syntactic link-order part now has kernel-checked
+  US/JP structural inhabitants, while `LinkedClightPrograms.v` separately
+  proves that the uncleaned 38-unit lists fail (first AST failure:
+  `ssl_script`, index 34; first composite failure: `area`, index 27).  The US
+  composite counterexample and the remaining global/memory/small-step
+  simulation premises prevent treating the cleaned links as retail semantics.
 - [ ] Define concrete state, input, event, and complete collision-observation
   projections for actual initial-to-final Clight runs.
 - [ ] Prove both `WholeProgramClightRefinementObligation` and

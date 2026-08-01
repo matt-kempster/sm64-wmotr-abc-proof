@@ -20,16 +20,55 @@ imports the Area-1 macro stream used by the phase-split writer audit.  The
 collision wrapper also imports the breakable-box, exclamation-box-outline,
 cannon-lid, and wooden-signpost meshes used by the stock Area-1 owner bounds.
 
-CompCert 3.15's unmodified linker has now been run over all 38 units in each
-version.  It does not produce a whole program: the first right-associated AST
+CompCert 3.15's unmodified linker has been run over the original 38-unit lists.
+Those lists do not produce a whole program: the first right-associated AST
 join fails at `ssl_script` (index 34), and the first composite-definition join
 fails at `area` (index 27), in both US and JP.  The audit finds 402 US and 401
 JP duplicate public variables whose generated types differ.  A deterministic
-normalized semantic slice is available for coverage experiments, but it is
-not an official CompCert link.  Its explicitly structural
-`NormalizedCleanedUnitsOfficialLinkStructuralObligation` is unproved, and
-execution refinement remains separate.  The retail theorem therefore still
-has no linked semantics.
+normalized semantic slice remains useful for coverage experiments, but it is
+not itself an official CompCert link.  `CleanedClightPrograms.v` now constructs
+source-owned cleaned US and JP unit lists and proves that CompCert's unmodified
+`link_list` returns their respective official cleaned targets.  In particular,
+the US and JP `NormalizedCleanedUnitsOfficialLinkStructuralObligation`
+inhabitants are kernel-checked.  This is a syntactic structural-link result
+only; it does not prove that either cleaned target simulates the original
+generated units or the target ROM.
+
+The declaration/layout boundary is now much narrower and explicit.  Every
+generated function declaration has the same CompCert call ABI as its selected
+definition.  Variable declarations satisfy the exact-or-incomplete-array rule
+except for `gDisplayListHead`, whose pointer declarations nevertheless have
+equal checked storage behavior.  All named JP residual composite tags and the
+five named US residual tags have equal checked storage layouts.  The remaining
+US anonymous atom `__538` is a real collision: it denotes a 16-byte,
+alignment-2 viewport structure in the affected `area` and cutscene source uses
+and an 8-byte, alignment-4 graphics-command structure in `game_init`.  The
+actual US official target inherits the latter `__538`; its `__540` viewport
+wrapper is therefore 8 bytes while the source viewport wrapper/storage is 16
+bytes.  A fresh-tag local layout repair is constructed, but a whole-AST
+alpha-renaming of every affected type, expression, and global annotation plus
+an execution simulation remain open.  Replacing only the composite table is
+not a sound refinement.
+
+`ClightLinkExecution.v` now specializes definition provenance to both actual
+official targets.  Every nonlocal internal-body `Evar` and every initializer
+`Init_addrof` occurrence in those targets resolves to a linked symbol, every
+retained or reachable global `External` is classified as `EF_external`,
+`EF_builtin`, or `EF_runtime`, and exhaustive body recursion proves that neither
+official target contains a direct `Sbuiltin`.  The normalized/source manifests
+retain the exact partitions US `133 EF_external + 75 EF_builtin + 19
+EF_runtime` (227 total) and JP `132 + 75 + 19` (226 total).
+
+The same file transports CompCert external calls under explicit CompCert
+`symbols_inject` and `Mem.inject` hypotheses, including injected results and
+memories, injection growth/separation, and the standard `loc_unmapped` and
+`loc_out_of_reach` frame guarantees.  It also lifts external `Callstate` steps
+and direct `Sbuiltin` steps after explicit argument-evaluation injection.  The
+retail instantiation still needs the complete global-interface relation,
+initial and current-state memory injections, expression/continuation/internal
+step simulation, and concrete writable Mario/object/controller frame
+conditions.  No arbitrary writable frame follows from CompCert's generic
+external-call theorem.
 
 `old-proofs/` contains archived proof attempts.  They are retained for
 historical context, reusable lemmas, and future reference; they are not part of
