@@ -96,6 +96,9 @@ proofs/AreaTransitions.v
 proofs/StarCollection.v
 proofs/HiddenStar.v
 proofs/ClightRefinement.v
+proofs/LinkedClightPrograms.v
+proofs/NormalizedClightPrograms.v
+proofs/OrdinaryArea1EntryMemory.v
 proofs/LowerEntrance.v
 proofs/UpperEntrance.v
 proofs/ArchivedProofIntegration.v
@@ -118,6 +121,8 @@ proofs/InkPayloadInstaller.v
 proofs/Timer131Surface.v
 proofs/CleanJPGraphicsGap.v
 proofs/JPQuicksandDepth.v
+proofs/JPGeneratedWriterCensus.v
+proofs/JPZeroAReachability.v
 proofs/RetailFatalLatch.v
 proofs/TurningAnimation.v
 proofs/MainTheorem.v

@@ -504,6 +504,60 @@ Theorem jp_negative_depth_dialog_zero_base_endpoint_binary32_checked :
       (Float32.of_bits (Int.repr 0))) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(** The zero-base computation above is not translation-invariant.  The
+    following receipt therefore evaluates a nonzero, in-warp-range candidate
+    base directly.  [768.5f] truncates to the upper-warp centre Y [768].
+    After 381 exact binary32 sink calls with the prepared negative depth, the
+    endpoint is [1778.1593017578125f], which truncates to the timer-131
+    mid-face query Y [1778].  Thus the *integer coordinates consumed by the
+    collision proof* differ by exactly 1010.
+
+    This closes only the live-base arithmetic question for this candidate.
+    It does not show that a clean execution can prepare the negative depth,
+    retain it for 381 unreanchored calls, preserve the required X/Z values,
+    or move the collision Object into the warp at the required phase. *)
+Definition jp_warp_range_candidate_graphics_base : float32 :=
+  Float32.of_bits (Int.repr 1145053184). (* 768.5f *)
+
+Definition jp_warp_range_candidate_after_381_sinks : float32 :=
+  jp_repeat_binary32_sink 381 jp_prepared_negative_depth
+    jp_warp_range_candidate_graphics_base.
+
+Theorem jp_warp_range_live_base_381_sinks_binary32_checked :
+  Float32.to_bits jp_warp_range_candidate_graphics_base =
+    Int.repr 1145053184 /\
+  Float32.to_bits jp_warp_range_candidate_after_381_sinks =
+    Int.repr 1155417369 /\
+  Float32.to_int jp_warp_range_candidate_graphics_base =
+    Some (Int.repr 768) /\
+  Float32.to_int jp_warp_range_candidate_after_381_sinks =
+    Some (Int.repr 1778) /\
+  1778 - 768 = 1010.
+Proof.
+  unfold jp_warp_range_candidate_after_381_sinks,
+    jp_warp_range_candidate_graphics_base.
+  vm_compute.
+  repeat split; reflexivity.
+Qed.
+
+Theorem jp_warp_range_live_base_integer_gap_meets_timer131_requirement :
+  forall base_word endpoint_word,
+    Float32.to_int jp_warp_range_candidate_graphics_base =
+      Some base_word ->
+    Float32.to_int jp_warp_range_candidate_after_381_sinks =
+      Some endpoint_word ->
+    Int.signed endpoint_word - Int.signed base_word = 1010.
+Proof.
+  intros base_word endpoint_word Hbase Hendpoint.
+  pose proof jp_warp_range_live_base_381_sinks_binary32_checked as
+    (_ & _ & Hbase_checked & Hendpoint_checked & _).
+  rewrite Hbase_checked in Hbase.
+  rewrite Hendpoint_checked in Hendpoint.
+  injection Hbase as <-.
+  injection Hendpoint as <-.
+  vm_compute. reflexivity.
+Qed.
+
 Fixpoint jp_repeat_projected_sink
     (ticks : nat) (depth gap : Z) : Z :=
   match ticks with

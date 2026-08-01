@@ -5,6 +5,7 @@
    Source:          src/game/behavior_actions.c
    Generator:       The CompCert CompCert AST generator, version 3.15
    Flags:           -normalize -nostdinc -fstruct-passing -Ibuild/pinned-sm64/include -Ibuild/pinned-sm64/src -Ibuild/pinned-sm64/src/game -Ibuild/pinned-sm64 -Ibuild/pinned-sm64/include/libc -D_FINALROM=1 -DTARGET_N64=1 -DNON_MATCHING=1 -DAVOID_UB=1 -D_LANGUAGE_C=1 -DVERSION_JP=1 -DF3D_OLD=1
+   Link hygiene:    private __stringlit_N atoms prefixed with jp_behavior_actions
    ====================================================================== *)
 From Coq Require Import String List ZArith.
 From compcert Require Import Coqlib Integers Floats AST Ctypes Cop Clight Clightdefs.
@@ -184,16 +185,16 @@ Definition ___compcert_va_composite : ident := $"__compcert_va_composite".
 Definition ___compcert_va_float64 : ident := $"__compcert_va_float64".
 Definition ___compcert_va_int32 : ident := $"__compcert_va_int32".
 Definition ___compcert_va_int64 : ident := $"__compcert_va_int64".
-Definition ___stringlit_1 : ident := $"__stringlit_1".
-Definition ___stringlit_10 : ident := $"__stringlit_10".
-Definition ___stringlit_2 : ident := $"__stringlit_2".
-Definition ___stringlit_3 : ident := $"__stringlit_3".
-Definition ___stringlit_4 : ident := $"__stringlit_4".
-Definition ___stringlit_5 : ident := $"__stringlit_5".
-Definition ___stringlit_6 : ident := $"__stringlit_6".
-Definition ___stringlit_7 : ident := $"__stringlit_7".
-Definition ___stringlit_8 : ident := $"__stringlit_8".
-Definition ___stringlit_9 : ident := $"__stringlit_9".
+Definition ___stringlit_1 : ident := $"__jp_behavior_actions_stringlit_1".
+Definition ___stringlit_10 : ident := $"__jp_behavior_actions_stringlit_10".
+Definition ___stringlit_2 : ident := $"__jp_behavior_actions_stringlit_2".
+Definition ___stringlit_3 : ident := $"__jp_behavior_actions_stringlit_3".
+Definition ___stringlit_4 : ident := $"__jp_behavior_actions_stringlit_4".
+Definition ___stringlit_5 : ident := $"__jp_behavior_actions_stringlit_5".
+Definition ___stringlit_6 : ident := $"__jp_behavior_actions_stringlit_6".
+Definition ___stringlit_7 : ident := $"__jp_behavior_actions_stringlit_7".
+Definition ___stringlit_8 : ident := $"__jp_behavior_actions_stringlit_8".
+Definition ___stringlit_9 : ident := $"__jp_behavior_actions_stringlit_9".
 Definition __g : ident := $"_g".
 Definition __g__1 : ident := $"_g__1".
 Definition _a : ident := $"a".

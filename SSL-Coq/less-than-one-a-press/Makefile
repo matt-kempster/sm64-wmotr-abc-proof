@@ -20,6 +20,43 @@ proofs: $(COQMAKEFILE)
 
 check: proofs
 	bash pipeline/check-no-admitted.sh
+	bash pipeline/check-link-hygiene.sh
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.LinkedClightPrograms \
+	  generated_whole_program_link_is_blocked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.LinkedClightPrograms \
+	  us_compcert_clight_link_list_has_no_result
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.LinkedClightPrograms \
+	  jp_compcert_clight_link_list_has_no_result
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NormalizedClightPrograms \
+	  us_normalized_make_program_success_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NormalizedClightPrograms \
+	  jp_normalized_make_program_success_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NormalizedClightPrograms \
+	  us_residual_function_signature_mismatch_count_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NormalizedClightPrograms \
+	  jp_residual_function_signature_mismatch_count_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.OrdinaryArea1EntryMemory \
+	  ordinary_area1_entry_source_kernel_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.OrdinaryArea1EntryMemory \
+	  ordinary_entry_contract_permits_held_a
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.OrdinaryArea1EntryMemory \
+	  distinct_valid_object_slot_ptrofs_do_not_alias
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.OrdinaryArea1EntryMemory \
+	  distinct_valid_object_slot_vptrs_do_not_alias
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.OrdinaryArea1EntryMemory \
+	  ordinary_area1_entry_checked_boundary_holds
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.ArchivedProofIntegration \
 	  archived_proof_integration_kernel_holds
@@ -878,6 +915,60 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.JPQuicksandDepth \
 	  jp_negative_depth_dialog_zero_base_endpoint_binary32_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPQuicksandDepth \
+	  jp_warp_range_live_base_381_sinks_binary32_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPQuicksandDepth \
+	  jp_warp_range_live_base_integer_gap_meets_timer131_requirement
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPGeneratedWriterCensus \
+	  jp_generated_quicksand_depth_direct_writer_census
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPGeneratedWriterCensus \
+	  jp_generated_pos_y_direct_assignment_partition
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPGeneratedWriterCensus \
+	  jp_generated_rawdata_asf32_7_direct_assignment_counts
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPGeneratedWriterCensus \
+	  jp_generated_rawdata_asf32_10_direct_assignment_counts
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPGeneratedWriterCensus \
+	  jp_generated_throw_matrix_assignment_partition
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPGeneratedWriterCensus \
+	  jp_generated_long_jump_constructor_call_census
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPGeneratedWriterCensus \
+	  jp_generated_long_jump_literal_expression_census
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPGeneratedWriterCensus \
+	  jp_generated_automatic_dialog_constructor_call_census
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPGeneratedWriterCensus \
+	  jp_generated_automatic_dialog_constructor_classification
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPGeneratedWriterCensus \
+	  jp_automatic_dialog_reanchor_source_shape_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPGeneratedWriterCensus \
+	  jp_generated_mario_object_global_assignment_census
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPGeneratedWriterCensus \
+	  jp_generated_active_area_index_direct_writer_census
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPGeneratedWriterCensus \
+	  jp_mario_area_lifetime_source_shape_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPZeroAReachability \
+	  zero_a_edge_clight_reachable_is_clight_star
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPZeroAReachability \
+	  jp_zero_a_edge_projection_stays_below_960
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPZeroAReachability \
+	  jp_zero_a_edge_projection_cannot_install_timer131_midface
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  turning_part2_animation_metadata_boundary_excludes_ink_split

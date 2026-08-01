@@ -231,8 +231,49 @@
 - [x] Add a software-engineer-oriented
   [`human-readable-proof.md`](../human-readable-proof.md).
 - [x] No-hole source scan and assumption reports are part of `make check`.
-- [ ] Construct an iterated link of the imported translation units and prove
-  the `TargetLinkedProgram` link-order certificate.
+- [ ] Complete the seven-step linked gap-closure tranche:
+
+  1. [x] Run CompCert's unmodified linker over all 38 US and 38 JP units and
+     prove the exact failure boundary: AST index 34 (`ssl_script`) and
+     composite index 27 (`area`) for both versions, with 402 US and 401 JP
+     duplicate-public-variable type mismatches.  Deterministic normalized
+     semantic slices are constructed, but they are not official links.
+     [ ] Inhabit `NormalizedCleanedUnitsOfficialLinkStructuralObligation`
+     before treating the slices as official links, then prove the separate
+     declaration/composite/global-reference and external-call execution
+     simulation needed for retail semantics.
+  2. [x] Extract ordinary Area-1 node `0x0A`, spin-airborne action, layout,
+     symbol, distinct-slot, and synchronized-postcondition facts.
+     [ ] Execute the live entry `Smallstep.star`, castle routing, behavior
+     lookup, controller history, external frames, and pool/list ownership.
+  3. [x] Define a parameterized zero-edge relation over actual `Clight.step2`
+     states using the live controller `buttonPressed` A bit, without requiring
+     A-up.  This relation does not itself establish a clean JP entry.
+     [ ] Connect its entry state and controller address to the ordinary-entry
+     execution in the normalized-and-refined or future linked program.
+  4. [x] Inventory all 38 JP units for direct coordinate/depth/action/dialog
+     writer shapes and state the safe-depth and lifecycle residuals.
+     [ ] Prove reachable action, spawn, flag, depth, and slot-lifecycle
+     invariants, including automatic-dialog exclusion or reanchoring.
+  5. [x] Classify the selected direct assignment-bearing functions: 33
+     `pos[1]`, 215 raw-data-slot-7, 180 raw-data-slot-10, and 15
+     `throwMatrix`-LHS functions.
+     [ ] Prove receiver/call/action coverage for every reachable coordinate
+     write; these counts are receiver-neutral and not dynamic store counts.
+  6. [x] Prove named-global storage separation and distinct in-range
+     608-byte object-slot non-alias arithmetic at entry.
+     [ ] Prove pointer validity, every object access in bounds, absence of
+     harmful aliases, and frame conditions for every unresolved external.
+  7. [x] Compose an assumed entry bound and per-step gap refinement into a
+     global `<960` theorem over the parameterized zero-edge relation.
+     [ ] Supply the theorem's total-projection and per-step-refinement premises;
+     without them the composition does not exclude a retail installer.
+- [ ] Construct a linked program and prove the `TargetLinkedProgram`
+  link-order certificate.  `LinkedClightPrograms.v` now kernel-checks that
+  CompCert 3.15's unmodified `link_list` fails for both 38-unit lists (first
+  AST failure: `ssl_script`, index 34; first composite failure: `area`, index
+  27).  The checked symbol manifests and 402-US/401-JP type-mismatch census
+  define the normalization/refinement work still required.
 - [ ] Define concrete state, input, event, and complete collision-observation
   projections for actual initial-to-final Clight runs.
 - [ ] Prove both `WholeProgramClightRefinementObligation` and
@@ -314,18 +355,23 @@
   - [x] Record the exact countermodel to a naive per-frame bound: prepared
     long-jump landing depth is `-2.650000095f`, and 363 unreanchored
     automatic-dialog sink calls reach a zero-base endpoint at least `960` in
-    CompCert binary32.  Live-base displacement remains open.
+    CompCert binary32.
+  - [x] Check a nonzero live-range arithmetic instance: starting at binary32
+    `768.5f`, 381 exact sinks end at `1778.1593017578125f`; conversion yields
+    collision integers `768` and `1778`, an exact `1010` gap.  Clean
+    installation, negative-depth/action reachability, X/Z preservation, and
+    381 unreanchored live calls remain open.
   - [x] Reject the apparent fire-particle Mario writer: the render callback
     writes the `prevObj` flame's raw/Graphics position, not Mario's.
   - [x] Add hash-gated, read-only-after-bootstrap JP zero-A search schedules
     and record that their maximum observed positive Graphics/Object gap is
     zero.  This is bounded evidence; the externally enabled level-select
     bootstrap and finite schedule are not a clean-entry or exhaustive proof.
-  - [ ] Link clean entry to exact Mario raw/Graphics memory equality, prove
-    whole-program writer and action provenance with non-aliasing, refine the
-    sign argument to all live binary32 writes, and prove stock Area-1 dialog
-    source/handler closure.  Until then the `>=960` installer is reduced, not
-    eliminated.
+  - [ ] Execute ordinary clean entry to establish exact Mario raw/Graphics
+    memory equality, prove whole-program writer and action provenance with
+    non-aliasing, refine the safe-depth relation to all live binary32 writes,
+    and prove stock Area-1 automatic-dialog/reanchoring closure.  Until then
+    the `>=960` installer is reduced, not eliminated.
 - [ ] Prove which JP raw-platform cases are reachable and bound every reachable
   spawning displacement.  Execute the imported matrix/surface helpers over live
   Clight memory, extract the mirrored expressions from generated Clight, and

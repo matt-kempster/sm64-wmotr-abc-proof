@@ -11,6 +11,18 @@
   `graph_node`, `rendering_graph_node`, `debug`, `memory`, and `mario_misc`,
   plus the route-relevant
   SSL static and dynamic collision arrays.
+- `LinkedClightPrograms.v` proves that CompCert 3.15's unmodified link fails
+  for both 38-unit programs.  In the checked right-associated order the first
+  AST failure is `ssl_script` at index 34 and the first composite-definition
+  failure is `area` at index 27.  The deterministic public-variable audit finds
+  402 US and 401 JP duplicate atoms with unequal generated types.  This is a
+  failure certificate, not a linked `globalenv`.
+- `NormalizedClightPrograms.v` constructs concrete deterministic US/JP
+  semantic slices, selects every available internal function and definitive
+  variable, and records their residual declaration/composite mismatches.  The
+  construction is not `Linking.link`; no
+  `NormalizedCleanedUnitsOfficialLinkStructuralObligation` inhabitant is
+  assumed or proved, so its executions are not claimed to be retail semantics.
 - `TurningAnimation.v` proves the narrow Turning-Part-2 boundary:
   generated US/JP receipts couple `forwardVel >= 18.0f` to animation IDs
   188/189, record both local ground-step/setter orders, tie `unkB0` to
@@ -140,6 +152,36 @@
   State/raw Object/Graphics equality, action fields, frames/depth, and null
   throw-matrix projection.  It does not derive the postcondition by executing
   `init_mario_after_warp`; those US/JP refinement propositions remain open.
+- `OrdinaryArea1EntryMemory.v` separately checks the ordinary outside-desert
+  entry: node `0x0A` uses `bhvSpinAirborneWarp`, spawn type `0x16`, and action
+  `0x1924` (`ACT_SPAWN_SPIN_AIRBORNE`).  It defines a symbol-bound memory
+  postcondition and proves synchronized State/raw Object/Graphics coordinates,
+  positive-zero depth, named-global separation, and distinct in-range
+  608-byte object-slot non-alias consequences from that postcondition.  It
+  correctly requires US platform clearing and preserves JP's predecessor
+  global platform pointer.  The live entry execution, route/behavior lookup,
+  external-call frames, and pool/list ownership are not proved.
+- `JPGeneratedWriterCensus.v` checks all 38 JP units.  Its receiver-neutral
+  function counts are 33 with `pos[1]` assignments, 215 with raw-data-slot-7
+  assignments, 180 with raw-data-slot-10 assignments, and 15 whose assignment
+  LHS mentions `throwMatrix`.  It also checks eight direct quicksand-depth
+  writer functions and six direct automatic-dialog constructor functions.
+  These counts do not establish Mario receiver identity, alias safety, call
+  reachability, or dynamic store counts.
+- `JPZeroAReachability.v` defines reflexive/transitive reachability over actual
+  `Clight.step2` states and checks the A bit in live controller
+  `buttonPressed` memory at every state, while allowing A in `buttonDown`.  Its
+  program, controller address, and entry are arbitrary parameters, so the
+  relation does not itself establish a clean JP execution.  Its induction
+  proves the projected gap stays below `960` only when supplied a total
+  live-memory projection contract and per-step
+  `JPZeroAGapStepRefinementObligation`; that latter premise is exactly the
+  unresolved reachable-step writer/classification refinement.
+- `JPQuicksandDepth.v` now checks a relevant nonzero binary32 arithmetic
+  instance.  Starting from `768.5f`, 381 sinks with prepared depth
+  `-2.650000095f` end at `1778.1593017578125f`; float-to-integer conversion
+  gives `768` and `1778`, an exact gap of `1010`.  This proves arithmetic
+  sufficiency only, not reachability or installation of the state.
 - A handwritten two-step shell transition reanchors each modeled frame from
   current State, so its Graphics Y gap is `42` in air or `45` on ground and
   does not accumulate under that definition.  Separate generated-AST receipts
@@ -320,11 +362,14 @@
   `INPUT_A_PRESSED`.  The corresponding source-shaped relation excludes that
   late writer and keeps depth nonnegative.  This is not whole-program closure:
   proving that clean no-edge execution refines that relation, linked writer/action
-  provenance, pointer non-aliasing, exact binary32 projection, and stock
-  dialog reachability remain open.  An already-negative `-2.650000095f`
-  depth would be a genuine escape; 363 unreanchored automatic-dialog sinks
-  reach a zero-base binary32 endpoint at least `960`, but live-base
-  displacement and a clean zero-A source for that combined state remain open.
+  provenance, pointer non-aliasing, and stock dialog/reanchoring closure remain
+  open.  An already-negative `-2.650000095f` depth would be a genuine escape;
+  363 unreanchored automatic-dialog sinks reach a zero-base binary32 endpoint
+  at least `960`.  The candidate live-base arithmetic is no longer open:
+  `768.5f` followed by 381 sinks yields `1778.1593017578125f` and integer gap
+  `1010`.  What remains open is a clean zero-A source for the combined state,
+  retention through 381 live calls, required X/Z, and whole-program
+  projection/refinement.
 - Stock reachability or impossibility of the pyramid-top upper-warp path.
   The Y-preserving stock-yaw arithmetic case is excluded, the exact concrete
   retail cast is verified, and the bounded pre-apply owner theorem excludes

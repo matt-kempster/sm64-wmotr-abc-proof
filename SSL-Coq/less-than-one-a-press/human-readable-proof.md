@@ -19,6 +19,17 @@ engineering but does not know *Super Mario 64*.
 > spurious one-frame collection from a clean entry, so that relation cannot by
 > itself establish the retail theorem.
 
+> **Whole-program boundary:** there are 38 generated translation units per
+> version, but CompCert's unmodified linker rejects both 38-unit programs.  In
+> its right-associated order, the first AST join fails at `ssl_script` (index
+> 34) and the first composite-definition join fails at `area` (index 27).  The
+> audit finds 402 US and 401 JP duplicate public variables whose generated
+> types differ.  The project can mechanically choose one definition per name
+> and build a normalized semantic slice, but that slice is not CompCert's
+> linked semantics.  Its declaration/composite/global-reference/external-call
+> simulation record has no proved inhabitant, so none of the retail conclusions
+> below is derived from that slice.
+
 > **Newest clean-JP gap-installer result:** no clean retail installer for the
 > timer-131 `>=960` Graphics/Object Y gap has been found.  The new checked
 > reduction is stronger than a movement-speed bound.  At the collision phase,
@@ -35,8 +46,13 @@ engineering but does not know *Super Mario 64*.
 > Reaching this audit state from an ordinary castle entry is still open.
 >
 > The generated JP Clight census now computes the direct writers of
-> `MarioState.quicksandDepth` across the selected Mario/action translation
-> units.  A source-shaped relation that excludes the late long-jump writer
+> `MarioState.quicksandDepth` across all 38 selected translation units.  It
+> also inventories, by generated unit, direct assignment-bearing functions:
+> 33 for `pos[1]`, 215 for raw-data slot 7, 180 for raw-data slot 10, and 15
+> mentioning `throwMatrix` on the assignment LHS.  Those counts are
+> receiver-neutral: they identify where a store shape occurs, not whether its
+> receiver aliases Mario.  A source-shaped relation that excludes the late
+> long-jump writer
 > preserves nonnegative depth from zero.  The source path found that can make
 > the depth negative is a late `ACT_LONG_JUMP_LAND` frame; the sole ordinary constructor
 > of `ACT_LONG_JUMP` is the `INPUT_A_PRESSED` branch of `act_crouch_slide`.
@@ -48,12 +64,29 @@ engineering but does not know *Super Mario 64*.
 > and retained during a non-reanchoring automatic-dialog action, the final
 > quicksand sink would repeatedly raise Graphics.  Exact CompCert binary32
 > evaluation reaches a zero-base endpoint at least `960.0f` after 363 sink
-> calls; this is not yet a live-base displacement theorem.  Stock SSL Area 1
+> calls.  A separate live-range calculation starts at `768.5f`, performs 381
+> exact sinks, and ends at `1778.1593017578125f`; integer conversion gives
+> `768 -> 1778`, exactly the required `1010` gap at the warp centre.  This
+> closes the arithmetic instance, not its installation.  Stock SSL Area 1
 > signs and NPC-dialog handlers reanchor Graphics, but star-milestone call
 > sites mean the automatic-dialog action is not globally absent.  Proving that
 > the combined negative-depth, automatic-dialog, unreanchored state is
 > unreachable, and proving no-long-jump provenance in linked live memory,
 > remain open.
+
+> **Ordinary entry and zero-A composition:** the ordinary Area-1 painting
+> entry is node `0x0A` with `bhvSpinAirborneWarp` and
+> `ACT_SPAWN_SPIN_AIRBORNE`, not the no-spin Area-2 entry action.  The new
+> source/layout kernel and symbol-bound postcondition synchronize State,
+> collision Object, and Graphics, while correctly preserving the incoming JP
+> global platform pointer.  Executing that postcondition from the castle route,
+> including external frames and pool/list ownership, remains open.  A separate
+> zero-edge relation follows actual `Clight.step2` states and tests the live
+> `buttonPressed` A bit, allowing A to be held.  Its program, controller
+> address, and entry are parameters, so it does not itself prove that the run
+> is clean or JP retail.  Its global `<960` theorem is conditional on total
+> state projection and classification of every reachable step; the latter is
+> exactly the unresolved writer/refinement premise.
 >
 > A suspected fire-particle writer was checked and rejected.  Mario's render
 > callback guards on `obj == gMarioObject`, but passes `obj->prevObj` (the flame
@@ -448,6 +481,21 @@ engineering but does not know *Super Mario 64*.
 > The project has **not** yet executed `init_mario_after_warp` to derive them
 > from a clean retail predecessor.  Exact advertised spawn coordinates also
 > require proving the initial floor does not raise Mario.
+>
+> `OrdinaryArea1EntryMemory.v` now separates a different boundary: ordinary
+> entry into the outside desert, where the Area-1 node `0x0A` object is
+> `bhvSpinAirborneWarp` at `(653,1038,6566)` and selects spawn type `0x16`,
+> action `0x1924` (`ACT_SPAWN_SPIN_AIRBORNE`).  It binds MarioState,
+> controller, object-pool, list, free-list, Mario-object, and warp-object
+> addresses to named globals and in-range object slots.  From its explicit
+> postcondition it proves the three coordinate views are exactly synchronized
+> and the depth is binary32 positive zero.  It also proves global-storage and
+> distinct-slot non-alias facts.  On US entry the postcondition requires the
+> global platform pointer to be cleared; on JP it preserves the predecessor
+> pointer because the relevant call is compiled out.  Source receipts prove
+> this version split, but the complete `warp_level` execution, castle painting
+> routing, behavior-table resolution, external-call frame rules, and live
+> object-pool/list graph are still named obligations.
 >
 > The controller boundary was corrected at the same time.  Controller input is
 > read before the area warp, so the residual entry frame already has a live
@@ -1580,6 +1628,26 @@ The current project regenerates CompCert Clight ASTs for both target versions
 from the pinned decomp revision: 38 translation units per version, 76 modules
 in total.  Direct inspection of that pinned C source shows:
 
+The project now also executes CompCert's syntactic link checks over those
+38-unit lists.  They fail for both versions: the first AST failure is the
+`ssl_script` join with the SSL data wrappers, and the first composite failure
+is the `area` join with the suffix beginning at `level_update`.  A deterministic
+census finds 402 US and 401 JP duplicate public variable atoms whose generated
+types differ, mostly because one unit has an incomplete extern array and the
+defining unit has its complete length.  This is a proved linking boundary, not
+a linked whole-program semantics.  The exact unresolved external symbols are
+listed in `docs/notes/linked-symbol-coverage-{us,jp}.txt`.
+
+`NormalizedClightPrograms.v` mechanically retains the strongest available
+definition for each global atom and the first generated definition for each
+composite atom, then successfully builds concrete US/JP `Clight.program`
+values.  That construction is called a *normalized semantic slice* on purpose:
+it neither repairs translation-unit-local anonymous tags nor proves that
+incomplete-array uses, global references, or external effects simulate the C
+program.  `NormalizedCleanedUnitsOfficialLinkStructuralObligation` states a
+necessary cleaned-unit/official-link bridge and has no inhabitant in the
+project; a later execution refinement would still be required.
+
 - the controller input calculation distinguishes `buttonPressed` from
   `buttonDown`;
 - the pole action bodies test `INPUT_A_PRESSED` on paths selecting pole-jump
@@ -1721,8 +1789,11 @@ compose into a proof of the final claim.
 
 The ultimate theorem needs all of the following:
 
-1. Construct a linked US program and a linked JP program from the generated
-   translation units, including specifications for external calls.
+1. Prove a normalization/refinement pass for incomplete-array declarations and
+   TU-local composite identifiers, then construct linked US and JP programs.
+   CompCert's unmodified syntactic `link_list` is now proved to fail, so a
+   symbol-index merge must not be presented as linked semantics.  Specify frame
+   conditions for every unresolved external call in the checked manifests.
 2. Project Clight memory and traces to `GameState`, frame inputs, lifecycle
    events, and complete collision observations.
 3. Prove that the projection produces `CertifiedExecution`, including object
@@ -1803,6 +1874,17 @@ The most useful entry points are:
 - `proofs/StarCollection.v` and `proofs/HiddenStar.v`: collection reduction;
 - `proofs/ClightFacts.v`: checked generated-AST source facts;
 - `proofs/ClightRefinement.v`: the explicit missing semantic bridge;
+- `proofs/LinkedClightPrograms.v`: exact 38-unit CompCert link-failure
+  certificates and first failed joins;
+- `proofs/NormalizedClightPrograms.v`: executable normalized semantic slices
+  plus the explicit, unproved semantic-refinement boundary;
+- `proofs/OrdinaryArea1EntryMemory.v`: ordinary node-`0x0A` entry receipts,
+  symbol/layout/slot facts, synchronized memory postcondition, and remaining
+  live-entry obligations;
+- `proofs/JPGeneratedWriterCensus.v`: receiver-neutral 38-unit coordinate,
+  depth, action, dialog, and lifecycle writer census;
+- `proofs/JPZeroAReachability.v`: parameterized live-`buttonPressed`
+  zero-edge relation and conditional per-step-to-global gap composition;
 - `proofs/CollisionMeshFacts.v`: generated collision-array counts and
   cross-version equality, the exact 39-word pyramid-top initializer, and exact
   local bounds for the breakable-box, exclamation-box-outline, cannon-lid, and

@@ -44,6 +44,7 @@ for flag in "$@"; do
   DISPLAY_ARGS+=("$flag")
 done
 DISPLAY_FLAGS="${DISPLAY_ARGS[*]}"
+ATOM_PREFIX="$(basename "$OUTPUT" .v)"
 
 {
   echo "(* ======================================================================"
@@ -53,14 +54,18 @@ DISPLAY_FLAGS="${DISPLAY_ARGS[*]}"
   echo "   Source:          $SOURCE_LABEL"
   echo "   Generator:       $CLIGHTGEN_VERSION"
   echo "   Flags:           -normalize $DISPLAY_FLAGS"
+  echo "   Link hygiene:    private __stringlit_N atoms prefixed with $ATOM_PREFIX"
   echo "   ====================================================================== *)"
   if [ -n "${CLIGHTGEN_SOURCE_ROOT:-}" ] &&
      [ -n "${CLIGHTGEN_PROJECT_ROOT:-}" ]; then
-    sed -e "s|$CLIGHTGEN_SOURCE_ROOT|build/pinned-sm64|g" \
+    sed -E -e "s|$CLIGHTGEN_SOURCE_ROOT|build/pinned-sm64|g" \
         -e "s|$CLIGHTGEN_PROJECT_ROOT|.|g" \
+        -e "s|^(Definition ___stringlit_[0-9]+ : ident := \\$\")__stringlit_|\1__${ATOM_PREFIX}_stringlit_|" \
         -e 's/\r$//' "$TMP_V"
   else
-    sed 's/\r$//' "$TMP_V"
+    sed -E \
+        -e "s|^(Definition ___stringlit_[0-9]+ : ident := \\$\")__stringlit_|\1__${ATOM_PREFIX}_stringlit_|" \
+        -e 's/\r$//' "$TMP_V"
   fi
 } > "$OUTPUT"
 

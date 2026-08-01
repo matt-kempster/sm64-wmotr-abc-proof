@@ -20,6 +20,17 @@ imports the Area-1 macro stream used by the phase-split writer audit.  The
 collision wrapper also imports the breakable-box, exclamation-box-outline,
 cannon-lid, and wooden-signpost meshes used by the stock Area-1 owner bounds.
 
+CompCert 3.15's unmodified linker has now been run over all 38 units in each
+version.  It does not produce a whole program: the first right-associated AST
+join fails at `ssl_script` (index 34), and the first composite-definition join
+fails at `area` (index 27), in both US and JP.  The audit finds 402 US and 401
+JP duplicate public variables whose generated types differ.  A deterministic
+normalized semantic slice is available for coverage experiments, but it is
+not an official CompCert link.  Its explicitly structural
+`NormalizedCleanedUnitsOfficialLinkStructuralObligation` is unproved, and
+execution refinement remains separate.  The retail theorem therefore still
+has no linked semantics.
+
 `old-proofs/` contains archived proof attempts.  They are retained for
 historical context, reusable lemmas, and future reference; they are not part of
 the current result and may be incomplete, technique-specific, or superseded.
@@ -39,14 +50,25 @@ The newest JP installer tranche asks whether ordinary clean play can create
 the `>=960` Graphics/Object Y gap required by the conditional timer-131
 stale-top route.  No such installer was found.  Rocq proves that a phase
 already refined to State-only preserves the old Object/Graphics gap, computes
-a generated-Clight quicksand-depth writer inventory, and proves nonnegative
-depth for a source-shaped relation that excludes the late long-jump writer.
-It also preserves a real conditional warning: from a zero Graphics base, an
-already-negative depth reaches an endpoint above `960` in a non-reanchoring
-automatic-dialog loop.  The stock Area-1 source
-audit finds no no-A origin for that combination, but complete linked-program
-writer/action/dialog and binary32 refinement remain open.  Bounded JP runtime
-search found no positive gap; it is not an exhaustive proof.
+a 38-unit generated-AST writer census, and proves nonnegative depth for a
+source-shaped relation that excludes the late long-jump writer.  The census is
+receiver-neutral and therefore does not itself establish Mario-writer closure.
+An actual `Clight.step2` zero-edge relation reads the live `buttonPressed`
+field, but is parameterized by an arbitrary program, controller address, and
+entry state; it does not itself establish a clean JP entry.  Its composition
+theorem preserves the current gap bound only when supplied total state
+projection and per-step refinement.
+
+The conditional quicksand warning is now checked at a nonzero live-range
+base: starting at binary32 `768.5f`, 381 unreanchored sinks with prepared
+depth `-2.650000095f` end at `1778.1593017578125f`; the collision-consumed
+integers differ by exactly `1010`.  This validates the arithmetic, not the
+installer.  The stock Area-1 audit still has no clean zero-A origin for the
+negative-depth, automatic-dialog, unreanchored combination.  Ordinary Area-1
+entry source facts and a synchronized memory postcondition are formalized,
+but live entry execution, routing, external-call frames, pool/list ownership,
+writer/action/alias closure, and reanchoring closure remain open.  Bounded JP
+runtime search found no positive gap; it is not an exhaustive proof.
 
 ## Build
 

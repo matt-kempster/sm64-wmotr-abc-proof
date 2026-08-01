@@ -54,6 +54,47 @@ base-insensitive and direct-callee/literal checks are path-insensitive.
 | `levels/ssl/areas/2/macro.inc.c` via `inputs/ssl_area2_macro.c` | `*_ssl_area2_macro.v` | raw initializer tuples for five Puzzle trigger records/coordinates; the abstract state now assigns exact kinds/references/positions, while their concrete spawn-memory projection remains pending |
 | SSL collision arrays via `inputs/ssl_collision.c` | `*_ssl_collision.v` | area 1/2/3 static arrays plus pyramid-top, tox-box, grindel, spindel, moving-wall, elevator, Eyerok, breakable-box, exclamation-box-outline, cannon-lid, and wooden-signpost object collision arrays; checked word counts and US/JP initializer identity; the complete 39-word top initializer is parsed into five vertices and six triangle-index triples; exact local bounds are proved for four Area-1 fixed-owner meshes; all 20 elevator vertices and selected Area-2 pole/ring vertices have exact receipts, but no linked transformed dynamic `Surface`, actual `find_floor` selection, general parsed-surface, or connected-component theorem exists |
 
+## Whole-program, entry, and writer-closure boundary
+
+`proofs/LinkedClightPrograms.v` enumerates exactly the 38 generated units for
+each version and executes CompCert 3.15's unmodified link operations.  Both
+versions fail: the first right-associated AST join is `ssl_script` at index 34
+and the first composite-definition join is `area` at index 27.  The associated
+audit finds 402 US and 401 JP duplicate public variables with unequal generated
+types.  `proofs/NormalizedClightPrograms.v` can build deterministic semantic
+slices by selecting one generated definition per atom, but those slices are
+not official CompCert links.  Their declaration/composite/global-reference,
+external-frame, and execution-simulation conditions remain open.  The narrower
+cleaned-unit/official-link boundary is
+`NormalizedCleanedUnitsOfficialLinkStructuralObligation`.
+
+`proofs/OrdinaryArea1EntryMemory.v` maps the ordinary Area-1 entry through
+`ssl_script`, `level_script`, `level_update`, `mario`, `object_list_processor`,
+and `platform_displacement`.  Generated receipts identify node `0x0A`,
+`bhvSpinAirborneWarp`, spawn type `0x16`, and action `0x1924`; layout/symbol
+facts and an explicit postcondition imply exact State/raw Object/Graphics
+synchronization.  The actual entry `Smallstep.star`, castle routing, behavior
+lookup, external-call frames, controller predecessor, object-access bounds,
+and full pool/list ownership remain open.
+
+`proofs/JPGeneratedWriterCensus.v` concatenates definitions only for a
+receiver-neutral syntactic census while preserving the 38-unit boundaries.
+It counts assignment-bearing functions, not stores: 33 for `pos[1]`, 215 for
+raw-data slot 7, 180 for raw-data slot 10, and 15 whose LHS mentions
+`throwMatrix`.  It also isolates eight direct `quicksandDepth` writers and six
+direct automatic-dialog constructors.  Receiver identity, aliasing, calls,
+actions, flags, reanchoring, and lifecycle still require semantic refinement.
+
+`proofs/JPZeroAReachability.v` defines a zero-edge relation over `Clight.step2`
+and the live controller `buttonPressed` cell.  Program, controller address, and
+entry are parameters, so it does not establish a clean JP run.  Its global
+`<960` composition is conditional on total three-view projection and per-step
+writer refinement.
+`proofs/JPQuicksandDepth.v` separately closes one live-range arithmetic case:
+`768.5f` followed by 381 exact sinks ends at `1778.1593017578125f`, converting
+to integer coordinates separated by `1010`.  It does not install the negative
+depth/action state or prove 381 unreanchored calls reachable.
+
 ## Pyramid-top PU and graphical-fallback boundary
 
 `proofs/PyramidTopPU.v` bundles exact packed US/JP LevelScript records and the

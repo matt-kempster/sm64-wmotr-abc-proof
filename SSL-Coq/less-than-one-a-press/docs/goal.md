@@ -28,6 +28,16 @@ narrow
 parallel-universe and normalized-pole subcases, held-A input semantics, Eyerok
 source-shape facts, and a generic CompCert memory-block lemma.
 
+The 38-unit lists are not yet linked retail programs.  CompCert 3.15's
+unmodified `link_list` is proved to fail for both versions: the first
+right-associated AST join fails at `ssl_script` (index 34), and the first
+composite-definition join fails at `area` (index 27).  The public-variable
+type census finds 402 US and 401 JP mismatches.  Executable normalized semantic
+slices are constructed for finite coverage work, but they are not official
+CompCert links; their
+`NormalizedCleanedUnitsOfficialLinkStructuralObligation` connection through
+cleaned translation units remains unproved, as does execution refinement.
+
 The newest Ink tranche proves exact US/JP layouts and a conditional
 post-entry `Mem.load` projection, corrects the live controller-pressed and
 generic delayed-warp entry fields, computes the 17-wall/26-floor static
@@ -63,17 +73,36 @@ synchronized Object/Graphics projection has zero separation, and proves that
 any prefix already refined to State-only preserves this gap regardless of
 displacement magnitude.  Its
 range-certified writer execution stays below the midpoint's `960` requirement.
-`JPQuicksandDepth.v` computes the direct depth-writer inventory over selected
-generated JP units, couples `act_crouch_slide`'s `INPUT_A_PRESSED` test to the
-exact long-jump constructor, and proves nonnegative depth for a source-shaped
-relation that excludes the late long-jump writer.  A linked proof that clean
-no-edge execution refines that relation remains open.  Exact binary32 also
-exposes the necessary caution: an already-installed `-2.650000095f` depth
-reaches a zero-base endpoint at least `960` after 363 non-reanchored
-automatic-dialog sinks.  Stock Area 1 has no identified clean
-zero-A path to that combined state.  Full linked writer/action/dialog closure,
-non-aliasing, entry-memory projection, and binary32 refinement are still open,
-so the retail gap installer has not been proved impossible.
+`JPGeneratedWriterCensus.v` preserves all 38 unit boundaries and inventories
+eight direct depth writers, six direct automatic-dialog constructors, and the
+receiver-neutral coordinate-write function counts 33/215/180/15 for
+`pos[1]`/raw slot 7/raw slot 10/`throwMatrix` LHS.  It does not prove the
+receivers alias Mario or that every dynamic store is covered.
+`JPQuicksandDepth.v` couples `act_crouch_slide`'s `INPUT_A_PRESSED` test to the
+exact long-jump constructor and proves nonnegative depth for a source-shaped
+relation that excludes the late long-jump writer.  A proof that clean no-edge
+execution refines that relation remains open.
+
+`OrdinaryArea1EntryMemory.v` checks the stock Area-1 node `0x0A`
+spin-airborne entry, symbol/layout and distinct-slot facts, and consequences of
+a synchronized post-entry memory predicate.  The actual entry `Smallstep.star`,
+castle routing, behavior lookup, controller predecessor, external frames, and
+pool/list graph remain obligations.  `JPZeroAReachability.v` defines a
+zero-edge relation over live `Clight.step2` memory and proves global gap-bound
+composition conditional on total projection and per-step refinement.  Its
+program, controller address, and entry are parameters; it does not itself
+establish a clean JP entry.  The projection/refinement premises are not
+discharged.
+
+Exact binary32 also exposes the necessary caution: an already-installed
+`-2.650000095f` depth reaches a zero-base endpoint at least `960` after 363
+non-reanchored automatic-dialog sinks.  The now-checked live-range instance
+starts at `768.5f`; after 381 sinks it is `1778.1593017578125f`, whose
+collision integers differ by exactly `1010`.  Stock Area 1 has no identified
+clean zero-A path to the combined negative-depth, automatic-dialog,
+unreanchored state.  Writer/action/alias/external closure, reanchoring closure,
+and installation remain open, so the retail gap installer has not been proved
+impossible.
 
 The newest turning-animation tranche eliminates one proposed bypass at a
 narrower boundary.  `TurningAnimation.v` proves that the repeated value 189 is

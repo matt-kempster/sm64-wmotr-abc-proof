@@ -6,6 +6,7 @@ From LessThanOneAPress.Generated Require Import
   us_mario_actions_moving us_mario_actions_object us_mario_actions_stationary
   us_mario_actions_submerged us_mario_step us_interaction us_save_file us_object_collision
   us_object_list_processor us_behavior_script us_level_script us_graph_node
+  us_rendering_graph_node
   us_spawn_object us_object_helpers us_debug us_memory us_mario_misc
   us_obj_behaviors
   us_obj_behaviors_2 us_behavior_actions us_behavior_data us_area
@@ -18,6 +19,7 @@ From LessThanOneAPress.Generated Require Import
   jp_mario_actions_moving jp_mario_actions_object jp_mario_actions_stationary
   jp_mario_actions_submerged jp_mario_step jp_interaction jp_save_file jp_object_collision
   jp_object_list_processor jp_behavior_script jp_level_script jp_graph_node
+  jp_rendering_graph_node
   jp_spawn_object jp_object_helpers jp_debug jp_memory jp_mario_misc
   jp_obj_behaviors
   jp_obj_behaviors_2 jp_behavior_actions jp_behavior_data jp_area
@@ -52,6 +54,7 @@ Definition us_translation_units : list Clight.program :=
     us_mario_step.prog; us_interaction.prog; us_save_file.prog;
     us_object_collision.prog; us_object_list_processor.prog;
     us_behavior_script.prog; us_level_script.prog; us_graph_node.prog;
+    us_rendering_graph_node.prog;
     us_spawn_object.prog; us_object_helpers.prog; us_debug.prog;
     us_memory.prog; us_mario_misc.prog; us_obj_behaviors.prog;
     us_obj_behaviors_2.prog; us_behavior_actions.prog;
@@ -71,6 +74,7 @@ Definition jp_translation_units : list Clight.program :=
     jp_mario_step.prog; jp_interaction.prog; jp_save_file.prog;
     jp_object_collision.prog; jp_object_list_processor.prog;
     jp_behavior_script.prog; jp_level_script.prog; jp_graph_node.prog;
+    jp_rendering_graph_node.prog;
     jp_spawn_object.prog; jp_object_helpers.prog; jp_debug.prog;
     jp_memory.prog; jp_mario_misc.prog; jp_obj_behaviors.prog;
     jp_obj_behaviors_2.prog; jp_behavior_actions.prog;
@@ -82,11 +86,11 @@ Definition jp_translation_units : list Clight.program :=
     jp_ssl_collision.prog ].
 
 Theorem us_translation_unit_count :
-  length us_translation_units = 37%nat.
+  length us_translation_units = 38%nat.
 Proof. reflexivity. Qed.
 
 Theorem jp_translation_unit_count :
-  length jp_translation_units = 37%nat.
+  length jp_translation_units = 38%nat.
 Proof. reflexivity. Qed.
 
 Definition target_translation_units (version : GameVersion) : list Clight.program :=
