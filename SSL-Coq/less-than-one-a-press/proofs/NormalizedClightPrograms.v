@@ -188,9 +188,13 @@ Definition normalize_global_definition_map
 
 Definition normalize_global_definitions
     (definitions : list (ident * globdef Clight.fundef type)) :=
-  filter preserve_definition_verbatim definitions ++
-  filter (fun entry => negb (preserve_definition_verbatim entry))
-    (PTree.elements (normalize_global_definition_map definitions)).
+  PTree.elements (normalize_global_definition_map definitions).
+
+(** [AST.link_prog] always emits the final definition map through
+    [PTree.elements].  Keeping this canonical order is therefore necessary
+    for a multi-translation-unit [link_list] result to be definitionally the
+    normalized program; a source-order prefix cannot be the result of the
+    official linker. *)
 
 Definition map_values_have_source_provenance
     (definitions : global_definition_map)
@@ -257,31 +261,31 @@ Theorem normalized_definitions_have_source_provenance :
   forall source,
     incl (normalize_global_definitions source) source.
 Proof.
-  intros source [id definition] Hin. apply in_app_or in Hin.
-  destruct Hin as [Hin | Hin].
-  - now apply filter_In in Hin.
-  - apply filter_In in Hin. destruct Hin as [Hin _].
-    apply PTree.elements_complete in Hin.
-    now eapply normalized_definition_map_has_source_provenance.
+  intros source [id definition] Hin.
+  apply PTree.elements_complete in Hin.
+  now eapply normalized_definition_map_has_source_provenance.
 Qed.
 
-Theorem every_internal_body_is_preserved_verbatim :
+Theorem every_selected_internal_body_is_preserved_verbatim :
   forall source id body,
-    In (id, Gfun (Internal body)) source ->
+    PTree.get id (normalize_global_definition_map source) =
+      Some (Gfun (Internal body)) ->
     In (id, Gfun (Internal body)) (normalize_global_definitions source).
 Proof.
-  intros source id body Hin. apply in_or_app. left.
-  apply filter_In. split; [exact Hin | reflexivity].
+  intros source id body Hget.
+  apply PTree.elements_correct.
+  exact Hget.
 Qed.
 
-Theorem every_definitive_initializer_is_preserved_verbatim :
+Theorem every_selected_definitive_initializer_is_preserved_verbatim :
   forall source id variable,
-    preserve_definition_verbatim (id, Gvar variable) = true ->
-    In (id, Gvar variable) source ->
+    PTree.get id (normalize_global_definition_map source) =
+      Some (Gvar variable) ->
     In (id, Gvar variable) (normalize_global_definitions source).
 Proof.
-  intros source id variable Hdef Hin. apply in_or_app. left.
-  apply filter_In. split; assumption.
+  intros source id variable Hget.
+  apply PTree.elements_correct.
+  exact Hget.
 Qed.
 
 Definition composite_ident (definition : composite_definition) : ident :=
@@ -313,6 +317,44 @@ Definition insert_first_composite
 Definition normalize_composite_definitions
     (definitions : list composite_definition) :=
   fold_left insert_first_composite definitions [].
+
+Lemma insert_first_composite_incl :
+  forall definitions candidate universe,
+    incl definitions universe ->
+    In candidate universe ->
+    incl (insert_first_composite definitions candidate) universe.
+Proof.
+  intros definitions candidate universe Hdefinitions Hcandidate.
+  unfold insert_first_composite.
+  destruct (composite_ident_occurs (composite_ident candidate) definitions).
+  - exact Hdefinitions.
+  - intros definition Hin. apply in_app_or in Hin.
+    destruct Hin as [Hin | [<- | []]]; auto.
+Qed.
+
+Lemma fold_first_composites_incl :
+  forall remaining accumulator universe,
+    incl accumulator universe ->
+    incl remaining universe ->
+    incl (fold_left insert_first_composite remaining accumulator) universe.
+Proof.
+  induction remaining as [| candidate rest IH];
+    intros accumulator universe Haccumulator Hremaining.
+  - exact Haccumulator.
+  - cbn. apply IH.
+    + apply insert_first_composite_incl; auto.
+      apply Hremaining. now left.
+    + intros definition Hin. apply Hremaining. now right.
+Qed.
+
+Theorem normalized_composites_have_source_provenance :
+  forall source,
+    incl (normalize_composite_definitions source) source.
+Proof.
+  intros source. apply fold_first_composites_incl.
+  - intros definition Hin. contradiction.
+  - apply incl_refl.
+Qed.
 
 Fixpoint lookup_composite_definition
     (id : ident) (definitions : list composite_definition)
@@ -351,10 +393,73 @@ Definition residual_composite_mismatches
        | None => residuals
        end) [] source).
 
-Definition normalize_public_idents (ids : list ident) : list ident :=
-  map fst (PTree.elements
-    (fold_left (fun public id => PTree.set id tt public)
-      ids (PTree.empty _))).
+Fixpoint identifier_set (ids : list ident) : PTree.t unit :=
+  match ids with
+  | [] => PTree.empty _
+  | id :: rest => PTree.set id tt (identifier_set rest)
+  end.
+
+Definition identifier_in_set (ids : PTree.t unit) (id : ident) : bool :=
+  match PTree.get id ids with Some _ => true | None => false end.
+
+Lemma identifier_in_set_sound :
+  forall ids id,
+    identifier_in_set (identifier_set ids) id = true -> In id ids.
+Proof.
+  induction ids as [| candidate rest IH]; intros id Hin;
+    unfold identifier_in_set in Hin; cbn [identifier_set] in Hin.
+  - rewrite PTree.gempty in Hin. discriminate.
+  - rewrite PTree.gsspec in Hin.
+    destruct (peq id candidate) as [<- | Hneq].
+    + now left.
+    + right. now apply IH.
+Qed.
+
+(** Preserve every source Internal and definitive initializer verbatim.  For
+    weaker declarations, select the first source occurrence having the
+    strength of the map-selected declaration.  The generated US/JP inputs
+    separately certify that preserved identifiers are unique, so unconditional
+    preservation does not introduce a duplicate global there.  Carrying
+    [seen] makes weak selection compositional across unit boundaries. *)
+Fixpoint select_source_owned_definitions_from
+    (selected : global_definition_map) (seen : PTree.t unit)
+    (source : list (ident * globdef Clight.fundef type))
+    : list (ident * globdef Clight.fundef type) * PTree.t unit :=
+  match source with
+  | [] => ([], seen)
+  | ((id, candidate) as entry) :: rest =>
+      if preserve_definition_verbatim entry then
+        let '(selected_rest, final_seen) :=
+          select_source_owned_definitions_from selected
+            (PTree.set id tt seen) rest in
+        (entry :: selected_rest, final_seen)
+      else
+        match PTree.get id seen, PTree.get id selected with
+        | None, Some chosen =>
+            if Nat.eqb (global_definition_strength candidate)
+                       (global_definition_strength chosen)
+            then
+              let '(selected_rest, final_seen) :=
+                select_source_owned_definitions_from selected
+                  (PTree.set id tt seen) rest in
+              (entry :: selected_rest, final_seen)
+            else select_source_owned_definitions_from selected seen rest
+        | _, _ => select_source_owned_definitions_from selected seen rest
+        end
+  end.
+
+Definition select_source_owned_definitions
+    (source : list (ident * globdef Clight.fundef type)) :=
+  fst (select_source_owned_definitions_from
+    (normalize_global_definition_map source) (PTree.empty _) source).
+
+Definition public_definitions_in_source_order
+    (source_definitions : list (ident * globdef Clight.fundef type))
+    (source_public : list ident) : list ident :=
+  let public := identifier_set source_public in
+  map fst (filter
+    (fun entry => identifier_in_set public (fst entry))
+    (select_source_owned_definitions source_definitions)).
 
 Definition us_normalized_global_definitions :=
   normalize_global_definitions (unit_global_definitions us_units).
@@ -375,10 +480,12 @@ Definition jp_normalized_composites :=
   normalize_composite_definitions (unit_composite_definitions jp_units).
 
 Definition us_normalized_public_idents :=
-  normalize_public_idents (unit_public_idents us_units).
+  public_definitions_in_source_order
+    (unit_global_definitions us_units) (unit_public_idents us_units).
 
 Definition jp_normalized_public_idents :=
-  normalize_public_idents (unit_public_idents jp_units).
+  public_definitions_in_source_order
+    (unit_global_definitions jp_units) (unit_public_idents jp_units).
 
 Definition us_normalized_make_program :=
   Ctypes.make_program us_normalized_composites
@@ -613,10 +720,14 @@ Definition residual_gvar_type_mismatches
        | None => residuals
        end) [] source).
 
-(** A non-vacuous *structural* boundary for a future official link.  A
+(** A non-vacuous *structural* boundary for an official cleaned link.  A
     witness must provide a same-sized list of cleaned translation units whose
-    actual CompCert [link_list] result is exactly [normalized].  Every emitted
-    definition/composite must come from the selected source units; every
+    actual CompCert [link_list] result is exactly [normalized].  The pointwise
+    relation below prevents a degenerate witness that puts all bodies in one
+    padded unit: every cleaned global must occur verbatim in the corresponding
+    source translation unit.  Each unit uses the canonical normalized
+    composite list as a cleaned shared-header environment.  Every emitted
+    definition/composite must still come from the selected source units; every
     source Internal or definitive [Gvar] must remain verbatim; and every
     source symbol/composite tag must still be represented.  This deliberately
     says nothing about expression typing, composite-member layouts, global
@@ -631,11 +742,22 @@ Definition composite_identifiers
     (definitions : list composite_definition) : list ident :=
   map composite_ident definitions.
 
+Definition CleanedUnitOwnsGlobalsAndUsesNormalizedHeader
+    (normalized source cleaned : Clight.program) : Prop :=
+  incl cleaned.(prog_defs) source.(prog_defs) /\
+  incl cleaned.(prog_public) source.(prog_public) /\
+  incl cleaned.(prog_public) (global_identifiers cleaned.(prog_defs)) /\
+  cleaned.(prog_main) = source.(prog_main) /\
+  cleaned.(prog_types) = normalized.(prog_types).
+
 Definition NormalizedCleanedUnitsOfficialLinkStructuralObligation
     (source_units : nlist Clight.program)
     (normalized : Clight.program) : Prop :=
   exists cleaned_units : nlist Clight.program,
     nlist_length cleaned_units = nlist_length source_units /\
+    nlist_forall2
+      (CleanedUnitOwnsGlobalsAndUsesNormalizedHeader normalized)
+      source_units cleaned_units /\
     link_list cleaned_units = Some normalized /\
     incl (unit_global_definitions cleaned_units)
          (unit_global_definitions source_units) /\
@@ -644,15 +766,18 @@ Definition NormalizedCleanedUnitsOfficialLinkStructuralObligation
          (unit_global_definitions cleaned_units) /\
     incl (global_identifiers (unit_global_definitions source_units))
          (global_identifiers (unit_global_definitions cleaned_units)) /\
+    incl (unit_public_idents source_units)
+         (unit_public_idents cleaned_units) /\
     incl (unit_composite_definitions cleaned_units)
          (unit_composite_definitions source_units) /\
     incl (composite_identifiers (unit_composite_definitions source_units))
          (composite_identifiers (unit_composite_definitions cleaned_units)).
 
 (** No proof of [NormalizedCleanedUnitsOfficialLinkStructuralObligation] is
-    postulated here.  Even a future proof would establish only a syntactic
-    official-link bridge; separate-compilation semantics would still require
-    CompCert-compatible declaration/composite refinement theorems. *)
+    postulated here.  [CleanedClightPrograms] constructs US and JP inhabitants,
+    but they establish only a syntactic official-link bridge;
+    separate-compilation semantics still requires CompCert-compatible
+    declaration, composite, memory, and execution refinement theorems. *)
 
 Definition internal_identifiers
     (definitions : list (ident * globdef Clight.fundef type)) : list ident :=
