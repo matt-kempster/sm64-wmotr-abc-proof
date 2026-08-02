@@ -1,7 +1,7 @@
 From Coq Require Import List ZArith.
 From Pedro.Proofs Require Import
   GameTypes PedroCollision LandingDust RNGAdvance InputSemantics TTCSpinners
-  TTCSpinnerGeometry TTCSpinnerSchedule.
+  TTCSpinnerGeometry TTCSpinnerSchedule DustPool DustRuntime.
 
 (** Initial source-and-arithmetic capstone. Every conjunct is tied either to a
     generated Clight AST or to CompCert's executable binary32 operations. This
@@ -19,6 +19,21 @@ Proof.
   refine (conj (landing_dust_source_receipt_supported version) _).
   refine (conj (rng_source_chain_receipt_supported version) _).
   exact every_flat_floor_class_has_landing_tap.
+Qed.
+
+(** Linked-symbol and source-derived execution projection for the dust episode.
+    [pool] is the isolated reserve available to the three dust allocations;
+    the theorem does not derive that reserve, the initially clear bit, or a
+    dust-producing tap from a reachable retail TTC state. *)
+Theorem checked_dust_source_projection_us_jp :
+  forall version tap_frame pool,
+    (3 <= usable_reserve pool)%nat ->
+    dust_runtime_projection_claim version tap_frame pool false.
+Proof.
+  intros version tap_frame pool Hreserve.
+  apply checked_dust_runtime_projection_us_jp.
+  - exact Hreserve.
+  - reflexivity.
 Qed.
 
 (** TTC source reduction plus the concrete geometry and schedule model.

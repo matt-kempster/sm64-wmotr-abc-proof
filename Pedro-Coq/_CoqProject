@@ -1,11 +1,13 @@
 -R generated Pedro.Generated
 -R proofs Pedro.Proofs
 
+generated/us_mario.v
 generated/us_mario_step.v
 generated/us_mario_actions_airborne.v
 generated/us_mario_actions_moving.v
 generated/us_object_list_processor.v
 generated/us_behavior_script.v
+generated/us_spawn_object.v
 generated/us_math_util.v
 generated/us_surface_load.v
 generated/us_surface_collision.v
@@ -16,11 +18,13 @@ generated/us_behavior_data.v
 generated/us_platform_displacement.v
 generated/us_ttc_area1_macro.v
 generated/us_ttc_spinner_collision.v
+generated/jp_mario.v
 generated/jp_mario_step.v
 generated/jp_mario_actions_airborne.v
 generated/jp_mario_actions_moving.v
 generated/jp_object_list_processor.v
 generated/jp_behavior_script.v
+generated/jp_spawn_object.v
 generated/jp_math_util.v
 generated/jp_surface_load.v
 generated/jp_surface_collision.v
@@ -41,4 +45,9 @@ proofs/InputSemantics.v
 proofs/TTCSpinners.v
 proofs/TTCSpinnerGeometry.v
 proofs/TTCSpinnerSchedule.v
+proofs/DustClightLink.v
+proofs/DustBehavior.v
+proofs/DustPool.v
+proofs/DustPRNG.v
+proofs/DustRuntime.v
 proofs/MainTheorem.v

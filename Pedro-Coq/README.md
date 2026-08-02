@@ -30,13 +30,27 @@ random-mode source receipts. It also contains an executable, source-derived
 geometry certificate for pitch values 15,856 through 15,951 and the exact
 random-mode timer/direction model.
 
+`Pedro.Proofs.MainTheorem.checked_dust_source_projection_us_jp` adds the new
+dust-chain result. Given an initially clear active-dust bit and an isolated
+object reserve of at least three, it combines generated Clight receipts, a
+CompCert symbol-level structural link, decoded behavior scripts, and an
+executable normal-list projection. That projection computes three successful
+allocations, same-frame Mist/WhitePuff1/WhitePuff2 execution, active-bit
+clearing, and four dust-owned PRNG calls on the tap frame. The whole seed is
+`R^4(seed)` only under the separate no-intervening-consumer premise.
+
 These theorems are deliberately **not yet the ultimate gameplay claims**. The
 remaining semantic and control obligations are listed in
 [`docs/checklist.md`](docs/checklist.md). In particular, a syntax receipt is not
 a proof that the corresponding Clight path executes, and the TTC random-mode
 source describes a bounded oscillation rather than a platform that stays at one
 mathematically fixed angle. The proved geometry interval is too narrow for the
-first 200-unit post-pause motion, so it is not yet a preservation witness.
+first 200-unit post-pause motion, so it is not yet a preservation witness. The
+structural Clight link is also not a complete linked-program execution proof:
+reachable tap state, composite-layout refinement, unresolved callees, competing
+allocations, and other RNG consumers remain explicit obligations.
+The exact event order and premise boundary are summarized in
+[`docs/notes/dust-runtime.md`](docs/notes/dust-runtime.md).
 
 ## Reproducible generation
 
@@ -103,7 +117,7 @@ make check
 `make reproducible` performs two clean generations and compares SHA-256
 manifests. `make check` runs that reproducibility check, builds every listed
 proof, rejects proof holes and unconstrained declarations, and prints the
-assumptions of both capstones.
+assumptions of all checked capstones.
 
 The default decomp checkout is `../../reference-sm64-decomp`; set
 `SM64_SOURCE` to another Git checkout containing the pinned commit if needed.

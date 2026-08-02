@@ -40,11 +40,13 @@ COMMON_FLAGS=(
 )
 
 TRANSLATION_UNITS=(
+  "mario:src/game/mario.c"
   "mario_step:src/game/mario_step.c"
   "mario_actions_airborne:src/game/mario_actions_airborne.c"
   "mario_actions_moving:src/game/mario_actions_moving.c"
   "object_list_processor:src/game/object_list_processor.c"
   "behavior_script:src/engine/behavior_script.c"
+  "spawn_object:src/game/spawn_object.c"
   "math_util:src/engine/math_util.c"
   "surface_load:src/engine/surface_load.c"
   "surface_collision:src/engine/surface_collision.c"

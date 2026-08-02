@@ -16,8 +16,12 @@ is textually rewritten.
 | Landing input split and dust gate | `src/game/mario_actions_moving.c:1722-1755` | `us_mario_actions_moving.v`, `jp_mario_actions_moving.v` |
 | Analog landing friction | `src/game/mario_actions_moving.c:334-347` | `us_mario_actions_moving.v`, `jp_mario_actions_moving.v` |
 | Floor-class deceleration | `src/game/mario_actions_moving.c:393-417` | `us_mario_actions_moving.v`, `jp_mario_actions_moving.v` |
+| Mario action result supplies particle flags | `src/game/mario.c:1699-1782` | `us_mario.v`, `jp_mario.v` |
 | Dust particle table and dispatch | `src/game/object_list_processor.c:188-217,255-287` | `us_object_list_processor.v`, `jp_object_list_processor.v` |
+| Object-list phase order and dynamic-next traversal | `src/game/object_list_processor.c:172-217,289-307,573-581` | `us_object_list_processor.v`, `jp_object_list_processor.v` |
+| Free-list allocation, eviction fallback, and object creation | `src/game/spawn_object.c:79-99,208-253,313-352` | `us_spawn_object.v`, `jp_spawn_object.v` |
 | Mist spawner and white-puff scripts | `data/behavior_data.c:2771-2801` | `us_behavior_data.v`, `jp_behavior_data.v` |
+| Behavior interpreter, parent-bit clear, and object timer | `src/engine/behavior_script.c:238-367,805-813,905-952` | `us_behavior_script.v`, `jp_behavior_script.v` |
 | White-puff random translation calls | `src/game/behaviors/white_puff.inc.c:3-25` (included by `behavior_actions.c`) | `us_behavior_actions.v`, `jp_behavior_actions.v` |
 | Two random draws per XZ translation | `src/game/object_helpers.c` (`obj_translate_xz_random`) | `us_object_helpers.v`, `jp_object_helpers.v` |
 | PRNG recurrence | `src/engine/behavior_script.c:31-71` | `us_behavior_script.v`, `jp_behavior_script.v` |

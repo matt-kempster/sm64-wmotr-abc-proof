@@ -13,7 +13,7 @@ audits below.
       escape hatches.
 - [x] Regenerate with CompCert 3.15 and verify byte-for-byte stability.
 - [x] Compile the complete `_CoqProject` in the configured CompCert proof switch.
-- [x] Inspect both capstones with `Print Assumptions`.
+- [x] Inspect all three capstones with `Print Assumptions`.
 
 ## Generic Pedro mechanism
 
@@ -49,8 +49,27 @@ audits below.
 - [x] Check `random_u16` writes `gRandomSeed16` and contains the pinned
       recurrence constants.
 - [ ] Link and execute the behavior-script/object-list chain.
+  - [x] Select the generated dust-chain definitions verbatim and obtain a
+        CompCert `Linking.link` witness for a symbol-level structural slice.
+  - [x] Decode the stock behavior words and execute a source-derived normal-list
+        projection with explicit accepted-dust, normal-frame, and allocation
+        premises.
+  - [ ] Lift that projection to Clight big-step execution with a complete
+        composite environment, resolved globals, and behavior-command calls.
 - [ ] Prove object-pool and active-particle-flag premises for a reachable tap.
+  - [x] Prove the isolated D/D/U allocation trace succeeds iff
+        `free + unimportant >= 3`.
+  - [x] Prove the active-bit guard accepts a clear bit, sets it, and the spawned
+        mist clears it in the same-frame projection.
+  - [ ] Derive a clear bit, sufficient reserve after competing allocations, and
+        list integrity at a reachable US and JP TTC tap.
 - [ ] Prove the exact number and frame timing of seed advances.
+  - [x] In the conditional source-derived dust-only projection, derive Puff1-X,
+        Puff1-Z, Puff2-X, and Puff2-Z as four dust-owned calls on the tap frame.
+  - [x] Prove `R^4(seed)` under an explicit no-intervening-RNG-consumer premise
+        and that the spinner's next observation opportunity is frame `F + 1`.
+  - [ ] Establish those timing facts for linked Clight/retail execution and
+        account for all non-dust RNG consumers between object-list phases.
 
 ## TTC spinner witness
 

@@ -28,6 +28,8 @@ assumptions: proofs
 	bash pipeline/assumptions.sh \
 	  Pedro.Proofs.MainTheorem checked_ttc_spinner_source_reduction_us_jp
 	bash pipeline/assumptions.sh \
+	  Pedro.Proofs.MainTheorem checked_dust_source_projection_us_jp
+	bash pipeline/assumptions.sh \
 	  Pedro.Proofs.TTCSpinnerSchedule no_dust_tap_schedule_keeps_this_interval
 
 check:
