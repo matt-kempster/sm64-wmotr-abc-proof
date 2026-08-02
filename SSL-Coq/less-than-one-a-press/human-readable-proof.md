@@ -32,10 +32,13 @@ engineering but does not know *Super Mario 64*.
 > structural-link result, not a semantics-preservation result.  The declaration
 > and storage audits isolate a concrete incompatible US anonymous-tag choice,
 > described below.  Actual-target global-reference classification and CompCert
-> external-call injection transport are proved, but the retail global
-> interface, initialized/current memory injections, internal-step simulation,
-> and writable-external frames remain open.  No retail conclusion below is
-> derived merely from the normalized candidate or the syntactic link.
+> external-call injection transport are proved.  The project now also has a
+> whole-AST rewrite function, concrete strong-definition membership, generic
+> relocation-aware initialization, injected environments/continuations/states,
+> pointer and scalar-expression compatibility, and a lockstep composition
+> theorem.  The concrete public/name-based memory instances, the US
+> expression/internal-step simulation, and writable `EF_external` frames remain
+> open.  No retail conclusion below is derived merely from these components.
 
 > **Newest clean-JP gap-installer result:** no clean retail installer for the
 > timer-131 `>=960` Graphics/Object Y gap has been found.  The new checked
@@ -1674,10 +1677,13 @@ actual official US target inherits the graphics-command `__538`; its `__540`
 viewport wrapper is consequently 8 bytes while the corresponding source
 wrapper/storage is 16 bytes.  This is a checked negative result: structural
 linkability is not composite refinement.  The proof constructs a fresh-tag
-local layout for the viewport uses, but every affected type, expression,
-function/global annotation, and initializer still needs whole-AST
-alpha-renaming and an execution-simulation proof.  Replacing only the target's
-composite table would leave the old annotations behind and is unsound.
+  local layout for the viewport uses.  `USWholeASTTagRepair.v` now defines the
+  recursive rewrite over affected type positions in expressions, statements,
+  functions, globals, continuations, and states while preserving identifiers
+  and initializer data.  The repaired-program success proof and the
+  expression/internal-step execution simulation remain open.  Replacing only
+  the target's composite table would leave the old annotations behind and is
+  unsound.
 
 `ClightLinkExecution.v` uses exact-definition provenance from each official
 target, through its cleaned unit, back to the source units.  On both actual
@@ -1696,9 +1702,11 @@ function environments both show that the name is not a stack local,
 already related by the name-based `Mem.inject`, then
 `named_global_evar_lvalue_execution_bridge` constructs the source and target
 `eval_lvalue` derivations for that `Evar` and proves that their zero-offset
-pointers satisfy CompCert `Val.inject`.  It does not recurse through larger
-expressions or relate function environments, composites, continuations, or
-internal steps.
+pointers satisfy CompCert `Val.inject`.  `ClightEndToEndRefinement.v` now
+relates locals, temporaries, all continuation constructors, and all Clight state
+constructors; it also proves injected loads, stores, dereferences, pointer
+validity, unary/binary operations, and casts.  The US/JP whole-expression
+induction and concrete internal-step instance are still unproved.
 
 The same file uses CompCert's real external-call simulation interface.  Given
 `symbols_inject`, `Mem.inject`, and injected argument values, it produces an
@@ -1967,6 +1975,16 @@ The most useful entry points are:
   `Init_addrof`, external-constructor, and no-direct-`Sbuiltin` checks, plus
   CompCert `symbols_inject`/`Mem.inject` transport for external `Callstate` and
   generic direct-`Sbuiltin` execution;
+- `proofs/USWholeASTTagRepair.v`: recursive syntax/state transformer for the US
+  viewport tag and the still-open repaired-program execution simulation;
+- `proofs/ClightGlobalMemoryRefinement.v`: concrete strong-definition
+  membership, generic relocation-aware initialization, and the explicit US/JP
+  name-based initial-memory obligations;
+- `proofs/RetailExternalFrames.v`: concrete Mario/object/controller byte
+  footprints, proved builtin/runtime frames, and explicit unresolved-external
+  frame obligations;
+- `proofs/ClightEndToEndRefinement.v`: environment, continuation, state,
+  pointer, scalar-operation, lockstep, and initial-to-final composition lemmas;
 - `proofs/OrdinaryArea1EntryMemory.v`: ordinary node-`0x0A` entry receipts,
   symbol/layout/slot facts, synchronized memory postcondition, and remaining
   live-entry obligations;

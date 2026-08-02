@@ -51,10 +51,12 @@ material US blocker is the anonymous `__538` atom, which aliases a
 source uses with an 8-byte/alignment-4 graphics-command structure in
 `game_init`.  The actual US official target inherits the latter definition, so
 its `__540` viewport wrapper is 8 bytes while the source viewport
-wrapper/storage is 16 bytes.  Local fresh-tag layout construction is proved,
-but the required whole-AST alpha-renaming of affected types, expressions, and
-globals and its semantic simulation are not.  A composite-table-only repair is
-insufficient.
+  wrapper/storage is 16 bytes.  Local fresh-tag layout construction is proved,
+  and `USWholeASTTagRepair.v` now defines the recursive rewrite across Clight
+  expressions, statements, functions, globals, continuations, and states while
+  proving basic identifier/initializer/type algebra.  The repaired-program
+  success certificate and semantic simulation are still open.  A
+  composite-table-only repair is insufficient.
 
 `ClightLinkExecution.v` specializes exact-definition provenance through the
 cleaned units to both actual official targets.  It proves that every nonlocal
@@ -70,9 +72,15 @@ The file also transports CompCert external calls under explicit
 include injected result values and memories, injection growth/separation, and
 the standard `loc_unmapped`/`loc_out_of_reach` memory guarantees; separate
 theorems lift external `Callstate` steps and direct `Sbuiltin` steps after
-argument-evaluation injection.  Retail use still requires the concrete global
-interface and public-name relation, initial and current-state `Mem.inject`,
-expression/continuation/internal-step simulation, and writable
+  argument-evaluation injection.  The new refinement files additionally prove
+  strong-definition membership for the concrete US/JP links, generic
+  relocation-aware initialization, environment/continuation/state injection,
+  pointer load/store/dereference compatibility, scalar-operation injection, and
+  lockstep-to-end-to-end composition.  They identify the concrete
+  Mario/object/controller footprint and prove full-memory preservation for
+  recognized builtins/runtime helpers.  Retail use still requires the concrete
+  public-name and name-based initial/current `Mem.inject` instances, the US
+  whole-expression/internal-step simulation, and writable `EF_external`
 Mario/object/controller frame premises.
 
 The strongest current counterexample candidate is the JP timer-131 stale-top
@@ -1349,15 +1357,19 @@ clightgen -normalize -nostdinc -fstruct-passing \
   initializer `Init_addrof` occurrence resolves, retained/reachable global
   externals have one of the three supported constructors, and exhaustive body
   recursion proves no direct `Sbuiltin` in either target.  This establishes
-  reference and constructor coverage, not initial-memory relocation injection,
-  expression typing/refinement, or retail execution simulation.
+  reference and constructor coverage.  Generic relocation-aware initialization
+  and relocation-load transport are now proved, but the concrete name-based
+  US/JP initialization instance remains open.
 - CompCert external-call execution is transported across `symbols_inject` and
   `Mem.inject`, with injected results/memories, growing and separated
   injections, and `loc_unmapped`/`loc_out_of_reach` preservation.  This does not
-  supply a frame for writable Mario, object-pool, or controller cells.  Retail
-  use still needs the global-interface/public-name proof, initial and current
-  memory injections, expression/continuation/internal-step simulation, and a
-  concrete writable frame for every relevant external effect.
+  supply a frame for writable Mario, object-pool, or controller cells when the
+  call is an abstract `EF_external`.  The concrete footprint is now formalized,
+  and recognized `EF_builtin`/`EF_runtime` calls preserve it because they leave
+  all memory unchanged.  Retail use still needs the global-interface/public-name
+  proof, concrete initial and current memory injections, the US
+  expression/internal-step simulation, and a frame for every reachable
+  `EF_external` effect.  See `docs/notes/retail-clight-refinement.md`.
 - `Print Assumptions` reports the assumptions of named results, and
   `pipeline/assumptions.sh` rejects dependencies declared in this project's
   own logical namespace.  It deliberately permits CompCert's standard

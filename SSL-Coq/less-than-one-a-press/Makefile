@@ -135,6 +135,24 @@ check: proofs
 	  LessThanOneAPress.Proofs.ClightLinkExecution \
 	  clight_sbuiltin_step_obeys_explicit_frame
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.USWholeASTTagRepair \
+	  map_fst_repair_us_selected_global_definitions
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightGlobalMemoryRefinement \
+	  us_concrete_strong_definition_membership_agreement
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightGlobalMemoryRefinement \
+	  matched_program_initial_memory_is_relocation_aware
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.RetailExternalFrames \
+	  recognized_builtin_preserves_us_retail_state
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightEndToEndRefinement \
+	  deref_loc_inject_same_type
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightEndToEndRefinement \
+	  clight_lockstep_initial_to_final_execution
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.OrdinaryArea1EntryMemory \
 	  ordinary_area1_entry_source_kernel_checked
 	bash pipeline/assumptions.sh \

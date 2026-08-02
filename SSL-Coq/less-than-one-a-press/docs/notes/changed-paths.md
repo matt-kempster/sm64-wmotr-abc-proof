@@ -483,6 +483,7 @@ The later Area-1 State/Object phase-split audit changed:
 - `SSL-Coq/less-than-one-a-press/generated/jp_ssl_area1_macro.v`
 - `SSL-Coq/less-than-one-a-press/generated/us_ssl_area1_macro.v`
 - `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
 - `SSL-Coq/less-than-one-a-press/inputs/ssl_area1_macro.c`
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
 - `SSL-Coq/less-than-one-a-press/pipeline/check-generated.sh`
@@ -722,3 +723,25 @@ changed:
 - `SSL-Coq/less-than-one-a-press/proofs/USViewportFreshTagCertificate.v`
 - `SSL-Coq/less-than-one-a-press/proofs/USViewportLayoutCertificates.v`
 - `SSL-Coq/less-than-one-a-press/proofs/USViewportReferenceCertificates.v`
+
+## Retail Clight simulation-spine tranche
+
+The whole-AST rewrite, strong-definition/initialized-memory boundary,
+concrete external footprints, and compositional Clight state simulation changed:
+
+- `SSL-Coq/README.md`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/claim.md`
+- `SSL-Coq/less-than-one-a-press/docs/goal.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/linked-clight-construction.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/retail-clight-refinement.md` (new)
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+- `SSL-Coq/less-than-one-a-press/proofs/USWholeASTTagRepair.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/ClightGlobalMemoryRefinement.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/RetailExternalFrames.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/ClightEndToEndRefinement.v` (new)

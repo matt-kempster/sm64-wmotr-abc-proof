@@ -35,8 +35,9 @@
   8-byte/alignment-4 graphics-command structure selected by the actual
   official target.  Its `__540` viewport wrapper is therefore 8 bytes against
   16-byte source wrapper/storage.  A fresh-tag local layout repair is
-  constructed, but the complete whole-AST alpha-renaming and execution
-  simulation are not.
+  constructed.  A recursive whole-AST/state rewrite is now defined, with basic
+  identifier, initializer, and type algebra proved; repaired-program success
+  and execution simulation are not.
 - `ClightLinkExecution.v` proves generic consequences of a real successful
   CompCert link: an input `Internal` body resolves to that exact body; source
   symbols map to target blocks by name; a linked external definition hides no
@@ -49,6 +50,16 @@
   `External` has constructor `EF_external`, `EF_builtin`, or `EF_runtime`, and
   exhaustive body recursion proves that neither target contains a direct
   `Sbuiltin`.
+- The concrete official links retain every selected strong definition
+  verbatim.  Generic CompCert lemmas now cover relocation-aware initialized
+  memory under a real `match_program_gen`, current relocation-load transport,
+  injected locals/temporaries/continuations/states, pointer loads/stores/
+  dereferences, scalar operations, and lockstep-to-final execution composition.
+  These are components, not a concrete US/JP simulation instance.
+- The writable retail footprint is explicitly the Mario-state block, object
+  pool, Mario-object pointer, controller array, and player-controller pointer.
+  Recognized builtins/runtime helpers preserve it by leaving memory unchanged;
+  reachable abstract `EF_external` frames remain open.
 - The normalized global-`External` definitions are partitioned exactly as US
   `133 EF_external`, `75 EF_builtin`, `19 EF_runtime`, and JP
   `132`, `75`, `19`.  The generated manifests reproduce the same partition.
@@ -360,14 +371,14 @@
 - Whole-program semantic refinement from the original imported Clight units to
   the cleaned official-link target and from that execution to each
   `CertifiedStep` constructor.
-- The normalized/original-to-official declaration, composite, global-reference,
-  and public-name interface needed to instantiate the proved external-call
-  transport; initial and current-state `Mem.inject` under the name-based
-  `symbol_block_map`; expression-evaluation, continuation, and internal-step
-  relations; an initial/final whole-program run; state and
-  input/event/collision projections; writable external-call frame certificates;
+- The remaining normalized/original-to-official declaration, composite, and
+  public-name interface needed to instantiate the proved external-call
+  transport; concrete initial and current-state `Mem.inject` under the
+  name-based `symbol_block_map`; whole-expression and internal-step simulation;
+  a concrete initial/final US or JP whole-program run; state and
+  input/event/collision projections; writable `EF_external` frame certificates;
   or a clean-entry projection-coverage proof.
-- A whole-AST US viewport-tag alpha-renaming and semantics proof.  Replacing
+- A semantics proof for the defined whole-AST US viewport-tag rewrite. Replacing
   only the composite table is unsound because the colliding `__538` layouts
   differ, the official `__540` wrapper is 8 bytes against 16-byte source
   storage, and affected global/function annotations and expressions still use

@@ -113,12 +113,13 @@ This is a checked counterexample to identifying structural linkability with
 composite refinement.
 
 The proof constructs a globally fresh tag and rebuilds the two local viewport
-composite environments with their original layout.  That local construction is
-not yet a program transformation.  A sound repair must whole-AST alpha-rename
-every affected global and function type, local/temporary annotation,
-initializer, expression, `sizeof`, and `alignof`, then prove a small-step or
-execution simulation.  Replacing only the composite definition is
-insufficient.  JP's residual anonymous tags pass the checked storage-layout
+  composite environments with their original layout.  `USWholeASTTagRepair.v`
+now defines a recursive transformation over global and function types,
+local/temporary annotations, expressions, `sizeof`, `alignof`, statements,
+continuations, and Clight states while preserving initializer data.  The
+repaired `make_program` success certificate and small-step execution simulation
+remain open.  Replacing only the composite definition is insufficient.  JP's
+residual anonymous tags pass the checked storage-layout
 boundary, but JP still needs the same kind of original-to-cleaned retail
 execution refinement.
 
@@ -231,30 +232,35 @@ The file also proves execution transport using CompCert's real interfaces:
   targets contain no such direct statement.
 
 These are memory-injection transport results, not arbitrary writable-game-state
-frames.  In particular, they do not by themselves preserve writable Mario,
-object-pool, or controller bytes.  Likewise, the single-`Evar` bridge does not
-relate arbitrary expressions, local bindings, composite layouts,
-continuations, or internal Clight steps.
+frames.  `RetailExternalFrames.v` now identifies the concrete Mario-state,
+object-pool, Mario-object-pointer, controller-array, and player-controller
+blocks.  Recognized builtins/runtime helpers preserve all of them by leaving
+memory unchanged; abstract `EF_external` calls still need per-call frames.
+`ClightEndToEndRefinement.v` relates local/temp environments, continuations, and
+all Clight state constructors and proves pointer, dereference, scalar-operation,
+lockstep, and initial-to-final composition lemmas.  It does not yet instantiate
+the whole-expression or internal-step simulation for US or JP.
 
 Although the structural official links exist, retail semantics still requires
 at least these refinement facts:
 
-- complete whole-AST alpha-renaming for the incompatible US `__538` viewport
-  tag and a simulation for that rewrite;
+- repaired-program success and a simulation for the defined whole-AST rewrite
+  of the incompatible US `__538` viewport tag;
 - a complete normalized/original-to-official global-interface proof: pointwise
   declaration/composite/global-reference correspondence and public-name
   equivalence sufficient to instantiate the proved `symbols_inject` theorem;
-- initial-memory and current-state `Mem.inject` under the name-based
+- concrete initial-memory and current-state `Mem.inject` under the name-based
   `symbol_block_map`, including concrete relocation contents rather than symbol
   existence alone;
-- expression-evaluation refinement, including argument-list injection where a
+- whole-expression refinement, including argument-list injection where a
   generic direct `Sbuiltin` theorem is used;
-- related continuations, function/local/global environments, and internal
-  Clight step simulation, including every relevant composite access;
+- the concrete internal Clight step simulation, including every relevant
+  composite access (the generic environment/continuation/state relations are
+  already available);
 - pointer/type compatibility for cleaned incomplete-array uses beyond the
   checked declaration/storage boundary;
-- concrete writable-memory frame premises for every reachable external effect
-  on Mario, object-pool, or controller storage;
+- concrete writable-memory frame premises for every reachable `EF_external`
+  effect on the already-defined Mario/object/controller footprint;
 - related initial/final whole-program executions and the projection from the
   cleaned official execution to retail state.
 

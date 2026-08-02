@@ -115,7 +115,11 @@ proofs/JPCompositeCompatibilityCertificate.v
 proofs/JPDeclarationCompatibilityCertificate.v
 proofs/USClightLinkRefinementCertificates.v
 proofs/JPClightLinkRefinementCertificates.v
+proofs/USWholeASTTagRepair.v
 proofs/ClightLinkExecution.v
+proofs/ClightGlobalMemoryRefinement.v
+proofs/RetailExternalFrames.v
+proofs/ClightEndToEndRefinement.v
 proofs/OrdinaryArea1EntryMemory.v
 proofs/LowerEntrance.v
 proofs/UpperEntrance.v

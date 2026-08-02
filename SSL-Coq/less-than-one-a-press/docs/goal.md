@@ -40,14 +40,16 @@ each official cleaned target.  This is only syntactic linkability;
 original-to-cleaned and retail execution refinement remain unproved.
 Declaration ABI/storage compatibility is checked, but the actual US target
 inherits the incompatible 8-byte Gfx `__538` and an 8-byte `__540` wrapper where
-affected viewport sources use 16-byte storage.  Whole-AST alpha-renaming and
-simulation are therefore required.  Actual-target `Evar`, `Init_addrof`,
+affected viewport sources use 16-byte storage.  The whole-AST rewrite is now
+defined, but repaired-program success and simulation are still required.
+Actual-target `Evar`, `Init_addrof`,
 external-constructor, and no-direct-`Sbuiltin` results are proved.  CompCert
 external-call execution is also transported under explicit CompCert
-`symbols_inject` and `Mem.inject` hypotheses, but the retail global interface,
-initial/current memory
-injections, expression/continuation/internal-step simulation, and concrete
-writable external-call frames are not.
+`symbols_inject` and `Mem.inject` hypotheses.  Generic relocation-aware
+initialization, environment/continuation/state injection, pointer and scalar
+operation transport, and end-to-end lockstep composition are now proved.  The
+concrete retail global/public interface, initial/current memory instance, US
+expression/internal-step proof, and abstract-external frames remain open.
 
 The newest Ink tranche proves exact US/JP layouts and a conditional
 post-entry `Mem.load` projection, corrects the live controller-pressed and

@@ -264,14 +264,23 @@
      injection growth/separation, `loc_unmapped`/`loc_out_of_reach` guarantees,
      external-`Callstate` lifting, and generic direct-`Sbuiltin` lifting after
      argument-evaluation injection.
-     [ ] Rewrite every affected US `__538` type/expression/global annotation:
-     the official target currently selects the 8-byte Gfx `__538` and an 8-byte
-     `__540` wrapper, while affected viewport sources use 16-byte storage.
-     Prove the resulting whole-AST alpha-renaming simulation.  Also prove the
-     normalized/original-to-official global-interface and public-name relation,
-     initial/current-state `Mem.inject`, expression/continuation/internal-step
-     simulation, concrete writable-byte frames for every reachable external
-     effect, and initial/final whole-program execution refinement.
+     [x] Define the recursive US `__538` rewrite across types, expressions,
+     statements, functions, globals, continuations, and Clight states, with
+     identifier/initializer/type algebra.  The official target still selects
+     the 8-byte Gfx `__538` and an 8-byte `__540` wrapper, while affected
+     viewport sources use 16-byte storage.
+     [x] Prove concrete strong-definition membership, generic relocation-aware
+     initialization and relocation-load transport, injected local/temp/
+     continuation/state relations, pointer and scalar-operation transport, and
+     lockstep-to-initial/final execution composition.  Define the concrete
+     Mario/object/controller writable footprints and prove recognized
+     builtin/runtime calls preserve them.
+     [ ] Prove repaired-program success and the resulting whole-expression and
+     internal-step alpha-renaming simulation.  Also prove the concrete
+     normalized/original-to-official public-name relation, name-based
+     initial/current-state `Mem.inject`, writable-byte frames for every reachable
+     `EF_external` effect, and instantiate the initial/final whole-program
+     execution refinement.
   2. [x] Extract ordinary Area-1 node `0x0A`, spin-airborne action, layout,
      symbol, distinct-slot, and synchronized-postcondition facts.
      [ ] Execute the live entry `Smallstep.star`, castle routing, behavior

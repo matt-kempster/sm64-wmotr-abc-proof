@@ -45,10 +45,10 @@ alignment-2 viewport structure in the affected `area` and cutscene source uses
 and an 8-byte, alignment-4 graphics-command structure in `game_init`.  The
 actual US official target inherits the latter `__538`; its `__540` viewport
 wrapper is therefore 8 bytes while the source viewport wrapper/storage is 16
-bytes.  A fresh-tag local layout repair is constructed, but a whole-AST
-alpha-renaming of every affected type, expression, and global annotation plus
-an execution simulation remain open.  Replacing only the composite table is
-not a sound refinement.
+bytes.  A fresh-tag local layout repair is constructed, and a recursive
+whole-AST/state rewrite now covers the affected Clight type positions.  The
+repaired-program success certificate and execution simulation remain open.
+Replacing only the composite table is not a sound refinement.
 
 `ClightLinkExecution.v` now specializes definition provenance to both actual
 official targets.  Every nonlocal internal-body `Evar` and every initializer
@@ -64,11 +64,16 @@ The same file transports CompCert external calls under explicit CompCert
 memories, injection growth/separation, and the standard `loc_unmapped` and
 `loc_out_of_reach` frame guarantees.  It also lifts external `Callstate` steps
 and direct `Sbuiltin` steps after explicit argument-evaluation injection.  The
-retail instantiation still needs the complete global-interface relation,
-initial and current-state memory injections, expression/continuation/internal
-step simulation, and concrete writable Mario/object/controller frame
-conditions.  No arbitrary writable frame follows from CompCert's generic
-external-call theorem.
+The new refinement layer proves concrete strong-definition membership, generic
+relocation-aware initialization, injected local/temp environments,
+continuations and states, pointer and scalar-operation transport, and
+lockstep-to-final execution composition.  It also defines the concrete
+Mario/object/controller footprint and proves recognized builtins/runtime
+helpers preserve it.  Retail instantiation still needs the complete
+global/public relation, concrete name-based initial/current memory injections,
+the US whole-expression/internal-step simulation, and frames for reachable
+abstract `EF_external` calls.  No arbitrary writable frame follows from
+CompCert's generic external-call theorem.
 
 `old-proofs/` contains archived proof attempts.  They are retained for
 historical context, reusable lemmas, and future reference; they are not part of

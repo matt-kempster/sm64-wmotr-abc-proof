@@ -68,11 +68,15 @@ constructs source-owned cleaned units and proves both
 `NormalizedCleanedUnitsOfficialLinkStructuralObligation` inhabitants: the
 unmodified linker returns actual US and JP cleaned targets.  Declaration ABI
 and storage audits, actual-target global-reference resolution, external
-constructor coverage, and CompCert memory-injection transport are also proved.
-They do not establish retail semantics.  The incompatible US anonymous
-viewport tag still needs a whole-AST repair and simulation; the global/public
-interface, initial and current memory injections, internal-step simulation,
-and concrete writable external-call frames remain open.
+  constructor coverage, and CompCert memory-injection transport are also proved.
+  `USWholeASTTagRepair.v` defines the recursive tag rewrite;
+  `ClightGlobalMemoryRefinement.v`, `RetailExternalFrames.v`, and
+  `ClightEndToEndRefinement.v` prove the strong-definition, generic
+  initialization, concrete-footprint, environment/continuation/state, pointer,
+  scalar-operation, and lockstep composition layers.  They do not establish
+  retail semantics.  Repaired-program success, the concrete global/public and
+  name-based memory instances, whole-expression/internal-step simulation, and
+  reachable `EF_external` frames remain open.
 
 `proofs/OrdinaryArea1EntryMemory.v` maps the ordinary Area-1 entry through
 `ssl_script`, `level_script`, `level_update`, `mario`, `object_list_processor`,
