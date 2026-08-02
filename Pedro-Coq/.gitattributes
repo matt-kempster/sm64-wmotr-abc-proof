@@ -1,0 +1,7 @@
+* text=auto
+*.sh text eol=lf
+Makefile text eol=lf
+_CoqProject text eol=lf
+*.v text eol=lf
+*.c text eol=lf
+*.md text eol=lf
