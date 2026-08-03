@@ -147,6 +147,9 @@ check: proofs
 	  LessThanOneAPress.Proofs.RetailExternalFrames \
 	  recognized_builtin_preserves_us_retail_state
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.RetailExternalFrames \
+	  official_direct_sbuiltin_frame_boundary_closed
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.ClightEndToEndRefinement \
 	  deref_loc_inject_same_type
 	bash pipeline/assumptions.sh \

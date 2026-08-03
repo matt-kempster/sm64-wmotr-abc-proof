@@ -22,6 +22,21 @@ From LessThanOneAPress.Proofs Require Import LinkedClightPrograms
 Import ListNotations.
 Local Open Scope Z_scope.
 
+(** The direct-[Sbuiltin] side of the retail frame audit is empty, rather than
+    guarded by an assumed frame condition: exhaustive recursion over every
+    official internal body found no such statement in either version. *)
+Definition OfficialDirectSbuiltinFrameBoundary : Prop :=
+  program_direct_sbuiltins us_official_cleaned_slice = [] /\
+  program_direct_sbuiltins jp_official_cleaned_slice = [].
+
+Theorem official_direct_sbuiltin_frame_boundary_closed :
+  OfficialDirectSbuiltinFrameBoundary.
+Proof.
+  split.
+  - exact us_official_target_has_no_direct_sbuiltin.
+  - exact jp_official_target_has_no_direct_sbuiltin.
+Qed.
+
 (** * Frames justified by CompCert's concrete known-builtin semantics *)
 
 Lemma known_builtin_external_call_memory_identity :

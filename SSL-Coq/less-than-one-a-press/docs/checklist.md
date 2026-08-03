@@ -301,10 +301,13 @@
      write; these counts are receiver-neutral and not dynamic store counts.
   6. [x] Prove named-global storage separation and distinct in-range
      608-byte object-slot non-alias arithmetic at entry.
+     [x] Close the direct-`Sbuiltin` branch: exhaustive official-body recursion
+     proves that both US and JP inventories are empty, packaged by
+     `official_direct_sbuiltin_frame_boundary_closed`.
      [ ] Prove pointer validity, every object access in bounds, absence of
      harmful aliases, and concrete writable-memory frame conditions for every
-     reachable unresolved `EF_external` and direct `Sbuiltin` effect.  The
-     generic CompCert read-only property is not such a frame.
+     reachable unresolved `EF_external` effect.  The generic CompCert
+     read-only property is not such a frame.
   7. [x] Compose an assumed entry bound and per-step gap refinement into a
      global `<960` theorem over the parameterized zero-edge relation.
      [ ] Supply the theorem's total-projection and per-step-refinement premises;
