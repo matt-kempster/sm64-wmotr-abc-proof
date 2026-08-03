@@ -304,10 +304,17 @@
      [x] Close the direct-`Sbuiltin` branch: exhaustive official-body recursion
      proves that both US and JP inventories are empty, packaged by
      `official_direct_sbuiltin_frame_boundary_closed`.
-     [ ] Prove pointer validity, every object access in bounds, absence of
-     harmful aliases, and concrete writable-memory frame conditions for every
-     reachable unresolved `EF_external` effect.  The generic CompCert
-     read-only property is not such a frame.
+     [x] Prove current-`Mem.inject` transport of an already-valid mapped pointer
+     to the translated target offset.
+     [x] Prove current-`Mem.inject` transport of mapped pointer reads and their
+     loaded values.
+     [x] Prove current-`Mem.inject` transport of mapped pointer writes and the
+     resulting memories.
+     [ ] Instantiate those generic results for every reachable object access;
+     prove source pointer validity, bounds, harmful-alias absence, and concrete
+     writable-memory frame conditions for every reachable unresolved
+     `EF_external` effect.  The generic CompCert read-only property is not such
+     a frame.
   7. [x] Compose an assumed entry bound and per-step gap refinement into a
      global `<960` theorem over the parameterized zero-edge relation.
      [ ] Supply the theorem's total-projection and per-step-refinement premises;

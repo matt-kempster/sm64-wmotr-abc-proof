@@ -254,6 +254,43 @@ Proof.
   eapply Mem.valid_pointer_inject; eauto.
 Qed.
 
+(** Three deliberately narrow checklist closures.  They expose what a current
+    [Mem.inject] already guarantees, without asserting source-side validity,
+    retail reachability, bounds, or absence of aliases. *)
+Theorem checklist_current_injection_preserves_pointer_validity :
+  forall injection source_memory target_memory source_block target_block
+      delta offset,
+    Mem.inject injection source_memory target_memory ->
+    injection source_block = Some (target_block, delta) ->
+    Mem.valid_pointer source_memory source_block offset = true ->
+    Mem.valid_pointer target_memory target_block (offset + delta) = true.
+Proof. exact injected_pointer_validity. Qed.
+
+Theorem checklist_current_injection_transports_pointer_read :
+  forall injection source_memory target_memory chunk
+      source_address target_address source_value,
+    Mem.inject injection source_memory target_memory ->
+    Val.inject injection source_address target_address ->
+    Mem.loadv chunk source_memory source_address = Some source_value ->
+    exists target_value,
+      Mem.loadv chunk target_memory target_address = Some target_value /\
+      Val.inject injection source_value target_value.
+Proof. exact mapped_pointer_load_compatibility. Qed.
+
+Theorem checklist_current_injection_transports_pointer_write :
+  forall injection chunk source_memory target_memory
+      source_address target_address source_value target_value source_after,
+    Mem.inject injection source_memory target_memory ->
+    Val.inject injection source_address target_address ->
+    Val.inject injection source_value target_value ->
+    Mem.storev chunk source_memory source_address source_value =
+      Some source_after ->
+    exists target_after,
+      Mem.storev chunk target_memory target_address target_value =
+        Some target_after /\
+      Mem.inject injection source_after target_after.
+Proof. exact mapped_pointer_store_compatibility. Qed.
+
 (** This is the complete same-type rvalue dereference boundary used by a
     future expression induction.  It covers by-value loads, by-reference and
     by-copy composite values, and bitfields. *)

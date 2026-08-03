@@ -154,6 +154,15 @@ check: proofs
 	  deref_loc_inject_same_type
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.ClightEndToEndRefinement \
+	  checklist_current_injection_preserves_pointer_validity
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightEndToEndRefinement \
+	  checklist_current_injection_transports_pointer_read
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightEndToEndRefinement \
+	  checklist_current_injection_transports_pointer_write
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightEndToEndRefinement \
 	  clight_lockstep_initial_to_final_execution
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.OrdinaryArea1EntryMemory \
