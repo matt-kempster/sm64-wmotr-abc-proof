@@ -786,6 +786,9 @@ check: proofs
 	  LessThanOneAPress.Proofs.StateFirstInstaller \
 	  jp_observed_act6_pickup_projection_has_no_a_edge
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.StateFirstInstaller \
+	  conditional_jp_zero_a_act6_collection_continuation
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.Area1PhaseSplit \
 	  area1_fragment_writer_source_checked
 	bash pipeline/assumptions.sh \

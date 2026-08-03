@@ -446,6 +446,23 @@ Proof.
   apply repeat_zero_a_frame_has_no_a_edge.
 Qed.
 
+(** The previously separate collision, save-bit, and input receipts form one
+    explicit downstream continuation certificate.  This remains conditional
+    on the injected timer-131 installer boundary; it is not a clean-entry
+    reachability theorem. *)
+Theorem conditional_jp_zero_a_act6_collection_continuation :
+  hitboxes_overlap
+    jp_observed_act6_pickup_collision_sample mario_standard_hitbox_f32
+    hidden_controller_position collect_star_hitbox = true /\
+  jp_pickup_receipt_is_new_act6_collection
+    jp_observed_conditional_act6_pickup /\
+  fewer_than_one_a_press jp_observed_act6_pickup_a_projection.
+Proof.
+  split; [exact jp_observed_act6_pickup_overlaps_binary32_model |].
+  split; [exact jp_observed_receipt_is_new_act6_collection |].
+  exact (proj2 jp_observed_act6_pickup_projection_has_no_a_edge).
+Qed.
+
 (** What is closed, and what remains.  In particular, the downstream witness
     establishes a viable continuation *conditional on installer injection*;
     it does not supply the missing clean-retail Layer-1 installer. *)

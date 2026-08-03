@@ -473,9 +473,12 @@
     candidate; State-first selection, physical co-location or cloning,
     post-commit transport, another dynamic owner, and a skipped-query frozen
     carry must each be proved unreachable or carried into the same trace.
-  - [ ] Find a zero-A continuation that overlaps and collects the spawned Act-6
-    star, record the save-bit transition, or prove that the conditional payload
-    cannot do so.  This does not replace the clean-installer obligation.
+  - [x] Package the observed zero-A continuation that overlaps and collects the
+    spawned Act-6 star: `conditional_jp_zero_a_act6_collection_continuation`
+    combines the binary32 overlap, initially-clear-to-set Act-6 save-bit
+    receipt, and 828-frame no-A-edge projection.  This is conditional on the
+    injected timer-131 boundary and does not replace the clean-installer
+    obligation.
 - [ ] Project chronological Mario/action/surface observations from Clight and
   prove the transcript route contract complete for both entrances.
 - [ ] Construct `EvidenceBearingFirstTargetCutClassification` from that
