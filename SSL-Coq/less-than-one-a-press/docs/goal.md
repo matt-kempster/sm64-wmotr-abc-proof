@@ -162,19 +162,29 @@ candidate relation: a sink-visible safe-writer trace from exact `+0.0f`
 preserves finite nonnegative depth and makes Clight's `depth < 0.0f` test false.
 The relation covers stock constants and
 paired clamp behavior while deliberately excluding landing timers 4 and 5.
-Timer 4 still needs a lower-bound argument; timer 5 is the known negative
-producer.  The outstanding semantic task is to prove that every clean linked
-write refines this relation and satisfies its finite/no-overflow and
-non-interleaving premises.
+The newer floor-sample audit shows that neither excluded timer is globally
+safe: when the updater sees ordinary floor and the later ground step enters
+quicksand, exact source-shaped binary32 gives `-0.5f` at timer 4 and `-4.0f`
+at timer 5.  The outstanding semantic task is to execute the split through
+linked Clight and prove that every clean linked write has the required
+action/timer/descriptor, pointer, finite/no-overflow, and non-interleaving
+provenance.
 
 Exact binary32 also exposes the necessary caution: an already-installed
 `-2.650000095f` depth reaches a zero-base endpoint at least `960` after 363
 non-reanchored automatic-dialog sinks.  The now-checked live-range instance
 starts at `768.5f`; after 381 sinks it is `1778.1593017578125f`, whose
-collision integers differ by exactly `1010`.  Stock Area 1 has no identified
-clean zero-A path to the combined negative-depth, automatic-dialog,
-unreanchored state.  Writer/action/alias/external closure, reanchoring closure,
-and installation remain open, so the retail gap installer has not been proved
+collision integers differ by exactly `1010`.  The stronger split-floor
+candidate is exact binary32 `-4.0f`; the proved integer model needs 240 such
+sinks for a 960-unit rise, while the live binary32 recurrence remains open.
+Bilateral generated checks classify the reading action as a cutscene action
+whose handler has no recognized direct depth write or reanchor.  The finite
+model permits an arbitrarily long open-dialog stall when supplied the same
+depth; live constructor/helper preservation of that scalar remains open.
+Stock Area 1 has a plausible 44-unit ordinary-to-shallow-moving-quicksand
+boundary, but no executed ground-step or clean zero-A long-jump-to-tangible-
+star/dialog trace.  Writer/action/descriptor/alias/external closure and
+installation remain open, so the retail gap installer has not been proved
 impossible.
 
 The newest turning-animation tranche eliminates one proposed bypass at a

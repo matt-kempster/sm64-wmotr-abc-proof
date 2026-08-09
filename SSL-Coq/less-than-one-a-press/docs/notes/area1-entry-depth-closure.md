@@ -51,8 +51,10 @@ explicit IEEE no-overflow condition, and a trace from binary32 `+0.0f` makes
 the exact Clight comparison `depth < 0.0f` false.
 
 The binary32 theorem intentionally excludes common-landing timers 4 and 5.
-Timer 4 still needs a lower-bound argument; timer 5 is the known negative
-producer.  It also requires linked execution to supply finite/depth
+The later two-floor audit shows why: exact source-shaped binary32 produces
+`-0.5f` at timer 4 or `-4.0f` at timer 5 when the updater samples ordinary
+floor and the later ground step selects quicksand.  It also requires linked
+execution to supply finite/depth
 bounds, prove the raw quicksand-jump store cannot be observed between its
 subtraction and immediate clamp, and show that every reachable write belongs
 to this relation.

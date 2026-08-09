@@ -492,13 +492,23 @@
   late writer and keeps depth nonnegative.  This is not whole-program closure:
   proving that clean no-edge execution refines that relation, linked writer/action
   provenance, pointer non-aliasing, and stock dialog/reanchoring closure remain
-  open.  An already-negative `-2.650000095f` depth would be a genuine escape;
-  363 unreanchored automatic-dialog sinks reach a zero-base binary32 endpoint
-  at least `960`.  The candidate live-base arithmetic is no longer open:
-  `768.5f` followed by 381 sinks yields `1778.1593017578125f` and integer gap
-  `1010`.  What remains open is a clean zero-A source for the combined state,
-  retention through 381 live calls, required X/Z, and whole-program
-  projection/refinement.
+  open.  An already-negative depth would be a genuine escape.  The older
+  `-2.650000095f` witness reaches the required range in 363 or 381 sinks,
+  depending on its base.  More strongly, the updater can sample ordinary
+  floor before `perform_ground_step` while the landing formula samples
+  quicksand afterward; the source-shaped binary32 results are `-0.5f` at
+  timer 4 and `-4.0f` at timer 5.  The proved integer schedule needs 240
+  four-unit sinks for a 960-unit rise; its live binary32 recurrence remains a
+  named obligation.
+  `ACT_READING_AUTOMATIC_DIALOG` is bilaterally checked as a cutscene action
+  whose handler has no recognized direct depth write or reanchor.  Its finite
+  open-dialog model can stall for any requested number of frames when supplied
+  the same depth; live helper preservation remains open.  A stock 44-unit
+  ordinary-to-shallow-moving-quicksand
+  boundary makes the split geometrically plausible, but the four real ground
+  quarters, clean zero-A long-jump provenance, and a following tangible
+  no-exit-star/dialog handoff remain open.  No target-star counterexample is
+  proved.
 - Stock reachability or impossibility of the pyramid-top upper-warp path.
   The Y-preserving stock-yaw arithmetic case is excluded, the exact concrete
   retail cast is verified, and the bounded pre-apply owner theorem excludes

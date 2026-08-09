@@ -794,3 +794,26 @@ top/warp clone-source census, and public status updates changed:
 - `SSL-Coq/less-than-one-a-press/proofs/Area1WarpTopCloneCensus.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/PlatformPointerProvenance.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/StockProjectionExhaustiveness.v` (new)
+
+## Negative-quicksand and unreanchored-dialog tranche
+
+The split pre/post-floor landing writer, automatic-dialog scheduling, action/
+depth alias syntax boundary, static Area-1 crossing candidate, and public
+status updates changed:
+
+- `SSL-Coq/README.md`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/claim.md`
+- `SSL-Coq/less-than-one-a-press/docs/goal.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/area1-entry-depth-closure.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/negative-quicksand-unreanchored-dialog.md` (new)
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+- `SSL-Coq/less-than-one-a-press/proofs/ActionDepthAliasCensus.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/Area1LongJumpQuicksandCrossing.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/AutomaticDialogReanchoring.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPLongJumpLandingDepth.v` (new)

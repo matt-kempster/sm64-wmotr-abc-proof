@@ -154,6 +154,10 @@ proofs/JPQuicksandDepth.v
 proofs/JPGeneratedWriterCensus.v
 proofs/JPActionProvenanceCensus.v
 proofs/JPBinary32DepthWrites.v
+proofs/JPLongJumpLandingDepth.v
+proofs/AutomaticDialogReanchoring.v
+proofs/ActionDepthAliasCensus.v
+proofs/Area1LongJumpQuicksandCrossing.v
 proofs/JPZeroAReachability.v
 proofs/RetailFatalLatch.v
 proofs/TurningAnimation.v

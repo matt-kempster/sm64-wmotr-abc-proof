@@ -103,16 +103,28 @@ entry state; it does not itself establish a clean JP entry.  Its composition
 theorem preserves the current gap bound only when supplied total state
 projection and per-step refinement.
 
-The conditional quicksand warning is now checked at a nonzero live-range
-base: starting at binary32 `768.5f`, 381 unreanchored sinks with prepared
-depth `-2.650000095f` end at `1778.1593017578125f`; the collision-consumed
-integers differ by exactly `1010`.  This validates the arithmetic, not the
-installer.  The stock Area-1 audit still has no clean zero-A origin for the
-negative-depth, automatic-dialog, unreanchored combination.  Ordinary Area-1
-entry source facts and a synchronized memory postcondition are formalized,
-but live entry execution, routing, external-call frames, pool/list ownership,
-writer/action/alias closure, and reanchoring closure remain open.  Bounded JP
-runtime search found no positive gap; it is not an exhaustive proof.
+The conditional quicksand warning is stronger than the earlier prepared
+`-2.650000095f` example.  The updater samples the pre-step floor, while the
+long-jump landing writer samples the floor after `perform_ground_step`.  A
+source-shaped binary32 model therefore produces `-0.5f` at timer 4 or `-4.0f`
+at timer 5 when one frame crosses from ordinary floor onto quicksand.  With no
+Graphics reanchor, the proved integer schedule needs 240 four-unit sinks for a
+960-unit rise.  End-to-end binary32 iteration from a live base is a separate
+named obligation.  Bilateral generated-AST checks also show that
+`ACT_READING_AUTOMATIC_DIALOG` is a cutscene action, not an arm of the
+automatic dispatcher that resets depth, and that its handler has no recognized
+direct depth write or State-to-Graphics copy.  In a finite model supplied the
+same surviving depth, its open-dialog state can stall arbitrarily long.  Live
+constructor/helper preservation of that depth remains open.
+
+This validates a conditional mechanism, not an installer.  Stock Area-1
+collision supplies a plausible 44-unit ordinary-to-shallow-moving-quicksand
+boundary crossing, but the real four-quarter-step execution, clean zero-A
+long-jump/action provenance, and a following tangible no-exit-star/dialog
+handoff remain unproved.  The ordinary long-jump source path requires an A
+edge.  Live entry execution, external-call frames, pointer/alias and mutable
+descriptor closure, and the linked dialog-to-timer-131 trace remain open.
+Bounded JP runtime search found no positive gap; it is not exhaustive.
 
 The newest closure tranche strengthens three boundaries without resolving the
 retail question.  From the ordinary-entry memory postcondition, Rocq now proves

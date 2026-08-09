@@ -408,6 +408,26 @@
     long-jump landing depth is `-2.650000095f`, and 363 unreanchored
     automatic-dialog sink calls reach a zero-base endpoint at least `960` in
     CompCert binary32.
+  - [x] Correct the floor-sampling boundary.  The updater reads the pre-step
+    floor, while `common_landing_action` tests the post-`perform_ground_step`
+    floor.  The source-shaped binary32 model gives `-0.5f` at timer 4 and
+    `-4.0f` at timer 5 for an ordinary-to-quicksand crossing.  The integer
+    schedule proves `240 * 4 = 960`; the 240-step live binary32 recurrence,
+    generated-Clight expression/control refinement, and real ground-step
+    execution remain open.
+  - [x] Prove from bilateral generated AST that
+    `ACT_READING_AUTOMATIC_DIALOG` is in the cutscene dispatcher, has no
+    recognized direct depth write or State-to-Graphics copy, and is not
+    protected by the
+    automatic dispatcher's depth reset.  Prove in the finite schedule that an
+    open dialog supplied the same depth may stall for any finite frame count.
+    Live constructor/helper preservation of the depth cell remains open.
+  - [x] Identify a stock Area-1 static-mesh candidate across 44 Z units from
+    default-floor projected triangle to a shallow-moving-quicksand projected
+    triangle, with exact rational drop `300/37 < 100`.  This is a geometric
+    candidate, not actual surface-list selection or execution of the four
+    binary32 ground quarters.  A separate read-only wall/ceiling scan is not
+    formalized by this checked item.
   - [x] Check a nonzero live-range arithmetic instance: starting at binary32
     `768.5f`, 381 exact sinks end at `1778.1593017578125f`; conversion yields
     collision integers `768` and `1778`, an exact `1010` gap.  Clean
@@ -455,9 +475,19 @@
       preservation.  From entry `+0.0f`, every such finite/non-overflowing
       trace makes Clight's `depth < 0.0f` comparison false.  This module imports
       no generated writer AST, and both landing timers 4 and 5 are excluded.
-    - [ ] Derive the binary32 relation, finite/no-overflow premises, and
-      quicksand-jump store/clamp non-interleaving from every reachable linked
-      writer; exclude forged timer `4/5` and aliased/external stores.
+    - [x] Prove exact CompCert binary32 arithmetic for the newly isolated split
+      candidate: an ordinary pre-step sample and quicksand post-step sample
+      gives `-0.5f` at timer 4 or `-4.0f` at timer 5.  Also prove the integer
+      magnitude fact `240 * 4 = 960`; the 240-step binary32 recurrence remains
+      a named obligation.
+    - [ ] Derive that source-shaped split from linked Clight expression and
+      control execution, derive the remaining binary32 relation and finite/
+      no-overflow premises from every reachable linked writer, prove
+      quicksand-jump store/clamp non-interleaving, and exclude forged timer
+      `4/5`, mutable-descriptor, aliased, out-of-bounds, and external stores.
+    - [ ] Execute the identified Area-1 boundary through all four real ground
+      quarter-steps, then prove or refute the next-frame tangible no-exit-star
+      collision and star-dance/milestone-dialog handoff before any depth reset.
     - [ ] Execute the ordinary-entry postcondition in linked Clight, close
       external frames and non-aliasing, prove complete live writer/action
       provenance and binary32 sign preservation, and refine each cutscene

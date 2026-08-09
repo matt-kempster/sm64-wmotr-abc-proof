@@ -111,9 +111,17 @@ whose assignment LHS mentions `throwMatrix`.  These are receiver-neutral
 function counts, not proof that every store targets Mario.  The same census
 confirms eight direct `quicksandDepth` writers and six direct automatic-dialog
 constructor functions.  `JPQuicksandDepth.v` proves nonnegative depth for a
-source-shaped relation that excludes the late long-jump landing writer.  That
-writer's ordinary source constructor is under `INPUT_A_PRESSED`; proving that
-every real clean no-edge trace refines the safe relation remains open.
+source-shaped relation that excludes the late long-jump landing writer.  The
+newer audit shows why that exclusion is essential: the updater can sample
+ordinary floor before `perform_ground_step`, then the landing formula can
+sample quicksand after the step.  The exact source-shaped binary32 results are
+`-0.5f` at timer 4 and `-4.0f` at timer 5.  Source review identifies the
+six-frame long-jump landing descriptor as the stock late-timer candidate, and
+the ordinary long-jump source constructor is under `INPUT_A_PRESSED`.
+`ActionDepthAliasCensus.v` checks that descriptor's initial value and writable
+storage, but not an exhaustive reachable descriptor-to-handler mapping.
+Proving that every real clean no-edge trace has unforgeable action/timer/
+descriptor provenance remains open.
 
 `OrdinaryArea1EntryMemory.v` corrects the ordinary outside-desert entry to
 node `0x0A`, `bhvSpinAirborneWarp`, and `ACT_SPAWN_SPIN_AIRBORNE`, and defines
@@ -234,22 +242,32 @@ contract and per-step `JPZeroAGapStepRefinementObligation` premise.  Those are t
 unresolved writer, action, alias, and external-call closure, so this is a
 conditional composition theorem rather than a retail exclusion.
 
-This audit also records a conditional countermodel to any naive per-frame
-bound: an already-installed `-2.65f` depth retained in the non-reanchoring
-automatic-dialog action reaches a zero-base endpoint at least `960.0f` after
-363 calls in exact CompCert binary32 arithmetic.  The projected integer model
-also records `961.95` from zero.  The live-base arithmetic is now checked for
-one relevant candidate: binary32 `768.5f` followed by 381 exact sinks ends at
-`1778.1593017578125f`; conversion to the collision integers gives `768` and
-`1778`, a gap of exactly `1010`.  Stock signs and NPC-dialog handlers reanchor
-Graphics, while star-milestone automatic-dialog call sites mean the action is
-not globally absent.  The open question is reachability of the combined
-negative-depth, automatic-dialog, unreanchored state, not whether this one
-binary32 schedule is large enough.  Linked memory, pointer/non-alias,
-complete writer/action provenance, dialog/reanchoring closure, X/Z
-preservation, and installation of the negative depth remain open.  A source
-review also rejected fire particles as a Mario writer: the callback updates
-Mario's `prevObj` flame, not Mario.
+This audit records a conditional countermodel to any naive per-frame bound.
+The earlier prepared `-2.650000095f` depth reaches the required range after
+363 or 381 unreanchored sinks, depending on the selected base.  The stronger
+split-floor candidate is exact binary32 `-4.0f`; the proved integer scheduling
+model needs 240 such four-unit sinks for a 960-unit rise.  The corresponding
+240-step binary32 recurrence from a live base remains an explicit obligation.
+`AutomaticDialogReanchoring.v` checks for both US and JP that
+`ACT_READING_AUTOMATIC_DIALOG` is dispatched as a cutscene action and that its
+handler contains no recognized direct depth write or State-to-Graphics copy.
+Its finite model can remain at the open-dialog state for any requested number
+of frames when supplied the same surviving depth.  Proving that the live
+constructor and helpers preserve that depth remains open.
+
+Stock SSL Area 1 has an exact static-mesh candidate only 44 units across: a
+default-floor sample at `(5760,0,4856)` and shallow-moving-quicksand sample at
+`(5760,0,4900)`, with about an 8.1-unit drop.  This makes the writer plausible,
+but it is not an executed ground-step or clean zero-A witness.  The remaining
+bridge needs exact quarter-step collision execution, no-edge long-jump/action
+provenance or a concrete forged-state writer, and an already tangible no-exit
+star on the following collision pass.  The stock 100-coin star is the current
+candidate, but no spawn/placement trace has put it at the required boundary.
+Linked memory, pointer/non-alias and external frames, X/Z preservation, and
+installation into the timer-131 trace remain open.  See
+[`docs/notes/negative-quicksand-unreanchored-dialog.md`](docs/notes/negative-quicksand-unreanchored-dialog.md).
+A source review also rejected fire particles as a Mario writer: the callback
+updates Mario's `prevObj` flame, not Mario.
 
 The project-local hash-gated JP search is read-only after its externally
 enabled level-select bootstrap.  Its bounded zero-A schedules observed no

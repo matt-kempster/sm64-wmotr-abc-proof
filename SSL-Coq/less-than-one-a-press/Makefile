@@ -1095,6 +1095,54 @@ check: proofs
 	  LessThanOneAPress.Proofs.JPBinary32DepthWrites \
 	  jp_binary32_safe_writer_trace_from_clean_zero_is_not_clight_negative
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPLongJumpLandingDepth \
+	  jp_timer_four_split_depth_binary32_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPLongJumpLandingDepth \
+	  jp_timer_five_split_depth_binary32_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPLongJumpLandingDepth \
+	  jplld_240_times_four_is_960
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.AutomaticDialogReanchoring \
+	  automatic_dialog_is_cutscene_group_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.AutomaticDialogReanchoring \
+	  us_automatic_dialog_no_recognized_direct_reanchor_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.AutomaticDialogReanchoring \
+	  jp_automatic_dialog_no_recognized_direct_reanchor_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.AutomaticDialogReanchoring \
+	  modeled_reanchor_then_stall_with_same_depth_has_double_gap
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.AutomaticDialogReanchoring \
+	  open_automatic_dialog_can_stall_for_any_finite_frame_count
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ActionDepthAliasCensus \
+	  us_jp_sensitive_scalar_address_taking_census_is_empty
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ActionDepthAliasCensus \
+	  us_jp_two_indirect_mario_state_calls_have_exact_source_shapes
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ActionDepthAliasCensus \
+	  us_jp_long_jump_landing_descriptor_source_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1LongJumpQuicksandCrossing \
+	  a1ljq_crossing_data_exact_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1LongJumpQuicksandCrossing \
+	  a1ljq_crossing_data_exact_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1LongJumpQuicksandCrossing \
+	  a1ljq_pre_sample_projection_classified
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1LongJumpQuicksandCrossing \
+	  a1ljq_post_sample_projection_classified
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1LongJumpQuicksandCrossing \
+	  a1ljq_vertical_drop_is_below_100
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.Area1EntryDepthClosure \
 	  ordinary_area1_entry_memory_synchronizes_all_coordinates
 	bash pipeline/assumptions.sh \

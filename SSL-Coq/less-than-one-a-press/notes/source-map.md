@@ -105,6 +105,31 @@ writer refinement.
 to integer coordinates separated by `1010`.  It does not install the negative
 depth/action state or prove 381 unreanchored calls reachable.
 
+`proofs/JPLongJumpLandingDepth.v` isolates the newly discovered two-floor
+sample.  Its minimal CompCert binary32 model checks exact `-0.5f` and `-4.0f`
+single-frame results when the updater sees ordinary floor but the later landing
+writer sees quicksand.  The source chronology is not re-imported into this
+lightweight module: executing the generated Clight updater, four ground
+quarters, new-floor guard, and write is a named refinement obligation.
+
+`proofs/AutomaticDialogReanchoring.v` checks both generated versions of the
+cutscene/automatic/submerged/interaction source boundary.  It classifies
+`ACT_READING_AUTOMATIC_DIALOG` as a cutscene action with no direct depth reset
+or State-to-Graphics copy, checks constructor/reanchor shapes and outer
+sink/raw-copy order, and proves a finite stalled-dialog gap model.  Linked
+branch execution, live pointer identity, external frames, floor validity, and
+stock constructor reachability remain open.
+
+`proofs/ActionDepthAliasCensus.v` is a bilateral syntax census for direct
+action/depth writes, explicit sensitive-field address-taking, indirect
+Mario-state calls, reset shapes, and the writable long-jump descriptor.  It is
+not semantic non-alias or corruption closure.
+
+`proofs/Area1LongJumpQuicksandCrossing.v` ties exact generated Area-1 collision
+vertices/groups/triangles to a transparent rational XZ/plane calculation.  It
+proves the 44-unit sample separation and sub-100-unit drop, while leaving real
+surface-list selection and all four binary32 ground quarters explicit.
+
 ## Pyramid-top PU and graphical-fallback boundary
 
 `proofs/PyramidTopPU.v` bundles exact packed US/JP LevelScript records and the

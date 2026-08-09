@@ -70,19 +70,32 @@ engineering but does not know *Super Mario 64*.
 > whole-program action-provenance theorem.
 >
 > The audit also found a real conditional escape that prevents an unsound
-> per-frame `208` bound: if the prepared `-2.65f` depth were somehow installed
-> and retained during a non-reanchoring automatic-dialog action, the final
-> quicksand sink would repeatedly raise Graphics.  Exact CompCert binary32
-> evaluation reaches a zero-base endpoint at least `960.0f` after 363 sink
-> calls.  A separate live-range calculation starts at `768.5f`, performs 381
-> exact sinks, and ends at `1778.1593017578125f`; integer conversion gives
-> `768 -> 1778`, exactly the required `1010` gap at the warp centre.  This
-> closes the arithmetic instance, not its installation.  Stock SSL Area 1
-> signs and NPC-dialog handlers reanchor Graphics, but star-milestone call
-> sites mean the automatic-dialog action is not globally absent.  Proving that
-> the combined negative-depth, automatic-dialog, unreanchored state is
-> unreachable, and proving no-long-jump provenance in linked live memory,
-> remain open.
+> per-frame bound.  The old prepared-depth example, `-2.650000095f`, is valid
+> but is not the strongest writer.  The moving dispatcher samples quicksand
+> before movement; the landing body samples the floor again after
+> `perform_ground_step`.  Crossing from ordinary floor onto quicksand in that
+> frame therefore gives exact source-shaped binary32 depth `-0.5f` at timer 4
+> or `-4.0f` at timer 5.  With no Graphics reanchor, the proved integer model
+> needs 240 four-unit sinks for a 960-unit rise.  The same 240-step recurrence
+> in live binary32 memory is a named remaining obligation.
+>
+> `ACT_READING_AUTOMATIC_DIALOG` is a cutscene action, not an arm of the
+> automatic dispatcher that clears quicksand depth.  The bilateral generated
+> checks find no recognized direct depth write or State-to-Graphics copy in
+> its handler.  When the finite model is supplied the same surviving depth, it
+> can hold the open-dialog state for any requested number of frames and shows
+> how accumulation follows.  Proving that the live constructor and helper
+> calls actually preserve the depth cell remains open.
+>
+> Stock SSL Area 1 supplies a plausible 44-unit ordinary-to-shallow-moving-
+> quicksand boundary crossing.  That is not yet a retail witness: exact four-
+> quarter-step collision execution, clean no-A provenance for the long-jump
+> landing state, and a following already-tangible no-exit-star/dialog handoff
+> remain open.  The ordinary long-jump constructor itself is A-edge guarded.
+> Thus the mechanism is proved conditionally, but no clean zero-A installer or
+> target-star counterexample has been found.  The exact source, collision, and
+> remaining-witness breakdown is in
+> [`docs/notes/negative-quicksand-unreanchored-dialog.md`](docs/notes/negative-quicksand-unreanchored-dialog.md).
 
 > **Ordinary entry and zero-A composition:** the ordinary Area-1 painting
 > entry is node `0x0A` with `bhvSpinAirborneWarp` and
@@ -123,9 +136,10 @@ engineering but does not know *Super Mario 64*.
 > updates.  From binary32 `+0.0f`, finite non-overflowing steps in that relation
 > cannot make the C comparison `depth < 0.0f` true.  The relation is handwritten
 > and imports no generated writer AST.  Timers 4 and 5 are deliberately outside
-> it: timer 4 needs a lower-bound proof, while timer 5 is the known negative
-> long-jump-landing writer.  The linked proof must still classify every actual
-> store, establish
+> it.  The later split-floor audit proves that timer 4 can be `-0.5f` and timer
+> 5 can be `-4.0f` when the updater sees ordinary floor but the ground step
+> enters quicksand.  The linked proof must still classify every actual store,
+> establish
 > the finite bounds, and prevent an observation between quicksand-jump's raw
 > subtraction and immediate clamp.
 >
@@ -1912,12 +1926,14 @@ Mario/object/controller frames remain to be proved.
   require
   `973`; applying any bound to every reachable retail writer is open.
   Complete retail writer/action/spawn closure remains open.  In particular, a
-  prepared `ACT_LONG_JUMP_LAND` state with pre-frame timer `4` can produce a
-  negative quicksand-depth operand of about `-2.65`; subtracting it can raise
-  Graphics by about `2.65`.  In the normal action graph this requires a prior
-  A-edge setup.  Stock upper-warp support is `SURFACE_WALL_MISC` and cannot
-  generate that adjustment, but persisted depth still requires action/state
-  closure;
+  prepared `ACT_LONG_JUMP_LAND` state can produce negative depth.  If the
+  updater already sees quicksand, timer 5 gives about `-2.65`; if the updater
+  sees ordinary floor and the later ground step crosses onto quicksand, timer
+  4 gives exactly `-0.5f` and timer 5 gives exactly `-4.0f` in the checked
+  source-shaped binary32 model.  In the ordinary action graph, reaching these
+  long-jump landing timers requires a prior A-edge setup.  Stock upper-warp
+  support is `SURFACE_WALL_MISC` and cannot itself generate that adjustment,
+  but persisted depth still requires linked action/state and alias closure;
 - node `0x1E` is delayed: object updates run before each of the 20 normal-play
   timer decrements, two change-area frames omit object updates, and the
   following normal frame loads Area 2 before its first object update;
