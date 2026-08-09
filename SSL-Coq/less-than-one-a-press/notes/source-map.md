@@ -54,6 +54,40 @@ base-insensitive and direct-callee/literal checks are path-insensitive.
 | `levels/ssl/areas/2/macro.inc.c` via `inputs/ssl_area2_macro.c` | `*_ssl_area2_macro.v` | raw initializer tuples for five Puzzle trigger records/coordinates; the abstract state now assigns exact kinds/references/positions, while their concrete spawn-memory projection remains pending |
 | SSL collision arrays via `inputs/ssl_collision.c` | `*_ssl_collision.v` | area 1/2/3 static arrays plus pyramid-top, tox-box, grindel, spindel, moving-wall, elevator, Eyerok, breakable-box, exclamation-box-outline, cannon-lid, and wooden-signpost object collision arrays; checked word counts and US/JP initializer identity; the complete 39-word top initializer is parsed into five vertices and six triangle-index triples; exact local bounds are proved for four Area-1 fixed-owner meshes; all 20 elevator vertices and selected Area-2 pole/ring vertices have exact receipts, but no linked transformed dynamic `Surface`, actual `find_floor` selection, general parsed-surface, or connected-component theorem exists |
 
+### Target-code cast evidence outside the Clight translation set
+
+`include/PR/R4300.h`, `lib/src/osInitialize.c`, and
+`lib/src/osCreateThread.c`, and `lib/asm/__osExceptionPreamble.s` are not
+presented as generated Clight units in this project.  They supply the named
+`FPCSR_FS`, `FPCSR_EV`, and
+`FPCSR_FS | FPCSR_EV` initialization evidence.  Transparent US/JP ROM-word
+receipts record the corresponding initialization prefix, while the separate
+retail cast receipt records `find_floor`'s
+`trunc.w.s; mfc1; sh; ...; lh` sequence.  The assembly routes `EXC_FPE` to a
+fault path that stops the thread rather than resuming at `mfc1`.
+
+The Rocq boundary is split deliberately:
+
+- `proofs/Area1NonlocalCastSemantics.v` defines the total CompCert cast cases,
+  the post-narrowing horizontal boundary split, the small target-prefix model,
+  the initialization-word receipts, and the remaining target refinement and
+  handler-continuation schemas;
+- `proofs/Area1InvalidCastArithmetic.v` checks word-conversion failure for
+  quiet NaN, both infinities, `+2^31`, and the first binary32 value below
+  `-2^31`, plus successful signed-16 aliases at both adjacent finite word
+  endpoints;
+- `proofs/Area1NonlocalYCastArithmetic.v` checks all three components of
+  `(-1862,67314,-902) -> (-1862,1778,-902)`; and
+- `proofs/Area1NonlocalEndpointBoundary.v` relates that finite alias to the
+  accepted timer-131 midpoint and packages a conditional State-first numeric
+  capability.
+
+These word receipts and the prefix relation are not a ROM parser or imported
+VR4300 small-step semantics.  Whole-execution compiled-prefix refinement,
+preservation of Invalid enable, imported handler non-resumption, a clean
+three-dimensional writer, live dynamic surface selection, and the
+warp/snap/copy continuation remain open.
+
 ## Whole-program, entry, and writer-closure boundary
 
 `proofs/LinkedClightPrograms.v` enumerates exactly the 38 generated units for

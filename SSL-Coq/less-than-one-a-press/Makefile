@@ -321,6 +321,27 @@ check: proofs
 	  LessThanOneAPress.Proofs.PyramidTopPU \
 	  pyramid_top_pu_modeled_source_constants_checked
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1NonlocalCastSemantics \
+	  area1_nonlocal_cast_checked_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1NonlocalCastSemantics \
+	  compcert_horizontal_terrain_cast_case_total
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1InvalidCastArithmetic \
+	  representative_failed_casts_trap_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1InvalidCastArithmetic \
+	  signed_word_boundary_casts_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1NonlocalYCastArithmetic \
+	  timer131_nonlocal_y_vector_cast_components_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1NonlocalEndpointBoundary \
+	  area1_nonlocal_endpoint_checked_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1NonlocalEndpointBoundary \
+	  nonlocal_y_state_first_numeric_capability_checked
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.ClightFacts \
 	  find_floor_s16_coordinate_cast_source_shape_us
 	bash pipeline/assumptions.sh \

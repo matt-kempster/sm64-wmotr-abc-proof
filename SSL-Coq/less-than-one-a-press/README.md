@@ -98,6 +98,24 @@ timer-131 boundary; no clean retail installer has been found.  The Rocq files
 prove arithmetic and check finite observation records;
 they do not turn the injected emulator trace into a linked Clight execution.
 
+The Area-1 nonlocal-endpoint audit now distinguishes finite signed-32 values
+that wrap through `find_floor`'s signed-16 temporary from conversions that fail
+before that store.  Rocq checks the full finite vector
+`(-1862,67314,-902) -> (-1862,1778,-902)` and proves that the narrowed query is
+the accepted timer-131 midpoint.  This yields a conditional State-first
+capability if a clean run can first create a local-Object/nonlocal-State split;
+no such writer or clean route is proved.  Quiet NaN, both infinities, `+2^31`,
+and the first binary32 value below `-2^31` fail CompCert's word conversion.
+US/JP initialization receipts, the stock fault-handler source, and a small
+target-prefix model show a terminal trap before a terrain coordinate is
+produced.  The adjacent finite signed-word endpoints are checked separately:
+`2147483520 -> -128` and `-2147483648 -> 0` after signed-16 narrowing.
+Applying the failed-cast exclusion to every retail execution still depends on
+`RetailInvalidCastExecutionRefinementObligation` and
+`RetailInvalidEnablePreservationObligation`, with handler continuation recorded
+by `RetailInvalidTrapContinuationExclusionSchema`; finite signed-16 aliases
+remain a real primitive.
+
 The current clean-JP installer audit found no retail source for that gap.
 `CleanJPGraphicsGap.v` defines a clean JP Area-1 audit boundary, proves that
 its synchronized Object/Graphics projection starts with zero separation, that
@@ -689,6 +707,8 @@ The three-view graphical fallback result is
 [`docs/notes/ink-fallback.md`](docs/notes/ink-fallback.md).
 The corrected Goomba/PU/Spindel investigation is
 [`docs/notes/goomba-raising.md`](docs/notes/goomba-raising.md).
+The finite-alias, failed-cast, and State-first boundary is
+[`docs/notes/area1-nonlocal-endpoints.md`](docs/notes/area1-nonlocal-endpoints.md).
 
 ## Exact target and input definition
 

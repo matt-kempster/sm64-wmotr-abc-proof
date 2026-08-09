@@ -110,6 +110,22 @@
   three concrete cast results.  It does not prove generated-expression
   extraction, linked live-memory execution, surface ownership/list order, or
   actual `find_floor` selection.
+- `Area1NonlocalCastSemantics.v`, `Area1InvalidCastArithmetic.v`,
+  `Area1NonlocalYCastArithmetic.v`, and `Area1NonlocalEndpointBoundary.v`
+  classify the nonlocal endpoint boundary without equating all out-of-bounds
+  values.  They check five representative failed CompCert word conversions,
+  the US/JP `FPCSR_FS | FPCSR_EV` initialization-word receipts, the stock
+  fault-handler path, and the small target-prefix result that a trap precedes
+  any terrain coordinate.  They also check the adjacent successful extreme
+  word aliases and the total horizontal X/Z post-narrowing boundary split.
+  They separately check the full finite alias
+  `(-1862,67314,-902) -> (-1862,1778,-902)`, identify its narrowed query with
+  the accepted timer-131 midpoint, and package a conditional State-first
+  numeric capability.  The failed-cast retail conclusion still depends on
+  `RetailInvalidCastExecutionRefinementObligation`,
+  `RetailInvalidEnablePreservationObligation`, and the handler fact named by
+  `RetailInvalidTrapContinuationExclusionSchema`; the finite alias has no
+  proved clean writer, live-list selection, or reachable route.
 - `Timer131Surface.v` replaces the zero-yaw home approximation with the exact
   timer-131 pose and transformed signed-16 mesh, using CompCert binary32
   operations.  It proves that the old Graphics sample
@@ -469,6 +485,11 @@
 - Complete position-writer coverage for the parallel-universe subcase,
   Float32 and collision-phase completeness for the pole subcase, an authentic
   Eyerok height/refinement theorem, or demo/Mario block provenance.
+- The compiled US/JP instruction-step refinement, whole-execution FPCSR
+  preservation, and imported handler non-resumption needed to turn the checked
+  failed-cast prefix into a universal retail exclusion; or a clean
+  pre-collision writer and live-surface selection for the finite State-first
+  alias.
 - Reachability classification and displacement bounds for every null, live,
   inactive, or reused JP platform-slot case.
 - A clean retail installer for the JP stale-platform payload.  Ink's non-null

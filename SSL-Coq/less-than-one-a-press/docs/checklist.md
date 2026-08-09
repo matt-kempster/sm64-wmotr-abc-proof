@@ -92,6 +92,28 @@
   arithmetic verifies the same concrete casts.  Keep generated-expression
   extraction, linked live-surface memory, list order, and actual `find_floor`
   selection open.
+- [x] Separate successful finite terrain casts from failed word conversions.
+  Check CompCert conversion failure for quiet NaN, both infinities, `+2^31`,
+  and the first binary32 value below `-2^31`; check the US/JP
+  `FPCSR_FS | FPCSR_EV` initialization-word receipts; check the stock
+  fault-handler's stop rather than resume path; and prove in the small
+  target-prefix model that a trap precedes any terrain coordinate.  Also check
+  the adjacent successful word endpoints narrowing to `-128` and `0`, and the
+  total post-narrowing horizontal X/Z eligible-versus-boundary-rejected split.
+  Retail execution remains conditional on
+  `RetailInvalidCastExecutionRefinementObligation` and
+  `RetailInvalidEnablePreservationObligation`, plus the handler fact named by
+  `RetailInvalidTrapContinuationExclusionSchema`.
+- [x] Check the full finite signed-16 alias vector
+  `(-1862,67314,-902) -> (-1862,1778,-902)` and prove that its narrowed query
+  equals the accepted timer-131 midpoint.  Package the resulting State-first
+  numeric capability without claiming a clean writer, live surface selection,
+  or target reachability.
+- [ ] Refine the target cast-prefix model to the compiled US/JP execution,
+  prove Invalid-enable preservation and handler non-resumption, refine the
+  horizontal-boundary split to the generated branch, classify accepted cells
+  with and without an actual floor, and either derive the three-dimensional
+  local-Object/nonlocal-State split from a clean run or prove it unreachable.
 - [x] Import the Area-1 macro stream, check the fragment-producing generated
   source paths and exact parent records, and exhibit a CompCert-binary32
   fragment payload that changes X/Y/Z while raising Y by about 1110.67 units.

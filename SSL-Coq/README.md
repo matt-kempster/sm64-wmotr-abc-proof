@@ -103,6 +103,18 @@ entry state; it does not itself establish a clean JP entry.  Its composition
 theorem preserves the current gap bound only when supplied total state
 projection and per-step refinement.
 
+The Area-1 endpoint audit now separates failed word conversions from genuine
+finite signed-16 aliases.  Rocq checks
+`(-1862,67314,-902) -> (-1862,1778,-902)`, whose narrowed query is the accepted
+timer-131 midpoint, and packages only a conditional State-first capability; no
+clean local-Object/nonlocal-State writer is known.  Target initialization and
+fault-handler evidence plus a small instruction-prefix model put quiet NaN,
+infinities, and signed-32 overflow on a terminal trap path before any terrain
+coordinate.  The adjacent finite signed-word endpoints still narrow to `-128`
+and `0`.  The retail conclusion remains conditional in Rocq on the named
+compiled-prefix, FPCSR-preservation, and handler-continuation bridges.  Finite
+Parallel-Universe aliases are not eliminated.
+
 The conditional quicksand warning is stronger than the earlier prepared
 `-2.650000095f` example.  The updater samples the pre-step floor, while the
 long-jump landing writer samples the floor after `perform_ground_step`.  A
@@ -595,6 +607,8 @@ and [JP slot-lifetime](less-than-one-a-press/docs/notes/jp-slot-lifetime.md) not
 record the newest checked kernels; the
 [retail cast receipt](less-than-one-a-press/docs/notes/retail-find-floor-cast.md)
 records the authenticated instructions and exact three-input arithmetic, and
+the [Area-1 nonlocal-endpoint audit](less-than-one-a-press/docs/notes/area1-nonlocal-endpoints.md)
+records the failed-cast boundary and conditional State-first finite alias, while
 the [ordinary-motion audit](less-than-one-a-press/docs/notes/ordinary-motion.md)
 records the newest ordinary/static subkernel and its remaining obligations.
 None of the six archived projects closes the whole-program Layer A refinement

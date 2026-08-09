@@ -81,8 +81,16 @@ establishes that both target binaries execute that instruction shape at
 `find_floor`.
 
 Thus the concrete X alias from `63488` to `-2048` is real in both target ROMs.
-This says nothing about arbitrary out-of-signed-32 inputs, where conversion
-behavior would need a separate analysis.
+
+The arbitrary out-of-signed-32 question is now separated in
+[`area1-nonlocal-endpoints.md`](area1-nonlocal-endpoints.md).  The target game
+threads enable the VR4300 Invalid Operation exception; infinity and the checked
+signed-word-overflow samples therefore trap, while a NaN conversion is also in
+the processor's trapping unimplemented-operation class.  The stock exception
+path stops rather than resumes the thread, so none reaches `mfc1` or the
+signed-halfword store.  That newer result does not affect finite
+signed-32 values such as `63488`; those still execute the verified aliasing
+sequence above.
 
 ## Reproduction
 

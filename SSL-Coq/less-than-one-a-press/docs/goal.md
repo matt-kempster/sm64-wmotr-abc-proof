@@ -80,6 +80,23 @@ Rocq checks the value-level
 surface arithmetic, timer-window arithmetic, finite free-list arithmetic, and
 copied runtime records; it does not prove a linked clean Clight execution.
 
+The nonlocal-endpoint follow-up rules out one misleading shortcut while
+preserving the real one.  Quiet NaN, both infinities, `+2^31`, and the first
+binary32 value below `-2^31` fail CompCert's signed-word conversion.  US/JP
+startup-word receipts, the stock fault-handler path, and the small target-prefix
+model put those failures on a trap path before the signed-halfword terrain
+coordinate.  Adjacent finite extreme inputs instead narrow to `-128` and `0`.
+The retail use of the trap result remains conditional on
+`RetailInvalidCastExecutionRefinementObligation`,
+`RetailInvalidEnablePreservationObligation`, and the handler fact named by
+`RetailInvalidTrapContinuationExclusionSchema`.  Finite signed-32 values may still
+wrap through signed 16 bits: Rocq checks the complete
+`(-1862,67314,-902) -> (-1862,1778,-902)` vector and its equality with the
+accepted timer-131 midpoint.  That creates only a conditional State-first
+numeric capability.  A clean pre-collision local-Object/nonlocal-State writer, live
+surface selection, and the linked warp/snap/copy continuation are still
+unproved.
+
 The destination-side certificate now fixes the official linked JP object size
 at 608 bytes and observed slot 61 at pool offset 37088.  The twelve listed
 payload-witness ranges are within that slot; extracting the complete generated
@@ -406,6 +423,8 @@ results are documented in [`notes/ink-fallback.md`](notes/ink-fallback.md),
 [`notes/pyramid-top-surface-refinement.md`](notes/pyramid-top-surface-refinement.md), and
 [`notes/jp-slot-lifetime.md`](notes/jp-slot-lifetime.md).  The retail instruction receipt
 is [`notes/retail-find-floor-cast.md`](notes/retail-find-floor-cast.md).
+The finite-alias and failed-conversion boundary is
+[`notes/area1-nonlocal-endpoints.md`](notes/area1-nonlocal-endpoints.md).
 The exact timer-131 face and conditional lifecycle/first-apply evidence are in
 [`notes/timer131-surface.md`](notes/timer131-surface.md) and
 [`notes/jp-lifecycle-trace.md`](notes/jp-lifecycle-trace.md).

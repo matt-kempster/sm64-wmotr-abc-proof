@@ -1176,8 +1176,51 @@ cells 6 and 7.  Authenticated US and JP retail disassembly now supplies the
 same byte-identical coordinate conversion at `find_floor`: `trunc.w.s`,
 `mfc1`, store-halfword, then signed load-halfword.  The Rocq theorem
 `concrete_retail_cast_fragment_arithmetic` checks that instruction-fragment
-result for all three concrete inputs.  This closes the target-code question
-for these samples, not for arbitrary out-of-signed-32 conversions.
+result for all three concrete inputs.
+
+The newer nonlocal-endpoint audit separates two cases that should not be
+called the same kind of out-of-bounds behavior.  A **finite value that converts
+to a signed 32-bit word** may still wrap when `find_floor` stores it through a
+signed 16-bit temporary; that Parallel-Universe primitive is real.  Rocq now
+checks the complete example
+
+```text
+MarioState        = (-1862, 67314, -902)
+find_floor query  = (-1862,  1778, -902)
+```
+
+including the exact binary32 conversion of X, Y, and Z.  The narrowed query is
+the already accepted timer-131 midpoint.  If Mario's collision Object were
+still local at the upper warp while State had this nonlocal value, a successful
+first State query could use the top-owned floor, then the cached warp action
+could snap and copy State back into the local region.  This is a new
+**conditional State-first numeric capability**; it does not need Ink's Graphics retry
+or its `>=960` Graphics/Object Y gap.
+
+By contrast, quiet NaN, either infinity, `+2^31`, and the first binary32 value
+below `-2^31` fail the word conversion.  The US and JP startup receipts set the
+Invalid-enable bit; the stock floating-point exception path stops the faulting
+thread rather than resuming it; and the small target-prefix model produces a
+trap before `mfc1` or the signed-halfword store.  Thus the common
+"failed cast becomes halfword zero" story is not a usable continuation under
+that initialized prefix.  The adjacent finite inputs `2147483520` and
+`-2147483648` do succeed and narrow to `-128` and `0`, respectively.  This
+retail conclusion is still conditional in Rocq on
+`RetailInvalidCastExecutionRefinementObligation`,
+`RetailInvalidEnablePreservationObligation`, and the handler fact named by
+`RetailInvalidTrapContinuationExclusionSchema`: the project has not yet
+imported a whole VR4300 small-step/exception semantics or proved that every
+reachable execution preserves the FPCSR bit.
+
+The finite alias is not a clean route either.  No clean zero-A writer has been
+shown to create the required pre-collision three-dimensional State/Object
+split; the real walls, dynamic-list ownership, `find_floor` selection, cached
+warp/floor-snap/copy sequence, and later JP stale-slot chronology still need a
+single linked execution proof.  A State-only excursion starting from
+synchronized Object and Graphics cannot create Ink's separate
+Object/Graphics gap.  The exact checked boundary is documented in
+[`docs/notes/area1-nonlocal-endpoints.md`](docs/notes/area1-nonlocal-endpoints.md).
+
 Warp hitboxes continue to use full binary32 object positions.  The parsed
 source mesh has minimum home-relative world Y `1281`; the arithmetic platform
 predicate then requires full Mario Y strictly above `1277`, while the upper
@@ -2253,6 +2296,12 @@ The most useful entry points are:
 - `proofs/PyramidTopPU.v`: the modeled same-sample contradiction, conditional
   Y-preserving stock-yaw arithmetic exclusion lemmas, the phase-separated
   coordinate countermodel, and delayed-lifetime obligation;
+- `proofs/Area1NonlocalCastSemantics.v`,
+  `proofs/Area1InvalidCastArithmetic.v`,
+  `proofs/Area1NonlocalYCastArithmetic.v`, and
+  `proofs/Area1NonlocalEndpointBoundary.v`: failed-conversion classification,
+  checked trapping prefix, exact three-axis finite alias, and the
+  conditional State-first timer-131 capability with its named retail bridges;
 - `proofs/InkFallback.v`: exact nearby Area-1 mesh arithmetic, local and PU
   three-view conditional pipeline coordinate witnesses, State-only
   preservation, the signed-range generic `385`-unit necessary gap, the exact
@@ -2315,6 +2364,8 @@ The most useful entry points are:
   remaining live-memory refinement;
 - `docs/notes/retail-find-floor-cast.md`: authenticated US/JP function offsets,
   instruction receipt, hashes, and reproduction commands; and
+- `docs/notes/area1-nonlocal-endpoints.md`: failed-cast versus finite-alias
+  verdict, exact State-first sample, and clean-reachability boundary;
 - `docs/notes/jp-slot-lifetime.md`: exact JP slot-lifetime facts and unresolved
   allocation trace;
 - `docs/notes/timer131-surface.md`: exact raised/rotated surface calculation and

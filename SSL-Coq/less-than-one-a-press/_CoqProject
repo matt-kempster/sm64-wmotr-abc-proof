@@ -87,6 +87,9 @@ proofs/GameTypes.v
 proofs/SourceExhaustiveness.v
 proofs/InputSemantics.v
 proofs/RouteEvidence.v
+proofs/Area1NonlocalCastSemantics.v
+proofs/Area1InvalidCastArithmetic.v
+proofs/Area1NonlocalYCastArithmetic.v
 proofs/TranscriptRouteModel.v
 proofs/ObjectProvenance.v
 proofs/CollisionRegions.v
@@ -148,6 +151,7 @@ proofs/GoombaRaising.v
 proofs/InkFallback.v
 proofs/InkPayloadInstaller.v
 proofs/Timer131Surface.v
+proofs/Area1NonlocalEndpointBoundary.v
 proofs/InstallerCoverage.v
 proofs/CleanJPGraphicsGap.v
 proofs/JPQuicksandDepth.v

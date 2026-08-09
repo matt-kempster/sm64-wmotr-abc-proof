@@ -817,3 +817,26 @@ status updates changed:
 - `SSL-Coq/less-than-one-a-press/proofs/Area1LongJumpQuicksandCrossing.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/AutomaticDialogReanchoring.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/JPLongJumpLandingDepth.v` (new)
+
+## Area-1 nonlocal endpoint tranche
+
+The failed-conversion boundary, finite signed-word/signed-halfword aliases,
+conditional timer-131 State-first numeric capability, and public status updates
+changed:
+
+- `SSL-Coq/README.md`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/claim.md`
+- `SSL-Coq/less-than-one-a-press/docs/goal.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/area1-nonlocal-endpoints.md` (new)
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/retail-find-floor-cast.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+- `SSL-Coq/less-than-one-a-press/proofs/Area1InvalidCastArithmetic.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/Area1NonlocalCastSemantics.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/Area1NonlocalEndpointBoundary.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/Area1NonlocalYCastArithmetic.v` (new)
