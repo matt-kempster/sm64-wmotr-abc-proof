@@ -1,0 +1,3 @@
+version,action,action_timer,input_bits,button_down_bits,button_pressed_bits,raw_x_bits,raw_y_bits,raw_z_bits,gfx_x_bits,gfx_y_bits,gfx_z_bits,quicksand_depth_bits,wall_ptr,ceil_ptr,ceil_height_bits,floor_ptr,floor_type,floor_flags,floor_owner_ptr,gMarioPlatform,lower_count,upper_count,floor_count,ceil_count,commit_count,a_pressed_polls,a_down_polls
+US,00000479,5,0020,0000,0000,45b40000,c199271e,459aaf5f,45b40000,c183f3eb,459aaf5f,c029999a,00000000,00000000,469c4000,801971f0,37,00,00000000,00000000,8,8,8,8,8,0,0
+JP,00000479,5,0020,0000,0000,45b40000,c199271e,459aaf5f,45b40000,c183f3eb,459aaf5f,c029999a,00000000,00000000,469c4000,80194370,37,00,00000000,00000000,8,8,8,8,8,0,0

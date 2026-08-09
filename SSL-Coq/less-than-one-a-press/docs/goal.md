@@ -130,8 +130,12 @@ receiver-neutral coordinate-write function counts 33/215/180/15 for
 receivers alias Mario or that every dynamic store is covered.
 `JPQuicksandDepth.v` couples `act_crouch_slide`'s `INPUT_A_PRESSED` test to the
 exact long-jump constructor and proves nonnegative depth for a source-shaped
-relation that excludes the late long-jump writer.  A proof that clean no-edge
-execution refines that relation remains open.
+relation that excludes the late long-jump writer.
+`LongJumpProvenanceBoundary.v` now checks all nine bilateral landing
+descriptors and the full ordinary source chain, and proves in a finite
+transition kernel that first reaching either long-jump action needs an A edge
+or a forged-state install.  Linked clean-step classification and exclusion of
+the seven forgery causes remain open.
 
 `OrdinaryArea1EntryMemory.v` checks the stock Area-1 node `0x0A`
 spin-airborne entry, symbol/layout and distinct-slot facts, and consequences of
@@ -181,11 +185,49 @@ Bilateral generated checks classify the reading action as a cutscene action
 whose handler has no recognized direct depth write or reanchor.  The finite
 model permits an arbitrarily long open-dialog stall when supplied the same
 depth; live constructor/helper preservation of that scalar remains open.
-Stock Area 1 has a plausible 44-unit ordinary-to-shallow-moving-quicksand
-boundary, but no executed ground-step or clean zero-A long-jump-to-tangible-
-star/dialog trace.  Writer/action/descriptor/alias/external closure and
-installation remain open, so the retail gap installer has not been proved
-impossible.
+The stock Area-1 ground step is no longer merely plausible.  Authenticated US
+and JP retail fixtures execute four quarters with null walls/ceilings and
+static shallow-moving-quicksand floors, ending at corrected bits
+Z `0x4599198b`, Y `0xc0fc4011`.  This is an injected conditional trace, not a
+clean zero-A witness or linked-Clight refinement.  In the checked source shape
+and finite fresh-star lifecycle model, an intervening Mario update occurs
+before hitbox eligibility, but the modeled post-timer-4 case reaches the
+timer-5 writer and remains negative at exact
+`-2.65f`.  An authenticated immediate successor frame without another
+injection confirms this depth and ends at raw Y/Z
+`0xc199271e`/`0x459aaf5f`, with null wall/ceiling/platform results.  Its finite
+prepared orbit settles at `spawnY+245`; composing the supplied star and Mario
+words in the finite 160/50-hitbox arithmetic model puts raw Mario top more
+than 96 units below first-hitbox Y.  Live overlap execution, linked orbit
+refinement, a different compatible height gain, and an older pre-positioned
+star remain open.  The finite untransported-dialog model retains raw X/Z far
+outside the fixed upper warp.  Generated source-shape and arithmetic checks
+identify the stationary sanitizer and idle/walking reanchor helpers; linked
+branch/helper execution remains open.  Active-dialog platform transport,
+warp relocation/substitution, collision aliasing, or another writer is still
+needed.  The retail installer has therefore been narrowed, not eliminated.
+
+More importantly, the payload is unreachable inside the finite source-shaped
+no-edge/no-forgery kernel.  Abstract pyramid entry fixes action `0x1932`; its
+separate, not-yet-executed concrete entry-memory postcondition assumes/fixes
+timer zero and depth `+0.0f`.  The ordinary Area-1 entry memory postcondition
+separately fixes action `0x1924`, timer zero and depth `+0.0f`.  Only the
+six-frame long-jump descriptor admits the dangerous late
+landing body.  The bilateral full-generated-unit census finds the only
+ordinary long-jump constructor under `INPUT_A_PRESSED` and the only landing
+producer inside the long-jump action.  No-edge/no-forgery kernel traces cannot
+reach the injected state.  Whole-linked retail step classification and
+exclusion of alias/OOB,
+the Controller-to-Mario input update, descriptor/callback corruption, and
+external writes remains open; no concrete
+forged writer is known.  Exploiting negative depth is therefore secondary to
+finding or excluding such a forged installer.
+The new bounded forgery proof nevertheless closes useful source cases: no
+landing descriptor or interaction-table entry has a direct generated writer,
+descriptor address-taking is wrapper-local, timer forgery alone cannot bypass
+a stock four-frame landing, and a changed action load requires an overlapping
+same-block CompCert store.  The remaining uncertainty is specifically live
+flat-memory/OOB, pointer, writable-global, input, and external-effect closure.
 
 The newest turning-animation tranche eliminates one proposed bypass at a
 narrower boundary.  `TurningAnimation.v` proves that the repeated value 189 is

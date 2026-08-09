@@ -1,0 +1,47 @@
+receipt=area1-long-jump-crossing-v1
+decomp_revision=36fbf8d693a9fc2bdec0c77402f8e96d07d2f461
+project_source_revision=9921382a68bb0c865e5e45eb594d9c64db59b1af
+
+# `git diff` is empty between the two revisions for every source unit used by
+# this receipt: mario.c, mario_step.c, mario_actions_moving.c,
+# object_list_processor.c, object_collision.c, surface_collision.c,
+# math_util.c, surface_load.c, and the SSL Area-1 collision initializer.
+# run.sh rechecks that source-equivalence boundary.
+selected_source_diff=empty
+
+# Clean matching-build authentication recorded when the maps were produced.
+# run.sh authenticates the retail input ROMs and selected source equivalence;
+# it does not rebuild these ROMs or machine-check the map-to-PC derivation.
+clean_jp_rom_sha1=8a20a5c83d6ceb0f0506cfc9fa20d8f438cafe51
+clean_us_rom_sha1=9bef1128717f958171a4afac3ed78ee2bb4e86ce
+
+# Original retail input-ROM authentication performed by run.sh.
+jp_rom_md5=85d61f5525af708c9f1e84dce6dc10e9
+jp_rom_sha256=9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317
+us_rom_md5=20b854b239203baf6c961b850a4a51a2
+us_rom_sha256=17ce077343c6133f8c9f2d6d6d9a4ab62c8cd2aa57c40aea1f490b4c8bb21d91
+
+# Clean-map instruction receipts.  The quarter helper is file-local, so the
+# linker map labels it as an offset from stationary_ground_step.
+jp_perform_ground_step=0x80255b60
+jp_perform_ground_quarter_step=0x802558dc
+jp_lower_wall_return=0x80255900
+jp_upper_wall_return=0x80255914
+jp_floor_return=0x80255930
+jp_ceil_return=0x80255944
+jp_normal_commit=0x80255ab4
+jp_gMarioPlatform=0x8032fed4
+
+us_perform_ground_step=0x80255d88
+us_perform_ground_quarter_step=0x80255b04
+us_lower_wall_return=0x80255b28
+us_upper_wall_return=0x80255b3c
+us_floor_return=0x80255b58
+us_ceil_return=0x80255b6c
+us_normal_commit=0x80255cdc
+us_gMarioPlatform=0x80330e14
+
+# The checked probe uses authentic retail ROMs, the emulator's pure
+# interpreter, a prepared in-memory landing prestate, and no controller
+# buttons/analog input during the measured frame.  It is an execution witness,
+# not yet a CompCert simulation or a clean-entry reachability proof.

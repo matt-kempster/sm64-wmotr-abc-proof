@@ -487,12 +487,32 @@
   State-only preserves the Object/Graphics gap and that its range-certified
   writer relation cannot reach `960` from synchronized entry.  Generated-JP
   receipts inventory direct `quicksandDepth` writers in the selected
-  Mario/action units and couple the ordinary long-jump constructor to
-  `INPUT_A_PRESSED`.  The corresponding source-shaped relation excludes that
-  late writer and keeps depth nonnegative.  This is not whole-program closure:
-  proving that clean no-edge execution refines that relation, linked writer/action
-  provenance, pointer non-aliasing, and stock dialog/reanchoring closure remain
-  open.  An already-negative depth would be a genuine escape.  The older
+  Mario/action units.  The newer bilateral proof checks all nine landing
+  descriptors and the complete ordinary long-jump source chain, then proves
+  in its transition kernel that first reaching either long-jump action needs
+  an A-edge event or one of seven forged-state causes.  This is not
+  whole-program closure: linked step classification, forgery exclusion,
+  pointer non-aliasing, and stock dialog/reanchoring closure remain open.  An
+  additional clean-boundary theorem now fixes abstract pyramid entry to action
+  `0x1932`; the separate, not-yet-executed concrete pyramid-entry memory
+  postcondition assumes/fixes timer zero and depth `+0.0f`.  The ordinary
+  Area-1 entry memory postcondition separately fixes action `0x1924`, timer
+  zero and depth `+0.0f`.  Only the six-frame long-jump
+  descriptor admits a negative landing write from nonnegative depth.  The
+  bilateral 38-unit census finds no direct action writer embedding either
+  target and finds only the A-guarded crouch-slide constructor and the
+  long-jump-to-landing producer.  Hence the prepared fixture is unreachable in
+  the finite source-shaped no-edge/no-forgery kernel and cannot legally be the
+  clean initial state.  A full retail theorem still needs linked-step
+  classification and elimination of the seven forged-state cause
+  classes and refine `Controller.buttonPressed` into Mario's input bit; no
+  concrete forged writer has been found.  The bounded forgery audit proves
+  the nine writable landing descriptors and writable interaction table have
+  no direct generated assignment, localizes normal descriptor address-taking,
+  shows a timer forge alone cannot bypass a four-frame descriptor, and proves
+  an action-cell change needs a same-block overlapping CompCert store.
+  Compiled flat-memory/OOB and external-frame closure remain open.  An
+  already-negative depth would be a genuine escape.  The older
   `-2.650000095f` witness reaches the required range in 363 or 381 sinks,
   depending on its base.  More strongly, the updater can sample ordinary
   floor before `perform_ground_step` while the landing formula samples
@@ -503,12 +523,36 @@
   `ACT_READING_AUTOMATIC_DIALOG` is bilaterally checked as a cutscene action
   whose handler has no recognized direct depth write or reanchor.  Its finite
   open-dialog model can stall for any requested number of frames when supplied
-  the same depth; live helper preservation remains open.  A stock 44-unit
-  ordinary-to-shallow-moving-quicksand
-  boundary makes the split geometrically plausible, but the four real ground
-  quarters, clean zero-A long-jump provenance, and a following tangible
-  no-exit-star/dialog handoff remain open.  No target-star counterexample is
-  proved.
+  the same depth; live helper preservation remains open.  The four real
+  ground quarters at the stock boundary have now been executed in
+  authenticated US/JP retail runs from injected late-long-jump fixtures.  They
+  select static shallow-moving quicksand with null wall/ceiling/owner and end
+  at corrected bits Z `0x4599198b`, Y `0xc0fc4011`; clean fixture reachability
+  and linked-Clight refinement remain open.  Continuing the prepared
+  pre-timer-3 case through one uninjected successor frame also agrees across
+  US/JP: four static owner-null shallow-quicksand commits leave depth at exact
+  `-2.65f`, raw Y/Z at `0xc199271e`/`0x459aaf5f`, Graphics Y at `0xc183f3eb`,
+  and all wall/ceiling/platform pointers null.
+  In the checked source shape and finite lifecycle model, a freshly spawned
+  100-coin star has one unstopped Mario update before its hitbox is first
+  eligible.  The modeled update does not eliminate the post-timer-4 case: the
+  next landing body ends at exact `-2.65f`.  The finite prepared star orbit
+  settles at `spawnY+245`, requiring at least an 85-unit Mario height gain;
+  under the modeled 160/50 hitbox fields and zero down offsets, the prepared
+  successor-frame raw Mario top remains more than 96 units below that supplied
+  first-hitbox Y, and Graphics top is also below it.  This proves finite
+  arithmetic separation, not live overlap-routine execution.
+  Linked orbit refinement, compatible height transport, and an older
+  pre-positioned tangible star are not excluded.  The finite untransported-
+  dialog model also preserves the supplied raw X/Z far from the fixed upper
+  warp; active-dialog
+  platform transport, warp relocation,
+  collision aliasing, or another raw-coordinate writer is still needed to
+  enter timer 131.  No target-star counterexample is proved.
+  A separate CompCert memory-frame theorem proves that finite stores to the
+  nonoverlapping action/control prefix or Area-1 object pool preserve the exact
+  depth word, and checks seven dialog-spine bodies are direct nonwriters.  It
+  does not yet refine the whole star-dance/dialog small-step execution.
 - Stock reachability or impossibility of the pyramid-top upper-warp path.
   The Y-preserving stock-yaw arithmetic case is excluded, the exact concrete
   retail cast is verified, and the bounded pre-apply owner theorem excludes

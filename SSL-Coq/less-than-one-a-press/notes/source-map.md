@@ -129,6 +129,74 @@ not semantic non-alias or corruption closure.
 vertices/groups/triangles to a transparent rational XZ/plane calculation.  It
 proves the 44-unit sample separation and sub-100-unit drop, while leaving real
 surface-list selection and all four binary32 ground quarters explicit.
+`proofs/Area1LongJumpQuicksandRetailTrace.v` records the separately
+authenticated US/JP four-quarter observation: exact endpoint bits, four query
+and commit counts, null walls/ceilings, and static type-37 owner-null floors.
+It is a transparent finite certificate of external observations, not an
+emulator oracle or a linked-Clight execution theorem.
+`proofs/Area1LongJumpQuicksandNextFrameTrace.v` records the uninjected
+immediate successor of the prepared pre-timer-3 fixture.  It checks four more
+static owner-null type-37 commits, null wall/ceiling/platform results, exact
+raw/Graphics/depth words and zero-A fields for US and JP.  Its raw-word
+arithmetic proves that, for the separately supplied prepared-star words and
+modeled 160/50 hitbox fields, Mario's raw top remains more than 96 units below
+first-hitbox Y and even Graphics top remains below it.  It does not connect
+the supplied star words or hitbox fields to a live linked object, overlap
+execution, clean entry, or CompCert execution.
+
+`proofs/LongJumpProvenanceBoundary.v` checks all nine US/JP landing
+descriptors, the A-guarded constructor/callback, both dispatches, and the
+airborne landing edge.  Its source transition kernel proves no-edge/no-forgery
+exclusion from stock entry actions.  Whole-program linked step classification
+and its seven explicit forgery exclusions remain open.
+
+`proofs/ZeroAQuicksandEntryBoundary.v` proves separate consequences for the
+kernel and entry boundaries; it does not execute a link between them.  The
+abstract pyramid contract fixes `0x1932`, while separate concrete memory
+postconditions assume/fix pyramid timer/depth zero and ordinary Area-1
+`0x1924`/timer-zero/depth-zero.  It proves only
+the authentic six-frame long-jump descriptor can produce a negative landing
+write from nonnegative depth, then performs a bilateral census over all 38
+generated units.  The sole ordinary long-jump constructor is A-edge guarded,
+the sole landing producer is the long-jump body, and direct action writers
+embed neither target.  Linked retail step classification and exclusion of
+alias/OOB/external/descriptor/callback forgery remain explicit.
+
+`proofs/NegativeDepthForgeryBoundary.v` audits those source-visible forgery
+surfaces.  All nine writable descriptors and the writable interaction table
+have no direct generated assignment; descriptor address sites are
+wrapper-local; timer-only forgery cannot make a stock non-long landing reach a
+negative late body; and the two indirect MarioState call sites are classified.
+Its CompCert memory theorem requires any changed action load to arise from a
+same-block byte-overlapping store.  Compiled flat-layout OOB behavior, live
+pointer/global integrity, indexed render state, and external frames remain
+open.
+
+`proofs/NoExitStarDialogBridge.v` checks the no-exit-star hitbox/behavior,
+object-list order, star-dance/dialog call footprints, and milestone table.  Its
+finite model proves the fresh-star no-hitbox gap frame, the exact binary32
+split between a surviving post-timer-4 `-2.65f` continuation and a positive
+post-timer-5 continuation, the finite five-below-home vertical orbit and its
+prepared binary32 endpoint, the resulting overlap interval, and boundary/warp
+separation.  Live linked lifecycle execution, older-star
+provenance, placement geometry, B-only menu
+refinement, and alias/external frames remain open.
+
+`proofs/NegativeDepthTimer131Bridge.v` combines the finite dialog gap with a
+separate horizontal model: untransported stalls retain the audited raw X/Z,
+far outside the fixed upper warp.  It checks the ordinary idle/walking source
+shape and exact binary32 `1.6f` sanitizer outcome.  Active-dialog platform
+transport, warp relocation/substitution, collision aliasing, and other raw
+writers are named linked obligations rather than assumed away.
+
+`proofs/DialogDepthMemoryFrame.v` proves exact US/JP field offsets and actual
+CompCert store/load framing: finite stores to the Mario action/control prefix
+or a separate block preserve the binary32 depth word.  Conditional
+US/JP Area-1 symbol-binding theorems instantiate the separate-block result for
+object-pool writes when those binding records are inhabited, and seven
+generated star-dance/dialog bodies are direct nonwriters.  It is not
+a branch-execution theorem; live pointers, preprocessing, aliases/OOB stores,
+and unresolved external calls remain open.
 
 ## Pyramid-top PU and graphical-fallback boundary
 

@@ -115,13 +115,14 @@ source-shaped relation that excludes the late long-jump landing writer.  The
 newer audit shows why that exclusion is essential: the updater can sample
 ordinary floor before `perform_ground_step`, then the landing formula can
 sample quicksand after the step.  The exact source-shaped binary32 results are
-`-0.5f` at timer 4 and `-4.0f` at timer 5.  Source review identifies the
-six-frame long-jump landing descriptor as the stock late-timer candidate, and
-the ordinary long-jump source constructor is under `INPUT_A_PRESSED`.
-`ActionDepthAliasCensus.v` checks that descriptor's initial value and writable
-storage, but not an exhaustive reachable descriptor-to-handler mapping.
-Proving that every real clean no-edge trace has unforgeable action/timer/
-descriptor provenance remains open.
+`-0.5f` at timer 4 and `-4.0f` at timer 5.
+`LongJumpProvenanceBoundary.v` checks all nine US/JP landing-descriptor frame
+counts, the complete ordinary long-jump source chain, and the writable
+six-frame long-jump payload.  Its source transition kernel proves that first
+reaching either long-jump action requires an A-edge event or one of seven
+explicit forged-state causes.  Refining every clean linked retail step to that
+kernel and excluding descriptor/callback corruption, aliasing, out-of-bounds
+stores, external mutation, and unclassified writers remain open.
 
 `OrdinaryArea1EntryMemory.v` corrects the ordinary outside-desert entry to
 node `0x0A`, `bhvSpinAirborneWarp`, and `ACT_SPAWN_SPIN_AIRBORNE`, and defines
@@ -255,15 +256,97 @@ Its finite model can remain at the open-dialog state for any requested number
 of frames when supplied the same surviving depth.  Proving that the live
 constructor and helpers preserve that depth remains open.
 
-Stock SSL Area 1 has an exact static-mesh candidate only 44 units across: a
-default-floor sample at `(5760,0,4856)` and shallow-moving-quicksand sample at
-`(5760,0,4900)`, with about an 8.1-unit drop.  This makes the writer plausible,
-but it is not an executed ground-step or clean zero-A witness.  The remaining
-bridge needs exact quarter-step collision execution, no-edge long-jump/action
-provenance or a concrete forged-state writer, and an already tangible no-exit
-star on the following collision pass.  The stock 100-coin star is the current
-candidate, but no spawn/placement trace has put it at the required boundary.
-Linked memory, pointer/non-alias and external frames, X/Z preservation, and
+`ZeroAQuicksandEntryBoundary.v` resolves the prerequisite inside a finite
+source-shaped transition kernel.  A legal `CleanPyramidEntry` starts with
+action `0x1932`; the separate concrete pyramid-entry memory postcondition
+assumes/fixes timer, state, and argument zero and depth `+0.0f`.  The ordinary
+Area-1 entry memory postcondition separately fixes action `0x1924`, timer zero,
+and depth `+0.0f`.  Only the authentic six-frame long-jump landing descriptor can run a
+timer-4/5 landing body that changes a nonnegative depth to a negative one.
+Across all 38 generated US and JP units, the only ordinary long-jump
+constructor is the `act_crouch_slide` branch guarded by `INPUT_A_PRESSED`, and
+the only long-jump-landing producer is `act_long_jump`; direct action writers
+embed neither target value.  The source transition/depth kernels therefore
+exclude the prepared negative state on no-edge, no-forgery traces.  What is
+not yet proved is that every clean linked retail step belongs to those kernels
+and executes the Controller-to-Mario input refinement, or that alias/OOB/
+external writes, callback retargeting, and mutation of the writable landing
+descriptor are unreachable.  No concrete forged writer is known.
+
+`NegativeDepthForgeryBoundary.v` then audits the remaining source-visible
+forge surfaces.  All nine landing descriptors and `sInteractionHandlers` are
+writable globals but have no direct generated assignment.  Each descriptor's
+address is formed only by its matching landing wrapper, and a timer forge
+alone cannot bypass a stock four-frame descriptor's early return: a non-long
+landing needs frame-count corruption as well.  The only indirect MarioState
+calls are the input-bit-2-guarded landing callback and the interaction table.
+Finally, a CompCert byte-frame theorem shows that changing the action cell
+requires a same-block store whose byte range overlaps it.  Compiled N64 flat
+layout, live pointer provenance, writable-global integrity, indexed render
+state, and external frames remain open.
+
+Stock SSL Area 1 has an exact static-mesh candidate beginning at
+`(5760,0,4856)`.  The four real quarters have now been executed in
+authenticated US and JP retail runs from injected pre-timer-3/pre-timer-4
+fixtures that enter timer-4/timer-5 bodies:
+all wall and ceiling pointers are null, every selected floor is static
+shallow-moving quicksand with no object owner, and the exact final bits are
+Z `0x4599198b` (`4899.19287`) and Y `0xc0fc4011` (`-7.88282061`).  This
+corrects the old exact endpoint `4900`; it does not prove the injected
+long-jump state clean-reachable or refine the trace to linked Clight memory.
+The matching symbol maps came from clean revision `36fbf8d693a9fc2bdec0c77402f8e96d07d2f461`;
+the movement, collision, and SSL mesh sources used by this trace are
+Git-identical there and at the formal project's pinned
+`9921382a68bb0c865e5e45eb594d9c64db59b1af` revision.
+
+The prepared pre-timer-3 fixture was also continued for one genuine successor
+frame with no second memory injection.  Both retail versions execute four
+more normal ground commits on static owner-null type-37 floors; all wall and
+ceiling results and `gMarioPlatform` stay null, and no A edge is observed.
+The successor ends at raw Y `0xc199271e` (`-19.1441002`), Z `0x459aaf5f`
+(`4949.92139`), Graphics Y `0xc183f3eb` (`-16.4941006`), and depth
+`0xc029999a` (`-2.6500001`).  This authenticates the proposed timer-5
+follow-up for the prepared fixture, but it still does not establish clean
+reachability or a CompCert execution refinement.
+
+`NoExitStarDialogBridge.v` narrows the following-star schedule with generated
+source-shape receipts and a finite lifecycle/arithmetic model.  In that model,
+a fresh 100-coin star clears time stop one frame before its hitbox becomes
+eligible, so Mario receives an intervening update.  The modeled update splits
+the two fixtures: post timer 4 reaches the next landing writer and ends at exact
+`-2.65f`, while post timer 5 exits at timer 6 and the same action loop reaches
+stationary processing, ending positive at `1.85f`.
+The finite prepared orbit starts from the `spawnY+250` home and settles five
+units below it, at `spawnY+245`; the resulting overlap interval is
+`[spawnY+85, spawnY+295]`, excluding same-height Mario.  Linked binary32/12k
+motion refinement and any compatible Mario height transport remain open; so
+does an older pre-positioned tangible star.  For the supplied prepared-star
+words, `Area1LongJumpQuicksandNextFrameTrace.v` proves that the successor
+frame's modeled raw Mario top is more than 96 units below the first-hitbox Y
+and that even its Graphics top is below it.  Thus the fresh timing branch
+survives, while this finite 160/50-hitbox arithmetic pairing is vertically
+separated.  The star words and hitbox fields are not yet connected to a live
+linked-Clight object lifecycle or execution of the overlap routine.
+
+`DialogDepthMemoryFrame.v` closes one narrower part of the later conditional
+handoff: generated US/JP layouts put `quicksandDepth` at offset 192, and actual
+CompCert `Mem.store`/`Mem.load` lemmas prove that finite stores to the earlier
+action/control cells—or to the distinct Area-1 object-pool block—preserve the
+exact depth word.  Seven generated star-dance/dialog spine bodies are direct
+nonwriters.  Small-step branch refinement, pointer/alias validity, preprocessing
+calls, and unresolved external frames still prevent a linked end-to-end
+preservation theorem.
+
+`NegativeDepthTimer131Bridge.v` proves in its finite untransported-dialog model
+that amplification alone retains the supplied raw X/Z.  Its squared-distance theorem uses the idealized
+`(5760,4900)` boundary sample and obtains `96058640` against a hitbox threshold
+of `34969`; the stronger X-only exclusion also applies to the successor
+frame's X=`5760` when no intervening X writer is introduced.  Generated
+source-shape checks and an exact arithmetic mirror identify the stationary
+post-dialog quicksand update and positive `1.6f` outcome; they do not prove the
+linked branch executes.  The remaining handoff is active-dialog platform or
+other raw-object transport, warp relocation/substitution, collision aliasing,
+or an unclassified writer.  Linked branch/pointer/external frames and
 installation into the timer-131 trace remain open.  See
 [`docs/notes/negative-quicksand-unreanchored-dialog.md`](docs/notes/negative-quicksand-unreanchored-dialog.md).
 A source review also rejected fire particles as a Mario writer: the callback

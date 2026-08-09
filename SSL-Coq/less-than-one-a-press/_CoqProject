@@ -158,6 +158,14 @@ proofs/JPLongJumpLandingDepth.v
 proofs/AutomaticDialogReanchoring.v
 proofs/ActionDepthAliasCensus.v
 proofs/Area1LongJumpQuicksandCrossing.v
+proofs/Area1LongJumpQuicksandRetailTrace.v
+proofs/Area1LongJumpQuicksandNextFrameTrace.v
+proofs/LongJumpProvenanceBoundary.v
+proofs/ZeroAQuicksandEntryBoundary.v
+proofs/NegativeDepthForgeryBoundary.v
+proofs/NoExitStarDialogBridge.v
+proofs/DialogDepthMemoryFrame.v
+proofs/NegativeDepthTimer131Bridge.v
 proofs/JPZeroAReachability.v
 proofs/RetailFatalLatch.v
 proofs/TurningAnimation.v

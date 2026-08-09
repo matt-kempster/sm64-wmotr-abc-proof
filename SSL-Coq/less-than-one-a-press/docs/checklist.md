@@ -412,9 +412,8 @@
     floor, while `common_landing_action` tests the post-`perform_ground_step`
     floor.  The source-shaped binary32 model gives `-0.5f` at timer 4 and
     `-4.0f` at timer 5 for an ordinary-to-quicksand crossing.  The integer
-    schedule proves `240 * 4 = 960`; the 240-step live binary32 recurrence,
-    generated-Clight expression/control refinement, and real ground-step
-    execution remain open.
+    schedule proves `240 * 4 = 960`; the 240-step live binary32 recurrence and
+    generated-Clight expression/control refinement remain open.
   - [x] Prove from bilateral generated AST that
     `ACT_READING_AUTOMATIC_DIALOG` is in the cutscene dispatcher, has no
     recognized direct depth write or State-to-Graphics copy, and is not
@@ -428,6 +427,82 @@
     candidate, not actual surface-list selection or execution of the four
     binary32 ground quarters.  A separate read-only wall/ceiling scan is not
     formalized by this checked item.
+  - [x] Execute all four real ground quarters in authenticated US and JP retail
+    runs from injected pre-timer-3 and pre-timer-4 fixtures that enter timer-4
+    and timer-5 bodies.  Each run performs four
+    lower-wall, upper-wall, floor, ceiling, and normal-commit operations;
+    walls/ceilings are null and every selected floor is static type 37 with no
+    owner.  Correct the old exact endpoint `Z=4900` to binary32 bits
+    `0x4599198b` (`4899.19287`) and final Y bits `0xc0fc4011`
+    (`-7.88282061`).  The transparent Rocq receipt records this conditional
+    observation; clean fixture reachability and linked-Clight trace refinement
+    remain open.
+  - [x] Continue the prepared pre-timer-3 fixture through its immediate real
+    successor frame without another injection.  In both US and JP, execute
+    four more normal ground commits on static owner-null type-37 floors with
+    null walls, ceilings, and `gMarioPlatform`, zero A-edge observations, raw
+    endpoint Y/Z `0xc199271e`/`0x459aaf5f`, Graphics Y `0xc183f3eb`, and
+    depth `0xc029999a` (`-2.6500001`).  This is a prepared retail receipt, not
+    clean reachability or a linked-Clight simulation.
+  - [x] Check all nine US/JP landing-descriptor frame counts and the complete
+    ordinary long-jump source chain.  Prove in the source transition kernel
+    that first reaching `ACT_LONG_JUMP` or `ACT_LONG_JUMP_LAND` requires an A
+    edge or one of seven explicit forged-state causes.  Whole-program linked
+    step classification and exclusion of those causes remain open.
+  - [x] Prove the separate boundary consequences that prevent the prepared
+    state: abstract `CleanPyramidEntry` fixes action `0x1932`; conditional on
+    the separately stated concrete pyramid-entry memory postcondition, timer
+    and depth are zero.  The ordinary Area-1 entry-memory postcondition fixes
+    action `0x1924`, timer zero, and depth `+0.0f`.  Executing either memory
+    postcondition from linked clean entry remains open.
+    Prove that only the authentic six-frame long-jump descriptor admits a
+    timer-4/5 body capable of changing nonnegative depth to negative.
+  - [x] Census both complete 38-unit generated programs: the sole ordinary
+    `ACT_LONG_JUMP` constructor is the `INPUT_A_PRESSED` branch of
+    `act_crouch_slide`; the sole `ACT_LONG_JUMP_LAND` producer is
+    `act_long_jump`; direct action-field writers embed neither target.  Compose
+    this with the source transition/depth kernels to exclude the prepared
+    negative state for no-edge/no-forgery traces.
+  - [ ] Refine every clean linked US/JP retail step to those source kernels and
+    exclude action/timer or input forgery through pointer aliasing, OOB stores,
+    mutable landing descriptors, indirect callback/interaction retargeting,
+    and unresolved external effects.  No concrete forged writer is known.
+  - [x] Audit the bounded forgery surfaces: all nine writable landing
+    descriptors and the writable interaction table have no direct generated
+    assignment; each descriptor address occurs only in its matching wrapper;
+    timer forgery alone cannot make a stock four-frame landing run timer 4/5;
+    the indirect landing callback remains input-bit-2 guarded; and any
+    CompCert action-cell change requires a same-block byte-overlapping store.
+    Compiled flat-memory OOB behavior, live pointer provenance, writable-global
+    integrity, indexed render state, and external frames remain open.
+  - [x] Check the US/JP no-exit-star hitbox, behavior, object-list order, and
+    dialog milestones.  Prove in the finite lifecycle model that a fresh
+    100-coin star has a no-hitbox clear frame and cannot first become eligible
+    until after an intervening Mario update.  Prove the exact arithmetic split:
+    post timer 4 re-enters timer 5 and ends at negative `-2.65f`, while post
+    timer 5 exits at timer 6 and reaches stationary processing, ending positive
+    at `1.85f`.  Prove the finite prepared star orbit settles five below home,
+    at `spawnY+245`, with overlap interval `spawnY+85` through `spawnY+295`
+    and same-height exclusion.  For the supplied prepared-star and successor
+    frame words, prove in the finite 160/50-hitbox arithmetic model that raw
+    Mario top remains more than 96 units below the first-hitbox Y and Graphics
+    top is also below it.  Live hitbox-field and overlap-routine refinement,
+    linked binary32/12k
+    lifecycle refinement, a different compatible vertical transport, and an older
+    pre-positioned tangible star remain open.
+  - [x] Prove with CompCert memory semantics that any finite chain of framed
+    stores to the Mario action/control prefix or the distinct Area-1 object
+    pool preserves the exact `quicksandDepth` word; check seven bilateral
+    star-dance/dialog spine bodies are direct nonwriters.  Linked statement
+    execution, preprocessing, pointer/alias validity, and external frames
+    remain open.
+  - [x] Prove that untransported dialog stalls retain raw X/Z at the audited
+    boundary, whose exact squared distance from the fixed upper warp is
+    `96058640 > 34969`.  Check the ordinary idle/walking source shape and exact
+    binary32 reset of both negative candidates to `1.6f` for the checked
+    stationary updater.  Active-dialog
+    platform transport, warp relocation/substitution, collision aliasing, and
+    other raw-coordinate writers remain open.
   - [x] Check a nonzero live-range arithmetic instance: starting at binary32
     `768.5f`, 381 exact sinks end at `1778.1593017578125f`; conversion yields
     collision integers `768` and `1778`, an exact `1010` gap.  Clean
@@ -485,9 +560,18 @@
       no-overflow premises from every reachable linked writer, prove
       quicksand-jump store/clamp non-interleaving, and exclude forged timer
       `4/5`, mutable-descriptor, aliased, out-of-bounds, and external stores.
-    - [ ] Execute the identified Area-1 boundary through all four real ground
-      quarter-steps, then prove or refute the next-frame tangible no-exit-star
-      collision and star-dance/milestone-dialog handoff before any depth reset.
+    - [x] Execute the identified Area-1 boundary through all four real ground
+      quarter-steps in authenticated US/JP retail fixtures and record the
+      corrected endpoint/query trace.  This is conditional instrumentation,
+      not a clean-reachable or linked-Clight execution proof.
+    - [ ] Prove or refute a fresh 100-coin star with compatible *relative*
+      Mario/star transport at the first eligible collision, a different spawn
+      placement, or an older already-tangible no-exit star.  The post-timer-4
+      fresh-star timing retains exact `-2.65f`, but the checked finite
+      successor pairing is vertically separated by more than 96 units under
+      the modeled hitbox fields; refine the live collision and carry any
+      surviving candidate through star dance and the milestone dialog in
+      linked memory.
     - [ ] Execute the ordinary-entry postcondition in linked Clight, close
       external frames and non-aliasing, prove complete live writer/action
       provenance and binary32 sign preservation, and refine each cutscene

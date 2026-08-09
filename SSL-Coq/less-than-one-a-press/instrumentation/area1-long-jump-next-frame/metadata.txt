@@ -1,0 +1,38 @@
+receipt=area1-long-jump-next-frame-v1
+base_receipt=../area1-long-jump-crossing/metadata.txt
+decomp_revision=36fbf8d693a9fc2bdec0c77402f8e96d07d2f461
+project_source_revision=9921382a68bb0c865e5e45eb594d9c64db59b1af
+selected_source_diff=empty
+
+# This receipt reuses the authenticated ROM hashes and clean-map instruction
+# addresses in the base receipt.  run.sh authenticates both retail input ROMs,
+# rechecks the selected-source equivalence boundary, and validates every row in
+# the two expected CSV files.
+
+# The probe prepares one timer-3 ACT_LONG_JUMP_LAND frame at
+# (5760, 0, 4856), observes that frame as POST, then executes the immediately
+# following action/physics frame without another memory injection.  NEXT is
+# therefore the real successor of POST for this prepared fixture.  This is not
+# a clean-entry reachability receipt or a CompCert/Clight simulation.
+
+prepared_action=0x00000479
+prepared_action_timer=3
+prepared_input=0x0020
+prepared_button_down=0x0000
+prepared_button_pressed=0x0000
+frame_f_action_timer=4
+frame_f_quicksand_depth_bits=0xbf000000
+frame_g_action_timer=5
+frame_g_raw_y_bits=0xc199271e
+frame_g_graphics_y_bits=0xc183f3eb
+frame_g_quicksand_depth_bits=0xc029999a
+frame_g_floor_type=37
+frame_g_floor_flags=0x00
+frame_g_floor_owner=0x00000000
+frame_g_platform=0x00000000
+
+# Prepared 100-coin candidate-star values supplied by the finite orbit model
+# for the local arithmetic separation check.  They are not runtime-captured
+# fields.  The lower first-hitbox value is home Y minus 5.0f.
+prepared_star_home_y_bits=0x43721dff
+prepared_star_first_hitbox_y_bits=0x436d1dff

@@ -1143,6 +1143,168 @@ check: proofs
 	  LessThanOneAPress.Proofs.Area1LongJumpQuicksandCrossing \
 	  a1ljq_vertical_drop_is_below_100
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1LongJumpQuicksandRetailTrace \
+	  a1ljqrt_receipt_has_exactly_four_quarters
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1LongJumpQuicksandRetailTrace \
+	  a1ljqrt_every_selected_floor_is_static_shallow
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1LongJumpQuicksandRetailTrace \
+	  a1ljqrt_every_wall_and_ceiling_query_is_clear
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1LongJumpQuicksandRetailTrace \
+	  a1ljqrt_exact_committed_position_words
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1LongJumpQuicksandRetailTrace \
+	  a1ljqrt_prepared_trace_does_not_end_at_exact_4900
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1LongJumpQuicksandRetailTrace \
+	  a1ljqrt_both_timer_summaries_are_well_formed
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1LongJumpQuicksandRetailTrace \
+	  a1ljqrt_timer_and_depth_summaries_are_exact
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1LongJumpQuicksandRetailTrace \
+	  a1ljqrt_us_jp_timer3_timer4_run_matrix_is_exact
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1LongJumpQuicksandNextFrameTrace \
+	  a1ljqg_receipt_has_exactly_four_quarters
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1LongJumpQuicksandNextFrameTrace \
+	  a1ljqg_every_selected_floor_is_static_shallow
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1LongJumpQuicksandNextFrameTrace \
+	  a1ljqg_every_wall_and_ceiling_query_is_clear
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1LongJumpQuicksandNextFrameTrace \
+	  a1ljqg_exact_committed_position_words
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1LongJumpQuicksandNextFrameTrace \
+	  a1ljqg_us_and_jp_run_receipts_are_exact_and_well_formed
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1LongJumpQuicksandNextFrameTrace \
+	  a1ljqg_prepared_star_first_hitbox_is_home_minus_five
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1LongJumpQuicksandNextFrameTrace \
+	  a1ljqg_prepared_raw_vertical_margin_exceeds_96
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1LongJumpQuicksandNextFrameTrace \
+	  a1ljqg_prepared_graphics_top_is_below_star_first_hitbox
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.LongJumpProvenanceBoundary \
+	  us_jp_landing_descriptor_frames_source_receipt
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.LongJumpProvenanceBoundary \
+	  us_jp_long_jump_descriptor_payload_source_receipt
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.LongJumpProvenanceBoundary \
+	  bilateral_long_jump_source_chain_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.LongJumpProvenanceBoundary \
+	  clean_us_jp_entry_trace_cannot_reach_long_jump_cycle
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ZeroAQuicksandEntryBoundary \
+	  clean_pyramid_entry_action_excludes_long_jump_cycle
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ZeroAQuicksandEntryBoundary \
+	  retail_pyramid_entry_memory_excludes_prepared_fixture
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ZeroAQuicksandEntryBoundary \
+	  ordinary_area1_entry_memory_excludes_prepared_fixture
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ZeroAQuicksandEntryBoundary \
+	  stock_landing_negative_from_nonnegative_requires_long_jump
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ZeroAQuicksandEntryBoundary \
+	  generated_descriptor_frames_match_stock_landing_kinds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ZeroAQuicksandEntryBoundary \
+	  zero_a_ordinary_long_jump_source_boundary_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ZeroAQuicksandEntryBoundary \
+	  zero_a_ordinary_source_kernels_exclude_prepared_negative_state
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NegativeDepthForgeryBoundary \
+	  all_landing_descriptors_have_no_direct_generated_assignment
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NegativeDepthForgeryBoundary \
+	  landing_descriptor_address_sites_are_exact
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NegativeDepthForgeryBoundary \
+	  non_long_negative_body_requires_descriptor_frame_corruption
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NegativeDepthForgeryBoundary \
+	  interaction_handler_table_initializer_is_exact_bilateral
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NegativeDepthForgeryBoundary \
+	  indirect_mario_state_calls_are_guarded_landing_or_interaction_table
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NegativeDepthForgeryBoundary \
+	  held_node_indexed_transform_writer_is_present_bilateral
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NegativeDepthForgeryBoundary \
+	  changed_action_cell_requires_same_block_and_byte_overlap
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NoExitStarDialogBridge \
+	  no_exit_star_bridge_source_shape_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NoExitStarDialogBridge \
+	  no_exit_star_hitbox_initializer_exact_us_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NoExitStarDialogBridge \
+	  no_exit_star_behavior_initializer_exact_us_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NoExitStarDialogBridge \
+	  object_list_update_order_exact_us_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NoExitStarDialogBridge \
+	  star_dialog_milestones_exact_us_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NoExitStarDialogBridge \
+	  freshly_spawned_star_first_eligible_after_gap_frame
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NoExitStarDialogBridge \
+	  fresh_star_late_landing_followup_binary32_split_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NoExitStarDialogBridge \
+	  fresh_star_prepared_vertical_orbit_settles_five_below_home
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NoExitStarDialogBridge \
+	  fresh_star_prepared_home_and_first_hitbox_y_binary32_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NoExitStarDialogBridge \
+	  prepared_settled_star_same_height_mario_does_not_overlap
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.DialogDepthMemoryFrame \
+	  dialog_depth_control_layout_exact_us_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.DialogDepthMemoryFrame \
+	  dialog_depth_spine_direct_nonwriter_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.DialogDepthMemoryFrame \
+	  finite_dialog_depth_framed_stores_preserve_exact_word
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.DialogDepthMemoryFrame \
+	  us_area1_object_pool_store_preserves_dialog_depth_load
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.DialogDepthMemoryFrame \
+	  jp_area1_object_pool_store_preserves_dialog_depth_load
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NegativeDepthTimer131Bridge \
+	  negative_depth_boundary_is_outside_fixed_upper_warp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NegativeDepthTimer131Bridge \
+	  fixed_upper_warp_contact_requires_boundary_x_transport
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NegativeDepthTimer131Bridge \
+	  vertical_dialog_amplification_does_not_supply_warp_xz
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NegativeDepthTimer131Bridge \
+	  split_negative_depths_become_positive_one_point_six
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NegativeDepthTimer131Bridge \
+	  post_dialog_idle_walk_source_shape_checked
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.Area1EntryDepthClosure \
 	  ordinary_area1_entry_memory_synchronizes_all_coordinates
 	bash pipeline/assumptions.sh \

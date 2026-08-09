@@ -64,7 +64,7 @@ The same file transports CompCert external calls under explicit CompCert
 memories, injection growth/separation, and the standard `loc_unmapped` and
 `loc_out_of_reach` frame guarantees.  It also lifts external `Callstate` steps
 and direct `Sbuiltin` steps after explicit argument-evaluation injection.  The
-The new refinement layer proves concrete strong-definition membership, generic
+new refinement layer proves concrete strong-definition membership, generic
 relocation-aware initialization, injected local/temp environments,
 continuations and states, pointer and scalar-operation transport, and
 lockstep-to-final execution composition.  It also defines the concrete
@@ -117,14 +117,81 @@ direct depth write or State-to-Graphics copy.  In a finite model supplied the
 same surviving depth, its open-dialog state can stall arbitrarily long.  Live
 constructor/helper preservation of that depth remains open.
 
-This validates a conditional mechanism, not an installer.  Stock Area-1
-collision supplies a plausible 44-unit ordinary-to-shallow-moving-quicksand
-boundary crossing, but the real four-quarter-step execution, clean zero-A
-long-jump/action provenance, and a following tangible no-exit-star/dialog
-handoff remain unproved.  The ordinary long-jump source path requires an A
-edge.  Live entry execution, external-call frames, pointer/alias and mutable
-descriptor closure, and the linked dialog-to-timer-131 trace remain open.
-Bounded JP runtime search found no positive gap; it is not exhaustive.
+The reachability dependency is now separated from that conditional payload.
+`ZeroAQuicksandEntryBoundary.v` proves that the abstract clean pyramid contract
+starts in action `0x1932`; the separate, not-yet-executed concrete
+pyramid-entry memory postcondition fixes that action, timer zero and depth
+`+0.0f`.  The ordinary Area-1 entry memory postcondition separately fixes
+action `0x1924`, timer zero and depth `+0.0f`.
+Across the nine
+stock landing descriptors, only the six-frame long-jump descriptor admits the
+timer-4/5 body that can turn a nonnegative depth negative.  A bilateral census
+over all 38 generated units finds the sole ordinary `ACT_LONG_JUMP`
+constructor under `INPUT_A_PRESSED`, and the sole `ACT_LONG_JUMP_LAND`
+producer in the long-jump body.  Thus the prepared late-landing state cannot
+legally be the clean initial state and is unreachable in the finite
+source-shaped no-edge/no-forgery kernel.  A retail result first needs a linked
+Clight-step classification and Controller-`buttonPressed` to Mario-input
+execution, then pointer/alias/OOB/external-call and mutable-descriptor closure.
+No concrete
+forged writer has been found, but those cases are not yet globally eliminated.
+
+`NegativeDepthForgeryBoundary.v` narrows that residual.  All nine landing
+descriptors and the interaction table are writable, but have no direct
+generated assignment; descriptor addresses arise only in their matching
+landing wrappers.  A forged timer alone cannot make a stock four-frame
+landing run the negative timer-4/5 body—its frame count must also be corrupted.
+The only indirect MarioState calls are the A-guarded landing callback and the
+interaction table.  CompCert memory framing further proves that changing the
+action load requires a same-block overlapping store.  This is strong negative
+evidence, not compiled flat-memory/OOB or external-frame closure.
+
+This validates a conditional mechanism, not an installer.  The real four
+ground quarters have now been executed from injected pre-timer-3/pre-timer-4
+fixtures that enter timer-4/timer-5 bodies in authenticated US and JP retail
+runs.  All wall/ceiling pointers were null,
+all four selected floors were static shallow-moving quicksand, and the exact
+final endpoint was Z `0x4599198b` (`4899.19287`) and Y `0xc0fc4011`
+(`-7.88282061`), correcting the earlier handwritten `Z=4900` endpoint.  This
+does not make the injected late-long-jump state clean-reachable.
+
+The same authenticated fixture has now been allowed to execute its immediate
+successor frame without another memory injection.  US and JP again agree:
+four ordinary commits select static owner-null type-37 floors, all wall and
+ceiling results and `gMarioPlatform` remain null, no A edge is observed, and
+Mario ends at raw Y `0xc199271e` (`-19.1441002`), Z `0x459aaf5f`
+(`4949.92139`), Graphics Y `0xc183f3eb` (`-16.4941006`), and exact depth
+`0xc029999a` (`-2.6500001`).  This is a prepared two-frame retail receipt, not
+a clean-entry or linked-Clight execution theorem.
+
+The bilateral finite source-shaped kernel proves that first reaching either
+long-jump action requires an A-edge event or an explicitly classified
+forged-state install; linked whole-program classification and exclusion of
+those causes remain open.  The checked source shape and finite fresh-star
+lifecycle model put one unstopped Mario update before hitbox eligibility.  In
+that model the update does not eliminate the post-timer-4 case: the timer-5
+landing body restores exact `-2.65f`.  The finite prepared vertical
+orbit settles five units below its `spawnY+250` home, at `spawnY+245`, so Mario
+must gain at least 85 units for overlap.  Combining the separately modeled
+prepared star Y with the authenticated successor-frame Mario words proves
+that, under the modeled 160/50 hitbox fields and zero down offsets, Mario's raw
+top is more than 96 units below that star's first-hitbox Y; Graphics Y is also
+lower.  The stock fresh-star timing survives, while this finite arithmetic
+pairing is vertically separated.  Executing the live overlap routine remains
+an explicit refinement obligation.  Linked binary32/lifecycle refinement, a
+different compatible height transport, and an older pre-positioned tangible
+star remain open.
+
+Finally, the finite untransported-dialog model retains raw X/Z near
+`(5760,4899)`, far outside the fixed upper warp.  Separate generated
+source-shape and arithmetic checks identify the stationary sanitizer and
+idle/walking reanchor helpers; linked execution is still open.  Active-dialog
+platform transport, warp relocation or
+substitution, collision aliasing, and other raw-coordinate writers are the
+surviving handoffs into timer 131.  Live entry execution, external-call
+frames, pointer/alias and mutable-descriptor closure, and the linked trace
+remain open.  Bounded JP runtime search found no positive gap; it is not
+exhaustive.
 
 The newest closure tranche strengthens three boundaries without resolving the
 retail question.  From the ordinary-entry memory postcondition, Rocq now proves
