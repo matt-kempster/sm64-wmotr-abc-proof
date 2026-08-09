@@ -188,6 +188,41 @@ Aliased/external writers, changed object identity, relocation by other code,
 and cloning also remain open.  See
 [`docs/notes/stock-warp-top-motion.md`](docs/notes/stock-warp-top-motion.md).
 
+The stock-projection follow-up corrects the remaining case boundary instead
+of claiming that boundary exhaustive.  `StockProjectionExhaustiveness.v`
+represents a modeled write-candidate sample separately from the current
+collision sample.  For a supplied abstract stock-candidate record at the upper
+warp, it proves only that those samples are unequal.  A separation witness
+shows why the older same-position relation cannot be assumed complete; it does
+not model a store, retention interval, physical movement, or gameplay trace.
+The case split is exhaustive only over the supplied abstract observation and
+classifier: modeled candidate, canonical identity outside that candidate
+relation, different-slot recognized identity, same-slot different ghost
+epoch, or unclassified owner.  Constructing these records from every live
+retail surface-list state remains open.
+
+`PlatformPointerProvenance.v` computes the complete US/JP direct
+`gMarioPlatform` syntax census: JP has only `update_mario_platform`; US also
+has the null-only spawn clear.  There is no internal address-taking or static
+initializer relocation to that global, and the only source-shaped non-null
+update value comes from `Surface.object`.  `Area1QueryScheduleClosure.v`
+computes intraprocedural generated-AST call/guard receipts and proves a
+separate finite schedule model.  In that model, an interaction that selects
+the upper-warp `ACT_DISAPPEARED` action has a later final-query call.  Its
+conditional position split uses the post-wall State sample, the Graphics
+retry, the cached-floor Y snap, or an unclassified post-copy discrepancy.  On
+the retry-still-null branch, the interaction can select
+`ACT_DISAPPEARED`, but the earlier death request remains the fatal-latch case;
+this branch is useful for pointer chronology, not a successful Area-2 warp.
+`Area1WarpTopCloneCensus.v` enumerates the static top/warp references
+and all 21 direct collision-data writer bodies.  The allocator contains only
+null direct assignments to that field, and ordinary pose-copy helpers do not
+copy behavior or collision identity; successful-return execution is open.
+The linked non-alias/external frames, live branches, post-copy discrepancy cause,
+surface-list slot/epoch projection, runtime spawn provenance, and the clean
+binary32 `<960` writer invariant remain open.  See
+[`docs/notes/stock-projection-exhaustiveness.md`](docs/notes/stock-projection-exhaustiveness.md).
+
 `JPZeroAReachability.v` defines a zero-edge relation over real `Clight.step2`
 states while checking bit 15 of the live controller `buttonPressed` field in
 every observed memory; A may remain held in `buttonDown`.  Despite its

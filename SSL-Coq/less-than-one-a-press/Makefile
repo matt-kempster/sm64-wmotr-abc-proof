@@ -1140,6 +1140,42 @@ check: proofs
 	  LessThanOneAPress.Proofs.StockWarpTopMotion \
 	  modeled_stock_top_all_spinning_timers_bounded_checked
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.PlatformPointerProvenance \
+	  official_platform_pointer_syntax_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.StockProjectionExhaustiveness \
+	  stock_projection_abstract_checked_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1QueryScheduleClosure \
+	  area1_query_schedule_checked_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1WarpTopCloneCensus \
+	  ordinary_object_copy_does_not_copy_identity_or_collision
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1WarpTopCloneCensus \
+	  us_top_static_reference_census
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1WarpTopCloneCensus \
+	  jp_top_static_reference_census
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1WarpTopCloneCensus \
+	  us_warp_static_reference_census
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1WarpTopCloneCensus \
+	  jp_warp_static_reference_census
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1WarpTopCloneCensus \
+	  us_object_collision_data_writer_census
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1WarpTopCloneCensus \
+	  jp_object_collision_data_writer_census
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1WarpTopCloneCensus \
+	  allocate_object_collision_reset_source_shape
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1WarpTopCloneCensus \
+	  behavior_spawn_commands_do_not_copy_collision_data
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.JPZeroAReachability \
 	  zero_a_edge_clight_reachable_is_clight_star
 	bash pipeline/assumptions.sh \

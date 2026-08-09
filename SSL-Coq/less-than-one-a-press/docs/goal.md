@@ -95,6 +95,28 @@ abstract installer-attempt record shapes are contradictory, but
 relocation/cloning, query-moving transport, non-stock owners, unmodeled skips,
 and Ink's clean three-view installation are not.
 
+The stock-projection tranche now makes those residuals non-circular.  It
+tracks an abstract stock write-candidate sample separately from the current
+collision sample and proves that, for the supplied candidate relation, an
+upper-warp sample must be unequal.  An abstract separation witness shows that
+the older same-position relation was insufficient; it proves no write,
+retention, movement, or gameplay trace.  The owner partition is exhaustive
+only for the supplied observation/classifier: modeled candidate, canonical
+identity outside that relation, different-slot recognized identity, same-slot
+different ghost epoch, or unclassified.  Complete US/JP source censuses prove that the final floor query
+is the only direct non-null `gMarioPlatform` writer, with no internal
+address-taking or initializer relocation to that cell.  Intraprocedural AST
+receipts and a separate finite schedule model place a later query after
+upper-warp action selection and isolate post-wall State/Graphics, the
+cached-floor snap, and an unclassified post-copy discrepancy as conditional
+cases.
+Static top/warp references and all 21 direct collision-data writers are now
+enumerated, but their live receivers and runtime behavior arguments are not.
+The remaining decisive proof is linked branch/memory execution: global and
+Mario-coordinate non-alias/external frames, post-copy discrepancy provenance, live
+surface-list slot/epoch provenance, spawn/relocation/clone closure, and the
+clean binary32 `<960` gap invariant.
+
 The newest clean-JP installer reduction narrows that missing boundary.
 `CleanJPGraphicsGap.v` defines a clean JP Area-1 audit boundary, proves that a
 synchronized Object/Graphics projection has zero separation, and proves that

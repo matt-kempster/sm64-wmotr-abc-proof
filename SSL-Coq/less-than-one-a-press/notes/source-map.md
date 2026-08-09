@@ -475,3 +475,39 @@ the finite binary32 top mirror covers timers 0 through 150, stays in X
 timer-131 surface fixture.  The live Clight-to-mirror and memory-frame
 refinement is open, so this narrows rather than excludes stock self-motion;
 aliased/external relocation, clones, and identity/epoch changes also remain.
+
+## Stock-projection exhaustiveness tranche
+
+`proofs/PlatformPointerProvenance.v` computes the direct
+`gMarioPlatform` writer/caller/address/initializer census over all 38 US and
+JP generated units.  The only direct non-null source shape is
+`update_mario_platform` loading `Surface.object`; US additionally has a
+null-only spawn clear.  Official source-definition provenance and absence of
+initializer relocations are packaged, while aliased stores, external frames,
+and live value-flow execution remain open.
+
+`proofs/StockProjectionExhaustiveness.v` separates an abstract stock
+write-candidate sample from the current collision sample.  Its pure case split
+is exhaustive only over a caller-supplied observation/classifier/canonical
+map, and distinguishes the modeled candidate relation, canonical identity
+outside it, different-slot identity, same-slot different ghost epoch, and
+unclassified owner.  A checked separation witness shows the old same-position
+relation is insufficient; it proves no store, retention, movement, gameplay
+trace, or linked surface-list projection.
+
+`proofs/Area1QueryScheduleClosure.v` computes intraprocedural generated
+call/guard receipts and proves a separate finite schedule model from
+cached-platform application through interaction, State-to-Object copy, unload,
+and the final platform query.  An upper-warp action-selection frame has a
+later query in that model.  The retry-null branch can select
+`ACT_DISAPPEARED` after requesting death but is not a successful warp under
+the separate fatal-latch boundary.  Linked branch execution, alias/external
+frames, and provenance of any post-copy sample discrepancy remain open.
+
+`proofs/Area1WarpTopCloneCensus.v` enumerates the static top/warp references
+and all 21 direct `Object.collisionData` writer bodies, proves every direct
+allocator assignment to that field is null, checks top-child source shapes,
+and shows ordinary pose-copy helpers do not copy behavior or collision
+identity.  Successful allocator execution, runtime behavior arguments,
+replayed spawning, receiver reachability, generic coordinate writes, and exact
+slot/epoch/list ownership remain open.

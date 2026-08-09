@@ -156,6 +156,26 @@
   fixture.  The live Clight-to-mirror and memory-frame connection is open, so
   this narrows rather than excludes stock self-motion.  Aliases, other
   behaviors, clones, and object-identity changes also remain open.
+- The stock-projection follow-up proves that the previous frozen-carry model
+  was not automatically exhaustive: it conflated a candidate platform-query
+  sample with the current collision sample.  A checked abstract separation
+  witness distinguishes them; it is not a store, carry, or retail trace.  The
+  replacement case split is exhaustive only for a supplied observation and
+  classifier, separating the modeled candidate relation, canonical identity
+  outside it, different-slot recognized identity, same-slot different ghost
+  epoch, and unclassified owners.  Complete US/JP
+  source censuses leave only `update_mario_platform` (plus US's null clear) as
+  direct platform-global writers and find no internal address-taking or
+  initializer relocation to that cell.  Generated intraprocedural receipts and
+  a separate finite model put a later final-query call after upper-warp action
+  selection and classify a changed sample as post-wall State/Graphics, the
+  cached-floor Y snap, or an unclassified post-copy discrepancy.  Static
+  top/warp references and all 21 direct collision-data writers are also
+  enumerated; the allocator contains only null direct collision-data
+  assignments, and ordinary pose copying does not copy behavior/collision
+  identity.  Linked alias/external frames, branch execution, successful
+  allocator execution, post-copy discrepancy provenance, live surface-list ownership,
+  spawn/epoch provenance, and the clean binary32 gap invariant remain open.
 - `JPInstallTimerWindow.v` proves timer `131` unique in the behavior's
   `0..150` range for the observed affine install/freeze/explosion schedule.
   Linking those global offsets and lifecycle classes to concrete Clight memory

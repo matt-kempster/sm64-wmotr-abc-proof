@@ -554,11 +554,47 @@
       Clight-to-mirror and memory-frame refinements remain open, this narrows
       rather than excludes stock self-motion; aliased writes, changed identity,
       relocation, and cloning by other code also remain open.
+    - [x] Compute the complete US/JP direct `gMarioPlatform` writer, caller,
+      address-taking, and initializer-relocation census.  JP has only
+      `update_mario_platform`; US additionally has the null-only spawn clear.
+      Every source-shaped non-null update store comes from `Surface.object`.
+      Existing official-link definition provenance is packaged with the
+      census; live control-flow/value-flow, aliased stores, and external stores
+      remain semantic obligations before this becomes a reachable-store result.
+    - [x] Replace the implicit same-position assumption with a two-position
+      abstract-sample analysis.  For a caller-supplied observation/classifier,
+      split a modeled candidate, canonical identity outside that model,
+      different-slot recognized identity, same-slot different ghost epoch,
+      and unclassified owner.  Prove that a modeled stock candidate and
+      upper-warp sample are unequal, and give an abstract separation witness
+      showing the old same-position relation is insufficient.  This proves no
+      store, carry, movement, or gameplay trace.
+    - [x] Compute intraprocedural generated-AST call/guard receipts and prove a
+      separate finite schedule model: an interaction/action-selection frame
+      has a later final-query call in that model; its query-free transition
+      shapes cannot select the action and only abstractly preserve the prior
+      result.  A differing final sample fits post-wall State, Graphics retry,
+      cached-floor Y snap, or an unclassified post-copy discrepancy.  Linked
+      execution-to-model refinement and memory frames remain open.  The
+      retry-still-null interaction shape is retained for pointer
+      chronology, but the earlier fatal request prevents treating it as a
+      successful Area-2 warp under the separately checked latch model.
+    - [x] Census top/warp static references and all 21 direct
+      `Object.collisionData` writer bodies.  Check that the allocator's direct
+      assignments to that field are all null, top-created child source does
+      not contain the top mesh, and ordinary pose-copy helpers do not copy
+      behavior/collision identity.  Successful allocation execution, runtime
+      behavior arguments, and receiver reachability remain open.
     - [ ] Prove the linked stock-provenance projection is exhaustive.  Analyze
       relocated warp/top or collision-preserving clones, post-commit movement
       away from the warp sample, non-stock owners, and skipped queries outside
       the stock provenance relation.  Derive Ink's initial three-view gap from
       clean retail execution or prove it unreachable.
+      - [ ] Prove the platform-global non-alias/external frame invariant; execute
+        the upper-warp action-selection frame through the non-null final query;
+        explain or eliminate post-copy Mario-coordinate discrepancies; project live dynamic
+        surface nodes to slot/epoch/behavior/collision provenance; and refine
+        every clean coordinate writer to the strict binary32 gap bound.
   - [x] Package the observed zero-A continuation that overlaps and collects the
     spawned Act-6 star: `conditional_jp_zero_a_act6_collection_continuation`
     combines the binary32 overlap, initially-clear-to-set Act-6 save-bit

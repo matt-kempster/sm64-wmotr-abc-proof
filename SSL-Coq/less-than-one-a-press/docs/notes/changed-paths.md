@@ -772,3 +772,25 @@ relation, stock warp/top motion audit, and public status updates changed:
 - `SSL-Coq/less-than-one-a-press/proofs/JPBinary32DepthWrites.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/JPDestinationChronologyCertificate.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/StockWarpTopMotion.v` (new)
+
+## Stock-projection exhaustiveness tranche
+
+The corrected two-position abstract platform projection, complete direct
+`gMarioPlatform` syntax census, upper-warp commit/query schedule boundary,
+top/warp clone-source census, and public status updates changed:
+
+- `SSL-Coq/README.md`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/claim.md`
+- `SSL-Coq/less-than-one-a-press/docs/goal.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/stock-projection-exhaustiveness.md` (new)
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+- `SSL-Coq/less-than-one-a-press/proofs/Area1QueryScheduleClosure.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/Area1WarpTopCloneCensus.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/PlatformPointerProvenance.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/StockProjectionExhaustiveness.v` (new)

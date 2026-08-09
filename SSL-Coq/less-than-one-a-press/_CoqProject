@@ -118,6 +118,9 @@ proofs/USClightLinkRefinementCertificates.v
 proofs/JPClightLinkRefinementCertificates.v
 proofs/USWholeASTTagRepair.v
 proofs/ClightLinkExecution.v
+proofs/PlatformPointerProvenance.v
+proofs/Area1WarpTopCloneCensus.v
+proofs/Area1QueryScheduleClosure.v
 proofs/ClightGlobalMemoryRefinement.v
 proofs/RetailExternalFrames.v
 proofs/ClightEndToEndRefinement.v
@@ -137,6 +140,7 @@ proofs/Area1PhaseSplit.v
 proofs/Area1SurfaceWitness.v
 proofs/Area1FirstNull.v
 proofs/Area1PlatformExhaustiveness.v
+proofs/StockProjectionExhaustiveness.v
 proofs/FirstCrossingWriterCoverage.v
 proofs/ModelGapAudit.v
 proofs/OrdinaryMotion.v

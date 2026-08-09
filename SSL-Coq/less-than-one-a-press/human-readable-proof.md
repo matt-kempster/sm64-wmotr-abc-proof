@@ -658,6 +658,70 @@ engineering but does not know *Super Mario 64*.
 > `JPSlotLifetime.v` narrows the destination-area question but does not extract
 > the reachable memory trace.  The ultimate theorem is still incomplete.
 
+> **Newest stock-projection and Ink-installer result:** the proof no longer
+> treats a retained platform pointer as though it were necessarily written at
+> Mario's current collision position.  `StockProjectionExhaustiveness.v`
+> tracks a modeled write-candidate sample separately from the current sample.
+> For a supplied abstract stock-candidate record at the upper warp, it proves
+> only that the samples are unequal.  Its separation witness shows why the old
+> same-position relation is insufficient; it does not model an actual write,
+> pointer retention, physical movement, or a reachable game trace.
+>
+> The owner cases are exhaustive only after a caller supplies an abstract
+> observation, classifier, and canonical map: a modeled candidate; canonical
+> identity outside that candidate relation; a recognized kind with a
+> different-slot identity or same-slot different ghost epoch; or an
+> unclassified owner.  None of this establishes live-list selection,
+> allocation ordering, liveness, or classifier soundness.
+>
+> `PlatformPointerProvenance.v` computes the complete 38-unit source census for
+> both versions.  JP's only direct `gMarioPlatform` writer is
+> `update_mario_platform`; US adds `clear_mario_platform`, whose generated body
+> writes only null.  The update's only source-shaped non-null value comes from
+> `Surface.object`.  No generated internal body takes the address of the
+> global cell and no initializer relocates a pointer to it.  Existing
+> official-link definition provenance is packaged alongside these inventories.
+> A linked reachable-store theorem still needs control-flow execution,
+> no-alias, and external-call frame invariants.
+>
+> `Area1QueryScheduleClosure.v` computes intraprocedural generated-AST
+> call/guard receipts and proves properties of a separate finite schedule
+> model.  In that model, the frame where interaction selects the upper-warp
+> `ACT_DISAPPEARED` action has a later query; its two null-callback
+> change-area steps abstractly preserve the earlier result.  A changed final
+> sample fits the post-wall State sample, Graphics retry, cached-floor Y snap,
+> or an unclassified post-copy discrepancy.  Linked execution must still
+> prove that these are the live branches and identify or eliminate that
+> discrepancy.
+> If the Graphics retry is still null, geometry input has already requested
+> death/game-over.  Cached interaction may still select `ACT_DISAPPEARED` and
+> the frame still reaches the final platform query, so that shape matters to
+> pointer chronology; it is not a successful Area-2 warp under the separately
+> checked fatal-latch model.
+>
+> `Area1WarpTopCloneCensus.v` finds the pyramid-top mesh in only the stock top
+> behavior initializer, the top behavior pointer only in the SSL Area-1 level
+> script, and no direct C-body reference that requests another top.  It
+> enumerates all 21 direct `Object.collisionData` writer bodies, checks that
+> the allocator contains only null direct assignments to that field, and
+> verifies that the ordinary pose-copy
+> helper does not copy behavior or collision identity.  This rules out a
+> direct use of that pose-copy helper as a collision-preserving clone, but
+> does not prove successful allocation executes the reset and does not exclude generic
+> runtime behavior arguments, replayed area spawning, aliased writes, or an
+> unexpected receiver of one of those 21 writers.
+>
+> Ink therefore remains unresolved.  No clean retail gap installer was found.
+> The corrected timer-131 sample still needs at least `960` units of
+> Graphics-minus-Object Y separation (`1010` at the warp centre).  Eliminating
+> it now requires: executing the action-selection frame in linked memory; proving Mario's
+> object remains non-null and the final query really runs; eliminating or
+> explaining or eliminating post-copy discrepancies; projecting live surface-list owners to exact
+> slots and allocation epochs; closing relocation/clone provenance; and
+> proving every clean binary32 coordinate writer preserves a gap below `960`.
+> The detailed case table is
+> [`docs/notes/stock-projection-exhaustiveness.md`](docs/notes/stock-projection-exhaustiveness.md).
+
 ## The problem in software terms
 
 The game runs an update loop.  Each frame reads a controller, updates Mario and

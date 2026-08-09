@@ -160,6 +160,23 @@ is narrowed rather than excluded.  The linked chronology, exhaustive stock
 projection, aliased/external relocation or cloning cases, and clean installation
 of the three-view gap remain unproved.
 
+The latest stock-projection tranche corrects an important abstraction error:
+an abstract write-candidate sample cannot be assumed equal to Mario's later
+collision sample.  A checked separation witness shows that shortcut is
+insufficient but proves no store, carry, movement, or gameplay trace.  The
+owner split is exhaustive only over a caller-supplied abstract observation and
+classifier.  Complete generated-source censuses restrict direct non-null
+`gMarioPlatform` source shape to `update_mario_platform`, enumerate the static
+warp/top references and all 21 direct collision-data writer bodies, and compute
+intraprocedural order receipts used by a separate finite schedule model.  In
+that model an upper-warp action-selection frame has a later platform-query
+call.  The retry-still-null branch remains fatal, not a successful Area-2 warp.
+Linked alias/external frames, exact live branch execution, post-copy sample
+discrepancy provenance, dynamic surface slot/epoch
+provenance, clone/relocation closure, and the clean binary32 `<960` gap
+invariant are still unproved; Ink's retail installer is reduced, not
+eliminated.
+
 ## Build
 
 With Rocq 8.16.1 and CompCert 3.15 on `PATH`:
