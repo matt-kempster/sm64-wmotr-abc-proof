@@ -130,6 +130,32 @@
   pointer/depth facts, exact finite LIFO arithmetic, zero-A counters, and trace-
   record consistency.  These theorems validate records and arithmetic; they are
   not linked Clight executions and do not prove a clean installer.
+- `JPDestinationChronologyCertificate.v` proves against the official cleaned
+  JP linked composite environment that `struct Object` is 608 bytes, slot 61
+  has pool-relative offset `37088`, and the twelve listed payload-witness ranges
+  stay inside that slot.  Generated access-set completeness remains open.
+  Under the observed duplicate-free 131-push/84-pop chronology it
+  proves non-selection by the destination allocator, survival at depth 47, and
+  payload preservation for writes confined to selected slots.  It also checks
+  exactly one retained cleaned JP `_gObjectPool` declaration as a writable,
+  nonvolatile 145,920-byte global and fixes the watched pointer offset.  It
+  does not resolve the concrete official-link memory block, extract that
+  chronology or pointer epoch, or execute the true first apply in linked
+  Clight semantics.
+- `InstallerCoverage.v` proves contradictions for five source-bounded abstract
+  installer-attempt record shapes: stock
+  State-first selection, fixed stock-top co-location, fixed non-top owners,
+  position-preserving post-commit selection, and stock-provenanced frozen
+  carry.  It retains Ink's graphical retry as a conditional trace.  Linked
+  stock-projection exhaustiveness, relocation/cloning, query-moving transport,
+  non-stock owners, and clean gap installation remain open.
+- `StockWarpTopMotion.v` proves the stock upper warp's generated native body
+  has no direct X/Y/Z access or write and no native callee.  It independently
+  checks a stock-top binary32 timer `0..150` mirror: X `[-2087,-2007]`,
+  Y `[1536,1879)`, and fixed Z `-1023`, with timer 131 matching the surface
+  fixture.  The live Clight-to-mirror and memory-frame connection is open, so
+  this narrows rather than excludes stock self-motion.  Aliases, other
+  behaviors, clones, and object-identity changes also remain open.
 - `JPInstallTimerWindow.v` proves timer `131` unique in the behavior's
   `0..150` range for the observed affine install/freeze/explosion schedule.
   Linking those global offsets and lifecycle classes to concrete Clight memory
@@ -208,6 +234,16 @@
   correctly requires US platform clearing and preserves JP's predecessor
   global platform pointer.  The live entry execution, route/behavior lookup,
   external-call frames, and pool/list ownership are not proved.
+- `Area1EntryDepthClosure.v` strengthens the postcondition consequences to
+  three-axis State/raw/Graphics equality, the spin-airborne action, and exact
+  binary32 positive-zero depth.  It decodes 46 in-bounds macro entries per
+  version against 366 generated presets, with exact 231-halfword stream,
+  terminator, and lower/upper index receipts, and proves that neither those
+  entries nor the Area-1 script selects `bhvDoor` or `bhvDoorWarp`.  The old
+  direct-source live-door premise is formally shown too strong for normal
+  spawned children.  A transitive spawn-closure boundary is defined and its
+  generic exclusion lemma proved; extracting the graph and excluding both
+  doors in linked execution remain open.
 - `JPGeneratedWriterCensus.v` checks all 38 JP units.  Its receiver-neutral
   function counts are 33 with `pos[1]` assignments, 215 with raw-data-slot-7
   assignments, 180 with raw-data-slot-10 assignments, and 15 whose assignment
@@ -215,6 +251,19 @@
   writer functions and six direct automatic-dialog constructor functions.
   These counts do not establish Mario receiver identity, alias safety, call
   reachability, or dynamic store counts.
+- `JPActionProvenanceCensus.v` finds exactly eight generated JP bodies that
+  directly assign a field named `action`.  None also embeds `ACT_LONG_JUMP`,
+  and the sole direct ordinary long-jump constructor remains the
+  A-edge-guarded call in `act_crouch_slide`.  The census is receiver-neutral
+  and does not close indirect value flow or non-aliasing.
+- `JPBinary32DepthWrites.v` proves exact CompCert/Flocq binary32 nonnegative
+  closure for a handwritten sink-visible safe-writer candidate relation.  It
+  imports no generated writer AST.  From `+0.0f`, finite and
+  non-overflowing resets, clamps, retail increments/caps, ordinary landing
+  timers 1--3, paired quicksand-jump subtraction/clamp, death increments, and
+  preserved steps cannot make Clight's `depth < 0.0f` comparison true.  Linked
+  expression/store simulation, retail bounds, non-interleaving, and exclusion
+  of forged timer 4/5 remain open.
 - `JPZeroAReachability.v` defines reflexive/transitive reachability over actual
   `Clight.step2` states and checks the A bit in live controller
   `buttonPressed` memory at every state, while allowing A in `buttonDown`.  Its
@@ -405,9 +454,12 @@
 - A clean retail installer for the JP stale-platform payload.  Ink's non-null
   graphical retry is one candidate installer, with the timed top constrained
   to spinning timer 131 on the collision frame, timer 150 on frame 19, and
-  explosion timer 0 on frame 20.  State-first selection, physical co-location
-  or cloning, post-commit transport, another owner, and frozen carry are not
-  collectively excluded.  The current midpoint fixture injects the required
+  explosion timer 0 on frame 20.  State-first selection and fixed geometric
+  co-location are excluded inside their formal boundaries.  Stock self-motion
+  has only source-shape and conditional-mirror evidence; aliases, physical
+  relocation by other code, cloning, post-commit transport, another owner, and
+  frozen carry outside stock provenance are not collectively excluded.  The
+  current midpoint fixture injects the required
   three-view prestate in Area 1; retail execution then performs the capture,
   lifecycle, and true first Area-2 displacement.  It still does not show how a
   clean controller-only run creates the required `>=960` gap.

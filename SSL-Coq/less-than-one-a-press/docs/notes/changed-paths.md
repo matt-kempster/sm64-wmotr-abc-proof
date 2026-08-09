@@ -745,3 +745,30 @@ concrete external footprints, and compositional Clight state simulation changed:
 - `SSL-Coq/less-than-one-a-press/proofs/ClightGlobalMemoryRefinement.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/RetailExternalFrames.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/ClightEndToEndRefinement.v` (new)
+
+## Ink installer closure tranche
+
+The destination allocation/layout certificate, bounded installer case split,
+ordinary-entry/depth reduction, direct-action census, exact binary32 depth
+relation, stock warp/top motion audit, and public status updates changed:
+
+- `SSL-Coq/README.md`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/claim.md`
+- `SSL-Coq/less-than-one-a-press/docs/goal.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/area1-entry-depth-closure.md` (new)
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/destination-chronology-certificate.md` (new)
+- `SSL-Coq/less-than-one-a-press/docs/notes/installer-coverage.md` (new)
+- `SSL-Coq/less-than-one-a-press/docs/notes/stock-warp-top-motion.md` (new)
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+- `SSL-Coq/less-than-one-a-press/proofs/Area1EntryDepthClosure.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/InstallerCoverage.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPActionProvenanceCensus.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPBinary32DepthWrites.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPDestinationChronologyCertificate.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/StockWarpTopMotion.v` (new)

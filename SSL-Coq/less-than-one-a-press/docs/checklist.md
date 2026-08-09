@@ -424,6 +424,44 @@
     non-aliasing, refine the safe-depth relation to all live binary32 writes,
     and prove stock Area-1 automatic-dialog/reanchoring closure.  Until then
     the `>=960` installer is reduced, not eliminated.
+    - [x] From the existing ordinary-entry memory postcondition, prove exact
+      State/Object-raw/Object-Graphics equality for X, Y, and Z, the
+      spin-airborne entry action, and live binary32 `quicksandDepth = +0.0f`.
+      This is a postcondition consequence; executing clean linked `warp_level`
+      to obtain that postcondition remains open.
+    - [x] Decode all 46 US and JP SSL Area-1 macro entries against the complete
+      366-entry generated preset tables.  Check the exact `231 = 46*5+1`
+      stream shape, final `30` terminator, nonnegative decoded indices, and
+      upper bounds.  Prove that neither those macro entries nor the Area-1
+      level-script initializers select `bhvDoor` or `bhvDoorWarp`.
+    - [x] Prove the direct-static-source conditional door exclusion, then prove
+      that its premise is too strong for retail: generated pyramid-top
+      callbacks mention ordinary pillar-detector and fragment children absent
+      from the direct macro/script relation.  Define the usable transitive
+      spawn-closure provenance relation and generic forbidden-behavior lemma.
+    - [ ] Extract the complete generated spawn graph, prove every live stock
+      behavior has transitive source provenance, and show neither door behavior
+      is reachable in that graph; also close clone/corruption/alias paths.
+    - [x] Compute the receiver-neutral direct `_action` assignment census over
+      all 38 generated JP units: eight bodies, with no direct action-writer body
+      also embedding `ACT_LONG_JUMP`.  Recheck that the sole direct ordinary
+      long-jump constructor is `act_crouch_slide` under `INPUT_A_PRESSED`.
+      Typed receiver, indirect-flow, reachability, and non-alias proofs remain.
+    - [x] Replace the hundredths-only depth invariant with a handwritten exact
+      CompCert/Flocq binary32 candidate relation for sink-visible resets,
+      minimum clamps,
+      `.25f`/`.5f` increments, `10f`/`25f`/`60f` caps, ordinary landing timers
+      `1..3`, paired quicksand-jump subtraction/clamp, death `+5f`, and
+      preservation.  From entry `+0.0f`, every such finite/non-overflowing
+      trace makes Clight's `depth < 0.0f` comparison false.  This module imports
+      no generated writer AST, and both landing timers 4 and 5 are excluded.
+    - [ ] Derive the binary32 relation, finite/no-overflow premises, and
+      quicksand-jump store/clamp non-interleaving from every reachable linked
+      writer; exclude forged timer `4/5` and aliased/external stores.
+    - [ ] Execute the ordinary-entry postcondition in linked Clight, close
+      external frames and non-aliasing, prove complete live writer/action
+      provenance and binary32 sign preservation, and refine each cutscene
+      reanchor plus its following sink.
 - [ ] Prove which JP raw-platform cases are reachable and bound every reachable
   spawning displacement.  Execute the imported matrix/surface helpers over live
   Clight memory, extract the mirrored expressions from generated Clight, and
@@ -479,10 +517,48 @@
     zeroing or preservation, first terrain updates, and proof that the observed
     early-free depth and payload are consumed by the true first apply in linked
     Clight semantics.
+    - [x] Against the official cleaned JP linked composite environment, prove
+      `sizeof(struct Object) = 608`, slot 61's pool-relative offset is `37088`,
+      and the twelve listed platform-payload witness ranges lie within that
+      object.  Complete generated-AST extraction of the access set remains open.
+    - [x] Prove there is exactly one retained cleaned JP `_gObjectPool`
+      definition and check it as a writable, nonvolatile `Init_space 145920`
+      global after the weak
+      incomplete-array declaration is removed, and fix the watched CompCert
+      pointer as the selected pool block plus offset `37088`.
+    - [x] Under the observed exact 131-push, 84-pop `NoDup` LIFO chronology,
+      prove that no destination allocation selects the watched slot, that it
+      survives at depth 47, and that writes confined to allocated slots
+      preserve its payload.
+    - [ ] Extract the 131 pushes and 84 pops from the linked small-step run;
+      resolve the checked `_gObjectPool` declaration to the official linked
+      initial/current-memory symbol block and writable range; bind the pointer
+      and ghost epoch; prove terrain/update frame conditions; and execute the
+      true first apply's payload loads and binary32 displacement.
   - [ ] Prove installer coverage.  Ink's non-null graphical retry is one
     candidate; State-first selection, physical co-location or cloning,
     post-commit transport, another dynamic owner, and a skipped-query frozen
     carry must each be proved unreachable or carried into the same trace.
+    - [x] Exclude source-bounded stock State-first selection, fixed-placement
+      stock-top co-location, all fourteen fixed non-top stock owners,
+      position-preserving post-commit selection, and frozen carry with recursive
+      stock pre-apply provenance.
+    - [x] Carry Ink's exact timer-131 State rejection, Graphics retry
+      acceptance, retained top-pointer observations, depth-47 first-apply
+      observation, and zero-A counts into one explicitly conditional boundary.
+    - [x] Check both stock upper-warp behavior scripts and native callbacks:
+      the warp has no direct X/Y/Z access, write, or native callee.  Check the
+      stock pyramid-top behavior and finite binary32 timer `0..150` mirror:
+      X stays in `[-2087,-2007]`, Y in `[1536,1879)`, and Z remains `-1023`,
+      with timer 131 matching the surface fixture.  Because the live
+      Clight-to-mirror and memory-frame refinements remain open, this narrows
+      rather than excludes stock self-motion; aliased writes, changed identity,
+      relocation, and cloning by other code also remain open.
+    - [ ] Prove the linked stock-provenance projection is exhaustive.  Analyze
+      relocated warp/top or collision-preserving clones, post-commit movement
+      away from the warp sample, non-stock owners, and skipped queries outside
+      the stock provenance relation.  Derive Ink's initial three-view gap from
+      clean retail execution or prove it unreachable.
   - [x] Package the observed zero-A continuation that overlaps and collects the
     spawned Act-6 star: `conditional_jp_zero_a_act6_collection_continuation`
     combines the binary32 overlap, initially-clear-to-set Act-6 save-bit

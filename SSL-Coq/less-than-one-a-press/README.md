@@ -124,6 +124,70 @@ routing, behavior lookup, external-call frames, and complete object-pool/list
 ownership remain obligations; JP also preserves, rather than assumes away,
 the predecessor `gMarioPlatform` value.
 
+`Area1EntryDepthClosure.v` derives the full three-axis State/raw/Graphics
+equality, spin-airborne action, and binary32 positive-zero depth from that
+postcondition.  It also decodes all 46 Area-1 macro entries in each version
+against the full 366-entry preset table and proves that neither those entries
+nor the Area-1 script selects `bhvDoor` or `bhvDoorWarp`; the exact stream
+shape, `30` terminator, and lower/upper preset bounds are checked.  Its
+direct-source conditional is deliberately too strong for retail, because the
+generated pyramid-top callbacks mention normal child behaviors absent from
+the direct lists.  A generic transitive spawn-closure lemma is proved, but the
+actual spawn graph, door non-reachability, linked entry execution, and alias
+closure remain open.  `JPActionProvenanceCensus.v` adds an exact
+38-unit receiver-neutral census of the eight direct `_action` assignment
+bodies.  None embeds `ACT_LONG_JUMP`; the only direct ordinary constructor is
+still the A-edge-guarded `act_crouch_slide` call.  Indirect value flow and
+typed non-aliasing are not proved.  See
+[`docs/notes/area1-entry-depth-closure.md`](docs/notes/area1-entry-depth-closure.md).
+
+`JPBinary32DepthWrites.v` proves the corresponding candidate arithmetic
+invariant with CompCert/Flocq binary32 rather than unbounded integers.  Its
+handwritten sink-visible safe-writer trace starts at exact `+0.0f` and covers
+resets, clamps, retail increments/caps, non-long-jump landing timers 1--3,
+paired quicksand-jump
+subtraction/clamp, and death increments.  Under explicit finite/no-overflow
+premises, the exact Clight comparison `depth < 0.0f` remains false.  Mapping
+every linked writer to this relation and excluding forged timer 4/5 remain
+open.
+
+`JPDestinationChronologyCertificate.v` checks the finite destination side of
+the stale-top trace against the official cleaned JP linked layout:
+`sizeof(struct Object) = 608`, slot 61 has pool-relative offset `37088`, and
+the twelve listed platform-payload witness ranges stay within that slot;
+extracting the complete generated access set remains open.  The cleaned census
+also proves there is exactly one retained JP `_gObjectPool` definition and
+checks it as a writable, nonvolatile 145,920-byte global.  The watched pointer
+is exactly the chosen pool block plus `37088`.  Given the observed
+duplicate-free 131-push/84-pop LIFO chronology, none of the destination
+allocations selects the top and it remains at depth 47; allocator writes
+confined to selected slots preserve its payload.  This does not extract those
+pushes/pops, resolve the actual official-link symbol/current-memory block,
+establish the pointer epoch, or execute the true first apply in linked Clight.
+See
+[`docs/notes/destination-chronology-certificate.md`](docs/notes/destination-chronology-certificate.md).
+
+`InstallerCoverage.v` proves contradictions for five source-bounded abstract
+attempt records: stock State-first selection, fixed stock-top co-location, all
+fixed non-top stock
+owners, position-preserving post-commit selection, and frozen carry already
+inside the stock pre-apply provenance relation.  It carries Ink's timer-131
+retry into the existing conditional trace, but it does not prove a clean
+installer.  Relocation or cloning, post-commit movement to another query,
+non-stock owners, and skipped queries outside the bounded provenance relation
+remain open.  See
+[`docs/notes/installer-coverage.md`](docs/notes/installer-coverage.md).
+
+`StockWarpTopMotion.v` additionally proves that the generated US/JP stock-warp
+native body contains no direct X/Y/Z access or write.  Separately, the stock
+top's finite binary32 timer `0..150` mirror stays in
+X `[-2087,-2007]`, Y `[1536,1879)`, and fixed Z `-1023`, with timer 131
+matching the surface fixture.  The missing live Clight-to-mirror and memory
+frame proof means this narrows, but does not exclude, stock self-motion.
+Aliased/external writers, changed object identity, relocation by other code,
+and cloning also remain open.  See
+[`docs/notes/stock-warp-top-motion.md`](docs/notes/stock-warp-top-motion.md).
+
 `JPZeroAReachability.v` defines a zero-edge relation over real `Clight.step2`
 states while checking bit 15 of the live controller `buttonPressed` field in
 every observed memory; A may remain held in `buttonDown`.  Despite its

@@ -114,6 +114,52 @@ but live entry execution, routing, external-call frames, pool/list ownership,
 writer/action/alias closure, and reanchoring closure remain open.  Bounded JP
 runtime search found no positive gap; it is not an exhaustive proof.
 
+The newest closure tranche strengthens three boundaries without resolving the
+retail question.  From the ordinary-entry memory postcondition, Rocq now proves
+equality of State, raw Object, and Graphics coordinates in all three axes, the
+spin-airborne entry action, and binary32 `quicksandDepth = +0.0f`.  It decodes
+all 46 US and JP SSL Area-1 macro entries against the complete 366-entry preset
+tables and proves that neither the macro stream nor the Area-1 script selects
+`bhvDoor` or `bhvDoorWarp`, including exact stream-shape, terminator, and
+lower/upper index receipts.  The direct-source live-object premise is now
+proved too strong for ordinary stock children; a transitive spawn-closure
+boundary replaces it.  Extracting that graph, proving both doors unreachable,
+and closing linked entry/alias/corruption behavior remain open.  A complete
+38-unit JP field-name census also finds eight direct `action` assignment bodies; none
+contains the long-jump literal, while the sole direct ordinary long-jump
+constructor remains the A-edge branch of `act_crouch_slide`.  Typed receiver,
+indirect-flow, reachability, and non-alias proofs remain open.
+The sign invariant is now also proved in exact CompCert/Flocq binary32 for a
+handwritten sink-visible safe-writer candidate relation.  Starting at `+0.0f`,
+its finite,
+non-overflowing reset/clamp/increment/cap/ordinary-landing/quicksand-jump/death
+steps cannot make Clight's `depth < 0.0f` comparison true.  Linked writer
+simulation, retail depth bounds, transient clamp non-interleaving, and timer
+4/5 provenance remain open; the module imports no generated writer AST.
+
+For the conditional JP stale-top route, the official cleaned linked composite
+environment gives `sizeof(struct Object) = 608`; observed slot 61 is therefore
+pool-relative byte offset `37088`, and the twelve listed displacement-payload
+witness ranges stay inside that object.  Completeness of that list against the
+generated access set remains open.  The cleaned JP declaration census finds
+exactly one `_gObjectPool` definition and fixes it as a writable, nonvolatile
+145,920-byte global and the watched pointer as its
+eventual symbol block plus `37088`; resolving that declaration to the concrete
+official-link initial/current memory is still open.  Under the observed
+duplicate-free 131-push/84-pop LIFO history, the watched slot cannot be one of
+the destination allocations and
+survives at depth 47.  The project also proves contradictions for five bounded
+abstract installer-attempt record shapes: stock State-first selection, fixed
+stock-top co-location, every fixed non-top stock owner, position-preserving
+post-commit selection, and stock-provenanced frozen carry.  Ink's graphical
+retry remains a conditional candidate.  The generated US/JP syntax now shows
+no direct stock-warp position access or writer, while a separate finite
+top-motion mirror stays within a small X/Y envelope with fixed Z.  Connecting
+those facts to every live callback and store is still open, so stock self-motion
+is narrowed rather than excluded.  The linked chronology, exhaustive stock
+projection, aliased/external relocation or cloning cases, and clean installation
+of the three-view gap remain unproved.
+
 ## Build
 
 With Rocq 8.16.1 and CompCert 3.15 on `PATH`:

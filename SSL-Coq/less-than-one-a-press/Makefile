@@ -1086,6 +1086,60 @@ check: proofs
 	  LessThanOneAPress.Proofs.JPGeneratedWriterCensus \
 	  jp_mario_area_lifetime_source_shape_checked
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPActionProvenanceCensus \
+	  jp_generated_action_provenance_syntax_kernel_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPBinary32DepthWrites \
+	  jp_binary32_safe_writer_outcome_preserves_nonnegative
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPBinary32DepthWrites \
+	  jp_binary32_safe_writer_trace_from_clean_zero_is_not_clight_negative
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1EntryDepthClosure \
+	  ordinary_area1_entry_memory_synchronizes_all_coordinates
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1EntryDepthClosure \
+	  stock_area1_static_door_source_excluded
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1EntryDepthClosure \
+	  us_stock_ssl_area1_macro_decoder_is_total
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1EntryDepthClosure \
+	  jp_stock_ssl_area1_macro_decoder_is_total
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1EntryDepthClosure \
+	  stock_area1_direct_source_omits_pyramid_top_children
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPDestinationChronologyCertificate \
+	  jp_authenticated_top_is_not_a_destination_allocation
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPDestinationChronologyCertificate \
+	  jp_cleaned_object_pool_declarations_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPDestinationChronologyCertificate \
+	  jp_cleaned_object_pool_definition_count_is_one
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPDestinationChronologyCertificate \
+	  jp_authenticated_top_pointer_is_pool_block_plus_37088
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InstallerCoverage \
+	  installer_coverage_checked_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.StockWarpTopMotion \
+	  stock_upper_warp_direct_writer_source_boundary_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.StockWarpTopMotion \
+	  stock_top_direct_motion_source_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.StockWarpTopMotion \
+	  stock_top_nonspinning_direct_position_source_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.StockWarpTopMotion \
+	  stock_top_sine_table_source_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.StockWarpTopMotion \
+	  modeled_stock_top_all_spinning_timers_bounded_checked
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.JPZeroAReachability \
 	  zero_a_edge_clight_reachable_is_clight_star
 	bash pipeline/assumptions.sh \

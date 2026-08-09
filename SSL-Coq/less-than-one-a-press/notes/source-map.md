@@ -420,3 +420,58 @@ proof for those families has been supplied.
 The generated `ssl_script` units use the normal preprocessing configuration.
 The source's experimental `SSL_SPAWNING_DISPLACEMENT_TAS_HACK` branch is not
 enabled and supplies no target-version reachability evidence.
+
+## Ink installer closure tranche
+
+`proofs/Area1EntryDepthClosure.v` derives exact three-axis
+State/Object/Graphics synchronization, the spin-airborne action, and binary32
+positive-zero quicksand depth from the existing ordinary-entry memory
+postcondition.  It decodes all 46 US and JP Area-1 macro records against the
+complete 366-entry preset tables and excludes `bhvDoor` and `bhvDoorWarp` from
+both the macro stream and Area-1 script, with exact stream, terminator, and
+lower/upper index receipts.  It also proves the direct-source premise omits
+normal top-spawned children, defines transitive spawn-closure provenance, and
+proves the generic forbidden-behavior lemma.  Executing linked entry, extracting
+the full spawn graph, and proving both door behaviors unreachable remain open.
+
+`proofs/JPActionProvenanceCensus.v` checks all 38 generated JP units and finds
+exactly eight bodies with a direct field named `_action` assignment.  None of
+those bodies embeds the long-jump literal; the existing call census and
+source-shape proof continue to identify the A-edge-guarded `act_crouch_slide`
+call as the sole direct ordinary long-jump constructor.  This is a
+receiver-neutral syntax result, not an alias, indirect-flow, or reachability
+theorem.
+
+`proofs/JPBinary32DepthWrites.v` proves finite nonnegative preservation for a
+handwritten sink-visible exact CompCert/Flocq binary32 candidate relation.  It
+imports no generated writer AST.  From entry
+`+0.0f`, its finite/non-overflowing reset, clamp, retail increment/cap,
+ordinary landing timer `1..3`, paired quicksand-jump, death, and preserve steps
+cannot make Clight's `depth < 0.0f` comparison true.  Linked expression/store
+simulation, retail upper bounds, timer provenance, alias/external frames, and
+non-interleaving of the quicksand-jump raw store and clamp remain open.
+
+`proofs/JPDestinationChronologyCertificate.v` ties the stale-top destination
+arithmetic to the official cleaned JP composite layout.  It checks 608-byte
+objects, watched slot offset 37088, twelve in-slot payload-witness ranges, and
+exactly one retained cleaned `_gObjectPool` declaration as a
+writable/nonvolatile 145920-byte
+global, the block-relative watched pointer, and the conditional 131-push/
+84-pop non-selection and depth-47 facts.  Completeness of the payload access
+list against the generated AST, resolving the declaration to the
+actual official-link initial/current-memory block, extracting the chronology
+and epoch from small steps, and executing first-apply loads remain open.
+
+`proofs/InstallerCoverage.v` proves contradictions for five source-bounded
+abstract installer-attempt records and
+carries Ink's timer-131 retry into one explicitly conditional trace.  It does
+not prove the missing linked stock-provenance projection or clean reachability
+of the initial Graphics/Object gap.
+
+`proofs/StockWarpTopMotion.v` checks the exact US/JP stock warp and pyramid-top
+scripts and native bodies.  The upper warp has no direct X/Y/Z access or write;
+the finite binary32 top mirror covers timers 0 through 150, stays in X
+`[-2087,-2007]` and Y `[1536,1879)` with fixed Z `-1023`, and agrees with the
+timer-131 surface fixture.  The live Clight-to-mirror and memory-frame
+refinement is open, so this narrows rather than excludes stock self-motion;
+aliased/external relocation, clones, and identity/epoch changes also remain.

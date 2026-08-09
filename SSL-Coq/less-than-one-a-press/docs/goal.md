@@ -80,6 +80,21 @@ Rocq checks the value-level
 surface arithmetic, timer-window arithmetic, finite free-list arithmetic, and
 copied runtime records; it does not prove a linked clean Clight execution.
 
+The destination-side certificate now fixes the official linked JP object size
+at 608 bytes and observed slot 61 at pool offset 37088.  The twelve listed
+payload-witness ranges are within that slot; extracting the complete generated
+access set remains open.  It proves the cleaned program retains exactly one
+`_gObjectPool` declaration, checks it as a writable, nonvolatile 145,920-byte
+global, and fixes the watched pointer as its
+eventual block plus 37088.  Conditional on the observed duplicate-free
+131-push and 84-pop LIFO history, it proves that the destination allocator
+cannot select the slot and that it survives at depth 47.  Extracting that
+history, the concrete official-link memory block/epoch, terrain effects, and
+first-apply payload loads from linked small steps remains open.  Five bounded
+abstract installer-attempt record shapes are contradictory, but
+relocation/cloning, query-moving transport, non-stock owners, unmodeled skips,
+and Ink's clean three-view installation are not.
+
 The newest clean-JP installer reduction narrows that missing boundary.
 `CleanJPGraphicsGap.v` defines a clean JP Area-1 audit boundary, proves that a
 synchronized Object/Graphics projection has zero separation, and proves that
@@ -106,6 +121,29 @@ composition conditional on total projection and per-step refinement.  Its
 program, controller address, and entry are parameters; it does not itself
 establish a clean JP entry.  The projection/refinement premises are not
 discharged.
+
+The ordinary-entry postcondition now implies equality of all three coordinates
+across State/raw Object/Graphics, the spin-airborne action, and binary32
+positive-zero depth.  The actual US and JP Area-1 macro data each decode 46
+in-bounds entries against 366 presets with exact stream/terminator/lower-bound
+receipts, and neither those entries nor the script selects either door
+behavior.  The direct-source premise is too strong for normal spawned children;
+the new transitive spawn-closure boundary still needs graph extraction and a
+door-specific reachability proof.  A complete 38-unit JP census also narrows
+direct action assignments and confirms the only direct ordinary long-jump constructor
+is A-edge guarded.  Live entry execution, stock object provenance, typed
+receiver/non-aliasing, indirect action flow, and binary32 writer execution are
+still required before the `>=960` installer can be eliminated.
+
+The binary32 arithmetic sublayer itself is now checked for a handwritten
+candidate relation: a sink-visible safe-writer trace from exact `+0.0f`
+preserves finite nonnegative depth and makes Clight's `depth < 0.0f` test false.
+The relation covers stock constants and
+paired clamp behavior while deliberately excluding landing timers 4 and 5.
+Timer 4 still needs a lower-bound argument; timer 5 is the known negative
+producer.  The outstanding semantic task is to prove that every clean linked
+write refines this relation and satisfies its finite/no-overflow and
+non-interleaving premises.
 
 Exact binary32 also exposes the necessary caution: an already-installed
 `-2.650000095f` depth reaches a zero-base endpoint at least `960` after 363
@@ -243,7 +281,12 @@ spinning timer `150`, and frame 20 must run explosion timer `0`; the value-level
 timer-131 transform and midpoint surface are checked and the injected JP run
 observes the selection.  Ink is one possible payload installer, not the only
 one.  State-first selection, physical co-location or cloning, post-commit
-transport, another owner, and frozen carry remain candidates.  Clean
+transport, another owner, and frozen carry remain candidates.  The generated
+stock upper-warp callback has no direct position writer, and a finite binary32
+certificate confines the stock top's own timer `0..150` motion to its small
+X/Y envelope at fixed Z.  The live Clight-to-mirror and memory-frame proof is
+still missing, so stock self-motion is narrowed rather than eliminated;
+aliased/external relocation and collision-preserving cloning also remain.  Clean
 reachability and linked collision-array retention remain open.  The
 conditional run observes capture/unload timing and JP pointer retention through
 the delayed warp, but their Clight refinement remains open.  The complete

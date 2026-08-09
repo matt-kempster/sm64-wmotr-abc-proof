@@ -81,6 +81,7 @@ generated/jp_ssl_collision.v
 proofs/ASTFacts.v
 proofs/CollisionMeshFacts.v
 proofs/ClightFacts.v
+proofs/StockWarpTopMotion.v
 proofs/EntryMemory.v
 proofs/GameTypes.v
 proofs/SourceExhaustiveness.v
@@ -121,6 +122,7 @@ proofs/ClightGlobalMemoryRefinement.v
 proofs/RetailExternalFrames.v
 proofs/ClightEndToEndRefinement.v
 proofs/OrdinaryArea1EntryMemory.v
+proofs/Area1EntryDepthClosure.v
 proofs/LowerEntrance.v
 proofs/UpperEntrance.v
 proofs/ArchivedProofIntegration.v
@@ -130,6 +132,7 @@ proofs/JPFirstApply.v
 proofs/JPInstallTimerWindow.v
 proofs/StateFirstInstaller.v
 proofs/JPLifecycleTrace.v
+proofs/JPDestinationChronologyCertificate.v
 proofs/Area1PhaseSplit.v
 proofs/Area1SurfaceWitness.v
 proofs/Area1FirstNull.v
@@ -141,9 +144,12 @@ proofs/GoombaRaising.v
 proofs/InkFallback.v
 proofs/InkPayloadInstaller.v
 proofs/Timer131Surface.v
+proofs/InstallerCoverage.v
 proofs/CleanJPGraphicsGap.v
 proofs/JPQuicksandDepth.v
 proofs/JPGeneratedWriterCensus.v
+proofs/JPActionProvenanceCensus.v
+proofs/JPBinary32DepthWrites.v
 proofs/JPZeroAReachability.v
 proofs/RetailFatalLatch.v
 proofs/TurningAnimation.v

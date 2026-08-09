@@ -98,6 +98,37 @@ engineering but does not know *Super Mario 64*.
 > state projection and classification of every reachable step; the latter is
 > exactly the unresolved writer/refinement premise.
 >
+> The postcondition consequences are now sharper.  At ordinary Area-1 entry,
+> all three coordinates agree across Mario State, the collision Object, and the
+> Graphics anchor; the action is spin-airborne; and quicksand depth is the
+> binary32 value `+0.0f`.  The generated static data contains 46 Area-1 macro
+> objects in each version, every preset lookup is in bounds, and neither those
+> objects nor the Area-1 script installs an ordinary door or warp door.  Thus
+> the static roots do not directly install either door.  The earlier
+> direct-source condition is too strong for the real object graph: the
+> pyramid-top callbacks mention normal pillar-detector and fragment children
+> that do not occur in those direct lists.  Rocq now states the correct
+> transitive spawn-closure boundary and proves its generic exclusion lemma.
+> The complete generated spawn graph, door non-reachability, linked entry
+> execution, and alias/corruption closure remain open.
+> A separate complete JP syntax census finds eight bodies that directly assign
+> a field named `action`.  None also embeds the long-jump constant; the only
+> direct ordinary long-jump constructor remains the A-edge-guarded
+> `act_crouch_slide` call.  Because a field-name census does not establish the
+> receiver or follow arbitrary indirect values, it narrows but does not finish
+> the live action-provenance proof.
+> The depth sign proof is no longer only an integer approximation.  An exact
+> CompCert/Flocq binary32 candidate relation now covers the sink-visible reset,
+> clamp, increment, cap, ordinary-landing, paired quicksand-jump, and death
+> updates.  From binary32 `+0.0f`, finite non-overflowing steps in that relation
+> cannot make the C comparison `depth < 0.0f` true.  The relation is handwritten
+> and imports no generated writer AST.  Timers 4 and 5 are deliberately outside
+> it: timer 4 needs a lower-bound proof, while timer 5 is the known negative
+> long-jump-landing writer.  The linked proof must still classify every actual
+> store, establish
+> the finite bounds, and prevent an observation between quicksand-jump's raw
+> subtraction and immediate clamp.
+>
 > A suspected fire-particle writer was checked and rejected.  Mario's render
 > callback guards on `obj == gMarioObject`, but passes `obj->prevObj` (the flame
 > object) to both position helpers.  It moves the flame, not Mario's Graphics
@@ -160,6 +191,40 @@ engineering but does not know *Super Mario 64*.
 > remains zero.  No clean retail installer for the `>=960` three-view gap is
 > known, so this is neither a stock-game counterexample nor a completed
 > impossibility proof.
+>
+> The destination-side arithmetic is now tied to the official linked JP object
+> layout.  A pool object is 608 bytes, so observed slot 61 begins at offset
+> 37,088; the twelve payload-witness ranges listed by the fixture stay within
+> that object.  Extracting the complete generated access set is still open.
+> Exactly one cleaned JP declaration is retained for `_gObjectPool`, and it is
+> an exact writable, nonvolatile 145,920-byte allocation.  The watched CompCert
+> pointer is exactly the eventual pool block plus 37,088.  If the linked run
+> realizes the observed duplicate-free sequence of
+> 131 teardown pushes followed by 84 destination allocations, the first 84
+> pops cannot select slot 61 and it is still at depth 47.  Writes confined to
+> the popped slots preserve slot 61's payload.  The remaining proof must derive
+> that sequence, resolve the actual official-link memory block, establish its
+> current pointer epoch, prove terrain frames, and execute first-apply loads
+> from Clight small steps rather than from the runtime observation.
+>
+> The installer case split is also narrower.  The formal stock model excludes
+> State-first selection at the fixed upper warp, fixed stock-top co-location,
+> every one of the fourteen other fixed stock owners, post-commit selection
+> that leaves the final query in the warp region, and a frozen pointer whose
+> history already has stock provenance.  It does not exclude moving or cloning
+> geometry, moving the final query onto an owner, non-stock/corrupt owners, or
+> an unmodeled query skip.  Ink's graphical retry therefore remains logically
+> possible but has not been reached from clean retail input.
+>
+> The generated source narrows one more version of "moving geometry."  The
+> stock upper warp's native body contains no direct X/Y/Z access or write.
+> The stock pyramid top does write X and Y, and a separate binary32 check of every
+> spinning timer from 0 through 150 keeps it within X `[-2087,-2007]`,
+> Y `[1536,1879)`, and fixed Z `-1023`; timer 131 agrees with the detailed
+> surface calculation.  But the mirror is not yet linked to every live Clight
+> step, so it does not prove that neither stock object moves into the other.
+> An aliased writer, another behavior, a clone, or an object-identity/epoch
+> failure could also escape the checked bodies.
 
 > **Newest turning-animation result:** Marbler's `0xBD` observation is a real
 > numerical coincidence, but it is not an animation-induced upwarp.
@@ -2040,6 +2105,20 @@ The most useful entry points are:
 - `proofs/JPLifecycleTrace.v`: generated source-order receipts, exact finite
   free-list/depth arithmetic, and internal consistency of the injected-boundary
   JP lifecycle record; not a clean Clight execution theorem;
+- `proofs/JPDestinationChronologyCertificate.v`: official cleaned JP object
+  layout, cleaned `_gObjectPool` declaration shape, watched pointer offset,
+  payload bounds, and conditional 131-push/84-pop non-selection certificate;
+- `proofs/InstallerCoverage.v`: contradictions for five bounded abstract
+  installer-attempt records and the
+  explicitly conditional timer-131 Ink trace boundary;
+- `proofs/StockWarpTopMotion.v`: stock upper-warp direct-writer source-shape
+  receipt and separate finite binary32 pyramid-top timer `0..150` mirror;
+- `proofs/Area1EntryDepthClosure.v`: ordinary-entry synchronization/depth
+  consequences and complete static Area-1 door-source exclusion;
+- `proofs/JPActionProvenanceCensus.v`: receiver-neutral all-unit direct-action
+  assignment and long-jump-literal overlap census;
+- `proofs/JPBinary32DepthWrites.v`: exact handwritten sink-visible safe-depth
+  candidate relation and trace sign-preservation theorem;
 - `proofs/FirstTargetRefinement.v`: indexed Clight-frame evidence, collision
   cuts, concrete bypass classes, and conditional stale-top path;
 - `proofs/ModelGapAudit.v`: executable countermodels to the old abstraction
