@@ -420,6 +420,25 @@ the real lower cut must be first collision-phase entry into an enumerated
 target-side support or open-cell component, because target-side floor and
 trigger geometry lie below the pole's top-grip height.
 
+The current project now authenticates candidate Area-2 cuts from the generated
+US/JP collision initializers.  The lower inventory authenticates eight Y=3942
+ring records, eight aperture-plane records, and four conservative closed
+binary32 boxes outside the central shaft.  Formal target-side membership uses
+the ring records and boxes; the aperture-plane records are pending separator
+evidence.  The upper candidate inventories the elevator
+base/walls/rim and fixed chamber/surrounding surfaces, while keeping its live
+moving-relative predicate separate from a coarse absolute-sweep adapter.
+Admission-free theorems reduce each no-A gate to a concrete crossing plus seven
+writer/support exclusions; they do not prove those premises.  Version-indexed
+downstream suffix schemas also separate post-gate capability from clean-prefix
+reachability.  The existing injected JP observations cover all five trigger
+regions and a separate Act-6 pickup, but no cut-starting US/JP Act-3 or
+all-five suffix is proved.  The transcript's upper
+100-coin-star/vertical-speed/star-dance Act-3 itinerary and lower
+homing-amp/Grindel/elevator-misalignment itinerary are recorded as ordered candidate
+stages with separate suffix obligations; neither itinerary has yet been
+refined to a linked cut-starting execution.
+
 `FirstTargetRefinement.v` now supplies an evidence-bearing interface with
 actual before/after Clight states, trace segments, exact indexed certified
 steps, and `CollisionSupportCut` crossing witnesses.  Within the certified
@@ -441,7 +460,8 @@ run remains open; the older payload-free
 the final coverage theorem: an unrestricted `CollisionSupportCut` may place
 the same state on both sides.  Its corrected boundary parameterizes the
 construction and exclusions by one selected version/entrance/target cut
-family, gives each cut an entrance/entry contract, requires endpoint-local
+family, records source and non-target membership for the actual projected
+initial state, requires endpoint-local
 side separation, orders the crossing segment before a matching target-event
 segment, supplies evidence for every earlier index, and proves an exhaustive
 abstract-event split.  A changed-XYZ projected event is labeled ordinary

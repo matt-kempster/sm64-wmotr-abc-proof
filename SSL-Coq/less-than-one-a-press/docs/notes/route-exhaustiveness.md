@@ -201,10 +201,9 @@ whose source and target support sets overlap.
 `FirstCrossingWriterCoverage.v` supplies the corrected boundary:
 
 - `TargetCollisionCutFamily` parameterizes the selected descriptor for each
-  version/entrance/target combination, while
-  `EntranceCollisionCutEntryContract` places every matching clean entry on the
-  source side and excludes the matching entry snapshot from the target side;
-- `FirstValidatedCutCrossingAt` carries an actual projected Clight frame whose
+  version/entrance/target combination;
+- `FirstValidatedCutCrossingAt` requires source and non-target membership for
+  its actual projected initial state and carries an actual Clight frame whose
   before-state is on the source side and after-state is on the target side,
   requires side separation at that actual endpoint, star-orders that segment
   before a matching target-event segment, supplies ordered evidence for every
@@ -727,6 +726,33 @@ previously absent source bodies for entry and writer auditing; exact linking,
 indirect callback execution, and live-memory effects remain separate
 obligations.
 
+## Area-2 cut refinement
+
+The initializer half of the Area-2 cut work is now concrete.  The upper file
+authenticates the elevator base/walls/rim and fixed chamber/surrounding
+triangles; the lower file authenticates ring ordinals `1414..1421`, aperture
+walls `1534..1541`, and the relevant vertex/height receipts.  The lower cut no
+longer means “above the second pole.”
+
+This did not finish route exhaustiveness.  The moving elevator cannot be
+represented exactly by the generic absolute closed-cell cut, so its
+moving-relative candidate and absolute-sweep adapter are explicit separate
+interfaces.  The lower four binary32 boxes are conservative projected-position
+tests, not collision-phase hitbox components.  Both cut files prove only the
+conditional seven-writer contradiction after a valid earlier-frame crossing
+is supplied, and both name the same-frame collision-phase residual.
+
+Downstream capability is likewise no longer conflated with gate reachability.
+Version-indexed suffix records begin at a supplied cut boundary; optional clean
+prefixes compose separately.  No US/JP cut-starting suffix is inhabited.  The
+conditional JP five-trigger observation and separate Act-6 pickup remain
+useful mechanism receipts.  For Act 3, the transcript supplies an upper
+100-coin-star/vertical-speed/star-dance itinerary and a lower
+homing-amp/Grindel/elevator-misalignment itinerary; both ordered stage lists and their
+separate suffix obligations are now explicit.  A transient direct-steering
+experiment fell into the shaft, but it did not attempt the transcript's
+misalignment sequence and is not evidence against that route.
+
 ## What remains
 
 To prove route exhaustiveness, the project still needs:
@@ -735,9 +761,10 @@ To prove route exhaustiveness, the project still needs:
    certificate and `ClightFrameEvidence`, thereby discharging
    `WholeProgramClightRefinementObligation` and the projection part of
    `EvidenceBearingRouteClassificationRefinementObligation`;
-2. a checked parser/refinement from the generated collision arrays to exact
-   surface IDs, dynamic owners, and target-side components, followed by proofs
-   of their `EntranceCollisionCutEntryContract`, their endpoint-local
+2. complete the now-partial parser/refinement from the generated collision
+   receipts to live surface IDs, dynamic owners, and target-side components,
+   followed by proofs
+   of their run-local initial membership, their endpoint-local
    separation, and their selection by `TargetCollisionCutFamily`;
 3. a source-backed **clean installer** for the midpoint JP platform state plus
    its destination-scoped linked chronology, ordered allocation/free trace,
@@ -761,10 +788,10 @@ To prove route exhaustiveness, the project still needs:
 7. a proof that the ordinary elevator/pole A-labelled observations correspond
    to the actual action branches that cross those cuts, completing the
    classification residual; and
-8. for the conditional JP counterexample direction, a zero-A collision with the
-   spawned Act-6 star and an observed newly set bit, or a proof that no such
-   continuation exists.  All five trigger consumptions alone are not target
-   collection.
+8. connect the already observed conditional JP zero-A Act-6 pickup and save-bit
+   transition to the same cut-starting linked suffix as its five-trigger
+   prefix, or prove that no clean-prefix composition exists.  The current
+   trigger and pickup receipts remain separate and injected.
 
 For the node-`0x1E` candidate, item 3 no longer asks for a particular
 controller sequence, object count, mist branch, or free-list depth.  `[top,

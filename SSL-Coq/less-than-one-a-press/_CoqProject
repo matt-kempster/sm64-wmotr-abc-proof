@@ -147,6 +147,11 @@ proofs/StockProjectionExhaustiveness.v
 proofs/FirstCrossingWriterCoverage.v
 proofs/ModelGapAudit.v
 proofs/OrdinaryMotion.v
+proofs/Area2ElevatorCut.v
+proofs/Area2LowerTargetCut.v
+proofs/Area2DownstreamGeometry.v
+proofs/Area2DownstreamReceipts.v
+proofs/Area2DownstreamContinuations.v
 proofs/GoombaRaising.v
 proofs/InkFallback.v
 proofs/InkPayloadInstaller.v

@@ -286,8 +286,9 @@ trigger cut.  It therefore blocks both bits when the evidence-bearing
 classifier and exclusions for all six open writer families are supplied.
 
 `FirstCrossingWriterCoverage.v` now replaces the unused first-writer
-inventory as the next sound boundary.  It requires an entry-contracted,
-endpoint-separated cut selected from a target-cut-family parameter and an
+inventory as the next sound boundary.  It requires run-local initial
+source/non-target facts and endpoint separation for a cut selected from a
+target-cut-family parameter, plus an
 ordered minimal pre-target Clight crossing, then proves that a non-target
 projected event either has the ordinary-physics, platform-displacement,
 object-impulse, collision-clip, or reload label, or changes the selected
@@ -298,6 +299,25 @@ alias lemmas, but it does not construct the linked crossings or discharge the
 six no-A motion/domain predicates and additional support-selection predicate.
 Same-frame target crossings still need ordered sub-frame refinement.
 
+`Area2ElevatorCut.v` and `Area2LowerTargetCut.v` now instantiate candidate
+surface/projected-position boundaries from generated US/JP collision data.  The
+lower formal target side uses the Y=3942 ring records and four conservative
+closed boxes; separate aperture-plane records constrain the pending separator.
+It is not a test that Mario is
+“above the second pole.”  The upper file deliberately distinguishes a
+moving-relative elevator candidate from a conservative absolute-sweep adapter.
+Both no-A results remain conditional on constructing the linked crossing and
+excluding all seven writer/support cases; same-frame collision-phase crossings
+are separately named residuals.  `Area2DownstreamContinuations.v` factors
+version-indexed suffix capability from an optional clean prefix.  It checks
+support geometry, a 75-unit standing Act-3 miss, and conditional JP trigger and
+pickup receipts, but does not provide US/JP cut-starting Act-3 or all-five
+suffixes.  The transcript does provide candidate Act-3 continuations: an upper
+100-coin-star/vertical-speed/star-dance itinerary and a lower
+homing-amp/Grindel/elevator-misalignment itinerary.  Their ordered stage lists and
+separate suffix obligations are formalized, while live Clight realization of
+either route remains open.
+
 This incorporation does not complete the goal.  The route lemmas lack the
 whole-program writer, Float32 collision, model-completeness, and memory
 provenance bridges needed to apply them globally.  The platform model uses an
@@ -306,12 +326,14 @@ inactive, and reused cases under a slot-well-formedness premise, but its C
 projection, authentic reachability, and displacement bounds remain open.  It
 currently admits a stale pyramid-top displacement outside the upper shaft.
 The older fixture-assisted authentic-JP replay injected at the first Area-2
-controller poll and therefore drove the second application.  The current
-timer-131 midpoint replay injects earlier, at the Area-1 three-view seam;
-retail execution then performs capture, explosion/free, delayed-warp
-retention, the true first destination displacement, all five trigger
-consumptions, and Act-6 star spawn with no A edge.  It does not overlap or
-collect that star and has no Act-3 overlap or save-bit proof.  The repeated
+controller poll and therefore drove the second application.  The timer-131
+midpoint replay injects earlier, at the Area-1 three-view seam; its original
+schedule performed capture, explosion/free, delayed-warp retention, the true
+first destination displacement, all five trigger consumptions, and Act-6 star
+spawn without collecting it.  A later refined conditional B/Z continuation
+separately overlaps and collects Act 6 with an observed save-bit transition.
+Those injected observations are not yet one clean cut-starting linked suffix,
+and neither schedule reaches Act 3.  The repeated
 Area-1 numerical-slot-60 predecessor fails because that cell is depth 7 and is
 reused/cleared as macro object #5; it does not reproduce an early-freed top and
 its fragments.  No controller-only retail installer has been established.

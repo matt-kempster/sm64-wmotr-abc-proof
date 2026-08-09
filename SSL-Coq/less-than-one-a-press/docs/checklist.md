@@ -216,9 +216,9 @@
   `evidence_bearing_route_cut_blocks_new_target_bits` under the explicit
   evidence-bearing classifier and six writer-family exclusions.
 - [x] Replace the unused first-writer inventory boundary with
-  `TargetCollisionCutFamily`, `EntranceCollisionCutEntryContract`, and
-  `FirstValidatedCutCrossingAt`; prove that an unvalidated cut may overlap
-  itself and that every contracted, endpoint-separated, pre-target,
+  `TargetCollisionCutFamily` and a run-local `FirstValidatedCutCrossingAt`;
+  prove that an unvalidated cut may overlap
+  itself and that every run-locally initialized, endpoint-separated, pre-target,
   non-target crossing is a position write by ordinary physics, platform
   displacement, object impulse, collision clip, or area reload, or else a
   same-position floor/platform support-selection change.  Scope all no-A
@@ -753,6 +753,37 @@
   over exact collision surfaces, prove both no-A gate closures, and validate
   separate downstream continuations to the Act 3 region and all five Act 6
   triggers.  Do not use “above the second pole” as the lower geometric cut.
+  - [x] Authenticate the US/JP upper elevator base, inner-wall, rim,
+    surrounding-floor, and chamber-wall triangle inventory, plus the complete
+    elevator vertex/bounds receipts.  Separate the moving-relative candidate
+    from the conservative absolute-sweep adapter.
+  - [x] Authenticate the US/JP lower ring triangles `1414..1421`, aperture
+    walls `1534..1541`, selected vertex/side/Y receipts, and mesh maximum Y;
+    define four conservative closed binary32 target boxes excluding the pole
+    shaft.  The historical phrase “above the second pole” is no longer the
+    lower cut.
+  - [x] Prove the normalized legacy soft-bonk subcase remains inside the pole
+    aperture, and prove upper/lower conditional first-crossing reductions once
+    the concrete construction and all seven writer/support exclusions are
+    supplied.  These implications do not inhabit those retail premises.
+  - [x] Define version-indexed downstream suffix certificates separately from
+    optional clean no-A prefixes; require distinct Act-3, all-five-trigger, and
+    Act-6-collection suffixes for each concrete cut.
+  - [x] Check initializer-derived static support receipts beneath Act 3 and all
+    five triggers, prove the standing Act-3 sample misses vertically by 75,
+    and retain the conditional JP five-trigger/spawn and separate Act-6 pickup
+    receipts without treating them as one cut-starting execution.
+  - [x] Transcribe the two post-gate Act-3 algorithms as ordered Rocq stage
+    lists: the upper 100-coin-star/vertical-speed/star-dance route and the lower
+    homing-amp ledge clip followed by the Grindel/elevator-misalignment route.
+    This checks the itinerary vocabulary,
+    not its Clight execution.
+  - [ ] Construct the live US/JP moving/static `Surface` projections and exact
+    source components; cover same-frame collision phases; discharge all seven
+    no-A writer/support classes for both cuts; and inhabit the separate US/JP
+    downstream suffixes, including linked realizations of both transcript
+    Act-3 itineraries.  The attempted JP direct-steering schedule did not use
+    the Grindel/elevator misalignments, fell to Y=-101, and is not an exclusion.
 - [ ] Prove `LowerEntranceReachabilityObligation`.
 - [ ] Prove `UpperUSReachabilityObligation`.
 - [ ] Prove `UpperJPReachabilityObligation`.

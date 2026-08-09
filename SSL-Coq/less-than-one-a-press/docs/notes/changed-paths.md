@@ -840,3 +840,30 @@ changed:
 - `SSL-Coq/less-than-one-a-press/proofs/Area1NonlocalCastSemantics.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/Area1NonlocalEndpointBoundary.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/Area1NonlocalYCastArithmetic.v` (new)
+
+## Area-2 cut and downstream tranche
+
+The exact initializer inventories, conservative cut interfaces, conditional
+gate reductions, downstream suffix decomposition, and status documentation
+changed:
+
+- `SSL-Coq/README.md`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/claim.md`
+- `SSL-Coq/less-than-one-a-press/docs/goal.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/area2-downstream-continuations.md` (new)
+- `SSL-Coq/less-than-one-a-press/docs/notes/area2-elevator-cut.md` (new)
+- `SSL-Coq/less-than-one-a-press/docs/notes/area2-lower-target-cut.md` (new)
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/route-exhaustiveness.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+- `SSL-Coq/less-than-one-a-press/proofs/Area2DownstreamContinuations.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/Area2DownstreamGeometry.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/Area2DownstreamReceipts.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/Area2ElevatorCut.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/Area2LowerTargetCut.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/FirstCrossingWriterCoverage.v`

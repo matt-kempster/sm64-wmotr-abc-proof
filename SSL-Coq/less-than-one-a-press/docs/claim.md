@@ -386,7 +386,8 @@
   supplied.  The implication is proved; those retail-program premises are not.
 - `FirstCrossingWriterCoverage.v` proves that the old unrestricted cut data
   can be degenerate, parameterizes the result by a selected
-  version/entrance/target cut family, gives each cut an entry contract,
+  version/entrance/target cut family, records the actual projected initial
+  state's source/non-target membership,
   requires separation at the actual crossing endpoint,
   star-orders the crossing before a matching target-event segment, supplies
   ordered evidence for every earlier index, and proves an exhaustive
@@ -394,8 +395,8 @@
   A changed-position event carries one of five labels (ordinary physics,
   platform, object impulse, collision clip, or reload); unchanged position
   requires a changed floor/platform selection.  It also proves nonspatial
-  admin preservation, changed-reload entry restoration, a conditional
-  entry-contracted reload exclusion, and a
+  admin preservation, changed-reload entry restoration, a conditional legacy
+  snapshot-exclusion helper, and a
   local-cast alias exclusion.  The linked crossing construction, six no-A
   motion/domain exclusions, and the separate support-selection exclusion are
   not proved; those exclusions are scoped to clean entries and the selected cut
@@ -608,9 +609,25 @@
   No controller-only retail predecessor has been established.  Other
   open cases include moving/loading the warp onto the top, moving the top to
   the warp, and collision-preserving cloning.
+- The Area-2 geometry tranche authenticates exact initializer triangle and
+  vertex receipts for the upper elevator candidate and the lower pole-aperture
+  candidate.  The lower cut uses ring supports plus conservative binary32
+  boxes outside the shaft, not “above the second pole.”  Both files prove
+  conditional first-crossing contradictions only after a concrete crossing
+  and seven no-A writer/support exclusions are supplied.  The moving elevator
+  still requires a live pose-relative refinement because its absolute sweep
+  adapter is not the exact component.  Version-indexed downstream suffix
+  schemas separate gate reachability from Act-3, all-five-trigger, and Act-6
+  capability.  No such US/JP cut-starting suffix is inhabited; the conditional
+  JP trigger and pickup observations remain separate injected receipts.  The
+  transcript's upper 100-coin-star/star-dance itinerary and lower
+  homing-amp/Grindel/elevator-misalignment itinerary are represented as ordered candidate
+  stages with separate suffix obligations, but no linked execution realizes
+  either list.
 - A complete collision-observation projection, and lower-entrance no-A
   non-overlap over that projection.  The lower cut must use collision-phase
-  entry into enumerated target-side supports/open cells, not a height predicate
+  entry into enumerated target-side supports and closed-bounds
+  `AxisAlignedOpenCell` boxes, not a height predicate
   above the second pole.
 - US upper-entrance containment/non-overlap.
 - JP upper-entrance containment with retained-platform spawning displacement.

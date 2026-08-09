@@ -405,7 +405,8 @@ constructs that classifier and the remaining movement classes are not closed.
 `FirstCrossingWriterCoverage.v` now repairs the classification boundary.  It
 proves that an arbitrary `CollisionSupportCut` can be degenerate, introduces
 a `TargetCollisionCutFamily` parameter for the construction and exclusions,
-requires an entrance/entry contract plus
+requires source and non-target membership for the actual projected initial
+state plus
 endpoint-local side separation, identifies an actual minimal pre-target
 Clight crossing, and proves its abstract event-label coverage.  A changed
 Mario position is
@@ -451,6 +452,37 @@ path repeatedly supplies zero forward velocity before its air step, but no
 Clight/collision theorem yet proves that the entry descent is vertical, lands
 on the intended live elevator floor, and reaches the prestates assumed by the
 ascent kernel.
+
+The Area-2 cut tranche now replaces the lower phrase "above the second pole"
+with an initializer-backed inventory: ring triangles `1414..1421`, aperture-
+plane candidates `1534..1541`, and four conservative closed binary32 boxes over
+the ring footprint while excluding the central shaft.  The formal target side
+uses the ring records and boxes; the plane candidates constrain the pending
+wall/separator proof.  It also inventories the exact
+upper elevator base/wall/rim and fixed chamber/surrounding-floor triangles.
+Because the elevator moves, its moving-relative source candidate is kept
+separate from the coarse absolute-sweep `CollisionSupportCut` adapter; the
+adapter is not described as the exact moving component.
+
+Both entrances now have admission-free conditional first-crossing reductions
+over seven writer/support classes, but neither retail no-A gate closure is
+proved.  Live surface decoding/selection, a concrete source component, every
+writer exclusion, and same-frame collision-phase crossings remain open.
+Version-indexed downstream suffix records separately require Act-3 access,
+all five trigger regions, and Act-6 collection from a supplied boundary.  The
+existing injected JP observations check all five trigger overlaps and a
+separate Act-6 pickup, but do not inhabit a cut-starting suffix.  A direct
+standing sample on the checked Act-3 support misses vertically by 75 units.
+The transcript nevertheless supplies two post-gate Act-3 itineraries: an upper
+100-coin-star/vertical-speed/star-dance route and a lower homing-amp ledge clip
+followed by the Grindel/elevator-misalignment route.  Rocq records their ordered candidate
+stages and names separate upper/lower suffix obligations, but does not yet
+refine those stages to linked execution.  The transient direct-steering
+experiment did not attempt the transcript's misalignment route and therefore
+does not exclude it.  See
+[`area2-elevator-cut.md`](docs/notes/area2-elevator-cut.md),
+[`area2-lower-target-cut.md`](docs/notes/area2-lower-target-cut.md), and
+[`area2-downstream-continuations.md`](docs/notes/area2-downstream-continuations.md).
 
 `GoombaRaising.v` now formalizes the useful part of the attached
 Goomba-raising proposal.  In the selected no-fresh-walk-jump branch, a grounded
@@ -1079,9 +1111,8 @@ blocks both target bits under the evidence-bearing classifier and
 
 - `an_unvalidated_cut_can_place_one_state_on_both_sides` is a checked
   counterexample to treating every cut descriptor as a separator;
-- `EntranceCollisionCutEntryContract` requires clean-entry source membership
-  and excludes the selected entry snapshot from the target side;
-- `FirstValidatedCutCrossingAt` binds the minimal crossing to one actual
+- `FirstValidatedCutCrossingAt` records source and non-target membership for
+  its actual projected initial state and binds the minimal crossing to one actual
   `ClightFrameEvidence` segment, star-orders it before a matching target-event
   segment, supplies ordered evidence for every earlier index, and requires
   source/target separation at its actual endpoint, without pretending
@@ -1092,8 +1123,9 @@ blocks both target bits under the evidence-bearing classifier and
   floor/platform selection;
 - nonspatial admin events preserve Mario kinematics, and a changed
   `EventAreaReload` returns to the modeled entry snapshot;
-- a reload crossing is impossible once the linked run preserves the initial
-  route context and the entry contract excludes that snapshot; and
+- the older universal `EntranceCollisionCutEntryContract` remains only a
+  conditional reload helper; actual retail construction must instead prove
+  the restored snapshot's target exclusion in the projected run; and
 - local successful X/Y/Z cast-domain membership excludes the existing
   coordinate-alias witness.
 
@@ -1201,9 +1233,10 @@ The `above_second_pole_observed` predicate is retained only as a historical
 transcript node.  It is not the final lower collision cut: the pole grip top is
 at Y `4020`, while the target-side support ring is at Y `3942` and the upper
 Puzzle trigger is at Y `3913`.  A correct lower proof must classify first
-collision-phase entry into the enumerated target-side support/open-cell
-component around the pole hole, not use `marioY > 4020` or an informal floor
-number.
+collision-phase entry into the enumerated target-side support and
+`AxisAlignedOpenCell` component around the pole hole (the historical type's
+current predicate uses closed bounds), not use `marioY > 4020` or an informal
+floor number.
 
 Each route frame pairs its input with that frame's ordered observations.
 `RealizedRouteTrace` additionally requires an abstract `CertifiedExecution`
@@ -1466,6 +1499,10 @@ clightgen -normalize -nostdinc -fstruct-passing \
   initialization and preservation must still be linked explicitly.
   The lower Z soft-bonk result remains a normalized subcase rather than a
   complete second-pole or static-geometry proof.
+  The newer Area-2 cut files authenticate candidate surface inventories and
+  prove conditional writer-case reductions only.  Their source components,
+  moving-relative/absolute-adapter refinement, collision-phase timing, US/JP
+  downstream suffixes, and every clean retail no-A exclusion remain open.
   The Ink audit proves that prefixes already refined to State-only cannot
   create an Object/Graphics split.  Its source audit motivates a dry positive
   Graphics Y target of at most `45`; the conservative generic modeled relation
@@ -1494,8 +1531,9 @@ clightgen -normalize -nostdinc -fstruct-passing \
   `FirstTargetRefinement.v` defines evidence-bearing replacements, but no
   concrete projection constructs them and the surviving writer classes are
   not excluded.  In particular, the lower cut is first collision-phase entry
-  into enumerated target-side supports or binary32 open cells, not “above the
-  second pole,” an informal floor number, or a bare Y bound.
+  into enumerated target-side supports or closed-bounds binary32
+  `AxisAlignedOpenCell` boxes, not “above the second pole,” an informal floor
+  number, or a bare Y bound.
 - `ArchivedProofIntegrationKernel` is a proved package of current-source facts
   and narrow route lemmas, but it proves neither
   `TargetClightRefinementObligation` nor any Layer B premise.  Building or

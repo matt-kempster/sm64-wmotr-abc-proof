@@ -468,6 +468,27 @@ check: proofs
 	  LessThanOneAPress.Proofs.OrdinaryMotion \
 	  wing_cap_rollout_arithmetic_countermodel
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2ElevatorCut \
+	  upper_elevator_checked_geometry_and_ascent_kernel
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2ElevatorCut \
+	  upper_elevator_no_a_target_access_is_closed_under_relative_obligations
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2LowerTargetCut \
+	  area2_lower_target_cut_checked_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2LowerTargetCut \
+	  lower_target_no_a_target_access_is_closed_under_adapter_obligations
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2DownstreamContinuations \
+	  area2_downstream_checked_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2DownstreamContinuations \
+	  transcript_act3_stage_orders_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2DownstreamReceipts \
+	  conditional_jp_downstream_receipt_checked
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.ClightFacts \
 	  graphical_floor_fallback_source_shape_us
 	bash pipeline/assumptions.sh \

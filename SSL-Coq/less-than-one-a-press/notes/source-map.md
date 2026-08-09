@@ -468,10 +468,32 @@ movement.  It also proves that endpoint/event alignment alone cannot imply the
 old classifier.  No theorem yet constructs this evidence from every target
 Clight run or validates a cut against the extracted collision arrays.
 
+`proofs/Area2ElevatorCut.v` and `proofs/Area2LowerTargetCut.v` now perform the
+initializer-facing part of that validation.  They extract exact US/JP
+triangle/vertex receipts for the elevator candidate and the lower Y=3942
+ring/aperture candidate.  The upper moving-relative wall-bounds predicate is
+kept separate from the generic absolute-sweep adapter; the lower airborne
+portion is four conservative closed binary32 boxes over projected MarioState
+position.  Neither is a linked connected-component or collision-hitbox proof.
+Both modules expose conditional seven-writer first-crossing reductions and
+separate same-frame collision-phase residuals.
+
+`proofs/Area2DownstreamGeometry.v` checks initializer-derived support records
+under Act 3 and all five trigger coordinates.
+`proofs/Area2DownstreamReceipts.v` keeps the conditional JP observations
+separate from `proofs/Area2DownstreamContinuations.v`, whose version-indexed
+suffix schema begins at a caller-supplied cut boundary; an optional clean
+prefix is a separate composition record.  Abstract paired inputs/events remain
+handwritten until one linked projection certifies both lists.  Conditional JP
+emulator receipts do not instantiate these suffixes.  The continuation module
+also records the transcript's ordered upper 100-coin-star/star-dance and lower
+homing-amp/Grindel/elevator-misalignment Act-3 stage lists and names separate upper/lower
+suffix obligations.  Stage-to-Clight refinement is still absent.
+
 `proofs/FirstCrossingWriterCoverage.v` corrects two defects in that boundary.
 It proves that an unvalidated cut descriptor can put the same state on both
-sides, then defines a version/entrance/target-indexed cut family, an
-entrance/entry contract, endpoint-local separation, and a minimal pre-target
+sides, then defines a version/entrance/target-indexed cut family, run-local
+initial source/non-target facts, endpoint-local separation, and a minimal pre-target
 Clight crossing.  For a crossing projected as a non-target event,
 `validated_pre_target_first_crossing_writer_coverage` proves an exhaustive
 abstract-event/state-field split: a changed position carries the ordinary

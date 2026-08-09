@@ -718,9 +718,9 @@ engineering but does not know *Super Mario 64*.
 >
 > The replacement scopes construction and exclusions to a selected
 > `TargetCollisionCutFamily` parameter indexed by version, entrance, and
-> target.  `EntranceCollisionCutEntryContract` puts the clean entry on the
-> source side and excludes the entrance snapshot from the target side.
-> `FirstValidatedCutCrossingAt` then carries the actual source-to-target Clight
+> target.  `FirstValidatedCutCrossingAt` records source and non-target
+> membership for the actual projected initial state, then carries the
+> source-to-target Clight
 > frame, its non-target event, endpoint-local side separation, a matching
 > target-event segment later in the same Clight run, and ordered evidence for
 > every earlier frame index.  The local separation avoids
@@ -907,7 +907,8 @@ defined only as "outside the elevator" or "above the second pole," because
 those phrases omit collision phase, moving support, and passage topology.
 The current evidence interface therefore describes each cut by source-side
 and target-side static surface identifiers, dynamic object identifiers, and
-Float32 open cells:
+Float32 `AxisAlignedOpenCell` boxes whose current membership test uses closed
+bounds:
 
 ```text
 clean upper entry
@@ -936,7 +937,8 @@ This is a control-flow-cut argument:
 
 1. Select the first collision observation of the Act 3 star region or upper
    hidden-star trigger.
-2. Fix the entrance/target-specific cut family, prove its entry contract, and
+2. Fix the entrance/target-specific cut family, prove the actual projected
+   initial state is source-side and not target-side, and
    prove source/target separation at the actual projected crossing endpoint.
 3. Recover the minimal pre-target source-to-target crossing from an actual
    Clight segment.
@@ -1152,6 +1154,98 @@ The precise result and remaining obligations are documented in
 [`docs/notes/ordinary-motion.md`](docs/notes/ordinary-motion.md).  No retail ordinary-motion
 trace reached either target region in this tranche, and the ultimate theorem
 remains incomplete.
+
+### The Area-2 cuts are now concrete, but the gates are not closed
+
+The historical phrase "above the second pole" has been removed from the
+geometric boundary.  It was not even directionally safe: source/gameplay
+evidence supplies an ordinary pole-top sample `(0,4020,1331)` without a new A
+edge (formal reachability of that sample remains open), while the ring and
+some target-side geometry are lower than that grip point.
+
+For the lower entrance, `Area2LowerTargetCut.v` now reads the generated US and
+JP Area-2 collision initializers and identifies:
+
+- eight ring triangles, source ordinals `1414..1421`, at Y `3942`;
+- eight `SURFACE_NO_CAM_COLLISION` aperture-plane records intended as vertical
+  wall candidates, ordinals `1534..1541`, from Y `3712` to `3942`; and
+- four conservative closed binary32 boxes over the ring rectangle, excluding
+  the central shaft X `[-101,102]`, Z `[1229,1434]`.
+
+This is a support/closed-box candidate cut, not a floor-number predicate.  The
+checked legacy soft-bonk subcase stays at most 82 units from the pole centre
+when high enough to meet the ring, so it remains strictly inside the aperture.
+That theorem is an integer/source-mesh subcase only.  The source component,
+live `Surface` mapping, Float32 wall/floor traversal, all other writers,
+nonlocal endpoints, moving geometry, and same-frame collision-phase crossings
+remain open.
+
+For the upper entrance, `Area2ElevatorCut.v` authenticates the elevator base,
+inner walls, upper rim, surrounding Y=5222 floor, and fixed chamber-wall
+triangles.  A useful abstraction bug was caught during review: the generic
+`CollisionSupportCut` stores absolute closed boxes, but the elevator moves.  A
+box containing the union of every elevator pose can overlap a rim surface that
+is supposed to be target-side.  The proof therefore separates:
+
+- a moving-relative candidate using the live elevator origin and distinct
+  base/rim `SurfaceRef` names; and
+- a conservative absolute adapter used by the existing first-crossing writer
+  theorem.
+
+The strongest upper and lower theorems are conditional reductions.  Once a
+valid strictly earlier-frame crossing is constructed, every abstract writer
+case is one of local ordinary physics, platform displacement, object impulse,
+clip/tunnel, nonlocal/failed-cast motion, lifecycle/entry displacement, or a
+same-position support-selection change.  If all seven cases are proved
+unreachable, target access is impossible.  None of those linked retail
+exclusion bundles is inhabited yet.  A separate named obligation requires
+every projected target-event frame to have a strictly earlier validated cut
+crossing; a real same-frame or earlier transient crossing would refute that
+obligation and require exact collision-program-point semantics.
+
+Downstream capability is now kept logically separate from gate reachability.
+`Area2DownstreamContinuations.v` uses version-indexed suffix certificates that
+begin at a supplied target-side boundary state; an optional clean-prefix
+record composes such a suffix with the still-open gate proof.  This avoids the
+circular argument "assuming a clean no-A route through the gate, prove the
+rest of the no-A route."
+
+The generated support receipts locate a floor under the Act-3 star and one
+support triangle at each of the five Puzzle triggers.  Standing on the checked
+Act-3 floor leaves Mario's 160-unit hitbox 75 units below the star, so mere
+arrival at that floor is not a continuation proof.  The existing injected JP
+receipt conditionally overlaps all five trigger regions and spawns the Act-6
+star; a separate injected receipt collects it.  These are not one cut-starting
+suffix and are not clean-entry Clight reachability.
+
+The supplied transcript does specify how Act 3 is reached after either gate is
+passed.  From the upper entrance, it proposes spawning the 100-coin star near
+the Act-3 platform, storing rollout upward speed, reactivating that speed into
+a ground pound that collects the 100-coin star, using the resulting star-dance
+ledge grab to reach the platform, and rolling out into Act 3.  From the lower
+entrance, it first lures a homing amp from the next floor and uses the shock to
+ledge grab past the post-pole ledge, traverses the ramp, uses the one-unit floor
+misalignment on the upper horizontal Grindel, rolls onto the corresponding
+misalignment on the still-undescended upper-route elevator, triggers and rides
+the elevator, crosses to the Act-3 platform, and rolls into the star.
+`Area2DownstreamContinuations.v` records both ordered candidate-stage lists and
+defines separate upper/lower no-A suffix obligations.  It does **not** yet
+refine the stage labels to homing-amp behavior, live surface ownership, exact
+quarter steps, elevator state, or Clight program points, and neither suffix
+obligation has an inhabitant.
+
+A transient hash-gated JP experiment instead tried direct steering from the
+known upper-trigger route toward the upper horizontal Grindel.  It found the
+Grindel at timer 516, but did not attempt the transcript's Grindel/elevator
+misalignment sequence; it left the Y=3913 support, fell to Y=-101, never rode
+the object, never overlapped Act 3, and consumed only the upper trigger.  This
+is a failed unrelated schedule, not an Act-3 exclusion.  Therefore the current
+Area-2 verdict is deliberately incomplete: no new clean counterexample was
+found, but Area 2 has not been ruled out.
+
+See the focused [upper-cut](docs/notes/area2-elevator-cut.md),
+[lower-cut](docs/notes/area2-lower-target-cut.md), and
+[downstream](docs/notes/area2-downstream-continuations.md) notes.
 
 ### Conditional stale pyramid-top route
 
@@ -1797,8 +1891,8 @@ evidence structures make the required projection checkable, but their
 coverage and the entrance cuts are still unproved:
 
 - extract the collision arrays into exact surface identifiers and prove the
-  source/target connected-component cuts, their
-  `EntranceCollisionCutEntryContract`, endpoint-local separation, and their
+  source/target connected-component cuts, their run-local initial membership,
+  endpoint-local separation, and their
   selection by `TargetCollisionCutFamily`;
 - construct `FirstValidatedCutCrossingAt` from each linked US/JP first target
   access, including target-collision-to-cut refinement and any crossing inside

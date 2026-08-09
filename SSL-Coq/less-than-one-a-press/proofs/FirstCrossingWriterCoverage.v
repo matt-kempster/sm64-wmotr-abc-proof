@@ -16,8 +16,7 @@ Import ListNotations.
     crossing nor proves that the event caused one.  The definitions below
     replace that unused boundary with:
 
-    - a version/entrance-indexed entry contract plus endpoint-local
-      separation;
+    - run-local initial-state membership plus endpoint-local separation;
     - an actual source-to-target Clight frame segment;
     - minimality among earlier projected frame endpoints; and
     - a classification of the state fields that can change cut membership.
@@ -56,6 +55,10 @@ Proof.
     constructor 1; cbn; auto.
 Qed.
 
+(** Legacy universal snapshot schema retained for the standalone reload helper
+    below.  It is intentionally not a field of [FirstValidatedCutCrossingAt]:
+    arbitrary abstract states can carry floor names unrelated to a linked
+    projection. *)
 Record EntranceCollisionCutEntryContract
     (version : GameVersion)
     (entrance : PyramidEntrance)
@@ -112,10 +115,16 @@ Record FirstValidatedCutCrossingAt
     (region : TargetRouteRegion)
     (target_frame : nat) : Type := {
   first_crossing_cut : CollisionSupportCut;
-  first_crossing_cut_entry_contract :
-    EntranceCollisionCutEntryContract
-      (state_version initial) (state_entrance initial)
-      first_crossing_cut;
+  (** These facts are deliberately about the actual projected initial state.
+      The older [EntranceCollisionCutEntryContract] quantifies over arbitrary
+      ghost [GameState] values whose floor identifiers need not come from the
+      linked run, so it cannot serve as the boundary of a retail crossing. *)
+  first_crossing_cut_entrance :
+    cut_entrance first_crossing_cut = state_entrance initial;
+  first_crossing_initial_source :
+    StateOnCutSourceSide first_crossing_cut initial;
+  first_crossing_initial_not_target :
+    ~ StateOnCutTargetSide first_crossing_cut initial;
   first_crossing_frame : nat;
   first_crossing_event : FrameEvent;
   first_crossing_before : GameState;
@@ -171,10 +180,33 @@ Record FirstValidatedCutCrossingAt
       ~ StateOnCutTargetSide first_crossing_cut after
 }.
 
+(** The current evidence record is frame-based and requires the cut crossing
+    to precede the target frame strictly.  Until target-interaction program
+    points and collision-phase substates are imported, the sound residual is
+    to prove that every actual projected target-event frame has such an earlier
+    crossing.  A real same-frame or earlier transient crossing would refute
+    this obligation and require a richer, source-backed interface; it cannot be
+    discharged by choosing unrelated abstract states. *)
+Definition NoSameFrameOrTransientCutEscape
+    (projection : ClightObservationProjection)
+    (run : ImportedClightRun)
+    (initial : GameState)
+    (certificate : ClightFrameRefinementCertificate projection run initial)
+    (cut : CollisionSupportCut) : Prop :=
+  forall region target_frame target_event target_before target_after
+      (target_evidence :
+        ClightFrameEvidence projection run initial certificate
+          target_frame target_event target_before target_after)
+      (_ : TargetEventForRegion region target_event),
+    exists crossing :
+      FirstValidatedCutCrossingAt
+        projection run initial certificate region target_frame,
+      first_crossing_cut _ _ _ _ _ _ crossing = cut.
+
 (** A family fixes the concrete separator used for each retail
-    version/entrance/target combination.  The entry contract is deliberately
-    only entrance-indexed; the crossing record separately requires local
-    separation at its actual endpoint.  Showing that a selected family
+    version/entrance/target combination.  The crossing record requires
+    run-local initial membership and separation at its actual endpoint.
+    Showing that a selected family
     corresponds to the actual target collision and collision mesh is part of
     the open first-crossing construction obligation below. *)
 Definition TargetCollisionCutFamily : Type :=
