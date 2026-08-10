@@ -106,8 +106,20 @@ projection and per-step refinement.
 The Area-1 endpoint audit now separates failed word conversions from genuine
 finite signed-16 aliases.  Rocq checks
 `(-1862,67314,-902) -> (-1862,1778,-902)`, whose narrowed query is the accepted
-timer-131 midpoint, and packages only a conditional State-first capability; no
-clean local-Object/nonlocal-State writer is known.  Target initialization and
+timer-131 midpoint.  A hash-gated original-JP fixture now conditionally
+executes the full frame: post-frame State X/Z remain at the candidate values,
+`MarioState.floor` is top-owned, and the deliberately different Graphics retry
+point is not copied.  Under the audited source order this is evidence for
+first-State-query success; the cached
+upper warp selects `ACT_DISAPPEARED`, the floor snap synchronizes all three
+views, and the final query captures the top, with all A counters zero.  Rocq
+checks the exact cast values, a source-shaped proof that both high-Y wall
+passes cannot push X/Z, and a transparent copy of the trace.  The fixture
+injects the split and arms the top; no clean local-Object/nonlocal-State writer
+is known, and linked Clight execution is still open.  A second exact replay
+continues the same fixture through the timer-513 free, retained depth-47 slot
+at the true first Area-2 apply, and upper-trigger consumption with zero A
+counts.  Target initialization and
 fault-handler evidence plus a small instruction-prefix model put quiet NaN,
 infinities, and signed-32 overflow on a terminal trap path before any terrain
 coordinate.  The adjacent finite signed-word endpoints still narrow to `-128`

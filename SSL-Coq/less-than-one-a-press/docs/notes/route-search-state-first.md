@@ -10,6 +10,18 @@ the first State floor query also cannot rescue this installer: it preserves
 State Y, while the upper-warp sample is at least 463 units below the lowest
 stock pyramid-top floor and `find_floor` allows only 78 units above the query.
 
+The State-first *engine outcome* is now positively validated outside that
+stock-origin boundary.  A hash-gated JP fixture injects collision Object at the
+upper warp and State `(-1862,67314,-902)`.  Signed-short narrowing produces the
+accepted timer-131 query `(-1862,1778,-902)`.  At runtime, candidate State X/Z
+survive, the deliberately different Graphics X/Z are not copied, and the
+retained floor has the top owner/height.  Under the audited source order this
+supports first-query success rather than directly instrumenting the branch.
+The cached warp, snap, copy, and final platform capture all succeed with zero A
+counts.  A second exact run continues through the stale slot's depth-47 first
+Area-2 apply and consumes the upper trigger.  This shows the candidate works
+*if installed*; it does not contradict the stock installer exclusion.
+
 This is not yet a whole-ROM exclusion.  The remaining connection is the named
 `Area1StockPreapplyProjectionSound`/`StateFirstStockProjectionObligation`:
 linked US and JP Clight memory at every relevant pre-apply control point must
@@ -17,16 +29,16 @@ project into the already-proved finite origin relation.  The result also does
 not exclude Ink's graphical-retry installer, which intentionally uses a
 different Graphics sample after the first State query returns `NULL`.
 
-The downstream half of the JP candidate is much stronger.  An authentic-JP
-boundary fixture reaches the true first Area-2 post-apply position
+The downstream half of the JP candidate is much stronger.  The exact
+State-first boundary fixture reaches the true first Area-2 post-apply position
 
 ```text
 (365.5927734375, 5500.0, -1096.8026123046875)
 ```
 
 and a zero-A stick continuation consumes the upper Pyramid Puzzle trigger.
-The fixture still injects the post-installer Area-1 boundary, so it is not a
-clean-retail counterexample.
+The fixture still injects the pre-collision Area-1 split and arms the top, so it
+is not a clean-retail counterexample.
 
 ## Why the stock State-first schedule fails
 
@@ -70,16 +82,22 @@ run escaped the bounded relation rather than silently assuming it did.
 `update_mario_geometry_inputs` calls the wall routine twice before its first
 floor query.  The wall list updates X and Z but not Y.  Thus even an unusually
 large horizontal wall push or signed-coordinate/PU horizontal alias cannot
-make a warp-height State query return a stock top floor.  The formal theorem
-`y_preserving_prequery_writer_cannot_select_live_top` uses the actual 78-unit
-floor-search allowance, not the tighter 4-unit final-platform tolerance.
+make a warp-height State query return a stock top floor.  For the new nonlocal
+candidate the result is stronger: the two wall-query heights are exactly
+`67374` and `67344`, both above every signed-16 `Surface.upperY`, so every
+source-shaped list visit rejects before the X/Z push.  The linked call/list
+memory refinement remains open.
 
-Ordinary action movement occurs after this initial geometry query, so it
-cannot make the *first* query select the top.  It may still matter to the
-separate post-commit-transport family.  A PU or stale-platform operation that
-changes State X/Y/Z before the query is not dismissed by the wall theorem;
-it must still explain how a non-null platform pointer was present.  Under the
-finite stock origin relation, that pointer premise is the contradiction.
+Ordinary action and action-phase PU movement occur after collision and the
+initial geometry query, and Mario's behavior later copies State back to raw
+Object.  Such a
+remote endpoint therefore becomes the next frame's remote full-float Object;
+it cannot leave Object at the local warp while State remains remote.  It may
+still matter to the separate post-commit-transport family.  A stale-platform
+operation that changes State X/Y/Z before the query is not dismissed by the
+wall theorem; it must still explain how a non-null platform pointer was
+present.  Under the finite stock origin relation, that pointer premise is the
+contradiction.
 
 ## Raw MarioObject writer audit
 
@@ -157,24 +175,29 @@ the informal statement that the rest of Area 2 is traversable.
 
 ## Surviving installer families, ranked
 
-1. **Ink Graphics retry plus JP stale slot.**  Still the best clean-installer
-   candidate because the destination continuation is now observed.  It needs
-   a reachable timer-131 Object/Graphics separation and live top-owned retry.
-2. **Physical co-location or collision-preserving clone.**  Move/clone the
+1. **Nonlocal State-first plus JP stale slot.**  Its injected engine outcome
+   and complete retained-slot continuation are observed.  It needs a clean
+   pre-collision 3D State writer and a non-null pre-apply owner that escapes
+   the finite stock provenance relation.
+2. **Ink Graphics retry plus JP stale slot.**  Its destination continuation is
+   observed.  It needs a reachable timer-131 Object/Graphics separation and
+   live top-owned retry.
+3. **Physical co-location or collision-preserving clone.**  Move/clone the
    warp or top collision so the final query can record an owner at the warp.
    No stock route is known; clone collision breakage remains relevant.
-3. **Post-commit transport.**  Cache the warp first, then move Mario onto a
+4. **Post-commit transport.**  Cache the warp first, then move Mario onto a
    dynamic owner before the final query.  The ordinary disappeared action
    snaps to its selected floor, so a concrete later writer is required.
-4. **Other dynamic owner / slot payload.**  The stock final-query geometry
+5. **Other dynamic owner / slot payload.**  The stock final-query geometry
    excludes all fifteen modeled owners at the unchanged warp sample, but a
    moved collision sample or linked-projection escape could reopen this.
-5. **Skipped-query frozen carry.**  Needs an actual scheduler path that skips
+6. **Skipped-query frozen carry.**  Needs an actual scheduler path that skips
    the final recomputation while preserving a non-null pointer and the warp
    collision sample.
-6. **Stock State-first or wall-only State-first.**  Excluded by the theorems in
-   `proofs/StateFirstInstaller.v`, conditional only on the named linked
-   projection for the stock-origin result.
+7. **Abstract stock State-first or Y-preserving wall-only State-first.**
+   Excluded by the constructors in `proofs/StateFirstInstaller.v`.  Retail
+   lifting still needs the named stock-origin projection and, for the wall
+   case, the wall-call/list/writer refinement.
 
 No clean-retail US or JP counterexample has yet been found.  The ultimate
 less-than-one-A theorem remains incomplete.
@@ -190,6 +213,6 @@ opam exec --switch=sm64-item-proof -- \
        proofs/StateFirstInstaller.v
 ```
 
-The authenticated lifecycle probe and ROM hash checks live under
-`instrumentation/jp-lifecycle/`; generated traces remain ignored build
-artifacts.
+The exact State-first frame and lifecycle runners live under
+`instrumentation/timer131-state-first/`; generated traces remain ignored
+build artifacts.

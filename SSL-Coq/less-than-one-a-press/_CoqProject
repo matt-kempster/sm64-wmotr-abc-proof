@@ -157,6 +157,8 @@ proofs/InkFallback.v
 proofs/InkPayloadInstaller.v
 proofs/Timer131Surface.v
 proofs/Area1NonlocalEndpointBoundary.v
+proofs/Area1StateFirstWallExclusion.v
+proofs/Area1StateFirstRetailTrace.v
 proofs/InstallerCoverage.v
 proofs/CleanJPGraphicsGap.v
 proofs/JPQuicksandDepth.v

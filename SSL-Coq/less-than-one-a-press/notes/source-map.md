@@ -77,16 +77,28 @@ The Rocq boundary is split deliberately:
   `-2^31`, plus successful signed-16 aliases at both adjacent finite word
   endpoints;
 - `proofs/Area1NonlocalYCastArithmetic.v` checks all three components of
-  `(-1862,67314,-902) -> (-1862,1778,-902)`; and
+  `(-1862,67314,-902) -> (-1862,1778,-902)`, the concrete CompCert
+  float-to-signed-short value semantics, and the modeled target-prefix
+  arithmetic;
 - `proofs/Area1NonlocalEndpointBoundary.v` relates that finite alias to the
   accepted timer-131 midpoint and packages a conditional State-first numeric
-  capability.
+  capability;
+- `proofs/Area1StateFirstWallExclusion.v` checks the bilateral wall-guard
+  source shape and proves the two high-Y wall samples cannot reach X/Z push
+  code in a source-shaped list traversal; and
+- `proofs/Area1StateFirstRetailTrace.v` checks transparent copies of the
+  injected JP one-frame and downstream-lifecycle observations.  Its ROM/log
+  and linked-execution predicates are deliberately uninhabited.
 
 These word receipts and the prefix relation are not a ROM parser or imported
 VR4300 small-step semantics.  Whole-execution compiled-prefix refinement,
 preservation of Invalid enable, imported handler non-resumption, a clean
-three-dimensional writer, live dynamic surface selection, and the
-warp/snap/copy continuation remain open.
+three-dimensional writer, and linked dynamic-list/warp/snap/copy/lifecycle
+execution remain open.  The hash-gated runners under
+`instrumentation/timer131-state-first/` conditionally observe the first State
+selection and the later timer-513 free, true first Area-2 apply, and
+upper-trigger consumption.  Both fixtures inject the split and arm the top;
+neither supplies a clean writer.
 
 ## Whole-program, entry, and writer-closure boundary
 

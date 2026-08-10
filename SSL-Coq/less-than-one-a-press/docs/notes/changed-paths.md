@@ -867,3 +867,32 @@ changed:
 - `SSL-Coq/less-than-one-a-press/proofs/Area2ElevatorCut.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/Area2LowerTargetCut.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/FirstCrossingWriterCoverage.v`
+
+## Timer-131 State-first execution tranche
+
+The finite nonlocal candidate was executed through its conditional JP frame
+and later retained-slot lifecycle.  Exact cast/wall certificates, transparent
+trace records, reproducible runners, and status documentation changed:
+
+- `SSL-Coq/README.md`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/claim.md`
+- `SSL-Coq/less-than-one-a-press/docs/goal.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/area1-nonlocal-endpoints.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/archived-proof-evidence.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/installer-coverage.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/jp-first-apply.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/route-exhaustiveness.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/route-search-state-first.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/instrumentation/timer131-installer/timer131_installer_probe.c`
+- `SSL-Coq/less-than-one-a-press/instrumentation/timer131-state-first/` (new)
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+- `SSL-Coq/less-than-one-a-press/proofs/Area1NonlocalEndpointBoundary.v`
+- `SSL-Coq/less-than-one-a-press/proofs/Area1NonlocalYCastArithmetic.v`
+- `SSL-Coq/less-than-one-a-press/proofs/Area1StateFirstRetailTrace.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/Area1StateFirstWallExclusion.v` (new)

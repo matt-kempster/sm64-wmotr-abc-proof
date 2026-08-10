@@ -176,6 +176,7 @@ Definition NonlocalEndpointWriterAndSurfaceRefinementSchema
 
 Definition Area1NonlocalEndpointCheckedBoundary : Prop :=
   RepresentativeFailedCastClassificationObligation /\
+  Timer131NonlocalVectorCastSemantics /\
   (forall position,
     upper_warp_contact position ->
     position_in_legacy_ssl_domain position) /\
@@ -189,6 +190,7 @@ Theorem area1_nonlocal_endpoint_checked_boundary :
 Proof.
   unfold Area1NonlocalEndpointCheckedBoundary.
   split; [exact representative_failed_cast_classification_checked |].
+  split; [exact timer131_nonlocal_vector_cast_semantics_checked |].
   split; [exact upper_warp_contact_is_in_legacy_ssl_domain |].
   split; [exact nonlocal_y_state_first_numeric_capability_checked |].
   exact nonlocal_state_only_prefix_cannot_install_ink_from_sync.

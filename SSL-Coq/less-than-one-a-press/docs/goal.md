@@ -93,9 +93,16 @@ The retail use of the trap result remains conditional on
 wrap through signed 16 bits: Rocq checks the complete
 `(-1862,67314,-902) -> (-1862,1778,-902)` vector and its equality with the
 accepted timer-131 midpoint.  That creates only a conditional State-first
-numeric capability.  A clean pre-collision local-Object/nonlocal-State writer, live
-surface selection, and the linked warp/snap/copy continuation are still
-unproved.
+numeric capability at the theorem boundary.  A hash-gated JP fixture now
+executes that capability: candidate State X/Z survive, the deliberately
+different Graphics X/Z are not copied, and the retained floor has the live-top
+owner/height.  This is source-backed evidence for first-query success rather
+than direct branch instrumentation.  The frame completes warp/snap/copy/capture,
+retains the freed slot through the true first Area-2 apply, and reaches the
+upper trigger with zero A counts.  Exact wall arithmetic and transparent trace
+copies are checked in Rocq.  A clean pre-collision
+local-Object/nonlocal-State writer and linked statement/memory execution are
+still unproved.
 
 The destination-side certificate now fixes the official linked JP object size
 at 608 bytes and observed slot 61 at pool offset 37088.  The twelve listed

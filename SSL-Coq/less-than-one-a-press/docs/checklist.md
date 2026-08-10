@@ -107,8 +107,30 @@
 - [x] Check the full finite signed-16 alias vector
   `(-1862,67314,-902) -> (-1862,1778,-902)` and prove that its narrowed query
   equals the accepted timer-131 midpoint.  Package the resulting State-first
-  numeric capability without claiming a clean writer, live surface selection,
-  or target reachability.
+  numeric capability without claiming a clean writer or target reachability.
+- [x] Check the three concrete CompCert float-to-signed-short values and the
+  modeled target `trunc.w.s; mfc1; sh; lh` prefix arithmetic.  Check that the
+  two wall-query heights are exactly `67374` and `67344`, both above every
+  signed-16 `Surface.upperY`, and prove a source-shaped wall-list traversal
+  cannot reach an X/Z push.  Linked statement/list-memory execution remains
+  open.
+- [x] Execute the injected State-first candidate in a hash-gated original-JP
+  run.  Record the post-frame discriminator: candidate State X/Z survive, the
+  distinct Graphics X/Z are not copied, and `MarioState.floor` has the
+  timer-131 top owner and height word `0x44defe16`.  This supports first-query
+  success under the audited source order but does not directly instrument the
+  branch.  Also record cached upper-warp action selection, snap/copy synchronization,
+  and final top capture with zero A counts.  Continue the exact fixture through
+  timer-513 free, the retained depth-47 slot at the true first Area-2 apply,
+  and upper-trigger counter `0 -> 1`.  Check transparent Rocq copies of both
+  focused traces without treating those data records as execution proofs.
+- [ ] Derive the injected local-Object/nonlocal-State split from clean zero-A
+  linked execution, or eliminate every escape from the stock pre-apply
+  provenance relation.  Ordinary and action-phase PU movement are scheduled
+  too late and are copied to raw Object; pre-collision platform displacement is
+  the identified stock exception, and its pointer is null at the upper-warp
+  sample inside the finite stock model.  Linked
+  writer/non-alias/external-frame and lifecycle projection remain open.
 - [ ] Refine the target cast-prefix model to the compiled US/JP execution,
   prove Invalid-enable preservation and handler non-resumption, refine the
   horizontal-boundary split to the generated branch, classify accepted cells
@@ -679,6 +701,14 @@
       stock-top co-location, all fourteen fixed non-top stock owners,
       position-preserving post-commit selection, and frozen carry with recursive
       stock pre-apply provenance.
+    - [x] Validate the nonlocal State-first *outcome* independently of that
+      installer exclusion: the injected JP vector
+      `(-1862,67314,-902) -> (-1862,1778,-902)` has post-frame evidence
+      consistent with first-query live-top selection, and completes the cached
+      warp/snap/copy/capture frame,
+      and continues through the retained first Area-2 apply to the upper
+      trigger.  This proves conditional capability, not a clean pointer/writer
+      origin.
     - [x] Carry Ink's exact timer-131 State rejection, Graphics retry
       acceptance, retained top-pointer observations, depth-47 first-apply
       observation, and zero-A counts into one explicitly conditional boundary.

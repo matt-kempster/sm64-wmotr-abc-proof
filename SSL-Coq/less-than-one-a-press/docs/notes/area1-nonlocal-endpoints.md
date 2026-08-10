@@ -30,7 +30,8 @@ The old description mixed two materially different cases.
   separate collision Object and later State query, but clean coexistence of a
   local Object and nonlocal State in that window remains unproved.
 
-The new Y-alias sample is a conditional numeric capability, not a clean route:
+The new Y-alias sample is now a **conditionally executed retail capability**,
+not merely a numeric possibility and still not a clean route:
 
 ```text
 collision MarioObject = (-2048,   768, -1024)  // upper-warp centre
@@ -40,12 +41,22 @@ terrain query         = (-1862,  1778,  -902)  // signed-16 narrowing
 
 The narrowed query is exactly the checked timer-131 midpoint.  The existing
 surface arithmetic accepts its top face and returns height bits `0x44defe16`
-(approximately `1783.940186`).  If the live first State query selected that
-surface, the cached upper-warp interaction could choose `ACT_DISAPPEARED`,
-whose floor snap would bring State Y back to the local returned height before
-the State-to-Graphics/Object copy.  This avoids Ink's *Graphics retry* and its
-`>=960` Graphics/Object gap, but it replaces that problem with a harder one:
-installing the three-dimensional State/Object split before collision.
+(approximately `1783.940186`).  A hash-gated original-JP replay now injects
+the three views above while the live top is at timer 131.  It observes the
+candidate State X/Z survive, a top-owned floor with height word `0x44defe16`,
+the cached upper warp selecting `ACT_DISAPPEARED`, the floor snap, equality of
+State/Object/Graphics after the copy, and final `gMarioPlatform` equal to the
+same top slot.  The deliberately different Graphics X/Z do not replace State,
+which is consistent with the first query succeeding and the retry branch not
+running under the audited source order.  The probe does not breakpoint that
+branch; an unclassified later restoration remains part of linked writer
+closure.  All three recorded A counters are zero.
+
+This closes the candidate's conditional retail *engine outcome*.  The replay
+also writes the three-view prestate and arms the top; it supplies no clean
+predecessor.  The candidate therefore avoids Ink's *Graphics retry* and its
+`>=960` Graphics/Object gap only after replacing that problem with the harder
+one: installing the three-dimensional State/Object split before collision.
 
 ## Exact cast cases
 
@@ -94,6 +105,11 @@ X: binary32 0xc4e8c000 = -1862.0f -> word -1862 -> signed16 -1862
 Y: binary32 0x47837900 = 67314.0f -> word 67314 -> signed16 1778
 Z: binary32 0xc4618000 =  -902.0f -> word  -902 -> signed16  -902
 ```
+
+It now also checks the corresponding CompCert `Cop.sem_cast` results from
+binary32 to signed `short` for all three values and the value-level target
+`trunc.w.s; mfc1; sh; lh` prefix arithmetic.  These are value semantics, not
+generated-statement execution or an imported target-machine small-step proof.
 
 ## Target evidence
 
@@ -168,8 +184,27 @@ Ordinary movement on a previous frame is copied to raw MarioObject, so the
 next collision pass sees the remote full-float position instead of the local
 warp.  On the interaction frame, selecting `ACT_DISAPPEARED` suppresses an
 ordinary moving-action body.  Wall resolution can alter X/Z before the first
-floor lookup, but the checked wall source shape preserves Y; it cannot install
-the `+65536` Y alias.
+floor lookup, but the candidate's particular Y value removes that uncertainty:
+the two real wall passes sample binary32 Y values `67374` and `67344`, both
+strictly above every signed-16 `Surface.upperY`.  A pinned-source/manual
+generated-body audit puts that vertical guard before any X/Z push, while the
+source-shaped list theorem preserves X/Z for every list of signed-16 upper
+bounds.  A linked
+Clight proof must still connect valid live list traversal and memory loads to
+that theorem.
+
+The source schedule also narrows the clean installer search.  Normal Mario
+actions, interaction movement, wall/OOB fallback, action-phase PU movement,
+and the final State-to-Object copy occur after object collision; a remote
+endpoint produced there becomes the next frame's remote full-float Object and
+cannot touch the local warp.  Between the preceding Object synchronization and collision, the
+only identified stock three-dimensional State-only writer is
+`apply_mario_platform_displacement`.  Under the existing finite stock
+pre-apply provenance, however, the cached platform is null at the upper-warp
+Object sample.  A clean installer must therefore escape that provenance via a
+retained/skipped/non-stock/relocated owner or use an aliased, out-of-bounds, or
+otherwise unclassified writer.  Whole-program writer/non-alias closure remains
+open, so this is a reduction rather than an impossibility proof.
 
 ## What the new capability does and does not prove
 
@@ -183,29 +218,46 @@ the `+65536` Y alias.
 - arbitrary State-only motion still cannot manufacture Ink's Object/Graphics
   split from synchronized views.
 
+`Area1StateFirstWallExclusion.v` additionally proves the exact two binary32
+wall-sample words, the signed-16 upper-bound inequality, bilateral generated
+guard-shape receipts, and a source-shaped list traversal that cannot reach an
+X/Z push.  `Area1StateFirstRetailTrace.v` checks a transparent copy of the
+one-frame JP receipt: exact pre/post words, timers, pointers, action/argument,
+branch-result booleans, and zero-A counters.  The latter is deliberately only
+a data certificate; ROM/log authentication and linked Clight execution are
+named, uninhabited obligations.  A second record checks the focused lifecycle
+copy: inactive/free slot 61 at timer 513, free-list depth 47 and retained
+platform at the authentic first Area-2 apply, the exact before/after words,
+and upper-trigger counter `0 -> 1` at timers 594/595 with zero A counts.
+
 The candidate is not presently easier to install than the local timer-131
 sample.  It needs a Y change of `66546` from the warp centre, whereas the local
 midpoint needs `1010`.  It matters only if another glitch naturally contributes
 a whole 65536-unit Y period.
 
-The following remain open and prevent a counterexample claim:
+The following remain open and prevent a clean counterexample claim:
 
 1. a clean zero-A pre-collision writer producing the exact local-Object /
    nonlocal-State split;
-2. linked wall execution preserving the chosen X/Z sample;
-3. a live timer-131 top-owned surface in the selected dynamic list and actual
-   `find_floor` selection;
-4. cached upper-warp interaction, floor snap, State/Graphics/Object copy, and
-   final platform capture in one linked execution;
+2. linked wall execution refining the now-closed source-shaped no-push
+   theorem;
+3. linked dynamic-list insertion, ownership, traversal, and exact
+   `find_floor` selection, despite the conditional runtime observation of the
+   right top owner and height;
+4. linked Clight execution of cached upper-warp interaction, floor snap,
+   State/Graphics/Object copy, and final platform capture, despite the
+   conditional runtime observation of all four outcomes;
 5. no post-copy overwrite, unload, relocation, clone, or external/aliased
    writer invalidating the sample; and
-6. the existing JP retained-pointer destination chronology if this route is
-   intended to continue into Area 2.
+6. linked Clight refinement of the now-authenticated exact State-first JP
+   retained-pointer chronology and first destination apply.
 
 The bounded stock pre-apply model already says a stock platform pointer is
 null when the old Mario Object overlaps node `0x1E`.  Lifting that result to
 all linked retail states remains open.  Consequently, this work eliminates
 failed casts from the checked initialized target prefix, preserves finite PU
-aliases as a real primitive, and identifies one new conditional State-first
-numeric candidate.  The whole-execution target refinements and clean reachability remain
-open, so it does not prove or refute a clean zero-A route.
+aliases as a real primitive, and validates the new State-first candidate from
+an injected boundary through its one-frame retail outcome, retained-slot
+destination apply, and upper-trigger continuation.  Clean installation and
+whole-execution refinement remain open, so it does not prove or refute a clean
+zero-A route.

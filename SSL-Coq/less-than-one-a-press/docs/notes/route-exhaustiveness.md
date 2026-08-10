@@ -588,10 +588,14 @@ hybrid requires top timer 131 on the collision frame, spinning timer 150 on
 frame 19, and explosion timer 0 on frame 20.  The home-pose Y=`1791` witness
 cannot be reused for the raised/rotated timer-131 retry surface.  The corrected
 midpoint is exact and conditionally observed, but its `>=960` gap has no clean
-installer.  A State-first
-query, warp/top co-location or cloning, post-commit transport, another dynamic
-owner, or a skipped-query frozen carry could install the same final pointer
-without the graphics gap; those alternatives are not yet collectively closed.
+installer.  The nonlocal State-first vector
+`(-1862,67314,-902) -> (-1862,1778,-902)` now conditionally selects the live
+timer-131 top in the arithmetic model; its post-frame runtime discriminator is
+consistent with first-query success and no Graphics retry, and it survives the
+same retained-slot continuation to the upper trigger.  Its pre-collision
+writer/pointer origin is still injected.  Warp/top co-location or cloning, post-commit transport,
+another dynamic owner, or a skipped-query frozen carry could also install the
+same final pointer; those alternatives are not yet collectively closed.
 `InkPayloadInstaller.v` formalizes this two-layer case vocabulary and permits a
 same-slot, different-epoch replacement payload without asserting that any
 installer is retail reachable.

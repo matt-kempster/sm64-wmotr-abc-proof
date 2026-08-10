@@ -1284,12 +1284,29 @@ find_floor query  = (-1862,  1778, -902)
 ```
 
 including the exact binary32 conversion of X, Y, and Z.  The narrowed query is
-the already accepted timer-131 midpoint.  If Mario's collision Object were
-still local at the upper warp while State had this nonlocal value, a successful
-first State query could use the top-owned floor, then the cached warp action
-could snap and copy State back into the local region.  This is a new
-**conditional State-first numeric capability**; it does not need Ink's Graphics retry
-or its `>=960` Graphics/Object Y gap.
+the already accepted timer-131 midpoint.  This is no longer only an arithmetic
+proposal.  In a hash-gated original-JP run, a fixture places Mario's collision
+Object at the upper warp, State at the nonlocal value, and Graphics at a third,
+deliberately different point.  State X/Z survive the frame; the returned floor
+belongs to the live timer-131 top and has the predicted height; the cached warp
+selects `ACT_DISAPPEARED`; the snap and copy synchronize all three views; and
+the final platform query caches that top.  If the first query had failed, the
+source branch would instead have copied the different Graphics X/Z, so the
+post-frame discriminator supports the State-first path under the audited
+source order.  The probe does not directly breakpoint the branch, and linked
+writer closure must still exclude an unclassified restoring write.  All
+recorded A counters are zero.
+
+The high State Y also makes both wall passes simpler than expected.  Their
+query heights are `67374` and `67344`, while every surface's stored upper Y is
+a signed 16-bit value no greater than `32767`.  Rocq proves in a source-shaped
+list model that every wall is rejected before the X/Z push code.  The exact
+State-first fixture was also continued through the top's explosion/free, the
+retained slot at depth 47 during the authentic first Area-2 platform apply,
+and consumption of the upper hidden-star trigger, again with zero A counts.
+These observations establish a **conditional State-first engine
+continuation** that does not need Ink's Graphics retry or its `>=960`
+Graphics/Object Y gap.
 
 By contrast, quiet NaN, either infinity, `+2^31`, and the first binary32 value
 below `-2^31` fail the word conversion.  The US and JP startup receipts set the
@@ -1306,13 +1323,18 @@ retail conclusion is still conditional in Rocq on
 imported a whole VR4300 small-step/exception semantics or proved that every
 reachable execution preserves the FPCSR bit.
 
-The finite alias is not a clean route either.  No clean zero-A writer has been
-shown to create the required pre-collision three-dimensional State/Object
-split; the real walls, dynamic-list ownership, `find_floor` selection, cached
-warp/floor-snap/copy sequence, and later JP stale-slot chronology still need a
-single linked execution proof.  A State-only excursion starting from
-synchronized Object and Graphics cannot create Ink's separate
-Object/Graphics gap.  The exact checked boundary is documented in
+The finite alias is still not a clean route.  The fixture injects the split and
+also arms the top.  No clean zero-A writer has been shown to create the required
+pre-collision three-dimensional State/Object split.  Ordinary and action-phase
+PU movement run after collision and are copied back to the raw Object, so they
+cannot leave the next frame's Object local while State stays remote.
+Pre-collision cached platform displacement is the identified stock exception,
+but the bounded stock provenance model makes that pointer null at the
+upper-warp Object sample.  A clean route must escape that
+provenance or use an unclassified/aliased writer.  Dynamic-list ownership and
+the warp/snap/copy/lifecycle results are observed conditionally, but still need
+a single linked Clight execution proof.  The exact checked boundary is
+documented in
 [`docs/notes/area1-nonlocal-endpoints.md`](docs/notes/area1-nonlocal-endpoints.md).
 
 Warp hitboxes continue to use full binary32 object positions.  The parsed
@@ -2396,6 +2418,10 @@ The most useful entry points are:
   `proofs/Area1NonlocalEndpointBoundary.v`: failed-conversion classification,
   checked trapping prefix, exact three-axis finite alias, and the
   conditional State-first timer-131 capability with its named retail bridges;
+- `proofs/Area1StateFirstWallExclusion.v` and
+  `proofs/Area1StateFirstRetailTrace.v`: exact high-Y wall rejection in a
+  source-shaped list model plus transparent one-frame and downstream-lifecycle
+  copies of the authenticated JP State-first observations;
 - `proofs/InkFallback.v`: exact nearby Area-1 mesh arithmetic, local and PU
   three-view conditional pipeline coordinate witnesses, State-only
   preservation, the signed-range generic `385`-unit necessary gap, the exact

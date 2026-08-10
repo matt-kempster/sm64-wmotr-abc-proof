@@ -73,8 +73,10 @@ bootstrap; matrix, dynamic-surface, and Clight refinements remain open.  Its
 separate two-sample coordinate model shows that the archive's old
 same-coordinate argument cannot exclude a different three-dimensional
 State/Object phase arrangement.  Such a split still needs a gameplay-reachable
-writer, live-surface selection, and (for the retained-pointer construction) JP
-pointer retention or recapture through the delayed node-`0x1E` warp.  The US
+writer and linked live-surface/lifecycle execution.  An injected JP nonlocal
+State-first fixture now conditionally observes the live timer-131 selection,
+pointer retention through the delayed node-`0x1E` warp, and first Area-2 apply;
+it does not supply that writer or a linked proof.  The US
 spawn clear blocks same-epoch retention in the state model, but its Clight
 memory effect remains to be derived.
 

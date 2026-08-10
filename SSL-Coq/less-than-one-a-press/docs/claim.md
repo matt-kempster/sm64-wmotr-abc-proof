@@ -121,7 +121,18 @@
   They separately check the full finite alias
   `(-1862,67314,-902) -> (-1862,1778,-902)`, identify its narrowed query with
   the accepted timer-131 midpoint, and package a conditional State-first
-  numeric capability.  The failed-cast retail conclusion still depends on
+  numeric capability.  `Area1StateFirstWallExclusion.v` proves in a
+  source-shaped list model that the candidate's `67374`/`67344` wall samples
+  reject every signed-16 upper bound before X/Z push code.
+  `Area1StateFirstRetailTrace.v` checks transparent copies of two hash-gated JP
+  observations: candidate State X/Z survive, the distinct Graphics point is
+  not copied, and `MarioState.floor` has the timer-131 top owner/height.  Under
+  the audited source order this supports first-query success; it is not direct
+  branch instrumentation.  The frame completes warp/snap/copy/capture, then
+  the same injected boundary retains slot 61 through free and the true first
+  Area-2 apply before consuming the upper trigger.  All recorded A counters
+  are zero.  These are conditional data receipts, not clean reachability or
+  linked Clight execution.  The failed-cast retail conclusion still depends on
   `RetailInvalidCastExecutionRefinementObligation`,
   `RetailInvalidEnablePreservationObligation`, and the handler fact named by
   `RetailInvalidTrapContinuationExclusionSchema`; the finite alias has no
@@ -489,8 +500,9 @@
 - The compiled US/JP instruction-step refinement, whole-execution FPCSR
   preservation, and imported handler non-resumption needed to turn the checked
   failed-cast prefix into a universal retail exclusion; or a clean
-  pre-collision writer and live-surface selection for the finite State-first
-  alias.
+  pre-collision writer for the finite State-first alias.  Conditional live
+  selection and downstream lifecycle are now observed; their linked
+  statement/memory refinements remain open.
 - Reachability classification and displacement bounds for every null, live,
   inactive, or reused JP platform-slot case.
 - A clean retail installer for the JP stale-platform payload.  Ink's non-null

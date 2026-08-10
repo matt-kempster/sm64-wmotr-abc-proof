@@ -102,9 +102,22 @@ The Area-1 nonlocal-endpoint audit now distinguishes finite signed-32 values
 that wrap through `find_floor`'s signed-16 temporary from conversions that fail
 before that store.  Rocq checks the full finite vector
 `(-1862,67314,-902) -> (-1862,1778,-902)` and proves that the narrowed query is
-the accepted timer-131 midpoint.  This yields a conditional State-first
-capability if a clean run can first create a local-Object/nonlocal-State split;
-no such writer or clean route is proved.  Quiet NaN, both infinities, `+2^31`,
+the accepted timer-131 midpoint.  A hash-gated original-JP fixture now
+executes the conditional State-first frame: the candidate State X/Z survive,
+`MarioState.floor` has top owner and height `0x44defe16`, and the distinct
+Graphics retry point is not copied.  Under the audited source order this is
+evidence for first-query success, not direct branch instrumentation.  The
+cached warp selects `ACT_DISAPPEARED`, the snap and
+copy synchronize State/Object/Graphics, and the final query captures the top.
+All A counters are zero.  Rocq additionally checks exact `Cop.sem_cast` values,
+the source-shaped high-Y wall rejection, and a transparent trace receipt.
+This does not supply a clean predecessor: the fixture injects the split and
+arms the top, linked Clight execution remains open, and no clean writer or
+route is proved.  A second hash-gated run follows the same State-first fixture
+through the top's timer-513 free, the retained depth-47 pointer at the authentic
+first Area-2 apply, and upper-trigger consumption at timer 595; the associated
+transparent Rocq record again certifies copied data, not execution.  Quiet
+NaN, both infinities, `+2^31`,
 and the first binary32 value below `-2^31` fail CompCert's word conversion.
 US/JP initialization receipts, the stock fault-handler source, and a small
 target-prefix model show a terminal trap before a terrain coordinate is

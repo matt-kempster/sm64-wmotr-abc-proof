@@ -261,7 +261,10 @@ query records, or why that query is skipped:
    upper warp; the first Mario State floor query fails; a distinct graphical
    position makes the retry select a pyramid-top surface.
 2. **State-first installation.**  A three-dimensional State writer makes the
-   first floor query select the top, so no graphics retry is needed.
+   first floor query select the top, so no graphics retry is needed.  The
+   injected `(-1862,67314,-902)` JP boundary now validates this outcome and
+   its retained-slot continuation; the clean writer/pointer origin remains
+   unproved.
 3. **Physical co-location.**  Move or clone the warp to the top, or move or
    clone collision owned by the top to the warp, while preserving the required
    warp and surface semantics.

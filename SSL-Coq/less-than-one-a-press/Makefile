@@ -336,11 +336,23 @@ check: proofs
 	  LessThanOneAPress.Proofs.Area1NonlocalYCastArithmetic \
 	  timer131_nonlocal_y_vector_cast_components_checked
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1NonlocalYCastArithmetic \
+	  timer131_nonlocal_vector_cast_semantics_checked
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.Area1NonlocalEndpointBoundary \
 	  area1_nonlocal_endpoint_checked_boundary
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.Area1NonlocalEndpointBoundary \
 	  nonlocal_y_state_first_numeric_capability_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1StateFirstWallExclusion \
+	  area1_state_first_wall_exclusion_checked_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1StateFirstRetailTrace \
+	  jp_area1_state_first_retail_trace_record_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1StateFirstRetailTrace \
+	  jp_area1_state_first_lifecycle_record_checked
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.ClightFacts \
 	  find_floor_s16_coordinate_cast_source_shape_us

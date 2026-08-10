@@ -11,6 +11,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifndef STATE_FIRST_MODE
+#define STATE_FIRST_MODE 0
+#endif
+
 /* Authenticated original-JP virtual addresses.  run.sh hash-gates the ROM. */
 enum {
     A_GLOBAL_TIMER = 0x8032c694,
@@ -71,7 +75,8 @@ static int gArmed;
 static int gInstalled;
 static int gLoggedNext;
 static int gRetryCopied;
-static int gRetryOwnerTop;
+static int gStateCoordinatesPreserved;
+static int gFloorOwnerTop;
 static int gWarpAction;
 static int gUsedObjWarp;
 static int gPlatformTop;
@@ -138,9 +143,15 @@ static void install_three_view_boundary(void) {
     uint32_t mario_object = R32(A_MARIO_OBJECT);
 
     /* First floor query: State view. */
+#if STATE_FIRST_MODE
+    W32(A_MARIO_STATES + M_POS_X, fbits(-1862.0f));
+    W32(A_MARIO_STATES + M_POS_Y, fbits(67314.0f));
+    W32(A_MARIO_STATES + M_POS_Z, fbits(-902.0f));
+#else
     W32(A_MARIO_STATES + M_POS_X, fbits(-2200.0f));
     W32(A_MARIO_STATES + M_POS_Y, fbits(768.0f));
     W32(A_MARIO_STATES + M_POS_Z, fbits(-1024.0f));
+#endif
 
     /* Collision pass: Object view at the upper warp's exact center. */
     W32(mario_object + O_POS_X, R32(gUpperWarp + O_POS_X));
@@ -196,7 +207,10 @@ static void log_next(void) {
     gRetryCopied =
         R32(A_MARIO_STATES + M_POS_X) == fbits(-1641.0f)
         && R32(A_MARIO_STATES + M_POS_Z) == fbits(-783.0f);
-    gRetryOwnerTop = owner == gTop;
+    gStateCoordinatesPreserved =
+        R32(A_MARIO_STATES + M_POS_X) == fbits(-1862.0f)
+        && R32(A_MARIO_STATES + M_POS_Z) == fbits(-902.0f);
+    gFloorOwnerTop = owner == gTop;
     gWarpAction = action == ACT_DISAPPEARED;
     gUsedObjWarp = used_obj == gUpperWarp;
     gPlatformTop = platform == gTop;
@@ -230,7 +244,7 @@ static void log_next(void) {
             rfloat(mario_object + GFX_POS_Z),
             floor, owner, rfloat(A_MARIO_STATES + M_FLOOR_HEIGHT),
             action, R32(A_MARIO_STATES + M_ACTION_ARG), used_obj, platform,
-            gRetryCopied, gRetryOwnerTop, gWarpAction, gUsedObjWarp,
+            gRetryCopied, gFloorOwnerTop, gWarpAction, gUsedObjWarp,
             gPlatformTop);
 }
 
@@ -254,7 +268,13 @@ EXPORT m64p_error CALL PluginGetVersion(
     if (type) *type = M64PLUGIN_INPUT;
     if (version) *version = 0x000100;
     if (api_version) *api_version = 0x020100;
-    if (name) *name = "SSL JP timer-131 three-view installer";
+    if (name) {
+#if STATE_FIRST_MODE
+        *name = "SSL JP timer-131 State-first candidate";
+#else
+        *name = "SSL JP timer-131 three-view installer";
+#endif
+    }
     if (capabilities) *capabilities = 0;
     return M64ERR_SUCCESS;
 }
@@ -278,28 +298,48 @@ EXPORT int CALL RomOpen(void) {
     gInstalled = 0;
     gLoggedNext = 0;
     gRetryCopied = 0;
-    gRetryOwnerTop = 0;
+    gStateCoordinatesPreserved = 0;
+    gFloorOwnerTop = 0;
     gWarpAction = 0;
     gUsedObjWarp = 0;
     gPlatformTop = 0;
     gAPressedFrames = 0;
     gADownFrames = 0;
     gControllerAFrames = 0;
+#if STATE_FIRST_MODE
+    fprintf(stderr,
+            "PROBE,version=JP,boundary=conditional-timer131-state-first,"
+            "state=(-1862,67314,-902),object=upper-warp-center,"
+            "graphics=(-1641,1456,-783),controllerA=zero\n");
+#else
     fprintf(stderr,
             "PROBE,version=JP,boundary=conditional-timer131-three-view,"
             "state=(-2200,768,-1024),object=upper-warp-center,"
             "graphics=(-1641,1456,-783),controllerA=zero\n");
+#endif
     return 1;
 }
 
 EXPORT void CALL RomClosed(void) {
+#if STATE_FIRST_MODE
+    fprintf(stderr,
+            "RESULT,armed=%d,installed=%d,next=%d,retryCopied=%d,"
+            "stateCoordinatesPreserved=%d,retryOwnerTop=%d,warpAction=%d,"
+            "usedObjWarp=%d,platformTop=%d,aPressedFrames=%d,aDownFrames=%d,"
+            "controllerAFrames=%d\n",
+            gArmed, gInstalled, gLoggedNext, gRetryCopied,
+            gStateCoordinatesPreserved, gFloorOwnerTop, gWarpAction,
+            gUsedObjWarp, gPlatformTop, gAPressedFrames, gADownFrames,
+            gControllerAFrames);
+#else
     fprintf(stderr,
             "RESULT,armed=%d,installed=%d,next=%d,retryCopied=%d,"
             "retryOwnerTop=%d,warpAction=%d,usedObjWarp=%d,platformTop=%d,"
             "aPressedFrames=%d,aDownFrames=%d,controllerAFrames=%d\n",
-            gArmed, gInstalled, gLoggedNext, gRetryCopied, gRetryOwnerTop,
+            gArmed, gInstalled, gLoggedNext, gRetryCopied, gFloorOwnerTop,
             gWarpAction, gUsedObjWarp, gPlatformTop, gAPressedFrames,
             gADownFrames, gControllerAFrames);
+#endif
 }
 
 EXPORT void CALL ControllerCommand(int control, unsigned char *command) {
