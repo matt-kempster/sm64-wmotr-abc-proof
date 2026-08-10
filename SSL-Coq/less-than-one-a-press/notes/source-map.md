@@ -656,6 +656,32 @@ unclassified owner.  A checked separation witness shows the old same-position
 relation is insufficient; it proves no store, retention, movement, gameplay
 trace, or linked surface-list projection.
 
+`proofs/Area1PrecollisionWriterClosure.v` checks the bilateral generated
+pre-collision order and direct-writer footprint.  For the 29 listed stock
+Area-1 surface-family bodies per version, it finds no recognized direct Mario
+XYZ writer or direct `set_mario_pos` call.  The receipts identify the intended
+State-only platform shape.  Its semantic classification is conditional on
+`Area1TerrainDispatchXYZFrameObligation`,
+`Area1PlatformMarioPhaseClightRefinementObligation`, and
+`Area1CollisionXYZFrameObligation`; stock list membership, true branch
+execution, transitive helper/action-table closure, receiver and fresh-child
+non-aliasing, and external-call frames remain open.
+
+`proofs/Area1InstallerTemporalClosure.v` models scheduler boundaries rather
+than identifying an old query sample with the current collision Object.  It
+proves the upper-warp/null invariant across arbitrary active-frame movement,
+exact frozen carries, US clear, and JP inbound retention, and rules out a
+non-null platform installer inside that temporal stock model.  Its linked
+entry/step projection is named but not inhabited.
+
+`proofs/StateFirstPlatformChronology.v` gives an executable last-effective
+pointer lineage.  A projected non-null upper-warp apply is exhaustively split
+into different query/current samples, canonical identity outside modeled
+geometry, noncanonical slot/ghost epoch, unclassified owner, or retained JP
+inbound transport.  Linked `gMarioPlatform` framing, live `Surface.object`
+slot/epoch classification, skipped-store exclusion, and true pre-apply load
+equality remain open.
+
 `proofs/Area1QueryScheduleClosure.v` computes intraprocedural generated
 call/guard receipts and proves a separate finite schedule model from
 cached-platform application through interaction, State-to-Object copy, unload,

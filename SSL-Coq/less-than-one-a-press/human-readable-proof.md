@@ -329,6 +329,20 @@ engineering but does not know *Super Mario 64*.
 > an unmodeled query skip.  Ink's graphical retry therefore remains logically
 > possible but has not been reached from clean retail input.
 >
+> The newest temporal proof removes one important ambiguity in that last
+> sentence.  An active frame may move Mario's collision Object, but the final
+> platform query then recomputes the pointer at the new Object sample.  A
+> frozen/query-skipping frame carries the old pointer only by carrying the same
+> Object sample with it.  US spawn clears the pointer, and JP retention begins
+> at one of three checked inbound nodes, none of which is the upper warp.  An
+> arbitrary finite composition of those stock shapes therefore cannot produce
+> a non-null pre-apply pointer while the Object is at the upper warp.  Any
+> survivor must now expose a different query/current sample, out-of-model
+> geometry, a noncanonical slot or epoch, an unclassified owner, retained
+> inbound transport, or an unframed/aliased transition.  This is still a
+> theorem of the checked temporal projection, not yet a proof that every retail
+> frame inhabits it.
+>
 > The generated source narrows one more version of "moving geometry."  The
 > stock upper warp's native body contains no direct X/Y/Z access or write.
 > The stock pyramid top does write X and Y, and a separate binary32 check of every
@@ -1329,13 +1343,27 @@ pre-collision three-dimensional State/Object split.  Ordinary and action-phase
 PU movement run after collision and are copied back to the raw Object, so they
 cannot leave the next frame's Object local while State stays remote.
 Pre-collision cached platform displacement is the identified stock exception,
-but the bounded stock provenance model makes that pointer null at the
-upper-warp Object sample.  A clean route must escape that
-provenance or use an unclassified/aliased writer.  Dynamic-list ownership and
-the warp/snap/copy/lifecycle results are observed conditionally, but still need
-a single linked Clight execution proof.  The exact checked boundary is
+but the temporal stock model now proves more than a same-sample null result.
+It permits arbitrary Object movement on active frames and arbitrarily many
+exact frozen carries: the active frame's final query rebinds the pointer, while
+the frozen frame preserves both pointer and Object.  Along with US clear and
+the checked JP inbound positions, those transitions cannot finish at the upper
+warp with a non-null pre-apply pointer.  The generated pre-collision census
+also identifies an abstract State-only platform phase.  Assuming linked
+refinements for the terrain frame, true platform branch, and collision frame,
+a synchronized State/Object split must come from an effective State-only
+platform apply; that abstract phase cannot create Ink's Object/Graphics gap.
+
+A clean route must therefore escape the linked projection through a different
+query/current sample, relocated or out-of-model geometry, a clone/reused epoch,
+an unclassified owner, retained-inbound transport, or an aliased/external or
+otherwise unframed coordinate/pointer write.  Dynamic-list ownership and the
+warp/snap/copy/lifecycle results are observed conditionally, but still need a
+single linked Clight execution proof.  The exact checked boundaries are
 documented in
-[`docs/notes/area1-nonlocal-endpoints.md`](docs/notes/area1-nonlocal-endpoints.md).
+[`docs/notes/area1-nonlocal-endpoints.md`](docs/notes/area1-nonlocal-endpoints.md)
+and
+[`docs/notes/installer-temporal-closure.md`](docs/notes/installer-temporal-closure.md).
 
 Warp hitboxes continue to use full binary32 object positions.  The parsed
 source mesh has minimum home-relative world Y `1281`; the arithmetic platform
@@ -2440,6 +2468,15 @@ The most useful entry points are:
 - `proofs/Area1PlatformExhaustiveness.v`: the fifteen-owner stock Area-1
   inventory, source-bounded pre-apply provenance cases, node-`0x1E` null
   platform result, and checked three-dimensional fragment capability;
+- `proofs/Area1PrecollisionWriterClosure.v`: bilateral generated pre-collision
+  writer receipts plus the State-only-platform classification conditional on
+  terrain, platform-phase, and collision refinements;
+- `proofs/Area1InstallerTemporalClosure.v`: finite temporal preservation of
+  the upper-warp-null invariant across active, frozen, clear, and inbound
+  scheduler shapes;
+- `proofs/StateFirstPlatformChronology.v`: executable last-effective-pointer
+  lineage and the five residual classes for any projected non-null upper-warp
+  pre-apply;
 - `proofs/StateFirstInstaller.v`: the source-bounded stock State-first
   contradiction and the explicit linked-memory projection obligation;
 - `proofs/Timer131Surface.v`: exact timer-131 pose, transformed mesh, rejected

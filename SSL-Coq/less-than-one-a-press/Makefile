@@ -1410,6 +1410,18 @@ check: proofs
 	  LessThanOneAPress.Proofs.StockProjectionExhaustiveness \
 	  stock_projection_abstract_checked_boundary_holds
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PrecollisionWriterClosure \
+	  area1_precollision_writer_source_boundary_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1InstallerTemporalClosure \
+	  area1_installer_temporal_checked_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.StateFirstPlatformChronology \
+	  projected_state_first_platform_installer_is_exhaustively_classified
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.StateFirstPlatformChronology \
+	  stock_closed_projection_rules_out_state_first_platform_apply
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.Area1QueryScheduleClosure \
 	  area1_query_schedule_checked_boundary_holds
 	bash pipeline/assumptions.sh \

@@ -144,6 +144,9 @@ proofs/Area1SurfaceWitness.v
 proofs/Area1FirstNull.v
 proofs/Area1PlatformExhaustiveness.v
 proofs/StockProjectionExhaustiveness.v
+proofs/Area1PrecollisionWriterClosure.v
+proofs/Area1InstallerTemporalClosure.v
+proofs/StateFirstPlatformChronology.v
 proofs/FirstCrossingWriterCoverage.v
 proofs/ModelGapAudit.v
 proofs/OrdinaryMotion.v

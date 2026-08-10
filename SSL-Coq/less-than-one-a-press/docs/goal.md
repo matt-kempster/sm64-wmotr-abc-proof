@@ -401,7 +401,19 @@ spinning timer `150`, and frame 20 must run explosion timer `0`; the value-level
 timer-131 transform and midpoint surface are checked and the injected JP run
 observes the selection.  Ink is one possible payload installer, not the only
 one.  State-first selection, physical co-location or cloning, post-commit
-transport, another owner, and frozen carry remain candidates.  The generated
+transport, another owner, and frozen carry remain candidates.  The temporal
+stock scheduler now eliminates one broad combination: active-frame movement
+followed by exact frozen carries cannot leave the Object at the fixed upper
+warp with a non-null pre-apply pointer.  Any projected survivor must expose a
+different query/current sample, out-of-model canonical geometry, noncanonical
+slot/epoch identity, an unclassified owner, or retained-inbound transport.
+The bilateral pre-collision census also identifies the abstract State-only
+platform phase.  Assuming separate linked terrain and collision frames and a
+refinement of the true platform branch to that phase, an effective platform
+apply is the only synchronized State/Object split source and cannot create the
+Graphics/Object gap.  Linked instantiation of those scheduler, platform,
+terrain/collision, pointer, and owner projections is still open, so the
+broader installer alternatives are not collectively eliminated.  The generated
 stock upper-warp callback has no direct position writer, and a finite binary32
 certificate confines the stock top's own timer `0..150` motion to its small
 X/Y envelope at fixed Z.  The live Clight-to-mirror and memory-frame proof is
@@ -454,6 +466,8 @@ results are documented in [`notes/ink-fallback.md`](notes/ink-fallback.md),
 is [`notes/retail-find-floor-cast.md`](notes/retail-find-floor-cast.md).
 The finite-alias and failed-conversion boundary is
 [`notes/area1-nonlocal-endpoints.md`](notes/area1-nonlocal-endpoints.md).
+The temporal installer and pre-collision writer boundary is
+[`notes/installer-temporal-closure.md`](notes/installer-temporal-closure.md).
 The exact timer-131 face and conditional lifecycle/first-apply evidence are in
 [`notes/timer131-surface.md`](notes/timer131-surface.md) and
 [`notes/jp-lifecycle-trace.md`](notes/jp-lifecycle-trace.md).

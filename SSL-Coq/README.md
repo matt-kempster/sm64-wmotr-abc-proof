@@ -280,6 +280,23 @@ provenance, clone/relocation closure, and the clean binary32 `<960` gap
 invariant are still unproved; Ink's retail installer is reduced, not
 eliminated.
 
+The newest installer tranche gives the stock scheduler a temporal semantics
+instead of identifying the last query with the current collision sample.  An
+active frame may move the Object but its final query rebinds the platform
+pointer at that new sample; frozen/query-skipping frames preserve both values;
+US spawn clears the pointer; and JP retention starts at a checked inbound
+node.  No finite composition of those shapes reaches the fixed upper warp
+with a non-null pre-apply pointer.  Any projected survivor is classified as a
+different query/current sample, out-of-model geometry, noncanonical slot or
+epoch, unclassified owner, or retained-inbound transport.  A bilateral
+pre-collision source census also identifies the abstract State-only platform
+phase.  Assuming separate linked refinements for the terrain frame, true
+platform branch, and collision frame, a new classification makes that phase
+the only synchronized split source and shows that it cannot create Ink's
+Object/Graphics gap.  Instantiating those temporal, owner, and frame
+projections from linked retail memory remains open;
+the new results do not complete the installer exclusion.
+
 ## Build
 
 With Rocq 8.16.1 and CompCert 3.15 on `PATH`:

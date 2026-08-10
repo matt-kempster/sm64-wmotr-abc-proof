@@ -203,6 +203,22 @@
   identity.  Linked alias/external frames, branch execution, successful
   allocator execution, post-copy discrepancy provenance, live surface-list ownership,
   spawn/epoch provenance, and the clean binary32 gap invariant remain open.
+- The temporal installer follow-up proves that stock active-frame movement and
+  exact frozen carries do not combine into a hidden platform installer.  An
+  active frame's final query rebinds the pointer at the moved Object sample; a
+  frozen/query-skipping frame preserves both sample and pointer; US spawn
+  clears it; and JP retention begins at a checked inbound node.  Any projected
+  non-null upper-warp survivor is classified into five concrete lineage
+  families: different query/current samples, canonical identity outside the
+  modeled geometry, noncanonical slot/epoch identity, unclassified owner, or
+  retained-inbound transport.  A bilateral generated pre-collision census
+  separately identifies the intended State-only platform phase.  Its split
+  theorem assumes linked terrain and collision frames plus refinement of the
+  true platform branch to that abstract phase; under those premises a
+  synchronized State/Object split requires the platform branch, which cannot
+  create Ink's Object/Graphics gap.  The linked temporal, platform-phase,
+  terrain/collision, owner, alias, and external-frame projections are not yet
+  inhabited, so this is not a complete clean-installer exclusion.
 - `JPInstallTimerWindow.v` proves timer `131` unique in the behavior's
   `0..150` range for the observed affine install/freeze/explosion schedule.
   Linking those global offsets and lifecycle classes to concrete Clight memory

@@ -241,6 +241,26 @@ relation, different-slot recognized identity, same-slot different ghost
 epoch, or unclassified owner.  Constructing these records from every live
 retail surface-list state remains open.
 
+The temporal follow-up now removes the old same-position shortcut from the
+stock scheduler argument.  `Area1InstallerTemporalClosure.v` allows an active
+frame to move the collision Object but requires its final query to rebind the
+platform pointer at that new sample; frozen/query-skipping frames preserve both
+the sample and pointer; US spawn clears it; and JP retention begins at a
+checked inbound node.  No finite trace made from those shapes can arrive at
+the fixed upper warp with a non-null pre-apply pointer.
+`StateFirstPlatformChronology.v` classifies any projected non-null survivor as
+a different query/current sample, out-of-model canonical geometry,
+noncanonical slot/epoch identity, an unclassified owner, or retained-inbound
+transport.  `Area1PrecollisionWriterClosure.v` separately checks the bilateral
+pre-collision source boundary and defines the abstract State-only platform
+phase.  Its split classification additionally assumes linked refinements for
+the terrain frame, the real platform branch, and the collision frame; under
+those premises a synchronized State/Object split requires an effective
+State-only platform apply, while that apply cannot create Ink's
+Object/Graphics gap.  These are admission-free source/abstract results, not a
+linked clean-run projection.  See
+[`docs/notes/installer-temporal-closure.md`](docs/notes/installer-temporal-closure.md).
+
 `PlatformPointerProvenance.v` computes the complete US/JP direct
 `gMarioPlatform` syntax census: JP has only `update_mario_platform`; US also
 has the null-only spawn clear.  There is no internal address-taking or static

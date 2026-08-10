@@ -129,8 +129,11 @@
   provenance relation.  Ordinary and action-phase PU movement are scheduled
   too late and are copied to raw Object; pre-collision platform displacement is
   the identified stock exception, and its pointer is null at the upper-warp
-  sample inside the finite stock model.  Linked
-  writer/non-alias/external-frame and lifecycle projection remain open.
+  sample inside the finite stock model.  A temporal extension now proves this
+  remains true across arbitrary active-frame movement and exact frozen carries,
+  and classifies any projected non-null survivor into five explicit lineage
+  escapes.  Linked writer/non-alias/external-frame, terrain-dispatch, live-owner,
+  and lifecycle projection remain open.
 - [ ] Refine the target cast-prefix model to the compiled US/JP execution,
   prove Invalid-enable preservation and handler non-resumption, refine the
   horizontal-boundary split to the generated branch, classify accepted cells
@@ -727,6 +730,31 @@
       Existing official-link definition provenance is packaged with the
       census; live control-flow/value-flow, aliased stores, and external stores
       remain semantic obligations before this becomes a reachable-store result.
+    - [x] Replace the single-sample frozen-carry argument with a temporal stock
+      scheduler invariant.  An active frame may move the Object but its final
+      query rebinds the pointer at the new sample; a frozen/query-skipping frame
+      preserves both the Object sample and pointer; US spawn clears the pointer;
+      and JP retention begins at a checked inbound node.  Prove by induction
+      that no finite composition of those shapes reaches the fixed upper warp
+      with a non-null pre-apply pointer.  Linked projection of every retail
+      boundary step to one of these shapes remains open.
+    - [x] Give the complementary executable pointer-lineage classification.
+      US clear plus any number of skips remains null, while JP skips preserve
+      but do not manufacture inbound lineage.  Any projected non-null
+      upper-warp apply is now classified as a different query/current sample,
+      canonical identity outside modeled geometry, noncanonical slot/ghost
+      epoch, unclassified owner, or retained inbound transport.  Instantiating
+      `UpperWarpPrecollisionApplyProjection` from linked memory remains open.
+    - [x] Check the bilateral pre-collision generated-source boundary.  The
+      fixed scheduler/collision bodies and 29 listed stock Area-1 surface-family
+      bodies per version have no recognized direct Mario XYZ writer or direct
+      `set_mario_pos` call; the source receipts identify the platform branch's
+      intended State-only XYZ shape.  Assuming separate linked refinements for
+      the terrain frame, true platform phase, and collision frame, a
+      synchronized State/Object split requires an effective platform apply,
+      and that abstract phase cannot create Ink's Object/Graphics gap.
+      Stock-list/helper, receiver/non-alias, fresh-child, branch execution, and
+      external-call closure remain open.
     - [x] Replace the implicit same-position assumption with a two-position
       abstract-sample analysis.  For a caller-supplied observation/classifier,
       split a modeled candidate, canonical identity outside that model,
@@ -760,7 +788,11 @@
         the upper-warp action-selection frame through the non-null final query;
         explain or eliminate post-copy Mario-coordinate discrepancies; project live dynamic
         surface nodes to slot/epoch/behavior/collision provenance; and refine
-        every clean coordinate writer to the strict binary32 gap bound.
+        every clean coordinate writer to the strict binary32 gap bound.  Also
+        instantiate the temporal scheduler and pointer-lineage projections;
+        prove the terrain-dispatch and collision XYZ frames plus the real
+        platform-phase refinement; and eliminate or realize each of the five
+        remaining lineage cases.
   - [x] Package the observed zero-A continuation that overlaps and collects the
     spawned Act-6 star: `conditional_jp_zero_a_act6_collection_continuation`
     combines the binary32 overlap, initially-clear-to-set Act-6 save-bit

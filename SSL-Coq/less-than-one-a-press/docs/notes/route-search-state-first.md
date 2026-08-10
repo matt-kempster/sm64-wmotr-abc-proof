@@ -23,11 +23,12 @@ Area-2 apply and consumes the upper trigger.  This shows the candidate works
 *if installed*; it does not contradict the stock installer exclusion.
 
 This is not yet a whole-ROM exclusion.  The remaining connection is the named
-`Area1StockPreapplyProjectionSound`/`StateFirstStockProjectionObligation`:
-linked US and JP Clight memory at every relevant pre-apply control point must
-project into the already-proved finite origin relation.  The result also does
-not exclude Ink's graphical-retry installer, which intentionally uses a
-different Graphics sample after the first State query returns `NULL`.
+linked temporal/pointer-lineage projection: US and JP Clight memory at every
+relevant pre-apply control point must project the last effective query, every
+skip, the current collision Object, and the pointer actually loaded by the
+apply.  The result also does not exclude Ink's graphical-retry installer,
+which intentionally uses a different Graphics sample after the first State
+query returns `NULL`.
 
 The downstream half of the JP candidate is much stronger.  The exact
 State-first boundary fixture reaches the true first Area-2 post-apply position
@@ -55,9 +56,13 @@ The candidate schedule would be:
 6. the cached warp interaction and later final platform query retain the
    desired pointer.
 
-The source-bounded contradiction occurs at steps 1 and 4.  The only normal
-retail recomputation writer is the preceding final `update_mario_platform`.
-At the same raw MarioObject sample used by the next collision pass:
+The old source-bounded contradiction implicitly used the same query and
+collision sample.  The temporal proof no longer needs that shortcut.  The
+only normal retail recomputation writer is the final
+`update_mario_platform`.  An active frame may move the Object, but its final
+query then recomputes the pointer at that moved sample.  A frozen/query-skipped
+frame preserves the old pointer only by preserving the same Object sample.
+At an upper-warp query sample:
 
 - the pyramid top's lowest possible floor is Y `1281`;
 - upper-warp overlap constrains MarioObject Y to `608..818`;
@@ -65,17 +70,20 @@ At the same raw MarioObject sample used by the next collision pass:
 - every other modeled Area-1 dynamic owner has a horizontal envelope disjoint
   from the upper-warp box.
 
-Consequently the preceding final query records `NULL`.  The finite origin
-relation also includes:
+Consequently an active frame ending at the warp records `NULL`.  The temporal
+model also includes:
 
 - the US area-spawn clear;
 - all three stock inbound Area-1 warp-node positions in US and JP; and
 - arbitrarily many frozen frames that preserve the same position and pointer.
 
-`no_source_bounded_stock_state_first_installer` packages the contradiction.
-`upper_warp_nonnull_preapply_escapes_stock_origin` gives the useful converse:
-any real non-null witness at the upper warp must demonstrate that the linked
-run escaped the bounded relation rather than silently assuming it did.
+`no_stock_temporal_platform_installer` packages the finite-trace contradiction.
+`projected_state_first_platform_installer_is_exhaustively_classified` gives the
+useful converse: any projected non-null witness at the upper warp has a
+different query/current sample, canonical identity outside modeled geometry,
+noncanonical slot/epoch identity, an unclassified owner, or retained-inbound
+transport.  The linked run must realize one of those cases rather than merely
+asserting an unconstrained pointer.
 
 ## Wall and ordinary/PU State movement
 
@@ -177,8 +185,8 @@ the informal statement that the rest of Area 2 is traversable.
 
 1. **Nonlocal State-first plus JP stale slot.**  Its injected engine outcome
    and complete retained-slot continuation are observed.  It needs a clean
-   pre-collision 3D State writer and a non-null pre-apply owner that escapes
-   the finite stock provenance relation.
+   pre-collision 3D State writer and a non-null pre-apply owner that realizes
+   one of the five temporal lineage escapes.
 2. **Ink Graphics retry plus JP stale slot.**  Its destination continuation is
    observed.  It needs a reachable timer-131 Object/Graphics separation and
    live top-owned retry.
@@ -191,9 +199,10 @@ the informal statement that the rest of Area 2 is traversable.
 5. **Other dynamic owner / slot payload.**  The stock final-query geometry
    excludes all fifteen modeled owners at the unchanged warp sample, but a
    moved collision sample or linked-projection escape could reopen this.
-6. **Skipped-query frozen carry.**  Needs an actual scheduler path that skips
-   the final recomputation while preserving a non-null pointer and the warp
-   collision sample.
+6. **Skipped-query frozen carry.**  Exact modeled skips cannot create this:
+   they preserve both the prior pointer and prior collision sample.  A survivor
+   needs a skipped path that nevertheless moves the Object, retained-inbound
+   transport, or another unclassified transition.
 7. **Abstract stock State-first or Y-preserving wall-only State-first.**
    Excluded by the constructors in `proofs/StateFirstInstaller.v`.  Retail
    lifting still needs the named stock-origin projection and, for the wall
@@ -211,6 +220,21 @@ opam exec --switch=sm64-item-proof -- \
   coqc -Q generated LessThanOneAPress.Generated \
        -Q proofs LessThanOneAPress.Proofs \
        proofs/StateFirstInstaller.v
+
+opam exec --switch=sm64-item-proof -- \
+  coqc -Q generated LessThanOneAPress.Generated \
+       -Q proofs LessThanOneAPress.Proofs \
+       proofs/Area1PrecollisionWriterClosure.v
+
+opam exec --switch=sm64-item-proof -- \
+  coqc -Q generated LessThanOneAPress.Generated \
+       -Q proofs LessThanOneAPress.Proofs \
+       proofs/Area1InstallerTemporalClosure.v
+
+opam exec --switch=sm64-item-proof -- \
+  coqc -Q generated LessThanOneAPress.Generated \
+       -Q proofs LessThanOneAPress.Proofs \
+       proofs/StateFirstPlatformChronology.v
 ```
 
 The exact State-first frame and lifecycle runners live under

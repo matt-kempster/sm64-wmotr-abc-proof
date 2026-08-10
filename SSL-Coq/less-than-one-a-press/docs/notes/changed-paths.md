@@ -896,3 +896,27 @@ trace records, reproducible runners, and status documentation changed:
 - `SSL-Coq/less-than-one-a-press/proofs/Area1NonlocalYCastArithmetic.v`
 - `SSL-Coq/less-than-one-a-press/proofs/Area1StateFirstRetailTrace.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/Area1StateFirstWallExclusion.v` (new)
+
+## Area-1 installer temporal-closure tranche
+
+The stock scheduler now carries separate last-query and current-collision
+samples through active frames, exact frozen carries, US clear, and JP inbound
+retention.  The pre-collision writer census and pointer-lineage classification
+make the remaining installer escapes explicit.  The following paths changed:
+
+- `SSL-Coq/README.md`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/claim.md`
+- `SSL-Coq/less-than-one-a-press/docs/goal.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/installer-coverage.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/installer-temporal-closure.md` (new)
+- `SSL-Coq/less-than-one-a-press/docs/notes/route-search-state-first.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+- `SSL-Coq/less-than-one-a-press/proofs/Area1InstallerTemporalClosure.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/Area1PrecollisionWriterClosure.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/StateFirstPlatformChronology.v` (new)
