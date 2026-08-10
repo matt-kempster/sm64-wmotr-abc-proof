@@ -849,6 +849,34 @@ engineering but does not know *Super Mario 64*.
 > The detailed case table is
 > [`docs/notes/stock-projection-exhaustiveness.md`](docs/notes/stock-projection-exhaustiveness.md).
 
+> **Newest linked-lineage result:** the direct platform-pointer census is now
+> connected to the constructed official cleaned US and JP linked definition
+> lists. US's clear name is the only additional recognized direct named writer;
+> no retained internal body directly takes the cell's address; and any retained
+> internal direct updater caller must be named `update_objects`.
+>
+> JP additionally has a checked Clight dataflow fragment from the updater's
+> surface temporary's `Surface.object` field into `gMarioPlatform`, followed by the apply
+> function's load of that global. Real `Clight.step2` lemmas execute the
+> individual statements once their starting states, expression evaluation,
+> and stores are supplied, over an abstract global environment. Specialization
+> to the concrete official global environment and symbol blocks remains open.
+> Composing the surrounding sequence/skip steps into the complete fragment
+> trace also remains open.
+> That is a local store/load proof, not a proof that `find_floor` reaches the
+> branch, that the source fragment is the body resolved by the official global
+> environment, or that later execution preserves the cell.
+>
+> None of the five clean-retail lineage cases is eliminated yet. The linked
+> facts rule out only an overlooked direct named internal writer. Different
+> query/current samples, out-of-model geometry, noncanonical slot/epoch,
+> unclassified owners, and retained JP inbound transport still need live
+> control-flow, owner, alias/external-frame, and lifecycle proofs. In
+> particular, the JP load theorem strengthens the conditional stale-pointer
+> route if a pointer is already present and preserved; it does not construct
+> that pointer from clean Area-1 play. The exact case table is
+> [`docs/notes/linked-platform-lineage.md`](docs/notes/linked-platform-lineage.md).
+
 ## The problem in software terms
 
 The game runs an update loop.  Each frame reads a controller, updates Mario and

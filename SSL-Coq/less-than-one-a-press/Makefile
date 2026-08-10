@@ -1422,6 +1422,15 @@ check: proofs
 	  LessThanOneAPress.Proofs.StateFirstPlatformChronology \
 	  stock_closed_projection_rules_out_state_first_platform_apply
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.LinkedPlatformLineageSyntax \
+	  linked_platform_lineage_syntax_checked_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPLinkedPlatformGlobal \
+	  jp_generated_platform_ast_boundary_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPLinkedPlatformGlobal \
+	  jp_successful_platform_store_is_true_apply_loaded_owner_under_frame
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.Area1QueryScheduleClosure \
 	  area1_query_schedule_checked_boundary_holds
 	bash pipeline/assumptions.sh \

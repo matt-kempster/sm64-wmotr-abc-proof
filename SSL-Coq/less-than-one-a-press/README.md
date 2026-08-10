@@ -261,6 +261,22 @@ Object/Graphics gap.  These are admission-free source/abstract results, not a
 linked clean-run projection.  See
 [`docs/notes/installer-temporal-closure.md`](docs/notes/installer-temporal-closure.md).
 
+The linked-lineage follow-up now carries the direct syntax census into the
+constructed official cleaned US and JP `prog_defs`. Every visible direct
+`gMarioPlatform` assignment and address-taking site is accounted for, and any
+retained internal direct updater caller must be named `update_objects`. On JP,
+the exact dataflow fragments in the generated updater/apply source bodies are
+checked. CompCert small steps execute the individual `Surface.object`
+temporary, `gMarioPlatform` store, and apply-load statements under explicit
+premises in an abstract global environment. Concrete
+official-globalenv/symbol/block resolution remains open. This rules out an
+overlooked direct named internal writer; it does not rule out an aliased store
+or external effect. The floor-query branch, live owner and
+slot/epoch identity, source-fragment-to-official-body connection, intervening
+cell frame, and query/current-sample relation remain open. Consequently none
+of the five clean-retail lineage cases has yet been eliminated. See
+[`docs/notes/linked-platform-lineage.md`](docs/notes/linked-platform-lineage.md).
+
 `PlatformPointerProvenance.v` computes the complete US/JP direct
 `gMarioPlatform` syntax census: JP has only `update_mario_platform`; US also
 has the null-only spawn clear.  There is no internal address-taking or static

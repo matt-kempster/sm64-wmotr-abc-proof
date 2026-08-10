@@ -147,6 +147,8 @@ proofs/StockProjectionExhaustiveness.v
 proofs/Area1PrecollisionWriterClosure.v
 proofs/Area1InstallerTemporalClosure.v
 proofs/StateFirstPlatformChronology.v
+proofs/LinkedPlatformLineageSyntax.v
+proofs/JPLinkedPlatformGlobal.v
 proofs/FirstCrossingWriterCoverage.v
 proofs/ModelGapAudit.v
 proofs/OrdinaryMotion.v

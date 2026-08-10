@@ -413,8 +413,26 @@ refinement of the true platform branch to that phase, an effective platform
 apply is the only synchronized State/Object split source and cannot create the
 Graphics/Object gap.  Linked instantiation of those scheduler, platform,
 terrain/collision, pointer, and owner projections is still open, so the
-broader installer alternatives are not collectively eliminated.  The generated
-stock upper-warp callback has no direct position writer, and a finite binary32
+broader installer alternatives are not collectively eliminated.
+
+The direct platform-pointer census is now lifted to the constructed official
+cleaned US/JP linked definition lists. Direct named-writer upper bounds and
+direct address-taking are closed at the syntax level, and any retained
+internal direct updater caller must be named `update_objects`. In JP, the exact
+`Surface.object` store and apply-load fragments have real Clight-step proofs
+under explicit premises and an abstract global environment. This removes an undiscovered
+direct named internal writer as an explanation. It does not prove aliases or
+external calls harmless, execute the floor-query branch, classify the live
+owner, specialize the semantic lemmas to the concrete official global
+environment and symbol blocks, bind a slot/epoch, or
+frame the platform cell until a later apply.
+Accordingly all five linked lineage cases remain open; retained JP inbound
+lineage is conditionally supported, rather than excluded, when that cell is
+assumed preserved. The generated-source fragments are not yet proved to be the
+bodies resolved by that official global environment.
+
+The generated stock upper-warp callback has no direct position writer, and a
+finite binary32
 certificate confines the stock top's own timer `0..150` motion to its small
 X/Y envelope at fixed Z.  The live Clight-to-mirror and memory-frame proof is
 still missing, so stock self-motion is narrowed rather than eliminated;

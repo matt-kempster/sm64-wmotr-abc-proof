@@ -44,7 +44,7 @@ base-insensitive and direct-callee/literal checks are path-insensitive.
 | `data/behavior_data.c` | `*_behavior_data.v` | star, hidden-controller and hidden-trigger behavior bindings; pyramid-top loop/collision-loader initializer references; Goomba init/update and Spindel init/loop/collision-loader callback subsequences |
 | `src/game/area.c` | `*_area.v` | direct `unload_area`/`load_area` call order in `change_area`; lifecycle execution is pending |
 | `src/game/level_update.c` | `*_level_update.v` | direct `change_area` occurrence in `check_instant_warp`, game-over reload call, airborne entry-action constant/call source shape, guarded direct-assignment first-writer shape for `sDelayedWarpOp`, normal-update/delayed-object-warp ordering, absence of a direct latch assignment in `initiate_delayed_warp`, and the area-entry `init_mario`/initial-cap call shapes needed to exclude retained Wing Cap |
-| `src/game/platform_displacement.c` | `*_platform_displacement.v` | `gMarioPlatform`/validation-field identifier occurrences, State position writes, object-position reads for final selection, X/Z-but-not-Y velocity slot reads, direct displacement/floor calls, and global assignment shape; pointer/matrix dataflow is pending |
+| `src/game/platform_displacement.c` | `*_platform_displacement.v` | `gMarioPlatform`/validation-field identifier occurrences, State position writes, object-position reads for final selection, X/Z-but-not-Y velocity slot reads, direct displacement/floor calls, and global assignment shape; the official-cleaned-slice direct writer/address/caller upper bounds are checked, while JP separately has exact updater/apply source receipts and local `Surface.object`-store/apply-load Clight steps; live `find_floor` selection, alias/external frames, slot/epoch provenance, and preservation between fragments remain pending |
 | `src/engine/math_util.c` | `*_math_util.v` | full `mtxf_rotate_zxy_and_translate` body and `gSineTable` initializer; the linked memory execution that constructs the platform matrix remains pending |
 | `src/engine/surface_collision.c` | `*_surface_collision.v` | `find_floor` binary32-to-signed-16 cast shape and 78-unit floor buffer, plus the floor/surface query implementation used by Mario stepping and platform recomputation; ordinary-motion receipts check the wall list's strict `y > upperY` rejection; Ink receipts check the X/Y/Z result-pointer writes, absence of a wall-list Y-field mutation, and absence of direct Graphics references; the concrete CompCert cast result and matching authenticated US/JP retail instruction fragment are checked, while linked execution, pointer disjointness, caller closure, and actual surface-selection refinements remain pending |
 | `src/engine/surface_load.c` | `*_surface_load.v` | surface allocation/insertion, object-vertex transformation, object-surface loading, normal construction, and collision-model loading; exact ordinary-motion receipts check `read_surface_data`'s `upperY = maxY + 5`; Goomba/Spindel receipts check full-float distance/collision-distance reads, transform/load calls, float-matrix helpers, and explicit binary32-to-s16 vertex narrowing; live object/surface memory execution, compiled out-of-range cast behavior, and list ownership/order remain pending |
@@ -681,6 +681,25 @@ geometry, noncanonical slot/ghost epoch, unclassified owner, or retained JP
 inbound transport.  Linked `gMarioPlatform` framing, live `Surface.object`
 slot/epoch classification, skipped-store exclusion, and true pre-apply load
 equality remain open.
+
+`proofs/LinkedPlatformLineageSyntax.v` lifts the earlier source-union census to
+the constructed official cleaned US and JP definition lists. It closes the
+visible direct named-writer and address-taking syntax upper bounds and bounds
+every retained internal direct updater caller to the name `update_objects`.
+Its five-field closure record is a sufficient conditional interface only: no
+field is inhabited from clean linked execution.
+
+`proofs/JPLinkedPlatformGlobal.v` extracts the exact generated JP
+`Surface.object -> temporary -> gMarioPlatform` statement and the apply
+function's leading global load. Real `Clight.step2` lemmas execute the
+individual local store and load statements under explicit premises and an
+abstract global environment. The starting fragment, concrete official-
+globalenv/symbol/block resolution,
+`Surface.object` evaluation, and
+intervening cell preservation are premises; declaration storage details,
+`find_floor` branch reachability, owner classification, pointer block/offset,
+allocation epoch, and the source-fragment-to-official-body connection remain
+open; complete sequence/skip trace composition is also pending.
 
 `proofs/Area1QueryScheduleClosure.v` computes intraprocedural generated
 call/guard receipts and proves a separate finite schedule model from

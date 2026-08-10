@@ -219,6 +219,21 @@
   create Ink's Object/Graphics gap.  The linked temporal, platform-phase,
   terrain/collision, owner, alias, and external-frame projections are not yet
   inhabited, so this is not a complete clean-installer exclusion.
+- `LinkedPlatformLineageSyntax.v` lifts the direct platform-pointer syntax
+  census to the constructed official cleaned US and JP `prog_defs`. It proves
+  the complete visible direct-writer upper bound, an upper bound naming
+  `update_objects` for any retained internal direct caller, and absence of a
+  direct address-taking site. These are syntax facts, not alias/external
+  frames or reachable execution.
+- `JPLinkedPlatformGlobal.v` checks the exact generated JP
+  `Surface.object`-to-`gMarioPlatform` store fragment and the apply function's
+  global load, then executes each individual assignment with a CompCert Clight
+  step.
+  These step lemmas quantify over an abstract global environment. The
+  later-load result explicitly assumes preservation of the platform cell;
+  concrete official-globalenv/symbol/block resolution, the connection from the source
+  fragment to the official body, floor-query result, branch reachability, slot/epoch
+  provenance, and intervening linked frame are not proved.
 - `JPInstallTimerWindow.v` proves timer `131` unique in the behavior's
   `0..150` range for the observed affine install/freeze/explosion schedule.
   Linking those global offsets and lifecycle classes to concrete Clight memory
@@ -521,6 +536,12 @@
   statement/memory refinements remain open.
 - Reachability classification and displacement bounds for every null, live,
   inactive, or reused JP platform-slot case.
+- None of the five linked lineage closures is proved from a clean execution:
+  equality of the query and current samples, modeled geometry for every live
+  canonical owner, canonical slot/epoch identity, exhaustive owner
+  classification, and absence of retained JP inbound transport. The new
+  official-link syntax and local JP store/load results are inputs to those
+  obligations, not substitutes for them.
 - A clean retail installer for the JP stale-platform payload.  Ink's non-null
   graphical retry is one candidate installer, with the timed top constrained
   to spinning timer 131 on the collision frame, timer 150 on frame 19, and

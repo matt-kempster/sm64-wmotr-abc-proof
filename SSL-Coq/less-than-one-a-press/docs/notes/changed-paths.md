@@ -608,6 +608,7 @@ public status corrections changed:
 - `SSL-Coq/less-than-one-a-press/README.md`
 - `SSL-Coq/less-than-one-a-press/_CoqProject`
 - `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md` (new)
 - `SSL-Coq/less-than-one-a-press/docs/claim.md`
 - `SSL-Coq/less-than-one-a-press/docs/goal.md`
 - `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
@@ -920,3 +921,26 @@ make the remaining installer escapes explicit.  The following paths changed:
 - `SSL-Coq/less-than-one-a-press/proofs/Area1InstallerTemporalClosure.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/Area1PrecollisionWriterClosure.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/StateFirstPlatformChronology.v` (new)
+
+## Linked platform-lineage tranche
+
+The direct platform-pointer census is lifted to the official cleaned US/JP
+links, and the local JP `Surface.object` store plus apply-load fragments are
+checked in the generated AST; their individual data-bearing statements have
+Clight-step proofs under explicit premises. The five clean-retail lineage cases
+remain open; the new proofs close only the direct named internal syntax
+boundary and local store/load dataflow. The following paths changed:
+
+- `SSL-Coq/README.md`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/claim.md`
+- `SSL-Coq/less-than-one-a-press/docs/goal.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/linked-platform-lineage.md` (new)
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+- `SSL-Coq/less-than-one-a-press/proofs/JPLinkedPlatformGlobal.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/LinkedPlatformLineageSyntax.v` (new)

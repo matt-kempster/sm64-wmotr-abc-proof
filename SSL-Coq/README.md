@@ -297,6 +297,21 @@ Object/Graphics gap.  Instantiating those temporal, owner, and frame
 projections from linked retail memory remains open;
 the new results do not complete the installer exclusion.
 
+The next linked-Clight layer proves that, in the official cleaned US/JP
+definition lists, the US clear name is the only additional recognized direct
+platform-global writer, no retained internal body directly takes the cell's
+address, and any retained internal direct updater caller must be named
+`update_objects`. The JP proof separately checks exact dataflow fragments in
+the generated updater/apply source bodies and executes the individual
+`Surface.object` temporary, `gMarioPlatform` store, and later apply-load
+statements
+under explicit expression/store/load premises and an abstract global
+environment. Concrete official-globalenv/symbol/block resolution, the source-fragment-to-official-body
+connection, fragment reachability, live floor ownership, alias/external
+frames, slot/epoch identity, and preservation until a later apply are still
+unproved. None of the five clean-retail lineage cases is therefore closed by
+this layer.
+
 ## Build
 
 With Rocq 8.16.1 and CompCert 3.15 on `PATH`:
