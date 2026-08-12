@@ -858,6 +858,41 @@ Definition LowerSameFrameCollisionPhaseCutRefinementObligation
       clight_projection run initial certificate
       (selected_lower_target_cut cut_projection).
 
+(** Current replacement boundary for the legacy endpoint-only integer pole
+    argument.  An actual Float32 collision-phase target event must select a
+    strictly earlier crossing of the binary32 lower cut; the already-proved
+    writer theorem then performs the complete seven-way cause split.  The two
+    premises are deliberately the remaining live-execution obligations. *)
+Theorem lower_float32_collision_phase_target_event_is_closed_under_complete_case_split :
+  forall cut_projection clight_projection,
+    LowerSameFrameCollisionPhaseCutRefinementObligation
+      cut_projection clight_projection ->
+    LowerTargetNoAWriterExclusions cut_projection clight_projection ->
+    forall run initial certificate region target_frame target_event
+        target_before target_after
+        (target_evidence :
+          ClightFrameEvidence clight_projection run initial certificate
+            target_frame target_event target_before target_after),
+      CleanPyramidEntry initial ->
+      state_entrance initial = LowerEntrance ->
+      fewer_than_one_a_press (project_inputs clight_projection run) ->
+      TargetEventForRegion region target_event ->
+      False.
+Proof.
+  intros cut_projection clight_projection Htiming Hexclusions run initial
+    certificate region target_frame target_event target_before target_after
+    target_evidence Hclean Hlower Hno_a Htarget.
+  destruct (Htiming run initial certificate Hclean Hlower Hno_a
+    region target_frame target_event target_before target_after
+    target_evidence Htarget) as [crossing Hcut].
+  eapply (lower_target_no_a_first_crossing_is_closed
+    cut_projection clight_projection Hexclusions run initial certificate
+    region target_frame crossing).
+  split; [exact Hclean |].
+  split; [exact Hlower |].
+  split; assumption.
+Qed.
+
 Theorem area2_lower_target_cut_checked_boundary :
   selected_area2_vertex_receipts area2_collision_vertices_us /\
   selected_area2_vertex_receipts area2_collision_vertices_jp /\
@@ -889,10 +924,7 @@ Theorem area2_lower_target_cut_checked_boundary :
       lower_aperture_wall_triangles /\
   firstn 8 (skipn 108 area2_no_cam_collision_triangles_jp) =
       lower_aperture_wall_triangles /\
-  position_in_lower_ring_target_air lower_pole_top_position = false /\
-  (forall frames x y z,
-    LegacyNormalizedLowerSoftBonkSample frames x y z ->
-    ~ lower_ring_air_footprint_Z x y z).
+  position_in_lower_ring_target_air lower_pole_top_position = false.
 Proof.
   split; [exact selected_area2_vertex_receipts_exact_us |].
   split; [exact selected_area2_vertex_receipts_exact_jp |].
@@ -906,6 +938,5 @@ Proof.
   split; [exact lower_ring_triangles_exact_jp |].
   split; [exact lower_aperture_wall_triangles_exact_us |].
   split; [exact lower_aperture_wall_triangles_exact_jp |].
-  split; [exact lower_pole_top_central_shaft_is_not_target_air |].
-  exact normalized_no_a_soft_bonk_cannot_enter_lower_target_air_footprint.
+  exact lower_pole_top_central_shaft_is_not_target_air.
 Qed.

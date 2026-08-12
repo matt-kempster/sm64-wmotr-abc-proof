@@ -975,6 +975,13 @@ Completed work is grouped by subject. Each item retains its original scope warni
   the concrete construction and all seven writer/support exclusions are
   supplied.  These implications do not inhabit those retail premises.
 
+- [x] Remove the legacy integer soft-bonk lemma from the active lower-cut
+  certificate and replace it with a conditional Float32 collision-phase
+  theorem: an actual target-event frame selects a crossing of the four
+  binary32 lower cells, then the validated writer theorem performs the
+  complete seven-way ordinary/platform/object/clip/alias/lifecycle/support
+  split. Live same-frame timing and all seven exclusions remain open.
+
 - [x] Define version-indexed downstream suffix certificates separately from
   optional clean no-A prefixes; require distinct Act-3, all-five-trigger, and
   Act-6-collection suffixes for each concrete cut.

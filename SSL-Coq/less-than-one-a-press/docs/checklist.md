@@ -435,7 +435,11 @@ concrete clean-retail predecessor needed to outrank the linked installer proof.
 ### Legacy pole subcase
 
 - [ ] Replace the legacy integer pole subcase with current Float32,
-  collision-phase reasoning plus a complete lower-route case split.
+  collision-phase reasoning plus a complete lower-route case split.  The
+  current conditional replacement now connects actual target-event frame
+  evidence to the binary32 lower cut and the exhaustive seven-way
+  writer/support split; live same-frame timing and all seven semantic
+  exclusions remain open.
 
 ## Already completed
 

@@ -589,6 +589,9 @@ check: proofs
 	  area2_lower_target_cut_checked_boundary
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.Area2LowerTargetCut \
+	  lower_float32_collision_phase_target_event_is_closed_under_complete_case_split
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2LowerTargetCut \
 	  lower_target_no_a_target_access_is_closed_under_adapter_obligations
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.Area2DownstreamContinuations \
