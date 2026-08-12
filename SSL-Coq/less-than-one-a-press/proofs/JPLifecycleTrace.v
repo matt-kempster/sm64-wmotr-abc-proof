@@ -173,6 +173,24 @@ Theorem jp_retail_apply_disassembly_receipt_checked :
   jp_apply_mario_platform_displacement_epilogue = 2150401096%Z.
 Proof. vm_compute. repeat split. Qed.
 
+(** Decode the observed word rather than trusting its descriptive label.  At
+    word 18 the retail JP routine contains a MIPS [jal]; combining its 26-bit
+    field with the caller PC's high nibble yields the exact platform helper. *)
+Definition mips_opcode (word : Z) : Z := Z.shiftr word 26.
+
+Definition mips_jump_target (pc word : Z) : Z :=
+  Z.lor (Z.land (pc + 4) 4026531840)
+    (Z.shiftl (Z.land word 67108863) 2).
+
+Theorem jp_retail_apply_word18_decodes_platform_displacement_call :
+  let call_pc := jp_apply_mario_platform_displacement_entry + 18 * 4 in
+  nth_error jp_apply_mario_platform_displacement_code_words 18 =
+    Some 202055742 /\
+  mips_opcode 202055742 = 3 /\
+  mips_jump_target call_pc 202055742 =
+    jp_apply_platform_displacement_target.
+Proof. vm_compute. repeat split. Qed.
+
 Local Close Scope Z_scope.
 
 (** Object sample used by collision detection on the successful frame. *)

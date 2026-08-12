@@ -906,6 +906,12 @@ Completed work is grouped by subject. Each item retains its original scope warni
   cell until the later apply, and executing the guard/displacement tail remain
   open.
 
+- [x] Strengthen the authentic JP ROM receipt for the true first apply: decode
+  word 18 of `apply_mario_platform_displacement` as a MIPS `jal`, reconstruct
+  its target from the instruction field and caller PC, and prove that target is
+  exactly `apply_platform_displacement`. This authenticates the observed call
+  edge, not clean reachability or the surrounding retail execution.
+
 - [x] Check the bilateral pre-collision generated-source boundary.  The
   fixed scheduler/collision bodies and 29 listed stock Area-1 surface-family
   bodies per version have no recognized direct Mario XYZ writer or direct

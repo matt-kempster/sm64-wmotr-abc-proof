@@ -190,7 +190,9 @@ These obligations currently block the clean-retail result.
   collision-preserving-clone possibilities project into the bounded relation or
   are unreachable.  This is currently the highest-priority counterexample
   tranche because the fixture already validates the destination displacement
-  and continuation once a suitable payload is installed.  Completed supporting
+  and continuation once a suitable payload is installed; its authentic JP ROM
+  receipt now also decodes the observed word-18 `jal` to the exact platform-
+  displacement helper.  Completed supporting
   results are preserved under
   [JP stale-platform lineage and destination continuation](checklist-completed.md#jp-stale-platform-lineage-and-destination-continuation).
 

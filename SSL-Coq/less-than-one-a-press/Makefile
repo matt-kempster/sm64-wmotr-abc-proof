@@ -925,6 +925,9 @@ check: proofs
 	  jp_retail_apply_disassembly_receipt_checked
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.JPLifecycleTrace \
+	  jp_retail_apply_word18_decodes_platform_displacement_call
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPLifecycleTrace \
 	  jp_top_survives_true_first_apply_allocations_at_depth_47
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.JPLifecycleTrace \
