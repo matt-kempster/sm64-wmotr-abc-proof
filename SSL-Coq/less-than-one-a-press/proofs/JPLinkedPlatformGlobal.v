@@ -213,10 +213,54 @@ Proof.
       exact Hstore.
 Qed.
 
-(** The two data-bearing steps are proved separately above and below.  Their
-    exact four-step [Smallstep.star] composition additionally includes the
-    structural sequence/skip transitions and remains an explicit composition
-    obligation rather than being hidden behind an unstable proof script. *)
+(** Exact four-step execution of the generated owner-capture fragment.  This
+    closes the local Clight dataflow used by the JP stale-platform installer:
+    sequence entry, [Surface.object] capture, skip-to-second-statement, and the
+    pointer store.  Live surface selection and reachability remain separate. *)
+Theorem jp_surface_owner_to_platform_fragment_executes :
+  forall function continuation environment locals before
+      platform_block owner_block owner_offset after,
+    @eval_expr jp_ge environment locals before
+      jp_surface_object_expression (Vptr owner_block owner_offset) ->
+    environment ! JPLPGPlatform._gMarioPlatform = None ->
+    Genv.find_symbol jp_ge JPLPGPlatform._gMarioPlatform =
+      Some platform_block ->
+    Mem.store Mptr before platform_block 0
+      (Vptr owner_block owner_offset) = Some after ->
+    @Smallstep.star _ _ Clight.step2 jp_ge
+      (State function jp_surface_owner_to_platform_fragment
+        continuation environment locals before) E0
+      (State function Sskip continuation environment
+        (PTree.set JPLPGPlatform._t'9
+          (Vptr owner_block owner_offset) locals) after) /\
+    Mem.load Mptr after platform_block 0 =
+      Some (Vptr owner_block owner_offset).
+Proof.
+  intros function continuation environment locals before platform_block
+    owner_block owner_offset after Heval Hnotlocal Hsymbol Hstore.
+  split.
+  - unfold jp_surface_owner_to_platform_fragment.
+    eapply Smallstep.star_step.
+    + apply Clight.step_seq.
+    + eapply Smallstep.star_step.
+      * eapply jp_surface_object_temp_step. exact Heval.
+      * eapply Smallstep.star_step.
+        -- apply Clight.step_skip_seq.
+        -- eapply Smallstep.star_step.
+           ++ eapply jp_platform_global_store_step.
+              ** exact Hnotlocal.
+              ** exact Hsymbol.
+              ** apply PTree.gss.
+              ** exact Hstore.
+           ++ constructor.
+           ++ reflexivity.
+        -- reflexivity.
+      * reflexivity.
+    + reflexivity.
+  - pose proof (Mem.load_store_same Mptr before platform_block 0
+      (Vptr owner_block owner_offset) after Hstore) as Hload.
+    exact Hload.
+Qed.
 
 Lemma jp_platform_global_load_step :
   forall function continuation environment locals memory

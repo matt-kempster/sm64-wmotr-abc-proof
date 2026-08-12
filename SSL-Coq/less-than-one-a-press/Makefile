@@ -1531,6 +1531,9 @@ check: proofs
 	  jp_generated_platform_ast_boundary_checked
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.JPLinkedPlatformGlobal \
+	  jp_surface_owner_to_platform_fragment_executes
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPLinkedPlatformGlobal \
 	  jp_successful_platform_store_is_true_apply_loaded_owner_under_frame
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.Area1QueryScheduleClosure \

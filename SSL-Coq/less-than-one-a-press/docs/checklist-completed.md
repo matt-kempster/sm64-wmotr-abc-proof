@@ -894,17 +894,17 @@ Completed work is grouped by subject. Each item retains its original scope warni
   unresolved external effects, indirect effects, and retail execution remain
   open.
 
-- [x] Extract the local JP platform-global dataflow fragments and execute their
-  individual assignments.
-  Check `Surface.object -> temporary -> gMarioPlatform` and the apply
-  function's leading global load and prove the corresponding
-  abstract-globalenv `Clight.step2` lemmas. Reaching the store
+- [x] Extract the local JP platform-global dataflow fragments and execute the
+  exact four-step `Surface.object -> temporary -> gMarioPlatform` fragment,
+  including sequence entry, field capture, skip transition, pointer store,
+  and the immediately resulting pointer load. Check the apply function's
+  leading global load and prove the corresponding abstract-globalenv
+  `Clight.step2` lemma. Reaching the store
   branch, connecting the source fragment to the official body, evaluating a
   live floor owner, specializing to the concrete official global environment
   and symbol blocks, framing the
   cell until the later apply, and executing the guard/displacement tail remain
-  open; composing the surrounding sequence/skip steps into a full fragment
-  trace is also pending.
+  open.
 
 - [x] Check the bilateral pre-collision generated-source boundary.  The
   fixed scheduler/collision bodies and 29 listed stock Area-1 surface-family

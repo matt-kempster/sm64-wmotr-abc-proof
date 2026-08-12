@@ -227,7 +227,8 @@ These obligations currently block the clean-retail result.
   prove the terrain-dispatch and collision XYZ frames plus the real
   platform-phase refinement; and eliminate or realize each of the five
   remaining lineage cases. The official direct named writer/caller/address
-  syntax closure and the local JP store/load Clight steps are complete; the
+  syntax closure, local JP store/load steps, and exact four-step
+  `Surface.object -> temporary -> gMarioPlatform` fragment are complete; the
   linked reachability and preservation work in this item is not. See
   [`notes/linked-platform-lineage.md`](notes/linked-platform-lineage.md).
 
