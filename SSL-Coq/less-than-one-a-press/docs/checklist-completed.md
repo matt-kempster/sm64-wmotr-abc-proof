@@ -551,12 +551,33 @@ Completed work is grouped by subject. Each item retains its original scope warni
   source-to-selected viewport-repair execution lockstep, runtime handoff,
   routing/prefix/chronology, or selected-to-retail semantics.
 
+- [x] Linked gap-closure step 1 — Instantiate the generic checked
+  cleaned-definition selector for the concrete US unit list and normalized
+  semantic slice.  Every definition emitted by the US cleaner is therefore
+  exactly the definition selected by the normalized map.  This is selection
+  exactness only; complete ordered global/public maps, memory injection, and
+  execution refinement remain open.
+
+- [x] Linked gap-closure step 1 — Instantiate the same checked
+  cleaned-definition selector for the concrete JP unit list and normalized
+  semantic slice, with the same exact scope and remaining map/memory/execution
+  caveats.
+
 - [x] Linked gap-closure steps 2/3 — Resolve the exact generated US
   `_warp_level` symbol/internal body in the selected viewport-repaired program.
   The split source, source-union, normalized, viewport, repair-identity, and
   repair receipts feed `USWarpLevelEntryResolution.v`.  This proves exact
   global-environment lookup only: routing, reachability, execution, the entry
-  postcondition, live memory, and the remaining US entry bindings stay open.
+  postcondition, and live memory stay open.
+
+- [x] Linked gap-closure steps 2/3 — Check eight focused fixed-position source
+  membership receipts for the selected-US globals not already covered by the
+  five-core audit: object-list storage/free-list/pointer, Mario-state pointer,
+  platform pointer, warp destination, delayed-warp operation, and spin-warp
+  behavior.  These kernel-checked generated-list facts remove source lookup
+  from the residual, but do not yet transport the eight names through the
+  repaired program or construct `USArea1EntrySymbolBindings`; live contents,
+  layout, routing, reachability, and execution remain open.
 
 ## Ink, quicksand, and clean-entry reductions
 

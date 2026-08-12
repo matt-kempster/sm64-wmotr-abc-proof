@@ -150,6 +150,7 @@ proofs/Area1WarpTopCloneCensus.v
 proofs/Area1QueryScheduleClosure.v
 proofs/ClightGlobalMemoryRefinement.v
 proofs/GlobalInterfaceStructural.v
+proofs/ConcreteDefinitionSelection.v
 proofs/RetailExternalFrames.v
 proofs/RetailExternalFrameReachability.v
 proofs/DialogDepthUSMarioCalleeReceipt.v
@@ -185,6 +186,10 @@ proofs/USRepairedSymbolTransport.v
 proofs/SourceUnitRepairedSymbol.v
 proofs/USSelectedCoreGameInitNthReceipt.v
 proofs/USSelectedCoreObjectListNthReceipt.v
+proofs/USArea1ObjectListNthReceipt.v
+proofs/USArea1LevelUpdateNthReceipt.v
+proofs/USArea1PlatformNthReceipt.v
+proofs/USArea1SpinBehaviorNthReceipt.v
 proofs/USSelectedCoreGameInitReceipt.v
 proofs/USSelectedCoreObjectListReceipt.v
 proofs/USViewportRepairDefinitionListSyntax.v

@@ -69,6 +69,24 @@ check: proofs
 	  LessThanOneAPress.Proofs.GlobalInterfaceStructural \
 	  generic_checked_cleaned_definition_exactness_capstone
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ConcreteDefinitionSelection \
+	  us_cleaned_definition_selection_exact_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ConcreteDefinitionSelection \
+	  jp_cleaned_definition_selection_exact_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.USArea1ObjectListNthReceipt \
+	  us_object_list_processor_gObjectListArray_nth_error_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.USArea1LevelUpdateNthReceipt \
+	  us_level_update_gMarioState_nth_error_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.USArea1PlatformNthReceipt \
+	  us_platform_displacement_gMarioPlatform_nth_error_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.USArea1SpinBehaviorNthReceipt \
+	  us_ssl_script_bhvSpinAirborneWarp_nth_error_checked
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.RetailExternalFrameReachability \
 	  legacy_external_call_frame_implies_reachable_frame
 	bash pipeline/assumptions.sh \

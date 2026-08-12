@@ -34,9 +34,9 @@ These obligations currently block the clean-retail result.
   are `find_symbol` existence only.  The original-unit
   cleaning/header-normalization bridge is already closed structurally and no
   longer treats standalone cross-unit `EF_external` calls as closed-program
-  semantics.  Also instantiate the generic
-  definition-selection result for US and JP, prove the concrete
-  global-definition and public-name maps,
+  semantics.  The generic definition-selection result now has checked
+  concrete US and JP instances for every emitted cleaned definition.  Still
+  prove the complete concrete global-definition and public-name maps,
   name-based initial/current-state `Mem.inject`, and the initial/final
   whole-program execution refinement.  Neither program construction nor the
   static audits supply repaired-US initialization, memory shape/content/block
@@ -54,15 +54,16 @@ These obligations currently block the clean-retail result.
   - recover the controller history at the clean entry; and
   - prove callsite-sensitive external effects and pool/list ownership.
 
-  The official cleaned JP environment now has a constructed
-  `Area1EntryAddresses` witness with Mario/entry-warp slots `0`/`1`, a
-  `JPArea1EntrySymbolBindings` record for all twelve required symbols,
-  valid-slot arithmetic, pairwise separation of
+  The official cleaned JP environment has a constructed `Area1EntryAddresses`
+  witness with Mario/entry-warp slots `0`/`1` and a complete twelve-symbol
+  binding record.  Its valid-slot arithmetic, pairwise separation of
   Mario-state/controller/object-pool storage, and separation of every pointer
-  cell from those core storage blocks.  This is structural global-environment
-  evidence only: live memory contents, allocation/layout sizes, initializer
-  values, routing, reachability, `warp_level` execution, the entry
-  postcondition, and both prefixes remain open.
+  cell from those core storage blocks are checked.  This is structural
+  global-environment evidence only: live memory contents, allocation/layout
+  sizes, initializer values, routing, reachability, `warp_level` execution,
+  the entry postcondition, both prefixes, and the selected-US aggregate binding
+  remain open.  Eight focused selected-US source membership receipts are now
+  checked, removing generated-list lookup from the remaining US blockers.
 
   The generic entry bridges only reduce a supplied entry postcondition or
   prefix; they do not construct this execution.
@@ -73,8 +74,11 @@ These obligations currently block the clean-retail result.
   remain conditional on the concrete program, address, and nonempty task-entry
   prefix.  Exact `warp_level` symbol/body resolution is now checked for both the
   official cleaned JP program and the selected viewport-repaired US program.
-  Routing, reachability, execution, the postcondition, and the remaining US
-  entry-symbol bindings remain open.
+  The JP twelve-symbol entry-address bundle and its limited structural
+  separation are checked; eight remaining selected-US source membership
+  receipts are also checked.  Their repaired-program transport and aggregate
+  binding, routing, reachability, execution, live contents, allocation sizes,
+  and the postcondition remain open.
 
 - [ ] Linked gap-closure step 4 — Close the reachable gameplay invariants:
 

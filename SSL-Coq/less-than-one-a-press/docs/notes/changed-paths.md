@@ -747,6 +747,7 @@ concrete external footprints, and compositional Clight state simulation changed:
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
 - `SSL-Coq/less-than-one-a-press/proofs/USWholeASTTagRepair.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/ClightGlobalMemoryRefinement.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/ConcreteDefinitionSelection.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/RetailExternalFrames.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/ClightEndToEndRefinement.v` (new)
 
@@ -1084,6 +1085,10 @@ paths changed:
 - `SSL-Coq/less-than-one-a-press/proofs/USRepairedInitAddrofAudit.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/USRepairedSymbolTransport.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/USRepairedSyntaxAudit.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/USArea1LevelUpdateNthReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/USArea1ObjectListNthReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/USArea1PlatformNthReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/USArea1SpinBehaviorNthReceipt.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/USSelectedCoreGameInitNthReceipt.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/USSelectedCoreGameInitReceipt.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/USSelectedCoreObjectListNthReceipt.v` (new)
